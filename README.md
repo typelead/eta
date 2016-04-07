@@ -40,9 +40,9 @@ As you can see, this project is a large undertaking. If you would love to run yo
 
 ## Gratitude
 
-We are grateful that the folks at (GHC HQ)[https://ghc.haskell.org/trac/ghc/wiki/TeamGHC] have generously open-sourced their state-of-the-art Haskell compiler allowing us to hack on it to implement Haskell on a wide variety of platforms.
+We are grateful that the folks at [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki/TeamGHC) have generously open-sourced their state-of-the-art Haskell compiler allowing us to hack on it to implement Haskell on a wide variety of platforms.
 
-We are also grateful for Ilya V. Portnov for his (hs-java)[https://hackage.haskell.org/package/hs-java] package that we intend to use heavily for code generation.
+We are also grateful for Ilya V. Portnov for his [hs-java](https://hackage.haskell.org/package/hs-java) package that we intend to use heavily for code generation.
 
 Thank you guys!
 
