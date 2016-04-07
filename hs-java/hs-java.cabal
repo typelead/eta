@@ -1,0 +1,52 @@
+Name:           hs-java
+Version:        0.3.4
+Cabal-Version:  >= 1.6
+License:        BSD3
+License-File:   LICENSE
+Author:         Ilya V. Portnov
+Maintainer:     portnov84@rambler.ru
+Synopsis:       Java .class files assembler/disassembler
+Category:       Jvm
+Build-Type:     Simple
+Description:    This package declares data types for Java .class files format and functions
+                to assemble/disassemble Java bytecode. See dump-class.hs, rebuild-class.hs,
+                TestGen.hs for examples of usage.
+Bug-reports: http://redmine.iportnov.ru/projects/hs-java/
+
+Extra-source-files: dump-class.hs
+                    rebuild-class.hs
+                    TestGen.hs
+
+library
+  Exposed-Modules: JVM.Common
+                   JVM.ClassFile
+                   JVM.Assembler
+                   JVM.Converter
+                   JVM.Builder
+                   JVM.Builder.Monad
+                   JVM.Builder.Instructions
+                   JVM.Dump
+                   JVM.Exceptions
+                   Java.Lang
+                   Java.IO
+                   Java.ClassPath
+                   Java.ClassPath.Types
+                   Java.ClassPath.Common
+                   Java.JAR
+                   Java.JAR.Archive
+                   Java.META
+                   Java.META.Types
+                   Java.META.Spec
+                   Java.META.Parser
+
+  Build-Depends:  base >= 3 && <= 5, containers, binary,
+                  mtl, directory, filepath, utf8-string, array,
+                  bytestring, data-binary-ieee754, binary-state,
+                  control-monad-exception, data-default >= 0.5.0,
+                  MissingH, LibZip, Glob, parsec >= 3 && <4
+
+  ghc-options: -fwarn-unused-imports
+
+Source-repository head
+  type:     git
+  location: git@gitorious.org:hs-java/hs-java.git

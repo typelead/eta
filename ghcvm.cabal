@@ -17,10 +17,12 @@ source-repository head
 library
     default-language:    Haskell2010
     exposed-modules:     GHCVM.DriverPipeline
+                       , CodeGen.Main
     build-depends:       base >= 4.7 && < 5
                        , ghc >= 7.10.3 && < 7.11.0
                        , directory >= 1.2
                        , filepath
+                       , hs-java == 0.3.4
     hs-source-dirs:      compiler
     exposed:             True
     buildable:           True
@@ -29,6 +31,9 @@ executable ghcvm
   hs-source-dirs:      ghcvm
   main-is:             Main.hs
   default-language:    Haskell2010
+  other-modules:       GhciMonad
+                       GhciTags
+                       InteractiveUI
   build-depends:       array
                      , base >= 4.7 && < 5
                      , bytestring
