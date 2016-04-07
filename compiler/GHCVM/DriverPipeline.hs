@@ -27,7 +27,6 @@ runGhcVMPhase realphase@(RealPhase (Unlit _)) = runPhase realphase
 runGhcVMPhase realphase@(RealPhase (Cpp _)) = runPhase realphase
 runGhcVMPhase realphase@(RealPhase (HsPp _)) = runPhase realphase
 runGhcVMPhase realphase@(RealPhase (DriverPhases.Hsc _)) = \fn dflags -> do
-  liftIO $ putStrLn "In Hsc phase"
   runPhase realphase fn dflags
 runGhcVMPhase realphase@(HscOut src_flavour mod_name result) = \_ dflags -> do
   location <- getLocation src_flavour mod_name
@@ -37,17 +36,11 @@ runGhcVMPhase realphase@(HscOut src_flavour mod_name result) = \_ dflags -> do
       hsc_lang = hscTarget dflags
       next_phase = StopLn
 
-  liftIO $ print location
-  liftIO $ print o_file
-  liftIO . putStrLn $ "next_phase: " ++ show next_phase
-
   case result of
     HscNotGeneratingCode -> do
-      liftIO . putStrLn $ "HscNotGeneratingCode"
       return (RealPhase next_phase,
               panic "No output filename from Hsc when no-code")
     HscUpToDate -> do
-          liftIO . putStrLn $ "HscUpToDate"
           liftIO $ touchObjectFile dflags o_file
           -- The .o file must have a later modification date
           -- than the source file (else we wouldn't get Nothing)
@@ -56,13 +49,11 @@ runGhcVMPhase realphase@(HscOut src_flavour mod_name result) = \_ dflags -> do
     HscUpdateBoot ->
       do -- In the case of hs-boot files, generate a dummy .o-boot
           -- stamp file for the benefit of Make
-          liftIO . putStrLn $ "HscUpdateBoot"
           liftIO $ touchObjectFile dflags o_file
           return (RealPhase next_phase, o_file)
     HscUpdateSig ->
       do -- We need to create a REAL but empty .o file
           -- because we are going to attempt to put it in a library
-          liftIO . putStrLn $ "HscUpdateSig"
           PipeState{hsc_env=hsc_env'} <- getPipeState
           let input_fn = expectJust "runPhase" (ml_hs_file location)
               basename = dropExtension input_fn
@@ -70,12 +61,10 @@ runGhcVMPhase realphase@(HscOut src_flavour mod_name result) = \_ dflags -> do
           return (RealPhase next_phase, o_file)
     HscRecomp cgguts mod_summary ->
       do output_fn <- phaseOutputFilename next_phase
-         liftIO . putStrLn $ "HscRecomp"
 
          PipeState{hsc_env=hsc_env'} <- getPipeState
 
          outputFilename <- liftIO $ genStg hsc_env' cgguts mod_summary output_fn
-         liftIO $ putStrLn $ "Finished in pipeline STG"
 
          return (RealPhase next_phase, outputFilename)
 
