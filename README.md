@@ -18,7 +18,7 @@ We aim to meet the following goals:
 - Support hot code reloading 
 - Re-use GHC's infrastructure
   - Keep up with their release cycle
-  - CLI should match that of ghc's to mak
+  - CLI should match that of ghc's
 
 # Progress
 
@@ -36,8 +36,8 @@ We aim to meet the following goals:
 
 # Contributing
 
-As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM, get in touch and we'll see how we can fit you in.
+As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, get in touch and we'll see how we can fit you in.
 
 # Gratitude
 
-We are grateful that the folks at GHC HQ have graciously open-sourced their state-of-the-art Haskell compiler allowing us to hack on it to implement Haskell on a wide variety of platforms. Thank you guys!
+We are grateful that the folks at GHC HQ have generously open-sourced their state-of-the-art Haskell compiler allowing us to hack on it to implement Haskell on a wide variety of platforms. Thank you guys!
