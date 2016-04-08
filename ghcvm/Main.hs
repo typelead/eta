@@ -34,7 +34,7 @@ import Panic
 import MonadUtils (liftIO)
 
 -- GHCVM API
-import GHCVM.DriverPipeline (runGhcVMPhase)
+import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM)
 
 -- Imports for --abi-hash
 import Module              ( mkModuleName, ModLocation(..))
@@ -120,7 +120,8 @@ main = do
 
             -- add the override to force GHC to stop at STG code
             GHC.setSessionDynFlags
-              (dflags0 { hooks = emptyHooks {runPhaseHook = Just runGhcVMPhase},
+              (dflags0 { hooks = emptyHooks {runPhaseHook = Just runGhcVMPhase,
+                                             linkHook = Just linkGhcVM},
                          objectSuf = "class"})
 
             dflags <- GHC.getSessionDynFlags
@@ -149,10 +150,10 @@ main' postLoadMode dflags0 args flagWarnings = do
          = case postLoadMode of
                DoInteractive   -> (CompManager, HscInterpreted, NoLink)
                DoEval _        -> (CompManager, HscInterpreted, NoLink)
-               DoMake          -> (CompManager, dflt_target,    NoLink)
-               DoMkDependHS    -> (MkDepend,    dflt_target,    NoLink)
-               DoAbiHash       -> (OneShot,     dflt_target,    NoLink)
-               _               -> (OneShot,     dflt_target,    NoLink)
+               DoMake          -> (CompManager, dflt_target,    LinkBinary)
+               DoMkDependHS    -> (MkDepend,    dflt_target,    LinkBinary)
+               DoAbiHash       -> (OneShot,     dflt_target,    LinkBinary)
+               _               -> (OneShot,     dflt_target,    LinkBinary)
 
   let dflags1 = case lang of
                 HscInterpreted ->

@@ -88,7 +88,7 @@ type instance Link File a = Word16
 -- | At Direct stage, Link contain object itself.
 type instance Link Direct a = a
 
--- | Object (class, method, field …) access flags 
+-- | Object (class, method, field …) access flags
 type family AccessFlags stage
 
 -- | At File stage, access flags are represented as Word16
@@ -561,7 +561,7 @@ fieldNameType f = NameType (fieldName f) (fieldSignature f)
 
 instance Binary (Field File) where
   put (Field {..}) = do
-    put fieldAccessFlags 
+    put fieldAccessFlags
     put fieldName
     put fieldSignature
     put fieldAttributesCount
@@ -600,11 +600,11 @@ lookupMethod name cls = look (classMethods cls)
       | otherwise           = look fs
 
 instance Binary (Method File) where
-  put (Method {..}) = do
+  put Method {..} = do
     put methodAccessFlags
     put methodName
     put methodSignature
-    put methodAttributesCount 
+    put methodAttributesCount
     forM_ (attributesList methodAttributes) put
 
   get = do

@@ -1,10 +1,11 @@
-module GHCVM.DriverPipeline (runGhcVMPhase) where
+module GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM) where
 
 import Module
 import DynFlags
 import DriverPipeline
 import DriverPhases
 import HscTypes
+import BasicTypes
 import CoreSyn (CoreProgram)
 import StgSyn (StgBinding, pprStgBindings)
 import CostCentre (CollectedCCs)
@@ -136,3 +137,7 @@ myCoreToStg dflags this_mod prepd_binds = do
 
     return (stg_binds2, cost_centre_info)
 
+linkGhcVM :: GhcLink -> DynFlags -> Bool -> HomePackageTable -> IO SuccessFlag
+linkGhcVM _ dflags _ hpt = do
+  putStrLn "Linking the generated .class files..."
+  return Succeeded

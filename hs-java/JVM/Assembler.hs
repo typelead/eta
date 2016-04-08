@@ -487,7 +487,7 @@ instance BinaryState Integer Instruction where
                                    putByte 170
                                    offset <- getOffset
                                    let pads = padding offset
-                                   replicateM pads (putByte 0)
+                                   replicateM_ pads (putByte 0)
                                    put low
                                    put high
                                    forM_ offs put
@@ -495,7 +495,7 @@ instance BinaryState Integer Instruction where
                                    putByte 171
                                    offset <- getOffset
                                    let pads = padding offset
-                                   replicateM pads (putByte 0)
+                                   replicateM_ pads (putByte 0)
                                    put def
                                    put n
                                    forM_ pairs put
