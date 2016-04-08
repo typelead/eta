@@ -24,8 +24,8 @@ We aim to meet the following goals:
 
 ### Completed Items
 - Came up with an efficient design for a JVM Runtime System for Haskell that:
-  - Has full support of Tail Call Optimization (TCO)
-  - Has a memory-efficient solution to overriding a thunk with its value
+  - Has full support of general tail calls
+  - Has a memory-efficient solution to overriding a thunk with its value (at the cost of complicated implementation and a high-level GC layer)
   - Can interoperate with Java seamlessly
 - Intercepted the STG Code in GHC pipeline
 
