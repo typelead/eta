@@ -55,3 +55,4 @@ executable rtsbuild
   build-depends:       base >= 4.7 && < 5
                      , shake
                      , directory
+                     , containers >= 0.5

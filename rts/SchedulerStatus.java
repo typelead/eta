@@ -1,3 +1,5 @@
 package ghcvm.runtime;
 
-public class SchedulerStatus {}
+public enum SchedulerStatus {
+    Killed, Interrupted, HeapExhausted, Success
+}

@@ -3,7 +3,6 @@ package ghcvm.runtime;
 import ghcvm.runtime.RtsConfig;
 
 public class RtsStartup {
-    public static void hsInitGhcVm(String[] args, RtsConfig config) {
-        return;
-    }
+    public static void hsInit(String[] args, RtsConfig config) {}
+    public static void shutdownHaskellAndExit(int exitStatus, boolean faseExit) {}
 }

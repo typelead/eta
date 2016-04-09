@@ -1,9 +1,11 @@
 package ghcvm.runtime;
 
 import ghcvm.runtime.Capability;
+import ghcvm.runtime.SchedulerStatus;
 
 public class Rts {
     public static Capability lock() {return null;}
-    // TODO: types are inaccurate
-    public static void evalLazyIO(Capability cap, CLOSURE_PTR p, CLOSURE_PTR ret) {}
+    public static void unlock(Capability cap) {}
+    public static void evalLazyIO(Ptr<Capability> cap, CLOSURE_PTR p, REF_CLOSURE_PTR ret) {}
+    public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
 }
