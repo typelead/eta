@@ -1,7 +1,7 @@
-package ghcvm.runtime;
+package ghcvm.runtime.types;
 
 import java.util.ArrayList;
-import ghcvm.runtime.Task;
+import static ghcvm.runtime.types.Task.InCall;
 
 public class StgTSO {
     public int threadId; // Should this be long instead?
@@ -10,7 +10,7 @@ public class StgTSO {
     public ArrayList<StackFrame> stack;
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
-    public Task.InCall bound;
+    public InCall bound;
     // public StgTRecHeader trec; deal with later when we implement STM
     public Capability cap;
     public Object blockInfo;

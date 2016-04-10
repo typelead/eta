@@ -1,4 +1,4 @@
-package ghcvm.runtime;
+package ghcvm.runtime.types;
 
 public class RtsConstants {
     public static final int EXIT_SUCCESS        = 0;

@@ -1,4 +1,6 @@
-package ghcvm.runtime;
+package ghcvm.runtime.types;
+
+#include "Rts.h"
 
 public class Task {
     public static class InCall {

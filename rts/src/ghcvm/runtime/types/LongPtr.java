@@ -1,4 +1,4 @@
-package ghcvm.runtime;
+package ghcvm.runtime.types;
 
 public class LongPtr {
     public long ref;

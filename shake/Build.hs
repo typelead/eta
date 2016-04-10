@@ -2,12 +2,14 @@ import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
 import Development.Shake.Util
-import System.Directory (copyFile)
-import Macros
 
 rtsDir = "rts"
 
 rtsBuildDir = rtsDir </> "build"
+
+rtsIncludeDir = rtsDir </> "include"
+
+rtsSrcDir = rtsDir </> "src"
 
 build x = rtsBuildDir </> x
 
@@ -22,14 +24,17 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       removeFilesAfter rtsBuildDir ["//*"]
 
     build "rts.jar" %> \out -> do
-      cs <- getDirectoryFiles rtsDir ["*.java"]
-      let os = [build (takeDirectory1 c) | c <- cs]
-      need os
+      cs <- getDirectoryFiles rtsSrcDir ["//*.java"]
+      let os = [build c | c <- cs]
+      headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
+      need $ os ++ headers
       () <- cmd "javac" os
       cmd "jar cf" [out] os
 
-    build "*.java" %> \out -> do
-      let input = rtsDir </> (dropDirectory1 . dropDirectory1 $ out)
+    "rts/build//*.java" %> \out -> do
+      -- debug $ "1: " ++ out
+      let input = rtsSrcDir </> (dropDirectory1 . dropDirectory1 $ out)
+      -- debug $ "2: " ++ input
       need [input]
-      liftIO $ copyFile input out
-      cmd "sed -i" subs out
+      Stdout output <- cmd Shell "cpp -iquote" rtsIncludeDir input "| sed -e" "s/#.*//" "-e" "/^$/d"
+      writeFile' out output

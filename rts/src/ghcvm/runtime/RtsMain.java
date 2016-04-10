@@ -1,11 +1,8 @@
 package ghcvm.runtime;
 
-import ghcvm.runtime.SchedulerStatus;
-import ghcvm.runtime.RtsConstants;
-import ghcvm.runtime.RtsStartup;
-import ghcvm.runtime.RtsConfig;
-import ghcvm.runtime.Capability;
-import ghcvm.runtime.Ptr;
+#include "Rts.h"
+
+import ghcvm.runtime.types.*;
 
 public class RtsMain {
     public static int hsMain(String[] args, CLOSURE_PTR mainClosure, RtsConfig config) {

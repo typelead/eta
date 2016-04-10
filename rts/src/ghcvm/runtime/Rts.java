@@ -1,7 +1,8 @@
 package ghcvm.runtime;
 
-import ghcvm.runtime.Capability;
-import ghcvm.runtime.SchedulerStatus;
+#include "Rts.h"
+
+import ghcvm.runtime.types.*;
 
 public class Rts {
     public static Capability lock() {return null;}
