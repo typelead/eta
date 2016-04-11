@@ -21,17 +21,17 @@ public class RtsMain {
         switch (status) {
             case Killed:
                 RtsMessages.errorBelch("main thread exited (uncaught exception)");
-                exitStatus = RtsConstants.EXIT_KILLED;
+                exitStatus = EXIT_KILLED;
                 break;
             case Interrupted:
                 RtsMessages.errorBelch("interrupted");
-                exitStatus = RtsConstants.EXIT_INTERRUPTED;
+                exitStatus = EXIT_INTERRUPTED;
                 break;
             case HeapExhausted:
-                exitStatus = RtsConstants.EXIT_HEAPOVERFLOW;
+                exitStatus = EXIT_HEAPOVERFLOW;
                 break;
             case Success:
-                exitStatus = RtsConstants.EXIT_SUCCESS;
+                exitStatus = EXIT_SUCCESS;
                 break;
             default:
                 RtsMessages.barf("main thread completed with invalid status");
