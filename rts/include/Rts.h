@@ -23,4 +23,10 @@
 #define EXIT_HEAPOVERFLOW   251
 #define EXIT_KILLED         250
 
+
+#define ACTIVITY_YES      0
+#define ACTIVITY_MAYBE_NO 1
+#define ACTIVITY_INACTIVE 2
+#define ACTIVITY_DONE_GC  3
+
 #endif

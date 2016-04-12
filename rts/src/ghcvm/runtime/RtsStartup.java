@@ -11,6 +11,7 @@ public class RtsStartup {
         //setlocale(LC_CTYPE,"");
         RtsStats.startInit();
         // TODO: Implement Stable Ptrs, Globals, File Locking, HPC, IO Manager, Storage, Tracing, processing RTS Flags (is this necessary?)
+        RtsScheduler.initScheduler();
         RtsStats.endInit();
     }
 
