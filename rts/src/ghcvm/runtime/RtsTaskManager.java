@@ -1,6 +1,7 @@
 package ghcvm.runtime;
 
 import ghcvm.runtime.types.*;
+import static ghcvm.runtime.types.Capability.*;
 
 public class RtsTaskManager {
     public static Task allTasks;
@@ -11,7 +12,7 @@ public class RtsTaskManager {
     private static boolean tasksInitialized;
     public static final ThreadLocal<Task> myTask = new ThreadLocal<Task>() {
             @Override
-            protected Integer initialValue() {
+            protected Task initialValue() {
                 return null;
             }
         };
@@ -25,6 +26,7 @@ public class RtsTaskManager {
         }
     }
     public static void startWorkerTasks(int from, int to) {
+        Capability cap = null;
         for (int i = from; i < to; i++) {
             cap = capabilities.get(i);
             synchronized (cap) {

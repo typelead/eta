@@ -5,12 +5,9 @@ package ghcvm.runtime;
 import ghcvm.runtime.types.*;
 
 public class RtsScheduler {
-#if !defined(THREADED_RTS)
-    public static blockedQueueHead = null;
-    public static blockedQueueTail = null;
-    public static sleepingQueue = null;
-#endif
-
+    public static StgTSO blockedQueueHead = null;
+    public static StgTSO blockedQueueTail = null;
+    public static StgTSO sleepingQueue = null;
     public static int recentActivity = ACTIVITY_YES;
     public static int schedulerState = SCHED_RUNNING;
     public static void scheduleWaitThread(StgTSO tso, REF_CLOSURE_PTR ret, Ptr<Capability> pcap) {
@@ -32,7 +29,9 @@ public class RtsScheduler {
         synchronized (RtsScheduler.class) {
             Capability.init();
             RtsTaskManager.init();
+#if defined(THREADED_RTS)
             RtsTaskManager.startWorkerTasks(1, Capability.nCapabilities);
+#endif
         }
     }
 }

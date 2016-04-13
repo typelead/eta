@@ -2,24 +2,22 @@ package ghcvm.runtime.types;
 
 #include "Rts.h"
 
-import static ghcvm.runtime.RtsTaskManager;
+import ghcvm.runtime.RtsTaskManager;
+import static ghcvm.runtime.RtsTaskManager.*;
 
 public class Task {
+    public long id;
     public Capability cap;
     public InCall incall;
     public int nSpareIncalls;
     public InCall spareIncalls;
-    boolean worker;
-    boolean stopped;
-    boolean runningFinalizers;
-    Task next;
-    Task allNext;
-    Task allPrev;
-
-#if defined(THREADED_RTS)
-    public int threadId;
-    boolean wakeup = false;
-#endif
+    public boolean worker;
+    public boolean stopped;
+    public boolean runningFinalizers;
+    public Task next;
+    public Task allNext;
+    public Task allPrev;
+    public boolean wakeup;
 
     public static class InCall {
         public StgTSO tso;
