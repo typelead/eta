@@ -30,18 +30,27 @@ public class StgTSO {
     public static final int  TSO_ALLOC_LIMIT = 256;
 
     public enum WhatNext {
-        ThreadRunGHC, ThreadInterpret, ThreadKilled, ThreadComplete
+        ThreadRunGHC,
+        ThreadInterpret,
+        ThreadKilled,
+        ThreadComplete
     }
 
     public enum WhyBlocked {
         NotBlocked,
         BlockedOnMVar,
-        BlockedOnMVarRead,
         BlockedOnBlackHole,
         BlockedOnRead,
         BlockedOnWrite,
         BlockedOnDelay,
-        BlockedOnSTM
+        BlockedOnSTM,
+        BlockedOnDoProc,
+        BlockedOnGA,
+        BlockedOnCCall,
+        BlockedOnCCall_Interruptible,
+        BlockedOnMsgThrowTo,
+        ThreadMigrating,
+        BlockedOnMVarRead
     }
 
     public enum ReturnCode {

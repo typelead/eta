@@ -8,7 +8,10 @@ public class RtsScheduler {
     public static StgTSO blockedQueueHead = null;
     public static StgTSO blockedQueueTail = null;
     public static StgTSO sleepingQueue = null;
-    public static int recentActivity = ACTIVITY_YES;
+    public enum RecentActivity {
+        Yes, Inactive, DoneGC
+    }
+    public static RecentActivity recentActivity = RecentActivity.Yes;
     public static int schedulerState = SCHED_RUNNING;
     public static void scheduleWaitThread(StgTSO tso, REF_CLOSURE_PTR ret, Ptr<Capability> pcap) {
         Capability cap = pcap.ref;
@@ -24,7 +27,7 @@ public class RtsScheduler {
     }
     public static void initScheduler() {
         schedulerState = SCHED_RUNNING;
-        recentActivity = ACTIVITY_YES;
+        recentActivity = RecentActivity.Yes;
 
         synchronized (RtsScheduler.class) {
             Capability.init();

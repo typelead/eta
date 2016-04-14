@@ -6,6 +6,11 @@ import java.util.ArrayList;
 import static ghcvm.runtime.types.Task.InCall;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsMessages.*;
+import static ghcvm.runtime.types.StgTSO.*;
+import static ghcvm.runtime.types.StgTSO.WhatNext.*;
+import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
+import static ghcvm.runtime.types.StgTSO.ReturnCode.*;
+import static ghcvm.runtime.RtsScheduler.RecentActivity.*;
 import ghcvm.runtime.*;
 import ghcvm.runtime.thread.*;
 
@@ -30,8 +35,7 @@ public class Capability {
         lastFreeCapability = capabilities.get(0);
     }
 
-#if defined(THREADED_RTS)
-    public static void moreCapabilities (int from, into to) {
+    public static void moreCapabilities (int from, int to) {
         ArrayList<Capability> oldCapabilities = capabilities;
         capabilities = new ArrayList<Capability>(to);
         if (to == 1) {
@@ -40,14 +44,13 @@ public class Capability {
         } else {
             for (int i = 0; i < to; i++) {
                 if (i < from) {
-                    capabilities.add(i, oldCapabilities[i]);
+                    capabilities.add(i, oldCapabilities.get(i));
                 } else {
                     capabilities.add(i, new Capability(i));
                 }
             }
         }
     }
-#endif
 
     public int no;
     public StgRegTable regTable = new StgRegTable();
@@ -84,7 +87,9 @@ public class Capability {
         }
         runQueueTail = tso;
     }
+
     public Capability schedule(Task task) {
+        Capability cap = this;
         while (true) {
             if (this.inHaskell) {
                 errorBelch("schedule: re-entered unsafely.\n" +
@@ -99,15 +104,163 @@ public class Capability {
                     // scheduleDoGC
 
                 case SCHED_SHUTTING_DOWN:
-                    if (!isBoundTask(task) && emptyRunQueue(this)) {
+                    if (!isBoundTask(task) && emptyRunQueue(cap)) {
                         return this;
                     }
                     break;
                 default:
                     barf("sched state: " + schedulerState);
             }
+
+            cap = cap.findWork();
+#if defined(THREADED_RTS)
+            cap.pushWork(task);
+#endif
+            cap = cap.detectDeadlock(task);
+#if defined(THREADED_RTS)
+            cap = cap.yield(task);
+            if (emptyRunQueue(cap)) continue;
+#endif
+            StgTSO t = cap.popRunQueue();
+#if defined(THREADED_RTS)
+            InCall bound = t.bound;
+            if (bound != null) {
+                if (bound.task != task) {
+                    cap.pushOnRunQueue(t);
+                    continue;
+                }
+            } else {
+                if (task.incall.tso) {
+                    cap.pushOnRunQueue(t);
+                    continue;
+                }
+            }
+#endif
+            if (schedulerState >= SCHED_INTERRUPTING &&
+                !(t.whatNext == ThreadComplete || t.whatNext == ThreadKilled)) {
+                cap.deleteThread(t);
+            }
+#if defined(THREADED_RTS)
+               if (cap.disabled && t.bound != null) {
+                   Capability destCap = capabilities[cap.no % enabledCapabilities];
+                   cap.migrateThread(t, destCap);
+                   continue;
+               }
+#endif
+            if (RtsFlags.ConcFlags.ctxtSwitchTicks == 0
+                && !emptyThreadQueues(cap)) {
+                cap.contextSwitch = 1;
+            }
+
+// run_thread:
+// cap-<r.rCurrentTSO = t;
+// startHeapProfTimers()
+            WhatNext prevWhatNext = t.whatNext;
+            int errno = t.savedErrno;
+            cap.interrupt = 0;
+            cap.inHaskell = true;
+            cap.idle = 0;
+            switch (recentActivity) {
+                case DoneGC:
+                    // stuff here
+                    break;
+                case Inactive:
+                    break;
+                default:
+                    recentActivity = Yes;
+            }
+
+            ReturnCode ret;
+            switch (prevWhatNext) {
+                case ThreadKilled:
+                case ThreadComplete:
+                    ret = ThreadFinished;
+                    break;
+                case ThreadRunGHC:
+                    //StgRegTable r = stgRun(stg_returnToStackTop);
+                    break;
+                case ThreadInterpret:
+                    // TODO: Implement ghci
+                    break;
+                default:
+                    barf("schedule: invalid what_next field");
+            }
+
+            cap.inHaskell = false;
+            // t = cap -> r.rCurrentTSO;
+            // more stuff to implement
+            return cap;
         }
     }
+
+    public void migrateThread(StgTSO tso, Capability destCap) {}
+
+    public void deleteThread(StgTSO tso) {
+        if (tso.whyBlocked != BlockedOnCCall &&
+            tso.whyBlocked != BlockedOnCCall_Interruptible) {
+            //tso.cap.throwToSingleThreaded(tso, null);
+        }
+    }
+
+    public void pushOnRunQueue(StgTSO tso) {
+        tso.link = runQueueHead;
+        tso.blockInfo = null;
+        if (runQueueHead != null) {
+            runQueueHead.blockInfo = tso;
+        }
+        runQueueHead = tso;
+    }
+
+    public StgTSO popRunQueue() {
+        StgTSO t = runQueueHead;
+        runQueueHead = t.link;
+        if (t.link != null) {
+            t.link.blockInfo = null;
+        }
+        t.link = null;
+        if (runQueueHead == null) {
+            runQueueTail = null;
+        }
+        return t;
+    }
+
+    public Capability yield(Task task) {return this;}
+
+    public void pushWork(Task task) {}
+    public Capability detectDeadlock(Task task) {return this;}
+
+    public Capability findWork() {
+        Capability cap = this;
+        startSignalHandlers();
+        cap = processInbox();
+        checkBlockedThreads();
+
+#if defined(THREADED_RTS)
+        if (emptyRunQueue(this)) activateSpark();
+#endif
+        return cap;
+    }
+
+    public void activateSpark() {}
+
+    public void startSignalHandlers() {
+#if defined(RTS_USER_SIGNALS) && !defined(THREADED_RTS)
+               if (RtsFlags.MiscFlags.installSignalHandlers /* && signals_pending() */) {
+                   // start signal handlers
+               }
+#endif
+    }
+
+    public void checkBlockedThreads() {
+#if !defined(THREADED_RTS)
+                if (!emptyQueue(blockedQueueHead) || !emptyQueue(sleepingQueue)) {
+                    //               awaitEvent (emptyRunQueue(this));
+                    // TODO: Implement this with IO Manager
+                }
+#endif
+    }
+
+    public Capability processInbox() {return this;}
 
     public void startWorkerTask() {
         Task task = new Task(true);
