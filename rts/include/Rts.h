@@ -1,8 +1,8 @@
 #ifndef __GHVM_RTS_H__
 #define __GHVM_RTS_H__
 
-#define CLOSURE_PTR        long
-#define REF_CLOSURE_PTR    LongPtr
+#define CLOSURE_PTR        StgClosure
+#define REF_CLOSURE_PTR    Ptr<StgClosure>
 
 #define SCHED_RUNNING       0
 #define SCHED_INTERRUPTING  1
@@ -31,11 +31,5 @@
 #define EXIT_INTERRUPTED    252
 #define EXIT_HEAPOVERFLOW   251
 #define EXIT_KILLED         250
-
-
-#define ACTIVITY_YES      0
-#define ACTIVITY_MAYBE_NO 1
-#define ACTIVITY_INACTIVE 2
-#define ACTIVITY_DONE_GC  3
 
 #endif

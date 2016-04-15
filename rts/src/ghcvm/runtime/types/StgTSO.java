@@ -1,13 +1,15 @@
 package ghcvm.runtime.types;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
+import ghcvm.runtime.*;
 import static ghcvm.runtime.types.Task.InCall;
 
 public class StgTSO {
-    public int threadId; // Should this be long instead?
+    public static int nextThreadId = 0;
+    public int id; // Should this be long instead?
     public StgTSO link;
     //    public StgTSO globalLink; This filed may not be necessary
-    public ArrayList<StackFrame> stack;
+    public StackFrame stack;
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
     public InCall bound;
@@ -61,4 +63,16 @@ public class StgTSO {
         ThreadFinished
     }
 
+    public StgTSO(Capability cap) {
+        this.whatNext = WhatNext.ThreadRunGHC;
+        this.whyBlocked = WhyBlocked.NotBlocked;
+        this.cap = cap;
+        // TODO: Should this synchronized block be placed outside?
+        synchronized (RtsScheduler.class) {
+            this.id = nextThreadId++;
+        }
+    }
+
+    public void pushClosure(StgClosure c) {
+    }
 }
