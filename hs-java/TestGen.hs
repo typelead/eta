@@ -52,7 +52,7 @@ test = do
       pop
       i0 RETURN
 
-  -- Main class method. 
+  -- Main class method.
   newMethod [ACC_PUBLIC, ACC_STATIC] "main" [arrayOf Java.Lang.stringClass] ReturnsVoid $ do
       setStackSize 1
 

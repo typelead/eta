@@ -10,8 +10,8 @@ public class StgTSO {
     public int id; // Should this be long instead?
     public volatile StgTSO link;
     //    public StgTSO globalLink; This filed may not be necessary
-    public StgClosure stackBottom;
-    public StgClosure stackTop;
+    public StackFrame stackBottom;
+    public StackFrame stackTop;
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
     public InCall bound;
@@ -75,6 +75,14 @@ public class StgTSO {
         }
     }
 
-    public void pushClosure(StgClosure c) {
+    public void pushClosure(StackFrame frame) {
+        frame.next = null;
+        if (stackTop == null) {
+            frame.prev = null;
+        } else {
+            stackTop.next = frame;
+            frame.prev = stackTop;
+        }
+        stackTop = frame;
     }
 }

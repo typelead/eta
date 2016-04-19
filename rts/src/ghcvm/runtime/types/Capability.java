@@ -153,9 +153,6 @@ public class Capability {
                 cap.contextSwitch = 1;
             }
 
-// run_thread:
-// cap-<r.rCurrentTSO = t;
-// startHeapProfTimers()
             cap.context.currentTSO = t;
             cap.context.myCapability = cap;
             cap.interrupt = 0;

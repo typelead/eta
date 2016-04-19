@@ -23,6 +23,8 @@ import System.Directory
 import System.FilePath
 import TyCon ( isDataTyCon )
 
+import CodeGen.Main
+
 runGhcVMPhase :: PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath)
 runGhcVMPhase realphase@(RealPhase (Unlit _)) = runPhase realphase
 runGhcVMPhase realphase@(RealPhase (Cpp _)) = runPhase realphase
@@ -65,15 +67,15 @@ runGhcVMPhase realphase@(HscOut src_flavour mod_name result) = \_ dflags -> do
 
          PipeState{hsc_env=hsc_env'} <- getPipeState
 
-         outputFilename <- liftIO $ genStg hsc_env' cgguts mod_summary output_fn
+         outputFilename <- liftIO $ genJavaBytecode hsc_env' cgguts mod_summary output_fn
 
          return (RealPhase next_phase, outputFilename)
 
 runGhcVMPhase realphase@(RealPhase other) = \_ dflags -> panic $ "runGhcVMPhase: invalid phase " ++ show other
 
 
-genStg :: HscEnv -> CgGuts -> ModSummary -> FilePath -> IO FilePath
-genStg hsc_env cgguts mod_summary output_filename = do
+genJavaBytecode :: HscEnv -> CgGuts -> ModSummary -> FilePath -> IO FilePath
+genJavaBytecode hsc_env cgguts mod_summary output_filename = do
   let CgGuts{ -- This is the last use of the ModGuts in a compilation.
               -- From now on, we just use the bits we need.
               cg_module   = this_mod,
@@ -94,11 +96,13 @@ genStg hsc_env cgguts mod_summary output_filename = do
   prepd_binds <- {-# SCC "CorePrep" #-}
                   corePrepPgm hsc_env location core_binds data_tycons ;
   -----------------  Convert to STG ------------------
-  (stg_binds, cost_centre_info)
+  (stg_binds, _)
       <- {-# SCC "CoreToStg" #-}
           myCoreToStg dflags this_mod prepd_binds
-  dumpStg dflags $ pprStgBindings stg_binds
-  -- This is the point in which we need to plug in the new runtime system
+
+  _ <- doCodeGen hsc_env this_mod data_tycons stg_binds hpc_info
+  -- Write the result to a class file at output_filename
+
   return "Test.dump-stg"
 
 dumpStg :: DynFlags -> SDoc -> IO ()

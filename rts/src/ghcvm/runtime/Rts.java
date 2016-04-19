@@ -18,7 +18,7 @@ public class Rts {
     public static StgTSO createIOThread(Capability cap, CLOSURE_PTR p) {
         StgTSO t = new StgTSO(cap);
         t.pushClosure(Stg.ApplyV);
-        t.pushClosure(p);
+        t.pushClosure(new EnterFrame(p));
         return t;
     }
 }
