@@ -4,7 +4,7 @@ package ghcvm.runtime;
 
 import ghcvm.runtime.types.*;
 import static ghcvm.runtime.RtsScheduler.*;
-import static ghcvm.runtime.StgClosures.*;
+import ghcvm.runtime.closure.*;
 
 public class Rts {
     public static Capability lock() {return null;}
@@ -17,9 +17,8 @@ public class Rts {
     public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
     public static StgTSO createIOThread(Capability cap, CLOSURE_PTR p) {
         StgTSO t = new StgTSO(cap);
-        t.pushClosure(stg_ap_v);
+        t.pushClosure(Stg.ApplyV);
         t.pushClosure(p);
-        t.pushClosure(stg_enter);
         return t;
     }
 }

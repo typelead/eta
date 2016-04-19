@@ -3,6 +3,7 @@ package ghcvm.runtime;
 #include "Rts.h"
 
 import ghcvm.runtime.types.*;
+import ghcvm.runtime.closure.*;
 
 public class RtsMain {
     public static int hsMain(String[] args, CLOSURE_PTR mainClosure, RtsConfig config) {

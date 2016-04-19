@@ -13,6 +13,8 @@ import static ghcvm.runtime.types.StgTSO.ReturnCode.*;
 import static ghcvm.runtime.RtsScheduler.RecentActivity.*;
 import ghcvm.runtime.*;
 import ghcvm.runtime.thread.*;
+import ghcvm.runtime.closure.*;
+import ghcvm.runtime.exception.*;
 
 public class Capability {
     public static int nCapabilities;
@@ -53,8 +55,7 @@ public class Capability {
     }
 
     public int no;
-    public StgRegTable regTable = new StgRegTable();
-    public StgFunTable funTable = new StgFunTable();
+    public StgContext context = new StgContext();
     public Task runningTask;
     public boolean inHaskell = false;
     public int idle = 0;
@@ -155,11 +156,15 @@ public class Capability {
 // run_thread:
 // cap-<r.rCurrentTSO = t;
 // startHeapProfTimers()
-            WhatNext prevWhatNext = t.whatNext;
-            int errno = t.savedErrno;
+            cap.context.currentTSO = t;
+            cap.context.myCapability = cap;
             cap.interrupt = 0;
             cap.inHaskell = true;
             cap.idle = 0;
+
+            WhatNext prevWhatNext = t.whatNext;
+            int errno = t.savedErrno;
+
             switch (recentActivity) {
                 case DoneGC:
                     // stuff here
@@ -177,7 +182,16 @@ public class Capability {
                     ret = ThreadFinished;
                     break;
                 case ThreadRunGHC:
-                    //StgRegTable r = stgRun(stg_returnToStackTop);
+                    StgContext context = cap.context;
+                    context.currentTSO = t;
+                    context.myCapability = cap;
+                    try {
+                        t.stackBottom.enter(cap.context);
+                    } catch (ThreadYieldException e) {
+
+                    } finally {
+                        ret = context.ret;
+                    }
                     break;
                 case ThreadInterpret:
                     // TODO: Implement ghci
@@ -187,6 +201,7 @@ public class Capability {
             }
 
             cap.inHaskell = false;
+            t = context.currentTSO;
             // t = cap -> r.rCurrentTSO;
             // more stuff to implement
             return cap;

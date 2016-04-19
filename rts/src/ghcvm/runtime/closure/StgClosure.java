@@ -1,8 +1,8 @@
-package ghcvm.runtime.types;
+package ghcvm.runtime.closure;
 
-public interface StgClosure {
-    ClosureType closureType = ClosureType.InvalidObject;
-    void enter();
+public abstract class StgClosure {
+    public ClosureType closureType = ClosureType.InvalidObject;
+    public abstract void enter(StgContext context);
 
     public enum ClosureType {
         InvalidObject,

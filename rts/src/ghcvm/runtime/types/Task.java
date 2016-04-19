@@ -4,6 +4,7 @@ package ghcvm.runtime.types;
 
 import ghcvm.runtime.RtsTaskManager;
 import static ghcvm.runtime.RtsTaskManager.*;
+import ghcvm.runtime.closure.*;
 
 public class Task {
     public long id;

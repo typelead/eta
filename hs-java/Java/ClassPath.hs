@@ -1,4 +1,3 @@
-
 module Java.ClassPath
   (module Java.ClassPath.Types,
    module Java.ClassPath.Common,

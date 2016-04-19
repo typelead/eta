@@ -3,6 +3,7 @@ package ghcvm.runtime;
 #include "Rts.h"
 
 import ghcvm.runtime.types.*;
+import ghcvm.runtime.closure.*;
 
 public class RtsScheduler {
     public static StgTSO blockedQueueHead = null;

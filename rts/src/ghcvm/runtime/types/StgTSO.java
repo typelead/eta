@@ -3,13 +3,15 @@ package ghcvm.runtime.types;
 import java.util.LinkedList;
 import ghcvm.runtime.*;
 import static ghcvm.runtime.types.Task.InCall;
+import ghcvm.runtime.closure.*;
 
 public class StgTSO {
     public static int nextThreadId = 0;
     public int id; // Should this be long instead?
-    public StgTSO link;
+    public volatile StgTSO link;
     //    public StgTSO globalLink; This filed may not be necessary
-    public StackFrame stack;
+    public StgClosure stackBottom;
+    public StgClosure stackTop;
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
     public InCall bound;
