@@ -59,6 +59,7 @@ emptyGState = GState {
   generated = [],
   currentPool = M.empty,
   nextPoolIndex = 1,
+  doneFields = [],
   doneMethods = [],
   currentMethod = Nothing,
   stackSize = 496,

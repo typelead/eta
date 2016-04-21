@@ -54,7 +54,7 @@ import Codec.Binary.UTF8.String hiding (encode, decode)
 -- Java .class file uses constants pool, which stores almost all source-code-level
 -- constants (strings, integer literals etc), and also all identifiers (class,
 -- method, field names etc). All other structures contain indexes of constants in
--- the pool instead of constants theirself.
+-- the pool instead of constants themselves.
 --
 -- It's not convient to use that indexes programmatically. So, .class file is represented
 -- at two stages: File and Direct. At File stage, all data structures contain only indexes,
@@ -89,11 +89,8 @@ type instance Link File a = Word16
 -- | At Direct stage, Link contain object itself.
 type instance Link Direct a = a
 
+-- | Link to bootstrap method in the 'BootstrapMethods' attribute
 type BootstrapLink stage a = Link stage a
-
-type family Link8 stage a
-type instance Link8 File a = Word8
-type instance Link8 Direct ReferenceKind = ReferenceKind
 
 -- | Object (class, method, field …) access flags
 type family AccessFlags stage

@@ -23,7 +23,10 @@ import System.Directory
 import System.FilePath
 import TyCon ( isDataTyCon )
 
+import qualified Data.ByteString.Lazy as B
+
 import CodeGen.Main
+import JVM.Converter
 
 runGhcVMPhase :: PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath)
 runGhcVMPhase realphase@(RealPhase (Unlit _)) = runPhase realphase
@@ -73,7 +76,6 @@ runGhcVMPhase realphase@(HscOut src_flavour mod_name result) = \_ dflags -> do
 
 runGhcVMPhase realphase@(RealPhase other) = \_ dflags -> panic $ "runGhcVMPhase: invalid phase " ++ show other
 
-
 genJavaBytecode :: HscEnv -> CgGuts -> ModSummary -> FilePath -> IO FilePath
 genJavaBytecode hsc_env cgguts mod_summary output_filename = do
   let CgGuts{ -- This is the last use of the ModGuts in a compilation.
@@ -100,10 +102,11 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
       <- {-# SCC "CoreToStg" #-}
           myCoreToStg dflags this_mod prepd_binds
 
-  _ <- doCodeGen hsc_env this_mod data_tycons stg_binds hpc_info
+  classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
+  mapM_ (\(cName,c) -> B.writeFile (cName ++ ".class") (encodeClass c)) classes
   -- Write the result to a class file at output_filename
 
-  return "Test.dump-stg"
+  return $ (fst (head classes)) ++ ".class"
 
 dumpStg :: DynFlags -> SDoc -> IO ()
 dumpStg dflags = dumpSDoc dflags alwaysQualify Opt_D_dump_stg "STG Syntax:"
