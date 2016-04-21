@@ -17,6 +17,7 @@ module JVM.ClassFile
    -- * Staged structures
    Pool, Link,
    Method (..), Field (..), Class (..),
+   MethodHandle (..),
    Constant (..),
    AccessFlag (..), AccessFlags,
    Attributes (..),
@@ -88,6 +89,12 @@ type instance Link File a = Word16
 -- | At Direct stage, Link contain object itself.
 type instance Link Direct a = a
 
+type BootstrapLink stage a = Link stage a
+
+type family Link8 stage a
+type instance Link8 File a = Word8
+type instance Link8 Direct ReferenceKind = ReferenceKind
+
 -- | Object (class, method, field …) access flags
 type family AccessFlags stage
 
@@ -139,6 +146,10 @@ data AccessFlag =
   | ACC_NATIVE        -- ^ 0x0100 Implemented in other language
   | ACC_INTERFACE     -- ^ 0x0200 Class is interface
   | ACC_ABSTRACT      -- ^ 0x0400
+  | ACC_STRICT        -- ^ 0x0800 Floating-point mode
+  | ACC_SYNTHETIC     -- ^ 0x1000 Not present in source code
+  | ACC_ANNOTATION    -- ^ 0x2000
+  | ACC_ENUM          -- ^ 0x4000
   deriving (Eq, Show, Ord, Enum)
 
 -- | Fields and methods have signatures.
@@ -180,7 +191,11 @@ data Constant stage =
   | CDouble Double
   | CNameType (Link stage B.ByteString) (Link stage B.ByteString)
   | CUTF8 {getString :: B.ByteString}
-  | CUnicode {getString :: B.ByteString}
+  | CUnicode {getString :: B.ByteString} -- What is this for?
+  | CMethodHandle (Link stage (MethodHandle stage))
+  | CMethodType (Link stage B.ByteString)
+  | CInvokeDynamic (BootstrapLink stage (BootstrapMethod stage))
+                   (Link stage (NameType (Method stage)))
 
 -- | Name of the CClass. Error on any other constant.
 className ::  Constant Direct -> B.ByteString
@@ -483,13 +498,17 @@ putPool pool = do
     putC (CDouble x)  = putWord8 6 >> putFloat64be x
     putC (CNameType i j) = putWord8 12 >> put i >> put j
     putC (CUTF8 bs) = do
-                     putWord8 1
-                     put (fromIntegral (B.length bs) :: Word16)
-                     putLazyByteString bs
+        putWord8 1
+        put (fromIntegral (B.length bs) :: Word16)
+        putLazyByteString bs
     putC (CUnicode bs) = do
-                     putWord8 2
-                     put (fromIntegral (B.length bs) :: Word16)
-                     putLazyByteString bs
+        putWord8 2
+        put (fromIntegral (B.length bs) :: Word16)
+        putLazyByteString bs
+    -- TODO: Fix these
+    putC (CMethodHandle c) = putWord8 15 >> put c
+    putC (CMethodType i) = putWord8 16 >> put i
+    putC (CInvokeDynamic i j) = putWord8 18 >> put i >> put j
 
 getPool :: Word16 -> Get (Pool File)
 getPool n = do
@@ -532,8 +551,10 @@ getPool n = do
         10 -> CMethod    <$> get <*> get
         11 -> CIfaceMethod <$> get <*> get
         12 -> CNameType    <$> get <*> get
+        15 -> CMethodHandle <$> get
+        16 -> CMethodType <$> get
+        18 -> CInvokeDynamic <$> get <*> get
         _  -> fail $ "Unknown constants pool entry tag: " ++ show tag
---         _ -> return $ CInteger 0
 
 -- | Class field format
 data Field stage = Field {
@@ -560,7 +581,7 @@ fieldNameType :: Field Direct -> NameType (Field Direct)
 fieldNameType f = NameType (fieldName f) (fieldSignature f)
 
 instance Binary (Field File) where
-  put (Field {..}) = do
+  put Field {..} = do
     put fieldAccessFlags
     put fieldName
     put fieldSignature
@@ -654,3 +675,28 @@ instance HasAttributes Field where
 instance HasAttributes Method where
   attributes = methodAttributes
 
+data ReferenceKind =
+  RefGetField
+  | RefGetStatic
+  | RefPutField
+  | RefPutStatic
+  | RefInvokeVirtual
+  | RefInvokeStatic
+  | RefInvokeSpecial
+  | RefNewInvokeSpecial
+  | RefInvokeInterface
+
+data MethodHandle stage = MethodHandle {
+  methodHandleRef :: Link stage (Constant stage) -- Should be a reference type
+}
+
+deriving instance Eq (MethodHandle File)
+deriving instance Eq (MethodHandle Direct)
+
+data BootstrapMethod stage = BootstrapMethod {
+  bootstrapMethod :: Link stage (MethodHandle stage),
+  bootstrapArgs :: [Link stage (Constant stage)] -- Restrict the type of constants
+}
+
+deriving instance Eq (BootstrapMethod File)
+deriving instance Eq (BootstrapMethod Direct)

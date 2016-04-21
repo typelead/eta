@@ -28,6 +28,7 @@ import Control.Monad.Exception
 import Control.Monad.Exception.Base
 import Data.Word
 import Data.Binary
+import Data.Default
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.ByteString.Lazy as B
@@ -43,6 +44,7 @@ data GState = GState {
   generated :: [Instruction],             -- ^ Already generated code (in current method)
   currentPool :: Pool Direct,             -- ^ Already generated constants pool
   nextPoolIndex :: Word16,                -- ^ Next index to be used in constants pool
+  doneFields :: [Field Direct],
   doneMethods :: [Method Direct],         -- ^ Already generated class methods
   currentMethod :: Maybe (Method Direct), -- ^ Current method
   stackSize :: Word16,                    -- ^ Maximum stack size for current method
@@ -256,6 +258,23 @@ newMethod flags name args ret gen = do
   endMethod
   return (NameType name sig)
 
+-- | Generate new field
+newField :: (Generator e g)
+         => [AccessFlag]     -- ^ Access flags
+         -> B.ByteString     -- ^ Field name
+         -> FieldSignature   -- ^ Field signature
+         -> g e ()
+newField flags name sig = do
+  st <- St.get
+  let fields = doneFields st
+      field = Field {
+        fieldAccessFlags = S.fromList flags,
+        fieldName = name,
+        fieldSignature = sig,
+        fieldAttributesCount = 0,
+        fieldAttributes = def }
+  St.put $ st { doneFields = fields ++ [field]}
+
 -- | Get a class from current ClassPath
 getClass :: (Throws ENotLoaded e, Throws ENotFound e)
          => String -> GenerateIO e (Class Direct)
@@ -332,7 +351,9 @@ generateIO cp name gen = do
         thisClass = name,
         superClass = "java/lang/Object",
         classMethodsCount = fromIntegral $ length (doneMethods res),
-        classMethods = doneMethods res }
+        classMethods = doneMethods res,
+        classFieldsCount = fromIntegral $ length (doneFields res),
+        classFields = doneFields res }
 
 -- | Generate a class
 generate :: [Tree CPEntry]
@@ -353,5 +374,7 @@ generate cp name gen =
         thisClass = name,
         superClass = "java/lang/Object",
         classMethodsCount = fromIntegral $ length (doneMethods res),
-        classMethods = doneMethods res }
+        classMethods = doneMethods res,
+        classFieldsCount = fromIntegral $ length (doneFields res),
+        classFields = doneFields res }
 

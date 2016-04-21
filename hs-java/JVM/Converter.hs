@@ -34,11 +34,11 @@ parseClass bstr = classFile2Direct $ decode bstr
 parseClassFile :: FilePath -> IO (Class Direct)
 parseClassFile path = classFile2Direct `fmap` decodeFile path
 
-encodeClass :: (Class Direct) -> B.ByteString
+encodeClass :: Class Direct -> B.ByteString
 encodeClass cls = encode $ classDirect2File cls
 
 classFile2Direct :: Class File -> Class Direct
-classFile2Direct (Class {..}) =
+classFile2Direct Class {..} =
   let pool = poolFile2Direct constsPool
       superName = className $ pool ! superClass
       d = defaultClass :: Class Direct
@@ -58,7 +58,7 @@ classFile2Direct (Class {..}) =
       classAttributes = attributesFile2Direct pool classAttributes }
 
 classDirect2File :: Class Direct -> Class File
-classDirect2File (Class {..}) =
+classDirect2File Class {..} =
   let d = defaultClass :: Class File
   in d {
     constsPoolSize = fromIntegral (M.size poolInfo + 1),
@@ -139,7 +139,7 @@ poolNTIndex list x@(NameType n t) = do
     check _ _ _                  = False
 
 fieldDirect2File :: Pool File -> Field Direct -> Field File
-fieldDirect2File pool (Field {..}) = Field {
+fieldDirect2File pool Field {..} = Field {
     fieldAccessFlags = accessDirect2File fieldAccessFlags,
     fieldName = force "field name" $ poolIndex pool fieldName,
     fieldSignature = force "signature" $ poolIndex pool (encode fieldSignature),
@@ -150,7 +150,7 @@ fieldDirect2File pool (Field {..}) = Field {
     to pairs = AP (map (attrInfo pool) pairs)
 
 methodDirect2File :: Pool File -> Method Direct -> Method File
-methodDirect2File pool (Method {..}) = Method {
+methodDirect2File pool Method {..} = Method {
     methodAccessFlags = accessDirect2File methodAccessFlags,
     methodName = force "method name" $ poolIndex pool methodName,
     methodSignature = force "method sig" $ poolIndex pool (encode methodSignature),
@@ -194,6 +194,9 @@ poolFile2Direct ps = pool
     convert (CNameType i j) = CNameType (getString $ pool ! i) (getString $ pool ! j)
     convert (CUTF8 bs) = CUTF8 bs
     convert (CUnicode bs) = CUnicode bs
+    convert (CMethodHandle i) = CMethodHandle (MethodHandle $ pool ! i)
+    convert (CMethodType i) = CMethodType (getString $ pool ! i)
+    convert (CInvokeDynamic i j) = CInvokeDynamic undefined (convertNameType j)
 
 accessFile2Direct :: AccessFlags File -> AccessFlags Direct
 accessFile2Direct w = S.fromList $ concat $ zipWith (\i f -> if testBit w i then [f] else []) [0..] $ [
@@ -207,7 +210,11 @@ accessFile2Direct w = S.fromList $ concat $ zipWith (\i f -> if testBit w i then
    ACC_TRANSIENT,
    ACC_NATIVE,
    ACC_INTERFACE,
-   ACC_ABSTRACT ]
+   ACC_ABSTRACT,
+   ACC_STRICT,
+   ACC_SYNTHETIC,
+   ACC_ANNOTATION,
+   ACC_ENUM ]
 
 accessDirect2File :: AccessFlags Direct -> AccessFlags File
 accessDirect2File fs = bitsOr $ map toBit $ S.toList fs
@@ -216,7 +223,7 @@ accessDirect2File fs = bitsOr $ map toBit $ S.toList fs
     toBit f = 1 `shiftL` (fromIntegral $ fromEnum f)
 
 fieldFile2Direct :: Pool Direct -> Field File -> Field Direct
-fieldFile2Direct pool (Field {..}) = Field {
+fieldFile2Direct pool Field {..} = Field {
   fieldAccessFlags = accessFile2Direct fieldAccessFlags,
   fieldName = getString $ pool ! fieldName,
   fieldSignature = decode $ getString $ pool ! fieldSignature,
@@ -224,7 +231,7 @@ fieldFile2Direct pool (Field {..}) = Field {
   fieldAttributes = attributesFile2Direct pool fieldAttributes }
 
 methodFile2Direct :: Pool Direct -> Method File -> Method Direct
-methodFile2Direct pool (Method {..}) = Method {
+methodFile2Direct pool Method {..} = Method {
   methodAccessFlags = accessFile2Direct methodAccessFlags,
   methodName = getString $ pool ! methodName,
   methodSignature = decode $ getString $ pool ! methodSignature,
@@ -256,4 +263,3 @@ methodCode :: Class Direct
 methodCode cls name = do
   method <- methodByName cls name
   attrByName method "Code"
-
