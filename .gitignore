@@ -1,3 +1,5 @@
 TAGS
 .stack-work
 build
+*.class
+*.hi
