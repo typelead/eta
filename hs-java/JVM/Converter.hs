@@ -242,7 +242,7 @@ attributesFile2Direct :: Pool Direct -> Attributes File -> Attributes Direct
 attributesFile2Direct pool (AP attrs) = AR (M.fromList $ map go attrs)
   where
     go :: RawAttribute -> (B.ByteString, B.ByteString)
-    go (RawAttribute {..}) = (getString $ pool ! attributeName,
+    go RawAttribute {..} = (getString $ pool ! attributeName,
                            attributeValue)
 
 -- | Try to get class method by name

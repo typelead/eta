@@ -29,7 +29,8 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
       need $ os ++ headers
       () <- cmd "javac" os
-      cmd "jar cf" [out] os
+      classfiles <- getDirectoryFiles "" [rtsBuildDir </> "//*.class"]
+      cmd "jar cf" [out] classfiles
 
     "rts/build//*.java" %> \out -> do
       -- debug $ "1: " ++ out
