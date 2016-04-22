@@ -348,7 +348,7 @@ generateIO cp name gen = do
   return $ d {
         constsPoolSize = fromIntegral $ M.size (currentPool res),
         constsPool = currentPool res,
-        accessFlags = S.fromList [ACC_PUBLIC, ACC_STATIC],
+        accessFlags = S.fromList [ACC_PUBLIC, ACC_SYNCHRONIZED],
         thisClass = name,
         superClass = "java/lang/Object",
         classMethodsCount = fromIntegral $ length (doneMethods res),
@@ -371,7 +371,7 @@ generate cp name gen =
   in  d {
         constsPoolSize = fromIntegral $ M.size (currentPool res),
         constsPool = currentPool res,
-        accessFlags = S.fromList [ACC_PUBLIC, ACC_STATIC],
+        accessFlags = S.fromList [ACC_PUBLIC, ACC_SYNCHRONIZED], -- ACC_SUPER
         thisClass = name,
         superClass = "java/lang/Object",
         classMethodsCount = fromIntegral $ length (doneMethods res),

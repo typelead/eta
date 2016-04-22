@@ -73,7 +73,7 @@ instance BinaryState Integer CodeException where
 
   get = CodeException <$> get <*> get <*> get <*> get
 
-instance BinaryState Integer Attribute where
+instance BinaryState Integer RawAttribute where
   put a = do
     let sz = 6 + attributeLength a      -- full size of AttributeInfo structure
     liftOffset (fromIntegral sz) Binary.put a

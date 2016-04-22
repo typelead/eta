@@ -7,7 +7,7 @@ module JVM.ClassFile
    --
    --
    -- * Internal class file structures
-   Attribute (..),
+   RawAttribute (..),
    FieldType (..),
    -- * Signatures
    FieldSignature, MethodSignature (..), ReturnSignature (..),
@@ -105,7 +105,7 @@ type instance AccessFlags Direct = S.Set AccessFlag
 data family Attributes stage
 
 -- | At File stage, attributes are represented as list of Attribute structures.
-data instance Attributes File = AP {attributesList :: [Attribute]}
+data instance Attributes File = AP {attributesList :: [RawAttribute]}
   deriving (Eq, Show)
 
 instance Default (Attributes File) where
@@ -641,14 +641,18 @@ instance Binary (Method File) where
 
 -- | Any (class/ field/ method/ ...) attribute format.
 -- Some formats specify special formats for @attributeValue@.
-data Attribute = Attribute {
+data RawAttribute = RawAttribute {
   attributeName :: Word16,
   attributeLength :: Word32,
   attributeValue :: B.ByteString }
   deriving (Eq, Show)
 
-instance Binary Attribute where
-  put Attribute {..} = do
+data Attribute =
+  InnerClasses
+  | BootstrapMethods
+
+instance Binary RawAttribute where
+  put RawAttribute {..} = do
     put attributeName
     putWord32be attributeLength
     putLazyByteString attributeValue
@@ -658,7 +662,7 @@ instance Binary Attribute where
     name <- getWord16be
     len <- getWord32be
     value <- getLazyByteString (fromIntegral len)
-    return $ Attribute name len value
+    return $ RawAttribute name len value
 
 class HasAttributes a where
   attributes :: a stage -> Attributes stage

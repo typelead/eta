@@ -160,8 +160,8 @@ methodDirect2File pool Method {..} = Method {
     to :: [(B.ByteString, B.ByteString)] -> Attributes File
     to pairs = AP (map (attrInfo pool) pairs)
 
-attrInfo :: Pool File -> (B.ByteString, B.ByteString) -> Attribute
-attrInfo pool (name, value) = Attribute {
+attrInfo :: Pool File -> (B.ByteString, B.ByteString) -> RawAttribute
+attrInfo pool (name, value) = RawAttribute {
   attributeName = force "attr name" $ poolIndex pool name,
   attributeLength = fromIntegral (B.length value),
   attributeValue = value }
@@ -241,8 +241,8 @@ methodFile2Direct pool Method {..} = Method {
 attributesFile2Direct :: Pool Direct -> Attributes File -> Attributes Direct
 attributesFile2Direct pool (AP attrs) = AR (M.fromList $ map go attrs)
   where
-    go :: Attribute -> (B.ByteString, B.ByteString)
-    go (Attribute {..}) = (getString $ pool ! attributeName,
+    go :: RawAttribute -> (B.ByteString, B.ByteString)
+    go (RawAttribute {..}) = (getString $ pool ! attributeName,
                            attributeValue)
 
 -- | Try to get class method by name
