@@ -15,10 +15,10 @@ data ReferenceKind =
   | REF_invokeInterface
 
 data BootstrapConstant stage = BC
-     deriving Eq
+     deriving (Show, Eq)
 
 data BootstrapReference stage = BR
-     deriving Eq
+     deriving (Show, Eq)
 
 data MethodHandle stage = MethodHandle {
   methodHandleRef :: Link stage (BootstrapReference stage) -- Should be a reference type
@@ -26,6 +26,8 @@ data MethodHandle stage = MethodHandle {
 
 deriving instance Eq (MethodHandle File)
 deriving instance Eq (MethodHandle Direct)
+deriving instance Show (MethodHandle File)
+deriving instance Show (MethodHandle Direct)
 
 data BootstrapMethod stage = BootstrapMethod {
   bootstrapMethod :: Link stage (MethodHandle stage),
@@ -34,5 +36,7 @@ data BootstrapMethod stage = BootstrapMethod {
 
 deriving instance Eq (BootstrapMethod File)
 deriving instance Eq (BootstrapMethod Direct)
+deriving instance Show (BootstrapMethod File)
+deriving instance Show (BootstrapMethod Direct)
 
 type BootstrapArg stage = BootstrapConstant stage

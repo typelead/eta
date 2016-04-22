@@ -41,6 +41,7 @@ import JVM.Types
 
 import Control.Monad
 import Control.Monad.Trans (lift)
+import Control.Monad.Reader
 import qualified Control.Monad.State as St
 import Data.Binary
 import qualified Data.Map as M
@@ -49,6 +50,7 @@ import Data.Binary.Get
 import Data.Binary.Put
 import Data.Default
 import qualified Data.ByteString.Lazy as B
+import qualified Data.BinaryState as BS
 
 -- | Generic .class file format
 data Class stage = Class {
@@ -239,3 +241,15 @@ getPool n = do
         16 -> CMethodType <$> get
         18 -> CInvokeDynamic <$> get <*> get
         _  -> fail $ "Unknown constants pool entry tag: " ++ show tag
+
+-- instance BS.BinaryState (PoolState File) Attribute where
+--   put Code {..} = do
+
+--     put codeStackSize
+--     put codeMaxLocals
+--     put codeLength
+--     forM_ codeInstructions put
+--     put codeExceptionsN
+--     forM_ codeExceptions put
+--     put codeAttrsN
+--     forM_ (attributesList codeAttributes) put

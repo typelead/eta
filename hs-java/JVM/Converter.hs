@@ -11,6 +11,7 @@ module JVM.Converter
   )
   where
 
+import Control.Monad.Reader
 import Control.Monad.Exception
 import Data.List
 import Data.Word
@@ -18,7 +19,7 @@ import Data.Bits
 import Data.Binary
 import Data.Default () -- import instances only
 import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.Char8 ()
+import qualified Data.ByteString.Lazy.Char8 as BC
 import qualified Data.Set as S
 import qualified Data.Map as M
 
@@ -26,6 +27,8 @@ import JVM.ClassFile
 import JVM.Common
 import JVM.Exceptions
 import JVM.DataTypes
+import JVM.Attributes
+import JVM.Assembler
 
 -- | Parse .class file data
 parseClass :: B.ByteString -> Class Direct
@@ -77,7 +80,7 @@ classDirect2File Class {..} =
     classAttributes = to (arlist classAttributes) }
   where
     poolInfo = poolDirect2File constsPool
-    to :: [(B.ByteString, B.ByteString)] -> Attributes File
+    to :: [(B.ByteString, Attribute)] -> Attributes File
     to pairs = AP (map (attrInfo poolInfo) pairs)
 
 poolDirect2File :: Pool Direct -> Pool File
@@ -147,7 +150,7 @@ fieldDirect2File pool Field {..} = Field {
     fieldAttributesCount = fromIntegral (arsize fieldAttributes),
     fieldAttributes = to (arlist fieldAttributes) }
   where
-    to :: [(B.ByteString, B.ByteString)] -> Attributes File
+    to :: [(B.ByteString, Attribute)] -> Attributes File
     to pairs = AP (map (attrInfo pool) pairs)
 
 methodDirect2File :: Pool File -> Method Direct -> Method File
@@ -158,14 +161,19 @@ methodDirect2File pool Method {..} = Method {
     methodAttributesCount = fromIntegral (arsize methodAttributes),
     methodAttributes = to (arlist methodAttributes) }
   where
-    to :: [(B.ByteString, B.ByteString)] -> Attributes File
+    to :: [(B.ByteString, Attribute)] -> Attributes File
     to pairs = AP (map (attrInfo pool) pairs)
 
-attrInfo :: Pool File -> (B.ByteString, B.ByteString) -> RawAttribute
+attrInfo :: Pool File -> (B.ByteString, Attribute) -> RawAttribute
 attrInfo pool (name, value) = RawAttribute {
-  attributeName = force "attr name" $ poolIndex pool name,
-  attributeLength = fromIntegral (B.length value),
-  attributeValue = value }
+      attributeName = force "attr name" $ poolIndex pool name,
+      attributeLength = fromIntegral (B.length bytes),
+      attributeValue = bytes }
+  where bytes = attributeBytes pool value
+
+attributeBytes :: Pool File -> Attribute -> B.ByteString
+attributeBytes _ (Code instrs) = encodeInstructions instrs
+attributeBytes _ _ = error $ "Undefined attribute"
 
 poolFile2Direct :: Pool File -> Pool Direct
 poolFile2Direct ps = pool
@@ -242,9 +250,52 @@ methodFile2Direct pool Method {..} = Method {
 attributesFile2Direct :: Pool Direct -> Attributes File -> Attributes Direct
 attributesFile2Direct pool (AP attrs) = AR (M.fromList $ map go attrs)
   where
-    go :: RawAttribute -> (B.ByteString, B.ByteString)
-    go RawAttribute {..} = (getString $ pool ! attributeName,
-                           attributeValue)
+    go :: RawAttribute -> (B.ByteString, Attribute)
+    go RawAttribute {..} = (attributeNameBS, attribute)
+      where attributeNameBS = getString $ pool ! attributeName
+            attributeNameString = BS.unpack attributeNameBS
+            attribute = getAttribute pool attributeNameString attributeValue
+
+data AttributeEnv stage = AttributeEnv {
+  aePool :: Pool stage,
+  aeAttributeName :: String }
+
+getAttribute :: Pool Direct -> String -> B.ByteString -> Attribute
+getAttribute pool attributeName attributeValue = flip runGet attributeValue $
+  runReaderT toAttribute AttributeEnv {
+     aePool = pool,
+     aeAttributeName = attributeName }
+
+toAttribute :: ReaderT (AttributeEnv Direct) Get Attribute
+toAttribute = asks aeAttributeName >>= attributeMap
+
+
+attributeMap :: String -> ReaderT (AttributeEnv Direct) Get Attribute
+attributeMap "Code" = do
+  (rawAttributes, codeAttribute) <-
+    lift $ do
+      stackSize <- get
+      maxLocals <- get
+      len <- get
+      offset <- bytesRead
+      code <- readInstructions offset len
+      numExceptions <- get
+      exceptions <- replicateM (fromIntegral numExceptions) get
+      numAttributes <- get
+      rawAttributes <- replicateM (fromIntegral numAttributes) (get :: Get RawAttribute)
+      return (AP rawAttributes,
+              Code {
+                 codeStackSize = stackSize,
+                 codeMaxLocals = maxLocals,
+                 codeLength = len,
+                 codeInstructions = code,
+                 codeExceptionsN = numExceptions,
+                 codeExceptions = exceptions,
+                 codeAttrsN = numAttributes })
+  pool <- asks aePool
+  return $ codeAttribute { codeAttributes = attributesFile2Direct pool rawAttributes  }
+
+attributeMap name = error $ "Invalid attribute: " ++ name
 
 -- | Try to get class method by name
 methodByName :: Class Direct -> B.ByteString -> Maybe (Method Direct)
