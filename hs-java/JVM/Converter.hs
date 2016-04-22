@@ -25,6 +25,7 @@ import qualified Data.Map as M
 import JVM.ClassFile
 import JVM.Common
 import JVM.Exceptions
+import JVM.DataTypes
 
 -- | Parse .class file data
 parseClass :: B.ByteString -> Class Direct
@@ -194,7 +195,7 @@ poolFile2Direct ps = pool
     convert (CNameType i j) = CNameType (getString $ pool ! i) (getString $ pool ! j)
     convert (CUTF8 bs) = CUTF8 bs
     convert (CUnicode bs) = CUnicode bs
-    convert (CMethodHandle i) = CMethodHandle (MethodHandle $ pool ! i)
+    convert (CMethodHandle i) = CMethodHandle undefined
     convert (CMethodType i) = CMethodType (getString $ pool ! i)
     convert (CInvokeDynamic i j) = CInvokeDynamic undefined (convertNameType j)
 

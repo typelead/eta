@@ -15,6 +15,7 @@ module JVM.Builder.Monad
    addToPool,
    i0, i1, i8,
    newMethod,
+   newField,
    setStackSize, setMaxLocals,
    withClassPath,
    getClassField, getClassMethod,
@@ -22,7 +23,6 @@ module JVM.Builder.Monad
    generateCodeLength
   ) where
 
-import Prelude hiding (catch)
 import Control.Monad.State as St
 import Control.Monad.Exception
 import Control.Monad.Exception.Base
@@ -233,11 +233,11 @@ startMethod flags name sig = do
 endMethod :: (Generator e g, Throws UnexpectedEndMethod e) => g e ()
 endMethod = do
   m <- St.gets currentMethod
-  code <- St.gets genCode
+  -- code <- St.gets genCode
   case m of
     Nothing -> throwG UnexpectedEndMethod
     Just method -> do
-      let method' = method {methodAttributes = AR $ M.fromList [("Code", encodeMethod code)],
+      let method' = method {methodAttributes = AR $ M.fromList [],
                             methodAttributesCount = 1}
       st <- St.get
       St.put $ st {generated = [],
@@ -314,17 +314,17 @@ encodedCodeLength st = fromIntegral . B.length . encodeInstructions $ generated 
 generateCodeLength :: Generate (Caught SomeException NoExceptions) a -> Word32
 generateCodeLength = encodedCodeLength . execGenerate []
 
--- | Convert Generator state to method Code.
-genCode :: GState -> Code
-genCode st = Code {
-    codeStackSize = stackSize st,
-    codeMaxLocals = locals st,
-    codeLength = encodedCodeLength st,
-    codeInstructions = generated st,
-    codeExceptionsN = 0,
-    codeExceptions = [],
-    codeAttrsN = 0,
-    codeAttributes = AP [] }
+-- -- | Convert Generator state to method Code.
+-- genCode :: GState -> Code
+-- genCode st = Code {
+--     codeStackSize = stackSize st,
+--     codeMaxLocals = locals st,
+--     codeLength = encodedCodeLength st,
+--     codeInstructions = generated st,
+--     codeExceptionsN = 0,
+--     codeExceptions = [],
+--     codeAttrsN = 0,
+--     codeAttributes = AP [] }
 
 -- | Start class generation.
 initClass :: (Generator e g) => B.ByteString -> g e Word16
@@ -343,7 +343,7 @@ generateIO cp name gen = do
         initClass name
         gen
   res <- execGenerateIO cp generator
-  let code = genCode res
+  let -- code = genCode res
       d = defaultClass :: Class Direct
   return $ d {
         constsPoolSize = fromIntegral $ M.size (currentPool res),
@@ -366,7 +366,7 @@ generate cp name gen =
         initClass name
         gen
       res = execGenerate cp generator
-      code = genCode res
+      -- code = genCode res
       d = defaultClass :: Class Direct
   in  d {
         constsPoolSize = fromIntegral $ M.size (currentPool res),

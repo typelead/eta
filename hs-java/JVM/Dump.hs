@@ -26,8 +26,9 @@ dumpClass cls = do
       print (methodSignature m)
       case attrByName m "Code" of
         Nothing -> putStrLn "(no code)\n"
-        Just bytecode -> let code = decodeMethod bytecode
-                         in  forM_ (codeInstructions code) $ \i -> do
-                               putStr "  "
-                               print i
+        Just bytecode -> return ()
+        -- let code = decodeMethod bytecode
+        --                  in  forM_ (codeInstructions code) $ \i -> do
+        --                        putStr "  "
+        --                        print i
 

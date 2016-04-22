@@ -22,6 +22,10 @@ library
                    JVM.ClassFile
                    JVM.Assembler
                    JVM.Converter
+                   JVM.Attributes
+                   JVM.DataTypes
+                   JVM.InvokeDynamic
+                   JVM.Types
                    JVM.Builder
                    JVM.Builder.Monad
                    JVM.Builder.Instructions

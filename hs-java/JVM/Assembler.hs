@@ -6,25 +6,18 @@
 module JVM.Assembler
   (Instruction (..),
    ArrayType (..),
-   CodeException (..),
-   Code (..),
    IMM (..),
    CMP (..),
    atype2byte,
-   encodeInstructions,
-   encodeMethod,
-   decodeMethod
-  )
+   encodeInstructions)
   where
 
+import Data.BinaryState
 import Control.Monad
 import Data.Ix (inRange)
 import Data.Word
 import qualified Data.Binary as Binary
 import qualified Data.ByteString.Lazy as B
-
-import Data.BinaryState
-import JVM.ClassFile
 
 -- | Immediate constant. Corresponding value will be added to base opcode.
 data IMM =
@@ -43,66 +36,6 @@ data CMP =
   | C_GT
   | C_LE
   deriving (Eq, Ord, Enum, Show)
-
--- | Format of Code method attribute.
-data Code = Code {
-    codeStackSize :: Word16,
-    codeMaxLocals :: Word16,
-    codeLength :: Word32,
-    codeInstructions :: [Instruction],
-    codeExceptionsN :: Word16,
-    codeExceptions :: [CodeException],
-    codeAttrsN :: Word16,
-    codeAttributes :: Attributes File }
-  deriving (Eq, Show)
-
--- | Exception descriptor
-data CodeException = CodeException {
-    eStartPC :: Word16,
-    eEndPC :: Word16,
-    eHandlerPC :: Word16,
-    eCatchType :: Word16 }
-  deriving (Eq, Show)
-
-instance BinaryState Integer CodeException where
-  put CodeException {..} = do
-    put eStartPC
-    put eEndPC
-    put eHandlerPC
-    put eCatchType
-
-  get = CodeException <$> get <*> get <*> get <*> get
-
-instance BinaryState Integer RawAttribute where
-  put a = do
-    let sz = 6 + attributeLength a      -- full size of AttributeInfo structure
-    liftOffset (fromIntegral sz) Binary.put a
-
-  get = getZ
-
-instance BinaryState Integer Code where
-  put Code {..} = do
-    put codeStackSize
-    put codeMaxLocals
-    put codeLength
-    forM_ codeInstructions put
-    put codeExceptionsN
-    forM_ codeExceptions put
-    put codeAttrsN
-    forM_ (attributesList codeAttributes) put
-
-  get = do
-    stackSz <- get
-    locals <- get
-    len <- get
-    bytes <- replicateM (fromIntegral len) get
-    let bytecode = B.pack bytes
-        code = decodeWith readInstructions 0 bytecode
-    excn <- get
-    excs <- replicateM (fromIntegral excn) get
-    nAttrs <- get
-    attrs <- replicateM (fromIntegral nAttrs) get
-    return $ Code stackSz locals len code excn excs nAttrs (AP attrs)
 
 -- | Read sequence of instructions (to end of stream)
 readInstructions :: GetState Integer [Instruction]
@@ -715,14 +648,6 @@ encodeInstructions :: [Instruction] -> B.ByteString
 encodeInstructions code =
   let p list = forM_ list put
   in  encodeWith p (0 :: Integer) code
-
--- | Decode Java method
-decodeMethod :: B.ByteString -> Code
-decodeMethod = decodeS (0 :: Integer)
-
--- | Encode Java method
-encodeMethod :: Code -> B.ByteString
-encodeMethod = encodeS (0 :: Integer)
 
 -- | Calculate padding for current bytecode offset (cf. TABLESWITCH and LOOKUPSWITCH)
 padding :: (Integral a, Integral b) => a -> b
