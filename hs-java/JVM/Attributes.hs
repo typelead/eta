@@ -12,7 +12,8 @@ import JVM.Types
 import JVM.InvokeDynamic
 
 data Attribute =
-  InnerClasses
+  InnerClasses {
+      innerClasses :: [InnerClass] }
   | BootstrapMethods {
       bootstrapMethod :: MethodHandle Direct,
       bootstrapArgs :: [BootstrapArg Direct] }
@@ -28,11 +29,19 @@ data Attribute =
   | StackMapTable
   | ConstantValue
 
+data InnerClass = InnerClass {
+  innerClassName :: B.ByteString,
+  innerClassOuterClassName :: B.ByteString,
+  innerClassInnerName :: B.ByteString,
+  innerClassAccessFlags :: AccessFlags Direct }
+  deriving (Show, Eq)
+
 deriving instance Show Attribute
 deriving instance Eq Attribute
 
 attributeNameString :: Attribute -> B.ByteString
 attributeNameString Code {} = "Code"
+attributeNameString InnerClasses {} = "InnerClasses"
 attributeNameString BootstrapMethods {} = "BootstrapMethods"
 attributeNameString _ = error $ "Invalid attribute"
 
@@ -99,11 +108,3 @@ instance Binary CodeException where
     put eCatchType
 
   get = CodeException <$> get <*> get <*> get <*> get
-
--- -- | Decode Java method
--- decodeMethod :: B.ByteString -> Code
--- decodeMethod = decodeS (0 :: Integer)
-
--- -- | Encode Java method
--- encodeMethod :: Code -> B.ByteString
--- encodeMethod = encodeS (0 :: Integer)

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, StandaloneDeriving, FlexibleInstances, FlexibleContexts, UndecidableInstances, RecordWildCards, OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies, StandaloneDeriving, FlexibleInstances, FlexibleContexts, UndecidableInstances, RecordWildCards, OverloadedStrings, NamedFieldPuns #-}
 -- | Functions to convert from low-level .class format representation and
 -- high-level Java classes, methods etc representation
 module JVM.Converter
@@ -11,7 +11,7 @@ module JVM.Converter
   )
   where
 
-import Control.Monad.Reader
+import Control.Monad
 import Control.Monad.Exception
 import Data.List
 import Data.Word
@@ -116,7 +116,7 @@ poolIndex list name = case mapFindIndex test list of
     test (CUnicode s) | s == name = True
     test _                                  = False
 
--- | Find index of given string in the list of constants
+-- | Find index of given class in the list of constants
 poolClassIndex :: (Throws NoItemInPool e) => Pool File -> B.ByteString -> EM e Word16
 poolClassIndex list name = case mapFindIndex checkString list of
                         Nothing -> throw (NoItemInPool name)
@@ -178,6 +178,17 @@ attributeBytes pool Code {..} = runPut $ do
     put codeExceptions
     put codeAttrsN
     put (attributesDirect2File pool codeAttributes)
+
+attributeBytes pool InnerClasses {..} =
+  runPut $ do
+    putWord16be (fromIntegral numInnerClasses)
+    mapM_ putInnerClass innerClasses
+  where putInnerClass InnerClass {..} = do
+          put (force "innerClassName" $ poolClassIndex pool innerClassName)
+          put (force "innerClassOuterClassName" $ poolClassIndex pool innerClassOuterClassName)
+          put (force "innerClassInnerName" $ poolIndex pool innerClassInnerName)
+          put (accessDirect2File innerClassAccessFlags)
+        numInnerClasses = length innerClasses
 
 attributeBytes _ attr = error $ "Undefined attribute" ++ show attr
 
@@ -262,47 +273,47 @@ attributesFile2Direct pool attrs = M.fromList $ map go attrs
             attributeNameString = BC.unpack attributeNameBS
             attribute = getAttribute pool attributeNameString attributeValue
 
-data AttributeEnv stage = AttributeEnv {
-  aePool :: Pool stage,
-  aeAttributeName :: String }
-
 getAttribute :: Pool Direct -> String -> B.ByteString -> Attribute
-getAttribute pool attributeName attributeValue = flip runGet attributeValue $
-  runReaderT toAttribute AttributeEnv {
-     aePool = pool,
-     aeAttributeName = attributeName }
+getAttribute pool name = runGet (attributeMap pool name)
 
-toAttribute :: ReaderT (AttributeEnv Direct) Get Attribute
-toAttribute = asks aeAttributeName >>= attributeMap
+attributeMap :: Pool Direct -> String -> Get Attribute
+attributeMap pool "Code" = do
+  stackSize <- get
+  maxLocals <- get
+  len <- get
+  offset <- bytesRead
+  code <- readInstructions offset len
+  numExceptions <- get
+  exceptions <- replicateM (fromIntegral numExceptions) get
+  numAttributes <- get
+  rawAttributes <- replicateM (fromIntegral numAttributes)
+                              (get :: Get RawAttribute)
+  return Code {
+    codeStackSize = stackSize,
+    codeMaxLocals = maxLocals,
+    codeLength = len,
+    codeInstructions = code,
+    codeExceptionsN = numExceptions,
+    codeExceptions = exceptions,
+    codeAttrsN = numAttributes,
+    codeAttributes = attributesFile2Direct pool rawAttributes }
 
+attributeMap pool "InnerClasses" = do
+  numInnerClasses <- getWord16be
+  innerClasses <- replicateM (fromIntegral numInnerClasses) getInnerClass
+  return InnerClasses { innerClasses }
+  where getInnerClass = do
+          i <- getWord16be
+          j <- getWord16be
+          k <- getWord16be
+          accessFlags <- get
+          return InnerClass {
+            innerClassName = className $ pool ! i,
+            innerClassOuterClassName = className $ pool ! j,
+            innerClassInnerName = getString $ pool ! k,
+            innerClassAccessFlags = accessFile2Direct accessFlags }
 
-attributeMap :: String -> ReaderT (AttributeEnv Direct) Get Attribute
-attributeMap "Code" = do
-  (rawAttributes, codeAttribute) <-
-    lift $ do
-      stackSize <- get
-      maxLocals <- get
-      len <- get
-      offset <- bytesRead
-      code <- readInstructions offset len
-      numExceptions <- get
-      exceptions <- replicateM (fromIntegral numExceptions) get
-      numAttributes <- get
-      rawAttributes <- replicateM (fromIntegral numAttributes)
-                                  (get :: Get RawAttribute)
-      return (rawAttributes,
-              Code {
-                 codeStackSize = stackSize,
-                 codeMaxLocals = maxLocals,
-                 codeLength = len,
-                 codeInstructions = code,
-                 codeExceptionsN = numExceptions,
-                 codeExceptions = exceptions,
-                 codeAttrsN = numAttributes })
-  pool <- asks aePool
-  return $ codeAttribute { codeAttributes = attributesFile2Direct pool rawAttributes  }
-
-attributeMap name = error $ "Invalid attribute: " ++ name
+attributeMap pool name = error $ "Invalid attribute: " ++ name
 
 -- | Try to get class method by name
 methodByName :: Class Direct -> B.ByteString -> Maybe (Method Direct)

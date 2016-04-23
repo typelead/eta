@@ -9,7 +9,6 @@ module JVM.Assembler
    IMM (..),
    CMP (..),
    atype2byte,
-   encodeInstructions,
    readInstructions)
   where
 
@@ -647,10 +646,6 @@ instance Binary Instruction where
         | inRange (153, 158) c -> IF (toEnum $ fromIntegral $ c-153) <$> get
         | inRange (159, 164) c -> IF_ICMP (toEnum $ fromIntegral $ c-159) <$> get
         | otherwise -> fail $ "Unknown instruction byte code: " ++ show c
-
--- | Encode list of instructions
-encodeInstructions :: [Instruction] -> B.ByteString
-encodeInstructions ins = runPut $ forM_ ins put
 
 -- | Calculate padding for current bytecode offset (cf. TABLESWITCH and LOOKUPSWITCH)
 padding :: (Integral a, Integral b) => a -> b
