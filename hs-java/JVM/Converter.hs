@@ -17,6 +17,8 @@ import Data.List
 import Data.Word
 import Data.Bits
 import Data.Binary
+import Data.Binary.Get
+import Data.Binary.Put
 import Data.Default () -- import instances only
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Char8 as BC
@@ -77,11 +79,9 @@ classDirect2File Class {..} =
     classMethodsCount = fromIntegral (length classMethods),
     classMethods = map (methodDirect2File poolInfo) classMethods,
     classAttributesCount = fromIntegral $ arsize classAttributes,
-    classAttributes = to (arlist classAttributes) }
+    classAttributes = attributesDirect2File poolInfo classAttributes}
   where
     poolInfo = poolDirect2File constsPool
-    to :: [(B.ByteString, Attribute)] -> Attributes File
-    to pairs = AP (map (attrInfo poolInfo) pairs)
 
 poolDirect2File :: Pool Direct -> Pool File
 poolDirect2File pool = result
@@ -164,6 +164,9 @@ methodDirect2File pool Method {..} = Method {
     to :: [(B.ByteString, Attribute)] -> Attributes File
     to pairs = AP (map (attrInfo pool) pairs)
 
+attributesDirect2File :: Pool File -> Attributes Direct -> Attributes File
+attributesDirect2File pool = AP . map (attrInfo pool) . arlist
+
 attrInfo :: Pool File -> (B.ByteString, Attribute) -> RawAttribute
 attrInfo pool (name, value) = RawAttribute {
       attributeName = force "attr name" $ poolIndex pool name,
@@ -172,8 +175,17 @@ attrInfo pool (name, value) = RawAttribute {
   where bytes = attributeBytes pool value
 
 attributeBytes :: Pool File -> Attribute -> B.ByteString
-attributeBytes _ (Code instrs) = encodeInstructions instrs
-attributeBytes _ _ = error $ "Undefined attribute"
+attributeBytes pool Code {..} = runPut $ do
+    put codeStackSize
+    put codeMaxLocals
+    put codeLength
+    put codeInstructions
+    put codeExceptionsN
+    put codeExceptions
+    put codeAttrsN
+    put . attributesList . attributesDirect2File pool $ codeAttributes
+
+attributeBytes _ attr = error $ "Undefined attribute" ++ show attr
 
 poolFile2Direct :: Pool File -> Pool Direct
 poolFile2Direct ps = pool
@@ -253,7 +265,7 @@ attributesFile2Direct pool (AP attrs) = AR (M.fromList $ map go attrs)
     go :: RawAttribute -> (B.ByteString, Attribute)
     go RawAttribute {..} = (attributeNameBS, attribute)
       where attributeNameBS = getString $ pool ! attributeName
-            attributeNameString = BS.unpack attributeNameBS
+            attributeNameString = BC.unpack attributeNameBS
             attribute = getAttribute pool attributeNameString attributeValue
 
 data AttributeEnv stage = AttributeEnv {
@@ -282,7 +294,8 @@ attributeMap "Code" = do
       numExceptions <- get
       exceptions <- replicateM (fromIntegral numExceptions) get
       numAttributes <- get
-      rawAttributes <- replicateM (fromIntegral numAttributes) (get :: Get RawAttribute)
+      rawAttributes <- replicateM (fromIntegral numAttributes)
+                                  (get :: Get RawAttribute)
       return (AP rawAttributes,
               Code {
                  codeStackSize = stackSize,
@@ -303,7 +316,7 @@ methodByName cls name =
   find (\m -> methodName m == name) (classMethods cls)
 
 -- | Try to get object attribute by name
-attrByName :: (HasAttributes a) => a Direct -> B.ByteString -> Maybe B.ByteString
+attrByName :: (HasAttributes a) => a Direct -> B.ByteString -> Maybe Attribute
 attrByName x name =
   let (AR m) = attributes x
   in  M.lookup name m
@@ -311,7 +324,7 @@ attrByName x name =
 -- | Try to get Code for class method (no Code for interface methods)
 methodCode :: Class Direct
            -> B.ByteString       -- ^ Method name
-           -> Maybe B.ByteString
+           -> Maybe Attribute
 methodCode cls name = do
   method <- methodByName cls name
   attrByName method "Code"
