@@ -1,13 +1,9 @@
-{-# LANGUAGE StandaloneDeriving, TypeFamilies, RecordWildCards, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving, TypeFamilies, RecordWildCards, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings #-}
 module JVM.Attributes where
 
-import Control.Monad
-import Data.Default
-import qualified Data.BinaryState as BS
 import Data.Binary
 import Data.Binary.Put
 import Data.Binary.Get
-import Data.Word
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Map as M
 
@@ -17,7 +13,9 @@ import JVM.InvokeDynamic
 
 data Attribute =
   InnerClasses
-  | BootstrapMethods (MethodHandle Direct) [BootstrapArg Direct]
+  | BootstrapMethods {
+      bootstrapMethod :: MethodHandle Direct,
+      bootstrapArgs :: [BootstrapArg Direct] }
   | Code {
       codeStackSize :: Word16,
       codeMaxLocals :: Word16,
@@ -32,6 +30,11 @@ data Attribute =
 
 deriving instance Show Attribute
 deriving instance Eq Attribute
+
+attributeNameString :: Attribute -> B.ByteString
+attributeNameString Code {} = "Code"
+attributeNameString BootstrapMethods {} = "BootstrapMethods"
+attributeNameString _ = error $ "Invalid attribute"
 
 -- | Any (class/ field/ method/ ...) attribute format.
 -- Some formats specify special formats for @attributeValue@.
@@ -54,33 +57,28 @@ instance Binary RawAttribute where
     return $ RawAttribute name len value
 
 -- | Object (class, method, field) attributes
-data family Attributes stage
+type family Attributes stage
 
 -- | At File stage, attributes are represented as list of Attribute structures.
-data instance Attributes File = AP {attributesList :: [RawAttribute]}
-  deriving (Eq, Show)
-
-instance Default (Attributes File) where
-  def = AP []
+type instance Attributes File = [RawAttribute]
 
 -- | At Direct stage, attributes are represented as a Map.
-data instance Attributes Direct = AR (M.Map B.ByteString Attribute)
-  deriving (Eq, Show)
+type instance Attributes Direct = M.Map B.ByteString Attribute
 
-instance Default (Attributes Direct) where
-  def = AR M.empty
+insertAttribute :: Attribute -> Attributes Direct -> Attributes Direct
+insertAttribute attribute = M.insert (attributeNameString attribute) attribute
 
 -- | Size of attributes set at Direct stage
 arsize :: Attributes Direct -> Int
-arsize (AR m) = M.size m
+arsize = M.size
 
 -- | Associative list of attributes at Direct stage
 arlist :: Attributes Direct -> [(B.ByteString, Attribute)]
-arlist (AR m) = M.assocs m
+arlist = M.assocs
 
 -- | Size of attributes set at File stage
 apsize :: Attributes File -> Int
-apsize (AP list) = length list
+apsize = length
 
 class HasAttributes a where
   attributes :: a stage -> Attributes stage

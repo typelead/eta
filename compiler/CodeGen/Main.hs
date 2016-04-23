@@ -43,7 +43,7 @@ instance Monad (CodeGen e) where
       unCG (f x) e s0
 
 runCodeGen :: CgEnv -> CgState -> CodeGen (Caught SomeException NoExceptions) a -> IO (Class Direct)
-runCodeGen env state m = generateIO [] (B.pack . cgClassName $ env) $ unCG m env state >> return ()
+runCodeGen env state m = generateIO [] $ unCG m env state >> return ()
 
 upperFirst :: String -> String
 upperFirst [] = []

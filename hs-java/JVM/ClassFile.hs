@@ -11,7 +11,6 @@ module JVM.ClassFile
    FieldType (..),
    -- * Signatures
    FieldSignature, MethodSignature (..), ReturnSignature (..),
-   ArgumentSignature (..),
    -- * Stage types
    File, Direct,
    -- * Staged structures
@@ -19,7 +18,6 @@ module JVM.ClassFile
    Method (..), Field (..), Class (..),
    Constant (..),
    AccessFlag (..), AccessFlags,
-   Attributes (..),
    defaultClass,
    -- * Misc
    HasSignature (..), HasAttributes (..),
@@ -40,7 +38,6 @@ import JVM.Attributes
 import JVM.Types
 
 import Control.Monad
-import Control.Monad.Trans (lift)
 import Control.Monad.Reader
 import qualified Control.Monad.State as St
 import Data.Binary
@@ -50,7 +47,6 @@ import Data.Binary.Get
 import Data.Binary.Put
 import Data.Default
 import qualified Data.ByteString.Lazy as B
-import qualified Data.BinaryState as BS
 
 -- | Generic .class file format
 data Class stage = Class {
@@ -117,7 +113,7 @@ instance Binary (Class File) where
     put classMethodsCount
     forM_ classMethods put
     put classAttributesCount
-    forM_ (attributesList classAttributes) put
+    forM_ classAttributes put
 
   get = do
     magic <- get
@@ -142,7 +138,7 @@ instance Binary (Class File) where
     as <- replicateM (fromIntegral asCount) get
     return $ Class magic minor major poolsize pool af this super
                interfacesCount ifaces classFieldsCount classFields
-               classMethodsCount classMethods asCount (AP as)
+               classMethodsCount classMethods asCount as
 
 lookupMethod :: B.ByteString -> Class Direct -> Maybe (Method Direct)
 lookupMethod name cls = look (classMethods cls)
@@ -162,9 +158,6 @@ lookupField name cls = look (classFields cls)
 
 -- | Constant pool
 type Pool stage = M.Map Word16 (Constant stage)
-
-poolSize :: Pool stage -> Int
-poolSize = M.size
 
 putPool :: Pool File -> Put
 putPool pool = do
@@ -216,7 +209,6 @@ getPool n = do
           return $ (i,c): next
 
     getC = do
-      !offset <- bytesRead
       tag <- getWord8
       case tag of
         1 -> do
@@ -241,15 +233,3 @@ getPool n = do
         16 -> CMethodType <$> get
         18 -> CInvokeDynamic <$> get <*> get
         _  -> fail $ "Unknown constants pool entry tag: " ++ show tag
-
--- instance BS.BinaryState (PoolState File) Attribute where
---   put Code {..} = do
-
---     put codeStackSize
---     put codeMaxLocals
---     put codeLength
---     forM_ codeInstructions put
---     put codeExceptionsN
---     forM_ codeExceptions put
---     put codeAttrsN
---     forM_ (attributesList codeAttributes) put

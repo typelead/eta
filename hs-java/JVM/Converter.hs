@@ -148,10 +148,7 @@ fieldDirect2File pool Field {..} = Field {
     fieldName = force "field name" $ poolIndex pool fieldName,
     fieldSignature = force "signature" $ poolIndex pool (encode fieldSignature),
     fieldAttributesCount = fromIntegral (arsize fieldAttributes),
-    fieldAttributes = to (arlist fieldAttributes) }
-  where
-    to :: [(B.ByteString, Attribute)] -> Attributes File
-    to pairs = AP (map (attrInfo pool) pairs)
+    fieldAttributes = attributesDirect2File pool fieldAttributes }
 
 methodDirect2File :: Pool File -> Method Direct -> Method File
 methodDirect2File pool Method {..} = Method {
@@ -159,13 +156,10 @@ methodDirect2File pool Method {..} = Method {
     methodName = force "method name" $ poolIndex pool methodName,
     methodSignature = force "method sig" $ poolIndex pool (encode methodSignature),
     methodAttributesCount = fromIntegral (arsize methodAttributes),
-    methodAttributes = to (arlist methodAttributes) }
-  where
-    to :: [(B.ByteString, Attribute)] -> Attributes File
-    to pairs = AP (map (attrInfo pool) pairs)
+    methodAttributes = attributesDirect2File pool methodAttributes }
 
 attributesDirect2File :: Pool File -> Attributes Direct -> Attributes File
-attributesDirect2File pool = AP . map (attrInfo pool) . arlist
+attributesDirect2File pool = map (attrInfo pool) . arlist
 
 attrInfo :: Pool File -> (B.ByteString, Attribute) -> RawAttribute
 attrInfo pool (name, value) = RawAttribute {
@@ -183,7 +177,7 @@ attributeBytes pool Code {..} = runPut $ do
     put codeExceptionsN
     put codeExceptions
     put codeAttrsN
-    put . attributesList . attributesDirect2File pool $ codeAttributes
+    put (attributesDirect2File pool codeAttributes)
 
 attributeBytes _ attr = error $ "Undefined attribute" ++ show attr
 
@@ -260,7 +254,7 @@ methodFile2Direct pool Method {..} = Method {
   methodAttributes = attributesFile2Direct pool methodAttributes }
 
 attributesFile2Direct :: Pool Direct -> Attributes File -> Attributes Direct
-attributesFile2Direct pool (AP attrs) = AR (M.fromList $ map go attrs)
+attributesFile2Direct pool attrs = M.fromList $ map go attrs
   where
     go :: RawAttribute -> (B.ByteString, Attribute)
     go RawAttribute {..} = (attributeNameBS, attribute)
@@ -296,7 +290,7 @@ attributeMap "Code" = do
       numAttributes <- get
       rawAttributes <- replicateM (fromIntegral numAttributes)
                                   (get :: Get RawAttribute)
-      return (AP rawAttributes,
+      return (rawAttributes,
               Code {
                  codeStackSize = stackSize,
                  codeMaxLocals = maxLocals,
@@ -317,9 +311,7 @@ methodByName cls name =
 
 -- | Try to get object attribute by name
 attrByName :: (HasAttributes a) => a Direct -> B.ByteString -> Maybe Attribute
-attrByName x name =
-  let (AR m) = attributes x
-  in  M.lookup name m
+attrByName x name = M.lookup name (attributes x)
 
 -- | Try to get Code for class method (no Code for interface methods)
 methodCode :: Class Direct

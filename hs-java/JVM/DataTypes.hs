@@ -79,7 +79,7 @@ instance Binary (Field File) where
     put fieldName
     put fieldSignature
     put fieldAttributesCount
-    forM_ (attributesList fieldAttributes) put
+    forM_ fieldAttributes put
 
   get = do
     af <- get
@@ -87,7 +87,7 @@ instance Binary (Field File) where
     si <- get
     n <- getWord16be
     as <- replicateM (fromIntegral n) get
-    return $ Field af ni si n (AP as)
+    return $ Field af ni si n as
 
 fieldNameType :: Field Direct -> NameType (Field Direct)
 fieldNameType f = NameType (fieldName f) (fieldSignature f)
@@ -120,7 +120,7 @@ instance Binary (Method File) where
     put methodName
     put methodSignature
     put methodAttributesCount
-    forM_ (attributesList methodAttributes) put
+    forM_ methodAttributes put
 
   get = do
     offset <- bytesRead
@@ -134,7 +134,7 @@ instance Binary (Method File) where
       methodName = ni,
       methodSignature = si,
       methodAttributesCount = n,
-      methodAttributes = AP as }
+      methodAttributes = as }
 
 methodNameType :: Method Direct -> NameType (Method Direct)
 methodNameType m = NameType (methodName m) (methodSignature m)
