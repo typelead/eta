@@ -32,6 +32,7 @@ import Data.Default
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as BC
 
 import JVM.Types
 import JVM.Common
@@ -41,6 +42,7 @@ import JVM.Exceptions
 import Java.ClassPath
 import JVM.Attributes
 
+-- | NOTE: The use of Maps for gsFields and gsMethods prevents you from generating overloaded methods.
 -- | Generator state
 data GState = GState {
   gsClassName :: B.ByteString,
@@ -48,14 +50,15 @@ data GState = GState {
   gsGenerated :: [Instruction],             -- ^ Already generated code (in current method)
   gsPool :: Pool Direct,             -- ^ Already generated constants pool
   gsPoolIndex :: Word16,                -- ^ Next index to be used in constants pool
-  gsFields :: [Field Direct],
-  gsMethods :: [Method Direct],         -- ^ Already generated class methods
+  gsFields :: M.Map B.ByteString (Field Direct),
+  gsMethods :: M.Map B.ByteString (Method Direct),         -- ^ Already generated class methods
   gsCurrentMethod :: Maybe (Method Direct), -- ^ Current method
   gsStackSize :: Word16,                    -- ^ Maximum stack size for current method
   gsLocals :: Word16,                       -- ^ Maximum number of local variables for current method
   gsClassPath :: [Tree CPEntry],
   gsClassAttributes :: Attributes Direct,
-  gsAccessFlags :: AccessFlags Direct }
+  gsAccessFlags :: AccessFlags Direct,
+  gsInnerClasses :: M.Map B.ByteString GState }
   deriving (Eq,Show)
 
 addAccessFlag :: (Generator e g) => AccessFlag -> g e ()
@@ -71,8 +74,8 @@ emptyGState = GState {
   gsGenerated = [],
   gsPool = M.empty,
   gsPoolIndex = 1,
-  gsFields = [],
-  gsMethods = [],
+  gsFields = M.empty,
+  gsMethods = M.empty,
   gsCurrentMethod = Nothing,
   gsStackSize = 496,
   gsLocals = 0,
@@ -191,8 +194,8 @@ addToPool c@(CNameType name sig) = do
   addItem c
 addToPool c = addItem c
 
-addAttribute :: (Generator e g) => Attribute -> g e Word16
-addAttribute = addUTF8 . attributeNameString
+addAttributeToPool :: (Generator e g) => Attribute -> g e Word16
+addAttributeToPool attribute = addUTF8 (attributeNameString attribute)
 
 addUTF8 :: (Generator e g) => B.ByteString -> g e Word16
 addUTF8 = addItem . CUTF8
@@ -263,14 +266,14 @@ endMethod = do
   codeAttribute <- St.gets genCode
   case m of
     Nothing -> throwG UnexpectedEndMethod
-    Just method@(Method {..}) -> do
+    Just method@Method {..} -> do
       let method' = method {
             methodAttributes = insertAttribute codeAttribute methodAttributes,
             methodAttributesCount = methodAttributesCount + 1}
       St.modify (\s -> s {
                     gsGenerated = [],
                     gsCurrentMethod = Nothing,
-                    gsMethods = gsMethods s ++ [method']})
+                    gsMethods = M.insert methodName method' (gsMethods s)})
 
 -- | Generate new method
 newMethod :: (Generator e g, Throws UnexpectedEndMethod e)
@@ -302,13 +305,51 @@ newField flags name sig = do
         fieldSignature = sig,
         fieldAttributesCount = 0,
         fieldAttributes = def }
-  St.put $ st { gsFields = fields ++ [field]}
+  St.put $ st { gsFields = M.insert name field fields}
+
+addAttribute :: (Generator e g) => Attribute -> g e ()
+addAttribute attribute@InnerClasses {..} = do
+  mapM_ addInnerClass innerClasses
+  let attributeName = (attributeNameString attribute)
+  St.modify (\s@GState { gsClassAttributes } ->
+               let attribute' = case M.lookup attributeName gsClassAttributes of
+                     Nothing -> attribute
+                     Just foundAttribute@InnerClasses { innerClasses = innerClasses'} ->
+                       foundAttribute { innerClasses = innerClasses ++ innerClasses' }
+                       in
+               s { gsClassAttributes = M.insert attributeName attribute' gsClassAttributes })
+  where addInnerClass InnerClass {..} = do
+          addToPool (CClass innerClassName)
+          addToPool (CClass innerClassOuterClassName)
+          addToPool (CUTF8 innerClassInnerName)
+
+addAttribute attribute = error $ "addAttribute: pattern match failure = " ++ show attribute
 
 newInnerClass :: (Generator e g)
-              => [AccessFlag]
-              -> String
-              -> g e ()
-newInnerClass = undefined
+              => [AccessFlag]    -- ^ Access flags
+              -> B.ByteString    -- ^ Inner Class inner name
+              -> B.ByteString    -- ^ Super class
+              -> g e ()          -- ^ Body of inner class
+              -> g e B.ByteString -- ^ Generated inner class name
+newInnerClass flags name super gen = do
+  prevGState <- St.get
+  let outerClassName = gsClassName prevGState
+      fullInnerClassName = B.append (BC.snoc outerClassName '$') name
+      innerClassAttribute =
+        InnerClasses {
+            innerClasses = [InnerClass {
+                               innerClassName = fullInnerClassName,
+                               innerClassOuterClassName = outerClassName,
+                               innerClassInnerName = name,
+                               innerClassAccessFlags = S.fromList flags }]}
+  St.put $ emptyGState { gsClassName = fullInnerClassName,
+                         gsSuperClassName = super}
+  gen
+  addAttribute innerClassAttribute
+  innerGState <- St.get
+  St.put $ prevGState { gsInnerClasses = M.insert name innerGState (gsInnerClasses prevGState) }
+  addAttribute innerClassAttribute
+  return fullInnerClassName
 
 -- | Get a class from current ClassPath
 getClass :: (Throws ENotLoaded e, Throws ENotFound e)
@@ -368,9 +409,9 @@ generateClass GState {..} = defaultClass {
     thisClass = gsClassName,
     superClass = gsSuperClassName,
     classMethodsCount = fromIntegral $ length gsMethods,
-    classMethods = gsMethods,
+    classMethods = M.elems gsMethods,
     classFieldsCount = fromIntegral $ length gsFields,
-    classFields = gsFields }
+    classFields = M.elems gsFields }
 
 initClass :: (Generator e g)
           => g e ()
@@ -378,8 +419,8 @@ initClass :: (Generator e g)
 initClass gen = do
   gen
   GState { gsSuperClassName, gsClassName } <- St.get
-  _ <- addUTF8 gsClassName
-  _ <- addUTF8 gsSuperClassName
+  addToPool (CClass gsSuperClassName)
+  addToPool (CClass gsClassName)
   return ()
 
 -- | Generate a class

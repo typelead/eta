@@ -103,7 +103,7 @@ data FieldType =
   | LongInt    -- ^ J
   | ShortInt   -- ^ S
   | BoolType   -- ^ Z
-  | ObjectType String -- ^ L @{class name}@
+  | ObjectType String  -- ^ L @{class name}@
   | Array (Maybe Int) FieldType -- ^ @[{type}@
   deriving (Eq, Ord)
 
