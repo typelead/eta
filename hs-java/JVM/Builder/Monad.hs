@@ -17,6 +17,7 @@ module JVM.Builder.Monad
    newMethod,
    newField,
    setStackSize, setMaxLocals,
+   setClass, setSuper,
    withClassPath,
    getClassField, getClassMethod,
    generate, generateIO,

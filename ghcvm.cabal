@@ -25,6 +25,7 @@ library
                        , filepath
                        , hs-java == 0.3.4
                        , control-monad-exception >= 0.11
+                       , mtl 
     hs-source-dirs:      compiler
     exposed:             True
     buildable:           True
