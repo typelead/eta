@@ -27,6 +27,8 @@ import qualified Data.ByteString.Lazy as B
 
 import CodeGen.Main
 import JVM.Converter
+import JVM.ClassFile
+import JVM.Types
 
 runGhcVMPhase :: PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath)
 runGhcVMPhase realphase@(RealPhase (Unlit _)) = runPhase realphase
@@ -103,10 +105,13 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
           myCoreToStg dflags this_mod prepd_binds
 
   classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
-  mapM_ (\(cName,c) -> B.writeFile (cName ++ ".class") (encodeClass c)) classes
+  mapM_ (\c -> B.writeFile (classFileName c) (encodeClass c)) classes
   -- Write the result to a class file at output_filename
 
-  return $ (fst (head classes)) ++ ".class"
+  return $ classFileName (head classes) ++ ".class"
+
+classFileName :: Class Direct -> String
+classFileName _ = ""
 
 dumpStg :: DynFlags -> SDoc -> IO ()
 dumpStg dflags = dumpSDoc dflags alwaysQualify Opt_D_dump_stg "STG Syntax:"

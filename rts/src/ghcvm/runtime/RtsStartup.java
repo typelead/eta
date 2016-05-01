@@ -3,7 +3,7 @@ package ghcvm.runtime;
 import ghcvm.runtime.types.*;
 
 public class RtsStartup {
-    private static int hsInitCount = 0;
+    private static int hsInitCount;
     public static void hsInit(String[] args, RtsConfig config) {
         hsInitCount++;
         if (hsInitCount > 1) return;

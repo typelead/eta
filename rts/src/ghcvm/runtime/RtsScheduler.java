@@ -6,9 +6,9 @@ import ghcvm.runtime.types.*;
 import ghcvm.runtime.closure.*;
 
 public class RtsScheduler {
-    public static StgTSO blockedQueueHead = null;
-    public static StgTSO blockedQueueTail = null;
-    public static StgTSO sleepingQueue = null;
+    public static StgTSO blockedQueueHead;
+    public static StgTSO blockedQueueTail;
+    public static StgTSO sleepingQueue;
     public enum RecentActivity {
         Yes, Inactive, DoneGC
     }

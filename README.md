@@ -1,6 +1,23 @@
 # GHCVM - A JVM backend for GHC
 
-This project aims to compile Haskell to the JVM, with the primary goal of seamless compatibility with GHC's Haskell.
+This project aims to compile Haskell to the JVM, with the primary goal of seamless compatibility with GHC 7.10.3's Haskell.
+
+## Building
+Stack is used to build the code generator and the Shake builder for the RTS. The RTS build is setup so that it allows for C preprocessor directives inside of Java code.
+
+To build everything, simply run the ./build.sh script.
+```shell
+$ ./build.sh
+```
+
+## Running
+The ghcvm executable does nothing more than generate a stub .class file for now. Once the code generator is ready, it will do something more exciting.
+
+```shell
+$ stack exec -- ghcvm --make Main.hs
+```
+
+All the options that are supported by GHC are currently allowed. The options will be filtered in the future.
 
 ## Goals 
 
@@ -23,16 +40,18 @@ We aim to meet the following goals:
 ## Progress
 
 ### Completed Items
-- Came up with an efficient design for a JVM Runtime System for Haskell that:
-  - Has full support of general tail calls
-  - Has a memory-efficient solution to overriding a thunk with its value (at the cost of complicated implementation and a high-level GC layer)
-  - Can interoperate with Java seamlessly
+
 - Intercepted the STG Code in GHC pipeline
+- Updated hs-java to add support for inner classes and did some cosmetic refactorings.
+- Wrote very basic runtime system with support for some primitive data types like StgClosure, StackFrame, etc.
 
 ### Pending Items
-1. Write the minimum code generator and run time system implementing the design. 
-2. Compile a single source file to run on the JVM.
-3. ...
+1. Work on the code generator taking the StgCmm*.hs files in the GHC repo as inspiration.
+1. Work on runtime system implemented more RTS functions from GHC as required during code generation. 
+2. Implement as many of GHC's PrimOps as possible.
+3. Change the base library to use the Java FFI instead of C FFI.
+4. Compile a single source file to run on the JVM.
+and more...
 
 ## Contributing
 

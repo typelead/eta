@@ -51,6 +51,7 @@ data GState = GState {
   gsPool :: Pool Direct,             -- ^ Already generated constants pool
   gsPoolIndex :: Word16,                -- ^ Next index to be used in constants pool
   gsFields :: M.Map B.ByteString (Field Direct),
+  gsInitializationCode :: M.Map B.ByteString [Instruction],
   gsMethods :: M.Map B.ByteString (Method Direct),         -- ^ Already generated class methods
   gsCurrentMethod :: Maybe (Method Direct), -- ^ Current method
   gsStackSize :: Word16,                    -- ^ Maximum stack size for current method
@@ -75,6 +76,7 @@ emptyGState = GState {
   gsPool = M.empty,
   gsPoolIndex = 1,
   gsFields = M.empty,
+  gsInitializationCode = M.empty,
   gsMethods = M.empty,
   gsCurrentMethod = Nothing,
   gsStackSize = 496,
@@ -295,17 +297,20 @@ newField :: (Generator e g)
          => [AccessFlag]     -- ^ Access flags
          -> B.ByteString     -- ^ Field name
          -> FieldSignature   -- ^ Field signature
+         -> Maybe [Instruction]    -- ^ Initialization code
          -> g e ()
-newField flags name sig = do
-  st <- St.get
-  let fields = gsFields st
-      field = Field {
+newField flags name sig code = do
+  st@GState { gsFields, gsInitializationCode } <- St.get
+  let field = Field {
         fieldAccessFlags = S.fromList flags,
         fieldName = name,
         fieldSignature = sig,
         fieldAttributesCount = 0,
         fieldAttributes = def }
-  St.put $ st { gsFields = M.insert name field fields}
+  St.put $ st { gsFields = M.insert name field gsFields,
+                gsInitializationCode = maybe gsInitializationCode
+                                             (\x -> M.insert name x gsInitializationCode)
+                                             code }
 
 addAttribute :: (Generator e g) => Attribute -> g e ()
 addAttribute attribute@InnerClasses {..} = do
@@ -401,8 +406,8 @@ genCode st = Code {
     codeAttrsN = 0,
     codeAttributes = M.empty }
 
-generateClass :: GState -> Class Direct
-generateClass GState {..} = defaultClass {
+generateClasses :: GState -> [Class Direct]
+generateClasses GState {..} = defaultClass {
     constsPoolSize = fromIntegral $ M.size gsPool,
     constsPool = gsPool,
     accessFlags = gsAccessFlags,
@@ -411,7 +416,7 @@ generateClass GState {..} = defaultClass {
     classMethodsCount = fromIntegral $ length gsMethods,
     classMethods = M.elems gsMethods,
     classFieldsCount = fromIntegral $ length gsFields,
-    classFields = M.elems gsFields }
+    classFields = M.elems gsFields } : concatMap generateClasses (M.elems gsInnerClasses)
 
 initClass :: (Generator e g)
           => g e ()
@@ -426,11 +431,11 @@ initClass gen = do
 -- | Generate a class
 generateIO :: [Tree CPEntry]
            -> GenerateIO (Caught SomeException NoExceptions) ()
-           -> IO (Class Direct)
-generateIO cp gen = liftM generateClass $ execGenerateIO cp (initClass gen)
+           -> IO [Class Direct]
+generateIO cp gen = liftM generateClasses $ execGenerateIO cp (initClass gen)
 
 -- | Generate a class
 generate :: [Tree CPEntry]
          -> Generate (Caught SomeException NoExceptions) ()
-         -> Class Direct
-generate cp gen = generateClass . execGenerate cp $ initClass gen
+         -> [Class Direct]
+generate cp gen = generateClasses . execGenerate cp $ initClass gen

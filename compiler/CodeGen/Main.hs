@@ -42,7 +42,7 @@ instance Monad (CodeGen e) where
       (s0, x) <- unCG m e s
       unCG (f x) e s0
 
-runCodeGen :: CgEnv -> CgState -> CodeGen (Caught SomeException NoExceptions) a -> IO (Class Direct)
+runCodeGen :: CgEnv -> CgState -> CodeGen (Caught SomeException NoExceptions) a -> IO [Class Direct]
 runCodeGen env state m = generateIO [] $ unCG m env state >> return ()
 
 upperFirst :: String -> String
@@ -62,10 +62,9 @@ generatePackageAndClass mod = (package, class_)
     package = "haskell/" ++ package_str ++ "/" ++ (map toLower . concat . intersperse "/" $ before_mod)
     class_ = upperFirst class__
 
-codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [(String, Class Direct)]
-codeGen hsc_env this_mod data_tycons stg_binds hpc_info = do
-  class_ <- runCodeGen initEnv initState $ return ()
-  return [(class' , class_)]
+codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [Class Direct]
+codeGen hsc_env this_mod data_tycons stg_binds hpc_info =
+  runCodeGen initEnv initState $ return ()
   where
     initEnv = CgEnv { cgPackagePrefix = package,
                       cgClassName = package ++ "/" ++ class'}
