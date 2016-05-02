@@ -110,6 +110,10 @@ data FieldType =
 obj :: String -> FieldType
 obj = ObjectType
 
+getFTClass :: FieldType -> String
+getFTClass (ObjectType c) = c
+getFTClass _ = error $ "getFTClass: FieldType is not ObjectType!"
+
 instance Show FieldType where
   show SignedByte = "byte"
   show CharByte = "char"

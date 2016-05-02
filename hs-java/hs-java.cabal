@@ -29,6 +29,7 @@ library
                    JVM.Builder
                    JVM.Builder.Monad
                    JVM.Builder.Instructions
+                   JVM.Builder.Util
                    JVM.Dump
                    JVM.Exceptions
                    Java.Lang

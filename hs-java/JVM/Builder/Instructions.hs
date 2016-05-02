@@ -1,16 +1,45 @@
+{-# LANGUAGE OverloadedStrings, NamedFieldPuns, FlexibleContexts #-}
 -- | This module exports shortcuts for some of JVM instructions (which are defined in JVM.Assembler).
 -- These functions get Constants, put them into constants pool and generate instruction using index
 -- of constant in the pool.
 module JVM.Builder.Instructions where
 
+import qualified Control.Monad.State as St
 import Data.Word
+import Data.Set as S
 import qualified Data.ByteString.Lazy as B
+import qualified Data.Map as M
 import Codec.Binary.UTF8.String (encodeString)
 import Data.String
+import Control.Monad
+import Control.Monad.Exception
+import JVM.Exceptions
 
+import JVM.Types
 import JVM.ClassFile
 import JVM.Assembler
 import JVM.Builder.Monad
+import qualified Java.Lang as J
+
+-- | Generate one (zero-arguments) instruction
+i0 :: (Generator e g) => Instruction -> g e ()
+i0 = putInstruction
+
+-- | Generate one one-argument instruction
+i1 :: (Generator e g) => (Word16 -> Instruction) -> Constant Direct -> g e ()
+i1 fn c = do
+  ix <- addToPool c
+  i0 (fn ix)
+
+-- | Generate one one-argument instruction
+i8 :: (Generator e g) => (Word8 -> Instruction) -> Constant Direct -> g e ()
+i8 fn c = do
+  ix <- addToPool c
+  i0 (fn $ fromIntegral ix)
+
+putInstruction :: (Generator e g) => Instruction -> g e ()
+putInstruction instr = St.modify $ \s@GState { gsGenerated } ->
+  s { gsGenerated = gsGenerated ++ [instr]}
 
 nop :: Generator e g => g e ()
 nop = i0 NOP
@@ -77,6 +106,12 @@ dload_ :: Generator e g => IMM -> g e ()
 dload_ x = i0 (DLOAD_ x)
 aload_ :: Generator e g => IMM -> g e ()
 aload_ x = i0 (ALOAD_ x)
+
+aload_0, aload_1, aload_2, aload_3 :: Generator e g => g e ()
+aload_0 = aload_ I0
+aload_1 = aload_ I1
+aload_2 = aload_ I2
+aload_3 = aload_ I3
 
 iaload :: Generator e g => g e ()
 iaload = i0 IALOAD
@@ -259,6 +294,10 @@ i2s  = i0 I2S
 lcmp :: Generator e g => g e ()
 lcmp = i0 LCMP
 
+-- | Void return
+vreturn :: Generator e g => g e ()
+vreturn = i0 RETURN
+
 -- | Wide instruction
 wide :: Generator e g => (Word8 -> Instruction) -> Constant Direct -> g e ()
 wide fn c = do
@@ -270,6 +309,13 @@ wide fn c = do
 new :: Generator e g => B.ByteString -> g e ()
 new cls =
   i1 NEW (CClass cls)
+
+newDefault :: Generator e g => B.ByteString -> g e ()
+newDefault qClass = do
+  setStackSize 2
+  new qClass
+  dup
+  invokeSpecial qClass J.objectInit
 
 newArray :: Generator e g => ArrayType -> g e ()
 newArray t =
@@ -295,6 +341,14 @@ getStaticField :: Generator e g => B.ByteString -> NameType (Field Direct) -> g 
 getStaticField cls sig =
   i1 GETSTATIC (CField cls sig)
 
+putStaticField :: Generator e g => B.ByteString -> NameType (Field Direct) -> g e ()
+putStaticField cls sig =
+  i1 PUTSTATIC (CField cls sig)
+
+putInstanceField :: Generator e g => B.ByteString -> NameType (Field Direct) -> g e ()
+putInstanceField cls sig =
+  i1 PUTFIELD (CField cls sig)
+
 loadString :: Generator e g => String -> g e ()
 loadString str =
   i8 LDC1 (CString $ fromString $ encodeString str)
@@ -302,4 +356,44 @@ loadString str =
 allocArray :: Generator e g => B.ByteString -> g e ()
 allocArray cls =
   i1 ANEWARRAY (CClass cls)
+
+genInitializers :: (Generator e g, Throws UnexpectedEndMethod e) => g e ()
+genInitializers = do
+  GState { gsFields, gsClassName, gsSuperClassName } <- St.get
+  let (staticFields, instanceFields)
+        = M.partition
+            (\(f, _) -> ACC_STATIC `S.member` fieldAccessFlags f)
+            gsFields
+
+  newMethod [ACC_PUBLIC, ACC_STATIC] "<clinit>" [] ReturnsVoid $ do
+    forM_ (M.elems staticFields) $
+      \(Field { fieldName, fieldSignature },
+        initCode) ->
+        maybe
+          (return ())
+          (\code -> do
+              code
+              putStaticField gsClassName
+                (NameType fieldName fieldSignature))
+           initCode
+    vreturn
+
+  newMethod [ACC_PUBLIC] "<init>" [] ReturnsVoid $ do
+    setStackSize 1
+    aload_0
+    invokeSpecial gsSuperClassName J.objectInit
+    combineStackSize $
+      forM_ (M.elems instanceFields) $
+      \(Field { fieldName, fieldSignature },
+        initCode) ->
+        maybe
+          (return ())
+          (\code -> do
+              aload_0
+              code
+              putInstanceField gsClassName
+                (NameType fieldName fieldSignature))
+          initCode
+    vreturn
+  return ()
 

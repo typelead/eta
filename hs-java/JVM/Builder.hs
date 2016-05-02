@@ -2,6 +2,7 @@
 module JVM.Builder
   (module JVM.Builder.Monad,
    module JVM.Builder.Instructions,
+   module JVM.Builder.Util,
    arrayOf, sizedArray
   ) where
 
@@ -9,10 +10,11 @@ import JVM.ClassFile
 
 import JVM.Builder.Monad
 import JVM.Builder.Instructions
+import JVM.Builder.Util
 
 arrayOf :: FieldType -> FieldType
-arrayOf t = Array Nothing t
+arrayOf = Array Nothing
 
 sizedArray :: Int -> FieldType -> FieldType
-sizedArray n t = Array (Just n) t
+sizedArray n = Array (Just n)
 

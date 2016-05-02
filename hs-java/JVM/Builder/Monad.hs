@@ -13,15 +13,17 @@ module JVM.Builder.Monad
    Generator (..),
    Generate, GenerateIO,
    addToPool,
-   i0, i1, i8,
    newMethod,
    newField,
    setStackSize, setMaxLocals,
+   combineStackSize,
    setClass, setSuper,
    withClassPath,
    getClassField, getClassMethod,
-   generate, generateIO,
-   generateCodeLength
+   generateCodeLength,
+   generateClasses,
+   execGenerateIO,
+   execGenerate
   ) where
 
 import Control.Monad.State as St
@@ -53,8 +55,7 @@ data GState e g where
     gsGenerated :: [Instruction],             -- ^ Already generated code (in current method)
     gsPool :: Pool Direct,             -- ^ Already generated constants pool
     gsPoolIndex :: Word16,                -- ^ Next index to be used in constants pool
-    gsFields :: M.Map B.ByteString (Field Direct),
-    gsInitializationCode :: M.Map B.ByteString (g e ()),
+    gsFields :: M.Map B.ByteString (Field Direct, Maybe (g e ())),
     gsMethods :: M.Map B.ByteString (Method Direct),         -- ^ Already generated class methods
     gsCurrentMethod :: Maybe (Method Direct), -- ^ Current method
     gsStackSize :: Word16,                    -- ^ Maximum stack size for current method
@@ -65,9 +66,6 @@ data GState e g where
     gsInnerClasses :: M.Map B.ByteString (GState e g)
   } -> GState e g
 
-addAccessFlag :: (Generator e g) => AccessFlag -> g e ()
-addAccessFlag flag =
-  St.modify (\s -> s { gsAccessFlags = S.insert flag (gsAccessFlags s)})
 
 -- | Empty generator state
 emptyGState :: (Generator e g) => GState e g
@@ -79,13 +77,13 @@ emptyGState = GState {
   gsPool = M.empty,
   gsPoolIndex = 1,
   gsFields = M.empty,
-  gsInitializationCode = M.empty,
   gsMethods = M.empty,
   gsCurrentMethod = Nothing,
-  gsStackSize = 496,
+  gsStackSize = 0,
   gsLocals = 0,
   gsClassPath = [],
-  gsClassAttributes = M.empty }
+  gsClassAttributes = M.empty,
+  gsInnerClasses = M.empty }
 
 class (Monad (g e), MonadState (GState e g) (g e)) => Generator e g where
   throwG :: (Exception x, Throws x e) => x -> g e a
@@ -130,6 +128,10 @@ execGenerate :: [Tree CPEntry]
 execGenerate cp (Generate emt) = do
     let caught = emt `catch` (\(e :: SomeException) -> fail $ show e)
     execState (runEMT caught) (emptyGState {gsClassPath = cp})
+
+addAccessFlag :: (Generator e g) => AccessFlag -> g e ()
+addAccessFlag flag =
+  St.modify (\s -> s { gsAccessFlags = S.insert flag (gsAccessFlags s)})
 
 -- | Update ClassPath
 withClassPath :: ClassPath () -> GenerateIO e ()
@@ -205,55 +207,35 @@ addAttributeToPool attribute = addUTF8 (attributeNameString attribute)
 addUTF8 :: (Generator e g) => B.ByteString -> g e Word16
 addUTF8 = addItem . CUTF8
 
-putInstruction :: (Generator e g) => Instruction -> g e ()
-putInstruction instr = do
-  st <- St.get
-  let code = gsGenerated st
-  St.put $ st {gsGenerated = code ++ [instr]}
-
--- | Generate one (zero-arguments) instruction
-i0 :: (Generator e g) => Instruction -> g e ()
-i0 = putInstruction
-
--- | Generate one one-argument instruction
-i1 :: (Generator e g) => (Word16 -> Instruction) -> Constant Direct -> g e ()
-i1 fn c = do
-  ix <- addToPool c
-  i0 (fn ix)
-
--- | Generate one one-argument instruction
-i8 :: (Generator e g) => (Word8 -> Instruction) -> Constant Direct -> g e ()
-i8 fn c = do
-  ix <- addToPool c
-  i0 (fn $ fromIntegral ix)
-
 -- | Set class name
 setClass :: (Generator e g) => B.ByteString -> g e ()
-setClass name = St.modify (\s -> s { gsClassName = name })
+setClass name = St.modify $ \s -> s { gsClassName = name }
 
 -- | Set the super class
 setSuper :: (Generator e g) => B.ByteString -> g e ()
-setSuper name = St.modify (\s -> s { gsSuperClassName = name })
+setSuper name = St.modify $ \s -> s { gsSuperClassName = name }
 
 -- | Set maximum stack size for current method
 setStackSize :: (Generator e g) => Word16 -> g e ()
-setStackSize n = do
-  st <- St.get
-  St.put $ st {gsStackSize = n}
+setStackSize n = St.modify $ \s@GState { gsStackSize } ->
+  s { gsStackSize = max n gsStackSize }
+
+combineStackSize :: (Generator e g) => g e () -> g e ()
+combineStackSize gen = do
+  stackSize <- St.gets gsStackSize
+  gen
+  St.modify (\s@GState { gsStackSize } ->
+               s { gsStackSize = gsStackSize + stackSize})
 
 -- | Set maximum number of local variables for current method
 setMaxLocals :: (Generator e g) => Word16 -> g e ()
-setMaxLocals n = do
-  st <- St.get
-  St.put $ st {gsLocals = n}
+setMaxLocals n = St.modify $ \s -> s { gsLocals = n }
 
 -- | Start generating new method
 startMethod :: (Generator e g) => [AccessFlag] -> B.ByteString -> MethodSignature -> g e ()
 startMethod flags name sig = do
   addToPool (CString name)
   addSig sig
-  setStackSize 4096
-  setMaxLocals 100
   st <- St.get
   let method = Method {
     methodAccessFlags = S.fromList flags,
@@ -295,23 +277,30 @@ newMethod flags name args ret gen = do
   endMethod
   return (NameType name sig)
 
--- | Generate new field
+-- | Generate new field with initialization code
 newField :: (Generator e g)
          => [AccessFlag]     -- ^ Access flags
          -> B.ByteString     -- ^ Field name
          -> FieldSignature   -- ^ Field signature
-         -> g e ()           -- ^ Initialization code
+         -> Maybe (g e ())           -- ^ Initialization code
          -> g e ()
 newField flags name sig code = do
-  st@GState { gsFields, gsInitializationCode } <- St.get
+  st@GState { gsFields } <- St.get
   let field = Field {
         fieldAccessFlags = S.fromList flags,
         fieldName = name,
         fieldSignature = sig,
         fieldAttributesCount = 0,
         fieldAttributes = def }
-  St.put $ st { gsFields = M.insert name field gsFields,
-                gsInitializationCode = M.insert name code gsInitializationCode }
+  St.put $ st { gsFields = M.insert name (field, code) gsFields }
+
+-- | Generate new field without initialization code
+newSimpleField :: (Generator e g)
+         => [AccessFlag]     -- ^ Access flags
+         -> B.ByteString     -- ^ Field name
+         -> FieldSignature   -- ^ Field signature
+         -> g e ()
+newSimpleField flags name sig = newField flags name sig Nothing
 
 addAttribute :: (Generator e g) => Attribute -> g e ()
 addAttribute attribute@InnerClasses {..} = do
@@ -414,29 +403,7 @@ generateClasses GState {..} = defaultClass {
     accessFlags = gsAccessFlags,
     thisClass = gsClassName,
     superClass = gsSuperClassName,
-    classMethodsCount = fromIntegral $ length gsMethods,
+    classMethodsCount = fromIntegral $ M.size gsMethods,
     classMethods = M.elems gsMethods,
-    classFieldsCount = fromIntegral $ length gsFields,
-    classFields = M.elems gsFields } : concatMap generateClasses (M.elems gsInnerClasses)
-
-initClass :: (Generator e g)
-          => g e ()
-          -> g e ()
-initClass gen = do
-  gen
-  GState { gsSuperClassName, gsClassName } <- St.get
-  addToPool (CClass gsSuperClassName)
-  addToPool (CClass gsClassName)
-  return ()
-
--- | Generate a class
-generateIO :: [Tree CPEntry]
-           -> GenerateIO (Caught SomeException NoExceptions) ()
-           -> IO [Class Direct]
-generateIO cp gen = liftM generateClasses $ execGenerateIO cp (initClass gen)
-
--- | Generate a class
-generate :: [Tree CPEntry]
-         -> Generate (Caught SomeException NoExceptions) ()
-         -> [Class Direct]
-generate cp gen = generateClasses . execGenerate cp $ initClass gen
+    classFieldsCount = fromIntegral $ M.size gsFields,
+    classFields = map fst $ M.elems gsFields } : concatMap generateClasses (M.elems gsInnerClasses)
