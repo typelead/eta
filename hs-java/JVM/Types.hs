@@ -107,6 +107,9 @@ data FieldType =
   | Array (Maybe Int) FieldType -- ^ @[{type}@
   deriving (Eq, Ord)
 
+obj :: String -> FieldType
+obj = ObjectType
+
 instance Show FieldType where
   show SignedByte = "byte"
   show CharByte = "char"

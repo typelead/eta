@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, TypeFamilies, OverloadedStrings, TypeSynonymInstances, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, GeneralizedNewtypeDeriving, ScopedTypeVariables, NamedFieldPuns, RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies, OverloadedStrings, TypeSynonymInstances, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, GeneralizedNewtypeDeriving, ScopedTypeVariables, NamedFieldPuns, RecordWildCards, StandaloneDeriving, GADTs #-}
 -- | This module defines Generate[IO] monad, which helps generating JVM code and
 -- creating Java class constants pool.
 --
@@ -45,30 +45,32 @@ import JVM.Attributes
 
 -- | NOTE: The use of Maps for gsFields and gsMethods prevents you from generating overloaded methods.
 -- | Generator state
-data GState = GState {
-  gsClassName :: B.ByteString,
-  gsSuperClassName :: B.ByteString,
-  gsGenerated :: [Instruction],             -- ^ Already generated code (in current method)
-  gsPool :: Pool Direct,             -- ^ Already generated constants pool
-  gsPoolIndex :: Word16,                -- ^ Next index to be used in constants pool
-  gsFields :: M.Map B.ByteString (Field Direct),
-  gsInitializationCode :: M.Map B.ByteString [Instruction],
-  gsMethods :: M.Map B.ByteString (Method Direct),         -- ^ Already generated class methods
-  gsCurrentMethod :: Maybe (Method Direct), -- ^ Current method
-  gsStackSize :: Word16,                    -- ^ Maximum stack size for current method
-  gsLocals :: Word16,                       -- ^ Maximum number of local variables for current method
-  gsClassPath :: [Tree CPEntry],
-  gsClassAttributes :: Attributes Direct,
-  gsAccessFlags :: AccessFlags Direct,
-  gsInnerClasses :: M.Map B.ByteString GState }
-  deriving (Eq,Show)
+
+data GState e g where
+  GState :: (Generator e g) => {
+    gsClassName :: B.ByteString,
+    gsSuperClassName :: B.ByteString,
+    gsGenerated :: [Instruction],             -- ^ Already generated code (in current method)
+    gsPool :: Pool Direct,             -- ^ Already generated constants pool
+    gsPoolIndex :: Word16,                -- ^ Next index to be used in constants pool
+    gsFields :: M.Map B.ByteString (Field Direct),
+    gsInitializationCode :: M.Map B.ByteString (g e ()),
+    gsMethods :: M.Map B.ByteString (Method Direct),         -- ^ Already generated class methods
+    gsCurrentMethod :: Maybe (Method Direct), -- ^ Current method
+    gsStackSize :: Word16,                    -- ^ Maximum stack size for current method
+    gsLocals :: Word16,                       -- ^ Maximum number of local variables for current method
+    gsClassPath :: [Tree CPEntry],
+    gsClassAttributes :: Attributes Direct,
+    gsAccessFlags :: AccessFlags Direct,
+    gsInnerClasses :: M.Map B.ByteString (GState e g)
+  } -> GState e g
 
 addAccessFlag :: (Generator e g) => AccessFlag -> g e ()
 addAccessFlag flag =
   St.modify (\s -> s { gsAccessFlags = S.insert flag (gsAccessFlags s)})
 
 -- | Empty generator state
-emptyGState ::  GState
+emptyGState :: (Generator e g) => GState e g
 emptyGState = GState {
   gsClassName = B.empty,
   gsSuperClassName = "java/lang/Object",
@@ -85,13 +87,13 @@ emptyGState = GState {
   gsClassPath = [],
   gsClassAttributes = M.empty }
 
-class (Monad (g e), MonadState GState (g e)) => Generator e g where
+class (Monad (g e), MonadState (GState e g) (g e)) => Generator e g where
   throwG :: (Exception x, Throws x e) => x -> g e a
 
 -- | Generate monad
 newtype Generate e a = Generate {
-  runGenerate :: EMT e (State GState) a }
-  deriving (Functor, Applicative, Monad, MonadState GState)
+  runGenerate :: EMT e (State (GState e Generate)) a }
+  deriving (Functor, Applicative, Monad, MonadState (GState e Generate))
 
 instance MonadState st (EMT e (StateT st IO)) where
   get = lift St.get
@@ -103,28 +105,28 @@ instance MonadState st (EMT e (State st)) where
 
 -- | IO version of Generate monad
 newtype GenerateIO e a = GenerateIO {
-  runGenerateIO :: EMT e (StateT GState IO) a }
-  deriving (Functor, Applicative, Monad, MonadState GState, MonadIO)
+  runGenerateIO :: EMT e (StateT (GState e GenerateIO) IO) a }
+  deriving (Functor, Applicative, Monad, MonadState (GState e GenerateIO), MonadIO)
 
-instance MonadIO (EMT e (StateT GState IO)) where
+instance MonadIO (EMT e (StateT (GState e GenerateIO) IO)) where
   liftIO action = lift $ liftIO action
 
 instance Generator e GenerateIO where
   throwG e = GenerateIO (throw e)
 
-instance (MonadState GState (EMT e (State GState))) => Generator e Generate where
+instance (MonadState (GState e Generate) (EMT e (State (GState e Generate)))) => Generator e Generate where
   throwG e = Generate (throw e)
 
 execGenerateIO :: [Tree CPEntry]
                -> GenerateIO (Caught SomeException NoExceptions) a
-               -> IO GState
+               -> IO (GState (Caught SomeException NoExceptions) GenerateIO)
 execGenerateIO cp (GenerateIO emt) = do
     let caught = emt `catch` (\(e :: SomeException) -> fail $ show e)
     execStateT (runEMT caught) (emptyGState {gsClassPath = cp})
 
 execGenerate :: [Tree CPEntry]
              -> Generate (Caught SomeException NoExceptions) a
-             -> GState
+             -> GState (Caught SomeException NoExceptions) Generate
 execGenerate cp (Generate emt) = do
     let caught = emt `catch` (\(e :: SomeException) -> fail $ show e)
     execState (runEMT caught) (emptyGState {gsClassPath = cp})
@@ -298,7 +300,7 @@ newField :: (Generator e g)
          => [AccessFlag]     -- ^ Access flags
          -> B.ByteString     -- ^ Field name
          -> FieldSignature   -- ^ Field signature
-         -> Maybe [Instruction]    -- ^ Initialization code
+         -> g e ()           -- ^ Initialization code
          -> g e ()
 newField flags name sig code = do
   st@GState { gsFields, gsInitializationCode } <- St.get
@@ -309,9 +311,7 @@ newField flags name sig code = do
         fieldAttributesCount = 0,
         fieldAttributes = def }
   St.put $ st { gsFields = M.insert name field gsFields,
-                gsInitializationCode = maybe gsInitializationCode
-                                             (\x -> M.insert name x gsInitializationCode)
-                                             code }
+                gsInitializationCode = M.insert name code gsInitializationCode }
 
 addAttribute :: (Generator e g) => Attribute -> g e ()
 addAttribute attribute@InnerClasses {..} = do
@@ -389,14 +389,14 @@ getClassMethod clsName mName = do
     Nothing  -> throwG (MethodNotFound clsName mName)
 
 -- | Access the generated bytecode length
-encodedCodeLength :: GState -> Word32
+encodedCodeLength :: (Generator e g) => GState e g -> Word32
 encodedCodeLength st = fromIntegral . B.length . encode $ gsGenerated st
 
 generateCodeLength :: Generate (Caught SomeException NoExceptions) a -> Word32
 generateCodeLength = encodedCodeLength . execGenerate []
 
 -- | Convert Generator state to method Code.
-genCode :: GState -> Attribute
+genCode :: (Generator e g) => GState e g -> Attribute
 genCode st = Code {
     codeStackSize = gsStackSize st,
     codeMaxLocals = gsLocals st,
@@ -407,7 +407,7 @@ genCode st = Code {
     codeAttrsN = 0,
     codeAttributes = M.empty }
 
-generateClasses :: GState -> [Class Direct]
+generateClasses :: (Generator e g) => GState e g -> [Class Direct]
 generateClasses GState {..} = defaultClass {
     constsPoolSize = fromIntegral $ M.size gsPool,
     constsPool = gsPool,
