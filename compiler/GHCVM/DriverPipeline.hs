@@ -25,7 +25,7 @@ import TyCon ( isDataTyCon )
 
 import qualified Data.ByteString.Lazy as B
 
-import CodeGen.Main
+import GHCVM.CodeGen.Main
 import JVM.Converter
 import JVM.ClassFile
 import JVM.Types

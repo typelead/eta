@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-module CodeGen.Monad (
+module GHCVM.CodeGen.Monad (
   CgEnv(..),
   CgState(..),
   CodeGen(..),

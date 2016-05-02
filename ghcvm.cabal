@@ -17,8 +17,9 @@ source-repository head
 library
     default-language:    Haskell2010
     exposed-modules:     GHCVM.DriverPipeline
-                       , CodeGen.Main
-                       , CodeGen.Monad
+                       , GHCVM.CodeGen.Main
+                       , GHCVM.CodeGen.Monad
+                       , GHCVM.CodeGen.Util
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , ghc >= 7.10.3 && < 7.11.0

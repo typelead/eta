@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module CodeGen.Main where
+module GHCVM.CodeGen.Main where
 
 import Module
 import HscTypes
@@ -11,7 +11,7 @@ import FastString
 import JVM.Builder
 import JVM.ClassFile
 
-import CodeGen.Monad
+import GHCVM.CodeGen.Monad
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad
