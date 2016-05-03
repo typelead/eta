@@ -1,6 +1,6 @@
 package ghcvm.runtime.closure;
 
-public class StgIndStatic {
+public class StgIndStatic extends StgClosure {
     StgClosure indirectee;
 
     public StgIndStatic(StgClosure indirectee) {
