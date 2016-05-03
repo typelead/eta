@@ -19,7 +19,11 @@ library
     exposed-modules:     GHCVM.DriverPipeline
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
-                       , GHCVM.CodeGen.Util
+                       , GHCVM.CodeGen.Closure
+                       , GHCVM.CodeGen.Object
+                       , GHCVM.CodeGen.ArgRep
+                       , GHCVM.CodeGen.Types
+                       , GHCVM.Util
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , ghc >= 7.10.3 && < 7.11.0
