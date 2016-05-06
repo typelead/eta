@@ -42,6 +42,9 @@ mkClosureLFInfo dflags binder topLevelFlag freeVars updateFlag args
         mkLFReEntrant topLevelFlag (map unsafe_stripNV freeVars)
           args (mkArgDescr dflags args)
 
+mkConLFInfo :: DataCon -> LambdaFormInfo
+mkConLFInfo = LFCon
+
 mkLFReEntrant :: TopLevelFlag -> [Id] -> [Id] -> ArgDescr -> LambdaFormInfo
 mkLFReEntrant topLevelFlag freeVars args argDescriptor =
   LFReEntrant {

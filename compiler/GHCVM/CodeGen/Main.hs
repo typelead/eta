@@ -11,6 +11,7 @@ import VarEnv
 import Id
 import Name
 import OccName
+import DataCon
 import Util (unzipWith)
 
 import GHCVM.Util
@@ -112,7 +113,19 @@ cgTopRhs dflags recflag binder
   -- fvs should be empty
   cgTopRhsClosure dflags recflag binder binderInfo updateFlag args body
 
-cgTopRhsCon = undefined
+
+cgTopRhsCon :: DynFlags
+            -> Id               -- Name of thing bound to this RHS
+            -> DataCon          -- Id
+            -> [StgArg]         -- Args
+            -> (CgIdInfo, CodeGen e ())
+cgTopRhsCon dflags id con args = (cgIdInfo, genCode)
+  where cgIdInfo = mkCgIdInfo id lambdaFormInfo
+        lambdaFormInfo = mkConLFInfo con
+        genCode = do
+          _ <- getModule
+          -- initialize and create new object
+          return ()
 
 cgTopRhsClosure :: DynFlags
                 -> RecFlag              -- member of a recursive group?
@@ -122,7 +135,7 @@ cgTopRhsClosure :: DynFlags
                 -> [Id]                 -- Args
                 -> StgExpr
                 -> (CgIdInfo, CodeGen e ())
-cgTopRhsClosure dflags recflag id bindeerInfo updateFlag args body
+cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lambdaFormInfo)
   where cgIdInfo = mkCgIdInfo id lambdaFormInfo
         lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
