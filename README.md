@@ -1,5 +1,7 @@
 # GHCVM - A JVM backend for GHC
 
+[![Join the chat at https://gitter.im/rahulmutt/ghcvm](https://badges.gitter.im/rahulmutt/ghcvm.svg)](https://gitter.im/rahulmutt/ghcvm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This project aims to compile Haskell to the JVM, with the primary goal of seamless compatibility with GHC 7.10.3's Haskell.
 
 ## Building
