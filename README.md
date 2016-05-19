@@ -5,11 +5,19 @@
 This project aims to compile Haskell to the JVM, with the primary goal of seamless compatibility with GHC 7.10.3's Haskell.
 
 ## Building
-Stack is used to build the code generator and the Shake builder for the RTS. The RTS build is setup so that it allows for C preprocessor directives inside of Java code.
+Stack is used to build the code generator and the Shake builder for the RTS. The RTS build is setup so that it allows for C preprocessor directives inside of Java code. Also, [libzip](http://www.nih.at/libzip/) 0.10.* is required for handling archives. To setup, see [Install libzip section](#install-libzip).
 
 To build everything, simply run the ./build.sh script.
 ```shell
 $ ./build.sh
+```
+
+### Install libzip
+
+```shell
+$ wget http://www.nih.at/libzip/libzip-0.10.1.tar.gz
+$ tar -xvzf libzip-0.10.1.tar.gz && cd libzip-0.10.1
+$ ./configure && make && sudo make install
 ```
 
 ## Running
@@ -21,7 +29,7 @@ $ stack exec -- ghcvm --make Main.hs
 
 All the options that are supported by GHC are currently allowed. The options will be filtered in the future.
 
-## Goals 
+## Goals
 
 We aim to meet the following goals:
 
@@ -34,7 +42,7 @@ We aim to meet the following goals:
 - Optimize for specific JVM implementations
   - OpenJDK HotSpot
   - Dalvik VM (for Android compatibility, a lightweight runtime)
-- Support hot code reloading 
+- Support hot code reloading
 - Re-use GHC's infrastructure
   - Keep up with their release cycle
   - CLI should match that of ghc's
@@ -49,7 +57,7 @@ We aim to meet the following goals:
 
 ### Pending Items
 1. Work on the code generator taking the StgCmm*.hs files in the GHC repo as inspiration.
-1. Work on runtime system implemented more RTS functions from GHC as required during code generation. 
+1. Work on runtime system implemented more RTS functions from GHC as required during code generation.
 2. Implement as many of GHC's PrimOps as possible.
 3. Change the base library to use the Java FFI instead of C FFI.
 4. Compile a single source file to run on the JVM.
@@ -66,4 +74,3 @@ We are grateful that the folks at [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki
 We are also grateful for Ilya V. Portnov for his [hs-java](https://hackage.haskell.org/package/hs-java) package that we intend to use heavily for code generation.
 
 Thank you guys!
-
