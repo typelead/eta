@@ -59,6 +59,9 @@ and more...
 
 As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, get in touch and we'll let you know how you can help out.
 
+## License
+GHCVM is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
+
 ## Gratitude
 
 We are grateful that the folks at [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki/TeamGHC) have generously open-sourced their state-of-the-art Haskell compiler allowing us to hack on it to implement Haskell on a wide variety of platforms.
