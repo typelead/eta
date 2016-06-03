@@ -16,4 +16,7 @@ public class RtsStartup {
     }
 
     public static void shutdownHaskellAndExit(int exitStatus, boolean faseExit) {}
+    public static void stgExit(int status) {
+        System.exit(status);
+    }
 }

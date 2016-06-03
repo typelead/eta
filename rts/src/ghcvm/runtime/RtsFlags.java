@@ -1,6 +1,14 @@
-package ghcvm.runtime.types;
+package ghcvm.runtime;
+
+import java.util.Set;
+import java.util.HashSet;
 
 public class RtsFlags {
+    public static String progName;
+    public static String[] progArgs;
+
+    public static boolean debug = false;
+    public static Set<String> DebugFlags = new HashSet<String>();
 
     public static class ParFlags {
         public static int nNodes;

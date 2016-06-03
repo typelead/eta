@@ -19,4 +19,8 @@
 #define EXIT_HEAPOVERFLOW   251
 #define EXIT_KILLED         250
 
+#define IF_DEBUG(c,s) if (RtsFlags.debug && RtsFlags.DebugFlags.contains(c)) {s;}
+
+#define DEBUG_WEAK   "weak"
+#define DEBUG_APPLY  "apply"
 #endif

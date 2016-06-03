@@ -19,6 +19,7 @@ import ghcvm.runtime.*;
 import ghcvm.runtime.thread.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.exception.*;
+import ghcvm.runtime.prim.*;
 
 public class Capability {
     public static int nCapabilities;
@@ -74,6 +75,7 @@ public class Capability {
     public Message inbox;
     public SparkPool sparks = new SparkPool();
     public SparkCounters sparkStats = new SparkCounters();
+    public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
     public int ioManagerControlWrFd; // Not sure if this is necessary
 
     public Capability(int i) {

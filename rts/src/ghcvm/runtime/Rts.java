@@ -17,8 +17,8 @@ public class Rts {
     public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
     public static StgTSO createIOThread(Capability cap, CLOSURE_PTR p) {
         StgTSO t = new StgTSO(cap);
-        t.pushClosure(Stg.ApplyV);
-        t.pushClosure(new EnterFrame(p));
+        t.pushClosure(Stg.ap_v);
+        t.pushClosure(new StgEnter(p));
         return t;
     }
 }

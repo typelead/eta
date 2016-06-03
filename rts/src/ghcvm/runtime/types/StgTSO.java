@@ -1,6 +1,6 @@
 package ghcvm.runtime.types;
 
-import java.util.LinkedList;
+import java.util.Deque;
 import java.util.ArrayDeque;
 import ghcvm.runtime.*;
 import static ghcvm.runtime.types.Task.InCall;
@@ -12,7 +12,7 @@ public class StgTSO {
     public long id;
     public volatile StgTSO link;
     //    public StgTSO globalLink; This field may not be necessary
-    public ArrayDeque<StackFrame> stack = new ArrayDeque<StackFrame>(1);
+    public Deque<StackFrame> stack;
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
     public InCall bound;

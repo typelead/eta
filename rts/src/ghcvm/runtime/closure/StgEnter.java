@@ -1,9 +1,9 @@
 package ghcvm.runtime.closure;
 
-public class EnterFrame extends StackFrame {
+public class StgEnter extends StackFrame {
     StgClosure closure;
 
-    public EnterFrame(StgClosure closure) {
+    public StgEnter(StgClosure closure) {
         this.closure = closure;
     }
 

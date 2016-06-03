@@ -1,5 +1,6 @@
 package ghcvm.runtime.closure;
 
+import java.util.Deque;
 import ghcvm.runtime.types.*;
 import static ghcvm.runtime.types.StgTSO.WhatNext.*;
 import static ghcvm.runtime.types.StgTSO.ReturnCode.*;
@@ -10,8 +11,9 @@ public class StgStopThread extends StackFrame {
     public void enter(StgContext context) {
         super.enter(context);
         StgTSO currentTSO = context.currentTSO;
-        currentTSO.stack.pop();
-        // TODO: Should a stub enter frame be generated?
+        Deque<StackFrame> stack = currentTSO.stack;
+        stack.pop();
+        stack.push(new StgEnter(context.R1));
         currentTSO.whatNext = ThreadComplete;
         context.ret = ThreadFinished;
     }
