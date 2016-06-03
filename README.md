@@ -1,5 +1,7 @@
 # GHCVM - A JVM backend for GHC
 
+[![Join the chat at https://gitter.im/rahulmutt/ghcvm](https://badges.gitter.im/rahulmutt/ghcvm.svg)](https://gitter.im/rahulmutt/ghcvm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This project aims to compile Haskell to the JVM, with the primary goal of seamless compatibility with GHC 7.10.3's Haskell.
 
 ## Building
@@ -56,6 +58,9 @@ and more...
 ## Contributing
 
 As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, get in touch and we'll let you know how you can help out.
+
+## License
+GHCVM is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
 
 ## Gratitude
 
