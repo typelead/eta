@@ -1,17 +1,18 @@
 package ghcvm.runtime.types;
 
 import java.util.LinkedList;
+import java.util.ArrayDeque;
 import ghcvm.runtime.*;
 import static ghcvm.runtime.types.Task.InCall;
 import ghcvm.runtime.closure.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class StgTSO {
-    public static int nextThreadId = 0;
-    public int id; // Should this be long instead?
+    public static AtomicLong maxThreadId = new AtomicLong(0);
+    public long id;
     public volatile StgTSO link;
-    //    public StgTSO globalLink; This filed may not be necessary
-    public StackFrame stackBottom;
-    public StackFrame stackTop;
+    //    public StgTSO globalLink; This field may not be necessary
+    public ArrayDeque<StackFrame> stack = new ArrayDeque<StackFrame>(1);
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
     public InCall bound;
@@ -69,20 +70,16 @@ public class StgTSO {
         this.whatNext = WhatNext.ThreadRunGHC;
         this.whyBlocked = WhyBlocked.NotBlocked;
         this.cap = cap;
-        // TODO: Should this synchronized block be placed outside?
-        synchronized (RtsScheduler.class) {
-            this.id = nextThreadId++;
-        }
+        this.id = nextThreadId();
+        this.stack = new ArrayDeque<StackFrame>(1);
+        pushClosure(new StgStopThread());
     }
 
     public void pushClosure(StackFrame frame) {
-        frame.next = null;
-        if (stackTop == null) {
-            frame.prev = null;
-        } else {
-            stackTop.next = frame;
-            frame.prev = stackTop;
-        }
-        stackTop = frame;
+        stack.push(frame);
+    }
+
+    public static long nextThreadId() {
+        return maxThreadId.getAndIncrement();
     }
 }

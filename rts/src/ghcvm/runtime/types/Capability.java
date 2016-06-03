@@ -2,7 +2,11 @@ package ghcvm.runtime.types;
 
 #include "Rts.h"
 
+import java.util.List;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.ArrayDeque;
 import static ghcvm.runtime.types.Task.InCall;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsMessages.*;
@@ -21,24 +25,24 @@ public class Capability {
     public static int enabledCapabilities;
     public static Capability mainCapability;
     public static Capability lastFreeCapability;
-    public static ArrayList<Capability> capabilities;
+    public static List<Capability> capabilities;
     public static int pendingSync;
     public static void init() {
-#if defined(THREADED_RTS)
-        nCapabilities = 0
-        moreCapabilities(0, RtsFlags.ParFlags.nNodes);
-        nCapabilities = RtsFlags.ParFlags.nNodes;
-#else
-        nCapabilities = 1;
-        mainCapability = new Capability(0);
-        capabilities.add(0, mainCapability);
-#endif
+        if (RtsFlags.ModeFlags.threaded) {
+            nCapabilities = 0;
+            moreCapabilities(0, RtsFlags.ParFlags.nNodes);
+            nCapabilities = RtsFlags.ParFlags.nNodes;
+        } else {
+            nCapabilities = 1;
+            mainCapability = new Capability(0);
+            capabilities.add(0, mainCapability);
+        }
         enabledCapabilities = nCapabilities;
         lastFreeCapability = capabilities.get(0);
     }
 
     public static void moreCapabilities (int from, int to) {
-        ArrayList<Capability> oldCapabilities = capabilities;
+        ArrayList<Capability> oldCapabilities = (ArrayList<Capability>) capabilities;
         capabilities = new ArrayList<Capability>(to);
         if (to == 1) {
             mainCapability = new Capability(0);
@@ -57,18 +61,16 @@ public class Capability {
     public int no;
     public StgContext context = new StgContext();
     public Task runningTask;
-    public boolean inHaskell = false;
-    public int idle = 0;
-    public boolean disabled = false;
-    public StgTSO runQueueHead;
-    public StgTSO runQueueTail;
+    public boolean inHaskell;
+    public int idle;
+    public boolean disabled;
+    public Queue<StgTSO> runQueue = new ArrayDeque<StgTSO>();
     public InCall suspendedJavaCalls;
     public int contextSwitch;
     public int interrupt;
     public Task spareWorkers;
     public int nSpareWorkers;
-    public Task returningTasksHead;
-    public Task returningTasksTail;
+    public List<Task> returningTasks = new ArrayList<Task>();
     public Message inbox;
     public SparkPool sparks = new SparkPool();
     public SparkCounters sparkStats = new SparkCounters();
@@ -79,18 +81,15 @@ public class Capability {
     }
 
     public void appendToRunQueue(StgTSO tso) {
-        if (runQueueHead == null) {
-            runQueueHead = tso;
-            tso.blockInfo = null;
-        } else {
-            runQueueTail.link = tso;
-            tso.link = runQueueTail;
-        }
-        runQueueTail = tso;
+        runQueue.add(tso);
+        /* TODO: Is this line necessary?
+        if (runQueue.isEmpty()) tso.blockInfo = null;
+        */
     }
 
     public Capability schedule(Task task) {
         Capability cap = this;
+        boolean threaded = RtsFlags.ModeFlags.threaded;
         while (true) {
             if (this.inHaskell) {
                 errorBelch("schedule: re-entered unsafely.\n" +
@@ -105,7 +104,7 @@ public class Capability {
                     // scheduleDoGC
 
                 case SCHED_SHUTTING_DOWN:
-                    if (!isBoundTask(task) && emptyRunQueue(cap)) {
+                    if (!task.isBound() && cap.emptyRunQueue()) {
                         return this;
                     }
                     break;
@@ -114,42 +113,46 @@ public class Capability {
             }
 
             cap = cap.findWork();
-#if defined(THREADED_RTS)
-            cap.pushWork(task);
-#endif
+            if (threaded) {
+                cap.pushWork(task);
+            }
             cap = cap.detectDeadlock(task);
-#if defined(THREADED_RTS)
-            cap = cap.yield(task);
-            if (emptyRunQueue(cap)) continue;
-#endif
+            if (threaded) {
+                cap = cap.yield(task);
+                if (cap.emptyRunQueue()) continue;
+            }
+
             StgTSO t = cap.popRunQueue();
-#if defined(THREADED_RTS)
-            InCall bound = t.bound;
-            if (bound != null) {
-                if (bound.task != task) {
-                    cap.pushOnRunQueue(t);
-                    continue;
-                }
-            } else {
-                if (task.incall.tso) {
-                    cap.pushOnRunQueue(t);
-                    continue;
+            if (threaded) {
+                InCall bound = t.bound;
+                if (bound != null) {
+                    if (bound.task != task) {
+                        cap.pushOnRunQueue(t);
+                        continue;
+                    }
+                } else {
+                    if (task.incall.tso != null) {
+                        cap.pushOnRunQueue(t);
+                        continue;
+                    }
                 }
             }
-#endif
+
             if (schedulerState >= SCHED_INTERRUPTING &&
                 !(t.whatNext == ThreadComplete || t.whatNext == ThreadKilled)) {
                 cap.deleteThread(t);
             }
-#if defined(THREADED_RTS)
-               if (cap.disabled && t.bound != null) {
-                   Capability destCap = capabilities[cap.no % enabledCapabilities];
-                   cap.migrateThread(t, destCap);
-                   continue;
-               }
-#endif
+
+            if (threaded) {
+                if (cap.disabled && t.bound != null) {
+                    Capability destCap = capabilities.get(cap.no % enabledCapabilities);
+                    cap.migrateThread(t, destCap);
+                    continue;
+                }
+            }
+
             if (RtsFlags.ConcFlags.ctxtSwitchTicks == 0
-                && !emptyThreadQueues(cap)) {
+                && !cap.emptyThreadQueues()) {
                 cap.contextSwitch = 1;
             }
 
@@ -182,8 +185,10 @@ public class Capability {
                     StgContext context = cap.context;
                     context.currentTSO = t;
                     context.myCapability = cap;
+                    Iterator<StackFrame> it = t.stack.descendingIterator();
+                    context.it = it;
                     try {
-                        t.stackBottom.enter(cap.context);
+                        it.next().enter(context);
                     } catch (ThreadYieldException e) {
 
                     } finally {
@@ -215,25 +220,13 @@ public class Capability {
     }
 
     public void pushOnRunQueue(StgTSO tso) {
-        tso.link = runQueueHead;
-        tso.blockInfo = null;
-        if (runQueueHead != null) {
-            runQueueHead.blockInfo = tso;
-        }
-        runQueueHead = tso;
+        /* TODO: Take care of blockInfo later */
+        runQueue.add(tso);
     }
 
     public StgTSO popRunQueue() {
-        StgTSO t = runQueueHead;
-        runQueueHead = t.link;
-        if (t.link != null) {
-            t.link.blockInfo = null;
-        }
-        t.link = null;
-        if (runQueueHead == null) {
-            runQueueTail = null;
-        }
-        return t;
+        return runQueue.remove();
+        /* runQueue.size() > 1 -> blockInfo = null of the removed element */
     }
 
     public Capability yield(Task task) {return this;}
@@ -247,29 +240,30 @@ public class Capability {
         cap = processInbox();
         checkBlockedThreads();
 
-#if defined(THREADED_RTS)
-        if (emptyRunQueue(this)) activateSpark();
-#endif
+        if (RtsFlags.ModeFlags.threaded) {
+            if (emptyRunQueue()) activateSpark();
+        }
         return cap;
     }
 
     public void activateSpark() {}
 
     public void startSignalHandlers() {
-#if defined(RTS_USER_SIGNALS) && !defined(THREADED_RTS)
-               if (RtsFlags.MiscFlags.installSignalHandlers /* && signals_pending() */) {
-                   // start signal handlers
-               }
-#endif
+        if (!RtsFlags.ModeFlags.threaded && RtsFlags.ModeFlags.userSignals) {
+
+            if (RtsFlags.MiscFlags.installSignalHandlers /* && signals_pending() */) {
+                // start signal handlers
+            }
+        }
     }
 
     public void checkBlockedThreads() {
-#if !defined(THREADED_RTS)
-                if (!emptyQueue(blockedQueueHead) || !emptyQueue(sleepingQueue)) {
-                    //               awaitEvent (emptyRunQueue(this));
-                    // TODO: Implement this with IO Manager
-                }
-#endif
+        if (!RtsFlags.ModeFlags.threaded) {
+            if (!emptyBlockedQueue() || !emptySleepingQueue()) {
+                //               awaitEvent (emptyRunQueue(this));
+                // TODO: Implement this with IO Manager
+            }
+        }
     }
 
     public Capability processInbox() {return this;}
@@ -283,6 +277,19 @@ public class Capability {
             WorkerThread thread = new WorkerThread(task);
             thread.start();
             task.id = thread.getId();
+        }
+    }
+
+    public boolean emptyRunQueue() {
+        return runQueue.isEmpty();
+    }
+
+    public boolean emptyThreadQueues() {
+        // TODO: More optimal way of representing this?
+        if (RtsFlags.ModeFlags.threaded) {
+            return emptyRunQueue();
+        } else {
+            return emptyRunQueue() && emptyBlockedQueue() && emptySleepingQueue();
         }
     }
 }

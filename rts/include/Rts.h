@@ -8,19 +8,6 @@
 #define SCHED_INTERRUPTING  1
 #define SCHED_SHUTTING_DOWN 2
 
-// Inline Functions
-#define isBoundTask(task) (task.incall.tso != null)
-#define emptyRunQueue(cap) (emptyQueue(cap.runQueueHead))
-#define emptyQueue(q) (q == null)
-
-#ifdef THREADED_RTS
-#define emptyThreadQueues(cap) (emptyRunQueue(cap))
-#else
-#define EMPTY_BLOCKED_QUEUE()  (emptyQueue(blockedQueueHead))
-#define EMPTY_SLEEPING_QUEUE() (emptyQueue(sleepingQueue))
-#define emptyThreadQueues(cap) (emptyRunQueue(cap) && EMPTY_BLOCKED_QUEUE() && EMPTY_SLEEPING_QUEUE())
-#endif
-
 // Exit Codes
 #define EXIT_SUCCESS        0
 #define EXIT_FAILURE        1

@@ -1,5 +1,6 @@
 package ghcvm.runtime.closure;
 
+import java.util.Iterator;
 import ghcvm.runtime.types.*;
 import static ghcvm.runtime.types.StgTSO.*;
 
@@ -15,4 +16,5 @@ public class StgContext {
     public StgTSO currentTSO;
     public Capability myCapability;
     public ReturnCode ret;
+    public Iterator<StackFrame> it;
 }

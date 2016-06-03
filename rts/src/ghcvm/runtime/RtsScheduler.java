@@ -2,13 +2,14 @@ package ghcvm.runtime;
 
 #include "Rts.h"
 
+import java.util.Queue;
+import java.util.ArrayDeque;
 import ghcvm.runtime.types.*;
 import ghcvm.runtime.closure.*;
 
 public class RtsScheduler {
-    public static StgTSO blockedQueueHead;
-    public static StgTSO blockedQueueTail;
-    public static StgTSO sleepingQueue;
+    public static Queue<StgTSO> blockedQueue = new ArrayDeque<StgTSO>();
+    public static Queue<StgTSO> sleepingQueue = new ArrayDeque<StgTSO>();
     public enum RecentActivity {
         Yes, Inactive, DoneGC
     }
@@ -33,9 +34,17 @@ public class RtsScheduler {
         synchronized (RtsScheduler.class) {
             Capability.init();
             RtsTaskManager.init();
-#if defined(THREADED_RTS)
-            RtsTaskManager.startWorkerTasks(1, Capability.nCapabilities);
-#endif
+            if (RtsFlags.ModeFlags.threaded) {
+                RtsTaskManager.startWorkerTasks(1, Capability.nCapabilities);
+            }
         }
+    }
+
+    public static boolean emptySleepingQueue() {
+        return sleepingQueue.isEmpty();
+    }
+
+    public static boolean emptyBlockedQueue() {
+        return blockedQueue.isEmpty();
     }
 }

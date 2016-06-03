@@ -52,4 +52,8 @@ public class Task {
             }
         }
     }
+
+    public boolean isBound() {
+        return incall.tso != null;
+    }
 }

@@ -1,12 +1,14 @@
 package ghcvm.runtime.closure;
 
-public class StackFrame extends StgClosure {
-    public StackFrame prev;
-    public StackFrame next;
+import java.util.Iterator;
 
+public class StackFrame extends StgClosure {
+
+    @Override
     public void enter(StgContext context) {
-        while (next != null) {
-            next.enter(context);
+        Iterator<StackFrame> it = context.it;
+        if (it != null && it.hasNext()) {
+            it.next().enter(context);
         }
     }
 }
