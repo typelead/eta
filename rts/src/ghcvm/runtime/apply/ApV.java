@@ -11,6 +11,10 @@ public class ApV extends StackFrame {
     @Override
     public void enter(StgContext context) {
         IF_DEBUG(DEBUG_APPLY, debugBelch("stg_ap_v_ret... "); printClosure(context.R1));
-        // Some more code here
+
+        context.currentTSO.stack.pop(); // TODO: ensure that this happens in all cases
+        context.papExpectedArity = 1;
+        context.R1.preEnter(context);
+        // TODO: Complete definition
     }
 }

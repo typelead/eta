@@ -8,4 +8,5 @@ public class Stg {
     public static StackFrame ap_v = new ApV();
 
     public static StgClosure mkWeakzh = new MkWeak();
+    public static StgClosure PAP_apply = new PAPApply();
 }

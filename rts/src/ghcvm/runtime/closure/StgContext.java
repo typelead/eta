@@ -22,4 +22,5 @@ public class StgContext {
     public Capability myCapability;
     public ReturnCode ret;
     public Iterator<StackFrame> it;
+    public int papExpectedArity;
 }
