@@ -2,12 +2,18 @@ package ghcvm.runtime.types;
 
 import java.util.Deque;
 import java.util.ArrayDeque;
-import ghcvm.runtime.*;
-import static ghcvm.runtime.types.Task.InCall;
-import ghcvm.runtime.closure.*;
+import java.util.List;
+import java.util.ArrayList;
+
 import java.util.concurrent.atomic.AtomicLong;
 
-public class StgTSO {
+
+import ghcvm.runtime.*;
+import ghcvm.runtime.closure.*;
+import ghcvm.runtime.message.*;
+import static ghcvm.runtime.types.Task.InCall;
+
+public class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
     public long id;
     public volatile StgTSO link;
@@ -18,10 +24,19 @@ public class StgTSO {
     public InCall bound;
     // public StgTRecHeader trec; deal with later when we implement STM
     public Capability cap;
-    public Object blockInfo;
+    public BlockInfo blockInfo;
+    public static class BlockInfo {
+        StgClosure closure;
+        public BlockInfo(StgClosure closure) {
+            setInfo(closure);
+        }
+        public void setInfo(StgClosure closure) {
+            this.closure = closure;
+        }
+    }
     public int flags;
     public int savedErrno;
-    // public List<MessageThrowTo> blockedExceptions;
+    public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
     // public StgBlockingQueue bq;
     // If PROFILING StgTSOProfInfo prof;
 
@@ -58,14 +73,6 @@ public class StgTSO {
         BlockedOnMVarRead
     }
 
-    public enum ReturnCode {
-        HeapOverflow,
-        StackOverflow,
-        ThreadYielding,
-        ThreadBlocked,
-        ThreadFinished
-    }
-
     public StgTSO(Capability cap) {
         this.whatNext = WhatNext.ThreadRunGHC;
         this.whyBlocked = WhyBlocked.NotBlocked;
@@ -81,5 +88,24 @@ public class StgTSO {
 
     public static long nextThreadId() {
         return maxThreadId.getAndIncrement();
+    }
+
+    public boolean interruptible() {
+        switch (whyBlocked) {
+            case BlockedOnMVar:
+            case BlockedOnSTM:
+            case BlockedOnMVarRead:
+            case BlockedOnMsgThrowTo:
+            case BlockedOnRead:
+            case BlockedOnWrite:
+            case BlockedOnDelay:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public void removeFromMVarBlockedQueue() {
+        // TODO: Implement
     }
 }

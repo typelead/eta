@@ -15,8 +15,30 @@ public class RtsStartup {
         RtsStats.endInit();
     }
 
-    public static void shutdownHaskellAndExit(int exitStatus, boolean faseExit) {}
-    public static void stgExit(int status) {
-        System.exit(status);
+    public static void shutdownHaskellAndExit(ExitCode exitStatus, boolean faseExit) {}
+    public static void stgExit(ExitCode exitCode) {
+        System.exit(exitCode.code());
+    }
+
+    public enum ExitCode {
+        EXIT_SUCCESS(0),
+        EXIT_FAILURE(1),
+        EXIT_MISMATCH(63),
+        EXIT_SKIP(77),
+        EXIT_KILLED(250),
+        EXIT_HEAPOVERFLOW(251),
+        EXIT_INTERRUPTED(252),
+        EXIT_DEADLOCK(253),
+        EXIT_INTERNAL_ERROR(254);
+
+        private int code;
+
+        ExitCode(int code) {
+            this.code = code;
+        }
+
+        public int code() {
+            return code;
+        }
     }
 }

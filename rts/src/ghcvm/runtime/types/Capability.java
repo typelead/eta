@@ -5,21 +5,29 @@ package ghcvm.runtime.types;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Deque;
 import java.util.Queue;
 import java.util.ArrayDeque;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import static ghcvm.runtime.types.Task.InCall;
-import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsMessages.*;
+import static ghcvm.runtime.RtsStartup.*;
+import static ghcvm.runtime.RtsStartup.ExitCode.*;
+import static ghcvm.runtime.RtsScheduler.*;
+import static ghcvm.runtime.RtsScheduler.SchedulerState.*;
 import static ghcvm.runtime.types.StgTSO.*;
 import static ghcvm.runtime.types.StgTSO.WhatNext.*;
 import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
-import static ghcvm.runtime.types.StgTSO.ReturnCode.*;
+import static ghcvm.runtime.closure.StgContext.*;
+import static ghcvm.runtime.closure.StgContext.ReturnCode.*;
 import static ghcvm.runtime.RtsScheduler.RecentActivity.*;
 import ghcvm.runtime.*;
 import ghcvm.runtime.thread.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.exception.*;
 import ghcvm.runtime.prim.*;
+import ghcvm.runtime.message.*;
 
 public class Capability {
     public static int nCapabilities;
@@ -60,6 +68,7 @@ public class Capability {
     }
 
     public int no;
+    public Lock lock = new ReentrantLock();
     public StgContext context = new StgContext();
     public Task runningTask;
     public boolean inHaskell;
@@ -67,12 +76,11 @@ public class Capability {
     public boolean disabled;
     public Queue<StgTSO> runQueue = new ArrayDeque<StgTSO>();
     public InCall suspendedJavaCalls;
-    public int contextSwitch;
-    public int interrupt;
-    public Task spareWorkers;
-    public int nSpareWorkers;
-    public List<Task> returningTasks = new ArrayList<Task>();
-    public Message inbox;
+    public boolean contextSwitch;
+    public boolean interrupt;
+    public Deque<Task> spareWorkers = new ArrayDeque<Task>();
+    public Deque<Task> returningTasks = new ArrayDeque<Task>();
+    public Deque<Message> inbox = new ArrayDeque<Message>();
     public SparkPool sparks = new SparkPool();
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
@@ -96,7 +104,7 @@ public class Capability {
             if (this.inHaskell) {
                 errorBelch("schedule: re-entered unsafely.\n" +
                            "    Perhaps a 'foreign import unsafe' should be 'safe'?");
-                System.exit(EXIT_FAILURE);
+                stgExit(EXIT_FAILURE);
             }
 
             switch (schedulerState) {
@@ -140,7 +148,7 @@ public class Capability {
                 }
             }
 
-            if (schedulerState >= SCHED_INTERRUPTING &&
+            if (schedulerState.compare(SCHED_INTERRUPTING) >= 0 &&
                 !(t.whatNext == ThreadComplete || t.whatNext == ThreadKilled)) {
                 cap.deleteThread(t);
             }
@@ -155,12 +163,12 @@ public class Capability {
 
             if (RtsFlags.ConcFlags.ctxtSwitchTicks == 0
                 && !cap.emptyThreadQueues()) {
-                cap.contextSwitch = 1;
+                cap.contextSwitch = true;
             }
 
             cap.context.currentTSO = t;
             cap.context.myCapability = cap;
-            cap.interrupt = 0;
+            cap.interrupt = false;
             cap.inHaskell = true;
             cap.idle = 0;
 
@@ -193,6 +201,8 @@ public class Capability {
                         it.next().enter(context);
                     } catch (ThreadYieldException e) {
 
+                    } catch (StgReturnException e) {
+                        // Ensure that the StgContext objects match.
                     } finally {
                         ret = context.ret;
                     }
@@ -293,5 +303,266 @@ public class Capability {
         } else {
             return emptyRunQueue() && emptyBlockedQueue() && emptySleepingQueue();
         }
+    }
+    public void threadPaused(StgTSO tso) {
+        maybePerformBlockedException(tso);
+        if (tso.whatNext == ThreadKilled) return;
+        // TODO: Implement rest
+    }
+
+    public boolean maybePerformBlockedException(StgTSO tso) {
+        if (tso.whatNext == ThreadComplete /* || tso.whatNext == ThreadFinished */) {
+            if (tso.blockedExceptions.isEmpty()) {
+                return false;
+            } else {
+                awakenBlockedExceptionQueue(tso);
+                return true;
+            }
+        }
+
+        if (!tso.blockedExceptions.isEmpty() && (tso.flags & TSO_BLOCKEX) != 0) {
+            // debugTraceCap(DEBUG_SCHED, this, "throwTo: thread %d has blocked exceptions but is inside block", tso.id);
+        }
+
+        if (!tso.blockedExceptions.isEmpty() && ((tso.flags & TSO_BLOCKEX) == 0 || ((tso.flags & TSO_INTERRUPTIBLE) != 0 && tso.interruptible()))) {
+            while (true) {
+                MessageThrowTo msg = tso.blockedExceptions.pollFirst();
+                if (msg == null) return false;
+                //locking and unlocking closures here
+                throwToSingleThreaded(msg.target, msg.exception);
+                StgTSO source = msg.source;
+                msg.done();
+                tryWakeupThread(source);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void awakenBlockedExceptionQueue(StgTSO tso) {
+
+    }
+    public void tryWakeupThread(StgTSO tso) {
+        if (RtsFlags.ModeFlags.threaded) {
+            if (tso.cap != this) {
+                MessageWakeup msg = new MessageWakeup(tso);
+                sendMessage(tso.cap, msg);
+                // debugTraceCap
+                return;
+            }
+        }
+
+        switch (tso.whyBlocked) {
+            case BlockedOnMVar:
+            case BlockedOnMVarRead:
+                /*
+                  if (tso->_link == END) {
+                     tso.blockInfo.closure = null;
+                     break;
+                  } else return;
+                 */
+            case BlockedOnMsgThrowTo:
+                // Do some locking and unlocking
+                // The top of the stack should be blockThrowTo
+                tso.stack.pop();
+                break;
+            case BlockedOnBlackHole:
+            case BlockedOnSTM:
+            case ThreadMigrating:
+                break;
+            default:
+                return;
+        }
+        tso.whyBlocked = NotBlocked;
+        appendToRunQueue(tso);
+        // can context switch now
+    }
+
+    public void sendMessage(Capability target, Message msg) {
+        // acquire target lock;
+        Lock lock = target.lock;
+        lock.lock();
+        try {
+            target.inbox.offerFirst(msg);
+            if (target.runningTask == null) {
+                target.runningTask = Task.myTask();
+                target.release_(false);
+            } else {
+                target.interrupt();
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void release_(boolean alwaysWakeup) {
+        Task task = runningTask;
+        runningTask = null;
+        Task workerTask = returningTasks.pollFirst();
+        if (workerTask != null) {
+            giveCapabilityToTask(workerTask);
+            return;
+        }
+        /* TODO: Evaluate if this is required
+        if (pendingSync != 0 && pendingSync != SYNC_GC_PAR) {
+            lastFreeCapability = this;
+            //debugTrace
+            return;
+            }*/
+        StgTSO nextTSO = runQueue.peek();
+        if (nextTSO.bound != null) {
+            task = nextTSO.bound.task;
+            giveCapabilityToTask(task);
+            return;
+        }
+
+        if (spareWorkers.isEmpty()) {
+            if (schedulerState.compare(SCHED_SHUTTING_DOWN) < 0 || !emptyRunQueue()) {
+                //debugTrace
+                startWorkerTask();
+                return;
+            }
+        }
+
+        if (alwaysWakeup || !emptyRunQueue() || !emptyInbox()
+            || (!disabled && !emptySparkPool()) || globalWorkToDo()) {
+            task = spareWorkers.pollFirst();
+            if (task != null) {
+                giveCapabilityToTask(task);
+                return;
+            }
+        }
+
+        lastFreeCapability = this;
+        //debugTrace;
+    }
+
+    public void release() {
+        lock.lock();
+        try {
+            release_(false);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void releaseAndWakeup() {
+        lock.lock();
+        try {
+            release_(true);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void giveCapabilityToTask(Task task) {
+        // debugTrace
+        Lock lock = task.lock;
+        lock.lock();
+        try {
+            if (!task.wakeup) {
+                task.wakeup = true;
+                //signalCondition
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean emptyInbox() {
+        return inbox.isEmpty();
+    }
+
+    public boolean emptySparkPool() {
+        return sparks.isEmpty();
+    }
+
+    public boolean globalWorkToDo() {
+        return (schedulerState.compare(SCHED_INTERRUPTING) >= 0)
+            || recentActivity == Inactive;
+    }
+
+    public void interrupt() {
+        stop();
+        interrupt = false;
+    }
+
+    public void contextSwitch() {
+        stop();
+        contextSwitch = true;
+    }
+
+    public void stop() {
+        // Find a method to force the stopping of a thread;
+    }
+
+    public void throwToSingleThreaded(StgTSO tso, StgClosure exception) {
+        throwToSingleThreaded__(tso, exception, false, null);
+    }
+
+    public void throwToSingleThreaded_(StgTSO tso, StgClosure exception,
+                                       boolean stopAtAtomically) {
+        throwToSingleThreaded__(tso, exception, stopAtAtomically, null);
+    }
+
+    public void throwToSingleThreaded__(StgTSO tso, StgClosure exception,
+                                        boolean stopAtAtomically,
+                                        StgUpdateFrame stopHere) {
+        if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadKilled) {
+            return;
+        }
+
+        removeFromQueues(tso);
+        raiseAsync(tso, exception, stopAtAtomically, stopHere);
+    }
+
+    public void suspendComputation(StgTSO tso, StgUpdateFrame stopHere) {
+        throwToSingleThreaded__(tso, null, false, stopHere);
+    }
+
+    public void removeFromQueues(StgTSO tso) {
+        switch (tso.whyBlocked) {
+            case NotBlocked:
+            case ThreadMigrating:
+                return;
+            case BlockedOnSTM:
+                break;
+            case BlockedOnMVar:
+            case BlockedOnMVarRead:
+                tso.removeFromMVarBlockedQueue();
+                break;
+            case BlockedOnBlackHole:
+                break;
+            case BlockedOnMsgThrowTo:
+                MessageThrowTo m = (MessageThrowTo) tso.blockInfo.closure;
+                m.done();
+                break;
+            case BlockedOnRead:
+            case BlockedOnWrite:
+                // TODO: Remove the following check if this state never occurs
+                // if the threaded rts
+                if (RtsFlags.ModeFlags.threaded) {
+                    blockedQueue.remove(tso);
+                }
+                break;
+            case BlockedOnDelay:
+                sleepingQueue.remove(tso);
+                break;
+            default:
+                barf("removeFromQueues: %d", tso.whyBlocked);
+        }
+        tso.whyBlocked = NotBlocked;
+        appendToRunQueue(tso);
+    }
+
+    public void raiseAsync(StgTSO tso, StgClosure exception,
+                           boolean stopAtAtomically, StgUpdateFrame stopHere) {
+        //debugTrace
+        // TODO: Implement later
+    }
+
+    public boolean messageBlackHole(MessageBlackHole msg) {
+        // TODO: Implement
+        return false;
     }
 }

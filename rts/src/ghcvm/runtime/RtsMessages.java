@@ -5,6 +5,7 @@ package ghcvm.runtime;
 import ghcvm.runtime.closure.*;
 import static ghcvm.runtime.RtsFlags.*;
 import static ghcvm.runtime.RtsStartup.*;
+import static ghcvm.runtime.RtsStartup.ExitCode.*;
 
 public class RtsMessages {
     public static void barf(String msg, Object... args) {

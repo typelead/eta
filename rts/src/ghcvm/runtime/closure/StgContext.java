@@ -2,7 +2,6 @@ package ghcvm.runtime.closure;
 
 import java.util.Iterator;
 import ghcvm.runtime.types.*;
-import static ghcvm.runtime.types.StgTSO.*;
 
 public class StgContext {
     public StgClosure R1;
@@ -23,4 +22,12 @@ public class StgContext {
     public ReturnCode ret;
     public Iterator<StackFrame> it;
     public int papExpectedArity;
+
+    public enum ReturnCode {
+        HeapOverflow,
+        StackOverflow,
+        ThreadYielding,
+        ThreadBlocked,
+        ThreadFinished
+    }
 }

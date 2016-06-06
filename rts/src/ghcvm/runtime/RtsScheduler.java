@@ -8,13 +8,34 @@ import ghcvm.runtime.types.*;
 import ghcvm.runtime.closure.*;
 
 public class RtsScheduler {
+
+    public enum SchedulerState {
+        SCHED_RUNNING(0),  /* running as normal */
+        SCHED_INTERRUPTING(1),  /* ^C detected, before threads are deleted */
+        SCHED_SHUTTING_DOWN(2);  /* final shutdown */
+
+        private int state;
+
+        SchedulerState(int state) {
+            this.state = state;
+        }
+
+        public int compare(SchedulerState other) {
+            return Integer.compare(this.state, other.state);
+        }
+    }
+
+    public enum SchedulerStatus {
+        NoStatus, Success, Killed, Interrupted, HeapExhausted
+    }
+
     public static Queue<StgTSO> blockedQueue = new ArrayDeque<StgTSO>();
     public static Queue<StgTSO> sleepingQueue = new ArrayDeque<StgTSO>();
     public enum RecentActivity {
         Yes, Inactive, DoneGC
     }
     public static RecentActivity recentActivity = RecentActivity.Yes;
-    public static int schedulerState = SCHED_RUNNING;
+    public static SchedulerState schedulerState = SchedulerState.SCHED_RUNNING;
     public static void scheduleWaitThread(StgTSO tso, REF_CLOSURE_PTR ret, Ptr<Capability> pcap) {
         Capability cap = pcap.ref;
         Task task = cap.runningTask;
@@ -27,8 +48,9 @@ public class RtsScheduler {
         cap = cap.schedule(task);
         pcap.ref = cap;
     }
+
     public static void initScheduler() {
-        schedulerState = SCHED_RUNNING;
+        schedulerState = SchedulerState.SCHED_RUNNING;
         recentActivity = RecentActivity.Yes;
 
         synchronized (RtsScheduler.class) {

@@ -4,10 +4,14 @@ package ghcvm.runtime;
 
 import ghcvm.runtime.types.*;
 import ghcvm.runtime.closure.*;
+import static ghcvm.runtime.RtsStartup.*;
+import static ghcvm.runtime.RtsStartup.ExitCode.*;
+import static ghcvm.runtime.RtsScheduler.*;
+import static ghcvm.runtime.RtsScheduler.SchedulerStatus.*;
 
 public class RtsMain {
-    public static int hsMain(String[] args, CLOSURE_PTR mainClosure, RtsConfig config) {
-        int exitStatus = 0;
+    public static ExitCode hsMain(String[] args, CLOSURE_PTR mainClosure, RtsConfig config) {
+        ExitCode exitStatus = EXIT_SUCCESS;
         SchedulerStatus status = null;
         Ptr<Capability> capPtr = null;
 

@@ -2,9 +2,14 @@ package ghcvm.runtime.types;
 
 #include "Rts.h"
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import ghcvm.runtime.closure.*;
 import ghcvm.runtime.RtsTaskManager;
 import static ghcvm.runtime.RtsTaskManager.*;
-import ghcvm.runtime.closure.*;
+import static ghcvm.runtime.RtsScheduler.*;
+import static ghcvm.runtime.RtsScheduler.SchedulerStatus.*;
 
 public class Task {
     public long id;
@@ -19,6 +24,7 @@ public class Task {
     public Task allNext;
     public Task allPrev;
     public boolean wakeup;
+    public Lock lock = new ReentrantLock();
 
     public static class InCall {
         public StgTSO tso;
@@ -55,5 +61,10 @@ public class Task {
 
     public boolean isBound() {
         return incall.tso != null;
+    }
+
+    public static Task myTask() {
+        // TODO: Implement this
+        return null;
     }
 }

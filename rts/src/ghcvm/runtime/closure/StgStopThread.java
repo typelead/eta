@@ -3,7 +3,7 @@ package ghcvm.runtime.closure;
 import java.util.Deque;
 import ghcvm.runtime.types.*;
 import static ghcvm.runtime.types.StgTSO.WhatNext.*;
-import static ghcvm.runtime.types.StgTSO.ReturnCode.*;
+import static ghcvm.runtime.closure.StgContext.ReturnCode.*;
 
 public class StgStopThread extends StackFrame {
 

@@ -11,8 +11,7 @@ public class StgFun extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        // TODO: Entry code for functions
-
+        context.R1 = this;
     }
 
     @Override
