@@ -19,5 +19,6 @@ public class Stg {
     public static StgClosure block_readmvar = new BlockReadMVar();
     public static StgClosure block_readmvar_finally = new BlockReadMVarFinally();
     public static StgClosure block_putmvar = new BlockPutMVar();
-
+    public static StgClosure noDuplicate = new NoDuplicate();
+    public static StgClosure threadFinished = new ThreadFinished();
 }
