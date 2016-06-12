@@ -1,14 +1,15 @@
 package ghcvm.runtime.closure;
 
-public class StgIndStatic extends StgClosure {
-    StgClosure indirectee;
+import ghcvm.runtime.thunk.StgWhiteHole;
+
+public class StgIndStatic extends StgInd {
 
     public StgIndStatic(StgClosure indirectee) {
-        this.indirectee = indirectee;
+        super(indirectee);
     }
 
-    @Override
-    public void enter(StgContext context) {
-        indirectee.enter(context);
+
+    public boolean isLocked() {
+        return indirectee.getClass().equals(StgWhiteHole.class);
     }
 }

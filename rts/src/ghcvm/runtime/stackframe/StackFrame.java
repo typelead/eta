@@ -1,6 +1,9 @@
-package ghcvm.runtime.closure;
+package ghcvm.runtime.stackframe;
 
 import java.util.Iterator;
+
+import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.closure.StgContext;
 
 public class StackFrame extends StgClosure {
 

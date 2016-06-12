@@ -1,9 +1,10 @@
-package ghcvm.runtime.closure;
+package ghcvm.runtime.stackframe;
 
 import java.util.Deque;
-import ghcvm.runtime.types.*;
-import static ghcvm.runtime.types.StgTSO.WhatNext.*;
-import static ghcvm.runtime.closure.StgContext.ReturnCode.*;
+import ghcvm.runtime.types.StgTSO;
+import ghcvm.runtime.closure.StgContext;
+import static ghcvm.runtime.types.StgTSO.WhatNext.ThreadComplete;
+import static ghcvm.runtime.closure.StgContext.ReturnCode.ThreadFinished;
 
 public class StgStopThread extends StackFrame {
 

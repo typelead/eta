@@ -28,6 +28,7 @@ import ghcvm.runtime.closure.*;
 import ghcvm.runtime.exception.*;
 import ghcvm.runtime.prim.*;
 import ghcvm.runtime.message.*;
+import ghcvm.runtime.stackframe.*;
 
 public class Capability {
     public static int nCapabilities;
@@ -222,7 +223,11 @@ public class Capability {
         }
     }
 
-    public void migrateThread(StgTSO tso, Capability destCap) {}
+    public void migrateThread(StgTSO tso, Capability to) {
+        tso.whyBlocked = ThreadMigrating;
+        tso.cap = to;
+        tryWakeupThread(tso);
+    }
 
     public void deleteThread(StgTSO tso) {
         if (tso.whyBlocked != BlockedOnCCall &&
@@ -355,12 +360,12 @@ public class Capability {
         switch (tso.whyBlocked) {
             case BlockedOnMVar:
             case BlockedOnMVarRead:
-                /*
-                  if (tso->_link == END) {
-                     tso.blockInfo.closure = null;
-                     break;
-                  } else return;
-                 */
+                if (!tso.inMVarOperation) {
+                    tso.blockInfo = null;
+                    break;
+                } else {
+                    return;
+                }
             case BlockedOnMsgThrowTo:
                 // Do some locking and unlocking
                 // The top of the stack should be blockThrowTo
@@ -534,7 +539,7 @@ public class Capability {
             case BlockedOnBlackHole:
                 break;
             case BlockedOnMsgThrowTo:
-                MessageThrowTo m = (MessageThrowTo) tso.blockInfo.closure;
+                MessageThrowTo m = (MessageThrowTo) tso.blockInfo;
                 m.done();
                 break;
             case BlockedOnRead:
@@ -564,5 +569,25 @@ public class Capability {
     public boolean messageBlackHole(MessageBlackHole msg) {
         // TODO: Implement
         return false;
+    }
+
+    public void checkBlockingQueues(StgTSO tso) {
+
+    }
+
+    public void updateThunk(StgTSO tso, StgInd thunk, StgClosure val) {
+        thunk.updateWithIndirection(val);
+        if (thunk.isBlackHole()) {
+            thunk.indirectee.thunkUpdate(this, tso);
+        }
+    }
+
+    public void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
+        Iterator<MessageBlackHole> it = blockingQueue.iterator();
+        while (it.hasNext()) {
+            MessageBlackHole msg = it.next();
+            if (msg.isValid()) tryWakeupThread(msg.tso);
+        }
+        // do cleanup here to destroy the BQ;
     }
 }

@@ -4,6 +4,7 @@ package ghcvm.runtime.apply;
 
 import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stackframe.*;
 import static ghcvm.runtime.RtsMessages.*;
 
 public class ApV extends StackFrame {

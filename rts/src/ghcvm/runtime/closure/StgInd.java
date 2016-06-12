@@ -6,8 +6,8 @@ import ghcvm.runtime.message.*;
 import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
 
 public class StgInd extends StgClosure {
-    StgClosure indirectee;
-    boolean blackhole;
+    public volatile StgClosure indirectee;
+    public StgPayload payload;
 
     public StgInd(StgClosure indirectee) {
         this.indirectee = indirectee;
@@ -23,7 +23,7 @@ public class StgInd extends StgClosure {
                     boolean result = context.myCapability.messageBlackHole(msg);
                     if (result) {
                         currentTSO.whyBlocked = BlockedOnBlackHole;
-                        currentTSO.blockInfo.setInfo(msg);
+                        currentTSO.blockInfo = msg;
                         context.R1 = this;
                         Stg.block_blackhole.enter(context);
                         break;
@@ -34,5 +34,10 @@ public class StgInd extends StgClosure {
                 }
             }
         }
+    }
+
+    public void updateWithIndirection(StgClosure ret) {
+        indirectee = ret;
+        payload = null;
     }
 }

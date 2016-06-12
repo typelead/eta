@@ -7,10 +7,10 @@ import java.util.ArrayList;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-
 import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.message.*;
+import ghcvm.runtime.stackframe.*;
 import static ghcvm.runtime.types.Task.InCall;
 
 public class StgTSO extends StgClosure {
@@ -24,18 +24,10 @@ public class StgTSO extends StgClosure {
     public InCall bound;
     // public StgTRecHeader trec; deal with later when we implement STM
     public Capability cap;
-    public BlockInfo blockInfo;
-    public static class BlockInfo {
-        StgClosure closure;
-        public BlockInfo(StgClosure closure) {
-            setInfo(closure);
-        }
-        public void setInfo(StgClosure closure) {
-            this.closure = closure;
-        }
-    }
+    public StgClosure blockInfo;
     public int flags;
     public int savedErrno;
+    public boolean inMVarOperation;
     public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
     // public StgBlockingQueue bq;
     // If PROFILING StgTSOProfInfo prof;
@@ -107,5 +99,12 @@ public class StgTSO extends StgClosure {
 
     public void removeFromMVarBlockedQueue() {
         // TODO: Implement
+    }
+
+    @Override
+    public void thunkUpdate(Capability cap, StgTSO tso) {
+        if (tso != this) {
+            cap.checkBlockingQueues(tso);
+        }
     }
 }

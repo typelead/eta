@@ -3,8 +3,9 @@ package ghcvm.runtime;
 #include "Rts.h"
 
 import ghcvm.runtime.types.*;
-import static ghcvm.runtime.RtsScheduler.*;
 import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stackframe.*;
+import static ghcvm.runtime.RtsScheduler.*;
 
 public class Rts {
     public static Capability lock() {return null;}

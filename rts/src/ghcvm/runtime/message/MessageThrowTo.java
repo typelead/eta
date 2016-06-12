@@ -1,14 +1,14 @@
 package ghcvm.runtime.message;
 
-import ghcvm.runtime.closure.*;
-import ghcvm.runtime.types.*;
+import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.types.StgTSO;
 
 public class MessageThrowTo extends Message {
-    public StgTSO source;
-    public StgTSO target;
-    public StgClosure exception;
+    public final StgTSO source;
+    public final StgTSO target;
+    public final StgClosure exception;
 
-    public MessageThrowTo(StgTSO source, StgTSO target, StgClosure exception) {
+    public MessageThrowTo(final StgTSO source, final StgTSO target, final StgClosure exception) {
         this.source = source;
         this.target = target;
         this.exception = exception;
