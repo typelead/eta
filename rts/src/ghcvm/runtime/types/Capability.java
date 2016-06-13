@@ -74,7 +74,7 @@ public class Capability {
     public int idle;
     public boolean disabled;
     public Queue<StgTSO> runQueue = new ArrayDeque<StgTSO>();
-    public InCall suspendedJavaCalls;
+    public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
     public boolean contextSwitch;
     public boolean interrupt;
     public Deque<Task> spareWorkers = new ArrayDeque<Task>();
@@ -285,13 +285,17 @@ public class Capability {
 
     public void startWorkerTask() {
         Task task = new Task(true);
-        // TODO: Verify that this synchronization is doing as desired
-        synchronized (task) {
+        task.initialize();
+        Lock l = task.lock;
+        l.lock();
+        try {
             task.cap = this;
-            this.runningTask = task;
+            runningTask = task;
             WorkerThread thread = new WorkerThread(task);
             thread.start();
             task.id = thread.getId();
+        } finally {
+            l.unlock();
         }
     }
 
@@ -623,6 +627,73 @@ public class Capability {
                 task.wakeup = true;
                 task.condition.signalAll();
             }
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public Task suspendThread(boolean interruptible) {
+        Task task = runningTask;
+        StgTSO tso = context.currentTSO;
+        tso.whatNext = ThreadRunGHC;
+        threadPaused(tso);
+        if (interruptible) {
+            tso.whyBlocked = BlockedOnJavaCall_Interruptible;
+        } else {
+            tso.whyBlocked = BlockedOnJavaCall;
+        }
+        Task.InCall incall = task.incall;
+        incall.suspendedTso = tso;
+        incall.suspendedCap = this;
+        context.currentTSO = null;
+        lock.lock();
+        try {
+            suspendTask(task);
+            inHaskell = false;
+            release_(false);
+        } finally {
+            lock.unlock();
+        }
+        return task;
+    }
+
+    public static Capability resumeThread(Task task) {
+        Task.InCall incall = task.incall;
+        Capability cap = incall.suspendedCap;
+        task.cap = cap;
+        cap = task.waitForCapability(cap);
+        cap.recoverSuspendedTask(task);
+        StgTSO tso = incall.suspendedTso;
+        incall.suspendedTso = null;
+        incall.suspendedCap = null;
+        // remove the tso _link
+        tso.whyBlocked = NotBlocked;
+        if ((tso.flags & TSO_BLOCKEX) == 0) {
+            if (!tso.blockedExceptions.isEmpty()) {
+                cap.maybePerformBlockedException(tso);
+            }
+        }
+        cap.context.currentTSO = tso;
+        cap.inHaskell = true;
+        return cap;
+    }
+
+    public void suspendTask(Task task) {
+        // TODO: Should the incall be removed from any existing data structures?
+        suspendedJavaCalls.push(task.incall);
+    }
+
+    public void recoverSuspendedTask(Task task) {
+        suspendedJavaCalls.remove(task.incall);
+    }
+
+    public void scheduleWorker(Task task) {
+        Capability cap = schedule(task);
+        Lock l = cap.lock;
+        l.lock();
+        try {
+            cap.release_(false);
+            task.workerTaskStop();
         } finally {
             l.unlock();
         }

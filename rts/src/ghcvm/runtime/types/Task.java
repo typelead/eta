@@ -226,4 +226,19 @@ public class Task {
         spareIncalls.offer(incall);
         this.incall = incallStack.peek();
     }
+
+    public void workerTaskStop() {
+        synchronized (Task.class) {
+            allTasks.remove(this);
+            currentWorkerCount--;
+        }
+        free();
+    }
+
+    public void free() {
+        incallStack.clear();
+        spareIncalls.clear();
+        cap = null;
+        incall = null;
+    }
 }

@@ -1,5 +1,7 @@
 package ghcvm.runtime.thread;
 
+import java.util.concurrent.locks.Lock;
+
 import ghcvm.runtime.types.*;
 
 public class WorkerThread extends Thread {
@@ -11,7 +13,17 @@ public class WorkerThread extends Thread {
 
     @Override
     public void run() {
-
-        this.task = null;
+        Capability cap = null;
+        Lock l = task.lock;
+        l.lock();
+        try {
+            cap = task.cap;
+        } finally {
+            l.unlock();
+        }
+        // setThreadAffinity
+        Task.setMyTask(task);
+        task.newInCall();
+        cap.scheduleWorker(task);
     }
 }

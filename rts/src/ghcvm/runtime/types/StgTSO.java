@@ -60,6 +60,8 @@ public class StgTSO extends StgClosure {
         BlockedOnGA,
         BlockedOnCCall,
         BlockedOnCCall_Interruptible,
+        BlockedOnJavaCall,
+        BlockedOnJavaCall_Interruptible,
         BlockedOnMsgThrowTo,
         ThreadMigrating,
         BlockedOnMVarRead
