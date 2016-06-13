@@ -11,7 +11,7 @@ import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.stackframe.*;
-import static ghcvm.runtime.types.Task.InCall;
+import ghcvm.runtime.types.Task.InCall;
 
 public class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
@@ -21,7 +21,7 @@ public class StgTSO extends StgClosure {
     public Deque<StackFrame> stack;
     public WhatNext whatNext;
     public WhyBlocked whyBlocked;
-    public InCall bound;
+    public Task.InCall bound;
     // public StgTRecHeader trec; deal with later when we implement STM
     public Capability cap;
     public StgClosure blockInfo;

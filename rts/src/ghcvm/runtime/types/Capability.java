@@ -1,7 +1,5 @@
 package ghcvm.runtime.types;
 
-#include "Rts.h"
-
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -10,10 +8,10 @@ import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import static ghcvm.runtime.types.Task.InCall;
+import ghcvm.runtime.types.Task.InCall;
+import static ghcvm.runtime.Rts.*;
 import static ghcvm.runtime.RtsMessages.*;
-import static ghcvm.runtime.RtsStartup.*;
-import static ghcvm.runtime.RtsStartup.ExitCode.*;
+import static ghcvm.runtime.Rts.ExitCode.*;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsScheduler.SchedulerState.*;
 import static ghcvm.runtime.types.StgTSO.*;
@@ -135,9 +133,9 @@ public class Capability {
 
             StgTSO t = cap.popRunQueue();
             if (threaded) {
-                InCall bound = t.bound;
+                Task.InCall bound = t.bound;
                 if (bound != null) {
-                    if (bound.task != task) {
+                    if (bound.task() != task) {
                         cap.pushOnRunQueue(t);
                         continue;
                     }
@@ -416,7 +414,7 @@ public class Capability {
             }*/
         StgTSO nextTSO = runQueue.peek();
         if (nextTSO.bound != null) {
-            task = nextTSO.bound.task;
+            task = nextTSO.bound.task();
             giveCapabilityToTask(task);
             return;
         }
@@ -589,5 +587,44 @@ public class Capability {
             if (msg.isValid()) tryWakeupThread(msg.tso);
         }
         // do cleanup here to destroy the BQ;
+    }
+
+    public SchedulerStatus getSchedStatus() {
+        return runningTask.incall.returnStatus;
+    }
+
+    public static Capability getFreeCapability() {
+        if (lastFreeCapability.runningTask != null) {
+            for (Capability cap: capabilities) {
+                if (cap.runningTask == null) {
+                    return cap;
+                }
+            }
+            return lastFreeCapability;
+        } else {
+            return lastFreeCapability;
+        }
+    }
+
+    public void newReturningTask(Task task) {
+        returningTasks.addLast(task);
+    }
+
+    public void popReturningTask() {
+        returningTasks.pollFirst();
+    }
+
+    public void giveToTask(Task task) {
+        //debugTrace
+        Lock l = task.lock;
+        l.lock();
+        try {
+            if (!task.wakeup) {
+                task.wakeup = true;
+                task.condition.signalAll();
+            }
+        } finally {
+            l.unlock();
+        }
     }
 }

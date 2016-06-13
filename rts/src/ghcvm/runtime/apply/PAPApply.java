@@ -1,7 +1,5 @@
 package ghcvm.runtime.apply;
 
-#include "Rts.h"
-
 import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
 import static ghcvm.runtime.RtsMessages.*;

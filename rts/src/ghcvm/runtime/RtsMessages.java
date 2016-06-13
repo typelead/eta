@@ -1,11 +1,9 @@
 package ghcvm.runtime;
 
-#include "Rts.h"
-
+import static ghcvm.runtime.Rts.*;
 import ghcvm.runtime.closure.*;
 import static ghcvm.runtime.RtsFlags.*;
-import static ghcvm.runtime.RtsStartup.*;
-import static ghcvm.runtime.RtsStartup.ExitCode.*;
+import static ghcvm.runtime.Rts.ExitCode.*;
 
 public class RtsMessages {
     public static void barf(String msg, Object... args) {

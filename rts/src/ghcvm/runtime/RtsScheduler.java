@@ -1,11 +1,11 @@
 package ghcvm.runtime;
 
-#include "Rts.h"
-
+import java.util.concurrent.locks.Lock;
 import java.util.Queue;
 import java.util.ArrayDeque;
 import ghcvm.runtime.types.*;
 import ghcvm.runtime.closure.*;
+import static ghcvm.runtime.RtsMessages.*;
 
 public class RtsScheduler {
 
@@ -29,6 +29,16 @@ public class RtsScheduler {
         NoStatus, Success, Killed, Interrupted, HeapExhausted
     }
 
+    public static class HaskellResult {
+        public final Capability cap;
+        public final StgClosure result;
+
+        public HaskellResult(final Capability cap, final StgClosure result) {
+            this.cap = cap;
+            this.result = result;
+        }
+    }
+
     public static Queue<StgTSO> blockedQueue = new ArrayDeque<StgTSO>();
     public static Queue<StgTSO> sleepingQueue = new ArrayDeque<StgTSO>();
     public enum RecentActivity {
@@ -36,17 +46,15 @@ public class RtsScheduler {
     }
     public static RecentActivity recentActivity = RecentActivity.Yes;
     public static SchedulerState schedulerState = SchedulerState.SCHED_RUNNING;
-    public static void scheduleWaitThread(StgTSO tso, REF_CLOSURE_PTR ret, Ptr<Capability> pcap) {
-        Capability cap = pcap.ref;
+    public static HaskellResult scheduleWaitThread(StgTSO tso, Capability cap) {
         Task task = cap.runningTask;
         tso.bound = task.incall;
         tso.cap = cap;
         task.incall.tso = tso;
-        task.incall.returnValue = ret;
         task.incall.returnStatus = SchedulerStatus.NoStatus;
         cap.appendToRunQueue(tso);
         cap = cap.schedule(task);
-        pcap.ref = cap;
+        return new HaskellResult(cap, task.incall.ret);
     }
 
     public static void initScheduler() {
@@ -55,9 +63,9 @@ public class RtsScheduler {
 
         synchronized (RtsScheduler.class) {
             Capability.init();
-            RtsTaskManager.init();
+            Task.init();
             if (RtsFlags.ModeFlags.threaded) {
-                RtsTaskManager.startWorkerTasks(1, Capability.nCapabilities);
+                Task.startWorkerTasks(1, Capability.nCapabilities);
             }
         }
     }
