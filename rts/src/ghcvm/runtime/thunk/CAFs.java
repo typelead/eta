@@ -20,9 +20,7 @@ public class CAFs {
         return keepCAFs;
     }
     public static void revertCAFs() {
-        Iterator<StgIndStatic> it = revertibleCAFList.iterator();
-        while (it.hasNext()) {
-            StgIndStatic c = it.next();
+        for (StgIndStatic c: revertibleCAFList) {
             c.indirectee = null;
             // code to revert the CAF here
         }

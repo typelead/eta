@@ -12,6 +12,7 @@ public class RtsFlags {
 
     public static class ParFlags {
         public static int nNodes;
+        public static boolean migrate = true; // TODO: Is this the default?
     }
 
     public static class ConcFlags {

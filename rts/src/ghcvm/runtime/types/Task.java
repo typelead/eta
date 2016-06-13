@@ -241,4 +241,59 @@ public class Task {
         cap = null;
         incall = null;
     }
+
+    public boolean isWorker() {
+        return (worker && incallStack.size() == 1);
+    }
+
+    public static void shutdownThread() {
+        // Method of interrupting thread;
+        //throw new InterruptedException();
+    }
+
+    public Capability waitForWorkerCapability() {
+        Capability cap = null;
+        while (true) {
+            lock.lock();
+            try {
+                if (!wakeup) condition.await();
+                cap = this.cap;
+                wakeup = false;
+            } catch (InterruptedException e) {
+                // Do something here
+            } finally {
+                lock.unlock();
+            }
+            Lock l = cap.lock;
+            l.lock();
+            try {
+                if (cap.runningTask != null) {
+                    l.unlock();
+                    continue;
+                }
+
+                if (this.cap != cap) {
+                    l.unlock();
+                    continue;
+                }
+
+                if (incall.tso == null) {
+                    Task task = cap.spareWorkers.peek();
+                    if (task != this) {
+                        cap.giveToTask(task);
+                        l.unlock();
+                        continue;
+                    } else {
+                        cap.spareWorkers.poll();
+                    }
+                }
+                cap.runningTask = this;
+                l.unlock();
+                break;
+            } finally {
+                l.unlock();
+            }
+        }
+        return cap;
+    }
 }

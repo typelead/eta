@@ -109,4 +109,6 @@ public class StgTSO extends StgClosure {
             cap.checkBlockingQueues(tso);
         }
     }
+
+    public boolean isFlagLocked() { return ((flags & TSO_LOCKED) != 0); }
 }

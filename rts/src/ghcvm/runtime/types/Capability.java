@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Deque;
 import java.util.Queue;
 import java.util.ArrayDeque;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import ghcvm.runtime.types.Task.InCall;
@@ -28,13 +29,27 @@ import ghcvm.runtime.prim.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.stackframe.*;
 
-public class Capability {
+public final class Capability {
+    public static final int MAX_SPARE_WORKERS = 6;
     public static int nCapabilities;
     public static int enabledCapabilities;
     public static Capability mainCapability;
     public static Capability lastFreeCapability;
     public static List<Capability> capabilities;
-    public static int pendingSync;
+    public static SyncType pendingSync = SyncType.SYNC_NONE;
+
+    public enum SyncType {
+        SYNC_NONE(0),
+        SYNC_GC_SEQ(1),
+        SYNC_GC_PAR(2),
+        SYNC_OTHER(3);
+
+        private int type;
+        SyncType(int type) {
+            this.type = type;
+        }
+    }
+
     public static void init() {
         if (RtsFlags.ModeFlags.threaded) {
             nCapabilities = 0;
@@ -77,7 +92,7 @@ public class Capability {
     public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
     public boolean contextSwitch;
     public boolean interrupt;
-    public Deque<Task> spareWorkers = new ArrayDeque<Task>();
+    public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
     public SparkPool sparks = new SparkPool();
@@ -89,18 +104,18 @@ public class Capability {
         this.no = i;
     }
 
-    public void appendToRunQueue(StgTSO tso) {
+    public final void appendToRunQueue(StgTSO tso) {
         runQueue.add(tso);
         /* TODO: Is this line necessary?
         if (runQueue.isEmpty()) tso.blockInfo = null;
         */
     }
 
-    public Capability schedule(Task task) {
+    public final Capability schedule(Task task) {
         Capability cap = this;
         boolean threaded = RtsFlags.ModeFlags.threaded;
         while (true) {
-            if (this.inHaskell) {
+            if (cap.inHaskell) {
                 errorBelch("schedule: re-entered unsafely.\n" +
                            "    Perhaps a 'foreign import unsafe' should be 'safe'?");
                 stgExit(EXIT_FAILURE);
@@ -110,11 +125,10 @@ public class Capability {
                 case SCHED_RUNNING:
                     break;
                 case SCHED_INTERRUPTING:
-                    // scheduleDoGC
-
+                    cap = null;//TODO: scheduleDoGC(cap, task, false);
                 case SCHED_SHUTTING_DOWN:
                     if (!task.isBound() && cap.emptyRunQueue()) {
-                        return this;
+                        return cap;
                     }
                     break;
                 default:
@@ -127,7 +141,7 @@ public class Capability {
             }
             cap = cap.detectDeadlock(task);
             if (threaded) {
-                cap = cap.yield(task);
+                cap = cap.scheduleYield(task);
                 if (cap.emptyRunQueue()) continue;
             }
 
@@ -221,35 +235,191 @@ public class Capability {
         }
     }
 
-    public void migrateThread(StgTSO tso, Capability to) {
+    public final void migrateThread(StgTSO tso, Capability to) {
         tso.whyBlocked = ThreadMigrating;
         tso.cap = to;
         tryWakeupThread(tso);
     }
 
-    public void deleteThread(StgTSO tso) {
+    public final void deleteThread(StgTSO tso) {
         if (tso.whyBlocked != BlockedOnCCall &&
             tso.whyBlocked != BlockedOnCCall_Interruptible) {
             //tso.cap.throwToSingleThreaded(tso, null);
         }
     }
 
-    public void pushOnRunQueue(StgTSO tso) {
+    public final void pushOnRunQueue(StgTSO tso) {
         /* TODO: Take care of blockInfo later */
         runQueue.add(tso);
     }
 
-    public StgTSO popRunQueue() {
-        return runQueue.remove();
+    public final StgTSO popRunQueue() {
+        return runQueue.poll();
         /* runQueue.size() > 1 -> blockInfo = null of the removed element */
     }
 
-    public Capability yield(Task task) {return this;}
+    public final Capability scheduleYield(Task task) {
+        Capability cap = this;
+        boolean didGcLast = false;
+        if (!cap.shouldYield(task,false) &&
+            (!cap.emptyRunQueue() ||
+             !cap.emptyInbox() ||
+             schedulerState.compare(SCHED_INTERRUPTING) >= 0)) {
+            return cap;
+        }
 
-    public void pushWork(Task task) {}
-    public Capability detectDeadlock(Task task) {return this;}
+        do {
+            YieldResult result = cap.yield(task, !didGcLast);
+            didGcLast = result.didGcLast;
+            cap = result.cap;
+        } while (cap.shouldYield(task, didGcLast));
+        return cap;
+    }
 
-    public Capability findWork() {
+    public static class YieldResult {
+        public final Capability cap;
+        public final boolean didGcLast;
+
+        public YieldResult(final Capability cap, final boolean didGcLast) {
+            this.cap = cap;
+            this.didGcLast = didGcLast;
+        }
+    }
+
+    public final YieldResult yield(Task task, final boolean gcAllowed) {
+        Capability cap = this;
+        boolean didGcLast = false;
+
+        if ((pendingSync == SyncType.SYNC_GC_PAR) && gcAllowed) {
+            cap.gcWorkerThread();
+            if (task.cap == cap) {
+                didGcLast = true;
+            }
+        }
+
+        task.wakeup = false;
+        Lock l = cap.lock;
+        l.lock();
+        try {
+            if (task.isWorker()) {
+                cap.enqueueWorker();
+            }
+            cap.release_(false);
+            if (task.isWorker() || task.isBound()) {
+                l.unlock();
+                cap = task.waitForWorkerCapability();
+            } else {
+                cap.newReturningTask(task);
+                l.unlock();
+                cap = task.waitForReturnCapability();
+            }
+        } finally {
+            l.unlock();
+        }
+        return new YieldResult(cap,didGcLast);
+    }
+
+    public final boolean shouldYield(Task task, boolean didGcLast) {
+        // TODO: Refine this condition
+        return ((pendingSync != SyncType.SYNC_NONE && !didGcLast) ||
+                !returningTasks.isEmpty() ||
+                (!emptyRunQueue() && (task.incall.tso == null
+                                          ? peekRunQueue().bound != null
+                                          : peekRunQueue().bound != task.incall)));
+    }
+
+    public final StgTSO peekRunQueue() {
+        return runQueue.peek();
+    }
+
+    public final void pushWork(Task task) {
+        // TODO: Incorporate the spark logic
+        if (!RtsFlags.ParFlags.migrate) return;
+        if (emptyRunQueue()) {
+            if (sparks.size() < 2) return;
+        } else {
+            if (singletonRunQueue() && sparks.size() < 1) return;
+        }
+        ArrayList<Capability> freeCapabilities = new ArrayList(capabilities.size());
+        for (Capability cap: capabilities) {
+            if (cap != this && !cap.disabled && cap.tryGrab(task)) {
+                if (!cap.emptyRunQueue()
+                    || !cap.returningTasks.isEmpty()
+                    || !cap.emptyInbox()) {
+                    cap.release();
+                } else {
+                    freeCapabilities.add(cap);
+                }
+            }
+        }
+        int nFreeCapabilities = freeCapabilities.size();
+        if (nFreeCapabilities > 0) {
+            int i = 0;
+            if (!emptyRunQueue()) {
+                Queue<StgTSO> newRunQueue = new ArrayDeque<StgTSO>(1);
+                newRunQueue.offer(popRunQueue());
+                StgTSO t = peekRunQueue();
+                StgTSO next = null;
+                for (; t != null; t = next) {
+                    next = popRunQueue();
+                    if (t.bound == task.incall
+                        || t.isFlagLocked()) {
+                        newRunQueue.offer(t);
+                    } else if (i == nFreeCapabilities) {
+                        i = 0;;
+                        newRunQueue.offer(t);
+                    } else {
+                        Capability freeCap = freeCapabilities.get(i);
+                        freeCap.appendToRunQueue(t);
+                        if (t.bound != null) {
+                            t.bound.task().cap = freeCap;
+                        }
+                        t.cap = freeCap;
+                        i++;
+                    }
+                }
+                runQueue = newRunQueue;
+            }
+
+            for (Capability freeCap: freeCapabilities) {
+                task.cap = freeCap;
+                freeCap.releaseAndWakeup();
+            }
+        }
+        task.cap = this;
+    }
+
+    public final Capability detectDeadlock(Task task) {
+        Capability cap = this;
+        boolean threaded = RtsFlags.ModeFlags.threaded;
+        if (cap.emptyThreadQueues()) {
+            if (threaded) {
+                if (recentActivity != Inactive) return cap;
+                //scheduleDoGC
+
+            } else {
+                if (task.incall.tso != null) {
+                    switch (task.incall.tso.whyBlocked) {
+                        case BlockedOnSTM:
+                        case BlockedOnBlackHole:
+                        case BlockedOnMsgThrowTo:
+                        case BlockedOnMVar:
+                        case BlockedOnMVarRead:
+                            cap.throwToSingleThreaded(task.incall.tso,
+                                                  null /* TODO: nonTermination_closure */
+                                                  );
+                            return cap;
+                        default:
+                            barf("deadlock: main thread blocked in a strange way");
+                    }
+                }
+                return cap;
+            }
+        }
+        return cap;
+    }
+
+    public final Capability findWork() {
         Capability cap = this;
         startSignalHandlers();
         cap = processInbox();
@@ -261,9 +431,9 @@ public class Capability {
         return cap;
     }
 
-    public void activateSpark() {}
+    public final void activateSpark() {}
 
-    public void startSignalHandlers() {
+    public final void startSignalHandlers() {
         if (!RtsFlags.ModeFlags.threaded && RtsFlags.ModeFlags.userSignals) {
 
             if (RtsFlags.MiscFlags.installSignalHandlers /* && signals_pending() */) {
@@ -272,7 +442,7 @@ public class Capability {
         }
     }
 
-    public void checkBlockedThreads() {
+    public final void checkBlockedThreads() {
         if (!RtsFlags.ModeFlags.threaded) {
             if (!emptyBlockedQueue() || !emptySleepingQueue()) {
                 //               awaitEvent (emptyRunQueue(this));
@@ -281,9 +451,9 @@ public class Capability {
         }
     }
 
-    public Capability processInbox() {return this;}
+    public final Capability processInbox() {return this;}
 
-    public void startWorkerTask() {
+    public final void startWorkerTask() {
         Task task = new Task(true);
         task.initialize();
         Lock l = task.lock;
@@ -299,11 +469,11 @@ public class Capability {
         }
     }
 
-    public boolean emptyRunQueue() {
+    public final boolean emptyRunQueue() {
         return runQueue.isEmpty();
     }
 
-    public boolean emptyThreadQueues() {
+    public final boolean emptyThreadQueues() {
         // TODO: More optimal way of representing this?
         if (RtsFlags.ModeFlags.threaded) {
             return emptyRunQueue();
@@ -311,13 +481,13 @@ public class Capability {
             return emptyRunQueue() && emptyBlockedQueue() && emptySleepingQueue();
         }
     }
-    public void threadPaused(StgTSO tso) {
+    public final void threadPaused(StgTSO tso) {
         maybePerformBlockedException(tso);
         if (tso.whatNext == ThreadKilled) return;
         // TODO: Implement rest
     }
 
-    public boolean maybePerformBlockedException(StgTSO tso) {
+    public final boolean maybePerformBlockedException(StgTSO tso) {
         if (tso.whatNext == ThreadComplete /* || tso.whatNext == ThreadFinished */) {
             if (tso.blockedExceptions.isEmpty()) {
                 return false;
@@ -346,10 +516,10 @@ public class Capability {
         return false;
     }
 
-    public void awakenBlockedExceptionQueue(StgTSO tso) {
+    public final void awakenBlockedExceptionQueue(StgTSO tso) {
 
     }
-    public void tryWakeupThread(StgTSO tso) {
+    public final void tryWakeupThread(StgTSO tso) {
         if (RtsFlags.ModeFlags.threaded) {
             if (tso.cap != this) {
                 MessageWakeup msg = new MessageWakeup(tso);
@@ -385,7 +555,7 @@ public class Capability {
         // can context switch now
     }
 
-    public void sendMessage(Capability target, Message msg) {
+    public final void sendMessage(Capability target, Message msg) {
         // acquire target lock;
         Lock lock = target.lock;
         lock.lock();
@@ -402,7 +572,7 @@ public class Capability {
         }
     }
 
-    public void release_(boolean alwaysWakeup) {
+    public final void release_(boolean alwaysWakeup) {
         Task task = runningTask;
         runningTask = null;
         Task workerTask = returningTasks.pollFirst();
@@ -416,7 +586,7 @@ public class Capability {
             //debugTrace
             return;
             }*/
-        StgTSO nextTSO = runQueue.peek();
+        StgTSO nextTSO = peekRunQueue();
         if (nextTSO.bound != null) {
             task = nextTSO.bound.task();
             giveCapabilityToTask(task);
@@ -433,7 +603,7 @@ public class Capability {
 
         if (alwaysWakeup || !emptyRunQueue() || !emptyInbox()
             || (!disabled && !emptySparkPool()) || globalWorkToDo()) {
-            task = spareWorkers.pollFirst();
+            task = spareWorkers.poll();
             if (task != null) {
                 giveCapabilityToTask(task);
                 return;
@@ -444,7 +614,7 @@ public class Capability {
         //debugTrace;
     }
 
-    public void release() {
+    public final void release() {
         lock.lock();
         try {
             release_(false);
@@ -453,7 +623,7 @@ public class Capability {
         }
     }
 
-    public void releaseAndWakeup() {
+    public final void releaseAndWakeup() {
         lock.lock();
         try {
             release_(true);
@@ -462,7 +632,7 @@ public class Capability {
         }
     }
 
-    public void giveCapabilityToTask(Task task) {
+    public final void giveCapabilityToTask(Task task) {
         // debugTrace
         Lock lock = task.lock;
         lock.lock();
@@ -476,43 +646,43 @@ public class Capability {
         }
     }
 
-    public boolean emptyInbox() {
+    public final boolean emptyInbox() {
         return inbox.isEmpty();
     }
 
-    public boolean emptySparkPool() {
+    public final boolean emptySparkPool() {
         return sparks.isEmpty();
     }
 
-    public boolean globalWorkToDo() {
+    public final boolean globalWorkToDo() {
         return (schedulerState.compare(SCHED_INTERRUPTING) >= 0)
             || recentActivity == Inactive;
     }
 
-    public void interrupt() {
+    public final void interrupt() {
         stop();
         interrupt = false;
     }
 
-    public void contextSwitch() {
+    public final void contextSwitch() {
         stop();
         contextSwitch = true;
     }
 
-    public void stop() {
+    public final void stop() {
         // Find a method to force the stopping of a thread;
     }
 
-    public void throwToSingleThreaded(StgTSO tso, StgClosure exception) {
+    public final void throwToSingleThreaded(StgTSO tso, StgClosure exception) {
         throwToSingleThreaded__(tso, exception, false, null);
     }
 
-    public void throwToSingleThreaded_(StgTSO tso, StgClosure exception,
+    public final void throwToSingleThreaded_(StgTSO tso, StgClosure exception,
                                        boolean stopAtAtomically) {
         throwToSingleThreaded__(tso, exception, stopAtAtomically, null);
     }
 
-    public void throwToSingleThreaded__(StgTSO tso, StgClosure exception,
+    public final void throwToSingleThreaded__(StgTSO tso, StgClosure exception,
                                         boolean stopAtAtomically,
                                         StgUpdateFrame stopHere) {
         if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadKilled) {
@@ -523,11 +693,11 @@ public class Capability {
         raiseAsync(tso, exception, stopAtAtomically, stopHere);
     }
 
-    public void suspendComputation(StgTSO tso, StgUpdateFrame stopHere) {
+    public final void suspendComputation(StgTSO tso, StgUpdateFrame stopHere) {
         throwToSingleThreaded__(tso, null, false, stopHere);
     }
 
-    public void removeFromQueues(StgTSO tso) {
+    public final void removeFromQueues(StgTSO tso) {
         switch (tso.whyBlocked) {
             case NotBlocked:
             case ThreadMigrating:
@@ -562,42 +732,40 @@ public class Capability {
         appendToRunQueue(tso);
     }
 
-    public void raiseAsync(StgTSO tso, StgClosure exception,
+    public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
         //debugTrace
         // TODO: Implement later
     }
 
-    public boolean messageBlackHole(MessageBlackHole msg) {
+    public final boolean messageBlackHole(MessageBlackHole msg) {
         // TODO: Implement
         return false;
     }
 
-    public void checkBlockingQueues(StgTSO tso) {
-
+    public final void checkBlockingQueues(StgTSO tso) {
+        // TODO: Impelement
     }
 
-    public void updateThunk(StgTSO tso, StgInd thunk, StgClosure val) {
+    public final void updateThunk(StgTSO tso, StgInd thunk, StgClosure val) {
         thunk.updateWithIndirection(val);
         if (thunk.isBlackHole()) {
             thunk.indirectee.thunkUpdate(this, tso);
         }
     }
 
-    public void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
-        Iterator<MessageBlackHole> it = blockingQueue.iterator();
-        while (it.hasNext()) {
-            MessageBlackHole msg = it.next();
+    public final void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
+        for (MessageBlackHole msg: blockingQueue) {
             if (msg.isValid()) tryWakeupThread(msg.tso);
         }
         // do cleanup here to destroy the BQ;
     }
 
-    public SchedulerStatus getSchedStatus() {
+    public final SchedulerStatus getSchedStatus() {
         return runningTask.incall.returnStatus;
     }
 
-    public static Capability getFreeCapability() {
+    public final static Capability getFreeCapability() {
         if (lastFreeCapability.runningTask != null) {
             for (Capability cap: capabilities) {
                 if (cap.runningTask == null) {
@@ -610,15 +778,15 @@ public class Capability {
         }
     }
 
-    public void newReturningTask(Task task) {
+    public final void newReturningTask(Task task) {
         returningTasks.addLast(task);
     }
 
-    public void popReturningTask() {
+    public final void popReturningTask() {
         returningTasks.pollFirst();
     }
 
-    public void giveToTask(Task task) {
+    public final void giveToTask(Task task) {
         //debugTrace
         Lock l = task.lock;
         l.lock();
@@ -632,7 +800,7 @@ public class Capability {
         }
     }
 
-    public Task suspendThread(boolean interruptible) {
+    public final Task suspendThread(boolean interruptible) {
         Task task = runningTask;
         StgTSO tso = context.currentTSO;
         tso.whatNext = ThreadRunGHC;
@@ -657,7 +825,7 @@ public class Capability {
         return task;
     }
 
-    public static Capability resumeThread(Task task) {
+    public final static Capability resumeThread(Task task) {
         Task.InCall incall = task.incall;
         Capability cap = incall.suspendedCap;
         task.cap = cap;
@@ -678,16 +846,16 @@ public class Capability {
         return cap;
     }
 
-    public void suspendTask(Task task) {
+    public final void suspendTask(Task task) {
         // TODO: Should the incall be removed from any existing data structures?
         suspendedJavaCalls.push(task.incall);
     }
 
-    public void recoverSuspendedTask(Task task) {
+    public final void recoverSuspendedTask(Task task) {
         suspendedJavaCalls.remove(task.incall);
     }
 
-    public void scheduleWorker(Task task) {
+    public final void scheduleWorker(Task task) {
         Capability cap = schedule(task);
         Lock l = cap.lock;
         l.lock();
@@ -697,5 +865,40 @@ public class Capability {
         } finally {
             l.unlock();
         }
+    }
+    public final boolean singletonRunQueue() {
+        return (runQueue.size() == 1);
+    }
+
+    public final boolean tryGrab(Task task) {
+        if (runningTask != null) return false;
+        lock.lock();
+        try {
+            if (runningTask != null) {
+                lock.unlock();
+                return false;
+            } else {
+                task.cap = this;
+                runningTask = task;
+            }
+        } finally {
+            lock.unlock();
+        }
+        return true;
+    }
+
+    public final void enqueueWorker() {
+        Task task = runningTask;
+        boolean taken = spareWorkers.offer(task);
+        if (!taken) {
+            release_(false);
+            task.workerTaskStop();
+            lock.unlock();
+            Task.shutdownThread();
+        }
+    }
+
+    public final void gcWorkerThread() {
+        // TODO: Implement
     }
 }

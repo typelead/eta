@@ -7,7 +7,7 @@ import ghcvm.runtime.closure.StgClosure;
 import ghcvm.runtime.closure.StgInd;
 import ghcvm.runtime.message.MessageBlackHole;
 
-public class StgBlockingQueue extends StgClosure {
+public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlackHole> {
     public StgTSO owner;
     public StgInd blackhole;
     public Queue<MessageBlackHole> messages;
@@ -24,6 +24,7 @@ public class StgBlockingQueue extends StgClosure {
         }
     }
 
+    @Override
     public Iterator<MessageBlackHole> iterator() {
         return messages.iterator();
     }

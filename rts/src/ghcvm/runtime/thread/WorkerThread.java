@@ -13,17 +13,21 @@ public class WorkerThread extends Thread {
 
     @Override
     public void run() {
-        Capability cap = null;
-        Lock l = task.lock;
-        l.lock();
-        try {
-            cap = task.cap;
-        } finally {
-            l.unlock();
-        }
-        // setThreadAffinity
-        Task.setMyTask(task);
-        task.newInCall();
-        cap.scheduleWorker(task);
+        // try {
+            Capability cap = null;
+            Lock l = task.lock;
+            l.lock();
+            try {
+                cap = task.cap;
+            } finally {
+                l.unlock();
+            }
+            // setThreadAffinity
+            Task.setMyTask(task);
+            task.newInCall();
+            cap.scheduleWorker(task);
+        // } catch (Exepti e) {
+        //     return;
+        // }
     }
 }
