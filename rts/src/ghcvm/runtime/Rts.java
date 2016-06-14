@@ -72,9 +72,24 @@ public class Rts {
         StgTSO tso = createIOThread(cap, p);
         return scheduleWaitThread(tso, cap);
     }
+
+    public static HaskellResult evalIO(Capability cap, StgClosure p) {
+        // TODO: Java has a hard-to-get stack size. How do we deal with that?
+        StgTSO tso = createStrictIOThread(cap, p);
+        return scheduleWaitThread(tso, cap);
+    }
+
     public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
     public static StgTSO createIOThread(Capability cap, StgClosure p) {
         StgTSO t = new StgTSO(cap);
+        t.pushClosure(Stg.ap_v);
+        t.pushClosure(new StgEnter(p));
+        return t;
+    }
+
+    public static StgTSO createStrictIOThread(Capability cap, StgClosure p) {
+        StgTSO t = new StgTSO(cap);
+        t.pushClosure(Stg.forceIO);
         t.pushClosure(Stg.ap_v);
         t.pushClosure(new StgEnter(p));
         return t;
@@ -89,6 +104,9 @@ public class Rts {
         RtsStats.startInit();
         // TODO: Implement Stable Ptrs, Globals, File Locking, HPC, IO Manager, Storage, Tracing, processing RTS Flags (is this necessary?)
         RtsScheduler.initScheduler();
+        if (RtsFlags.ModeFlags.threaded) {
+            RtsIO.ioManagerStart();
+        }
         RtsStats.endInit();
     }
 

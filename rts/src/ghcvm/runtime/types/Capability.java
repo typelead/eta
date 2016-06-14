@@ -15,12 +15,14 @@ import static ghcvm.runtime.RtsMessages.*;
 import static ghcvm.runtime.Rts.ExitCode.*;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsScheduler.SchedulerState.*;
+import static ghcvm.runtime.RtsScheduler.SchedulerStatus.*;
 import static ghcvm.runtime.types.StgTSO.*;
 import static ghcvm.runtime.types.StgTSO.WhatNext.*;
 import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
 import static ghcvm.runtime.closure.StgContext.*;
 import static ghcvm.runtime.closure.StgContext.ReturnCode.*;
 import static ghcvm.runtime.RtsScheduler.RecentActivity.*;
+import static ghcvm.runtime.Interpreter.*;
 import ghcvm.runtime.*;
 import ghcvm.runtime.thread.*;
 import ghcvm.runtime.closure.*;
@@ -88,7 +90,7 @@ public final class Capability {
     public boolean inHaskell;
     public int idle;
     public boolean disabled;
-    public Queue<StgTSO> runQueue = new ArrayDeque<StgTSO>();
+    public Deque<StgTSO> runQueue = new ArrayDeque<StgTSO>();
     public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
     public boolean contextSwitch;
     public boolean interrupt;
@@ -104,12 +106,6 @@ public final class Capability {
         this.no = i;
     }
 
-    public final void appendToRunQueue(StgTSO tso) {
-        runQueue.add(tso);
-        /* TODO: Is this line necessary?
-        if (runQueue.isEmpty()) tso.blockInfo = null;
-        */
-    }
 
     public final Capability schedule(Task task) {
         Capability cap = this;
@@ -163,7 +159,7 @@ public final class Capability {
 
             if (schedulerState.compare(SCHED_INTERRUPTING) >= 0 &&
                 !(t.whatNext == ThreadComplete || t.whatNext == ThreadKilled)) {
-                cap.deleteThread(t);
+                t.delete();
             }
 
             if (threaded) {
@@ -179,34 +175,40 @@ public final class Capability {
                 cap.contextSwitch = true;
             }
 
-            cap.context.currentTSO = t;
-            cap.context.myCapability = cap;
-            cap.interrupt = false;
-            cap.inHaskell = true;
-            cap.idle = 0;
+            boolean runThread = true;
+            while (runThread) {
+                runThread = false;
 
-            WhatNext prevWhatNext = t.whatNext;
-            int errno = t.savedErrno;
+                StgContext context = cap.context;
+                context.currentTSO = t;
+                context.myCapability = cap;
+                cap.interrupt = false;
+                cap.inHaskell = true;
+                cap.idle = 0;
 
-            switch (recentActivity) {
+                WhatNext prevWhatNext = t.whatNext;
+                // errno
+
+                switch (recentActivity) {
                 case DoneGC:
+                    //xchg(recent_activity, ACTIVITy_YES)
+                    //if (prev == ACTIVITY_DONE_GC)
+                    // startTimer
                     // stuff here
                     break;
                 case Inactive:
                     break;
                 default:
                     recentActivity = Yes;
-            }
+                }
 
-            ReturnCode ret;
-            switch (prevWhatNext) {
+                ReturnCode ret = HeapOverflow;
+                switch (prevWhatNext) {
                 case ThreadKilled:
                 case ThreadComplete:
                     ret = ThreadFinished;
                     break;
                 case ThreadRunGHC:
-                    StgContext context = cap.context;
-                    context.currentTSO = t;
                     context.myCapability = cap;
                     Iterator<StackFrame> it = t.stack.descendingIterator();
                     context.it = it;
@@ -217,21 +219,62 @@ public final class Capability {
                     } catch (StgReturnException e) {
                         // Ensure that the StgContext objects match.
                     } finally {
+                        // TOOD: is this the right way to grab the context?
                         ret = context.ret;
+                        cap = context.myCapability;
                     }
                     break;
                 case ThreadInterpret:
-                    // TODO: Implement ghci
+                    cap = interpretBCO(cap);
+                    ret = cap.context.ret;
                     break;
                 default:
                     barf("schedule: invalid what_next field");
-            }
+                }
 
-            cap.inHaskell = false;
-            t = context.currentTSO;
-            // t = cap -> r.rCurrentTSO;
-            // more stuff to implement
-            return cap;
+                cap.inHaskell = false;
+                t = cap.context.currentTSO;
+                cap.context.currentTSO = null;
+
+                if (ret == ThreadBlocked) {
+                    if (t.whyBlocked == BlockedOnBlackHole) {
+                        //StgTSO owner = blackHoleOwner((MessageBlackHole)t.blockInfo.bh);
+
+                    } else {
+                    }
+                } else {
+                }
+
+                boolean readyToGC = false;
+
+                cap.postRunThread(t);
+                switch (ret) {
+                case HeapOverflow:
+                    readyToGC = cap.handleHeapOverflow(t);
+                    break;
+                case StackOverflow:
+                    cap.threadStackOverflow(t);
+                    cap.pushOnRunQueue(t);
+                    break;
+                case ThreadYielding:
+                    if (cap.handleYield(t, prevWhatNext)) {
+                        runThread = true;
+                    }
+                    break;
+                case ThreadBlocked:
+                    t.handleThreadBlocked();
+                    break;
+                case ThreadFinished:
+                    if (cap.handleThreadFinished(task, t)) return cap;
+                    break;
+                default:
+                    barf("schedule: invalid thread return code %d", ret);
+                }
+
+                if (readyToGC && !runThread) {
+                    //cap = scheduleDoGc(cap, task, false);
+                }
+            }
         }
     }
 
@@ -241,21 +284,16 @@ public final class Capability {
         tryWakeupThread(tso);
     }
 
-    public final void deleteThread(StgTSO tso) {
-        if (tso.whyBlocked != BlockedOnCCall &&
-            tso.whyBlocked != BlockedOnCCall_Interruptible) {
-            //tso.cap.throwToSingleThreaded(tso, null);
-        }
+    public final void appendToRunQueue(StgTSO tso) {
+        runQueue.offer(tso);
     }
 
     public final void pushOnRunQueue(StgTSO tso) {
-        /* TODO: Take care of blockInfo later */
-        runQueue.add(tso);
+        runQueue.offerFirst(tso);
     }
 
     public final StgTSO popRunQueue() {
         return runQueue.poll();
-        /* runQueue.size() > 1 -> blockInfo = null of the removed element */
     }
 
     public final Capability scheduleYield(Task task) {
@@ -356,7 +394,7 @@ public final class Capability {
         if (nFreeCapabilities > 0) {
             int i = 0;
             if (!emptyRunQueue()) {
-                Queue<StgTSO> newRunQueue = new ArrayDeque<StgTSO>(1);
+                Deque<StgTSO> newRunQueue = new ArrayDeque<StgTSO>(1);
                 newRunQueue.offer(popRunQueue());
                 StgTSO t = peekRunQueue();
                 StgTSO next = null;
@@ -423,11 +461,13 @@ public final class Capability {
         Capability cap = this;
         startSignalHandlers();
         cap = processInbox();
-        checkBlockedThreads();
 
-        if (RtsFlags.ModeFlags.threaded) {
+        if (!RtsFlags.ModeFlags.threaded) {
+            checkBlockedThreads();
+        } else {
             if (emptyRunQueue()) activateSpark();
         }
+
         return cap;
     }
 
@@ -438,16 +478,14 @@ public final class Capability {
 
             if (RtsFlags.MiscFlags.installSignalHandlers /* && signals_pending() */) {
                 // start signal handlers
+                //addShutdownHook
             }
         }
     }
 
     public final void checkBlockedThreads() {
-        if (!RtsFlags.ModeFlags.threaded) {
-            if (!emptyBlockedQueue() || !emptySleepingQueue()) {
-                //               awaitEvent (emptyRunQueue(this));
-                // TODO: Implement this with IO Manager
-            }
+        if (!emptyBlockedQueue() || !emptySleepingQueue()) {
+            RtsIO.awaitEvent(emptyRunQueue());
         }
     }
 
@@ -661,7 +699,7 @@ public final class Capability {
 
     public final void interrupt() {
         stop();
-        interrupt = false;
+        interrupt = true;
     }
 
     public final void contextSwitch() {
@@ -900,5 +938,89 @@ public final class Capability {
 
     public final void gcWorkerThread() {
         // TODO: Implement
+    }
+
+    public static void contextSwitchAll() {
+        for (Capability c: capabilities) {
+            c.contextSwitch();
+        }
+    }
+
+    public static void interruptAll() {
+        for (Capability c: capabilities) {
+            c.interrupt();
+        }
+    }
+
+    public final boolean handleThreadFinished(Task task, StgTSO t) {
+        awakenBlockedExceptionQueue(t);
+
+        if (t.bound != null) {
+            if (t.bound != task.incall) {
+                // should only happen in THREADED_RTS
+                appendToRunQueue(t);
+                return false;
+            }
+
+            if (t.whatNext == ThreadComplete) {
+                if (task.incall.ret != null) {
+                    StgEnter enterFrame = (StgEnter) task.incall.tso.stack.peek();
+                    task.incall.ret = enterFrame.closure;
+                }
+                task.incall.returnStatus = Success;
+            } else {
+                if (task.incall.ret != null) {
+                    task.incall.ret = null;
+                }
+                if (schedulerState.compare(SCHED_INTERRUPTING) >= 0) {
+                    if (false /* HeapOverflow */) {
+                        task.incall.returnStatus = HeapExhausted;
+                    } else{
+                        task.incall.returnStatus = Interrupted;
+                    }
+                } else {
+                    task.incall.returnStatus = Killed;
+                }
+            }
+            t.bound = null;
+            task.incall.tso = null;
+            return true;
+        }
+
+        return false;
+    }
+
+    public final boolean handleYield(StgTSO t, WhatNext prevWhatNext) {
+        if (!contextSwitch && t.whatNext != prevWhatNext) {
+            return true;
+        }
+
+        if (contextSwitch) {
+            contextSwitch = false;
+            appendToRunQueue(t);
+        } else {
+            pushOnRunQueue(t);
+        }
+
+        return false;
+    }
+
+    public final void threadStackOverflow(StgTSO tso) {
+        // TODO: Do stack related stuff here
+    }
+
+    public final boolean handleHeapOverflow(StgTSO tso) {
+        // TODO: Do GC-related stuff here
+        return false;
+    }
+
+    public final HaskellResult ioManagerStart() {
+        return Rts.evalIO(this, null /* base_GHCziConcziIO_ensureIOManagerIsRunning_closure */);
+    }
+
+    public final void postRunThread(StgTSO t) {
+        if (/*t.trec != NO_TREC && */ false && t.whyBlocked == NotBlocked) {
+            /* TODO: Implement when implementing STM */
+        }
     }
 }

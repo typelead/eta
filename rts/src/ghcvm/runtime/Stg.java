@@ -7,6 +7,7 @@ import ghcvm.runtime.prim.*;
 import ghcvm.runtime.stackframe.*;
 
 public class Stg {
+    public static StackFrame forceIO = new ForceIO();
     public static StackFrame ap_v = new ApV();
 
     public static StgClosure mkWeakzh = new MkWeak();

@@ -10,10 +10,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.message.*;
+import ghcvm.runtime.prim.*;
 import ghcvm.runtime.stackframe.*;
 import ghcvm.runtime.types.Task.InCall;
+import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
 
-public class StgTSO extends StgClosure {
+public final class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
     public long id;
     public volatile StgTSO link;
@@ -26,7 +28,7 @@ public class StgTSO extends StgClosure {
     public Capability cap;
     public StgClosure blockInfo;
     public int flags;
-    public int savedErrno;
+    public long wakeTime = -1;
     public boolean inMVarOperation;
     public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
     // public StgBlockingQueue bq;
@@ -84,7 +86,7 @@ public class StgTSO extends StgClosure {
         return maxThreadId.getAndIncrement();
     }
 
-    public boolean interruptible() {
+    public final boolean interruptible() {
         switch (whyBlocked) {
             case BlockedOnMVar:
             case BlockedOnSTM:
@@ -99,16 +101,30 @@ public class StgTSO extends StgClosure {
         }
     }
 
-    public void removeFromMVarBlockedQueue() {
-        // TODO: Implement
+    public final void removeFromMVarBlockedQueue() {
+        StgMVar mvar = (StgMVar) blockInfo;
+        if (!inMVarOperation) return;
+        mvar.tsoQueue.remove(this);
+        inMVarOperation = false;
     }
 
     @Override
-    public void thunkUpdate(Capability cap, StgTSO tso) {
+    public final void thunkUpdate(Capability cap, StgTSO tso) {
         if (tso != this) {
             cap.checkBlockingQueues(tso);
         }
     }
 
-    public boolean isFlagLocked() { return ((flags & TSO_LOCKED) != 0); }
+    public final boolean isFlagLocked() { return ((flags & TSO_LOCKED) != 0); }
+
+    public final void delete() {
+        if (whyBlocked != BlockedOnJavaCall &&
+            whyBlocked != BlockedOnJavaCall_Interruptible) {
+            cap.throwToSingleThreaded(this, null);
+        }
+    }
+
+    public final void handleThreadBlocked() {
+        // debug output
+    }
 }
