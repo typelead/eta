@@ -12,6 +12,7 @@ import static ghcvm.runtime.RtsMessages.barf;
 public class StgMVar extends StgClosure {
     public Deque<StgTSO> tsoQueue = new ArrayDeque<StgTSO>();
     public StgClosure value;
+    public AtomicBoolean locked = new AtomicBoolean(false);
 
     public StgMVar(StgClosure value) {
         this.value = value;
@@ -32,5 +33,26 @@ public class StgMVar extends StgClosure {
 
     public StgTSO popFromQueue() {
         return tsoQueue.poll();
+    }
+
+    public final void lock() {
+        int i = 0;
+        do {
+            do {
+                boolean old = lock.getAndSet(this, true);
+                if (!old) return;
+            } while (++i < SPIN_COUNT);
+            Thread.yield();
+        } while (true);
+    }
+
+    public final void unlock() {
+        lock.set(false);
+    }
+
+    public final boolean tryLock() {
+        boolean old = lock.getAndSet(true);
+        if (!old) return true;
+        else return false;
     }
 }

@@ -210,10 +210,14 @@ public final class Capability {
                     break;
                 case ThreadRunGHC:
                     context.myCapability = cap;
-                    Iterator<StackFrame> it = t.stack.descendingIterator();
-                    context.it = it;
+                    ListIterator<StackFrame> sp = t.sp;
+                    // Shift sp to the beginning of the stack
+                    while (sp.hasPrevious()) {
+                        sp.previous();
+                    }
+                    context.sp = sp;
                     try {
-                        it.next().enter(context);
+                        sp.next().enter(context);
                     } catch (ThreadYieldException e) {
 
                     } catch (StgReturnException e) {
@@ -460,11 +464,11 @@ public final class Capability {
     public final Capability findWork() {
         Capability cap = this;
         startSignalHandlers();
-        cap = processInbox();
 
         if (!RtsFlags.ModeFlags.threaded) {
             checkBlockedThreads();
         } else {
+            cap = processInbox();
             if (emptyRunQueue()) activateSpark();
         }
 
@@ -489,7 +493,26 @@ public final class Capability {
         }
     }
 
-    public final Capability processInbox() {return this;}
+    public final Capability processInbox() {
+        Capability cap = this;
+        while (!cap.emptyInbox()) {
+            // scheduleDoGC
+            Lock l = cap.lock;
+            if (l.tryLock()) {
+                Deque<Message> inbox = cap.inbox;
+                try {
+                    cap.inbox.clear();
+                } finally {
+                    l.unlock();
+                }
+                for (Message m: inbox) {
+                    m.execute(this);
+                }
+            } else {
+                break;
+            }
+        }
+    }
 
     public final void startWorkerTask() {
         Task task = new Task(true);
@@ -522,11 +545,36 @@ public final class Capability {
     public final void threadPaused(StgTSO tso) {
         maybePerformBlockedException(tso);
         if (tso.whatNext == ThreadKilled) return;
-        // TODO: Implement rest
+        ListIterator<StackFrame> sp = tso.sp;
+        while (sp.hasNext()) {
+            sp.next();
+        }
+        boolean stopLoop = false;
+        boolean prevWasUpdateFrame = false;
+        while (sp.hasPrevious() && !stopLoop) {
+            StackFrame frame = sp.previous();
+            MarkFrameResult result = frame.mark(tso);
+            switch (result) {
+                case Marked:
+                    // do calculations
+                case Stop:
+                    stopLoop = true;
+                    break;
+                case Default:
+                    // do calculations
+                case UpdateEvaluted:
+                    prevWasUpdateFrame = false;
+                    break;
+                case Update:
+                    prevWasUpdateFrame = true;
+                    break;
+            }
+        }
+        // TODO: stack squeezing logic
     }
 
     public final boolean maybePerformBlockedException(StgTSO tso) {
-        if (tso.whatNext == ThreadComplete /* || tso.whatNext == ThreadFinished */) {
+        if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadFinished) {
             if (tso.blockedExceptions.isEmpty()) {
                 return false;
             } else {
@@ -535,28 +583,44 @@ public final class Capability {
             }
         }
 
-        if (!tso.blockedExceptions.isEmpty() && (tso.flags & TSO_BLOCKEX) != 0) {
+        if (!tso.blockedExceptions.isEmpty() && tso.hasFlag(TSO_BLOCKEX)) {
             // debugTraceCap(DEBUG_SCHED, this, "throwTo: thread %d has blocked exceptions but is inside block", tso.id);
         }
 
-        if (!tso.blockedExceptions.isEmpty() && ((tso.flags & TSO_BLOCKEX) == 0 || ((tso.flags & TSO_INTERRUPTIBLE) != 0 && tso.interruptible()))) {
-            while (true) {
-                MessageThrowTo msg = tso.blockedExceptions.pollFirst();
+        if (!tso.blockedExceptions.isEmpty() && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
+            loop: do {
+                MessageThrowTo msg = tso.blockedExceptions.peekFirst();
                 if (msg == null) return false;
-                //locking and unlocking closures here
+                msg.lock();
+                tso.blockedExceptions.poll();
+                if (!msg.isValid()) {
+                    msg.unlock();
+                    goto loop;
+                }
                 throwToSingleThreaded(msg.target, msg.exception);
                 StgTSO source = msg.source;
                 msg.done();
                 tryWakeupThread(source);
                 return true;
-            }
+            } while (true);
         }
         return false;
     }
 
     public final void awakenBlockedExceptionQueue(StgTSO tso) {
-
+        for (MessageThrowTo msg: tso.blockedExceptions) {
+            msg.lock();
+            if (msg.isValid()) {
+                StgTSO source = msg.source;
+                msg.done();
+                tryWakeupThread(source);
+            } else {
+                msg.unlock();
+            }
+        }
+        tso.blockedExceptions.clear();
     }
+
     public final void tryWakeupThread(StgTSO tso) {
         if (RtsFlags.ModeFlags.threaded) {
             if (tso.cap != this) {
@@ -577,9 +641,15 @@ public final class Capability {
                     return;
                 }
             case BlockedOnMsgThrowTo:
-                // Do some locking and unlocking
-                // The top of the stack should be blockThrowTo
-                tso.stack.pop();
+                MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
+                msg.lock();
+                msg.unlock();
+                if (msg.isValid()) {
+                    return;
+                } else {
+                    // TODO: check stack operations
+                    tso.sp.remove();
+                }
                 break;
             case BlockedOnBlackHole:
             case BlockedOnSTM:
@@ -772,30 +842,60 @@ public final class Capability {
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
-        //debugTrace
+        Deque<StackFrame> stack = tso.stack;
+        StgInd updatee = null;
+        if (stopHere != null) {
+            updatee = stopHere.updatee;
+        }
+        Iterator<StackFrame> it = stack.descendingIterator();
+        StackFrame frame = it.next();
+        // Ensure stack is in proper format here;
+        while (stopHere == null || frame != stopHere) {
+        }
+
         // TODO: Implement later
     }
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
-        // TODO: Implement
+        StgInd bh = msg.bh;
+        if (!bh.isEvaluated()) {
+            do {
+                boolean failure = bh.indirectee.blackHole(this, msg);
+            } while (failure);
+            // TODO: Check this logic
+            if (bh.isEvaluated()) {
+                return false;
+            } else {
+                return true;
+            }
+        }
         return false;
     }
 
     public final void checkBlockingQueues(StgTSO tso) {
-        // TODO: Impelement
+        for (StgBlockingQueue bq: tso.blockingQueues) {
+            if (bq.bh.isEvaluated()) {
+                cap.wakeBlockingQueue(bq);
+            }
+        }
     }
 
     public final void updateThunk(StgTSO tso, StgInd thunk, StgClosure val) {
-        thunk.updateWithIndirection(val);
-        if (thunk.isBlackHole()) {
-            thunk.indirectee.thunkUpdate(this, tso);
+        if (bh.isEvaluated()) {
+            thunk.updateWithIndirection(val);
+        } else {
+            StgClosure v = thunk.indirectee;
+            thunk.updateWithIndirection(val);
+            v.thunkUpdate(this, tso);
         }
     }
 
     public final void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
         for (MessageBlackHole msg: blockingQueue) {
-            if (msg.isValid()) tryWakeupThread(msg.tso);
+            if (msg.isValid())
+                tryWakeupThread(msg.tso);
         }
+        blockingQueue.clear();
         // do cleanup here to destroy the BQ;
     }
 
@@ -874,7 +974,7 @@ public final class Capability {
         incall.suspendedCap = null;
         // remove the tso _link
         tso.whyBlocked = NotBlocked;
-        if ((tso.flags & TSO_BLOCKEX) == 0) {
+        if (tso.hasFlag(TSO_BLOCKEX)) {
             if (!tso.blockedExceptions.isEmpty()) {
                 cap.maybePerformBlockedException(tso);
             }
@@ -1023,4 +1123,144 @@ public final class Capability {
             /* TODO: Implement when implementing STM */
         }
     }
+
+    public final void promoteInRunQueue(StgTSO tso) {
+        removeFromRunQueue(tso);
+        pushOnRunQueue(tso);
+    }
+
+    public final void removeFromRunQueue(StgTSO tso) {
+        runQueue.remove(tso);
+    }
+
+    public final boolean throwToMsg(MessageThrowTo msg) {
+        StgTSO target = msg.target;
+        // retry: write_barrier
+        retry: do {
+            if (target.whatNext != ThreadComplete
+                && target.whatNext != ThreadKilled) {
+                Capability targetCap = target.cap;
+                if (target.cap != this) {
+                    sendMessage(targetCap, msg);
+                } else {
+                    WhyBlocked status = target.whyBlocked;
+                    switch (status) {
+                        case NotBlocked:
+                            if (!target.hasFlag(TSO_BLOCKEX)) {
+                                raiseAsync(target, msg.exception, false, null);
+                            } else {
+                                target.blockedExceptions.offer(msg);
+                                return false;
+                            }
+                            break;
+                        case BlockedOnMsgThrowTo:
+                            MessageThrowTo m = (MessageThrowTo) target.blockInfo;
+                            // TODO: make this arbitrary?
+                            if (m.id < msg.id) {
+                                m.lock();
+                            } else {
+                                if (!m.tryLock()) {
+                                    sendMessage(targetCap, msg);
+                                    return false;
+                                }
+                            }
+                            // if msgNULL
+                            m.done();
+                            raiseAsync(target, msg.exception, false, null);
+                            break;
+                        case BlockedOnMVar:
+                        case BlockedOnMVarRead:
+                            StgMVar mvar = (StgMVar) target.blockInfo;
+                            // if not mvar retry
+                            mvar.lock();
+                            if ((target.whyBlocked != BlockedOnMVar &&
+                                target.whyBlocked != BlockedOnMVarRead)
+                                || target.blockInfo != mvar) {
+                                mvar.unlock();
+                                continue retry;
+                            } else if (!target.inMVarOperation) {
+                                mvar.unlock();
+                                tryWakeupThread(target);
+                                continue retry;
+                            } else if (target.hasFlag(TSO_BLOCKEX)
+                                    && !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                                target.blockedExceptions.offer(msg);
+                                mvar.unlock();
+                                return false;
+                            } else {
+                                target.removeFromMVarBlockedQueue();
+                                raiseAsync(target, msg.exception, false, null);
+                                mvar.unlock();
+                            }
+                            break;
+                        case BlockedOnBlackHole:
+                            if (target.hasFlag(TSO_BLOCKEX)) {
+                                target.blockedExceptions.offer(msg);
+                                return false;
+                            } else {
+                                ((MessageBlackHole)target.blockInfo).invalidate();
+                                raiseAsync(target, msg.exception, false, null);
+                            }
+                            break;
+                        case BlockedOnSTM:
+                            target.lock();
+                            if (target.whyBlocked != BlockedOnSTM) {
+                                target.unlock();
+                                continue retry;
+                            } else if (target.hasFlag(TSO_BLOCKEX) &&
+                                    !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                                target.blockedExceptions.offer(msg);
+                                target.unlock();
+                                return false;
+                            } else {
+                                raiseAsync(target, msg.exception, false, null);
+                                target.unlock();
+                            }
+                            break;
+                        case BlockedOnJavaCall_Interruptible:
+                            // check for THREADED_RTS
+                            Task task = null;
+                            for (Task.InCall incall: suspendedJavaCalls) {
+                                if (incall.suspendedTso == target) {
+                                    task = incall.task();
+                                    break;
+                                }
+                            }
+                            if (task != null) {
+                                target.blockedExceptions.offer(msg);
+                                if (!(target.hasFlag(TSO_BLOCKEX) &&
+                                    !target.hasFlag(TSO_INTERRUPTIBLE))) {
+                                    task.interruptWorker();
+                                }
+                                return false;
+                            } else {
+                                //debug output
+                            }
+                        case BlockedOnJavaCall:
+                            target.blockedExceptions.offer(msg);
+                            return false;
+                        case BlockedOnRead:
+                        case BlockedOnWrite:
+                        case BlockedOnDelay:
+                            if (target.hasFlag(TSO_BLOCKEX) &&
+                                !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                                target.blockedExceptions.offer(msg);
+                                return false;
+                            } else {
+                                removeFromQueues(target);
+                                raiseAsync(target, msg.exception, false, null);
+                            }
+                            break;
+                        case ThreadMigrating:
+                            cap.tryWakeupThread(target);
+                            continue retry;
+                        default:
+                            barf("throwTo: unrecognized why_blocked (%p)", target.whyBlocked);
+                    }
+                }
+            }
+            return true;
+        } while (true);
+    }
+
 }

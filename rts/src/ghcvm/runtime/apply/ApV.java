@@ -8,8 +8,7 @@ import static ghcvm.runtime.RtsMessages.*;
 public class ApV extends StackFrame {
 
     @Override
-    public void enter(StgContext context) {
-        context.currentTSO.stack.pop(); // TODO: ensure that this happens in all cases
+    public void stackEnter(StgContext context) {
         context.papExpectedArity = 1;
         context.R1.preEnter(context);
         // TODO: Complete definition

@@ -2,11 +2,17 @@ package ghcvm.runtime.message;
 
 import ghcvm.runtime.types.StgTSO;
 
-public class MessageWakeup extends Message {
+public final class MessageWakeup extends Message {
 
-    public StgTSO tso;
+    public final StgTSO tso;
 
-    public MessageWakeup(StgTSO tso) {
+    public MessageWakeup(final StgTSO tso) {
         this.tso = tso;
+    }
+
+    @Override
+    public final void execute(Capability cap) {
+        //write barrier
+        cap.tryWakeupThread(tso);
     }
 }

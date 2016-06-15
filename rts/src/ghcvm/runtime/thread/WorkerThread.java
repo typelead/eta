@@ -11,6 +11,10 @@ public class WorkerThread extends Thread {
         this.task = task;
     }
 
+    public setTask() {
+        task.thread = this;
+    }
+
     @Override
     public void run() {
         // try {

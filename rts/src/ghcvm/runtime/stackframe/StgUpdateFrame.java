@@ -3,36 +3,40 @@ package ghcvm.runtime.stackframe;
 import ghcvm.runtime.closure.*;
 
 public class StgUpdateFrame extends UpdateFrame {
-    public boolean marked;
 
     public StgUpdateFrame(StgInd updatee) {
         super(updatee);
     }
 
-    public StgUpdateFrame(StgInd updatee, boolean marked) {
-        this(updatee);
-        this.marked = marked;
+    @Override
+    public void stackEnter(StgContext context) {
+        updatee.updateWithIndirection(context.R1);
+    }
+
+    public StgMarkedUpdateFrame getMarked() {
+        return new StgMarkedUpdateFrame(updatee);
     }
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
-        StgClosure ret = context.R1;
-        if (marked) {
-            StgClosure v = updatee.indirectee;
-            if (v.isEvaluated()) {
-                context.myCapability.checkBlockingQueues(context.currentTSO);
-                context.R1 = v;
-            } else if (v == context.currentTSO) {
-                updatee.updateWithIndirection(ret);
-                context.R1 = ret;
+    public final MarkFrameResult mark(Capability cap, StgTSO tso) {
+        tso.sp.set(new StgMarkedUpdateFrame(updatee));
+        StgInd bh = updatee;
+        StgClosure oldIndirectee = bh.indirectee;
+        retry: do {
+            if (!bh.isEvaluated() && bh.indirectee != tso) {
+                cap.suspendComputation(tso, this);
+                tso.sp.set(new StgEnter(bh));
+                return UpdateEvaluted;
             } else {
-                context.myCapability.updateThunk(context.currentTSO, updatee, ret);
-                context.R1 = ret;
+                if (RtsFlags.ModeFlags.threaded && oldIndirectee != stgWhiteHole) {
+                    boolean locked = bh.tryLock(oldIndirectee);
+                    if (!locked) {
+                        continue retry;
+                    }
+                }
+                bh.updateWithIndirection(tso);
+                return Update;
             }
-        } else {
-            updatee.updateWithIndirection(ret);
-            context.R1 = ret;
-        }
+        } while (true);
     }
 }

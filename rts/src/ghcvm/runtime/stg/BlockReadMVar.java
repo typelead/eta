@@ -15,7 +15,7 @@ public class BlockReadMVar extends StgClosure {
     public void enter(StgContext context) {
         StgMVar mvar = (StgMVar) context.R1;
         StgTSO tso = context.currentTSO;
-        tso.stack.push(new BlockReadMVarFrame(mvar));
+        context.sp.add(new BlockReadMVarFrame(mvar));
         tso.whatNext = ThreadRunGHC;
         context.ret = ThreadBlocked;
         Stg.returnToSched.enter(context);

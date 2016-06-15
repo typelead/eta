@@ -1,10 +1,11 @@
 package ghcvm.runtime.types;
 
+import java.util.Stack;
 import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.ArrayList;
-
 import java.util.concurrent.atomic.AtomicLong;
 
 import ghcvm.runtime.*;
@@ -14,24 +15,26 @@ import ghcvm.runtime.prim.*;
 import ghcvm.runtime.stackframe.*;
 import ghcvm.runtime.types.Task.InCall;
 import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
+import static ghcvm.runtime.types.StgTSO.WhatNext.*;
 
 public final class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
-    public long id;
+    public long id = nextThreadId();
     public volatile StgTSO link;
-    //    public StgTSO globalLink; This field may not be necessary
-    public Deque<StackFrame> stack;
-    public WhatNext whatNext;
-    public WhyBlocked whyBlocked;
+    public Stack<StackFrame> stack = new Stack<StackFrame>();
+    public ListIterator<StackFrame> sp;
+    public Queue<StackFrame> blockingQueues = new ArrayDeque<StackFrame>();
+    public WhatNext whatNext = ThreadRunGHC;
+    public WhyBlocked whyBlocked = NotBlocked;
     public Task.InCall bound;
-    // public StgTRecHeader trec; deal with later when we implement STM
+    // TODO: public StgTRecHeader trec; deal with later when we implement STM
     public Capability cap;
     public StgClosure blockInfo;
     public int flags;
     public long wakeTime = -1;
     public boolean inMVarOperation;
     public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
-    // public StgBlockingQueue bq;
+    public AtomicBoolean lock = new AtomicBoolean(false);
     // If PROFILING StgTSOProfInfo prof;
 
     // Flags
@@ -60,8 +63,6 @@ public final class StgTSO extends StgClosure {
         BlockedOnSTM,
         BlockedOnDoProc,
         BlockedOnGA,
-        BlockedOnCCall,
-        BlockedOnCCall_Interruptible,
         BlockedOnJavaCall,
         BlockedOnJavaCall_Interruptible,
         BlockedOnMsgThrowTo,
@@ -70,16 +71,13 @@ public final class StgTSO extends StgClosure {
     }
 
     public StgTSO(Capability cap) {
-        this.whatNext = WhatNext.ThreadRunGHC;
-        this.whyBlocked = WhyBlocked.NotBlocked;
         this.cap = cap;
-        this.id = nextThreadId();
-        this.stack = new ArrayDeque<StackFrame>(1);
+        this.sp = stack.listIterator();
         pushClosure(new StgStopThread());
     }
 
     public void pushClosure(StackFrame frame) {
-        stack.push(frame);
+        sp.add(frame);
     }
 
     public static long nextThreadId() {
@@ -108,14 +106,8 @@ public final class StgTSO extends StgClosure {
         inMVarOperation = false;
     }
 
-    @Override
-    public final void thunkUpdate(Capability cap, StgTSO tso) {
-        if (tso != this) {
-            cap.checkBlockingQueues(tso);
-        }
-    }
 
-    public final boolean isFlagLocked() { return ((flags & TSO_LOCKED) != 0); }
+    public final boolean isFlagLocked() { return hasFlag(TSO_LOCKED); }
 
     public final void delete() {
         if (whyBlocked != BlockedOnJavaCall &&
@@ -126,5 +118,63 @@ public final class StgTSO extends StgClosure {
 
     public final void handleThreadBlocked() {
         // debug output
+    }
+
+    public final boolean hasFlag(int flag) {
+        return ((flags & flag) != 0);
+    }
+
+    public final void removeFlags(int flags) {
+        this.flags &= ~flags;
+    }
+
+    public final void addFlags(int flags) {
+        this.flags |= flags;
+    }
+
+    @Override
+    public final boolean isEvaluated() { return false; }
+
+    @Override
+    public final boolean blackHole(Capability cap, MessageBlackHole msg) {
+        if (this.cap != cap) {
+            cap.sendMessage(this.cap, msg);
+        } else {
+            StgBlockingQueue bq = new StgBlockingQueue(this, msg);
+            blockingQueues.offer(bq);
+            if (whyBlocked == NotBlocked && id != msg.tso.id) {
+                cap.promoteInRunQueue(this);
+            }
+            msg.bh.indirectee = bq;
+        }
+        return false;
+    }
+
+    @Override
+    public final void thunkUpdate(Capability cap, StgTSO tso) {
+        if (tso != this) {
+            cap.checkBlockingQueues(tso);
+        }
+    }
+
+    public final void lock() {
+        int i = 0;
+        do {
+            do {
+                boolean old = lock.getAndSet(this, true);
+                if (!old) return;
+            } while (++i < SPIN_COUNT);
+            Thread.yield();
+        } while (true);
+    }
+
+    public final void unlock() {
+        lock.set(false);
+    }
+
+    public final boolean tryLock() {
+        boolean old = lock.getAndSet(true);
+        if (!old) return true;
+        else return false;
     }
 }

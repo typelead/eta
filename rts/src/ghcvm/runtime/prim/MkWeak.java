@@ -6,6 +6,7 @@ import ghcvm.runtime.closure.*;
 import static ghcvm.runtime.RtsMessages.*;
 
 public class MkWeak extends StgClosure {
+
     @Override
     public void enter(StgContext context) {
         StgClosure key = context.R2;

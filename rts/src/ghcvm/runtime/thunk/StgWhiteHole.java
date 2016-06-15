@@ -4,10 +4,12 @@ import ghcvm.runtime.closure.*;
 
 public class StgWhiteHole extends StgClosure {
 
+    public static final StgWhiteHole stgWhiteHole = new StgWhiteHole();
+
     public static final int SPIN_COUNT = 1000;
 
     @Override
-    public boolean isLocked() { return true; }
+    public final boolean isEvaluated() { return false; }
 
     @Override
     public void enter(StgContext context) {

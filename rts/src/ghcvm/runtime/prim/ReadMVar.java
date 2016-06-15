@@ -12,20 +12,18 @@ public class ReadMVar extends StgClosure {
     @Override
     public void enter(StgContext context) {
         StgMVar mvar = (StgMVar) context.R1;
-        // Use a more lightweight blocking mechanism?
-        // This synchronisation will not have thread yields
-        synchronized (mvar) {
-            if (mvar.value == null) {
-                StgTSO tso = context.currentTSO;
-                tso.blockInfo = mvar;
-                tso.whyBlocked = BlockedOnMVarRead;
-                tso.inMVarOperation = true;
-                mvar.pushFirst(tso);
-                context.R1 = mvar;
-                Stg.block_readmvar.enter(context);
-            } else {
-                context.R1 = mvar.value;
-            }
+        mvar.lock();
+        if (mvar.value == null) {
+            StgTSO tso = context.currentTSO;
+            tso.blockInfo = mvar;
+            tso.whyBlocked = BlockedOnMVarRead;
+            tso.inMVarOperation = true;
+            mvar.pushFirst(tso);
+            context.R1 = mvar;
+            Stg.block_readmvar.enter(context);
+        } else {
+            context.R1 = mvar.value;
         }
+        mvar.unlock();
     }
 }

@@ -57,6 +57,7 @@ public class Task {
     }
 
     public long id;
+    public WorkerThread thread;
     public Capability cap;
     public Queue<InCall> spareIncalls = new ArrayDeque<InCall>();
     public InCall incall;
@@ -295,5 +296,9 @@ public class Task {
             }
         }
         return cap;
+    }
+
+    public final void interruptWorker() {
+        thread.interrupt();
     }
 }

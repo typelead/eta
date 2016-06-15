@@ -1,6 +1,6 @@
 package ghcvm.runtime.closure;
 
-import java.util.Iterator;
+import java.util.ListIterator;
 
 import ghcvm.runtime.types.*;
 import ghcvm.runtime.stackframe.*;
@@ -22,7 +22,7 @@ public class StgContext {
     public StgTSO currentTSO;
     public Capability myCapability;
     public ReturnCode ret;
-    public Iterator<StackFrame> it;
+    public ListIterator<StackFrame> sp;
     public int papExpectedArity;
 
     public enum ReturnCode {

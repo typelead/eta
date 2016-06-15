@@ -8,7 +8,6 @@ public class StgIndStatic extends StgInd {
         super(indirectee);
     }
 
-
     public boolean isLocked() {
         return indirectee.getClass().equals(StgWhiteHole.class);
     }
