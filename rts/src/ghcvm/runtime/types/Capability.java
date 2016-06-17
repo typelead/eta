@@ -36,8 +36,9 @@ import ghcvm.runtime.message.*;
 import ghcvm.runtime.stackframe.*;
 import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult;
 import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.*;
-import static ghcvm.runtime.stm.STM.EntrySearchResult;
 import static ghcvm.runtime.stm.StgTRecChunk.TREC_CHUNK_NUM_ENTRIES;
+import static ghcvm.runtime.stm.STM.EntrySearchResult;
+import static ghcvm.runtime.stm.TRecState.*;
 
 public final class Capability {
     public static final int MAX_SPARE_WORKERS = 6;
@@ -109,14 +110,16 @@ public final class Capability {
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
     // STM-related data structures
-    public Stack<StgTRecChunk> freeTrecChunks = new Stack<StgTRecChunk>();
+    public Stack<StgTRecChunk> freeTRecChunks = new Stack<StgTRecChunk>();
     public Queue<StgInvariantCheck> freeInvariantChecksQueue = new ArrayDeque<StgInvariantCheck>();
+    public Queue<StgTRecHeader> freeTRecHeaders = new ArrayDeque<StgTRecHeader>();
+    public long transactionTokens;
+
     public int ioManagerControlWrFd; // Not sure if this is necessary
 
     public Capability(int i) {
         this.no = i;
     }
-
 
     public final Capability schedule(Task task) {
         Capability cap = this;
@@ -1334,10 +1337,10 @@ public final class Capability {
 
     public final StgTRecChunk getNewTRecChunk() {
         StgTRecChunk result = null;
-        if (freeTrecChunks.isEmpty()) {
+        if (freeTRecChunks.isEmpty()) {
             result = new StgTRecChunk();
         } else {
-            result = freeTrecChunks.pop();
+            result = freeTRecChunks.pop();
             result.reset();
         }
         return result;
@@ -1383,5 +1386,189 @@ public final class Capability {
             result.myExecution = null;
         }
         return result;
+    }
+
+    public final boolean stmCommitNestedTransaction(StgTRecHeader trec, StgTRecHeader et) {
+        STM.lock(trec);
+        boolean result = validateAndAcquireOwnership(trec, !STM.configUseReadPhase, true);
+        if (result) {
+            if (STM.configUseReadPhase) {
+                result = trec.checkReadOnly();
+            }
+            if (result) {
+                Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+                ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+                loop:
+                while (cit.hasPrevious()) {
+                    StgTRecChunk chunk = cit.previous();
+                    for (TRecEntry e: chunk.entries) {
+                        StgTVar s = e.tvar;
+                        if (e.isUpdate()) {
+                            s.unlock(trec, e.expectedValue, false);
+                        }
+                        mergeUpdateInto(et, s, e.expectedValue, e.newValue);
+                    }
+                }
+            } else {
+                revertOwnership(trec, false);
+            }
+        }
+        STM.unlock(trec);
+        freeTRecHeader(trec);
+        return result;
+    }
+
+    public final boolean validateAndAcquireOwnership(StgTRecHeader trec, boolean acquireAll, boolean retainOwnership) {
+        if (STM.shake()) {
+            return false;
+        } else {
+            boolean result = trec.state != TREC_CONDEMNED;
+            if (result) {
+                Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+                ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+                loop:
+                while (cit.hasPrevious()) {
+                    StgTRecChunk chunk = cit.previous();
+                    for (TRecEntry e: chunk.entries) {
+                        // Traversal
+                        StgTVar s = e.tvar;
+                        if (acquireAll || e.isUpdate()) {
+                            if (!s.condLock(trec, e.expectedValue)) {
+                                result = false;
+                                break loop;
+                            }
+                        } else {
+                            if (RtsFlags.STM.fineGrained) {
+                                if (s.currentValue != e.expectedValue) {
+                                    result = false;
+                                    break loop;
+                                }
+                                e.numUpdates = s.numUpdates;
+                                if (s.currentValue != e. expectedValue) {
+                                    result = false;
+                                    break loop;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!result || !retainOwnership) {
+                revertOwnership(trec, acquireAll);
+            }
+
+            return result;
+        }
+    }
+
+    public final void revertOwnership(StgTRecHeader trec, boolean revertAll) {
+        if (RtsFlags.STM.fineGrained) {
+            Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+            loop:
+            while (cit.hasPrevious()) {
+                StgTRecChunk chunk = cit.previous();
+                for (TRecEntry e: chunk.entries) {
+                    if (revertAll || e.isUpdate()) {
+                        StgTVar s = e.tvar;
+                        if (s.isLocked(trec)) {
+                            s.unlock(trec, e.expectedValue, true);
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    public final void freeTRecHeader(StgTRecHeader trec) {
+        Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        StgTRecChunk currentChunk = cit.previous();
+        StgTRecChunk chunk = cit.previous();
+        while (cit.hasPrevious()) {
+            StgTRecChunk prevChunk = cit.previous();
+            freeTRecChunk(chunk);
+            chunk = prevChunk;
+        }
+        /* Clean out all chunks but one */
+        cit = chunkStack.listIterator();
+        chunk = cit.next();
+        while (chunk != currentChunk && cit.hasNext()) {
+            cit.remove();
+        }
+        currentChunk.reset();
+        trec.invariantsToCheck.clear();
+        freeTRecHeaders.offer(trec);
+    }
+
+    public final void freeTRecChunk(StgTRecChunk chunk) {
+        freeTRecChunks.push(chunk);
+    }
+
+    public final StgTRecHeader stmStartTransaction(StgTRecHeader outer) {
+        getToken();
+        return getNewTRecHeader(outer);
+    }
+
+    public final void getToken() {
+        if (RtsFlags.ModeFlags.threaded) {
+            if (transactionTokens == 0) {
+                getTokenBatch();
+            }
+            transactionTokens--;
+        }
+    }
+
+    public final void getTokenBatch() {
+        // TODO: Ensure the cas condition is correct
+        while (STM.tokenLocked.compareAndSet(false, true) == true) {}
+        STM.maxCommits += STM.TOKEN_BATCH_SIZE;
+        transactionTokens = STM.TOKEN_BATCH_SIZE;
+        STM.tokenLocked.set(false);
+    }
+
+    public final StgTRecHeader getNewTRecHeader(StgTRecHeader enclosingTrec) {
+        StgTRecHeader result = null;
+        if (freeTRecHeaders.isEmpty()) {
+            result = new StgTRecHeader();
+        } else {
+            result = freeTRecHeaders.poll();
+        }
+        if (enclosingTrec == null) {
+            result.state = TREC_ACTIVE;
+        } else {
+            result.state = enclosingTrec.state;
+        }
+        return result;
+    }
+
+    public final void mergeUpdateInto(StgTRecHeader t, StgTVar tvar, StgClosure expectedValue, StgClosure newValue) {
+        boolean found = false;
+        Stack<StgTRecChunk> chunkStack = t.chunkStack;
+        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        loop:
+        while (cit.hasPrevious()) {
+            StgTRecChunk chunk = cit.previous();
+            for (TRecEntry e: chunk.entries) {
+                StgTVar s = e.tvar;
+                if (s == tvar) {
+                    found = true;
+                    if (e.expectedValue != expectedValue) {
+                        t.state = TREC_CONDEMNED;
+                    }
+                    e.newValue = newValue;
+                    break loop;
+                }
+            }
+        }
+
+        if (!found) {
+            TRecEntry ne = getNewEntry(t);
+            ne.tvar = tvar;
+            ne.expectedValue = expectedValue;
+            ne.newValue = newValue;
+        }
     }
 }

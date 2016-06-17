@@ -2,6 +2,7 @@ package ghcvm.runtime.stm;
 
 import java.util.Stack;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ghcvm.runtime.RtsFlags;
 import ghcvm.runtime.types.StgTSO;
@@ -10,6 +11,26 @@ import ghcvm.runtime.closure.StgClosure;
 import ghcvm.runtime.closure.StgContext;
 
 public class STM {
+    public static long TOKEN_BATCH_SIZE = 1024;
+    public static long maxCommits = 0;
+    public static AtomicBoolean tokenLocked = new AtomicBoolean(false);
+    public static final boolean configUseReadPhase = false;
+    public static final boolean doShake = false;
+    public static int shakeCounter = 0;
+    public static int shakeLimit = 1;
+
+    public static boolean shake() {
+        if (doShake) {
+            if (((shakeCounter++) % shakeLimit) == 0) {
+                shakeCounter = 1;
+                shakeLimit++;
+            }
+        }
+        return false;
+    }
+
+    public static void lock(StgTRecHeader trec) {}
+    public static void unlock(StgTRecHeader trec) {}
 
     public static class EntrySearchResult {
         public final StgTRecHeader header;
@@ -53,7 +74,7 @@ public class STM {
         return result;
     }
 
-    public StgClosure newTVar = new StgClosure() {
+    public static StgClosure newTVar = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
                 StgClosure init = context.R1;
@@ -61,7 +82,7 @@ public class STM {
             }
         };
 
-    public StgClosure readTVar = new StgClosure() {
+    public static StgClosure readTVar = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -71,7 +92,7 @@ public class STM {
             }
         };
 
-    public StgClosure readTVarIO = new StgClosure() {
+    public static StgClosure readTVarIO = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
                 StgClosure result;
@@ -83,7 +104,7 @@ public class STM {
             }
         };
 
-    public StgClosure writeTVar = new StgClosure() {
+    public static StgClosure writeTVar = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -94,7 +115,7 @@ public class STM {
             }
         };
 
-    public StgClosure check = new StgClosure() {
+    public static StgClosure check = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;

@@ -21,4 +21,17 @@ public class StgTVar extends StgClosure {
     public final void enter(StgContext context) {
         barf("TVAR object entered!");
     }
+
+    public boolean condLock(StgTRecHeader trec, StgClosure expected) {
+        // TODO: Implement the lock based on locking type of STM
+        return (currentValue == expected);
+    }
+
+    public boolean isLocked(StgTRecHeader trec){
+        return (currentValue == trec);
+    }
+
+    public void unlock(StgTRecHeader trec, StgClosure c, boolean forceUpdate) {
+        currentValue = c;
+    }
 }

@@ -15,7 +15,6 @@ public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlac
     public final StgTSO owner;
     public final StgInd bh;
     public final Queue<MessageBlackHole> messages;
-    public boolean clean = false;
 
     public StgBlockingQueue(final StgTSO owner, final MessageBlackHole msg) {
         this.owner = owner;
@@ -34,7 +33,6 @@ public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlac
                 cap.sendMessage(owner.cap, msg);
             } else {
                 messages.offer(msg);
-                clean = false;
                 if (owner.whyBlocked == NotBlocked && owner.id != msg.tso.id) {
                     cap.promoteInRunQueue(owner);
                 }
