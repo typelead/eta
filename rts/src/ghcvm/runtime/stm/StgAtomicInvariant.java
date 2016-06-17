@@ -8,4 +8,8 @@ public class StgAtomicInvariant {
     public StgClosure code;
     public StgTRecHeader lastExecution;
     public AtomicLong lock;
+
+    public StgAtomicInvariant(StgClosure code) {
+        this.code = code;
+    }
 }

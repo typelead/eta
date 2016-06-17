@@ -93,4 +93,14 @@ public class STM {
                 cap.stmWriteTvar(tso.trec, tvar, newValue);
             }
         };
+
+    public StgClosure check = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                StgClosure closure = (StgClosure) context.R1;
+                cap.stmAddInvariantToCheck(tso.trec.peek(), closure);
+            }
+        };
 }

@@ -108,7 +108,9 @@ public final class Capability {
     public SparkPool sparks = new SparkPool();
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
+    // STM-related data structures
     public Stack<StgTRecChunk> freeTrecChunks = new Stack<StgTRecChunk>();
+    public Queue<StgInvariantCheck> freeInvariantChecksQueue = new ArrayDeque<StgInvariantCheck>();
     public int ioManagerControlWrFd; // Not sure if this is necessary
 
     public Capability(int i) {
@@ -1362,5 +1364,24 @@ public final class Capability {
             newEntry.expectedValue = currentValue;
             newEntry.newValue = newValue;
         }
+    }
+
+    public final void stmAddInvariantToCheck(StgTRecHeader trec, StgClosure code) {
+        StgAtomicInvariant invariant = new StgAtomicInvariant(code);
+        StgInvariantCheck invariantCheck = getNewInvariantCheck(invariant);
+        trec.invariantsToCheck.offer(invariantCheck);
+    }
+
+    public final StgInvariantCheck getNewInvariantCheck(StgAtomicInvariant invariant) {
+        // TODO: Finish implementation
+        StgInvariantCheck result = null;
+        if (freeInvariantChecksQueue.isEmpty()) {
+            result = new StgInvariantCheck(invariant);
+        } else {
+            result = freeInvariantChecksQueue.poll();
+            result.invariant = invariant;
+            result.myExecution = null;
+        }
+        return result;
     }
 }
