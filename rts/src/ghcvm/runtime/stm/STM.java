@@ -78,9 +78,19 @@ public class STM {
                 StgTVar tvar = (StgTVar) context.R1;
                 do {
                     result = tvar.currentValue;
-                    // TODO: Improve this condition - maybe reuse isEvaluated?
-                } while (result.getClass() != StgTRecHeader.class);
+                } while (!result.isTrecHeader());
                 context.R1 = result;
+            }
+        };
+
+    public StgClosure writeTVar = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                StgTVar tvar = (StgTVar) context.R1;
+                StgClosure newValue = (StgClosure) context.R2;
+                cap.stmWriteTvar(tso.trec, tvar, newValue);
             }
         };
 }

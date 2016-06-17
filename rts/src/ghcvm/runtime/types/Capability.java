@@ -1293,7 +1293,6 @@ public final class Capability {
 
     /* STM Operations */
     public final StgClosure stmReadTvar(Stack<StgTRecHeader> trecStack, StgTVar tvar) {
-        // TODO: Implement
         StgClosure result;
         StgTRecHeader trec = trecStack.peek();
         EntrySearchResult searchResult = STM.getEntry(trecStack, tvar);
@@ -1340,5 +1339,28 @@ public final class Capability {
             result.reset();
         }
         return result;
+    }
+
+    public final void stmWriteTvar(Stack<StgTRecHeader> trecStack, StgTVar tvar, StgClosure newValue) {
+        StgTRecHeader trec = trecStack.peek();
+        EntrySearchResult searchResult = STM.getEntry(trecStack, tvar);
+        StgTRecHeader entryIn = searchResult.header;
+        TRecEntry entry = searchResult.entry;
+        if (entry == null) {
+            if (entryIn == trec) {
+                entry.newValue = newValue;
+            }else {
+                TRecEntry newEntry = getNewEntry(trec);
+                newEntry.tvar = tvar;
+                newEntry.expectedValue = entry.expectedValue;
+                newEntry.newValue = newValue;
+            }
+        } else {
+            StgClosure currentValue = STM.readCurrentValue(trec, tvar);
+            TRecEntry newEntry = getNewEntry(trec);
+            newEntry.tvar = tvar;
+            newEntry.expectedValue = currentValue;
+            newEntry.newValue = newValue;
+        }
     }
 }
