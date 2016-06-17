@@ -2,11 +2,13 @@ package ghcvm.runtime.types;
 
 import java.util.Stack;
 import java.util.Deque;
+import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
@@ -16,6 +18,7 @@ import ghcvm.runtime.stackframe.*;
 import ghcvm.runtime.types.Task.InCall;
 import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
 import static ghcvm.runtime.types.StgTSO.WhatNext.*;
+import static ghcvm.runtime.thunk.StgWhiteHole.*;
 
 public final class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
@@ -23,7 +26,7 @@ public final class StgTSO extends StgClosure {
     public volatile StgTSO link;
     public Stack<StackFrame> stack = new Stack<StackFrame>();
     public ListIterator<StackFrame> sp;
-    public Queue<StackFrame> blockingQueues = new ArrayDeque<StackFrame>();
+    public Queue<StgBlockingQueue> blockingQueues = new ArrayDeque<StgBlockingQueue>();
     public WhatNext whatNext = ThreadRunGHC;
     public WhyBlocked whyBlocked = NotBlocked;
     public Task.InCall bound;
@@ -161,7 +164,7 @@ public final class StgTSO extends StgClosure {
         int i = 0;
         do {
             do {
-                boolean old = lock.getAndSet(this, true);
+                boolean old = lock.getAndSet(true);
                 if (!old) return;
             } while (++i < SPIN_COUNT);
             Thread.yield();

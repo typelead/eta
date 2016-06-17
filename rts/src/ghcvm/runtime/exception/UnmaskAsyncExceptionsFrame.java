@@ -1,16 +1,20 @@
 package ghcvm.runtime.exception;
 
+import ghcvm.runtime.Stg;
+import ghcvm.runtime.types.StgTSO;
 import ghcvm.runtime.closure.StgClosure;
 import ghcvm.runtime.closure.StgContext;
-import ghcvm.runtime.exception.StgException;
-import static ghcvm.runtime.closure.StgContext.ReturnCode.ThreadFinished;
-import static ghcvm.runtime.types.StgTSO.*;
+import ghcvm.runtime.stackframe.StackFrame;
+import ghcvm.runtime.stackframe.ReturnClosure;
+import static ghcvm.runtime.types.StgTSO.TSO_BLOCKEX;
+import static ghcvm.runtime.types.StgTSO.TSO_INTERRUPTIBLE;
+import static ghcvm.runtime.types.StgTSO.WhatNext.ThreadRunGHC;
+import static ghcvm.runtime.types.StgTSO.WhatNext.ThreadKilled;
 
 public class UnmaskAsyncExceptionsFrame extends StackFrame {
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
+    public void stackEnter(StgContext context) {
         StgTSO tso = context.currentTSO;
         StgClosure ret = context.R1;
         // TODO: Verify stack operations
@@ -19,7 +23,7 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
             context.sp.add(new ReturnClosure(ret));
             boolean performed = context.myCapability.maybePerformBlockedException(tso);
             if (performed) {
-                if (tso.whatNext = ThreadKilled) {
+                if (tso.whatNext == ThreadKilled) {
                     Stg.threadFinished.enter(context);
                     return;
                 } else {
@@ -31,10 +35,9 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
                     // it.next().enter(context);
                 }
             } else {
-                context.sp.remove();
+                return;
             }
         }
-        context.sp.remove();
         context.R1 = ret;
     }
 }

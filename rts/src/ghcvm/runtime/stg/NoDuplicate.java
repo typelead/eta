@@ -1,6 +1,6 @@
 package ghcvm.runtime.stg;
 
-import java.util.Iterator;
+import java.util.ListIterator;
 
 import ghcvm.runtime.Stg;
 import ghcvm.runtime.types.StgTSO;
@@ -30,8 +30,8 @@ public class NoDuplicate extends StgClosure {
                 if (frame.getClass().equals(NoDuplicateFrame.class)) {
                     sp.remove();
                 }
-                Iterator<StackFrame> it = tso.stack.descendingIterator();
-                it.next().enter(context);
+                // Iterator<StackFrame> it = tso.stack.descendingIterator();
+                // it.next().enter(context);
             }
         }
     }

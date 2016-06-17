@@ -1,6 +1,7 @@
 package ghcvm.runtime.message;
 
 import ghcvm.runtime.types.StgTSO;
+import ghcvm.runtime.types.Capability;
 
 public final class MessageWakeup extends Message {
 

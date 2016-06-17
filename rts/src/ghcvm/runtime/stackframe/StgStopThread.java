@@ -1,6 +1,8 @@
 package ghcvm.runtime.stackframe;
 
 import java.util.Deque;
+import java.util.ListIterator;
+
 import ghcvm.runtime.types.StgTSO;
 import ghcvm.runtime.closure.StgContext;
 import ghcvm.runtime.exception.StgException;
@@ -12,7 +14,7 @@ public class StgStopThread extends StackFrame {
     @Override
     public void stackEnter(StgContext context) {
         StgTSO currentTSO = context.currentTSO;
-        Stack<StackFrame> stack = context.sp;
+        ListIterator<StackFrame> sp = context.sp;
         sp.remove();
         sp.add(new StgEnter(context.R1));
         currentTSO.whatNext = ThreadComplete;

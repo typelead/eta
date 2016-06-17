@@ -1,6 +1,12 @@
 package ghcvm.runtime.stackframe;
 
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.types.StgTSO;
+import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.closure.StgContext;
+import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult;
+import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.Marked;
 
 public class StgMarkedUpdateFrame extends UpdateFrame {
 
@@ -24,7 +30,7 @@ public class StgMarkedUpdateFrame extends UpdateFrame {
     }
 
     @Override
-    public MarkFrameResult mark() {
+    public MarkFrameResult mark(Capability cap, StgTSO tso) {
         return Marked;
     }
 }

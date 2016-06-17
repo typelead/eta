@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import ghcvm.runtime.RtsFlags;
 import ghcvm.runtime.closure.*;
+import ghcvm.runtime.thread.WorkerThread;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsScheduler.SchedulerStatus.*;
 import static ghcvm.runtime.Rts.ExitCode.EXIT_FAILURE;

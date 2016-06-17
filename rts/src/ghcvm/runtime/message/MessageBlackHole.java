@@ -1,14 +1,15 @@
 package ghcvm.runtime.message;
 
 import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.thunk.StgInd;
 
 public final class MessageBlackHole extends Message {
 
     public final StgTSO tso;
-    public final StgClosure bh;
+    public final StgInd bh;
 
-    public MessageBlackHole(final StgTSO tso, final StgClosure bh) {
+    public MessageBlackHole(final StgTSO tso, final StgInd bh) {
         this.tso = tso;
         this.bh = bh;
     }

@@ -1,11 +1,17 @@
-package ghcvm.runtime.closure;
+package ghcvm.runtime.thunk;
 
-import ghcvm.runtime.*;
-import ghcvm.runtime.types.*;
-import ghcvm.runtime.message.*;
-import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-public class StgInd extends StgClosure {
+import ghcvm.runtime.Stg;
+import ghcvm.runtime.types.StgTSO;
+import ghcvm.runtime.types.StgPayload;
+import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.message.MessageBlackHole;
+import static ghcvm.runtime.thunk.StgWhiteHole.stgWhiteHole;
+import static ghcvm.runtime.types.StgTSO.WhyBlocked.BlockedOnBlackHole;
+
+public abstract class StgInd extends StgClosure {
     public static final StgPayload emptyPayload = new StgPayload();
     public volatile StgClosure indirectee;
     public StgPayload payload = emptyPayload;
@@ -53,7 +59,6 @@ public class StgInd extends StgClosure {
          return indirectee.isEvaluated();
     }
 
-    @Override
     public final boolean tryLock(StgClosure oldIndirectee) {
         return indirecteeUpdater.compareAndSet(this, oldIndirectee, stgWhiteHole);
     }

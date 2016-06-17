@@ -3,6 +3,7 @@ package ghcvm.runtime.types;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.Deque;
 import java.util.Queue;
 import java.util.ArrayDeque;
@@ -24,12 +25,15 @@ import static ghcvm.runtime.closure.StgContext.ReturnCode.*;
 import static ghcvm.runtime.RtsScheduler.RecentActivity.*;
 import static ghcvm.runtime.Interpreter.*;
 import ghcvm.runtime.*;
+import ghcvm.runtime.thunk.*;
 import ghcvm.runtime.thread.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.exception.*;
 import ghcvm.runtime.prim.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.stackframe.*;
+import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult;
+import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.*;
 
 public final class Capability {
     public static final int MAX_SPARE_WORKERS = 6;
@@ -512,6 +516,7 @@ public final class Capability {
                 break;
             }
         }
+        return cap;
     }
 
     public final void startWorkerTask() {
@@ -523,6 +528,7 @@ public final class Capability {
             task.cap = this;
             runningTask = task;
             WorkerThread thread = new WorkerThread(task);
+            thread.setTask();
             thread.start();
             task.id = thread.getId();
         } finally {
@@ -553,7 +559,7 @@ public final class Capability {
         boolean prevWasUpdateFrame = false;
         while (sp.hasPrevious() && !stopLoop) {
             StackFrame frame = sp.previous();
-            MarkFrameResult result = frame.mark(tso);
+            MarkFrameResult result = frame.mark(this, tso);
             switch (result) {
                 case Marked:
                     // do calculations
@@ -574,7 +580,7 @@ public final class Capability {
     }
 
     public final boolean maybePerformBlockedException(StgTSO tso) {
-        if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadFinished) {
+        if (tso.whatNext == ThreadComplete /*|| tso.whatNext == ThreadFinished */) {
             if (tso.blockedExceptions.isEmpty()) {
                 return false;
             } else {
@@ -595,7 +601,7 @@ public final class Capability {
                 tso.blockedExceptions.poll();
                 if (!msg.isValid()) {
                     msg.unlock();
-                    goto loop;
+                    continue loop;
                 }
                 throwToSingleThreaded(msg.target, msg.exception);
                 StgTSO source = msg.source;
@@ -842,25 +848,32 @@ public final class Capability {
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
-        Deque<StackFrame> stack = tso.stack;
+        ListIterator<StackFrame> sp = tso.sp;
+        while (sp.hasNext()) { sp.next(); } // Ensure that sp is pointing to the top
         StgInd updatee = null;
+        StackFrame frame = null;
         if (stopHere != null) {
             updatee = stopHere.updatee;
         }
-        Iterator<StackFrame> it = stack.descendingIterator();
-        StackFrame frame = it.next();
         // Ensure stack is in proper format here;
+        // This condition assumes that stopHere is below!
         while (stopHere == null || frame != stopHere) {
+            //RaiseAsyncResult result = frame.doRaiseAsync(this, tso)
+            // TODO: Implement later
         }
 
-        // TODO: Implement later
+        if (tso.whyBlocked != NotBlocked) {
+            tso.whyBlocked = NotBlocked;
+            appendToRunQueue(tso);
+        }
     }
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
         StgInd bh = msg.bh;
         if (!bh.isEvaluated()) {
+            boolean failure;
             do {
-                boolean failure = bh.indirectee.blackHole(this, msg);
+                failure = bh.indirectee.blackHole(this, msg);
             } while (failure);
             // TODO: Check this logic
             if (bh.isEvaluated()) {
@@ -875,13 +888,13 @@ public final class Capability {
     public final void checkBlockingQueues(StgTSO tso) {
         for (StgBlockingQueue bq: tso.blockingQueues) {
             if (bq.bh.isEvaluated()) {
-                cap.wakeBlockingQueue(bq);
+                wakeBlockingQueue(bq);
             }
         }
     }
 
     public final void updateThunk(StgTSO tso, StgInd thunk, StgClosure val) {
-        if (bh.isEvaluated()) {
+        if (thunk.isEvaluated()) {
             thunk.updateWithIndirection(val);
         } else {
             StgClosure v = thunk.indirectee;
@@ -1155,7 +1168,6 @@ public final class Capability {
                             break;
                         case BlockedOnMsgThrowTo:
                             MessageThrowTo m = (MessageThrowTo) target.blockInfo;
-                            // TODO: make this arbitrary?
                             if (m.id < msg.id) {
                                 m.lock();
                             } else {
@@ -1164,7 +1176,18 @@ public final class Capability {
                                     return false;
                                 }
                             }
-                            // if msgNULL
+                            if (!msg.isValid()) {
+                                m.unlock();
+                                tryWakeupThread(target);
+                                continue retry;
+                            }
+                            //TODO: Extra if check?
+                            if (target.hasFlag(TSO_BLOCKEX)
+                                && !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                                m.unlock();
+                                target.blockedExceptions.offer(msg);
+                                return false;
+                            }
                             m.done();
                             raiseAsync(target, msg.exception, false, null);
                             break;
@@ -1252,7 +1275,7 @@ public final class Capability {
                             }
                             break;
                         case ThreadMigrating:
-                            cap.tryWakeupThread(target);
+                            tryWakeupThread(target);
                             continue retry;
                         default:
                             barf("throwTo: unrecognized why_blocked (%p)", target.whyBlocked);

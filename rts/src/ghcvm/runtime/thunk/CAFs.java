@@ -1,4 +1,4 @@
-package ghcvm.runtime;
+package ghcvm.runtime.thunk;
 
 import java.util.Iterator;
 import java.util.Queue;

@@ -11,7 +11,7 @@ public class WorkerThread extends Thread {
         this.task = task;
     }
 
-    public setTask() {
+    public void setTask() {
         task.thread = this;
     }
 

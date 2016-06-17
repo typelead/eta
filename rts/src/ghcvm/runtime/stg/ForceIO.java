@@ -7,8 +7,7 @@ import ghcvm.runtime.stackframe.StackFrame;
 public class ForceIO extends StackFrame {
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
+    public void stackEnter(StgContext context) {
         context.R1.enter(context);
     }
 }

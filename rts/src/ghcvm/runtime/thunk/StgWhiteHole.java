@@ -1,6 +1,7 @@
 package ghcvm.runtime.thunk;
 
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.closure.StgClosure;
 
 public class StgWhiteHole extends StgClosure {
 

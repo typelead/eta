@@ -1,7 +1,12 @@
 package ghcvm.runtime.message;
 
-import ghcvm.runtime.closure.StgClosure;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
 import ghcvm.runtime.types.StgTSO;
+import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.closure.StgClosure;
+import static ghcvm.runtime.thunk.StgWhiteHole.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
     public static AtomicLong maxMessageId = new AtomicLong(0);

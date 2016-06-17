@@ -2,17 +2,19 @@ package ghcvm.runtime.prim;
 
 import java.util.Deque;
 import java.util.ArrayDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ghcvm.runtime.prim.StgMVar;
 import ghcvm.runtime.types.StgTSO;
 import ghcvm.runtime.closure.StgClosure;
 import ghcvm.runtime.closure.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
+import static ghcvm.runtime.thunk.StgWhiteHole.SPIN_COUNT;
 
 public class StgMVar extends StgClosure {
     public Deque<StgTSO> tsoQueue = new ArrayDeque<StgTSO>();
     public StgClosure value;
-    public AtomicBoolean locked = new AtomicBoolean(false);
+    public AtomicBoolean lock = new AtomicBoolean(false);
 
     public StgMVar(StgClosure value) {
         this.value = value;
@@ -39,7 +41,7 @@ public class StgMVar extends StgClosure {
         int i = 0;
         do {
             do {
-                boolean old = lock.getAndSet(this, true);
+                boolean old = lock.getAndSet(true);
                 if (!old) return;
             } while (++i < SPIN_COUNT);
             Thread.yield();

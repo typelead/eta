@@ -6,12 +6,13 @@ import ghcvm.runtime.apply.*;
 import ghcvm.runtime.prim.*;
 import ghcvm.runtime.stackframe.*;
 import ghcvm.runtime.exception.*;
+import ghcvm.runtime.thunk.*;
 
 public class Stg {
     public static StackFrame forceIO = new ForceIO();
     public static StackFrame ap_v = new ApV();
     public static StackFrame unmaskAsyncExceptionszh = new UnmaskAsyncExceptionsFrame();
-    public static StackFrame maskAsyncExceptionszh = new maskAsyncExceptionsFrame();
+    public static StackFrame maskAsyncExceptionszh = new MaskAsyncExceptionsFrame();
 
     public static StgClosure getMaskingStatezh = new GetMaskingState();
     public static StgClosure mkWeakzh = new MkWeak();

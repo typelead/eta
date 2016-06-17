@@ -1,6 +1,14 @@
 package ghcvm.runtime.stackframe;
 
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.RtsFlags;
+import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.types.StgTSO;
+import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.closure.StgClosure;
+import static ghcvm.runtime.thunk.StgWhiteHole.stgWhiteHole;
+import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.UpdateEvaluted;
+import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.Update;
 
 public class StgUpdateFrame extends UpdateFrame {
 
