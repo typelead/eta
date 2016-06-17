@@ -36,6 +36,8 @@ import ghcvm.runtime.message.*;
 import ghcvm.runtime.stackframe.*;
 import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult;
 import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.*;
+import static ghcvm.runtime.stm.STM.EntrySearchResult;
+import static ghcvm.runtime.stm.StgTRecChunk.TREC_CHUNK_NUM_ENTRIES;
 
 public final class Capability {
     public static final int MAX_SPARE_WORKERS = 6;
@@ -106,6 +108,7 @@ public final class Capability {
     public SparkPool sparks = new SparkPool();
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
+    public Stack<StgTRecChunk> freeTrecChunks = new Stack<StgTRecChunk>();
     public int ioManagerControlWrFd; // Not sure if this is necessary
 
     public Capability(int i) {
@@ -1289,7 +1292,53 @@ public final class Capability {
     }
 
     /* STM Operations */
-    public final void stmReadTvar(Stack<StgTRecHeader> trec, StgTVar tvar) {
+    public final StgClosure stmReadTvar(Stack<StgTRecHeader> trecStack, StgTVar tvar) {
         // TODO: Implement
+        StgClosure result;
+        StgTRecHeader trec = trecStack.peek();
+        EntrySearchResult searchResult = STM.getEntry(trecStack, tvar);
+        StgTRecHeader entryIn = searchResult.header;
+        TRecEntry entry = searchResult.entry;
+        if (entry == null) {
+            if (entryIn != trec) {
+                TRecEntry newEntry = getNewEntry(trec);
+                newEntry.tvar = tvar;
+                newEntry.expectedValue = entry.expectedValue;
+                newEntry.newValue = entry.newValue;
+            }
+            result = entry.newValue;
+        } else {
+            StgClosure currentValue = STM.readCurrentValue(trec, tvar);
+            TRecEntry newEntry = getNewEntry(trec);
+            newEntry.tvar = tvar;
+            newEntry.expectedValue = currentValue;
+            newEntry.newValue = currentValue;
+            result = currentValue;
+        }
+        return result;
+    }
+
+    public final TRecEntry getNewEntry(StgTRecHeader t) {
+        StgTRecChunk c = t.chunkStack.peek();
+        TRecEntry entry = new TRecEntry();
+        if (c.entries.size() <= TREC_CHUNK_NUM_ENTRIES) {
+            c.entries.add(entry);
+        } else {
+            c = getNewTRecChunk();
+            c.entries.add(entry);
+            t.chunkStack.push(c);
+        }
+        return entry;
+    }
+
+    public final StgTRecChunk getNewTRecChunk() {
+        StgTRecChunk result = null;
+        if (freeTrecChunks.isEmpty()) {
+            result = new StgTRecChunk();
+        } else {
+            result = freeTrecChunks.pop();
+            result.reset();
+        }
+        return result;
     }
 }

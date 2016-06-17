@@ -12,4 +12,5 @@ public abstract class StgClosure {
         cap.checkBlockingQueues(tso);
     }
     public boolean blackHole(Capability cap, MessageBlackHole msg) { return false; }
+    public boolean isTrecHeader() { return false; }
 }

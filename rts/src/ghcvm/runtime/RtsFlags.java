@@ -10,6 +10,10 @@ public class RtsFlags {
     public static boolean debug = false;
     public static Set<String> DebugFlags = new HashSet<String>();
 
+    public static class STM {
+        public static boolean fineGrained = false;
+    }
+
     public static class ParFlags {
         public static int nNodes;
         public static boolean migrate = true; // TODO: Is this the default?
