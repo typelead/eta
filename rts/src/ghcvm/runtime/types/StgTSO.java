@@ -14,6 +14,7 @@ import ghcvm.runtime.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.prim.*;
+import ghcvm.runtime.stm.*;
 import ghcvm.runtime.stackframe.*;
 import ghcvm.runtime.types.Task.InCall;
 import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
@@ -30,7 +31,7 @@ public final class StgTSO extends StgClosure {
     public WhatNext whatNext = ThreadRunGHC;
     public WhyBlocked whyBlocked = NotBlocked;
     public Task.InCall bound;
-    // TODO: public StgTRecHeader trec; deal with later when we implement STM
+    public Stack<StgTRecHeader> trec = new Stack<StgTRecHeader>();
     public Capability cap;
     public StgClosure blockInfo;
     public int flags;
@@ -180,4 +181,5 @@ public final class StgTSO extends StgClosure {
         if (!old) return true;
         else return false;
     }
+
 }

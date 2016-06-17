@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Deque;
+import java.util.Stack;
 import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -30,6 +31,7 @@ import ghcvm.runtime.thread.*;
 import ghcvm.runtime.closure.*;
 import ghcvm.runtime.exception.*;
 import ghcvm.runtime.prim.*;
+import ghcvm.runtime.stm.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.stackframe.*;
 import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult;
@@ -1286,4 +1288,8 @@ public final class Capability {
         } while (true);
     }
 
+    /* STM Operations */
+    public final void stmReadTvar(Stack<StgTRecHeader> trec, StgTVar tvar) {
+        // TODO: Implement
+    }
 }
