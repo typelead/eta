@@ -1571,4 +1571,169 @@ public final class Capability {
             ne.newValue = newValue;
         }
     }
+
+    public final Queue<StgInvariantCheck> stmGetInvariantsToCheck(StgTRecHeader trec) {
+
+        STM.lock(trec);
+        Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        loop:
+        while (cit.hasPrevious()) {
+            StgTRecChunk chunk = cit.previous();
+            for (TRecEntry e: chunk.entries) {
+                if (e.isUpdate()) {
+                    StgTVar s = e.tvar;
+                    StgClosure old = s.lock(trec);
+                    for (StgClosure q: s.watchQueue) {
+                        if (STM.watcherIsInvariant(q)) {
+                            boolean found = false;
+                            for (StgInvariantCheck q2: trec.invariantsToCheck) {
+                                if (q2.invariant == q) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            if (!found) {
+                                StgInvariantCheck q3 = getNewInvariantCheck((StgAtomicInvariant) q);
+                                trec.invariantsToCheck.offer(q3);
+                            }
+                        }
+                    }
+                    s.unlock(trec, old, false);
+                }
+            }
+        }
+
+        STM.unlock(trec);
+        return trec.invariantsToCheck;
+    }
+
+    public final void stmAbortTransaction(Stack<StgTRecHeader> trecStack) {
+        ListIterator<StgTRecHeader> it = trecStack.listIterator(trecStack.size());
+        StgTRecHeader trec = it.previous();
+        STM.lock(trec);
+        StgTRecHeader et = null;
+        if (it.hasPrevious()) {
+            et = it.previous();
+        }
+        if (et == null) {
+            if (trec.state == TREC_WAITING) {
+                removeWatchQueueEntriesForTrec(trec);
+            }
+
+        } else {
+            Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+            while (cit.hasPrevious()) {
+                StgTRecChunk chunk = cit.previous();
+                for (TRecEntry e: chunk.entries) {
+                    it = trecStack.listIterator(trecStack.size());
+                    it.previous();
+                    StgTVar s = e.tvar;
+                    mergeReadInto(it, s, e.expectedValue);
+                }
+            }
+        }
+
+        trec.state = TREC_ABORTED;
+        STM.unlock(trec);
+    }
+
+    public final void removeWatchQueueEntriesForTrec(StgTRecHeader trec) {
+        Stack<StgTRecChunk> chunkStack = trec.chunkStack;
+        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        loop:
+        while (cit.hasPrevious()) {
+            StgTRecChunk chunk = cit.previous();
+            for (TRecEntry e: chunk.entries) {
+                StgTVar s = e.tvar;
+                StgClosure saw = s.lock(trec);
+                s.watchQueue.remove(e.newValue); // TODO: Is this valid?
+                s.unlock(trec, saw, false);
+            }
+        }
+    }
+
+    public final void mergeReadInto(ListIterator<StgTRecHeader> it, StgTVar tvar, StgClosure expectedValue) {
+        boolean found = false;
+        StgTRecHeader trec = null;
+        /* TODO: Improve this hacky way to get the first element */
+        if (it.hasPrevious()) {
+            trec = it.previous();
+            it.next();
+        }
+        while (!found && it.hasPrevious()) {
+            StgTRecHeader t = it.previous();
+            Stack<StgTRecChunk> chunkStack = t.chunkStack;
+            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+            loop:
+            while (cit.hasPrevious()) {
+                StgTRecChunk chunk = cit.previous();
+                for (TRecEntry e: chunk.entries) {
+                    if (e.tvar == tvar) {
+                        found = true;
+                        if (e.expectedValue != expectedValue) {
+                            t.state = TREC_CONDEMNED;
+                        }
+                        break loop;
+                    }
+                }
+            }
+        }
+
+        if (!found) {
+            TRecEntry ne = getNewEntry(trec);
+            ne.tvar = tvar;
+            ne.expectedValue = expectedValue;
+            ne.newValue = expectedValue;
+        }
+    }
+
+    public final boolean stmCommitTransaction(Stack<StgTRecHeader> trecStack) {
+        StgTRecHeader trec = trecStack.peek();
+        STM.lock(trec);
+        ListIterator<StgTRecHeader> it = trecStack.listIterator(trecStack.size());
+        boolean touchedInvariants = !trec.invariantsToCheck.isEmpty();
+        if (touchedInvariants) {
+            for (StgInvariantCheck q: trec.invariantsToCheck) {
+                StgAtomicInvariant inv = q.invariant;
+                if (!inv.lock()) {
+                    trec.state = TREC_CONDEMNED;
+                    break;
+                }
+                StgTRecHeader invOldTrec = inv.lastExecution;
+                if (invOldTrec != null) {
+                    ListIterator<StgTRecChunk> cit = invOldTrec.chunkStack.listIterator(invOldTrec.chunkStack.size());
+                    loop:
+                    while (cit.hasPrevious()) {
+                        StgTRecChunk chunk = cit.previous();
+                        for (TRecEntry e: chunk.entries) {
+                            mergeReadInto(it, e.tvar, e.expectedValue);
+                        }
+                    }
+                }
+            }
+        }
+
+        boolean useReadPhase = STM.configUseReadPhase && !touchedInvariants;
+        boolean result = validateAndAcquireOwnership(trec, !useReadPhase, true);
+        if (result) {
+            if (touchedInvariants) {
+                for (StgInvariantCheck q: trec.invariantsToCheck) {
+                    StgAtomicInvariant inv = q.invariant;
+                    if (inv.lastExecution != null) {
+                        inv.disconnect();
+                    }
+                    q.myExecution.connectInvariant(inv);
+                    inv.unlock();
+                    // TODO: Incomplete
+                }
+            }
+        }
+        STM.unlock(trec);
+        freeTRecHeader(trec);
+        return result;
+    }
+
 }

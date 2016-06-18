@@ -9,6 +9,8 @@ import ghcvm.runtime.types.StgTSO;
 import ghcvm.runtime.types.Capability;
 import ghcvm.runtime.closure.StgClosure;
 import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.exception.StgException;
+import ghcvm.runtime.apply.Apply;
 
 public class STM {
     public static long TOKEN_BATCH_SIZE = 1024;
@@ -31,6 +33,16 @@ public class STM {
 
     public static void lock(StgTRecHeader trec) {}
     public static void unlock(StgTRecHeader trec) {}
+
+    public static boolean watcherIsInvariant(StgClosure c) {
+        //TODO: Better condition
+        return (c.getClass() == StgAtomicInvariant.class);
+    }
+
+    public static boolean watcherIsTSO(StgClosure c) {
+        //TODO: Better condition
+        return (c.getClass() == StgTSO.class);
+    }
 
     public static class EntrySearchResult {
         public final StgTRecHeader header;
@@ -110,7 +122,7 @@ public class STM {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
                 StgTVar tvar = (StgTVar) context.R1;
-                StgClosure newValue = (StgClosure) context.R2;
+                StgClosure newValue = context.R2;
                 cap.stmWriteTvar(tso.trec, tvar, newValue);
             }
         };
@@ -120,8 +132,54 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgClosure closure = (StgClosure) context.R1;
+                StgClosure closure = context.R1;
                 cap.stmAddInvariantToCheck(tso.trec.peek(), closure);
+            }
+        };
+
+    public static StgClosure atomically = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                StgTSO tso = context.currentTSO;
+                if (tso.trec.peek() != null) {
+                    context.R1 = null; /* TODO: base_ControlziExceptionziBase_nestedAtomically_closure */
+                    StgException.raise.enter(context);
+                } else {
+                    Capability cap = context.myCapability;
+                    StgClosure stm = context.R1;
+                    StgTRecHeader newTrec = cap.stmStartTransaction(null);
+                    tso.trec.push(newTrec);
+                    tso.sp.add(new StgAtomicallyFrame(stm));
+                    Apply.ap_v_fast.enter(context);
+                }
+            }
+        };
+
+    public static StgClosure catchSTM = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                StgClosure code = context.R1;
+                StgClosure handler = context.R2;
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec.peek());
+                tso.trec.push(newTrec);
+                tso.sp.add(new StgCatchSTMFrame(code, handler));
+                Apply.ap_v_fast.enter(context);
+            }
+        };
+
+    public static StgClosure catchRetry = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                StgClosure firstCode = context.R1;
+                StgClosure altCode = context.R2;
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec.peek());
+                tso.trec.push(newTrec);
+                tso.sp.add(new StgCatchRetryFrame(firstCode, altCode));
+                Apply.ap_v_fast.enter(context);
             }
         };
 }

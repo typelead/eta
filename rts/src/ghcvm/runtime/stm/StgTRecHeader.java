@@ -41,4 +41,19 @@ public class StgTRecHeader extends StgClosure {
         }
         return result;
     }
+
+    public final void connectInvariant(StgAtomicInvariant inv) {
+        /* ASSERT (inv.lastExection == null) */
+        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        loop:
+        while (cit.hasPrevious()) {
+            StgTRecChunk chunk = cit.previous();
+            for (TRecEntry e: chunk.entries) {
+                StgTVar s = e.tvar;
+                Queue<StgClosure> watchQueue = new ArrayDeque<StgClosure>();
+                watchQueue.offer(inv);
+                // TODO: Incomplete
+            }
+        }
+    }
 }

@@ -15,28 +15,46 @@ public abstract class StackFrame extends StgClosure {
     public final void enter(StgContext context) {
         ListIterator<StackFrame> sp = context.sp;
         // TODO: Test this logic
+
+        /* WARNING: This logic is VERY delicate. Make sure you
+                    run test cases before modifying this. */
+
+        /* Record the index at which this frame is in the stack */
         stackIndex = sp.previousIndex();
-        if (sp.hasNext()) {
-            sp.next().enter(context);
-        }
-        while (true) {
+        do {
+            /* If the stack has more frames, enter
+               into them */
+            if (sp.hasNext()) {
+                sp.next().enter(context);
+            }
             int index = sp.previousIndex();
             if (stackIndex == index) {
+                /* Execute the entry code for the stack frame */
                 stackEnter(context);
+                /* Ensure that the sp is shifted back
+                    to point to this frame */
+                index = sp.previousIndex();
+                while (stackIndex < index) {
+                    sp.previous();
+                    index--;
+                }
+                /* Pop the frame since we're done with it now */
                 sp.remove();
-                break;
             } else {
                 if (stackIndex < index) {
+                    /* If stackIndex < index, new frames have been added
+                        hence, we should update the Java method call stack
+                        to reflect it. */
                     do {
                         sp.previous();
-                        index = sp.previousIndex();
+                        index--;
                     } while (stackIndex < index);
-                    sp.next().enter(context);
                     continue;
                 }
-                break;
+                /* Whens stackIndex > index, do nothing and return
+                    to the frame below this one */
             }
-        }
+        } while (false);
    }
 
     public abstract void stackEnter(StgContext context);

@@ -11,11 +11,15 @@ import ghcvm.runtime.closure.StgContext;
 import ghcvm.runtime.stackframe.StackFrame;
 
 public class StgCatchRetryFrame extends StackFrame {
-    public final boolean runningAltCode;
+    public boolean runningAltCode;
     public final StgClosure firstCode;
     public final StgClosure altCode;
 
-    public StgCatchRetryFrame(final StgClosure firstCode, final StgClosure altCode, final boolean runningAltCode) {
+    public StgCatchRetryFrame(final StgClosure firstCode, final StgClosure altCode) {
+        this(firstCode, altCode, false);
+    }
+
+    public StgCatchRetryFrame(final StgClosure firstCode, final StgClosure altCode, boolean runningAltCode) {
         this.firstCode = firstCode;
         this.altCode = altCode;
         this.runningAltCode = runningAltCode;
@@ -36,13 +40,11 @@ public class StgCatchRetryFrame extends StackFrame {
             stack.push(newTrec);
             if (runningAltCode) {
                 context.R1 = altCode;
-                Apply.ap_v_fast.enter(context);
-                // TODO: jump with stack
             } else {
                 context.R1 = firstCode;
-                Apply.ap_v_fast.enter(context);
-                // TODO: jump with stack
             }
+            tso.sp.add(new StgCatchRetryFrame(firstCode, altCode, runningAltCode));
+            Apply.ap_v_fast.enter(context);
         } else {
             tso.trec.pop();
         }
