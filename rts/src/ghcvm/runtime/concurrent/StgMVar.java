@@ -4,9 +4,9 @@ import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
 import static ghcvm.runtime.thunk.StgWhiteHole.SPIN_COUNT;
 

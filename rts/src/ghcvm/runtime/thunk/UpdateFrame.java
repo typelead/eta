@@ -1,6 +1,6 @@
 package ghcvm.runtime.thunk;
 
-import ghcvm.runtime.stackframe.StackFrame;
+import ghcvm.runtime.stg.StackFrame;
 
 public abstract class UpdateFrame extends StackFrame {
     public final StgInd updatee;

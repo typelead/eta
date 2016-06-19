@@ -1,6 +1,6 @@
 package ghcvm.runtime.stg;
 
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgContext;
 
 public class NoDuplicateFrame extends StackFrame {
 

@@ -2,7 +2,7 @@ package ghcvm.runtime.stg;
 
 import java.lang.ref.WeakReference;
 
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
 import static ghcvm.runtime.RtsMessages.*;
 
 public class StgWeak extends StgClosure {

@@ -1,7 +1,7 @@
 package ghcvm.runtime.thunk;
 
 import ghcvm.runtime.thunk.StgWhiteHole;
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.StgClosure;
 
 public abstract class StgIndStatic extends StgInd {
 

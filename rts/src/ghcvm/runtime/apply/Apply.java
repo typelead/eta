@@ -1,7 +1,7 @@
 package ghcvm.runtime.apply;
 
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
 
 public class Apply {
     public static StgClosure ap_v_fast = new StgClosure() {

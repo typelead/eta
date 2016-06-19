@@ -1,4 +1,4 @@
-package ghcvm.runtime.types;
+package ghcvm.runtime.parallel;
 
 public class SparkCounters {
     public int created;

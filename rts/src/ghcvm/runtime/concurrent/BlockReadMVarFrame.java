@@ -1,7 +1,7 @@
 package ghcvm.runtime.concurrent;
 
 import ghcvm.runtime.stg.StackFrame;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgContext;
 
 public final class BlockReadMVarFrame extends StackFrame {
     public final StgMVar mvar;

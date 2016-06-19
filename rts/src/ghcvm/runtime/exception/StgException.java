@@ -1,6 +1,6 @@
 package ghcvm.runtime.exception;
 
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.StgClosure;
 
 public class StgException extends RuntimeException {
 

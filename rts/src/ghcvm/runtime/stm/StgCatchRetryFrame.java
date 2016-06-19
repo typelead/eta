@@ -3,12 +3,12 @@ package ghcvm.runtime.stm;
 import java.util.Stack;
 import java.util.ListIterator;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.apply.Apply;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
-import ghcvm.runtime.stackframe.StackFrame;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
 
 public class StgCatchRetryFrame extends StackFrame {
     public boolean runningAltCode;

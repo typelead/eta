@@ -10,13 +10,13 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import ghcvm.runtime.RtsFlags;
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
 import ghcvm.runtime.thread.WorkerThread;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsScheduler.SchedulerStatus.*;
 import static ghcvm.runtime.Rts.ExitCode.EXIT_FAILURE;
 import static ghcvm.runtime.RtsMessages.*;
-import static ghcvm.runtime.types.Capability.*;
+import static ghcvm.runtime.stg.Capability.*;
 import static ghcvm.runtime.Rts.*;
 
 public class Task {

@@ -1,7 +1,7 @@
 package ghcvm.runtime.message;
 
-import ghcvm.runtime.types.Capability;
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgClosure;
 import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class Message extends StgClosure {

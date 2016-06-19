@@ -3,13 +3,13 @@ package ghcvm.runtime.thunk;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import ghcvm.runtime.Stg;
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.StgPayload;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgPayload;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.message.MessageBlackHole;
 import static ghcvm.runtime.thunk.StgWhiteHole.stgWhiteHole;
-import static ghcvm.runtime.types.StgTSO.WhyBlocked.BlockedOnBlackHole;
+import static ghcvm.runtime.stg.StgTSO.WhyBlocked.BlockedOnBlackHole;
 
 public abstract class StgInd extends StgClosure {
     public static final StgPayload emptyPayload = new StgPayload();

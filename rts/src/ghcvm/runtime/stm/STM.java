@@ -5,10 +5,10 @@ import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ghcvm.runtime.RtsFlags;
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.exception.StgException;
 import ghcvm.runtime.apply.Apply;
 

@@ -2,8 +2,8 @@ package ghcvm.runtime.closure;
 
 import java.util.ListIterator;
 
-import ghcvm.runtime.types.*;
-import ghcvm.runtime.stackframe.*;
+import ghcvm.runtime.stg.*;
+import ghcvm.runtime.stg.*;
 
 public class StgContext {
     public StgClosure R1;

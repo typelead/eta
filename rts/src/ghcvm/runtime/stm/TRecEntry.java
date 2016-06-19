@@ -1,6 +1,6 @@
 package ghcvm.runtime.stm;
 
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.StgClosure;
 
 public class TRecEntry {
     public StgTVar tvar;

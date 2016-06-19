@@ -3,9 +3,9 @@ package ghcvm.runtime.message;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgClosure;
 import static ghcvm.runtime.thunk.StgWhiteHole.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {

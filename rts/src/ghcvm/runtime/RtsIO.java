@@ -1,8 +1,8 @@
 package ghcvm.runtime;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
-import static ghcvm.runtime.types.Capability.*;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
+import static ghcvm.runtime.stg.Capability.*;
 import static ghcvm.runtime.RtsMessages.*;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsScheduler.SchedulerState.*;

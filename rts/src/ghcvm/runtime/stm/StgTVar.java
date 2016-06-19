@@ -4,8 +4,8 @@ import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
 
 public class StgTVar extends StgClosure {

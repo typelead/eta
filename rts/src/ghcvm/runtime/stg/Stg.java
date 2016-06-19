@@ -1,6 +1,6 @@
 package ghcvm.runtime.stg;
 
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
 import ghcvm.runtime.apply.*;
 import ghcvm.runtime.exception.*;
 import ghcvm.runtime.thunk.*;

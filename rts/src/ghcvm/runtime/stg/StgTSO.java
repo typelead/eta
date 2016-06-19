@@ -11,14 +11,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ghcvm.runtime.*;
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.concurrent.*;
 import ghcvm.runtime.stm.*;
-import ghcvm.runtime.stackframe.*;
-import ghcvm.runtime.types.Task.InCall;
-import static ghcvm.runtime.types.StgTSO.WhyBlocked.*;
-import static ghcvm.runtime.types.StgTSO.WhatNext.*;
+import ghcvm.runtime.stg.*;
+import ghcvm.runtime.stg.Task.InCall;
+import static ghcvm.runtime.stg.StgTSO.WhyBlocked.*;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.*;
 import static ghcvm.runtime.thunk.StgWhiteHole.*;
 
 public final class StgTSO extends StgClosure {

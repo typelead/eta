@@ -3,11 +3,11 @@ package ghcvm.runtime.stg;
 import java.util.Deque;
 import java.util.ListIterator;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.exception.StgException;
-import static ghcvm.runtime.types.StgTSO.WhatNext.ThreadComplete;
-import static ghcvm.runtime.closure.StgContext.ReturnCode.ThreadFinished;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadComplete;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
 public class StgStopThread extends StackFrame {
 

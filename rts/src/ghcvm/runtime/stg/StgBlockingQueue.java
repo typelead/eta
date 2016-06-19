@@ -4,12 +4,12 @@ import java.util.Queue;
 import java.util.Iterator;
 import java.util.ArrayDeque;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.thunk.StgInd;
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.message.MessageBlackHole;
-import static ghcvm.runtime.types.StgTSO.WhyBlocked.NotBlocked;
+import static ghcvm.runtime.stg.StgTSO.WhyBlocked.NotBlocked;
 
 public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlackHole> {
     public final StgTSO owner;

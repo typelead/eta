@@ -1,8 +1,8 @@
 package ghcvm.runtime.exception;
 
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
-import ghcvm.runtime.stackframe.StackFrame;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
 
 public class StgCatchFame extends StackFrame {
     public final int exceptionsBlocked;

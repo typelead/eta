@@ -5,11 +5,11 @@ import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.ListIterator;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
-import ghcvm.runtime.stackframe.StackFrame;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.apply.Apply;
 
 public class StgAtomicallyFrame extends StackFrame {

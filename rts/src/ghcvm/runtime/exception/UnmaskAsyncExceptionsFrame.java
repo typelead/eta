@@ -1,15 +1,15 @@
 package ghcvm.runtime.exception;
 
 import ghcvm.runtime.Stg;
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
-import ghcvm.runtime.stackframe.StackFrame;
-import ghcvm.runtime.stackframe.ReturnClosure;
-import static ghcvm.runtime.types.StgTSO.TSO_BLOCKEX;
-import static ghcvm.runtime.types.StgTSO.TSO_INTERRUPTIBLE;
-import static ghcvm.runtime.types.StgTSO.WhatNext.ThreadRunGHC;
-import static ghcvm.runtime.types.StgTSO.WhatNext.ThreadKilled;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.ReturnClosure;
+import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
+import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadKilled;
 
 public class UnmaskAsyncExceptionsFrame extends StackFrame {
 

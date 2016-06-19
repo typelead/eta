@@ -1,8 +1,8 @@
 package ghcvm.runtime.stm;
 
-import ghcvm.runtime.stackframe.StackFrame;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
 
 public class StgCatchSTMFrame extends StackFrame {
     public final StgClosure code;

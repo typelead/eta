@@ -1,11 +1,11 @@
 package ghcvm.runtime.thunk;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
-import ghcvm.runtime.closure.StgClosure;
-import ghcvm.runtime.closure.StgContext;
-import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult;
-import static ghcvm.runtime.stackframe.StackFrame.MarkFrameResult.Marked;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import static ghcvm.runtime.stg.StackFrame.MarkFrameResult;
+import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Marked;
 
 public class StgMarkedUpdateFrame extends UpdateFrame {
 

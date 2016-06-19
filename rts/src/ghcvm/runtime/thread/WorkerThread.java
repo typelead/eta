@@ -2,7 +2,7 @@ package ghcvm.runtime.thread;
 
 import java.util.concurrent.locks.Lock;
 
-import ghcvm.runtime.types.*;
+import ghcvm.runtime.stg.*;
 
 public class WorkerThread extends Thread {
     private Task task;

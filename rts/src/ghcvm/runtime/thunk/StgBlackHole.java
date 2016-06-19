@@ -1,6 +1,6 @@
 package ghcvm.runtime.thunk;
 
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
 
 public class StgBlackHole extends StgClosure {
 

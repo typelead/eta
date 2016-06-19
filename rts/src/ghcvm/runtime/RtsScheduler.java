@@ -3,8 +3,8 @@ package ghcvm.runtime;
 import java.util.concurrent.locks.Lock;
 import java.util.Queue;
 import java.util.ArrayDeque;
-import ghcvm.runtime.types.*;
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
+import ghcvm.runtime.stg.*;
 import static ghcvm.runtime.RtsMessages.*;
 
 public class RtsScheduler {

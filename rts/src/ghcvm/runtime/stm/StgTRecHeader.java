@@ -6,7 +6,7 @@ import java.util.ArrayDeque;
 import java.util.ListIterator;
 
 import ghcvm.runtime.RtsFlags;
-import ghcvm.runtime.closure.StgClosure;
+import ghcvm.runtime.stg.StgClosure;
 
 public class StgTRecHeader extends StgClosure {
     public Stack<StgTRecChunk> chunkStack = new Stack<StgTRecChunk>();

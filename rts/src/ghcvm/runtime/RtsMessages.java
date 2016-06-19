@@ -1,7 +1,7 @@
 package ghcvm.runtime;
 
 import static ghcvm.runtime.Rts.*;
-import ghcvm.runtime.closure.*;
+import ghcvm.runtime.stg.*;
 import static ghcvm.runtime.RtsFlags.*;
 import static ghcvm.runtime.Rts.ExitCode.*;
 

@@ -1,7 +1,7 @@
 package ghcvm.runtime.message;
 
-import ghcvm.runtime.types.StgTSO;
-import ghcvm.runtime.types.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.thunk.StgInd;
 
 public final class MessageBlackHole extends Message {

@@ -1,8 +1,8 @@
 package ghcvm.runtime.exception;
 
-import ghcvm.runtime.stackframe.StackFrame;
-import ghcvm.runtime.closure.StgContext;
-import static ghcvm.runtime.types.StgTSO.*;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgContext;
+import static ghcvm.runtime.stg.StgTSO.*;
 
 public class MaskAsyncExceptionsFrame extends StackFrame {
 

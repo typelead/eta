@@ -3,7 +3,6 @@ package ghcvm.runtime.thunk;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import ghcvm.runtime.closure.*;
 
 public class CAFs {
     public static Queue<StgIndStatic> revertibleCAFList = new ConcurrentLinkedQueue<StgIndStatic>();

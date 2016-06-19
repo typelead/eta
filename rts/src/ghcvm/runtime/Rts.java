@@ -2,9 +2,9 @@ package ghcvm.runtime;
 
 import java.util.concurrent.locks.Lock;
 
-import ghcvm.runtime.types.*;
-import ghcvm.runtime.closure.*;
-import ghcvm.runtime.stackframe.*;
+import ghcvm.runtime.stg.*;
+import ghcvm.runtime.stg.*;
+import ghcvm.runtime.stg.*;
 import static ghcvm.runtime.RtsScheduler.*;
 import static ghcvm.runtime.RtsMessages.*;
 
