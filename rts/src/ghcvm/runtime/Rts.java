@@ -82,15 +82,15 @@ public class Rts {
     public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
     public static StgTSO createIOThread(Capability cap, StgClosure p) {
         StgTSO t = new StgTSO(cap);
-        t.pushClosure(Stg.ap_v);
+        t.pushClosure(new ApV());
         t.pushClosure(new StgEnter(p));
         return t;
     }
 
     public static StgTSO createStrictIOThread(Capability cap, StgClosure p) {
         StgTSO t = new StgTSO(cap);
-        t.pushClosure(Stg.forceIO);
-        t.pushClosure(Stg.ap_v);
+        t.pushClosure(new ForceIO());
+        t.pushClosure(new ApV());
         t.pushClosure(new StgEnter(p));
         return t;
     }

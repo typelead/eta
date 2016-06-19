@@ -37,7 +37,7 @@ public abstract class StgInd extends StgClosure {
                         currentTSO.whyBlocked = BlockedOnBlackHole;
                         currentTSO.blockInfo = msg;
                         context.R1 = this;
-                        Stg.block_blackhole.enter(context);
+                        Thunk.block_blackhole.enter(context);
                     } else {
                         continue retry;
                     }
