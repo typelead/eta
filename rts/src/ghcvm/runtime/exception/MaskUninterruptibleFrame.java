@@ -6,11 +6,12 @@ import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 
-public class MaskAsyncExceptionsFrame extends StackFrame {
+public class MaskUninterruptableFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
         StgTSO tso = context.currentTSO;
-        tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
+        tso.addFlags(TSO_BLOCKEX);
+        tso.removeFlags(TSO_INTERRUPTIBLE);
     }
 }

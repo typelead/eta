@@ -1185,6 +1185,18 @@ public final class Capability {
         runQueue.remove(tso);
     }
 
+    public final MessageThrowTo throwTo(StgTSO source, StgTSO target, StgClosure exception) {
+        /* TODO: Lock this message at start */
+        MessageThrowTo msg = new MessageThrowTo(source, target, exception);
+        boolean result = throwToMsg(msg);
+        if (result) {
+            /* TODO: Unlock this message */
+            return null;
+        } else {
+            return msg;
+        }
+    }
+
     public final boolean throwToMsg(MessageThrowTo msg) {
         StgTSO target = msg.target;
         // retry: write_barrier

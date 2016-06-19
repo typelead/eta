@@ -19,7 +19,6 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
         StgTSO tso = context.currentTSO;
         StgClosure ret = context.R1;
         ListIterator<StackFrame> sp = tso.sp;
-        // TODO: Verify stack operations
         tso.removeFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         if (!tso.blockedExceptions.isEmpty()) {
             sp.add(new ReturnClosure(ret));
@@ -27,14 +26,10 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
             if (performed) {
                 if (tso.whatNext == ThreadKilled) {
                     Stg.threadFinished.enter(context);
-                    return;
                 } else {
-                    tso.whatNext = ThreadRunGHC;
-                    context.R1 = ret;
-                    return;
-                    // Iterator<StackFrame> it = stack.descendingIterator();
-                    // context.it = it;
-                    // it.next().enter(context);
+                    /* TODO: Verify R1 is conserved on the next
+                             stack reload. */
+                    throw StgException.stackReloadException;
                 }
             } else {
                 /* TODO: Verify that the stack hasn't been modified by

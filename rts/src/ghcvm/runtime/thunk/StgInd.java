@@ -2,7 +2,6 @@ package ghcvm.runtime.thunk;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import ghcvm.runtime.Stg;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgPayload;
 import ghcvm.runtime.stg.StgClosure;
