@@ -71,4 +71,19 @@ public class StgAtomicallyFrame extends StackFrame {
         }
     }
 
+    @Override
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+        if (stopAtAtomically) {
+            cap.stmCondemnTransaction(tso.trec);
+            /* TODO: Should a separate value be used
+                     instead of null? */
+            sp.add(new ReturnClosure(null));
+            tso.whatNext = ThreadRunGHC;
+            return false;
+        } else {
+            /* TODO: Implement after refactor of STM */
+            sp.previous();
+            return true;
+        }
+    }
 }

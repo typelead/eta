@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgClosure;
 import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class Message extends StgClosure {
-    protected boolean valid = true;
+    protected volatile boolean valid = true;
     public boolean isValid() { return valid; }
     public void invalidate() { valid = false; }
     public void execute(Capability cap) {

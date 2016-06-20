@@ -13,19 +13,21 @@ public class StgStopThread extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgTSO currentTSO = context.currentTSO;
-        ListIterator<StackFrame> sp = context.sp;
+        StgTSO tso = context.currentTSO;
+        ListIterator<StackFrame> sp = tso.sp;
+        sp.previous();
         sp.remove();
         sp.add(new StgEnter(context.R1));
-        currentTSO.whatNext = ThreadComplete;
+        tso.whatNext = ThreadComplete;
         context.ret = ThreadFinished;
         throw StgException.stgReturnException;
     }
 
     @Override
-    public RaiseAsyncResult doRaiseAsync() {
+    public boolean doRaiseAsync() {
         tso.whatNext = ThreadKilled;
+        sp.previous();
         sp.remove();
-        return Finish;
+        return false;
     }
 }

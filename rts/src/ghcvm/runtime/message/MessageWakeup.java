@@ -13,7 +13,6 @@ public final class MessageWakeup extends Message {
 
     @Override
     public final void execute(Capability cap) {
-        //write barrier
         cap.tryWakeupThread(tso);
     }
 }

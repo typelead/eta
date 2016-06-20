@@ -10,7 +10,7 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
-public class StgCatchRetryFrame extends StackFrame {
+public class StgCatchRetryFrame extends StgSTMCatchFrame {
     public boolean runningAltCode;
     public final StgClosure firstCode;
     public final StgClosure altCode;

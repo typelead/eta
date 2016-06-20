@@ -1,4 +1,4 @@
-package ghcvm.runtime.closure;
+package ghcvm.runtime.stg;
 
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;

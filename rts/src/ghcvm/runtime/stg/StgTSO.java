@@ -162,8 +162,8 @@ public final class StgTSO extends StgClosure {
     }
 
     public final void lock() {
-        int i = 0;
         do {
+            int i = 0;
             do {
                 boolean old = lock.getAndSet(true);
                 if (!old) return;
@@ -177,9 +177,10 @@ public final class StgTSO extends StgClosure {
     }
 
     public final boolean tryLock() {
-        boolean old = lock.getAndSet(true);
-        if (!old) return true;
-        else return false;
+        return lock.getAndSet(true);
     }
 
+    public static int showIfFlags(int flags) {
+        return this.flags & flags;
+    }
 }

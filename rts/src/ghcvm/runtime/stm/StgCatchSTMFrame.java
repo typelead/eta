@@ -4,7 +4,7 @@ import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 
-public class StgCatchSTMFrame extends StackFrame {
+public class StgCatchSTMFrame extends StgSTMCatchFrame {
     public final StgClosure code;
     public final StgClosure handler;
 

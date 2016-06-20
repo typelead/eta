@@ -13,7 +13,7 @@ public abstract class StackFrame extends StgClosure {
 
     @Override
     public final void enter(StgContext context) {
-        ListIterator<StackFrame> sp = context.sp;
+        ListIterator<StackFrame> sp = context.currentTSO.sp;
         // TODO: Test this logic
 
         /* WARNING: This logic is VERY delicate. Make sure you
@@ -39,6 +39,7 @@ public abstract class StackFrame extends StgClosure {
                     index--;
                 }
                 /* Pop the frame since we're done with it now */
+                /* TODO: Check if a next() or previous() is required here */
                 sp.remove();
             } else {
                 if (stackIndex < index) {
@@ -64,12 +65,10 @@ public abstract class StackFrame extends StgClosure {
         Marked, Stop, Default, Update, UpdateEvaluted
     }
 
-    public RaiseAsyncResult doRaiseAsync(Capability cap, StgTSO tso) {
-        return Something;
-    }
-
-    public enum RaiseAsyncResult {
-        Something
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+        /* Move to the next stack frame */
+        tso.sp.previous();
+        return true;
     }
 
     public StgClosure getClosure() { return null; }

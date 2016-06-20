@@ -65,7 +65,7 @@ public class Concurrent {
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R1;
                 StgTSO tso = context.currentTSO;
-                context.sp.add(new BlockReadMVarFrame(mvar));
+                tso.sp.add(new BlockReadMVarFrame(mvar));
                 tso.whatNext = ThreadRunGHC;
                 context.ret = ThreadBlocked;
                 Stg.returnToSched.enter(context);

@@ -225,18 +225,18 @@ public final class Capability {
                     /* Update the context state */
                     context.myCapability = cap;
 
-                    /* Shift sp to the beginning of the stack */
-                    ListIterator<StackFrame> sp = t.sp;
-                    while (sp.hasPrevious()) {
-                        sp.previous();
-                    }
-
                     /* Reload is used for synchronizing the Java method call
                        stack with the actual stack of the TSO. Normally, it
                        isn't done. */
                     boolean reload = false;
                     do {
                         reload = false;
+                        /* Rewind sp to the bottom of the stack */
+                        ListIterator<StackFrame> sp = t.sp;
+                        while (sp.hasPrevious()) {
+                            sp.previous();
+                        }
+
                         try {
                             sp.next().enter(context);
                         } catch (ThreadYieldException e) {
@@ -249,6 +249,13 @@ public final class Capability {
                             /* TODO: Currently, this reload logic assumes that
                                      the tso doesn't change. Remove this when
                                      confirmed. */
+                        } catch (StackOverflowError e) {
+                            /* TODO: Handle a stack overflow by resetting the
+                                     stack and pushing the top most closure
+                                     into an enter frame and restarting.
+                                     Make sure you check whether this is the
+                                     first time, otherwise, a infinite loop
+                                     will occur. */
                         } finally {
                             /* TODO: Is this the right way to grab the
                                      context? */
@@ -528,13 +535,15 @@ public final class Capability {
             // scheduleDoGC
             Lock l = cap.lock;
             if (l.tryLock()) {
-                Deque<Message> inbox = cap.inbox;
+                Deque<Message> inbox = new ArrayDeque<Message>(cap.inbox);
                 try {
                     cap.inbox.clear();
                 } finally {
                     l.unlock();
                 }
                 for (Message m: inbox) {
+                    while (m.isLocked()) {}
+                    if (!m.isValid()) continue;
                     m.execute(this);
                 }
             } else {
@@ -605,37 +614,39 @@ public final class Capability {
     }
 
     public final boolean maybePerformBlockedException(StgTSO tso) {
+        boolean noBlockedExceptions = tso.blockedExceptions.isEmpty();
         if (tso.whatNext == ThreadComplete /*|| tso.whatNext == ThreadFinished */) {
-            if (tso.blockedExceptions.isEmpty()) {
+            if (noBlockedExceptions) {
                 return false;
             } else {
                 awakenBlockedExceptionQueue(tso);
                 return true;
             }
-        }
+        } else {
+            /* TODO: Add debugging statement here
+            if (!noBlockedExceptions && tso.hasFlag(TSO_BLOCKEX)) {
+                debugTraceCap(DEBUG_SCHED, this, "throwTo: thread %d has blocked exceptions but is inside block", tso.id);
+                } */
 
-        if (!tso.blockedExceptions.isEmpty() && tso.hasFlag(TSO_BLOCKEX)) {
-            // debugTraceCap(DEBUG_SCHED, this, "throwTo: thread %d has blocked exceptions but is inside block", tso.id);
+            if (!noBlockedExceptions && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
+                do {
+                    MessageThrowTo msg = tso.blockedExceptions.peek();
+                    if (msg == null) return false;
+                    msg.lock();
+                    tso.blockedExceptions.poll();
+                    if (!msg.isValid()) {
+                        msg.unlock();
+                        continue;
+                    }
+                    throwToSingleThreaded(msg.target, msg.exception);
+                    StgTSO source = msg.source;
+                    msg.done();
+                    tryWakeupThread(source);
+                    return true;
+                } while (false);
+            }
+            return false;
         }
-
-        if (!tso.blockedExceptions.isEmpty() && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
-            loop: do {
-                MessageThrowTo msg = tso.blockedExceptions.peekFirst();
-                if (msg == null) return false;
-                msg.lock();
-                tso.blockedExceptions.poll();
-                if (!msg.isValid()) {
-                    msg.unlock();
-                    continue loop;
-                }
-                throwToSingleThreaded(msg.target, msg.exception);
-                StgTSO source = msg.source;
-                msg.done();
-                tryWakeupThread(source);
-                return true;
-            } while (true);
-        }
-        return false;
     }
 
     public final void awakenBlockedExceptionQueue(StgTSO tso) {
@@ -662,36 +673,41 @@ public final class Capability {
             }
         }
 
+        boolean unblock = false;
+
         switch (tso.whyBlocked) {
             case BlockedOnMVar:
             case BlockedOnMVarRead:
                 if (!tso.inMVarOperation) {
                     tso.blockInfo = null;
-                    break;
-                } else {
-                    return;
+                    unblock = true;
                 }
+                break;
             case BlockedOnMsgThrowTo:
                 MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
                 msg.lock();
+                /* TODO: Is it a good idea to unlock right afterwards? */
                 msg.unlock();
                 if (msg.isValid()) {
-                    return;
-                } else {
-                    // TODO: check stack operations
+                    tso.sp.previous();
                     tso.sp.remove();
+                    unblock = true;
                 }
                 break;
             case BlockedOnBlackHole:
             case BlockedOnSTM:
             case ThreadMigrating:
+                unblock = true;
                 break;
             default:
-                return;
+                break;
         }
-        tso.whyBlocked = NotBlocked;
-        appendToRunQueue(tso);
-        // can context switch now
+
+        if (unblock) {
+            tso.whyBlocked = NotBlocked;
+            appendToRunQueue(tso);
+            // can context switch now
+        }
     }
 
     public final void sendMessage(Capability target, Message msg) {
@@ -873,10 +889,9 @@ public final class Capability {
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
+        Stack<StackFrame> stack = tso.sp
+        /* ASSUMPTION: sp is pointing to the top of the stack */
         ListIterator<StackFrame> sp = tso.sp;
-        /* Ensure that the sp is pointing to
-           the top of the stack. */
-        while (sp.hasNext()) { sp.next(); }
 
         StgInd updatee = null;
         if (stopHere != null) {
@@ -884,21 +899,28 @@ public final class Capability {
         }
 
         /* Ensure stack has a closure at the top */
-        if (frame.getClosure() == null)  {
-            sp.add(new StgDummyRet());
+        if (stack.peek().getClosure() == null)  {
+            sp.add(new StgDummyFrame());
         }
 
-        ListIterator<StackFrame> frameIt = tso.stack.listIterator(sp.nextIndex() - 1);
-        StackFrame frame = frameIt.previous();
-        // This condition assumes that stopHere is below frame
-        while (stopHere == null || frame != stopHere) {
-            RaiseAsyncResult result = frame.doRaiseAsync(cap, tso, exception, stopAtAtomically, frameIt);
-            // TODO: Implement later
-            if (result.stop) {
-                break;
-            } else {
-                frame = sp.previous();
-            }
+        /* Adjust the sp to point to after the frame to text */
+        sp.previous();
+        int stopIndex = -1;
+        if (stopHere != null) {
+            stopIndex = stack.size() - stack.search(stopHere);
+        }
+
+        while (sp.previousIndex() > stopIndex) {
+            /* TODO: Make a custom peeking iterator */
+            StackFrame frame = Utils.peekPrevious(sp);
+            boolean shouldContinue = frame.doRaiseAsync(this, tso, exception, stopAtAtomically, updatee);
+            if (!shouldContinue) break;
+        }
+
+        /* Maintain the invariant that sp should always
+           point to stack top. */
+        while (sp.hasNext()) {
+            sp.next();
         }
 
         if (tso.whyBlocked != NotBlocked) {
@@ -1777,9 +1799,18 @@ public final class Capability {
         return result;
     }
 
-    public void threadStackUnderflow(StgTSO tso) {
+    public final void threadStackUnderflow(StgTSO tso) {
         Stack<StackFrame> oldStack = tso.stack;
-
+        /* TODO: Finish implementation */
     }
 
+    public final int raiseExceptionHelper(StgTSO tso, StgClosure exception) {
+        StgClosure raiseClosure;
+        /* TODO: Finish implementation */
+        return 0;
+    }
+
+    public final void stmCondemnTransaction(StgTRecHeader trec) {
+        /* TODO: Implement */
+    }
 }

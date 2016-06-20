@@ -1,4 +1,4 @@
-package ghcvm.runtime.closure;
+package ghcvm.runtime.stg;
 
 import java.util.ListIterator;
 

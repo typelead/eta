@@ -1,4 +1,4 @@
-package ghcvm.runtime.closure;
+package ghcvm.runtime.stg;
 
 public class StgFun extends StgClosure {
     public byte arity;

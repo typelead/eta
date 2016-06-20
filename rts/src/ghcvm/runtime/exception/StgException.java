@@ -9,6 +9,9 @@ public class StgException extends RuntimeException {
         return null;
     }
 
+    /* TODO: Should this be volatile/atomic? */
+    public static boolean noBreakOnException = false;
+
     public static StgException stgReturnException = new StgReturnException();
     public static StgException threadYieldException = new ThreadYieldException();
     public static StgException stackReloadException = new StackReloadException();
@@ -34,7 +37,7 @@ public class StgException extends RuntimeException {
                 } else {
                     StackFrame top = tso.stack.peek();
                     if (top.getClass() == MaskAsyncExceptionsFrame.class) {
-                        /* TODO: Ensure that this is correct placement */
+                        sp.previous();
                         sp.remove();
                     } else {
                         sp.add(new UnmaskAsyncExceptionsFrame());
@@ -58,7 +61,7 @@ public class StgException extends RuntimeException {
                 } else {
                     StackFrame top = tso.stack.peek();
                     if (top.getClass() == MaskUninterruptableFrame.class) {
-                        /* TODO: Ensure that this is correct placement */
+                        sp.previous();
                         sp.remove();
                     } else {
                         sp.add(new UnmaskAsyncExceptionsFrame());
@@ -80,7 +83,7 @@ public class StgException extends RuntimeException {
                 if (tso.hasFlag(TSO_BLOCKEX)) {
                     StackFrame top = tso.stack.peek();
                     if (top.getClass() == UnmaskAsyncExceptionsFrame.class) {
-                        /* TODO: Ensure that this is correct placement */
+                        sp.previous();
                         sp.remove();
                     } else {
                         if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
@@ -103,10 +106,9 @@ public class StgException extends RuntimeException {
                                 throw StgException.stackReloadException;
                             }
                         } else {
-                            /* TODO: Verify that the stack hasn't been modified by
-                               maybePerformBlockedException() or this will
-                               remove an unknown frame. */
+                            sp.previous();
                             sp.remove();
+                            sp.previous();
                             sp.remove();
                         }
                     }
@@ -137,5 +139,52 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure raise = null; /* TODO: Implement */
+    public static StgClosure killMyself = new StgClosure() {
+            @Override
+            public void enter(StgContext context) {
+                StgClosure target = context.R1;
+                StgClosure exception = context.R2;
+                Capability cap = context.myCapability;
+                cap.throwToSingleThreaded(target, exception);
+                StgTSO tso = context.currentTSO;
+                if (tso.whatNext == ThreadKilled) {
+                    Stg.threadFinished.enter(context);
+                } else {
+                    throw StgException.stackReloadException;
+                }
+            }
+        };
+
+    public static StgClosure catch_ = new StgClosure() {
+            @Override
+            public void enter(StgContext context) {
+                StgClosure handler = context.R2;
+                StgTSO tso = context.currentTSO;
+                ListIterator<StackFrame> sp = tso.sp;
+                int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
+                sp.add(new StgCatchFrame(exceptionsBlocked, handler));
+                Apply.ap_v_fast.enter(context);
+            }
+        };
+
+
+    public static StgClosure raise = new StgClosure() {
+            @Override
+            public void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                StgClosure exception = context.R1;
+                do {
+                    cap.raiseExceptionHelper(tso, exception);
+                    /* TODO: Finish implementation */
+                } while (false);
+            }
+        };
+
+    public static StgClosure raiseIO = new StgClosure() {
+            @Override
+            public void enter(StgContext context) {
+                raise.enter(context);
+            }
+        };
 }

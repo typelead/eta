@@ -44,20 +44,20 @@ public class Stg {
             @Override
             public void enter(StgContext context) {
                 if (Capability.nCapabilities != 1) {
+                    Capability cap = context.myCapability;
                     StgTSO tso = context.currentTSO;
-                    ListIterator<StackFrame> sp = context.sp;
+                    ListIterator<StackFrame> sp = tso.sp;
                     sp.add(new NoDuplicateFrame());
-                    context.myCapability.threadPaused(tso);
+                    cap.threadPaused(tso);
                     if (tso.whatNext == ThreadKilled) {
-                        Stg.threadFinished.enter(context);
+                        threadFinished.enter(context);
                     } else {
-                        // TODO: Ensure stack logic is correct;
-                        StackFrame frame = sp.previous();
-                        if (frame.getClass().equals(NoDuplicateFrame.class)) {
+                        StackFrame top = tso.stack.peek();
+                        if (top.getClass() == NoDuplicateFrame.class) {
+                            sp.previous();
                             sp.remove();
                         }
-                        // Iterator<StackFrame> it = tso.stack.descendingIterator();
-                        // it.next().enter(context);
+                        throw StgException.stackReloadException;
                     }
                 }
             }

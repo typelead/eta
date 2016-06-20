@@ -32,9 +32,7 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
                     throw StgException.stackReloadException;
                 }
             } else {
-                /* TODO: Verify that the stack hasn't been modified by
-                         maybePerformBlockedException() or this will
-                         remove an unknown frame. */
+                sp.previous();
                 sp.remove();
             }
         } else {
