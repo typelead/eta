@@ -26,4 +26,13 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
         /* TODO: Implement when dealing with StackOverflowError */
         return true;
     }
+
+    @Override
+    public boolean doFindRetry(Capability cap, StgTSO tso) {
+        tso.sp.next();
+        cap.threadStackUnderflow(tso);
+        /* TODO: Figure out how to arrange the stack here.
+                 Implement when dealing with StackOverflows. */
+        return true;
+    }
 }

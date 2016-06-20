@@ -75,7 +75,7 @@ public abstract class StackFrame extends StgClosure {
     public StgClosure getClosure() { return null; }
 
     public boolean doFindRetry(Capability cap, StgTSO tso) {
-        /* TODO: Implement the default case */
-        return false;
+        /* Move to the next stack frame */
+        return true;
     }
 }

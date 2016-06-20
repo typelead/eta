@@ -37,4 +37,13 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
         }
     }
 
+    @Override
+    public boolean doFindRetry(Capability cap, StgTSO tso) {
+        StgTRecHeader trec = tso.trec;
+        StgTRecHeader outer = trec.enclosingTrec;
+        cap.stmAbortTransaction(trec);
+        cap.stmFreeAbortedTrec(trec);
+        tso.trec = outer;
+        return true;
+    }
 }

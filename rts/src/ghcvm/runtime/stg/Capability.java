@@ -1867,13 +1867,18 @@ public final class Capability {
         return result;
     }
 
-    public final void findRetryFrameHelper(StgTSO tso) {
+    public final StackFrame findRetryFrameHelper(StgTSO tso) {
         ListIterator<StackFrame> sp = tso.sp;
         boolean shouldContinue = true;
+        StackFrame frame = null;
         while (shouldContinue) {
-            StackFrame frame = sp.previous();
+            frame = sp.previous();
+            /* doFindRetry should expect that the current frame be at sp.next()
+               and should return the iterator such that sp.previous() will
+               hold the next frame*/
             shouldContinue = frame.doFindRetry(this, tso);
         }
+        return frame;
     }
 
     public final void createSparkThread(Capability cap) {
@@ -1892,5 +1897,43 @@ public final class Capability {
             sparkStats.dud++;
         }
         return true;
+    }
+
+    public final void stmFreeAbortedTrec(StgTRecHeader trec) {
+        freeTRecHeader(trec);
+    }
+
+    public final boolean stmWait(StgTSO tso, StgTRecHeader trec) {
+        STM.lock(trec);
+        boolean result = validateAndAcquireOwnership(trec, true, true);
+        if (result) {
+            buildWatchQueueEntriesForTrec(tso, trec);
+            tso.park();
+            trec.state = TREC_WAITING;
+        } else {
+            STM.unlock(trec);
+            freeTRecHeader(trec);
+        }
+        return result;
+    }
+
+    public final void buildWatchQueueEntriesForTrec(StgTSO tso, StgTRecHeader trec) {
+        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+        while (cit.hasPrevious()) {
+            StgTRecChunk chunk = cit.previous();
+            for (TRecEntry e: chunk.entries) {
+                StgTVar s = e.tvar;
+                /* TODO: Fix order of queue */
+                s.watchQueue.offer(tso);
+                /* NOTE: The original implementation sets a watchqueue
+                         closure */
+                e.newValue = tso;
+            }
+        }
+    }
+
+    public final void stmWaitUnlock(StgTRecHeader trec) {
+        revertOwnership(trec, true);
+        STM.unlock(trec);
     }
 }

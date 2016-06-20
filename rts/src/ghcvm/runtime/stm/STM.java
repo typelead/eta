@@ -5,6 +5,7 @@ import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ghcvm.runtime.RtsFlags;
+import ghcvm.runtime.stg.Stg;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgClosure;
@@ -12,6 +13,8 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.exception.StgException;
 import ghcvm.runtime.apply.Apply;
 import static ghcvm.runtime.stm.TRecState.TREC_ACTIVE;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 
 public class STM {
     public static long TOKEN_BATCH_SIZE = 1024;
@@ -187,8 +190,27 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                cap.findRetryFrameHelper(tso);
-                /* Now sp.previous() will point to a frame */
+                StgTRecHeader trec = tso.trec;
+                /* findRetryFrameHelper will arrange the stack pointer so
+                   that sp.next() should point to the desired frame */
+                boolean retry = false;
+                do {
+                    StgSTMFrame stmFrame = (StgSTMFrame) cap.findRetryFrameHelper(tso);
+                    retry = stmFrame.doRetry(cap, tso, trec);
+                } while (retry);
+            }
+        };
+
+    public static StgClosure block_stmwait  = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                StgTRecHeader trec = (StgTRecHeader) context.R3;
+                cap.stmWaitUnlock(trec);
+                tso.whatNext = ThreadRunGHC;
+                context.ret = ThreadBlocked;
+                Stg.returnToSched.enter(context);
             }
         };
 }

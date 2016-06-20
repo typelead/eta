@@ -47,4 +47,30 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
         }
     }
 
+    @Override
+    public boolean doFindRetry(Capability cap, StgTSO tso) {
+        return false;
+    }
+
+    @Override
+    public boolean doRetry(Capability cap, StgTSO tso, StgTRecHeader trec) {
+        StgContext context = cap.context;
+        StgTRecHeader outer = trec.enclosingTrec;
+        cap.stmAbortTransaction(trec);
+        cap.stmFreeAbortedTrec(trec);
+        if (runningAltCode) {
+            tso.trec = outer;
+            /* TODO: Ensure stack operations */
+            tso.sp.next();
+            tso.sp.remove();
+            return true;
+        } else {
+            StgTRecHeader newTrec = cap.stmStartTransaction(outer);
+            tso.trec = newTrec;
+            runningAltCode = true;
+            context.R1 = altCode;
+            Apply.ap_v_fast.enter(context);
+            return false;
+        }
+    }
 }
