@@ -31,7 +31,7 @@ public final class StgTSO extends StgClosure {
     public WhatNext whatNext = ThreadRunGHC;
     public WhyBlocked whyBlocked = NotBlocked;
     public Task.InCall bound;
-    public Stack<StgTRecHeader> trec = new Stack<StgTRecHeader>();
+    public StgTRecHeader trec;
     public Capability cap;
     public StgClosure blockInfo;
     public int flags;
@@ -39,9 +39,8 @@ public final class StgTSO extends StgClosure {
     public boolean inMVarOperation;
     public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
     public AtomicBoolean lock = new AtomicBoolean(false);
-    // If PROFILING StgTSOProfInfo prof;
 
-    // Flags
+    /* TSO Flags */
     public static final int TSO_LOCKED = 2;
     public static final int TSO_BLOCKEX = 4;
     public static final int TSO_INTERRUPTIBLE = 8;
@@ -182,5 +181,10 @@ public final class StgTSO extends StgClosure {
 
     public final int showIfFlags(int flags) {
         return this.flags & flags;
+    }
+
+    public void park() {
+        whyBlocked = BlockedOnSTM;
+        blockInfo = null;
     }
 }

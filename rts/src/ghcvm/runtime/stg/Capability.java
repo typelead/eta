@@ -106,16 +106,18 @@ public final class Capability {
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
-    public SparkPool sparks = new SparkPool();
+    public WSDeque<StgClosure> sparks; // TODO: Initialise = new WSDeque<StgClosure>();
+
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
-    // STM-related data structures
+
+    /* STM-related data structures */
     public Stack<StgTRecChunk> freeTRecChunks = new Stack<StgTRecChunk>();
     public Queue<StgInvariantCheck> freeInvariantChecksQueue = new ArrayDeque<StgInvariantCheck>();
     public Queue<StgTRecHeader> freeTRecHeaders = new ArrayDeque<StgTRecHeader>();
     public long transactionTokens;
 
-    public int ioManagerControlWrFd; // Not sure if this is necessary
+    public int ioManagerControlWrFd; /* TODO: Finish implementation of IO manager */
 
     public Capability(int i) {
         this.no = i;
@@ -1364,10 +1366,9 @@ public final class Capability {
     }
 
     /* STM Operations */
-    public final StgClosure stmReadTvar(Stack<StgTRecHeader> trecStack, StgTVar tvar) {
+    public final StgClosure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
         StgClosure result;
-        StgTRecHeader trec = trecStack.peek();
-        EntrySearchResult searchResult = STM.getEntry(trecStack, tvar);
+        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
         TRecEntry entry = searchResult.entry;
         if (entry == null) {
@@ -1413,9 +1414,8 @@ public final class Capability {
         return result;
     }
 
-    public final void stmWriteTvar(Stack<StgTRecHeader> trecStack, StgTVar tvar, StgClosure newValue) {
-        StgTRecHeader trec = trecStack.peek();
-        EntrySearchResult searchResult = STM.getEntry(trecStack, tvar);
+    public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, StgClosure newValue) {
+        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
         TRecEntry entry = searchResult.entry;
         if (entry == null) {
@@ -1455,16 +1455,16 @@ public final class Capability {
         return result;
     }
 
-    public final boolean stmCommitNestedTransaction(StgTRecHeader trec, StgTRecHeader et) {
+    public final boolean stmCommitNestedTransaction(StgTRecHeader trec) {
         STM.lock(trec);
+        StgTRecHeader et = trec.enclosingTrec;
         boolean result = validateAndAcquireOwnership(trec, !STM.configUseReadPhase, true);
         if (result) {
             if (STM.configUseReadPhase) {
                 result = trec.checkReadOnly();
             }
             if (result) {
-                Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-                ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+                ListIterator<StgTRecChunk> cit = trec.chunkIterator();
                 loop:
                 while (cit.hasPrevious()) {
                     StgTRecChunk chunk = cit.previous();
@@ -1491,8 +1491,7 @@ public final class Capability {
         } else {
             boolean result = trec.state != TREC_CONDEMNED;
             if (result) {
-                Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-                ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+                ListIterator<StgTRecChunk> cit = trec.chunkIterator();
                 loop:
                 while (cit.hasPrevious()) {
                     StgTRecChunk chunk = cit.previous();
@@ -1531,8 +1530,7 @@ public final class Capability {
 
     public final void revertOwnership(StgTRecHeader trec, boolean revertAll) {
         if (RtsFlags.STM.fineGrained) {
-            Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
             loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
@@ -1550,8 +1548,8 @@ public final class Capability {
     }
 
     public final void freeTRecHeader(StgTRecHeader trec) {
-        Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        /* TODO: Verify logic is correct */
+        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
         StgTRecChunk currentChunk = cit.previous();
         StgTRecChunk chunk = cit.previous();
         while (cit.hasPrevious()) {
@@ -1560,10 +1558,11 @@ public final class Capability {
             chunk = prevChunk;
         }
         /* Clean out all chunks but one */
-        cit = chunkStack.listIterator();
+        cit = trec.chunkStack.listIterator();
         chunk = cit.next();
-        while (chunk != currentChunk && cit.hasNext()) {
+        while (cit.hasNext()) {
             cit.remove();
+            chunk = cit.next();
         }
         currentChunk.reset();
         trec.invariantsToCheck.clear();
@@ -1603,18 +1602,13 @@ public final class Capability {
         } else {
             result = freeTRecHeaders.poll();
         }
-        if (enclosingTrec == null) {
-            result.state = TREC_ACTIVE;
-        } else {
-            result.state = enclosingTrec.state;
-        }
+        result.setEnclosing(enclosingTrec);
         return result;
     }
 
     public final void mergeUpdateInto(StgTRecHeader t, StgTVar tvar, StgClosure expectedValue, StgClosure newValue) {
         boolean found = false;
-        Stack<StgTRecChunk> chunkStack = t.chunkStack;
-        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        ListIterator<StgTRecChunk> cit = t.chunkIterator();
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
@@ -1642,8 +1636,7 @@ public final class Capability {
     public final Queue<StgInvariantCheck> stmGetInvariantsToCheck(StgTRecHeader trec) {
 
         STM.lock(trec);
-        Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
@@ -1676,29 +1669,21 @@ public final class Capability {
         return trec.invariantsToCheck;
     }
 
-    public final void stmAbortTransaction(Stack<StgTRecHeader> trecStack) {
-        ListIterator<StgTRecHeader> it = trecStack.listIterator(trecStack.size());
-        StgTRecHeader trec = it.previous();
+    public final void stmAbortTransaction(StgTRecHeader trec) {
         STM.lock(trec);
-        StgTRecHeader et = null;
-        if (it.hasPrevious()) {
-            et = it.previous();
-        }
+        StgTRecHeader et = trec.enclosingTrec;
         if (et == null) {
             if (trec.state == TREC_WAITING) {
                 removeWatchQueueEntriesForTrec(trec);
             }
 
         } else {
-            Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
                 for (TRecEntry e: chunk.entries) {
-                    it = trecStack.listIterator(trecStack.size());
-                    it.previous();
                     StgTVar s = e.tvar;
-                    mergeReadInto(it, s, e.expectedValue);
+                    mergeReadInto(et, s, e.expectedValue);
                 }
             }
         }
@@ -1708,8 +1693,7 @@ public final class Capability {
     }
 
     public final void removeWatchQueueEntriesForTrec(StgTRecHeader trec) {
-        Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        ListIterator<StgTRecChunk> cit = trec.chunkIterator();;
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
@@ -1722,18 +1706,10 @@ public final class Capability {
         }
     }
 
-    public final void mergeReadInto(ListIterator<StgTRecHeader> it, StgTVar tvar, StgClosure expectedValue) {
+    public final void mergeReadInto(StgTRecHeader trec, StgTVar tvar, StgClosure expectedValue) {
         boolean found = false;
-        StgTRecHeader trec = null;
-        /* TODO: Improve this hacky way to get the first element */
-        if (it.hasPrevious()) {
-            trec = it.previous();
-            it.next();
-        }
-        while (!found && it.hasPrevious()) {
-            StgTRecHeader t = it.previous();
-            Stack<StgTRecChunk> chunkStack = t.chunkStack;
-            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        while (!found && trec != null) {
+            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
             loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
@@ -1741,12 +1717,13 @@ public final class Capability {
                     if (e.tvar == tvar) {
                         found = true;
                         if (e.expectedValue != expectedValue) {
-                            t.state = TREC_CONDEMNED;
+                            trec.state = TREC_CONDEMNED;
                         }
                         break loop;
                     }
                 }
             }
+            trec = trec.enclosingTrec;
         }
 
         if (!found) {
@@ -1757,10 +1734,9 @@ public final class Capability {
         }
     }
 
-    public final boolean stmCommitTransaction(Stack<StgTRecHeader> trecStack) {
-        StgTRecHeader trec = trecStack.peek();
+    public final boolean stmCommitTransaction(StgTRecHeader trec) {
         STM.lock(trec);
-        ListIterator<StgTRecHeader> it = trecStack.listIterator(trecStack.size());
+        long maxCommitsAtStart = STM.maxCommits;
         boolean touchedInvariants = !trec.invariantsToCheck.isEmpty();
         if (touchedInvariants) {
             for (StgInvariantCheck q: trec.invariantsToCheck) {
@@ -1771,12 +1747,11 @@ public final class Capability {
                 }
                 StgTRecHeader invOldTrec = inv.lastExecution;
                 if (invOldTrec != null) {
-                    ListIterator<StgTRecChunk> cit = invOldTrec.chunkStack.listIterator(invOldTrec.chunkStack.size());
-                    loop:
+                    ListIterator<StgTRecChunk> cit = invOldTrec.chunkIterator();
                     while (cit.hasPrevious()) {
                         StgTRecChunk chunk = cit.previous();
                         for (TRecEntry e: chunk.entries) {
-                            mergeReadInto(it, e.tvar, e.expectedValue);
+                            mergeReadInto(trec, e.tvar, e.expectedValue);
                         }
                     }
                 }
@@ -1786,16 +1761,43 @@ public final class Capability {
         boolean useReadPhase = STM.configUseReadPhase && !touchedInvariants;
         boolean result = validateAndAcquireOwnership(trec, !useReadPhase, true);
         if (result) {
-            if (touchedInvariants) {
-                for (StgInvariantCheck q: trec.invariantsToCheck) {
-                    StgAtomicInvariant inv = q.invariant;
-                    if (inv.lastExecution != null) {
-                        inv.disconnect();
-                    }
-                    q.myExecution.connectInvariant(inv);
-                    inv.unlock();
-                    // TODO: Incomplete
+            if (useReadPhase) {
+                result = trec.checkReadOnly();
+                long maxCommitsAtEnd = STM.maxCommits;
+                long maxConcurrentCommits = (maxCommitsAtEnd - maxCommitsAtStart) + nCapabilities * STM.TOKEN_BATCH_SIZE;
+                if ((maxConcurrentCommits >> 32) > 0 || STM.shake()) {
+                    result = false;
                 }
+            }
+
+            if (result) {
+                if (touchedInvariants) {
+                    for (StgInvariantCheck q: trec.invariantsToCheck) {
+                        StgAtomicInvariant inv = q.invariant;
+                        if (inv.lastExecution != null) {
+                            inv.disconnect();
+                        }
+                        q.myExecution.connectInvariant(inv);
+                        inv.unlock();
+                    }
+                }
+
+                ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+                while (cit.hasPrevious()) {
+                    StgTRecChunk chunk = cit.previous();
+                    for (TRecEntry e: chunk.entries) {
+                        StgTVar s = e.tvar;
+                        if (!useReadPhase || e.newValue != e.expectedValue) {
+                            unparkWaitersOn(s);
+                            if (RtsFlags.STM.fineGrained) {
+                                s.numUpdates++;
+                            }
+                            s.unlock(trec, e.newValue, true);
+                        }
+                    }
+                }
+            } else {
+                revertOwnership(trec, false);
             }
         }
         STM.unlock(trec);
@@ -1814,7 +1816,81 @@ public final class Capability {
         return 0;
     }
 
-    public final void stmCondemnTransaction(Stack<StgTRecHeader> trec) {
-        /* TODO: Implement */
+    public final void stmCondemnTransaction(StgTRecHeader trec) {
+        STM.lock(trec);
+        if (trec.state == TREC_WAITING) {
+            removeWatchQueueEntriesForTrec(trec);
+        }
+        trec.state = TREC_CONDEMNED;
+        STM.unlock(trec);
+    }
+
+    public final void unparkWaitersOn(StgTVar s) {
+        Iterator<StgClosure> iterator = s.watchQueue.descendingIterator();
+        while (iterator.hasNext()) {
+            StgClosure tso = iterator.next();
+            if (STM.watcherIsTSO(tso)) {
+                unparkTSO((StgTSO) tso);
+            }
+        }
+    }
+
+    public final void unparkTSO(StgTSO tso) {
+        tso.lock();
+        if (tso.whyBlocked == BlockedOnSTM &&
+            tso.blockInfo == STMAwoken.closure) {
+            // trace woken up
+
+        } else if (tso.whyBlocked == BlockedOnSTM) {
+            tso.blockInfo = STMAwoken.closure;
+            tryWakeupThread(tso);
+        } else {
+            // trace
+        }
+        tso.unlock();
+    }
+
+    public final boolean stmReWait(StgTSO tso) {
+        StgTRecHeader trec = tso.trec;
+        STM.lock(trec);
+        boolean result = validateAndAcquireOwnership(trec, true, true);
+        if (result) {
+            tso.park();
+            revertOwnership(trec, true);
+        } else {
+            if (trec.state != TREC_CONDEMNED) {
+                removeWatchQueueEntriesForTrec(trec);
+            }
+            freeTRecHeader(trec);
+        }
+        STM.unlock(trec);
+        return result;
+    }
+
+    public final void findRetryFrameHelper(StgTSO tso) {
+        ListIterator<StackFrame> sp = tso.sp;
+        boolean shouldContinue = true;
+        while (shouldContinue) {
+            StackFrame frame = sp.previous();
+            shouldContinue = frame.doFindRetry(this, tso);
+        }
+    }
+
+    public final void createSparkThread(Capability cap) {
+        StgTSO tso = Rts.createIOThread(cap, null /* TODO: runSparks_closure*/);
+        appendToRunQueue(tso);
+    }
+
+    public final boolean newSpark(StgClosure p) {
+        if (true /* TODO: !p.fizzledSpark() */) {
+            if (sparks.push(p)) {
+                sparkStats.created++;
+            } else {
+                sparkStats.overflowed++;
+            }
+        } else {
+            sparkStats.dud++;
+        }
+        return true;
     }
 }

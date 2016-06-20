@@ -7,14 +7,26 @@ import java.util.ListIterator;
 
 import ghcvm.runtime.RtsFlags;
 import ghcvm.runtime.stg.StgClosure;
+import static ghcvm.runtime.stm.TRecState.TREC_ACTIVE;
+import static ghcvm.runtime.stm.STM.EntrySearchResult;
 
 public class StgTRecHeader extends StgClosure {
     public Stack<StgTRecChunk> chunkStack = new Stack<StgTRecChunk>();
     public Queue<StgInvariantCheck> invariantsToCheck = new ArrayDeque<StgInvariantCheck>();
     public TRecState state;
+    public StgTRecHeader enclosingTrec;
 
     public StgTRecHeader() {
         this.chunkStack.push(new StgTRecChunk());
+    }
+
+    public void setEnclosing(StgTRecHeader enclosingTrec) {
+        this.enclosingTrec = enclosingTrec;
+        if (enclosingTrec == null) {
+            this.state = TREC_ACTIVE;
+        } else {
+            this.state = enclosingTrec.state;
+        }
     }
 
     @Override
@@ -23,7 +35,7 @@ public class StgTRecHeader extends StgClosure {
     public boolean checkReadOnly() {
         boolean result = true;
         if (RtsFlags.STM.fineGrained) {
-            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+            ListIterator<StgTRecChunk> cit = chunkIterator();
             loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
@@ -44,16 +56,25 @@ public class StgTRecHeader extends StgClosure {
 
     public final void connectInvariant(StgAtomicInvariant inv) {
         /* ASSERT (inv.lastExection == null) */
-        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
-        loop:
+        ListIterator<StgTRecChunk> cit = chunkIterator();
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
                 StgTVar s = e.tvar;
-                Queue<StgClosure> watchQueue = new ArrayDeque<StgClosure>();
-                watchQueue.offer(inv);
-                // TODO: Incomplete
+                EntrySearchResult result = STM.getEntry(enclosingTrec, s);
+                TRecEntry entry = result.entry;
+                if (entry != null) {
+                    e.expectedValue = entry.newValue;
+                    e.newValue = entry.newValue;
+                }
+                /* TODO: Verify order */
+                s.watchQueue.offer(inv);
             }
         }
+        inv.lastExecution = this;
+    }
+
+    public ListIterator<StgTRecChunk> chunkIterator() {
+        return chunkStack.listIterator(chunkStack.size());
     }
 }

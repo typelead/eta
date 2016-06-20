@@ -3,7 +3,9 @@ package ghcvm.runtime.stg;
 import java.util.ListIterator;
 
 import ghcvm.runtime.exception.StgException;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadKilled;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
 public class Stg {
@@ -69,6 +71,16 @@ public class Stg {
             public void enter(StgContext context) {
                 context.ret = ThreadFinished;
                 throw StgException.stgReturnException;
+            }
+        };
+
+    public static StgClosure block_noregs = new StgClosure() {
+            @Override
+            public void enter(StgContext context) {
+                StgTSO tso = context.currentTSO;
+                tso.whatNext = ThreadRunGHC;
+                context.ret = ThreadBlocked;
+                returnToSched.enter(context);
             }
         };
 }

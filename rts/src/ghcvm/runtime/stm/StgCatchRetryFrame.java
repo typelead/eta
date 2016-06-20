@@ -29,15 +29,14 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
     public void stackEnter(StgContext context) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
-        Stack<StgTRecHeader> stack = tso.trec;
-        ListIterator<StgTRecHeader> it = stack.listIterator(stack.size());
-        StgTRecHeader trec = it.previous();
-        StgTRecHeader outer = it.previous();
-        boolean result = cap.stmCommitNestedTransaction(trec, outer);
+        StgTRecHeader trec = tso.trec;
+        StgTRecHeader outer = trec.enclosingTrec;
+        boolean result = cap.stmCommitNestedTransaction(trec);
         if (result) {
+            tso.trec = outer;
+        } else {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
-            stack.pop();
-            stack.push(newTrec);
+            tso.trec = newTrec;
             if (runningAltCode) {
                 context.R1 = altCode;
             } else {
@@ -45,8 +44,6 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
             }
             tso.sp.add(new StgCatchRetryFrame(firstCode, altCode, runningAltCode));
             Apply.ap_v_fast.enter(context);
-        } else {
-            tso.trec.pop();
         }
     }
 

@@ -25,8 +25,8 @@ public class StgAtomicInvariant extends StgClosure {
 
     public final void disconnect() {
         /* ASSERT (lastExecution != null) */
-        Stack<StgTRecChunk> chunkStack = lastExecution.chunkStack;
-        ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+
+        ListIterator<StgTRecChunk> cit = lastExecution.chunkIterator();
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();

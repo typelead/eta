@@ -11,6 +11,7 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.exception.StgException;
 import ghcvm.runtime.apply.Apply;
+import static ghcvm.runtime.stm.TRecState.TREC_ACTIVE;
 
 public class STM {
     public static long TOKEN_BATCH_SIZE = 1024;
@@ -53,26 +54,22 @@ public class STM {
         }
     }
 
-    public static EntrySearchResult getEntry(Stack<StgTRecHeader> trecStack, StgTVar tvar) {
-
-        ListIterator<StgTRecHeader> it = trecStack.listIterator(trecStack.size());
+    public static EntrySearchResult getEntry(StgTRecHeader trec, StgTVar tvar) {
         EntrySearchResult result = null;
-        loop:
-        while (result == null && it.hasPrevious()) {
-            StgTRecHeader trec = it.previous();
-            Stack<StgTRecChunk> chunkStack = trec.chunkStack;
-            ListIterator<StgTRecChunk> cit = chunkStack.listIterator(chunkStack.size());
+        do {
+            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+            loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
                 for (TRecEntry entry: chunk.entries) {
-                    // Traversal
                     if (entry.tvar == tvar) {
                         result = new EntrySearchResult(trec, entry);
                         break loop;
                     }
                 }
             }
-        }
+            trec = trec.enclosingTrec;
+        } while (result == null && trec != null);
         return result;
     }
 
@@ -133,7 +130,7 @@ public class STM {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
                 StgClosure closure = context.R1;
-                cap.stmAddInvariantToCheck(tso.trec.peek(), closure);
+                cap.stmAddInvariantToCheck(tso.trec, closure);
             }
         };
 
@@ -141,14 +138,15 @@ public class STM {
             @Override
             public final void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;
-                if (tso.trec.peek() != null) {
+                StgTRecHeader oldTrec = tso.trec;
+                if (oldTrec != null) {
                     context.R1 = null; /* TODO: base_ControlziExceptionziBase_nestedAtomically_closure */
                     StgException.raise.enter(context);
                 } else {
                     Capability cap = context.myCapability;
                     StgClosure stm = context.R1;
-                    StgTRecHeader newTrec = cap.stmStartTransaction(null);
-                    tso.trec.push(newTrec);
+                    StgTRecHeader newTrec = cap.stmStartTransaction(oldTrec);
+                    tso.trec = newTrec;
                     tso.sp.add(new StgAtomicallyFrame(stm));
                     Apply.ap_v_fast.enter(context);
                 }
@@ -162,8 +160,9 @@ public class STM {
                 StgClosure handler = context.R2;
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec.peek());
-                tso.trec.push(newTrec);
+                StgTRecHeader curTrec = tso.trec;
+                StgTRecHeader newTrec = cap.stmStartTransaction(curTrec);
+                tso.trec = newTrec;
                 tso.sp.add(new StgCatchSTMFrame(code, handler));
                 Apply.ap_v_fast.enter(context);
             }
@@ -176,10 +175,20 @@ public class STM {
                 StgClosure altCode = context.R2;
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec.peek());
-                tso.trec.push(newTrec);
+                StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec);
+                tso.trec = newTrec;
                 tso.sp.add(new StgCatchRetryFrame(firstCode, altCode));
                 Apply.ap_v_fast.enter(context);
+            }
+        };
+
+    public static StgClosure retry = new StgClosure() {
+            @Override
+            public final void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                cap.findRetryFrameHelper(tso);
+                /* Now sp.previous() will point to a frame */
             }
         };
 }

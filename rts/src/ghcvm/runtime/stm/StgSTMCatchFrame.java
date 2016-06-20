@@ -6,7 +6,7 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.thunk.StgInd;
 
-public abstract class StgSTMCatchFrame extends StackFrame {
+public abstract class StgSTMCatchFrame extends StgSTMFrame {
     @Override
     public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
         /* TODO: Implement after refactor of STM */
