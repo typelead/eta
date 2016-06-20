@@ -1,9 +1,10 @@
 package ghcvm.runtime.stg;
 
-import ghcvm.runtime.stg.*;
-import ghcvm.runtime.apply.*;
-import ghcvm.runtime.exception.*;
-import ghcvm.runtime.thunk.*;
+import java.util.ListIterator;
+
+import ghcvm.runtime.exception.StgException;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadKilled;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
 public class Stg {
     public static StgClosure mkWeak = new StgClosure() {

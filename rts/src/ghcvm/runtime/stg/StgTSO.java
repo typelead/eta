@@ -1,4 +1,4 @@
-package ghcvm.runtime.types;
+package ghcvm.runtime.stg;
 
 import java.util.Stack;
 import java.util.Deque;
@@ -180,7 +180,7 @@ public final class StgTSO extends StgClosure {
         return lock.getAndSet(true);
     }
 
-    public static int showIfFlags(int flags) {
+    public final int showIfFlags(int flags) {
         return this.flags & flags;
     }
 }

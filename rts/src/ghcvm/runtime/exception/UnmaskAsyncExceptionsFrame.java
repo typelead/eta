@@ -1,6 +1,9 @@
 package ghcvm.runtime.exception;
 
-import ghcvm.runtime.Stg;
+import java.util.ListIterator;
+
+import ghcvm.runtime.stg.Stg;
+import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;

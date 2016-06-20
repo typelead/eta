@@ -3,17 +3,18 @@ package ghcvm.runtime.stg;
 import java.util.Stack;
 import java.util.ListIterator;
 
-import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.thunk.StgInd;
 import ghcvm.runtime.thunk.StgUpdateFrame;
-import ghcvm.runtime.stg.StackFrame;
 
 public class StgAPStack extends StgInd {
     public final StgClosure fun;
-    public final Stack<StackFrame> stack = new Stack<StackFrame>();
+    public final Stack<StackFrame> stack;
 
-    public StgAPStack() {
+    public StgAPStack(final StgClosure fun, final Stack<StackFrame> stack) {
+        /* TODO: Do proper delegation to super class */
+        super(null);
         this.fun = fun;
-        this.arity = arity;
+        this.stack = stack;
     }
 
     @Override
@@ -27,5 +28,10 @@ public class StgAPStack extends StgInd {
             sp.add(it.previous());
         }
         context.R1 = fun;
+    }
+
+    @Override
+    public void thunkEnter(StgContext context) {
+        /* TODO: Implement */
     }
 }

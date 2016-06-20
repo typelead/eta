@@ -1,16 +1,25 @@
 package ghcvm.runtime.exception;
 
+import java.util.ListIterator;
+
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
-import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.thunk.StgInd;
+import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
+import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 
 public class StgCatchFrame extends StackFrame {
     public final int exceptionsBlocked;
     public final StgClosure handler;
 
-    public StgCatchFame(int exceptionsBlocked, final StgClosure handler) {
+    public StgCatchFrame(int exceptionsBlocked, final StgClosure handler) {
         this.exceptionsBlocked = exceptionsBlocked;
-        this.hanlder = handler;
+        this.handler = handler;
     }
 
     @Override
@@ -24,6 +33,7 @@ public class StgCatchFrame extends StackFrame {
         ListIterator<StackFrame> sp = tso.sp;
         if (exception == null) {
             sp.previous();
+            return true;
         } else {
             while (sp.hasNext()) {
                 sp.next();
@@ -36,11 +46,10 @@ public class StgCatchFrame extends StackFrame {
                 tso.addFlags(TSO_INTERRUPTIBLE);
             }
             StgClosure raise = new StgRaise(exception);
-            sp.add(new Enter(raise));
+            sp.add(new StgEnter(raise));
             tso.whatNext = ThreadRunGHC;
             return false;
         }
-
     }
 
 }

@@ -1,3 +1,3 @@
-package ghcvm.runtime.types;
+package ghcvm.runtime.stg;
 
 public class StgPayload {}

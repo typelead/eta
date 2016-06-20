@@ -1,6 +1,14 @@
 package ghcvm.runtime.thunk;
 
+import java.util.Stack;
+import java.util.ListIterator;
+
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgEnter;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgAPStack;
 
 public abstract class UpdateFrame extends StackFrame {
     public final StgInd updatee;

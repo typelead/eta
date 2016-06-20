@@ -1,6 +1,6 @@
 package ghcvm.runtime.stg;
 
-public StgDummyFrame extends StackFrame {
+public class StgDummyFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {}

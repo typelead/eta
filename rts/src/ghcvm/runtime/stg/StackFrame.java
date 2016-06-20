@@ -6,6 +6,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.thunk.StgInd;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Default;
 
 public abstract class StackFrame extends StgClosure {

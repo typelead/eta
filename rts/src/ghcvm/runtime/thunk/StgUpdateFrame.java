@@ -5,6 +5,7 @@ import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgEnter;
 import static ghcvm.runtime.thunk.StgWhiteHole.stgWhiteHole;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.UpdateEvaluted;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Update;

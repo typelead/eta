@@ -17,6 +17,6 @@ public class StgEnter extends StackFrame {
 
     @Override
     public StgClosure getClosure() {
-        retrun closure;
+        return closure;
     }
 }

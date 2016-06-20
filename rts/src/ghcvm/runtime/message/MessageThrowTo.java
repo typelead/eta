@@ -60,6 +60,7 @@ public class MessageThrowTo extends Message {
         lock.set(false);
     }
 
+    @Override
     public final boolean isLocked() {
         return lock.get();
     }

@@ -5,12 +5,15 @@ import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.ListIterator;
 
-import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.ReturnClosure;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
-import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.thunk.StgInd;
 import ghcvm.runtime.apply.Apply;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 
 public class StgAtomicallyFrame extends StackFrame {
     public final StgClosure code;
@@ -73,6 +76,7 @@ public class StgAtomicallyFrame extends StackFrame {
 
     @Override
     public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+        ListIterator<StackFrame> sp = tso.sp;
         if (stopAtAtomically) {
             cap.stmCondemnTransaction(tso.trec);
             /* TODO: Should a separate value be used

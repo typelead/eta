@@ -1,5 +1,16 @@
 package ghcvm.runtime.concurrent;
 
+import ghcvm.runtime.stg.Stg;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import static ghcvm.runtime.stg.StgTSO.WhyBlocked;
+import static ghcvm.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVar;
+import static ghcvm.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVarRead;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
+
 public class Concurrent {
 
     public static StgClosure readMVar = new StgClosure() {
@@ -36,7 +47,7 @@ public class Concurrent {
                     mvar.pushLast(tso);
                     context.R1 = mvar;
                     context.R2 = val;
-                    Stg.block_putmvar.enter(context);
+                    block_putmvar.enter(context);
                 } else {
                     tso = mvar.popFromQueue();
                     if (tso == null) {

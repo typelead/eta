@@ -1,5 +1,7 @@
 package ghcvm.runtime;
 
+import java.util.ListIterator;
+
 public class Utils {
     public static <E> E peekPrevious(ListIterator<E> it) {
         E e = null;

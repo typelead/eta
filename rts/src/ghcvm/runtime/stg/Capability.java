@@ -1,4 +1,4 @@
-package ghcvm.runtime.types;
+package ghcvm.runtime.stg;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ import static ghcvm.runtime.stg.StgTSO.WhyBlocked.*;
 import static ghcvm.runtime.stg.StgContext.*;
 import static ghcvm.runtime.stg.StgContext.ReturnCode.*;
 import static ghcvm.runtime.RtsScheduler.RecentActivity.*;
-import static ghcvm.runtime.Interpreter.*;
+import static ghcvm.runtime.interpreter.Interpreter.*;
 import ghcvm.runtime.*;
 import ghcvm.runtime.thunk.*;
 import ghcvm.runtime.thread.*;
@@ -32,7 +32,8 @@ import ghcvm.runtime.stg.*;
 import ghcvm.runtime.exception.*;
 import ghcvm.runtime.stm.*;
 import ghcvm.runtime.message.*;
-import ghcvm.runtime.stg.*;
+import ghcvm.runtime.concurrent.*;
+import ghcvm.runtime.parallel.*;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.*;
 import static ghcvm.runtime.stm.StgTRecChunk.TREC_CHUNK_NUM_ENTRIES;
@@ -418,7 +419,7 @@ public final class Capability {
         } else {
             if (singletonRunQueue() && sparks.size() < 1) return;
         }
-        ArrayList<Capability> freeCapabilities = new ArrayList(capabilities.size());
+        ArrayList<Capability> freeCapabilities = new ArrayList<Capability>(capabilities.size());
         for (Capability cap: capabilities) {
             if (cap != this && !cap.disabled && cap.tryGrab(task)) {
                 if (!cap.emptyRunQueue()
@@ -889,7 +890,6 @@ public final class Capability {
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
-        Stack<StackFrame> stack = tso.sp
         /* ASSUMPTION: sp is pointing to the top of the stack */
         ListIterator<StackFrame> sp = tso.sp;
 
@@ -898,15 +898,19 @@ public final class Capability {
             updatee = stopHere.updatee;
         }
 
+        StackFrame top = sp.previous();
+
         /* Ensure stack has a closure at the top */
-        if (stack.peek().getClosure() == null)  {
+        if (top.getClosure() == null)  {
+            sp.next();
             sp.add(new StgDummyFrame());
+            sp.previous();
         }
 
-        /* Adjust the sp to point to after the frame to text */
-        sp.previous();
+        /* Find the index of the update frame to stop at */
         int stopIndex = -1;
         if (stopHere != null) {
+            Stack<StackFrame> stack = tso.stack;
             stopIndex = stack.size() - stack.search(stopHere);
         }
 
@@ -1810,7 +1814,7 @@ public final class Capability {
         return 0;
     }
 
-    public final void stmCondemnTransaction(StgTRecHeader trec) {
+    public final void stmCondemnTransaction(Stack<StgTRecHeader> trec) {
         /* TODO: Implement */
     }
 }

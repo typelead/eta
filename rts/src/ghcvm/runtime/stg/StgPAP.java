@@ -19,11 +19,12 @@ public class StgPAP extends StgFun {
     @Override
     public void preEnter(StgContext context) {
 
+        /* TODO: Re-implement this
         if (arity == 1) {
             context.R2 = Stg.ap_v;
             Stg.PAP_apply.enter(context);
         } else {
 
-        }
+        }*/
     }
 }

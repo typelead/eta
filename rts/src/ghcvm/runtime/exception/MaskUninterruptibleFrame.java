@@ -6,7 +6,7 @@ import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 
-public class MaskUninterruptableFrame extends StackFrame {
+public class MaskUninterruptibleFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {

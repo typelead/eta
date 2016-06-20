@@ -3,10 +3,10 @@ package ghcvm.runtime.stg;
 import java.util.Deque;
 import java.util.ListIterator;
 
-import ghcvm.runtime.stg.StgTSO;
-import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.thunk.StgInd;
 import ghcvm.runtime.exception.StgException;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadComplete;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadKilled;
 import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
 public class StgStopThread extends StackFrame {
@@ -24,7 +24,8 @@ public class StgStopThread extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseAsync() {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+        ListIterator<StackFrame> sp = tso.sp;
         tso.whatNext = ThreadKilled;
         sp.previous();
         sp.remove();

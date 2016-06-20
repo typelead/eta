@@ -1,5 +1,17 @@
 package ghcvm.runtime.thunk;
 
+import java.util.ListIterator;
+
+import ghcvm.runtime.stg.Stg;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgEnter;
+
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
+
 public class Thunk {
     public static StgClosure block_blackhole = new StgClosure() {
             @Override
