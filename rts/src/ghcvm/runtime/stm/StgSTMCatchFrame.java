@@ -9,7 +9,11 @@ import ghcvm.runtime.thunk.StgInd;
 public abstract class StgSTMCatchFrame extends StgSTMFrame {
     @Override
     public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
-        /* TODO: Implement after refactor of STM */
+        StgTRecHeader trec = tso.trec;
+        StgTRecHeader outer = trec.enclosingTrec;
+        cap.stmAbortTransaction(trec);
+        cap.stmFreeAbortedTrec(trec);
+        tso.trec = outer;
         return true;
     }
 

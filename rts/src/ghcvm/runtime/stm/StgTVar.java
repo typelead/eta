@@ -12,6 +12,7 @@ public class StgTVar extends StgClosure {
     public volatile StgClosure currentValue;
     public Deque<StgClosure> watchQueue = new ArrayDeque<StgClosure>();
     public int numUpdates;
+    /* TODO: Do away with reference field updater if possible */
     private static final AtomicReferenceFieldUpdater<StgTVar, StgClosure> currentValueUpdater = AtomicReferenceFieldUpdater.newUpdater(StgTVar.class, StgClosure.class, "currentValue");
 
     public StgTVar(StgClosure currentValue) {

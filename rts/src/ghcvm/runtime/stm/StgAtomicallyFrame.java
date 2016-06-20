@@ -9,6 +9,7 @@ import ghcvm.runtime.stg.Stg;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.ReturnClosure;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
@@ -143,8 +144,13 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             tso.whatNext = ThreadRunGHC;
             return false;
         } else {
-            /* TODO: Implement after refactor of STM */
-            sp.previous();
+            StgTRecHeader trec = tso.trec;
+            StgTRecHeader outer = trec.enclosingTrec;
+            cap.stmAbortTransaction(trec);
+            cap.stmFreeAbortedTrec(trec);
+            /* TODO: Discard stack above this */
+            StgClosure atomically = new StgAtomically(code);
+            sp.add(new StgEnter(atomically));
             return true;
         }
     }

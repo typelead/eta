@@ -1199,8 +1199,10 @@ public final class Capability {
     }
 
     public final void postRunThread(StgTSO t) {
-        if (/*t.trec != NO_TREC && */ false && t.whyBlocked == NotBlocked) {
-            /* TODO: Implement when implementing STM */
+        if (t.trec != null && t.whyBlocked == NotBlocked) {
+            if (!stmValidateNestOfTransactions(t.trec)) {
+                throwToSingleThreaded_(t, null, true);
+            }
         }
     }
 
@@ -1935,5 +1937,21 @@ public final class Capability {
     public final void stmWaitUnlock(StgTRecHeader trec) {
         revertOwnership(trec, true);
         STM.unlock(trec);
+    }
+
+    public final boolean stmValidateNestOfTransactions(StgTRecHeader trec) {
+        STM.lock(trec);
+        StgTRecHeader t = trec;
+        boolean result = true;
+        while (t != null) {
+            result = result && validateAndAcquireOwnership(t, true, false);
+            t = t.enclosingTrec;
+        }
+
+        if (!result && trec.state != TREC_WAITING) {
+            trec.state = TREC_CONDEMNED;
+        }
+        STM.unlock(trec);
+        return result;
     }
 }
