@@ -8,7 +8,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
-import static ghcvm.runtime.thunk.StgWhiteHole.SPIN_COUNT;
+import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class StgMVar extends StgClosure {
     public Deque<StgTSO> tsoQueue = new ArrayDeque<StgTSO>();

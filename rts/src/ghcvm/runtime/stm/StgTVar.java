@@ -2,18 +2,16 @@ package ghcvm.runtime.stm;
 
 import java.util.Deque;
 import java.util.ArrayDeque;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
+import static ghcvm.runtime.util.UnsafeUtil.cas;
 
 public class StgTVar extends StgClosure {
     public volatile StgClosure currentValue;
     public Deque<StgClosure> watchQueue = new ArrayDeque<StgClosure>();
     public int numUpdates;
-    /* TODO: Do away with reference field updater if possible */
-    private static final AtomicReferenceFieldUpdater<StgTVar, StgClosure> currentValueUpdater = AtomicReferenceFieldUpdater.newUpdater(StgTVar.class, StgClosure.class, "currentValue");
 
     public StgTVar(StgClosure currentValue) {
         this.currentValue = currentValue;
@@ -44,7 +42,7 @@ public class StgTVar extends StgClosure {
             do {
                 result = currentValue;
             } while (result.isTrecHeader());
-        } while (!currentValueUpdater.compareAndSet(this, result, trec));
+        } while (!cas(this, result, trec));
         return result;
     }
 }

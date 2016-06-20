@@ -1,20 +1,16 @@
 package ghcvm.runtime.thunk;
 
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgPayload;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.thunk.StgWhiteHole;
 import ghcvm.runtime.message.MessageBlackHole;
-import static ghcvm.runtime.thunk.StgWhiteHole.stgWhiteHole;
+import ghcvm.runtime.util.UnsafeUtil;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.BlockedOnBlackHole;
 
 public abstract class StgInd extends StgClosure {
-    public static final StgPayload emptyPayload = new StgPayload();
     public volatile StgClosure indirectee;
-    public StgPayload payload = emptyPayload;
-    private static final AtomicReferenceFieldUpdater<StgInd, StgClosure> indirecteeUpdater = AtomicReferenceFieldUpdater.newUpdater(StgInd.class, StgClosure.class, "indirectee");
 
     public StgInd(StgClosure indirectee) {
         this.indirectee = indirectee;
@@ -24,7 +20,7 @@ public abstract class StgInd extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        if (payload == null) {
+        if (indirectee != null) {
             retry: do {
                 if (indirectee.isEvaluated()) {
                     context.R1 = indirectee;
@@ -50,7 +46,6 @@ public abstract class StgInd extends StgClosure {
 
     public void updateWithIndirection(StgClosure ret) {
         indirectee = ret;
-        payload = null;
     }
 
     @Override
@@ -59,6 +54,10 @@ public abstract class StgInd extends StgClosure {
     }
 
     public final boolean tryLock(StgClosure oldIndirectee) {
-        return indirecteeUpdater.compareAndSet(this, oldIndirectee, stgWhiteHole);
+        return cas(oldIndirectee, StgWhiteHole.closure);
+    }
+
+    public final boolean cas(StgClosure expected, StgClosure update) {
+        return UnsafeUtil.cas(this, expected, update);
     }
 }

@@ -19,7 +19,7 @@ import ghcvm.runtime.stg.*;
 import ghcvm.runtime.stg.Task.InCall;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.*;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.*;
-import static ghcvm.runtime.thunk.StgWhiteHole.*;
+import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public final class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);

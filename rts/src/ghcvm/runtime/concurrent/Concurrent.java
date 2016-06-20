@@ -12,6 +12,7 @@ import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 
 public class Concurrent {
+    public static final int SPIN_COUNT = 1000;
 
     public static StgClosure readMVar = new StgClosure() {
             @Override

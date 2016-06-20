@@ -1954,4 +1954,24 @@ public final class Capability {
         STM.unlock(trec);
         return result;
     }
+
+    public final StgInd newCAF(StgIndStatic caf) {
+        StgInd bh = lockCAF(caf);
+        if (bh == null) return null;
+        if (CAFs.shouldKeepCAFs()) {
+            CAFs.dynamicCAFList.offer(caf);
+        } else {
+            /* TODO: Save the info tables during debugging */
+        }
+        return bh;
+    }
+
+    public final StgInd lockCAF(StgIndStatic caf) {
+        if (RtsFlags.ModeFlags.threaded) {
+            /* TODO: Whitehole this thunk */
+        }
+        StgCAFBlackHole bh = new StgCAFBlackHole(context.currentTSO);
+        caf.indirectee = bh;
+        return bh;
+    }
 }

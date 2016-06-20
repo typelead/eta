@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgClosure;
-import static ghcvm.runtime.thunk.StgWhiteHole.SPIN_COUNT;
+import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
     public static AtomicLong maxMessageId = new AtomicLong(0);

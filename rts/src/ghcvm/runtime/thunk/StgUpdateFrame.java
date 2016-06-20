@@ -6,7 +6,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgEnter;
-import static ghcvm.runtime.thunk.StgWhiteHole.stgWhiteHole;
+import ghcvm.runtime.thunk.StgWhiteHole;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.UpdateEvaluted;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Update;
 
@@ -36,7 +36,7 @@ public class StgUpdateFrame extends UpdateFrame {
                 tso.sp.set(new StgEnter(bh));
                 return UpdateEvaluted;
             } else {
-                if (RtsFlags.ModeFlags.threaded && oldIndirectee != stgWhiteHole) {
+                if (RtsFlags.ModeFlags.threaded && oldIndirectee != StgWhiteHole.closure) {
                     boolean locked = bh.tryLock(oldIndirectee);
                     if (!locked) {
                         continue retry;

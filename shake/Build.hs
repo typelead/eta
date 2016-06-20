@@ -28,7 +28,8 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       let os = [build c | c <- cs]
       headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
       need $ os ++ headers
-      () <- cmd "javac" os
+      -- The flag suppresses the warnings about Unsafe
+      () <- cmd "javac -XDignore.symbol.file" os
       classfiles <- getDirectoryFiles "" [rtsBuildDir </> "//*.class"]
       cmd "jar cf" [out] classfiles
 
