@@ -1,0 +1,25 @@
+package ghcvm.runtime.apply;
+
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
+
+public class ApPPPVO extends StackFrame {
+    private final StgClosure p1;
+    private final StgClosure p2;
+    private final StgClosure p3;
+    private final Object o;
+
+    public ApPPPVO(final StgClosure p1, final StgClosure p2, final StgClosure p3, final Object o) {
+        this.p1 = p1;
+        this.p2 = p2;
+        this.p3 = p3;
+        this.o = o;
+    }
+
+    @Override
+    public void stackEnter(StgContext context) {
+        StgClosure fun = context.R(1);
+        fun.apply(context, p1, p2, p3, null, o);
+    }
+}
