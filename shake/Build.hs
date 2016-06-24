@@ -29,6 +29,7 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
       need $ os ++ headers
       -- The flag suppresses the warnings about Unsafe
+      --() <- cmd "javac -XDignore.symbol.file -Xlint:unchecked" os
       () <- cmd "javac -XDignore.symbol.file" os
       classfiles <- getDirectoryFiles "" [rtsBuildDir </> "//*.class"]
       cmd "jar cf" [out] classfiles

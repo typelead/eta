@@ -46,15 +46,4 @@ public boolean isEmpty() {
  * @returns  the number of elements contained in the receiver.
  */
 public abstract int size();
-/**
- * Returns a <code>java.util.ArrayList</code> containing all the elements in the receiver.
- */
-public abstract java.util.ArrayList toList();
-/**
-* Returns a string representation of the receiver, containing
-* the String representation of each element.
-*/
-public String toString() {
-	return toList().toString();
-}
 }

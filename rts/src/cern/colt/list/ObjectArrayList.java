@@ -625,16 +625,6 @@ public Object[] toArray(Object array[]) {
 	return array;
 }
 /**
- * Returns a <code>java.util.ArrayList</code> containing all the elements in the receiver.
- */
-public java.util.ArrayList toList() {
-	int mySize = size();
-	Object[] theElements = elements;
-	java.util.ArrayList list = new java.util.ArrayList(mySize);
-	for (int i=0; i < mySize; i++) list.add(theElements[i]);
-	return list;
-}
-/**
 * Returns a string representation of the receiver, containing
 * the String representation of each element.
 */

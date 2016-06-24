@@ -502,15 +502,6 @@ public AbstractIntList times(int times) {
 	return newList;
 }
 /**
- * Returns a <code>java.util.ArrayList</code> containing all the elements in the receiver.
- */
-public java.util.ArrayList toList() {
-	int mySize = size();
-	java.util.ArrayList list = new java.util.ArrayList(mySize);
-	for (int i=0; i < mySize; i++) list.add(new Integer(get(i)));
-	return list;
-}
-/**
 * Returns a string representation of the receiver, containing
 * the String representation of each element.
 */
