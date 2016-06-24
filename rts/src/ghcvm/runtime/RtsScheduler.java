@@ -1,11 +1,13 @@
 package ghcvm.runtime;
 
-import java.util.concurrent.locks.Lock;
 import java.util.Queue;
 import java.util.ArrayDeque;
-import ghcvm.runtime.stg.*;
-import ghcvm.runtime.stg.*;
-import static ghcvm.runtime.RtsMessages.*;
+import java.util.concurrent.locks.Lock;
+
+import ghcvm.runtime.stg.Task;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import static ghcvm.runtime.Rts.HaskellResult;
 
 public class RtsScheduler {
 
@@ -27,16 +29,6 @@ public class RtsScheduler {
 
     public enum SchedulerStatus {
         NoStatus, Success, Killed, Interrupted, HeapExhausted
-    }
-
-    public static class HaskellResult {
-        public final Capability cap;
-        public final StgClosure result;
-
-        public HaskellResult(final Capability cap, final StgClosure result) {
-            this.cap = cap;
-            this.result = result;
-        }
     }
 
     public static Queue<StgTSO> blockedQueue = new ArrayDeque<StgTSO>();

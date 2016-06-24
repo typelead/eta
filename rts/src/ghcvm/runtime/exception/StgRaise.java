@@ -4,7 +4,6 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 
 public class StgRaise extends StgClosure {
-    /* TODO: Extend from StgInd or StgThunk instead? */
     public final StgClosure exception;
 
     public StgRaise(final StgClosure exception) {
@@ -13,7 +12,7 @@ public class StgRaise extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        context.R1 = exception;
+        context.R(1, exception);
         StgException.raise.enter(context);
     }
 }

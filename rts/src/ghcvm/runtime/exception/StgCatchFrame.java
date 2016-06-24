@@ -8,7 +8,7 @@ import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
@@ -23,13 +23,12 @@ public class StgCatchFrame extends StackFrame {
     }
 
     @Override
-    public void stackEnter(StgContext context) {
-        /* This frame just sets context.R1 = context.R1,
-           a trivial operation. Hence, the body is empty. */
-    }
+    public void stackEnter(StgContext context) {}
+    /* This frame just sets context.R(1) to itself, 
+       a trivial operation. Hence, the body is empty. */
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
         ListIterator<StackFrame> sp = tso.sp;
         if (exception == null) {
             sp.previous();

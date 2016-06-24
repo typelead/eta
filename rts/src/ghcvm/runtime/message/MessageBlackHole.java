@@ -2,14 +2,14 @@ package ghcvm.runtime.message;
 
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 
 public final class MessageBlackHole extends Message {
 
     public final StgTSO tso;
-    public final StgInd bh;
+    public final StgThunk bh;
 
-    public MessageBlackHole(final StgTSO tso, final StgInd bh) {
+    public MessageBlackHole(final StgTSO tso, final StgThunk bh) {
         this.tso = tso;
         this.bh = bh;
     }

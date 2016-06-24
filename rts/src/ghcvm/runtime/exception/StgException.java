@@ -35,8 +35,8 @@ public class StgException extends RuntimeException {
             @Override
             public void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;
-                context.I1 = ((tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
-                              (tso.hasFlag(TSO_INTERRUPTIBLE)? 1: 0));
+                context.I(1, ((tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
+                              (tso.hasFlag(TSO_INTERRUPTIBLE)? 1: 0)));
             }
         };
 
@@ -94,7 +94,7 @@ public class StgException extends RuntimeException {
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgClosure io = context.R1;
+                StgClosure io = context.R(1);
                 ListIterator<StackFrame> sp = tso.sp;
                 if (tso.hasFlag(TSO_BLOCKEX)) {
                     StackFrame top = tso.stack.peek();
@@ -136,12 +136,12 @@ public class StgException extends RuntimeException {
     public static StgClosure killThread = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgTSO target = (StgTSO) context.R1;
+                StgTSO target = (StgTSO) context.R(1);
                 StgTSO tso = context.currentTSO;
                 if (target == tso) {
                     killMyself.enter(context);
                 } else {
-                    StgClosure exception = context.R2;
+                    StgClosure exception = context.R(2);
                     Capability cap = context.myCapability;
                     MessageThrowTo msg = cap.throwTo(tso, target, exception);
                     if (msg == null) {
@@ -160,8 +160,8 @@ public class StgException extends RuntimeException {
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTSO target = (StgTSO) context.R1;
-                StgClosure exception = context.R2;
+                StgTSO target = (StgTSO) context.R(1);
+                StgClosure exception = context.R(2);
                 cap.throwToSingleThreaded(target, exception);
                 if (tso.whatNext == ThreadKilled) {
                     Stg.threadFinished.enter(context);
@@ -174,7 +174,7 @@ public class StgException extends RuntimeException {
     public static StgClosure catch_ = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgClosure handler = context.R2;
+                StgClosure handler = context.R(2);
                 StgTSO tso = context.currentTSO;
                 ListIterator<StackFrame> sp = tso.sp;
                 int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
@@ -189,7 +189,7 @@ public class StgException extends RuntimeException {
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgClosure exception = context.R1;
+                StgClosure exception = context.R(1);
                 do {
                     cap.raiseExceptionHelper(tso, exception);
                     /* TODO: Finish implementation */
@@ -207,8 +207,8 @@ public class StgException extends RuntimeException {
     public static StgClosure block_throwto = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgTSO tso = (StgTSO) context.R1;
-                StgClosure exception = context.R2;
+                StgTSO tso = (StgTSO) context.R(1);
+                StgClosure exception = context.R(2);
                 tso.sp.add(new BlockThrowToFrame(tso, exception));
                 MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
                 if (msg.isLocked()) {

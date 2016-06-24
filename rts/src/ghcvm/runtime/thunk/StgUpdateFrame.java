@@ -12,13 +12,13 @@ import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Update;
 
 public class StgUpdateFrame extends UpdateFrame {
 
-    public StgUpdateFrame(StgInd updatee) {
+    public StgUpdateFrame(StgThunk updatee) {
         super(updatee);
     }
 
     @Override
     public void stackEnter(StgContext context) {
-        updatee.updateWithIndirection(context.R1);
+        updatee.updateWithIndirection(context.R(1));
     }
 
     public StgMarkedUpdateFrame getMarked() {
@@ -28,7 +28,7 @@ public class StgUpdateFrame extends UpdateFrame {
     @Override
     public final MarkFrameResult mark(Capability cap, StgTSO tso) {
         tso.sp.set(new StgMarkedUpdateFrame(updatee));
-        StgInd bh = updatee;
+        StgThunk bh = updatee;
         StgClosure oldIndirectee = bh.indirectee;
         retry: do {
             if (!bh.isEvaluated() && bh.indirectee != tso) {
@@ -37,10 +37,11 @@ public class StgUpdateFrame extends UpdateFrame {
                 return UpdateEvaluted;
             } else {
                 if (RtsFlags.ModeFlags.threaded && oldIndirectee != StgWhiteHole.closure) {
-                    boolean locked = bh.tryLock(oldIndirectee);
+                    /* TODO: Redo mark frame implementation */
+                    /*boolean locked = bh.tryLock(oldIndirectee);
                     if (!locked) {
                         continue retry;
-                    }
+                        }*/
                 }
                 bh.updateWithIndirection(tso);
                 return Update;

@@ -89,8 +89,8 @@ public class STM {
     public static StgClosure newTVar = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
-                StgClosure init = context.R1;
-                context.R1 = new StgTVar(init);
+                StgClosure init = context.R(1);
+                context.R(1, new StgTVar(init));
             }
         };
 
@@ -99,8 +99,8 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTVar tvar = (StgTVar) context.R1;
-                context.R1 = cap.stmReadTvar(tso.trec, tvar);
+                StgTVar tvar = (StgTVar) context.R(1);
+                context.R(1, cap.stmReadTvar(tso.trec, tvar));
             }
         };
 
@@ -108,11 +108,11 @@ public class STM {
             @Override
             public final void enter(StgContext context) {
                 StgClosure result;
-                StgTVar tvar = (StgTVar) context.R1;
+                StgTVar tvar = (StgTVar) context.R(1);
                 do {
                     result = tvar.currentValue;
                 } while (!result.isTrecHeader());
-                context.R1 = result;
+                context.R(1, result);
             }
         };
 
@@ -121,8 +121,8 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTVar tvar = (StgTVar) context.R1;
-                StgClosure newValue = context.R2;
+                StgTVar tvar = (StgTVar) context.R(1);
+                StgClosure newValue = context.R(2);
                 cap.stmWriteTvar(tso.trec, tvar, newValue);
             }
         };
@@ -132,7 +132,7 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgClosure closure = context.R1;
+                StgClosure closure = context.R(1);
                 cap.stmAddInvariantToCheck(tso.trec, closure);
             }
         };
@@ -143,11 +143,11 @@ public class STM {
                 StgTSO tso = context.currentTSO;
                 StgTRecHeader oldTrec = tso.trec;
                 if (oldTrec != null) {
-                    context.R1 = null; /* TODO: base_ControlziExceptionziBase_nestedAtomically_closure */
+                    context.R(1, null); /* TODO: base_ControlziExceptionziBase_nestedAtomically_closure */
                     StgException.raise.enter(context);
                 } else {
                     Capability cap = context.myCapability;
-                    StgClosure stm = context.R1;
+                    StgClosure stm = context.R(1);
                     StgTRecHeader newTrec = cap.stmStartTransaction(oldTrec);
                     tso.trec = newTrec;
                     tso.sp.add(new StgAtomicallyFrame(stm));
@@ -159,8 +159,8 @@ public class STM {
     public static StgClosure catchSTM = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
-                StgClosure code = context.R1;
-                StgClosure handler = context.R2;
+                StgClosure code = context.R(1);
+                StgClosure handler = context.R(2);
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
                 StgTRecHeader curTrec = tso.trec;
@@ -174,8 +174,8 @@ public class STM {
     public static StgClosure catchRetry = new StgClosure() {
             @Override
             public final void enter(StgContext context) {
-                StgClosure firstCode = context.R1;
-                StgClosure altCode = context.R2;
+                StgClosure firstCode = context.R(1);
+                StgClosure altCode = context.R(2);
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
                 StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec);
@@ -206,7 +206,7 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTRecHeader trec = (StgTRecHeader) context.R3;
+                StgTRecHeader trec = (StgTRecHeader) context.R(3);
                 cap.stmWaitUnlock(trec);
                 tso.whatNext = ThreadRunGHC;
                 context.ret = ThreadBlocked;

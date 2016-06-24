@@ -4,6 +4,7 @@ public class ForceIO extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        context.R1.enter(context);
+        StgClosure ret = context.R(1);
+        ret.enter(context);
     }
 }

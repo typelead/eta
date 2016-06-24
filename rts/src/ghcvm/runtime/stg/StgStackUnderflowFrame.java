@@ -2,7 +2,7 @@ package ghcvm.runtime.stg;
 
 import java.util.Stack;
 
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 
 public abstract class StgStackUnderflowFrame extends StackFrame {
     public final Stack<StackFrame> nextChunk;
@@ -22,7 +22,7 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
 
     @Override
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
         /* TODO: Implement when dealing with StackOverflowError */
         return true;
     }

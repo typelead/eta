@@ -1,14 +1,17 @@
 package ghcvm.runtime;
 
-import static ghcvm.runtime.Rts.*;
-import ghcvm.runtime.stg.*;
-import static ghcvm.runtime.RtsFlags.*;
-import static ghcvm.runtime.Rts.ExitCode.*;
+import ghcvm.runtime.Rts;
+import ghcvm.runtime.RtsFlags;
+import ghcvm.runtime.stg.StgClosure;
+import static ghcvm.runtime.Rts.stgExit;
+import static ghcvm.runtime.Rts.ExitCode.EXIT_INTERNAL_ERROR;
+import static ghcvm.runtime.RtsFlags.progName;
+import static ghcvm.runtime.RtsFlags.progArgs;
 
 public class RtsMessages {
     public static void barf(String msg, Object... args) {
-        if (progName != null && progArgs != null) {
-            System.err.print(progName + ": ");
+        if (RtsFlags.progName != null && RtsFlags.progArgs != null) {
+            System.err.print(RtsFlags.progName + ": ");
         }
         System.err.print("internal error: ");
         System.err.format(msg, args);

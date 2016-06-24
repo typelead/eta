@@ -32,7 +32,7 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             sp.add(new StgCatchSTMFrame(code, handler));
-            context.R1 = code;
+            context.R(1, code);
             Apply.ap_v_fast.enter(context);
         }
     }

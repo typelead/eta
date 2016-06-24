@@ -15,8 +15,8 @@ public class StgCatch extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        context.R1 = io;
-        context.R2 = handler;
+        context.R(1, io);
+        context.R(2, handler);
         StgException.catch_.enter(context);
     }
 }

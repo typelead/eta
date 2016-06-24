@@ -34,6 +34,7 @@ import ghcvm.runtime.stm.*;
 import ghcvm.runtime.message.*;
 import ghcvm.runtime.concurrent.*;
 import ghcvm.runtime.parallel.*;
+import ghcvm.runtime.apply.*;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.*;
 import static ghcvm.runtime.stm.StgTRecChunk.TREC_CHUNK_NUM_ENTRIES;
@@ -895,7 +896,7 @@ public final class Capability {
         /* ASSUMPTION: sp is pointing to the top of the stack */
         ListIterator<StackFrame> sp = tso.sp;
 
-        StgInd updatee = null;
+        StgThunk updatee = null;
         if (stopHere != null) {
             updatee = stopHere.updatee;
         }
@@ -936,7 +937,7 @@ public final class Capability {
     }
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
-        StgInd bh = msg.bh;
+        StgThunk bh = msg.bh;
         if (!bh.isEvaluated()) {
             boolean failure;
             do {
@@ -960,7 +961,7 @@ public final class Capability {
         }
     }
 
-    public final void updateThunk(StgTSO tso, StgInd thunk, StgClosure val) {
+    public final void updateThunk(StgTSO tso, StgThunk thunk, StgClosure val) {
         if (thunk.isEvaluated()) {
             thunk.updateWithIndirection(val);
         } else {
@@ -1955,22 +1956,24 @@ public final class Capability {
         return result;
     }
 
-    public final StgInd newCAF(StgIndStatic caf) {
-        StgInd bh = lockCAF(caf);
+    public final StgThunk newCAF(StgIndStatic caf) {
+        StgThunk bh = lockCAF(caf);
         if (bh == null) return null;
-        if (CAFs.shouldKeepCAFs()) {
-            CAFs.dynamicCAFList.offer(caf);
+        if (Thunk.shouldKeepCAFs()) {
+            Thunk.dynamicCAFList.offer(caf);
         } else {
             /* TODO: Save the info tables during debugging */
         }
         return bh;
     }
 
-    public final StgInd lockCAF(StgIndStatic caf) {
+    public final StgThunk lockCAF(StgIndStatic caf) {
         if (RtsFlags.ModeFlags.threaded) {
-            /* TODO: Whitehole this thunk */
+            StgClosure oldIndirectee = caf.indirectee;
+            if (!caf.tryLock(oldIndirectee)) return null;
         }
-        StgCAFBlackHole bh = new StgCAFBlackHole(context.currentTSO);
+        StgTSO tso = context.currentTSO;
+        StgCAFBlackHole bh = new StgCAFBlackHole(tso);
         caf.indirectee = bh;
         return bh;
     }

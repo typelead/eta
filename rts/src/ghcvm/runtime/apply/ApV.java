@@ -1,16 +1,14 @@
 package ghcvm.runtime.apply;
 
-import ghcvm.runtime.*;
-import ghcvm.runtime.stg.*;
-import ghcvm.runtime.stg.*;
-import static ghcvm.runtime.RtsMessages.*;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
 
 public class ApV extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        context.papExpectedArity = 1;
-        context.R1.preEnter(context);
-        // TODO: Complete definition
+        StgClosure fun = context.R(1);
+        fun.apply(context, Void._void);
     }
 }

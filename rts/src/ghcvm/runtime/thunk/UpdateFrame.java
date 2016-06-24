@@ -11,14 +11,14 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgAPStack;
 
 public abstract class UpdateFrame extends StackFrame {
-    public final StgInd updatee;
+    public final StgThunk updatee;
 
-    public UpdateFrame(final StgInd updatee) {
+    public UpdateFrame(final StgThunk updatee) {
         this.updatee = updatee;
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
         Stack<StackFrame> stack = new Stack<StackFrame>();
         ListIterator<StackFrame> sp = tso.sp;
         /* ASSUMPTION: There are always a minimum of two frames

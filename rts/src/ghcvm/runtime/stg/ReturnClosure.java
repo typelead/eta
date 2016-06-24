@@ -12,6 +12,6 @@ public class ReturnClosure extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        context.R1 = closure;
+        context.R(1, closure);
     }
 }

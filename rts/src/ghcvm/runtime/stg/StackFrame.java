@@ -6,7 +6,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Default;
 
 public abstract class StackFrame extends StgClosure {
@@ -66,7 +66,7 @@ public abstract class StackFrame extends StgClosure {
         Marked, Stop, Default, Update, UpdateEvaluted
     }
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
         /* Move to the next stack frame */
         tso.sp.previous();
         return true;

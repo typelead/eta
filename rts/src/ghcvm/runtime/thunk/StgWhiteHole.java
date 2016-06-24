@@ -2,6 +2,7 @@ package ghcvm.runtime.thunk;
 
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.thunk.StgWhiteHole;
 import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class StgWhiteHole extends StgClosure {
@@ -12,9 +13,9 @@ public class StgWhiteHole extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        StgIndStatic node = (StgIndStatic) context.R1;
+        StgIndStatic node = (StgIndStatic) context.R(1);
         int i = 0;
-        while (node.isLocked()) {
+        while (node.indirectee == closure) {
             i = i + 1;
             if (i == SPIN_COUNT) {
                 i = 0;

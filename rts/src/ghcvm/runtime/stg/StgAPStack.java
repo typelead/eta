@@ -3,10 +3,10 @@ package ghcvm.runtime.stg;
 import java.util.Stack;
 import java.util.ListIterator;
 
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 import ghcvm.runtime.thunk.StgUpdateFrame;
 
-public class StgAPStack extends StgInd {
+public class StgAPStack extends StgThunk {
     public final StgClosure fun;
     public final Stack<StackFrame> stack;
 
@@ -27,7 +27,7 @@ public class StgAPStack extends StgInd {
         while (it.hasPrevious()) {
             sp.add(it.previous());
         }
-        context.R1 = fun;
+        context.R(1, fun);
     }
 
     @Override

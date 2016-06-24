@@ -13,7 +13,7 @@ import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.ReturnClosure;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 import ghcvm.runtime.apply.Apply;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 
@@ -55,7 +55,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                 StgTRecHeader newTrec = cap.stmStartTransaction(null);
                 tso.trec = newTrec;
                 sp.add(new StgAtomicallyFrame(code, invariants, result));
-                context.R1 = code;
+                context.R(1, code);
                 Apply.ap_v_fast.enter(context);
             }
         } else {
@@ -63,7 +63,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             Queue<StgInvariantCheck> invariants = null;
             if (outer == null) {
                 invariants = cap.stmGetInvariantsToCheck(trec);
-                result = context.R1;
+                result = context.R(1);
             } else {
                 tso.trec = outer;
                 invariants = this.invariants;
@@ -78,12 +78,12 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                 boolean valid = cap.stmCommitTransaction(trec);
                 if (valid) {
                     tso.trec = null;
-                    context.R1 = result;
+                    context.R(1, result);
                 } else {
                     StgTRecHeader newTrec = cap.stmStartTransaction(null);
                     tso.trec = newTrec;
                     sp.add(new StgAtomicallyFrame(code, invariants, result));
-                    context.R1 = code;
+                    context.R(1, code);
                     Apply.ap_v_fast.enter(context);
                 }
             } else {
@@ -91,7 +91,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                 tso.trec = trec;
                 StgInvariantCheck q = invariants.peek();
                 StgAtomicInvariant invariant = q.invariant;
-                context.R1 = invariant.code;
+                context.R(1, invariant.code);
                 /* TODO: Ensure that creating a new is the right thing */
                 sp.add(new StgAtomicallyFrame(code, invariants, result));
                 Apply.ap_v_fast.enter(context);
@@ -120,21 +120,21 @@ public class StgAtomicallyFrame extends StgSTMFrame {
         if (result) {
             waiting = true;
             /* TODO: Adjust stack top to be this frame. */
-            context.R3 = trec;
+            context.R(3, trec);
             STM.block_stmwait.enter(context);
             return false;
         } else {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             /* TODO: Adjust stack top to be this frame */
-            context.R1 = code;
+            context.R(1, code);
             Apply.ap_v_fast.enter(context);
             return false;
         }
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgInd updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
         ListIterator<StackFrame> sp = tso.sp;
         if (stopAtAtomically) {
             cap.stmCondemnTransaction(tso.trec);

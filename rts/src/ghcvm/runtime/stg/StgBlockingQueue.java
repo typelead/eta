@@ -6,14 +6,14 @@ import java.util.ArrayDeque;
 
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
-import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgThunk;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.message.MessageBlackHole;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.NotBlocked;
 
 public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlackHole> {
     public final StgTSO owner;
-    public final StgInd bh;
+    public final StgThunk bh;
     public final Queue<MessageBlackHole> messages;
 
     public StgBlockingQueue(final StgTSO owner, final MessageBlackHole msg) {

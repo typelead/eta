@@ -9,22 +9,22 @@ import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Marked;
 
 public class StgMarkedUpdateFrame extends UpdateFrame {
 
-    public StgMarkedUpdateFrame(StgInd updatee) {
+    public StgMarkedUpdateFrame(StgThunk updatee) {
         super(updatee);
     }
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure ret = context.R1;
+        StgClosure ret = context.R(1);
         StgClosure v = updatee.indirectee;
         if (v.isEvaluated()) {
             context.myCapability.checkBlockingQueues(context.currentTSO);
-            context.R1 = v;
+            context.R(1, v);
         } else if (v == context.currentTSO) {
             updatee.updateWithIndirection(ret);
         } else {
             context.myCapability.updateThunk(context.currentTSO, updatee, ret);
-            context.R1 = ret;
+            context.R(1, ret);
         }
     }
 

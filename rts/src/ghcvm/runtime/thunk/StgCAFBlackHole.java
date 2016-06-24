@@ -3,7 +3,7 @@ package ghcvm.runtime.thunk;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 
-public class StgCAFBlackHole extends StgInd {
+public class StgCAFBlackHole extends StgThunk {
 
     public StgCAFBlackHole(StgClosure indirectee) {
         super(indirectee);
@@ -18,5 +18,4 @@ public class StgCAFBlackHole extends StgInd {
     public void thunkEnter(StgContext context) {
         /* TODO: Implement */
     }
-
 }

@@ -2,12 +2,28 @@ package ghcvm.runtime;
 
 import java.util.concurrent.locks.Lock;
 
-import ghcvm.runtime.stg.*;
-import ghcvm.runtime.apply.*;
-import static ghcvm.runtime.RtsScheduler.*;
-import static ghcvm.runtime.RtsMessages.*;
+import ghcvm.runtime.stg.Task;
+import ghcvm.runtime.stg.Capability;
+import ghcvm.runtime.stg.StgTSO;
+import ghcvm.runtime.stg.StgEnter;
+import ghcvm.runtime.stg.ForceIO;
+import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.apply.ApV;
+import static ghcvm.runtime.RtsScheduler.SchedulerStatus;
+import static ghcvm.runtime.RtsScheduler.scheduleWaitThread;
+import static ghcvm.runtime.RtsMessages.errorBelch;
 
 public class Rts {
+    public static class HaskellResult {
+        public final Capability cap;
+        public final StgClosure result;
+
+        public HaskellResult(final Capability cap, final StgClosure result) {
+            this.cap = cap;
+            this.result = result;
+        }
+    }
+
     public static ExitCode hsMain(String[] args, StgClosure mainClosure, RtsConfig config) {
         ExitCode exitStatus = ExitCode.EXIT_SUCCESS;
 

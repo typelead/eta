@@ -12,7 +12,7 @@ public class StgAtomically extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        context.R1 = stmCode;
+        context.R(1, stmCode);
         STM.atomically.enter(context);
     }
 }

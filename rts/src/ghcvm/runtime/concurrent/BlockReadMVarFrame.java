@@ -12,7 +12,7 @@ public final class BlockReadMVarFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        context.R1 = mvar;
+        context.R(1, mvar);
         Concurrent.readMVar.enter(context);
     }
 }

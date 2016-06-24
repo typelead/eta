@@ -2,10 +2,14 @@ package ghcvm.runtime;
 
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
-import static ghcvm.runtime.stg.Capability.*;
-import static ghcvm.runtime.RtsMessages.*;
-import static ghcvm.runtime.RtsScheduler.*;
-import static ghcvm.runtime.RtsScheduler.SchedulerState.*;
+import static ghcvm.runtime.Rts.HaskellResult;
+import static ghcvm.runtime.RtsMessages.barf;
+import static ghcvm.runtime.RtsScheduler.blockedQueue;
+import static ghcvm.runtime.RtsScheduler.sleepingQueue;
+import static ghcvm.runtime.RtsScheduler.emptySleepingQueue;
+import static ghcvm.runtime.RtsScheduler.schedulerState;
+import static ghcvm.runtime.RtsScheduler.SchedulerState.SCHED_INTERRUPTING;
+import static ghcvm.runtime.stg.Capability.mainCapability;
 
 public class RtsIO {
     public static void awaitEvent(boolean wait) {

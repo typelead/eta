@@ -13,12 +13,12 @@ public class Stg {
             @Override
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
-                StgClosure key = context.R2;
-                StgClosure value = context.R3;
-                StgClosure finalizer = context.R4;
+                StgClosure key = context.R(2);
+                StgClosure value = context.R(3);
+                StgClosure finalizer = context.R(4);
                 StgWeak weak = new StgWeak(key, value, finalizer);
                 cap.weakPtrList.add(weak);
-                context.R1 = weak;
+                context.R(1, weak);
             }
         };
 
@@ -38,7 +38,7 @@ public class Stg {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
                 cap.threadPaused(tso);
-                StgClosure first = context.R2;
+                StgClosure first = context.R(2);
                 first.enter(context);
             }
         };

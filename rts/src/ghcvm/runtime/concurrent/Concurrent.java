@@ -17,7 +17,7 @@ public class Concurrent {
     public static StgClosure readMVar = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R1;
+                StgMVar mvar = (StgMVar) context.R(1);
                 mvar.lock();
                 if (mvar.value == null) {
                     StgTSO tso = context.currentTSO;
@@ -25,10 +25,10 @@ public class Concurrent {
                     tso.whyBlocked = BlockedOnMVarRead;
                     tso.inMVarOperation = true;
                     mvar.pushFirst(tso);
-                    context.R1 = mvar;
+                    context.R(1, mvar);
                     block_readmvar.enter(context);
                 } else {
-                    context.R1 = mvar.value;
+                    context.R(1, mvar.value);
                 }
                 mvar.unlock();
             }
@@ -37,17 +37,17 @@ public class Concurrent {
     public static StgClosure putMVar = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R1;
+                StgMVar mvar = (StgMVar) context.R(1);
                 mvar.lock();
-                StgClosure val = context.R2;
+                StgClosure val = context.R(2);
                 StgTSO tso;
                 if (mvar.value != null) {
                     tso = context.currentTSO;
                     tso.blockInfo = mvar;
                     tso.whyBlocked = BlockedOnMVar;
                     mvar.pushLast(tso);
-                    context.R1 = mvar;
-                    context.R2 = val;
+                    context.R(1, mvar);
+                    context.R(2, val);
                     block_putmvar.enter(context);
                 } else {
                     tso = mvar.popFromQueue();
@@ -75,7 +75,7 @@ public class Concurrent {
     public static StgClosure block_readmvar = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R1;
+                StgMVar mvar = (StgMVar) context.R(1);
                 StgTSO tso = context.currentTSO;
                 tso.sp.add(new BlockReadMVarFrame(mvar));
                 tso.whatNext = ThreadRunGHC;
@@ -87,8 +87,8 @@ public class Concurrent {
     public static StgClosure block_putmvar = new StgClosure() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R1;
-                StgClosure val = context.R2;
+                StgMVar mvar = (StgMVar) context.R(1);
+                StgClosure val = context.R(2);
                 StgTSO tso = context.currentTSO;
                 tso.stack.push(new BlockPutMVarFrame(mvar, val));
                 tso.whatNext = ThreadRunGHC;
@@ -100,15 +100,17 @@ public class Concurrent {
     public static StgClosure tryReadMVar = new StgClosure() {
         @Override
         public void enter(StgContext context) {
-            StgMVar mvar = (StgMVar) context.R1;
+            StgMVar mvar = (StgMVar) context.R(1);
             mvar.lock();
             StgClosure value = mvar.value;
             if (value == null) {
-                context.I1 = 0;
-                context.R1 = null;
+                context.I(1, 0);
+                /* TODO: Verify that null is an appropriate value to
+                         return */
+                context.R(1, null);
             } else {
-                context.I1 = 1;
-                context.R1 = value;
+                context.I(1, 1);
+                context.R(1, value);
             }
             mvar.unlock();
         }

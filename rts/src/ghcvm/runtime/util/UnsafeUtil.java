@@ -7,8 +7,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 import ghcvm.runtime.stg.StgClosure;
-import ghcvm.runtime.thunk.StgInd;
 import ghcvm.runtime.stm.StgTVar;
+import ghcvm.runtime.thunk.StgThunk;
 
 public class UnsafeUtil {
 
@@ -30,7 +30,7 @@ public class UnsafeUtil {
 
         try {
             indirecteeOffset = unsafe.objectFieldOffset
-                (StgInd.class.getDeclaredField("indirectee"));
+                (StgThunk.class.getDeclaredField("indirectee"));
             cvOffset = unsafe.objectFieldOffset
                 (StgTVar.class.getDeclaredField("currentValue"));
         } catch (ReflectiveOperationException e) {
@@ -72,7 +72,7 @@ public class UnsafeUtil {
 
     private UnsafeUtil() {}
 
-    public static boolean cas(StgInd ind, StgClosure expected, StgClosure update) {
+    public static boolean cas(StgThunk ind, StgClosure expected, StgClosure update) {
         return UNSAFE.compareAndSwapObject(ind, indirecteeOffset, expected, update);
     }
 

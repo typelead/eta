@@ -20,7 +20,7 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
     public void stackEnter(StgContext context) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
-        StgClosure ret = context.R1;
+        StgClosure ret = context.R(1);
         ListIterator<StackFrame> sp = tso.sp;
         tso.removeFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         if (!tso.blockedExceptions.isEmpty()) {
