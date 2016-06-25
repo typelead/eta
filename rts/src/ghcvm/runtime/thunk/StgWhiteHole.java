@@ -9,12 +9,10 @@ public class StgWhiteHole extends StgClosure {
     public static final StgWhiteHole closure = new StgWhiteHole();
 
     @Override
-    public final boolean isEvaluated() { return false; }
-
-    @Override
     public void enter(StgContext context) {
         StgIndStatic node = (StgIndStatic) context.R(1);
         int i = 0;
+        /* TODO: Verify the condition */
         while (node.indirectee == closure) {
             i = i + 1;
             if (i == SPIN_COUNT) {

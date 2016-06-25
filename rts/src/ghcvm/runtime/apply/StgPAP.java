@@ -1,24 +1,14 @@
 package ghcvm.runtime.apply;
 
-import cern.colt.list.AbstractDoubleList;
-import cern.colt.list.DoubleArrayList;
-import cern.colt.list.AbstractFloatList;
-import cern.colt.list.FloatArrayList;
-import cern.colt.list.AbstractIntList;
-import cern.colt.list.IntArrayList;
-import cern.colt.list.AbstractLongList;
-import cern.colt.list.LongArrayList;
-import cern.colt.list.AbstractList;
-import cern.colt.list.ObjectArrayList;
-
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.AbstractArgumentStack;
 import ghcvm.runtime.stg.SimpleArgumentStack;
 import static ghcvm.runtime.RtsMessages.barf;
 
-public class StgPAP extends StgFun {
+public class StgPAP extends StgClosure {
     public StgClosure fun;
+    public int arity;
     public AbstractArgumentStack argStack;
 
     public StgPAP(int arity, StgClosure fun) {
@@ -26,14 +16,18 @@ public class StgPAP extends StgFun {
     }
 
     public StgPAP(int arity, StgClosure fun, AbstractArgumentStack argStack) {
-        super(arity);
+        super();
         this.fun = fun;
+        this.arity = arity;
         this.argStack = argStack;
     }
 
     public void setStack(AbstractArgumentStack argStack) {
         this.argStack = argStack;
     }
+
+    @Override
+    public StgClosure getEvaluated() { return this; }
 
     @Override
     public void enter(StgContext context) {

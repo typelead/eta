@@ -56,7 +56,7 @@ public class Thunk {
 
     public static void blackHole(StgContext context, StgThunk blackhole,  StgClosure indirectee) {
         do {
-            if (indirectee.isEvaluated()) {
+            if (indirectee.getEvaluated() != null) {
                 context.R(1, indirectee);
             } else {
                 /* TODO: Add a condition here to check the empty blocking queue case. */

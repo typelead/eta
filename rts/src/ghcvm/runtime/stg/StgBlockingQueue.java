@@ -24,9 +24,6 @@ public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlac
     }
 
     @Override
-    public final boolean isEvaluated() { return false; }
-
-    @Override
     public final boolean blackHole(Capability cap, MessageBlackHole msg) {
         if (messages.isEmpty()) {
             if (owner.cap != cap) {

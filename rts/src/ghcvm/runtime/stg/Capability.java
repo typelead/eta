@@ -938,13 +938,13 @@ public final class Capability {
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
         StgThunk bh = msg.bh;
-        if (!bh.isEvaluated()) {
+        if (bh.getEvaluated() == null) {
             boolean failure;
             do {
                 failure = bh.indirectee.blackHole(this, msg);
             } while (failure);
             // TODO: Check this logic
-            if (bh.isEvaluated()) {
+            if (bh.getEvaluated() != null) {
                 return false;
             } else {
                 return true;
@@ -955,14 +955,14 @@ public final class Capability {
 
     public final void checkBlockingQueues(StgTSO tso) {
         for (StgBlockingQueue bq: tso.blockingQueues) {
-            if (bq.bh.isEvaluated()) {
+            if (bq.bh.getEvaluated() != null) {
                 wakeBlockingQueue(bq);
             }
         }
     }
 
     public final void updateThunk(StgTSO tso, StgThunk thunk, StgClosure val) {
-        if (thunk.isEvaluated()) {
+        if (thunk.getEvaluated() != null) {
             thunk.updateWithIndirection(val);
         } else {
             StgClosure v = thunk.indirectee;

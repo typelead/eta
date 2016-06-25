@@ -17,7 +17,7 @@ public class StgMarkedUpdateFrame extends UpdateFrame {
     public void stackEnter(StgContext context) {
         StgClosure ret = context.R(1);
         StgClosure v = updatee.indirectee;
-        if (v.isEvaluated()) {
+        if (v.getEvaluated() != null) {
             context.myCapability.checkBlockingQueues(context.currentTSO);
             context.R(1, v);
         } else if (v == context.currentTSO) {

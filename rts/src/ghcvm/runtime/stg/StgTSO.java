@@ -136,9 +136,6 @@ public final class StgTSO extends StgClosure {
     }
 
     @Override
-    public final boolean isEvaluated() { return false; }
-
-    @Override
     public final boolean blackHole(Capability cap, MessageBlackHole msg) {
         if (this.cap != cap) {
             cap.sendMessage(this.cap, msg);

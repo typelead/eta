@@ -11,11 +11,6 @@ public class StgCAFBlackHole extends StgThunk {
 
     @Override
     public void enter(StgContext context) {
-        /* TODO: Implement */
-    }
-
-    @Override
-    public void thunkEnter(StgContext context) {
-        /* TODO: Implement */
+        Thunk.blackHole(context, this, indirectee);
     }
 }

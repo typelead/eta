@@ -31,7 +31,7 @@ public class StgUpdateFrame extends UpdateFrame {
         StgThunk bh = updatee;
         StgClosure oldIndirectee = bh.indirectee;
         retry: do {
-            if (!bh.isEvaluated() && bh.indirectee != tso) {
+            if (bh.getEvaluated() == null && bh.indirectee != tso) {
                 cap.suspendComputation(tso, this);
                 tso.sp.set(new StgEnter(bh));
                 return UpdateEvaluted;

@@ -5,20 +5,16 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.AbstractArgumentStack;
 import ghcvm.runtime.stg.SimpleArgumentStack;
 
-public class StgFun extends StgClosure {
-    public int arity;
+public abstract class StgFun extends StgClosure {
 
-    public StgFun(int arity) {
-        this.arity = arity;
-    }
+    public abstract int getArity();
 
     @Override
-    public void enter(StgContext context) {
-        context.R(1, this);
-    }
+    public StgClosure getEvaluated() { return this; }
 
     @Override
     public void apply(StgContext context, Void v) {
+        int arity = getArity();
         if (arity == 1) {
             enter(context);
         } else {
@@ -29,6 +25,7 @@ public class StgFun extends StgClosure {
 
     @Override
     public void apply(StgContext context, StgClosure p) {
+        int arity = getArity();
         if (arity == 1) {
             context.R(2, p);
             enter(context);

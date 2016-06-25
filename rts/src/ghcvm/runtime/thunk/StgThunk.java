@@ -19,12 +19,12 @@ public abstract class StgThunk extends StgClosure {
     }
 
     @Override
-    public final boolean isEvaluated() {
-        if (indirectee == null) return false;
-        else return indirectee.isEvaluated();
+    public final StgClosure getEvaluated() {
+        if (indirectee == null) return null;
+        else return indirectee.getEvaluated();
     }
 
-    public abstract void thunkEnter(StgContext context);
+    public void thunkEnter(StgContext context) {}
 
     public final void updateWithIndirection(StgClosure ret) {
         indirectee = ret;
