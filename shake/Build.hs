@@ -16,6 +16,8 @@ sampleBuild x = sampleBuildDir </> x
 rtsjar = build "rts.jar"
 masjar = sampleBuild "mapandsum.jar"
 
+-- TODO: Make the build script cleaner
+
 main :: IO ()
 main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
     want [rtsjar, masjar]
@@ -28,8 +30,8 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       cs <- getDirectoryFiles "" [mapandsumDir </> "java/src//*.java"]
       need [rtsjar]
       () <- cmd "javac" "-cp" (".:" ++ rtsjar)  "-d" sampleBuildDir cs
-      classfiles <- getDirectoryFiles "" [sampleBuildDir </> "//*.class"]
-      () <- cmd "jar cf" [out] classfiles
+      classfiles <- getDirectoryFiles sampleBuildDir ["//*.class"]
+      () <- cmd (Cwd sampleBuildDir) "jar cf" ["../../" ++ out] classfiles
       putNormal "Generated mapandsum.jar for execution."
 
     rtsjar %> \out -> do
