@@ -5,7 +5,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Rahul Muttineni
 maintainer:          Rahul Muttineni <rahulmutt@gmail.com>
-copyright:           Rahul Muttineni 2016
+copyright:           Copyright (c) Rahul Muttineni 2016
 stability:           Experimental
 build-type:          Simple
 cabal-version:       >=1.10
