@@ -1,10 +1,20 @@
 package mapandsum;
 
+import ghcvm.runtime.Rts;
 import ghcvm.runtime.RtsConfig;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgConstr;
 import ghcvm.runtime.apply.StgFun;
+import ghcvm.runtime.thunk.Ap2Upd;
 import ghcvm.runtime.thunk.StgThunk;
+import ghcvm.runtime.thunk.StgInd;
+import ghcvm.runtime.thunk.StgIndStatic;
+import static ghcvm.runtime.Rts.ExitCode;
+import static mapandsum.MinimalBase.Izh;
+import static ghczmprim.ghc.Types.ZMZN_closure;
+import static ghczmprim.ghc.Types.ZC;
+import static ghczmprim.ghc.Tuple.ZLZR_closure;
 
 public class Main {
 
@@ -13,7 +23,7 @@ public class Main {
         private final StgClosure f;
         private final StgClosure xs;
 
-        public sat_s2Ew(final StgClosure f, final StgClosure x) {
+        public sat_s2Ew(final StgClosure f, final StgClosure xs) {
             this.f = f;
             this.xs = xs;
         }
@@ -37,9 +47,9 @@ public class Main {
             StgClosure R2 = context.R(2);
             /* list */
             StgClosure R3 = context.R(3);
-            /* Force list to WHNF (equivalent to case list) */
+            /* Force list to WHNF */
             StgConstr R1 = (StgConstr) R3.getEvaluated();
-            if (list == null) {
+            if (R1 == null) {
                 /* Evaluate list if not in WHNF */
                 R3.enter(context);
                 R1 = (StgConstr) context.R(1);
@@ -49,17 +59,18 @@ public class Main {
                 /* x : xs */
                 case 1:
                     /* x */
-                    StgClosure _s2Et = R1.get(1);
+                    ZC R1_ = (ZC) R1;
+                    StgClosure _s2Et = R1_.get1();
                     /* xs */
-                    StgClosure _s2Eu = R1.get(2);
+                    StgClosure _s2Eu = R1_.get2();
                     /* f (from above) */
                     StgClosure _s2Eq = R2;
                     /* map f xs */
-                    StgThunk map_thunk = new sat_s2Ew(_s2Eq, _s2Eu);
+                    sat_s2Ew map_thunk = new sat_s2Ew(_s2Eq, _s2Eu);
                     /* f x */
-                    StgThunk f_thunk = new Ap2Upd(_s2Eq, _s2Et);
+                    Ap2Upd f_thunk = new Ap2Upd(_s2Eq, _s2Et);
                     /* f x : map f xs */
-                    StgConstr ret = new ZC(f_thunk, map_thunk);
+                    ZC ret = new ZC(f_thunk, map_thunk);
                     /* Return (f x : map f xs) */
                     context.R(1, ret);
                     break;
@@ -67,7 +78,7 @@ public class Main {
                 /* [] */
                 case 2:
                     /* Return [] */
-                    context.R(1, base.ghc.tuple.ZMZN_closure);
+                    context.R(1, ZMZN_closure);
                     break;
             }
         }
@@ -100,10 +111,11 @@ public class Main {
                 R2.enter(context);
                 R1 = (StgConstr) context.R(1);
             }
+            Izh R1_ = (Izh) R1;
             /* Grab the first field of I# & add 1 */
-            int _s2EA = R1.get(1) + 1;
+            int _s2EA = R1_.get1() + 1;
             /* Construct a new Int and ... */
-            StgClosure ret = new MinimalBase.Izh(_s2Ea);
+            StgClosure ret = new Izh(_s2EA);
             /* and return it */
             context.R(1, ret);
         }
@@ -128,7 +140,7 @@ public class Main {
         public void enter(StgContext context) {
             zdwsum_closure.enter(context);
             int iret = context.I(1);
-            StgClosure ret = new MinimalBase.Izh(iret);
+            StgClosure ret = new Izh(iret);
             context.R(1, ret);
         }
     };
@@ -136,7 +148,7 @@ public class Main {
     /* $wsum xs = ...
        Note: This function was generated as part of the
              worker-wrapper transformation. */
-    public static StgClosure zdwsum_closure = new StgFun(1) {
+    public static StgClosure zdwsum_closure = new StgFun() {
         @Override
         public int getArity() { return 1; }
 
@@ -159,18 +171,20 @@ public class Main {
                 /* x : xs' */
                 case 2:
                     /* xs' */
-                    StgClosure _s2EE = R1.get(2);
+                    ZC R1_ = (ZC) R1;
+                    StgClosure _s2EE = R1_.get2();
                     /* x */
-                    R2 = R1.get(1);
+                    R2 = R1_.get1();
                     /* Force x to WHNF */
-                    StgConstr R1 = (StgConstr) R2.getEvaluated();
+                    R1 = (StgConstr) R2.getEvaluated();
                     if (R1 == null) {
                         /* Evaluate x if not in WHNF */
                         R2.enter(context);
                         R1 = (StgConstr) context.R(1);
                     }
                     /* Grab x from I# x */
-                    int x = R1.get(1);
+                    Izh R1__ = (Izh) R1;
+                    int x = R1__.get1();
                     /* Call $wsum xs' */
                     context.R(2, _s2EE);
                     zdwsum_closure.enter(context);
@@ -194,11 +208,10 @@ public class Main {
             /* Call $wsum caf */
             context.R(2, caf_closure);
             zdwsum_closure.enter(context);
-            int sum = context.I(1);
             /* Print the return value */
-            Print.printInt(sum);
+            Print.printIntzh(context);
             /* Return () */
-            context.R(1, base.ghc.tuple.ZLZR_closure);
+            context.R(1, ZLZR_closure);
         }
     };
 
@@ -213,7 +226,7 @@ public class Main {
     public static void main(String[] args) {
         RtsConfig config = RtsConfig.getDefault();
         config.rtsHsMain = true;
-        ExitCode exitCode = hsMain(args, main_closure, config);
+        ExitCode exitCode = Rts.hsMain(args, main_closure, config);
         System.exit(exitCode.code());
     }
 }

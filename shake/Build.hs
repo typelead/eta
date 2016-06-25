@@ -27,7 +27,6 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
     masjar %> \out -> do
       cs <- getDirectoryFiles "" [mapandsumDir </> "java/src//*.java"]
       need [rtsjar]
-      putNormal $ ".:" ++ rtsjar
       () <- cmd "javac" "-cp" (".:" ++ rtsjar)  "-d" sampleBuildDir cs
       classfiles <- getDirectoryFiles "" [sampleBuildDir </> "//*.class"]
       () <- cmd "jar cf" [out] classfiles
