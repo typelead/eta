@@ -58,7 +58,7 @@ public ObjectArrayList(int initialCapacity) {
  * @param element element to be appended to this list.
  */
 public void add(Object element) {
-	if (size == elements.length) ensureCapacity(size + 1); 
+	if (size == elements.length) ensureCapacity(size + 1);
 	elements[size++] = element;
 }
 /**
@@ -556,10 +556,21 @@ public void reverse() {
  * @exception IndexOutOfBoundsException index is out of range (index
  * 		  &lt; 0 || index &gt;= size()).
 */
+// public void set(int index, Object element) {
+// 	if (index >= size || index < 0)
+// 		throw new IndexOutOfBoundsException("Index: "+index+", Size: "+size);
+// 	elements[index] = element;
+// }
+
+/* TODO: Update documentation to reflect new definition of set */
 public void set(int index, Object element) {
-	if (index >= size || index < 0)
+	if (index < 0)
 		throw new IndexOutOfBoundsException("Index: "+index+", Size: "+size);
-	elements[index] = element;
+  else if (index >= size) {
+      if (index >= elements.length) ensureCapacity(index + 1);
+      size = index + 1;
+  }
+  elements[index] = element;
 }
 /**
  * Replaces the element at the specified position in the receiver with the specified element; <b>WARNING:</b> Does not check preconditions.

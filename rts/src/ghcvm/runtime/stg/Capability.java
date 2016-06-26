@@ -47,7 +47,7 @@ public final class Capability {
     public static int enabledCapabilities;
     public static Capability mainCapability;
     public static Capability lastFreeCapability;
-    public static List<Capability> capabilities;
+    public static List<Capability> capabilities = new ArrayList<Capability>(1);
     public static SyncType pendingSync = SyncType.SYNC_NONE;
 
     public enum SyncType {

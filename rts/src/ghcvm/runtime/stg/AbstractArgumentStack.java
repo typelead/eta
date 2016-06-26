@@ -14,8 +14,10 @@ import cern.colt.list.ObjectArrayList;
 public abstract class AbstractArgumentStack {
     public ObjectArrayList closures;
 
-    public AbstractArgumentStack() {
-        this(new ObjectArrayList(3));
+    public AbstractArgumentStack() {}
+
+    public AbstractArgumentStack(int closuresSize) {
+        this(new ObjectArrayList(closuresSize));
     }
 
     public AbstractArgumentStack(final ObjectArrayList closures) {
@@ -23,11 +25,11 @@ public abstract class AbstractArgumentStack {
     }
 
     public StgClosure R(int index) {
-        return (StgClosure) closures.get(index);
+        return (StgClosure) closures.get(index - 1);
     }
 
     public void R(int index, StgClosure closure) {
-        closures.set(index, closure);
+        closures.set(index - 1, closure);
     }
 
     public boolean isSimple() { return false; }

@@ -21,7 +21,11 @@ public class ArgumentStack extends AbstractArgumentStack {
     public AbstractDoubleList doubles;
 
     public ArgumentStack() {
-        super();
+        super(7);
+    }
+
+    public ArgumentStack(int closureSize) {
+        super(closureSize);
     }
 
     public ArgumentStack(final ObjectArrayList closures, final ObjectArrayList objects, final AbstractIntList ints, final AbstractLongList longs, AbstractFloatList floats, AbstractDoubleList doubles) {
@@ -44,47 +48,47 @@ public class ArgumentStack extends AbstractArgumentStack {
     }
 
     public Object O(int index) {
-        return objects.get(index);
+        return objects.get(index - 1);
     }
 
     public void O(int index, Object o) {
         if (objects == null) objects = new ObjectArrayList(1);
-        objects.set(index, o);
+        objects.set(index - 1, o);
     }
 
     public int I(int index) {
-        return ints.get(index);
+        return ints.get(index - 1);
     }
 
     public void I(int index, int i) {
         if (ints == null) ints = new IntArrayList(1);
-        ints.set(index, i);
+        ints.set(index - 1, i);
     }
 
     public long L(int index) {
-        return longs.get(index);
+        return longs.get(index - 1);
     }
 
     public void L(int index, long l) {
         if (longs == null) longs = new LongArrayList(1);
-        longs.set(index, l);
+        longs.set(index - 1, l);
     }
 
     public float F(int index) {
-        return floats.get(index);
+        return floats.get(index - 1);
     }
 
     public void F(int index, float f) {
         if (floats == null) floats = new FloatArrayList(1);
-        floats.set(index, f);
+        floats.set(index - 1, f);
     }
 
     public double D(int index) {
-        return doubles.get(index);
+        return doubles.get(index - 1);
     }
 
     public void D(int index, double d) {
         if (doubles == null) doubles = new DoubleArrayList(1);
-        doubles.set(index, d);
+        doubles.set(index - 1, d);
     }
 }

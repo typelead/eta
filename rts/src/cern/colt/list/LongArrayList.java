@@ -271,11 +271,22 @@ public void replaceFromToWithFrom(int from, int to, AbstractLongList other, int 
  * @exception IndexOutOfBoundsException index is out of range (index
  * 		  &lt; 0 || index &gt;= size()).
  */
+// public void set(int index, long element) {
+// 	// overridden for performance only.
+// 	if (index >= size || index < 0)
+// 		throw new IndexOutOfBoundsException("Index: "+index+", Size: "+size);
+// 	elements[index] = element;
+// }
+
+/* TODO: Update documentation to reflect new definition of set */
 public void set(int index, long element) {
-	// overridden for performance only.
-	if (index >= size || index < 0)
-		throw new IndexOutOfBoundsException("Index: "+index+", Size: "+size);
-	elements[index] = element;
+    if (index < 0)
+        throw new IndexOutOfBoundsException("Index: "+index+", Size: "+size);
+    else if (index >= size) {
+        if (index >= elements.length) ensureCapacity(index + 1);
+        size = index + 1;
+    }
+    elements[index] = element;
 }
 /**
  * Replaces the element at the specified position in the receiver with the specified element; <b>WARNING:</b> Does not check preconditions.
