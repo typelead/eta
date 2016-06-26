@@ -36,7 +36,7 @@ public class MinimalBase {
         private final int x2;
         private final int x3;
 
-        private sat_sC8(StgClosure x1, int x2, int x3) {
+        private sat_sC8(final StgClosure x1, int x2, int x3) {
             this.x1 = x1;
             this.x2 = x2;
             this.x3 = x3;

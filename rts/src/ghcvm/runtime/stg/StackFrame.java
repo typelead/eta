@@ -39,9 +39,12 @@ public abstract class StackFrame extends StgClosure {
                     sp.previous();
                     index--;
                 }
-                /* Pop the frame since we're done with it now */
+                StackFrame thisFrame = sp.previous();
+                if (thisFrame == this) {
+                    /* Pop the frame since we're done with it now */
+                    sp.remove();
+                }
                 /* TODO: Check if a next() or previous() is required here */
-                sp.remove();
             } else {
                 if (stackIndex < index) {
                     /* If stackIndex < index, new frames have been added

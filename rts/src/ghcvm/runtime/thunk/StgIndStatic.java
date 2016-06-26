@@ -4,8 +4,8 @@ import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
-import ghcvm.runtime.thunk.StgWhiteHole;
 import ghcvm.runtime.util.UnsafeUtil;
+import ghcvm.runtime.thunk.StgWhiteHole;
 
 public abstract class StgIndStatic extends StgThunk {
 

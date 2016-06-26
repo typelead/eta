@@ -56,8 +56,13 @@ public class Main {
             }
             /* Perform case analysis of the evaluated thunk */
             switch (R1.getTag()) {
-                /* x : xs */
+                /* [] */
                 case 1:
+                    /* Return [] */
+                    context.R(1, ZMZN_closure);
+                    break;
+                /* x : xs */
+                case 2:
                     /* x */
                     ZC R1_ = (ZC) R1;
                     StgClosure _s2Et = R1_.get1();
@@ -73,12 +78,6 @@ public class Main {
                     ZC ret = new ZC(f_thunk, map_thunk);
                     /* Return (f x : map f xs) */
                     context.R(1, ret);
-                    break;
-
-                /* [] */
-                case 2:
-                    /* Return [] */
-                    context.R(1, ZMZN_closure);
                     break;
             }
         }
@@ -164,6 +163,7 @@ public class Main {
                 R1 = (StgConstr) context.R(1);
             }
             switch (R1.getTag()) {
+                /* [] */
                 case 1:
                     /* Return 0 */
                     context.I(1, 0);

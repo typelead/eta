@@ -29,19 +29,24 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
     masjar %> \out -> do
       cs <- getDirectoryFiles "" [mapandsumDir </> "java/src//*.java"]
       need [rtsjar]
-      () <- cmd "javac" "-cp" (".:" ++ rtsjar)  "-d" sampleBuildDir cs
+      -- TODO: Setup a debug build
+      () <- cmd "javac" "-g" "-cp" (".:" ++ rtsjar)  "-d" sampleBuildDir cs
       classfiles <- getDirectoryFiles sampleBuildDir ["//*.class"]
       () <- cmd (Cwd sampleBuildDir) "jar cf" ["../../" ++ out] classfiles
-      putNormal "Generated mapandsum.jar for execution."
+      putNormal "Generated mapandsum.jar."
 
     rtsjar %> \out -> do
-      cs <- getDirectoryFiles rtsSrcDir ["//*.java"]
-      let os = [build c | c <- cs]
-      headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
-      need $ os ++ headers
+      cs <- getDirectoryFiles "" [rtsSrcDir </> "//*.java"]
+      {- TODO: Removed C annotation processing in java source files.
+               Maybe use Java's annotation processing instead?
+       let os = [build c | c <- cs]
+       headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
+       need $ os ++ headers
+      -}
       -- The flag suppresses the warnings about Unsafe
       --() <- cmd "javac -XDignore.symbol.file -Xlint:unchecked" os
-      () <- cmd "javac -XDignore.symbol.file" os
+      -- TODO: Setup a debug build
+      () <- cmd "javac -g -XDignore.symbol.file" "-d" rtsBuildDir cs
       classfiles <- getDirectoryFiles rtsBuildDir ["//*.class"]
       () <- cmd (Cwd rtsBuildDir) "jar cf" ["../../" ++ out] classfiles
       putNormal "Generated rts.jar."

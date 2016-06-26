@@ -244,15 +244,17 @@ public final class Capability {
                         try {
                             sp.next().enter(context);
                         } catch (ThreadYieldException e) {
-
+                            System.out.println("ThreadYieldException");
                         } catch (StgReturnException e) {
                             /* TODO: Ensure that the StgContext objects
                                      match. */
+                            System.out.println("StgReturnException");
                         } catch (StackReloadException e) {
                             reload = true;
                             /* TODO: Currently, this reload logic assumes that
                                      the tso doesn't change. Remove this when
                                      confirmed. */
+                            System.out.println("StackReloadException");
                         } catch (StackOverflowError e) {
                             /* TODO: Handle a stack overflow by resetting the
                                      stack and pushing the top most closure
@@ -260,6 +262,7 @@ public final class Capability {
                                      Make sure you check whether this is the
                                      first time, otherwise, a infinite loop
                                      will occur. */
+                            System.out.println("StackOverflowError");
                         } finally {
                             /* TODO: Is this the right way to grab the
                                      context? */
