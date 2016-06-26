@@ -8,8 +8,15 @@ import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class StgClosure {
     public void enter(StgContext context) {}
-    public void preEnter(StgContext context) {}
     public StgClosure getEvaluated() { return null; }
+    public StgClosure evaluate(StgContext context) {
+        StgClosure eval = getEvaluated();
+        if (eval == null) {
+            enter(context);
+            eval = context.R(1);
+        }
+        return eval;
+    }
 
     public void thunkUpdate(Capability cap, StgTSO tso) {
         cap.checkBlockingQueues(tso);

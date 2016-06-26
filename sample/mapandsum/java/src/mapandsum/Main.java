@@ -48,12 +48,7 @@ public class Main {
             /* list */
             StgClosure R3 = context.R(3);
             /* Force list to WHNF */
-            StgConstr R1 = (StgConstr) R3.getEvaluated();
-            if (R1 == null) {
-                /* Evaluate list if not in WHNF */
-                R3.enter(context);
-                R1 = (StgConstr) context.R(1);
-            }
+            StgConstr R1 = (StgConstr) R3.evaluate(context);
             /* Perform case analysis of the evaluated thunk */
             switch (R1.getTag()) {
                 /* [] */
@@ -104,12 +99,7 @@ public class Main {
             /* x */
             StgClosure R2 = context.R(2);
             /* Force x to WHNF */
-            StgConstr R1 = (StgConstr) R2.getEvaluated();
-            if (R1 == null) {
-                /* Evaluate x if not in WHNF */
-                R2.enter(context);
-                R1 = (StgConstr) context.R(1);
-            }
+            StgConstr R1 = (StgConstr) R2.evaluate(context);
             Izh R1_ = (Izh) R1;
             /* Grab the first field of I# & add 1 */
             int _s2EA = R1_.get1() + 1;
@@ -156,12 +146,7 @@ public class Main {
             /* xs */
             StgClosure R2 = context.R(2);
             /* Force xs to WHNF */
-            StgConstr R1 = (StgConstr) R2.getEvaluated();
-            if (R1 == null) {
-                /* Evaluate xs if not in WHNF */
-                R2.enter(context);
-                R1 = (StgConstr) context.R(1);
-            }
+            StgConstr R1 = (StgConstr) R2.evaluate(context);
             switch (R1.getTag()) {
                 /* [] */
                 case 1:
@@ -176,12 +161,7 @@ public class Main {
                     /* x */
                     R2 = R1_.get1();
                     /* Force x to WHNF */
-                    R1 = (StgConstr) R2.getEvaluated();
-                    if (R1 == null) {
-                        /* Evaluate x if not in WHNF */
-                        R2.enter(context);
-                        R1 = (StgConstr) context.R(1);
-                    }
+                    R1 = (StgConstr) R2.evaluate(context);
                     /* Grab x from I# x */
                     Izh R1__ = (Izh) R1;
                     int x = R1__.get1();
@@ -216,7 +196,10 @@ public class Main {
     };
 
     /* main = do {...} */
-    public static StgClosure main_closure = new StgClosure() {
+    public static StgClosure main_closure = new StgFun() {
+        @Override
+        public int getArity() { return 1; }
+
         @Override
         public void enter(StgContext context) {
             main1_closure.enter(context);

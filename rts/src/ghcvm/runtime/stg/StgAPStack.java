@@ -27,6 +27,7 @@ public class StgAPStack extends StgThunk {
         while (it.hasPrevious()) {
             sp.add(it.previous());
         }
+        /* TODO: Make sure ENTER_R1 functionality is implemented correctly */
         context.R(1, fun);
     }
 

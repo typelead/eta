@@ -12,7 +12,8 @@ public class StgEnter extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        closure.enter(context);
+        StgClosure result = closure.evaluate(context);
+        context.R(1, result);
     }
 
     @Override
