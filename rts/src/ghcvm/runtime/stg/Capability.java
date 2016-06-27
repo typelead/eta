@@ -732,71 +732,79 @@ public final class Capability {
     }
 
     public final void release_(boolean alwaysWakeup) {
-        Task task = runningTask;
-        runningTask = null;
-        Task workerTask = returningTasks.pollFirst();
-        if (workerTask != null) {
-            giveCapabilityToTask(workerTask);
-            return;
-        }
-        /* TODO: Evaluate if this is required
-        if (pendingSync != 0 && pendingSync != SYNC_GC_PAR) {
+        if (RtsFlags.ModeFlags.threaded) {
+            Task task = runningTask;
+            runningTask = null;
+            /* TODO: peek() instead of poll()?
+               verify that the task pops itself from the queue */
+            Task workerTask = returningTasks.peekFirst();
+            if (workerTask != null) {
+                giveCapabilityToTask(workerTask);
+                return;
+            }
+            /* TODO: Evaluate if this is required
+               if (pendingSync != 0 && pendingSync != SYNC_GC_PAR) {
+               lastFreeCapability = this;
+               //debugTrace
+               return;
+               }*/
+
+            // StgTSO nextTSO = peekRunQueue();
+            // if (nextTSO.bound != null) {
+            //     task = nextTSO.bound.task();
+            //     giveCapabilityToTask(task);
+            //     return;
+            // }
+            if (!emptyRunQueue()) {
+                StgTSO nextTSO = peekRunQueue();
+                if (nextTSO.bound != null) {
+                    task = nextTSO.bound.task();
+                    giveCapabilityToTask(task);
+                    return;
+                }
+            }
+
+            if (spareWorkers.isEmpty()) {
+                if (schedulerState.compare(SCHED_SHUTTING_DOWN) < 0 || !emptyRunQueue()) {
+                    //debugTrace
+                    startWorkerTask();
+                    return;
+                }
+            }
+
+            if (alwaysWakeup || !emptyRunQueue() || !emptyInbox()
+                || (!disabled && !emptySparkPool()) || globalWorkToDo()) {
+                task = spareWorkers.poll();
+                if (task != null) {
+                    giveCapabilityToTask(task);
+                    return;
+                }
+            }
+
             lastFreeCapability = this;
-            //debugTrace
-            return;
-            }*/
-
-        // StgTSO nextTSO = peekRunQueue();
-        // if (nextTSO.bound != null) {
-        //     task = nextTSO.bound.task();
-        //     giveCapabilityToTask(task);
-        //     return;
-        // }
-        if (!emptyRunQueue()) {
-            StgTSO nextTSO = peekRunQueue();
-            if (nextTSO.bound != null) {
-                task = nextTSO.bound.task();
-                giveCapabilityToTask(task);
-                return;
-            }
+            //debugTrace;
         }
-
-        if (spareWorkers.isEmpty()) {
-            if (schedulerState.compare(SCHED_SHUTTING_DOWN) < 0 || !emptyRunQueue()) {
-                //debugTrace
-                startWorkerTask();
-                return;
-            }
-        }
-
-        if (alwaysWakeup || !emptyRunQueue() || !emptyInbox()
-            || (!disabled && !emptySparkPool()) || globalWorkToDo()) {
-            task = spareWorkers.poll();
-            if (task != null) {
-                giveCapabilityToTask(task);
-                return;
-            }
-        }
-
-        lastFreeCapability = this;
-        //debugTrace;
     }
 
     public final void release() {
-        lock.lock();
-        try {
-            release_(false);
-        } finally {
-            lock.unlock();
+        if (RtsFlags.ModeFlags.threaded) {
+            lock.lock();
+            try {
+                release_(false);
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
     public final void releaseAndWakeup() {
-        lock.lock();
-        try {
-            release_(true);
-        } finally {
-            lock.unlock();
+        if (RtsFlags.ModeFlags.threaded) {
+            lock.lock();
+            try {
+                release_(true);
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
