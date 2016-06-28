@@ -1,8 +1,5 @@
 package ghcvm.runtime.stg;
 
-import ghcvm.runtime.stg.StgClosure;
-import ghcvm.runtime.stg.StgContext;
-
 public class ReturnClosure extends StackFrame {
     public final StgClosure closure;
 
