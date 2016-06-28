@@ -1,5 +1,6 @@
 package ghcvm.runtime;
 
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 import ghcvm.runtime.stg.Task;
@@ -8,10 +9,12 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.ForceIO;
 import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.StgWeak;
 import ghcvm.runtime.apply.ApV;
 import static ghcvm.runtime.RtsScheduler.SchedulerStatus;
 import static ghcvm.runtime.RtsScheduler.scheduleWaitThread;
 import static ghcvm.runtime.RtsMessages.errorBelch;
+import static ghcvm.runtime.stg.StgTSO.TSO_LOCKED;
 
 public class Rts {
     public static class HaskellResult {
@@ -118,7 +121,15 @@ public class Rts {
         //setlocale(LC_CTYPE,"");
         RtsStats.startInit();
         // TODO: Implement Stable Ptrs, Globals, File Locking, HPC, IO Manager, Storage, Tracing, processing RTS Flags (is this necessary?)
+        RtsFlags.initDefaults();
+        RtsFlags.setFullProgArgs(args);
+        RtsFlags.setup(args, config.rtsOptsEnabled, config.rtsOpts,
+                      config.rtsHsMain);
+
         RtsScheduler.initScheduler();
+        RtsScheduler.initTimer();
+        /* TODO: Ensure that the timer can start here */
+        RtsScheduler.startTimer();
         if (RtsFlags.ModeFlags.threaded) {
             RtsIO.ioManagerStart();
         }
@@ -140,9 +151,37 @@ public class Rts {
             hsInitCount--;
             if (hsInitCount <= 0) {
                 // TODO: Finish up
+                flushStdHandles();
+                if (RtsFlags.ModeFlags.threaded) {
+                    RtsIO.ioManagerDie();
+                }
+                RtsScheduler.exit(waitForeign);
+                for (Capability c: Capability.capabilities) {
+                    runAllJavaFinalizers(c.weakPtrList);
+                }
+                if (RtsFlags.MiscFlags.installSignalHandlers) {
+                    /* TODO: Signal Handling: freeSignalHandlers() */
+                }
+                RtsScheduler.stopTimer();
+                RtsScheduler.exitTimer(waitForeign);
+                if (RtsFlags.MiscFlags.installSignalHandlers) {
+                    /* TODO: Signal Handling: resetDefaultHandlers() */
+                }
+                RtsScheduler.free();
             }
         }
     }
+
+    public static void flushStdHandles() {
+        /* TODO: Implement */
+        if (false) {
+            Capability cap = Rts.lock();
+            HaskellResult result = Rts.evalIO(cap, null /* flushStdHandles_closure */);
+            cap = result.cap;
+            Rts.unlock(cap);
+        }
+    }
+
 
     public static void stgExit(ExitCode exitCode) {
         System.exit(exitCode.code());
@@ -170,7 +209,47 @@ public class Rts {
         }
     }
 
-    public void hsExit() {
+    public static void hsExit() {
         hsExit_(true);
     }
+
+    public static void wakeUp() {
+        RtsIO.ioManagerWakeup();
+    }
+
+    public static void runAllJavaFinalizers(List<StgWeak> weakPtrs) {
+        Task task = Task.myTask();
+
+        if (task != null) {
+            task.runningFinalizers = true;
+        }
+
+        for (StgWeak w: weakPtrs) {
+            w.runJavaFinalizers();
+        }
+
+        if (task != null) {
+            task.runningFinalizers = false;
+        }
+    }
+
+    public static void scheduleThread(Capability cap, StgTSO tso) {
+        cap.appendToRunQueue(tso);
+    }
+
+    public static void scheduleThreadOn(Capability cap, int cpu, StgTSO tso) {
+        tso.addFlags(TSO_LOCKED);
+        if (RtsFlags.ModeFlags.threaded) {
+            cpu %= Capability.enabledCapabilities;
+            if (cpu == cap.no) {
+                cap.appendToRunQueue(tso);
+            } else {
+                cap.migrateThread(tso, Capability.capabilities.get(cpu));
+            }
+        } else {
+            cap.appendToRunQueue(tso);
+        }
+    }
+
+
 }

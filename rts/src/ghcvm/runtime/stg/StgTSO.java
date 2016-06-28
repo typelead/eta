@@ -57,20 +57,26 @@ public final class StgTSO extends StgClosure {
     }
 
     public enum WhyBlocked {
-        NotBlocked,
-        BlockedOnMVar,
-        BlockedOnBlackHole,
-        BlockedOnRead,
-        BlockedOnWrite,
-        BlockedOnDelay,
-        BlockedOnSTM,
-        BlockedOnDoProc,
-        BlockedOnGA,
-        BlockedOnJavaCall,
-        BlockedOnJavaCall_Interruptible,
-        BlockedOnMsgThrowTo,
-        ThreadMigrating,
-        BlockedOnMVarRead
+        NotBlocked(0),
+        BlockedOnMVar(1),
+        BlockedOnBlackHole(2),
+        BlockedOnRead(3),
+        BlockedOnWrite(4),
+        BlockedOnDelay(5),
+        BlockedOnSTM(6),
+        BlockedOnGA(8),
+        BlockedOnJavaCall(10),
+        BlockedOnJavaCall_Interruptible(11),
+        BlockedOnMsgThrowTo(12),
+        ThreadMigrating(13),
+        BlockedOnMVarRead(14);
+        private int val;
+        WhyBlocked(int val) {
+            this.val = val;
+        }
+        public int getVal() {
+            return val;
+        }
     }
 
     public StgTSO(Capability cap) {
@@ -183,5 +189,13 @@ public final class StgTSO extends StgClosure {
     public void park() {
         whyBlocked = BlockedOnSTM;
         blockInfo = null;
+    }
+
+    public final boolean isBound() {
+        if (RtsFlags.ModeFlags.threaded) {
+            return bound != null;
+        } else {
+            return false;
+        }
     }
 }

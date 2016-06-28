@@ -1994,4 +1994,71 @@ public final class Capability {
         caf.indirectee = bh;
         return bh;
     }
+
+    public static void freeCapabilities() {
+        if (RtsFlags.ModeFlags.threaded) {
+            for (Capability c: capabilities) {
+                if (c != mainCapability) {
+                    c.free();
+                }
+            }
+        } else {
+            mainCapability.free();
+        }
+    }
+
+    public final void free() {
+        sparks.discardElements();
+    }
+
+    public static void shutdownCapabilities(Task task, boolean safe) {
+        for (Capability c: capabilities) {
+            c.shutdown(task, safe);
+        }
+    }
+
+    public final void shutdown(Task task, boolean safe) {
+        if (RtsFlags.ModeFlags.threaded) {
+            task.cap = this;
+            while (true) {
+                lock.lock();
+                try {
+                    if (runningTask != null) {
+                        lock.unlock();
+                        Thread.yield();
+                        continue;
+                    }
+                    runningTask = task;
+                    if (!spareWorkers.isEmpty()) {
+                        Task prev = null;
+                        Iterator<Task> it = spareWorkers.iterator();
+                        while (it.hasNext()) {
+                            Task t = it.next();
+                            if (!t.isAlive()) {
+                                it.remove();
+                            }
+                        }
+                    }
+
+                    if (!emptyRunQueue() || !spareWorkers.isEmpty()) {
+                        release_(false);
+                        lock.unlock();
+                        Thread.yield();
+                        continue;
+                    }
+
+                    if (!suspendedJavaCalls.isEmpty() && safe) {
+                        runningTask = null;
+                        lock.unlock();
+                        RtsIO.ioManagerDie();
+                        Thread.yield();
+                        continue;
+                    }
+                } finally {
+                    lock.unlock();
+                }
+                break;
+            }
+        }
+    }
 }

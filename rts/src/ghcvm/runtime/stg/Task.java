@@ -47,8 +47,12 @@ public class Task {
         Capability cap = null;
         for (int i = from; i < to; i++) {
             cap = capabilities.get(i);
-            synchronized (cap) {
+            Lock l = cap.lock;
+            l.lock();
+            try {
                 cap.startWorkerTask();
+            } finally {
+                l.unlock();
             }
         }
     }
@@ -229,7 +233,7 @@ public class Task {
         this.incall = incallStack.peek();
     }
 
-    public void workerTaskStop() {
+    public final void workerTaskStop() {
         synchronized (Task.class) {
             allTasks.remove(this);
             currentWorkerCount--;
@@ -237,14 +241,14 @@ public class Task {
         free();
     }
 
-    public void free() {
+    public final void free() {
         incallStack.clear();
         spareIncalls.clear();
         cap = null;
         incall = null;
     }
 
-    public boolean isWorker() {
+    public final boolean isWorker() {
         return (worker && incallStack.size() == 1);
     }
 
@@ -253,7 +257,7 @@ public class Task {
         //throw new InterruptedException();
     }
 
-    public Capability waitForWorkerCapability() {
+    public final Capability waitForWorkerCapability() {
         Capability cap = null;
         while (true) {
             lock.lock();
@@ -301,5 +305,26 @@ public class Task {
 
     public final void interruptWorker() {
         thread.interrupt();
+    }
+
+    public static int freeTaskManager() {
+        int tasksRunning = 0;
+        synchronized (Task.class) {
+
+            for (Task task: allTasks) {
+                if (task.stopped) {
+                    task.free();
+                } else {
+                    tasksRunning++;
+                }
+            }
+            allTasks.clear();
+        }
+        tasksInitialized = false;
+        return tasksRunning;
+    }
+
+    public final boolean isAlive() {
+        return thread.isAlive();
     }
 }

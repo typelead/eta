@@ -1,13 +1,10 @@
 package ghcvm.runtime;
 
-public class RtsConfig {
-    public enum RtsOpsEnabled {
-        None,
-        SafeOnly,
-        All
-    }
+import static ghcvm.runtime.RtsFlags.RtsOptsEnabled;
+import static ghcvm.runtime.RtsFlags.RtsOptsEnabled.RtsOptsSafeOnly;
 
-    public RtsOpsEnabled rtsOptsEnabled;
+public class RtsConfig {
+    public RtsOptsEnabled rtsOptsEnabled;
     public String rtsOpts;
     public boolean rtsHsMain;
 
@@ -15,7 +12,7 @@ public class RtsConfig {
 
     public static RtsConfig getDefault() {
         RtsConfig config = new RtsConfig();
-        config.rtsOptsEnabled = RtsOpsEnabled.SafeOnly;
+        config.rtsOptsEnabled = RtsOptsSafeOnly;
         config.rtsOpts = null;
         config.rtsHsMain = false;
         return config;

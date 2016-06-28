@@ -1,20 +1,29 @@
 package ghcvm.runtime.concurrent;
 
+import ghcvm.runtime.Rts;
 import ghcvm.runtime.stg.Stg;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.stg.StgContext;
+import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
+import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
+import static ghcvm.runtime.stg.StgTSO.TSO_LOCKED;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked;
+import static ghcvm.runtime.stg.StgTSO.WhatNext;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVar;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVarRead;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadComplete;
+import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadKilled;
 import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
+import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
 
-    public static StgClosure readMVar = new StgClosure() {
+    public static RtsFun readMVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R(1);
@@ -34,7 +43,7 @@ public class Concurrent {
             }
         };
 
-    public static StgClosure putMVar = new StgClosure() {
+    public static RtsFun putMVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R(1);
@@ -72,7 +81,7 @@ public class Concurrent {
             }
         };
 
-    public static StgClosure block_readmvar = new StgClosure() {
+    public static RtsFun block_readmvar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R(1);
@@ -84,7 +93,7 @@ public class Concurrent {
             }
         };
 
-    public static StgClosure block_putmvar = new StgClosure() {
+    public static RtsFun block_putmvar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R(1);
@@ -97,7 +106,7 @@ public class Concurrent {
             }
         };
 
-    public static StgClosure tryReadMVar = new StgClosure() {
+    public static RtsFun tryReadMVar = new RtsFun() {
         @Override
         public void enter(StgContext context) {
             StgMVar mvar = (StgMVar) context.R(1);
@@ -115,5 +124,98 @@ public class Concurrent {
             mvar.unlock();
         }
     };
+
+    public static RtsFun fork = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO currentTSO = context.currentTSO;
+                StgClosure closure = context.R(1);
+                StgTSO tso = Rts.createIOThread(cap, closure);
+                tso.addFlags(currentTSO.flags & (TSO_BLOCKEX | TSO_INTERRUPTIBLE));
+                Rts.scheduleThread(cap, tso);
+                cap.contextSwitch = true;
+                context.O(1, tso);
+            }
+        };
+
+    public static RtsFun forkOn = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO currentTSO = context.currentTSO;
+                int cpu = context.I(1);
+                StgClosure closure = context.R(1);
+                StgTSO tso = Rts.createIOThread(cap, closure);
+                tso.addFlags(currentTSO.flags & (TSO_BLOCKEX | TSO_INTERRUPTIBLE));
+                Rts.scheduleThreadOn(cap, cpu, tso);
+                cap.contextSwitch = true;
+                context.O(1, tso);
+            }
+        };
+
+    public static RtsFun yield = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                cap.contextSwitch = true;
+                Concurrent.yield_noregs.enter(context);
+            }
+        };
+
+    public static RtsFun yield_noregs = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgTSO tso = context.currentTSO;
+                context.ret = ThreadYielding;
+                tso.whatNext = ThreadRunGHC;
+                Stg.returnToSched.enter(context);
+            }
+        };
+
+    public static RtsFun myThreadId = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgTSO tso = context.currentTSO;
+                context.O(1, tso);
+            }
+        };
+
+    public static RtsFun isCurrentThreadBound = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgTSO tso = context.currentTSO;
+                context.I(1, tso.isBound()? 1 : 0);
+            }
+        };
+
+    public static RtsFun threadStatus = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgTSO tso = (StgTSO) context.O(1);
+                WhatNext whatNext = tso.whatNext;
+                int ret;
+                WhyBlocked whyBlocked = tso.whyBlocked;
+                if (whatNext == ThreadComplete) {
+                    ret = 16;
+                } else {
+                    if (whatNext == ThreadKilled) {
+                        ret = 17;
+                    } else {
+                        ret = whyBlocked.getVal();
+                    }
+                }
+                int cap = tso.cap.no;
+                int locked;
+                if (tso.hasFlag(TSO_LOCKED)) {
+                    locked = 1;
+                } else {
+                    locked = 0;
+                }
+                context.I(1, ret);
+                context.I(2, cap);
+                context.I(3, locked);
+            }
+        };
 
 }

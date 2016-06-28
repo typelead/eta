@@ -74,4 +74,12 @@ public class RtsIO {
         cap = result.cap;
         Rts.unlock(cap);
     }
+
+    public static void ioManagerWakeup() {
+        /* TODO: Implement IO Manager */
+    }
+
+    public static void ioManagerDie() {
+        /* TODO: Implement IO Manager */
+    }
 }

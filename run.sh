@@ -10,4 +10,4 @@ if [ ! -f "./sample/build/mapandsum.jar" ]; then
     echo "Run ./build.sh first."
 fi
 
-java -XX:-OmitStackTraceInFastThrow -classpath "rts/build/rts.jar:sample/build/mapandsum.jar" mapandsum.Main
+java -classpath "rts/build/rts.jar:sample/build/mapandsum.jar" mapandsum.Main "$@"
