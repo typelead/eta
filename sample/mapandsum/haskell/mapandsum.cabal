@@ -10,7 +10,7 @@ stability:           Experimental
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable ghc-code
+executable mapandsum
   ghc-options:         -ddump-stg -ddump-opt-cmm -ddump-to-file -O2
   hs-source-dirs:      src
   main-is:             Main.hs
@@ -18,3 +18,4 @@ executable ghc-code
   build-depends:       base >= 4.7 && < 5
                      , ghc-prim
   c-sources:           cmm/Print.cmm
+  other-modules:       MinimalBase

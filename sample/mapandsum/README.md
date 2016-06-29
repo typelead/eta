@@ -8,14 +8,14 @@ module Main where
 
 import Prelude     (Monad(..), ($), (.))
 import GHC.IO      (IO(..))
-import MinimalBase (printInt, Int, enumFromTo, (+), one, zero, ten)
+import MinimalBase (printInt, Int, enumFromTo, (+), one, zero, thousand)
 
 map :: (a -> b) -> [a] -> [b]
 map f (x:xs) = f x : map f xs
 map f [] = []
 
 caf :: [Int]
-caf = map (\x -> x + one) $ enumFromTo one ten
+caf = map (\x -> x + one) $ enumFromTo one thousand
 
 sum :: [Int] -> Int
 sum (x:xs) = x + sum xs
@@ -34,6 +34,8 @@ To build & run the sample program, go to the top level of the repository and run
 $ ./build.sh
 $ ./run.sh
 ```
+
+After building, you can find the dumped STG & Cmm outputs in `haskell/.stack-work/dist/x86_64-linux/Cabal-1.22.5.0/build/mapandsum/mapandsum-tmp/src`.
 
 # Navigation
 | Module | Haskell | STG | Cmm | Java |

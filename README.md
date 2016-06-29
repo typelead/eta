@@ -13,6 +13,34 @@ $ ./build.sh
 ```
 
 ## Running
+### Simple Program
+The equivalent of the program below
+```haskell
+map :: (a -> b) -> [a] -> [b]
+map f (x:xs) = f x : map f xs
+map f [] = []
+
+caf :: [Int]
+caf = map (\x -> x + 1) [1..1000]
+
+sum :: [Int] -> Int
+sum (x:xs) = x + sum xs
+sum _ = 0
+
+main :: IO ()
+main = do
+  print $ sum caf
+  return ()
+```
+has been successfully hand-compiled to work with the GHCVM RTS. The command
+
+```shell
+$ ./run.sh
+```
+
+is used to run this program.
+
+### GHCVM Compiler
 The ghcvm executable does nothing more than generate a stub .class file for now. Once the code generator is ready, it will do something more exciting.
 
 ```shell
@@ -32,32 +60,26 @@ We aim to meet the following goals:
   - Eclipse
   - Android Studio
 - Optimize for specific JVM implementations
-  - OpenJDK HotSpot
+  - HotSpot VM
   - Dalvik VM (for Android compatibility, a lightweight runtime)
 - Support hot code reloading 
 - Re-use GHC's infrastructure
-  - Keep up with their release cycle
+  - Keep a several-month lag with respect to ghc's release cycle
   - CLI should match that of ghc's
 
 ## Progress
 
 ### Completed Items
-
-- Intercepted the STG Code in GHC pipeline
-- Updated hs-java to add support for inner classes and did some cosmetic refactorings.
-- Wrote very basic runtime system with support for some primitive data types like StgClosure, StackFrame, etc.
+- A majority of the single- and multi-threaded RTS and primops have been implemented.
+- A sample hand-compiled program is ready. See `sample/mapandsum`.
 
 ### Pending Items
-1. Work on the code generator taking the StgCmm*.hs files in the GHC repo as inspiration.
-1. Work on runtime system implemented more RTS functions from GHC as required during code generation. 
-2. Implement as many of GHC's PrimOps as possible.
-3. Change the base library to use the Java FFI instead of C FFI.
-4. Compile a single source file to run on the JVM.
-and more...
+1. Work on the code generator.
+2. Port the `base` library.
 
 ## Contributing
 
-As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, get in touch and we'll let you know how you can help out.
+As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, join us on Gitter and we'll let you know how you can help out.
 
 ## License
 GHCVM is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
@@ -69,4 +91,3 @@ We are grateful that the folks at [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki
 We are also grateful for Ilya V. Portnov for his [hs-java](https://hackage.haskell.org/package/hs-java) package that we intend to use heavily for code generation.
 
 Thank you guys!
-
