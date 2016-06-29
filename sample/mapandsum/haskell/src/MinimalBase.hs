@@ -7,7 +7,7 @@ module MinimalBase
    one,
    zero,
    ten,
-   hundred)
+   thousand)
 where
 
 import Prelude  (($), otherwise, undefined)
@@ -37,8 +37,8 @@ eftInt x0 y | isTrue# (x0 ># y) = []
 printInt :: Int -> IO ()
 printInt (I# b) = IO $ \s -> case printInt# b s of (# s1, _ #) -> (# s1, () #)
 
-one, zero, ten, hundred :: Int
+one, zero, ten, thousand :: Int
 zero = I# 0#
 one = I# 1#
 ten = I# 10#
-hundred = I# 100#
+thousand = I# 1000#

@@ -1,19 +1,27 @@
 
 ==================== STG syntax: ====================
-2016-06-25 15:54:13.637061 UTC
+2016-06-29 15:38:02.877037 UTC
 
-MinimalBase.hundred :: MinimalBase.Int
+MinimalBase.thousand :: MinimalBase.Int
 [GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
-    NO_CCS MinimalBase.I#! [100];
-MinimalBase.ten :: MinimalBase.Int
-[GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
-    NO_CCS MinimalBase.I#! [10];
-MinimalBase.one :: MinimalBase.Int
-[GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
-    NO_CCS MinimalBase.I#! [1];
-MinimalBase.zero :: MinimalBase.Int
-[GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
-    NO_CCS MinimalBase.I#! [0];
+    NO_CCS MinimalBase.I#! [1000];
+MinimalBase.+
+  :: MinimalBase.Int -> MinimalBase.Int -> MinimalBase.Int
+[GblId,
+ Arity=2,
+ Caf=NoCafRefs,
+ Str=DmdType <S,1*U(U)><S,1*U(U)>m,
+ Unf=OtherCon []] =
+    \r srt:SRT:[] [ds_sBS ds1_sBT]
+        case ds_sBS of _ [Occ=Dead] {
+          MinimalBase.I# i1_sBV [Occ=Once] ->
+              case ds1_sBT of _ [Occ=Dead] {
+                MinimalBase.I# i2_sBX [Occ=Once] ->
+                    case +# [i1_sBV i2_sBX] of sat_sBY {
+                      __DEFAULT -> MinimalBase.I# [sat_sBY];
+                    };
+              };
+        };
 MinimalBase.$wenumFromTo [InlPrag=[0]]
   :: GHC.Prim.Int# -> GHC.Prim.Int# -> [MinimalBase.Int]
 [GblId,
@@ -21,35 +29,35 @@ MinimalBase.$wenumFromTo [InlPrag=[0]]
  Caf=NoCafRefs,
  Str=DmdType <L,U><L,U>,
  Unf=OtherCon []] =
-    \r srt:SRT:[] [ww_sBR ww1_sBS]
-        case ># [ww_sBR ww1_sBS] of sat_sBT {
+    \r srt:SRT:[] [ww_sBZ ww1_sC0]
+        case ># [ww_sBZ ww1_sC0] of sat_sC1 {
           __DEFAULT ->
-              case tagToEnum# [sat_sBT] of _ [Occ=Dead] {
+              case tagToEnum# [sat_sC1] of _ [Occ=Dead] {
                 GHC.Types.False ->
                     let {
-                      go_sBV [Occ=LoopBreaker] :: GHC.Prim.Int# -> [MinimalBase.Int]
+                      go_sC3 [Occ=LoopBreaker] :: GHC.Prim.Int# -> [MinimalBase.Int]
                       [LclId, Arity=1, Str=DmdType <L,U>, Unf=OtherCon []] =
-                          sat-only \r srt:SRT:[] [x_sBW]
+                          sat-only \r srt:SRT:[] [x_sC4]
                               let {
-                                sat_sC1 [Occ=Once] :: [MinimalBase.Int]
+                                sat_sC9 [Occ=Once] :: [MinimalBase.Int]
                                 [LclId, Str=DmdType] =
                                     \u srt:SRT:[] []
-                                        case ==# [x_sBW ww1_sBS] of sat_sBY {
+                                        case ==# [x_sC4 ww1_sC0] of sat_sC6 {
                                           __DEFAULT ->
-                                              case tagToEnum# [sat_sBY] of _ [Occ=Dead] {
+                                              case tagToEnum# [sat_sC6] of _ [Occ=Dead] {
                                                 GHC.Types.False ->
-                                                    case +# [x_sBW 1] of sat_sC0 {
-                                                      __DEFAULT -> go_sBV sat_sC0;
+                                                    case +# [x_sC4 1] of sat_sC8 {
+                                                      __DEFAULT -> go_sC3 sat_sC8;
                                                     };
                                                 GHC.Types.True -> [] [];
                                               };
                                         }; } in
                               let {
-                                sat_sBX [Occ=Once] :: MinimalBase.Int
+                                sat_sC5 [Occ=Once] :: MinimalBase.Int
                                 [LclId, Str=DmdType] =
-                                    NO_CCS MinimalBase.I#! [x_sBW];
-                              } in  : [sat_sBX sat_sC1];
-                    } in  go_sBV ww_sBR;
+                                    NO_CCS MinimalBase.I#! [x_sC4];
+                              } in  : [sat_sC5 sat_sC9];
+                    } in  go_sC3 ww_sBZ;
                 GHC.Types.True -> [] [];
               };
         };
@@ -60,31 +68,17 @@ MinimalBase.enumFromTo [InlPrag=INLINE[0]]
  Caf=NoCafRefs,
  Str=DmdType <S,1*U(U)><S,1*U(U)>,
  Unf=OtherCon []] =
-    \r srt:SRT:[] [w_sC2 w1_sC3]
-        case w_sC2 of _ [Occ=Dead] {
-          MinimalBase.I# ww1_sC5 [Occ=Once] ->
-              case w1_sC3 of _ [Occ=Dead] {
-                MinimalBase.I# ww3_sC7 [Occ=Once] ->
-                    MinimalBase.$wenumFromTo ww1_sC5 ww3_sC7;
+    \r srt:SRT:[] [w_sCa w1_sCb]
+        case w_sCa of _ [Occ=Dead] {
+          MinimalBase.I# ww1_sCd [Occ=Once] ->
+              case w1_sCb of _ [Occ=Dead] {
+                MinimalBase.I# ww3_sCf [Occ=Once] ->
+                    MinimalBase.$wenumFromTo ww1_sCd ww3_sCf;
               };
         };
-MinimalBase.+
-  :: MinimalBase.Int -> MinimalBase.Int -> MinimalBase.Int
-[GblId,
- Arity=2,
- Caf=NoCafRefs,
- Str=DmdType <S,1*U(U)><S,1*U(U)>m,
- Unf=OtherCon []] =
-    \r srt:SRT:[] [ds_sC8 ds1_sC9]
-        case ds_sC8 of _ [Occ=Dead] {
-          MinimalBase.I# i1_sCb [Occ=Once] ->
-              case ds1_sC9 of _ [Occ=Dead] {
-                MinimalBase.I# i2_sCd [Occ=Once] ->
-                    case +# [i1_sCb i2_sCd] of sat_sCe {
-                      __DEFAULT -> MinimalBase.I# [sat_sCe];
-                    };
-              };
-        };
+MinimalBase.one :: MinimalBase.Int
+[GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
+    NO_CCS MinimalBase.I#! [1];
 MinimalBase.printInt1
   :: MinimalBase.Int
      -> GHC.Prim.State# GHC.Prim.RealWorld
@@ -94,15 +88,15 @@ MinimalBase.printInt1
  Caf=NoCafRefs,
  Str=DmdType <S,1*U(U)><L,U>,
  Unf=OtherCon []] =
-    \r srt:SRT:[] [ds_sCf eta_sCg]
-        case ds_sCf of _ [Occ=Dead] {
-          MinimalBase.I# b_sCi [Occ=Once] ->
+    \r srt:SRT:[] [ds_sCg eta_sCh]
+        case ds_sCg of _ [Occ=Dead] {
+          MinimalBase.I# b_sCj [Occ=Once] ->
               case
-                  __primcall main@main print_printIntzh [b_sCi eta_sCg]
+                  __primcall main@main print_printIntzh [b_sCj eta_sCh]
               of
               _ [Occ=Dead]
-              { (#,#) ipv_sCl [Occ=Once] _ [Occ=Dead] ->
-                    (#,#) [ipv_sCl GHC.Tuple.()];
+              { (#,#) ipv_sCm [Occ=Once] _ [Occ=Dead] ->
+                    (#,#) [ipv_sCm GHC.Tuple.()];
               };
         };
 MinimalBase.printInt :: MinimalBase.Int -> GHC.Types.IO ()
@@ -112,6 +106,12 @@ MinimalBase.printInt :: MinimalBase.Int -> GHC.Types.IO ()
  Str=DmdType <S,1*U(U)><L,U>,
  Unf=OtherCon []] =
     \r srt:SRT:[] [eta_B2 eta_B1] MinimalBase.printInt1 eta_B2 eta_B1;
+MinimalBase.ten :: MinimalBase.Int
+[GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
+    NO_CCS MinimalBase.I#! [10];
+MinimalBase.zero :: MinimalBase.Int
+[GblId, Caf=NoCafRefs, Str=DmdType m, Unf=OtherCon []] =
+    NO_CCS MinimalBase.I#! [0];
 MinimalBase.I# :: GHC.Prim.Int# -> MinimalBase.Int
 [GblId[DataCon],
  Arity=1,

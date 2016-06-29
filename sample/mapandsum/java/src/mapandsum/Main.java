@@ -79,13 +79,13 @@ public class Main {
         }
     };
 
-    /* enumFromTo 1 10 */
+    /* enumFromTo 1 1000 */
     public static StgClosure caf1_closure = new StgIndStatic() {
             @Override
             public void thunkEnter(StgContext context) {
                 /* Pass direct primitive integer arguments */
                 context.I(1, 1);
-                context.I(2, 10000);
+                context.I(2, 1000);
                 MinimalBase.zdwenumFromTo_closure.enter(context);
             }
         };

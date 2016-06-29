@@ -1,138 +1,13 @@
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.890781 UTC
+2016-06-29 15:38:03.271512 UTC
 
 section "data" { __stginit_main@main:Main:
 }
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.892205 UTC
-
-section "data" {
-    Main.$wsum_closure:
-        const Main.$wsum_info;
-}
-
-
-==================== Optimised Cmm ====================
-2016-06-25 15:54:13.892559 UTC
-
-Main.$wsum_entry() //  [R2]
-        { [(c2Mp,
-            block_c2Mp_info:
-                const 0;
-                const 32;),
-           (c2Mz,
-            Main.$wsum_info:
-                const 4294967301;
-                const 0;
-                const 15;),
-           (c2MH,
-            block_c2MH_info:
-                const 1;
-                const 32;),
-           (c2MM,
-            block_c2MM_info:
-                const 65;
-                const 32;)]
-        }
-    {offset
-      c2Mz:
-          if ((Sp + -16) < SpLim) goto c2MA; else goto c2MB;
-      c2MA:
-          // nop
-          R1 = Main.$wsum_closure;
-          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
-      c2MB:
-          I64[Sp - 8] = block_c2Mp_info;
-          R1 = R2;
-          Sp = Sp - 8;
-          if (R1 & 7 != 0) goto c2Mp; else goto c2Mq;
-      c2Mq:
-          call (I64[R1])(R1) returns to c2Mp, args: 8, res: 8, upd: 8;
-      c2Mp:
-          if (R1 & 7 >= 2) goto c2Mx; else goto c2My;
-      c2Mx:
-          I64[Sp - 8] = block_c2MH_info;
-          _s2Lj::P64 = P64[R1 + 14];
-          R1 = P64[R1 + 6];
-          P64[Sp] = _s2Lj::P64;
-          Sp = Sp - 8;
-          if (R1 & 7 != 0) goto c2MH; else goto c2MI;
-      c2MI:
-          call (I64[R1])(R1) returns to c2MH, args: 8, res: 8, upd: 8;
-      c2MH:
-          I64[Sp] = block_c2MM_info;
-          R2 = P64[Sp + 8];
-          I64[Sp + 8] = I64[R1 + 7];
-          call Main.$wsum_info(R2) returns to c2MM, args: 8, res: 8, upd: 8;
-      c2MM:
-          R1 = I64[Sp + 8] + R1;
-          Sp = Sp + 16;
-          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
-      c2My:
-          R1 = 0;
-          Sp = Sp + 8;
-          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
-    }
-}
-
-
-==================== Optimised Cmm ====================
-2016-06-25 15:54:13.895745 UTC
-
-section "data" {
-    Main.sum_closure:
-        const Main.sum_info;
-}
-
-
-==================== Optimised Cmm ====================
-2016-06-25 15:54:13.89613 UTC
-
-Main.sum_entry() //  [R2]
-        { [(c2N6,
-            block_c2N6_info:
-                const 0;
-                const 32;),
-           (c2N8,
-            Main.sum_info:
-                const 4294967301;
-                const 0;
-                const 15;)]
-        }
-    {offset
-      c2N8:
-          if ((Sp + -8) < SpLim) goto c2Nc; else goto c2Nd;
-      c2Nc:
-          // nop
-          R1 = Main.sum_closure;
-          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
-      c2Nd:
-          I64[Sp - 8] = block_c2N6_info;
-          // nop
-          Sp = Sp - 8;
-          call Main.$wsum_info(R2) returns to c2N6, args: 8, res: 8, upd: 8;
-      c2N6:
-          Hp = Hp + 16;
-          if (Hp > I64[BaseReg + 856]) goto c2Ng; else goto c2Nf;
-      c2Ng:
-          I64[BaseReg + 904] = 16;
-          // nop
-          call stg_gc_unbx_r1(R1) returns to c2N6, args: 8, res: 8, upd: 8;
-      c2Nf:
-          I64[Hp - 8] = MinimalBase.I#_con_info;
-          I64[Hp] = R1;
-          R1 = Hp - 7;
-          Sp = Sp + 8;
-          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
-    }
-}
-
-
-==================== Optimised Cmm ====================
-2016-06-25 15:54:13.900162 UTC
+2016-06-29 15:38:03.273266 UTC
 
 section "data" {
     Main.map_closure:
@@ -141,21 +16,21 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.900566 UTC
+2016-06-29 15:38:03.273667 UTC
 
-sat_s2Lv_entry() //  [R1]
-        { [(c2Nz,
-            sat_s2Lv_info:
+sat_s2Ln_entry() //  [R1]
+        { [(c2MA,
+            sat_s2Ln_info:
                 const 2;
                 const 19;)]
         }
     {offset
-      c2Nz:
-          if ((Sp + -16) < SpLim) goto c2NA; else goto c2NB;
-      c2NA:
+      c2MA:
+          if ((Sp + -16) < SpLim) goto c2MB; else goto c2MC;
+      c2MB:
           // nop
           call (I64[BaseReg - 16])(R1) args: 8, res: 0, upd: 8;
-      c2NB:
+      c2MC:
           I64[Sp - 16] = stg_upd_frame_info;
           P64[Sp - 8] = R1;
           R3 = P64[R1 + 24];
@@ -167,61 +42,61 @@ sat_s2Lv_entry() //  [R1]
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.901631 UTC
+2016-06-29 15:38:03.274786 UTC
 
 Main.map_entry() //  [R3, R2]
-        { [(c2Np,
-            block_c2Np_info:
+        { [(c2Mq,
+            block_c2Mq_info:
                 const 1;
                 const 32;),
-           (c2NJ,
+           (c2MK,
             Main.map_info:
                 const 8589934607;
                 const 0;
                 const 15;)]
         }
     {offset
-      c2NJ:
-          if ((Sp + -16) < SpLim) goto c2NK; else goto c2NL;
-      c2NK:
+      c2MK:
+          if ((Sp + -16) < SpLim) goto c2ML; else goto c2MM;
+      c2ML:
           // nop
           // nop
           R1 = Main.map_closure;
           call (I64[BaseReg - 8])(R3, R2, R1) args: 8, res: 0, upd: 8;
-      c2NL:
-          I64[Sp - 16] = block_c2Np_info;
+      c2MM:
+          I64[Sp - 16] = block_c2Mq_info;
           R1 = R3;
           P64[Sp - 8] = R2;
           Sp = Sp - 16;
-          if (R1 & 7 != 0) goto c2Np; else goto c2Nq;
-      c2Nq:
-          call (I64[R1])(R1) returns to c2Np, args: 8, res: 8, upd: 8;
-      c2Np:
-          if (R1 & 7 >= 2) goto c2NH; else goto c2NI;
-      c2NH:
+          if (R1 & 7 != 0) goto c2Mq; else goto c2Mr;
+      c2Mr:
+          call (I64[R1])(R1) returns to c2Mq, args: 8, res: 8, upd: 8;
+      c2Mq:
+          if (R1 & 7 >= 2) goto c2MI; else goto c2MJ;
+      c2MI:
           Hp = Hp + 88;
-          if (Hp > I64[BaseReg + 856]) goto c2NS; else goto c2NR;
-      c2NS:
+          if (Hp > I64[BaseReg + 856]) goto c2MT; else goto c2MS;
+      c2MT:
           I64[BaseReg + 904] = 88;
           // nop
-          call stg_gc_unpt_r1(R1) returns to c2Np, args: 8, res: 8, upd: 8;
-      c2NR:
-          _s2Ls::P64 = P64[R1 + 6];
-          _s2Lt::P64 = P64[R1 + 14];
-          I64[Hp - 80] = sat_s2Lv_info;
-          _s2Lp::P64 = P64[Sp + 8];
-          P64[Hp - 64] = _s2Lp::P64;
-          P64[Hp - 56] = _s2Lt::P64;
+          call stg_gc_unpt_r1(R1) returns to c2Mq, args: 8, res: 8, upd: 8;
+      c2MS:
+          _s2Lk::P64 = P64[R1 + 6];
+          _s2Ll::P64 = P64[R1 + 14];
+          I64[Hp - 80] = sat_s2Ln_info;
+          _s2Lh::P64 = P64[Sp + 8];
+          P64[Hp - 64] = _s2Lh::P64;
+          P64[Hp - 56] = _s2Ll::P64;
           I64[Hp - 48] = stg_ap_2_upd_info;
-          P64[Hp - 32] = _s2Lp::P64;
-          P64[Hp - 24] = _s2Ls::P64;
+          P64[Hp - 32] = _s2Lh::P64;
+          P64[Hp - 24] = _s2Lk::P64;
           I64[Hp - 16] = :_con_info;
           P64[Hp - 8] = Hp - 48;
           P64[Hp] = Hp - 80;
           R1 = Hp - 14;
           Sp = Sp + 16;
           call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
-      c2NI:
+      c2MJ:
           R1 = []_closure+1;
           Sp = Sp + 16;
           call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
@@ -230,7 +105,7 @@ Main.map_entry() //  [R3, R2]
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.904818 UTC
+2016-06-29 15:38:03.278213 UTC
 
 section "data" {
     Main.caf2_closure:
@@ -239,44 +114,44 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.905198 UTC
+2016-06-29 15:38:03.278647 UTC
 
 Main.caf2_entry() //  [R2]
-        { [(c2O8,
-            block_c2O8_info:
+        { [(c2N9,
+            block_c2N9_info:
                 const 0;
                 const 32;),
-           (c2Ob,
+           (c2Nc,
             Main.caf2_info:
                 const 4294967301;
                 const 0;
                 const 15;)]
         }
     {offset
-      c2Ob:
-          if ((Sp + -8) < SpLim) goto c2Oi; else goto c2Oj;
-      c2Oi:
+      c2Nc:
+          if ((Sp + -8) < SpLim) goto c2Nj; else goto c2Nk;
+      c2Nj:
           // nop
           R1 = Main.caf2_closure;
           call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
-      c2Oj:
-          I64[Sp - 8] = block_c2O8_info;
+      c2Nk:
+          I64[Sp - 8] = block_c2N9_info;
           R1 = R2;
           Sp = Sp - 8;
-          if (R1 & 7 != 0) goto c2O8; else goto c2O9;
-      c2O9:
-          call (I64[R1])(R1) returns to c2O8, args: 8, res: 8, upd: 8;
-      c2O8:
+          if (R1 & 7 != 0) goto c2N9; else goto c2Na;
+      c2Na:
+          call (I64[R1])(R1) returns to c2N9, args: 8, res: 8, upd: 8;
+      c2N9:
           Hp = Hp + 16;
-          if (Hp > I64[BaseReg + 856]) goto c2Om; else goto c2Ol;
-      c2Om:
+          if (Hp > I64[BaseReg + 856]) goto c2Nn; else goto c2Nm;
+      c2Nn:
           I64[BaseReg + 904] = 16;
           // nop
-          call stg_gc_unpt_r1(R1) returns to c2O8, args: 8, res: 8, upd: 8;
-      c2Ol:
-          _s2Lz::I64 = I64[R1 + 7] + 1;
+          call stg_gc_unpt_r1(R1) returns to c2N9, args: 8, res: 8, upd: 8;
+      c2Nm:
+          _s2Lr::I64 = I64[R1 + 7] + 1;
           I64[Hp - 8] = MinimalBase.I#_con_info;
-          I64[Hp] = _s2Lz::I64;
+          I64[Hp] = _s2Lr::I64;
           R1 = Hp - 7;
           Sp = Sp + 8;
           call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
@@ -285,7 +160,7 @@ Main.caf2_entry() //  [R2]
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.907501 UTC
+2016-06-29 15:38:03.282333 UTC
 
 section "data" {
     Main.caf1_closure:
@@ -297,30 +172,30 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.907904 UTC
+2016-06-29 15:38:03.282766 UTC
 
 Main.caf1_entry() //  [R1]
-        { [(c2Oy,
+        { [(c2Nz,
             Main.caf1_info:
                 const 0;
                 const 22;)]
         }
     {offset
-      c2Oy:
-          if ((Sp + -16) < SpLim) goto c2Oz; else goto c2OA;
-      c2Oz:
+      c2Nz:
+          if ((Sp + -16) < SpLim) goto c2NA; else goto c2NB;
+      c2NA:
           // nop
           call (I64[BaseReg - 16])(R1) args: 8, res: 0, upd: 8;
-      c2OA:
-          (_c2Ov::I64) = call "ccall" arg hints:  [PtrHint,
+      c2NB:
+          (_c2Nw::I64) = call "ccall" arg hints:  [PtrHint,
                                                    PtrHint]  result hints:  [PtrHint] newCAF(BaseReg, R1);
-          if (_c2Ov::I64 == 0) goto c2Ox; else goto c2Ow;
-      c2Ox:
+          if (_c2Nw::I64 == 0) goto c2Ny; else goto c2Nx;
+      c2Ny:
           call (I64[R1])() args: 8, res: 0, upd: 8;
-      c2Ow:
+      c2Nx:
           I64[Sp - 16] = stg_bh_upd_frame_info;
-          I64[Sp - 8] = _c2Ov::I64;
-          R3 = 10;
+          I64[Sp - 8] = _c2Nw::I64;
+          R3 = 1000;
           R2 = 1;
           Sp = Sp - 16;
           call MinimalBase.$wenumFromTo_info(R3,
@@ -330,7 +205,7 @@ Main.caf1_entry() //  [R1]
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.909848 UTC
+2016-06-29 15:38:03.285083 UTC
 
 section "data" {
     Main.caf_closure:
@@ -342,30 +217,30 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.910279 UTC
+2016-06-29 15:38:03.285507 UTC
 
 Main.caf_entry() //  [R1]
-        { [(c2OL,
+        { [(c2NM,
             Main.caf_info:
-                const S2OO_srt-Main.caf_info;
+                const S2NP_srt-Main.caf_info;
                 const 0;
                 const 4294967318;)]
         }
     {offset
-      c2OL:
-          if ((Sp + -16) < SpLim) goto c2OM; else goto c2ON;
-      c2OM:
+      c2NM:
+          if ((Sp + -16) < SpLim) goto c2NN; else goto c2NO;
+      c2NN:
           // nop
           call (I64[BaseReg - 16])(R1) args: 8, res: 0, upd: 8;
-      c2ON:
-          (_c2OI::I64) = call "ccall" arg hints:  [PtrHint,
+      c2NO:
+          (_c2NJ::I64) = call "ccall" arg hints:  [PtrHint,
                                                    PtrHint]  result hints:  [PtrHint] newCAF(BaseReg, R1);
-          if (_c2OI::I64 == 0) goto c2OK; else goto c2OJ;
-      c2OK:
+          if (_c2NJ::I64 == 0) goto c2NL; else goto c2NK;
+      c2NL:
           call (I64[R1])() args: 8, res: 0, upd: 8;
-      c2OJ:
+      c2NK:
           I64[Sp - 16] = stg_bh_upd_frame_info;
-          I64[Sp - 8] = _c2OI::I64;
+          I64[Sp - 8] = _c2NJ::I64;
           R3 = Main.caf1_closure;
           R2 = Main.caf2_closure+1;
           Sp = Sp - 16;
@@ -375,7 +250,132 @@ Main.caf_entry() //  [R1]
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.912293 UTC
+2016-06-29 15:38:03.28809 UTC
+
+section "data" {
+    Main.$wsum_closure:
+        const Main.$wsum_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-29 15:38:03.288515 UTC
+
+Main.$wsum_entry() //  [R2]
+        { [(c2NY,
+            block_c2NY_info:
+                const 0;
+                const 32;),
+           (c2O8,
+            Main.$wsum_info:
+                const 4294967301;
+                const 0;
+                const 15;),
+           (c2Og,
+            block_c2Og_info:
+                const 1;
+                const 32;),
+           (c2Ol,
+            block_c2Ol_info:
+                const 65;
+                const 32;)]
+        }
+    {offset
+      c2O8:
+          if ((Sp + -16) < SpLim) goto c2O9; else goto c2Oa;
+      c2O9:
+          // nop
+          R1 = Main.$wsum_closure;
+          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
+      c2Oa:
+          I64[Sp - 8] = block_c2NY_info;
+          R1 = R2;
+          Sp = Sp - 8;
+          if (R1 & 7 != 0) goto c2NY; else goto c2NZ;
+      c2NZ:
+          call (I64[R1])(R1) returns to c2NY, args: 8, res: 8, upd: 8;
+      c2NY:
+          if (R1 & 7 >= 2) goto c2O6; else goto c2O7;
+      c2O6:
+          I64[Sp - 8] = block_c2Og_info;
+          _s2Lv::P64 = P64[R1 + 14];
+          R1 = P64[R1 + 6];
+          P64[Sp] = _s2Lv::P64;
+          Sp = Sp - 8;
+          if (R1 & 7 != 0) goto c2Og; else goto c2Oh;
+      c2Oh:
+          call (I64[R1])(R1) returns to c2Og, args: 8, res: 8, upd: 8;
+      c2Og:
+          I64[Sp] = block_c2Ol_info;
+          R2 = P64[Sp + 8];
+          I64[Sp + 8] = I64[R1 + 7];
+          call Main.$wsum_info(R2) returns to c2Ol, args: 8, res: 8, upd: 8;
+      c2Ol:
+          R1 = I64[Sp + 8] + R1;
+          Sp = Sp + 16;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+      c2O7:
+          R1 = 0;
+          Sp = Sp + 8;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-29 15:38:03.291718 UTC
+
+section "data" {
+    Main.sum_closure:
+        const Main.sum_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-29 15:38:03.292203 UTC
+
+Main.sum_entry() //  [R2]
+        { [(c2OF,
+            block_c2OF_info:
+                const 0;
+                const 32;),
+           (c2OH,
+            Main.sum_info:
+                const 4294967301;
+                const 0;
+                const 15;)]
+        }
+    {offset
+      c2OH:
+          if ((Sp + -8) < SpLim) goto c2OL; else goto c2OM;
+      c2OL:
+          // nop
+          R1 = Main.sum_closure;
+          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
+      c2OM:
+          I64[Sp - 8] = block_c2OF_info;
+          // nop
+          Sp = Sp - 8;
+          call Main.$wsum_info(R2) returns to c2OF, args: 8, res: 8, upd: 8;
+      c2OF:
+          Hp = Hp + 16;
+          if (Hp > I64[BaseReg + 856]) goto c2OP; else goto c2OO;
+      c2OP:
+          I64[BaseReg + 904] = 16;
+          // nop
+          call stg_gc_unbx_r1(R1) returns to c2OF, args: 8, res: 8, upd: 8;
+      c2OO:
+          I64[Hp - 8] = MinimalBase.I#_con_info;
+          I64[Hp] = R1;
+          R1 = Hp - 7;
+          Sp = Sp + 8;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-29 15:38:03.294515 UTC
 
 section "data" {
     Main.main1_closure:
@@ -385,40 +385,40 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.912654 UTC
+2016-06-29 15:38:03.294924 UTC
 
 Main.main1_entry() //  []
-        { [(c2OX,
-            block_c2OX_info:
+        { [(c2OY,
+            block_c2OY_info:
                 const 0;
                 const 32;),
-           (c2OZ,
+           (c2P0,
             Main.main1_info:
-                const S2OO_srt-Main.main1_info+8;
+                const S2NP_srt-Main.main1_info+8;
                 const 4294967299;
                 const 0;
                 const 12884901903;),
-           (c2P2,
-            block_c2P2_info:
+           (c2P3,
+            block_c2P3_info:
                 const 0;
                 const 32;)]
         }
     {offset
-      c2OZ:
-          if ((Sp + -8) < SpLim) goto c2P3; else goto c2P4;
-      c2P3:
+      c2P0:
+          if ((Sp + -8) < SpLim) goto c2P4; else goto c2P5;
+      c2P4:
           R1 = Main.main1_closure;
           call (I64[BaseReg - 8])(R1) args: 8, res: 0, upd: 8;
-      c2P4:
-          I64[Sp - 8] = block_c2OX_info;
+      c2P5:
+          I64[Sp - 8] = block_c2OY_info;
           R2 = Main.caf_closure;
           Sp = Sp - 8;
-          call Main.$wsum_info(R2) returns to c2OX, args: 8, res: 8, upd: 8;
-      c2OX:
-          I64[Sp] = block_c2P2_info;
+          call Main.$wsum_info(R2) returns to c2OY, args: 8, res: 8, upd: 8;
+      c2OY:
+          I64[Sp] = block_c2P3_info;
           // nop
-          call print_printIntzh(R1) returns to c2P2, args: 8, res: 8, upd: 8;
-      c2P2:
+          call print_printIntzh(R1) returns to c2P3, args: 8, res: 8, upd: 8;
+      c2P3:
           R1 = GHC.Tuple.()_closure+1;
           Sp = Sp + 8;
           call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
@@ -427,7 +427,7 @@ Main.main1_entry() //  []
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.914585 UTC
+2016-06-29 15:38:03.296898 UTC
 
 section "data" {
     Main.main_closure:
@@ -437,25 +437,25 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.915006 UTC
+2016-06-29 15:38:03.297276 UTC
 
 Main.main_entry() //  []
-        { [(c2Pg,
+        { [(c2Ph,
             Main.main_info:
-                const S2OO_srt-Main.main_info+16;
+                const S2NP_srt-Main.main_info+8;
                 const 4294967299;
                 const 0;
                 const 4294967311;)]
         }
     {offset
-      c2Pg:
+      c2Ph:
           call Main.main1_info() args: 8, res: 0, upd: 8;
     }
 }
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.915872 UTC
+2016-06-29 15:38:03.298107 UTC
 
 section "data" {
     Main.main2_closure:
@@ -465,18 +465,18 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.916189 UTC
+2016-06-29 15:38:03.29843 UTC
 
 Main.main2_entry() //  []
-        { [(c2Pq,
+        { [(c2Pr,
             Main.main2_info:
-                const S2OO_srt-Main.main2_info+16;
+                const S2NP_srt-Main.main2_info+8;
                 const 4294967299;
                 const 0;
-                const 12884901903;)]
+                const 21474836495;)]
         }
     {offset
-      c2Pq:
+      c2Pr:
           R2 = Main.main1_closure+1;
           call GHC.TopHandler.runMainIO1_info(R2) args: 8, res: 0, upd: 8;
     }
@@ -484,7 +484,7 @@ Main.main2_entry() //  []
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.917709 UTC
+2016-06-29 15:38:03.299387 UTC
 
 section "data" {
     :Main.main_closure:
@@ -494,31 +494,31 @@ section "data" {
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.918039 UTC
+2016-06-29 15:38:03.300516 UTC
 
 :Main.main_entry() //  []
-        { [(c2PA,
+        { [(c2PB,
             :Main.main_info:
-                const S2OO_srt-:Main.main_info+32;
+                const S2NP_srt-:Main.main_info+32;
                 const 4294967299;
                 const 0;
                 const 4294967311;)]
         }
     {offset
-      c2PA:
+      c2PB:
           call Main.main2_info() args: 8, res: 0, upd: 8;
     }
 }
 
 
 ==================== Optimised Cmm ====================
-2016-06-25 15:54:13.918538 UTC
+2016-06-29 15:38:03.301117 UTC
 
 section "relreadonly" {
-    S2OO_srt:
+    S2NP_srt:
         const Main.caf1_closure;
-        const Main.caf_closure;
         const Main.main1_closure;
+        const Main.caf_closure;
         const GHC.TopHandler.runMainIO1_closure;
         const Main.main2_closure;
 }
