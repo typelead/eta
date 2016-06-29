@@ -1,0 +1,468 @@
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.643729 UTC
+
+section "data" { __stginit_main@main:MinimalBase:
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.644216 UTC
+
+section "data" {
+    MinimalBase.hundred_closure:
+        const MinimalBase.I#_static_info;
+        const 100;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.644551 UTC
+
+section "data" {
+    MinimalBase.ten_closure:
+        const MinimalBase.I#_static_info;
+        const 10;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.644829 UTC
+
+section "data" {
+    MinimalBase.one_closure:
+        const MinimalBase.I#_static_info;
+        const 1;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.645103 UTC
+
+section "data" {
+    MinimalBase.zero_closure:
+        const MinimalBase.I#_static_info;
+        const 0;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.647842 UTC
+
+section "data" {
+    MinimalBase.$wenumFromTo_closure:
+        const MinimalBase.$wenumFromTo_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.648259 UTC
+
+sat_sC1_entry() //  [R1]
+        { [(cDz,
+            sat_sC1_info:
+                const 8589934593;
+                const 16;)]
+        }
+    {offset
+      cDz:
+          if ((Sp + -16) < SpLim) goto cDA; else goto cDG;
+      cDA:
+          // nop
+          call (I64[BaseReg - 16])(R1) args: 8, res: 0, upd: 8;
+      cDG:
+          I64[Sp - 16] = stg_upd_frame_info;
+          P64[Sp - 8] = R1;
+          _sBW::I64 = I64[R1 + 32];
+          if (_sBW::I64 == I64[R1 + 24]) goto cDI; else goto cDJ;
+      cDI:
+          R1 = []_closure+1;
+          Sp = Sp - 16;
+          call (P64[Sp])(R1) args: 24, res: 0, upd: 24;
+      cDJ:
+          R2 = _sBW::I64 + 1;
+          R1 = P64[R1 + 16];
+          Sp = Sp - 16;
+          call go_sBV_info(R2, R1) args: 24, res: 0, upd: 24;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.649856 UTC
+
+go_sBV_entry() //  [R2, R1]
+        { [(cDO,
+            go_sBV_info:
+                const 4294967300;
+                const 4294967296;
+                const 11;)]
+        }
+    {offset
+      cDO:
+          Hp = Hp + 80;
+          if (Hp > I64[BaseReg + 856]) goto cDS; else goto cDR;
+      cDS:
+          I64[BaseReg + 904] = 80;
+          // nop
+          // nop
+          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
+      cDR:
+          _sBS::I64 = I64[R1 + 7];
+          I64[Hp - 72] = sat_sC1_info;
+          P64[Hp - 56] = R1;
+          I64[Hp - 48] = _sBS::I64;
+          I64[Hp - 40] = R2;
+          I64[Hp - 32] = MinimalBase.I#_con_info;
+          I64[Hp - 24] = R2;
+          I64[Hp - 16] = :_con_info;
+          P64[Hp - 8] = Hp - 31;
+          P64[Hp] = Hp - 72;
+          R1 = Hp - 14;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.651886 UTC
+
+MinimalBase.$wenumFromTo_entry() //  [R3, R2]
+        { [(cDT,
+            MinimalBase.$wenumFromTo_info:
+                const 8589934604;
+                const 0;
+                const 15;)]
+        }
+    {offset
+      cDT:
+          Hp = Hp + 16;
+          if (Hp > I64[BaseReg + 856]) goto cDX; else goto cDW;
+      cDX:
+          I64[BaseReg + 904] = 16;
+          // nop
+          // nop
+          R1 = MinimalBase.$wenumFromTo_closure;
+          call (I64[BaseReg - 8])(R3, R2, R1) args: 8, res: 0, upd: 8;
+      cDW:
+          if (%MO_S_Gt_W64(R2, R3)) goto cE2; else goto cE3;
+      cE2:
+          Hp = Hp - 16;
+          R1 = []_closure+1;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+      cE3:
+          I64[Hp - 8] = go_sBV_info;
+          I64[Hp] = R3;
+          // nop
+          R1 = Hp - 7;
+          call go_sBV_info(R2, R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.653985 UTC
+
+section "data" {
+    MinimalBase.enumFromTo_closure:
+        const MinimalBase.enumFromTo_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.654386 UTC
+
+MinimalBase.enumFromTo_entry() //  [R3, R2]
+        { [(cEi,
+            block_cEi_info:
+                const 1;
+                const 32;),
+           (cEl,
+            MinimalBase.enumFromTo_info:
+                const 8589934607;
+                const 0;
+                const 15;),
+           (cEo,
+            block_cEo_info:
+                const 65;
+                const 32;)]
+        }
+    {offset
+      cEl:
+          if ((Sp + -16) < SpLim) goto cEp; else goto cEq;
+      cEp:
+          // nop
+          // nop
+          R1 = MinimalBase.enumFromTo_closure;
+          call (I64[BaseReg - 8])(R3, R2, R1) args: 8, res: 0, upd: 8;
+      cEq:
+          I64[Sp - 16] = block_cEi_info;
+          R1 = R2;
+          P64[Sp - 8] = R3;
+          Sp = Sp - 16;
+          if (R1 & 7 != 0) goto cEi; else goto cEj;
+      cEj:
+          call (I64[R1])(R1) returns to cEi, args: 8, res: 8, upd: 8;
+      cEi:
+          I64[Sp] = block_cEo_info;
+          _sC5::I64 = I64[R1 + 7];
+          R1 = P64[Sp + 8];
+          I64[Sp + 8] = _sC5::I64;
+          if (R1 & 7 != 0) goto cEo; else goto cEs;
+      cEs:
+          call (I64[R1])(R1) returns to cEo, args: 8, res: 8, upd: 8;
+      cEo:
+          R3 = I64[R1 + 7];
+          R2 = I64[Sp + 8];
+          Sp = Sp + 16;
+          call MinimalBase.$wenumFromTo_info(R3, R2) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.657593 UTC
+
+section "data" {
+    MinimalBase.+_closure:
+        const MinimalBase.+_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.65798 UTC
+
+MinimalBase.+_entry() //  [R3, R2]
+        { [(cEF,
+            block_cEF_info:
+                const 1;
+                const 32;),
+           (cEI,
+            MinimalBase.+_info:
+                const 8589934607;
+                const 0;
+                const 15;),
+           (cEL,
+            block_cEL_info:
+                const 65;
+                const 32;)]
+        }
+    {offset
+      cEI:
+          if ((Sp + -16) < SpLim) goto cEU; else goto cEV;
+      cEU:
+          // nop
+          // nop
+          R1 = MinimalBase.+_closure;
+          call (I64[BaseReg - 8])(R3, R2, R1) args: 8, res: 0, upd: 8;
+      cEV:
+          I64[Sp - 16] = block_cEF_info;
+          R1 = R2;
+          P64[Sp - 8] = R3;
+          Sp = Sp - 16;
+          if (R1 & 7 != 0) goto cEF; else goto cEG;
+      cEG:
+          call (I64[R1])(R1) returns to cEF, args: 8, res: 8, upd: 8;
+      cEF:
+          I64[Sp] = block_cEL_info;
+          _sCb::I64 = I64[R1 + 7];
+          R1 = P64[Sp + 8];
+          I64[Sp + 8] = _sCb::I64;
+          if (R1 & 7 != 0) goto cEL; else goto cEM;
+      cEM:
+          call (I64[R1])(R1) returns to cEL, args: 8, res: 8, upd: 8;
+      cEL:
+          Hp = Hp + 16;
+          if (Hp > I64[BaseReg + 856]) goto cEZ; else goto cEY;
+      cEZ:
+          I64[BaseReg + 904] = 16;
+          // nop
+          call stg_gc_unpt_r1(R1) returns to cEL, args: 8, res: 8, upd: 8;
+      cEY:
+          _sCe::I64 = I64[Sp + 8] + I64[R1 + 7];
+          I64[Hp - 8] = MinimalBase.I#_con_info;
+          I64[Hp] = _sCe::I64;
+          R1 = Hp - 7;
+          Sp = Sp + 16;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.661227 UTC
+
+section "data" {
+    MinimalBase.printInt1_closure:
+        const MinimalBase.printInt1_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.661623 UTC
+
+MinimalBase.printInt1_entry() //  [R2]
+        { [(cFa,
+            block_cFa_info:
+                const 0;
+                const 32;),
+           (cFd,
+            MinimalBase.printInt1_info:
+                const 8589934597;
+                const 0;
+                const 15;),
+           (cFg,
+            block_cFg_info:
+                const 0;
+                const 32;)]
+        }
+    {offset
+      cFd:
+          if ((Sp + -8) < SpLim) goto cFh; else goto cFi;
+      cFh:
+          // nop
+          R1 = MinimalBase.printInt1_closure;
+          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
+      cFi:
+          I64[Sp - 8] = block_cFa_info;
+          R1 = R2;
+          Sp = Sp - 8;
+          if (R1 & 7 != 0) goto cFa; else goto cFb;
+      cFb:
+          call (I64[R1])(R1) returns to cFa, args: 8, res: 8, upd: 8;
+      cFa:
+          I64[Sp] = block_cFg_info;
+          R1 = I64[R1 + 7];
+          call print_printIntzh(R1) returns to cFg, args: 8, res: 8, upd: 8;
+      cFg:
+          R1 = GHC.Tuple.()_closure+1;
+          Sp = Sp + 8;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.664063 UTC
+
+section "data" {
+    MinimalBase.printInt_closure:
+        const MinimalBase.printInt_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.664413 UTC
+
+MinimalBase.printInt_entry() //  [R2]
+        { [(cFu,
+            MinimalBase.printInt_info:
+                const 8589934597;
+                const 0;
+                const 15;)]
+        }
+    {offset
+      cFu:
+          // nop
+          call MinimalBase.printInt1_info(R2) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.665328 UTC
+
+section "data" {
+    MinimalBase.I#_closure:
+        const MinimalBase.I#_info;
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.66577 UTC
+
+MinimalBase.I#_entry() //  [R2]
+        { [(cFF,
+            MinimalBase.I#_info:
+                const 4294967300;
+                const 0;
+                const 15;)]
+        }
+    {offset
+      cFF:
+          Hp = Hp + 16;
+          if (Hp > I64[BaseReg + 856]) goto cFJ; else goto cFI;
+      cFJ:
+          I64[BaseReg + 904] = 16;
+          // nop
+          R1 = MinimalBase.I#_closure;
+          call (I64[BaseReg - 8])(R2, R1) args: 8, res: 0, upd: 8;
+      cFI:
+          I64[Hp - 8] = MinimalBase.I#_con_info;
+          I64[Hp] = R2;
+          R1 = Hp - 7;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.667572 UTC
+
+section "readonly" {
+    iFP_str:
+        I8[] [109,97,105,110,58,77,105,110,105,109,97,108,66,97,115,101,46,73,35]
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.667886 UTC
+
+MinimalBase.I#_con_entry() //  []
+        { [(cFN,
+            MinimalBase.I#_con_info:
+                const iFP_str-MinimalBase.I#_con_info;
+                const 4294967296;
+                const 3;)]
+        }
+    {offset
+      cFN:
+          R1 = R1 + 1;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.66844 UTC
+
+section "readonly" {
+    iFQ_str:
+        I8[] [109,97,105,110,58,77,105,110,105,109,97,108,66,97,115,101,46,73,35]
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.66869 UTC
+
+MinimalBase.I#_static_entry() //  []
+        { [(cFO,
+            MinimalBase.I#_static_info:
+                const iFQ_str-MinimalBase.I#_static_info;
+                const 4294967296;
+                const 8;)]
+        }
+    {offset
+      cFO:
+          R1 = R1 + 1;
+          call (P64[Sp])(R1) args: 8, res: 0, upd: 8;
+    }
+}
+
+
+==================== Optimised Cmm ====================
+2016-06-25 15:54:13.669195 UTC
+
+section "relreadonly" { SFX_srt:
+}
+
