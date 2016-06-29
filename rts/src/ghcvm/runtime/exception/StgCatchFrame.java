@@ -44,7 +44,7 @@ public class StgCatchFrame extends StackFrame {
             } else {
                 tso.addFlags(TSO_INTERRUPTIBLE);
             }
-            StgClosure raise = new StgRaise(exception);
+            StgRaise raise = new StgRaise(exception);
             sp.add(new StgEnter(raise));
             tso.whatNext = ThreadRunGHC;
             return false;

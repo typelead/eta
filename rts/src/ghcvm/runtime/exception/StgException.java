@@ -9,6 +9,7 @@ import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.apply.Apply;
 import ghcvm.runtime.apply.ApV;
 import ghcvm.runtime.message.MessageThrowTo;
@@ -31,7 +32,7 @@ public class StgException extends RuntimeException {
     public static StgException threadYieldException = new ThreadYieldException();
     public static StgException stackReloadException = new StackReloadException();
 
-    public static StgClosure getMaskingState = new StgClosure() {
+    public static RtsFun getMaskingState = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;
@@ -40,7 +41,7 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure maskAsyncExceptions = new StgClosure() {
+    public static RtsFun maskAsyncExceptions = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;
@@ -64,7 +65,7 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure maskUninterruptible = new StgClosure() {
+    public static RtsFun maskUninterruptible = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;
@@ -89,7 +90,7 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure unmaskAsyncExceptions = new StgClosure() {
+    public static RtsFun unmaskAsyncExceptions = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -133,7 +134,7 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure killThread = new StgClosure() {
+    public static RtsFun killThread = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgTSO target = (StgTSO) context.R(1);
@@ -155,7 +156,7 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure killMyself = new StgClosure() {
+    public static RtsFun killMyself = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -171,7 +172,7 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure catch_ = new StgClosure() {
+    public static RtsFun catch_ = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure handler = context.R(2);
@@ -184,7 +185,7 @@ public class StgException extends RuntimeException {
         };
 
 
-    public static StgClosure raise = new StgClosure() {
+    public static RtsFun raise = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -197,14 +198,14 @@ public class StgException extends RuntimeException {
             }
         };
 
-    public static StgClosure raiseIO = new StgClosure() {
+    public static RtsFun raiseIO = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 raise.enter(context);
             }
         };
 
-    public static StgClosure block_throwto = new StgClosure() {
+    public static RtsFun block_throwto = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgTSO tso = (StgTSO) context.R(1);

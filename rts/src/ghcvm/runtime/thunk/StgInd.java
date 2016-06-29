@@ -13,6 +13,7 @@ public abstract class StgInd extends StgThunk {
 
     @Override
     public void enter(StgContext context) {
+        super.enter(context);
         if (indirectee == null) {
             StgTSO tso = context.currentTSO;
             tso.sp.add(new StgUpdateFrame(this));

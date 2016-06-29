@@ -11,6 +11,7 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.stg.StgEnter;
+import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.message.MessageBlackHole;
 
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
@@ -41,7 +42,7 @@ public class Thunk {
         revertibleCAFList.clear();
     }
 
-    public static StgClosure block_blackhole = new StgClosure() {
+    public static RtsFun block_blackhole = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;

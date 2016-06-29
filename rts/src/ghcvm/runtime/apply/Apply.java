@@ -2,9 +2,10 @@ package ghcvm.runtime.apply;
 
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.RtsFun;
 
 public class Apply {
-    public static StgClosure ap_0_fast = new StgClosure() {
+    public static RtsFun ap_0_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -13,7 +14,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_v_fast = new StgClosure() {
+    public static RtsFun ap_v_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -21,7 +22,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_n_fast = new StgClosure() {
+    public static RtsFun ap_n_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -30,7 +31,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_l_fast = new StgClosure() {
+    public static RtsFun ap_l_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -39,7 +40,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_f_fast = new StgClosure() {
+    public static RtsFun ap_f_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -48,7 +49,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_d_fast = new StgClosure() {
+    public static RtsFun ap_d_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -57,7 +58,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_o_fast = new StgClosure() {
+    public static RtsFun ap_o_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -66,7 +67,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_p_fast = new StgClosure() {
+    public static RtsFun ap_p_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -75,7 +76,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pv_fast = new StgClosure() {
+    public static RtsFun ap_pv_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -84,7 +85,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pvo_fast = new StgClosure() {
+    public static RtsFun ap_pvo_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -94,7 +95,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pp_fast = new StgClosure() {
+    public static RtsFun ap_pp_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -104,7 +105,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_ppv_fast = new StgClosure() {
+    public static RtsFun ap_ppv_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -114,7 +115,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_ppvo_fast = new StgClosure() {
+    public static RtsFun ap_ppvo_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -125,7 +126,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_ppp_fast = new StgClosure() {
+    public static RtsFun ap_ppp_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -136,7 +137,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pppv_fast = new StgClosure() {
+    public static RtsFun ap_pppv_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -147,7 +148,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pppvo_fast = new StgClosure() {
+    public static RtsFun ap_pppvo_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -159,7 +160,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pppp_fast = new StgClosure() {
+    public static RtsFun ap_pppp_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -171,7 +172,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_ppppp_fast = new StgClosure() {
+    public static RtsFun ap_ppppp_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
@@ -184,7 +185,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure ap_pppppp_fast = new StgClosure() {
+    public static RtsFun ap_pppppp_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 /* TODO: Verify implementation */
@@ -199,7 +200,7 @@ public class Apply {
             }
         };
 
-    public static StgClosure PAP_apply = new StgClosure() {
+    public static RtsFun PAP_apply = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgPAP pap = (StgPAP) context.R(1);

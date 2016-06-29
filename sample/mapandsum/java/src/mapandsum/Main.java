@@ -43,6 +43,7 @@ public class Main {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             /* f */
             StgClosure R2 = context.R(2);
             /* list */
@@ -84,7 +85,7 @@ public class Main {
             public void thunkEnter(StgContext context) {
                 /* Pass direct primitive integer arguments */
                 context.I(1, 1);
-                context.I(2, 10);
+                context.I(2, 10000);
                 MinimalBase.zdwenumFromTo_closure.enter(context);
             }
         };
@@ -96,6 +97,7 @@ public class Main {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             /* x */
             StgClosure R2 = context.R(2);
             /* Force x to WHNF */
@@ -127,6 +129,7 @@ public class Main {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             zdwsum_closure.enter(context);
             int iret = context.I(1);
             StgClosure ret = new Izh(iret);
@@ -143,6 +146,7 @@ public class Main {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             /* xs */
             StgClosure R2 = context.R(2);
             /* Force xs to WHNF */
@@ -185,6 +189,7 @@ public class Main {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             /* Call $wsum caf */
             context.R(2, caf_closure);
             zdwsum_closure.enter(context);
@@ -202,6 +207,7 @@ public class Main {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             main1_closure.enter(context);
         }
     };

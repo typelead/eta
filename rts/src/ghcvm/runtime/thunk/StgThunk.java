@@ -5,6 +5,7 @@ import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.apply.Void;
 import ghcvm.runtime.apply.ApV;
+import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class StgThunk extends StgClosure {
     public volatile StgClosure indirectee;
@@ -24,7 +25,9 @@ public abstract class StgThunk extends StgClosure {
         else return indirectee.getEvaluated();
     }
 
-    public void thunkEnter(StgContext context) {}
+    public void thunkEnter(StgContext context) {
+        barf("thunkEnter not implemented");
+    }
 
     public final void updateWithIndirection(StgClosure ret) {
         indirectee = ret;

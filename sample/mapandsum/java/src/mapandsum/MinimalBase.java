@@ -69,6 +69,7 @@ public class MinimalBase {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             /* R1 */
             StgClosure R1 = this;
             /* R2 */
@@ -88,6 +89,7 @@ public class MinimalBase {
 
         @Override
         public void enter(StgContext context) {
+            super.enter(context);
             /* R2 */
             int i1 = context.I(1);
             /* R3 */

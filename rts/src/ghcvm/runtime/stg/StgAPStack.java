@@ -19,6 +19,7 @@ public class StgAPStack extends StgThunk {
 
     @Override
     public void enter(StgContext context) {
+        super.enter(context);
         /* TODO: Verify that the order of frames is correct. */
         StgTSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;

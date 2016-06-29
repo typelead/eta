@@ -11,6 +11,7 @@ public abstract class StgIndStatic extends StgThunk {
 
     @Override
     public void enter(StgContext context) {
+        super.enter(context);
         if (indirectee == null) {
             Capability cap = context.myCapability;
             StgThunk bh = cap.newCAF(this);
@@ -22,7 +23,7 @@ public abstract class StgIndStatic extends StgThunk {
                 thunkEnter(context);
             }
         } else {
-            context.R(1, indirectee);
+            context.R(1, this);
             indirectee.enter(context);
         }
     }

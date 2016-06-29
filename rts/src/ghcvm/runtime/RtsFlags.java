@@ -205,6 +205,7 @@ public class RtsFlags {
                         }
                         break;
                     case 'D':
+                        optionChecked = true;
                         String rest = arg.substring(2);
                         for (char c: rest.toCharArray()) {
                             switch (c) {

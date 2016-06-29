@@ -10,6 +10,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.exception.StgException;
 import ghcvm.runtime.apply.Apply;
 import static ghcvm.runtime.stm.TRecState.TREC_ACTIVE;
@@ -86,7 +87,7 @@ public class STM {
         return result;
     }
 
-    public static StgClosure newTVar = new StgClosure() {
+    public static RtsFun newTVar = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 StgClosure init = context.R(1);
@@ -94,7 +95,7 @@ public class STM {
             }
         };
 
-    public static StgClosure readTVar = new StgClosure() {
+    public static RtsFun readTVar = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -104,7 +105,7 @@ public class STM {
             }
         };
 
-    public static StgClosure readTVarIO = new StgClosure() {
+    public static RtsFun readTVarIO = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 StgClosure result;
@@ -116,7 +117,7 @@ public class STM {
             }
         };
 
-    public static StgClosure writeTVar = new StgClosure() {
+    public static RtsFun writeTVar = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -127,7 +128,7 @@ public class STM {
             }
         };
 
-    public static StgClosure check = new StgClosure() {
+    public static RtsFun check = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -137,7 +138,7 @@ public class STM {
             }
         };
 
-    public static StgClosure atomically = new StgClosure() {
+    public static RtsFun atomically = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 StgTSO tso = context.currentTSO;
@@ -156,7 +157,7 @@ public class STM {
             }
         };
 
-    public static StgClosure catchSTM = new StgClosure() {
+    public static RtsFun catchSTM = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 StgClosure code = context.R(1);
@@ -171,7 +172,7 @@ public class STM {
             }
         };
 
-    public static StgClosure catchRetry = new StgClosure() {
+    public static RtsFun catchRetry = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 StgClosure firstCode = context.R(1);
@@ -185,7 +186,7 @@ public class STM {
             }
         };
 
-    public static StgClosure retry = new StgClosure() {
+    public static RtsFun retry = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
@@ -201,7 +202,7 @@ public class STM {
             }
         };
 
-    public static StgClosure block_stmwait  = new StgClosure() {
+    public static RtsFun block_stmwait  = new RtsFun() {
             @Override
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;

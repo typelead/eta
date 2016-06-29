@@ -80,10 +80,12 @@ public class RtsScheduler {
     }
 
     public static void initTimer() {
-        if (RtsFlags.MiscFlags.tickInterval != 0) {
-            initTicker();
+        if (!RtsFlags.DebugFlags.sanity) {
+            if (RtsFlags.MiscFlags.tickInterval != 0) {
+                initTicker();
+            }
+            timerDisabled.set(1);
         }
-        timerDisabled.set(1);
     }
 
     public static void initTicker() {
@@ -132,9 +134,11 @@ public class RtsScheduler {
     }
 
     public static void startTimer() {
-        if (timerDisabled.decrementAndGet() == 0) {
-            if (RtsFlags.MiscFlags.tickInterval != 0) {
-                startTicker();
+        if (!RtsFlags.DebugFlags.sanity) {
+            if (timerDisabled.decrementAndGet() == 0) {
+                if (RtsFlags.MiscFlags.tickInterval != 0) {
+                    startTicker();
+                }
             }
         }
     }

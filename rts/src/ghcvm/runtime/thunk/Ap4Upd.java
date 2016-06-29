@@ -19,7 +19,7 @@ public class Ap4Upd extends StgInd {
     }
 
     @Override
-    public void enter(StgContext context) {
+    public void thunkEnter(StgContext context) {
         context.R(1, p1);
         context.R(2, p2);
         context.R(3, p3);

@@ -6,11 +6,13 @@ import ghcvm.runtime.thunk.StgWhiteHole;
 import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class StgWhiteHole extends StgClosure {
+    /* TODO: Extend from something else instead? */
     public static final StgWhiteHole closure = new StgWhiteHole();
 
     @Override
     public void enter(StgContext context) {
-        StgIndStatic node = (StgIndStatic) context.R(1);
+        super.enter(context);
+        StgIndStatic node = (StgIndStatic) context.R(2);
         int i = 0;
         /* TODO: Verify the condition */
         while (node.indirectee == closure) {
