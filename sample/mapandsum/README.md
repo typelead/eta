@@ -28,7 +28,7 @@ main = do
 ```
 Since the codegen isn't ready yet, we have no practical way of accessing the `base` library so we have to work with the low-level haskell primitives. [MinimalBase](haskell/src/MinimalBase.hs) takes care of that for us. I only hand-compiled the minimal set of functions/datatypes from `base` that are required to write this program.
 
-# Building & Running
+## Building & Running
 To build & run the sample program, go to the top level of the repository and run the following two commands:
 ```
 $ ./build.sh
@@ -37,7 +37,7 @@ $ ./run.sh
 
 After building, you can find the dumped STG & Cmm outputs in `haskell/.stack-work/dist/x86_64-linux/Cabal-1.22.5.0/build/mapandsum/mapandsum-tmp/src`.
 
-# Navigation
+## Navigation
 | Module | Haskell | STG | Cmm | Java |
 | ------ | ------- | --- | --- | ---- |
 | Main | [Main.hs](haskell/src/Main.hs) | [Main.dump-stg](codes/Main.dump-stg) | [Main.dump-opt-cmm](codes/Main.dump-opt-cmm) | [Main.java](java/src/mapandsum/Main.java) | 
