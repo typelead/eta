@@ -1,6 +1,7 @@
 package ghcvm.runtime.interpreter;
 
-import ghcvm.runtime.stg.StgBCO;
+import ghcvm.runtime.stg.StackFrame;
+import ghcvm.runtime.stg.StgContext;
 
 public class ApplyInterpFrame extends StackFrame {
     public final StgBCO bco;

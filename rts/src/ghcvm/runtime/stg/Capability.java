@@ -107,7 +107,7 @@ public final class Capability {
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
-    public WSDeque<StgClosure> sparks; // TODO: Initialise = new WSDeque<StgClosure>();
+    public WSDeque<StgClosure> sparks; //= new WSDeque<StgClosure>();
 
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
@@ -418,9 +418,9 @@ public final class Capability {
         // TODO: Incorporate the spark logic
         if (!RtsFlags.ParFlags.migrate) return;
         if (emptyRunQueue()) {
-            if (sparks.size() < 2) return;
+            if (sparkPoolSize() < 2) return;
         } else {
-            if (singletonRunQueue() && sparks.size() < 1) return;
+            if (singletonRunQueue() && sparkPoolSize() < 1) return;
         }
         ArrayList<Capability> freeCapabilities = new ArrayList<Capability>(capabilities.size());
         for (Capability cap: capabilities) {
@@ -1213,7 +1213,8 @@ public final class Capability {
     }
 
     public final HaskellResult ioManagerStart() {
-        return Rts.evalIO(this, null /* base_GHCziConcziIO_ensureIOManagerIsRunning_closure */);
+        return new HaskellResult(this, null);
+        /* TODO: Implement IO Manager, Rts.evalIO(this, null /* base_GHCziConcziIO_ensureIOManagerIsRunning_closure */
     }
 
     public final void postRunThread(StgTSO t) {
@@ -2008,7 +2009,9 @@ public final class Capability {
     }
 
     public final void free() {
-        sparks.discardElements();
+        if (sparks != null) {
+            sparks.discardElements();
+        }
     }
 
     public static void shutdownCapabilities(Task task, boolean safe) {
@@ -2059,6 +2062,14 @@ public final class Capability {
                 }
                 break;
             }
+        }
+    }
+
+    public final long sparkPoolSize() {
+        if (sparks != null) {
+            return sparks.size();
+        } else {
+            return 0;
         }
     }
 }
