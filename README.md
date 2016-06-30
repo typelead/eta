@@ -49,6 +49,11 @@ $ stack exec -- ghcvm --make Main.hs
 
 All the options that are supported by GHC are currently allowed. The options will be filtered in the future.
 
+## Design Documents
+- [Overview](https://gist.github.com/rahulmutt/9bcab8c9b8bc3d99be26c11ae42d2795) 
+  - NOTE: This is slightly outdated, but gives you the big picture.
+- [Informal FFI Specification](https://gist.github.com/rahulmutt/355505bce57c7c2cffd7d4cf5edddad4)
+
 ## Goals 
 
 We aim to meet the following goals:
@@ -86,8 +91,9 @@ GHCVM is available under the [BSD 3-Clause License](https://opensource.org/licen
 
 ## Gratitude
 
-We are grateful that the folks at [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki/TeamGHC) have generously open-sourced their state-of-the-art Haskell compiler allowing us to hack on it to implement Haskell on a wide variety of platforms.
-
-We are also grateful for Ilya V. Portnov for his [hs-java](https://hackage.haskell.org/package/hs-java) package that we intend to use heavily for code generation.
+We would like to specifically thank the following groups/people:
+- [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki/TeamGHC) for providing a solid API to access the GHC infrastructure for the first stage of code generation (Haskell -> STG).
+- [Alois Cochard](https://github.com/aloiscochard) for his [codec-jvm](https://github.com/aloiscochard/codec-jvm) package that we use for code generation.
+- [Christopher Wells](https://github.com/ExcaliburZero) for his JAR packaging [utility](https://github.com/ExcaliburZero/zip-jar-haskell).
 
 Thank you guys!
