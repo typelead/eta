@@ -1,5 +1,8 @@
 module GHCVM.Primitive where
 
+import TypeRep
+import Unique
+import FastString
 import TyCon
 import PrelInfo
 import BasicTypes
@@ -1143,4 +1146,54 @@ ghcvmPrimTyCons
     , openTypeKindTyCon
     , constraintKindTyCon
     , superKindTyCon
-    , anyKindTyCon ]
+    , anyKindTyCon
+    -- GHCVM custom TyCons start here
+    , jcharPrimTyCon
+    , jbytePrimTyCon
+    , jbooleanPrimTyCon
+    , jshortPrimTyCon
+    ]
+
+mkPrimTc :: FastString -> Unique -> TyCon -> Name
+mkPrimTc fs unique tycon
+  = mkWiredInName gHC_PRIM (mkTcOccFS fs)
+                  unique
+                  (ATyCon tycon)        -- Relevant TyCon
+                  UserSyntax
+
+pcPrimTyCon0 :: Name -> PrimRep -> TyCon
+pcPrimTyCon0 name rep
+  = mkPrimTyCon name result_kind [] rep
+  where
+    result_kind = unliftedTypeKind
+
+-- TODO: Verify that the unique number is valid
+jcharPrimTy :: Type
+jcharPrimTy = mkTyConTy jcharPrimTyCon
+jcharPrimTyConName             = mkPrimTc (fsLit "JChar#") jcharPrimTyConKey jcharPrimTyCon
+jcharPrimTyConKey                        = mkPreludeTyConUnique 77
+jcharPrimTyCon = pcPrimTyCon0 jcharPrimTyConName VoidRep
+
+jbooleanPrimTy :: Type
+jbooleanPrimTy = mkTyConTy jbooleanPrimTyCon
+jbooleanPrimTyConName             = mkPrimTc (fsLit "JBoolean#") jbooleanPrimTyConKey jbooleanPrimTyCon
+jbooleanPrimTyConKey                        = mkPreludeTyConUnique 78
+jbooleanPrimTyCon = pcPrimTyCon0 jbooleanPrimTyConName VoidRep
+
+jbytePrimTy :: Type
+jbytePrimTy = mkTyConTy jbytePrimTyCon
+jbytePrimTyConName             = mkPrimTc (fsLit "JByte#") jbytePrimTyConKey jbytePrimTyCon
+jbytePrimTyConKey                        = mkPreludeTyConUnique 79
+jbytePrimTyCon = pcPrimTyCon0 jbytePrimTyConName VoidRep
+
+jshortPrimTy :: Type
+jshortPrimTy = mkTyConTy jshortPrimTyCon
+jshortPrimTyConName             = mkPrimTc (fsLit "JShort#") jshortPrimTyConKey jshortPrimTyCon
+jshortPrimTyConKey                        = mkPreludeTyConUnique 80
+jshortPrimTyCon = pcPrimTyCon0 jshortPrimTyConName VoidRep
+
+data JPrimRep = HPrimRep PrimRep
+              | JRepBoolean
+              | JRepChar
+              | JRepByte
+              | JRepShort

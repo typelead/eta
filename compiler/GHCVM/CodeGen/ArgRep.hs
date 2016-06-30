@@ -57,3 +57,5 @@ idArgRep = toArgRep . idPrimRep
 -- slowCallPattern (V32: _)              = (fsLit "stg_ap_v32", 1)
 -- slowCallPattern (V64: _)              = (fsLit "stg_ap_v64", 1)
 -- slowCallPattern []                    = (fsLit "stg_ap_0", 0)
+
+
