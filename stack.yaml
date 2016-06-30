@@ -3,6 +3,7 @@ extra-package-dbs: []
 packages:
 - '.'
 - hs-java
+- codec-jvm
 extra-deps:
 - binary-state-0.1.1
 - control-monad-exception-0.11.2
