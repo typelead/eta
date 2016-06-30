@@ -35,12 +35,19 @@ runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen env state m = undefined
 
 codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
-codeGen hsc_env this_mod data_tycons stg_binds _hpc_info =
-  runCodeGen initEnv initState $ mapM_ (cgTopBinding dflags) stg_binds
+codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
+  runCodeGen initEnv initState $ do
+      mapM_ (cgTopBinding dflags) stgBinds
+      let cgTyCon tycon = do
+            when (isEnumerationTyCon tycon) $
+              cgEnumerationTyCon tycon
+            mapM_ cgDataCon (tyConDataCons tycon)
+      mapM_ cgTyCon dataTyCons
   where
     initEnv = CgEnv { cgClassName = className,
                       cgQClassName = fullClassName,
-                      cgModule = this_mod }
+                      cgModule = thisMod,
+                      cgDynFlags = dflags }
     initState = CgState { cgBindings = emptyVarEnv,
                           cgMethodDefs = [],
                           cgFieldDefs = [],
@@ -48,8 +55,8 @@ codeGen hsc_env this_mod data_tycons stg_binds _hpc_info =
                           cgCompiledClosures = [],
                           cgCurrentClassName = fullClassName,
                           cgSuperClassName = Nothing }
-    (fullClassName, className) = generatePackageAndClass this_mod
-    dflags = hsc_dflags hsc_env
+    (fullClassName, className) = generatePackageAndClass thisMod
+    dflags = hsc_dflags hscEnv
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
@@ -125,3 +132,12 @@ externaliseId dflags id
     uniq    = nameUnique name
     new_occ = mkLocalOcc uniq $ nameOccName name
     loc     = nameSrcSpan name
+
+-- TODO: Implement
+cgEnumerationTyCon :: TyCon -> CodeGen ()
+cgEnumerationTyCon tycon = undefined
+
+-- TODO: Implement
+cgDataCon :: DataCon -> CodeGen ()
+cgDataCon tycon = undefined
+

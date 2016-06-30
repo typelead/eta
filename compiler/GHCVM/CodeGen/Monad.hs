@@ -9,6 +9,7 @@ module GHCVM.CodeGen.Monad
    getCgIdInfo
   ) where
 
+import DynFlags
 import Module
 import VarEnv
 import Id
@@ -26,8 +27,8 @@ import GHCVM.CodeGen.Closure
 data CgEnv = CgEnv {
   cgClassName :: Text,
   cgQClassName :: Text,
-  cgModule :: Module
-  }
+  cgModule :: Module,
+  cgDynFlags :: DynFlags }
 
 data CgState = CgState {
   cgBindings :: CgBindings,
@@ -65,6 +66,8 @@ instance MonadReader CgEnv CodeGen where
 instance HasModule CodeGen where
   getModule = asks cgModule
 
+instance HasDynFlags CodeGen where
+  getDynFlags = asks cgDynFlags
 
 setClass :: Text -> CodeGen ()
 setClass className = modify $ \s -> s { cgCurrentClassName = className }
