@@ -1161,6 +1161,13 @@ mkPrimTc fs unique tycon
                   (ATyCon tycon)        -- Relevant TyCon
                   UserSyntax
 
+pcPrimTyCon :: Name -> [Role] -> PrimRep -> TyCon
+pcPrimTyCon name roles rep
+  = mkPrimTyCon name kind roles rep
+  where
+    kind        = mkArrowKinds (map (const liftedTypeKind) roles) result_kind
+    result_kind = unliftedTypeKind
+
 pcPrimTyCon0 :: Name -> PrimRep -> TyCon
 pcPrimTyCon0 name rep
   = mkPrimTyCon name result_kind [] rep
@@ -1192,8 +1199,16 @@ jshortPrimTyConName             = mkPrimTc (fsLit "JShort#") jshortPrimTyConKey 
 jshortPrimTyConKey                        = mkPreludeTyConUnique 80
 jshortPrimTyCon = pcPrimTyCon0 jshortPrimTyConName VoidRep
 
+objectPrimTyConKey :: Unique
+objectPrimTyConKey = mkPreludeTyConUnique 83
+objectPrimTyCon :: TyCon
+objectPrimTyCon   = pcPrimTyCon objectPrimTyConName [Nominal] VoidRep
+objectPrimTyConName :: Name
+objectPrimTyConName = mkPrimTc (fsLit "Object#") objectPrimTyConKey objectPrimTyCon
+
 data JPrimRep = HPrimRep PrimRep
               | JRepBoolean
               | JRepChar
               | JRepByte
               | JRepShort
+              | JRepObject
