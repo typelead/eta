@@ -25,6 +25,7 @@ library
                        , GHCVM.CodeGen.Types
                        , GHCVM.CodeGen.Name
                        , GHCVM.Util
+                       , GHCVM.Primitive
                        , GHCVM.JAR
     build-depends:       base >= 4.7 && < 5
                        , bytestring

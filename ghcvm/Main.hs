@@ -35,6 +35,7 @@ import MonadUtils (liftIO)
 
 -- GHCVM API
 import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM)
+import GHCVM.Primitive (ghcvmPrimIface)
 
 -- Imports for --abi-hash
 import Module              ( mkModuleName, ModLocation(..))
@@ -121,7 +122,9 @@ main = do
             -- add the override to force GHC to stop at STG code
             GHC.setSessionDynFlags
               (dflags0 { hooks = emptyHooks {runPhaseHook = Just runGhcVMPhase,
-                                             linkHook = Just linkGhcVM},
+                                             linkHook = Just linkGhcVM,
+                                             ghcPrimIfaceHook = Just ghcvmPrimIface
+                                            },
                          objectSuf = "jar"})
 
             dflags <- GHC.getSessionDynFlags
