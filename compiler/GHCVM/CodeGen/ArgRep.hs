@@ -14,15 +14,10 @@ import DynFlags
 data ArgRep = P   -- Java object pointer
             | N   -- Word-sized non-ptr
             | V   -- Void
-            | B0   -- byte
-            | C   -- char
-            | S   -- short
-            | I   -- int
             | L   -- long
             | F   -- float
             | D   -- double
-            | B1  -- boolean
-            | Str -- String
+            | O   -- Object
 
 toArgRep :: PrimRep -> ArgRep
 toArgRep VoidRep           = V

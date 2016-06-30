@@ -34,6 +34,7 @@
 --
 module Codec.JVM.ASM where
 
+import Data.Binary.Put (runPut)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
@@ -70,6 +71,12 @@ mkMethodDef afs n fts rt c = mkMethodDef' afs n (mkMethodDesc fts rt) c
 
 mkMethodDef' :: [Method.AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
 mkMethodDef' afs n md c = MethodDef afs (UName n) md c
+
+data FieldDef = FieldDef
+
+mkFieldDef = undefined
+
+mkFieldDef' = undefined
 
 unpackMethodDef :: MethodDef -> [Const]
 unpackMethodDef (MethodDef _ (UName n') (MethodDesc d _) code) = CUTF8 n':CUTF8 d:Code.consts code

@@ -18,9 +18,9 @@ import GHCVM.Util
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Monad
+import GHCVM.CodeGen.Name
 
-import JVM.Builder
-import JVM.ClassFile
+import Codec.JVM
 
 import Control.Monad.State
 import Control.Monad.Reader
@@ -30,65 +30,27 @@ import Control.Monad.Exception.Base
 
 import Data.Char
 import Data.List
-import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.Char8 as BC
 
-runCodeGen :: CgEnv -> CgState -> CodeGen (Caught SomeException NoExceptions) a -> IO [Class Direct]
-runCodeGen env state m = generateIO [] $ void (unCG m env state)
+runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO (FilePath, [ClassFile])
+runCodeGen env state m = undefined
 
-generatePackageAndClass :: Module -> (B.ByteString, B.ByteString)
-generatePackageAndClass mod = (package, className)
+codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO (FilePath, [ClassFile])
+codeGen hsc_env this_mod data_tycons stg_binds _hpc_info =
+  runCodeGen initEnv initState $ mapM_ (cgTopBinding dflags) stg_binds
   where
-    modString = B.fromStrict
-              . fastStringToByteString
-              . moduleNameFS
-              . moduleName
-              $ mod
-    mods = split '.' modString
-    (parentMods, className') = (init mods, last mods)
-    packageString = B.fromStrict
-                  . fastZStringToByteString
-                  . zEncodeFS
-                  . packageKeyFS
-                  . modulePackageKey
-                  $ mod
-    package = B.append "ghcvm/"
-            . B.append packageString
-            . BC.cons '/'
-            . BC.map toLower
-            . B.intercalate "/"
-            $ parentMods
-    className = upperFirst className'
-    upperFirst str = case BC.uncons str of
-      Nothing -> B.empty
-      Just (c, str') -> BC.cons (toUpper c) str'
-
-codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [Class Direct]
-codeGen hsc_env this_mod data_tycons stg_binds hpc_info =
-  runCodeGen initEnv initState $ do
-    className <- asks cgClassName
-    code $ setClass className
-    mapM_ (cgTopBinding dflags) stg_binds
-  where
-    initEnv = CgEnv { cgPackagePrefix = package,
-                      cgFileName = B.append className ".class",
-                      cgClassName = fullClassName,
-                      cgModule = this_mod
-                    }
-    initState = CgState { cgBindings = emptyVarEnv }
-    (package, className) = generatePackageAndClass this_mod
+    initEnv = CgEnv { cgClassName = className,
+                      cgQClassName = fullClassName,
+                      cgModule = this_mod }
+    initState = CgState { cgBindings = emptyVarEnv,
+                          cgMethodDefs = [],
+                          cgFieldDefs = [],
+                          cgClassInitCode = [],
+                          cgCurrentClassName = fullClassName,
+                          cgSuperClassName = Nothing }
+    (fullClassName, className) = generatePackageAndClass this_mod
     dflags = hsc_dflags hsc_env
-    fullClassName = B.append package
-                  . BC.cons '/'
-                  $ className
 
-split   :: Char -> B.ByteString -> [B.ByteString]
-split c s =  case BC.dropWhile (== c) s of
-  "" -> []
-  s' -> w : split c s''
-    where (w, s'') = BC.break (== c) s'
-
-cgTopBinding :: DynFlags -> StgBinding -> CodeGen e ()
+cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
   id' <- externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive id' rhs
@@ -104,7 +66,7 @@ cgTopBinding dflags (StgRec pairs) = do
   addBindings infos
   sequence_ codes
 
-cgTopRhs :: DynFlags -> RecFlag -> Id -> StgRhs -> (CgIdInfo, CodeGen e ())
+cgTopRhs :: DynFlags -> RecFlag -> Id -> StgRhs -> (CgIdInfo, CodeGen ())
 cgTopRhs dflags _ binder (StgRhsCon _ con args) =
   cgTopRhsCon dflags binder con args
 
@@ -118,7 +80,7 @@ cgTopRhsCon :: DynFlags
             -> Id               -- Name of thing bound to this RHS
             -> DataCon          -- Id
             -> [StgArg]         -- Args
-            -> (CgIdInfo, CodeGen e ())
+            -> (CgIdInfo, CodeGen ())
 cgTopRhsCon dflags id con args = (cgIdInfo, genCode)
   where cgIdInfo = mkCgIdInfo id lambdaFormInfo
         lambdaFormInfo = mkConLFInfo con
@@ -134,14 +96,14 @@ cgTopRhsClosure :: DynFlags
                 -> UpdateFlag
                 -> [Id]                 -- Args
                 -> StgExpr
-                -> (CgIdInfo, CodeGen e ())
+                -> (CgIdInfo, CodeGen ())
 cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lambdaFormInfo)
   where cgIdInfo = mkCgIdInfo id lambdaFormInfo
         lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
-          = code . emitClosure id $ IndStatic f
+          = undefined -- TODO: code . emitClosure id $ IndStatic f
         genCode dflags lf = do
           let name = idName id
           mod <- getModule
@@ -149,7 +111,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
          -- A new inner class must be generated
 
 -- Names are externalized so that we don't have to thread Modules through the entire program
-externaliseId :: DynFlags -> Id -> CodeGen e Id
+externaliseId :: DynFlags -> Id -> CodeGen Id
 externaliseId dflags id
   | isInternalName name = do
       mod <- asks cgModule

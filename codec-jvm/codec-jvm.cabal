@@ -14,6 +14,7 @@ library
   hs-source-dirs:       src
   ghc-options:          -Wall
   exposed-modules:
+    Codec.JVM
     Codec.JVM.ASM
     Codec.JVM.ASM.Code
     Codec.JVM.ASM.Code.CtrlFlow

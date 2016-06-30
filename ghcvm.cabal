@@ -23,15 +23,22 @@ library
                        , GHCVM.CodeGen.Object
                        , GHCVM.CodeGen.ArgRep
                        , GHCVM.CodeGen.Types
+                       , GHCVM.CodeGen.Name
                        , GHCVM.Util
+                       , GHCVM.JAR
     build-depends:       base >= 4.7 && < 5
                        , bytestring
+                       , text
                        , ghc >= 7.10.3 && < 7.11.0
                        , directory >= 1.2
                        , filepath
-                       , hs-java == 0.3.4
+                       , codec-jvm >= 0
                        , control-monad-exception >= 0.11
-                       , mtl 
+                       , mtl
+                       , zip
+                       , path
+                       , exceptions
+                       , transformers
     hs-source-dirs:      compiler
     exposed:             True
     buildable:           True

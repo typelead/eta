@@ -15,15 +15,9 @@ import Module
 
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
-
-import JVM.Builder
-import JVM.Types
 import GHCVM.CodeGen.Object
 
 import Data.Maybe
-
-import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.Char8 as BC
 
 data ClosureRep = IndStatic Id
 
@@ -106,41 +100,25 @@ mkLFArgument id
   where
     ty = idType id
 
-newClosureField :: (Generator e g)
-                => B.ByteString
-                -> String
-                -> g e ()
-                -> g e ()
-newClosureField fieldName className initCode = newField [ACC_PUBLIC, ACC_STATIC] fieldName (ObjectType className) (Just initCode)
+-- newClosureField :: (Generator e g)
+--                 => B.ByteString
+--                 -> String
+--                 -> g e ()
+--                 -> g e ()
+-- newClosureField fieldName className initCode = newField [ACC_PUBLIC, ACC_STATIC] fieldName (ObjectType className) (Just initCode)
 
-emitClosure :: Id -> ClosureRep -> GenerateIO e ()
-emitClosure closureId (IndStatic id) =
-  newClosureField (idNameBS closureId) (BC.unpack indStaticObj) $ do
-    new indStaticObj
-    dup
-    getStaticField (idClassBS id) (NameType (idNameBS id)
-                                            (ObjectType (BC.unpack closureObj)))
-    invokeSpecial indStaticObj (NameType "<init>" (MethodSignature
-                                                   [obj (BC.unpack closureObj)]
-                                                   ReturnsVoid))
-  where indirectClosureBS = idNameBS id
+-- emitClosure :: Id -> ClosureRep -> GenerateIO e ()
+-- emitClosure closureId (IndStatic id) =
+--   newClosureField (idNameBS closureId) (BC.unpack indStaticObj) $ do
+--     new indStaticObj
+--     dup
+--     getStaticField (idClassBS id) (NameType (idNameBS id)
+--                                             (ObjectType (BC.unpack closureObj)))
+--     invokeSpecial indStaticObj (NameType "<init>" (MethodSignature
+--                                                    [obj (BC.unpack closureObj)]
+--                                                    ReturnsVoid))
+--   where indirectClosureBS = idNameBS id
 
-idNameBS :: Id -> B.ByteString
-idNameBS = B.fromStrict
-         . fastZStringToByteString
-         . zEncodeFS
-         . occNameFS
-         . nameOccName
-         . idName
-
-idClassBS :: Id -> B.ByteString
-idClassBS = B.fromStrict
-          . fastStringToByteString
-          . moduleNameFS
-          . moduleName
-          . fromJust
-          . nameModule_maybe
-          . idName
 
 newClosureInnerClass = undefined
 -- newClosureInnnerClass :: (Generator e g)

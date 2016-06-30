@@ -3,7 +3,6 @@ module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
-   code,
    addBinding,
    addBindings,
    setBindings,
@@ -15,65 +14,70 @@ import VarEnv
 import Id
 import Name
 
+import Data.Text hiding (foldl)
+
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as B
-import JVM.Builder
+import Codec.JVM
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 
 data CgEnv = CgEnv {
-  cgPackagePrefix :: B.ByteString,
-  cgFileName :: B.ByteString,
-  cgClassName :: B.ByteString,
-  cgModule :: Module }
+  cgClassName :: Text,
+  cgQClassName :: Text,
+  cgModule :: Module
+  }
 
 data CgState = CgState {
-  cgBindings :: CgBindings }
+  cgBindings :: CgBindings,
+  cgMethodDefs :: [MethodDef],
+  cgFieldDefs :: [FieldDef],
+  cgClassInitCode :: [Code],
+  cgCurrentClassName :: Text,
+  cgSuperClassName :: Maybe Text }
 
-newtype CodeGen e a = CG {
-  unCG :: CgEnv -> CgState -> GenerateIO e (CgState, a) }
+newtype CodeGen a = CG { unCG :: CgEnv -> CgState -> IO (CgState, a) }
 
-instance Functor (CodeGen e) where
+instance Functor CodeGen where
   fmap = liftM
 
-instance Applicative (CodeGen e) where
+instance Applicative CodeGen where
   pure = return
   (<*>) = ap
 
-instance Monad (CodeGen e) where
+instance Monad CodeGen where
   return x = CG $ \_ s -> return (s, x)
   m >>= f = CG $ \e s -> do
       (s0, x) <- unCG m e s
       unCG (f x) e s0
 
-instance MonadState CgState (CodeGen e) where
+instance MonadState CgState CodeGen where
   state action = CG $ \_ s -> do
     let (a, s') = action s
     return (s', a)
 
-instance MonadReader CgEnv (CodeGen e) where
+instance MonadReader CgEnv CodeGen where
   ask = CG $ \env s -> return (s, env)
   local f action = CG $ \env s -> unCG action (f env) s
 
-instance HasModule (CodeGen e) where
+instance HasModule CodeGen where
   getModule = asks cgModule
 
-code :: GenerateIO e a -> CodeGen e a
-code fc = CG $ \_ s -> do
-                a <- fc
-                return (s, a)
 
-getModule :: CodeGen e Module
+setClass :: Text -> CodeGen ()
+setClass className = modify $ \s -> s { cgCurrentClassName = className }
+
+getModule :: CodeGen Module
 getModule = asks cgModule
 
-getBindings :: CodeGen e CgBindings
+getBindings :: CodeGen CgBindings
 getBindings = gets cgBindings
 
-setBindings :: CgBindings -> CodeGen e ()
+setBindings :: CgBindings -> CodeGen ()
 setBindings bindings = modify $ \s -> s { cgBindings = bindings }
 
-getCgIdInfo :: Id -> CodeGen e CgIdInfo
+getCgIdInfo :: Id -> CodeGen CgIdInfo
 getCgIdInfo id = do
   localBindings <- getBindings
   case lookupVarEnv localBindings id of
@@ -85,12 +89,12 @@ getCgIdInfo id = do
                $ mkLFImported id
       else error $ "getCgIdInfo: Not external name"
 
-addBinding :: CgIdInfo -> CodeGen e ()
+addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
   bindings <- getBindings
   setBindings $ extendVarEnv bindings (cgId cgIdInfo) cgIdInfo
 
-addBindings :: [CgIdInfo] -> CodeGen e ()
+addBindings :: [CgIdInfo] -> CodeGen ()
 addBindings newCgIdInfos = do
         bindings <- getBindings
         let newBindings = foldl

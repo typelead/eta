@@ -3,7 +3,8 @@ module Codec.JVM.Class where
 
 import Data.ByteString.Base16 (decode)
 import Data.ByteString (ByteString)
-import Data.Binary.Put (Put, putByteString, putWord16be)
+import Data.ByteString.Lazy (toStrict)
+import Data.Binary.Put (Put, runPut, putByteString, putWord16be)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import Data.Word (Word16)
@@ -78,3 +79,5 @@ putClassFile cf = do
       putI16 . L.length $ methods cf
       mapM_ (putMethodInfo cp) $ methods cf
 
+classFileBS :: ClassFile -> ByteString
+classFileBS = toStrict . runPut . putClassFile

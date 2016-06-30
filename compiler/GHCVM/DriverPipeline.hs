@@ -26,9 +26,9 @@ import TyCon ( isDataTyCon )
 import qualified Data.ByteString.Lazy as B
 
 import GHCVM.CodeGen.Main
-import JVM.Converter
-import JVM.ClassFile
-import JVM.Types
+import GHCVM.CodeGen.Name
+import GHCVM.JAR
+import Codec.JVM
 
 runGhcVMPhase :: PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath)
 runGhcVMPhase realphase@(RealPhase (Unlit _)) = runPhase realphase
@@ -104,14 +104,11 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
       <- {-# SCC "CoreToStg" #-}
           myCoreToStg dflags this_mod prepd_binds
 
-  classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
-  mapM_ (\c -> B.writeFile (classFileName c) (encodeClass c)) classes
-  -- Write the result to a class file at output_filename
+  (jarPath, classes) <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
+  let jarContents = map (\c -> (classFilePath c, classFileBS c)) classes
+  addMultiByteStringsToJar jarContents jarPath
+  return jarPath
 
-  return $ classFileName (head classes) ++ ".class"
-
-classFileName :: Class Direct -> String
-classFileName _ = ""
 
 dumpStg :: DynFlags -> SDoc -> IO ()
 dumpStg dflags = dumpSDoc dflags alwaysQualify Opt_D_dump_stg "STG Syntax:"
