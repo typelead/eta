@@ -3,6 +3,7 @@ module GHCVM.CodeGen.Main where
 
 import Module
 import HscTypes
+import Type
 import TyCon
 import StgSyn
 import DynFlags
@@ -15,6 +16,7 @@ import DataCon
 import Util (unzipWith)
 
 import GHCVM.Util
+import GHCVM.Primitive
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Monad
@@ -38,10 +40,7 @@ codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFi
 codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
   runCodeGen initEnv initState $ do
       mapM_ (cgTopBinding dflags) stgBinds
-      let cgTyCon tycon = do
-            when (isEnumerationTyCon tycon) $
-              cgEnumerationTyCon tycon
-            mapM_ cgDataCon (tyConDataCons tycon)
+      let cgTyCon tyCon = mapM_ cgDataCon (tyConDataCons tyCon)
       mapM_ cgTyCon dataTyCons
   where
     initEnv = CgEnv { cgClassName = className,
@@ -134,10 +133,9 @@ externaliseId dflags id
     loc     = nameSrcSpan name
 
 -- TODO: Implement
-cgEnumerationTyCon :: TyCon -> CodeGen ()
-cgEnumerationTyCon tycon = undefined
-
--- TODO: Implement
 cgDataCon :: DataCon -> CodeGen ()
-cgDataCon tycon = undefined
-
+cgDataCon dataCon = undefined
+  where argReps :: [(JPrimRep, UnaryType)]
+        argReps = [(typeJPrimRep repTy, repTy) |
+                   ty     <- dataConRepArgTys dataCon,
+                   repTy  <- flattenRepType (repType ty)]

@@ -1,12 +1,11 @@
 module GHCVM.CodeGen.ArgRep
-  (ArgRep(..),
+  (JArgRep(..),
    toArgRep,
    isNonV,
-   idArgRep,
+   idJArgRep,
   ) where
 
-import StgCmmClosure    ( idPrimRep )
-import Id               ( Id )
+import Id
 import TyCon            ( PrimRep(..), primElemRepSizeB )
 import BasicTypes       ( RepArity )
 import DynFlags
@@ -20,7 +19,7 @@ data JArgRep = P   -- StgClosure
              | D   -- double
              | O   -- Java object pointer
 
-toJArgRep :: JPrimRep -> ArgRep
+toJArgRep :: JPrimRep -> JArgRep
 toJArgRep (HPrimRep primRep) = toArgRep primRep
 toJArgRep JRepBoolean        = N
 toJArgRep JRepChar           = N
@@ -28,7 +27,7 @@ toJArgRep JRepByte           = N
 toJArgRep JRepShort          = N
 toJArgRep JRepObject         = O
 
-toArgRep :: PrimRep -> ArgRep
+toArgRep :: PrimRep -> JArgRep
 toArgRep VoidRep           = V
 toArgRep PtrRep            = P
 toArgRep IntRep            = N
@@ -40,12 +39,12 @@ toArgRep FloatRep          = F
 toArgRep DoubleRep         = D
 toArgRep (VecRep len elem) = error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
 
-isNonV :: ArgRep -> Bool
+isNonV :: JArgRep -> Bool
 isNonV V = False
 isNonV _ = True
 
-idArgRep :: Id -> ArgRep
-idArgRep = toArgRep . idPrimRep
+idJArgRep :: Id -> JArgRep
+idJArgRep = toJArgRep . idJPrimRep
 
 -- slowCallPattern :: [ArgRep] -> (FastString, RepArity)
 -- slowCallPattern (P: P: P: P: P: P: _) = (fsLit "stg_ap_pppppp", 6)

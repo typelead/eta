@@ -1,5 +1,7 @@
 module GHCVM.Primitive where
 
+import Outputable
+import Type
 import TypeRep
 import Unique
 import FastString
@@ -1212,3 +1214,28 @@ data JPrimRep = HPrimRep PrimRep
               | JRepByte
               | JRepShort
               | JRepObject
+
+typeJPrimRep :: UnaryType -> JPrimRep
+typeJPrimRep ty = case splitTyConApp_maybe ty of
+  Just (tyCon, _) -> if isUnboxedTupleTyCon tyCon
+                          then pprPanic "typeJPrimRep: isUnboxedTypeTyCon" (ppr ty)
+                          else case maybeJRep tyCon of
+                                 Just primRep -> primRep
+                                 Nothing -> HPrimRep $ tyConPrimRep tyCon
+  Nothing -> pprPanic "typeJPrimRep: Unknown " (ppr ty)
+
+maybeJRep :: TyCon -> Maybe JPrimRep
+maybeJRep tyCon
+  | tcUnique == jbooleanPrimTyConKey = Just JRepBoolean
+  | tcUnique == jcharPrimTyConKey    = Just JRepChar
+  | tcUnique == jbytePrimTyConKey    = Just JRepByte
+  | tcUnique == jshortPrimTyConKey   = Just JRepShort
+  | otherwise                        = Nothing
+  where tcUnique = tyConUnique tyCon
+
+isVoidJRep :: JPrimRep -> Bool
+isVoidJRep (HPrimRep VoidRep) = True
+isVoidJRep _other  = False
+
+idJPrimRep :: Id -> JPrimRep
+idJPrimRep = typeJPrimRep . idType

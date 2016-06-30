@@ -16,6 +16,7 @@ import Module
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Object
+import GHCVM.Primitive
 
 import Data.Maybe
 
@@ -68,13 +69,13 @@ maybeFunction ty
 
 mkArgDescr :: DynFlags -> [Id] -> ArgDescr
 mkArgDescr dflags args
-  = let argReps = filter isNonV (map idArgRep args)
+  = let argReps = filter isNonV (map idJArgRep args)
            -- Getting rid of voids eases matching of standard patterns
     in case stdPattern argReps of
          Just specId -> ArgSpec specId
          Nothing     -> ArgGen []
 
-stdPattern :: [ArgRep] -> Maybe Int
+stdPattern :: [JArgRep] -> Maybe Int
 stdPattern reps = Nothing
 
 mkLFImported :: Id -> LambdaFormInfo

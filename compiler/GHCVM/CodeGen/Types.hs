@@ -18,6 +18,7 @@ import VarEnv
 import DataCon
 import TyCon
 import Type
+import GHCVM.Primitive
 
 type CgBindings = IdEnv CgIdInfo
 
@@ -97,10 +98,7 @@ unsafe_stripNV :: NonVoid a -> a
 unsafe_stripNV (NonVoid a) = a
 
 nonVoidIds :: [Id] -> [NonVoid Id]
-nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidRep (idPrimRep id))]
-
-idPrimRep :: Id -> PrimRep
-idPrimRep = typePrimRep . idType
+nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidJRep (idJPrimRep id))]
 
 data TopLevelFlag
   = TopLevel
