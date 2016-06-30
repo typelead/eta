@@ -34,6 +34,7 @@ data CgState = CgState {
   cgMethodDefs :: [MethodDef],
   cgFieldDefs :: [FieldDef],
   cgClassInitCode :: [Code],
+  cgCompiledClosures :: [ClassFile],
   cgCurrentClassName :: Text,
   cgSuperClassName :: Maybe Text }
 

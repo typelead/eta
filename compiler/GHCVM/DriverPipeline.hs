@@ -19,6 +19,7 @@ import SysTools
 import ErrUtils
 import Outputable
 
+import Control.Arrow((&&&))
 import System.Directory
 import System.FilePath
 import TyCon ( isDataTyCon )
@@ -104,11 +105,10 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
       <- {-# SCC "CoreToStg" #-}
           myCoreToStg dflags this_mod prepd_binds
 
-  (jarPath, classes) <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
-  let jarContents = map (\c -> (classFilePath c, classFileBS c)) classes
-  addMultiByteStringsToJar jarContents jarPath
-  return jarPath
-
+  classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
+  let jarContents = map (classFilePath &&& classFileBS) classes
+  addMultiByteStringsToJar jarContents output_filename
+  return output_filename
 
 dumpStg :: DynFlags -> SDoc -> IO ()
 dumpStg dflags = dumpSDoc dflags alwaysQualify Opt_D_dump_stg "STG Syntax:"

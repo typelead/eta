@@ -31,10 +31,10 @@ import Control.Monad.Exception.Base
 import Data.Char
 import Data.List
 
-runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO (FilePath, [ClassFile])
+runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen env state m = undefined
 
-codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO (FilePath, [ClassFile])
+codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
 codeGen hsc_env this_mod data_tycons stg_binds _hpc_info =
   runCodeGen initEnv initState $ mapM_ (cgTopBinding dflags) stg_binds
   where
@@ -45,6 +45,7 @@ codeGen hsc_env this_mod data_tycons stg_binds _hpc_info =
                           cgMethodDefs = [],
                           cgFieldDefs = [],
                           cgClassInitCode = [],
+                          cgCompiledClosures = [],
                           cgCurrentClassName = fullClassName,
                           cgSuperClassName = Nothing }
     (fullClassName, className) = generatePackageAndClass this_mod

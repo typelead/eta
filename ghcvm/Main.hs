@@ -122,7 +122,7 @@ main = do
             GHC.setSessionDynFlags
               (dflags0 { hooks = emptyHooks {runPhaseHook = Just runGhcVMPhase,
                                              linkHook = Just linkGhcVM},
-                         objectSuf = "class"})
+                         objectSuf = "jar"})
 
             dflags <- GHC.getSessionDynFlags
 
