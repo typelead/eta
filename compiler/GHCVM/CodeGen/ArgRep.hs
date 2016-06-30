@@ -10,14 +10,23 @@ import Id               ( Id )
 import TyCon            ( PrimRep(..), primElemRepSizeB )
 import BasicTypes       ( RepArity )
 import DynFlags
+import GHCVM.Primitive
 
-data ArgRep = P   -- Java object pointer
-            | N   -- Word-sized non-ptr
-            | V   -- Void
-            | L   -- long
-            | F   -- float
-            | D   -- double
-            | O   -- Object
+data JArgRep = P   -- StgClosure
+             | N   -- int-sized non-ptr
+             | V   -- Void
+             | L   -- long
+             | F   -- float
+             | D   -- double
+             | O   -- Java object pointer
+
+toJArgRep :: JPrimRep -> ArgRep
+toJArgRep (HPrimRep primRep) = toArgRep primRep
+toJArgRep JRepBoolean        = N
+toJArgRep JRepChar           = N
+toJArgRep JRepByte           = N
+toJArgRep JRepShort          = N
+toJArgRep JRepObject         = O
 
 toArgRep :: PrimRep -> ArgRep
 toArgRep VoidRep           = V

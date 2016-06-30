@@ -1174,7 +1174,7 @@ pcPrimTyCon0 name rep
   where
     result_kind = unliftedTypeKind
 
--- TODO: Verify that the unique number is valid
+-- TODO: Verify that the unique numbers don't clash with existing primTyConKeys
 jcharPrimTy :: Type
 jcharPrimTy = mkTyConTy jcharPrimTyCon
 jcharPrimTyConName             = mkPrimTc (fsLit "JChar#") jcharPrimTyConKey jcharPrimTyCon
