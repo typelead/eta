@@ -21,8 +21,9 @@ mapStack f cf = cf { stack = f $ stack cf }
 maxStack :: CtrlFlow -> Int
 maxStack = stackMax . stack
 
+-- TODO: Make sure locals is always populated (at least by the this pointer)
 maxLocals :: CtrlFlow -> Int
-maxLocals = maybe 0 (succ . fst . fst) . IntMap.maxViewWithKey . locals
+maxLocals = fst . IntMap.findMax . locals
 
 load :: Word8 -> FieldType -> CtrlFlow -> CtrlFlow
 load n ft cf = cf { locals = IntMap.insert (fromIntegral n) ft $ locals cf, stack = push ft $ stack cf }

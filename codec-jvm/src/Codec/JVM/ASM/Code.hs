@@ -160,4 +160,4 @@ aload n = mkCode' $ f n <> cf where
   f 2 = IT.op OP.astore_2
   f 3 = IT.op OP.astore_3
   f n = fold [IT.op OP.astore, IT.bytes $ BS.singleton n]
-  cf = IT.ctrlFlow $ CF.store n jint -- TODO: Correct jint
+  cf = IT.ctrlFlow $ CF.store n jint -- TODO: Correct jint to jobject type

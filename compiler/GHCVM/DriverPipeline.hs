@@ -1,10 +1,14 @@
-module GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM) where
+module GHCVM.DriverPipeline
+  (runGhcVMPhase,
+   linkGhcVM,
+   ghcvmCompileOneShot)
+where
 
+import MkIface
 import Module
 import DynFlags
 import DriverPipeline
 import DriverPhases
-import HscTypes
 import BasicTypes
 import CoreSyn (CoreProgram)
 import StgSyn (StgBinding, pprStgBindings)
@@ -18,11 +22,16 @@ import MonadUtils ( liftIO )
 import SysTools
 import ErrUtils
 import Outputable
+import TyCon ( isDataTyCon )
+import NameEnv
+import HscMain
+import HscTypes
 
+import Data.IORef
+import Control.Monad(when)
 import Control.Arrow((&&&))
 import System.Directory
 import System.FilePath
-import TyCon ( isDataTyCon )
 
 import qualified Data.ByteString.Lazy as B
 
@@ -150,3 +159,81 @@ linkGhcVM :: GhcLink -> DynFlags -> Bool -> HomePackageTable -> IO SuccessFlag
 linkGhcVM _ dflags _ hpt = do
   putStrLn "Linking the generated .class files..."
   return Succeeded
+
+-- Compile Haskell/boot in OneShot mode.
+ghcvmCompileOneShot :: HscEnv
+                   -> ModSummary
+                   -> SourceModified
+                   -> IO HscStatus
+ghcvmCompileOneShot hsc_env mod_summary src_changed
+  = do
+    -- One-shot mode needs a knot-tying mutable variable for interface
+    -- files. See TcRnTypes.TcGblEnv.tcg_type_env_var.
+    type_env_var <- newIORef emptyNameEnv
+    let mod = ms_mod mod_summary
+        hsc_env' = hsc_env{ hsc_type_env_var = Just (mod, type_env_var) }
+
+        msg what = oneShotMsg hsc_env' what
+
+        skip = do msg UpToDate
+                  dumpIfaceStats hsc_env'
+                  return HscUpToDate
+
+        compile mb_old_hash reason = runHsc hsc_env' $ do
+            liftIO $ msg reason
+            tc_result <- genericHscFrontend mod_summary
+            guts0 <- hscDesugar' (ms_location mod_summary) tc_result
+            dflags <- getDynFlags
+            case hscTarget dflags of
+                HscNothing -> do
+                    when (gopt Opt_WriteInterface dflags) $ liftIO $ do
+                        (iface, changed, _details) <- hscSimpleIface hsc_env tc_result mb_old_hash
+                        hscWriteIface dflags iface changed mod_summary
+                    return HscNotGeneratingCode
+                _ ->
+                    case ms_hsc_src mod_summary of
+                    t | isHsBootOrSig t ->
+                        do (iface, changed, _) <- hscSimpleIface' tc_result mb_old_hash
+                           liftIO $ hscWriteIface dflags iface changed mod_summary
+                           return (case t of
+                                    HsBootFile -> HscUpdateBoot
+                                    HsigFile -> HscUpdateSig
+                                    HsSrcFile -> panic "hscCompileOneShot Src")
+                    _ ->
+                        do guts <- hscSimplify' guts0
+                           (iface, changed, _details, cgguts) <- hscNormalIface' guts mb_old_hash
+                           liftIO $ hscWriteIface dflags iface changed mod_summary
+                           return $ HscRecomp cgguts mod_summary
+
+        -- XXX This is always False, because in one-shot mode the
+        -- concept of stability does not exist.  The driver never
+        -- passes SourceUnmodifiedAndStable in here.
+        stable = case src_changed of
+                     SourceUnmodifiedAndStable -> True
+                     _                         -> False
+
+    (recomp_reqd, mb_checked_iface)
+        <- {-# SCC "checkOldIface" #-}
+           checkOldIface hsc_env' mod_summary src_changed Nothing
+    -- save the interface that comes back from checkOldIface.
+    -- In one-shot mode we don't have the old iface until this
+    -- point, when checkOldIface reads it from the disk.
+    let mb_old_hash = fmap mi_iface_hash mb_checked_iface
+
+    case mb_checked_iface of
+        Just iface | not (recompileRequired recomp_reqd) ->
+            -- If the module used TH splices when it was last compiled,
+            -- then the recompilation check is not accurate enough (#481)
+            -- and we must ignore it. However, if the module is stable
+            -- (none of the modules it depends on, directly or indirectly,
+            -- changed), then we *can* skip recompilation. This is why
+            -- the SourceModified type contains SourceUnmodifiedAndStable,
+            -- and it's pretty important: otherwise ghc --make would
+            -- always recompile TH modules, even if nothing at all has
+            -- changed. Stability is just the same check that make is
+            -- doing for us in one-shot mode.
+            if mi_used_th iface && not stable
+            then compile mb_old_hash (RecompBecause "TH")
+            else skip
+        _ ->
+            compile mb_old_hash recomp_reqd
