@@ -44,39 +44,56 @@ import Codec.JVM.ASM.Code (Code)
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
 import Codec.JVM.ConstPool (mkConstPool)
-import Codec.JVM.Method (MethodInfo(..))
+import Codec.JVM.Method (MethodInfo(..), unpackMethodInfo)
+import Codec.JVM.Field (FieldInfo(..), unpackFieldInfo)
 import Codec.JVM.Types
 
 import qualified Codec.JVM.ASM.Code as Code
 import qualified Codec.JVM.Class as Class
-import qualified Codec.JVM.Method as Method
 import qualified Codec.JVM.ConstPool as CP
 
-mkClassFile :: Version -> [Class.AccessFlag] -> IClassName -> Maybe IClassName -> [MethodDef] -> ClassFile
-mkClassFile v afs tc sc mds = ClassFile cp v (Set.fromList afs) tc sc [] [] mis []
+mkClassFile :: Version
+            -> [AccessFlag]
+            -> IClassName
+            -> Maybe IClassName
+            -> [FieldDef]
+            -> [MethodDef]
+            -> ClassFile
+mkClassFile v afs tc sc fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis mis []
     where
-      cs = ccs ++ mdcs ++ mics where
+      cs = ccs ++ mdcs ++ mics ++ fdcs ++ fics where
         ccs = concat [CP.unpackClassName tc, CP.unpackClassName $ fromMaybe jlObject sc]
         mdcs = mds >>= unpackMethodDef
-        mics = mis >>= Method.unpackMethodInfo
+        mics = mis >>= unpackMethodInfo
+        fdcs = fds >>= unpackFieldDef
+        fics = fis >>= unpackFieldInfo
       cp = mkConstPool cs
       mis = f <$> mds where
         f (MethodDef afs' n' (MethodDesc d as) code) =
           MethodInfo (Set.fromList afs') n' (Desc d) $ Code.toAttrs as cp code
 
-data MethodDef = MethodDef [Method.AccessFlag] UName MethodDesc Code
+      fis = f <$> fds where
+        f (FieldDef afs' n' (FieldDesc d)) =
+          FieldInfo (Set.fromList afs') n' (Desc d) []
 
-mkMethodDef :: [Method.AccessFlag] -> Text -> [FieldType] -> ReturnType -> Code -> MethodDef
+data MethodDef = MethodDef [AccessFlag] UName MethodDesc Code
+
+mkMethodDef :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> Code -> MethodDef
 mkMethodDef afs n fts rt c = mkMethodDef' afs n (mkMethodDesc fts rt) c
 
-mkMethodDef' :: [Method.AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
+mkMethodDef' :: [AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
 mkMethodDef' afs n md c = MethodDef afs (UName n) md c
-
-data FieldDef = FieldDef
-
-mkFieldDef = undefined
-
-mkFieldDef' = undefined
 
 unpackMethodDef :: MethodDef -> [Const]
 unpackMethodDef (MethodDef _ (UName n') (MethodDesc d _) code) = CUTF8 n':CUTF8 d:Code.consts code
+
+data FieldDef = FieldDef [AccessFlag] UName FieldDesc
+
+mkFieldDef :: [AccessFlag] -> Text -> FieldType -> FieldDef
+mkFieldDef afs n ft = mkFieldDef' afs n (mkFieldDesc ft)
+
+mkFieldDef' :: [AccessFlag] -> Text -> FieldDesc -> FieldDef
+mkFieldDef' afs n fd = FieldDef afs (UName n) fd
+
+unpackFieldDef :: FieldDef -> [Const]
+unpackFieldDef (FieldDef _ (UName n') (FieldDesc d)) = [CUTF8 n', CUTF8 d]

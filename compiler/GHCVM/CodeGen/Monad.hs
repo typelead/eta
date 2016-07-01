@@ -6,7 +6,8 @@ module GHCVM.CodeGen.Monad
    addBinding,
    addBindings,
    setBindings,
-   getCgIdInfo
+   getCgIdInfo,
+   withClosure
   ) where
 
 import DynFlags
@@ -106,3 +107,10 @@ addBindings newCgIdInfos = do
               bindings
               newCgIdInfos
         setBindings newBindings
+
+withClosure :: Text
+            -> Text
+            -> CodeGen ()
+            -> CodeGen Text
+withClosure className superClassName = undefined
+  --mkClassFile java7 [Public, Static]

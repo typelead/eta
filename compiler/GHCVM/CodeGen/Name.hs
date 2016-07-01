@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module GHCVM.CodeGen.Name (
+  nameText,
   idNameText,
   idClassText,
   generatePackageAndClass,
@@ -18,10 +19,13 @@ import Data.Text.Encoding
 
 import Codec.JVM
 
+nameText :: Name -> Text
+nameText = zEncodeText
+         . occNameFS
+         . nameOccName
+
 idNameText :: Id -> Text
-idNameText = zEncodeText
-           . occNameFS
-           . nameOccName
+idNameText = nameText
            . idName
 
 idClassText :: Id -> Text

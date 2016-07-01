@@ -30,6 +30,7 @@ import Control.Monad
 import Control.Monad.Exception
 import Control.Monad.Exception.Base
 
+import Data.Text (Text)
 import Data.Char
 import Data.List
 
@@ -132,9 +133,12 @@ externaliseId dflags id
     new_occ = mkLocalOcc uniq $ nameOccName name
     loc     = nameSrcSpan name
 
--- TODO: Implement
 cgDataCon :: DataCon -> CodeGen ()
-cgDataCon dataCon = undefined
+cgDataCon dataCon = do
+  withClosure (nameText . dataConName $ dataCon) "" $ do
+    -- TODO: Implement
+    return ()
+  return ()
   where argReps :: [(JPrimRep, UnaryType)]
         argReps = [(typeJPrimRep repTy, repTy) |
                    ty     <- dataConRepArgTys dataCon,

@@ -2,10 +2,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Codec.JVM.Types where
 
+import Data.Binary.Put (Put, putWord16be)
+import Data.Set (Set)
+import Data.Word (Word16)
 import Data.Foldable (fold)
 import Data.Text (Text)
 import Data.String (IsString)
 
+import qualified Data.Set as S
 import qualified Data.Text as Text
 
 data PrimType
@@ -132,3 +136,50 @@ data Version = Version
 java8 :: Version
 java8 = Version 52 0
 
+java7 :: Version
+java7 = Version 51 0
+
+-- https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.6-200-A.1
+data AccessFlag
+  = Public
+  | Private
+  | Protected
+  | Static
+  | Final
+  | Super
+  | Synchronized
+  | Volatile
+  | Bridge
+  | VarArgs
+  | Transient
+  | Native
+  | Interface
+  | Abstract
+  | Strict
+  | Synthetic
+  | Annotation
+  | Enum
+  deriving (Eq, Ord, Show)
+
+accessFlagValue :: AccessFlag -> Word16
+accessFlagValue Public        = 0x0001
+accessFlagValue Private       = 0x0002
+accessFlagValue Protected     = 0x0004
+accessFlagValue Static        = 0x0008
+accessFlagValue Final         = 0x0010
+accessFlagValue Super         = 0x0020
+accessFlagValue Synchronized  = 0x0020
+accessFlagValue Volatile      = 0x0040
+accessFlagValue Bridge        = 0x0040
+accessFlagValue VarArgs       = 0x0080
+accessFlagValue Transient     = 0x0080
+accessFlagValue Native        = 0x0100
+accessFlagValue Interface     = 0x0200
+accessFlagValue Abstract      = 0x0400
+accessFlagValue Strict        = 0x0800
+accessFlagValue Synthetic     = 0x1000
+accessFlagValue Annotation    = 0x2000
+accessFlagValue Enum          = 0x4000
+
+putAccessFlags :: Set AccessFlag -> Put
+putAccessFlags accessFlags = putWord16be $ sum (accessFlagValue <$> (S.toList accessFlags))

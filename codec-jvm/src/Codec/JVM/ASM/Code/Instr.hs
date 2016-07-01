@@ -3,7 +3,6 @@ module Codec.JVM.ASM.Code.Instr where
 
 import Control.Monad.Trans.RWS
 import Data.ByteString (ByteString)
-import Data.IntMap.Strict (IntMap)
 import Data.Monoid ((<>))
 
 import qualified Data.ByteString as BS

@@ -4,7 +4,6 @@ module Codec.JVM.Attr where
 import Data.ByteString (ByteString)
 import Data.Binary.Put (Put, putByteString, putWord8, runPut)
 import Data.Foldable (traverse_)
-import Data.IntMap.Strict (IntMap)
 import Data.Text (Text)
 import Data.List (foldl')
 
@@ -90,3 +89,4 @@ newtype VerifType = VerifType FieldType
 
 putVerifType :: VerifType -> Put
 putVerifType (VerifType (BaseType JInt)) = putWord8 1
+putVerifType (VerifType _) = error $ "Unkown VerifType"
