@@ -6,6 +6,7 @@ import Data.Binary.Put (Put, putByteString, putWord8, runPut)
 import Data.Foldable (traverse_)
 import Data.Text (Text)
 import Data.List (foldl')
+import Data.Word(Word8, Word16)
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -53,9 +54,9 @@ putAttrBody cp (ACode ms ls xs attrs) = do
   putI16 0 -- TODO Exception table
   putI16 $ length attrs
   mapM_ (putAttr cp) attrs
-putAttrBody _ (AStackMapTable xs) = do
+putAttrBody cp (AStackMapTable xs) = do
   putI16 $ length xs
-  putStackMapFrames xs
+  putStackMapFrames cp xs
 
 -- | http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.4
 --
@@ -63,30 +64,61 @@ putAttrBody _ (AStackMapTable xs) = do
 
 data StackMapFrame
   = SameFrame
+  | SameFrame' Word8
   | SameLocals VerifType
+  | SameLocals1StackItem Word8 VerifType
+  | SameLocals1StackItemExtended Word16 VerifType
+  | ChopFrame Word8 Word16
+  | SameFrameExtended Word16
+  | AppendFrame Word16 [VerifType]
   | FullFrame [VerifType] [VerifType]
+  | FullFrame' Word16 [VerifType] [VerifType]
   deriving (Eq, Show)
 
-putStackMapFrames :: [(Offset, StackMapFrame)] -> Put
-putStackMapFrames xs = snd $ foldl' f ((0, return ())) xs where
+putStackMapFrames :: ConstPool -> [(Offset, StackMapFrame)] -> Put
+putStackMapFrames cp xs = snd $ foldl' f ((0, return ())) xs where
   f (offset, put) (Offset frameOffset, frame) = (frameOffset, put *> putFrame frame) where
     delta = fromIntegral $ frameOffset - if offset == 0 then 0 else offset + 1
+    putVerifTy = putVerifType cp
     putFrame SameFrame =
       putWord8 $ delta
     putFrame (SameLocals vt) = do
       putWord8 $ delta + 64
-      putVerifType vt
+      putVerifTy vt
     putFrame (FullFrame locals stack) = do
       putWord8 255
       putI16 $ fromIntegral delta
       putI16 $ length locals
-      traverse_ putVerifType locals
+      traverse_ putVerifTy locals
       putI16 $ length stack
-      traverse_ putVerifType stack
+      traverse_ putVerifTy stack
+    -- TODO: Update
+    putFrame _ = return ()
 
-newtype VerifType = VerifType FieldType
-  deriving (Eq, Show)
+data VerifType    = VerifType FieldType
+                  | VTop
+                  | VInteger
+                  | VFloat
+                  | VLong
+                  | VDouble
+                  | VNull
+                  | VUninitializedThis
+                  | VObject
+                  | VUninitialized
+                  deriving (Eq, Show)
 
-putVerifType :: VerifType -> Put
-putVerifType (VerifType (BaseType JInt)) = putWord8 1
-putVerifType (VerifType _) = error $ "Unkown VerifType"
+putVerifType :: ConstPool -> VerifType -> Put
+putVerifType cp (VerifType vtype) = putWord8 1
+  -- case vtype of
+  --   BaseType x -> case x of
+  --     JByte -> putWord8
+  --     JChar ->
+  --     JDouble
+  --     JFloat
+  --     JInt
+  --     JLong
+  --     JShort
+  --     JBool
+  -- putWord8 tag
+
+putVerifType _ (VerifType _) = error $ "Unkown VerifType"
