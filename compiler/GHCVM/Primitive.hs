@@ -1154,7 +1154,7 @@ ghcvmPrimTyCons
     , jbytePrimTyCon
     , jbooleanPrimTyCon
     , jshortPrimTyCon
-    ]
+    , objectPrimTyCon ]
 
 mkPrimTc :: FastString -> Unique -> TyCon -> Name
 mkPrimTc fs unique tycon
