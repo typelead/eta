@@ -1,4 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
@@ -7,7 +6,10 @@ module GHCVM.CodeGen.Monad
    addBindings,
    setBindings,
    getCgIdInfo,
-   withClosure
+   newTypeClosure,
+   newExportedClosure,
+   newHiddenClosure,
+   newClosure
   ) where
 
 import DynFlags
@@ -26,19 +28,19 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 
 data CgEnv = CgEnv {
-  cgClassName :: Text,
-  cgQClassName :: Text,
-  cgModule :: Module,
-  cgDynFlags :: DynFlags }
+  cgQClassName :: !Text,
+  cgModule :: !Module,
+  cgDynFlags :: !DynFlags }
 
 data CgState = CgState {
-  cgBindings :: CgBindings,
-  cgMethodDefs :: [MethodDef],
-  cgFieldDefs :: [FieldDef],
-  cgClassInitCode :: [Code],
-  cgCompiledClosures :: [ClassFile],
-  cgCurrentClassName :: Text,
-  cgSuperClassName :: Maybe Text }
+  cgBindings :: !CgBindings,
+  cgCompiledClosures :: ![ClassFile],
+  cgClassInitCode :: ![Code],
+  -- Related to class file generation
+  cgMethodDefs :: ![MethodDef],
+  cgFieldDefs :: ![FieldDef],
+  cgClassName :: !Text,
+  cgSuperClassName :: !(Maybe Text) }
 
 newtype CodeGen a = CG { unCG :: CgEnv -> CgState -> IO (CgState, a) }
 
@@ -56,9 +58,8 @@ instance Monad CodeGen where
       unCG (f x) e s0
 
 instance MonadState CgState CodeGen where
-  state action = CG $ \_ s -> do
-    let (a, s') = action s
-    return (s', a)
+  state action = CG $ \_ s -> case action s of
+    (a, s') -> return (s', a)
 
 instance MonadReader CgEnv CodeGen where
   ask = CG $ \env s -> return (s, env)
@@ -70,8 +71,15 @@ instance HasModule CodeGen where
 instance HasDynFlags CodeGen where
   getDynFlags = asks cgDynFlags
 
+getModClass :: CodeGen Text
+getModClass = asks cgQClassName
+
+addCompiledClosure :: ClassFile -> CodeGen ()
+addCompiledClosure classFile = modify $ \s@CgState{..} ->
+  s { cgCompiledClosures = classFile : cgCompiledClosures }
+
 setClass :: Text -> CodeGen ()
-setClass className = modify $ \s -> s { cgCurrentClassName = className }
+setClass className = modify $ \s -> s { cgClassName = className }
 
 getModule :: CodeGen Module
 getModule = asks cgModule
@@ -108,9 +116,44 @@ addBindings newCgIdInfos = do
               newCgIdInfos
         setBindings newBindings
 
-withClosure :: Text
-            -> Text
-            -> CodeGen ()
-            -> CodeGen Text
-withClosure className superClassName = undefined
-  --mkClassFile java7 [Public, Static]
+defineMethod :: MethodDef -> CodeGen ()
+defineMethod md = modify $ \s@CgState{..} ->
+  s { cgMethodDefs = md : cgMethodDefs }
+
+defineField :: FieldDef -> CodeGen ()
+defineField md = modify $ \s@CgState{..} ->
+  s { cgFieldDefs = md : cgFieldDefs }
+
+newExportedClosure, newHiddenClosure :: Text
+                 -> Text
+                 -> CodeGen ()
+                 -> CodeGen Text
+newExportedClosure = newClosure [Public]
+newHiddenClosure = newClosure [Private]
+
+newTypeClosure :: Text
+               -> Text
+               -> CodeGen Text
+newTypeClosure thisClass superClass =
+  newClosure [Public, Abstract] thisClass superClass $
+    defineMethod . defaultConstructor $ superClass
+
+newClosure :: [AccessFlag]
+           -> Text
+           -> Text
+           -> CodeGen ()
+           -> CodeGen Text
+newClosure accessFlags className superClassName genCode = do
+  state0 <- get
+  modClass <- getModClass
+  let qclassName = append modClass . cons '$' $ className
+  modify $ \s -> s { cgMethodDefs = [],
+                     cgFieldDefs = [],
+                     cgClassName = qclassName,
+                     cgSuperClassName = Just superClassName }
+  genCode
+  CgState {..} <- get
+  let compiledClosure = mkClassFile java7 accessFlags cgClassName cgSuperClassName cgFieldDefs cgMethodDefs
+  put state0
+  addCompiledClosure compiledClosure
+  return qclassName

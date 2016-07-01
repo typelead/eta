@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module GHCVM.CodeGen.Name (
   nameText,
+  nameTypeText,
   idNameText,
   idClassText,
   generatePackageAndClass,
@@ -18,6 +19,9 @@ import Data.Text as T hiding (map, init, last)
 import Data.Text.Encoding
 
 import Codec.JVM
+
+nameTypeText :: Name -> Text
+nameTypeText = flip snoc '$' . nameText
 
 nameText :: Name -> Text
 nameText = zEncodeText
@@ -53,10 +57,6 @@ packageKeyText mod = zEncodeText
                    . modulePackageKey
                    $ mod
 
-upperFirst :: Text -> Text
-upperFirst str = case uncons str of
-  Nothing -> empty
-  Just (c, str') -> cons (C.toUpper c) str'
 
 -- Codec.JVM.ASM -> ("codec/jvm", "ASM")
 generatePackageAndClass :: Module -> (Text, Text)
@@ -77,3 +77,8 @@ classFilePath :: ClassFile -> FilePath
 classFilePath ClassFile {..} =
   case thisClass of
     IClassName name -> unpack . append name $ ".class"
+
+upperFirst :: Text -> Text
+upperFirst str = case uncons str of
+  Nothing -> empty
+  Just (c, str') -> cons (C.toUpper c) str'

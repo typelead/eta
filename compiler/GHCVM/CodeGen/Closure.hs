@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Closure where
 
 import DynFlags

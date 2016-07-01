@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Object where
 
 import qualified Data.ByteString.Lazy as B

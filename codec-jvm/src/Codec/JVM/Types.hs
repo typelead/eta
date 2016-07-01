@@ -23,8 +23,15 @@ data PrimType
   | JBool
   deriving (Eq, Ord, Show)
 
-jInt :: FieldType
-jInt = BaseType JInt
+jbyte, jchar, jdouble, jfloat, jint, jlong, jshort, jbool :: FieldType
+jbyte = BaseType JByte
+jchar = BaseType JChar
+jdouble = BaseType JDouble
+jfloat = BaseType JFloat
+jint = BaseType JInt
+jlong = BaseType JLong
+jshort = BaseType JShort
+jbool = BaseType JBool
 
 jString :: FieldType
 jString = ObjectType jlString
@@ -112,14 +119,14 @@ mkMethodDesc' fts rt = Text.concat ["(", args, ")", ret] where
 data FieldRef = FieldRef IClassName UName FieldType
   deriving (Eq, Ord, Show)
 
-mkFieldRef :: IClassName -> UName -> FieldType -> FieldRef
-mkFieldRef cn un ft = FieldRef cn un ft
+mkFieldRef :: Text -> Text -> FieldType -> FieldRef
+mkFieldRef cn un ft = FieldRef (IClassName cn) (UName un) ft
 
 data MethodRef = MethodRef IClassName UName [FieldType] ReturnType
   deriving (Eq, Ord, Show)
 
-mkMethodRef :: IClassName -> UName -> [FieldType] -> ReturnType -> MethodRef
-mkMethodRef cn un fts rt = MethodRef cn un fts rt
+mkMethodRef :: Text -> Text -> [FieldType] -> ReturnType -> MethodRef
+mkMethodRef cn un fts rt = MethodRef (IClassName cn) (UName un) fts rt
 
 data NameAndDesc = NameAndDesc UName Desc
   deriving (Eq, Ord, Show)

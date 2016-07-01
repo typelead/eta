@@ -16,7 +16,7 @@ import Codec.JVM.Const (Const)
 import Codec.JVM.Internal (packI16)
 import Codec.JVM.Opcode (Opcode, opcode)
 import Codec.JVM.ConstPool (ConstPool)
-import Codec.JVM.Types (ReturnType, jInt)
+import Codec.JVM.Types (ReturnType, jint)
 
 import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import qualified Codec.JVM.Cond as CD
@@ -48,7 +48,7 @@ iif cond ok ko = Instr $ do
   lengthOp <- writeInstr ifop
   branches lengthOp
     where
-      ifop = op oc <> (ctrlFlow $ CF.mapStack $ CF.pop jInt) where
+      ifop = op oc <> (ctrlFlow $ CF.mapStack $ CF.pop jint) where
         oc = case cond of
           CD.EQ -> OP.ifeq
           CD.NE -> OP.ifne

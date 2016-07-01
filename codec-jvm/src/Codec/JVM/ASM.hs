@@ -20,7 +20,7 @@
 -- mainClass = mkClassFile java8 [] "HelloWorld" Nothing
 --   [ mkMethodDef [Public, Static] "main" [arr.obj $ "java/lang/String"] void $ fold
 --     [ getstatic systemOut
---     , bipush jInt 42
+--     , bipush jint 42
 --     , invokevirtual printlnI
 --     , vreturn ]
 --   ]
@@ -35,12 +35,13 @@
 module Codec.JVM.ASM where
 
 import Data.Binary.Put (runPut)
+import Data.Foldable (fold)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
 import qualified Data.Set as Set
 
-import Codec.JVM.ASM.Code (Code)
+import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload)
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
 import Codec.JVM.ConstPool (mkConstPool)
@@ -54,13 +55,15 @@ import qualified Codec.JVM.ConstPool as CP
 
 mkClassFile :: Version
             -> [AccessFlag]
-            -> IClassName
-            -> Maybe IClassName
+            -> Text
+            -> Maybe Text
             -> [FieldDef]
             -> [MethodDef]
             -> ClassFile
-mkClassFile v afs tc sc fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis mis []
+mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis mis []
     where
+      tc = IClassName tc'
+      sc = IClassName <$> sc'
       cs = ccs ++ mdcs ++ mics ++ fdcs ++ fics where
         ccs = concat [CP.unpackClassName tc, CP.unpackClassName $ fromMaybe jlObject sc]
         mdcs = mds >>= unpackMethodDef
@@ -78,8 +81,8 @@ mkClassFile v afs tc sc fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis
 
 data MethodDef = MethodDef [AccessFlag] UName MethodDesc Code
 
-mkMethodDef :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> Code -> MethodDef
-mkMethodDef afs n fts rt c = mkMethodDef' afs n (mkMethodDesc fts rt) c
+mkMethodDef :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> [Code] -> MethodDef
+mkMethodDef afs n fts rt cs = mkMethodDef' afs n (mkMethodDesc fts rt) $ fold cs
 
 mkMethodDef' :: [AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
 mkMethodDef' afs n md c = MethodDef afs (UName n) md c
@@ -97,3 +100,9 @@ mkFieldDef' afs n fd = FieldDef afs (UName n) fd
 
 unpackFieldDef :: FieldDef -> [Const]
 unpackFieldDef (FieldDef _ (UName n') (FieldDesc d)) = [CUTF8 n', CUTF8 d]
+
+defaultConstructor :: Text -> MethodDef
+defaultConstructor superClass = mkMethodDef [Public] "<init>" [] void $
+  [ aload 0,
+    invokespecial $ mkMethodRef superClass "<init>" [] void,
+    vreturn ]

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 module GHCVM.CodeGen.Main where
 
 import Module
@@ -21,6 +20,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Name
+import GHCVM.CodeGen.Rts
 
 import Codec.JVM
 
@@ -41,11 +41,12 @@ codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFi
 codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
   runCodeGen initEnv initState $ do
       mapM_ (cgTopBinding dflags) stgBinds
-      let cgTyCon tyCon = mapM_ cgDataCon (tyConDataCons tyCon)
+      let cgTyCon tyCon = do
+            typeClass <- newTypeClosure (nameTypeText . tyConName $ tyCon) stgConstr
+            mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
       mapM_ cgTyCon dataTyCons
   where
-    initEnv = CgEnv { cgClassName = className,
-                      cgQClassName = fullClassName,
+    initEnv = CgEnv { cgQClassName = fullClassName,
                       cgModule = thisMod,
                       cgDynFlags = dflags }
     initState = CgState { cgBindings = emptyVarEnv,
@@ -53,9 +54,10 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
                           cgFieldDefs = [],
                           cgClassInitCode = [],
                           cgCompiledClosures = [],
-                          cgCurrentClassName = fullClassName,
+                          cgClassName = fullClassName,
                           cgSuperClassName = Nothing }
-    (fullClassName, className) = generatePackageAndClass thisMod
+    -- TODO: Remove the second part of this pair?
+    (fullClassName, _) = generatePackageAndClass thisMod
     dflags = hsc_dflags hscEnv
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
@@ -133,9 +135,9 @@ externaliseId dflags id
     new_occ = mkLocalOcc uniq $ nameOccName name
     loc     = nameSrcSpan name
 
-cgDataCon :: DataCon -> CodeGen ()
-cgDataCon dataCon = do
-  withClosure (nameText . dataConName $ dataCon) "" $ do
+cgDataCon :: Text -> DataCon -> CodeGen ()
+cgDataCon typeClass dataCon = do
+  newExportedClosure (nameText . dataConName $ dataCon) typeClass $ do
     -- TODO: Implement
     return ()
   return ()
