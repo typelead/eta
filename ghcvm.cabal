@@ -9,6 +9,8 @@ copyright:           Copyright (c) Rahul Muttineni 2016
 stability:           Experimental
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:  compiler/GHCVM/Parser/Parser.y
+                     compiler/GHCVM/Parser/Lexer.x
 
 source-repository head
     type: git
@@ -28,9 +30,13 @@ library
                        , GHCVM.CodeGen.Types
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Rts
+                       , GHCVM.Parser.Parse
                        , GHCVM.Util
                        , GHCVM.Primitive
                        , GHCVM.JAR
+    other-modules:       GHCVM.Parser.Parser
+                       , GHCVM.Parser.Lexer
+                       , GHCVM.Parser.RdrHsSyn
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text
@@ -44,36 +50,41 @@ library
                        , path
                        , exceptions
                        , transformers
+                       , array
+                       , containers
     hs-source-dirs:      compiler
     exposed:             True
     buildable:           True
+    build-tools:         alex
+                       , happy
 
 executable ghcvm
-  hs-source-dirs:      ghcvm
-  main-is:             Main.hs
-  default-language:    Haskell2010
-  other-modules:       GhciMonad
-                       GhciTags
-                       InteractiveUI
-  build-depends:       array
-                     , base >= 4.7 && < 5
-                     , bytestring
-                     , deepseq
-                     , directory
-                     , filepath
-                     , ghc >= 7.10.3 && < 7.11.0
-                     , ghc-paths == 0.1.0.9
-                     , haskeline
-                     , process
-                     , transformers
-                     , unix
-                     , ghcvm
+    hs-source-dirs:      ghcvm
+    main-is:             Main.hs
+    default-language:    Haskell2010
+    other-modules:       GhciMonad
+                        GhciTags
+                        InteractiveUI
+    build-depends:       array
+                      , base >= 4.7 && < 5
+                      , bytestring
+                      , deepseq
+                      , directory
+                      , filepath
+                      , ghc >= 7.10.3 && < 7.11.0
+                      , ghc-paths == 0.1.0.9
+                      , haskeline
+                      , process
+                      , transformers
+                      , unix
+                      , ghcvm
+                     
 
 executable rtsbuild
-  hs-source-dirs:      shake
-  main-is:             Build.hs
-  default-language:    Haskell2010
-  build-depends:       base >= 4.7 && < 5
-                     , shake
-                     , directory
-                     , containers >= 0.5
+    hs-source-dirs:      shake
+    main-is:             Build.hs
+    default-language:    Haskell2010
+    build-depends:       base >= 4.7 && < 5
+                      , shake
+                      , directory
+                      , containers >= 0.5

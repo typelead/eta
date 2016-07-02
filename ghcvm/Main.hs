@@ -34,7 +34,7 @@ import Panic
 import MonadUtils (liftIO)
 
 -- GHCVM API
-import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM)
+import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM, ghcvmFrontend)
 import GHCVM.Primitive (ghcvmPrimIface)
 
 -- Imports for --abi-hash
@@ -123,7 +123,8 @@ main = do
             GHC.setSessionDynFlags
               (dflags0 { hooks = emptyHooks {runPhaseHook = Just runGhcVMPhase,
                                              linkHook = Just linkGhcVM,
-                                             ghcPrimIfaceHook = Just ghcvmPrimIface
+                                             ghcPrimIfaceHook = Just ghcvmPrimIface,
+                                             hscFrontendHook = Just ghcvmFrontend
                                             },
                          objectSuf = "jar"})
 

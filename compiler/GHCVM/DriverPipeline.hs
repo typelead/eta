@@ -1,8 +1,10 @@
 module GHCVM.DriverPipeline
   (runGhcVMPhase,
-   linkGhcVM)
+   linkGhcVM,
+   ghcvmFrontend)
 where
 
+import TcRnTypes
 import MkIface
 import Module
 import DynFlags
@@ -23,7 +25,7 @@ import ErrUtils
 import Outputable
 import TyCon ( isDataTyCon )
 import NameEnv
-import HscMain
+import HscMain hiding (hscParse')
 import HscTypes
 
 import Data.IORef
@@ -36,6 +38,7 @@ import qualified Data.ByteString.Lazy as B
 
 import GHCVM.CodeGen.Main
 import GHCVM.CodeGen.Name
+import GHCVM.Parser.Parse
 import GHCVM.JAR
 import Codec.JVM
 
@@ -145,16 +148,23 @@ myCoreToStg :: DynFlags -> Module -> CoreProgram
             -> IO ( [StgBinding] -- output program
                   , CollectedCCs) -- cost centre info (declared and used)
 myCoreToStg dflags this_mod prepd_binds = do
-    stg_binds <- {-# SCC "Core2Stg" #-}
-           coreToStg dflags this_mod prepd_binds
+  stg_binds <- {-# SCC "Core2Stg" #-}
+          coreToStg dflags this_mod prepd_binds
 
-    (stg_binds2, cost_centre_info)
-        <- {-# SCC "Stg2Stg" #-}
-           stg2stg dflags this_mod stg_binds
+  (stg_binds2, cost_centre_info)
+      <- {-# SCC "Stg2Stg" #-}
+          stg2stg dflags this_mod stg_binds
 
-    return (stg_binds2, cost_centre_info)
+  return (stg_binds2, cost_centre_info)
 
 linkGhcVM :: GhcLink -> DynFlags -> Bool -> HomePackageTable -> IO SuccessFlag
 linkGhcVM _ dflags _ hpt = do
   putStrLn "Linking the generated .class files..."
   return Succeeded
+
+ghcvmFrontend :: ModSummary -> Hsc TcGblEnv
+ghcvmFrontend mod_summary = do
+  hpm <- hscParse' mod_summary
+  hsc_env <- getHscEnv
+  tcg_env <- tcRnModule' hsc_env mod_summary False hpm
+  return tcg_env
