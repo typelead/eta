@@ -2548,6 +2548,7 @@ oneWordPrags = Map.fromList([
            ("overlappable", strtoken (\s -> IToverlappable_prag s)),
            ("overlapping", strtoken (\s -> IToverlapping_prag s)),
            ("incoherent", strtoken (\s -> ITincoherent_prag s)),
+           ("ctype", strtoken (\s -> ITctype s)),
            ("class", strtoken (\s -> ITctype s))]) -- CTYPE -> CLASS
 
 twoWordPrags = Map.fromList([
