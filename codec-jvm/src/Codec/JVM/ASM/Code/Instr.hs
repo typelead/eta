@@ -103,7 +103,7 @@ incOffset = Instr . incOffset'
 incOffset' :: Int -> InstrRWS ()
 incOffset' i = state s where s (Offset off, cf) = (mempty, (Offset $ off + i, cf))
 
-write :: ByteString -> StackMapTable-> InstrRWS ()
+write :: ByteString -> StackMapTable -> InstrRWS ()
 write bs smfs = do
   incOffset' $ BS.length bs
   tell (bs, smfs)

@@ -136,7 +136,7 @@ newTypeClosure :: Text
                -> CodeGen Text
 newTypeClosure thisClass superClass =
   newClosure [Public, Abstract] thisClass superClass $
-    defineMethod . defaultConstructor $ superClass
+    defineMethod . defaultConstructor (obj thisClass) $ superClass
 
 newClosure :: [AccessFlag]
            -> Text

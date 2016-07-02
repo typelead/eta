@@ -101,8 +101,8 @@ mkFieldDef' afs n fd = FieldDef afs (UName n) fd
 unpackFieldDef :: FieldDef -> [Const]
 unpackFieldDef (FieldDef _ (UName n') (FieldDesc d)) = [CUTF8 n', CUTF8 d]
 
-defaultConstructor :: Text -> MethodDef
-defaultConstructor superClass = mkMethodDef [Public] "<init>" [] void $
-  [ aload 0,
+defaultConstructor :: FieldType -> Text -> MethodDef
+defaultConstructor thisClass superClass = mkMethodDef [Public] "<init>" [] void $
+  [ aload thisClass 0,
     invokespecial $ mkMethodRef superClass "<init>" [] void,
     vreturn ]

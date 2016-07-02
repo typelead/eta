@@ -153,11 +153,11 @@ getstatic fr@(FieldRef _ _ ft) = codeConst OP.getstatic ft $ CFieldRef fr
 anewarray :: IClassName -> Code
 anewarray cn = codeConst OP.anewarray (ObjectType cn) $ CClass cn
 
-aload :: Word8 -> Code
-aload n = mkCode' $ f n <> cf where
-  f 0 = IT.op OP.astore_0
-  f 1 = IT.op OP.astore_1
-  f 2 = IT.op OP.astore_2
-  f 3 = IT.op OP.astore_3
-  f n = fold [IT.op OP.astore, IT.bytes $ BS.singleton n]
-  cf = IT.ctrlFlow $ CF.store n jint -- TODO: Correct jint to jobject type
+aload :: FieldType -> Word8 -> Code
+aload cls n = mkCode' $ f n <> cf where
+  f 0 = IT.op OP.aload_0
+  f 1 = IT.op OP.aload_1
+  f 2 = IT.op OP.aload_2
+  f 3 = IT.op OP.aload_3
+  f n = fold [IT.op OP.aload, IT.bytes $ BS.singleton n]
+  cf = IT.ctrlFlow $ CF.store n cls
