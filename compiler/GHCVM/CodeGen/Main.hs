@@ -27,23 +27,20 @@ import Codec.JVM
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad
-import Control.Monad.Exception
-import Control.Monad.Exception.Base
 
 import Data.Text (Text)
-import Data.Char
-import Data.List
-
-runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
-runCodeGen env state m = undefined
 
 codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
 codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
   runCodeGen initEnv initState $ do
       mapM_ (cgTopBinding dflags) stgBinds
       let cgTyCon tyCon = do
-            typeClass <- newTypeClosure (nameTypeText . tyConName $ tyCon) stgConstr
-            mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
+            let dataCons = tyConDataCons tyCon
+            unless (null dataCons) $ do
+              typeClass <- newTypeClosure (  nameTypeText
+                                           . tyConName
+                                           $ tyCon) stgConstr
+              mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
       mapM_ cgTyCon dataTyCons
   where
     initEnv = CgEnv { cgQClassName = fullClassName,

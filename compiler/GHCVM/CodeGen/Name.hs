@@ -15,7 +15,7 @@ import Id
 
 import Data.Char as C
 import Data.Maybe
-import Data.Text as T hiding (map, init, last)
+import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
 import Codec.JVM
@@ -64,12 +64,14 @@ generatePackageAndClass mod = (qClassName, className)
   where
     mods = split (== '.') $ modNameText mod
     (parentMods, className') = (init mods, last mods)
-    packageString = packageKeyText mod
-    package = append packageString
-            . cons '/'
-            . T.toLower
-            . intercalate "/"
-            $ parentMods
+    packageString = T.toLower . packageKeyText $ mod
+    package = if null parentMods
+                 then packageString
+                 else   append packageString
+                      . cons '/'
+                      . T.toLower
+                      . intercalate "/"
+                      $ parentMods
     className = upperFirst className'
     qClassName = append package . cons '/' $ className
 

@@ -9,7 +9,9 @@ module GHCVM.CodeGen.Monad
    newTypeClosure,
    newExportedClosure,
    newHiddenClosure,
-   newClosure
+   newClosure,
+   classFromCgState,
+   runCodeGen
   ) where
 
 import DynFlags
@@ -152,8 +154,17 @@ newClosure accessFlags className superClassName genCode = do
                      cgClassName = qclassName,
                      cgSuperClassName = Just superClassName }
   genCode
-  CgState {..} <- get
-  let compiledClosure = mkClassFile java7 accessFlags cgClassName cgSuperClassName cgFieldDefs cgMethodDefs
+  state1 <- get
+  let compiledClosure = classFromCgState accessFlags state1
   put state0
   addCompiledClosure compiledClosure
   return qclassName
+
+classFromCgState :: [AccessFlag] -> CgState -> ClassFile
+classFromCgState accessFlags (CgState {..}) = mkClassFile java7 accessFlags cgClassName cgSuperClassName cgFieldDefs cgMethodDefs
+
+runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
+runCodeGen env state m = do
+  (state', _) <- unCG m env state
+  let compiledModuleClass = classFromCgState [Public, Super] state'
+  return (compiledModuleClass : cgCompiledClosures state')
