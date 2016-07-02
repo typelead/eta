@@ -119,8 +119,7 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
   print $ "Starting codeGen"
   classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
   let jarContents = map (classFilePath &&& classFileBS) classes
-  print $ output_filename
-  print $ map classFilePath classes
+  createEmptyJar output_filename
   addMultiByteStringsToJar jarContents output_filename
   return output_filename
 
