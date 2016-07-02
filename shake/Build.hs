@@ -1,3 +1,4 @@
+{-# GHC_OPTIONS -XNoOverloadedStrings #-}
 import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
@@ -16,6 +17,7 @@ debug x = liftIO $ print x
 sampleBuild x = sampleBuildDir </> x
 rtsjar = build "rts.jar"
 masjar = sampleBuild "mapandsum.jar"
+top x = "../../" ++ x
 
 createDirIfMissing = liftIO . createDirectoryIfMissing True
 
@@ -31,34 +33,20 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       removeFilesAfter sampleBuildDir ["//*"]
 
     masjar %> \out -> do
-      cs <- getDirectoryFiles "" [mapandsumDir </> "java/src//*.java"]
+      createDirIfMissing sampleBuildDir
+      cs <- getDirectoryFiles mapandsumDir ["java/src//*.java"]
       need [rtsjar]
       -- TODO: Setup a debug build
-      createDirIfMissing sampleBuildDir
-      () <- cmd "javac" "-g" "-cp" (".:" ++ rtsjar)  "-d" sampleBuildDir cs
+      () <- cmd (Cwd mapandsumDir) "javac" "-g" "-cp" (top rtsjar) "-d" (top sampleBuildDir) cs
       classfiles <- getDirectoryFiles sampleBuildDir ["//*.class"]
-      () <- cmd (Cwd sampleBuildDir) "jar cf" ["../../" ++ out] classfiles
+      () <- cmd (Cwd sampleBuildDir) "jar cf" (top out) classfiles
       putNormal "Generated mapandsum.jar."
 
     rtsjar %> \out -> do
-      cs <- getDirectoryFiles "" [rtsSrcDir </> "//*.java"]
-      {- TODO: Removed C annotation processing in java source files.
-               Maybe use Java's annotation processing instead?
-       let os = [build c | c <- cs]
-       headers <- getDirectoryFiles "" [rtsIncludeDir </> "*.h"]
-       need $ os ++ headers
-      -}
-      -- The flag suppresses the warnings about Unsafe
-      --() <- cmd "javac -XDignore.symbol.file -Xlint:unchecked" os
+      createDirIfMissing rtsBuildDir
+      cs <- getDirectoryFiles rtsSrcDir ["//*.java"]
       -- TODO: Setup a debug build
-      createDirIfMissing sampleBuildDir
-      () <- cmd "javac -g -XDignore.symbol.file" "-d" rtsBuildDir cs
+      () <- cmd (Cwd rtsSrcDir) "javac -g -XDignore.symbol.file" "-d" (top rtsBuildDir) cs
       classfiles <- getDirectoryFiles rtsBuildDir ["//*.class"]
-      () <- cmd (Cwd rtsBuildDir) "jar cf" ["../../" ++ out] classfiles
+      () <- cmd (Cwd rtsBuildDir) "jar cf" (top out) classfiles
       putNormal "Generated rts.jar."
-
-    "rts/build//*.java" %> \out -> do
-      let input = rtsSrcDir </> (dropDirectory1 . dropDirectory1 $ out)
-      need [input]
-      Stdout output <- cmd Shell "cpp -iquote" rtsIncludeDir input "| sed -e" "s/#.*//" "-e" "/^$/d"
-      writeFile' out output
