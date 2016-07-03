@@ -41,10 +41,10 @@ idNameText = nameText
            . idName
 
 idClassText :: Id -> Text
-idClassText = modNameText
-            . fromJust
-            . nameModule_maybe
-            . idName
+idClassText id =
+  case nameModule_maybe (idName id) of
+    Just mod -> modNameText mod
+    Nothing -> error $ "idClassText: "
 
 zEncodeText :: FastString -> Text
 zEncodeText fs = decodeUtf8

@@ -27,7 +27,7 @@ import GHCVM.CodeGen.ArgRep
 import Codec.JVM hiding (void)
 import qualified Codec.JVM as Code
 
-import Data.Maybe (fromJust)
+import Data.Maybe (mapMaybe)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
 import Control.Monad.State
@@ -129,8 +129,6 @@ cgTyCon tyCon = do
                                   $ tyCon) stgConstr
     mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
 
--- TODO: Currently this doesn't handle void fields very well.
---       But there's no need to store "nothing."
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon
   | isNullaryRepDataCon dataCon
@@ -190,7 +188,7 @@ cgDataCon typeClass dataCon
           numFields = length fields
 
           fields :: [FieldType]
-          fields = map (fromJust . primRepFieldType) argReps
+          fields = mapMaybe primRepFieldType argReps
 
           argReps :: [JPrimRep]
           argReps = [typeJPrimRep repTy |

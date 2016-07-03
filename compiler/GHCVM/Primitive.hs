@@ -1189,7 +1189,7 @@ jcharPrimTyCon = pcPrimTyCon0 jcharPrimTyConName VoidRep
 
 jbooleanPrimTy :: Type
 jbooleanPrimTy = mkTyConTy jbooleanPrimTyCon
-jbooleanPrimTyConName             = mkPrimTc (fsLit "JBoolean#") jbooleanPrimTyConKey jbooleanPrimTyCon
+jbooleanPrimTyConName             = mkPrimTc (fsLit "JBool#") jbooleanPrimTyConKey jbooleanPrimTyCon
 jbooleanPrimTyConKey                        = mkPreludeTyConUnique 78
 jbooleanPrimTyCon = pcPrimTyCon0 jbooleanPrimTyConName VoidRep
 
@@ -1218,15 +1218,29 @@ data JPrimRep = HPrimRep PrimRep
               | JRepByte
               | JRepShort
               | JRepObject Text
+              deriving Show
 
 typeJPrimRep :: UnaryType -> JPrimRep
-typeJPrimRep ty = case splitTyConApp_maybe ty of
-  Just (tyCon, tys) -> if isUnboxedTupleTyCon tyCon
-                          then pprPanic "typeJPrimRep: isUnboxedTypeTyCon" (ppr ty)
-                          else case maybeJRep tyCon tys of
-                                 Just primRep -> primRep
-                                 Nothing -> HPrimRep $ tyConPrimRep tyCon
-  Nothing -> pprPanic "typeJPrimRep: Unknown " (ppr ty)
+typeJPrimRep ty =
+  case repType ty of
+    UbxTupleRep _ -> pprPanic "typeJPrimRep: isUnboxedTypeTyCon" (ppr ty)
+    UnaryRep rep -> case rep of
+      TyConApp tc tys ->
+        case maybeJRep tc tys of
+          Just primRep -> primRep
+          Nothing -> HPrimRep $ tyConPrimRep tc
+      FunTy _ _     -> HPrimRep PtrRep
+      AppTy _ _     -> HPrimRep PtrRep
+      TyVarTy _     -> HPrimRep PtrRep
+      _             -> pprPanic "typeJPrimRep: UnaryRep" (ppr ty)
+
+  -- case splitTyConApp_maybe ty of
+  -- Just (tyCon, tys) -> if isUnboxedTupleTyCon tyCon
+  --                         then pprPanic "typeJPrimRep: isUnboxedTypeTyCon" (ppr ty)
+  --                         else case maybeJRep tyCon tys of
+  --                                Just primRep -> primRep
+  --                                Nothing -> HPrimRep $ tyConPrimRep tyCon
+  -- Nothing -> pprPanic "typeJPrimRep: Unknown " (ppr ty)
 
 maybeJRep :: TyCon -> [Type] -> Maybe JPrimRep
 maybeJRep tyCon tys
@@ -1235,16 +1249,13 @@ maybeJRep tyCon tys
   | tcUnique == jbytePrimTyConKey    = Just JRepByte
   | tcUnique == jshortPrimTyConKey   = Just JRepShort
 -- NOTE: A tag for a object MUST have an associated CType!
-  | tcUnique == objectPrimTyConKey   = Just
-                                     . JRepObject
-                                     . fastStringToText
-                                     . (\(CType _ _ fs) -> fs)
-                                     . fromJust
-                                     . tyConCType
-                                     . fromJust
-                                     . fmap fst
-                                     . splitTyConApp_maybe
-                                     $ head tys
+  | tcUnique == objectPrimTyConKey   =
+    case splitTyConApp_maybe (head tys) of
+      Just (tyCon1, _) ->
+        case tyConCType_maybe tyCon1 of
+          Just (CType _ _ fs) -> Just . JRepObject . fastStringToText $ fs
+          Nothing -> pprPanic "You should annotate " $ (ppr tyCon) <> (ppr tys)
+      Nothing -> pprPanic "You cannot split the constructor in " $ (ppr tys)
   | otherwise                        = Nothing
   where tcUnique = tyConUnique tyCon
 
