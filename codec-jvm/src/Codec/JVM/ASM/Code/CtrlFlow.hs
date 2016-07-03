@@ -102,6 +102,19 @@ data VerifType
  | VUninitialized Word16
  deriving (Eq, Show)
 
+fieldTypeFlatVerifType :: FieldType -> VerifType
+fieldTypeFlatVerifType ft = case ft of
+  BaseType JBool              -> VInteger
+  BaseType JByte              -> VInteger
+  BaseType JChar              -> VInteger
+  BaseType JShort             -> VInteger
+  BaseType JInt               -> VInteger
+  BaseType JLong              -> VLong
+  BaseType JFloat             -> VFloat
+  BaseType JDouble            ->  VDouble
+  ObjectType cn               -> VObject cn
+  ArrayType ft'               -> VObject . IClassName $ mkFieldDesc' ft'
+
 fieldTypeToVerifType :: FieldType -> [VerifType]
 fieldTypeToVerifType ft = case ft of
   BaseType JBool              -> [VInteger]

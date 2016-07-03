@@ -3,6 +3,7 @@ module GHCVM.CodeGen.ArgRep
    toArgRep,
    isNonV,
    idJArgRep,
+   primRepFieldType
   ) where
 
 import Id
@@ -10,6 +11,8 @@ import TyCon            ( PrimRep(..), primElemRepSizeB )
 import BasicTypes       ( RepArity )
 import DynFlags
 import GHCVM.Primitive
+import GHCVM.CodeGen.Rts
+import Codec.JVM
 
 data JArgRep = P   -- StgClosure
              | N   -- int-sized non-ptr
@@ -21,11 +24,11 @@ data JArgRep = P   -- StgClosure
 
 toJArgRep :: JPrimRep -> JArgRep
 toJArgRep (HPrimRep primRep) = toArgRep primRep
-toJArgRep JRepBoolean        = N
+toJArgRep JRepBool        = N
 toJArgRep JRepChar           = N
 toJArgRep JRepByte           = N
 toJArgRep JRepShort          = N
-toJArgRep JRepObject         = O
+toJArgRep (JRepObject _)     = O
 
 toArgRep :: PrimRep -> JArgRep
 toArgRep VoidRep           = V
@@ -46,6 +49,27 @@ isNonV _ = True
 idJArgRep :: Id -> JArgRep
 idJArgRep = toJArgRep . idJPrimRep
 
+
+primRepFieldType :: JPrimRep -> Maybe FieldType
+primRepFieldType (HPrimRep primRep) =
+  case primRep of
+    VoidRep           -> Nothing
+    PtrRep            -> Just closureType
+    IntRep            -> Just jint
+    WordRep           -> Just jint
+    AddrRep           -> Just jlong -- TODO: When implementing ByteArray#,
+                                     --       revisit this.
+    Int64Rep          -> Just jlong
+    Word64Rep         -> Just jlong
+    FloatRep          -> Just jfloat
+    DoubleRep         -> Just jdouble
+    (VecRep len elem) -> error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
+primRepFieldType JRepBool               = Just jbool
+primRepFieldType JRepChar               = Just jchar
+primRepFieldType JRepByte               = Just jbyte
+primRepFieldType JRepShort              = Just jshort
+primRepFieldType (JRepObject className) = Just $ obj className
+
 -- slowCallPattern :: [ArgRep] -> (FastString, RepArity)
 -- slowCallPattern (P: P: P: P: P: P: _) = (fsLit "stg_ap_pppppp", 6)
 -- slowCallPattern (P: P: P: P: P: _)    = (fsLit "stg_ap_ppppp", 5)
@@ -65,5 +89,3 @@ idJArgRep = toJArgRep . idJPrimRep
 -- slowCallPattern (V32: _)              = (fsLit "stg_ap_v32", 1)
 -- slowCallPattern (V64: _)              = (fsLit "stg_ap_v64", 1)
 -- slowCallPattern []                    = (fsLit "stg_ap_0", 0)
-
-

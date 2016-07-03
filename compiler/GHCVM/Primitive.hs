@@ -1,5 +1,6 @@
 module GHCVM.Primitive where
 
+import ForeignCall(CType(..))
 import Outputable
 import Type
 import TypeRep
@@ -17,6 +18,9 @@ import HscTypes
 import PrimOp
 import TysPrim
 import MkId
+
+import Data.Text (Text)
+import GHCVM.CodeGen.Name
 
 ghcvmPrimIface :: ModIface
 ghcvmPrimIface = (emptyModIface gHC_PRIM) {
@@ -1209,27 +1213,38 @@ objectPrimTyConName :: Name
 objectPrimTyConName = mkPrimTc (fsLit "Object#") objectPrimTyConKey objectPrimTyCon
 
 data JPrimRep = HPrimRep PrimRep
-              | JRepBoolean
+              | JRepBool
               | JRepChar
               | JRepByte
               | JRepShort
-              | JRepObject
+              | JRepObject Text
 
 typeJPrimRep :: UnaryType -> JPrimRep
 typeJPrimRep ty = case splitTyConApp_maybe ty of
-  Just (tyCon, _) -> if isUnboxedTupleTyCon tyCon
+  Just (tyCon, tys) -> if isUnboxedTupleTyCon tyCon
                           then pprPanic "typeJPrimRep: isUnboxedTypeTyCon" (ppr ty)
-                          else case maybeJRep tyCon of
+                          else case maybeJRep tyCon tys of
                                  Just primRep -> primRep
                                  Nothing -> HPrimRep $ tyConPrimRep tyCon
   Nothing -> pprPanic "typeJPrimRep: Unknown " (ppr ty)
 
-maybeJRep :: TyCon -> Maybe JPrimRep
-maybeJRep tyCon
-  | tcUnique == jbooleanPrimTyConKey = Just JRepBoolean
+maybeJRep :: TyCon -> [Type] -> Maybe JPrimRep
+maybeJRep tyCon tys
+  | tcUnique == jbooleanPrimTyConKey = Just JRepBool
   | tcUnique == jcharPrimTyConKey    = Just JRepChar
   | tcUnique == jbytePrimTyConKey    = Just JRepByte
   | tcUnique == jshortPrimTyConKey   = Just JRepShort
+-- NOTE: A tag for a object MUST have an associated CType!
+  | tcUnique == objectPrimTyConKey   = Just
+                                     . JRepObject
+                                     . fastStringToText
+                                     . (\(CType _ _ fs) -> fs)
+                                     . fromJust
+                                     . tyConCType
+                                     . fromJust
+                                     . fmap fst
+                                     . splitTyConApp_maybe
+                                     $ head tys
   | otherwise                        = Nothing
   where tcUnique = tyConUnique tyCon
 

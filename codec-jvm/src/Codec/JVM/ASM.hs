@@ -36,12 +36,13 @@ module Codec.JVM.ASM where
 
 import Data.Binary.Put (runPut)
 import Data.Foldable (fold)
+import Data.Monoid ((<>))
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
 import qualified Data.Set as Set
 
-import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload)
+import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload, dup)
 import Codec.JVM.Attr (toAttrs)
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
@@ -83,9 +84,9 @@ mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] f
 data MethodDef = MethodDef [AccessFlag] UName MethodDesc Code
   deriving Show
 
-mkMethodDef :: Text -> [AccessFlag] -> Text -> [FieldType] -> ReturnType -> [Code] -> MethodDef
-mkMethodDef cls afs n fts rt cs = mkMethodDef' afs n (mkMethodDesc fts rt) $ fold code
-  where code = Code.initCtrlFlow (Static `elem` afs) ((obj cls) : fts) : cs
+mkMethodDef :: Text -> [AccessFlag] -> Text -> [FieldType] -> ReturnType -> Code -> MethodDef
+mkMethodDef cls afs n fts rt cs = mkMethodDef' afs n (mkMethodDesc fts rt) code
+  where code = Code.initCtrlFlow (Static `elem` afs) ((obj cls) : fts) <> cs
 
 mkMethodDef' :: [AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
 mkMethodDef' afs n md c = MethodDef afs (UName n) md c
@@ -105,9 +106,21 @@ mkFieldDef' afs n fd = FieldDef afs (UName n) fd
 unpackFieldDef :: FieldDef -> [Const]
 unpackFieldDef (FieldDef _ (UName n') (FieldDesc d)) = [CUTF8 n', CUTF8 d]
 
-defaultConstructor :: Text -> Text -> MethodDef
-defaultConstructor thisClass superClass =
-  mkMethodDef thisClass [Public] "<init>" [] void $
-    [ aload (obj thisClass) 0,
-      invokespecial $ mkMethodRef superClass "<init>" [] void,
-      vreturn ]
+mkDefaultConstructor :: Text -> Text -> MethodDef
+mkDefaultConstructor thisClass superClass =
+  mkMethodDef thisClass [Public] "<init>" [] void $ fold
+  [ aload thisFt 0,
+    invokespecial $ mkMethodRef superClass "<init>" [] void,
+    vreturn ]
+  where thisFt = obj thisClass
+
+-- This leaves this on the operand stack for the code to consume
+mkConstructorDef :: Text -> Text -> [FieldType] -> Code -> MethodDef
+mkConstructorDef thisClass superClass args code =
+  mkMethodDef thisClass [Public] "<init>" args void $
+     aload thisFt 0
+  <> dup thisFt
+  <> (invokespecial $ mkMethodRef superClass "<init>" [] void)
+  <> code
+  <> vreturn
+  where thisFt = obj thisClass

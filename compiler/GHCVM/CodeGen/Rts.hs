@@ -1,6 +1,7 @@
 module GHCVM.CodeGen.Rts where
 
 import Data.Text
+import Codec.JVM
 
 -- NOTE: If the RTS is refactored, this file must also be updated accordingly
 
@@ -13,6 +14,8 @@ rts = merge "ghcvm/runtime"
 apply = merge (rts "apply")
 thunk = merge (rts "thunk")
 stg = merge (rts "stg")
+
+closureType = obj stgClosure
 
 stgConstr, stgClosure, stgInd, stgIndStatic, stgThunk, stgFun :: Text
 stgConstr = stg "StgConstr"

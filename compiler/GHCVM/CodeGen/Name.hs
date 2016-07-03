@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module GHCVM.CodeGen.Name (
+  fastStringToText,
   nameText,
   nameTypeText,
   idNameText,
@@ -19,6 +20,9 @@ import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
 import Codec.JVM
+
+fastStringToText :: FastString -> Text
+fastStringToText = decodeUtf8 . fastStringToByteString
 
 nameTypeText :: Name -> Text
 nameTypeText = flip snoc '$' . nameText

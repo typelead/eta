@@ -97,6 +97,9 @@ type ReturnType = Maybe FieldType
 void :: ReturnType
 void = Nothing
 
+ret :: FieldType -> ReturnType
+ret = Just
+
 -- | Method descriptor
 -- https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.3
 data MethodDesc = MethodDesc Text Int -- number of arguments

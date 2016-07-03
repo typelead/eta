@@ -1,10 +1,16 @@
+{-# LANGUAGE BangPatterns #-}
 module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
+   getClass,
    addBinding,
    addBindings,
    setBindings,
+   defineMethod,
+   defineMethods,
+   defineField,
+   defineFields,
    getCgIdInfo,
    newTypeClosure,
    newExportedClosure,
@@ -65,12 +71,12 @@ instance Applicative CodeGen where
 instance Monad CodeGen where
   return x = CG $ \_ s -> return (s, x)
   m >>= f = CG $ \e s -> do
-      (s0, x) <- unCG m e s
+      (!s0, !x) <- unCG m e s
       unCG (f x) e s0
 
 instance MonadState CgState CodeGen where
   state action = CG $ \_ s -> case action s of
-    (a, s') -> return (s', a)
+    (!a, !s') -> return (s', a)
 
 instance MonadReader CgEnv CodeGen where
   ask = CG $ \env s -> return (s, env)
@@ -98,6 +104,9 @@ addCompiledClosure classFile = modify $ \s@CgState{..} ->
 
 setClass :: Text -> CodeGen ()
 setClass className = modify $ \s -> s { cgClassName = className }
+
+getClass :: CodeGen Text
+getClass = gets cgClassName
 
 getModule :: CodeGen Module
 getModule = asks cgModule
@@ -138,29 +147,40 @@ defineMethod :: MethodDef -> CodeGen ()
 defineMethod md = modify $ \s@CgState{..} ->
   s { cgMethodDefs = md : cgMethodDefs }
 
+defineMethods :: [MethodDef] -> CodeGen ()
+defineMethods mds = modify $ \s@CgState{..} ->
+  s { cgMethodDefs = mds ++ cgMethodDefs }
+
 defineField :: FieldDef -> CodeGen ()
 defineField md = modify $ \s@CgState{..} ->
   s { cgFieldDefs = md : cgFieldDefs }
 
-newExportedClosure, newHiddenClosure :: Text
-                 -> Text
-                 -> CodeGen ()
-                 -> CodeGen Text
+defineFields :: [FieldDef] -> CodeGen ()
+defineFields md = modify $ \s@CgState{..} ->
+  s { cgFieldDefs = md ++ cgFieldDefs }
+
+newExportedClosure, newHiddenClosure
+  :: Text
+  -> Text
+  -> CodeGen ()
+  -> CodeGen Text
 newExportedClosure = newClosure [Public]
 newHiddenClosure = newClosure [Private]
 
-newTypeClosure :: Text
-               -> Text
-               -> CodeGen Text
+newTypeClosure
+  :: Text
+  -> Text
+  -> CodeGen Text
 newTypeClosure thisClass superClass =
   newClosure [Public, Abstract] thisClass superClass $
-    defineMethod . defaultConstructor thisClass $ superClass
+    defineMethod $ mkDefaultConstructor thisClass superClass
 
-newClosure :: [AccessFlag]
-           -> Text
-           -> Text
-           -> CodeGen ()
-           -> CodeGen Text
+newClosure
+  :: [AccessFlag]
+  -> Text
+  -> Text
+  -> CodeGen ()
+  -> CodeGen Text
 newClosure accessFlags className superClassName genCode = do
   state0 <- get
   modClass <- getModClass
