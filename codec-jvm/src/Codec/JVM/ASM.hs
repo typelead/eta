@@ -42,6 +42,7 @@ import Data.Text (Text)
 import qualified Data.Set as Set
 
 import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload)
+import Codec.JVM.Attr (toAttrs)
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
 import Codec.JVM.ConstPool (mkConstPool)
@@ -73,16 +74,18 @@ mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] f
       cp = mkConstPool cs
       mis = f <$> mds where
         f (MethodDef afs' n' (MethodDesc d as) code) =
-          MethodInfo (Set.fromList afs') n' (Desc d) $ Code.toAttrs as cp code
+          MethodInfo (Set.fromList afs') n' (Desc d) $ toAttrs as cp code
 
       fis = f <$> fds where
         f (FieldDef afs' n' (FieldDesc d)) =
           FieldInfo (Set.fromList afs') n' (Desc d) []
 
 data MethodDef = MethodDef [AccessFlag] UName MethodDesc Code
+  deriving Show
 
-mkMethodDef :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> [Code] -> MethodDef
-mkMethodDef afs n fts rt cs = mkMethodDef' afs n (mkMethodDesc fts rt) $ fold cs
+mkMethodDef :: Text -> [AccessFlag] -> Text -> [FieldType] -> ReturnType -> [Code] -> MethodDef
+mkMethodDef cls afs n fts rt cs = mkMethodDef' afs n (mkMethodDesc fts rt) $ fold code
+  where code = Code.initCtrlFlow (Static `elem` afs) ((obj cls) : fts) : cs
 
 mkMethodDef' :: [AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
 mkMethodDef' afs n md c = MethodDef afs (UName n) md c
@@ -91,6 +94,7 @@ unpackMethodDef :: MethodDef -> [Const]
 unpackMethodDef (MethodDef _ (UName n') (MethodDesc d _) code) = CUTF8 n':CUTF8 d:Code.consts code
 
 data FieldDef = FieldDef [AccessFlag] UName FieldDesc
+  deriving Show
 
 mkFieldDef :: [AccessFlag] -> Text -> FieldType -> FieldDef
 mkFieldDef afs n ft = mkFieldDef' afs n (mkFieldDesc ft)
@@ -101,8 +105,9 @@ mkFieldDef' afs n fd = FieldDef afs (UName n) fd
 unpackFieldDef :: FieldDef -> [Const]
 unpackFieldDef (FieldDef _ (UName n') (FieldDesc d)) = [CUTF8 n', CUTF8 d]
 
-defaultConstructor :: FieldType -> Text -> MethodDef
-defaultConstructor thisClass superClass = mkMethodDef [Public] "<init>" [] void $
-  [ aload thisClass 0,
-    invokespecial $ mkMethodRef superClass "<init>" [] void,
-    vreturn ]
+defaultConstructor :: Text -> Text -> MethodDef
+defaultConstructor thisClass superClass =
+  mkMethodDef thisClass [Public] "<init>" [] void $
+    [ aload (obj thisClass) 0,
+      invokespecial $ mkMethodRef superClass "<init>" [] void,
+      vreturn ]

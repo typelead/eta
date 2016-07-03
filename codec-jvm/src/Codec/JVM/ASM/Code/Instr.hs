@@ -10,7 +10,6 @@ import qualified Data.IntMap.Strict as IntMap
 
 import Codec.JVM.ASM.Code.CtrlFlow (CtrlFlow, Stack)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
-import Codec.JVM.Attr (StackMapFrame(..), VerifType(..))
 import Codec.JVM.Cond (Cond)
 import Codec.JVM.Const (Const)
 import Codec.JVM.Internal (packI16)
@@ -35,6 +34,9 @@ instance Monoid Instr where
   mappend (Instr rws0) (Instr rws1) = Instr $ do
     rws0
     rws1
+
+instance Show Instr where
+  show insr = "Instructions"
 
 runInstr :: Instr -> ConstPool -> (ByteString, CtrlFlow, StackMapTable)
 runInstr instr cp = runInstr' instr cp 0 CF.empty
@@ -63,7 +65,7 @@ iif cond ok ko = Instr $ do
         writeBytes . packI16 $ BS.length okBytes + 3 -- op goto <> packI16 $ length ok
         writeStackMapFrame
         write okBytes okFrames
-        putCtrlFlow $ okCF
+        putCtrlFlow' $ okCF
           { CF.locals = IntMap.union (CF.locals okCF) (CF.locals koCF)
           , CF.stack  = (CF.stack okCF) { CF.stackMax = max (CF.stackMax $ CF.stack okCF) (CF.stackMax $ CF.stack koCF)} }
         writeStackMapFrame
@@ -72,7 +74,6 @@ iif cond ok ko = Instr $ do
               cp <- ask
               (Offset offset, cf) <- get
               return $ runInstr' instr cp (Offset $ offset + padding) cf
-            lengthKO = 0
             lengthJumpOK = 3 -- op goto <> pack16 $ length ko
 
 bytes :: ByteString -> Instr
@@ -92,8 +93,17 @@ op' = writeBytes . BS.singleton . opcode
 ctrlFlow :: (CtrlFlow -> CtrlFlow) -> Instr
 ctrlFlow f = Instr $ state s where s (off, cf) = (mempty, (off, f cf))
 
-putCtrlFlow :: CtrlFlow -> InstrRWS ()
-putCtrlFlow cf = do
+initCtrl :: (CtrlFlow -> CtrlFlow) -> Instr
+initCtrl f = Instr $ do
+  let Instr instr = ctrlFlow f
+  instr
+  writeStackMapFrame
+
+putCtrlFlow :: CtrlFlow -> Instr
+putCtrlFlow = Instr . putCtrlFlow'
+
+putCtrlFlow' :: CtrlFlow -> InstrRWS ()
+putCtrlFlow' cf = do
   (off, _) <- get
   put (off, cf)
 

@@ -10,4 +10,3 @@ newtype Offset = Offset Int -- absolute
 
 newtype StackMapTable = StackMapTable (IntMap CtrlFlow)
   deriving Monoid
-

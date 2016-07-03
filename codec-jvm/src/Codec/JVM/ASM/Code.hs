@@ -10,7 +10,6 @@ import qualified Data.ByteString as BS
 
 import Codec.JVM.ASM.Code.Instr (Instr, runInstr)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
-import Codec.JVM.Attr (Attr(ACode, AStackMapTable), StackMapFrame(..), VerifType(..))
 import Codec.JVM.Cond (Cond)
 import Codec.JVM.Const (Const(..), ConstVal, constValType)
 import Codec.JVM.ConstPool (ConstPool)
@@ -26,34 +25,17 @@ import qualified Codec.JVM.Opcode as OP
 
 import qualified Data.IntMap.Strict as IntMap
 
--- TODO Return `Either` with error (currently CF.pop is unsafe)
-toAttrs :: Int -> ConstPool -> Code -> [Attr]
-toAttrs as cp code = f $ runInstr (instr code) cp where
-  f (xs, cf, smt) = [ACode maxStack' maxLocals' xs attrs] where
-      maxLocals' = max as $ CF.maxLocals cf
-      maxStack' = CF.maxStack cf
-      attrs = if null frames then [] else [AStackMapTable frames]
-      frames = toStackMapFrames smt
-
--- TODO Optimization: For now we only generate Same or Full frames, we could encode better intermediate cases.
-toStackMapFrames :: StackMapTable -> [(Offset, StackMapFrame)]
-toStackMapFrames (StackMapTable cfs) = reverse (fst $ foldl' f ([], CF.empty) $ IntMap.toAscList cfs) where
-    f (xs, last) (off, cf) = ((Offset off, smf):xs, cf) where
-      smf = if CF.equiv last cf then SameFrame else fullFrame cf
-    fullFrame cf = FullFrame lvts svts where
-      lvts = fmap f $ IntMap.toList $ CF.locals cf where f (_, ft) = VerifType ft
-      svts = fmap VerifType $ CF.stackVal $ CF.stack cf
-
 data Code = Code
   { consts  :: [Const]
   , instr   :: Instr }
+  deriving Show
 
 instance Monoid Code where
   mempty = Code mempty mempty
   mappend (Code cs0 i0) (Code cs1 i1) = Code (mappend cs0 cs1) (mappend i0 i1)
 
 mkCode :: [Const] -> Instr -> Code
-mkCode cs i = Code cs i
+mkCode = Code
 
 mkCode' :: Instr -> Code
 mkCode' = mkCode []
@@ -94,8 +76,13 @@ invoke :: Opcode -> MethodRef -> Code
 invoke oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
   [ IT.op oc
   , IT.ix c
-  , IT.ctrlFlow $ CF.mapStack $ CF.pop' (sum $ fieldSize <$> fts) <> maybe mempty CF.push rt ]
+  , IT.ctrlFlow
+  . CF.mapStack
+  $ maybePushReturn
+  . popArgs ]
     where
+      maybePushReturn = maybe id CF.push rt
+      popArgs = CF.pop' (sum $ fieldSize <$> fts)
       c = CMethodRef mr
       cs = CP.unpack c
 
@@ -110,7 +97,9 @@ invokestatic = invoke OP.invokestatic
 
 iadd :: Code
 iadd = mkCode' $ IT.op OP.iadd <> i where
-  i = IT.ctrlFlow $ CF.mapStack $ CF.pop jint <> CF.push jint
+  i = IT.ctrlFlow
+    $ CF.mapStack
+    $ CF.push jint . CF.pop' 2
 
 iif :: Cond -> Code -> Code -> Code
 iif cond ok ko = mkCode cs ins where
@@ -161,3 +150,13 @@ aload cls n = mkCode' $ f n <> cf where
   f 3 = IT.op OP.aload_3
   f n = fold [IT.op OP.aload, IT.bytes $ BS.singleton n]
   cf = IT.ctrlFlow $ CF.store n cls
+
+initCtrlFlow :: Bool -> [FieldType] -> Code
+initCtrlFlow isStatic args@(this:args')
+  = mkCode'
+  . IT.initCtrl
+  . CF.mapLocals
+  . const
+  . CF.localsFromList
+  $ fts
+  where fts = if isStatic then args' else args

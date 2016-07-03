@@ -20,7 +20,7 @@ import VarEnv
 import Id
 import Name
 
-import Data.Text hiding (foldl)
+import Data.Text hiding (foldl, length)
 
 import Control.Monad.State
 import Control.Monad.Reader
@@ -43,6 +43,14 @@ data CgState = CgState {
   cgFieldDefs :: ![FieldDef],
   cgClassName :: !Text,
   cgSuperClassName :: !(Maybe Text) }
+
+instance Show CgState where
+  show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
+                   ++ "cgClassInitCode: "     ++ show cgClassInitCode  ++ "\n"
+                   ++ "cgMethodDefs: "        ++ show cgMethodDefs     ++ "\n"
+                   ++ "cgFieldDefs: "         ++ show cgFieldDefs      ++ "\n"
+                   ++ "cgSuperClassName: "    ++ show cgSuperClassName ++ "\n"
+                   ++ "cgCompiledClosures: "  ++ show (length cgCompiledClosures :: Int)
 
 newtype CodeGen a = CG { unCG :: CgEnv -> CgState -> IO (CgState, a) }
 
@@ -73,8 +81,15 @@ instance HasModule CodeGen where
 instance HasDynFlags CodeGen where
   getDynFlags = asks cgDynFlags
 
+instance MonadIO CodeGen where
+  liftIO io = CG $ \_ s -> io >>= (\a -> return (s, a))
+
 getModClass :: CodeGen Text
 getModClass = asks cgQClassName
+
+mergeCompiledClosures :: [ClassFile] -> CodeGen ()
+mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
+  s { cgCompiledClosures = classFiles ++ cgCompiledClosures }
 
 addCompiledClosure :: ClassFile -> CodeGen ()
 addCompiledClosure classFile = modify $ \s@CgState{..} ->
@@ -138,7 +153,7 @@ newTypeClosure :: Text
                -> CodeGen Text
 newTypeClosure thisClass superClass =
   newClosure [Public, Abstract] thisClass superClass $
-    defineMethod . defaultConstructor (obj thisClass) $ superClass
+    defineMethod . defaultConstructor thisClass $ superClass
 
 newClosure :: [AccessFlag]
            -> Text
@@ -149,22 +164,27 @@ newClosure accessFlags className superClassName genCode = do
   state0 <- get
   modClass <- getModClass
   let qclassName = append modClass . cons '$' $ className
+  -- TODO: Address how to deal with cgClassInitCode and cgBindings
   modify $ \s -> s { cgMethodDefs = [],
                      cgFieldDefs = [],
                      cgClassName = qclassName,
-                     cgSuperClassName = Just superClassName }
+                     cgSuperClassName = Just superClassName,
+                     cgCompiledClosures = []}
   genCode
-  state1 <- get
+  state1@CgState {..} <- get
+  liftIO . print $ state1
   let compiledClosure = classFromCgState accessFlags state1
+  -- TODO: Ensure the state is restored properly
   put state0
-  addCompiledClosure compiledClosure
+  mergeCompiledClosures (compiledClosure : cgCompiledClosures)
   return qclassName
 
 classFromCgState :: [AccessFlag] -> CgState -> ClassFile
-classFromCgState accessFlags (CgState {..}) = mkClassFile java7 accessFlags cgClassName cgSuperClassName cgFieldDefs cgMethodDefs
+classFromCgState accessFlags CgState {..} = mkClassFile java7 accessFlags cgClassName cgSuperClassName cgFieldDefs cgMethodDefs
 
 runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen env state m = do
   (state', _) <- unCG m env state
+  print state'
   let compiledModuleClass = classFromCgState [Public, Super] state'
   return (compiledModuleClass : cgCompiledClosures state')
