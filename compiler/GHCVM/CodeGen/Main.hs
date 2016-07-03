@@ -34,13 +34,6 @@ codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFi
 codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
   runCodeGen initEnv initState $ do
       mapM_ (cgTopBinding dflags) stgBinds
-      let cgTyCon tyCon = do
-            let dataCons = tyConDataCons tyCon
-            unless (null dataCons) $ do
-              typeClass <- newTypeClosure (  nameTypeText
-                                           . tyConName
-                                           $ tyCon) stgConstr
-              mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
       mapM_ cgTyCon dataTyCons
   where
     initEnv = CgEnv { cgQClassName = fullClassName,
@@ -53,8 +46,7 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
                           cgCompiledClosures = [],
                           cgClassName = fullClassName,
                           cgSuperClassName = Nothing }
-    -- TODO: Remove the second part of this pair?
-    (fullClassName, _) = generatePackageAndClass thisMod
+    fullClassName = moduleJavaClass thisMod
     dflags = hsc_dflags hscEnv
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
@@ -131,6 +123,15 @@ externaliseId dflags id
     uniq    = nameUnique name
     new_occ = mkLocalOcc uniq $ nameOccName name
     loc     = nameSrcSpan name
+
+cgTyCon :: TyCon -> CodeGen ()
+cgTyCon tyCon = do
+  let dataCons = tyConDataCons tyCon
+  unless (null dataCons) $ do
+    typeClass <- newTypeClosure (  nameTypeText
+                                  . tyConName
+                                  $ tyCon) stgConstr
+    mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do

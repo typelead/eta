@@ -20,7 +20,8 @@ import VarEnv
 import Id
 import Name
 
-import Data.Text hiding (foldl, length)
+import Data.List
+import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
 import Control.Monad.State
 import Control.Monad.Reader
@@ -50,7 +51,7 @@ instance Show CgState where
                    ++ "cgMethodDefs: "        ++ show cgMethodDefs     ++ "\n"
                    ++ "cgFieldDefs: "         ++ show cgFieldDefs      ++ "\n"
                    ++ "cgSuperClassName: "    ++ show cgSuperClassName ++ "\n"
-                   ++ "cgCompiledClosures: "  ++ show (length cgCompiledClosures :: Int)
+                   ++ "cgCompiledClosures: \n"  ++ (intercalate "\n" . map show $ cgCompiledClosures)
 
 newtype CodeGen a = CG { unCG :: CgEnv -> CgState -> IO (CgState, a) }
 
@@ -172,7 +173,6 @@ newClosure accessFlags className superClassName genCode = do
                      cgCompiledClosures = []}
   genCode
   state1@CgState {..} <- get
-  liftIO . print $ state1
   let compiledClosure = classFromCgState accessFlags state1
   -- TODO: Ensure the state is restored properly
   put state0
@@ -185,6 +185,5 @@ classFromCgState accessFlags CgState {..} = mkClassFile java7 accessFlags cgClas
 runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen env state m = do
   (state', _) <- unCG m env state
-  print state'
   let compiledModuleClass = classFromCgState [Public, Super] state'
   return (compiledModuleClass : cgCompiledClosures state')

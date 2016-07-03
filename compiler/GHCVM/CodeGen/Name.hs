@@ -4,7 +4,7 @@ module GHCVM.CodeGen.Name (
   nameTypeText,
   idNameText,
   idClassText,
-  generatePackageAndClass,
+  moduleJavaClass,
   classFilePath
   ) where
 
@@ -58,9 +58,9 @@ packageKeyText mod = zEncodeText
                    $ mod
 
 
--- Codec.JVM.ASM -> ("codec/jvm", "ASM")
-generatePackageAndClass :: Module -> (Text, Text)
-generatePackageAndClass mod = (qClassName, className)
+-- Codec.JVM.ASM -> "codec/jvm/ASM"
+moduleJavaClass :: Module -> Text
+moduleJavaClass mod = qClassName
   where
     mods = split (== '.') $ modNameText mod
     (parentMods, className') = (init mods, last mods)

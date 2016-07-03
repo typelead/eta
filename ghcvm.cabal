@@ -63,28 +63,28 @@ executable ghcvm
     main-is:             Main.hs
     default-language:    Haskell2010
     other-modules:       GhciMonad
-                        GhciTags
-                        InteractiveUI
+                         GhciTags
+                         InteractiveUI
     build-depends:       array
-                      , base >= 4.7 && < 5
-                      , bytestring
-                      , deepseq
-                      , directory
-                      , filepath
-                      , ghc >= 7.10.3 && < 7.11.0
-                      , ghc-paths == 0.1.0.9
-                      , haskeline
-                      , process
-                      , transformers
-                      , unix
-                      , ghcvm
-                     
+                       , base >= 4.7 && < 5
+                       , bytestring
+                       , deepseq
+                       , directory
+                       , filepath
+                       , ghc >= 7.10.3 && < 7.11.0
+                       , ghc-paths == 0.1.0.9
+                       , haskeline
+                       , process
+                       , transformers
+                       , unix
+                       , ghcvm
+                                            
 
 executable rtsbuild
     hs-source-dirs:      shake
     main-is:             Build.hs
     default-language:    Haskell2010
     build-depends:       base >= 4.7 && < 5
-                      , shake
-                      , directory
-                      , containers >= 0.5
+                       , shake
+                       , directory
+                       , containers >= 0.5

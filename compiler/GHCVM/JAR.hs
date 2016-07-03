@@ -28,6 +28,7 @@ addByteStringToJar fileLocation fileContents jarLocation
 module GHCVM.JAR where
 
 import Codec.Archive.Zip (addEntry, CompressionMethod(Store), createArchive, mkEntrySelector, withArchive)
+import Control.Monad(forM_)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Catch (MonadCatch, MonadThrow)
 import Data.ByteString.Internal (ByteString)
@@ -173,13 +174,10 @@ addMultiByteStringsToJar :: (MonadThrow m, MonadIO m)
   => [(FilePath, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> FilePath                    -- ^ Location of the jar to add the new files into
   -> m ()
-addMultiByteStringsToJar files jarLocation = zipAction
-  where zipAction = jarPath >>= flip withArchive zipChanges
-        zipChanges = sequence_ changes
-        changes = entrySels >>= flip (zipWith addFile) fileContents
-        addFile path contents = addEntry Store contents path
-        jarPath = parseRelFile jarLocation
-        entrySels = mapM (>>= mkEntrySelector) filePaths
-        filePaths = mapM parseRelFile fileLocations
-        fileLocations = map fst files
-        fileContents = map snd files
+addMultiByteStringsToJar files jarLocation = do
+  jarPath <- parseRelFile jarLocation
+  withArchive jarPath $
+    forM_ files $ \(path, contents) -> do
+      filePath <- parseRelFile path
+      entrySel <- mkEntrySelector filePath
+      addEntry Store contents entrySel
