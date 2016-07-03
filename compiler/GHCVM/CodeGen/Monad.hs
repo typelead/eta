@@ -3,7 +3,8 @@ module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
-   getClass,
+   initCg,
+   getModClass,
    addBinding,
    addBindings,
    setBindings,
@@ -17,7 +18,8 @@ module GHCVM.CodeGen.Monad
    newHiddenClosure,
    newClosure,
    classFromCgState,
-   runCodeGen
+   runCodeGen,
+   addInitStep
   ) where
 
 import DynFlags
@@ -26,6 +28,7 @@ import VarEnv
 import Id
 import Name
 
+import Data.Monoid((<>))
 import Data.List
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
@@ -35,21 +38,22 @@ import qualified Data.ByteString.Lazy as B
 import Codec.JVM
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
+import GHCVM.CodeGen.Name
 
-data CgEnv = CgEnv {
-  cgQClassName :: !Text,
-  cgModule :: !Module,
-  cgDynFlags :: !DynFlags }
+data CgEnv =
+  CgEnv { cgQClassName :: !Text
+        , cgModule     :: !Module
+        , cgDynFlags   :: !DynFlags }
 
-data CgState = CgState {
-  cgBindings :: !CgBindings,
-  cgCompiledClosures :: ![ClassFile],
-  cgClassInitCode :: ![Code],
-  -- Related to class file generation
-  cgMethodDefs :: ![MethodDef],
-  cgFieldDefs :: ![FieldDef],
-  cgClassName :: !Text,
-  cgSuperClassName :: !(Maybe Text) }
+data CgState =
+  CgState { cgBindings         :: !CgBindings
+          , cgCompiledClosures :: ![ClassFile]
+          , cgClassInitCode    :: !Code
+            -- Related to class file generation
+          , cgMethodDefs       :: ![MethodDef]
+          , cgFieldDefs        :: ![FieldDef]
+          , cgClassName        :: !Text
+          , cgSuperClassName   :: !(Maybe Text) }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -91,22 +95,22 @@ instance HasDynFlags CodeGen where
 instance MonadIO CodeGen where
   liftIO io = CG $ \_ s -> io >>= (\a -> return (s, a))
 
+initCg :: DynFlags -> Module -> (CgEnv, CgState)
+initCg dflags mod =
+  (CgEnv   { cgModule           = mod
+           , cgQClassName       = className
+           , cgDynFlags         = dflags },
+   CgState { cgBindings         = emptyVarEnv
+           , cgMethodDefs       = []
+           , cgFieldDefs        = []
+           , cgClassInitCode    = mempty
+           , cgClassName        = className
+           , cgCompiledClosures = []
+           , cgSuperClassName   = Nothing })
+  where className = moduleJavaClass mod
+
 getModClass :: CodeGen Text
 getModClass = asks cgQClassName
-
-mergeCompiledClosures :: [ClassFile] -> CodeGen ()
-mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
-  s { cgCompiledClosures = classFiles ++ cgCompiledClosures }
-
-addCompiledClosure :: ClassFile -> CodeGen ()
-addCompiledClosure classFile = modify $ \s@CgState{..} ->
-  s { cgCompiledClosures = classFile : cgCompiledClosures }
-
-setClass :: Text -> CodeGen ()
-setClass className = modify $ \s -> s { cgClassName = className }
-
-getClass :: CodeGen Text
-getClass = gets cgClassName
 
 getModule :: CodeGen Module
 getModule = asks cgModule
@@ -142,6 +146,14 @@ addBindings newCgIdInfos = do
               bindings
               newCgIdInfos
         setBindings newBindings
+
+mergeCompiledClosures :: [ClassFile] -> CodeGen ()
+mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
+  s { cgCompiledClosures = classFiles ++ cgCompiledClosures }
+
+addCompiledClosure :: ClassFile -> CodeGen ()
+addCompiledClosure classFile = modify $ \s@CgState{..} ->
+  s { cgCompiledClosures = classFile : cgCompiledClosures }
 
 defineMethod :: MethodDef -> CodeGen ()
 defineMethod md = modify $ \s@CgState{..} ->
@@ -207,3 +219,7 @@ runCodeGen env state m = do
   (state', _) <- unCG m env state
   let compiledModuleClass = classFromCgState [Public, Super] state'
   return (compiledModuleClass : cgCompiledClosures state')
+
+addInitStep :: Code -> CodeGen ()
+addInitStep code = modify $ \s@CgState{..} ->
+  s { cgClassInitCode = cgClassInitCode <> code }

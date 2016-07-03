@@ -23,7 +23,9 @@ import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
 
+
 import Codec.JVM hiding (void)
+import qualified Codec.JVM as Code
 
 import Data.Maybe (fromJust)
 import Data.Foldable (fold)
@@ -36,21 +38,11 @@ import Data.Text (Text, pack, cons, append)
 
 codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
 codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
-  runCodeGen initEnv initState $ do
+  runCodeGen env state $ do
       mapM_ (cgTopBinding dflags) stgBinds
       mapM_ cgTyCon dataTyCons
   where
-    initEnv = CgEnv { cgQClassName = fullClassName,
-                      cgModule = thisMod,
-                      cgDynFlags = dflags }
-    initState = CgState { cgBindings = emptyVarEnv,
-                          cgMethodDefs = [],
-                          cgFieldDefs = [],
-                          cgClassInitCode = [],
-                          cgCompiledClosures = [],
-                          cgClassName = fullClassName,
-                          cgSuperClassName = Nothing }
-    fullClassName = moduleJavaClass thisMod
+    (env, state) = initCg dflags thisMod
     dflags = hsc_dflags hscEnv
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
@@ -140,56 +132,67 @@ cgTyCon tyCon = do
 -- TODO: Currently this doesn't handle void fields very well.
 --       But there's no need to store "nothing."
 cgDataCon :: Text -> DataCon -> CodeGen ()
-cgDataCon typeClass dataCon = void $
-  newExportedClosure (nameText . dataConName $ dataCon) typeClass $ do
-    thisClass <- getClass
-    let getterDefs  = getterDefsWithClass thisClass
-    let initializationCode = initCode thisClass
-    defineFields fieldDefs
-    defineMethods getterDefs
-    defineMethod $
-      mkConstructorDef thisClass typeClass fields initializationCode
-  where
-        initCode :: Text -> Code
-        initCode thisClass = fold . flip map indexedFields $ \(i, ft) ->
-          let maybeDup = if i /= numFields then dup thisFt else mempty
-          in maybeDup
-          <> (gload ft $ fromIntegral i)
-          <> (putfield $ mkFieldRef thisClass (varX i) ft)
-          where thisFt = obj thisClass
+cgDataCon typeClass dataCon
+  | isNullaryRepDataCon dataCon
+  = do
+      newExportedClosure thisClass typeClass $
+        defineMethod $ mkDefaultConstructor thisClass typeClass
+      let staticClosureName = closure thisClass
+      defineField $ mkFieldDef [Public, Static, Final] staticClosureName thisFt
+      modClass <- getModClass
+      addInitStep $ fold
+        [
+          new thisClass,
+          dup thisFt,
+          invokespecial $ mkMethodRef thisClass "<init>" [] Code.void,
+          putstatic $ mkFieldRef modClass staticClosureName thisFt
+        ]
+  | otherwise
+  = void . newExportedClosure thisClass typeClass $ do
+        defineFields fieldDefs
+        defineMethods getterDefs
+        defineMethod $ mkConstructorDef thisClass typeClass fields initCode
+    where thisClass = nameText . dataConName $ dataCon
+          thisFt = obj thisClass
 
-        varX :: Int -> Text
-        varX n = cons 'x' . pack . show $ n
+          initCode :: Code
+          initCode = fold . flip map indexedFields $ \(i, ft) ->
+            let maybeDup = if i /= numFields then dup thisFt else mempty
+            in maybeDup
+            <> (gload ft $ fromIntegral i)
+            <> (putfield $ mkFieldRef thisClass (varX i) ft)
 
-        getterX :: Int -> Text
-        getterX n = append "get" . pack . show $ n
+          varX :: Int -> Text
+          varX n = cons 'x' . pack . show $ n
 
-        getterDefsWithClass :: Text -> [MethodDef]
-        getterDefsWithClass thisClass =
-          flip map indexedFields $ \(i, ft) ->
-          mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
-          [
-            aload thisFt 0,
-            getfield $ mkFieldRef thisClass (varX i) ft,
-            greturn ft
-          ]
-          where thisFt = obj thisClass
+          getterX :: Int -> Text
+          getterX n = append "get" . pack . show $ n
 
-        fieldDefs :: [FieldDef]
-        fieldDefs = map (\(i, ft) ->
-                           mkFieldDef [Private, Final] (varX i) ft)
-                    indexedFields
+          getterDefs :: [MethodDef]
+          getterDefs =
+            flip map indexedFields $ \(i, ft) ->
+            mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
+            [
+              aload thisFt 0,
+              getfield $ mkFieldRef thisClass (varX i) ft,
+              greturn ft
+            ]
 
-        indexedFields :: [(Int, FieldType)]
-        indexedFields = zip [1..] fields
+          fieldDefs :: [FieldDef]
+          fieldDefs = map (\(i, ft) ->
+                            mkFieldDef [Private, Final] (varX i) ft)
+                      indexedFields
 
-        numFields :: Int
-        numFields = length fields
+          indexedFields :: [(Int, FieldType)]
+          indexedFields = zip [1..] fields
 
-        fields :: [FieldType]
-        fields = map (fromJust . primRepFieldType) argReps
+          numFields :: Int
+          numFields = length fields
 
-        argReps :: [JPrimRep]
-        argReps = [typeJPrimRep repTy |
-                   ty     <- dataConRepArgTys dataCon,
-                   repTy  <- flattenRepType (repType ty)]
+          fields :: [FieldType]
+          fields = map (fromJust . primRepFieldType) argReps
+
+          argReps :: [JPrimRep]
+          argReps = [typeJPrimRep repTy |
+                    ty     <- dataConRepArgTys dataCon,
+                    repTy  <- flattenRepType (repType ty)]

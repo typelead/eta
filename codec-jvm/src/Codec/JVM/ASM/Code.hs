@@ -1,5 +1,6 @@
 module Codec.JVM.ASM.Code where
 
+import Data.Text (Text)
 import Data.ByteString (ByteString)
 import Data.Foldable (fold)
 import Data.List (foldl')
@@ -124,6 +125,24 @@ putfield fr@(FieldRef _ _ ft) = mkCode cs $ fold
   where c = CFieldRef fr
         cs = CP.unpack c
 
+getstatic :: FieldRef -> Code
+getstatic fr@(FieldRef _ _ ft) = mkCode cs $ fold
+  [ IT.op OP.getstatic
+  , IT.ix c
+  , modifyStack
+  $ CF.push ft ]
+  where c = CFieldRef fr
+        cs = CP.unpack c
+
+putstatic :: FieldRef -> Code
+putstatic fr@(FieldRef _ _ ft) = mkCode cs $ fold
+  [ IT.op OP.putstatic
+  , IT.ix c
+  , modifyStack
+  $ CF.pop ft ]
+  where c = CFieldRef fr
+        cs = CP.unpack c
+
 iadd :: Code
 iadd = mkCode' $ IT.op OP.iadd <> cf where
   cf = modifyStack $ CF.push jint . CF.pop' 2
@@ -161,8 +180,8 @@ istore n = mkCode' $ f n <> cf where
   cf = IT.ctrlFlow $ CF.store n jint
 
 
-getstatic :: FieldRef -> Code
-getstatic fr@(FieldRef _ _ ft) = codeConst OP.getstatic ft $ CFieldRef fr
+-- getstatic :: FieldRef -> Code
+-- getstatic fr@(FieldRef _ _ ft) = codeConst OP.getstatic ft $ CFieldRef fr
 
 anewarray :: IClassName -> Code
 anewarray cn = codeConst OP.anewarray (ObjectType cn) $ CClass cn
@@ -293,3 +312,14 @@ greturn ft = mkCode' $ fold
           VDouble -> OP.dreturn
           VObject _ -> OP.areturn
           _ -> error $ "greturn: Wrong type of return!"
+
+
+new :: Text -> Code
+new className = mkCode cs $ fold
+  [ IT.op OP.new
+  , IT.ix c
+  , modifyStack
+  $ CF.push objFt ] -- TODO: Push an initialized this type instead
+  where objFt = (obj className)
+        c = CClass . IClassName $ className
+        cs = CP.unpack c

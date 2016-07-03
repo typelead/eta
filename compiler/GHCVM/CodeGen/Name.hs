@@ -6,6 +6,7 @@ module GHCVM.CodeGen.Name (
   idNameText,
   idClassText,
   moduleJavaClass,
+  closure,
   classFilePath
   ) where
 
@@ -20,6 +21,9 @@ import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
 import Codec.JVM
+
+closure :: Text -> Text
+closure = flip append "_closure"
 
 fastStringToText :: FastString -> Text
 fastStringToText = decodeUtf8 . fastStringToByteString
