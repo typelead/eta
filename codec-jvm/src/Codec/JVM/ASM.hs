@@ -37,13 +37,13 @@ module Codec.JVM.ASM where
 import Data.Binary.Put (runPut)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
-import Data.Maybe (fromMaybe)
-import Data.Text (Text)
+import Data.Maybe (fromMaybe, maybeToList)
+import Data.Text (Text, split)
 
 import qualified Data.Set as Set
 
 import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload, dup)
-import Codec.JVM.Attr (toAttrs)
+import Codec.JVM.Attr (toAttrs, innerClassInfo)
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
 import Codec.JVM.ConstPool (mkConstPool)
@@ -62,17 +62,22 @@ mkClassFile :: Version
             -> [FieldDef]
             -> [MethodDef]
             -> ClassFile
-mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis mis []
+mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis mis attrs
     where
       tc = IClassName tc'
       sc = IClassName <$> sc'
-      cs = ccs ++ mdcs ++ mics ++ fdcs ++ fics where
-        ccs = concat [CP.unpackClassName tc, CP.unpackClassName $ fromMaybe jlObject sc]
+      cs' = ccs ++ mdcs ++ mics ++ fdcs ++ fics where
+        ccs = concat [CP.unpackClassName tc,
+                      CP.unpackClassName $ fromMaybe jlObject sc]
         mdcs = mds >>= unpackMethodDef
         mics = mis >>= unpackMethodInfo
         fdcs = fds >>= unpackFieldDef
         fics = fis >>= unpackFieldInfo
+
+      (cs'', innerClassAttr) = innerClassInfo cs'
+      cs = cs' ++ cs''
       cp = mkConstPool cs
+      attrs = maybeToList innerClassAttr
       mis = f <$> mds where
         f (MethodDef afs' n' (MethodDesc d as) code) =
           MethodInfo (Set.fromList afs') n' (Desc d) $ toAttrs as cp code

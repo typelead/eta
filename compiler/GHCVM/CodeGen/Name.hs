@@ -29,7 +29,7 @@ fastStringToText :: FastString -> Text
 fastStringToText = decodeUtf8 . fastStringToByteString
 
 nameTypeText :: Name -> Text
-nameTypeText = flip snoc '$' . nameText
+nameTypeText = flip snoc 'T' . nameText
 
 nameText :: Name -> Text
 nameText = zEncodeText

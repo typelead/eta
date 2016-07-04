@@ -12,7 +12,7 @@ import Data.Word (Word16)
 import qualified Data.List as L
 import qualified Data.Set as S
 
-import Codec.JVM.Attr (Attr)
+import Codec.JVM.Attr (Attr, putAttr)
 import Codec.JVM.Const (Const(CClass))
 import Codec.JVM.ConstPool (ConstPool, putConstPool, putIx)
 import Codec.JVM.Field (FieldInfo, putFieldInfo)
@@ -50,7 +50,8 @@ putClassFile cf = do
   putI16 0 -- TODO Interfaces
   putFields
   putMethods
-  putI16 0 -- TODO Attributes
+  putI16 . L.length $ attributes cf
+  mapM_ (putAttr cp) $ attributes cf
   return () where
     cp = constPool cf
     putMethods = do

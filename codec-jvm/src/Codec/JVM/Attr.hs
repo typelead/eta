@@ -1,13 +1,15 @@
-{-# LANGUAGE OverloadedStrings, BangPatterns #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns, RecordWildCards #-}
 module Codec.JVM.Attr where
 
+import Data.Maybe (mapMaybe)
 import Data.ByteString (ByteString)
 import Data.Binary.Put (Put, putByteString, putWord8, runPut, putWord16be)
 import Data.Foldable (traverse_)
-import Data.Text (Text)
+import Data.Text (Text, split)
 import Data.List (foldl')
 import Data.Word(Word8, Word16)
 
+import qualified Data.Set as S
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.IntMap.Strict as IntMap
@@ -18,11 +20,11 @@ import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import Codec.JVM.ASM.Code (Code(..))
 import Codec.JVM.ASM.Code.Instr (runInstr)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
-import Codec.JVM.Const (Const(..))
+import Codec.JVM.Const (Const(..), constTag)
 import Codec.JVM.ConstPool (ConstPool, putIx)
 import Codec.JVM.Internal (putI16, putI32)
 import Codec.JVM.Types (PrimType(..), FieldType(..), IClassName(..),
-                        mkFieldDesc')
+                        AccessFlag(..), mkFieldDesc', putAccessFlags)
 
 data Attr
   = ACode
@@ -31,13 +33,15 @@ data Attr
     , code      :: ByteString
     , codeAttrs :: [Attr] }
   | AStackMapTable [(Offset, StackMapFrame)]
+  | AInnerClasses [InnerClass]
 
 instance Show Attr where
   show attr = "A" ++ (Text.unpack $ attrName attr)
 
 attrName :: Attr -> Text
-attrName (ACode _ _ _ _)      = "Code"
-attrName (AStackMapTable _)   = "StackMapTable"
+attrName (ACode _ _ _ _)    = "Code"
+attrName (AStackMapTable _) = "StackMapTable"
+attrName (AInnerClasses _)  = "InnerClasses"
 
 unpackAttr :: Attr -> [Const]
 unpackAttr attr@(ACode _ _ _ xs) = (CUTF8 $ attrName attr):(unpackAttr =<< xs)
@@ -62,6 +66,11 @@ putAttrBody cp (ACode ms ls xs attrs) = do
 putAttrBody cp (AStackMapTable xs) = do
   putI16 $ length xs
   putStackMapFrames cp xs
+putAttrBody cp (AInnerClasses ics) = do
+  putI16 $ length ics
+  mapM_ (putInnerClass cp) ics
+putAttrBody cp attr = error $ "putAttrBody: Attribute not supported!\n"
+                   ++ show attr
 
 -- | http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.4
 --
@@ -153,3 +162,39 @@ generateStackMapFrame cf1@(CtrlFlow stack1 locals1)
         lsz2 = localsSize locals2
         lszdiff = lsz2 - lsz1
         sz = stackSize stack2
+
+data InnerClass =
+  InnerClass { icInnerClass :: IClassName
+             , icOuterClass :: IClassName
+             , icInnerName  :: Text
+             , icAccessFlags :: [AccessFlag] }
+  deriving Show
+
+putInnerClass :: ConstPool -> InnerClass -> Put
+putInnerClass cp InnerClass {..} = do
+  putIx cp $ CClass icInnerClass
+  putIx cp $ CClass icOuterClass
+  putIx cp $ CUTF8 icInnerName
+  putAccessFlags $ S.fromList icAccessFlags
+
+innerClassInfo :: [Const] -> ([Const], Maybe Attr)
+innerClassInfo consts = (consts, innerClassAttr)
+  where
+    innerClassAttr = if null innerClasses
+                        then Nothing
+                        else Just . AInnerClasses $ innerClasses
+    -- TODO: Support generation of private inner classes, not a big priority
+    (consts, innerClasses) = unzip $
+      mapMaybe (\(CClass icn@(IClassName cn)) ->
+                  case split (=='$') cn of
+                    (outerClass:innerName:_) ->
+                      Just $
+                      (CUTF8 innerName,
+                       InnerClass
+                       { icInnerClass = icn
+                       , icOuterClass = IClassName outerClass
+                       , icInnerName = innerName
+                       , icAccessFlags = [Public, Static] })
+                    _ -> Nothing)
+        classConsts
+    classConsts = filter (\c -> constTag c == 7) consts

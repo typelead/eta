@@ -2,6 +2,7 @@ module Codec.JVM.ConstPool where
 
 import Control.Monad (join)
 import Data.Binary.Put (Put, putByteString, putWord8, putWord16be)
+import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Data.Text.Encoding (encodeUtf8)
 
@@ -92,5 +93,3 @@ putConstPool cp = mapM_ putConst $ run cp where
         putIx' $ CClass cn
         putIx' . CNameAndType $ NameAndDesc n (Desc d)
       putIx' = putIx cp
-
-
