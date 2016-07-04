@@ -6,8 +6,8 @@ import Codec.JVM.ConstPool
 import Codec.JVM.Types
 
 import Data.Binary.Put(Put, putWord8, putWord16be)
-import qualified Data.IntMap.Strict as IntMap
 import Data.IntMap.Strict (IntMap, Key)
+import qualified Data.IntMap.Strict as IntMap
 import Data.Word (Word8, Word16)
 import Data.List (foldl')
 
@@ -37,7 +37,10 @@ areLocalsSame :: Locals -> Locals -> Bool
 areLocalsSame locals1 locals2 = locals1 == locals2
 
 localsSize :: Locals -> Int
-localsSize = fst . IntMap.findMax
+localsSize locals =
+  if IntMap.null locals
+    then 0
+    else fst . IntMap.findMax $ locals
 
 empty :: CtrlFlow
 empty = CtrlFlow (Stack [] 0 0) mempty
@@ -55,10 +58,8 @@ mapLocals f cf = cf { locals = f $ locals cf }
 maxStack :: CtrlFlow -> Int
 maxStack = stackMax . stack
 
--- NOTE: IntMap.findMax is unsafe - but that shouldn't be a problem since all
---       the methods we generate have an StgContext argument
 maxLocals :: CtrlFlow -> Int
-maxLocals = fst . IntMap.findMax . locals
+maxLocals = localsSize . locals
 
 -- TODO: What to do with locals?
 load :: Word8 -> FieldType -> CtrlFlow -> CtrlFlow

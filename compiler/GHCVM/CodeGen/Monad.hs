@@ -35,7 +35,8 @@ import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as B
-import Codec.JVM
+import Codec.JVM hiding (void)
+import qualified Codec.JVM as Code
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
@@ -114,6 +115,9 @@ getModClass = asks cgQClassName
 
 getModule :: CodeGen Module
 getModule = asks cgModule
+
+getInitCode :: CodeGen Code
+getInitCode = gets cgClassInitCode
 
 getBindings :: CodeGen CgBindings
 getBindings = gets cgBindings
@@ -196,7 +200,7 @@ newClosure
 newClosure accessFlags className superClassName genCode = do
   state0 <- get
   modClass <- getModClass
-  let qclassName = append modClass . cons '$' $ className
+  let qclassName = qualifiedName modClass className
   -- TODO: Address how to deal with cgClassInitCode and cgBindings
   modify $ \s -> s { cgMethodDefs = [],
                      cgFieldDefs = [],
@@ -212,13 +216,28 @@ newClosure accessFlags className superClassName genCode = do
   return qclassName
 
 classFromCgState :: [AccessFlag] -> CgState -> ClassFile
-classFromCgState accessFlags CgState {..} = mkClassFile java7 accessFlags cgClassName cgSuperClassName cgFieldDefs cgMethodDefs
+classFromCgState accessFlags CgState {..} =
+  mkClassFile java7 accessFlags cgClassName cgSuperClassName
+    cgFieldDefs cgMethodDefs
 
 runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
-runCodeGen env state m = do
-  (state', _) <- unCG m env state
-  let compiledModuleClass = classFromCgState [Public, Super] state'
-  return (compiledModuleClass : cgCompiledClosures state')
+runCodeGen env state codeGenAction = do
+  let codeGenActionPlus = do
+        codeGenAction
+        modClass <- getModClass
+        initCode <- getInitCode
+        defineMethod $ mkMethodDef modClass
+          [Public, Static] "<clinit>" [] Code.void (initCode <> vreturn)
+
+  (state'@CgState {..}, _) <- unCG codeGenActionPlus env state
+
+  -- NOTE: addInnerClasses is to ensure that any unused data types/closures
+  --       are added to the constant pool
+  let compiledModuleClass =
+        addInnerClasses cgCompiledClosures $
+          classFromCgState [Public, Super] state'
+
+  return (compiledModuleClass : cgCompiledClosures)
 
 addInitStep :: Code -> CodeGen ()
 addInitStep code = modify $ \s@CgState{..} ->

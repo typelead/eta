@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module GHCVM.CodeGen.Name (
+  qualifiedName,
   fastStringToText,
   nameText,
   nameTypeText,
@@ -21,6 +22,9 @@ import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
 import Codec.JVM
+
+qualifiedName :: Text -> Text -> Text
+qualifiedName modClass className = append modClass . cons '$' $ className
 
 closure :: Text -> Text
 closure = flip append "_closure"

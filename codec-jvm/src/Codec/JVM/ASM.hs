@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 -----------------------------------------------------------------------------
 -- | Usage:
 --
@@ -41,14 +41,15 @@ import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text (Text, split)
 
 import qualified Data.Set as Set
+import qualified Data.Map.Strict as Map
 
 import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload, dup)
-import Codec.JVM.Attr (toAttrs, innerClassInfo)
+import Codec.JVM.Attr (toAttrs, attrName, innerClassInfo, unpackAttr, Attr(AInnerClasses))
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
 import Codec.JVM.ConstPool (mkConstPool)
 import Codec.JVM.Method (MethodInfo(..), unpackMethodInfo)
-import Codec.JVM.Field (FieldInfo(..), unpackFieldInfo)
+import Codec.JVM.Field (FieldInfo(FieldInfo), unpackFieldInfo)
 import Codec.JVM.Types
 
 import qualified Codec.JVM.ASM.Code as Code
@@ -62,7 +63,7 @@ mkClassFile :: Version
             -> [FieldDef]
             -> [MethodDef]
             -> ClassFile
-mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] fis mis attrs
+mkClassFile v afs tc' sc' fds mds = ClassFile cs v (Set.fromList afs) tc sc [] fis mis attrs
     where
       tc = IClassName tc'
       sc = IClassName <$> sc'
@@ -74,13 +75,13 @@ mkClassFile v afs tc' sc' fds mds = ClassFile cp v (Set.fromList afs) tc sc [] f
         fdcs = fds >>= unpackFieldDef
         fics = fis >>= unpackFieldInfo
 
-      (cs'', innerClassAttr) = innerClassInfo cs'
-      cs = cs' ++ cs''
-      cp = mkConstPool cs
-      attrs = maybeToList innerClassAttr
+      (cs'', attrs') = innerClassInfo cs'
+      acs = concatMap unpackAttr attrs'
+      attrs =  Map.fromList . map (\attr -> (attrName attr, attr)) $ attrs'
+      cs = cs'' ++ cs' ++ acs
       mis = f <$> mds where
-        f (MethodDef afs' n' (MethodDesc d as) code) =
-          MethodInfo (Set.fromList afs') n' (Desc d) $ toAttrs as cp code
+        f (MethodDef afs' n' (MethodDesc d) code) =
+          MethodInfo (Set.fromList afs') n' (Desc d) code
 
       fis = f <$> fds where
         f (FieldDef afs' n' (FieldDesc d)) =
@@ -97,7 +98,7 @@ mkMethodDef' :: [AccessFlag] -> Text -> MethodDesc -> Code -> MethodDef
 mkMethodDef' afs n md c = MethodDef afs (UName n) md c
 
 unpackMethodDef :: MethodDef -> [Const]
-unpackMethodDef (MethodDef _ (UName n') (MethodDesc d _) code) = CUTF8 n':CUTF8 d:Code.consts code
+unpackMethodDef (MethodDef _ (UName n') (MethodDesc d) code) = CUTF8 n':CUTF8 d:Code.consts code
 
 data FieldDef = FieldDef [AccessFlag] UName FieldDesc
   deriving Show
@@ -129,3 +130,22 @@ mkConstructorDef thisClass superClass args code =
   <> code
   <> vreturn
   where thisFt = obj thisClass
+
+addInnerClasses :: [ClassFile] -> ClassFile -> ClassFile
+addInnerClasses innerClasses
+  outerClass@ClassFile { attributes = outerAttributes
+                       , constants = outerConstants }
+  = case maybeAttr of
+      (newInnerAttr:_)  ->
+        outerClass
+        { constants = (unpackAttr newInnerAttr) ++ consts ++ outerConstants
+        , attributes =
+            Map.insertWith mergeInnerClasses
+              (attrName newInnerAttr) newInnerAttr outerAttributes }
+      _ -> outerClass
+  where mergeInnerClasses
+          (AInnerClasses newInnerClassMap)
+          (AInnerClasses oldInnerClassMap)
+          = AInnerClasses $ oldInnerClassMap <> newInnerClassMap
+        (consts, maybeAttr) = innerClassInfo classConsts
+        classConsts = map (\ClassFile {..} -> CClass thisClass) innerClasses

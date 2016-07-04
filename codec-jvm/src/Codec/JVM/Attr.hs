@@ -2,13 +2,15 @@
 module Codec.JVM.Attr where
 
 import Data.Maybe (mapMaybe)
+import Data.Map.Strict (Map)
 import Data.ByteString (ByteString)
 import Data.Binary.Put (Put, putByteString, putWord8, runPut, putWord16be)
 import Data.Foldable (traverse_)
 import Data.Text (Text, split)
-import Data.List (foldl')
+import Data.List (foldl', concat, nub)
 import Data.Word(Word8, Word16)
 
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as S
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -21,7 +23,7 @@ import Codec.JVM.ASM.Code (Code(..))
 import Codec.JVM.ASM.Code.Instr (runInstr)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
 import Codec.JVM.Const (Const(..), constTag)
-import Codec.JVM.ConstPool (ConstPool, putIx)
+import Codec.JVM.ConstPool (ConstPool, putIx, unpack)
 import Codec.JVM.Internal (putI16, putI32)
 import Codec.JVM.Types (PrimType(..), FieldType(..), IClassName(..),
                         AccessFlag(..), mkFieldDesc', putAccessFlags)
@@ -33,7 +35,18 @@ data Attr
     , code      :: ByteString
     , codeAttrs :: [Attr] }
   | AStackMapTable [(Offset, StackMapFrame)]
-  | AInnerClasses [InnerClass]
+  | AInnerClasses InnerClassMap
+
+newtype InnerClassMap = InnerClassMap (Map Text InnerClass)
+
+innerClassElems :: InnerClassMap -> [InnerClass]
+innerClassElems (InnerClassMap m) = Map.elems m
+
+-- Left-biased monoid. Not commutative
+instance Monoid InnerClassMap where
+  mempty = InnerClassMap mempty
+  mappend (InnerClassMap x) (InnerClassMap y) =
+    InnerClassMap $ x `Map.union` y
 
 instance Show Attr where
   show attr = "A" ++ (Text.unpack $ attrName attr)
@@ -66,9 +79,10 @@ putAttrBody cp (ACode ms ls xs attrs) = do
 putAttrBody cp (AStackMapTable xs) = do
   putI16 $ length xs
   putStackMapFrames cp xs
-putAttrBody cp (AInnerClasses ics) = do
+putAttrBody cp (AInnerClasses innerClassMap) = do
   putI16 $ length ics
   mapM_ (putInnerClass cp) ics
+  where ics = innerClassElems innerClassMap
 putAttrBody cp attr = error $ "putAttrBody: Attribute not supported!\n"
                    ++ show attr
 
@@ -122,10 +136,10 @@ putStackMapFrames cp xs = snd $ foldl' f (0, return ()) xs
                   traverse_ putVerifTy stack
 
 -- TODO Return `Either` with error (currently CF.pop is unsafe)
-toAttrs :: Int -> ConstPool -> Code -> [Attr]
-toAttrs as cp code = f $ runInstr (instr code) cp where
+toAttrs :: ConstPool -> Code -> [Attr]
+toAttrs cp code = f $ runInstr (instr code) cp where
   f (xs, cf, smt) = [ACode maxStack' maxLocals' xs attrs] where
-      maxLocals' = max as $ CF.maxLocals cf
+      maxLocals' = CF.maxLocals cf
       maxStack' = CF.maxStack cf
       attrs = if null frames then [] else [AStackMapTable frames]
       frames = toStackMapFrames smt
@@ -177,24 +191,33 @@ putInnerClass cp InnerClass {..} = do
   putIx cp $ CUTF8 icInnerName
   putAccessFlags $ S.fromList icAccessFlags
 
-innerClassInfo :: [Const] -> ([Const], Maybe Attr)
-innerClassInfo consts = (consts, innerClassAttr)
+innerClassInfo :: [Const] -> ([Const], [Attr])
+innerClassInfo consts = (nub. concat $ innerConsts, innerClassAttr)
   where
     innerClassAttr = if null innerClasses
-                        then Nothing
-                        else Just . AInnerClasses $ innerClasses
+                        then []
+                        else [ AInnerClasses
+                              . InnerClassMap
+                              . Map.fromList
+                              . map (\ic@InnerClass {..} ->
+                                       (icInnerName, ic))
+                              $ innerClasses]
     -- TODO: Support generation of private inner classes, not a big priority
-    (consts, innerClasses) = unzip $
+    (innerConsts, innerClasses) = unzip $
       mapMaybe (\(CClass icn@(IClassName cn)) ->
                   case split (=='$') cn of
                     (outerClass:innerName:_) ->
-                      Just $
-                      (CUTF8 innerName,
-                       InnerClass
-                       { icInnerClass = icn
-                       , icOuterClass = IClassName outerClass
-                       , icInnerName = innerName
-                       , icAccessFlags = [Public, Static] })
+                      let innerClass =
+                            InnerClass { icInnerClass = icn
+                                       , icOuterClass = IClassName outerClass
+                                       , icInnerName = innerName
+                                       , icAccessFlags = [Public, Static] }
+                      in Just (unpackInnerClass innerClass , innerClass)
                     _ -> Nothing)
         classConsts
     classConsts = filter (\c -> constTag c == 7) consts
+
+unpackInnerClass :: InnerClass -> [Const]
+unpackInnerClass InnerClass {..} =
+  (CUTF8 icInnerName) :
+    ((unpack $ CClass icOuterClass) ++ (unpack $ CClass icInnerClass))

@@ -1,3 +1,4 @@
+{-# LANGUAGE NondecreasingIndentation #-}
 module GHCVM.CodeGen.Main where
 
 import Module
@@ -130,12 +131,15 @@ cgTyCon tyCon = do
     mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
-cgDataCon typeClass dataCon
-  | isNullaryRepDataCon dataCon
-  = do
-      newExportedClosure thisClass typeClass $
+cgDataCon typeClass dataCon = do
+  modClass <- getModClass
+  let dataConClassName = nameText . dataConName $ dataCon
+      thisClass = qualifiedName modClass dataConClassName
+      thisFt = obj thisClass
+  if isNullaryRepDataCon dataCon then do
+      newExportedClosure dataConClassName typeClass $
         defineMethod $ mkDefaultConstructor thisClass typeClass
-      let staticClosureName = closure thisClass
+      let staticClosureName = closure dataConClassName
       defineField $ mkFieldDef [Public, Static, Final] staticClosureName thisFt
       modClass <- getModClass
       addInitStep $ fold
@@ -145,52 +149,51 @@ cgDataCon typeClass dataCon
           invokespecial $ mkMethodRef thisClass "<init>" [] Code.void,
           putstatic $ mkFieldRef modClass staticClosureName thisFt
         ]
-  | otherwise
-  = void . newExportedClosure thisClass typeClass $ do
-        defineFields fieldDefs
-        defineMethods getterDefs
-        defineMethod $ mkConstructorDef thisClass typeClass fields initCode
-    where thisClass = nameText . dataConName $ dataCon
-          thisFt = obj thisClass
+  else
+    do let initCode :: Code
+           initCode = fold . flip map indexedFields $ \(i, ft) ->
+             let maybeDup = if i /= numFields then dup thisFt else mempty
+             in maybeDup
+             <> gload ft (fromIntegral i)
+             <> putfield (mkFieldRef thisClass (varX i) ft)
 
-          initCode :: Code
-          initCode = fold . flip map indexedFields $ \(i, ft) ->
-            let maybeDup = if i /= numFields then dup thisFt else mempty
-            in maybeDup
-            <> (gload ft $ fromIntegral i)
-            <> (putfield $ mkFieldRef thisClass (varX i) ft)
+           varX :: Int -> Text
+           varX n = cons 'x' . pack . show $ n
 
-          varX :: Int -> Text
-          varX n = cons 'x' . pack . show $ n
+           getterX :: Int -> Text
+           getterX n = append "get" . pack . show $ n
 
-          getterX :: Int -> Text
-          getterX n = append "get" . pack . show $ n
+           getterDefs :: [MethodDef]
+           getterDefs =
+             flip map indexedFields $ \(i, ft) ->
+               mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
+               [
+                 aload thisFt 0,
+                 getfield $ mkFieldRef thisClass (varX i) ft,
+                 greturn ft
+               ]
 
-          getterDefs :: [MethodDef]
-          getterDefs =
-            flip map indexedFields $ \(i, ft) ->
-            mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
-            [
-              aload thisFt 0,
-              getfield $ mkFieldRef thisClass (varX i) ft,
-              greturn ft
-            ]
+           fieldDefs :: [FieldDef]
+           fieldDefs = map (\(i, ft) ->
+                         mkFieldDef [Private, Final] (varX i) ft)
+                       indexedFields
 
-          fieldDefs :: [FieldDef]
-          fieldDefs = map (\(i, ft) ->
-                            mkFieldDef [Private, Final] (varX i) ft)
-                      indexedFields
+           indexedFields :: [(Int, FieldType)]
+           indexedFields = zip [1..] fields
 
-          indexedFields :: [(Int, FieldType)]
-          indexedFields = zip [1..] fields
+           numFields :: Int
+           numFields = length fields
 
-          numFields :: Int
-          numFields = length fields
+           fields :: [FieldType]
+           fields = mapMaybe primRepFieldType argReps
 
-          fields :: [FieldType]
-          fields = mapMaybe primRepFieldType argReps
+           argReps :: [JPrimRep]
+           argReps = [ typeJPrimRep repTy
+                     | ty     <- dataConRepArgTys dataCon
+                     , repTy  <- flattenRepType (repType ty) ]
 
-          argReps :: [JPrimRep]
-          argReps = [typeJPrimRep repTy |
-                    ty     <- dataConRepArgTys dataCon,
-                    repTy  <- flattenRepType (repType ty)]
+       newExportedClosure dataConClassName typeClass $ do
+         defineFields fieldDefs
+         defineMethods getterDefs
+         defineMethod $ mkConstructorDef thisClass typeClass fields initCode
+       return ()

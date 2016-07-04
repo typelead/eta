@@ -102,11 +102,11 @@ ret = Just
 
 -- | Method descriptor
 -- https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.3
-data MethodDesc = MethodDesc Text Int -- number of arguments
+data MethodDesc = MethodDesc Text
   deriving (Eq, Ord, Show)
 
 mkMethodDesc :: [FieldType] -> ReturnType -> MethodDesc
-mkMethodDesc fts rt = MethodDesc (mkMethodDesc' fts rt) (length fts)
+mkMethodDesc fts rt = MethodDesc (mkMethodDesc' fts rt)
 
 mkMethodDesc' :: [FieldType] -> ReturnType -> Text
 mkMethodDesc' fts rt = Text.concat ["(", args, ")", ret] where

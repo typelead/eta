@@ -19,6 +19,7 @@ import PrimOp
 import TysPrim
 import MkId
 
+import qualified Data.Text as Text
 import Data.Text (Text)
 import GHCVM.CodeGen.Name
 
@@ -1253,7 +1254,7 @@ maybeJRep tyCon tys
     case splitTyConApp_maybe (head tys) of
       Just (tyCon1, _) ->
         case tyConCType_maybe tyCon1 of
-          Just (CType _ _ fs) -> Just . JRepObject . fastStringToText $ fs
+          Just (CType _ _ fs) -> Just . JRepObject . Text.map (\c -> if (c == '.') then '/' else c) . fastStringToText $ fs
           Nothing -> pprPanic "You should annotate " $ (ppr tyCon) <> (ppr tys)
       Nothing -> pprPanic "You cannot split the constructor in " $ (ppr tys)
   | otherwise                        = Nothing
