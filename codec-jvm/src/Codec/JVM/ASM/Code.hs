@@ -1,20 +1,22 @@
 module Codec.JVM.ASM.Code where
 
+import Control.Monad.Trans.RWS (ask)
 import Data.Text (Text)
 import Data.ByteString (ByteString)
 import Data.Foldable (fold)
 import Data.List (foldl')
 import Data.Monoid ((<>))
 import Data.Word (Word8, Word16)
+import Data.Int (Int32, Int64)
 
 import qualified Data.ByteString as BS
 
-import Codec.JVM.ASM.Code.Instr (Instr, runInstr)
+import Codec.JVM.ASM.Code.Instr (Instr(..), runInstr)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
 import Codec.JVM.Cond (Cond)
-import Codec.JVM.Const (Const(..), ConstVal, constValType)
+import Codec.JVM.Const
 import Codec.JVM.ConstPool (ConstPool)
-import Codec.JVM.Internal (packWord16be)
+import Codec.JVM.Internal (packWord16be, packI16)
 import Codec.JVM.Opcode (Opcode)
 import Codec.JVM.Types
 
@@ -158,26 +160,26 @@ ifne = iif CD.NE
 ifeq :: Code -> Code -> Code
 ifeq = iif CD.EQ
 
-iload :: Word8 -> Code
-iload n = mkCode' $ f n <> cf where
-  f 0 = IT.op OP.iload_0
-  f 1 = IT.op OP.iload_1
-  f 2 = IT.op OP.iload_2
-  f 3 = IT.op OP.iload_3
-  f _ = fold [IT.op OP.iload, IT.bytes $ BS.singleton n]
-  cf = IT.ctrlFlow $ CF.load n jint
+-- iload :: Word8 -> Code
+-- iload n = mkCode' $ f n <> cf where
+--   f 0 = IT.op OP.iload_0
+--   f 1 = IT.op OP.iload_1
+--   f 2 = IT.op OP.iload_2
+--   f 3 = IT.op OP.iload_3
+--   f _ = fold [IT.op OP.iload, IT.bytes $ BS.singleton n]
+--   cf = IT.ctrlFlow $ CF.load n jint
 
-ireturn :: Code
-ireturn = op OP.ireturn
+-- ireturn :: Code
+-- ireturn = op OP.ireturn
 
-istore :: Word8 -> Code
-istore n = mkCode' $ f n <> cf where
-  f 0 = IT.op OP.istore_0
-  f 1 = IT.op OP.istore_1
-  f 2 = IT.op OP.istore_2
-  f 3 = IT.op OP.istore_3
-  f _ = fold [IT.op OP.istore, IT.bytes $ BS.singleton n]
-  cf = IT.ctrlFlow $ CF.store n jint
+-- istore :: Word8 -> Code
+-- istore n = mkCode' $ f n <> cf where
+--   f 0 = IT.op OP.istore_0
+--   f 1 = IT.op OP.istore_1
+--   f 2 = IT.op OP.istore_2
+--   f 3 = IT.op OP.istore_3
+--   f _ = fold [IT.op OP.istore, IT.bytes $ BS.singleton n]
+--   cf = IT.ctrlFlow $ CF.store n jint
 
 
 -- getstatic :: FieldRef -> Code
@@ -186,17 +188,29 @@ istore n = mkCode' $ f n <> cf where
 anewarray :: IClassName -> Code
 anewarray cn = codeConst OP.anewarray (ObjectType cn) $ CClass cn
 
-aload :: FieldType -> Word8 -> Code
-aload cls n = mkCode' $ f n <> cf where
-  f 0 = IT.op OP.aload_0
-  f 1 = IT.op OP.aload_1
-  f 2 = IT.op OP.aload_2
-  f 3 = IT.op OP.aload_3
-  f n = fold [IT.op OP.aload, IT.bytes $ BS.singleton n]
-  cf = IT.ctrlFlow $ CF.load n cls
+-- aload :: FieldType -> Word8 -> Code
+-- aload cls n = mkCode' $ f n <> cf where
+--   f 0 = IT.op OP.aload_0
+--   f 1 = IT.op OP.aload_1
+--   f 2 = IT.op OP.aload_2
+--   f 3 = IT.op OP.aload_3
+--   f n = fold [IT.op OP.aload, IT.bytes $ BS.singleton n]
+--   cf = IT.ctrlFlow $ CF.load n cls
+
+-- Generic instruction which selects either
+-- the original opcode or the modified opcode
+-- based on size
+gwide :: (Integral a) => Opcode -> a -> Instr
+gwide opcode n = wideInstr
+  where wideInstr
+          | n <= 255  = IT.op opcode
+                     <> IT.bytes (BS.singleton $ fromIntegral n)
+          | otherwise = IT.op OP.wide
+                     <> IT.op opcode
+                     <> IT.bytes (packI16 $ fromIntegral n)
 
 -- Generic load instruction
-gload :: FieldType -> Word8 -> Code
+gload :: FieldType -> Int -> Code
 gload ft n = mkCode' $ fold
   [ loadOp
   , IT.ctrlFlow
@@ -207,36 +221,31 @@ gload ft n = mkCode' $ fold
             1 -> IT.op OP.iload_1
             2 -> IT.op OP.iload_2
             3 -> IT.op OP.iload_3
-            _ -> IT.op OP.iload
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.iload n
           VLong -> case n of
             0 -> IT.op OP.lload_0
             1 -> IT.op OP.lload_1
             2 -> IT.op OP.lload_2
             3 -> IT.op OP.lload_3
-            _ -> IT.op OP.lload
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.lload n
           VFloat -> case n of
             0 -> IT.op OP.fload_0
             1 -> IT.op OP.fload_1
             2 -> IT.op OP.fload_2
             3 -> IT.op OP.fload_3
-            _ -> IT.op OP.fload
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.fload n
           VDouble -> case n of
             0 -> IT.op OP.dload_0
             1 -> IT.op OP.dload_1
             2 -> IT.op OP.dload_2
             3 -> IT.op OP.dload_3
-            _ -> IT.op OP.dload
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.dload n
           VObject _ -> case n of
             0 -> IT.op OP.aload_0
             1 -> IT.op OP.aload_1
             2 -> IT.op OP.aload_2
             3 -> IT.op OP.aload_3
-            _ -> IT.op OP.aload
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.aload n
           _ -> error $ "gload: Wrong type of load!"
 
 -- Generic store instruction
@@ -252,36 +261,31 @@ gstore ft n' = mkCode' $ fold
             1 -> IT.op OP.istore_1
             2 -> IT.op OP.istore_2
             3 -> IT.op OP.istore_3
-            _ -> IT.op OP.istore
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.istore n
           VLong -> case n of
             0 -> IT.op OP.lstore_0
             1 -> IT.op OP.lstore_1
             2 -> IT.op OP.lstore_2
             3 -> IT.op OP.lstore_3
-            _ -> IT.op OP.lstore
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.lstore n
           VFloat -> case n of
             0 -> IT.op OP.fstore_0
             1 -> IT.op OP.fstore_1
             2 -> IT.op OP.fstore_2
             3 -> IT.op OP.fstore_3
-            _ -> IT.op OP.fstore
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.fstore n
           VDouble -> case n of
             0 -> IT.op OP.dstore_0
             1 -> IT.op OP.dstore_1
             2 -> IT.op OP.dstore_2
             3 -> IT.op OP.dstore_3
-            _ -> IT.op OP.dstore
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.dstore n
           VObject _ -> case n of
             0 -> IT.op OP.astore_0
             1 -> IT.op OP.astore_1
             2 -> IT.op OP.astore_2
             3 -> IT.op OP.astore_3
-            _ -> IT.op OP.astore
-              <> (IT.bytes $ BS.singleton n)
+            _ -> gwide OP.astore n
           _ -> error $ "gstore: Wrong type of load!"
 
 initCtrlFlow :: Bool -> [FieldType] -> Code
@@ -311,15 +315,78 @@ greturn ft = mkCode' $ fold
           VFloat -> OP.freturn
           VDouble -> OP.dreturn
           VObject _ -> OP.areturn
-          _ -> error $ "greturn: Wrong type of return!"
-
+          _ -> error "greturn: Wrong type of return!"
 
 new :: Text -> Code
 new className = mkCode cs $ fold
   [ IT.op OP.new
-  , IT.ix c
-  , modifyStack
-  $ CF.push objFt ] -- TODO: Push an initialized this type instead
-  where objFt = (obj className)
+  , IT.withOffset $ \offset ->
+      IT.ix c
+   <> modifyStack (CF.vpush (VUninitialized $ fromIntegral offset))]
+  where objFt = obj className
         c = CClass . IClassName $ className
         cs = CP.unpack c
+
+aconst_null :: Code
+aconst_null = mkCode' $ IT.op OP.aconst_null <> modifyStack (CF.vpush VNull)
+
+iconst :: FieldType -> Int32 -> Code
+iconst ft i
+  | i >= -1 && i <= 5 = mkCode' . (<> modifyStack (CF.push ft)) $
+    case i of
+      -1 -> IT.op OP.iconst_m1
+      0  -> IT.op OP.iconst_0
+      1  -> IT.op OP.iconst_1
+      2  -> IT.op OP.iconst_2
+      3  -> IT.op OP.iconst_3
+      4  -> IT.op OP.iconst_4
+      5  -> IT.op OP.iconst_5
+      _  -> error "iconst: -1 <= i <= 5 DEFAULT"
+  | i >= -128 && i <= 127 = bipush ft $ fromIntegral i
+  | i >= -32768 && i <= 32767 = sipush ft $ fromIntegral i
+  | otherwise = gldc ft $ cint i
+
+constCode :: FieldType -> Opcode -> Code
+constCode ft op = mkCode' $ IT.op op <> modifyStack (CF.push ft)
+
+lconst :: Int64 -> Code
+lconst l
+  | l == 0 = code OP.lconst_0
+  | l == 1 = code OP.lconst_1
+  | otherwise = gldc ft $ clong l
+  where ft = jlong
+        code = constCode ft
+
+fconst :: Float -> Code
+fconst f
+  | f == 0.0 = code OP.fconst_0
+  | f == 1.0 = code OP.fconst_1
+  | f == 2.0 = code OP.fconst_2
+  | otherwise = gldc ft $ cfloat f
+  where ft = jfloat
+        code = constCode ft
+
+dconst :: Double -> Code
+dconst d
+  | d == 0.0 = code OP.dconst_0
+  | d == 1.0 = code OP.dconst_1
+  | otherwise = gldc ft $ cdouble d
+  where ft = jdouble
+        code = constCode ft
+
+gldc :: FieldType -> Const -> Code
+gldc ft c = mkCode cs $ loadCode <> modifyStack (CF.push ft)
+  where cs = CP.unpack c
+        category2 = isCategory2 ft
+        loadCode
+          | category2 = IT.op OP.ldc2_w
+                     <> IT.ix c
+          | otherwise = Instr $ do
+              cp <- ask
+              let index = CP.ix $ CP.unsafeIndex c cp
+              if index <= 255 then
+                do IT.op' OP.ldc
+                   IT.writeBytes (BS.singleton $ fromIntegral index)
+              else
+                do IT.op' OP.ldc_w
+                   IT.writeBytes (packI16 $ fromIntegral index)

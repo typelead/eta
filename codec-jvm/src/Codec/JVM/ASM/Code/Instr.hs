@@ -38,6 +38,11 @@ instance Monoid Instr where
 instance Show Instr where
   show insr = "Instructions"
 
+withOffset :: (Int -> Instr) -> Instr
+withOffset f = Instr $ do
+  (Offset offset, _)<- get
+  instrRWS $ f offset
+
 runInstr :: Instr -> ConstPool -> (ByteString, CtrlFlow, StackMapTable)
 runInstr instr cp = runInstr' instr cp 0 CF.empty
 

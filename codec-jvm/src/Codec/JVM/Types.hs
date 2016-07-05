@@ -60,6 +60,11 @@ newtype FieldDesc = FieldDesc Text
 data FieldType = BaseType PrimType | ObjectType  IClassName | ArrayType FieldType
   deriving (Eq, Ord, Show)
 
+isCategory2 :: FieldType -> Bool
+isCategory2 (BaseType JLong)   = True
+isCategory2 (BaseType JDouble) = True
+isCategory2 _                   = False
+
 mkFieldDesc :: FieldType -> FieldDesc
 mkFieldDesc ft = FieldDesc $ mkFieldDesc' ft where
 
@@ -109,9 +114,9 @@ mkMethodDesc :: [FieldType] -> ReturnType -> MethodDesc
 mkMethodDesc fts rt = MethodDesc (mkMethodDesc' fts rt)
 
 mkMethodDesc' :: [FieldType] -> ReturnType -> Text
-mkMethodDesc' fts rt = Text.concat ["(", args, ")", ret] where
+mkMethodDesc' fts rt = Text.concat ["(", args, ")", result] where
   args = Text.concat $ mkFieldDesc' <$> fts
-  ret  = maybe "V" mkFieldDesc' rt
+  result  = maybe "V" mkFieldDesc' rt
 
 -- | Field or method reference
 -- https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4.2

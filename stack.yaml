@@ -7,4 +7,4 @@ extra-deps:
 - control-monad-exception-0.11.2
 - failure-0.2.0.3
 - text-1.2.2.1
-resolver: lts-6.5
+resolver: lts-6.6

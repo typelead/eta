@@ -4,7 +4,6 @@ module Codec.JVM.Attr where
 import Data.Maybe (mapMaybe)
 import Data.Map.Strict (Map)
 import Data.ByteString (ByteString)
-import Data.Binary.Put (Put, putByteString, putWord8, runPut, putWord16be)
 import Data.Foldable (traverse_)
 import Data.Text (Text, split)
 import Data.List (foldl', concat, nub)
@@ -24,7 +23,7 @@ import Codec.JVM.ASM.Code.Instr (runInstr)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
 import Codec.JVM.Const (Const(..), constTag)
 import Codec.JVM.ConstPool (ConstPool, putIx, unpack)
-import Codec.JVM.Internal (putI16, putI32)
+import Codec.JVM.Internal
 import Codec.JVM.Types (PrimType(..), FieldType(..), IClassName(..),
                         AccessFlag(..), mkFieldDesc', putAccessFlags)
 

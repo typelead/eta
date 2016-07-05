@@ -19,11 +19,11 @@ import GHCVM.Util
 import GHCVM.Primitive
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
+import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
-
 
 import Codec.JVM hiding (void)
 import qualified Codec.JVM as Code
@@ -70,20 +70,6 @@ cgTopRhs dflags recflag binder
    (StgRhsClosure _ binderInfo freeVars updateFlag _ args body) =
   -- fvs should be empty
   cgTopRhsClosure dflags recflag binder binderInfo updateFlag args body
-
-
-cgTopRhsCon :: DynFlags
-            -> Id               -- Name of thing bound to this RHS
-            -> DataCon          -- Id
-            -> [StgArg]         -- Args
-            -> (CgIdInfo, CodeGen ())
-cgTopRhsCon dflags id con args = (cgIdInfo, genCode)
-  where cgIdInfo = mkCgIdInfo id lambdaFormInfo
-        lambdaFormInfo = mkConLFInfo con
-        genCode = do
-          _ <- getModule
-          -- initialize and create new object
-          return ()
 
 cgTopRhsClosure :: DynFlags
                 -> RecFlag              -- member of a recursive group?
@@ -168,7 +154,7 @@ cgDataCon typeClass dataCon = do
              flip map indexedFields $ \(i, ft) ->
                mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
                [
-                 aload thisFt 0,
+                 gload thisFt 0,
                  getfield $ mkFieldRef thisClass (varX i) ft,
                  greturn ft
                ]

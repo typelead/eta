@@ -118,3 +118,6 @@ mkLFArgument id
 --                                                    [obj (BC.unpack closureObj)]
 --                                                    ReturnsVoid))
 --   where indirectClosureBS = idNameBS id
+
+argJPrimRep :: StgArg -> JPrimRep
+argJPrimRep arg = typeJPrimRep (stgArgType arg)

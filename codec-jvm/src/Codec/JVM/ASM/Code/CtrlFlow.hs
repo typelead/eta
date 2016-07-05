@@ -4,8 +4,8 @@ module Codec.JVM.ASM.Code.CtrlFlow where
 import Codec.JVM.Const
 import Codec.JVM.ConstPool
 import Codec.JVM.Types
+import Codec.JVM.Internal
 
-import Data.Binary.Put(Put, putWord8, putWord16be)
 import Data.IntMap.Strict (IntMap, Key)
 import qualified Data.IntMap.Strict as IntMap
 import Data.Word (Word8, Word16)
@@ -62,12 +62,12 @@ maxLocals :: CtrlFlow -> Int
 maxLocals = localsSize . locals
 
 -- TODO: What to do with locals?
-load :: Word8 -> FieldType -> CtrlFlow -> CtrlFlow
+load :: (Integral a) => a -> FieldType -> CtrlFlow -> CtrlFlow
 load n ft cf@CtrlFlow {..} =
   cf { locals = insert n ft locals
      , stack  = push ft stack }
 
-store :: Word8 -> FieldType -> CtrlFlow -> CtrlFlow
+store :: (Integral a) => a -> FieldType -> CtrlFlow -> CtrlFlow
 store n ft cf@CtrlFlow {..} =
   cf { locals = insert n ft locals
      , stack  = pop ft stack }
@@ -83,6 +83,11 @@ push ft (Stack xs m sz) = Stack (vts ++ xs) m' sz'
   where vts = fieldTypeToVerifType ft
         dsz = length vts
         sz' = dsz + sz
+        m'  = max m sz'
+
+vpush :: VerifType -> Stack -> Stack
+vpush vt (Stack xs m sz) = Stack (vt:xs) m' sz'
+  where sz' = 1 + sz
         m'  = max m sz'
 
 pop :: FieldType -> Stack -> Stack

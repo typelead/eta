@@ -43,7 +43,7 @@ import Data.Text (Text, split)
 import qualified Data.Set as Set
 import qualified Data.Map.Strict as Map
 
-import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, aload, dup)
+import Codec.JVM.ASM.Code (Code, vreturn, invokespecial, dup, gload)
 import Codec.JVM.Attr (toAttrs, attrName, innerClassInfo, unpackAttr, Attr(AInnerClasses))
 import Codec.JVM.Class (ClassFile(..))
 import Codec.JVM.Const (Const(..))
@@ -115,7 +115,7 @@ unpackFieldDef (FieldDef _ (UName n') (FieldDesc d)) = [CUTF8 n', CUTF8 d]
 mkDefaultConstructor :: Text -> Text -> MethodDef
 mkDefaultConstructor thisClass superClass =
   mkMethodDef thisClass [Public] "<init>" [] void $ fold
-  [ aload thisFt 0,
+  [ gload thisFt 0,
     invokespecial $ mkMethodRef superClass "<init>" [] void,
     vreturn ]
   where thisFt = obj thisClass
@@ -124,9 +124,9 @@ mkDefaultConstructor thisClass superClass =
 mkConstructorDef :: Text -> Text -> [FieldType] -> Code -> MethodDef
 mkConstructorDef thisClass superClass args code =
   mkMethodDef thisClass [Public] "<init>" args void $
-     aload thisFt 0
+     gload thisFt 0
   <> dup thisFt
-  <> (invokespecial $ mkMethodRef superClass "<init>" [] void)
+  <> invokespecial (mkMethodRef superClass "<init>" [] void)
   <> code
   <> vreturn
   where thisFt = obj thisClass

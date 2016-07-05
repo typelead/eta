@@ -30,6 +30,8 @@ library
                        , GHCVM.CodeGen.Types
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Rts
+                       , GHCVM.CodeGen.Con
+                       , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse
                        , GHCVM.Util
                        , GHCVM.Primitive

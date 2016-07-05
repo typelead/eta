@@ -1,7 +1,6 @@
 module Codec.JVM.ConstPool where
 
 import Control.Monad (join)
-import Data.Binary.Put (Put, putByteString, putWord8, putWord16be)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Data.Text.Encoding (encodeUtf8)
@@ -11,7 +10,7 @@ import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 
 import Codec.JVM.Const
-import Codec.JVM.Internal (putI16, putI32)
+import Codec.JVM.Internal
 import Codec.JVM.Types
 
 newtype CIx = CIx Int
@@ -76,12 +75,18 @@ putConstPool cp = mapM_ putConst $ run cp where
         putI16 (T.length str)
         putByteString $ encodeUtf8 str
       (CValue (CInteger i)) ->
-        putI32 i
-      (CValue (CString str)) ->
-        putIx' $ CUTF8 str
+        putWord32be $ fromIntegral i  -- TODO: Change to putInt32be
+      (CValue (CString s)) ->
+        putIx' $ CUTF8 s
+      (CValue (CLong l)) ->
+        putWord64be $ fromIntegral l -- TODO: Change to putInt64be
+      (CValue (CFloat f)) ->
+        putFloatbe f
+      (CValue (CDouble d)) ->
+        putDoublebe d
       (CClass (IClassName str)) ->
         putIx' $ CUTF8 str
-      (CFieldRef (FieldRef cn n ft)) -> do
+      (CFieldRef (FieldRef cn n ft)) ->
         putRef cn n $ mkFieldDesc' ft
       (CMethodRef (MethodRef cn n fts rt)) ->
         putRef cn n $ mkMethodDesc' fts rt
