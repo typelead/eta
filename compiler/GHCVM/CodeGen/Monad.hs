@@ -113,9 +113,6 @@ initCg dflags mod =
 getModClass :: CodeGen Text
 getModClass = asks cgQClassName
 
-getModule :: CodeGen Module
-getModule = asks cgModule
-
 getInitCode :: CodeGen Code
 getInitCode = gets cgClassInitCode
 
@@ -133,13 +130,10 @@ getCgIdInfo id = do
     Nothing -> do
       let name = idName id
       if isExternalName name then do
-        let lf = mkLFImported id
-            externalMod =
-              case nameModule_maybe name of
-                Just mod -> mod
-                Nothing  -> error "getCgIdInfo: Not external name"
-        return . mkCgIdInfo id lf $ genClosureLoadCode externalMod name lf
-      else error "getCgIdInfo: Not external name"
+        curMod <- getModule
+        return $ mkCgIdInfo curMod id (mkLFImported id)
+      else
+        error "getCgIdInfo: Not external name"
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do

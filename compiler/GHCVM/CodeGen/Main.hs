@@ -58,8 +58,8 @@ cgTopBinding dflags (StgRec pairs) = do
   mod <- getModule
   let (binders, rhss) = unzip pairs
   binders' <- mapM (externaliseId dflags) binders
-  let pairs' = zip binders' rhss
-      r = unzipWith (cgTopRhs dflags mod Recursive) pairs'
+  let pairs'         = zip binders' rhss
+      r              = unzipWith (cgTopRhs dflags mod Recursive) pairs'
       (infos, codes) = unzip r
   addBindings infos
   sequence_ codes
@@ -84,8 +84,7 @@ cgTopRhsClosure :: DynFlags
                 -> (CgIdInfo, CodeGen ())
 cgTopRhsClosure dflags mod recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lambdaFormInfo)
-  where cgIdInfo = mkCgIdInfo id lambdaFormInfo $
-                     genClosureLoadCode mod (idName id) lambdaFormInfo
+  where cgIdInfo = mkCgIdInfo mod id lambdaFormInfo
         lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
@@ -96,21 +95,17 @@ cgTopRhsClosure dflags mod recflag id binderInfo updateFlag args body
           return ()
          -- A new inner class must be generated
 
--- Due to the new CodeGen monad storing the module and making it easy
--- to access, this is just returns the id without modification
+-- Simplifies the code if the mod is associated to the Id
 externaliseId :: DynFlags -> Id -> CodeGen Id
-externaliseId dflags = return
-  -- | isInternalName name = do
-  --     mod <- asks cgModule
-  --     return . setIdName id
-  --            $ externalise mod
-  -- | otherwise           = return id
-  -- where
-  --   externalise mod = mkExternalName uniq mod new_occ loc
-  --   name    = idName id
-  --   uniq    = nameUnique name
-  --   new_occ = mkLocalOcc uniq $ nameOccName name
-  --   loc     = nameSrcSpan name
+externaliseId dflags id
+  | isInternalName name = setIdName id . externalise <$> getModule
+  | otherwise           = return id
+  where
+    externalise mod = mkExternalName uniq mod new_occ loc
+    name    = idName id
+    uniq    = nameUnique name
+    new_occ = mkLocalOcc uniq $ nameOccName name
+    loc     = nameSrcSpan name
 
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = do
@@ -176,12 +171,7 @@ cgDataCon typeClass dataCon = do
            numFields = length fields
 
            fields :: [FieldType]
-           fields = mapMaybe primRepFieldType argReps
-
-           argReps :: [JPrimRep]
-           argReps = [ typeJPrimRep repTy
-                     | ty     <- dataConRepArgTys dataCon
-                     , repTy  <- flattenRepType (repType ty) ]
+           fields = repFieldTypes $ dataConRepArgTys dataCon
 
        newExportedClosure dataConClassName typeClass $ do
          defineFields fieldDefs

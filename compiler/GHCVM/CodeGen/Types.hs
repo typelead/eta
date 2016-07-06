@@ -11,7 +11,9 @@ module GHCVM.CodeGen.Types
    isNonRec,
    genClosureLoadCode,
    mkCgIdInfo,
-   unsafeStripNV)
+   lfFieldType,
+   unsafeStripNV,
+   getNonVoids)
 where
 
 import Id
@@ -28,18 +30,44 @@ import GHCVM.Primitive
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 
+import Data.Maybe
+import Data.Text (Text)
+
 type CgBindings = IdEnv CgIdInfo
 
 data CgIdInfo = CgIdInfo {
   cgId :: Id,
   cgLambdaForm :: LambdaFormInfo,
-  cgLocation :: Code }
+  cgModuleClass :: Text,
+  cgClosureName :: Text,
+  cgClosureClass :: Text,
+  cgFieldType :: FieldType }
 
-mkCgIdInfo :: Id -> LambdaFormInfo -> Code -> CgIdInfo
-mkCgIdInfo id lambdaFormInfo code = CgIdInfo {
+mkCgIdInfo :: Module -> Id -> LambdaFormInfo -> CgIdInfo
+mkCgIdInfo curMod id lambdaFormInfo = CgIdInfo {
   cgId = id,
   cgLambdaForm = lambdaFormInfo,
-  cgLocation = code }
+  cgModuleClass = modClass,
+  cgClosureName = closure closureId,
+  cgClosureClass = closureClass,
+  cgFieldType = obj closureClass }
+  -- TODO: Populate cgClosureClass with Nothing for certain lambda forms
+  where name = idName id
+        mod = fromMaybe curMod
+            $ nameModule_maybe name
+        closureId = nameText name
+        modClass = moduleJavaClass mod
+        closureClass = case lambdaFormInfo of
+          LFCon dataCon ->
+            let dataName = dataConName dataCon
+                dataClass = nameText dataName
+                dataModuleClass = moduleJavaClass
+                              -- TODO: Most likely this will fail for same module data cons
+                              -- Maybe externalize the data con name?
+                              . fromMaybe curMod
+                              $ nameModule_maybe dataName
+            in qualifiedName dataModuleClass dataClass
+          _ -> qualifiedName modClass closureId
 
 type Liveness = [Bool]   -- One Bool per word; True  <=> non-ptr or dead
 
@@ -137,3 +165,8 @@ genClosureLoadCode mod name lf = getstatic $ mkFieldRef modClass closureName ft
   where closureName = closure $ nameText name
         ft          = lfFieldType lf
         modClass    = moduleJavaClass mod
+
+getNonVoids :: [(Maybe FieldType, a)] -> [NonVoid a]
+getNonVoids = mapMaybe (\(mft, val) -> case mft of
+                           Just _ -> Just (NonVoid val)
+                           Nothing -> Nothing)

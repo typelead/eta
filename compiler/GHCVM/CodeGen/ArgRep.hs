@@ -3,13 +3,17 @@ module GHCVM.CodeGen.ArgRep
    toArgRep,
    isNonV,
    idJArgRep,
-   primRepFieldType
+   primRepFieldType,
+   repFieldTypes,
+   repFieldTypeMaybes
   ) where
 
 import Id
+import Type
 import TyCon            ( PrimRep(..), primElemRepSizeB )
 import BasicTypes       ( RepArity )
 import DynFlags
+import Data.Maybe
 import GHCVM.Primitive
 import GHCVM.CodeGen.Rts
 import Codec.JVM
@@ -89,3 +93,13 @@ primRepFieldType (JRepObject className) = Just $ obj className
 -- slowCallPattern (V32: _)              = (fsLit "stg_ap_v32", 1)
 -- slowCallPattern (V64: _)              = (fsLit "stg_ap_v64", 1)
 -- slowCallPattern []                    = (fsLit "stg_ap_0", 0)
+
+repFieldTypeMaybes :: [Type] -> [Maybe FieldType]
+repFieldTypeMaybes tys = map primRepFieldType argReps
+  where argReps :: [JPrimRep]
+        argReps = [ typeJPrimRep repTy
+                  | ty     <- tys
+                  , repTy  <- flattenRepType (repType ty) ]
+
+repFieldTypes :: [Type] -> [FieldType]
+repFieldTypes = catMaybes . repFieldTypeMaybes

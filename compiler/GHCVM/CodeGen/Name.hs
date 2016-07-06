@@ -96,3 +96,6 @@ upperFirst :: Text -> Text
 upperFirst str = case uncons str of
   Nothing -> empty
   Just (c, str') -> cons (C.toUpper c) str'
+
+modClosure :: Module -> Name -> (Text, Text)
+modClosure mod name = (moduleJavaClass mod, nameText name)

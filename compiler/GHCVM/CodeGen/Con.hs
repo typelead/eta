@@ -9,6 +9,11 @@ import Outputable
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Closure
+import GHCVM.CodeGen.ArgRep
+import GHCVM.CodeGen.Env
+import Data.Foldable (fold)
+import Codec.JVM
+import Data.Maybe(catMaybes)
 
 cgTopRhsCon :: DynFlags
             -> Module
@@ -17,10 +22,20 @@ cgTopRhsCon :: DynFlags
             -> [StgArg]         -- Args
             -> (CgIdInfo, CodeGen ())
 cgTopRhsCon dflags mod id dataCon args = (cgIdInfo, genCode)
-  where cgIdInfo = mkCgIdInfo id lambdaFormInfo $
-                     genClosureLoadCode mod (idName id) lambdaFormInfo
+  where cgIdInfo@CgIdInfo {..} = mkCgIdInfo mod id lambdaFormInfo
         lambdaFormInfo = mkConLFInfo dataCon
+        maybeFields = repFieldTypeMaybes $ dataConRepArgTys dataCon
+        fields = catMaybes maybeFields
+        dataFt = cgFieldType
+        dataClass = cgClosureClass
         genCode = do
-         -- pprPanic ("cgTopRhsCon: " ++ (show . length $ args)) $ (ppr id) <> (ppr args) <> (ppr dataCon)
-          -- initialize and create new object
-          return ()
+          loads <- mapM loadArgCode .  getNonVoids $ zip maybeFields args
+          defineField $ mkFieldDef [Public, Static, Final] cgClosureName dataFt
+          addInitStep $ fold
+            [
+              new dataClass,
+              dup dataFt,
+              fold loads,
+              invokespecial $ mkMethodRef dataClass "<init>" fields void,
+              putstatic $ mkFieldRef cgModuleClass cgClosureName dataFt
+            ]
