@@ -9,8 +9,9 @@ module GHCVM.CodeGen.Types
    CgBindings,
    isRec,
    isNonRec,
+   genClosureLoadCode,
    mkCgIdInfo,
-   unsafe_stripNV)
+   unsafeStripNV)
 where
 
 import Id
@@ -18,18 +19,27 @@ import VarEnv
 import DataCon
 import TyCon
 import Type
+import Module
+import Name
+
+import Codec.JVM
+
 import GHCVM.Primitive
+import GHCVM.CodeGen.Name
+import GHCVM.CodeGen.Rts
 
 type CgBindings = IdEnv CgIdInfo
 
 data CgIdInfo = CgIdInfo {
   cgId :: Id,
-  cgLambdaForm :: LambdaFormInfo }
+  cgLambdaForm :: LambdaFormInfo,
+  cgLocation :: Code }
 
-mkCgIdInfo :: Id -> LambdaFormInfo -> CgIdInfo
-mkCgIdInfo id lambdaFormInfo = CgIdInfo {
+mkCgIdInfo :: Id -> LambdaFormInfo -> Code -> CgIdInfo
+mkCgIdInfo id lambdaFormInfo code = CgIdInfo {
   cgId = id,
-  cgLambdaForm = lambdaFormInfo }
+  cgLambdaForm = lambdaFormInfo,
+  cgLocation = code }
 
 type Liveness = [Bool]   -- One Bool per word; True  <=> non-ptr or dead
 
@@ -94,8 +104,8 @@ newtype NonVoid a = NonVoid a
   deriving (Eq, Show)
 
 -- Use with care; if used inappropriately, it could break invariants.
-unsafe_stripNV :: NonVoid a -> a
-unsafe_stripNV (NonVoid a) = a
+unsafeStripNV :: NonVoid a -> a
+unsafeStripNV (NonVoid a) = a
 
 nonVoidIds :: [Id] -> [NonVoid Id]
 nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidJRep (idJPrimRep id))]
@@ -117,3 +127,13 @@ isRec NonRecursive = False
 isNonRec :: RecFlag -> Bool
 isNonRec Recursive    = False
 isNonRec NonRecursive = True
+
+-- TODO: Refine this
+lfFieldType :: LambdaFormInfo -> FieldType
+lfFieldType _ = closureType
+
+genClosureLoadCode :: Module -> Name -> LambdaFormInfo -> Code
+genClosureLoadCode mod name lf = getstatic $ mkFieldRef modClass closureName ft
+  where closureName = closure $ nameText name
+        ft          = lfFieldType lf
+        modClass    = moduleJavaClass mod

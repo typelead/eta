@@ -27,6 +27,7 @@ library
                        , GHCVM.CodeGen.Closure
                        , GHCVM.CodeGen.Object
                        , GHCVM.CodeGen.ArgRep
+                       , GHCVM.CodeGen.Env
                        , GHCVM.CodeGen.Types
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Rts

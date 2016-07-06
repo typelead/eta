@@ -31,9 +31,9 @@ mkClosureLFInfo :: DynFlags
 mkClosureLFInfo dflags binder topLevelFlag freeVars updateFlag args
   | null args =
         mkLFThunk (idType binder) topLevelFlag
-          (map unsafe_stripNV freeVars) updateFlag
+          (map unsafeStripNV freeVars) updateFlag
   | otherwise =
-        mkLFReEntrant topLevelFlag (map unsafe_stripNV freeVars)
+        mkLFReEntrant topLevelFlag (map unsafeStripNV freeVars)
           args (mkArgDescr dflags args)
 
 mkConLFInfo :: DataCon -> LambdaFormInfo

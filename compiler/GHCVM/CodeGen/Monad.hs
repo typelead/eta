@@ -132,10 +132,14 @@ getCgIdInfo id = do
     Just info -> return info
     Nothing -> do
       let name = idName id
-      if isExternalName name then
-        return . mkCgIdInfo id
-               $ mkLFImported id
-      else error $ "getCgIdInfo: Not external name"
+      if isExternalName name then do
+        let lf = mkLFImported id
+            externalMod =
+              case nameModule_maybe name of
+                Just mod -> mod
+                Nothing  -> error "getCgIdInfo: Not external name"
+        return . mkCgIdInfo id lf $ genClosureLoadCode externalMod name lf
+      else error "getCgIdInfo: Not external name"
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do

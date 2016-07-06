@@ -2,6 +2,7 @@ module Codec.JVM.ASM.Code where
 
 import Control.Monad.Trans.RWS (ask)
 import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
 import Data.ByteString (ByteString)
 import Data.Foldable (fold)
 import Data.List (foldl')
@@ -373,6 +374,10 @@ dconst d
   | otherwise = gldc ft $ cdouble d
   where ft = jdouble
         code = constCode ft
+
+sconst :: ByteString -> Code
+sconst = gldc ft . cstring . decodeUtf8
+  where ft = jString
 
 gldc :: FieldType -> Const -> Code
 gldc ft c = mkCode cs $ loadCode <> modifyStack (CF.push ft)

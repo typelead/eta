@@ -48,30 +48,33 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
+  mod <- getModule
   id' <- externaliseId dflags id
-  let (info, code) = cgTopRhs dflags NonRecursive id' rhs
+  let (info, code) = cgTopRhs dflags mod NonRecursive id' rhs
   code
   addBinding info
 
 cgTopBinding dflags (StgRec pairs) = do
+  mod <- getModule
   let (binders, rhss) = unzip pairs
   binders' <- mapM (externaliseId dflags) binders
   let pairs' = zip binders' rhss
-      r = unzipWith (cgTopRhs dflags Recursive) pairs'
+      r = unzipWith (cgTopRhs dflags mod Recursive) pairs'
       (infos, codes) = unzip r
   addBindings infos
   sequence_ codes
 
-cgTopRhs :: DynFlags -> RecFlag -> Id -> StgRhs -> (CgIdInfo, CodeGen ())
-cgTopRhs dflags _ binder (StgRhsCon _ con args) =
-  cgTopRhsCon dflags binder con args
+cgTopRhs :: DynFlags -> Module -> RecFlag -> Id -> StgRhs -> (CgIdInfo, CodeGen ())
+cgTopRhs dflags mod _ binder (StgRhsCon _ con args) =
+  cgTopRhsCon dflags mod binder con args
 
-cgTopRhs dflags recflag binder
+cgTopRhs dflags mod recflag binder
    (StgRhsClosure _ binderInfo freeVars updateFlag _ args body) =
   -- fvs should be empty
-  cgTopRhsClosure dflags recflag binder binderInfo updateFlag args body
+  cgTopRhsClosure dflags mod recflag binder binderInfo updateFlag args body
 
 cgTopRhsClosure :: DynFlags
+                -> Module
                 -> RecFlag              -- member of a recursive group?
                 -> Id
                 -> StgBinderInfo
@@ -79,9 +82,10 @@ cgTopRhsClosure :: DynFlags
                 -> [Id]                 -- Args
                 -> StgExpr
                 -> (CgIdInfo, CodeGen ())
-cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
+cgTopRhsClosure dflags mod recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lambdaFormInfo)
-  where cgIdInfo = mkCgIdInfo id lambdaFormInfo
+  where cgIdInfo = mkCgIdInfo id lambdaFormInfo $
+                     genClosureLoadCode mod (idName id) lambdaFormInfo
         lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
@@ -92,28 +96,29 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
           return ()
          -- A new inner class must be generated
 
--- Names are externalized so that we don't have to thread Modules through the entire program
+-- Due to the new CodeGen monad storing the module and making it easy
+-- to access, this is just returns the id without modification
 externaliseId :: DynFlags -> Id -> CodeGen Id
-externaliseId dflags id
-  | isInternalName name = do
-      mod <- asks cgModule
-      return . setIdName id
-             $ externalise mod
-  | otherwise           = return id
-  where
-    externalise mod = mkExternalName uniq mod new_occ loc
-    name    = idName id
-    uniq    = nameUnique name
-    new_occ = mkLocalOcc uniq $ nameOccName name
-    loc     = nameSrcSpan name
+externaliseId dflags = return
+  -- | isInternalName name = do
+  --     mod <- asks cgModule
+  --     return . setIdName id
+  --            $ externalise mod
+  -- | otherwise           = return id
+  -- where
+  --   externalise mod = mkExternalName uniq mod new_occ loc
+  --   name    = idName id
+  --   uniq    = nameUnique name
+  --   new_occ = mkLocalOcc uniq $ nameOccName name
+  --   loc     = nameSrcSpan name
 
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = do
   let dataCons = tyConDataCons tyCon
   unless (null dataCons) $ do
-    typeClass <- newTypeClosure (  nameTypeText
-                                  . tyConName
-                                  $ tyCon) stgConstr
+    typeClass <- newTypeClosure ( nameTypeText
+                                . tyConName
+                                $ tyCon) stgConstr
     mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
