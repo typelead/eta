@@ -125,16 +125,7 @@ cgDataCon typeClass dataCon = do
   if isNullaryRepDataCon dataCon then do
       newExportedClosure dataConClassName typeClass $
         defineMethod $ mkDefaultConstructor thisClass typeClass
-      let staticClosureName = closure dataConClassName
-      defineField $ mkFieldDef [Public, Static, Final] staticClosureName thisFt
-      modClass <- getModClass
-      addInitStep $ fold
-        [
-          new thisClass,
-          dup thisFt,
-          invokespecial $ mkMethodRef thisClass "<init>" [] Code.void,
-          putstatic $ mkFieldRef modClass staticClosureName thisFt
-        ]
+      return ()
   else
     do let initCode :: Code
            initCode = fold . flip map indexedFields $ \(i, ft) ->
