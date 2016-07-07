@@ -9,9 +9,7 @@ module GHCVM.CodeGen.Types
    CgBindings,
    isRec,
    isNonRec,
-   genClosureLoadCode,
    mkCgIdInfo,
-   lfFieldType,
    unsafeStripNV,
    getNonVoids)
 where
@@ -155,16 +153,6 @@ isRec NonRecursive = False
 isNonRec :: RecFlag -> Bool
 isNonRec Recursive    = False
 isNonRec NonRecursive = True
-
--- TODO: Refine this
-lfFieldType :: LambdaFormInfo -> FieldType
-lfFieldType _ = closureType
-
-genClosureLoadCode :: Module -> Name -> LambdaFormInfo -> Code
-genClosureLoadCode mod name lf = getstatic $ mkFieldRef modClass closureName ft
-  where closureName = closure $ nameText name
-        ft          = lfFieldType lf
-        modClass    = moduleJavaClass mod
 
 getNonVoids :: [(Maybe FieldType, a)] -> [NonVoid a]
 getNonVoids = mapMaybe (\(mft, val) -> case mft of

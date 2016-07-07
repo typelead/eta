@@ -16,6 +16,7 @@ thunk = merge (rts "thunk")
 stg = merge (rts "stg")
 
 closureType = obj stgClosure
+indStaticType = obj stgIndStatic
 
 stgConstr, stgClosure, stgInd, stgIndStatic, stgThunk, stgFun :: Text
 stgConstr = stg "StgConstr"

@@ -7,7 +7,7 @@ import ghcvm.runtime.apply.Void;
 import ghcvm.runtime.apply.ApV;
 import static ghcvm.runtime.RtsMessages.barf;
 
-public abstract class StgThunk extends StgClosure {
+public class StgThunk extends StgClosure {
     public volatile StgClosure indirectee;
 
     public StgThunk() {

@@ -24,6 +24,7 @@ import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
+import GHCVM.CodeGen.Env
 
 import Codec.JVM hiding (void)
 import qualified Codec.JVM as Code
@@ -88,7 +89,19 @@ cgTopRhsClosure dflags mod recflag id binderInfo updateFlag args body
         lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
-          = undefined -- TODO: code . emitClosure id $ IndStatic f
+          = do cgInfo <- getCgIdInfo f
+               let loadCode = idInfoLoadCode cgInfo
+               defineField $ mkFieldDef [Public, Static, Final] (cgClosureName cgIdInfo) indStaticType
+               addInitStep $ fold
+                 [
+                   new stgIndStatic,
+                   dup indStaticType,
+                   loadCode,
+                   invokespecial $ mkMethodRef stgIndStatic "<init>"
+                     [closureType] Code.void,
+                   putstatic $ mkFieldRef (cgModuleClass cgIdInfo)
+                     (cgClosureName cgIdInfo) indStaticType
+                 ]
         genCode dflags lf = do
           let name = idName id
           mod <- getModule

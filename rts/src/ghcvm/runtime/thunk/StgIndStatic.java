@@ -7,7 +7,15 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.util.UnsafeUtil;
 import ghcvm.runtime.thunk.StgWhiteHole;
 
-public abstract class StgIndStatic extends StgThunk {
+public class StgIndStatic extends StgThunk {
+
+    public StgIndStatic() {
+        super();
+    }
+
+    public StgIndStatic(StgClosure indirectee) {
+        super(indirectee);
+    }
 
     @Override
     public void enter(StgContext context) {

@@ -6,7 +6,7 @@ import ghcvm.runtime.apply.Void;
 import ghcvm.runtime.message.MessageBlackHole;
 import static ghcvm.runtime.RtsMessages.barf;
 
-public abstract class StgClosure {
+public class StgClosure {
 
     public void enter(StgContext context) {
         context.R(1, this);
