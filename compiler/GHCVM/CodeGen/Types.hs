@@ -1,16 +1,23 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module GHCVM.CodeGen.Types
-  (TopLevelFlag(..), RepArity,
+  (TopLevelFlag(..),
+   RepArity,
+   CgLoc,
    CgIdInfo(..),
    NonVoid(..),
    LambdaFormInfo(..),
    StandardFormInfo(..),
    ArgDescr(..),
    RecFlag(..),
+   Sequel(..),
+   SelfLoopInfo,
    CgBindings,
+   loadLoc,
    isRec,
    isNonRec,
    mkCgIdInfo,
    unsafeStripNV,
+   getJavaInfo,
    getNonVoids)
 where
 
@@ -31,41 +38,72 @@ import GHCVM.CodeGen.Rts
 import Data.Maybe
 import Data.Text (Text)
 
+-- TODO: Select appropriate fields
+type SelfLoopInfo = (Id, Int)
+
+data Sequel
+  = Return
+  | AssignTo [CgLoc]
+
+data CgLoc = LocLocal FieldType !Int
+           | LocStatic FieldType Text Text
+
+loadLoc :: CgLoc -> Code
+loadLoc (LocLocal ft n) = gload ft n
+loadLoc (LocStatic ft modClass clName) =
+  getstatic $ mkFieldRef modClass clNameWithSuffix ft
+  where clNameWithSuffix = closure clName
+
 type CgBindings = IdEnv CgIdInfo
 
-data CgIdInfo = CgIdInfo {
-  cgId :: Id,
-  cgLambdaForm :: LambdaFormInfo,
-  cgModuleClass :: Text,
-  cgClosureName :: Text,
-  cgClosureClass :: Text,
-  cgFieldType :: FieldType }
+data CgIdInfo =
+  CgIdInfo { cgId         :: Id,
+             cgLambdaForm :: LambdaFormInfo,
+             cgLocation   :: CgLoc }
 
-mkCgIdInfo :: Module -> Id -> LambdaFormInfo -> CgIdInfo
-mkCgIdInfo curMod id lambdaFormInfo = CgIdInfo {
-  cgId = id,
-  cgLambdaForm = lambdaFormInfo,
-  cgModuleClass = modClass,
-  cgClosureName = closure closureId,
-  cgClosureClass = closureClass,
-  cgFieldType = obj closureClass }
-  -- TODO: Populate cgClosureClass with Nothing for certain lambda forms
+splitStaticLoc :: CgLoc -> (Text, Text)
+splitStaticLoc (LocStatic ft modClass clName) = (modClass, clName)
+splitStaticLoc _ = error $ "splitStaticLoc: Not LocStatic"
+
+getJavaInfo :: CgIdInfo -> (Text, Text, Text)
+getJavaInfo CgIdInfo { cgLocation, cgLambdaForm } = (modClass, clName, clClass)
+  where (modClass, clName) = splitStaticLoc cgLocation
+        -- TODO: Reduce duplication
+        clClass = fromMaybe (qualifiedName modClass clName)
+                            $ maybeDataConClass cgLambdaForm
+
+maybeDataConClass :: LambdaFormInfo -> Maybe Text
+maybeDataConClass lfInfo =
+  case lfInfo of
+    LFCon dataCon ->
+      let dataName = dataConName dataCon
+          dataClass = nameText dataName
+          -- TODO: Most likely this will fail for same module data cons
+          -- Maybe externalize the data con name?
+          dataModuleClass = moduleJavaClass
+                          . fromMaybe (error "Failed")
+                          $ nameModule_maybe dataName
+      in Just $ qualifiedName dataModuleClass dataClass
+    _ -> Nothing
+
+
+mkCgIdInfo :: Id -> LambdaFormInfo -> CgIdInfo
+mkCgIdInfo id lfInfo =
+  CgIdInfo { cgId = id
+           , cgLambdaForm = lfInfo
+           , cgLocation = loc }
+  where loc = mkStaticLoc id lfInfo
+        mod = nameModule . idName $ id
+
+mkStaticLoc :: Id -> LambdaFormInfo -> CgLoc
+mkStaticLoc id lfInfo = LocStatic (obj clClass) modClass clName
   where name = idName id
-        mod = fromMaybe curMod
-            $ nameModule_maybe name
-        closureId = nameText name
+        mod = nameModule name
+        clName = nameText name
         modClass = moduleJavaClass mod
-        closureClass = case lambdaFormInfo of
-          LFCon dataCon ->
-            let dataName = dataConName dataCon
-                dataClass = nameText dataName
-                dataModuleClass = moduleJavaClass
-                              -- TODO: Most likely this will fail for same module data cons
-                              -- Maybe externalize the data con name?
-                              . fromMaybe curMod
-                              $ nameModule_maybe dataName
-            in qualifiedName dataModuleClass dataClass
-          _ -> qualifiedName modClass closureId
+        -- TODO: Reduce duplication
+        clClass = fromMaybe (qualifiedName modClass clName)
+                            $ maybeDataConClass lfInfo
 
 type Liveness = [Bool]   -- One Bool per word; True  <=> non-ptr or dead
 

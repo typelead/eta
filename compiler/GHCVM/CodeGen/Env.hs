@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module GHCVM.CodeGen.Env where
 
 import StgSyn
@@ -15,5 +16,4 @@ loadArgCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var
 loadArgCode (NonVoid (StgLitArg literal)) = return $ cgLit literal
 
 idInfoLoadCode :: CgIdInfo -> Code
-idInfoLoadCode CgIdInfo {..} =
-  getstatic $ mkFieldRef cgModuleClass cgClosureName cgFieldType
+idInfoLoadCode CgIdInfo { cgLocation } = loadLoc cgLocation

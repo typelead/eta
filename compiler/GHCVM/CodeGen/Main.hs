@@ -51,7 +51,7 @@ cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
   mod <- getModule
   id' <- externaliseId dflags id
-  let (info, code) = cgTopRhs dflags mod NonRecursive id' rhs
+  let (info, code) = cgTopRhs dflags NonRecursive id' rhs
   code
   addBinding info
 
@@ -60,22 +60,21 @@ cgTopBinding dflags (StgRec pairs) = do
   let (binders, rhss) = unzip pairs
   binders' <- mapM (externaliseId dflags) binders
   let pairs'         = zip binders' rhss
-      r              = unzipWith (cgTopRhs dflags mod Recursive) pairs'
+      r              = unzipWith (cgTopRhs dflags Recursive) pairs'
       (infos, codes) = unzip r
   addBindings infos
   sequence_ codes
 
-cgTopRhs :: DynFlags -> Module -> RecFlag -> Id -> StgRhs -> (CgIdInfo, CodeGen ())
-cgTopRhs dflags mod _ binder (StgRhsCon _ con args) =
-  cgTopRhsCon dflags mod binder con args
+cgTopRhs :: DynFlags -> RecFlag -> Id -> StgRhs -> (CgIdInfo, CodeGen ())
+cgTopRhs dflags _ binder (StgRhsCon _ con args) =
+  cgTopRhsCon dflags binder con args
 
-cgTopRhs dflags mod recflag binder
+cgTopRhs dflags recflag binder
    (StgRhsClosure _ binderInfo freeVars updateFlag _ args body) =
   -- fvs should be empty
-  cgTopRhsClosure dflags mod recflag binder binderInfo updateFlag args body
+  cgTopRhsClosure dflags recflag binder binderInfo updateFlag args body
 
 cgTopRhsClosure :: DynFlags
-                -> Module
                 -> RecFlag              -- member of a recursive group?
                 -> Id
                 -> StgBinderInfo
@@ -83,15 +82,17 @@ cgTopRhsClosure :: DynFlags
                 -> [Id]                 -- Args
                 -> StgExpr
                 -> (CgIdInfo, CodeGen ())
-cgTopRhsClosure dflags mod recflag id binderInfo updateFlag args body
+cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lambdaFormInfo)
-  where cgIdInfo = mkCgIdInfo mod id lambdaFormInfo
+  where cgIdInfo = mkCgIdInfo id lambdaFormInfo
         lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
+        (modClass, clName, clClass) = getJavaInfo cgIdInfo
+        qClName = closure clName
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
                let loadCode = idInfoLoadCode cgInfo
-               defineField $ mkFieldDef [Public, Static, Final] (cgClosureName cgIdInfo) indStaticType
+               defineField $ mkFieldDef [Public, Static, Final] qClName indStaticType
                addInitStep $ fold
                  [
                    new stgIndStatic,
@@ -99,8 +100,7 @@ cgTopRhsClosure dflags mod recflag id binderInfo updateFlag args body
                    loadCode,
                    invokespecial $ mkMethodRef stgIndStatic "<init>"
                      [closureType] Code.void,
-                   putstatic $ mkFieldRef (cgModuleClass cgIdInfo)
-                     (cgClosureName cgIdInfo) indStaticType
+                   putstatic $ mkFieldRef modClass qClName indStaticType
                  ]
         genCode dflags lf = do
           let name = idName id

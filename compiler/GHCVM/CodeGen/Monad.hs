@@ -44,17 +44,21 @@ import GHCVM.CodeGen.Name
 data CgEnv =
   CgEnv { cgQClassName :: !Text
         , cgModule     :: !Module
-        , cgDynFlags   :: !DynFlags }
+        , cgDynFlags   :: !DynFlags
+        , cgSequel     :: !Sequel
+        , cgSelfLoop   :: !(Maybe SelfLoopInfo) }
 
 data CgState =
   CgState { cgBindings         :: !CgBindings
           , cgCompiledClosures :: ![ClassFile]
-          , cgClassInitCode    :: !Code
-            -- Related to class file generation
-          , cgMethodDefs       :: ![MethodDef]
-          , cgFieldDefs        :: ![FieldDef]
-          , cgClassName        :: !Text
-          , cgSuperClassName   :: !(Maybe Text) }
+          -- Top-level definitions
+          , cgMethodDefs     :: ![MethodDef]
+          , cgFieldDefs      :: ![FieldDef]
+          , cgClassName      :: !Text
+          , cgSuperClassName :: !(Maybe Text)
+          , cgClassInitCode  :: !Code
+          -- Current method
+          , cgCode           :: !Code }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -74,17 +78,22 @@ instance Applicative CodeGen where
   (<*>) = ap
 
 instance Monad CodeGen where
+  {-# INLINE return #-}
   return x = CG $ \_ s -> return (s, x)
+  {-# INLINE (>>=) #-}
   m >>= f = CG $ \e s -> do
       (!s0, !x) <- unCG m e s
       unCG (f x) e s0
 
 instance MonadState CgState CodeGen where
+  {-# INLINE state #-}
   state action = CG $ \_ s -> case action s of
     (!a, !s') -> return (s', a)
 
 instance MonadReader CgEnv CodeGen where
+  {-# INLINE ask #-}
   ask = CG $ \env s -> return (s, env)
+  {-# INLINE local #-}
   local f action = CG $ \env s -> unCG action (f env) s
 
 instance HasModule CodeGen where
@@ -94,14 +103,18 @@ instance HasDynFlags CodeGen where
   getDynFlags = asks cgDynFlags
 
 instance MonadIO CodeGen where
+  {-# INLINE liftIO #-}
   liftIO io = CG $ \_ s -> io >>= (\a -> return (s, a))
 
 initCg :: DynFlags -> Module -> (CgEnv, CgState)
 initCg dflags mod =
   (CgEnv   { cgModule           = mod
            , cgQClassName       = className
-           , cgDynFlags         = dflags },
+           , cgDynFlags         = dflags
+           , cgSequel           = Return
+           , cgSelfLoop         = Nothing },
    CgState { cgBindings         = emptyVarEnv
+           , cgCode             = mempty
            , cgMethodDefs       = []
            , cgFieldDefs        = []
            , cgClassInitCode    = mempty
@@ -129,9 +142,10 @@ getCgIdInfo id = do
     Just info -> return info
     Nothing -> do
       let name = idName id
-      if isExternalName name then do
-        curMod <- getModule
-        return $ mkCgIdInfo curMod id (mkLFImported id)
+      let mod = nameModule name
+      curMod <- getModule
+      if mod /= curMod then
+        return . mkCgIdInfo id $ mkLFImported id
       else
         error "getCgIdInfo: Not external name"
 

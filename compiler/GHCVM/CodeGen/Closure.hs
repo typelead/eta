@@ -94,6 +94,7 @@ mkLFImported id
 
 mkLFArgument :: Id -> LambdaFormInfo
 mkLFArgument id
+  -- TODO: Override isUnLiftedType to include the new prim types
   | isUnLiftedType ty      = LFUnLifted
   | maybeFunction ty       = LFUnknown True
   | otherwise              = LFUnknown False

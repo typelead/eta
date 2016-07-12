@@ -11,31 +11,32 @@ import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Env
+import GHCVM.CodeGen.Name
 import Data.Foldable (fold)
 import Codec.JVM
 import Data.Maybe(catMaybes)
 
 cgTopRhsCon :: DynFlags
-            -> Module
             -> Id               -- Name of thing bound to this RHS
             -> DataCon          -- Id
             -> [StgArg]         -- Args
             -> (CgIdInfo, CodeGen ())
-cgTopRhsCon dflags mod id dataCon args = (cgIdInfo, genCode)
-  where cgIdInfo@CgIdInfo {..} = mkCgIdInfo mod id lambdaFormInfo
-        lambdaFormInfo = mkConLFInfo dataCon
+cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
+  where cgIdInfo = mkCgIdInfo id lfInfo
+        lfInfo = mkConLFInfo dataCon
         maybeFields = repFieldTypeMaybes $ dataConRepArgTys dataCon
         fields = catMaybes maybeFields
-        dataFt = cgFieldType
-        dataClass = cgClosureClass
+        (modClass, clName, dataClass) = getJavaInfo cgIdInfo
+        qClName = closure clName
+        dataFt = obj dataClass
         genCode = do
           loads <- mapM loadArgCode .  getNonVoids $ zip maybeFields args
-          defineField $ mkFieldDef [Public, Static, Final] cgClosureName dataFt
+          defineField $ mkFieldDef [Public, Static, Final] qClName dataFt
           addInitStep $ fold
             [
               new dataClass,
               dup dataFt,
               fold loads,
               invokespecial $ mkMethodRef dataClass "<init>" fields void,
-              putstatic $ mkFieldRef cgModuleClass cgClosureName dataFt
+              putstatic $ mkFieldRef modClass qClName dataFt
             ]
