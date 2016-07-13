@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, NamedFieldPuns #-}
 module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
@@ -19,8 +19,9 @@ module GHCVM.CodeGen.Monad
    newClosure,
    classFromCgState,
    runCodeGen,
-   addInitStep
-  ) where
+   addInitStep,
+   forkClosureBody)
+where
 
 import DynFlags
 import Module
@@ -52,6 +53,8 @@ data CgState =
   CgState { cgBindings         :: !CgBindings
           , cgCompiledClosures :: ![ClassFile]
           -- Top-level definitions
+          , cgAccessFlags    :: [AccessFlag
+                                ]
           , cgMethodDefs     :: ![MethodDef]
           , cgFieldDefs      :: ![FieldDef]
           , cgClassName      :: !Text
@@ -115,6 +118,7 @@ initCg dflags mod =
            , cgSelfLoop         = Nothing },
    CgState { cgBindings         = emptyVarEnv
            , cgCode             = mempty
+           , cgAccessFlags      = [Public, Super]
            , cgMethodDefs       = []
            , cgFieldDefs        = []
            , cgClassInitCode    = mempty
@@ -191,14 +195,14 @@ newExportedClosure, newHiddenClosure
   :: Text
   -> Text
   -> CodeGen ()
-  -> CodeGen Text
+  -> CodeGen CgState
 newExportedClosure = newClosure [Public]
 newHiddenClosure = newClosure [Private]
 
 newTypeClosure
   :: Text
   -> Text
-  -> CodeGen Text
+  -> CodeGen CgState
 newTypeClosure thisClass superClass =
   newClosure [Public, Abstract] thisClass superClass $
     defineMethod $ mkDefaultConstructor thisClass superClass
@@ -208,28 +212,48 @@ newClosure
   -> Text
   -> Text
   -> CodeGen ()
-  -> CodeGen Text
-newClosure accessFlags className superClassName genCode = do
-  state0 <- get
+  -> CodeGen CgState
+newClosure accessFlags clName superClassName genCode =
+  newClosureGeneric $ do
+    setAccessFlags accessFlags
+    setClosureClass clName
+    setSuperClass superClassName
+    genCode
+
+setAccessFlags :: [AccessFlag] -> CodeGen ()
+setAccessFlags accessFlags = modify $ \s -> s { cgAccessFlags = accessFlags }
+
+setSuperClass :: Text -> CodeGen ()
+setSuperClass superClassName =
+  modify $ \s -> s { cgSuperClassName = Just superClassName }
+
+setClosureClass :: Text -> CodeGen ()
+setClosureClass clName = do
   modClass <- getModClass
-  let qclassName = qualifiedName modClass className
-  -- TODO: Address how to deal with cgClassInitCode and cgBindings
-  modify $ \s -> s { cgMethodDefs = [],
-                     cgFieldDefs = [],
-                     cgClassName = qclassName,
-                     cgSuperClassName = Just superClassName,
-                     cgCompiledClosures = []}
+  let qClName = qualifiedName modClass clName
+  modify $ \s -> s { cgClassName = qClName }
+
+newClosureGeneric :: CodeGen () -> CodeGen CgState
+newClosureGeneric genCode = do
+  state0 <- get
+  -- TODO: Ensure the proper state is reset.
+  modify $ \s -> s { cgAccessFlags = []
+                   , cgMethodDefs = []
+                   , cgFieldDefs = []
+                   , cgClassName = mempty
+                   , cgSuperClassName = Nothing
+                   , cgCompiledClosures = [] }
   genCode
-  state1@CgState {..} <- get
-  let compiledClosure = classFromCgState accessFlags state1
+  state1@CgState { cgCompiledClosures } <- get
+  let compiledClosure = classFromCgState state1
   -- TODO: Ensure the state is restored properly
   put state0
   mergeCompiledClosures (compiledClosure : cgCompiledClosures)
-  return qclassName
+  return state1
 
-classFromCgState :: [AccessFlag] -> CgState -> ClassFile
-classFromCgState accessFlags CgState {..} =
-  mkClassFile java7 accessFlags cgClassName cgSuperClassName
+classFromCgState :: CgState -> ClassFile
+classFromCgState CgState {..} =
+  mkClassFile java7 cgAccessFlags cgClassName cgSuperClassName
     cgFieldDefs cgMethodDefs
 
 runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
@@ -247,10 +271,20 @@ runCodeGen env state codeGenAction = do
   --       are added to the constant pool
   let compiledModuleClass =
         addInnerClasses cgCompiledClosures $
-          classFromCgState [Public, Super] state'
+          classFromCgState state'
 
   return (compiledModuleClass : cgCompiledClosures)
 
 addInitStep :: Code -> CodeGen ()
 addInitStep code = modify $ \s@CgState{..} ->
   s { cgClassInitCode = cgClassInitCode <> code }
+
+forkClosureBody :: CodeGen () -> CodeGen ()
+forkClosureBody genAction = do
+  local (\env -> env { cgSequel = Return
+                     , cgSelfLoop = Nothing })
+       $ newClosureGeneric genAction
+  return ()
+
+
+

@@ -83,9 +83,9 @@ cgTopRhsClosure :: DynFlags
                 -> StgExpr
                 -> (CgIdInfo, CodeGen ())
 cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
-  = (cgIdInfo, genCode dflags lambdaFormInfo)
-  where cgIdInfo = mkCgIdInfo id lambdaFormInfo
-        lambdaFormInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
+  = (cgIdInfo, genCode dflags lfInfo)
+  where cgIdInfo = mkCgIdInfo id lfInfo
+        lfInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
         (modClass, clName, clClass) = getJavaInfo cgIdInfo
         qClName = closure clName
         genCode dflags _
@@ -103,10 +103,9 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                    putstatic $ mkFieldRef modClass qClName indStaticType
                  ]
         genCode dflags lf = do
-          let name = idName id
-          mod <- getModule
+          forkClosureBody $ return ()
+          --  closureCodeBody True id lfInfo (nonVoidIds args) (length args) body []
           return ()
-         -- A new inner class must be generated
 
 -- Simplifies the code if the mod is associated to the Id
 externaliseId :: DynFlags -> Id -> CodeGen Id
@@ -121,13 +120,11 @@ externaliseId dflags id
     loc     = nameSrcSpan name
 
 cgTyCon :: TyCon -> CodeGen ()
-cgTyCon tyCon = do
-  let dataCons = tyConDataCons tyCon
-  unless (null dataCons) $ do
-    typeClass <- newTypeClosure ( nameTypeText
-                                . tyConName
-                                $ tyCon) stgConstr
-    mapM_ (cgDataCon typeClass) (tyConDataCons tyCon)
+cgTyCon tyCon = unless (null dataCons) $ do
+    CgState {..} <- newTypeClosure tyConClass stgConstr
+    mapM_ (cgDataCon cgClassName) (tyConDataCons tyCon)
+  where tyConClass = nameTypeText . tyConName $ tyCon
+        dataCons = tyConDataCons tyCon
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do
