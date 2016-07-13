@@ -3,6 +3,8 @@ module GHCVM.CodeGen.Monad
    CgState(..),
    CodeGen(..),
    initCg,
+   setSuperClass,
+   withMethod,
    getModClass,
    addBinding,
    addBindings,
@@ -32,11 +34,12 @@ import Data.Monoid((<>))
 import Data.List
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
-import Control.Monad.State
-import Control.Monad.Reader
+import Control.Monad (liftM, ap)
+import Control.Monad.State (MonadState(..), get, gets, modify)
+import Control.Monad.Reader (MonadReader(..), ask, asks, local)
+import Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy as B
-import Codec.JVM hiding (void)
-import qualified Codec.JVM as Code
+import Codec.JVM
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
@@ -125,6 +128,15 @@ initCg dflags mod =
            , cgCompiledClosures = []
            , cgSuperClassName   = Nothing })
   where className = moduleJavaClass mod
+
+getMethodCode :: CodeGen Code
+getMethodCode = gets cgCode
+
+setMethodCode :: Code -> CodeGen ()
+setMethodCode code = modify $ \s -> s { cgCode = code }
+
+getClass :: CodeGen Text
+getClass = gets cgClassName
 
 getModClass :: CodeGen Text
 getModClass = asks cgQClassName
@@ -262,7 +274,7 @@ runCodeGen env state codeGenAction = do
         modClass <- getModClass
         initCode <- getInitCode
         defineMethod $ mkMethodDef modClass
-          [Public, Static] "<clinit>" [] Code.void (initCode <> vreturn)
+          [Public, Static] "<clinit>" [] void (initCode <> vreturn)
 
   (state'@CgState {..}, _) <- unCG codeGenActionPlus env state
 
@@ -284,5 +296,15 @@ forkClosureBody genAction =
                      , cgSelfLoop = Nothing })
        $ newClosureGeneric genAction
 
-
+withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () -> CodeGen MethodDef
+withMethod accessFlags name fts rt body = do
+  oldCode <- getMethodCode
+  setMethodCode mempty
+  body
+  clsName <- getClass
+  newCode <- getMethodCode
+  let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
+  defineMethod methodDef
+  setMethodCode oldCode
+  return methodDef
 

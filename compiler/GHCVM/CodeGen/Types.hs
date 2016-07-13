@@ -19,7 +19,8 @@ module GHCVM.CodeGen.Types
    nonVoidIds,
    getJavaInfo,
    getNonVoids,
-   isLFThunk)
+   isLFThunk,
+   lfStaticThunk)
 where
 
 import Id
@@ -163,6 +164,10 @@ isLFThunk :: LambdaFormInfo -> Bool
 isLFThunk LFThunk {} = True
 isLFThunk _          = False
 
+lfStaticThunk :: LambdaFormInfo -> Bool
+lfStaticThunk (LFThunk topLevel _ _ _ _) = isTopLevel topLevel
+lfStaticThunk _ = False
+
 -------------------------------------
 --        Non-void types
 -------------------------------------
@@ -182,6 +187,10 @@ nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidJRep (idJPrimRep id))]
 data TopLevelFlag
   = TopLevel
   | NotTopLevel
+
+isTopLevel :: TopLevelFlag -> Bool
+isTopLevel TopLevel = True
+isTopLevel _ = False
 
 type RepArity = Int
 

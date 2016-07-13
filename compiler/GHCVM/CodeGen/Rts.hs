@@ -15,12 +15,16 @@ apply = merge (rts "apply")
 thunk = merge (rts "thunk")
 stg = merge (rts "stg")
 
+closureType, indStaticType, contextType :: FieldType
 closureType = obj stgClosure
 indStaticType = obj stgIndStatic
+contextType = obj stgContext
 
-stgConstr, stgClosure, stgInd, stgIndStatic, stgThunk, stgFun :: Text
+stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun
+  :: Text
 stgConstr = stg "StgConstr"
 stgClosure = stg "StgClosure"
+stgContext = stg "StgContext"
 stgInd = thunk "StgInd"
 stgIndStatic = thunk "StgIndStatic"
 stgThunk = thunk "StgThunk"

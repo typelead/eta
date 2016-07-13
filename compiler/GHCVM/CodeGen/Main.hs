@@ -26,15 +26,12 @@ import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Env
 
-import Codec.JVM hiding (void)
-import qualified Codec.JVM as Code
+import Codec.JVM
 
 import Data.Maybe (mapMaybe)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
-import Control.Monad.State
-import Control.Monad.Reader
-import Control.Monad
+import Control.Monad (unless)
 
 import Data.Text (Text, pack, cons, append)
 
@@ -100,7 +97,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                    dup indStaticType,
                    loadCode,
                    invokespecial $ mkMethodRef stgIndStatic "<init>"
-                     [closureType] Code.void,
+                     [closureType] void,
                    putstatic $ mkFieldRef modClass qClName indStaticType
                  ]
         genCode dflags lf = do
@@ -118,7 +115,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
             [
               new cgClassName,
               dup ft,
-              invokespecial $ mkMethodRef cgClassName "<init>" [] Code.void,
+              invokespecial $ mkMethodRef cgClassName "<init>" [] void,
               putstatic $ mkFieldRef modClass qClName ft
             ]
           return ()
