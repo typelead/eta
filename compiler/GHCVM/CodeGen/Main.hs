@@ -1,4 +1,3 @@
-{-# LANGUAGE NondecreasingIndentation #-}
 module GHCVM.CodeGen.Main where
 
 import Module
@@ -21,6 +20,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Monad
+import GHCVM.CodeGen.Bind
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
@@ -87,6 +87,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   where cgIdInfo = mkCgIdInfo id lfInfo
         lfInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
         (modClass, clName, clClass) = getJavaInfo cgIdInfo
+        isThunk = isLFThunk lfInfo
         qClName = closure clName
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
@@ -103,8 +104,23 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                    putstatic $ mkFieldRef modClass qClName indStaticType
                  ]
         genCode dflags lf = do
-          forkClosureBody $ return ()
-          --  closureCodeBody True id lfInfo (nonVoidIds args) (length args) body []
+          CgState { cgClassName } <- forkClosureBody $
+            closureCodeBody True id lfInfo
+                            (nonVoidIds args) (length args) body []
+
+          let ft = obj cgClassName
+          -- NOTE: Don't make thunks final so that they can be
+          --       replaced by their values by the GC
+          let flags = (if isThunk then [] else [Final]) ++ [Public, Static]
+          defineField $
+            mkFieldDef flags qClName ft
+          addInitStep $ fold
+            [
+              new cgClassName,
+              dup ft,
+              invokespecial $ mkMethodRef cgClassName "<init>" [] Code.void,
+              putstatic $ mkFieldRef modClass qClName ft
+            ]
           return ()
 
 -- Simplifies the code if the mod is associated to the Id

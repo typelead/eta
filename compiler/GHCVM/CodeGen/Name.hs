@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module GHCVM.CodeGen.Name (
   qualifiedName,
   fastStringToText,

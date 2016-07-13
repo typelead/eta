@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 module GHCVM.CodeGen.Types
   (TopLevelFlag(..),
    RepArity,
@@ -17,8 +16,10 @@ module GHCVM.CodeGen.Types
    isNonRec,
    mkCgIdInfo,
    unsafeStripNV,
+   nonVoidIds,
    getJavaInfo,
-   getNonVoids)
+   getNonVoids,
+   isLFThunk)
 where
 
 import Id
@@ -157,6 +158,10 @@ data LambdaFormInfo
                         -- always a value, needs evaluation
 
   | LFLetNoEscape       -- See LetNoEscape module for precise description
+
+isLFThunk :: LambdaFormInfo -> Bool
+isLFThunk LFThunk {} = True
+isLFThunk _          = False
 
 -------------------------------------
 --        Non-void types

@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns, NamedFieldPuns #-}
 module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
@@ -279,12 +278,11 @@ addInitStep :: Code -> CodeGen ()
 addInitStep code = modify $ \s@CgState{..} ->
   s { cgClassInitCode = cgClassInitCode <> code }
 
-forkClosureBody :: CodeGen () -> CodeGen ()
-forkClosureBody genAction = do
+forkClosureBody :: CodeGen () -> CodeGen CgState
+forkClosureBody genAction =
   local (\env -> env { cgSequel = Return
                      , cgSelfLoop = Nothing })
        $ newClosureGeneric genAction
-  return ()
 
 
 

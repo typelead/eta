@@ -19,8 +19,10 @@ source-repository head
 library
     default-language:    Haskell2010
     extensions:          RecordWildCards
+                       , NamedFieldPuns
                        , OverloadedStrings
                        , MultiParamTypeClasses
+                       , BangPatterns
     exposed-modules:     GHCVM.DriverPipeline
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
@@ -31,6 +33,7 @@ library
                        , GHCVM.CodeGen.Types
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Rts
+                       , GHCVM.CodeGen.Bind
                        , GHCVM.CodeGen.Con
                        , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse

@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 module GHCVM.CodeGen.Env where
 
 import StgSyn
