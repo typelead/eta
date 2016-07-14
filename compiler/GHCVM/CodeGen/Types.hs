@@ -15,6 +15,7 @@ module GHCVM.CodeGen.Types
    isRec,
    isNonRec,
    mkCgIdInfo,
+   mkCgIdInfoWithLoc,
    unsafeStripNV,
    nonVoidIds,
    getJavaInfo,
@@ -39,6 +40,7 @@ import GHCVM.CodeGen.Rts
 
 import Data.Maybe
 import Data.Text (Text)
+import Data.Monoid ((<>))
 
 -- TODO: Select appropriate fields
 type SelfLoopInfo = (Id, Int)
@@ -56,6 +58,9 @@ loadLoc (LocLocal ft n) = gload ft n
 loadLoc (LocStatic ft modClass clName) =
   getstatic $ mkFieldRef modClass clNameWithSuffix ft
   where clNameWithSuffix = closure clName
+loadLoc (LocField ft clClass fieldName) =
+     gload (obj clClass) 0
+  <> getfield (mkFieldRef clClass fieldName ft)
 
 type CgBindings = IdEnv CgIdInfo
 
@@ -97,6 +102,12 @@ mkCgIdInfo id lfInfo =
            , cgLocation = loc }
   where loc = mkStaticLoc id lfInfo
         mod = nameModule . idName $ id
+
+mkCgIdInfoWithLoc :: Id -> LambdaFormInfo -> CgLoc -> CgIdInfo
+mkCgIdInfoWithLoc id lfInfo cgLoc =
+  CgIdInfo { cgId = id
+           , cgLambdaForm = lfInfo
+           , cgLocation = cgLoc }
 
 mkStaticLoc :: Id -> LambdaFormInfo -> CgLoc
 mkStaticLoc id lfInfo = LocStatic (obj clClass) modClass clName

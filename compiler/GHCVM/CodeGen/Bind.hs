@@ -7,6 +7,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Expr
+import GHCVM.CodeGen.Env
 import GHCVM.Util
 import Codec.JVM
 import Control.Monad (forM)
@@ -55,8 +56,12 @@ generateFVs fvs = do
 -- TODO: Implement eager blackholing
 thunkCode :: LambdaFormInfo -> [(NonVoid Id, CgLoc)] -> StgExpr -> CodeGen ()
 thunkCode lfInfo fvs body =
-  setupUpdate lfInfo $
+  setupUpdate lfInfo $ do
+    mapM_ bindFV fvs
     cgExpr body
+
+bindFV :: (NonVoid Id, CgLoc) -> CodeGen ()
+bindFV (id, cgLoc)= rebindId id cgLoc
 
 setupUpdate :: LambdaFormInfo -> CodeGen () -> CodeGen ()
 setupUpdate lfInfo body
