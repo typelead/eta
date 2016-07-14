@@ -4,6 +4,7 @@ module GHCVM.CodeGen.Monad
    CodeGen(..),
    initCg,
    setSuperClass,
+   setClosureClass,
    withMethod,
    getModClass,
    getClass,

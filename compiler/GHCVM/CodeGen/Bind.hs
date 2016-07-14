@@ -8,12 +8,14 @@ import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Expr
 import GHCVM.CodeGen.Env
+import GHCVM.CodeGen.Name
 import GHCVM.Util
 import Codec.JVM
 import Control.Monad (forM)
 import Data.Text (append, pack)
 import Data.Foldable (fold)
 import Data.Maybe (mapMaybe, maybe)
+import Data.Monoid ((<>))
 
 closureCodeBody
   :: Bool                  -- whether this is a top-level binding
@@ -24,11 +26,20 @@ closureCodeBody
   -> StgExpr               -- body
   -> [Id]                  -- the closure's free vars
   -> CodeGen ()
-closureCodeBody topLevel binder lfInfo args arity body fvs = do
+closureCodeBody topLevel id lfInfo args arity body fvs = do
+  setClosureClass $ idNameText id
   fvLocs <- generateFVs fvs
   if arity == 0 then
     thunkCode lfInfo fvLocs body
-  else
+  else do
+    setSuperClass stgFun
+    thisClass <- getClass
+    defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
+                 $  iconst jint (fromIntegral arity)
+                 <> greturn jint
+    withMethod [Public] "thunkEnter" [contextType] void $ do
+      mapM_ bindFV fvLocs
+      cgExpr body
     return ()
 
 generateFVs :: [Id] -> CodeGen [(NonVoid Id, CgLoc)]
