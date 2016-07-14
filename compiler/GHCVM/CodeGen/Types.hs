@@ -43,7 +43,7 @@ import Data.Text (Text)
 import Data.Monoid ((<>))
 
 -- TODO: Select appropriate fields
-type SelfLoopInfo = (Id, Int)
+type SelfLoopInfo = (Id, Int, [CgLoc])
 
 data Sequel
   = Return
@@ -52,6 +52,11 @@ data Sequel
 data CgLoc = LocLocal FieldType !Int
            | LocStatic FieldType Text Text
            | LocField FieldType Text Text
+
+locFt :: CgLoc -> FieldType
+locFt (LocLocal ft _) = ft
+locFt (LocStatic ft _ _) = ft
+locFt (LocField ft _ _) = ft
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal ft n) = gload ft n

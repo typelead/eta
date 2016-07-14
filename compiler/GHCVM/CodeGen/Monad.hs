@@ -7,7 +7,9 @@ module GHCVM.CodeGen.Monad
    setSuperClass,
    getSuperClass,
    setClosureClass,
+   withSelfLoop,
    withMethod,
+   getNextLocal,
    getModClass,
    getClass,
    addBinding,
@@ -68,7 +70,8 @@ data CgState =
           , cgClassName      :: !Text
           , cgSuperClassName :: !(Maybe Text)
           -- Current method
-          , cgCode           :: !Code }
+          , cgCode           :: !Code
+          , cgNextLocal      :: Int }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -131,11 +134,24 @@ initCg dflags mod =
            , cgClassInitCode    = mempty
            , cgClassName        = className
            , cgCompiledClosures = []
-           , cgSuperClassName   = Nothing })
+           , cgSuperClassName   = Nothing
+           , cgNextLocal        = 0 })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
 emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
+
+peekNextLocal :: CodeGen Int
+peekNextLocal = gets cgNextLocal
+
+getNextLocal :: CodeGen Int
+getNextLocal = do
+  next <- peekNextLocal
+  modify $ \s@CgState { cgNextLocal } -> s { cgNextLocal = cgNextLocal + 1}
+  return next
+
+setNextLocal :: Int -> CodeGen ()
+setNextLocal n = modify $ \s -> s { cgNextLocal = n }
 
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode
@@ -213,7 +229,7 @@ defineFields md = modify $ \s@CgState{..} ->
 newExportedClosure, newHiddenClosure
   :: Text
   -> Text
-  -> CodeGen ()
+  -> CodeGen a
   -> CodeGen CgState
 newExportedClosure = newClosure [Public, Super, Final]
 newHiddenClosure = newClosure [Private, Super, Final]
@@ -230,7 +246,7 @@ newClosure
   :: [AccessFlag]
   -> Text
   -> Text
-  -> CodeGen ()
+  -> CodeGen a
   -> CodeGen CgState
 newClosure accessFlags clName superClassName genCode =
   newClosureGeneric $ do
@@ -259,7 +275,7 @@ setClosureClass clName = do
 
 -- NOTE: Changes made to class generation state are forgotten after
 --       the body is executed
-newClosureGeneric :: CodeGen () -> CodeGen CgState
+newClosureGeneric :: CodeGen a -> CodeGen CgState
 newClosureGeneric genCode = do
   state0@CgState
     { cgAccessFlags = a
@@ -327,13 +343,20 @@ forkClosureBody body =
 withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () -> CodeGen MethodDef
 withMethod accessFlags name fts rt body = do
   oldCode <- getMethodCode
+  oldNextLocal <- peekNextLocal
   setMethodCode mempty
+  setNextLocal 2
   body
+  -- TODO: Remove this line after finishing cgExpr
   emit $ vreturn
   clsName <- getClass
   newCode <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
   defineMethod methodDef
   setMethodCode oldCode
+  setNextLocal oldNextLocal
   return methodDef
 
+withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
+withSelfLoop selfLoopInfo =
+  local (\env -> env { cgSelfLoop = Just selfLoopInfo })

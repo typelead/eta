@@ -37,9 +37,11 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
     defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
-    withMethod [Public] "enter" [contextType] void $ do
-      mapM_ bindFV fvLocs
-      cgExpr body
+    withMethod [Public] "enter" [contextType] void $
+      -- TODO: Account for non-zero offsets and non-empty args
+      withSelfLoop (id, 0, []) $ do
+        mapM_ bindFV fvLocs
+        cgExpr body
     return ()
   -- Generate constructor
   let thisFt = obj thisClass
