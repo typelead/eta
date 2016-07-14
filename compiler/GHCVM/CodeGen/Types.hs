@@ -85,7 +85,7 @@ maybeDataConClass lfInfo =
   case lfInfo of
     LFCon dataCon ->
       let dataName = dataConName dataCon
-          dataClass = nameText dataName
+          dataClass = nameDataText dataName
           -- TODO: Most likely this will fail for same module data cons
           -- Maybe externalize the data con name?
           dataModuleClass = moduleJavaClass

@@ -3,6 +3,7 @@ module GHCVM.CodeGen.Name (
   fastStringToText,
   nameText,
   nameTypeText,
+  nameDataText,
   idNameText,
   idClassText,
   moduleJavaClass,
@@ -33,6 +34,9 @@ fastStringToText = decodeUtf8 . fastStringToByteString
 
 nameTypeText :: Name -> Text
 nameTypeText = flip snoc 'T' . nameText
+
+nameDataText :: Name -> Text
+nameDataText = flip snoc 'D' . nameText
 
 nameText :: Name -> Text
 nameText = zEncodeText

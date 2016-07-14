@@ -2,8 +2,10 @@ module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
+   emit,
    initCg,
    setSuperClass,
+   getSuperClass,
    setClosureClass,
    withMethod,
    getModClass,
@@ -34,6 +36,7 @@ import Name
 
 import Data.Monoid((<>))
 import Data.List
+import Data.Maybe (fromJust)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
 import Control.Monad (liftM, ap)
@@ -131,6 +134,9 @@ initCg dflags mod =
            , cgSuperClassName   = Nothing })
   where className = moduleJavaClass mod
 
+emit :: Code -> CodeGen ()
+emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
+
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode
 
@@ -209,15 +215,15 @@ newExportedClosure, newHiddenClosure
   -> Text
   -> CodeGen ()
   -> CodeGen CgState
-newExportedClosure = newClosure [Public]
-newHiddenClosure = newClosure [Private]
+newExportedClosure = newClosure [Public, Super, Final]
+newHiddenClosure = newClosure [Private, Super, Final]
 
 newTypeClosure
   :: Text
   -> Text
   -> CodeGen CgState
 newTypeClosure thisClass superClass =
-  newClosure [Public, Abstract] thisClass superClass $
+  newClosure [Public, Abstract, Super] thisClass superClass $
     defineMethod $ mkDefaultConstructor thisClass superClass
 
 newClosure
@@ -240,6 +246,11 @@ setSuperClass :: Text -> CodeGen ()
 setSuperClass superClassName =
   modify $ \s -> s { cgSuperClassName = Just superClassName }
 
+-- NOTE: We make an assumption that we never directly derive from
+--       java.lang.Object
+getSuperClass :: CodeGen Text
+getSuperClass = fmap fromJust . gets $ cgSuperClassName
+
 setClosureClass :: Text -> CodeGen ()
 setClosureClass clName = do
   modClass <- getModClass
@@ -257,7 +268,7 @@ newClosureGeneric genCode = do
     , cgClassName = d
     , cgSuperClassName = e } <- get
   -- TODO: Ensure the proper state is reset.
-  modify $ \s -> s { cgAccessFlags = []
+  modify $ \s -> s { cgAccessFlags = [Public, Super, Final]
                    , cgMethodDefs = []
                    , cgFieldDefs = []
                    , cgClassName = mempty
@@ -318,6 +329,7 @@ withMethod accessFlags name fts rt body = do
   oldCode <- getMethodCode
   setMethodCode mempty
   body
+  emit $ vreturn
   clsName <- getClass
   newCode <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode

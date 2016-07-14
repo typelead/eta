@@ -13,6 +13,7 @@ import Name
 import OccName
 import DataCon
 import Util (unzipWith)
+import PrelNames (rOOT_MAIN)
 
 import GHCVM.Util
 import GHCVM.Primitive
@@ -122,15 +123,24 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
 
 -- Simplifies the code if the mod is associated to the Id
 externaliseId :: DynFlags -> Id -> CodeGen Id
-externaliseId dflags id
-  | isInternalName name = setIdName id . externalise <$> getModule
-  | otherwise           = return id
+externaliseId dflags id = do
+  mod <- getModule
+  return $
+    if isInternalName name then
+      setIdName id $ externalise mod
+    else if isExternalName name && nameModule name == rOOT_MAIN then
+      setIdName id $ internalise mod
+    else id
   where
-    externalise mod = mkExternalName uniq mod new_occ loc
-    name    = idName id
-    uniq    = nameUnique name
-    new_occ = mkLocalOcc uniq $ nameOccName name
-    loc     = nameSrcSpan name
+    internalise mod = mkExternalName uniq mod occ' loc
+      where occ' = mkOccName ns $ ":" ++ occNameString occ
+    externalise mod = mkExternalName uniq mod occ' loc
+      where occ' = mkLocalOcc uniq occ
+    name = idName id
+    uniq = nameUnique name
+    occ  = nameOccName name
+    loc  = nameSrcSpan name
+    ns   = occNameSpace occ
 
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
@@ -142,7 +152,7 @@ cgTyCon tyCon = unless (null dataCons) $ do
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do
   modClass <- getModClass
-  let dataConClassName = nameText . dataConName $ dataCon
+  let dataConClassName = nameDataText . dataConName $ dataCon
       thisClass = qualifiedName modClass dataConClassName
       thisFt = obj thisClass
   if isNullaryRepDataCon dataCon then do

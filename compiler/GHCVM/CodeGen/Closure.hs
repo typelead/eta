@@ -101,24 +101,5 @@ mkLFArgument id
   where
     ty = idType id
 
--- newClosureField :: (Generator e g)
---                 => B.ByteString
---                 -> String
---                 -> g e ()
---                 -> g e ()
--- newClosureField fieldName className initCode = newField [ACC_PUBLIC, ACC_STATIC] fieldName (ObjectType className) (Just initCode)
-
--- emitClosure :: Id -> ClosureRep -> GenerateIO e ()
--- emitClosure closureId (IndStatic id) =
---   newClosureField (idNameBS closureId) (BC.unpack indStaticObj) $ do
---     new indStaticObj
---     dup
---     getStaticField (idClassBS id) (NameType (idNameBS id)
---                                             (ObjectType (BC.unpack closureObj)))
---     invokeSpecial indStaticObj (NameType "<init>" (MethodSignature
---                                                    [obj (BC.unpack closureObj)]
---                                                    ReturnsVoid))
---   where indirectClosureBS = idNameBS id
-
 argJPrimRep :: StgArg -> JPrimRep
 argJPrimRep arg = typeJPrimRep (stgArgType arg)

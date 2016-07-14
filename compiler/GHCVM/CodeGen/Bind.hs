@@ -14,7 +14,7 @@ import Codec.JVM
 import Control.Monad (forM)
 import Data.Text (append, pack)
 import Data.Foldable (fold)
-import Data.Maybe (mapMaybe, maybe)
+import Data.Maybe (mapMaybe, maybe, fromJust)
 import Data.Monoid ((<>))
 
 closureCodeBody
@@ -28,21 +28,39 @@ closureCodeBody
   -> CodeGen ()
 closureCodeBody topLevel id lfInfo args arity body fvs = do
   setClosureClass $ idNameText id
-  fvLocs <- generateFVs fvs
+  (fvLocs, initCodes) <- generateFVs fvs
+  thisClass <- getClass
   if arity == 0 then
     thunkCode lfInfo fvLocs body
   else do
     setSuperClass stgFun
-    thisClass <- getClass
     defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
-    withMethod [Public] "thunkEnter" [contextType] void $ do
+    withMethod [Public] "enter" [contextType] void $ do
       mapM_ bindFV fvLocs
       cgExpr body
     return ()
+  -- Generate constructor
+  let thisFt = obj thisClass
+  let (fts, _) = unzip initCodes
+  let codes = flip concatMap (indexList initCodes) $ \(i, (ft, code)) ->
+        [
+          gload thisFt 0,
+          gload ft i,
+          code
+        ]
+  superClass <- getSuperClass
+  defineMethod . mkMethodDef thisClass [Public] "<init>" fts void $ fold
+    [
+       gload thisFt 0,
+       invokespecial $ mkMethodRef superClass "<init>" [] void,
+       fold codes,
+       vreturn
+    ]
+  return ()
 
-generateFVs :: [Id] -> CodeGen [(NonVoid Id, CgLoc)]
+generateFVs :: [Id] -> CodeGen ([(NonVoid Id, CgLoc)], [(FieldType, Code)])
 generateFVs fvs = do
   clClass <- getClass
   result <- forM (indexList nonVoidFvs) $ \(i, (nvId, ft)) -> do
@@ -50,16 +68,7 @@ generateFVs fvs = do
     defineField $ mkFieldDef [Public, Final] fieldName ft
     let code = putfield $ mkFieldRef clClass fieldName ft
     return ((nvId, LocField ft clClass fieldName), (ft, code))
-  let (results, initCodes) = unzip result
-  let thisFt = obj clClass
-  let codes = flip concatMap (indexList initCodes) $ \(i, (ft, code)) ->
-        [
-          gload thisFt 0,
-          gload ft i,
-          code
-        ]
-  defineMethod . mkMethodDef clClass [Public] "<init>" [] void $ fold codes
-  return results
+  return $ unzip result
   where nonVoidFvs = mapMaybe filterNonVoid fvs
         filterNonVoid fv = fmap (NonVoid fv,) ft
           where ft = repFieldType . idType $ fv
