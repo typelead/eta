@@ -24,7 +24,7 @@ cgTopRhsCon :: DynFlags
 cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
   where cgIdInfo = mkCgIdInfo id lfInfo
         lfInfo = mkConLFInfo dataCon
-        maybeFields = repFieldTypeMaybes $ dataConRepArgTys dataCon
+        maybeFields = map repFieldType $ dataConRepArgTys dataCon
         fields = catMaybes maybeFields
         (modClass, clName, dataClass) = getJavaInfo cgIdInfo
         qClName = closure clName

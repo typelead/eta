@@ -5,7 +5,7 @@ module GHCVM.CodeGen.ArgRep
    idJArgRep,
    primRepFieldType,
    repFieldTypes,
-   repFieldTypeMaybes
+   repFieldType,
   ) where
 
 import Id
@@ -94,12 +94,10 @@ primRepFieldType (JRepObject className) = Just $ obj className
 -- slowCallPattern (V64: _)              = (fsLit "stg_ap_v64", 1)
 -- slowCallPattern []                    = (fsLit "stg_ap_0", 0)
 
-repFieldTypeMaybes :: [Type] -> [Maybe FieldType]
-repFieldTypeMaybes tys = map primRepFieldType argReps
-  where argReps :: [JPrimRep]
-        argReps = [ typeJPrimRep repTy
-                  | ty     <- tys
-                  , repTy  <- flattenRepType (repType ty) ]
+-- NOTE: We assume that unboxed tuples won't occur
+repFieldType :: Type -> Maybe FieldType
+repFieldType ty = primRepFieldType . typeJPrimRep $ head flattened
+  where flattened = flattenRepType (repType ty)
 
 repFieldTypes :: [Type] -> [FieldType]
-repFieldTypes = catMaybes . repFieldTypeMaybes
+repFieldTypes = mapMaybe repFieldType

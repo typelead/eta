@@ -179,7 +179,7 @@ cgDataCon typeClass dataCon = do
                        indexedFields
 
            indexedFields :: [(Int, FieldType)]
-           indexedFields = zip [1..] fields
+           indexedFields = indexList fields
 
            numFields :: Int
            numFields = length fields

@@ -23,6 +23,7 @@ library
                        , OverloadedStrings
                        , MultiParamTypeClasses
                        , BangPatterns
+                       , TupleSections
     exposed-modules:     GHCVM.DriverPipeline
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
@@ -34,6 +35,7 @@ library
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Rts
                        , GHCVM.CodeGen.Bind
+                       , GHCVM.CodeGen.Expr
                        , GHCVM.CodeGen.Con
                        , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse

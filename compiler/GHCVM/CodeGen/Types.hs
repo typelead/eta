@@ -1,7 +1,7 @@
 module GHCVM.CodeGen.Types
   (TopLevelFlag(..),
    RepArity,
-   CgLoc,
+   CgLoc(..),
    CgIdInfo(..),
    NonVoid(..),
    LambdaFormInfo(..),
@@ -49,6 +49,7 @@ data Sequel
 
 data CgLoc = LocLocal FieldType !Int
            | LocStatic FieldType Text Text
+           | LocField FieldType Text Text
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal ft n) = gload ft n

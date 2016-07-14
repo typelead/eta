@@ -6,6 +6,7 @@ module GHCVM.CodeGen.Monad
    setSuperClass,
    withMethod,
    getModClass,
+   getClass,
    addBinding,
    addBindings,
    setBindings,
