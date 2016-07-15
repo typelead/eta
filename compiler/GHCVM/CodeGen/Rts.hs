@@ -30,3 +30,25 @@ stgInd = thunk "StgInd"
 stgIndStatic = thunk "StgIndStatic"
 stgThunk = thunk "StgThunk"
 stgFun = apply "StgFun"
+
+loadR :: Code
+loadR = contextLoadGeneric "R" closureType
+
+loadI :: Code
+loadI = contextLoadGeneric "I" jint
+
+loadL :: Code
+loadL = contextLoadGeneric "L" jlong
+
+loadF :: Code
+loadF = contextLoadGeneric "F" jfloat
+
+loadD :: Code
+loadD = contextLoadGeneric "D" jdouble
+
+loadO :: Code
+loadO = contextLoadGeneric "O" jobject
+
+contextLoadGeneric :: Text -> FieldType -> Code
+contextLoadGeneric name retType =
+  invokevirtual $ mkMethodRef stgContext name [jint] (ret retType)

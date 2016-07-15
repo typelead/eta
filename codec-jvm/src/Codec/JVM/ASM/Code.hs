@@ -290,7 +290,7 @@ gstore ft n' = mkCode' $ fold
           _ -> error $ "gstore: Wrong type of load!"
 
 initCtrlFlow :: Bool -> [FieldType] -> Code
-initCtrlFlow isStatic args@(this:args')
+initCtrlFlow isStatic args@(_:args')
   = mkCode'
   . IT.initCtrl
   . CF.mapLocals
@@ -380,7 +380,8 @@ sconst = gldc ft . cstring . decodeUtf8
   where ft = jString
 
 gldc :: FieldType -> Const -> Code
-gldc ft c = mkCode cs $ loadCode <> modifyStack (CF.push ft)
+gldc ft c = mkCode cs $ loadCode
+                     <> modifyStack (CF.push ft)
   where cs = CP.unpack c
         category2 = isCategory2 ft
         loadCode
@@ -395,3 +396,16 @@ gldc ft c = mkCode cs $ loadCode <> modifyStack (CF.push ft)
               else
                 do IT.op' OP.ldc_w
                    IT.writeBytes (packI16 $ fromIntegral index)
+
+gconv :: FieldType -> FieldType -> Code
+gconv ft1 ft2 = mkCode' $ convOpcode (baseType ft1) (baseType ft2)
+                       <> modifyStack ( CF.push ft2
+                                      . CF.pop ft1)
+  where convOpcode pt1 pt2 = case (pt1, pt2) of
+          (JInt, JByte) -> IT.op OP.i2b
+          (JInt, JShort) -> IT.op OP.i2s
+          (JInt, JChar) -> IT.op OP.i2c
+          (JInt, JBool) -> mempty
+          (JInt, JInt) -> mempty
+          other -> error $ "Implement the other JVM primitive conversions."
+                         ++ show other

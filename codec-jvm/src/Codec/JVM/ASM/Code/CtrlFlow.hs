@@ -21,7 +21,7 @@ type Locals = IntMap VerifType
 localsFromList :: [FieldType] -> Locals
 localsFromList fts = IntMap.fromList kvs
   where vts = concatMap (reverse . fieldTypeToVerifType) fts
-        kvs = zip [1..] vts
+        kvs = zip [0..] vts
 
 insert :: (Integral a) => a -> FieldType -> Locals -> Locals
 insert n' ft = IntMap.union (IntMap.fromList vts)
@@ -40,7 +40,7 @@ localsSize :: Locals -> Int
 localsSize locals =
   if IntMap.null locals
     then 0
-    else fst . IntMap.findMax $ locals
+    else (fst . IntMap.findMax $ locals) + 1
 
 empty :: CtrlFlow
 empty = CtrlFlow (Stack [] 0 0) mempty

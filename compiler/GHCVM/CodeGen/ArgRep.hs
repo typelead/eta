@@ -6,6 +6,8 @@ module GHCVM.CodeGen.ArgRep
    primRepFieldType,
    repFieldTypes,
    repFieldType,
+   fieldTypeArgRep,
+   contextLoad
   ) where
 
 import Id
@@ -17,6 +19,7 @@ import Data.Maybe
 import GHCVM.Primitive
 import GHCVM.CodeGen.Rts
 import Codec.JVM
+import Data.Monoid ((<>))
 
 data JArgRep = P   -- StgClosure
              | N   -- int-sized non-ptr
@@ -52,7 +55,6 @@ isNonV _ = True
 
 idJArgRep :: Id -> JArgRep
 idJArgRep = toJArgRep . idJPrimRep
-
 
 primRepFieldType :: JPrimRep -> Maybe FieldType
 primRepFieldType (HPrimRep primRep) =
@@ -101,3 +103,30 @@ repFieldType ty = primRepFieldType . typeJPrimRep $ head flattened
 
 repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType
+
+fieldTypeArgRep :: FieldType -> JArgRep
+fieldTypeArgRep ft
+  | ft == closureType = P
+  | otherwise =
+    case ft of
+      BaseType JDouble            -> D
+      BaseType JFloat             -> F
+      BaseType JLong              -> L
+      ObjectType _                -> O
+      ArrayType  _                -> O
+      _                           -> N
+
+-- NOTE: Assumes StgContext is in local variable slot 1
+contextLoad :: FieldType -> JArgRep -> Int -> Code
+contextLoad ft argRep n =
+     gload contextType 1
+  <> iconst ft (fromIntegral n)
+  <> loadMethod
+  where loadMethod = case argRep of
+          P -> loadR
+          N -> loadI
+          L -> loadL
+          F -> loadF
+          D -> loadD
+          O -> loadO
+          _ -> error "contextLoad: V"

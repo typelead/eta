@@ -37,9 +37,14 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
     defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
-    withMethod [Public] "enter" [contextType] void $
-      -- TODO: Account for non-zero offsets and non-empty args
-      withSelfLoop (id, 0, []) $ do
+    withMethod [Public] "enter" [contextType] void $ do
+      let (argLocs, code) = mkCallEntry args
+          (_ , cgLocs) = unzip argLocs
+      emit code
+      bindArgs argLocs
+      -- TODO: Implement marking for self loop
+      -- markOffset
+      withSelfLoop (id, cgLocs) $ do
         mapM_ bindFV fvLocs
         cgExpr body
     return ()
@@ -96,3 +101,29 @@ setupUpdate lfInfo body
           withMethod [Public] "thunkEnter" [contextType] void body
           return ()
 
+-- TODO: Beautify this code
+-- TODO: There are a lot of bangs in this function. Verify that they do
+--       indeed help.
+mkCallEntry :: [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code)
+mkCallEntry nvArgs = (zip nvArgs locs, code)
+  where fts' = map (fromJust . repFieldType . idType) args'
+        args' = map unsafeStripNV nvArgs
+        argReps' = map fieldTypeArgRep fts'
+        (!code, !locs) = loadArgs 2 mempty [] args' fts' argReps' 2 1 1 1 1 1
+        loadArgs !n !code !locs (arg:args) (ft:fts) (argRep:argReps)
+                 !r !i !l !f !d !o =
+          case argRep of
+            P -> loadRec (context r) (r + 1) i l f d o
+            N -> loadRec (context i <> gconv jint ft) r (i + 1) l f d o
+            L -> loadRec (context l) r i (l + 1) f d o
+            F -> loadRec (context f) r i l (f + 1) d o
+            D -> loadRec (context d) r i l f (d + 1) o
+            O -> loadRec (context o) r i l f d (o + 1)
+            _ -> error "contextLoad: V"
+          where context = contextLoad ft argRep
+                loadRec nextCode =
+                  loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
+                           (loc:locs) args fts argReps
+                ftSize = fieldSize ft
+                loc = LocLocal ft n
+        loadArgs _ !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs)

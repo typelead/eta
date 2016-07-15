@@ -23,7 +23,7 @@ data PrimType
   | JBool
   deriving (Eq, Ord, Show)
 
-jbyte, jchar, jdouble, jfloat, jint, jlong, jshort, jbool :: FieldType
+jbyte, jchar, jdouble, jfloat, jint, jlong, jshort, jbool, jobject :: FieldType
 jbyte = BaseType JByte
 jchar = BaseType JChar
 jdouble = BaseType JDouble
@@ -32,6 +32,11 @@ jint = BaseType JInt
 jlong = BaseType JLong
 jshort = BaseType JShort
 jbool = BaseType JBool
+jobject = ObjectType jlObject
+
+baseType :: FieldType -> PrimType
+baseType (BaseType pt) = pt
+baseType _ = error "baseType: Not base type!"
 
 jString :: FieldType
 jString = ObjectType jlString

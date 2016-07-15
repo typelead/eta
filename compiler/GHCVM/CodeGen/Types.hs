@@ -43,7 +43,7 @@ import Data.Text (Text)
 import Data.Monoid ((<>))
 
 -- TODO: Select appropriate fields
-type SelfLoopInfo = (Id, Int, [CgLoc])
+type SelfLoopInfo = (Id, [CgLoc])
 
 data Sequel
   = Return
