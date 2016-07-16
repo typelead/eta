@@ -62,6 +62,9 @@ iif cond ok ko = Instr $ do
           CD.EQ -> OP.ifeq
           CD.NE -> OP.ifne
 
+-- TODO: This function fails for huge methods, must make it safe
+--       when goto offset is outside of −32,768 to 32,767
+--       which isn't likely to happen.
 branches :: Int -> Instr -> Instr -> InstrRWS ()
 branches lengthOp ok ko = do
   (_, cf) <- get

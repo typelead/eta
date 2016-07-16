@@ -4,6 +4,10 @@ module GHCVM.CodeGen.Monad
    CodeGen(..),
    emit,
    initCg,
+   newTemp,
+   peekNextLocal,
+   setNextLocal,
+   getNextLocal,
    getSequel,
    getSelfLoop,
    setSuperClass,
@@ -11,7 +15,6 @@ module GHCVM.CodeGen.Monad
    setClosureClass,
    withSelfLoop,
    withMethod,
-   getNextLocal,
    getModClass,
    getClass,
    addBinding,
@@ -148,11 +151,13 @@ emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
 peekNextLocal :: CodeGen Int
 peekNextLocal = gets cgNextLocal
 
-getNextLocal :: CodeGen Int
-getNextLocal = do
+getNextLocal :: FieldType -> CodeGen Int
+getNextLocal ft = do
   next <- peekNextLocal
-  modify $ \s@CgState { cgNextLocal } -> s { cgNextLocal = cgNextLocal + 1}
+  modify $ \s@CgState { cgNextLocal } ->
+             s { cgNextLocal = cgNextLocal + fieldSz}
   return next
+  where fieldSz = fieldSize ft
 
 setNextLocal :: Int -> CodeGen ()
 setNextLocal n = modify $ \s -> s { cgNextLocal = n }
@@ -365,11 +370,19 @@ withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =
   local (\env -> env { cgSelfLoop = Just selfLoopInfo })
 
-unimplemented :: String -> CodeGen ()
-unimplemented msg = liftIO . putStrLn $ "Not implemented: " ++ msg
+unimplemented :: String -> CodeGen a
+unimplemented msg = do
+  liftIO . putStrLn $ "Not implemented: " ++ msg
+  return undefined
 
 getSequel :: CodeGen Sequel
 getSequel = asks cgSequel
 
 getSelfLoop :: CodeGen (Maybe SelfLoopInfo)
 getSelfLoop = asks cgSelfLoop
+
+newTemp :: FieldType -> CodeGen CgLoc
+newTemp ft = do
+  n <- getNextLocal ft
+  return $ LocLocal ft n
+

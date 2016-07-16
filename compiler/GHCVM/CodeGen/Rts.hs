@@ -18,7 +18,8 @@ apply = merge (rts "apply")
 thunk = merge (rts "thunk")
 stg = merge (rts "stg")
 
-closureType, indStaticType, contextType, funType, tsoType, frameType :: FieldType
+closureType, indStaticType, contextType, funType, tsoType, frameType,
+  rtsFunType, conType, thunkType :: FieldType
 closureType = obj stgClosure
 indStaticType = obj stgIndStatic
 contextType = obj stgContext
@@ -26,9 +27,11 @@ funType = obj stgFun
 tsoType = obj stgTSO
 frameType = obj stackFrame
 rtsFunType = obj rtsFun
+conType = obj stgConstr
+thunkType = obj stgThunk
 
-stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO, stackFrame
-  :: Text
+stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun,
+  stgTSO, stackFrame :: Text
 stgConstr = stg "StgConstr"
 stgClosure = stg "StgClosure"
 stgContext = stg "StgContext"

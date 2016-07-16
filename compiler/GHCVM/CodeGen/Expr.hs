@@ -1,7 +1,9 @@
 module GHCVM.CodeGen.Expr where
 
 import Id
+import PrimOp
 import StgSyn
+import DataCon
 import GHCVM.Primitive
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Layout
@@ -9,12 +11,17 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.Con
+import GHCVM.CodeGen.Prim
 import Codec.JVM
 
 import Data.Monoid((<>))
 
 cgExpr :: StgExpr -> CodeGen ()
 cgExpr (StgApp fun args) = cgIdApp fun args
+cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
+cgExpr (StgOpApp op args ty) = cgOpApp op args ty
+cgExpr (StgConApp con args) = cgConApp con args
 cgExpr _ = unimplemented "cgExpr"
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
@@ -45,3 +52,14 @@ emitEnter thunk = do
       emit $ loadContext
           <> enterMethod thunk
     AssignTo cgLocs -> unimplemented "emitEnter: case AssignTo"
+
+cgConApp :: DataCon -> [StgArg] -> CodeGen ()
+cgConApp con args
+  | isUnboxedTupleCon con = do
+      ftCodes <- getNonVoidFtCodes args
+      emitReturn $ toCgLocs ftCodes
+  | otherwise = do
+      (idInfo, genInitCode) <- buildDynCon con args
+      initCode <- genInitCode
+      emit initCode
+      emitReturn [cgLocation idInfo]

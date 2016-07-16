@@ -34,6 +34,8 @@ library
                        , GHCVM.CodeGen.Env
                        , GHCVM.CodeGen.Types
                        , GHCVM.CodeGen.Name
+                       , GHCVM.CodeGen.Foreign
+                       , GHCVM.CodeGen.Prim
                        , GHCVM.CodeGen.Rts
                        , GHCVM.CodeGen.Bind
                        , GHCVM.CodeGen.Expr
@@ -41,6 +43,7 @@ library
                        , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse
                        , GHCVM.Util
+                       , GHCVM.Constants
                        , GHCVM.Primitive
                        , GHCVM.JAR
     other-modules:       GHCVM.Parser.Parser

@@ -31,12 +31,12 @@ multiAssign = undefined
 -- TODO: Beautify this code
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
-mkCallEntry :: [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code)
-mkCallEntry nvArgs = (zip nvArgs locs, code)
+mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
+mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
   where fts' = map (fromJust . repFieldType . idType) args'
         args' = map unsafeStripNV nvArgs
         argReps' = map fieldTypeArgRep fts'
-        (!code, !locs) = loadArgs 2 mempty [] args' fts' argReps' 2 1 1 1 1 1
+        (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
         loadArgs !n !code !locs (arg:args) (ft:fts) (argRep:argReps)
                  !r !i !l !f !d !o =
           case argRep of
@@ -53,7 +53,7 @@ mkCallEntry nvArgs = (zip nvArgs locs, code)
                            (loc:locs) args fts argReps
                 ftSize = fieldSize ft
                 loc = LocLocal ft n
-        loadArgs _ !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs)
+        loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
 
 mkCallExit :: Bool -> [(JArgRep, Maybe FieldType, Maybe Code)] -> Code
 mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
@@ -101,10 +101,11 @@ slowCall fun args = do
       slowCode = directCall' True (mkApFast apPat) arity
                              ((P, Just ft, Just code):argFtCodes)
   if n > arity && optLevel dflags >= 2 then do
-    -- TODO: Implement
-    return ()
+    -- TODO: Implement optimization
+    --       effectively an evaluation test + fast call
+    emit slowCode
   else
-    emit $ slowCode
+    emit slowCode
   where n = length args
         ft = locFt fun
         code = loadLoc fun

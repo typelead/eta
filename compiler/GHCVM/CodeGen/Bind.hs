@@ -39,9 +39,11 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
     withMethod [Public] "enter" [contextType] void $ do
-      let (argLocs, code) = mkCallEntry args
+      n <- peekNextLocal
+      let (argLocs, code, n') = mkCallEntry n args
           (_ , cgLocs) = unzip argLocs
       emit code
+      setNextLocal n'
       bindArgs argLocs
       -- TODO: Implement marking for self loop
       -- markOffset

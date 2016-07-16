@@ -11,9 +11,11 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   toCgLocs,
    enterMethod,
    enterLoc,
    loadLoc,
+   storeLoc,
    locFt,
    locClass,
    isRec,
@@ -25,6 +27,7 @@ module GHCVM.CodeGen.Types
    getJavaInfo,
    getNonVoids,
    isLFThunk,
+   lfFieldType,
    lfStaticThunk)
 where
 
@@ -56,6 +59,10 @@ data Sequel
 data CgLoc = LocLocal FieldType !Int
            | LocStatic FieldType Text Text
            | LocField FieldType Text Text
+           | LocDirect FieldType Code
+
+toCgLocs :: [(FieldType, Code)] -> [CgLoc]
+toCgLocs = map (\(ft, code) -> LocDirect ft code)
 
 enterLoc :: CgLoc -> Code
 enterLoc cgLoc = loadLoc cgLoc
@@ -66,11 +73,16 @@ locClass :: CgLoc -> Text
 locClass (LocLocal _ _) = stgClosure -- TODO: We can do better w/ the ft
 locClass (LocStatic _ clClass _) = clClass
 locClass (LocField _ clClass _) = clClass
+locClass (LocDirect _ _) = error "locClass: LocDirect"
 
 locFt :: CgLoc -> FieldType
 locFt (LocLocal ft _) = ft
 locFt (LocStatic ft _ _) = ft
 locFt (LocField ft _ _) = ft
+locFt (LocDirect ft _) = ft
+
+storeLoc :: CgLoc -> Code -> Code
+storeLoc (LocLocal ft n) code = code <> gstore ft n
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal ft n) = gload ft n
@@ -79,6 +91,7 @@ loadLoc (LocStatic ft modClass clName) =
 loadLoc (LocField ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
+loadLoc (LocDirect _ code) = code
 
 type CgBindings = IdEnv CgIdInfo
 
@@ -189,6 +202,12 @@ data LambdaFormInfo
                         -- always a value, needs evaluation
 
   | LFLetNoEscape       -- See LetNoEscape module for precise description
+
+lfFieldType :: LambdaFormInfo -> FieldType
+lfFieldType LFReEntrant {} = funType
+lfFieldType LFThunk {} = thunkType
+lfFieldType LFCon {} = conType
+lfFieldType _ = closureType
 
 isLFThunk :: LambdaFormInfo -> Bool
 isLFThunk LFThunk {} = True
