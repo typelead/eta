@@ -4,6 +4,8 @@ module GHCVM.CodeGen.Monad
    CodeGen(..),
    emit,
    initCg,
+   getSequel,
+   getSelfLoop,
    setSuperClass,
    getSuperClass,
    setClosureClass,
@@ -27,7 +29,9 @@ module GHCVM.CodeGen.Monad
    classFromCgState,
    runCodeGen,
    addInitStep,
-   forkClosureBody)
+   forkClosureBody,
+   unimplemented,
+   getDynFlags)
 where
 
 import DynFlags
@@ -360,3 +364,12 @@ withMethod accessFlags name fts rt body = do
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =
   local (\env -> env { cgSelfLoop = Just selfLoopInfo })
+
+unimplemented :: String -> CodeGen ()
+unimplemented msg = liftIO . putStrLn $ "Not implemented: " ++ msg
+
+getSequel :: CodeGen Sequel
+getSequel = asks cgSequel
+
+getSelfLoop :: CodeGen (Maybe SelfLoopInfo)
+getSelfLoop = asks cgSelfLoop

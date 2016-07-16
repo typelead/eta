@@ -1264,5 +1264,12 @@ isVoidJRep :: JPrimRep -> Bool
 isVoidJRep (HPrimRep VoidRep) = True
 isVoidJRep _other  = False
 
+-- TODO: Is this right?
+isVoidJTy :: Type -> Bool
+isVoidJTy = isVoidJRep . typeJPrimRep
+
 idJPrimRep :: Id -> JPrimRep
 idJPrimRep = typeJPrimRep . idType
+
+jrepType :: Type -> UnaryType
+jrepType = head . flattenRepType . repType

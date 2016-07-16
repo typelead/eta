@@ -7,7 +7,9 @@ module GHCVM.CodeGen.ArgRep
    repFieldTypes,
    repFieldType,
    fieldTypeArgRep,
-   contextLoad
+   contextLoad,
+   contextStore,
+   slowCallPattern
   ) where
 
 import Id
@@ -20,6 +22,7 @@ import GHCVM.Primitive
 import GHCVM.CodeGen.Rts
 import Codec.JVM
 import Data.Monoid ((<>))
+import Data.Text (Text)
 
 data JArgRep = P   -- StgClosure
              | N   -- int-sized non-ptr
@@ -76,30 +79,9 @@ primRepFieldType JRepByte               = Just jbyte
 primRepFieldType JRepShort              = Just jshort
 primRepFieldType (JRepObject className) = Just $ obj className
 
--- slowCallPattern :: [ArgRep] -> (FastString, RepArity)
--- slowCallPattern (P: P: P: P: P: P: _) = (fsLit "stg_ap_pppppp", 6)
--- slowCallPattern (P: P: P: P: P: _)    = (fsLit "stg_ap_ppppp", 5)
--- slowCallPattern (P: P: P: P: _)       = (fsLit "stg_ap_pppp", 4)
--- slowCallPattern (P: P: P: V: _)       = (fsLit "stg_ap_pppv", 4)
--- slowCallPattern (P: P: P: _)          = (fsLit "stg_ap_ppp", 3)
--- slowCallPattern (P: P: V: _)          = (fsLit "stg_ap_ppv", 3)
--- slowCallPattern (P: P: _)             = (fsLit "stg_ap_pp", 2)
--- slowCallPattern (P: V: _)             = (fsLit "stg_ap_pv", 2)
--- slowCallPattern (P: _)                = (fsLit "stg_ap_p", 1)
--- slowCallPattern (V: _)                = (fsLit "stg_ap_v", 1)
--- slowCallPattern (N: _)                = (fsLit "stg_ap_n", 1)
--- slowCallPattern (F: _)                = (fsLit "stg_ap_f", 1)
--- slowCallPattern (D: _)                = (fsLit "stg_ap_d", 1)
--- slowCallPattern (L: _)                = (fsLit "stg_ap_l", 1)
--- slowCallPattern (V16: _)              = (fsLit "stg_ap_v16", 1)
--- slowCallPattern (V32: _)              = (fsLit "stg_ap_v32", 1)
--- slowCallPattern (V64: _)              = (fsLit "stg_ap_v64", 1)
--- slowCallPattern []                    = (fsLit "stg_ap_0", 0)
-
 -- NOTE: We assume that unboxed tuples won't occur
 repFieldType :: Type -> Maybe FieldType
-repFieldType ty = primRepFieldType . typeJPrimRep $ head flattened
-  where flattened = flattenRepType (repType ty)
+repFieldType = primRepFieldType . typeJPrimRep . jrepType
 
 repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType
@@ -119,7 +101,7 @@ fieldTypeArgRep ft
 -- NOTE: Assumes StgContext is in local variable slot 1
 contextLoad :: FieldType -> JArgRep -> Int -> Code
 contextLoad ft argRep n =
-     gload contextType 1
+     loadContext
   <> iconst ft (fromIntegral n)
   <> loadMethod
   where loadMethod = case argRep of
@@ -130,3 +112,43 @@ contextLoad ft argRep n =
           D -> loadD
           O -> loadO
           _ -> error "contextLoad: V"
+
+contextStore :: FieldType -> JArgRep -> Code -> Int -> Code
+contextStore ft argRep storeCode n =
+     loadContext
+  <> iconst ft (fromIntegral n)
+  <> storeCode
+  <> storeMethod
+  where storeMethod = case argRep of
+          P -> storeR
+          N -> storeI
+          L -> storeL
+          F -> storeF
+          D -> storeD
+          O -> storeO
+          _ -> error "contextStore: V"
+
+slowCallPattern :: [JArgRep] -> (Text, RepArity, [FieldType])
+slowCallPattern (P: P: P: P: P: P: _) =
+  ("ap_pppppp", 6, replicate 6 closureType)
+slowCallPattern (P: P: P: P: P: _)    =
+  ("ap_ppppp", 5, replicate 5 closureType)
+slowCallPattern (P: P: P: V: O: _)    =
+  ("ap_pppvo", 5, replicate 3 closureType ++ [jobject])
+slowCallPattern (P: P: P: P: _)       = ("ap_pppp", 4, replicate 4 closureType)
+slowCallPattern (P: P: P: V: _)       = ("ap_pppv", 4, replicate 3 closureType)
+slowCallPattern (P: P: V: O: _)       =
+  ("ap_ppvo", 4, replicate 2 closureType ++ [jobject])
+slowCallPattern (P: P: P: _)          = ("ap_ppp", 3, replicate 3 closureType)
+slowCallPattern (P: P: V: _)          = ("ap_ppv", 3, replicate 2 closureType)
+slowCallPattern (P: V: O: _)          = ("ap_pvo", 3, [closureType, jobject])
+slowCallPattern (P: P: _)             = ("ap_pp", 2, replicate 2 closureType)
+slowCallPattern (P: V: _)             = ("ap_pv", 2, [closureType])
+slowCallPattern (P: _)                = ("ap_p", 1, [closureType])
+slowCallPattern (O: _)                = ("ap_o", 1, [jobject])
+slowCallPattern (N: _)                = ("ap_n", 1, [jint])
+slowCallPattern (L: _)                = ("ap_l", 1, [jlong])
+slowCallPattern (F: _)                = ("ap_f", 1, [jfloat])
+slowCallPattern (D: _)                = ("ap_d", 1, [jdouble])
+slowCallPattern (V: _)                = ("ap_v", 1, [])
+slowCallPattern []                    = ("ap_0", 0, [])

@@ -198,4 +198,21 @@ public final class StgTSO extends StgClosure {
             return false;
         }
     }
+
+    // Stack operations
+    public final void spPrevious() {
+        sp.previous();
+    }
+
+    public final void spNext() {
+        sp.next();
+    }
+
+    public final void spRemove() {
+        sp.remove();
+    }
+
+    public final void spPush(StackFrame frame) {
+        sp.add(frame);
+    }
 }

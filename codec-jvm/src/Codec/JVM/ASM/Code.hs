@@ -82,9 +82,17 @@ ldc cv = codeConst OP.ldc_w ft $ CValue cv where ft = constValType cv
 dup :: FieldType -> Code
 dup ft = mkCode'
        $ IT.op dupOp
-       <> (modifyStack $ CF.push ft)
+       <> modifyStack (CF.push ft)
   where fsz = fieldSize ft
         dupOp = if fsz == 1 then OP.dup else OP.dup2
+
+pop :: FieldType -> Code
+pop ft = mkCode'
+       $ IT.op popOp
+       <> modifyStack (CF.pop ft)
+  where fsz = fieldSize ft
+        popOp = if fsz == 1 then OP.pop else OP.pop2
+
 
 invoke :: Opcode -> MethodRef -> Code
 invoke oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold

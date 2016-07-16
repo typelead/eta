@@ -55,33 +55,34 @@ runInstr' (Instr instr) cp offset cf = f $ runRWS instr cp (offset, cf) where
 iif :: Cond -> Instr -> Instr -> Instr
 iif cond ok ko = Instr $ do
   lengthOp <- writeInstr ifop
-  branches lengthOp
+  branches lengthOp ok ko
     where
       ifop = op oc <> (ctrlFlow $ CF.mapStack $ CF.pop jint) where
         oc = case cond of
           CD.EQ -> OP.ifeq
           CD.NE -> OP.ifne
-      branches :: Int -> InstrRWS ()
-      branches lengthOp = do
-        (_, cf) <- get
-        (koBytes, koCF, koFrames) <- pad 2 ko -- packI16
-        writeBytes . packI16 $ BS.length koBytes + lengthJumpOK + lengthOp + 2 -- packI16
-        write koBytes koFrames
-        (okBytes, okCF, okFrames) <- pad lengthJumpOK ok
-        op' OP.goto
-        writeBytes . packI16 $ BS.length okBytes + 3 -- op goto <> packI16 $ length ok
-        writeStackMapFrame
-        write okBytes okFrames
-        putCtrlFlow' $ okCF
-          { CF.locals = IntMap.union (CF.locals okCF) (CF.locals koCF)
-          , CF.stack  = (CF.stack okCF) { CF.stackMax = max (CF.stackMax $ CF.stack okCF) (CF.stackMax $ CF.stack koCF)} }
-        writeStackMapFrame
-          where
-            pad padding instr = do
-              cp <- ask
-              (Offset offset, cf) <- get
-              return $ runInstr' instr cp (Offset $ offset + padding) cf
-            lengthJumpOK = 3 -- op goto <> pack16 $ length ko
+
+branches :: Int -> Instr -> Instr -> InstrRWS ()
+branches lengthOp ok ko = do
+  (_, cf) <- get
+  (koBytes, koCF, koFrames) <- pad 2 ko -- packI16
+  writeBytes . packI16 $ BS.length koBytes + lengthJumpOK + lengthOp + 2 -- packI16
+  write koBytes koFrames
+  (okBytes, okCF, okFrames) <- pad lengthJumpOK ok
+  op' OP.goto
+  writeBytes . packI16 $ BS.length okBytes + 3 -- op goto <> packI16 $ length ok
+  writeStackMapFrame
+  write okBytes okFrames
+  putCtrlFlow' $ okCF
+    { CF.locals = IntMap.union (CF.locals okCF) (CF.locals koCF)
+    , CF.stack  = (CF.stack okCF) { CF.stackMax = max (CF.stackMax $ CF.stack okCF) (CF.stackMax $ CF.stack koCF)} }
+  writeStackMapFrame
+    where
+      pad padding instr = do
+        cp <- ask
+        (Offset offset, cf) <- get
+        return $ runInstr' instr cp (Offset $ offset + padding) cf
+      lengthJumpOK = 3 -- op goto <> pack16 $ length ko
 
 bytes :: ByteString -> Instr
 bytes = Instr . writeBytes

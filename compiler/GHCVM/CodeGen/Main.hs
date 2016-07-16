@@ -90,6 +90,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
+               -- TODO: Change the cgLoc for this case to indstatic
                let loadCode = idInfoLoadCode cgInfo
                defineField $ mkFieldDef [Public, Static, Final] qClName indStaticType
                addInitStep $ fold

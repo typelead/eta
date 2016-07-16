@@ -12,9 +12,9 @@ import GHCVM.CodeGen.Utils
 
 import Control.Monad (liftM)
 
-loadArgCode :: NonVoid StgArg -> CodeGen Code
-loadArgCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var
-loadArgCode (NonVoid (StgLitArg literal)) = return $ cgLit literal
+getArgLoadCode :: NonVoid StgArg -> CodeGen Code
+getArgLoadCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var
+getArgLoadCode (NonVoid (StgLitArg literal)) = return $ cgLit literal
 
 idInfoLoadCode :: CgIdInfo -> Code
 idInfoLoadCode CgIdInfo { cgLocation } = loadLoc cgLocation
@@ -33,3 +33,5 @@ bindArg nvid@(NonVoid id) = bindId nvid (mkLFArgument id)
 
 bindArgs :: [(NonVoid Id, CgLoc)] -> CodeGen ()
 bindArgs = mapM_ (\(nvId, cgLoc) -> bindArg nvId cgLoc)
+
+  

@@ -23,10 +23,11 @@ localsFromList fts = IntMap.fromList kvs
   where vts = concatMap (reverse . fieldTypeToVerifType) fts
         kvs = zip [0..] vts
 
+-- TODO: Check if verif types are in the right order
 insert :: (Integral a) => a -> FieldType -> Locals -> Locals
 insert n' ft = IntMap.union (IntMap.fromList vts)
   where n   = fromIntegral n'
-        vts = zip [n, n+1] (fieldTypeToVerifType ft)
+        vts = zip [n, n+1] (reverse . fieldTypeToVerifType $ ft)
 
 remove :: (Integral a) => a -> FieldType -> Locals -> Locals
 remove n' ft locals = foldl' (flip ($)) locals vts
@@ -117,7 +118,7 @@ fieldTypeFlatVerifType ft = case ft of
   BaseType JInt               -> VInteger
   BaseType JLong              -> VLong
   BaseType JFloat             -> VFloat
-  BaseType JDouble            ->  VDouble
+  BaseType JDouble            -> VDouble
   ObjectType cn               -> VObject cn
   ArrayType ft'               -> VObject . IClassName $ mkFieldDesc' ft'
 

@@ -30,7 +30,7 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
         qClName = closure clName
         dataFt = obj dataClass
         genCode = do
-          loads <- mapM loadArgCode .  getNonVoids $ zip maybeFields args
+          loads <- mapM getArgLoadCode .  getNonVoids $ zip maybeFields args
           defineField $ mkFieldDef [Public, Static, Final] qClName dataFt
           addInitStep $ fold
             [

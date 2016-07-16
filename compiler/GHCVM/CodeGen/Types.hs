@@ -11,7 +11,11 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   enterMethod,
+   enterLoc,
    loadLoc,
+   locFt,
+   locClass,
    isRec,
    isNonRec,
    mkCgIdInfo,
@@ -53,6 +57,16 @@ data CgLoc = LocLocal FieldType !Int
            | LocStatic FieldType Text Text
            | LocField FieldType Text Text
 
+enterLoc :: CgLoc -> Code
+enterLoc cgLoc = loadLoc cgLoc
+              <> loadContext
+              <> enterMethod cgLoc
+
+locClass :: CgLoc -> Text
+locClass (LocLocal _ _) = stgClosure -- TODO: We can do better w/ the ft
+locClass (LocStatic _ clClass _) = clClass
+locClass (LocField _ clClass _) = clClass
+
 locFt :: CgLoc -> FieldType
 locFt (LocLocal ft _) = ft
 locFt (LocStatic ft _ _) = ft
@@ -61,8 +75,7 @@ locFt (LocField ft _ _) = ft
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal ft n) = gload ft n
 loadLoc (LocStatic ft modClass clName) =
-  getstatic $ mkFieldRef modClass clNameWithSuffix ft
-  where clNameWithSuffix = closure clName
+  getstatic $ mkFieldRef modClass (closure clName) ft
 loadLoc (LocField ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
@@ -227,3 +240,7 @@ getNonVoids :: [(Maybe FieldType, a)] -> [NonVoid a]
 getNonVoids = mapMaybe (\(mft, val) -> case mft of
                            Just _ -> Just (NonVoid val)
                            Nothing -> Nothing)
+
+enterMethod :: CgLoc -> Code
+enterMethod cgLoc =
+  invokevirtual $ mkMethodRef (locClass cgLoc) "enter" [contextType] void
