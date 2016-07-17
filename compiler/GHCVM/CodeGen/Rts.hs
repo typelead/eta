@@ -79,3 +79,6 @@ mkApFast patText =
   -- TODO: We can do better than rtsFun, but it depends on the
   --       determinism of javac.
   where fullPat = append patText "_fast"
+
+apUpdName :: Int -> Text
+apUpdName n = thunk $ append (append "Ap" (pack . show $ n)) "Upd"

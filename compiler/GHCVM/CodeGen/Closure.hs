@@ -19,20 +19,19 @@ import GHCVM.Primitive
 
 import Codec.JVM
 
-mkClosureLFInfo :: DynFlags
-                -> Id           -- The binder
+mkClosureLFInfo :: Id           -- The binder
                 -> TopLevelFlag -- True of top level
                 -> [NonVoid Id] -- Free vars
                 -> UpdateFlag   -- Update flag
                 -> [Id]         -- Args
                 -> LambdaFormInfo
-mkClosureLFInfo dflags binder topLevelFlag freeVars updateFlag args
+mkClosureLFInfo binder topLevelFlag freeVars updateFlag args
   | null args =
         mkLFThunk (idType binder) topLevelFlag
           (map unsafeStripNV freeVars) updateFlag
   | otherwise =
         mkLFReEntrant topLevelFlag (map unsafeStripNV freeVars)
-          args (mkArgDescr dflags args)
+          args (mkArgDescr args)
 
 mkConLFInfo :: DataCon -> LambdaFormInfo
 mkConLFInfo = LFCon
@@ -64,8 +63,8 @@ maybeFunction ty
   | otherwise
   = True
 
-mkArgDescr :: DynFlags -> [Id] -> ArgDescr
-mkArgDescr dflags args
+mkArgDescr :: [Id] -> ArgDescr
+mkArgDescr args
   = let argReps = filter isNonV (map idJArgRep args)
            -- Getting rid of voids eases matching of standard patterns
     in case stdPattern argReps of
@@ -167,3 +166,8 @@ getCallMethod _ _ _ LFLetNoEscape _ _ _
   = JumpToIt -- TODO: Finish
 
 getCallMethod _ _ _ _ _ _ _ = panic "Unknown call method"
+
+mkApLFInfo :: Id -> UpdateFlag -> Int -> LambdaFormInfo
+mkApLFInfo id updateFlag arity
+  = LFThunk NotTopLevel (arity == 0)
+           (isUpdatable updateFlag) (ApThunk arity) (maybeFunction (idType id))

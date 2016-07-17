@@ -83,7 +83,7 @@ cgTopRhsClosure :: DynFlags
 cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lfInfo)
   where cgIdInfo = mkCgIdInfo id lfInfo
-        lfInfo = mkClosureLFInfo dflags id TopLevel [] updateFlag args
+        lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
         (modClass, clName, clClass) = getJavaInfo cgIdInfo
         isThunk = isLFThunk lfInfo
         qClName = closure clName
@@ -103,7 +103,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                    putstatic $ mkFieldRef modClass qClName indStaticType
                  ]
         genCode dflags lf = do
-          CgState { cgClassName } <- forkClosureBody $
+          (_, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody True id lfInfo
                             (nonVoidIds args) (length args) body []
 
@@ -145,7 +145,7 @@ externaliseId dflags id = do
 
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
-    CgState {..} <- newTypeClosure tyConClass stgConstr
+    (_, CgState {..}) <- newTypeClosure tyConClass stgConstr
     mapM_ (cgDataCon cgClassName) (tyConDataCons tyCon)
   where tyConClass = nameTypeText . tyConName $ tyCon
         dataCons = tyConDataCons tyCon

@@ -2,21 +2,27 @@ module GHCVM.CodeGen.Bind where
 
 import StgSyn
 import Id
+import Util (unzipWith)
 import GHCVM.CodeGen.ArgRep
+import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Rts
-import GHCVM.CodeGen.Expr
 import GHCVM.CodeGen.Env
+import GHCVM.CodeGen.Expr
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Layout
+import GHCVM.CodeGen.Closure
 import GHCVM.Util
+import GHCVM.Primitive
+import GHCVM.Constants
 import Codec.JVM
 import Control.Monad (forM)
 import Data.Text (append, pack)
 import Data.Foldable (fold)
 import Data.Maybe (mapMaybe, maybe, fromJust)
 import Data.Monoid ((<>))
+import Data.List(delete)
 
 closureCodeBody
   :: Bool                  -- whether this is a top-level binding
@@ -25,8 +31,8 @@ closureCodeBody
   -> [NonVoid Id]          -- incoming args to the closure
   -> Int                   -- arity, including void args
   -> StgExpr               -- body
-  -> [Id]                  -- the closure's free vars
-  -> CodeGen ()
+  -> [NonVoid Id]                  -- the closure's free vars
+  -> CodeGen [FieldType]
 closureCodeBody topLevel id lfInfo args arity body fvs = do
   setClosureClass $ idNameText id
   (fvLocs, initCodes) <- generateFVs fvs
@@ -68,9 +74,9 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
        fold codes,
        vreturn
     ]
-  return ()
+  return fts
 
-generateFVs :: [Id] -> CodeGen ([(NonVoid Id, CgLoc)], [(FieldType, Code)])
+generateFVs :: [NonVoid Id] -> CodeGen ([(NonVoid Id, CgLoc)], [(FieldType, Code)])
 generateFVs fvs = do
   clClass <- getClass
   result <- forM (indexList nonVoidFvs) $ \(i, (nvId, ft)) -> do
@@ -79,9 +85,9 @@ generateFVs fvs = do
     let code = putfield $ mkFieldRef clClass fieldName ft
     return ((nvId, LocField ft clClass fieldName), (ft, code))
   return $ unzip result
-  where nonVoidFvs = mapMaybe filterNonVoid fvs
-        filterNonVoid fv = fmap (NonVoid fv,) ft
-          where ft = repFieldType . idType $ fv
+  where nonVoidFvs = map addFt fvs
+        addFt nvFV@(NonVoid fv) = (nvFV, ft)
+          where ft = fromJust . repFieldType . idType $ fv
 
 -- TODO: Implement eager blackholing
 thunkCode :: LambdaFormInfo -> [(NonVoid Id, CgLoc)] -> StgExpr -> CodeGen ()
@@ -103,3 +109,88 @@ setupUpdate lfInfo body
           setSuperClass thunkType
           withMethod [Public] "thunkEnter" [contextType] void body
           return ()
+
+cgBind :: StgBinding -> CodeGen ()
+cgBind (StgNonRec name rhs) = do
+  (info, genInitCode) <- cgRhs name rhs
+  addBinding info
+  init <- genInitCode
+  emit init
+
+cgBind (StgRec pairs) = do
+  result <- sequence $ unzipWith cgRhs pairs
+  let (idInfos, initCodes) = unzip result
+  addBindings idInfos
+  (inits, body) <- getCodeWithResult $ sequence initCodes
+  emit (fold inits <> body)
+
+cgRhs :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen Code)
+cgRhs id (StgRhsCon _ con args) = buildDynCon con args
+cgRhs name (StgRhsClosure _ binderInfo fvs updateFlag _ args body)
+  = mkRhsClosure name binderInfo (nonVoidIds fvs) updateFlag args body
+
+mkRhsClosure
+  :: Id
+  -> StgBinderInfo
+  -> [NonVoid Id]
+  -> UpdateFlag
+  -> [Id]
+  -> StgExpr
+  -> CodeGen (CgIdInfo, CodeGen Code)
+-- TODO: Selector thunks
+mkRhsClosure binder _ fvs updateFlag [] (StgApp funId args)
+  | length args == arity - 1
+   && all (not . isVoidJRep . idJPrimRep . unsafeStripNV) fvs
+   && isUpdatable updateFlag
+   && arity <= mAX_SPEC_AP_SIZE
+  = cgRhsStdThunk binder lfInfo payload
+  where lfInfo = mkApLFInfo binder updateFlag arity
+        payload = StgVarArg funId : args
+        arity = length fvs
+mkRhsClosure binder _ fvs updateFlag args body = do
+  let lfInfo = mkClosureLFInfo binder NotTopLevel fvs updateFlag args
+  (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
+  return (idInfo, genCode lfInfo cgLoc)
+  where genCode lfInfo cgLoc = do
+          (fields, CgState { cgClassName }) <- forkClosureBody $
+            closureCodeBody False binder lfInfo
+                            (nonVoidIds args) (length args) body reducedFVs
+
+          -- TODO: Check if this is correct
+          loads <- forM reducedFVs $ \(NonVoid id) -> do
+            idInfo <- getCgIdInfo id
+            return $ idInfoLoadCode idInfo
+
+          let ft = obj cgClassName
+              closureCode = fold
+                [
+                  new cgClassName,
+                  dup ft,
+                  fold loads,
+                  invokespecial $ mkMethodRef cgClassName "<init>" fields void
+                ]
+          return $ mkRhsInit cgLoc closureCode
+          where nvBinder = NonVoid binder
+                binderIsFV = nvBinder `elem` fvs
+                reducedFVs
+                  | binderIsFV = delete nvBinder fvs
+                  | otherwise = fvs
+
+cgRhsStdThunk :: Id -> LambdaFormInfo -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
+cgRhsStdThunk binder lfInfo payload = do
+  (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
+  return (idInfo, genCode cgLoc)
+  where genCode cgLoc = do
+          loads <- mapM (getArgLoadCode . NonVoid) payload
+          let apUpdCode = fold
+                [
+                  new apUpdClass,
+                  dup ft,
+                  fold loads,
+                  invokespecial $ mkMethodRef apUpdClass "<init>" fields void
+                ]
+          return $ mkRhsInit cgLoc apUpdCode
+          where (apUpdClass, n) = apUpdThunk stdForm
+                ft = obj apUpdClass
+                fields = replicate n closureType
+                stdForm = lfStandardFormInfo lfInfo

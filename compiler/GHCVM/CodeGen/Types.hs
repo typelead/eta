@@ -18,6 +18,7 @@ module GHCVM.CodeGen.Types
    storeLoc,
    locFt,
    locClass,
+   apUpdThunk,
    isRec,
    isNonRec,
    mkCgIdInfo,
@@ -263,3 +264,7 @@ getNonVoids = mapMaybe (\(mft, val) -> case mft of
 enterMethod :: CgLoc -> Code
 enterMethod cgLoc =
   invokevirtual $ mkMethodRef (locClass cgLoc) "enter" [contextType] void
+
+apUpdThunk :: StandardFormInfo -> (Text, Int)
+apUpdThunk (ApThunk n) = (apUpdName n, n)
+apUpdThunk _ = error $ "apUpdThunk: Wrong standard form"

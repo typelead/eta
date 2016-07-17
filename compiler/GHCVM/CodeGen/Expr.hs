@@ -13,6 +13,7 @@ import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Prim
+import {-# SOURCE #-} GHCVM.CodeGen.Bind (cgBind)
 import Codec.JVM
 
 import Data.Monoid((<>))
@@ -22,6 +23,12 @@ cgExpr (StgApp fun args) = cgIdApp fun args
 cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
 cgExpr (StgOpApp op args ty) = cgOpApp op args ty
 cgExpr (StgConApp con args) = cgConApp con args
+cgExpr (StgTick t e) = cgExpr e
+cgExpr (StgLit lit) = unimplemented "cgExpr: StgLit"
+cgExpr (StgLet binds expr) = cgBind binds >> cgExpr expr
+cgExpr (StgLetNoEscape _ _ binds expr) = unimplemented "cgExpr: StgLetNoEscape"
+cgExpr (StgCase expr _ _ binder _ altType alts) =
+  cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
@@ -63,3 +70,6 @@ cgConApp con args
       initCode <- genInitCode
       emit initCode
       emitReturn [cgLocation idInfo]
+
+cgCase :: StgExpr -> Id -> AltType -> [StgAlt] -> CodeGen ()
+cgCase _ _ _ _ = unimplemented "cgCase"
