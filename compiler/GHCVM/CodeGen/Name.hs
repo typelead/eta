@@ -7,10 +7,15 @@ module GHCVM.CodeGen.Name (
   idNameText,
   idClassText,
   moduleJavaClass,
+  dataConClass,
+  tyConClass,
+  moduleClass,
   closure,
   classFilePath
   ) where
 
+import TyCon
+import DataCon
 import Module
 import FastString
 import Name
@@ -102,3 +107,21 @@ upperFirst str = case uncons str of
 
 modClosure :: Module -> Name -> (Text, Text)
 modClosure mod name = (moduleJavaClass mod, nameText name)
+
+moduleClass :: Name -> Text -> Text
+moduleClass name = qualifiedName moduleClass
+        -- TODO: Most likely this will fail for same module data cons
+        -- Maybe externalize the data con name?
+  where moduleClass = moduleJavaClass
+                    . fromMaybe (error "Failed")
+                    $ nameModule_maybe name
+
+dataConClass :: DataCon -> Text
+dataConClass dataCon = moduleClass dataName dataClass
+  where dataName = dataConName dataCon
+        dataClass = nameDataText dataName
+
+tyConClass :: TyCon -> Text
+tyConClass tyCon = moduleClass typeName typeClass
+  where typeName = tyConName tyCon
+        typeClass = nameTypeText typeName

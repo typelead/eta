@@ -417,3 +417,9 @@ gconv ft1 ft2 = mkCode' $ convOpcode (baseType ft1) (baseType ft2)
           (JInt, JInt) -> mempty
           other -> error $ "Implement the other JVM primitive conversions."
                          ++ show other
+
+gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Int -> Int -> Code
+gswitch expr [] (Just deflt) _ _ = deflt
+gswitch expr [(i, code)] (Just deflt) _ _ = deflt
+gswitch expr branches maybeDefault low high = undefined
+-- TODO: Implement

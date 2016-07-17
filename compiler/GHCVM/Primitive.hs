@@ -1219,7 +1219,7 @@ data JPrimRep = HPrimRep PrimRep
               | JRepByte
               | JRepShort
               | JRepObject Text
-              deriving Show
+              deriving (Eq, Show)
 
 typeJPrimRep :: UnaryType -> JPrimRep
 typeJPrimRep ty =

@@ -82,3 +82,14 @@ mkApFast patText =
 
 apUpdName :: Int -> Text
 apUpdName n = thunk $ append (append "Ap" (pack . show $ n)) "Upd"
+
+constrField :: Int -> Text
+constrField = cons 'x' . pack . show
+
+constrFieldGetter :: Int -> Text
+constrFieldGetter = append "get" . pack . show
+
+getTagMethod :: Code -> Code
+getTagMethod code
+  = code
+ <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))

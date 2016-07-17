@@ -171,3 +171,6 @@ mkApLFInfo :: Id -> UpdateFlag -> Int -> LambdaFormInfo
 mkApLFInfo id updateFlag arity
   = LFThunk NotTopLevel (arity == 0)
            (isUpdatable updateFlag) (ApThunk arity) (maybeFunction (idType id))
+
+getDataConTag :: DataCon -> Int
+getDataConTag = dataConTag

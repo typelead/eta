@@ -4,6 +4,9 @@ module Codec.JVM.ASM.Code.Instr where
 import Control.Monad.Trans.RWS
 import Data.ByteString (ByteString)
 import Data.Monoid ((<>))
+import Data.List(scanl')
+import Data.Maybe(fromMaybe)
+import Control.Monad(forM_)
 
 import qualified Data.ByteString as BS
 import qualified Data.IntMap.Strict as IntMap
@@ -21,6 +24,7 @@ import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import qualified Codec.JVM.Cond as CD
 import qualified Codec.JVM.ConstPool as CP
 import qualified Codec.JVM.Opcode as OP
+
 
 -- TODO: Fix known space leak with Writer
 -- http://stackoverflow.com/questions/25280852/space-leak-in-pipes-with-rwst
@@ -142,3 +146,61 @@ writeInstr (Instr action) = do
 writeStackMapFrame :: InstrRWS ()
 writeStackMapFrame = get >>= f where
   f (Offset offset, cf) = tell (mempty, StackMapTable $ IntMap.singleton offset cf)
+
+getOffset :: InstrRWS Int
+getOffset = do
+  (Offset offset, _) <- get
+  return offset
+
+type BranchMap = IntMap.IntMap Instr
+
+tableswitch :: Maybe Instr -> BranchMap -> Int -> Int -> Instr
+tableswitch deflt branchMap low high = Instr $ do
+  cp <- ask
+  baseOffset <- getOffset
+  writeInstr $ op OP.tableswitch
+  (Offset offset, cf) <- get
+  -- Align to 4-byte boundary
+  let padding = 4 - (offset `mod` 4)
+  writeBytes . BS.pack . replicate padding $ 0
+  offset' <- getOffset
+  let firstOffset = offset' + 4 * (3 + numBranches)
+      (offsets, codeInfos) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) [low..high]
+      defOffset = last offsets
+      defInstr = fromMaybe mempty deflt
+      (defBytes, defCF, defFrames) = runInstr' defInstr cp (Offset defOffset) cf
+      breakOffset = defOffset + BS.length defBytes
+      relOffset x = x - baseOffset
+  writeBytes . packI16 $ relOffset defOffset
+  writeBytes . packI16 $ low
+  writeBytes . packI16 $ high
+  forM_ codeInfos $ \(offset, _, _, _, _) ->
+    writeBytes . packI16 $ relOffset offset
+  forM_ codeInfos $ \(offset, len, bytes, cf', frames) -> do
+    writeStackMapFrame
+    if len == 0 then do
+      op' OP.goto
+      writeBytes . packI16 $ (defOffset - offset)
+    else do
+      write bytes frames
+      op' OP.goto
+      writeBytes . packI16 $ (breakOffset - (offset + BS.length bytes))
+  writeStackMapFrame
+  write defBytes defFrames
+  -- TODO: Update max stack
+  writeStackMapFrame
+  where computeOffsets cf cp (offset, _) i =
+          ( offset + bytesLength + lengthJump
+          , (offset, bytesLength, bytes, cf', frames) )
+          where (bytes, cf', frames) = runInstr' instr cp (Offset offset) cf
+                instr = IntMap.findWithDefault mempty i branchMap
+                bytesLength = BS.length bytes
+        lengthJump = 3 -- op goto <> pack16 $ length ko
+        numBranches = high - low + 1
+
+scanM :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m [a]
+scanM f q [] = return [q]
+scanM f q (x:xs) =
+   do q2 <- f q x
+      qs <- scanM f q2 xs
+      return (q:qs)

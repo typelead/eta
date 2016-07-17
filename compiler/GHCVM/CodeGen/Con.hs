@@ -84,8 +84,3 @@ buildDynCon con args = do
                 ]
           return $ mkRhsInit cgLoc conCode
           where dataFt = obj dataClass
-
-
-
-
-

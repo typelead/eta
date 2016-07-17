@@ -4,6 +4,8 @@ import Outputable
 import Literal
 import Codec.JVM
 import Data.Char (ord)
+import Data.List (sortOn)
+import qualified Data.IntMap.Strict as IntMap
 
 cgLit :: Literal -> Code
 cgLit (MachStr s)           = sconst s
@@ -19,3 +21,13 @@ cgLit (MachDouble r)        = dconst $ fromRational r
 cgLit (MachLabel fs ms fod) = error $ "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)
 
+intSwitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
+intSwitch expr branches maybeDefault = undefined
+  -- gswitch expr sortedBranches maybeDefault low high
+  -- where sortedBranches = IntMap.assocs branches
+  --       branchMap = IntMap.fromList branches
+  --       low = fst . IntMap.findMin branchMap
+  --       high = fst . IntMap.findMax branchMap
+
+litSwitch :: Code -> [(Literal, Code)] -> Code -> Code
+litSwitch = undefined

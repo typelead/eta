@@ -2,10 +2,14 @@ module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
+   withSequel,
    emit,
    initCg,
+   emitAssign,
+   getCgLoc,
    getCodeWithResult,
    newTemp,
+   newIdLoc,
    peekNextLocal,
    setNextLocal,
    getNextLocal,
@@ -34,6 +38,7 @@ module GHCVM.CodeGen.Monad
    runCodeGen,
    addInitStep,
    forkClosureBody,
+   forkAlts,
    unimplemented,
    getDynFlags)
 where
@@ -55,9 +60,11 @@ import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy as B
 import Codec.JVM
+import GHCVM.Primitive
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
+import GHCVM.CodeGen.ArgRep
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
@@ -358,7 +365,6 @@ withMethod accessFlags name fts rt body = do
   setMethodCode mempty
   setNextLocal 2
   body
-  -- TODO: Remove this line after finishing cgExpr
   emit $ vreturn
   clsName <- getClass
   newCode <- getMethodCode
@@ -397,3 +403,22 @@ getCodeWithResult gen = do
   state2 <- get
   put $ state2 { cgCode = cgCode state1 }
   return (a, cgCode state2)
+
+emitAssign :: CgLoc -> Code -> CodeGen ()
+emitAssign cgLoc code = emit $ storeLoc cgLoc code
+
+newIdLoc :: NonVoid Id -> CodeGen CgLoc
+newIdLoc (NonVoid id) = newTemp ft
+  where ft = fromJust . primRepFieldType . idJPrimRep $ id
+
+getCgLoc :: NonVoid Id -> CodeGen CgLoc
+getCgLoc (NonVoid id) = do
+  info <- getCgIdInfo id
+  return $ cgLocation info
+
+-- TODO: Figure out the right way
+forkAlts :: [CodeGen a] -> CodeGen [a]
+forkAlts = sequence
+
+withSequel :: Sequel -> CodeGen a -> CodeGen a
+withSequel sequel = local (\env -> env { cgSequel = sequel })

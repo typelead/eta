@@ -21,7 +21,6 @@ emitReturn results = do
   emit $
     case sequel of
       Return         -> mkReturnExit results
-                     <> vreturn
       AssignTo slots -> multiAssign slots results
 
 -- TODO: Strongly connect components

@@ -156,9 +156,15 @@ cgDataCon typeClass dataCon = do
   let dataConClassName = nameDataText . dataConName $ dataCon
       thisClass = qualifiedName modClass dataConClassName
       thisFt = obj thisClass
+      defineTagMethod =
+          defineMethod . mkMethodDef thisClass [Public] "getTag" [] (ret jint) $
+                         iconst jint conTag
+                      <> greturn jint
+  -- TODO: Reduce duplication
   if isNullaryRepDataCon dataCon then do
-      newExportedClosure dataConClassName typeClass $
+      newExportedClosure dataConClassName typeClass $ do
         defineMethod $ mkDefaultConstructor thisClass typeClass
+        defineTagMethod
       return ()
   else
     do let initCode :: Code
@@ -166,27 +172,11 @@ cgDataCon typeClass dataCon = do
              let maybeDup = if i /= numFields then dup thisFt else mempty
              in maybeDup
              <> gload ft (fromIntegral i)
-             <> putfield (mkFieldRef thisClass (varX i) ft)
-
-           varX :: Int -> Text
-           varX n = cons 'x' . pack . show $ n
-
-           getterX :: Int -> Text
-           getterX n = append "get" . pack . show $ n
-
-           getterDefs :: [MethodDef]
-           getterDefs =
-             flip map indexedFields $ \(i, ft) ->
-               mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
-               [
-                 gload thisFt 0,
-                 getfield $ mkFieldRef thisClass (varX i) ft,
-                 greturn ft
-               ]
+             <> putfield (mkFieldRef thisClass (constrField i) ft)
 
            fieldDefs :: [FieldDef]
            fieldDefs = map (\(i, ft) ->
-                         mkFieldDef [Private, Final] (varX i) ft)
+                         mkFieldDef [Public, Final] (constrField i) ft)
                        indexedFields
 
            indexedFields :: [(Int, FieldType)]
@@ -200,6 +190,7 @@ cgDataCon typeClass dataCon = do
 
        newExportedClosure dataConClassName typeClass $ do
          defineFields fieldDefs
-         defineMethods getterDefs
+         defineTagMethod
          defineMethod $ mkConstructorDef thisClass typeClass fields initCode
        return ()
+  where conTag = fromIntegral $ getDataConTag dataCon

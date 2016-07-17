@@ -11,6 +11,7 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   getNonVoidFts,
    toCgLocs,
    enterMethod,
    enterLoc,
@@ -115,17 +116,8 @@ getJavaInfo CgIdInfo { cgLocation, cgLambdaForm } = (modClass, clName, clClass)
 maybeDataConClass :: LambdaFormInfo -> Maybe Text
 maybeDataConClass lfInfo =
   case lfInfo of
-    LFCon dataCon ->
-      let dataName = dataConName dataCon
-          dataClass = nameDataText dataName
-          -- TODO: Most likely this will fail for same module data cons
-          -- Maybe externalize the data con name?
-          dataModuleClass = moduleJavaClass
-                          . fromMaybe (error "Failed")
-                          $ nameModule_maybe dataName
-      in Just $ qualifiedName dataModuleClass dataClass
+    LFCon dataCon -> Just $ dataConClass dataCon
     _ -> Nothing
-
 
 mkCgIdInfo :: Id -> LambdaFormInfo -> CgIdInfo
 mkCgIdInfo id lfInfo =
@@ -259,6 +251,11 @@ isNonRec NonRecursive = True
 getNonVoids :: [(Maybe FieldType, a)] -> [NonVoid a]
 getNonVoids = mapMaybe (\(mft, val) -> case mft of
                            Just _ -> Just (NonVoid val)
+                           Nothing -> Nothing)
+
+getNonVoidFts :: [(Maybe FieldType, a)] -> [(FieldType, NonVoid a)]
+getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
+                           Just ft -> Just (ft, NonVoid val)
                            Nothing -> Nothing)
 
 enterMethod :: CgLoc -> Code
