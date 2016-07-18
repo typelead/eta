@@ -28,7 +28,10 @@ import qualified Codec.JVM.ASM.Code.Instr as IT
 import qualified Codec.JVM.ConstPool as CP
 import qualified Codec.JVM.Opcode as OP
 
+import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
+
+import Data.Maybe(maybe)
 
 data Code = Code
   { consts  :: [Const]
@@ -420,8 +423,33 @@ gconv ft1 ft2 = mkCode' $ convOpcode (baseType ft1) (baseType ft2)
                          ++ show other
 
 -- Heuristic taken from https://ghc.haskell.org/trac/ghc/ticket/9159
-gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Int -> Int -> Code
-gswitch expr [] (Just deflt) _ _ = deflt
-gswitch expr [(i, code)] (Just deflt) _ _ = deflt
-gswitch expr branches maybeDefault low high = undefined
--- TODO: Implement
+gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
+gswitch expr [] (Just deflt) = deflt
+gswitch expr [(_, code)] Nothing = code
+gswitch expr branches maybeDefault =
+  if nlabels > 0 &&
+     tableSpaceCost + 3 * tableTimeCost <=
+     lookupSpaceCost + 3 * lookupTimeCost then
+    tableswitch lo hi branchMap maybeDefault
+  else
+    lookupswitch branchMap maybeDefault
+  where branchMap = IntMap.fromList branches
+        nlabels = IntMap.size branchMap
+        lo = fst . IntMap.findMin $ branchMap
+        hi = fst . IntMap.findMax $ branchMap
+        tableSpaceCost = 4 + (hi - lo + 1)
+        tableTimeCost = 3
+        lookupSpaceCost = 3 + 2 * nlabels
+        lookupTimeCost = nlabels
+
+tableswitch :: Int -> Int -> IntMap Code -> Maybe Code -> Code
+tableswitch lo hi branchMap maybeDefault =
+  mkCode cs $ IT.tableswitch lo hi (fmap instr branchMap) (fmap instr maybeDefault)
+  where cs = maybe [] consts maybeDefault
+          ++ concatMap consts (IntMap.elems branchMap)
+
+lookupswitch :: IntMap Code -> Maybe Code -> Code
+lookupswitch branchMap maybeDefault =
+  mkCode cs $ IT.lookupswitch (fmap instr branchMap) (fmap instr maybeDefault)
+  where cs = maybe [] consts maybeDefault
+          ++ concatMap consts (IntMap.elems branchMap)

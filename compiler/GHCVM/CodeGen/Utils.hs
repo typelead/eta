@@ -4,30 +4,33 @@ import Outputable
 import Literal
 import Codec.JVM
 import Data.Char (ord)
-import Data.List (sortOn)
 import qualified Data.IntMap.Strict as IntMap
+import Control.Arrow(first)
 
 cgLit :: Literal -> (FieldType, Code)
-cgLit (MachStr s)           = (jString, sconst s)
 cgLit (MachChar   c)        = (jint, iconst jint . fromIntegral $ ord c)
-cgLit MachNullAddr          = (jobject, aconst_null)
 cgLit (MachInt i)           = (jint, iconst jint $ fromIntegral i)
 cgLit (MachWord i)          = (jint, iconst jint $ fromIntegral i)
-cgLit (MachInt64 i)         = (jint, iconst jlong $ fromIntegral i)
-cgLit (MachWord64 i)        = (jint, iconst jlong $ fromIntegral i)
+cgLit (MachInt64 i)         = (jlong, iconst jlong $ fromIntegral i)
+cgLit (MachWord64 i)        = (jlong, iconst jlong $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
+cgLit MachNullAddr          = (jobject, aconst_null)
+cgLit (MachStr s)           = (jString, sconst s)
 -- TODO: Implement MachLabel
-cgLit (MachLabel fs ms fod) = error $ "cgLit: MachLabel"
+cgLit (MachLabel {}) = error "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)
 
-intSwitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
-intSwitch expr branches maybeDefault = undefined
-  -- gswitch expr sortedBranches maybeDefault low high
-  -- where sortedBranches = IntMap.assocs branches
-  --       branchMap = IntMap.fromList branches
-  --       low = fst . IntMap.findMin branchMap
-  --       high = fst . IntMap.findMax branchMap
+litToInt :: Literal -> Int
+litToInt (MachInt i) = fromInteger i
+litToInt (MachWord i) = fromInteger i
+litToInt x = error $ "litToInt: not integer"
 
-litSwitch :: Code -> [(Literal, Code)] -> Code -> Code
-litSwitch = undefined
+intSwitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
+intSwitch = gswitch
+
+litSwitch :: FieldType -> Code -> [(Literal, Code)] -> Code -> Code
+litSwitch ft expr branches deflt
+  | ft /= jint = error "litSwitch: primitive cases not supported for not integer values"
+  | otherwise = intSwitch expr intBranches (Just deflt)
+  where intBranches = map (first litToInt) branches

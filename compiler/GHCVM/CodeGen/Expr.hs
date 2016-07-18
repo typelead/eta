@@ -136,7 +136,7 @@ cgAlts binder (PrimAlt _) alts = do
   binderLoc <- getCgLoc binder
   let (DEFAULT, deflt) = head taggedBranches
       taggedBranches' = [(lit, code) | (LitAlt lit, code) <- taggedBranches]
-  emit $ litSwitch (loadLoc binderLoc) taggedBranches' deflt
+  emit $ litSwitch (locFt binderLoc) (loadLoc binderLoc) taggedBranches' deflt
 cgAlts binder (AlgAlt tyCon) alts = do
   (maybeDefault, branches) <- cgAlgAltRhss binder alts
   binderLoc <- getCgLoc binder

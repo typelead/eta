@@ -161,8 +161,8 @@ getOffset = do
 
 type BranchMap = IntMap.IntMap Instr
 
-tableswitch :: Maybe Instr -> BranchMap -> Int -> Int -> Instr
-tableswitch deflt branchMap low high = Instr $ do
+tableswitch :: Int -> Int -> BranchMap -> Maybe Instr -> Instr
+tableswitch low high branchMap deflt = Instr $ do
   cp <- ask
   baseOffset <- getOffset
   writeInstr $ op OP.tableswitch
@@ -206,8 +206,8 @@ tableswitch deflt branchMap low high = Instr $ do
         lengthJump = 3 -- op goto <> pack16 $ length ko
         numBranches = high - low + 1
 
-lookupswitch :: Maybe Instr -> BranchMap -> Instr
-lookupswitch deflt branchMap = Instr $ do
+lookupswitch :: BranchMap ->  Maybe Instr -> Instr
+lookupswitch branchMap deflt = Instr $ do
   cp <- ask
   baseOffset <- getOffset
   writeInstr $ op OP.lookupswitch
