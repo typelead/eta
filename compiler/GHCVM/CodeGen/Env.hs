@@ -17,7 +17,7 @@ import Data.Maybe (fromJust)
 
 getArgLoadCode :: NonVoid StgArg -> CodeGen Code
 getArgLoadCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var
-getArgLoadCode (NonVoid (StgLitArg literal)) = return $ cgLit literal
+getArgLoadCode (NonVoid (StgLitArg literal)) = return . snd $ cgLit literal
 
 getNonVoidArgLoadCodes :: [StgArg] -> CodeGen [Code]
 getNonVoidArgLoadCodes [] = return []

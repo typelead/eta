@@ -33,7 +33,7 @@ cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
 cgExpr (StgOpApp op args ty) = cgOpApp op args ty
 cgExpr (StgConApp con args) = cgConApp con args
 cgExpr (StgTick t e) = cgExpr e
-cgExpr (StgLit lit) = unimplemented "cgExpr: StgLit"
+cgExpr (StgLit lit) = emitReturn [mkLocDirect $ cgLit lit]
 cgExpr (StgLet binds expr) = cgBind binds >> cgExpr expr
 cgExpr (StgLetNoEscape _ _ binds expr) = unimplemented "cgExpr: StgLetNoEscape"
 cgExpr (StgCase expr _ _ binder _ altType alts) =
@@ -73,7 +73,7 @@ cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args
   | isUnboxedTupleCon con = do
       ftCodes <- getNonVoidFtCodes args
-      emitReturn $ toCgLocs ftCodes
+      emitReturn $ map mkLocDirect ftCodes
   | otherwise = do
       (idInfo, genInitCode) <- buildDynCon con args
       initCode <- genInitCode

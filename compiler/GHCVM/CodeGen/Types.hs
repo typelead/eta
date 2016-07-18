@@ -11,8 +11,8 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   mkLocDirect,
    getNonVoidFts,
-   toCgLocs,
    enterMethod,
    enterLoc,
    loadLoc,
@@ -63,8 +63,8 @@ data CgLoc = LocLocal FieldType !Int
            | LocField FieldType Text Text
            | LocDirect FieldType Code
 
-toCgLocs :: [(FieldType, Code)] -> [CgLoc]
-toCgLocs = map (\(ft, code) -> LocDirect ft code)
+mkLocDirect :: (FieldType, Code) -> CgLoc
+mkLocDirect (ft, code) = LocDirect ft code
 
 enterLoc :: CgLoc -> Code
 enterLoc cgLoc = loadLoc cgLoc

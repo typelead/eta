@@ -7,17 +7,17 @@ import Data.Char (ord)
 import Data.List (sortOn)
 import qualified Data.IntMap.Strict as IntMap
 
-cgLit :: Literal -> Code
-cgLit (MachStr s)           = sconst s
-cgLit (MachChar   c)        = iconst jint . fromIntegral $ ord c -- Verify this
-cgLit MachNullAddr          = aconst_null -- TODO: Is this correct?
-cgLit (MachInt i)           = iconst jint $ fromIntegral i
-cgLit (MachWord i)          = iconst jint $ fromIntegral i
-cgLit (MachInt64 i)         = iconst jlong $ fromIntegral i
-cgLit (MachWord64 i)        = iconst jlong $ fromIntegral i
-cgLit (MachFloat r)         = fconst $ fromRational r
-cgLit (MachDouble r)        = dconst $ fromRational r
--- TODO: Handle this later
+cgLit :: Literal -> (FieldType, Code)
+cgLit (MachStr s)           = (jString, sconst s)
+cgLit (MachChar   c)        = (jint, iconst jint . fromIntegral $ ord c)
+cgLit MachNullAddr          = (jobject, aconst_null)
+cgLit (MachInt i)           = (jint, iconst jint $ fromIntegral i)
+cgLit (MachWord i)          = (jint, iconst jint $ fromIntegral i)
+cgLit (MachInt64 i)         = (jint, iconst jlong $ fromIntegral i)
+cgLit (MachWord64 i)        = (jint, iconst jlong $ fromIntegral i)
+cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
+cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
+-- TODO: Implement MachLabel
 cgLit (MachLabel fs ms fod) = error $ "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)
 
