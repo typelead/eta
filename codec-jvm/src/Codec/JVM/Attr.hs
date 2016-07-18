@@ -134,19 +134,17 @@ putStackMapFrames cp xs = snd $ foldl' f (0, return ()) xs
                   putI16 $ length stack
                   traverse_ putVerifTy stack
 
--- TODO Return `Either` with error (currently CF.pop is unsafe)
 toAttrs :: ConstPool -> Code -> [Attr]
-toAttrs cp code = f $ runInstr (instr code) cp where
-  f (xs, cf, smt) = [ACode maxStack' maxLocals' xs attrs] where
-      maxLocals' = CF.maxLocals cf
-      maxStack' = CF.maxStack cf
-      attrs = if null frames then [] else [AStackMapTable frames]
-      frames = toStackMapFrames smt
+toAttrs cp code = [ACode maxStack' maxLocals' xs attrs]
+  where (xs, cf, smt) = runInstr (instr code) cp
+        maxLocals' = CF.maxLocals cf
+        maxStack' = CF.maxStack cf
+        attrs = if null frames then [] else [AStackMapTable frames]
+        frames = toStackMapFrames smt
 
--- TODO Verify that the conversion is correct
 toStackMapFrames :: StackMapTable -> [(Offset, StackMapFrame)]
 toStackMapFrames (StackMapTable smt)
-  = reverse (fst $ foldl' f ([], c) cfs)
+  = reverse . fst $ foldl' f ([], c) cfs
   where ((_,c):cfs) = IntMap.toAscList smt
         f (!xs, !cf') (!off, !cf) = ((Offset off, smf):xs, cf)
           where smf = generateStackMapFrame cf' cf
