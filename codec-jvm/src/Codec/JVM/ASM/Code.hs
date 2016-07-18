@@ -329,16 +329,36 @@ greturn ft = mkCode' $ fold
           VObject _ -> OP.areturn
           _ -> error "greturn: Wrong type of return!"
 
-new :: Text -> Code
-new className = mkCode cs $ fold
-  [ IT.op OP.new
-  -- TODO: Verify that the offset is correct
-  , IT.withOffset $ \offset ->
-      IT.ix c
-   <> modifyStack (CF.vpush (VUninitialized $ fromIntegral offset))]
-  where objFt = obj className
-        c = CClass . IClassName $ className
+new :: FieldType -> Code
+new (ObjectType (IClassName className)) = mkCode cs $
+  IT.withOffset $ \offset -> fold
+    [ IT.op OP.new
+    , IT.ix c
+    , modifyStack (CF.vpush (VUninitialized $ fromIntegral offset))]
+  where c = CClass . IClassName $ className
         cs = CP.unpack c
+new ft@(ArrayType (BaseType prim)) = mkCode' $ fold
+  [ IT.op OP.newarray
+  , IT.bytes . BS.singleton $ fromIntegral atype
+  , modifyStack (CF.push ft . CF.pop jint) ]
+  where atype = case prim of
+          JBool   -> 4
+          JChar   -> 5
+          JFloat  -> 6
+          JDouble -> 7
+          JByte   -> 8
+          JShort  -> 9
+          JInt    -> 10
+          JLong   -> 11
+new ft@(ArrayType (ObjectType (IClassName className))) = mkCode cs $ fold
+  [ IT.op OP.anewarray
+  , IT.ix c
+  , modifyStack $ CF.push ft . CF.pop jint ]
+  where c = CClass . IClassName $ className
+        cs = CP.unpack c
+new (BaseType prim)
+  = error $ "new: Cannot instantiate a primitive type: " ++ show prim
+new ft = error $ "new: Type not supported" ++ show ft
 
 aconst_null :: Code
 aconst_null = mkCode' $ IT.op OP.aconst_null <> modifyStack (CF.vpush VNull)
@@ -459,3 +479,41 @@ startLabel = mkCode' . IT.putLabel
 
 goto :: Label -> Code
 goto = mkCode' . IT.gotoLabel
+
+gaload :: FieldType -> Int -> Code
+gaload ft n = mkCode' $ fold
+  [ IT.op loadOp
+  , modifyStack ( CF.push ft
+                . CF.pop (jarray ft)
+                . CF.pop jint) ]
+  where loadOp = case ft of
+          BaseType prim ->
+            case prim of
+              JBool   -> OP.baload
+              JChar   -> OP.caload
+              JFloat  -> OP.faload
+              JDouble -> OP.daload
+              JByte   -> OP.baload
+              JShort  -> OP.saload
+              JInt    -> OP.iaload
+              JLong   -> OP.laload
+          _ -> OP.aaload
+
+gastore :: FieldType -> Code
+gastore ft = mkCode' $ fold
+  [ IT.op storeOp
+  , modifyStack ( CF.pop (jarray ft)
+                . CF.pop jint
+                . CF.pop ft) ]
+  where storeOp = case ft of
+          BaseType prim ->
+            case prim of
+              JBool   -> OP.bastore
+              JChar   -> OP.castore
+              JFloat  -> OP.fastore
+              JDouble -> OP.dastore
+              JByte   -> OP.bastore
+              JShort  -> OP.sastore
+              JInt    -> OP.iastore
+              JLong   -> OP.lastore
+          _ -> OP.aastore

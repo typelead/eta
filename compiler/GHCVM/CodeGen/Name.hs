@@ -3,6 +3,7 @@ module GHCVM.CodeGen.Name (
   fastStringToText,
   nameText,
   nameTypeText,
+  nameTypeTable,
   nameDataText,
   idNameText,
   idClassText,
@@ -39,6 +40,9 @@ fastStringToText = decodeUtf8 . fastStringToByteString
 
 nameTypeText :: Name -> Text
 nameTypeText = flip snoc 'T' . nameText
+
+nameTypeTable :: Name -> Text
+nameTypeTable = flip append "_table" . nameText
 
 nameDataText :: Name -> Text
 nameDataText = flip snoc 'D' . nameText

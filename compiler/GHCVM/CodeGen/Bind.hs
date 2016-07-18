@@ -164,7 +164,7 @@ mkRhsClosure binder _ fvs updateFlag args body = do
           let ft = obj cgClassName
               closureCode = fold
                 [
-                  new cgClassName,
+                  new ft,
                   dup ft,
                   fold loads,
                   invokespecial $ mkMethodRef cgClassName "<init>" fields void
@@ -184,7 +184,7 @@ cgRhsStdThunk binder lfInfo payload = do
           loads <- mapM (getArgLoadCode . NonVoid) payload
           let apUpdCode = fold
                 [
-                  new apUpdClass,
+                  new ft,
                   dup ft,
                   fold loads,
                   invokespecial $ mkMethodRef apUpdClass "<init>" fields void

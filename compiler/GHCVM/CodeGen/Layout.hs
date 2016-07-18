@@ -25,11 +25,14 @@ emitReturn results = do
 emitAssign :: CgLoc -> Code -> CodeGen ()
 emitAssign cgLoc code = emit $ storeLoc cgLoc code
 
--- TODO: Strongly connect components
+-- TODO: Verify that this is valid in all cases,
+--       otherwise fall back on the strongly connected components
+--       algorithm a la GHC
 multiAssign :: [CgLoc] -> [Code] -> Code
-multiAssign [] []       = mempty
-multiAssign [loc] [rhs] = storeLoc loc rhs
-multiAssign _ _         = error "multiAssign for more than one location"
+multiAssign locs codes = fold $ storeLoc <$> locs <*> codes
+-- multiAssign [] []       = mempty
+-- multiAssign [loc] [rhs] = storeLoc loc rhs
+-- multiAssign _ _         = error "multiAssign for more than one location"
 
 -- TODO: Beautify this code
 -- TODO: There are a lot of bangs in this function. Verify that they do

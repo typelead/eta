@@ -32,7 +32,7 @@ import Codec.JVM
 import Data.Maybe (mapMaybe)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
-import Control.Monad (unless)
+import Control.Monad (unless, when)
 
 import Data.Text (Text, pack, cons, append)
 
@@ -95,7 +95,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                defineField $ mkFieldDef [Public, Static, Final] qClName indStaticType
                addInitStep $ fold
                  [
-                   new stgIndStatic,
+                   new indStaticType,
                    dup indStaticType,
                    loadCode,
                    invokespecial $ mkMethodRef stgIndStatic "<init>"
@@ -115,7 +115,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
             mkFieldDef flags qClName ft
           addInitStep $ fold
             [
-              new cgClassName,
+              new ft,
               dup ft,
               invokespecial $ mkMethodRef cgClassName "<init>" [] void,
               putstatic $ mkFieldRef modClass qClName ft
@@ -147,8 +147,35 @@ cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
     (_, CgState {..}) <- newTypeClosure tyConClass stgConstr
     mapM_ (cgDataCon cgClassName) (tyConDataCons tyCon)
+    when (isEnumerationTyCon tyCon) $
+      cgEnumerationTyCon cgClassName tyCon
   where tyConClass = nameTypeText . tyConName $ tyCon
         dataCons = tyConDataCons tyCon
+
+cgEnumerationTyCon :: Text -> TyCon -> CodeGen ()
+cgEnumerationTyCon tyConCl tyCon = do
+  thisClass <- getClass
+  defineField $ mkFieldDef [Public, Static, Final] fieldName arrayFt
+  addInitStep $ fold
+    [
+      iconst jint $ fromIntegral familySize,
+      new arrayFt,
+      fold loadCodes,
+      putstatic $ mkFieldRef thisClass fieldName arrayFt
+    ]
+  where loadCodes = [  dup arrayFt
+                    <> iconst jint i
+                    <> new dataFt
+                    <> dup dataFt
+                    <> invokespecial (mkMethodRef dataClass "<init>" [] void)
+                    <> gastore elemFt
+                    | (i, con) <- zip [0..] $ tyConDataCons tyCon
+                    , let dataFt = obj dataClass
+                          dataClass = dataConClass con ]
+        arrayFt = jarray elemFt
+        elemFt = obj tyConCl
+        fieldName = nameTypeTable $ tyConName tyCon
+        familySize = tyConFamilySize tyCon
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do

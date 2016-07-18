@@ -38,7 +38,7 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
           defineField $ mkFieldDef [Public, Static, Final] qClName dataFt
           addInitStep $ fold
             [
-              new dataClass,
+              new dataFt,
               dup dataFt,
               fold loads,
               invokespecial $ mkMethodRef dataClass "<init>" fields void,
@@ -77,7 +77,7 @@ buildDynCon con args = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
           let conCode = fold
                 [
-                  new dataClass,
+                  new dataFt,
                   dup dataFt,
                   fold loads,
                   invokespecial $ mkMethodRef dataClass "<init>" fields void

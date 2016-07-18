@@ -34,6 +34,9 @@ jshort = BaseType JShort
 jbool = BaseType JBool
 jobject = ObjectType jlObject
 
+jarray :: FieldType -> FieldType
+jarray = ArrayType
+
 baseType :: FieldType -> PrimType
 baseType (BaseType pt) = pt
 baseType _ = error "baseType: Not base type!"
