@@ -480,8 +480,8 @@ startLabel = mkCode' . IT.putLabel
 goto :: Label -> Code
 goto = mkCode' . IT.gotoLabel
 
-gaload :: FieldType -> Int -> Code
-gaload ft n = mkCode' $ fold
+gaload :: FieldType -> Code
+gaload ft = mkCode' $ fold
   [ IT.op loadOp
   , modifyStack ( CF.push ft
                 . CF.pop (jarray ft)

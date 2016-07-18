@@ -8,22 +8,24 @@ import Panic
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Foreign
 import GHCVM.CodeGen.Env
+import GHCVM.CodeGen.Layout
+import GHCVM.CodeGen.Types
+import GHCVM.CodeGen.Utils
 
 cgOpApp :: StgOp
         -> [StgArg]
         -> Type
         -> CodeGen ()
 cgOpApp (StgFCallOp fcall _) args resType = cgForeignCall fcall args resType
+-- TODO: Is this primop necessary like in GHC?
 cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
   dflags <- getDynFlags
   codes <- getNonVoidArgLoadCodes args
   let code = case codes of
         [code'] -> code'
         _ -> panic "TagToEnumOp had void arg"
-  -- TODO: Do a lookup in the closure table for enum tycons
-  --       Add code to generate the table for enum tycons
-  unimplemented "cgOpApp: TagToEnumUp"
-  where tycon = tyConAppTyCon resType
+  emitReturn [mkLocDirect $ tagToClosure tyCon code]
+  where tyCon = tyConAppTyCon resType
 
 cgOpApp (StgPrimOp primop) args resType = do
     dflags <- getDynFlags

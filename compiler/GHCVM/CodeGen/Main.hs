@@ -170,7 +170,7 @@ cgEnumerationTyCon tyConCl tyCon = do
                     <> invokespecial (mkMethodRef dataClass "<init>" [] void)
                     <> gastore elemFt
                     | (i, con) <- zip [0..] $ tyConDataCons tyCon
-                    , let dataFt = obj dataClass
+                    , let dataFt    = obj dataClass
                           dataClass = dataConClass con ]
         arrayFt = jarray elemFt
         elemFt = obj tyConCl
