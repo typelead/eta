@@ -16,39 +16,48 @@ data CtrlFlow = CtrlFlow
   , locals :: !Locals }
   deriving (Eq, Show)
 
-type Locals = IntMap VerifType
+data Locals = Locals
+  { localsMap :: !(IntMap VerifType)
+  , localsSize :: !Int
+  , localsMax :: !Int }
+  deriving (Eq, Show)
 
 localsFromList :: [FieldType] -> Locals
-localsFromList fts = IntMap.fromList kvs
+localsFromList fts = Locals mp sz sz
   where vts = concatMap (reverse . fieldTypeToVerifType) fts
         kvs = zip [0..] vts
+        mp = IntMap.fromList kvs
+        sz = length vts
+
+localVts :: Locals -> [VerifType]
+localVts (Locals mp _ _) = IntMap.elems mp
 
 -- TODO: Check if verif types are in the right order
 insert :: (Integral a) => a -> FieldType -> Locals -> Locals
-insert n' ft = IntMap.union (IntMap.fromList vts)
+insert n' ft (Locals mp sz mx)= Locals mp' sz' mx'
   where n   = fromIntegral n'
         vts = zip [n, n+1] (reverse . fieldTypeToVerifType $ ft)
+        mp' = IntMap.union (IntMap.fromList vts) mp
+        sz' = sz + length vts
+        mx' = max mx sz'
 
 remove :: (Integral a) => a -> FieldType -> Locals -> Locals
-remove n' ft locals = foldl' (flip ($)) locals vts
+remove n' ft (Locals mp sz mx) = Locals mp' sz' mx
   where n   = fromIntegral n'
-        vts = map IntMap.delete (take (fieldSize ft) [n, n+1])
+        delta = fieldSize ft
+        deletes = map IntMap.delete (take delta [n, n+1])
+        mp' = foldl' (flip ($)) mp deletes
+        sz' = sz - delta
 
 areLocalsSame :: Locals -> Locals -> Bool
 areLocalsSame locals1 locals2 = locals1 == locals2
 
-localsSize :: Locals -> Int
-localsSize locals =
-  if IntMap.null locals
-    then 0
-    else (fst . IntMap.findMax $ locals) + 1
-
 empty :: CtrlFlow
-empty = CtrlFlow (Stack [] 0 0) mempty
+empty = CtrlFlow (Stack mempty 0 0) (Locals mempty 0 0)
 
 equiv :: CtrlFlow -> CtrlFlow -> Bool
 equiv cf0 cf1 = (locals cf0 == locals cf1)
-             && (stackVal $ stack cf0) == (stackVal $ stack cf1)
+             && stackVal (stack cf0) == stackVal (stack cf1)
 
 mapStack :: (Stack -> Stack) -> CtrlFlow -> CtrlFlow
 mapStack f cf = cf { stack = f $ stack cf }
@@ -60,7 +69,7 @@ maxStack :: CtrlFlow -> Int
 maxStack = stackMax . stack
 
 maxLocals :: CtrlFlow -> Int
-maxLocals = localsSize . locals
+maxLocals = localsMax . locals
 
 -- TODO: What to do with locals?
 load :: (Integral a) => a -> FieldType -> CtrlFlow -> CtrlFlow
@@ -151,10 +160,21 @@ putVerifType _ (VUninitialized offset) = do
   putWord16be offset
 
 compressCtrlFlow :: CtrlFlow -> ([VerifType], [VerifType])
-compressCtrlFlow CtrlFlow {..} = ( compress . IntMap.elems $ locals
+compressCtrlFlow CtrlFlow {..} = ( compress . localVts $ locals
                                  , compress . reverse . stackVal $ stack)
 
 compress :: [VerifType] -> [VerifType]
-compress (VLong:x:xs) = VLong : compress xs
-compress (VDouble:x:xs) = VDouble : compress xs
+compress [] = []
+compress (VLong:_:xs) = VLong : compress xs
+compress (VDouble:_:xs) = VDouble : compress xs
 compress (x:xs) = x : compress xs
+
+merge :: CtrlFlow -> [CtrlFlow] -> CtrlFlow
+merge CtrlFlow {..} cfs = CtrlFlow stack' locals'
+  where (smx', lmx') = foldl' (\(smx, lmx) cf ->
+                                 ( max smx (maxStack cf)
+                                 , max lmx (maxLocals cf)))
+                              (stackMax stack, localsMax locals)
+                              cfs
+        stack' = stack { stackMax = smx' }
+        locals' = locals { localsMax = lmx' }

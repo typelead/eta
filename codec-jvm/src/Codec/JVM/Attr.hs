@@ -157,24 +157,23 @@ generateStackMapFrame cf1@(CtrlFlow stack1 locals1)
   | sameLocals && sz < 2
   = case sz of
       0 -> SameFrame
-      1 -> SameLocals1StackItem (head . stackVal $ stack2)
+      1 -> SameLocals1StackItem stackTop
       _ -> fullFrame
   | otherwise
-  = if lszdiff <= 3
-       -- TODO: The Append & ChopFrame logic needs to be checked
-       then case IntMap.split lsz1 locals2 of
-              (_, higherPart) -> AppendFrame (fromIntegral lszdiff) $
-                compress . IntMap.elems $ higherPart
-       else if lszdiff >= -3
-               then ChopFrame $ fromIntegral (-lszdiff)
-               else fullFrame
-  where fullFrame = case compressCtrlFlow cf2 of
-                      (locals, stack) -> FullFrame locals stack
+  = if lszdiff <= 3 then
+      AppendFrame (fromIntegral lszdiff) $ drop lsz1 clocals2
+    else if lszdiff >= -3 then
+      ChopFrame $ fromIntegral (-lszdiff)
+    else fullFrame
+  where (clocals2, cstack2) = compressCtrlFlow cf2
+        (clocals1, _) = compressCtrlFlow cf1
+        fullFrame = FullFrame clocals2 cstack2
+        stackTop = last cstack2
         sameLocals = areLocalsSame locals1 locals2
-        lsz1 = localsSize locals1
-        lsz2 = localsSize locals2
+        lsz1 = length clocals1
+        lsz2 = length clocals2
         lszdiff = lsz2 - lsz1
-        sz = stackSize stack2
+        sz = length cstack2
 
 data InnerClass =
   InnerClass { icInnerClass :: IClassName

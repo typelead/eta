@@ -71,6 +71,7 @@ library
                        , happy
 
 executable ghcvm
+    ghc-options:         -Wall
     hs-source-dirs:      ghcvm
     main-is:             Main.hs
     default-language:    Haskell2010

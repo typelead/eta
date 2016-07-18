@@ -45,7 +45,7 @@ mkCode = Code
 mkCode' :: Instr -> Code
 mkCode' = mkCode []
 
-modifyStack = IT.ctrlFlow . CF.mapStack
+modifyStack = IT.modifyStack
 
 codeConst :: Opcode -> FieldType -> Const -> Code
 codeConst oc ft c = mkCode cs $ fold
@@ -329,6 +329,7 @@ greturn ft = mkCode' $ fold
 new :: Text -> Code
 new className = mkCode cs $ fold
   [ IT.op OP.new
+  -- TODO: Verify that the offset is correct
   , IT.withOffset $ \offset ->
       IT.ix c
    <> modifyStack (CF.vpush (VUninitialized $ fromIntegral offset))]
@@ -418,6 +419,7 @@ gconv ft1 ft2 = mkCode' $ convOpcode (baseType ft1) (baseType ft2)
           other -> error $ "Implement the other JVM primitive conversions."
                          ++ show other
 
+-- Heuristic taken from https://ghc.haskell.org/trac/ghc/ticket/9159
 gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Int -> Int -> Code
 gswitch expr [] (Just deflt) _ _ = deflt
 gswitch expr [(i, code)] (Just deflt) _ _ = deflt

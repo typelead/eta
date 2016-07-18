@@ -53,15 +53,21 @@ runInstr :: Instr -> ConstPool -> (ByteString, CtrlFlow, StackMapTable)
 runInstr instr cp = runInstr' instr cp 0 CF.empty
 
 runInstr' :: Instr -> ConstPool -> Offset -> CtrlFlow -> (ByteString, CtrlFlow, StackMapTable)
-runInstr' (Instr instr) cp offset cf = f $ runRWS instr cp (offset, cf) where
-  f (_, (_, cf'), (bs, smfs)) = (bs, cf', smfs)
+runInstr' (Instr instr) cp offset cf = (bs, cf', smfs)
+  where (_, (_, cf'), (bs, smfs)) = runRWS instr cp (offset, cf)
+
+modifyStack' :: (Stack -> Stack) -> InstrRWS ()
+modifyStack' = ctrlFlow' . CF.mapStack
+
+modifyStack :: (Stack -> Stack) -> Instr
+modifyStack = ctrlFlow . CF.mapStack
 
 iif :: Cond -> Instr -> Instr -> Instr
 iif cond ok ko = Instr $ do
   lengthOp <- writeInstr ifop
   branches lengthOp ok ko
     where
-      ifop = op oc <> (ctrlFlow $ CF.mapStack $ CF.pop jint) where
+      ifop = op oc <> modifyStack (CF.pop jint) where
         oc = case cond of
           CD.EQ -> OP.ifeq
           CD.NE -> OP.ifne
@@ -80,9 +86,7 @@ branches lengthOp ok ko = do
   writeBytes . packI16 $ BS.length okBytes + 3 -- op goto <> packI16 $ length ok
   writeStackMapFrame
   write okBytes okFrames
-  putCtrlFlow' $ okCF
-    { CF.locals = IntMap.union (CF.locals okCF) (CF.locals koCF)
-    , CF.stack  = (CF.stack okCF) { CF.stackMax = max (CF.stackMax $ CF.stack okCF) (CF.stackMax $ CF.stack koCF)} }
+  putCtrlFlow' $ CF.merge cf [okCF, koCF]
   writeStackMapFrame
     where
       pad padding instr = do
@@ -105,8 +109,11 @@ op = Instr . op'
 op' :: Opcode -> InstrRWS ()
 op' = writeBytes . BS.singleton . opcode
 
+ctrlFlow' :: (CtrlFlow -> CtrlFlow) -> InstrRWS ()
+ctrlFlow' f = state $ \(off, cf) -> (mempty, (off, f cf))
+
 ctrlFlow :: (CtrlFlow -> CtrlFlow) -> Instr
-ctrlFlow f = Instr $ state s where s (off, cf) = (mempty, (off, f cf))
+ctrlFlow = Instr . ctrlFlow'
 
 initCtrl :: (CtrlFlow -> CtrlFlow) -> Instr
 initCtrl f = Instr $ do
@@ -159,6 +166,7 @@ tableswitch deflt branchMap low high = Instr $ do
   cp <- ask
   baseOffset <- getOffset
   writeInstr $ op OP.tableswitch
+  modifyStack' $ CF.pop jint
   (Offset offset, cf) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
@@ -187,7 +195,7 @@ tableswitch deflt branchMap low high = Instr $ do
       writeBytes . packI16 $ (breakOffset - (offset + BS.length bytes))
   writeStackMapFrame
   write defBytes defFrames
-  -- TODO: Update max stack
+  putCtrlFlow' $ CF.merge cf (defCF : map (\(_, _, _, cf, _) -> cf) codeInfos)
   writeStackMapFrame
   where computeOffsets cf cp (offset, _) i =
           ( offset + bytesLength + lengthJump
