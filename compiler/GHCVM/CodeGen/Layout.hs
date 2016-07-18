@@ -22,10 +22,14 @@ emitReturn results = do
     case sequel of
       Return         -> mkReturnExit results
       AssignTo slots -> multiAssign slots (map loadLoc results)
+emitAssign :: CgLoc -> Code -> CodeGen ()
+emitAssign cgLoc code = emit $ storeLoc cgLoc code
 
 -- TODO: Strongly connect components
 multiAssign :: [CgLoc] -> [Code] -> Code
-multiAssign = undefined
+multiAssign [] []       = mempty
+multiAssign [loc] [rhs] = storeLoc loc rhs
+multiAssign _ _         = error "multiAssign for more than one location"
 
 -- TODO: Beautify this code
 -- TODO: There are a lot of bangs in this function. Verify that they do

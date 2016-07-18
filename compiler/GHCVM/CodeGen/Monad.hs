@@ -5,7 +5,6 @@ module GHCVM.CodeGen.Monad
    withSequel,
    emit,
    initCg,
-   emitAssign,
    getCgLoc,
    getCodeWithResult,
    newTemp,
@@ -154,7 +153,8 @@ initCg dflags mod =
            , cgClassName        = className
            , cgCompiledClosures = []
            , cgSuperClassName   = Nothing
-           , cgNextLocal        = 0 })
+           , cgNextLocal        = 0
+           , cgNextLabel        = 0 })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
@@ -423,9 +423,6 @@ getCodeWithResult gen = do
   state2 <- get
   put $ state2 { cgCode = cgCode state1 }
   return (a, cgCode state2)
-
-emitAssign :: CgLoc -> Code -> CodeGen ()
-emitAssign cgLoc code = emit $ storeLoc cgLoc code
 
 newIdLoc :: NonVoid Id -> CodeGen CgLoc
 newIdLoc (NonVoid id) = newTemp ft
