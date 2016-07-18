@@ -64,3 +64,8 @@ rhsIdInfo id lfInfo = do
 
 mkRhsInit :: CgLoc -> Code -> Code
 mkRhsInit = storeLoc
+
+maybeLetNoEscape :: CgIdInfo -> Maybe (Label, [CgLoc])
+maybeLetNoEscape CgIdInfo { cgLocation = LocLne label argLocs }
+  = Just (label, argLocs)
+maybeLetNoEscape _ = Nothing

@@ -103,7 +103,7 @@ argJPrimRep = typeJPrimRep . stgArgType
 
 data CallMethod
   = EnterIt
-  | JumpToIt -- TODO: Add params later
+  | JumpToIt Label [CgLoc]
   | ReturnIt
   | SlowCall
   | DirectEntry Code RepArity
@@ -124,10 +124,9 @@ getCallMethod
   -> Maybe SelfLoopInfo -- can we perform a self-recursive tail call?
   -> CallMethod
 
-getCallMethod dflags _ id _ n _ (Just (selfLoopId, cgLocs))
+getCallMethod dflags _ id _ n _ (Just (selfLoopId, label, cgLocs))
   | gopt Opt_Loopification dflags, id == selfLoopId, n == length cgLocs
-  -- TODO: Add appropriate params for JumpToIt
-  = JumpToIt
+  = JumpToIt label cgLocs
 
 -- TODO: Enter via node when in parallel
 getCallMethod dflags name id (LFReEntrant _ arity _ _) n cgLoc _
@@ -141,8 +140,8 @@ getCallMethod _ _ _ LFUnLifted _ _ _
 getCallMethod _ _ _ (LFCon _) _ _ _
   = ReturnIt
 
-getCallMethod dflags name id (LFThunk _ _ updatable stdFormInfo isFun)
-              n cgLoc _
+getCallMethod dflags name id
+              (LFThunk _ _ updatable stdFormInfo isFun) n cgLoc _
   | isFun      -- it *might* be a function, so we must "call" it (which is always safe)
   = SlowCall
   -- Since isFun is False, we are *definitely* looking at a data value
@@ -151,7 +150,7 @@ getCallMethod dflags name id (LFThunk _ _ updatable stdFormInfo isFun)
   -- TODO: Is the below necessary?
   -- even a non-updatable selector thunk can be updated by the garbage
   -- collector.
-  | SelectorThunk{} <- stdFormInfo
+  | SelectorThunk {} <- stdFormInfo
   = EnterIt
   | otherwise        -- Jump direct to code for single-entry thunks
   = DirectEntry (enterLoc cgLoc) 0
@@ -162,8 +161,8 @@ getCallMethod _ _ _ (LFUnknown True) _ _ _
 getCallMethod _ _ _ (LFUnknown False) _ _ _
   = EnterIt -- Not a function
 
-getCallMethod _ _ _ LFLetNoEscape _ _ _
-  = JumpToIt -- TODO: Finish
+getCallMethod _ _ _ LFLetNoEscape _ (LocLne label cgLocs) _
+  = JumpToIt label cgLocs
 
 getCallMethod _ _ _ _ _ _ _ = panic "Unknown call method"
 
@@ -172,5 +171,15 @@ mkApLFInfo id updateFlag arity
   = LFThunk NotTopLevel (arity == 0)
            (isUpdatable updateFlag) (ApThunk arity) (maybeFunction (idType id))
 
+lneIdInfo :: Label -> Id -> [CgLoc] -> CgIdInfo
+lneIdInfo label id cgLocs =
+  CgIdInfo
+  { cgId = id
+  , cgLambdaForm =  mkLFLetNoEscape
+  , cgLocation = LocLne label cgLocs }
+
 getDataConTag :: DataCon -> Int
 getDataConTag = dataConTag
+
+mkLFLetNoEscape :: LambdaFormInfo
+mkLFLetNoEscape = LFLetNoEscape

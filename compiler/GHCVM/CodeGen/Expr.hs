@@ -8,6 +8,7 @@ import PrimOp
 import StgSyn
 import DataCon
 import Panic
+import Util (unzipWith)
 import GHCVM.Util
 import GHCVM.Primitive
 import GHCVM.CodeGen.Utils
@@ -26,6 +27,7 @@ import Codec.JVM
 
 import Data.Monoid((<>))
 import Control.Monad(when, forM_)
+import Data.Maybe(fromJust)
 
 cgExpr :: StgExpr -> CodeGen ()
 cgExpr (StgApp fun args) = cgIdApp fun args
@@ -36,9 +38,52 @@ cgExpr (StgTick t e) = cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect $ cgLit lit]
 cgExpr (StgLet binds expr) = cgBind binds >> cgExpr expr
 cgExpr (StgLetNoEscape _ _ binds expr) = unimplemented "cgExpr: StgLetNoEscape"
+  -- joinPoint <- newLabel
+  -- cgLneBinds joinPoint binds
+  -- cgExpr expr
+  -- emit $ startLabel joinPoint
+
 cgExpr (StgCase expr _ _ binder _ altType alts) =
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
+
+cgLneBinds :: Label -> StgBinding -> CodeGen ()
+cgLneBinds joinLabel (StgNonRec binder rhs) = do
+  (info, code) <- cgLetNoEscapeRhs joinLabel binder rhs
+  code
+  addBinding info
+cgLneBinds joinLabel (StgRec pairs) = do
+  result <- sequence $ unzipWith (cgLetNoEscapeRhs joinLabel) pairs
+  let (infos, codes) = unzip result
+  addBindings infos
+  sequence_ codes
+
+cgLetNoEscapeRhs :: Label -> Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen ())
+cgLetNoEscapeRhs joinLabel binder rhs = do
+  (info, rhsCode) <- cgLetNoEscapeRhsBody binder rhs
+  let (bindLabel, _) = fromJust . maybeLetNoEscape $ info
+      code = do (_, body) <- getCodeWithResult rhsCode
+                -- TODO: Finish up
+                emit $ body
+                -- emitWithBranch body
+  return (info, code)
+
+cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen())
+cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body)
+  = cgLetNoEscapeClosure binder (nonVoidIds args) body
+cgLetNoEscapeRhsBody binder (StgRhsCon _ con args)
+  = cgLetNoEscapeClosure binder [] (StgConApp con args)
+
+cgLetNoEscapeClosure
+  :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, CodeGen ())
+cgLetNoEscapeClosure binder args body = do
+  label <- newLabel
+  argLocs <- mapM newIdLoc args
+  return (lneIdInfo label binder argLocs, code)
+  where code = forkLneBody $ do
+          argLocs <- mapM newIdLoc args
+          bindArgs $ zip args argLocs
+          cgExpr body
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
 cgIdApp funId [] | isVoidJTy (idType funId) = emitReturn []
@@ -58,7 +103,10 @@ cgIdApp funId args = do
     EnterIt -> emitEnter funLoc
     SlowCall -> slowCall funLoc args
     DirectEntry entryCode arity -> directCall False entryCode arity args
-    JumpToIt -> unimplemented "cgIdApp: JumpToIt"
+    JumpToIt label cgLocs -> do
+      codes <- getNonVoidArgLoadCodes args
+      emit $ multiAssign cgLocs codes
+      emit $ goto label
 
 emitEnter :: CgLoc -> CodeGen ()
 emitEnter thunk = do

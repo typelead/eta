@@ -12,13 +12,13 @@ import qualified Data.ByteString as BS
 import qualified Data.IntMap.Strict as IntMap
 
 import Codec.JVM.ASM.Code.CtrlFlow (CtrlFlow, Stack)
-import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
+import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..), LabelTable(..))
 import Codec.JVM.Cond (Cond)
 import Codec.JVM.Const (Const)
 import Codec.JVM.Internal (packI16, packI32)
 import Codec.JVM.Opcode (Opcode, opcode)
 import Codec.JVM.ConstPool (ConstPool)
-import Codec.JVM.Types (ReturnType, jint)
+import Codec.JVM.Types (ReturnType, jint, Label(..))
 
 import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import qualified Codec.JVM.Cond as CD
@@ -28,7 +28,7 @@ import qualified Codec.JVM.Opcode as OP
 
 -- TODO: Fix known space leak with Writer
 -- http://stackoverflow.com/questions/25280852/space-leak-in-pipes-with-rwst
-type InstrRWS a = (RWS ConstPool (ByteString, StackMapTable) (Offset, CtrlFlow) a)
+type InstrRWS a = (RWS ConstPool (ByteString, StackMapTable) (Offset, CtrlFlow, LabelTable) a)
 
 newtype Instr = Instr (InstrRWS ())
 
@@ -46,7 +46,7 @@ instance Show Instr where
 
 withOffset :: (Int -> Instr) -> Instr
 withOffset f = Instr $ do
-  (Offset offset, _)<- get
+  (Offset offset, _, _)<- get
   instrRWS $ f offset
 
 runInstr :: Instr -> ConstPool -> (ByteString, CtrlFlow, StackMapTable)
@@ -54,7 +54,7 @@ runInstr instr cp = runInstr' instr cp 0 CF.empty
 
 runInstr' :: Instr -> ConstPool -> Offset -> CtrlFlow -> (ByteString, CtrlFlow, StackMapTable)
 runInstr' (Instr instr) cp offset cf = (bs, cf', smfs)
-  where (_, (_, cf'), (bs, smfs)) = runRWS instr cp (offset, cf)
+  where (_, (_, cf', _), (bs, smfs)) = runRWS instr cp (offset, cf, mempty)
 
 modifyStack' :: (Stack -> Stack) -> InstrRWS ()
 modifyStack' = ctrlFlow' . CF.mapStack
@@ -77,7 +77,7 @@ iif cond ok ko = Instr $ do
 --       which isn't likely to happen.
 branches :: Int -> Instr -> Instr -> InstrRWS ()
 branches lengthOp ok ko = do
-  (_, cf) <- get
+  (_, cf, _) <- get
   (koBytes, koCF, koFrames) <- pad 2 ko -- packI16
   writeBytes . packI16 $ BS.length koBytes + lengthJumpOK + lengthOp + 2 -- packI16
   write koBytes koFrames
@@ -91,7 +91,7 @@ branches lengthOp ok ko = do
     where
       pad padding instr = do
         cp <- ask
-        (Offset offset, cf) <- get
+        (Offset offset, cf, _) <- get
         return $ runInstr' instr cp (Offset $ offset + padding) cf
       lengthJumpOK = 3 -- op goto <> pack16 $ length ko
 
@@ -110,7 +110,7 @@ op' :: Opcode -> InstrRWS ()
 op' = writeBytes . BS.singleton . opcode
 
 ctrlFlow' :: (CtrlFlow -> CtrlFlow) -> InstrRWS ()
-ctrlFlow' f = state $ \(off, cf) -> (mempty, (off, f cf))
+ctrlFlow' f = state $ \(off, cf, lt) -> (mempty, (off, f cf, lt))
 
 ctrlFlow :: (CtrlFlow -> CtrlFlow) -> Instr
 ctrlFlow = Instr . ctrlFlow'
@@ -126,14 +126,14 @@ putCtrlFlow = Instr . putCtrlFlow'
 
 putCtrlFlow' :: CtrlFlow -> InstrRWS ()
 putCtrlFlow' cf = do
-  (off, _) <- get
-  put (off, cf)
+  (off, _, lt) <- get
+  put (off, cf, lt)
 
 incOffset :: Int -> Instr
 incOffset = Instr . incOffset'
 
 incOffset' :: Int -> InstrRWS ()
-incOffset' i = state s where s (Offset off, cf) = (mempty, (Offset $ off + i, cf))
+incOffset' i = state s where s (Offset off, cf, lt) = (mempty, (Offset $ off + i, cf, lt))
 
 write :: ByteString -> StackMapTable -> InstrRWS ()
 write bs smfs = do
@@ -145,18 +145,18 @@ writeBytes bs = write bs mempty
 
 writeInstr :: Instr -> InstrRWS Int
 writeInstr (Instr action) = do
-  (Offset off0, _) <- get
+  (Offset off0, _, _) <- get
   action
-  (Offset off1, _) <- get
+  (Offset off1, _, _) <- get
   return (off1 - off0)
 
 writeStackMapFrame :: InstrRWS ()
 writeStackMapFrame = get >>= f where
-  f (Offset offset, cf) = tell (mempty, StackMapTable $ IntMap.singleton offset cf)
+  f (Offset offset, cf, _) = tell (mempty, StackMapTable $ IntMap.singleton offset cf)
 
 getOffset :: InstrRWS Int
 getOffset = do
-  (Offset offset, _) <- get
+  (Offset offset, _, _) <- get
   return offset
 
 type BranchMap = IntMap.IntMap Instr
@@ -167,7 +167,7 @@ tableswitch low high branchMap deflt = Instr $ do
   baseOffset <- getOffset
   writeInstr $ op OP.tableswitch
   modifyStack' $ CF.pop jint
-  (Offset offset, cf) <- get
+  (Offset offset, cf, _) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
@@ -212,7 +212,7 @@ lookupswitch branchMap deflt = Instr $ do
   baseOffset <- getOffset
   writeInstr $ op OP.lookupswitch
   modifyStack' $ CF.pop jint
-  (Offset offset, cf) <- get
+  (Offset offset, cf, _) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
@@ -245,3 +245,21 @@ lookupswitch branchMap deflt = Instr $ do
                 bytesLength = BS.length bytes
         lengthJump = 3 -- op goto <> pack16 $ length ko
         numBranches = IntMap.size branchMap
+
+
+lookupLabel :: Label -> InstrRWS Offset
+lookupLabel (Label id)= do
+  (_, _, LabelTable table) <- get
+  return $ IntMap.findWithDefault (error "lookupLabel: failed") id table
+
+gotoLabel :: Label -> Instr
+gotoLabel label = Instr $ do
+  offset <- getOffset
+  Offset labelOffset <- lookupLabel label
+  op' OP.goto
+  writeBytes . packI16 $ labelOffset - offset
+
+putLabel :: Label -> Instr
+putLabel (Label id) = Instr $
+  state $ \(off, cf, LabelTable table) ->
+            (mempty, (off, cf, LabelTable $ IntMap.insert id off table))

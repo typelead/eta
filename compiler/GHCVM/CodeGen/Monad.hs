@@ -12,7 +12,9 @@ module GHCVM.CodeGen.Monad
    newIdLoc,
    peekNextLocal,
    setNextLocal,
-   getNextLocal,
+   newLocal,
+   newLabel,
+   setNextLabel,
    getSequel,
    getSelfLoop,
    setSuperClass,
@@ -38,6 +40,7 @@ module GHCVM.CodeGen.Monad
    runCodeGen,
    addInitStep,
    forkClosureBody,
+   forkLneBody,
    forkAlts,
    unimplemented,
    getDynFlags)
@@ -86,7 +89,8 @@ data CgState =
           , cgSuperClassName :: !(Maybe Text)
           -- Current method
           , cgCode           :: !Code
-          , cgNextLocal      :: Int }
+          , cgNextLocal      :: Int
+          , cgNextLabel      :: Int }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -159,8 +163,18 @@ emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
 peekNextLocal :: CodeGen Int
 peekNextLocal = gets cgNextLocal
 
-getNextLocal :: FieldType -> CodeGen Int
-getNextLocal ft = do
+peekNextLabel :: CodeGen Int
+peekNextLabel = gets cgNextLabel
+
+newLabel :: CodeGen Label
+newLabel = do
+  next <- peekNextLabel
+  modify $ \s@CgState { cgNextLabel } ->
+             s { cgNextLabel = cgNextLabel + 1}
+  return $ mkLabel next
+
+newLocal :: FieldType -> CodeGen Int
+newLocal ft = do
   next <- peekNextLocal
   modify $ \s@CgState { cgNextLocal } ->
              s { cgNextLocal = cgNextLocal + fieldSz}
@@ -169,6 +183,9 @@ getNextLocal ft = do
 
 setNextLocal :: Int -> CodeGen ()
 setNextLocal n = modify $ \s -> s { cgNextLocal = n }
+
+setNextLabel :: Int -> CodeGen ()
+setNextLabel n = modify $ \s -> s { cgNextLabel = n }
 
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode
@@ -362,8 +379,10 @@ withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () ->
 withMethod accessFlags name fts rt body = do
   oldCode <- getMethodCode
   oldNextLocal <- peekNextLocal
+  oldNextLabel <- peekNextLabel
   setMethodCode mempty
   setNextLocal 2
+  setNextLabel 0
   body
   emit $ vreturn
   clsName <- getClass
@@ -372,6 +391,7 @@ withMethod accessFlags name fts rt body = do
   defineMethod methodDef
   setMethodCode oldCode
   setNextLocal oldNextLocal
+  setNextLabel oldNextLabel
   return methodDef
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
@@ -391,7 +411,7 @@ getSelfLoop = asks cgSelfLoop
 
 newTemp :: FieldType -> CodeGen CgLoc
 newTemp ft = do
-  n <- getNextLocal ft
+  n <- newLocal ft
   return $ LocLocal ft n
 
 -- TODO: Verify that this does as intended
@@ -422,3 +442,6 @@ forkAlts = sequence
 
 withSequel :: Sequel -> CodeGen a -> CodeGen a
 withSequel sequel = local (\env -> env { cgSequel = sequel })
+
+forkLneBody :: CodeGen a -> CodeGen a
+forkLneBody = id

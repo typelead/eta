@@ -200,3 +200,8 @@ accessFlagValue Enum          = 0x4000
 
 putAccessFlags :: Set AccessFlag -> Put
 putAccessFlags accessFlags = putWord16be $ sum (accessFlagValue <$> (S.toList accessFlags))
+
+newtype Label = Label Int
+
+mkLabel :: Int -> Label
+mkLabel = Label

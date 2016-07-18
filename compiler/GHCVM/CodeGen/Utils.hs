@@ -4,7 +4,6 @@ import Outputable
 import Literal
 import Codec.JVM
 import Data.Char (ord)
-import qualified Data.IntMap.Strict as IntMap
 import Control.Arrow(first)
 
 cgLit :: Literal -> (FieldType, Code)
@@ -18,13 +17,13 @@ cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 cgLit MachNullAddr          = (jobject, aconst_null)
 cgLit (MachStr s)           = (jString, sconst s)
 -- TODO: Implement MachLabel
-cgLit (MachLabel {}) = error "cgLit: MachLabel"
+cgLit MachLabel {}          = error "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)
 
 litToInt :: Literal -> Int
-litToInt (MachInt i) = fromInteger i
+litToInt (MachInt i)  = fromInteger i
 litToInt (MachWord i) = fromInteger i
-litToInt x = error $ "litToInt: not integer"
+litToInt _            = error "litToInt: not integer"
 
 intSwitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
 intSwitch = gswitch
@@ -32,5 +31,5 @@ intSwitch = gswitch
 litSwitch :: FieldType -> Code -> [(Literal, Code)] -> Code -> Code
 litSwitch ft expr branches deflt
   | ft /= jint = error "litSwitch: primitive cases not supported for not integer values"
-  | otherwise = intSwitch expr intBranches (Just deflt)
+  | otherwise  = intSwitch expr intBranches (Just deflt)
   where intBranches = map (first litToInt) branches

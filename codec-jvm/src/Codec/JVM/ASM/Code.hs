@@ -453,3 +453,9 @@ lookupswitch branchMap maybeDefault =
   mkCode cs $ IT.lookupswitch (fmap instr branchMap) (fmap instr maybeDefault)
   where cs = maybe [] consts maybeDefault
           ++ concatMap consts (IntMap.elems branchMap)
+
+startLabel :: Label -> Code
+startLabel = mkCode' . IT.putLabel
+
+goto :: Label -> Code
+goto = mkCode' . IT.gotoLabel

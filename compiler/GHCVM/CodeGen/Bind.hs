@@ -51,9 +51,9 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
       emit code
       setNextLocal n'
       bindArgs argLocs
-      -- TODO: Implement marking for self loop
-      -- markOffset
-      withSelfLoop (id, cgLocs) $ do
+      label <- newLabel
+      emit $ startLabel label
+      withSelfLoop (id, label, cgLocs) $ do
         mapM_ bindFV fvLocs
         cgExpr body
     return ()

@@ -21,10 +21,10 @@ emitReturn results = do
   emit $
     case sequel of
       Return         -> mkReturnExit results
-      AssignTo slots -> multiAssign slots results
+      AssignTo slots -> multiAssign slots (map loadLoc results)
 
 -- TODO: Strongly connect components
-multiAssign :: [CgLoc] -> [CgLoc] -> Code
+multiAssign :: [CgLoc] -> [Code] -> Code
 multiAssign = undefined
 
 -- TODO: Beautify this code
