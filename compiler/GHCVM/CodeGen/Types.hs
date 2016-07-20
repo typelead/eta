@@ -14,6 +14,7 @@ module GHCVM.CodeGen.Types
    mkLocDirect,
    getNonVoidFts,
    enterMethod,
+   evaluateMethod,
    enterLoc,
    loadLoc,
    storeLoc,
@@ -272,6 +273,12 @@ getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
 enterMethod :: CgLoc -> Code
 enterMethod cgLoc =
   invokevirtual $ mkMethodRef (locClass cgLoc) "enter" [contextType] void
+
+evaluateMethod :: CgLoc -> Code
+evaluateMethod cgLoc
+  = loadLoc cgLoc
+ <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] void)
+ -- TODO: Narrrow the invokevirtual call with locFt
 
 apUpdThunk :: StandardFormInfo -> (Text, Int)
 apUpdThunk (ApThunk n) = (apUpdName n, n)

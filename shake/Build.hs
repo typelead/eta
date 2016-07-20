@@ -67,6 +67,9 @@ buildLibrary lib deps = do
   copyFile' libConf (rootLibDir </> "package.conf.d" </> conf)
   return ()
 
+getLibs :: Action [String]
+getLibs = getDirectoryDirs libraryDir
+
 dropDirectoryN :: Int -> FilePath -> FilePath
 dropDirectoryN n = head . drop n . iterate dropDirectory1
 
@@ -86,26 +89,13 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         () <- cmd "stack exec -- ghc-pkg init " $ packageConfDir rootDir
-        libs <- getDirectoryDirs libraryDir
+        libs <- getLibs
         let libPaths = map libJarPath libs
-        need $ topologicalDepsSort libPaths getDependencies
-        -- Copy over all the files
-        -- forM_ libs $ \lib -> do
-        --    let rootLibDir = rootDir </> lib
-        --        conf = lib <.> "conf"
-        --        libDir = libraryDir </> lib
-        --        libConf = libDir </> conf
-        --        libBuildDir = libDir </> "build"
-        --    buildFiles <- getDirectoryFiles libBuildDir ["//*"]
-
-        --    forM_ buildFiles $ \buildFile ->
-        --      copyFile' (libBuildDir </> buildFile) (rootLibDir </> buildFile)
-        --    copyFile' libConf (rootLibDir </> "package.conf.d" </> conf)
-
-      -- Install an initialize ghc-pkg
+        let sortedPaths = topologicalDepsSort libPaths getDependencies
+        need [head sortedPaths]
     phony "uninstall" $ do
       rootDir <- getGhcVmRoot
-      putNormal "Cleaning files in rts/build & sample/build"
+      putNormal "Cleaning files in ~/.ghcvm"
       removeFilesAfter rootDir ["//*"]
 
     phony "reinstall" $ do
@@ -113,9 +103,13 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       need ["install"]
 
     phony "clean" $ do
-      putNormal "Cleaning files in rts/build & sample/build"
+      putNormal "Cleaning files in rts/build, sample/build "
       removeFilesAfter rtsBuildDir ["//*"]
       removeFilesAfter sampleBuildDir ["//*"]
+      libs <- getLibs
+      forM_ libs $ \lib -> do
+        let libBuildDir = libraryDir </> lib </> "build"
+        removeFilesAfter libBuildDir ["//*"]
 
     libJarPath "*" %> \out -> do
       let lib = takeDirectory1 . dropDirectory1 $ out

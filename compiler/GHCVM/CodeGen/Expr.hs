@@ -117,7 +117,11 @@ emitEnter thunk = do
     Return ->
       emit $ loadContext
           <> enterMethod thunk
-    AssignTo cgLocs -> unimplemented "emitEnter: case AssignTo"
+    AssignTo cgLocs ->
+      emit $ loadContext
+          <> evaluateMethod thunk
+          <> mkReturnEntry cgLocs
+
 
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args

@@ -9,8 +9,7 @@ public class Apply {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
-                StgClosure entered = fun.evaluate(context);
-                context.R(1, entered);
+                fun.evaluate(context);
             }
         };
 

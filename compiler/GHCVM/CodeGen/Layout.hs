@@ -80,6 +80,24 @@ mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
                   storeArgs (code <> nextCode) args
         storeArgs !code _ _ _ _ _ _ _ = code
 
+mkReturnEntry :: [CgLoc] -> Code
+mkReturnEntry cgLocs' = loadVals mempty cgLocs' 1 1 1 1 1 1
+  where loadVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
+          case argRep of
+            P -> loadRec (context r) (r + 1) i l f d o
+            N -> loadRec (context i) r (i + 1) l f d o
+            L -> loadRec (context l) r i (l + 1) f d o
+            F -> loadRec (context f) r i l (f + 1) d o
+            D -> loadRec (context d) r i l f (d + 1) o
+            O -> loadRec (context o) r i l f d (o + 1)
+            _ -> error "contextLoad: V"
+          where ft = locFt cgLoc
+                argRep = fieldTypeArgRep ft
+                context = contextLoad ft argRep
+                loadRec nextCode =
+                  loadVals (code <> storeLoc cgLoc nextCode) cgLocs
+        loadVals !code _ _ _ _ _ _ _ = code
+
 mkReturnExit :: [CgLoc] -> Code
 mkReturnExit cgLocs' = storeVals mempty cgLocs' 1 1 1 1 1 1
   where storeVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =

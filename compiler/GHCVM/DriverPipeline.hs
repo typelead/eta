@@ -127,7 +127,6 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
       <- {-# SCC "CoreToStg" #-}
           myCoreToStg dflags this_mod prepd_binds
 
-  print $ "Starting codeGen"
   classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
   let jarContents = map (classFilePath &&& classFileBS) classes
   createEmptyJar output_filename
