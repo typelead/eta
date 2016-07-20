@@ -37,7 +37,7 @@ library
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Foreign
                        , GHCVM.CodeGen.Prim
-                       , GHCVM.CodeGen.Debug
+                       , GHCVM.Debug
                        , GHCVM.CodeGen.Rts
                        , GHCVM.CodeGen.Bind
                        , GHCVM.CodeGen.Expr
@@ -95,7 +95,7 @@ executable ghcvm
                        , ghcvm
                                             
 
-executable rtsbuild
+executable ghcvm-build
     hs-source-dirs:      shake
     main-is:             Build.hs
     default-language:    Haskell2010

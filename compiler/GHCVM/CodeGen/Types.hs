@@ -46,7 +46,7 @@ import Codec.JVM
 import GHCVM.Primitive
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
-import GHCVM.CodeGen.Debug
+import GHCVM.Debug
 
 import Data.Maybe
 import Data.Text (Text)

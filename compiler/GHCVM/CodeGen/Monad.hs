@@ -73,7 +73,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.ArgRep
-import GHCVM.CodeGen.Debug
+import GHCVM.Debug
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text

@@ -45,7 +45,7 @@ import qualified Data.ByteString.Char8 as BC
 
 import GHCVM.CodeGen.Main
 import GHCVM.CodeGen.Name
-import GHCVM.CodeGen.Debug
+import GHCVM.Debug
 import GHCVM.CodeGen.Rts
 import GHCVM.Parser.Parse
 import GHCVM.JAR
@@ -176,6 +176,7 @@ linkGhcVM NoLink _ _ _ = return Succeeded
 linkGhcVM _ dflags batchAttemptLinking hpt
   | batchAttemptLinking
   = do
+      debugIO "linkGhcVM: Start batch link"
       let homeModInfos = eltsUFM hpt
           pkgDeps = concatMap ( map fst
                               . dep_pkgs
@@ -192,6 +193,7 @@ linkGhcVM _ dflags batchAttemptLinking hpt
             jarFiles = concatMap getOfiles linkables
             jarFile = jarFileName dflags
         shouldLink <- linkingNeeded dflags linkables pkgDeps
+        debugIO "linkGhcVM: Start batch link"
         if not (gopt Opt_ForceRecomp dflags) && not shouldLink then do
           debugTraceMsg dflags 2
             (text jarFile <+>
@@ -213,6 +215,9 @@ linkGhcVM _ dflags batchAttemptLinking hpt
   = do debugTraceMsg dflags 3
          (text "link(batch): upsweep (partially) failed OR" $$
           text "   Main.main not exported; not linking.")
+
+
+       debugIO "linkGhcVM: No batch link"
        return Succeeded
 
 linkingNeeded :: DynFlags -> [Linkable] -> [PackageKey] -> IO Bool
@@ -266,6 +271,7 @@ findHSLib dflags dirs lib = do
 
 linkGeneric :: Bool -> DynFlags -> [String] -> [PackageKey] -> IO ()
 linkGeneric isExecutable dflags oFiles depPackages = do
+    debugIO $ "linkGeneric: [isExecutable: " ++ show isExecutable ++ "]"
     when (haveRtsOptsFlags dflags) $ do
       log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
           ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
@@ -281,21 +287,23 @@ linkGeneric isExecutable dflags oFiles depPackages = do
     extraFiles <-
           if isExecutable then do
             pkgLibJars <- getPackageLibJars dflags depPackages
-            jarFiles <- concatMapM getFilesFromJar pkgLibJars
+            concatMapM getFilesFromJar pkgLibJars
             -- TODO: Verify that the right version ghcvm was used
             --       in the Manifests of the jars being compiled
-            return $ jarFiles
           else return []
-    linkJars dflags $ extraFiles ++ oFiles ++ mainFiles
+    let files = extraFiles ++ oFiles ++ mainFiles
+    debugIO $ "Num linked files: "++ show (length $ files)
+    linkJars dflags files
     -- TODO: Handle frameworks & extra ldInputs
-    -- create uberjar
 
 linkJars :: DynFlags -> [FileAndContents] -> IO ()
 linkJars dflags files = do
     let outputFn = jarFileName dflags
-    fullOutputFn <- if isAbsolute outputFn then return outputFn
-                    else do d <- getCurrentDirectory
-                            return $ normalise (d </> outputFn)
+    -- fullOutputFn <- if isAbsolute outputFn then return outputFn
+    --                 else do d <- getCurrentDirectory
+    --                         return $ normalise (d </> outputFn)
+    print $ "Output path: " ++ show outputFn
+    createEmptyJar outputFn
     addMultiByteStringsToJar' files outputFn
 
 maybeMainAndManifest :: DynFlags -> IO [(FilePath, ByteString)]

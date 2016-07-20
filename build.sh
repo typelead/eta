@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 stack build
-stack exec rtsbuild clean
-stack exec rtsbuild
+stack exec ghcvm-build clean
+stack exec ghcvm-build
 (cd ./sample/mapandsum/haskell/; stack build)
 

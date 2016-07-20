@@ -13,7 +13,7 @@ import GHCVM.CodeGen.Expr
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Closure
-import GHCVM.CodeGen.Debug
+import GHCVM.Debug
 import GHCVM.Util
 import GHCVM.Primitive
 import GHCVM.Constants
