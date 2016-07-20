@@ -1,5 +1,7 @@
 module GHCVM.CodeGen.Prim where
 
+import DynFlags
+import TyCon
 import Type
 import StgSyn
 import PrimOp
@@ -7,15 +9,20 @@ import Panic
 
 import Codec.JVM
 
+import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Foreign
 import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Utils
+import GHCVM.CodeGen.Rts
+import GHCVM.Primitive
+import GHCVM.Debug
 
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
+import Data.Maybe (fromJust)
 
 cgOpApp :: StgOp
         -> [StgArg]
@@ -32,16 +39,47 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
   emitReturn [mkLocDirect $ tagToClosure tyCon code]
   where tyCon = tyConAppTyCon resType
 
-cgOpApp (StgPrimOp primop) args resType = do
+cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
-    codes <- getNonVoidArgLoadCodes args
-    -- TODO: Implement after foreign calls
-    unimplemented "cgOpApp: StgPrimOp"
+    argCodes <- getNonVoidArgLoadCodes args
+    case shouldInlinePrimOp dflags primOp argCodes of
+      Left rtsPrimOpCode -> do
+        args' <- getFtsLoadCode args
+        emit $ mkCallExit True args'
+            <> loadContext
+            <> rtsPrimOpCode
+      Right f
+        | ReturnsPrim VoidRep <- resultInfo
+        -> f [] >> emitReturn []
+        | ReturnsPrim rep <- resultInfo
+        -> do let ft = fromJust . primRepFieldType $ mkJPrimRep rep
+              res <- newTemp ft
+              f [res]
+              emitReturn [res]
+        | ReturnsAlg tyCon <- resultInfo, isUnboxedTupleTyCon tyCon
+        -> do locs <- newUnboxedTupleLocs resType
+              f locs
+              emitReturn locs
+        | otherwise -> panic "cgPrimOp"
+        where resultInfo = getPrimOpResultInfo primOp
 
 -- NOTE: The GHCVM specific primops will get handled here
-cgOpApp (StgPrimCallOp primcall) args resType = do
-  codes <- getNonVoidArgLoadCodes args
-  unimplemented "cgOpApp: StgPrimOp"
+cgOpApp (StgPrimCallOp (PrimCall label pkgKey)) args resType = do
+  pprPanic "cgOpApp: PrimCall: label, pkgKey:" $ ppr label <+> ppr pkgKey
+  args' <- getFtsLoadCode args
+  emit $ mkCallExit True args'
+      <> loadContext
+      <> undefined
+
+shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code]
+  -> Either Code ([CgLoc] -> CodeGen ())
+-- TODO: Inline array operations conditionally
+shouldInlinePrimOp dflags primOp args
+  | primOpOutOfLine primOp = Left $ mkRtsPrimOp primOp
+  | otherwise = Right $ \locs -> emitPrimOp locs primOp args
+
+mkRtsPrimOp :: PrimOp -> Code
+mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: [CgLoc]        -- where to put the results
            -> PrimOp            -- the op
@@ -60,7 +98,7 @@ emitPrimOp [res] op [arg]
 emitPrimOp r@[res] op args
   | Just execute <- simpleOp op
   = emit $ execute args
-emitPrimOp _ _ _ = unimplemented "emitPrimOp"
+emitPrimOp _ op _ = pprPanic "emitPrimOp: unimplemented" (ppr op)
 
 nopOp :: PrimOp -> Bool
 nopOp Int2WordOp = True

@@ -1,5 +1,6 @@
 module GHCVM.CodeGen.Layout where
 
+import Type
 import DynFlags
 import StgSyn
 import Id
@@ -9,6 +10,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Env
+import GHCVM.Primitive
 
 import Data.Maybe (fromJust, mapMaybe)
 import Data.Monoid ((<>))
@@ -182,3 +184,13 @@ getFtsLoadCode = mapM getFtAmode
                            return (rep, ft, Just code)
           where ft = repFieldType (stgArgType arg)
                 rep = fieldTypeArgRep $ fromJust ft
+
+newUnboxedTupleLocs :: Type -> CodeGen [CgLoc]
+newUnboxedTupleLocs resType = getSequel >>= chooseLocs
+  where chooseLocs (AssignTo regs) = return regs
+        chooseLocs _               = mapM newTemp reps
+        UbxTupleRep tyArgs         = repType resType
+        reps = [ fromJust . primRepFieldType $ rep
+               | ty <- tyArgs
+               , let rep           = typeJPrimRep ty
+               , not (isVoidJRep rep) ]

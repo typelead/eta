@@ -1273,3 +1273,6 @@ idJPrimRep = typeJPrimRep . idType
 
 jrepType :: Type -> UnaryType
 jrepType = head . flattenRepType . repType
+
+mkJPrimRep :: PrimRep -> JPrimRep
+mkJPrimRep = HPrimRep

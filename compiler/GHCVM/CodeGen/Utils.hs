@@ -1,5 +1,6 @@
 module GHCVM.CodeGen.Utils where
 
+import Type
 import Name
 import TyCon
 import Outputable hiding ((<>))
