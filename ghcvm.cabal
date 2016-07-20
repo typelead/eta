@@ -25,6 +25,7 @@ library
                        , BangPatterns
                        , TupleSections
     exposed-modules:     GHCVM.DriverPipeline
+                       , GHCVM.Packages
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
                        , GHCVM.CodeGen.Closure
@@ -36,6 +37,7 @@ library
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Foreign
                        , GHCVM.CodeGen.Prim
+                       , GHCVM.CodeGen.Debug
                        , GHCVM.CodeGen.Rts
                        , GHCVM.CodeGen.Bind
                        , GHCVM.CodeGen.Expr

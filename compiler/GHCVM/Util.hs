@@ -1,7 +1,8 @@
 module GHCVM.Util
   (indexList,
    upperFirst,
-   scanM)
+   scanM,
+   concatMapM)
 where
 
 import qualified Data.Char as C
@@ -21,3 +22,12 @@ scanM f q (x:xs) =
    do q2 <- f q x
       qs <- scanM f q2 xs
       return (q:qs)
+
+concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
+{-# INLINE concatMapM #-}
+concatMapM op = foldr f (return [])
+    where f x xs = do
+            x' <- op x
+            if null x' then xs
+            else do xs' <- xs
+                    return $ x' ++ xs'

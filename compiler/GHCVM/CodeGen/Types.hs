@@ -46,6 +46,7 @@ import Codec.JVM
 import GHCVM.Primitive
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.Debug
 
 import Data.Maybe
 import Data.Text (Text)
@@ -63,6 +64,10 @@ data CgLoc = LocLocal FieldType !Int
            | LocField FieldType Text Text
            | LocDirect FieldType Code
            | LocLne Label [CgLoc]
+
+instance Outputable CgLoc where
+  ppr (LocLocal ft int) = str "local: " <+> ppr int
+  ppr  _ = str "Some loc"
 
 mkLocDirect :: (FieldType, Code) -> CgLoc
 mkLocDirect (ft, code) = LocDirect ft code
@@ -103,6 +108,9 @@ data CgIdInfo =
              cgLambdaForm :: LambdaFormInfo,
              cgLocation   :: CgLoc }
 
+instance Outputable CgIdInfo where
+  ppr CgIdInfo {..} = ppr cgId <+> str "-->" <+> ppr cgLocation
+
 splitStaticLoc :: CgLoc -> (Text, Text)
 splitStaticLoc (LocStatic ft modClass clName) = (modClass, clName)
 splitStaticLoc _ = error $ "splitStaticLoc: Not LocStatic"
@@ -126,7 +134,9 @@ mkCgIdInfo id lfInfo =
            , cgLambdaForm = lfInfo
            , cgLocation = loc }
   where loc = mkStaticLoc id lfInfo
-        mod = nameModule . idName $ id
+        mod = fromMaybe (error "mkCgIdInfo: No module")
+            . nameModule_maybe
+            . idName $ id
 
 mkCgIdInfoWithLoc :: Id -> LambdaFormInfo -> CgLoc -> CgIdInfo
 mkCgIdInfoWithLoc id lfInfo cgLoc =
@@ -137,7 +147,7 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
 mkStaticLoc :: Id -> LambdaFormInfo -> CgLoc
 mkStaticLoc id lfInfo = LocStatic (obj clClass) modClass clName
   where name = idName id
-        mod = nameModule name
+        mod = fromMaybe (error "mkStaticLoc: No module") $ nameModule_maybe name
         clName = nameText name
         modClass = moduleJavaClass mod
         -- TODO: Reduce duplication

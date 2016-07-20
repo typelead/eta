@@ -408,8 +408,7 @@ dconst d
         code = constCode ft
 
 sconst :: ByteString -> Code
-sconst = gldc ft . cstring . decodeUtf8
-  where ft = jString
+sconst = gldc jstring . cstring . decodeUtf8
 
 gldc :: FieldType -> Const -> Code
 gldc ft c = mkCode cs $ loadCode

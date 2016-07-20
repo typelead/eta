@@ -20,7 +20,7 @@ cgLit (MachWord64 i)        = (jlong, iconst jlong $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 cgLit MachNullAddr          = (jobject, aconst_null)
-cgLit (MachStr s)           = (jString, sconst s)
+cgLit (MachStr s)           = (jstring, sconst s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)

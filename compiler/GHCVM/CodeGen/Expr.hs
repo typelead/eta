@@ -26,7 +26,7 @@ import {-# SOURCE #-} GHCVM.CodeGen.Bind (cgBind)
 import Codec.JVM
 
 import Data.Monoid((<>))
-import Control.Monad(when, forM_)
+import Control.Monad(when, forM_, unless)
 import Data.Maybe(fromJust)
 
 cgExpr :: StgExpr -> CodeGen ()
@@ -36,7 +36,9 @@ cgExpr (StgOpApp op args ty) = cgOpApp op args ty
 cgExpr (StgConApp con args) = cgConApp con args
 cgExpr (StgTick t e) = cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect $ cgLit lit]
-cgExpr (StgLet binds expr) = cgBind binds >> cgExpr expr
+cgExpr (StgLet binds expr) = do
+  cgBind binds
+  cgExpr expr
 cgExpr (StgLetNoEscape _ _ binds expr) = unimplemented "cgExpr: StgLetNoEscape"
   -- joinPoint <- newLabel
   -- cgLneBinds joinPoint binds
@@ -123,15 +125,29 @@ cgConApp con args
       ftCodes <- getNonVoidFtCodes args
       emitReturn $ map mkLocDirect ftCodes
   | otherwise = do
-      (idInfo, genInitCode) <- buildDynCon con args
+      -- TODO: Is dataConWorId the right thing to pass?
+      (idInfo, genInitCode) <- buildDynCon (dataConWorkId con) con args
       initCode <- genInitCode
       emit initCode
       emitReturn [cgLocation idInfo]
 
 cgCase :: StgExpr -> Id -> AltType -> [StgAlt] -> CodeGen ()
-cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tycon) alts
-  | isEnumerationTyCon tycon = do
-      unimplemented "cgCase: enumeration primop"
+cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
+  | isEnumerationTyCon tyCon = do
+      tagExpr <- doEnumPrimop op args
+      unless (isDeadBinder binder) $ do
+        bindLoc <- newIdLoc (NonVoid binder)
+        bindArg (NonVoid binder) bindLoc
+        emitAssign bindLoc $ snd (tagToClosure tyCon tagExpr)
+      (maybeDefault, branches) <- cgAlgAltRhss (NonVoid binder) alts
+      emit $ intSwitch tagExpr branches maybeDefault
+  where doEnumPrimop :: PrimOp -> [StgArg] -> CodeGen Code
+        doEnumPrimop TagToEnumOp [arg] = getArgLoadCode (NonVoid arg)
+        doEnumPrimop primop args = do
+          tmp <- newTemp jint
+          cgPrimOp [tmp] primop args
+          return (loadLoc tmp)
+
 cgCase (StgApp v []) _ (PrimAlt _) alts
   | isVoidJRep (idJPrimRep v)
   , [(DEFAULT, _, _, rhs)] <- alts

@@ -2,6 +2,10 @@ module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
+   crashDoc,
+   debugDoc,
+   debugState,
+   debug,
    withSequel,
    emit,
    initCg,
@@ -50,13 +54,15 @@ import Module
 import VarEnv
 import Id
 import Name
+import Outputable hiding ((<>))
+import FastString
 
 import Data.Monoid((<>))
 import Data.List
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
-import Control.Monad (liftM, ap)
+import Control.Monad (liftM, ap, when)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
@@ -67,6 +73,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.ArgRep
+import GHCVM.CodeGen.Debug
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
@@ -214,13 +221,12 @@ getCgIdInfo id = do
   case lookupVarEnv localBindings id of
     Just info -> return info
     Nothing -> do
-      let name = idName id
-      let mod = nameModule name
       curMod <- getModule
+      let name = idName id
+      let mod = fromMaybe (error "getCgIdInfo: no module") $ nameModule_maybe name
       if mod /= curMod then
         return . mkCgIdInfo id $ mkLFImported id
-      else
-        error "getCgIdInfo: Not external name"
+      else crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
@@ -442,3 +448,23 @@ withSequel sequel = local (\env -> env { cgSequel = sequel })
 
 forkLneBody :: CodeGen a -> CodeGen a
 forkLneBody = id
+
+debug :: String -> CodeGen ()
+debug msg = do
+  dflags <- getDynFlags
+  liftIO $ putStrLn msg
+
+debugDoc :: SDoc -> CodeGen ()
+debugDoc sdoc = do
+  dflags <- getDynFlags
+  liftIO . putStrLn $ showSDocDump dflags sdoc
+
+debugState :: CodeGen ()
+debugState = do
+  bindings <- getBindings
+  debugDoc $ str "cgBindings: " <+> ppr bindings
+
+crashDoc :: SDoc -> CodeGen a
+crashDoc sdoc = do
+  debugDoc sdoc
+  error "crash"

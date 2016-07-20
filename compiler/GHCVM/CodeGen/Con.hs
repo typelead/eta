@@ -45,29 +45,29 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
               putstatic $ mkFieldRef modClass qClName dataFt
             ]
 
-buildDynCon :: DataCon -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
-buildDynCon con [] = return
-  ( mkCgIdInfo (dataConWorkId con) (mkConLFInfo con)
+buildDynCon :: Id -> DataCon -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
+buildDynCon binder con [] = return
+  ( mkCgIdInfo binder (mkConLFInfo con)
   , return mempty )
-buildDynCon con [arg]
-  | maybeIntLikeCon con
-  , StgLitArg (MachInt val) <- arg
-  , val <= fromIntegral mAX_INTLIKE
-  , val >= fromIntegral mIN_INTLIKE
-  = do
-      -- TODO: Generate offset into intlike array
-      unimplemented "buildDynCon: INTLIKE"
-buildDynCon con [arg]
-  | maybeCharLikeCon con
-  , StgLitArg (MachChar val') <- arg
-  , let val = ord val' :: Int
-  , val <= fromIntegral mAX_INTLIKE
-  , val >= fromIntegral mIN_INTLIKE
-  = do
-      -- TODO: Generate offset into charlike array
-      unimplemented "buildDynCon: CHARLIKE"
-buildDynCon con args = do
-  (idInfo, cgLoc) <- rhsIdInfo (dataConWorkId con) lfInfo
+-- buildDynCon binder con [arg]
+--   | maybeIntLikeCon con
+--   , StgLitArg (MachInt val) <- arg
+--   , val <= fromIntegral mAX_INTLIKE
+--   , val >= fromIntegral mIN_INTLIKE
+--   = do
+--       -- TODO: Generate offset into intlike array
+--       unimplemented "buildDynCon: INTLIKE"
+-- buildDynCon binder con [arg]
+--   | maybeCharLikeCon con
+--   , StgLitArg (MachChar val') <- arg
+--   , let val = ord val' :: Int
+--   , val <= fromIntegral mAX_INTLIKE
+--   , val >= fromIntegral mIN_INTLIKE
+--   = do
+--       -- TODO: Generate offset into charlike array
+--       unimplemented "buildDynCon: CHARLIKE"
+buildDynCon binder con args = do
+  (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
   let (_, _, dataClass) = getJavaInfo idInfo
   return (idInfo, genCode cgLoc dataClass)
   where lfInfo = mkConLFInfo con

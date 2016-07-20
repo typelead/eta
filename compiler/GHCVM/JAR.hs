@@ -1,7 +1,8 @@
 {-|
 Module      : JAR
 Description : Small utility functions for creating Jars from class files.
-Copyright   : (c) Chrisotpher Wells 2016
+Copyright   : (c) Christopher Wells 2016
+              (c) Rahul Muttineni 2016
 License     : MIT
 This module provides utility functions for creating Jar archives from JVM class
 files.
@@ -27,13 +28,17 @@ addByteStringToJar fileLocation fileContents jarLocation
 -}
 module GHCVM.JAR where
 
-import Codec.Archive.Zip (addEntry, CompressionMethod(Store), createArchive, mkEntrySelector, withArchive)
-import Control.Monad(forM_)
+import Codec.Archive.Zip (addEntry, CompressionMethod(Store),
+                          createArchive, mkEntrySelector, withArchive,
+                          getEntries, getEntry, unEntrySelector)
+import Control.Monad (forM_, forM)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Catch (MonadCatch, MonadThrow)
 import Data.ByteString.Internal (ByteString)
-import Path (parseRelFile)
+import Path (parseRelFile, Path, Rel, File)
+import Data.Map.Lazy (keys)
 
+type FileAndContents = (Path Rel File, ByteString)
 -- | Creates an empty jar archive at the given relative filepath location.
 -- The name of the archive and its file ending should be included in the
 -- filepath.
@@ -170,7 +175,8 @@ addByteStringToJar fileLocation contents jarLocation = zipAction
 --             └── META-INF
 --                 └── MANIFEST.MF
 -- @
-addMultiByteStringsToJar :: (MonadThrow m, MonadIO m)
+addMultiByteStringsToJar
+  :: (MonadThrow m, MonadIO m)
   => [(FilePath, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> FilePath                    -- ^ Location of the jar to add the new files into
   -> m ()
@@ -181,3 +187,30 @@ addMultiByteStringsToJar files jarLocation = do
       filePath <- parseRelFile path
       entrySel <- mkEntrySelector filePath
       addEntry Store contents entrySel
+
+addMultiByteStringsToJar'
+  :: (MonadThrow m, MonadIO m)
+  => [(Path Rel File, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
+  -> FilePath                    -- ^ Location of the jar to add the new files into
+  -> m ()
+addMultiByteStringsToJar' files jarLocation = do
+  jarPath <- parseRelFile jarLocation
+  withArchive jarPath $
+    forM_ files $ \(path, contents) -> do
+      entrySel <- mkEntrySelector path
+      addEntry Store contents entrySel
+
+getFilesFromJar
+  :: (MonadThrow m, MonadIO m)
+  => FilePath
+  -> m [(Path Rel File, ByteString)]
+getFilesFromJar jarLocation = do
+  jarPath <- parseRelFile jarLocation
+  withArchive jarPath $ do
+    entrySelectors <- keys <$> getEntries
+    forM entrySelectors $ \es -> do
+       contents <- getEntry es
+       return (unEntrySelector es, contents)
+
+mkPath :: (MonadThrow m, MonadIO m) => FilePath -> m (Path Rel File)
+mkPath = parseRelFile

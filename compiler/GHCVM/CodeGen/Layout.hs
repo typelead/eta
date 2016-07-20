@@ -148,10 +148,13 @@ slowArgFrames args = thisFrame : slowArgFrames restArgs
 
 genSlowFrame :: Text -> [FieldType] -> [(JArgRep, Maybe FieldType, Maybe Code)] -> Code
 genSlowFrame patText fts args =
-     fold loadCodes
-  <> invokespecial (mkMethodRef (apply patClass) "<init>" fts void)
-  where patClass = argPatToFrame patText
+     new ft
+  <> dup ft
+  <> fold loadCodes
+  <> invokespecial (mkMethodRef patClass "<init>" fts void)
+  where patClass = apply $ argPatToFrame patText
         loadCodes = mapMaybe (\(_, _, a) -> a) args
+        ft = obj patClass
 
 getFtsLoadCode :: [StgArg] -> CodeGen [(JArgRep, Maybe FieldType, Maybe Code)]
 getFtsLoadCode = mapM getFtAmode

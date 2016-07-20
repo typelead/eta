@@ -13,6 +13,7 @@ import GHCVM.CodeGen.Expr
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Closure
+import GHCVM.CodeGen.Debug
 import GHCVM.Util
 import GHCVM.Primitive
 import GHCVM.Constants
@@ -125,7 +126,7 @@ cgBind (StgRec pairs) = do
   emit (fold inits <> body)
 
 cgRhs :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen Code)
-cgRhs id (StgRhsCon _ con args) = buildDynCon con args
+cgRhs id (StgRhsCon _ con args) = buildDynCon id con args
 cgRhs name (StgRhsClosure _ binderInfo fvs updateFlag _ args body)
   = mkRhsClosure name binderInfo (nonVoidIds fvs) updateFlag args body
 

@@ -41,8 +41,8 @@ baseType :: FieldType -> PrimType
 baseType (BaseType pt) = pt
 baseType _ = error "baseType: Not base type!"
 
-jString :: FieldType
-jString = ObjectType jlString
+jstring :: FieldType
+jstring = ObjectType jlString
 
 jlObject :: IClassName
 jlObject = IClassName "java/lang/Object"

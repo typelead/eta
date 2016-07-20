@@ -4,11 +4,16 @@ module GHCVM.DriverPipeline
    ghcvmFrontend)
 where
 
+import SrcLoc
+import UniqFM
 import TcRnTypes
 import MkIface
 import Module
 import DynFlags
-import DriverPipeline
+import Exception (tryIO)
+import Util (getModificationUTCTime, splitEithers)
+
+import DriverPipeline hiding (linkingNeeded)
 import DriverPhases
 import BasicTypes
 import CoreSyn (CoreProgram)
@@ -28,18 +33,24 @@ import NameEnv
 import HscMain hiding (hscParse')
 import HscTypes
 
+import Data.Maybe(catMaybes, isNothing, isJust)
 import Data.IORef
-import Control.Monad(when)
-import Control.Arrow((&&&))
+import Control.Monad(when, filterM, forM)
+import Control.Arrow((&&&), first)
 import System.Directory
 import System.FilePath
 
-import qualified Data.ByteString.Lazy as B
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as BC
 
 import GHCVM.CodeGen.Main
 import GHCVM.CodeGen.Name
+import GHCVM.CodeGen.Debug
+import GHCVM.CodeGen.Rts
 import GHCVM.Parser.Parse
 import GHCVM.JAR
+import GHCVM.Packages
+import GHCVM.Util
 import Codec.JVM
 
 runGhcVMPhase :: PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath)
@@ -160,9 +171,82 @@ myCoreToStg dflags this_mod prepd_binds = do
   return (stg_binds2, cost_centre_info)
 
 linkGhcVM :: GhcLink -> DynFlags -> Bool -> HomePackageTable -> IO SuccessFlag
-linkGhcVM _ dflags _ hpt = do
-  putStrLn "Linking the generated .class files..."
-  return Succeeded
+linkGhcVM LinkInMemory _ _ _ = error "LinkInMemory not implemented yet."
+linkGhcVM NoLink _ _ _ = return Succeeded
+linkGhcVM _ dflags batchAttemptLinking hpt
+  | batchAttemptLinking
+  = do
+      let homeModInfos = eltsUFM hpt
+          pkgDeps = concatMap ( map fst
+                              . dep_pkgs
+                              . mi_deps
+                              . hm_iface ) homeModInfos
+          linkables = map (expectJust "link" . hm_linkable) homeModInfos
+      debugTraceMsg dflags 3 (text "link: linkables are ..." $$ vcat (map ppr linkables))
+      if isNoLink (ghcLink dflags) then do
+        debugTraceMsg dflags 3
+          (text "link(batch): linking omitted (-c flag given).")
+        return Succeeded
+      else do
+        let getOfiles (LM _ _ us) = map nameOfObject (filter isObject us)
+            jarFiles = concatMap getOfiles linkables
+            jarFile = jarFileName dflags
+        shouldLink <- linkingNeeded dflags linkables pkgDeps
+        if not (gopt Opt_ForceRecomp dflags) && not shouldLink then do
+          debugTraceMsg dflags 2
+            (text jarFile <+>
+             (str "is up to date, linking not required."))
+          return Succeeded
+        else do
+          compilationProgressMsg dflags ("Linking " ++ jarFile ++ " ...")
+          let link = case ghcLink dflags of
+                       LinkBinary    -> linkGeneric True
+                       LinkStaticLib -> linkGeneric False
+                       LinkDynLib    -> linkGeneric False
+                       other         ->
+                         panic ("link: GHC not built to link this way: " ++
+                                show other)
+          link dflags jarFiles pkgDeps
+          debugTraceMsg dflags 3 (text "link: done")
+          return Succeeded
+  | otherwise
+  = do debugTraceMsg dflags 3
+         (text "link(batch): upsweep (partially) failed OR" $$
+          text "   Main.main not exported; not linking.")
+       return Succeeded
+
+linkingNeeded :: DynFlags -> [Linkable] -> [PackageKey] -> IO Bool
+linkingNeeded dflags linkables pkgDeps = do
+        -- if the modification time on the executable is later than the
+        -- modification times on all of the objects and libraries, then omit
+        -- linking (unless the -fforce-recomp flag was given).
+  let jarFile = jarFileName dflags
+  eJarTime <- tryIO $ getModificationUTCTime jarFile
+  case eJarTime of
+    Left _  -> return True
+    Right t -> do
+        -- TODO: Factor in ldOptions too
+        let jarTimes = map linkableTime linkables
+        if any (t <) jarTimes then return True
+        else do
+          let pkgHSLibs  = [ (libraryDirs c, lib)
+                          | Just c <- map (lookupPackage dflags) pkgDeps
+                          , lib <- packageHsLibs dflags c ]
+          pkgLibFiles <- mapM (uncurry $ findHSLib dflags) pkgHSLibs
+          if any isNothing pkgLibFiles then
+            return True
+          else do
+            eLibTimes <- mapM (tryIO . getModificationUTCTime)
+                              (catMaybes pkgLibFiles)
+            let (libErrs, libTimes) = splitEithers eLibTimes
+            return $ not (null libErrs) || any (t <) libTimes
+
+jarFileName :: DynFlags -> FilePath
+jarFileName dflags
+  | Just s <- outputFile dflags = s <?.> "jar"
+  | otherwise = "main.jar"
+  where s <?.> ext | null (takeExtension s) = s <.> ext
+                   | otherwise              = s
 
 ghcvmFrontend :: ModSummary -> Hsc TcGblEnv
 ghcvmFrontend mod_summary = do
@@ -170,3 +254,76 @@ ghcvmFrontend mod_summary = do
   hsc_env <- getHscEnv
   tcg_env <- tcRnModule' hsc_env mod_summary False hpm
   return tcg_env
+
+findHSLib :: DynFlags -> [String] -> String -> IO (Maybe FilePath)
+findHSLib dflags dirs lib = do
+  found <- filterM doesFileExist (map (</> file) dirs)
+  return $
+    case found of
+      [] -> Nothing
+      (x:_) -> Just x
+  where file = lib <.> "jar"
+
+linkGeneric :: Bool -> DynFlags -> [String] -> [PackageKey] -> IO ()
+linkGeneric isExecutable dflags oFiles depPackages = do
+    when (haveRtsOptsFlags dflags) $ do
+      log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
+          ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
+             ++ " -no-hs-main.") $$
+           (text $ "    Call hsInit() from your main() method to set"
+             ++ " these options."))
+    -- TODO: Use conduits to combine the jars
+    mainFiles' <- maybeMainAndManifest dflags
+    mainFiles <- forM mainFiles' $ \(a, b) -> do
+                   a' <- mkPath a
+                   return (a', b)
+    oFiles  <- concatMapM getFilesFromJar oFiles
+    extraFiles <-
+          if isExecutable then do
+            pkgLibJars <- getPackageLibJars dflags depPackages
+            jarFiles <- concatMapM getFilesFromJar pkgLibJars
+            -- TODO: Verify that the right version ghcvm was used
+            --       in the Manifests of the jars being compiled
+            return $ jarFiles
+          else return []
+    linkJars dflags $ extraFiles ++ oFiles ++ mainFiles
+    -- TODO: Handle frameworks & extra ldInputs
+    -- create uberjar
+
+linkJars :: DynFlags -> [FileAndContents] -> IO ()
+linkJars dflags files = do
+    let outputFn = jarFileName dflags
+    fullOutputFn <- if isAbsolute outputFn then return outputFn
+                    else do d <- getCurrentDirectory
+                            return $ normalise (d </> outputFn)
+    addMultiByteStringsToJar' files outputFn
+
+maybeMainAndManifest :: DynFlags -> IO [(FilePath, ByteString)]
+maybeMainAndManifest dflags = do
+  when (gopt Opt_NoHsMain dflags && haveRtsOptsFlags dflags) $ do
+      log_action dflags dflags SevInfo noSrcSpan defaultUserStyle $
+        (text $ "Warning: -rtsopts and -with-rtsopts have no effect with "
+             ++ "-no-hs-main.") $$
+        (text $ "    Call hs_init_ghc() from your main() function to set these"
+             ++ " options.")
+  return . catMaybes $ [mainFile, manifestFile]
+  where
+    mainClass = "ghcvm/ZCMain"
+    mainFile
+      | gopt Opt_NoHsMain dflags = Nothing
+      | otherwise = Just ((classFilePath &&& classFileBS)
+                          $ mkRtsMainClass dflags mainClass)
+    manifestFile = Just ( "META-INF/MANIFEST.MF"
+                        , BC.pack $
+                           "Manifest-Version: 1.0\n"
+                        -- TODO: Add actual versioning information here
+                        ++ "Created-By: ghcvm-0.0.0.1\n"
+                        ++ maybe "" (const $ "Main-Class: " ++ mainClass)
+                                 mainFile)
+
+haveRtsOptsFlags :: DynFlags -> Bool
+haveRtsOptsFlags dflags
+  = isJust (rtsOpts dflags)
+  || case rtsOptsEnabled dflags of
+       RtsOptsSafeOnly -> False
+       _ -> True
