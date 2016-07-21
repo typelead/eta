@@ -17,6 +17,7 @@ import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Utils
 import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.Name
 import GHCVM.Primitive
 import GHCVM.Debug
 
@@ -64,12 +65,14 @@ cgOpApp (StgPrimOp primOp) args resType = do
         where resultInfo = getPrimOpResultInfo primOp
 
 -- NOTE: The GHCVM specific primops will get handled here
-cgOpApp (StgPrimCallOp (PrimCall label pkgKey)) args resType = do
-  pprPanic "cgOpApp: PrimCall: label, pkgKey:" $ ppr label <+> ppr pkgKey
+cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
+  locs <- newUnboxedTupleLocs resType
   args' <- getFtsLoadCode args
   emit $ mkCallExit True args'
       <> loadContext
-      <> undefined
+      <> invokestatic (mkMethodRef clsName methodName [contextType] void)
+      <> mkReturnEntry locs
+  where (clsName, methodName) = labelToMethod label
 
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code]
   -> Either Code ([CgLoc] -> CodeGen ())

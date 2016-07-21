@@ -12,7 +12,8 @@ module GHCVM.CodeGen.Name (
   tyConClass,
   moduleClass,
   closure,
-  classFilePath
+  classFilePath,
+  labelToMethod
   ) where
 
 import TyCon
@@ -129,3 +130,8 @@ tyConClass :: TyCon -> Text
 tyConClass tyCon = moduleClass typeName typeClass
   where typeName = tyConName tyCon
         typeClass = nameTypeText typeName
+
+labelToMethod :: FastString -> (Text, Text)
+labelToMethod fs = ( T.dropEnd 1 $ T.dropWhileEnd (/= '.') label
+                   , T.takeWhileEnd (/= '.') label )
+  where label = fastStringToText fs

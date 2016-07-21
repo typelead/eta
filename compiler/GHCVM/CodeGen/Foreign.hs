@@ -27,13 +27,9 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
   let (argFts, callArgs) = unzip argFtCodes
       callTarget = case target of
         StaticTarget label mPkgId True ->
-          let label' = fastStringToText label
-              (clsName, methodName) = ( T.dropEnd 1
-                                      $ T.dropWhileEnd (/= '.') label'
-                                      , T.takeWhileEnd (/= '.') label' )
-          in invokestatic
-             $ mkMethodRef clsName methodName argFts
-                           (ret (locFt $ head resLocs))
+          let (clsName, methodName) = labelToMethod label
+          in invokestatic $ mkMethodRef clsName methodName argFts
+                                        (ret (locFt $ head resLocs))
              -- TODO: Verify the result
         _ -> panic "cgForeignCall: unimplemented"
   sequel <- getSequel
