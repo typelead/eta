@@ -23,7 +23,6 @@ library
     Codec.JVM.ASM.Code.Types
     Codec.JVM.Attr
     Codec.JVM.Class
-    Codec.JVM.Cond
     Codec.JVM.Const
     Codec.JVM.ConstPool
     Codec.JVM.Field

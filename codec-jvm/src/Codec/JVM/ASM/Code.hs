@@ -14,16 +14,14 @@ import qualified Data.ByteString as BS
 
 import Codec.JVM.ASM.Code.Instr (Instr(..), runInstr)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..))
-import Codec.JVM.Cond (Cond)
 import Codec.JVM.Const
 import Codec.JVM.ConstPool (ConstPool)
 import Codec.JVM.Internal (packWord16be, packI16)
 import Codec.JVM.Opcode (Opcode)
 import Codec.JVM.Types
 
-import Codec.JVM.ASM.Code.CtrlFlow (VerifType(..))
+import Codec.JVM.ASM.Code.CtrlFlow (VerifType(..), Stack)
 import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
-import qualified Codec.JVM.Cond as CD
 import qualified Codec.JVM.ASM.Code.Instr as IT
 import qualified Codec.JVM.ConstPool as CP
 import qualified Codec.JVM.Opcode as OP
@@ -157,20 +155,109 @@ putstatic fr@(FieldRef _ _ ft) = mkCode cs $ fold
   where c = CFieldRef fr
         cs = CP.unpack c
 
-iadd :: Code
-iadd = mkCode' $ IT.op OP.iadd <> cf where
-  cf = modifyStack $ CF.push jint . CF.pop' 2
+opStack :: (FieldType -> Stack -> Stack) -> FieldType -> Opcode -> Code
+opStack f ft oc = mkCode' $ IT.op oc <> modifyStack (f ft)
 
-iif :: Cond -> Code -> Code -> Code
-iif cond ok ko = mkCode cs ins where
-  cs = [ok, ko] >>= consts
-  ins = IT.iif cond (instr ok) (instr ko)
+unaryOp, binaryOp, shiftOp :: FieldType -> Opcode -> Code
+unaryOp  = opStack (\ft -> CF.push ft . CF.pop ft)
+binaryOp = opStack (\ft -> CF.push ft . CF.pop ft . CF.pop ft)
+shiftOp  = opStack (\ft -> CF.push ft . CF.pop ft . CF.pop jint)
+cmpOp    = opStack (\ft -> CF.push jint . CF.pop ft . CF.pop jint)
 
-ifne :: Code -> Code -> Code
-ifne = iif CD.NE
+iadd, ladd, fadd, dadd :: Code
+iadd = binaryOp jint OP.iadd
+ladd = binaryOp jlong OP.ladd
+fadd = binaryOp jfloat OP.fadd
+dadd = binaryOp jdouble OP.dadd
 
-ifeq :: Code -> Code -> Code
-ifeq = iif CD.EQ
+isub, lsub, fsub, dsub :: Code
+isub = binaryOp jint OP.isub
+lsub = binaryOp jlong OP.lsub
+fsub = binaryOp jfloat OP.fsub
+dsub = binaryOp jdouble OP.dsub
+
+imul, lmul, fmul, dmul :: Code
+imul = binaryOp jint OP.imul
+lmul = binaryOp jlong OP.lmul
+fmul = binaryOp jfloat OP.fmul
+dmul = binaryOp jdouble OP.dmul
+
+idiv, ldiv, fdiv, ddiv :: Code
+idiv = binaryOp jint OP.idiv
+ldiv = binaryOp jlong OP.ldiv
+fdiv = binaryOp jfloat OP.fdiv
+ddiv = binaryOp jdouble OP.ddiv
+
+irem, lrem, frem, drem :: Code
+irem = binaryOp jint OP.irem
+lrem = binaryOp jlong OP.lrem
+frem = binaryOp jfloat OP.frem
+drem = binaryOp jdouble OP.drem
+
+ineg, lneg, fneg, dneg :: Code
+ineg = unaryOp jint OP.ineg
+lneg = unaryOp jlong OP.lneg
+fneg = unaryOp jfloat OP.fneg
+dneg = unaryOp jdouble OP.dneg
+
+ishl, ishr, iushr, lshl, lshr, lushr :: Code
+ishl  = shiftOp jint OP.ishl
+ishr  = shiftOp jint OP.ishr
+iushr = shiftOp jint OP.iushr
+lshl  = shiftOp jlong OP.lshl
+lshr  = shiftOp jlong OP.lshr
+lushr = shiftOp jlong OP.lushr
+
+ior, lor, iand, land, ixor, lxor :: Code
+ior  = binaryOp jint OP.ior
+iand = binaryOp jint OP.iand
+ixor = binaryOp jint OP.ixor
+lor  = binaryOp jlong OP.lor
+land = binaryOp jlong OP.land
+lxor = binaryOp jlong OP.lxor
+
+fcmpl, fcmpg, dcmpl, dcmpg, lcmp :: Code
+fcmpl = cmpOp jfloat OP.fcmpl
+fcmpg = cmpOp jfloat OP.fcmpg
+dcmpg = cmpOp jdouble OP.dcmpg
+dcmpl = cmpOp jdouble OP.dcmpl
+lcmp  = cmpOp jlong OP.lcmp
+
+gbranch :: (FieldType -> Stack -> Stack)
+        -> FieldType -> Opcode -> Code -> Code -> Code
+gbranch f ft oc ok ko = mkCode cs ins
+  where cs = [ok, ko] >>= consts
+        ins = IT.gbranch f ft oc (instr ok) (instr ko)
+
+unaryBranch, binaryBranch :: FieldType -> Opcode -> Code -> Code -> Code
+unaryBranch  = gbranch (\ft -> CF.push jint . CF.pop ft)
+binaryBranch = gbranch (\ft -> CF.push jint . CF.pop ft . CF.pop ft)
+
+intBranch1, intBranch2 :: Opcode -> Code -> Code -> Code
+intBranch1 = unaryBranch jint
+intBranch2 = binaryBranch jint
+
+ifne, ifeq, ifle, iflt, ifge, ifgt, ifnull, ifnonnull
+  :: Code -> Code -> Code
+ifne      = intBranch1 OP.ifne
+ifeq      = intBranch1 OP.ifeq
+ifle      = intBranch1 OP.ifle
+iflt      = intBranch1 OP.iflt
+ifgt      = intBranch1 OP.ifgt
+ifge      = intBranch1 OP.ifge
+ifnull    = unaryBranch jobject OP.ifnull
+ifnonnull = unaryBranch jobject OP.ifnonnull
+
+if_icmpeq, if_icmpne, if_icmplt, if_icmpge, if_icmpgt, if_icmple,
+  if_acmpeq, if_acmpne :: Code -> Code -> Code
+if_icmpeq = intBranch2 OP.if_icmpeq
+if_icmpne = intBranch2 OP.if_icmpne
+if_icmplt = intBranch2 OP.if_icmplt
+if_icmpge = intBranch2 OP.if_icmpge
+if_icmpgt = intBranch2 OP.if_icmpgt
+if_icmple = intBranch2 OP.if_icmple
+if_acmpeq = binaryBranch jobject OP.if_acmpeq
+if_acmpne = binaryBranch jobject OP.if_acmpne
 
 -- iload :: Word8 -> Code
 -- iload n = mkCode' $ f n <> cf where

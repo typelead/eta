@@ -100,17 +100,35 @@ emitPrimOp [res] op [arg]
   | nopOp op = emitAssign res arg
 emitPrimOp r@[res] op args
   | Just execute <- simpleOp op
-  = emit $ execute args
+  = emitAssign res (execute args)
 emitPrimOp _ op _ = pprPanic "emitPrimOp: unimplemented" (ppr op)
 
 nopOp :: PrimOp -> Bool
 nopOp Int2WordOp = True
 nopOp Word2IntOp = True
+nopOp OrdOp      = True
+nopOp ChrOp      = True
 nopOp _          = False
 
 normalOp :: Code -> [Code] -> Code
 normalOp code = (<> code) . fold
 
+intCompOp :: (Code -> Code -> Code) -> [Code] -> Code
+intCompOp op args = fold args <> op (iconst jint 1) (iconst jint 0)
+
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 simpleOp IntAddOp = Just $ normalOp iadd
-simpleOp _ = error "simpleOp"
+simpleOp IntEqOp = Just $ intCompOp if_icmpeq
+simpleOp IntNeOp = Just $ intCompOp if_icmpne
+simpleOp IntLeOp = Just $ intCompOp if_icmple
+simpleOp IntLtOp = Just $ intCompOp if_icmplt
+simpleOp IntGeOp = Just $ intCompOp if_icmpge
+simpleOp IntGtOp = Just $ intCompOp if_icmpgt
+-- simpleOp IntQuotOp = Just $ intCompOp idiv
+simpleOp CharEqOp = Just $ intCompOp if_icmpeq
+simpleOp CharNeOp = Just $ intCompOp if_icmpne
+-- TODO: Chars are unsigned so the ordering comparison is wrong
+--       figure out how to handle unsigned comparisons
+simpleOp CharLeOp = Just $ intCompOp if_icmple
+simpleOp CharLtOp = Just $ intCompOp if_icmplt
+simpleOp _ = Nothing

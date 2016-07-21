@@ -13,15 +13,13 @@ import qualified Data.IntMap.Strict as IntMap
 
 import Codec.JVM.ASM.Code.CtrlFlow (CtrlFlow, Stack)
 import Codec.JVM.ASM.Code.Types (Offset(..), StackMapTable(..), LabelTable(..))
-import Codec.JVM.Cond (Cond)
 import Codec.JVM.Const (Const)
 import Codec.JVM.Internal (packI16, packI32)
 import Codec.JVM.Opcode (Opcode, opcode)
 import Codec.JVM.ConstPool (ConstPool)
-import Codec.JVM.Types (ReturnType, jint, Label(..))
+import Codec.JVM.Types (ReturnType, jint, Label(..), FieldType)
 
 import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
-import qualified Codec.JVM.Cond as CD
 import qualified Codec.JVM.ConstPool as CP
 import qualified Codec.JVM.Opcode as OP
 
@@ -62,15 +60,12 @@ modifyStack' = ctrlFlow' . CF.mapStack
 modifyStack :: (Stack -> Stack) -> Instr
 modifyStack = ctrlFlow . CF.mapStack
 
-iif :: Cond -> Instr -> Instr -> Instr
-iif cond ok ko = Instr $ do
+gbranch :: (FieldType -> Stack -> Stack)
+        -> FieldType -> Opcode -> Instr -> Instr -> Instr
+gbranch f ft oc ok ko = Instr $ do
   lengthOp <- writeInstr ifop
   branches lengthOp ok ko
-    where
-      ifop = op oc <> modifyStack (CF.pop jint) where
-        oc = case cond of
-          CD.EQ -> OP.ifeq
-          CD.NE -> OP.ifne
+  where ifop = op oc <> modifyStack (f ft)
 
 -- TODO: This function fails for huge methods, must make it safe
 --       when goto offset is outside of −32,768 to 32,767
