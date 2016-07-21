@@ -106,6 +106,12 @@ getTagMethod code
   = code
  <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
 
+-- suspendThreadMethod :: Bool -> Code
+-- suspendThreadMethod interruptible
+--   = iconst jbool (boolToInt)
+--  <> loadContext
+--  <> 
+
 mkRtsMainClass :: DynFlags -> String -> ClassFile
 mkRtsMainClass dflags mainClass
   = mkClassFile java7 [Public, Super] mainClass' Nothing []
