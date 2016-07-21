@@ -37,6 +37,7 @@ import MonadUtils (liftIO)
 import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM, ghcvmFrontend)
 import GHCVM.Primitive (ghcvmPrimIface)
 import GHCVM.TcForeign (tcForeignImports)
+import GHCVM.DsForeign (dsForeigns)
 
 -- Imports for --abi-hash
 import Module              ( mkModuleName, ModLocation(..))
@@ -128,7 +129,8 @@ main = do
                          , linkHook             = Just linkGhcVM
                          , ghcPrimIfaceHook     = Just ghcvmPrimIface
                          , hscFrontendHook      = Just ghcvmFrontend
-                         , tcForeignImportsHook = Just tcForeignImports }
+                         , tcForeignImportsHook = Just tcForeignImports
+                         , dsForeignsHook       = Just dsForeigns }
                        , objectSuf = "jar"})
 
             dflags <- GHC.getSessionDynFlags

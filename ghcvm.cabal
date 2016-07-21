@@ -45,6 +45,7 @@ library
                        , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse
                        , GHCVM.TcForeign
+                       , GHCVM.DsForeign
                        , GHCVM.Util
                        , GHCVM.Constants
                        , GHCVM.Primitive
