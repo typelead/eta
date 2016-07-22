@@ -129,6 +129,8 @@ simpleOp CharEqOp = Just $ intCompOp if_icmpeq
 simpleOp CharNeOp = Just $ intCompOp if_icmpne
 -- TODO: Chars are unsigned so the ordering comparison is wrong
 --       figure out how to handle unsigned comparisons
+simpleOp CharGtOp = Just $ intCompOp if_icmple
+simpleOp CharGeOp = Just $ intCompOp if_icmplt
 simpleOp CharLeOp = Just $ intCompOp if_icmple
 simpleOp CharLtOp = Just $ intCompOp if_icmplt
 simpleOp _ = Nothing
