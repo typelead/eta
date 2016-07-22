@@ -415,10 +415,12 @@ getSequel = asks cgSequel
 getSelfLoop :: CodeGen (Maybe SelfLoopInfo)
 getSelfLoop = asks cgSelfLoop
 
-newTemp :: FieldType -> CodeGen CgLoc
-newTemp ft = do
+newTemp :: JPrimRep -> CodeGen CgLoc
+newTemp rep = do
   n <- newLocal ft
-  return $ LocLocal ft n
+  return $ LocLocal isClosure ft n
+  where ft = fromJust $ primRepFieldType rep
+        isClosure = isPtrJRep rep
 
 -- TODO: Verify that this does as intended
 getCodeWithResult :: CodeGen a -> CodeGen (a, Code)
@@ -431,8 +433,7 @@ getCodeWithResult gen = do
   return (a, cgCode state2)
 
 newIdLoc :: NonVoid Id -> CodeGen CgLoc
-newIdLoc (NonVoid id) = newTemp ft
-  where ft = fromJust . primRepFieldType . idJPrimRep $ id
+newIdLoc (NonVoid id) = newTemp (idJPrimRep id)
 
 getCgLoc :: NonVoid Id -> CodeGen CgLoc
 getCgLoc (NonVoid id) = do

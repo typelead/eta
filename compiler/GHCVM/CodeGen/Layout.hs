@@ -43,7 +43,7 @@ mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
 mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
   where fts' = map (fromJust . repFieldType . idType) args'
         args' = map unsafeStripNV nvArgs
-        argReps' = map fieldTypeArgRep fts'
+        argReps' = map idJArgRep args'
         (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
         loadArgs !n !code !locs (arg:args) (ft:fts) (argRep:argReps)
                  !r !i !l !f !d !o =
@@ -60,7 +60,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
                   loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
                            (loc:locs) args fts argReps
                 ftSize = fieldSize ft
-                loc = LocLocal ft n
+                loc = LocLocal (argRep == P) ft n
         loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
 
 mkCallExit :: Bool -> [(JArgRep, Maybe FieldType, Maybe Code)] -> Code
@@ -94,7 +94,7 @@ mkReturnEntry cgLocs' = loadVals mempty cgLocs' 1 1 1 1 1 1
             O -> loadRec (context o) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
-                argRep = fieldTypeArgRep ft
+                argRep = locJArgRep cgLoc
                 context = contextLoad ft argRep
                 loadRec nextCode =
                   loadVals (code <> storeLoc cgLoc nextCode) cgLocs
@@ -113,7 +113,7 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs' 1 1 1 1 1 1
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
                 loadCode = loadLoc cgLoc
-                argRep = fieldTypeArgRep ft
+                argRep = locJArgRep cgLoc
                 context = contextStore ft argRep loadCode
                 storeRec nextCode =
                   storeVals (code <> nextCode) cgLocs
@@ -182,15 +182,16 @@ getFtsLoadCode = mapM getFtAmode
           | Nothing <- ft = return (V, Nothing, Nothing)
           | otherwise = do code <- getArgLoadCode (NonVoid arg)
                            return (rep, ft, Just code)
-          where ft = repFieldType (stgArgType arg)
-                rep = fieldTypeArgRep $ fromJust ft
+          where ty = stgArgType arg
+                ft = repFieldType ty
+                rep = typeJArgRep $ ty
 
 newUnboxedTupleLocs :: Type -> CodeGen [CgLoc]
 newUnboxedTupleLocs resType = getSequel >>= chooseLocs
   where chooseLocs (AssignTo regs) = return regs
         chooseLocs _               = mapM newTemp reps
         UbxTupleRep tyArgs         = repType resType
-        reps = [ fromJust . primRepFieldType $ rep
+        reps = [ rep
                | ty <- tyArgs
                , let rep           = typeJPrimRep ty
                , not (isVoidJRep rep) ]

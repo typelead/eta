@@ -1221,6 +1221,9 @@ data JPrimRep = HPrimRep PrimRep
               | JRepObject Text
               deriving (Eq, Show)
 
+intRep :: JPrimRep
+intRep = HPrimRep IntRep
+
 typeJPrimRep :: UnaryType -> JPrimRep
 typeJPrimRep ty =
   case repType ty of
@@ -1262,7 +1265,11 @@ maybeJRep tyCon tys
 
 isVoidJRep :: JPrimRep -> Bool
 isVoidJRep (HPrimRep VoidRep) = True
-isVoidJRep _other  = False
+isVoidJRep _  = False
+
+isPtrJRep :: JPrimRep -> Bool
+isPtrJRep (HPrimRep PtrRep) = True
+isPtrJRep _  = False
 
 -- TODO: Is this right?
 isVoidJTy :: Type -> Bool

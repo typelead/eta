@@ -80,15 +80,16 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
 generateFVs :: [NonVoid Id] -> CodeGen ([(NonVoid Id, CgLoc)], [(FieldType, Code)])
 generateFVs fvs = do
   clClass <- getClass
-  result <- forM (indexList nonVoidFvs) $ \(i, (nvId, ft)) -> do
+  result <- forM (indexList nonVoidFvs) $ \(i, (nvId, rep)) -> do
+    let ft = fromJust $ primRepFieldType rep
     let fieldName = append "x" . pack . show $ i
     defineField $ mkFieldDef [Public, Final] fieldName ft
     let code = putfield $ mkFieldRef clClass fieldName ft
-    return ((nvId, LocField ft clClass fieldName), (ft, code))
+    return ((nvId, LocField (isPtrJRep rep) ft clClass fieldName), (ft, code))
   return $ unzip result
   where nonVoidFvs = map addFt fvs
-        addFt nvFV@(NonVoid fv) = (nvFV, ft)
-          where ft = fromJust . repFieldType . idType $ fv
+        addFt nvFV@(NonVoid fv) = (nvFV, rep)
+          where rep = idJPrimRep fv
 
 -- TODO: Implement eager blackholing
 thunkCode :: LambdaFormInfo -> [(NonVoid Id, CgLoc)] -> StgExpr -> CodeGen ()

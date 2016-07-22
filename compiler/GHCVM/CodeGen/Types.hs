@@ -11,6 +11,8 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   locJArgRep,
+   mkRepLocDirect,
    mkLocDirect,
    getNonVoidFts,
    enterMethod,
@@ -47,6 +49,7 @@ import Codec.JVM
 import GHCVM.Primitive
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.ArgRep
 import GHCVM.Debug
 
 import Data.Maybe
@@ -60,18 +63,23 @@ data Sequel
   = Return
   | AssignTo [CgLoc]
 
-data CgLoc = LocLocal FieldType !Int
+data CgLoc = LocLocal Bool FieldType !Int
            | LocStatic FieldType Text Text
-           | LocField FieldType Text Text
-           | LocDirect FieldType Code
+           | LocField Bool FieldType Text Text
+           | LocDirect Bool FieldType Code
            | LocLne Label [CgLoc]
 
 instance Outputable CgLoc where
-  ppr (LocLocal ft int) = str "local: " <+> ppr int
+  ppr (LocLocal isClosure ft int) = str "local: " <+> ppr int <+> ppr isClosure
   ppr  _ = str "Some loc"
 
-mkLocDirect :: (FieldType, Code) -> CgLoc
-mkLocDirect (ft, code) = LocDirect ft code
+mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
+mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
+
+mkRepLocDirect :: (JPrimRep, Code) -> CgLoc
+mkRepLocDirect (rep, code) = LocDirect isClosure ft code
+  where isClosure = isPtrJRep rep
+        ft = fromJust $ primRepFieldType rep
 
 enterLoc :: CgLoc -> Code
 enterLoc cgLoc = loadLoc cgLoc
@@ -79,28 +87,36 @@ enterLoc cgLoc = loadLoc cgLoc
               <> enterMethod cgLoc
 
 locClass :: CgLoc -> Text
-locClass (LocLocal _ _) = stgClosure -- TODO: We can do better w/ the ft
+locClass (LocLocal _ _ _) = stgClosure -- TODO: We can do better w/ the ft
 locClass (LocStatic _ clClass _) = clClass
-locClass (LocField _ clClass _) = clClass
-locClass (LocDirect _ _) = error "locClass: LocDirect"
+locClass (LocField _ _ clClass _) = clClass
+locClass (LocDirect _ _ _) = error "locClass: LocDirect"
+
+locJArgRep :: CgLoc -> JArgRep
+locJArgRep loc = case loc of
+  LocLocal isClosure ft _ -> locRep isClosure ft
+  LocStatic ft _ _ -> locRep True ft
+  LocField isClosure ft _ _ -> locRep isClosure ft
+  LocDirect isClosure ft _ -> locRep isClosure ft
+  where locRep isClosure ft = if isClosure then P else ftJArgRep ft
 
 locFt :: CgLoc -> FieldType
-locFt (LocLocal ft _) = ft
+locFt (LocLocal _ ft _) = ft
 locFt (LocStatic ft _ _) = ft
-locFt (LocField ft _ _) = ft
-locFt (LocDirect ft _) = ft
+locFt (LocField _ ft _ _) = ft
+locFt (LocDirect _ ft _) = ft
 
 storeLoc :: CgLoc -> Code -> Code
-storeLoc (LocLocal ft n) code = code <> gstore ft n
+storeLoc (LocLocal _ ft n) code = code <> gstore ft n
 
 loadLoc :: CgLoc -> Code
-loadLoc (LocLocal ft n) = gload ft n
+loadLoc (LocLocal _ ft n) = gload ft n
 loadLoc (LocStatic ft modClass clName) =
   getstatic $ mkFieldRef modClass (closure clName) ft
-loadLoc (LocField ft clClass fieldName) =
+loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
-loadLoc (LocDirect _ code) = code
+loadLoc (LocDirect _ _ code) = code
 
 type CgBindings = IdEnv CgIdInfo
 

@@ -4,9 +4,10 @@ module GHCVM.CodeGen.ArgRep
    isNonV,
    idJArgRep,
    primRepFieldType,
+   ftJArgRep,
+   typeJArgRep,
    repFieldTypes,
    repFieldType,
-   fieldTypeArgRep,
    contextLoad,
    contextStore,
    slowCallPattern
@@ -31,6 +32,7 @@ data JArgRep = P   -- StgClosure
              | F   -- float
              | D   -- double
              | O   -- Java object pointer
+             deriving (Eq, Show)
 
 toJArgRep :: JPrimRep -> JArgRep
 toJArgRep (HPrimRep primRep) = toArgRep primRep
@@ -59,6 +61,20 @@ isNonV _ = True
 idJArgRep :: Id -> JArgRep
 idJArgRep = toJArgRep . idJPrimRep
 
+typeJArgRep :: Type -> JArgRep
+typeJArgRep = toJArgRep . typeJPrimRep
+
+ftJArgRep :: FieldType -> JArgRep
+ftJArgRep ft
+  | ft == closureType = P
+  | otherwise = case ft of
+      BaseType JDouble            -> D
+      BaseType JFloat             -> F
+      BaseType JLong              -> L
+      ObjectType _                -> O
+      ArrayType  _                -> O
+      _                           -> N
+
 primRepFieldType :: JPrimRep -> Maybe FieldType
 primRepFieldType (HPrimRep primRep) =
   case primRep of
@@ -86,17 +102,6 @@ repFieldType = primRepFieldType . typeJPrimRep . jrepType
 repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType
 
-fieldTypeArgRep :: FieldType -> JArgRep
-fieldTypeArgRep ft
-  | ft == closureType = P
-  | otherwise =
-    case ft of
-      BaseType JDouble            -> D
-      BaseType JFloat             -> F
-      BaseType JLong              -> L
-      ObjectType _                -> O
-      ArrayType  _                -> O
-      _                           -> N
 
 -- NOTE: Assumes StgContext is in local variable slot 1
 contextLoad :: FieldType -> JArgRep -> Int -> Code

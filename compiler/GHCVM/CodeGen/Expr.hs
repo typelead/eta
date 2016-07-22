@@ -11,6 +11,7 @@ import Panic
 import Util (unzipWith)
 import GHCVM.Util
 import GHCVM.Primitive
+import GHCVM.Debug
 import GHCVM.CodeGen.Utils
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Name
@@ -35,11 +36,11 @@ cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
 cgExpr (StgOpApp op args ty) = cgOpApp op args ty
 cgExpr (StgConApp con args) = cgConApp con args
 cgExpr (StgTick t e) = cgExpr e
-cgExpr (StgLit lit) = emitReturn [mkLocDirect $ cgLit lit]
+cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   cgBind binds
   cgExpr expr
-cgExpr (StgLetNoEscape _ _ binds expr) = unimplemented "cgExpr: StgLetNoEscape"
+cgExpr (StgLetNoEscape _ _ binds expr) = pprPanic "cgExpr: StgLetNoEscape" $ (ppr binds) <+> (ppr expr)
   -- joinPoint <- newLabel
   -- cgLneBinds joinPoint binds
   -- cgExpr expr
@@ -126,8 +127,8 @@ emitEnter thunk = do
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args
   | isUnboxedTupleCon con = do
-      ftCodes <- getNonVoidFtCodes args
-      emitReturn $ map mkLocDirect ftCodes
+      repCodes <- getNonVoidRepCodes args
+      emitReturn $ map mkRepLocDirect repCodes
   | otherwise = do
       -- TODO: Is dataConWorId the right thing to pass?
       (idInfo, genInitCode) <- buildDynCon (dataConWorkId con) con args
@@ -148,7 +149,7 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
   where doEnumPrimop :: PrimOp -> [StgArg] -> CodeGen Code
         doEnumPrimop TagToEnumOp [arg] = getArgLoadCode (NonVoid arg)
         doEnumPrimop primop args = do
-          tmp <- newTemp jint
+          tmp <- newTemp intRep
           cgPrimOp [tmp] primop args
           return (loadLoc tmp)
 

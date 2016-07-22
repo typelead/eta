@@ -39,6 +39,16 @@ getNonVoidFtCodes (arg:args)
   where primRep = argJPrimRep arg
         ft = fromJust . primRepFieldType $ primRep
 
+getNonVoidRepCodes :: [StgArg] -> CodeGen [(JPrimRep, Code)]
+getNonVoidRepCodes [] = return []
+getNonVoidRepCodes (arg:args)
+  | isVoidJRep rep = getNonVoidRepCodes args
+  | otherwise = do
+      code <- getArgLoadCode (NonVoid arg)
+      repCodes <- getNonVoidRepCodes args
+      return ((rep, code) : repCodes)
+  where rep = argJPrimRep arg
+
 idInfoLoadCode :: CgIdInfo -> Code
 idInfoLoadCode CgIdInfo { cgLocation } = loadLoc cgLocation
 
@@ -59,8 +69,9 @@ bindArgs = mapM_ (\(nvId, cgLoc) -> bindArg nvId cgLoc)
 
 rhsIdInfo :: Id -> LambdaFormInfo -> CodeGen (CgIdInfo, CgLoc)
 rhsIdInfo id lfInfo = do
-  cgLoc <- newTemp (lfFieldType lfInfo) -- TODO: Maybe make this more precise?
+  cgLoc <- newTemp rep
   return (mkCgIdInfoWithLoc id lfInfo cgLoc, cgLoc)
+  where rep = idJPrimRep id -- TODO: Is this correct?
 
 mkRhsInit :: CgLoc -> Code -> Code
 mkRhsInit = storeLoc
