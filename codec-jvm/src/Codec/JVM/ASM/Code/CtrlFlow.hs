@@ -29,6 +29,10 @@ localsFromList fts = Locals mp sz sz
         mp = IntMap.fromList kvs
         sz = length vts
 
+-- Should only be used on non-empty
+computeNumLocals :: IntMap VerifType -> Int
+computeNumLocals = (+1) . fst . IntMap.findMax
+
 localVts :: Locals -> [VerifType]
 localVts (Locals mp _ _) = IntMap.elems mp
 
@@ -38,7 +42,7 @@ insert n' ft (Locals mp sz mx)= Locals mp' sz' mx'
   where n   = fromIntegral n'
         vts = zip [n, n+1] (reverse . fieldTypeToVerifType $ ft)
         mp' = IntMap.union (IntMap.fromList vts) mp
-        sz' = sz + length vts
+        sz' = computeNumLocals mp'
         mx' = max mx sz'
 
 remove :: (Integral a) => a -> FieldType -> Locals -> Locals
@@ -47,7 +51,7 @@ remove n' ft (Locals mp sz mx) = Locals mp' sz' mx
         delta = fieldSize ft
         deletes = map IntMap.delete (take delta [n, n+1])
         mp' = foldl' (flip ($)) mp deletes
-        sz' = sz - delta
+        sz' = computeNumLocals mp'
 
 areLocalsSame :: Locals -> Locals -> Bool
 areLocalsSame locals1 locals2 = locals1 == locals2
