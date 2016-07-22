@@ -215,6 +215,8 @@ ixor = binaryOp jint OP.ixor
 lor  = binaryOp jlong OP.lor
 land = binaryOp jlong OP.land
 lxor = binaryOp jlong OP.lxor
+inot = iconst jint (fromIntegral (-1))
+    <> ixor
 
 fcmpl, fcmpg, dcmpl, dcmpg, lcmp :: Code
 fcmpl = cmpOp jfloat OP.fcmpl
@@ -222,6 +224,13 @@ fcmpg = cmpOp jfloat OP.fcmpg
 dcmpg = cmpOp jdouble OP.dcmpg
 dcmpl = cmpOp jdouble OP.dcmpl
 lcmp  = cmpOp jlong OP.lcmp
+
+gcmp :: FieldType -> Code -> Code -> Code
+gcmp (BaseType prim) arg1 arg2 = arg1 <> arg2 <> cmp
+  where cmp = case prim of
+          JFloat  -> fcmpl
+          JDouble -> dcmpl
+          JLong   -> lcmp
 
 gbranch :: (FieldType -> Stack -> Stack)
         -> FieldType -> Opcode -> Code -> Code -> Code
@@ -345,7 +354,7 @@ gload ft n = mkCode' $ fold
             2 -> IT.op OP.aload_2
             3 -> IT.op OP.aload_3
             _ -> gwide OP.aload n
-          _ -> error $ "gload: Wrong type of load!"
+          _ -> error "gload: Wrong type of load!"
 
 -- Generic store instruction
 gstore :: (Integral a) => FieldType -> a -> Code
@@ -385,7 +394,7 @@ gstore ft n' = mkCode' $ fold
             2 -> IT.op OP.astore_2
             3 -> IT.op OP.astore_3
             _ -> gwide OP.astore n
-          _ -> error $ "gstore: Wrong type of load!"
+          _ -> error "gstore: Wrong type of load!"
 
 initCtrlFlow :: Bool -> [FieldType] -> Code
 initCtrlFlow isStatic args@(_:args')
@@ -424,6 +433,7 @@ new (ObjectType (IClassName className)) = mkCode cs $
     , modifyStack (CF.vpush (VUninitialized $ fromIntegral offset))]
   where c = CClass . IClassName $ className
         cs = CP.unpack c
+
 new ft@(ArrayType (BaseType prim)) = mkCode' $ fold
   [ IT.op OP.newarray
   , IT.bytes . BS.singleton $ fromIntegral atype
@@ -437,6 +447,7 @@ new ft@(ArrayType (BaseType prim)) = mkCode' $ fold
           JShort  -> 9
           JInt    -> 10
           JLong   -> 11
+
 new ft@(ArrayType (ObjectType (IClassName className))) = mkCode cs $ fold
   [ IT.op OP.anewarray
   , IT.ix c
