@@ -223,10 +223,12 @@ getCgIdInfo id = do
     Nothing -> do
       curMod <- getModule
       let name = idName id
-      let mod = fromMaybe (error "getCgIdInfo: no module") $ nameModule_maybe name
-      if mod /= curMod then
-        return . mkCgIdInfo id $ mkLFImported id
-      else crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
+      -- TODO: Change this back.
+      -- let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
+      let mod = fromMaybe curMod $ nameModule_maybe name
+      --if mod /= curMod then
+      return . mkCgIdInfo id $ mkLFImported id
+      --else crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do

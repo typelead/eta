@@ -87,7 +87,8 @@ enterLoc cgLoc = loadLoc cgLoc
               <> enterMethod cgLoc
 
 locClass :: CgLoc -> Text
-locClass (LocLocal _ _ _) = stgClosure -- TODO: We can do better w/ the ft
+-- TODO: Is this ok?
+locClass (LocLocal _ (ObjectType (IClassName clClass)) _) = clClass
 locClass (LocStatic _ clClass _) = clClass
 locClass (LocField _ _ clClass _) = clClass
 locClass (LocDirect _ _ _) = error "locClass: LocDirect"

@@ -4,8 +4,10 @@ import Development.Shake.Command
 import Development.Shake.FilePath
 import Development.Shake.Util
 import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory, createDirectory, removeDirectory)
-import Control.Monad(forM_)
+import Control.Monad(forM_, when)
 import Data.List (partition)
+import Distribution.InstalledPackageInfo
+import Distribution.ParseUtils
 
 rtsDir = "rts"
 rtsBuildDir = rtsDir </> "build"
@@ -47,25 +49,52 @@ libName lib = "HS" ++ lib ++ ".jar"
 libJarPath :: String -> FilePath
 libJarPath lib = libraryDir </> lib </> "build" </> libName lib
 
+buildConf :: String -> FilePath -> FilePath -> Action ()
+buildConf lib confSrc confDst = do
+  rootDir <- getGhcVmRoot
+  confStr <- readFile' confSrc
+  case parseInstalledPackageInfo confStr of
+    ParseOk warnings ipi -> do
+      mapM_ (putNormal . showPWarning confSrc) warnings
+      let ipi' = ipi { hsLibraries = ["HS" ++ lib]
+                     , pkgRoot = Just rootDir
+                     , importDirs = [rootDir </> lib]
+                     , libraryDirs = [rootDir </> lib] }
+      writeFile' confDst (showInstalledPackageInfo ipi')
+      return ()
+    ParseFailed err -> case locatedErrorMsg err of
+                         (Nothing, s) -> putNormal s
+                         (Just l, s) -> putNormal $ show l ++ ": " ++ s
+
 buildLibrary :: String -> [String] -> Action ()
 buildLibrary lib deps = do
   rootDir <- getGhcVmRoot
   let libDir = libraryDir </> lib
   hsFiles <- getDirectoryFiles libDir ["//*.hs"]
-  () <- cmd (Cwd libDir) "stack exec -- ghcvm -clear-package-db" ["-package " ++ dep | dep <- deps] "-staticlib -this-package-key" lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
+  () <- cmd (Cwd libDir) "stack exec -- ghcvm -clear-package-db" ["-package " ++ dep | dep <- deps]
+            "-staticlib -this-package-key" lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
 
   let rootLibDir = rootDir </> lib
       conf = lib <.> "conf"
-      libDir = libraryDir </> lib
       libConf = libDir </> conf
       libBuildDir = libDir </> "build"
+      libBuildConf = libBuildDir </> conf
+  buildConf lib libConf libBuildConf
   buildFiles <- getDirectoryFiles libBuildDir ["//*"]
 
-  forM_ buildFiles $ \buildFile ->
-    copyFile' (libBuildDir </> buildFile) (rootLibDir </> buildFile)
-  () <- cmd "stack exec -- ghc-pkg" ["--package-db", packageConfDir rootDir] "--force register" libConf
-  copyFile' libConf (rootLibDir </> "package.conf.d" </> conf)
+  forM_ buildFiles $ \buildFile -> do
+    let src = libBuildDir </> buildFile
+        dst = rootLibDir </> buildFile
+    copyFileWithDir src dst
+  () <- cmd "stack exec -- ghc-pkg" ["--package-db", packageConfDir rootDir] "--force register" libBuildConf
   return ()
+
+copyFileWithDir :: FilePath -> FilePath -> Action ()
+copyFileWithDir src dst = do
+  create src
+  create dst
+  copyFile' src dst
+  where create f = liftIO $ createDirectoryIfMissing True (takeDirectory f)
 
 getLibs :: Action [String]
 getLibs = getDirectoryDirs libraryDir
@@ -90,9 +119,10 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
         let root x = rootDir </> x
         () <- cmd "stack exec -- ghc-pkg init " $ packageConfDir rootDir
         libs <- getLibs
-        let libPaths = map libJarPath libs
-        let sortedPaths = topologicalDepsSort libPaths getDependencies
-        need [head sortedPaths]
+        let sortedLibs = topologicalDepsSort libs getDependencies
+        forM_ sortedLibs $ \lib ->
+          buildLibrary lib (getDependencies lib)
+
     phony "uninstall" $ do
       rootDir <- getGhcVmRoot
       putNormal "Cleaning files in ~/.ghcvm"
@@ -110,11 +140,6 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       forM_ libs $ \lib -> do
         let libBuildDir = libraryDir </> lib </> "build"
         removeFilesAfter libBuildDir ["//*"]
-
-    libJarPath "*" %> \out -> do
-      let lib = takeDirectory1 . dropDirectory1 $ out
-          deps = getDependencies lib
-      buildLibrary lib deps
 
     masjar %> \out -> do
       createDirIfMissing sampleBuildDir

@@ -105,4 +105,5 @@ executable ghcvm-build
     build-depends:       base >= 4.7 && < 5
                        , shake
                        , directory
+                       , Cabal
                        , containers >= 0.5

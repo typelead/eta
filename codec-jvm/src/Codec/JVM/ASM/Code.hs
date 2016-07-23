@@ -29,7 +29,7 @@ import qualified Codec.JVM.Opcode as OP
 import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IntMap
 
-import Data.Maybe(maybe)
+import Data.Maybe(maybe, maybeToList)
 
 data Code = Code
   { consts  :: [Const]
@@ -279,7 +279,7 @@ gwide opcode n = wideInstr
 
 -- Generic load instruction
 gload :: FieldType -> Int -> Code
-gload ft n = mkCode' $ fold
+gload ft n = mkCode cs $ fold
   [ loadOp
   , IT.ctrlFlow
   $ CF.load n ft ]
@@ -315,10 +315,11 @@ gload ft n = mkCode' $ fold
             3 -> IT.op OP.aload_3
             _ -> gwide OP.aload n
           _ -> error "gload: Wrong type of load!"
+        cs = maybeToList $ getObjConst ft
 
 -- Generic store instruction
 gstore :: (Integral a) => FieldType -> a -> Code
-gstore ft n' = mkCode' $ fold
+gstore ft n' = mkCode cs $ fold
   [ storeOp
   , IT.ctrlFlow
   $ CF.store n ft ]
@@ -355,6 +356,7 @@ gstore ft n' = mkCode' $ fold
             3 -> IT.op OP.astore_3
             _ -> gwide OP.astore n
           _ -> error "gstore: Wrong type of load!"
+        cs = maybeToList $ getObjConst ft
 
 initCtrlFlow :: Bool -> [FieldType] -> Code
 initCtrlFlow isStatic args@(_:args')
@@ -478,7 +480,7 @@ gldc ft c = mkCode cs $ loadCode
                      <> IT.ix c
           | otherwise = Instr $ do
               cp <- ask
-              let index = CP.ix $ CP.unsafeIndex c cp
+              let index = CP.ix (CP.unsafeIndex c cp)
               if index <= 255 then
                 do IT.op' OP.ldc
                    IT.writeBytes (BS.singleton $ fromIntegral index)
@@ -553,7 +555,7 @@ goto :: Label -> Code
 goto = mkCode' . IT.gotoLabel
 
 gaload :: FieldType -> Code
-gaload ft = mkCode' $ fold
+gaload ft = mkCode cs $ fold
   [ IT.op loadOp
   , modifyStack ( CF.push ft
                 . CF.pop (jarray ft)
@@ -570,6 +572,7 @@ gaload ft = mkCode' $ fold
               JInt    -> OP.iaload
               JLong   -> OP.laload
           _ -> OP.aaload
+        cs = maybeToList $ getObjConst ft
 
 gastore :: FieldType -> Code
 gastore ft = mkCode' $ fold

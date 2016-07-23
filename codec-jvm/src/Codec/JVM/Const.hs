@@ -8,14 +8,15 @@ module Codec.JVM.Const
    cint,
    clong,
    cfloat,
-   cdouble)
+   cdouble,
+   getObjConst)
 where
 
 import Data.Text (Text)
 import Data.Word (Word8)
 import Data.Int (Int32,Int64)
 
-import Codec.JVM.Types (IClassName, FieldRef, FieldType(..), MethodRef, PrimType(..), NameAndDesc, jlString)
+import Codec.JVM.Types (IClassName(..), FieldRef, FieldType(..), MethodRef, PrimType(..), NameAndDesc, jlString, mkFieldDesc')
 
 constTag :: Const -> Word8
 constTag (CUTF8 _)              = 1
@@ -78,4 +79,10 @@ cfloat = CValue . CFloat
 
 cdouble :: Double -> Const
 cdouble = CValue . CDouble
+
+getObjConst :: FieldType -> Maybe Const
+getObjConst (ObjectType iclass) = Just $ cclass iclass
+getObjConst (ArrayType ft')
+  = Just $ cclass (IClassName $ mkFieldDesc' ft')
+getObjConst _ = Nothing
 

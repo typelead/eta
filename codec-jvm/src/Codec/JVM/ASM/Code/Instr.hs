@@ -23,7 +23,6 @@ import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import qualified Codec.JVM.ConstPool as CP
 import qualified Codec.JVM.Opcode as OP
 
-
 -- TODO: Fix known space leak with Writer
 -- http://stackoverflow.com/questions/25280852/space-leak-in-pipes-with-rwst
 type InstrRWS a = (RWS ConstPool (ByteString, StackMapTable) (Offset, CtrlFlow, LabelTable) a)

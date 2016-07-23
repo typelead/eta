@@ -38,7 +38,7 @@ localVts (Locals mp _ _) = IntMap.elems mp
 
 -- TODO: Check if verif types are in the right order
 insert :: (Integral a) => a -> FieldType -> Locals -> Locals
-insert n' ft (Locals mp sz mx)= Locals mp' sz' mx'
+insert n' ft (Locals mp _ mx)= Locals mp' sz' mx'
   where n   = fromIntegral n'
         vts = zip [n, n+1] (reverse . fieldTypeToVerifType $ ft)
         mp' = IntMap.union (IntMap.fromList vts) mp
@@ -46,7 +46,7 @@ insert n' ft (Locals mp sz mx)= Locals mp' sz' mx'
         mx' = max mx sz'
 
 remove :: (Integral a) => a -> FieldType -> Locals -> Locals
-remove n' ft (Locals mp sz mx) = Locals mp' sz' mx
+remove n' ft (Locals mp _ mx) = Locals mp' sz' mx
   where n   = fromIntegral n'
         delta = fieldSize ft
         deletes = map IntMap.delete (take delta [n, n+1])

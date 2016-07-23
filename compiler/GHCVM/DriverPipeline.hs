@@ -175,7 +175,6 @@ linkGhcVM NoLink _ _ _ = return Succeeded
 linkGhcVM _ dflags batchAttemptLinking hpt
   | batchAttemptLinking
   = do
-      debugIO "linkGhcVM: Start batch link"
       let homeModInfos = eltsUFM hpt
           pkgDeps = concatMap ( map fst
                               . dep_pkgs
@@ -192,7 +191,6 @@ linkGhcVM _ dflags batchAttemptLinking hpt
             jarFiles = concatMap getOfiles linkables
             jarFile = jarFileName dflags
         shouldLink <- linkingNeeded dflags linkables pkgDeps
-        debugIO "linkGhcVM: Start batch link"
         if not (gopt Opt_ForceRecomp dflags) && not shouldLink then do
           debugTraceMsg dflags 2
             (text jarFile <+>
@@ -214,9 +212,6 @@ linkGhcVM _ dflags batchAttemptLinking hpt
   = do debugTraceMsg dflags 3
          (text "link(batch): upsweep (partially) failed OR" $$
           text "   Main.main not exported; not linking.")
-
-
-       debugIO "linkGhcVM: No batch link"
        return Succeeded
 
 linkingNeeded :: DynFlags -> [Linkable] -> [PackageKey] -> IO Bool
@@ -270,7 +265,6 @@ findHSLib dflags dirs lib = do
 
 linkGeneric :: Bool -> DynFlags -> [String] -> [PackageKey] -> IO ()
 linkGeneric isExecutable dflags oFiles depPackages = do
-    debugIO $ "linkGeneric: [isExecutable: " ++ show isExecutable ++ "]"
     when (haveRtsOptsFlags dflags) $ do
       log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
           ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
@@ -291,7 +285,6 @@ linkGeneric isExecutable dflags oFiles depPackages = do
             --       in the Manifests of the jars being compiled
           else return []
     let files = extraFiles ++ oFiles ++ mainFiles
-    debugIO $ "Num linked files: "++ show (length $ files)
     linkJars dflags files
     -- TODO: Handle frameworks & extra ldInputs
 

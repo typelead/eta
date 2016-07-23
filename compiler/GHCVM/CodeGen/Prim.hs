@@ -137,7 +137,19 @@ simpleOp IntGtOp = Just $ intCompOp if_icmpgt
 -- simpleOp IntQuotOp = Just $ intCompOp idiv
 
 -- Word# ops
-
+-- TODO: Take a look at compareUnsigned in JDK 8
+--       and see if that's more efficient
+simpleOp WordEqOp   = Just $ intCompOp if_icmpeq
+simpleOp WordNeOp   = Just $ intCompOp if_icmpeq
+simpleOp WordAddOp  = Just $ normalOp iadd
+simpleOp WordSubOp  = Just $ normalOp isub
+simpleOp WordMulOp  = Just $ normalOp imul
+simpleOp WordQuotOp = Just $ unsignedOp ldiv
+simpleOp WordRemOp  = Just $ unsignedOp lrem
+simpleOp WordGtOp   = Just $ unsignedCmp ifgt
+simpleOp WordGeOp   = Just $ unsignedCmp ifge
+simpleOp WordLeOp   = Just $ unsignedCmp ifle
+simpleOp WordLtOp   = Just $ unsignedCmp iflt
 
 -- Char# ops
 simpleOp CharEqOp = Just $ intCompOp if_icmpeq
@@ -176,6 +188,13 @@ simpleOp FloatDivOp = Just $ normalOp fdiv
 simpleOp FloatNegOp = Just $ normalOp fneg
 
 simpleOp _ = Nothing
+
+unsignedOp :: Code -> [Code] -> Code
+unsignedOp op [arg1, arg2]
+  = unsignedExtend arg1
+ <> unsignedExtend arg2
+ <> ldiv
+ <> gconv jlong jint
 
 typedCmp :: FieldType -> (Code -> Code -> Code) -> [Code] -> Code
 typedCmp ft ifop [arg1, arg2]
