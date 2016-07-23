@@ -1,6 +1,7 @@
 module GHCVM.CodeGen.LetNoEscape where
 
 import Codec.JVM hiding (op)
+import Codec.JVM.ASM.Code
 import Codec.JVM.ASM.Code.Instr
 import Codec.JVM.ASM.Code.Types
 import Codec.JVM.Internal
@@ -8,10 +9,16 @@ import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import qualified Codec.JVM.Opcode as OP
 
 import Control.Monad.RWS
+import Control.Arrow(second)
 import Data.List(scanl')
-import Data.Maybe(fromMaybe)
-import qualified Data.IntMap.Strict as IntMap
 import qualified Data.ByteString as BS
+
+letNoEscapeCodeBlocks :: [(Label, Code)] -> Code -> Code
+letNoEscapeCodeBlocks lneBinds expr
+  = mkCode cs
+  $ letNoEscapeBlocks (map (second instr) lneBinds) (instr expr)
+  where cs = concatMap (consts . snd) lneBinds
+          ++ consts expr
 
 {-
 This will generate code like:
@@ -35,7 +42,7 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   cp <- ask
   (Offset baseOffset, cf, lt) <- get
   let firstOffset = baseOffset + lengthJump
-      (offsets, labelOffsets) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) $ lneBinds
+      (offsets, labelOffsets) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) lneBinds
       defOffset = last offsets
       defInstr = expr
       (defBytes, _, _)
@@ -45,7 +52,7 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   addLabels labelOffsets
   (_, _, lt') <- get
   writeGoto $ defOffset - baseOffset
-  cfs <- forM (zip labelOffsets instrs) $ \((label, offset), instr) -> do
+  cfs <- forM (zip labelOffsets instrs) $ \((_, offset), instr) -> do
     writeStackMapFrame
     let (bytes', cf', frames') = runInstrWithLabels' instr cp offset cf lt'
     write bytes' frames'

@@ -447,8 +447,18 @@ forkAlts = sequence
 withSequel :: Sequel -> CodeGen a -> CodeGen a
 withSequel sequel = local (\env -> env { cgSequel = sequel })
 
-forkLneBody :: CodeGen a -> CodeGen a
-forkLneBody = id
+forkLneBody :: CodeGen () -> CodeGen Code
+forkLneBody body = do
+  oldBindings <- getBindings
+  oldCode <- getMethodCode
+  oldNextLocal <- peekNextLocal
+  setMethodCode mempty
+  body
+  newCode <- getMethodCode
+  setMethodCode oldCode
+  setNextLocal oldNextLocal
+  setBindings oldBindings
+  return newCode
 
 debug :: String -> CodeGen ()
 debug msg = do

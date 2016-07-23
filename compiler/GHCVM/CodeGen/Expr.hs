@@ -23,6 +23,7 @@ import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Prim
 import GHCVM.CodeGen.ArgRep
+import GHCVM.CodeGen.LetNoEscape
 import {-# SOURCE #-} GHCVM.CodeGen.Bind (cgBind)
 import Codec.JVM
 
@@ -40,53 +41,52 @@ cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   cgBind binds
   cgExpr expr
-cgExpr (StgLetNoEscape _ _ binds expr) = pprPanic "cgExpr: StgLetNoEscape" $ (ppr binds) <+> (ppr expr)
-  -- joinPoint <- newLabel
-  -- cgLneBinds joinPoint binds
-  -- cgExpr expr
-  -- emit $ startLabel joinPoint
+cgExpr (StgLetNoEscape _ _ binds expr) =
+  cgLneBinds binds expr
 
 cgExpr (StgCase expr _ _ binder _ altType alts) =
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 
-cgLneBinds :: Label -> StgBinding -> CodeGen ()
-cgLneBinds joinLabel (StgNonRec binder rhs) = do
-  (info, code) <- cgLetNoEscapeRhs joinLabel binder rhs
-  code
+cgLneBinds :: StgBinding -> StgExpr -> CodeGen ()
+cgLneBinds (StgNonRec binder rhs) expr = do
+  (info, genBindCode) <- cgLetNoEscapeRhsBody binder rhs
+  bindCode <- genBindCode
   addBinding info
-cgLneBinds joinLabel (StgRec pairs) = do
-  result <- sequence $ unzipWith (cgLetNoEscapeRhs joinLabel) pairs
-  let (infos, codes) = unzip result
+  exprCode <- forkLneBody $ cgExpr expr
+  let bindLabel = fst . fromJust . maybeLetNoEscape $ info
+  emit $ letNoEscapeCodeBlocks [(bindLabel, bindCode)] exprCode
+
+cgLneBinds (StgRec pairs) expr = do
+  result <- sequence $ unzipWith cgLetNoEscapeRhsBody pairs
+  let (infos, genBindCodes) = unzip result
+      labels = map (fst . fromJust . maybeLetNoEscape) infos
   addBindings infos
-  sequence_ codes
+  bindCodes <- sequence genBindCodes
+  exprCode <- forkLneBody $ cgExpr expr
+  emit $ letNoEscapeCodeBlocks (zip labels bindCodes) exprCode
 
-cgLetNoEscapeRhs :: Label -> Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen ())
-cgLetNoEscapeRhs joinLabel binder rhs = do
-  (info, rhsCode) <- cgLetNoEscapeRhsBody binder rhs
-  let (bindLabel, _) = fromJust . maybeLetNoEscape $ info
-      code = do (_, body) <- getCodeWithResult rhsCode
-                -- TODO: Finish up
-                emit $ body
-                -- emitWithBranch body
-  return (info, code)
-
-cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen())
+cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen Code)
 cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body)
   = cgLetNoEscapeClosure binder (nonVoidIds args) body
 cgLetNoEscapeRhsBody binder (StgRhsCon _ con args)
   = cgLetNoEscapeClosure binder [] (StgConApp con args)
 
 cgLetNoEscapeClosure
-  :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, CodeGen ())
+  :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, CodeGen Code)
 cgLetNoEscapeClosure binder args body = do
   label <- newLabel
+  -- Restore the local variable count so that
+  -- Those locals can be reused later on
+  n <- peekNextLocal
   argLocs <- mapM newIdLoc args
-  return (lneIdInfo label binder argLocs, code)
-  where code = forkLneBody $ do
-          argLocs <- mapM newIdLoc args
+  n' <- peekNextLocal
+  setNextLocal n
+  let code = forkLneBody $ do
           bindArgs $ zip args argLocs
+          setNextLocal n'
           cgExpr body
+  return (lneIdInfo label binder argLocs, code)
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
 cgIdApp funId [] | isVoidJTy (idType funId) = emitReturn []

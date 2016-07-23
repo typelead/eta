@@ -136,6 +136,9 @@ simpleOp IntGeOp = Just $ intCompOp if_icmpge
 simpleOp IntGtOp = Just $ intCompOp if_icmpgt
 -- simpleOp IntQuotOp = Just $ intCompOp idiv
 
+-- Word# ops
+
+
 -- Char# ops
 simpleOp CharEqOp = Just $ intCompOp if_icmpeq
 simpleOp CharNeOp = Just $ intCompOp if_icmpne

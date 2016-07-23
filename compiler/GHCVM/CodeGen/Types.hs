@@ -95,9 +95,10 @@ locClass (LocDirect _ _ _) = error "locClass: LocDirect"
 locJArgRep :: CgLoc -> JArgRep
 locJArgRep loc = case loc of
   LocLocal isClosure ft _ -> locRep isClosure ft
-  LocStatic ft _ _ -> locRep True ft
+  LocStatic ft _ _ -> P
   LocField isClosure ft _ _ -> locRep isClosure ft
   LocDirect isClosure ft _ -> locRep isClosure ft
+  LocLne _ _ -> P
   where locRep isClosure ft = if isClosure then P else ftJArgRep ft
 
 locFt :: CgLoc -> FieldType
