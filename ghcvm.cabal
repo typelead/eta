@@ -37,6 +37,7 @@ library
                        , GHCVM.CodeGen.Name
                        , GHCVM.CodeGen.Foreign
                        , GHCVM.CodeGen.Prim
+                       , GHCVM.CodeGen.LetNoEscape
                        , GHCVM.Debug
                        , GHCVM.CodeGen.Rts
                        , GHCVM.CodeGen.Bind

@@ -54,6 +54,10 @@ runInstr' :: Instr -> ConstPool -> Offset -> CtrlFlow -> (ByteString, CtrlFlow, 
 runInstr' (Instr instr) cp offset cf = (bs, cf', smfs)
   where (_, (_, cf', _), (bs, smfs)) = runRWS instr cp (offset, cf, mempty)
 
+runInstrWithLabels' :: Instr -> ConstPool -> Offset -> CtrlFlow -> LabelTable -> (ByteString, CtrlFlow, StackMapTable)
+runInstrWithLabels' (Instr instr) cp offset cf lt = (bs, cf', smfs)
+  where (_, (_, cf', _), (bs, smfs)) = runRWS instr cp (offset, cf, lt)
+
 modifyStack' :: (Stack -> Stack) -> InstrRWS ()
 modifyStack' = ctrlFlow' . CF.mapStack
 
@@ -86,8 +90,8 @@ branches lengthOp ok ko = do
     where
       pad padding instr = do
         cp <- ask
-        (Offset offset, cf, _) <- get
-        return $ runInstr' instr cp (Offset $ offset + padding) cf
+        (Offset offset, cf, lt) <- get
+        return $ runInstrWithLabels' instr cp (Offset $ offset + padding) cf lt
       lengthJumpOK = 3 -- op goto <> pack16 $ length ko
 
 bytes :: ByteString -> Instr
@@ -162,16 +166,17 @@ tableswitch low high branchMap deflt = Instr $ do
   baseOffset <- getOffset
   writeInstr $ op OP.tableswitch
   modifyStack' $ CF.pop jint
-  (Offset offset, cf, _) <- get
+  (Offset offset, cf, lt) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
   offset' <- getOffset
   let firstOffset = offset' + 4 * (3 + numBranches)
-      (offsets, codeInfos) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) [low..high]
+      (offsets, codeInfos) = unzip . tail $ scanl' (computeOffsets cf cp lt) (firstOffset, undefined) [low..high]
       defOffset = last offsets
       defInstr = fromMaybe mempty deflt
-      (defBytes, defCF, defFrames) = runInstr' defInstr cp (Offset defOffset) cf
+      (defBytes, defCF, defFrames)
+        = runInstrWithLabels' defInstr cp (Offset defOffset) cf lt
       breakOffset = defOffset + BS.length defBytes
       relOffset x = x - baseOffset
   writeBytes . packI32 $ relOffset defOffset
@@ -192,10 +197,10 @@ tableswitch low high branchMap deflt = Instr $ do
   write defBytes defFrames
   putCtrlFlow' $ CF.merge cf (defCF : map (\(_, _, _, cf', _) -> cf') codeInfos)
   writeStackMapFrame
-  where computeOffsets cf cp (offset, _) i =
+  where computeOffsets cf cp lt (offset, _) i =
           ( offset + bytesLength + lengthJump
           , (offset, bytesLength, bytes, cf', frames) )
-          where (bytes, cf', frames) = runInstr' instr cp (Offset offset) cf
+          where (bytes, cf', frames) = runInstrWithLabels' instr cp (Offset offset) cf lt
                 instr = IntMap.findWithDefault mempty i branchMap
                 bytesLength = BS.length bytes
         lengthJump = 3 -- op goto <> pack16 $ length ko
@@ -207,16 +212,16 @@ lookupswitch branchMap deflt = Instr $ do
   baseOffset <- getOffset
   writeInstr $ op OP.lookupswitch
   modifyStack' $ CF.pop jint
-  (Offset offset, cf, _) <- get
+  (Offset offset, cf, lt) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
   offset' <- getOffset
   let firstOffset = offset' + 4 * (1 + 2 * numBranches)
-      (offsets, codeInfos) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) $ IntMap.toAscList branchMap
+      (offsets, codeInfos) = unzip . tail $ scanl' (computeOffsets cf cp lt) (firstOffset, undefined) $ IntMap.toAscList branchMap
       defOffset = last offsets
       defInstr = fromMaybe mempty deflt
-      (defBytes, defCF, defFrames) = runInstr' defInstr cp (Offset defOffset) cf
+      (defBytes, defCF, defFrames) = runInstrWithLabels' defInstr cp (Offset defOffset) cf lt
       breakOffset = defOffset + BS.length defBytes
       relOffset x = x - baseOffset
   writeBytes . packI32 $ relOffset defOffset
@@ -233,10 +238,10 @@ lookupswitch branchMap deflt = Instr $ do
   putCtrlFlow' $
     CF.merge cf (defCF : map (\(_, _, _, _, cf', _) -> cf') codeInfos)
   writeStackMapFrame
-  where computeOffsets cf cp (offset, _) (val, instr) =
+  where computeOffsets cf cp lt (offset, _) (val, instr) =
           ( offset + bytesLength + lengthJump
           , (offset, bytesLength, val, bytes, cf', frames) )
-          where (bytes, cf', frames) = runInstr' instr cp (Offset offset) cf
+          where (bytes, cf', frames) = runInstrWithLabels' instr cp (Offset offset) cf lt
                 bytesLength = BS.length bytes
         lengthJump = 3 -- op goto <> pack16 $ length ko
         numBranches = IntMap.size branchMap
@@ -245,7 +250,8 @@ lookupswitch branchMap deflt = Instr $ do
 lookupLabel :: Label -> InstrRWS Offset
 lookupLabel (Label id)= do
   (_, _, LabelTable table) <- get
-  return $ IntMap.findWithDefault (error "lookupLabel: failed") id table
+  -- TODO: Find a better default.
+  return $ IntMap.findWithDefault (Offset 0) id table
 
 gotoLabel :: Label -> Instr
 gotoLabel label = Instr $ do
@@ -258,3 +264,11 @@ putLabel :: Label -> Instr
 putLabel (Label id) = Instr $
   state $ \(off, cf, LabelTable table) ->
             (mempty, (off, cf, LabelTable $ IntMap.insert id off table))
+
+addLabels :: [(Label, Offset)] -> InstrRWS()
+addLabels labelOffsets =
+  state $ \(off, cf, LabelTable table) ->
+            ( mempty
+            , (off, cf,
+               LabelTable $ IntMap.union (IntMap.fromList labels) table ))
+  where labels = map (\(Label l, o) -> (l, o)) labelOffsets
