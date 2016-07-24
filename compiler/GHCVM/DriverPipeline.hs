@@ -297,7 +297,6 @@ linkJars dflags files = do
     -- fullOutputFn <- if isAbsolute outputFn then return outputFn
     --                 else do d <- getCurrentDirectory
     --                         return $ normalise (d </> outputFn)
-    print $ "Output path: " ++ show outputFn
     createEmptyJar outputFn
     addMultiByteStringsToJar' files outputFn
 
@@ -311,7 +310,8 @@ maybeMainAndManifest dflags = do
              ++ " options.")
   return . catMaybes $ [mainFile, manifestFile]
   where
-    mainClass = "ghcvm/ZCMain"
+    mainClass = "ghcvm/main"
+    mainClassJava = "ghcvm.main"
     mainFile
       | gopt Opt_NoHsMain dflags = Nothing
       | otherwise = Just ((classFilePath &&& classFileBS)
@@ -321,7 +321,7 @@ maybeMainAndManifest dflags = do
                            "Manifest-Version: 1.0\n"
                         -- TODO: Add actual versioning information here
                         ++ "Created-By: ghcvm-0.0.0.1\n"
-                        ++ maybe "" (const $ "Main-Class: " ++ mainClass)
+                        ++ maybe "" (const $ "Main-Class: " ++ mainClassJava)
                                  mainFile)
 
 haveRtsOptsFlags :: DynFlags -> Bool
