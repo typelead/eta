@@ -29,7 +29,6 @@ import Codec.JVM
 
 import Data.Monoid((<>))
 import Control.Monad(when, forM_, unless)
-import Data.Maybe(fromJust)
 
 cgExpr :: StgExpr -> CodeGen ()
 cgExpr (StgApp fun args) = cgIdApp fun args
@@ -54,13 +53,13 @@ cgLneBinds (StgNonRec binder rhs) expr = do
   bindCode <- genBindCode
   addBinding info
   exprCode <- forkLneBody $ cgExpr expr
-  let bindLabel = fst . fromJust . maybeLetNoEscape $ info
+  let bindLabel = fst . expectJust "cgLneBinds:StgNonRec" . maybeLetNoEscape $ info
   emit $ letNoEscapeCodeBlocks [(bindLabel, bindCode)] exprCode
 
 cgLneBinds (StgRec pairs) expr = do
   result <- sequence $ unzipWith cgLetNoEscapeRhsBody pairs
   let (infos, genBindCodes) = unzip result
-      labels = map (fst . fromJust . maybeLetNoEscape) infos
+      labels = map (fst . expectJust "cgLneBinds:StgRec" . maybeLetNoEscape) infos
   addBindings infos
   bindCodes <- sequence genBindCodes
   exprCode <- forkLneBody $ cgExpr expr

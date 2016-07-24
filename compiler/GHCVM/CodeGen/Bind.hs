@@ -21,7 +21,7 @@ import Codec.JVM
 import Control.Monad (forM)
 import Data.Text (append, pack)
 import Data.Foldable (fold)
-import Data.Maybe (mapMaybe, maybe, fromJust)
+import Data.Maybe (mapMaybe, maybe)
 import Data.Monoid ((<>))
 import Data.List(delete)
 
@@ -81,7 +81,7 @@ generateFVs :: [NonVoid Id] -> CodeGen ([(NonVoid Id, CgLoc)], [(FieldType, Code
 generateFVs fvs = do
   clClass <- getClass
   result <- forM (indexList nonVoidFvs) $ \(i, (nvId, rep)) -> do
-    let ft = fromJust $ primRepFieldType rep
+    let ft = expectJust "generateFVs" $ primRepFieldType rep
     let fieldName = append "x" . pack . show $ i
     defineField $ mkFieldDef [Public, Final] fieldName ft
     let code = putfield $ mkFieldRef clClass fieldName ft

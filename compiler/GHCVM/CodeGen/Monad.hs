@@ -59,7 +59,7 @@ import FastString
 
 import Data.Monoid((<>))
 import Data.List
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
 import Control.Monad (liftM, ap, when)
@@ -74,6 +74,7 @@ import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.ArgRep
 import GHCVM.Debug
+import GHCVM.Util
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
@@ -307,7 +308,7 @@ setSuperClass superClassName =
 -- NOTE: We make an assumption that we never directly derive from
 --       java.lang.Object
 getSuperClass :: CodeGen Text
-getSuperClass = fmap fromJust . gets $ cgSuperClassName
+getSuperClass = fmap (expectJust "getSuperClass") . gets $ cgSuperClassName
 
 setClosureClass :: Text -> CodeGen ()
 setClosureClass clName = do
@@ -421,7 +422,7 @@ newTemp :: JPrimRep -> CodeGen CgLoc
 newTemp rep = do
   n <- newLocal ft
   return $ LocLocal isClosure ft n
-  where ft = fromJust $ primRepFieldType rep
+  where ft = expectJust "newTemp" $ primRepFieldType rep
         isClosure = isPtrJRep rep
 
 -- TODO: Verify that this does as intended

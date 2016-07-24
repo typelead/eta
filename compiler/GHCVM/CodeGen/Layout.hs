@@ -5,6 +5,7 @@ import DynFlags
 import StgSyn
 import Id
 import Codec.JVM
+import GHCVM.Util
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
@@ -12,7 +13,7 @@ import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Env
 import GHCVM.Primitive
 
-import Data.Maybe (fromJust, mapMaybe)
+import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Foldable (fold)
@@ -41,7 +42,7 @@ multiAssign locs codes = fold $ storeLoc <$> locs <*> codes
 --       indeed help.
 mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
 mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
-  where fts' = map (fromJust . repFieldType . idType) args'
+  where fts' = map (expectJust "mkCallEntry" . repFieldType . idType) args'
         args' = map unsafeStripNV nvArgs
         argReps' = map idJArgRep args'
         (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
@@ -75,9 +76,9 @@ mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
             D -> storeRec (context d) r i l f (d + 1) o
             O -> storeRec (context o) r i l f d (o + 1)
             V -> storeArgs code args r i l f d o
-          where ft = fromJust ft'
-                code = fromJust code'
-                context = contextStore ft argRep code
+          where ft = expectJust "mkCallExit:ft" ft'
+                loadCode = expectJust "mkCallExit:loadCode" code'
+                context = contextStore ft argRep loadCode
                 storeRec nextCode =
                   storeArgs (code <> nextCode) args
         storeArgs !code _ _ _ _ _ _ _ = code

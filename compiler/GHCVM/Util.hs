@@ -2,11 +2,13 @@ module GHCVM.Util
   (indexList,
    upperFirst,
    scanM,
-   concatMapM)
+   concatMapM,
+   expectJust)
 where
 
 import qualified Data.Char as C
 import Data.Text (Text, empty, uncons, cons)
+import Maybes(expectJust)
 
 indexList :: (Integral b) => [a] -> [(b, a)]
 indexList = zip [1..]

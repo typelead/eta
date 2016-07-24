@@ -5,6 +5,7 @@ import StgSyn
 
 import Codec.JVM
 
+import GHCVM.Util
 import GHCVM.Primitive
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
@@ -13,7 +14,6 @@ import GHCVM.CodeGen.Utils
 import GHCVM.CodeGen.ArgRep
 
 import Control.Monad (liftM)
-import Data.Maybe (fromJust)
 
 getArgLoadCode :: NonVoid StgArg -> CodeGen Code
 getArgLoadCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var
@@ -37,7 +37,7 @@ getNonVoidFtCodes (arg:args)
       ftCodes <- getNonVoidFtCodes args
       return ((ft, code) : ftCodes)
   where primRep = argJPrimRep arg
-        ft = fromJust . primRepFieldType $ primRep
+        ft = expectJust "getNonVoidFtCodes" . primRepFieldType $ primRep
 
 getNonVoidRepCodes :: [StgArg] -> CodeGen [(JPrimRep, Code)]
 getNonVoidRepCodes [] = return []

@@ -23,7 +23,6 @@ import GHCVM.Debug
 
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
-import Data.Maybe (fromJust)
 
 cgOpApp :: StgOp
         -> [StgArg]

@@ -13,9 +13,10 @@ import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Types
 import GHCVM.Primitive
 import GHCVM.Debug
+import GHCVM.Util
 import Codec.JVM
 import Data.Monoid ((<>))
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (catMaybes)
 import Data.Foldable (fold)
 import qualified Data.Text as T
 
@@ -64,4 +65,4 @@ getFCallArgs args = do
               return $ Just (argFt, argCode)
           where argTy  = stgArgType arg
                 argRep = typeJPrimRep argTy
-                argFt  = fromJust $ primRepFieldType argRep
+                argFt  = expectJust "getFCallArgs" $ primRepFieldType argRep

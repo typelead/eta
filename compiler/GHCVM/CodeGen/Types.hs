@@ -51,6 +51,7 @@ import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
 import GHCVM.Debug
+import GHCVM.Util
 
 import Data.Maybe
 import Data.Text (Text)
@@ -79,7 +80,7 @@ mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 mkRepLocDirect :: (JPrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
   where isClosure = isPtrJRep rep
-        ft = fromJust $ primRepFieldType rep
+        ft = expectJust "mkRepLocDirect" $ primRepFieldType rep
 
 enterLoc :: CgLoc -> Code
 enterLoc cgLoc = loadLoc cgLoc
