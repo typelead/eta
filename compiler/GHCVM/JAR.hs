@@ -28,15 +28,20 @@ addByteStringToJar fileLocation fileContents jarLocation
 -}
 module GHCVM.JAR where
 
-import Codec.Archive.Zip (addEntry, CompressionMethod(Store),
-                          createArchive, mkEntrySelector, withArchive,
-                          getEntries, getEntry, unEntrySelector)
+import Data.Coerce(coerce)
+import Codec.Archive.Zip
 import Control.Monad (forM_, forM)
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Catch (MonadCatch, MonadThrow)
+import Control.Monad.Catch (MonadCatch(..), MonadThrow)
 import Data.ByteString.Internal (ByteString)
-import Path (parseRelFile, Path, Rel, File)
+import Path
 import Data.Map.Lazy (keys)
+
+class MultiPath m where
+  getPath :: FilePath -> Path m File
+
+instance MultiPath Abs
+instance MultiPath Rel
 
 type FileAndContents = (Path Rel File, ByteString)
 -- | Creates an empty jar archive at the given relative filepath location.
@@ -69,10 +74,16 @@ type FileAndContents = (Path Rel File, ByteString)
 --     └── Main.jar
 -- @
 createEmptyJar :: (MonadIO m, MonadCatch m) => FilePath -> m ()
-createEmptyJar location = zipAction
-  where path = parseRelFile location
-        zipAction = do p <- path
-                       createArchive p (return ())
+createEmptyJar location = do
+  isRelative <- catch (parseRelFile location >> return True) handler
+  if isRelative then do
+    p <- parseRelFile location
+    createArchive p (return ())
+  else do
+    p <- parseAbsFile location
+    createArchive p (return ())
+  where handler :: (MonadIO m, MonadCatch m) => PathParseException -> m Bool
+        handler _ = return False
 
 -- | Adds the given ByteString as a file at the given location within the given
 -- jar archive.
@@ -175,42 +186,60 @@ addByteStringToJar fileLocation contents jarLocation = zipAction
 --             └── META-INF
 --                 └── MANIFEST.MF
 -- @
-addMultiByteStringsToJar
-  :: (MonadThrow m, MonadIO m)
-  => [(FilePath, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
-  -> FilePath                    -- ^ Location of the jar to add the new files into
-  -> m ()
-addMultiByteStringsToJar files jarLocation = do
-  jarPath <- parseRelFile jarLocation
-  withArchive jarPath $
-    forM_ files $ \(path, contents) -> do
-      filePath <- parseRelFile path
-      entrySel <- mkEntrySelector filePath
-      addEntry Store contents entrySel
+-- addMultiByteStringsToJar
+--   :: (MonadThrow m, MonadIO m)
+--   => [(FilePath, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
+--   -> FilePath                    -- ^ Location of the jar to add the new files into
+--   -> m ()
+-- addMultiByteStringsToJar files jarLocation = do
+--   jarPath <- parseRelFile jarLocation
+--   withArchive jarPath $
+--     forM_ files $ \(path, contents) -> do
+--       filePath <- parseRelFile path
+--       entrySel <- mkEntrySelector filePath
+--       addEntry Store contents entrySel
 
 addMultiByteStringsToJar'
-  :: (MonadThrow m, MonadIO m)
+  :: (MonadThrow m, MonadIO m, MonadCatch m)
   => [(Path Rel File, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> FilePath                    -- ^ Location of the jar to add the new files into
   -> m ()
 addMultiByteStringsToJar' files jarLocation = do
-  jarPath <- parseRelFile jarLocation
-  withArchive jarPath $
-    forM_ files $ \(path, contents) -> do
-      entrySel <- mkEntrySelector path
-      addEntry Store contents entrySel
+  isRelative <- catch (parseRelFile jarLocation >> return True) handler
+  if isRelative then do
+    p <- parseRelFile jarLocation
+    withArchive p action
+  else do
+    p <- parseAbsFile jarLocation
+    withArchive p action
+  where action =
+          forM_ files $ \(path, contents) -> do
+            entrySel <- mkEntrySelector path
+            addEntry Store contents entrySel
+        handler :: (MonadThrow m, MonadCatch m, MonadIO m)
+                => PathParseException -> m Bool
+        handler _ = return False
 
 getFilesFromJar
-  :: (MonadThrow m, MonadIO m)
+  :: (MonadThrow m, MonadCatch m, MonadIO m)
   => FilePath
   -> m [(Path Rel File, ByteString)]
 getFilesFromJar jarLocation = do
-  jarPath <- parseRelFile jarLocation
-  withArchive jarPath $ do
-    entrySelectors <- keys <$> getEntries
-    forM entrySelectors $ \es -> do
-       contents <- getEntry es
-       return (unEntrySelector es, contents)
+  isRelative <- catch (parseRelFile jarLocation >> return True) handler
+  if isRelative then do
+    p <- parseRelFile jarLocation
+    withArchive p action
+  else do
+    p <- parseAbsFile jarLocation
+    withArchive p action
+  where action = do
+          entrySelectors <- keys <$> getEntries
+          forM entrySelectors $ \es -> do
+            contents <- getEntry es
+            return (unEntrySelector es, contents)
+        handler :: (MonadThrow m, MonadCatch m, MonadIO m)
+                => PathParseException -> m Bool
+        handler _ = return False
 
 mkPath :: (MonadThrow m, MonadIO m) => FilePath -> m (Path Rel File)
 mkPath = parseRelFile

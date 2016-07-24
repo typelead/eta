@@ -128,9 +128,12 @@ genJavaBytecode hsc_env cgguts mod_summary output_filename = do
           myCoreToStg dflags this_mod prepd_binds
 
   classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
-  let jarContents = map (classFilePath &&& classFileBS) classes
+  let jarContents' = map (classFilePath &&& classFileBS) classes
+  jarContents <- forM jarContents' $ \(a,b) -> do
+    a' <- mkPath a
+    return (a', b)
   createEmptyJar output_filename
-  addMultiByteStringsToJar jarContents output_filename
+  addMultiByteStringsToJar' jarContents output_filename
   return output_filename
 
 dumpStg :: DynFlags -> SDoc -> IO ()

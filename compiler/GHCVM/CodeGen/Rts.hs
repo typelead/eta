@@ -87,7 +87,7 @@ mkApFast :: Text -> Code
 mkApFast patText =
      getstatic (mkFieldRef (apply "Apply") fullPat rtsFunType)
   <> loadContext
-  <> invokevirtual (mkMethodRef rtsFun fullPat [contextType] void)
+  <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)
   -- TODO: We can do better than rtsFun, but it depends on the
   --       determinism of javac.
   where fullPat = append patText "_fast"
@@ -126,7 +126,7 @@ mkRtsMainClass dflags mainClass
       gload (jarray jstring) 0,
       -- TODO: Find main module
       getstatic $ mkFieldRef (moduleJavaClass mainMod) "ZCmain_closure"
-                             funType,
+                             (obj "main/Main$ZCmain"),
       gload rtsConfigType 1,
       invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
                                                       , closureType

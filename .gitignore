@@ -4,3 +4,5 @@ build
 *.class
 *.hi
 *.o
+*.dump-stg
+*.jar
