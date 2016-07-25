@@ -62,7 +62,7 @@ import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
-import Control.Monad (liftM, ap, when)
+import Control.Monad (liftM, ap, when, forM)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
@@ -225,11 +225,10 @@ getCgIdInfo id = do
       curMod <- getModule
       let name = idName id
       -- TODO: Change this back.
-      -- let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
-      let mod = fromMaybe curMod $ nameModule_maybe name
-      --if mod /= curMod then
-      return . mkCgIdInfo id $ mkLFImported id
-      --else crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
+      let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
+      --let mod = fromMaybe curMod $ nameModule_maybe name
+      if mod /= curMod then return . mkCgIdInfo id $ mkLFImported id
+      else crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
@@ -443,9 +442,11 @@ getCgLoc (NonVoid id) = do
   info <- getCgIdInfo id
   return $ cgLocation info
 
--- TODO: Figure out the right way
-forkAlts :: [CodeGen a] -> CodeGen [a]
-forkAlts = sequence
+forkAlts :: [(a, CodeGen ())] -> CodeGen [(a, Code)]
+forkAlts alts =
+  forM alts $ \(val, altCode) -> do
+    code <- forkLneBody altCode
+    return (val, code)
 
 withSequel :: Sequel -> CodeGen a -> CodeGen a
 withSequel sequel = local (\env -> env { cgSequel = sequel })

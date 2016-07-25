@@ -17,6 +17,7 @@ import PrelNames (rOOT_MAIN)
 
 import GHCVM.Util
 import GHCVM.Primitive
+import GHCVM.Debug
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Con
@@ -37,7 +38,7 @@ import Control.Monad (unless, when)
 import Data.Text (Text, pack, cons, append)
 
 codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
-codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
+codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo = do
   runCodeGen env state $ do
       mapM_ (cgTopBinding dflags) stgBinds
       mapM_ cgTyCon dataTyCons
@@ -47,6 +48,7 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
+  --debugDoc $ str "generating " <+> ppr id
   mod <- getModule
   id' <- externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive id' rhs
@@ -56,6 +58,7 @@ cgTopBinding dflags (StgNonRec id rhs) = do
 cgTopBinding dflags (StgRec pairs) = do
   mod <- getModule
   let (binders, rhss) = unzip pairs
+  --debugDoc $ str "generating (rec) " <+> ppr binders
   binders' <- mapM (externaliseId dflags) binders
   let pairs'         = zip binders' rhss
       r              = unzipWith (cgTopRhs dflags Recursive) pairs'
@@ -90,9 +93,8 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
-               -- TODO: Change the cgLoc for this case to indstatic
                let loadCode = idInfoLoadCode cgInfo
-               defineField $ mkFieldDef [Public, Static, Final] qClName indStaticType
+               defineField $ mkFieldDef [Public, Static] qClName closureType
                addInitStep $ fold
                  [
                    new indStaticType,
@@ -100,7 +102,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                    loadCode,
                    invokespecial $ mkMethodRef stgIndStatic "<init>"
                      [closureType] void,
-                   putstatic $ mkFieldRef modClass qClName indStaticType
+                   putstatic $ mkFieldRef modClass qClName closureType
                  ]
         genCode dflags lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
@@ -111,14 +113,13 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
           -- NOTE: Don't make thunks final so that they can be
           --       replaced by their values by the GC
           let flags = (if isThunk then [] else [Final]) ++ [Public, Static]
-          defineField $
-            mkFieldDef flags qClName ft
+          defineField $ mkFieldDef flags qClName closureType
           addInitStep $ fold
             [
               new ft,
               dup ft,
               invokespecial $ mkMethodRef cgClassName "<init>" [] void,
-              putstatic $ mkFieldRef modClass qClName ft
+              putstatic $ mkFieldRef modClass qClName closureType
             ]
           return ()
 

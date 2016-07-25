@@ -28,13 +28,17 @@ import {-# SOURCE #-} GHCVM.CodeGen.Bind (cgBind)
 import Codec.JVM
 
 import Data.Monoid((<>))
+import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr (StgApp fun args) = cgIdApp fun args
+cgExpr (StgApp fun args) = --debugDoc (str "SgApp" <+> ppr fun <+> ppr args) >>
+                           cgIdApp fun args
 cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-cgExpr (StgOpApp op args ty) = cgOpApp op args ty
-cgExpr (StgConApp con args) = cgConApp con args
+cgExpr (StgOpApp op args ty) = --debugDoc (str "StgOpApp" <+> ppr args <+> ppr ty) >>
+                               cgOpApp op args ty
+cgExpr (StgConApp con args) = --debugDoc (str "StgConApp" <+> ppr con <+> ppr args) >>
+                              cgConApp con args
 cgExpr (StgTick t e) = cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
@@ -44,6 +48,7 @@ cgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
 
 cgExpr (StgCase expr _ _ binder _ altType alts) =
+  --debugDoc (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 
@@ -115,11 +120,9 @@ emitEnter thunk = do
   sequel <- getSequel
   case sequel of
     Return ->
-      emit $ loadContext
-          <> enterMethod thunk
+      emit $ enterMethod thunk
     AssignTo cgLocs ->
-      emit $ loadContext
-          <> evaluateMethod thunk
+      emit $ evaluateMethod thunk
           <> mkReturnEntry cgLocs
 
 
@@ -144,9 +147,10 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
         bindArg (NonVoid binder) bindLoc
         emitAssign bindLoc $ snd (tagToClosure tyCon tagExpr)
       (maybeDefault, branches) <- cgAlgAltRhss (NonVoid binder) alts
-      emit $ intSwitch tagExpr branches maybeDefault
+      emit $ intSwitch (getTagMethod tagExpr) branches maybeDefault
   where doEnumPrimop :: PrimOp -> [StgArg] -> CodeGen Code
-        doEnumPrimop TagToEnumOp [arg] = getArgLoadCode (NonVoid arg)
+        doEnumPrimop TagToEnumOp [arg] =
+          getArgLoadCode (NonVoid arg)
         doEnumPrimop primop args = do
           tmp <- newTemp intRep
           cgPrimOp [tmp] primop args
@@ -164,9 +168,9 @@ cgCase (StgApp v []) binder altType@(PrimAlt _) alts
       when (not repsCompatible) $
         panic "cgCase: reps do not match, perhaps a dodgy unsafeCoerce?"
       vInfo <- getCgIdInfo v
-      cgLoc <- newIdLoc nvBinder
-      emitAssign cgLoc (idInfoLoadCode vInfo)
-      bindArgs [(nvBinder, cgLoc)]
+      binderLoc <- newIdLoc nvBinder
+      emitAssign binderLoc (idInfoLoadCode vInfo)
+      bindArgs [(nvBinder, binderLoc)]
       cgAlts nvBinder altType alts
   where repsCompatible = vRep == idJPrimRep binder
         -- TODO: Allow integer conversions?
@@ -212,27 +216,39 @@ cgAlts binder (AlgAlt tyCon) alts = do
 cgAlts _ _ _ = panic "cgAlts"
 
 cgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen [(AltCon, Code)]
-cgAltRhss binder alts = do
-  baseLoc <- getCgLoc binder
-  forkAlts $ map (cgAlt baseLoc) alts
-  where cgAlt :: CgLoc -> StgAlt -> CodeGen (AltCon, Code)
-        cgAlt baseLoc (con, binders, _, rhs) =
-          getCodeWithResult $ do
-            bindConArgs con baseLoc binders
-            cgExpr rhs
-            return con
+cgAltRhss binder alts =
+  forkAlts $ map cgAlt alts
+  where cgAlt :: StgAlt -> (AltCon, CodeGen ())
+        cgAlt (con, binders, uses, rhs) =
+          ( con
+          ,  bindConArgs con binder binders uses
+          >> cgExpr rhs )
 
-bindConArgs :: AltCon -> CgLoc -> [Id] -> CodeGen ()
-bindConArgs (DataAlt con) base args =
-  forM_ indexedFields $ \(i, (ft, arg)) -> do
-    cgLoc <- newIdLoc arg
-    emitAssign cgLoc $ loadLoc base
-                    <> getfield (mkFieldRef conClass (constrField i) ft)
-    bindArg arg cgLoc
-  where indexedFields = indexList . getNonVoidFts $ zip maybeFields args
-        conClass = dataConClass con
-        maybeFields = map repFieldType $ dataConRepArgTys con
-bindConArgs _ _ _ = return ()
+bindConArgs :: AltCon -> NonVoid Id -> [Id] -> [Bool] -> CodeGen ()
+bindConArgs (DataAlt con) binder args uses
+  | not (null args), or uses = do
+    base <- getCgLoc binder
+    emit $ loadLoc base
+        <> gconv conType dataFt
+    -- TODO: Take into account uses as well
+    forM_ indexedFields $ \(i, (ft, (arg, use))) ->
+      when use $ do
+        let nvArg = NonVoid arg
+        cgLoc <- newIdLoc nvArg
+        emitAssign cgLoc $ dup dataFt
+                        <> getfield (mkFieldRef conClass (constrField i) ft)
+        bindArg nvArg cgLoc
+    -- TODO: Remove this pop in a clever way
+    emit $ pop dataFt
+    where indexedFields = indexList . mapMaybe (\(mb, args) ->
+                                                  case mb of
+                                                    Just m -> Just (m, args)
+                                                    Nothing -> Nothing)
+                                    $ zip maybeFields (zip args uses)
+          conClass = dataConClass con
+          dataFt = obj conClass
+          maybeFields = map repFieldType $ dataConRepArgTys con
+bindConArgs _ _ _ _ = return ()
 
 cgAlgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen (Maybe Code, [(Int, Code)])
 cgAlgAltRhss binder alts = do

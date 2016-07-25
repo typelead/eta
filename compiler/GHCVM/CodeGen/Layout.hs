@@ -25,6 +25,7 @@ emitReturn results = do
     case sequel of
       Return         -> mkReturnExit results
       AssignTo slots -> multiAssign slots (map loadLoc results)
+
 emitAssign :: CgLoc -> Code -> CodeGen ()
 emitAssign cgLoc code = emit $ storeLoc cgLoc code
 

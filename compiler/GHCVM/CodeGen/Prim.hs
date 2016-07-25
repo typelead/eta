@@ -95,6 +95,13 @@ emitPrimOp :: [CgLoc]        -- where to put the results
            -> PrimOp         -- the op
            -> [Code]         -- arguments
            -> CodeGen ()
+
+emitPrimOp [res] DataToTagOp [arg] =
+  emitAssign res $ getTagMethod arg
+
+emitPrimOp [res1, res2] IntQuotRemOp args = do
+  emitPrimOp [res1] IntQuotOp args
+  emitPrimOp [res2] IntRemOp args
 emitPrimOp [res] op [arg]
   | nopOp op = emitAssign res arg
 emitPrimOp r@[res] op args
@@ -122,10 +129,15 @@ simpleOp IntSubOp = Just $ normalOp isub
 simpleOp IntMulOp = Just $ normalOp imul
 simpleOp IntQuotOp = Just $ normalOp idiv
 simpleOp IntRemOp = Just $ normalOp irem
+
 simpleOp AndIOp = Just $ normalOp iand
 simpleOp OrIOp = Just $ normalOp ior
 simpleOp XorIOp = Just $ normalOp ixor
 simpleOp NotIOp = Just $ normalOp inot
+simpleOp ISllOp = Just $ normalOp ishl
+simpleOp ISraOp = Just $ normalOp ishr
+simpleOp ISrlOp = Just $ normalOp iushr
+
 simpleOp IntNegOp = Just $ normalOp ineg
 simpleOp IntEqOp = Just $ intCompOp if_icmpeq
 simpleOp IntNeOp = Just $ intCompOp if_icmpne
@@ -133,7 +145,6 @@ simpleOp IntLeOp = Just $ intCompOp if_icmple
 simpleOp IntLtOp = Just $ intCompOp if_icmplt
 simpleOp IntGeOp = Just $ intCompOp if_icmpge
 simpleOp IntGtOp = Just $ intCompOp if_icmpgt
--- simpleOp IntQuotOp = Just $ intCompOp idiv
 
 -- Word# ops
 -- TODO: Take a look at compareUnsigned in JDK 8
@@ -149,6 +160,13 @@ simpleOp WordGtOp   = Just $ unsignedCmp ifgt
 simpleOp WordGeOp   = Just $ unsignedCmp ifge
 simpleOp WordLeOp   = Just $ unsignedCmp ifle
 simpleOp WordLtOp   = Just $ unsignedCmp iflt
+--Verify true for unsigned operations
+simpleOp AndOp = Just $ normalOp iand
+simpleOp OrOp = Just $ normalOp ior
+simpleOp XorOp = Just $ normalOp ixor
+simpleOp NotOp = Just $ normalOp inot
+simpleOp SllOp = Just $ normalOp ishl
+simpleOp SrlOp = Just $ normalOp iushr
 
 -- Char# ops
 simpleOp CharEqOp = Just $ intCompOp if_icmpeq

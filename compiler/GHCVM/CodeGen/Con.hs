@@ -15,6 +15,7 @@ import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Name
+import GHCVM.CodeGen.Rts
 import Data.Foldable (fold)
 import Codec.JVM
 import Data.Maybe (catMaybes)
@@ -33,16 +34,17 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
         (modClass, clName, dataClass) = getJavaInfo cgIdInfo
         qClName = closure clName
         dataFt = obj dataClass
+        typeFt = obj (tyConClass (dataConTyCon dataCon))
         genCode = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
-          defineField $ mkFieldDef [Public, Static, Final] qClName dataFt
+          defineField $ mkFieldDef [Public, Static] qClName closureType
           addInitStep $ fold
             [
               new dataFt,
               dup dataFt,
               fold loads,
               invokespecial $ mkMethodRef dataClass "<init>" fields void,
-              putstatic $ mkFieldRef modClass qClName dataFt
+              putstatic $ mkFieldRef modClass qClName closureType
             ]
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)

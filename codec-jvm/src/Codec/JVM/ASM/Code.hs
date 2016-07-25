@@ -489,38 +489,49 @@ gldc ft c = mkCode cs $ loadCode
                    IT.writeBytes (packI16 $ fromIntegral index)
 
 gconv :: FieldType -> FieldType -> Code
-gconv ft1 ft2 = mkCode' $ convOpcode (baseType ft1) (baseType ft2)
-                       <> modifyStack ( CF.push ft2
-                                      . CF.pop  ft1 )
-  where convOpcode pt1 pt2 = case (pt1, pt2) of
-          (JInt, JByte)    -> IT.op OP.i2b
-          (JInt, JShort)   -> IT.op OP.i2s
-          (JInt, JChar)    -> IT.op OP.i2c
-          (JInt, JBool)    -> mempty
-          (JInt, JInt)     -> mempty
-          (JInt, JLong)    -> IT.op OP.i2l
-          (JInt, JFloat)   -> IT.op OP.i2f
-          (JInt, JDouble)  -> IT.op OP.i2d
-          (JLong, JInt)  -> IT.op OP.l2i
-          (JLong, JFloat)  -> IT.op OP.l2f
-          (JLong, JDouble) -> IT.op OP.l2d
-          (JLong, JLong)  -> mempty
-          (JFloat, JDouble) -> IT.op OP.f2d
-          (JFloat, JInt) -> IT.op OP.f2i
-          (JFloat, JLong) -> IT.op OP.f2l
-          (JFloat, JFloat) -> mempty
-          (JDouble, JLong) -> IT.op OP.d2l
-          (JDouble, JInt) -> IT.op OP.d2i
-          (JDouble, JFloat) -> IT.op OP.d2f
-          (JDouble, JDouble) -> mempty
-          other -> error $ "Implement the other JVM primitive conversions."
-                         ++ show other
+gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
+                               <> modifyStack ( CF.push ft2
+                                              . CF.pop  ft1 )
+  where convOpcode = case (ft1, ft2) of
+          (BaseType bt1, BaseType bt2) ->
+            case (bt1, bt2) of
+              (JInt, JByte)    -> IT.op OP.i2b
+              (JInt, JShort)   -> IT.op OP.i2s
+              (JInt, JChar)    -> IT.op OP.i2c
+              (JInt, JBool)    -> mempty
+              (JInt, JInt)     -> mempty
+              (JInt, JLong)    -> IT.op OP.i2l
+              (JInt, JFloat)   -> IT.op OP.i2f
+              (JInt, JDouble)  -> IT.op OP.i2d
+              (JLong, JInt)  -> IT.op OP.l2i
+              (JLong, JFloat)  -> IT.op OP.l2f
+              (JLong, JDouble) -> IT.op OP.l2d
+              (JLong, JLong)  -> mempty
+              (JFloat, JDouble) -> IT.op OP.f2d
+              (JFloat, JInt) -> IT.op OP.f2i
+              (JFloat, JLong) -> IT.op OP.f2l
+              (JFloat, JFloat) -> mempty
+              (JDouble, JLong) -> IT.op OP.d2l
+              (JDouble, JInt) -> IT.op OP.d2i
+              (JDouble, JFloat) -> IT.op OP.d2f
+              (JDouble, JDouble) -> mempty
+              other -> error $ "Implement the other JVM primitive conversions."
+                            ++ show other
+          (ObjectType _, ObjectType iclass) -> IT.op OP.checkcast
+                                            <> IT.ix (cclass iclass)
+          _ -> error "Cannot convert between primitive type and object type."
+        cs (ObjectType iclass) = [cclass iclass]
+        cs _ = []
 
 -- Heuristic taken from https://ghc.haskell.org/trac/ghc/ticket/9159
-gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
-gswitch expr [] (Just deflt) = deflt
-gswitch expr [(_, code)] Nothing = code
-gswitch expr branches maybeDefault =
+gswitch :: [(Int, Code)] -> Maybe Code -> Code
+gswitch [] (Just deflt) = pop jint <> deflt
+gswitch [(_, code)] Nothing = pop jint <> code
+                         --     iconst jint (fromIntegral v)
+                         --  <> if_icmpeq code mempty
+gswitch [(v, code)] (Just deflt) = iconst jint (fromIntegral v)
+                                <> if_icmpeq code deflt
+gswitch branches maybeDefault =
   if nlabels > 0 &&
      tableSpaceCost + 3 * tableTimeCost <=
      lookupSpaceCost + 3 * lookupTimeCost then

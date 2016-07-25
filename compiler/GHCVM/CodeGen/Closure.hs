@@ -87,7 +87,7 @@ mkLFImported id
       lfArgDescriptor = panic "arg_descr" }
   | otherwise
   = mkLFArgument id
-  where arity = idRepArity id -- TODO: Need to override idRepArity
+  where arity = idRepArity id
 
 mkLFArgument :: Id -> LambdaFormInfo
 mkLFArgument id
@@ -132,7 +132,7 @@ getCallMethod dflags _ id _ n _ (Just (selfLoopId, label, cgLocs))
 getCallMethod dflags name id (LFReEntrant _ arity _ _) n cgLoc _
   | n == 0         = ReturnIt        -- No args at all
   | n < arity      = SlowCall        -- Not enough args
-  | otherwise      = DirectEntry (enterLoc cgLoc) arity
+  | otherwise      = DirectEntry (enterMethod cgLoc) arity
 
 getCallMethod _ _ _ LFUnLifted _ _ _
   = ReturnIt
@@ -153,7 +153,7 @@ getCallMethod dflags name id
   | SelectorThunk {} <- stdFormInfo
   = EnterIt
   | otherwise        -- Jump direct to code for single-entry thunks
-  = DirectEntry (enterLoc cgLoc) 0
+  = DirectEntry (enterMethod cgLoc) 0
 
 getCallMethod _ _ _ (LFUnknown True) _ _ _
   = SlowCall -- might be a function

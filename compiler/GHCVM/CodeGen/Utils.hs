@@ -32,7 +32,9 @@ litToInt (MachWord i) = fromInteger i
 litToInt _            = error "litToInt: not integer"
 
 intSwitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
-intSwitch = gswitch
+intSwitch expr branches deflt =
+     expr
+  <> gswitch branches deflt
 
 litSwitch :: FieldType -> Code -> [(Literal, Code)] -> Code -> Code
 litSwitch ft expr branches deflt

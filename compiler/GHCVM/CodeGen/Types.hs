@@ -11,13 +11,13 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   getTagMethod,
    locJArgRep,
    mkRepLocDirect,
    mkLocDirect,
    getNonVoidFts,
    enterMethod,
    evaluateMethod,
-   enterLoc,
    loadLoc,
    storeLoc,
    locFt,
@@ -82,17 +82,12 @@ mkRepLocDirect (rep, code) = LocDirect isClosure ft code
   where isClosure = isPtrJRep rep
         ft = expectJust "mkRepLocDirect" $ primRepFieldType rep
 
-enterLoc :: CgLoc -> Code
-enterLoc cgLoc = loadLoc cgLoc
-              <> loadContext
-              <> enterMethod cgLoc
-
 locClass :: CgLoc -> Text
 -- TODO: Is this ok?
 locClass (LocLocal _ (ObjectType (IClassName clClass)) _) = clClass
-locClass (LocStatic _ clClass _) = clClass
-locClass (LocField _ _ clClass _) = clClass
-locClass (LocDirect _ _ _) = error "locClass: LocDirect"
+locClass (LocStatic (ObjectType (IClassName clClass)) _ _) = clClass
+locClass (LocField _ (ObjectType (IClassName clClass)) _ _) = clClass
+--locClass (LocDirect _ _ _) = error "locClass: LocDirect"
 
 locJArgRep :: CgLoc -> JArgRep
 locJArgRep loc = case loc of
@@ -154,9 +149,6 @@ mkCgIdInfo id lfInfo =
            , cgLambdaForm = lfInfo
            , cgLocation = loc }
   where loc = mkStaticLoc id lfInfo
-        mod = fromMaybe (error "mkCgIdInfo: No module")
-            . nameModule_maybe
-            . idName $ id
 
 mkCgIdInfoWithLoc :: Id -> LambdaFormInfo -> CgLoc -> CgIdInfo
 mkCgIdInfoWithLoc id lfInfo cgLoc =
@@ -165,14 +157,21 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLocation = cgLoc }
 
 mkStaticLoc :: Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc id lfInfo = LocStatic (obj clClass) modClass clName
+mkStaticLoc id lfInfo = LocStatic closureType modClass clName
   where name = idName id
-        mod = fromMaybe (error "mkStaticLoc: No module") $ nameModule_maybe name
+        mod = fromMaybe (error "mkStaticLoc: No module")
+            $ nameModule_maybe name
         clName = nameText name
         modClass = moduleJavaClass mod
-        -- TODO: Reduce duplication
-        clClass = fromMaybe (qualifiedName modClass clName)
-                            $ maybeDataConClass lfInfo
+        -- clClass
+        --   | Just c <- maybeDataConClass lfInfo = c
+        --   | Just c <- maybeTyConClass (idType id) = c
+        --   | otherwise = qualifiedName modClass clName
+
+-- maybeTyConClass :: Type -> Maybe Text
+-- maybeTyConClass ty = case repType ty of
+--   UnaryRep (TyConApp tc _) -> Just $ tyConClass tc
+--   _ -> Nothing
 
 type Liveness = [Bool]   -- One Bool per word; True  <=> non-ptr or dead
 
@@ -233,6 +232,12 @@ lfFieldType LFThunk {} = thunkType
 lfFieldType LFCon {} = conType
 lfFieldType _ = closureType
 
+isLFSimple :: LambdaFormInfo -> Bool
+isLFSimple LFUnLifted = True
+isLFSimple LFUnknown {} = True
+isLFSimple LFLetNoEscape = True
+isLFSimple _ = False
+
 isLFThunk :: LambdaFormInfo -> Bool
 isLFThunk LFThunk {} = True
 isLFThunk _          = False
@@ -290,14 +295,23 @@ getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
                            Nothing -> Nothing)
 
 enterMethod :: CgLoc -> Code
-enterMethod cgLoc =
-  invokevirtual $ mkMethodRef (locClass cgLoc) "enter" [contextType] void
+enterMethod cgLoc
+  = loadLoc cgLoc
+ <> loadContext
+ <> invokevirtual (mkMethodRef (locClass cgLoc) "enter" [contextType] void)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc
   = loadLoc cgLoc
+ <> loadContext
  <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] void)
  -- TODO: Narrrow the invokevirtual call with locFt
+
+getTagMethod :: Code -> Code
+getTagMethod code
+  = code
+ <> gconv closureType conType
+ <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
 
 apUpdThunk :: StandardFormInfo -> (Text, Int)
 apUpdThunk (ApThunk n) = (apUpdName n, n)

@@ -101,11 +101,6 @@ constrField = cons 'x' . pack . show
 constrFieldGetter :: Int -> Text
 constrFieldGetter = append "get" . pack . show
 
-getTagMethod :: Code -> Code
-getTagMethod code
-  = code
- <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
-
 -- suspendThreadMethod :: Bool -> Code
 -- suspendThreadMethod interruptible
 --   = iconst jbool (boolToInt)
@@ -126,7 +121,7 @@ mkRtsMainClass dflags mainClass
       gload (jarray jstring) 0,
       -- TODO: Find main module
       getstatic $ mkFieldRef (moduleJavaClass mainMod) "ZCmain_closure"
-                             (obj "main/Main$ZCmain"),
+                             closureType,
       gload rtsConfigType 1,
       invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
                                                       , closureType
