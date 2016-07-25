@@ -209,7 +209,7 @@ tableswitch low high branchMap deflt = Instr $ do
         lengthJump = 3 -- op goto <> pack16 $ length ko
         numBranches = high - low + 1
 
-lookupswitch :: BranchMap ->  Maybe Instr -> Instr
+lookupswitch :: BranchMap -> Maybe Instr -> Instr
 lookupswitch branchMap deflt = Instr $ do
   cp <- ask
   baseOffset <- getOffset
@@ -220,7 +220,7 @@ lookupswitch branchMap deflt = Instr $ do
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
   offset' <- getOffset
-  let firstOffset = offset' + 4 * (1 + 2 * numBranches)
+  let firstOffset = offset' + 4 * (2 + 2 * numBranches)
       (offsets, codeInfos) = unzip . tail $ scanl' (computeOffsets cf cp lt) (firstOffset, undefined) $ IntMap.toAscList branchMap
       defOffset = last offsets
       defInstr = fromMaybe mempty deflt
@@ -228,6 +228,7 @@ lookupswitch branchMap deflt = Instr $ do
       breakOffset = defOffset + BS.length defBytes
       relOffset x = x - baseOffset
   writeBytes . packI32 $ relOffset defOffset
+  writeBytes . packI32 $ length codeInfos
   forM_ codeInfos $ \(offset, _, val, _, _, _) -> do
     writeBytes . packI32 $ val
     writeBytes . packI32 $ relOffset offset
