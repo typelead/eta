@@ -524,14 +524,15 @@ gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
         cs _ = []
 
 -- Heuristic taken from https://ghc.haskell.org/trac/ghc/ticket/9159
-gswitch :: [(Int, Code)] -> Maybe Code -> Code
-gswitch [] (Just deflt) = pop jint <> deflt
-gswitch [(_, code)] Nothing = pop jint <> code
+gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Code
+gswitch expr [] (Just deflt)     = deflt
+gswitch expr [(_, code)] Nothing = code
                          --     iconst jint (fromIntegral v)
                          --  <> if_icmpeq code mempty
-gswitch [(v, code)] (Just deflt) = iconst jint (fromIntegral v)
-                                <> if_icmpeq code deflt
-gswitch branches maybeDefault =
+gswitch expr [(v, code)] (Just deflt) = expr
+                                     <> iconst jint (fromIntegral v)
+                                     <> if_icmpeq code deflt
+gswitch expr branches maybeDefault = expr <>
   if nlabels > 0 &&
      tableSpaceCost + 3 * tableTimeCost <=
      lookupSpaceCost + 3 * lookupTimeCost then

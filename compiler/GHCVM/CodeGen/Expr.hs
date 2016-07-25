@@ -32,12 +32,12 @@ import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr (StgApp fun args) = --debugDoc (str "SgApp" <+> ppr fun <+> ppr args) >>
+cgExpr (StgApp fun args) = debugDoc (str "SgApp" <+> ppr fun <+> ppr args) >>
                            cgIdApp fun args
 cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-cgExpr (StgOpApp op args ty) = --debugDoc (str "StgOpApp" <+> ppr args <+> ppr ty) >>
+cgExpr (StgOpApp op args ty) = debugDoc (str "StgOpApp" <+> ppr args <+> ppr ty) >>
                                cgOpApp op args ty
-cgExpr (StgConApp con args) = --debugDoc (str "StgConApp" <+> ppr con <+> ppr args) >>
+cgExpr (StgConApp con args) = debugDoc (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 cgExpr (StgTick t e) = cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
@@ -48,7 +48,7 @@ cgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
 
 cgExpr (StgCase expr _ _ binder _ altType alts) =
-  --debugDoc (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
+  debugDoc (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 
@@ -106,14 +106,27 @@ cgIdApp funId args = do
       funLoc = cgLocation funInfo
   case getCallMethod dflags funName cgFunId lfInfo (length args) funLoc
                      selfLoopInfo of
-    ReturnIt -> emitReturn [funLoc]
-    EnterIt -> emitEnter funLoc
-    SlowCall -> slowCall funLoc args
-    DirectEntry entryCode arity -> directCall False entryCode arity args
+    ReturnIt -> debugIO "cgIdApp: ReturnIt" >>
+                emitReturn [funLoc]
+    EnterIt -> debugIO "cgIdApp: EnterIt" >>
+               emitEnter funLoc
+    SlowCall -> debugIO "cgIdApp: SlowCall" >>
+                (withContinuation $ slowCall funLoc args)
+    DirectEntry entryCode arity -> debugIO "cgIdApp: DirectEntry" >>
+                (withContinuation $ directCall False entryCode arity args)
     JumpToIt label cgLocs -> do
+      debugIO "cgIdApp: JumpToIt"
       codes <- getNonVoidArgLoadCodes args
       emit $ multiAssign cgLocs codes
-      emit $ goto label
+          <> goto label
+
+withContinuation :: CodeGen () -> CodeGen ()
+withContinuation call = do
+  call
+  sequel <- getSequel
+  case sequel of
+    AssignTo cgLocs -> emit $ mkReturnEntry cgLocs
+    _               -> return ()
 
 emitEnter :: CgLoc -> CodeGen ()
 emitEnter thunk = do
@@ -124,7 +137,6 @@ emitEnter thunk = do
     AssignTo cgLocs ->
       emit $ evaluateMethod thunk
           <> mkReturnEntry cgLocs
-
 
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args
@@ -142,12 +154,15 @@ cgCase :: StgExpr -> Id -> AltType -> [StgAlt] -> CodeGen ()
 cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
   | isEnumerationTyCon tyCon = do
       tagExpr <- doEnumPrimop op args
-      unless (isDeadBinder binder) $ do
-        bindLoc <- newIdLoc (NonVoid binder)
-        bindArg (NonVoid binder) bindLoc
-        emitAssign bindLoc $ snd (tagToClosure tyCon tagExpr)
+      let closureCode = snd $ tagToClosure tyCon tagExpr
+      loadCode <- if not $ isDeadBinder binder then do
+          bindLoc <- newIdLoc (NonVoid binder)
+          bindArg (NonVoid binder) bindLoc
+          emitAssign bindLoc closureCode
+          return $ loadLoc bindLoc
+        else return closureCode
       (maybeDefault, branches) <- cgAlgAltRhss (NonVoid binder) alts
-      emit $ intSwitch (getTagMethod tagExpr) branches maybeDefault
+      emit $ intSwitch (getTagMethod loadCode) branches maybeDefault
   where doEnumPrimop :: PrimOp -> [StgArg] -> CodeGen Code
         doEnumPrimop TagToEnumOp [arg] =
           getArgLoadCode (NonVoid arg)
@@ -188,6 +203,7 @@ cgCase (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) binder altType alts
 
 cgCase scrut binder altType alts = do
   altLocs <- mapM newIdLoc retBinders
+  -- Take into account uses for unboxed tuples
   withSequel (AssignTo altLocs) $ cgExpr scrut
   bindArgs $ zip retBinders altLocs
   cgAlts (NonVoid binder) altType alts

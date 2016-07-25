@@ -228,7 +228,9 @@ getCgIdInfo id = do
       let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
       --let mod = fromMaybe curMod $ nameModule_maybe name
       if mod /= curMod then return . mkCgIdInfo id $ mkLFImported id
-      else crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
+      else return . mkCgIdInfo id $ mkLFImported id
+      -- TODO: Change this back.
+      -- crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
