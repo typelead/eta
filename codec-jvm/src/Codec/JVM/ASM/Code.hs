@@ -92,8 +92,8 @@ pop ft = mkCode'
         popOp = if fsz == 1 then OP.pop else OP.pop2
 
 
-invoke :: Opcode -> MethodRef -> Code
-invoke oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
+invoke :: Bool -> Opcode -> MethodRef -> Code
+invoke this oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
   [ IT.op oc
   , IT.ix c
   , modifyStack
@@ -101,18 +101,20 @@ invoke oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
   . popArgs ]
     where
       maybePushReturn = maybe id CF.push rt
-      popArgs = CF.pop' (sum $ fieldSize <$> fts)
+      popArgs = CF.pop'
+              $ sum (fieldSize <$> fts)
+              + (if this then 1 else 0)
       c = CMethodRef mr
       cs = CP.unpack c
 
 invokevirtual :: MethodRef -> Code
-invokevirtual = invoke OP.invokevirtual
+invokevirtual = invoke True OP.invokevirtual
 
 invokespecial :: MethodRef -> Code
-invokespecial = invoke OP.invokespecial
+invokespecial = invoke True OP.invokespecial
 
 invokestatic :: MethodRef -> Code
-invokestatic = invoke OP.invokestatic
+invokestatic = invoke False OP.invokestatic
 
 getfield :: FieldRef -> Code
 getfield fr@(FieldRef _ _ ft) = mkCode cs $ fold
@@ -159,7 +161,7 @@ unaryOp, binaryOp, shiftOp :: FieldType -> Opcode -> Code
 unaryOp  = opStack (\ft -> CF.push ft . CF.pop ft)
 binaryOp = opStack (\ft -> CF.push ft . CF.pop ft . CF.pop ft)
 shiftOp  = opStack (\ft -> CF.push ft . CF.pop ft . CF.pop jint)
-cmpOp    = opStack (\ft -> CF.push jint . CF.pop ft . CF.pop jint)
+cmpOp    = opStack (\ft -> CF.push jint . CF.pop ft . CF.pop ft)
 
 iadd, ladd, fadd, dadd :: Code
 iadd = binaryOp jint OP.iadd
@@ -236,8 +238,8 @@ gbranch f ft oc ok ko = mkCode cs ins
         ins = IT.gbranch f ft oc (instr ok) (instr ko)
 
 unaryBranch, binaryBranch :: FieldType -> Opcode -> Code -> Code -> Code
-unaryBranch  = gbranch (\ft -> CF.push jint . CF.pop ft)
-binaryBranch = gbranch (\ft -> CF.push jint . CF.pop ft . CF.pop ft)
+unaryBranch  = gbranch CF.pop
+binaryBranch = gbranch (\ft -> CF.pop ft . CF.pop ft)
 
 intBranch1, intBranch2 :: Opcode -> Code -> Code -> Code
 intBranch1 = unaryBranch jint
@@ -532,6 +534,10 @@ gswitch expr [(_, code)] Nothing = code
 gswitch expr [(v, code)] (Just deflt) = expr
                                      <> iconst jint (fromIntegral v)
                                      <> if_icmpeq code deflt
+-- TODO: Optimize the case where either v1 or v2 is 0 using ifeq
+gswitch expr [(v1, code1), (v2, code2)] Nothing = expr
+                                     <> iconst jint (fromIntegral v1)
+                                     <> if_icmpeq code1 code2
 gswitch expr branches maybeDefault = expr <>
   if nlabels > 0 &&
      tableSpaceCost + 3 * tableTimeCost <=

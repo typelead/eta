@@ -158,10 +158,12 @@ generateStackMapFrame cf1@(CtrlFlow stack1 locals1)
       1 -> SameLocals1StackItem stackTop
       _ -> fullFrame
   | otherwise
-  = if lszdiff <= 3 then
-      AppendFrame (fromIntegral lszdiff) $ drop lsz1 clocals2
-    else if lszdiff >= -3 then
-      ChopFrame $ fromIntegral (-lszdiff)
+  = if sz == 0 then
+      if lszdiff <= 3 then
+        AppendFrame (fromIntegral lszdiff) $ drop lsz1 clocals2
+      else if lszdiff >= -3 then
+        ChopFrame $ fromIntegral (-lszdiff)
+      else fullFrame
     else fullFrame
   where (clocals2, cstack2) = compressCtrlFlow cf2
         (clocals1, _) = compressCtrlFlow cf1

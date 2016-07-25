@@ -48,6 +48,8 @@ cgOpApp (StgPrimOp primOp) args resType = do
         emit $ mkCallExit True args'
             <> loadContext
             <> rtsPrimOpCode
+      -- TODO: Optimize: Remove the intermediate temp locations
+      --       and allow direct code locations
       Right f
         | ReturnsPrim VoidRep <- resultInfo
         -> f [] >> emitReturn []

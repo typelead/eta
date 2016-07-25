@@ -90,8 +90,6 @@ Other Prelude modules are much easier with fewer complex dependencies.
 --
 -----------------------------------------------------------------------------
 
-#include "MachDeps.h"
-
 module GHC.Base
         (
         module GHC.Base,
@@ -957,16 +955,8 @@ eqString _        _        = False
 maxInt, minInt :: Int
 
 {- Seems clumsy. Should perhaps put minInt and MaxInt directly into MachDeps.h -}
-#if WORD_SIZE_IN_BITS == 31
-minInt  = I# (-0x40000000#)
-maxInt  = I# 0x3FFFFFFF#
-#elif WORD_SIZE_IN_BITS == 32
 minInt  = I# (-0x80000000#)
 maxInt  = I# 0x7FFFFFFF#
-#else
-minInt  = I# (-0x8000000000000000#)
-maxInt  = I# 0x7FFFFFFFFFFFFFFF#
-#endif
 
 ----------------------------------------------
 -- The function type
@@ -1145,12 +1135,13 @@ x# `divModInt#` y#
 --
 -- Note that these wrappers still produce undefined results when the
 -- second argument (the shift amount) is negative.
+#define WORD_SIZE_IN_BITS 32
 
 -- | Shift the argument left by the specified number of bits
 -- (which must be non-negative).
 shiftL# :: Word# -> Int# -> Word#
 a `shiftL#` b   | isTrue# (b >=# WORD_SIZE_IN_BITS#) = 0##
-                | otherwise                          = a `uncheckedShiftL#` b
+                | otherwise           = a `uncheckedShiftL#` b
 
 -- | Shift the argument right by the specified number of bits
 -- (which must be non-negative).

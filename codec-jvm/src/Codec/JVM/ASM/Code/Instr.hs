@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Codec.JVM.ASM.Code.Instr where
 
+--import Debug.Trace(traceShow)
 import Control.Monad.Trans.RWS
 import Data.ByteString (ByteString)
 import Data.Monoid ((<>))
@@ -58,24 +59,27 @@ runInstrWithLabels' (Instr instr) cp offset cf lt = (bs, cf', smfs)
   where (_, (_, cf', _), (bs, smfs)) = runRWS instr cp (offset, cf, lt)
 
 modifyStack' :: (Stack -> Stack) -> InstrRWS ()
-modifyStack' = ctrlFlow' . CF.mapStack
+modifyStack' f = --do
+  ctrlFlow' $ CF.mapStack f
+  -- (a, cf, c) <- get
+  -- traceShow ("modifyStack", cf) $ put (a, cf, c)
 
 modifyStack :: (Stack -> Stack) -> Instr
-modifyStack = ctrlFlow . CF.mapStack
+modifyStack = Instr . modifyStack'
 
 gbranch :: (FieldType -> Stack -> Stack)
         -> FieldType -> Opcode -> Instr -> Instr -> Instr
 gbranch f ft oc ok ko = Instr $ do
   lengthOp <- writeInstr ifop
-  branches lengthOp ok ko
+  (_, cf, _) <- get
+  branches cf lengthOp ok ko
   where ifop = op oc <> modifyStack (f ft)
 
 -- TODO: This function fails for huge methods, must make it safe
 --       when goto offset is outside of −32,768 to 32,767
 --       which isn't likely to happen.
-branches :: Int -> Instr -> Instr -> InstrRWS ()
-branches lengthOp ok ko = do
-  (_, cf, _) <- get
+branches :: CtrlFlow -> Int -> Instr -> Instr -> InstrRWS ()
+branches cf lengthOp ok ko = do
   (koBytes, koCF, koFrames) <- pad 2 ko -- packI16
   writeBytes . packI16 $ BS.length koBytes + lengthJumpOK + lengthOp + 2 -- packI16
   write koBytes koFrames

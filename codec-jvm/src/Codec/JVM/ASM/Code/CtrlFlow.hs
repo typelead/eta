@@ -174,11 +174,15 @@ compress (VDouble:_:xs) = VDouble : compress xs
 compress (x:xs) = x : compress xs
 
 merge :: CtrlFlow -> [CtrlFlow] -> CtrlFlow
-merge CtrlFlow {..} cfs = CtrlFlow stack' locals'
+merge cf cfs = CtrlFlow stack' locals'
   where (smx', lmx') = foldl' (\(smx, lmx) cf ->
                                  ( max smx (maxStack cf)
                                  , max lmx (maxLocals cf)))
-                              (stackMax stack, localsMax locals)
+                              ( maxStack cf
+                              , maxLocals cf )
                               cfs
-        stack' = stack { stackMax = smx' }
-        locals' = locals { localsMax = lmx' }
+        mergedStack = case cfs of
+          (s:_) -> stack s
+          _     -> stack cf
+        stack' = mergedStack { stackMax = smx' }
+        locals' = (locals cf) { localsMax = lmx' }
