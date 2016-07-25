@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, BangPatterns, RecordWildCards #-}
 module Codec.JVM.Attr where
 
+-- import Debug.Trace(traceShow)
 import Data.Maybe (mapMaybe)
 import Data.Map.Strict (Map)
 import Data.ByteString (ByteString)
@@ -92,13 +93,13 @@ putAttrBody cp attr = error $ "putAttrBody: Attribute not supported!\n"
 data StackMapFrame
   = SameFrame -- Covers normal & extended
   | SameLocals1StackItem !VerifType -- Covers normal & extended
-  | ChopFrame !Word8
+  | ChopFrame !Int
   | AppendFrame !Word8 ![VerifType]
   | FullFrame ![VerifType] ![VerifType]
   deriving (Eq, Show)
 
 putStackMapFrames :: ConstPool -> [(Offset, StackMapFrame)] -> Put
-putStackMapFrames cp xs = snd $ foldl' f (0, return ()) xs
+putStackMapFrames cp xs = {- traceShow xs -} (snd $ foldl' f (0, return ()) xs)
   where f (offset, put) (Offset frameOffset, frame)
           = (frameOffset, put *> putFrame frame)
           where delta = fromIntegral $ frameOffset -
@@ -119,7 +120,7 @@ putStackMapFrames cp xs = snd $ foldl' f (0, return ()) xs
                   putVerifTy vt
                 putFrame (ChopFrame k) = do
                   -- ASSERT (1 <= k <= 3)
-                  putWord8 $ 251 - k
+                  putWord8 . fromIntegral $ 251 - k
                   putWord16be $ fromIntegral delta
                 putFrame (AppendFrame k vts) = do
                   -- ASSERT (1 <= k <= 3)
@@ -159,10 +160,10 @@ generateStackMapFrame cf1@(CtrlFlow stack1 locals1)
       _ -> fullFrame
   | otherwise
   = if sz == 0 then
-      if lszdiff <= 3 then
+      if lszdiff <= 3  && lszdiff > 0 then
         AppendFrame (fromIntegral lszdiff) $ drop lsz1 clocals2
-      else if lszdiff >= -3 then
-        ChopFrame $ fromIntegral (-lszdiff)
+      else if lszdiff >= -3 && lszdiff < 0 then
+        ChopFrame (-lszdiff)
       else fullFrame
     else fullFrame
   where (clocals2, cstack2) = compressCtrlFlow cf2
