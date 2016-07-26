@@ -3,11 +3,12 @@ module GHCVM.CodeGen.ArgRep
    toArgRep,
    isNonV,
    idJArgRep,
+   primRepFieldType_maybe,
    primRepFieldType,
    ftJArgRep,
    typeJArgRep,
    repFieldTypes,
-   repFieldType,
+   repFieldType_maybe,
    contextLoad,
    contextStore,
    slowCallPattern
@@ -15,12 +16,13 @@ module GHCVM.CodeGen.ArgRep
 
 import Id
 import Type
-import TyCon            ( PrimRep(..), primElemRepSizeB )
+import TyCon            ( PrimRep(..) )
 import BasicTypes       ( RepArity )
 import DynFlags
 import Data.Maybe
 import GHCVM.Primitive
 import GHCVM.CodeGen.Rts
+import GHCVM.Util
 import Codec.JVM
 import Data.Monoid ((<>))
 import Data.Text (Text)
@@ -75,8 +77,8 @@ ftJArgRep ft
       ArrayType  _                -> O
       _                           -> N
 
-primRepFieldType :: JPrimRep -> Maybe FieldType
-primRepFieldType (HPrimRep primRep) =
+primRepFieldType_maybe :: JPrimRep -> Maybe FieldType
+primRepFieldType_maybe (HPrimRep primRep) =
   case primRep of
     VoidRep           -> Nothing
     PtrRep            -> Just closureType
@@ -89,19 +91,21 @@ primRepFieldType (HPrimRep primRep) =
     FloatRep          -> Just jfloat
     DoubleRep         -> Just jdouble
     (VecRep len elem) -> error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
-primRepFieldType JRepBool               = Just jbool
-primRepFieldType JRepChar               = Just jchar
-primRepFieldType JRepByte               = Just jbyte
-primRepFieldType JRepShort              = Just jshort
-primRepFieldType (JRepObject className) = Just $ obj className
+primRepFieldType_maybe JRepBool               = Just jbool
+primRepFieldType_maybe JRepChar               = Just jchar
+primRepFieldType_maybe JRepByte               = Just jbyte
+primRepFieldType_maybe JRepShort              = Just jshort
+primRepFieldType_maybe (JRepObject className) = Just $ obj className
+
+primRepFieldType :: JPrimRep -> FieldType
+primRepFieldType = expectJust "primRepFieldType" . primRepFieldType_maybe
 
 -- NOTE: We assume that unboxed tuples won't occur
-repFieldType :: Type -> Maybe FieldType
-repFieldType = primRepFieldType . typeJPrimRep . jrepType
+repFieldType_maybe :: Type -> Maybe FieldType
+repFieldType_maybe = primRepFieldType_maybe . typeJPrimRep . jrepType
 
 repFieldTypes :: [Type] -> [FieldType]
-repFieldTypes = mapMaybe repFieldType
-
+repFieldTypes = mapMaybe repFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
 contextLoad :: FieldType -> JArgRep -> Int -> Code

@@ -29,7 +29,7 @@ cgTopRhsCon :: DynFlags
 cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
   where cgIdInfo = mkCgIdInfo dflags id lfInfo
         lfInfo = mkConLFInfo dataCon
-        maybeFields = map repFieldType $ dataConRepArgTys dataCon
+        maybeFields = map repFieldType_maybe $ dataConRepArgTys dataCon
         fields = catMaybes maybeFields
         (modClass, clName, dataClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
@@ -75,7 +75,7 @@ buildDynCon binder con args = do
   let (_, _, dataClass) = getJavaInfo dflags idInfo
   return (idInfo, genCode cgLoc dataClass)
   where lfInfo = mkConLFInfo con
-        maybeFields = map repFieldType $ dataConRepArgTys con
+        maybeFields = map repFieldType_maybe $ dataConRepArgTys con
         fields = catMaybes maybeFields
         genCode cgLoc dataClass = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args

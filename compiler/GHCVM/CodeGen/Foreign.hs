@@ -65,4 +65,5 @@ getFCallArgs args = do
               return $ Just (argFt, argCode)
           where argTy  = stgArgType arg
                 argRep = typeJPrimRep argTy
-                argFt  = expectJust "getFCallArgs" $ primRepFieldType argRep
+                argFt  = expectJust "getFCallArgs"
+                       $ primRepFieldType_maybe argRep

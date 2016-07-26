@@ -154,7 +154,8 @@ writeInstr (Instr action) = do
 
 writeStackMapFrame :: InstrRWS ()
 writeStackMapFrame = get >>= f where
-  f (Offset offset, cf, _) = tell (mempty, StackMapTable $ IntMap.singleton offset cf)
+  f (Offset offset, cf, _) =
+    tell (mempty, StackMapTable $ IntMap.singleton offset cf)
 
 getOffset :: InstrRWS Int
 getOffset = do

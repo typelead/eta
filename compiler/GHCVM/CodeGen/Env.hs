@@ -12,6 +12,7 @@ import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Utils
 import GHCVM.CodeGen.ArgRep
+import GHCVM.CodeGen.Name
 
 import Control.Monad (liftM)
 
@@ -37,7 +38,7 @@ getNonVoidFtCodes (arg:args)
       ftCodes <- getNonVoidFtCodes args
       return ((ft, code) : ftCodes)
   where primRep = argJPrimRep arg
-        ft = expectJust "getNonVoidFtCodes" . primRepFieldType $ primRep
+        ft = expectJust "getNonVoidFtCodes" . primRepFieldType_maybe $ primRep
 
 getNonVoidRepCodes :: [StgArg] -> CodeGen [(JPrimRep, Code)]
 getNonVoidRepCodes [] = return []
@@ -69,9 +70,11 @@ bindArgs = mapM_ (\(nvId, cgLoc) -> bindArg nvId cgLoc)
 
 rhsIdInfo :: Id -> LambdaFormInfo -> CodeGen (CgIdInfo, CgLoc)
 rhsIdInfo id lfInfo = do
-  cgLoc <- newTemp rep
+  dflags <- getDynFlags
+  modClass <- getModClass
+  let qualifiedClass = qualifiedName modClass (idNameText dflags id)
+  cgLoc <- newTemp True (obj qualifiedClass)
   return (mkCgIdInfoWithLoc id lfInfo cgLoc, cgLoc)
-  where rep = idJPrimRep id -- TODO: Is this correct?
 
 mkRhsInit :: CgLoc -> Code -> Code
 mkRhsInit = storeLoc

@@ -33,7 +33,7 @@ emitAssign cgLoc code = emit $ storeLoc cgLoc code
 --       otherwise fall back on the strongly connected components
 --       algorithm a la GHC
 multiAssign :: [CgLoc] -> [Code] -> Code
-multiAssign locs codes = fold $ storeLoc <$> locs <*> codes
+multiAssign locs codes = fold $ zipWith storeLoc locs codes
 -- multiAssign [] []       = mempty
 -- multiAssign [loc] [rhs] = storeLoc loc rhs
 -- multiAssign _ _         = error "multiAssign for more than one location"
@@ -43,7 +43,9 @@ multiAssign locs codes = fold $ storeLoc <$> locs <*> codes
 --       indeed help.
 mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
 mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
-  where fts' = map (expectJust "mkCallEntry" . repFieldType . idType) args'
+  where fts' = map ( expectJust "mkCallEntry"
+                   . repFieldType_maybe
+                   . idType ) args'
         args' = map unsafeStripNV nvArgs
         argReps' = map idJArgRep args'
         (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
@@ -185,15 +187,15 @@ getFtsLoadCode = mapM getFtAmode
           | otherwise = do code <- getArgLoadCode (NonVoid arg)
                            return (rep, ft, Just code)
           where ty = stgArgType arg
-                ft = repFieldType ty
-                rep = typeJArgRep $ ty
+                ft = repFieldType_maybe ty
+                rep = typeJArgRep ty
 
 newUnboxedTupleLocs :: Type -> CodeGen [CgLoc]
 newUnboxedTupleLocs resType = getSequel >>= chooseLocs
   where chooseLocs (AssignTo regs) = return regs
-        chooseLocs _               = mapM newTemp reps
+        chooseLocs _               = mapM (\(cl, ft) -> newTemp cl ft) reps
         UbxTupleRep tyArgs         = repType resType
-        reps = [ rep
+        reps = [ (isPtrJRep rep, primRepFieldType rep)
                | ty <- tyArgs
                , let rep           = typeJPrimRep ty
                , not (isVoidJRep rep) ]

@@ -82,7 +82,7 @@ generateFVs :: [NonVoid Id] -> CodeGen ([(NonVoid Id, CgLoc)], [(FieldType, Code
 generateFVs fvs = do
   clClass <- getClass
   result <- forM (indexList nonVoidFvs) $ \(i, (nvId, rep)) -> do
-    let ft = expectJust "generateFVs" $ primRepFieldType rep
+    let ft = expectJust "generateFVs" $ primRepFieldType_maybe rep
     let fieldName = append "x" . pack . show $ i
     defineField $ mkFieldDef [Public, Final] fieldName ft
     let code = putfield $ mkFieldRef clClass fieldName ft

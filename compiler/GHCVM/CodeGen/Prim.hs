@@ -20,9 +20,11 @@ import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Name
 import GHCVM.Primitive
 import GHCVM.Debug
+import GHCVM.Util
 
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
+import Data.Maybe (fromJust)
 
 cgOpApp :: StgOp
         -> [StgArg]
@@ -50,18 +52,38 @@ cgOpApp (StgPrimOp primOp) args resType = do
             <> rtsPrimOpCode
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
-      Right f
+      Right codes'
         | ReturnsPrim VoidRep <- resultInfo
-        -> f [] >> emitReturn []
+        -> --f [] >> emitReturn []
+          emitReturn []
         | ReturnsPrim rep <- resultInfo
+              -- res <- newTemp rep'
+              -- f [res]
+              -- emitReturn [res]
         -> do let rep' = mkJPrimRep rep
-              res <- newTemp rep'
-              f [res]
-              emitReturn [res]
+              -- Assumes Returns Prim is of Non-closure type
+              codes <- codes'
+              emitReturn
+                . (:[])
+                . mkLocDirect False
+                $ ( expectJust "cgOpApp: StgPrimOp"
+                  . primRepFieldType_maybe
+                  $ rep'
+                  , (head codes))
         | ReturnsAlg tyCon <- resultInfo, isUnboxedTupleTyCon tyCon
-        -> do locs <- newUnboxedTupleLocs resType
-              f locs
-              emitReturn locs
+        -> do -- locs <- newUnboxedTupleLocs resType
+              -- f locs
+              codes <- codes'
+              let UbxTupleRep tyArgs         = repType resType
+                  reps = [ (isPtrJRep rep, rep)
+                         | ty <- tyArgs
+                         , let rep           = typeJPrimRep ty
+                         , not (isVoidJRep rep) ]
+              emitReturn . map (\((isClosure, rep), code)
+                                -> mkLocDirect isClosure
+                                   (primRepFieldType rep
+                                   , code))
+                         $ zip reps codes
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
@@ -75,40 +97,40 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
       <> mkReturnEntry locs
   where (clsName, methodName) = labelToMethod label
 
-shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code]
-  -> Either Code ([CgLoc] -> CodeGen ())
+shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code] -> Either Code (CodeGen [Code])
 -- TODO: Inline array operations conditionally
 shouldInlinePrimOp dflags primOp args
   | primOpOutOfLine primOp = Left $ mkRtsPrimOp primOp
-  | otherwise = Right $ \locs -> emitPrimOp locs primOp args
+  | otherwise = Right $ emitPrimOp primOp args
 
 mkRtsPrimOp :: PrimOp -> Code
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
-cgPrimOp   :: [CgLoc]        -- where to put the results
-           -> PrimOp            -- the op
+cgPrimOp   :: PrimOp            -- the op
            -> [StgArg]          -- arguments
-           -> CodeGen ()
-cgPrimOp results op args = do
+           -> CodeGen [Code]
+cgPrimOp op args = do
   argExprs <- getNonVoidArgLoadCodes args
-  emitPrimOp results op argExprs
+  emitPrimOp op argExprs
 
-emitPrimOp :: [CgLoc]        -- where to put the results
-           -> PrimOp         -- the op
-           -> [Code]         -- arguments
-           -> CodeGen ()
-emitPrimOp [res] DataToTagOp [arg] =
-  emitAssign res $ getTagMethod arg
+-- emitPrimOp :: [CgLoc]        -- where to put the results
+--            -> PrimOp         -- the op
+--            -> [Code]         -- arguments
+--            -> CodeGen ()
+emitPrimOp :: PrimOp -> [Code] -> CodeGen [Code]
+emitPrimOp DataToTagOp [arg] = return [getTagMethod arg]
 
-emitPrimOp [res1, res2] IntQuotRemOp args = do
-  emitPrimOp [res1] IntQuotOp args
-  emitPrimOp [res2] IntRemOp args
-emitPrimOp [res] op [arg]
-  | nopOp op = emitAssign res arg
-emitPrimOp r@[res] op args
+emitPrimOp IntQuotRemOp args = do
+  codes1 <- emitPrimOp IntQuotOp args
+  codes2 <- emitPrimOp IntRemOp args
+  return $ codes1 ++ codes2
+
+emitPrimOp op [arg]
+  | nopOp op = return [mempty] -- TODO: Verify this is OK
+emitPrimOp op args
   | Just execute <- simpleOp op
-  = emitAssign res (execute args)
-emitPrimOp _ op _ = pprPanic "emitPrimOp: unimplemented" (ppr op)
+  = return [execute args]
+emitPrimOp op _ = pprPanic "emitPrimOp: unimplemented" (ppr op)
 
 nopOp :: PrimOp -> Bool
 nopOp Int2WordOp = True

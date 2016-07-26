@@ -21,7 +21,6 @@ module GHCVM.CodeGen.Types
    loadLoc,
    storeLoc,
    locFt,
-   locClass,
    apUpdThunk,
    isRec,
    isNonRec,
@@ -84,14 +83,7 @@ mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 mkRepLocDirect :: (JPrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
   where isClosure = isPtrJRep rep
-        ft = expectJust "mkRepLocDirect" $ primRepFieldType rep
-
-locClass :: CgLoc -> Text
--- TODO: Is this ok?
-locClass (LocLocal _ (ObjectType (IClassName clClass)) _) = clClass
-locClass (LocStatic (ObjectType (IClassName clClass)) _ _) = clClass
-locClass (LocField _ (ObjectType (IClassName clClass)) _ _) = clClass
---locClass (LocDirect _ _ _) = error "locClass: LocDirect"
+        ft = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
 
 locJArgRep :: CgLoc -> JArgRep
 locJArgRep loc = case loc of
@@ -99,7 +91,7 @@ locJArgRep loc = case loc of
   LocStatic ft _ _ -> P
   LocField isClosure ft _ _ -> locRep isClosure ft
   LocDirect isClosure ft _ -> locRep isClosure ft
-  LocLne _ _ -> P
+  LocLne _ _ -> panic "logJArgRep: Cannot pass a let-no-escape binding!"
   where locRep isClosure ft = if isClosure then P else ftJArgRep ft
 
 locFt :: CgLoc -> FieldType
@@ -303,7 +295,8 @@ enterMethod :: CgLoc -> Code
 enterMethod cgLoc
   = loadLoc cgLoc
  <> loadContext
- <> invokevirtual (mkMethodRef (locClass cgLoc) "enter" [contextType] void)
+ -- TODO: Do better than stgClosure
+ <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] void)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc

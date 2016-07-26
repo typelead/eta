@@ -168,9 +168,11 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
         doEnumPrimop TagToEnumOp [arg] =
           getArgLoadCode (NonVoid arg)
         doEnumPrimop primop args = do
-          tmp <- newTemp intRep
-          cgPrimOp [tmp] primop args
-          return (loadLoc tmp)
+          codes <- cgPrimOp primop args
+          return $ head codes
+          -- tmp <- newTemp intRep
+          -- cgPrimOp [tmp] primop args
+          -- return (loadLoc tmp)
 
 cgCase (StgApp v []) _ (PrimAlt _) alts
   | isVoidJRep (idJPrimRep v)
@@ -265,7 +267,7 @@ bindConArgs (DataAlt con) binder args uses
                                                     Just m -> Just (m, args)
                                                     Nothing -> Nothing)
                                     $ zip maybeFields (zip args uses)
-          maybeFields = map repFieldType $ dataConRepArgTys con
+          maybeFields = map repFieldType_maybe $ dataConRepArgTys con
 bindConArgs _ _ _ _ = return ()
 
 cgAlgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen (Maybe Code, [(Int, Code)])

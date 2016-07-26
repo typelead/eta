@@ -1283,3 +1283,6 @@ jrepType = head . flattenRepType . repType
 
 mkJPrimRep :: PrimRep -> JPrimRep
 mkJPrimRep = HPrimRep
+
+objRep :: Text -> JPrimRep
+objRep = JRepObject
