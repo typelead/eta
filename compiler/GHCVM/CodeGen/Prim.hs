@@ -97,7 +97,6 @@ emitPrimOp :: [CgLoc]        -- where to put the results
            -> PrimOp         -- the op
            -> [Code]         -- arguments
            -> CodeGen ()
-
 emitPrimOp [res] DataToTagOp [arg] =
   emitAssign res $ getTagMethod arg
 

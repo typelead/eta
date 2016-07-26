@@ -497,25 +497,25 @@ gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
   where convOpcode = case (ft1, ft2) of
           (BaseType bt1, BaseType bt2) ->
             case (bt1, bt2) of
-              (JInt, JByte)    -> IT.op OP.i2b
-              (JInt, JShort)   -> IT.op OP.i2s
-              (JInt, JChar)    -> IT.op OP.i2c
-              (JInt, JBool)    -> mempty
-              (JInt, JInt)     -> mempty
-              (JInt, JLong)    -> IT.op OP.i2l
-              (JInt, JFloat)   -> IT.op OP.i2f
-              (JInt, JDouble)  -> IT.op OP.i2d
-              (JLong, JInt)  -> IT.op OP.l2i
-              (JLong, JFloat)  -> IT.op OP.l2f
-              (JLong, JDouble) -> IT.op OP.l2d
-              (JLong, JLong)  -> mempty
-              (JFloat, JDouble) -> IT.op OP.f2d
-              (JFloat, JInt) -> IT.op OP.f2i
-              (JFloat, JLong) -> IT.op OP.f2l
-              (JFloat, JFloat) -> mempty
-              (JDouble, JLong) -> IT.op OP.d2l
-              (JDouble, JInt) -> IT.op OP.d2i
-              (JDouble, JFloat) -> IT.op OP.d2f
+              (JInt, JByte)      -> IT.op OP.i2b
+              (JInt, JShort)     -> IT.op OP.i2s
+              (JInt, JChar)      -> IT.op OP.i2c
+              (JInt, JBool)      -> mempty
+              (JInt, JInt)       -> mempty
+              (JInt, JLong)      -> IT.op OP.i2l
+              (JInt, JFloat)     -> IT.op OP.i2f
+              (JInt, JDouble)    -> IT.op OP.i2d
+              (JLong, JInt)      -> IT.op OP.l2i
+              (JLong, JFloat)    -> IT.op OP.l2f
+              (JLong, JDouble)   -> IT.op OP.l2d
+              (JLong, JLong)     -> mempty
+              (JFloat, JDouble)  -> IT.op OP.f2d
+              (JFloat, JInt)     -> IT.op OP.f2i
+              (JFloat, JLong)    -> IT.op OP.f2l
+              (JFloat, JFloat)   -> mempty
+              (JDouble, JLong)   -> IT.op OP.d2l
+              (JDouble, JInt)    -> IT.op OP.d2i
+              (JDouble, JFloat)  -> IT.op OP.d2f
               (JDouble, JDouble) -> mempty
               other -> error $ "Implement the other JVM primitive conversions."
                             ++ show other
