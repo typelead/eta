@@ -153,8 +153,9 @@ cgConApp con args
 cgCase :: StgExpr -> Id -> AltType -> [StgAlt] -> CodeGen ()
 cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
   | isEnumerationTyCon tyCon = do
+      dflags <- getDynFlags
       tagExpr <- doEnumPrimop op args
-      let closureCode = snd $ tagToClosure tyCon tagExpr
+      let closureCode = snd $ tagToClosure dflags tyCon tagExpr
       loadCode <- if not $ isDeadBinder binder then do
           bindLoc <- newIdLoc (NonVoid binder)
           bindArg (NonVoid binder) bindLoc
@@ -243,6 +244,9 @@ cgAltRhss binder alts =
 bindConArgs :: AltCon -> NonVoid Id -> [Id] -> [Bool] -> CodeGen ()
 bindConArgs (DataAlt con) binder args uses
   | not (null args), or uses = do
+    dflags <- getDynFlags
+    let conClass = dataConClass dflags con
+        dataFt   = obj conClass
     base <- getCgLoc binder
     emit $ loadLoc base
         <> gconv conType dataFt
@@ -261,8 +265,6 @@ bindConArgs (DataAlt con) binder args uses
                                                     Just m -> Just (m, args)
                                                     Nothing -> Nothing)
                                     $ zip maybeFields (zip args uses)
-          conClass = dataConClass con
-          dataFt = obj conClass
           maybeFields = map repFieldType $ dataConRepArgTys con
 bindConArgs _ _ _ _ = return ()
 

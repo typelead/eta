@@ -36,7 +36,7 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
   let code = case codes of
         [code'] -> code'
         _ -> panic "TagToEnumOp had void arg"
-  emitReturn [mkLocDirect True $ tagToClosure tyCon code]
+  emitReturn [mkLocDirect True $ tagToClosure dflags tyCon code]
   where tyCon = tyConAppTyCon resType
 
 cgOpApp (StgPrimOp primOp) args resType = do

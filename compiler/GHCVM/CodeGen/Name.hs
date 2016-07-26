@@ -16,6 +16,7 @@ module GHCVM.CodeGen.Name (
   labelToMethod
   ) where
 
+import DynFlags
 import TyCon
 import DataCon
 import Module
@@ -28,6 +29,9 @@ import Data.Maybe
 import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
+import GHCVM.Debug
+import Encoding
+
 import Codec.JVM
 
 qualifiedName :: Text -> Text -> Text
@@ -39,23 +43,22 @@ closure = flip append "_closure"
 fastStringToText :: FastString -> Text
 fastStringToText = decodeUtf8 . fastStringToByteString
 
-nameTypeText :: Name -> Text
-nameTypeText = flip snoc 'T' . nameText
+nameTypeText :: DynFlags -> Name -> Text
+nameTypeText dflags = flip snoc 'T' . nameText dflags
 
-nameTypeTable :: Name -> Text
-nameTypeTable = flip append "_table" . nameText
+nameTypeTable :: DynFlags -> Name -> Text
+nameTypeTable dflags = flip append "_table" . nameText dflags
 
-nameDataText :: Name -> Text
-nameDataText = flip snoc 'D' . nameText
+nameDataText :: DynFlags -> Name -> Text
+nameDataText dflags = flip snoc 'D' . nameText dflags
 
-nameText :: Name -> Text
-nameText = zEncodeText
-         . occNameFS
-         . nameOccName
+nameText :: DynFlags -> Name -> Text
+nameText dflags = T.pack
+                . zEncodeString
+                . showPpr dflags
 
-idNameText :: Id -> Text
-idNameText = nameText
-           . idName
+idNameText :: DynFlags -> Id -> Text
+idNameText dflags = nameText dflags . idName
 
 idClassText :: Id -> Text
 idClassText id =
@@ -107,11 +110,11 @@ classFilePath ClassFile {..} =
 
 upperFirst :: Text -> Text
 upperFirst str = case uncons str of
-  Nothing -> empty
+  Nothing -> str
   Just (c, str') -> cons (C.toUpper c) str'
 
-modClosure :: Module -> Name -> (Text, Text)
-modClosure mod name = (moduleJavaClass mod, nameText name)
+modClosure :: DynFlags -> Module -> Name -> (Text, Text)
+modClosure dflags mod name = (moduleJavaClass mod, nameText dflags name)
 
 moduleClass :: Name -> Text -> Text
 moduleClass name = qualifiedName moduleClass
@@ -121,15 +124,15 @@ moduleClass name = qualifiedName moduleClass
                     . fromMaybe (error "Failed")
                     $ nameModule_maybe name
 
-dataConClass :: DataCon -> Text
-dataConClass dataCon = moduleClass dataName dataClass
+dataConClass :: DynFlags -> DataCon -> Text
+dataConClass dflags dataCon = moduleClass dataName dataClass
   where dataName = dataConName dataCon
-        dataClass = nameDataText dataName
+        dataClass = nameDataText dflags dataName
 
-tyConClass :: TyCon -> Text
-tyConClass tyCon = moduleClass typeName typeClass
+tyConClass :: DynFlags -> TyCon -> Text
+tyConClass dflags tyCon = moduleClass typeName typeClass
   where typeName = tyConName tyCon
-        typeClass = nameTypeText typeName
+        typeClass = nameTypeText dflags typeName
 
 labelToMethod :: FastString -> (Text, Text)
 labelToMethod fs = ( T.dropEnd 1 $ T.dropWhileEnd (/= '.') label

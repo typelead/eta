@@ -1,5 +1,6 @@
 module GHCVM.CodeGen.Utils where
 
+import DynFlags
 import Type
 import Name
 import TyCon
@@ -40,14 +41,14 @@ litSwitch ft expr branches deflt
   | otherwise  = intSwitch expr intBranches (Just deflt)
   where intBranches = map (first litToInt) branches
 
-tagToClosure :: TyCon -> Code -> (FieldType, Code)
-tagToClosure tyCon loadArg = (elemFt, enumCode)
+tagToClosure :: DynFlags -> TyCon -> Code -> (FieldType, Code)
+tagToClosure dflags tyCon loadArg = (elemFt, enumCode)
   where enumCode =  getstatic (mkFieldRef modClass fieldName arrayFt)
                  <> loadArg
                  <> gaload elemFt
         tyName = tyConName tyCon
         modClass = moduleJavaClass $ nameModule tyName
-        fieldName = nameTypeTable $ tyConName tyCon
-        tyConCl = tyConClass tyCon
+        fieldName = nameTypeTable dflags $ tyConName tyCon
+        tyConCl = tyConClass dflags tyCon
         elemFt = obj tyConCl
         arrayFt = jarray elemFt

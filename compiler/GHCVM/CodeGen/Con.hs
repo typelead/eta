@@ -27,14 +27,14 @@ cgTopRhsCon :: DynFlags
             -> [StgArg]         -- Args
             -> (CgIdInfo, CodeGen ())
 cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
-  where cgIdInfo = mkCgIdInfo id lfInfo
+  where cgIdInfo = mkCgIdInfo dflags id lfInfo
         lfInfo = mkConLFInfo dataCon
         maybeFields = map repFieldType $ dataConRepArgTys dataCon
         fields = catMaybes maybeFields
-        (modClass, clName, dataClass) = getJavaInfo cgIdInfo
+        (modClass, clName, dataClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
         dataFt = obj dataClass
-        typeFt = obj (tyConClass (dataConTyCon dataCon))
+        typeFt = obj (tyConClass dflags (dataConTyCon dataCon))
         genCode = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
           defineField $ mkFieldDef [Public, Static] qClName closureType
@@ -48,9 +48,10 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
             ]
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
-buildDynCon binder con [] = return
-  ( mkCgIdInfo binder (mkConLFInfo con)
-  , return mempty )
+buildDynCon binder con [] = do
+  dflags <- getDynFlags
+  return ( mkCgIdInfo dflags binder (mkConLFInfo con)
+         , return mempty )
 -- buildDynCon binder con [arg]
 --   | maybeIntLikeCon con
 --   , StgLitArg (MachInt val) <- arg
@@ -69,8 +70,9 @@ buildDynCon binder con [] = return
 --       -- TODO: Generate offset into charlike array
 --       unimplemented "buildDynCon: CHARLIKE"
 buildDynCon binder con args = do
+  dflags <- getDynFlags
   (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
-  let (_, _, dataClass) = getJavaInfo idInfo
+  let (_, _, dataClass) = getJavaInfo dflags idInfo
   return (idInfo, genCode cgLoc dataClass)
   where lfInfo = mkConLFInfo con
         maybeFields = map repFieldType $ dataConRepArgTys con

@@ -85,9 +85,9 @@ cgTopRhsClosure :: DynFlags
                 -> (CgIdInfo, CodeGen ())
 cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lfInfo)
-  where cgIdInfo = mkCgIdInfo id lfInfo
+  where cgIdInfo = mkCgIdInfo dflags id lfInfo
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
-        (modClass, clName, clClass) = getJavaInfo cgIdInfo
+        (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
         isThunk = isLFThunk lfInfo
         qClName = closure clName
         genCode dflags _
@@ -146,16 +146,28 @@ externaliseId dflags id = do
 
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
+    dflags <- getDynFlags
+    let tyConClass = nameTypeText dflags . tyConName $ tyCon
     (_, CgState {..}) <- newTypeClosure tyConClass stgConstr
     mapM_ (cgDataCon cgClassName) (tyConDataCons tyCon)
     when (isEnumerationTyCon tyCon) $
       cgEnumerationTyCon cgClassName tyCon
-  where tyConClass = nameTypeText . tyConName $ tyCon
-        dataCons = tyConDataCons tyCon
+  where dataCons = tyConDataCons tyCon
 
 cgEnumerationTyCon :: Text -> TyCon -> CodeGen ()
 cgEnumerationTyCon tyConCl tyCon = do
+  dflags <- getDynFlags
   thisClass <- getClass
+  let fieldName = nameTypeTable dflags $ tyConName tyCon
+      loadCodes = [    dup arrayFt
+                    <> iconst jint i
+                    <> new dataFt
+                    <> dup dataFt
+                    <> invokespecial (mkMethodRef dataClass "<init>" [] void)
+                    <> gastore elemFt
+                    | (i, con) <- zip [0..] $ tyConDataCons tyCon
+                    , let dataFt    = obj dataClass
+                          dataClass = dataConClass dflags con ]
   defineField $ mkFieldDef [Public, Static, Final] fieldName arrayFt
   addInitStep $ fold
     [
@@ -164,24 +176,16 @@ cgEnumerationTyCon tyConCl tyCon = do
       fold loadCodes,
       putstatic $ mkFieldRef thisClass fieldName arrayFt
     ]
-  where loadCodes = [  dup arrayFt
-                    <> iconst jint i
-                    <> new dataFt
-                    <> dup dataFt
-                    <> invokespecial (mkMethodRef dataClass "<init>" [] void)
-                    <> gastore elemFt
-                    | (i, con) <- zip [0..] $ tyConDataCons tyCon
-                    , let dataFt    = obj dataClass
-                          dataClass = dataConClass con ]
+  where 
         arrayFt = jarray elemFt
         elemFt = obj tyConCl
-        fieldName = nameTypeTable $ tyConName tyCon
         familySize = tyConFamilySize tyCon
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do
+  dflags <- getDynFlags
   modClass <- getModClass
-  let dataConClassName = nameDataText . dataConName $ dataCon
+  let dataConClassName = nameDataText dflags . dataConName $ dataCon
       thisClass = qualifiedName modClass dataConClassName
       thisFt = obj thisClass
       defineTagMethod =

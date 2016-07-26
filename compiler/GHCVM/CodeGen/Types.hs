@@ -43,6 +43,7 @@ import TyCon
 import Type
 import Module
 import Name
+import DynFlags
 
 import Codec.JVM
 
@@ -72,7 +73,10 @@ data CgLoc = LocLocal Bool FieldType !Int
 
 instance Outputable CgLoc where
   ppr (LocLocal isClosure ft int) = str "local: " <+> ppr int <+> ppr isClosure
-  ppr  _ = str "Some loc"
+  ppr LocStatic {} = str "static"
+  ppr LocField {} = str "field"
+  ppr LocDirect {} = str "direct"
+  ppr LocLne {} = str "lne"
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
 mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
@@ -130,25 +134,26 @@ splitStaticLoc :: CgLoc -> (Text, Text)
 splitStaticLoc (LocStatic ft modClass clName) = (modClass, clName)
 splitStaticLoc _ = error $ "splitStaticLoc: Not LocStatic"
 
-getJavaInfo :: CgIdInfo -> (Text, Text, Text)
-getJavaInfo CgIdInfo { cgLocation, cgLambdaForm } = (modClass, clName, clClass)
+getJavaInfo :: DynFlags -> CgIdInfo -> (Text, Text, Text)
+getJavaInfo dflags CgIdInfo { cgLocation, cgLambdaForm }
+  = (modClass, clName, clClass)
   where (modClass, clName) = splitStaticLoc cgLocation
         -- TODO: Reduce duplication
         clClass = fromMaybe (qualifiedName modClass clName)
-                            $ maybeDataConClass cgLambdaForm
+                            $ maybeDataConClass dflags cgLambdaForm
 
-maybeDataConClass :: LambdaFormInfo -> Maybe Text
-maybeDataConClass lfInfo =
+maybeDataConClass :: DynFlags -> LambdaFormInfo -> Maybe Text
+maybeDataConClass dflags lfInfo =
   case lfInfo of
-    LFCon dataCon -> Just $ dataConClass dataCon
+    LFCon dataCon -> Just $ dataConClass dflags dataCon
     _ -> Nothing
 
-mkCgIdInfo :: Id -> LambdaFormInfo -> CgIdInfo
-mkCgIdInfo id lfInfo =
+mkCgIdInfo :: DynFlags -> Id -> LambdaFormInfo -> CgIdInfo
+mkCgIdInfo dflags id lfInfo =
   CgIdInfo { cgId = id
            , cgLambdaForm = lfInfo
            , cgLocation = loc }
-  where loc = mkStaticLoc id lfInfo
+  where loc = mkStaticLoc dflags id lfInfo
 
 mkCgIdInfoWithLoc :: Id -> LambdaFormInfo -> CgLoc -> CgIdInfo
 mkCgIdInfoWithLoc id lfInfo cgLoc =
@@ -156,12 +161,12 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLambdaForm = lfInfo
            , cgLocation = cgLoc }
 
-mkStaticLoc :: Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc id lfInfo = LocStatic closureType modClass clName
+mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
+mkStaticLoc dflags id lfInfo = LocStatic closureType modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
-        clName = nameText name
+        clName = nameText dflags name
         modClass = moduleJavaClass mod
         -- clClass
         --   | Just c <- maybeDataConClass lfInfo = c

@@ -35,7 +35,8 @@ closureCodeBody
   -> [NonVoid Id]                  -- the closure's free vars
   -> CodeGen [FieldType]
 closureCodeBody topLevel id lfInfo args arity body fvs = do
-  setClosureClass $ idNameText id
+  dflags <- getDynFlags
+  setClosureClass $ idNameText dflags id
   (fvLocs, initCodes) <- generateFVs fvs
   thisClass <- getClass
   if arity == 0 then
@@ -114,12 +115,14 @@ setupUpdate lfInfo body
 
 cgBind :: StgBinding -> CodeGen ()
 cgBind (StgNonRec name rhs) = do
+  debugDoc $ str "StgLet" <+> ppr name
   (info, genInitCode) <- cgRhs name rhs
   addBinding info
   init <- genInitCode
   emit init
 
 cgBind (StgRec pairs) = do
+  debugDoc $ str "StgLet" <+> ppr (map fst pairs)
   result <- sequence $ unzipWith cgRhs pairs
   let (idInfos, initCodes) = unzip result
   addBindings idInfos
@@ -142,7 +145,7 @@ mkRhsClosure
 -- TODO: Selector thunks
 mkRhsClosure binder _ fvs updateFlag [] (StgApp funId args)
   | length args == arity - 1
-   && all (not . isVoidJRep . idJPrimRep . unsafeStripNV) fvs
+   && all (isPtrJRep . idJPrimRep . unsafeStripNV) fvs
    && isUpdatable updateFlag
    && arity <= mAX_SPEC_AP_SIZE
   = cgRhsStdThunk binder lfInfo payload
@@ -181,9 +184,13 @@ mkRhsClosure binder _ fvs updateFlag args body = do
 cgRhsStdThunk :: Id -> LambdaFormInfo -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
 cgRhsStdThunk binder lfInfo payload = do
   (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
+  debugDoc $ str "cgRhsStdThunk:" <+> ppr idInfo <+> ppr cgLoc <+> ppr binder <+> ppr payload
   return (idInfo, genCode cgLoc)
   where genCode cgLoc = do
           loads <- mapM (getArgLoadCode . NonVoid) payload
+          let f (StgVarArg v) = v
+          locs  <- mapM (getCgLoc . NonVoid . f) payload
+          debugDoc $ str "cgRhsStdThunk:" <+> ppr locs
           let apUpdCode = fold
                 [
                   new ft,

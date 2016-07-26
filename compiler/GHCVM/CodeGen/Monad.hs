@@ -227,8 +227,9 @@ getCgIdInfo id = do
       -- TODO: Change this back.
       let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
       --let mod = fromMaybe curMod $ nameModule_maybe name
-      if mod /= curMod then return . mkCgIdInfo id $ mkLFImported id
-      else return . mkCgIdInfo id $ mkLFImported id
+      dflags <- getDynFlags
+      if mod /= curMod then return . mkCgIdInfo dflags id $ mkLFImported id
+      else return . mkCgIdInfo dflags id $ mkLFImported id
       -- TODO: Change this back.
       -- crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
 
@@ -394,7 +395,7 @@ withMethod accessFlags name fts rt body = do
   setNextLocal 2
   setNextLabel 0
   body
-  emit $ vreturn
+  emit vreturn
   clsName <- getClass
   newCode <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
