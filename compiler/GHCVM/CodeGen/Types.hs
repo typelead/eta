@@ -11,6 +11,7 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   storeDefault,
    getTagMethod,
    locJArgRep,
    mkRepLocDirect,
@@ -102,6 +103,21 @@ locFt (LocDirect _ ft _) = ft
 
 storeLoc :: CgLoc -> Code -> Code
 storeLoc (LocLocal _ ft n) code = code <> gstore ft n
+
+storeDefault :: CgLoc -> Code
+storeDefault cgLoc = storeLoc cgLoc defVal
+  where defVal = case locFt cgLoc of
+          BaseType prim -> case prim of
+            JBool   -> intDef jbool
+            JChar   -> intDef jchar
+            JFloat  -> fconst 0.0
+            JDouble -> dconst 0.0
+            JByte   -> intDef jbyte
+            JShort  -> intDef jshort
+            JInt    -> intDef jint
+            JLong   -> lconst 0
+          _ -> aconst_null
+        intDef ft = iconst ft 0
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n

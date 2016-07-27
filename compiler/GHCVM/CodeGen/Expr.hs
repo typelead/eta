@@ -28,6 +28,7 @@ import {-# SOURCE #-} GHCVM.CodeGen.Bind (cgBind)
 import Codec.JVM
 
 import Data.Monoid((<>))
+import Data.Foldable(fold)
 import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
@@ -58,17 +59,24 @@ cgLneBinds (StgNonRec binder rhs) expr = do
   bindCode <- genBindCode
   addBinding info
   exprCode <- forkLneBody $ cgExpr expr
-  let bindLabel = fst . expectJust "cgLneBinds:StgNonRec" . maybeLetNoEscape $ info
-  emit $ letNoEscapeCodeBlocks [(bindLabel, bindCode)] exprCode
+  let (bindLabel, argLocs) = expectJust "cgLneBinds:StgNonRec" . maybeLetNoEscape $ info
+  emit $ fold (map storeDefault argLocs)
+      <> letNoEscapeCodeBlocks [(bindLabel, bindCode)] exprCode
 
 cgLneBinds (StgRec pairs) expr = do
   result <- sequence $ unzipWith cgLetNoEscapeRhsBody pairs
   let (infos, genBindCodes) = unzip result
-      labels = map (fst . expectJust "cgLneBinds:StgRec" . maybeLetNoEscape) infos
+      (labels, argLocss) = unzip $ map (expectJust "cgLneBinds:StgRec" . maybeLetNoEscape) infos
   addBindings infos
   bindCodes <- sequence genBindCodes
   exprCode <- forkLneBody $ cgExpr expr
-  emit $ letNoEscapeCodeBlocks (zip labels bindCodes) exprCode
+  -- TODO: This takes the easy way out.
+  -- Look here for optimization opportunities
+  -- and potential source of bugs involving let-no-escape.
+  -- We are banking on the fact that mututally-recursive lne bindings are
+  -- rare.
+  emit $ fold (fold (map (map storeDefault) argLocss))
+      <> letNoEscapeCodeBlocks (zip labels bindCodes) exprCode
 
 cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen Code)
 cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body)
