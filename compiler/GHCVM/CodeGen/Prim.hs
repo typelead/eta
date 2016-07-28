@@ -126,7 +126,7 @@ emitPrimOp IntQuotRemOp args = do
   return $ codes1 ++ codes2
 
 emitPrimOp op [arg]
-  | nopOp op = return [mempty] -- TODO: Verify this is OK
+  | nopOp op = return [arg]
 emitPrimOp op args
   | Just execute <- simpleOp op
   = return [execute args]

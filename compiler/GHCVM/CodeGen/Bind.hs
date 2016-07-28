@@ -19,7 +19,7 @@ import GHCVM.Primitive
 import GHCVM.Constants
 import Codec.JVM
 import Control.Monad (forM)
-import Data.Text (append, pack)
+import Data.Text (append, pack, unpack)
 import Data.Foldable (fold)
 import Data.Maybe (mapMaybe, maybe)
 import Data.Monoid ((<>))
@@ -36,6 +36,7 @@ closureCodeBody
   -> CodeGen [FieldType]
 closureCodeBody topLevel id lfInfo args arity body fvs = do
   dflags <- getDynFlags
+  debugIO $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
   (fvLocs, initCodes) <- generateFVs fvs
   thisClass <- getClass
