@@ -17,15 +17,17 @@ import qualified Data.ByteString.Char8 as BC
 merge :: Text -> Text -> Text
 merge x y = append x . cons '/' $ y
 
-rts, apply, thunk, stg :: Text -> Text
-rts   = merge "ghcvm/runtime"
-apply = merge (rts "apply")
-thunk = merge (rts "thunk")
-stg   = merge (rts "stg")
+rts, apply, thunk, stg, exception, io :: Text -> Text
+rts       = merge "ghcvm/runtime"
+apply     = merge (rts "apply")
+thunk     = merge (rts "thunk")
+stg       = merge (rts "stg")
+exception = merge (rts "exception")
+io        = merge (rts "io")
 
 closureType, indStaticType, contextType, funType, tsoType, frameType,
   rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
-  rtsOptsEnbledType :: FieldType
+  rtsOptsEnbledType, stgArrayType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -38,9 +40,10 @@ thunkType         = obj stgThunk
 rtsConfigType     = obj rtsConfig
 rtsOptsEnbledType = obj rtsOptsEnbled
 exitCodeType      = obj exitCode
+stgArrayType      = obj stgArray
 
 stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun,
-  stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode :: Text
+  stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -54,6 +57,7 @@ rtsFun        = stg "RtsFun"
 rtsConfig     = rts "RtsConfig"
 rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
 exitCode      = rts "Rts$ExitCode"
+stgArray      = io "StgArray"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
@@ -149,3 +153,13 @@ mkRtsMainClass dflags mainClass
           Just s -> dup rtsConfigType
                  <> sconst (BC.pack s)
                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
+
+stgExceptionGroup, ioGroup :: Text
+stgExceptionGroup = exception "StgException"
+ioGroup = io "IO"
+
+mkRtsFunCall :: (Text, Text) -> Code
+mkRtsFunCall (group, name) =
+     getstatic (mkFieldRef group name rtsFunType)
+  <> loadContext
+  <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)

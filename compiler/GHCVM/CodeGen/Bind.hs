@@ -36,7 +36,7 @@ closureCodeBody
   -> CodeGen [FieldType]
 closureCodeBody topLevel id lfInfo args arity body fvs = do
   dflags <- getDynFlags
-  debugIO $ "creating new closure..." ++ unpack (idNameText dflags id)
+  debug $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
   (fvLocs, initCodes) <- generateFVs fvs
   thisClass <- getClass

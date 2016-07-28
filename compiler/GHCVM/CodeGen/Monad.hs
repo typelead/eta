@@ -469,17 +469,21 @@ forkLneBody body = do
 debug :: String -> CodeGen ()
 debug msg = do
   dflags <- getDynFlags
-  liftIO $ putStrLn msg
+  when (verbosity dflags > 1) $
+    liftIO $ putStrLn msg
 
 debugDoc :: SDoc -> CodeGen ()
 debugDoc sdoc = do
   dflags <- getDynFlags
-  liftIO . putStrLn $ showSDocDump dflags sdoc
+  when (verbosity dflags > 1) $
+    liftIO . putStrLn $ showSDocDump dflags sdoc
 
 debugState :: CodeGen ()
 debugState = do
+  dflags <- getDynFlags
   bindings <- getBindings
-  debugDoc $ str "cgBindings: " <+> ppr bindings
+  when (verbosity dflags > 1) $
+    debugDoc $ str "cgBindings: " <+> ppr bindings
 
 crashDoc :: SDoc -> CodeGen a
 crashDoc sdoc = do

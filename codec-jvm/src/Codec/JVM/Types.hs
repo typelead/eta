@@ -44,11 +44,14 @@ baseType _ = error "baseType: Not base type!"
 jstring :: FieldType
 jstring = ObjectType jlString
 
+jstringC :: Text
+jstringC = "java/lang/String"
+
 jlObject :: IClassName
 jlObject = IClassName "java/lang/Object"
 
 jlString :: IClassName
-jlString = IClassName "java/lang/String"
+jlString = IClassName jstringC
 
 -- | Binary class names in their internal form.
 -- https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.2.1

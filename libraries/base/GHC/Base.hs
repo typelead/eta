@@ -94,12 +94,12 @@ module GHC.Base
         (
         module GHC.Base,
         module GHC.Classes,
-        --module GHC.CString,
+        module GHC.CString,
         module GHC.Magic,
         module GHC.Types,
         module GHC.Prim,        -- Re-export GHC.Prim and [boot] GHC.Err,
                                 -- to avoid lots of people having to
-        --module GHC.Err          -- import it explicitly
+        module GHC.Err          -- import it explicitly
   )
         where
 
@@ -108,13 +108,11 @@ import GHC.Classes
 import GHC.CString
 import GHC.Magic
 import GHC.Prim
--- import GHC.Err
--- import {-# SOURCE #-} GHC.IO (failIO)
+import GHC.Err
+import {-# SOURCE #-} GHC.IO (failIO)
 
 import GHC.Tuple ()     -- Note [Depend on GHC.Tuple]
 import GHC.Integer ()   -- Note [Depend on GHC.Integer]
--- TODO: Remove this as sson as exceptions are implemented
-import Unsafe.Coerce (unsafeCoerce)
 
 infixr 9  .
 infixr 5  ++
@@ -473,9 +471,8 @@ class Applicative m => Monad m where
     -- | Fail with a message.  This operation is not part of the
     -- mathematical definition of a monad, but is invoked on pattern-match
     -- failure in a @do@ expression.
-    -- TODO: CHANGE THIS
     fail        :: String -> m a
-    fail s      = return (unsafeCoerce ())
+    fail s      = error s
 
 {- Note [Recursive bindings for Applicative/Monad]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1061,7 +1058,7 @@ instance  Monad IO  where
     m >> k    = m >>= \ _ -> k
     return    = returnIO
     (>>=)     = bindIO
-    fail s    = return (unsafeCoerce ()) -- TODO: failIO s
+    fail s    = failIO s
 
 returnIO :: a -> IO a
 returnIO x = IO $ \ s -> (# s, x #)

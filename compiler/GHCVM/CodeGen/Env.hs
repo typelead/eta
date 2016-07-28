@@ -6,6 +6,7 @@ import StgSyn
 import Codec.JVM
 
 import GHCVM.Util
+import GHCVM.Debug
 import GHCVM.Primitive
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure

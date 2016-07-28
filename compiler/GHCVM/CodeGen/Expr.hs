@@ -114,16 +114,16 @@ cgIdApp funId args = do
       funLoc = cgLocation funInfo
   case getCallMethod dflags funName cgFunId lfInfo (length args) funLoc
                      selfLoopInfo of
-    ReturnIt -> debugIO "cgIdApp: ReturnIt" >>
+    ReturnIt -> debug "cgIdApp: ReturnIt" >>
                 emitReturn [funLoc]
-    EnterIt -> debugIO "cgIdApp: EnterIt" >>
+    EnterIt -> debug "cgIdApp: EnterIt" >>
                emitEnter funLoc
-    SlowCall -> debugIO "cgIdApp: SlowCall" >>
+    SlowCall -> debug "cgIdApp: SlowCall" >>
                 (withContinuation $ slowCall funLoc args)
-    DirectEntry entryCode arity -> debugIO "cgIdApp: DirectEntry" >>
+    DirectEntry entryCode arity -> debug "cgIdApp: DirectEntry" >>
                 (withContinuation $ directCall False entryCode arity args)
     JumpToIt label cgLocs -> do
-      debugIO "cgIdApp: JumpToIt"
+      debug "cgIdApp: JumpToIt"
       codes <- getNonVoidArgLoadCodes args
       emit $ multiAssign cgLocs codes
           <> goto label
@@ -178,9 +178,6 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
         doEnumPrimop primop args = do
           codes <- cgPrimOp primop args
           return $ head codes
-          -- tmp <- newTemp intRep
-          -- cgPrimOp [tmp] primop args
-          -- return (loadLoc tmp)
 
 cgCase (StgApp v []) _ (PrimAlt _) alts
   | isVoidJRep (idJPrimRep v)
@@ -191,7 +188,7 @@ cgCase (StgApp v []) binder altType@(PrimAlt _) alts
   | isUnLiftedType (idType v)
   || repsCompatible
   = do
-      when (not repsCompatible) $
+      unless repsCompatible $
         panic "cgCase: reps do not match, perhaps a dodgy unsafeCoerce?"
       vInfo <- getCgIdInfo v
       binderLoc <- newIdLoc nvBinder
@@ -232,7 +229,10 @@ cgAlts _ PolyAlt [(_, _, _, rhs)] = cgExpr rhs
 cgAlts _ (UbxTupAlt _) [(_, _, _, rhs)] = cgExpr rhs
 cgAlts binder (PrimAlt _) alts = do
   taggedBranches <- cgAltRhss binder alts
-  binderLoc <- getCgLoc binder
+  binderLoc <- if null (nonVoidIds [unsafeStripNV binder]) then
+                 return $ mkLocDirect False (jint, mempty)
+               else
+                 getCgLoc binder
   let (DEFAULT, deflt) = head taggedBranches
       taggedBranches' = [(lit, code) | (LitAlt lit, code) <- taggedBranches]
   emit $ litSwitch (locFt binderLoc) (loadLoc binderLoc) taggedBranches' deflt

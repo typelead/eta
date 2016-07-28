@@ -38,7 +38,7 @@ data JArgRep = P   -- StgClosure
 
 toJArgRep :: JPrimRep -> JArgRep
 toJArgRep (HPrimRep primRep) = toArgRep primRep
-toJArgRep JRepBool        = N
+toJArgRep JRepBool           = N
 toJArgRep JRepChar           = N
 toJArgRep JRepByte           = N
 toJArgRep JRepShort          = N
@@ -49,7 +49,7 @@ toArgRep VoidRep           = V
 toArgRep PtrRep            = P
 toArgRep IntRep            = N
 toArgRep WordRep           = N
-toArgRep AddrRep           = N
+toArgRep AddrRep           = O
 toArgRep Int64Rep          = L
 toArgRep Word64Rep         = L
 toArgRep FloatRep          = F
@@ -84,8 +84,7 @@ primRepFieldType_maybe (HPrimRep primRep) =
     PtrRep            -> Just closureType
     IntRep            -> Just jint
     WordRep           -> Just jint
-    AddrRep           -> Just jlong -- TODO: When implementing ByteArray#,
-                                     --       revisit this.
+    AddrRep           -> Just jstring -- TODO: When implementing ByteArray#,
     Int64Rep          -> Just jlong
     Word64Rep         -> Just jlong
     FloatRep          -> Just jfloat

@@ -4,17 +4,17 @@ import DynFlags
 import Type
 import Name
 import TyCon
-import Outputable hiding ((<>))
 import Literal
 import Codec.JVM
 import Data.Char (ord)
 import Control.Arrow(first)
 import GHCVM.CodeGen.Name
+import GHCVM.Debug
 import Data.Text (Text)
 import Data.Monoid ((<>))
 
 cgLit :: Literal -> (FieldType, Code)
-cgLit (MachChar   c)        = (jint, iconst jint . fromIntegral $ ord c)
+cgLit (MachChar c)          = (jint, iconst jint . fromIntegral $ ord c)
 cgLit (MachInt i)           = (jint, iconst jint $ fromIntegral i)
 cgLit (MachWord i)          = (jint, iconst jint $ fromIntegral i)
 cgLit (MachInt64 i)         = (jlong, iconst jlong $ fromIntegral i)
@@ -30,6 +30,7 @@ cgLit other                 = pprPanic "mkSimpleLit" (ppr other)
 litToInt :: Literal -> Int
 litToInt (MachInt i)  = fromInteger i
 litToInt (MachWord i) = fromInteger i
+litToInt (MachChar c) = ord c
 litToInt _            = error "litToInt: not integer"
 
 intSwitch :: Code -> [(Int, Code)] -> Maybe Code -> Code

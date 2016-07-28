@@ -119,32 +119,41 @@ main = do
             -- start our GHC session
             GHC.runGhc mbMinusB $ do
 
-            dflags0 <- GHC.getSessionDynFlags
+              dflags0 <- GHC.getSessionDynFlags
 
-            -- add the override to force GHC to stop at STG code
-            GHC.setSessionDynFlags
-              (dflags0 { hooks =
-                         emptyHooks
-                         { runPhaseHook         = Just runGhcVMPhase
-                         , linkHook             = Just linkGhcVM
-                         , ghcPrimIfaceHook     = Just ghcvmPrimIface
-                         , hscFrontendHook      = Just ghcvmFrontend
-                         , tcForeignImportsHook = Just tcForeignImports
-                         , dsForeignsHook       = Just dsForeigns }
-                       , objectSuf = "jar"})
+              -- add the override to force GHC to stop at STG code
+              let dflags1 = dflags0
+                            { hooks = emptyHooks
+                              { runPhaseHook         = Just runGhcVMPhase
+                              , linkHook             = Just linkGhcVM
+                              , ghcPrimIfaceHook     = Just ghcvmPrimIface
+                              , hscFrontendHook      = Just ghcvmFrontend
+                              , tcForeignImportsHook = Just tcForeignImports
+                              , dsForeignsHook       = Just dsForeigns }
+                              , objectSuf = "jar" }
+                  dflags2 = dflags1 -- foldl xopt_set dflags1
+                            -- [ Opt_ForeignFunctionInterface
+                            -- , Opt_GHCForeignImportPrim
+                            -- , Opt_UnboxedTuples
+                            -- , Opt_BangPatterns
+                            -- , Opt_MultiParamTypeClasses
+                            -- , Opt_MagicHash
+                            -- , Opt_EmptyDataDecls ]
 
-            dflags <- GHC.getSessionDynFlags
+              GHC.setSessionDynFlags dflags2
 
-            case postStartupMode of
-                Left preLoadMode ->
-                    liftIO $
-                        case preLoadMode of
-                            ShowInfo               -> showInfo dflags
-                            ShowGhcUsage           -> showGhcUsage  dflags
-                            ShowGhciUsage          -> showGhciUsage dflags
-                            PrintWithDynFlags f    -> putStrLn (f dflags)
-                Right postLoadMode ->
-                    main' postLoadMode dflags argv3 flagWarnings
+              dflags <- GHC.getSessionDynFlags
+
+              case postStartupMode of
+                  Left preLoadMode ->
+                      liftIO $
+                          case preLoadMode of
+                              ShowInfo               -> showInfo dflags
+                              ShowGhcUsage           -> showGhcUsage  dflags
+                              ShowGhciUsage          -> showGhciUsage dflags
+                              PrintWithDynFlags f    -> putStrLn (f dflags)
+                  Right postLoadMode ->
+                      main' postLoadMode dflags argv3 flagWarnings
     return ()
 
 main' :: PostLoadMode -> DynFlags -> [Located String] -> [Located String]

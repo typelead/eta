@@ -6,6 +6,7 @@ import Type
 import StgSyn
 import PrimOp
 import Panic
+import FastString
 
 import Codec.JVM
 
@@ -25,6 +26,8 @@ import GHCVM.Util
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
 import Data.Maybe (fromJust)
+import Data.Text (Text)
+import Data.List (stripPrefix)
 
 cgOpApp :: StgOp
         -> [StgArg]
@@ -45,11 +48,10 @@ cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
     argCodes <- getNonVoidArgLoadCodes args
     case shouldInlinePrimOp dflags primOp argCodes of
-      Left rtsPrimOpCode -> do
+      Left primOpLoc -> do
         args' <- getFtsLoadCode args
         emit $ mkCallExit True args'
-            <> loadContext
-            <> rtsPrimOpCode
+            <> mkRtsFunCall primOpLoc
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
       Right codes'
@@ -89,21 +91,44 @@ cgOpApp (StgPrimOp primOp) args resType = do
 
 -- NOTE: The GHCVM specific primops will get handled here
 cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
-  locs <- newUnboxedTupleLocs resType
-  args' <- getFtsLoadCode args
-  emit $ mkCallExit True args'
-      <> loadContext
-      <> invokestatic (mkMethodRef clsName methodName [contextType] void)
-      <> mkReturnEntry locs
+  let labelString = unpackFS label
+  case stripPrefix "inline:" labelString of
+    Just name -> do
+      argCodes <- getNonVoidArgLoadCodes args
+      results <- inlinePrimCall name argCodes
+      -- TODO: Handle result
+      return ()
+
+    Nothing -> do
+      locs  <- newUnboxedTupleLocs resType
+      args' <- getFtsLoadCode args
+      emit $ mkCallExit True args'
+          <> loadContext
+          <> invokestatic (mkMethodRef clsName methodName [contextType] void)
+          <> mkReturnEntry locs
   where (clsName, methodName) = labelToMethod label
 
-shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code] -> Either Code (CodeGen [Code])
+inlinePrimCall :: String -> [Code] -> CodeGen [Code]
+inlinePrimCall name _ = error $ "inlinePrimCall: unimplemented = " ++ name
+
+shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
+shouldInlinePrimOp dflags NewArrayOp args = Right $ return
+  [
+    new stgArrayType
+ <> dup stgArrayType
+ <> fold args
+ <> invokespecial (mkMethodRef stgArray "<init>" [jint, closureType] void)
+  ]
+
+shouldInlinePrimOp dflags UnsafeThawArrayOp args = Right $ return [fold args]
+
 shouldInlinePrimOp dflags primOp args
   | primOpOutOfLine primOp = Left $ mkRtsPrimOp primOp
   | otherwise = Right $ emitPrimOp primOp args
 
-mkRtsPrimOp :: PrimOp -> Code
+mkRtsPrimOp :: PrimOp -> (Text, Text)
+mkRtsPrimOp RaiseOp           = (stgExceptionGroup, "raise")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
@@ -118,11 +143,23 @@ cgPrimOp op args = do
 --            -> [Code]         -- arguments
 --            -> CodeGen ()
 emitPrimOp :: PrimOp -> [Code] -> CodeGen [Code]
+emitPrimOp IndexOffAddrOp_Char [arg1, arg2]
+  = return [ arg1
+          <> arg2
+          <> invokevirtual (mkMethodRef jstringC "charAt"
+                                        [jint] (ret jchar))]
+          -- TODO: You may have to cast to int or do some extra stuff here
+          --       or maybe instead reference the direct byte array
 emitPrimOp DataToTagOp [arg] = return [getTagMethod arg]
 
 emitPrimOp IntQuotRemOp args = do
   codes1 <- emitPrimOp IntQuotOp args
   codes2 <- emitPrimOp IntRemOp args
+  return $ codes1 ++ codes2
+
+emitPrimOp WordQuotRemOp args = do
+  codes1 <- emitPrimOp WordQuotOp args
+  codes2 <- emitPrimOp WordRemOp args
   return $ codes1 ++ codes2
 
 emitPrimOp op [arg]
@@ -142,10 +179,30 @@ nopOp _          = False
 normalOp :: Code -> [Code] -> Code
 normalOp code = (<> code) . fold
 
+idOp :: [Code] -> Code
+idOp = normalOp mempty
+
 intCompOp :: (Code -> Code -> Code) -> [Code] -> Code
-intCompOp op args = fold args <> op (iconst jint 1) (iconst jint 0)
+intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
+
+-- Array# & MutableArray# ops
+simpleOp UnsafeFreezeArrayOp  = Just idOp
+simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
+simpleOp SizeofArrayOp = Just $
+  normalOp $ invokevirtual $ mkMethodRef stgArray "size" [] (ret jint)
+simpleOp SizeofMutableArrayOp = Just $
+  normalOp $ invokevirtual $ mkMethodRef stgArray "size" [] (ret jint)
+simpleOp WriteArrayOp = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "set" [jint, closureType] void
+simpleOp ReadArrayOp = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "get" [jint] (ret closureType)
+simpleOp IndexArrayOp = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "get" [jint] (ret closureType)
 -- Int# ops
 simpleOp IntAddOp = Just $ normalOp iadd
 simpleOp IntSubOp = Just $ normalOp isub
