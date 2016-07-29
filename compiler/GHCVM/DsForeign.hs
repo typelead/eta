@@ -10,6 +10,8 @@ import HsSyn
 import DataCon
 import CoreUnfold
 import Id
+import Var
+import MkId
 import Literal
 import Module
 import Name
@@ -18,6 +20,7 @@ import TyCon
 import Coercion
 import TcEnv
 import TcType
+import DataCon
 
 import HscTypes
 import ForeignCall
@@ -145,4 +148,105 @@ unboxArg arg
         (dataConArgTy1 : _)              = dataConArgTys
 
 mkFCall = undefined
-boxResult = undefined
+boxResult :: Type -> DsM (Type, CoreExpr -> CoreExpr)
+boxResult resultType
+  | Just (ioTyCon, ioResType) <- tcSplitIOType_maybe resultType
+  = do res <- resultWrapper ioResType
+       let extraResultTypes =
+             case res of
+               (Just ty, _)
+                 | isUnboxedTupleType ty
+                 -> let Just ls = tyConAppArgs_maybe ty
+                    in tail ls
+               _ -> []
+           returnResult state anss
+             = mkCoreConApps (tupleCon UnboxedTuple
+                                       (2 + length extraResultTypes))
+                             (map Type ( realWorldStatePrimTy
+                                       : ioResType
+                                       : extraResultTypes ))
+       (ccallResultType, alt) <- mkAlt returnResult res
+       stateId <- newSysLocalDs realWorldStatePrimTy
+       let ioDataCon = head (tyConDataCons ioTyCon)
+           toIOCon = dataConWrapId ioDataCon
+           wrap call = mkApps (Var toIOCon)
+                              [ Type ioResType
+                              , Lam stateId $
+                                mkWildCase (App call (Var stateId))
+                                           ccallResultType
+                                           (coreAltType alt)
+                                           [alt] ]
+       return (realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
+
+boxResult resultType = do
+  res <- resultWrapper resultType
+  (ccallResultType, alt) <- mkAlt returnResult res
+  let wrap call = mkWildCase (App call (Var realWorldPrimId))
+                             ccallResultType
+                             (coreAltType alt)
+                             [alt]
+  return (realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
+  where returnResult _ [ans] = ans
+        returnResult _ _ = panic "returnResult: expected single result"
+
+mkAlt :: (Expr Var -> [Expr Var] -> Expr Var)
+      -> (Maybe Type, Expr Var -> Expr Var)
+      -> DsM (Type, (AltCon, [Id], Expr Var))
+mkAlt returnResult (Nothing, wrapResult) = do
+  stateId <- newSysLocalDs realWorldStatePrimTy
+  let rhs = returnResult (Var stateId) [wrapResult (panic "boxResult")]
+      ccallResultType = mkTyConApp unboxedSingletonTyCon [realWorldStatePrimTy]
+      alt = (DataAlt unboxedSingletonDataCon, [stateId], rhs)
+  return (ccallResultType, alt)
+mkAlt returnResult (Just primResType, wrapResult)
+  | isUnboxedTupleType primResType = do
+      let Just ls = tyConAppArgs_maybe primResType
+          arity = 1 + length ls
+      argIds@(resultId:as) <- mapM newSysLocalDs ls
+      stateId <- newSysLocalDs realWorldStatePrimTy
+      let rhs = returnResult (Var stateId) (wrapResult (Var resultId) : map Var as)
+          ccallResultType = mkTyConApp (tupleTyCon UnboxedTuple arity)
+                                       (realWorldStatePrimTy : ls)
+          alt = ( DataAlt (tupleCon UnboxedTuple arity)
+                , stateId : argIds
+                , rhs )
+      return (ccallResultType, alt)
+  | otherwise = do
+      resultId <- newSysLocalDs primResType
+      stateId <- newSysLocalDs realWorldStatePrimTy
+      let rhs = returnResult (Var stateId) [wrapResult (Var resultId)]
+          ccallResultType = mkTyConApp unboxedPairTyCon
+                                       [realWorldStatePrimTy, primResType]
+          alt = ( DataAlt unboxedPairDataCon
+                , [stateId, resultId]
+                , rhs )
+      return (ccallResultType, alt)
+
+resultWrapper :: Type -> DsM (Maybe Type, CoreExpr -> CoreExpr)
+resultWrapper resultType
+  | isPrimitiveType resultType
+  = return (Just resultType, id)
+  | Just (tc, _) <- maybeTcApp, tc `hasKey` boolTyConKey
+  = return ( Just intPrimTy
+           , \e -> mkWildCase e intPrimTy boolTy
+                   [ (DEFAULT, [], Var trueDataConId)
+                   , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
+  | Just (co, repType) <- topNormaliseNewType_maybe resultType
+  = do (maybeType, wrapper) <- resultWrapper repType
+       return (maybeType, \e -> mkCast (wrapper e) (mkSymCo co))
+  | Just (tyVar, rest) <- splitForAllTy_maybe resultType
+  = do (maybeType, wrapper) <- resultWrapper rest
+       return (maybeType, \e -> Lam tyVar (wrapper e))
+  | Just (tyCon, tyConArgTys, dataCon, dataConArgTys)
+    <- splitDataProductType_maybe resultType,
+    dataConSourceArity dataCon == 1 = do
+      let (unwrapperResType : _) = dataConArgTys
+          narrowWrapper = id --TODO: maybeNarrow tyCon
+      (maybeType, wrapper) <- resultWrapper unwrapperResType
+      return ( maybeType
+             , \e ->
+                 mkApps (Var (dataConWrapId dataCon))
+                        (map Type tyConArgTys ++ [wrapper (narrowWrapper e)]) )
+  | otherwise
+  = pprPanic "resultWrapper" (ppr resultType)
+  where maybeTcApp = splitTyConApp_maybe resultType
