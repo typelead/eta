@@ -12,7 +12,7 @@ import BasicTypes
 import Name
 import Id
 import Avail
-import PrelNames (gHC_PRIM)
+import PrelNames (gHC_PRIM, conName, tcQual, gHC_TYPES)
 import Data.Maybe
 import HscTypes
 import PrimOp
@@ -1159,7 +1159,8 @@ ghcvmPrimTyCons
     , jbytePrimTyCon
     , jbooleanPrimTyCon
     , jshortPrimTyCon
-    , objectPrimTyCon ]
+    , jobjectPrimTyCon
+    , jarrayPrimTyCon ]
 
 mkPrimTc :: FastString -> Unique -> TyCon -> Name
 mkPrimTc fs unique tycon
@@ -1206,12 +1207,30 @@ jshortPrimTyConName             = mkPrimTc (fsLit "JShort#") jshortPrimTyConKey 
 jshortPrimTyConKey                        = mkPreludeTyConUnique 80
 jshortPrimTyCon = pcPrimTyCon0 jshortPrimTyConName WordRep
 
-objectPrimTyConKey :: Unique
-objectPrimTyConKey = mkPreludeTyConUnique 83
-objectPrimTyCon :: TyCon
-objectPrimTyCon   = pcPrimTyCon objectPrimTyConName [Nominal] WordRep
-objectPrimTyConName :: Name
-objectPrimTyConName = mkPrimTc (fsLit "Object#") objectPrimTyConKey objectPrimTyCon
+jobjectPrimTyConKey :: Unique
+jobjectPrimTyConKey = mkPreludeTyConUnique 83
+jobjectPrimTyCon :: TyCon
+jobjectPrimTyCon   = pcPrimTyCon jobjectPrimTyConName [Nominal] WordRep
+jobjectPrimTyConName :: Name
+jobjectPrimTyConName = mkPrimTc (fsLit "JObject#") jobjectPrimTyConKey jobjectPrimTyCon
+
+jarrayPrimTyConKey :: Unique
+jarrayPrimTyConKey = mkPreludeTyConUnique 81
+jarrayPrimTyCon :: TyCon
+jarrayPrimTyCon   = mkLiftedPrimTyCon jarrayPrimTyConName kind roles VoidRep
+  where kind = mkArrowKinds (map (const liftedTypeKind) roles) liftedTypeKind
+        roles = [Nominal]
+jarrayPrimTyConName :: Name
+jarrayPrimTyConName = mkPrimTc (fsLit "JArray#") jarrayPrimTyConKey jarrayPrimTyCon
+
+-- TODO: Verify that the uniques are valid
+javaTyConKey, javaDataConKey :: Unique
+javaTyConKey   = mkPreludeTyConUnique 80
+javaDataConKey = mkPreludeDataConUnique 38
+
+javaTyConName, javaDataConName :: Name
+javaTyConName       = tcQual  gHC_TYPES (fsLit "Java")       javaTyConKey
+javaDataConName     = conName gHC_TYPES (fsLit "Java")       javaDataConKey
 
 data JPrimRep = HPrimRep PrimRep
               | JRepBool
@@ -1251,7 +1270,7 @@ maybeJRep tyCon tys
   | tcUnique == jbytePrimTyConKey    = Just JRepByte
   | tcUnique == jshortPrimTyConKey   = Just JRepShort
 -- NOTE: A tag for a object MUST have an associated CType!
-  | tcUnique == objectPrimTyConKey   =
+  | tcUnique == jobjectPrimTyConKey  =
     case splitTyConApp_maybe (head tys) of
       Just (tyCon1, _) ->
         case tyConCType_maybe tyCon1 of

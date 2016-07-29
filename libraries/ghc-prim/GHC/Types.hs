@@ -236,3 +236,13 @@ isTrue# x = tagToEnum# x
 -- Libraries can specify this by using 'SPEC' data type to inform which
 -- loops should be aggressively specialized.
 data SPEC = SPEC | SPEC2
+
+-- This is used to wrap primitive Java objects.
+-- This can be thought of as the parallel between Int and Int#
+data JObject a = JObject (JObject# a)
+
+-- The Java Monad
+newtype Java c a = Java { runJava_ :: State# RealWorld -> JObject# c -> (# State# RealWorld, JObject# c, a #) }
+type role Java nominal representational
+
+type JArray a = JObject (JArray# a)

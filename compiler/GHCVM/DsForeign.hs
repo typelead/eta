@@ -3,7 +3,8 @@ module GHCVM.DsForeign where
 import TcRnMonad
 import TypeRep
 import CoreSyn
-import DsCCall
+import CoreUtils
+import MkCore
 import DsMonad
 import HsSyn
 import DataCon
@@ -81,13 +82,14 @@ dsPrimCall funId co fcall = do
 dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header
   -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
 dsFCall funId co fcall mDeclHeader = do
+  dflags <- getDynFlags
+  liftIO . putStrLn $ showSDoc dflags (ppr ty)
   args <- mapM newSysLocalDs argTypes
   (valArgs, argWrappers) <- mapAndUnzipM unboxArg (map Var args)
   let workArgIds = [v | Var v <- valArgs]
   (ccallResultType, resWrapper) <- boxResult ioResType
   ccallUniq <- newUnique
   workUniq <- newUnique
-  dflags <- getDynFlags
   -- Build worker
   let workerType = mkForAllTys tvs $
                    mkFunTys (map idType workArgIds) ccallResultType
@@ -108,3 +110,39 @@ dsFCall funId co fcall mDeclHeader = do
   where ty = pFst $ coercionKind co
         (tvs, funTy) = tcSplitForAllTys ty
         (argTypes, ioResType) = tcSplitFunTys funTy
+
+unboxArg :: CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
+unboxArg arg
+  | isPrimitiveType argType
+  = return (arg, id)
+  | Just (co, _) <- topNormaliseNewType_maybe argType
+  = unboxArg $ mkCast arg co
+  | Just tc <- tyConAppTyCon_maybe argType
+  , tc `hasKey` boolTyConKey = do
+      dflags <- getDynFlags
+      primArg <- newSysLocalDs intPrimTy
+      return ( Var primArg
+             , \body -> Case (mkWildCase arg argType intPrimTy
+                              [ (DataAlt falseDataCon, [], Lit (MachInt 0))
+                              , (DataAlt trueDataCon,  [], Lit (MachInt 1)) ])
+                              primArg (exprType body)
+                              [(DEFAULT,[],body)] )
+  | isProductType && dataConArity == 1 = do
+      caseBinder <- newSysLocalDs argType
+      primArg <- newSysLocalDs dataConArgTy1
+      return ( Var primArg,
+               \body -> Case arg caseBinder (exprType body)
+                             [(DataAlt dataCon, [primArg], body)] )
+  -- TODO: Handle ByteArray# and MutableByteArray#
+  | otherwise = do
+      l <- getSrcSpanDs
+      pprPanic "unboxArg: " (ppr l <+> ppr argType)
+  where argType                          = exprType arg
+        maybeProductType                 = splitDataProductType_maybe argType
+        isProductType                    = isJust maybeProductType
+        Just (_,_,dataCon,dataConArgTys) = maybeProductType
+        dataConArity                     = dataConSourceArity dataCon
+        (dataConArgTy1 : _)              = dataConArgTys
+
+mkFCall = undefined
+boxResult = undefined
