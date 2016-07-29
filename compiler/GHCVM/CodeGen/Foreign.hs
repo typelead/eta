@@ -22,6 +22,7 @@ import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
 cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
+  debugDoc $ str "cgForeignCall:" <+> ppr args <+> ppr resType
   dflags <- getDynFlags
   argFtCodes <- getFCallArgs args
   resLocs <- newUnboxedTupleLocs resType
@@ -30,7 +31,8 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
         StaticTarget label mPkgId True ->
           let (clsName, methodName) = labelToMethod label
           in invokestatic $ mkMethodRef clsName methodName argFts
-                                        (ret (locFt $ head resLocs))
+                                        ( maybe void (ret . locFt)
+                                        $ safeHead resLocs )
              -- TODO: Verify the result
         _ -> panic "cgForeignCall: unimplemented"
   sequel <- getSequel

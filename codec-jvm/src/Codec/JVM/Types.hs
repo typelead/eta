@@ -47,8 +47,11 @@ jstring = ObjectType jlString
 jstringC :: Text
 jstringC = "java/lang/String"
 
+jobjectC :: Text
+jobjectC = "java/lang/Object"
+
 jlObject :: IClassName
-jlObject = IClassName "java/lang/Object"
+jlObject = IClassName jobjectC
 
 jlString :: IClassName
 jlString = IClassName jstringC

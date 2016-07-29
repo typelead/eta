@@ -60,4 +60,4 @@ import GHC.Prim
 -- foreign import ccall unsafe "hs_intToInt64"      intToInt64#      :: Int# -> Int64#
 -- foreign import ccall unsafe "hs_int64ToInt"      int64ToInt#      :: Int64# -> Int#
 -- foreign import ccall unsafe "hs_wordToWord64"    wordToWord64#    :: Word# -> Word64#
-foreign import prim "word64ToWord" word64ToWord# :: Word64# -> Word#
+-- foreign import prim "word64ToWord" word64ToWord# :: Word64# -> Word#

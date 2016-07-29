@@ -20,6 +20,8 @@ module GHC.Types (
         Bool(..), Char(..), Int(..), Word(..),
         Float(..), Double(..),
         Ordering(..), IO(..),
+        Java, Object(..), JString(..),
+        Object#, String#, JObject#,
         isTrue#,
         SPEC(..),
         Coercible,
@@ -237,12 +239,11 @@ isTrue# x = tagToEnum# x
 -- loops should be aggressively specialized.
 data SPEC = SPEC | SPEC2
 
--- This is used to wrap primitive Java objects.
--- This can be thought of as the parallel between Int and Int#
-data JObject a = JObject (JObject# a)
-
 -- The Java Monad
 newtype Java c a = Java { runJava_ :: State# RealWorld -> JObject# c -> (# State# RealWorld, JObject# c, a #) }
 type role Java nominal representational
 
-type JArray a = JObject (JArray# a)
+data {-# CLASS "java.lang.Object" #-} Object#
+data {-# CLASS "java.lang.String" #-} String#
+data Object = Object (JObject# Object#)
+data JString = JString (JObject# String#)

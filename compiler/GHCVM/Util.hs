@@ -3,7 +3,8 @@ module GHCVM.Util
    upperFirst,
    scanM,
    concatMapM,
-   expectJust)
+   expectJust,
+   safeHead)
 where
 
 import qualified Data.Char as C
@@ -33,3 +34,7 @@ concatMapM op = foldr f (return [])
             if null x' then xs
             else do xs' <- xs
                     return $ x' ++ xs'
+
+safeHead :: [a] -> Maybe a
+safeHead (x:_) = Just x
+safeHead _     = Nothing

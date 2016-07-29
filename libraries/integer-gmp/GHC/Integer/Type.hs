@@ -8,7 +8,7 @@ data {-# CLASS "java.math.BigInteger" #-} Integer#
 -- TODO: Change J#
 data Integer
   = S# Int#
-  | J# Int#
+  | J# JChar#
 
 -- TODO: Incomplete
 mkInteger :: Bool -> [Int] -> Integer

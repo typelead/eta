@@ -81,7 +81,7 @@ buildLibrary lib deps = do
     need [rtsjar]
   else do
     hsFiles <- getDirectoryFiles libDir ["//*.hs"]
-    unit $ cmd (Cwd libDir) "stack exec -- ghcvm -clear-package-db" ["-package " ++ dep | dep <- deps]
+    unit $ cmd (Cwd libDir) "stack exec -- ghcvm -clear-package-db -v" ["-package " ++ dep | dep <- deps]
                "-staticlib -ddump-to-file -ddump-stg -this-package-key" lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
   buildConf lib libConf libBuildConf
   buildFiles <- getDirectoryFiles libBuildDir ["//*"]

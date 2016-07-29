@@ -28,6 +28,7 @@ import TcEnv
 import Bag
 
 import GHCVM.Primitive
+import Data.Maybe(fromMaybe)
 
 -- TODO: Temporary hack
 javaCallConv :: CCallConv
@@ -64,8 +65,10 @@ normaliseFfiType' env ty0 = go initRecTc ty0
           | Just ty' <- coreView ty = go recNts ty'
         go recNts ty@(TyConApp tc tys)
           -- TODO: Address funPtrs
-          | tcKey `elem` [ioTyConKey, javaTyConKey]
-          = childrenOnly
+          | tcKey `elem` [ioTyConKey]
+          = childrenOnly False
+          | isJavaTyCon tc
+          = childrenOnly True
           | isNewTyCon tc
           , Just recNts' <- checkRecTc recNts tc
           = do
@@ -83,11 +86,12 @@ normaliseFfiType' env ty0 = go initRecTc ty0
           | otherwise
           = nothing
           where tcKey = getUnique tc
-                childrenOnly = do
+                childrenOnly isJava = do
                   xs <- mapM (go recNts) tys
                   let (cos, tys', gres) = unzip3 xs
                       cos' = zipWith3 downgradeRole (tyConRoles tc)
-                                      (repeat Representational) cos
+                                      (if isJava then [Nominal] else []
+                                       ++ repeat Representational) cos
                   return ( mkTyConAppCo Representational tc cos'
                          , mkTyConApp tc tys'
                          , unionManyBags gres )
@@ -217,7 +221,8 @@ checkForeignRes :: Bool -> Bool -> (Type -> Validity) -> Type -> TcM ()
 checkForeignRes nonIOResultOk checkSafe predResType ty
   | Just (_, resType) <- tcSplitIOType_maybe ty
   = check (predResType resType) (illegalForeignTyErr result)
-
+  | Just (_, tagType, resType) <- tcSplitJavaType_maybe ty
+  = check (predResType resType) (illegalForeignTyErr result)
   -- Case for non-IO result type with FFI Import
   | not nonIOResultOk = addErrTc
                       . illegalForeignTyErr result
@@ -237,16 +242,6 @@ checkForeignRes nonIOResultOk checkSafe predResType ty
         _ -> return ()
   where safeHsErr = str $ "Safe Haskell is on, all FFI imports must be in the"
                        ++ " IO monad"
-
--- TODO: Take into account the Java monad
-tcSplitIOType_maybe :: Type -> Maybe (TyCon, Type)
-tcSplitIOType_maybe ty
-  = case tcSplitTyConApp_maybe ty of
-        Just (ioTyCon, [ioResType])
-         | ioTyCon `hasKey` ioTyConKey ->
-            Just (ioTyCon, ioResType)
-        _ ->
-            Nothing
 
 isFFIArgumentTy :: DynFlags -> Safety -> Type -> Validity
 isFFIArgumentTy dflags safety ty
@@ -279,10 +274,10 @@ marshalableTyCon dflags tc ty
       && not (isVoidJRep (typeJPrimRep ty)))
   = True
   | otherwise
-  = boxedMarshalableTyCon tc
+  = boxedMarshalableTyCon tc ty
 
-boxedMarshalableTyCon :: TyCon -> Bool
-boxedMarshalableTyCon tc
+boxedMarshalableTyCon :: TyCon -> Type -> Bool
+boxedMarshalableTyCon tc ty
    -- TODO: Add more GHCVM-specific tycons here
    | getUnique tc `elem` [ intTyConKey, int8TyConKey, int16TyConKey
                          , int32TyConKey, int64TyConKey
@@ -292,6 +287,11 @@ boxedMarshalableTyCon tc
                          , ptrTyConKey, funPtrTyConKey
                          , charTyConKey , stablePtrTyConKey
                          , boolTyConKey ]
+  = True
+   -- TODO: Optimize this to add just raw key checks like above.
+   --       Can be done once the GHC source in integrated.
+  | Just (_, _, _, [primTy]) <- splitDataProductType_maybe ty
+  , isPrimitiveType primTy
   = True
   | otherwise = False
 

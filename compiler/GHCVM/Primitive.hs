@@ -12,7 +12,8 @@ import BasicTypes
 import Name
 import Id
 import Avail
-import PrelNames (gHC_PRIM, conName, tcQual, gHC_TYPES)
+import TcType (tcSplitTyConApp_maybe)
+import PrelNames (gHC_PRIM, conName, tcQual, gHC_TYPES, ioTyConKey)
 import Data.Maybe
 import HscTypes
 import PrimOp
@@ -22,6 +23,7 @@ import MkId
 import qualified Data.Text as Text
 import Data.Text (Text)
 import GHCVM.CodeGen.Name
+import Codec.JVM
 
 ghcvmPrimIface :: ModIface
 ghcvmPrimIface = (emptyModIface gHC_PRIM) {
@@ -1223,14 +1225,35 @@ jarrayPrimTyCon   = mkLiftedPrimTyCon jarrayPrimTyConName kind roles VoidRep
 jarrayPrimTyConName :: Name
 jarrayPrimTyConName = mkPrimTc (fsLit "JArray#") jarrayPrimTyConKey jarrayPrimTyCon
 
--- TODO: Verify that the uniques are valid
-javaTyConKey, javaDataConKey :: Unique
+-- TODO: basicKnownKeyNames needs to be populated with these names
+--       we can do that once a good chunk of the frontend is ported
+--       over. For now, we need to rely on inefficient means of
+--       detection.
+javaTyConKey, javaDataConKey, objectTyConKey, objectDataConKey :: Unique
 javaTyConKey   = mkPreludeTyConUnique 80
 javaDataConKey = mkPreludeDataConUnique 38
+objectTyConKey   = mkPreludeTyConUnique 79
+objectDataConKey = mkPreludeDataConUnique 39
+
+
+mkJObjectTy :: Type -> Type
+mkJObjectTy ty = TyConApp jobjectPrimTyCon [ty]
+
+isJavaTyCon :: TyCon -> Bool
+isJavaTyCon = sameTc javaTyConName . tyConName
+
+sameTc :: Name -> Name -> Bool
+sameTc tyName name =
+  case nameModule_maybe tyName of
+    Just mod -> mod == nameModule javaTyConName
+             && nameOccName tyName == nameOccName name
+    Nothing -> False
 
 javaTyConName, javaDataConName :: Name
-javaTyConName       = tcQual  gHC_TYPES (fsLit "Java")       javaTyConKey
-javaDataConName     = conName gHC_TYPES (fsLit "Java")       javaDataConKey
+javaTyConName     = tcQual  gHC_TYPES (fsLit "Java")       javaTyConKey
+javaDataConName   = conName gHC_TYPES (fsLit "Java")       javaDataConKey
+objectTyConName   = tcQual  gHC_TYPES (fsLit "JObject")    objectTyConKey
+objectDataConName = conName gHC_TYPES (fsLit "JObject")    objectDataConKey
 
 data JPrimRep = HPrimRep PrimRep
               | JRepBool
@@ -1276,7 +1299,7 @@ maybeJRep tyCon tys
         case tyConCType_maybe tyCon1 of
           Just (CType _ _ fs) -> Just . JRepObject . Text.map (\c -> if c == '.' then '/' else c) . fastStringToText $ fs
           Nothing -> pprPanic "You should annotate " $ ppr tyCon <> ppr tys
-      Nothing -> pprPanic "You cannot split the constructor in " $ ppr tys
+      Nothing -> Just $ JRepObject jobjectC
   | otherwise                        = Nothing
   where tcUnique = tyConUnique tyCon
 
@@ -1303,3 +1326,21 @@ mkJPrimRep = HPrimRep
 
 objRep :: Text -> JPrimRep
 objRep = JRepObject
+
+tcSplitIOType_maybe :: Type -> Maybe (TyCon, Type)
+tcSplitIOType_maybe ty
+  = case tcSplitTyConApp_maybe ty of
+        Just (ioTyCon, [ioResType])
+         | ioTyCon `hasKey` ioTyConKey ->
+            Just (ioTyCon, ioResType)
+        _ ->
+            Nothing
+
+tcSplitJavaType_maybe :: Type -> Maybe (TyCon, Type, Type)
+tcSplitJavaType_maybe ty
+  = case tcSplitTyConApp_maybe ty of
+        Just (javaTyCon, [javaTagType, javaResType])
+         | isJavaTyCon javaTyCon ->
+            Just (javaTyCon, javaTagType, javaResType)
+        _ ->
+            Nothing
