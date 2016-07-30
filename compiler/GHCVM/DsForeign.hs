@@ -6,7 +6,7 @@ import TypeRep
 import CoreSyn
 import CoreUtils
 import MkCore
-import DsMonad
+import GHCVM.DeSugar.DsMonad
 import HsSyn
 import DataCon
 import CoreUnfold

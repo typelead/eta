@@ -26,6 +26,8 @@ library
                        , TupleSections
     exposed-modules:     GHCVM.DriverPipeline
                        , GHCVM.Packages
+                       , GHCVM.DeSugar.DeSugar
+                       , GHCVM.DeSugar.DsMonad
                        , GHCVM.Iface.BinIface
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
