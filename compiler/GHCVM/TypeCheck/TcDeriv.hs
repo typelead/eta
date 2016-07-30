@@ -6,37 +6,33 @@
 Handles @deriving@ clauses on @data@ declarations.
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcDeriv ( tcDeriving ) where
-
-#include "HsVersions.h"
+module GHCVM.TypeCheck.TcDeriv ( tcDeriving ) where
 
 import HsSyn
 import DynFlags
 
-import TcRnMonad
-import FamInst
-import TcErrors( reportAllUnsolved )
-import TcValidity( validDerivPred )
-import TcEnv
-import TcTyClsDecls( tcFamTyPats, famTyConShape, tcAddDataFamInstCtxt, kcDataDefn )
-import TcClassDcl( tcAddDeclCtxt )      -- Small helper
-import TcGenDeriv                       -- Deriv stuff
-import TcGenGenerics
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.FamInst
+import GHCVM.TypeCheck.TcErrors( reportAllUnsolved )
+import GHCVM.TypeCheck.TcValidity( validDerivPred )
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcTyClsDecls( tcFamTyPats, famTyConShape, tcAddDataFamInstCtxt, kcDataDefn )
+import GHCVM.TypeCheck.TcClassDcl( tcAddDeclCtxt )      -- Small helper
+import GHCVM.TypeCheck.TcGenDeriv                       -- Deriv stuff
+import GHCVM.TypeCheck.TcGenGenerics
 import InstEnv
-import Inst
+import GHCVM.TypeCheck.Inst
 import FamInstEnv
-import TcHsType
-import TcMType
-import TcSimplify
-import LoadIface( loadInterfaceForName )
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcMType
+import GHCVM.TypeCheck.TcSimplify
+import GHCVM.Iface.LoadIface( loadInterfaceForName )
 import Module( getModule )
 
-import RnNames( extendGlobalRdrEnvRn )
-import RnBinds
-import RnEnv
-import RnSource   ( addTcgDUs )
+import GHCVM.Rename.RnNames( extendGlobalRdrEnvRn )
+import GHCVM.Rename.RnBinds
+import GHCVM.Rename.RnEnv
+import GHCVM.Rename.RnSource   ( addTcgDUs )
 import HscTypes
 import Avail
 
@@ -538,7 +534,7 @@ renameDeriv is_boot inst_infos bagBinds
                             , ib_pragmas = sigs
                             , ib_extensions = exts -- Only for type-checking
                             , ib_derived = sa } })
-        =  ASSERT( null sigs )
+        =  --ASSERT( null sigs )
            bindLocalNamesFV tyvars $
            do { (rn_binds, fvs) <- rnMethodBinds (is_cls_nm inst) (\_ -> []) binds
               ; let binds' = InstBindings { ib_binds = rn_binds
@@ -1029,12 +1025,12 @@ inferConstraints cls inst_tys rep_tc rep_tc_args
   = return []
 
   | cls `hasKey` gen1ClassKey   -- Gen1 needs Functor
-  = ASSERT(length rep_tc_tvs > 0)   -- See Note [Getting base classes]
+  = --ASSERT(length rep_tc_tvs > 0)   -- See Note [Getting base classes]
     do { functorClass <- tcLookupClass functorClassName
        ; return (con_arg_constraints functorClass (get_gen1_constrained_tys last_tv)) }
 
   | otherwise  -- The others are a bit more complicated
-  = ASSERT2( equalLength rep_tc_tvs all_rep_tc_args, ppr cls <+> ppr rep_tc )
+  = --ASSERT2( equalLength rep_tc_tvs all_rep_tc_args, ppr cls <+> ppr rep_tc )
     do { traceTc "inferConstraints" (vcat [ppr cls <+> ppr inst_tys, ppr arg_constraints])
        ; return (stupid_constraints ++ extra_constraints
                  ++ sc_constraints
@@ -1046,7 +1042,7 @@ inferConstraints cls inst_tys rep_tc rep_tc_args
     con_arg_constraints cls' get_constrained_tys
       = [ mkPredOrigin (DerivOriginDC data_con arg_n) (mkClassPred cls' [inner_ty])
         | data_con <- tyConDataCons rep_tc
-        , (arg_n, arg_ty) <- ASSERT( isVanillaDataCon data_con )
+        , (arg_n, arg_ty) <- --ASSERT( isVanillaDataCon data_con )
                              zip [1..] $  -- ASSERT is precondition of dataConInstOrigArgTys
                              dataConInstOrigArgTys data_con all_rep_tc_args
         , not (isUnLiftedType arg_ty)
@@ -1482,7 +1478,7 @@ mkNewTypeEqn :: DynFlags -> Maybe OverlapMode -> [Var] -> Class
 mkNewTypeEqn dflags overlap_mode tvs
              cls cls_tys tycon tc_args rep_tycon rep_tc_args mtheta
 -- Want: instance (...) => cls (cls_tys ++ [tycon tc_args]) where ...
-  | ASSERT( length cls_tys + 1 == classArity cls )
+  | --ASSERT( length cls_tys + 1 == classArity cls )
     might_derive_via_coercible && ((newtype_deriving && not deriveAnyClass)
                                   || std_class_via_coercible cls)
   = do traceTc "newtype deriving:" (ppr tycon <+> ppr rep_tys <+> ppr all_preds)

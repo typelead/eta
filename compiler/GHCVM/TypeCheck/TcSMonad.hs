@@ -1,7 +1,7 @@
-{-# LANGUAGE CPP, TypeFamilies #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- Type definitions for the constraint solver
-module TcSMonad (
+module GHCVM.TypeCheck.TcSMonad (
 
     -- The work list
     WorkList(..), isEmptyWorkList, emptyWorkList,
@@ -89,18 +89,16 @@ module TcSMonad (
                                              -- here
 ) where
 
-#include "HsVersions.h"
-
 import HscTypes
 
-import Inst
+import GHCVM.TypeCheck.Inst
 import InstEnv
-import FamInst
+import GHCVM.TypeCheck.FamInst
 import FamInstEnv
 
-import qualified TcRnMonad as TcM
-import qualified TcMType as TcM
-import qualified TcEnv as TcM
+import qualified GHCVM.TypeCheck.TcRnMonad as TcM
+import qualified GHCVM.TypeCheck.TcMType as TcM
+import qualified GHCVM.TypeCheck.TcEnv as TcM
        ( checkWellStaged, topIdLvl, tcGetDefaultTys )
 import Kind
 import TcType
@@ -113,7 +111,7 @@ import TyCon
 
 import Name
 import RdrName (RdrName, GlobalRdrEnv)
-import RnEnv (addUsedRdrNames)
+import GHCVM.Rename.RnEnv (addUsedRdrNames)
 import Var
 import VarEnv
 import VarSet
@@ -124,7 +122,7 @@ import UniqSupply
 import FastString
 import Util
 import Id
-import TcRnTypes
+import GHCVM.TypeCheck.TcRnTypes
 
 import Unique
 import UniqFM
@@ -137,9 +135,9 @@ import MonadUtils
 import Data.IORef
 import Data.List ( partition, foldl' )
 
-#ifdef DEBUG
-import Digraph
-#endif
+-- #ifdef DEBUG
+-- import Digraph
+-- #endif
 
 {-
 ************************************************************************
@@ -575,7 +573,7 @@ prepareInertsForImplications is@(IS { inert_cans = cans })
            , inert_insols   = emptyCts }
 
     is_given_ecl :: EqualCtList -> Bool
-    is_given_ecl (ct:rest) | isGivenCt ct = ASSERT( null rest ) True
+    is_given_ecl (ct:rest) | isGivenCt ct = {-ASSERT( null rest )-} True
     is_given_ecl _                        = False
 
 {-
@@ -1178,34 +1176,34 @@ runTcSWithEvBinds ev_binds_var tcs
        ; when (count > 0) $
          csTraceTcM 0 $ return (ptext (sLit "Constraint solver steps =") <+> int count)
 
-#ifdef DEBUG
-       ; ev_binds <- TcM.getTcEvBinds ev_binds_var
-       ; checkForCyclicBinds ev_binds
-#endif
+-- #ifdef DEBUG
+--        ; ev_binds <- TcM.getTcEvBinds ev_binds_var
+--        ; checkForCyclicBinds ev_binds
+-- #endif
 
        ; return res }
   where
     is = emptyInert
 
-#ifdef DEBUG
-checkForCyclicBinds :: Bag EvBind -> TcM ()
-checkForCyclicBinds ev_binds
-  | null cycles
-  = return ()
-  | null coercion_cycles
-  = TcM.traceTc "Cycle in evidence binds" $ ppr cycles
-  | otherwise
-  = pprPanic "Cycle in coercion bindings" $ ppr coercion_cycles
-  where
-    cycles :: [[EvBind]]
-    cycles = [c | CyclicSCC c <- stronglyConnCompFromEdgedVertices edges]
+-- #ifdef DEBUG
+-- checkForCyclicBinds :: Bag EvBind -> TcM ()
+-- checkForCyclicBinds ev_binds
+--   | null cycles
+--   = return ()
+--   | null coercion_cycles
+--   = TcM.traceTc "Cycle in evidence binds" $ ppr cycles
+--   | otherwise
+--   = pprPanic "Cycle in coercion bindings" $ ppr coercion_cycles
+--   where
+--     cycles :: [[EvBind]]
+--     cycles = [c | CyclicSCC c <- stronglyConnCompFromEdgedVertices edges]
 
-    coercion_cycles = [c | c <- cycles, any is_co_bind c]
-    is_co_bind (EvBind b _) = isEqVar b
+--     coercion_cycles = [c | c <- cycles, any is_co_bind c]
+--     is_co_bind (EvBind b _) = isEqVar b
 
-    edges :: [(EvBind, EvVar, [EvVar])]
-    edges = [(bind, bndr, varSetElems (evVarsOfTerm rhs)) | bind@(EvBind bndr rhs) <- bagToList ev_binds]
-#endif
+--     edges :: [(EvBind, EvVar, [EvVar])]
+--     edges = [(bind, bndr, varSetElems (evVarsOfTerm rhs)) | bind@(EvBind bndr rhs) <- bagToList ev_binds]
+-- #endif
 
 nestImplicTcS :: EvBindsVar -> TcLevel -> TcS a -> TcS a
 nestImplicTcS ref inner_tclvl (TcS thing_inside)
@@ -1227,11 +1225,11 @@ nestImplicTcS ref inner_tclvl (TcS thing_inside)
        ; res <- TcM.setTcLevel inner_tclvl $
                 thing_inside nest_env
 
-#ifdef DEBUG
-       -- Perform a check that the thing_inside did not cause cycles
-       ; ev_binds <- TcM.getTcEvBinds ref
-       ; checkForCyclicBinds ev_binds
-#endif
+-- #ifdef DEBUG
+--        -- Perform a check that the thing_inside did not cause cycles
+--        ; ev_binds <- TcM.getTcEvBinds ref
+--        ; checkForCyclicBinds ev_binds
+-- #endif
 
        ; return res }
 
@@ -1377,9 +1375,9 @@ setWantedTyBind :: TcTyVar -> TcType -> TcS ()
 -- Add a type binding
 -- We never do this twice!
 setWantedTyBind tv ty
-  | ASSERT2( isMetaTyVar tv, ppr tv )
+  | --ASSERT2( isMetaTyVar tv, ppr tv )
     isFmvTyVar tv
-  = ASSERT2( isMetaTyVar tv, ppr tv )
+  = --ASSERT2( isMetaTyVar tv, ppr tv )
     wrapTcS (TcM.writeMetaTyVar tv ty)
            -- Write directly into the mutable tyvar
            -- Flatten meta-vars are born and die locally
@@ -1444,7 +1442,7 @@ isTouchableMetaTyVarTcS tv
 
 isFilledMetaTyVar_maybe :: TcTyVar -> TcS (Maybe Type)
 isFilledMetaTyVar_maybe tv
- = ASSERT2( isTcTyVar tv, ppr tv )
+ = --ASSERT2( isTcTyVar tv, ppr tv )
    case tcTyVarDetails tv of
      MetaTv { mtv_ref = ref }
         -> do { cts <- wrapTcS (TcM.readTcRef ref)
@@ -1647,7 +1645,7 @@ newGivenEvVar :: CtLoc -> (TcPredType, EvTerm) -> TcS CtEvidence
 -- Precondition: this is not a kind equality
 --               See Note [Do not create Given kind equalities]
 newGivenEvVar loc (pred, rhs)
-  = ASSERT2( not (isKindEquality pred), ppr pred $$ pprCtOrigin (ctLocOrigin loc) )
+  = --ASSERT2( not (isKindEquality pred), ppr pred $$ pprCtOrigin (ctLocOrigin loc) )
     do { new_ev <- newEvVar pred
        ; setEvBind new_ev rhs
        ; return (CtGiven { ctev_pred = pred, ctev_evtm = EvId new_ev, ctev_loc = loc }) }

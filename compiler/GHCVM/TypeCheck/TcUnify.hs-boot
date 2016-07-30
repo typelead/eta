@@ -1,6 +1,6 @@
-module TcUnify where
+module GHCVM.TypeCheck.TcUnify where
 import TcType     ( TcTauType )
-import TcRnTypes  ( TcM )
+import GHCVM.TypeCheck.TcRnTypes  ( TcM )
 import TcEvidence ( TcCoercion )
 
 -- This boot file exists only to tie the knot between

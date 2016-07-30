@@ -5,15 +5,15 @@
 \section[TcDefaults]{Typechecking \tr{default} declarations}
 -}
 
-module TcDefaults ( tcDefaults ) where
+module GHCVM.TypeCheck.TcDefaults ( tcDefaults ) where
 
 import HsSyn
 import Name
 import Class
-import TcRnMonad
-import TcEnv
-import TcHsType
-import TcSimplify
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcSimplify
 import TcType
 import PrelNames
 import DynFlags

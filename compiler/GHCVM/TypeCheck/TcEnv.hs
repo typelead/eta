@@ -3,7 +3,7 @@
 {-# LANGUAGE CPP, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance MonadThings is necessarily an orphan
 
-module TcEnv(
+module GHCVM.TypeCheck.TcEnv(
         TyThing(..), TcTyThing(..), TcId,
 
         -- Instance environment, and InstInfo type
@@ -57,14 +57,12 @@ module TcEnv(
         mkWrapperName
   ) where
 
-#include "HsVersions.h"
-
 import HsSyn
 import GHCVM.Iface.IfaceEnv
-import TcRnMonad
-import TcMType
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcMType
 import TcType
-import LoadIface
+import GHCVM.Iface.LoadIface
 import PrelNames
 import TysWiredIn
 import Id
@@ -547,7 +545,7 @@ tcExtendLocalTypeEnv tc_ty_things not_actually_free
 
     get_tvs (_, ATcId { tct_id = id, tct_closed = closed }) tvs
       = case closed of
-          TopLevel    -> ASSERT2( isEmptyVarSet id_tvs, ppr id $$ ppr (idType id) )
+          TopLevel    -> --ASSERT2( isEmptyVarSet id_tvs, ppr id $$ ppr (idType id) )
                          tvs
           NotTopLevel -> tvs `unionVarSet` id_tvs
         where id_tvs = tyVarsOfType (idType id)

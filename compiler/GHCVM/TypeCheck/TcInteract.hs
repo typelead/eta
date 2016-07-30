@@ -1,17 +1,13 @@
-{-# LANGUAGE CPP #-}
-
-module TcInteract (
+module GHCVM.TypeCheck.TcInteract (
      solveSimpleGivens,    -- Solves [EvVar],GivenLoc
      solveSimpleWanteds    -- Solves Cts
   ) where
 
-#include "HsVersions.h"
-
 import BasicTypes ()
 import HsTypes ( hsIPNameFS )
 import FastString
-import TcCanonical
-import TcFlatten
+import GHCVM.TypeCheck.TcCanonical
+import GHCVM.TypeCheck.TcFlatten
 import VarSet
 import Type
 import Kind (isKind, isConstraintKind )
@@ -27,15 +23,15 @@ import Id( idType )
 import Class
 import TyCon
 import FunDeps
-import FamInst
-import Inst( tyVarsOfCt )
+import GHCVM.TypeCheck.FamInst
+import GHCVM.TypeCheck.Inst( tyVarsOfCt )
 
 import TcEvidence
 import Outputable
 
-import TcRnTypes
-import TcErrors
-import TcSMonad
+import GHCVM.TypeCheck.TcRnTypes
+import GHCVM.TypeCheck.TcErrors
+import GHCVM.TypeCheck.TcSMonad
 import Bag
 
 import Data.List( partition, foldl', deleteFirstsBy )
@@ -507,7 +503,7 @@ interactIrred inerts workItem@(CIrredEvCan { cc_ev = ev_w })
                                                  (inert_irreds inerts)
   , (ct_i : rest) <- bagToList matching_irreds
   , let ctev_i = ctEvidence ct_i
-  = ASSERT( null rest )
+  = --ASSERT( null rest )
     do { (inert_effect, stop_now) <- solveOneFromTheOther ctev_i ev_w
        ; case inert_effect of
             IRKeep    -> return ()
@@ -1552,7 +1548,7 @@ doTopReactDict inerts work_item@(CDictCan { cc_ev = fl, cc_class = cls
                                           ; solve_from_instance wtvs ev_term }
                NoInstance -> try_fundeps_and_return }
    where
-     dict_id = ASSERT( isWanted fl ) ctEvId fl
+     dict_id = {-ASSERT( isWanted fl )-} ctEvId fl
      pred = mkClassPred cls xis
      loc = ctEvLoc fl
 
@@ -1594,9 +1590,9 @@ doTopReactDict _ w = pprPanic "doTopReactDict" (ppr w)
 doTopReactFunEq :: Ct -> TcS (StopOrContinue Ct)
 doTopReactFunEq work_item@(CFunEqCan { cc_ev = old_ev, cc_fun = fam_tc
                                      , cc_tyargs = args , cc_fsk = fsk })
-  = ASSERT(isTypeFamilyTyCon fam_tc) -- No associated data families
+  = --ASSERT(isTypeFamilyTyCon fam_tc) -- No associated data families
                                      -- have reached this far
-    ASSERT( not (isDerived old_ev) )   -- CFunEqCan is never Derived
+    --ASSERT( not (isDerived old_ev) )   -- CFunEqCan is never Derived
     -- Look up in top-level instances, or built-in axiom
     do { match_res <- matchFam fam_tc args   -- See Note [MATCHING-SYNONYMS]
        ; case match_res of {
@@ -1661,7 +1657,7 @@ shortCutReduction :: CtEvidence -> TcTyVar -> TcCoercion
                   -> TyCon -> [TcType] -> TcS (StopOrContinue Ct)
 shortCutReduction old_ev fsk ax_co fam_tc tc_args
   | isGiven old_ev
-  = ASSERT( ctEvEqRel old_ev == NomEq )
+  = --ASSERT( ctEvEqRel old_ev == NomEq )
     runFlatten $
     do { let fmode = mkFlattenEnv FM_FlattenAll old_ev
        ; (xis, cos) <- flatten_many fmode (repeat Nominal) tc_args
@@ -1681,8 +1677,8 @@ shortCutReduction old_ev fsk ax_co fam_tc tc_args
        ; stopWith old_ev "Fun/Top (given, shortcut)" }
 
   | otherwise
-  = ASSERT( not (isDerived old_ev) )   -- Caller ensures this
-    ASSERT( ctEvEqRel old_ev == NomEq )
+  = --ASSERT( not (isDerived old_ev) )   -- Caller ensures this
+    --ASSERT( ctEvEqRel old_ev == NomEq )
     runFlatten $
     do { let fmode = mkFlattenEnv FM_FlattenAll old_ev
        ; (xis, cos) <- flatten_many fmode (repeat Nominal) tc_args
@@ -1714,7 +1710,7 @@ dischargeFmv :: EvVar -> TcTyVar -> TcCoercion -> TcType -> TcS ()
 --      set x := co
 --      kick out any inert things that are now rewritable
 dischargeFmv evar fmv co xi
-  = ASSERT2( not (fmv `elemVarSet` tyVarsOfType xi), ppr evar $$ ppr fmv $$ ppr xi )
+  = --ASSERT2( not (fmv `elemVarSet` tyVarsOfType xi), ppr evar $$ ppr fmv $$ ppr xi )
     do { setWantedTyBind fmv xi
        ; setEvBind evar (EvCoercion co)
        ; n_kicked <- kickOutRewritable Given NomEq fmv
@@ -2076,7 +2072,7 @@ matchClassInst inerts clas tys loc
      matchable (CDictCan { cc_class = clas_g, cc_tyargs = sys, cc_ev = fl })
        | isGiven fl
        , Just {} <- tcUnifyTys bind_meta_tv tys sys
-       = ASSERT( clas_g == clas ) True
+       = {-ASSERT( clas_g == clas )-} True
        | otherwise = False -- No overlap with a solved, already been taken care of
                            -- by the overlap check with the instance environment.
 

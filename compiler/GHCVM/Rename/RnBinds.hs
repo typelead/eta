@@ -27,7 +27,7 @@ import {-# SOURCE #-} GHCVM.Rename.RnExpr( rnLExpr, rnStmts )
 
 import HsSyn
 import GHCVM.TypeCheck.TcRnMonad
-import GHCVM.TypeCheck.TcEvidence     ( emptyTcEvBinds )
+import TcEvidence     ( emptyTcEvBinds )
 import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnPat
 import GHCVM.Rename.RnNames

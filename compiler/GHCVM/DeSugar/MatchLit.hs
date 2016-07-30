@@ -27,7 +27,7 @@ import CoreSyn
 import MkCore
 import TyCon
 import DataCon
-import TcHsSyn ( shortCutLit )
+import GHCVM.TypeCheck.TcHsSyn ( shortCutLit )
 import TcType
 import Name
 import Type

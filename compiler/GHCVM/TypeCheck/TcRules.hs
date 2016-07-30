@@ -6,16 +6,16 @@
 TcRules: Typechecking transformation rules
 -}
 
-module TcRules ( tcRules ) where
+module GHCVM.TypeCheck.TcRules ( tcRules ) where
 
 import HsSyn
-import TcRnMonad
-import TcSimplify
-import TcMType
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcSimplify
+import GHCVM.TypeCheck.TcMType
 import TcType
-import TcHsType
-import TcExpr
-import TcEnv
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcExpr
+import GHCVM.TypeCheck.TcEnv
 import TcEvidence( TcEvBinds(..) )
 import Type
 import Id

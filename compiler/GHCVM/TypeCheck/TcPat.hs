@@ -6,34 +6,31 @@
 TcPat: Typechecking patterns
 -}
 
-{-# LANGUAGE CPP, RankNTypes #-}
+{-# LANGUAGE RankNTypes #-}
 
-module TcPat ( tcLetPat, TcSigFun, TcPragFun
+module GHCVM.TypeCheck.TcPat ( tcLetPat, TcSigFun, TcPragFun
              , TcSigInfo(..), TcPatSynInfo(..)
              , findScopedTyVars, isPartialSig
              , LetBndrSpec(..), addInlinePrags, warnPrags
              , tcPat, tcPats, newNoSigLetBndr
              , addDataConStupidTheta, badFieldCon, polyPatSig ) where
 
-#include "HsVersions.h"
-
-import {-# SOURCE #-}   TcExpr( tcSyntaxOp, tcInferRho)
+import {-# SOURCE #-}   GHCVM.TypeCheck.TcExpr( tcSyntaxOp, tcInferRho)
 
 import HsSyn
-import TcHsSyn
-import TcRnMonad
-import Inst
+import GHCVM.TypeCheck.TcHsSyn
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.Inst
 import Id
 import Var
 import Name
 import NameSet
-import TcEnv
---import TcExpr
-import TcMType
-import TcValidity( arityErr )
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcMType
+import GHCVM.TypeCheck.TcValidity( arityErr )
 import TcType
-import TcUnify
-import TcHsType
+import GHCVM.TypeCheck.TcUnify
+import GHCVM.TypeCheck.TcHsType
 import TysWiredIn
 import TcEvidence
 import TyCon
@@ -427,7 +424,7 @@ tc_lpats :: PatEnv
          -> TcM a
          -> TcM ([LPat TcId], a)
 tc_lpats penv pats tys thing_inside
-  = ASSERT2( equalLength pats tys, ppr pats $$ ppr tys )
+  = --ASSERT2( equalLength pats tys, ppr pats $$ ppr tys )
     tcMultiple (\(p,t) -> tc_lpat p t)
                 (zipEqual "tc_lpats" pats tys)
                 penv thing_inside
@@ -569,7 +566,7 @@ tc_pat penv (TuplePat pats boxity _) pat_ty thing_inside
                   isBoxed boxity            = LazyPat (noLoc unmangled_result)
                 | otherwise                 = unmangled_result
 
-        ; ASSERT( length arg_tys == length pats )      -- Syntactically enforced
+        ; --ASSERT( length arg_tys == length pats )      -- Syntactically enforced
           return (mkHsWrapPat coi possibly_mangled_result pat_ty, res)
         }
 
@@ -995,7 +992,7 @@ tcConArgs con_like arg_tys (RecCon (HsRecFields rpats dd)) penv thing_inside
 
                 -- The normal case, when the field comes from the right constructor
            (pat_ty : extras) ->
-                ASSERT( null extras )
+                --ASSERT( null extras )
                 do { sel_id <- tcLookupField field_lbl
                    ; return (sel_id, pat_ty) }
 

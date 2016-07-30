@@ -13,8 +13,8 @@ module GHCVM.DeSugar.DeSugar ( deSugar, deSugarExpr ) where
 import DynFlags
 import HscTypes
 import HsSyn
-import TcRnTypes
-import TcRnMonad ( finalSafeMode )
+import GHCVM.TypeCheck.TcRnTypes
+import GHCVM.TypeCheck.TcRnMonad ( finalSafeMode )
 import GHCVM.Iface.MkIface
 import Id
 import Name

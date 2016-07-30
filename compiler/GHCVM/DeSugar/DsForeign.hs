@@ -1,14 +1,13 @@
 module GHCVM.DeSugar.DsForeign where
 
 import VarSet
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import TypeRep
 import CoreSyn
 import CoreUtils
 import MkCore
 import GHCVM.DeSugar.DsMonad
 import HsSyn
-import DataCon
 import CoreUnfold
 import Id
 import Var
@@ -19,7 +18,7 @@ import Name
 import Type
 import TyCon
 import Coercion
-import TcEnv
+import GHCVM.TypeCheck.TcEnv
 import TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
 import DataCon
 

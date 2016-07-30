@@ -6,26 +6,26 @@
 TcMatches: Typecheck some @Matches@
 -}
 
-{-# LANGUAGE CPP, RankNTypes #-}
+{-# LANGUAGE RankNTypes #-}
 
-module TcMatches ( tcMatchesFun, tcGRHS, tcGRHSsPat, tcMatchesCase, tcMatchLambda,
+module GHCVM.TypeCheck.TcMatches ( tcMatchesFun, tcGRHS, tcGRHSsPat, tcMatchesCase, tcMatchLambda,
                    TcMatchCtxt(..), TcStmtChecker, TcExprStmtChecker, TcCmdStmtChecker,
                    tcStmts, tcStmtsAndThen, tcDoStmts, tcBody,
                    tcDoStmt, tcGuardStmt
        ) where
 
-import {-# SOURCE #-}   TcExpr( tcSyntaxOp, tcInferRhoNC, tcInferRho, tcCheckId,
+import {-# SOURCE #-}   GHCVM.TypeCheck.TcExpr( tcSyntaxOp, tcInferRhoNC, tcInferRho, tcCheckId,
                                 tcMonoExpr, tcMonoExprNC, tcPolyExpr )
 
 import HsSyn
 import BasicTypes
-import TcRnMonad
-import TcEnv
-import TcPat
-import TcMType
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcPat
+import GHCVM.TypeCheck.TcMType
 import TcType
-import TcBinds
-import TcUnify
+import GHCVM.TypeCheck.TcBinds
+import GHCVM.TypeCheck.TcUnify
 import Name
 import TysWiredIn
 import Id
@@ -41,8 +41,6 @@ import FastString
 import MkCore
 
 import Control.Monad
-
-#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -171,7 +169,7 @@ data TcMatchCtxt body   -- c.f. TcStmtCtxt, also in this module
                  -> TcM (Located (body TcId)) }
 
 tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = matches, mg_origin = origin })
-  = ASSERT( not (null matches) )        -- Ensure that rhs_ty is filled in
+  = --ASSERT( not (null matches) )        -- Ensure that rhs_ty is filled in
     do  { matches' <- mapM (tcMatch ctxt pat_tys rhs_ty) matches
         ; return (MG { mg_alts = matches', mg_arg_tys = pat_tys, mg_res_ty = rhs_ty, mg_origin = origin }) }
 

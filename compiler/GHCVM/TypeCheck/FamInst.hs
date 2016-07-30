@@ -1,8 +1,8 @@
 -- The @FamInst@ type: family instance heads
 
-{-# LANGUAGE CPP, GADTs #-}
+{-# LANGUAGE GADTs #-}
 
-module FamInst (
+module GHCVM.TypeCheck.FamInst (
         FamInstEnvs, tcGetFamInstEnvs,
         checkFamInstConsistency, tcExtendLocalFamInstEnv,
         tcLookupFamInst,
@@ -16,8 +16,8 @@ import FamInstEnv
 import InstEnv( roughMatchTcs )
 import Coercion    hiding ( substTy )
 import TcEvidence
-import LoadIface
-import TcRnMonad
+import GHCVM.Iface.LoadIface
+import GHCVM.TypeCheck.TcRnMonad
 import TyCon
 import CoAxiom
 import DynFlags
@@ -29,15 +29,13 @@ import Util
 import RdrName
 import DataCon ( dataConName )
 import Maybes
-import TcMType
+import GHCVM.TypeCheck.TcMType
 import TcType
 import Name
 import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Arrow ( first, second )
-
-#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -379,7 +377,7 @@ conflictInstErr fam_inst conflictingMatch
 
 addFamInstsErr :: SDoc -> [FamInst] -> TcRn ()
 addFamInstsErr herald insts
-  = ASSERT( not (null insts) )
+  = --ASSERT( not (null insts) )
     setSrcSpan srcSpan $ addErr $
     hang herald
        2 (vcat [ pprCoAxBranchHdr (famInstAxiom fi) 0

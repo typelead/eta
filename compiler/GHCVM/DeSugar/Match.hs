@@ -12,9 +12,9 @@ import {-#SOURCE#-} GHCVM.DeSugar.DsExpr (dsLExpr, dsExpr)
 
 import DynFlags
 import HsSyn
-import TcHsSyn
+import GHCVM.TypeCheck.TcHsSyn
 import TcEvidence
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.DeSugar.Check
 import CoreSyn
 import Literal

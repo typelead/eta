@@ -9,9 +9,7 @@ This module contains monadic operations over types that contain
 mutable type variables
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcMType (
+module GHCVM.TypeCheck.TcMType (
   TcTyVar, TcKind, TcType, TcTauType, TcThetaType, TcTyVarSet,
 
   --------------------------------
@@ -62,8 +60,6 @@ module TcMType (
   newWildcardVar, newWildcardVarMetaKind
   ) where
 
-#include "HsVersions.h"
-
 -- friends:
 import TypeRep
 import TcType
@@ -73,7 +69,7 @@ import Var
 import VarEnv
 
 -- others:
-import TcRnMonad        -- TcType, amongst others
+import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
 import Id
 import Name
 import VarSet
@@ -339,7 +335,7 @@ newMetaDetails info
 
 cloneMetaTyVar :: TcTyVar -> TcM TcTyVar
 cloneMetaTyVar tv
-  = ASSERT( isTcTyVar tv )
+  = --ASSERT( isTcTyVar tv )
     do  { uniq <- newUnique
         ; ref  <- newMutVar Flexi
         ; let name'    = setNameUnique (tyVarName tv) uniq
@@ -353,7 +349,7 @@ mkTcTyVarName uniq str = mkSysTvName uniq str
 
 -- Works for both type and kind variables
 readMetaTyVar :: TyVar -> TcM MetaDetails
-readMetaTyVar tyvar = ASSERT2( isMetaTyVar tyvar, ppr tyvar )
+readMetaTyVar tyvar = --ASSERT2( isMetaTyVar tyvar, ppr tyvar )
                       readMutVar (metaTvRef tyvar)
 
 isFilledMetaTyVar :: TyVar -> TcM Bool
@@ -385,14 +381,14 @@ writeMetaTyVar tyvar ty
 
 -- Everything from here on only happens if DEBUG is on
   | not (isTcTyVar tyvar)
-  = WARN( True, text "Writing to non-tc tyvar" <+> ppr tyvar )
+  = --WARN( True, text "Writing to non-tc tyvar" <+> ppr tyvar )
     return ()
 
   | MetaTv { mtv_ref = ref } <- tcTyVarDetails tyvar
   = writeMetaTyVarRef tyvar ref ty
 
   | otherwise
-  = WARN( True, text "Writing to non-meta tyvar" <+> ppr tyvar )
+  = --WARN( True, text "Writing to non-meta tyvar" <+> ppr tyvar )
     return ()
 
 --------------------
@@ -412,19 +408,19 @@ writeMetaTyVarRef tyvar ref ty
        ; zonked_ty_kind <- zonkTcKind ty_kind
 
        -- Check for double updates
-       ; ASSERT2( isFlexi meta_details,
-                  hang (text "Double update of meta tyvar")
-                   2 (ppr tyvar $$ ppr meta_details) )
+       ; -- ASSERT2( isFlexi meta_details,
+         --          hang (text "Double update of meta tyvar")
+         --           2 (ppr tyvar $$ ppr meta_details) )
 
          traceTc "writeMetaTyVar" (ppr tyvar <+> text ":=" <+> ppr ty)
        ; writeMutVar ref (Indirect ty)
        ; when (   not (isPredTy tv_kind)
                     -- Don't check kinds for updates to coercion variables
                && not (zonked_ty_kind `tcIsSubKind` zonked_tv_kind))
-       $ WARN( True, hang (text "Ill-kinded update to meta tyvar")
-                        2 (    ppr tyvar <+> text "::" <+> (ppr tv_kind $$ ppr zonked_tv_kind)
-                           <+> text ":="
-                           <+> ppr ty    <+> text "::" <+> (ppr ty_kind $$ ppr zonked_ty_kind) ) )
+       $ --WARN ( True, hang (text "Ill-kinded update to meta tyvar")
+             --            2 (    ppr tyvar <+> text "::" <+> (ppr tv_kind $$ ppr zonked_tv_kind)
+             --               <+> text ":="
+             --               <+> ppr ty    <+> text "::" <+> (ppr ty_kind $$ ppr zonked_ty_kind) ) )
          (return ()) }
   where
     tv_kind = tyVarKind tyvar
@@ -554,7 +550,7 @@ zonkQuantifiedTyVar :: TcTyVar -> TcM TcTyVar
 -- This function is called on both kind and type variables,
 -- but kind variables *only* if PolyKinds is on.
 zonkQuantifiedTyVar tv
-  = ASSERT2( isTcTyVar tv, ppr tv )
+  = --ASSERT2( isTcTyVar tv, ppr tv )
     case tcTyVarDetails tv of
       SkolemTv {} -> do { kind <- zonkTcKind (tyVarKind tv)
                         ; return $ setTyVarKind tv kind }
@@ -568,7 +564,7 @@ zonkQuantifiedTyVar tv
                  cts <- readMutVar ref
                  case cts of
                      Flexi -> return ()
-                     Indirect ty -> WARN( True, ppr tv $$ ppr ty )
+                     Indirect ty -> --WARN( True, ppr tv $$ ppr ty )
                                     return ()
              skolemiseUnboundMetaTyVar tv vanillaSkolemTv
       _other -> pprPanic "zonkQuantifiedTyVar" (ppr tv) -- FlatSkol, RuntimeUnk
@@ -576,7 +572,7 @@ zonkQuantifiedTyVar tv
 defaultKindVarToStar :: TcTyVar -> TcM Kind
 -- We have a meta-kind: unify it with '*'
 defaultKindVarToStar kv
-  = do { ASSERT( isKindVar kv && isMetaTyVar kv )
+  = do { --ASSERT( isKindVar kv && isMetaTyVar kv )
          writeMetaTyVar kv liftedTypeKind
        ; return liftedTypeKind }
 
@@ -587,7 +583,7 @@ skolemiseUnboundMetaTyVar :: TcTyVar -> TcTyVarDetails -> TcM TyVar
 -- We create a skolem TyVar, not a regular TyVar
 --   See Note [Zonking to Skolem]
 skolemiseUnboundMetaTyVar tv details
-  = ASSERT2( isMetaTyVar tv, ppr tv )
+  = --ASSERT2( isMetaTyVar tv, ppr tv )
     do  { span <- getSrcSpanM    -- Get the location from "here"
                                  -- ie where we are generalising
         ; uniq <- newUnique      -- Remove it from TcMetaTyVar unique land
@@ -873,13 +869,13 @@ zonkTcTyVarBndr :: TcTyVar -> TcM TcTyVar
 -- that has not yet been zonked, and may include kind
 -- unification variables.
 zonkTcTyVarBndr tyvar
-  = ASSERT2( isImmutableTyVar tyvar, ppr tyvar ) do
+  = {-ASSERT2( isImmutableTyVar tyvar, ppr tyvar )-} do
     updateTyVarKindM zonkTcType tyvar
 
 zonkTcTyVar :: TcTyVar -> TcM TcType
 -- Simply look through all Flexis
 zonkTcTyVar tv
-  = ASSERT2( isTcTyVar tv, ppr tv ) do
+  = {-ASSERT2( isTcTyVar tv, ppr tv )-} do
     case tcTyVarDetails tv of
       SkolemTv {}   -> zonk_kind_and_return
       RuntimeUnk {} -> zonk_kind_and_return

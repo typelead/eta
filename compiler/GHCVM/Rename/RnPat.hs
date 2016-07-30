@@ -12,7 +12,7 @@ free variables.
 
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 
-module RnPat (-- main entry points
+module GHCVM.Rename.RnPat (-- main entry points
               rnPat, rnPats, rnBindPat, rnPatAndThen,
 
               NameMaker, applyNameMaker,     -- a utility for making names:

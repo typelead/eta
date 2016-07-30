@@ -6,7 +6,7 @@ where
 
 import SrcLoc
 import UniqFM
-import TcRnTypes
+import GHCVM.TypeCheck.TcRnTypes
 import MkIface
 import Module
 import DynFlags

@@ -1,4 +1,4 @@
-module TcTypeNats
+module GHCVM.TypeCheck.TcTypeNats
   ( typeNatTyCons
   , typeNatCoAxiomRules
   , BuiltInSynFamily(..)
@@ -17,7 +17,7 @@ import Pair
 import TcType     ( TcType, tcEqType )
 import TyCon      ( TyCon, FamTyConFlav(..), mkFamilyTyCon, TyConParent(..)  )
 import Coercion   ( Role(..) )
-import TcRnTypes  ( Xi )
+import GHCVM.TypeCheck.TcRnTypes  ( Xi )
 import CoAxiom    ( CoAxiomRule(..), BuiltInSynFamily(..) )
 import Name       ( Name, BuiltInSyntax(..) )
 import TysWiredIn ( typeNatKind, typeSymbolKind

@@ -20,7 +20,7 @@ module GHCVM.Iface.BinIface (
 
 import BinIface (CheckHiWay(..), TraceBinIFaceReading(..))
 
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import TyCon
 import ConLike
 import DataCon    (dataConName, dataConWorkId, dataConTyCon)

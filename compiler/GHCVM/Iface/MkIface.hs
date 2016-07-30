@@ -81,7 +81,7 @@ import TcType
 import TysPrim ( alphaTyVars )
 import InstEnv
 import FamInstEnv
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import HsSyn
 import HscTypes
 import Finder

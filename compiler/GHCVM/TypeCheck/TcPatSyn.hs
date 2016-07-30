@@ -5,17 +5,15 @@
 \section[TcPatSyn]{Typechecking pattern synonym declarations}
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl
+module GHCVM.TypeCheck.TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl
                 , tcPatSynBuilderBind, tcPatSynBuilderOcc
   ) where
 
 import HsSyn
-import TcPat
-import TcRnMonad
-import TcEnv
-import TcMType
+import GHCVM.TypeCheck.TcPat
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcMType
 import TysPrim
 import Name
 import SrcLoc
@@ -27,26 +25,24 @@ import FastString
 import Var
 import Id
 import IdInfo( IdDetails(..) )
-import TcBinds
+import GHCVM.TypeCheck.TcBinds
 import BasicTypes
-import TcSimplify
-import TcUnify
+import GHCVM.TypeCheck.TcSimplify
+import GHCVM.TypeCheck.TcUnify
 import TcType
 import TcEvidence
-import BuildTyCl
+import GHCVM.Iface.BuildTyCl
 import VarSet
 import MkId
 import VarEnv
-import Inst
-#if __GLASGOW_HASKELL__ < 709
-import Data.Monoid
-#endif
+import GHCVM.TypeCheck.Inst
+-- TODO: #if __GLASGOW_HASKELL__ < 709
+-- import Data.Monoid
+-- #endif
 import Bag
 import Util
 import Data.Maybe
 import Control.Monad (forM)
-
-#include "HsVersions.h"
 
 {-
 ************************************************************************

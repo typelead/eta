@@ -1,11 +1,11 @@
-module TcPatSyn where
+module GHCVM.TypeCheck.TcPatSyn where
 
 import Name      ( Name )
 import Id        ( Id )
 import HsSyn     ( PatSynBind, LHsBinds )
-import TcRnTypes ( TcM )
+import GHCVM.TypeCheck.TcRnTypes ( TcM )
 import PatSyn    ( PatSyn )
-import TcPat     ( TcPatSynInfo )
+import GHCVM.TypeCheck.TcPat     ( TcPatSynInfo )
 
 tcInferPatSynDecl :: PatSynBind Name Name
                   -> TcM (PatSyn, LHsBinds Id)

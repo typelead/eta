@@ -6,7 +6,7 @@
 
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module RnSource (
+module GHCVM.Rename.RnSource (
         rnSrcDecls, addTcgDUs, rnTyClDecls, findSplice
     ) where
 

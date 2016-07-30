@@ -5,18 +5,16 @@
 Functions for working with the typechecker environment (setters, getters...).
 -}
 
-{-# LANGUAGE CPP, ExplicitForAll, FlexibleInstances #-}
+{-# LANGUAGE ExplicitForAll, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module TcRnMonad(
-        module TcRnMonad,
-        module TcRnTypes,
+module GHCVM.TypeCheck.TcRnMonad(
+        module GHCVM.TypeCheck.TcRnMonad,
+        module GHCVM.TypeCheck.TcRnTypes,
         module IOEnv
   ) where
 
-#include "HsVersions.h"
-
-import TcRnTypes        -- Re-export all
+import GHCVM.TypeCheck.TcRnTypes        -- Re-export all
 import IOEnv            -- Re-export all
 import TcEvidence
 
@@ -57,9 +55,9 @@ import Data.IORef
 import qualified Data.Set as Set
 import Control.Monad
 
-#ifdef GHCI
-import qualified Data.Map as Map
-#endif
+-- TODO: #ifdef GHCI
+-- import qualified Data.Map as Map
+-- #endif
 
 {-
 ************************************************************************
@@ -96,12 +94,12 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
 
         dependent_files_var <- newIORef [] ;
         static_wc_var       <- newIORef emptyWC ;
-#ifdef GHCI
-        th_topdecls_var      <- newIORef [] ;
-        th_topnames_var      <- newIORef emptyNameSet ;
-        th_modfinalizers_var <- newIORef [] ;
-        th_state_var         <- newIORef Map.empty ;
-#endif /* GHCI */
+-- #ifdef GHCI
+--         th_topdecls_var      <- newIORef [] ;
+--         th_topnames_var      <- newIORef emptyNameSet ;
+--         th_modfinalizers_var <- newIORef [] ;
+--         th_state_var         <- newIORef Map.empty ;
+-- #endif /* GHCI */
         let {
              dflags = hsc_dflags hsc_env ;
 
@@ -111,12 +109,12 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 | otherwise      = Nothing ;
 
              gbl_env = TcGblEnv {
-#ifdef GHCI
-                tcg_th_topdecls      = th_topdecls_var,
-                tcg_th_topnames      = th_topnames_var,
-                tcg_th_modfinalizers = th_modfinalizers_var,
-                tcg_th_state         = th_state_var,
-#endif /* GHCI */
+-- #ifdef GHCI
+--                 tcg_th_topdecls      = th_topdecls_var,
+--                 tcg_th_topnames      = th_topnames_var,
+--                 tcg_th_modfinalizers = th_modfinalizers_var,
+--                 tcg_th_state         = th_state_var,
+-- #endif /* GHCI */
 
                 tcg_mod            = mod,
                 tcg_src            = hsc_src,
@@ -892,11 +890,11 @@ failIfErrsM :: TcRn ()
 failIfErrsM = ifErrsM failM (return ())
 
 checkTH :: Outputable a => a -> String -> TcRn ()
-#ifdef GHCI
-checkTH _ _ = return () -- OK
-#else
+-- #ifdef GHCI
+-- checkTH _ _ = return () -- OK
+-- #else
 checkTH e what = failTH e what  -- Raise an error in a stage-1 compiler
-#endif
+-- #endif
 
 failTH :: Outputable a => a -> String -> TcRn x
 failTH e what  -- Raise an error in a stage-1 compiler

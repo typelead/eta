@@ -6,10 +6,10 @@ The deriving code for the Generic class
 (equivalent to the code in TcGenDeriv, for other classes)
 -}
 
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module TcGenGenerics (canDoGenerics, canDoGenerics1,
+module GHCVM.TypeCheck.TcGenGenerics (canDoGenerics, canDoGenerics1,
                       GenericKind(..),
                       MetaTyCons, genGenericMetaTyCons,
                       gen_Generic_binds, get_gen1_constrained_tys) where
@@ -19,11 +19,11 @@ import HsSyn
 import Type
 import Kind             ( isKind )
 import TcType
-import TcGenDeriv
+import GHCVM.TypeCheck.TcGenDeriv
 import DataCon
 import TyCon
 import FamInstEnv       ( FamInst, FamFlavor(..), mkSingleCoAxiom )
-import FamInst
+import GHCVM.TypeCheck.FamInst
 import Module           ( Module, moduleName, moduleNameString )
 import GHCVM.Iface.IfaceEnv         ( newGlobalBinder )
 import Name      hiding ( varName )
@@ -32,12 +32,12 @@ import BasicTypes
 import TysWiredIn
 import PrelNames
 import InstEnv
-import TcEnv
+import GHCVM.TypeCheck.TcEnv
 import MkId
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import HscTypes
 import ErrUtils( Validity(..), andValid )
-import BuildTyCl
+import GHCVM.Iface.BuildTyCl
 import SrcLoc
 import Bag
 import VarSet (elemVarSet)
@@ -46,8 +46,6 @@ import FastString
 import Util
 
 import Control.Monad (mplus,forM)
-
-#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -83,7 +81,7 @@ genGenericMetaTyCons tc mod =
         c_occ m   = mkGenC tc_occ m
         s_occ m n = mkGenS tc_occ m n
 
-        mkTyCon name = ASSERT( isExternalName name )
+        mkTyCon name = --ASSERT( isExternalName name )
                        buildAlgTyCon name [] [] Nothing [] distinctAbstractTyConRhs
                                           NonRecursive
                                           False          -- Not promotable
@@ -169,11 +167,11 @@ metaTyConsToDerivStuff tc metaDts =
                        (myZip2 s_insts s_binds)
 
         myZip1 :: [a] -> [b] -> [(a,b)]
-        myZip1 l1 l2 = ASSERT(length l1 == length l2) zip l1 l2
+        myZip1 l1 l2 = {-ASSERT(length l1 == length l2)-} zip l1 l2
 
         myZip2 :: [[a]] -> [[b]] -> [[(a,b)]]
         myZip2 l1 l2 =
-          ASSERT(and (zipWith (>=) (map length l1) (map length l2)))
+          --ASSERT(and (zipWith (>=) (map length l1) (map length l2)))
             [ zip x1 x2 | (x1,x2) <- zip l1 l2 ]
 
       return $ mapBag DerivTyCon (metaTyCons2TyCons metaDts)
@@ -450,7 +448,7 @@ mkBindsRep gk tycon =
         (from_alts, to_alts) = mkSum gk_ (1 :: US) tycon datacons
           where gk_ = case gk of
                   Gen0 -> Gen0_
-                  Gen1 -> ASSERT(length tyvars >= 1)
+                  Gen1 -> --ASSERT(length tyvars >= 1)
                           Gen1_ (last tyvars)
                     where tyvars = tyConTyVars tycon
 
@@ -477,7 +475,7 @@ tc_mkRepFamInsts gk tycon metaDts mod =
      ; let -- `tyvars` = [a,b]
            (tyvars, gk_) = case gk of
              Gen0 -> (all_tyvars, Gen0_)
-             Gen1 -> ASSERT(not $ null all_tyvars)
+             Gen1 -> --ASSERT(not $ null all_tyvars)
                      (init all_tyvars, Gen1_ $ last all_tyvars)
              where all_tyvars = tyConTyVars tycon
 
@@ -491,7 +489,7 @@ tc_mkRepFamInsts gk tycon metaDts mod =
                        -- `apps` = [Int, a, b]
                        let allApps = case gk of
                                        Gen0 -> apps
-                                       Gen1 -> ASSERT(not $ null apps)
+                                       Gen1 -> --ASSERT(not $ null apps)
                                                init apps
                        in [mkTyConApp famtycon allApps]
                      -- `appT` = D a b (normal case)
@@ -616,16 +614,16 @@ tc_mkRepTy gk_ tycon metaDts =
 
         -- Sums and products are done in the same way for both Rep and Rep1
         sumP [] = mkTyConTy v1
-        sumP l  = ASSERT(length metaCTyCons == length l)
+        sumP l  = --ASSERT(length metaCTyCons == length l)
                     foldBal mkSum' [ mkC i d a
                                    | (d,(a,i)) <- zip metaCTyCons (zip l [0..])]
         -- The Bool is True if this constructor has labelled fields
         prod :: Int -> [Type] -> Bool -> Type
-        prod i [] _ = ASSERT(length metaSTyCons > i)
-                        ASSERT(length (metaSTyCons !! i) == 0)
+        prod i [] _ = --ASSERT(length metaSTyCons > i)
+                        --ASSERT(length (metaSTyCons !! i) == 0)
                           mkTyConTy u1
-        prod i l b  = ASSERT(length metaSTyCons > i)
-                        ASSERT(length l == length (metaSTyCons !! i))
+        prod i l b  = --ASSERT(length metaSTyCons > i)
+                        --ASSERT(length l == length (metaSTyCons !! i))
                           foldBal mkProd [ arg d t b
                                          | (d,t) <- zip (metaSTyCons !! i) l ]
 

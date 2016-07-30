@@ -49,7 +49,43 @@ library
                        , GHCVM.Rename.RnSource
                        , GHCVM.Rename.RnSplice
                        , GHCVM.Rename.RnTypes
+                       , GHCVM.TypeCheck.FamInst
+                       , GHCVM.TypeCheck.Inst
+                       , GHCVM.TypeCheck.TcAnnotations
+                       , GHCVM.TypeCheck.TcArrows
+                       , GHCVM.TypeCheck.TcBinds
+                       , GHCVM.TypeCheck.TcCanonical
+                       , GHCVM.TypeCheck.TcClassDcl
+                       , GHCVM.TypeCheck.TcDefaults
+                       , GHCVM.TypeCheck.TcDeriv
+                       , GHCVM.TypeCheck.TcEnv
+                       , GHCVM.TypeCheck.TcErrors
+                       , GHCVM.TypeCheck.TcExpr
+                       , GHCVM.TypeCheck.TcFlatten
+                       , GHCVM.TypeCheck.TcForeign
+                       , GHCVM.TypeCheck.TcGenDeriv
+                       , GHCVM.TypeCheck.TcGenGenerics
+                       , GHCVM.TypeCheck.TcHsSyn
+                       , GHCVM.TypeCheck.TcHsType
+                       , GHCVM.TypeCheck.TcInstDcls
+                       , GHCVM.TypeCheck.TcInteract
+                       , GHCVM.TypeCheck.TcMatches
+                       , GHCVM.TypeCheck.TcMType
+                       , GHCVM.TypeCheck.TcPat
+                       , GHCVM.TypeCheck.TcPatSyn
+                       , GHCVM.TypeCheck.TcPluginM
                        , GHCVM.TypeCheck.TcRnDriver
+                       , GHCVM.TypeCheck.TcRnMonad
+                       , GHCVM.TypeCheck.TcRnTypes
+                       , GHCVM.TypeCheck.TcRules
+                       , GHCVM.TypeCheck.TcSimplify
+                       , GHCVM.TypeCheck.TcSMonad
+                       , GHCVM.TypeCheck.TcSplice
+                       , GHCVM.TypeCheck.TcTyClsDecls
+                       , GHCVM.TypeCheck.TcTyDecls
+                       , GHCVM.TypeCheck.TcTypeNats
+                       , GHCVM.TypeCheck.TcUnify
+                       , GHCVM.TypeCheck.TcValidity
                        , GHCVM.Iface.BinIface
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
@@ -73,7 +109,6 @@ library
                        , GHCVM.CodeGen.Con
                        , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse
-                       , GHCVM.TcForeign
                        , GHCVM.Util
                        , GHCVM.Constants
                        , GHCVM.Primitive

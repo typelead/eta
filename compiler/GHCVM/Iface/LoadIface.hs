@@ -38,7 +38,7 @@ import GHCVM.Iface.IfaceEnv
 import HscTypes
 
 import BasicTypes hiding (SuccessFlag(..))
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 
 import Constants
 import PrelNames

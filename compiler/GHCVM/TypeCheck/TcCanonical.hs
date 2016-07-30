@@ -1,27 +1,23 @@
-{-# LANGUAGE CPP #-}
-
-module TcCanonical(
+module GHCVM.TypeCheck.TcCanonical(
      canonicalize,
      unifyDerived,
 
      StopOrContinue(..), stopWith, continueWith
   ) where
 
-#include "HsVersions.h"
-
-import TcRnTypes
+import GHCVM.TypeCheck.TcRnTypes
 import TcType
 import Type
 import Kind
-import TcFlatten
-import TcSMonad
+import GHCVM.TypeCheck.TcFlatten
+import GHCVM.TypeCheck.TcSMonad
 import TcEvidence
 import Class
 import TyCon
 import TypeRep
 import Coercion
 import FamInstEnv ( FamInstEnvs )
-import FamInst ( tcTopNormaliseNewTypeTF_maybe )
+import GHCVM.TypeCheck.FamInst ( tcTopNormaliseNewTypeTF_maybe )
 import Var
 import DataCon ( dataConName )
 import Name( isSystemName, nameOccName )
@@ -217,7 +213,7 @@ canClassNC ev cls tys
 
 canClass ev cls tys
   =   -- all classes do *nominal* matching
-    ASSERT2( ctEvRole ev == Nominal, ppr ev $$ ppr cls $$ ppr tys )
+    --ASSERT2( ctEvRole ev == Nominal, ppr ev $$ ppr cls $$ ppr tys )
     do { (xis, cos) <- flattenMany FM_FlattenAll ev (repeat Nominal) tys
        ; let co = mkTcTyConAppCo Nominal (classTyCon cls) cos
              xi = mkClassPred cls xis
@@ -649,8 +645,8 @@ try_decompose_repr_app ev ty1 ty2
   = canEqFailure ev ReprEq ty1 ty2
 
   | otherwise  -- flattening in can_eq_wanted_app exposed some TyConApps!
-  = ASSERT2( isJust (tcSplitTyConApp_maybe ty1) || isJust (tcSplitTyConApp_maybe ty2)
-            , ppr ty1 $$ ppr ty2 )  -- If this assertion fails, we may fall
+  = --ASSERT2( isJust (tcSplitTyConApp_maybe ty1) || isJust (tcSplitTyConApp_maybe ty2)
+    --      , ppr ty1 $$ ppr ty2 )  -- If this assertion fails, we may fall
                                     -- into an infinite loop
     canEqNC ev ReprEq ty1 ty2
 
@@ -674,8 +670,8 @@ try_decompose_nom_app ev ty1 ty2
                 -- (precondition to can_eq_wanted_app)
                 -- So presumably one has become a TyConApp, which
                 -- is good: See Note [Canonicalising type applications]
-   = ASSERT2( isJust (tcSplitTyConApp_maybe ty1) || isJust (tcSplitTyConApp_maybe ty2)
-            , ppr ty1 $$ ppr ty2 )  -- If this assertion fails, we may fall
+   = -- ASSERT2( isJust (tcSplitTyConApp_maybe ty1) || isJust (tcSplitTyConApp_maybe ty2)
+     --        , ppr ty1 $$ ppr ty2 )  -- If this assertion fails, we may fall
                                     -- into an infinite loop (Trac #9971)
      canEqNC ev NomEq ty1 ty2
    where
@@ -1087,7 +1083,7 @@ canEqTyVarTyVar :: CtEvidence           -- tv1 ~ orhs (or orhs ~ tv1, if swapped
 canEqTyVarTyVar ev eq_rel swapped tv1 tv2 co2
   | tv1 == tv2
   = do { when (isWanted ev) $
-         ASSERT( tcCoercionRole co2 == eqRelRole eq_rel )
+         --ASSERT( tcCoercionRole co2 == eqRelRole eq_rel )
          setEvBind (ctev_evar ev) (EvCoercion (maybeSym swapped co2))
        ; stopWith ev "Equal tyvars" }
 
@@ -1125,8 +1121,8 @@ canEqTyVarTyVar ev eq_rel swapped tv1 tv2 co2
       | same_kind
       = canon_eq swapped tv1 xi1 xi2 co1 co2
       | otherwise  -- Presumably tv1 `subKind` tv2, which is the wrong way round
-      = ASSERT2( k1_sub_k2, ppr tv1 $$ ppr tv2 )
-        ASSERT2( isWanted ev, ppr ev )  -- Only wanteds have flatten meta-vars
+      = --ASSERT2( k1_sub_k2, ppr tv1 $$ ppr tv2 )
+        --ASSERT2( isWanted ev, ppr ev )  -- Only wanteds have flatten meta-vars
         do { tv_ty <- newFlexiTcSTy (tyVarKind tv1)
            ; new_ev <- newWantedEvVarNC (ctEvLoc ev)
                                         (mkTcEqPredRole (eqRelRole eq_rel)
@@ -1192,7 +1188,7 @@ incompatibleKind :: CtEvidence         -- t1~t2
 -- See Note [Equalities with incompatible kinds]
 
 incompatibleKind new_ev s1 k1 s2 k2   -- See Note [Equalities with incompatible kinds]
-  = ASSERT( isKind k1 && isKind k2 )
+  = --ASSERT( isKind k1 && isKind k2 )
     do { traceTcS "canEqLeaf: incompatible kinds" (vcat [ppr k1, ppr k2])
 
          -- Create a derived kind-equality, and solve it
@@ -1445,7 +1441,7 @@ xCtEvidence (CtWanted { ctev_evar = evar, ctev_loc = loc })
 
 xCtEvidence (CtGiven { ctev_evtm = tm, ctev_loc = loc })
             (XEvTerm { ev_preds = ptys, ev_decomp = decomp_fn })
-  = ASSERT( equalLength ptys (decomp_fn tm) )
+  = --ASSERT( equalLength ptys (decomp_fn tm) )
     do { given_evs <- newGivenEvVars loc (ptys `zip` decomp_fn tm)
        ; emitWorkNC given_evs }
 
@@ -1552,7 +1548,7 @@ rewriteEvidence ev@(CtGiven { ctev_evtm = old_tm , ctev_loc = loc }) new_pred co
 
 rewriteEvidence ev@(CtWanted { ctev_evar = evar, ctev_loc = loc }) new_pred co
   = do { (new_ev, freshness) <- newWantedEvVar loc new_pred
-       ; MASSERT( tcCoercionRole co == ctEvRole ev )
+       ; --MASSERT( tcCoercionRole co == ctEvRole ev )
        ; setEvBind evar (mkEvCast (ctEvTerm new_ev)
                            (tcDowngradeRole Representational (ctEvRole ev) co))
        ; case freshness of

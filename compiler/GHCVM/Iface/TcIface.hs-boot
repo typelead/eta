@@ -2,7 +2,7 @@ module GHCVM.Iface.TcIface where
 
 import IfaceSyn    ( IfaceDecl, IfaceClsInst, IfaceFamInst, IfaceRule, IfaceAnnotation )
 import TypeRep     ( TyThing )
-import TcRnTypes   ( IfL )
+import GHCVM.TypeCheck.TcRnTypes   ( IfL )
 import InstEnv     ( ClsInst )
 import FamInstEnv  ( FamInst )
 import CoreSyn     ( CoreRule )

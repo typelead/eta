@@ -40,7 +40,7 @@ module GHCVM.DeSugar.DsMonad (
         CanItFail(..), orFail
     ) where
 
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import FamInstEnv
 import CoreSyn
 import HsSyn

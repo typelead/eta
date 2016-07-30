@@ -5,32 +5,32 @@
 \section[TcBinds]{TcBinds}
 -}
 
-{-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 
-module TcBinds ( tcLocalBinds, tcTopBinds, tcRecSelBinds,
+module GHCVM.TypeCheck.TcBinds ( tcLocalBinds, tcTopBinds, tcRecSelBinds,
                  tcHsBootSigs, tcPolyCheck,
                  PragFun, tcSpecPrags, tcVectDecls, mkPragFun,
                  TcSigInfo(..), TcSigFun,
                  instTcTySig, instTcTySigFromId, findScopedTyVars,
                  badBootDeclErr, mkExport ) where
 
-import {-# SOURCE #-} TcMatches ( tcGRHSsPat, tcMatchesFun )
-import {-# SOURCE #-} TcExpr  ( tcMonoExpr )
-import {-# SOURCE #-} TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl, tcPatSynBuilderBind )
+import {-# SOURCE #-} GHCVM.TypeCheck.TcMatches ( tcGRHSsPat, tcMatchesFun )
+import {-# SOURCE #-} GHCVM.TypeCheck.TcExpr  ( tcMonoExpr )
+import {-# SOURCE #-} GHCVM.TypeCheck.TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl, tcPatSynBuilderBind )
 import DynFlags
 import HsSyn
 import HscTypes( isHsBootOrSig )
-import TcRnMonad
-import TcEnv
-import TcUnify
-import TcSimplify
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcUnify
+import GHCVM.TypeCheck.TcSimplify
 import TcEvidence
-import TcHsType
-import TcPat
-import TcMType
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcPat
+import GHCVM.TypeCheck.TcMType
 import ConLike
 import FamInstEnv( normaliseType )
-import FamInst( tcGetFamInstEnvs )
+import GHCVM.TypeCheck.FamInst( tcGetFamInstEnvs )
 import Type( pprSigmaTypeExtraCts )
 import TyCon
 import TcType
@@ -55,12 +55,10 @@ import Outputable
 import FastString
 import Type(mkStrLitTy)
 import PrelNames(ipClassName)
-import TcValidity (checkValidType)
+import GHCVM.TypeCheck.TcValidity (checkValidType)
 
 import Control.Monad
 import Data.List (partition)
-
-#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -545,7 +543,7 @@ tcPolyCheck rec_tc prag_fn
                            , sig_nwcs = sig_nwcs, sig_theta = theta
                            , sig_tau = tau, sig_loc = loc })
             bind
-  = ASSERT( null sig_nwcs ) -- We should be in tcPolyInfer if there are wildcards
+  = --ASSERT( null sig_nwcs ) -- We should be in tcPolyInfer if there are wildcards
     do { ev_vars <- newEvVars theta
        ; let skol_info = SigSkol (FunSigCtxt (idName poly_id)) (mkPhiTy theta tau)
              prag_sigs = prag_fn (idName poly_id)
@@ -1200,8 +1198,8 @@ type MonoBindInfo = (Name, Maybe TcSigInfo, TcId)
 tcLhs :: TcSigFun -> LetBndrSpec -> HsBind Name -> TcM TcMonoBind
 tcLhs sig_fn no_gen (FunBind { fun_id = L nm_loc name, fun_infix = inf, fun_matches = matches })
   | Just sig <- sig_fn name
-  = ASSERT2( case no_gen of { LetLclBndr -> True; LetGblBndr {} -> False }
-           , ppr name )
+  = --ASSERT2( case no_gen of { LetLclBndr -> True; LetGblBndr {} -> False }
+    --     , ppr name )
        -- { f :: ty; f x = e } is always done via CheckGen (full signature)
        --                                      or InferGen (partial signature)
        --               see Note [Partial type signatures and generalisation]

@@ -1,9 +1,9 @@
-module TcMatches where
+module GHCVM.TypeCheck.TcMatches where
 import HsSyn    ( GRHSs, MatchGroup, LHsExpr )
 import TcEvidence( HsWrapper )
 import Name     ( Name )
 import TcType   ( TcRhoType )
-import TcRnTypes( TcM, TcId )
+import GHCVM.TypeCheck.TcRnTypes( TcM, TcId )
 --import SrcLoc   ( Located )
 
 tcGRHSsPat    :: GRHSs Name (LHsExpr Name)

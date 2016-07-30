@@ -6,32 +6,28 @@
 TcInstDecls: Typechecking instance declarations
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcInstDcls ( tcInstDecls1, tcInstDecls2 ) where
-
-#include "HsVersions.h"
+module GHCVM.TypeCheck.TcInstDcls ( tcInstDecls1, tcInstDecls2 ) where
 
 import HsSyn
-import TcBinds
-import TcTyClsDecls
-import TcClassDcl( tcClassDecl2,
+import GHCVM.TypeCheck.TcBinds
+import GHCVM.TypeCheck.TcTyClsDecls
+import GHCVM.TypeCheck.TcClassDcl( tcClassDecl2,
                    HsSigFun, lookupHsSig, mkHsSigFun,
                    findMethodBind, instantiateMethod, tcInstanceMethodBody )
-import TcPat      ( addInlinePrags )
-import TcRnMonad
-import TcValidity
-import TcMType
+import GHCVM.TypeCheck.TcPat      ( addInlinePrags )
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcValidity
+import GHCVM.TypeCheck.TcMType
 import TcType
-import BuildTyCl
-import Inst
+import GHCVM.Iface.BuildTyCl
+import GHCVM.TypeCheck.Inst
 import InstEnv
-import FamInst
+import GHCVM.TypeCheck.FamInst
 import FamInstEnv
-import TcDeriv
-import TcEnv
-import TcHsType
-import TcUnify
+import GHCVM.TypeCheck.TcDeriv
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcUnify
 import Coercion   ( pprCoAxiom )
 import MkCore     ( nO_METHOD_BINDING_ERROR_ID )
 import Type
@@ -577,7 +573,7 @@ tcATDefault inst_subst defined_ats (ATI fam_tc defs)
        ; let axiom = mkSingleCoAxiom rep_tc_name tvs' fam_tc pat_tys' rhs'
        ; traceTc "mk_deflt_at_instance" (vcat [ ppr fam_tc, ppr rhs_ty
                                               , pprCoAxiom axiom ])
-       ; fam_inst <- ASSERT( tyVarsOfType rhs' `subVarSet` tv_set' )
+       ; fam_inst <- --ASSERT( tyVarsOfType rhs' `subVarSet` tv_set' )
                      newFamInst SynFamilyInst axiom
        ; return [fam_inst] }
 
@@ -698,7 +694,7 @@ tcDataFamInstDecl mb_clsinfo
                                         (tvs', orig_res_ty) cons
               ; tc_rhs <- case new_or_data of
                      DataType -> return (mkDataTyConRhs data_cons)
-                     NewType  -> ASSERT( not (null data_cons) )
+                     NewType  -> --ASSERT( not (null data_cons) )
                                  mkNewTyConRhs rep_tc_name rec_rep_tc (head data_cons)
               -- freshen tyvars
               ; let (eta_tvs, eta_pats) = eta_reduce tvs' pats'

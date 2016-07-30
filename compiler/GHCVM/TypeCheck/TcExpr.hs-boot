@@ -1,8 +1,8 @@
-module TcExpr where
+module GHCVM.TypeCheck.TcExpr where
 import HsSyn    ( HsExpr, LHsExpr )
 import Name     ( Name )
 import TcType   ( TcType, TcRhoType, TcSigmaType )
-import TcRnTypes( TcM, TcId, CtOrigin )
+import GHCVM.TypeCheck.TcRnTypes( TcM, TcId, CtOrigin )
 
 tcPolyExpr ::
           LHsExpr Name

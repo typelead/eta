@@ -3,9 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcValidity (
+module GHCVM.TypeCheck.TcValidity (
   Rank, UserTypeCtxt(..), checkValidType, checkValidMonoType,
   expectedKindInCtxt,
   checkValidTheta, checkValidFamPats,
@@ -15,14 +13,12 @@ module TcValidity (
   arityErr, badATErr, ClsInfo
   ) where
 
-#include "HsVersions.h"
-
 -- friends:
-import TcUnify    ( tcSubType_NC )
-import TcSimplify ( simplifyAmbiguityCheck )
+import GHCVM.TypeCheck.TcUnify    ( tcSubType_NC )
+import GHCVM.TypeCheck.TcSimplify ( simplifyAmbiguityCheck )
 import TypeRep
 import TcType
-import TcMType
+import GHCVM.TypeCheck.TcMType
 import TysWiredIn ( coercibleClass )
 import Type
 import Unify( tcMatchTyX )
@@ -33,7 +29,7 @@ import TyCon
 
 -- others:
 import HsSyn            -- HsType
-import TcRnMonad        -- TcType, amongst others
+import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
 import FunDeps
 import Name
 import VarEnv
@@ -1226,7 +1222,7 @@ checkValidFamPats :: TyCon -> [TyVar] -> [Type] -> TcM ()
 --         type instance F (T a) = a
 -- c) Have the right number of patterns
 checkValidFamPats fam_tc tvs ty_pats
-  = ASSERT( length ty_pats == tyConArity fam_tc )
+  = --ASSERT( length ty_pats == tyConArity fam_tc )
       -- A family instance must have exactly the same number of type
       -- parameters as the family declaration.  You can't write
       --     type family F a :: * -> *

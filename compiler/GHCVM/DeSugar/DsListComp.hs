@@ -14,7 +14,7 @@ module GHCVM.DeSugar.DsListComp ( dsListComp, dsPArrComp, dsMonadComp ) where
 import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
 
 import HsSyn
-import TcHsSyn
+import GHCVM.TypeCheck.TcHsSyn
 import CoreSyn
 import MkCore
 

@@ -33,32 +33,32 @@ import StaticFlags
 import HsSyn
 import PrelNames
 import RdrName
-import TcHsSyn
-import TcExpr
-import TcRnMonad
+import GHCVM.TypeCheck.TcHsSyn
+import GHCVM.TypeCheck.TcExpr
+import GHCVM.TypeCheck.TcRnMonad
 import TcEvidence
 import PprTyThing( pprTyThing )
 import Coercion( pprCoAxiom )
-import FamInst
+import GHCVM.TypeCheck.FamInst
 import InstEnv
 import FamInstEnv
-import TcAnnotations
-import TcBinds
+import GHCVM.TypeCheck.TcAnnotations
+import GHCVM.TypeCheck.TcBinds
 import HeaderInfo       ( mkPrelImports )
-import TcDefaults
-import TcEnv
-import TcRules
-import TcForeign
-import TcInstDcls
-import TcIface
-import TcMType
-import MkIface
-import TcSimplify
-import TcTyClsDecls
-import LoadIface
-import RnNames
-import RnEnv
-import RnSource
+import GHCVM.TypeCheck.TcDefaults
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcRules
+import GHCVM.TypeCheck.TcForeign
+import GHCVM.TypeCheck.TcInstDcls
+import GHCVM.Iface.TcIface
+import GHCVM.TypeCheck.TcMType
+import GHCVM.Iface.MkIface
+import GHCVM.TypeCheck.TcSimplify
+import GHCVM.TypeCheck.TcTyClsDecls
+import GHCVM.Iface.LoadIface
+import GHCVM.Rename.RnNames
+import GHCVM.Rename.RnEnv
+import GHCVM.Rename.RnSource
 import ErrUtils
 import Id
 import IdInfo( IdDetails( VanillaId ) )

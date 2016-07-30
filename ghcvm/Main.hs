@@ -36,7 +36,7 @@ import MonadUtils (liftIO)
 -- GHCVM API
 import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM, ghcvmFrontend)
 import GHCVM.Primitive (ghcvmPrimIface)
-import GHCVM.TcForeign (tcForeignImports)
+import GHCVM.TypeCheck.TcForeign (tcForeignImports)
 import GHCVM.DeSugar.DsForeign (dsForeigns)
 
 -- Imports for --abi-hash

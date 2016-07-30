@@ -33,7 +33,7 @@ import Platform
 import TcType
 import Coercion ( Role(..) )
 import TcEvidence
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import Type
 import CoreSyn
 import CoreUtils

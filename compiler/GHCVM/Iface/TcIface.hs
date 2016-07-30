@@ -7,8 +7,6 @@
 Type checking of type signatures in interface files
 -}
 
-{-# LANGUAGE CPP #-}
-
 module GHCVM.Iface.TcIface (
         tcLookupImported_maybe,
         importDecl, checkWiredInTyCon, tcHiBootIface, typecheckIface,
@@ -18,12 +16,12 @@ module GHCVM.Iface.TcIface (
         tcIfaceGlobal
  ) where
 
-import TcTypeNats(typeNatCoAxiomRules)
+import GHCVM.TypeCheck.TcTypeNats(typeNatCoAxiomRules)
 import IfaceSyn
 import GHCVM.Iface.LoadIface
 import GHCVM.Iface.IfaceEnv
-import BuildTyCl
-import TcRnMonad
+import GHCVM.Iface.BuildTyCl
+import GHCVM.TypeCheck.TcRnMonad
 import TcType
 import Type
 import Coercion hiding (substTy)
@@ -70,9 +68,9 @@ import FastString
 
 import Control.Monad
 import qualified Data.Map as Map
-#if __GLASGOW_HASKELL__ < 709
-import Data.Traversable ( traverse )
-#endif
+-- TODO:#if __GLASGOW_HASKELL__ < 709
+-- import Data.Traversable ( traverse )
+-- #endif
 
 {-
 This module takes

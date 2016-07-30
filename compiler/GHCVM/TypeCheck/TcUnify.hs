@@ -6,9 +6,7 @@
 Type subsumption and unification
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcUnify (
+module GHCVM.TypeCheck.TcUnify (
   -- Full-blown subsumption
   tcWrapResult, tcGen,
   tcSubType, tcSubType_NC, tcSubTypeDS, tcSubTypeDS_NC,
@@ -31,12 +29,10 @@ module TcUnify (
 
   ) where
 
-#include "HsVersions.h"
-
 import HsSyn
 import TypeRep
-import TcMType
-import TcRnMonad
+import GHCVM.TypeCheck.TcMType
+import GHCVM.TypeCheck.TcRnMonad
 import TcType
 import Type
 import TcEvidence
@@ -138,7 +134,7 @@ matchExpectedFunTys herald arity orig_ty
            ; return (mkTcFunCo Nominal (mkTcNomReflCo arg_ty) co, arg_ty:tys, ty_r) }
 
     go n_req ty@(TyVarTy tv)
-      | ASSERT( isTcTyVar tv) isMetaTyVar tv
+      | {-ASSERT( isTcTyVar tv)-} isMetaTyVar tv
       = do { cts <- readMetaTyVar tv
            ; case cts of
                Indirect ty' -> go n_req ty'
@@ -242,7 +238,7 @@ matchExpectedTyConApp tc orig_ty
        = return (mkTcNomReflCo ty, args)
 
     go (TyVarTy tv)
-       | ASSERT( isTcTyVar tv) isMetaTyVar tv
+       | {-ASSERT( isTcTyVar tv)-} isMetaTyVar tv
        = do { cts <- readMetaTyVar tv
             ; case cts of
                 Indirect ty -> go ty
@@ -260,7 +256,7 @@ matchExpectedTyConApp tc orig_ty
     --    (a::*) ~ Maybe
     -- because that'll make types that are utterly ill-kinded.
     -- This happened in Trac #7368
-    defer = ASSERT2( isSubOpenTypeKind res_kind, ppr tc )
+    defer = --ASSERT2( isSubOpenTypeKind res_kind, ppr tc )
             do { kappa_tys <- mapM (const newMetaKindVar) kvs
                ; let arg_kinds' = map (substKiWith kvs kappa_tys) arg_kinds
                ; tau_tys <- mapM newFlexiTyVarTy arg_kinds'
@@ -287,7 +283,7 @@ matchExpectedAppTy orig_ty
       = return (mkTcNomReflCo orig_ty, (fun_ty, arg_ty))
 
     go (TyVarTy tv)
-      | ASSERT( isTcTyVar tv) isMetaTyVar tv
+      | {-ASSERT( isTcTyVar tv)-} isMetaTyVar tv
       = do { cts <- readMetaTyVar tv
            ; case cts of
                Indirect ty -> go ty
@@ -582,8 +578,8 @@ buildImplication :: SkolemInfo
                  -> TcM result
                  -> TcM (Bag Implication, TcEvBinds, result)
 buildImplication skol_info skol_tvs given thing_inside
- =  ASSERT2( all isTcTyVar skol_tvs, ppr skol_tvs )
-    ASSERT2( all isSkolemTyVar skol_tvs, ppr skol_tvs )
+ =  --ASSERT2( all isTcTyVar skol_tvs, ppr skol_tvs )
+    --ASSERT2( all isSkolemTyVar skol_tvs, ppr skol_tvs )
     do { (result, tclvl, wanted) <- pushLevelAndCaptureConstraints thing_inside
 
        ; if isEmptyWC wanted && null given
@@ -771,12 +767,12 @@ uType origin orig_ty1 orig_ty2
 
     go (AppTy s1 t1) (TyConApp tc2 ts2)
       | Just (ts2', t2') <- snocView ts2
-      = ASSERT( isDecomposableTyCon tc2 )
+      = --ASSERT( isDecomposableTyCon tc2 )
         go_app s1 t1 (TyConApp tc2 ts2') t2'
 
     go (TyConApp tc1 ts1) (AppTy s2 t2)
       | Just (ts1', t1') <- snocView ts1
-      = ASSERT( isDecomposableTyCon tc1 )
+      = --ASSERT( isDecomposableTyCon tc1 )
         go_app (TyConApp tc1 ts1') t1' s2 t2
 
         -- Anything else fails
@@ -988,7 +984,7 @@ checkTauTvUpdate :: DynFlags -> TcTyVar -> TcType -> TcM (Maybe TcType)
 
 checkTauTvUpdate dflags tv ty
   | SigTv <- info
-  = ASSERT( not (isTyVarTy ty) )
+  = --ASSERT( not (isTyVarTy ty) )
     return Nothing
   | otherwise
   = do { ty1   <- zonkTcType ty
@@ -1007,7 +1003,7 @@ checkTauTvUpdate dflags tv ty
                    _ -> return Nothing
               | otherwise   -> return (Just ty1) }
   where
-    details = ASSERT2( isMetaTyVar tv, ppr tv ) tcTyVarDetails tv
+    details = {-ASSERT2( isMetaTyVar tv, ppr tv )-} tcTyVarDetails tv
     info         = mtv_info details
     is_return_tv = isReturnTyVar tv
     impredicative = canUnifyWithPolyType dflags details (tyVarKind tv)
@@ -1138,7 +1134,7 @@ lookupTcTyVar tyvar
   | otherwise
   = return (Unfilled details)
   where
-    details = ASSERT2( isTcTyVar tyvar, ppr tyvar )
+    details = --ASSERT2( isTcTyVar tyvar, ppr tyvar )
               tcTyVarDetails tyvar
 
 updateMeta :: TcTyVar -> TcRef MetaDetails -> TcType -> TcM TcCoercion
@@ -1316,7 +1312,7 @@ unifyKindEq (FunTy a1 r1) (FunTy a2 r2)
 
 unifyKindEq (TyConApp kc1 k1s) (TyConApp kc2 k2s)
   | kc1 == kc2
-  = ASSERT(length k1s == length k2s)
+  = --ASSERT(length k1s == length k2s)
        -- Should succeed since the kind constructors are the same,
        -- and the kinds are sort-checked, thus fully applied
     do { mb_eqs <- zipWithM unifyKindEq k1s k2s

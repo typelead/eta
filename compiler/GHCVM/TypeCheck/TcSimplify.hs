@@ -1,6 +1,4 @@
-{-# LANGUAGE CPP #-}
-
-module TcSimplify(
+module GHCVM.TypeCheck.TcSimplify(
        simplifyInfer,
        quantifyPred, growThetaTyVars,
        simplifyAmbiguityCheck,
@@ -9,17 +7,16 @@ module TcSimplify(
        solveWantedsTcM
   ) where
 
-#include "HsVersions.h"
 
-import TcRnTypes
-import TcRnMonad
-import TcErrors
-import TcMType as TcM
+import GHCVM.TypeCheck.TcRnTypes
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcErrors
+import GHCVM.TypeCheck.TcMType as TcM
 import TcType
-import TcSMonad as TcS
-import TcInteract
+import GHCVM.TypeCheck.TcSMonad as TcS
+import GHCVM.TypeCheck.TcInteract
 import Kind     ( isKind, isSubKind, defaultKind_maybe )
-import Inst
+import GHCVM.TypeCheck.Inst
 import Type     ( classifyPredType, isIPClass, PredTree(..)
                 , getClassPredTys_maybe, EqRel(..) )
 import TyCon    ( isTypeFamilyTyCon )

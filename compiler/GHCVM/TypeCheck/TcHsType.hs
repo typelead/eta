@@ -5,9 +5,7 @@
 \section[TcMonoType]{Typechecking user-specified @MonoTypes@}
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcHsType (
+module GHCVM.TypeCheck.TcHsType (
         tcHsSigType, tcHsSigTypeNC, tcHsDeriv, tcHsVectInst,
         tcHsInstHead,
         UserTypeCtxt(..),
@@ -33,16 +31,14 @@ module TcHsType (
         tcHsPatSigType, tcPatSig
    ) where
 
-#include "HsVersions.h"
-
 import HsSyn
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import TcEvidence( HsWrapper )
-import TcEnv
-import TcMType
-import TcValidity
-import TcUnify
-import TcIface
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcMType
+import GHCVM.TypeCheck.TcValidity
+import GHCVM.TypeCheck.TcUnify
+import GHCVM.Iface.TcIface
 import TcType
 import Type
 import TypeRep( Type(..) )  -- For the mkNakedXXX stuff

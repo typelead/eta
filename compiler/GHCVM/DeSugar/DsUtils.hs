@@ -39,7 +39,7 @@ module GHCVM.DeSugar.DsUtils (
 import {-# SOURCE #-}   GHCVM.DeSugar.Match ( matchSimply )
 
 import HsSyn
-import TcHsSyn
+import GHCVM.TypeCheck.TcHsSyn
 import TcType( tcSplitTyConApp )
 import CoreSyn
 import GHCVM.DeSugar.DsMonad

@@ -16,9 +16,9 @@ For state that is global and should be returned at the end (e.g not part
 of the stack mechanism), you should use an TcRef (= IORef) to store them.
 -}
 
-{-# LANGUAGE CPP, ExistentialQuantification #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
-module TcRnTypes(
+module GHCVM.TypeCheck.TcRnTypes(
         TcRnIf, TcRn, TcM, RnM, IfM, IfL, IfG, -- The monad is opaque outside this module
         TcRef,
 
@@ -96,8 +96,6 @@ module TcRnTypes(
 
   ) where
 
-#include "HsVersions.h"
-
 import HsSyn
 import CoreSyn
 import HscTypes
@@ -139,13 +137,13 @@ import GHC.Fingerprint
 import Data.Set (Set)
 import Control.Monad (ap, liftM)
 
-#ifdef GHCI
-import Data.Map      ( Map )
-import Data.Dynamic  ( Dynamic )
-import Data.Typeable ( TypeRep )
+-- TODO:#ifdef GHCI
+-- import Data.Map      ( Map )
+-- import Data.Dynamic  ( Dynamic )
+-- import Data.Typeable ( TypeRep )
 
-import qualified Language.Haskell.TH as TH
-#endif
+-- import qualified Language.Haskell.TH as TH
+-- #endif
 
 {-
 ************************************************************************
@@ -440,19 +438,19 @@ data TcGblEnv
 
         tcg_dependent_files :: TcRef [FilePath], -- ^ dependencies from addDependentFile
 
-#ifdef GHCI
-        tcg_th_topdecls :: TcRef [LHsDecl RdrName],
-        -- ^ Top-level declarations from addTopDecls
+-- TODO:#ifdef GHCI
+--         tcg_th_topdecls :: TcRef [LHsDecl RdrName],
+--         -- ^ Top-level declarations from addTopDecls
 
-        tcg_th_topnames :: TcRef NameSet,
-        -- ^ Exact names bound in top-level declarations in tcg_th_topdecls
+--         tcg_th_topnames :: TcRef NameSet,
+--         -- ^ Exact names bound in top-level declarations in tcg_th_topdecls
 
-        tcg_th_modfinalizers :: TcRef [TH.Q ()],
-        -- ^ Template Haskell module finalizers
+--         tcg_th_modfinalizers :: TcRef [TH.Q ()],
+--         -- ^ Template Haskell module finalizers
 
-        tcg_th_state :: TcRef (Map TypeRep Dynamic),
-        -- ^ Template Haskell state
-#endif /* GHCI */
+--         tcg_th_state :: TcRef (Map TypeRep Dynamic),
+--         -- ^ Template Haskell state
+-- #endif /* GHCI */
 
         tcg_ev_binds  :: Bag EvBind,        -- Top-level evidence bindings
 
@@ -1022,7 +1020,7 @@ plusImportAvails
                    imp_finsts        = finsts1 `unionLists` finsts2 }
   where
     plus_mod_dep (m1, boot1) (m2, boot2)
-        = WARN( not (m1 == m2), (ppr m1 <+> ppr m2) $$ (ppr boot1 <+> ppr boot2) )
+        = --WARN( not (m1 == m2), (ppr m1 <+> ppr m2) $$ (ppr boot1 <+> ppr boot2) )
                 -- Check mod-names match
           (m1, boot1 && boot2) -- If either side can "see" a non-hi-boot interface, use that
 
@@ -1950,7 +1948,7 @@ pprSkolInfo (UnifyForAllSkol tvs ty) = ptext (sLit "the type") <+> ppr (mkForAll
 -- UnkSkol
 -- For type variables the others are dealt with by pprSkolTvBinding.
 -- For Insts, these cases should not happen
-pprSkolInfo UnkSkol = WARN( True, text "pprSkolInfo: UnkSkol" ) ptext (sLit "UnkSkol")
+pprSkolInfo UnkSkol = {-WARN( True, text "pprSkolInfo: UnkSkol" )-} ptext (sLit "UnkSkol")
 
 {-
 ************************************************************************

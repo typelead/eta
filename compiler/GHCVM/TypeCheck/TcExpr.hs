@@ -6,37 +6,33 @@ c%
 \section[TcExpr]{Typecheck an expression}
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcExpr ( tcPolyExpr, tcPolyExprNC, tcMonoExpr, tcMonoExprNC,
+module GHCVM.TypeCheck.TcExpr ( tcPolyExpr, tcPolyExprNC, tcMonoExpr, tcMonoExprNC,
                 tcInferRho, tcInferRhoNC,
                 tcSyntaxOp, tcCheckId,
                 addExprErrCtxt) where
 
-#include "HsVersions.h"
-
-import {-# SOURCE #-}   TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
-#ifdef GHCI
-import DsMeta( liftStringName, liftName )
-#endif
+import {-# SOURCE #-}   GHCVM.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
+-- TODO: #ifdef GHCI
+-- import DsMeta( liftStringName, liftName )
+-- #endif
 
 import HsSyn
-import TcHsSyn
-import TcRnMonad
-import TcUnify
+import GHCVM.TypeCheck.TcHsSyn
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcUnify
 import BasicTypes
-import Inst
-import TcBinds
-import FamInst          ( tcGetFamInstEnvs, tcLookupDataFamInst )
-import TcEnv
-import TcArrows
-import TcMatches
-import TcHsType
-import TcPatSyn( tcPatSynBuilderOcc )
-import TcPat
-import TcMType
+import GHCVM.TypeCheck.Inst
+import GHCVM.TypeCheck.TcBinds
+import GHCVM.TypeCheck.FamInst          ( tcGetFamInstEnvs, tcLookupDataFamInst )
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcArrows
+import GHCVM.TypeCheck.TcMatches
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcPatSyn( tcPatSynBuilderOcc )
+import GHCVM.TypeCheck.TcPat
+import GHCVM.TypeCheck.TcMType
 import TcType
-import DsMonad
+import GHCVM.DeSugar.DsMonad
 import Id
 import ConLike
 import DataCon
@@ -106,7 +102,7 @@ tcMonoExpr expr res_ty
     tcMonoExprNC expr res_ty
 
 tcMonoExprNC (L loc expr) res_ty
-  = ASSERT( not (isSigmaTy res_ty) )
+  = --ASSERT( not (isSigmaTy res_ty) )
     setSrcSpan loc $
     do  { expr' <- tcExpr expr res_ty
         ; return (L loc expr') }
@@ -652,7 +648,7 @@ In the outgoing (HsRecordUpd scrut binds cons in_inst_tys out_inst_tys):
 -}
 
 tcExpr (RecordUpd record_expr rbinds _ _ _) res_ty
-  = ASSERT( notNull upd_fld_names )
+  = --ASSERT( notNull upd_fld_names )
     do  {
         -- STEP 0
         -- Check that the field names are really field names
@@ -680,7 +676,7 @@ tcExpr (RecordUpd record_expr rbinds _ _ _) res_ty
                 -- Other ones will cause a runtime error if they occur
 
                 -- Take apart a representative constructor
-              con1 = ASSERT( not (null relevant_cons) ) head relevant_cons
+              con1 = {-ASSERT( not (null relevant_cons) )-} head relevant_cons
               (con1_tvs, _, _, _, con1_arg_tys, _) = dataConFullSig con1
               con1_flds = dataConFieldLabels con1
               con1_res_ty = mkFamilyTyConApp tycon (mkTyVarTys con1_tvs)
@@ -823,7 +819,7 @@ tcExpr (PArrSeq _ _) _
 -}
 
 tcExpr (HsSpliceE is_ty splice)  res_ty
-  = ASSERT( is_ty )   -- Untyped splices are expanded by the renamer
+  = --ASSERT( is_ty )   -- Untyped splices are expanded by the renamer
    tcSpliceExpr splice res_ty
 
 tcExpr (HsBracket brack)         res_ty = tcTypedBracket   brack res_ty
@@ -989,7 +985,7 @@ tcArg fun (arg, ty, arg_no) = addErrCtxt (funAppCtxt fun arg arg_no)
 ----------------
 tcTupArgs :: [LHsTupArg Name] -> [TcSigmaType] -> TcM [LHsTupArg TcId]
 tcTupArgs args tys
-  = ASSERT( equalLength args tys ) mapM go (args `zip` tys)
+  = {-ASSERT( equalLength args tys )-} mapM go (args `zip` tys)
   where
     go (L l (Missing {}),   arg_ty) = return (L l (Missing arg_ty))
     go (L l (Present expr), arg_ty) = do { expr' <- tcPolyExpr expr arg_ty
@@ -1085,7 +1081,7 @@ tc_infer_assert dflags orig
        ; let (arg_ty, res_ty) = case tcSplitFunTy_maybe id_rho of
                                    Nothing      -> pprPanic "assert type" (ppr id_rho)
                                    Just arg_res -> arg_res
-       ; ASSERT( arg_ty `tcEqType` addrPrimTy )
+       ; --ASSERT( arg_ty `tcEqType` addrPrimTy )
          return (HsApp (L sloc (mkHsWrap wrap (HsVar assert_error_id)))
                        (L sloc (srcSpanPrimLit dflags sloc))
                 , res_ty) }
@@ -1509,7 +1505,7 @@ badFieldsUpd rbinds data_cons
             -- are redundant and can be dropped.
             map (fst . head) $ groupBy ((==) `on` snd) growingSets
 
-    aMember = ASSERT( not (null members) ) fst (head members)
+    aMember = {-ASSERT( not (null members) )-} fst (head members)
     (members, nonMembers) = partition (or . snd) membership
 
     -- For each field, which constructors contain the field?

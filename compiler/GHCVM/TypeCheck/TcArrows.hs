@@ -7,23 +7,23 @@ Typecheck arrow notation
 
 {-# LANGUAGE RankNTypes #-}
 
-module TcArrows ( tcProc ) where
+module GHCVM.TypeCheck.TcArrows ( tcProc ) where
 
-import {-# SOURCE #-}   TcExpr( tcMonoExpr, tcInferRho, tcSyntaxOp, tcCheckId, tcPolyExpr )
+import {-# SOURCE #-}  GHCVM.TypeCheck.TcExpr( tcMonoExpr, tcInferRho, tcSyntaxOp, tcCheckId, tcPolyExpr )
 
 import HsSyn
-import TcMatches
-import TcHsSyn( hsLPatType )
+import GHCVM.TypeCheck.TcMatches
+import GHCVM.TypeCheck.TcHsSyn( hsLPatType )
 import TcType
-import TcMType
-import TcBinds
-import TcPat
-import TcUnify
-import TcRnMonad
-import TcEnv
+import GHCVM.TypeCheck.TcMType
+import GHCVM.TypeCheck.TcBinds
+import GHCVM.TypeCheck.TcPat
+import GHCVM.TypeCheck.TcUnify
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcEnv
 import TcEvidence
 import Id( mkLocalId )
-import Inst
+import GHCVM.TypeCheck.Inst
 import Name
 import Coercion ( Role(..) )
 import TysWiredIn

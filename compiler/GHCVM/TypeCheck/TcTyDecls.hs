@@ -9,15 +9,11 @@ This stuff is only used for source-code decls; it's recorded in interface
 files for imported data types.
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcTyDecls(
+module GHCVM.TypeCheck.TcTyDecls(
         calcRecFlags, RecTyInfo(..),
         calcSynCycles, calcClassCycles,
         RoleAnnots, extractRoleAnnots, emptyRoleAnnots, lookupRoleAnnots
     ) where
-
-#include "HsVersions.h"
 
 import TypeRep
 import HsSyn
@@ -44,9 +40,9 @@ import Util
 import Maybes
 import Data.List
 
-#if __GLASGOW_HASKELL__ < 709
-import Control.Applicative (Applicative(..))
-#endif
+--TODO: #if __GLASGOW_HASKELL__ < 709
+-- import Control.Applicative (Applicative(..))
+-- #endif
 
 import Control.Monad
 
@@ -816,7 +812,7 @@ runRoleM env thing = (env', update)
 
 addRoleInferenceInfo :: Name -> [TyVar] -> RoleM a -> RoleM a
 addRoleInferenceInfo name tvs thing
-  = RM $ \_nothing state -> ASSERT( isNothing _nothing )
+  = RM $ \_nothing state -> --ASSERT( isNothing _nothing )
                             unRM thing (Just info) state
   where info = RII { var_ns = mkVarEnv (zip tvs [0..]), name = name }
 

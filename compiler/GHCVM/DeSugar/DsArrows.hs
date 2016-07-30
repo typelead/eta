@@ -13,7 +13,7 @@ import GHCVM.DeSugar.DsUtils
 import GHCVM.DeSugar.DsMonad
 
 import HsSyn    hiding (collectPatBinders, collectPatsBinders, collectLStmtsBinders, collectLStmtBinders, collectStmtBinders )
-import TcHsSyn
+import GHCVM.TypeCheck.TcHsSyn
 
 -- NB: The desugarer, which straddles the source and Core worlds, sometimes
 --     needs to see source types (newtypes etc), and sometimes not

@@ -6,29 +6,25 @@
 Typechecking class declarations
 -}
 
-{-# LANGUAGE CPP #-}
-
-module TcClassDcl ( tcClassSigs, tcClassDecl2,
+module GHCVM.TypeCheck.TcClassDcl ( tcClassSigs, tcClassDecl2,
                     findMethodBind, instantiateMethod, tcInstanceMethodBody,
                     tcClassMinimalDef,
                     HsSigFun, mkHsSigFun, lookupHsSig, emptyHsSigs,
                     tcMkDeclCtxt, tcAddDeclCtxt, badMethodErr
                   ) where
 
-#include "HsVersions.h"
-
 import HsSyn
-import TcEnv
-import TcPat( addInlinePrags )
+import GHCVM.TypeCheck.TcEnv
+import GHCVM.TypeCheck.TcPat( addInlinePrags )
 import TcEvidence( HsWrapper, idHsWrapper )
-import TcBinds
-import TcUnify
-import TcHsType
-import TcMType
+import GHCVM.TypeCheck.TcBinds
+import GHCVM.TypeCheck.TcUnify
+import GHCVM.TypeCheck.TcHsType
+import GHCVM.TypeCheck.TcMType
 import Type     ( getClassPredTys_maybe )
 import TcType
-import TcRnMonad
-import BuildTyCl( TcMethInfo )
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.Iface.BuildTyCl( TcMethInfo )
 import Class
 import Id
 import Name
@@ -288,10 +284,11 @@ instantiateMethod :: Class -> Id -> [TcType] -> TcType
 -- Return the "local method type":
 --      forall c. Ix x => (ty2,c) -> ty1
 instantiateMethod clas sel_id inst_tys
-  = ASSERT( ok_first_pred ) local_meth_ty
+  = -- ASSERT( ok_first_pred )
+  local_meth_ty
   where
     (sel_tyvars,sel_rho) = tcSplitForAllTys (idType sel_id)
-    rho_ty = ASSERT( length sel_tyvars == length inst_tys )
+    rho_ty = --ASSERT( length sel_tyvars == length inst_tys )
              substTyWith sel_tyvars inst_tys sel_rho
 
     (first_pred, local_meth_ty) = tcSplitPredFunTy_maybe rho_ty

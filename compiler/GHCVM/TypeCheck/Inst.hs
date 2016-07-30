@@ -6,9 +6,7 @@
 The @Inst@ type: dictionaries or method instances
 -}
 
-{-# LANGUAGE CPP #-}
-
-module Inst (
+module GHCVM.TypeCheck.Inst (
        deeplySkolemise,
        deeplyInstantiate, instCall, instStupidTheta,
        emitWanted, emitWanteds,
@@ -25,20 +23,18 @@ module Inst (
        tyVarsOfCt, tyVarsOfCts,
     ) where
 
-#include "HsVersions.h"
-
-import {-# SOURCE #-}   TcExpr( tcPolyExpr, tcSyntaxOp )
-import {-# SOURCE #-}   TcUnify( unifyType )
+import {-# SOURCE #-}   GHCVM.TypeCheck.TcExpr( tcPolyExpr, tcSyntaxOp )
+import {-# SOURCE #-}   GHCVM.TypeCheck.TcUnify( unifyType )
 
 import FastString
 import HsSyn
-import TcHsSyn
-import TcRnMonad
-import TcEnv
+import GHCVM.TypeCheck.TcHsSyn
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcEnv
 import TcEvidence
 import InstEnv
 import FunDeps
-import TcMType
+import GHCVM.TypeCheck.TcMType
 import Type
 import Coercion ( Role(..) )
 import TcType
@@ -96,7 +92,7 @@ newMethodFromName origin name inst_ty
              (the_tv:rest) = tvs
              subst = zipOpenTvSubst [the_tv] [inst_ty]
 
-       ; wrap <- ASSERT( null rest && isSingleton theta )
+       ; wrap <- --ASSERT( null rest && isSingleton theta )
                  instCall origin [inst_ty] (substTheta subst theta)
        ; return (mkHsWrap wrap (HsVar id)) }
 
