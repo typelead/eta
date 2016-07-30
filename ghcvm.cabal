@@ -28,6 +28,7 @@ library
                        , GHCVM.Packages
                        , GHCVM.DeSugar.DeSugar
                        , GHCVM.DeSugar.DsMonad
+                       , GHCVM.DeSugar.DsArrows
                        , GHCVM.Iface.BinIface
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
