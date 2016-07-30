@@ -26,6 +26,10 @@ library
                        , TupleSections
     exposed-modules:     GHCVM.DriverPipeline
                        , GHCVM.Packages
+                       , GHCVM.Iface.BinIface
+                       , GHCVM.Iface.LoadIface
+                       , GHCVM.Iface.MkIface
+                       , GHCVM.Iface.TcIface
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
                        , GHCVM.CodeGen.Closure

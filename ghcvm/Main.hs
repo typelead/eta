@@ -7,7 +7,7 @@ import GHC.Paths (libdir)
 import qualified GHC
 import GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
 import CmdLineParser
-import LoadIface        ( showIface, loadUserInterface)
+import GHCVM.Iface.LoadIface        ( showIface, loadUserInterface)
 import HscMain          ( newHscEnv )
 import DriverPipeline
 import PipelineMonad

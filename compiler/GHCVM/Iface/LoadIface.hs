@@ -29,7 +29,7 @@ module GHCVM.Iface.LoadIface (
         ifaceStats, pprModIface, showIface
    ) where
 
-import {-# SOURCE #-}   TcIface( tcIfaceDecl, tcIfaceRules, tcIfaceInst,
+import {-# SOURCE #-}   GHCVM.Iface.TcIface( tcIfaceDecl, tcIfaceRules, tcIfaceInst,
                                  tcIfaceFamInst, tcIfaceVectInfo, tcIfaceAnnotations )
 
 import DynFlags
@@ -322,22 +322,23 @@ loadModuleInterfaces doc mods
 -- Should only be called for an imported name;
 -- otherwise loadSysInterface may not find the interface
 loadInterfaceForName :: SDoc -> Name -> TcRn ModIface
-loadInterfaceForName doc name
-  = do { when debugIsOn $  -- Check pre-condition
-         do { this_mod <- getModule
-            ; --MASSERT2( not (nameIsLocalOrFrom this_mod name), ppr name <+> parens doc ) }
-      ; --ASSERT2( isExternalName name, ppr name )
-        initIfaceTcRn $ loadSysInterface doc (nameModule name) }
+loadInterfaceForName doc name =
+  initIfaceTcRn $ loadSysInterface doc (nameModule name)
+  -- = do { when debugIsOn $  -- Check pre-condition
+  --        do { this_mod <- getModule
+  --           ; {-MASSERT2( not (nameIsLocalOrFrom this_mod name), ppr name <+> parens doc ) -} }
+  --     ; --ASSERT2( isExternalName name, ppr name )
+        -- initIfaceTcRn $ loadSysInterface doc (nameModule name) }
 
 -- | Loads the interface for a given Module.
 loadInterfaceForModule :: SDoc -> Module -> TcRn ModIface
-loadInterfaceForModule doc m
-  = do
+loadInterfaceForModule doc m = initIfaceTcRn $ loadSysInterface doc m
+  -- = do
     -- Should not be called with this module
-    when debugIsOn $ do
-      this_mod <- getModule
-      --MASSERT2( this_mod /= m, ppr m <+> parens doc )
-    initIfaceTcRn $ loadSysInterface doc m
+    -- when debugIsOn $ do
+    --   this_mod <- getModule
+    --   --MASSERT2( this_mod /= m, ppr m <+> parens doc )
+    -- initIfaceTcRn $ loadSysInterface doc m
 
 {-
 *********************************************************
