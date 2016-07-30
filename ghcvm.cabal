@@ -26,6 +26,7 @@ library
                        , TupleSections
     exposed-modules:     GHCVM.DriverPipeline
                        , GHCVM.Packages
+                       , GHCVM.DeSugar.Check
                        , GHCVM.DeSugar.DeSugar
                        , GHCVM.DeSugar.DsMonad
                        , GHCVM.DeSugar.DsArrows
@@ -34,10 +35,12 @@ library
                        , GHCVM.DeSugar.DsGRHSs
                        , GHCVM.DeSugar.DsListComp
                        , GHCVM.DeSugar.DsMeta
+                       , GHCVM.DeSugar.DsForeign
                        , GHCVM.DeSugar.DsUtils
                        , GHCVM.DeSugar.Match
                        , GHCVM.DeSugar.MatchCon
                        , GHCVM.DeSugar.MatchLit
+                       , GHCVM.TypeCheck.TcRnDriver
                        , GHCVM.Iface.BinIface
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
@@ -62,7 +65,6 @@ library
                        , GHCVM.CodeGen.Utils
                        , GHCVM.Parser.Parse
                        , GHCVM.TcForeign
-                       , GHCVM.DsForeign
                        , GHCVM.Util
                        , GHCVM.Constants
                        , GHCVM.Primitive

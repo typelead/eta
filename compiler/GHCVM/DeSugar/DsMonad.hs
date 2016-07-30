@@ -328,7 +328,7 @@ failWithDs err
 mkPrintUnqualifiedDs :: DsM PrintUnqualified
 mkPrintUnqualifiedDs = ds_unqual <$> getGblEnv
 
-instance MonadThings (IOEnv (Env DsGblEnv DsLclEnv)) where
+instance {-# OVERLAPS #-} MonadThings (IOEnv (Env DsGblEnv DsLclEnv)) where
     lookupThing = dsLookupGlobal
 
 dsLookupGlobal :: Name -> DsM TyThing

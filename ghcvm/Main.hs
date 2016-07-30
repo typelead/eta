@@ -37,7 +37,7 @@ import MonadUtils (liftIO)
 import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM, ghcvmFrontend)
 import GHCVM.Primitive (ghcvmPrimIface)
 import GHCVM.TcForeign (tcForeignImports)
-import GHCVM.DsForeign (dsForeigns)
+import GHCVM.DeSugar.DsForeign (dsForeigns)
 
 -- Imports for --abi-hash
 import Module              ( mkModuleName, ModLocation(..))

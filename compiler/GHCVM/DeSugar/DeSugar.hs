@@ -28,9 +28,9 @@ import CoreSyn
 import CoreSubst
 import PprCore
 import GHCVM.DeSugar.DsMonad
-import DsExpr
-import DsBinds
-import DsForeign
+import GHCVM.DeSugar.DsExpr
+import GHCVM.DeSugar.DsBinds
+import GHCVM.DeSugar.DsForeign
 import Module
 import NameSet
 import NameEnv

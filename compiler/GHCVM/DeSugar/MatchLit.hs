@@ -14,11 +14,11 @@ module GHCVM.DeSugar.MatchLit ( dsLit, dsOverLit, hsLitKey, hsOverLitKey
                 , warnAboutIdentities, warnAboutEmptyEnumerations
                 ) where
 
-import {-# SOURCE #-} Match  ( match )
-import {-# SOURCE #-} DsExpr ( dsExpr )
+import {-# SOURCE #-} GHCVM.DeSugar.Match  ( match )
+import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr )
 
-import DsMonad
-import DsUtils
+import GHCVM.DeSugar.DsMonad
+import GHCVM.DeSugar.DsUtils
 
 import HsSyn
 

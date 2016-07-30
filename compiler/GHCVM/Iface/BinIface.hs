@@ -27,7 +27,7 @@ import DataCon    (dataConName, dataConWorkId, dataConTyCon)
 import PrelInfo   (wiredInThings, basicKnownKeyNames)
 import Id         (idName, isDataConWorkId_maybe)
 import TysWiredIn
-import IfaceEnv
+import GHCVM.Iface.IfaceEnv
 import HscTypes
 import BasicTypes
 import Module

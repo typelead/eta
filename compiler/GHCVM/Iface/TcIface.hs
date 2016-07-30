@@ -21,7 +21,7 @@ module GHCVM.Iface.TcIface (
 import TcTypeNats(typeNatCoAxiomRules)
 import IfaceSyn
 import GHCVM.Iface.LoadIface
-import IfaceEnv
+import GHCVM.Iface.IfaceEnv
 import BuildTyCl
 import TcRnMonad
 import TcType

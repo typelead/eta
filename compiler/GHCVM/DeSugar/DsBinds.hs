@@ -14,12 +14,12 @@ module GHCVM.DeSugar.DsBinds ( dsTopLHsBinds, dsLHsBinds, decomposeRuleLhs, dsSp
                  dsHsWrapper, dsTcEvBinds, dsEvBinds
   ) where
 
-import {-# SOURCE #-}   DsExpr( dsLExpr )
-import {-# SOURCE #-}   Match( matchWrapper )
+import {-# SOURCE #-}   GHCVM.DeSugar.DsExpr( dsLExpr )
+import {-# SOURCE #-}   GHCVM.DeSugar.Match( matchWrapper )
 
-import DsMonad
-import DsGRHSs
-import DsUtils
+import GHCVM.DeSugar.DsMonad
+import GHCVM.DeSugar.DsGRHSs
+import GHCVM.DeSugar.DsUtils
 
 import HsSyn            -- lots of things
 import CoreSyn          -- lots of things

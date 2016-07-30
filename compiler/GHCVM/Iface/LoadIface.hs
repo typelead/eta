@@ -34,7 +34,7 @@ import {-# SOURCE #-}   GHCVM.Iface.TcIface( tcIfaceDecl, tcIfaceRules, tcIfaceI
 
 import DynFlags
 import IfaceSyn
-import IfaceEnv
+import GHCVM.Iface.IfaceEnv
 import HscTypes
 
 import BasicTypes hiding (SuccessFlag(..))

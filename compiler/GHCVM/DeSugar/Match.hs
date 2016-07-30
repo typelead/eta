@@ -8,28 +8,28 @@ The @match@ function
 
 module GHCVM.DeSugar.Match ( match, matchEquations, matchWrapper, matchSimply, matchSinglePat ) where
 
-import {-#SOURCE#-} DsExpr (dsLExpr, dsExpr)
+import {-#SOURCE#-} GHCVM.DeSugar.DsExpr (dsLExpr, dsExpr)
 
 import DynFlags
 import HsSyn
 import TcHsSyn
 import TcEvidence
 import TcRnMonad
-import Check
+import GHCVM.DeSugar.Check
 import CoreSyn
 import Literal
 import CoreUtils
 import MkCore
-import DsMonad
-import DsBinds
-import DsGRHSs
-import DsUtils
+import GHCVM.DeSugar.DsMonad
+import GHCVM.DeSugar.DsBinds
+import GHCVM.DeSugar.DsGRHSs
+import GHCVM.DeSugar.DsUtils
 import Id
 import ConLike
 import DataCon
 import PatSyn
-import MatchCon
-import MatchLit
+import GHCVM.DeSugar.MatchCon
+import GHCVM.DeSugar.MatchLit
 import Type
 import TyCon( isNewTyCon )
 import TysWiredIn

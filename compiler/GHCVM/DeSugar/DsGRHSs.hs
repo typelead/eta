@@ -8,8 +8,8 @@ Matching guarded right-hand-sides (GRHSs)
 
 module GHCVM.DeSugar.DsGRHSs ( dsGuarded, dsGRHSs, dsGRHS ) where
 
-import {-# SOURCE #-} DsExpr  ( dsLExpr, dsLocalBinds )
-import {-# SOURCE #-} Match   ( matchSinglePat )
+import {-# SOURCE #-} GHCVM.DeSugar.DsExpr  ( dsLExpr, dsLocalBinds )
+import {-# SOURCE #-} GHCVM.DeSugar.Match   ( matchSinglePat )
 
 import HsSyn
 import MkCore
@@ -17,8 +17,8 @@ import CoreSyn
 import Var
 import Type
 
-import DsMonad
-import DsUtils
+import GHCVM.DeSugar.DsMonad
+import GHCVM.DeSugar.DsUtils
 import TysWiredIn
 import PrelNames
 import Module

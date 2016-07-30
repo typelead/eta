@@ -6,26 +6,27 @@
 Desugaring list comprehensions, monad comprehensions and array comprehensions
 -}
 
+--OverlappingInstances is temporary
 {-# LANGUAGE NamedFieldPuns #-}
 
 module GHCVM.DeSugar.DsListComp ( dsListComp, dsPArrComp, dsMonadComp ) where
 
-import {-# SOURCE #-} DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
+import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
 
 import HsSyn
 import TcHsSyn
 import CoreSyn
 import MkCore
 
-import DsMonad          -- the monadery used in the desugarer
-import DsUtils
+import GHCVM.DeSugar.DsMonad          -- the monadery used in the desugarer
+import GHCVM.DeSugar.DsUtils
 
 import DynFlags
 import CoreUtils
 import Id
 import Type
 import TysWiredIn
-import Match
+import GHCVM.DeSugar.Match
 import PrelNames
 import SrcLoc
 import Outputable

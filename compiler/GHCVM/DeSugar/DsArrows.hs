@@ -8,9 +8,9 @@ Desugaring arrow commands
 
 module GHCVM.DeSugar.DsArrows ( dsProcExpr ) where
 
-import Match
-import DsUtils
-import DsMonad
+import GHCVM.DeSugar.Match
+import GHCVM.DeSugar.DsUtils
+import GHCVM.DeSugar.DsMonad
 
 import HsSyn    hiding (collectPatBinders, collectPatsBinders, collectLStmtsBinders, collectLStmtBinders, collectStmtBinders )
 import TcHsSyn
@@ -20,7 +20,7 @@ import TcHsSyn
 --     So WATCH OUT; check each use of split*Ty functions.
 -- Sigh.  This is a pain.
 
-import {-# SOURCE #-} DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
+import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
 
 import TcType
 import TcEvidence
@@ -28,7 +28,7 @@ import CoreSyn
 import CoreFVs
 import CoreUtils
 import MkCore
-import DsBinds (dsHsWrapper)
+import GHCVM.DeSugar.DsBinds (dsHsWrapper)
 
 import Name
 import Var

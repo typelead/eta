@@ -1,4 +1,4 @@
-module GHCVM.DsForeign where
+module GHCVM.DeSugar.DsForeign where
 
 import VarSet
 import TcRnMonad

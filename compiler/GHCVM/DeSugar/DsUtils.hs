@@ -36,14 +36,14 @@ module GHCVM.DeSugar.DsUtils (
         mkOptTickBox, mkBinaryTickBox
     ) where
 
-import {-# SOURCE #-}   Match ( matchSimply )
+import {-# SOURCE #-}   GHCVM.DeSugar.Match ( matchSimply )
 
 import HsSyn
 import TcHsSyn
 import TcType( tcSplitTyConApp )
 import CoreSyn
-import DsMonad
-import {-# SOURCE #-} DsExpr ( dsLExpr )
+import GHCVM.DeSugar.DsMonad
+import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsLExpr )
 
 import CoreUtils
 import MkCore

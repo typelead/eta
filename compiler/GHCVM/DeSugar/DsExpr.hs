@@ -8,14 +8,14 @@ Desugaring exporessions.
 
 module GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds, dsValBinds, dsLit ) where
 
-import Match
-import MatchLit
-import DsBinds
-import DsGRHSs
-import DsListComp
-import DsUtils
-import DsArrows
-import DsMonad
+import GHCVM.DeSugar.Match
+import GHCVM.DeSugar.MatchLit
+import GHCVM.DeSugar.DsBinds
+import GHCVM.DeSugar.DsGRHSs
+import GHCVM.DeSugar.DsListComp
+import GHCVM.DeSugar.DsUtils
+import GHCVM.DeSugar.DsArrows
+import GHCVM.DeSugar.DsMonad
 import Name
 import NameEnv
 import FamInstEnv( topNormaliseType )

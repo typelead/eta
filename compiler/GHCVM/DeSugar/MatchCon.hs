@@ -8,16 +8,16 @@ Pattern-matching constructors
 
 module GHCVM.DeSugar.MatchCon ( matchConFamily, matchPatSyn ) where
 
-import {-# SOURCE #-} Match     ( match )
+import {-# SOURCE #-} GHCVM.DeSugar.Match     ( match )
 
 import HsSyn
-import DsBinds
+import GHCVM.DeSugar.DsBinds
 import ConLike
 import DataCon
 import PatSyn
 import TcType
-import DsMonad
-import DsUtils
+import GHCVM.DeSugar.DsMonad
+import GHCVM.DeSugar.DsUtils
 import MkCore   ( mkCoreLets )
 import Util
 import ListSetOps ( runs )
