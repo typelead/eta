@@ -56,7 +56,7 @@ module GHCVM.DeSugar.DsMeta where
 -- import BasicTypes
 -- import Outputable
 -- import Bag
--- import DynFlags
+-- import GHCVM.Main.DynFlags
 -- import FastString
 -- import ForeignCall
 -- import Util

@@ -32,7 +32,7 @@ import HscTypes
 import BasicTypes
 import Module
 import Name
-import DynFlags
+import GHCVM.Main.DynFlags
 import UniqFM
 import UniqSupply
 import Panic

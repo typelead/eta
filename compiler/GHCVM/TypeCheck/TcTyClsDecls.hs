@@ -61,7 +61,7 @@ import Util
 import SrcLoc
 import ListSetOps
 import Digraph
-import DynFlags
+import GHCVM.Main.DynFlags
 import FastString
 import Unique           ( mkBuiltinUnique )
 import BasicTypes

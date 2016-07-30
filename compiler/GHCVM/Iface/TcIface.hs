@@ -62,7 +62,7 @@ import UniqSupply
 import Outputable
 import Maybes
 import SrcLoc
-import DynFlags
+import GHCVM.Main.DynFlags
 import Util
 import FastString
 

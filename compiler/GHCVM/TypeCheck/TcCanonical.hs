@@ -24,7 +24,7 @@ import Name( isSystemName, nameOccName )
 import OccName( OccName )
 import Outputable
 import Control.Monad
-import DynFlags( DynFlags )
+import GHCVM.Main.DynFlags( DynFlags )
 import VarSet
 import RdrName
 

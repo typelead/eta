@@ -16,7 +16,7 @@ import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcSimplify
 import TcType
 import PrelNames
-import DynFlags
+import GHCVM.Main.DynFlags
 import SrcLoc
 import Data.Maybe
 import Outputable

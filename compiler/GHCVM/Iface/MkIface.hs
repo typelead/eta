@@ -85,7 +85,7 @@ import GHCVM.TypeCheck.TcRnMonad
 import HsSyn
 import HscTypes
 import Finder
-import DynFlags
+import GHCVM.Main.DynFlags
 import VarEnv
 import VarSet
 import Var

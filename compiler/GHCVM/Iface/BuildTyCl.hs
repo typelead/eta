@@ -31,7 +31,7 @@ import Id
 import Coercion
 import TcType
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import GHCVM.TypeCheck.TcRnMonad
 import UniqSupply
 import Util

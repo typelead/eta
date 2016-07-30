@@ -13,7 +13,7 @@ module GHCVM.Main.DriverMkDepend (
 import qualified GHCVM.Main.GHC as GHC
 import GhcMonad
 import HsSyn            ( ImportDecl(..) )
-import DynFlags
+import GHCVM.Main.DynFlags
 import Util
 import HscTypes
 import SysTools         ( newTempName )

@@ -39,7 +39,7 @@ import PatSyn
 import ConLike
 import PrelNames
 import BasicTypes hiding (SuccessFlag(..))
-import DynFlags
+import GHCVM.Main.DynFlags
 import SrcLoc
 import Util
 import Outputable

@@ -35,7 +35,7 @@ import Name
 import VarEnv
 import VarSet
 import ErrUtils
-import DynFlags
+import GHCVM.Main.DynFlags
 import Util
 import ListSetOps
 import SrcLoc

@@ -45,7 +45,7 @@ import Var
 import VarEnv
 import VarSet
 import ErrUtils
-import DynFlags
+import GHCVM.Main.DynFlags
 import BasicTypes
 import Maybes ( isJust )
 import Bag

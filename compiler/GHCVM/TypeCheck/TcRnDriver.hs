@@ -28,7 +28,7 @@ module GHCVM.TypeCheck.TcRnDriver (
 -- import RnSplice ( rnTopSpliceDecls )
 -- #endif
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import StaticFlags
 import HsSyn
 import PrelNames

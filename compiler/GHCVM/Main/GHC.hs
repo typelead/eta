@@ -297,7 +297,7 @@ import GHCVM.Main.TidyPgm
 import DriverPhases     ( Phase(..), isHaskellSrcFilename )
 import Finder
 import HscTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import StaticFlags
 import SysTools
 import Annotations

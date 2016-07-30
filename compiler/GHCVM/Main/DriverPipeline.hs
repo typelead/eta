@@ -63,7 +63,7 @@ import Outputable
 import Module
 import UniqFM           ( eltsUFM )
 import ErrUtils
-import DynFlags
+import GHCVM.Main.DynFlags
 import Config
 import Panic
 import Util

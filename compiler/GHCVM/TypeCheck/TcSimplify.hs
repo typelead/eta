@@ -34,7 +34,7 @@ import Util
 import PrelInfo
 import PrelNames
 import Control.Monad    ( unless )
-import DynFlags         ( ExtensionFlag( Opt_AllowAmbiguousTypes ) )
+import GHCVM.Main.DynFlags         ( ExtensionFlag( Opt_AllowAmbiguousTypes ) )
 import Class            ( classKey )
 import BasicTypes       ( RuleName )
 import Outputable

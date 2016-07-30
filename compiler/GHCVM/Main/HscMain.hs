@@ -138,7 +138,7 @@ import FamInstEnv
 import Fingerprint      ( Fingerprint )
 import GHCVM.Main.Hooks
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 
 import Outputable

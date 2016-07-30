@@ -42,7 +42,7 @@ import VarEnv
 import Control.Monad
 import Pair (Pair(..))
 import Unique( hasKey )
-import DynFlags
+import GHCVM.Main.DynFlags
 import Util
 
 {-

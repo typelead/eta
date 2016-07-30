@@ -27,7 +27,7 @@ module GHCVM.Main.GhcMake(
 
 import DriverPhases
 import GHCVM.Main.DriverPipeline
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import Finder
 import GhcMonad

@@ -102,7 +102,7 @@ import qualified GHCVM.TypeCheck.TcEnv as TcM
        ( checkWellStaged, topIdLvl, tcGetDefaultTys )
 import Kind
 import TcType
-import DynFlags
+import GHCVM.Main.DynFlags
 import Type
 
 import TcEvidence

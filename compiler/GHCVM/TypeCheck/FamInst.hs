@@ -20,7 +20,7 @@ import GHCVM.Iface.LoadIface
 import GHCVM.TypeCheck.TcRnMonad
 import TyCon
 import CoAxiom
-import DynFlags
+import GHCVM.Main.DynFlags
 import Module
 import Outputable
 import UniqFM

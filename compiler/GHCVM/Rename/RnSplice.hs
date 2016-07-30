@@ -15,7 +15,7 @@ import Kind
 -- TODO: #ifdef GHCI
 -- import ErrUtils         ( dumpIfSet_dyn_printer )
 -- import Control.Monad    ( unless, when )
--- import DynFlags
+-- import GHCVM.Main.DynFlags
 -- import DsMeta           ( decsQTyConName, expQTyConName, patQTyConName, typeQTyConName )
 -- import LoadIface        ( loadInterfaceForName )
 -- import Module

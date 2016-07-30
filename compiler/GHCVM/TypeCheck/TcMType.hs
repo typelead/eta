@@ -74,7 +74,7 @@ import Id
 import Name
 import VarSet
 import PrelNames
-import DynFlags
+import GHCVM.Main.DynFlags
 import Util
 import Outputable
 import FastString

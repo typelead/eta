@@ -42,7 +42,7 @@ import Bag
 import Outputable
 import UniqSupply
 import UniqFM
-import DynFlags
+import GHCVM.Main.DynFlags
 import StaticFlags
 import FastString
 import Panic

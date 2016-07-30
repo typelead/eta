@@ -35,7 +35,7 @@ import BasicTypes
 import DataCon
 import Name
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import PrelInfo
 import FamInstEnv( FamInst )
 import MkCore ( eRROR_ID )

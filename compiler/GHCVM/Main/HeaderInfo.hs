@@ -24,7 +24,7 @@ import Module
 import PrelNames
 import StringBuffer
 import SrcLoc
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import Util
 import Outputable

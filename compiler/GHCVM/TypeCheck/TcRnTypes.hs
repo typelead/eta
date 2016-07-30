@@ -128,7 +128,7 @@ import UniqFM
 import UniqSupply
 import BasicTypes
 import Bag
-import DynFlags
+import GHCVM.Main.DynFlags
 import Outputable
 import ListSetOps
 import FastString

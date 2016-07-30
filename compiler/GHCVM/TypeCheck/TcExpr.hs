@@ -48,7 +48,7 @@ import TysWiredIn
 import TysPrim( intPrimTy, addrPrimTy )
 import PrimOp( tagToEnumKey )
 import PrelNames
-import DynFlags
+import GHCVM.Main.DynFlags
 import SrcLoc
 import Util
 import ListSetOps

@@ -56,7 +56,7 @@ import NameEnv
 import TysWiredIn
 import BasicTypes
 import SrcLoc
-import DynFlags ( ExtensionFlag( Opt_DataKinds ), getDynFlags )
+import GHCVM.Main.DynFlags ( ExtensionFlag( Opt_DataKinds ), getDynFlags )
 import Unique
 import UniqSupply
 import Outputable

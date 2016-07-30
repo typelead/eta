@@ -21,7 +21,7 @@ import GHCVM.TypeCheck.FamInst
 import FamInstEnv
 import TysWiredIn (unitTyCon)
 import ErrUtils
-import DynFlags
+import GHCVM.Main.DynFlags
 import DataCon
 import Unique
 import PrelNames

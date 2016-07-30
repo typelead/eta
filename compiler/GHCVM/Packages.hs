@@ -6,7 +6,7 @@ module GHCVM.Packages
 where
 
 import Module
-import DynFlags
+import GHCVM.Main.DynFlags
 import Packages hiding (packageHsLibs)
 import System.FilePath
 import System.Directory

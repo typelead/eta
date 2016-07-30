@@ -46,7 +46,7 @@ import NameSet
 import Var
 import VarSet
 import VarEnv
-import DynFlags
+import GHCVM.Main.DynFlags
 import Literal
 import BasicTypes
 import Maybes

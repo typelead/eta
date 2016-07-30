@@ -9,7 +9,7 @@ Handles @deriving@ clauses on @data@ declarations.
 module GHCVM.TypeCheck.TcDeriv ( tcDeriving ) where
 
 import HsSyn
-import DynFlags
+import GHCVM.Main.DynFlags
 
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.FamInst

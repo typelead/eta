@@ -14,7 +14,7 @@ module GHCVM.TypeCheck.TcGenGenerics (canDoGenerics, canDoGenerics1,
                       MetaTyCons, genGenericMetaTyCons,
                       gen_Generic_binds, get_gen1_constrained_tys) where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import HsSyn
 import Type
 import Kind             ( isKind )

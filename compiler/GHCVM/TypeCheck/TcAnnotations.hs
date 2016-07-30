@@ -12,7 +12,7 @@ module GHCVM.TypeCheck.TcAnnotations ( tcAnnotations, annCtxt ) where
 -- TODO: #ifdef GHCI
 -- import {-# SOURCE #-} TcSplice ( runAnnotation )
 -- import Module
--- import DynFlags
+-- import GHCVM.Main.DynFlags
 -- import Control.Monad ( when )
 -- #endif
 

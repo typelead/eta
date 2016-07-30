@@ -9,7 +9,7 @@ module GHCVM.Main.TidyPgm (
    ) where
 
 import GHCVM.TypeCheck.TcRnTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import CoreSyn
 import CoreUnfold
 import CoreFVs

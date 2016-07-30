@@ -36,7 +36,7 @@ import Util
 import FastString
 import Outputable
 import SrcLoc
-import DynFlags
+import GHCVM.Main.DynFlags
 import StaticFlags      ( opt_PprStyle_Debug )
 import ListSetOps       ( equivClasses )
 

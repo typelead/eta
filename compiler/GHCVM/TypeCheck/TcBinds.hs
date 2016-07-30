@@ -17,7 +17,7 @@ module GHCVM.TypeCheck.TcBinds ( tcLocalBinds, tcTopBinds, tcRecSelBinds,
 import {-# SOURCE #-} GHCVM.TypeCheck.TcMatches ( tcGRHSsPat, tcMatchesFun )
 import {-# SOURCE #-} GHCVM.TypeCheck.TcExpr  ( tcMonoExpr )
 import {-# SOURCE #-} GHCVM.TypeCheck.TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl, tcPatSynBuilderBind )
-import DynFlags
+import GHCVM.Main.DynFlags
 import HsSyn
 import HscTypes( isHsBootOrSig )
 import GHCVM.TypeCheck.TcRnMonad

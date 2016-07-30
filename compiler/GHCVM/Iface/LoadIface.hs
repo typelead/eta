@@ -32,7 +32,7 @@ module GHCVM.Iface.LoadIface (
 import {-# SOURCE #-}   GHCVM.Iface.TcIface( tcIfaceDecl, tcIfaceRules, tcIfaceInst,
                                  tcIfaceFamInst, tcIfaceVectInfo, tcIfaceAnnotations )
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import IfaceSyn
 import GHCVM.Iface.IfaceEnv
 import HscTypes

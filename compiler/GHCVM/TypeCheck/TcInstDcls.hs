@@ -42,7 +42,7 @@ import VarSet
 import PrelNames  ( typeableClassName, genericClassNames )
 import Bag
 import BasicTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import FastString
 import HscTypes ( isHsBootOrSig )

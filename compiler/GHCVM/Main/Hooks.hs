@@ -25,7 +25,7 @@ module GHCVM.Main.Hooks ( Hooks
              , getValueSafelyHook
              ) where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import HsTypes
 import Name
 import PipelineMonad

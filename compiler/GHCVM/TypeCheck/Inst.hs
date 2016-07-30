@@ -48,7 +48,7 @@ import VarEnv
 import VarSet
 import PrelNames
 import SrcLoc
-import DynFlags
+import GHCVM.Main.DynFlags
 import Bag
 import Util
 import Outputable

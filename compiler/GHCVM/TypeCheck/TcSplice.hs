@@ -90,7 +90,7 @@ import TcType
 -- import Data.Maybe
 -- import BasicTypes hiding( SuccessFlag(..) )
 -- import Maybes( MaybeErr(..) )
--- import DynFlags
+-- import GHCVM.Main.DynFlags
 -- import Panic
 -- import Lexeme
 -- import FastString

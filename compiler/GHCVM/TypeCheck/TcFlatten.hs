@@ -21,7 +21,7 @@ import NameEnv
 import Outputable
 import VarSet
 import GHCVM.TypeCheck.TcSMonad as TcS
-import DynFlags( DynFlags )
+import GHCVM.Main.DynFlags( DynFlags )
 
 import Util
 import Bag

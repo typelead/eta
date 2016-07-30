@@ -82,7 +82,7 @@ import Name
 import NameEnv
 import VarEnv
 import HscTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import SrcLoc
 import BasicTypes hiding( SuccessFlag(..) )
 import Module
