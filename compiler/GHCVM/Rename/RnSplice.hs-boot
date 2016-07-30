@@ -1,7 +1,7 @@
-module RnSplice where
+module GHCVM.Rename.RnSplice where
 
 import HsSyn
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import RdrName
 import Name
 import NameSet

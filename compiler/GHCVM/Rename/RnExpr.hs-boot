@@ -1,9 +1,9 @@
-module RnExpr where
+module GHCVM.Rename.RnExpr where
 import HsSyn
 import Name       ( Name )
 import NameSet    ( FreeVars )
 import RdrName    ( RdrName )
-import TcRnTypes
+import GHCVM.TypeCheck.TcRnTypes
 import SrcLoc     ( Located )
 import Outputable ( Outputable )
 

@@ -40,6 +40,15 @@ library
                        , GHCVM.DeSugar.Match
                        , GHCVM.DeSugar.MatchCon
                        , GHCVM.DeSugar.MatchLit
+                       , GHCVM.Rename.RnBinds
+                       , GHCVM.Rename.RnEnv
+                       , GHCVM.Rename.RnExpr
+                       , GHCVM.Rename.RnHsDoc
+                       , GHCVM.Rename.RnNames
+                       , GHCVM.Rename.RnPat
+                       , GHCVM.Rename.RnSource
+                       , GHCVM.Rename.RnSplice
+                       , GHCVM.Rename.RnTypes
                        , GHCVM.TypeCheck.TcRnDriver
                        , GHCVM.Iface.BinIface
                        , GHCVM.Iface.LoadIface

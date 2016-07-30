@@ -4,8 +4,6 @@
 \section[RnEnv]{Environment manipulation for the renamer monad}
 -}
 
-{-# LANGUAGE CPP #-}
-
 module GHCVM.Rename.RnEnv (
         newTopSrcBinder,
         lookupLocatedTopBndrRn, lookupTopBndrRn,
@@ -43,8 +41,6 @@ module GHCVM.Rename.RnEnv (
         dataTcOccs, kindSigErr, perhapsForallMsg,
         HsDocContext(..), docOfHsDocContext
     ) where
-
-#include "HsVersions.h"
 
 import GHCVM.Iface.LoadIface        ( loadInterfaceForName, loadSrcInterface_maybe )
 import GHCVM.Iface.IfaceEnv
@@ -354,16 +350,16 @@ lookupExactOcc_either name
                        ; if name `inLocalRdrEnvScope` lcl_env
                          then return (Right name)
                          else
-#ifdef GHCI
-                         do { th_topnames_var <- fmap tcg_th_topnames getGblEnv
-                            ; th_topnames <- readTcRef th_topnames_var
-                            ; if name `elemNameSet` th_topnames
-                              then return (Right name)
-                              else return (Left exact_nm_err)
-                            }
-#else /* !GHCI */
+-- #ifdef GHCI
+--                          do { th_topnames_var <- fmap tcg_th_topnames getGblEnv
+--                             ; th_topnames <- readTcRef th_topnames_var
+--                             ; if name `elemNameSet` th_topnames
+--                               then return (Right name)
+--                               else return (Left exact_nm_err)
+--                             }
+-- #else /* !GHCI */
                          return (Left exact_nm_err)
-#endif /* !GHCI */
+-- #endif /* !GHCI */
                        }
 
            [gre]   -> return (Right (gre_name gre))
@@ -509,7 +505,7 @@ greRdrName gre
       | otherwise
       =             -- Only qualified imports available, so make up
                     -- a suitable qualifed name from the first imp_spec
-        ASSERT( not (null imp_specs) )
+        --ASSERT( not (null imp_specs) )
         mkRdrQual (is_as (is_decl (head imp_specs))) occ
 
 lookupSubBndrGREs :: GlobalRdrEnv -> Parent -> RdrName -> [GlobalRdrElt]
@@ -920,7 +916,7 @@ warnIfDeprecated gre@(GRE { gre_name = name, gre_prov = Imported (imp_spec : _) 
                            , parens imp_msg <> colon ]
                      , ppr txt ]
 
-    name_mod = ASSERT2( isExternalName name, ppr name ) nameModule name
+    name_mod = {-ASSERT2( isExternalName name, ppr name )-} nameModule name
     imp_mod  = importSpecModule imp_spec
     imp_msg  = ptext (sLit "imported from") <+> ppr imp_mod <> extra
     extra | imp_mod == moduleName name_mod = Outputable.empty

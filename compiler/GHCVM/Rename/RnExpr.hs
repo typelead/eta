@@ -10,25 +10,23 @@ general, all of these functions return a renamed thing, and a set of
 free variables.
 -}
 
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module RnExpr (
+module GHCVM.Rename.RnExpr (
         rnLExpr, rnExpr, rnStmts
    ) where
 
-#include "HsVersions.h"
+import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice( runQuasiQuoteExpr )
 
-import {-# SOURCE #-} TcSplice( runQuasiQuoteExpr )
-
-import RnBinds   ( rnLocalBindsAndThen, rnLocalValBindsLHS, rnLocalValBindsRHS,
+import GHCVM.Rename.RnBinds   ( rnLocalBindsAndThen, rnLocalValBindsLHS, rnLocalValBindsRHS,
                    rnMatchGroup, rnGRHS, makeMiniFixityEnv)
 import HsSyn
-import TcRnMonad
+import GHCVM.TypeCheck.TcRnMonad
 import Module           ( getModule )
-import RnEnv
-import RnSplice         ( rnBracket, rnSpliceExpr, checkThLocalName )
-import RnTypes
-import RnPat
+import GHCVM.Rename.RnEnv
+import GHCVM.Rename.RnSplice         ( rnBracket, rnSpliceExpr, checkThLocalName )
+import GHCVM.Rename.RnTypes
+import GHCVM.Rename.RnPat
 import DynFlags
 import BasicTypes       ( FixityDirection(..) )
 import PrelNames
@@ -1169,7 +1167,7 @@ segsToStmts :: Stmt Name body                   -- A RecStmt with the SyntaxOps 
 
 segsToStmts _ [] fvs_later = ([], fvs_later)
 segsToStmts empty_rec_stmt ((defs, uses, fwds, ss) : segs) fvs_later
-  = ASSERT( not (null ss) )
+  = --ASSERT( not (null ss) )
     (new_stmt : later_stmts, later_uses `plusFV` uses)
   where
     (later_stmts, later_uses) = segsToStmts empty_rec_stmt segs fvs_later

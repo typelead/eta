@@ -4,27 +4,25 @@
 \section[RnSource]{Main pass of renamer}
 -}
 
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module RnSource (
         rnSrcDecls, addTcgDUs, rnTyClDecls, findSplice
     ) where
 
-#include "HsVersions.h"
-
-import {-# SOURCE #-} RnExpr( rnLExpr )
-import {-# SOURCE #-} RnSplice ( rnSpliceDecl )
-import {-# SOURCE #-} TcSplice ( runQuasiQuoteDecl )
+import {-# SOURCE #-} GHCVM.Rename.RnExpr( rnLExpr )
+import {-# SOURCE #-} GHCVM.Rename.RnSplice ( rnSpliceDecl )
+import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice ( runQuasiQuoteDecl )
 
 import HsSyn
 import RdrName
-import RnTypes
-import RnBinds
-import RnEnv
-import RnNames
-import RnHsDoc          ( rnHsDoc, rnMbLHsDoc )
-import TcAnnotations    ( annCtxt )
-import TcRnMonad
+import GHCVM.Rename.RnTypes
+import GHCVM.Rename.RnBinds
+import GHCVM.Rename.RnEnv
+import GHCVM.Rename.RnNames
+import GHCVM.Rename.RnHsDoc          ( rnHsDoc, rnMbLHsDoc )
+import GHCVM.TypeCheck.TcAnnotations    ( annCtxt )
+import GHCVM.TypeCheck.TcRnMonad
 
 import ForeignCall      ( CCallTarget(..) )
 import Module
@@ -48,9 +46,9 @@ import Util             ( mapSnd )
 
 import Control.Monad
 import Data.List( partition, sortBy )
-#if __GLASGOW_HASKELL__ < 709
-import Data.Traversable (traverse)
-#endif
+-- TODO:#if __GLASGOW_HASKELL__ < 709
+-- import Data.Traversable (traverse)
+-- #endif
 import Maybes( orElse, mapMaybe )
 
 {-

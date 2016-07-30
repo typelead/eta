@@ -10,7 +10,7 @@ general, all of these functions return a renamed thing, and a set of
 free variables.
 -}
 
-{-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 
 module RnPat (-- main entry points
               rnPat, rnPats, rnBindPat, rnPatAndThen,
@@ -34,17 +34,15 @@ module RnPat (-- main entry points
 
 -- ENH: thin imports to only what is necessary for patterns
 
-import {-# SOURCE #-} RnExpr ( rnLExpr )
-import {-# SOURCE #-} RnSplice ( rnSplicePat )
-import {-# SOURCE #-} TcSplice ( runQuasiQuotePat )
-
-#include "HsVersions.h"
+import {-# SOURCE #-} GHCVM.Rename.RnExpr ( rnLExpr )
+import {-# SOURCE #-} GHCVM.Rename.RnSplice ( rnSplicePat )
+import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice ( runQuasiQuotePat )
 
 import HsSyn
-import TcRnMonad
-import TcHsSyn             ( hsOverLitName )
-import RnEnv
-import RnTypes
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.TypeCheck.TcHsSyn             ( hsOverLitName )
+import GHCVM.Rename.RnEnv
+import GHCVM.Rename.RnTypes
 import DynFlags
 import PrelNames
 import TyCon               ( tyConName )
@@ -591,7 +589,7 @@ rnHsRecFields ctxt mk_arg (HsRecFields { rec_flds = flds, rec_dotdot = dotdot })
                 _             -> return ()
            ; return [] }
     rn_dotdot (Just n) (Just con) flds -- ".." on record construction / pat match
-      = ASSERT( n == length flds )
+      = --ASSERT( n == length flds )
         do { loc <- getSrcSpanM -- Rather approximate
            ; dd_flag <- xoptM Opt_RecordWildCards
            ; checkErr dd_flag (needFlagDotDot ctxt)

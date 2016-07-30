@@ -1,10 +1,8 @@
+module GHCVM.Rename.RnHsDoc ( rnHsDoc, rnLHsDoc, rnMbLHsDoc ) where
 
-module RnHsDoc ( rnHsDoc, rnLHsDoc, rnMbLHsDoc ) where
-
-import TcRnTypes
+import GHCVM.TypeCheck.TcRnTypes
 import HsSyn
 import SrcLoc
-
 
 rnMbLHsDoc :: Maybe LHsDocString -> RnM (Maybe LHsDocString)
 rnMbLHsDoc mb_doc = case mb_doc of
