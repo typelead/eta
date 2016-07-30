@@ -47,7 +47,7 @@ import HsSyn
 
 -- compiler/main
 import HscTypes         ( IsBootInterface, WarningTxt(..) )
-import DynFlags
+import GHCVM.Main.DynFlags
 
 -- compiler/utils
 import OrdList

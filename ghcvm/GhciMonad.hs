@@ -32,7 +32,7 @@ import GhcMonad         hiding (liftIO)
 import Outputable       hiding (printForUser, printForUserPartWay)
 import qualified Outputable
 import Util
-import DynFlags
+import GHCVM.Main.DynFlags
 import FastString
 import HscTypes
 import SrcLoc

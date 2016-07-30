@@ -49,7 +49,7 @@ module GHCVM.CodeGen.Monad
    getDynFlags)
 where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import Module
 import VarEnv
 import Id

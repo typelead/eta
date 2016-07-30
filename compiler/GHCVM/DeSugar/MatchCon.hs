@@ -24,7 +24,7 @@ import ListSetOps ( runs )
 import Id
 import NameEnv
 import SrcLoc
-import DynFlags
+import GHCVM.Main.DynFlags
 import Outputable
 import Control.Monad(liftM)
 

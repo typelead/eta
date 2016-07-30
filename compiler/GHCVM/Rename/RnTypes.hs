@@ -26,7 +26,7 @@ module GHCVM.Rename.RnTypes (
 import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice( runQuasiQuoteType )
 import {-# SOURCE #-} GHCVM.Rename.RnSplice( rnSpliceType )
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import HsSyn
 import GHCVM.Rename.RnHsDoc          ( rnLHsDoc, rnMbLHsDoc )
 import GHCVM.Rename.RnEnv

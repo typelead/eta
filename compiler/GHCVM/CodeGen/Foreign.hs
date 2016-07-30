@@ -1,6 +1,6 @@
 module GHCVM.CodeGen.Foreign where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import Type
 import StgSyn
 import ForeignCall

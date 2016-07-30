@@ -38,7 +38,7 @@ import Bag
 import BasicTypes       ( RuleName )
 import FastString
 import SrcLoc
-import DynFlags
+import GHCVM.Main.DynFlags
 import HscTypes         ( HscEnv, hsc_dflags )
 import ListSetOps       ( findDupsEq, removeDups )
 import Digraph          ( SCC, flattenSCC, stronglyConnCompFromEdgedVertices )

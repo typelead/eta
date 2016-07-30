@@ -31,13 +31,13 @@ import BasicTypes
 import SrcLoc
 import Outputable
 import FastString
-import DynFlags
+import GHCVM.Main.DynFlags
 import Platform
 import Config
 import OrdList
 import Pair
 import Util
-import Hooks
+import GHCVM.Main.Hooks
 
 import Data.Maybe
 import Data.List

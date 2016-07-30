@@ -108,7 +108,7 @@ import Util             ( readRational )
 
 -- compiler/main
 import ErrUtils
-import DynFlags
+import GHCVM.Main.DynFlags
 
 -- compiler/basicTypes
 import SrcLoc

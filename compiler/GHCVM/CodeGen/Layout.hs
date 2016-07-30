@@ -1,7 +1,7 @@
 module GHCVM.CodeGen.Layout where
 
 import Type
-import DynFlags
+import GHCVM.Main.DynFlags
 import StgSyn
 import Id
 import Codec.JVM

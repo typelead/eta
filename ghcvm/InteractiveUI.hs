@@ -27,7 +27,7 @@ import GhciTags
 import Debugger
 
 -- The GHC interface
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import GhcMonad ( modifySession )
 import qualified GHC

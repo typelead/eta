@@ -18,7 +18,7 @@ import Id
 import Type
 import TyCon            ( PrimRep(..) )
 import BasicTypes       ( RepArity )
-import DynFlags
+import GHCVM.Main.DynFlags
 import Data.Maybe
 import GHCVM.Primitive
 import GHCVM.CodeGen.Rts

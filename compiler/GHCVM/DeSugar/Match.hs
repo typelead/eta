@@ -10,7 +10,7 @@ module GHCVM.DeSugar.Match ( match, matchEquations, matchWrapper, matchSimply, m
 
 import {-#SOURCE#-} GHCVM.DeSugar.DsExpr (dsLExpr, dsExpr)
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import HsSyn
 import GHCVM.TypeCheck.TcHsSyn
 import TcEvidence

@@ -4,16 +4,16 @@ module Main (main) where
 import GHC.Paths (libdir)
 
 -- GHC API
-import qualified GHC
-import GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
+import qualified GHCVM.Main.GHC as GHC
+import GHCVM.Main.GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
 import CmdLineParser
 import GHCVM.Iface.LoadIface        ( showIface, loadUserInterface)
-import HscMain          ( newHscEnv )
-import DriverPipeline
+import GHCVM.Main.HscMain          ( newHscEnv )
+import GHCVM.Main.DriverPipeline
 import PipelineMonad
 import TyCon (isDataTyCon)
-import DriverMkDepend   ( doMkDependHS )
-import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
+import GHCVM.Main.DriverMkDepend   ( doMkDependHS )
+-- import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
 import StgSyn (pprStgBindings)
 import SysTools
 import Config
@@ -24,7 +24,7 @@ import DriverPhases
 import CorePrep ( corePrepPgm )
 import BasicTypes (failed)
 import StaticFlags
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import FastString
 import Outputable
@@ -34,7 +34,6 @@ import Panic
 import MonadUtils (liftIO)
 
 -- GHCVM API
-import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM, ghcvmFrontend)
 import GHCVM.Primitive (ghcvmPrimIface)
 import GHCVM.TypeCheck.TcForeign (tcForeignImports)
 import GHCVM.DeSugar.DsForeign (dsForeigns)
@@ -42,9 +41,9 @@ import GHCVM.DeSugar.DsForeign (dsForeigns)
 -- Imports for --abi-hash
 import Module              ( mkModuleName, ModLocation(..))
 import Finder              ( findImportedModule, cannotFindInterface )
-import TcRnMonad           ( initIfaceCheck )
+import GHCVM.TypeCheck.TcRnMonad           ( initIfaceCheck )
 import Binary              ( openBinMem, put_, fingerprintBinMem )
-import Hooks
+import GHCVM.Main.Hooks
 
 -- Standard Libraries
 import System.IO

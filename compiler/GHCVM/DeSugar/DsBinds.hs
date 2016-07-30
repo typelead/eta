@@ -61,7 +61,7 @@ import Maybes
 import OrdList
 import Bag
 import BasicTypes hiding ( TopLevel )
-import DynFlags
+import GHCVM.Main.DynFlags
 import FastString
 import ErrUtils( MsgDoc )
 import ListSetOps( getNth )

@@ -1,6 +1,6 @@
 module GHCVM.CodeGen.Prim where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import TyCon
 import Type
 import StgSyn

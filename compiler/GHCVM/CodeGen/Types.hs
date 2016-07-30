@@ -43,7 +43,7 @@ import TyCon
 import Type
 import Module
 import Name
-import DynFlags
+import GHCVM.Main.DynFlags
 
 import Codec.JVM
 

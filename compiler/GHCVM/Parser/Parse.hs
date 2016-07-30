@@ -2,7 +2,7 @@ module GHCVM.Parser.Parse where
 
 import HscStats
 import HscTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import MonadUtils
 import SrcLoc

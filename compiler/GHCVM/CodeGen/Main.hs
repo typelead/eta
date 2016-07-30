@@ -5,7 +5,7 @@ import HscTypes
 import Type
 import TyCon
 import StgSyn
-import DynFlags
+import GHCVM.Main.DynFlags
 import FastString
 import VarEnv
 import Id

@@ -65,7 +65,7 @@ import PrelNames
 import Outputable
 import SrcLoc
 import Util
-import DynFlags
+import GHCVM.Main.DynFlags
 import FastString
 
 import TcEvidence

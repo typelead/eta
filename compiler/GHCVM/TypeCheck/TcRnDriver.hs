@@ -44,7 +44,7 @@ import InstEnv
 import FamInstEnv
 import GHCVM.TypeCheck.TcAnnotations
 import GHCVM.TypeCheck.TcBinds
-import HeaderInfo       ( mkPrelImports )
+import GHCVM.Main.HeaderInfo       ( mkPrelImports )
 import GHCVM.TypeCheck.TcDefaults
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcRules

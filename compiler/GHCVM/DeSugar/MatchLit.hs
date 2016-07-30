@@ -38,7 +38,7 @@ import SrcLoc
 import Data.Ratio
 import Outputable
 import BasicTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import Util
 import FastString
 import Control.Monad

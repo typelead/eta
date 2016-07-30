@@ -18,14 +18,13 @@ source-repository head
 
 library
     default-language:    Haskell2010
-    extensions:          RecordWildCards
+    default-extensions:  RecordWildCards
                        , NamedFieldPuns
                        , OverloadedStrings
                        , MultiParamTypeClasses
                        , BangPatterns
                        , TupleSections
-    exposed-modules:     GHCVM.DriverPipeline
-                       , GHCVM.Packages
+    exposed-modules:     GHCVM.Packages
                        , GHCVM.DeSugar.Check
                        , GHCVM.DeSugar.DeSugar
                        , GHCVM.DeSugar.DsMonad
@@ -92,7 +91,15 @@ library
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
                        , GHCVM.Iface.TcIface
+                       , GHCVM.Main.DriverMkDepend
+                       , GHCVM.Main.DriverPipeline
+                       , GHCVM.Main.GHC
+                       , GHCVM.Main.GhcMake
+                       , GHCVM.Main.HeaderInfo
+                       , GHCVM.Main.Hooks
+                       , GHCVM.Main.HscMain
                        , GHCVM.Main.TidyPgm
+                       , GHCVM.Main.DynFlags
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
                        , GHCVM.CodeGen.Closure
@@ -122,6 +129,7 @@ library
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text
+                       , time       >= 1.4 && < 1.7
                        , ghc >= 7.10.3 && < 7.11.0
                        , directory >= 1.2
                        , filepath

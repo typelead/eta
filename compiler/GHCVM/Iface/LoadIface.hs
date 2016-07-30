@@ -65,7 +65,7 @@ import Panic
 import Util
 import FastString
 import Fingerprint
-import Hooks
+import GHCVM.Main.Hooks
 
 import Control.Monad
 import Data.IORef

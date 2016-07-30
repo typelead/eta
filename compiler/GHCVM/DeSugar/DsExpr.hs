@@ -40,7 +40,7 @@ import CoreUtils
 import CoreFVs
 import MkCore
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import CostCentre
 import Id
 import Module

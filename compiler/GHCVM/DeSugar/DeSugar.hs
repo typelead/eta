@@ -10,7 +10,7 @@ The Desugarer: turning HsSyn into Core.
 
 module GHCVM.DeSugar.DeSugar ( deSugar, deSugarExpr ) where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import HscTypes
 import HsSyn
 import GHCVM.TypeCheck.TcRnTypes

@@ -21,7 +21,7 @@ import MkCore
 import GHCVM.DeSugar.DsMonad          -- the monadery used in the desugarer
 import GHCVM.DeSugar.DsUtils
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import CoreUtils
 import Id
 import Type

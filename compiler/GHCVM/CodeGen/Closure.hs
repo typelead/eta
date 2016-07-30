@@ -1,6 +1,6 @@
 module GHCVM.CodeGen.Closure where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import Id
 import StgSyn
 import Type

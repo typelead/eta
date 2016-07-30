@@ -1,7 +1,7 @@
 module GHCVM.CodeGen.Con where
 
 import Literal
-import DynFlags hiding (mAX_INTLIKE, mIN_INTLIKE, mAX_INTLIKE, mAX_CHARLIKE)
+import GHCVM.Main.DynFlags hiding (mAX_INTLIKE, mIN_INTLIKE, mAX_INTLIKE, mAX_CHARLIKE)
 import Id
 import Module
 import DataCon

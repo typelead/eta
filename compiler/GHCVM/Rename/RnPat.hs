@@ -43,7 +43,7 @@ import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcHsSyn             ( hsOverLitName )
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnTypes
-import DynFlags
+import GHCVM.Main.DynFlags
 import PrelNames
 import TyCon               ( tyConName )
 import ConLike

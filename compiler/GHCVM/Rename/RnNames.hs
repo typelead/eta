@@ -15,7 +15,7 @@ module GHCVM.Rename.RnNames (
         checkConName
     ) where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import HsSyn
 import GHCVM.TypeCheck.TcEnv            ( isBrackStage )
 import GHCVM.Rename.RnEnv

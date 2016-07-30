@@ -61,7 +61,7 @@ import Type
 import UniqSupply
 import Name
 import NameEnv
-import DynFlags
+import GHCVM.Main.DynFlags
 import ErrUtils
 import FastString
 import Maybes

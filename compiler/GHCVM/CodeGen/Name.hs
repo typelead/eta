@@ -17,7 +17,7 @@ module GHCVM.CodeGen.Name (
   labelToMethod
   ) where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import TyCon
 import DataCon
 import Module

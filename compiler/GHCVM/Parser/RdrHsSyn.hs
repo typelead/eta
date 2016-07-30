@@ -81,7 +81,7 @@ import ForeignCall
 import OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
                           occNameString )
 import PrelNames        ( forall_tv_RDR, allNameStrings )
-import DynFlags
+import GHCVM.Main.DynFlags
 import SrcLoc
 import OrdList          ( OrdList, fromOL )
 import Bag              ( emptyBag, consBag )

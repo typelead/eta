@@ -27,7 +27,7 @@ import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnSplice         ( rnBracket, rnSpliceExpr, checkThLocalName )
 import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnPat
-import DynFlags
+import GHCVM.Main.DynFlags
 import BasicTypes       ( FixityDirection(..) )
 import PrelNames
 

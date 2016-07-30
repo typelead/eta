@@ -1,6 +1,6 @@
 module GHCVM.CodeGen.Utils where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import Type
 import Name
 import TyCon

@@ -1,6 +1,6 @@
 module GHCVM.CodeGen.Rts where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 
 import Data.Text
 import Codec.JVM

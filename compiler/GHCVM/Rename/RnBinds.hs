@@ -32,7 +32,7 @@ import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnPat
 import GHCVM.Rename.RnNames
 import GHCVM.Rename.RnEnv
-import DynFlags
+import GHCVM.Main.DynFlags
 import Module
 import Name
 import NameEnv

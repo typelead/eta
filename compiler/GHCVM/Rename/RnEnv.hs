@@ -67,7 +67,7 @@ import Util
 import Maybes
 import BasicTypes       ( TopLevelFlag(..) )
 import ListSetOps       ( removeDups )
-import DynFlags
+import GHCVM.Main.DynFlags
 import FastString
 import Control.Monad
 import Data.List
