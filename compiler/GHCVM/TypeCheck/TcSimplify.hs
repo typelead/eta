@@ -10,6 +10,7 @@ module GHCVM.TypeCheck.TcSimplify(
 
 import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.TypeCheck.TcRnMonad
+import qualified GHCVM.TypeCheck.TcRnMonad as TcRnMonad
 import GHCVM.TypeCheck.TcErrors
 import GHCVM.TypeCheck.TcMType as TcM
 import TcType

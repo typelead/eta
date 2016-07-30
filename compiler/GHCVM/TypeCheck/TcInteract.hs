@@ -6,6 +6,7 @@ module GHCVM.TypeCheck.TcInteract (
 import BasicTypes ()
 import HsTypes ( hsIPNameFS )
 import FastString
+import qualified GHCVM.TypeCheck.TcCanonical as TcCanonical
 import GHCVM.TypeCheck.TcCanonical
 import GHCVM.TypeCheck.TcFlatten
 import VarSet

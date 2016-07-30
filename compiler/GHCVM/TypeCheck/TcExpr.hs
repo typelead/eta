@@ -1233,73 +1233,73 @@ tcTagToEnum loc fun_name arg res_ty
 -}
 
 checkThLocalId :: Id -> TcM ()
-#ifndef GHCI  /* GHCI and TH is off */
+-- #ifndef GHCI  /* GHCI and TH is off */
 --------------------------------------
 -- Check for cross-stage lifting
 checkThLocalId _id
   = return ()
 
-#else         /* GHCI and TH is on */
-checkThLocalId id
-  = do  { mb_local_use <- getStageAndBindLevel (idName id)
-        ; case mb_local_use of
-             Just (top_lvl, bind_lvl, use_stage)
-                | thLevel use_stage > bind_lvl
-                , isNotTopLevel top_lvl
-                -> checkCrossStageLifting id use_stage
-             _  -> return ()   -- Not a locally-bound thing, or
-                               -- no cross-stage link
-    }
+-- #else         /* GHCI and TH is on */
+-- checkThLocalId id
+--   = do  { mb_local_use <- getStageAndBindLevel (idName id)
+--         ; case mb_local_use of
+--              Just (top_lvl, bind_lvl, use_stage)
+--                 | thLevel use_stage > bind_lvl
+--                 , isNotTopLevel top_lvl
+--                 -> checkCrossStageLifting id use_stage
+--              _  -> return ()   -- Not a locally-bound thing, or
+--                                -- no cross-stage link
+--     }
 
---------------------------------------
-checkCrossStageLifting :: Id -> ThStage -> TcM ()
--- If we are inside brackets, and (use_lvl > bind_lvl)
--- we must check whether there's a cross-stage lift to do
--- Examples   \x -> [| x |]
---            [| map |]
--- There is no error-checking to do, because the renamer did that
+-- --------------------------------------
+-- checkCrossStageLifting :: Id -> ThStage -> TcM ()
+-- -- If we are inside brackets, and (use_lvl > bind_lvl)
+-- -- we must check whether there's a cross-stage lift to do
+-- -- Examples   \x -> [| x |]
+-- --            [| map |]
+-- -- There is no error-checking to do, because the renamer did that
 
-checkCrossStageLifting id (Brack _ (TcPending ps_var lie_var))
-  =     -- Nested identifiers, such as 'x' in
-        -- E.g. \x -> [| h x |]
-        -- We must behave as if the reference to x was
-        --      h $(lift x)
-        -- We use 'x' itself as the splice proxy, used by
-        -- the desugarer to stitch it all back together.
-        -- If 'x' occurs many times we may get many identical
-        -- bindings of the same splice proxy, but that doesn't
-        -- matter, although it's a mite untidy.
-    do  { let id_ty = idType id
-        ; checkTc (isTauTy id_ty) (polySpliceErr id)
-               -- If x is polymorphic, its occurrence sites might
-               -- have different instantiations, so we can't use plain
-               -- 'x' as the splice proxy name.  I don't know how to
-               -- solve this, and it's probably unimportant, so I'm
-               -- just going to flag an error for now
+-- checkCrossStageLifting id (Brack _ (TcPending ps_var lie_var))
+--   =     -- Nested identifiers, such as 'x' in
+--         -- E.g. \x -> [| h x |]
+--         -- We must behave as if the reference to x was
+--         --      h $(lift x)
+--         -- We use 'x' itself as the splice proxy, used by
+--         -- the desugarer to stitch it all back together.
+--         -- If 'x' occurs many times we may get many identical
+--         -- bindings of the same splice proxy, but that doesn't
+--         -- matter, although it's a mite untidy.
+--     do  { let id_ty = idType id
+--         ; checkTc (isTauTy id_ty) (polySpliceErr id)
+--                -- If x is polymorphic, its occurrence sites might
+--                -- have different instantiations, so we can't use plain
+--                -- 'x' as the splice proxy name.  I don't know how to
+--                -- solve this, and it's probably unimportant, so I'm
+--                -- just going to flag an error for now
 
-        ; lift <- if isStringTy id_ty then
-                     do { sid <- tcLookupId DsMeta.liftStringName
-                                     -- See Note [Lifting strings]
-                        ; return (HsVar sid) }
-                  else
-                     setConstraintVar lie_var   $
-                          -- Put the 'lift' constraint into the right LIE
-                     newMethodFromName (OccurrenceOf (idName id))
-                                       DsMeta.liftName id_ty
+--         ; lift <- if isStringTy id_ty then
+--                      do { sid <- tcLookupId DsMeta.liftStringName
+--                                      -- See Note [Lifting strings]
+--                         ; return (HsVar sid) }
+--                   else
+--                      setConstraintVar lie_var   $
+--                           -- Put the 'lift' constraint into the right LIE
+--                      newMethodFromName (OccurrenceOf (idName id))
+--                                        DsMeta.liftName id_ty
 
-                   -- Update the pending splices
-        ; ps <- readMutVar ps_var
-        ; let pending_splice = PendSplice (idName id) (nlHsApp (noLoc lift) (nlHsVar id))
-        ; writeMutVar ps_var (pending_splice : ps)
+--                    -- Update the pending splices
+--         ; ps <- readMutVar ps_var
+--         ; let pending_splice = PendSplice (idName id) (nlHsApp (noLoc lift) (nlHsVar id))
+--         ; writeMutVar ps_var (pending_splice : ps)
 
-        ; return () }
+--         ; return () }
 
-checkCrossStageLifting _ _ = return ()
+-- checkCrossStageLifting _ _ = return ()
 
-polySpliceErr :: Id -> SDoc
-polySpliceErr id
-  = ptext (sLit "Can't splice the polymorphic local variable") <+> quotes (ppr id)
-#endif /* GHCI */
+-- polySpliceErr :: Id -> SDoc
+-- polySpliceErr id
+--   = ptext (sLit "Can't splice the polymorphic local variable") <+> quotes (ppr id)
+-- #endif /* GHCI */
 
 {-
 Note [Lifting strings]

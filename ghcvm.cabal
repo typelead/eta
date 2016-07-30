@@ -87,9 +87,12 @@ library
                        , GHCVM.TypeCheck.TcUnify
                        , GHCVM.TypeCheck.TcValidity
                        , GHCVM.Iface.BinIface
+                       , GHCVM.Iface.BuildTyCl
+                       , GHCVM.Iface.IfaceEnv
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
                        , GHCVM.Iface.TcIface
+                       , GHCVM.Main.TidyPgm
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
                        , GHCVM.CodeGen.Closure

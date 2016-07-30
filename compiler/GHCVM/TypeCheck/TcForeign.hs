@@ -1,4 +1,17 @@
-module GHCVM.TypeCheck.TcForeign where
+module GHCVM.TypeCheck.TcForeign
+  ( tcForeignImports
+  , tcForeignExports
+  -- Low-level exports for hooks
+  , isForeignImport, isForeignExport
+  , tcFImport --, tcFExport
+--  , tcForeignImports'
+  , tcCheckFIType, checkJavaTarget, checkForeignArgs, checkForeignRes
+  , normaliseFfiType
+  , nonIOok, mustBeIO
+  , checkSafe, noCheckSafe
+ -- , tcForeignExports'
+ -- , tcCheckFEType
+  ) where
 
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcHsType
@@ -264,8 +277,9 @@ argument, result :: SDoc
 argument = text "argument"
 result   = text "result"
 
-checkSafe :: Bool
+checkSafe, noCheckSafe :: Bool
 checkSafe = True
+noCheckSafe = False
 
 legalOutgoingTyCon :: DynFlags -> Safety -> TyCon -> Type -> Bool
 legalOutgoingTyCon dflags _ tc ty = marshalableTyCon dflags tc ty
@@ -304,8 +318,9 @@ boxedMarshalableTyCon tc ty
   = True
   | otherwise = False
 
-nonIOok :: Bool
+nonIOok, mustBeIO :: Bool
 nonIOok = True
+mustBeIO = False
 
 checkJavaTarget :: CCallTarget -> TcM ()
 checkJavaTarget (StaticTarget str _ _) = do
@@ -319,3 +334,5 @@ isTc :: Unique -> Type -> Bool
 isTc uniq ty = case tcSplitTyConApp_maybe ty of
   Just (tc, _) -> uniq == getUnique tc
   Nothing      -> False
+
+tcForeignExports = undefined

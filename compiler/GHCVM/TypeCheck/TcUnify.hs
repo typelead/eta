@@ -37,7 +37,7 @@ import TcType
 import Type
 import TcEvidence
 import Name ( isSystemName )
-import Inst
+import GHCVM.TypeCheck.Inst
 import Kind
 import TyCon
 import TysWiredIn

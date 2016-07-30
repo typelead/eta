@@ -91,9 +91,9 @@ module GHCVM.TypeCheck.TcSMonad (
 
 import HscTypes
 
-import GHCVM.TypeCheck.Inst
+import qualified GHCVM.TypeCheck.Inst as Inst
 import InstEnv
-import GHCVM.TypeCheck.FamInst
+import qualified GHCVM.TypeCheck.FamInst as FamInst
 import FamInstEnv
 
 import qualified GHCVM.TypeCheck.TcRnMonad as TcM

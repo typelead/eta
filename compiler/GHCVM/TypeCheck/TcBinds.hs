@@ -1497,7 +1497,7 @@ decideGeneralisationPlan dflags type_env bndr_names lbinds sig_fn
           AGlobal {}                -> True           --    are not closed!
           _                         -> pprPanic "is_closed_id" (ppr name)
       | otherwise
-      = WARN( isInternalName name, ppr name ) True
+      = {-WARN( isInternalName name, ppr name )-} True
         -- The free-var set for a top level binding mentions
         -- imported things too, so that we can report unused imports
         -- These won't be in the local type env.

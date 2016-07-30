@@ -15,7 +15,7 @@ module GHCVM.Iface.BuildTyCl (
         newImplicitBinder
     ) where
 
-import IfaceEnv
+import GHCVM.Iface.IfaceEnv
 import FamInstEnv( FamInstEnvs )
 import DataCon
 import PatSyn

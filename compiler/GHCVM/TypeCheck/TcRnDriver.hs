@@ -95,7 +95,7 @@ import Data.Ord
 -- import DynamicLoading ( loadPlugins )
 -- import Plugins ( tcPlugin )
 -- #endif
-import TidyPgm    ( mkBootModDetailsTc )
+import GHCVM.Main.TidyPgm    ( mkBootModDetailsTc )
 
 import FastString
 import Maybes
