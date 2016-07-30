@@ -1344,3 +1344,16 @@ tcSplitJavaType_maybe ty
             Just (javaTyCon, javaTagType, javaResType)
         _ ->
             Nothing
+
+ghcvmKeyNames :: [Name]
+ghcvmKeyNames =
+  [ jcharPrimTyConName
+  , jbytePrimTyConName
+  , jbooleanPrimTyConName
+  , jshortPrimTyConName
+  , jobjectPrimTyConName
+  , jarrayPrimTyConName
+  , javaTyConName
+  , javaDataConName
+  , objectDataConName
+  , objectTyConName ]
