@@ -29,6 +29,15 @@ library
                        , GHCVM.DeSugar.DeSugar
                        , GHCVM.DeSugar.DsMonad
                        , GHCVM.DeSugar.DsArrows
+                       , GHCVM.DeSugar.DsBinds
+                       , GHCVM.DeSugar.DsExpr
+                       , GHCVM.DeSugar.DsGRHSs
+                       , GHCVM.DeSugar.DsListComp
+                       , GHCVM.DeSugar.DsMeta
+                       , GHCVM.DeSugar.DsUtils
+                       , GHCVM.DeSugar.Match
+                       , GHCVM.DeSugar.MatchCon
+                       , GHCVM.DeSugar.MatchLit
                        , GHCVM.Iface.BinIface
                        , GHCVM.Iface.LoadIface
                        , GHCVM.Iface.MkIface
