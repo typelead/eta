@@ -37,7 +37,7 @@ import TyCon
 import DataCon
 import PatSyn
 import ConLike
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import BasicTypes hiding (SuccessFlag(..))
 import GHCVM.Main.DynFlags
 import SrcLoc

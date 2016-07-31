@@ -28,7 +28,7 @@ import ForeignCall      ( CCallTarget(..) )
 import Module
 import HscTypes         ( Warnings(..), plusWarns )
 import Class            ( FunDep )
-import PrelNames        ( isUnboundName )
+import GHCVM.Prelude.PrelNames        ( isUnboundName )
 import Name
 import NameSet
 import NameEnv

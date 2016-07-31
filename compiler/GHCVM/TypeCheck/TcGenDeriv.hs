@@ -39,7 +39,7 @@ import GHCVM.Main.DynFlags
 import PrelInfo
 import FamInstEnv( FamInst )
 import MkCore ( eRROR_ID )
-import PrelNames hiding (error_RDR)
+import GHCVM.Prelude.PrelNames hiding (error_RDR)
 import MkId ( coerceId )
 import PrimOp
 import SrcLoc

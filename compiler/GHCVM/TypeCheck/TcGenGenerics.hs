@@ -30,7 +30,7 @@ import Name      hiding ( varName )
 import RdrName
 import BasicTypes
 import TysWiredIn
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import InstEnv
 import GHCVM.TypeCheck.TcEnv
 import MkId

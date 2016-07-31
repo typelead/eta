@@ -33,7 +33,7 @@ import CoreUnfold
 import CoreFVs
 import UniqSupply
 import Digraph
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TysPrim ( mkProxyPrimTy )
 import TyCon      ( isTupleTyCon, tyConDataCons_maybe
                   , tyConName, isPromotedTyCon, isPromotedDataCon, tyConKind )

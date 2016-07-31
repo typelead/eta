@@ -47,7 +47,7 @@ import HsSyn
 import GHCVM.Iface.TcIface
 import GHCVM.Iface.LoadIface
 import Finder
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import RdrName
 import HscTypes
 import Bag

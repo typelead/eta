@@ -19,7 +19,7 @@ import SysTools
 import Config
 import Constants
 import HscTypes
-import Packages (pprPackages, pprPackagesSimple, pprModuleMap)
+import GHCVM.Main.Packages (pprPackages, pprPackagesSimple, pprModuleMap)
 import DriverPhases
 import CorePrep ( corePrepPgm )
 import BasicTypes (failed)
@@ -269,7 +269,7 @@ main' postLoadMode dflags0 args flagWarnings = do
   liftIO $ dumpFinalStats dflags6
 
 ghciUI :: [(FilePath, Maybe Phase)] -> Maybe [String] -> Ghc ()
-ghciUI     = interactiveUI defaultGhciSettings
+ghciUI     = undefined--TODO: GHCI interactiveUI defaultGhciSettings
 
 -- -----------------------------------------------------------------------------
 -- Splitting arguments into source files and object files.  This is where we
@@ -706,10 +706,10 @@ showBanner :: PostLoadMode -> DynFlags -> IO ()
 showBanner _postLoadMode dflags = do
    let verb = verbosity dflags
 
-#ifdef GHCI
-   -- Show the GHCi banner
-   when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn ghciWelcomeMsg
-#endif
+-- TODO: #ifdef GHCI
+--    -- Show the GHCi banner
+--    when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn ghciWelcomeMsg
+-- #endif
 
    -- Display details of the configuration in verbose mode
    when (verb >= 2) $

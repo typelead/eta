@@ -31,7 +31,7 @@ import GHCVM.TypeCheck.TcHsSyn ( shortCutLit )
 import TcType
 import Name
 import Type
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TysWiredIn
 import Literal
 import SrcLoc

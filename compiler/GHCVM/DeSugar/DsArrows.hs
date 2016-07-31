@@ -36,7 +36,7 @@ import Id
 import DataCon
 import TysWiredIn
 import BasicTypes
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import Outputable
 import Bag
 import VarSet

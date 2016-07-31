@@ -13,7 +13,7 @@ import Name
 import Id
 import Avail
 import TcType (tcSplitTyConApp_maybe)
-import PrelNames (gHC_PRIM, conName, tcQual, gHC_TYPES, ioTyConKey)
+import GHCVM.Prelude.PrelNames (gHC_PRIM, conName, tcQual, gHC_TYPES, ioTyConKey)
 import Data.Maybe
 import HscTypes
 import PrimOp

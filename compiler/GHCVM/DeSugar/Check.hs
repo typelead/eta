@@ -17,7 +17,7 @@ import DataCon
 import PatSyn
 import Name
 import TysWiredIn
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TyCon
 import SrcLoc
 import UniqSet

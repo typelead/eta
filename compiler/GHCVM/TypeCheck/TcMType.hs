@@ -73,7 +73,7 @@ import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
 import Id
 import Name
 import VarSet
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import GHCVM.Main.DynFlags
 import Util
 import Outputable

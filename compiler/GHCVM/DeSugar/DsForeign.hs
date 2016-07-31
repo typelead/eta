@@ -26,7 +26,7 @@ import HscTypes
 import ForeignCall
 import TysWiredIn
 import TysPrim
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import BasicTypes
 import SrcLoc
 import Outputable

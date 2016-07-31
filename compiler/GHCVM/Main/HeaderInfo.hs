@@ -21,7 +21,7 @@ import GHCVM.Parser.Lexer
 import FastString
 import HsSyn
 import Module
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import StringBuffer
 import SrcLoc
 import GHCVM.Main.DynFlags

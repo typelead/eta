@@ -49,7 +49,7 @@ import VarEnv
 import ConLike
 import DataCon
 import TysWiredIn
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import BasicTypes
 import Maybes
 import SrcLoc

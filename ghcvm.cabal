@@ -24,8 +24,7 @@ library
                        , MultiParamTypeClasses
                        , BangPatterns
                        , TupleSections
-    exposed-modules:     GHCVM.Packages
-                       , GHCVM.DeSugar.Check
+    exposed-modules:     GHCVM.DeSugar.Check
                        , GHCVM.DeSugar.DeSugar
                        , GHCVM.DeSugar.DsMonad
                        , GHCVM.DeSugar.DsArrows
@@ -98,8 +97,11 @@ library
                        , GHCVM.Main.HeaderInfo
                        , GHCVM.Main.Hooks
                        , GHCVM.Main.HscMain
+                       , GHCVM.Main.Packages
+                       , GHCVM.Main.PprTyThing
                        , GHCVM.Main.TidyPgm
                        , GHCVM.Main.DynFlags
+                       , GHCVM.Prelude.PrelNames
                        , GHCVM.CodeGen.Main
                        , GHCVM.CodeGen.Monad
                        , GHCVM.CodeGen.Closure
@@ -129,6 +131,7 @@ library
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text
+                       , bin-package-db 
                        , time       >= 1.4 && < 1.7
                        , ghc >= 7.10.3 && < 7.11.0
                        , directory >= 1.2

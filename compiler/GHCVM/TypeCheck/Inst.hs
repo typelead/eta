@@ -46,7 +46,7 @@ import Name
 import Var      ( EvVar )
 import VarEnv
 import VarSet
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import SrcLoc
 import GHCVM.Main.DynFlags
 import Bag

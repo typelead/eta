@@ -13,7 +13,7 @@ import Name
 import OccName
 import DataCon
 import Util (unzipWith)
-import PrelNames (rOOT_MAIN)
+import GHCVM.Prelude.PrelNames (rOOT_MAIN)
 
 import GHCVM.Util
 import GHCVM.Primitive

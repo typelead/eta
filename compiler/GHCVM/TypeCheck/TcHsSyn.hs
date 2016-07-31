@@ -29,7 +29,7 @@ module GHCVM.TypeCheck.TcHsSyn (
 import HsSyn
 import Id
 import GHCVM.TypeCheck.TcRnMonad
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TypeRep     -- We can see the representation of types
 import TcType
 import GHCVM.TypeCheck.TcMType ( defaultKindVarToStar, zonkQuantifiedTyVar, writeMetaTyVar )

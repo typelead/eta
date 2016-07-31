@@ -24,7 +24,7 @@ import ErrUtils
 import GHCVM.Main.DynFlags
 import DataCon
 import Unique
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import Type
 import TypeRep
 import Coercion

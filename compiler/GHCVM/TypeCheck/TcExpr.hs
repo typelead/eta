@@ -47,7 +47,7 @@ import VarEnv
 import TysWiredIn
 import TysPrim( intPrimTy, addrPrimTy )
 import PrimOp( tagToEnumKey )
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import GHCVM.Main.DynFlags
 import SrcLoc
 import Util

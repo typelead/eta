@@ -41,7 +41,7 @@ import BasicTypes hiding (SuccessFlag(..))
 import GHCVM.TypeCheck.TcRnMonad
 
 import Constants
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import PrelInfo
 import PrimOp   ( allThePrimOps, primOpFixity, primOpOcc )
 import MkId     ( seqId )

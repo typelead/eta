@@ -20,7 +20,7 @@ import Type
 import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsUtils
 import TysWiredIn
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import Module
 import Name
 import Util

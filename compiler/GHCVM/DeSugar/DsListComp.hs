@@ -27,7 +27,7 @@ import Id
 import Type
 import TysWiredIn
 import GHCVM.DeSugar.Match
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import SrcLoc
 import Outputable
 import FastString

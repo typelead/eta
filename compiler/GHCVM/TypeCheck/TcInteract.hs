@@ -18,7 +18,7 @@ import CoAxiom(sfInteractTop, sfInteractInert)
 
 import Var
 import TcType
-import PrelNames ( knownNatClassName, knownSymbolClassName, ipClassNameKey
+import GHCVM.Prelude.PrelNames ( knownNatClassName, knownSymbolClassName, ipClassNameKey
                  , typeableClassName, callStackTyConKey )
 import Id( idType )
 import Class

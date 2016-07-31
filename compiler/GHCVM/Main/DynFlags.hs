@@ -153,8 +153,8 @@ import PlatformConstants
 import Module
 import PackageConfig
 import {-# SOURCE #-} GHCVM.Main.Hooks
-import {-# SOURCE #-} PrelNames ( mAIN )
-import {-# SOURCE #-} Packages (PackageState)
+import {-# SOURCE #-} GHCVM.Prelude.PrelNames ( mAIN )
+import {-# SOURCE #-} GHCVM.Main.Packages (PackageState)
 import DriverPhases     ( Phase(..), phaseInputExt )
 import Config
 import CmdLineParser
@@ -2270,14 +2270,14 @@ dynamic_flags = [
   , defGhcFlag "static"         (NoArg removeWayDyn)
   , defGhcFlag "dynamic"        (NoArg (addWay WayDyn))
   , defGhcFlag "rdynamic" $ noArg $
-#ifdef linux_HOST_OS
-                              addOptl "-rdynamic"
-#elif defined (mingw32_HOST_OS)
-                              addOptl "-export-all-symbols"
-#else
+-- #ifdef linux_HOST_OS
+--                               addOptl "-rdynamic"
+-- #elif defined (mingw32_HOST_OS)
+--                               addOptl "-export-all-symbols"
+-- #else
     -- ignored for compat w/ gcc:
                               id
-#endif
+-- #endif
   , defGhcFlag "relative-dynlib-paths"
       (NoArg (setGeneralFlag Opt_RelativeDynlibPaths))
 
@@ -3434,28 +3434,28 @@ glasgowExtsFlags = [
            , Opt_UnicodeSyntax
            , Opt_UnliftedFFITypes ]
 
-#ifdef GHCI
--- Consult the RTS to find whether GHC itself has been built profiled
--- If so, you can't use Template Haskell
-foreign import ccall unsafe "rts_isProfiled" rtsIsProfiledIO :: IO CInt
+-- TODO: #ifdef GHCI
+-- -- Consult the RTS to find whether GHC itself has been built profiled
+-- -- If so, you can't use Template Haskell
+-- foreign import ccall unsafe "rts_isProfiled" rtsIsProfiledIO :: IO CInt
 
-rtsIsProfiled :: Bool
-rtsIsProfiled = unsafeDupablePerformIO rtsIsProfiledIO /= 0
-#endif
+-- rtsIsProfiled :: Bool
+-- rtsIsProfiled = unsafeDupablePerformIO rtsIsProfiledIO /= 0
+-- #endif
 
-#ifdef GHCI
--- Consult the RTS to find whether GHC itself has been built with
--- dynamic linking.  This can't be statically known at compile-time,
--- because we build both the static and dynamic versions together with
--- -dynamic-too.
-foreign import ccall unsafe "rts_isDynamic" rtsIsDynamicIO :: IO CInt
+-- #ifdef GHCI
+-- -- Consult the RTS to find whether GHC itself has been built with
+-- -- dynamic linking.  This can't be statically known at compile-time,
+-- -- because we build both the static and dynamic versions together with
+-- -- -dynamic-too.
+-- foreign import ccall unsafe "rts_isDynamic" rtsIsDynamicIO :: IO CInt
 
-dynamicGhc :: Bool
-dynamicGhc = unsafeDupablePerformIO rtsIsDynamicIO /= 0
-#else
+-- dynamicGhc :: Bool
+-- dynamicGhc = unsafeDupablePerformIO rtsIsDynamicIO /= 0
+-- #else
 dynamicGhc :: Bool
 dynamicGhc = False
-#endif
+-- #endif
 
 setWarnSafe :: Bool -> DynP ()
 setWarnSafe True  = getCurLoc >>= \l -> upd (\d -> d { warnSafeOnLoc = l })
@@ -3489,13 +3489,13 @@ setIncoherentInsts True = do
   upd (\d -> d { incoherentOnLoc = l })
 
 checkTemplateHaskellOk :: TurnOnFlag -> DynP ()
-#ifdef GHCI
-checkTemplateHaskellOk turn_on
-  | turn_on && rtsIsProfiled
-  = addErr "You can't use Template Haskell with a profiled compiler"
-  | otherwise
-  = getCurLoc >>= \l -> upd (\d -> d { thOnLoc = l })
-#else
+-- TODO: #ifdef GHCI
+-- checkTemplateHaskellOk turn_on
+--   | turn_on && rtsIsProfiled
+--   = addErr "You can't use Template Haskell with a profiled compiler"
+--   | otherwise
+--   = getCurLoc >>= \l -> upd (\d -> d { thOnLoc = l })
+-- #else
 -- In stage 1, Template Haskell is simply illegal, except with -M
 -- We don't bleat with -M because there's no problem with TH there,
 -- and in fact GHC's build system does ghc -M of the DPH libraries
@@ -3509,7 +3509,7 @@ checkTemplateHaskellOk turn_on
   where
     msg = "Template Haskell requires GHC with interpreter support\n    " ++
           "Perhaps you are using a stage-1 compiler?"
-#endif
+-- #endif
 
 {- **********************************************************************
 %*                                                                      *
@@ -3904,10 +3904,10 @@ addIncludePath p =
 addFrameworkPath p =
   upd (\s -> s{frameworkPaths = frameworkPaths s ++ splitPathList p})
 
-#ifndef mingw32_TARGET_OS
+-- #ifndef mingw32_TARGET_OS
 split_marker :: Char
 split_marker = ':'   -- not configurable (ToDo)
-#endif
+-- #endif
 
 splitPathList :: String -> [String]
 splitPathList s = filter notNull (splitUp s)
@@ -3916,9 +3916,9 @@ splitPathList s = filter notNull (splitUp s)
                 -- cause confusion when they are translated into -I options
                 -- for passing to gcc.
   where
-#ifndef mingw32_TARGET_OS
+-- #ifndef mingw32_TARGET_OS
     splitUp xs = split split_marker xs
-#else
+-- #else
      -- Windows: 'hybrid' support for DOS-style paths in directory lists.
      --
      -- That is, if "foo:bar:baz" is used, this interpreted as
@@ -3931,35 +3931,35 @@ splitPathList s = filter notNull (splitUp s)
      -- that this will cause too much breakage for users & ':' will
      -- work fine even with DOS paths, if you're not insisting on being silly.
      -- So, use either.
-    splitUp []             = []
-    splitUp (x:':':div:xs) | div `elem` dir_markers
-                           = ((x:':':div:p): splitUp rs)
-                           where
-                              (p,rs) = findNextPath xs
-          -- we used to check for existence of the path here, but that
-          -- required the IO monad to be threaded through the command-line
-          -- parser which is quite inconvenient.  The
-    splitUp xs = cons p (splitUp rs)
-               where
-                 (p,rs) = findNextPath xs
+--     splitUp []             = []
+--     splitUp (x:':':div:xs) | div `elem` dir_markers
+--                            = ((x:':':div:p): splitUp rs)
+--                            where
+--                               (p,rs) = findNextPath xs
+--           -- we used to check for existence of the path here, but that
+--           -- required the IO monad to be threaded through the command-line
+--           -- parser which is quite inconvenient.  The
+--     splitUp xs = cons p (splitUp rs)
+--                where
+--                  (p,rs) = findNextPath xs
 
-                 cons "" xs = xs
-                 cons x  xs = x:xs
+--                  cons "" xs = xs
+--                  cons x  xs = x:xs
 
-    -- will be called either when we've consumed nought or the
-    -- "<Drive>:/" part of a DOS path, so splitting is just a Q of
-    -- finding the next split marker.
-    findNextPath xs =
-        case break (`elem` split_markers) xs of
-           (p, _:ds) -> (p, ds)
-           (p, xs)   -> (p, xs)
+--     -- will be called either when we've consumed nought or the
+--     -- "<Drive>:/" part of a DOS path, so splitting is just a Q of
+--     -- finding the next split marker.
+--     findNextPath xs =
+--         case break (`elem` split_markers) xs of
+--            (p, _:ds) -> (p, ds)
+--            (p, xs)   -> (p, xs)
 
-    split_markers :: [Char]
-    split_markers = [':', ';']
+--     split_markers :: [Char]
+--     split_markers = [':', ';']
 
-    dir_markers :: [Char]
-    dir_markers = ['/', '\\']
-#endif
+--     dir_markers :: [Char]
+--     dir_markers = ['/', '\\']
+-- #endif
 
 -- -----------------------------------------------------------------------------
 -- tmpDir, where we store temporary files.
@@ -4079,37 +4079,37 @@ compilerInfo dflags
   where
     isWindows = platformOS (targetPlatform dflags) == OSMinGW32
 
-#include "../includes/dist-derivedconstants/header/GHCConstantsHaskellWrappers.hs"
+-- #include "../includes/dist-derivedconstants/header/GHCConstantsHaskellWrappers.hs"
 
-bLOCK_SIZE_W :: DynFlags -> Int
-bLOCK_SIZE_W dflags = bLOCK_SIZE dflags `quot` wORD_SIZE dflags
+-- bLOCK_SIZE_W :: DynFlags -> Int
+-- bLOCK_SIZE_W dflags = bLOCK_SIZE dflags `quot` wORD_SIZE dflags
 
-wORD_SIZE_IN_BITS :: DynFlags -> Int
-wORD_SIZE_IN_BITS dflags = wORD_SIZE dflags * 8
+-- wORD_SIZE_IN_BITS :: DynFlags -> Int
+-- wORD_SIZE_IN_BITS dflags = wORD_SIZE dflags * 8
 
-tAG_MASK :: DynFlags -> Int
-tAG_MASK dflags = (1 `shiftL` tAG_BITS dflags) - 1
+-- tAG_MASK :: DynFlags -> Int
+-- tAG_MASK dflags = (1 `shiftL` tAG_BITS dflags) - 1
 
-mAX_PTR_TAG :: DynFlags -> Int
-mAX_PTR_TAG = tAG_MASK
+-- mAX_PTR_TAG :: DynFlags -> Int
+-- mAX_PTR_TAG = tAG_MASK
 
--- Might be worth caching these in targetPlatform?
-tARGET_MIN_INT, tARGET_MAX_INT, tARGET_MAX_WORD :: DynFlags -> Integer
-tARGET_MIN_INT dflags
-    = case platformWordSize (targetPlatform dflags) of
-      4 -> toInteger (minBound :: Int32)
-      8 -> toInteger (minBound :: Int64)
-      w -> panic ("tARGET_MIN_INT: Unknown platformWordSize: " ++ show w)
-tARGET_MAX_INT dflags
-    = case platformWordSize (targetPlatform dflags) of
-      4 -> toInteger (maxBound :: Int32)
-      8 -> toInteger (maxBound :: Int64)
-      w -> panic ("tARGET_MAX_INT: Unknown platformWordSize: " ++ show w)
-tARGET_MAX_WORD dflags
-    = case platformWordSize (targetPlatform dflags) of
-      4 -> toInteger (maxBound :: Word32)
-      8 -> toInteger (maxBound :: Word64)
-      w -> panic ("tARGET_MAX_WORD: Unknown platformWordSize: " ++ show w)
+-- -- Might be worth caching these in targetPlatform?
+-- tARGET_MIN_INT, tARGET_MAX_INT, tARGET_MAX_WORD :: DynFlags -> Integer
+-- tARGET_MIN_INT dflags
+--     = case platformWordSize (targetPlatform dflags) of
+--       4 -> toInteger (minBound :: Int32)
+--       8 -> toInteger (minBound :: Int64)
+--       w -> panic ("tARGET_MIN_INT: Unknown platformWordSize: " ++ show w)
+-- tARGET_MAX_INT dflags
+--     = case platformWordSize (targetPlatform dflags) of
+--       4 -> toInteger (maxBound :: Int32)
+--       8 -> toInteger (maxBound :: Int64)
+--       w -> panic ("tARGET_MAX_INT: Unknown platformWordSize: " ++ show w)
+-- tARGET_MAX_WORD dflags
+--     = case platformWordSize (targetPlatform dflags) of
+--       4 -> toInteger (maxBound :: Word32)
+--       8 -> toInteger (maxBound :: Word64)
+--       w -> panic ("tARGET_MAX_WORD: Unknown platformWordSize: " ++ show w)
 
 -- | Resolve any internal inconsistencies in a set of 'DynFlags'.
 -- Returns the consistent 'DynFlags' as well as a list of warnings

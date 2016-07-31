@@ -22,7 +22,7 @@ import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnHsDoc          ( rnHsDoc )
 import GHCVM.Iface.LoadIface        ( loadSrcInterface )
 import GHCVM.TypeCheck.TcRnMonad
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import Module
 import Name
 import NameEnv

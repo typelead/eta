@@ -54,7 +54,7 @@ import BasicTypes
 import Outputable
 import FastString
 import Type(mkStrLitTy)
-import PrelNames(ipClassName)
+import GHCVM.Prelude.PrelNames(ipClassName)
 import GHCVM.TypeCheck.TcValidity (checkValidType)
 
 import Control.Monad

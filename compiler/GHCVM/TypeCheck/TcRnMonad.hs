@@ -28,7 +28,7 @@ import Type
 import TcType
 import InstEnv
 import FamInstEnv
-import PrelNames
+import GHCVM.Prelude.PrelNames
 
 import Var
 import Id

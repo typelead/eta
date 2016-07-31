@@ -39,7 +39,7 @@ import Class
 import Var
 import VarEnv
 import VarSet
-import PrelNames  ( typeableClassName, genericClassNames )
+import GHCVM.Prelude.PrelNames  ( typeableClassName, genericClassNames )
 import Bag
 import BasicTypes
 import GHCVM.Main.DynFlags

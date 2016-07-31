@@ -44,7 +44,7 @@ import GHCVM.TypeCheck.TcHsSyn             ( hsOverLitName )
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnTypes
 import GHCVM.Main.DynFlags
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TyCon               ( tyConName )
 import ConLike
 import DataCon             ( dataConTyCon )

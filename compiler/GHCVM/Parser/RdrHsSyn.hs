@@ -80,7 +80,7 @@ import TysWiredIn       ( unitTyCon, unitDataCon )
 import ForeignCall
 import OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
                           occNameString )
-import PrelNames        ( forall_tv_RDR, allNameStrings )
+import GHCVM.Prelude.PrelNames        ( forall_tv_RDR, allNameStrings )
 import GHCVM.Main.DynFlags
 import SrcLoc
 import OrdList          ( OrdList, fromOL )

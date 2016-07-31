@@ -30,7 +30,7 @@ import TysWiredIn ( typeNatKind, typeSymbolKind
                   , promotedGTDataCon
                   )
 import TysPrim    ( tyVarList, mkArrowKinds )
-import PrelNames  ( gHC_TYPELITS
+import GHCVM.Prelude.PrelNames  ( gHC_TYPELITS
                   , typeNatAddTyFamNameKey
                   , typeNatMulTyFamNameKey
                   , typeNatExpTyFamNameKey

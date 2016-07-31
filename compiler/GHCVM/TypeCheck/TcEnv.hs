@@ -63,7 +63,7 @@ import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcMType
 import TcType
 import GHCVM.Iface.LoadIface
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TysWiredIn
 import Id
 import IdInfo( IdDetails(VanillaId) )

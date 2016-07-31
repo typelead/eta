@@ -61,7 +61,7 @@ import BasicTypes
 import UniqSet
 import UniqSupply
 import Module
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import Outputable
 import SrcLoc
 import Util

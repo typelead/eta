@@ -103,7 +103,6 @@ module GHCVM.Main.HscMain
 -- #endif
 
 import Module
-import Packages
 import RdrName
 import HsSyn
 import CoreSyn
@@ -159,7 +158,7 @@ import GHCVM.CodeGen.Name
 import GHCVM.Debug
 import GHCVM.CodeGen.Rts
 import GHCVM.JAR
-import GHCVM.Packages
+import GHCVM.Main.Packages
 import GHCVM.Util
 import Codec.JVM
 

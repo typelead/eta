@@ -47,13 +47,12 @@ import GHCVM.Debug
 import GHCVM.CodeGen.Rts
 import GHCVM.Parser.Parse
 import GHCVM.JAR
-import GHCVM.Packages
 import GHCVM.Util
 import Codec.JVM
 
 import GHCVM.Iface.MkIface
 import PipelineMonad
-import Packages
+import GHCVM.Main.Packages
 import GHCVM.Main.HeaderInfo
 import DriverPhases
 import GHCVM.Main.HscMain

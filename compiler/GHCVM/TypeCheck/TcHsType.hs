@@ -65,7 +65,7 @@ import Util
 
 import Data.Maybe( isNothing )
 import Control.Monad ( unless, when, zipWithM )
-import PrelNames( ipClassName, funTyConKey, allNameStrings )
+import GHCVM.Prelude.PrelNames( ipClassName, funTyConKey, allNameStrings )
 
 {-
         ----------------------------

@@ -31,7 +31,7 @@ module GHCVM.TypeCheck.TcRnDriver (
 import GHCVM.Main.DynFlags
 import StaticFlags
 import HsSyn
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import RdrName
 import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.TypeCheck.TcExpr

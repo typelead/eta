@@ -43,7 +43,7 @@ import TyCon
 import CoAxiom
 import ConLike
 import DataCon
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TysWiredIn
 import TysPrim          ( superKindTyConName )
 import BasicTypes       ( strongLoopBreaker )

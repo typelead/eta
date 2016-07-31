@@ -29,7 +29,7 @@ import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnPat
 import GHCVM.Main.DynFlags
 import BasicTypes       ( FixityDirection(..) )
-import PrelNames
+import GHCVM.Prelude.PrelNames
 
 import Name
 import NameSet

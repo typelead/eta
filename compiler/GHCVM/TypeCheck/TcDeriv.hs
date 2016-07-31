@@ -49,7 +49,7 @@ import TyCon
 import TcType
 import Var
 import VarSet
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import SrcLoc
 import Util
 import Outputable

@@ -32,7 +32,7 @@ import GHCVM.Rename.RnHsDoc          ( rnLHsDoc, rnMbLHsDoc )
 import GHCVM.Rename.RnEnv
 import GHCVM.TypeCheck.TcRnMonad
 import RdrName
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import TysPrim          ( funTyConName )
 import Name
 import SrcLoc

@@ -33,7 +33,7 @@ module GHCVM.DeSugar.DsMeta where
 
 -- import HsSyn
 -- import Class
--- import PrelNames
+-- import GHCVM.Prelude.PrelNames
 -- -- To avoid clashes with DsMeta.varName we must make a local alias for
 -- -- OccName.varName we do this by removing varName from the import of
 -- -- OccName above, making a qualified instance of OccName and using

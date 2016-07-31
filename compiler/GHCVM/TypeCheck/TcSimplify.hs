@@ -32,7 +32,7 @@ import Bag
 import ListSetOps
 import Util
 import PrelInfo
-import PrelNames
+import GHCVM.Prelude.PrelNames
 import Control.Monad    ( unless )
 import GHCVM.Main.DynFlags         ( ExtensionFlag( Opt_AllowAmbiguousTypes ) )
 import Class            ( classKey )
