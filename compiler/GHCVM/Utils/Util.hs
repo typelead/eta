@@ -105,8 +105,8 @@ module GHCVM.Utils.Util (
 
 #include "HsVersions.h"
 
-import Exception
-import Panic
+import GHCVM.Utils.Exception
+import GHCVM.Utils.Panic
 
 import Data.Data
 import Data.IORef       ( IORef, newIORef, atomicModifyIORef )
@@ -114,7 +114,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 import Data.List        hiding (group)
 
 #ifdef DEBUG
-import FastTypes
+import GHCVM.Utils.FastTypes
 #endif
 
 #if __GLASGOW_HASKELL__ < 709

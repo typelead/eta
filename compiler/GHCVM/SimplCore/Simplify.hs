@@ -10,44 +10,44 @@ module Simplify ( simplTopBinds, simplExpr, simplRules ) where
 
 #include "HsVersions.h"
 
-import DynFlags
+import GHCVM.Main.DynFlags
 import SimplMonad
-import Type hiding      ( substTy, extendTvSubst, substTyVar )
+import GHCVM.Types.Type hiding      ( substTy, extendTvSubst, substTyVar )
 import SimplEnv
 import SimplUtils
-import FamInstEnv       ( FamInstEnv )
-import Literal          ( litIsLifted ) --, mkMachInt ) -- temporalily commented out. See #8326
-import Id
-import MkId             ( seqId, voidPrimId )
-import MkCore           ( mkImpossibleExpr, castBottomExpr )
-import IdInfo
-import Name             ( Name, mkSystemVarName, isExternalName )
-import Coercion hiding  ( substCo, substTy, substCoVar, extendTvSubst )
-import OptCoercion      ( optCoercion )
-import FamInstEnv       ( topNormaliseType_maybe )
-import DataCon          ( DataCon, dataConWorkId, dataConRepStrictness
+import GHCVM.Types.FamInstEnv       ( FamInstEnv )
+import GHCVM.BasicTypes.Literal          ( litIsLifted ) --, mkMachInt ) -- temporalily commented out. See #8326
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId             ( seqId, voidPrimId )
+import GHCVM.Core.MkCore           ( mkImpossibleExpr, castBottomExpr )
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Name             ( Name, mkSystemVarName, isExternalName )
+import GHCVM.Types.Coercion hiding  ( substCo, substTy, substCoVar, extendTvSubst )
+import GHCVM.Types.OptCoercion      ( optCoercion )
+import GHCVM.Types.FamInstEnv       ( topNormaliseType_maybe )
+import GHCVM.BasicTypes.DataCon          ( DataCon, dataConWorkId, dataConRepStrictness
                         , isMarkedStrict ) --, dataConTyCon, dataConTag, fIRST_TAG )
---import TyCon            ( isEnumerationTyCon ) -- temporalily commented out. See #8326
-import CoreMonad        ( Tick(..), SimplifierMode(..) )
-import CoreSyn
-import Demand           ( StrictSig(..), dmdTypeDepth, isStrictDmd )
-import PprCore          ( pprCoreExpr )
-import CoreUnfold
-import CoreUtils
-import CoreArity
---import PrimOp           ( tagToEnumKey ) -- temporalily commented out. See #8326
-import Rules            ( mkSpecInfo, lookupRule, getRules )
-import TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporalily commented out. See #8326
-import BasicTypes       ( TopLevelFlag(..), isTopLevel, RecFlag(..) )
-import MonadUtils       ( foldlM, mapAccumLM, liftIO )
-import Maybes           ( orElse )
---import Unique           ( hasKey ) -- temporalily commented out. See #8326
+--import GHCVM.Types.TyCon            ( isEnumerationTyCon ) -- temporalily commented out. See #8326
+import GHCVM.SimplCore.CoreMonad        ( Tick(..), SimplifierMode(..) )
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Demand           ( StrictSig(..), dmdTypeDepth, isStrictDmd )
+import GHCVM.Core.PprCore          ( pprCoreExpr )
+import GHCVM.Core.CoreUnfold
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreArity
+--import GHCVM.Prelude.PrimOp           ( tagToEnumKey ) -- temporalily commented out. See #8326
+import GHCVM.Specialise.Rules            ( mkSpecInfo, lookupRule, getRules )
+import GHCVM.Prelude.TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporalily commented out. See #8326
+import GHCVM.BasicTypes.BasicTypes       ( TopLevelFlag(..), isTopLevel, RecFlag(..) )
+import GHCVM.Utils.MonadUtils       ( foldlM, mapAccumLM, liftIO )
+import GHCVM.Utils.Maybes           ( orElse )
+--import GHCVM.BasicTypes.Unique           ( hasKey ) -- temporalily commented out. See #8326
 import Control.Monad
-import Outputable
-import FastString
-import Pair
-import Util
-import ErrUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Util
+import GHCVM.Main.ErrUtils
 
 {-
 The guts of the simplifier is in this module, but the driver loop for

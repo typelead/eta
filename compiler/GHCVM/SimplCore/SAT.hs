@@ -51,24 +51,24 @@ essential to make this work well!
 {-# LANGUAGE CPP #-}
 module SAT ( doStaticArgs ) where
 
-import Var
-import CoreSyn
-import CoreUtils
-import Type
-import Coercion
-import Id
-import Name
-import VarEnv
-import UniqSupply
-import Util
-import UniqFM
-import VarSet
-import Unique
-import UniqSet
-import Outputable
+import GHCVM.BasicTypes.Var
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Util
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.Outputable
 
 import Data.List
-import FastString
+import GHCVM.Utils.FastString
 
 #include "HsVersions.h"
 

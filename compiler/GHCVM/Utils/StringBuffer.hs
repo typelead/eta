@@ -44,11 +44,11 @@ module StringBuffer
 #include "HsVersions.h"
 
 import Encoding
-import FastString
-import FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.FastTypes
 import FastFunctions
-import Outputable
-import Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
 
 import Data.Maybe
 import Control.Exception

@@ -14,18 +14,18 @@ module CoreTidy (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreArity
-import Id
-import IdInfo
-import Type( tidyType, tidyTyVarBndr )
-import Coercion( tidyCo )
-import Var
-import VarEnv
-import UniqFM
-import Name hiding (tidyNameOcc)
-import SrcLoc
-import Maybes
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreArity
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.Types.Type( tidyType, tidyTyVarBndr )
+import GHCVM.Types.Coercion( tidyCo )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Name hiding (tidyNameOcc)
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Maybes
 import Data.List
 
 {-

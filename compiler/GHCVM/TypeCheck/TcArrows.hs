@@ -11,29 +11,29 @@ module GHCVM.TypeCheck.TcArrows ( tcProc ) where
 
 import {-# SOURCE #-}  GHCVM.TypeCheck.TcExpr( tcMonoExpr, tcInferRho, tcSyntaxOp, tcCheckId, tcPolyExpr )
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcMatches
 import GHCVM.TypeCheck.TcHsSyn( hsLPatType )
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcBinds
 import GHCVM.TypeCheck.TcPat
 import GHCVM.TypeCheck.TcUnify
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
-import TcEvidence
-import Id( mkLocalId )
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.Id( mkLocalId )
 import GHCVM.TypeCheck.Inst
-import Name
-import Coercion ( Role(..) )
-import TysWiredIn
-import VarSet
-import TysPrim
-import BasicTypes( Arity )
-import SrcLoc
-import Outputable
-import FastString
-import Util
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Coercion ( Role(..) )
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Prelude.TysPrim
+import GHCVM.BasicTypes.BasicTypes( Arity )
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 
 import Control.Monad
 

@@ -29,29 +29,29 @@ module GHCVM.TypeCheck.TcUnify (
 
   ) where
 
-import HsSyn
-import TypeRep
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Types.TypeRep
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcRnMonad
-import TcType
-import Type
-import TcEvidence
-import Name ( isSystemName )
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.Name ( isSystemName )
 import GHCVM.TypeCheck.Inst
-import Kind
-import TyCon
-import TysWiredIn
-import Var
-import VarEnv
-import VarSet
-import ErrUtils
+import GHCVM.Types.Kind
+import GHCVM.Types.TyCon
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Main.ErrUtils
 import GHCVM.Main.DynFlags
-import BasicTypes
-import Maybes ( isJust )
-import Bag
-import Util
-import Outputable
-import FastString
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Maybes ( isJust )
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 import Control.Monad
 

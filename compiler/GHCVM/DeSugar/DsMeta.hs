@@ -26,41 +26,41 @@ module GHCVM.DeSugar.DsMeta where
 
 -- import {-# SOURCE #-}   DsExpr ( dsExpr )
 
--- import MatchLit
--- import DsMonad
+-- import GHCVM.DeSugar.MatchLit
+-- import GHCVM.DeSugar.DsMonad
 
 -- import qualified Language.Haskell.TH as TH
 
--- import HsSyn
--- import Class
+-- import GHCVM.HsSyn.HsSyn
+-- import GHCVM.Types.Class
 -- import GHCVM.Prelude.PrelNames
 -- -- To avoid clashes with DsMeta.varName we must make a local alias for
 -- -- OccName.varName we do this by removing varName from the import of
 -- -- OccName above, making a qualified instance of OccName and using
 -- -- OccNameAlias.varName where varName ws previously used in this file.
--- import qualified OccName( isDataOcc, isVarOcc, isTcOcc, varName, tcName, dataName )
+-- import qualified GHCVM.BasicTypes.OccName as OccName( isDataOcc, isVarOcc, isTcOcc, varName, tcName, dataName )
 
--- import Module
--- import Id
--- import Name hiding( isVarOcc, isTcOcc, varName, tcName )
--- import NameEnv
--- import TcType
--- import TyCon
--- import TysWiredIn
--- import TysPrim ( liftedTypeKindTyConName, constraintKindTyConName )
--- import CoreSyn
--- import MkCore
--- import CoreUtils
--- import SrcLoc
--- import Unique
--- import BasicTypes
--- import Outputable
--- import Bag
+-- import GHCVM.BasicTypes.Module
+-- import GHCVM.BasicTypes.Id
+-- import GHCVM.BasicTypes.Name hiding( isVarOcc, isTcOcc, varName, tcName )
+-- import GHCVM.BasicTypes.NameEnv
+-- import GHCVM.TypeCheck.TcType
+-- import GHCVM.Types.TyCon
+-- import GHCVM.Prelude.TysWiredIn
+-- import GHCVM.Prelude.TysPrim ( liftedTypeKindTyConName, constraintKindTyConName )
+-- import GHCVM.Core.CoreSyn
+-- import GHCVM.Core.MkCore
+-- import GHCVM.Core.CoreUtils
+-- import GHCVM.BasicTypes.SrcLoc
+-- import GHCVM.BasicTypes.Unique
+-- import GHCVM.BasicTypes.BasicTypes
+-- import GHCVM.Utils.Outputable
+-- import GHCVM.Utils.Bag
 -- import GHCVM.Main.DynFlags
--- import FastString
--- import ForeignCall
--- import Util
--- import MonadUtils
+-- import GHCVM.Utils.FastString
+-- import GHCVM.Prelude.ForeignCall
+-- import GHCVM.Utils.Util
+-- import GHCVM.Utils.MonadUtils
 
 -- import Data.Maybe
 -- import Control.Monad

@@ -23,10 +23,10 @@ module Bag (
         mapAndUnzipBagM, mapAccumBagLM
     ) where
 
-import Outputable
-import Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
 
-import MonadUtils
+import GHCVM.Utils.MonadUtils
 import Data.Data
 import Data.List ( partition )
 

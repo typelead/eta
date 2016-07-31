@@ -1,11 +1,11 @@
 module GHCVM.Rename.RnExpr where
-import HsSyn
-import Name       ( Name )
-import NameSet    ( FreeVars )
-import RdrName    ( RdrName )
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.Name       ( Name )
+import GHCVM.BasicTypes.NameSet    ( FreeVars )
+import GHCVM.BasicTypes.RdrName    ( RdrName )
 import GHCVM.TypeCheck.TcRnTypes
-import SrcLoc     ( Located )
-import Outputable ( Outputable )
+import GHCVM.BasicTypes.SrcLoc     ( Located )
+import GHCVM.Utils.Outputable ( Outputable )
 
 rnLExpr :: LHsExpr RdrName
         -> RnM (LHsExpr Name, FreeVars)

@@ -18,19 +18,19 @@ module FloatIn ( floatInwards ) where
 
 #include "HsVersions.h"
 
-import CoreSyn
-import MkCore
-import CoreUtils        ( exprIsDupable, exprIsExpandable, exprType,
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.MkCore
+import GHCVM.Core.CoreUtils        ( exprIsDupable, exprIsExpandable, exprType,
                           exprOkForSideEffects, mkTicks )
-import CoreFVs          ( CoreExprWithFVs, freeVars, freeVarsOf, idRuleAndUnfoldingVars )
-import Id               ( isOneShotBndr, idType )
-import Var
-import Type             ( Type, isUnLiftedType, splitFunTy, applyTy )
-import VarSet
-import Util
-import UniqFM
-import DynFlags
-import Outputable
+import GHCVM.Core.CoreFVs          ( CoreExprWithFVs, freeVars, freeVarsOf, idRuleAndUnfoldingVars )
+import GHCVM.BasicTypes.Id               ( isOneShotBndr, idType )
+import GHCVM.BasicTypes.Var
+import GHCVM.Types.Type             ( Type, isUnLiftedType, splitFunTy, applyTy )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Utils.Util
+import GHCVM.Utils.UniqFM
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Outputable
 import Data.List( mapAccumL )
 
 {-

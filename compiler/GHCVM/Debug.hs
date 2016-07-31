@@ -5,8 +5,8 @@ module GHCVM.Debug
    debugIO)
 where
 
-import Outputable hiding ((<>))
-import FastString
+import GHCVM.Utils.Outputable hiding ((<>))
+import GHCVM.Utils.FastString
 import Control.Monad.IO.Class
 import System.IO.Unsafe(unsafePerformIO)
 

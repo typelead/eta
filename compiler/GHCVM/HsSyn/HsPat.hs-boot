@@ -8,11 +8,11 @@
 #endif
 
 module HsPat where
-import SrcLoc( Located )
+import GHCVM.BasicTypes.SrcLoc( Located )
 
 import Data.Data hiding (Fixity)
-import Outputable
-import PlaceHolder      ( DataId )
+import GHCVM.Utils.Outputable
+import GHCVM.HsSyn.PlaceHolder      ( DataId )
 
 #if __GLASGOW_HASKELL__ > 706
 type role Pat nominal

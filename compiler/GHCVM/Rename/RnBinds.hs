@@ -25,28 +25,28 @@ module GHCVM.Rename.RnBinds (
 
 import {-# SOURCE #-} GHCVM.Rename.RnExpr( rnLExpr, rnStmts )
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcRnMonad
-import TcEvidence     ( emptyTcEvBinds )
+import GHCVM.TypeCheck.TcEvidence     ( emptyTcEvBinds )
 import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnPat
 import GHCVM.Rename.RnNames
 import GHCVM.Rename.RnEnv
 import GHCVM.Main.DynFlags
-import Module
-import Name
-import NameEnv
-import NameSet
-import RdrName          ( RdrName, rdrNameOcc )
-import SrcLoc
-import ListSetOps       ( findDupsEq )
-import BasicTypes       ( RecFlag(..) )
-import Digraph          ( SCC(..) )
-import Bag
-import Outputable
-import FastString
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.RdrName          ( RdrName, rdrNameOcc )
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.ListSetOps       ( findDupsEq )
+import GHCVM.BasicTypes.BasicTypes       ( RecFlag(..) )
+import GHCVM.Utils.Digraph          ( SCC(..) )
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import Data.List        ( partition, sort )
-import Maybes           ( orElse )
+import GHCVM.Utils.Maybes           ( orElse )
 import Control.Monad
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )

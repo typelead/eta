@@ -25,34 +25,34 @@ module GHCVM.Main.GhcMake(
 -- import qualified Linker         ( unload )
 -- #endif
 
-import DriverPhases
+import GHCVM.Main.DriverPhases
 import GHCVM.Main.DriverPipeline
 import GHCVM.Main.DynFlags
-import ErrUtils
-import Finder
-import GhcMonad
+import GHCVM.Main.ErrUtils
+import GHCVM.Main.Finder
+import GHCVM.Main.GhcMonad
 import GHCVM.Main.HeaderInfo
-import HsSyn
-import HscTypes
-import Module
-import RdrName          ( RdrName )
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.RdrName          ( RdrName )
 import GHCVM.Iface.TcIface          ( typecheckIface )
 import GHCVM.TypeCheck.TcRnMonad        ( initIfaceCheck )
 
-import Bag              ( listToBag )
-import BasicTypes
-import Digraph
-import Exception        ( tryIO, gbracket, gfinally )
-import FastString
-import Maybes           ( expectJust )
-import MonadUtils       ( allM, MonadIO )
-import Outputable
-import Panic
-import SrcLoc
-import StringBuffer
-import SysTools
-import UniqFM
-import Util
+import GHCVM.Utils.Bag              ( listToBag )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Digraph
+import GHCVM.Utils.Exception        ( tryIO, gbracket, gfinally )
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes           ( expectJust )
+import GHCVM.Utils.MonadUtils       ( allM, MonadIO )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Panic
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.StringBuffer
+import GHCVM.Main.SysTools
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Util
 
 import Data.Either ( rights, partitionEithers )
 import qualified Data.Map as Map

@@ -59,12 +59,12 @@ module Unique (
 
 #include "HsVersions.h"
 
-import BasicTypes
-import FastTypes
-import FastString
-import Outputable
--- import StaticFlags
-import Util
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+-- import GHCVM.Main.StaticFlags
+import GHCVM.Utils.Util
 
 --just for implementing a fast [0,61) -> Char function
 import GHC.Exts (indexCharOffAddr#, Char(..))

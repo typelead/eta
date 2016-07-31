@@ -25,11 +25,11 @@ import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.Module
 import GHCVM.BasicTypes.Unique
-import Outputable
-import FastTypes
-import SrcLoc
-import FastString
-import Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastTypes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 
 import Data.Data
 

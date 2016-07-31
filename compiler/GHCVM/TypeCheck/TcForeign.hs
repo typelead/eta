@@ -18,26 +18,26 @@ import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcExpr
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.FamInst
-import FamInstEnv
-import TysWiredIn (unitTyCon)
-import ErrUtils
+import GHCVM.Types.FamInstEnv
+import GHCVM.Prelude.TysWiredIn (unitTyCon)
+import GHCVM.Main.ErrUtils
 import GHCVM.Main.DynFlags
-import DataCon
-import Unique
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Unique
 import GHCVM.Prelude.PrelNames
-import Type
-import TypeRep
-import Coercion
-import TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
-import SrcLoc
-import ForeignCall
-import TyCon
-import Name
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep
+import GHCVM.Types.Coercion
+import GHCVM.TypeCheck.TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Prelude.ForeignCall
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Name
 import GHCVM.Debug
-import Id
-import RdrName
-import HsSyn
-import Bag
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.RdrName
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Utils.Bag
 
 import GHCVM.Primitive
 import Data.Maybe(fromMaybe)

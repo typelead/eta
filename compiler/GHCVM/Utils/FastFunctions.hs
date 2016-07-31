@@ -16,7 +16,7 @@ module FastFunctions (
 
 #include "HsVersions.h"
 
-import FastTypes
+import GHCVM.Utils.FastTypes
 import Data.IORef
 import System.IO.Unsafe
 

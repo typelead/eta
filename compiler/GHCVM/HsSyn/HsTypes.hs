@@ -53,23 +53,23 @@ module HsTypes (
         pprHsContext, pprHsContextNoArrow, pprHsContextMaybe
     ) where
 
-import {-# SOURCE #-} HsExpr ( HsSplice, pprUntypedSplice )
+import {-# SOURCE #-} GHCVM.HsSyn.HsExpr ( HsSplice, pprUntypedSplice )
 
-import PlaceHolder ( PostTc,PostRn,DataId,PlaceHolder(..) )
+import GHCVM.HsSyn.PlaceHolder ( PostTc,PostRn,DataId,PlaceHolder(..) )
 
-import Name( Name )
-import RdrName( RdrName )
-import DataCon( HsBang(..), HsSrcBang, HsImplBang )
-import TysPrim( funTyConName )
-import Type
-import HsDoc
-import BasicTypes
-import SrcLoc
-import StaticFlags
-import Outputable
-import FastString
-import Lexer ( AddAnn, mkParensApiAnn )
-import Maybes( isJust )
+import GHCVM.BasicTypes.Name( Name )
+import GHCVM.BasicTypes.RdrName( RdrName )
+import GHCVM.BasicTypes.DataCon( HsBang(..), HsSrcBang, HsImplBang )
+import GHCVM.Prelude.TysPrim( funTyConName )
+import GHCVM.Types.Type
+import GHCVM.HsSyn.HsDoc
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Main.StaticFlags
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Parser.Lexer ( AddAnn, mkParensApiAnn )
+import GHCVM.Utils.Maybes( isJust )
 
 import Data.Data hiding ( Fixity )
 import Data.Maybe ( fromMaybe )

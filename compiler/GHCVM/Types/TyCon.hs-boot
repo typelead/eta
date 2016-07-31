@@ -1,7 +1,7 @@
 module TyCon where
 
-import Name (Name)
-import Unique (Unique)
+import GHCVM.BasicTypes.Name (Name)
+import GHCVM.BasicTypes.Unique (Unique)
 
 data TyCon
 

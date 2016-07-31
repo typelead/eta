@@ -16,24 +16,24 @@ module CoreArity (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreFVs
-import CoreUtils
-import CoreSubst
-import Demand
-import Var
-import VarEnv
-import Id
-import Type
-import TyCon    ( initRecTc, checkRecTc )
-import Coercion
-import BasicTypes
-import Unique
-import DynFlags ( DynFlags, GeneralFlag(..), gopt )
-import Outputable
-import FastString
-import Pair
-import Util     ( debugIsOn )
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreSubst
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon    ( initRecTc, checkRecTc )
+import GHCVM.Types.Coercion
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Unique
+import GHCVM.Main.DynFlags ( DynFlags, GeneralFlag(..), gopt )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Util     ( debugIsOn )
 
 {-
 ************************************************************************

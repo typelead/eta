@@ -18,42 +18,42 @@ import {-# SOURCE #-} GHCVM.TypeCheck.TcMatches ( tcGRHSsPat, tcMatchesFun )
 import {-# SOURCE #-} GHCVM.TypeCheck.TcExpr  ( tcMonoExpr )
 import {-# SOURCE #-} GHCVM.TypeCheck.TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl, tcPatSynBuilderBind )
 import GHCVM.Main.DynFlags
-import HsSyn
-import HscTypes( isHsBootOrSig )
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.HscTypes( isHsBootOrSig )
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcUnify
 import GHCVM.TypeCheck.TcSimplify
-import TcEvidence
+import GHCVM.TypeCheck.TcEvidence
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcPat
 import GHCVM.TypeCheck.TcMType
-import ConLike
-import FamInstEnv( normaliseType )
+import GHCVM.BasicTypes.ConLike
+import GHCVM.Types.FamInstEnv( normaliseType )
 import GHCVM.TypeCheck.FamInst( tcGetFamInstEnvs )
-import Type( pprSigmaTypeExtraCts )
-import TyCon
-import TcType
-import TysPrim
-import Id
-import Var
-import VarSet
-import VarEnv( TidyEnv )
-import Module
-import Name
-import NameSet
-import NameEnv
-import SrcLoc
-import Bag
-import ListSetOps
-import ErrUtils
-import Digraph
-import Maybes
-import Util
-import BasicTypes
-import Outputable
-import FastString
-import Type(mkStrLitTy)
+import GHCVM.Types.Type( pprSigmaTypeExtraCts )
+import GHCVM.Types.TyCon
+import GHCVM.TypeCheck.TcType
+import GHCVM.Prelude.TysPrim
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv( TidyEnv )
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Bag
+import GHCVM.Utils.ListSetOps
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Digraph
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Types.Type(mkStrLitTy)
 import GHCVM.Prelude.PrelNames(ipClassName)
 import GHCVM.TypeCheck.TcValidity (checkValidType)
 

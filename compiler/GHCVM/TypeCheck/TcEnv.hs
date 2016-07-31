@@ -57,41 +57,41 @@ module GHCVM.TypeCheck.TcEnv(
         mkWrapperName
   ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.Iface.IfaceEnv
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcMType
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.Iface.LoadIface
 import GHCVM.Prelude.PrelNames
-import TysWiredIn
-import Id
-import IdInfo( IdDetails(VanillaId) )
-import Var
-import VarSet
-import RdrName
-import InstEnv
-import DataCon ( DataCon )
-import PatSyn  ( PatSyn )
-import ConLike
-import TyCon
-import CoAxiom
-import TypeRep
-import Class
-import Name
-import NameEnv
-import VarEnv
-import HscTypes
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo( IdDetails(VanillaId) )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Types.InstEnv
+import GHCVM.BasicTypes.DataCon ( DataCon )
+import GHCVM.BasicTypes.PatSyn  ( PatSyn )
+import GHCVM.BasicTypes.ConLike
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.Types.TypeRep
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Main.HscTypes
 import GHCVM.Main.DynFlags
-import SrcLoc
-import BasicTypes hiding( SuccessFlag(..) )
-import Module
-import Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Outputable
 import Encoding
-import FastString
-import ListSetOps
-import Util
-import Maybes( MaybeErr(..) )
+import GHCVM.Utils.FastString
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes( MaybeErr(..) )
 import Data.IORef
 import Data.List
 

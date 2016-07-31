@@ -1,24 +1,24 @@
 module GHCVM.Primitive where
 
-import ForeignCall(CType(..))
-import Outputable
-import Type
-import TypeRep
-import Unique
-import FastString
-import TyCon
-import PrelInfo
-import BasicTypes
-import Name
-import Id
-import Avail
-import TcType (tcSplitTyConApp_maybe)
+import GHCVM.Prelude.ForeignCall(CType(..))
+import GHCVM.Utils.Outputable
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.FastString
+import GHCVM.Types.TyCon
+import GHCVM.Prelude.PrelInfo
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Avail
+import GHCVM.TypeCheck.TcType (tcSplitTyConApp_maybe)
 import GHCVM.Prelude.PrelNames (gHC_PRIM, conName, tcQual, gHC_TYPES, ioTyConKey)
 import Data.Maybe
-import HscTypes
-import PrimOp
-import TysPrim
-import MkId
+import GHCVM.Main.HscTypes
+import GHCVM.Prelude.PrimOp
+import GHCVM.Prelude.TysPrim
+import GHCVM.BasicTypes.MkId
 
 import qualified Data.Text as Text
 import Data.Text (Text)

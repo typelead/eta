@@ -61,25 +61,25 @@ module GHCVM.TypeCheck.TcMType (
   ) where
 
 -- friends:
-import TypeRep
-import TcType
-import Type
-import Class
-import Var
-import VarEnv
+import GHCVM.Types.TypeRep
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
 
 -- others:
 import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
-import Id
-import Name
-import VarSet
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames
 import GHCVM.Main.DynFlags
-import Util
-import Outputable
-import FastString
-import SrcLoc
-import Bag
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Bag
 
 import Control.Monad
 import Data.List        ( partition, mapAccumL )

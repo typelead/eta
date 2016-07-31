@@ -8,7 +8,7 @@ TcInstDecls: Typechecking instance declarations
 
 module GHCVM.TypeCheck.TcInstDcls ( tcInstDecls1, tcInstDecls2 ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcBinds
 import GHCVM.TypeCheck.TcTyClsDecls
 import GHCVM.TypeCheck.TcClassDcl( tcClassDecl2,
@@ -18,45 +18,45 @@ import GHCVM.TypeCheck.TcPat      ( addInlinePrags )
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcValidity
 import GHCVM.TypeCheck.TcMType
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.Iface.BuildTyCl
 import GHCVM.TypeCheck.Inst
-import InstEnv
+import GHCVM.Types.InstEnv
 import GHCVM.TypeCheck.FamInst
-import FamInstEnv
+import GHCVM.Types.FamInstEnv
 import GHCVM.TypeCheck.TcDeriv
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcUnify
-import Coercion   ( pprCoAxiom )
-import MkCore     ( nO_METHOD_BINDING_ERROR_ID )
-import Type
-import TcEvidence
-import TyCon
-import CoAxiom
-import DataCon
-import Class
-import Var
-import VarEnv
-import VarSet
+import GHCVM.Types.Coercion   ( pprCoAxiom )
+import GHCVM.Core.MkCore     ( nO_METHOD_BINDING_ERROR_ID )
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames  ( typeableClassName, genericClassNames )
-import Bag
-import BasicTypes
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Main.DynFlags
-import ErrUtils
-import FastString
-import HscTypes ( isHsBootOrSig )
-import Id
-import MkId
-import Name
-import NameSet
-import Outputable
-import SrcLoc
-import Util
-import BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.FastString
+import GHCVM.Main.HscTypes ( isHsBootOrSig )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )
 
 import Control.Monad
-import Maybes     ( isNothing, isJust, whenIsJust )
+import GHCVM.Utils.Maybes     ( isNothing, isJust, whenIsJust )
 import Data.List  ( mapAccumL, partition )
 
 {-

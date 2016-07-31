@@ -8,25 +8,25 @@
 
 module StgLint ( lintStgBindings ) where
 
-import StgSyn
+import GHCVM.StgSyn.StgSyn
 
-import Bag              ( Bag, emptyBag, isEmptyBag, snocBag, bagToList )
-import Id               ( Id, idType, isLocalId )
-import VarSet
-import DataCon
-import CoreSyn          ( AltCon(..) )
-import PrimOp           ( primOpType )
-import Literal          ( literalType )
-import Maybes
-import Name             ( getSrcLoc )
-import ErrUtils         ( MsgDoc, Severity(..), mkLocMessage )
-import TypeRep
-import Type
-import TyCon
-import Util
-import SrcLoc
-import Outputable
-import FastString
+import GHCVM.Utils.Bag              ( Bag, emptyBag, isEmptyBag, snocBag, bagToList )
+import GHCVM.BasicTypes.Id               ( Id, idType, isLocalId )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Core.CoreSyn          ( AltCon(..) )
+import GHCVM.Prelude.PrimOp           ( primOpType )
+import GHCVM.BasicTypes.Literal          ( literalType )
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.Name             ( getSrcLoc )
+import GHCVM.Main.ErrUtils         ( MsgDoc, Severity(..), mkLocMessage )
+import GHCVM.Types.TypeRep
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative ( Applicative(..) )
 #endif

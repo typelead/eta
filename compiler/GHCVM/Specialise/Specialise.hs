@@ -9,32 +9,32 @@ module Specialise ( specProgram, specUnfolding ) where
 
 #include "HsVersions.h"
 
-import Id
-import TcType hiding( substTy, extendTvSubstList )
-import Type   hiding( substTy, extendTvSubstList )
-import Coercion( Coercion )
-import Module( Module )
-import CoreMonad
+import GHCVM.BasicTypes.Id
+import GHCVM.TypeCheck.TcType hiding( substTy, extendTvSubstList )
+import GHCVM.Types.Type   hiding( substTy, extendTvSubstList )
+import GHCVM.Types.Coercion( Coercion )
+import GHCVM.BasicTypes.Module( Module )
+import GHCVM.SimplCore.CoreMonad
 import qualified CoreSubst
-import CoreUnfold
-import VarSet
-import VarEnv
-import CoreSyn
-import Rules
-import PprCore          ( pprParendExpr )
-import CoreUtils        ( exprIsTrivial, applyTypeToArgs )
-import CoreFVs          ( exprFreeVars, exprsFreeVars, idFreeVars )
-import UniqSupply
-import Name
-import MkId             ( voidArgId, voidPrimId )
-import Maybes           ( catMaybes, isJust )
-import BasicTypes
-import HscTypes
-import Bag
-import DynFlags
-import Util
-import Outputable
-import FastString
+import GHCVM.Core.CoreUnfold
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Core.CoreSyn
+import GHCVM.Specialise.Rules
+import GHCVM.Core.PprCore          ( pprParendExpr )
+import GHCVM.Core.CoreUtils        ( exprIsTrivial, applyTypeToArgs )
+import GHCVM.Core.CoreFVs          ( exprFreeVars, exprsFreeVars, idFreeVars )
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.MkId             ( voidArgId, voidPrimId )
+import GHCVM.Utils.Maybes           ( catMaybes, isJust )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Main.HscTypes
+import GHCVM.Utils.Bag
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import State
 
 #if __GLASGOW_HASKELL__ < 709

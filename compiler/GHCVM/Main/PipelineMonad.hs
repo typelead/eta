@@ -9,12 +9,12 @@ module PipelineMonad (
   , getPipeEnv, getPipeState, setDynFlags, setModLocation, setStubO 
   ) where
 
-import MonadUtils
-import Outputable
-import DynFlags
-import DriverPhases
-import HscTypes
-import Module
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Main.DynFlags
+import GHCVM.Main.DriverPhases
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.Module
 
 import Control.Monad
 

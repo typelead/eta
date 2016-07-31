@@ -76,17 +76,17 @@ module Name (
 import {-# SOURCE #-} TypeRep( TyThing )
 import {-# SOURCE #-} PrelNames( liftedTypeKindTyConKey )
 
-import OccName
-import Module
-import SrcLoc
-import Unique
-import Util
-import Maybes
-import Binary
-import DynFlags
-import FastTypes
-import FastString
-import Outputable
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Binary
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
 
 import Data.Data
 

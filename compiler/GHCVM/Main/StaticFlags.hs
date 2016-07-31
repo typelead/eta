@@ -39,12 +39,12 @@ module StaticFlags (
 
 #include "HsVersions.h"
 
-import CmdLineParser
-import FastString
-import SrcLoc
-import Util
--- import Maybes                ( firstJusts )
-import Panic
+import GHCVM.Main.CmdLineParser
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+-- import GHCVM.Utils.Maybes                ( firstJusts )
+import GHCVM.Utils.Panic
 
 import Control.Monad
 import Data.IORef

@@ -3,47 +3,47 @@ module GHCVM.TypeCheck.TcInteract (
      solveSimpleWanteds    -- Solves Cts
   ) where
 
-import BasicTypes ()
-import HsTypes ( hsIPNameFS )
-import FastString
+import GHCVM.BasicTypes.BasicTypes ()
+import GHCVM.HsSyn.HsTypes ( hsIPNameFS )
+import GHCVM.Utils.FastString
 import qualified GHCVM.TypeCheck.TcCanonical as TcCanonical
 import GHCVM.TypeCheck.TcCanonical
 import GHCVM.TypeCheck.TcFlatten
-import VarSet
-import Type
-import Kind (isKind, isConstraintKind )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Types.Type
+import GHCVM.Types.Kind (isKind, isConstraintKind )
 import Unify
-import InstEnv( lookupInstEnv, instanceDFunId )
-import CoAxiom(sfInteractTop, sfInteractInert)
+import GHCVM.Types.InstEnv( lookupInstEnv, instanceDFunId )
+import GHCVM.Types.CoAxiom(sfInteractTop, sfInteractInert)
 
-import Var
-import TcType
+import GHCVM.BasicTypes.Var
+import GHCVM.TypeCheck.TcType
 import GHCVM.Prelude.PrelNames ( knownNatClassName, knownSymbolClassName, ipClassNameKey
                  , typeableClassName, callStackTyConKey )
-import Id( idType )
-import Class
-import TyCon
+import GHCVM.BasicTypes.Id( idType )
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
 import FunDeps
 import GHCVM.TypeCheck.FamInst
 import GHCVM.TypeCheck.Inst( tyVarsOfCt )
 
-import TcEvidence
-import Outputable
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Utils.Outputable
 
 import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.TypeCheck.TcErrors
 import GHCVM.TypeCheck.TcSMonad
-import Bag
+import GHCVM.Utils.Bag
 
 import Data.List( partition, foldl', deleteFirstsBy )
 
-import VarEnv
+import GHCVM.BasicTypes.VarEnv
 
 import Control.Monad
-import Pair (Pair(..))
-import Unique( hasKey )
+import GHCVM.Utils.Pair (Pair(..))
+import GHCVM.BasicTypes.Unique( hasKey )
 import GHCVM.Main.DynFlags
-import Util
+import GHCVM.Utils.Util
 
 {-
 **********************************************************************

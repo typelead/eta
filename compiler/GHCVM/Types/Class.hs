@@ -24,15 +24,15 @@ module Class (
 
 import {-# SOURCE #-} TyCon     ( TyCon, tyConName, tyConUnique )
 import {-# SOURCE #-} TypeRep   ( Type, PredType )
-import Var
-import Name
-import BasicTypes
-import Unique
-import Util
-import SrcLoc
-import Outputable
-import FastString
-import BooleanFormula (BooleanFormula)
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.BooleanFormula (BooleanFormula)
 
 import Data.Typeable (Typeable)
 import qualified Data.Data as Data

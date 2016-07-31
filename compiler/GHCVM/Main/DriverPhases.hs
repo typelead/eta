@@ -38,8 +38,8 @@ module DriverPhases (
 #include "HsVersions.h"
 
 import {-# SOURCE #-} DynFlags
-import Outputable
-import Platform
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Platform
 import System.FilePath
 
 -----------------------------------------------------------------------------

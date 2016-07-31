@@ -28,8 +28,8 @@ module NameSet (
         findUses, duDefs, duUses, allUses
     ) where
 
-import Name
-import UniqSet
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.UniqSet
 
 {-
 ************************************************************************

@@ -1,5 +1,5 @@
 module IdInfo where
-import Outputable
+import GHCVM.Utils.Outputable
 data IdInfo
 data IdDetails
 

@@ -28,37 +28,37 @@ import Debugger
 
 -- The GHC interface
 import GHCVM.Main.DynFlags
-import ErrUtils
-import GhcMonad ( modifySession )
+import GHCVM.Main.ErrUtils
+import GHCVM.Main.GhcMonad ( modifySession )
 import qualified GHC
 import GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
              TyThing(..), Phase, BreakIndex, Resume, SingleStep, Ghc,
              handleSourceError )
-import HsImpExp
-import HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
+import GHCVM.HsSyn.HsImpExp
+import GHCVM.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
                   setInteractivePrintName )
-import Module
-import Name
-import Packages ( trusted, getPackageDetails, listVisibleModuleNames, pprFlag )
-import PprTyThing
-import RdrName ( getGRE_NameQualifier_maybes )
-import SrcLoc
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.Main.Packages ( trusted, getPackageDetails, listVisibleModuleNames, pprFlag )
+import GHCVM.Main.PprTyThing
+import GHCVM.BasicTypes.RdrName ( getGRE_NameQualifier_maybes )
+import GHCVM.BasicTypes.SrcLoc
 import qualified Lexer
 
-import StringBuffer
-import Outputable hiding ( printForUser, printForUserPartWay, bold )
+import GHCVM.Utils.StringBuffer
+import GHCVM.Utils.Outputable hiding ( printForUser, printForUserPartWay, bold )
 
 -- Other random utilities
-import BasicTypes hiding ( isTopLevel )
+import GHCVM.BasicTypes.BasicTypes hiding ( isTopLevel )
 import Config
-import Digraph
+import GHCVM.Utils.Digraph
 import Encoding
-import FastString
+import GHCVM.Utils.FastString
 import Linker
-import Maybes ( orElse, expectJust )
-import NameSet
-import Panic hiding ( showException )
-import Util
+import GHCVM.Utils.Maybes ( orElse, expectJust )
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.Panic hiding ( showException )
+import GHCVM.Utils.Util
 
 -- Haskell Libraries
 import System.Console.Haskeline as Haskeline
@@ -78,7 +78,7 @@ import Data.List ( find, group, intercalate, intersperse, isPrefixOf, nub,
                    partition, sort, sortBy )
 import Data.Maybe
 
-import Exception hiding (catch)
+import GHCVM.Utils.Exception hiding (catch)
 
 import Foreign.C
 #if __GLASGOW_HASKELL__ >= 709

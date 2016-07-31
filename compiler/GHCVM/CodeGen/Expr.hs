@@ -1,14 +1,14 @@
 module GHCVM.CodeGen.Expr where
 
-import CoreSyn
-import Type
-import TyCon
-import Id
-import PrimOp
-import StgSyn
-import DataCon
-import Panic
-import Util (unzipWith)
+import GHCVM.Core.CoreSyn
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Id
+import GHCVM.Prelude.PrimOp
+import GHCVM.StgSyn.StgSyn
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Util (unzipWith)
 import GHCVM.Util
 import GHCVM.Primitive
 import GHCVM.Debug

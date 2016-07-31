@@ -1,42 +1,42 @@
 module GHCVM.DeSugar.DsForeign where
 
-import VarSet
+import GHCVM.BasicTypes.VarSet
 import GHCVM.TypeCheck.TcRnMonad
-import TypeRep
-import CoreSyn
-import CoreUtils
-import MkCore
+import GHCVM.Types.TypeRep
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.MkCore
 import GHCVM.DeSugar.DsMonad
-import HsSyn
-import CoreUnfold
-import Id
-import Var
-import MkId
-import Literal
-import Module
-import Name
-import Type
-import TyCon
-import Coercion
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Core.CoreUnfold
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.MkId
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.Types.Coercion
 import GHCVM.TypeCheck.TcEnv
-import TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
-import DataCon
+import GHCVM.TypeCheck.TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
+import GHCVM.BasicTypes.DataCon
 
-import HscTypes
-import ForeignCall
-import TysWiredIn
-import TysPrim
+import GHCVM.Main.HscTypes
+import GHCVM.Prelude.ForeignCall
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.TysPrim
 import GHCVM.Prelude.PrelNames
-import BasicTypes
-import SrcLoc
-import Outputable
-import FastString
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import GHCVM.Main.DynFlags
-import Platform
+import GHCVM.Utils.Platform
 import Config
-import OrdList
-import Pair
-import Util
+import GHCVM.Utils.OrdList
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Util
 import GHCVM.Main.Hooks
 
 import Data.Maybe

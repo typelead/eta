@@ -53,34 +53,34 @@ module MkCore (
 
 #include "HsVersions.h"
 
-import Id
-import Var      ( EvVar, setTyVarUnique )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Var      ( EvVar, setTyVarUnique )
 
-import CoreSyn
-import CoreUtils        ( exprType, needsCaseBinding, bindNonRec )
-import Literal
-import HscTypes
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils        ( exprType, needsCaseBinding, bindNonRec )
+import GHCVM.BasicTypes.Literal
+import GHCVM.Main.HscTypes
 
-import TysWiredIn
-import PrelNames
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.PrelNames
 
-import TcType           ( mkSigmaTy )
-import Type
-import Coercion
-import TysPrim
-import DataCon          ( DataCon, dataConWorkId )
-import IdInfo           ( vanillaIdInfo, setStrictnessInfo,
+import GHCVM.TypeCheck.TcType           ( mkSigmaTy )
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion
+import GHCVM.Prelude.TysPrim
+import GHCVM.BasicTypes.DataCon          ( DataCon, dataConWorkId )
+import GHCVM.BasicTypes.IdInfo           ( vanillaIdInfo, setStrictnessInfo,
                           setArityInfo )
-import Demand
-import Name      hiding ( varName )
-import Outputable
-import FastString
-import UniqSupply
-import BasicTypes
-import Util
-import Pair
-import Constants
-import DynFlags
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.Name      hiding ( varName )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Util
+import GHCVM.Utils.Pair
+import GHCVM.Main.Constants
+import GHCVM.Main.DynFlags
 
 import Data.Char        ( ord )
 import Data.List

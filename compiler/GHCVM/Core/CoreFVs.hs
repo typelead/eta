@@ -36,20 +36,20 @@ module CoreFVs (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import Id
-import IdInfo
-import NameSet
-import UniqFM
-import Name
-import VarSet
-import Var
-import TcType
-import Coercion
-import Maybes( orElse )
-import Util
-import BasicTypes( Activation )
-import Outputable
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Var
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Coercion
+import GHCVM.Utils.Maybes( orElse )
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.BasicTypes( Activation )
+import GHCVM.Utils.Outputable
 
 {-
 ************************************************************************

@@ -42,19 +42,19 @@ module Literal
 
 #include "HsVersions.h"
 
-import TysPrim
-import PrelNames
-import Type
-import TyCon
-import Outputable
-import FastTypes
-import FastString
-import BasicTypes
-import Binary
-import Constants
-import DynFlags
-import UniqFM
-import Util
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.PrelNames
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Binary
+import GHCVM.Main.Constants
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Util
 
 import Data.ByteString (ByteString)
 import Data.Int

@@ -114,16 +114,16 @@ module GHCVM.Prelude.PrelNames (
                                 -- So many that we export them all
     ) where
 
-import Module
-import OccName
-import RdrName
-import Unique
-import BasicTypes
-import Name
-import SrcLoc
-import FastString
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 import Config ( cIntegerLibraryType, IntegerLibrary(..) )
-import Panic ( panic )
+import GHCVM.Utils.Panic ( panic )
 
 {-
 ************************************************************************

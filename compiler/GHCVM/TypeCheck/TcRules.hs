@@ -8,21 +8,21 @@ TcRules: Typechecking transformation rules
 
 module GHCVM.TypeCheck.TcRules ( tcRules ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcSimplify
 import GHCVM.TypeCheck.TcMType
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcExpr
 import GHCVM.TypeCheck.TcEnv
-import TcEvidence( TcEvBinds(..) )
-import Type
-import Id
-import Name
-import SrcLoc
-import Outputable
-import FastString
+import GHCVM.TypeCheck.TcEvidence( TcEvBinds(..) )
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import Data.List( partition )
 
 {-

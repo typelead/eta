@@ -11,45 +11,45 @@ The Desugarer: turning HsSyn into Core.
 module GHCVM.DeSugar.DeSugar ( deSugar, deSugarExpr ) where
 
 import GHCVM.Main.DynFlags
-import HscTypes
-import HsSyn
+import GHCVM.Main.HscTypes
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.TypeCheck.TcRnMonad ( finalSafeMode )
 import GHCVM.Iface.MkIface
-import Id
-import Name
-import Type
-import FamInstEnv
-import Coercion
-import InstEnv
-import Class
-import Avail
-import CoreSyn
-import CoreSubst
-import PprCore
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Type
+import GHCVM.Types.FamInstEnv
+import GHCVM.Types.Coercion
+import GHCVM.Types.InstEnv
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Avail
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreSubst
+import GHCVM.Core.PprCore
 import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsExpr
 import GHCVM.DeSugar.DsBinds
 import GHCVM.DeSugar.DsForeign
-import Module
-import NameSet
-import NameEnv
-import Rules
-import TysPrim (eqReprPrimTyCon)
-import TysWiredIn (coercibleTyCon )
-import BasicTypes       ( Activation(.. ) )
-import CoreMonad        ( CoreToDo(..) )
-import CoreLint         ( endPassIO )
-import MkCore
-import FastString
-import ErrUtils
-import Outputable
-import SrcLoc
-import Coverage
-import Util
-import MonadUtils
-import OrdList
-import StaticPtrTable
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Specialise.Rules
+import GHCVM.Prelude.TysPrim (eqReprPrimTyCon)
+import GHCVM.Prelude.TysWiredIn (coercibleTyCon )
+import GHCVM.BasicTypes.BasicTypes       ( Activation(.. ) )
+import GHCVM.SimplCore.CoreMonad        ( CoreToDo(..) )
+import GHCVM.Core.CoreLint         ( endPassIO )
+import GHCVM.Core.MkCore
+import GHCVM.Utils.FastString
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.DeSugar.Coverage
+import GHCVM.Utils.Util
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.OrdList
+import GHCVM.Main.StaticPtrTable
 import Data.List
 import Data.IORef
 import Control.Monad( when )

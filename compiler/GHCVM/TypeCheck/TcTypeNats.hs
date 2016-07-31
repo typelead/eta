@@ -12,15 +12,15 @@ module GHCVM.TypeCheck.TcTypeNats
   , typeSymbolCmpTyCon
   ) where
 
-import Type
-import Pair
-import TcType     ( TcType, tcEqType )
-import TyCon      ( TyCon, FamTyConFlav(..), mkFamilyTyCon, TyConParent(..)  )
-import Coercion   ( Role(..) )
+import GHCVM.Types.Type
+import GHCVM.Utils.Pair
+import GHCVM.TypeCheck.TcType     ( TcType, tcEqType )
+import GHCVM.Types.TyCon      ( TyCon, FamTyConFlav(..), mkFamilyTyCon, TyConParent(..)  )
+import GHCVM.Types.Coercion   ( Role(..) )
 import GHCVM.TypeCheck.TcRnTypes  ( Xi )
-import CoAxiom    ( CoAxiomRule(..), BuiltInSynFamily(..) )
-import Name       ( Name, BuiltInSyntax(..) )
-import TysWiredIn ( typeNatKind, typeSymbolKind
+import GHCVM.Types.CoAxiom    ( CoAxiomRule(..), BuiltInSynFamily(..) )
+import GHCVM.BasicTypes.Name       ( Name, BuiltInSyntax(..) )
+import GHCVM.Prelude.TysWiredIn ( typeNatKind, typeSymbolKind
                   , mkWiredInTyConName
                   , promotedBoolTyCon
                   , promotedFalseDataCon, promotedTrueDataCon
@@ -29,7 +29,7 @@ import TysWiredIn ( typeNatKind, typeSymbolKind
                   , promotedEQDataCon
                   , promotedGTDataCon
                   )
-import TysPrim    ( tyVarList, mkArrowKinds )
+import GHCVM.Prelude.TysPrim    ( tyVarList, mkArrowKinds )
 import GHCVM.Prelude.PrelNames  ( gHC_TYPELITS
                   , typeNatAddTyFamNameKey
                   , typeNatMulTyFamNameKey
@@ -39,7 +39,7 @@ import GHCVM.Prelude.PrelNames  ( gHC_TYPELITS
                   , typeNatCmpTyFamNameKey
                   , typeSymbolCmpTyFamNameKey
                   )
-import FastString ( FastString, fsLit )
+import GHCVM.Utils.FastString ( FastString, fsLit )
 import qualified Data.Map as Map
 import Data.Maybe ( isJust )
 

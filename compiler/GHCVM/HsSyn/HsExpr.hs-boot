@@ -9,10 +9,10 @@
 
 module HsExpr where
 
-import SrcLoc     ( Located )
-import Outputable ( SDoc, OutputableBndr, Outputable )
-import {-# SOURCE #-} HsPat  ( LPat )
-import PlaceHolder ( DataId )
+import GHCVM.BasicTypes.SrcLoc     ( Located )
+import GHCVM.Utils.Outputable ( SDoc, OutputableBndr, Outputable )
+import {-# SOURCE #-} GHCVM.HsSyn.HsPat  ( LPat )
+import GHCVM.HsSyn.PlaceHolder ( DataId )
 import Data.Data hiding ( Fixity )
 
 #if __GLASGOW_HASKELL__ > 706

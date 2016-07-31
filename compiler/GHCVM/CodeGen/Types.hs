@@ -36,13 +36,13 @@ module GHCVM.CodeGen.Types
    lfStaticThunk)
 where
 
-import Id
-import VarEnv
-import DataCon
-import TyCon
-import Type
-import Module
-import Name
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
 import GHCVM.Main.DynFlags
 
 import Codec.JVM

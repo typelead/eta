@@ -80,31 +80,31 @@ module TysWiredIn (
 import {-# SOURCE #-} MkId( mkDataConWorkId )
 
 -- friends:
-import PrelNames
-import TysPrim
+import GHCVM.Prelude.PrelNames
+import GHCVM.Prelude.TysPrim
 
 -- others:
-import Constants        ( mAX_TUPLE_SIZE )
-import Module           ( Module )
-import Type             ( mkTyConApp )
-import DataCon
-import ConLike
-import Var
-import TyCon
-import Class            ( Class, mkClass )
-import TypeRep
-import RdrName
-import Name
-import BasicTypes       ( TupleSort(..), tupleSortBoxity,
+import GHCVM.Main.Constants        ( mAX_TUPLE_SIZE )
+import GHCVM.BasicTypes.Module           ( Module )
+import GHCVM.Types.Type             ( mkTyConApp )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.Var
+import GHCVM.Types.TyCon
+import GHCVM.Types.Class            ( Class, mkClass )
+import GHCVM.Types.TypeRep
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.BasicTypes       ( TupleSort(..), tupleSortBoxity,
                           Arity, RecFlag(..), Boxity(..) )
-import ForeignCall
-import Unique           ( incrUnique, mkTupleTyConUnique,
+import GHCVM.Prelude.ForeignCall
+import GHCVM.BasicTypes.Unique           ( incrUnique, mkTupleTyConUnique,
                           mkTupleDataConUnique, mkPArrDataConUnique )
 import Data.Array
-import FastString
-import Outputable
-import Util
-import BooleanFormula   ( mkAnd )
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
+import GHCVM.Utils.BooleanFormula   ( mkAnd )
 
 alpha_tyvar :: [TyVar]
 alpha_tyvar = [alphaTyVar]

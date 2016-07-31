@@ -22,31 +22,31 @@ module PrelRules ( primOpRules, builtinRules ) where
 
 import {-# SOURCE #-} MkId ( mkPrimOpId, magicDictId )
 
-import CoreSyn
-import MkCore
-import Id
-import Literal
-import CoreSubst   ( exprIsLiteral_maybe )
-import PrimOp      ( PrimOp(..), tagToEnumKey )
-import TysWiredIn
-import TysPrim
-import TyCon       ( tyConDataCons_maybe, isEnumerationTyCon, isNewTyCon, unwrapNewTyCon_maybe )
-import DataCon     ( dataConTag, dataConTyCon, dataConWorkId )
-import CoreUtils   ( cheapEqExpr, exprIsHNF )
-import CoreUnfold  ( exprIsConApp_maybe )
-import Type
-import TypeRep
-import OccName     ( occNameFS )
-import PrelNames
-import Maybes      ( orElse )
-import Name        ( Name, nameOccName )
-import Outputable
-import FastString
-import BasicTypes
-import DynFlags
-import Platform
-import Util
-import Coercion     (mkUnbranchedAxInstCo,mkSymCo,Role(..))
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.MkCore
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Literal
+import GHCVM.Core.CoreSubst   ( exprIsLiteral_maybe )
+import GHCVM.Prelude.PrimOp      ( PrimOp(..), tagToEnumKey )
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.TysPrim
+import GHCVM.Types.TyCon       ( tyConDataCons_maybe, isEnumerationTyCon, isNewTyCon, unwrapNewTyCon_maybe )
+import GHCVM.BasicTypes.DataCon     ( dataConTag, dataConTyCon, dataConWorkId )
+import GHCVM.Core.CoreUtils   ( cheapEqExpr, exprIsHNF )
+import GHCVM.Core.CoreUnfold  ( exprIsConApp_maybe )
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep
+import GHCVM.BasicTypes.OccName     ( occNameFS )
+import GHCVM.Prelude.PrelNames
+import GHCVM.Utils.Maybes      ( orElse )
+import GHCVM.BasicTypes.Name        ( Name, nameOccName )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Platform
+import GHCVM.Utils.Util
+import GHCVM.Types.Coercion     (mkUnbranchedAxInstCo,mkSymCo,Role(..))
 
 #if __GLASGOW_HASKELL__ >= 709
 import Control.Applicative ( Alternative(..) )

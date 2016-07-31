@@ -81,27 +81,27 @@ module HsDecls (
 import {-# SOURCE #-}   HsExpr( LHsExpr, HsExpr, HsSplice, pprExpr, pprUntypedSplice )
         -- Because Expr imports Decls via HsBracket
 
-import HsBinds
-import HsPat
-import HsTypes
-import HsDoc
-import TyCon
-import Name
-import BasicTypes
-import Coercion
-import ForeignCall
-import PlaceHolder ( PostTc,PostRn,PlaceHolder(..),DataId )
-import NameSet
+import GHCVM.HsSyn.HsBinds
+import GHCVM.HsSyn.HsPat
+import GHCVM.HsSyn.HsTypes
+import GHCVM.HsSyn.HsDoc
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Types.Coercion
+import GHCVM.Prelude.ForeignCall
+import GHCVM.HsSyn.PlaceHolder ( PostTc,PostRn,PlaceHolder(..),DataId )
+import GHCVM.BasicTypes.NameSet
 
 -- others:
-import InstEnv
-import Class
-import Outputable
-import Util
-import SrcLoc
-import FastString
+import GHCVM.Types.InstEnv
+import GHCVM.Types.Class
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 
-import Bag
+import GHCVM.Utils.Bag
 import Data.Data        hiding (TyCon,Fixity)
 #if __GLASGOW_HASKELL__ < 709
 import Data.Foldable ( Foldable )

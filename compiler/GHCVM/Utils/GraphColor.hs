@@ -16,10 +16,10 @@ import GraphBase
 import GraphOps
 import GraphPpr
 
-import Unique
-import UniqFM
-import UniqSet
-import Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.Outputable
 
 import Data.Maybe
 import Data.List

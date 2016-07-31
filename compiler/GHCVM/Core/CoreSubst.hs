@@ -39,49 +39,49 @@ module CoreSubst (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreFVs
-import CoreUtils
-import Literal  ( Literal(MachStr) )
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreUtils
+import GHCVM.BasicTypes.Literal  ( Literal(MachStr) )
 import qualified Data.ByteString as BS
-import OccurAnal( occurAnalyseExpr, occurAnalysePgm )
+import GHCVM.SimplCore.OccurAnal( occurAnalyseExpr, occurAnalysePgm )
 
 import qualified Type
 import qualified Coercion
 
         -- We are defining local versions
-import Type     hiding ( substTy, extendTvSubst, extendTvSubstList
+import GHCVM.Types.Type     hiding ( substTy, extendTvSubst, extendTvSubstList
                        , isInScope, substTyVarBndr, cloneTyVarBndr )
-import Coercion hiding ( substTy, substCo, extendTvSubst, substTyVarBndr, substCoVarBndr )
+import GHCVM.Types.Coercion hiding ( substTy, substCo, extendTvSubst, substTyVarBndr, substCoVarBndr )
 
-import TyCon       ( tyConArity )
-import DataCon
-import PrelNames   ( eqBoxDataConKey, coercibleDataConKey, unpackCStringIdKey
+import GHCVM.Types.TyCon       ( tyConArity )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.PrelNames   ( eqBoxDataConKey, coercibleDataConKey, unpackCStringIdKey
                    , unpackCStringUtf8IdKey )
-import OptCoercion ( optCoercion )
-import PprCore     ( pprCoreBindings, pprRules )
-import Module      ( Module )
-import VarSet
-import VarEnv
-import Id
-import Name     ( Name )
-import Var
-import IdInfo
-import Unique
-import UniqSupply
-import Maybes
-import ErrUtils
-import DynFlags
-import BasicTypes ( isAlwaysActive )
-import Util
-import Pair
-import Outputable
-import PprCore          ()              -- Instances
-import FastString
+import GHCVM.Types.OptCoercion ( optCoercion )
+import GHCVM.Core.PprCore     ( pprCoreBindings, pprRules )
+import GHCVM.BasicTypes.Module      ( Module )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name     ( Name )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Maybes
+import GHCVM.Main.ErrUtils
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.BasicTypes ( isAlwaysActive )
+import GHCVM.Utils.Util
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Outputable
+import GHCVM.Core.PprCore          ()              -- Instances
+import GHCVM.Utils.FastString
 
 import Data.List
 
-import TysWiredIn
+import GHCVM.Prelude.TysWiredIn
 
 {-
 ************************************************************************

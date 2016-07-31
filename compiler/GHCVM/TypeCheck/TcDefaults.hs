@@ -7,20 +7,20 @@
 
 module GHCVM.TypeCheck.TcDefaults ( tcDefaults ) where
 
-import HsSyn
-import Name
-import Class
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Class
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcSimplify
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.Prelude.PrelNames
 import GHCVM.Main.DynFlags
-import SrcLoc
+import GHCVM.BasicTypes.SrcLoc
 import Data.Maybe
-import Outputable
-import FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 tcDefaults :: [LDefaultDecl Name]
            -> TcM (Maybe [Type])    -- Defaulting types to heave

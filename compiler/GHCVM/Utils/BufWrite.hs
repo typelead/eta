@@ -23,9 +23,9 @@ module BufWrite (
         bFlush,
   ) where
 
-import FastString
-import FastTypes
-import FastMutInt
+import GHCVM.Utils.FastString
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastMutInt
 
 import Control.Monad    ( when )
 import Data.ByteString (ByteString)

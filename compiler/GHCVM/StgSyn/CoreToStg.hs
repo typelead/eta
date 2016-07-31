@@ -15,34 +15,34 @@ module CoreToStg ( coreToStg, coreExprToStg ) where
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreUtils        ( exprType, findDefault )
-import CoreArity        ( manifestArity )
-import StgSyn
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils        ( exprType, findDefault )
+import GHCVM.Core.CoreArity        ( manifestArity )
+import GHCVM.StgSyn.StgSyn
 
-import Type
-import TyCon
-import MkId             ( coercionTokenId )
-import Id
-import IdInfo
-import DataCon
-import CostCentre       ( noCCS )
-import VarSet
-import VarEnv
-import Module
-import Name             ( getOccName, isExternalName, nameOccName )
-import OccName          ( occNameString, occNameFS )
-import BasicTypes       ( Arity )
-import TysWiredIn       ( unboxedUnitDataCon )
-import Literal
-import Outputable
-import MonadUtils
-import FastString
-import Util
-import DynFlags
-import ForeignCall
-import Demand           ( isSingleUsed )
-import PrimOp           ( PrimCall(..) )
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.MkId             ( coercionTokenId )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Profiling.CostCentre       ( noCCS )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name             ( getOccName, isExternalName, nameOccName )
+import GHCVM.BasicTypes.OccName          ( occNameString, occNameFS )
+import GHCVM.BasicTypes.BasicTypes       ( Arity )
+import GHCVM.Prelude.TysWiredIn       ( unboxedUnitDataCon )
+import GHCVM.BasicTypes.Literal
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Main.DynFlags
+import GHCVM.Prelude.ForeignCall
+import GHCVM.BasicTypes.Demand           ( isSingleUsed )
+import GHCVM.Prelude.PrimOp           ( PrimCall(..) )
 
 import Data.Maybe    (isJust)
 import Control.Monad (liftM, ap)

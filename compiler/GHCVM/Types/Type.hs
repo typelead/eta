@@ -148,33 +148,33 @@ module GHCVM.Types.Type (
 -- We import the representation and primitive functions from TypeRep.
 -- Many things are reexported, but not the representation!
 
-import Kind
-import TypeRep
+import GHCVM.Types.Kind
+import GHCVM.Types.TypeRep
 
 -- friends:
-import Var
-import VarEnv
-import VarSet
-import NameEnv
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.NameEnv
 
-import Class
-import TyCon
-import TysPrim
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
+import GHCVM.Prelude.TysPrim
 import {-# SOURCE #-} TysWiredIn ( eqTyCon, coercibleTyCon, typeNatKind, typeSymbolKind )
-import PrelNames ( eqTyConKey, coercibleTyConKey,
+import GHCVM.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
                    ipClassNameKey, openTypeKindTyConKey,
                    constraintKindTyConKey, liftedTypeKindTyConKey )
-import CoAxiom
+import GHCVM.Types.CoAxiom
 
 -- others
-import Unique           ( Unique, hasKey )
-import BasicTypes       ( Arity, RepArity )
-import Util
-import ListSetOps       ( getNth )
-import Outputable
-import FastString
+import GHCVM.BasicTypes.Unique           ( Unique, hasKey )
+import GHCVM.BasicTypes.BasicTypes       ( Arity, RepArity )
+import GHCVM.Utils.Util
+import GHCVM.Utils.ListSetOps       ( getNth )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
-import Maybes           ( orElse )
+import GHCVM.Utils.Maybes           ( orElse )
 import Data.Maybe       ( isJust )
 import Control.Monad    ( guard )
 

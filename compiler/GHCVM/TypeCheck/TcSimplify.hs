@@ -13,32 +13,32 @@ import GHCVM.TypeCheck.TcRnMonad
 import qualified GHCVM.TypeCheck.TcRnMonad as TcRnMonad
 import GHCVM.TypeCheck.TcErrors
 import GHCVM.TypeCheck.TcMType as TcM
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcSMonad as TcS
 import GHCVM.TypeCheck.TcInteract
-import Kind     ( isKind, isSubKind, defaultKind_maybe )
+import GHCVM.Types.Kind     ( isKind, isSubKind, defaultKind_maybe )
 import GHCVM.TypeCheck.Inst
-import Type     ( classifyPredType, isIPClass, PredTree(..)
+import GHCVM.Types.Type     ( classifyPredType, isIPClass, PredTree(..)
                 , getClassPredTys_maybe, EqRel(..) )
-import TyCon    ( isTypeFamilyTyCon )
-import Class    ( Class )
-import Id       ( idType )
-import Var
-import Unique
-import VarSet
-import TcEvidence
-import Name
-import Bag
-import ListSetOps
-import Util
-import PrelInfo
+import GHCVM.Types.TyCon    ( isTypeFamilyTyCon )
+import GHCVM.Types.Class    ( Class )
+import GHCVM.BasicTypes.Id       ( idType )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.VarSet
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Bag
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.Util
+import GHCVM.Prelude.PrelInfo
 import GHCVM.Prelude.PrelNames
 import Control.Monad    ( unless )
 import GHCVM.Main.DynFlags         ( ExtensionFlag( Opt_AllowAmbiguousTypes ) )
-import Class            ( classKey )
-import BasicTypes       ( RuleName )
-import Outputable
-import FastString
+import GHCVM.Types.Class            ( classKey )
+import GHCVM.BasicTypes.BasicTypes       ( RuleName )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import TrieMap () -- DV: for now
 import Data.List( partition )
 

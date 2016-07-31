@@ -31,37 +31,37 @@ module GHCVM.TypeCheck.TcHsType (
         tcHsPatSigType, tcPatSig
    ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcRnMonad
-import TcEvidence( HsWrapper )
+import GHCVM.TypeCheck.TcEvidence( HsWrapper )
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcValidity
 import GHCVM.TypeCheck.TcUnify
 import GHCVM.Iface.TcIface
-import TcType
-import Type
-import TypeRep( Type(..) )  -- For the mkNakedXXX stuff
-import Kind
-import RdrName( lookupLocalRdrOcc )
-import Var
-import VarSet
-import TyCon
-import ConLike
-import DataCon
-import TysPrim ( liftedTypeKindTyConName, constraintKindTyConName )
-import Class
-import Name
-import NameEnv
-import TysWiredIn
-import BasicTypes
-import SrcLoc
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep( Type(..) )  -- For the mkNakedXXX stuff
+import GHCVM.Types.Kind
+import GHCVM.BasicTypes.RdrName( lookupLocalRdrOcc )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.TysPrim ( liftedTypeKindTyConName, constraintKindTyConName )
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags ( ExtensionFlag( Opt_DataKinds ), getDynFlags )
-import Unique
-import UniqSupply
-import Outputable
-import FastString
-import Util
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 
 import Data.Maybe( isNothing )
 import Control.Monad ( unless, when, zipWithM )

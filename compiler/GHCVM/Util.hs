@@ -9,7 +9,7 @@ where
 
 import qualified Data.Char as C
 import Data.Text (Text, empty, uncons, cons)
-import Maybes(expectJust)
+import GHCVM.Utils.Maybes(expectJust)
 
 indexList :: (Integral b) => [a] -> [(b, a)]
 indexList = zip [1..]

@@ -17,54 +17,54 @@ module GHCVM.Iface.TcIface (
  ) where
 
 import GHCVM.TypeCheck.TcTypeNats(typeNatCoAxiomRules)
-import IfaceSyn
+import GHCVM.Iface.IfaceSyn
 import GHCVM.Iface.LoadIface
 import GHCVM.Iface.IfaceEnv
 import GHCVM.Iface.BuildTyCl
 import GHCVM.TypeCheck.TcRnMonad
-import TcType
-import Type
-import Coercion hiding (substTy)
-import TypeRep
-import HscTypes
-import Annotations
-import InstEnv
-import FamInstEnv
-import CoreSyn
-import CoreUtils
-import CoreUnfold
-import CoreLint
-import MkCore
-import Id
-import MkId
-import IdInfo
-import Class
-import TyCon
-import CoAxiom
-import ConLike
-import DataCon
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion hiding (substTy)
+import GHCVM.Types.TypeRep
+import GHCVM.Main.HscTypes
+import GHCVM.Main.Annotations
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreUnfold
+import GHCVM.Core.CoreLint
+import GHCVM.Core.MkCore
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
 import GHCVM.Prelude.PrelNames
-import TysWiredIn
-import TysPrim          ( superKindTyConName )
-import BasicTypes       ( strongLoopBreaker )
-import Literal
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.TysPrim          ( superKindTyConName )
+import GHCVM.BasicTypes.BasicTypes       ( strongLoopBreaker )
+import GHCVM.BasicTypes.Literal
 import qualified Var
-import VarEnv
-import VarSet
-import Name
-import NameEnv
-import NameSet
-import OccurAnal        ( occurAnalyseExpr )
-import Demand
-import Module
-import UniqFM
-import UniqSupply
-import Outputable
-import Maybes
-import SrcLoc
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.SimplCore.OccurAnal        ( occurAnalyseExpr )
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
-import Util
-import FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
 
 import Control.Monad
 import qualified Data.Map as Map

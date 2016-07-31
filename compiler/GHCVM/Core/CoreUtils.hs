@@ -50,35 +50,35 @@ module CoreUtils (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import PprCore
-import CoreFVs( exprFreeVars )
-import Var
-import SrcLoc
-import VarEnv
-import VarSet
-import Name
-import Literal
-import DataCon
-import PrimOp
-import Id
-import IdInfo
-import Type
-import Coercion
-import TyCon
-import Unique
-import Outputable
-import TysPrim
-import DynFlags
-import FastString
-import Maybes
-import Platform
-import Util
-import Pair
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.PprCore
+import GHCVM.Core.CoreFVs( exprFreeVars )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.PrimOp
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Outputable
+import GHCVM.Prelude.TysPrim
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Platform
+import GHCVM.Utils.Util
+import GHCVM.Utils.Pair
 import Data.Function       ( on )
 import Data.List
 import Data.Ord            ( comparing )
-import OrdList
+import GHCVM.Utils.OrdList
 
 {-
 ************************************************************************

@@ -38,10 +38,10 @@ module Digraph(
 ------------------------------------------------------------------------------
 
 
-import Util        ( minWith, count )
-import Outputable
-import Maybes      ( expectJust )
-import MonadUtils  ( allM )
+import GHCVM.Utils.Util        ( minWith, count )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes      ( expectJust )
+import GHCVM.Utils.MonadUtils  ( allM )
 
 -- Extensions
 import Control.Monad    ( filterM, liftM, liftM2 )

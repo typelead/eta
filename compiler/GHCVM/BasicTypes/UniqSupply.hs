@@ -24,12 +24,12 @@ module UniqSupply (
         lazyThenUs, lazyMapUs,
   ) where
 
-import Unique
-import FastTypes
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.FastTypes
 
 import GHC.IO
 
-import MonadUtils
+import GHCVM.Utils.MonadUtils
 import Control.Monad
 
 {-

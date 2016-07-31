@@ -1,18 +1,18 @@
 module GHCVM.TypeCheck.TcSplice where
-import HsSyn    ( HsSplice, HsBracket, HsQuasiQuote,
+import GHCVM.HsSyn.HsSyn    ( HsSplice, HsBracket, HsQuasiQuote,
                   HsExpr, LHsType, LHsExpr, LPat, LHsDecl )
-import HsExpr   ( PendingRnSplice )
-import Name     ( Name )
-import RdrName  ( RdrName )
+import GHCVM.HsSyn.HsExpr   ( PendingRnSplice )
+import GHCVM.BasicTypes.Name     ( Name )
+import GHCVM.BasicTypes.RdrName  ( RdrName )
 import GHCVM.TypeCheck.TcRnTypes( TcM, TcId )
-import TcType   ( TcRhoType )
-import Annotations ( Annotation, CoreAnnTarget )
+import GHCVM.TypeCheck.TcType   ( TcRhoType )
+import GHCVM.Main.Annotations ( Annotation, CoreAnnTarget )
 
 -- #ifdef GHCI
--- import Id         ( Id )
+-- import GHCVM.BasicTypes.Id         ( Id )
 -- import qualified Language.Haskell.TH as TH
--- import Outputable (SDoc)
--- import SrcLoc     (SrcSpan)
+-- import GHCVM.Utils.Outputable (SDoc)
+-- import GHCVM.BasicTypes.SrcLoc     (SrcSpan)
 -- #endif
 
 tcSpliceExpr :: HsSplice Name

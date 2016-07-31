@@ -1,9 +1,9 @@
 module PatSyn where
-import Name( NamedThing )
+import GHCVM.BasicTypes.Name( NamedThing )
 import Data.Typeable ( Typeable )
 import Data.Data ( Data )
-import Outputable ( Outputable, OutputableBndr )
-import Unique ( Uniquable )
+import GHCVM.Utils.Outputable ( Outputable, OutputableBndr )
+import GHCVM.BasicTypes.Unique ( Uniquable )
 
 data PatSyn
 

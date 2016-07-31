@@ -7,24 +7,24 @@ Author: Juan J. Quintela    <quintela@krilin.dc.fi.udc.es>
 
 module GHCVM.DeSugar.Check ( check , ExhaustivePat ) where
 
-import HsSyn
-import TcHsSyn
+import GHCVM.HsSyn.HsSyn
+import GHCVM.TypeCheck.TchsSyn
 import GHCVM.DeSugar.DsUtils
 import GHCVM.DeSugar.MatchLit
-import Id
-import ConLike
-import DataCon
-import PatSyn
-import Name
-import TysWiredIn
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.BasicTypes.Name
+import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.PrelNames
-import TyCon
-import SrcLoc
-import UniqSet
-import Util
-import BasicTypes
-import Outputable
-import FastString
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 {-
 This module performs checks about if one list of equations are:

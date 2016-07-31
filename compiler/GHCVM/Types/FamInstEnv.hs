@@ -33,28 +33,28 @@ module FamInstEnv (
 
 #include "HsVersions.h"
 
-import InstEnv
+import GHCVM.Types.InstEnv
 import Unify
-import Type
-import TcType ( orphNamesOfTypes )
-import TypeRep
-import TyCon
-import Coercion
-import CoAxiom
-import VarSet
-import VarEnv
-import Name
-import UniqFM
-import Outputable
-import Maybes
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcType ( orphNamesOfTypes )
+import GHCVM.Types.TypeRep
+import GHCVM.Types.TyCon
+import GHCVM.Types.Coercion
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes
 import TrieMap
-import Unique
-import Util
-import Var
-import Pair
-import SrcLoc
-import NameSet
-import FastString
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.Var
+import GHCVM.Utils.Pair
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.FastString
 
 {-
 ************************************************************************

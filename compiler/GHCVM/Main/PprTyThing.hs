@@ -16,18 +16,18 @@ module GHCVM.Main.PprTyThing (
         pprFamInst
   ) where
 
-import TypeRep ( TyThing(..) )
-import CoAxiom ( coAxiomTyCon )
-import HscTypes( tyThingParent_maybe )
+import GHCVM.Types.TypeRep ( TyThing(..) )
+import GHCVM.Types.CoAxiom ( coAxiomTyCon )
+import GHCVM.Main.HscTypes( tyThingParent_maybe )
 import GHCVM.Iface.MkIface ( tyThingToIfaceDecl )
-import Type ( tidyOpenType )
-import IfaceSyn ( pprIfaceDecl, ShowSub(..), ShowHowMuch(..) )
-import FamInstEnv( FamInst( .. ), FamFlavor(..) )
-import TcType
-import Name
-import VarEnv( emptyTidyEnv )
-import Outputable
-import FastString
+import GHCVM.Types.Type ( tidyOpenType )
+import GHCVM.Iface.IfaceSyn ( pprIfaceDecl, ShowSub(..), ShowHowMuch(..) )
+import GHCVM.Types.FamInstEnv( FamInst( .. ), FamFlavor(..) )
+import GHCVM.TypeCheck.TcType
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarEnv( emptyTidyEnv )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 -- -----------------------------------------------------------------------------
 -- Pretty-printing entities that we get from the GHC API

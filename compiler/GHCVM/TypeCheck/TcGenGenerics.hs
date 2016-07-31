@@ -15,35 +15,35 @@ module GHCVM.TypeCheck.TcGenGenerics (canDoGenerics, canDoGenerics1,
                       gen_Generic_binds, get_gen1_constrained_tys) where
 
 import GHCVM.Main.DynFlags
-import HsSyn
-import Type
-import Kind             ( isKind )
-import TcType
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Types.Type
+import GHCVM.Types.Kind             ( isKind )
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcGenDeriv
-import DataCon
-import TyCon
-import FamInstEnv       ( FamInst, FamFlavor(..), mkSingleCoAxiom )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Types.FamInstEnv       ( FamInst, FamFlavor(..), mkSingleCoAxiom )
 import GHCVM.TypeCheck.FamInst
-import Module           ( Module, moduleName, moduleNameString )
+import GHCVM.BasicTypes.Module           ( Module, moduleName, moduleNameString )
 import GHCVM.Iface.IfaceEnv         ( newGlobalBinder )
-import Name      hiding ( varName )
-import RdrName
-import BasicTypes
-import TysWiredIn
+import GHCVM.BasicTypes.Name      hiding ( varName )
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.PrelNames
-import InstEnv
+import GHCVM.Types.InstEnv
 import GHCVM.TypeCheck.TcEnv
-import MkId
+import GHCVM.BasicTypes.MkId
 import GHCVM.TypeCheck.TcRnMonad
-import HscTypes
-import ErrUtils( Validity(..), andValid )
+import GHCVM.Main.HscTypes
+import GHCVM.Main.ErrUtils( Validity(..), andValid )
 import GHCVM.Iface.BuildTyCl
-import SrcLoc
-import Bag
-import VarSet (elemVarSet)
-import Outputable
-import FastString
-import Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.VarSet (elemVarSet)
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 
 import Control.Monad (mplus,forM)
 

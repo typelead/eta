@@ -62,17 +62,17 @@ module RdrName (
 
 #include "HsVersions.h"
 
-import Module
-import Name
-import Avail
-import NameSet
-import Maybes
-import SrcLoc
-import FastString
-import Outputable
-import Unique
-import Util
-import StaticFlags( opt_PprStyle_Debug )
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.Main.StaticFlags( opt_PprStyle_Debug )
 
 import Data.Data
 

@@ -1,6 +1,6 @@
 module Name where
 
-import {-# SOURCE #-} Module
+import {-# SOURCE #-} GHCVM.BasicTypes.Module
 
 data Name
 

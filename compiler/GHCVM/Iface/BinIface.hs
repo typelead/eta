@@ -18,34 +18,34 @@ module GHCVM.Iface.BinIface (
         TraceBinIFaceReading(..)
     ) where
 
-import BinIface (CheckHiWay(..), TraceBinIFaceReading(..))
+import GHCVM.Iface.BinIface (CheckHiWay(..), TraceBinIFaceReading(..))
 
 import GHCVM.TypeCheck.TcRnMonad
-import TyCon
-import ConLike
-import DataCon    (dataConName, dataConWorkId, dataConTyCon)
-import PrelInfo   (wiredInThings, basicKnownKeyNames)
-import Id         (idName, isDataConWorkId_maybe)
-import TysWiredIn
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon    (dataConName, dataConWorkId, dataConTyCon)
+import GHCVM.Prelude.PrelInfo   (wiredInThings, basicKnownKeyNames)
+import GHCVM.BasicTypes.Id         (idName, isDataConWorkId_maybe)
+import GHCVM.Prelude.TysWiredIn
 import GHCVM.Iface.IfaceEnv
-import HscTypes
-import BasicTypes
-import Module
-import Name
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
 import GHCVM.Main.DynFlags
-import UniqFM
-import UniqSupply
-import Panic
-import Binary
-import SrcLoc
-import ErrUtils
-import FastMutInt
-import Unique
-import Outputable
-import Platform
-import FastString
-import Constants
-import Util
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Binary
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.FastMutInt
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Platform
+import GHCVM.Utils.FastString
+import GHCVM.Main.Constants
+import GHCVM.Utils.Util
 
 import Data.Bits
 import Data.Char

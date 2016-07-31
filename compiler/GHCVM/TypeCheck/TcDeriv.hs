@@ -8,7 +8,7 @@ Handles @deriving@ clauses on @data@ declarations.
 
 module GHCVM.TypeCheck.TcDeriv ( tcDeriving ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.Main.DynFlags
 
 import GHCVM.TypeCheck.TcRnMonad
@@ -20,42 +20,42 @@ import GHCVM.TypeCheck.TcTyClsDecls( tcFamTyPats, famTyConShape, tcAddDataFamIns
 import GHCVM.TypeCheck.TcClassDcl( tcAddDeclCtxt )      -- Small helper
 import GHCVM.TypeCheck.TcGenDeriv                       -- Deriv stuff
 import GHCVM.TypeCheck.TcGenGenerics
-import InstEnv
+import GHCVM.Types.InstEnv
 import GHCVM.TypeCheck.Inst
-import FamInstEnv
+import GHCVM.Types.FamInstEnv
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcSimplify
 import GHCVM.Iface.LoadIface( loadInterfaceForName )
-import Module( getModule )
+import GHCVM.BasicTypes.Module( getModule )
 
 import GHCVM.Rename.RnNames( extendGlobalRdrEnvRn )
 import GHCVM.Rename.RnBinds
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnSource   ( addTcgDUs )
-import HscTypes
-import Avail
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.Avail
 
 import Unify( tcUnifyTy )
-import Class
-import Type
-import ErrUtils
-import DataCon
-import Maybes
-import RdrName
-import Name
-import NameSet
-import TyCon
-import TcType
-import Var
-import VarSet
+import GHCVM.Types.Class
+import GHCVM.Types.Type
+import GHCVM.Main.ErrUtils
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Types.TyCon
+import GHCVM.TypeCheck.TcType
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames
-import SrcLoc
-import Util
-import Outputable
-import FastString
-import Bag
-import Pair
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Pair
 
 import Control.Monad
 import Data.List

@@ -1,9 +1,9 @@
 module GHCVM.CodeGen.Foreign where
 
 import GHCVM.Main.DynFlags
-import Type
-import StgSyn
-import ForeignCall
+import GHCVM.Types.Type
+import GHCVM.StgSyn.StgSyn
+import GHCVM.Prelude.ForeignCall
 
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Env

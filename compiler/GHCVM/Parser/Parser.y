@@ -43,45 +43,45 @@ import Data.Char
 import Control.Monad    ( mplus )
 
 -- compiler/hsSyn
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 
 -- compiler/main
-import HscTypes         ( IsBootInterface, WarningTxt(..) )
+import GHCVM.Main.HscTypes         ( IsBootInterface, WarningTxt(..) )
 import GHCVM.Main.DynFlags
 
 -- compiler/utils
-import OrdList
-import BooleanFormula   ( BooleanFormula(..), mkTrue )
-import FastString
-import Maybes           ( orElse )
-import Outputable
+import GHCVM.Utils.OrdList
+import GHCVM.Utils.BooleanFormula   ( BooleanFormula(..), mkTrue )
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes           ( orElse )
+import GHCVM.Utils.Outputable
 
 -- compiler/basicTypes
-import RdrName
-import OccName          ( varName, dataName, tcClsName, tvName, startsWithUnderscore )
-import DataCon          ( DataCon, dataConName )
-import SrcLoc
-import Module
-import BasicTypes
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.OccName          ( varName, dataName, tcClsName, tvName, startsWithUnderscore )
+import GHCVM.BasicTypes.DataCon          ( DataCon, dataConName )
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.BasicTypes
 
 -- compiler/types
-import Type             ( funTyCon )
-import Kind             ( Kind, liftedTypeKind, unliftedTypeKind, mkArrowKind )
-import Class            ( FunDep )
+import GHCVM.Types.Type             ( funTyCon )
+import GHCVM.Types.Kind             ( Kind, liftedTypeKind, unliftedTypeKind, mkArrowKind )
+import GHCVM.Types.Class            ( FunDep )
 
 -- compiler/parser
 import GHCVM.Parser.RdrHsSyn
 import GHCVM.Parser.Lexer
 import HaddockUtils
-import ApiAnnotation
+import GHCVM.Parser.ApiAnnotation
 
 -- compiler/typecheck
-import TcEvidence       ( emptyTcEvBinds )
+import GHCVM.TypeCheck.TcEvidence       ( emptyTcEvBinds )
 
 -- compiler/prelude
-import ForeignCall
-import TysPrim          ( liftedTypeKindTyConName, eqPrimTyCon )
-import TysWiredIn       ( unitTyCon, unitDataCon, tupleTyCon, tupleCon, nilDataCon,
+import GHCVM.Prelude.ForeignCall
+import GHCVM.Prelude.TysPrim          ( liftedTypeKindTyConName, eqPrimTyCon )
+import GHCVM.Prelude.TysWiredIn       ( unitTyCon, unitDataCon, tupleTyCon, tupleCon, nilDataCon,
                           unboxedUnitTyCon, unboxedUnitDataCon,
                           listTyCon_RDR, parrTyCon_RDR, consDataCon_RDR, eqTyCon_RDR )
 

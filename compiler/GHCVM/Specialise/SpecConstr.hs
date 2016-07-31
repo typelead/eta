@@ -21,49 +21,49 @@ module SpecConstr(
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreSubst
-import CoreUtils
-import CoreUnfold       ( couldBeSmallEnoughToInline )
-import CoreFVs          ( exprsFreeVars )
-import CoreMonad
-import Literal          ( litIsLifted )
-import HscTypes         ( ModGuts(..) )
-import WwLib            ( mkWorkerArgs )
-import DataCon
-import Coercion         hiding( substTy, substCo )
-import Rules
-import Type             hiding ( substTy )
-import TyCon            ( isRecursiveTyCon, tyConName )
-import Id
-import PprCore          ( pprParendExpr )
-import MkCore           ( mkImpossibleExpr )
-import Var
-import VarEnv
-import VarSet
-import Name
-import BasicTypes
-import DynFlags         ( DynFlags(..) )
-import StaticFlags      ( opt_PprStyle_Debug )
-import Maybes           ( orElse, catMaybes, isJust, isNothing )
-import Demand
-import Serialized       ( deserializeWithData )
-import Util
-import Pair
-import UniqSupply
-import Outputable
-import FastString
-import UniqFM
-import MonadUtils
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreSubst
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreUnfold       ( couldBeSmallEnoughToInline )
+import GHCVM.Core.CoreFVs          ( exprsFreeVars )
+import GHCVM.SimplCore.CoreMonad
+import GHCVM.BasicTypes.Literal          ( litIsLifted )
+import GHCVM.Main.HscTypes         ( ModGuts(..) )
+import GHCVM.StrAnal.WwLib            ( mkWorkerArgs )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.Coercion         hiding( substTy, substCo )
+import GHCVM.Specialise.Rules
+import GHCVM.Types.Type             hiding ( substTy )
+import GHCVM.Types.TyCon            ( isRecursiveTyCon, tyConName )
+import GHCVM.BasicTypes.Id
+import GHCVM.Core.PprCore          ( pprParendExpr )
+import GHCVM.Core.MkCore           ( mkImpossibleExpr )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Main.DynFlags         ( DynFlags(..) )
+import GHCVM.Main.StaticFlags      ( opt_PprStyle_Debug )
+import GHCVM.Utils.Maybes           ( orElse, catMaybes, isJust, isNothing )
+import GHCVM.BasicTypes.Demand
+import GHCVM.Utils.Serialized       ( deserializeWithData )
+import GHCVM.Utils.Util
+import GHCVM.Utils.Pair
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.MonadUtils
 import Control.Monad    ( zipWithM )
 import Data.List
-import PrelNames        ( specTyConName )
+import GHCVM.Prelude.PrelNames        ( specTyConName )
 
 -- See Note [Forcing specialisation]
 #ifndef GHCI
 type SpecConstrAnnotation = ()
 #else
-import TyCon ( TyCon )
+import GHCVM.Types.TyCon ( TyCon )
 import GHC.Exts( SpecConstrAnnotation(..) )
 #endif
 

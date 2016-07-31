@@ -26,22 +26,22 @@ module GHCVM.Main.Hooks ( Hooks
              ) where
 
 import GHCVM.Main.DynFlags
-import HsTypes
-import Name
+import GHCVM.HsSyn.HsTypes
+import GHCVM.BasicTypes.Name
 import PipelineMonad
-import HscTypes
-import HsDecls
-import HsBinds
-import HsExpr
-import OrdList
-import Id
+import GHCVM.Main.HscTypes
+import GHCVM.HsSyn.HsDecls
+import GHCVM.HsSyn.HsBinds
+import GHCVM.HsSyn.HsExpr
+import GHCVM.Utils.OrdList
+import GHCVM.BasicTypes.Id
 import GHCVM.TypeCheck.TcRnTypes
-import Bag
-import RdrName
-import CoreSyn
-import BasicTypes
-import Type
-import SrcLoc
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.SrcLoc
 
 import Data.Maybe
 

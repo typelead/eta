@@ -72,12 +72,12 @@ import {-# SOURCE #-}   TypeRep( Type, Kind, SuperKind )
 import {-# SOURCE #-}   TcType( TcTyVarDetails, pprTcTyVarDetails )
 import {-# SOURCE #-}   IdInfo( IdDetails, IdInfo, coVarDetails, vanillaIdInfo, pprIdDetails )
 
-import Name hiding (varName)
-import Unique
-import Util
-import FastTypes
-import FastString
-import Outputable
+import GHCVM.BasicTypes.Name hiding (varName)
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
 
 import Data.Data
 

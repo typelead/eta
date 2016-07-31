@@ -5,16 +5,16 @@
 
 module PlaceHolder where
 
-import Type       ( Type )
-import Outputable
-import Name
-import NameSet
-import RdrName
-import Var
-import Coercion
+import GHCVM.Types.Type       ( Type )
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Var
+import GHCVM.Types.Coercion
 
 import Data.Data hiding ( Fixity )
-import BasicTypes       (Fixity)
+import GHCVM.BasicTypes.BasicTypes       (Fixity)
 
 
 {-

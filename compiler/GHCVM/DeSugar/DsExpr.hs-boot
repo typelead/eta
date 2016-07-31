@@ -1,8 +1,8 @@
 module GHCVM.DeSugar.DsExpr where
-import HsSyn    ( HsExpr, LHsExpr, HsLocalBinds )
-import Var      ( Id )
+import GHCVM.HsSyn.HsSyn    ( HsExpr, LHsExpr, HsLocalBinds )
+import GHCVM.BasicTypes.Var      ( Id )
 import GHCVM.DeSugar.DsMonad  ( DsM )
-import CoreSyn  ( CoreExpr )
+import GHCVM.Core.CoreSyn  ( CoreExpr )
 
 dsExpr  :: HsExpr  Id -> DsM CoreExpr
 dsLExpr :: LHsExpr Id -> DsM CoreExpr

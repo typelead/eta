@@ -16,28 +16,28 @@ module GHCVM.Rename.RnNames (
     ) where
 
 import GHCVM.Main.DynFlags
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcEnv            ( isBrackStage )
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnHsDoc          ( rnHsDoc )
 import GHCVM.Iface.LoadIface        ( loadSrcInterface )
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Prelude.PrelNames
-import Module
-import Name
-import NameEnv
-import NameSet
-import Avail
-import HscTypes
-import RdrName
-import Outputable
-import Maybes
-import SrcLoc
-import BasicTypes      ( TopLevelFlag(..) )
-import ErrUtils
-import Util
-import FastString
-import ListSetOps
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Avail
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.BasicTypes      ( TopLevelFlag(..) )
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
+import GHCVM.Utils.ListSetOps
 
 import Control.Monad
 import Data.Map         ( Map )

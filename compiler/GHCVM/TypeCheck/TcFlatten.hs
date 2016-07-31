@@ -8,26 +8,26 @@ module GHCVM.TypeCheck.TcFlatten(
  ) where
 
 import GHCVM.TypeCheck.TcRnTypes
-import TcType
-import Type
-import TcEvidence
-import TyCon
-import TypeRep
-import Kind( isSubKind )
-import Coercion  ( tyConRolesX )
-import Var
-import VarEnv
-import NameEnv
-import Outputable
-import VarSet
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.TyCon
+import GHCVM.Types.TypeRep
+import GHCVM.Types.Kind( isSubKind )
+import GHCVM.Types.Coercion  ( tyConRolesX )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.VarSet
 import GHCVM.TypeCheck.TcSMonad as TcS
 import GHCVM.Main.DynFlags( DynFlags )
 
-import Util
-import Bag
-import FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.Bag
+import GHCVM.Utils.FastString
 import Control.Monad( when, liftM )
-import MonadUtils ( zipWithAndUnzipM )
+import GHCVM.Utils.MonadUtils ( zipWithAndUnzipM )
 import GHC.Exts ( inline )
 
 {-

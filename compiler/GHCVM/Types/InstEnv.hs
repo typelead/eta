@@ -29,23 +29,23 @@ module InstEnv (
 
 #include "HsVersions.h"
 
-import Module
-import Class
-import Var
-import VarSet
-import Name
-import NameSet
-import TcType
-import TyCon
+import GHCVM.BasicTypes.Module
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.TyCon
 import Unify
-import Outputable
-import ErrUtils
-import BasicTypes
-import UniqFM
-import Util
-import Id
-import Binary
-import FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Main.ErrUtils
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.Id
+import GHCVM.Utils.Binary
+import GHCVM.Utils.FastString
 import Data.Data        ( Data, Typeable )
 import Data.Maybe       ( isJust, isNothing )
 #if __GLASGOW_HASKELL__ < 709

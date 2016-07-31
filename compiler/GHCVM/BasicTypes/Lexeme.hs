@@ -27,8 +27,8 @@ module Lexeme (
 
   ) where
 
-import FastString
-import Util ((<||>))
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util ((<||>))
 
 import Data.Char
 import qualified Data.Set as Set

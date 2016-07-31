@@ -1,12 +1,12 @@
 module GHCVM.CodeGen.Prim where
 
 import GHCVM.Main.DynFlags
-import TyCon
-import Type
-import StgSyn
-import PrimOp
-import Panic
-import FastString
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.StgSyn.StgSyn
+import GHCVM.Prelude.PrimOp
+import GHCVM.Utils.Panic
+import GHCVM.Utils.FastString
 
 import Codec.JVM
 

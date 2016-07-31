@@ -30,17 +30,17 @@ module CoAxiom (
 
 import {-# SOURCE #-} TypeRep ( Type )
 import {-# SOURCE #-} TyCon ( TyCon )
-import Outputable
-import FastString
-import Name
-import Unique
-import Var
-import Util
-import Binary
-import Pair
-import BasicTypes
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.Var
+import GHCVM.Utils.Util
+import GHCVM.Utils.Binary
+import GHCVM.Utils.Pair
+import GHCVM.BasicTypes.BasicTypes
 import Data.Typeable ( Typeable )
-import SrcLoc
+import GHCVM.BasicTypes.SrcLoc
 import qualified Data.Data as Data
 
 #include "HsVersions.h"

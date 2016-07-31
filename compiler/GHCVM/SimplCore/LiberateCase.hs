@@ -9,12 +9,12 @@ module LiberateCase ( liberateCase ) where
 
 #include "HsVersions.h"
 
-import DynFlags
-import CoreSyn
-import CoreUnfold       ( couldBeSmallEnoughToInline )
-import Id
-import VarEnv
-import Util             ( notNull )
+import GHCVM.Main.DynFlags
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUnfold       ( couldBeSmallEnoughToInline )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Utils.Util             ( notNull )
 
 {-
 The liberate-case transformation

@@ -31,15 +31,15 @@ module GHCVM.Main.DriverPipeline (
    linkingNeeded, checkLinkInfo, writeInterfaceOnlyMode
   ) where
 
-import CoreSyn (CoreProgram)
-import StgSyn (StgBinding, pprStgBindings)
-import CostCentre (CollectedCCs)
+import GHCVM.Core.CoreSyn (CoreProgram)
+import GHCVM.StgSyn.StgSyn (StgBinding, pprStgBindings)
+import GHCVM.Profiling.CostCentre (CollectedCCs)
 import SimplStg         ( stg2stg )
-import CoreToStg        ( coreToStg )
-import CorePrep         ( corePrepPgm )
-import SysTools
-import TyCon ( isDataTyCon )
-import NameEnv
+import GHCVM.StgSyn.CoreToStg        ( coreToStg )
+import GHCVM.CoreSyn.CorePrep         ( corePrepPgm )
+import GHCVM.Main.SysTools
+import GHCVM.Types.TyCon ( isDataTyCon )
+import GHCVM.BasicTypes.NameEnv
 
 import GHCVM.CodeGen.Main
 import GHCVM.CodeGen.Name
@@ -54,30 +54,30 @@ import GHCVM.Iface.MkIface
 import PipelineMonad
 import GHCVM.Main.Packages
 import GHCVM.Main.HeaderInfo
-import DriverPhases
+import GHCVM.Main.DriverPhases
 import GHCVM.Main.HscMain
-import Finder
-import HscTypes hiding ( Hsc )
-import Outputable
-import Module
-import UniqFM           ( eltsUFM )
-import ErrUtils
+import GHCVM.Main.Finder
+import GHCVM.Main.HscTypes hiding ( Hsc )
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.UniqFM           ( eltsUFM )
+import GHCVM.Main.ErrUtils
 import GHCVM.Main.DynFlags
 import Config
-import Panic
-import Util
-import StringBuffer     ( hGetStringBuffer )
-import BasicTypes       ( SuccessFlag(..) )
-import Maybes           ( expectJust )
-import SrcLoc
-import FastString
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Util
+import GHCVM.Utils.StringBuffer     ( hGetStringBuffer )
+import GHCVM.BasicTypes.BasicTypes       ( SuccessFlag(..) )
+import GHCVM.Utils.Maybes           ( expectJust )
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 -- import LlvmCodeGen      ( llvmFixupAsm )
-import MonadUtils
-import Platform
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Platform
 import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.Main.Hooks
 
-import Exception
+import GHCVM.Utils.Exception
 import Data.IORef       ( readIORef )
 import System.Directory
 import System.FilePath

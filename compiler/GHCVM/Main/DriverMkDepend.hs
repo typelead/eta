@@ -11,24 +11,24 @@ module GHCVM.Main.DriverMkDepend (
   ) where
 
 import qualified GHCVM.Main.GHC as GHC
-import GhcMonad
-import HsSyn            ( ImportDecl(..) )
+import GHCVM.Main.GhcMonad
+import GHCVM.HsSyn.HsSyn            ( ImportDecl(..) )
 import GHCVM.Main.DynFlags
-import Util
-import HscTypes
-import SysTools         ( newTempName )
+import GHCVM.Utils.Util
+import GHCVM.Main.HscTypes
+import GHCVM.Main.SysTools         ( newTempName )
 import qualified SysTools
-import Module
-import Digraph          ( SCC(..) )
-import Finder
-import Outputable
-import Panic
-import SrcLoc
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Digraph          ( SCC(..) )
+import GHCVM.Main.Finder
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Panic
+import GHCVM.BasicTypes.SrcLoc
 import Data.List
-import FastString
+import GHCVM.Utils.FastString
 
-import Exception
-import ErrUtils
+import GHCVM.Utils.Exception
+import GHCVM.Main.ErrUtils
 
 import System.Directory
 import System.FilePath

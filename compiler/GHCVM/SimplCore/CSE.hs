@@ -10,16 +10,16 @@ module CSE (cseProgram) where
 
 #include "HsVersions.h"
 
-import CoreSubst
-import Var              ( Var )
-import Id               ( Id, idType, idInlineActivation, zapIdOccInfo, zapIdUsageInfo )
-import CoreUtils        ( mkAltExpr
+import GHCVM.Core.CoreSubst
+import GHCVM.BasicTypes.Var              ( Var )
+import GHCVM.BasicTypes.Id               ( Id, idType, idInlineActivation, zapIdOccInfo, zapIdUsageInfo )
+import GHCVM.Core.CoreUtils        ( mkAltExpr
                         , exprIsTrivial
                         , stripTicksE, stripTicksT, stripTicksTopE, mkTick, mkTicks )
-import Type             ( tyConAppArgs )
-import CoreSyn
-import Outputable
-import BasicTypes       ( isAlwaysActive )
+import GHCVM.Types.Type             ( tyConAppArgs )
+import GHCVM.Core.CoreSyn
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.BasicTypes       ( isAlwaysActive )
 import TrieMap
 
 import Data.List

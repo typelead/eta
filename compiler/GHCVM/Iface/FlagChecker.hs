@@ -6,14 +6,14 @@ module FlagChecker (
         fingerprintDynFlags
     ) where
 
-import Binary
-import BinIface ()
-import DynFlags
-import HscTypes
-import Module
-import Name
-import Fingerprint
--- import Outputable
+import GHCVM.Utils.Binary
+import GHCVM.Iface.BinIface ()
+import GHCVM.Main.DynFlags
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Fingerprint
+-- import GHCVM.Utils.Outputable
 
 import qualified Data.IntSet as IntSet
 import System.FilePath (normalise)

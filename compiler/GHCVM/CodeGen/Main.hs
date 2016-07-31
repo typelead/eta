@@ -1,18 +1,18 @@
 module GHCVM.CodeGen.Main where
 
-import Module
-import HscTypes
-import Type
-import TyCon
-import StgSyn
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.HscTypes
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.StgSyn.StgSyn
 import GHCVM.Main.DynFlags
-import FastString
-import VarEnv
-import Id
-import Name
-import OccName
-import DataCon
-import Util (unzipWith)
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Utils.Util (unzipWith)
 import GHCVM.Prelude.PrelNames (rOOT_MAIN)
 
 import GHCVM.Util

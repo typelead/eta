@@ -32,10 +32,10 @@ module IOEnv (
         atomicUpdMutVar, atomicUpdMutVar'
   ) where
 
-import DynFlags
-import Exception
-import Module
-import Panic
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Exception
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Panic
 
 import Data.IORef       ( IORef, newIORef, readIORef, writeIORef, modifyIORef,
                           atomicModifyIORef )
@@ -43,7 +43,7 @@ import Data.Typeable
 import System.IO.Unsafe ( unsafeInterleaveIO )
 import System.IO        ( fixIO )
 import Control.Monad
-import MonadUtils
+import GHCVM.Utils.MonadUtils
 import Control.Applicative (Alternative(..))
 
 ----------------------------------------------------------------------

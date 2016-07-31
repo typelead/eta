@@ -97,19 +97,19 @@ module TyCon(
 import {-# SOURCE #-} TypeRep ( Kind, Type, PredType )
 import {-# SOURCE #-} DataCon ( DataCon, isVanillaDataCon )
 
-import Var
-import Class
-import BasicTypes
-import DynFlags
-import ForeignCall
-import Name
-import NameSet
-import CoAxiom
-import PrelNames
-import Maybes
-import Outputable
-import Constants
-import Util
+import GHCVM.BasicTypes.Var
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Main.DynFlags
+import GHCVM.Prelude.ForeignCall
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Types.CoAxiom
+import GHCVM.Prelude.PrelNames
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Outputable
+import GHCVM.Main.Constants
+import GHCVM.Utils.Util
 import qualified Data.Data as Data
 import Data.Typeable (Typeable)
 

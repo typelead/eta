@@ -9,7 +9,7 @@ module Pair ( Pair(..), unPair, toPair, swap ) where
 
 #include "HsVersions.h"
 
-import Outputable
+import GHCVM.Utils.Outputable
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative
 import Data.Foldable

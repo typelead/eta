@@ -9,38 +9,38 @@ module GHCVM.TypeCheck.TcPatSyn ( tcInferPatSynDecl, tcCheckPatSynDecl
                 , tcPatSynBuilderBind, tcPatSynBuilderOcc
   ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcPat
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcMType
-import TysPrim
-import Name
-import SrcLoc
-import PatSyn
-import NameSet
-import Panic
-import Outputable
-import FastString
-import Var
-import Id
-import IdInfo( IdDetails(..) )
+import GHCVM.Prelude.TysPrim
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo( IdDetails(..) )
 import GHCVM.TypeCheck.TcBinds
-import BasicTypes
+import GHCVM.BasicTypes.BasicTypes
 import GHCVM.TypeCheck.TcSimplify
 import GHCVM.TypeCheck.TcUnify
-import TcType
-import TcEvidence
+import GHCVM.TypeCheck.TcType
+import GHCVM.TypeCheck.TcEvidence
 import GHCVM.Iface.BuildTyCl
-import VarSet
-import MkId
-import VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.MkId
+import GHCVM.BasicTypes.VarEnv
 import GHCVM.TypeCheck.Inst
 -- TODO: #if __GLASGOW_HASKELL__ < 709
 -- import Data.Monoid
 -- #endif
-import Bag
-import Util
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Util
 import Data.Maybe
 import Control.Monad (forM)
 

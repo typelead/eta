@@ -48,17 +48,17 @@ module VarEnv (
         emptyTidyEnv
     ) where
 
-import OccName
-import Var
-import VarSet
-import UniqFM
-import Unique
-import Util
-import Maybes
-import Outputable
-import FastTypes
-import StaticFlags
-import FastString
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastTypes
+import GHCVM.Main.StaticFlags
+import GHCVM.Utils.FastString
 
 {-
 ************************************************************************

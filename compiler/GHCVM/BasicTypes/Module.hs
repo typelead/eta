@@ -77,13 +77,13 @@ module Module
     ) where
 
 import Config
-import Outputable
-import Unique
-import UniqFM
-import FastString
-import Binary
-import Util
-import {-# SOURCE #-} Packages
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Binary
+import GHCVM.Utils.Util
+import {-# SOURCE #-} GHCVM.Main.Packages
 import GHC.PackageDb (BinaryStringRep(..))
 
 import Data.Data

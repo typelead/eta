@@ -16,7 +16,7 @@ module OrdList (
         mapOL, fromOL, toOL, foldrOL, foldlOL
 ) where
 
-import Outputable
+import GHCVM.Utils.Outputable
 
 #if __GLASGOW_HASKELL__ < 709
 import Data.Monoid ( Monoid(..) )

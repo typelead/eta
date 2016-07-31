@@ -79,15 +79,15 @@ module TysPrim(
 
 #include "HsVersions.h"
 
-import Var              ( TyVar, KindVar, mkTyVar )
-import Name             ( Name, BuiltInSyntax(..), mkInternalName, mkWiredInName )
-import OccName          ( mkTyVarOccFS, mkTcOccFS )
-import TyCon
-import TypeRep
-import SrcLoc
-import Unique           ( mkAlphaTyVarUnique )
-import PrelNames
-import FastString
+import GHCVM.BasicTypes.Var              ( TyVar, KindVar, mkTyVar )
+import GHCVM.BasicTypes.Name             ( Name, BuiltInSyntax(..), mkInternalName, mkWiredInName )
+import GHCVM.BasicTypes.OccName          ( mkTyVarOccFS, mkTcOccFS )
+import GHCVM.Types.TyCon
+import GHCVM.Types.TypeRep
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Unique           ( mkAlphaTyVarUnique )
+import GHCVM.Prelude.PrelNames
+import GHCVM.Utils.FastString
 
 import Data.Char
 

@@ -26,11 +26,11 @@ module NameEnv (
 
 #include "HsVersions.h"
 
-import Digraph
-import Name
-import Unique
-import UniqFM
-import Maybes
+import GHCVM.Utils.Digraph
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Maybes
 
 {-
 ************************************************************************

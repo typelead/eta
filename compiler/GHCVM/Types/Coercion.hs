@@ -80,31 +80,31 @@ module Coercion (
        ) where
 
 import Unify    ( MatchEnv(..), matchList )
-import TypeRep
+import GHCVM.Types.TypeRep
 import qualified Type
-import Type hiding( substTy, substTyVarBndr, extendTvSubst )
-import TyCon
-import CoAxiom
-import Var
-import VarEnv
-import VarSet
-import Binary
-import Maybes   ( orElse )
-import Name     ( Name, NamedThing(..), nameUnique, nameModule, getSrcSpan )
-import OccName  ( parenSymOcc )
-import Util
-import BasicTypes
-import Outputable
-import Unique
-import Pair
-import SrcLoc
-import PrelNames        ( funTyConKey, eqPrimTyConKey, eqReprPrimTyConKey )
+import GHCVM.Types.Type hiding( substTy, substTyVarBndr, extendTvSubst )
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Utils.Binary
+import GHCVM.Utils.Maybes   ( orElse )
+import GHCVM.BasicTypes.Name     ( Name, NamedThing(..), nameUnique, nameModule, getSrcSpan )
+import GHCVM.BasicTypes.OccName  ( parenSymOcc )
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Pair
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Prelude.PrelNames        ( funTyConKey, eqPrimTyConKey, eqReprPrimTyConKey )
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Control.Applicative hiding ( empty )
 -- import Data.Traversable (traverse, sequenceA)
 -- #endif
-import FastString
-import ListSetOps
+import GHCVM.Utils.FastString
+import GHCVM.Utils.ListSetOps
 
 import qualified Data.Data as Data hiding ( TyCon )
 import Control.Arrow ( first )

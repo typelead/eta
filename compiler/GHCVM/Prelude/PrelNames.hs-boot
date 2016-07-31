@@ -1,7 +1,7 @@
 module GHCVM.Prelude.PrelNames where
 
-import Module
-import Unique
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Unique
 
 mAIN :: Module
 liftedTypeKindTyConKey :: Unique

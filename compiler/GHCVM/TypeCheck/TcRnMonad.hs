@@ -15,40 +15,40 @@ module GHCVM.TypeCheck.TcRnMonad(
   ) where
 
 import GHCVM.TypeCheck.TcRnTypes        -- Re-export all
-import IOEnv            -- Re-export all
-import TcEvidence
+import GHCVM.Utils.IOEnv            -- Re-export all
+import GHCVM.TypeCheck.TcEvidence
 
-import HsSyn hiding (LIE)
-import HscTypes
-import Module
-import RdrName
-import Name
-import Type
+import GHCVM.HsSyn.HsSyn hiding (LIE)
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Type
 
-import TcType
-import InstEnv
-import FamInstEnv
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
 import GHCVM.Prelude.PrelNames
 
-import Var
-import Id
-import VarSet
-import VarEnv
-import ErrUtils
-import SrcLoc
-import NameEnv
-import NameSet
-import Bag
-import Outputable
-import UniqSupply
-import UniqFM
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Main.ErrUtils
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.UniqFM
 import GHCVM.Main.DynFlags
-import StaticFlags
-import FastString
-import Panic
-import Util
-import Annotations
-import BasicTypes( TopLevelFlag )
+import GHCVM.Main.StaticFlags
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Util
+import GHCVM.Main.Annotations
+import GHCVM.BasicTypes.BasicTypes( TopLevelFlag )
 
 import Control.Exception
 import Data.IORef

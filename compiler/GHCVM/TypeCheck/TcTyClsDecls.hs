@@ -19,8 +19,8 @@ module GHCVM.TypeCheck.TcTyClsDecls (
         wrongKindOfFamily, dataConCtxt, badDataConTyCon
     ) where
 
-import HsSyn
-import HscTypes
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.HscTypes
 import GHCVM.Iface.BuildTyCl
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
@@ -32,41 +32,41 @@ import GHCVM.TypeCheck.TcTyDecls
 import GHCVM.TypeCheck.TcClassDcl
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcMType
-import TcType
-import TysWiredIn( unitTy )
+import GHCVM.TypeCheck.TcType
+import GHCVM.Prelude.TysWiredIn( unitTy )
 import GHCVM.TypeCheck.FamInst
-import FamInstEnv( isDominatedBy, mkCoAxBranch, mkBranchedCoAxiom )
-import Coercion( pprCoAxBranch, ltRole )
-import Type
-import TypeRep   -- for checkValidRoles
-import Kind
-import Class
-import CoAxiom
-import TyCon
-import DataCon
-import Id
-import MkCore           ( rEC_SEL_ERROR_ID )
-import IdInfo
-import Var
-import VarEnv
-import VarSet
-import Module
-import Name
-import NameSet
-import NameEnv
-import Outputable
-import Maybes
+import GHCVM.Types.FamInstEnv( isDominatedBy, mkCoAxBranch, mkBranchedCoAxiom )
+import GHCVM.Types.Coercion( pprCoAxBranch, ltRole )
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep   -- for checkValidRoles
+import GHCVM.Types.Kind
+import GHCVM.Types.Class
+import GHCVM.Types.CoAxiom
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Id
+import GHCVM.Core.MkCore           ( rEC_SEL_ERROR_ID )
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes
 import Unify
-import Util
-import SrcLoc
-import ListSetOps
-import Digraph
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.Digraph
 import GHCVM.Main.DynFlags
-import FastString
-import Unique           ( mkBuiltinUnique )
-import BasicTypes
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Unique           ( mkBuiltinUnique )
+import GHCVM.BasicTypes.BasicTypes
 
-import Bag
+import GHCVM.Utils.Bag
 import Control.Monad
 import Data.List
 

@@ -20,27 +20,27 @@ import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr )
 import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsUtils
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 
-import Id
-import CoreSyn
-import MkCore
-import TyCon
-import DataCon
+import GHCVM.BasicTypes.Id
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.MkCore
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
 import GHCVM.TypeCheck.TcHsSyn ( shortCutLit )
-import TcType
-import Name
-import Type
+import GHCVM.TypeCheck.TcType
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Type
 import GHCVM.Prelude.PrelNames
-import TysWiredIn
-import Literal
-import SrcLoc
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.SrcLoc
 import Data.Ratio
-import Outputable
-import BasicTypes
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Main.DynFlags
-import Util
-import FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
 import Control.Monad
 
 import Data.Int

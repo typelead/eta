@@ -12,8 +12,8 @@ module GraphBase (
 
 where
 
-import UniqSet
-import UniqFM
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.UniqFM
 
 
 -- | A fn to check if a node is trivially colorable

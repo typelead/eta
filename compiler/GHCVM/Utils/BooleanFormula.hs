@@ -25,9 +25,9 @@ import Data.Foldable ( Foldable )
 import Data.Traversable ( Traversable )
 #endif
 
-import MonadUtils
-import Outputable
-import Binary
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Binary
 
 ----------------------------------------------------------------------
 -- Boolean formula type and smart constructors

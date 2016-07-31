@@ -24,23 +24,23 @@ module PrimOp (
 
 #include "HsVersions.h"
 
-import TysPrim
-import TysWiredIn
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn
 
 import CmmType
-import Demand
-import Var              ( TyVar )
-import OccName          ( OccName, pprOccName, mkVarOccFS )
-import TyCon            ( TyCon, isPrimTyCon, tyConPrimRep, PrimRep(..) )
-import Type             ( Type, mkForAllTys, mkFunTy, mkFunTys, tyConAppTyCon,
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.Var              ( TyVar )
+import GHCVM.BasicTypes.OccName          ( OccName, pprOccName, mkVarOccFS )
+import GHCVM.Types.TyCon            ( TyCon, isPrimTyCon, tyConPrimRep, PrimRep(..) )
+import GHCVM.Types.Type             ( Type, mkForAllTys, mkFunTy, mkFunTys, tyConAppTyCon,
                           typePrimRep )
-import BasicTypes       ( Arity, Fixity(..), FixityDirection(..), TupleSort(..) )
-import ForeignCall      ( CLabelString )
-import Unique           ( Unique, mkPrimOpIdUnique )
-import Outputable
-import FastTypes
-import FastString
-import Module           ( PackageKey )
+import GHCVM.BasicTypes.BasicTypes       ( Arity, Fixity(..), FixityDirection(..), TupleSort(..) )
+import GHCVM.Prelude.ForeignCall      ( CLabelString )
+import GHCVM.BasicTypes.Unique           ( Unique, mkPrimOpIdUnique )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Module           ( PackageKey )
 
 {-
 ************************************************************************

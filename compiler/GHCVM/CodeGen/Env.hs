@@ -1,7 +1,7 @@
 module GHCVM.CodeGen.Env where
 
-import Id
-import StgSyn
+import GHCVM.BasicTypes.Id
+import GHCVM.StgSyn.StgSyn
 
 import Codec.JVM
 

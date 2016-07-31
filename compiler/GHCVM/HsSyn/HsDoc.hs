@@ -8,9 +8,9 @@ module HsDoc (
 
 #include "HsVersions.h"
 
-import Outputable
-import SrcLoc
-import FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 
 import Data.Data
 

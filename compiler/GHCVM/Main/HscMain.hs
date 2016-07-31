@@ -85,73 +85,73 @@ module GHCVM.Main.HscMain
     ) where
 
 -- TODO: #ifdef GHCI
--- import Id
--- import BasicTypes       ( HValue )
+-- import GHCVM.BasicTypes.Id
+-- import GHCVM.BasicTypes.BasicTypes       ( HValue )
 -- import ByteCodeGen      ( byteCodeGen, coreExprToBCOs )
 -- import Linker
--- import CoreTidy         ( tidyExpr )
--- import Type             ( Type )
--- import PrelNames
+-- import GHCVM.Core.CoreTidy         ( tidyExpr )
+-- import GHCVM.Types.Type             ( Type )
+-- import GHCVM.Prelude.PrelNames
 -- import {- Kind parts of -} Type         ( Kind )
--- import CoreLint         ( lintInteractiveExpr )
+-- import GHCVM.Core.CoreLint         ( lintInteractiveExpr )
 -- import DsMeta           ( templateHaskellNames )
--- import VarEnv           ( emptyTidyEnv )
--- import Panic
--- import ConLike
+-- import GHCVM.BasicTypes.VarEnv           ( emptyTidyEnv )
+-- import GHCVM.Utils.Panic
+-- import GHCVM.BasicTypes.ConLike
 
 -- import GHC.Exts
 -- #endif
 
-import Module
-import RdrName
-import HsSyn
-import CoreSyn
-import StringBuffer
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.RdrName
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Core.CoreSyn
+import GHCVM.Utils.StringBuffer
 import GHCVM.Parser.Parser
 import qualified GHCVM.Parser.Lexer as Lexer
 import GHCVM.Parser.Lexer
-import SrcLoc
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.TypeCheck.TcRnDriver
 import GHCVM.Iface.TcIface          ( typecheckIface )
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Iface.IfaceEnv         ( initNameCache )
 import GHCVM.Iface.LoadIface        ( ifaceStats, initExternalPackageState )
-import PrelInfo
+import GHCVM.Prelude.PrelInfo
 import GHCVM.Iface.MkIface
 import GHCVM.DeSugar.DeSugar
-import SimplCore
+import GHCVM.SimplCore.SimplCore
 import GHCVM.Main.TidyPgm
-import CorePrep
-import CoreToStg        ( coreToStg )
+import GHCVM.CoreSyn.CorePrep
+import GHCVM.StgSyn.CoreToStg        ( coreToStg )
 --import qualified StgCmm ( codeGen )
-import StgSyn
-import CostCentre
+import GHCVM.StgSyn.StgSyn
+import GHCVM.Profiling.CostCentre
 --import ProfInit
-import TyCon
-import Name
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Name
 import SimplStg         ( stg2stg )
-import NameEnv          ( emptyNameEnv )
-import NameSet          ( emptyNameSet )
-import InstEnv
-import FamInstEnv
-import Fingerprint      ( Fingerprint )
+import GHCVM.BasicTypes.NameEnv          ( emptyNameEnv )
+import GHCVM.BasicTypes.NameSet          ( emptyNameSet )
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
+import GHCVM.Utils.Fingerprint      ( Fingerprint )
 import GHCVM.Main.Hooks
 
 import GHCVM.Main.DynFlags
-import ErrUtils
+import GHCVM.Main.ErrUtils
 
-import Outputable
+import GHCVM.Utils.Outputable
 import HscStats         ( ppSourceStats )
-import HscTypes
-import FastString
-import UniqFM           ( emptyUFM )
-import UniqSupply
-import Bag
-import Exception
+import GHCVM.Main.HscTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.UniqFM           ( emptyUFM )
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Exception
 import qualified Stream
 import Stream (Stream)
 
-import Util
+import GHCVM.Utils.Util
 
 import GHCVM.CodeGen.Main
 import GHCVM.CodeGen.Name

@@ -23,19 +23,19 @@ module PrelInfo (
 
 #include "HsVersions.h"
 
-import PrelNames
-import PrelRules
-import Avail
-import PrimOp
-import DataCon
-import Id
-import MkId
-import TysPrim
-import TysWiredIn
-import HscTypes
-import Class
-import TyCon
-import Util
+import GHCVM.Prelude.PrelNames
+import GHCVM.Prelude.PrelRules
+import GHCVM.BasicTypes.Avail
+import GHCVM.Prelude.PrimOp
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Main.HscTypes
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
+import GHCVM.Utils.Util
 import {-# SOURCE #-} TcTypeNats ( typeNatTyCons )
 
 import Data.Array

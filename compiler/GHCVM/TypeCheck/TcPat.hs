@@ -17,33 +17,33 @@ module GHCVM.TypeCheck.TcPat ( tcLetPat, TcSigFun, TcPragFun
 
 import {-# SOURCE #-}   GHCVM.TypeCheck.TcExpr( tcSyntaxOp, tcInferRho)
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.Inst
-import Id
-import Var
-import Name
-import NameSet
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcValidity( arityErr )
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcUnify
 import GHCVM.TypeCheck.TcHsType
-import TysWiredIn
-import TcEvidence
-import TyCon
-import DataCon
-import PatSyn
-import ConLike
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.BasicTypes.ConLike
 import GHCVM.Prelude.PrelNames
-import BasicTypes hiding (SuccessFlag(..))
+import GHCVM.BasicTypes.BasicTypes hiding (SuccessFlag(..))
 import GHCVM.Main.DynFlags
-import SrcLoc
-import Util
-import Outputable
-import FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import Control.Monad
 
 {-

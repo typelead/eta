@@ -10,35 +10,35 @@ module GHCVM.TypeCheck.TcErrors(
 import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcMType
-import TcType
-import TypeRep
-import Type
-import Kind ( isKind )
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.TypeRep
+import GHCVM.Types.Type
+import GHCVM.Types.Kind ( isKind )
 import Unify            ( tcMatchTys )
-import Module
+import GHCVM.BasicTypes.Module
 import GHCVM.TypeCheck.FamInst
 import GHCVM.TypeCheck.Inst
-import InstEnv
-import TyCon
-import DataCon
-import TcEvidence
-import Name
-import RdrName          ( lookupGRE_Name, GlobalRdrEnv )
-import Id
-import Var
-import VarSet
-import VarEnv
-import NameEnv
-import Bag
-import ErrUtils         ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning )
-import BasicTypes
-import Util
-import FastString
-import Outputable
-import SrcLoc
+import GHCVM.Types.InstEnv
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.RdrName          ( lookupGRE_Name, GlobalRdrEnv )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Utils.Bag
+import GHCVM.Main.ErrUtils         ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
-import StaticFlags      ( opt_PprStyle_Debug )
-import ListSetOps       ( equivClasses )
+import GHCVM.Main.StaticFlags      ( opt_PprStyle_Debug )
+import GHCVM.Utils.ListSetOps       ( equivClasses )
 
 import Control.Monad    ( when )
 import Data.Maybe

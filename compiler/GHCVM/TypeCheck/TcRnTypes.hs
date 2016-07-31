@@ -96,42 +96,42 @@ module GHCVM.TypeCheck.TcRnTypes(
 
   ) where
 
-import HsSyn
-import CoreSyn
-import HscTypes
-import TcEvidence
-import Type
-import CoAxiom  ( Role )
-import Class    ( Class )
-import TyCon    ( TyCon )
-import ConLike  ( ConLike(..) )
-import DataCon  ( DataCon, dataConUserType, dataConOrigArgTys )
-import PatSyn   ( PatSyn, patSynType )
-import TysWiredIn ( coercibleClass )
-import TcType
-import Annotations
-import InstEnv
-import FamInstEnv
-import IOEnv
-import RdrName
-import Name
-import NameEnv
-import NameSet
-import Avail
-import Var
-import VarEnv
-import Module
-import SrcLoc
-import VarSet
-import ErrUtils
-import UniqFM
-import UniqSupply
-import BasicTypes
-import Bag
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Core.CoreSyn
+import GHCVM.Main.HscTypes
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.Type
+import GHCVM.Types.CoAxiom  ( Role )
+import GHCVM.Types.Class    ( Class )
+import GHCVM.Types.TyCon    ( TyCon )
+import GHCVM.BasicTypes.ConLike  ( ConLike(..) )
+import GHCVM.BasicTypes.DataCon  ( DataCon, dataConUserType, dataConOrigArgTys )
+import GHCVM.BasicTypes.PatSyn   ( PatSyn, patSynType )
+import GHCVM.Prelude.TysWiredIn ( coercibleClass )
+import GHCVM.TypeCheck.TcType
+import GHCVM.Main.Annotations
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
+import GHCVM.Utils.IOEnv
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Bag
 import GHCVM.Main.DynFlags
-import Outputable
-import ListSetOps
-import FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.FastString
 import GHC.Fingerprint
 
 import Data.Set (Set)

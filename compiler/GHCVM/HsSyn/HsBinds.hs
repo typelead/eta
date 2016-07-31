@@ -18,26 +18,26 @@ Datatype for: @BindGroup@, @Bind@, @Sig@, @Bind@.
 
 module HsBinds where
 
-import {-# SOURCE #-} HsExpr ( pprExpr, LHsExpr,
+import {-# SOURCE #-} GHCVM.HsSyn.HsExpr ( pprExpr, LHsExpr,
                                MatchGroup, pprFunBind,
                                GRHSs, pprPatBind )
-import {-# SOURCE #-} HsPat  ( LPat )
+import {-# SOURCE #-} GHCVM.HsSyn.HsPat  ( LPat )
 
-import PlaceHolder ( PostTc,PostRn,DataId )
-import HsTypes
-import PprCore ()
-import CoreSyn
-import TcEvidence
-import Type
-import Name
-import NameSet
-import BasicTypes
-import Outputable
-import SrcLoc
-import Var
-import Bag
-import FastString
-import BooleanFormula (BooleanFormula)
+import GHCVM.HsSyn.PlaceHolder ( PostTc,PostRn,DataId )
+import GHCVM.HsSyn.HsTypes
+import GHCVM.Core.PprCore ()
+import GHCVM.Core.CoreSyn
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Var
+import GHCVM.Utils.Bag
+import GHCVM.Utils.FastString
+import GHCVM.Utils.BooleanFormula (BooleanFormula)
 
 import Data.Data hiding ( Fixity )
 import Data.List

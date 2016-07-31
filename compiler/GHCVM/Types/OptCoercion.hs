@@ -6,23 +6,23 @@ module OptCoercion ( optCoercion, checkAxInstCo ) where
 
 #include "HsVersions.h"
 
-import Coercion
-import Type hiding( substTyVarBndr, substTy, extendTvSubst )
-import TcType       ( exactTyVarsOfType )
-import TyCon
-import CoAxiom
-import Var
-import VarSet
-import FamInstEnv   ( flattenTys )
-import VarEnv
-import StaticFlags      ( opt_NoOptCoercion )
-import Outputable
-import Pair
-import FastString
-import Util
+import GHCVM.Types.Coercion
+import GHCVM.Types.Type hiding( substTyVarBndr, substTy, extendTvSubst )
+import GHCVM.TypeCheck.TcType       ( exactTyVarsOfType )
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Types.FamInstEnv   ( flattenTys )
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Main.StaticFlags      ( opt_NoOptCoercion )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Pair
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 import Unify
-import ListSetOps
-import InstEnv
+import GHCVM.Utils.ListSetOps
+import GHCVM.Types.InstEnv
 import Control.Monad   ( zipWithM )
 
 {-

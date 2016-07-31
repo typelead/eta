@@ -12,7 +12,7 @@ import GHCVM.DeSugar.Match
 import GHCVM.DeSugar.DsUtils
 import GHCVM.DeSugar.DsMonad
 
-import HsSyn    hiding (collectPatBinders, collectPatsBinders, collectLStmtsBinders, collectLStmtBinders, collectStmtBinders )
+import GHCVM.HsSyn.HsSyn    hiding (collectPatBinders, collectPatsBinders, collectLStmtsBinders, collectLStmtBinders, collectStmtBinders )
 import GHCVM.TypeCheck.TcHsSyn
 
 -- NB: The desugarer, which straddles the source and Core worlds, sometimes
@@ -22,27 +22,27 @@ import GHCVM.TypeCheck.TcHsSyn
 
 import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
 
-import TcType
-import TcEvidence
-import CoreSyn
-import CoreFVs
-import CoreUtils
-import MkCore
+import GHCVM.TypeCheck.TcType
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.MkCore
 import GHCVM.DeSugar.DsBinds (dsHsWrapper)
 
-import Name
-import Var
-import Id
-import DataCon
-import TysWiredIn
-import BasicTypes
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Prelude.PrelNames
-import Outputable
-import Bag
-import VarSet
-import SrcLoc
-import ListSetOps( assocDefault )
-import FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.ListSetOps( assocDefault )
+import GHCVM.Utils.FastString
 import Data.List
 
 data DsCmdEnv = DsCmdEnv {

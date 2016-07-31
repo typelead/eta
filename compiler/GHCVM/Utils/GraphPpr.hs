@@ -9,10 +9,10 @@ where
 
 import GraphBase
 
-import Outputable
-import Unique
-import UniqSet
-import UniqFM
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.UniqFM
 
 import Data.List
 import Data.Maybe

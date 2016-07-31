@@ -1,16 +1,16 @@
 module GHCVM.CodeGen.Closure where
 
 import GHCVM.Main.DynFlags
-import Id
-import StgSyn
-import Type
-import TyCon
-import DataCon
-import Panic
-import FastString
-import OccName
-import Name
-import Module
+import GHCVM.BasicTypes.Id
+import GHCVM.StgSyn.StgSyn
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Utils.Panic
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Module
 
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep

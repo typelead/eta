@@ -89,54 +89,54 @@ module GHCVM.TypeCheck.TcSMonad (
                                              -- here
 ) where
 
-import HscTypes
+import GHCVM.Main.HscTypes
 
 import qualified GHCVM.TypeCheck.Inst as Inst
-import InstEnv
+import GHCVM.Types.InstEnv
 import qualified GHCVM.TypeCheck.FamInst as FamInst
-import FamInstEnv
+import GHCVM.Types.FamInstEnv
 
 import qualified GHCVM.TypeCheck.TcRnMonad as TcM
 import qualified GHCVM.TypeCheck.TcMType as TcM
 import qualified GHCVM.TypeCheck.TcEnv as TcM
        ( checkWellStaged, topIdLvl, tcGetDefaultTys )
-import Kind
-import TcType
+import GHCVM.Types.Kind
+import GHCVM.TypeCheck.TcType
 import GHCVM.Main.DynFlags
-import Type
+import GHCVM.Types.Type
 
-import TcEvidence
-import Class
-import TyCon
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
 
-import Name
-import RdrName (RdrName, GlobalRdrEnv)
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.RdrName (RdrName, GlobalRdrEnv)
 import GHCVM.Rename.RnEnv (addUsedRdrNames)
-import Var
-import VarEnv
-import VarSet
-import Outputable
-import Bag
-import UniqSupply
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.UniqSupply
 
-import FastString
-import Util
-import Id
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.Id
 import GHCVM.TypeCheck.TcRnTypes
 
-import Unique
-import UniqFM
-import Maybes ( orElse, firstJusts )
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Maybes ( orElse, firstJusts )
 
 import TrieMap
 import Control.Arrow ( first )
 import Control.Monad( ap, when, unless, MonadPlus(..) )
-import MonadUtils
+import GHCVM.Utils.MonadUtils
 import Data.IORef
 import Data.List ( partition, foldl' )
 
 -- #ifdef DEBUG
--- import Digraph
+-- import GHCVM.Utils.Digraph
 -- #endif
 
 {-

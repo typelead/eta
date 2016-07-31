@@ -10,14 +10,14 @@ HsImpExp: Abstract syntax: imports, exports, interfaces
 
 module HsImpExp where
 
-import Module           ( ModuleName )
-import HsDoc            ( HsDocString )
-import OccName          ( HasOccName(..), isTcOcc, isSymOcc )
-import BasicTypes       ( SourceText )
+import GHCVM.BasicTypes.Module           ( ModuleName )
+import GHCVM.HsSyn.HsDoc            ( HsDocString )
+import GHCVM.BasicTypes.OccName          ( HasOccName(..), isTcOcc, isSymOcc )
+import GHCVM.BasicTypes.BasicTypes       ( SourceText )
 
-import Outputable
-import FastString
-import SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc
 
 import Data.Data
 

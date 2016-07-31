@@ -68,9 +68,9 @@ module UniqFM (
         joinUFM, pprUniqFM
     ) where
 
-import FastString
-import Unique           ( Uniquable(..), Unique, getKey )
-import Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Unique           ( Uniquable(..), Unique, getKey )
+import GHCVM.Utils.Outputable
 
 import Compiler.Hoopl   hiding (Unique)
 

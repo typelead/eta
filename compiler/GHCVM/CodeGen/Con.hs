@@ -1,13 +1,13 @@
 module GHCVM.CodeGen.Con where
 
-import Literal
+import GHCVM.BasicTypes.Literal
 import GHCVM.Main.DynFlags hiding (mAX_INTLIKE, mIN_INTLIKE, mAX_INTLIKE, mAX_CHARLIKE)
-import Id
-import Module
-import DataCon
-import StgSyn
-import PrelInfo (maybeCharLikeCon, maybeIntLikeCon)
-import Outputable
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.DataCon
+import GHCVM.StgSyn.StgSyn
+import GHCVM.Prelude.PrelInfo (maybeCharLikeCon, maybeIntLikeCon)
+import GHCVM.Utils.Outputable
 import GHCVM.Constants
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad

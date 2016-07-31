@@ -5,12 +5,12 @@
 --
 module HscStats ( ppSourceStats ) where
 
-import Bag
-import HsSyn
-import Outputable
-import RdrName
-import SrcLoc
-import Util
+import GHCVM.Utils.Bag
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
 
 import Data.Char
 

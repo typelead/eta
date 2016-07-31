@@ -55,17 +55,17 @@ module SysTools (
 
 #include "HsVersions.h"
 
-import DriverPhases
-import Module
-import Packages
+import GHCVM.Main.DriverPhases
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.Packages
 import Config
-import Outputable
-import ErrUtils
-import Panic
-import Platform
-import Util
-import DynFlags
-import Exception
+import GHCVM.Utils.Outputable
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Platform
+import GHCVM.Utils.Util
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Exception
 
 import Data.IORef
 import Control.Monad
@@ -90,8 +90,8 @@ import Foreign.C.String
 
 import System.Process
 import Control.Concurrent
-import FastString
-import SrcLoc           ( SrcLoc, mkSrcLoc, noSrcSpan, mkSrcSpan )
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc           ( SrcLoc, mkSrcLoc, noSrcSpan, mkSrcSpan )
 
 #ifdef mingw32_HOST_OS
 # if defined(i386_HOST_ARCH)

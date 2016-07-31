@@ -52,21 +52,21 @@ module GHCVM.Main.Packages (
 where
 
 import GHC.PackageDb
-import PackageConfig
+import GHCVM.Main.PackageConfig
 import GHCVM.Main.DynFlags
-import Name             ( Name, nameModule_maybe )
-import UniqFM
-import Module
-import Util
-import Panic
-import Outputable
-import Maybes
+import GHCVM.BasicTypes.Name             ( Name, nameModule_maybe )
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Util
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes
 
 import System.Environment ( getEnv )
-import FastString
-import ErrUtils         ( debugTraceMsg, MsgDoc )
-import Exception
-import Unique
+import GHCVM.Utils.FastString
+import GHCVM.Main.ErrUtils         ( debugTraceMsg, MsgDoc )
+import GHCVM.Utils.Exception
+import GHCVM.BasicTypes.Unique
 
 import System.Directory
 import System.FilePath as FilePath

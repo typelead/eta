@@ -55,31 +55,31 @@ module SetLevels (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreMonad        ( FloatOutSwitches(..) )
-import CoreUtils        ( exprType, exprOkForSpeculation, exprIsBottom )
-import CoreArity        ( exprBotStrictness_maybe )
-import CoreFVs          -- all of it
-import Coercion         ( isCoVar )
-import CoreSubst        ( Subst, emptySubst, substBndrs, substRecBndrs,
+import GHCVM.Core.CoreSyn
+import GHCVM.SimplCore.CoreMonad        ( FloatOutSwitches(..) )
+import GHCVM.Core.CoreUtils        ( exprType, exprOkForSpeculation, exprIsBottom )
+import GHCVM.Core.CoreArity        ( exprBotStrictness_maybe )
+import GHCVM.Core.CoreFVs          -- all of it
+import GHCVM.Types.Coercion         ( isCoVar )
+import GHCVM.Core.CoreSubst        ( Subst, emptySubst, substBndrs, substRecBndrs,
                           extendIdSubst, extendSubstWithVar, cloneBndrs,
                           cloneRecIdBndrs, substTy, substCo, substVarSet )
-import MkCore           ( sortQuantVars )
-import Id
-import IdInfo
-import Var
-import VarSet
-import VarEnv
-import Literal          ( litIsTrivial )
-import Demand           ( StrictSig )
-import Name             ( getOccName, mkSystemVarName )
-import OccName          ( occNameString )
-import Type             ( isUnLiftedType, Type, mkPiTypes )
-import BasicTypes       ( Arity, RecFlag(..) )
-import UniqSupply
-import Util
-import Outputable
-import FastString
+import GHCVM.Core.MkCore           ( sortQuantVars )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Literal          ( litIsTrivial )
+import GHCVM.BasicTypes.Demand           ( StrictSig )
+import GHCVM.BasicTypes.Name             ( getOccName, mkSystemVarName )
+import GHCVM.BasicTypes.OccName          ( occNameString )
+import GHCVM.Types.Type             ( isUnLiftedType, Type, mkPiTypes )
+import GHCVM.BasicTypes.BasicTypes       ( Arity, RecFlag(..) )
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 {-
 ************************************************************************

@@ -23,33 +23,33 @@ module DynamicLoading (
 
 #ifdef GHCI
 import Linker           ( linkModule, getHValue )
-import SrcLoc           ( noSrcSpan )
-import Finder           ( findImportedModule, cannotFindModule )
-import TcRnMonad        ( initTcInteractive, initIfaceTcRn )
-import LoadIface        ( loadPluginInterface )
-import RdrName          ( RdrName, Provenance(..), ImportSpec(..), ImpDeclSpec(..)
+import GHCVM.BasicTypes.SrcLoc           ( noSrcSpan )
+import GHCVM.Main.Finder           ( findImportedModule, cannotFindModule )
+import GHCVM.TypeCheck.TcRnMonad        ( initTcInteractive, initIfaceTcRn )
+import GHCVM.Iface.LoadIface        ( loadPluginInterface )
+import GHCVM.BasicTypes.RdrName          ( RdrName, Provenance(..), ImportSpec(..), ImpDeclSpec(..)
                         , ImpItemSpec(..), mkGlobalRdrEnv, lookupGRE_RdrName
                         , gre_name, mkRdrQual )
-import OccName          ( mkVarOcc )
-import RnNames          ( gresFromAvails )
-import DynFlags
+import GHCVM.BasicTypes.OccName          ( mkVarOcc )
+import GHCVM.Rename.RnNames          ( gresFromAvails )
+import GHCVM.Main.DynFlags
 import Plugins          ( Plugin, CommandLineOption )
-import PrelNames        ( pluginTyConName )
+import GHCVM.Prelude.PrelNames        ( pluginTyConName )
 
-import HscTypes
-import BasicTypes       ( HValue )
-import TypeRep          ( mkTyConTy, pprTyThingCategory )
-import Type             ( Type, eqType )
-import TyCon            ( TyCon )
-import Name             ( Name, nameModule_maybe )
-import Id               ( idType )
-import Module           ( Module, ModuleName )
-import Panic
-import FastString
-import ErrUtils
-import Outputable
-import Exception
-import Hooks
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.BasicTypes       ( HValue )
+import GHCVM.Types.TypeRep          ( mkTyConTy, pprTyThingCategory )
+import GHCVM.Types.Type             ( Type, eqType )
+import GHCVM.Types.TyCon            ( TyCon )
+import GHCVM.BasicTypes.Name             ( Name, nameModule_maybe )
+import GHCVM.BasicTypes.Id               ( idType )
+import GHCVM.BasicTypes.Module           ( Module, ModuleName )
+import GHCVM.Utils.Panic
+import GHCVM.Utils.FastString
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Exception
+import GHCVM.Main.Hooks
 
 import Data.Maybe        ( mapMaybe )
 import GHC.Exts          ( unsafeCoerce# )

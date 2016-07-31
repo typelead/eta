@@ -27,23 +27,23 @@ import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice( runQuasiQuoteType )
 import {-# SOURCE #-} GHCVM.Rename.RnSplice( rnSpliceType )
 
 import GHCVM.Main.DynFlags
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.Rename.RnHsDoc          ( rnLHsDoc, rnMbLHsDoc )
 import GHCVM.Rename.RnEnv
 import GHCVM.TypeCheck.TcRnMonad
-import RdrName
+import GHCVM.BasicTypes.RdrName
 import GHCVM.Prelude.PrelNames
-import TysPrim          ( funTyConName )
-import Name
-import SrcLoc
-import NameSet
+import GHCVM.Prelude.TysPrim          ( funTyConName )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.NameSet
 
-import Util
-import BasicTypes       ( compareFixity, funTyFixity, negateFixity,
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.BasicTypes       ( compareFixity, funTyFixity, negateFixity,
                           Fixity(..), FixityDirection(..) )
-import Outputable
-import FastString
-import Maybes
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
 import Data.List        ( nub, nubBy )
 import Control.Monad    ( unless, when )
 

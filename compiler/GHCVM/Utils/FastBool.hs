@@ -14,7 +14,7 @@ module FastBool (
 -- Import the beggars
 import GHC.Exts
 #ifdef DEBUG
-import Panic
+import GHCVM.Utils.Panic
 #endif
 
 type FastBool = Int#

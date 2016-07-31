@@ -13,23 +13,23 @@ module PprCore (
         pprRules
     ) where
 
-import CoreSyn
-import Literal( pprLiteral )
-import Name( pprInfixName, pprPrefixName )
-import Var
-import Id
-import IdInfo
-import Demand
-import DataCon
-import TyCon
-import Type
-import Coercion
-import DynFlags
-import BasicTypes
-import Util
-import Outputable
-import FastString
-import SrcLoc      ( pprUserRealSpan )
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Literal( pprLiteral )
+import GHCVM.BasicTypes.Name( pprInfixName, pprPrefixName )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc      ( pprUserRealSpan )
 
 {-
 ************************************************************************

@@ -15,29 +15,29 @@ module GHCVM.TypeCheck.TcTyDecls(
         RoleAnnots, extractRoleAnnots, emptyRoleAnnots, lookupRoleAnnots
     ) where
 
-import TypeRep
-import HsSyn
-import Class
-import Type
-import Kind
-import HscTypes
-import TyCon
-import DataCon
-import Var
-import Name
-import NameEnv
-import VarEnv
-import VarSet
-import NameSet
-import Coercion ( ltRole )
-import Avail
-import Digraph
-import BasicTypes
-import SrcLoc
-import Outputable
-import UniqSet
-import Util
-import Maybes
+import GHCVM.Types.TypeRep
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Types.Class
+import GHCVM.Types.Type
+import GHCVM.Types.Kind
+import GHCVM.Main.HscTypes
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.NameSet
+import GHCVM.Types.Coercion ( ltRole )
+import GHCVM.BasicTypes.Avail
+import GHCVM.Utils.Digraph
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes
 import Data.List
 
 --TODO: #if __GLASGOW_HASKELL__ < 709

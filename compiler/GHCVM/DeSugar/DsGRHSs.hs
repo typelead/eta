@@ -11,21 +11,21 @@ module GHCVM.DeSugar.DsGRHSs ( dsGuarded, dsGRHSs, dsGRHS ) where
 import {-# SOURCE #-} GHCVM.DeSugar.DsExpr  ( dsLExpr, dsLocalBinds )
 import {-# SOURCE #-} GHCVM.DeSugar.Match   ( matchSinglePat )
 
-import HsSyn
-import MkCore
-import CoreSyn
-import Var
-import Type
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Core.MkCore
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Var
+import GHCVM.Types.Type
 
 import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsUtils
-import TysWiredIn
+import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.PrelNames
-import Module
-import Name
-import Util
-import SrcLoc
-import Outputable
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
 
 {-
 @dsGuarded@ is used for both @case@ expressions and pattern bindings.

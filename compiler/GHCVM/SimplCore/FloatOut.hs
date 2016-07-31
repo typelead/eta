@@ -11,23 +11,23 @@
 
 module FloatOut ( floatOutwards ) where
 
-import CoreSyn
-import CoreUtils
-import MkCore
-import CoreArity        ( etaExpand )
-import CoreMonad        ( FloatOutSwitches(..) )
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.MkCore
+import GHCVM.Core.CoreArity        ( etaExpand )
+import GHCVM.SimplCore.CoreMonad        ( FloatOutSwitches(..) )
 
-import DynFlags
-import ErrUtils         ( dumpIfSet_dyn )
-import Id               ( Id, idArity, isBottomingId )
-import Var              ( Var )
+import GHCVM.Main.DynFlags
+import GHCVM.Main.ErrUtils         ( dumpIfSet_dyn )
+import GHCVM.BasicTypes.Id               ( Id, idArity, isBottomingId )
+import GHCVM.BasicTypes.Var              ( Var )
 import SetLevels
-import UniqSupply       ( UniqSupply )
-import Bag
-import Util
-import Maybes
-import Outputable
-import FastString
+import GHCVM.BasicTypes.UniqSupply       ( UniqSupply )
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import qualified Data.IntMap as M
 
 #include "HsVersions.h"

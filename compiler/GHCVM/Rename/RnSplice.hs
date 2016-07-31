@@ -5,30 +5,30 @@ module GHCVM.Rename.RnSplice (
         checkThLocalName
   ) where
 
-import Name
-import NameSet
-import HsSyn
-import RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.RdrName
 import GHCVM.TypeCheck.TcRnMonad
-import Kind
+import GHCVM.Types.Kind
 
 -- TODO: #ifdef GHCI
--- import ErrUtils         ( dumpIfSet_dyn_printer )
+-- import GHCVM.Main.ErrUtils         ( dumpIfSet_dyn_printer )
 -- import Control.Monad    ( unless, when )
 -- import GHCVM.Main.DynFlags
 -- import DsMeta           ( decsQTyConName, expQTyConName, patQTyConName, typeQTyConName )
--- import LoadIface        ( loadInterfaceForName )
--- import Module
--- import RnEnv
+-- import GHCVM.Iface.LoadIface        ( loadInterfaceForName )
+-- import GHCVM.BasicTypes.Module
+-- import GHCVM.Rename.RnEnv
 -- import RnPat            ( rnPat )
 -- import RnSource         ( rnSrcDecls, findSplice )
--- import RnTypes          ( rnLHsType )
--- import SrcLoc
--- import TcEnv            ( checkWellStaged, tcMetaTy )
--- import Outputable
--- import BasicTypes       ( TopLevelFlag, isTopLevel )
--- import FastString
--- import Hooks
+-- import GHCVM.Rename.RnTypes          ( rnLHsType )
+-- import GHCVM.BasicTypes.SrcLoc
+-- import GHCVM.TypeCheck.TcEnc            ( checkWellStaged, tcMetaTy )
+-- import GHCVM.Utils.Outputable
+-- import GHCVM.BasicTypes.BasicTypes       ( TopLevelFlag, isTopLevel )
+-- import GHCVM.Utils.FastString
+-- import GHCVM.Main.Hooks
 
 -- import {-# SOURCE #-} RnExpr   ( rnLExpr )
 -- import {-# SOURCE #-} TcExpr   ( tcMonoExpr )

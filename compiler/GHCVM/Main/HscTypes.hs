@@ -134,56 +134,56 @@ import ByteCodeAsm      ( CompiledByteCode )
 import InteractiveEvalTypes ( Resume )
 #endif
 
-import HsSyn
-import RdrName
-import Avail
-import Module
-import InstEnv          ( InstEnv, ClsInst, identicalClsInstHead )
-import FamInstEnv
-import Rules            ( RuleBase )
-import CoreSyn          ( CoreProgram )
-import Name
-import NameEnv
-import NameSet
-import VarEnv
-import VarSet
-import Var
-import Id
-import IdInfo           ( IdDetails(..) )
-import Type
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.Module
+import GHCVM.Types.InstEnv          ( InstEnv, ClsInst, identicalClsInstHead )
+import GHCVM.Types.FamInstEnv
+import GHCVM.Specialise.Rules            ( RuleBase )
+import GHCVM.Core.CoreSyn          ( CoreProgram )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo           ( IdDetails(..) )
+import GHCVM.Types.Type
 
-import ApiAnnotation    ( ApiAnns )
-import Annotations      ( Annotation, AnnEnv, mkAnnEnv, plusAnnEnv )
-import Class
-import TyCon
-import CoAxiom
-import ConLike
-import DataCon
-import PatSyn
-import PrelNames        ( gHC_PRIM, ioTyConName, printName, mkInteractiveModule )
-import Packages hiding  ( Version(..) )
-import DynFlags
-import DriverPhases     ( Phase, HscSource(..), isHsBootOrSig, hscSourceString )
-import BasicTypes
-import IfaceSyn
-import CoreSyn          ( CoreRule, CoreVect )
-import Maybes
-import Outputable
-import BreakArray
-import SrcLoc
--- import Unique
-import UniqFM
-import UniqSupply
-import FastString
-import StringBuffer     ( StringBuffer )
-import Fingerprint
-import MonadUtils
-import Bag
-import Binary
-import ErrUtils
-import Platform
-import Util
-import Serialized       ( Serialized )
+import GHCVM.Parser.ApiAnnotation    ( ApiAnns )
+import GHCVM.Main.Annotations      ( Annotation, AnnEnv, mkAnnEnv, plusAnnEnv )
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.Prelude.PrelNames        ( gHC_PRIM, ioTyConName, printName, mkInteractiveModule )
+import GHCVM.Main.Packages hiding  ( Version(..) )
+import GHCVM.Main.DynFlags
+import GHCVM.Main.DriverPhases     ( Phase, HscSource(..), isHsBootOrSig, hscSourceString )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Iface.IfaceSyn
+import GHCVM.Core.CoreSyn          ( CoreRule, CoreVect )
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Outputable
+import GHCVM.Main.BreakArray
+import GHCVM.BasicTypes.SrcLoc
+-- import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.FastString
+import GHCVM.Utils.StringBuffer     ( StringBuffer )
+import GHCVM.Utils.Fingerprint
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Binary
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Platform
+import GHCVM.Utils.Util
+import GHCVM.Utils.Serialized       ( Serialized )
 
 import Control.Monad    ( guard, liftM, when, ap )
 import Data.Array       ( Array, array )
@@ -191,7 +191,7 @@ import Data.IORef
 import Data.Time
 import Data.Word
 import Data.Typeable    ( Typeable )
-import Exception
+import GHCVM.Utils.Exception
 import System.FilePath
 
 -- -----------------------------------------------------------------------------

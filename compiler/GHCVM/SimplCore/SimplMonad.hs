@@ -19,17 +19,17 @@ module SimplMonad (
         plusSimplCount, isZeroSimplCount
     ) where
 
-import Id               ( Id, mkSysLocal )
-import Type             ( Type )
-import FamInstEnv       ( FamInstEnv )
-import Rules            ( RuleBase )
-import UniqSupply
-import DynFlags
-import CoreMonad
-import Outputable
-import FastString
-import MonadUtils
-import ErrUtils
+import GHCVM.BasicTypes.Id               ( Id, mkSysLocal )
+import GHCVM.Types.Type             ( Type )
+import GHCVM.Types.FamInstEnv       ( FamInstEnv )
+import GHCVM.Specialise.Rules            ( RuleBase )
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Main.DynFlags
+import GHCVM.SimplCore.CoreMonad
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.MonadUtils
+import GHCVM.Main.ErrUtils
 import Control.Monad       ( when, liftM, ap )
 
 {-

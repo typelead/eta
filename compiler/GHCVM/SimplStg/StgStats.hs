@@ -27,10 +27,10 @@ module StgStats ( showStgStats ) where
 
 #include "HsVersions.h"
 
-import StgSyn
+import GHCVM.StgSyn.StgSyn
 
-import Id (Id)
-import Panic
+import GHCVM.BasicTypes.Id (Id)
+import GHCVM.Utils.Panic
 
 import Data.Map (Map)
 import qualified Data.Map as Map

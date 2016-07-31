@@ -83,7 +83,7 @@ module GHCVM.Core.CoreSyn (
         CoreVect(..)
     ) where
 
-import CostCentre
+import GHCVM.Profiling.CostCentre
 import GHCVM.BasicTypes.VarEnv( InScopeSet )
 import GHCVM.BasicTypes.Var
 import GHCVM.Types.Type

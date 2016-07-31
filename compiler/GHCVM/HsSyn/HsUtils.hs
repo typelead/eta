@@ -76,29 +76,29 @@ module HsUtils(
 
 #include "HsVersions.h"
 
-import HsDecls
-import HsBinds
-import HsExpr
-import HsPat
-import HsTypes
-import HsLit
-import PlaceHolder
+import GHCVM.HsSyn.HsDecls
+import GHCVM.HsSyn.HsBinds
+import GHCVM.HsSyn.HsExpr
+import GHCVM.HsSyn.HsPat
+import GHCVM.HsSyn.HsTypes
+import GHCVM.HsSyn.HsLit
+import GHCVM.HsSyn.PlaceHolder
 
-import TcEvidence
-import RdrName
-import Var
-import TypeRep
-import TcType
-import Kind
-import DataCon
-import Name
-import NameSet
-import BasicTypes
-import SrcLoc
-import FastString
-import Util
-import Bag
-import Outputable
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Var
+import GHCVM.Types.TypeRep
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Kind
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Outputable
 
 import Data.Either
 import Data.Function

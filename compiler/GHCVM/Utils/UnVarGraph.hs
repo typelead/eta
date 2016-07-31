@@ -27,13 +27,13 @@ module UnVarGraph
     , delNode
     ) where
 
-import Id
-import VarEnv
-import UniqFM
-import Outputable
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Outputable
 import Data.List
-import Bag
-import Unique
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.Unique
 
 import qualified Data.IntSet as S
 

@@ -33,38 +33,38 @@ import {-# SOURCE #-}   GHCVM.Iface.TcIface( tcIfaceDecl, tcIfaceRules, tcIfaceI
                                  tcIfaceFamInst, tcIfaceVectInfo, tcIfaceAnnotations )
 
 import GHCVM.Main.DynFlags
-import IfaceSyn
+import GHCVM.Iface.IfaceSyn
 import GHCVM.Iface.IfaceEnv
-import HscTypes
+import GHCVM.Main.HscTypes
 
-import BasicTypes hiding (SuccessFlag(..))
+import GHCVM.BasicTypes.BasicTypes hiding (SuccessFlag(..))
 import GHCVM.TypeCheck.TcRnMonad
 
-import Constants
+import GHCVM.Main.Constants
 import GHCVM.Prelude.PrelNames
-import PrelInfo
-import PrimOp   ( allThePrimOps, primOpFixity, primOpOcc )
-import MkId     ( seqId )
-import Rules
-import TyCon
-import Annotations
-import InstEnv
-import FamInstEnv
-import Name
-import NameEnv
-import Avail
-import Module
-import Maybes
-import ErrUtils
-import Finder
-import UniqFM
-import SrcLoc
-import Outputable
+import GHCVM.Prelude.PrelInfo
+import GHCVM.Prelude.PrimOp   ( allThePrimOps, primOpFixity, primOpOcc )
+import GHCVM.BasicTypes.MkId     ( seqId )
+import GHCVM.Specialise.Rules
+import GHCVM.Types.TyCon
+import GHCVM.Main.Annotations
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Maybes
+import GHCVM.Main.ErrUtils
+import GHCVM.Main.Finder
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
 import GHCVM.Iface.BinIface
-import Panic
-import Util
-import FastString
-import Fingerprint
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Fingerprint
 import GHCVM.Main.Hooks
 
 import Control.Monad

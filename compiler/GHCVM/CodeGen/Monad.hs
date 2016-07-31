@@ -50,12 +50,12 @@ module GHCVM.CodeGen.Monad
 where
 
 import GHCVM.Main.DynFlags
-import Module
-import VarEnv
-import Id
-import Name
-import Outputable hiding ((<>))
-import FastString
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Outputable hiding ((<>))
+import GHCVM.Utils.FastString
 
 import Data.Monoid((<>))
 import Data.List

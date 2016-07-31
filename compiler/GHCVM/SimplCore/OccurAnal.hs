@@ -19,27 +19,27 @@ module OccurAnal (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreFVs
-import CoreUtils        ( exprIsTrivial, isDefaultAlt, isExpandableApp,
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreUtils        ( exprIsTrivial, isDefaultAlt, isExpandableApp,
                           stripTicksTopE, mkTicks )
-import Id
-import Name( localiseName )
-import BasicTypes
-import Module( Module )
-import Coercion
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name( localiseName )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Module( Module )
+import GHCVM.Types.Coercion
 
-import VarSet
-import VarEnv
-import Var
-import Demand           ( argOneShots, argsOneShots )
-import Maybes           ( orElse )
-import Digraph          ( SCC(..), stronglyConnCompFromEdgedVerticesR )
-import Unique
-import UniqFM
-import Util
-import Outputable
-import FastString
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Demand           ( argOneShots, argsOneShots )
+import GHCVM.Utils.Maybes           ( orElse )
+import GHCVM.Utils.Digraph          ( SCC(..), stronglyConnCompFromEdgedVerticesR )
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import Data.List
 import Control.Arrow    ( second )
 

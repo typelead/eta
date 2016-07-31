@@ -22,48 +22,48 @@ module CoreLint (
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreFVs
-import CoreUtils
-import CoreMonad
-import Bag
-import Literal
-import DataCon
-import TysWiredIn
-import TysPrim
-import TcType ( isFloatingTy )
-import Var
-import VarEnv
-import VarSet
-import Name
-import Id
-import PprCore
-import ErrUtils
-import Coercion
-import SrcLoc
-import Kind
-import Type
-import TypeRep
-import TyCon
-import CoAxiom
-import BasicTypes
-import ErrUtils as Err
-import StaticFlags
-import ListSetOps
-import PrelNames
-import Outputable
-import FastString
-import Util
-import InstEnv     ( instanceDFunId )
-import OptCoercion ( checkAxInstCo )
-import UniqSupply
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreUtils
+import GHCVM.SimplCore.CoreMonad
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.TysPrim
+import GHCVM.TypeCheck.TcType ( isFloatingTy )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Id
+import GHCVM.Core.PprCore
+import GHCVM.Main.ErrUtils
+import GHCVM.Types.Coercion
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Types.Kind
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Main.ErrUtils as Err
+import GHCVM.Main.StaticFlags
+import GHCVM.Utils.ListSetOps
+import GHCVM.Prelude.PrelNames
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Types.InstEnv     ( instanceDFunId )
+import GHCVM.Types.OptCoercion ( checkAxInstCo )
+import GHCVM.BasicTypes.UniqSupply
 
-import HscTypes
-import DynFlags
+import GHCVM.Main.HscTypes
+import GHCVM.Main.DynFlags
 import Control.Monad
-import MonadUtils
+import GHCVM.Utils.MonadUtils
 import Data.Maybe
-import Pair
+import GHCVM.Utils.Pair
 
 {-
 Note [GHC Formalism]

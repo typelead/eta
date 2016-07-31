@@ -47,29 +47,29 @@ module StgSyn (
 #include "HsVersions.h"
 
 import Bitmap
-import CoreSyn     ( AltCon, Tickish )
-import CostCentre  ( CostCentreStack )
-import DataCon
-import DynFlags
-import FastString
-import ForeignCall ( ForeignCall )
-import Id
-import IdInfo      ( mayHaveCafRefs )
-import Literal     ( Literal, literalType )
-import Module      ( Module )
-import Outputable
-import Packages    ( isDllName )
-import Platform
-import PprCore     ( {- instances -} )
-import PrimOp      ( PrimOp, PrimCall )
-import TyCon       ( PrimRep(..) )
-import TyCon       ( TyCon )
-import Type        ( Type )
-import Type        ( typePrimRep )
-import UniqSet
-import Unique      ( Unique )
-import Util
-import VarSet      ( IdSet, isEmptyVarSet )
+import GHCVM.Core.CoreSyn     ( AltCon, Tickish )
+import GHCVM.Profiling.CostCentre  ( CostCentreStack )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.FastString
+import GHCVM.Prelude.ForeignCall ( ForeignCall )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo      ( mayHaveCafRefs )
+import GHCVM.BasicTypes.Literal     ( Literal, literalType )
+import GHCVM.BasicTypes.Module      ( Module )
+import GHCVM.Utils.Outputable
+import GHCVM.Main.Packages    ( isDllName )
+import GHCVM.Utils.Platform
+import GHCVM.Core.PprCore     ( {- instances -} )
+import GHCVM.Prelude.PrimOp      ( PrimOp, PrimCall )
+import GHCVM.Types.TyCon       ( PrimRep(..) )
+import GHCVM.Types.TyCon       ( TyCon )
+import GHCVM.Types.Type        ( Type )
+import GHCVM.Types.Type        ( typePrimRep )
+import GHCVM.Utils.UniqSet
+import GHCVM.BasicTypes.Unique      ( Unique )
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.VarSet      ( IdSet, isEmptyVarSet )
 
 {-
 ************************************************************************

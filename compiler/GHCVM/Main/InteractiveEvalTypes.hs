@@ -16,14 +16,14 @@ module InteractiveEvalTypes (
 
 #ifdef GHCI
 
-import Id
-import BasicTypes
-import Name
-import RdrName
-import TypeRep
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Types.TypeRep
 import ByteCodeInstr
-import SrcLoc
-import Exception
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Exception
 import Control.Concurrent
 
 data RunResult

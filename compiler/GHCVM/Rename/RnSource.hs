@@ -14,8 +14,8 @@ import {-# SOURCE #-} GHCVM.Rename.RnExpr( rnLExpr )
 import {-# SOURCE #-} GHCVM.Rename.RnSplice ( rnSpliceDecl )
 import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice ( runQuasiQuoteDecl )
 
-import HsSyn
-import RdrName
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.RdrName
 import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnBinds
 import GHCVM.Rename.RnEnv
@@ -24,32 +24,32 @@ import GHCVM.Rename.RnHsDoc          ( rnHsDoc, rnMbLHsDoc )
 import GHCVM.TypeCheck.TcAnnotations    ( annCtxt )
 import GHCVM.TypeCheck.TcRnMonad
 
-import ForeignCall      ( CCallTarget(..) )
-import Module
-import HscTypes         ( Warnings(..), plusWarns )
-import Class            ( FunDep )
+import GHCVM.Prelude.ForeignCall      ( CCallTarget(..) )
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.HscTypes         ( Warnings(..), plusWarns )
+import GHCVM.Types.Class            ( FunDep )
 import GHCVM.Prelude.PrelNames        ( isUnboundName )
-import Name
-import NameSet
-import NameEnv
-import Avail
-import Outputable
-import Bag
-import BasicTypes       ( RuleName )
-import FastString
-import SrcLoc
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.Avail
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.BasicTypes       ( RuleName )
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
-import HscTypes         ( HscEnv, hsc_dflags )
-import ListSetOps       ( findDupsEq, removeDups )
-import Digraph          ( SCC, flattenSCC, stronglyConnCompFromEdgedVertices )
-import Util             ( mapSnd )
+import GHCVM.Main.HscTypes         ( HscEnv, hsc_dflags )
+import GHCVM.Utils.ListSetOps       ( findDupsEq, removeDups )
+import GHCVM.Utils.Digraph          ( SCC, flattenSCC, stronglyConnCompFromEdgedVertices )
+import GHCVM.Utils.Util             ( mapSnd )
 
 import Control.Monad
 import Data.List( partition, sortBy )
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable (traverse)
 -- #endif
-import Maybes( orElse, mapMaybe )
+import GHCVM.Utils.Maybes( orElse, mapMaybe )
 
 {-
 @rnSourceDecl@ `renames' declarations.

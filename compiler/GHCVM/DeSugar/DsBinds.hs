@@ -21,55 +21,55 @@ import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsGRHSs
 import GHCVM.DeSugar.DsUtils
 
-import HsSyn            -- lots of things
-import CoreSyn          -- lots of things
-import Literal          ( Literal(MachStr) )
-import CoreSubst
-import OccurAnal        ( occurAnalyseExpr )
-import MkCore
-import CoreUtils
-import CoreArity ( etaExpand )
-import CoreUnfold
-import CoreFVs
-import UniqSupply
-import Digraph
+import GHCVM.HsSyn.HsSyn            -- lots of things
+import GHCVM.Core.CoreSyn          -- lots of things
+import GHCVM.BasicTypes.Literal          ( Literal(MachStr) )
+import GHCVM.Core.CoreSubst
+import GHCVM.SimplCore.OccurAnal        ( occurAnalyseExpr )
+import GHCVM.Core.MkCore
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreArity ( etaExpand )
+import GHCVM.Core.CoreUnfold
+import GHCVM.Core.CoreFVs
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Digraph
 import GHCVM.Prelude.PrelNames
-import TysPrim ( mkProxyPrimTy )
-import TyCon      ( isTupleTyCon, tyConDataCons_maybe
+import GHCVM.Prelude.TysPrim ( mkProxyPrimTy )
+import GHCVM.Types.TyCon      ( isTupleTyCon, tyConDataCons_maybe
                   , tyConName, isPromotedTyCon, isPromotedDataCon, tyConKind )
-import TcEvidence
-import TcType
-import Type
-import Kind (returnsConstraintKind)
-import Coercion hiding (substCo)
-import TysWiredIn ( eqBoxDataCon, coercibleDataCon, tupleCon, mkListTy
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.Types.Kind (returnsConstraintKind)
+import GHCVM.Types.Coercion hiding (substCo)
+import GHCVM.Prelude.TysWiredIn ( eqBoxDataCon, coercibleDataCon, tupleCon, mkListTy
                   , mkBoxedTupleTy, stringTy )
-import Id
-import MkId(proxyHashId)
-import Class
-import DataCon  ( dataConTyCon, dataConWorkId )
-import Name
-import IdInfo   ( IdDetails(..) )
-import Var
-import VarSet
-import Rules
-import VarEnv
-import Outputable
-import Module
-import SrcLoc
-import Maybes
-import OrdList
-import Bag
-import BasicTypes hiding ( TopLevel )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId(proxyHashId)
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.DataCon  ( dataConTyCon, dataConWorkId )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.IdInfo   ( IdDetails(..) )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Specialise.Rules
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.OrdList
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.BasicTypes hiding ( TopLevel )
 import GHCVM.Main.DynFlags
-import FastString
-import ErrUtils( MsgDoc )
-import ListSetOps( getNth )
-import Util
+import GHCVM.Utils.FastString
+import GHCVM.Main.ErrUtils( MsgDoc )
+import GHCVM.Utils.ListSetOps( getNth )
+import GHCVM.Utils.Util
 import Control.Monad( when )
-import MonadUtils
+import GHCVM.Utils.MonadUtils
 import Control.Monad(liftM)
-import Fingerprint(Fingerprint(..), fingerprintString)
+import GHCVM.Utils.Fingerprint(Fingerprint(..), fingerprintString)
 
 {-
 ************************************************************************

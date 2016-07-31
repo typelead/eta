@@ -1,5 +1,5 @@
 module GHCVM.TypeCheck.TcTypeNats where
 
-import TyCon (TyCon)
+import GHCVM.Types.TyCon (TyCon)
 
 typeNatTyCons :: [TyCon]

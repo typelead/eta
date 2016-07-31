@@ -99,35 +99,35 @@ module GHCVM.BasicTypes.Id (
 
     ) where
 
-import CoreSyn ( CoreRule, Unfolding( NoUnfolding ) )
+import GHCVM.Core.CoreSyn ( CoreRule, Unfolding( NoUnfolding ) )
 
-import IdInfo
-import BasicTypes
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.BasicTypes
 
 -- Imported and re-exported
-import Var( Id, DictId,
+import GHCVM.BasicTypes.Var( Id, DictId,
             idInfo, idDetails, globaliseId, varType,
             isId, isLocalId, isGlobalId, isExportedId )
 import qualified Var
 
-import TyCon
-import Type
-import TysPrim
-import DataCon
-import Demand
-import Name
-import Module
-import Class
-import {-# SOURCE #-} PrimOp (PrimOp)
-import ForeignCall
-import Maybes
-import SrcLoc
-import Outputable
-import Unique
-import UniqSupply
-import FastString
-import Util
-import StaticFlags
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.Prelude.TysPrim
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Module
+import GHCVM.Types.Class
+import {-# SOURCE #-} GHCVM.Prelude.PrimOp (PrimOp)
+import GHCVM.Prelude.ForeignCall
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Main.StaticFlags
 
 -- infixl so you can say (id `set` a `set` b)
 infixl  1 `setIdUnfoldingLazily`,

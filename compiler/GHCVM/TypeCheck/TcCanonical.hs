@@ -6,35 +6,35 @@ module GHCVM.TypeCheck.TcCanonical(
   ) where
 
 import GHCVM.TypeCheck.TcRnTypes
-import TcType
-import Type
-import Kind
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Type
+import GHCVM.Types.Kind
 import GHCVM.TypeCheck.TcFlatten
 import GHCVM.TypeCheck.TcSMonad
-import TcEvidence
-import Class
-import TyCon
-import TypeRep
-import Coercion
-import FamInstEnv ( FamInstEnvs )
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
+import GHCVM.Types.TypeRep
+import GHCVM.Types.Coercion
+import GHCVM.Types.FamInstEnv ( FamInstEnvs )
 import GHCVM.TypeCheck.FamInst ( tcTopNormaliseNewTypeTF_maybe )
-import Var
-import DataCon ( dataConName )
-import Name( isSystemName, nameOccName )
-import OccName( OccName )
-import Outputable
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.DataCon ( dataConName )
+import GHCVM.BasicTypes.Name( isSystemName, nameOccName )
+import GHCVM.BasicTypes.OccName( OccName )
+import GHCVM.Utils.Outputable
 import Control.Monad
 import GHCVM.Main.DynFlags( DynFlags )
-import VarSet
-import RdrName
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.RdrName
 
-import Pair
-import Util
-import MonadUtils ( zipWith3M, zipWith3M_ )
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Util
+import GHCVM.Utils.MonadUtils ( zipWith3M, zipWith3M_ )
 import Data.List  ( zip4 )
-import BasicTypes
+import GHCVM.BasicTypes.BasicTypes
 import Data.Maybe ( isJust )
-import FastString
+import GHCVM.Utils.FastString
 
 {-
 ************************************************************************

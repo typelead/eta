@@ -12,32 +12,32 @@ module WwLib ( mkWwBodies, mkWWstr, mkWorkerArgs
 
 #include "HsVersions.h"
 
-import CoreSyn
-import CoreUtils        ( exprType, mkCast )
-import Id               ( Id, idType, mkSysLocal, idDemandInfo, setIdDemandInfo,
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils        ( exprType, mkCast )
+import GHCVM.BasicTypes.Id               ( Id, idType, mkSysLocal, idDemandInfo, setIdDemandInfo,
                           setIdUnfolding,
                           setIdInfo, idOneShotInfo, setIdOneShotInfo
                         )
-import IdInfo           ( vanillaIdInfo )
-import DataCon
-import Demand
-import MkCore           ( mkRuntimeErrorApp, aBSENT_ERROR_ID )
-import MkId             ( voidArgId, voidPrimId )
-import TysPrim          ( voidPrimTy )
-import TysWiredIn       ( tupleCon )
-import Type
-import Coercion hiding  ( substTy, substTyVarBndr )
-import FamInstEnv
-import BasicTypes       ( TupleSort(..), OneShotInfo(..), worstOneShot )
-import Literal          ( absentLiteralOf )
-import TyCon
-import UniqSupply
-import Unique
-import Maybes
-import Util
-import Outputable
-import DynFlags
-import FastString
+import GHCVM.BasicTypes.IdInfo           ( vanillaIdInfo )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Demand
+import GHCVM.Core.MkCore           ( mkRuntimeErrorApp, aBSENT_ERROR_ID )
+import GHCVM.BasicTypes.MkId             ( voidArgId, voidPrimId )
+import GHCVM.Prelude.TysPrim          ( voidPrimTy )
+import GHCVM.Prelude.TysWiredIn       ( tupleCon )
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion hiding  ( substTy, substTyVarBndr )
+import GHCVM.Types.FamInstEnv
+import GHCVM.BasicTypes.BasicTypes       ( TupleSort(..), OneShotInfo(..), worstOneShot )
+import GHCVM.BasicTypes.Literal          ( absentLiteralOf )
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.FastString
 
 {-
 ************************************************************************

@@ -27,7 +27,7 @@ module BreakArray
 #endif
     ) where
 
-import DynFlags
+import GHCVM.Main.DynFlags
 
 #ifdef GHCI
 import Control.Monad

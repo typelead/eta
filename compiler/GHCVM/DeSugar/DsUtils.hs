@@ -38,37 +38,37 @@ module GHCVM.DeSugar.DsUtils (
 
 import {-# SOURCE #-}   GHCVM.DeSugar.Match ( matchSimply )
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcHsSyn
-import TcType( tcSplitTyConApp )
-import CoreSyn
+import GHCVM.TypeCheck.TcType( tcSplitTyConApp )
+import GHCVM.Core.CoreSyn
 import GHCVM.DeSugar.DsMonad
 import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsLExpr )
 
-import CoreUtils
-import MkCore
-import MkId
-import Id
-import Literal
-import TyCon
-import ConLike
-import DataCon
-import PatSyn
-import Type
-import TysPrim
-import TysWiredIn
-import BasicTypes
-import UniqSet
-import UniqSupply
-import Module
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.MkCore
+import GHCVM.BasicTypes.MkId
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Literal
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.Types.Type
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.UniqSet
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.Module
 import GHCVM.Prelude.PrelNames
-import Outputable
-import SrcLoc
-import Util
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
 import GHCVM.Main.DynFlags
-import FastString
+import GHCVM.Utils.FastString
 
-import TcEvidence
+import GHCVM.TypeCheck.TcEvidence
 
 import Control.Monad    ( zipWithM )
 

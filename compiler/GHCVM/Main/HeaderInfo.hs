@@ -14,25 +14,25 @@ module GHCVM.Main.HeaderInfo ( getImports
                   , optionsErrorMsgs,
                     checkProcessArgsResult ) where
 
-import RdrName
-import HscTypes
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Main.HscTypes
 import GHCVM.Parser.Parser           ( parseHeader )
 import GHCVM.Parser.Lexer
-import FastString
-import HsSyn
-import Module
+import GHCVM.Utils.FastString
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.Module
 import GHCVM.Prelude.PrelNames
-import StringBuffer
-import SrcLoc
+import GHCVM.Utils.StringBuffer
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
-import ErrUtils
-import Util
-import Outputable
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
 import Pretty           ()
-import Maybes
-import Bag              ( emptyBag, listToBag, unitBag )
-import MonadUtils
-import Exception
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Bag              ( emptyBag, listToBag, unitBag )
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Exception
 
 import Control.Monad
 import System.IO

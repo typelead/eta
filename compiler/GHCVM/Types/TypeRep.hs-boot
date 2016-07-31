@@ -1,6 +1,6 @@
 module TypeRep where
 
-import Outputable (Outputable)
+import GHCVM.Utils.Outputable (Outputable)
 
 data Type
 data TyThing

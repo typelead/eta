@@ -6,32 +6,32 @@ import GHC.Paths (libdir)
 -- GHC API
 import qualified GHCVM.Main.GHC as GHC
 import GHCVM.Main.GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
-import CmdLineParser
+import GHCVM.Main.CmdLineParser
 import GHCVM.Iface.LoadIface        ( showIface, loadUserInterface)
 import GHCVM.Main.HscMain          ( newHscEnv )
 import GHCVM.Main.DriverPipeline
 import PipelineMonad
-import TyCon (isDataTyCon)
+import GHCVM.Types.TyCon (isDataTyCon)
 import GHCVM.Main.DriverMkDepend   ( doMkDependHS )
 -- import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
-import StgSyn (pprStgBindings)
-import SysTools
+import GHCVM.StgSyn.StgSyn (pprStgBindings)
+import GHCVM.Main.SysTools
 import Config
-import Constants
-import HscTypes
+import GHCVM.Main.Constants
+import GHCVM.Main.HscTypes
 import GHCVM.Main.Packages (pprPackages, pprPackagesSimple, pprModuleMap)
-import DriverPhases
-import CorePrep ( corePrepPgm )
-import BasicTypes (failed)
-import StaticFlags
+import GHCVM.Main.DriverPhases
+import GHCVM.CoreSyn.CorePrep ( corePrepPgm )
+import GHCVM.BasicTypes.BasicTypes (failed)
+import GHCVM.Main.StaticFlags
 import GHCVM.Main.DynFlags
-import ErrUtils
-import FastString
-import Outputable
-import SrcLoc
-import Util
-import Panic
-import MonadUtils (liftIO)
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.Panic
+import GHCVM.Utils.MonadUtils (liftIO)
 
 -- GHCVM API
 import GHCVM.Primitive (ghcvmPrimIface)
@@ -39,10 +39,10 @@ import GHCVM.TypeCheck.TcForeign (tcForeignImports)
 import GHCVM.DeSugar.DsForeign (dsForeigns)
 
 -- Imports for --abi-hash
-import Module              ( mkModuleName, ModLocation(..))
-import Finder              ( findImportedModule, cannotFindInterface )
+import GHCVM.BasicTypes.Module              ( mkModuleName, ModLocation(..))
+import GHCVM.Main.Finder              ( findImportedModule, cannotFindInterface )
 import GHCVM.TypeCheck.TcRnMonad           ( initIfaceCheck )
-import Binary              ( openBinMem, put_, fingerprintBinMem )
+import GHCVM.Utils.Binary              ( openBinMem, put_, fingerprintBinMem )
 import GHCVM.Main.Hooks
 
 -- Standard Libraries
@@ -55,7 +55,7 @@ import Control.Monad
 import Data.Char
 import Data.List
 import Data.Maybe
-import Maybes ( expectJust )
+import GHCVM.Utils.Maybes ( expectJust )
 
 -- dumpPackages :: DynFlags -> IO ()
 -- dumpPackages dflags = putMsg dflags (pprPackages dflags)

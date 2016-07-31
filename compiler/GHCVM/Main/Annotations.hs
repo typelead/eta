@@ -16,13 +16,13 @@ module Annotations (
         deserializeAnns
     ) where
 
-import Binary
-import Module           ( Module )
-import Name
-import Outputable
-import Serialized
-import UniqFM
-import Unique
+import GHCVM.Utils.Binary
+import GHCVM.BasicTypes.Module           ( Module )
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Serialized
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Unique
 
 import Control.Monad
 import Data.Maybe

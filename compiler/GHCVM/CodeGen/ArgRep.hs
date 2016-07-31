@@ -14,10 +14,10 @@ module GHCVM.CodeGen.ArgRep
    slowCallPattern
   ) where
 
-import Id
-import Type
-import TyCon            ( PrimRep(..) )
-import BasicTypes       ( RepArity )
+import GHCVM.BasicTypes.Id
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon            ( PrimRep(..) )
+import GHCVM.BasicTypes.BasicTypes       ( RepArity )
 import GHCVM.Main.DynFlags
 import Data.Maybe
 import GHCVM.Primitive

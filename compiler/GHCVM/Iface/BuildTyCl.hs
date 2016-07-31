@@ -16,26 +16,26 @@ module GHCVM.Iface.BuildTyCl (
     ) where
 
 import GHCVM.Iface.IfaceEnv
-import FamInstEnv( FamInstEnvs )
-import DataCon
-import PatSyn
-import Var
-import VarSet
-import BasicTypes
-import Name
-import MkId
-import Class
-import TyCon
-import Type
-import Id
-import Coercion
-import TcType
+import GHCVM.Types.FamInstEnv( FamInstEnvs )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.MkId
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Id
+import GHCVM.Types.Coercion
+import GHCVM.TypeCheck.TcType
 
 import GHCVM.Main.DynFlags
 import GHCVM.TypeCheck.TcRnMonad
-import UniqSupply
-import Util
-import Outputable
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
 
 ------------------------------------------------------
 buildSynonymTyCon :: Name -> [TyVar] -> [Role]

@@ -11,7 +11,7 @@
 --
 -------------------------------------------------------------------------------
 
-module CmdLineParser
+module GHCVM.Main.CmdLineParser
     (
       processArgs, OptKind(..), GhcFlagMode(..),
       CmdLineP(..), getCmdLineState, putCmdLineState,
@@ -23,11 +23,11 @@ module CmdLineParser
 
 #include "HsVersions.h"
 
-import Util
-import Outputable
-import Panic
-import Bag
-import SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.SrcLoc
 
 import Data.Function
 import Data.List

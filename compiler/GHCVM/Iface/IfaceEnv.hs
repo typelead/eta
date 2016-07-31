@@ -18,21 +18,21 @@ module GHCVM.Iface.IfaceEnv (
    ) where
 
 import GHCVM.TypeCheck.TcRnMonad
-import TysWiredIn
-import HscTypes
-import Type
-import Var
-import Name
-import Avail
-import Module
-import UniqFM
-import FastString
-import UniqSupply
-import SrcLoc
-import Util
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Main.HscTypes
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
 
-import Outputable
-import Exception     ( evaluate )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Exception     ( evaluate )
 
 import Data.IORef    ( atomicModifyIORef, readIORef )
 

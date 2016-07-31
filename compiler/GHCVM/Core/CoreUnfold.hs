@@ -41,28 +41,28 @@ module CoreUnfold (
 
 #include "HsVersions.h"
 
-import DynFlags
-import CoreSyn
-import PprCore          ()      -- Instances
-import OccurAnal        ( occurAnalyseExpr )
-import CoreSubst hiding( substTy )
-import CoreArity       ( manifestArity, exprBotStrictness_maybe )
-import CoreUtils
-import Id
-import DataCon
-import Literal
-import PrimOp
-import IdInfo
-import BasicTypes       ( Arity )
-import Type
-import PrelNames
-import TysPrim          ( realWorldStatePrimTy )
-import Bag
-import Util
-import FastTypes
-import FastString
-import Outputable
-import ForeignCall
+import GHCVM.Main.DynFlags
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.PprCore          ()      -- Instances
+import GHCVM.SimplCore.OccurAnal        ( occurAnalyseExpr )
+import GHCVM.Core.CoreSubst hiding( substTy )
+import GHCVM.Core.CoreArity       ( manifestArity, exprBotStrictness_maybe )
+import GHCVM.Core.CoreUtils
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Literal
+import GHCVM.Prelude.PrimOp
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.BasicTypes       ( Arity )
+import GHCVM.Types.Type
+import GHCVM.Prelude.PrelNames
+import GHCVM.Prelude.TysPrim          ( realWorldStatePrimTy )
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Prelude.ForeignCall
 
 import qualified Data.ByteString as BS
 import Data.Maybe

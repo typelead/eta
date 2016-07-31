@@ -13,27 +13,27 @@ module GHCVM.DeSugar.DsListComp ( dsListComp, dsPArrComp, dsMonadComp ) where
 
 import {-# SOURCE #-} GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds )
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcHsSyn
-import CoreSyn
-import MkCore
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.MkCore
 
 import GHCVM.DeSugar.DsMonad          -- the monadery used in the desugarer
 import GHCVM.DeSugar.DsUtils
 
 import GHCVM.Main.DynFlags
-import CoreUtils
-import Id
-import Type
-import TysWiredIn
+import GHCVM.Core.CoreUtils
+import GHCVM.BasicTypes.Id
+import GHCVM.Types.Type
+import GHCVM.Prelude.TysWiredIn
 import GHCVM.DeSugar.Match
 import GHCVM.Prelude.PrelNames
-import SrcLoc
-import Outputable
-import FastString
-import TcType
-import ListSetOps( getNth )
-import Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.TypeCheck.TcType
+import GHCVM.Utils.ListSetOps( getNth )
+import GHCVM.Utils.Util
 
 {-
 List comprehensions may be desugared in one of two ways: ``ordinary''

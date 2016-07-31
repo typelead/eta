@@ -40,13 +40,13 @@ module ErrUtils (
 
 #include "HsVersions.h"
 
-import Bag              ( Bag, bagToList, isEmptyBag, emptyBag )
-import Exception
-import Outputable
-import Panic
-import FastString
-import SrcLoc
-import DynFlags
+import GHCVM.Utils.Bag              ( Bag, bagToList, isEmptyBag, emptyBag )
+import GHCVM.Utils.Exception
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Panic
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Main.DynFlags
 
 import System.Directory
 import System.Exit      ( ExitCode(..), exitWith )

@@ -45,15 +45,15 @@ module Kind (
 
 import {-# SOURCE #-} Type      ( typeKind, substKiWith, eqKind )
 
-import TypeRep
-import TysPrim
-import TyCon
-import VarSet
-import PrelNames
-import Outputable
-import Maybes( orElse )
-import Util
-import FastString
+import GHCVM.Types.TypeRep
+import GHCVM.Prelude.TysPrim
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Prelude.PrelNames
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Maybes( orElse )
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
 
 {-
 ************************************************************************

@@ -1,9 +1,9 @@
 module GHCVM.CodeGen.Layout where
 
-import Type
+import GHCVM.Types.Type
 import GHCVM.Main.DynFlags
-import StgSyn
-import Id
+import GHCVM.StgSyn.StgSyn
+import GHCVM.BasicTypes.Id
 import Codec.JVM
 import GHCVM.Util
 import GHCVM.CodeGen.Monad

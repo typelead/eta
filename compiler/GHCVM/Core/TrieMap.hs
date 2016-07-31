@@ -14,24 +14,24 @@ module TrieMap(
    lookupTypeMapTyCon
  ) where
 
-import CoreSyn
-import Coercion
-import Literal
-import Name
-import Type
-import TypeRep
-import TyCon(TyCon)
-import Var
-import UniqFM
-import Unique( Unique )
-import FastString(FastString)
-import CoAxiom(CoAxiomRule(coaxrName))
+import GHCVM.Core.CoreSyn
+import GHCVM.Types.Coercion
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.Type
+import GHCVM.Types.TypeRep
+import GHCVM.Types.TyCon(TyCon)
+import GHCVM.BasicTypes.Var
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Unique( Unique )
+import GHCVM.Utils.FastString(FastString)
+import GHCVM.Types.CoAxiom(CoAxiomRule(coaxrName))
 
 import qualified Data.Map    as Map
 import qualified Data.IntMap as IntMap
-import VarEnv
-import NameEnv
-import Outputable
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Utils.Outputable
 import Control.Monad( (>=>) )
 
 {-

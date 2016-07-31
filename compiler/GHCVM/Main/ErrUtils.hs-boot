@@ -1,7 +1,7 @@
 module ErrUtils where
 
-import Outputable (SDoc)
-import SrcLoc (SrcSpan)
+import GHCVM.Utils.Outputable (SDoc)
+import GHCVM.BasicTypes.SrcLoc (SrcSpan)
 
 data Severity
   = SevOutput

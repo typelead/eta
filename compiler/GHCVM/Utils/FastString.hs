@@ -93,10 +93,10 @@ module FastString
 #include "HsVersions.h"
 
 import Encoding
-import FastTypes
+import GHCVM.Utils.FastTypes
 import FastFunctions
-import Panic
-import Util
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Util
 
 import Control.Monad
 import Data.ByteString (ByteString)

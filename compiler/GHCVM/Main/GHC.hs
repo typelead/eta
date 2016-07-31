@@ -262,61 +262,61 @@ module GHCVM.Main.GHC (
 
 -- TODO:#ifdef GHCI
 -- import ByteCodeInstr
--- import BreakArray
+-- import GHCVM.Main.BreakArray
 -- import InteractiveEval
 -- import TcRnDriver       ( runTcInteractive )
 -- #endif
 
-import PprTyThing       ( pprFamInst )
+import GHCVM.Main.PprTyThing       ( pprFamInst )
 import GHCVM.Main.HscMain
 import GHCVM.Main.GhcMake
 import GHCVM.Main.DriverPipeline   ( compileOne' )
-import GhcMonad
+import GHCVM.Main.GhcMonad
 import GHCVM.TypeCheck.TcRnMonad        ( finalSafeMode )
 import GHCVM.TypeCheck.TcRnTypes
-import Packages
-import NameSet
-import RdrName
+import GHCVM.Main.Packages
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.RdrName
 import qualified HsSyn -- hack as we want to reexport the whole module
-import HsSyn
-import Type     hiding( typeKind )
-import Kind             ( synTyConResKind )
-import TcType           hiding( typeKind )
-import Id
-import TysPrim          ( alphaTyVars )
-import TyCon
-import Class
-import DataCon
-import Name             hiding ( varName )
-import Avail
-import InstEnv
-import FamInstEnv ( FamInst )
-import SrcLoc
-import CoreSyn
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Types.Type     hiding( typeKind )
+import GHCVM.Types.Kind             ( synTyConResKind )
+import GHCVM.TypeCheck.TcType           hiding( typeKind )
+import GHCVM.BasicTypes.Id
+import GHCVM.Prelude.TysPrim          ( alphaTyVars )
+import GHCVM.Types.TyCon
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Name             hiding ( varName )
+import GHCVM.BasicTypes.Avail
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv ( FamInst )
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Core.CoreSyn
 import GHCVM.Main.TidyPgm
-import DriverPhases     ( Phase(..), isHaskellSrcFilename )
-import Finder
-import HscTypes
+import GHCVM.Main.DriverPhases     ( Phase(..), isHaskellSrcFilename )
+import GHCVM.Main.Finder
+import GHCVM.Main.HscTypes
 import GHCVM.Main.DynFlags
-import StaticFlags
-import SysTools
-import Annotations
-import Module
-import UniqFM
-import Panic
-import Platform
-import Bag              ( unitBag )
-import ErrUtils
-import MonadUtils
-import Util
-import StringBuffer
-import Outputable
-import BasicTypes
-import Maybes           ( expectJust )
-import FastString
+import GHCVM.Main.StaticFlags
+import GHCVM.Main.SysTools
+import GHCVM.Main.Annotations
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Platform
+import GHCVM.Utils.Bag              ( unitBag )
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Util
+import GHCVM.Utils.StringBuffer
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Maybes           ( expectJust )
+import GHCVM.Utils.FastString
 import qualified GHCVM.Parser.Parser as Parser
 import GHCVM.Parser.Lexer
-import ApiAnnotation
+import GHCVM.Parser.ApiAnnotation
 
 import System.Directory ( doesFileExist )
 import Data.Maybe
@@ -326,7 +326,7 @@ import Data.Typeable    ( Typeable )
 import Data.Word        ( Word8 )
 import Control.Monad
 import System.Exit      ( exitWith, ExitCode(..) )
-import Exception
+import GHCVM.Utils.Exception
 import Data.IORef
 import System.FilePath
 import System.IO

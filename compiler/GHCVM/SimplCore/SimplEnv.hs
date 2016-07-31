@@ -38,26 +38,26 @@ module SimplEnv (
 #include "HsVersions.h"
 
 import SimplMonad
-import CoreMonad        ( SimplifierMode(..) )
-import CoreSyn
-import CoreUtils
-import Var
-import VarEnv
-import VarSet
-import OrdList
-import Id
+import GHCVM.SimplCore.CoreMonad        ( SimplifierMode(..) )
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Utils.OrdList
+import GHCVM.BasicTypes.Id
 import qualified CoreSubst
-import MkCore                   ( mkWildValBinder )
-import TysWiredIn
+import GHCVM.Core.MkCore                   ( mkWildValBinder )
+import GHCVM.Prelude.TysWiredIn
 import qualified Type
-import Type hiding              ( substTy, substTyVarBndr, substTyVar )
+import GHCVM.Types.Type hiding              ( substTy, substTyVarBndr, substTyVar )
 import qualified Coercion
-import Coercion hiding          ( substCo, substTy, substCoVar, substCoVarBndr, substTyVarBndr )
-import BasicTypes
-import MonadUtils
-import Outputable
-import FastString
-import Util
+import GHCVM.Types.Coercion hiding          ( substCo, substTy, substCoVar, substCoVarBndr, substTyVarBndr )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 
 import Data.List
 

@@ -18,14 +18,14 @@ module GHCVM.CodeGen.Name (
   ) where
 
 import GHCVM.Main.DynFlags
-import TyCon
-import DataCon
-import Module
-import FastString
-import FastTypes
-import Name hiding (pprOccName)
-import Unique
-import Id
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.FastString
+import GHCVM.Utils.FastTypes
+import GHCVM.BasicTypes.Name hiding (pprOccName)
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.Id
 
 import GHC.Base(indexCharOffAddr#, Char(..))
 import Data.Char as C
@@ -33,7 +33,7 @@ import Data.Maybe
 import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
-import Outputable((<>))
+import GHCVM.Utils.Outputable((<>))
 import GHCVM.Debug
 import Encoding
 

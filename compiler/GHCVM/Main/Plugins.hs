@@ -3,7 +3,7 @@ module Plugins (
     defaultPlugin
     ) where
 
-import CoreMonad ( CoreToDo, CoreM )
+import GHCVM.SimplCore.CoreMonad ( CoreToDo, CoreM )
 import TcRnTypes ( TcPlugin )
 
 

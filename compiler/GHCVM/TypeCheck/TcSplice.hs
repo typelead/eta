@@ -29,72 +29,72 @@ module GHCVM.TypeCheck.TcSplice(
 -- #endif
       ) where
 
-import HsSyn
-import Annotations
-import Name
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.Annotations
+import GHCVM.BasicTypes.Name
 import GHCVM.TypeCheck.TcRnMonad
-import RdrName
-import TcType
+import GHCVM.BasicTypes.RdrName
+import GHCVM.TypeCheck.TcType
 
 -- #ifdef GHCI
--- import HscMain
+-- import GHCVM.Main.HscMain
 --         -- These imports are the reason that TcSplice
 --         -- is very high up the module hierarchy
 
--- import HscTypes
--- import Convert
--- import RnExpr
--- import RnEnv
--- import RnTypes
--- import TcExpr
--- import TcHsSyn
--- import TcSimplify
--- import TcUnify
--- import Type
--- import Kind
--- import NameSet
--- import TcEnv
--- import TcMType
--- import TcHsType
--- import TcIface
--- import TypeRep
+-- import GHCVM.Main.HscTypes
+-- import GHCVM.HsSyn.Convert
+-- import GHCVM.Rename.RnExpr
+-- import GHCVM.Rename.RnEnv
+-- import GHCVM.Rename.RnTypes
+-- import GHCVM.TypeCheck.TcExpr
+-- import GHCVM.TypeCheck.TchsSyn
+-- import GHCVM.TypeCheck.TcSimplify
+-- import GHCVM.TypeCheck.TcUnify
+-- import GHCVM.Types.Type
+-- import GHCVM.Types.Kind
+-- import GHCVM.BasicTypes.NameSet
+-- import GHCVM.TypeCheck.TcEnc
+-- import GHCVM.TypeCheck.TcMType
+-- import GHCVM.TypeCheck.TcHsType
+-- import GHCVM.Iface.TcIface
+-- import GHCVM.Types.TypeRep
 -- import FamInst
--- import FamInstEnv
--- import InstEnv
--- import NameEnv
--- import PrelNames
--- import OccName
--- import Hooks
--- import Var
--- import Module
--- import LoadIface
--- import Class
+-- import GHCVM.Types.FamInstEnv
+-- import GHCVM.Types.InstEnv
+-- import GHCVM.BasicTypes.NameEnv
+-- import GHCVM.Prelude.PrelNames
+-- import GHCVM.BasicTypes.OccName
+-- import GHCVM.Main.Hooks
+-- import GHCVM.BasicTypes.Var
+-- import GHCVM.BasicTypes.Module
+-- import GHCVM.Iface.LoadIface
+-- import GHCVM.Types.Class
 -- import Inst
--- import TyCon
--- import CoAxiom
--- import PatSyn ( patSynName )
--- import ConLike
--- import DataCon
--- import TcEvidence( TcEvBinds(..) )
--- import Id
--- import IdInfo
+-- import GHCVM.Types.TyCon
+-- import GHCVM.Types.CoAxiom
+-- import GHCVM.BasicTypes.PatSyn ( patSynName )
+-- import GHCVM.BasicTypes.ConLike
+-- import GHCVM.BasicTypes.DataCon
+-- import GHCVM.TypeCheck.TcEvidence( TcEvBinds(..) )
+-- import GHCVM.BasicTypes.Id
+-- import GHCVM.BasicTypes.IdInfo
 -- import DsExpr
--- import DsMonad
--- import Serialized
--- import ErrUtils
--- import SrcLoc
--- import Util
+-- import GHCVM.DeSugar.DsMonad
+-- import GHCVM.Utils.Serialized
+-- import GHCVM.Main.ErrUtils
+-- import GHCVM.BasicTypes.SrcLoc
+-- import GHCVM.Utils.Util
 -- import Data.List        ( mapAccumL )
--- import Unique
--- import VarSet           ( isEmptyVarSet )
+-- import GHCVM.BasicTypes.Unique
+-- import GHCVM.BasicTypes.VarSet           ( isEmptyVarSet )
 -- import Data.Maybe
--- import BasicTypes hiding( SuccessFlag(..) )
--- import Maybes( MaybeErr(..) )
+-- import GHCVM.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
+-- import GHCVM.Utils.Maybes( MaybeErr(..) )
 -- import GHCVM.Main.DynFlags
--- import Panic
--- import Lexeme
--- import FastString
--- import Outputable
+-- import GHCVM.Utils.Panic
+-- import GHCVM.BasicTypes.Lexeme
+-- import GHCVM.Utils.FastString
+-- import GHCVM.Utils.Outputable
 -- import Control.Monad    ( when )
 
 -- import DsMeta

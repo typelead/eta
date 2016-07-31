@@ -22,14 +22,14 @@ module Unify (
 
 #include "HsVersions.h"
 
-import Var
-import VarEnv
-import VarSet
-import Kind
-import Type
-import TyCon
-import TypeRep
-import Util
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Types.Kind
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.Types.TypeRep
+import GHCVM.Utils.Util
 
 import Control.Monad (liftM, ap)
 #if __GLASGOW_HASKELL__ < 709

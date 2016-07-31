@@ -16,49 +16,49 @@ import GHCVM.DeSugar.DsListComp
 import GHCVM.DeSugar.DsUtils
 import GHCVM.DeSugar.DsArrows
 import GHCVM.DeSugar.DsMonad
-import Name
-import NameEnv
-import FamInstEnv( topNormaliseType )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Types.FamInstEnv( topNormaliseType )
 
 -- TODO: #ifdef GHCI
 --         -- Template Haskell stuff iff bootstrapped
 -- import DsMeta
 -- #endif
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 
-import Platform
+import GHCVM.Utils.Platform
 -- NB: The desugarer, which straddles the source and Core worlds, sometimes
 --     needs to see source types
-import TcType
-import Coercion ( Role(..) )
-import TcEvidence
+import GHCVM.TypeCheck.TcType
+import GHCVM.Types.Coercion ( Role(..) )
+import GHCVM.TypeCheck.TcEvidence
 import GHCVM.TypeCheck.TcRnMonad
-import Type
-import CoreSyn
-import CoreUtils
-import CoreFVs
-import MkCore
+import GHCVM.Types.Type
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.MkCore
 
 import GHCVM.Main.DynFlags
-import CostCentre
-import Id
-import Module
-import VarSet
-import VarEnv
-import ConLike
-import DataCon
-import TysWiredIn
+import GHCVM.Profiling.CostCentre
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.PrelNames
-import BasicTypes
-import Maybes
-import SrcLoc
-import Util
-import Bag
-import Outputable
-import FastString
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
-import IdInfo
+import GHCVM.BasicTypes.IdInfo
 import Data.IORef       ( atomicModifyIORef, modifyIORef )
 
 import Control.Monad

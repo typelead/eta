@@ -29,26 +29,26 @@ module HsPat (
         pprParendLPat, pprConArgs
     ) where
 
-import {-# SOURCE #-} HsExpr            (SyntaxExpr, LHsExpr, HsSplice, pprLExpr, pprUntypedSplice)
+import {-# SOURCE #-} GHCVM.HsSyn.HsExpr (SyntaxExpr, LHsExpr, HsSplice, pprLExpr, pprUntypedSplice)
 
 -- friends:
-import HsBinds
-import HsLit
-import PlaceHolder ( PostTc,DataId )
-import HsTypes
-import TcEvidence
-import BasicTypes
+import GHCVM.HsSyn.HsBinds
+import GHCVM.HsSyn.HsLit
+import GHCVM.HsSyn.PlaceHolder ( PostTc,DataId )
+import GHCVM.HsSyn.HsTypes
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.BasicTypes
 -- others:
-import PprCore          ( {- instance OutputableBndr TyVar -} )
-import TysWiredIn
-import Var
-import ConLike
-import DataCon
-import TyCon
-import Outputable
-import Type
-import SrcLoc
-import FastString
+import GHCVM.Core.PprCore          ( {- instance OutputableBndr TyVar -} )
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Utils.Outputable
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 -- libraries:
 import Data.Data hiding (TyCon,Fixity)
 import Data.Maybe

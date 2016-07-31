@@ -10,32 +10,32 @@ module SimplCore ( core2core, simplifyExpr ) where
 
 #include "HsVersions.h"
 
-import DynFlags
-import CoreSyn
-import HscTypes
+import GHCVM.Main.DynFlags
+import GHCVM.Core.CoreSyn
+import GHCVM.Main.HscTypes
 import CSE              ( cseProgram )
-import Rules            ( RuleBase, emptyRuleBase, mkRuleBase, unionRuleBase,
+import GHCVM.Specialise.Rules            ( RuleBase, emptyRuleBase, mkRuleBase, unionRuleBase,
                           extendRuleBaseList, ruleCheckProgram, addSpecInfo, )
-import PprCore          ( pprCoreBindings, pprCoreExpr )
-import OccurAnal        ( occurAnalysePgm, occurAnalyseExpr )
-import IdInfo
-import CoreUtils        ( coreBindsSize, coreBindsStats, exprSize,
+import GHCVM.Core.PprCore          ( pprCoreBindings, pprCoreExpr )
+import GHCVM.SimplCore.OccurAnal        ( occurAnalysePgm, occurAnalyseExpr )
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.Core.CoreUtils        ( coreBindsSize, coreBindsStats, exprSize,
                           mkTicks, stripTicksTop )
-import CoreLint         ( showPass, endPass, lintPassResult, dumpPassResult,
+import GHCVM.Core.CoreLint         ( showPass, endPass, lintPassResult, dumpPassResult,
                           lintAnnots )
 import Simplify         ( simplTopBinds, simplExpr, simplRules )
 import SimplUtils       ( simplEnvForGHCi, activeRule )
 import SimplEnv
 import SimplMonad
-import CoreMonad
+import GHCVM.SimplCore.CoreMonad
 import qualified ErrUtils as Err
 import FloatIn          ( floatInwards )
 import FloatOut         ( floatOutwards )
-import FamInstEnv
-import Id
-import BasicTypes       ( CompilerPhase(..), isDefaultInlinePragma )
-import VarSet
-import VarEnv
+import GHCVM.Types.FamInstEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.BasicTypes       ( CompilerPhase(..), isDefaultInlinePragma )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
 import LiberateCase     ( liberateCase )
 import SAT              ( doStaticArgs )
 import Specialise       ( specProgram)
@@ -44,13 +44,13 @@ import DmdAnal          ( dmdAnalProgram )
 import CallArity        ( callArityAnalProgram )
 import WorkWrap         ( wwTopBinds )
 import Vectorise        ( vectorise )
-import FastString
-import SrcLoc
-import Util
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
 
-import Maybes
-import UniqSupply       ( UniqSupply, mkSplitUniqSupply, splitUniqSupply )
-import Outputable
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.UniqSupply       ( UniqSupply, mkSplitUniqSupply, splitUniqSupply )
+import GHCVM.Utils.Outputable
 import Control.Monad
 
 #ifdef GHCI

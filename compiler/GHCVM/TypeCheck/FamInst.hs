@@ -11,27 +11,27 @@ module GHCVM.TypeCheck.FamInst (
         newFamInst
     ) where
 
-import HscTypes
-import FamInstEnv
-import InstEnv( roughMatchTcs )
-import Coercion    hiding ( substTy )
-import TcEvidence
+import GHCVM.Main.HscTypes
+import GHCVM.Types.FamInstEnv
+import GHCVM.Types.InstEnv( roughMatchTcs )
+import GHCVM.Types.Coercion    hiding ( substTy )
+import GHCVM.TypeCheck.TcEvidence
 import GHCVM.Iface.LoadIface
 import GHCVM.TypeCheck.TcRnMonad
-import TyCon
-import CoAxiom
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
 import GHCVM.Main.DynFlags
-import Module
-import Outputable
-import UniqFM
-import FastString
-import Util
-import RdrName
-import DataCon ( dataConName )
-import Maybes
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.DataCon ( dataConName )
+import GHCVM.Utils.Maybes
 import GHCVM.TypeCheck.TcMType
-import TcType
-import Name
+import GHCVM.TypeCheck.TcType
+import GHCVM.BasicTypes.Name
 import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map

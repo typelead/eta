@@ -42,40 +42,40 @@ module InteractiveEval (
 
 import InteractiveEvalTypes
 
-import GhcMonad
-import HscMain
-import HsSyn
-import HscTypes
-import BasicTypes ( HValue )
-import InstEnv
-import FamInstEnv ( FamInst, orphNamesOfFamInst )
-import TyCon
-import Type     hiding( typeKind )
-import TcType           hiding( typeKind )
-import Var
-import Id
-import Name             hiding ( varName )
-import NameSet
-import Avail
-import RdrName
-import VarSet
-import VarEnv
+import GHCVM.Main.GhcMonad
+import GHCVM.Main.HscMain
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.BasicTypes ( HValue )
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv ( FamInst, orphNamesOfFamInst )
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type     hiding( typeKind )
+import GHCVM.TypeCheck.TcType           hiding( typeKind )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name             hiding ( varName )
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
 import ByteCodeInstr
 import Linker
-import DynFlags
-import Unique
-import UniqSupply
-import Module
-import Panic
-import UniqFM
-import Maybes
-import ErrUtils
-import SrcLoc
-import BreakArray
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Panic
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Maybes
+import GHCVM.Main.ErrUtils
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Main.BreakArray
 import RtClosureInspect
-import Outputable
-import FastString
-import MonadUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.MonadUtils
 
 import System.Mem.Weak
 import System.Directory
@@ -91,7 +91,7 @@ import Foreign.Safe
 import Foreign.C
 import GHC.Exts
 import Data.Array
-import Exception
+import GHCVM.Utils.Exception
 import Control.Concurrent
 import System.IO.Unsafe
 

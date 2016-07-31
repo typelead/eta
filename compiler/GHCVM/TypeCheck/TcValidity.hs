@@ -16,31 +16,31 @@ module GHCVM.TypeCheck.TcValidity (
 -- friends:
 import GHCVM.TypeCheck.TcUnify    ( tcSubType_NC )
 import GHCVM.TypeCheck.TcSimplify ( simplifyAmbiguityCheck )
-import TypeRep
-import TcType
+import GHCVM.Types.TypeRep
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcMType
-import TysWiredIn ( coercibleClass )
-import Type
+import GHCVM.Prelude.TysWiredIn ( coercibleClass )
+import GHCVM.Types.Type
 import Unify( tcMatchTyX )
-import Kind
-import CoAxiom
-import Class
-import TyCon
+import GHCVM.Types.Kind
+import GHCVM.Types.CoAxiom
+import GHCVM.Types.Class
+import GHCVM.Types.TyCon
 
 -- others:
-import HsSyn            -- HsType
+import GHCVM.HsSyn.HsSyn            -- HsType
 import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
 import FunDeps
-import Name
-import VarEnv
-import VarSet
-import ErrUtils
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Main.ErrUtils
 import GHCVM.Main.DynFlags
-import Util
-import ListSetOps
-import SrcLoc
-import Outputable
-import FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.ListSetOps
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 import Control.Monad
 import Data.Maybe

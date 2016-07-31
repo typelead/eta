@@ -78,9 +78,9 @@ module SrcLoc (
         spans, isSubspanOf, sortLocated
     ) where
 
-import Util
-import Outputable
-import FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 #if __GLASGOW_HASKELL__ < 709
 import Data.Foldable ( Foldable )

@@ -58,59 +58,59 @@ Basic idea:
     the actual fingerprint for all each thing recorded in mi_usages
 -}
 
-import IfaceSyn
+import GHCVM.Iface.IfaceSyn
 import GHCVM.Iface.LoadIface
 import FlagChecker
 
-import Id
-import IdInfo
-import Demand
-import Coercion( tidyCo )
-import Annotations
-import CoreSyn
-import CoreFVs
-import Class
-import Kind
-import TyCon
-import CoAxiom
-import ConLike
-import DataCon
-import PatSyn
-import Type
-import TcType
-import TysPrim ( alphaTyVars )
-import InstEnv
-import FamInstEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Demand
+import GHCVM.Types.Coercion( tidyCo )
+import GHCVM.Main.Annotations
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreFVs
+import GHCVM.Types.Class
+import GHCVM.Types.Kind
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcType
+import GHCVM.Prelude.TysPrim ( alphaTyVars )
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
 import GHCVM.TypeCheck.TcRnMonad
-import HsSyn
-import HscTypes
-import Finder
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.HscTypes
+import GHCVM.Main.Finder
 import GHCVM.Main.DynFlags
-import VarEnv
-import VarSet
-import Var
-import Name
-import Avail
-import RdrName
-import NameEnv
-import NameSet
-import Module
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Module
 import GHCVM.Iface.BinIface
-import ErrUtils
-import Digraph
-import SrcLoc
-import Outputable
-import BasicTypes       hiding ( SuccessFlag(..) )
-import UniqFM
-import Unique
-import Util             hiding ( eqListBy )
-import FastString
-import Maybes
-import ListSetOps
-import Binary
-import Fingerprint
-import Bag
-import Exception
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Digraph
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.BasicTypes       hiding ( SuccessFlag(..) )
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util             hiding ( eqListBy )
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.Binary
+import GHCVM.Utils.Fingerprint
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Exception
 
 import Control.Monad
 import Data.Function

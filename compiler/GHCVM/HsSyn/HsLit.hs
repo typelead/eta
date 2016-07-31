@@ -18,12 +18,12 @@ module HsLit where
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} HsExpr( SyntaxExpr, pprExpr )
-import BasicTypes ( FractionalLit(..),SourceText )
-import Type       ( Type )
-import Outputable
-import FastString
-import PlaceHolder ( PostTc,PostRn,DataId )
+import {-# SOURCE #-} GHCVM.HsSyn.HsExpr( SyntaxExpr, pprExpr )
+import GHCVM.BasicTypes.BasicTypes ( FractionalLit(..),SourceText )
+import GHCVM.Types.Type       ( Type )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.HsSyn.PlaceHolder ( PostTc,PostRn,DataId )
 
 import Data.ByteString (ByteString)
 import Data.Data hiding ( Fixity )

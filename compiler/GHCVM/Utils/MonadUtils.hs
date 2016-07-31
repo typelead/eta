@@ -28,7 +28,7 @@ module MonadUtils
 -- Imports
 -------------------------------------------------------------------------------
 
-import Maybes
+import GHCVM.Utils.Maybes
 
 import Control.Applicative
 import Control.Monad

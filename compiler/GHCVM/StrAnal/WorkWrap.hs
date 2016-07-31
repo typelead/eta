@@ -7,23 +7,23 @@
 {-# LANGUAGE CPP #-}
 module WorkWrap ( wwTopBinds ) where
 
-import CoreSyn
-import CoreUnfold       ( certainlyWillInline, mkWwInlineRule, mkWorkerUnfolding )
-import CoreUtils        ( exprType, exprIsHNF )
-import CoreArity        ( exprArity )
-import Var
-import Id
-import IdInfo
-import UniqSupply
-import BasicTypes
-import DynFlags
-import VarEnv           ( isEmptyVarEnv )
-import Demand
-import WwLib
-import Util
-import Outputable
-import FamInstEnv
-import MonadUtils
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUnfold       ( certainlyWillInline, mkWwInlineRule, mkWorkerUnfolding )
+import GHCVM.Core.CoreUtils        ( exprType, exprIsHNF )
+import GHCVM.Core.CoreArity        ( exprArity )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.VarEnv           ( isEmptyVarEnv )
+import GHCVM.BasicTypes.Demand
+import GHCVM.StrAnal.WwLib
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.Types.FamInstEnv
+import GHCVM.Utils.MonadUtils
 
 #include "HsVersions.h"
 

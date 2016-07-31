@@ -26,32 +26,32 @@ module GHCVM.TypeCheck.Inst (
 import {-# SOURCE #-}   GHCVM.TypeCheck.TcExpr( tcPolyExpr, tcSyntaxOp )
 import {-# SOURCE #-}   GHCVM.TypeCheck.TcUnify( unifyType )
 
-import FastString
-import HsSyn
+import GHCVM.Utils.FastString
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
-import TcEvidence
-import InstEnv
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.InstEnv
 import FunDeps
 import GHCVM.TypeCheck.TcMType
-import Type
-import Coercion ( Role(..) )
-import TcType
-import HscTypes
-import Class( Class )
-import MkId( mkDictFunId )
-import Id
-import Name
-import Var      ( EvVar )
-import VarEnv
-import VarSet
+import GHCVM.Types.Type
+import GHCVM.Types.Coercion ( Role(..) )
+import GHCVM.TypeCheck.TcType
+import GHCVM.Main.HscTypes
+import GHCVM.Types.Class( Class )
+import GHCVM.BasicTypes.MkId( mkDictFunId )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Var      ( EvVar )
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames
-import SrcLoc
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
-import Bag
-import Util
-import Outputable
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
 import Control.Monad( unless )
 import Data.Maybe( isJust )
 

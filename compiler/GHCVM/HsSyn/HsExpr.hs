@@ -16,27 +16,27 @@ module HsExpr where
 #include "HsVersions.h"
 
 -- friends:
-import HsDecls
-import HsPat
-import HsLit
-import PlaceHolder ( PostTc,PostRn,DataId )
-import HsTypes
-import HsBinds
+import GHCVM.HsSyn.HsDecls
+import GHCVM.HsSyn.HsPat
+import GHCVM.HsSyn.HsLit
+import GHCVM.HsSyn.PlaceHolder ( PostTc,PostRn,DataId )
+import GHCVM.HsSyn.HsTypes
+import GHCVM.HsSyn.HsBinds
 
 -- others:
-import TcEvidence
-import CoreSyn
-import Var
-import RdrName
-import Name
-import BasicTypes
-import DataCon
-import SrcLoc
-import Util
-import StaticFlags( opt_PprStyle_Debug )
-import Outputable
-import FastString
-import Type
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Main.StaticFlags( opt_PprStyle_Debug )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Types.Type
 
 -- libraries:
 import Data.Data hiding (Fixity)

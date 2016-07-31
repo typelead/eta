@@ -26,35 +26,35 @@ module GHCVM.TypeCheck.TcHsSyn (
         zonkTcTypeToType, zonkTcTypeToTypes, zonkTyVarOcc,
   ) where
 
-import HsSyn
-import Id
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.Id
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Prelude.PrelNames
-import TypeRep     -- We can see the representation of types
-import TcType
+import GHCVM.Types.TypeRep     -- We can see the representation of types
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcMType ( defaultKindVarToStar, zonkQuantifiedTyVar, writeMetaTyVar )
-import TcEvidence
-import Coercion
-import TysPrim
-import TysWiredIn
-import Type
-import ConLike
-import DataCon
-import PatSyn( patSynInstResTy )
-import Name
-import NameSet
-import Var
-import VarSet
-import VarEnv
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Types.Coercion
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn( patSynInstResTy )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
 import GHCVM.Main.DynFlags
-import Literal
-import BasicTypes
-import Maybes
-import SrcLoc
-import Bag
-import FastString
-import Outputable
-import Util
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Bag
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
 -- #endif

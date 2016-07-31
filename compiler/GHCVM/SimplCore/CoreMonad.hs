@@ -55,31 +55,31 @@ module CoreMonad (
   ) where
 
 #ifdef GHCI
-import Name( Name )
+import GHCVM.BasicTypes.Name( Name )
 #endif
-import CoreSyn
-import HscTypes
-import Module
-import DynFlags
-import StaticFlags
-import Rules            ( RuleBase )
-import BasicTypes       ( CompilerPhase(..) )
-import Annotations
+import GHCVM.Core.CoreSyn
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.DynFlags
+import GHCVM.Main.StaticFlags
+import GHCVM.Specialise.Rules            ( RuleBase )
+import GHCVM.BasicTypes.BasicTypes       ( CompilerPhase(..) )
+import GHCVM.Main.Annotations
 
-import IOEnv hiding     ( liftIO, failM, failWithM )
+import GHCVM.Utils.IOEnv hiding     ( liftIO, failM, failWithM )
 import qualified IOEnv  ( liftIO )
-import TcEnv            ( tcLookupGlobal )
-import TcRnMonad        ( initTcForLookup )
-import Var
-import Outputable
-import FastString
+import GHCVM.TypeCheck.TcEnc            ( tcLookupGlobal )
+import GHCVM.TypeCheck.TcRnMonad        ( initTcForLookup )
+import GHCVM.BasicTypes.Var
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import qualified ErrUtils as Err
-import Maybes
-import UniqSupply
-import UniqFM       ( UniqFM, mapUFM, filterUFM )
-import MonadUtils
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.UniqFM       ( UniqFM, mapUFM, filterUFM )
+import GHCVM.Utils.MonadUtils
 
-import ListSetOps       ( runs )
+import GHCVM.Utils.ListSetOps       ( runs )
 import Data.List
 import Data.Ord
 import Data.Dynamic

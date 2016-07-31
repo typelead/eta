@@ -10,20 +10,20 @@ module SimplStg ( stg2stg ) where
 
 #include "HsVersions.h"
 
-import StgSyn
+import GHCVM.StgSyn.StgSyn
 
-import CostCentre       ( CollectedCCs )
+import GHCVM.Profiling.CostCentre       ( CollectedCCs )
 import SCCfinal         ( stgMassageForProfiling )
 import StgLint          ( lintStgBindings )
 import StgStats         ( showStgStats )
 import UnariseStg       ( unarise )
 
-import DynFlags
-import Module           ( Module )
-import ErrUtils
-import SrcLoc
-import UniqSupply       ( mkSplitUniqSupply, splitUniqSupply )
-import Outputable
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.Module           ( Module )
+import GHCVM.Main.ErrUtils
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.UniqSupply       ( mkSplitUniqSupply, splitUniqSupply )
+import GHCVM.Utils.Outputable
 import Control.Monad
 
 stg2stg :: DynFlags                  -- includes spec of what stg-to-stg passes to do

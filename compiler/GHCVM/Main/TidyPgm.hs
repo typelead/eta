@@ -10,50 +10,50 @@ module GHCVM.Main.TidyPgm (
 
 import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.Main.DynFlags
-import CoreSyn
-import CoreUnfold
-import CoreFVs
-import CoreTidy
-import CoreMonad
-import CorePrep
-import CoreUtils
-import CoreLint
-import Literal
-import Rules
-import PatSyn
-import ConLike
-import CoreArity        ( exprArity, exprBotStrictness_maybe )
-import VarEnv
-import VarSet
-import Var
-import Id
-import MkId             ( mkDictSelRhs )
-import IdInfo
-import InstEnv
-import FamInstEnv
-import Type             ( tidyTopType )
-import Demand           ( appIsBottom, isNopSig, isBottomingSig )
-import BasicTypes
-import Name hiding (varName)
-import NameSet
-import NameEnv
-import Avail
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreUnfold
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreTidy
+import GHCVM.SimplCore.CoreMonad
+import GHCVM.CoreSyn.CorePrep
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreLint
+import GHCVM.BasicTypes.Literal
+import GHCVM.Specialise.Rules
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.BasicTypes.ConLike
+import GHCVM.Core.CoreArity        ( exprArity, exprBotStrictness_maybe )
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId             ( mkDictSelRhs )
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
+import GHCVM.Types.Type             ( tidyTopType )
+import GHCVM.BasicTypes.Demand           ( appIsBottom, isNopSig, isBottomingSig )
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Name hiding (varName)
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.Avail
 import IfaceEnv
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcRnMonad
-import DataCon
-import TyCon
-import Class
-import Module
-import Packages( isDllName )
-import HscTypes
-import Maybes
-import UniqSupply
-import ErrUtils (Severity(..))
-import Outputable
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.Packages( isDllName )
+import GHCVM.Main.HscTypes
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Main.ErrUtils (Severity(..))
+import GHCVM.Utils.Outputable
 import FastBool hiding ( fastOr )
-import SrcLoc
-import FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 import qualified ErrUtils as Err
 
 import Control.Monad

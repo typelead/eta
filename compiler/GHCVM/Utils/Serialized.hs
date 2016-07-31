@@ -17,10 +17,10 @@ module Serialized (
     serializeWithData, deserializeWithData,
   ) where
 
-import Binary
-import Outputable
-import FastString
-import Util
+import GHCVM.Utils.Binary
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
 
 import Data.Bits
 import Data.Word        ( Word8 )

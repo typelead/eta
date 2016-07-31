@@ -1005,7 +1005,7 @@ primop  CloneSmallMutableArrayOp "cloneSmallMutableArray#" GenPrimOp
   has_side_effects = True
   can_fail         = True
 
-primop  FreezeSmallArrayOp "freezeSmallArray#" GenPrimOp
+primop  FreezeSmallArrayOp "freezeSmallArray#" GenGHCVM.Prelude.PrimOp
   SmallMutableArray# s a -> Int# -> Int# -> State# s -> (# State# s, SmallArray# a #)
   {Given a source array, an offset into the source array, and a number
    of elements to copy, create a new array with the elements from the

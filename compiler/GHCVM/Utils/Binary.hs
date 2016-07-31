@@ -63,13 +63,13 @@ module GHCVM.Utils.Binary
 #include "../includes/MachDeps.h"
 
 import {-# SOURCE #-} Name (Name)
-import FastString
-import Panic
-import UniqFM
-import FastMutInt
-import Fingerprint
-import BasicTypes
-import SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Panic
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.FastMutInt
+import GHCVM.Utils.Fingerprint
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.SrcLoc
 
 import Foreign
 import Data.Array

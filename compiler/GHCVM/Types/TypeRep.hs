@@ -59,25 +59,25 @@ module GHCVM.Types.TypeRep (
 #include "HsVersions.h"
 
 import {-# SOURCE #-} DataCon( dataConTyCon )
-import ConLike ( ConLike(..) )
+import GHCVM.BasicTypes.ConLike ( ConLike(..) )
 import {-# SOURCE #-} Type( isPredTy ) -- Transitively pulls in a LOT of stuff, better to break the loop
 
 -- friends:
-import Var
-import VarEnv
-import VarSet
-import Name
-import BasicTypes
-import TyCon
-import Class
-import CoAxiom
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Types.TyCon
+import GHCVM.Types.Class
+import GHCVM.Types.CoAxiom
 
 -- others
-import PrelNames
-import Outputable
-import FastString
-import Util
-import DynFlags
+import GHCVM.Prelude.PrelNames
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Main.DynFlags
 
 -- libraries
 import Data.List( mapAccumL, partition )

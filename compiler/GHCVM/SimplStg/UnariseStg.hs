@@ -33,21 +33,21 @@ module UnariseStg (unarise) where
 
 #include "HsVersions.h"
 
-import CoreSyn
-import StgSyn
-import VarEnv
-import UniqSupply
-import Id
-import MkId (realWorldPrimId)
-import Type
-import TysWiredIn
-import DataCon
-import VarSet
-import OccName
-import Name
-import Util
-import Outputable
-import BasicTypes
+import GHCVM.Core.CoreSyn
+import GHCVM.StgSyn.StgSyn
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.MkId (realWorldPrimId)
+import GHCVM.Types.Type
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Util
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.BasicTypes
 
 
 -- | A mapping from unboxed-tuple binders to the Ids they were expanded to.

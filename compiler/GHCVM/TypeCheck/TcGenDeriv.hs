@@ -29,44 +29,44 @@ module GHCVM.TypeCheck.TcGenDeriv (
         mkRdrFunBind
     ) where
 
-import HsSyn
-import RdrName
-import BasicTypes
-import DataCon
-import Name
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Name
 
 import GHCVM.Main.DynFlags
-import PrelInfo
-import FamInstEnv( FamInst )
-import MkCore ( eRROR_ID )
+import GHCVM.Prelude.PrelInfo
+import GHCVM.Types.FamInstEnv( FamInst )
+import GHCVM.Core.MkCore ( eRROR_ID )
 import GHCVM.Prelude.PrelNames hiding (error_RDR)
-import MkId ( coerceId )
-import PrimOp
-import SrcLoc
-import TyCon
-import TcType
-import TysPrim
-import TysWiredIn
-import Type
-import Class
-import TypeRep
-import VarSet
-import VarEnv
+import GHCVM.BasicTypes.MkId ( coerceId )
+import GHCVM.Prelude.PrimOp
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Types.TyCon
+import GHCVM.TypeCheck.TcType
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Types.Type
+import GHCVM.Types.Class
+import GHCVM.Types.TypeRep
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
 import State
-import Util
-import Var
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.Var
 -- TODO:#if __GLASGOW_HASKELL__ < 709
--- import MonadUtils
+-- import GHCVM.Utils.MonadUtils
 -- #endif
-import Outputable
-import Lexeme
-import FastString
-import Pair
-import Bag
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Lexeme
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Bag
 import GHCVM.TypeCheck.TcEnv (InstInfo)
-import StaticFlags( opt_PprStyle_Debug )
+import GHCVM.Main.StaticFlags( opt_PprStyle_Debug )
 
-import ListSetOps ( assocMaybe )
+import GHCVM.Utils.ListSetOps ( assocMaybe )
 import Data.List  ( partition, intersperse )
 import Data.Maybe ( isNothing )
 

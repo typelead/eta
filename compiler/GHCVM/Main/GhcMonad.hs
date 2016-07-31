@@ -23,11 +23,11 @@ module GhcMonad (
         WarnErrLogger, defaultWarnErrLogger
   ) where
 
-import MonadUtils
-import HscTypes
-import DynFlags
-import Exception
-import ErrUtils
+import GHCVM.Utils.MonadUtils
+import GHCVM.Main.HscTypes
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Exception
+import GHCVM.Main.ErrUtils
 
 import Data.IORef
 

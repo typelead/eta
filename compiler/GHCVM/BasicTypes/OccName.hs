@@ -99,15 +99,15 @@ module OccName (
         FastStringEnv, emptyFsEnv, lookupFsEnv, extendFsEnv, mkFsEnv
     ) where
 
-import Util
-import Unique
-import DynFlags
-import UniqFM
-import UniqSet
-import FastString
-import Outputable
-import Lexeme
-import Binary
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.Unique
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Lexeme
+import GHCVM.Utils.Binary
 import Data.Char
 import Data.Data
 

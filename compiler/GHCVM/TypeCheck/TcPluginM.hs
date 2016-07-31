@@ -49,24 +49,24 @@ module GHCVM.TypeCheck.TcPluginM (
 -- import qualified GHCVM.Iface.IfaceEnv as IfaceEnv
 -- import qualified Finder
 
--- import FamInstEnv ( FamInstEnv )
--- import TcRnMonad  ( TcGblEnv, TcLclEnv, Ct, TcPluginM
+-- import GHCVM.Types.FamInstEnv ( FamInstEnv )
+-- import GHCVM.TypeCheck.TcRnMonad  ( TcGblEnv, TcLclEnv, Ct, TcPluginM
 --                   , unsafeTcPluginTcM, liftIO, traceTc )
--- import TcMType    ( TcTyVar, TcType )
--- import TcEnv      ( TcTyThing )
--- import TcEvidence ( TcCoercion )
+-- import GHCVM.TypeCheck.TcMType    ( TcTyVar, TcType )
+-- import GHCVM.TypeCheck.TcEnc      ( TcTyThing )
+-- import GHCVM.TypeCheck.TcEvidence ( TcCoercion )
 
--- import Module
--- import Name
--- import TyCon
--- import DataCon
--- import Class
--- import HscTypes
--- import Outputable
--- import Type
--- import Id
--- import InstEnv
--- import FastString
+-- import GHCVM.BasicTypes.Module
+-- import GHCVM.BasicTypes.Name
+-- import GHCVM.Types.TyCon
+-- import GHCVM.BasicTypes.DataCon
+-- import GHCVM.Types.Class
+-- import GHCVM.Main.HscTypes
+-- import GHCVM.Utils.Outputable
+-- import GHCVM.Types.Type
+-- import GHCVM.BasicTypes.Id
+-- import GHCVM.Types.InstEnv
+-- import GHCVM.Utils.FastString
 
 
 -- -- | Perform some IO, typically to interact with an external tool.

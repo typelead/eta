@@ -1,8 +1,8 @@
 module GHCVM.CodeGen.Bind where
 
-import StgSyn
-import Id
-import Util (unzipWith)
+import GHCVM.StgSyn.StgSyn
+import GHCVM.BasicTypes.Id
+import GHCVM.Utils.Util (unzipWith)
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Types

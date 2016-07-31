@@ -6,7 +6,7 @@
 --
 -- (c) The University of Glasgow, 2004
 --
-module PackageConfig (
+module GHCVM.Main.PackageConfig (
         -- $package_naming
 
         -- * PackageKey
@@ -31,9 +31,9 @@ module PackageConfig (
 import GHC.PackageDb
 import Data.Version
 
-import FastString
-import Outputable
-import Module
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Module
 
 -- -----------------------------------------------------------------------------
 -- Our PackageConfig type is the InstalledPackageInfo from bin-package-db,

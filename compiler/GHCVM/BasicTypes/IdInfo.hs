@@ -68,20 +68,20 @@ module IdInfo (
         TickBoxOp(..), TickBoxId,
     ) where
 
-import CoreSyn
+import GHCVM.Core.CoreSyn
 
-import Class
+import GHCVM.Types.Class
 import {-# SOURCE #-} PrimOp (PrimOp)
-import Name
-import VarSet
-import BasicTypes
-import DataCon
-import TyCon
-import ForeignCall
-import Outputable
-import Module
-import FastString
-import Demand
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Prelude.ForeignCall
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Demand
 
 -- infixl so you can say (id `set` a `set` b)
 infixl  1 `setSpecInfo`,

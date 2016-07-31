@@ -11,19 +11,19 @@ module GHCVM.TypeCheck.TcAnnotations ( tcAnnotations, annCtxt ) where
 
 -- TODO: #ifdef GHCI
 -- import {-# SOURCE #-} TcSplice ( runAnnotation )
--- import Module
+-- import GHCVM.BasicTypes.Module
 -- import GHCVM.Main.DynFlags
 -- import Control.Monad ( when )
 -- #endif
 
-import HsSyn
-import Annotations
-import Name
+import GHCVM.HsSyn.HsSyn
+import GHCVM.Main.Annotations
+import GHCVM.BasicTypes.Name
 import GHCVM.TypeCheck.TcRnMonad
-import SrcLoc
-import Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
 
-import FastString
+import GHCVM.Utils.FastString
 
 -- #ifndef GHCI
 

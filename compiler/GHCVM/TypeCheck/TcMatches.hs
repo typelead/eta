@@ -17,28 +17,28 @@ module GHCVM.TypeCheck.TcMatches ( tcMatchesFun, tcGRHS, tcGRHSsPat, tcMatchesCa
 import {-# SOURCE #-}   GHCVM.TypeCheck.TcExpr( tcSyntaxOp, tcInferRhoNC, tcInferRho, tcCheckId,
                                 tcMonoExpr, tcMonoExprNC, tcPolyExpr )
 
-import HsSyn
-import BasicTypes
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.BasicTypes
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcPat
 import GHCVM.TypeCheck.TcMType
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcBinds
 import GHCVM.TypeCheck.TcUnify
-import Name
-import TysWiredIn
-import Id
-import TyCon
-import TysPrim
-import TcEvidence
-import Outputable
-import Util
-import SrcLoc
-import FastString
+import GHCVM.BasicTypes.Name
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.Id
+import GHCVM.Types.TyCon
+import GHCVM.Prelude.TysPrim
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 
 -- Create chunkified tuple tybes for monad comprehensions
-import MkCore
+import GHCVM.Core.MkCore
 
 import Control.Monad
 

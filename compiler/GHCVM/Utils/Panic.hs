@@ -30,8 +30,8 @@ module Panic (
 import {-# SOURCE #-} Outputable (SDoc)
 
 import Config
-import FastTypes
-import Exception
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.Exception
 
 import Control.Concurrent
 import Data.Dynamic

@@ -33,24 +33,24 @@ module HsSyn (
 ) where
 
 -- friends:
-import HsDecls
-import HsBinds
-import HsExpr
-import HsImpExp
-import HsLit
-import PlaceHolder
-import HsPat
-import HsTypes  hiding  ( mkHsForAllTy )
-import BasicTypes       ( Fixity, WarningTxt )
-import HsUtils
-import HsDoc
+import GHCVM.HsSyn.HsDecls
+import GHCVM.HsSyn.HsBinds
+import GHCVM.HsSyn.HsExpr
+import GHCVM.HsSyn.HsImpExp
+import GHCVM.HsSyn.HsLit
+import GHCVM.HsSyn.PlaceHolder
+import GHCVM.HsSyn.HsPat
+import GHCVM.HsSyn.HsTypes  hiding  ( mkHsForAllTy )
+import GHCVM.BasicTypes.BasicTypes       ( Fixity, WarningTxt )
+import GHCVM.HsSyn.HsUtils
+import GHCVM.HsSyn.HsDoc
 
 -- others:
-import OccName          ( HasOccName )
-import Outputable
-import SrcLoc
-import Module           ( ModuleName )
-import FastString
+import GHCVM.BasicTypes.OccName          ( HasOccName )
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Module           ( ModuleName )
+import GHCVM.Utils.FastString
 
 -- libraries:
 import Data.Data hiding ( Fixity )

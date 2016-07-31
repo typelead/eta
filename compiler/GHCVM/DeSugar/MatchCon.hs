@@ -10,22 +10,22 @@ module GHCVM.DeSugar.MatchCon ( matchConFamily, matchPatSyn ) where
 
 import {-# SOURCE #-} GHCVM.DeSugar.Match     ( match )
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.DeSugar.DsBinds
-import ConLike
-import DataCon
-import PatSyn
-import TcType
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
+import GHCVM.TypeCheck.TcType
 import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsUtils
-import MkCore   ( mkCoreLets )
-import Util
-import ListSetOps ( runs )
-import Id
-import NameEnv
-import SrcLoc
+import GHCVM.Core.MkCore   ( mkCoreLets )
+import GHCVM.Utils.Util
+import GHCVM.Utils.ListSetOps ( runs )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
-import Outputable
+import GHCVM.Utils.Outputable
 import Control.Monad(liftM)
 
 {-

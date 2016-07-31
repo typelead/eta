@@ -20,30 +20,30 @@ import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice( runQuasiQuoteExpr )
 
 import GHCVM.Rename.RnBinds   ( rnLocalBindsAndThen, rnLocalValBindsLHS, rnLocalValBindsRHS,
                    rnMatchGroup, rnGRHS, makeMiniFixityEnv)
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcRnMonad
-import Module           ( getModule )
+import GHCVM.BasicTypes.Module           ( getModule )
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnSplice         ( rnBracket, rnSpliceExpr, checkThLocalName )
 import GHCVM.Rename.RnTypes
 import GHCVM.Rename.RnPat
 import GHCVM.Main.DynFlags
-import BasicTypes       ( FixityDirection(..) )
+import GHCVM.BasicTypes.BasicTypes       ( FixityDirection(..) )
 import GHCVM.Prelude.PrelNames
 
-import Name
-import NameSet
-import RdrName
-import UniqSet
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Utils.UniqSet
 import Data.List
-import Util
-import ListSetOps       ( removeDups )
-import ErrUtils
-import Outputable
-import SrcLoc
-import FastString
+import GHCVM.Utils.Util
+import GHCVM.Utils.ListSetOps       ( removeDups )
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
 import Control.Monad
-import TysWiredIn       ( nilDataConName )
+import GHCVM.Prelude.TysWiredIn       ( nilDataConName )
 
 {-
 ************************************************************************

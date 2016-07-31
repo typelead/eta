@@ -31,34 +31,34 @@ module Rules (
 
 #include "HsVersions.h"
 
-import CoreSyn          -- All of it
-import CoreSubst
-import OccurAnal        ( occurAnalyseExpr )
-import CoreFVs          ( exprFreeVars, exprsFreeVars, bindFreeVars, rulesFreeVars )
-import CoreUtils        ( exprType, eqExpr, mkTick, mkTicks,
+import GHCVM.Core.CoreSyn          -- All of it
+import GHCVM.Core.CoreSubst
+import GHCVM.SimplCore.OccurAnal        ( occurAnalyseExpr )
+import GHCVM.Core.CoreFVs          ( exprFreeVars, exprsFreeVars, bindFreeVars, rulesFreeVars )
+import GHCVM.Core.CoreUtils        ( exprType, eqExpr, mkTick, mkTicks,
                           stripTicksTopT, stripTicksTopE )
-import PprCore          ( pprRules )
-import Type             ( Type, substTy, mkTvSubst )
-import TcType           ( tcSplitTyConApp_maybe )
-import TysPrim          ( anyTypeOfKind )
-import Coercion
-import CoreTidy         ( tidyRules )
-import Id
-import IdInfo           ( SpecInfo( SpecInfo ) )
-import Var
-import VarEnv
-import VarSet
-import Name             ( Name, NamedThing(..) )
-import NameEnv
+import GHCVM.Core.PprCore          ( pprRules )
+import GHCVM.Types.Type             ( Type, substTy, mkTvSubst )
+import GHCVM.TypeCheck.TcType           ( tcSplitTyConApp_maybe )
+import GHCVM.Prelude.TysPrim          ( anyTypeOfKind )
+import GHCVM.Types.Coercion
+import GHCVM.Core.CoreTidy         ( tidyRules )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo           ( SpecInfo( SpecInfo ) )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name             ( Name, NamedThing(..) )
+import GHCVM.BasicTypes.NameEnv
 import Unify            ( ruleMatchTyX, MatchEnv(..) )
-import BasicTypes       ( Activation, CompilerPhase, isActive, pprRuleName )
-import StaticFlags      ( opt_PprStyle_Debug )
-import DynFlags         ( DynFlags )
-import Outputable
-import FastString
-import Maybes
-import Bag
-import Util
+import GHCVM.BasicTypes.BasicTypes       ( Activation, CompilerPhase, isActive, pprRuleName )
+import GHCVM.Main.StaticFlags      ( opt_PprStyle_Debug )
+import GHCVM.Main.DynFlags         ( DynFlags )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Util
 import Data.List
 import Data.Ord
 

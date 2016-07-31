@@ -38,29 +38,29 @@ import {-# SOURCE #-} GHCVM.Rename.RnExpr ( rnLExpr )
 import {-# SOURCE #-} GHCVM.Rename.RnSplice ( rnSplicePat )
 import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice ( runQuasiQuotePat )
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcHsSyn             ( hsOverLitName )
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnTypes
 import GHCVM.Main.DynFlags
 import GHCVM.Prelude.PrelNames
-import TyCon               ( tyConName )
-import ConLike
-import DataCon             ( dataConTyCon )
-import TypeRep             ( TyThing(..) )
-import Name
-import NameSet
-import RdrName
-import BasicTypes
-import Util
-import ListSetOps          ( removeDups )
-import Outputable
-import SrcLoc
-import FastString
-import Literal             ( inCharRange )
-import TysWiredIn          ( nilDataCon )
-import DataCon             ( dataConName )
+import GHCVM.Types.TyCon               ( tyConName )
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon             ( dataConTyCon )
+import GHCVM.Types.TypeRep             ( TyThing(..) )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Util
+import GHCVM.Utils.ListSetOps          ( removeDups )
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Literal             ( inCharRange )
+import GHCVM.Prelude.TysWiredIn          ( nilDataCon )
+import GHCVM.BasicTypes.DataCon             ( dataConName )
 import Control.Monad       ( when, liftM, ap )
 import Data.Ratio
 

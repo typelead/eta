@@ -7,18 +7,18 @@ module CallArity
     , callArityRHS -- for testing
     ) where
 
-import VarSet
-import VarEnv
-import DynFlags ( DynFlags )
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Main.DynFlags ( DynFlags )
 
-import BasicTypes
-import CoreSyn
-import Id
-import CoreArity ( typeArity )
-import CoreUtils ( exprIsHNF, exprIsTrivial )
---import Outputable
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Id
+import GHCVM.Core.CoreArity ( typeArity )
+import GHCVM.Core.CoreUtils ( exprIsHNF, exprIsTrivial )
+--import GHCVM.Utils.Outputable
 import UnVarGraph
-import Demand
+import GHCVM.BasicTypes.Demand
 
 import Control.Arrow ( first, second )
 

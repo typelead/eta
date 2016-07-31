@@ -1,10 +1,10 @@
 module GHCVM.CodeGen.Utils where
 
 import GHCVM.Main.DynFlags
-import Type
-import Name
-import TyCon
-import Literal
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Literal
 import Codec.JVM
 import Data.Char (ord)
 import Control.Arrow(first)

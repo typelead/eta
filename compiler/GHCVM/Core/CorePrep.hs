@@ -14,48 +14,48 @@ module CorePrep (
 
 #include "HsVersions.h"
 
-import OccurAnal
+import GHCVM.SimplCore.OccurAnal
 
-import HscTypes
-import PrelNames
-import CoreUtils
-import CoreArity
-import CoreFVs
-import CoreMonad        ( CoreToDo(..) )
-import CoreLint         ( endPassIO )
-import CoreSyn
-import CoreSubst
-import MkCore hiding( FloatBind(..) )   -- We use our own FloatBind here
-import Type
-import Literal
-import Coercion
-import TcEnv
-import TcRnMonad
-import TyCon
-import Demand
-import Var
-import VarSet
-import VarEnv
-import Id
-import IdInfo
-import TysWiredIn
-import DataCon
-import PrimOp
-import BasicTypes
-import Module
-import UniqSupply
-import Maybes
-import OrdList
-import ErrUtils
-import DynFlags
-import Util
-import Pair
-import Outputable
-import Platform
-import FastString
+import GHCVM.Main.HscTypes
+import GHCVM.Prelude.PrelNames
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreArity
+import GHCVM.Core.CoreFVs
+import GHCVM.SimplCore.CoreMonad        ( CoreToDo(..) )
+import GHCVM.Core.CoreLint         ( endPassIO )
+import GHCVM.Core.CoreSyn
+import GHCVM.Core.CoreSubst
+import GHCVM.Core.MkCore hiding( FloatBind(..) )   -- We use our own FloatBind here
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Literal
+import GHCVM.Types.Coercion
+import GHCVM.TypeCheck.TcEnc
+import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.Demand
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Prelude.PrimOp
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.OrdList
+import GHCVM.Main.ErrUtils
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Util
+import GHCVM.Utils.Pair
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Platform
+import GHCVM.Utils.FastString
 import Config
-import Name             ( NamedThing(..), nameSrcSpan )
-import SrcLoc           ( SrcSpan(..), realSrcLocSpan, mkRealSrcLoc )
+import GHCVM.BasicTypes.Name             ( NamedThing(..), nameSrcSpan )
+import GHCVM.BasicTypes.SrcLoc           ( SrcSpan(..), realSrcLocSpan, mkRealSrcLoc )
 import Data.Bits
 import Data.List        ( mapAccumL )
 import Control.Monad

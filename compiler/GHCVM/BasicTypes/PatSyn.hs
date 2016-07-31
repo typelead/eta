@@ -22,16 +22,16 @@ module PatSyn (
 
 #include "HsVersions.h"
 
-import Type
-import TcType( mkSigmaTy )
-import Name
-import Outputable
-import Unique
-import Util
-import BasicTypes
-import FastString
-import Var
-import HsBinds( HsPatSynDetails(..) )
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcType( mkSigmaTy )
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Unique
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.Var
+import GHCVM.HsSyn.HsBinds( HsPatSynDetails(..) )
 
 import qualified Data.Data as Data
 import qualified Data.Typeable

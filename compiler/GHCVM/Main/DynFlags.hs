@@ -148,30 +148,30 @@ module GHCVM.Main.DynFlags (
         CompilerInfo(..),
   ) where
 
-import Platform
-import PlatformConstants
-import Module
-import PackageConfig
+import GHCVM.Utils.Platform
+import GHCVM.Utils.PlatformConstants
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.PackageConfig
 import {-# SOURCE #-} GHCVM.Main.Hooks
 import {-# SOURCE #-} GHCVM.Prelude.PrelNames ( mAIN )
 import {-# SOURCE #-} GHCVM.Main.Packages (PackageState)
-import DriverPhases     ( Phase(..), phaseInputExt )
+import GHCVM.Main.DriverPhases     ( Phase(..), phaseInputExt )
 import Config
-import CmdLineParser
-import Constants
-import Panic
-import Util
-import Maybes
-import MonadUtils
+import GHCVM.Main.CmdLineParser
+import GHCVM.Main.Constants
+import GHCVM.Utils.Panic
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.MonadUtils
 import qualified Pretty
-import SrcLoc
-import FastString
-import Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
 --TODO: #ifdef GHCI
 -- import Foreign.C        ( CInt(..) )
 -- import System.IO.Unsafe ( unsafeDupablePerformIO )
 -- #endif
-import {-# SOURCE #-} ErrUtils ( Severity(..), MsgDoc, mkLocMessage )
+import {-# SOURCE #-} GHCVM.Main.ErrUtils ( Severity(..), MsgDoc, mkLocMessage )
 
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.IORef

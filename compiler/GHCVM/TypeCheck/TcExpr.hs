@@ -16,11 +16,11 @@ import {-# SOURCE #-}   GHCVM.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, 
 -- import DsMeta( liftStringName, liftName )
 -- #endif
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcUnify
-import BasicTypes
+import GHCVM.BasicTypes.BasicTypes
 import GHCVM.TypeCheck.Inst
 import GHCVM.TypeCheck.TcBinds
 import GHCVM.TypeCheck.FamInst          ( tcGetFamInstEnvs, tcLookupDataFamInst )
@@ -31,33 +31,33 @@ import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcPatSyn( tcPatSynBuilderOcc )
 import GHCVM.TypeCheck.TcPat
 import GHCVM.TypeCheck.TcMType
-import TcType
+import GHCVM.TypeCheck.TcType
 import GHCVM.DeSugar.DsMonad
-import Id
-import ConLike
-import DataCon
-import RdrName
-import Name
-import TyCon
-import Type
-import TcEvidence
-import Var
-import VarSet
-import VarEnv
-import TysWiredIn
-import TysPrim( intPrimTy, addrPrimTy )
-import PrimOp( tagToEnumKey )
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.Name
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.TysPrim( intPrimTy, addrPrimTy )
+import GHCVM.Prelude.PrimOp( tagToEnumKey )
 import GHCVM.Prelude.PrelNames
 import GHCVM.Main.DynFlags
-import SrcLoc
-import Util
-import ListSetOps
-import Maybes
-import ErrUtils
-import Outputable
-import FastString
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.Maybes
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 import Control.Monad
-import Class(classTyCon)
+import GHCVM.Types.Class(classTyCon)
 import Data.Function
 import Data.List
 import qualified Data.Set as Set

@@ -1,6 +1,6 @@
 module GHCVM.Main.DynFlags where
 
-import Platform
+import GHCVM.Utils.Platform
 
 data DynFlags
 

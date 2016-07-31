@@ -13,27 +13,27 @@ module DmdAnal ( dmdAnalProgram ) where
 
 #include "HsVersions.h"
 
-import DynFlags
-import WwLib            ( findTypeShape, deepSplitProductType_maybe )
-import Demand   -- All of it
-import CoreSyn
-import Outputable
-import VarEnv
-import BasicTypes
-import FastString
+import GHCVM.Main.DynFlags
+import GHCVM.StrAnal.WwLib            ( findTypeShape, deepSplitProductType_maybe )
+import GHCVM.BasicTypes.Demand   -- All of it
+import GHCVM.Core.CoreSyn
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.FastString
 import Data.List
-import DataCon
-import Id
-import CoreUtils        ( exprIsHNF, exprType, exprIsTrivial )
-import TyCon
-import Type
-import FamInstEnv
-import Util
-import Maybes           ( isJust )
-import TysWiredIn       ( unboxedPairDataCon )
-import TysPrim          ( realWorldStatePrimTy )
-import ErrUtils         ( dumpIfSet_dyn )
-import Name             ( getName, stableNameCmp )
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Id
+import GHCVM.Core.CoreUtils        ( exprIsHNF, exprType, exprIsTrivial )
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.Types.FamInstEnv
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes           ( isJust )
+import GHCVM.Prelude.TysWiredIn       ( unboxedPairDataCon )
+import GHCVM.Prelude.TysPrim          ( realWorldStatePrimTy )
+import GHCVM.Main.ErrUtils         ( dumpIfSet_dyn )
+import GHCVM.BasicTypes.Name             ( getName, stableNameCmp )
 import Data.Function    ( on )
 
 {-

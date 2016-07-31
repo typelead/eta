@@ -26,7 +26,7 @@ import Numeric          ( readHex )
 #if __GLASGOW_HASKELL__ < 707
 -- Only needed for getFileHash below.
 import Foreign
-import Panic
+import GHCVM.Utils.Panic
 import System.IO
 import Control.Monad    ( when )
 #endif

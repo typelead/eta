@@ -36,33 +36,33 @@ module SimplUtils (
 #include "HsVersions.h"
 
 import SimplEnv
-import CoreMonad        ( SimplifierMode(..), Tick(..) )
-import MkCore           ( sortQuantVars )
-import DynFlags
-import CoreSyn
+import GHCVM.SimplCore.CoreMonad        ( SimplifierMode(..), Tick(..) )
+import GHCVM.Core.MkCore           ( sortQuantVars )
+import GHCVM.Main.DynFlags
+import GHCVM.Core.CoreSyn
 import qualified CoreSubst
-import PprCore
-import CoreFVs
-import CoreUtils
-import CoreArity
-import CoreUnfold
-import Name
-import Id
-import Var
-import Demand
+import GHCVM.Core.PprCore
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.CoreArity
+import GHCVM.Core.CoreUnfold
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Demand
 import SimplMonad
-import Type     hiding( substTy )
-import Coercion hiding( substCo, substTy )
-import DataCon          ( dataConWorkId )
-import VarEnv
-import VarSet
-import BasicTypes
-import Util
-import MonadUtils
-import Outputable
-import FastString
-import Pair
-import ListSetOps       ( minusList )
+import GHCVM.Types.Type     hiding( substTy )
+import GHCVM.Types.Coercion hiding( substCo, substTy )
+import GHCVM.BasicTypes.DataCon          ( dataConWorkId )
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Util
+import GHCVM.Utils.MonadUtils
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Pair
+import GHCVM.Utils.ListSetOps       ( minusList )
 
 import Control.Monad    ( when )
 import Data.List        ( partition )

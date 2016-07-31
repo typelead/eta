@@ -30,17 +30,17 @@ module Finder (
 
 #include "HsVersions.h"
 
-import Module
-import HscTypes
-import Packages
-import FastString
-import Util
-import PrelNames        ( gHC_PRIM )
-import DynFlags
-import Outputable
-import UniqFM
-import Maybes           ( expectJust )
-import Exception        ( evaluate )
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.HscTypes
+import GHCVM.Main.Packages
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Prelude.PrelNames        ( gHC_PRIM )
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Maybes           ( expectJust )
+import GHCVM.Utils.Exception        ( evaluate )
 
 import Data.IORef       ( IORef, writeIORef, readIORef, atomicModifyIORef )
 import System.Directory

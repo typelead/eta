@@ -13,32 +13,32 @@ module GHCVM.TypeCheck.TcClassDcl ( tcClassSigs, tcClassDecl2,
                     tcMkDeclCtxt, tcAddDeclCtxt, badMethodErr
                   ) where
 
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcPat( addInlinePrags )
-import TcEvidence( HsWrapper, idHsWrapper )
+import GHCVM.TypeCheck.TcEvidence( HsWrapper, idHsWrapper )
 import GHCVM.TypeCheck.TcBinds
 import GHCVM.TypeCheck.TcUnify
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcMType
-import Type     ( getClassPredTys_maybe )
-import TcType
+import GHCVM.Types.Type     ( getClassPredTys_maybe )
+import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Iface.BuildTyCl( TcMethInfo )
-import Class
-import Id
-import Name
-import NameEnv
-import NameSet
-import Var
-import Outputable
-import SrcLoc
-import Maybes
-import BasicTypes
-import Bag
-import FastString
-import BooleanFormula
-import Util
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Var
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.BasicTypes
+import GHCVM.Utils.Bag
+import GHCVM.Utils.FastString
+import GHCVM.Utils.BooleanFormula
+import GHCVM.Utils.Util
 
 import Control.Monad
 

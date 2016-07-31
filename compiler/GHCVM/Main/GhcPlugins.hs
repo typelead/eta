@@ -26,59 +26,59 @@ module GhcPlugins(
 import Plugins
 
 -- Variable naming
-import RdrName
-import OccName  hiding  ( varName {- conflicts with Var.varName -} )
-import Name     hiding  ( varName {- reexport from OccName, conflicts with Var.varName -} )
-import Var
-import Id       hiding  ( lazySetIdInfo, setIdExported, setIdNotExported {- all three conflict with Var -} )
-import IdInfo
+import GHCVM.BasicTypes.RdrName
+import GHCVM.BasicTypes.OccName  hiding  ( varName {- conflicts with Var.varName -} )
+import GHCVM.BasicTypes.Name     hiding  ( varName {- reexport from OccName, conflicts with Var.varName -} )
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.Id       hiding  ( lazySetIdInfo, setIdExported, setIdNotExported {- all three conflict with Var -} )
+import GHCVM.BasicTypes.IdInfo
 
 -- Core
-import CoreMonad
-import CoreSyn
-import Literal
-import DataCon
-import CoreUtils
-import MkCore
-import CoreFVs
-import CoreSubst
+import GHCVM.SimplCore.CoreMonad
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Literal
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.MkCore
+import GHCVM.Core.CoreFVs
+import GHCVM.Core.CoreSubst
 
 -- Core "extras"
-import Rules
-import Annotations
+import GHCVM.Specialise.Rules
+import GHCVM.Main.Annotations
 
 -- Pipeline-related stuff
-import DynFlags
-import Packages
+import GHCVM.Main.DynFlags
+import GHCVM.Main.Packages
 
 -- Important GHC types
-import Module
-import Type     hiding {- conflict with CoreSubst -}
+import GHCVM.BasicTypes.Module
+import GHCVM.Types.Type     hiding {- conflict with CoreSubst -}
                 ( substTy, extendTvSubst, extendTvSubstList, isInScope )
-import Coercion hiding {- conflict with CoreSubst -}
+import GHCVM.Types.Coercion hiding {- conflict with CoreSubst -}
                 ( substTy, extendTvSubst, substCo, substTyVarBndr, lookupTyVar )
-import TyCon
-import TysWiredIn
-import HscTypes
-import BasicTypes hiding ( Version {- conflicts with Packages.Version -} )
+import GHCVM.Types.TyCon
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.BasicTypes hiding ( Version {- conflicts with Packages.Version -} )
 
 -- Collections and maps
-import VarSet
-import VarEnv
-import NameSet
-import NameEnv
-import UniqSet
-import UniqFM
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.Utils.UniqSet
+import GHCVM.Utils.UniqFM
 -- Conflicts with UniqFM:
 --import LazyUniqFM
 import FiniteMap
 
 -- Common utilities
-import Util
-import Serialized
-import SrcLoc
-import Outputable
-import UniqSupply
-import Unique           ( Unique, Uniquable(..) )
-import FastString
-import FastTypes
+import GHCVM.Utils.Util
+import GHCVM.Utils.Serialized
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.BasicTypes.Unique           ( Unique, Uniquable(..) )
+import GHCVM.Utils.FastString
+import GHCVM.Utils.FastTypes

@@ -12,29 +12,29 @@ module Convert( convertToHsExpr, convertToPat, convertToHsDecls,
                 convertToHsType,
                 thRdrNameGuesses ) where
 
-import HsSyn as Hs
-import HsTypes  ( mkHsForAllTy )
-import qualified Class
-import RdrName
-import qualified Name
-import Module
-import RdrHsSyn
-import qualified OccName
-import OccName
-import SrcLoc
-import Type
-import qualified Coercion ( Role(..) )
-import TysWiredIn
-import TysPrim (eqPrimTyCon)
-import BasicTypes as Hs
-import ForeignCall
-import Unique
-import ErrUtils
-import Bag
-import Lexeme
-import Util
-import FastString
-import Outputable
+import GHCVM.HsSyn.HsSyn as Hs
+import GHCVM.HsSyn.HsTypes  ( mkHsForAllTy )
+import qualified GHCVM.Types.Class as Class
+import GHCVM.BasicTypes.RdrName
+import qualified GHCVM.BasicTypes.Name as Name
+import GHCVM.BasicTypes.Module
+import GHCVM.Parser.RdrHsSyn
+import qualified GHCVM.BasicTypes.OccName as OccName
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Types.Type
+import qualified GHCVM.Types.Coercion as Coercion( Role(..) )
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.TysPrim (eqPrimTyCon)
+import GHCVM.BasicTypes.BasicTypes as Hs
+import GHCVM.Prelude.ForeignCall
+import GHCVM.BasicTypes.Unique
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.Bag
+import GHCVM.BasicTypes.Lexeme
+import GHCVM.Utils.Util
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
 
 import qualified Data.ByteString as BS
 import Control.Monad( unless, liftM, ap )

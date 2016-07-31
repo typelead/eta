@@ -81,13 +81,13 @@ import {-# SOURCE #-}   Module( PackageKey, Module, ModuleName, moduleName )
 import {-# SOURCE #-}   OccName( OccName )
 import {-# SOURCE #-}   StaticFlags( opt_PprStyle_Debug, opt_NoDebugOutput )
 
-import FastString
-import FastTypes
+import GHCVM.Utils.FastString
+import GHCVM.Utils.FastTypes
 import qualified Pretty
-import Util
-import Platform
+import GHCVM.Utils.Util
+import GHCVM.Utils.Platform
 import Pretty           ( Doc, Mode(..) )
-import Panic
+import GHCVM.Utils.Panic
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS

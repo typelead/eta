@@ -29,19 +29,19 @@ module GHCVM.TypeCheck.TcRnDriver (
 -- #endif
 
 import GHCVM.Main.DynFlags
-import StaticFlags
-import HsSyn
+import GHCVM.Main.StaticFlags
+import GHCVM.HsSyn.HsSyn
 import GHCVM.Prelude.PrelNames
-import RdrName
+import GHCVM.BasicTypes.RdrName
 import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.TypeCheck.TcExpr
 import GHCVM.TypeCheck.TcRnMonad
-import TcEvidence
-import PprTyThing( pprTyThing )
-import Coercion( pprCoAxiom )
+import GHCVM.TypeCheck.TcEvidence
+import GHCVM.Main.PprTyThing( pprTyThing )
+import GHCVM.Types.Coercion( pprCoAxiom )
 import GHCVM.TypeCheck.FamInst
-import InstEnv
-import FamInstEnv
+import GHCVM.Types.InstEnv
+import GHCVM.Types.FamInstEnv
 import GHCVM.TypeCheck.TcAnnotations
 import GHCVM.TypeCheck.TcBinds
 import GHCVM.Main.HeaderInfo       ( mkPrelImports )
@@ -59,48 +59,48 @@ import GHCVM.Iface.LoadIface
 import GHCVM.Rename.RnNames
 import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnSource
-import ErrUtils
-import Id
-import IdInfo( IdDetails( VanillaId ) )
-import VarEnv
-import Module
-import UniqFM
-import Name
-import NameEnv
-import NameSet
-import Avail
-import TyCon
-import SrcLoc
-import HscTypes
-import ListSetOps
-import Outputable
-import ConLike
-import DataCon
-import Type
-import Class
-import CoAxiom
-import Annotations
+import GHCVM.Main.ErrUtils
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo( IdDetails( VanillaId ) )
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.Avail
+import GHCVM.Types.TyCon
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Main.HscTypes
+import GHCVM.Utils.ListSetOps
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.Type
+import GHCVM.Types.Class
+import GHCVM.Types.CoAxiom
+import GHCVM.Main.Annotations
 import Data.List ( sortBy )
 import Data.Ord
 -- TODO: #ifdef GHCI
--- import BasicTypes hiding( SuccessFlag(..) )
--- import TcType   ( isUnitTy, isTauTy )
--- import TcHsType
--- import TcMatches
--- import RnTypes
--- import RnExpr
--- import MkId
+-- import GHCVM.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
+-- import GHCVM.TypeCheck.TcType   ( isUnitTy, isTauTy )
+-- import GHCVM.TypeCheck.TcHsType
+-- import GHCVM.TypeCheck.TcMatches
+-- import GHCVM.Rename.RnTypes
+-- import GHCVM.Rename.RnExpr
+-- import GHCVM.BasicTypes.MkId
 -- import TidyPgm    ( globaliseAndTidyId )
--- import TysWiredIn ( unitTy, mkListTy )
+-- import GHCVM.Prelude.TysWiredIn ( unitTy, mkListTy )
 -- import DynamicLoading ( loadPlugins )
 -- import Plugins ( tcPlugin )
 -- #endif
 import GHCVM.Main.TidyPgm    ( mkBootModDetailsTc )
 
-import FastString
-import Maybes
-import Util
-import Bag
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Util
+import GHCVM.Utils.Bag
 
 import Control.Monad
 

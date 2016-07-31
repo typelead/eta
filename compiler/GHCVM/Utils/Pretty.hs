@@ -177,9 +177,9 @@ module Pretty (
   ) where
 
 import BufWrite
-import FastString
-import FastTypes
-import Panic
+import GHCVM.Utils.FastString
+import GHCVM.Utils.FastTypes
+import GHCVM.Utils.Panic
 import Numeric (fromRat)
 import System.IO
 
@@ -188,7 +188,7 @@ import GHC.Base ( unpackCString# )
 import GHC.Exts ( Int# )
 import GHC.Ptr  ( Ptr(..) )
 
--- Don't import Util( assertPanic ) because it makes a loop in the module structure
+-- Don't import GHCVM.Utils.Util( assertPanic ) because it makes a loop in the module structure
 
 infixl 6 <>
 infixl 6 <+>

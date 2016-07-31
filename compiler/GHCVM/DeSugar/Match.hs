@@ -11,36 +11,36 @@ module GHCVM.DeSugar.Match ( match, matchEquations, matchWrapper, matchSimply, m
 import {-#SOURCE#-} GHCVM.DeSugar.DsExpr (dsLExpr, dsExpr)
 
 import GHCVM.Main.DynFlags
-import HsSyn
+import GHCVM.HsSyn.HsSyn
 import GHCVM.TypeCheck.TcHsSyn
-import TcEvidence
+import GHCVM.TypeCheck.TcEvidence
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.DeSugar.Check
-import CoreSyn
-import Literal
-import CoreUtils
-import MkCore
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Literal
+import GHCVM.Core.CoreUtils
+import GHCVM.Core.MkCore
 import GHCVM.DeSugar.DsMonad
 import GHCVM.DeSugar.DsBinds
 import GHCVM.DeSugar.DsGRHSs
 import GHCVM.DeSugar.DsUtils
-import Id
-import ConLike
-import DataCon
-import PatSyn
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.PatSyn
 import GHCVM.DeSugar.MatchCon
 import GHCVM.DeSugar.MatchLit
-import Type
-import TyCon( isNewTyCon )
-import TysWiredIn
-import ListSetOps
-import SrcLoc
-import Maybes
-import Util
-import Name
-import Outputable
-import BasicTypes ( boxityNormalTupleSort, isGenerated )
-import FastString
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon( isNewTyCon )
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Utils.ListSetOps
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Util
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.BasicTypes ( boxityNormalTupleSort, isGenerated )
+import GHCVM.Utils.FastString
 
 import Control.Monad( when )
 import qualified Data.Map as Map

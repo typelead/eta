@@ -40,41 +40,41 @@ module MkId (
 
 #include "HsVersions.h"
 
-import Rules
-import TysPrim
-import TysWiredIn
-import PrelRules
-import Type
-import FamInstEnv
-import Coercion
-import TcType
-import MkCore
-import CoreUtils        ( exprType, mkCast )
-import CoreUnfold
-import Literal
-import TyCon
-import CoAxiom
-import Class
-import NameSet
-import VarSet
-import Name
-import PrimOp
-import ForeignCall
-import DataCon
-import Id
-import IdInfo
-import Demand
-import CoreSyn
-import Unique
-import UniqSupply
-import PrelNames
-import BasicTypes       hiding ( SuccessFlag(..) )
-import Util
-import Pair
-import DynFlags
-import Outputable
-import FastString
-import ListSetOps
+import GHCVM.Specialise.Rules
+import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn
+import GHCVM.Prelude.PrelRules
+import GHCVM.Types.Type
+import GHCVM.Types.FamInstEnv
+import GHCVM.Types.Coercion
+import GHCVM.TypeCheck.TcType
+import GHCVM.Core.MkCore
+import GHCVM.Core.CoreUtils        ( exprType, mkCast )
+import GHCVM.Core.CoreUnfold
+import GHCVM.BasicTypes.Literal
+import GHCVM.Types.TyCon
+import GHCVM.Types.CoAxiom
+import GHCVM.Types.Class
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Name
+import GHCVM.Prelude.PrimOp
+import GHCVM.Prelude.ForeignCall
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.IdInfo
+import GHCVM.BasicTypes.Demand
+import GHCVM.Core.CoreSyn
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.UniqSupply
+import GHCVM.Prelude.PrelNames
+import GHCVM.BasicTypes.BasicTypes       hiding ( SuccessFlag(..) )
+import GHCVM.Utils.Util
+import GHCVM.Utils.Pair
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.ListSetOps
 
 import Data.Maybe       ( maybeToList )
 

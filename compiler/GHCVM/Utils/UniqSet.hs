@@ -34,8 +34,8 @@ module UniqSet (
         partitionUniqSet
     ) where
 
-import UniqFM
-import Unique
+import GHCVM.Utils.UniqFM
+import GHCVM.BasicTypes.Unique
 
 {-
 ************************************************************************

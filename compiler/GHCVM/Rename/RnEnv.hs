@@ -44,36 +44,36 @@ module GHCVM.Rename.RnEnv (
 
 import GHCVM.Iface.LoadIface        ( loadInterfaceForName, loadSrcInterface_maybe )
 import GHCVM.Iface.IfaceEnv
-import HsSyn
-import RdrName
-import HscTypes
+import GHCVM.HsSyn.HsSyn
+import GHCVM.BasicTypes.RdrName
+import GHCVM.Main.HscTypes
 import GHCVM.TypeCheck.TcEnv            ( tcLookupDataCon, tcLookupField, isBrackStage )
 import GHCVM.TypeCheck.TcRnMonad
-import Id               ( isRecordSelector )
-import Name
-import NameSet
-import NameEnv
-import Avail
-import Module
-import ConLike
-import DataCon          ( dataConFieldLabels, dataConTyCon )
-import TyCon            ( isTupleTyCon, tyConArity )
+import GHCVM.BasicTypes.Id               ( isRecordSelector )
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.NameSet
+import GHCVM.BasicTypes.NameEnv
+import GHCVM.BasicTypes.Avail
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.ConLike
+import GHCVM.BasicTypes.DataCon          ( dataConFieldLabels, dataConTyCon )
+import GHCVM.Types.TyCon            ( isTupleTyCon, tyConArity )
 import GHCVM.Prelude.PrelNames        ( mkUnboundName, isUnboundName, rOOT_MAIN, forall_tv_RDR )
-import ErrUtils         ( MsgDoc )
-import BasicTypes       ( Fixity(..), FixityDirection(..), minPrecedence, defaultFixity )
-import SrcLoc
-import Outputable
-import Util
-import Maybes
-import BasicTypes       ( TopLevelFlag(..) )
-import ListSetOps       ( removeDups )
+import GHCVM.Main.ErrUtils         ( MsgDoc )
+import GHCVM.BasicTypes.BasicTypes       ( Fixity(..), FixityDirection(..), minPrecedence, defaultFixity )
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.Util
+import GHCVM.Utils.Maybes
+import GHCVM.BasicTypes.BasicTypes       ( TopLevelFlag(..) )
+import GHCVM.Utils.ListSetOps       ( removeDups )
 import GHCVM.Main.DynFlags
-import FastString
+import GHCVM.Utils.FastString
 import Control.Monad
 import Data.List
 import qualified Data.Set as Set
-import ListSetOps       ( minusList )
-import Constants        ( mAX_TUPLE_SIZE )
+import GHCVM.Utils.ListSetOps       ( minusList )
+import GHCVM.Main.Constants        ( mAX_TUPLE_SIZE )
 
 {-
 *********************************************************
