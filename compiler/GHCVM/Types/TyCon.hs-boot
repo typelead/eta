@@ -1,4 +1,4 @@
-module TyCon where
+module GHCVM.Types.TyCon where
 
 import GHCVM.BasicTypes.Name (Name)
 import GHCVM.BasicTypes.Unique (Unique)

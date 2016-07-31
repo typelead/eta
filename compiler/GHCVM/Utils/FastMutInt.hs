@@ -7,7 +7,7 @@
 --
 -- Unboxed mutable Ints
 
-module FastMutInt(
+module GHCVM.Utils.FastMutInt(
         FastMutInt, newFastMutInt,
         readFastMutInt, writeFastMutInt,
 

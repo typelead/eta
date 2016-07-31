@@ -6,17 +6,17 @@
 
 {-# LANGUAGE CPP #-}
 
-module SimplStg ( stg2stg ) where
+module GHCVM.SimplStg.SimplStg ( stg2stg ) where
 
 #include "HsVersions.h"
 
 import GHCVM.StgSyn.StgSyn
 
 import GHCVM.Profiling.CostCentre       ( CollectedCCs )
-import SCCfinal         ( stgMassageForProfiling )
-import StgLint          ( lintStgBindings )
-import StgStats         ( showStgStats )
-import UnariseStg       ( unarise )
+import GHCVM.Profiling.SCCfinal         ( stgMassageForProfiling )
+import GHCVM.StgSyn.StgLint          ( lintStgBindings )
+import GHCVM.SimplStg.StgStats         ( showStgStats )
+import GHCVM.SimplStg.UnariseStg       ( unarise )
 
 import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.Module           ( Module )

@@ -92,8 +92,8 @@ import Data.Ord
 -- import GHCVM.BasicTypes.MkId
 -- import TidyPgm    ( globaliseAndTidyId )
 -- import GHCVM.Prelude.TysWiredIn ( unitTy, mkListTy )
--- import DynamicLoading ( loadPlugins )
--- import Plugins ( tcPlugin )
+-- import GHCVM.Main.DynamicLoading ( loadPlugins )
+-- import GHCVM.Main.Plugins ( tcPlugin )
 -- #endif
 import GHCVM.Main.TidyPgm    ( mkBootModDetailsTc )
 

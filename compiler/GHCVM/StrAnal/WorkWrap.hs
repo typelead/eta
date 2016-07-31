@@ -5,7 +5,7 @@
 -}
 
 {-# LANGUAGE CPP #-}
-module WorkWrap ( wwTopBinds ) where
+module GHCVM.StrAnal.WorkWrap ( wwTopBinds ) where
 
 import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreUnfold       ( certainlyWillInline, mkWwInlineRule, mkWorkerUnfolding )

@@ -11,7 +11,7 @@
 -- And, as we have the info in hand, we may convert some lets to
 -- let-no-escapes.
 
-module CoreToStg ( coreToStg, coreExprToStg ) where
+module GHCVM.StgSyn.CoreToStg ( coreToStg, coreExprToStg ) where
 
 #include "HsVersions.h"
 

@@ -23,7 +23,7 @@ The program gather statistics about
 
 {-# LANGUAGE CPP #-}
 
-module StgStats ( showStgStats ) where
+module GHCVM.SimplStg.StgStats ( showStgStats ) where
 
 #include "HsVersions.h"
 

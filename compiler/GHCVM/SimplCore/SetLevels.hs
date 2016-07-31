@@ -43,7 +43,7 @@
 -}
 
 {-# LANGUAGE CPP #-}
-module SetLevels (
+module GHCVM.SimplCore.SetLevels (
         setLevels,
 
         Level(..), tOP_LEVEL,

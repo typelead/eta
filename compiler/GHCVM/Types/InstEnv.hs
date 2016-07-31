@@ -9,7 +9,7 @@ The bits common to TcInstDcls and TcDeriv.
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 
-module InstEnv (
+module GHCVM.Types.InstEnv (
         DFunId, InstMatch, ClsInstLookupResult,
         OverlapFlag(..), OverlapMode(..), setOverlapModeMaybe,
         ClsInst(..), DFunInstType, pprInstance, pprInstanceHdr, pprInstances,
@@ -37,7 +37,7 @@ import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
 import GHCVM.TypeCheck.TcType
 import GHCVM.Types.TyCon
-import Unify
+import GHCVM.Types.Unify
 import GHCVM.Utils.Outputable
 import GHCVM.Main.ErrUtils
 import GHCVM.BasicTypes.BasicTypes

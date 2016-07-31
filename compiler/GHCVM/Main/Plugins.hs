@@ -1,10 +1,10 @@
-module Plugins (
+module GHCVM.Main.Plugins (
     Plugin(..), CommandLineOption,
     defaultPlugin
     ) where
 
 import GHCVM.SimplCore.CoreMonad ( CoreToDo, CoreM )
-import TcRnTypes ( TcPlugin )
+import GHCVM.TypeCheck.TcRnTypes ( TcPlugin )
 
 
 -- | Command line options gathered from the -PModule.Name:stuff syntax

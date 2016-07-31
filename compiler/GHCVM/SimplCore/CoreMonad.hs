@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP, UndecidableInstances #-}
 
-module CoreMonad (
+module GHCVM.SimplCore.CoreMonad (
     -- * Configuration of the core-to-core passes
     CoreToDo(..), runWhen, runMaybe,
     SimplifierMode(..),
@@ -67,13 +67,13 @@ import GHCVM.BasicTypes.BasicTypes       ( CompilerPhase(..) )
 import GHCVM.Main.Annotations
 
 import GHCVM.Utils.IOEnv hiding     ( liftIO, failM, failWithM )
-import qualified IOEnv  ( liftIO )
-import GHCVM.TypeCheck.TcEnc            ( tcLookupGlobal )
+import qualified GHCVM.Utils.IOEnv as IOEnv( liftIO )
+import GHCVM.TypeCheck.TcEnv            ( tcLookupGlobal )
 import GHCVM.TypeCheck.TcRnMonad        ( initTcForLookup )
 import GHCVM.BasicTypes.Var
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
-import qualified ErrUtils as Err
+import qualified GHCVM.Main.ErrUtils as Err
 import GHCVM.Utils.Maybes
 import GHCVM.BasicTypes.UniqSupply
 import GHCVM.Utils.UniqFM       ( UniqFM, mapUFM, filterUFM )
@@ -94,7 +94,7 @@ import Prelude hiding   ( read )
 
 #ifdef GHCI
 import Control.Concurrent.MVar (MVar)
-import Linker ( PersistentLinkerState, saveLinkerGlobals, restoreLinkerGlobals )
+import GHCVM.Interactive.Linker ( PersistentLinkerState, saveLinkerGlobals, restoreLinkerGlobals )
 import {-# SOURCE #-} TcSplice ( lookupThName_maybe )
 import qualified Language.Haskell.TH as TH
 #else

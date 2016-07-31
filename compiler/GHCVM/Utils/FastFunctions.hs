@@ -7,7 +7,7 @@ Z%
 
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
 
-module FastFunctions (
+module GHCVM.Utils.FastFunctions (
     unsafeChr, inlinePerformIO, unsafeDupableInterleaveIO,
     indexWord8OffFastPtr,
     indexWord8OffFastPtrAsFastChar, indexWord8OffFastPtrAsFastInt,

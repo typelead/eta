@@ -24,7 +24,7 @@
 --   * Turn into 'Outputable.SDoc' with 'Outputable.ptext'
 --
 -- Use 'LitString' unless you want the facilities of 'FastString'.
-module FastString
+module GHCVM.Utils.FastString
        (
         -- * ByteString
         fastStringToByteString,
@@ -92,9 +92,9 @@ module FastString
 
 #include "HsVersions.h"
 
-import Encoding
+import GHCVM.Utils.Encoding
 import GHCVM.Utils.FastTypes
-import FastFunctions
+import GHCVM.Utils.FastFunctions
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Util
 
@@ -105,7 +105,7 @@ import qualified Data.ByteString.Char8    as BSC
 import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
 import Foreign.C
-import ExtsCompat46
+import GHCVM.Utils.ExtsCompat46
 import System.IO
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.Data

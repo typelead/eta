@@ -12,7 +12,7 @@
 --
 -------------------------------------------------------------------------------
 
-module BreakArray
+module GHCVM.Main.BreakArray
     (
       BreakArray
 #ifdef GHCI
@@ -32,7 +32,7 @@ import GHCVM.Main.DynFlags
 #ifdef GHCI
 import Control.Monad
 
-import ExtsCompat46
+import GHCVM.Utils.ExtsCompat46
 import GHC.IO ( IO(..) )
 
 data BreakArray = BA (MutableByteArray# RealWorld)

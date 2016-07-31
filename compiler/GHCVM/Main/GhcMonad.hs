@@ -8,7 +8,7 @@
 --
 -- -----------------------------------------------------------------------------
 
-module GhcMonad (
+module GHCVM.Main.GhcMonad (
         -- * 'Ghc' monad stuff
         GhcMonad(..),
         Ghc(..), 

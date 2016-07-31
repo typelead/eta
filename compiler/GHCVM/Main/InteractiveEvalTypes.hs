@@ -8,7 +8,7 @@
 --
 -- -----------------------------------------------------------------------------
 
-module InteractiveEvalTypes (
+module GHCVM.Main.InteractiveEvalTypes (
 #ifdef GHCI
         RunResult(..), Status(..), Resume(..), History(..),
 #endif
@@ -21,7 +21,7 @@ import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.RdrName
 import GHCVM.Types.TypeRep
-import ByteCodeInstr
+import GHCVM.Interactive.ByteCodeInstr
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Exception
 import Control.Concurrent

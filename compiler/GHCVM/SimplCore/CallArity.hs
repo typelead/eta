@@ -2,7 +2,7 @@
 -- Copyright (c) 2014 Joachim Breitner
 --
 
-module CallArity
+module GHCVM.SimplCore.CallArity
     ( callArityAnalProgram
     , callArityRHS -- for testing
     ) where
@@ -17,7 +17,7 @@ import GHCVM.BasicTypes.Id
 import GHCVM.Core.CoreArity ( typeArity )
 import GHCVM.Core.CoreUtils ( exprIsHNF, exprIsTrivial )
 --import GHCVM.Utils.Outputable
-import UnVarGraph
+import GHCVM.Utils.UnVarGraph
 import GHCVM.BasicTypes.Demand
 
 import Control.Arrow ( first, second )

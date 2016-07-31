@@ -8,7 +8,7 @@
 --
 -- -----------------------------------------------------------------------------
 
-module InteractiveEval (
+module GHCVM.Main.InteractiveEval (
 #ifdef GHCI
         RunResult(..), Status(..), Resume(..), History(..),
         runStmt, runStmtWithLocation, runDecls, runDeclsWithLocation,
@@ -40,7 +40,7 @@ module InteractiveEval (
 
 #include "HsVersions.h"
 
-import InteractiveEvalTypes
+import GHCVM.Main.InteractiveEvalTypes
 
 import GHCVM.Main.GhcMonad
 import GHCVM.Main.HscMain
@@ -60,8 +60,8 @@ import GHCVM.BasicTypes.Avail
 import GHCVM.BasicTypes.RdrName
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.VarEnv
-import ByteCodeInstr
-import Linker
+import GHCVM.Interactive.ByteCodeInstr
+import GHCVM.Interactive.Linker
 import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.Unique
 import GHCVM.BasicTypes.UniqSupply
@@ -72,7 +72,7 @@ import GHCVM.Utils.Maybes
 import GHCVM.Main.ErrUtils
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.BreakArray
-import RtClosureInspect
+import GHCVM.Interactive.RtClosureInspect
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Utils.MonadUtils

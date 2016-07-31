@@ -4,7 +4,7 @@
 \section[SimplMonad]{The simplifier Monad}
 -}
 
-module SimplMonad (
+module GHCVM.SimplCore.SimplMonad (
         -- The monad
         SimplM,
         initSmpl, traceSmpl,

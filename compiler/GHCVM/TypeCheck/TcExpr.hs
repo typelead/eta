@@ -13,7 +13,7 @@ module GHCVM.TypeCheck.TcExpr ( tcPolyExpr, tcPolyExprNC, tcMonoExpr, tcMonoExpr
 
 import {-# SOURCE #-}   GHCVM.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
 -- TODO: #ifdef GHCI
--- import DsMeta( liftStringName, liftName )
+-- import GHCVM.DeSugar.DsMeta( liftStringName, liftName )
 -- #endif
 
 import GHCVM.HsSyn.HsSyn

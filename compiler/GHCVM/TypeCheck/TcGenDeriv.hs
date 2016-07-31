@@ -52,7 +52,7 @@ import GHCVM.Types.Class
 import GHCVM.Types.TypeRep
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.VarEnv
-import State
+import GHCVM.Utils.State
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.Var
 -- TODO:#if __GLASGOW_HASKELL__ < 709

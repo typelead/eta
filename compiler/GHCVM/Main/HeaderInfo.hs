@@ -28,7 +28,7 @@ import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils
 import GHCVM.Utils.Util
 import GHCVM.Utils.Outputable
-import Pretty           ()
+import GHCVM.Utils.Pretty           ()
 import GHCVM.Utils.Maybes
 import GHCVM.Utils.Bag              ( emptyBag, listToBag, unitBag )
 import GHCVM.Utils.MonadUtils

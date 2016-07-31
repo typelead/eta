@@ -11,7 +11,7 @@ generation.
 
 {-# LANGUAGE CPP #-}
 
-module StgSyn (
+module GHCVM.StgSyn.StgSyn (
         GenStgArg(..),
         GenStgLiveVars,
 

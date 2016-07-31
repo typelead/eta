@@ -8,7 +8,7 @@ Bag: an unordered collection with duplicates
 
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
 
-module Bag (
+module GHCVM.Utils.Bag (
         Bag, -- abstract type
 
         emptyBag, unitBag, unionBags, unionManyBags,

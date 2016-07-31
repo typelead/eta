@@ -73,20 +73,20 @@ module GHCVM.Utils.Outputable (
         pprDebugAndThen,
     ) where
 
-import {-# SOURCE #-}   DynFlags( DynFlags,
+import {-# SOURCE #-}   GHCVM.Main.DynFlags( DynFlags,
                                   targetPlatform, pprUserLength, pprCols,
                                   useUnicode, useUnicodeSyntax,
                                   unsafeGlobalDynFlags )
-import {-# SOURCE #-}   Module( PackageKey, Module, ModuleName, moduleName )
-import {-# SOURCE #-}   OccName( OccName )
-import {-# SOURCE #-}   StaticFlags( opt_PprStyle_Debug, opt_NoDebugOutput )
+import {-# SOURCE #-}   GHCVM.BasicTypes.Module( PackageKey, Module, ModuleName, moduleName )
+import {-# SOURCE #-}   GHCVM.BasicTypes.OccName( OccName )
+import {-# SOURCE #-}   GHCVM.Main.StaticFlags( opt_PprStyle_Debug, opt_NoDebugOutput )
 
 import GHCVM.Utils.FastString
 import GHCVM.Utils.FastTypes
-import qualified Pretty
+import qualified GHCVM.Utils.Pretty as Pretty
 import GHCVM.Utils.Util
 import GHCVM.Utils.Platform
-import Pretty           ( Doc, Mode(..) )
+import GHCVM.Utils.Pretty           ( Doc, Mode(..) )
 import GHCVM.Utils.Panic
 
 import Data.ByteString (ByteString)

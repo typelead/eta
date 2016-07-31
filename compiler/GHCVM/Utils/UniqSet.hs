@@ -9,7 +9,7 @@ Based on @UniqFMs@ (as you would expect).
 Basically, the things need to be in class @Uniquable@.
 -}
 
-module UniqSet (
+module GHCVM.Utils.UniqSet (
         -- * Unique set type
         UniqSet,    -- type synonym for UniqFM a
 

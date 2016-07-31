@@ -53,7 +53,7 @@ import GHCVM.TypeCheck.TcType
 -- import GHCVM.Types.Type
 -- import GHCVM.Types.Kind
 -- import GHCVM.BasicTypes.NameSet
--- import GHCVM.TypeCheck.TcEnc
+-- import GHCVM.TypeCheck.TcEnv
 -- import GHCVM.TypeCheck.TcMType
 -- import GHCVM.TypeCheck.TcHsType
 -- import GHCVM.Iface.TcIface
@@ -97,7 +97,7 @@ import GHCVM.TypeCheck.TcType
 -- import GHCVM.Utils.Outputable
 -- import Control.Monad    ( when )
 
--- import DsMeta
+-- import GHCVM.DeSugar.DsMeta
 -- import qualified Language.Haskell.TH as TH
 -- -- THSyntax gives access to internal functions and data types
 -- import qualified Language.Haskell.TH.Syntax as TH

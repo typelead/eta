@@ -38,7 +38,7 @@ import GHCVM.Main.HscTypes
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.BasicTypes.Module
 import ObjLink
-import Linker
+import GHCVM.Interactive.Linker
 
 import GHCVM.Utils.Exception
 import Numeric

@@ -29,7 +29,7 @@ import GHCVM.Core.MkCore hiding( FloatBind(..) )   -- We use our own FloatBind h
 import GHCVM.Types.Type
 import GHCVM.BasicTypes.Literal
 import GHCVM.Types.Coercion
-import GHCVM.TypeCheck.TcEnc
+import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Types.TyCon
 import GHCVM.BasicTypes.Demand

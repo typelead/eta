@@ -5,7 +5,7 @@
 -}
 
 {-# LANGUAGE CPP #-}
-module Specialise ( specProgram, specUnfolding ) where
+module GHCVM.Specialise.Specialise ( specProgram, specUnfolding ) where
 
 #include "HsVersions.h"
 
@@ -15,7 +15,7 @@ import GHCVM.Types.Type   hiding( substTy, extendTvSubstList )
 import GHCVM.Types.Coercion( Coercion )
 import GHCVM.BasicTypes.Module( Module )
 import GHCVM.SimplCore.CoreMonad
-import qualified CoreSubst
+import qualified GHCVM.Core.CoreSubst as CoreSubst
 import GHCVM.Core.CoreUnfold
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.VarEnv
@@ -35,7 +35,7 @@ import GHCVM.Main.DynFlags
 import GHCVM.Utils.Util
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
-import State
+import GHCVM.Utils.State
 
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative (Applicative(..))

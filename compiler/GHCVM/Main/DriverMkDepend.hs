@@ -17,7 +17,7 @@ import GHCVM.Main.DynFlags
 import GHCVM.Utils.Util
 import GHCVM.Main.HscTypes
 import GHCVM.Main.SysTools         ( newTempName )
-import qualified SysTools
+import qualified GHCVM.Main.SysTools as SysTools
 import GHCVM.BasicTypes.Module
 import GHCVM.Utils.Digraph          ( SCC(..) )
 import GHCVM.Main.Finder

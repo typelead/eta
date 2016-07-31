@@ -28,7 +28,7 @@ module GHCVM.Main.Hooks ( Hooks
 import GHCVM.Main.DynFlags
 import GHCVM.HsSyn.HsTypes
 import GHCVM.BasicTypes.Name
-import PipelineMonad
+import GHCVM.Main.PipelineMonad
 import GHCVM.Main.HscTypes
 import GHCVM.HsSyn.HsDecls
 import GHCVM.HsSyn.HsBinds

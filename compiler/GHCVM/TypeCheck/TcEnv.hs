@@ -87,7 +87,7 @@ import GHCVM.BasicTypes.SrcLoc
 import GHCVM.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
 import GHCVM.BasicTypes.Module
 import GHCVM.Utils.Outputable
-import Encoding
+import GHCVM.Utils.Encoding
 import GHCVM.Utils.FastString
 import GHCVM.Utils.ListSetOps
 import GHCVM.Utils.Util

@@ -128,7 +128,7 @@ import GHCVM.BasicTypes.Unique
 import GHCVM.Utils.UniqFM
 import GHCVM.Utils.Maybes ( orElse, firstJusts )
 
-import TrieMap
+import GHCVM.Core.TrieMap
 import Control.Arrow ( first )
 import Control.Monad( ap, when, unless, MonadPlus(..) )
 import GHCVM.Utils.MonadUtils

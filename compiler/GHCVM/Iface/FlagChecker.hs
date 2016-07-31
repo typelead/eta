@@ -2,7 +2,7 @@
 
 -- | This module manages storing the various GHC option flags in a modules
 -- interface file as part of the recompilation checking infrastructure.
-module FlagChecker (
+module GHCVM.Iface.FlagChecker (
         fingerprintDynFlags
     ) where
 

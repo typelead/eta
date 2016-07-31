@@ -1,7 +1,7 @@
 -- (c) The University of Glasgow 2006-2012
 
 {-# LANGUAGE CPP #-}
-module Kind (
+module GHCVM.Types.Kind (
         -- * Main data type
         SuperKind, Kind, typeKind,
 
@@ -43,7 +43,7 @@ module Kind (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} Type      ( typeKind, substKiWith, eqKind )
+import {-# SOURCE #-} GHCVM.Types.Type      ( typeKind, substKiWith, eqKind )
 
 import GHCVM.Types.TypeRep
 import GHCVM.Prelude.TysPrim

@@ -39,7 +39,7 @@ import GHCVM.Types.Class            ( classKey )
 import GHCVM.BasicTypes.BasicTypes       ( RuleName )
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
-import TrieMap () -- DV: for now
+import GHCVM.Core.TrieMap () -- DV: for now
 import Data.List( partition )
 
 {-

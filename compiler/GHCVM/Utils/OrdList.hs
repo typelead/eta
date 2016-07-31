@@ -10,7 +10,7 @@ can be appended in linear time.
 -}
 
 {-# LANGUAGE CPP #-}
-module OrdList (
+module GHCVM.Utils.OrdList (
         OrdList,
         nilOL, isNilOL, unitOL, appOL, consOL, snocOL, concatOL, lastOL,
         mapOL, fromOL, toOL, foldrOL, foldlOL

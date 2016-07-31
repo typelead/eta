@@ -22,7 +22,7 @@ import GHCVM.Types.FamInstEnv( topNormaliseType )
 
 -- TODO: #ifdef GHCI
 --         -- Template Haskell stuff iff bootstrapped
--- import DsMeta
+-- import GHCVM.DeSugar.DsMeta
 -- #endif
 
 import GHCVM.HsSyn.HsSyn

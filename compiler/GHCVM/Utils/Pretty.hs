@@ -153,7 +153,7 @@ Relative to John's original paper, there are the following new features:
 
 {-# LANGUAGE BangPatterns, CPP, MagicHash #-}
 
-module Pretty (
+module GHCVM.Utils.Pretty (
         Doc,            -- Abstract
         Mode(..), TextDetails(..),
 
@@ -176,7 +176,7 @@ module Pretty (
         bufLeftRender -- performance hack
   ) where
 
-import BufWrite
+import GHCVM.Utils.BufWrite
 import GHCVM.Utils.FastString
 import GHCVM.Utils.FastTypes
 import GHCVM.Utils.Panic

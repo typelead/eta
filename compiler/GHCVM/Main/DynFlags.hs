@@ -163,7 +163,7 @@ import GHCVM.Utils.Panic
 import GHCVM.Utils.Util
 import GHCVM.Utils.Maybes
 import GHCVM.Utils.MonadUtils
-import qualified Pretty
+import qualified GHCVM.Utils.Pretty as Pretty
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Outputable

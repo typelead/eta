@@ -87,14 +87,14 @@ module GHCVM.Main.HscMain
 -- TODO: #ifdef GHCI
 -- import GHCVM.BasicTypes.Id
 -- import GHCVM.BasicTypes.BasicTypes       ( HValue )
--- import ByteCodeGen      ( byteCodeGen, coreExprToBCOs )
--- import Linker
+-- import GHCVM.Interactive.ByteCodeGen      ( byteCodeGen, coreExprToBCOs )
+-- import GHCVM.Interactive.Linker
 -- import GHCVM.Core.CoreTidy         ( tidyExpr )
 -- import GHCVM.Types.Type             ( Type )
 -- import GHCVM.Prelude.PrelNames
 -- import {- Kind parts of -} Type         ( Kind )
 -- import GHCVM.Core.CoreLint         ( lintInteractiveExpr )
--- import DsMeta           ( templateHaskellNames )
+-- import GHCVM.DeSugar.DsMeta           ( templateHaskellNames )
 -- import GHCVM.BasicTypes.VarEnv           ( emptyTidyEnv )
 -- import GHCVM.Utils.Panic
 -- import GHCVM.BasicTypes.ConLike
@@ -129,7 +129,7 @@ import GHCVM.Profiling.CostCentre
 --import ProfInit
 import GHCVM.Types.TyCon
 import GHCVM.BasicTypes.Name
-import SimplStg         ( stg2stg )
+import GHCVM.SimplStg.SimplStg         ( stg2stg )
 import GHCVM.BasicTypes.NameEnv          ( emptyNameEnv )
 import GHCVM.BasicTypes.NameSet          ( emptyNameSet )
 import GHCVM.Types.InstEnv
@@ -141,15 +141,15 @@ import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils
 
 import GHCVM.Utils.Outputable
-import HscStats         ( ppSourceStats )
+import GHCVM.Main.HscStats         ( ppSourceStats )
 import GHCVM.Main.HscTypes
 import GHCVM.Utils.FastString
 import GHCVM.Utils.UniqFM           ( emptyUFM )
 import GHCVM.BasicTypes.UniqSupply
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Exception
-import qualified Stream
-import Stream (Stream)
+import qualified GHCVM.Utils.Stream as Stream
+import GHCVM.Utils.Stream (Stream)
 
 import GHCVM.Utils.Util
 

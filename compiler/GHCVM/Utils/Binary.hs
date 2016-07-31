@@ -62,7 +62,7 @@ module GHCVM.Utils.Binary
 -- The *host* architecture version:
 #include "../includes/MachDeps.h"
 
-import {-# SOURCE #-} Name (Name)
+import {-# SOURCE #-} GHCVM.BasicTypes.Name (Name)
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Panic
 import GHCVM.Utils.UniqFM
@@ -86,7 +86,7 @@ import System.IO as IO
 import System.IO.Unsafe         ( unsafeInterleaveIO )
 import System.IO.Error          ( mkIOError, eofErrorType )
 import GHC.Real                 ( Ratio(..) )
-import ExtsCompat46
+import GHCVM.Utils.ExtsCompat46
 import GHC.Word                 ( Word8(..) )
 
 import GHC.IO ( IO(..) )

@@ -10,7 +10,7 @@
 --
 -- ----------------------------------------------------------------------------
 
-module Fingerprint (
+module GHCVM.Utils.Fingerprint (
         Fingerprint(..), fingerprint0,
         readHexFingerprint,
         fingerprintData,

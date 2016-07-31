@@ -56,7 +56,7 @@ import GHCVM.BasicTypes.NameSet
 import GHCVM.BasicTypes.NameEnv
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Maybes
-import Unify
+import GHCVM.Types.Unify
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.ListSetOps

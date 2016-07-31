@@ -16,23 +16,23 @@ import GHCVM.Types.Kind
 -- import GHCVM.Main.ErrUtils         ( dumpIfSet_dyn_printer )
 -- import Control.Monad    ( unless, when )
 -- import GHCVM.Main.DynFlags
--- import DsMeta           ( decsQTyConName, expQTyConName, patQTyConName, typeQTyConName )
+-- import GHCVM.DeSugar.DsMeta           ( decsQTyConName, expQTyConName, patQTyConName, typeQTyConName )
 -- import GHCVM.Iface.LoadIface        ( loadInterfaceForName )
 -- import GHCVM.BasicTypes.Module
 -- import GHCVM.Rename.RnEnv
--- import RnPat            ( rnPat )
--- import RnSource         ( rnSrcDecls, findSplice )
+-- import GHCVM.Rename.RnPat            ( rnPat )
+-- import GHCVM.Rename.RnSource         ( rnSrcDecls, findSplice )
 -- import GHCVM.Rename.RnTypes          ( rnLHsType )
 -- import GHCVM.BasicTypes.SrcLoc
--- import GHCVM.TypeCheck.TcEnc            ( checkWellStaged, tcMetaTy )
+-- import GHCVM.TypeCheck.TcEnv            ( checkWellStaged, tcMetaTy )
 -- import GHCVM.Utils.Outputable
 -- import GHCVM.BasicTypes.BasicTypes       ( TopLevelFlag, isTopLevel )
 -- import GHCVM.Utils.FastString
 -- import GHCVM.Main.Hooks
 
--- import {-# SOURCE #-} RnExpr   ( rnLExpr )
--- import {-# SOURCE #-} TcExpr   ( tcMonoExpr )
--- import {-# SOURCE #-} TcSplice ( runMetaD, runMetaE, runMetaP, runMetaT, tcTopSpliceExpr )
+-- import {-# SOURCE #-} GHCVM.Rename.RnExpr   ( rnLExpr )
+-- import {-# SOURCE #-} GHCVM.TypeCheck.TcExpr   ( tcMonoExpr )
+-- import {-# SOURCE #-} GHCVM.TypeCheck.TcSplice ( runMetaD, runMetaE, runMetaP, runMetaT, tcTopSpliceExpr )
 -- #endif
 
 -- #ifndef GHCI

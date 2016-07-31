@@ -11,7 +11,7 @@
 -- for updating state.
 --
 
-module IOEnv (
+module GHCVM.Utils.IOEnv (
         IOEnv, -- Instance of Monad
 
         -- Monad utilities

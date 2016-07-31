@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module StgLint ( lintStgBindings ) where
+module GHCVM.StgSyn.StgLint ( lintStgBindings ) where
 
 import GHCVM.StgSyn.StgSyn
 

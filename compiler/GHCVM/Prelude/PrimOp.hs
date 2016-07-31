@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module PrimOp (
+module GHCVM.Prelude.PrimOp (
         PrimOp(..), PrimOpVecCat(..), allThePrimOps,
         primOpType, primOpSig,
         primOpTag, maxPrimOpTag, primOpOcc,

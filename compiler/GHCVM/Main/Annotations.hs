@@ -4,7 +4,7 @@
 -- (c) The University of Glasgow 2006
 -- (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 --
-module Annotations (
+module GHCVM.Main.Annotations (
         -- * Main Annotation data types
         Annotation(..), AnnPayload,
         AnnTarget(..), CoreAnnTarget,
@@ -87,7 +87,6 @@ instance Outputable Annotation where
 -- | A collection of annotations
 -- Can't use a type synonym or we hit bug #2412 due to source import
 newtype AnnEnv = MkAnnEnv (UniqFM [AnnPayload])
-
 -- | An empty annotation environment.
 emptyAnnEnv :: AnnEnv
 emptyAnnEnv = MkAnnEnv emptyUFM

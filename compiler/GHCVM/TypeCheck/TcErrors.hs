@@ -14,7 +14,7 @@ import GHCVM.TypeCheck.TcType
 import GHCVM.Types.TypeRep
 import GHCVM.Types.Type
 import GHCVM.Types.Kind ( isKind )
-import Unify            ( tcMatchTys )
+import GHCVM.Types.Unify            ( tcMatchTys )
 import GHCVM.BasicTypes.Module
 import GHCVM.TypeCheck.FamInst
 import GHCVM.TypeCheck.Inst

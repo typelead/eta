@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
-module Exception
+module GHCVM.Utils.Exception
     (
     module Control.Exception,
     module Exception

@@ -7,7 +7,7 @@ module GraphPpr (
 )
 where
 
-import GraphBase
+import GHCVMUtils.GraphBase
 
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.Unique

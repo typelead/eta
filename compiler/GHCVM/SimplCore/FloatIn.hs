@@ -14,7 +14,7 @@ then discover that they aren't needed in the chosen branch.
 
 {-# LANGUAGE CPP #-}
 
-module FloatIn ( floatInwards ) where
+module GHCVM.SimplCore.FloatIn ( floatInwards ) where
 
 #include "HsVersions.h"
 

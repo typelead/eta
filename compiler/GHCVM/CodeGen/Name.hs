@@ -35,7 +35,7 @@ import Data.Text.Encoding
 
 import GHCVM.Utils.Outputable((<>))
 import GHCVM.Debug
-import Encoding
+import GHCVM.Utils.Encoding
 
 import Codec.JVM
 

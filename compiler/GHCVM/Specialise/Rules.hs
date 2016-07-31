@@ -8,7 +8,7 @@
 
 -- | Functions for collecting together and applying rewrite rules to a module.
 -- The 'CoreRule' datatype itself is declared elsewhere.
-module Rules (
+module GHCVM.Specialise.Rules (
         -- * RuleBase
         RuleBase,
 
@@ -50,7 +50,7 @@ import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Name             ( Name, NamedThing(..) )
 import GHCVM.BasicTypes.NameEnv
-import Unify            ( ruleMatchTyX, MatchEnv(..) )
+import GHCVM.Types.Unify            ( ruleMatchTyX, MatchEnv(..) )
 import GHCVM.BasicTypes.BasicTypes       ( Activation, CompilerPhase, isActive, pprRuleName )
 import GHCVM.Main.StaticFlags      ( opt_PprStyle_Debug )
 import GHCVM.Main.DynFlags         ( DynFlags )

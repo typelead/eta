@@ -1,7 +1,7 @@
-module TysWiredIn where
+module GHCVM.Prelude.TysWiredIn where
 
-import {-# SOURCE #-} TyCon      (TyCon)
-import {-# SOURCE #-} TypeRep    (Type)
+import {-# SOURCE #-} GHCVM.Types.TyCon      (TyCon)
+import {-# SOURCE #-} GHCVM.Types.TypeRep    (Type)
 
 
 eqTyCon, coercibleTyCon :: TyCon

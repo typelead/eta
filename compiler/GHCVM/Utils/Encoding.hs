@@ -11,7 +11,7 @@
 --
 -- -----------------------------------------------------------------------------
 
-module Encoding (
+module GHCVM.Utils.Encoding (
         -- * UTF-8
         utf8DecodeChar#,
         utf8PrevChar,
@@ -31,7 +31,7 @@ module Encoding (
 import Foreign
 import Data.Char
 import Numeric
-import ExtsCompat46
+import GHCVM.Utils.ExtsCompat46
 
 -- -----------------------------------------------------------------------------
 -- UTF-8

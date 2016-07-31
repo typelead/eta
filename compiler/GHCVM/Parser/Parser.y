@@ -72,7 +72,7 @@ import GHCVM.Types.Class            ( FunDep )
 -- compiler/parser
 import GHCVM.Parser.RdrHsSyn
 import GHCVM.Parser.Lexer
-import HaddockUtils
+import GHCVM.Parser.HaddockUtils
 import GHCVM.Parser.ApiAnnotation
 
 -- compiler/typecheck

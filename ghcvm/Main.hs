@@ -10,7 +10,7 @@ import GHCVM.Main.CmdLineParser
 import GHCVM.Iface.LoadIface        ( showIface, loadUserInterface)
 import GHCVM.Main.HscMain          ( newHscEnv )
 import GHCVM.Main.DriverPipeline
-import PipelineMonad
+import GHCVM.Main.PipelineMonad
 import GHCVM.Types.TyCon (isDataTyCon)
 import GHCVM.Main.DriverMkDepend   ( doMkDependHS )
 -- import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )

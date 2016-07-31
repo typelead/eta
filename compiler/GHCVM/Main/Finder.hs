@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module Finder (
+module GHCVM.Main.Finder (
     flushFinderCaches,
     FindResult(..),
     findImportedModule,

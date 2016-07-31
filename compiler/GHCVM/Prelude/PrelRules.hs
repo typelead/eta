@@ -15,12 +15,12 @@ ToDo:
 {-# LANGUAGE CPP, RankNTypes #-}
 {-# OPTIONS_GHC -optc-DNON_POSIX_SOURCE #-}
 
-module PrelRules ( primOpRules, builtinRules ) where
+module GHCVM.Prelude.PrelRules ( primOpRules, builtinRules ) where
 
 #include "HsVersions.h"
 #include "../includes/MachDeps.h"
 
-import {-# SOURCE #-} MkId ( mkPrimOpId, magicDictId )
+import {-# SOURCE #-} GHCVM.BasicTypes.MkId ( mkPrimOpId, magicDictId )
 
 import GHCVM.Core.CoreSyn
 import GHCVM.Core.MkCore

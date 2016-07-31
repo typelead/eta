@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module ErrUtils (
+module GHCVM.Main.ErrUtils (
         MsgDoc,
         Validity(..), andValid, allValid, isValid, getInvalids,
 

@@ -10,7 +10,7 @@ some unnecessary loops in the module dependency graph.
 
 {-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables #-}
 
-module Panic (
+module GHCVM.Utils.Panic (
      GhcException(..), showGhcException,
      throwGhcException, throwGhcExceptionIO,
      handleGhcException,

@@ -5,7 +5,7 @@
 -}
 
 {-# LANGUAGE CPP #-}
-module PrelInfo (
+module GHCVM.Prelude.PrelInfo (
         wiredInIds, ghcPrimIds,
         primOpRules, builtinRules,
 
@@ -36,7 +36,7 @@ import GHCVM.Main.HscTypes
 import GHCVM.Types.Class
 import GHCVM.Types.TyCon
 import GHCVM.Utils.Util
-import {-# SOURCE #-} TcTypeNats ( typeNatTyCons )
+import {-# SOURCE #-} GHCVM.TypeCheck.TcTypeNats ( typeNatTyCons )
 
 import Data.Array
 

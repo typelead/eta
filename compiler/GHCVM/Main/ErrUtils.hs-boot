@@ -1,4 +1,4 @@
-module ErrUtils where
+module GHCVM.Main.ErrUtils where
 
 import GHCVM.Utils.Outputable (SDoc)
 import GHCVM.BasicTypes.SrcLoc (SrcSpan)

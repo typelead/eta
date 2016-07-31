@@ -48,7 +48,7 @@ import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.TysPrim          ( superKindTyConName )
 import GHCVM.BasicTypes.BasicTypes       ( strongLoopBreaker )
 import GHCVM.BasicTypes.Literal
-import qualified Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Name

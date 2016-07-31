@@ -5,7 +5,7 @@
 -- | Module for coercion axioms, used to represent type family instances
 -- and newtypes
 
-module CoAxiom (
+module GHCVM.Types.CoAxiom (
        Branched, Unbranched, BranchIndex, BranchList(..),
        toBranchList, fromBranchList,
        toBranchedList, toUnbranchedList,
@@ -28,8 +28,8 @@ module CoAxiom (
        BuiltInSynFamily(..), trivialBuiltInFamily
        ) where
 
-import {-# SOURCE #-} TypeRep ( Type )
-import {-# SOURCE #-} TyCon ( TyCon )
+import {-# SOURCE #-} GHCVM.Types.TypeRep ( Type )
+import {-# SOURCE #-} GHCVM.Types.TyCon ( TyCon )
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.Name

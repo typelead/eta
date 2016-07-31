@@ -1,4 +1,4 @@
-module TypeRep where
+module GHCVM.Types.TypeRep where
 
 import GHCVM.Utils.Outputable (Outputable)
 

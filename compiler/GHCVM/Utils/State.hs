@@ -1,6 +1,6 @@
 {-# LANGUAGE UnboxedTuples, CPP #-}
 
-module State where
+module GHCVM.Utils.State where
 
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative

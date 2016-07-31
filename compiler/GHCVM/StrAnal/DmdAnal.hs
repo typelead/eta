@@ -9,7 +9,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module DmdAnal ( dmdAnalProgram ) where
+module GHCVM.StrAnal.DmdAnal ( dmdAnalProgram ) where
 
 #include "HsVersions.h"
 

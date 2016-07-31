@@ -60,7 +60,7 @@ Basic idea:
 
 import GHCVM.Iface.IfaceSyn
 import GHCVM.Iface.LoadIface
-import FlagChecker
+import GHCVM.Iface.FlagChecker
 
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.IdInfo

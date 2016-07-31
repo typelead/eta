@@ -9,7 +9,7 @@
 --
 -----------------------------------------------------------------------------
 
-module DriverPhases (
+module GHCVM.Main.DriverPhases (
    HscSource(..), isHsBootOrSig, hscSourceString,
    Phase(..),
    happensBefore, eqPhase, anyHsc, isStopLn,
@@ -37,7 +37,7 @@ module DriverPhases (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} DynFlags
+import {-# SOURCE #-} GHCVM.Main.DynFlags
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Platform
 import System.FilePath

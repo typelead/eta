@@ -1,3 +1,3 @@
-module PrimOp where
+module GHCVM.Prelude.PrimOp where
 
 data PrimOp

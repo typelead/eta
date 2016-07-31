@@ -21,7 +21,7 @@ import GHCVM.TypeCheck.TcType
 import GHCVM.TypeCheck.TcMType
 import GHCVM.Prelude.TysWiredIn ( coercibleClass )
 import GHCVM.Types.Type
-import Unify( tcMatchTyX )
+import GHCVM.Types.Unify( tcMatchTyX )
 import GHCVM.Types.Kind
 import GHCVM.Types.CoAxiom
 import GHCVM.Types.Class
@@ -30,7 +30,7 @@ import GHCVM.Types.TyCon
 -- others:
 import GHCVM.HsSyn.HsSyn            -- HsType
 import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
-import FunDeps
+import GHCVM.TypeCheck.FunDeps
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet

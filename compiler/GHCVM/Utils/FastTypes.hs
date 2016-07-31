@@ -62,7 +62,7 @@ module GHCVM.Utils.FastTypes (
   ) where
 
 -- Import the beggars
-import ExtsCompat46
+import GHCVM.Utils.ExtsCompat46
 
 type FastInt = Int#
 

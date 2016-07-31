@@ -4,7 +4,7 @@
 
 {-# LANGUAGE CPP, GADTs, ScopedTypeVariables #-}
 
-module FamInstEnv (
+module GHCVM.Types.FamInstEnv (
         FamInst(..), FamFlavor(..), famInstAxiom, famInstTyCon, famInstRHS,
         famInstsRepTyCons, famInstRepTyCon_maybe, dataFamInstRepTyCon,
         pprFamInst, pprFamInsts,
@@ -34,7 +34,7 @@ module FamInstEnv (
 #include "HsVersions.h"
 
 import GHCVM.Types.InstEnv
-import Unify
+import GHCVM.Types.Unify
 import GHCVM.Types.Type
 import GHCVM.TypeCheck.TcType ( orphNamesOfTypes )
 import GHCVM.Types.TypeRep
@@ -47,7 +47,7 @@ import GHCVM.BasicTypes.Name
 import GHCVM.Utils.UniqFM
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Maybes
-import TrieMap
+import GHCVM.Core.TrieMap
 import GHCVM.BasicTypes.Unique
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.Var

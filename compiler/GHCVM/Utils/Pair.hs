@@ -5,7 +5,7 @@ Traversable instances.
 
 {-# LANGUAGE CPP #-}
 
-module Pair ( Pair(..), unPair, toPair, swap ) where
+module GHCVM.Utils.Pair ( Pair(..), unPair, toPair, swap ) where
 
 #include "HsVersions.h"
 

@@ -8,7 +8,7 @@ The @TyCon@ datatype
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 
-module TyCon(
+module GHCVM.Types.TyCon(
         -- * Main TyCon data types
         TyCon, FieldLabel,
 
@@ -94,8 +94,8 @@ module TyCon(
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} TypeRep ( Kind, Type, PredType )
-import {-# SOURCE #-} DataCon ( DataCon, isVanillaDataCon )
+import {-# SOURCE #-} GHCVM.Types.TypeRep ( Kind, Type, PredType )
+import {-# SOURCE #-} GHCVM.BasicTypes.DataCon ( DataCon, isVanillaDataCon )
 
 import GHCVM.BasicTypes.Var
 import GHCVM.Types.Class

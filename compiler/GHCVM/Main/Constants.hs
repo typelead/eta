@@ -4,7 +4,7 @@
 \section[Constants]{Info about this compilation}
 -}
 
-module Constants (module Constants) where
+module GHCVM.Main.Constants (module Constants) where
 
 import Config
 

@@ -12,7 +12,7 @@ import GHCVM.TypeCheck.TcFlatten
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Types.Type
 import GHCVM.Types.Kind (isKind, isConstraintKind )
-import Unify
+import GHCVM.Types.Unify
 import GHCVM.Types.InstEnv( lookupInstEnv, instanceDFunId )
 import GHCVM.Types.CoAxiom(sfInteractTop, sfInteractInert)
 
@@ -23,7 +23,7 @@ import GHCVM.Prelude.PrelNames ( knownNatClassName, knownSymbolClassName, ipClas
 import GHCVM.BasicTypes.Id( idType )
 import GHCVM.Types.Class
 import GHCVM.Types.TyCon
-import FunDeps
+import GHCVM.TypeCheck.FunDeps
 import GHCVM.TypeCheck.FamInst
 import GHCVM.TypeCheck.Inst( tyVarsOfCt )
 

@@ -9,7 +9,7 @@
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module FloatOut ( floatOutwards ) where
+module GHCVM.SimplCore.FloatOut ( floatOutwards ) where
 
 import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreUtils
@@ -21,7 +21,7 @@ import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils         ( dumpIfSet_dyn )
 import GHCVM.BasicTypes.Id               ( Id, idArity, isBottomingId )
 import GHCVM.BasicTypes.Var              ( Var )
-import SetLevels
+import GHCVM.SimplCore.SetLevels
 import GHCVM.BasicTypes.UniqSupply       ( UniqSupply )
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Util

@@ -1,6 +1,6 @@
 module GHCVM.Parser.Parse where
 
-import HscStats
+import GHCVM.Main.HscStats
 import GHCVM.Main.HscTypes
 import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils

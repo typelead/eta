@@ -6,7 +6,7 @@
 -- as used in System FC. See 'CoreSyn.Expr' for
 -- more on System FC and how coercions fit into it.
 --
-module Coercion (
+module GHCVM.Types.Coercion (
         -- * Main data type
         Coercion(..), Var, CoVar,
         LeftOrRight(..), pickLR,
@@ -79,9 +79,9 @@ module Coercion (
         applyCo,
        ) where
 
-import Unify    ( MatchEnv(..), matchList )
+import GHCVM.Types.Unify    ( MatchEnv(..), matchList )
 import GHCVM.Types.TypeRep
-import qualified Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.Type hiding( substTy, substTyVarBndr, extendTvSubst )
 import GHCVM.Types.TyCon
 import GHCVM.Types.CoAxiom

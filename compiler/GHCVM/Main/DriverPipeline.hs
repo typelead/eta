@@ -34,7 +34,7 @@ module GHCVM.Main.DriverPipeline (
 import GHCVM.Core.CoreSyn (CoreProgram)
 import GHCVM.StgSyn.StgSyn (StgBinding, pprStgBindings)
 import GHCVM.Profiling.CostCentre (CollectedCCs)
-import SimplStg         ( stg2stg )
+import GHCVM.SimplStg.SimplStg         ( stg2stg )
 import GHCVM.StgSyn.CoreToStg        ( coreToStg )
 import GHCVM.CoreSyn.CorePrep         ( corePrepPgm )
 import GHCVM.Main.SysTools
@@ -51,7 +51,7 @@ import GHCVM.Util
 import Codec.JVM
 
 import GHCVM.Iface.MkIface
-import PipelineMonad
+import GHCVM.Main.PipelineMonad
 import GHCVM.Main.Packages
 import GHCVM.Main.HeaderInfo
 import GHCVM.Main.DriverPhases

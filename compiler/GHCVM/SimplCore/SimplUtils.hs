@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module SimplUtils (
+module GHCVM.SimplCore.SimplUtils (
         -- Rebuilding
         mkLam, mkCase, prepareAlts, tryEtaExpandRhs,
 
@@ -35,12 +35,12 @@ module SimplUtils (
 
 #include "HsVersions.h"
 
-import SimplEnv
+import GHCVM.SimplCore.SimplEnv
 import GHCVM.SimplCore.CoreMonad        ( SimplifierMode(..), Tick(..) )
 import GHCVM.Core.MkCore           ( sortQuantVars )
 import GHCVM.Main.DynFlags
 import GHCVM.Core.CoreSyn
-import qualified CoreSubst
+import qualified GHCVM.Core.CoreSubst as CoreSubst
 import GHCVM.Core.PprCore
 import GHCVM.Core.CoreFVs
 import GHCVM.Core.CoreUtils
@@ -50,7 +50,7 @@ import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.Demand
-import SimplMonad
+import GHCVM.SimpCore.SimplMonad
 import GHCVM.Types.Type     hiding( substTy )
 import GHCVM.Types.Coercion hiding( substCo, substTy )
 import GHCVM.BasicTypes.DataCon          ( dataConWorkId )

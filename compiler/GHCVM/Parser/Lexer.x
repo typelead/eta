@@ -117,7 +117,7 @@ import GHCVM.BasicTypes.BasicTypes     ( InlineSpec(..), RuleMatchInfo(..), Frac
                         SourceText )
 
 -- compiler/parser
-import Ctype
+import GHCVM.Parser.Ctype
 
 import GHCVM.Parser.ApiAnnotation
 }

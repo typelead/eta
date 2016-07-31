@@ -12,7 +12,7 @@ ToDo [Oct 2013]
 
 {-# LANGUAGE CPP #-}
 
-module SpecConstr(
+module GHCVM.Specialise.SpecConstr(
         specConstrProgram
 #ifdef GHCI
         , SpecConstrAnnotation(..)

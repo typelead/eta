@@ -28,7 +28,7 @@ of arguments of combining function.
 {-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wall #-}
 
-module UniqFM (
+module GHCVM.Utils.UniqFM (
         -- * Unique-keyed mappings
         UniqFM,       -- abstract type
 

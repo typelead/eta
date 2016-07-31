@@ -6,7 +6,7 @@
 --
 -- -----------------------------------------------------------------------------
 {-# LANGUAGE CPP #-}
-module Stream (
+module GHCVM.Utils.Stream (
     Stream(..), yield, liftIO,
     collect, fromList,
     Stream.map, Stream.mapM, Stream.mapAccumL

@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module SimplEnv (
+module GHCVM.SimplCore.SimplEnv (
         InId, InBind, InExpr, InAlt, InArg, InType, InBndr, InVar,
         OutId, OutTyVar, OutBind, OutExpr, OutAlt, OutArg, OutType, OutBndr, OutVar,
         InCoercion, OutCoercion,
@@ -37,7 +37,7 @@ module SimplEnv (
 
 #include "HsVersions.h"
 
-import SimplMonad
+import GHCVM.SimpCore.SimplMonad
 import GHCVM.SimplCore.CoreMonad        ( SimplifierMode(..) )
 import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreUtils
@@ -49,9 +49,9 @@ import GHCVM.BasicTypes.Id
 import qualified CoreSubst
 import GHCVM.Core.MkCore                   ( mkWildValBinder )
 import GHCVM.Prelude.TysWiredIn
-import qualified Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.Type hiding              ( substTy, substTyVarBndr, substTyVar )
-import qualified Coercion
+import qualified GHCVM.Types.Coercion as Coercion
 import GHCVM.Types.Coercion hiding          ( substCo, substTy, substCoVar, substCoVarBndr, substTyVarBndr )
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Utils.MonadUtils

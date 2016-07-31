@@ -12,7 +12,7 @@
 --
 -----------------------------------------------------------------------------
 
-module BufWrite (
+module GHCVM.Utils.BufWrite (
         BufHandle(..),
         newBufHandle,
         bPutChar,

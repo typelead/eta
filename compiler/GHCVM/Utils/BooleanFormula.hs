@@ -9,7 +9,7 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveFunctor, DeriveFoldable,
              DeriveTraversable #-}
 
-module BooleanFormula (
+module GHCVM.Utils.BooleanFormula (
         BooleanFormula(..),
         mkFalse, mkTrue, mkAnd, mkOr, mkVar,
         isFalse, isTrue,

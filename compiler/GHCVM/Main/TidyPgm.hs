@@ -38,7 +38,7 @@ import GHCVM.BasicTypes.Name hiding (varName)
 import GHCVM.BasicTypes.NameSet
 import GHCVM.BasicTypes.NameEnv
 import GHCVM.BasicTypes.Avail
-import IfaceEnv
+import GHCVM.Iface.IfaceEnv
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.BasicTypes.DataCon
@@ -51,10 +51,10 @@ import GHCVM.Utils.Maybes
 import GHCVM.BasicTypes.UniqSupply
 import GHCVM.Main.ErrUtils (Severity(..))
 import GHCVM.Utils.Outputable
-import FastBool hiding ( fastOr )
+import GHCVM.Utils.FastBool hiding ( fastOr )
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.FastString
-import qualified ErrUtils as Err
+import qualified GHCVM.Main.ErrUtils as Err
 
 import Control.Monad
 import Data.Function

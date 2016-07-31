@@ -7,7 +7,7 @@
 -- 
 -- Particularly interesting modules for plugin writers include
 -- "CoreSyn" and "CoreMonad".
-module GhcPlugins(
+module GHCVM.Main.GhcPlugins(
         module Plugins,
         module RdrName, module OccName, module Name, module Var, module Id, module IdInfo,
         module CoreMonad, module CoreSyn, module Literal, module DataCon,
@@ -23,7 +23,7 @@ module GhcPlugins(
     ) where
 
 -- Plugin stuff itself
-import Plugins
+import GHCVM.Main.Plugins
 
 -- Variable naming
 import GHCVM.BasicTypes.RdrName

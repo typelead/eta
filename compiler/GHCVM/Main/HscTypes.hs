@@ -7,7 +7,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables #-}
 
 -- | Types for the per-module compiler
-module HscTypes (
+module GHCVM.Main.HscTypes (
         -- * compilation state
         HscEnv(..), hscEPS,
         FinderCache, FindResult(..), ModLocationCache,
@@ -130,8 +130,8 @@ module HscTypes (
 #include "HsVersions.h"
 
 #ifdef GHCI
-import ByteCodeAsm      ( CompiledByteCode )
-import InteractiveEvalTypes ( Resume )
+import GHCVM.Interactive.ByteCodeAsm      ( CompiledByteCode )
+import GHCVM.Main.InteractiveEvalTypes ( Resume )
 #endif
 
 import GHCVM.HsSyn.HsSyn

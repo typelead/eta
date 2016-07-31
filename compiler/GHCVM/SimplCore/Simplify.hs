@@ -6,15 +6,15 @@
 
 {-# LANGUAGE CPP #-}
 
-module Simplify ( simplTopBinds, simplExpr, simplRules ) where
+module GHCVM.SimplCore.Simplify ( simplTopBinds, simplExpr, simplRules ) where
 
 #include "HsVersions.h"
 
 import GHCVM.Main.DynFlags
-import SimplMonad
+import GHCVM.SimpCore.SimplMonad
 import GHCVM.Types.Type hiding      ( substTy, extendTvSubst, substTyVar )
-import SimplEnv
-import SimplUtils
+import GHCVM.SimplCore.SimplEnv
+import GHCVM.SimplCore.SimplUtils
 import GHCVM.Types.FamInstEnv       ( FamInstEnv )
 import GHCVM.BasicTypes.Literal          ( litIsLifted ) --, mkMachInt ) -- temporalily commented out. See #8326
 import GHCVM.BasicTypes.Id

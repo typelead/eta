@@ -53,7 +53,7 @@ module GHCVM.TypeCheck.TcPluginM (
 -- import GHCVM.TypeCheck.TcRnMonad  ( TcGblEnv, TcLclEnv, Ct, TcPluginM
 --                   , unsafeTcPluginTcM, liftIO, traceTc )
 -- import GHCVM.TypeCheck.TcMType    ( TcTyVar, TcType )
--- import GHCVM.TypeCheck.TcEnc      ( TcTyThing )
+-- import GHCVM.TypeCheck.TcEnv      ( TcTyThing )
 -- import GHCVM.TypeCheck.TcEvidence ( TcCoercion )
 
 -- import GHCVM.BasicTypes.Module

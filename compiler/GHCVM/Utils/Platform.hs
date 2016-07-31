@@ -1,7 +1,7 @@
 
 -- | A description of the platform we're compiling for.
 --
-module Platform (
+module GHCVM.Utils.Platform (
         Platform(..),
         Arch(..),
         OS(..),

@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP, MagicHash #-}
 
-module FastBool (
+module GHCVM.Utils.FastBool (
     --fastBool could be called bBox; isFastTrue, bUnbox; but they're not
     FastBool, fastBool, isFastTrue, fastOr, fastAnd
   ) where

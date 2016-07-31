@@ -2,7 +2,7 @@
 -- | The CompPipeline monad and associated ops
 --
 -- Defined in separate module so that it can safely be imported from Hooks
-module PipelineMonad (
+module GHCVM.Main.PipelineMonad (
     CompPipeline(..), evalP
   , PhasePlus(..)
   , PipeEnv(..), PipeState(..), PipelineOutput(..)

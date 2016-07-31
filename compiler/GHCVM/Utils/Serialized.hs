@@ -5,7 +5,7 @@
 --
 -- Serialized values
 
-module Serialized (
+module GHCVM.Utils.Serialized (
     -- * Main Serialized data type
     Serialized,
     seqSerialized,

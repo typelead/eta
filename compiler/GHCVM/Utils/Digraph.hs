@@ -1,7 +1,7 @@
 -- (c) The University of Glasgow 2006
 
 {-# LANGUAGE CPP, ScopedTypeVariables #-}
-module Digraph(
+module GHCVM.Utils.Digraph(
         Graph, graphFromVerticesAndAdjacency, graphFromEdgedVertices,
 
         SCC(..), Node, flattenSCC, flattenSCCs,

@@ -6,14 +6,14 @@
 
 {-# LANGUAGE CPP #-}
 
-module SimplCore ( core2core, simplifyExpr ) where
+module GHCVM.SimplCore.SimplCore ( core2core, simplifyExpr ) where
 
 #include "HsVersions.h"
 
 import GHCVM.Main.DynFlags
 import GHCVM.Core.CoreSyn
 import GHCVM.Main.HscTypes
-import CSE              ( cseProgram )
+import GHCVM.SimplCore.CSE              ( cseProgram )
 import GHCVM.Specialise.Rules            ( RuleBase, emptyRuleBase, mkRuleBase, unionRuleBase,
                           extendRuleBaseList, ruleCheckProgram, addSpecInfo, )
 import GHCVM.Core.PprCore          ( pprCoreBindings, pprCoreExpr )
@@ -23,26 +23,26 @@ import GHCVM.Core.CoreUtils        ( coreBindsSize, coreBindsStats, exprSize,
                           mkTicks, stripTicksTop )
 import GHCVM.Core.CoreLint         ( showPass, endPass, lintPassResult, dumpPassResult,
                           lintAnnots )
-import Simplify         ( simplTopBinds, simplExpr, simplRules )
-import SimplUtils       ( simplEnvForGHCi, activeRule )
-import SimplEnv
-import SimplMonad
+import GHCVM.SimplCore.Simplify         ( simplTopBinds, simplExpr, simplRules )
+import GHCVM.SimplCore.SimplUtils       ( simplEnvForGHCi, activeRule )
+import GHCVM.SimplCore.SimplEnv
+import GHCVM.SimplCore.SimplMonad
 import GHCVM.SimplCore.CoreMonad
-import qualified ErrUtils as Err
-import FloatIn          ( floatInwards )
-import FloatOut         ( floatOutwards )
+import qualified GHCVM.Main.ErrUtils as Err
+import GHCVM.SimplCore.FloatIn          ( floatInwards )
+import GHCVM.SimplCore.FloatOut         ( floatOutwards )
 import GHCVM.Types.FamInstEnv
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.BasicTypes       ( CompilerPhase(..), isDefaultInlinePragma )
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.VarEnv
-import LiberateCase     ( liberateCase )
-import SAT              ( doStaticArgs )
-import Specialise       ( specProgram)
-import SpecConstr       ( specConstrProgram)
-import DmdAnal          ( dmdAnalProgram )
-import CallArity        ( callArityAnalProgram )
-import WorkWrap         ( wwTopBinds )
+import GHCVM.SimplCore.LiberateCase     ( liberateCase )
+import GHCVM.SimplCore.SAT              ( doStaticArgs )
+import GHCVM.Specialise.Specialise       ( specProgram)
+import GHCVM.Specialise.SpecConstr       ( specConstrProgram)
+import GHCVM.StrAnal.DmdAnal          ( dmdAnalProgram )
+import GHCVM.SimplCore.CallArity        ( callArityAnalProgram )
+import GHCVM.StrAnal.WorkWrap         ( wwTopBinds )
 import Vectorise        ( vectorise )
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.SrcLoc
@@ -54,8 +54,8 @@ import GHCVM.Utils.Outputable
 import Control.Monad
 
 #ifdef GHCI
-import DynamicLoading   ( loadPlugins )
-import Plugins          ( installCoreToDos )
+import GHCVM.Main.DynamicLoading   ( loadPlugins )
+import GHCVM.Main.Plugins          ( installCoreToDos )
 #endif
 
 {-

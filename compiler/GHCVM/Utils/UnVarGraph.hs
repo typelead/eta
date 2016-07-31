@@ -14,7 +14,7 @@ It does not normalize the graphs. This means that g `unionUnVarGraph` g is
 equal to g, but twice as expensive and large.
 
 -}
-module UnVarGraph
+module GHCVM.Utils.UnVarGraph
     ( UnVarSet
     , emptyUnVarSet, mkUnVarSet, varEnvDom, unionUnVarSet, unionUnVarSets
     , delUnVarSet

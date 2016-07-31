@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module WwLib ( mkWwBodies, mkWWstr, mkWorkerArgs
+module GHCVM.StrAnal.WwLib ( mkWwBodies, mkWWstr, mkWorkerArgs
              , deepSplitProductType_maybe, findTypeShape
  ) where
 

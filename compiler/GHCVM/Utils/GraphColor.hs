@@ -3,7 +3,7 @@
 --      the node keys, nodes and colors.
 --
 
-module GraphColor (
+module GHCVM.Utils.GraphColor (
         module GraphBase,
         module GraphOps,
         module GraphPpr,
@@ -12,9 +12,9 @@ module GraphColor (
 
 where
 
-import GraphBase
-import GraphOps
-import GraphPpr
+import GHCVM.Utils.GraphBase
+import GHCVM.Utils.GraphOps
+import GHCVM.Utils.GraphPpr
 
 import GHCVM.BasicTypes.Unique
 import GHCVM.Utils.UniqFM

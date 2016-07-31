@@ -1,6 +1,6 @@
 
 -- | Types for the general graph colorer.
-module GraphBase (
+module GHCVM.Types.GraphBase (
         Triv,
         Graph (..),
         initGraph,

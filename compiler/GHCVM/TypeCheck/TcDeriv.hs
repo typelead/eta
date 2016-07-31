@@ -36,7 +36,7 @@ import GHCVM.Rename.RnSource   ( addTcgDUs )
 import GHCVM.Main.HscTypes
 import GHCVM.BasicTypes.Avail
 
-import Unify( tcUnifyTy )
+import GHCVM.Types.Unify( tcUnifyTy )
 import GHCVM.Types.Class
 import GHCVM.Types.Type
 import GHCVM.Main.ErrUtils

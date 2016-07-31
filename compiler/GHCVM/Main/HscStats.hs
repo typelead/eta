@@ -3,7 +3,7 @@
 --
 -- (c) The GRASP/AQUA Project, Glasgow University, 1993-1998
 --
-module HscStats ( ppSourceStats ) where
+module GHCVM.Main.HscStats ( ppSourceStats ) where
 
 import GHCVM.Utils.Bag
 import GHCVM.HsSyn.HsSyn

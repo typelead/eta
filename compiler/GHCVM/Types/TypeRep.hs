@@ -58,9 +58,9 @@ module GHCVM.Types.TypeRep (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} DataCon( dataConTyCon )
+import {-# SOURCE #-} GHCVM.BasicTypes.DataCon( dataConTyCon )
 import GHCVM.BasicTypes.ConLike ( ConLike(..) )
-import {-# SOURCE #-} Type( isPredTy ) -- Transitively pulls in a LOT of stuff, better to break the loop
+import {-# SOURCE #-} GHCVM.Types.Type( isPredTy ) -- Transitively pulls in a LOT of stuff, better to break the loop
 
 -- friends:
 import GHCVM.BasicTypes.Var

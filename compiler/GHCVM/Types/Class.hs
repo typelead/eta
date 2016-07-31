@@ -5,7 +5,7 @@
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 
-module Class (
+module GHCVM.Types.Class (
         Class,
         ClassOpItem, DefMeth (..),
         ClassATItem(..),

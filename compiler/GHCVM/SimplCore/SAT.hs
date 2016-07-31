@@ -49,7 +49,7 @@ essential to make this work well!
 -}
 
 {-# LANGUAGE CPP #-}
-module SAT ( doStaticArgs ) where
+module GHCVM.SimplCore.SAT ( doStaticArgs ) where
 
 import GHCVM.BasicTypes.Var
 import GHCVM.Core.CoreSyn

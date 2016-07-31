@@ -2,7 +2,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module OptCoercion ( optCoercion, checkAxInstCo ) where
+module GHCVM.Types.OptCoercion ( optCoercion, checkAxInstCo ) where
 
 #include "HsVersions.h"
 
@@ -20,7 +20,7 @@ import GHCVM.Utils.Outputable
 import GHCVM.Utils.Pair
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Util
-import Unify
+import GHCVM.Types.Unify
 import GHCVM.Utils.ListSetOps
 import GHCVM.Types.InstEnv
 import Control.Monad   ( zipWithM )

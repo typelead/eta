@@ -1,3 +1,3 @@
-module Outputable where
+module GHCVM.Utils.Outputable where
 
 data SDoc

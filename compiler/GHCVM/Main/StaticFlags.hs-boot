@@ -1,4 +1,4 @@
-module StaticFlags where
+module GHCVM.Main.StaticFlags where
 
 opt_PprStyle_Debug :: Bool
 opt_NoDebugOutput  :: Bool

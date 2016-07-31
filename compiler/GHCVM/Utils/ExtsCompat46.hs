@@ -23,7 +23,7 @@
 --
 -----------------------------------------------------------------------------
 
-module ExtsCompat46 (
+module GHCVM.Utils.ExtsCompat46 (
     module GHC.Exts,
 
     gtChar#, geChar#, eqChar#,

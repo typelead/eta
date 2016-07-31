@@ -29,7 +29,7 @@ the number of (possibly-void) *registers* arguments will arrive in.
 
 {-# LANGUAGE CPP #-}
 
-module UnariseStg (unarise) where
+module GHCVM.SimplStg.UnariseStg (unarise) where
 
 #include "HsVersions.h"
 

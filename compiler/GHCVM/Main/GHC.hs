@@ -261,7 +261,7 @@ module GHCVM.Main.GHC (
 -}
 
 -- TODO:#ifdef GHCI
--- import ByteCodeInstr
+-- import GHCVM.Interactive.ByteCodeInstr
 -- import GHCVM.Main.BreakArray
 -- import InteractiveEval
 -- import TcRnDriver       ( runTcInteractive )
@@ -277,7 +277,7 @@ import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.Main.Packages
 import GHCVM.BasicTypes.NameSet
 import GHCVM.BasicTypes.RdrName
-import qualified HsSyn -- hack as we want to reexport the whole module
+import qualified GHCVM.HsSyn.HsSyn as HsSyn -- hack as we want to reexport the whole module
 import GHCVM.HsSyn.HsSyn
 import GHCVM.Types.Type     hiding( typeKind )
 import GHCVM.Types.Kind             ( synTyConResKind )

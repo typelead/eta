@@ -6,7 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module CSE (cseProgram) where
+module GHCVM.SimplCore.CSE (cseProgram) where
 
 #include "HsVersions.h"
 
@@ -20,7 +20,7 @@ import GHCVM.Types.Type             ( tyConAppArgs )
 import GHCVM.Core.CoreSyn
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.BasicTypes       ( isAlwaysActive )
-import TrieMap
+import GHCVM.Core.TrieMap
 
 import Data.List
 

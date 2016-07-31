@@ -13,7 +13,7 @@
 --
 -----------------------------------------------------------------------------
 
-module StaticFlags (
+module GHCVM.Main.StaticFlags (
         -- entry point
         parseStaticFlags,
 

@@ -2,7 +2,7 @@
 -- | Utilities related to Monad and Applicative classes
 --   Mostly for backwards compatability.
 
-module MonadUtils
+module GHCVM.Utils.MonadUtils
         ( Applicative(..)
         , (<$>)
 

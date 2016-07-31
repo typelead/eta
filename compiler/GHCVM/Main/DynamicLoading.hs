@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, MagicHash #-}
 
 -- | Dynamically lookup up values from modules and loading them.
-module DynamicLoading (
+module GHCVM.Main.DynamicLoading (
 #ifdef GHCI
         -- * Loading plugins
         loadPlugins,
@@ -22,7 +22,7 @@ module DynamicLoading (
     ) where
 
 #ifdef GHCI
-import Linker           ( linkModule, getHValue )
+import GHCVM.Interactive.Linker           ( linkModule, getHValue )
 import GHCVM.BasicTypes.SrcLoc           ( noSrcSpan )
 import GHCVM.Main.Finder           ( findImportedModule, cannotFindModule )
 import GHCVM.TypeCheck.TcRnMonad        ( initTcInteractive, initIfaceTcRn )
@@ -33,7 +33,7 @@ import GHCVM.BasicTypes.RdrName          ( RdrName, Provenance(..), ImportSpec(.
 import GHCVM.BasicTypes.OccName          ( mkVarOcc )
 import GHCVM.Rename.RnNames          ( gresFromAvails )
 import GHCVM.Main.DynFlags
-import Plugins          ( Plugin, CommandLineOption )
+import GHCVM.Main.Plugins          ( Plugin, CommandLineOption )
 import GHCVM.Prelude.PrelNames        ( pluginTyConName )
 
 import GHCVM.Main.HscTypes

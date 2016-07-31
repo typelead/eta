@@ -52,9 +52,9 @@ import GHCVM.Utils.Outputable hiding ( printForUser, printForUserPartWay, bold )
 import GHCVM.BasicTypes.BasicTypes hiding ( isTopLevel )
 import Config
 import GHCVM.Utils.Digraph
-import Encoding
+import GHCVM.Utils.Encoding
 import GHCVM.Utils.FastString
-import Linker
+import GHCVM.Interactive.Linker
 import GHCVM.Utils.Maybes ( orElse, expectJust )
 import GHCVM.BasicTypes.NameSet
 import GHCVM.Utils.Panic hiding ( showException )

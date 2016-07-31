@@ -33,7 +33,7 @@ import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcEvidence
 import GHCVM.Types.InstEnv
-import FunDeps
+import GHCVM.TypeCheck.FunDeps
 import GHCVM.TypeCheck.TcMType
 import GHCVM.Types.Type
 import GHCVM.Types.Coercion ( Role(..) )

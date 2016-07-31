@@ -11,7 +11,7 @@ Buffers for scanning string input stored in external arrays.
 -- We always optimise this, otherwise performance of a non-optimised
 -- compiler is severely affected
 
-module StringBuffer
+module GHCVM.Utils.StringBuffer
        (
         StringBuffer(..),
         -- non-abstract for vs\/HaskellService
@@ -43,10 +43,10 @@ module StringBuffer
 
 #include "HsVersions.h"
 
-import Encoding
+import GHCVM.Utils.Encoding
 import GHCVM.Utils.FastString
 import GHCVM.Utils.FastTypes
-import FastFunctions
+import GHCVM.Utils.FastFunctions
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Util
 
