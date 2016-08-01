@@ -5,7 +5,7 @@
 
 {-# LANGUAGE UnboxedTuples #-}
 
-module UniqSupply (
+module GHCVM.BasicTypes.UniqSupply (
         -- * Main data type
         UniqSupply, -- Abstractly
 

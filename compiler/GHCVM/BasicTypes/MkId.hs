@@ -14,7 +14,7 @@ have a standard form, namely:
 
 {-# LANGUAGE CPP #-}
 
-module MkId (
+module GHCVM.BasicTypes.MkId (
         mkDictFunId, mkDictFunTy, mkDictSelId, mkDictSelRhs,
 
         mkPrimOpId, mkFCallId,

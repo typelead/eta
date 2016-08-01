@@ -16,7 +16,7 @@ Datatype for: @BindGroup@, @Bind@, @Sig@, @Bind@.
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 
-module HsBinds where
+module GHCVM.HsSyn.HsBinds where
 
 import {-# SOURCE #-} GHCVM.HsSyn.HsExpr ( pprExpr, LHsExpr,
                                MatchGroup, pprFunBind,

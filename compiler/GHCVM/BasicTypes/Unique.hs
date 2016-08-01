@@ -18,7 +18,7 @@ Haskell).
 
 {-# LANGUAGE CPP, BangPatterns, MagicHash #-}
 
-module Unique (
+module GHCVM.BasicTypes.Unique (
         -- * Main data types
         Unique, Uniquable(..),
 

@@ -22,7 +22,7 @@
 --
 -- * 'Var.Var': see "Var#name_types"
 
-module RdrName (
+module GHCVM.BasicTypes.RdrName (
         -- * The main type
         RdrName(..),    -- Constructors exported only to BinIface
 

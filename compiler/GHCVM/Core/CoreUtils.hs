@@ -9,7 +9,7 @@ Utility functions on @Core@ syntax
 {-# LANGUAGE CPP #-}
 
 -- | Commonly useful utilites for manipulating the Core language
-module CoreUtils (
+module GHCVM.Core.CoreUtils (
         -- * Constructing expressions
         mkCast,
         mkTick, mkTicks, mkTickNoHNF, tickHNFArgs,

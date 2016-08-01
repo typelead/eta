@@ -1,4 +1,4 @@
-module IdInfo where
+module GHCVM.BasicTypes.IdInfo where
 import GHCVM.Utils.Outputable
 data IdInfo
 data IdDetails

@@ -13,7 +13,7 @@
                                       -- in module PlaceHolder
 {-# LANGUAGE ConstraintKinds #-}
 
-module HsPat (
+module GHCVM.HsSyn.HsPat (
         Pat(..), InPat, OutPat, LPat,
 
         HsConDetails(..),

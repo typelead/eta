@@ -7,7 +7,7 @@
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 
-module PatSyn (
+module GHCVM.BasicTypes.PatSyn (
         -- * Main data types
         PatSyn, mkPatSyn,
 

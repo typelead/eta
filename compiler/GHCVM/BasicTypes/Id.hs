@@ -108,7 +108,7 @@ import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.Var( Id, DictId,
             idInfo, idDetails, globaliseId, varType,
             isId, isLocalId, isGlobalId, isExportedId )
-import qualified Var
+import qualified GHCVM.BasicTypes.Var
 
 import GHCVM.Types.TyCon
 import GHCVM.Types.Type

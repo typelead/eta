@@ -17,7 +17,7 @@ find, unsurprisingly, a Core expression.
 
 {-# LANGUAGE CPP #-}
 
-module CoreUnfold (
+module GHCVM.Core.CoreUnfold (
         Unfolding, UnfoldingGuidance,   -- Abstract types
 
         noUnfolding, mkImplicitUnfolding,

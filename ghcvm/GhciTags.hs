@@ -14,7 +14,7 @@ module GhciTags (
 ) where
 
 import GHCVM.Utils.Exception
-import GHC
+import GHCVM.Main.GHC
 import GhciMonad
 import GHCVM.Utils.Outputable
 

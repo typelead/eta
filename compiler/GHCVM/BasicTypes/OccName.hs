@@ -21,7 +21,7 @@
 --
 -- * 'Var.Var': see "Var#name_types"
 
-module OccName (
+module GHCVM.BasicTypes.OccName (
         -- * The 'NameSpace' type
         NameSpace, -- Abstract
 

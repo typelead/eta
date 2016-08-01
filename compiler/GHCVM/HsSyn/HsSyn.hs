@@ -16,7 +16,7 @@ therefore, is almost nothing but re-exporting.
                                       -- in module PlaceHolder
 {-# LANGUAGE ConstraintKinds #-}
 
-module HsSyn (
+module GHCVM.HsSyn.HsSyn (
         module HsBinds,
         module HsDecls,
         module HsExpr,

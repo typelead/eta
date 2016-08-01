@@ -7,7 +7,7 @@ Printing of Core syntax
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module PprCore (
+module GHCVM.Core.PprCore (
         pprCoreExpr, pprParendExpr,
         pprCoreBinding, pprCoreBindings, pprCoreAlt,
         pprRules

@@ -14,7 +14,7 @@
                                       -- in module PlaceHolder
 {-# LANGUAGE ConstraintKinds #-}
 
-module HsLit where
+module GHCVM.HsSyn.HsLit where
 
 #include "HsVersions.h"
 

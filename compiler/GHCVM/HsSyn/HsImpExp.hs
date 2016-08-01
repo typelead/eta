@@ -8,7 +8,7 @@ HsImpExp: Abstract syntax: imports, exports, interfaces
 
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module HsImpExp where
+module GHCVM.HsSyn.HsImpExp where
 
 import GHCVM.BasicTypes.Module           ( ModuleName )
 import GHCVM.HsSyn.HsDoc            ( HsDocString )

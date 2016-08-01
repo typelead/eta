@@ -11,7 +11,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 
 -- | Abstract Haskell syntax for expressions.
-module HsExpr where
+module GHCVM.HsSyn.HsExpr where
 
 #include "HsVersions.h"
 

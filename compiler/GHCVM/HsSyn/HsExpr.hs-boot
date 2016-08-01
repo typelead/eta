@@ -7,7 +7,7 @@
 {-# LANGUAGE RoleAnnotations #-}
 #endif
 
-module HsExpr where
+module GHCVM.HsSyn.HsExpr where
 
 import GHCVM.BasicTypes.SrcLoc     ( Located )
 import GHCVM.Utils.Outputable ( SDoc, OutputableBndr, Outputable )

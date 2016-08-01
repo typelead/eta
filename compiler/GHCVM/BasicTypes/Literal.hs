@@ -7,7 +7,7 @@
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 
-module Literal
+module GHCVM.BasicTypes.Literal
         (
         -- * Main data type
           Literal(..)           -- Exported to ParseIface

@@ -8,7 +8,7 @@
 Haskell. [WDP 94/11])
 -}
 
-module IdInfo (
+module GHCVM.BasicTypes.IdInfo (
         -- * The IdDetails type
         IdDetails(..), pprIdDetails, coVarDetails,
 
@@ -71,7 +71,7 @@ module IdInfo (
 import GHCVM.Core.CoreSyn
 
 import GHCVM.Types.Class
-import {-# SOURCE #-} PrimOp (PrimOp)
+import {-# SOURCE #-} GHCVM.Prelude.PrimOp (PrimOp)
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.BasicTypes

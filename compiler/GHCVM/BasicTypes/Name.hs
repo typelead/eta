@@ -33,7 +33,7 @@
 --  * Internal, if they name things in the module being compiled. Some internal
 --    Names are system names, if they are names manufactured by the compiler
 
-module Name (
+module GHCVM.BasicTypes.Name (
         -- * The main types
         Name,                                   -- Abstract
         BuiltInSyntax(..),
@@ -73,8 +73,8 @@ module Name (
         module OccName
     ) where
 
-import {-# SOURCE #-} TypeRep( TyThing )
-import {-# SOURCE #-} PrelNames( liftedTypeKindTyConKey )
+import {-# SOURCE #-} GHCVM.Types.TypeRep( TyThing )
+import {-# SOURCE #-} GHCVM.Prelude.PrelNames( liftedTypeKindTyConKey )
 
 import GHCVM.BasicTypes.OccName
 import GHCVM.BasicTypes.Module

@@ -31,7 +31,7 @@
 -- Local 'Id's and 'Var's are those bound within an expression
 --    (e.g. by a lambda) or at the top level of the module being compiled.
 
-module Var (
+module GHCVM.BasicTypes.Var (
         -- * The main data type and synonyms
         Var, CoVar, Id, DictId, DFunId, EvVar, EqVar, EvId, IpId,
         TyVar, TypeVar, KindVar, TKVar,
@@ -68,9 +68,9 @@ module Var (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-}   TypeRep( Type, Kind, SuperKind )
-import {-# SOURCE #-}   TcType( TcTyVarDetails, pprTcTyVarDetails )
-import {-# SOURCE #-}   IdInfo( IdDetails, IdInfo, coVarDetails, vanillaIdInfo, pprIdDetails )
+import {-# SOURCE #-}   GHCVM.Types.TypeRep( Type, Kind, SuperKind )
+import {-# SOURCE #-}   GHCVM.TypeCheck.TcType( TcTyVarDetails, pprTcTyVarDetails )
+import {-# SOURCE #-}   GHCVM.BasicTypes.IdInfo( IdDetails, IdInfo, coVarDetails, vanillaIdInfo, pprIdDetails )
 
 import GHCVM.BasicTypes.Name hiding (varName)
 import GHCVM.BasicTypes.Unique

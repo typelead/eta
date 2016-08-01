@@ -131,7 +131,6 @@ import GHC.Base         ( unpackCString# )
 #define hASH_TBL_SIZE          4091
 #define hASH_TBL_SIZE_UNBOXED  4091#
 
-
 fastStringToByteString :: FastString -> ByteString
 fastStringToByteString f = fs_bs f
 

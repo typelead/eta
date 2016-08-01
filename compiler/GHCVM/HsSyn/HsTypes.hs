@@ -16,7 +16,7 @@ HsTypes: Abstract syntax: user-defined types
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE CPP #-}
 
-module HsTypes (
+module GHCVM.HsSyn.HsTypes (
         HsType(..), LHsType, HsKind, LHsKind,
         HsTyOp,LHsTyOp,
         HsTyVarBndr(..), LHsTyVarBndr,

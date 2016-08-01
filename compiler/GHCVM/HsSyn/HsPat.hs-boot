@@ -7,7 +7,7 @@
 {-# LANGUAGE RoleAnnotations #-}
 #endif
 
-module HsPat where
+module GHCVM.HsSyn.HsPat where
 import GHCVM.BasicTypes.SrcLoc( Located )
 
 import Data.Data hiding (Fixity)

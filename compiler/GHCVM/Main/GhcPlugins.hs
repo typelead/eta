@@ -71,7 +71,7 @@ import GHCVM.Utils.UniqSet
 import GHCVM.Utils.UniqFM
 -- Conflicts with UniqFM:
 --import LazyUniqFM
-import FiniteMap
+import GHCVM.Utils.FiniteMap
 
 -- Common utilities
 import GHCVM.Utils.Util

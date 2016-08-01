@@ -3,7 +3,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module PlaceHolder where
+module GHCVM.HsSyn.PlaceHolder where
 
 import GHCVM.Types.Type       ( Type )
 import GHCVM.Utils.Outputable

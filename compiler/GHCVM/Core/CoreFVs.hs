@@ -8,7 +8,7 @@ Taken quite directly from the Peyton Jones/Lester paper.
 {-# LANGUAGE CPP #-}
 
 -- | A module concerned with finding the free variables of an expression.
-module CoreFVs (
+module GHCVM.Core.CoreFVs (
         -- * Free variables of expressions and binding groups
         exprFreeVars,   -- CoreExpr   -> VarSet -- Find all locally-defined free Ids or tyvars
         exprFreeIds,    -- CoreExpr   -> IdSet  -- Find all locally-defined free Ids

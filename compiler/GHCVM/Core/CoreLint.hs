@@ -9,7 +9,7 @@ A ``lint'' pass to check for Core correctness
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fprof-auto #-}
 
-module CoreLint (
+module GHCVM.Core.CoreLint (
     lintCoreBindings, lintUnfolding,
     lintPassResult, lintInteractiveExpr, lintExpr,
     lintAnnots,

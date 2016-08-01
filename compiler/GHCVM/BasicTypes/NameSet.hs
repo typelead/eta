@@ -3,7 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1998
 -}
 
-module NameSet (
+module GHCVM.BasicTypes.NameSet (
         -- * Names set type
         NameSet,
 

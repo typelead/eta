@@ -706,10 +706,10 @@ showBanner :: PostLoadMode -> DynFlags -> IO ()
 showBanner _postLoadMode dflags = do
    let verb = verbosity dflags
 
--- TODO: #ifdef GHCI
---    -- Show the GHCi banner
---    when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn ghciWelcomeMsg
--- #endif
+#ifdef GHCI
+   -- Show the GHCi banner
+   when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn ghciWelcomeMsg
+#endif
 
    -- Display details of the configuration in verbose mode
    when (verb >= 2) $

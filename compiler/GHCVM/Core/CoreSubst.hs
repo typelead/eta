@@ -7,7 +7,7 @@ Utility functions on @Core@ syntax
 -}
 
 {-# LANGUAGE CPP #-}
-module CoreSubst (
+module GHCVM.Core.CoreSubst (
         -- * Main data types
         Subst(..), -- Implementation exported for supercompiler's Renaming.hs only
         TvSubstEnv, IdSubstEnv, InScopeSet,
@@ -46,8 +46,8 @@ import GHCVM.BasicTypes.Literal  ( Literal(MachStr) )
 import qualified Data.ByteString as BS
 import GHCVM.SimplCore.OccurAnal( occurAnalyseExpr, occurAnalysePgm )
 
-import qualified Type
-import qualified Coercion
+import qualified GHCVM.Types.Type as Type
+import qualified GHCVM.Types.Coercion as Coercion
 
         -- We are defining local versions
 import GHCVM.Types.Type     hiding ( substTy, extendTvSubst, extendTvSubstList

@@ -37,7 +37,7 @@ import GHCVM.Utils.FastString
 import GHCVM.Main.HscTypes
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.BasicTypes.Module
-import ObjLink
+import GHCVM.Interactive.ObjLink
 import GHCVM.Interactive.Linker
 
 import GHCVM.Utils.Exception

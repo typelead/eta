@@ -4,7 +4,7 @@
 -- There is considerable overlap between the logic here and the logic
 -- in Lexer.x, but sadly there seems to be way to merge them.
 
-module Lexeme (
+module GHCVM.BasicTypes.Lexeme (
           -- * Lexical characteristics of Haskell names
   
           -- | Use these functions to figure what kind of name a 'FastString'

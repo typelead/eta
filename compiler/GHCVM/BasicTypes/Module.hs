@@ -11,7 +11,7 @@ the keys.
 
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Module
+module GHCVM.BasicTypes.Module
     (
         -- * The ModuleName type
         ModuleName,

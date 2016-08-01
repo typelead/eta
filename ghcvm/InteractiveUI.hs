@@ -30,8 +30,8 @@ import Debugger
 import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils
 import GHCVM.Main.GhcMonad ( modifySession )
-import qualified GHC
-import GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
+import qualified GHCVM.Main.GHC
+import GHCVM.Main.GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
              TyThing(..), Phase, BreakIndex, Resume, SingleStep, Ghc,
              handleSourceError )
 import GHCVM.HsSyn.HsImpExp

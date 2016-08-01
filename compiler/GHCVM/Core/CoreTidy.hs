@@ -8,7 +8,7 @@ The code for *top-level* bindings is in TidyPgm.
 -}
 
 {-# LANGUAGE CPP #-}
-module CoreTidy (
+module GHCVM.Core.CoreTidy (
         tidyExpr, tidyVarOcc, tidyRule, tidyRules, tidyUnfolding
     ) where
 

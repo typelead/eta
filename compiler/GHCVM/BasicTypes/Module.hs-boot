@@ -1,4 +1,4 @@
-module Module where
+module GHCVM.BasicTypes.Module where
 
 data Module
 data ModuleName

@@ -6,7 +6,7 @@
 -}
 
 {-# LANGUAGE CPP #-}
-module NameEnv (
+module GHCVM.BasicTypes.NameEnv (
         -- * Var, Id and TyVar environments (maps)
         NameEnv,
 

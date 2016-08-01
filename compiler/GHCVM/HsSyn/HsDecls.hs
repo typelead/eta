@@ -17,7 +17,7 @@
 --
 -- Definitions for: @SynDecl@ and @ConDecl@, @ClassDecl@,
 -- @InstDecl@, @DefaultDecl@ and @ForeignDecl@.
-module HsDecls (
+module GHCVM.HsSyn.HsDecls (
   -- * Toplevel declarations
   HsDecl(..), LHsDecl, HsDataDefn(..),
   -- ** Class or type declarations
@@ -78,7 +78,7 @@ module HsDecls (
     ) where
 
 -- friends:
-import {-# SOURCE #-}   HsExpr( LHsExpr, HsExpr, HsSplice, pprExpr, pprUntypedSplice )
+import {-# SOURCE #-}   GHCVM.HsSyn.HsExpr( LHsExpr, HsExpr, HsSplice, pprExpr, pprUntypedSplice )
         -- Because Expr imports Decls via HsBracket
 
 import GHCVM.HsSyn.HsBinds

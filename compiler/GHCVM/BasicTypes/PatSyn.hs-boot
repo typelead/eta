@@ -1,4 +1,4 @@
-module PatSyn where
+module GHCVM.BasicTypes.PatSyn where
 import GHCVM.BasicTypes.Name( NamedThing )
 import Data.Typeable ( Typeable )
 import Data.Data ( Data )

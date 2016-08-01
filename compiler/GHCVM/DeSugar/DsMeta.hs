@@ -24,7 +24,7 @@ module GHCVM.DeSugar.DsMeta where
 --                unsafeTExpCoerceName
 --                 ) where
 
--- import {-# SOURCE #-}   DsExpr ( dsExpr )
+-- import {-# SOURCE #-}   GHCVM.DeSugar.DsExpr ( dsExpr )
 
 -- import GHCVM.DeSugar.MatchLit
 -- import GHCVM.DeSugar.DsMonad

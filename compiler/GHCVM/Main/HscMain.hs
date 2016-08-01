@@ -92,7 +92,7 @@ module GHCVM.Main.HscMain
 -- import GHCVM.Core.CoreTidy         ( tidyExpr )
 -- import GHCVM.Types.Type             ( Type )
 -- import GHCVM.Prelude.PrelNames
--- import {- Kind parts of -} Type         ( Kind )
+-- import {- Kind parts of -} GHCVM.Types.Type         ( Kind )
 -- import GHCVM.Core.CoreLint         ( lintInteractiveExpr )
 -- import GHCVM.DeSugar.DsMeta           ( templateHaskellNames )
 -- import GHCVM.BasicTypes.VarEnv           ( emptyTidyEnv )

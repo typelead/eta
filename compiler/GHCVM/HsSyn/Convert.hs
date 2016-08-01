@@ -8,7 +8,7 @@ This module converts Template Haskell syntax into HsSyn
 
 {-# LANGUAGE CPP #-}
 
-module Convert( convertToHsExpr, convertToPat, convertToHsDecls,
+module GHCVM.HsSyn.Convert( convertToHsExpr, convertToPat, convertToHsDecls,
                 convertToHsType,
                 thRdrNameGuesses ) where
 

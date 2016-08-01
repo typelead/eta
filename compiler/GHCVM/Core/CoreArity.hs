@@ -9,7 +9,7 @@
 {-# LANGUAGE CPP #-}
 
 -- | Arity and eta expansion
-module CoreArity (
+module GHCVM.Core.CoreArity (
         manifestArity, exprArity, typeArity, exprBotStrictness_maybe,
         exprEtaExpandArity, findRhsArity, CheapFun, etaExpand
     ) where

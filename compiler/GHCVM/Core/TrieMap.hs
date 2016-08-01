@@ -4,7 +4,7 @@
 -}
 
 {-# LANGUAGE RankNTypes, TypeFamilies #-}
-module TrieMap(
+module GHCVM.Core.TrieMap(
    CoreMap, emptyCoreMap, extendCoreMap, lookupCoreMap, foldCoreMap,
    TypeMap, emptyTypeMap, extendTypeMap, lookupTypeMap, foldTypeMap,
    CoercionMap,

@@ -1,4 +1,4 @@
-module Name where
+module GHCVM.BasicTypes.Name where
 
 import {-# SOURCE #-} GHCVM.BasicTypes.Module
 

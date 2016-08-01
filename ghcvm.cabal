@@ -24,7 +24,59 @@ library
                        , MultiParamTypeClasses
                        , BangPatterns
                        , TupleSections
-    exposed-modules:     GHCVM.DeSugar.Check
+    exposed-modules:     GHCVM.BasicTypes.Avail
+                       , GHCVM.BasicTypes.BasicTypes
+                       , GHCVM.BasicTypes.ConLike
+                       , GHCVM.BasicTypes.DataCon
+                       , GHCVM.BasicTypes.Demand
+                       , GHCVM.BasicTypes.Id
+                       , GHCVM.BasicTypes.IdInfo
+                       , GHCVM.BasicTypes.Lexeme
+                       , GHCVM.BasicTypes.Literal
+                       , GHCVM.BasicTypes.MkId
+                       , GHCVM.BasicTypes.Module
+                       , GHCVM.BasicTypes.NameEnv
+                       , GHCVM.BasicTypes.Name
+                       , GHCVM.BasicTypes.NameSet
+                       , GHCVM.BasicTypes.OccName
+                       , GHCVM.BasicTypes.PatSyn
+                       , GHCVM.BasicTypes.RdrName
+                       , GHCVM.BasicTypes.SrcLoc
+                       , GHCVM.BasicTypes.UniqSupply
+                       , GHCVM.BasicTypes.Unique
+                       , GHCVM.BasicTypes.VarEnv
+                       , GHCVM.BasicTypes.Var
+                       , GHCVM.BasicTypes.VarSet
+                       , GHCVM.CodeGen.ArgRep
+                       , GHCVM.CodeGen.Bind
+                       , GHCVM.CodeGen.Closure
+                       , GHCVM.CodeGen.Con
+                       , GHCVM.CodeGen.Env
+                       , GHCVM.CodeGen.Expr
+                       , GHCVM.CodeGen.Foreign
+                       , GHCVM.CodeGen.Layout
+                       , GHCVM.CodeGen.LetNoEscape
+                       , GHCVM.CodeGen.Main
+                       , GHCVM.CodeGen.Monad
+                       , GHCVM.CodeGen.Name
+                       , GHCVM.CodeGen.Object
+                       , GHCVM.CodeGen.Prim
+                       , GHCVM.CodeGen.Rts
+                       , GHCVM.CodeGen.Types
+                       , GHCVM.CodeGen.Utils
+                       , GHCVM.Core.CoreArity
+                       , GHCVM.Core.CoreFVs
+                       , GHCVM.Core.CoreLint
+                       , GHCVM.Core.CorePrep
+                       , GHCVM.Core.CoreSubst
+                       , GHCVM.Core.CoreSyn
+                       , GHCVM.Core.CoreTidy
+                       , GHCVM.Core.CoreUnfold
+                       , GHCVM.Core.CoreUtils
+                       , GHCVM.Core.MkCore
+                       , GHCVM.Core.PprCore
+                       , GHCVM.Core.TrieMap
+                       , GHCVM.DeSugar.Check
                        , GHCVM.DeSugar.DeSugar
                        , GHCVM.DeSugar.DsMonad
                        , GHCVM.DeSugar.DsArrows
@@ -38,6 +90,79 @@ library
                        , GHCVM.DeSugar.Match
                        , GHCVM.DeSugar.MatchCon
                        , GHCVM.DeSugar.MatchLit
+                       , GHCVM.HsSyn.HsBinds
+                       , GHCVM.HsSyn.HsDecls
+                       , GHCVM.HsSyn.HsDoc
+                       , GHCVM.HsSyn.HsExpr
+                       , GHCVM.HsSyn.HsImpExp
+                       , GHCVM.HsSyn.HsLit
+                       , GHCVM.HsSyn.HsPat
+                       , GHCVM.HsSyn.HsSyn
+                       , GHCVM.HsSyn.HsTypes
+                       , GHCVM.HsSyn.HsUtils
+                       , GHCVM.HsSyn.PlaceHolder
+                       , GHCVM.Iface.BinIface
+                       , GHCVM.Iface.BuildTyCl
+                       , GHCVM.Iface.FlagChecker
+                       , GHCVM.Iface.IfaceEnv
+                       , GHCVM.Iface.IfaceSyn
+                       , GHCVM.Iface.IfaceType
+                       , GHCVM.Iface.LoadIface
+                       , GHCVM.Iface.MkIface
+                       , GHCVM.Iface.TcIface
+                       , GHCVM.Main.Annotations
+                       , GHCVM.Main.BreakArray
+                       , GHCVM.Main.CmdLineParser
+                       , GHCVM.Main.Constants
+                       , GHCVM.Main.DriverMkDepend
+                       , GHCVM.Main.DriverPhases
+                       , GHCVM.Main.DriverPipeline
+                       , GHCVM.Main.DynamicLoading
+                       , GHCVM.Main.DynFlags
+                       , GHCVM.Main.ErrUtils
+                       , GHCVM.Main.Finder
+                       , GHCVM.Main.GHC
+                       , GHCVM.Main.GhcMake
+                       , GHCVM.Main.GhcMonad
+                       , GHCVM.Main.GhcPlugins
+                       , GHCVM.Main.HeaderInfo
+                       , GHCVM.Main.Hooks
+                       , GHCVM.Main.HscMain
+                       , GHCVM.Main.HscStats
+                       , GHCVM.Main.HscTypes
+                       , GHCVM.Main.InteractiveEval
+                       , GHCVM.Main.InteractiveEvalTypes
+                       , GHCVM.Main.PackageConfig
+                       , GHCVM.Main.Packages
+                       , GHCVM.Main.PipelineMonad
+                       , GHCVM.Main.PlatformConstants
+                       , GHCVM.Main.Plugins
+                       , GHCVM.Main.PprTyThing
+                       , GHCVM.Main.StaticFlags
+                       , GHCVM.Main.SysTools
+                       , GHCVM.Main.TidyPgm
+                       , GHCVM.Interactive.ByteCodeAsm
+                       , GHCVM.Interactive.ByteCodeGen
+                       , GHCVM.Interactive.ByteCodeInstr
+                       , GHCVM.Interactive.ByteCodeItbls
+                       , GHCVM.Interactive.ByteCodeLink
+                       , GHCVM.Interactive.Debugger
+                       , GHCVM.Interactive.DebuggerUtils
+                       , GHCVM.Interactive.LibFFI
+                       , GHCVM.Interactive.Linker
+                       , GHCVM.Interactive.ObjLink
+                       , GHCVM.Interactive.RtClosureInspect
+                       , GHCVM.Parser.Parse
+                       , GHCVM.Prelude.ForeignCall
+                       , GHCVM.Prelude.PrelInfo
+                       , GHCVM.Prelude.PrelNames
+                       , GHCVM.Prelude.PrelRules
+                       , GHCVM.Prelude.PrimOp
+                       , GHCVM.Prelude.TysPrim
+                       , GHCVM.Prelude.TysWiredIn
+                       , GHCVM.Profiling.CostCentre
+                       , GHCVM.Profiling.ProfInit
+                       , GHCVM.Profiling.SCCfinal
                        , GHCVM.Rename.RnBinds
                        , GHCVM.Rename.RnEnv
                        , GHCVM.Rename.RnExpr
@@ -47,6 +172,32 @@ library
                        , GHCVM.Rename.RnSource
                        , GHCVM.Rename.RnSplice
                        , GHCVM.Rename.RnTypes
+                       , GHCVM.SimplCore.CallArity
+                       , GHCVM.SimplCore.CoreMonad
+                       , GHCVM.SimplCore.CSE
+                       , GHCVM.SimplCore.FloatIn
+                       , GHCVM.SimplCore.FloatOut
+                       , GHCVM.SimplCore.LiberateCase
+                       , GHCVM.SimplCore.OccurAnal
+                       , GHCVM.SimplCore.SAT
+                       , GHCVM.SimplCore.SetLevels
+                       , GHCVM.SimplCore.SimplCore
+                       , GHCVM.SimplCore.SimplEnv
+                       , GHCVM.SimplCore.Simplify
+                       , GHCVM.SimplCore.SimplMonad
+                       , GHCVM.SimplCore.SimplUtils
+                       , GHCVM.SimplStg.SimplStg
+                       , GHCVM.SimplStg.StgStats
+                       , GHCVM.SimplStg.UnariseStg
+                       , GHCVM.Specialise.Rules
+                       , GHCVM.Specialise.SpecConstr
+                       , GHCVM.Specialise.Specialise
+                       , GHCVM.StgSyn.CoreToStg
+                       , GHCVM.StgSyn.StgLint
+                       , GHCVM.StgSyn.StgSyn
+                       , GHCVM.StrAnal.DmdAnal
+                       , GHCVM.StrAnal.WorkWrap
+                       , GHCVM.StrAnal.WwLin
                        , GHCVM.TypeCheck.FamInst
                        , GHCVM.TypeCheck.Inst
                        , GHCVM.TypeCheck.TcAnnotations
@@ -84,43 +235,54 @@ library
                        , GHCVM.TypeCheck.TcTypeNats
                        , GHCVM.TypeCheck.TcUnify
                        , GHCVM.TypeCheck.TcValidity
-                       , GHCVM.Iface.BinIface
-                       , GHCVM.Iface.BuildTyCl
-                       , GHCVM.Iface.IfaceEnv
-                       , GHCVM.Iface.LoadIface
-                       , GHCVM.Iface.MkIface
-                       , GHCVM.Iface.TcIface
-                       , GHCVM.Main.DriverMkDepend
-                       , GHCVM.Main.DriverPipeline
-                       , GHCVM.Main.GHC
-                       , GHCVM.Main.GhcMake
-                       , GHCVM.Main.HeaderInfo
-                       , GHCVM.Main.Hooks
-                       , GHCVM.Main.HscMain
-                       , GHCVM.Main.Packages
-                       , GHCVM.Main.PprTyThing
-                       , GHCVM.Main.TidyPgm
-                       , GHCVM.Main.DynFlags
-                       , GHCVM.Prelude.PrelNames
-                       , GHCVM.CodeGen.Main
-                       , GHCVM.CodeGen.Monad
-                       , GHCVM.CodeGen.Closure
-                       , GHCVM.CodeGen.Object
-                       , GHCVM.CodeGen.ArgRep
-                       , GHCVM.CodeGen.Layout
-                       , GHCVM.CodeGen.Env
-                       , GHCVM.CodeGen.Types
-                       , GHCVM.CodeGen.Name
-                       , GHCVM.CodeGen.Foreign
-                       , GHCVM.CodeGen.Prim
-                       , GHCVM.CodeGen.LetNoEscape
+                       , GHCVM.Types.Class
+                       , GHCVM.Types.CoAxiom
+                       , GHCVM.Types.Coercion
+                       , GHCVM.Types.FamInstEnv
+                       , GHCVM.Types.InstEnv
+                       , GHCVM.Types.Kind
+                       , GHCVM.Types.OptCoercion
+                       , GHCVM.Types.TyCon
+                       , GHCVM.Types.Type
+                       , GHCVM.Types.TypeRep
+                       , GHCVM.Types.Unify
+                       , GHCVM.Utils.Bag
+                       , GHCVM.Utils.Binary
+                       , GHCVM.Utils.BooleanFormula
+                       , GHCVM.Utils.BufWrite
+                       , GHCVM.Utils.Digraph
+                       , GHCVM.Utils.Encoding
+                       , GHCVM.Utils.Exception
+                       , GHCVM.Utils.ExtsCompat46
+                       , GHCVM.Utils.FastBool
+                       , GHCVM.Utils.FastFunctions
+                       , GHCVM.Utils.FastMutInt
+                       , GHCVM.Utils.FastString
+                       , GHCVM.Utils.FastTypes
+                       , GHCVM.Utils.Fingerprint
+                       , GHCVM.Utils.FiniteMap
+                       , GHCVM.Utils.GraphBase
+                       , GHCVM.Utils.GraphColor
+                       , GHCVM.Utils.GraphOps
+                       , GHCVM.Utils.GraphPpr
+                       , GHCVM.Utils.IOEnv
+                       , GHCVM.Utils.ListSetOps
+                       , GHCVM.Utils.Maybes
+                       , GHCVM.Utils.MonadUtils
+                       , GHCVM.Utils.OrdList
+                       , GHCVM.Utils.Outputable
+                       , GHCVM.Utils.Pair
+                       , GHCVM.Utils.Panic
+                       , GHCVM.Utils.Platform
+                       , GHCVM.Utils.Pretty
+                       , GHCVM.Utils.State
+                       , GHCVM.Utils.Stream
+                       , GHCVM.Utils.StringBuffer
+                       , GHCVM.Utils.UniqFM
+                       , GHCVM.Utils.UniqSet
+                       , GHCVM.Utils.UnVarGraph
+                       , GHCVM.Utils.Util
                        , GHCVM.Debug
-                       , GHCVM.CodeGen.Rts
-                       , GHCVM.CodeGen.Bind
-                       , GHCVM.CodeGen.Expr
-                       , GHCVM.CodeGen.Con
-                       , GHCVM.CodeGen.Utils
-                       , GHCVM.Parser.Parse
                        , GHCVM.Util
                        , GHCVM.Constants
                        , GHCVM.Primitive
