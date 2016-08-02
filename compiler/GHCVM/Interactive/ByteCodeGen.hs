@@ -9,7 +9,7 @@ module GHCVM.Interactive.ByteCodeGen ( UnlinkedBCO, byteCodeGen, coreExprToBCOs 
 #include "HsVersions.h"
 
 import GHCVM.Interactive.ByteCodeInstr
-import GHCVM.Interative.ByteCodeItbls
+import GHCVM.Interactive.ByteCodeItbls
 import GHCVM.Interactive.ByteCodeAsm
 import GHCVM.Interactive.ByteCodeLink
 import GHCVM.Interactive.LibFFI
@@ -20,7 +20,7 @@ import GHCVM.Utils.Platform
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.MkId
 import GHCVM.BasicTypes.Id
-import ForeignCall
+import GHCVM.Prelude.ForeignCall
 import GHCVM.Main.HscTypes
 import GHCVM.Core.CoreUtils
 import GHCVM.Core.CoreSyn
@@ -32,38 +32,30 @@ import GHCVM.Types.Type
 import GHCVM.BasicTypes.DataCon
 import GHCVM.Types.TyCon
 import GHCVM.Utils.Util
-import GHCVM.BasicTypes.Var.BasicTypes.VarSet
-import GHCVM.Prelude.TyPrim
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
+import GHCVM.Prelude.TysPrim
 import GHCVM.Main.ErrUtils
 import GHCVM.BasicTypes.Unique
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Panic
-import StgCmmLayout     ( ArgRep(..), toArgRep, argRepSizeW )
-import SMRep
-import Bitmap
 import GHCVM.Utils.OrdList
-
-import Data.List
-import Foreign
-import Foreign.C
-
-#if __GLASGOW_HASKELL__ < 709
-import Control.Applicative (Applicative(..))
-#endif
-import Control.Monad
-import Data.Char
-
 import GHCVM.BasicTypes.UniqSupply
-import BreakArray
-import Data.Maybe
+import GHCVM.Main.BreakArray
 import GHCVM.BasicTypes.Module
 
+import Foreign
+import Foreign.C
+import Control.Monad
+import Data.Char
+import Data.Maybe
+import Data.List
+import Data.Map (Map)
+import Data.Ord
 import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Unsafe as BS
-import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified FiniteMap as Map
-import Data.Ord
+import qualified GHCVM.Utils.FiniteMap as Map
 
 -- -----------------------------------------------------------------------------
 -- Generating byte code for a complete module

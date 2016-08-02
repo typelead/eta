@@ -79,7 +79,7 @@ import Data.Map (Map)
 -- import Data.Monoid hiding ((<>))
 -- #endif
 import qualified Data.Map as Map
-import qualified FiniteMap as Map
+import qualified GHCVM.Utils.FiniteMap as Map
 import qualified Data.Set as Set
 
 -- ---------------------------------------------------------------------------

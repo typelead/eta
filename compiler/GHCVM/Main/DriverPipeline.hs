@@ -36,7 +36,7 @@ import GHCVM.StgSyn.StgSyn (StgBinding, pprStgBindings)
 import GHCVM.Profiling.CostCentre (CollectedCCs)
 import GHCVM.SimplStg.SimplStg         ( stg2stg )
 import GHCVM.StgSyn.CoreToStg        ( coreToStg )
-import GHCVM.CoreSyn.CorePrep         ( corePrepPgm )
+import GHCVM.Core.CorePrep         ( corePrepPgm )
 import GHCVM.Main.SysTools
 import GHCVM.Types.TyCon ( isDataTyCon )
 import GHCVM.BasicTypes.NameEnv
@@ -63,7 +63,6 @@ import GHCVM.BasicTypes.Module
 import GHCVM.Utils.UniqFM           ( eltsUFM )
 import GHCVM.Main.ErrUtils
 import GHCVM.Main.DynFlags
-import Config
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Util
 import GHCVM.Utils.StringBuffer     ( hGetStringBuffer )

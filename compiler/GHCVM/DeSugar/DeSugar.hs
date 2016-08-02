@@ -49,7 +49,7 @@ import GHCVM.DeSugar.Coverage
 import GHCVM.Utils.Util
 import GHCVM.Utils.MonadUtils
 import GHCVM.Utils.OrdList
-import GHCVM.Main.StaticPtrTable
+import GHCVM.DeSugar.StaticPtrTable
 import Data.List
 import Data.IORef
 import Control.Monad( when )

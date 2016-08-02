@@ -50,7 +50,7 @@ import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.Demand
-import GHCVM.SimpCore.SimplMonad
+import GHCVM.SimplCore.SimplMonad
 import GHCVM.Types.Type     hiding( substTy )
 import GHCVM.Types.Coercion hiding( substCo, substTy )
 import GHCVM.BasicTypes.DataCon          ( dataConWorkId )

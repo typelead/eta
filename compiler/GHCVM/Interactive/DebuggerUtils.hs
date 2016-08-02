@@ -4,8 +4,7 @@ module GHCVM.Interactive.DebuggerUtils (
        dataConInfoPtrToName,
   ) where
 
-import CmmInfo ( stdInfoTableSizeB )
-import GHCVM.Interative.ByteCodeItbls
+import GHCVM.Interactive.ByteCodeItbls
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.FastString
 import GHCVM.TypeCheck.TcRnTypes

@@ -65,14 +65,15 @@ module GHCVM.Utils.UniqFM (
         eltsUFM, keysUFM, splitUFM,
         ufmToSet_Directly,
         ufmToList,
-        joinUFM, pprUniqFM
+        -- joinUFM,
+        pprUniqFM
     ) where
 
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.Unique           ( Uniquable(..), Unique, getKey )
 import GHCVM.Utils.Outputable
 
-import Compiler.Hoopl   hiding (Unique)
+--import Compiler.Hoopl   hiding (Unique)
 
 import qualified Data.IntMap as M
 import qualified Data.IntSet as S
@@ -80,9 +81,6 @@ import qualified Data.Foldable as Foldable
 import qualified Data.Traversable as Traversable
 import Data.Typeable
 import Data.Data
-#if __GLASGOW_HASKELL__ < 709
-import Data.Monoid
-#endif
 
 {-
 ************************************************************************
@@ -287,15 +285,15 @@ eltsUFM (UFM m) = M.elems m
 ufmToSet_Directly (UFM m) = M.keysSet m
 ufmToList (UFM m) = map (\(k, v) -> (getUnique k, v)) $ M.toList m
 
--- Hoopl
-joinUFM :: JoinFun v -> JoinFun (UniqFM v)
-joinUFM eltJoin l (OldFact old) (NewFact new) = foldUFM_Directly add (NoChange, old) new
-    where add k new_v (ch, joinmap) =
-            case lookupUFM_Directly joinmap k of
-                Nothing -> (SomeChange, addToUFM_Directly joinmap k new_v)
-                Just old_v -> case eltJoin l (OldFact old_v) (NewFact new_v) of
-                                (SomeChange, v') -> (SomeChange, addToUFM_Directly joinmap k v')
-                                (NoChange, _) -> (ch, joinmap)
+-- -- Hoopl
+-- joinUFM :: JoinFun v -> JoinFun (UniqFM v)
+-- joinUFM eltJoin l (OldFact old) (NewFact new) = foldUFM_Directly add (NoChange, old) new
+--     where add k new_v (ch, joinmap) =
+--             case lookupUFM_Directly joinmap k of
+--                 Nothing -> (SomeChange, addToUFM_Directly joinmap k new_v)
+--                 Just old_v -> case eltJoin l (OldFact old_v) (NewFact new_v) of
+--                                 (SomeChange, v') -> (SomeChange, addToUFM_Directly joinmap k v')
+--                                 (NoChange, _) -> (ch, joinmap)
 
 {-
 ************************************************************************

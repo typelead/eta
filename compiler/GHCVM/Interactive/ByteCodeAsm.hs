@@ -17,7 +17,7 @@ module GHCVM.Interactive.ByteCodeAsm (
 #include "HsVersions.h"
 
 import GHCVM.Interactive.ByteCodeInstr
-import GHCVM.Interative.ByteCodeItbls
+import GHCVM.Interactive.ByteCodeItbls
 
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
@@ -25,16 +25,11 @@ import GHCVM.BasicTypes.Literal
 import GHCVM.Types.TyCon
 import GHCVM.Prelude.PrimOp
 import GHCVM.Utils.FastString
-import StgCmmLayout     ( ArgRep(..) )
-import SMRep
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Platform
 import GHCVM.Utils.Util
 
-#if __GLASGOW_HASKELL__ < 709
-import Control.Applicative (Applicative(..))
-#endif
 import Control.Monad
 import Control.Monad.ST ( runST )
 import Control.Monad.Trans.Class

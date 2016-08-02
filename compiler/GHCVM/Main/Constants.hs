@@ -4,12 +4,10 @@
 \section[Constants]{Info about this compilation}
 -}
 
-module GHCVM.Main.Constants (module Constants) where
-
-import Config
+module GHCVM.Main.Constants (module GHCVM.Main.Constants) where
 
 hiVersion :: Integer
-hiVersion = read (cProjectVersionInt ++ cProjectPatchLevel) :: Integer
+hiVersion = 7103 -- TODO: Add ghcvm-specific hi version
 
 -- All pretty arbitrary:
 
@@ -30,3 +28,10 @@ wORD64_SIZE = 8
 
 tARGET_MAX_CHAR :: Int
 tARGET_MAX_CHAR = 0x10ffff
+
+mAX_INTLIKE, mIN_INTLIKE, mAX_CHARLIKE, mIN_CHARLIKE, mAX_SPEC_AP_SIZE :: Int
+mIN_INTLIKE = -16
+mAX_INTLIKE = 16
+mIN_CHARLIKE = 0
+mAX_CHARLIKE = 255
+mAX_SPEC_AP_SIZE = 7

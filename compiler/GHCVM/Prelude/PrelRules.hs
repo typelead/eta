@@ -18,7 +18,6 @@ ToDo:
 module GHCVM.Prelude.PrelRules ( primOpRules, builtinRules ) where
 
 #include "HsVersions.h"
-#include "../includes/MachDeps.h"
 
 import {-# SOURCE #-} GHCVM.BasicTypes.MkId ( mkPrimOpId, magicDictId )
 
@@ -48,12 +47,7 @@ import GHCVM.Utils.Platform
 import GHCVM.Utils.Util
 import GHCVM.Types.Coercion     (mkUnbranchedAxInstCo,mkSymCo,Role(..))
 
-#if __GLASGOW_HASKELL__ >= 709
 import Control.Applicative ( Alternative(..) )
-#else
-import Control.Applicative ( Applicative(..), Alternative(..) )
-#endif
-
 import Control.Monad
 import Data.Bits as Bits
 import qualified Data.ByteString as BS

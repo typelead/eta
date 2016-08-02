@@ -56,7 +56,7 @@ import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Var
 -- import RnEnv( FastStringEnv, mkFsEnv, lookupFsEnv )
 import GHCVM.Prelude.TysWiredIn
-import GHCVM.Prelude.TyPrim
+import GHCVM.Prelude.TysPrim
 import GHCVM.Prelude.PrelNames( funTyConKey, ipClassName )
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.BasicTypes

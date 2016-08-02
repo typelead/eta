@@ -27,14 +27,14 @@ module GHCVM.Interactive.RtClosureInspect(
 #include "HsVersions.h"
 
 import GHCVM.Interactive.DebuggerUtils
-import GHCVM.Interative.ByteCodeItbls    ( StgInfoTable, peekItbl )
+import GHCVM.Interactive.ByteCodeItbls    ( StgInfoTable, peekItbl )
 import qualified GHCVM.Interactive.ByteCodeItbls as BCI( StgInfoTable(..) )
 import GHCVM.BasicTypes.BasicTypes       ( HValue )
 import GHCVM.Main.HscTypes
 
 import GHCVM.BasicTypes.DataCon
 import GHCVM.Types.Type
-import qualified GHCVM.TypesUnify as U
+import qualified GHCVM.Types.Unify as U
 import GHCVM.BasicTypes.Var
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcType
@@ -49,7 +49,7 @@ import GHCVM.BasicTypes.VarEnv
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.BasicTypes       ( TupleSort(UnboxedTuple) )
-import GHCVM.Prelude.TyPrim
+import GHCVM.Prelude.TysPrim
 import GHCVM.Prelude.PrelNames
 import GHCVM.Prelude.TysWiredIn
 import GHCVM.Main.DynFlags
@@ -65,15 +65,8 @@ import Data.Array.Base
 import Data.Ix
 import Data.List
 import qualified Data.Sequence as Seq
-#if __GLASGOW_HASKELL__ < 709
-import Data.Monoid (mappend)
-#endif
 import Data.Sequence (viewl, ViewL(..))
-#if __GLASGOW_HASKELL__ >= 709
-import Foreign
-#else
 import Foreign.Safe
-#endif
 import System.IO.Unsafe
 
 ---------------------------------------------
@@ -163,13 +156,9 @@ data Closure = Closure { tipe         :: ClosureType
 instance Outputable ClosureType where
   ppr = text . show
 
-#include "../includes/rts/storage/ClosureTypes.h"
-
 aP_CODE, pAP_CODE :: Int
-aP_CODE = AP
-pAP_CODE = PAP
-#undef AP
-#undef PAP
+aP_CODE = 25
+pAP_CODE = 26
 
 getClosureData :: DynFlags -> a -> IO Closure
 getClosureData dflags a =

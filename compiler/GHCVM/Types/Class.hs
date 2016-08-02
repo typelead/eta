@@ -22,8 +22,8 @@ module GHCVM.Types.Class (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} TyCon     ( TyCon, tyConName, tyConUnique )
-import {-# SOURCE #-} TypeRep   ( Type, PredType )
+import {-# SOURCE #-} GHCVM.Types.TyCon     ( TyCon, tyConName, tyConUnique )
+import {-# SOURCE #-} GHCVM.Types.TypeRep   ( Type, PredType )
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.BasicTypes

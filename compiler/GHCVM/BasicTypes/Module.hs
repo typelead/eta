@@ -76,7 +76,8 @@ module GHCVM.BasicTypes.Module
         emptyModuleSet, mkModuleSet, moduleSetElts, extendModuleSet, elemModuleSet
     ) where
 
-import Config
+import GHC.PackageDb (BinaryStringRep(..))
+
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.Unique
 import GHCVM.Utils.UniqFM
@@ -84,12 +85,11 @@ import GHCVM.Utils.FastString
 import GHCVM.Utils.Binary
 import GHCVM.Utils.Util
 import {-# SOURCE #-} GHCVM.Main.Packages
-import GHC.PackageDb (BinaryStringRep(..))
+import qualified GHCVM.Utils.FiniteMap as Map
 
 import Data.Data
 import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified FiniteMap as Map
 import System.FilePath
 
 {-
@@ -381,12 +381,7 @@ integerPackageKey, primPackageKey,
   thPackageKey, dphSeqPackageKey, dphParPackageKey,
   mainPackageKey, thisGhcPackageKey, interactivePackageKey  :: PackageKey
 primPackageKey        = fsToPackageKey (fsLit "ghc-prim")
-integerPackageKey     = fsToPackageKey (fsLit n)
-  where
-    n = case cIntegerLibraryType of
-        IntegerGMP    -> "integer-gmp"
-        IntegerGMP2   -> "integer-gmp"
-        IntegerSimple -> "integer-simple"
+integerPackageKey     = fsToPackageKey (fsLit "integer")
 basePackageKey        = fsToPackageKey (fsLit "base")
 rtsPackageKey         = fsToPackageKey (fsLit "rts")
 thPackageKey          = fsToPackageKey (fsLit "template-haskell")

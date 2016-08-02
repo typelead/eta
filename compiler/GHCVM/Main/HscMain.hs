@@ -121,7 +121,7 @@ import GHCVM.Iface.MkIface
 import GHCVM.DeSugar.DeSugar
 import GHCVM.SimplCore.SimplCore
 import GHCVM.Main.TidyPgm
-import GHCVM.CoreSyn.CorePrep
+import GHCVM.Core.CorePrep
 import GHCVM.StgSyn.CoreToStg        ( coreToStg )
 --import qualified StgCmm ( codeGen )
 import GHCVM.StgSyn.StgSyn

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module ApiAnnotation (
+module GHCVM.Parser.ApiAnnotation (
   getAnnotation, getAndRemoveAnnotation,
   getAnnotationComments,getAndRemoveAnnotationComments,
   ApiAnns,
@@ -10,7 +10,7 @@ module ApiAnnotation (
   LRdrName -- Exists for haddocks only
   ) where
 
-import RdrName
+import GHCVM.BasicTypes.RdrName
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.SrcLoc
 import qualified Data.Map as Map

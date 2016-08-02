@@ -21,7 +21,6 @@ module GHCVM.Interactive.ObjLink (
 
 import GHCVM.Utils.Panic
 import GHCVM.BasicTypes.BasicTypes       ( SuccessFlag, successIf )
-import Config           ( cLeadingUnderscore )
 import GHCVM.Utils.Util
 
 import Control.Monad    ( when )

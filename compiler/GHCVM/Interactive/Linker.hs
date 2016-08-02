@@ -27,7 +27,7 @@ module GHCVM.Interactive.Linker ( getHValue, showLinkerState,
 import GHCVM.Iface.LoadIface
 import GHCVM.Interactive.ObjLink
 import GHCVM.Interactive.ByteCodeLink
-import GHCVM.Interative.ByteCodeItbls
+import GHCVM.Interactive.ByteCodeItbls
 import GHCVM.Interactive.ByteCodeAsm
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Main.Packages

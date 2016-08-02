@@ -16,7 +16,7 @@ import GHCVM.CodeGen.Closure
 import GHCVM.Debug
 import GHCVM.Util
 import GHCVM.Primitive
-import GHCVM.Constants
+import GHCVM.Main.Constants
 import Codec.JVM
 import Control.Monad (forM)
 import Data.Text (append, pack, unpack)

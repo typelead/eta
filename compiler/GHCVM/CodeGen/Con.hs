@@ -8,7 +8,7 @@ import GHCVM.BasicTypes.DataCon
 import GHCVM.StgSyn.StgSyn
 import GHCVM.Prelude.PrelInfo (maybeCharLikeCon, maybeIntLikeCon)
 import GHCVM.Utils.Outputable
-import GHCVM.Constants
+import GHCVM.Main.Constants
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Closure

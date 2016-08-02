@@ -58,7 +58,7 @@ import Data.Either ( rights, partitionEithers )
 import qualified Data.Map as Map
 import Data.Map (Map)
 import qualified Data.Set as Set
-import qualified FiniteMap as Map ( insertListWith )
+import qualified GHCVM.Utils.FiniteMap as Map ( insertListWith )
 
 import Control.Concurrent ( forkIOWithUnmask, killThread )
 import qualified GHC.Conc as CC

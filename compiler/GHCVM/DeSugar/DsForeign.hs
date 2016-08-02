@@ -33,7 +33,6 @@ import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Platform
-import Config
 import GHCVM.Utils.OrdList
 import GHCVM.Utils.Pair
 import GHCVM.Utils.Util

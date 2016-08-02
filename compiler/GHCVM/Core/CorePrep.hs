@@ -53,9 +53,9 @@ import GHCVM.Utils.Pair
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Platform
 import GHCVM.Utils.FastString
-import Config
 import GHCVM.BasicTypes.Name             ( NamedThing(..), nameSrcSpan )
 import GHCVM.BasicTypes.SrcLoc           ( SrcSpan(..), realSrcLocSpan, mkRealSrcLoc )
+
 import Data.Bits
 import Data.List        ( mapAccumL )
 import Control.Monad

@@ -2,7 +2,7 @@
 module GHCVM.Utils.Exception
     (
     module Control.Exception,
-    module Exception
+    module GHCVM.Utils.Exception
     )
     where
 

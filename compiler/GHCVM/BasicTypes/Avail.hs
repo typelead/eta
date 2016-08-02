@@ -16,7 +16,7 @@ import GHCVM.BasicTypes.NameEnv
 import GHCVM.BasicTypes.NameSet
 
 import GHCVM.Utils.Binary
-import GHCVM.BasicTypes.Outputable
+import GHCVM.Utils.Outputable
 import GHCVM.Utils.Util
 
 -- -----------------------------------------------------------------------------

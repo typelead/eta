@@ -15,7 +15,7 @@ import GHCVM.Core.CoreUnfold
 import GHCVM.Core.CoreFVs
 import GHCVM.Core.CoreTidy
 import GHCVM.SimplCore.CoreMonad
-import GHCVM.CoreSyn.CorePrep
+import GHCVM.Core.CorePrep
 import GHCVM.Core.CoreUtils
 import GHCVM.Core.CoreLint
 import GHCVM.BasicTypes.Literal

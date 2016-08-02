@@ -122,7 +122,6 @@ import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.FastString
-import Config ( cIntegerLibraryType, IntegerLibrary(..) )
 import GHCVM.Utils.Panic ( panic )
 
 {-
@@ -365,11 +364,9 @@ basicKnownKeyNames
 
         -- Fingerprint
         , fingerprintDataConName
-
-    ] ++ case cIntegerLibraryType of
-           IntegerGMP    -> [integerSDataConName]
-           IntegerGMP2   -> [integerSDataConName]
-           IntegerSimple -> []
+        -- Integer (S#)
+        , integerSDataConName
+    ]
 
 genericTyConNames :: [Name]
 genericTyConNames = [

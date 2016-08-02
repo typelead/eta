@@ -43,7 +43,7 @@ import GHCVM.Specialise.SpecConstr       ( specConstrProgram)
 import GHCVM.StrAnal.DmdAnal          ( dmdAnalProgram )
 import GHCVM.SimplCore.CallArity        ( callArityAnalProgram )
 import GHCVM.StrAnal.WorkWrap         ( wwTopBinds )
-import Vectorise        ( vectorise )
+--import Vectorise        ( vectorise ) TODO: Vectorization disabled
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Util
@@ -382,7 +382,7 @@ doCorePass CoreDoSpecConstr          = {-# SCC "SpecConstr" #-}
                                        specConstrProgram
 
 doCorePass CoreDoVectorisation       = {-# SCC "Vectorise" #-}
-                                       vectorise
+                                       panic "doCorePass: CoreDoVectorisation not supported!"
 
 doCorePass CoreDoPrintCore              = observe   printCore
 doCorePass (CoreDoRuleCheck phase pat)  = ruleCheckPass phase pat

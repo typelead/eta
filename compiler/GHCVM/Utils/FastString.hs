@@ -106,6 +106,7 @@ import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
 import Foreign.C
 import GHCVM.Utils.ExtsCompat46
+import qualified GHCVM.Utils.ExtsCompat46 as ExtsCompat46
 import System.IO
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.Data
@@ -116,11 +117,7 @@ import Data.List        ( elemIndex )
 
 import GHC.IO           ( IO(..), unsafeDupablePerformIO )
 
-#if __GLASGOW_HASKELL__ >= 709
 import Foreign
-#else
-import Foreign.Safe
-#endif
 
 #if STAGE >= 2
 import GHC.Conc.Sync    (sharedCAF)

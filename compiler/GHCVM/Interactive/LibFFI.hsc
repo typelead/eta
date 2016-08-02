@@ -14,7 +14,7 @@ module GHCVM.Interactive.LibFFI (
  ) where
 
 import GHCVM.Types.TyCon
-import ForeignCall
+import GHCVM.Prelude.ForeignCall
 import GHCVM.Utils.Panic
 import GHCVM.Main.DynFlags
 

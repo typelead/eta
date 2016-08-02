@@ -25,13 +25,14 @@ module GHCVM.Utils.Panic (
      installSignalHandlers,
      pushInterruptTargetThread, popInterruptTargetThread
 ) where
+
 #include "HsVersions.h"
 
-import {-# SOURCE #-} Outputable (SDoc)
+import {-# SOURCE #-} GHCVM.Utils.Outputable (SDoc)
 
-import Config
 import GHCVM.Utils.FastTypes
 import GHCVM.Utils.Exception
+import qualified GHCVM.Utils.Exception as Exception
 
 import Control.Concurrent
 import Data.Dynamic
@@ -153,16 +154,16 @@ showGhcException exception
         Panic s
          -> showString $
                 "panic! (the 'impossible' happened)\n"
-                ++ "  (GHC version " ++ cProjectVersion ++ " for " ++ TargetPlatform_NAME ++ "):\n\t"
+                ++ "  (GHCVM version 0.0.1):\n\t"
                 ++ s ++ "\n\n"
-                ++ "Please report this as a GHC bug:  http://www.haskell.org/ghc/reportabug\n"
+                ++ "Please report this as a GHCVM bug:  http://github.org/rahulmutt/ghcvm\n"
 
         PprSorry  s _ ->
             showGhcException (Sorry (s ++ "\n<<details unavailable>>"))
         Sorry s
          -> showString $
                 "sorry! (unimplemented feature or known bug)\n"
-                 ++ "  (GHC version " ++ cProjectVersion ++ " for " ++ TargetPlatform_NAME ++ "):\n\t"
+                 ++ "  (GHCVM version 0.0.1):\n\t"
                  ++ s ++ "\n"
 
   where int_code code =

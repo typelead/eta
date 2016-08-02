@@ -9,8 +9,6 @@ module GHCVM.Interactive.ByteCodeItbls ( ItblEnv, ItblPtr(..), itblCode, mkITbls
                      , StgInfoTable(..)
                      ) where
 
-#include "HsVersions.h"
-
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Platform
@@ -19,7 +17,6 @@ import GHCVM.BasicTypes.NameEnv
 import GHCVM.BasicTypes.DataCon          ( DataCon, dataConRepArgTys, dataConIdentity )
 import GHCVM.Types.TyCon            ( TyCon, tyConFamilySize, isDataTyCon, tyConDataCons )
 import GHCVM.Types.Type             ( flattenRepType, repType, typePrimRep )
-import StgCmmLayout     ( mkVirtHeapOffsets )
 import GHCVM.Utils.Util
 
 import Control.Monad
@@ -74,9 +71,8 @@ mkITbl dflags tc
 
 mkITbl _ _ = error "Unmatched patter in mkITbl: assertion failed!"
 
-#include "../includes/rts/storage/ClosureTypes.h"
-cONSTR :: Int   -- Defined in ClosureTypes.h
-cONSTR = CONSTR
+cONSTR :: Int
+cONSTR = 1
 
 -- Assumes constructors are numbered from zero, not one
 make_constr_itbls :: DynFlags -> [DataCon] -> IO ItblEnv
@@ -122,10 +118,6 @@ make_constr_itbls dflags cons
 
 -- Make code which causes a jump to the given address.  This is the
 -- only arch-dependent bit of the itbl story.
-
--- For sparc_TARGET_ARCH, i386_TARGET_ARCH, etc.
-#include "nativeGen/NCG.h"
-
 type ItblCodes = Either [Word8] [Word32]
 
 funPtrToInt :: FunPtr a -> Int
@@ -150,8 +142,8 @@ mkJumpToAddr dflags a = case platformArch (targetPlatform dflags) of
             lo10 x = x .&. 0x3FF
             hi22 x = (x `shiftR` 10) .&. 0x3FFFF
 
-        in Right [ 0x07000000 .|. (hi22 w32),
-                   0x8610E000 .|. (lo10 w32),
+        in Right [ 0x07000000 .|. hi22 w32,
+                   0x8610E000 .|. lo10 w32,
                    0x81C0C000,
                    0x01000000 ]
 
@@ -254,11 +246,7 @@ foreign import ccall "&stg_interp_constr_entry"
 
 
 -- Ultra-minimalist version specially for constructors
-#if SIZEOF_VOID_P == 8
-type HalfWord = Word32
-#else
 type HalfWord = Word16
-#endif
 
 data StgConInfoTable = StgConInfoTable {
    conDesc   :: Ptr Word8,

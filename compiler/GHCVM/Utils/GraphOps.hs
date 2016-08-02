@@ -1,7 +1,7 @@
 -- | Basic operations on graphs.
 --
 
-module GraphOps (
+module GHCVM.Utils.GraphOps (
         addNode,        delNode,        getNode,       lookupNode,     modNode,
         size,
         union,
@@ -18,7 +18,7 @@ module GraphOps (
 )
 where
 
-import GHCVMUtils.GraphBase
+import GHCVM.Utils.GraphBase
 
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.Unique

@@ -11,7 +11,7 @@ module GHCVM.SimplCore.Simplify ( simplTopBinds, simplExpr, simplRules ) where
 #include "HsVersions.h"
 
 import GHCVM.Main.DynFlags
-import GHCVM.SimpCore.SimplMonad
+import GHCVM.SimplCore.SimplMonad
 import GHCVM.Types.Type hiding      ( substTy, extendTvSubst, substTyVar )
 import GHCVM.SimplCore.SimplEnv
 import GHCVM.SimplCore.SimplUtils

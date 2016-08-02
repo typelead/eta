@@ -46,7 +46,6 @@ module GHCVM.StgSyn.StgSyn (
 
 #include "HsVersions.h"
 
-import Bitmap
 import GHCVM.Core.CoreSyn     ( AltCon, Tickish )
 import GHCVM.Profiling.CostCentre  ( CostCentreStack )
 import GHCVM.BasicTypes.DataCon

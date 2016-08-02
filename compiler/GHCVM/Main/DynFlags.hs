@@ -21,7 +21,6 @@ module GHCVM.Main.DynFlags (
         WarningFlag(..),
         ExtensionFlag(..),
         Language(..),
-        PlatformConstants(..),
         FatalMessager, LogAction, FlushOut(..), FlushErr(..),
         ProfAuto(..),
         glasgowExtsFlags,
@@ -149,14 +148,12 @@ module GHCVM.Main.DynFlags (
   ) where
 
 import GHCVM.Utils.Platform
-import GHCVM.Utils.PlatformConstants
 import GHCVM.BasicTypes.Module
 import GHCVM.Main.PackageConfig
 import {-# SOURCE #-} GHCVM.Main.Hooks
 import {-# SOURCE #-} GHCVM.Prelude.PrelNames ( mAIN )
 import {-# SOURCE #-} GHCVM.Main.Packages (PackageState)
 import GHCVM.Main.DriverPhases     ( Phase(..), phaseInputExt )
-import Config
 import GHCVM.Main.CmdLineParser
 import GHCVM.Main.Constants
 import GHCVM.Utils.Panic
@@ -943,9 +940,7 @@ data Settings = Settings {
   sOpt_l                 :: [String],
   sOpt_windres           :: [String],
   sOpt_lo                :: [String], -- LLVM: llvm optimiser
-  sOpt_lc                :: [String], -- LLVM: llc static compiler
-
-  sPlatformConstants     :: PlatformConstants
+  sOpt_lc                :: [String] -- LLVM: llc static compiler
  }
 
 targetPlatform :: DynFlags -> Platform
@@ -1569,14 +1564,10 @@ defaultDynFlags mySettings =
       }
 
 defaultWays :: Settings -> [Way]
-defaultWays settings = if pc_DYNAMIC_BY_DEFAULT (sPlatformConstants settings)
-                       then [WayDyn]
-                       else []
+defaultWays _ = []
 
 interpWays :: [Way]
-interpWays = if dynamicGhc
-             then [WayDyn]
-             else []
+interpWays = [WayDyn | dynamicGhc]
 
 --------------------------------------------------------------------------
 
@@ -3208,10 +3199,6 @@ defaultFlags settings
              -- The default -O0 options
 
     ++ default_PIC platform
-
-    ++ (if pc_DYNAMIC_BY_DEFAULT (sPlatformConstants settings)
-        then wayGeneralFlags platform WayDyn
-        else [])
 
     where platform = sTargetPlatform settings
 

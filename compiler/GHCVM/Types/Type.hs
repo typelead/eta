@@ -160,7 +160,7 @@ import GHCVM.BasicTypes.NameEnv
 import GHCVM.Types.Class
 import GHCVM.Types.TyCon
 import GHCVM.Prelude.TysPrim
-import {-# SOURCE #-} TysWiredIn ( eqTyCon, coercibleTyCon, typeNatKind, typeSymbolKind )
+import {-# SOURCE #-} GHCVM.Prelude.TysWiredIn ( eqTyCon, coercibleTyCon, typeNatKind, typeSymbolKind )
 import GHCVM.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
                    ipClassNameKey, openTypeKindTyConKey,
                    constraintKindTyConKey, liftedTypeKindTyConKey )

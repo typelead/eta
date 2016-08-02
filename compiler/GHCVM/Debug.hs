@@ -1,5 +1,5 @@
 module GHCVM.Debug
-  (module Outputable,
+  (module GHCVM.Utils.Outputable,
    unsafePerformIO,
    str,
    debugIO)

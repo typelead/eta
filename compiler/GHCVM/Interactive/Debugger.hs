@@ -21,8 +21,8 @@ import GHCVM.Main.GhcMonad
 import GHCVM.Main.HscTypes
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Name
-import GHCVM.BasicTypes.Var.BasicTypes.Var hiding ( varName )
-import GHCVM.BasicTypes.Var.BasicTypes.VarSet
+import GHCVM.BasicTypes.Var hiding ( varName )
+import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.UniqSupply
 import GHCVM.Types.Type
 import GHCVM.Types.Kind

@@ -37,7 +37,7 @@ module GHCVM.SimplCore.SimplEnv (
 
 #include "HsVersions.h"
 
-import GHCVM.SimpCore.SimplMonad
+import GHCVM.SimplCore.SimplMonad
 import GHCVM.SimplCore.CoreMonad        ( SimplifierMode(..) )
 import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreUtils
@@ -46,7 +46,7 @@ import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Utils.OrdList
 import GHCVM.BasicTypes.Id
-import qualified CoreSubst
+import qualified GHCVM.Core.CoreSubst as CoreSubst
 import GHCVM.Core.MkCore                   ( mkWildValBinder )
 import GHCVM.Prelude.TysWiredIn
 import qualified GHCVM.Types.Type as Type

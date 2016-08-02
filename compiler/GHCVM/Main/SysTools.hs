@@ -58,7 +58,6 @@ module GHCVM.Main.SysTools (
 import GHCVM.Main.DriverPhases
 import GHCVM.BasicTypes.Module
 import GHCVM.Main.Packages
-import Config
 import GHCVM.Utils.Outputable
 import GHCVM.Main.ErrUtils
 import GHCVM.Utils.Panic
@@ -187,23 +186,15 @@ initSysTools mbMinusB
              -- format, '/' separated
 
        let settingsFile = top_dir </> "settings"
-           platformConstantsFile = top_dir </> "platformConstants"
            installed :: FilePath -> FilePath
            installed file = top_dir </> file
 
        settingsStr <- readFile settingsFile
-       platformConstantsStr <- readFile platformConstantsFile
        mySettings <- case maybeReadFuzzy settingsStr of
                      Just s ->
                          return s
                      Nothing ->
                          pgmError ("Can't parse " ++ show settingsFile)
-       platformConstants <- case maybeReadFuzzy platformConstantsStr of
-                            Just s ->
-                                return s
-                            Nothing ->
-                                pgmError ("Can't parse " ++
-                                          show platformConstantsFile)
        let getSetting key = case lookup key mySettings of
                             Just xs ->
                                 return $ case stripPrefix "$topdir" xs of
@@ -360,9 +351,8 @@ initSysTools mbMinusB
                     sOpt_l       = [],
                     sOpt_windres = [],
                     sOpt_lo      = [],
-                    sOpt_lc      = [],
-                    sPlatformConstants = platformConstants
-             }
+                    sOpt_lc      = []
+                    }
 
 -- returns a Unix-format path (relying on getBaseDir to do so too)
 findTopDir :: Maybe String -- Maybe TopDir path (without the '-B' prefix).

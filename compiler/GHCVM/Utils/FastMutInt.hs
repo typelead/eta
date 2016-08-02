@@ -15,11 +15,8 @@ module GHCVM.Utils.FastMutInt(
         readFastMutPtr, writeFastMutPtr
   ) where
 
-
-#include "../includes/MachDeps.h"
-#ifndef SIZEOF_HSINT
-#define SIZEOF_HSINT  INT_SIZE_IN_BYTES
-#endif
+#define SIZEOF_HSINT   4
+#define SIZEOF_VOID_P  4
 
 import GHC.Base
 import GHC.Ptr

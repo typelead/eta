@@ -23,7 +23,7 @@ module GHCVM.Profiling.SCCfinal ( stgMassageForProfiling ) where
 
 import GHCVM.StgSyn.StgSyn
 
-import GHCVM.Profilinf.CostCentre       -- lots of things
+import GHCVM.Profiling.CostCentre       -- lots of things
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.Module

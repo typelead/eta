@@ -8,8 +8,7 @@
 
 module GHCVM.Profiling.ProfInit (profilingInitCode) where
 
-import CLabel
-import GHCVM.Profilinf.CostCentre
+import GHCVM.Profiling.CostCentre
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString

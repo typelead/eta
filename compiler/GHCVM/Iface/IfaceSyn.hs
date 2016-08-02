@@ -40,9 +40,9 @@ import GHCVM.Types.Class
 import GHCVM.BasicTypes.NameSet
 import GHCVM.Types.CoAxiom ( BranchIndex, Role )
 import GHCVM.BasicTypes.Name
-import GHCVM.Profilinf.CostCentre
+import GHCVM.Profiling.CostCentre
 import GHCVM.BasicTypes.Literal
-import ForeignCall
+import GHCVM.Prelude.ForeignCall
 import GHCVM.Main.Annotations( AnnPayload, AnnTarget )
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Utils.Outputable

@@ -8,7 +8,7 @@ Author: Juan J. Quintela    <quintela@krilin.dc.fi.udc.es>
 module GHCVM.DeSugar.Check ( check , ExhaustivePat ) where
 
 import GHCVM.HsSyn.HsSyn
-import GHCVM.TypeCheck.TchsSyn
+import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.DeSugar.DsUtils
 import GHCVM.DeSugar.MatchLit
 import GHCVM.BasicTypes.Id

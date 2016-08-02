@@ -14,7 +14,6 @@ import GHCVM.BasicTypes.Module
 
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
-import GHCVM.CodeGen.Object
 import GHCVM.Primitive
 
 import Codec.JVM

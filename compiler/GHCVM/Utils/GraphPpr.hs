@@ -1,13 +1,13 @@
 
 -- | Pretty printing of graphs.
 
-module GraphPpr (
+module GHCVM.Utils.GraphPpr (
         dumpGraph,
         dotGraph
 )
 where
 
-import GHCVMUtils.GraphBase
+import GHCVM.Utils.GraphBase
 
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.Unique

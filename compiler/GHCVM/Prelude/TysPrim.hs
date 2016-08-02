@@ -74,7 +74,37 @@ module GHCVM.Prelude.TysPrim(
         anyTy, anyTyCon, anyTypeOfKind,
 
         -- * SIMD
-#include "primop-vector-tys-exports.hs-incl"
+        -- TODO: Currently vector operations are disabled in GHCVM
+        -- int8X16PrimTy, int8X16PrimTyCon,
+        -- int16X8PrimTy, int16X8PrimTyCon,
+        -- int32X4PrimTy, int32X4PrimTyCon,
+        -- int64X2PrimTy, int64X2PrimTyCon,
+        -- int8X32PrimTy, int8X32PrimTyCon,
+        -- int16X16PrimTy, int16X16PrimTyCon,
+        -- int32X8PrimTy, int32X8PrimTyCon,
+        -- int64X4PrimTy, int64X4PrimTyCon,
+        -- int8X64PrimTy, int8X64PrimTyCon,
+        -- int16X32PrimTy, int16X32PrimTyCon,
+        -- int32X16PrimTy, int32X16PrimTyCon,
+        -- int64X8PrimTy, int64X8PrimTyCon,
+        -- word8X16PrimTy, word8X16PrimTyCon,
+        -- word16X8PrimTy, word16X8PrimTyCon,
+        -- word32X4PrimTy, word32X4PrimTyCon,
+        -- word64X2PrimTy, word64X2PrimTyCon,
+        -- word8X32PrimTy, word8X32PrimTyCon,
+        -- word16X16PrimTy, word16X16PrimTyCon,
+        -- word32X8PrimTy, word32X8PrimTyCon,
+        -- word64X4PrimTy, word64X4PrimTyCon,
+        -- word8X64PrimTy, word8X64PrimTyCon,
+        -- word16X32PrimTy, word16X32PrimTyCon,
+        -- word32X16PrimTy, word32X16PrimTyCon,
+        -- word64X8PrimTy, word64X8PrimTyCon,
+        -- floatX4PrimTy, floatX4PrimTyCon,
+        -- doubleX2PrimTy, doubleX2PrimTyCon,
+        -- floatX8PrimTy, floatX8PrimTyCon,
+        -- doubleX4PrimTy, doubleX4PrimTyCon,
+        -- floatX16PrimTy, floatX16PrimTyCon,
+        -- doubleX8PrimTy, doubleX8PrimTyCon,
   ) where
 
 #include "HsVersions.h"
@@ -142,7 +172,37 @@ primTyCons
     , superKindTyCon
     , anyKindTyCon
 
-#include "primop-vector-tycons.hs-incl"
+    -- TODO: Vector operations disabled in GHCVM
+    -- , int8X16PrimTyCon
+    -- , int16X8PrimTyCon
+    -- , int32X4PrimTyCon
+    -- , int64X2PrimTyCon
+    -- , int8X32PrimTyCon
+    -- , int16X16PrimTyCon
+    -- , int32X8PrimTyCon
+    -- , int64X4PrimTyCon
+    -- , int8X64PrimTyCon
+    -- , int16X32PrimTyCon
+    -- , int32X16PrimTyCon
+    -- , int64X8PrimTyCon
+    -- , word8X16PrimTyCon
+    -- , word16X8PrimTyCon
+    -- , word32X4PrimTyCon
+    -- , word64X2PrimTyCon
+    -- , word8X32PrimTyCon
+    -- , word16X16PrimTyCon
+    -- , word32X8PrimTyCon
+    -- , word64X4PrimTyCon
+    -- , word8X64PrimTyCon
+    -- , word16X32PrimTyCon
+    -- , word32X16PrimTyCon
+    -- , word64X8PrimTyCon
+    -- , floatX4PrimTyCon
+    -- , doubleX2PrimTyCon
+    -- , floatX8PrimTyCon
+    -- , doubleX4PrimTyCon
+    -- , floatX16PrimTyCon
+    -- , doubleX8PrimTyCon
     ]
 
 mkPrimTc :: FastString -> Unique -> TyCon -> Name
@@ -780,8 +840,188 @@ anyTypeOfKind kind = TyConApp anyTyCon [kind]
 ************************************************************************
 *                                                                      *
 \subsection{SIMD vector types}
+TODO: Vector operations disabled in GHCVM
 *                                                                      *
 ************************************************************************
 -}
 
-#include "primop-vector-tys.hs-incl"
+-- int8X16PrimTyConName :: Name
+-- int8X16PrimTyConName = mkPrimTc (fsLit "Int8X16#") int8X16PrimTyConKey int8X16PrimTyCon
+-- int8X16PrimTy :: Type
+-- int8X16PrimTy = mkTyConTy int8X16PrimTyCon
+-- int8X16PrimTyCon :: TyCon
+-- int8X16PrimTyCon = pcPrimTyCon0 int8X16PrimTyConName (VecRep 16 Int8ElemRep)
+-- int16X8PrimTyConName :: Name
+-- int16X8PrimTyConName = mkPrimTc (fsLit "Int16X8#") int16X8PrimTyConKey int16X8PrimTyCon
+-- int16X8PrimTy :: Type
+-- int16X8PrimTy = mkTyConTy int16X8PrimTyCon
+-- int16X8PrimTyCon :: TyCon
+-- int16X8PrimTyCon = pcPrimTyCon0 int16X8PrimTyConName (VecRep 8 Int16ElemRep)
+-- int32X4PrimTyConName :: Name
+-- int32X4PrimTyConName = mkPrimTc (fsLit "Int32X4#") int32X4PrimTyConKey int32X4PrimTyCon
+-- int32X4PrimTy :: Type
+-- int32X4PrimTy = mkTyConTy int32X4PrimTyCon
+-- int32X4PrimTyCon :: TyCon
+-- int32X4PrimTyCon = pcPrimTyCon0 int32X4PrimTyConName (VecRep 4 Int32ElemRep)
+-- int64X2PrimTyConName :: Name
+-- int64X2PrimTyConName = mkPrimTc (fsLit "Int64X2#") int64X2PrimTyConKey int64X2PrimTyCon
+-- int64X2PrimTy :: Type
+-- int64X2PrimTy = mkTyConTy int64X2PrimTyCon
+-- int64X2PrimTyCon :: TyCon
+-- int64X2PrimTyCon = pcPrimTyCon0 int64X2PrimTyConName (VecRep 2 Int64ElemRep)
+-- int8X32PrimTyConName :: Name
+-- int8X32PrimTyConName = mkPrimTc (fsLit "Int8X32#") int8X32PrimTyConKey int8X32PrimTyCon
+-- int8X32PrimTy :: Type
+-- int8X32PrimTy = mkTyConTy int8X32PrimTyCon
+-- int8X32PrimTyCon :: TyCon
+-- int8X32PrimTyCon = pcPrimTyCon0 int8X32PrimTyConName (VecRep 32 Int8ElemRep)
+-- int16X16PrimTyConName :: Name
+-- int16X16PrimTyConName = mkPrimTc (fsLit "Int16X16#") int16X16PrimTyConKey int16X16PrimTyCon
+-- int16X16PrimTy :: Type
+-- int16X16PrimTy = mkTyConTy int16X16PrimTyCon
+-- int16X16PrimTyCon :: TyCon
+-- int16X16PrimTyCon = pcPrimTyCon0 int16X16PrimTyConName (VecRep 16 Int16ElemRep)
+-- int32X8PrimTyConName :: Name
+-- int32X8PrimTyConName = mkPrimTc (fsLit "Int32X8#") int32X8PrimTyConKey int32X8PrimTyCon
+-- int32X8PrimTy :: Type
+-- int32X8PrimTy = mkTyConTy int32X8PrimTyCon
+-- int32X8PrimTyCon :: TyCon
+-- int32X8PrimTyCon = pcPrimTyCon0 int32X8PrimTyConName (VecRep 8 Int32ElemRep)
+-- int64X4PrimTyConName :: Name
+-- int64X4PrimTyConName = mkPrimTc (fsLit "Int64X4#") int64X4PrimTyConKey int64X4PrimTyCon
+-- int64X4PrimTy :: Type
+-- int64X4PrimTy = mkTyConTy int64X4PrimTyCon
+-- int64X4PrimTyCon :: TyCon
+-- int64X4PrimTyCon = pcPrimTyCon0 int64X4PrimTyConName (VecRep 4 Int64ElemRep)
+-- int8X64PrimTyConName :: Name
+-- int8X64PrimTyConName = mkPrimTc (fsLit "Int8X64#") int8X64PrimTyConKey int8X64PrimTyCon
+-- int8X64PrimTy :: Type
+-- int8X64PrimTy = mkTyConTy int8X64PrimTyCon
+-- int8X64PrimTyCon :: TyCon
+-- int8X64PrimTyCon = pcPrimTyCon0 int8X64PrimTyConName (VecRep 64 Int8ElemRep)
+-- int16X32PrimTyConName :: Name
+-- int16X32PrimTyConName = mkPrimTc (fsLit "Int16X32#") int16X32PrimTyConKey int16X32PrimTyCon
+-- int16X32PrimTy :: Type
+-- int16X32PrimTy = mkTyConTy int16X32PrimTyCon
+-- int16X32PrimTyCon :: TyCon
+-- int16X32PrimTyCon = pcPrimTyCon0 int16X32PrimTyConName (VecRep 32 Int16ElemRep)
+-- int32X16PrimTyConName :: Name
+-- int32X16PrimTyConName = mkPrimTc (fsLit "Int32X16#") int32X16PrimTyConKey int32X16PrimTyCon
+-- int32X16PrimTy :: Type
+-- int32X16PrimTy = mkTyConTy int32X16PrimTyCon
+-- int32X16PrimTyCon :: TyCon
+-- int32X16PrimTyCon = pcPrimTyCon0 int32X16PrimTyConName (VecRep 16 Int32ElemRep)
+-- int64X8PrimTyConName :: Name
+-- int64X8PrimTyConName = mkPrimTc (fsLit "Int64X8#") int64X8PrimTyConKey int64X8PrimTyCon
+-- int64X8PrimTy :: Type
+-- int64X8PrimTy = mkTyConTy int64X8PrimTyCon
+-- int64X8PrimTyCon :: TyCon
+-- int64X8PrimTyCon = pcPrimTyCon0 int64X8PrimTyConName (VecRep 8 Int64ElemRep)
+-- word8X16PrimTyConName :: Name
+-- word8X16PrimTyConName = mkPrimTc (fsLit "Word8X16#") word8X16PrimTyConKey word8X16PrimTyCon
+-- word8X16PrimTy :: Type
+-- word8X16PrimTy = mkTyConTy word8X16PrimTyCon
+-- word8X16PrimTyCon :: TyCon
+-- word8X16PrimTyCon = pcPrimTyCon0 word8X16PrimTyConName (VecRep 16 Word8ElemRep)
+-- word16X8PrimTyConName :: Name
+-- word16X8PrimTyConName = mkPrimTc (fsLit "Word16X8#") word16X8PrimTyConKey word16X8PrimTyCon
+-- word16X8PrimTy :: Type
+-- word16X8PrimTy = mkTyConTy word16X8PrimTyCon
+-- word16X8PrimTyCon :: TyCon
+-- word16X8PrimTyCon = pcPrimTyCon0 word16X8PrimTyConName (VecRep 8 Word16ElemRep)
+-- word32X4PrimTyConName :: Name
+-- word32X4PrimTyConName = mkPrimTc (fsLit "Word32X4#") word32X4PrimTyConKey word32X4PrimTyCon
+-- word32X4PrimTy :: Type
+-- word32X4PrimTy = mkTyConTy word32X4PrimTyCon
+-- word32X4PrimTyCon :: TyCon
+-- word32X4PrimTyCon = pcPrimTyCon0 word32X4PrimTyConName (VecRep 4 Word32ElemRep)
+-- word64X2PrimTyConName :: Name
+-- word64X2PrimTyConName = mkPrimTc (fsLit "Word64X2#") word64X2PrimTyConKey word64X2PrimTyCon
+-- word64X2PrimTy :: Type
+-- word64X2PrimTy = mkTyConTy word64X2PrimTyCon
+-- word64X2PrimTyCon :: TyCon
+-- word64X2PrimTyCon = pcPrimTyCon0 word64X2PrimTyConName (VecRep 2 Word64ElemRep)
+-- word8X32PrimTyConName :: Name
+-- word8X32PrimTyConName = mkPrimTc (fsLit "Word8X32#") word8X32PrimTyConKey word8X32PrimTyCon
+-- word8X32PrimTy :: Type
+-- word8X32PrimTy = mkTyConTy word8X32PrimTyCon
+-- word8X32PrimTyCon :: TyCon
+-- word8X32PrimTyCon = pcPrimTyCon0 word8X32PrimTyConName (VecRep 32 Word8ElemRep)
+-- word16X16PrimTyConName :: Name
+-- word16X16PrimTyConName = mkPrimTc (fsLit "Word16X16#") word16X16PrimTyConKey word16X16PrimTyCon
+-- word16X16PrimTy :: Type
+-- word16X16PrimTy = mkTyConTy word16X16PrimTyCon
+-- word16X16PrimTyCon :: TyCon
+-- word16X16PrimTyCon = pcPrimTyCon0 word16X16PrimTyConName (VecRep 16 Word16ElemRep)
+-- word32X8PrimTyConName :: Name
+-- word32X8PrimTyConName = mkPrimTc (fsLit "Word32X8#") word32X8PrimTyConKey word32X8PrimTyCon
+-- word32X8PrimTy :: Type
+-- word32X8PrimTy = mkTyConTy word32X8PrimTyCon
+-- word32X8PrimTyCon :: TyCon
+-- word32X8PrimTyCon = pcPrimTyCon0 word32X8PrimTyConName (VecRep 8 Word32ElemRep)
+-- word64X4PrimTyConName :: Name
+-- word64X4PrimTyConName = mkPrimTc (fsLit "Word64X4#") word64X4PrimTyConKey word64X4PrimTyCon
+-- word64X4PrimTy :: Type
+-- word64X4PrimTy = mkTyConTy word64X4PrimTyCon
+-- word64X4PrimTyCon :: TyCon
+-- word64X4PrimTyCon = pcPrimTyCon0 word64X4PrimTyConName (VecRep 4 Word64ElemRep)
+-- word8X64PrimTyConName :: Name
+-- word8X64PrimTyConName = mkPrimTc (fsLit "Word8X64#") word8X64PrimTyConKey word8X64PrimTyCon
+-- word8X64PrimTy :: Type
+-- word8X64PrimTy = mkTyConTy word8X64PrimTyCon
+-- word8X64PrimTyCon :: TyCon
+-- word8X64PrimTyCon = pcPrimTyCon0 word8X64PrimTyConName (VecRep 64 Word8ElemRep)
+-- word16X32PrimTyConName :: Name
+-- word16X32PrimTyConName = mkPrimTc (fsLit "Word16X32#") word16X32PrimTyConKey word16X32PrimTyCon
+-- word16X32PrimTy :: Type
+-- word16X32PrimTy = mkTyConTy word16X32PrimTyCon
+-- word16X32PrimTyCon :: TyCon
+-- word16X32PrimTyCon = pcPrimTyCon0 word16X32PrimTyConName (VecRep 32 Word16ElemRep)
+-- word32X16PrimTyConName :: Name
+-- word32X16PrimTyConName = mkPrimTc (fsLit "Word32X16#") word32X16PrimTyConKey word32X16PrimTyCon
+-- word32X16PrimTy :: Type
+-- word32X16PrimTy = mkTyConTy word32X16PrimTyCon
+-- word32X16PrimTyCon :: TyCon
+-- word32X16PrimTyCon = pcPrimTyCon0 word32X16PrimTyConName (VecRep 16 Word32ElemRep)
+-- word64X8PrimTyConName :: Name
+-- word64X8PrimTyConName = mkPrimTc (fsLit "Word64X8#") word64X8PrimTyConKey word64X8PrimTyCon
+-- word64X8PrimTy :: Type
+-- word64X8PrimTy = mkTyConTy word64X8PrimTyCon
+-- word64X8PrimTyCon :: TyCon
+-- word64X8PrimTyCon = pcPrimTyCon0 word64X8PrimTyConName (VecRep 8 Word64ElemRep)
+-- floatX4PrimTyConName :: Name
+-- floatX4PrimTyConName = mkPrimTc (fsLit "FloatX4#") floatX4PrimTyConKey floatX4PrimTyCon
+-- floatX4PrimTy :: Type
+-- floatX4PrimTy = mkTyConTy floatX4PrimTyCon
+-- floatX4PrimTyCon :: TyCon
+-- floatX4PrimTyCon = pcPrimTyCon0 floatX4PrimTyConName (VecRep 4 FloatElemRep)
+-- doubleX2PrimTyConName :: Name
+-- doubleX2PrimTyConName = mkPrimTc (fsLit "DoubleX2#") doubleX2PrimTyConKey doubleX2PrimTyCon
+-- doubleX2PrimTy :: Type
+-- doubleX2PrimTy = mkTyConTy doubleX2PrimTyCon
+-- doubleX2PrimTyCon :: TyCon
+-- doubleX2PrimTyCon = pcPrimTyCon0 doubleX2PrimTyConName (VecRep 2 DoubleElemRep)
+-- floatX8PrimTyConName :: Name
+-- floatX8PrimTyConName = mkPrimTc (fsLit "FloatX8#") floatX8PrimTyConKey floatX8PrimTyCon
+-- floatX8PrimTy :: Type
+-- floatX8PrimTy = mkTyConTy floatX8PrimTyCon
+-- floatX8PrimTyCon :: TyCon
+-- floatX8PrimTyCon = pcPrimTyCon0 floatX8PrimTyConName (VecRep 8 FloatElemRep)
+-- doubleX4PrimTyConName :: Name
+-- doubleX4PrimTyConName = mkPrimTc (fsLit "DoubleX4#") doubleX4PrimTyConKey doubleX4PrimTyCon
+-- doubleX4PrimTy :: Type
+-- doubleX4PrimTy = mkTyConTy doubleX4PrimTyCon
+-- doubleX4PrimTyCon :: TyCon
+-- doubleX4PrimTyCon = pcPrimTyCon0 doubleX4PrimTyConName (VecRep 4 DoubleElemRep)
+-- floatX16PrimTyConName :: Name
+-- floatX16PrimTyConName = mkPrimTc (fsLit "FloatX16#") floatX16PrimTyConKey floatX16PrimTyCon
+-- floatX16PrimTy :: Type
+-- floatX16PrimTy = mkTyConTy floatX16PrimTyCon
+-- floatX16PrimTyCon :: TyCon
+-- floatX16PrimTyCon = pcPrimTyCon0 floatX16PrimTyConName (VecRep 16 FloatElemRep)
+-- doubleX8PrimTyConName :: Name
+-- doubleX8PrimTyConName = mkPrimTc (fsLit "DoubleX8#") doubleX8PrimTyConKey doubleX8PrimTyCon
+-- doubleX8PrimTy :: Type
+-- doubleX8PrimTy = mkTyConTy doubleX8PrimTyCon
+-- doubleX8PrimTyCon :: TyCon
+-- doubleX8PrimTyCon = pcPrimTyCon0 doubleX8PrimTyConName (VecRep 8 DoubleElemRep)

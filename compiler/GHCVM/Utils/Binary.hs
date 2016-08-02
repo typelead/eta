@@ -59,9 +59,6 @@ module GHCVM.Utils.Binary
 
 #include "HsVersions.h"
 
--- The *host* architecture version:
-#include "../includes/MachDeps.h"
-
 import {-# SOURCE #-} GHCVM.BasicTypes.Name (Name)
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Panic

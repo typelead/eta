@@ -43,7 +43,7 @@ import Control.Applicative (Applicative(..))
 import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified FiniteMap as Map
+import qualified GHCVM.Utils.FiniteMap as Map
 
 {-
 ************************************************************************

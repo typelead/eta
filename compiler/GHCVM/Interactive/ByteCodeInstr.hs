@@ -10,11 +10,9 @@ module GHCVM.Interactive.ByteCodeInstr (
   ) where
 
 #include "HsVersions.h"
-#include "../includes/MachDeps.h"
 
-import GHCVM.Interative.ByteCodeItbls    ( ItblPtr )
+import GHCVM.Interactive.ByteCodeItbls    ( ItblPtr )
 
-import StgCmmLayout     ( ArgRep(..) )
 import GHCVM.Core.PprCore
 import GHCVM.Types.Type
 import GHCVM.Utils.Outputable
@@ -24,9 +22,9 @@ import GHCVM.BasicTypes.Id
 import GHCVM.Core.CoreSyn
 import GHCVM.BasicTypes.Literal
 import GHCVM.BasicTypes.DataCon
-import GHCVM.BasicTypes.Var.BasicTypes.VarSet
+import GHCVM.BasicTypes.Var
+import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrimOp
-import SMRep
 
 import GHCVM.BasicTypes.Module (Module)
 import GHC.Exts

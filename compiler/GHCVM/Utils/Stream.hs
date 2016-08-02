@@ -9,13 +9,12 @@
 module GHCVM.Utils.Stream (
     Stream(..), yield, liftIO,
     collect, fromList,
-    Stream.map, Stream.mapM, Stream.mapAccumL
+    GHCVM.Utils.Stream.map,
+    GHCVM.Utils.Stream.mapM,
+    GHCVM.Utils.Stream.mapAccumL
   ) where
-import Control.Monad
-#if __GLASGOW_HASKELL__ < 709
-import Control.Applicative
-#endif
 
+import Control.Monad
 
 -- |
 -- @Stream m a b@ is a computation in some Monad @m@ that delivers a sequence
@@ -84,7 +83,7 @@ map f str = Stream $ do
    r <- runStream str
    case r of
      Left x -> return (Left x)
-     Right (a, str') -> return (Right (f a, Stream.map f str'))
+     Right (a, str') -> return (Right (f a, GHCVM.Utils.Stream.map f str'))
 
 -- | Apply a monadic operation to each element of a 'Stream', lazily
 mapM :: Monad m => (a -> m b) -> Stream m a x -> Stream m b x
@@ -94,7 +93,7 @@ mapM f str = Stream $ do
      Left x -> return (Left x)
      Right (a, str') -> do
         b <- f a
-        return (Right (b, Stream.mapM f str'))
+        return (Right (b, GHCVM.Utils.Stream.mapM f str'))
 
 -- | analog of the list-based 'mapAccumL' on Streams.  This is a simple
 -- way to map over a Stream while carrying some state around.

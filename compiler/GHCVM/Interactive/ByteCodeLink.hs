@@ -18,7 +18,7 @@ module GHCVM.Interactive.ByteCodeLink (
 
 #include "HsVersions.h"
 
-import GHCVM.Interative.ByteCodeItbls
+import GHCVM.Interactive.ByteCodeItbls
 import GHCVM.Interactive.ByteCodeAsm
 import GHCVM.Interactive.ObjLink
 
