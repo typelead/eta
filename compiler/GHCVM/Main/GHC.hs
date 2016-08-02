@@ -461,45 +461,11 @@ initGhcMonad mb_top_dir
                    ; initStaticOpts
                    ; mySettings <- initSysTools mb_top_dir
                    ; dflags <- initDynFlags (defaultDynFlags mySettings)
-                   ; checkBrokenTablesNextToCode dflags
                    ; setUnsafeGlobalDynFlags dflags
                       -- c.f. DynFlags.parseDynamicFlagsFull, which
                       -- creates DynFlags and sets the UnsafeGlobalDynFlags
                    ; newHscEnv dflags }
        ; setSession env }
-
--- | The binutils linker on ARM emits unnecessary R_ARM_COPY relocations which
--- breaks tables-next-to-code in dynamically linked modules. This
--- check should be more selective but there is currently no released
--- version where this bug is fixed.
--- See https://sourceware.org/bugzilla/show_bug.cgi?id=16177 and
--- https://ghc.haskell.org/trac/ghc/ticket/4210#comment:29
-checkBrokenTablesNextToCode :: MonadIO m => DynFlags -> m ()
-checkBrokenTablesNextToCode dflags
-  = do { broken <- checkBrokenTablesNextToCode' dflags
-       ; when broken
-         $ do { _ <- liftIO $ throwIO $ mkApiErr dflags invalidLdErr
-              ; fail "unsupported linker"
-              }
-       }
-  where
-    invalidLdErr = text "Tables-next-to-code not supported on ARM" <+>
-                   text "when using binutils ld (please see:" <+>
-                   text "https://sourceware.org/bugzilla/show_bug.cgi?id=16177)"
-
-checkBrokenTablesNextToCode' :: MonadIO m => DynFlags -> m Bool
-checkBrokenTablesNextToCode' dflags
-  | not (isARM arch)              = return False
-  | WayDyn `notElem` ways dflags  = return False
-  | not (tablesNextToCode dflags) = return False
-  | otherwise                     = do
-    linkerInfo <- liftIO $ getLinkerInfo dflags
-    case linkerInfo of
-      GnuLD _  -> return True
-      _        -> return False
-  where platform = targetPlatform dflags
-        arch = platformArch platform
-
 
 -- %************************************************************************
 -- %*                                                                      *

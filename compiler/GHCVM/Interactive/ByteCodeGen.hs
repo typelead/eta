@@ -12,7 +12,6 @@ import GHCVM.Interactive.ByteCodeInstr
 import GHCVM.Interactive.ByteCodeItbls
 import GHCVM.Interactive.ByteCodeAsm
 import GHCVM.Interactive.ByteCodeLink
-import GHCVM.Interactive.LibFFI
 
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Outputable
@@ -1061,7 +1060,7 @@ generateCCall d0 s p (CCallSpec target cconv safety) fn args_r_to_l
      -- the only difference in libffi mode is that we prepare a cif
      -- describing the call type by calling libffi, and we attach the
      -- address of this to the CCALL instruction.
-     token <- ioToBc $ prepForeignCall dflags cconv a_reps r_rep
+     token <- ioToBc $ error "ByteCodeGen: unimplemented" --prepForeignCall dflags cconv a_reps r_rep
      let addr_of_marshaller = castPtrToFunPtr token
 
      recordItblMallocBc (ItblPtr (castFunPtrToPtr addr_of_marshaller))

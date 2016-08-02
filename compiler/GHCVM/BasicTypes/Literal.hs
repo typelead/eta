@@ -27,7 +27,8 @@ module GHCVM.BasicTypes.Literal
 
         -- ** Predicates on Literals and their contents
         , litIsDupable, litIsTrivial, litIsLifted
-        , inIntRange, inWordRange, tARGET_MAX_INT, inCharRange
+        , inIntRange, inWordRange, inCharRange
+        , maxInt, minInt, maxWord, maxChar
         , isZeroLit
         , litFitsInChar
 
@@ -254,11 +255,13 @@ mkLitInteger :: Integer -> Type -> Literal
 mkLitInteger = LitInteger
 
 inIntRange, inWordRange :: DynFlags -> Integer -> Bool
-inIntRange  dflags x = x >= tARGET_MIN_INT dflags && x <= tARGET_MAX_INT dflags
-inWordRange dflags x = x >= 0                     && x <= tARGET_MAX_WORD dflags
+inIntRange  dflags x = x >= minInt
+                    && x <= maxInt
+inWordRange dflags x = x >= 0 && x <= maxWord
 
 inCharRange :: Char -> Bool
-inCharRange c =  c >= '\0' && c <= chr tARGET_MAX_CHAR
+inCharRange c =  c >= '\0' && c <= chr maxChar
+  -- TODO: Is this correct?
 
 -- | Tests whether the literal represents a zero of whatever type it is
 isZeroLit :: Literal -> Bool
@@ -284,12 +287,12 @@ narrow8IntLit, narrow16IntLit, narrow32IntLit,
 
 word2IntLit, int2WordLit :: DynFlags -> Literal -> Literal
 word2IntLit dflags (MachWord w)
-  | w > tARGET_MAX_INT dflags = MachInt (w - tARGET_MAX_WORD dflags - 1)
+  | w > maxInt = MachInt (w - maxWord - 1)
   | otherwise                 = MachInt w
 word2IntLit _ l = pprPanic "word2IntLit" (ppr l)
 
 int2WordLit dflags (MachInt i)
-  | i < 0     = MachWord (1 + tARGET_MAX_WORD dflags + i)      -- (-1)  --->  tARGET_MAX_WORD
+  | i < 0     = MachWord (1 + maxWord + i)      -- (-1)  --->  tARGET_MAX_WORD
   | otherwise = MachWord i
 int2WordLit _ l = pprPanic "int2WordLit" (ppr l)
 
@@ -491,3 +494,11 @@ hashInteger i = 1 + abs (fromInteger (i `rem` 10000))
 
 hashFS :: FastString -> Int
 hashFS s = iBox (uniqueOfFS s)
+
+maxInt, minInt, maxWord :: Integer
+minInt = toInteger (minBound :: Int32)
+maxInt = toInteger (maxBound :: Int32)
+maxWord = toInteger (maxBound :: Word32)
+
+maxChar :: Int
+maxChar = fromIntegral (maxBound :: Word32)

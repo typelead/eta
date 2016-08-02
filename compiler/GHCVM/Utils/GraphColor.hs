@@ -4,9 +4,9 @@
 --
 
 module GHCVM.Utils.GraphColor (
-        module GraphBase,
-        module GraphOps,
-        module GraphPpr,
+        module GHCVM.Utils.GraphBase,
+        module GHCVM.Utils.GraphOps,
+        module GHCVM.Utils.GraphPpr,
         colorGraph
 )
 

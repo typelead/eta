@@ -953,11 +953,7 @@ integerTyConName, mkIntegerName, integerSDataConName,
     andIntegerName, orIntegerName, xorIntegerName, complementIntegerName,
     shiftLIntegerName, shiftRIntegerName :: Name
 integerTyConName      = tcQual  gHC_INTEGER_TYPE (fsLit "Integer")           integerTyConKey
-integerSDataConName   = conName gHC_INTEGER_TYPE (fsLit n)                   integerSDataConKey
-  where n = case cIntegerLibraryType of
-            IntegerGMP    -> "S#"
-            IntegerGMP2   -> "S#"
-            IntegerSimple -> panic "integerSDataConName evaluated for integer-simple"
+integerSDataConName   = conName gHC_INTEGER_TYPE (fsLit "S#")                   integerSDataConKey
 mkIntegerName         = varQual gHC_INTEGER_TYPE (fsLit "mkInteger")         mkIntegerIdKey
 integerToWord64Name   = varQual gHC_INTEGER_TYPE (fsLit "integerToWord64")   integerToWord64IdKey
 integerToInt64Name    = varQual gHC_INTEGER_TYPE (fsLit "integerToInt64")    integerToInt64IdKey
@@ -1564,7 +1560,66 @@ callStackTyConKey = mkPreludeTyConUnique 182
 --      USES TyConUniques 300-399
 -----------------------------------------------------
 
-#include "primop-vector-uniques.hs-incl"
+-- int8X16PrimTyConKey :: Unique
+-- int8X16PrimTyConKey = mkPreludeTyConUnique 300
+-- int16X8PrimTyConKey :: Unique
+-- int16X8PrimTyConKey = mkPreludeTyConUnique 301
+-- int32X4PrimTyConKey :: Unique
+-- int32X4PrimTyConKey = mkPreludeTyConUnique 302
+-- int64X2PrimTyConKey :: Unique
+-- int64X2PrimTyConKey = mkPreludeTyConUnique 303
+-- int8X32PrimTyConKey :: Unique
+-- int8X32PrimTyConKey = mkPreludeTyConUnique 304
+-- int16X16PrimTyConKey :: Unique
+-- int16X16PrimTyConKey = mkPreludeTyConUnique 305
+-- int32X8PrimTyConKey :: Unique
+-- int32X8PrimTyConKey = mkPreludeTyConUnique 306
+-- int64X4PrimTyConKey :: Unique
+-- int64X4PrimTyConKey = mkPreludeTyConUnique 307
+-- int8X64PrimTyConKey :: Unique
+-- int8X64PrimTyConKey = mkPreludeTyConUnique 308
+-- int16X32PrimTyConKey :: Unique
+-- int16X32PrimTyConKey = mkPreludeTyConUnique 309
+-- int32X16PrimTyConKey :: Unique
+-- int32X16PrimTyConKey = mkPreludeTyConUnique 310
+-- int64X8PrimTyConKey :: Unique
+-- int64X8PrimTyConKey = mkPreludeTyConUnique 311
+-- word8X16PrimTyConKey :: Unique
+-- word8X16PrimTyConKey = mkPreludeTyConUnique 312
+-- word16X8PrimTyConKey :: Unique
+-- word16X8PrimTyConKey = mkPreludeTyConUnique 313
+-- word32X4PrimTyConKey :: Unique
+-- word32X4PrimTyConKey = mkPreludeTyConUnique 314
+-- word64X2PrimTyConKey :: Unique
+-- word64X2PrimTyConKey = mkPreludeTyConUnique 315
+-- word8X32PrimTyConKey :: Unique
+-- word8X32PrimTyConKey = mkPreludeTyConUnique 316
+-- word16X16PrimTyConKey :: Unique
+-- word16X16PrimTyConKey = mkPreludeTyConUnique 317
+-- word32X8PrimTyConKey :: Unique
+-- word32X8PrimTyConKey = mkPreludeTyConUnique 318
+-- word64X4PrimTyConKey :: Unique
+-- word64X4PrimTyConKey = mkPreludeTyConUnique 319
+-- word8X64PrimTyConKey :: Unique
+-- word8X64PrimTyConKey = mkPreludeTyConUnique 320
+-- word16X32PrimTyConKey :: Unique
+-- word16X32PrimTyConKey = mkPreludeTyConUnique 321
+-- word32X16PrimTyConKey :: Unique
+-- word32X16PrimTyConKey = mkPreludeTyConUnique 322
+-- word64X8PrimTyConKey :: Unique
+-- word64X8PrimTyConKey = mkPreludeTyConUnique 323
+-- floatX4PrimTyConKey :: Unique
+-- floatX4PrimTyConKey = mkPreludeTyConUnique 324
+-- doubleX2PrimTyConKey :: Unique
+-- doubleX2PrimTyConKey = mkPreludeTyConUnique 325
+-- floatX8PrimTyConKey :: Unique
+-- floatX8PrimTyConKey = mkPreludeTyConUnique 326
+-- doubleX4PrimTyConKey :: Unique
+-- doubleX4PrimTyConKey = mkPreludeTyConUnique 327
+-- floatX16PrimTyConKey :: Unique
+-- floatX16PrimTyConKey = mkPreludeTyConUnique 328
+-- doubleX8PrimTyConKey :: Unique
+-- doubleX8PrimTyConKey = mkPreludeTyConUnique 329
 
 unitTyConKey :: Unique
 unitTyConKey = mkTupleTyConUnique BoxedTuple 0

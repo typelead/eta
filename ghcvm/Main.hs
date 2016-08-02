@@ -423,11 +423,6 @@ showGhcUsageMode = mkPreLoadMode ShowGhcUsage
 showGhciUsageMode = mkPreLoadMode ShowGhciUsage
 showInfoMode = mkPreLoadMode ShowInfo
 
-printSetting :: String -> Mode
-printSetting k = mkPreLoadMode (PrintWithDynFlags f)
-    where f dflags = fromMaybe (panic ("Setting not found: " ++ show k))
-                   $ lookup k (compilerInfo dflags)
-
 mkPreLoadMode :: PreLoadMode -> Mode
 mkPreLoadMode = Right . Left
 
@@ -551,32 +546,6 @@ modeFlags =
   , defFlag "-supported-languages"  (PassFlag (setMode showSupportedExtensionsMode))
   , defFlag "-supported-extensions" (PassFlag (setMode showSupportedExtensionsMode))
   , defFlag "-show-packages"        (PassFlag (setMode showPackagesMode))
-  ] ++
-  [ defFlag k'                      (PassFlag (setMode (printSetting k)))
-  | k <- ["Project version",
-          "Project Git commit id",
-          "Booter version",
-          "Stage",
-          "Build platform",
-          "Host platform",
-          "Target platform",
-          "Have interpreter",
-          "Object splitting supported",
-          "Have native code generator",
-          "Support SMP",
-          "Unregisterised",
-          "Tables next to code",
-          "RTS ways",
-          "Leading underscore",
-          "Debug on",
-          "LibDir",
-          "Global Package DB",
-          "C compiler flags",
-          "Gcc Linker flags",
-          "Ld Linker flags"],
-    let k' = "-print-" ++ map (replaceSpace . toLower) k
-        replaceSpace ' ' = '-'
-        replaceSpace c   = c
   ] ++
       ------- interfaces ----------------------------------------------------
   [ defFlag "-show-iface"  (HasArg (\f -> setMode (showInterfaceMode f)

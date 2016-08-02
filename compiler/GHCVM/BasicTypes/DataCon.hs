@@ -5,7 +5,7 @@
 \section[DataCon]{@DataCon@: Data Constructors}
 -}
 
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 
 module GHCVM.BasicTypes.DataCon (
         -- * Main data types
@@ -44,6 +44,8 @@ module GHCVM.BasicTypes.DataCon (
         -- ** Promotion related functions
         promoteKind, promoteDataCon, promoteDataCon_maybe
     ) where
+
+#include "HsVersions.h"
 
 import {-# SOURCE #-} GHCVM.BasicTypes.MkId( DataConBoxer )
 import GHCVM.Types.Type
@@ -1002,7 +1004,8 @@ dataConCannotMatch tys con
   | null theta        = False   -- Common
   | all isTyVarTy tys = False   -- Also common
   | otherwise
-  = typesCantMatch [(Type.substTy subst ty1, Type.substTy subst ty2)
+  = typesCantMatch [(GHCVM.Types.Type.substTy subst ty1,
+                     GHCVM.Types.Type.substTy subst ty2)
                    | (ty1, ty2) <- concatMap predEqs theta ]
   where
     dc_tvs  = dataConUnivTyVars con

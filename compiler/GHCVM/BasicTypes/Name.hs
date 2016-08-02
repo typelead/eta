@@ -70,7 +70,7 @@ module GHCVM.BasicTypes.Name (
         pprInfixName, pprPrefixName, pprModulePrefix,
 
         -- Re-export the OccName stuff
-        module OccName
+        module GHCVM.BasicTypes.OccName
     ) where
 
 import {-# SOURCE #-} GHCVM.Types.TypeRep( TyThing )

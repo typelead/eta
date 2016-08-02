@@ -50,7 +50,8 @@ module GHCVM.Types.Coercion (
 
         -- ** Substitution
         CvSubstEnv, emptyCvSubstEnv,
-        CvSubst(..), emptyCvSubst, Coercion.lookupTyVar, lookupCoVar,
+        CvSubst(..), emptyCvSubst, GHCVM.Types.Coercion.lookupTyVar,
+        lookupCoVar,
         isEmptyCvSubst, zapCvSubstEnv, getCvInScope,
         substCo, substCos, substCoVar, substCoVars,
         substCoWithTy, substCoWithTys,
@@ -95,14 +96,11 @@ import GHCVM.BasicTypes.OccName  ( parenSymOcc )
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.Unique
 import GHCVM.Utils.Pair
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Prelude.PrelNames        ( funTyConKey, eqPrimTyConKey, eqReprPrimTyConKey )
--- TODO:#if __GLASGOW_HASKELL__ < 709
--- import Control.Applicative hiding ( empty )
--- import Data.Traversable (traverse, sequenceA)
--- #endif
 import GHCVM.Utils.FastString
 import GHCVM.Utils.ListSetOps
 
@@ -1535,7 +1533,7 @@ subst_co subst co
   = go co
   where
     go_ty :: Type -> Type
-    go_ty = Coercion.substTy subst
+    go_ty = GHCVM.Types.Coercion.substTy subst
 
     go :: Coercion -> Coercion
     go (Refl eq ty)          = Refl eq $! go_ty ty

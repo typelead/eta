@@ -43,6 +43,7 @@ import GHCVM.Main.CmdLineParser
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Util
+import qualified GHCVM.Utils.Util as Util
 -- import GHCVM.Utils.Maybes                ( firstJusts )
 import GHCVM.Utils.Panic
 

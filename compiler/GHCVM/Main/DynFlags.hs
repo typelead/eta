@@ -10,7 +10,7 @@
 -- (c) The University of Glasgow 2005
 --
 -------------------------------------------------------------------------------
-
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-cse #-}
 -- -fno-cse is needed for GLOBAL_VAR's to behave properly
 
@@ -47,7 +47,6 @@ module GHCVM.Main.DynFlags (
         DynLibLoader(..),
         fFlags, fWarningFlags, fLangFlags, xFlags,
         dynFlagDependencies,
-        tablesNextToCode, mkTablesNextToCode,
         SigOf(..), getSigOf,
         makeDynFlagsConsistent,
 
@@ -114,9 +113,6 @@ module GHCVM.Main.DynFlags (
         StgToDo(..),
         getStgToDo,
 
-        -- * Compiler configuration suitable for display to the user
-        compilerInfo,
-
 -- #ifdef GHCI
 --         rtsIsProfiled,
 -- #endif
@@ -147,6 +143,8 @@ module GHCVM.Main.DynFlags (
         CompilerInfo(..),
   ) where
 
+#include "HsVersions.h"
+
 import GHCVM.Utils.Platform
 import GHCVM.BasicTypes.Module
 import GHCVM.Main.PackageConfig
@@ -158,6 +156,7 @@ import GHCVM.Main.CmdLineParser
 import GHCVM.Main.Constants
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Util
+import qualified GHCVM.Utils.Util as Util
 import GHCVM.Utils.Maybes
 import GHCVM.Utils.MonadUtils
 import qualified GHCVM.Utils.Pretty as Pretty
@@ -1021,7 +1020,7 @@ opt_lc dflags = sOpt_lc (settings dflags)
 versionedAppDir :: DynFlags -> IO FilePath
 versionedAppDir dflags = do
   appdir <- getAppUserDataDirectory (programName dflags)
-  return $ appdir </> (TARGET_ARCH ++ '-':TARGET_OS ++ '-':projectVersion dflags)
+  return $ appdir </> "0.0.1"
 
 -- | The target code type of the compilation (if any).
 --
@@ -1123,20 +1122,7 @@ defaultHscTarget = defaultObjectTarget
 defaultObjectTarget :: Platform -> HscTarget
 defaultObjectTarget platform
   | platformUnregisterised platform     =  HscC
-  | cGhcWithNativeCodeGen == "YES"      =  HscAsm
-  | otherwise                           =  HscLlvm
-
-tablesNextToCode :: DynFlags -> Bool
-tablesNextToCode dflags
-    = mkTablesNextToCode (platformUnregisterised (targetPlatform dflags))
-
--- Determines whether we will be compiling
--- info tables that reside just before the entry code, or with an
--- indirection to the entry code.  See TABLES_NEXT_TO_CODE in
--- includes/rts/storage/InfoTables.h.
-mkTablesNextToCode :: Bool -> Bool
-mkTablesNextToCode unregisterised
-    = not unregisterised && cGhcEnableTablesNextToCode == "YES"
+  | otherwise                           =  HscAsm
 
 data DynLibLoader
   = Deployable
@@ -2323,9 +2309,7 @@ dynamic_flags = [
         alterSettings (\s -> s { sOpt_windres = f : sOpt_windres s})))
 
   , defGhcFlag "split-objs"
-      (NoArg (if can_split
-                then setGeneralFlag Opt_SplitObjs
-                else addWarn "ignoring -fsplit-objs"))
+      (NoArg $ addWarn "ignoring -fsplit-objs")
 
         -------- ghc -M -----------------------------------------------------
   , defGhcFlag "dep-suffix"               (hasArg addDepSuffix)
@@ -4017,55 +4001,6 @@ picPOpts dflags
  | gopt Opt_PIC dflags = ["-U__PIC__", "-D__PIC__"]
  | otherwise           = []
 
--- -----------------------------------------------------------------------------
--- Splitting
-
-can_split :: Bool
-can_split = cSupportsSplitObjs == "YES"
-
--- -----------------------------------------------------------------------------
--- Compiler Info
-
-compilerInfo :: DynFlags -> [(String, String)]
-compilerInfo dflags
-    = -- We always make "Project name" be first to keep parsing in
-      -- other languages simple, i.e. when looking for other fields,
-      -- you don't have to worry whether there is a leading '[' or not
-      ("Project name",                 cProjectName)
-      -- Next come the settings, so anything else can be overridden
-      -- in the settings file (as "lookup" uses the first match for the
-      -- key)
-    : rawSettings dflags
-   ++ [("Project version",             projectVersion dflags),
-       ("Project Git commit id",       cProjectGitCommitId),
-       ("Booter version",              cBooterVersion),
-       ("Stage",                       cStage),
-       ("Build platform",              cBuildPlatformString),
-       ("Host platform",               cHostPlatformString),
-       ("Target platform",             cTargetPlatformString),
-       ("Have interpreter",            cGhcWithInterpreter),
-       ("Object splitting supported",  cSupportsSplitObjs),
-       ("Have native code generator",  cGhcWithNativeCodeGen),
-       ("Support SMP",                 cGhcWithSMP),
-       ("Tables next to code",         cGhcEnableTablesNextToCode),
-       ("RTS ways",                    cGhcRTSWays),
-       ("Support dynamic-too",         if isWindows then "NO" else "YES"),
-       ("Support parallel --make",     "YES"),
-       ("Support reexported-modules",  "YES"),
-       ("Support thinning and renaming package flags", "YES"),
-       ("Uses package keys",           "YES"),
-       ("Dynamic by default",          if dYNAMIC_BY_DEFAULT dflags
-                                       then "YES" else "NO"),
-       ("GHC Dynamic",                 if dynamicGhc
-                                       then "YES" else "NO"),
-       ("Leading underscore",          cLeadingUnderscore),
-       ("Debug on",                    show debugIsOn),
-       ("LibDir",                      topDir dflags),
-       ("Global Package DB",           systemPackageConfig dflags)
-      ]
-  where
-    isWindows = platformOS (targetPlatform dflags) == OSMinGW32
-
 -- #include "../includes/dist-derivedconstants/header/GHCConstantsHaskellWrappers.hs"
 
 -- bLOCK_SIZE_W :: DynFlags -> Int
@@ -4111,33 +4046,6 @@ makeDynFlagsConsistent dflags
     = let dflags' = gopt_unset dflags Opt_BuildDynamicToo
           warn    = "-dynamic-too is not supported on Windows"
       in loop dflags' warn
- | hscTarget dflags == HscC &&
-   not (platformUnregisterised (targetPlatform dflags))
-    = if cGhcWithNativeCodeGen == "YES"
-      then let dflags' = dflags { hscTarget = HscAsm }
-               warn = "Compiler not unregisterised, so using native code generator rather than compiling via C"
-           in loop dflags' warn
-      else let dflags' = dflags { hscTarget = HscLlvm }
-               warn = "Compiler not unregisterised, so using LLVM rather than compiling via C"
-           in loop dflags' warn
- | hscTarget dflags == HscAsm &&
-   platformUnregisterised (targetPlatform dflags)
-    = loop (dflags { hscTarget = HscC })
-           "Compiler unregisterised, so compiling via C"
- | hscTarget dflags == HscAsm &&
-   cGhcWithNativeCodeGen /= "YES"
-      = let dflags' = dflags { hscTarget = HscLlvm }
-            warn = "No native code generator, so using LLVM"
-        in loop dflags' warn
- | hscTarget dflags == HscLlvm &&
-   not ((arch == ArchX86_64) && (os == OSLinux || os == OSDarwin || os == OSFreeBSD)) &&
-   not ((isARM arch) && (os == OSLinux)) &&
-   (not (gopt Opt_Static dflags) || gopt Opt_PIC dflags)
-    = if cGhcWithNativeCodeGen == "YES"
-      then let dflags' = dflags { hscTarget = HscAsm }
-               warn = "Using native code generator rather than LLVM, as LLVM is incompatible with -fPIC and -dynamic on this platform"
-           in loop dflags' warn
-      else throwGhcException $ CmdLineError "Can't use -fPIC or -dynamic on this platform"
  | os == OSDarwin &&
    arch == ArchX86_64 &&
    not (gopt Opt_PIC dflags)
@@ -4191,10 +4099,7 @@ T10052 and #10052).
 -- Do not use it if you can help it. You may get the wrong value, or this
 -- panic!
 
-{-# NOINLINE v_unsafeGlobalDynFlags #-}
-v_unsafeGlobalDynFlags :: IORef DynFlags
-v_unsafeGlobalDynFlags =
-  Util.global $ panic "v_unsafeGlobalDynFlags: not initialised"
+GLOBAL_VAR(v_unsafeGlobalDynFlags, panic "v_unsafeGlobalDynFlags: not initialised", DynFlags)
 
 unsafeGlobalDynFlags :: DynFlags
 unsafeGlobalDynFlags = unsafePerformIO $ readIORef v_unsafeGlobalDynFlags

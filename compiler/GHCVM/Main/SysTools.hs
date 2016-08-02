@@ -65,6 +65,7 @@ import GHCVM.Utils.Platform
 import GHCVM.Utils.Util
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Exception
+import qualified GHCVM.Utils.Exception as Exception
 
 import Data.IORef
 import Control.Monad
@@ -239,10 +240,7 @@ initSysTools mbMinusB
                             then ["-DNO_REGS", "-DUSE_MINIINTERPRETER"]
                             else []
            -- TABLES_NEXT_TO_CODE affects the info table layout.
-           tntc_gcc_args
-            | mkTablesNextToCode targetUnregisterised
-               = ["-DTABLES_NEXT_TO_CODE"]
-            | otherwise = []
+           tntc_gcc_args | otherwise = []
            cpp_args= map Option (words cpp_args_str)
            gcc_args = map Option (words gcc_args_str
                                ++ unreg_gcc_args
@@ -259,10 +257,10 @@ initSysTools mbMinusB
 
              -- For all systems, unlit, split, mangle are GHC utilities
              -- architecture-specific stuff is done when building Config.hs
-           unlit_path = installed cGHC_UNLIT_PGM
+           unlit_path = "" -- TODO: installed cGHC_UNLIT_PGM
 
              -- split is a Perl script
-           split_script  = installed cGHC_SPLIT_PGM
+           split_script  = "" -- TODO: installed cGHC_SPLIT_PGM
 
        windres_path <- getSetting "windres command"
        libtool_path <- getSetting "libtool command"
@@ -325,7 +323,7 @@ initSysTools mbMinusB
                     sLdSupportsFilelist      = ldSupportsFilelist,
                     sLdIsGnuLd               = ldIsGnuLd,
                     sProgramName             = "ghc",
-                    sProjectVersion          = cProjectVersion,
+                    sProjectVersion          = "0.0.1",
                     sPgm_L   = unlit_path,
                     sPgm_P   = (cpp_prog, cpp_args),
                     sPgm_F   = "",
@@ -1548,10 +1546,8 @@ linkDynLib dflags0 o_files dep_packages
         -- against libHSrts, then both end up getting loaded,
         -- and things go wrong. We therefore link the libraries
         -- with the same RTS flags that we link GHC with.
-        dflags1 = if cGhcThreaded then addWay' WayThreaded dflags0
-                                  else                     dflags0
-        dflags2 = if cGhcDebugged then addWay' WayDebug dflags1
-                                  else                  dflags1
+        dflags1 = dflags0
+        dflags2 = dflags1 -- TODO: Debug and threaded
         dflags = updateWays dflags2
 
         verbFlags = getVerbFlags dflags

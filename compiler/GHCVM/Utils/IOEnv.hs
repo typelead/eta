@@ -15,7 +15,7 @@ module GHCVM.Utils.IOEnv (
         IOEnv, -- Instance of Monad
 
         -- Monad utilities
-        module MonadUtils,
+        module GHCVM.Utils.MonadUtils,
 
         -- Errors
         failM, failWithM,

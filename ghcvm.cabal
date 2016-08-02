@@ -146,7 +146,6 @@ library
                        , GHCVM.Interactive.ByteCodeLink
                        , GHCVM.Interactive.Debugger
                        , GHCVM.Interactive.DebuggerUtils
-                       , GHCVM.Interactive.LibFFI
                        , GHCVM.Interactive.Linker
                        , GHCVM.Interactive.ObjLink
                        , GHCVM.Interactive.RtClosureInspect
@@ -295,7 +294,6 @@ library
                        , text
                        , bin-package-db 
                        , time       >= 1.4 && < 1.7
-                     --  , ghc >= 7.10.3 && < 7.11.0
                        , process    >= 1   && < 1.3
                        , directory >= 1.2
                        , filepath

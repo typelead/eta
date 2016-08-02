@@ -51,9 +51,10 @@ lookupSymbol str_in = do
         then return Nothing
         else return (Just addr)
 
+-- TODO: Verify this is correct
 prefixUnderscore :: String -> String
 prefixUnderscore
- | cLeadingUnderscore == "YES" = ('_':)
+ -- | cLeadingUnderscore == "YES" = ('_':)
  | otherwise                   = id
 
 -- | loadDLL loads a dynamic library using the OS's native linker

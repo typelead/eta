@@ -968,14 +968,14 @@ isGcPtrRep _      = False
 primRepSizeW :: DynFlags -> PrimRep -> Int
 primRepSizeW _      IntRep           = 1
 primRepSizeW _      WordRep          = 1
-primRepSizeW dflags Int64Rep         = wORD64_SIZE `quot` wORD_SIZE dflags
-primRepSizeW dflags Word64Rep        = wORD64_SIZE `quot` wORD_SIZE dflags
+primRepSizeW dflags Int64Rep         = 2
+primRepSizeW dflags Word64Rep        = 2
 primRepSizeW _      FloatRep         = 1    -- NB. might not take a full word
-primRepSizeW dflags DoubleRep        = dOUBLE_SIZE dflags `quot` wORD_SIZE dflags
+primRepSizeW dflags DoubleRep        = 2
 primRepSizeW _      AddrRep          = 1
 primRepSizeW _      PtrRep           = 1
 primRepSizeW _      VoidRep          = 0
-primRepSizeW dflags (VecRep len rep) = len * primElemRepSizeB rep `quot` wORD_SIZE dflags
+primRepSizeW dflags (VecRep len rep) = len * primElemRepSizeB rep `quot` 4
 
 primElemRepSizeB :: PrimElemRep -> Int
 primElemRepSizeB Int8ElemRep   = 1

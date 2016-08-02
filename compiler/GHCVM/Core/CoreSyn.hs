@@ -3,7 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 -}
 
-{-# LANGUAGE DeriveDataTypeable, DeriveFunctor #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, DeriveFunctor #-}
 
 -- | CoreSyn holds all the main data types for use by for the Glasgow Haskell Compiler midsection
 module GHCVM.Core.CoreSyn (
@@ -82,6 +82,8 @@ module GHCVM.Core.CoreSyn (
         -- * Core vectorisation declarations data type
         CoreVect(..)
     ) where
+
+#include "HsVersions.h"
 
 import GHCVM.Profiling.CostCentre
 import GHCVM.BasicTypes.VarEnv( InScopeSet )

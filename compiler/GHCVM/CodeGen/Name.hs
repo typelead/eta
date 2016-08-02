@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE MagicHash, OverloadedStrings #-}
 module GHCVM.CodeGen.Name (
   qualifiedName,
   fastStringToText,

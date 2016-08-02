@@ -4,7 +4,7 @@
 
 -- | Package manipulation
 module GHCVM.Main.Packages (
-        module PackageConfig,
+        module GHCVM.Main.PackageConfig,
 
         -- * Reading the package config, and processing cmdline args
         PackageState(preloadPackages),
@@ -60,6 +60,7 @@ import GHCVM.BasicTypes.Module
 import GHCVM.Utils.Util
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.Maybes
 
 import System.Environment ( getEnv )
@@ -1097,42 +1098,6 @@ collectLinkOpts dflags ps =
         concatMap (map ("-l" ++) . extraLibraries) ps,
         concatMap ldOptions ps
     )
-
-packageHsLibs :: DynFlags -> PackageConfig -> [String]
-packageHsLibs dflags p = map (mkDynName . addSuffix) (hsLibraries p)
-  where
-        ways0 = ways dflags
-
-        ways1 = filter (/= WayDyn) ways0
-        -- the name of a shared library is libHSfoo-ghc<version>.so
-        -- we leave out the _dyn, because it is superfluous
-
-        -- debug RTS includes support for -eventlog
-        ways2 | WayDebug `elem` ways1
-              = filter (/= WayEventLog) ways1
-              | otherwise
-              = ways1
-
-        tag     = mkBuildTag (filter (not . wayRTSOnly) ways2)
-        rts_tag = mkBuildTag ways2
-
-        mkDynName x
-         | gopt Opt_Static dflags       = x
-         | "HS" `isPrefixOf` x          =
-              x ++ '-':programName dflags ++ projectVersion dflags
-           -- For non-Haskell libraries, we use the name "Cfoo". The .a
-           -- file is libCfoo.a, and the .so is libfoo.so. That way the
-           -- linker knows what we mean for the vanilla (-lCfoo) and dyn
-           -- (-lfoo) ways. We therefore need to strip the 'C' off here.
-         | Just x' <- stripPrefix "C" x = x'
-         | otherwise
-            = panic ("Don't understand library name " ++ x)
-
-        addSuffix rts@"HSrts"    = rts       ++ (expandTag rts_tag)
-        addSuffix other_lib      = other_lib ++ (expandTag tag)
-
-        expandTag t | null t = ""
-                    | otherwise = '_':t
 
 -- | Find all the C-compiler options in these and the preload packages
 getPackageExtraCcOpts :: DynFlags -> [PackageKey] -> IO [String]

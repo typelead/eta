@@ -42,7 +42,7 @@ itblCode dflags (ItblPtr ptr)
 
 -- XXX bogus
 conInfoTableSizeB :: DynFlags -> Int
-conInfoTableSizeB dflags = 3 * wORD_SIZE dflags
+conInfoTableSizeB dflags = 12
 
 type ItblEnv = NameEnv (Name, ItblPtr)
         -- We need the Name in the range so we know which
@@ -86,13 +86,14 @@ make_constr_itbls dflags cons
         mk_itbl :: DataCon -> Int -> EntryFunPtr -> IO (Name,ItblPtr)
         mk_itbl dcon conNo entry_addr = do
            let rep_args = [ (typePrimRep rep_arg,rep_arg) | arg <- dataConRepArgTys dcon, rep_arg <- flattenRepType (repType arg) ]
-               (tot_wds, ptr_wds, _) = mkVirtHeapOffsets dflags False{-not a THUNK-} rep_args
-
+               (tot_wds, ptr_wds, _) = error "mkVirtHeapOffsets: unimplemented"
+               --mkVirtHeapOffsets dflags False{-not a THUNK-} rep_args
                ptrs'  = ptr_wds
                nptrs' = tot_wds - ptr_wds
-               nptrs_really
-                  | ptrs' + nptrs' >= mIN_PAYLOAD_SIZE dflags = nptrs'
-                  | otherwise = mIN_PAYLOAD_SIZE dflags - ptrs'
+               nptrs_really = error "unimplemented nptrs_really"
+               -- nptrs_really
+               --    | ptrs' + nptrs' >= mIN_PAYLOAD_SIZE dflags = nptrs'
+               --    | otherwise = mIN_PAYLOAD_SIZE dflags - ptrs'
                code' = mkJumpToAddr dflags entry_addr
                itbl  = StgInfoTable {
                            entry = if ghciTablesNextToCode
@@ -242,9 +243,6 @@ byte7 w = fromIntegral (w `shiftR` 56)
 foreign import ccall "&stg_interp_constr_entry"
     stg_interp_constr_entry :: EntryFunPtr
 
-
-
-
 -- Ultra-minimalist version specially for constructors
 type HalfWord = Word16
 
@@ -267,8 +265,6 @@ pokeConItbl dflags wr_ptr ex_ptr itbl
                let con_desc = conDesc itbl `minusPtr`
                       (ex_ptr `plusPtr` conInfoTableSizeB dflags)
                store (fromIntegral con_desc :: Word32)
-               when (wORD_SIZE dflags == 8) $
-                  store (fromIntegral con_desc :: Word32)
            store' (sizeOfItbl dflags) (pokeItbl dflags) (infoTable itbl)
            unless ghciTablesNextToCode $ store (conDesc itbl)
 

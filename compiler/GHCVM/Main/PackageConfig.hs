@@ -34,6 +34,7 @@ import Data.Version
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.Module
+import qualified GHCVM.BasicTypes.Module as Module
 
 -- -----------------------------------------------------------------------------
 -- Our PackageConfig type is the InstalledPackageInfo from bin-package-db,

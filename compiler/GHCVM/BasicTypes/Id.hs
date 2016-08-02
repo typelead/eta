@@ -39,7 +39,7 @@ module GHCVM.BasicTypes.Id (
         recordSelectorFieldLabel,
 
         -- ** Modifying an Id
-        setIdName, setIdUnique, Id.setIdType,
+        setIdName, setIdUnique, GHCVM.BasicTypes.Id.setIdType,
         setIdExported, setIdNotExported,
         globaliseId, localiseId,
         setIdInfo, lazySetIdInfo, modifyIdInfo, maybeModifyIdInfo,
@@ -108,7 +108,7 @@ import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.Var( Id, DictId,
             idInfo, idDetails, globaliseId, varType,
             isId, isLocalId, isGlobalId, isExportedId )
-import qualified GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 
 import GHCVM.Types.TyCon
 import GHCVM.Types.Type
