@@ -510,7 +510,7 @@ mkRuleFn _ _ _ _                                       = Nothing
 
 isMinBound :: DynFlags -> Literal -> Bool
 isMinBound _      (MachChar c)   = c == minBound
-isMinBound dflags (MachInt i)    = i == tARGET_MIN_INT dflags
+isMinBound _      (MachInt i)    = i == minInt
 isMinBound _      (MachInt64 i)  = i == toInteger (minBound :: Int64)
 isMinBound _      (MachWord i)   = i == 0
 isMinBound _      (MachWord64 i) = i == 0
@@ -518,9 +518,9 @@ isMinBound _      _              = False
 
 isMaxBound :: DynFlags -> Literal -> Bool
 isMaxBound _      (MachChar c)   = c == maxBound
-isMaxBound dflags (MachInt i)    = i == tARGET_MAX_INT dflags
+isMaxBound _      (MachInt i)    = i == maxInt
 isMaxBound _      (MachInt64 i)  = i == toInteger (maxBound :: Int64)
-isMaxBound dflags (MachWord i)   = i == tARGET_MAX_WORD dflags
+isMaxBound _      (MachWord i)   = i == maxWord
 isMaxBound _      (MachWord64 i) = i == toInteger (maxBound :: Word64)
 isMaxBound _      _              = False
 

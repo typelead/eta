@@ -26,10 +26,8 @@ import GHCVM.Types.TyCon
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
-#if __GLASGOW_HASKELL__ < 709
-import Control.Applicative ( Applicative(..) )
-#endif
 import Control.Monad
 import Data.Function
 

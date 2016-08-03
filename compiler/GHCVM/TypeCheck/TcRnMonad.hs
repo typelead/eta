@@ -11,7 +11,7 @@ Functions for working with the typechecker environment (setters, getters...).
 module GHCVM.TypeCheck.TcRnMonad(
         module GHCVM.TypeCheck.TcRnMonad,
         module GHCVM.TypeCheck.TcRnTypes,
-        module IOEnv
+        module GHCVM.Utils.IOEnv
   ) where
 
 import GHCVM.TypeCheck.TcRnTypes        -- Re-export all
@@ -40,6 +40,7 @@ import GHCVM.BasicTypes.NameEnv
 import GHCVM.BasicTypes.NameSet
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.UniqSupply
 import GHCVM.Utils.UniqFM
 import GHCVM.Main.DynFlags

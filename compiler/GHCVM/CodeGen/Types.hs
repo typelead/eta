@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Types
   (TopLevelFlag(..),
    RepArity,

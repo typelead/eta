@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Layout where
 
 import GHCVM.Types.Type

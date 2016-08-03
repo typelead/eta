@@ -7,6 +7,7 @@ module GHCVM.Types.OptCoercion ( optCoercion, checkAxInstCo ) where
 #include "HsVersions.h"
 
 import GHCVM.Types.Coercion
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.Type hiding( substTyVarBndr, substTy, extendTvSubst )
 import GHCVM.TypeCheck.TcType       ( exactTyVarsOfType )
 import GHCVM.Types.TyCon

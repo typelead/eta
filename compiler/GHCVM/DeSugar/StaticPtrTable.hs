@@ -45,6 +45,7 @@ module GHCVM.DeSugar.StaticPtrTable (sptInitCode) where
 import GHCVM.Core.CoreSyn
 import GHCVM.BasicTypes.Module
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.Id
 
 import GHC.Fingerprint
@@ -59,32 +60,34 @@ import GHC.Fingerprint
 sptInitCode :: Module -> [(Fingerprint, (Id,CoreExpr))] -> SDoc
 sptInitCode _ [] = Outputable.empty
 sptInitCode this_mod entries = vcat
-    [ text "static void hs_spt_init_" <> ppr this_mod
-           <> text "(void) __attribute__((constructor));"
-    , text "static void hs_spt_init_" <> ppr this_mod <> text "(void)"
-    , braces $ vcat $
-        [  text "static StgWord64 k" <> int i <> text "[2] = "
-           <> pprFingerprint fp <> semi
-        $$ text "extern StgPtr "
-           <> (ppr $ mkClosureLabel (idName n) (idCafInfo n)) <> semi
-        $$ text "hs_spt_insert" <> parens
-             (hcat $ punctuate comma
-                [ char 'k' <> int i
-                , char '&' <> ppr (mkClosureLabel (idName n) (idCafInfo n))
-                ]
-             )
-        <> semi
-        |  (i, (fp, (n, _))) <- zip [0..] entries
-        ]
-    , text "static void hs_spt_fini_" <> ppr this_mod
-           <> text "(void) __attribute__((destructor));"
-    , text "static void hs_spt_fini_" <> ppr this_mod <> text "(void)"
-    , braces $ vcat $
-        [  text "StgWord64 k" <> int i <> text "[2] = "
-           <> pprFingerprint fp <> semi
-        $$ text "hs_spt_remove" <> parens (char 'k' <> int i) <> semi
-        | (i, (fp, _)) <- zip [0..] entries
-        ]
+    [
+      Outputable.empty
+    -- text "static void hs_spt_init_" <> ppr this_mod
+    --        <> text "(void) __attribute__((constructor));"
+    -- , text "static void hs_spt_init_" <> ppr this_mod <> text "(void)"
+    -- , braces $ vcat $
+    --     [  text "static StgWord64 k" <> int i <> text "[2] = "
+    --        <> pprFingerprint fp <> semi
+    --     $$ text "extern StgPtr "
+    --        <> (ppr $ mkClosureLabel (idName n) (idCafInfo n)) <> semi
+    --     $$ text "hs_spt_insert" <> parens
+    --          (hcat $ punctuate comma
+    --             [ char 'k' <> int i
+    --             , char '&' <> ppr (mkClosureLabel (idName n) (idCafInfo n))
+    --             ]
+    --          )
+    --     <> semi
+    --     |  (i, (fp, (n, _))) <- zip [0..] entries
+    --     ]
+    -- , text "static void hs_spt_fini_" <> ppr this_mod
+    --        <> text "(void) __attribute__((destructor));"
+    -- , text "static void hs_spt_fini_" <> ppr this_mod <> text "(void)"
+    -- , braces $ vcat $
+    --     [  text "StgWord64 k" <> int i <> text "[2] = "
+    --        <> pprFingerprint fp <> semi
+    --     $$ text "hs_spt_remove" <> parens (char 'k' <> int i) <> semi
+    --     | (i, (fp, _)) <- zip [0..] entries
+    --     ]
     ]
 
   where

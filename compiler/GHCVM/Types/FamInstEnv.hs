@@ -36,6 +36,7 @@ module GHCVM.Types.FamInstEnv (
 import GHCVM.Types.InstEnv
 import GHCVM.Types.Unify
 import GHCVM.Types.Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.TypeCheck.TcType ( orphNamesOfTypes )
 import GHCVM.Types.TypeRep
 import GHCVM.Types.TyCon

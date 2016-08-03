@@ -1320,7 +1320,7 @@ exprIsConApp_maybe (in_scope, id_unf) expr
     -- Operations on the (Either InScopeSet CoreSubst)
     -- The Left case is wildly dominant
     subst_co (Left {}) co = co
-    subst_co (Right s) co = CoreSubst.substCo s co
+    subst_co (Right s) co = GHCVM.Core.CoreSubst.substCo s co
 
     subst_arg (Left {}) e = e
     subst_arg (Right s) e = substExpr (text "exprIsConApp2") s e

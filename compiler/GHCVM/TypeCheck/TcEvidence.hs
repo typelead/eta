@@ -52,6 +52,7 @@ import GHCVM.Utils.Util
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Pair
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.SrcLoc
 

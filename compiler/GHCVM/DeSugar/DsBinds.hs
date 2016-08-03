@@ -41,6 +41,7 @@ import GHCVM.TypeCheck.TcEvidence
 import GHCVM.TypeCheck.TcType
 import GHCVM.Types.Type
 import GHCVM.Types.Kind (returnsConstraintKind)
+import qualified GHCVM.Types.Coercion as Coercion
 import GHCVM.Types.Coercion hiding (substCo)
 import GHCVM.Prelude.TysWiredIn ( eqBoxDataCon, coercibleDataCon, tupleCon, mkListTy
                   , mkBoxedTupleTy, stringTy )
@@ -1016,11 +1017,7 @@ dsEvTypeable ev =
     hashThis = unwords $ map unpackFS [pkg_fs, modl_fs, hash_name_fs]
     Fingerprint high low = fingerprintString hashThis
 
-    int64
-      | wORD_SIZE dflags == 4 = mkWord64LitWord64
-      | otherwise             = mkWordLit dflags . fromIntegral
-
-
+    int64 = mkWord64LitWord64
 
 {- Note [Memoising typeOf]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

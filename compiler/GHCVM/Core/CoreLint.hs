@@ -15,9 +15,9 @@ module GHCVM.Core.CoreLint (
     lintAnnots,
 
     -- ** Debug output
-    CoreLint.showPass, showPassIO, endPass, endPassIO,
+    GHCVM.Core.CoreLint.showPass, showPassIO, endPass, endPassIO,
     dumpPassResult,
-    CoreLint.dumpIfSet,
+    GHCVM.Core.CoreLint.dumpIfSet,
  ) where
 
 #include "HsVersions.h"
@@ -26,6 +26,7 @@ import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreFVs
 import GHCVM.Core.CoreUtils
 import GHCVM.SimplCore.CoreMonad
+import qualified GHCVM.SimplCore.CoreMonad as CoreMonad
 import GHCVM.Utils.Bag
 import GHCVM.BasicTypes.Literal
 import GHCVM.BasicTypes.DataCon
@@ -33,6 +34,7 @@ import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.TysPrim
 import GHCVM.TypeCheck.TcType ( isFloatingTy )
 import GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Name
@@ -43,6 +45,7 @@ import GHCVM.Types.Coercion
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Types.Kind
 import GHCVM.Types.Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.TypeRep
 import GHCVM.Types.TyCon
 import GHCVM.Types.CoAxiom
@@ -52,6 +55,7 @@ import GHCVM.Main.StaticFlags
 import GHCVM.Utils.ListSetOps
 import GHCVM.Prelude.PrelNames
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Util
 import GHCVM.Types.InstEnv     ( instanceDFunId )

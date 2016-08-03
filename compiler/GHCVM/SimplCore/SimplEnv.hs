@@ -16,7 +16,9 @@ module GHCVM.SimplCore.SimplEnv (
 
         -- Environments
         SimplEnv(..), StaticEnv, pprSimplEnv,   -- Temp not abstract
-        mkSimplEnv, extendIdSubst, SimplEnv.extendTvSubst, SimplEnv.extendCvSubst,
+        mkSimplEnv, extendIdSubst,
+        GHCVM.SimplCore.SimplEnv.extendTvSubst,
+        GHCVM.SimplCore.SimplEnv.extendCvSubst,
         zapSubstEnv, setSubstEnv,
         getInScope, setInScope, setInScopeSet, modifyInScope, addNewInScopeIds,
         getSimplRules,
@@ -46,6 +48,7 @@ import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Utils.OrdList
 import GHCVM.BasicTypes.Id
+import qualified GHCVM.BasicTypes.Id as Id
 import qualified GHCVM.Core.CoreSubst as CoreSubst
 import GHCVM.Core.MkCore                   ( mkWildValBinder )
 import GHCVM.Prelude.TysWiredIn

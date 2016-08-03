@@ -13,6 +13,7 @@ module GHCVM.Interactive.ByteCodeInstr (
 
 import GHCVM.Interactive.ByteCodeItbls    ( ItblPtr )
 
+import GHCVM.CodeGen.ArgRep
 import GHCVM.Core.PprCore
 import GHCVM.Types.Type
 import GHCVM.Utils.Outputable
@@ -38,7 +39,7 @@ data ProtoBCO a
         protoBCOName       :: a,          -- name, in some sense
         protoBCOInstrs     :: [BCInstr],  -- instrs
         -- arity and GC info
-        protoBCOBitmap     :: [StgWord],
+        protoBCOBitmap     :: [Int],-- TODO:[StgWord],
         protoBCOBitmapSize :: Word16,
         protoBCOArity      :: Int,
         -- what the BCO came from
@@ -65,7 +66,7 @@ data BCInstr
 
    -- Push an alt continuation
    | PUSH_ALTS          (ProtoBCO Name)
-   | PUSH_ALTS_UNLIFTED (ProtoBCO Name) ArgRep
+   | PUSH_ALTS_UNLIFTED (ProtoBCO Name) JArgRep
 
    -- Pushing literals
    | PUSH_UBX  (Either Literal (Ptr ())) Word16
@@ -137,7 +138,7 @@ data BCInstr
    -- To Infinity And Beyond
    | ENTER
    | RETURN             -- return a lifted value
-   | RETURN_UBX ArgRep -- return an unlifted value, here's its rep
+   | RETURN_UBX JArgRep -- return an unlifted value, here's its rep
 
    -- Breakpoints
    | BRK_FUN          (MutableByteArray# RealWorld) Word16 BreakInfo

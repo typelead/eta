@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Rts where
 
 import GHCVM.Main.DynFlags

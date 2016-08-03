@@ -28,6 +28,7 @@ module GHCVM.TypeCheck.TcHsSyn (
 
 import GHCVM.HsSyn.HsSyn
 import GHCVM.BasicTypes.Id
+import qualified GHCVM.BasicTypes.Id as Id
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Prelude.PrelNames
 import GHCVM.Types.TypeRep     -- We can see the representation of types

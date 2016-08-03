@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Bind where
 
 import GHCVM.StgSyn.StgSyn

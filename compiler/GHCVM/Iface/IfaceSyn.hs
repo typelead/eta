@@ -6,7 +6,7 @@
 {-# LANGUAGE CPP #-}
 
 module GHCVM.Iface.IfaceSyn (
-        module IfaceType,
+        module GHCVM.Iface.IfaceType,
 
         IfaceDecl(..), IfaceFamTyConFlav(..), IfaceClassOp(..), IfaceAT(..),
         IfaceConDecl(..), IfaceConDecls(..), IfaceEqSpec,
@@ -46,6 +46,7 @@ import GHCVM.Prelude.ForeignCall
 import GHCVM.Main.Annotations( AnnPayload, AnnTarget )
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import GHCVM.BasicTypes.Module
 import GHCVM.BasicTypes.SrcLoc

@@ -158,12 +158,14 @@ import GHCVM.Prelude.ForeignCall
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Types.Coercion
 import GHCVM.Types.Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.TyCon
 import GHCVM.Types.CoAxiom
 
 -- others:
 import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.Name
+import qualified GHCVM.BasicTypes.Name as Name
   -- hiding (varName)
   -- We use this to make dictionaries for type literals.
   -- Perhaps there's a better way to do this?

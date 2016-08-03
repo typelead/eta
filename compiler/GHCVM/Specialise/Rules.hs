@@ -39,6 +39,7 @@ import GHCVM.Core.CoreUtils        ( exprType, eqExpr, mkTick, mkTicks,
                           stripTicksTopT, stripTicksTopE )
 import GHCVM.Core.PprCore          ( pprRules )
 import GHCVM.Types.Type             ( Type, substTy, mkTvSubst )
+import qualified GHCVM.Types.Type as Type
 import GHCVM.TypeCheck.TcType           ( tcSplitTyConApp_maybe )
 import GHCVM.Prelude.TysPrim          ( anyTypeOfKind )
 import GHCVM.Types.Coercion
@@ -51,6 +52,7 @@ import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Name             ( Name, NamedThing(..) )
 import GHCVM.BasicTypes.NameEnv
 import GHCVM.Types.Unify            ( ruleMatchTyX, MatchEnv(..) )
+import qualified GHCVM.Types.Unify as Unify
 import GHCVM.BasicTypes.BasicTypes       ( Activation, CompilerPhase, isActive, pprRuleName )
 import GHCVM.Main.StaticFlags      ( opt_PprStyle_Debug )
 import GHCVM.Main.DynFlags         ( DynFlags )

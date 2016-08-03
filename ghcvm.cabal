@@ -314,7 +314,7 @@ library
         build-depends:   unix
     hs-source-dirs:      compiler
     include-dirs:        include
-    install-includes:    HsVersions.h
+    install-includes:    HsVersions.h Bytecodes.h
     exposed:             True
     buildable:           True
     build-tools:         alex

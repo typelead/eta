@@ -63,6 +63,7 @@ import GHCVM.Main.ErrUtils         ( MsgDoc )
 import GHCVM.BasicTypes.BasicTypes       ( Fixity(..), FixityDirection(..), minPrecedence, defaultFixity )
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.Util
 import GHCVM.Utils.Maybes
 import GHCVM.BasicTypes.BasicTypes       ( TopLevelFlag(..) )

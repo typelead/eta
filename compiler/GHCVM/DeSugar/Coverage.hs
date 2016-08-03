@@ -10,7 +10,9 @@ module GHCVM.DeSugar.Coverage (addTicksToBinds, hpcInitCode) where
 import GHCVM.Types.Type
 import GHCVM.HsSyn.HsSyn
 import GHCVM.BasicTypes.Module
+import qualified GHCVM.BasicTypes.Module as Module
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.ErrUtils
@@ -1260,7 +1262,7 @@ hpcInitCode this_mod (HpcInfo tickCount hashNo)
        ])
     ]
   where
-    tickboxes = ppr (mkHpcTicksLabel $ this_mod)
+    tickboxes = undefined --TODO: HPC: ppr (mkHpcTicksLabel $ this_mod)
 
     module_name  = hcat (map (text.charToC) $
                          bytesFS (moduleNameFS (Module.moduleName this_mod)))

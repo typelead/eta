@@ -27,6 +27,7 @@ import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.Id
+import qualified GHCVM.BasicTypes.Id as Id
 import GHCVM.BasicTypes.MkId             ( mkDictSelRhs )
 import GHCVM.BasicTypes.IdInfo
 import GHCVM.Types.InstEnv

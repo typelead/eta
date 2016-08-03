@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.ArgRep
   (JArgRep(..),
    toArgRep,
@@ -19,6 +20,7 @@ import GHCVM.Types.Type
 import GHCVM.Types.TyCon            ( PrimRep(..) )
 import GHCVM.BasicTypes.BasicTypes       ( RepArity )
 import GHCVM.Main.DynFlags
+import GHCVM.Debug
 import Data.Maybe
 import GHCVM.Primitive
 import GHCVM.CodeGen.Rts
@@ -35,6 +37,9 @@ data JArgRep = P   -- StgClosure
              | D   -- double
              | O   -- Java object pointer
              deriving (Eq, Show)
+
+instance Outputable JArgRep where
+  ppr = str . show
 
 toJArgRep :: JPrimRep -> JArgRep
 toJArgRep (HPrimRep primRep) = toArgRep primRep

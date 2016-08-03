@@ -89,6 +89,7 @@ import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.Avail
 import GHCVM.BasicTypes.RdrName
@@ -100,6 +101,7 @@ import GHCVM.Main.ErrUtils
 import GHCVM.Utils.Digraph
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.BasicTypes       hiding ( SuccessFlag(..) )
 import GHCVM.Utils.UniqFM
 import GHCVM.BasicTypes.Unique

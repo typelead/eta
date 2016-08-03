@@ -4,6 +4,7 @@
 --  (c) The University of Glasgow 2002-2006
 --
 
+
 -- | ByteCodeLink: Bytecode assembler and linker
 module GHCVM.Interactive.ByteCodeAsm (
         assembleBCOs, assembleBCO,
@@ -19,6 +20,7 @@ module GHCVM.Interactive.ByteCodeAsm (
 import GHCVM.Interactive.ByteCodeInstr
 import GHCVM.Interactive.ByteCodeItbls
 
+import GHCVM.CodeGen.ArgRep
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
 import GHCVM.BasicTypes.Literal
@@ -161,7 +163,7 @@ assembleBCO dflags (ProtoBCO nm instrs bitmap bsize arity _origin _malloced) = d
       insns_arr = Array.listArray (0, n_insns - 1) asm_insns
       !insns_barr = barr insns_arr
 
-      bitmap_arr = mkBitmapArray bsize bitmap
+      bitmap_arr = undefined --mkBitmapArray bsize bitmap
       !bitmap_barr = barr bitmap_arr
 
       ul_bco = UnlinkedBCO nm arity insns_barr bitmap_barr final_lits final_ptrs
@@ -173,13 +175,13 @@ assembleBCO dflags (ProtoBCO nm instrs bitmap bsize arity _origin _malloced) = d
 
   return ul_bco
 
-mkBitmapArray :: Word16 -> [StgWord] -> UArray Int Word
--- Here the return type must be an array of Words, not StgWords,
--- because the underlying ByteArray# will end up as a component
--- of a BCO object.
-mkBitmapArray bsize bitmap
-  = Array.listArray (0, length bitmap) $
-      fromIntegral bsize : map (fromInteger . fromStgWord) bitmap
+-- mkBitmapArray :: Word16 -> [StgWord] -> UArray Int Word
+-- -- Here the return type must be an array of Words, not StgWords,
+-- -- because the underlying ByteArray# will end up as a component
+-- -- of a BCO object.
+-- mkBitmapArray bsize bitmap
+--   = Array.listArray (0, length bitmap) $
+--       fromIntegral bsize : map (fromInteger . fromStgWord) bitmap
 
 -- instrs nonptrs ptrs
 type AsmState = (SizedSeq Word16,
@@ -317,26 +319,18 @@ inspectAsm dflags long_jumps initial_offset
 --      count (LargeOp _) = largeArg16s dflags
 
 -- Bring in all the bci_ bytecode constants.
-#include "rts/Bytecodes.h"
+#include "Bytecodes.h"
 
 largeArgInstr :: Word16 -> Word16
 largeArgInstr bci = bci_FLAG_LARGE_ARGS .|. bci
 
 largeArg :: DynFlags -> Word -> [Word16]
 largeArg dflags w
- | wORD_SIZE_IN_BITS dflags == 64
-           = [fromIntegral (w `shiftR` 48),
-              fromIntegral (w `shiftR` 32),
-              fromIntegral (w `shiftR` 16),
-              fromIntegral w]
- | wORD_SIZE_IN_BITS dflags == 32
-           = [fromIntegral (w `shiftR` 16),
-              fromIntegral w]
- | otherwise = error "wORD_SIZE_IN_BITS not 32 or 64?"
+  = [fromIntegral (w `shiftR` 16),
+     fromIntegral w]
 
 largeArg16s :: DynFlags -> Word
-largeArg16s dflags | wORD_SIZE_IN_BITS dflags == 64 = 4
-                   | otherwise                      = 2
+largeArg16s dflags = 2
 
 assembleI :: DynFlags
           -> BCInstr
@@ -446,27 +440,23 @@ assembleI dflags i = case i of
 isLarge :: Word -> Bool
 isLarge n = n > 65535
 
-push_alts :: ArgRep -> Word16
+push_alts :: JArgRep -> Word16
 push_alts V   = bci_PUSH_ALTS_V
 push_alts P   = bci_PUSH_ALTS_P
 push_alts N   = bci_PUSH_ALTS_N
 push_alts L   = bci_PUSH_ALTS_L
 push_alts F   = bci_PUSH_ALTS_F
 push_alts D   = bci_PUSH_ALTS_D
-push_alts V16 = error "push_alts: vector"
-push_alts V32 = error "push_alts: vector"
-push_alts V64 = error "push_alts: vector"
+push_alts _ = error "push_alts: other"
 
-return_ubx :: ArgRep -> Word16
+return_ubx :: JArgRep -> Word16
 return_ubx V   = bci_RETURN_V
 return_ubx P   = bci_RETURN_P
 return_ubx N   = bci_RETURN_N
 return_ubx L   = bci_RETURN_L
 return_ubx F   = bci_RETURN_F
 return_ubx D   = bci_RETURN_D
-return_ubx V16 = error "return_ubx: vector"
-return_ubx V32 = error "return_ubx: vector"
-return_ubx V64 = error "return_ubx: vector"
+return_ubx _ = error "return_ubx: other"
 
 -- Make lists of host-sized words for literals, so that when the
 -- words are placed in memory at increasing addresses, the
@@ -487,7 +477,6 @@ mkLitF f
      )
 
 mkLitD dflags d
-   | wORD_SIZE dflags == 4
    = runST (do
         arr <- newArray_ ((0::Int),1)
         writeArray arr 0 d
@@ -496,19 +485,8 @@ mkLitD dflags d
         w1 <- readArray d_arr 1
         return [w0 :: Word, w1]
      )
-   | wORD_SIZE dflags == 8
-   = runST (do
-        arr <- newArray_ ((0::Int),0)
-        writeArray arr 0 d
-        d_arr <- castSTUArray arr
-        w0 <- readArray d_arr 0
-        return [w0 :: Word]
-     )
-   | otherwise
-   = panic "mkLitD: Bad wORD_SIZE"
 
 mkLitI64 dflags ii
-   | wORD_SIZE dflags == 4
    = runST (do
         arr <- newArray_ ((0::Int),1)
         writeArray arr 0 ii
@@ -517,16 +495,6 @@ mkLitI64 dflags ii
         w1 <- readArray d_arr 1
         return [w0 :: Word,w1]
      )
-   | wORD_SIZE dflags == 8
-   = runST (do
-        arr <- newArray_ ((0::Int),0)
-        writeArray arr 0 ii
-        d_arr <- castSTUArray arr
-        w0 <- readArray d_arr 0
-        return [w0 :: Word]
-     )
-   | otherwise
-   = panic "mkLitI64: Bad wORD_SIZE"
 
 mkLitI i
    = runST (do

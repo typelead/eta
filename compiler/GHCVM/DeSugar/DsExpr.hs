@@ -6,6 +6,8 @@
 Desugaring exporessions.
 -}
 
+{-# LANGUAGE CPP #-}
+
 module GHCVM.DeSugar.DsExpr ( dsExpr, dsLExpr, dsLocalBinds, dsValBinds, dsLit ) where
 
 import GHCVM.DeSugar.Match
@@ -20,10 +22,10 @@ import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameEnv
 import GHCVM.Types.FamInstEnv( topNormaliseType )
 
--- TODO: #ifdef GHCI
---         -- Template Haskell stuff iff bootstrapped
--- import GHCVM.DeSugar.DsMeta
--- #endif
+#ifdef GHCI
+-- Template Haskell stuff iff bootstrapped
+import GHCVM.DeSugar.DsMeta
+#endif
 
 import GHCVM.HsSyn.HsSyn
 
@@ -56,6 +58,7 @@ import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Util
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 
 import GHCVM.BasicTypes.IdInfo
@@ -641,11 +644,11 @@ dsExpr expr@(RecordUpd record_expr (HsRecFields { rec_flds = fields })
 -- Template Haskell stuff
 
 dsExpr (HsRnBracketOut _ _) = panic "dsExpr HsRnBracketOut"
--- TODO: #ifdef GHCI
--- dsExpr (HsTcBracketOut x ps) = dsBracket x ps
--- #else
+#ifdef GHCI
+dsExpr (HsTcBracketOut x ps) = dsBracket x ps
+#else
 dsExpr (HsTcBracketOut _ _) = panic "dsExpr HsBracketOut"
--- #endif
+#endif
 dsExpr (HsSpliceE _ s)      = pprPanic "dsExpr:splice" (ppr s)
 
 -- Arrow notation extension

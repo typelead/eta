@@ -20,11 +20,13 @@ import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreFVs
 import GHCVM.Core.CoreUtils
 import GHCVM.Core.CoreSubst
+import qualified GHCVM.Core.CoreSubst as CoreSubst
 import GHCVM.BasicTypes.Demand
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.Id
 import GHCVM.Types.Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.TyCon    ( initRecTc, checkRecTc )
 import GHCVM.Types.Coercion
 import GHCVM.BasicTypes.BasicTypes

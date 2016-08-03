@@ -17,16 +17,16 @@ therefore, is almost nothing but re-exporting.
 {-# LANGUAGE ConstraintKinds #-}
 
 module GHCVM.HsSyn.HsSyn (
-        module HsBinds,
-        module HsDecls,
-        module HsExpr,
-        module HsImpExp,
-        module HsLit,
-        module HsPat,
-        module HsTypes,
-        module HsUtils,
-        module HsDoc,
-        module PlaceHolder,
+        module GHCVM.HsSyn.HsBinds,
+        module GHCVM.HsSyn.HsDecls,
+        module GHCVM.HsSyn.HsExpr,
+        module GHCVM.HsSyn.HsImpExp,
+        module GHCVM.HsSyn.HsLit,
+        module GHCVM.HsSyn.HsPat,
+        module GHCVM.HsSyn.HsTypes,
+        module GHCVM.HsSyn.HsUtils,
+        module GHCVM.HsSyn.HsDoc,
+        module GHCVM.HsSyn.PlaceHolder,
         Fixity,
 
         HsModule(..)

@@ -37,6 +37,7 @@ import GHCVM.BasicTypes.Literal
 import GHCVM.BasicTypes.SrcLoc
 import Data.Ratio
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Util

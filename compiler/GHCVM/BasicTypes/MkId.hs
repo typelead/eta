@@ -35,7 +35,7 @@ module GHCVM.BasicTypes.MkId (
         proxyHashId,
 
         -- Re-export error Ids
-        module PrelRules
+        module GHCVM.Prelude.PrelRules
     ) where
 
 #include "HsVersions.h"
@@ -48,6 +48,7 @@ import GHCVM.Types.Type
 import GHCVM.Types.FamInstEnv
 import GHCVM.Types.Coercion
 import GHCVM.TypeCheck.TcType
+import qualified GHCVM.TypeCheck.TcType as TcType
 import GHCVM.Core.MkCore
 import GHCVM.Core.CoreUtils        ( exprType, mkCast )
 import GHCVM.Core.CoreUnfold

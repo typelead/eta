@@ -31,6 +31,7 @@ import GHCVM.Interactive.ByteCodeItbls
 import GHCVM.Interactive.ByteCodeAsm
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Main.Packages
+import qualified GHCVM.Main.Packages as Packages
 import GHCVM.Main.DriverPhases
 import GHCVM.Main.Finder
 import GHCVM.Main.HscTypes
@@ -45,6 +46,7 @@ import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Util
+import qualified GHCVM.Utils.Util as Util
 import GHCVM.Main.ErrUtils
 import GHCVM.BasicTypes.SrcLoc
 import qualified GHCVM.Utils.Maybes as Maybes
@@ -676,7 +678,7 @@ getLinkDeps hsc_env hpt pls replace_osuf span mods
 
   ********************************************************************* -}
 
-linkDecls :: HscEnv -> SrcSpan -> CompiledByteCode -> IO () --[HValue]
+linkDecls :: HscEnv -> SrcSpan -> GHCVM.Interactive.ByteCodeAsm.CompiledByteCode -> IO () --[HValue]
 linkDecls hsc_env span (ByteCode unlinkedBCOs itblEnv) = do
     -- Initialise the linker (if it's not been done already)
     let dflags = hsc_dflags hsc_env
@@ -884,14 +886,13 @@ dynLinkBCOs dflags pls bcos = do
             unlinkeds :: [Unlinked]
             unlinkeds                = concatMap linkableUnlinked new_bcos
 
-            cbcs :: [CompiledByteCode]
+            cbcs :: [GHCVM.Main.HscTypes.CompiledByteCode]
             cbcs      = map byteCodeOfObject unlinkeds
 
-
-            ul_bcos    = [b | ByteCode bs _  <- cbcs, b <- bs]
-            ies        = [ie | ByteCode _ ie <- cbcs]
+            ul_bcos    = undefined --[b | ByteCode bs _  <- cbcs, b <- bs]
+            ies        = undefined --[ie | ByteCode _ ie <- cbcs]
             gce       = closure_env pls
-            final_ie  = foldr plusNameEnv (itbl_env pls) ies
+            final_ie  = undefined --foldr plusNameEnv (itbl_env pls) ies
 
         (final_gce, _linked_bcos) <- linkSomeBCOs dflags True final_ie gce ul_bcos
                 -- XXX What happens to these linked_bcos?

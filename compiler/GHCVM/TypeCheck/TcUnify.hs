@@ -42,6 +42,7 @@ import GHCVM.Types.Kind
 import GHCVM.Types.TyCon
 import GHCVM.Prelude.TysWiredIn
 import GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Main.ErrUtils
@@ -51,6 +52,7 @@ import GHCVM.Utils.Maybes ( isJust )
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Util
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 
 import Control.Monad

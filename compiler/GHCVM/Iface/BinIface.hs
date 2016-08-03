@@ -18,8 +18,6 @@ module GHCVM.Iface.BinIface (
         TraceBinIFaceReading(..)
     ) where
 
-import GHCVM.Iface.BinIface (CheckHiWay(..), TraceBinIFaceReading(..))
-
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.Types.TyCon
 import GHCVM.BasicTypes.ConLike
@@ -37,6 +35,7 @@ import GHCVM.Utils.UniqFM
 import GHCVM.BasicTypes.UniqSupply
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Binary
+import qualified GHCVM.Utils.Binary as Binary
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.ErrUtils
 import GHCVM.Utils.FastMutInt
@@ -60,6 +59,12 @@ import GHCVM.Primitive (ghcvmKeyNames)
 -- ---------------------------------------------------------------------------
 -- Reading and writing binary interface files
 --
+
+data CheckHiWay = CheckHiWay | IgnoreHiWay
+    deriving Eq
+
+data TraceBinIFaceReading = TraceBinIFaceReading | QuietBinIFaceReading
+    deriving Eq
 
 -- | Read an interface file
 readBinIface :: CheckHiWay -> TraceBinIFaceReading -> FilePath
@@ -107,9 +112,11 @@ readBinIface_ dflags checkHiWay traceBinIFaceReading hi_path ncu = do
     -- should be).  Also, the serialisation of value of type "Bin
     -- a" used to depend on the word size of the machine, now they
     -- are always 32 bits.
-    if wORD_SIZE dflags == 4
-        then do _ <- Binary.get bh :: IO Word32; return ()
-        else do _ <- Binary.get bh :: IO Word64; return ()
+    -- TODO: May be a source of bugs
+    _ <- Binary.get bh :: IO Word32; return ()
+    -- if wORD_SIZE dflags == 4
+    --     then do _ <- Binary.get bh :: IO Word32; return ()
+    --     else do _ <- Binary.get bh :: IO Word64; return ()
 
     -- Check the interface file version and ways.
     check_ver  <- get bh
@@ -141,7 +148,6 @@ readBinIface_ dflags checkHiWay traceBinIFaceReading hi_path ncu = do
         seekBin bh symtab_p
         symtab <- getSymbolTable bh ncu
         seekBin bh data_p             -- Back to where we were before
-    
         -- It is only now that we know how to get a Name
         return $ setUserData bh $ newReadState (getSymtabName ncu dict symtab)
                                                (getDictFastString dict)
@@ -158,9 +164,11 @@ writeBinIface dflags hi_path mod_iface = do
    -- dummy 32/64-bit field before the version/way for
    -- compatibility with older interface file formats.
    -- See Note [dummy iface field] above.
-    if wORD_SIZE dflags == 4
-        then Binary.put_ bh (0 :: Word32)
-        else Binary.put_ bh (0 :: Word64)
+   -- TODO: Maybe a source of bugs
+    Binary.put_ bh (0 :: Word32)
+    -- if wORD_SIZE dflags == 4
+    --     then Binary.put_ bh (0 :: Word32)
+    --     else Binary.put_ bh (0 :: Word64)
 
     -- The version and way descriptor go next
     put_ bh (show hiVersion)

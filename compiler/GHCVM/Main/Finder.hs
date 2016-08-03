@@ -38,6 +38,7 @@ import GHCVM.Utils.Util
 import GHCVM.Prelude.PrelNames        ( gHC_PRIM )
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.UniqFM
 import GHCVM.Utils.Maybes           ( expectJust )
 import GHCVM.Utils.Exception        ( evaluate )

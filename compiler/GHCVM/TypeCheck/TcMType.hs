@@ -71,6 +71,7 @@ import GHCVM.BasicTypes.VarEnv
 -- others:
 import GHCVM.TypeCheck.TcRnMonad        -- TcType, amongst others
 import GHCVM.BasicTypes.Id
+import qualified GHCVM.BasicTypes.Id as Id
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames

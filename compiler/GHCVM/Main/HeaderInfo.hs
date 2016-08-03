@@ -26,13 +26,16 @@ import GHCVM.Utils.StringBuffer
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils
+import qualified GHCVM.Main.ErrUtils as ErrUtils
 import GHCVM.Utils.Util
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.Pretty           ()
 import GHCVM.Utils.Maybes
 import GHCVM.Utils.Bag              ( emptyBag, listToBag, unitBag )
 import GHCVM.Utils.MonadUtils
 import GHCVM.Utils.Exception
+import qualified GHCVM.Utils.Exception as Exception
 
 import Control.Monad
 import System.IO

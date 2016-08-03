@@ -60,6 +60,7 @@ import GHCVM.Main.Finder
 import GHCVM.Utils.UniqFM
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Iface.BinIface
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Util

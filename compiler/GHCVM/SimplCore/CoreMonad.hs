@@ -72,6 +72,7 @@ import GHCVM.TypeCheck.TcEnv            ( tcLookupGlobal )
 import GHCVM.TypeCheck.TcRnMonad        ( initTcForLookup )
 import GHCVM.BasicTypes.Var
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import qualified GHCVM.Main.ErrUtils as Err
 import GHCVM.Utils.Maybes
