@@ -31,6 +31,7 @@ import GHCVM.BasicTypes.Avail
 import GHCVM.Main.HscTypes
 import GHCVM.BasicTypes.RdrName
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.Maybes
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.BasicTypes.BasicTypes      ( TopLevelFlag(..) )

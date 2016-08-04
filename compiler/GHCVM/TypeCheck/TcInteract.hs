@@ -11,6 +11,7 @@ import GHCVM.TypeCheck.TcCanonical
 import GHCVM.TypeCheck.TcFlatten
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Types.Type
+import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.Kind (isKind, isConstraintKind )
 import GHCVM.Types.Unify
 import GHCVM.Types.InstEnv( lookupInstEnv, instanceDFunId )

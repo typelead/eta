@@ -26,7 +26,7 @@ import qualified Codec.JVM.Opcode as OP
 
 -- TODO: Fix known space leak with Writer
 -- http://stackoverflow.com/questions/25280852/space-leak-in-pipes-with-rwst
-type InstrRWS a = (RWS ConstPool (ByteString, StackMapTable) (Offset, CtrlFlow, LabelTable) a)
+type InstrRWS = RWS ConstPool (ByteString, StackMapTable) (Offset, CtrlFlow, LabelTable)
 
 newtype Instr = Instr (InstrRWS ())
 

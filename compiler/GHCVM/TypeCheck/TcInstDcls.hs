@@ -37,6 +37,7 @@ import GHCVM.Types.CoAxiom
 import GHCVM.BasicTypes.DataCon
 import GHCVM.Types.Class
 import GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames  ( typeableClassName, genericClassNames )
@@ -51,6 +52,7 @@ import GHCVM.BasicTypes.MkId
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Util
 import GHCVM.Utils.BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )

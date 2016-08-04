@@ -55,6 +55,7 @@ import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
 import GHCVM.BasicTypes.NameEnv
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.Maybes
 import GHCVM.Types.Unify
 import GHCVM.Utils.Util

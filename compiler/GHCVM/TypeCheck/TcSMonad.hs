@@ -104,6 +104,7 @@ import GHCVM.Types.Kind
 import GHCVM.TypeCheck.TcType
 import GHCVM.Main.DynFlags
 import GHCVM.Types.Type
+import qualified GHCVM.Types.Type as Type
 
 import GHCVM.TypeCheck.TcEvidence
 import GHCVM.Types.Class
@@ -117,6 +118,7 @@ import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.Bag
+import qualified GHCVM.Utils.Bag as Bag
 import GHCVM.BasicTypes.UniqSupply
 
 import GHCVM.Utils.FastString

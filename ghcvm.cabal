@@ -89,6 +89,7 @@ library
                        , GHCVM.DeSugar.Match
                        , GHCVM.DeSugar.MatchCon
                        , GHCVM.DeSugar.MatchLit
+                       , GHCVM.DeSugar.StaticPtrTable
                        , GHCVM.HsSyn.HsBinds
                        , GHCVM.HsSyn.HsDecls
                        , GHCVM.HsSyn.HsDoc
@@ -150,6 +151,9 @@ library
                        , GHCVM.Interactive.ObjLink
                        , GHCVM.Interactive.RtClosureInspect
                        , GHCVM.Parser.Parse
+                       , GHCVM.Parser.ApiAnnotation
+                       , GHCVM.Parser.Ctype
+                       , GHCVM.Parser.HaddockUtils
                        , GHCVM.Prelude.ForeignCall
                        , GHCVM.Prelude.PrelInfo
                        , GHCVM.Prelude.PrelNames
@@ -275,6 +279,7 @@ library
                        , GHCVM.Utils.Panic
                        , GHCVM.Utils.Platform
                        , GHCVM.Utils.Pretty
+                       , GHCVM.Utils.Serialized
                        , GHCVM.Utils.State
                        , GHCVM.Utils.Stream
                        , GHCVM.Utils.StringBuffer

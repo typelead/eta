@@ -172,6 +172,13 @@ primTyCons
     , superKindTyCon
     , anyKindTyCon
 
+    -- GHCVM-specific TyCons start here
+    , jcharPrimTyCon
+    , jbytePrimTyCon
+    , jboolPrimTyCon
+    , jshortPrimTyCon
+    , jobjectPrimTyCon
+    , jarrayPrimTyCon
     -- TODO: Vector operations disabled in GHCVM
     -- , int8X16PrimTyCon
     -- , int16X8PrimTyCon
@@ -253,7 +260,13 @@ stableNamePrimTyConName       = mkPrimTc (fsLit "StableName#") stableNamePrimTyC
 bcoPrimTyConName              = mkPrimTc (fsLit "BCO#") bcoPrimTyConKey bcoPrimTyCon
 weakPrimTyConName             = mkPrimTc (fsLit "Weak#") weakPrimTyConKey weakPrimTyCon
 threadIdPrimTyConName         = mkPrimTc (fsLit "ThreadId#") threadIdPrimTyConKey threadIdPrimTyCon
-
+-- GHCVM-specific names
+jcharPrimTyConName             = mkPrimTc (fsLit "JChar#") jcharPrimTyConKey jcharPrimTyCon
+jboolPrimTyConName             = mkPrimTc (fsLit "JBool#") jboolPrimTyConKey jboolPrimTyCon
+jbytePrimTyConName             = mkPrimTc (fsLit "JByte#") jbytePrimTyConKey jbytePrimTyCon
+jshortPrimTyConName             = mkPrimTc (fsLit "JShort#") jshortPrimTyConKey jshortPrimTyCon
+jobjectPrimTyConName = mkPrimTc (fsLit "JObject#") jobjectPrimTyConKey jobjectPrimTyCon
+jarrayPrimTyConName = mkPrimTc (fsLit "JArray#") jarrayPrimTyConKey jarrayPrimTyCon
 {-
 ************************************************************************
 *                                                                      *
@@ -835,6 +848,24 @@ anyTyCon = mkFamilyTyCon anyTyConName kind [kKiVar]
 
 anyTypeOfKind :: Kind -> Type
 anyTypeOfKind kind = TyConApp anyTyCon [kind]
+
+{-
+************************************************************************
+*                                                                      *
+\subsection[TysPrim-GHCVM]{The GHCVM-specific types}
+*                                                                      *
+************************************************************************
+-}
+jcharPrimTyCon, jboolPrimTyCon, jbytePrimTyCon, jshortPrimTyCon,
+  jobjectPrimTyCon, jarrayPrimTyCon :: TyCon
+jcharPrimTyCon   = pcPrimTyCon0 jcharPrimTyConName WordRep
+jboolPrimTyCon   = pcPrimTyCon0 jboolPrimTyConName WordRep
+jbytePrimTyCon   = pcPrimTyCon0 jbytePrimTyConName WordRep
+jshortPrimTyCon  = pcPrimTyCon0 jshortPrimTyConName WordRep
+jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] WordRep
+jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles VoidRep
+  where kind     = mkArrowKinds (map (const liftedTypeKind) roles) liftedTypeKind
+        roles    = [Nominal]
 
 {-
 ************************************************************************

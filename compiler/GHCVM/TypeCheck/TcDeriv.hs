@@ -47,12 +47,15 @@ import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
 import GHCVM.Types.TyCon
 import GHCVM.TypeCheck.TcType
+import qualified GHCVM.TypeCheck.TcType as TcType
 import GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.VarSet
 import GHCVM.Prelude.PrelNames
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Util
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Pair

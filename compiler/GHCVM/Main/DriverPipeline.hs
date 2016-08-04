@@ -15,9 +15,6 @@ module GHCVM.Main.DriverPipeline (
         -- collection of source files.
    oneShot, compileFile,
 
-        -- Interfaces for the batch-mode driver
-   linkBinary,
-
         -- Interfaces for the compilation manager (interpreted/batch-mode)
    preprocess,
    compileOne, compileOne',
@@ -27,8 +24,8 @@ module GHCVM.Main.DriverPipeline (
    PhasePlus(..), CompPipeline(..), PipeEnv(..), PipeState(..),
    phaseOutputFilename, getPipeState, getPipeEnv,
    hscPostBackendPhase, getLocation, setModLocation, setDynFlags,
-   runPhase, exeFileName,
-   linkingNeeded, checkLinkInfo, writeInterfaceOnlyMode
+   runPhase, jarFileName,
+   linkingNeeded, writeInterfaceOnlyMode
   ) where
 
 import GHCVM.Core.CoreSyn (CoreProgram)
@@ -38,6 +35,7 @@ import GHCVM.SimplStg.SimplStg         ( stg2stg )
 import GHCVM.StgSyn.CoreToStg        ( coreToStg )
 import GHCVM.Core.CorePrep         ( corePrepPgm )
 import GHCVM.Main.SysTools
+import qualified GHCVM.Main.SysTools as SysTools
 import GHCVM.Types.TyCon ( isDataTyCon )
 import GHCVM.BasicTypes.NameEnv
 
@@ -77,6 +75,7 @@ import GHCVM.TypeCheck.TcRnTypes
 import GHCVM.Main.Hooks
 
 import GHCVM.Utils.Exception
+import qualified GHCVM.Utils.Exception as Exception
 import Data.IORef       ( readIORef )
 import System.Directory
 import System.FilePath
@@ -443,17 +442,17 @@ compileFile hsc_env stop_phase (src, mb_phase) = do
 
 
 doLink :: DynFlags -> Phase -> [FilePath] -> IO ()
-doLink dflags stop_phase o_files = -- TODO: Implement later
-  -- | not (isStopLn stop_phase)
-  -- = return ()           -- We stopped before the linking phase
+doLink dflags stop_phase o_files -- TODO: Implement later
+  | not (isStopLn stop_phase)
+  = return ()           -- We stopped before the linking phase
 
-  -- | otherwise
-  -- = case ghcLink dflags of
-  --       NoLink        -> return ()
-  --       LinkBinary    -> linkBinary         dflags o_files []
-  --       LinkStaticLib -> linkStaticLibCheck dflags o_files []
-  --       LinkDynLib    -> linkDynLibCheck    dflags o_files []
-  --       other         -> panicBadLink other
+  | otherwise
+  = case ghcLink dflags of
+        -- NoLink        -> return ()
+        -- LinkBinary    -> linkBinary         dflags o_files []
+        -- LinkStaticLib -> linkStaticLibCheck dflags o_files []
+        -- LinkDynLib    -> linkDynLibCheck    dflags o_files []
+        _         -> panic "doLink: implement"
 
 
 -- ---------------------------------------------------------------------------
@@ -467,8 +466,7 @@ doLink dflags stop_phase o_files = -- TODO: Implement later
 -- The DynFlags can be modified by phases in the pipeline (eg. by
 -- OPTIONS_GHC pragmas), and the changes affect later phases in the
 -- pipeline.
-runPipeline
-  :: Phase                      -- ^ When to stop
+runPipeline :: Phase                      -- ^ When to stop
   -> HscEnv                     -- ^ Compilation environment
   -> (FilePath,Maybe PhasePlus) -- ^ Input filename (and maybe -x suffix)
   -> Maybe FilePath             -- ^ original basename (if different from ^^^)
@@ -933,7 +931,7 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
 
          PipeState{hsc_env=hsc_env'} <- getPipeState
 
-         outputFilename <- liftIO $ hscGenHardCode hsc_env' cgguts mod_summary output_fn
+         (outputFilename, _) <- liftIO $ hscGenHardCode hsc_env' cgguts mod_summary output_fn
 
          return (RealPhase next_phase, outputFilename)
 
@@ -1072,7 +1070,7 @@ runPhase (RealPhase cc_phase) input_fn dflags
                        ++ verbFlags
                        ++ [ "-S" ]
                        ++ cc_opt
-                       ++ [ "-D__GLASGOW_HASKELL__="++cProjectVersionInt
+                       ++ [ "-D__GLASGOW_HASKELL__=001"
                           , "-include", ghcVersionH
                           ]
                        ++ framework_paths
@@ -1401,12 +1399,12 @@ runPhase (RealPhase LlvmLlc) input_fn dflags
 -----------------------------------------------------------------------------
 -- LlvmMangle phase
 
-runPhase (RealPhase LlvmMangle) input_fn dflags
-  = do
-      let next_phase = if gopt Opt_SplitObjs dflags then Splitter else As False
-      output_fn <- phaseOutputFilename next_phase
-      liftIO $ llvmFixupAsm dflags input_fn output_fn
-      return (RealPhase next_phase, output_fn)
+-- runPhase (RealPhase LlvmMangle) input_fn dflags
+--   = do
+--       let next_phase = if gopt Opt_SplitObjs dflags then Splitter else As False
+--       output_fn <- phaseOutputFilename next_phase
+--       liftIO $ llvmFixupAsm dflags input_fn output_fn
+--       return (RealPhase next_phase, output_fn)
 
 -----------------------------------------------------------------------------
 -- merge in stub objects
@@ -1503,11 +1501,11 @@ doCpp dflags raw input_fn output_fn = do
     let cpp_prog args | raw       = SysTools.runCpp dflags args
                       | otherwise = SysTools.runCc dflags (SysTools.Option "-E" : args)
 
-    let target_defs =
-          [ "-D" ++ HOST_OS     ++ "_BUILD_OS=1",
-            "-D" ++ HOST_ARCH   ++ "_BUILD_ARCH=1",
-            "-D" ++ TARGET_OS   ++ "_HOST_OS=1",
-            "-D" ++ TARGET_ARCH ++ "_HOST_ARCH=1" ]
+    let target_defs = [] -- TODO: Deal with this
+          -- [ "-D" ++ HOST_OS     ++ "_BUILD_OS=1",
+          --   "-D" ++ HOST_ARCH   ++ "_BUILD_ARCH=1",
+          --   "-D" ++ TARGET_OS   ++ "_HOST_OS=1",
+          --   "-D" ++ TARGET_ARCH ++ "_HOST_ARCH=1" ]
         -- remember, in code we *compile*, the HOST is the same our TARGET,
         -- and BUILD is the same as our HOST.
 
@@ -1534,7 +1532,7 @@ doCpp dflags raw input_fn output_fn = do
     -- Default CPP defines in Haskell source
     ghcVersionH <- getGhcVersionPathName dflags
     let hsSourceCppOpts =
-          [ "-D__GLASGOW_HASKELL__="++cProjectVersionInt
+          [ "-D__GLASGOW_HASKELL__=001"
           , "-include", ghcVersionH
           ]
 
@@ -1706,26 +1704,6 @@ getGhcVersionPathName dflags = do
 --   addMultiByteStringsToJar' jarContents output_filename
 --   return output_filename
 
-touchObjectFile :: DynFlags -> FilePath -> IO ()
-touchObjectFile dflags path = do
-  createDirectoryIfMissing True $ takeDirectory path
-  SysTools.touch dflags "Touching object file" path
-
-compileEmptyStub :: DynFlags -> HscEnv -> FilePath -> ModLocation -> IO ()
-compileEmptyStub dflags hsc_env basename location = do
-  -- To maintain the invariant that every Haskell file
-  -- compiles to object code, we make an empty (but
-  -- valid) stub object file for signatures
-  empty_stub <- newTempName dflags "c"
-  writeFile empty_stub ""
-  {- _ <- runPipeline StopLn hsc_env
-                  (empty_stub, Nothing)
-                  (Just basename)
-                  Persistent
-                  (Just location)
-                  Nothing -}
-  return ()
-
 myCoreToStg :: DynFlags -> Module -> CoreProgram
             -> IO ( [StgBinding] -- output program
                   , CollectedCCs) -- cost centre info (declared and used)
@@ -1772,12 +1750,12 @@ jarFileName dflags
   where s <?.> ext | null (takeExtension s) = s <.> ext
                    | otherwise              = s
 
-ghcvmFrontend :: ModSummary -> Hsc TcGblEnv
-ghcvmFrontend mod_summary = do
-  hpm <- hscParse' mod_summary
-  hsc_env <- getHscEnv
-  tcg_env <- tcRnModule' hsc_env mod_summary False hpm
-  return tcg_env
+-- ghcvmFrontend :: ModSummary -> Hsc TcGblEnv
+-- ghcvmFrontend mod_summary = do
+--   hpm <- hscParse' mod_summary
+--   hsc_env <- getHscEnv
+--   tcg_env <- tcRnModule' hsc_env mod_summary False hpm
+--   return tcg_env
 
 findHSLib :: DynFlags -> [String] -> String -> IO (Maybe FilePath)
 findHSLib dflags dirs lib = do
@@ -1845,11 +1823,3 @@ maybeMainAndManifest dflags = do
                         ++ "Created-By: ghcvm-0.0.0.1\n"
                         ++ maybe "" (const $ "Main-Class: " ++ mainClassJava)
                                  mainFile)
-
-haveRtsOptsFlags :: DynFlags -> Bool
-haveRtsOptsFlags dflags
-  = isJust (rtsOpts dflags)
-  || case rtsOptsEnabled dflags of
-       RtsOptsSafeOnly -> False
-       _ -> True
-

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, NondecreasingIndentation, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, BangPatterns, NondecreasingIndentation, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 -- NB: we specifically ignore deprecations. GHC 7.6 marks the .QSem module as
 -- deprecated, although it became un-deprecated later. As a result, using 7.6
@@ -21,9 +21,9 @@ module GHCVM.Main.GhcMake(
         noModError, cyclicModuleErr
     ) where
 
--- TODO:#ifdef GHCI
--- import qualified Linker         ( unload )
--- #endif
+#ifdef GHCI
+import qualified Linker         ( unload )
+#endif
 
 import GHCVM.Main.DriverPhases
 import GHCVM.Main.DriverPipeline
@@ -161,7 +161,7 @@ load how_much = do
                         | s <- mod_graph, not (isBootSummary s)]
         bad_boot_mods = [s        | s <- mod_graph, isBootSummary s,
                                     not (ms_mod_name s `elem` all_home_mods)]
-    {-ASSERT( null bad_boot_mods )-} return ()
+    {-ASSERT( null bad_boot_mods ) return () -}
 
     -- check that the module given in HowMuch actually exists, otherwise
     -- topSortModuleGraph will bomb later.
@@ -250,8 +250,8 @@ load how_much = do
         -- is stable).
         partial_mg
             | LoadDependenciesOf _mod <- how_much
-            = -- ASSERT( case last partial_mg0 of
-              --           AcyclicSCC ms -> ms_mod_name ms == _mod; _ -> False )
+            = --ASSERT( case last partial_mg0 of
+              --        AcyclicSCC ms -> ms_mod_name ms == _mod; _ -> False )
               List.init partial_mg0
             | otherwise
             = partial_mg0
@@ -358,7 +358,7 @@ load how_much = do
           liftIO $ intermediateCleanTempFiles dflags mods_to_keep hsc_env1
 
           -- there should be no Nothings where linkables should be, now
-          -- ASSERT(all (isJust.hm_linkable) (eltsUFM (hsc_HPT hsc_env))) do
+          --ASSERT(all (isJust.hm_linkable) (eltsUFM (hsc_HPT hsc_env))) do
 
           -- Link everything together
           linkresult <- liftIO $ link (ghcLink dflags) dflags False hpt4
@@ -511,13 +511,13 @@ findPartiallyCompletedCycles modsDone theGraph
 unload :: HscEnv -> [Linkable] -> IO ()
 unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
   = case ghcLink (hsc_dflags hsc_env) of
--- TODO:#ifdef GHCI
---         LinkInMemory -> Linker.unload (hsc_dflags hsc_env) stable_linkables
--- #else
+#ifdef GHCI
+        LinkInMemory -> Linker.unload (hsc_dflags hsc_env) stable_linkables
+#else
         LinkInMemory -> panic "unload: no interpreter"
                                 -- urgh.  avoid warnings:
                                 hsc_env stable_linkables
--- #endif
+#endif
         _other -> return ()
 
 -- -----------------------------------------------------------------------------
@@ -1866,7 +1866,7 @@ summariseModule hsc_env old_summary_map is_boot (L loc wanted_mod)
                          just_found location mod
                 | otherwise ->
                         -- Drop external-pkg
-                        --ASSERT(modulePackageKey mod /= thisPackage dflags)
+                        -- ASSERT(modulePackageKey mod /= thisPackage dflags)
                         return Nothing
 
              err -> return $ Just $ Left $ noModError dflags loc wanted_mod err

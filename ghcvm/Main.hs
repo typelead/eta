@@ -21,7 +21,7 @@ import GHCVM.Main.Constants
 import GHCVM.Main.HscTypes
 import GHCVM.Main.Packages (pprPackages, pprPackagesSimple, pprModuleMap)
 import GHCVM.Main.DriverPhases
-import GHCVM.CoreSyn.CorePrep ( corePrepPgm )
+import GHCVM.Core.CorePrep ( corePrepPgm )
 import GHCVM.BasicTypes.BasicTypes (failed)
 import GHCVM.Main.StaticFlags
 import GHCVM.Main.DynFlags
@@ -122,14 +122,7 @@ main = do
 
               -- add the override to force GHC to stop at STG code
               let dflags1 = dflags0
-                            { hooks = emptyHooks
-                              { runPhaseHook         = Just runGhcVMPhase
-                              , linkHook             = Just linkGhcVM
-                              , ghcPrimIfaceHook     = Just ghcvmPrimIface
-                              , hscFrontendHook      = Just ghcvmFrontend
-                              , tcForeignImportsHook = Just tcForeignImports
-                              , dsForeignsHook       = Just dsForeigns }
-                              , objectSuf = "jar" }
+                            { objectSuf = "jar" }
                   dflags2 = dflags1 -- foldl xopt_set dflags1
                             -- [ Opt_ForeignFunctionInterface
                             -- , Opt_GHCForeignImportPrim
@@ -694,7 +687,7 @@ showBanner _postLoadMode dflags = do
 showInfo :: DynFlags -> IO ()
 showInfo dflags = do
         let sq x = " [" ++ x ++ "\n ]"
-        putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo dflags
+        putStrLn $ sq $ intercalate "\n ," $ map show $ "GHCVM Version 0.0.1"
 
 showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions

@@ -14,6 +14,7 @@ module GHCVM.TypeCheck.TcForeign
   ) where
 
 import GHCVM.TypeCheck.TcRnMonad
+import GHCVM.Main.Hooks
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcExpr
 import GHCVM.TypeCheck.TcEnv
@@ -57,7 +58,11 @@ javaCallConv :: CCallConv
 javaCallConv = JavaScriptCallConv
 
 tcForeignImports :: [LForeignDecl Name] -> TcM ([Id], [LForeignDecl Id], Bag GlobalRdrElt)
-tcForeignImports decls = do
+tcForeignImports decls
+  = getHooked tcForeignImportsHook tcForeignImports' >>= ($ decls)
+
+tcForeignImports' :: [LForeignDecl Name] -> TcM ([Id], [LForeignDecl Id], Bag GlobalRdrElt)
+tcForeignImports' decls = do
   (ids, decls, gres) <- mapAndUnzip3M tcFImport $ filter isForeignImport decls
   return (ids, decls, unionManyBags gres)
 
@@ -335,4 +340,17 @@ isTc uniq ty = case tcSplitTyConApp_maybe ty of
   Just (tc, _) -> uniq == getUnique tc
   Nothing      -> False
 
-tcForeignExports = undefined
+tcForeignExports :: [LForeignDecl Name]
+                 -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt)
+tcForeignExports decls =
+  getHooked tcForeignExportsHook tcForeignExports' >>= ($ decls)
+
+tcForeignExports' :: [LForeignDecl Name]
+                 -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt)
+-- TODO: Implement foreign exports
+tcForeignExports' _ = return (emptyLHsBinds, [], emptyBag)
+  -- = foldlM combine (emptyLHsBinds, [], emptyBag) (filter isForeignExport decls)
+  -- where
+  --  combine (binds, fs, gres1) (L loc fe) = do
+  --      (b, f, gres2) <- setSrcSpan loc (tcFExport fe)
+  --      return (b `consBag` binds, L loc f : fs, gres1 `unionBags` gres2)

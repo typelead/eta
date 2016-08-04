@@ -64,6 +64,7 @@ import GHCVM.Prelude.PrimOp
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.IdInfo
 import GHCVM.Types.Type
+import GHCVM.Types.TypeRep
 import qualified GHCVM.Types.Type as Type
 import GHCVM.Types.Coercion
 import GHCVM.Types.TyCon

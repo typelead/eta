@@ -22,6 +22,7 @@ import GHCVM.TypeCheck.TcHsSyn
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.Inst
 import GHCVM.BasicTypes.Id
+import qualified GHCVM.BasicTypes.Id as Id
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.NameSet
@@ -29,6 +30,7 @@ import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcValidity( arityErr )
 import GHCVM.TypeCheck.TcType
+import qualified GHCVM.TypeCheck.TcType as TcType
 import GHCVM.TypeCheck.TcUnify
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.Prelude.TysWiredIn
@@ -43,6 +45,7 @@ import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Util
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import Control.Monad
 

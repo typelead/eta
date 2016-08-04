@@ -1,4 +1,4 @@
-{-# LANGUAGE NondecreasingIndentation, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, NondecreasingIndentation, ScopedTypeVariables #-}
 
 -- -----------------------------------------------------------------------------
 --
@@ -89,46 +89,46 @@ module GHCVM.Main.GHC (
         -- * Interactive evaluation
         getBindings, getInsts, getPrintUnqual,
         findModule, lookupModule,
--- TODO: #ifdef GHCI
---         isModuleTrusted,
---         moduleTrustReqs,
---         setContext, getContext,
---         getNamesInScope,
---         getRdrNamesInScope,
---         getGRE,
---         moduleIsInterpreted,
---         getInfo,
---         exprType,
---         typeKind,
---         parseName,
---         RunResult(..),
---         runStmt, runStmtWithLocation, runDecls, runDeclsWithLocation,
---         runTcInteractive,   -- Desired by some clients (Trac #8878)
---         parseImportDecl, SingleStep(..),
---         resume,
---         Resume(resumeStmt, resumeThreadId, resumeBreakInfo, resumeSpan,
---                resumeHistory, resumeHistoryIx),
---         History(historyBreakInfo, historyEnclosingDecls),
---         GHC.getHistorySpan, getHistoryModule,
---         getResumeContext,
---         abandon, abandonAll,
---         InteractiveEval.back,
---         InteractiveEval.forward,
---         showModule,
---         isModuleInterpreted,
---         InteractiveEval.compileExpr, HValue, dynCompileExpr,
---         GHC.obtainTermFromId, GHC.obtainTermFromVal, reconstructType,
---         modInfoModBreaks,
---         ModBreaks(..), BreakIndex,
---         BreakInfo(breakInfo_number, breakInfo_module),
---         BreakArray, setBreakOn, setBreakOff, getBreak,
--- #endif
+#ifdef GHCI
+        isModuleTrusted,
+        moduleTrustReqs,
+        setContext, getContext,
+        getNamesInScope,
+        getRdrNamesInScope,
+        getGRE,
+        moduleIsInterpreted,
+        getInfo,
+        exprType,
+        typeKind,
+        parseName,
+        RunResult(..),
+        runStmt, runStmtWithLocation, runDecls, runDeclsWithLocation,
+        runTcInteractive,   -- Desired by some clients (Trac #8878)
+        parseImportDecl, SingleStep(..),
+        resume,
+        Resume(resumeStmt, resumeThreadId, resumeBreakInfo, resumeSpan,
+               resumeHistory, resumeHistoryIx),
+        History(historyBreakInfo, historyEnclosingDecls),
+        GHC.getHistorySpan, getHistoryModule,
+        getResumeContext,
+        abandon, abandonAll,
+        InteractiveEval.back,
+        InteractiveEval.forward,
+        showModule,
+        isModuleInterpreted,
+        InteractiveEval.compileExpr, HValue, dynCompileExpr,
+        GHC.obtainTermFromId, GHC.obtainTermFromVal, reconstructType,
+        modInfoModBreaks,
+        ModBreaks(..), BreakIndex,
+        BreakInfo(breakInfo_number, breakInfo_module),
+        BreakArray, setBreakOn, setBreakOff, getBreak,
+#endif
         lookupName,
 
--- TODO:#ifdef GHCI
---         -- ** EXPERIMENTAL
---         setGHCiMonad,
--- #endif
+#ifdef GHCI
+        -- ** EXPERIMENTAL
+        setGHCiMonad,
+#endif
 
         -- * Abstract syntax elements
 
@@ -260,12 +260,12 @@ module GHCVM.Main.GHC (
   * what StaticFlags should we expose, if any?
 -}
 
--- TODO:#ifdef GHCI
--- import GHCVM.Interactive.ByteCodeInstr
--- import GHCVM.Main.BreakArray
--- import InteractiveEval
--- import TcRnDriver       ( runTcInteractive )
--- #endif
+#ifdef GHCI
+import GHCVM.Interactive.ByteCodeInstr
+import GHCVM.Main.BreakArray
+import InteractiveEval
+import TcRnDriver       ( runTcInteractive )
+#endif
 
 import GHCVM.Main.PprTyThing       ( pprFamInst )
 import GHCVM.Main.HscMain

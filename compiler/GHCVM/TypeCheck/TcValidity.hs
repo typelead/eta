@@ -40,6 +40,7 @@ import GHCVM.Utils.Util
 import GHCVM.Utils.ListSetOps
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 
 import Control.Monad

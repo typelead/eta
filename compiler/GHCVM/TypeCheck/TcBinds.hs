@@ -52,6 +52,7 @@ import GHCVM.Utils.Maybes
 import GHCVM.Utils.Util
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Types.Type(mkStrLitTy)
 import GHCVM.Prelude.PrelNames(ipClassName)

@@ -19,6 +19,7 @@ import GHCVM.Types.Coercion
 import GHCVM.Types.FamInstEnv ( FamInstEnvs )
 import GHCVM.TypeCheck.FamInst ( tcTopNormaliseNewTypeTF_maybe )
 import GHCVM.BasicTypes.Var
+import qualified GHCVM.BasicTypes.Var as Var
 import GHCVM.BasicTypes.DataCon ( dataConName )
 import GHCVM.BasicTypes.Name( isSystemName, nameOccName )
 import GHCVM.BasicTypes.OccName( OccName )

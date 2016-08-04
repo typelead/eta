@@ -40,6 +40,7 @@ import GHCVM.Utils.Util
 import GHCVM.Utils.ListSetOps       ( removeDups )
 import GHCVM.Main.ErrUtils
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.FastString
 import Control.Monad

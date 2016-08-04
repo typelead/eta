@@ -32,6 +32,7 @@ import GHCVM.TypeCheck.TcPatSyn( tcPatSynBuilderOcc )
 import GHCVM.TypeCheck.TcPat
 import GHCVM.TypeCheck.TcMType
 import GHCVM.TypeCheck.TcType
+import qualified GHCVM.TypeCheck.TcType as TcType
 import GHCVM.DeSugar.DsMonad
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.ConLike
@@ -55,6 +56,7 @@ import GHCVM.Utils.ListSetOps
 import GHCVM.Utils.Maybes
 import GHCVM.Main.ErrUtils
 import GHCVM.Utils.Outputable
+import qualified GHCVM.Utils.Outputable as Outputable
 import GHCVM.Utils.FastString
 import Control.Monad
 import GHCVM.Types.Class(classTyCon)

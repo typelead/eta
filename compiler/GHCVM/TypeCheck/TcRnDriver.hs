@@ -38,6 +38,7 @@ import GHCVM.TypeCheck.TcExpr
 import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEvidence
 import GHCVM.Main.PprTyThing( pprTyThing )
+import qualified GHCVM.Main.PprTyThing as PprTyThing
 import GHCVM.Types.Coercion( pprCoAxiom )
 import GHCVM.TypeCheck.FamInst
 import GHCVM.Types.InstEnv
@@ -61,6 +62,7 @@ import GHCVM.Rename.RnEnv
 import GHCVM.Rename.RnSource
 import GHCVM.Main.ErrUtils
 import GHCVM.BasicTypes.Id
+import qualified GHCVM.BasicTypes.Id as Id
 import GHCVM.BasicTypes.IdInfo( IdDetails( VanillaId ) )
 import GHCVM.BasicTypes.VarEnv
 import GHCVM.BasicTypes.Module

@@ -366,6 +366,9 @@ basicKnownKeyNames
         , fingerprintDataConName
         -- Integer (S#)
         , integerSDataConName
+        -- GHCVM
+        , javaDataConName
+        , objectDataConName
     ]
 
 genericTyConNames :: [Name]
@@ -1223,6 +1226,13 @@ fingerprintDataConName :: Name
 fingerprintDataConName =
     conName gHC_FINGERPRINT_TYPE (fsLit "Fingerprint") fingerprintDataConKey
 
+-- GHCVM-specific names
+javaTyConName, javaDataConName, objectTyConName, objectDataConName :: Name
+javaTyConName     = tcQual  gHC_TYPES (fsLit "Java")       javaTyConKey
+javaDataConName   = conName gHC_TYPES (fsLit "Java")       javaDataConKey
+objectTyConName   = tcQual  gHC_TYPES (fsLit "JObject")    objectTyConKey
+objectDataConName = conName gHC_TYPES (fsLit "JObject")    objectDataConKey
+
 {-
 ************************************************************************
 *                                                                      *
@@ -1422,13 +1432,26 @@ ptrTyConKey                             = mkPreludeTyConUnique 74
 funPtrTyConKey                          = mkPreludeTyConUnique 75
 tVarPrimTyConKey                        = mkPreludeTyConUnique 76
 
+-- GHCVM-specific tycons
+jcharPrimTyConKey, jboolPrimTyConKey, jbytePrimTyConKey, jshortPrimTyConKey,
+  jobjectPrimTyConKey, jarrayPrimTyConKey, javaTyConKey,
+  objectTyConKey :: Unique
+jcharPrimTyConKey   = mkPreludeTyConUnique 77
+jboolPrimTyConKey   = mkPreludeTyConUnique 78
+jbytePrimTyConKey   = mkPreludeTyConUnique 79
+jshortPrimTyConKey  = mkPreludeTyConUnique 80
+jobjectPrimTyConKey = mkPreludeTyConUnique 81
+jarrayPrimTyConKey  = mkPreludeTyConUnique 83
+javaTyConKey        = mkPreludeTyConUnique 90
+objectTyConKey      = mkPreludeTyConUnique 91
+
 -- Parallel array type constructor
 parrTyConKey :: Unique
 parrTyConKey                            = mkPreludeTyConUnique 82
 
--- dotnet interop
-objectTyConKey :: Unique
-objectTyConKey                          = mkPreludeTyConUnique 83
+-- -- dotnet interop
+-- objectTyConKey :: Unique
+-- objectTyConKey                          = mkPreludeTyConUnique 83
 
 eitherTyConKey :: Unique
 eitherTyConKey                          = mkPreludeTyConUnique 84
@@ -1686,6 +1709,10 @@ fingerprintDataConKey                   = mkPreludeDataConUnique 35
 callStackDataConKey, srcLocDataConKey :: Unique
 callStackDataConKey                     = mkPreludeDataConUnique 36
 srcLocDataConKey                        = mkPreludeDataConUnique 37
+
+javaDataConKey, objectDataConKey :: Unique
+javaDataConKey      = mkPreludeDataConUnique 38
+objectDataConKey    = mkPreludeDataConUnique 39
 
 {-
 ************************************************************************
