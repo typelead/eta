@@ -442,16 +442,16 @@ compileFile hsc_env stop_phase (src, mb_phase) = do
 
 
 doLink :: DynFlags -> Phase -> [FilePath] -> IO ()
-doLink dflags stop_phase o_files -- TODO: Implement later
+doLink dflags stop_phase o_files
   | not (isStopLn stop_phase)
   = return ()           -- We stopped before the linking phase
 
   | otherwise
   = case ghcLink dflags of
-        -- NoLink        -> return ()
-        -- LinkBinary    -> linkBinary         dflags o_files []
-        -- LinkStaticLib -> linkStaticLibCheck dflags o_files []
-        -- LinkDynLib    -> linkDynLibCheck    dflags o_files []
+        NoLink        -> return ()
+        LinkBinary    -> linkGeneric True  dflags o_files []
+        LinkStaticLib -> linkGeneric False dflags o_files []
+        LinkDynLib    -> linkGeneric False dflags o_files []
         _         -> panic "doLink: implement"
 
 
