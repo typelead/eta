@@ -74,6 +74,8 @@ buildLibrary :: String -> [String] -> Action ()
 buildLibrary lib deps = do
   rootDir <- getGhcVmRoot
   installDir <- getInstallDir
+  putNormal "buildLibrary"
+  putNormal installDir
   let libDir = libraryDir </> lib
       rootLibDir = rootDir </> lib
       conf = lib <.> "conf"
@@ -81,13 +83,14 @@ buildLibrary lib deps = do
       libBuildDir = libDir </> "build"
       libBuildConf = libBuildDir </> conf
       packageDir = packageConfDir rootDir
+      ghcvmCmd = installDir </> "ghcvm"
   createDir libBuildDir
   if lib == "rts" then
     need [rtsjar]
   else do
     hsFiles <- getDirectoryFiles libDir ["//*.hs"]
     unit $ cmd [Cwd libDir, AddEnv "GHC_PACKAGE_PATH" packageDir]
-               (installDir </> "ghcvm") "-clear-package-db -v"
+               ghcvmCmd "-clear-package-db -v"
                ["-package " ++ dep | dep <- deps]
                "-staticlib -ddump-to-file -ddump-stg -this-package-key"
                lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
@@ -132,7 +135,6 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd "stack exec -- ghc-pkg init " $ packageConfDir rootDir
-        unit $ cmd "stack install ghcvm"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
