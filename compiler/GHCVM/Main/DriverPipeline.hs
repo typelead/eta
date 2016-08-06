@@ -1295,7 +1295,7 @@ runPhase (RealPhase LlvmOpt) input_fn dflags
                 ++ [SysTools.Option tbaa])
 
     return (RealPhase LlvmLlc, output_fn)
-  where 
+  where
         -- we always (unless -optlo specified) run Opt since we rely on it to
         -- fix up some pretty big deficiencies in the code we generate
         llvmOpts ver = [ "-mem2reg -globalopt"
@@ -1327,7 +1327,7 @@ runPhase (RealPhase LlvmLlc) input_fn dflags
                          False                            -> LlvmMangle
                          True | gopt Opt_SplitObjs dflags -> Splitter
                          True                             -> As False
-                        
+
     output_fn <- phaseOutputFilename next_phase
 
     -- AVX can cause LLVM 3.2 to generate a C-like frame pointer
@@ -1357,7 +1357,7 @@ runPhase (RealPhase LlvmLlc) input_fn dflags
         -- On ARMv7 using LLVM, LLVM fails to allocate floating point registers
         -- while compiling GHC source code. It's probably due to fact that it
         -- does not enable VFP by default. Let's do this manually here
-        fpOpts = case platformArch (targetPlatform dflags) of 
+        fpOpts = case platformArch (targetPlatform dflags) of
                    ArchARM ARMv7 ext _ -> if (elem VFPv3 ext)
                                       then ["-mattr=+v7,+vfp3"]
                                       else if (elem VFPv3D16 ext)

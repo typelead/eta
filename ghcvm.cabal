@@ -1,5 +1,5 @@
 name:                ghcvm
-version:             0.0.0.1
+version:             0.0.1
 description:         Haskell to JVM compiler
 license:             BSD3
 license-file:        LICENSE
@@ -297,7 +297,7 @@ library
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text
-                       , bin-package-db 
+                       , bin-package-db
                        , time       >= 1.4 && < 1.7
                        , process    >= 1   && < 1.3
                        , directory >= 1.2
@@ -346,7 +346,7 @@ executable ghcvm
                        , transformers
                        , unix
                        , ghcvm
-                                            
+
 
 executable ghcvm-build
     hs-source-dirs:      shake

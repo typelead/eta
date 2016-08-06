@@ -5,7 +5,8 @@ import Development.Shake.FilePath
 import Development.Shake.Util
 import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory, createDirectory, removeDirectory)
 import Control.Monad(forM_, when)
-import Data.List (partition)
+import Data.List (partition,stripPrefix)
+import Data.Maybe(mapMaybe)
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
 
@@ -23,6 +24,9 @@ rtsjar = libJarPath "rts"
 masjar = sampleBuild "mapandsum.jar"
 top x = "../../" ++ x
 packageConfDir dir = dir </> "package.conf.d"
+
+ghcvmIncludePath :: FilePath -> FilePath
+ghcvmIncludePath = (</> "include")
 
 getInstallDir :: Action FilePath
 getInstallDir = fmap (</> "bin") $ liftIO $ getAppUserDataDirectory "local"
@@ -63,9 +67,12 @@ buildConf lib confSrc confDst = do
       let ipi' = ipi { hsLibraries = ["HS" ++ lib]
                      , pkgRoot = Just rootDir
                      , importDirs = [rootDir </> lib]
-                     , libraryDirs = [rootDir </> lib] }
-      writeFile' confDst (showInstalledPackageInfo ipi')
-      return ()
+                     , libraryDirs = [rootDir </> lib]
+                     , includeDirs = if lib == "rts" then
+                                       [ghcvmIncludePath rootDir]
+                                     else
+                                       [] }
+      writeFile' confDst $ showInstalledPackageInfo ipi'
     ParseFailed err -> case locatedErrorMsg err of
                          (Nothing, s) -> putNormal s
                          (Just l, s) -> putNormal $ show l ++ ": " ++ s
@@ -90,7 +97,7 @@ buildLibrary lib deps = do
   else do
     hsFiles <- getDirectoryFiles libDir ["//*.hs"]
     unit $ cmd [Cwd libDir, AddEnv "GHC_PACKAGE_PATH" packageDir]
-               ghcvmCmd "-clear-package-db -v"
+               ghcvmCmd "-clear-package-db"-- -v"
                ["-package " ++ dep | dep <- deps]
                "-staticlib -ddump-to-file -ddump-stg -this-package-key"
                lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
@@ -135,6 +142,16 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd "stack exec -- ghc-pkg init " $ packageConfDir rootDir
+        Stdout paths <- cmd "stack path"
+        let binPath = head . mapMaybe (stripPrefix "compiler-bin: ") $ lines paths
+            ghcPath = takeDirectory binPath
+            ghcInclude = ghcPath </> "lib" </> "ghc-7.10.3" </> "include"
+            ghcvmInclude = ghcvmIncludePath rootDir
+        liftIO $ createDirectory ghcvmInclude
+        let root x = rootDir </> x
+        forM_ ["platform", "version"] $ \s -> do
+          let s' = "ghc" ++ s ++ ".h"
+          copyFile' (ghcInclude </> s') (ghcvmInclude </> s')
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->

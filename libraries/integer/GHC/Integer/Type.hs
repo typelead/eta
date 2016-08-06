@@ -1,6 +1,7 @@
 {-# LANGUAGE EmptyDataDecls, MagicHash, NoImplicitPrelude #-}
 module GHC.Integer.Type where
 
+import GHC.Types
 import GHC.Prim
 
 data {-# CLASS "java.math.BigInteger" #-} Integer#
@@ -8,7 +9,7 @@ data {-# CLASS "java.math.BigInteger" #-} Integer#
 -- TODO: Change J#
 data Integer
   = S# Int#
-  | J# JChar#
+  | J# (JObject# Integer#)
 
 -- TODO: Incomplete
 mkInteger :: Bool -> [Int] -> Integer
