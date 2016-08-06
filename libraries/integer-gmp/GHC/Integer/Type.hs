@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyDataDecls, MagicHash #-}
+{-# LANGUAGE EmptyDataDecls, MagicHash, NoImplicitPrelude #-}
 module GHC.Integer.Type where
 
 import GHC.Prim

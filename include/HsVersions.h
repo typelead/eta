@@ -10,6 +10,8 @@ you will screw up the layout where they are used in case expressions!
 
 #endif
 
+#include "ghcplatform.h"
+
 /* Useful in the headers that we share with the RTS */
 #define COMPILING_GHC 1
 

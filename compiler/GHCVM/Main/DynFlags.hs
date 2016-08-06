@@ -113,9 +113,9 @@ module GHCVM.Main.DynFlags (
         StgToDo(..),
         getStgToDo,
 
--- #ifdef GHCI
---         rtsIsProfiled,
--- #endif
+#ifdef GHCI
+        rtsIsProfiled,
+#endif
         dynamicGhc,
 
 -- #include "../includes/dist-derivedconstants/header/GHCConstantsHaskellExports.hs"
@@ -163,10 +163,10 @@ import qualified GHCVM.Utils.Pretty as Pretty
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Outputable
---TODO: #ifdef GHCI
--- import Foreign.C        ( CInt(..) )
--- import System.IO.Unsafe ( unsafeDupablePerformIO )
--- #endif
+#ifdef GHCI
+import Foreign.C        ( CInt(..) )
+import System.IO.Unsafe ( unsafeDupablePerformIO )
+#endif
 import {-# SOURCE #-} GHCVM.Main.ErrUtils ( Severity(..), MsgDoc, mkLocMessage )
 
 import System.IO.Unsafe ( unsafePerformIO )

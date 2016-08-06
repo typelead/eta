@@ -24,6 +24,9 @@ masjar = sampleBuild "mapandsum.jar"
 top x = "../../" ++ x
 packageConfDir dir = dir </> "package.conf.d"
 
+getInstallDir :: Action FilePath
+getInstallDir = fmap (</> "bin") $ liftIO $ getAppUserDataDirectory "local"
+
 getGhcVmRoot :: Action FilePath
 getGhcVmRoot = liftIO $ getAppUserDataDirectory "ghcvm"
 
@@ -34,8 +37,8 @@ createDirIfMissing = liftIO . createDirectoryIfMissing True
 
 getDependencies :: String -> [String]
 getDependencies "ghc-prim" = ["rts"]
-getDependencies "base" = ["ghc-prim", "integer-gmp"]
-getDependencies "integer-gmp" = ["ghc-prim"]
+getDependencies "base" = ["ghc-prim", "integer"]
+getDependencies "integer" = ["ghc-prim"]
 getDependencies _ = []
 
 topologicalDepsSort :: [String] -> (String -> [String]) -> [String]
@@ -70,19 +73,24 @@ buildConf lib confSrc confDst = do
 buildLibrary :: String -> [String] -> Action ()
 buildLibrary lib deps = do
   rootDir <- getGhcVmRoot
+  installDir <- getInstallDir
   let libDir = libraryDir </> lib
       rootLibDir = rootDir </> lib
       conf = lib <.> "conf"
       libConf = libDir </> conf
       libBuildDir = libDir </> "build"
       libBuildConf = libBuildDir </> conf
+      packageDir = packageConfDir rootDir
   createDir libBuildDir
   if lib == "rts" then
     need [rtsjar]
   else do
     hsFiles <- getDirectoryFiles libDir ["//*.hs"]
-    unit $ cmd (Cwd libDir) "stack exec -- ghcvm -clear-package-db -v" ["-package " ++ dep | dep <- deps]
-               "-staticlib -ddump-to-file -ddump-stg -this-package-key" lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
+    unit $ cmd [Cwd libDir, AddEnv "GHC_PACKAGE_PATH" packageDir]
+               (installDir </> "ghcvm") "-clear-package-db -v"
+               ["-package " ++ dep | dep <- deps]
+               "-staticlib -ddump-to-file -ddump-stg -this-package-key"
+               lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
   buildConf lib libConf libBuildConf
   buildFiles <- getDirectoryFiles libBuildDir ["//*"]
 
@@ -124,6 +132,7 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd "stack exec -- ghc-pkg init " $ packageConfDir rootDir
+        unit $ cmd "stack install ghcvm"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->

@@ -1,6 +1,7 @@
 #ifndef GHCVM_H
 #define GHCVM_H
 
+#include "ghcplatform.h"
 #define GLOBAL_VAR(name,value,ty)               \
   {-# NOINLINE name #-};                        \
   name :: IORef (ty);                           \

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, MagicHash, NoImplicitPrelude #-}
 module GHC.Integer
   (Integer, mkInteger, smallInteger)
 where

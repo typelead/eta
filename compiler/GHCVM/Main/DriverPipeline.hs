@@ -1524,11 +1524,11 @@ doCpp dflags raw input_fn output_fn = do
 
     backend_defs <- getBackendDefs dflags
 
--- TODO:#ifdef GHCI
---     let th_defs = [ "-D__GLASGOW_HASKELL_TH__=YES" ]
--- #else
+#ifdef GHCI
+    let th_defs = [ "-D__GLASGOW_HASKELL_TH__=YES" ]
+#else
     let th_defs = [ "-D__GLASGOW_HASKELL_TH__=NO" ]
--- #endif
+#endif
     -- Default CPP defines in Haskell source
     ghcVersionH <- getGhcVersionPathName dflags
     let hsSourceCppOpts =
