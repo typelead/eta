@@ -90,7 +90,7 @@ dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header
   -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
-  liftIO . putStrLn $ showSDoc dflags $ ptext (sLit "dsFCall:") <+> ppr ty <+> ppr tvs <+> ppr argTypes <+> ppr ioResType
+  liftIO . putStrLn $ showSDoc dflags $ ptext (sLit "dsFCall:") <+> ppr co <+> ppr ty <+> ppr tvs <+> ppr argTypes <+> ppr ioResType
   args <- mapM newSysLocalDs argTypes
   (valArgs, argWrappers) <- mapAndUnzipM unboxArg (map Var args)
   let workArgIds = [v | Var v <- valArgs]

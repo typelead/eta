@@ -39,6 +39,8 @@ import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.RdrName
 import GHCVM.HsSyn.HsSyn
 import GHCVM.Utils.Bag
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
 
 import GHCVM.Primitive
 import Data.Maybe(fromMaybe)
@@ -66,14 +68,21 @@ tcForeignImports' decls = do
   (ids, decls, gres) <- mapAndUnzip3M tcFImport $ filter isForeignImport decls
   return (ids, decls, unionManyBags gres)
 
+printDebug h s = do
+  dflags <- getDynFlags
+  liftIO . putStrLn . showSDoc dflags $ (ptext $ sLit h) <+> s
+
 tcFImport :: LForeignDecl Name -> TcM (Id, LForeignDecl Id, Bag GlobalRdrElt)
 tcFImport (L declLoc fi@(ForeignImport (L nameLoc name) hsType _ impDecl))
   = setSrcSpan declLoc . addErrCtxt (foreignDeclCtxt fi) $ do
       sigType <- tcHsSigType (ForSigCtxt name) hsType
+      --printDebug "tcFImport: sigType" $ ppr sigType
       (normCo, normSigType, gres) <- normaliseFfiType sigType
+      --printDebug "tcFImport: normSigType" $ ppr normSigType
       let (_, ty)             = tcSplitForAllTys normSigType
           (argTypes, resType) = tcSplitFunTys ty
           id                  = mkLocalId name sigType
+      --printDebug "tcFImport: normSigType" $ ppr argTypes <+> ppr resType
       impDecl' <- tcCheckFIType argTypes resType impDecl
       let fiDecl = ForeignImport (L nameLoc id) undefined
                                  (mkSymCo normCo) impDecl'
@@ -117,9 +126,10 @@ normaliseFfiType' env ty0 = go initRecTc ty0
                   xs <- mapM (go recNts) tys
                   let (cos, tys', gres) = unzip3 xs
                       cos' = zipWith3 downgradeRole (tyConRoles tc)
-                                      (if isJava then [Nominal] else []
+                                      ((if isJava then [Nominal] else [])
                                        ++ repeat Representational) cos
-                  return ( mkTyConAppCo Representational tc cos'
+                      co' = mkTyConAppCo Representational tc cos'
+                  return ( co'
                          , mkTyConApp tc tys'
                          , unionManyBags gres )
                 ntCo = mkUnbranchedAxInstCo Representational (newTyConCo tc)
