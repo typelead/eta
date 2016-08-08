@@ -10,7 +10,7 @@ import GHCVM.BasicTypes.DataCon
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Util (unzipWith)
 import GHCVM.Util
-import GHCVM.Primitive
+
 import GHCVM.Debug
 import GHCVM.CodeGen.Utils
 import GHCVM.CodeGen.Monad
@@ -101,7 +101,7 @@ cgLetNoEscapeClosure binder args body = do
   return (lneIdInfo label binder argLocs, code)
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
-cgIdApp funId [] | isVoidJTy (idType funId) = emitReturn []
+cgIdApp funId [] | isVoidTy (idType funId) = emitReturn []
 cgIdApp funId args = do
   dflags <- getDynFlags
   funInfo <- getCgIdInfo funId
@@ -180,7 +180,7 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
           return $ head codes
 
 cgCase (StgApp v []) _ (PrimAlt _) alts
-  | isVoidJRep (idJPrimRep v)
+  | isVoidRep (idPrimRep v)
   , [(DEFAULT, _, _, rhs)] <- alts
   = cgExpr rhs
 
@@ -195,10 +195,10 @@ cgCase (StgApp v []) binder altType@(PrimAlt _) alts
       emitAssign binderLoc (idInfoLoadCode vInfo)
       bindArgs [(nvBinder, binderLoc)]
       cgAlts nvBinder altType alts
-  where repsCompatible = vRep == idJPrimRep binder
+  where repsCompatible = vRep == idPrimRep binder
         -- TODO: Allow integer conversions?
         nvBinder = NonVoid binder
-        vRep = idJPrimRep v
+        vRep = idPrimRep v
 
 cgCase scrut@(StgApp v []) _ (PrimAlt _) _ = do
   cgLoc <- newIdLoc (NonVoid v)
@@ -287,6 +287,3 @@ cgAlgAltRhss binder alts = do
       branches = [ (getDataConTag con, code)
                  | (DataAlt con, code) <- taggedBranches ]
   return (maybeDefault, branches)
-
-
-

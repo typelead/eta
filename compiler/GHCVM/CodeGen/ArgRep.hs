@@ -1,13 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.ArgRep
-  (JArgRep(..),
+  (ArgRep(..),
    toArgRep,
+   jrepType,
    isNonV,
-   idJArgRep,
+   idArgRep,
+   idPrimRep,
    primRepFieldType_maybe,
    primRepFieldType,
-   ftJArgRep,
-   typeJArgRep,
+   ftArgRep,
+   typeArgRep,
    repFieldTypes,
    repFieldType_maybe,
    contextLoad,
@@ -22,14 +24,14 @@ import GHCVM.BasicTypes.BasicTypes       ( RepArity )
 import GHCVM.Main.DynFlags
 import GHCVM.Debug
 import Data.Maybe
-import GHCVM.Primitive
+
 import GHCVM.CodeGen.Rts
 import GHCVM.Util
 import Codec.JVM
 import Data.Monoid ((<>))
 import Data.Text (Text)
 
-data JArgRep = P   -- StgClosure
+data ArgRep = P   -- StgClosure
              | N   -- int-sized non-ptr
              | V   -- Void
              | L   -- long
@@ -38,18 +40,10 @@ data JArgRep = P   -- StgClosure
              | O   -- Java object pointer
              deriving (Eq, Show)
 
-instance Outputable JArgRep where
+instance Outputable ArgRep where
   ppr = str . show
 
-toJArgRep :: JPrimRep -> JArgRep
-toJArgRep (HPrimRep primRep) = toArgRep primRep
-toJArgRep JRepBool           = N
-toJArgRep JRepChar           = N
-toJArgRep JRepByte           = N
-toJArgRep JRepShort          = N
-toJArgRep (JRepObject _)     = O
-
-toArgRep :: PrimRep -> JArgRep
+toArgRep :: PrimRep -> ArgRep
 toArgRep VoidRep           = V
 toArgRep PtrRep            = P
 toArgRep IntRep            = N
@@ -59,20 +53,25 @@ toArgRep Int64Rep          = L
 toArgRep Word64Rep         = L
 toArgRep FloatRep          = F
 toArgRep DoubleRep         = D
-toArgRep (VecRep len elem) = error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
+toArgRep BoolRep           = N
+toArgRep CharRep           = N
+toArgRep ByteRep           = N
+toArgRep ShortRep          = N
+toArgRep (ObjectRep _)     = O
+--toArgRep (VecRep len elem) = error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
 
-isNonV :: JArgRep -> Bool
+isNonV :: ArgRep -> Bool
 isNonV V = False
 isNonV _ = True
 
-idJArgRep :: Id -> JArgRep
-idJArgRep = toJArgRep . idJPrimRep
+idArgRep :: Id -> ArgRep
+idArgRep = toArgRep . idPrimRep
 
-typeJArgRep :: Type -> JArgRep
-typeJArgRep = toJArgRep . typeJPrimRep
+typeArgRep :: Type -> ArgRep
+typeArgRep = toArgRep . typePrimRep
 
-ftJArgRep :: FieldType -> JArgRep
-ftJArgRep ft
+ftArgRep :: FieldType -> ArgRep
+ftArgRep ft
   | ft == closureType = P
   | otherwise = case ft of
       BaseType JDouble            -> D
@@ -82,37 +81,38 @@ ftJArgRep ft
       ArrayType  _                -> O
       _                           -> N
 
-primRepFieldType_maybe :: JPrimRep -> Maybe FieldType
-primRepFieldType_maybe (HPrimRep primRep) =
-  case primRep of
-    VoidRep           -> Nothing
-    PtrRep            -> Just closureType
-    IntRep            -> Just jint
-    WordRep           -> Just jint
-    AddrRep           -> Just jstring -- TODO: When implementing ByteArray#,
-    Int64Rep          -> Just jlong
-    Word64Rep         -> Just jlong
-    FloatRep          -> Just jfloat
-    DoubleRep         -> Just jdouble
-    (VecRep len elem) -> error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
-primRepFieldType_maybe JRepBool               = Just jbool
-primRepFieldType_maybe JRepChar               = Just jchar
-primRepFieldType_maybe JRepByte               = Just jbyte
-primRepFieldType_maybe JRepShort              = Just jshort
-primRepFieldType_maybe (JRepObject className) = Just $ obj className
+primRepFieldType_maybe :: PrimRep -> Maybe FieldType
+primRepFieldType_maybe VoidRep = Nothing
+primRepFieldType_maybe rep = Just $
+  case rep of
+    PtrRep              -> closureType
+    IntRep              -> jint
+    WordRep             -> jint
+    AddrRep             -> jstring -- TODO: When implementing ByteArray#,
+    Int64Rep            -> jlong
+    Word64Rep           -> jlong
+    FloatRep            -> jfloat
+    DoubleRep           -> jdouble
+    BoolRep             -> jint
+    CharRep             -> jint
+    ByteRep             -> jint
+    ShortRep            -> jint
+    ObjectRep className -> obj $ className
+    VoidRep             -> error $ "primRepFieldType_maybe: VoidRep"
+    --(VecRep len elem) -> error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
 
-primRepFieldType :: JPrimRep -> FieldType
+primRepFieldType :: PrimRep -> FieldType
 primRepFieldType = expectJust "primRepFieldType" . primRepFieldType_maybe
 
 -- NOTE: We assume that unboxed tuples won't occur
 repFieldType_maybe :: Type -> Maybe FieldType
-repFieldType_maybe = primRepFieldType_maybe . typeJPrimRep . jrepType
+repFieldType_maybe = primRepFieldType_maybe . typePrimRep . jrepType
 
 repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
-contextLoad :: FieldType -> JArgRep -> Int -> Code
+contextLoad :: FieldType -> ArgRep -> Int -> Code
 contextLoad ft argRep n =
      loadContext
   <> iconst ft (fromIntegral n)
@@ -126,7 +126,7 @@ contextLoad ft argRep n =
           O -> loadO
           _ -> error "contextLoad: V"
 
-contextStore :: FieldType -> JArgRep -> Code -> Int -> Code
+contextStore :: FieldType -> ArgRep -> Code -> Int -> Code
 contextStore ft argRep storeCode n =
      loadContext
   <> iconst ft (fromIntegral n)
@@ -141,7 +141,7 @@ contextStore ft argRep storeCode n =
           O -> storeO
           _ -> error "contextStore: V"
 
-slowCallPattern :: [JArgRep] -> (Text, RepArity, [FieldType])
+slowCallPattern :: [ArgRep] -> (Text, RepArity, [FieldType])
 slowCallPattern (P: P: P: P: P: P: _) =
   ("ap_pppppp", 6, replicate 6 closureType)
 slowCallPattern (P: P: P: P: P: _)    =
@@ -165,3 +165,9 @@ slowCallPattern (F: _)                = ("ap_f", 1, [jfloat])
 slowCallPattern (D: _)                = ("ap_d", 1, [jdouble])
 slowCallPattern (V: _)                = ("ap_v", 1, [])
 slowCallPattern []                    = ("ap_0", 0, [])
+
+idPrimRep :: Id -> PrimRep
+idPrimRep = typePrimRep . idType
+
+jrepType :: Type -> UnaryType
+jrepType = head . flattenRepType . repType

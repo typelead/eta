@@ -1,5 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances,
+             AllowAmbiguousTypes #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 -- XXX -fno-warn-unused-imports needed for the GHC.Tuple import below. Sigh.
 {-# OPTIONS_HADDOCK hide #-}
@@ -297,3 +299,9 @@ x# `modInt#` y#
       else r#
     where
     !r# = x# `remInt#` y#
+
+-- For embedding Java class hierarchies
+class Extends a b where
+instance Extends a Object# where
+instance Extends a a where
+instance (Extends a b, Extends b c) => Extends a c where

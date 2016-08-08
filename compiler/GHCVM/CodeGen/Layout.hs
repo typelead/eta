@@ -2,6 +2,7 @@
 module GHCVM.CodeGen.Layout where
 
 import GHCVM.Types.Type
+import GHCVM.Types.TyCon
 import GHCVM.Main.DynFlags
 import GHCVM.StgSyn.StgSyn
 import GHCVM.BasicTypes.Id
@@ -12,7 +13,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Env
-import GHCVM.Primitive
+
 
 import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
@@ -48,7 +49,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
                    . repFieldType_maybe
                    . idType ) args'
         args' = map unsafeStripNV nvArgs
-        argReps' = map idJArgRep args'
+        argReps' = map idArgRep args'
         (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
         loadArgs !n !code !locs (arg:args) (ft:fts) (argRep:argReps)
                  !r !i !l !f !d !o =
@@ -68,7 +69,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
                 loc = LocLocal (argRep == P) ft n
         loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
 
-mkCallExit :: Bool -> [(JArgRep, Maybe FieldType, Maybe Code)] -> Code
+mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
   where rStart = if slow then 1 else 2
         storeArgs !code ((argRep, ft', code'):args) !r !i !l !f !d !o =
@@ -99,7 +100,7 @@ mkReturnEntry cgLocs' = loadVals mempty cgLocs' 1 1 1 1 1 1
             O -> loadRec (context o) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
-                argRep = locJArgRep cgLoc
+                argRep = locArgRep cgLoc
                 context = contextLoad ft argRep
                 loadRec nextCode =
                   loadVals (code <> storeLoc cgLoc nextCode) cgLocs
@@ -118,7 +119,7 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs' 1 1 1 1 1 1
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
                 loadCode = loadLoc cgLoc
-                argRep = locJArgRep cgLoc
+                argRep = locArgRep cgLoc
                 context = contextStore ft argRep loadCode
                 storeRec nextCode =
                   storeVals (code <> nextCode) cgLocs
@@ -146,7 +147,7 @@ directCall slow entryCode arity args = do
   argFtCodes <- getFtsLoadCode args
   emit $ directCall' slow entryCode arity argFtCodes
 
-directCall' :: Bool -> Code -> RepArity -> [(JArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall' :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' slow entryCode arity args =
      stackLoadCode
   <> mkCallExit slow callArgs
@@ -164,14 +165,14 @@ directCall' slow entryCode arity args =
                              <> fold stackFramesLoad
                              <> pop tsoType
 
-slowArgFrames :: [(JArgRep, Maybe FieldType, Maybe Code)] -> [Code]
+slowArgFrames :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
 slowArgFrames [] = []
 slowArgFrames args = thisFrame : slowArgFrames restArgs
   where (argPat, n, fts) = slowCallPattern $ map (\(a,_,_) -> a) args
         (callArgs, restArgs) = splitAt n args
         thisFrame = genSlowFrame argPat fts callArgs
 
-genSlowFrame :: Text -> [FieldType] -> [(JArgRep, Maybe FieldType, Maybe Code)] -> Code
+genSlowFrame :: Text -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 genSlowFrame patText fts args =
      new ft
   <> dup ft
@@ -181,7 +182,7 @@ genSlowFrame patText fts args =
         loadCodes = mapMaybe (\(_, _, a) -> a) args
         ft = obj patClass
 
-getFtsLoadCode :: [StgArg] -> CodeGen [(JArgRep, Maybe FieldType, Maybe Code)]
+getFtsLoadCode :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]
 getFtsLoadCode = mapM getFtAmode
   where getFtAmode arg
           | Nothing <- ft = return (V, Nothing, Nothing)
@@ -189,14 +190,14 @@ getFtsLoadCode = mapM getFtAmode
                            return (rep, ft, Just code)
           where ty = stgArgType arg
                 ft = repFieldType_maybe ty
-                rep = typeJArgRep ty
+                rep = typeArgRep ty
 
 newUnboxedTupleLocs :: Type -> CodeGen [CgLoc]
 newUnboxedTupleLocs resType = getSequel >>= chooseLocs
   where chooseLocs (AssignTo regs) = return regs
         chooseLocs _               = mapM (\(cl, ft) -> newTemp cl ft) reps
         UbxTupleRep tyArgs         = repType resType
-        reps = [ (isPtrJRep rep, primRepFieldType rep)
+        reps = [ (isGcPtrRep rep, primRepFieldType rep)
                | ty <- tyArgs
-               , let rep           = typeJPrimRep ty
-               , not (isVoidJRep rep) ]
+               , let rep           = typePrimRep ty
+               , not (isVoidRep rep) ]

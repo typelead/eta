@@ -164,6 +164,7 @@ import {-# SOURCE #-} GHCVM.Prelude.TysWiredIn ( eqTyCon, coercibleTyCon, typeNa
 import GHCVM.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
                    ipClassNameKey, openTypeKindTyConKey,
                    constraintKindTyConKey, liftedTypeKindTyConKey )
+import GHCVM.Prelude.ForeignCall
 import GHCVM.Types.CoAxiom
 
 -- others
@@ -173,8 +174,9 @@ import GHCVM.Utils.Util
 import GHCVM.Utils.ListSetOps       ( getNth )
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
-
 import GHCVM.Utils.Maybes           ( orElse )
+
+import qualified Data.Text as Text
 import Data.Maybe       ( isJust )
 import Control.Monad    ( guard )
 
@@ -714,7 +716,18 @@ typePrimRep ty
   = case repType ty of
       UbxTupleRep _ -> pprPanic "typePrimRep: UbxTupleRep" (ppr ty)
       UnaryRep rep -> case rep of
-        TyConApp tc _ -> tyConPrimRep tc
+        TyConApp tc tys ->
+          case primRep of
+            ObjectRep _ ->
+              case splitTyConApp_maybe (head tys) of
+                Just (tc1, _) ->
+                  case tyConCType_maybe tc1 of
+                    Just (CType _ _ fs) -> ObjectRep $
+                      Text.map (\c -> if c == '.' then '/' else c) . fastStringToText $ fs
+                    Nothing -> pprPanic "You should annotate " $ ppr tc <> ppr tys
+                Nothing -> ObjectRep $ Text.pack "java.lang.Object"
+            _ -> primRep
+          where primRep = tyConPrimRep tc
         FunTy _ _     -> PtrRep
         AppTy _ _     -> PtrRep      -- See Note [AppTy rep]
         TyVarTy _     -> PtrRep

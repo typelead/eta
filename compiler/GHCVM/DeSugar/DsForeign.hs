@@ -19,7 +19,7 @@ import GHCVM.Types.Type
 import GHCVM.Types.TyCon
 import GHCVM.Types.Coercion
 import GHCVM.TypeCheck.TcEnv
-import GHCVM.TypeCheck.TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
+import GHCVM.TypeCheck.TcType
 import GHCVM.BasicTypes.DataCon
 
 import GHCVM.Main.HscTypes
@@ -41,7 +41,7 @@ import GHCVM.Main.Hooks
 import Data.Maybe
 import Data.List
 
-import GHCVM.Primitive
+
 import GHCVM.Debug
 
 type Binding = (Id, CoreExpr)
@@ -115,7 +115,8 @@ dsFCall funId co fcall mDeclHeader = do
   return ([(workId, workRhs), (funIdWithInline, wrapRhs')], empty, empty)
 
   where ty = pFst $ coercionKind co
-        (tvs, funTy) = tcSplitForAllTys ty
+        (tvs, thetaFunTy) = tcSplitForAllTys ty
+        (thetaType, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
 
 unboxArg :: CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)

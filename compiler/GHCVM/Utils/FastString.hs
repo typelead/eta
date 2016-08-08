@@ -87,7 +87,10 @@ module GHCVM.Utils.FastString
         unpackLitString,
 
         -- ** Operations
-        lengthLS
+        lengthLS,
+
+        -- ** Text interaction
+        fastStringToText
        ) where
 
 #include "HsVersions.h"
@@ -111,6 +114,8 @@ import System.IO
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.Data
 import Data.IORef       ( IORef, newIORef, readIORef, atomicModifyIORef )
+import Data.Text          ( Text )
+import Data.Text.Encoding ( decodeUtf8 )
 import Data.Maybe       ( isJust )
 import Data.Char
 import Data.List        ( elemIndex )
@@ -634,3 +639,6 @@ fsLit x = mkFastString x
     forall x . sLit  (unpackCString# x) = mkLitString#  x #-}
 {-# RULES "fslit"
     forall x . fsLit (unpackCString# x) = mkFastString# x #-}
+
+fastStringToText :: FastString -> Text
+fastStringToText = decodeUtf8 . fastStringToByteString

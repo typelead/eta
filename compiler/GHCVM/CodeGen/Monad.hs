@@ -57,6 +57,7 @@ import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Name
 import GHCVM.Utils.Outputable hiding ((<>))
 import GHCVM.Utils.FastString
+import GHCVM.Types.TyCon
 
 import Data.Monoid((<>))
 import Data.List
@@ -69,7 +70,7 @@ import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy as B
 import Codec.JVM
-import GHCVM.Primitive
+
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
@@ -437,8 +438,8 @@ getCodeWithResult gen = do
   return (a, cgCode state2)
 
 newIdLoc :: NonVoid Id -> CodeGen CgLoc
-newIdLoc (NonVoid id) = newTemp (isPtrJRep rep) (primRepFieldType rep)
-  where rep = idJPrimRep id
+newIdLoc (NonVoid id) = newTemp (isGcPtrRep rep) (primRepFieldType rep)
+  where rep = idPrimRep id
 
 getCgLoc :: NonVoid Id -> CodeGen CgLoc
 getCgLoc (NonVoid id) = do

@@ -4,6 +4,7 @@ module GHCVM.CodeGen.Bind where
 import GHCVM.StgSyn.StgSyn
 import GHCVM.BasicTypes.Id
 import GHCVM.Utils.Util (unzipWith)
+import GHCVM.Types.TyCon
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Con
 import GHCVM.CodeGen.Types
@@ -16,7 +17,7 @@ import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Closure
 import GHCVM.Debug
 import GHCVM.Util
-import GHCVM.Primitive
+
 import GHCVM.Main.Constants
 import Codec.JVM
 import Control.Monad (forM)
@@ -88,11 +89,11 @@ generateFVs fvs = do
     let fieldName = append "x" . pack . show $ i
     defineField $ mkFieldDef [Public, Final] fieldName ft
     let code = putfield $ mkFieldRef clClass fieldName ft
-    return ((nvId, LocField (isPtrJRep rep) ft clClass fieldName), (ft, code))
+    return ((nvId, LocField (isGcPtrRep rep) ft clClass fieldName), (ft, code))
   return $ unzip result
   where nonVoidFvs = map addFt fvs
         addFt nvFV@(NonVoid fv) = (nvFV, rep)
-          where rep = idJPrimRep fv
+          where rep = idPrimRep fv
 
 -- TODO: Implement eager blackholing
 thunkCode :: LambdaFormInfo -> [(NonVoid Id, CgLoc)] -> StgExpr -> CodeGen ()
@@ -147,7 +148,7 @@ mkRhsClosure
 -- TODO: Selector thunks
 mkRhsClosure binder _ fvs updateFlag [] (StgApp funId args)
   | length args == arity - 1
-   && all (isPtrJRep . idJPrimRep . unsafeStripNV) fvs
+   && all (isGcPtrRep . idPrimRep . unsafeStripNV) fvs
    && isUpdatable updateFlag
    && arity <= mAX_SPEC_AP_SIZE
   = cgRhsStdThunk binder lfInfo payload

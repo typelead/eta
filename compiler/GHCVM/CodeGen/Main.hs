@@ -17,7 +17,7 @@ import GHCVM.Utils.Util (unzipWith)
 import GHCVM.Prelude.PrelNames (rOOT_MAIN)
 
 import GHCVM.Util
-import GHCVM.Primitive
+
 import GHCVM.Debug
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
@@ -177,7 +177,7 @@ cgEnumerationTyCon tyConCl tyCon = do
       fold loadCodes,
       putstatic $ mkFieldRef thisClass fieldName arrayFt
     ]
-  where 
+  where
         arrayFt = jarray elemFt
         elemFt = obj tyConCl
         familySize = tyConFamilySize tyCon

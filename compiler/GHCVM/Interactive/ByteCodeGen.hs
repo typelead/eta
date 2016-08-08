@@ -200,7 +200,7 @@ coreExprToBCOs = undefined
 --         peep []
 --            = []
 
--- argBits :: DynFlags -> [JArgRep] -> [Bool]
+-- argBits :: DynFlags -> [ArgRep] -> [Bool]
 -- argBits _      [] = []
 -- argBits dflags (rep : args)
 --   | isFollowableArg rep  = False : argBits dflags args
@@ -708,7 +708,7 @@ coreExprToBCOs = undefined
 --     return (final_d, push_code `appOL` more_push_code)
 
 -- -- v. similar to CgStackery.findMatch, ToDo: merge
--- findPushSeq :: [JArgRep] -> (BCInstr, Int, [JArgRep])
+-- findPushSeq :: [ArgRep] -> (BCInstr, Int, [ArgRep])
 -- findPushSeq (P: P: P: P: P: P: rest)
 --   = (PUSH_APPLY_PPPPPP, 6, rest)
 -- findPushSeq (P: P: P: P: P: rest)

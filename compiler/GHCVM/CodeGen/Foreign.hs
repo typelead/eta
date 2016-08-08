@@ -2,6 +2,7 @@ module GHCVM.CodeGen.Foreign where
 
 import GHCVM.Main.DynFlags
 import GHCVM.Types.Type
+import GHCVM.Types.TyCon
 import GHCVM.StgSyn.StgSyn
 import GHCVM.Prelude.ForeignCall
 
@@ -11,7 +12,7 @@ import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Layout
 import GHCVM.CodeGen.Types
-import GHCVM.Primitive
+
 import GHCVM.Debug
 import GHCVM.Util
 import Codec.JVM
@@ -60,12 +61,12 @@ getFCallArgs args = do
   maybeFtCodes <- mapM get args
   return $ catMaybes maybeFtCodes
   where get arg
-          | isVoidJRep argRep = return Nothing
+          | isVoidRep argRep = return Nothing
           | otherwise = do
               argCode <- getArgLoadCode (NonVoid arg)
               -- TODO: Add shims for special cases
               return $ Just (argFt, argCode)
           where argTy  = stgArgType arg
-                argRep = typeJPrimRep argTy
+                argRep = typePrimRep argTy
                 argFt  = expectJust "getFCallArgs"
                        $ primRepFieldType_maybe argRep

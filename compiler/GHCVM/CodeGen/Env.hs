@@ -2,12 +2,13 @@ module GHCVM.CodeGen.Env where
 
 import GHCVM.BasicTypes.Id
 import GHCVM.StgSyn.StgSyn
+import GHCVM.Types.TyCon
 
 import Codec.JVM
 
 import GHCVM.Util
 import GHCVM.Debug
-import GHCVM.Primitive
+
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Monad
@@ -24,7 +25,7 @@ getArgLoadCode (NonVoid (StgLitArg literal)) = return . snd $ cgLit literal
 getNonVoidArgLoadCodes :: [StgArg] -> CodeGen [Code]
 getNonVoidArgLoadCodes [] = return []
 getNonVoidArgLoadCodes (arg:args)
-  | isVoidJRep (argJPrimRep arg) = getNonVoidArgLoadCodes args
+  | isVoidRep (argPrimRep arg) = getNonVoidArgLoadCodes args
   | otherwise = do
       code <- getArgLoadCode (NonVoid arg)
       codes <- getNonVoidArgLoadCodes args
@@ -33,23 +34,23 @@ getNonVoidArgLoadCodes (arg:args)
 getNonVoidFtCodes :: [StgArg] -> CodeGen [(FieldType, Code)]
 getNonVoidFtCodes [] = return []
 getNonVoidFtCodes (arg:args)
-  | isVoidJRep (argJPrimRep arg) = getNonVoidFtCodes args
+  | isVoidRep (argPrimRep arg) = getNonVoidFtCodes args
   | otherwise = do
       code <- getArgLoadCode (NonVoid arg)
       ftCodes <- getNonVoidFtCodes args
       return ((ft, code) : ftCodes)
-  where primRep = argJPrimRep arg
+  where primRep = argPrimRep arg
         ft = expectJust "getNonVoidFtCodes" . primRepFieldType_maybe $ primRep
 
-getNonVoidRepCodes :: [StgArg] -> CodeGen [(JPrimRep, Code)]
+getNonVoidRepCodes :: [StgArg] -> CodeGen [(PrimRep, Code)]
 getNonVoidRepCodes [] = return []
 getNonVoidRepCodes (arg:args)
-  | isVoidJRep rep = getNonVoidRepCodes args
+  | isVoidRep rep = getNonVoidRepCodes args
   | otherwise = do
       code <- getArgLoadCode (NonVoid arg)
       repCodes <- getNonVoidRepCodes args
       return ((rep, code) : repCodes)
-  where rep = argJPrimRep arg
+  where rep = argPrimRep arg
 
 idInfoLoadCode :: CgIdInfo -> Code
 idInfoLoadCode CgIdInfo { cgLocation } = loadLoc cgLocation

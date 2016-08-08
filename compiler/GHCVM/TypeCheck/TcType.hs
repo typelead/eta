@@ -101,6 +101,7 @@ module GHCVM.TypeCheck.TcType (
   isFFITy,             -- :: Type -> Bool
   isFunPtrTy,          -- :: Type -> Bool
   tcSplitIOType_maybe, -- :: Type -> Maybe Type
+  tcSplitJavaType_maybe, -- :: Type -> Maybe Type
 
   --------------------------------
   -- Rexported from Kind
@@ -171,6 +172,7 @@ import qualified GHCVM.BasicTypes.Name as Name
   -- Perhaps there's a better way to do this?
 import GHCVM.BasicTypes.NameSet
 import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.DataCon
 import GHCVM.Prelude.PrelNames
 import GHCVM.Prelude.TysWiredIn
 import GHCVM.BasicTypes.BasicTypes
@@ -180,6 +182,8 @@ import GHCVM.Utils.ListSetOps
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Main.ErrUtils( Validity(..), isValid )
+
+
 
 import Data.IORef
 import Control.Monad (liftM, ap)
@@ -1574,6 +1578,15 @@ tcSplitIOType_maybe ty
         _ ->
             Nothing
 
+tcSplitJavaType_maybe :: Type -> Maybe (TyCon, Type, Type)
+tcSplitJavaType_maybe ty
+  = case tcSplitTyConApp_maybe ty of
+        Just (javaTyCon, [javaTagType, javaResType])
+         | javaTyCon `hasKey` javaTyConKey  ->
+            Just (javaTyCon, javaTagType, javaResType)
+        _ ->
+            Nothing
+
 isFFITy :: Type -> Bool
 -- True for any TyCon that can possibly be an arg or result of an FFI call
 isFFITy ty = isValid (checkRepTyCon legalFFITyCon ty empty)
@@ -1615,7 +1628,7 @@ isFFILabelTy :: Type -> Validity
 -- The type of a foreign label must be Ptr, FunPtr, or a newtype of either.
 isFFILabelTy ty = checkRepTyCon ok ty extra
   where
-    ok tc = tc `hasKey` funPtrTyConKey || tc `hasKey` ptrTyConKey
+    ok tc _ = tc `hasKey` funPtrTyConKey || tc `hasKey` ptrTyConKey
     extra = ptext (sLit "A foreign-imported address (via &foo) must have type (Ptr a) or (FunPtr a)")
 
 isFFIPrimArgumentTy :: DynFlags -> Type -> Validity
@@ -1634,18 +1647,18 @@ isFFIPrimResultTy dflags ty
    = checkRepTyCon (legalFIPrimResultTyCon dflags) ty empty
 
 isFunPtrTy :: Type -> Bool
-isFunPtrTy ty = isValid (checkRepTyCon (`hasKey` funPtrTyConKey) ty empty)
+isFunPtrTy ty = isValid (checkRepTyCon (\tc _ -> tc `hasKey` funPtrTyConKey) ty empty)
 
 -- normaliseFfiType gets run before checkRepTyCon, so we don't
 -- need to worry about looking through newtypes or type functions
 -- here; that's already been taken care of.
-checkRepTyCon :: (TyCon -> Bool) -> Type -> SDoc -> Validity
-checkRepTyCon check_tc ty extra
+checkRepTyCon :: (TyCon -> Type -> Bool) -> Type -> SDoc -> Validity
+checkRepTyCon checkTc ty extra
   = case splitTyConApp_maybe ty of
       Just (tc, tys)
-        | isNewTyCon tc -> NotValid (hang msg 2 (mk_nt_reason tc tys $$ nt_fix))
-        | check_tc tc   -> IsValid
-        | otherwise     -> NotValid (msg $$ extra)
+        | isNewTyCon tc  -> NotValid (hang msg 2 (mk_nt_reason tc tys $$ nt_fix))
+        | checkTc tc ty  -> IsValid
+        | otherwise      -> NotValid (msg $$ extra)
       Nothing -> NotValid (quotes (ppr ty) <+> ptext (sLit "is not a data type") $$ extra)
   where
     msg = quotes (ppr ty) <+> ptext (sLit "cannot be marshalled in a foreign call")
@@ -1676,48 +1689,46 @@ These chaps do the work; they are not exported
 ----------------------------------------------
 -}
 
-legalFEArgTyCon :: TyCon -> Bool
-legalFEArgTyCon tc
+legalFEArgTyCon :: TyCon -> Type -> Bool
+legalFEArgTyCon tc ty
   -- It's illegal to make foreign exports that take unboxed
   -- arguments.  The RTS API currently can't invoke such things.  --SDM 7/2000
-  = boxedMarshalableTyCon tc
+  = boxedMarshalableTyCon tc ty
 
-legalFIResultTyCon :: DynFlags -> TyCon -> Bool
-legalFIResultTyCon dflags tc
+legalFIResultTyCon :: DynFlags -> TyCon -> Type -> Bool
+legalFIResultTyCon dflags tc ty
   | tc == unitTyCon         = True
-  | otherwise               = marshalableTyCon dflags tc
+  | otherwise               = marshalableTyCon dflags tc ty
 
-legalFEResultTyCon :: TyCon -> Bool
-legalFEResultTyCon tc
+legalFEResultTyCon :: TyCon -> Type -> Bool
+legalFEResultTyCon tc ty
   | tc == unitTyCon         = True
-  | otherwise               = boxedMarshalableTyCon tc
+  | otherwise               = boxedMarshalableTyCon tc ty
 
-legalOutgoingTyCon :: DynFlags -> Safety -> TyCon -> Bool
+legalOutgoingTyCon :: DynFlags -> Safety -> TyCon -> Type -> Bool
 -- Checks validity of types going from Haskell -> external world
-legalOutgoingTyCon dflags _ tc
-  = marshalableTyCon dflags tc
+legalOutgoingTyCon dflags _ tc ty
+  = marshalableTyCon dflags tc ty
 
-legalFFITyCon :: TyCon -> Bool
+legalFFITyCon :: TyCon -> Type -> Bool
 -- True for any TyCon that can possibly be an arg or result of an FFI call
-legalFFITyCon tc
+legalFFITyCon tc ty
   | isUnLiftedTyCon tc = True
   | tc == unitTyCon    = True
-  | otherwise          = boxedMarshalableTyCon tc
+  | otherwise          = boxedMarshalableTyCon tc ty
 
-marshalableTyCon :: DynFlags -> TyCon -> Bool
-marshalableTyCon dflags tc
+marshalableTyCon :: DynFlags -> TyCon -> Type -> Bool
+marshalableTyCon dflags tc ty
   |  (xopt Opt_UnliftedFFITypes dflags
       && isUnLiftedTyCon tc
       && not (isUnboxedTupleTyCon tc)
-      && case tyConPrimRep tc of        -- Note [Marshalling VoidRep]
-           VoidRep -> False
-           _       -> True)
+      && not (isVoidRep (typePrimRep ty)))
   = True
   | otherwise
-  = boxedMarshalableTyCon tc
+  = boxedMarshalableTyCon tc ty
 
-boxedMarshalableTyCon :: TyCon -> Bool
-boxedMarshalableTyCon tc
+boxedMarshalableTyCon :: TyCon -> Type -> Bool
+boxedMarshalableTyCon tc ty
    | getUnique tc `elem` [ intTyConKey, int8TyConKey, int16TyConKey
                          , int32TyConKey, int64TyConKey
                          , wordTyConKey, word8TyConKey, word16TyConKey
@@ -1729,14 +1740,18 @@ boxedMarshalableTyCon tc
                          , boolTyConKey
                          ]
   = True
-
+   -- TODO: Optimize this to add just raw key checks like above.
+   --       Can be done once the GHC source in integrated.
+  | Just (_, _, _, [primTy]) <- splitDataProductType_maybe ty
+  , isPrimitiveType primTy
+  = True
   | otherwise = False
 
-legalFIPrimArgTyCon :: DynFlags -> TyCon -> Bool
+legalFIPrimArgTyCon :: DynFlags -> TyCon -> Type -> Bool
 -- Check args of 'foreign import prim', only allow simple unlifted types.
 -- Strictly speaking it is unnecessary to ban unboxed tuples here since
 -- currently they're of the wrong kind to use in function args anyway.
-legalFIPrimArgTyCon dflags tc
+legalFIPrimArgTyCon dflags tc _
   | xopt Opt_UnliftedFFITypes dflags
     && isUnLiftedTyCon tc
     && not (isUnboxedTupleTyCon tc)
@@ -1744,16 +1759,14 @@ legalFIPrimArgTyCon dflags tc
   | otherwise
   = False
 
-legalFIPrimResultTyCon :: DynFlags -> TyCon -> Bool
+legalFIPrimResultTyCon :: DynFlags -> TyCon -> Type -> Bool
 -- Check result type of 'foreign import prim'. Allow simple unlifted
 -- types and also unboxed tuple result types '... -> (# , , #)'
-legalFIPrimResultTyCon dflags tc
+legalFIPrimResultTyCon dflags tc ty
   | xopt Opt_UnliftedFFITypes dflags
     && isUnLiftedTyCon tc
     && (isUnboxedTupleTyCon tc
-        || case tyConPrimRep tc of      -- Note [Marshalling VoidRep]
-           VoidRep -> False
-           _       -> True)
+        || not (isVoidRep (typePrimRep ty)))
   = True
   | otherwise
   = False

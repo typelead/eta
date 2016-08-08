@@ -14,7 +14,7 @@ module GHCVM.CodeGen.Types
    CgBindings,
    storeDefault,
    getTagMethod,
-   locJArgRep,
+   locArgRep,
    mkRepLocDirect,
    mkLocDirect,
    getNonVoidFts,
@@ -48,7 +48,6 @@ import GHCVM.Main.DynFlags
 
 import Codec.JVM
 
-import GHCVM.Primitive
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.ArgRep
@@ -82,19 +81,19 @@ instance Outputable CgLoc where
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
 mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 
-mkRepLocDirect :: (JPrimRep, Code) -> CgLoc
+mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
-  where isClosure = isPtrJRep rep
+  where isClosure = isGcPtrRep rep
         ft = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
 
-locJArgRep :: CgLoc -> JArgRep
-locJArgRep loc = case loc of
+locArgRep :: CgLoc -> ArgRep
+locArgRep loc = case loc of
   LocLocal isClosure ft _ -> locRep isClosure ft
   LocStatic ft _ _ -> P
   LocField isClosure ft _ _ -> locRep isClosure ft
   LocDirect isClosure ft _ -> locRep isClosure ft
-  LocLne _ _ -> panic "logJArgRep: Cannot pass a let-no-escape binding!"
-  where locRep isClosure ft = if isClosure then P else ftJArgRep ft
+  LocLne _ _ -> panic "logArgRep: Cannot pass a let-no-escape binding!"
+  where locRep isClosure ft = if isClosure then P else ftArgRep ft
 
 locFt :: CgLoc -> FieldType
 locFt (LocLocal _ ft _) = ft
@@ -274,7 +273,7 @@ unsafeStripNV :: NonVoid a -> a
 unsafeStripNV (NonVoid a) = a
 
 nonVoidIds :: [Id] -> [NonVoid Id]
-nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidJRep (idJPrimRep id))]
+nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidRep (idPrimRep id))]
 
 data TopLevelFlag
   = TopLevel

@@ -83,9 +83,9 @@ module GHCVM.Types.TyCon(
         pprPromotionQuote,
 
         -- * Primitive representations of Types
-        PrimRep(..), PrimElemRep(..),
+        PrimRep(..), --PrimElemRep(..),
         tyConPrimRep, isVoidRep, isGcPtrRep,
-        primRepSizeW, primElemRepSizeB,
+        primRepSizeW, --primElemRepSizeB,
 
         -- * Recursion breaking
         RecTcChecker, initRecTc, checkRecTc
@@ -110,8 +110,12 @@ import GHCVM.Utils.Maybes
 import GHCVM.Utils.Outputable
 import GHCVM.Main.Constants
 import GHCVM.Utils.Util
+
 import qualified Data.Data as Data
 import Data.Typeable (Typeable)
+-- TODO: Refactor to FastString?
+import Data.Text (Text)
+
 
 {-
 -----------------------------------------------
@@ -934,31 +938,37 @@ data PrimRep
   | AddrRep       -- ^ A pointer, but /not/ to a Haskell value (use 'PtrRep')
   | FloatRep
   | DoubleRep
-  | VecRep Int PrimElemRep  -- ^ A vector
+  -- GHCVM-specific
+  | BoolRep
+  | CharRep
+  | ByteRep
+  | ShortRep
+  | ObjectRep Text
+--  | VecRep Int PrimElemRep  -- ^ A vector
   deriving( Eq, Show )
 
-data PrimElemRep
-  = Int8ElemRep
-  | Int16ElemRep
-  | Int32ElemRep
-  | Int64ElemRep
-  | Word8ElemRep
-  | Word16ElemRep
-  | Word32ElemRep
-  | Word64ElemRep
-  | FloatElemRep
-  | DoubleElemRep
-   deriving( Eq, Show )
+-- data PrimElemRep
+--   = Int8ElemRep
+--   | Int16ElemRep
+--   | Int32ElemRep
+--   | Int64ElemRep
+--   | Word8ElemRep
+--   | Word16ElemRep
+--   | Word32ElemRep
+--   | Word64ElemRep
+--   | FloatElemRep
+--   | DoubleElemRep
+--    deriving( Eq, Show )
 
 instance Outputable PrimRep where
   ppr r = text (show r)
 
-instance Outputable PrimElemRep where
-  ppr r = text (show r)
+-- instance Outputable PrimElemRep where
+--   ppr r = text (show r)
 
 isVoidRep :: PrimRep -> Bool
 isVoidRep VoidRep = True
-isVoidRep _other  = False
+isVoidRep _  = False
 
 isGcPtrRep :: PrimRep -> Bool
 isGcPtrRep PtrRep = True
@@ -966,28 +976,33 @@ isGcPtrRep _      = False
 
 -- | Find the size of a 'PrimRep', in words
 primRepSizeW :: DynFlags -> PrimRep -> Int
-primRepSizeW _      IntRep           = 1
-primRepSizeW _      WordRep          = 1
-primRepSizeW dflags Int64Rep         = 2
-primRepSizeW dflags Word64Rep        = 2
-primRepSizeW _      FloatRep         = 1    -- NB. might not take a full word
-primRepSizeW dflags DoubleRep        = 2
-primRepSizeW _      AddrRep          = 1
-primRepSizeW _      PtrRep           = 1
-primRepSizeW _      VoidRep          = 0
-primRepSizeW dflags (VecRep len rep) = len * primElemRepSizeB rep `quot` 4
+primRepSizeW _      IntRep        = 1
+primRepSizeW _      WordRep       = 1
+primRepSizeW dflags Int64Rep      = 2
+primRepSizeW dflags Word64Rep     = 2
+primRepSizeW _      FloatRep      = 1    -- NB. might not take a full word
+primRepSizeW dflags DoubleRep     = 2
+primRepSizeW _      AddrRep       = 1
+primRepSizeW _      PtrRep        = 1
+primRepSizeW _      VoidRep       = 0
+primRepSizeW _      BoolRep       = 1
+primRepSizeW _      CharRep       = 1
+primRepSizeW _      ByteRep       = 1
+primRepSizeW _      ShortRep      = 1
+primRepSizeW _      (ObjectRep _) = 1
+-- primRepSizeW dflags (VecRep len rep) = len * primElemRepSizeB rep `quot` 4
 
-primElemRepSizeB :: PrimElemRep -> Int
-primElemRepSizeB Int8ElemRep   = 1
-primElemRepSizeB Int16ElemRep  = 2
-primElemRepSizeB Int32ElemRep  = 4
-primElemRepSizeB Int64ElemRep  = 8
-primElemRepSizeB Word8ElemRep  = 1
-primElemRepSizeB Word16ElemRep = 2
-primElemRepSizeB Word32ElemRep = 4
-primElemRepSizeB Word64ElemRep = 8
-primElemRepSizeB FloatElemRep  = 4
-primElemRepSizeB DoubleElemRep = 8
+-- primElemRepSizeB :: PrimElemRep -> Int
+-- primElemRepSizeB Int8ElemRep   = 1
+-- primElemRepSizeB Int16ElemRep  = 2
+-- primElemRepSizeB Int32ElemRep  = 4
+-- primElemRepSizeB Int64ElemRep  = 8
+-- primElemRepSizeB Word8ElemRep  = 1
+-- primElemRepSizeB Word16ElemRep = 2
+-- primElemRepSizeB Word32ElemRep = 4
+-- primElemRepSizeB Word64ElemRep = 8
+-- primElemRepSizeB FloatElemRep  = 4
+-- primElemRepSizeB DoubleElemRep = 8
 
 {-
 ************************************************************************

@@ -371,6 +371,7 @@ basicKnownKeyNames
         , javaDataConName
         , objectTyConName
         , objectDataConName
+        , extendsClassName
     ]
 
 genericTyConNames :: [Name]
@@ -1230,10 +1231,11 @@ fingerprintDataConName =
 
 -- GHCVM-specific names
 javaTyConName, javaDataConName, objectTyConName, objectDataConName :: Name
-javaTyConName     = tcQual  gHC_TYPES (fsLit "Java")       javaTyConKey
-javaDataConName   = conName gHC_TYPES (fsLit "Java")       javaDataConKey
-objectTyConName   = tcQual  gHC_TYPES (fsLit "JObject")    objectTyConKey
-objectDataConName = conName gHC_TYPES (fsLit "JObject")    objectDataConKey
+javaTyConName     = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
+javaDataConName   = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
+objectTyConName   = tcQual  gHC_TYPES   (fsLit "JObject")    objectTyConKey
+objectDataConName = conName gHC_TYPES   (fsLit "JObject")    objectDataConKey
+extendsClassName  = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
 
 {-
 ************************************************************************
@@ -1339,6 +1341,9 @@ ghciIoClassKey = mkPreludeClassUnique 44
 
 ipClassNameKey :: Unique
 ipClassNameKey = mkPreludeClassUnique 45
+
+extendsClassKey :: Unique
+extendsClassKey = mkPreludeClassUnique 46
 
 {-
 ************************************************************************

@@ -77,7 +77,7 @@ module GHCVM.Prelude.TysPrim(
         jboolPrimTyCon,
         jbytePrimTyCon,
         jshortPrimTyCon,
-        jobjectPrimTyCon,
+        jobjectPrimTyCon, mkJObjectTy,
         jarrayPrimTyCon
 
         -- * SIMD
@@ -865,14 +865,18 @@ anyTypeOfKind kind = TyConApp anyTyCon [kind]
 -}
 jcharPrimTyCon, jboolPrimTyCon, jbytePrimTyCon, jshortPrimTyCon,
   jobjectPrimTyCon, jarrayPrimTyCon :: TyCon
-jcharPrimTyCon   = pcPrimTyCon0 jcharPrimTyConName WordRep
-jboolPrimTyCon   = pcPrimTyCon0 jboolPrimTyConName WordRep
-jbytePrimTyCon   = pcPrimTyCon0 jbytePrimTyConName WordRep
-jshortPrimTyCon  = pcPrimTyCon0 jshortPrimTyConName WordRep
-jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] WordRep
+jcharPrimTyCon   = pcPrimTyCon0 jcharPrimTyConName CharRep
+jboolPrimTyCon   = pcPrimTyCon0 jboolPrimTyConName BoolRep
+jbytePrimTyCon   = pcPrimTyCon0 jbytePrimTyConName ByteRep
+jshortPrimTyCon  = pcPrimTyCon0 jshortPrimTyConName ShortRep
+jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] $
+                     ObjectRep $ error "jobjectPrimTyCon shouldn't be used directly!"
 jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles VoidRep
   where kind     = mkArrowKinds (map (const liftedTypeKind) roles) liftedTypeKind
         roles    = [Nominal]
+
+mkJObjectTy :: Type -> Type
+mkJObjectTy ty = TyConApp jobjectPrimTyCon [ty]
 
 {-
 ************************************************************************

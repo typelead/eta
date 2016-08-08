@@ -14,7 +14,6 @@ import GHCVM.BasicTypes.Module
 
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
-import GHCVM.Primitive
 
 import Codec.JVM
 
@@ -64,13 +63,13 @@ maybeFunction ty
 
 mkArgDescr :: [Id] -> ArgDescr
 mkArgDescr args
-  = let argReps = filter isNonV (map idJArgRep args)
+  = let argReps = filter isNonV (map idArgRep args)
            -- Getting rid of voids eases matching of standard patterns
     in case stdPattern argReps of
          Just specId -> ArgSpec specId
          Nothing     -> ArgGen []
 
-stdPattern :: [JArgRep] -> Maybe Int
+stdPattern :: [ArgRep] -> Maybe Int
 stdPattern reps = Nothing
 
 mkLFImported :: Id -> LambdaFormInfo
@@ -96,9 +95,8 @@ mkLFArgument id
   where
     ty = idType id
 
-argJPrimRep :: StgArg -> JPrimRep
-argJPrimRep = typeJPrimRep . stgArgType
-
+argPrimRep :: StgArg -> PrimRep
+argPrimRep = typePrimRep . stgArgType
 
 data CallMethod
   = EnterIt

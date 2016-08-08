@@ -440,7 +440,7 @@ assembleI dflags i = case i of
 isLarge :: Word -> Bool
 isLarge n = n > 65535
 
-push_alts :: JArgRep -> Word16
+push_alts :: ArgRep -> Word16
 push_alts V   = bci_PUSH_ALTS_V
 push_alts P   = bci_PUSH_ALTS_P
 push_alts N   = bci_PUSH_ALTS_N
@@ -449,7 +449,7 @@ push_alts F   = bci_PUSH_ALTS_F
 push_alts D   = bci_PUSH_ALTS_D
 push_alts _ = error "push_alts: other"
 
-return_ubx :: JArgRep -> Word16
+return_ubx :: ArgRep -> Word16
 return_ubx V   = bci_RETURN_V
 return_ubx P   = bci_RETURN_P
 return_ubx N   = bci_RETURN_N

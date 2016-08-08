@@ -289,7 +289,6 @@ library
                        , GHCVM.Utils.Util
                        , GHCVM.Debug
                        , GHCVM.Util
-                       , GHCVM.Primitive
                        , GHCVM.JAR
     other-modules:       GHCVM.Parser.Parser
                        , GHCVM.Parser.Lexer

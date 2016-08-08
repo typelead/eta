@@ -20,7 +20,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Utils
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Name
-import GHCVM.Primitive
+
 import GHCVM.Debug
 import GHCVM.Util
 
@@ -63,25 +63,24 @@ cgOpApp (StgPrimOp primOp) args resType = do
               -- res <- newTemp rep'
               -- f [res]
               -- emitReturn [res]
-        -> do let rep' = mkJPrimRep rep
-              -- Assumes Returns Prim is of Non-closure type
+        -> do -- Assumes Returns Prim is of Non-closure type
               codes <- codes'
               emitReturn
                 . (:[])
                 . mkLocDirect False
                 $ ( expectJust "cgOpApp: StgPrimOp"
                   . primRepFieldType_maybe
-                  $ rep'
+                  $ rep
                   , (head codes))
         | ReturnsAlg tyCon <- resultInfo, isUnboxedTupleTyCon tyCon
         -> do -- locs <- newUnboxedTupleLocs resType
               -- f locs
               codes <- codes'
               let UbxTupleRep tyArgs         = repType resType
-                  reps = [ (isPtrJRep rep, rep)
+                  reps = [ (isGcPtrRep rep, rep)
                          | ty <- tyArgs
-                         , let rep           = typeJPrimRep ty
-                         , not (isVoidJRep rep) ]
+                         , let rep           = typePrimRep ty
+                         , not (isVoidRep rep) ]
               emitReturn . map (\((isClosure, rep), code)
                                 -> mkLocDirect isClosure
                                    (primRepFieldType rep

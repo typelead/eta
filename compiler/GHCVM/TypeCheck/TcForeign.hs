@@ -29,7 +29,7 @@ import GHCVM.Prelude.PrelNames
 import GHCVM.Types.Type
 import GHCVM.Types.TypeRep
 import GHCVM.Types.Coercion
-import GHCVM.TypeCheck.TcType (tcSplitForAllTys, tcSplitFunTys, tcSplitTyConApp_maybe)
+import GHCVM.TypeCheck.TcType
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Prelude.ForeignCall
 import GHCVM.Types.TyCon
@@ -42,7 +42,7 @@ import GHCVM.Utils.Bag
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 
-import GHCVM.Primitive
+
 import Data.Maybe(fromMaybe)
 
 -- Defines a binding
@@ -80,10 +80,12 @@ tcFImport (L declLoc fi@(ForeignImport (L nameLoc name) hsType _ impDecl))
       (normCo, normSigType, gres) <- normaliseFfiType sigType
       --printDebug "tcFImport: normSigType" $ ppr normSigType
       let (_, ty)             = tcSplitForAllTys normSigType
-          (argTypes, resType) = tcSplitFunTys ty
+          (theta, ty')        = tcSplitPhiTy ty
+          (argTypes, resType) = tcSplitFunTys ty'
           id                  = mkLocalId name sigType
+      traceTc "tcFIImport" $ ppr theta <+> ppr argTypes <+> ppr resType
       --printDebug "tcFImport: normSigType" $ ppr argTypes <+> ppr resType
-      impDecl' <- tcCheckFIType argTypes resType impDecl
+      impDecl' <- tcCheckFIType theta argTypes resType impDecl
       let fiDecl = ForeignImport (L nameLoc id) undefined
                                  (mkSymCo normCo) impDecl'
       return (id, L declLoc fiDecl, gres)
@@ -161,10 +163,10 @@ foreignDeclCtxt fo
   = hang (str "When checking declaration:")
        2 (ppr fo)
 
-tcCheckFIType :: [Type] -> Type -> ForeignImport -> TcM ForeignImport
+tcCheckFIType :: ThetaType -> [Type] -> Type -> ForeignImport -> TcM ForeignImport
 -- TODO: Handle CLabel and CWrapper
-tcCheckFIType argTypes resType idecl@(CImport (L lc cconv) (L ls safety) mh
-                                              (CFunction target) src)
+tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safety) mh
+                                               (CFunction target) src)
   -- TODO: Handle dynamic targets
   | cconv == PrimCallConv = do
       dflags <- getDynFlags
@@ -184,8 +186,10 @@ tcCheckFIType argTypes resType idecl@(CImport (L lc cconv) (L ls safety) mh
   | cconv == javaCallConv = do
       -- TODO: Validate the code generation mode
       -- TODO: Validate the target string
+      -- TODO: Validate ThetaType
       dflags <- getDynFlags
       checkJavaTarget target
+      traceTc "tcCheckFIType" $ ppr argTypes <+> ppr resType
       checkForeignArgs (isFFIArgumentTy dflags safety) argTypes
       checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
       return idecl
@@ -208,63 +212,40 @@ illegalForeignTyErr argOrRes extra
     msg = hsep [ str "Unacceptable", argOrRes
                , str "type in foreign declaration:"]
 
-isFFIPrimArgumentTy :: DynFlags -> Type -> Validity
-isFFIPrimArgumentTy dflags ty
-  | isAnyTy ty = IsValid
-  | otherwise  = checkRepTyCon (legalFIPrimArgTyCon dflags) ty empty
-
-isFFIPrimResultTy :: DynFlags -> Type -> Validity
-isFFIPrimResultTy dflags ty
-   = checkRepTyCon (legalFIPrimResultTyCon dflags) ty empty
-
-checkRepTyCon :: (TyCon -> Type -> Bool) -> Type -> SDoc -> Validity
-checkRepTyCon checkTc ty extra
-  = case splitTyConApp_maybe ty of
-      Just (tc, tys)
-        | isNewTyCon tc  -> NotValid $ hang msg 2 (mkNtReason tc tys $$ ntFix)
-        | checkTc tc ty  -> IsValid
-        | otherwise      -> NotValid $ msg $$ extra
-      Nothing ->
-        NotValid $ quotes (ppr ty) <+> str "is not a data type" $$ extra
-  where
-    msg = quotes (ppr ty) <+> str "cannot be marshalled in a foreign call"
-    mkNtReason tc tys
-      | null tys  = str "because its data construtor is not in scope"
-      | otherwise = str "because the data construtor for"
-                    <+> quotes (ppr tc) <+> str "is not in scope"
-    ntFix = str $ "Possible fix: import the data constructor to bring it"
-               ++ " into scope"
-
-legalFIPrimArgTyCon :: DynFlags -> TyCon -> Type -> Bool
-legalFIPrimArgTyCon dflags tc ty
-  | xopt Opt_UnliftedFFITypes dflags
-    && isUnLiftedTyCon tc
-    && not (isUnboxedTupleTyCon tc)
-  = True
-  | otherwise
-  = False
-
-legalFIPrimResultTyCon :: DynFlags -> TyCon -> Type -> Bool
-legalFIPrimResultTyCon dflags tc ty
-  | xopt Opt_UnliftedFFITypes dflags
-    && isUnLiftedTyCon tc
-    && (  isUnboxedTupleTyCon tc
-       || not (isVoidJRep (typeJPrimRep ty)) )
-  = True
-  | otherwise
-  = False
+-- checkRepTyCon :: (TyCon -> Type -> Bool) -> Type -> SDoc -> Validity
+-- checkRepTyCon checkTc ty extra
+--   = case splitTyConApp_maybe ty of
+--       Just (tc, tys)
+--         | isNewTyCon tc  -> NotValid $ hang msg 2 (mkNtReason tc tys $$ ntFix)
+--         | checkTc tc ty  -> IsValid
+--         | otherwise      -> NotValid $ msg $$ extra
+--       Nothing ->
+--         NotValid $ quotes (ppr ty) <+> str "is not a data type" $$ extra
+--   where
+--     msg = quotes (ppr ty) <+> str "cannot be marshalled in a foreign call"
+--     mkNtReason tc tys
+--       | null tys  = str "because its data construtor is not in scope"
+--       | otherwise = str "because the data construtor for"
+--                     <+> quotes (ppr tc) <+> str "is not in scope"
+--     ntFix = str $ "Possible fix: import the data constructor to bring it"
+--                ++ " into scope"
 
 checkForeignRes :: Bool -> Bool -> (Type -> Validity) -> Type -> TcM ()
 checkForeignRes nonIOResultOk checkSafe predResType ty
   | Just (_, resType) <- tcSplitIOType_maybe ty
-  = check (predResType resType) (illegalForeignTyErr result)
+  = do
+      traceTc "checkForeignRes[IO]" $ ppr resType
+      check (predResType resType) (illegalForeignTyErr result)
   | Just (_, tagType, resType) <- tcSplitJavaType_maybe ty
-  = check (predResType resType) (illegalForeignTyErr result)
+  = do
+      traceTc "checkForeignRes[Java]" $ ppr tagType <+> ppr resType
+      check (predResType resType) (illegalForeignTyErr result)
   -- Case for non-IO result type with FFI Import
   | not nonIOResultOk = addErrTc
                       . illegalForeignTyErr result
                       $ str "IO result type expected"
   | otherwise = do
+      traceTc "checkForeignRes[Other]" $ ppr ty
       dflags <- getDynFlags
       case predResType ty of
         -- Handle normal typecheck fail, we want to handle this first and
@@ -280,14 +261,6 @@ checkForeignRes nonIOResultOk checkSafe predResType ty
   where safeHsErr = str $ "Safe Haskell is on, all FFI imports must be in the"
                        ++ " IO monad"
 
-isFFIArgumentTy :: DynFlags -> Safety -> Type -> Validity
-isFFIArgumentTy dflags safety ty
-  = checkRepTyCon (legalOutgoingTyCon dflags safety) ty empty
-
-isFFIImportResultTy :: DynFlags -> Type -> Validity
-isFFIImportResultTy dflags ty
-  = checkRepTyCon (legalFIResultTyCon dflags) ty empty
-
 argument, result :: SDoc
 argument = text "argument"
 result   = text "result"
@@ -295,43 +268,6 @@ result   = text "result"
 checkSafe, noCheckSafe :: Bool
 checkSafe = True
 noCheckSafe = False
-
-legalOutgoingTyCon :: DynFlags -> Safety -> TyCon -> Type -> Bool
-legalOutgoingTyCon dflags _ tc ty = marshalableTyCon dflags tc ty
-
-legalFIResultTyCon :: DynFlags -> TyCon -> Type -> Bool
-legalFIResultTyCon dflags tc ty
-  | tc == unitTyCon         = True
-  | otherwise               = marshalableTyCon dflags tc ty
-
-marshalableTyCon :: DynFlags -> TyCon -> Type -> Bool
-marshalableTyCon dflags tc ty
-  |  (xopt Opt_UnliftedFFITypes dflags
-      && isUnLiftedTyCon tc
-      && not (isUnboxedTupleTyCon tc)
-      && not (isVoidJRep (typeJPrimRep ty)))
-  = True
-  | otherwise
-  = boxedMarshalableTyCon tc ty
-
-boxedMarshalableTyCon :: TyCon -> Type -> Bool
-boxedMarshalableTyCon tc ty
-   -- TODO: Add more GHCVM-specific tycons here
-   | getUnique tc `elem` [ intTyConKey, int8TyConKey, int16TyConKey
-                         , int32TyConKey, int64TyConKey
-                         , wordTyConKey, word8TyConKey, word16TyConKey
-                         , word32TyConKey, word64TyConKey
-                         , floatTyConKey, doubleTyConKey
-                         , ptrTyConKey, funPtrTyConKey
-                         , charTyConKey , stablePtrTyConKey
-                         , boolTyConKey ]
-  = True
-   -- TODO: Optimize this to add just raw key checks like above.
-   --       Can be done once the GHC source in integrated.
-  | Just (_, _, _, [primTy]) <- splitDataProductType_maybe ty
-  , isPrimitiveType primTy
-  = True
-  | otherwise = False
 
 nonIOok, mustBeIO :: Bool
 nonIOok = True

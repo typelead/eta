@@ -1,7 +1,6 @@
 {-# LANGUAGE MagicHash, OverloadedStrings #-}
 module GHCVM.CodeGen.Name (
   qualifiedName,
-  fastStringToText,
   nameText,
   nameTypeText,
   nameTypeTable,
@@ -44,9 +43,6 @@ qualifiedName modClass className = append modClass . cons '$' $ className
 
 closure :: Text -> Text
 closure = flip append "_closure"
-
-fastStringToText :: FastString -> Text
-fastStringToText = decodeUtf8 . fastStringToByteString
 
 nameTypeText :: DynFlags -> Name -> Text
 nameTypeText dflags = flip snoc 'T' . nameText dflags
