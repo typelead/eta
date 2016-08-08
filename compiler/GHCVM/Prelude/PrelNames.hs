@@ -367,7 +367,9 @@ basicKnownKeyNames
         -- Integer (S#)
         , integerSDataConName
         -- GHCVM
+        , javaTyConName
         , javaDataConName
+        , objectTyConName
         , objectDataConName
     ]
 
