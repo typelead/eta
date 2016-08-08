@@ -54,8 +54,6 @@ import Data.Array
 import Data.IORef
 import Control.Monad
 
-import GHCVM.Primitive (ghcvmKeyNames)
-
 -- ---------------------------------------------------------------------------
 -- Reading and writing binary interface files
 --
@@ -197,8 +195,8 @@ writeBinIface dflags hi_path mod_iface = do
     let bin_dict = BinDictionary {
                        bin_dict_next = dict_next_ref,
                        bin_dict_map  = dict_map_ref }
-  
-    -- Put the main thing, 
+
+    -- Put the main thing,
     bh <- return $ setUserData bh $ newWriteState (putName bin_dict bin_symtab)
                                                   (putFastString bin_dict)
     put_ bh mod_iface
@@ -212,7 +210,7 @@ writeBinIface dflags hi_path mod_iface = do
     symtab_next <- readFastMutInt symtab_next
     symtab_map  <- readIORef symtab_map
     putSymbolTable bh symtab_next symtab_map
-    debugTraceMsg dflags 3 (text "writeBinIface:" <+> int symtab_next 
+    debugTraceMsg dflags 3 (text "writeBinIface:" <+> int symtab_next
                                 <+> text "Names")
 
     -- NB. write the dictionary after the symbol table, because
@@ -259,7 +257,7 @@ getSymbolTable bh ncu = do
     od_names <- sequence (replicate sz (get bh))
     updateNameCache ncu $ \namecache ->
         let arr = listArray (0,sz-1) names
-            (namecache', names) =    
+            (namecache', names) =
                 mapAccumR (fromOnDiskName arr) namecache od_names
         in (namecache', arr)
 
@@ -309,7 +307,6 @@ knownKeyNamesMap = listToUFM_Directly [(nameUnique n, n) | n <- knownKeyNames]
   where
     knownKeyNames :: [Name]
     knownKeyNames = map getName wiredInThings ++ basicKnownKeyNames
-                     ++ ghcvmKeyNames
 
 -- See Note [Symbol table representation of names]
 putName :: BinDictionary -> BinSymbolTable -> BinHandle -> Name -> IO ()

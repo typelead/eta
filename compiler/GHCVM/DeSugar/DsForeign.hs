@@ -42,6 +42,7 @@ import Data.Maybe
 import Data.List
 
 import GHCVM.Primitive
+import GHCVM.Debug
 
 type Binding = (Id, CoreExpr)
 
@@ -190,7 +191,9 @@ boxResult resultType
                                            [alt] ]
        return (realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
   | Just (javaTyCon, javaTagType, javaResType) <- tcSplitJavaType_maybe resultType
-  = do res <- resultWrapper javaResType
+  = do dflags <- getDynFlags
+       liftIO . putStrLn . showSDoc dflags $ ppr javaTyCon <+> ppr javaTagType <+> ppr javaResType
+       res <- resultWrapper javaResType
        let extraResultTypes =
              case res of
                (Just ty, _)

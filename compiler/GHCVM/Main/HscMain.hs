@@ -170,8 +170,6 @@ import System.Directory
 import qualified Data.Map as Map
 import Control.Arrow((&&&), first)
 
-import GHCVM.Primitive (ghcvmKeyNames)
-
 {- **********************************************************************
 %*                                                                      *
                 Initialisation

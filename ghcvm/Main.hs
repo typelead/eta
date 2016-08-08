@@ -34,7 +34,6 @@ import GHCVM.Utils.Panic
 import GHCVM.Utils.MonadUtils (liftIO)
 
 -- GHCVM API
-import GHCVM.Primitive (ghcvmPrimIface)
 import GHCVM.TypeCheck.TcForeign (tcForeignImports)
 import GHCVM.DeSugar.DsForeign (dsForeigns)
 
@@ -828,4 +827,3 @@ unknownFlagsErr fs = throwGhcException $ UsageError $ concatMap oneError fs
         (case fuzzyMatch f (nub allFlags) of
             [] -> ""
             suggs -> "did you mean one of:\n" ++ unlines (map ("  " ++) suggs))
-

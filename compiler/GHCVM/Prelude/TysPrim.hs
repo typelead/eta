@@ -72,6 +72,13 @@ module GHCVM.Prelude.TysPrim(
 
         -- * Any
         anyTy, anyTyCon, anyTypeOfKind,
+        -- * GHCVM
+        jcharPrimTyCon,
+        jboolPrimTyCon,
+        jbytePrimTyCon,
+        jshortPrimTyCon,
+        jobjectPrimTyCon,
+        jarrayPrimTyCon
 
         -- * SIMD
         -- TODO: Currently vector operations are disabled in GHCVM

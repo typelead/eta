@@ -92,9 +92,9 @@ normaliseFfiType' env ty0 = go initRecTc ty0
           | Just ty' <- coreView ty = go recNts ty'
         go recNts ty@(TyConApp tc tys)
           -- TODO: Address funPtrs
-          | tcKey `elem` [ioTyConKey]
+          | tcKey == ioTyConKey
           = childrenOnly False
-          | isJavaTyCon tc
+          | tcKey == javaTyConKey
           = childrenOnly True
           | isNewTyCon tc
           , Just recNts' <- checkRecTc recNts tc
