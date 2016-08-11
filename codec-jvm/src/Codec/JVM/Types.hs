@@ -79,6 +79,11 @@ isCategory2 (BaseType JLong)   = True
 isCategory2 (BaseType JDouble) = True
 isCategory2 _                   = False
 
+isObjectFt :: FieldType -> Bool
+isObjectFt (ObjectType _) = True
+isObjectFt (ArrayType _)  = True
+isObjectFt _ = False
+
 mkFieldDesc :: FieldType -> FieldDesc
 mkFieldDesc ft = FieldDesc $ mkFieldDesc' ft where
 

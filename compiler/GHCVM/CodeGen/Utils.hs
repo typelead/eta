@@ -38,6 +38,7 @@ intSwitch = gswitch
 
 litSwitch :: FieldType -> Code -> [(Literal, Code)] -> Code -> Code
 litSwitch ft expr branches deflt
+  | isObjectFt ft = deflt -- ASSERT (length branches == 0)
   | ft /= jint = error $ "litSwitch: primitive cases not supported for not integer values"
                       ++ show ft
   | otherwise  = intSwitch expr intBranches (Just deflt)
