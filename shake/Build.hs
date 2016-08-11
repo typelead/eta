@@ -4,6 +4,7 @@ import Development.Shake.Command
 import Development.Shake.FilePath
 import Development.Shake.Util
 import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory, createDirectory, removeDirectory)
+import System.Console.GetOpt
 import Control.Monad(forM_, when)
 import Data.List (partition,stripPrefix)
 import Data.Maybe(mapMaybe)
@@ -77,12 +78,10 @@ buildConf lib confSrc confDst = do
                          (Nothing, s) -> putNormal s
                          (Just l, s) -> putNormal $ show l ++ ": " ++ s
 
-buildLibrary :: String -> [String] -> Action ()
-buildLibrary lib deps = do
+buildLibrary :: Bool -> String -> [String] -> Action ()
+buildLibrary debug lib deps = do
   rootDir <- getGhcVmRoot
   installDir <- getInstallDir
-  putNormal "buildLibrary"
-  putNormal installDir
   let libDir = libraryDir </> lib
       rootLibDir = rootDir </> lib
       conf = lib <.> "conf"
@@ -96,8 +95,9 @@ buildLibrary lib deps = do
     need [rtsjar]
   else do
     hsFiles <- getDirectoryFiles libDir ["//*.hs"]
+    let ghcvmFlags = if debug then ["-v"] else []
     unit $ cmd [Cwd libDir, AddEnv "GHC_PACKAGE_PATH" packageDir]
-               ghcvmCmd "-clear-package-db"-- -v"
+               ghcvmCmd "-clear-package-db" ghcvmFlags
                ["-package " ++ dep | dep <- deps]
                "-staticlib -ddump-to-file -ddump-stg -this-package-key"
                lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
@@ -126,11 +126,17 @@ getLibs = getDirectoryDirs libraryDir
 dropDirectoryN :: Int -> FilePath -> FilePath
 dropDirectoryN n = head . drop n . iterate dropDirectory1
 
+flags = [Option "" ["debuginfo"] (NoArg $ Right True) "Run with debugging information."]
+
 -- TODO: Make the build script cleaner
 main :: IO ()
-main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
-    want [rtsjar]
-
+main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets -> return $ Just $ do
+    if null targets
+      then want [rtsjar]
+      else want targets
+    let debug = case flags of
+          (x:_) -> True
+          _     -> False
     phony "install" $ do
       rootDir <- getGhcVmRoot
       exists <- doesDirectoryExist rootDir
@@ -155,7 +161,7 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
-          buildLibrary lib (getDependencies lib)
+          buildLibrary debug lib (getDependencies lib)
 
     phony "uninstall" $ do
       rootDir <- getGhcVmRoot
@@ -167,7 +173,7 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       need ["install"]
 
     phony "clean" $ do
-      putNormal "Cleaning files in rts/build, sample/build "
+      putNormal "Cleaning files in rts/build, sample/build"
       removeFilesAfter rtsBuildDir ["//*"]
       removeFilesAfter sampleBuildDir ["//*"]
       libs <- getLibs
@@ -189,6 +195,7 @@ main = shakeArgs shakeOptions{shakeFiles=rtsBuildDir} $ do
       createDirIfMissing rtsBuildDir
       cs <- getDirectoryFiles rtsSrcDir ["//*.java"]
       -- TODO: Setup a debug build
-      unit $ cmd (Cwd rtsSrcDir) "javac -g -XDignore.symbol.file" "-d" (top rtsBuildDir) cs
+      let javacFlags = if debug then ["-g", "-XDignore.symbol.file"] else []
+      unit $ cmd (Cwd rtsSrcDir) "javac" javacFlags "-d" (top rtsBuildDir) cs
       classfiles <- getDirectoryFiles rtsBuildDir ["//*.class"]
       unit $ cmd (Cwd rtsBuildDir) "jar cf" (top out) classfiles

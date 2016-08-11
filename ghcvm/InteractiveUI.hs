@@ -127,7 +127,7 @@ defaultGhciSettings =
 
 ghciWelcomeMsg :: String
 ghciWelcomeMsg = "GHCi, version " ++ cProjectVersion ++
-                 ": http://www.haskell.org/ghc/  :? for help"
+                 ": http://github.org/rahulmutt/ghcvm  :? for help"
 
 cmdName :: Command -> String
 cmdName (n,_,_) = n

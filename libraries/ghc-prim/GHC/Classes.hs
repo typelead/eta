@@ -301,16 +301,16 @@ x# `modInt#` y#
     !r# = x# `remInt#` y#
 
 class Class a where
-  unwrap :: a -> JObject# a
-  wrap   :: JObject# a -> a
+  unobj :: a -> JObject# a
+  obj   :: JObject# a -> a
 
 instance Class Object where
-  obj (Object x) = x
-  con = Object
+  unobj (Object x) = x
+  obj = Object
 
 instance Class JString where
-  obj (JString x) = x
-  con = JString
+  unobj (JString x) = x
+  obj = JString
 
 -- For embedding Java class hierarchies
 -- a is the child, b is the parent
@@ -318,10 +318,10 @@ class (Class a, Class b) => Extends a b where
   supercast :: a -> b
 
 instance (Class a) => Extends a Object where
-  supercast x = Object (unsafeCoerce# (obj x))
+  supercast x = Object (unsafeCoerce# (unobj x))
 
 instance (Class a) => Extends a a where
   supercast x = x
 
 instance (Class a, Class c, Extends a b, Extends b c) => Extends a c where
-  supercast x = con (unsafeCoerce# (obj x))
+  supercast x = obj (unsafeCoerce# (unobj x))
