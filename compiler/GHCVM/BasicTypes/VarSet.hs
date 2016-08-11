@@ -44,18 +44,18 @@ unionVarSets    :: [VarSet] -> VarSet
 mapUnionVarSet  :: (a -> VarSet) -> [a] -> VarSet
 -- ^ map the function oer the list, and union the results
 
-varSetElems     :: VarSet -> [Var]
-unitVarSet      :: Var -> VarSet
-extendVarSet    :: VarSet -> Var -> VarSet
-extendVarSetList:: VarSet -> [Var] -> VarSet
-elemVarSet      :: Var -> VarSet -> Bool
-delVarSet       :: VarSet -> Var -> VarSet
-delVarSetList   :: VarSet -> [Var] -> VarSet
-minusVarSet     :: VarSet -> VarSet -> VarSet
-isEmptyVarSet   :: VarSet -> Bool
-mkVarSet        :: [Var] -> VarSet
-foldVarSet      :: (Var -> a -> a) -> a -> VarSet -> a
-lookupVarSet    :: VarSet -> Var -> Maybe Var
+varSetElems      :: VarSet  -> [Var]
+unitVarSet       :: Var     -> VarSet
+extendVarSet     :: VarSet  -> Var -> VarSet
+extendVarSetList :: VarSet  -> [Var] -> VarSet
+elemVarSet       :: Var     -> VarSet -> Bool
+delVarSet        :: VarSet  -> Var -> VarSet
+delVarSetList    :: VarSet  -> [Var] -> VarSet
+minusVarSet      :: VarSet  -> VarSet -> VarSet
+isEmptyVarSet    :: VarSet  -> Bool
+mkVarSet         :: [Var]   -> VarSet
+foldVarSet       :: (Var    -> a -> a) -> a -> VarSet -> a
+lookupVarSet     :: VarSet  -> Var -> Maybe Var
                         -- Returns the set element, which may be
                         -- (==) to the argument, but not the same as
 mapVarSet       :: (Var -> Var) -> VarSet -> VarSet
@@ -71,10 +71,10 @@ partitionVarSet :: (Var -> Bool) -> VarSet -> (VarSet, VarSet)
 emptyVarSet     = emptyUniqSet
 unitVarSet      = unitUniqSet
 extendVarSet    = addOneToUniqSet
-extendVarSetList= addListToUniqSet
+extendVarSetList = addListToUniqSet
 intersectVarSet = intersectUniqSets
 
-intersectsVarSet:: VarSet -> VarSet -> Bool     -- True if non-empty intersection
+intersectsVarSet :: VarSet -> VarSet -> Bool     -- True if non-empty intersection
 disjointVarSet  :: VarSet -> VarSet -> Bool     -- True if empty intersection
 subVarSet       :: VarSet -> VarSet -> Bool     -- True if first arg is subset of second
         -- (s1 `intersectsVarSet` s2) doesn't compute s2 if s1 is empty;

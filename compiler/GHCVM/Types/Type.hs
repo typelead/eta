@@ -103,6 +103,7 @@ module GHCVM.Types.Type (
 
         -- * Type representation for the code generator
         typePrimRep, typeRepArity,
+        tagTypeToText,
 
         -- * Main type substitution data types
         TvSubstEnv,     -- Representation widely visible
@@ -176,6 +177,7 @@ import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Maybes           ( orElse )
 
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe       ( isJust )
 import Control.Monad    ( guard )
@@ -718,20 +720,23 @@ typePrimRep ty
       UnaryRep rep -> case rep of
         TyConApp tc tys ->
           case primRep of
-            ObjectRep _ ->
-              case splitTyConApp_maybe (head tys) of
-                Just (tc1, _) ->
-                  case tyConCType_maybe tc1 of
-                    Just (CType _ _ fs) -> ObjectRep $
-                      Text.map (\c -> if c == '.' then '/' else c) . fastStringToText $ fs
-                    Nothing -> pprPanic "You should annotate " $ ppr tc <> ppr tys
-                Nothing -> ObjectRep $ Text.pack "java.lang.Object"
+            ObjectRep _ -> ObjectRep $ tagTypeToText (head tys)
             _ -> primRep
           where primRep = tyConPrimRep tc
         FunTy _ _     -> PtrRep
         AppTy _ _     -> PtrRep      -- See Note [AppTy rep]
         TyVarTy _     -> PtrRep
         _             -> pprPanic "typePrimRep: UnaryRep" (ppr ty)
+
+tagTypeToText :: Type -> Text
+tagTypeToText ty =
+  case splitTyConApp_maybe ty of
+    Just (tc1, _) ->
+      case tyConCType_maybe tc1 of
+        Just (CType _ _ fs) ->
+          Text.map (\c -> if c == '.' then '/' else c) . fastStringToText $ fs
+        Nothing -> pprPanic "tagTypeToText: You should annotate " $ ppr ty
+    Nothing -> Text.pack "java.lang.Object"
 
 typeRepArity :: Arity -> Type -> RepArity
 typeRepArity 0 _ = 0

@@ -13,34 +13,36 @@ module GHCVM.TypeCheck.TcForeign
  -- , tcCheckFEType
   ) where
 
+import GHCVM.BasicTypes.DataCon
+import GHCVM.BasicTypes.Unique
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.VarSet
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.RdrName
+import GHCVM.TypeCheck.FamInst
 import GHCVM.TypeCheck.TcRnMonad
-import GHCVM.Main.Hooks
 import GHCVM.TypeCheck.TcHsType
 import GHCVM.TypeCheck.TcExpr
 import GHCVM.TypeCheck.TcEnv
-import GHCVM.TypeCheck.FamInst
-import GHCVM.Types.FamInstEnv
+import GHCVM.TypeCheck.TcType
 import GHCVM.Prelude.TysWiredIn (unitTyCon)
+import GHCVM.Prelude.PrelNames
+import GHCVM.Prelude.ForeignCall
+import GHCVM.Main.Hooks
 import GHCVM.Main.ErrUtils
 import GHCVM.Main.DynFlags
-import GHCVM.BasicTypes.DataCon
-import GHCVM.BasicTypes.Unique
-import GHCVM.Prelude.PrelNames
+import GHCVM.Types.FamInstEnv
 import GHCVM.Types.Type
 import GHCVM.Types.TypeRep
 import GHCVM.Types.Coercion
-import GHCVM.TypeCheck.TcType
-import GHCVM.BasicTypes.SrcLoc
-import GHCVM.Prelude.ForeignCall
 import GHCVM.Types.TyCon
-import GHCVM.BasicTypes.Name
 import GHCVM.Debug
-import GHCVM.BasicTypes.Id
-import GHCVM.BasicTypes.RdrName
 import GHCVM.HsSyn.HsSyn
 import GHCVM.Utils.Bag
 import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
 
 
 import Data.Maybe(fromMaybe)
@@ -185,13 +187,14 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
   --       existing calling convention data types.
   | cconv == javaCallConv = do
       -- TODO: Validate the code generation mode
-      -- TODO: Validate the target string
+      -- TODO: Validate the target string for @new, @field
       -- TODO: Validate ThetaType
       dflags <- getDynFlags
       checkJavaTarget target
       traceTc "tcCheckFIType" $ ppr argTypes <+> ppr resType
-      checkForeignArgs (isFFIArgumentTy dflags safety) argTypes
-      checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
+      let javaClassVars = toClassVars thetaType
+      checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
+      checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags)  resType
       return idecl
   -- TODO: Support the other C-based conventions
   | otherwise = pprPanic "Unsupported calling convention." (ppr idecl)
@@ -211,24 +214,6 @@ illegalForeignTyErr argOrRes extra
   where
     msg = hsep [ str "Unacceptable", argOrRes
                , str "type in foreign declaration:"]
-
--- checkRepTyCon :: (TyCon -> Type -> Bool) -> Type -> SDoc -> Validity
--- checkRepTyCon checkTc ty extra
---   = case splitTyConApp_maybe ty of
---       Just (tc, tys)
---         | isNewTyCon tc  -> NotValid $ hang msg 2 (mkNtReason tc tys $$ ntFix)
---         | checkTc tc ty  -> IsValid
---         | otherwise      -> NotValid $ msg $$ extra
---       Nothing ->
---         NotValid $ quotes (ppr ty) <+> str "is not a data type" $$ extra
---   where
---     msg = quotes (ppr ty) <+> str "cannot be marshalled in a foreign call"
---     mkNtReason tc tys
---       | null tys  = str "because its data construtor is not in scope"
---       | otherwise = str "because the data construtor for"
---                     <+> quotes (ppr tc) <+> str "is not in scope"
---     ntFix = str $ "Possible fix: import the data constructor to bring it"
---                ++ " into scope"
 
 checkForeignRes :: Bool -> Bool -> (Type -> Validity) -> Type -> TcM ()
 checkForeignRes nonIOResultOk checkSafe predResType ty
@@ -285,6 +270,13 @@ isTc :: Unique -> Type -> Bool
 isTc uniq ty = case tcSplitTyConApp_maybe ty of
   Just (tc, _) -> uniq == getUnique tc
   Nothing      -> False
+
+toClassVars :: ThetaType -> VarSet
+toClassVars
+  = mkVarSet
+  . map ( fst
+        . expectJust "toClassVars: Invalid non-extends typeclass constraint"
+        . tcSplitExtendsType_maybe )
 
 tcForeignExports :: [LForeignDecl Name]
                  -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt)

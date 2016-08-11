@@ -300,8 +300,28 @@ x# `modInt#` y#
     where
     !r# = x# `remInt#` y#
 
+class Class a where
+  unwrap :: a -> JObject# a
+  wrap   :: JObject# a -> a
+
+instance Class Object where
+  obj (Object x) = x
+  con = Object
+
+instance Class JString where
+  obj (JString x) = x
+  con = JString
+
 -- For embedding Java class hierarchies
-class Extends a b where
-instance Extends a Object# where
-instance Extends a a where
-instance (Extends a b, Extends b c) => Extends a c where
+-- a is the child, b is the parent
+class (Class a, Class b) => Extends a b where
+  supercast :: a -> b
+
+instance (Class a) => Extends a Object where
+  supercast x = Object (unsafeCoerce# (obj x))
+
+instance (Class a) => Extends a a where
+  supercast x = x
+
+instance (Class a, Class c, Extends a b, Extends b c) => Extends a c where
+  supercast x = con (unsafeCoerce# (obj x))

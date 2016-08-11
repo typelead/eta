@@ -92,16 +92,17 @@ module GHCVM.TypeCheck.TcType (
   -- Foreign import and export
   isFFIArgumentTy,     -- :: DynFlags -> Safety -> Type -> Bool
   isFFIImportResultTy, -- :: DynFlags -> Type -> Bool
-  isFFIExportResultTy, -- :: Type -> Bool
-  isFFIExternalTy,     -- :: Type -> Bool
-  isFFIDynTy,          -- :: Type -> Type -> Bool
+  --isFFIExportResultTy, -- :: Type -> Bool
+  --isFFIExternalTy,     -- :: Type -> Bool
+  --isFFIDynTy,          -- :: Type -> Type -> Bool
   isFFIPrimArgumentTy, -- :: DynFlags -> Type -> Bool
   isFFIPrimResultTy,   -- :: DynFlags -> Type -> Bool
-  isFFILabelTy,        -- :: Type -> Bool
-  isFFITy,             -- :: Type -> Bool
+  --isFFILabelTy,        -- :: Type -> Bool
+  --isFFITy,             -- :: Type -> Bool
   isFunPtrTy,          -- :: Type -> Bool
   tcSplitIOType_maybe, -- :: Type -> Maybe Type
   tcSplitJavaType_maybe, -- :: Type -> Maybe Type
+  tcSplitExtendsType_maybe, -- :: Type -> Maybe Type
 
   --------------------------------
   -- Rexported from Kind
@@ -183,8 +184,7 @@ import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Main.ErrUtils( Validity(..), isValid )
 
-
-
+import Data.Text (Text)
 import Data.IORef
 import Control.Monad (liftM, ap)
 
@@ -1587,49 +1587,63 @@ tcSplitJavaType_maybe ty
         _ ->
             Nothing
 
-isFFITy :: Type -> Bool
--- True for any TyCon that can possibly be an arg or result of an FFI call
-isFFITy ty = isValid (checkRepTyCon legalFFITyCon ty empty)
+-- TODO: Currently optimized for the Extends a b case
+--       where b is a object tag.
+tcSplitExtendsType_maybe :: Type -> Maybe (Var, Text)
+tcSplitExtendsType_maybe ty
+  = case tcSplitTyConApp_maybe ty of
+        Just (extendsTyCon, [extendsVarType, extendsTagType])
+         | extendsTyCon `hasKey` extendsClassKey  ->
+            Just ( expectJust "tcSplitExtendsType_maybe"
+                   $ getTyVar_maybe extendsVarType
+                 , tagTypeToText extendsTagType )
+        _ ->
+            Nothing
 
-isFFIArgumentTy :: DynFlags -> Safety -> Type -> Validity
+-- isFFITy :: Type -> Bool
+-- -- True for any TyCon that can possibly be an arg or result of an FFI call
+-- isFFITy ty = isValid (checkRepTyCon legalFFITyCon ty empty)
+
+isFFIArgumentTy :: DynFlags -> Safety -> VarSet -> Type -> Validity
 -- Checks for valid argument type for a 'foreign import'
-isFFIArgumentTy dflags safety ty
-   = checkRepTyCon (legalOutgoingTyCon dflags safety) ty empty
+isFFIArgumentTy dflags safety vs ty
+  | checkValidTyVar vs ty = IsValid
+  | otherwise = checkRepTyCon (legalOutgoingTyCon dflags safety) ty empty
 
-isFFIExternalTy :: Type -> Validity
--- Types that are allowed as arguments of a 'foreign export'
-isFFIExternalTy ty = checkRepTyCon legalFEArgTyCon ty empty
+-- isFFIExternalTy :: Type -> Validity
+-- -- Types that are allowed as arguments of a 'foreign export'
+-- isFFIExternalTy ty = checkRepTyCon legalFEArgTyCon ty empty
 
 isFFIImportResultTy :: DynFlags -> Type -> Validity
 isFFIImportResultTy dflags ty
   = checkRepTyCon (legalFIResultTyCon dflags) ty empty
 
-isFFIExportResultTy :: Type -> Validity
-isFFIExportResultTy ty = checkRepTyCon legalFEResultTyCon ty empty
+-- isFFIExportResultTy :: Type -> Validity
+-- isFFIExportResultTy ty = checkRepTyCon legalFEResultTyCon ty empty
 
-isFFIDynTy :: Type -> Type -> Validity
--- The type in a foreign import dynamic must be Ptr, FunPtr, or a newtype of
--- either, and the wrapped function type must be equal to the given type.
--- We assume that all types have been run through normaliseFfiType, so we don't
--- need to worry about expanding newtypes here.
-isFFIDynTy expected ty
-    -- Note [Foreign import dynamic]
-    -- In the example below, expected would be 'CInt -> IO ()', while ty would
-    -- be 'FunPtr (CDouble -> IO ())'.
-    | Just (tc, [ty']) <- splitTyConApp_maybe ty
-    , tyConUnique tc `elem` [ptrTyConKey, funPtrTyConKey]
-    , eqType ty' expected
-    = IsValid
-    | otherwise
-    = NotValid (vcat [ ptext (sLit "Expected: Ptr/FunPtr") <+> pprParendType expected <> comma
-                     , ptext (sLit "  Actual:") <+> ppr ty ])
+-- isFFIDynTy :: Type -> Type -> Validity
+-- -- The type in a foreign import dynamic must be Ptr, FunPtr, or a newtype of
+-- -- either, and the wrapped function type must be equal to the given type.
+-- -- We assume that all types have been run through normaliseFfiType, so we don't
+-- -- need to worry about expanding newtypes here.
+-- isFFIDynTy expected ty
+--     -- Note [Foreign import dynamic]
+--     -- In the example below, expected would be 'CInt -> IO ()', while ty would
+--     -- be 'FunPtr (CDouble -> IO ())'.
+--     | Just (tc, [ty']) <- splitTyConApp_maybe ty
+--     , tyConUnique tc `elem` [ptrTyConKey, funPtrTyConKey]
+--     , eqType ty' expected
+--     = IsValid
+--     | otherwise
+--     = NotValid (vcat [ ptext (sLit "Expected: Ptr/FunPtr") <+> pprParendType expected <> comma
+--                      , ptext (sLit "  Actual:") <+> ppr ty ])
 
-isFFILabelTy :: Type -> Validity
--- The type of a foreign label must be Ptr, FunPtr, or a newtype of either.
-isFFILabelTy ty = checkRepTyCon ok ty extra
-  where
-    ok tc _ = tc `hasKey` funPtrTyConKey || tc `hasKey` ptrTyConKey
-    extra = ptext (sLit "A foreign-imported address (via &foo) must have type (Ptr a) or (FunPtr a)")
+-- isFFILabelTy :: Type -> Validity
+-- -- The type of a foreign label must be Ptr, FunPtr, or a newtype of either.
+-- isFFILabelTy ty = checkRepTyCon ok ty extra
+--   where
+--     ok tc _ = tc `hasKey` funPtrTyConKey || tc `hasKey` ptrTyConKey
+--     extra = ptext (sLit "A foreign-imported address (via &foo) must have type (Ptr a) or (FunPtr a)")
 
 isFFIPrimArgumentTy :: DynFlags -> Type -> Validity
 -- Checks for valid argument type for a 'foreign import prim'
@@ -1668,6 +1682,14 @@ checkRepTyCon checkTc ty extra
                     <+> quotes (ppr tc) <+> ptext (sLit "is not in scope")
     nt_fix = ptext (sLit "Possible fix: import the data constructor to bring it into scope")
 
+checkValidTyVar :: VarSet -> Type -> Bool
+checkValidTyVar vs ty
+  | Just var <- getTyVar_maybe ty
+  , var `elemVarSet` vs
+  = True
+  | otherwise
+  = False
+
 {-
 Note [Foreign import dynamic]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1689,33 +1711,33 @@ These chaps do the work; they are not exported
 ----------------------------------------------
 -}
 
-legalFEArgTyCon :: TyCon -> Type -> Bool
-legalFEArgTyCon tc ty
-  -- It's illegal to make foreign exports that take unboxed
-  -- arguments.  The RTS API currently can't invoke such things.  --SDM 7/2000
-  = boxedMarshalableTyCon tc ty
+-- legalFEArgTyCon :: TyCon -> Type -> Bool
+-- legalFEArgTyCon tc ty
+--   -- It's illegal to make foreign exports that take unboxed
+--   -- arguments.  The RTS API currently can't invoke such things.  --SDM 7/2000
+--   = boxedMarshalableTyCon tc ty
 
 legalFIResultTyCon :: DynFlags -> TyCon -> Type -> Bool
 legalFIResultTyCon dflags tc ty
   | tc == unitTyCon         = True
   | otherwise               = marshalableTyCon dflags tc ty
 
-legalFEResultTyCon :: TyCon -> Type -> Bool
-legalFEResultTyCon tc ty
-  | tc == unitTyCon         = True
-  | otherwise               = boxedMarshalableTyCon tc ty
+-- legalFEResultTyCon :: TyCon -> Type -> Bool
+-- legalFEResultTyCon tc ty
+--   | tc == unitTyCon         = True
+--   | otherwise               = boxedMarshalableTyCon tc ty
 
 legalOutgoingTyCon :: DynFlags -> Safety -> TyCon -> Type -> Bool
 -- Checks validity of types going from Haskell -> external world
 legalOutgoingTyCon dflags _ tc ty
   = marshalableTyCon dflags tc ty
 
-legalFFITyCon :: TyCon -> Type -> Bool
--- True for any TyCon that can possibly be an arg or result of an FFI call
-legalFFITyCon tc ty
-  | isUnLiftedTyCon tc = True
-  | tc == unitTyCon    = True
-  | otherwise          = boxedMarshalableTyCon tc ty
+-- legalFFITyCon :: VarSet -> TyCon -> Type -> Bool
+-- -- True for any TyCon that can possibly be an arg or result of an FFI call
+-- legalFFITyCon vs tc ty
+--   | isUnLiftedTyCon tc = True
+--   | tc == unitTyCon    = True
+--   | otherwise          = boxedMarshalableTyCon vs tc ty
 
 marshalableTyCon :: DynFlags -> TyCon -> Type -> Bool
 marshalableTyCon dflags tc ty

@@ -59,7 +59,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
             L -> loadRec (context l) r i (l + 1) f d o
             F -> loadRec (context f) r i l (f + 1) d o
             D -> loadRec (context d) r i l f (d + 1) o
-            O -> loadRec (context o) r i l f d (o + 1)
+            O -> loadRec (context o <> gconv jobject ft) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where context = contextLoad ft argRep
                 loadRec nextCode =

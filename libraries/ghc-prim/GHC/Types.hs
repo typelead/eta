@@ -21,8 +21,7 @@ module GHC.Types (
         Float(..), Double(..),
         Ordering(..), IO(..),
         Java(..), Object(..), JString(..),
-        Object#, String#, JObject#,
-        JArray#,
+        JObject#, JArray#,
         isTrue#,
         SPEC(..),
         Coercible,
@@ -244,7 +243,5 @@ data SPEC = SPEC | SPEC2
 newtype Java c a = Java { runJava_ :: State# RealWorld -> JObject# c -> (# State# RealWorld, JObject# c, a #) }
 type role Java nominal representational
 
-data {-# CLASS "java.lang.Object" #-} Object#
-data {-# CLASS "java.lang.String" #-} String#
-data Object = Object (JObject# Object#)
-data JString = JString (JObject# String#)
+data {-# CLASS "java.lang.Object" #-} Object  = Object  (JObject# Object)
+data {-# CLASS "java.lang.String" #-} JString = JString (JObject# JString)
