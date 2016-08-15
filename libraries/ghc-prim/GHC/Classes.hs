@@ -316,6 +316,7 @@ instance Class JString where
 -- a is the child, b is the parent
 class (Class a, Class b) => Extends a b where
   supercast :: a -> b
+  supercast x = obj (unsafeCoerce# (unobj x))
 
 instance (Class a) => Extends a Object where
   supercast x = Object (unsafeCoerce# (unobj x))
@@ -324,4 +325,3 @@ instance (Class a) => Extends a a where
   supercast x = x
 
 instance (Class a, Class c, Extends a b, Extends b c) => Extends a c where
-  supercast x = obj (unsafeCoerce# (unobj x))
