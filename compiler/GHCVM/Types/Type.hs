@@ -68,6 +68,9 @@ module GHCVM.Types.Type (
         isUnLiftedType, isUnboxedTupleType, isAlgType, isClosedAlgType,
         isPrimitiveType, isStrictType,
 
+        -- GHCVM-specific
+        isObjectType,
+
         -- * Main data types representing Kinds
         -- $kind_subtyping
         Kind, SimpleKind, MetaKindVar,
@@ -179,7 +182,7 @@ import GHCVM.Utils.Maybes           ( orElse )
 
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Maybe       ( isJust )
+import Data.Maybe       ( isJust, mapMaybe )
 import Control.Monad    ( guard )
 
 infixr 3 `mkFunTy`      -- Associates to the right
@@ -1227,6 +1230,11 @@ isPrimitiveType ty = case splitTyConApp_maybe ty of
                         Just (tc, ty_args) -> ASSERT( ty_args `lengthIs` tyConArity tc )
                                               isPrimTyCon tc
                         _                  -> False
+
+isObjectType :: Type -> Bool
+isObjectType ty = case splitTyConApp_maybe ty of
+  Just (tc, _) -> isObjectTyCon tc
+  _            -> False
 
 {-
 ************************************************************************

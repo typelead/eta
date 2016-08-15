@@ -1,26 +1,27 @@
 module GHCVM.DeSugar.DsForeign where
 
-import GHCVM.BasicTypes.VarSet
-import GHCVM.TypeCheck.TcRnMonad
-import GHCVM.Types.TypeRep
 import GHCVM.Core.CoreSyn
 import GHCVM.Core.CoreUtils
 import GHCVM.Core.MkCore
 import GHCVM.DeSugar.DsMonad
 import GHCVM.HsSyn.HsSyn
 import GHCVM.Core.CoreUnfold
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.VarSet
 import GHCVM.BasicTypes.Id
 import GHCVM.BasicTypes.Var
 import GHCVM.BasicTypes.MkId
 import GHCVM.BasicTypes.Literal
 import GHCVM.BasicTypes.Module
 import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.DataCon
 import GHCVM.Types.Type
 import GHCVM.Types.TyCon
+import GHCVM.Types.TypeRep
 import GHCVM.Types.Coercion
+import GHCVM.TypeCheck.TcRnMonad
 import GHCVM.TypeCheck.TcEnv
 import GHCVM.TypeCheck.TcType
-import GHCVM.BasicTypes.DataCon
 
 import GHCVM.Main.HscTypes
 import GHCVM.Prelude.ForeignCall
@@ -33,6 +34,7 @@ import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Platform
+import GHCVM.Utils.MonadUtils
 import GHCVM.Utils.OrdList
 import GHCVM.Utils.Pair
 import GHCVM.Utils.Util
@@ -90,9 +92,10 @@ dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header
   -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
-  liftIO . putStrLn $ showSDoc dflags $ ptext (sLit "dsFCall:") <+> ppr co <+> ppr ty <+> ppr tvs <+> ppr argTypes <+> ppr ioResType
+  --liftIO . putStrLn $ showSDoc dflags $ ptext (sLit "dsFCall:") <+> ppr co <+> ppr ty <+> ppr tvs <+> ppr argTypes <+> ppr ioResType
+  (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
-  (valArgs, argWrappers) <- mapAndUnzipM unboxArg (map Var args)
+  (valArgs, argWrappers) <- mapAndUnzipM (unboxArg extendsInfo) (map Var args)
   let workArgIds = [v | Var v <- valArgs]
   (ccallResultType, resWrapper) <- boxResult ioResType
   ccallUniq <- newUnique
@@ -107,7 +110,7 @@ dsFCall funId co fcall mDeclHeader = do
   -- Build wrapper
   let workApp        = mkApps (mkVarApps (Var workId) tvs) valArgs
       wrapperBody    = foldr ($) (resWrapper workApp) argWrappers
-      wrapRhs        = mkLams (tvs ++ args) wrapperBody
+      wrapRhs        = mkLams (tvs ++ thetaArgs ++ args) wrapperBody
       wrapRhs'       = Cast wrapRhs co
       funIdWithInline = funId
                        `setIdUnfolding`
@@ -119,12 +122,20 @@ dsFCall funId co fcall mDeclHeader = do
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
 
-unboxArg :: CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
-unboxArg arg
+extendsMap :: ThetaType -> DsM ([Id], VarEnv (Id, Type))
+extendsMap thetaType = do
+  (ids, keyVals) <- flip mapAndUnzipM thetaType $ \thetaTy -> do
+    dictId <- newSysLocalDs thetaTy
+    let (var, tagTy) = tcSplitExtendsType thetaTy
+    return (dictId, (var, (dictId, tagTy)))
+  return (ids, mkVarEnv keyVals)
+
+unboxArg :: VarEnv (Id, Type) -> CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
+unboxArg vs arg
   | isPrimitiveType argType
   = return (arg, id)
   | Just (co, _) <- topNormaliseNewType_maybe argType
-  = unboxArg $ mkCast arg co
+  = unboxArg vs $ mkCast arg co
   | Just tc <- tyConAppTyCon_maybe argType
   , tc `hasKey` boolTyConKey = do
       dflags <- getDynFlags
@@ -142,6 +153,10 @@ unboxArg arg
                \body -> Case arg caseBinder (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
   -- TODO: Handle ByteArray# and MutableByteArray#
+  | Just v <- getTyVar_maybe argType
+  , Just (dictId, tagType) <- lookupVarEnv vs v
+  = unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
+  -- TODO: Replace supercastId with the proper core
   | otherwise = do
       l <- getSrcSpanDs
       pprPanic "unboxArg: " (ppr l <+> ppr argType)
@@ -151,6 +166,7 @@ unboxArg arg
         Just (_,_,dataCon,dataConArgTys) = maybeProductType
         dataConArity                     = dataConSourceArity dataCon
         (dataConArgTy1 : _)              = dataConArgTys
+        supercastId  = undefined -- TODO: Replace
 
 mkFCall :: DynFlags -> Unique -> ForeignCall -> [CoreExpr] -> Type -> CoreExpr
 mkFCall dflags unique fcall valArgs resType

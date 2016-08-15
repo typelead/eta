@@ -54,6 +54,8 @@ module GHCVM.Types.TyCon(
         isTyConAssoc, tyConAssoc_maybe,
         isRecursiveTyCon,
         isImplicitTyCon,
+        -- GHCVM-specific
+        isObjectTyCon,
 
         -- ** Extracting information out of TyCons
         tyConName,
@@ -1522,6 +1524,9 @@ isImplicitTyCon (SynonymTyCon {})                                   = False
 tyConCType_maybe :: TyCon -> Maybe CType
 tyConCType_maybe tc@(AlgTyCon {}) = tyConCType tc
 tyConCType_maybe _ = Nothing
+
+isObjectTyCon :: TyCon -> Bool
+isObjectTyCon = (`hasKey` jobjectPrimTyConKey)
 
 {-
 -----------------------------------------------

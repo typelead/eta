@@ -103,6 +103,8 @@ module GHCVM.TypeCheck.TcType (
   tcSplitIOType_maybe, -- :: Type -> Maybe Type
   tcSplitJavaType_maybe, -- :: Type -> Maybe Type
   tcSplitExtendsType_maybe, -- :: Type -> Maybe Type
+  tcSplitExtendsType, -- :: Type -> Maybe Type
+  extendsVars,
 
   --------------------------------
   -- Rexported from Kind
@@ -1589,16 +1591,22 @@ tcSplitJavaType_maybe ty
 
 -- TODO: Currently optimized for the Extends a b case
 --       where b is a object tag.
-tcSplitExtendsType_maybe :: Type -> Maybe (Var, Text)
+tcSplitExtendsType_maybe :: Type -> Maybe (Var, Type)
 tcSplitExtendsType_maybe ty
   = case tcSplitTyConApp_maybe ty of
         Just (extendsTyCon, [extendsVarType, extendsTagType])
          | extendsTyCon `hasKey` extendsClassKey  ->
             Just ( expectJust "tcSplitExtendsType_maybe"
                    $ getTyVar_maybe extendsVarType
-                 , tagTypeToText extendsTagType )
+                 , extendsTagType )
         _ ->
             Nothing
+
+tcSplitExtendsType :: Type -> (Var, Type)
+tcSplitExtendsType ty = expectJust "tcSplitExtendsType" $ tcSplitExtendsType_maybe ty
+
+extendsVars :: ThetaType -> VarSet
+extendsVars = mkVarSet . mapMaybe ( fmap fst . tcSplitExtendsType_maybe )
 
 -- isFFITy :: Type -> Bool
 -- -- True for any TyCon that can possibly be an arg or result of an FFI call

@@ -192,7 +192,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
       dflags <- getDynFlags
       checkJavaTarget target
       traceTc "tcCheckFIType" $ ppr argTypes <+> ppr resType
-      let javaClassVars = toClassVars thetaType
+      let javaClassVars = extendsVars thetaType
       checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
       checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags)  resType
       return idecl
@@ -270,13 +270,6 @@ isTc :: Unique -> Type -> Bool
 isTc uniq ty = case tcSplitTyConApp_maybe ty of
   Just (tc, _) -> uniq == getUnique tc
   Nothing      -> False
-
-toClassVars :: ThetaType -> VarSet
-toClassVars
-  = mkVarSet
-  . map ( fst
-        . expectJust "toClassVars: Invalid non-extends typeclass constraint"
-        . tcSplitExtendsType_maybe )
 
 tcForeignExports :: [LForeignDecl Name]
                  -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt)
