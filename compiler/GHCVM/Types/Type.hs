@@ -739,7 +739,7 @@ tagTypeToText ty =
         Just (CType _ _ fs) ->
           Text.map (\c -> if c == '.' then '/' else c) . fastStringToText $ fs
         Nothing -> pprPanic "tagTypeToText: You should annotate " $ ppr ty
-    Nothing -> Text.pack "java.lang.Object"
+    Nothing -> Text.pack "java/lang/Object"
 
 typeRepArity :: Arity -> Type -> RepArity
 typeRepArity 0 _ = 0
