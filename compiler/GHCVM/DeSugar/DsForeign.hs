@@ -42,11 +42,12 @@ import GHCVM.Main.Hooks
 
 import Data.Maybe
 import Data.List
-
+import qualified Data.Text as T
 
 import GHCVM.Debug
 
 type Binding = (Id, CoreExpr)
+type ExtendsInfo = VarEnv (Id, Type)
 
 dsForeigns :: [LForeignDecl Id] -> DsM (ForeignStubs, OrdList Binding)
 dsForeigns [] = return (NoStubs, nilOL)
@@ -97,13 +98,13 @@ dsFCall funId co fcall mDeclHeader = do
   args <- mapM newSysLocalDs argTypes
   (valArgs, argWrappers) <- mapAndUnzipM (unboxArg extendsInfo) (map Var args)
   let workArgIds = [v | Var v <- valArgs]
-  (ccallResultType, resWrapper) <- boxResult ioResType
+  (ccallResultType, resWrapper) <- boxResult extendsInfo ioResType
   ccallUniq <- newUnique
   workUniq <- newUnique
   -- Build worker
   let workerType = mkForAllTys tvs $
                    mkFunTys (map idType workArgIds) ccallResultType
-      ccallApp   = mkFCall dflags ccallUniq fcall valArgs ccallResultType
+      ccallApp   = mkFCall dflags ccallUniq (fcall' extendsInfo) valArgs ccallResultType
       workRhs    = mkLams tvs (mkLams workArgIds ccallApp)
       workId     = mkSysLocal (fsLit "$wccall") workUniq workerType
 
@@ -121,8 +122,19 @@ dsFCall funId co fcall mDeclHeader = do
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
+        fcall' extendsInfo
+          | Just (_, javaTagType, _) <- tcSplitJavaType_maybe ioResType
+          , Just var <- getTyVar_maybe javaTagType
+          , CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv safety) <- fcall
+          = let morphTarget f =
+                  CCall (CCallSpec (StaticTarget (mkFastString (f $ unpackFS label))
+                                    mPkgKey isFun) JavaCallConv safety)
+            in case lookupVarEnv extendsInfo var of
+                 Just (id, ty) -> morphTarget ((T.unpack (tagTypeToText ty) ++ " ") ++)
+                 Nothing -> morphTarget ("static " ++)
+          | otherwise = fcall
 
-extendsMap :: ThetaType -> DsM ([Id], VarEnv (Id, Type))
+extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
 extendsMap thetaType = do
   (ids, keyVals) <- flip mapAndUnzipM thetaType $ \thetaTy -> do
     dictId <- newSysLocalDs thetaTy
@@ -130,7 +142,7 @@ extendsMap thetaType = do
     return (dictId, (var, (dictId, tagTy)))
   return (ids, mkVarEnv keyVals)
 
-unboxArg :: VarEnv (Id, Type) -> CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
+unboxArg :: ExtendsInfo -> CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
 unboxArg vs arg
   | isPrimitiveType argType
   = return (arg, id)
@@ -154,8 +166,9 @@ unboxArg vs arg
                              [(DataAlt dataCon, [primArg], body)] )
   -- TODO: Handle ByteArray# and MutableByteArray#
   | Just v <- getTyVar_maybe argType
-  , Just (dictId, tagType) <- lookupVarEnv vs v
-  = unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
+  , Just (dictId, tagType) <- lookupVarEnv vs v = do
+      supercastId <- dsLookupGlobalId supercastName
+      unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
   -- TODO: Replace supercastId with the proper core
   | otherwise = do
       l <- getSrcSpanDs
@@ -166,7 +179,6 @@ unboxArg vs arg
         Just (_,_,dataCon,dataConArgTys) = maybeProductType
         dataConArity                     = dataConSourceArity dataCon
         (dataConArgTy1 : _)              = dataConArgTys
-        supercastId  = undefined -- TODO: Replace
 
 mkFCall :: DynFlags -> Unique -> ForeignCall -> [CoreExpr] -> Type -> CoreExpr
 mkFCall dflags unique fcall valArgs resType
@@ -177,10 +189,10 @@ mkFCall dflags unique fcall valArgs resType
         ty = mkForAllTys tyVars bodyType
         fcallId = mkFCallId dflags unique fcall ty
 
-boxResult :: Type -> DsM (Type, CoreExpr -> CoreExpr)
-boxResult resultType
+boxResult :: ExtendsInfo -> Type -> DsM (Type, CoreExpr -> CoreExpr)
+boxResult extendsInfo resultType
   | Just (ioTyCon, ioResType) <- tcSplitIOType_maybe resultType
-  = do res <- resultWrapper ioResType
+  = do res <- resultWrapper extendsInfo ioResType
        let extraResultTypes =
              case res of
                (Just ty, _)
@@ -210,7 +222,7 @@ boxResult resultType
   | Just (javaTyCon, javaTagType, javaResType) <- tcSplitJavaType_maybe resultType
   = do dflags <- getDynFlags
        liftIO . putStrLn . showSDoc dflags $ ppr javaTyCon <+> ppr javaTagType <+> ppr javaResType
-       res <- resultWrapper javaResType
+       res <- resultWrapper extendsInfo javaResType
        let extraResultTypes =
              case res of
                (Just ty, _)
@@ -244,7 +256,7 @@ boxResult resultType
        return ( mkFunTys [realWorldStatePrimTy, objectType] ccallResultType
               , wrap )
   | otherwise
-  = do res <- resultWrapper resultType
+  = do res <- resultWrapper extendsInfo resultType
        (ccallResultType, alt) <- mkAlt returnResult res
        let wrap call = mkWildCase (App call (Var realWorldPrimId))
                                   ccallResultType
@@ -330,8 +342,8 @@ mkAlt returnResult (Just primResType, wrapResult)
                 , rhs )
       return (ccallResultType, alt)
 
-resultWrapper :: Type -> DsM (Maybe Type, CoreExpr -> CoreExpr)
-resultWrapper resultType
+resultWrapper :: ExtendsInfo -> Type -> DsM (Maybe Type, CoreExpr -> CoreExpr)
+resultWrapper extendsInfo resultType
   | isPrimitiveType resultType
   = return (Just resultType, id)
   | Just (tc, _) <- maybeTcApp, tc `hasKey` unitTyConKey
@@ -342,17 +354,17 @@ resultWrapper resultType
                    [ (DEFAULT, [], Var trueDataConId)
                    , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
   | Just (co, repType) <- topNormaliseNewType_maybe resultType
-  = do (maybeType, wrapper) <- resultWrapper repType
+  = do (maybeType, wrapper) <- resultWrapper extendsInfo repType
        return (maybeType, \e -> mkCast (wrapper e) (mkSymCo co))
   | Just (tyVar, rest) <- splitForAllTy_maybe resultType
-  = do (maybeType, wrapper) <- resultWrapper rest
+  = do (maybeType, wrapper) <- resultWrapper extendsInfo rest
        return (maybeType, Lam tyVar . wrapper)
   | Just (tyCon, tyConArgTys, dataCon, dataConArgTys)
     <- splitDataProductType_maybe resultType,
     dataConSourceArity dataCon == 1
   = do let (unwrapperResType : _) = dataConArgTys
            narrowWrapper = id --TODO: maybeNarrow tyCon
-       (maybeType, wrapper) <- resultWrapper unwrapperResType
+       (maybeType, wrapper) <- resultWrapper extendsInfo unwrapperResType
        return ( maybeType
               , \e ->
                   mkApps (Var (dataConWrapId dataCon))

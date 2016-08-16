@@ -136,10 +136,10 @@ tyConClass dflags tyCon = moduleClass typeName typeClass
   where typeName = tyConName tyCon
         typeClass = nameTypeText dflags typeName
 
-labelToMethod :: FastString -> (Text, Text)
-labelToMethod fs = ( T.dropEnd 1 $ T.dropWhileEnd (/= '.') label
-                   , T.takeWhileEnd (/= '.') label )
-  where label = fastStringToText fs
+labelToMethod :: String -> (Text, Text)
+labelToMethod s = ( T.dropEnd 1 $ T.dropWhileEnd (/= '.') label
+                  , T.takeWhileEnd (/= '.') label )
+  where label = T.pack s
 
 -- Custom Outputable instance for Name,
 -- since we need to be case-insensitive.

@@ -98,7 +98,6 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
       results <- inlinePrimCall name argCodes
       -- TODO: Handle result
       return ()
-
     Nothing -> do
       locs  <- newUnboxedTupleLocs resType
       args' <- getFtsLoadCode args
@@ -106,7 +105,7 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
           <> loadContext
           <> invokestatic (mkMethodRef clsName methodName [contextType] void)
           <> mkReturnEntry locs
-  where (clsName, methodName) = labelToMethod label
+  where (clsName, methodName) = labelToMethod (unpackFS label)
 
 inlinePrimCall :: String -> [Code] -> CodeGen [Code]
 inlinePrimCall name _ = error $ "inlinePrimCall: unimplemented = " ++ name

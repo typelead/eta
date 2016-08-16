@@ -86,7 +86,7 @@ module GHCVM.Types.TyCon(
 
         -- * Primitive representations of Types
         PrimRep(..), --PrimElemRep(..),
-        tyConPrimRep, isVoidRep, isGcPtrRep,
+        tyConPrimRep, isVoidRep, isGcPtrRep, isObjectRep, getObjectClass,
         primRepSizeW, --primElemRepSizeB,
 
         -- * Recursion breaking
@@ -970,11 +970,19 @@ instance Outputable PrimRep where
 
 isVoidRep :: PrimRep -> Bool
 isVoidRep VoidRep = True
-isVoidRep _  = False
+isVoidRep _       = False
 
 isGcPtrRep :: PrimRep -> Bool
 isGcPtrRep PtrRep = True
 isGcPtrRep _      = False
+
+isObjectRep :: PrimRep -> Bool
+isObjectRep (ObjectRep _) = True
+isObjectRep _             = False
+
+getObjectClass :: PrimRep -> Text
+getObjectClass (ObjectRep t) = t
+getObjectClass _             = error $ "getObjectClass"
 
 -- | Find the size of a 'PrimRep', in words
 primRepSizeW :: DynFlags -> PrimRep -> Int

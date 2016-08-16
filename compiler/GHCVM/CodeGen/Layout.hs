@@ -195,9 +195,13 @@ getFtsLoadCode = mapM getFtAmode
 newUnboxedTupleLocs :: Type -> CodeGen [CgLoc]
 newUnboxedTupleLocs resType = getSequel >>= chooseLocs
   where chooseLocs (AssignTo regs) = return regs
-        chooseLocs _               = mapM (\(cl, ft) -> newTemp cl ft) reps
-        UbxTupleRep tyArgs         = repType resType
-        reps = [ (isGcPtrRep rep, primRepFieldType rep)
-               | ty <- tyArgs
-               , let rep           = typePrimRep ty
-               , not (isVoidRep rep) ]
+        chooseLocs _               = mapM (\rep -> newTemp (isGcPtrRep rep)
+                                                           (primRepFieldType rep))
+                                   $ getUnboxedResultReps resType
+
+getUnboxedResultReps :: Type -> [PrimRep]
+getUnboxedResultReps resType = [ rep
+                               | ty <- tyArgs
+                               , let rep = typePrimRep ty
+                               , not (isVoidRep rep) ]
+  where UbxTupleRep tyArgs = repType resType

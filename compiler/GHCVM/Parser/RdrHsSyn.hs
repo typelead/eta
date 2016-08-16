@@ -1393,9 +1393,9 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
       importSpec = CImport (L lc PrimCallConv) (L ls safety) Nothing funcTarget
                            (L loc (unpackFS entity))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
-  | cconv == JavaScriptCallConv = do
+  | cconv == JavaCallConv = do
   let funcTarget = CFunction (StaticTarget entity Nothing True)
-      importSpec = CImport (L lc JavaScriptCallConv) (L ls safety) Nothing
+      importSpec = CImport (L lc JavaCallConv) (L ls safety) Nothing
                            funcTarget (L loc (unpackFS entity))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   | otherwise = do

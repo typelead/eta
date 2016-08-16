@@ -3,7 +3,8 @@ module GHCVM.Util
    upperFirst,
    scanM,
    expectJust,
-   safeHead)
+   safeHead,
+   safeLast)
 where
 
 import qualified Data.Char as C
@@ -28,3 +29,6 @@ scanM f q (x:xs) =
 safeHead :: [a] -> Maybe a
 safeHead (x:_) = Just x
 safeHead _     = Nothing
+
+safeLast :: [a] -> Maybe a
+safeLast xs = if null xs then Nothing else Just $ last xs

@@ -57,10 +57,6 @@ isForeignExport :: LForeignDecl name -> Bool
 isForeignExport (L _ ForeignExport {}) = True
 isForeignExport _                             = False
 
--- TODO: Temporary hack
-javaCallConv :: CCallConv
-javaCallConv = JavaScriptCallConv
-
 tcForeignImports :: [LForeignDecl Name] -> TcM ([Id], [LForeignDecl Id], Bag GlobalRdrElt)
 tcForeignImports decls
   = getHooked tcForeignImportsHook tcForeignImports' >>= ($ decls)
@@ -185,7 +181,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
       return idecl
   -- TODO: Because of the rigidity of the GHC API, we have to reuse the
   --       existing calling convention data types.
-  | cconv == javaCallConv = do
+  | cconv == JavaCallConv = do
       -- TODO: Validate the code generation mode
       -- TODO: Validate the target string for @new, @field
       -- TODO: Validate ThetaType

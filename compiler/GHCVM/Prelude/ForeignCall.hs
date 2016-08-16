@@ -149,7 +149,7 @@ See: http://www.programmersheaven.com/2/Calling-conventions
 -}
 
 -- any changes here should be replicated in  the CallConv type in template haskell
-data CCallConv = CCallConv | CApiConv | StdCallConv | PrimCallConv | JavaScriptCallConv
+data CCallConv = CCallConv | CApiConv | StdCallConv | PrimCallConv | JavaScriptCallConv | JavaCallConv
   deriving (Eq, Data, Typeable)
   {-! derive: Binary !-}
 
@@ -159,6 +159,7 @@ instance Outputable CCallConv where
   ppr CApiConv    = ptext (sLit "capi")
   ppr PrimCallConv = ptext (sLit "prim")
   ppr JavaScriptCallConv = ptext (sLit "javascript")
+  ppr JavaCallConv = ptext (sLit "java")
 
 defaultCCallConv :: CCallConv
 defaultCCallConv = CCallConv
@@ -169,6 +170,7 @@ ccallConvToInt CCallConv   = 1
 ccallConvToInt CApiConv    = panic "ccallConvToInt CApiConv"
 ccallConvToInt (PrimCallConv {}) = panic "ccallConvToInt PrimCallConv"
 ccallConvToInt JavaScriptCallConv = panic "ccallConvToInt JavaScriptCallConv"
+ccallConvToInt JavaCallConv = panic "ccallConvToInt JavaCallConv"
 
 {-
 Generate the gcc attribute corresponding to the given
@@ -321,6 +323,8 @@ instance Binary CCallConv where
             putByte bh 3
     put_ bh JavaScriptCallConv = do
             putByte bh 4
+    put_ bh JavaCallConv = do
+            putByte bh 5
     get bh = do
             h <- getByte bh
             case h of
@@ -328,7 +332,8 @@ instance Binary CCallConv where
               1 -> do return StdCallConv
               2 -> do return PrimCallConv
               3 -> do return CApiConv
-              _ -> do return JavaScriptCallConv
+              4 -> do return JavaScriptCallConv
+              _ -> do return JavaCallConv
 
 instance Binary CType where
     put_ bh (CType s mh fs) = do put_ bh s
