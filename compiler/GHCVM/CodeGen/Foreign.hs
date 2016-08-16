@@ -19,7 +19,7 @@ import GHCVM.Debug
 import GHCVM.Util
 import Codec.JVM
 import Data.Monoid ((<>))
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromJust, isJust)
 import Data.Foldable (fold)
 import qualified Data.Text as T
 
@@ -34,13 +34,14 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
                                                 (map fst argFtCodes) resultReps
         _ -> panic "cgForeignCall: unimplemented"
       callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
+      mbObj = if hasObj then Just (head callArgs') else Nothing
   sequel <- getSequel
   case sequel of
     AssignTo targetLocs ->
-      emitForeignCall safety targetLocs callTarget callArgs
+      emitForeignCall safety mbObj targetLocs callTarget callArgs
     _ -> do
       resLocs <- newUnboxedTupleLocs resType
-      emitForeignCall safety resLocs callTarget callArgs
+      emitForeignCall safety mbObj resLocs callTarget callArgs
       emitReturn resLocs
   where hasObj =
           if length args >= 2 then
@@ -108,16 +109,25 @@ labelToTarget hasObj label argFts reps = case words label of
         -- Remove the passed 'this'
         argFts' = if hasObj then drop 1 argFts else argFts
 
-emitForeignCall :: Safety -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
-emitForeignCall safety results target args
-  | not (playSafe safety) =
+emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
+emitForeignCall safety mbObj results target args
+  | not (playSafe safety) = do
       -- NOTE: We assume that the running Java code WILL NOT change the context
       --       which will be true in almost all cases
-      -- TODO: Only works for static calls right now
-      if null results then emit callCode
-      else emitAssign (head results) callCode
+      maybe (emit callCode) (flip emitAssign callCode) resLoc
+      maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
   | otherwise = pprPanic "emitForeignCall: Safety not implemented" (ppr safety)
   where callCode = target $ fold args
+        (resLoc, objLoc) =
+          if isJust mbObj then
+            case results of
+              [a]   -> (Nothing, Just a)
+              [a,b] -> (Just b, Just a)
+          else
+            (case results of
+               []  -> Nothing
+               [a] -> Just a,
+             Nothing)
 
 getFCallArgs :: [StgArg] -> CodeGen [(FieldType, Code)]
 getFCallArgs args = do
