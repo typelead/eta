@@ -77,7 +77,7 @@ module GHCVM.Prelude.TysPrim(
         jboolPrimTyCon,
         jbytePrimTyCon,
         jshortPrimTyCon,
-        jobjectPrimTyCon, mkJObjectTy,
+        jobjectPrimTyCon, mkObjectTy,
         jarrayPrimTyCon
 
         -- * SIMD
@@ -272,7 +272,7 @@ jcharPrimTyConName             = mkPrimTc (fsLit "JChar#") jcharPrimTyConKey jch
 jboolPrimTyConName             = mkPrimTc (fsLit "JBool#") jboolPrimTyConKey jboolPrimTyCon
 jbytePrimTyConName             = mkPrimTc (fsLit "JByte#") jbytePrimTyConKey jbytePrimTyCon
 jshortPrimTyConName             = mkPrimTc (fsLit "JShort#") jshortPrimTyConKey jshortPrimTyCon
-jobjectPrimTyConName = mkPrimTc (fsLit "JObject#") jobjectPrimTyConKey jobjectPrimTyCon
+jobjectPrimTyConName = mkPrimTc (fsLit "Object#") jobjectPrimTyConKey jobjectPrimTyCon
 jarrayPrimTyConName = mkPrimTc (fsLit "JArray#") jarrayPrimTyConKey jarrayPrimTyCon
 {-
 ************************************************************************
@@ -875,8 +875,8 @@ jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles VoidRep
   where kind     = mkArrowKinds (map (const liftedTypeKind) roles) liftedTypeKind
         roles    = [Nominal]
 
-mkJObjectTy :: Type -> Type
-mkJObjectTy ty = TyConApp jobjectPrimTyCon [ty]
+mkObjectTy :: Type -> Type
+mkObjectTy ty = TyConApp jobjectPrimTyCon [ty]
 
 {-
 ************************************************************************

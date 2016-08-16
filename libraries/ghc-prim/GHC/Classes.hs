@@ -301,8 +301,8 @@ x# `modInt#` y#
     !r# = x# `remInt#` y#
 
 class Class a where
-  unobj :: a -> JObject# a
-  obj   :: JObject# a -> a
+  unobj :: a -> Object# a
+  obj   :: Object# a -> a
 
 instance Class Object where
   unobj (Object x) = x

@@ -230,7 +230,7 @@ boxResult extendsInfo resultType
                  -> let Just ls = tyConAppArgs_maybe ty
                     in tail ls
                _ -> []
-           objectType = mkJObjectTy javaTagType
+           objectType = mkObjectTy javaTagType
            returnResult state object anss
              = mkCoreConApps (tupleCon UnboxedTuple
                                        (3 + length extraResultTypes))

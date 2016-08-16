@@ -21,7 +21,7 @@ module GHC.Types (
         Float(..), Double(..),
         Ordering(..), IO(..),
         Java(..), Object(..), JString(..),
-        JObject#, JArray#,
+        Object#, JArray#,
         isTrue#,
         SPEC(..),
         Coercible,
@@ -240,8 +240,8 @@ isTrue# x = tagToEnum# x
 data SPEC = SPEC | SPEC2
 
 -- The Java Monad
-newtype Java c a = Java { runJava_ :: State# RealWorld -> JObject# c -> (# State# RealWorld, JObject# c, a #) }
+newtype Java c a = Java { runJava_ :: State# RealWorld -> Object# c -> (# State# RealWorld, Object# c, a #) }
 type role Java nominal representational
 
-data {-# CLASS "java.lang.Object" #-} Object  = Object  (JObject# Object)
-data {-# CLASS "java.lang.String" #-} JString = JString (JObject# JString)
+data {-# CLASS "java.lang.Object" #-} Object  = Object  (Object# Object)
+data {-# CLASS "java.lang.String" #-} JString = JString (Object# JString)
