@@ -28,11 +28,12 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
   debugDoc $ str "cgForeignCall:" <+> ppr args <+> ppr resType
   dflags <- getDynFlags
   argFtCodes <- getFCallArgs shuffledArgs
-  let (argFts, callArgs) = unzip argFtCodes
-      callTarget = case target of
-        StaticTarget label _ _ -> labelToTarget maybeObjArg (unpackFS label)
+  let (argFts, callArgs') = unzip argFtCodes
+      (isStatic, callTarget) = case target of
+        StaticTarget label _ _ -> labelToTarget hasObj (unpackFS label)
                                                 (map fst argFtCodes) resultReps
         _ -> panic "cgForeignCall: unimplemented"
+      callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
   sequel <- getSequel
   case sequel of
     AssignTo targetLocs ->
@@ -41,24 +42,24 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
       resLocs <- newUnboxedTupleLocs resType
       emitForeignCall safety resLocs callTarget callArgs
       emitReturn resLocs
-  where maybeObjArg =
+  where hasObj =
           if length args >= 2 then
                (isObjectRep . typePrimRep . stgArgType $ lastArg)
             && (isVoidRep   . typePrimRep . stgArgType $ penArg)
           else False
         (initArgs, penArg, lastArg) = initLast2 args
-        shuffledArgs = if maybeObjArg then lastArg : initArgs else args
+        shuffledArgs = if hasObj then lastArg : initArgs else args
         resultReps = getUnboxedResultReps resType
         initLast2 = go []
           where go res [x, y] = (reverse (x:res), x, y)
                 go res (x:xs) = go (x:res) xs
 
-labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> Code -> Code
+labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> (Bool, Code -> Code)
 labelToTarget hasObj label argFts reps = case words label of
-  ("static":label1) ->
+  ("static":label1) -> (True,
     case label1 of
       ["@new"] ->
-        let clsName = getObjectClass thisRep
+        let clsName = getObjectClass resRep
             clsFt = obj clsName
         in \c -> new clsFt
               <> dup clsFt
@@ -76,8 +77,8 @@ labelToTarget hasObj label argFts reps = case words label of
         let (clsName, methodName) = labelToMethod label
             resFt = primRepFieldType_maybe resRep
         in \c -> c <> invokestatic (mkMethodRef clsName methodName argFts' resFt)
-      _ -> pprPanic "labelToTarget: static label: " (ppr label1)
-  (clsName':label2) ->
+      _ -> pprPanic "labelToTarget: static label: " (ppr label1))
+  (clsName':label2) -> (False,
     let clsName = T.pack clsName'
     in case label2 of
       ["@field",fieldName'] ->
@@ -92,7 +93,7 @@ labelToTarget hasObj label argFts reps = case words label of
         let methodName = T.pack methodName'
             resFt      = primRepFieldType_maybe resRep
         in \c -> c <> invokevirtual (mkMethodRef clsName methodName argFts' resFt)
-      _ -> pprPanic "labelToTarget: instance label: " (ppr label2)
+      _ -> pprPanic "labelToTarget: instance label: " (ppr label2))
   _ -> pprPanic "labelToTarget: full: " (ppr label)
   where (thisRep, resRep) =
           if hasObj then
@@ -111,7 +112,7 @@ emitForeignCall :: Safety -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
 emitForeignCall safety results target args
   | not (playSafe safety) =
       -- NOTE: We assume that the running Java code WILL NOT change the context
-      --      which will be true in almost all cases
+      --       which will be true in almost all cases
       -- TODO: Only works for static calls right now
       if null results then emit callCode
       else emitAssign (head results) callCode
