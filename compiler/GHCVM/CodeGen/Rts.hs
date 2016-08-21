@@ -25,6 +25,7 @@ thunk     = merge (rts "thunk")
 stg       = merge (rts "stg")
 exception = merge (rts "exception")
 io        = merge (rts "io")
+util      = merge (rts "util")
 
 closureType, indStaticType, contextType, funType, tsoType, frameType,
   rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
@@ -44,7 +45,7 @@ exitCodeType      = obj exitCode
 stgArrayType      = obj stgArray
 
 stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun,
-  stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray :: Text
+  stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, rtsUnsigned :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -59,6 +60,7 @@ rtsConfig     = rts "RtsConfig"
 rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
 exitCode      = rts "Rts$ExitCode"
 stgArray      = io "StgArray"
+rtsUnsigned   = util "Unsigned"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
@@ -110,7 +112,7 @@ constrFieldGetter = append "get" . pack . show
 -- suspendThreadMethod interruptible
 --   = iconst jbool (boolToInt)
 --  <> loadContext
---  <> 
+--  <>
 
 mkRtsMainClass :: DynFlags -> String -> ClassFile
 mkRtsMainClass dflags mainClass

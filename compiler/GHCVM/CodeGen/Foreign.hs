@@ -27,7 +27,7 @@ cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
 cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
   debugDoc $ str "cgForeignCall:" <+> ppr args <+> ppr resType
   dflags <- getDynFlags
-  argFtCodes <- getFCallArgs shuffledArgs
+  argFtCodes <- getNonVoidArgFtCodes shuffledArgs
   let (argFts, callArgs') = unzip argFtCodes
       (isStatic, callTarget) = case target of
         StaticTarget label _ _ -> labelToTarget hasObj (unpackFS label)
@@ -60,6 +60,7 @@ labelToTarget hasObj label argFts reps = case words label of
   ("static":label1) -> (True,
     case label1 of
       ["@new"] ->
+        -- TODO: Accomodate creation of array types
         let clsName = getObjectClass resRep
             clsFt = obj clsName
         in \c -> new clsFt
@@ -128,18 +129,3 @@ emitForeignCall safety mbObj results target args
                []  -> Nothing
                [a] -> Just a,
              Nothing)
-
-getFCallArgs :: [StgArg] -> CodeGen [(FieldType, Code)]
-getFCallArgs args = do
-  maybeFtCodes <- mapM get args
-  return $ catMaybes maybeFtCodes
-  where get arg
-          | isVoidRep argRep = return Nothing
-          | otherwise = do
-              argCode <- getArgLoadCode (NonVoid arg)
-              -- TODO: Add shims for special cases
-              return $ Just (argFt, argCode)
-          where argTy  = stgArgType arg
-                argRep = typePrimRep argTy
-                argFt  = expectJust "getFCallArgs"
-                       $ primRepFieldType_maybe argRep

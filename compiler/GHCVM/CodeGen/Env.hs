@@ -2,6 +2,7 @@ module GHCVM.CodeGen.Env where
 
 import GHCVM.BasicTypes.Id
 import GHCVM.StgSyn.StgSyn
+import GHCVM.Types.Type
 import GHCVM.Types.TyCon
 
 import Codec.JVM
@@ -17,38 +18,39 @@ import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Name
 
 import Control.Monad (liftM)
+import Data.Maybe (catMaybes)
 
 getArgLoadCode :: NonVoid StgArg -> CodeGen Code
 getArgLoadCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var
 getArgLoadCode (NonVoid (StgLitArg literal)) = return . snd $ cgLit literal
 
-getNonVoidArgLoadCodes :: [StgArg] -> CodeGen [Code]
-getNonVoidArgLoadCodes [] = return []
-getNonVoidArgLoadCodes (arg:args)
-  | isVoidRep (argPrimRep arg) = getNonVoidArgLoadCodes args
+getNonVoidArgCodes :: [StgArg] -> CodeGen [Code]
+getNonVoidArgCodes [] = return []
+getNonVoidArgCodes (arg:args)
+  | isVoidRep (argPrimRep arg) = getNonVoidArgCodes args
   | otherwise = do
       code <- getArgLoadCode (NonVoid arg)
-      codes <- getNonVoidArgLoadCodes args
+      codes <- getNonVoidArgCodes args
       return (code:codes)
 
-getNonVoidFtCodes :: [StgArg] -> CodeGen [(FieldType, Code)]
-getNonVoidFtCodes [] = return []
-getNonVoidFtCodes (arg:args)
-  | isVoidRep (argPrimRep arg) = getNonVoidFtCodes args
+getNonVoidArgFtCodes :: [StgArg] -> CodeGen [(FieldType, Code)]
+getNonVoidArgFtCodes [] = return []
+getNonVoidArgFtCodes (arg:args)
+  | isVoidRep (argPrimRep arg) = getNonVoidArgFtCodes args
   | otherwise = do
       code <- getArgLoadCode (NonVoid arg)
-      ftCodes <- getNonVoidFtCodes args
+      ftCodes <- getNonVoidArgFtCodes args
       return ((ft, code) : ftCodes)
   where primRep = argPrimRep arg
-        ft = expectJust "getNonVoidFtCodes" . primRepFieldType_maybe $ primRep
+        ft = expectJust "getNonVoidArgFtCodes" . primRepFieldType_maybe $ primRep
 
-getNonVoidRepCodes :: [StgArg] -> CodeGen [(PrimRep, Code)]
-getNonVoidRepCodes [] = return []
-getNonVoidRepCodes (arg:args)
-  | isVoidRep rep = getNonVoidRepCodes args
+getNonVoidArgRepCodes :: [StgArg] -> CodeGen [(PrimRep, Code)]
+getNonVoidArgRepCodes [] = return []
+getNonVoidArgRepCodes (arg:args)
+  | isVoidRep rep = getNonVoidArgRepCodes args
   | otherwise = do
       code <- getArgLoadCode (NonVoid arg)
-      repCodes <- getNonVoidRepCodes args
+      repCodes <- getNonVoidArgRepCodes args
       return ((rep, code) : repCodes)
   where rep = argPrimRep arg
 

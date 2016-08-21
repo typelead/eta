@@ -26,7 +26,7 @@ import GHCVM.Util
 
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isJust)
 import Data.Text (Text)
 import Data.List (stripPrefix)
 
@@ -38,7 +38,7 @@ cgOpApp (StgFCallOp fcall _) args resType = cgForeignCall fcall args resType
 -- TODO: Is this primop necessary like in GHC?
 cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
   dflags <- getDynFlags
-  codes <- getNonVoidArgLoadCodes args
+  codes <- getNonVoidArgCodes args
   let code = case codes of
         [code'] -> code'
         _ -> panic "TagToEnumOp had void arg"
@@ -47,7 +47,7 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
 
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
-    argCodes <- getNonVoidArgLoadCodes args
+    argCodes <- getNonVoidArgCodes args
     case shouldInlinePrimOp dflags primOp argCodes of
       Left primOpLoc -> do
         args' <- getFtsLoadCode args
@@ -90,25 +90,104 @@ cgOpApp (StgPrimOp primOp) args resType = do
         where resultInfo = getPrimOpResultInfo primOp
 
 -- NOTE: The GHCVM specific primops will get handled here
+-- @inline, @rts, @static
 cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
-  let labelString = unpackFS label
-  case stripPrefix "inline:" labelString of
-    Just name -> do
-      argCodes <- getNonVoidArgLoadCodes args
-      results <- inlinePrimCall name argCodes
-      -- TODO: Handle result
-      return ()
-    Nothing -> do
+  case words labelString of
+    ("@inline":name:_) -> do
+      argFtCodes <- getNonVoidArgFtCodes args
+      emitReturn [mkLocDirect False (fromJust resFt, inlinePrimCall name argFtCodes)]
+    ("@rts":name:_) -> do
       locs  <- newUnboxedTupleLocs resType
       args' <- getFtsLoadCode args
+      let (clsName, methodName) = labelToMethod name
       emit $ mkCallExit True args'
           <> loadContext
           <> invokestatic (mkMethodRef clsName methodName [contextType] void)
           <> mkReturnEntry locs
-  where (clsName, methodName) = labelToMethod (unpackFS label)
+      -- TODO: Handle result
+    ("@static":"@field":name:_) ->
+      let (clsName, fieldName) = labelToMethod name
+      in genSequel $ getstatic $ mkFieldRef clsName fieldName resFt
+    ("@static":name:_) -> primJava name invokestatic
+    (name:_) -> primJava name invokevirtual
+  where labelString = unpackFS label
+        resRep = typePrimRep resType
+        resFt = primRepFieldType_maybe resRep
+        primJava name instr = do
+          argsFtCodes <- getNonVoidArgFtCodes args
+          let (argFts, callArgs) = unzip argsFtCodes
+              (clsName, methodName) = labelToMethod name
+              callTarget = fold callArgs
+                        <> instr (mkMethodRef clsName methodName argFts resFt)
+          genSequel callTarget
+        genSequel callTarget = do
+          sequel <- getSequel
+          case sequel of
+            AssignTo targetLocs ->
+              if isJust resFt then
+                emitAssign (head targetLocs) callTarget
+              else
+                emit $ callTarget
+            _ -> do
+              resLocs <- if isJust resFt then do
+                           resLoc <- newTemp (isGcPtrRep resRep) (fromJust resFt)
+                           emitAssign resLoc callTarget
+                           return [resLoc]
+                         else
+                           return []
+              emitReturn resLocs
 
-inlinePrimCall :: String -> [Code] -> CodeGen [Code]
-inlinePrimCall name _ = error $ "inlinePrimCall: unimplemented = " ++ name
+inlinePrimCall :: String -> [(FieldType, Code)] -> Code
+inlinePrimCall "aarrayAt"  = \args ->
+  let (_, codes) = unzip args
+      elemFt = getArrayElemFt (fst (head args))
+  in (normalOp $ gaload elemFt) codes
+inlinePrimCall "aarraySet" = \args ->
+  let (_, codes) = unzip args
+      elemFt = getArrayElemFt (fst (head args))
+  in ((<> (head codes)) . normalOp (gastore elemFt)) codes
+inlinePrimCall op = \args -> let (_, codes) = unzip args in codeOp codes
+  where codeOp = case op of
+          "eqWord64"      -> typedCmp jlong ifeq
+          "neWord64"      -> typedCmp jlong ifeq
+          "ltWord64"      -> unsignedLongCmp iflt
+          "leWord64"      -> unsignedLongCmp ifle
+          "gtWord64"      -> unsignedLongCmp ifgt
+          "geWord64"      -> unsignedLongCmp ifge
+          "quotWord64"    ->
+            normalOp $ invokestatic
+                     $ mkMethodRef rtsUnsigned "divideUnsigned" [jlong, jlong] (ret jlong)
+          "remWord64"     ->
+            normalOp $ invokestatic
+                     $ mkMethodRef rtsUnsigned "remainderUnsigned" [jlong, jlong] (ret jlong)
+          "uShiftL64"     -> normalOp lshl
+          "uShiftRL64"    -> normalOp lushr
+          "eqInt64"       -> typedCmp jlong ifeq
+          "neInt64"       -> typedCmp jlong ifne
+          "ltInt64"       -> typedCmp jlong iflt
+          "leInt64"       -> typedCmp jlong ifle
+          "gtInt64"       -> typedCmp jlong ifgt
+          "geInt64"       -> typedCmp jlong ifge
+          "quotInt64"     -> normalOp ldiv
+          "remInt64"      -> normalOp lrem
+          "plusInt64"     -> normalOp ladd
+          "minusInt64"    -> normalOp lsub
+          "timesInt64"    -> normalOp lmul
+          "negateInt64"   -> normalOp lneg
+          "and64"         -> normalOp land
+          "or64"          -> normalOp lor
+          "xor64"         -> normalOp lxor
+          "not64"         -> normalOp lnot
+          "uIShiftL64"    -> normalOp lshl
+          "uIShiftRA64"   -> normalOp lshr
+          "uIShiftRL64"   -> normalOp lushr
+          "int64ToWord64" -> head
+          "word64ToInt64" -> head
+          "intToInt64"    -> normalOp $ gconv jint jlong
+          "int64ToInt"    -> normalOp $ gconv jlong jint
+          "wordToWord64"  -> unsignedExtend . head
+          "word64ToWord"  -> normalOp $ gconv jlong jint
+          name            -> error $ "inlinePrimCall: unimplemented = " ++ name
 
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
@@ -134,7 +213,7 @@ cgPrimOp   :: PrimOp            -- the op
            -> [StgArg]          -- arguments
            -> CodeGen [Code]
 cgPrimOp op args = do
-  argExprs <- getNonVoidArgLoadCodes args
+  argExprs <- getNonVoidArgCodes args
   emitPrimOp op argExprs
 
 -- emitPrimOp :: [CgLoc]        -- where to put the results
@@ -289,7 +368,7 @@ unsignedOp :: Code -> [Code] -> Code
 unsignedOp op [arg1, arg2]
   = unsignedExtend arg1
  <> unsignedExtend arg2
- <> ldiv
+ <> op
  <> gconv jlong jint
 
 typedCmp :: FieldType -> (Code -> Code -> Code) -> [Code] -> Code
@@ -298,8 +377,16 @@ typedCmp ft ifop [arg1, arg2]
  <> ifop (iconst jint 1) (iconst jint 0)
 
 unsignedCmp :: (Code -> Code -> Code) -> [Code] -> Code
-unsignedCmp ifop [arg1, arg2]
-  = typedCmp jlong ifop [unsignedExtend arg1, unsignedExtend arg2]
+unsignedCmp ifop args
+  = typedCmp jlong ifop $ map unsignedExtend args
 
 unsignedExtend :: Code -> Code
-unsignedExtend i = i <> gconv jint jlong <> lconst 0xFFFFFFFF
+unsignedExtend i = i <> gconv jint jlong <> lconst 0xFFFFFFFF <> land
+
+lONG_MIN_VALUE :: Code
+lONG_MIN_VALUE = lconst 0x8000000000000000
+
+unsignedLongCmp :: (Code -> Code -> Code) -> [Code] -> Code
+unsignedLongCmp ifop args
+  = typedCmp jlong ifop $ map addMin args
+  where addMin x = x <> lONG_MIN_VALUE <> iadd

@@ -84,6 +84,10 @@ isObjectFt (ObjectType _) = True
 isObjectFt (ArrayType _)  = True
 isObjectFt _ = False
 
+getArrayElemFt :: FieldType -> FieldType
+getArrayElemFt (ArrayType ft) = ft
+getArrayElemFt ft             = error $ "getArrayElemFt: " ++ show ft
+
 mkFieldDesc :: FieldType -> FieldDesc
 mkFieldDesc ft = FieldDesc $ mkFieldDesc' ft where
 
@@ -97,8 +101,14 @@ mkFieldDesc' ft = case ft of
   BaseType JLong              -> "J"
   BaseType JShort             -> "S"
   BaseType JBool              -> "Z"
-  ObjectType (IClassName cn)  -> fold ["L", cn, ";"]
-  ArrayType ft'               -> Text.concat ["[", mkFieldDesc' ft']
+  ObjectType (IClassName cn)  -> objectWrap cn
+  ArrayType ft'               -> arrayWrap (mkFieldDesc' ft')
+
+arrayWrap :: Text -> Text
+arrayWrap = Text.append "["
+
+objectWrap :: Text -> Text
+objectWrap x = Text.concat ["L", x, ";"]
 
 fieldSize :: FieldType -> Int
 fieldSize (BaseType JLong)    = 2

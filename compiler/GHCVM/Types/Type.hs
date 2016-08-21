@@ -167,7 +167,8 @@ import GHCVM.Prelude.TysPrim
 import {-# SOURCE #-} GHCVM.Prelude.TysWiredIn ( eqTyCon, coercibleTyCon, typeNatKind, typeSymbolKind )
 import GHCVM.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
                    ipClassNameKey, openTypeKindTyConKey,
-                   constraintKindTyConKey, liftedTypeKindTyConKey )
+                   constraintKindTyConKey, liftedTypeKindTyConKey,
+                   jarrayPrimTyConKey )
 import GHCVM.Prelude.ForeignCall
 import GHCVM.Types.CoAxiom
 
@@ -723,7 +724,11 @@ typePrimRep ty
       UnaryRep rep -> case rep of
         TyConApp tc tys ->
           case primRep of
-            ObjectRep _ -> ObjectRep $ tagTypeToText (head tys)
+            oRep@(ObjectRep _) -> case splitTyConApp_maybe ty of
+              Just (tc1, tys1)
+                | tc1 `hasKey` jarrayPrimTyConKey -> ArrayRep $ typePrimRep (head tys1)
+                | otherwise -> ObjectRep $ tagTypeToText (head tys)
+              _ -> oRep
             _ -> primRep
           where primRep = tyConPrimRep tc
         FunTy _ _     -> PtrRep

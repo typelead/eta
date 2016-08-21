@@ -58,6 +58,7 @@ toArgRep CharRep           = N
 toArgRep ByteRep           = N
 toArgRep ShortRep          = N
 toArgRep (ObjectRep _)     = O
+toArgRep (ArrayRep  _)     = O
 --toArgRep (VecRep len elem) = error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
 
 isNonV :: ArgRep -> Bool
@@ -98,6 +99,7 @@ primRepFieldType_maybe rep = Just $
     ByteRep             -> jint
     ShortRep            -> jint
     ObjectRep className -> obj $ className
+    ArrayRep  rep       -> ArrayType . fromJust $ primRepFieldType_maybe rep
     VoidRep             -> error $ "primRepFieldType_maybe: VoidRep"
     --(VecRep len elem) -> error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
 

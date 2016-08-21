@@ -20,6 +20,7 @@ module GHCVM.Main.DriverPhases (
    isHaskellSrcSuffix,
    isObjectSuffix,
    isCishSuffix,
+   isJavaishSuffix,
    isDynLibSuffix,
    isHaskellUserSrcSuffix,
    isHaskellSigSuffix,
@@ -112,6 +113,7 @@ data Phase
         | HsPp  HscSource
         | Hsc   HscSource
         | Ccpp
+        | JJava
         | Cc
         | Cobjc
         | Cobjcpp
@@ -149,6 +151,7 @@ eqPhase (Cpp   _)   (Cpp   _)  = True
 eqPhase (HsPp  _)   (HsPp  _)  = True
 eqPhase (Hsc   _)   (Hsc   _)  = True
 eqPhase Ccpp        Ccpp       = True
+eqPhase JJava       JJava      = True
 eqPhase Cc          Cc         = True
 eqPhase Cobjc       Cobjc      = True
 eqPhase Cobjcpp     Cobjcpp    = True
@@ -190,6 +193,7 @@ nextPhase dflags p
       SplitAs    -> MergeStub
       As _       -> MergeStub
       Ccpp       -> As False
+      JJava      -> StopLn
       Cc         -> As False
       Cobjc      -> As False
       Cobjcpp    -> As False
@@ -214,6 +218,7 @@ startPhase "hsig"     = Cpp   HsigFile
 startPhase "hscpp"    = HsPp  HsSrcFile
 startPhase "hspp"     = Hsc   HsSrcFile
 startPhase "hc"       = HCc
+startPhase "java"     = JJava
 startPhase "c"        = Cc
 startPhase "cpp"      = Ccpp
 startPhase "C"        = Cc
@@ -250,6 +255,7 @@ phaseInputExt HCc                 = "hc"
 phaseInputExt Ccpp                = "cpp"
 phaseInputExt Cobjc               = "m"
 phaseInputExt Cobjcpp             = "mm"
+phaseInputExt JJava               = "java"
 phaseInputExt Cc                  = "c"
 phaseInputExt Splitter            = "split_s"
 phaseInputExt (As True)           = "S"
@@ -264,12 +270,14 @@ phaseInputExt MergeStub           = "o"
 phaseInputExt StopLn              = "o"
 
 haskellish_src_suffixes, haskellish_suffixes, cish_suffixes,
-    haskellish_user_src_suffixes, haskellish_sig_suffixes
+    haskellish_user_src_suffixes, haskellish_sig_suffixes,
+    javaish_suffixes
  :: [String]
 haskellish_src_suffixes      = haskellish_user_src_suffixes ++
                                [ "hspp", "hscpp", "hcr", "cmm", "cmmcpp" ]
 haskellish_suffixes          = haskellish_src_suffixes ++ ["hc", "raw_s"]
 cish_suffixes                = [ "c", "cpp", "C", "cc", "cxx", "s", "S", "ll", "bc", "lm_s", "m", "M", "mm" ]
+javaish_suffixes             = [ "java" ]
 -- Will not be deleted as temp files:
 haskellish_user_src_suffixes =
   haskellish_sig_suffixes ++ [ "hs", "lhs", "hs-boot", "lhs-boot" ]
@@ -295,6 +303,7 @@ isHaskellishSuffix     s = s `elem` haskellish_suffixes
 isHaskellSigSuffix     s = s `elem` haskellish_sig_suffixes
 isHaskellSrcSuffix     s = s `elem` haskellish_src_suffixes
 isCishSuffix           s = s `elem` cish_suffixes
+isJavaishSuffix        s = s `elem` javaish_suffixes
 isHaskellUserSrcSuffix s = s `elem` haskellish_user_src_suffixes
 
 isObjectSuffix, isDynLibSuffix :: Platform -> String -> Bool
@@ -302,7 +311,7 @@ isObjectSuffix platform s = s `elem` objish_suffixes platform
 isDynLibSuffix platform s = s `elem` dynlib_suffixes platform
 
 isSourceSuffix :: String -> Bool
-isSourceSuffix suff  = isHaskellishSuffix suff || isCishSuffix suff
+isSourceSuffix suff  = isHaskellishSuffix suff || isCishSuffix suff || isJavaishSuffix suff
 
 isHaskellishFilename, isHaskellSrcFilename, isCishFilename,
     isHaskellUserSrcFilename, isSourceFilename, isHaskellSigFilename
@@ -311,6 +320,7 @@ isHaskellishFilename, isHaskellSrcFilename, isCishFilename,
 isHaskellishFilename     f = isHaskellishSuffix     (drop 1 $ takeExtension f)
 isHaskellSrcFilename     f = isHaskellSrcSuffix     (drop 1 $ takeExtension f)
 isCishFilename           f = isCishSuffix           (drop 1 $ takeExtension f)
+isJavaishFilename        f = isJavaishSuffix        (drop 1 $ takeExtension f)
 isHaskellUserSrcFilename f = isHaskellUserSrcSuffix (drop 1 $ takeExtension f)
 isSourceFilename         f = isSourceSuffix         (drop 1 $ takeExtension f)
 isHaskellSigFilename     f = isHaskellSigSuffix     (drop 1 $ takeExtension f)
@@ -318,4 +328,3 @@ isHaskellSigFilename     f = isHaskellSigSuffix     (drop 1 $ takeExtension f)
 isObjectFilename, isDynLibFilename :: Platform -> FilePath -> Bool
 isObjectFilename platform f = isObjectSuffix platform (drop 1 $ takeExtension f)
 isDynLibFilename platform f = isDynLibSuffix platform (drop 1 $ takeExtension f)
-

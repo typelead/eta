@@ -124,7 +124,7 @@ cgIdApp funId args = do
                 (withContinuation $ directCall False entryCode arity args)
     JumpToIt label cgLocs -> do
       debug "cgIdApp: JumpToIt"
-      codes <- getNonVoidArgLoadCodes args
+      codes <- getNonVoidArgCodes args
       emit $ multiAssign cgLocs codes
           <> goto label
 
@@ -149,7 +149,7 @@ emitEnter thunk = do
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args
   | isUnboxedTupleCon con = do
-      repCodes <- getNonVoidRepCodes args
+      repCodes <- getNonVoidArgRepCodes args
       emitReturn $ map mkRepLocDirect repCodes
   | otherwise = do
       -- TODO: Is dataConWorId the right thing to pass?

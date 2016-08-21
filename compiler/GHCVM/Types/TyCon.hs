@@ -946,6 +946,7 @@ data PrimRep
   | ByteRep
   | ShortRep
   | ObjectRep Text
+  | ArrayRep  PrimRep
 --  | VecRep Int PrimElemRep  -- ^ A vector
   deriving( Eq, Show )
 
@@ -978,11 +979,14 @@ isGcPtrRep _      = False
 
 isObjectRep :: PrimRep -> Bool
 isObjectRep (ObjectRep _) = True
+isObjectRep (ArrayRep  _) = True
 isObjectRep _             = False
 
 getObjectClass :: PrimRep -> Text
-getObjectClass (ObjectRep t) = t
-getObjectClass _             = error $ "getObjectClass"
+getObjectClass (ObjectRep t)   = t
+getObjectClass (ArrayRep  rep) = error $ "getObjectClass: Array type"
+  -- arrayWrap . objectWrap $ getObjectClass rep
+getObjectClass rep             = error $ "getObjectClass: " ++ show rep
 
 -- | Find the size of a 'PrimRep', in words
 primRepSizeW :: DynFlags -> PrimRep -> Int

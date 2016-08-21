@@ -216,6 +216,8 @@ land = binaryOp jlong OP.land
 lxor = binaryOp jlong OP.lxor
 inot = iconst jint (fromIntegral (-1))
     <> ixor
+lnot = lconst (fromIntegral (-1))
+    <> lxor
 
 fcmpl, fcmpg, dcmpl, dcmpg, lcmp :: Code
 fcmpl = cmpOp jfloat OP.fcmpl
