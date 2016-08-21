@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module Codec.JVM.Class where
 
+import Data.Binary.Get
 import Data.Map.Strict (Map)
 import Data.ByteString.Base16 (decode)
 import Data.ByteString (ByteString)
@@ -10,6 +11,7 @@ import Data.Text (Text)
 import Data.Set (Set)
 
 import qualified Data.List as L
+import Control.Monad (when)
 
 import Codec.JVM.Attr (Attr, putAttr)
 import Codec.JVM.Const (Const, cclass)
@@ -59,6 +61,17 @@ putClassFile ClassFile {..} = do
     putFields = do
       putI16 . L.length $ fields
       mapM_ (putFieldInfo cp) fields
+
+getClassName :: Get ()
+getClassName = do
+  magic <- getWord32be
+  when (magic /= 0xCAFEBABE) $
+    fail $ "Invalid .class file MAGIC value: " ++ show magic
+  majorVersion <- getWord16be
+  minorVersion <- getWord16be
+  poolSize <- getWord16be
+  -- _ <- getConstPool (poolSize - 1)
+  return ()
 
 classFileBS :: ClassFile -> ByteString
 classFileBS = toStrict . runPut . putClassFile

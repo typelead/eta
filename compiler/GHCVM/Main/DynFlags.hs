@@ -68,8 +68,9 @@ module GHCVM.Main.DynFlags (
         extraGccViaCFlags, systemPackageConfig,
         pgm_L, pgm_P, pgm_F, pgm_c, pgm_s, pgm_a, pgm_l, pgm_dll, pgm_T,
         pgm_sysman, pgm_windres, pgm_libtool, pgm_readelf, pgm_lo, pgm_lc,
+        pgm_javac,
         opt_L, opt_P, opt_F, opt_c, opt_a, opt_l,
-        opt_windres, opt_lo, opt_lc,
+        opt_windres, opt_lo, opt_lc, opt_javac,
 
 
         -- ** Manipulating DynFlags
@@ -930,6 +931,7 @@ data Settings = Settings {
   sPgm_readelf           :: String,
   sPgm_lo                :: (String,[Option]), -- LLVM: opt llvm optimiser
   sPgm_lc                :: (String,[Option]), -- LLVM: llc static compiler
+  sPgm_javac             :: (String,[Option]),
   -- options for particular phases
   sOpt_L                 :: [String],
   sOpt_P                 :: [String],
@@ -939,7 +941,8 @@ data Settings = Settings {
   sOpt_l                 :: [String],
   sOpt_windres           :: [String],
   sOpt_lo                :: [String], -- LLVM: llvm optimiser
-  sOpt_lc                :: [String] -- LLVM: llc static compiler
+  sOpt_lc                :: [String], -- LLVM: llc static compiler
+  sOpt_javac             :: [String]
  }
 
 targetPlatform :: DynFlags -> Platform
@@ -992,6 +995,9 @@ pgm_lo                :: DynFlags -> (String,[Option])
 pgm_lo dflags = sPgm_lo (settings dflags)
 pgm_lc                :: DynFlags -> (String,[Option])
 pgm_lc dflags = sPgm_lc (settings dflags)
+pgm_javac                :: DynFlags -> (String,[Option])
+pgm_javac dflags = sPgm_javac (settings dflags)
+
 opt_L                 :: DynFlags -> [String]
 opt_L dflags = sOpt_L (settings dflags)
 opt_P                 :: DynFlags -> [String]
@@ -1013,6 +1019,8 @@ opt_lo                :: DynFlags -> [String]
 opt_lo dflags = sOpt_lo (settings dflags)
 opt_lc                :: DynFlags -> [String]
 opt_lc dflags = sOpt_lc (settings dflags)
+opt_javac                :: DynFlags -> [String]
+opt_javac dflags = sOpt_javac (settings dflags)
 
 -- | The directory for this version of ghc in the user's app directory
 -- (typically something like @~/.ghc/x86_64-linux-7.6.3@)
@@ -2260,6 +2268,8 @@ dynamic_flags = [
 
         ------- Specific phases  --------------------------------------------
     -- need to appear before -pgmL to be parsed as LLVM flags.
+  , defFlag "pgmjavac"
+      (hasArg (\f -> alterSettings (\s -> s { sPgm_javac  = (f,[])})))
   , defFlag "pgmlo"
       (hasArg (\f -> alterSettings (\s -> s { sPgm_lo  = (f,[])})))
   , defFlag "pgmlc"
@@ -2288,6 +2298,8 @@ dynamic_flags = [
       (hasArg (\f -> alterSettings (\s -> s { sPgm_readelf = f})))
 
     -- need to appear before -optl/-opta to be parsed as LLVM flags.
+  , defFlag "optjavac"
+      (hasArg (\f -> alterSettings (\s -> s { sOpt_javac  = f : sOpt_javac s})))
   , defFlag "optlo"
       (hasArg (\f -> alterSettings (\s -> s { sOpt_lo  = f : sOpt_lo s})))
   , defFlag "optlc"

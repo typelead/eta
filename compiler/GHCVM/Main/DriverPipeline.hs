@@ -936,14 +936,18 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
          return (RealPhase next_phase, outputFilename)
 
 -----------------------------------------------------------------------------
--- Cmm phase
+-- Java phase
 
-runPhase (RealPhase CmmCpp) input_fn dflags
-  = do
-       output_fn <- phaseOutputFilename Cmm
-       liftIO $ doCpp dflags False{-not raw-}
-                      input_fn output_fn
-       return (RealPhase Cmm, output_fn)
+runPhase (RealPhase JJava) input_fn dflags = undefined
+  -- = do
+  --      output_fn <- phaseOutputFilename StopLn
+  --      liftIO $ runJavac dflags $
+  --        [ SysTools.FileOption "" input_fn
+
+  --        ]
+  --      doCpp dflags False{-not raw-}
+  --                     input_fn output_fn
+  --      return (RealPhase Cmm, output_fn)
 
 -----------------------------------------------------------------------------
 -- Cc phase
@@ -1081,320 +1085,320 @@ runPhase (RealPhase cc_phase) input_fn dflags
 
         return (RealPhase next_phase, output_fn)
 
------------------------------------------------------------------------------
--- Splitting phase
+-- -----------------------------------------------------------------------------
+-- -- Splitting phase
 
-runPhase (RealPhase Splitter) input_fn dflags
-  = do  -- tmp_pfx is the prefix used for the split .s files
+-- runPhase (RealPhase Splitter) input_fn dflags
+--   = do  -- tmp_pfx is the prefix used for the split .s files
 
-        split_s_prefix <- liftIO $ SysTools.newTempName dflags "split"
-        let n_files_fn = split_s_prefix
+--         split_s_prefix <- liftIO $ SysTools.newTempName dflags "split"
+--         let n_files_fn = split_s_prefix
 
-        liftIO $ SysTools.runSplit dflags
-                          [ SysTools.FileOption "" input_fn
-                          , SysTools.FileOption "" split_s_prefix
-                          , SysTools.FileOption "" n_files_fn
-                          ]
+--         liftIO $ SysTools.runSplit dflags
+--                           [ SysTools.FileOption "" input_fn
+--                           , SysTools.FileOption "" split_s_prefix
+--                           , SysTools.FileOption "" n_files_fn
+--                           ]
 
-        -- Save the number of split files for future references
-        s <- liftIO $ readFile n_files_fn
-        let n_files = read s :: Int
-            dflags' = dflags { splitInfo = Just (split_s_prefix, n_files) }
+--         -- Save the number of split files for future references
+--         s <- liftIO $ readFile n_files_fn
+--         let n_files = read s :: Int
+--             dflags' = dflags { splitInfo = Just (split_s_prefix, n_files) }
 
-        setDynFlags dflags'
+--         setDynFlags dflags'
 
-        -- Remember to delete all these files
-        liftIO $ addFilesToClean dflags'
-                                 [ split_s_prefix ++ "__" ++ show n ++ ".s"
-                                 | n <- [1..n_files]]
+--         -- Remember to delete all these files
+--         liftIO $ addFilesToClean dflags'
+--                                  [ split_s_prefix ++ "__" ++ show n ++ ".s"
+--                                  | n <- [1..n_files]]
 
-        return (RealPhase SplitAs,
-                "**splitter**") -- we don't use the filename in SplitAs
+--         return (RealPhase SplitAs,
+--                 "**splitter**") -- we don't use the filename in SplitAs
 
------------------------------------------------------------------------------
--- As, SpitAs phase : Assembler
+-- -----------------------------------------------------------------------------
+-- -- As, SpitAs phase : Assembler
 
--- This is for calling the assembler on a regular assembly file (not split).
-runPhase (RealPhase (As with_cpp)) input_fn dflags
-  = do
-        -- LLVM from version 3.0 onwards doesn't support the OS X system
-        -- assembler, so we use clang as the assembler instead. (#5636)
-        let whichAsProg | hscTarget dflags == HscLlvm &&
-                          platformOS (targetPlatform dflags) == OSDarwin
-                        = do
-                            -- be careful what options we call clang with
-                            -- see #5903 and #7617 for bugs caused by this.
-                            llvmVer <- liftIO $ figureLlvmVersion dflags
-                            return $ case llvmVer of
-                                Just n | n >= 30 -> SysTools.runClang
-                                _                -> SysTools.runAs
+-- -- This is for calling the assembler on a regular assembly file (not split).
+-- runPhase (RealPhase (As with_cpp)) input_fn dflags
+--   = do
+--         -- LLVM from version 3.0 onwards doesn't support the OS X system
+--         -- assembler, so we use clang as the assembler instead. (#5636)
+--         let whichAsProg | hscTarget dflags == HscLlvm &&
+--                           platformOS (targetPlatform dflags) == OSDarwin
+--                         = do
+--                             -- be careful what options we call clang with
+--                             -- see #5903 and #7617 for bugs caused by this.
+--                             llvmVer <- liftIO $ figureLlvmVersion dflags
+--                             return $ case llvmVer of
+--                                 Just n | n >= 30 -> SysTools.runClang
+--                                 _                -> SysTools.runAs
 
-                        | otherwise = return SysTools.runAs
+--                         | otherwise = return SysTools.runAs
 
-        as_prog <- whichAsProg
-        let cmdline_include_paths = includePaths dflags
-        let pic_c_flags = picCCOpts dflags
+--         as_prog <- whichAsProg
+--         let cmdline_include_paths = includePaths dflags
+--         let pic_c_flags = picCCOpts dflags
 
-        next_phase <- maybeMergeStub
-        output_fn <- phaseOutputFilename next_phase
+--         next_phase <- maybeMergeStub
+--         output_fn <- phaseOutputFilename next_phase
 
-        -- we create directories for the object file, because it
-        -- might be a hierarchical module.
-        liftIO $ createDirectoryIfMissing True (takeDirectory output_fn)
+--         -- we create directories for the object file, because it
+--         -- might be a hierarchical module.
+--         liftIO $ createDirectoryIfMissing True (takeDirectory output_fn)
 
-        ccInfo <- liftIO $ getCompilerInfo dflags
-        let runAssembler inputFilename outputFilename
-                = liftIO $ as_prog dflags
-                       ([ SysTools.Option ("-I" ++ p) | p <- cmdline_include_paths ]
+--         ccInfo <- liftIO $ getCompilerInfo dflags
+--         let runAssembler inputFilename outputFilename
+--                 = liftIO $ as_prog dflags
+--                        ([ SysTools.Option ("-I" ++ p) | p <- cmdline_include_paths ]
 
-                       -- See Note [-fPIC for assembler]
-                       ++ map SysTools.Option pic_c_flags
+--                        -- See Note [-fPIC for assembler]
+--                        ++ map SysTools.Option pic_c_flags
 
-        -- We only support SparcV9 and better because V8 lacks an atomic CAS
-        -- instruction so we have to make sure that the assembler accepts the
-        -- instruction set. Note that the user can still override this
-        -- (e.g., -mcpu=ultrasparc). GCC picks the "best" -mcpu flag
-        -- regardless of the ordering.
-        --
-        -- This is a temporary hack.
-                       ++ (if platformArch (targetPlatform dflags) == ArchSPARC
-                           then [SysTools.Option "-mcpu=v9"]
-                           else [])
-                       ++ (if any (ccInfo ==) [Clang, AppleClang, AppleClang51]
-                            then [SysTools.Option "-Qunused-arguments"]
-                            else [])
-                       ++ [ SysTools.Option "-x"
-                          , if with_cpp
-                              then SysTools.Option "assembler-with-cpp"
-                              else SysTools.Option "assembler"
-                          , SysTools.Option "-c"
-                          , SysTools.FileOption "" inputFilename
-                          , SysTools.Option "-o"
-                          , SysTools.FileOption "" outputFilename
-                          ])
+--         -- We only support SparcV9 and better because V8 lacks an atomic CAS
+--         -- instruction so we have to make sure that the assembler accepts the
+--         -- instruction set. Note that the user can still override this
+--         -- (e.g., -mcpu=ultrasparc). GCC picks the "best" -mcpu flag
+--         -- regardless of the ordering.
+--         --
+--         -- This is a temporary hack.
+--                        ++ (if platformArch (targetPlatform dflags) == ArchSPARC
+--                            then [SysTools.Option "-mcpu=v9"]
+--                            else [])
+--                        ++ (if any (ccInfo ==) [Clang, AppleClang, AppleClang51]
+--                             then [SysTools.Option "-Qunused-arguments"]
+--                             else [])
+--                        ++ [ SysTools.Option "-x"
+--                           , if with_cpp
+--                               then SysTools.Option "assembler-with-cpp"
+--                               else SysTools.Option "assembler"
+--                           , SysTools.Option "-c"
+--                           , SysTools.FileOption "" inputFilename
+--                           , SysTools.Option "-o"
+--                           , SysTools.FileOption "" outputFilename
+--                           ])
 
-        liftIO $ debugTraceMsg dflags 4 (text "Running the assembler")
-        runAssembler input_fn output_fn
-        return (RealPhase next_phase, output_fn)
-
-
--- This is for calling the assembler on a split assembly file (so a collection
--- of assembly files)
-runPhase (RealPhase SplitAs) _input_fn dflags
-  = do
-        -- we'll handle the stub_o file in this phase, so don't MergeStub,
-        -- just jump straight to StopLn afterwards.
-        let next_phase = StopLn
-        output_fn <- phaseOutputFilename next_phase
-
-        let base_o = dropExtension output_fn
-            osuf = objectSuf dflags
-            split_odir  = base_o ++ "_" ++ osuf ++ "_split"
-
-        let pic_c_flags = picCCOpts dflags
-
-        -- this also creates the hierarchy
-        liftIO $ createDirectoryIfMissing True split_odir
-
-        -- remove M_split/ *.o, because we're going to archive M_split/ *.o
-        -- later and we don't want to pick up any old objects.
-        fs <- liftIO $ getDirectoryContents split_odir
-        liftIO $ mapM_ removeFile $
-                map (split_odir </>) $ filter (osuf `isSuffixOf`) fs
-
-        let (split_s_prefix, n) = case splitInfo dflags of
-                                  Nothing -> panic "No split info"
-                                  Just x -> x
-
-        let split_s   n = split_s_prefix ++ "__" ++ show n <.> "s"
-
-            split_obj :: Int -> FilePath
-            split_obj n = split_odir </>
-                          takeFileName base_o ++ "__" ++ show n <.> osuf
-
-        let assemble_file n
-              = SysTools.runAs dflags (
-
-        -- We only support SparcV9 and better because V8 lacks an atomic CAS
-        -- instruction so we have to make sure that the assembler accepts the
-        -- instruction set. Note that the user can still override this
-        -- (e.g., -mcpu=ultrasparc). GCC picks the "best" -mcpu flag
-        -- regardless of the ordering.
-        --
-        -- This is a temporary hack.
-                          (if platformArch (targetPlatform dflags) == ArchSPARC
-                           then [SysTools.Option "-mcpu=v9"]
-                           else []) ++
-
-                          -- See Note [-fPIC for assembler]
-                          map SysTools.Option pic_c_flags ++
-
-                          [ SysTools.Option "-c"
-                          , SysTools.Option "-o"
-                          , SysTools.FileOption "" (split_obj n)
-                          , SysTools.FileOption "" (split_s n)
-                          ])
-
-        liftIO $ mapM_ assemble_file [1..n]
-
-        -- Note [pipeline-split-init]
-        -- If we have a stub file, it may contain constructor
-        -- functions for initialisation of this module.  We can't
-        -- simply leave the stub as a separate object file, because it
-        -- will never be linked in: nothing refers to it.  We need to
-        -- ensure that if we ever refer to the data in this module
-        -- that needs initialisation, then we also pull in the
-        -- initialisation routine.
-        --
-        -- To that end, we make a DANGEROUS ASSUMPTION here: the data
-        -- that needs to be initialised is all in the FIRST split
-        -- object.  See Note [codegen-split-init].
-
-        PipeState{maybe_stub_o} <- getPipeState
-        case maybe_stub_o of
-            Nothing     -> return ()
-            Just stub_o -> liftIO $ do
-                     tmp_split_1 <- newTempName dflags osuf
-                     let split_1 = split_obj 1
-                     copyFile split_1 tmp_split_1
-                     removeFile split_1
-                     joinObjectFiles dflags [tmp_split_1, stub_o] split_1
-
-        -- join them into a single .o file
-        liftIO $ joinObjectFiles dflags (map split_obj [1..n]) output_fn
-
-        return (RealPhase next_phase, output_fn)
-
------------------------------------------------------------------------------
--- LlvmOpt phase
-
-runPhase (RealPhase LlvmOpt) input_fn dflags
-  = do
-    ver <- liftIO $ readIORef (llvmVersion dflags)
-
-    let opt_lvl  = max 0 (min 2 $ optLevel dflags)
-        -- don't specify anything if user has specified commands. We do this
-        -- for opt but not llc since opt is very specifically for optimisation
-        -- passes only, so if the user is passing us extra options we assume
-        -- they know what they are doing and don't get in the way.
-        optFlag  = if null (getOpts dflags opt_lo)
-                       then map SysTools.Option $ words (llvmOpts ver !! opt_lvl)
-                       else []
-        tbaa | ver < 29                 = "" -- no tbaa in 2.8 and earlier
-             | gopt Opt_LlvmTBAA dflags = "--enable-tbaa=true"
-             | otherwise                = "--enable-tbaa=false"
+--         liftIO $ debugTraceMsg dflags 4 (text "Running the assembler")
+--         runAssembler input_fn output_fn
+--         return (RealPhase next_phase, output_fn)
 
 
-    output_fn <- phaseOutputFilename LlvmLlc
+-- -- This is for calling the assembler on a split assembly file (so a collection
+-- -- of assembly files)
+-- runPhase (RealPhase SplitAs) _input_fn dflags
+--   = do
+--         -- we'll handle the stub_o file in this phase, so don't MergeStub,
+--         -- just jump straight to StopLn afterwards.
+--         let next_phase = StopLn
+--         output_fn <- phaseOutputFilename next_phase
 
-    liftIO $ SysTools.runLlvmOpt dflags
-               ([ SysTools.FileOption "" input_fn,
-                    SysTools.Option "-o",
-                    SysTools.FileOption "" output_fn]
-                ++ optFlag
-                ++ [SysTools.Option tbaa])
+--         let base_o = dropExtension output_fn
+--             osuf = objectSuf dflags
+--             split_odir  = base_o ++ "_" ++ osuf ++ "_split"
 
-    return (RealPhase LlvmLlc, output_fn)
-  where
-        -- we always (unless -optlo specified) run Opt since we rely on it to
-        -- fix up some pretty big deficiencies in the code we generate
-        llvmOpts ver = [ "-mem2reg -globalopt"
-                       , if ver >= 34 then "-O1 -globalopt" else "-O1"
-                         -- LLVM 3.4 -O1 doesn't eliminate aliases reliably (bug #8855)
-                       , "-O2"
-                       ]
+--         let pic_c_flags = picCCOpts dflags
 
------------------------------------------------------------------------------
--- LlvmLlc phase
+--         -- this also creates the hierarchy
+--         liftIO $ createDirectoryIfMissing True split_odir
 
-runPhase (RealPhase LlvmLlc) input_fn dflags
-  = do
-    ver <- liftIO $ readIORef (llvmVersion dflags)
+--         -- remove M_split/ *.o, because we're going to archive M_split/ *.o
+--         -- later and we don't want to pick up any old objects.
+--         fs <- liftIO $ getDirectoryContents split_odir
+--         liftIO $ mapM_ removeFile $
+--                 map (split_odir </>) $ filter (osuf `isSuffixOf`) fs
 
-    let opt_lvl = max 0 (min 2 $ optLevel dflags)
-        -- iOS requires external references to be loaded indirectly from the
-        -- DATA segment or dyld traps at runtime writing into TEXT: see #7722
-        rmodel | platformOS (targetPlatform dflags) == OSiOS = "dynamic-no-pic"
-               | gopt Opt_PIC dflags                         = "pic"
-               | not (gopt Opt_Static dflags)                = "dynamic-no-pic"
-               | otherwise                                   = "static"
-        tbaa | ver < 29                 = "" -- no tbaa in 2.8 and earlier
-             | gopt Opt_LlvmTBAA dflags = "--enable-tbaa=true"
-             | otherwise                = "--enable-tbaa=false"
+--         let (split_s_prefix, n) = case splitInfo dflags of
+--                                   Nothing -> panic "No split info"
+--                                   Just x -> x
 
-    -- hidden debugging flag '-dno-llvm-mangler' to skip mangling
-    let next_phase = case gopt Opt_NoLlvmMangler dflags of
-                         False                            -> LlvmMangle
-                         True | gopt Opt_SplitObjs dflags -> Splitter
-                         True                             -> As False
+--         let split_s   n = split_s_prefix ++ "__" ++ show n <.> "s"
 
-    output_fn <- phaseOutputFilename next_phase
+--             split_obj :: Int -> FilePath
+--             split_obj n = split_odir </>
+--                           takeFileName base_o ++ "__" ++ show n <.> osuf
 
-    -- AVX can cause LLVM 3.2 to generate a C-like frame pointer
-    -- prelude, see #9391
-    when (ver == 32 && isAvxEnabled dflags) $ liftIO $ errorMsg dflags $ text
-      "Note: LLVM 3.2 has known problems with AVX instructions (see trac #9391)"
+--         let assemble_file n
+--               = SysTools.runAs dflags (
 
-    liftIO $ SysTools.runLlvmLlc dflags
-                ([ SysTools.Option (llvmOpts !! opt_lvl),
-                    SysTools.Option $ "-relocation-model=" ++ rmodel,
-                    SysTools.FileOption "" input_fn,
-                    SysTools.Option "-o", SysTools.FileOption "" output_fn]
-                ++ [SysTools.Option tbaa]
-                ++ map SysTools.Option fpOpts
-                ++ map SysTools.Option abiOpts
-                ++ map SysTools.Option sseOpts
-                ++ map SysTools.Option (avxOpts ver)
-                ++ map SysTools.Option avx512Opts
-                ++ map SysTools.Option stackAlignOpts)
+--         -- We only support SparcV9 and better because V8 lacks an atomic CAS
+--         -- instruction so we have to make sure that the assembler accepts the
+--         -- instruction set. Note that the user can still override this
+--         -- (e.g., -mcpu=ultrasparc). GCC picks the "best" -mcpu flag
+--         -- regardless of the ordering.
+--         --
+--         -- This is a temporary hack.
+--                           (if platformArch (targetPlatform dflags) == ArchSPARC
+--                            then [SysTools.Option "-mcpu=v9"]
+--                            else []) ++
 
-    return (RealPhase next_phase, output_fn)
-  where
-        -- Bug in LLVM at O3 on OSX.
-        llvmOpts = if platformOS (targetPlatform dflags) == OSDarwin
-                   then ["-O1", "-O2", "-O2"]
-                   else ["-O1", "-O2", "-O3"]
-        -- On ARMv7 using LLVM, LLVM fails to allocate floating point registers
-        -- while compiling GHC source code. It's probably due to fact that it
-        -- does not enable VFP by default. Let's do this manually here
-        fpOpts = case platformArch (targetPlatform dflags) of
-                   ArchARM ARMv7 ext _ -> if (elem VFPv3 ext)
-                                      then ["-mattr=+v7,+vfp3"]
-                                      else if (elem VFPv3D16 ext)
-                                           then ["-mattr=+v7,+vfp3,+d16"]
-                                           else []
-                   ArchARM ARMv6 ext _ -> if (elem VFPv2 ext)
-                                          then ["-mattr=+v6,+vfp2"]
-                                          else ["-mattr=+v6"]
-                   _                 -> []
-        -- On Ubuntu/Debian with ARM hard float ABI, LLVM's llc still
-        -- compiles into soft-float ABI. We need to explicitly set abi
-        -- to hard
-        abiOpts = case platformArch (targetPlatform dflags) of
-                    ArchARM _ _ HARD -> ["-float-abi=hard"]
-                    ArchARM _ _ _    -> []
-                    _                -> []
+--                           -- See Note [-fPIC for assembler]
+--                           map SysTools.Option pic_c_flags ++
 
-        sseOpts | isSse4_2Enabled dflags = ["-mattr=+sse42"]
-                | isSse2Enabled dflags   = ["-mattr=+sse2"]
-                | isSseEnabled dflags    = ["-mattr=+sse"]
-                | otherwise              = []
+--                           [ SysTools.Option "-c"
+--                           , SysTools.Option "-o"
+--                           , SysTools.FileOption "" (split_obj n)
+--                           , SysTools.FileOption "" (split_s n)
+--                           ])
 
-        avxOpts ver | isAvx512fEnabled dflags = ["-mattr=+avx512f"]
-                    | isAvx2Enabled dflags    = ["-mattr=+avx2"]
-                    | isAvxEnabled dflags     = ["-mattr=+avx"]
-                    | ver == 32               = ["-mattr=-avx"] -- see #9391
-                    | otherwise               = []
+--         liftIO $ mapM_ assemble_file [1..n]
 
-        avx512Opts =
-          [ "-mattr=+avx512cd" | isAvx512cdEnabled dflags ] ++
-          [ "-mattr=+avx512er" | isAvx512erEnabled dflags ] ++
-          [ "-mattr=+avx512pf" | isAvx512pfEnabled dflags ]
+--         -- Note [pipeline-split-init]
+--         -- If we have a stub file, it may contain constructor
+--         -- functions for initialisation of this module.  We can't
+--         -- simply leave the stub as a separate object file, because it
+--         -- will never be linked in: nothing refers to it.  We need to
+--         -- ensure that if we ever refer to the data in this module
+--         -- that needs initialisation, then we also pull in the
+--         -- initialisation routine.
+--         --
+--         -- To that end, we make a DANGEROUS ASSUMPTION here: the data
+--         -- that needs to be initialised is all in the FIRST split
+--         -- object.  See Note [codegen-split-init].
 
-        stackAlignOpts =
-            case platformArch (targetPlatform dflags) of
-              ArchX86_64 | isAvxEnabled dflags -> ["-stack-alignment=32"]
-              _                                -> []
+--         PipeState{maybe_stub_o} <- getPipeState
+--         case maybe_stub_o of
+--             Nothing     -> return ()
+--             Just stub_o -> liftIO $ do
+--                      tmp_split_1 <- newTempName dflags osuf
+--                      let split_1 = split_obj 1
+--                      copyFile split_1 tmp_split_1
+--                      removeFile split_1
+--                      joinObjectFiles dflags [tmp_split_1, stub_o] split_1
+
+--         -- join them into a single .o file
+--         liftIO $ joinObjectFiles dflags (map split_obj [1..n]) output_fn
+
+--         return (RealPhase next_phase, output_fn)
+
+-- -----------------------------------------------------------------------------
+-- -- LlvmOpt phase
+
+-- runPhase (RealPhase LlvmOpt) input_fn dflags
+--   = do
+--     ver <- liftIO $ readIORef (llvmVersion dflags)
+
+--     let opt_lvl  = max 0 (min 2 $ optLevel dflags)
+--         -- don't specify anything if user has specified commands. We do this
+--         -- for opt but not llc since opt is very specifically for optimisation
+--         -- passes only, so if the user is passing us extra options we assume
+--         -- they know what they are doing and don't get in the way.
+--         optFlag  = if null (getOpts dflags opt_lo)
+--                        then map SysTools.Option $ words (llvmOpts ver !! opt_lvl)
+--                        else []
+--         tbaa | ver < 29                 = "" -- no tbaa in 2.8 and earlier
+--              | gopt Opt_LlvmTBAA dflags = "--enable-tbaa=true"
+--              | otherwise                = "--enable-tbaa=false"
+
+
+--     output_fn <- phaseOutputFilename LlvmLlc
+
+--     liftIO $ SysTools.runLlvmOpt dflags
+--                ([ SysTools.FileOption "" input_fn,
+--                     SysTools.Option "-o",
+--                     SysTools.FileOption "" output_fn]
+--                 ++ optFlag
+--                 ++ [SysTools.Option tbaa])
+
+--     return (RealPhase LlvmLlc, output_fn)
+--   where
+--         -- we always (unless -optlo specified) run Opt since we rely on it to
+--         -- fix up some pretty big deficiencies in the code we generate
+--         llvmOpts ver = [ "-mem2reg -globalopt"
+--                        , if ver >= 34 then "-O1 -globalopt" else "-O1"
+--                          -- LLVM 3.4 -O1 doesn't eliminate aliases reliably (bug #8855)
+--                        , "-O2"
+--                        ]
+
+-- -----------------------------------------------------------------------------
+-- -- LlvmLlc phase
+
+-- runPhase (RealPhase LlvmLlc) input_fn dflags
+--   = do
+--     ver <- liftIO $ readIORef (llvmVersion dflags)
+
+--     let opt_lvl = max 0 (min 2 $ optLevel dflags)
+--         -- iOS requires external references to be loaded indirectly from the
+--         -- DATA segment or dyld traps at runtime writing into TEXT: see #7722
+--         rmodel | platformOS (targetPlatform dflags) == OSiOS = "dynamic-no-pic"
+--                | gopt Opt_PIC dflags                         = "pic"
+--                | not (gopt Opt_Static dflags)                = "dynamic-no-pic"
+--                | otherwise                                   = "static"
+--         tbaa | ver < 29                 = "" -- no tbaa in 2.8 and earlier
+--              | gopt Opt_LlvmTBAA dflags = "--enable-tbaa=true"
+--              | otherwise                = "--enable-tbaa=false"
+
+--     -- hidden debugging flag '-dno-llvm-mangler' to skip mangling
+--     let next_phase = case gopt Opt_NoLlvmMangler dflags of
+--                          False                            -> LlvmMangle
+--                          True | gopt Opt_SplitObjs dflags -> Splitter
+--                          True                             -> As False
+
+--     output_fn <- phaseOutputFilename next_phase
+
+--     -- AVX can cause LLVM 3.2 to generate a C-like frame pointer
+--     -- prelude, see #9391
+--     when (ver == 32 && isAvxEnabled dflags) $ liftIO $ errorMsg dflags $ text
+--       "Note: LLVM 3.2 has known problems with AVX instructions (see trac #9391)"
+
+--     liftIO $ SysTools.runLlvmLlc dflags
+--                 ([ SysTools.Option (llvmOpts !! opt_lvl),
+--                     SysTools.Option $ "-relocation-model=" ++ rmodel,
+--                     SysTools.FileOption "" input_fn,
+--                     SysTools.Option "-o", SysTools.FileOption "" output_fn]
+--                 ++ [SysTools.Option tbaa]
+--                 ++ map SysTools.Option fpOpts
+--                 ++ map SysTools.Option abiOpts
+--                 ++ map SysTools.Option sseOpts
+--                 ++ map SysTools.Option (avxOpts ver)
+--                 ++ map SysTools.Option avx512Opts
+--                 ++ map SysTools.Option stackAlignOpts)
+
+--     return (RealPhase next_phase, output_fn)
+--   where
+--         -- Bug in LLVM at O3 on OSX.
+--         llvmOpts = if platformOS (targetPlatform dflags) == OSDarwin
+--                    then ["-O1", "-O2", "-O2"]
+--                    else ["-O1", "-O2", "-O3"]
+--         -- On ARMv7 using LLVM, LLVM fails to allocate floating point registers
+--         -- while compiling GHC source code. It's probably due to fact that it
+--         -- does not enable VFP by default. Let's do this manually here
+--         fpOpts = case platformArch (targetPlatform dflags) of
+--                    ArchARM ARMv7 ext _ -> if (elem VFPv3 ext)
+--                                       then ["-mattr=+v7,+vfp3"]
+--                                       else if (elem VFPv3D16 ext)
+--                                            then ["-mattr=+v7,+vfp3,+d16"]
+--                                            else []
+--                    ArchARM ARMv6 ext _ -> if (elem VFPv2 ext)
+--                                           then ["-mattr=+v6,+vfp2"]
+--                                           else ["-mattr=+v6"]
+--                    _                 -> []
+--         -- On Ubuntu/Debian with ARM hard float ABI, LLVM's llc still
+--         -- compiles into soft-float ABI. We need to explicitly set abi
+--         -- to hard
+--         abiOpts = case platformArch (targetPlatform dflags) of
+--                     ArchARM _ _ HARD -> ["-float-abi=hard"]
+--                     ArchARM _ _ _    -> []
+--                     _                -> []
+
+--         sseOpts | isSse4_2Enabled dflags = ["-mattr=+sse42"]
+--                 | isSse2Enabled dflags   = ["-mattr=+sse2"]
+--                 | isSseEnabled dflags    = ["-mattr=+sse"]
+--                 | otherwise              = []
+
+--         avxOpts ver | isAvx512fEnabled dflags = ["-mattr=+avx512f"]
+--                     | isAvx2Enabled dflags    = ["-mattr=+avx2"]
+--                     | isAvxEnabled dflags     = ["-mattr=+avx"]
+--                     | ver == 32               = ["-mattr=-avx"] -- see #9391
+--                     | otherwise               = []
+
+--         avx512Opts =
+--           [ "-mattr=+avx512cd" | isAvx512cdEnabled dflags ] ++
+--           [ "-mattr=+avx512er" | isAvx512erEnabled dflags ] ++
+--           [ "-mattr=+avx512pf" | isAvx512pfEnabled dflags ]
+
+--         stackAlignOpts =
+--             case platformArch (targetPlatform dflags) of
+--               ArchX86_64 | isAvxEnabled dflags -> ["-stack-alignment=32"]
+--               _                                -> []
 
 -----------------------------------------------------------------------------
 -- LlvmMangle phase

@@ -1,5 +1,7 @@
 module Codec.JVM.ConstPool where
 
+import Data.Binary.Get
+
 import Control.Monad (join)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
@@ -16,6 +18,9 @@ import Codec.JVM.Types
 newtype CIx = CIx Int
 
 newtype ConstPool = ConstPool (Map Const Int)
+  deriving Show
+
+newtype IxConstPool = IxConstPool (Map Int Const)
   deriving Show
 
 mkConstPool :: [Const] -> ConstPool
@@ -98,3 +103,30 @@ putConstPool cp = mapM_ putConst $ run cp where
         putIx' $ CClass cn
         putIx' . CNameAndType $ NameAndDesc n (Desc d)
       putIx' = putIx cp
+
+-- getConstPool :: Int -> Get ConstPool
+-- getConstPool n = do
+--   forM (zip [1..] )
+--   assocs <- replicateM n getConst
+--   return $ IxConstPool $ M.fromList assocs
+
+-- getConst :: Int -> Get (IxConstPool -> Const)
+-- getConst n = do
+--   tag <- getWord8
+--   return (n,
+--   case tag of
+--     -- Class
+--     7 -> do
+--       textIx <- getWord16be
+--       return $ \cp -> case getConstAt textIx cp of
+--                         CUTF8 t -> CClass (IClassName t)
+--     9 -> do
+--       classIx <- getWord16be
+--       nameAndTypeIx <- getWord16be
+--       return $ \cp -> case getConstAt classIx cp of
+--                         CClass iclassName ->
+--                           case getConstAt nameAndTypeIx cp of
+--                             CNameAndType (NameAndDesc uname desc) ->
+--                               CFieldRef $ FieldRef iclassName uname
+
+--   )

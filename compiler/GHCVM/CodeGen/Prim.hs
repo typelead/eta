@@ -107,7 +107,7 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
       -- TODO: Handle result
     ("@static":"@field":name:_) ->
       let (clsName, fieldName) = labelToMethod name
-      in genSequel $ getstatic $ mkFieldRef clsName fieldName resFt
+      in genSequel $ getstatic $ mkFieldRef clsName fieldName (fromJust resFt)
     ("@static":name:_) -> primJava name invokestatic
     (name:_) -> primJava name invokevirtual
   where labelString = unpackFS label

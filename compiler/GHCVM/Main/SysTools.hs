@@ -16,6 +16,7 @@ module GHCVM.Main.SysTools (
 
         -- Interface to system tools
         runUnlit, runCpp, runCc, -- [Option] -> IO ()
+        runJavac,
         runPp,                   -- [Option] -> IO ()
         runSplit,                -- [Option] -> IO ()
         runAs, runLink, runLibtool, -- [Option] -> IO ()
@@ -339,6 +340,7 @@ initSysTools mbMinusB
                     sPgm_readelf = readelf_path,
                     sPgm_lo  = (lo_prog,[]),
                     sPgm_lc  = (lc_prog,[]),
+                    sPgm_javac = ("javac",[]),
                     -- Hans: this isn't right in general, but you can
                     -- elaborate it in the same way as the others
                     sOpt_L       = [],
@@ -349,7 +351,8 @@ initSysTools mbMinusB
                     sOpt_l       = [],
                     sOpt_windres = [],
                     sOpt_lo      = [],
-                    sOpt_lc      = []
+                    sOpt_lc      = [],
+                    sOpt_javac    = []
                     }
 
 -- returns a Unix-format path (relying on getBaseDir to do so too)
@@ -453,6 +456,12 @@ runCc dflags args =   do
   wantedWarning w
    | "warning: call-clobbered register used" `isContainedIn` w = False
    | otherwise = True
+
+runJavac :: DynFlags -> [Option] -> IO ()
+runJavac dflags args =   do
+  let (prog, args0) = pgm_javac dflags
+      opts = map Option (getOpts dflags opt_javac)
+  runSomething dflags "Java Compiler" prog (args0 ++ args ++ opts)
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)
