@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module Codec.JVM.Class where
 
-import Debug.Trace(traceShow)
 import Data.Binary.Get
 import Data.Map.Strict (Map)
 import Data.ByteString.Base16 (decode)
@@ -73,8 +72,7 @@ getClassName = do
   poolSize <- getWord16be
   pool <- getConstPool $ fromIntegral $ poolSize - 1
   afs <- getAccessFlags ATClass
-  classIdx <- traceShow ("getClassName", magic, majorVersion, minorVersion, poolSize, pool, afs)
-                        $ getWord16be
+  classIdx <- getWord16be
   let CClass (IClassName iclsName) = getConstAt classIdx pool
   return iclsName
 

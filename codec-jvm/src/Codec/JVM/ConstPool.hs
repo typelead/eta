@@ -1,5 +1,4 @@
 module Codec.JVM.ConstPool where
-import Debug.Trace(traceShow)
 import Control.Arrow (second)
 import Control.Monad (join, replicateM, forM)
 import Data.IntMap.Lazy ((!))
@@ -107,10 +106,13 @@ putConstPool cp = mapM_ putConst $ run cp where
 
 getConstPool :: Int -> Get IxConstPool
 getConstPool n = do
-  poolPairs <- forM [1..n] $ \i -> do
-    f <- traceShow i getConst
-    return (i, f)
+  poolPairs <- decodeConsts 1
   return $ fix (\cp -> LazyMap.fromList $ map (second ($ cp)) poolPairs)
+  where decodeConsts i
+          | i > n = return []
+          | otherwise = do (f, di) <- getConst
+                           cs <- decodeConsts (i + di)
+                           return $ (i, f) : cs
 
 getConstAt :: (Integral a) => a -> IxConstPool -> Const
 getConstAt i cp = (!) cp $ fromIntegral i
@@ -118,66 +120,72 @@ getConstAt i cp = (!) cp $ fromIntegral i
 putConstAt :: (Integral a) => IxConstPool -> a -> Const -> IxConstPool
 putConstAt pool i c = LazyMap.insert (fromIntegral i) c pool
 
-getConst :: Get (IxConstPool -> Const)
+getConst :: Get (IxConstPool -> Const, Int)
 getConst = do
   tag <- getWord8
   case tag of
     1 -> do
       len <- getWord16be
       let len' = fromIntegral len
-      bytes <- traceShow len' $ getByteString len'
+      bytes <- getByteString len'
       {- TODO: This fails for Unicode codepoints beyond U+FFFF
                 because Modified-UTF8 doesn't support 4-byte
                 representations and instead uses two-times-three-byte
                 format. -}
-      return $ const $ CUTF8 $ decodeUtf8 bytes
+      return (const $ CUTF8 $ decodeUtf8 bytes, 1)
     3 -> do
       word <- getWord32be
-      return $ const $ CValue (CInteger (fromIntegral word))
+      return (const $ CValue (CInteger (fromIntegral word)), 1)
     4 -> do
       word <- getWord32be
-      return $ const $ CValue (CFloat (wordToFloat word))
+      return (const $ CValue (CFloat (wordToFloat word)), 1)
     5 -> do
       word <- getWord64be
-      return $ const $ CValue (CLong (fromIntegral word))
+      return (const $ CValue (CLong (fromIntegral word)), 2)
     6 -> do
       word <- getWord64be
-      return $ const $ CValue (CDouble (wordToDouble word))
+      return (const $ CValue (CDouble (wordToDouble word)), 2)
     7 -> do
       textIx <- getWord16be
-      return $ \cp -> let CUTF8 t = getConstAt textIx cp
+      return ( \cp -> let CUTF8 t = getConstAt textIx cp
                       in CClass (IClassName t)
+             , 1)
     8 -> do
       textIx <- getWord16be
-      return $ \cp -> let CUTF8 t = getConstAt textIx cp
+      return ( \cp -> let CUTF8 t = getConstAt textIx cp
                       in CValue (CString t)
+             , 1)
     9 -> do
       classIx <- getWord16be
       nameAndTypeIx <- getWord16be
-      return $ \cp -> let iclassName = case getConstAt classIx cp of
+      return ( \cp -> let iclassName = case getConstAt classIx cp of
                             CClass i -> i
                             c -> error $ "Type 9 (FieldRef): " ++ show (classIx, nameAndTypeIx, c)
                           CNameAndType (NameAndDesc uname (Desc desc)) = getConstAt nameAndTypeIx cp
                           Just ft = decodeFieldDesc desc
                       in CFieldRef $ FieldRef iclassName uname ft
+             , 1)
     10 -> do
       classIx <- getWord16be
       nameAndTypeIx <- getWord16be
-      return $ \cp -> let CClass iclassName = getConstAt classIx cp
+      return ( \cp -> let CClass iclassName = getConstAt classIx cp
                           CNameAndType (NameAndDesc uname (Desc desc)) = getConstAt nameAndTypeIx cp
-                          Just (fts, rft) = traceShow desc $ decodeMethodDesc desc
+                          Just (fts, rft) = decodeMethodDesc desc
                       in CMethodRef $ MethodRef iclassName uname fts rft
+             , 1)
     11 -> do
       classIx <- getWord16be
       nameAndTypeIx <- getWord16be
-      return $ \cp -> let CClass iclassName = getConstAt classIx cp
+      return ( \cp -> let CClass iclassName = getConstAt classIx cp
                           CNameAndType (NameAndDesc uname (Desc desc)) = getConstAt nameAndTypeIx cp
                           Just (fts, rft) = decodeMethodDesc desc
                       in CInterfaceMethodRef $ MethodRef iclassName uname fts rft
+             , 1)
     12 -> do
       nameIx <- getWord16be
       descriptorIx <- getWord16be
-      return $ \cp -> let CUTF8 name' = getConstAt nameIx cp
+      return ( \cp -> let CUTF8 name' = getConstAt nameIx cp
                           CUTF8 desc' = getConstAt descriptorIx cp
                       in CNameAndType (NameAndDesc (UName name') (Desc desc'))
+             , 1)
     val -> error $ "getConst: " ++ show val
