@@ -92,8 +92,8 @@ pop ft = mkCode'
         popOp = if fsz == 1 then OP.pop else OP.pop2
 
 
-invoke :: Bool -> Opcode -> MethodRef -> Code
-invoke this oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
+invoke :: Bool -> Bool -> Opcode -> MethodRef -> Code
+invoke this interface oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
   [ IT.op oc
   , IT.ix c
   , modifyStack
@@ -104,17 +104,20 @@ invoke this oc mr@(MethodRef _ _ fts rt) = mkCode cs $ fold
       popArgs = CF.pop'
               $ sum (fieldSize <$> fts)
               + (if this then 1 else 0)
-      c = CMethodRef mr
+      c = (if interface then CInterfaceMethodRef else CMethodRef) mr
       cs = CP.unpack c
 
+invokeinterface :: MethodRef -> Code
+invokeinterface = invoke True True OP.invokeinterface
+
 invokevirtual :: MethodRef -> Code
-invokevirtual = invoke True OP.invokevirtual
+invokevirtual = invoke True False OP.invokevirtual
 
 invokespecial :: MethodRef -> Code
-invokespecial = invoke True OP.invokespecial
+invokespecial = invoke True False OP.invokespecial
 
 invokestatic :: MethodRef -> Code
-invokestatic = invoke False OP.invokestatic
+invokestatic = invoke False False OP.invokestatic
 
 getfield :: FieldRef -> Code
 getfield fr@(FieldRef _ _ ft) = mkCode cs $ fold

@@ -1,9 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Codec.JVM.Internal
   ( module Data.Binary.Put,
+    module Data.Binary.Get,
     module Codec.JVM.Internal )
 where
 
+import Data.Binary.Get
+import qualified Data.Binary.Get.Internal as I
 import Data.Binary.Put
 import Data.Bits (shiftR)
 import Data.ByteString (ByteString)
@@ -12,6 +15,7 @@ import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Array.ST (newArray, readArray, MArray, STUArray)
 import Data.Array.Unsafe (castSTUArray)
 import GHC.ST (runST, ST)
+import Control.Monad.Fix
 
 import qualified Data.ByteString as BS
 
@@ -57,7 +61,6 @@ putDoublebe :: Double -> Put
 putDoublebe = putWord64be . doubleToWord
 {-# INLINE putDoublebe #-}
 
-
 -- | Reinterpret-casts a `Float` to a `Word32`.
 floatToWord :: Float -> Word32
 floatToWord x = runST (cast x)
@@ -67,6 +70,16 @@ floatToWord x = runST (cast x)
 doubleToWord :: Double -> Word64
 doubleToWord x = runST (cast x)
 {-# INLINE doubleToWord #-}
+
+-- | Reinterpret-casts a `Word32` to a `Float`.
+wordToFloat :: Word32 -> Float
+wordToFloat x = runST (cast x)
+{-# INLINE wordToFloat #-}
+
+-- | Reinterpret-casts a `Word64` to a `Double`.
+wordToDouble :: Word64 -> Double
+wordToDouble x = runST (cast x)
+{-# INLINE wordToDouble #-}
 
 cast :: (MArray (STUArray s) a (ST s),
          MArray (STUArray s) b (ST s)) => a -> ST s b

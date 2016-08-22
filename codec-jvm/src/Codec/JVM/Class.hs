@@ -15,7 +15,7 @@ import Control.Monad (when)
 
 import Codec.JVM.Attr (Attr, putAttr)
 import Codec.JVM.Const (Const, cclass)
-import Codec.JVM.ConstPool (ConstPool, putConstPool, putIx)
+import Codec.JVM.ConstPool (ConstPool, IxConstPool, putConstPool, putIx, getConstPool)
 import Codec.JVM.Field (FieldInfo, putFieldInfo)
 import Codec.JVM.Internal
 import Codec.JVM.Method (MethodInfo, putMethodInfo)
@@ -62,7 +62,7 @@ putClassFile ClassFile {..} = do
       putI16 . L.length $ fields
       mapM_ (putFieldInfo cp) fields
 
-getClassName :: Get ()
+getClassName :: Get IxConstPool
 getClassName = do
   magic <- getWord32be
   when (magic /= 0xCAFEBABE) $
@@ -70,8 +70,8 @@ getClassName = do
   majorVersion <- getWord16be
   minorVersion <- getWord16be
   poolSize <- getWord16be
-  -- _ <- getConstPool (poolSize - 1)
-  return ()
+  pool <- getConstPool $ fromIntegral $ poolSize - 1
+  return pool
 
 classFileBS :: ClassFile -> ByteString
 classFileBS = toStrict . runPut . putClassFile

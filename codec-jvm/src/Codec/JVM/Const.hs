@@ -28,6 +28,7 @@ constTag (CClass _)             = 7
 constTag (CValue (CString _))   = 8
 constTag (CFieldRef _)          = 9
 constTag (CMethodRef _)         = 10
+constTag (CInterfaceMethodRef _)= 11
 constTag (CNameAndType _)       = 12
 
 -- | https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.4
@@ -37,6 +38,7 @@ data Const
   | CClass IClassName
   | CFieldRef FieldRef
   | CMethodRef MethodRef
+  | CInterfaceMethodRef MethodRef
   | CNameAndType NameAndDesc
   deriving (Eq, Ord, Show)
 

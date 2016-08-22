@@ -104,8 +104,8 @@ mkFieldDesc' ft = case ft of
   ObjectType (IClassName cn)  -> objectWrap cn
   ArrayType ft'               -> arrayWrap (mkFieldDesc' ft')
 
-decodeFieldDesc :: Text -> Maybe (FieldType, Text)
-decodeFieldDesc desc
+decodeDesc :: Text -> Maybe (FieldType, Text)
+decodeDesc desc
   | Just (c, rest) <- Text.uncons desc
   , let base x = Just (BaseType x, rest)
   = case c of
@@ -117,12 +117,19 @@ decodeFieldDesc desc
       'J' -> base JLong
       'S' -> base JShort
       'Z' -> base JBool
-      '[' -> case decodeFieldDesc rest of
+      '[' -> case decodeDesc rest of
         Just (ft, rest') -> Just (ArrayType ft, rest')
         Nothing -> Nothing
       'L' -> case Text.span (/= ';') rest of
         (clsName, rest') -> Just (ObjectType (IClassName clsName), Text.drop 1 rest')
       _   -> Nothing
+  | otherwise = Nothing
+
+decodeFieldDesc :: Text -> Maybe FieldType
+decodeFieldDesc desc
+  | Just (ft, rest)<- decodeDesc desc
+  , Text.null rest
+  = Just ft
   | otherwise = Nothing
 
 arrayWrap :: Text -> Text
@@ -168,22 +175,22 @@ mkMethodDesc' fts rt = Text.concat ["(", args, ")", result] where
   args = Text.concat $ mkFieldDesc' <$> fts
   result  = maybe "V" mkFieldDesc' rt
 
-decodeMethodDec :: Text -> Maybe ([FieldType], ReturnType)
-decodeMethodDec desc
+decodeMethodDesc :: Text -> Maybe ([FieldType], ReturnType)
+decodeMethodDesc desc
   | Just ('(', rest) <- Text.uncons desc
   , (inside, outside) <- Text.span (/= ')') rest
   = let retType = case Text.uncons outside of
           Just ('V', rest)
             | Text.null rest -> Just Nothing
             | otherwise -> Nothing
-          _ -> case decodeFieldDesc outside of
+          _ -> case decodeDesc outside of
             Just (ft, rest') -> if Text.null rest' then Just (Just ft) else Nothing
             _ -> Nothing
     in (,) <$> argTypes desc [] <*> retType
   | otherwise = Nothing
   where argTypes text fts
           | Text.null text = Just $ reverse fts
-          | Just (ft, rest') <- decodeFieldDesc text = argTypes rest' (ft:fts)
+          | Just (ft, rest') <- decodeDesc text = argTypes rest' (ft:fts)
           | otherwise = Nothing
 
 -- | Field or method reference
