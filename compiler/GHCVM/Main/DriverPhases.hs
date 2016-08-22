@@ -114,6 +114,7 @@ data Phase
         | Hsc   HscSource
         | Ccpp
         | JJava
+        | JClass
         | Cc
         | Cobjc
         | Cobjcpp
@@ -152,6 +153,7 @@ eqPhase (HsPp  _)   (HsPp  _)  = True
 eqPhase (Hsc   _)   (Hsc   _)  = True
 eqPhase Ccpp        Ccpp       = True
 eqPhase JJava       JJava      = True
+eqPhase JClass      JClass     = True
 eqPhase Cc          Cc         = True
 eqPhase Cobjc       Cobjc      = True
 eqPhase Cobjcpp     Cobjcpp    = True
@@ -193,7 +195,8 @@ nextPhase dflags p
       SplitAs    -> MergeStub
       As _       -> MergeStub
       Ccpp       -> As False
-      JJava      -> StopLn
+      JJava      -> JClass
+      JClass     -> StopLn
       Cc         -> As False
       Cobjc      -> As False
       Cobjcpp    -> As False
@@ -219,6 +222,7 @@ startPhase "hscpp"    = HsPp  HsSrcFile
 startPhase "hspp"     = Hsc   HsSrcFile
 startPhase "hc"       = HCc
 startPhase "java"     = JJava
+startPhase "class"    = JClass
 startPhase "c"        = Cc
 startPhase "cpp"      = Ccpp
 startPhase "C"        = Cc
@@ -256,6 +260,7 @@ phaseInputExt Ccpp                = "cpp"
 phaseInputExt Cobjc               = "m"
 phaseInputExt Cobjcpp             = "mm"
 phaseInputExt JJava               = "java"
+phaseInputExt JClass              = "class"
 phaseInputExt Cc                  = "c"
 phaseInputExt Splitter            = "split_s"
 phaseInputExt (As True)           = "S"
@@ -286,7 +291,7 @@ haskellish_sig_suffixes      = [ "hsig", "lhsig" ]
 objish_suffixes :: Platform -> [String]
 -- Use the appropriate suffix for the system on which
 -- the GHC-compiled code will run
-objish_suffixes platform = case platformOS platform of
+objish_suffixes platform = "class" : case platformOS platform of
   OSMinGW32 -> [ "o", "O", "obj", "OBJ" ]
   _         -> [ "o" ]
 

@@ -88,6 +88,7 @@ import Data.Char
 import Control.Arrow((&&&), first)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Lazy as BL
 
 -- ---------------------------------------------------------------------------
 -- Pre-process
@@ -666,6 +667,8 @@ getOutputFilename stop_phase output basename dflags next_phase maybe_location
                        As _    | keep_s     -> True
                        LlvmOpt | keep_bc    -> True
                        HCc     | keep_hc    -> True
+                       -- TODO: Quick hack
+                       JClass               -> True
                        _other               -> False
 
           suffix = myPhaseInputExt next_phase
@@ -938,16 +941,23 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
 -----------------------------------------------------------------------------
 -- Java phase
 
-runPhase (RealPhase JJava) input_fn dflags = undefined
-  -- = do
-  --      output_fn <- phaseOutputFilename StopLn
-  --      liftIO $ runJavac dflags $
-  --        [ SysTools.FileOption "" input_fn
+runPhase (RealPhase JJava) inputFile dflags
+  = do let nextPhase = JClass
+       outputFile <- phaseOutputFilename nextPhase
+       liftIO $ runJavac dflags $
+         [ SysTools.FileOption "" inputFile ]
+       return (RealPhase JClass, outputFile)
 
-  --        ]
-  --      doCpp dflags False{-not raw-}
-  --                     input_fn output_fn
-  --      return (RealPhase Cmm, output_fn)
+runPhase (RealPhase JClass) inputFile dflags
+  = do let nextPhase = StopLn
+       outputFile <- phaseOutputFilename nextPhase
+       liftIO $ do
+         createEmptyJar outputFile
+         contents <- BL.readFile inputFile
+         let internalPath = classFileCls contents
+         relPath <- mkPath $ internalPath ++ ".class"
+         addMultiByteStringsToJar' [(relPath, BL.toStrict contents)] outputFile
+         return (RealPhase nextPhase, outputFile)
 
 -----------------------------------------------------------------------------
 -- Cc phase

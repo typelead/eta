@@ -5,12 +5,14 @@ import Data.Binary.Get
 import Data.Map.Strict (Map)
 import Data.ByteString.Base16 (decode)
 import Data.ByteString (ByteString)
-import Data.ByteString.Lazy (toStrict)
+import Data.ByteString.Lazy (toStrict, readFile)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Set (Set)
 
 import qualified Data.List as L
+import qualified Data.Text as T
+import qualified Data.ByteString.Lazy as BL
 import Control.Monad (when)
 
 import Codec.JVM.Attr (Attr, putAttr)
@@ -78,3 +80,6 @@ getClassName = do
 
 classFileBS :: ClassFile -> ByteString
 classFileBS = toStrict . runPut . putClassFile
+
+classFileCls :: BL.ByteString -> String
+classFileCls bs = T.unpack $ runGet getClassName bs

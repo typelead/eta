@@ -107,6 +107,7 @@ putConstPool cp = mapM_ putConst $ run cp where
 getConstPool :: Int -> Get IxConstPool
 getConstPool n = do
   poolPairs <- decodeConsts 1
+  -- Knot-tying for single-pass build of the constant pool
   return $ fix (\cp -> LazyMap.fromList $ map (second ($ cp)) poolPairs)
   where decodeConsts i
           | i > n = return []
