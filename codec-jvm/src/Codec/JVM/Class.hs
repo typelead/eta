@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module Codec.JVM.Class where
 
+import Debug.Trace(traceShow)
 import Data.Binary.Get
 import Data.Map.Strict (Map)
 import Data.ByteString.Base16 (decode)
@@ -14,12 +15,12 @@ import qualified Data.List as L
 import Control.Monad (when)
 
 import Codec.JVM.Attr (Attr, putAttr)
-import Codec.JVM.Const (Const, cclass)
-import Codec.JVM.ConstPool (ConstPool, IxConstPool, putConstPool, putIx, getConstPool)
+import Codec.JVM.Const
+import Codec.JVM.ConstPool
 import Codec.JVM.Field (FieldInfo, putFieldInfo)
 import Codec.JVM.Internal
 import Codec.JVM.Method (MethodInfo, putMethodInfo)
-import Codec.JVM.Types (AccessFlag, putAccessFlags, Version, IClassName, jlObject, versionMaj, versionMin)
+import Codec.JVM.Types
 import qualified Codec.JVM.ConstPool as CP
 
 -- https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.1
@@ -62,16 +63,20 @@ putClassFile ClassFile {..} = do
       putI16 . L.length $ fields
       mapM_ (putFieldInfo cp) fields
 
-getClassName :: Get IxConstPool
+getClassName :: Get Text
 getClassName = do
   magic <- getWord32be
   when (magic /= 0xCAFEBABE) $
     fail $ "Invalid .class file MAGIC value: " ++ show magic
-  majorVersion <- getWord16be
   minorVersion <- getWord16be
+  majorVersion <- getWord16be
   poolSize <- getWord16be
   pool <- getConstPool $ fromIntegral $ poolSize - 1
-  return pool
+  afs <- getAccessFlags ATClass
+  classIdx <- traceShow ("getClassName", magic, majorVersion, minorVersion, poolSize, pool, afs)
+                        $ getWord16be
+  let CClass (IClassName iclsName) = getConstAt classIdx pool
+  return iclsName
 
 classFileBS :: ClassFile -> ByteString
 classFileBS = toStrict . runPut . putClassFile

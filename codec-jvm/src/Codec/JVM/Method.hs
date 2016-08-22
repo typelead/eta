@@ -1,16 +1,13 @@
 module Codec.JVM.Method where
 
-import Data.Binary.Put (Put)
 import Data.Set (Set)
-
 import qualified Data.List as L
-import qualified Data.Set as S
 
-import Codec.JVM.Attr (Attr(..), putAttr, unpackAttr, toAttrs, attrName)
-import Codec.JVM.Const (Const(CUTF8))
-import Codec.JVM.ASM.Code (Code)
-import Codec.JVM.ConstPool (ConstPool, putIx)
-import Codec.JVM.Internal (putI16)
+import Codec.JVM.Attr
+import Codec.JVM.Const
+import Codec.JVM.ASM.Code
+import Codec.JVM.ConstPool
+import Codec.JVM.Internal
 import Codec.JVM.Types
 
 

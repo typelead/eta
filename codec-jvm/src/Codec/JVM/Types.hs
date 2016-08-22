@@ -2,12 +2,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Codec.JVM.Types where
 
+import Codec.JVM.Internal
 import Data.Binary.Put (Put, putWord16be)
 import Data.Set (Set)
 import Data.Word (Word16)
-import Data.Foldable (fold)
 import Data.Text (Text)
 import Data.String (IsString)
+import Data.Maybe (mapMaybe)
+import Data.Bits
+import Data.List
 
 import qualified Data.Set as S
 import qualified Data.Text as Text
@@ -178,16 +181,20 @@ mkMethodDesc' fts rt = Text.concat ["(", args, ")", result] where
 decodeMethodDesc :: Text -> Maybe ([FieldType], ReturnType)
 decodeMethodDesc desc
   | Just ('(', rest) <- Text.uncons desc
-  , (inside, outside) <- Text.span (/= ')') rest
+  , (inside, outside') <- Text.span (/= ')') rest
+  , let outside = Text.drop 1 outside'
   = let retType = case Text.uncons outside of
-          Just ('V', rest)
-            | Text.null rest -> Just Nothing
+          Just ('V', rest')
+            | Text.null rest' -> Just Nothing
             | otherwise -> Nothing
           _ -> case decodeDesc outside of
             Just (ft, rest') -> if Text.null rest' then Just (Just ft) else Nothing
             _ -> Nothing
-    in (,) <$> argTypes desc [] <*> retType
-  | otherwise = Nothing
+    in do
+      a <- argTypes inside []
+      b <- retType
+      return (a,b)
+  | otherwise = Nothing --error $ "decodeMethodDesc: Bad desc: " ++ Text.unpack desc
   where argTypes text fts
           | Text.null text = Just $ reverse fts
           | Just (ft, rest') <- decodeDesc text = argTypes rest' (ft:fts)
@@ -246,6 +253,12 @@ data AccessFlag
   | Synthetic
   | Annotation
   | Enum
+  deriving (Eq, Ord, Show, Enum)
+
+data AccessType
+  = ATClass
+  | ATMethod
+  | ATField
   deriving (Eq, Ord, Show)
 
 accessFlagValue :: AccessFlag -> Word16
@@ -270,6 +283,21 @@ accessFlagValue Enum          = 0x4000
 
 putAccessFlags :: Set AccessFlag -> Put
 putAccessFlags accessFlags = putWord16be $ sum (accessFlagValue <$> (S.toList accessFlags))
+
+getAccessFlags :: AccessType -> Get (Set AccessFlag)
+getAccessFlags at = do
+  mask <- getWord16be
+  return $ S.fromList $ accessFlagsFromBitmask at mask
+
+accessFlagsFromBitmask :: AccessType -> Word16 -> [AccessFlag]
+accessFlagsFromBitmask at mask =
+  mapMaybe (\(i, af) -> if testBit mask (16 - i)
+                        then Just af
+                        else Nothing) accessFlagMap
+  where removeFlags = case at of
+          ATClass -> [Synchronized, Bridge, Transient] -- Bridge and Transient are arbitrary choices
+          _ -> []
+        accessFlagMap = zip [0..] $ [Public ..] \\ removeFlags
 
 newtype Label = Label Int
 

@@ -6,7 +6,6 @@ module Codec.JVM.Internal
 where
 
 import Data.Binary.Get
-import qualified Data.Binary.Get.Internal as I
 import Data.Binary.Put
 import Data.Bits (shiftR)
 import Data.ByteString (ByteString)
@@ -15,7 +14,6 @@ import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Array.ST (newArray, readArray, MArray, STUArray)
 import Data.Array.Unsafe (castSTUArray)
 import GHC.ST (runST, ST)
-import Control.Monad.Fix
 
 import qualified Data.ByteString as BS
 
