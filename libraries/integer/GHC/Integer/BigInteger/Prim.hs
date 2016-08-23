@@ -178,14 +178,14 @@ foreign import prim "java.math.BigInteger.gcd" gcdInteger#
   :: Integer# -> Integer# -> Integer#
 
 -- TODO: Change this
-foreign import prim "@static ghcvm.runtime.util.Unsigned.extendedEuclid" gcdExtInteger#
+foreign import prim "@static ghcvm.integer.Utils.extendedEuclid" gcdExtInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 gcdIntegerInt# :: Integer# -> Int# -> Integer#
 gcdIntegerInt# bigInt int = gcdInteger# bigInt (intToInteger# int)
 
 -- TODO: Change this
-foreign import prim "@static ghcvm.runtime.util.Unsigned.gcd" gcdInt#
+foreign import prim "@static ghcvm.integer.Utils.gcd" gcdInt#
   :: Int# -> Int# -> Int#
 
 
@@ -193,7 +193,7 @@ int2Integer# :: Int# -> Integer#
 int2Integer# i# = int64ToInteger# (intToInt64# i#)
 
 -- TODO: Change this
-foreign import prim "@static ghcvm.runtime.util.Unsigned.toUnsignedBigInteger" word2Integer#
+foreign import prim "@static ghcvm.integer.Utils.toUnsignedBigInteger" word2Integer#
   :: Word# -> Integer#
 
 foreign import prim "java.math.BigInteger.and" andInteger#

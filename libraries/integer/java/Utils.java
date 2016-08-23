@@ -1,33 +1,45 @@
-/*
- * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
-package ghc.runtime.util;
+package ghcvm.integer;
 
 import java.math.BigInteger;
 
-/* All of the following functions have been taken from JDK 8. */
-public class Unsigned {
+public class Utils {
+    /**
+     * Taken from:
+     * https://github.com/bcgit/bc-java/blob/master/core/src/main/java/org/bouncycastle/pqc/math/ntru/euclid/BigIntEuclidean.java
+     */
+    public static BigInteger[] extendedEuclid(BigInteger a, BigInteger b) {
+        BigInteger x = BigInteger.ZERO;
+        BigInteger lastx = BigInteger.ONE;
+        BigInteger y = BigInteger.ONE;
+        BigInteger lasty = BigInteger.ZERO;
+        while (!b.equals(BigInteger.ZERO))
+            {
+                BigInteger[] quotientAndRemainder = a.divideAndRemainder(b);
+                BigInteger quotient = quotientAndRemainder[0];
+
+                BigInteger temp = a;
+                a = b;
+                b = quotientAndRemainder[1];
+
+                temp = x;
+                x = lastx.subtract(quotient.multiply(x));
+                lastx = temp;
+
+                temp = y;
+                y = lasty.subtract(quotient.multiply(y));
+                lasty = temp;
+            }
+        return new BigInteger[] {a, lastx};
+    }
+
+    public static int gcd(int p, int q) {
+        while (q != 0) {
+            int temp = q;
+            q = p % q;
+            p = temp;
+        }
+        return p;
+    }
 
     /**
      * Return a BigInteger equal to the unsigned value of the
@@ -163,42 +175,4 @@ public class Unsigned {
     public static int compareLong(long x, long y) {
         return (x < y) ? -1 : ((x == y) ? 0 : 1);
     }
-    /**
-     * Taken from:
-     * https://github.com/bcgit/bc-java/blob/master/core/src/main/java/org/bouncycastle/pqc/math/ntru/euclid/BigIntEuclidean.java
-     */
-    public static BigInteger[] extendedEuclid(BigInteger a, BigInteger b) {
-        BigInteger x = BigInteger.ZERO;
-        BigInteger lastx = BigInteger.ONE;
-        BigInteger y = BigInteger.ONE;
-        BigInteger lasty = BigInteger.ZERO;
-        while (!b.equals(BigInteger.ZERO))
-        {
-            BigInteger[] quotientAndRemainder = a.divideAndRemainder(b);
-            BigInteger quotient = quotientAndRemainder[0];
-
-            BigInteger temp = a;
-            a = b;
-            b = quotientAndRemainder[1];
-
-            temp = x;
-            x = lastx.subtract(quotient.multiply(x));
-            lastx = temp;
-
-            temp = y;
-            y = lasty.subtract(quotient.multiply(y));
-            lasty = temp;
-        }
-        return new BigInteger[] {a, lastx};
-    }
-
-    public static int gcd(int p, int q) {
-        while (q != 0) {
-            int temp = q;
-            q = p % q;
-            p = temp;
-        }
-        return p;
-    }
-
 }

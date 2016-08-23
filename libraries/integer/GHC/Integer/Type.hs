@@ -59,7 +59,7 @@ import GHC.Integer.BigInteger.Prim (
     word64ToInteger#, integerToWord64#,
     --GHCVM-specific
     zeroInteger#,
-    equalsInteger#
+    equalsInteger#,
     absInteger#,
     bitsInteger#,
     signumInteger#,
@@ -745,6 +745,7 @@ recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 -- <http://gmplib.org/manual/Number-Theoretic-Functions.html#index-mpz_005fprobab_005fprime_005fp-360 GMP documentation for `mpz_probab_prime_p()`>.
 --
 -- /Since: 0.5.1.0/
+-- TODO: Second argument is certainty, not # of rounds
 {-# NOINLINE testPrimeInteger #-}
 testPrimeInteger :: Integer -> Int# -> Int#
 testPrimeInteger j@(S# _) reps = testPrimeInteger (toBig j) reps
@@ -786,10 +787,10 @@ nextPrimeInteger (J# o#)  = smartJ# (nextPrimeInteger# o#)
 --   significant bit of @/i/@.
 --
 -- /Since: 0.5.1.0/
-{-# NOINLINE sizeInBaseInteger #-}
-sizeInBaseInteger :: Integer -> Int# -> Word#
-sizeInBaseInteger (J# o#) b  = sizeInBaseInteger# o# b
-sizeInBaseInteger j@(S# _) b = sizeInBaseInteger (toBig j) b -- TODO
+-- {-# NOINLINE sizeInBaseInteger #-}
+-- sizeInBaseInteger :: Integer -> Int# -> Word#
+-- sizeInBaseInteger (J# o#) b  = sizeInBaseInteger# o# b
+-- sizeInBaseInteger j@(S# _) b = sizeInBaseInteger (toBig j) b -- TODO
 
 -- -- | Dump 'Integer' (without sign) to mutable byte-array in base-256 representation.
 -- --

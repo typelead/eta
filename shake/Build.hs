@@ -94,13 +94,15 @@ buildLibrary debug lib deps = do
   if lib == "rts" then
     need [rtsjar]
   else do
-    hsFiles <- getDirectoryFiles libDir ["//*.hs"]
-    let ghcvmFlags = if debug then ["-v"] else []
-    unit $ cmd [Cwd libDir, AddEnv "GHC_PACKAGE_PATH" packageDir]
+    sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//.java"]
+    let ghcvmFlags = if debug
+                     then ["-v", "-ddump-to-file", "-ddump-stg", "-ddump-tc-trace"]
+                     else []
+    unit $ cmd [Cwd libDir, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
                ghcvmCmd "-clear-package-db" ghcvmFlags
                ["-package " ++ dep | dep <- deps]
-               "-staticlib -ddump-to-file -ddump-stg -this-package-key"
-               lib "-o" ("build" </> libName lib)  "-outputdir build" hsFiles
+               "-staticlib -this-package-key"
+               lib "-o" ("build" </> libName lib)  "-outputdir build" sourceFiles
   buildConf lib libConf libBuildConf
   buildFiles <- getDirectoryFiles libBuildDir ["//*"]
 

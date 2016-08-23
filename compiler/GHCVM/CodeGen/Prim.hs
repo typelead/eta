@@ -65,27 +65,16 @@ cgOpApp (StgPrimOp primOp) args resType = do
               -- emitReturn [res]
         -> do -- Assumes Returns Prim is of Non-closure type
               codes <- codes'
-              emitReturn
-                . (:[])
-                . mkLocDirect False
-                $ ( expectJust "cgOpApp: StgPrimOp"
-                  . primRepFieldType_maybe
-                  $ rep
-                  , (head codes))
+              emitReturn [ mkLocDirect False (primRepFieldType rep, head codes) ]
         | ReturnsAlg tyCon <- resultInfo, isUnboxedTupleTyCon tyCon
         -> do -- locs <- newUnboxedTupleLocs resType
               -- f locs
               codes <- codes'
-              let UbxTupleRep tyArgs         = repType resType
-                  reps = [ (isGcPtrRep rep, rep)
-                         | ty <- tyArgs
-                         , let rep           = typePrimRep ty
-                         , not (isVoidRep rep) ]
-              emitReturn . map (\((isClosure, rep), code)
-                                -> mkLocDirect isClosure
-                                   (primRepFieldType rep
-                                   , code))
-                         $ zip reps codes
+              let reps = getUnboxedResultReps resType
+              emitReturn
+                . map (\(rep, code) ->
+                         mkLocDirect (isGcPtrRep rep) (primRepFieldType rep, code))
+                $ zip reps codes
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
@@ -239,6 +228,41 @@ emitPrimOp WordQuotRemOp args = do
   codes1 <- emitPrimOp WordQuotOp args
   codes2 <- emitPrimOp WordRemOp args
   return $ codes1 ++ codes2
+
+emitPrimOp IntAddCOp [arg1, arg2] = do
+  tmp <- newTemp False jint
+  emit $ storeLoc tmp (arg1 <> arg2 <> iadd)
+  let sum = loadLoc tmp
+  return $ [ sum
+           , (arg1 <> sum <> ixor)
+          <> (arg2 <> sum <> ixor)
+          <> iand
+          <> inot
+           ]
+
+emitPrimOp IntSubCOp [arg1, arg2] = do
+  tmp <- newTemp False jint
+  emit $ storeLoc tmp (arg1 <> arg2 <> isub)
+  let diff = loadLoc tmp
+  return $ [ diff
+           , (arg1 <> arg2 <> ixor)
+          <> (arg1 <> diff <> ixor)
+          <> iand
+          <> inot
+           ]
+
+emitPrimOp IntMulMayOfloOp [arg1, arg2] = do
+  tmp <- newTemp False jint
+  emit $ storeLoc tmp ( (arg1 <> gconv jint jlong)
+                     <> (arg2 <> gconv jint jlong)
+                     <> lmul )
+  let mul = loadLoc tmp
+  return $ [ mul
+          <> gconv jlong jint
+          <> gconv jint  jlong
+          <> mul
+          <> lcmp
+           ]
 
 emitPrimOp op [arg]
   | nopOp op = return [arg]

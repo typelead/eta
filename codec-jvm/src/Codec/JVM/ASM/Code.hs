@@ -524,11 +524,17 @@ gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
               (JDouble, JDouble) -> mempty
               other -> error $ "Implement the other JVM primitive conversions."
                             ++ show other
-          (ObjectType _, ObjectType iclass) -> IT.op OP.checkcast
-                                            <> IT.ix (cclass iclass)
+          (ObjectType _, ObjectType iclass) -> checkCast iclass
+          (ObjectType _, ft@(ArrayType _)) -> checkCast arrayIClass
+          (ArrayType  _, ft@(ArrayType _)) -> checkCast arrayIClass
           _ -> error "Cannot convert between primitive type and object type."
         cs (ObjectType iclass) = [cclass iclass]
+        cs (ArrayType _) = [cclass arrayIClass]
         cs _ = []
+        arrayIClass = IClassName $ mkFieldDesc' ft2
+        checkCast iclass = IT.op OP.checkcast
+                        <> IT.ix (cclass iclass)
+
 
 -- Heuristic taken from https://ghc.haskell.org/trac/ghc/ticket/9159
 gswitch :: Code -> [(Int, Code)] -> Maybe Code -> Code

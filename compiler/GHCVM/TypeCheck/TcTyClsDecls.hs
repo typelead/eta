@@ -1420,7 +1420,7 @@ checkValidTyCl thing
 -- that each constructor that has a field 'f'
 --      (a) has the same result type
 --      (b) has the same type for 'f'
--- module alpha conversion of the quantified type variables
+-- modulo alpha conversion of the quantified type variables
 -- of the constructor.
 --
 -- Note that we allow existentials to match because the

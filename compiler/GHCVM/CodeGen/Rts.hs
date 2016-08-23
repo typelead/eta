@@ -60,7 +60,7 @@ rtsConfig     = rts "RtsConfig"
 rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
 exitCode      = rts "Rts$ExitCode"
 stgArray      = io "StgArray"
-rtsUnsigned   = util "Unsigned"
+rtsUnsigned   = merge "ghcvm/integer" "Utils"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code

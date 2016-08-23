@@ -1546,7 +1546,8 @@ doCpp dflags raw input_fn output_fn = do
     -- Default CPP defines in Haskell source
     ghcVersionH <- getGhcVersionPathName dflags
     let hsSourceCppOpts =
-          [ "-D__GLASGOW_HASKELL__=001"
+          [ "-D__GLASGOW_HASKELL__=7103"
+          , "-D__GHCVM__=001"
           , "-include", ghcVersionH
           ]
 

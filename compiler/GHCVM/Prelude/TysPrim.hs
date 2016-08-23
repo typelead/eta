@@ -870,9 +870,10 @@ jboolPrimTyCon   = pcPrimTyCon0 jboolPrimTyConName BoolRep
 jbytePrimTyCon   = pcPrimTyCon0 jbytePrimTyConName ByteRep
 jshortPrimTyCon  = pcPrimTyCon0 jshortPrimTyConName ShortRep
 jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] $
-                     ObjectRep $ error "jobjectPrimTyCon shouldn't be used directly!"
-jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles VoidRep
-  where kind     = mkArrowKinds (map (const liftedTypeKind) roles) liftedTypeKind
+                     ObjectRep $ error "Object# shouldn't be used directly!"
+jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles $
+                     ArrayRep $ error "JArray# shouldn't be used directly!"
+  where kind     = mkArrowKinds [unliftedTypeKind] liftedTypeKind
         roles    = [Nominal]
 
 mkObjectTy :: Type -> Type
