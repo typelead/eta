@@ -85,6 +85,7 @@ import GHC.Prim
 import GHC.Types
 import GHC.Classes
 import GHC.JArray
+import GHC.IntWord64
 
 -- Double isn't available yet, and we shouldn't be using defaults anyway:
 default ()
@@ -110,69 +111,69 @@ foreign import prim "java.math.BigInteger.compareTo" cmpInteger#
   :: Integer# -> Integer# -> Int#
 
 cmpIntegerInt# :: Integer# -> Int# -> Int#
-cmpIntegerInt# bigInt int = cmpInteger# bigInt (intToInteger# int)
+cmpIntegerInt# bigInt int = cmpInteger# bigInt (int2Integer# int)
 
 foreign import prim "java.math.BigInteger.add" plusInteger#
   :: Integer# -> Integer# -> Integer#
 
 plusIntegerInt# :: Integer# -> Int# -> Integer#
-plusIntegerInt# bigInt int = plusInteger# bigInt (intToInteger# int)
+plusIntegerInt# bigInt int = plusInteger# bigInt (int2Integer# int)
 
 foreign import prim "java.math.BigInteger.subtract" minusInteger#
   :: Integer# -> Integer# -> Integer#
 
 minusIntegerInt# :: Integer# -> Int# -> Integer#
-minusIntegerInt# bigInt int = minusInteger# bigInt (intToInteger# int)
+minusIntegerInt# bigInt int = minusInteger# bigInt (int2Integer# int)
 
 foreign import prim "java.math.BigInteger.multiply" timesInteger#
   :: Integer# -> Integer# -> Integer#
 
 timesIntegerInt# :: Integer# -> Int# -> Integer#
-timesIntegerInt# bigInt int = timesInteger# bigInt (intToInteger# int)
+timesIntegerInt# bigInt int = timesInteger# bigInt (int2Integer# int)
 
 foreign import prim "java.math.BigInteger.divideAndRemainder" quotRemInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 quotRemIntegerWord# :: Integer# -> Word# -> IntegerPair#
-quotRemIntegerWord# bigInt word = quotRemInteger# bigInt (wordToInteger# word)
+quotRemIntegerWord# bigInt word = quotRemInteger# bigInt (word2Integer# word)
 
 foreign import prim "java.math.BigInteger.divide" quotInteger#
   :: Integer# -> Integer# -> Integer#
 
 quotIntegerWord# :: Integer# -> Word# -> Integer#
-quotIntegerWord# bigInt word = quotInteger# bigInt (wordToInteger# word)
+quotIntegerWord# bigInt word = quotInteger# bigInt (word2Integer# word)
 
 foreign import prim "java.math.BigInteger.remainder" remInteger#
   :: Integer# -> Integer# -> Integer#
 
 -- TODO: Reconcile differences between divMod/quotRem
 remIntegerWord# :: Integer# -> Word# -> Integer#
-remIntegerWord# bigInt word = remInteger# bigInt (wordToInteger# word)
+remIntegerWord# bigInt word = remInteger# bigInt (word2Integer# word)
 
 foreign import prim "java.math.BigInteger.divideAndRemainder" divModInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 divModIntegerWord# :: Integer# -> Word# -> IntegerPair#
-divModIntegerWord# bigInt word = divModInteger# bigInt (wordToInteger# word)
+divModIntegerWord# bigInt word = divModInteger# bigInt (word2Integer# word)
 
 foreign import prim "java.math.BigInteger.divide" divInteger#
   :: Integer# -> Integer# -> Integer#
 
 divIntegerWord# :: Integer# -> Word# -> Integer#
-divIntegerWord# bigInt word = divInteger# bigInt (wordToInteger# word)
+divIntegerWord# bigInt word = divInteger# bigInt (word2Integer# word)
 
 foreign import prim "java.math.BigInteger.remainder" modInteger#
   :: Integer# -> Integer# -> Integer#
 
 modIntegerWord# :: Integer# -> Word# -> Integer#
-modIntegerWord# bigInt word = modInteger# bigInt (wordToInteger# word)
+modIntegerWord# bigInt word = modInteger# bigInt (word2Integer# word)
 
 -- TODO: Optimize divExactInteger#
 foreign import prim "java.math.BigInteger.divide" divExactInteger#
   :: Integer# -> Integer# -> Integer#
 
 divExactIntegerWord# :: Integer# -> Word# -> Integer#
-divExactIntegerWord# bigInt word = divExactInteger# bigInt (wordToInteger# word)
+divExactIntegerWord# bigInt word = divExactInteger# bigInt (word2Integer# word)
 
 foreign import prim "java.math.BigInteger.gcd" gcdInteger#
   :: Integer# -> Integer# -> Integer#
@@ -182,12 +183,11 @@ foreign import prim "@static ghcvm.integer.Utils.extendedEuclid" gcdExtInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 gcdIntegerInt# :: Integer# -> Int# -> Integer#
-gcdIntegerInt# bigInt int = gcdInteger# bigInt (intToInteger# int)
+gcdIntegerInt# bigInt int = gcdInteger# bigInt (int2Integer# int)
 
 -- TODO: Change this
 foreign import prim "@static ghcvm.integer.Utils.gcd" gcdInt#
   :: Int# -> Int# -> Int#
-
 
 int2Integer# :: Int# -> Integer#
 int2Integer# i# = int64ToInteger# (intToInt64# i#)

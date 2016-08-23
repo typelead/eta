@@ -386,6 +386,14 @@ simpleOp FloatMulOp = Just $ normalOp fmul
 simpleOp FloatDivOp = Just $ normalOp fdiv
 simpleOp FloatNegOp = Just $ normalOp fneg
 
+-- Conversions
+simpleOp Int2DoubleOp   = Just $ normalOp $ gconv jint    jdouble
+simpleOp Double2IntOp   = Just $ normalOp $ gconv jdouble jint
+simpleOp Int2FloatOp    = Just $ normalOp $ gconv jint    jfloat
+simpleOp Float2IntOp    = Just $ normalOp $ gconv jfloat  jint
+simpleOp Float2DoubleOp = Just $ normalOp $ gconv jfloat  jdouble
+simpleOp Double2FloatOp = Just $ normalOp $ gconv jdouble jfloat
+
 simpleOp _ = Nothing
 
 unsignedOp :: Code -> [Code] -> Code

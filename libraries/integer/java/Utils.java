@@ -175,4 +175,24 @@ public class Utils {
     public static int compareLong(long x, long y) {
         return (x < y) ? -1 : ((x == y) ? 0 : 1);
     }
+
+    /* Encoding & Decoding Floats/Doubles */
+    // TODO: 1) Do we need to treat 0.0 case as special?
+    //       2) Math.scalb is not present in Java 1.5.
+    //       3) Do we need to treat negative case separately?
+    public static float int_encodeFloat(int j, int e) {
+        return Math.scalb((float) j, e);
+    }
+
+    public static double int_encodeDouble(int j, int e) {
+        return Math.scalb((double) j, e);
+    }
+
+    public static float encodeFloat(BigInteger j, int e) {
+        return Math.scalb(j.floatValue(), e);
+    }
+
+    public static double encodeDouble(BigInteger j, int e) {
+        return Math.scalb(j.doubleValue(), e);
+    }
 }

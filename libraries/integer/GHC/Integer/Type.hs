@@ -606,14 +606,14 @@ floatFromInteger :: Integer -> Float#
 floatFromInteger (S# i#) = int2Float# i#
 floatFromInteger (J# o#) = integer2Float# o#
 
-foreign import ccall unsafe "integer_cbits_encodeFloat"
+foreign import prim "@static ghcvm.integer.Utils.encodeFloat"
         encodeFloat# :: Int# -> ByteArray# -> Int# -> Float#
-foreign import ccall unsafe "__int_encodeFloat"
+foreign import prim "@static ghcvm.integer.Utils.int_encodeFloat"
         int_encodeFloat# :: Int# -> Int# -> Float#
 
-foreign import ccall unsafe "integer_cbits_encodeDouble"
+foreign import prim "@static ghcvm.integer.Utils.encodeDouble"
         encodeDouble# :: Int# -> ByteArray# -> Int# -> Double#
-foreign import ccall unsafe "__int_encodeDouble"
+foreign import prim "@static ghcvm.integer.Utils.int_encodeDouble"
         int_encodeDouble# :: Int# -> Int# -> Double#
 {-
 %*********************************************************
