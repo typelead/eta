@@ -489,6 +489,43 @@ data PrimOp
    | PrefetchMutableByteArrayOp0
    | PrefetchAddrOp0
    | PrefetchValueOp0
+   -- GHCVM-specific
+   | Word64Eq
+   | Word64Ne
+   | Word64Lt
+   | Word64Le
+   | Word64Gt
+   | Word64Ge
+   | Word64Quot
+   | Word64Rem
+   | Word64And
+   | Word64Or
+   | Word64Xor
+   | Word64Not
+   | Word64SllOp
+   | Word64SrlOp
+   | Int64Eq
+   | Int64Ne
+   | Int64Lt
+   | Int64Le
+   | Int64Gt
+   | Int64Ge
+   | Int64Quot
+   | Int64Rem
+   | Int64Add
+   | Int64Sub
+   | Int64Mul
+   | Int64Neg
+   | Int64SllOp
+   | Int64SraOp
+   | Int64SrlOp
+   | Int642Word64
+   | Word642Int64
+   | Int2Int64
+   | Int642Int
+   | Word2Word64
+   | Word64ToWord
+   -- | DecodeDoubleInteger
 
 -- Used for the Ord instance
 
@@ -496,7 +533,7 @@ primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1056
+maxPrimOpTag = 1091
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1554,6 +1591,43 @@ tagOf_PrimOp PrefetchByteArrayOp0 = _ILIT(1053)
 tagOf_PrimOp PrefetchMutableByteArrayOp0 = _ILIT(1054)
 tagOf_PrimOp PrefetchAddrOp0 = _ILIT(1055)
 tagOf_PrimOp PrefetchValueOp0 = _ILIT(1056)
+--GHCVM-specific
+tagOf_PrimOp Word64Eq = _ILIT(1057)
+tagOf_PrimOp Word64Ne = _ILIT(1058)
+tagOf_PrimOp Word64Lt = _ILIT(1059)
+tagOf_PrimOp Word64Le = _ILIT(1060)
+tagOf_PrimOp Word64Gt = _ILIT(1061)
+tagOf_PrimOp Word64Ge = _ILIT(1062)
+tagOf_PrimOp Word64Quot = _ILIT(1063)
+tagOf_PrimOp Word64Rem = _ILIT(1064)
+tagOf_PrimOp Word64And = _ILIT(1065)
+tagOf_PrimOp Word64Or = _ILIT(1066)
+tagOf_PrimOp Word64Xor = _ILIT(1067)
+tagOf_PrimOp Word64Not = _ILIT(1068)
+tagOf_PrimOp Word64SllOp = _ILIT(1069)
+tagOf_PrimOp Word64SrlOp = _ILIT(1070)
+tagOf_PrimOp Int64Eq = _ILIT(1071)
+tagOf_PrimOp Int64Ne = _ILIT(1072)
+tagOf_PrimOp Int64Lt = _ILIT(1073)
+tagOf_PrimOp Int64Le = _ILIT(1074)
+tagOf_PrimOp Int64Gt = _ILIT(1075)
+tagOf_PrimOp Int64Ge = _ILIT(1076)
+tagOf_PrimOp Int64Quot = _ILIT(1077)
+tagOf_PrimOp Int64Rem = _ILIT(1078)
+tagOf_PrimOp Int64Add = _ILIT(1079)
+tagOf_PrimOp Int64Sub = _ILIT(1080)
+tagOf_PrimOp Int64Mul = _ILIT(1081)
+tagOf_PrimOp Int64Neg = _ILIT(1082)
+tagOf_PrimOp Int64SllOp = _ILIT(1083)
+tagOf_PrimOp Int64SraOp = _ILIT(1084)
+tagOf_PrimOp Int64SrlOp = _ILIT(1085)
+tagOf_PrimOp Int642Word64 = _ILIT(1086)
+tagOf_PrimOp Word642Int64 = _ILIT(1087)
+tagOf_PrimOp Int2Int64 = _ILIT(1088)
+tagOf_PrimOp Int642Int = _ILIT(1089)
+tagOf_PrimOp Word2Word64 = _ILIT(1090)
+tagOf_PrimOp Word64ToWord = _ILIT(1091)
+-- tagOf_PrimOp DecodeDoubleInteger = _ILIT(1092)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2635,6 +2709,43 @@ allThePrimOps =
    , PrefetchMutableByteArrayOp0
    , PrefetchAddrOp0
    , PrefetchValueOp0
+   -- GHCVM-Specific
+   , Word64Eq
+   , Word64Ne
+   , Word64Lt
+   , Word64Le
+   , Word64Gt
+   , Word64Ge
+   , Word64Quot
+   , Word64Rem
+   , Word64And
+   , Word64Or
+   , Word64Xor
+   , Word64Not
+   , Word64SllOp
+   , Word64SrlOp
+   , Int64Eq
+   , Int64Ne
+   , Int64Lt
+   , Int64Le
+   , Int64Gt
+   , Int64Ge
+   , Int64Quot
+   , Int64Rem
+   , Int64Add
+   , Int64Sub
+   , Int64Mul
+   , Int64Neg
+   , Int64SllOp
+   , Int64SraOp
+   , Int64SrlOp
+   , Int642Word64
+   , Word642Int64
+   , Int2Int64
+   , Int642Int
+   , Word2Word64
+   , Word64ToWord
+   -- , DecodeDoubleInteger
    ]
 
 tagToEnumKey :: Unique
@@ -3807,6 +3918,56 @@ primOpInfo PrefetchByteArrayOp0 = mkGenPrimOp (fsLit "prefetchByteArray0#")  [de
 primOpInfo PrefetchMutableByteArrayOp0 = mkGenPrimOp (fsLit "prefetchMutableByteArray0#")  [deltaTyVar] [mkMutableByteArrayPrimTy deltaTy, intPrimTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
 primOpInfo PrefetchAddrOp0 = mkGenPrimOp (fsLit "prefetchAddr0#")  [deltaTyVar] [addrPrimTy, intPrimTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
 primOpInfo PrefetchValueOp0 = mkGenPrimOp (fsLit "prefetchValue0#")  [alphaTyVar, deltaTyVar] [alphaTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
+primOpInfo Word64Eq            = mkCompare (fsLit "eqWord64#") word64PrimTy
+primOpInfo Word64Ne            = mkCompare (fsLit "neWord64#") word64PrimTy
+primOpInfo Word64Lt            = mkCompare (fsLit "ltWord64#") word64PrimTy
+primOpInfo Word64Le            = mkCompare (fsLit "leWord64#") word64PrimTy
+primOpInfo Word64Gt            = mkCompare (fsLit "gtWord64#") word64PrimTy
+primOpInfo Word64Ge            = mkCompare (fsLit "geWord64#") word64PrimTy
+primOpInfo Word64Quot          = mkDyadic (fsLit "quotWord64#") word64PrimTy
+primOpInfo Word64Rem           = mkDyadic (fsLit "remWord64#") word64PrimTy
+primOpInfo Word64And           = mkDyadic (fsLit "and64#") word64PrimTy
+primOpInfo Word64Or            = mkDyadic (fsLit "or64#") word64PrimTy
+primOpInfo Word64Xor           = mkDyadic (fsLit "xor64#") word64PrimTy
+primOpInfo Word64Not           = mkMonadic (fsLit "not64#") word64PrimTy
+primOpInfo Word64SllOp         =
+  mkGenPrimOp (fsLit "uncheckedShiftL64#") [] [word64PrimTy, intPrimTy] word64PrimTy
+primOpInfo Word64SrlOp         =
+  mkGenPrimOp (fsLit "uncheckedShiftRL64#") [] [word64PrimTy, intPrimTy] word64PrimTy
+primOpInfo Int64Eq             = mkCompare (fsLit "eqInt64#") int64PrimTy
+primOpInfo Int64Ne             = mkCompare (fsLit "neInt64#") int64PrimTy
+primOpInfo Int64Lt             = mkCompare (fsLit "ltInt64#") int64PrimTy
+primOpInfo Int64Le             = mkCompare (fsLit "leInt64#") int64PrimTy
+primOpInfo Int64Gt             = mkCompare (fsLit "gtInt64#") int64PrimTy
+primOpInfo Int64Ge             = mkCompare (fsLit "geInt64#") int64PrimTy
+primOpInfo Int64Quot           = mkDyadic (fsLit "quotInt64#") int64PrimTy
+primOpInfo Int64Rem            = mkDyadic (fsLit "remInt64#") int64PrimTy
+primOpInfo Int64Add            = mkDyadic (fsLit "plusInt64#") int64PrimTy
+primOpInfo Int64Sub            = mkDyadic (fsLit "minusInt64#") int64PrimTy
+primOpInfo Int64Mul            = mkDyadic (fsLit "timesInt64#") int64PrimTy
+primOpInfo Int64Neg            = mkMonadic (fsLit "negateInt64#") int64PrimTy
+primOpInfo Int64SllOp          =
+  mkGenPrimOp (fsLit "uncheckedIShiftL64#") [] [int64PrimTy, intPrimTy] int64PrimTy
+primOpInfo Int64SraOp          =
+  mkGenPrimOp (fsLit "uncheckedIShiftRA64#") [] [int64PrimTy, intPrimTy] int64PrimTy
+primOpInfo Int64SrlOp          =
+  mkGenPrimOp (fsLit "uncheckedIShiftRL64#") [] [int64PrimTy, intPrimTy] int64PrimTy
+primOpInfo Int642Word64        =
+  mkGenPrimOp (fsLit "int64ToWord64#") [] [int64PrimTy] word64PrimTy
+primOpInfo Word642Int64        =
+  mkGenPrimOp (fsLit "word64ToInt64#") [] [word64PrimTy] int64PrimTy
+primOpInfo Int2Int64           =
+  mkGenPrimOp (fsLit "intToInt64#") [] [intPrimTy] int64PrimTy
+primOpInfo Int642Int           =
+  mkGenPrimOp (fsLit "int64ToInt#") [] [int64PrimTy] intPrimTy
+primOpInfo Word2Word64         =
+  mkGenPrimOp (fsLit "wordToWord64#") [] [wordPrimTy] word64PrimTy
+primOpInfo Word64ToWord        =
+  mkGenPrimOp (fsLit "word64ToWord#") [] [word64PrimTy] wordPrimTy
+-- primOpInfo DecodeDoubleInteger =
+--   mkGenPrimOp (fsLit "decodeDoubleGen#") [] [doublePrimTy]
+--   $ mkTupleTy UnboxedTuple [intPrimTy, mkObjectTy ()]
+--   -- HACK:
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 {-
@@ -4566,6 +4727,12 @@ primOpCanFail AtomicModifyMutVarOp = True
 -- primOpCanFail (VecIndexScalarOffAddrOp _ _ _) = True
 -- primOpCanFail (VecReadScalarOffAddrOp _ _ _) = True
 -- primOpCanFail (VecWriteScalarOffAddrOp _ _ _) = True
+-- GHCVM-specific
+-- TODO: Do they really fail?
+primOpCanFail Word64Quot          = True
+primOpCanFail Word64Rem           = True
+primOpCanFail Int64Quot           = True
+primOpCanFail Int64Rem            = True
 primOpCanFail _ = False
 
 primOpOkForSpeculation :: PrimOp -> Bool

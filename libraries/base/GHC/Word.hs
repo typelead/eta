@@ -29,7 +29,7 @@ module GHC.Word (
 import Data.Bits
 import Data.Maybe
 
-import GHC.IntWord64
+import GHC.Prim
 
 import GHC.Base
 import GHC.Enum

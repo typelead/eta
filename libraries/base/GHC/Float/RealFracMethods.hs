@@ -57,7 +57,7 @@ import GHC.Integer
 import GHC.Base
 import GHC.Num ()
 
-import GHC.IntWord64
+import GHC.Prim
 
 #define TO64 integerToInt64
 #define FROM64 int64ToInteger

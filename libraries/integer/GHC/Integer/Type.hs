@@ -33,6 +33,11 @@ import GHC.Prim (
     (==#), (/=#), (<=#), (>=#), (<#), (>#),
     mulIntMayOflo#, addIntC#, subIntC#,
     and#, or#, xor#,
+
+  Int64#, Word64#,
+  int64ToWord64#, intToInt64#,
+  int64ToInt#, word64ToInt64#,
+  geInt64#, leInt64#, leWord64#,
  )
 
 import GHC.Integer.BigInteger.Prim (
@@ -65,13 +70,6 @@ import GHC.Integer.BigInteger.Prim (
     signumInteger#,
     negateInteger#
  )
-
-import GHC.IntWord64 (
-  Int64#, Word64#,
-  int64ToWord64#, intToInt64#,
-  int64ToInt#, word64ToInt64#,
-  geInt64#, leInt64#, leWord64#,
-  )
 
 import GHC.JArray
 import GHC.Classes

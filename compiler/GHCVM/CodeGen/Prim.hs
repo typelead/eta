@@ -135,48 +135,7 @@ inlinePrimCall "aarraySet" = \args ->
   let (_, codes) = unzip args
       elemFt = getArrayElemFt (fst (head args))
   in ((<> (head codes)) . normalOp (gastore elemFt)) codes
-inlinePrimCall op = \args -> let (_, codes) = unzip args in codeOp codes
-  where codeOp = case op of
-          "eqWord64"      -> typedCmp jlong ifeq
-          "neWord64"      -> typedCmp jlong ifeq
-          "ltWord64"      -> unsignedLongCmp iflt
-          "leWord64"      -> unsignedLongCmp ifle
-          "gtWord64"      -> unsignedLongCmp ifgt
-          "geWord64"      -> unsignedLongCmp ifge
-          "quotWord64"    ->
-            normalOp $ invokestatic
-                     $ mkMethodRef rtsUnsigned "divideUnsigned" [jlong, jlong] (ret jlong)
-          "remWord64"     ->
-            normalOp $ invokestatic
-                     $ mkMethodRef rtsUnsigned "remainderUnsigned" [jlong, jlong] (ret jlong)
-          "uShiftL64"     -> normalOp lshl
-          "uShiftRL64"    -> normalOp lushr
-          "eqInt64"       -> typedCmp jlong ifeq
-          "neInt64"       -> typedCmp jlong ifne
-          "ltInt64"       -> typedCmp jlong iflt
-          "leInt64"       -> typedCmp jlong ifle
-          "gtInt64"       -> typedCmp jlong ifgt
-          "geInt64"       -> typedCmp jlong ifge
-          "quotInt64"     -> normalOp ldiv
-          "remInt64"      -> normalOp lrem
-          "plusInt64"     -> normalOp ladd
-          "minusInt64"    -> normalOp lsub
-          "timesInt64"    -> normalOp lmul
-          "negateInt64"   -> normalOp lneg
-          "and64"         -> normalOp land
-          "or64"          -> normalOp lor
-          "xor64"         -> normalOp lxor
-          "not64"         -> normalOp lnot
-          "uIShiftL64"    -> normalOp lshl
-          "uIShiftRA64"   -> normalOp lshr
-          "uIShiftRL64"   -> normalOp lushr
-          "int64ToWord64" -> head
-          "word64ToInt64" -> head
-          "intToInt64"    -> normalOp $ gconv jint jlong
-          "int64ToInt"    -> normalOp $ gconv jlong jint
-          "wordToWord64"  -> unsignedExtend . head
-          "word64ToWord"  -> normalOp $ gconv jlong jint
-          name            -> error $ "inlinePrimCall: unimplemented = " ++ name
+inlinePrimCall name = error $ "inlinePrimCall: unimplemented = " ++ name
 
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
@@ -272,11 +231,14 @@ emitPrimOp op args
 emitPrimOp op _ = pprPanic "emitPrimOp: unimplemented" (ppr op)
 
 nopOp :: PrimOp -> Bool
-nopOp Int2WordOp = True
-nopOp Word2IntOp = True
-nopOp OrdOp      = True
-nopOp ChrOp      = True
-nopOp _          = False
+nopOp Int2WordOp   = True
+nopOp Word2IntOp   = True
+nopOp OrdOp        = True
+nopOp ChrOp        = True
+nopOp Int642Word64 = True
+nopOp Word642Int64 = True
+nopOp ChrOp        = True
+nopOp _            = False
 
 normalOp :: Code -> [Code] -> Code
 normalOp code = (<> code) . fold
@@ -393,6 +355,43 @@ simpleOp Int2FloatOp    = Just $ normalOp $ gconv jint    jfloat
 simpleOp Float2IntOp    = Just $ normalOp $ gconv jfloat  jint
 simpleOp Float2DoubleOp = Just $ normalOp $ gconv jfloat  jdouble
 simpleOp Double2FloatOp = Just $ normalOp $ gconv jdouble jfloat
+
+simpleOp Word64Eq = Just $ typedCmp jlong ifeq
+simpleOp Word64Ne = Just $ typedCmp jlong ifne
+simpleOp Word64Lt = Just $ unsignedLongCmp iflt
+simpleOp Word64Le = Just $ unsignedLongCmp ifle
+simpleOp Word64Gt = Just $ unsignedLongCmp ifgt
+simpleOp Word64Ge = Just $ unsignedLongCmp ifge
+simpleOp Word64Quot = Just $
+  normalOp $ invokestatic $ mkMethodRef rtsUnsigned "divideUnsigned" [jlong, jlong] (ret jlong)
+simpleOp Word64Rem = Just $
+  normalOp $ invokestatic $ mkMethodRef rtsUnsigned "remainderUnsigned" [jlong, jlong] (ret jlong)
+simpleOp Word64And = Just $ normalOp land
+simpleOp Word64Or = Just $ normalOp lor
+simpleOp Word64Xor = Just $ normalOp lxor
+simpleOp Word64Not = Just $ normalOp lnot
+simpleOp Word64SllOp = Just $ normalOp lshl
+simpleOp Word64SrlOp = Just $ normalOp lushr
+simpleOp Int64Eq = Just $ typedCmp jlong ifeq
+simpleOp Int64Ne = Just $ typedCmp jlong ifne
+simpleOp Int64Lt = Just $ typedCmp jlong iflt
+simpleOp Int64Le = Just $ typedCmp jlong ifle
+simpleOp Int64Gt = Just $ typedCmp jlong ifgt
+simpleOp Int64Ge = Just $ typedCmp jlong ifge
+simpleOp Int64Quot = Just $ normalOp ldiv
+simpleOp Int64Rem = Just $ normalOp lrem
+simpleOp Int64Add = Just $ normalOp ladd
+simpleOp Int64Sub = Just $ normalOp lsub
+simpleOp Int64Mul = Just $ normalOp lmul
+simpleOp Int64Neg = Just $ normalOp lneg
+simpleOp Int64SllOp = Just $ normalOp lshl
+simpleOp Int64SraOp = Just $ normalOp lshr
+simpleOp Int64SrlOp = Just $ normalOp lushr
+simpleOp Int2Int64 = Just $ normalOp $ gconv jint  jlong
+simpleOp Int642Int = Just $ normalOp $ gconv jlong jint
+simpleOp Word2Word64 = Just $ unsignedExtend . head
+-- TODO: Right conversion?
+simpleOp Word64ToWord = Just $ normalOp $ gconv jlong jint
 
 simpleOp _ = Nothing
 

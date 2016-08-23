@@ -62,11 +62,11 @@ module GHC.Integer.BigInteger.Prim (
   nextPrimeInteger#,
   testPrimeInteger#,
 
-  sizeInBaseInteger#,
-  importIntegerFromByteArray#,
-  importIntegerFromAddr#,
-  exportIntegerToMutableByteArray#,
-  exportIntegerToAddr#,
+  -- sizeInBaseInteger#,
+  -- importIntegerFromByteArray#,
+  -- importIntegerFromAddr#,
+  -- exportIntegerToMutableByteArray#,
+  -- exportIntegerToAddr#,
 
   int64ToInteger#,  integerToInt64#,
   word64ToInteger#, integerToWord64#,
@@ -85,7 +85,6 @@ import GHC.Prim
 import GHC.Types
 import GHC.Classes
 import GHC.JArray
-import GHC.IntWord64
 
 -- Double isn't available yet, and we shouldn't be using defaults anyway:
 default ()
@@ -100,7 +99,9 @@ instance Class BigInteger where
   obj = BigInteger
   unobj (BigInteger x) = x
 
-foreign import prim "@static @field java.math.BigInteger.ZERO" zeroInteger# :: Integer#
+-- NOTE: We need to do this in order to bypass the back that you can't have top level
+-- unboxed value bindings.
+foreign import prim "@static @field java.math.BigInteger.ZERO" zeroInteger# :: Any -> Integer#
 foreign import prim "java.math.BigInteger.equals" equalsInteger# :: Integer# -> Integer# -> Int#
 foreign import prim "java.math.BigInteger.abs" absInteger# :: Integer# -> Integer#
 foreign import prim "java.math.BigInteger.bitLength" bitsInteger# :: Integer# -> Int#
@@ -178,21 +179,21 @@ divExactIntegerWord# bigInt word = divExactInteger# bigInt (word2Integer# word)
 foreign import prim "java.math.BigInteger.gcd" gcdInteger#
   :: Integer# -> Integer# -> Integer#
 
--- TODO: Change this
 foreign import prim "@static ghcvm.integer.Utils.extendedEuclid" gcdExtInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 gcdIntegerInt# :: Integer# -> Int# -> Integer#
 gcdIntegerInt# bigInt int = gcdInteger# bigInt (int2Integer# int)
 
--- TODO: Change this
 foreign import prim "@static ghcvm.integer.Utils.gcd" gcdInt#
   :: Int# -> Int# -> Int#
+
+foreign import prim "@inline decodeDouble" decodeDouble#
+  :: Int# -> Int# -> (# Int#, Integer# #)
 
 int2Integer# :: Int# -> Integer#
 int2Integer# i# = int64ToInteger# (intToInt64# i#)
 
--- TODO: Change this
 foreign import prim "@static ghcvm.integer.Utils.toUnsignedBigInteger" word2Integer#
   :: Word# -> Integer#
 

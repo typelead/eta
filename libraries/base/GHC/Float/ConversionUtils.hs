@@ -21,7 +21,7 @@ module GHC.Float.ConversionUtils ( elimZerosInteger, elimZerosInt# ) where
 
 import GHC.Base
 import GHC.Integer
-import GHC.IntWord64
+import GHC.Prim
 
 default ()
 
