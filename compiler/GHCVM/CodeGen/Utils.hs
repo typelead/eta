@@ -38,9 +38,12 @@ intSwitch = gswitch
 
 litSwitch :: FieldType -> Code -> [(Literal, Code)] -> Code -> Code
 litSwitch ft expr branches deflt
-  | isObjectFt ft = deflt -- ASSERT (length branches == 0)
-  | ft /= jint = error $ "litSwitch: primitive cases not supported for not integer values"
-                      ++ show ft
+  -- | isObjectFt ft = deflt -- ASSERT (length branches == 0)
+  -- TODO: When switching on an object, perform a checkcast
+  -- TODO: When switching on long/float/double, use an if-else tree
+  | null branches = deflt
+  | ft /= jint = error $ "litSwitch[" ++ show ft ++ "]: " ++
+                         "primitive cases not supported for non-integer values"
   | otherwise  = intSwitch expr intBranches (Just deflt)
   where intBranches = map (first litToInt) branches
 

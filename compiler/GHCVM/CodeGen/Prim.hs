@@ -50,7 +50,7 @@ cgOpApp (StgPrimOp primOp) args resType = do
     argCodes <- getNonVoidArgFtCodes args
     case shouldInlinePrimOp dflags primOp argCodes of
       Left primOpLoc -> do
-        args' <- getFtsLoadCode args
+        args' <- getRepFtCodes args
         emit $ mkCallExit True args'
             <> mkRtsFunCall primOpLoc
       -- TODO: Optimize: Remove the intermediate temp locations
@@ -78,53 +78,17 @@ cgOpApp (StgPrimOp primOp) args resType = do
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
--- NOTE: The GHCVM specific primops will get handled here
--- @inline, @rts, @static
 cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
-  case words labelString of
-    ("@inline":name:_) -> do
-      argFtCodes <- getNonVoidArgFtCodes args
-      emitReturn [mkLocDirect False (fromJust resFt, inlinePrimCall name argFtCodes)]
-    ("@rts":name:_) -> do
-      locs  <- newUnboxedTupleLocs resType
-      args' <- getFtsLoadCode args
-      let (clsName, methodName) = labelToMethod name
-      emit $ mkCallExit True args'
-          <> loadContext
-          <> invokestatic (mkMethodRef clsName methodName [contextType] void)
-          <> mkReturnEntry locs
-      -- TODO: Handle result
-    ("@static":"@field":name:_) ->
-      let (clsName, fieldName) = labelToMethod name
-      in genSequel $ getstatic $ mkFieldRef clsName fieldName (fromJust resFt)
-    ("@static":name:_) -> primJava name invokestatic
-    (name:_) -> primJava name invokevirtual
-  where labelString = unpackFS label
-        resRep = typePrimRep resType
-        resFt = primRepFieldType_maybe resRep
-        primJava name instr = do
-          argsFtCodes <- getNonVoidArgFtCodes args
-          let (argFts, callArgs) = unzip argsFtCodes
-              (clsName, methodName) = labelToMethod name
-              callTarget = fold callArgs
-                        <> instr (mkMethodRef clsName methodName argFts resFt)
-          genSequel callTarget
-        genSequel callTarget = do
-          sequel <- getSequel
-          case sequel of
-            AssignTo targetLocs ->
-              if isJust resFt then
-                emitAssign (head targetLocs) callTarget
-              else
-                emit $ callTarget
-            _ -> do
-              resLocs <- if isJust resFt then do
-                           resLoc <- newTemp (isGcPtrRep resRep) (fromJust resFt)
-                           emitAssign resLoc callTarget
-                           return [resLoc]
-                         else
-                           return []
-              emitReturn resLocs
+  argsFtCodes <- getNonVoidArgFtCodes args
+  let (argFts, callArgs) = unzip argsFtCodes
+  emit $ loadContext
+      <> fold callArgs
+      <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) void)
+  sequel <- getSequel
+  case sequel of
+    AssignTo targetLocs -> emit $ mkReturnEntry targetLocs
+    _ -> return ()
+  where (clsName, methodName) = labelToMethod (unpackFS label)
 
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
 inlinePrimCall name = error $ "inlinePrimCall: unimplemented = " ++ name

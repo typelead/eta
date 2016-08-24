@@ -94,10 +94,10 @@ primRepFieldType_maybe rep = Just $
     Word64Rep           -> jlong
     FloatRep            -> jfloat
     DoubleRep           -> jdouble
-    BoolRep             -> jint
-    CharRep             -> jint
-    ByteRep             -> jint
-    ShortRep            -> jint
+    BoolRep             -> jbool
+    CharRep             -> jchar
+    ByteRep             -> jbyte
+    ShortRep            -> jshort
     ObjectRep className -> obj $ className
     ArrayRep  rep       -> ArrayType . fromJust $ primRepFieldType_maybe rep
     VoidRep             -> error $ "primRepFieldType_maybe: VoidRep"

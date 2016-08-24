@@ -40,11 +40,14 @@ import GHC.Prim (
   int64ToWord64#, intToInt64#,
   int64ToInt#, word64ToInt64#,
   geInt64#, leInt64#, leWord64#,
+
+  -- Other
+  unsafeCoerce#
  )
 
 import GHC.Integer.BigInteger.Prim (
     -- BigInteger-related primitives
-    Integer#,
+    Integer#, IntegerPair#,
     cmpInteger#,
     cmpIntegerInt#,
     plusInteger#, minusInteger#,
@@ -59,9 +62,9 @@ import GHC.Integer.BigInteger.Prim (
     testBitInteger#, mul2ExpInteger#, fdivQ2ExpInteger#,
     powInteger#, powModInteger#, powModSecInteger#, recipModInteger#,
     nextPrimeInteger#, testPrimeInteger#,
-    sizeInBaseInteger#,
-    importIntegerFromByteArray#, importIntegerFromAddr#,
-    exportIntegerToMutableByteArray#, exportIntegerToAddr#,
+    -- sizeInBaseInteger#,
+    -- importIntegerFromByteArray#, importIntegerFromAddr#,
+    -- exportIntegerToMutableByteArray#, exportIntegerToAddr#,
     int64ToInteger#,  integerToInt64#,
     word64ToInteger#, integerToWord64#,
     --GHCVM-specific
@@ -70,7 +73,13 @@ import GHC.Integer.BigInteger.Prim (
     absInteger#,
     bitsInteger#,
     signumInteger#,
-    negateInteger#
+    negateInteger#,
+    integer2Float#,
+    integer2Double#,
+    int_encodeFloat#,
+    encodeFloat#,
+    int_encodeDouble#,
+    encodeDouble#
  )
 
 import GHC.JArray
@@ -184,10 +193,11 @@ toSmall (J# o#)  = smartJ# o#
 
 -- | Smart 'J#' constructor which tries to construct 'S#' if possible
 smartJ# :: Integer# -> Integer
-smartJ# i# = if bits <=# 31# then
-               S# (integerToInt# i#)
+smartJ# i# = if isTrue# (bits <=# 31#) then
+               S# (integer2Int# i#)
              else
                J# i#
+  where bits = bitsInteger# i#
 
 -- -- |Construct 'Integer' out of a 'MPZ#' as returned by GMP wrapper primops
 -- --
@@ -210,10 +220,10 @@ smartJ# i# = if bits <=# 31# then
 
 -- | Variant of 'mpzToInteger' for pairs of 'Integer's
 unboxedIntegerPair :: IntegerPair# -> (# Integer, Integer #)
-unboxedIntegerPair bigIntArr# = (# i1, i2 #)
-    where
-      !i1 = objectArrayAt# bigIntArr# 0# realWorld# -- This use of `!` avoids creating thunks,
-      !i2 = objectArrayAt# bigIntArr# 1# realWorld# -- see also Note [Use S# if possible].
+unboxedIntegerPair bigIntArr# =
+  case objectArrayAt# bigIntArr# 0# realWorld# of
+    (# s, i1 #) -> case objectArrayAt# bigIntArr# 1# s of
+      (# _, i2 #) -> (# smartJ# i1, smartJ# i2 #)
 
 -- -- |Negate MPZ#
 -- mpzNeg :: MPZ# -> MPZ#
@@ -479,18 +489,18 @@ compareInteger (S# i)  (S# j)
    =      if isTrue# (i ==# j) then EQ
      else if isTrue# (i <=# j) then LT
      else                           GT
-compareInteger (J# s d) (S# i)
-   = case cmpIntegerInt# s d i of { res# ->
+compareInteger (J# o#) (S# i)
+   = case cmpIntegerInt# o# i of { res# ->
      if isTrue# (res# <# 0#) then LT else
      if isTrue# (res# ># 0#) then GT else EQ
      }
-compareInteger (S# i) (J# s d)
-   = case cmpIntegerInt# s d i of { res# ->
+compareInteger (S# i) (J# o#)
+   = case cmpIntegerInt# o# i of { res# ->
      if isTrue# (res# ># 0#) then LT else
      if isTrue# (res# <# 0#) then GT else EQ
      }
-compareInteger (J# s1 d1) (J# s2 d2)
-   = case cmpInteger# s1 d1 s2 d2 of { res# ->
+compareInteger (J# o1#) (J# o2#)
+   = case cmpInteger# o1# o2# of { res# ->
      if isTrue# (res# <# 0#) then LT else
      if isTrue# (res# ># 0#) then GT else EQ
      }
@@ -697,8 +707,8 @@ powModInteger b e m = powModInteger (toBig b) (toBig e) (toBig m)
 -- @'powModInteger'@, and a warning will be emitted when used.
 --
 -- /Since: 0.5.1.0/
--- TODO: Implement powModSecIntege properly
-{-# NOINLINE powModInteger #-}
+-- TODO: Implement powModSecInteger properly
+{-# NOINLINE powModSecInteger #-}
 powModSecInteger :: Integer -> Integer -> Integer -> Integer
 powModSecInteger (J# o1#) (J# o2#) (J# o3#) =
     smartJ# (powModSecInteger# o1# o2# o3#)
@@ -737,10 +747,11 @@ recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 --
 -- /Since: 0.5.1.0/
 -- TODO: Second argument is certainty, not # of rounds
+-- TODO: Replace unsafeCoerce# with JBool# -> Int# function
 {-# NOINLINE testPrimeInteger #-}
 testPrimeInteger :: Integer -> Int# -> Int#
-testPrimeInteger j@(S# _) reps = testPrimeInteger (toBig j) reps
-testPrimeInteger (J# o#)  reps = testPrimeInteger# o# reps
+testPrimeInteger j@(S# _) reps = unsafeCoerce# (testPrimeInteger (toBig j) reps)
+testPrimeInteger (J# o#)  reps = unsafeCoerce# (testPrimeInteger# o# reps)
 
 -- | Compute next prime greater than @/n/@ probalistically.
 --

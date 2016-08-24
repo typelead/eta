@@ -187,8 +187,8 @@ foreign import java unsafe "java.math.BigInteger.gcd" gcdInteger#
 foreign import java unsafe "@static ghcvm.integer.Utils.extendedEuclid" gcdExtInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
-gcdIntegerInt# :: Integer# -> Int# -> Integer#
-gcdIntegerInt# bigInt int = gcdInteger# bigInt (int2Integer# int)
+gcdIntegerInt# :: Integer# -> Int# -> Int#
+gcdIntegerInt# bigInt int = integer2Int# (gcdInteger# bigInt (int2Integer# int))
 
 foreign import java unsafe "@static ghcvm.integer.Utils.gcd" gcdInt#
   :: Int# -> Int# -> Int#
@@ -221,7 +221,7 @@ foreign import java unsafe "java.math.BigInteger.shiftRight" fdivQ2ExpInteger#
   :: Integer# -> Int# -> Integer#
 
 foreign import java unsafe "java.math.BigInteger.pow" powInteger#
-  :: Integer# -> Int# -> Integer#
+  :: Integer# -> Word# -> Integer#
 
 foreign import java unsafe "java.math.BigInteger.modPow" powModInteger#
   :: Integer# -> Integer# -> Integer# -> Integer#
@@ -239,7 +239,7 @@ foreign import java unsafe "java.math.BigInteger.nextProbablePrime" nextPrimeInt
 -- NOTE: This is different from GHC's integer-gmp in that the 2nd argument is
 --       certainty instead of number of rounds.
 foreign import java unsafe "java.math.BigInteger.isProbablePrime" testPrimeInteger#
-  :: Integer# -> Int# -> Integer#
+  :: Integer# -> Int# -> JBool#
 
 foreign import java unsafe "java.math.BigInteger.not" complementInteger#
   :: Integer# -> Integer#
@@ -272,13 +272,13 @@ foreign import java unsafe "java.math.BigInteger.doubleValue" integer2Double#
   :: Integer# -> Double#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.encodeFloat"
-        encodeFloat# :: Int# -> ByteArray# -> Int# -> Float#
+        encodeFloat# :: Integer# -> Int# -> Float#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.int_encodeFloat"
         int_encodeFloat# :: Int# -> Int# -> Float#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.encodeDouble"
-        encodeDouble# :: Int# -> ByteArray# -> Int# -> Double#
+        encodeDouble# :: Integer# -> Int# -> Double#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.int_encodeDouble"
         int_encodeDouble# :: Int# -> Int# -> Double#

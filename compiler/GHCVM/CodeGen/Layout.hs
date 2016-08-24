@@ -128,7 +128,7 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs' 1 1 1 1 1 1
 slowCall :: CgLoc -> [StgArg] -> CodeGen ()
 slowCall fun args = do
   dflags <- getDynFlags
-  argFtCodes <- getFtsLoadCode args
+  argFtCodes <- getRepFtCodes args
   let (apPat, arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
       slowCode = directCall' True (mkApFast apPat) arity
                              ((P, Just ft, Just code):argFtCodes)
@@ -144,7 +144,7 @@ slowCall fun args = do
 
 directCall :: Bool -> Code -> RepArity -> [StgArg] -> CodeGen ()
 directCall slow entryCode arity args = do
-  argFtCodes <- getFtsLoadCode args
+  argFtCodes <- getRepFtCodes args
   emit $ directCall' slow entryCode arity argFtCodes
 
 directCall' :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
@@ -182,8 +182,8 @@ genSlowFrame patText fts args =
         loadCodes = mapMaybe (\(_, _, a) -> a) args
         ft = obj patClass
 
-getFtsLoadCode :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]
-getFtsLoadCode = mapM getFtAmode
+getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]
+getRepFtCodes = mapM getFtAmode
   where getFtAmode arg
           | Nothing <- ft = return (V, Nothing, Nothing)
           | otherwise = do code <- getArgLoadCode (NonVoid arg)
