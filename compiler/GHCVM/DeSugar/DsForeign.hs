@@ -130,8 +130,14 @@ dsFCall funId co fcall mDeclHeader = do
                   CCall (CCallSpec (StaticTarget (mkFastString (f $ unpackFS label))
                                     mPkgKey isFun) JavaCallConv safety)
             in case lookupVarEnv extendsInfo var of
-                 Just (id, ty) -> morphTarget ((T.unpack (tagTypeToText ty) ++ " ") ++)
-                 Nothing -> morphTarget ("static " ++)
+                 Just (id, ty) ->
+                   morphTarget
+                   (\label ->
+                      let parts = words label
+                          start = init parts
+                          change = last parts
+                      in unwords $ start ++ [T.unpack (tagTypeToText ty) ++ "." ++ change])
+                 Nothing -> morphTarget ("@static " ++)
           | otherwise = fcall
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)

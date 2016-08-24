@@ -57,46 +57,21 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
 
 labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> (Bool, Code -> Code)
 labelToTarget hasObj label argFts reps = case words label of
-  ("static":label1) -> (True,
-    case label1 of
-      ["@new"] ->
-        -- TODO: Accomodate creation of array types
-        let clsName = getObjectClass resRep
-            clsFt = obj clsName
-        in \c -> new clsFt
-              <> dup clsFt
-              <> c
-              <> invokespecial (mkMethodRef clsName "<init>" argFts' void)
-      ["@field",label] ->
-        let (clsName, fieldName) = labelToMethod label
-            (instr, fieldFt) =
-              if isVoidRep resRep then
-                (putstatic, head argFts')
-              else
-                (getstatic, primRepFieldType resRep)
-        in \c -> c <> instr (mkFieldRef clsName fieldName fieldFt)
-      [label] ->
-        let (clsName, methodName) = labelToMethod label
-            resFt = primRepFieldType_maybe resRep
-        in \c -> c <> invokestatic (mkMethodRef clsName methodName argFts' resFt)
-      _ -> pprPanic "labelToTarget: static label: " (ppr label1))
-  (clsName':label2) -> (False,
-    let clsName = T.pack clsName'
-    in case label2 of
-      ["@field",fieldName'] ->
-        let fieldName = T.pack fieldName'
-            (instr, fieldFt) =
-              if isVoidRep resRep then
-                (putfield, head argFts')
-              else
-                (getfield, primRepFieldType resRep)
-        in \c -> c <> instr (mkFieldRef clsName fieldName fieldFt)
-      [methodName'] ->
-        let methodName = T.pack methodName'
-            resFt      = primRepFieldType_maybe resRep
-        in \c -> c <> invokevirtual (mkMethodRef clsName methodName argFts' resFt)
-      _ -> pprPanic "labelToTarget: instance label: " (ppr label2))
-  _ -> pprPanic "labelToTarget: full: " (ppr label)
+  ("@static":label1) ->
+    ( True,
+      case label1 of
+        ["@new"] -> genNewTarget (getObjectClass resRep)
+        ["@field",label] -> genFieldTarget label getstatic putstatic
+        [label] -> genMethodTarget label invokestatic
+        _ -> pprPanic "labelToTarget: static label: " (ppr label1))
+  label2 ->
+    ( False
+    , case label2 of
+        ["@field",label] -> genFieldTarget label getfield putfield
+        ["@interface",label] -> genMethodTarget label invokeinterface
+        ["@new",label] -> genNewTarget (T.pack label)
+        [label] -> genMethodTarget label invokevirtual
+        _ -> pprPanic "labelToTarget: instance label: " (ppr label2) )
   where (thisRep, resRep) =
           if hasObj then
             case reps of
@@ -109,6 +84,24 @@ labelToTarget hasObj label argFts reps = case words label of
               (a:_) -> (VoidRep, a)
         -- Remove the passed 'this'
         argFts' = if hasObj then drop 1 argFts else argFts
+        genNewTarget clsName =
+          let clsFt = obj clsName
+          in \c -> new clsFt
+                <> dup clsFt
+                <> c
+                <> invokespecial (mkMethodRef clsName "<init>" argFts' void)
+        genFieldTarget label getInstr putInstr =
+          let (clsName, fieldName) = labelToMethod label
+              (instr, fieldFt) =
+                if isVoidRep resRep then
+                  (putInstr, head argFts')
+                else
+                  (getInstr, primRepFieldType resRep)
+          in \c -> c <> instr (mkFieldRef clsName fieldName fieldFt)
+        genMethodTarget label instr =
+          let (clsName, methodName) = labelToMethod label
+              resFt = primRepFieldType_maybe resRep
+          in \c -> c <> instr (mkMethodRef clsName methodName argFts' resFt)
 
 emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
 emitForeignCall safety mbObj results target args
