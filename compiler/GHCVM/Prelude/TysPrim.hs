@@ -77,8 +77,8 @@ module GHCVM.Prelude.TysPrim(
         jboolPrimTyCon,
         jbytePrimTyCon,
         jshortPrimTyCon,
-        jobjectPrimTyCon, mkObjectTy,
-        jarrayPrimTyCon
+        jobjectPrimTyCon, mkObjectPrimTy,
+        jarrayPrimTyCon, mkJArrayPrimTy, mkObjectArrayPrimTy,
 
         -- * SIMD
         -- TODO: Currently vector operations are disabled in GHCVM
@@ -876,8 +876,14 @@ jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles $
   where kind     = mkArrowKinds [unliftedTypeKind] liftedTypeKind
         roles    = [Nominal]
 
-mkObjectTy :: Type -> Type
-mkObjectTy ty = TyConApp jobjectPrimTyCon [ty]
+mkObjectPrimTy :: Type -> Type
+mkObjectPrimTy ty = TyConApp jobjectPrimTyCon [ty]
+
+mkJArrayPrimTy :: Type -> Type
+mkJArrayPrimTy ty = TyConApp jarrayPrimTyCon [ty]
+
+mkObjectArrayPrimTy :: Type -> Type
+mkObjectArrayPrimTy ty = mkObjectPrimTy (mkJArrayPrimTy (mkObjectPrimTy ty))
 
 {-
 ************************************************************************

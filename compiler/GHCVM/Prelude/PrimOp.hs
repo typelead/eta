@@ -525,7 +525,9 @@ data PrimOp
    | Int642Int
    | Word2Word64
    | Word64ToWord
-   -- | DecodeDoubleInteger
+   | DecodeDoubleInteger
+   | ObjectArrayAtOp
+   | ObjectArraySetOp
 
 -- Used for the Ord instance
 
@@ -533,7 +535,7 @@ primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1091
+maxPrimOpTag = 1094
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1627,7 +1629,9 @@ tagOf_PrimOp Int2Int64 = _ILIT(1088)
 tagOf_PrimOp Int642Int = _ILIT(1089)
 tagOf_PrimOp Word2Word64 = _ILIT(1090)
 tagOf_PrimOp Word64ToWord = _ILIT(1091)
--- tagOf_PrimOp DecodeDoubleInteger = _ILIT(1092)
+tagOf_PrimOp DecodeDoubleInteger = _ILIT(1092)
+tagOf_PrimOp ObjectArrayAtOp = _ILIT(1093)
+tagOf_PrimOp ObjectArraySetOp = _ILIT(1094)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -1653,7 +1657,7 @@ data PrimOpVecCat = IntVec
 
 allThePrimOps :: [PrimOp]
 allThePrimOps =
-   [CharGtOp
+   [ CharGtOp
    , CharGeOp
    , CharEqOp
    , CharNeOp
@@ -2745,7 +2749,9 @@ allThePrimOps =
    , Int642Int
    , Word2Word64
    , Word64ToWord
-   -- , DecodeDoubleInteger
+   , DecodeDoubleInteger
+   , ObjectArrayAtOp
+   , ObjectArraySetOp
    ]
 
 tagToEnumKey :: Unique
@@ -3924,11 +3930,11 @@ primOpInfo Word64Lt            = mkCompare (fsLit "ltWord64#") word64PrimTy
 primOpInfo Word64Le            = mkCompare (fsLit "leWord64#") word64PrimTy
 primOpInfo Word64Gt            = mkCompare (fsLit "gtWord64#") word64PrimTy
 primOpInfo Word64Ge            = mkCompare (fsLit "geWord64#") word64PrimTy
-primOpInfo Word64Quot          = mkDyadic (fsLit "quotWord64#") word64PrimTy
-primOpInfo Word64Rem           = mkDyadic (fsLit "remWord64#") word64PrimTy
-primOpInfo Word64And           = mkDyadic (fsLit "and64#") word64PrimTy
-primOpInfo Word64Or            = mkDyadic (fsLit "or64#") word64PrimTy
-primOpInfo Word64Xor           = mkDyadic (fsLit "xor64#") word64PrimTy
+primOpInfo Word64Quot          = mkDyadic  (fsLit "quotWord64#") word64PrimTy
+primOpInfo Word64Rem           = mkDyadic  (fsLit "remWord64#") word64PrimTy
+primOpInfo Word64And           = mkDyadic  (fsLit "and64#") word64PrimTy
+primOpInfo Word64Or            = mkDyadic  (fsLit "or64#") word64PrimTy
+primOpInfo Word64Xor           = mkDyadic  (fsLit "xor64#") word64PrimTy
 primOpInfo Word64Not           = mkMonadic (fsLit "not64#") word64PrimTy
 primOpInfo Word64SllOp         =
   mkGenPrimOp (fsLit "uncheckedShiftL64#") [] [word64PrimTy, intPrimTy] word64PrimTy
@@ -3964,11 +3970,24 @@ primOpInfo Word2Word64         =
   mkGenPrimOp (fsLit "wordToWord64#") [] [wordPrimTy] word64PrimTy
 primOpInfo Word64ToWord        =
   mkGenPrimOp (fsLit "word64ToWord#") [] [word64PrimTy] wordPrimTy
--- primOpInfo DecodeDoubleInteger =
---   mkGenPrimOp (fsLit "decodeDoubleGen#") [] [doublePrimTy]
---   $ mkTupleTy UnboxedTuple [intPrimTy, mkObjectTy ()]
---   -- HACK:
+primOpInfo DecodeDoubleInteger =
+  mkGenPrimOp (fsLit "decodeDoubleUnsafe#") [alphaTyVar] [doublePrimTy]
+  $ mkTupleTy UnboxedTuple [intPrimTy, mkObjectPrimTy alphaTy]
+  -- HACK: I avoided wiring in the BigInteger tag type by just putting a generic argument,
+  --       because BigInteger is slow and there's a good chance we'll be changing the
+  --       implementation later. unsafeCoerce# should be used to get the original type
+  --       (currently BigInteger)
+primOpInfo ObjectArrayAtOp        =
+  mkGenPrimOp (fsLit "objectArrayAt#") [alphaTyVar, betaTyVar]
+  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy alphaTy]
+primOpInfo ObjectArraySetOp        =
+  mkGenPrimOp (fsLit "objectArraySet#") [alphaTyVar, betaTyVar]
+  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkObjectPrimTy alphaTy,
+    mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
 primOpInfo _ = error "primOpInfo: unknown primop"
+
 
 {-
 Here are a load of comments from the old primOp info:
@@ -4549,6 +4568,8 @@ primOpHasSideEffects PrefetchByteArrayOp0 = True
 primOpHasSideEffects PrefetchMutableByteArrayOp0 = True
 primOpHasSideEffects PrefetchAddrOp0 = True
 primOpHasSideEffects PrefetchValueOp0 = True
+primOpHasSideEffects ObjectArrayAtOp     = True
+primOpHasSideEffects ObjectArraySetOp    = True
 primOpHasSideEffects _ = False
 
 primOpCanFail :: PrimOp -> Bool
@@ -4733,6 +4754,8 @@ primOpCanFail Word64Quot          = True
 primOpCanFail Word64Rem           = True
 primOpCanFail Int64Quot           = True
 primOpCanFail Int64Rem            = True
+primOpCanFail ObjectArrayAtOp     = True
+primOpCanFail ObjectArraySetOp    = True
 primOpCanFail _ = False
 
 primOpOkForSpeculation :: PrimOp -> Bool

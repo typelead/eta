@@ -1,6 +1,7 @@
 package ghcvm.integer;
 
 import java.math.BigInteger;
+import ghcvm.runtime.stg.StgContext;
 
 public class Utils {
     /**
@@ -194,5 +195,22 @@ public class Utils {
 
     public static double encodeDouble(BigInteger j, int e) {
         return Math.scalb(j.doubleValue(), e);
+    }
+
+    // TODO: Optimize this - maybe make it a primop?
+    public static void decodeDouble(StgContext context, double d) {
+        long bits = Double.doubleToRawLongBits(d);
+        long m = bits & 0xfffffffffffffL;
+        bits >>= 52;
+        int e = (int)(bits & 0x7ffL) - 1075;
+        if (e == -1075) {
+            m <<= 1;
+        } else {
+            m |= 0x10000000000000L;
+        }
+        bits >>= 11;
+        int s = (bits == 0) ? 1: -1;
+        context.I(1, e);
+        context.O(1, BigInteger.valueOf(s * m));
     }
 }

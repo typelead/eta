@@ -47,7 +47,7 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
 
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
-    argCodes <- getNonVoidArgCodes args
+    argCodes <- getNonVoidArgFtCodes args
     case shouldInlinePrimOp dflags primOp argCodes of
       Left primOpLoc -> do
         args' <- getFtsLoadCode args
@@ -127,19 +127,24 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
               emitReturn resLocs
 
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
-inlinePrimCall "aarrayAt"  = \args ->
-  let (_, codes) = unzip args
-      elemFt = getArrayElemFt (fst (head args))
-  in (normalOp $ gaload elemFt) codes
-inlinePrimCall "aarraySet" = \args ->
-  let (_, codes) = unzip args
-      elemFt = getArrayElemFt (fst (head args))
-  in ((<> (head codes)) . normalOp (gastore elemFt)) codes
 inlinePrimCall name = error $ "inlinePrimCall: unimplemented = " ++ name
 
-shouldInlinePrimOp :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
+shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Either (Text, Text) (CodeGen [Code])
+shouldInlinePrimOp dflags ObjectArrayAtOp args = Right $
+  let (_, codes) = unzip args
+      elemFt = getArrayElemFt (fst (head args))
+  in return [normalOp (gaload elemFt) codes]
+
+shouldInlinePrimOp dflags ObjectArraySetOp args = Right $
+  let (_, codes) = unzip args
+      elemFt = getArrayElemFt (fst (head args))
+  in return [normalOp (gastore elemFt) codes]
+
+shouldInlinePrimOp dflags op args = shouldInlinePrimOp' dflags op $ snd (unzip args)
+
+shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
-shouldInlinePrimOp dflags NewArrayOp args = Right $ return
+shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
   [
     new stgArrayType
  <> dup stgArrayType
@@ -147,9 +152,9 @@ shouldInlinePrimOp dflags NewArrayOp args = Right $ return
  <> invokespecial (mkMethodRef stgArray "<init>" [jint, closureType] void)
   ]
 
-shouldInlinePrimOp dflags UnsafeThawArrayOp args = Right $ return [fold args]
+shouldInlinePrimOp' dflags UnsafeThawArrayOp args = Right $ return [fold args]
 
-shouldInlinePrimOp dflags primOp args
+shouldInlinePrimOp' dflags primOp args
   | primOpOutOfLine primOp = Left $ mkRtsPrimOp primOp
   | otherwise = Right $ emitPrimOp primOp args
 
@@ -392,6 +397,7 @@ simpleOp Int642Int = Just $ normalOp $ gconv jlong jint
 simpleOp Word2Word64 = Just $ unsignedExtend . head
 -- TODO: Right conversion?
 simpleOp Word64ToWord = Just $ normalOp $ gconv jlong jint
+simpleOp DecodeDoubleInteger = Just $ normalOp $ gconv jlong jint
 
 simpleOp _ = Nothing
 

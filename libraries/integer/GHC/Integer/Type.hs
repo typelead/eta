@@ -22,18 +22,20 @@
 module GHC.Integer.Type where
 
 import GHC.Prim (
-    -- Other types we use, convert from, or convert to
-    Int#, Word#, Double#, Float#, ByteArray#, MutableByteArray#, Addr#, State#,
-    indexIntArray#,
-    -- Conversions between those types
-    int2Word#, int2Double#, int2Float#, word2Int#,
-    -- Operations on Int# that we use for operations on S#
-    quotInt#, remInt#, quotRemInt#, negateInt#,
-    (*#), (-#),
-    (==#), (/=#), (<=#), (>=#), (<#), (>#),
-    mulIntMayOflo#, addIntC#, subIntC#,
-    and#, or#, xor#,
+  -- Other types we use, convert from, or convert to
+  Int#, Word#, Double#, Float#, ByteArray#, MutableByteArray#, Addr#, State#,
+  indexIntArray#,
+  -- Conversions between those types
+  int2Word#, int2Double#, int2Float#, word2Int#,
+  -- Operations on Int# that we use for operations on S#
+  quotInt#, remInt#, quotRemInt#, negateInt#,
+  (*#), (-#),
+  (==#), (/=#), (<=#), (>=#), (<#), (>#),
+  mulIntMayOflo#, addIntC#, subIntC#,
+  and#, or#, xor#,
+  realWorld#, void#,
 
+  -- 64-bit operations
   Int64#, Word64#,
   int64ToWord64#, intToInt64#,
   int64ToInt#, word64ToInt64#,
@@ -210,8 +212,8 @@ smartJ# i# = if bits <=# 31# then
 unboxedIntegerPair :: IntegerPair# -> (# Integer, Integer #)
 unboxedIntegerPair bigIntArr# = (# i1, i2 #)
     where
-      !i1 = objectArrayAt# bigIntArr# 0# -- This use of `!` avoids creating thunks,
-      !i2 = objectArrayAt# bigIntArr# 1# -- see also Note [Use S# if possible].
+      !i1 = objectArrayAt# bigIntArr# 0# realWorld# -- This use of `!` avoids creating thunks,
+      !i2 = objectArrayAt# bigIntArr# 1# realWorld# -- see also Note [Use S# if possible].
 
 -- -- |Negate MPZ#
 -- mpzNeg :: MPZ# -> MPZ#
@@ -347,7 +349,7 @@ gcdInteger a (S# INT_MINBOUND) = gcdInteger a minIntAsBig
 gcdInteger (S# a) (S# b) = S# (gcdInt a b)
 gcdInteger ia@(S# a)  ib@(J# o#)
  =      if isTrue# (a  ==# 0#) then absInteger ib
-   else if isTrue# (o# `equalsInteger#` zeroInteger#) then absInteger ia
+   else if isTrue# (o# `equalsInteger#` (zeroInteger# void#)) then absInteger ia
    else                             S# (gcdIntegerInt# absO absA)
        where !absA = if isTrue# (a <# 0#) then negateInt# a  else a
              !absO = absInteger# o#
@@ -604,15 +606,6 @@ floatFromInteger :: Integer -> Float#
 floatFromInteger (S# i#) = int2Float# i#
 floatFromInteger (J# o#) = integer2Float# o#
 
-foreign import prim "@static ghcvm.integer.Utils.encodeFloat"
-        encodeFloat# :: Int# -> ByteArray# -> Int# -> Float#
-foreign import prim "@static ghcvm.integer.Utils.int_encodeFloat"
-        int_encodeFloat# :: Int# -> Int# -> Float#
-
-foreign import prim "@static ghcvm.integer.Utils.encodeDouble"
-        encodeDouble# :: Int# -> ByteArray# -> Int# -> Double#
-foreign import prim "@static ghcvm.integer.Utils.int_encodeDouble"
-        int_encodeDouble# :: Int# -> Int# -> Double#
 {-
 %*********************************************************
 %*                                                      *
