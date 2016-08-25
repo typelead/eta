@@ -77,8 +77,11 @@ putConstPool cp = mapM_ putConst $ run cp where
     putWord8 . constTag $ c
     case c of
       (CUTF8 str) -> do
-        putI16 (T.length str)
-        putByteString $ encodeUtf8 str
+        -- TODO: This should be encoded to modified UTF-8
+        --       Works for code points below 0xFFFFFF
+        let encoded = encodeUtf8 str
+        putI16 $ BS.length encoded
+        putByteString encoded
       (CValue (CInteger i)) ->
         putWord32be $ fromIntegral i  -- TODO: Change to putInt32be
       (CValue (CString s)) ->

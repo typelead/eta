@@ -243,5 +243,5 @@ data SPEC = SPEC | SPEC2
 newtype Java c a = Java { runJava_ :: State# RealWorld -> Object# c -> (# State# RealWorld, Object# c, a #) }
 type role Java nominal representational
 
-data {-# CLASS "java.lang.Object" #-} Object  = Object  (Object# Object)
-data {-# CLASS "java.lang.String" #-} JString = JString (Object# JString)
+data {-# CLASS "java.lang.Object" #-} Object  = Object (Object# Object)
+data {-# CLASS "java.lang.String" #-} JString = JS#    (Object# JString)

@@ -42,6 +42,9 @@ module GHCVM.Prelude.TysWiredIn (
         -- * Word
         wordTyCon, wordDataCon, wordTyConName, wordTy,
 
+        -- * JString
+        jstringTyCon, jstringDataCon, jstringTy,
+
         -- * List
         listTyCon, nilDataCon, nilDataConName, consDataCon, consDataConName,
         listTyCon_RDR, consDataCon_RDR, listTyConName,
@@ -201,6 +204,11 @@ floatTyConName     = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Float")  
 floatDataConName   = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "F#")     floatDataConKey  floatDataCon
 doubleTyConName    = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Double") doubleTyConKey   doubleTyCon
 doubleDataConName  = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "D#")     doubleDataConKey doubleDataCon
+
+-- GHCVM-specific
+jstringTyConName, jstringDataConName :: Name
+jstringTyConName   = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "JString") jstringTyConKey    jstringTyCon
+jstringDataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "JS#")     jstringDataConKey  jstringDataCon
 
 -- Kinds
 typeNatKindConName, typeSymbolKindConName :: Name
@@ -584,6 +592,16 @@ doubleTyCon = pcNonRecDataTyCon doubleTyConName
 
 doubleDataCon :: DataCon
 doubleDataCon = pcDataCon doubleDataConName [] [doublePrimTy] doubleTyCon
+
+jstringTy :: Type
+jstringTy = mkTyConTy jstringTyCon
+
+jstringTyCon :: TyCon
+jstringTyCon = pcNonRecDataTyCon jstringTyConName
+                              (Just (CType "" Nothing (fsLit "java.lang.String"))) []
+                              [jstringDataCon]
+jstringDataCon :: DataCon
+jstringDataCon = pcDataCon jstringDataConName [] [mkObjectPrimTy jstringTy] jstringTyCon
 
 {-
 ************************************************************************

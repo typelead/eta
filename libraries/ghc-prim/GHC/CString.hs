@@ -23,6 +23,8 @@ module GHC.CString (
 import GHC.Types
 import GHC.Prim
 
+type JString# = Object# JString -- convenience
+
 -----------------------------------------------------------------------------
 -- Unpacking C strings}
 -----------------------------------------------------------------------------
@@ -34,7 +36,7 @@ import GHC.Prim
 -- stuff uses Strings in the representation, so to give representations for
 -- ghc-prim types we need unpackCString#
 
-unpackCString# :: Addr# -> [Char]
+unpackCString# :: JString# -> [Char]
 {-# NOINLINE unpackCString# #-}
     -- There's really no point in inlining this, ever, as the loop doesn't
     -- specialise in an interesting But it's pretty small, so there's a danger
@@ -48,7 +50,7 @@ unpackCString# addr
       where
         !ch = indexCharOffAddr# addr nh
 
-unpackAppendCString# :: Addr# -> [Char] -> [Char]
+unpackAppendCString# :: JString# -> [Char] -> [Char]
 {-# NOINLINE unpackAppendCString# #-}
      -- See the NOINLINE note on unpackCString#
 unpackAppendCString# addr rest
@@ -60,7 +62,7 @@ unpackAppendCString# addr rest
       where
         !ch = indexCharOffAddr# addr nh
 
-unpackFoldrCString# :: Addr# -> (Char  -> a -> a) -> a -> a
+unpackFoldrCString# :: JString# -> (Char  -> a -> a) -> a -> a
 
 -- Usually the unpack-list rule turns unpackFoldrCString# into unpackCString#
 
@@ -85,7 +87,7 @@ unpackFoldrCString# addr f z
       where
         !ch = indexCharOffAddr# addr nh
 
-unpackCStringUtf8# :: Addr# -> [Char]
+unpackCStringUtf8# :: JString# -> [Char]
 unpackCStringUtf8# addr
   = unpack 0#
   where
@@ -110,7 +112,7 @@ unpackCStringUtf8# addr
       where
         !ch = indexCharOffAddr# addr nh
 
-unpackNBytes# :: Addr# -> Int# -> [Char]
+unpackNBytes# :: JString# -> Int# -> [Char]
 unpackNBytes# _addr 0#   = []
 unpackNBytes#  addr len# = unpack [] (len# -# 1#)
     where

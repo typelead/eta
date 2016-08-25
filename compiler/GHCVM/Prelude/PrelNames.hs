@@ -369,8 +369,6 @@ basicKnownKeyNames
         -- GHCVM
         , javaTyConName
         , javaDataConName
-        , objectTyConName
-        , objectDataConName
         , extendsClassName
         , supercastName
     ]
@@ -1231,11 +1229,9 @@ fingerprintDataConName =
     conName gHC_FINGERPRINT_TYPE (fsLit "Fingerprint") fingerprintDataConKey
 
 -- GHCVM-specific names
-javaTyConName, javaDataConName, objectTyConName, objectDataConName :: Name
+javaTyConName, javaDataConName, extendsClassName, supercastName :: Name
 javaTyConName     = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
 javaDataConName   = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
-objectTyConName   = tcQual  gHC_TYPES   (fsLit "JObject")    objectTyConKey
-objectDataConName = conName gHC_TYPES   (fsLit "JObject")    objectDataConKey
 extendsClassName  = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
 supercastName     = varQual gHC_CLASSES (fsLit "supercast")  supercastClassOpKey
 
@@ -1443,8 +1439,8 @@ tVarPrimTyConKey                        = mkPreludeTyConUnique 76
 
 -- GHCVM-specific tycons
 jcharPrimTyConKey, jboolPrimTyConKey, jbytePrimTyConKey, jshortPrimTyConKey,
-  jobjectPrimTyConKey, jarrayPrimTyConKey, javaTyConKey,
-  objectTyConKey :: Unique
+  jobjectPrimTyConKey, jarrayPrimTyConKey, javaTyConKey, jstringTyConKey
+  :: Unique
 jcharPrimTyConKey   = mkPreludeTyConUnique 77
 jboolPrimTyConKey   = mkPreludeTyConUnique 78
 jbytePrimTyConKey   = mkPreludeTyConUnique 79
@@ -1452,7 +1448,7 @@ jshortPrimTyConKey  = mkPreludeTyConUnique 80
 jobjectPrimTyConKey = mkPreludeTyConUnique 81
 jarrayPrimTyConKey  = mkPreludeTyConUnique 83
 javaTyConKey        = mkPreludeTyConUnique 90
-objectTyConKey      = mkPreludeTyConUnique 91
+jstringTyConKey     = mkPreludeTyConUnique 91
 
 -- Parallel array type constructor
 parrTyConKey :: Unique
@@ -1719,9 +1715,9 @@ callStackDataConKey, srcLocDataConKey :: Unique
 callStackDataConKey                     = mkPreludeDataConUnique 36
 srcLocDataConKey                        = mkPreludeDataConUnique 37
 
-javaDataConKey, objectDataConKey :: Unique
-javaDataConKey      = mkPreludeDataConUnique 38
-objectDataConKey    = mkPreludeDataConUnique 39
+javaDataConKey, jstringDataConKey :: Unique
+javaDataConKey    = mkPreludeDataConUnique 38
+jstringDataConKey = mkPreludeDataConUnique 39
 
 {-
 ************************************************************************

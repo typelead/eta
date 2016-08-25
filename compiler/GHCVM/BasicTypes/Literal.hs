@@ -44,6 +44,7 @@ module GHCVM.BasicTypes.Literal
 #include "HsVersions.h"
 
 import GHCVM.Prelude.TysPrim
+import GHCVM.Prelude.TysWiredIn (jstringTy)
 import GHCVM.Prelude.PrelNames
 import GHCVM.Types.Type
 import GHCVM.Types.TyCon
@@ -371,7 +372,7 @@ litIsLifted _               = False
 literalType :: Literal -> Type
 literalType MachNullAddr    = addrPrimTy
 literalType (MachChar _)    = charPrimTy
-literalType (MachStr  _)    = addrPrimTy
+literalType (MachStr  _)    = mkObjectPrimTy jstringTy
 literalType (MachInt  _)    = intPrimTy
 literalType (MachWord  _)   = wordPrimTy
 literalType (MachInt64  _)  = int64PrimTy
