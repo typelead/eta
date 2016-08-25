@@ -309,8 +309,8 @@ instance Class Object where
   obj = Object
 
 instance Class JString where
-  unobj (JString x) = x
-  obj = JString
+  unobj (JS# x) = x
+  obj = JS#
 
 -- For embedding Java class hierarchies
 -- a is the child, b is the parent

@@ -73,12 +73,17 @@ module GHCVM.Prelude.TysPrim(
         -- * Any
         anyTy, anyTyCon, anyTypeOfKind,
         -- * GHCVM
+        jcharPrimTy,
+        jboolPrimTy,
+        jbytePrimTy,
+        jshortPrimTy,
         jcharPrimTyCon,
         jboolPrimTyCon,
         jbytePrimTyCon,
         jshortPrimTyCon,
         jobjectPrimTyCon, mkObjectPrimTy,
         jarrayPrimTyCon, mkJArrayPrimTy, mkObjectArrayPrimTy,
+        mkJavaArrayPrimTy,
 
         -- * SIMD
         -- TODO: Currently vector operations are disabled in GHCVM
@@ -863,6 +868,12 @@ anyTypeOfKind kind = TyConApp anyTyCon [kind]
 *                                                                      *
 ************************************************************************
 -}
+jcharPrimTy, jboolPrimTy, jbytePrimTy, jshortPrimTy :: Type
+jcharPrimTy = mkTyConTy jcharPrimTyCon
+jboolPrimTy = mkTyConTy jboolPrimTyCon
+jbytePrimTy = mkTyConTy jbytePrimTyCon
+jshortPrimTy = mkTyConTy jshortPrimTyCon
+
 jcharPrimTyCon, jboolPrimTyCon, jbytePrimTyCon, jshortPrimTyCon,
   jobjectPrimTyCon, jarrayPrimTyCon :: TyCon
 jcharPrimTyCon   = pcPrimTyCon0 jcharPrimTyConName CharRep
@@ -881,6 +892,9 @@ mkObjectPrimTy ty = TyConApp jobjectPrimTyCon [ty]
 
 mkJArrayPrimTy :: Type -> Type
 mkJArrayPrimTy ty = TyConApp jarrayPrimTyCon [ty]
+
+mkJavaArrayPrimTy :: Type -> Type
+mkJavaArrayPrimTy ty = mkObjectPrimTy (mkJArrayPrimTy ty)
 
 mkObjectArrayPrimTy :: Type -> Type
 mkObjectArrayPrimTy ty = mkObjectPrimTy (mkJArrayPrimTy (mkObjectPrimTy ty))

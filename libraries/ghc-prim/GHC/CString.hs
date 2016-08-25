@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, NoImplicitPrelude, BangPatterns #-}
+{-# LANGUAGE MagicHash, NoImplicitPrelude, BangPatterns, UnliftedFFITypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.CString
@@ -21,9 +21,20 @@ module GHC.CString (
     ) where
 
 import GHC.Types
+import GHC.JArray
 import GHC.Prim
 
 type JString# = Object# JString -- convenience
+
+foreign import java unsafe "java.lang.String.getBytes" getBytes :: JString# -> JString# -> JByteArray#
+
+foreign import java unsafe "java.lang.String.length" strLength :: JString# -> Int#
+
+getBytesUtf8 :: JString# -> JByteArray#
+getBytesUtf8 this = getBytes this "UTF-8"#
+
+indexStrChar# :: JByteArray# -> Int# -> Char#
+indexStrChar# bytes n = byte2Char# (indexJByteArray# bytes n)
 
 -----------------------------------------------------------------------------
 -- Unpacking C strings}
@@ -41,28 +52,32 @@ unpackCString# :: JString# -> [Char]
     -- There's really no point in inlining this, ever, as the loop doesn't
     -- specialise in an interesting But it's pretty small, so there's a danger
     -- that it'll be inlined at every literal, which is a waste
-unpackCString# addr
+unpackCString# str
   = unpack 0#
   where
+    bytes = getBytesUtf8 str
+    len = strLength str
     unpack nh
-      | isTrue# (ch `eqChar#` '\0'#) = []
-      | True                         = C# ch : unpack (nh +# 1#)
+      | isTrue# (nh ==# len) = []
+      | True       = C# ch : unpack (nh +# 1#)
       where
-        !ch = indexCharOffAddr# addr nh
+        !ch = indexStrChar# bytes nh
 
 unpackAppendCString# :: JString# -> [Char] -> [Char]
 {-# NOINLINE unpackAppendCString# #-}
      -- See the NOINLINE note on unpackCString#
-unpackAppendCString# addr rest
+unpackAppendCString# str rest
   = unpack 0#
   where
+    bytes = getBytesUtf8 str
+    len = strLength str
     unpack nh
-      | isTrue# (ch `eqChar#` '\0'#) = rest
-      | True                         = C# ch : unpack (nh +# 1#)
+      | isTrue# (nh ==# len) = rest
+      | True       = C# ch : unpack (nh +# 1#)
       where
-        !ch = indexCharOffAddr# addr nh
+        !ch = indexStrChar# bytes nh
 
-unpackFoldrCString# :: JString# -> (Char  -> a -> a) -> a -> a
+unpackFoldrCString# :: JString# -> (Char -> a -> a) -> a -> a
 
 -- Usually the unpack-list rule turns unpackFoldrCString# into unpackCString#
 
@@ -78,46 +93,50 @@ unpackFoldrCString# :: JString# -> (Char  -> a -> a) -> a -> a
 -- literal strings, and making a separate 'unpack' loop for
 -- each is highly gratuitous.  See nofib/real/anna/PrettyPrint.
 
-unpackFoldrCString# addr f z
+unpackFoldrCString# str f z
   = unpack 0#
   where
+    !bytes = getBytesUtf8 str
+    !len = strLength str
     unpack nh
-      | isTrue# (ch `eqChar#` '\0'#) = z
-      | True                         = C# ch `f` unpack (nh +# 1#)
+      | isTrue# (nh ==# len) = z
+      | True       = C# ch `f` unpack (nh +# 1#)
       where
-        !ch = indexCharOffAddr# addr nh
+        !ch = indexStrChar# bytes nh
 
 unpackCStringUtf8# :: JString# -> [Char]
-unpackCStringUtf8# addr
+unpackCStringUtf8# str
   = unpack 0#
   where
+    !bytes = getBytesUtf8 str
+    !len = strLength str
     unpack nh
-      | isTrue# (ch `eqChar#` '\0'#  ) = []
+      | isTrue# (nh ==# len) = []
       | isTrue# (ch `leChar#` '\x7F'#) = C# ch : unpack (nh +# 1#)
       | isTrue# (ch `leChar#` '\xDF'#) =
           C# (chr# (((ord# ch                                  -# 0xC0#) `uncheckedIShiftL#`  6#) +#
-                     (ord# (indexCharOffAddr# addr (nh +# 1#)) -# 0x80#))) :
+                     (ord# (indexStrChar# bytes (nh +# 1#)) -# 0x80#))) :
           unpack (nh +# 2#)
       | isTrue# (ch `leChar#` '\xEF'#) =
           C# (chr# (((ord# ch                                  -# 0xE0#) `uncheckedIShiftL#` 12#) +#
-                    ((ord# (indexCharOffAddr# addr (nh +# 1#)) -# 0x80#) `uncheckedIShiftL#`  6#) +#
-                     (ord# (indexCharOffAddr# addr (nh +# 2#)) -# 0x80#))) :
+                    ((ord# (indexStrChar# bytes (nh +# 1#)) -# 0x80#) `uncheckedIShiftL#`  6#) +#
+                     (ord# (indexStrChar# bytes (nh +# 2#)) -# 0x80#))) :
           unpack (nh +# 3#)
       | True                           =
           C# (chr# (((ord# ch                                  -# 0xF0#) `uncheckedIShiftL#` 18#) +#
-                    ((ord# (indexCharOffAddr# addr (nh +# 1#)) -# 0x80#) `uncheckedIShiftL#` 12#) +#
-                    ((ord# (indexCharOffAddr# addr (nh +# 2#)) -# 0x80#) `uncheckedIShiftL#`  6#) +#
-                     (ord# (indexCharOffAddr# addr (nh +# 3#)) -# 0x80#))) :
+                    ((ord# (indexStrChar# bytes (nh +# 1#)) -# 0x80#) `uncheckedIShiftL#` 12#) +#
+                    ((ord# (indexStrChar# bytes (nh +# 2#)) -# 0x80#) `uncheckedIShiftL#`  6#) +#
+                     (ord# (indexStrChar# bytes (nh +# 3#)) -# 0x80#))) :
           unpack (nh +# 4#)
       where
-        !ch = indexCharOffAddr# addr nh
+        !ch = indexStrChar# bytes nh
 
 unpackNBytes# :: JString# -> Int# -> [Char]
-unpackNBytes# _addr 0#   = []
-unpackNBytes#  addr len# = unpack [] (len# -# 1#)
-    where
-     unpack acc i#
-      | isTrue# (i# <# 0#)  = acc
-      | True                =
-         case indexCharOffAddr# addr i# of
-            ch -> unpack (C# ch : acc) (i# -# 1#)
+unpackNBytes# _str 0#   = []
+unpackNBytes#  str len# = unpack [] (len# -# 1#)
+  where !bytes = getBytesUtf8 str
+        !len = strLength str
+        unpack acc i#
+          | isTrue# (i# <# 0#)  = acc
+          | True                = case indexStrChar# bytes i# of
+                                    ch -> unpack (C# ch : acc) (i# -# 1#)

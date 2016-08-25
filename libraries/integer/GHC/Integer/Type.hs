@@ -42,7 +42,7 @@ import GHC.Prim (
   geInt64#, leInt64#, leWord64#,
 
   -- Other
-  unsafeCoerce#
+  unsafeCoerce#, bool2Int#
  )
 
 import GHC.Integer.BigInteger.Prim (
@@ -750,8 +750,8 @@ recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 -- TODO: Replace unsafeCoerce# with JBool# -> Int# function
 {-# NOINLINE testPrimeInteger #-}
 testPrimeInteger :: Integer -> Int# -> Int#
-testPrimeInteger j@(S# _) reps = unsafeCoerce# (testPrimeInteger (toBig j) reps)
-testPrimeInteger (J# o#)  reps = unsafeCoerce# (testPrimeInteger# o# reps)
+testPrimeInteger j@(S# _) reps = testPrimeInteger (toBig j) reps
+testPrimeInteger (J# o#)  reps = bool2Int# (testPrimeInteger# o# reps)
 
 -- | Compute next prime greater than @/n/@ probalistically.
 --

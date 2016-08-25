@@ -152,6 +152,7 @@ wiredInTyCons = [ unitTyCon     -- Not treated like other tuples, because
               , intTyCon
               , wordTyCon
               , listTyCon
+              , jstringTyCon
               , parrTyCon
               , eqTyCon
               , coercibleTyCon

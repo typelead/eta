@@ -207,6 +207,8 @@ nopOp ChrOp        = True
 nopOp Int642Word64 = True
 nopOp Word642Int64 = True
 nopOp ChrOp        = True
+nopOp ChrOp        = True
+nopOp JBool2IntOp  = True
 nopOp _            = False
 
 normalOp :: Code -> [Code] -> Code
@@ -362,6 +364,10 @@ simpleOp Word2Word64 = Just $ unsignedExtend . head
 -- TODO: Right conversion?
 simpleOp Word64ToWord = Just $ normalOp $ gconv jlong jint
 simpleOp DecodeDoubleInteger = Just $ normalOp $ gconv jlong jint
+simpleOp IndexJByteArrayOp = Just $ normalOp $ gaload jbyte
+simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
+simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
+simpleOp JByte2CharOp = Just $ normalOp $ iconst jint 0xFF <> iand
 
 simpleOp _ = Nothing
 

@@ -197,7 +197,7 @@ public class Utils {
         return Math.scalb(j.doubleValue(), e);
     }
 
-    // TODO: Optimize this - maybe make it a primop?
+    // TODO: Optimize this - maybe make it an inlined primop?
     public static void decodeDouble(StgContext context, double d) {
         long bits = Double.doubleToRawLongBits(d);
         long m = bits & 0xfffffffffffffL;
@@ -212,5 +212,29 @@ public class Utils {
         int s = (bits == 0) ? 1: -1;
         context.I(1, e);
         context.O(1, BigInteger.valueOf(s * m));
+    }
+
+    /* Taken from Google Guava BigIntMath */
+    public static int log2(BigInteger x) {
+        return x.bitLength() - 1;
+    }
+
+    public static int log2(int x) {
+        return (Integer.SIZE - 1) - Integer.numberOfLeadingZeros(x);
+    }
+
+    public static boolean isPowerOfTwo(BigInteger x) {
+        return x.signum() > 0 && x.getLowestSetBit() == x.bitLength() - 1;
+    }
+
+    /**
+     * Returns {@code true} if {@code x} represents a power of two.
+     *
+     * <p>This differs from {@code Integer.bitCount(x) == 1}, because
+     * {@code Integer.bitCount(Integer.MIN_VALUE) == 1}, but {@link Integer#MIN_VALUE} is not a power
+     * of two.
+     */
+    public static boolean isPowerOfTwo(int x) {
+        return x > 0 & (x & (x - 1)) == 0;
     }
 }

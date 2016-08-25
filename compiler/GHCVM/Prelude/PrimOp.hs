@@ -528,6 +528,11 @@ data PrimOp
    | DecodeDoubleInteger
    | ObjectArrayAtOp
    | ObjectArraySetOp
+   | IndexJByteArrayOp
+   | ReadJByteArrayOp
+   | WriteJByteArrayOp
+   | JByte2CharOp
+   | JBool2IntOp
 
 -- Used for the Ord instance
 
@@ -535,7 +540,7 @@ primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1094
+maxPrimOpTag = 1099
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1632,6 +1637,11 @@ tagOf_PrimOp Word64ToWord = _ILIT(1091)
 tagOf_PrimOp DecodeDoubleInteger = _ILIT(1092)
 tagOf_PrimOp ObjectArrayAtOp = _ILIT(1093)
 tagOf_PrimOp ObjectArraySetOp = _ILIT(1094)
+tagOf_PrimOp IndexJByteArrayOp = _ILIT(1095)
+tagOf_PrimOp ReadJByteArrayOp = _ILIT(1096)
+tagOf_PrimOp WriteJByteArrayOp = _ILIT(1097)
+tagOf_PrimOp JByte2CharOp = _ILIT(1098)
+tagOf_PrimOp JBool2IntOp = _ILIT(1099)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2752,6 +2762,11 @@ allThePrimOps =
    , DecodeDoubleInteger
    , ObjectArrayAtOp
    , ObjectArraySetOp
+   , IndexJByteArrayOp
+   , ReadJByteArrayOp
+   , WriteJByteArrayOp
+   , JByte2CharOp
+   , JBool2IntOp
    ]
 
 tagToEnumKey :: Unique
@@ -3979,13 +3994,29 @@ primOpInfo DecodeDoubleInteger =
   --       (currently BigInteger)
 primOpInfo ObjectArrayAtOp        =
   mkGenPrimOp (fsLit "objectArrayAt#") [alphaTyVar, betaTyVar]
-  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy]
-  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy alphaTy]
+  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy alphaTy ]
 primOpInfo ObjectArraySetOp        =
   mkGenPrimOp (fsLit "objectArraySet#") [alphaTyVar, betaTyVar]
-  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkObjectPrimTy alphaTy,
-    mkStatePrimTy betaTy ]
+  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkObjectPrimTy alphaTy, mkStatePrimTy betaTy ]
   $ mkStatePrimTy betaTy
+primOpInfo IndexJByteArrayOp       =
+  mkGenPrimOp (fsLit "indexJByteArray#") []
+  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy] $ jbytePrimTy
+primOpInfo ReadJByteArrayOp        =
+  mkGenPrimOp (fsLit "readJByteArray#") [alphaTyVar]
+  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, jbytePrimTy]
+primOpInfo WriteJByteArrayOp        =
+  mkGenPrimOp (fsLit "writeByteArray#") [alphaTyVar]
+  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, jbytePrimTy, mkStatePrimTy alphaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo WriteJByteArrayOp        =
+  mkGenPrimOp (fsLit "writeByteArray#") [alphaTyVar]
+  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, jbytePrimTy, mkStatePrimTy alphaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo JByte2CharOp = mkGenPrimOp (fsLit "byte2Char#")  [] [jbytePrimTy] charPrimTy
+primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "bool2Int#")  [] [jboolPrimTy] intPrimTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4570,6 +4601,8 @@ primOpHasSideEffects PrefetchAddrOp0 = True
 primOpHasSideEffects PrefetchValueOp0 = True
 primOpHasSideEffects ObjectArrayAtOp     = True
 primOpHasSideEffects ObjectArraySetOp    = True
+primOpHasSideEffects ReadJByteArrayOp     = True
+primOpHasSideEffects WriteJByteArrayOp    = True
 primOpHasSideEffects _ = False
 
 primOpCanFail :: PrimOp -> Bool
@@ -4756,6 +4789,9 @@ primOpCanFail Int64Quot           = True
 primOpCanFail Int64Rem            = True
 primOpCanFail ObjectArrayAtOp     = True
 primOpCanFail ObjectArraySetOp    = True
+primOpCanFail IndexJByteArrayOp   = True
+primOpCanFail ReadJByteArrayOp    = True
+primOpCanFail WriteJByteArrayOp   = True
 primOpCanFail _ = False
 
 primOpOkForSpeculation :: PrimOp -> Bool
@@ -4862,6 +4898,10 @@ primOpCodeSize TouchOp =  0
 primOpCodeSize ParOp =  primOpCodeSizeForeignCall
 primOpCodeSize SparkOp =  primOpCodeSizeForeignCall
 primOpCodeSize AddrToAnyOp = 0
+primOpCodeSize AddrToAnyOp = 0
+-- TODO: Verify
+primOpCodeSize JByte2CharOp = 1
+primOpCodeSize JBool2IntOp = 0
 primOpCodeSize _ =  primOpCodeSizeDefault
 
 primOpCodeSizeDefault :: Int
