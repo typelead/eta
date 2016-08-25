@@ -161,12 +161,12 @@ import GHC.Magic
 -- import System.IO
 -- import System.IO.Error
 -- import Data.List
--- import Data.Either
+import Data.Either
 -- import Data.Foldable    ( Foldable(..) )
 -- import Data.Functor     ( (<$>) )
 -- import Data.Maybe
 -- import Data.Traversable ( Traversable(..) )
--- import Data.Tuple
+import Data.Tuple
 
 -- import GHC.Base hiding ( foldr, mapM, sequence )
 -- import Text.Read

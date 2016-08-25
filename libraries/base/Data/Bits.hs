@@ -61,10 +61,6 @@ import GHC.Num
 import GHC.Base
 import GHC.Real
 
-#if HAVE_INTEGER_GMP1
-import GHC.Integer.GMP.Internals (bitInteger, popCountInteger)
-#endif
-
 infixl 8 `shift`, `rotate`, `shiftL`, `shiftR`, `rotateL`, `rotateR`
 infixl 7 .&.
 infixl 6 `xor`
@@ -520,13 +516,8 @@ instance Bits Integer where
 
    zeroBits   = 0
 
-#if HAVE_INTEGER_GMP1
-   bit (I# i#) = bitInteger i#
-   popCount x  = I# (popCountInteger x)
-#else
    bit        = bitDefault
    popCount   = popCountDefault
-#endif
 
    rotate x i = shift x i   -- since an Integer never wraps around
 

@@ -95,9 +95,13 @@ buildLibrary debug lib deps = do
     need [rtsjar]
   else do
     sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//.java"]
-    let ghcvmFlags = if debug
+    let ghcvmFlags = (if debug
                      then ["-v", "-ddump-to-file", "-ddump-stg", "-ddump-tc-trace"]
-                     else []
+                     else [])
+                     ++
+                     (if lib == "base"
+                      then ["-Iinclude"]
+                      else [])
     unit $ cmd [Cwd libDir, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
                ghcvmCmd "-clear-package-db" ghcvmFlags
                ["-package " ++ dep | dep <- deps]
