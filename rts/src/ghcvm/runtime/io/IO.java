@@ -2,6 +2,7 @@ package ghcvm.runtime.io;
 
 import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StgClosure;
 
 public class IO {
 
@@ -23,4 +24,13 @@ public class IO {
             _decodeFloat_Int(context, f);
         }
     };
+
+    public static RtsFun newMutVar = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgClosure init = context.R(1);
+                StgMutVar mv = new StgMutVar(init);
+                context.R(1, mv);
+            }
+        };
 }

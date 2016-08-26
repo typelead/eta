@@ -7,7 +7,7 @@
 -- Module      :  GHC.Unicode
 -- Copyright   :  (c) The University of Glasgow, 2003
 -- License     :  see libraries/base/LICENSE
--- 
+--
 -- Maintainer  :  cvs-ghc@haskell.org
 -- Stability   :  internal
 -- Portability :  non-portable (GHC extensions)
@@ -72,7 +72,7 @@ isSpace                 :: Char -> Bool
 -- so we'll do it like this until there's a way around that.
 isSpace c
   | uc <= 0x377 = uc == 32 || uc - 0x9 <= 4 || uc == 0xa0
-  | otherwise = iswspace (ord c) /= 0
+  | otherwise = iswspace (ord c)
   where
     uc = fromIntegral (ord c) :: Word
 
@@ -136,47 +136,50 @@ toTitle                 :: Char -> Char
 
 -- Regardless of the O/S and Library, use the functions contained in WCsubst.c
 
-isAlpha    c = iswalpha (ord c) /= 0
-isAlphaNum c = iswalnum (ord c) /= 0
-isControl  c = iswcntrl (ord c) /= 0
-isPrint    c = iswprint (ord c) /= 0
-isUpper    c = iswupper (ord c) /= 0
-isLower    c = iswlower (ord c) /= 0
+isAlpha    c = iswalpha (ord c)
+isAlphaNum c = iswalnum (ord c)
+isControl  c = iswcntrl (ord c)
+isPrint    c = iswprint (ord c)
+isUpper    c = iswupper (ord c)
+isLower    c = iswlower (ord c)
 
 toLower c = chr (towlower (ord c))
 toUpper c = chr (towupper (ord c))
 toTitle c = chr (towtitle (ord c))
 
--- TODO: Replace with Java equivalents
-foreign import ccall unsafe "u_iswalpha"
-  iswalpha :: Int -> Int
+-- TODO: Most of the following should be verified to see if compatible with GHC
+foreign import java unsafe "@static java.lang.Character.isLetter"
+  iswalpha :: Int -> Bool
 
-foreign import ccall unsafe "u_iswalnum"
-  iswalnum :: Int -> Int
+-- TODO: Inconsistent with GHC
+foreign import java unsafe "@static java.lang.Character.isLetterOrDigit"
+  iswalnum :: Int -> Bool
 
-foreign import ccall unsafe "u_iswcntrl"
-  iswcntrl :: Int -> Int
+foreign import java unsafe "@static java.lang.Character.isISOControl"
+  iswcntrl :: Int -> Bool
 
-foreign import ccall unsafe "u_iswspace"
-  iswspace :: Int -> Int
+-- TODO: Inconsistent with GHC
+foreign import java unsafe "@static java.lang.Character.isSpaceChar"
+  iswspace :: Int -> Bool
 
-foreign import ccall unsafe "u_iswprint"
-  iswprint :: Int -> Int
+foreign import java unsafe "@static ghcvm.base.Utils.isPrintableChar"
+  iswprint :: Int -> Bool
 
-foreign import ccall unsafe "u_iswlower"
-  iswlower :: Int -> Int
+foreign import java unsafe "@static java.lang.Character.isLowerCase"
+  iswlower :: Int -> Bool
 
-foreign import ccall unsafe "u_iswupper"
-  iswupper :: Int -> Int
+-- TODO: Inconsistent with GHC
+foreign import java unsafe "@static java.lang.Character.isUpperCase"
+  iswupper :: Int -> Bool
 
-foreign import ccall unsafe "u_towlower"
+foreign import java unsafe "@static java.lang.Character.toLowerCase"
   towlower :: Int -> Int
 
-foreign import ccall unsafe "u_towupper"
+foreign import java unsafe "@static java.lang.Character.toUpperCase"
   towupper :: Int -> Int
 
-foreign import ccall unsafe "u_towtitle"
+foreign import java unsafe "@static java.lang.Character.toTitleCase"
   towtitle :: Int -> Int
 
-foreign import ccall unsafe "u_gencat"
+foreign import java unsafe "@static java.lang.Character.getType"
   wgencat :: Int -> Int

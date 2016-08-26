@@ -28,8 +28,8 @@ io        = merge (rts "io")
 util      = merge (rts "util")
 
 closureType, indStaticType, contextType, funType, tsoType, frameType, rtsFunType, conType,
-  thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType, stgArrayType, stgByteArrayType
-  :: FieldType
+  thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType, stgArrayType, stgByteArrayType,
+  stgMutVarType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -43,10 +43,11 @@ rtsConfigType     = obj rtsConfig
 rtsOptsEnbledType = obj rtsOptsEnbled
 exitCodeType      = obj exitCode
 stgArrayType      = obj stgArray
+stgMutVarType     = obj stgMutVar
 stgByteArrayType  = obj stgByteArray
 
 stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO, stackFrame,
-  rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned :: Text
+  rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned, stgMutVar :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -63,6 +64,7 @@ exitCode      = rts "Rts$ExitCode"
 stgArray      = io "StgArray"
 stgByteArray  = io "StgByteArray"
 rtsUnsigned   = merge "ghcvm/integer" "Utils"
+stgMutVar     = io "StgMutVar"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
@@ -198,3 +200,9 @@ fieldTypeSuffix (BaseType prim) =
     JShort  -> "Short"
     JInt    -> "Int"
     JLong   -> "Long"
+
+mutVarValue :: Code
+mutVarValue = getfield $ mkFieldRef stgMutVar "value" closureType
+
+mutVarSetValue :: Code
+mutVarSetValue = putfield $ mkFieldRef stgMutVar "value" closureType

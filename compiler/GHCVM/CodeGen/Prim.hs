@@ -149,6 +149,7 @@ shouldInlinePrimOp' dflags primOp args
 mkRtsPrimOp :: PrimOp -> (Text, Text)
 mkRtsPrimOp RaiseOp           = (stgExceptionGroup, "raise")
 mkRtsPrimOp FloatDecode_IntOp = (ioGroup, "decodeFloat_Int")
+mkRtsPrimOp NewMutVarOp       = (ioGroup, "newMutVar")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
@@ -450,6 +451,11 @@ simpleOp IndexJByteArrayOp = Just $ normalOp $ gaload jbyte
 simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
 simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
 simpleOp JByte2CharOp = Just $ normalOp preserveByte
+
+-- StgMutVar ops
+simpleOp ReadMutVarOp = Just $ normalOp mutVarValue
+simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
+simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 
 simpleOp _ = Nothing
 
