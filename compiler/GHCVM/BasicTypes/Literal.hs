@@ -261,8 +261,7 @@ inIntRange  dflags x = x >= minInt
 inWordRange dflags x = x >= 0 && x <= maxWord
 
 inCharRange :: Char -> Bool
-inCharRange c =  c >= '\0' && c <= chr maxChar
-  -- TODO: Is this correct?
+inCharRange c =  c >= '\0' && c <= chr tARGET_MAX_CHAR
 
 -- | Tests whether the literal represents a zero of whatever type it is
 isZeroLit :: Literal -> Bool
