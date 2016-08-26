@@ -148,6 +148,7 @@ shouldInlinePrimOp' dflags primOp args
 
 mkRtsPrimOp :: PrimOp -> (Text, Text)
 mkRtsPrimOp RaiseOp           = (stgExceptionGroup, "raise")
+mkRtsPrimOp FloatDecode_IntOp = (ioGroup, "decodeFloat_Int")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op

@@ -200,17 +200,12 @@ public class Utils {
     // TODO: Optimize this - maybe make it an inlined primop?
     public static void decodeDouble(StgContext context, double d) {
         long bits = Double.doubleToRawLongBits(d);
-        long m = bits & 0xfffffffffffffL;
-        bits >>= 52;
-        int e = (int)(bits & 0x7ffL) - 1075;
-        if (e == -1075) {
-            m <<= 1;
-        } else {
-            m |= 0x10000000000000L;
-        }
-        bits >>= 11;
-        int s = (bits == 0) ? 1: -1;
-        context.I(1, e);
+        int s = ((bits >> 63) == 0) ? 1 : -1;
+        int e = (int)((bits >> 52) & 0x7ffL);
+        long m = (e == 0) ?
+            (bits & 0xfffffffffffffL) << 1 :
+            (bits & 0xfffffffffffffL) | 0x10000000000000L;
+        context.I(1, e - 1075);
         context.O(1, BigInteger.valueOf(s * m));
     }
 
