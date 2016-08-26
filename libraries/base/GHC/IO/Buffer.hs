@@ -79,8 +79,6 @@ import Foreign.Storable
 --   * a Char buffer consists of *valid* UTF-16 or UTF-32
 --   * only whole characters: no partial surrogate pairs
 
-#define CHARBUF_UTF32
-
 -- #define CHARBUF_UTF16
 --
 -- NB. it won't work to just change this to CHARBUF_UTF16.  Some of
@@ -101,11 +99,7 @@ readWord8Buf arr ix = withForeignPtr arr $ \p -> peekByteOff p ix
 writeWord8Buf :: RawBuffer Word8 -> Int -> Word8 -> IO ()
 writeWord8Buf arr ix w = withForeignPtr arr $ \p -> pokeByteOff p ix w
 
-#ifdef CHARBUF_UTF16
-type CharBufElem = Word16
-#else
 type CharBufElem = Char
-#endif
 
 type RawCharBuffer = RawBuffer CharBufElem
 
@@ -124,40 +118,14 @@ writeCharBuf arr ix c = withForeignPtr arr $ \p -> writeCharBufPtr p ix c
 
 {-# INLINE readCharBufPtr #-}
 readCharBufPtr :: Ptr CharBufElem -> Int -> IO (Char, Int)
-#ifdef CHARBUF_UTF16
-readCharBufPtr p ix = do
-  c1 <- peekElemOff p ix
-  if (c1 < 0xd800 || c1 > 0xdbff)
-     then return (chr (fromIntegral c1), ix+1)
-     else do c2 <- peekElemOff p (ix+1)
-             return (unsafeChr ((fromIntegral c1 - 0xd800)*0x400 +
-                                (fromIntegral c2 - 0xdc00) + 0x10000), ix+2)
-#else
 readCharBufPtr p ix = do c <- peekElemOff (castPtr p) ix; return (c, ix+1)
-#endif
 
 {-# INLINE writeCharBufPtr #-}
 writeCharBufPtr :: Ptr CharBufElem -> Int -> Char -> IO Int
-#ifdef CHARBUF_UTF16
-writeCharBufPtr p ix ch
-  | c < 0x10000 = do pokeElemOff p ix (fromIntegral c)
-                     return (ix+1)
-  | otherwise   = do let c' = c - 0x10000
-                     pokeElemOff p ix (fromIntegral (c' `div` 0x400 + 0xd800))
-                     pokeElemOff p (ix+1) (fromIntegral (c' `mod` 0x400 + 0xdc00))
-                     return (ix+2)
-  where
-    c = ord ch
-#else
 writeCharBufPtr p ix ch = do pokeElemOff (castPtr p) ix ch; return (ix+1)
-#endif
 
 charSize :: Int
-#ifdef CHARBUF_UTF16
-charSize = 2
-#else
 charSize = 4
-#endif
 
 -- ---------------------------------------------------------------------------
 -- Buffers
@@ -186,11 +154,7 @@ data Buffer e
         bufR     :: !Int           -- offset of last item + 1
   }
 
-#ifdef CHARBUF_UTF16
-type CharBuffer = Buffer Word16
-#else
 type CharBuffer = Buffer Char
-#endif
 
 data BufferState = ReadBuffer | WriteBuffer deriving (Eq)
 
@@ -208,11 +172,7 @@ isFullBuffer Buffer{ bufR=w, bufSize=s } = s == w
 
 -- if a Char buffer does not have room for a surrogate pair, it is "full"
 isFullCharBuffer :: Buffer e -> Bool
-#ifdef CHARBUF_UTF16
-isFullCharBuffer buf = bufferAvailable buf < 2
-#else
 isFullCharBuffer = isFullBuffer
-#endif
 
 isWriteBuffer :: Buffer e -> Bool
 isWriteBuffer buf = case bufState buf of

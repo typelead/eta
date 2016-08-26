@@ -1,11 +1,10 @@
 package ghcvm.runtime.io;
 
-import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
 
-public class StgArray extends StgClosure {
+public final class StgArray extends StgClosure {
     private StgClosure[] arr;
 
     public StgArray(int n, StgClosure init) {

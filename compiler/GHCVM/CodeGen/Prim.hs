@@ -108,6 +108,30 @@ shouldInlinePrimOp dflags op args = shouldInlinePrimOp' dflags op $ snd (unzip a
 
 shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
+shouldInlinePrimOp' dflags NewByteArrayOp_Char args = Right $ return
+  [
+    new stgByteArrayType
+ <> dup stgByteArrayType
+ <> fold args
+ <> invokespecial (mkMethodRef stgByteArray "<init>" [jint] void)
+  ]
+
+shouldInlinePrimOp' dflags NewPinnedByteArrayOp_Char args = Right $ return
+  [
+    new stgByteArrayType
+ <> dup stgByteArrayType
+ <> fold args
+ <> invokespecial (mkMethodRef stgByteArray "<init>" [jint] void)
+  ]
+
+shouldInlinePrimOp' dflags NewAlignedPinnedByteArrayOp_Char args = Right $ return
+  [
+    new stgByteArrayType
+ <> dup stgByteArrayType
+ <> fold args
+ <> invokespecial (mkMethodRef stgByteArray "<init>" [jint, jint] void)
+  ]
+
 shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
   [
     new stgArrayType
@@ -238,6 +262,63 @@ simpleOp ReadArrayOp = Just $
 simpleOp IndexArrayOp = Just $
   normalOp $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
+-- ByteArray# & MutableByteArray# ops
+simpleOp ByteArrayContents_Char = Just $ normalOp $ byteBufferBuf
+simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
+simpleOp UnsafeFreezeByteArrayOp = Just idOp
+simpleOp SizeofMutableArrayOp = Just $ normalOp $ byteBufferBuf <> byteBufferCapacity
+simpleOp IndexByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
+simpleOp IndexByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
+simpleOp IndexByteArrayOp_Int = Just $ byteArrayIndexOp jint mempty
+simpleOp IndexByteArrayOp_Word = Just $ byteArrayIndexOp jint mempty
+-- TODO: simpleOp IndexByteArrayOp_Addr =
+simpleOp IndexByteArrayOp_Float = Just $ byteArrayIndexOp jfloat mempty
+simpleOp IndexByteArrayOp_Double = Just $ byteArrayIndexOp jdouble mempty
+-- TODO: simpleOp IndexByteArrayOp_StablePtr =
+simpleOp IndexByteArrayOp_Int8 = Just $ byteArrayIndexOp jbyte preserveByte
+simpleOp IndexByteArrayOp_Int16 = Just $ byteArrayIndexOp jshort preserveShort
+simpleOp IndexByteArrayOp_Int32 = Just $ byteArrayIndexOp jint mempty
+simpleOp IndexByteArrayOp_Int64 = Just $ byteArrayIndexOp jlong mempty
+simpleOp IndexByteArrayOp_Word8 = Just $ byteArrayIndexOp jbyte preserveByte
+simpleOp IndexByteArrayOp_Word16 = Just $ byteArrayIndexOp jshort preserveShort
+simpleOp IndexByteArrayOp_Word32 = Just $ byteArrayIndexOp jint mempty
+simpleOp IndexByteArrayOp_Word64 = Just $ byteArrayIndexOp jlong mempty
+
+simpleOp ReadByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
+simpleOp ReadByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
+simpleOp ReadByteArrayOp_Int = Just $ byteArrayIndexOp jint mempty
+simpleOp ReadByteArrayOp_Word = Just $ byteArrayIndexOp jint mempty
+-- TODO: simpleOp ReadByteArrayOp_Addr =
+simpleOp ReadByteArrayOp_Float = Just $ byteArrayIndexOp jfloat mempty
+simpleOp ReadByteArrayOp_Double = Just $ byteArrayIndexOp jdouble mempty
+-- TODO: simpleOp ReadByteArrayOp_StablePtr =
+simpleOp ReadByteArrayOp_Int8 = Just $ byteArrayIndexOp jbyte preserveByte
+simpleOp ReadByteArrayOp_Int16 = Just $ byteArrayIndexOp jshort preserveShort
+simpleOp ReadByteArrayOp_Int32 = Just $ byteArrayIndexOp jint mempty
+simpleOp ReadByteArrayOp_Int64 = Just $ byteArrayIndexOp jlong mempty
+simpleOp ReadByteArrayOp_Word8 = Just $ byteArrayIndexOp jbyte preserveByte
+simpleOp ReadByteArrayOp_Word16 = Just $ byteArrayIndexOp jshort preserveShort
+simpleOp ReadByteArrayOp_Word32 = Just $ byteArrayIndexOp jint mempty
+simpleOp ReadByteArrayOp_Word64 = Just $ byteArrayIndexOp jlong mempty
+
+simpleOp WriteByteArrayOp_Char = Just $ byteArrayWriteOp jbyte mempty
+simpleOp WriteByteArrayOp_WideChar = Just $ byteArrayWriteOp jint mempty
+simpleOp WriteByteArrayOp_Int = Just $ byteArrayWriteOp jint mempty
+simpleOp WriteByteArrayOp_Word = Just $ byteArrayWriteOp jint mempty
+-- TODO: simpleOp WriteByteArrayOp_Addr =
+simpleOp WriteByteArrayOp_Float = Just $ byteArrayWriteOp jfloat mempty
+simpleOp WriteByteArrayOp_Double = Just $ byteArrayWriteOp jdouble mempty
+-- TODO: Verify writes for Word/Int 8/16 - add additional casts?
+-- TODO: simpleOp WriteByteArrayOp_StablePtr =
+simpleOp WriteByteArrayOp_Int8 = Just $ byteArrayWriteOp jbyte preserveByte
+simpleOp WriteByteArrayOp_Int16 = Just $ byteArrayWriteOp jshort preserveShort
+simpleOp WriteByteArrayOp_Int32 = Just $ byteArrayWriteOp jint mempty
+simpleOp WriteByteArrayOp_Int64 = Just $ byteArrayWriteOp jlong mempty
+simpleOp WriteByteArrayOp_Word8 = Just $ byteArrayWriteOp jbyte preserveByte
+simpleOp WriteByteArrayOp_Word16 = Just $ byteArrayWriteOp jshort preserveShort
+simpleOp WriteByteArrayOp_Word32 = Just $ byteArrayWriteOp jint mempty
+simpleOp WriteByteArrayOp_Word64 = Just $ byteArrayWriteOp jlong mempty
+
 -- Int# ops
 simpleOp IntAddOp = Just $ normalOp iadd
 simpleOp IntSubOp = Just $ normalOp isub
@@ -367,9 +448,21 @@ simpleOp DecodeDoubleInteger = Just $ normalOp $ gconv jlong jint
 simpleOp IndexJByteArrayOp = Just $ normalOp $ gaload jbyte
 simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
 simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
-simpleOp JByte2CharOp = Just $ normalOp $ iconst jint 0xFF <> iand
+simpleOp JByte2CharOp = Just $ normalOp preserveByte
 
 simpleOp _ = Nothing
+
+byteArrayIndexOp :: FieldType -> Code -> [Code] -> Code
+byteArrayIndexOp ft resCode = \[this, ix] -> this <> byteBufferBuf <> ix <> byteBufferGet ft <> resCode
+
+byteArrayWriteOp :: FieldType -> Code -> [Code] -> Code
+byteArrayWriteOp ft argCode = \[this, ix, val] -> this <> byteBufferBuf <> ix <> val <> argCode <> byteBufferPut ft
+
+preserveByte :: Code
+preserveByte = iconst jint 0xFF <> iand
+
+preserveShort :: Code
+preserveShort = iconst jint 0xFFFF <> iand
 
 unsignedOp :: Code -> [Code] -> Code
 unsignedOp op [arg1, arg2]

@@ -27,9 +27,9 @@ exception = merge (rts "exception")
 io        = merge (rts "io")
 util      = merge (rts "util")
 
-closureType, indStaticType, contextType, funType, tsoType, frameType,
-  rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
-  rtsOptsEnbledType, stgArrayType :: FieldType
+closureType, indStaticType, contextType, funType, tsoType, frameType, rtsFunType, conType,
+  thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType, stgArrayType, stgByteArrayType
+  :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -43,9 +43,10 @@ rtsConfigType     = obj rtsConfig
 rtsOptsEnbledType = obj rtsOptsEnbled
 exitCodeType      = obj exitCode
 stgArrayType      = obj stgArray
+stgByteArrayType  = obj stgByteArray
 
-stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun,
-  stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, rtsUnsigned :: Text
+stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO, stackFrame,
+  rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -60,6 +61,7 @@ rtsConfig     = rts "RtsConfig"
 rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
 exitCode      = rts "Rts$ExitCode"
 stgArray      = io "StgArray"
+stgByteArray  = io "StgByteArray"
 rtsUnsigned   = merge "ghcvm/integer" "Utils"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
@@ -166,3 +168,33 @@ mkRtsFunCall (group, name) =
      getstatic (mkFieldRef group name rtsFunType)
   <> loadContext
   <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)
+
+-- Types
+byteBufferType :: FieldType
+byteBufferType = ObjectType (IClassName "java/nio/ByteBuffer")
+
+byteBufferBuf :: Code
+byteBufferBuf = getfield $ mkFieldRef stgByteArray "buf" byteBufferType
+
+byteBufferCapacity :: Code
+byteBufferCapacity = invokevirtual $ mkMethodRef stgByteArray "capacity" [] (ret jint)
+
+byteBufferGet :: FieldType -> Code
+byteBufferGet ft = invokevirtual $ mkMethodRef stgByteArray name [jint] (ret ft)
+  where name = append "get" $ fieldTypeSuffix ft
+
+byteBufferPut :: FieldType -> Code
+byteBufferPut ft = invokevirtual $ mkMethodRef stgByteArray name [jint, ft] void
+  where name = append "put" $ fieldTypeSuffix ft
+
+fieldTypeSuffix :: FieldType -> Text
+fieldTypeSuffix (BaseType prim) =
+  case prim of
+    JBool   -> "Int"
+    JChar   -> "Char"
+    JFloat  -> "Float"
+    JDouble -> "Double"
+    JByte   -> ""
+    JShort  -> "Short"
+    JInt    -> "Int"
+    JLong   -> "Long"
