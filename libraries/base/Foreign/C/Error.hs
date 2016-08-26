@@ -88,8 +88,6 @@ module Foreign.C.Error (
 -- this is were we get the CONST_XXX definitions from that configure
 -- calculated for us
 --
-#include "HsBaseConfig.h"
-
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String

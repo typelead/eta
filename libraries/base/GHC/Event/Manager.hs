@@ -85,15 +85,15 @@ import System.Posix.Types (Fd)
 import qualified GHC.Event.IntTable as IT
 import qualified GHC.Event.Internal as I
 
-#if defined(HAVE_KQUEUE)
-import qualified GHC.Event.KQueue as KQueue
-#elif defined(HAVE_EPOLL)
-import qualified GHC.Event.EPoll  as EPoll
-#elif defined(HAVE_POLL)
-import qualified GHC.Event.Poll   as Poll
-#else
-# error not implemented for this operating system
-#endif
+-- #if defined(HAVE_KQUEUE)
+-- import qualified GHC.Event.KQueue as KQueue
+-- #elif defined(HAVE_EPOLL)
+-- import qualified GHC.Event.EPoll  as EPoll
+-- #elif defined(HAVE_POLL)
+-- import qualified GHC.Event.Poll   as Poll
+-- #else
+-- # error not implemented for this operating system
+-- #endif
 
 ------------------------------------------------------------------------
 -- Types
@@ -163,15 +163,16 @@ handleControlEvent mgr fd _evt = do
     _               -> return ()
 
 newDefaultBackend :: IO Backend
-#if defined(HAVE_KQUEUE)
-newDefaultBackend = KQueue.new
-#elif defined(HAVE_EPOLL)
-newDefaultBackend = EPoll.new
-#elif defined(HAVE_POLL)
-newDefaultBackend = Poll.new
-#else
+-- #if defined(HAVE_KQUEUE)
+-- newDefaultBackend = KQueue.new
+-- #elif defined(HAVE_EPOLL)
+-- newDefaultBackend = EPoll.new
+-- #elif defined(HAVE_POLL)
+-- newDefaultBackend = Poll.new
+-- #else
+-- TODO: Implement IO Manager
 newDefaultBackend = error "no back end for this platform"
-#endif
+-- #endif
 
 -- | Create a new event manager.
 new :: IO EventManager

@@ -53,7 +53,6 @@ import GHC.Show ( show )
 import Foreign.Marshal.Alloc
 import Foreign.ForeignPtr
 
-import GHC.Debug
 import GHC.List
 import GHC.Num
 import GHC.Base
@@ -68,7 +67,7 @@ c_DEBUG_DUMP :: Bool
 c_DEBUG_DUMP = False
 
 putDebugMsg :: String -> IO ()
-putDebugMsg | c_DEBUG_DUMP = debugLn
+putDebugMsg | c_DEBUG_DUMP = undefined --debugLn TODO: Replace with system.out.println
             | otherwise    = const (return ())
 
 

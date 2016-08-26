@@ -54,11 +54,11 @@ import System.Posix.Types (Fd)
 import qualified GHC.Event.Internal as I
 import qualified GHC.Event.PSQ as Q
 
-#if defined(HAVE_POLL)
-import qualified GHC.Event.Poll   as Poll
-#else
-# error not implemented for this operating system
-#endif
+-- #if defined(HAVE_POLL)
+-- import qualified GHC.Event.Poll   as Poll
+-- #else
+-- # error not implemented for this operating system
+-- #endif
 
 ------------------------------------------------------------------------
 -- Types
@@ -103,11 +103,11 @@ handleControlEvent mgr fd _evt = do
     CMsgSignal fp s -> runHandlers fp s
 
 newDefaultBackend :: IO Backend
-#if defined(HAVE_POLL)
-newDefaultBackend = Poll.new
-#else
+-- #if defined(HAVE_POLL)
+-- newDefaultBackend = Poll.new
+-- #else
 newDefaultBackend = error "no back end for this platform"
-#endif
+-- #endif
 
 -- | Create a new event manager.
 new :: IO TimerManager

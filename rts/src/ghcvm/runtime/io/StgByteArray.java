@@ -1,21 +1,23 @@
 package ghcvm.runtime.io;
 
+import java.nio.ByteBuffer;
+
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
 
-public class final StgByteArray extends StgClosure {
+public final class StgByteArray extends StgClosure {
     public ByteBuffer buf;
 
-    public StgArray(int n) {
+    public StgByteArray(int n) {
         this(n, 0);
         // TODO: Perform initialization else where?
         // TODO: Handle pinned bytebuffers
         buf = ByteBuffer.allocateDirect(n);
     }
 
-    public StgArray(int n, int alignment) {
+    public StgByteArray(int n, int alignment) {
         // TODO: Perform initialization else where?
         // TODO: Handle pinned bytebuffers
         // TODO: Handle aligned

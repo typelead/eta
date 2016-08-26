@@ -315,8 +315,8 @@ float2Integer (F# x) =
 -- speedup for values of small modulus and is much slower than staying
 -- in Haskell for values of large modulus, so those are done in Haskell.
 
-foreign import ccall unsafe "rintDouble"
-    c_rintDouble :: Double -> Double
+foreign import java unsafe "@static java.lang.Math.rint"
+  c_rintDouble :: Double -> Double
 
-foreign import ccall unsafe "rintFloat"
+foreign import java unsafe "@static ghcvm.base.Utils.rintFloat"
     c_rintFloat :: Float -> Float
