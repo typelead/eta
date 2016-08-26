@@ -426,6 +426,16 @@ simpleOp Word64Xor = Just $ normalOp lxor
 simpleOp Word64Not = Just $ normalOp lnot
 simpleOp Word64SllOp = Just $ normalOp lshl
 simpleOp Word64SrlOp = Just $ normalOp lushr
+simpleOp PopCntOp =
+  Just $ normalOp $
+    invokestatic $ mkMethodRef "java/lang/Integer" "bitCount" [jint] (ret jint)
+simpleOp ClzOp =
+  Just $ normalOp $
+    invokestatic $ mkMethodRef "java/lang/Integer" "numberOfLeadingZeros" [jint] (ret jint)
+simpleOp CtzOp =
+  Just $ normalOp $
+    invokestatic $ mkMethodRef "java/lang/Integer" "numberOfTrailingZeros" [jint] (ret jint)
+
 simpleOp Int64Eq = Just $ typedCmp jlong ifeq
 simpleOp Int64Ne = Just $ typedCmp jlong ifne
 simpleOp Int64Lt = Just $ typedCmp jlong iflt

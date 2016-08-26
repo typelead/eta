@@ -55,6 +55,8 @@ module Data.Bits (
 -- See library document for details on the semantics of the
 -- individual operations.
 
+#define WORD_SIZE_IN_BITS 32
+
 import Data.Maybe
 import GHC.Enum
 import GHC.Num
