@@ -172,22 +172,34 @@ mkRtsFunCall (group, name) =
   <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)
 
 -- Types
+byteBuffer :: Text
+byteBuffer = "java/nio/ByteBuffer"
+
 byteBufferType :: FieldType
-byteBufferType = ObjectType (IClassName "java/nio/ByteBuffer")
+byteBufferType = obj byteBuffer
 
 byteBufferBuf :: Code
 byteBufferBuf = getfield $ mkFieldRef stgByteArray "buf" byteBufferType
 
 byteBufferCapacity :: Code
-byteBufferCapacity = invokevirtual $ mkMethodRef stgByteArray "capacity" [] (ret jint)
+byteBufferCapacity = invokevirtual $ mkMethodRef byteBuffer "capacity" [] (ret jint)
 
 byteBufferGet :: FieldType -> Code
-byteBufferGet ft = invokevirtual $ mkMethodRef stgByteArray name [jint] (ret ft)
+byteBufferGet ft = invokevirtual $ mkMethodRef byteBuffer name [jint] (ret ft)
   where name = append "get" $ fieldTypeSuffix ft
 
 byteBufferPut :: FieldType -> Code
-byteBufferPut ft = invokevirtual $ mkMethodRef stgByteArray name [jint, ft] void
+byteBufferPut ft = invokevirtual $ mkMethodRef byteBuffer name [jint, ft] void
   where name = append "put" $ fieldTypeSuffix ft
+
+byteBufferPosGet :: Code
+byteBufferPosGet = invokevirtual $ mkMethodRef byteBuffer "position" [] (ret jint)
+
+byteBufferPosSet :: Code
+byteBufferPosSet = invokevirtual $ mkMethodRef byteBuffer "position" [jint] void
+
+byteBufferDup :: Code
+byteBufferDup = invokevirtual $ mkMethodRef byteBuffer "duplicate" [] (ret byteBufferType)
 
 fieldTypeSuffix :: FieldType -> Text
 fieldTypeSuffix (BaseType prim) =
