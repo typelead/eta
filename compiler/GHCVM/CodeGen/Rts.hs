@@ -18,18 +18,20 @@ import qualified Data.ByteString.Char8 as BC
 merge :: Text -> Text -> Text
 merge x y = append x . cons '/' $ y
 
-rts, apply, thunk, stg, exception, io :: Text -> Text
+rts, apply, thunk, stg, exception, io, util, stm :: Text -> Text
 rts       = merge "ghcvm/runtime"
 apply     = merge (rts "apply")
 thunk     = merge (rts "thunk")
 stg       = merge (rts "stg")
 exception = merge (rts "exception")
 io        = merge (rts "io")
+conc      = merge (rts "concurrent")
 util      = merge (rts "util")
+stm       = merge (rts "stm")
 
 closureType, indStaticType, contextType, funType, tsoType, frameType, rtsFunType, conType,
   thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType, stgArrayType, stgByteArrayType,
-  stgMutVarType :: FieldType
+  stgMutVarType, stgMVarType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -45,9 +47,11 @@ exitCodeType      = obj exitCode
 stgArrayType      = obj stgArray
 stgMutVarType     = obj stgMutVar
 stgByteArrayType  = obj stgByteArray
+stgMVarType       = obj stgMVar
 
 stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO, stackFrame,
-  rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned, stgMutVar :: Text
+  rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned, stgMutVar,
+  stgMVar :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -65,6 +69,7 @@ stgArray      = io "StgArray"
 stgByteArray  = io "StgByteArray"
 rtsUnsigned   = merge "ghcvm/integer" "Utils"
 stgMutVar     = io "StgMutVar"
+stgMVar       = conc "StgMutVar"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
@@ -161,9 +166,11 @@ mkRtsMainClass dflags mainClass
                  <> sconst (BC.pack s)
                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
 
-stgExceptionGroup, ioGroup :: Text
+stgExceptionGroup, ioGroup, stmGroup, concGroup :: Text
 stgExceptionGroup = exception "StgException"
 ioGroup = io "IO"
+stmGroup = stm "STM"
+concGroup = stm "Concurrent"
 
 mkRtsFunCall :: (Text, Text) -> Code
 mkRtsFunCall (group, name) =

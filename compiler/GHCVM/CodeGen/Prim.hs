@@ -140,6 +140,17 @@ shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
  <> invokespecial (mkMethodRef stgArray "<init>" [jint, closureType] void)
   ]
 
+shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
+  [
+    new stgMVarType
+ <> dup stgMVarType
+ <> aconst_null
+ <> invokespecial (mkMethodRef stgMVar "<init>" [closureType] void)
+  ]
+
+shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
+  [ intCompOp ifnull [mvar <> getfield (mkFieldRef stgMVar "value" closureType)] ]
+
 shouldInlinePrimOp' dflags UnsafeThawArrayOp args = Right $ return [fold args]
 
 shouldInlinePrimOp' dflags primOp args
@@ -147,9 +158,30 @@ shouldInlinePrimOp' dflags primOp args
   | otherwise = Right $ emitPrimOp primOp args
 
 mkRtsPrimOp :: PrimOp -> (Text, Text)
-mkRtsPrimOp RaiseOp           = (stgExceptionGroup, "raise")
-mkRtsPrimOp FloatDecode_IntOp = (ioGroup, "decodeFloat_Int")
-mkRtsPrimOp NewMutVarOp       = (ioGroup, "newMutVar")
+mkRtsPrimOp RaiseOp                 = (stgExceptionGroup, "raise")
+mkRtsPrimOp CatchOp                 = (stgExceptionGroup, "catch_")
+mkRtsPrimOp RaiseIOOp               = (stgExceptionGroup, "raiseIO")
+mkRtsPrimOp MaskAsyncExceptionsOp   = (stgExceptionGroup, "maskAsyncExceptions")
+mkRtsPrimOp MaskUninterruptibleOp   = (stgExceptionGroup, "maskUninterruptible")
+mkRtsPrimOp UnmaskAsyncExceptionsOp = (stgExceptionGroup, "unmaskAsyncExceptions")
+mkRtsPrimOp MaskStatus              = (stgExceptionGroup, "getMaskingState")
+mkRtsPrimOp FloatDecode_IntOp       = (ioGroup, "decodeFloat_Int")
+mkRtsPrimOp NewMutVarOp             = (ioGroup, "newMutVar")
+mkRtsPrimOp AtomicallyOp            = (stmGroup, "atomically")
+mkRtsPrimOp RetryOp                 = (stmGroup, "retry")
+mkRtsPrimOp CatchRetryOp            = (stmGroup, "catchRetry")
+mkRtsPrimOp CatchSTMOp            = (stmGroup, "catchSTM")
+mkRtsPrimOp Check            = (stmGroup, "check")
+mkRtsPrimOp NewTVarOp            = (stmGroup, "newTVar")
+mkRtsPrimOp ReadTVarOp            = (stmGroup, "readTVar")
+mkRtsPrimOp ReadTVarIOOp            = (stmGroup, "readTVarIO")
+mkRtsPrimOp WriteTVarOp            = (stmGroup, "writeTVar")
+mkRtsPrimOp TakeMVarOp            = (concGroup, "takeMVar")
+mkRtsPrimOp TryTakeMVarOp            = (concGroup, "tryTakeMVar")
+mkRtsPrimOp PutMVarOp            = (concGroup, "putMVar")
+mkRtsPrimOp TryPutMVarOp            = (concGroup, "tryPutMVar")
+mkRtsPrimOp ReadMVarOp            = (concGroup, "readMVar")
+mkRtsPrimOp TryReadMVarOp            = (concGroup, "tryReadMVar")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
@@ -598,6 +630,10 @@ simpleOp Narrow32IntOp  = Just idOp
 simpleOp Narrow8WordOp  = Just $ normalOp $ preserveByte
 simpleOp Narrow16WordOp = Just $ normalOp $ preserveShort
 simpleOp Narrow32WordOp = Just idOp
+
+-- Misc
+simpleOp SameTVarOp = Just $ intCompOp if_acmpeq
+simpleOp SameMVarOp = Just $ intCompOp if_acmpeq
 simpleOp _ = Nothing
 
 popCntOp, clzOp, ctzOp :: Code

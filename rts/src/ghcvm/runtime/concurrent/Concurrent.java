@@ -7,6 +7,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.exception.StgException;
 import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 import static ghcvm.runtime.stg.StgTSO.TSO_LOCKED;
@@ -22,6 +23,26 @@ import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
+
+    public static RtsFun takeMVar = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgMVar mvar = (StgMVar) context.R(1);
+                mvar.lock();
+                if (mvar.value == null) {
+                    StgTSO tso = context.currentTSO;
+                    tso.blockInfo = mvar;
+                    tso.whyBlocked = BlockedOnMVar;
+                    tso.inMVarOperation = true;
+                    mvar.pushLast(tso);
+                    context.R(1, mvar);
+                    block_takemvar.enter(context);
+                } else {
+                    // TODO: Complete this operation
+                }
+                mvar.unlock();
+            }
+        };
 
     public static RtsFun readMVar = new RtsFun() {
             @Override
@@ -78,6 +99,22 @@ public class Concurrent {
                     }
                 }
                 mvar.unlock();
+            }
+        };
+
+    public static RtsFun block_takemvar = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgMVar mvar = (StgMVar) context.R(1);
+                StgTSO tso = context.currentTSO;
+                // TODO: Finish this!
+                //tso.sp.add(new BlockTakeMVarFrame(mvar));
+                tso.whatNext = ThreadRunGHC;
+                context.ret = ThreadBlocked;
+                cap.threadPaused(tso);
+                mvar.unlock();
+                throw StgException.stgReturnException;
             }
         };
 
