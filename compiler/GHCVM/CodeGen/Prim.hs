@@ -457,15 +457,38 @@ simpleOp Word64Xor = Just $ normalOp lxor
 simpleOp Word64Not = Just $ normalOp lnot
 simpleOp Word64SllOp = Just $ normalOp lshl
 simpleOp Word64SrlOp = Just $ normalOp lushr
-simpleOp PopCntOp =
-  Just $ normalOp $
-    invokestatic $ mkMethodRef "java/lang/Integer" "bitCount" [jint] (ret jint)
-simpleOp ClzOp =
-  Just $ normalOp $
-    invokestatic $ mkMethodRef "java/lang/Integer" "numberOfLeadingZeros" [jint] (ret jint)
-simpleOp CtzOp =
-  Just $ normalOp $
-    invokestatic $ mkMethodRef "java/lang/Integer" "numberOfTrailingZeros" [jint] (ret jint)
+-- TODO: Check if these operations are optimal
+simpleOp PopCntOp = Just $ normalOp $ popCntOp
+simpleOp PopCnt8Op = Just $ normalOp $ preserveByte <> popCntOp
+simpleOp PopCnt16Op = Just $ normalOp $ preserveShort <> popCntOp
+simpleOp PopCnt32Op = Just $ normalOp $ popCntOp
+simpleOp PopCnt64Op = Just $ normalOp $
+  invokestatic $ mkMethodRef "java/lang/Long" "bitCount" [jlong] (ret jint)
+simpleOp ClzOp = Just $ normalOp $ clzOp
+simpleOp Clz8Op = Just $ normalOp $ preserveByte <> clzOp <> iconst jint 24 <> isub
+simpleOp Clz16Op = Just $ normalOp $ preserveShort <> clzOp <> iconst jint 16 <> isub
+simpleOp Clz32Op = Just $ normalOp $ clzOp
+simpleOp Clz64Op = Just $ normalOp $
+  invokestatic $ mkMethodRef "java/lang/Long" "numberOfLeadingZeros" [jlong] (ret jint)
+simpleOp CtzOp = Just $ normalOp $ ctzOp
+simpleOp Ctz8Op = Just $ normalOp $ iconst jint 0x100 <> ior <> ctzOp
+simpleOp Ctz16Op = Just $ normalOp $ iconst jint 0x10000 <> ior <> ctzOp
+simpleOp Ctz32Op = Just $ normalOp $ ctzOp
+simpleOp Ctz64Op = Just $ normalOp $
+  invokestatic $ mkMethodRef "java/lang/Long" "numberOfTrailingZeros" [jlong] (ret jint)
+
+-- TODO: Verify all the BSwap operations
+-- TODO: Is this correct?
+simpleOp BSwap16Op = Just $ normalOp $
+     gconv jint jshort
+  <> invokestatic (mkMethodRef "java/lang/Short" "reverseBytes" [jshort] (ret jshort))
+  <> gconv jshort jint
+simpleOp BSwap32Op = Just $ normalOp $
+  invokestatic (mkMethodRef "java/lang/Integer" "reverseBytes" [jint] (ret jint))
+simpleOp BSwap64Op = Just $ normalOp $
+  invokestatic (mkMethodRef "java/lang/Long" "reverseBytes" [jlong] (ret jlong))
+simpleOp BSwapOp = Just $ normalOp $
+  invokestatic (mkMethodRef "java/lang/Integer" "reverseBytes" [jint] (ret jint))
 
 simpleOp Int64Eq = Just $ typedCmp jlong ifeq
 simpleOp Int64Ne = Just $ typedCmp jlong ifne
@@ -567,7 +590,20 @@ simpleOp WriteOffAddrOp_Word16 = Just $ addrWriteOp jshort preserveShort
 simpleOp WriteOffAddrOp_Word32 = Just $ addrWriteOp jint mempty
 simpleOp WriteOffAddrOp_Word64 = Just $ addrWriteOp jlong mempty
 
+-- TODO: Verify that narrowing / preserving are compatible with GHC
+-- Narrowing ops
+simpleOp Narrow8IntOp   = Just $ normalOp $ preserveByte
+simpleOp Narrow16IntOp  = Just $ normalOp $ preserveShort
+simpleOp Narrow32IntOp  = Just idOp
+simpleOp Narrow8WordOp  = Just $ normalOp $ preserveByte
+simpleOp Narrow16WordOp = Just $ normalOp $ preserveShort
+simpleOp Narrow32WordOp = Just idOp
 simpleOp _ = Nothing
+
+popCntOp, clzOp, ctzOp :: Code
+popCntOp = invokestatic $ mkMethodRef "java/lang/Integer" "bitCount" [jint] (ret jint)
+clzOp = invokestatic $ mkMethodRef "java/lang/Integer" "numberOfLeadingZeros" [jint] (ret jint)
+ctzOp = invokestatic $ mkMethodRef "java/lang/Integer" "numberOfTrailingZeros" [jint] (ret jint)
 
 addrCmpOp :: (Code -> Code -> Code) -> [Code] -> Code
 addrCmpOp op args = intCompOp op (map (<> byteBufferPosGet) args)

@@ -502,6 +502,7 @@ gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
   where convOpcode = case (ft1, ft2) of
           (BaseType bt1, BaseType bt2) ->
             case (bt1, bt2) of
+              (JShort, JInt)     -> mempty
               (JInt, JByte)      -> IT.op OP.i2b
               (JInt, JShort)     -> IT.op OP.i2s
               (JInt, JChar)      -> IT.op OP.i2c
