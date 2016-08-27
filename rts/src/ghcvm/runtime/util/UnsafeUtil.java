@@ -9,12 +9,14 @@ import java.security.PrivilegedAction;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stm.StgTVar;
 import ghcvm.runtime.thunk.StgThunk;
+import ghcvm.runtime.io.StgMutVar;
 
 public class UnsafeUtil {
 
     public static final Unsafe UNSAFE;
     private static final long indirecteeOffset;
     private static final long cvOffset;
+    private static final long valueOffset;
 
     static {
         Unsafe unsafe;
@@ -33,6 +35,8 @@ public class UnsafeUtil {
                 (StgThunk.class.getDeclaredField("indirectee"));
             cvOffset = unsafe.objectFieldOffset
                 (StgTVar.class.getDeclaredField("currentValue"));
+            valueOffset = unsafe.objectFieldOffset
+                (StgMutVar.class.getDeclaredField("value"));
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException();
         }
@@ -78,5 +82,9 @@ public class UnsafeUtil {
 
     public static boolean cas(StgTVar tvar, StgClosure expected, StgClosure update) {
         return UNSAFE.compareAndSwapObject(tvar, cvOffset, expected, update);
+    }
+
+    public static boolean cas(StgMutVar mv, StgClosure expected, StgClosure update) {
+        return UNSAFE.compareAndSwapObject(mv, valueOffset, expected, update);
     }
 }

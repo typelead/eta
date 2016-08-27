@@ -3,6 +3,9 @@ package ghcvm.runtime.io;
 import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StgClosure;
+import ghcvm.runtime.thunk.Ap2Upd;
+import ghcvm.runtime.thunk.SelectorPUpd;
+import ghcvm.runtime.RtsFlags;
 
 public class IO {
 
@@ -31,6 +34,47 @@ public class IO {
                 StgClosure init = context.R(1);
                 StgMutVar mv = new StgMutVar(init);
                 context.R(1, mv);
+            }
+        };
+
+    public static RtsFun atomicModifyMutVar = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgMutVar mv = (StgMutVar) context.R(1);
+                StgClosure f = context.R(2);
+                Ap2Upd z = new Ap2Upd(f, null);
+                SelectorPUpd y = new SelectorPUpd(0, z);
+                SelectorPUpd r = new SelectorPUpd(1, z);
+                do {
+                    StgClosure x = mv.value;
+                    z.p2 = x;
+                    if (RtsFlags.ModeFlags.threaded) {
+                        if (!mv.cas(x, y)) {
+                            continue;
+                        }
+                    } else {
+                        mv.value = y;
+                    }
+                    break;
+                } while (true);
+                context.R(1, r);
+            }
+        };
+
+    public static RtsFun casMutVar = new RtsFun() {
+            @Override
+            public void enter(StgContext context) {
+                StgMutVar mv = (StgMutVar) context.R(1);
+                StgClosure old = context.R(2);
+                StgClosure new_ = context.R(3);
+                if (mv.cas(old, new_)) {
+                    context.I(1, 0);
+                    context.R(1, new_);
+                } else {
+                    context.I(1, 1);
+                    // TODO: Should there be a valid value here?
+                    context.R(1, null);
+                }
             }
         };
 }

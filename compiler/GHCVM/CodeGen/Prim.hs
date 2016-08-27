@@ -204,6 +204,8 @@ mkRtsPrimOp MkWeakNoFinalizerOp     = (stgGroup, "mkWeakNoFinalizzer")
 mkRtsPrimOp AddCFinalizerToWeakOp   = (stgGroup, "addJavaFinalizzerToWeak")
 mkRtsPrimOp DeRefWeakOp             = (stgGroup, "deRefWeak")
 mkRtsPrimOp FinalizeWeakOp          = (stgGroup, "finalizzeWeak")
+mkRtsPrimOp AtomicModifyMutVarOp    = (ioGroup, "atomicModifyMutVar")
+mkRtsPrimOp CasMutVarOp             = (ioGroup, "casMutVar")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op

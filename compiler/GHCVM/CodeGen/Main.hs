@@ -225,7 +225,8 @@ cgDataCon typeClass dataCon = do
                L -> go ifs ps os ns fs ((i, code):ls) ds
                D -> go ifs ps os ns fs ls ((i, code):ds)
                _ -> panic "cgDataCon: V argrep!"
-              where code = getfield $ mkFieldRef thisClass (constrField i) ft
+              where code = gload thisFt 0
+                        <> getfield (mkFieldRef thisClass (constrField i) ft)
 
            defineGetRep :: ArgRep -> [(Int, Code)] -> CodeGen ()
            defineGetRep rep [] = return ()
