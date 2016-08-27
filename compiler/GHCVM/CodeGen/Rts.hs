@@ -170,7 +170,8 @@ stgExceptionGroup, ioGroup, stmGroup, concGroup :: Text
 stgExceptionGroup = exception "StgException"
 ioGroup = io "IO"
 stmGroup = stm "STM"
-concGroup = stm "Concurrent"
+concGroup = conc "Concurrent"
+stgGroup = stg "Stg"
 
 mkRtsFunCall :: (Text, Text) -> Code
 mkRtsFunCall (group, name) =

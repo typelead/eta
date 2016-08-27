@@ -151,6 +151,15 @@ shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
 shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
   [ intCompOp ifnull [mvar <> getfield (mkFieldRef stgMVar "value" closureType)] ]
 
+shouldInlinePrimOp' dflags MakeStablePtrOp args = Right $ return
+  [ invokestatic
+    $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "makeStablePtr" [closureType] (ret jint) ]
+
+shouldInlinePrimOp' dflags DeRefStablePtrOp args = Right $ return
+  [ invokestatic
+    $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "getClosure" [jint] (ret closureType) ]
+
+
 shouldInlinePrimOp' dflags UnsafeThawArrayOp args = Right $ return [fold args]
 
 shouldInlinePrimOp' dflags primOp args
@@ -170,18 +179,31 @@ mkRtsPrimOp NewMutVarOp             = (ioGroup, "newMutVar")
 mkRtsPrimOp AtomicallyOp            = (stmGroup, "atomically")
 mkRtsPrimOp RetryOp                 = (stmGroup, "retry")
 mkRtsPrimOp CatchRetryOp            = (stmGroup, "catchRetry")
-mkRtsPrimOp CatchSTMOp            = (stmGroup, "catchSTM")
-mkRtsPrimOp Check            = (stmGroup, "check")
-mkRtsPrimOp NewTVarOp            = (stmGroup, "newTVar")
-mkRtsPrimOp ReadTVarOp            = (stmGroup, "readTVar")
+mkRtsPrimOp CatchSTMOp              = (stmGroup, "catchSTM")
+mkRtsPrimOp Check                   = (stmGroup, "check")
+mkRtsPrimOp NewTVarOp               = (stmGroup, "newTVar")
+mkRtsPrimOp ReadTVarOp              = (stmGroup, "readTVar")
 mkRtsPrimOp ReadTVarIOOp            = (stmGroup, "readTVarIO")
-mkRtsPrimOp WriteTVarOp            = (stmGroup, "writeTVar")
-mkRtsPrimOp TakeMVarOp            = (concGroup, "takeMVar")
-mkRtsPrimOp TryTakeMVarOp            = (concGroup, "tryTakeMVar")
-mkRtsPrimOp PutMVarOp            = (concGroup, "putMVar")
+mkRtsPrimOp WriteTVarOp             = (stmGroup, "writeTVar")
+mkRtsPrimOp TakeMVarOp              = (concGroup, "takeMVar")
+mkRtsPrimOp TryTakeMVarOp           = (concGroup, "tryTakeMVar")
+mkRtsPrimOp PutMVarOp               = (concGroup, "putMVar")
 mkRtsPrimOp TryPutMVarOp            = (concGroup, "tryPutMVar")
-mkRtsPrimOp ReadMVarOp            = (concGroup, "readMVar")
-mkRtsPrimOp TryReadMVarOp            = (concGroup, "tryReadMVar")
+mkRtsPrimOp ReadMVarOp              = (concGroup, "readMVar")
+mkRtsPrimOp TryReadMVarOp           = (concGroup, "tryReadMVar")
+mkRtsPrimOp ForkOp                  = (concGroup, "fork")
+mkRtsPrimOp ForkOnOp                = (concGroup, "forkOn")
+mkRtsPrimOp KillThreadOp            = (stgExceptionGroup, "killThread")
+mkRtsPrimOp YieldOp                 = (concGroup, "yield")
+mkRtsPrimOp MyThreadIdOp            = (concGroup, "myThreadId")
+mkRtsPrimOp IsCurrentThreadBoundOp  = (concGroup, "isCurrentThreadBound")
+mkRtsPrimOp NoDuplicateOp           = (stgGroup, "noDuplicate")
+mkRtsPrimOp ThreadStatusOp          = (concGroup, "threadStatus")
+mkRtsPrimOp MkWeakOp                = (stgGroup, "mkWeak")
+mkRtsPrimOp MkWeakNoFinalizerOp     = (stgGroup, "mkWeakNoFinalizzer")
+mkRtsPrimOp AddCFinalizerToWeakOp   = (stgGroup, "addJavaFinalizzerToWeak")
+mkRtsPrimOp DeRefWeakOp             = (stgGroup, "deRefWeak")
+mkRtsPrimOp FinalizeWeakOp          = (stgGroup, "finalizzeWeak")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
@@ -308,7 +330,7 @@ simpleOp IndexByteArrayOp_Word = Just $ byteArrayIndexOp jint mempty
 -- TODO: simpleOp IndexByteArrayOp_Addr =
 simpleOp IndexByteArrayOp_Float = Just $ byteArrayIndexOp jfloat mempty
 simpleOp IndexByteArrayOp_Double = Just $ byteArrayIndexOp jdouble mempty
--- TODO: simpleOp IndexByteArrayOp_StablePtr =
+simpleOp IndexByteArrayOp_StablePtr = Just $ byteArrayIndexOp jint mempty
 simpleOp IndexByteArrayOp_Int8 = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp IndexByteArrayOp_Int16 = Just $ byteArrayIndexOp jshort preserveShort
 simpleOp IndexByteArrayOp_Int32 = Just $ byteArrayIndexOp jint mempty
@@ -325,7 +347,7 @@ simpleOp ReadByteArrayOp_Word = Just $ byteArrayIndexOp jint mempty
 -- TODO: simpleOp ReadByteArrayOp_Addr =
 simpleOp ReadByteArrayOp_Float = Just $ byteArrayIndexOp jfloat mempty
 simpleOp ReadByteArrayOp_Double = Just $ byteArrayIndexOp jdouble mempty
--- TODO: simpleOp ReadByteArrayOp_StablePtr =
+simpleOp ReadByteArrayOp_StablePtr = Just $ byteArrayIndexOp jint mempty
 simpleOp ReadByteArrayOp_Int8 = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp ReadByteArrayOp_Int16 = Just $ byteArrayIndexOp jshort preserveShort
 simpleOp ReadByteArrayOp_Int32 = Just $ byteArrayIndexOp jint mempty
@@ -343,7 +365,7 @@ simpleOp WriteByteArrayOp_Word = Just $ byteArrayWriteOp jint mempty
 simpleOp WriteByteArrayOp_Float = Just $ byteArrayWriteOp jfloat mempty
 simpleOp WriteByteArrayOp_Double = Just $ byteArrayWriteOp jdouble mempty
 -- TODO: Verify writes for Word/Int 8/16 - add additional casts?
--- TODO: simpleOp WriteByteArrayOp_StablePtr =
+simpleOp WriteByteArrayOp_StablePtr = Just $ byteArrayWriteOp jint mempty
 simpleOp WriteByteArrayOp_Int8 = Just $ byteArrayWriteOp jbyte preserveByte
 simpleOp WriteByteArrayOp_Int16 = Just $ byteArrayWriteOp jshort preserveShort
 simpleOp WriteByteArrayOp_Int32 = Just $ byteArrayWriteOp jint mempty
@@ -632,9 +654,11 @@ simpleOp Narrow16WordOp = Just $ normalOp $ preserveShort
 simpleOp Narrow32WordOp = Just idOp
 
 -- Misc
-simpleOp SameTVarOp = Just $ intCompOp if_acmpeq
-simpleOp SameMVarOp = Just $ intCompOp if_acmpeq
-simpleOp _ = Nothing
+simpleOp SameTVarOp    = Just $ intCompOp if_acmpeq
+simpleOp SameMVarOp    = Just $ intCompOp if_acmpeq
+simpleOp EqStablePtrOp = Just $ intCompOp if_acmpeq
+simpleOp TouchOp       = Just idOp
+simpleOp _             = Nothing
 
 popCntOp, clzOp, ctzOp :: Code
 popCntOp = invokestatic $ mkMethodRef "java/lang/Integer" "bitCount" [jint] (ret jint)

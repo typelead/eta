@@ -705,7 +705,7 @@ mkTVarPrimTy s elt = TyConApp tVarPrimTyCon [s, elt]
 -}
 
 stablePtrPrimTyCon :: TyCon
-stablePtrPrimTyCon = pcPrimTyCon stablePtrPrimTyConName [Representational] AddrRep
+stablePtrPrimTyCon = pcPrimTyCon stablePtrPrimTyConName [Representational] IntRep
 
 mkStablePtrPrimTy :: Type -> Type
 mkStablePtrPrimTy ty = TyConApp stablePtrPrimTyCon [ty]
