@@ -388,6 +388,20 @@ simpleOp DoubleMulOp = Just $ normalOp dmul
 simpleOp DoubleDivOp = Just $ normalOp ddiv
 simpleOp DoubleNegOp = Just $ normalOp dneg
 
+simpleOp DoubleExpOp = Just $ normalOp $ doubleMathEndoOp "exp"
+simpleOp DoubleLogOp = Just $ normalOp $ doubleMathEndoOp "log"
+simpleOp DoubleSqrtOp = Just $ normalOp $ doubleMathEndoOp "sqrt"
+simpleOp DoubleSinOp = Just $ normalOp $ doubleMathEndoOp "sin"
+simpleOp DoubleCosOp = Just $ normalOp $ doubleMathEndoOp "cos"
+simpleOp DoubleTanOp = Just $ normalOp $ doubleMathEndoOp "tan"
+simpleOp DoubleAsinOp = Just $ normalOp $ doubleMathEndoOp "asin"
+simpleOp DoubleAcosOp = Just $ normalOp $ doubleMathEndoOp "acos"
+simpleOp DoubleAtanOp = Just $ normalOp $ doubleMathEndoOp "atan"
+simpleOp DoubleSinhOp = Just $ normalOp $ doubleMathEndoOp "sinh"
+simpleOp DoubleCoshOp = Just $ normalOp $ doubleMathEndoOp "cosh"
+simpleOp DoubleTanhOp = Just $ normalOp $ doubleMathEndoOp "tanh"
+simpleOp DoublePowerOp = Just $ normalOp $ doubleMathOp "pow" [jdouble, jdouble] jdouble
+
 -- Float# ops
 simpleOp FloatEqOp = Just $ typedCmp jfloat ifeq
 simpleOp FloatNeOp = Just $ typedCmp jfloat ifne
@@ -401,6 +415,22 @@ simpleOp FloatSubOp = Just $ normalOp fsub
 simpleOp FloatMulOp = Just $ normalOp fmul
 simpleOp FloatDivOp = Just $ normalOp fdiv
 simpleOp FloatNegOp = Just $ normalOp fneg
+
+simpleOp FloatExpOp = Just $ normalOp $ floatMathEndoOp "exp"
+simpleOp FloatLogOp = Just $ normalOp $ floatMathEndoOp "log"
+simpleOp FloatSqrtOp = Just $ normalOp $ floatMathEndoOp "sqrt"
+simpleOp FloatSinOp = Just $ normalOp $ floatMathEndoOp "sin"
+simpleOp FloatCosOp = Just $ normalOp $ floatMathEndoOp "cos"
+simpleOp FloatTanOp = Just $ normalOp $ floatMathEndoOp "tan"
+simpleOp FloatAsinOp = Just $ normalOp $ floatMathEndoOp "asin"
+simpleOp FloatAcosOp = Just $ normalOp $ floatMathEndoOp "acos"
+simpleOp FloatAtanOp = Just $ normalOp $ floatMathEndoOp "atan"
+simpleOp FloatSinhOp = Just $ normalOp $ floatMathEndoOp "sinh"
+simpleOp FloatCoshOp = Just $ normalOp $ floatMathEndoOp "cosh"
+simpleOp FloatTanhOp = Just $ normalOp $ floatMathEndoOp "tanh"
+simpleOp FloatPowerOp = Just $ \[arg1, arg2] ->
+     (arg1 <> gconv jfloat jdouble)
+  <> (arg2 <> floatMathOp "pow" [jfloat, jfloat] jfloat)
 
 -- Conversions
 simpleOp Int2DoubleOp   = Just $ normalOp $ gconv jint    jdouble
@@ -469,6 +499,18 @@ simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
 simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 
 simpleOp _ = Nothing
+
+floatMathEndoOp :: Text -> Code
+floatMathEndoOp f = gconv jfloat jdouble <> doubleMathEndoOp f <> gconv jdouble jfloat
+
+floatMathOp :: Text -> [FieldType] -> FieldType -> Code
+floatMathOp f args ret = gconv jfloat jdouble <> doubleMathOp f args ret <> gconv jdouble jfloat
+
+doubleMathOp :: Text -> [FieldType] -> FieldType -> Code
+doubleMathOp f args ret = invokestatic $ mkMethodRef "java/lang/Math" f args (Just ret)
+
+doubleMathEndoOp :: Text -> Code
+doubleMathEndoOp f = doubleMathOp f [jdouble] jdouble
 
 byteArrayIndexOp :: FieldType -> Code -> [Code] -> Code
 byteArrayIndexOp ft resCode = \[this, ix] -> this <> byteBufferBuf <> ix <> byteBufferGet ft <> resCode
