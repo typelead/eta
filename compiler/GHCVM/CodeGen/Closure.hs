@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Closure where
 
 import GHCVM.Main.DynFlags
@@ -12,10 +13,14 @@ import GHCVM.BasicTypes.OccName
 import GHCVM.BasicTypes.Name
 import GHCVM.BasicTypes.Module
 
+import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.ArgRep
 
 import Codec.JVM
+import Data.Monoid((<>))
+import Data.Foldable(fold)
+import qualified Data.Text as T
 
 mkClosureLFInfo :: Id           -- The binder
                 -> TopLevelFlag -- True of top level
@@ -168,6 +173,11 @@ mkApLFInfo id updateFlag arity
   = LFThunk NotTopLevel (arity == 0)
            (isUpdatable updateFlag) (ApThunk arity) (maybeFunction (idType id))
 
+mkSelectorLFInfo :: Id -> Int -> ArgRep -> Bool -> LambdaFormInfo
+mkSelectorLFInfo id pos rep updatable
+  = LFThunk NotTopLevel False updatable (SelectorThunk pos rep)
+        (maybeFunction (idType id))
+
 lneIdInfo :: Label -> Id -> [CgLoc] -> CgIdInfo
 lneIdInfo label id cgLocs =
   CgIdInfo
@@ -180,3 +190,23 @@ getDataConTag = dataConTag
 
 mkLFLetNoEscape :: LambdaFormInfo
 mkLFLetNoEscape = LFLetNoEscape
+
+genStdThunk :: [Code] -> LambdaFormInfo -> Code
+genStdThunk loads (LFThunk _ _ updatable stdForm _)
+  | SelectorThunk pos rep <- stdForm
+  = let selClass = selectThunkName updatable $ T.pack (show rep)
+        ft = obj selClass
+    in new ft
+    <> dup ft
+    <> iconst jint (fromIntegral pos)
+    <> fold loads
+    <> invokespecial (mkMethodRef selClass "<init>" [jint, closureType] void)
+  | ApThunk n <- stdForm
+  = let ft = obj apUpdClass
+        fields = replicate n closureType
+        apUpdClass = apUpdName n
+    in new ft
+    <> dup ft
+    <> fold loads
+    <> invokespecial (mkMethodRef apUpdClass "<init>" fields void)
+  | otherwise = panic "genStdThunk: Thunk is not in standard form!"

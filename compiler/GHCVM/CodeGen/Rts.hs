@@ -11,6 +11,7 @@ import GHCVM.CodeGen.Name
 import Data.Monoid((<>))
 import Data.Foldable(fold)
 import qualified Data.ByteString.Char8 as BC
+import qualified Data.Text as T
 
 -- NOTE: If the RTS is refactored, this file must also be updated accordingly
 
@@ -109,7 +110,11 @@ mkApFast patText =
   where fullPat = append patText "_fast"
 
 apUpdName :: Int -> Text
-apUpdName n = thunk $ append (append "Ap" (pack . show $ n)) "Upd"
+apUpdName n = thunk $ T.concat ["Ap",  pack $ show n, "Upd"]
+
+selectThunkName :: Bool -> Text -> Text
+selectThunkName updatable repText = thunk $ T.concat ["Selector", repText, updText]
+  where updText = if updatable then "Upd" else "NoUpd"
 
 constrField :: Int -> Text
 constrField = cons 'x' . pack . show

@@ -2,6 +2,7 @@
 module GHCVM.CodeGen.Bind where
 
 import GHCVM.StgSyn.StgSyn
+import GHCVM.Core.CoreSyn
 import GHCVM.BasicTypes.Id
 import GHCVM.Utils.Util (unzipWith)
 import GHCVM.Types.TyCon
@@ -25,7 +26,7 @@ import Data.Text (append, pack, unpack)
 import Data.Foldable (fold)
 import Data.Maybe (mapMaybe, maybe)
 import Data.Monoid ((<>))
-import Data.List(delete)
+import Data.List(delete, find)
 
 closureCodeBody
   :: Bool                  -- whether this is a top-level binding
@@ -145,7 +146,19 @@ mkRhsClosure
   -> [Id]
   -> StgExpr
   -> CodeGen (CgIdInfo, CodeGen Code)
--- TODO: Selector thunks
+mkRhsClosure binder _ [NonVoid theFv] updateFlag [] expr
+  | StgCase (StgApp scrutinee [])
+      _ _ _ _
+      (AlgAlt _)
+      [(DataAlt _, params, _, selExpr)] <- strip expr
+  , StgApp selectee [] <- strip selExpr
+  , theFv == scrutinee
+  , let indexedReps = zip [1..] [(p, rep) | p <- params, let rep = idArgRep p, isNonV rep]
+  , Just (index, (_, rep)) <- find (\(_, (p, _)) -> p == selectee) indexedReps
+  = let lfInfo = mkSelectorLFInfo binder index rep (isUpdatable updateFlag)
+    in cgRhsStdThunk binder lfInfo [StgVarArg theFv]
+  where strip = snd . stripStgTicksTop (not . tickishIsCode)
+
 mkRhsClosure binder _ fvs updateFlag [] (StgApp funId args)
   | length args == arity - 1
    && all (isGcPtrRep . idPrimRep . unsafeStripNV) fvs
@@ -191,18 +204,8 @@ cgRhsStdThunk binder lfInfo payload = do
   return (idInfo, genCode cgLoc)
   where genCode cgLoc = do
           loads <- mapM (getArgLoadCode . NonVoid) payload
-          let f (StgVarArg v) = v
-          locs  <- mapM (getCgLoc . NonVoid . f) payload
-          debugDoc $ str "cgRhsStdThunk:" <+> ppr locs
-          let apUpdCode = fold
-                [
-                  new ft,
-                  dup ft,
-                  fold loads,
-                  invokespecial $ mkMethodRef apUpdClass "<init>" fields void
-                ]
-          return $ mkRhsInit cgLoc apUpdCode
-          where (apUpdClass, n) = apUpdThunk stdForm
-                ft = obj apUpdClass
-                fields = replicate n closureType
-                stdForm = lfStandardFormInfo lfInfo
+          -- let f (StgVarArg v) = v
+          -- locs  <- mapM (getCgLoc . NonVoid . f) payload
+          -- debugDoc $ str "cgRhsStdThunk:" <+> ppr locs
+          let thunkInitCode = genStdThunk loads lfInfo
+          return $ mkRhsInit cgLoc thunkInitCode

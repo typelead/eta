@@ -5,9 +5,9 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StgConstr;
 import ghcvm.runtime.apply.Apply;
 
-public class SelectorINoUpd extends SelectorNoUpd {
+public class SelectorNNoUpd extends SelectorNoUpd {
 
-    public SelectorINoUpd(int i, StgClosure p) {
+    public SelectorNNoUpd(int i, StgClosure p) {
         super(i, p);
     }
 
