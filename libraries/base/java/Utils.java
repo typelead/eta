@@ -33,4 +33,32 @@ public class Utils {
                   (1 << Character.LETTER_NUMBER)) >> getType(codePoint)) & 1)
             != 0;
     }
+
+    public static boolean isFloatNegativeZero(float f) {
+        return f == -0.0f;
+    }
+
+    public static boolean isFloatDenormalized(float f) {
+        int bits = Float.floatToRawIntBits(f);
+        return ((bits >> 23) & 0xff) == 0 && (bits & 0x7fffff) != 0;
+    }
+
+    public static boolean isFloatFinite(float f) {
+        int bits = Float.floatToRawIntBits(f);
+        return ((bits >> 23) & 0xff) != 0xff;
+    }
+
+    public static boolean isDoubleNegativeZero(double d) {
+        return d == -0.0;
+    }
+
+    public static boolean isDoubleDenormalized(double d) {
+        long bits = Double.doubleToRawLongBits(d);
+        return ((bits >> 52) & 0x7ffL) == 0 && (bits & 0xfffffffffffffL) != 0;
+    }
+
+    public static boolean isDoubleFinite(double d) {
+        long bits = Double.doubleToRawLongBits(d);
+        return ((bits >> 52) & 0x7ffL) != 0x7ffL;
+    }
 }

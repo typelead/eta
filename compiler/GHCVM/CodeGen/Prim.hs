@@ -409,7 +409,8 @@ simpleOp Int2FloatOp    = Just $ normalOp $ gconv jint    jfloat
 simpleOp Float2IntOp    = Just $ normalOp $ gconv jfloat  jint
 simpleOp Float2DoubleOp = Just $ normalOp $ gconv jfloat  jdouble
 simpleOp Double2FloatOp = Just $ normalOp $ gconv jdouble jfloat
-
+simpleOp Word2FloatOp   = Just $ normalOp $ unsignedExtend mempty <> gconv jlong jfloat
+simpleOp Word2DoubleOp  = Just $ normalOp $ unsignedExtend mempty <> gconv jlong jdouble
 simpleOp Word64Eq = Just $ typedCmp jlong ifeq
 simpleOp Word64Ne = Just $ typedCmp jlong ifne
 simpleOp Word64Lt = Just $ unsignedLongCmp iflt

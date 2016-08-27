@@ -24,8 +24,6 @@
 --
 -----------------------------------------------------------------------------
 
--- TODO: Replace C calls with Java calls
-
 module GHC.Float( module GHC.Float, Float(..), Double(..), Float#, Double#
                 , double2Int, int2Double, float2Int, int2Float )
     where
@@ -341,12 +339,12 @@ instance  RealFloat Float  where
       | otherwise       = case decodeFloat x of
                             (m,n) -> encodeFloat m (n + clamp bf k)
                         where bf = FLT_MAX_EXP - (FLT_MIN_EXP) + 4*FLT_MANT_DIG
-                              isFix = x == 0 || isFloatFinite x == 0
+                              isFix = x == 0 || isFloatFinite x
 
-    isNaN x          = 0 /= isFloatNaN x
-    isInfinite x     = 0 /= isFloatInfinite x
-    isDenormalized x = 0 /= isFloatDenormalized x
-    isNegativeZero x = 0 /= isFloatNegativeZero x
+    isNaN x          = isFloatNaN x
+    isInfinite x     = isFloatInfinite x
+    isDenormalized x = isFloatDenormalized x
+    isNegativeZero x = isFloatNegativeZero x
     isIEEE _         = True
 
 instance  Show Float  where
@@ -499,12 +497,12 @@ instance  RealFloat Double  where
       | otherwise       = case decodeFloat x of
                             (m,n) -> encodeFloat m (n + clamp bd k)
                         where bd = DBL_MAX_EXP - (DBL_MIN_EXP) + 4*DBL_MANT_DIG
-                              isFix = x == 0 || isDoubleFinite x == 0
+                              isFix = x == 0 || isDoubleFinite x
 
-    isNaN x             = 0 /= isDoubleNaN x
-    isInfinite x        = 0 /= isDoubleInfinite x
-    isDenormalized x    = 0 /= isDoubleDenormalized x
-    isNegativeZero x    = 0 /= isDoubleNegativeZero x
+    isNaN x             = isDoubleNaN x
+    isInfinite x        = isDoubleInfinite x
+    isDenormalized x    = isDoubleDenormalized x
+    isNegativeZero x    = isDoubleNegativeZero x
     isIEEE _            = True
 
 instance  Show Double  where
@@ -1069,17 +1067,27 @@ tanhDouble   (D# x) = D# (tanhDouble# x)
 powerDouble :: Double -> Double -> Double
 powerDouble  (D# x) (D# y) = D# (x **## y)
 
-foreign import ccall unsafe "isFloatNaN" isFloatNaN :: Float -> Int
-foreign import ccall unsafe "isFloatInfinite" isFloatInfinite :: Float -> Int
-foreign import ccall unsafe "isFloatDenormalized" isFloatDenormalized :: Float -> Int
-foreign import ccall unsafe "isFloatNegativeZero" isFloatNegativeZero :: Float -> Int
-foreign import ccall unsafe "isFloatFinite" isFloatFinite :: Float -> Int
+foreign import java unsafe "@static java.lang.Float.isNaN"
+  isFloatNaN :: Float -> Bool
+foreign import java unsafe "@static java.lang.Float.isInfinite"
+  isFloatInfinite :: Float -> Bool
+foreign import java unsafe "@static ghcvm.base.Utils.isFloatDenormalized"
+  isFloatDenormalized :: Float -> Bool
+foreign import java unsafe "@static ghcvm.base.Utils.isFloatNegativeZero"
+  isFloatNegativeZero :: Float -> Bool
+foreign import java unsafe "@static ghcvm.base.Utils.isFloatFinite"
+  isFloatFinite :: Float -> Bool
 
-foreign import ccall unsafe "isDoubleNaN" isDoubleNaN :: Double -> Int
-foreign import ccall unsafe "isDoubleInfinite" isDoubleInfinite :: Double -> Int
-foreign import ccall unsafe "isDoubleDenormalized" isDoubleDenormalized :: Double -> Int
-foreign import ccall unsafe "isDoubleNegativeZero" isDoubleNegativeZero :: Double -> Int
-foreign import ccall unsafe "isDoubleFinite" isDoubleFinite :: Double -> Int
+foreign import java unsafe "@static java.lang.Double.isNaN"
+  isDoubleNaN :: Double -> Bool
+foreign import java unsafe "@static java.lang.Double.isInfinite"
+  isDoubleInfinite :: Double -> Bool
+foreign import java unsafe "@static ghcvm.base.Utils.isDoubleDenormalized"
+  isDoubleDenormalized :: Double -> Bool
+foreign import java unsafe "@static ghcvm.base.Utils.isDoubleNegativeZero"
+  isDoubleNegativeZero :: Double -> Bool
+foreign import java unsafe "@static ghcvm.base.Utils.isDoubleFinite"
+  isDoubleFinite :: Double -> Bool
 
 ------------------------------------------------------------------------
 -- Coercion rules
