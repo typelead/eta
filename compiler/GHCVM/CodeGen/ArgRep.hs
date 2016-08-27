@@ -14,7 +14,8 @@ module GHCVM.CodeGen.ArgRep
    repFieldType_maybe,
    contextLoad,
    contextStore,
-   slowCallPattern
+   slowCallPattern,
+   argRepFt
   ) where
 
 import GHCVM.BasicTypes.Id
@@ -173,3 +174,12 @@ idPrimRep = typePrimRep . idType
 
 jrepType :: Type -> UnaryType
 jrepType = head . flattenRepType . repType
+
+argRepFt :: ArgRep -> FieldType
+argRepFt P = closureType
+argRepFt O = jobject
+argRepFt N = jint
+argRepFt F = jfloat
+argRepFt L = jlong
+argRepFt D = jdouble
+argRepFt _ = panic "argRepFt: V argrep!"

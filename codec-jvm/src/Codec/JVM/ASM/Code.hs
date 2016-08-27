@@ -474,8 +474,8 @@ dconst d
   where ft = jdouble
         code = constCode ft
 
-sconst :: ByteString -> Code
-sconst = gldc jstring . cstring . decodeUtf8
+sconst :: Text -> Code
+sconst = gldc jstring . cstring
 
 gldc :: FieldType -> Const -> Code
 gldc ft c = mkCode cs $ loadCode

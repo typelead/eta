@@ -19,8 +19,8 @@ public abstract class StgConstr extends StgClosure {
         return null;
     }
 
-    public int getI(int i) {
-        barf("getI not implemented!");
+    public int getN(int i) {
+        barf("getN not implemented!");
         return 0;
     }
 

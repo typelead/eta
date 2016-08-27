@@ -11,6 +11,7 @@ import Control.Arrow(first)
 import GHCVM.CodeGen.Name
 import GHCVM.Debug
 import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
 import Data.Monoid ((<>))
 
 cgLit :: Literal -> (FieldType, Code)
@@ -22,7 +23,7 @@ cgLit (MachWord64 i)        = (jlong, iconst jlong $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 cgLit MachNullAddr          = (jobject, aconst_null)
-cgLit (MachStr s)           = (jstring, sconst s)
+cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)

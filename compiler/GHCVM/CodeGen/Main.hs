@@ -212,6 +212,32 @@ cgDataCon typeClass dataCon = do
                          mkFieldDef [Public, Final] (constrField i) ft)
                        indexedFields
 
+
+           (ps, os, ns, fs, ls, ds) = go indexedFields [] [] [] [] [] []
+
+           go [] ps os ns fs ls ds = (ps, os, ns, fs, ls, ds)
+           go ((i, ft):ifs) ps os ns fs ls ds =
+             case ftArgRep ft of
+               P -> go ifs ((i, code):ps) os ns fs ls ds
+               O -> go ifs ps ((i, code):os) ns fs ls ds
+               N -> go ifs ps os ((i, code):ns) fs ls ds
+               F -> go ifs ps os ns ((i, code):fs) ls ds
+               L -> go ifs ps os ns fs ((i, code):ls) ds
+               D -> go ifs ps os ns fs ls ((i, code):ds)
+               _ -> panic "cgDataCon: V argrep!"
+              where code = getfield $ mkFieldRef thisClass (constrField i) ft
+
+           defineGetRep :: ArgRep -> [(Int, Code)] -> CodeGen ()
+           defineGetRep rep [] = return ()
+           defineGetRep rep branches =
+             defineMethod $
+               mkMethodDef thisClass [Public] method [jint] (ret ft) $
+                 gswitch (gload jint 1) branches
+                   (Just . barf $ append method ": invalid field index!")
+              <> greturn ft
+             where ft = argRepFt rep
+                   method = append "get" (pack $ show rep)
+
            indexedFields :: [(Int, FieldType)]
            indexedFields = indexList fields
 
@@ -224,6 +250,12 @@ cgDataCon typeClass dataCon = do
        newExportedClosure dataConClassName typeClass $ do
          defineFields fieldDefs
          defineTagMethod
+         defineGetRep P ps
+         defineGetRep O os
+         defineGetRep N ns
+         defineGetRep F fs
+         defineGetRep L ls
+         defineGetRep D ds
          defineMethod $ mkConstructorDef thisClass typeClass fields initCode
        return ()
   where conTag = fromIntegral $ getDataConTag dataCon

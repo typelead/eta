@@ -168,7 +168,7 @@ mkRtsMainClass dflags mainClass
         putRtsOpts = case rtsOpts dflags of
           Nothing -> mempty
           Just s -> dup rtsConfigType
-                 <> sconst (BC.pack s)
+                 <> sconst (T.pack s)
                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
 
 stgExceptionGroup, ioGroup, stmGroup, concGroup :: Text
@@ -231,3 +231,10 @@ mutVarValue = getfield $ mkFieldRef stgMutVar "value" closureType
 
 mutVarSetValue :: Code
 mutVarSetValue = putfield $ mkFieldRef stgMutVar "value" closureType
+
+barf :: Text -> Code
+barf text = sconst text
+         <> iconst jint (fromIntegral 0)
+         <> new arrayFt
+         <> invokestatic (mkMethodRef (rts "RtsMessages") "barf" [jstring, arrayFt] void)
+  where arrayFt = jarray jobject
