@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings, BangPatterns, RecordWildCards #-}
 module Codec.JVM.Attr where
 
--- import Debug.Trace(traceShow)
 import Data.Maybe (mapMaybe)
 import Data.Map.Strict (Map)
 import Data.ByteString (ByteString)
@@ -99,21 +98,20 @@ data StackMapFrame
   deriving (Eq, Show)
 
 putStackMapFrames :: ConstPool -> [(Offset, StackMapFrame)] -> Put
-putStackMapFrames cp xs = {- traceShow xs -} (snd $ foldl' f (0, return ()) xs)
+putStackMapFrames cp xs = (snd $ foldl' f (0, return ()) xs)
   where f (offset, put) (Offset frameOffset, frame)
           = (frameOffset, put *> putFrame frame)
-          where delta = fromIntegral $ frameOffset -
-                  (if offset == 0 then 0 else offset + 1)
+          where delta = frameOffset - (if offset == 0 then 0 else offset + 1)
                 putVerifTy = putVerifType cp
                 putFrame SameFrame =
                   if delta <= 63
-                    then putWord8 delta
+                    then putWord8 $ fromIntegral delta
                     else do
                       putWord8 251
                       putWord16be $ fromIntegral delta
                 putFrame (SameLocals1StackItem vt) = do
                   if delta <= 63
-                    then putWord8 $ delta + 64
+                    then putWord8 $ fromIntegral (delta + 64)
                     else do
                       putWord8 247
                       putWord16be $ fromIntegral delta

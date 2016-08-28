@@ -1,7 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Codec.JVM.ASM.Code.Instr where
 
---import Debug.Trace(traceShow)
 import Control.Monad.Trans.RWS
 import Data.ByteString (ByteString)
 import Data.Monoid ((<>))
