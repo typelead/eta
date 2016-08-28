@@ -525,6 +525,8 @@ gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
               (JDouble, JDouble) -> mempty
               other -> error $ "Implement the other JVM primitive conversions."
                             ++ show other
+          (ObjectType _, jobject) -> mempty
+          (ArrayType _, jobject) -> mempty
           (ObjectType _, ObjectType iclass) -> checkCast iclass
           (ObjectType _, ft@(ArrayType _)) -> checkCast arrayIClass
           (ArrayType  _, ft@(ArrayType _)) -> checkCast arrayIClass
@@ -622,3 +624,17 @@ gastore ft = mkCode' $ fold
               JInt    -> OP.iastore
               JLong   -> OP.lastore
           _ -> OP.aastore
+
+defaultValue :: FieldType -> Code
+defaultValue (ObjectType _) = aconst_null
+defaultValue (ArrayType _) = aconst_null
+defaultValue (BaseType prim) =
+  case prim of
+    JBool   -> iconst jbool 0
+    JChar   -> iconst jchar 0
+    JFloat  -> fconst 0.0
+    JDouble -> dconst 0.0
+    JByte   -> iconst jbyte 0
+    JShort  -> iconst jshort 0
+    JInt    -> iconst jint 0
+    JLong   -> lconst 0

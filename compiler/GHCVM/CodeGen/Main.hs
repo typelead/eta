@@ -234,7 +234,8 @@ cgDataCon typeClass dataCon = do
              defineMethod $
                mkMethodDef thisClass [Public] method [jint] (ret ft) $
                  gswitch (gload jint 1) branches
-                   (Just . barf $ append method ": invalid field index!")
+                   (Just $ barf (append method ": invalid field index!")
+                        <> defaultValue ft)
               <> greturn ft
              where ft = argRepFt rep
                    method = append "get" (pack $ show rep)
