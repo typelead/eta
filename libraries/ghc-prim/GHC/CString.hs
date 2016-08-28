@@ -16,6 +16,7 @@
 -----------------------------------------------------------------------------
 
 module GHC.CString (
+        JString#,
         unpackCString#, unpackAppendCString#, unpackFoldrCString#,
         unpackCStringUtf8#, unpackNBytes#
     ) where

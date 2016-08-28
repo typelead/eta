@@ -31,22 +31,22 @@ module Foreign.Ptr (
 
     -- * Function pointers
 
-    FunPtr,
-    nullFunPtr,
-    castFunPtr,
-    castFunPtrToPtr,
-    castPtrToFunPtr,
+    -- FunPtr,
+    -- nullFunPtr,
+    -- castFunPtr,
+    -- castFunPtrToPtr,
+    -- castPtrToFunPtr,
 
-    freeHaskellFunPtr,
-    -- Free the function pointer created by foreign export dynamic.
+    -- -- freeHaskellFunPtr,
+    -- -- Free the function pointer created by foreign export dynamic.
 
-    -- * Integral types with lossless conversion to and from pointers
-    IntPtr,
-    ptrToIntPtr,
-    intPtrToPtr,
-    WordPtr,
-    ptrToWordPtr,
-    wordPtrToPtr
+    -- -- * Integral types with lossless conversion to and from pointers
+    -- IntPtr,
+    -- ptrToIntPtr,
+    -- intPtrToPtr,
+    -- WordPtr,
+    -- ptrToWordPtr,
+    -- wordPtrToPtr
  ) where
 
 import GHC.Ptr
@@ -65,35 +65,36 @@ import Foreign.Storable ( Storable(..) )
 -- must have been obtained from a wrapper stub.  This should be called
 -- whenever the return value from a foreign import wrapper function is
 -- no longer required; otherwise, the storage it uses will leak.
-foreign import ccall unsafe "freeHaskellFunctionPtr"
-    freeHaskellFunPtr :: FunPtr a -> IO ()
+-- TODO: Deal with later
+-- foreign import ccall unsafe "freeHaskellFunctionPtr"
+--     freeHaskellFunPtr :: FunPtr a -> IO ()
 
 #include "CTypes.h"
 
--- | An unsigned integral type that can be losslessly converted to and from
--- @Ptr@. This type is also compatible with the C99 type @uintptr_t@, and
--- can be marshalled to and from that type safely.
-INTEGRAL_TYPE(WordPtr,Word)
-        -- Word and Int are guaranteed pointer-sized in GHC
+-- -- | An unsigned integral type that can be losslessly converted to and from
+-- -- @Ptr@. This type is also compatible with the C99 type @uintptr_t@, and
+-- -- can be marshalled to and from that type safely.
+-- INTEGRAL_TYPE(WordPtr,Word)
+--         -- Word and Int are guaranteed pointer-sized in GHC
 
--- | A signed integral type that can be losslessly converted to and from
--- @Ptr@.  This type is also compatible with the C99 type @intptr_t@, and
--- can be marshalled to and from that type safely.
-INTEGRAL_TYPE(IntPtr,Int)
-        -- Word and Int are guaranteed pointer-sized in GHC
+-- -- | A signed integral type that can be losslessly converted to and from
+-- -- @Ptr@.  This type is also compatible with the C99 type @intptr_t@, and
+-- -- can be marshalled to and from that type safely.
+-- INTEGRAL_TYPE(IntPtr,Int)
+--         -- Word and Int are guaranteed pointer-sized in GHC
 
--- | casts a @Ptr@ to a @WordPtr@
-ptrToWordPtr :: Ptr a -> WordPtr
-ptrToWordPtr (Ptr a#) = WordPtr (W# (int2Word# (addr2Int# a#)))
+-- -- | casts a @Ptr@ to a @WordPtr@
+-- ptrToWordPtr :: Ptr a -> WordPtr
+-- ptrToWordPtr (Ptr a#) = WordPtr (W# (int2Word# (addr2Int# a#)))
 
--- | casts a @WordPtr@ to a @Ptr@
-wordPtrToPtr :: WordPtr -> Ptr a
-wordPtrToPtr (WordPtr (W# w#)) = Ptr (int2Addr# (word2Int# w#))
+-- -- | casts a @WordPtr@ to a @Ptr@
+-- wordPtrToPtr :: WordPtr -> Ptr a
+-- wordPtrToPtr (WordPtr (W# w#)) = Ptr (int2Addr# (word2Int# w#))
 
--- | casts a @Ptr@ to an @IntPtr@
-ptrToIntPtr :: Ptr a -> IntPtr
-ptrToIntPtr (Ptr a#) = IntPtr (I# (addr2Int# a#))
+-- -- | casts a @Ptr@ to an @IntPtr@
+-- ptrToIntPtr :: Ptr a -> IntPtr
+-- ptrToIntPtr (Ptr a#) = IntPtr (I# (addr2Int# a#))
 
--- | casts an @IntPtr@ to a @Ptr@
-intPtrToPtr :: IntPtr -> Ptr a
-intPtrToPtr (IntPtr (I# i#)) = Ptr (int2Addr# i#)
+-- -- | casts an @IntPtr@ to a @Ptr@
+-- intPtrToPtr :: IntPtr -> Ptr a
+-- intPtrToPtr (IntPtr (I# i#)) = Ptr (int2Addr# i#)

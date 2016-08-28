@@ -110,26 +110,22 @@ shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (Code
 -- TODO: Inline array operations conditionally
 shouldInlinePrimOp' dflags NewByteArrayOp_Char args = Right $ return
   [
-    new stgByteArrayType
- <> dup stgByteArrayType
- <> fold args
- <> invokespecial (mkMethodRef stgByteArray "<init>" [jint] void)
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "create" [jint] (ret stgByteArrayType))
   ]
 
 shouldInlinePrimOp' dflags NewPinnedByteArrayOp_Char args = Right $ return
   [
-    new stgByteArrayType
- <> dup stgByteArrayType
- <> fold args
- <> invokespecial (mkMethodRef stgByteArray "<init>" [jint] void)
+    fold args
+ <> iconst jbool 1
+ <> invokestatic (mkMethodRef stgByteArray "create" [jint, jbool] (ret stgByteArrayType))
   ]
 
 shouldInlinePrimOp' dflags NewAlignedPinnedByteArrayOp_Char args = Right $ return
   [
-    new stgByteArrayType
- <> dup stgByteArrayType
- <> fold args
- <> invokespecial (mkMethodRef stgByteArray "<init>" [jint, jint] void)
+    fold args
+ <> iconst jbool 1
+ <> invokestatic (mkMethodRef stgByteArray "create" [jint, jint, jbool] (ret stgByteArrayType))
   ]
 
 shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
@@ -601,7 +597,7 @@ simpleOp IndexOffAddrOp_Word = Just $ addrIndexOp jint mempty
 -- TODO: simpleOp IndexOffAddrOp_Addr =
 simpleOp IndexOffAddrOp_Float = Just $ addrIndexOp jfloat mempty
 simpleOp IndexOffAddrOp_Double = Just $ addrIndexOp jdouble mempty
--- TODO: simpleOp IndexOffAddrOp_StablePtr =
+simpleOp IndexOffAddrOp_StablePtr = Just $ addrIndexOp jint mempty
 simpleOp IndexOffAddrOp_Int8 = Just $ addrIndexOp jbyte preserveByte
 simpleOp IndexOffAddrOp_Int16 = Just $ addrIndexOp jshort preserveShort
 simpleOp IndexOffAddrOp_Int32 = Just $ addrIndexOp jint mempty
@@ -618,7 +614,7 @@ simpleOp ReadOffAddrOp_Word = Just $ addrIndexOp jint mempty
 -- TODO: simpleOp ReadOffAddrOp_Addr =
 simpleOp ReadOffAddrOp_Float = Just $ addrIndexOp jfloat mempty
 simpleOp ReadOffAddrOp_Double = Just $ addrIndexOp jdouble mempty
--- TODO: simpleOp ReadOffAddrOp_StablePtr =
+simpleOp ReadOffAddrOp_StablePtr = Just $ addrIndexOp jint mempty
 simpleOp ReadOffAddrOp_Int8 = Just $ addrIndexOp jbyte preserveByte
 simpleOp ReadOffAddrOp_Int16 = Just $ addrIndexOp jshort preserveShort
 simpleOp ReadOffAddrOp_Int32 = Just $ addrIndexOp jint mempty
@@ -636,7 +632,7 @@ simpleOp WriteOffAddrOp_Word = Just $ addrWriteOp jint mempty
 simpleOp WriteOffAddrOp_Float = Just $ addrWriteOp jfloat mempty
 simpleOp WriteOffAddrOp_Double = Just $ addrWriteOp jdouble mempty
 -- TODO: Verify writes for Word/Int 8/16 - add additional casts?
--- TODO: simpleOp WriteOffAddrOp_StablePtr =
+simpleOp WriteOffAddrOp_StablePtr = Just $ addrWriteOp jint mempty
 simpleOp WriteOffAddrOp_Int8 = Just $ addrWriteOp jbyte preserveByte
 simpleOp WriteOffAddrOp_Int16 = Just $ addrWriteOp jshort preserveShort
 simpleOp WriteOffAddrOp_Int32 = Just $ addrWriteOp jint mempty

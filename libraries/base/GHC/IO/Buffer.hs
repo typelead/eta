@@ -220,8 +220,9 @@ slideContents buf@Buffer{ bufL=l, bufR=r, bufRaw=raw } = do
          return ()
   return buf{ bufL=0, bufR=elems }
 
-foreign import ccall unsafe "memmove"
-   memmove :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
+-- TODO: Implement!
+memmove :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
+memmove = undefined
 
 summaryBuffer :: Buffer a -> String
 summaryBuffer buf = "buf" ++ show (bufSize buf) ++ "(" ++ show (bufL buf) ++ "-" ++ show (bufR buf) ++ ")"

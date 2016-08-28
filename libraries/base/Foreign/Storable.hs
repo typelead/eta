@@ -145,10 +145,10 @@ class Storable a where
 -- System-dependent, but rather obvious instances
 
 instance Storable Bool where
-   sizeOf _          = sizeOf (undefined::HTYPE_INT)
-   alignment _       = alignment (undefined::HTYPE_INT)
-   peekElemOff p i   = liftM (/= (0::HTYPE_INT)) $ peekElemOff (castPtr p) i
-   pokeElemOff p i x = pokeElemOff (castPtr p) i (if x then 1 else 0::HTYPE_INT)
+   sizeOf _          = sizeOf (undefined::Int32)
+   alignment _       = alignment (undefined::Int32)
+   peekElemOff p i   = liftM (/= (0::Int32)) $ peekElemOff (castPtr p) i
+   pokeElemOff p i x = pokeElemOff (castPtr p) i (if x then 1 else 0::Int32)
 
 #define STORABLE(T,size,align,read,write)       \
 instance Storable (T) where {                   \
@@ -157,53 +157,39 @@ instance Storable (T) where {                   \
     peekElemOff = read;                         \
     pokeElemOff = write }
 
-STORABLE(Char,SIZEOF_INT32,ALIGNMENT_INT32,
-         readWideCharOffPtr,writeWideCharOffPtr)
+STORABLE(Char,4,4,readWideCharOffPtr,writeWideCharOffPtr)
 
-STORABLE(Int,SIZEOF_HSINT,ALIGNMENT_HSINT,
-         readIntOffPtr,writeIntOffPtr)
+STORABLE(Int,4,4,readIntOffPtr,writeIntOffPtr)
 
-STORABLE(Word,SIZEOF_HSWORD,ALIGNMENT_HSWORD,
-         readWordOffPtr,writeWordOffPtr)
+STORABLE(Word,4,4,readWordOffPtr,writeWordOffPtr)
 
-STORABLE((Ptr a),SIZEOF_HSPTR,ALIGNMENT_HSPTR,
-         readPtrOffPtr,writePtrOffPtr)
+-- STORABLE((Ptr a),SIZEOF_HSPTR,ALIGNMENT_HSPTR,
+--          readPtrOffPtr,writePtrOffPtr)
 
-STORABLE((FunPtr a),SIZEOF_HSFUNPTR,ALIGNMENT_HSFUNPTR,
-         readFunPtrOffPtr,writeFunPtrOffPtr)
+-- STORABLE((FunPtr a),SIZEOF_HSFUNPTR,ALIGNMENT_HSFUNPTR,
+--          readFunPtrOffPtr,writeFunPtrOffPtr)
 
-STORABLE((StablePtr a),SIZEOF_HSSTABLEPTR,ALIGNMENT_HSSTABLEPTR,
-         readStablePtrOffPtr,writeStablePtrOffPtr)
+STORABLE((StablePtr a),4,4,readStablePtrOffPtr,writeStablePtrOffPtr)
 
-STORABLE(Float,SIZEOF_HSFLOAT,ALIGNMENT_HSFLOAT,
-         readFloatOffPtr,writeFloatOffPtr)
+STORABLE(Float,4,4,readFloatOffPtr,writeFloatOffPtr)
 
-STORABLE(Double,SIZEOF_HSDOUBLE,ALIGNMENT_HSDOUBLE,
-         readDoubleOffPtr,writeDoubleOffPtr)
+STORABLE(Double,8,8,readDoubleOffPtr,writeDoubleOffPtr)
 
-STORABLE(Word8,SIZEOF_WORD8,ALIGNMENT_WORD8,
-         readWord8OffPtr,writeWord8OffPtr)
+STORABLE(Word8,1,1,readWord8OffPtr,writeWord8OffPtr)
 
-STORABLE(Word16,SIZEOF_WORD16,ALIGNMENT_WORD16,
-         readWord16OffPtr,writeWord16OffPtr)
+STORABLE(Word16,2,2,readWord16OffPtr,writeWord16OffPtr)
 
-STORABLE(Word32,SIZEOF_WORD32,ALIGNMENT_WORD32,
-         readWord32OffPtr,writeWord32OffPtr)
+STORABLE(Word32,4,4,readWord32OffPtr,writeWord32OffPtr)
 
-STORABLE(Word64,SIZEOF_WORD64,ALIGNMENT_WORD64,
-         readWord64OffPtr,writeWord64OffPtr)
+STORABLE(Word64,8,8,readWord64OffPtr,writeWord64OffPtr)
 
-STORABLE(Int8,SIZEOF_INT8,ALIGNMENT_INT8,
-         readInt8OffPtr,writeInt8OffPtr)
+STORABLE(Int8,1,1,readInt8OffPtr,writeInt8OffPtr)
 
-STORABLE(Int16,SIZEOF_INT16,ALIGNMENT_INT16,
-         readInt16OffPtr,writeInt16OffPtr)
+STORABLE(Int16,2,2,readInt16OffPtr,writeInt16OffPtr)
 
-STORABLE(Int32,SIZEOF_INT32,ALIGNMENT_INT32,
-         readInt32OffPtr,writeInt32OffPtr)
+STORABLE(Int32,4,4,readInt32OffPtr,writeInt32OffPtr)
 
-STORABLE(Int64,SIZEOF_INT64,ALIGNMENT_INT64,
-         readInt64OffPtr,writeInt64OffPtr)
+STORABLE(Int64,8,8,readInt64OffPtr,writeInt64OffPtr)
 
 instance (Storable a, Integral a) => Storable (Ratio a) where
     sizeOf _    = 2 * sizeOf (undefined :: a)

@@ -25,8 +25,8 @@ module GHC.Stable (
         newStablePtr,
         deRefStablePtr,
         freeStablePtr,
-        castStablePtrToPtr,
-        castPtrToStablePtr
+        -- castStablePtrToPtr,
+        -- castPtrToStablePtr
     ) where
 
 import GHC.Ptr
@@ -77,32 +77,34 @@ deRefStablePtr (StablePtr sp) = IO $ \s -> deRefStablePtr# sp s
 -- it may be 'Foreign.Ptr.nullPtr').  Nevertheless, the call
 -- to 'castStablePtrToPtr' is guaranteed not to diverge.
 --
-foreign import ccall unsafe "hs_free_stable_ptr" freeStablePtr :: StablePtr a -> IO ()
+foreign import java unsafe "@static ghcvm.runtime.stg.StablePtrTabel.free"
+  freeStablePtr :: StablePtr a -> IO ()
 
--- |
--- Coerce a stable pointer to an address. No guarantees are made about
--- the resulting value, except that the original stable pointer can be
--- recovered by 'castPtrToStablePtr'.  In particular, the address may not
--- refer to an accessible memory location and any attempt to pass it to
--- the member functions of the class 'Foreign.Storable.Storable' leads to
--- undefined behaviour.
---
-castStablePtrToPtr :: StablePtr a -> Ptr ()
-castStablePtrToPtr (StablePtr s) = Ptr (unsafeCoerce# s)
+-- TODO: Make a workaround. StablePtr# and Addr# are inherently incompatible in GHCVM
+-- -- |
+-- -- Coerce a stable pointer to an address. No guarantees are made about
+-- -- the resulting value, except that the original stable pointer can be
+-- -- recovered by 'castPtrToStablePtr'.  In particular, the address may not
+-- -- refer to an accessible memory location and any attempt to pass it to
+-- -- the member functions of the class 'Foreign.Storable.Storable' leads to
+-- -- undefined behaviour.
+-- --
+-- castStablePtrToPtr :: StablePtr a -> Ptr ()
+-- castStablePtrToPtr (StablePtr s) = Ptr (unsafeCoerce# s)
 
 
--- |
--- The inverse of 'castStablePtrToPtr', i.e., we have the identity
---
--- > sp == castPtrToStablePtr (castStablePtrToPtr sp)
---
--- for any stable pointer @sp@ on which 'freeStablePtr' has
--- not been executed yet.  Moreover, 'castPtrToStablePtr' may
--- only be applied to pointers that have been produced by
--- 'castStablePtrToPtr'.
---
-castPtrToStablePtr :: Ptr () -> StablePtr a
-castPtrToStablePtr (Ptr a) = StablePtr (unsafeCoerce# a)
+-- -- |
+-- -- The inverse of 'castStablePtrToPtr', i.e., we have the identity
+-- --
+-- -- > sp == castPtrToStablePtr (castStablePtrToPtr sp)
+-- --
+-- -- for any stable pointer @sp@ on which 'freeStablePtr' has
+-- -- not been executed yet.  Moreover, 'castPtrToStablePtr' may
+-- -- only be applied to pointers that have been produced by
+-- -- 'castStablePtrToPtr'.
+-- --
+-- castPtrToStablePtr :: Ptr () -> StablePtr a
+-- castPtrToStablePtr (Ptr a) = StablePtr (unsafeCoerce# a)
 
 instance Eq (StablePtr a) where
     (StablePtr sp1) == (StablePtr sp2) =

@@ -1,6 +1,9 @@
 package ghcvm.runtime.io;
 
+import java.util.TreeMap;
+import java.util.Map;
 import java.nio.ByteBuffer;
+import java.lang.ref.WeakReference;
 
 import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
@@ -8,36 +11,61 @@ import ghcvm.runtime.stg.StgContext;
 import static ghcvm.runtime.RtsMessages.barf;
 
 public final class StgByteArray extends StgClosure {
+
+    private static TreeMap<Integer, WeakReference<ByteBuffer>> addressMap =
+        new TreeMap<Integer, WeakReference<ByteBuffer>>();
+
+    private static Object lock = new Object();
+
+    private static int nextAddress;
+
+    public static StgByteArray create(int n) {
+        return create(n, false);
+    }
+
+    public static StgByteArray create(int n, boolean pinned) {
+        return create(n, 0, pinned);
+    }
+
+    public static StgByteArray create(int n, int alignment, boolean pinned) {
+        ByteBuffer buf;
+        synchronized (lock) {
+            // TODO: Handle alignment
+            // TODO: Collect allocation statistics
+            // TODO: Revamp this implementation once the GC layer is added
+            if (pinned) {
+                buf = ByteBuffer.allocateDirect(n + 4); // Off-heap memory
+            } else {
+                buf = ByteBuffer.allocate(n + 4); // Heap memory
+            }
+            addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
+            // TODO: Add a check to crash if nextAddress overflows
+            nextAddress += n;
+        }
+        return new StgByteArray(buf);
+    }
+
+    public static ByteBuffer getBuffer(int address) {
+        Map.Entry<Integer, WeakReference<ByteBuffer>>
+            entry = addressMap.floorEntry(address);
+        int pos = address - entry.getKey();
+        ByteBuffer ref = entry.getValue().get();
+        if (ref != null) {
+            return (ByteBuffer) ref.duplicate().position(pos);
+        } else {
+            barf("Invalid address!");
+            return null;
+        }
+    }
+
+    // TODO: Is synchronization necessary?
     public ByteBuffer buf;
 
-    public StgByteArray(int n) {
-        this(n, 0);
-        // TODO: Perform initialization else where?
-        // TODO: Handle pinned bytebuffers
-        buf = ByteBuffer.allocateDirect(n);
+    private StgByteArray(ByteBuffer buf) {
+        this.buf = buf;
     }
-
-    public StgByteArray(int n, int alignment) {
-        // TODO: Perform initialization else where?
-        // TODO: Handle pinned bytebuffers
-        // TODO: Handle aligned
-        buf = ByteBuffer.allocateDirect(n);
-    }
-
-    // public byte get(int i) {
-    //     return buf.get(i);
-    // }
-
-    // public void set(int i, byte val) {
-    //     buf.put(i, val);
-    // }
-
     @Override
     public void enter(StgContext context) {
         barf("StgByteArray object entered!");
     }
-
-    // public int size() {
-    //     return arr.length;
-    // }
 }

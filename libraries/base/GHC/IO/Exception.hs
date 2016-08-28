@@ -358,7 +358,7 @@ instance Show IOException where
 -- Note the use of "lazy". This means that
 --     assert False (throw e)
 -- will throw the assertion failure rather than e. See trac #5561.
-assertError :: Addr# -> Bool -> a -> a
+assertError :: JString# -> Bool -> a -> a
 assertError str predicate v
   | predicate = lazy v
   | otherwise = throw (AssertionFailed (untangle str "Assertion failed"))
@@ -374,7 +374,7 @@ unsupportedOperation =
 It prints
         location message details
 -}
-untangle :: Addr# -> String -> String
+untangle :: JString# -> String -> String
 untangle coded message
   =  location
   ++ ": "
