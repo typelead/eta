@@ -180,8 +180,15 @@ fillBytes dest char size = do
 -- auxilliary routines
 -- -------------------
 
+-- TODO: Implement!
 -- |Basic C routines needed for memory copying
 --
-foreign import ccall unsafe "string.h" memcpy  :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
-foreign import ccall unsafe "string.h" memmove :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
-foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
+-- foreign import ccall unsafe "string.h"
+memcpy  :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
+memcpy = undefined
+-- foreign import ccall unsafe "string.h"
+memmove :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
+memmove = undefined
+-- foreign import ccall unsafe "string.h"
+memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
+memset = undefined

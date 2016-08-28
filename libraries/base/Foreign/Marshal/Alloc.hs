@@ -212,14 +212,26 @@ failWhenNULL name f = do
                                         "out of memory" Nothing Nothing)
       else return addr
 
+-- TODO: Implement!
 -- basic C routines needed for memory allocation
 --
-foreign import ccall unsafe "stdlib.h malloc"  _malloc  ::          CSize -> IO (Ptr a)
-foreign import ccall unsafe "stdlib.h calloc"  _calloc  :: CSize -> CSize -> IO (Ptr a)
-foreign import ccall unsafe "stdlib.h realloc" _realloc :: Ptr a -> CSize -> IO (Ptr b)
-foreign import ccall unsafe "stdlib.h free"    _free    :: Ptr a -> IO ()
+-- foreign import ccall unsafe "stdlib.h malloc"
+_malloc  ::          CSize -> IO (Ptr a)
+_malloc = undefined
+-- foreign import ccall unsafe "stdlib.h calloc"
+_calloc  :: CSize -> CSize -> IO (Ptr a)
+_calloc = undefined
+
+--foreign import ccall unsafe "stdlib.h realloc"
+_realloc :: Ptr a -> CSize -> IO (Ptr b)
+_realloc = undefined
+--foreign import ccall unsafe "stdlib.h free"
+_free    :: Ptr a -> IO ()
+_free = undefined
 
 -- | A pointer to a foreign function equivalent to 'free', which may be
 -- used as a finalizer (cf 'Foreign.ForeignPtr.ForeignPtr') for storage
 -- allocated with 'malloc', 'mallocBytes', 'realloc' or 'reallocBytes'.
-foreign import ccall unsafe "stdlib.h &free" finalizerFree :: FinalizerPtr a
+-- foreign import ccall unsafe "stdlib.h &free" finalizerFree ::
+finalizerFree :: FinalizerPtr a
+finalizerFree = undefined

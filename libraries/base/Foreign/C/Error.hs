@@ -85,6 +85,8 @@ module Foreign.C.Error (
 ) where
 
 
+-- TODO: Replace signals
+#include "Signals.h"
 -- this is were we get the CONST_XXX definitions from that configure
 -- calculated for us
 --
@@ -258,7 +260,10 @@ getErrno :: IO Errno
 -- threaded systems, errno is hidden behind a C macro so that each OS
 -- thread gets its own copy.
 getErrno = do e <- get_errno; return (Errno e)
-foreign import ccall unsafe "HsBase.h __hscore_get_errno" get_errno :: IO CInt
+-- TODO: Implement!
+-- foreign import ccall unsafe "HsBase.h __hscore_get_errno"
+get_errno :: IO CInt
+get_errno = undefined
 
 -- | Reset the current thread\'s @errno@ value to 'eOK'.
 --
@@ -266,7 +271,11 @@ resetErrno :: IO ()
 
 -- Again, setting errno has to be done via a C function.
 resetErrno = set_errno 0
-foreign import ccall unsafe "HsBase.h __hscore_set_errno" set_errno :: CInt -> IO ()
+
+-- TODO: Implement!
+-- foreign import ccall unsafe "HsBase.h __hscore_set_errno"
+set_errno :: CInt -> IO ()
+set_errno = undefined
 
 -- throw current "errno" value
 -- ---------------------------
@@ -569,4 +578,7 @@ errnoToIOError loc errno maybeHdl maybeName = unsafePerformIO $ do
         | errno == eXDEV           = UnsupportedOperation
         | otherwise                = OtherError
 
-foreign import ccall unsafe "string.h" strerror :: Errno -> IO (Ptr CChar)
+-- TODO: Implement
+-- foreign import ccall unsafe "string.h"
+strerror :: Errno -> IO (Ptr CChar)
+strerror = undefined

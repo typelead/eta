@@ -194,6 +194,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
       return idecl
   -- TODO: Support the other C-based conventions
   | otherwise = pprPanic "Unsupported calling convention." (ppr idecl)
+tcCheckFIType _ _ _ idecl = pprPanic "Unsupported foriegn function type." (ppr idecl)
 
 check :: Validity -> (MsgDoc -> MsgDoc) -> TcM ()
 check IsValid _             = return ()
