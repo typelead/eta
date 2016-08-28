@@ -427,8 +427,8 @@ new (BaseType prim)
   = error $ "new: Cannot instantiate a primitive type: " ++ show prim
 new ft = error $ "new: Type not supported" ++ show ft
 
-aconst_null :: Code
-aconst_null = mkCode' $ IT.op OP.aconst_null <> modifyStack (CF.vpush VNull)
+aconst_null :: FieldType -> Code
+aconst_null ft = mkCode' $ IT.op OP.aconst_null <> modifyStack (CF.push ft)
 
 iconst :: FieldType -> Int32 -> Code
 iconst ft i
@@ -525,11 +525,14 @@ gconv ft1 ft2 = mkCode (cs ft2) $ convOpcode
               (JDouble, JDouble) -> mempty
               other -> error $ "Implement the other JVM primitive conversions."
                             ++ show other
-          (ObjectType _, jobject) -> mempty
-          (ArrayType _, jobject) -> mempty
-          (ObjectType _, ObjectType iclass) -> checkCast iclass
+          (ObjectType _, ft@(ObjectType iclass))
+            | ft == jobject -> mempty
+            | otherwise -> checkCast iclass
           (ObjectType _, ft@(ArrayType _)) -> checkCast arrayIClass
           (ArrayType  _, ft@(ArrayType _)) -> checkCast arrayIClass
+          (ArrayType  _, ft@(ObjectType iclass))
+            | ft == jobject -> mempty
+            | otherwise -> checkCast iclass
           _ -> error "Cannot convert between primitive type and object type."
         cs (ObjectType iclass) = [cclass iclass]
         cs (ArrayType _) = [cclass arrayIClass]
@@ -626,8 +629,8 @@ gastore ft = mkCode' $ fold
           _ -> OP.aastore
 
 defaultValue :: FieldType -> Code
-defaultValue (ObjectType _) = aconst_null
-defaultValue (ArrayType _) = aconst_null
+defaultValue ft@(ObjectType _) = aconst_null ft
+defaultValue ft@(ArrayType _) = aconst_null ft
 defaultValue (BaseType prim) =
   case prim of
     JBool   -> iconst jbool 0

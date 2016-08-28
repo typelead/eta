@@ -140,7 +140,7 @@ shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
   [
     new stgMVarType
  <> dup stgMVarType
- <> aconst_null
+ <> aconst_null closureType
  <> invokespecial (mkMethodRef stgMVar "<init>" [closureType] void)
   ]
 

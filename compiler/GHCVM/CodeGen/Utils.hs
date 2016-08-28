@@ -22,7 +22,8 @@ cgLit (MachInt64 i)         = (jlong, iconst jlong $ fromIntegral i)
 cgLit (MachWord64 i)        = (jlong, iconst jlong $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
-cgLit MachNullAddr          = (jobject, aconst_null)
+-- TODO: Remove this literal variant?
+cgLit MachNullAddr          = (jobject, aconst_null jobject)
 cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
