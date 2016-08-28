@@ -100,8 +100,9 @@ setBinaryMode _ = return ()
 #endif
 
 #ifdef mingw32_HOST_OS
-foreign import ccall unsafe "__hscore_setmode"
-  setmode :: CInt -> Bool -> IO CInt
+-- foreign import ccall unsafe "__hscore_setmode"
+setmode :: CInt -> Bool -> IO CInt
+setmode = undefined
 #endif
 
 -- ---------------------------------------------------------------------------

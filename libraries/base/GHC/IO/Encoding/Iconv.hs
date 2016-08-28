@@ -68,18 +68,21 @@ localeEncodingName = unsafePerformIO $ do
 -- value -1, which is a possible return value from iconv_open.
 type IConv = CLong -- ToDo: (#type iconv_t)
 
-foreign import ccall unsafe "hs_iconv_open"
-    hs_iconv_open :: CString -> CString -> IO IConv
+-- foreign import ccall unsafe "hs_iconv_open"
+hs_iconv_open :: CString -> CString -> IO IConv
+hs_iconv_open = undefined
 
-foreign import ccall unsafe "hs_iconv_close"
-    hs_iconv_close :: IConv -> IO CInt
+-- foreign import ccall unsafe "hs_iconv_close"
+hs_iconv_close :: IConv -> IO CInt
+hs_iconv_close = undefined
 
-foreign import ccall unsafe "hs_iconv"
-    hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize
-          -> IO CSize
+-- foreign import ccall unsafe "hs_iconv"
+hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO CSize
+hs_iconv = undefined
 
-foreign import ccall unsafe "localeEncoding"
-    c_localeEncoding :: IO CString
+-- foreign import ccall unsafe "localeEncoding"
+c_localeEncoding :: IO CString
+c_localeEncoding = undefined
 
 haskellChar :: String
 haskellChar = "UTF-16BE"

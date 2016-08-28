@@ -283,8 +283,9 @@ getUniqueFileInfo fd _ _ = do
 #endif
 
 #ifdef mingw32_HOST_OS
-foreign import ccall unsafe "__hscore_setmode"
-  setmode :: CInt -> Bool -> IO CInt
+-- foreign import ccall unsafe "__hscore_setmode"
+setmode :: CInt -> Bool -> IO CInt
+setmode = undefined
 #endif
 
 -- -----------------------------------------------------------------------------
@@ -333,8 +334,9 @@ release fd = do _ <- unlockFile (fdFD fd)
                 return ()
 
 #ifdef mingw32_HOST_OS
-foreign import WINDOWS_CCONV unsafe "HsBase.h closesocket"
-   c_closesocket :: CInt -> IO CInt
+-- foreign import WINDOWS_CCONV unsafe "HsBase.h closesocket"
+c_closesocket :: CInt -> IO CInt
+c_closesocket = undefined
 #endif
 
 isSeekable :: FD -> IO Bool
@@ -403,8 +405,9 @@ ready fd write msecs = do
 #endif
   return (toEnum (fromIntegral r))
 
-foreign import ccall safe "fdReady"
-  fdReady :: CInt -> CInt -> CInt -> CInt -> IO CInt
+-- foreign import ccall safe "fdReady"
+fdReady :: CInt -> CInt -> CInt -> CInt -> IO CInt
+fdReady = undefined
 
 -- ---------------------------------------------------------------------------
 -- Terminal-related stuff
@@ -564,8 +567,9 @@ writeRawBufferPtrNoBlock loc !fd buf off len
 isNonBlocking :: FD -> Bool
 isNonBlocking fd = fdIsNonBlocking fd /= 0
 
-foreign import ccall unsafe "fdReady"
-  unsafe_fdReady :: CInt -> CInt -> CInt -> CInt -> IO CInt
+-- foreign import ccall unsafe "fdReady"
+unsafe_fdReady :: CInt -> CInt -> CInt -> CInt -> IO CInt
+unsafe_fdReady = undefined
 
 #else /* mingw32_HOST_OS.... */
 
@@ -633,15 +637,19 @@ blockingWriteRawBufferPtr loc fd buf off len
 -- NOTE: "safe" versions of the read/write calls for use by the threaded RTS.
 -- These calls may block, but that's ok.
 
-foreign import WINDOWS_CCONV safe "recv"
-   c_safe_recv :: CInt -> Ptr Word8 -> CSize -> CInt{-flags-} -> IO CSsize
+-- foreign import WINDOWS_CCONV safe "recv"
+c_safe_recv :: CInt -> Ptr Word8 -> CSize -> CInt{-flags-} -> IO CSsize
+c_safe_recv = undefined
 
-foreign import WINDOWS_CCONV safe "send"
-   c_safe_send :: CInt -> Ptr Word8 -> CSize -> CInt{-flags-} -> IO CSsize
+-- foreign import WINDOWS_CCONV safe "send"
+c_safe_send :: CInt -> Ptr Word8 -> CSize -> CInt{-flags-} -> IO CSsize
+c_safe_send = undefined
 
 #endif
 
-foreign import ccall "rtsSupportsBoundThreads" threaded :: Bool
+-- foreign import ccall "rtsSupportsBoundThreads"
+threaded :: Bool
+threaded = undefined
 
 -- -----------------------------------------------------------------------------
 -- utils
@@ -665,13 +673,16 @@ throwErrnoIfMinus1RetryOnBlock loc f on_block  =
 -- -----------------------------------------------------------------------------
 -- Locking/unlocking
 
-foreign import ccall unsafe "lockFile"
-  lockFile :: CInt -> Word64 -> Word64 -> CInt -> IO CInt
+-- foreign import ccall unsafe "lockFile"
+lockFile :: CInt -> Word64 -> Word64 -> CInt -> IO CInt
+lockFile = undefined
 
-foreign import ccall unsafe "unlockFile"
-  unlockFile :: CInt -> IO CInt
+-- foreign import ccall unsafe "unlockFile"
+unlockFile :: CInt -> IO CInt
+unlockFile = undefined
 
 #ifdef mingw32_HOST_OS
-foreign import ccall unsafe "get_unique_file_info"
-  c_getUniqueFileInfo :: CInt -> Ptr Word64 -> Ptr Word64 -> IO ()
+-- foreign import ccall unsafe "get_unique_file_info"
+c_getUniqueFileInfo :: CInt -> Ptr Word64 -> Ptr Word64 -> IO ()
+c_getUniqueFileInfo = undefined
 #endif

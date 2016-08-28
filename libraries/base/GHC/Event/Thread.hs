@@ -184,8 +184,9 @@ getSystemEventManager_ = do
   return mgr
 {-# INLINE getSystemEventManager_ #-}
 
-foreign import ccall unsafe "getOrSetSystemEventThreadEventManagerStore"
-    getOrSetSystemEventThreadEventManagerStore :: Ptr a -> IO (Ptr a)
+-- foreign import ccall unsafe "getOrSetSystemEventThreadEventManagerStore"
+getOrSetSystemEventThreadEventManagerStore :: Ptr a -> IO (Ptr a)
+getOrSetSystemEventThreadEventManagerStore = undefined
 
 eventManager :: IORef (IOArray Int (Maybe (ThreadId, EventManager)))
 eventManager = unsafePerformIO $ do
@@ -200,8 +201,9 @@ numEnabledEventManagers = unsafePerformIO $ do
   newIORef 0
 {-# NOINLINE numEnabledEventManagers #-}
 
-foreign import ccall unsafe "getOrSetSystemEventThreadIOManagerThreadStore"
-    getOrSetSystemEventThreadIOManagerThreadStore :: Ptr a -> IO (Ptr a)
+-- foreign import ccall unsafe "getOrSetSystemEventThreadIOManagerThreadStore"
+getOrSetSystemEventThreadIOManagerThreadStore :: Ptr a -> IO (Ptr a)
+getOrSetSystemEventThreadIOManagerThreadStore = undefined
 
 -- | The ioManagerLock protects the 'eventManager' value:
 -- Only one thread at a time can start or shutdown event managers.
@@ -216,8 +218,9 @@ getSystemTimerManager = do
   Just mgr <- readIORef timerManager
   return mgr
 
-foreign import ccall unsafe "getOrSetSystemTimerThreadEventManagerStore"
-    getOrSetSystemTimerThreadEventManagerStore :: Ptr a -> IO (Ptr a)
+-- foreign import ccall unsafe "getOrSetSystemTimerThreadEventManagerStore"
+getOrSetSystemTimerThreadEventManagerStore :: Ptr a -> IO (Ptr a)
+getOrSetSystemTimerThreadEventManagerStore = undefined
 
 timerManager :: IORef (Maybe TM.TimerManager)
 timerManager = unsafePerformIO $ do
@@ -225,8 +228,9 @@ timerManager = unsafePerformIO $ do
     sharedCAF em getOrSetSystemTimerThreadEventManagerStore
 {-# NOINLINE timerManager #-}
 
-foreign import ccall unsafe "getOrSetSystemTimerThreadIOManagerThreadStore"
-    getOrSetSystemTimerThreadIOManagerThreadStore :: Ptr a -> IO (Ptr a)
+-- foreign import ccall unsafe "getOrSetSystemTimerThreadIOManagerThreadStore"
+getOrSetSystemTimerThreadIOManagerThreadStore :: Ptr a -> IO (Ptr a)
+getOrSetSystemTimerThreadIOManagerThreadStore = undefined
 
 {-# NOINLINE timerManagerThreadVar #-}
 timerManagerThreadVar :: MVar (Maybe ThreadId)
@@ -320,7 +324,9 @@ startTimerManagerThread = modifyMVar_ timerManagerThreadVar $ \old -> do
           create
         _other         -> return st
 
-foreign import ccall unsafe "rtsSupportsBoundThreads" threaded :: Bool
+-- foreign import ccall unsafe "rtsSupportsBoundThreads"
+threaded :: Bool
+threaded = undefined
 
 ioManagerCapabilitiesChanged :: IO ()
 ioManagerCapabilitiesChanged = do
@@ -355,8 +361,10 @@ ioManagerCapabilitiesChanged = do
               writeIOArray eventManagerArray i (Just (tid,mgr))
 
 -- Used to tell the RTS how it can send messages to the I/O manager.
-foreign import ccall unsafe "setIOManagerControlFd"
-   c_setIOManagerControlFd :: CUInt -> CInt -> IO ()
+-- foreign import ccall unsafe "setIOManagerControlFd"
+c_setIOManagerControlFd :: CUInt -> CInt -> IO ()
+c_setIOManagerControlFd = undefined
 
-foreign import ccall unsafe "setTimerManagerControlFd"
-   c_setTimerManagerControlFd :: CInt -> IO ()
+-- foreign import ccall unsafe "setTimerManagerControlFd"
+c_setTimerManagerControlFd :: CInt -> IO ()
+c_setTimerManagerControlFd = undefined

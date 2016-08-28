@@ -251,11 +251,14 @@ tcSetAttr fd fun = do
                  c_sigprocmask const_sig_setmask p_old_sigset nullPtr
              return r
 
-foreign import ccall unsafe "HsBase.h __hscore_get_saved_termios"
-   get_saved_termios :: CInt -> IO (Ptr CTermios)
+-- TODO: Implement
+-- foreign import ccall unsafe "HsBase.h __hscore_get_saved_termios"
+get_saved_termios :: CInt -> IO (Ptr CTermios)
+get_saved_termios = undefined
 
-foreign import ccall unsafe "HsBase.h __hscore_set_saved_termios"
-   set_saved_termios :: CInt -> (Ptr CTermios) -> IO ()
+-- foreign import ccall unsafe "HsBase.h __hscore_set_saved_termios"
+set_saved_termios :: CInt -> (Ptr CTermios) -> IO ()
+set_saved_termios = undefined
 
 #else
 
@@ -294,17 +297,21 @@ getEcho fd = do
    then ioError (ioe_unk_error "getEcho" "failed to get echoing")
    else return (r == 1)
 
-foreign import ccall unsafe "consUtils.h set_console_buffering__"
-   set_console_buffering :: CInt -> CInt -> IO CInt
+-- foreign import ccall unsafe "consUtils.h set_console_buffering__"
+set_console_buffering :: CInt -> CInt -> IO CInt
+set_console_buffering = undefined
 
-foreign import ccall unsafe "consUtils.h set_console_echo__"
-   set_console_echo :: CInt -> CInt -> IO CInt
+-- foreign import ccall unsafe "consUtils.h set_console_echo__"
+set_console_echo :: CInt -> CInt -> IO CInt
+set_console_echo = undefined
 
-foreign import ccall unsafe "consUtils.h get_console_echo__"
-   get_console_echo :: CInt -> IO CInt
+-- foreign import ccall unsafe "consUtils.h get_console_echo__"
+get_console_echo :: CInt -> IO CInt
+get_console_echo = undefined
 
-foreign import ccall unsafe "consUtils.h is_console__"
-   is_console :: CInt -> IO CInt
+-- foreign import ccall unsafe "consUtils.h is_console__"
+is_console :: CInt -> IO CInt
+is_console = undefined
 
 #endif
 
@@ -350,147 +357,213 @@ type CFilePath = CString
 type CFilePath = CWString
 #endif
 
-foreign import ccall unsafe "HsBase.h access"
-   c_access :: CString -> CInt -> IO CInt
+-- foreign import ccall unsafe "HsBase.h access"
+c_access :: CString -> CInt -> IO CInt
+c_access = undefined
 
-foreign import ccall unsafe "HsBase.h chmod"
-   c_chmod :: CString -> CMode -> IO CInt
+-- foreign import ccall unsafe "HsBase.h chmod"
+c_chmod :: CString -> CMode -> IO CInt
+c_chmod = undefined
 
-foreign import ccall unsafe "HsBase.h close"
-   c_close :: CInt -> IO CInt
+-- foreign import ccall unsafe "HsBase.h close"
+c_close :: CInt -> IO CInt
+c_close = undefined
 
-foreign import ccall unsafe "HsBase.h creat"
-   c_creat :: CString -> CMode -> IO CInt
+-- foreign import ccall unsafe "HsBase.h creat"
+c_creat :: CString -> CMode -> IO CInt
+c_creat = undefined
 
-foreign import ccall unsafe "HsBase.h dup"
-   c_dup :: CInt -> IO CInt
+-- foreign import ccall unsafe "HsBase.h dup"
+c_dup :: CInt -> IO CInt
+c_dup = undefined
 
-foreign import ccall unsafe "HsBase.h dup2"
-   c_dup2 :: CInt -> CInt -> IO CInt
+-- foreign import ccall unsafe "HsBase.h dup2"
+c_dup2 :: CInt -> CInt -> IO CInt
+c_dup2 = undefined
 
-foreign import ccall unsafe "HsBase.h __hscore_fstat"
-   c_fstat :: CInt -> Ptr CStat -> IO CInt
+-- foreign import ccall unsafe "HsBase.h __hscore_fstat"
+c_fstat :: CInt -> Ptr CStat -> IO CInt
+c_fstat = undefined
 
-foreign import ccall unsafe "HsBase.h isatty"
-   c_isatty :: CInt -> IO CInt
+-- foreign import ccall unsafe "HsBase.h isatty"
+c_isatty :: CInt -> IO CInt
+c_isatty = undefined
 
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
-foreign import ccall unsafe "io.h _lseeki64"
-   c_lseek :: CInt -> Int64 -> CInt -> IO Int64
+-- foreign import ccall unsafe "io.h _lseeki64"
+c_lseek :: CInt -> Int64 -> CInt -> IO Int64
+c_lseek = undefined
 #else
 -- We use CAPI as on some OSs (eg. Linux) this is wrapped by a macro
 -- which redirects to the 64-bit-off_t versions when large file
 -- support is enabled.
-foreign import capi unsafe "unistd.h lseek"
-   c_lseek :: CInt -> COff -> CInt -> IO COff
+-- foreign import capi unsafe "unistd.h lseek"
+c_lseek :: CInt -> COff -> CInt -> IO COff
+c_lseek = undefined
 #endif
 
-foreign import ccall unsafe "HsBase.h __hscore_lstat"
-   lstat :: CFilePath -> Ptr CStat -> IO CInt
+-- foreign import ccall unsafe "HsBase.h __hscore_lstat"
+lstat :: CFilePath -> Ptr CStat -> IO CInt
+lstat = undefined
 
-foreign import ccall unsafe "HsBase.h __hscore_open"
-   c_open :: CFilePath -> CInt -> CMode -> IO CInt
+-- foreign import ccall unsafe "HsBase.h __hscore_open"
+c_open :: CFilePath -> CInt -> CMode -> IO CInt
+c_open = undefined
 
-foreign import ccall safe "HsBase.h __hscore_open"
-   c_safe_open :: CFilePath -> CInt -> CMode -> IO CInt
-
--- See Note: CSsize
-foreign import capi unsafe "HsBase.h read"
-   c_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
-
--- See Note: CSsize
-foreign import capi safe "HsBase.h read"
-   c_safe_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
-
-foreign import ccall unsafe "HsBase.h __hscore_stat"
-   c_stat :: CFilePath -> Ptr CStat -> IO CInt
-
-foreign import ccall unsafe "HsBase.h umask"
-   c_umask :: CMode -> IO CMode
+-- foreign import ccall safe "HsBase.h __hscore_open"
+c_safe_open :: CFilePath -> CInt -> CMode -> IO CInt
+c_safe_open = undefined
 
 -- See Note: CSsize
-foreign import capi unsafe "HsBase.h write"
-   c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+-- foreign import capi unsafe "HsBase.h read"
+c_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+c_read = undefined
 
 -- See Note: CSsize
-foreign import capi safe "HsBase.h write"
-   c_safe_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+-- foreign import capi safe "HsBase.h read"
+c_safe_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+c_safe_read = undefined
 
-foreign import ccall unsafe "HsBase.h __hscore_ftruncate"
-   c_ftruncate :: CInt -> COff -> IO CInt
+-- foreign import ccall unsafe "HsBase.h __hscore_stat"
+c_stat :: CFilePath -> Ptr CStat -> IO CInt
+c_stat = undefined
 
-foreign import ccall unsafe "HsBase.h unlink"
-   c_unlink :: CString -> IO CInt
+-- foreign import ccall unsafe "HsBase.h umask"
+c_umask :: CMode -> IO CMode
+c_umask = undefined
 
-foreign import ccall unsafe "HsBase.h getpid"
-   c_getpid :: IO CPid
+-- See Note: CSsize
+-- foreign import capi unsafe "HsBase.h write"
+c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+c_write = undefined
+
+-- See Note: CSsize
+-- foreign import capi safe "HsBase.h write"
+c_safe_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+c_safe_write = undefined
+
+-- foreign import ccall unsafe "HsBase.h __hscore_ftruncate"
+c_ftruncate :: CInt -> COff -> IO CInt
+c_ftruncate = undefined
+
+-- foreign import ccall unsafe "HsBase.h unlink"
+c_unlink :: CString -> IO CInt
+c_unlink = undefined
+
+-- foreign import ccall unsafe "HsBase.h getpid"
+c_getpid :: IO CPid
+c_getpid = undefined
 
 #if !defined(mingw32_HOST_OS) && !defined(__MINGW32__)
-foreign import capi unsafe "HsBase.h fcntl"
-   c_fcntl_read  :: CInt -> CInt -> IO CInt
+-- foreign import capi unsafe "HsBase.h fcntl"
+c_fcntl_read  :: CInt -> CInt -> IO CInt
+c_fcntl_read = undefined
 
-foreign import capi unsafe "HsBase.h fcntl"
-   c_fcntl_write :: CInt -> CInt -> CLong -> IO CInt
+-- foreign import capi unsafe "HsBase.h fcntl"
+c_fcntl_write :: CInt -> CInt -> CLong -> IO CInt
+c_fcntl_write = undefined
 
-foreign import capi unsafe "HsBase.h fcntl"
-   c_fcntl_lock  :: CInt -> CInt -> Ptr CFLock -> IO CInt
+-- foreign import capi unsafe "HsBase.h fcntl"
+c_fcntl_lock  :: CInt -> CInt -> Ptr CFLock -> IO CInt
+c_fcntl_lock = undefined
 
-foreign import ccall unsafe "HsBase.h fork"
-   c_fork :: IO CPid
+-- foreign import ccall unsafe "HsBase.h fork"
+c_fork :: IO CPid
+c_fork = undefined
 
-foreign import ccall unsafe "HsBase.h link"
-   c_link :: CString -> CString -> IO CInt
-
--- capi is required at least on Android
-foreign import capi unsafe "HsBase.h mkfifo"
-   c_mkfifo :: CString -> CMode -> IO CInt
-
-foreign import ccall unsafe "HsBase.h pipe"
-   c_pipe :: Ptr CInt -> IO CInt
-
-foreign import capi unsafe "signal.h sigemptyset"
-   c_sigemptyset :: Ptr CSigset -> IO CInt
-
-foreign import capi unsafe "signal.h sigaddset"
-   c_sigaddset :: Ptr CSigset -> CInt -> IO CInt
-
-foreign import capi unsafe "signal.h sigprocmask"
-   c_sigprocmask :: CInt -> Ptr CSigset -> Ptr CSigset -> IO CInt
+-- foreign import ccall unsafe "HsBase.h link"
+c_link :: CString -> CString -> IO CInt
+c_link = undefined
 
 -- capi is required at least on Android
-foreign import capi unsafe "HsBase.h tcgetattr"
-   c_tcgetattr :: CInt -> Ptr CTermios -> IO CInt
+-- foreign import capi unsafe "HsBase.h mkfifo"
+c_mkfifo :: CString -> CMode -> IO CInt
+c_mkfifo = undefined
+
+-- foreign import ccall unsafe "HsBase.h pipe"
+c_pipe :: Ptr CInt -> IO CInt
+c_pipe = undefined
+
+-- foreign import capi unsafe "signal.h sigemptyset"
+c_sigemptyset :: Ptr CSigset -> IO CInt
+c_sigemptyset = undefined
+
+-- foreign import capi unsafe "signal.h sigaddset"
+c_sigaddset :: Ptr CSigset -> CInt -> IO CInt
+c_sigaddset = undefined
+
+-- foreign import capi unsafe "signal.h sigprocmask"
+c_sigprocmask :: CInt -> Ptr CSigset -> Ptr CSigset -> IO CInt
+c_sigprocmask = undefined
 
 -- capi is required at least on Android
-foreign import capi unsafe "HsBase.h tcsetattr"
-   c_tcsetattr :: CInt -> CInt -> Ptr CTermios -> IO CInt
+-- foreign import capi unsafe "HsBase.h tcgetattr"
+c_tcgetattr :: CInt -> Ptr CTermios -> IO CInt
+c_tcgetattr = undefined
 
-foreign import capi unsafe "HsBase.h utime"
-   c_utime :: CString -> Ptr CUtimbuf -> IO CInt
+-- capi is required at least on Android
+-- foreign import capi unsafe "HsBase.h tcsetattr"
+c_tcsetattr :: CInt -> CInt -> Ptr CTermios -> IO CInt
+c_tcsetattr = undefined
 
-foreign import ccall unsafe "HsBase.h waitpid"
-   c_waitpid :: CPid -> Ptr CInt -> CInt -> IO CPid
+-- foreign import capi unsafe "HsBase.h utime"
+c_utime :: CString -> Ptr CUtimbuf -> IO CInt
+c_utime = undefined
+
+-- foreign import ccall unsafe "HsBase.h waitpid"
+c_waitpid :: CPid -> Ptr CInt -> CInt -> IO CPid
+c_waitpid = undefined
 #endif
 
 -- POSIX flags only:
-foreign import ccall unsafe "HsBase.h __hscore_o_rdonly" o_RDONLY :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_wronly" o_WRONLY :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_rdwr"   o_RDWR   :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_append" o_APPEND :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_creat"  o_CREAT  :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_excl"   o_EXCL   :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_trunc"  o_TRUNC  :: CInt
+-- foreign import ccall unsafe "HsBase.h __hscore_o_rdonly"
+o_RDONLY :: CInt
+o_RDONLY = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_wronly"
+o_WRONLY :: CInt
+o_WRONLY = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_rdwr"
+o_RDWR   :: CInt
+o_RDWR = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_append"
+o_APPEND :: CInt
+o_APPEND = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_creat"
+o_CREAT  :: CInt
+o_CREAT = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_excl"
+o_EXCL   :: CInt
+o_EXCL = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_trunc"
+o_TRUNC  :: CInt
+o_TRUNC = undefined
 
 -- non-POSIX flags.
-foreign import ccall unsafe "HsBase.h __hscore_o_noctty"   o_NOCTTY   :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_nonblock" o_NONBLOCK :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_o_binary"   o_BINARY   :: CInt
+-- foreign import ccall unsafe "HsBase.h __hscore_o_noctty"
+o_NOCTTY   :: CInt
+o_NOCTTY = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_nonblock"
+o_NONBLOCK :: CInt
+o_NONBLOCK = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_o_binary"
+o_BINARY   :: CInt
+o_BINARY = undefined
 
-foreign import capi unsafe "sys/stat.h S_ISREG"  c_s_isreg  :: CMode -> CInt
-foreign import capi unsafe "sys/stat.h S_ISCHR"  c_s_ischr  :: CMode -> CInt
-foreign import capi unsafe "sys/stat.h S_ISBLK"  c_s_isblk  :: CMode -> CInt
-foreign import capi unsafe "sys/stat.h S_ISDIR"  c_s_isdir  :: CMode -> CInt
-foreign import capi unsafe "sys/stat.h S_ISFIFO" c_s_isfifo :: CMode -> CInt
+-- foreign import capi unsafe "sys/stat.h S_ISREG"
+c_s_isreg  :: CMode -> CInt
+c_s_isreg = undefined
+-- foreign import capi unsafe "sys/stat.h S_ISCHR"
+c_s_ischr  :: CMode -> CInt
+c_s_ischr = undefined
+-- foreign import capi unsafe "sys/stat.h S_ISBLK"
+c_s_isblk  :: CMode -> CInt
+c_s_isblk = undefined
+-- foreign import capi unsafe "sys/stat.h S_ISDIR"
+c_s_isdir  :: CMode -> CInt
+c_s_isdir = undefined
+-- foreign import capi unsafe "sys/stat.h S_ISFIFO"
+c_s_isfifo :: CMode -> CInt
+c_s_isfifo = undefined
 
 s_isreg  :: CMode -> Bool
 s_isreg cm = c_s_isreg cm /= 0
@@ -503,51 +576,109 @@ s_isdir cm = c_s_isdir cm /= 0
 s_isfifo :: CMode -> Bool
 s_isfifo cm = c_s_isfifo cm /= 0
 
-foreign import ccall unsafe "HsBase.h __hscore_sizeof_stat" sizeof_stat :: Int
-foreign import ccall unsafe "HsBase.h __hscore_st_mtime" st_mtime :: Ptr CStat -> IO CTime
+-- foreign import ccall unsafe "HsBase.h __hscore_sizeof_stat"
+sizeof_stat :: Int
+sizeof_stat = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_st_mtime"
+st_mtime :: Ptr CStat -> IO CTime
+st_mtime = undefined
 #ifdef mingw32_HOST_OS
-foreign import ccall unsafe "HsBase.h __hscore_st_size" st_size :: Ptr CStat -> IO Int64
+-- foreign import ccall unsafe "HsBase.h __hscore_st_size"
+st_size :: Ptr CStat -> IO Int64
+st_size = undefined
 #else
-foreign import ccall unsafe "HsBase.h __hscore_st_size" st_size :: Ptr CStat -> IO COff
+-- foreign import ccall unsafe "HsBase.h __hscore_st_size"
+st_size :: Ptr CStat -> IO COff
+st_size = undefined
 #endif
-foreign import ccall unsafe "HsBase.h __hscore_st_mode" st_mode :: Ptr CStat -> IO CMode
-foreign import ccall unsafe "HsBase.h __hscore_st_dev" st_dev :: Ptr CStat -> IO CDev
-foreign import ccall unsafe "HsBase.h __hscore_st_ino" st_ino :: Ptr CStat -> IO CIno
+-- foreign import ccall unsafe "HsBase.h __hscore_st_mode"
+st_mode :: Ptr CStat -> IO CMode
+st_mode = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_st_dev"
+st_dev :: Ptr CStat -> IO CDev
+st_dev = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_st_ino"
+st_ino :: Ptr CStat -> IO CIno
+st_ino = undefined
 
-foreign import ccall unsafe "HsBase.h __hscore_echo"         const_echo :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_tcsanow"      const_tcsanow :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_icanon"       const_icanon :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_vmin"         const_vmin   :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_vtime"        const_vtime  :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_sigttou"      const_sigttou :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_sig_block"    const_sig_block :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_sig_setmask"  const_sig_setmask :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_f_getfl"      const_f_getfl :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_f_setfl"      const_f_setfl :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_f_setfd"      const_f_setfd :: CInt
-foreign import ccall unsafe "HsBase.h __hscore_fd_cloexec"   const_fd_cloexec :: CLong
+-- foreign import ccall unsafe "HsBase.h __hscore_echo"
+const_echo :: CInt
+const_echo = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_tcsanow"
+const_tcsanow :: CInt
+const_tcsanow = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_icanon"
+const_icanon :: CInt
+const_icanon = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_vmin"
+const_vmin   :: CInt
+const_vmin = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_vtime"
+const_vtime  :: CInt
+const_vtime = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_sigttou"
+const_sigttou :: CInt
+const_sigttou = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_sig_block"
+const_sig_block :: CInt
+const_sig_block = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_sig_setmask"
+const_sig_setmask :: CInt
+const_sig_setmask = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_f_getfl"
+const_f_getfl :: CInt
+const_f_getfl = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_f_setfl"
+const_f_setfl :: CInt
+const_f_setfl = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_f_setfd"
+const_f_setfd :: CInt
+const_f_setfd = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_fd_cloexec"
+const_fd_cloexec :: CLong
+const_fd_cloexec = undefined
 
 #if defined(HTYPE_TCFLAG_T)
-foreign import ccall unsafe "HsBase.h __hscore_sizeof_termios"  sizeof_termios :: Int
-foreign import ccall unsafe "HsBase.h __hscore_sizeof_sigset_t" sizeof_sigset_t :: Int
+-- foreign import ccall unsafe "HsBase.h __hscore_sizeof_termios"
+sizeof_termios :: Int
+sizeof_termios = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_sizeof_sigset_t"
+sizeof_sigset_t :: Int
+sizeof_sigset_t = undefined
 
-foreign import ccall unsafe "HsBase.h __hscore_lflag" c_lflag :: Ptr CTermios -> IO CTcflag
-foreign import ccall unsafe "HsBase.h __hscore_poke_lflag" poke_c_lflag :: Ptr CTermios -> CTcflag -> IO ()
-foreign import ccall unsafe "HsBase.h __hscore_ptr_c_cc" ptr_c_cc  :: Ptr CTermios -> IO (Ptr Word8)
+-- foreign import ccall unsafe "HsBase.h __hscore_lflag"
+c_lflag :: Ptr CTermios -> IO CTcflag
+c_lflag = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_poke_lflag"
+poke_c_lflag :: Ptr CTermios -> CTcflag -> IO ()
+poke_c_lflag = undefined
+-- foreign import ccall unsafe "HsBase.h __hscore_ptr_c_cc"
+ptr_c_cc  :: Ptr CTermios -> IO (Ptr Word8)
+ptr_c_cc = undefined
 #endif
 
 s_issock :: CMode -> Bool
 #if !defined(mingw32_HOST_OS) && !defined(__MINGW32__)
 s_issock cmode = c_s_issock cmode /= 0
-foreign import capi unsafe "sys/stat.h S_ISSOCK" c_s_issock :: CMode -> CInt
+-- foreign import capi unsafe "sys/stat.h S_ISSOCK"
+c_s_issock :: CMode -> CInt
+c_s_issock = undefined
 #else
 s_issock _ = False
 #endif
 
-foreign import ccall unsafe "__hscore_bufsiz"  dEFAULT_BUFFER_SIZE :: Int
-foreign import capi  unsafe "stdio.h value SEEK_CUR" sEEK_CUR :: CInt
-foreign import capi  unsafe "stdio.h value SEEK_SET" sEEK_SET :: CInt
-foreign import capi  unsafe "stdio.h value SEEK_END" sEEK_END :: CInt
+-- foreign import ccall unsafe "__hscore_bufsiz"
+dEFAULT_BUFFER_SIZE :: Int
+dEFAULT_BUFFER_SIZE = undefined
+-- foreign import capi  unsafe "stdio.h value SEEK_CUR"
+sEEK_CUR :: CInt
+sEEK_CUR = undefined
+-- foreign import capi  unsafe "stdio.h value SEEK_SET"
+sEEK_SET :: CInt
+sEEK_SET = undefined
+-- foreign import capi  unsafe "stdio.h value SEEK_END"
+sEEK_END :: CInt
+sEEK_END = undefined
 
 {-
 Note: CSsize

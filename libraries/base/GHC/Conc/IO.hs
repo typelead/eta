@@ -200,4 +200,6 @@ registerDelay usecs
 #endif
   | otherwise = error "registerDelay: requires -threaded"
 
-foreign import ccall unsafe "rtsSupportsBoundThreads" threaded :: Bool
+-- foreign import ccall unsafe "rtsSupportsBoundThreads"
+threaded :: Bool
+threaded = undefined

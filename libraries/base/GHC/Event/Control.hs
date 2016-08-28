@@ -132,8 +132,9 @@ io_MANAGER_WAKEUP, io_MANAGER_DIE :: Word8
 io_MANAGER_WAKEUP = 0xff
 io_MANAGER_DIE    = 0xfe
 
-foreign import ccall "__hscore_sizeof_siginfo_t"
-    sizeof_siginfo_t :: CSize
+-- foreign import ccall "__hscore_sizeof_siginfo_t"
+sizeof_siginfo_t :: CSize
+sizeof_siginfo_t = undefined
 
 readControlMessage :: Control -> Fd -> IO ControlMessage
 readControlMessage ctrl fd
@@ -197,12 +198,15 @@ sendMessage fd msg = alloca $ \p -> do
   fromIntegral `fmap` c_write (fromIntegral fd) p 1
 
 #if defined(HAVE_EVENTFD)
-foreign import ccall unsafe "sys/eventfd.h eventfd"
-   c_eventfd :: CInt -> CInt -> IO CInt
+-- foreign import ccall unsafe "sys/eventfd.h eventfd"
+c_eventfd :: CInt -> CInt -> IO CInt
+c_eventfd = undefined
 
-foreign import ccall unsafe "sys/eventfd.h eventfd_write"
-   c_eventfd_write :: CInt -> CULLong -> IO CInt
+-- foreign import ccall unsafe "sys/eventfd.h eventfd_write"
+c_eventfd_write :: CInt -> CULLong -> IO CInt
+c_eventfd_write = undefined
 #endif
 
-foreign import ccall unsafe "setIOManagerWakeupFd"
-   c_setIOManagerWakeupFd :: CInt -> IO ()
+-- foreign import ccall unsafe "setIOManagerWakeupFd"
+c_setIOManagerWakeupFd :: CInt -> IO ()
+c_setIOManagerWakeupFd = undefined

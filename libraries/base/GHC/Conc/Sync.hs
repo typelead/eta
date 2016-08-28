@@ -151,12 +151,16 @@ instance Show ThreadId where
         showString "ThreadId " .
         showsPrec d (getThreadId (id2TSO t))
 
-foreign import ccall unsafe "rts_getThreadId" getThreadId :: ThreadId# -> CInt
+-- foreign import ccall unsafe "rts_getThreadId"
+getThreadId :: ThreadId# -> CInt
+getThreadId = undefined
 
 id2TSO :: ThreadId -> ThreadId#
 id2TSO (ThreadId t) = t
 
-foreign import ccall unsafe "cmp_thread" cmp_thread :: ThreadId# -> ThreadId# -> CInt
+-- foreign import ccall unsafe "cmp_thread"
+cmp_thread :: ThreadId# -> ThreadId# -> CInt
+cmp_thread = undefined
 -- Returns -1, 0, 1
 
 cmpThread :: ThreadId -> ThreadId -> Ordering
@@ -243,17 +247,21 @@ disableAllocationLimit = do
 -- a 32-bit machine we cannot do atomic operations on a 64-bit value.
 -- Therefore, we only expose APIs that allow getting and setting the
 -- limit of the current thread.
-foreign import ccall unsafe "rts_setThreadAllocationCounter"
-  rts_setThreadAllocationCounter :: ThreadId# -> Int64 -> IO ()
+-- foreign import ccall unsafe "rts_setThreadAllocationCounter"
+rts_setThreadAllocationCounter :: ThreadId# -> Int64 -> IO ()
+rts_setThreadAllocationCounter = undefined
 
-foreign import ccall unsafe "rts_getThreadAllocationCounter"
-  rts_getThreadAllocationCounter :: ThreadId# -> IO Int64
+-- foreign import ccall unsafe "rts_getThreadAllocationCounter"
+rts_getThreadAllocationCounter :: ThreadId# -> IO Int64
+rts_getThreadAllocationCounter = undefined
 
-foreign import ccall unsafe "rts_enableThreadAllocationLimit"
-  rts_enableThreadAllocationLimit :: ThreadId# -> IO ()
+-- foreign import ccall unsafe "rts_enableThreadAllocationLimit"
+rts_enableThreadAllocationLimit :: ThreadId# -> IO ()
+rts_enableThreadAllocationLimit = undefined
 
-foreign import ccall unsafe "rts_disableThreadAllocationLimit"
-  rts_disableThreadAllocationLimit :: ThreadId# -> IO ()
+-- foreign import ccall unsafe "rts_disableThreadAllocationLimit"
+rts_disableThreadAllocationLimit :: ThreadId# -> IO ()
+rts_disableThreadAllocationLimit = undefined
 
 {- |
 Creates a new thread to run the 'IO' computation passed as the
@@ -374,8 +382,9 @@ to avoid contention with other processes in the machine.
 setNumCapabilities :: Int -> IO ()
 setNumCapabilities i = c_setNumCapabilities (fromIntegral i)
 
-foreign import ccall safe "setNumCapabilities"
-  c_setNumCapabilities :: CUInt -> IO ()
+-- foreign import ccall safe "setNumCapabilities"
+c_setNumCapabilities :: CUInt -> IO ()
+c_setNumCapabilities = undefined
 
 -- | Returns the number of CPUs that the machine has
 --
@@ -383,14 +392,17 @@ foreign import ccall safe "setNumCapabilities"
 getNumProcessors :: IO Int
 getNumProcessors = fmap fromIntegral c_getNumberOfProcessors
 
-foreign import ccall unsafe "getNumberOfProcessors"
-  c_getNumberOfProcessors :: IO CUInt
+-- foreign import ccall unsafe "getNumberOfProcessors"
+c_getNumberOfProcessors :: IO CUInt
+c_getNumberOfProcessors = undefined
 
 -- | Returns the number of sparks currently in the local spark pool
 numSparks :: IO Int
 numSparks = IO $ \s -> case numSparks# s of (# s', n #) -> (# s', I# n #)
 
-foreign import ccall "&enabled_capabilities" enabled_capabilities :: Ptr CInt
+-- foreign import ccall "&enabled_capabilities"
+enabled_capabilities :: Ptr CInt
+enabled_capabilities = undefined
 
 childHandler :: SomeException -> IO ()
 childHandler err = catchException (real_handler err) childHandler
@@ -866,8 +878,9 @@ reportError ex = do
 
 -- SUP: Are the hooks allowed to re-enter Haskell land?  If so, remove
 -- the unsafe below.
-foreign import ccall unsafe "stackOverflow"
-        callStackOverflowHook :: ThreadId# -> IO ()
+-- foreign import ccall unsafe "stackOverflow"
+callStackOverflowHook :: ThreadId# -> IO ()
+callStackOverflowHook = undefined
 
 {-# NOINLINE uncaughtExceptionHandler #-}
 uncaughtExceptionHandler :: IORef (SomeException -> IO ())
@@ -887,8 +900,9 @@ uncaughtExceptionHandler = unsafePerformIO (newIORef defaultHandler)
 
 -- don't use errorBelch() directly, because we cannot call varargs functions
 -- using the FFI.
-foreign import ccall unsafe "HsBase.h errorBelch2"
-   errorBelch :: CString -> CString -> IO ()
+-- foreign import ccall unsafe "HsBase.h errorBelch2"
+errorBelch :: CString -> CString -> IO ()
+errorBelch = undefined
 
 setUncaughtExceptionHandler :: (SomeException -> IO ()) -> IO ()
 setUncaughtExceptionHandler = writeIORef uncaughtExceptionHandler

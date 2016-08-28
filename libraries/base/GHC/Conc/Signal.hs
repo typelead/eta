@@ -46,8 +46,9 @@ signal_handlers = unsafePerformIO $ do
   sharedCAF m getOrSetGHCConcSignalSignalHandlerStore
 {-# NOINLINE signal_handlers #-}
 
-foreign import ccall unsafe "getOrSetGHCConcSignalSignalHandlerStore"
-  getOrSetGHCConcSignalSignalHandlerStore :: Ptr a -> IO (Ptr a)
+-- foreign import ccall unsafe "getOrSetGHCConcSignalSignalHandlerStore"
+getOrSetGHCConcSignalSignalHandlerStore :: Ptr a -> IO (Ptr a)
+getOrSetGHCConcSignalSignalHandlerStore = undefined
 
 setHandler :: Signal -> Maybe (HandlerFun, Dynamic)
            -> IO (Maybe (HandlerFun, Dynamic))

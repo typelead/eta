@@ -509,7 +509,9 @@ openTempFile' loc tmp_dir template binary mode = findTempName
                   | otherwise = a ++ [pathSeparator] ++ b
 
 -- int rand(void) from <stdlib.h>, limited by RAND_MAX (small value, 32768)
-foreign import capi "stdlib.h rand" c_rand :: IO CInt
+-- foreign import capi "stdlib.h rand"
+c_rand :: IO CInt
+c_rand = undefined
 
 -- build large digit-alike number
 rand_string :: IO String
@@ -559,7 +561,9 @@ openNewFile filepath binary mode = do
     else return (NewFileCreated fd)
 
 #ifdef mingw32_HOST_OS
-foreign import ccall "file_exists" c_fileExists :: CString -> IO Bool
+-- foreign import ccall "file_exists"
+c_fileExists :: CString -> IO Bool
+c_fileExists = undefined
 #endif
 
 -- XXX Should use filepath library
