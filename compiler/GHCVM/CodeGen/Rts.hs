@@ -19,7 +19,7 @@ import qualified Data.Text as T
 merge :: Text -> Text -> Text
 merge x y = append x . cons '/' $ y
 
-rts, apply, thunk, stg, exception, io, util, stm :: Text -> Text
+rts, apply, thunk, stg, exception, io, util, stm, par :: Text -> Text
 rts       = merge "ghcvm/runtime"
 apply     = merge (rts "apply")
 thunk     = merge (rts "thunk")
@@ -29,6 +29,7 @@ io        = merge (rts "io")
 conc      = merge (rts "concurrent")
 util      = merge (rts "util")
 stm       = merge (rts "stm")
+par       = merge (rts "parallel")
 
 closureType, indStaticType, contextType, funType, tsoType, frameType, rtsFunType, conType,
   thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType, stgArrayType, stgByteArrayType,
@@ -171,12 +172,13 @@ mkRtsMainClass dflags mainClass
                  <> sconst (T.pack s)
                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
 
-stgExceptionGroup, ioGroup, stmGroup, concGroup :: Text
+stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup :: Text
 stgExceptionGroup = exception "StgException"
 ioGroup = io "IO"
 stmGroup = stm "STM"
 concGroup = conc "Concurrent"
 stgGroup = stg "Stg"
+parGroup = par "Parallel"
 
 mkRtsFunCall :: (Text, Text) -> Code
 mkRtsFunCall (group, name) =

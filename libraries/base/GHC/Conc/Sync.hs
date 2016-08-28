@@ -855,16 +855,17 @@ modifyMVar_ m io =
 -- the dynamically-loaded base package are reverted, nothing bad
 -- happens.
 --
+-- TODO: Implement
 sharedCAF :: a -> (Ptr a -> IO (Ptr a)) -> IO a
 sharedCAF a get_or_set =
    mask_ $ do
      stable_ref <- newStablePtr a
-     let ref = castPtr (castStablePtrToPtr stable_ref)
+     let ref = undefined -- castPtr (castStablePtrToPtr stable_ref)
      ref2 <- get_or_set ref
      if ref==ref2
         then return a
         else do freeStablePtr stable_ref
-                deRefStablePtr (castPtrToStablePtr (castPtr ref2))
+                undefined --deRefStablePtr (castPtrToStablePtr (castPtr ref2))
 
 reportStackOverflow :: IO ()
 reportStackOverflow = do

@@ -192,6 +192,7 @@ mkRtsPrimOp ForkOnOp                = (concGroup, "forkOn")
 mkRtsPrimOp KillThreadOp            = (stgExceptionGroup, "killThread")
 mkRtsPrimOp YieldOp                 = (concGroup, "yield")
 mkRtsPrimOp MyThreadIdOp            = (concGroup, "myThreadId")
+mkRtsPrimOp LabelThreadOp           = (concGroup, "labelThread")
 mkRtsPrimOp IsCurrentThreadBoundOp  = (concGroup, "isCurrentThreadBound")
 mkRtsPrimOp NoDuplicateOp           = (stgGroup, "noDuplicate")
 mkRtsPrimOp ThreadStatusOp          = (concGroup, "threadStatus")
@@ -202,6 +203,8 @@ mkRtsPrimOp DeRefWeakOp             = (stgGroup, "deRefWeak")
 mkRtsPrimOp FinalizeWeakOp          = (stgGroup, "finalizzeWeak")
 mkRtsPrimOp AtomicModifyMutVarOp    = (ioGroup, "atomicModifyMutVar")
 mkRtsPrimOp CasMutVarOp             = (ioGroup, "casMutVar")
+mkRtsPrimOp GetSparkOp              = (parGroup, "getSpark")
+mkRtsPrimOp NumSparks               = (parGroup, "numSparks")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
@@ -656,6 +659,10 @@ simpleOp SameTVarOp    = Just $ intCompOp if_acmpeq
 simpleOp SameMVarOp    = Just $ intCompOp if_acmpeq
 simpleOp EqStablePtrOp = Just $ intCompOp if_acmpeq
 simpleOp TouchOp       = Just idOp
+
+-- Sparks
+-- TODO: Implement
+simpleOp ParOp = Just $ \_ -> iconst jint 0
 simpleOp _             = Nothing
 
 popCntOp, clzOp, ctzOp :: Code

@@ -27,8 +27,8 @@ import GHC.Num
 import GHC.List
 import GHC.Real
 import GHC.Show
---import Foreign
---import Foreign.C
+import Foreign
+import Foreign.C
 import System.IO
 
 import GHC.Fingerprint.Type
@@ -36,22 +36,24 @@ import GHC.Fingerprint.Type
 -- XXX instance Storable Fingerprint
 -- defined in Foreign.Storable to avoid orphan instance
 
+-- TODO: Replace with Java FFI
+
 fingerprint0 :: Fingerprint
 fingerprint0 = Fingerprint 0 0
 
 fingerprintFingerprints :: [Fingerprint] -> Fingerprint
-fingerprintFingerprints fs = undefined --TODO: unsafeDupablePerformIO $
-  -- withArrayLen fs $ \len p -> do
-  --   fingerprintData (castPtr p) (len * sizeOf (head fs))
+fingerprintFingerprints fs = unsafeDupablePerformIO $
+  withArrayLen fs $ \len p -> do
+    fingerprintData (castPtr p) (len * sizeOf (head fs))
 
 fingerprintData :: Ptr Word8 -> Int -> IO Fingerprint
-fingerprintData buf len = undefined--TODO:  do
-  -- allocaBytes SIZEOF_STRUCT_MD5CONTEXT $ \pctxt -> do
-  --   c_MD5Init pctxt
-  --   c_MD5Update pctxt buf (fromIntegral len)
-  --   allocaBytes 16 $ \pdigest -> do
-  --     c_MD5Final pdigest pctxt
-  --     peek (castPtr pdigest :: Ptr Fingerprint)
+fingerprintData buf len = do
+  allocaBytes 88 $ \pctxt -> do
+    c_MD5Init pctxt
+    c_MD5Update pctxt buf (fromIntegral len)
+    allocaBytes 16 $ \pdigest -> do
+      c_MD5Final pdigest pctxt
+      peek (castPtr pdigest :: Ptr Fingerprint)
 
 -- This is duplicated in compiler/utils/Fingerprint.hsc
 fingerprintString :: String -> Fingerprint
@@ -72,7 +74,7 @@ fingerprintString str = unsafeDupablePerformIO $
 -- @since 4.7.0.0
 getFileHash :: FilePath -> IO Fingerprint
 getFileHash path = withBinaryFile path ReadMode $ \h -> do
-  allocaBytes SIZEOF_STRUCT_MD5CONTEXT $ \pctxt -> do
+  allocaBytes 88 $ \pctxt -> do
     c_MD5Init pctxt
 
     processChunks h (\buf size -> c_MD5Update pctxt buf (fromIntegral size))
@@ -101,11 +103,14 @@ getFileHash path = withBinaryFile path ReadMode $ \h -> do
 
       in loop
 
--- data MD5Context
+data MD5Context
 
 -- foreign import ccall unsafe "__hsbase_MD5Init"
---    c_MD5Init   :: Ptr MD5Context -> IO ()
+c_MD5Init   :: Ptr MD5Context -> IO ()
+c_MD5Init = undefined
 -- foreign import ccall unsafe "__hsbase_MD5Update"
---    c_MD5Update :: Ptr MD5Context -> Ptr Word8 -> CInt -> IO ()
+c_MD5Update :: Ptr MD5Context -> Ptr Word8 -> CInt -> IO ()
+c_MD5Update = undefined
 -- foreign import ccall unsafe "__hsbase_MD5Final"
---    c_MD5Final  :: Ptr Word8 -> Ptr MD5Context -> IO ()
+c_MD5Final  :: Ptr Word8 -> Ptr MD5Context -> IO ()
+c_MD5Final = undefined

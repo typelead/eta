@@ -24,24 +24,12 @@
 module System.Posix.Types (
 
   -- * POSIX data types
-#if defined(HTYPE_DEV_T)
   CDev(..),
-#endif
-#if defined(HTYPE_INO_T)
   CIno(..),
-#endif
-#if defined(HTYPE_MODE_T)
   CMode(..),
-#endif
-#if defined(HTYPE_OFF_T)
   COff(..),
-#endif
-#if defined(HTYPE_PID_T)
   CPid(..),
-#endif
-#if defined(HTYPE_SSIZE_T)
   CSsize(..),
-#endif
 
 #if defined(HTYPE_GID_T)
   CGid(..),
@@ -77,16 +65,16 @@ module System.Posix.Types (
   GroupID,
 #endif
 
-  ByteCount,
-  ClockTick,
-  EpochTime,
-  FileOffset,
-  ProcessID,
-  ProcessGroupID,
-  DeviceID,
-  FileID,
-  FileMode,
-  Limit
+  -- ByteCount,
+  -- ClockTick,
+  -- EpochTime,
+  -- FileOffset,
+  -- ProcessID,
+  -- ProcessGroupID,
+  -- DeviceID,
+  -- FileID,
+  -- FileMode,
+  -- Limit
  ) where
 
 import Foreign
@@ -104,25 +92,12 @@ import GHC.Show
 
 #include "CTypes.h"
 
-#if defined(HTYPE_DEV_T)
-INTEGRAL_TYPE(CDev,HTYPE_DEV_T)
-#endif
-#if defined(HTYPE_INO_T)
-INTEGRAL_TYPE(CIno,HTYPE_INO_T)
-#endif
-#if defined(HTYPE_MODE_T)
-INTEGRAL_TYPE_WITH_CTYPE(CMode,mode_t,HTYPE_MODE_T)
-#endif
-#if defined(HTYPE_OFF_T)
-INTEGRAL_TYPE(COff,HTYPE_OFF_T)
-#endif
-#if defined(HTYPE_PID_T)
-INTEGRAL_TYPE(CPid,HTYPE_PID_T)
-#endif
-
-#if defined(HTYPE_SSIZE_T)
-INTEGRAL_TYPE(CSsize,HTYPE_SSIZE_T)
-#endif
+INTEGRAL_TYPE(CDev,Int32)
+INTEGRAL_TYPE(CIno,Word64)
+INTEGRAL_TYPE_WITH_CTYPE(CMode,mode_t,Word16)
+INTEGRAL_TYPE(COff,Int64)
+INTEGRAL_TYPE(CPid,Int32)
+INTEGRAL_TYPE(CSsize,Int64)
 
 #if defined(HTYPE_GID_T)
 INTEGRAL_TYPE(CGid,HTYPE_GID_T)
@@ -164,13 +139,13 @@ type UserID         = CUid
 type GroupID        = CGid
 #endif
 
-type ByteCount      = CSize
-type ClockTick      = CClock
-type EpochTime      = CTime
-type DeviceID       = CDev
-type FileID         = CIno
-type FileMode       = CMode
-type ProcessID      = CPid
-type FileOffset     = COff
-type ProcessGroupID = CPid
-type Limit          = CLong
+-- type ByteCount      = CSize
+-- type ClockTick      = CClock
+-- type EpochTime      = CTime
+-- type DeviceID       = CDev
+-- type FileID         = CIno
+-- type FileMode       = CMode
+-- type ProcessID      = CPid
+-- type FileOffset     = COff
+-- type ProcessGroupID = CPid
+-- type Limit          = CLong
