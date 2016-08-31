@@ -3,12 +3,12 @@ module Codec.JVM.Class where
 
 import Data.Binary.Get
 import Data.Map.Strict (Map)
-import Data.ByteString.Base16 (decode)
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (toStrict, readFile)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Set (Set)
+import Data.Word (Word32)
 
 import qualified Data.List as L
 import qualified Data.Text as T
@@ -37,12 +37,12 @@ data ClassFile = ClassFile
   , attributes  :: Map Text Attr }
   deriving Show
 
-magic :: ByteString
-magic = fst . decode $ "CAFEBABE"
+mAGIC :: Word32
+mAGIC = 0xCAFEBABE
 
 putClassFile :: ClassFile -> Put
 putClassFile ClassFile {..} = do
-  putByteString magic
+  putWord32be mAGIC
   putI16 . versionMin $ version
   putI16 . versionMaj $ version
   putI16 . (+) 1 . CP.size $ cp
@@ -67,7 +67,7 @@ putClassFile ClassFile {..} = do
 getClassName :: Get Text
 getClassName = do
   magic <- getWord32be
-  when (magic /= 0xCAFEBABE) $
+  when (magic /= mAGIC) $
     fail $ "Invalid .class file MAGIC value: " ++ show magic
   minorVersion <- getWord16be
   majorVersion <- getWord16be

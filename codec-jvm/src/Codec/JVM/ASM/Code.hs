@@ -1,6 +1,6 @@
 module Codec.JVM.ASM.Code where
 
-import Control.Monad.Trans.RWS (ask)
+import Control.Monad.Reader
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.ByteString (ByteString)

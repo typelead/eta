@@ -40,7 +40,9 @@ increase performance.
 letNoEscapeBlocks :: [(Label, Instr)] -> Instr -> Instr
 letNoEscapeBlocks lneBinds expr = Instr $ do
   cp <- ask
-  (Offset baseOffset, cf, lt) <- get
+  InstrState { isOffset = Offset baseOffset
+             , isCtrlFlow = cf
+             , isLabelTable = lt } <- get
   let firstOffset = baseOffset + lengthJump
       (offsets, labelOffsets) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) lneBinds
       defOffset = last offsets
@@ -50,7 +52,7 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
       breakOffset = defOffset + BS.length defBytes
       (_, instrs) = unzip lneBinds
   addLabels labelOffsets
-  (_, _, lt') <- get
+  InstrState { isLabelTable = lt' } <- get
   writeGoto $ defOffset - baseOffset
   cfs <- forM (zip labelOffsets instrs) $ \((_, offset), instr) -> do
     writeStackMapFrame
@@ -69,7 +71,10 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   where computeOffsets cf cp (offset, _) (label, instr) =
           ( offset + bytesLength + lengthJump
           , (label, Offset offset) )
-          where (bytes, _, _) = runInstr' instr cp (Offset offset) cf
+          where (bytes, _, _) = runInstr' instr cp
+                              $ emptyInstrState
+                                { isOffset = Offset offset
+                                , isCtrlFlow = cf }
                 bytesLength = BS.length bytes
         lengthJump = 3 -- op goto <> pack16 $ length ko
         writeGoto offset = do

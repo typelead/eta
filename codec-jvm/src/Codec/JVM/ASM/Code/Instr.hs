@@ -1,7 +1,8 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, UnboxedTuples, RecordWildCards, MultiParamTypeClasses, FlexibleContexts #-}
 module Codec.JVM.ASM.Code.Instr where
 
-import Control.Monad.Trans.RWS
+import Control.Monad.State
+import Control.Monad.Reader
 import Data.ByteString (ByteString)
 import Data.Monoid ((<>))
 import Data.List(scanl')
@@ -23,17 +24,42 @@ import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
 import qualified Codec.JVM.ConstPool as CP
 import qualified Codec.JVM.Opcode as OP
 
--- TODO: Fix known space leak with Writer
--- http://stackoverflow.com/questions/25280852/space-leak-in-pipes-with-rwst
-type InstrRWS = RWS ConstPool (ByteString, StackMapTable) (Offset, CtrlFlow, LabelTable)
+data InstrState =
+  InstrState { isByteCode      :: !ByteString
+             , isStackMapTable :: StackMapTable
+             , isOffset        :: !Offset
+             , isCtrlFlow      :: CtrlFlow
+             , isLabelTable    :: LabelTable }
 
-newtype Instr = Instr (InstrRWS ())
+newtype InstrM a = InstrM { runInstrM :: ConstPool -> InstrState -> (# a, InstrState #) }
 
-instrRWS :: Instr -> InstrRWS ()
-instrRWS (Instr irws) = irws
+newtype Instr = Instr { unInstr :: InstrM () }
+
+instance Functor InstrM where
+  fmap = liftM
+
+instance Applicative InstrM where
+  pure = return
+  (<*>) = ap
+
+instance Monad InstrM where
+  return x = InstrM $ \_ s -> (# x, s #)
+  (InstrM m) >>= f =
+    InstrM $ \e s ->
+      case m e s of
+        (# x, s' #) ->
+          case runInstrM (f x) e s' of
+            (# x', s'' #) -> (# x', s'' #)
+
+instance MonadState InstrState InstrM where
+  get = InstrM $ \_ s -> (# s, s #)
+  put s' = InstrM $ \_ s -> (# (), s' #)
+
+instance MonadReader ConstPool InstrM where
+  ask = InstrM $ \e s -> (# e, s #)
 
 instance Monoid Instr where
-  mempty = Instr $ return mempty
+  mempty = Instr $ return ()
   mappend (Instr rws0) (Instr rws1) = Instr $ do
     rws0
     rws1
@@ -43,21 +69,31 @@ instance Show Instr where
 
 withOffset :: (Int -> Instr) -> Instr
 withOffset f = Instr $ do
-  (Offset offset, _, _)<- get
-  instrRWS $ f offset
+  InstrState { isOffset = Offset offset } <- get
+  unInstr $ f offset
+
+emptyInstrState :: InstrState
+emptyInstrState =
+  InstrState { isByteCode = mempty
+             , isStackMapTable = mempty
+             , isOffset = 0
+             , isCtrlFlow = CF.empty
+             , isLabelTable = mempty }
 
 runInstr :: Instr -> ConstPool -> (ByteString, CtrlFlow, StackMapTable)
-runInstr instr cp = runInstr' instr cp 0 CF.empty
+runInstr instr cp = runInstr' instr cp $ emptyInstrState
 
-runInstr' :: Instr -> ConstPool -> Offset -> CtrlFlow -> (ByteString, CtrlFlow, StackMapTable)
-runInstr' (Instr instr) cp offset cf = (bs, cf', smfs)
-  where (_, (_, cf', _), (bs, smfs)) = runRWS instr cp (offset, cf, mempty)
+runInstr' :: Instr -> ConstPool -> InstrState -> (ByteString, CtrlFlow, StackMapTable)
+runInstr' (Instr m) e s = case runInstrM m e s of
+  (# (), InstrState{..} #) -> (isByteCode, isCtrlFlow, isStackMapTable)
 
 runInstrWithLabels' :: Instr -> ConstPool -> Offset -> CtrlFlow -> LabelTable -> (ByteString, CtrlFlow, StackMapTable)
-runInstrWithLabels' (Instr instr) cp offset cf lt = (bs, cf', smfs)
-  where (_, (_, cf', _), (bs, smfs)) = runRWS instr cp (offset, cf, lt)
+runInstrWithLabels' instr cp offset cf lt = runInstr' instr cp s
+  where s = emptyInstrState { isOffset = offset
+                            , isCtrlFlow = cf
+                            , isLabelTable = lt }
 
-modifyStack' :: (Stack -> Stack) -> InstrRWS ()
+modifyStack' :: (Stack -> Stack) -> InstrM ()
 modifyStack' f = --do
   ctrlFlow' $ CF.mapStack f
   -- (a, cf, c) <- get
@@ -70,14 +106,14 @@ gbranch :: (FieldType -> Stack -> Stack)
         -> FieldType -> Opcode -> Instr -> Instr -> Instr
 gbranch f ft oc ok ko = Instr $ do
   lengthOp <- writeInstr ifop
-  (_, cf, _) <- get
+  InstrState { isCtrlFlow = cf } <- get
   branches cf lengthOp ok ko
   where ifop = op oc <> modifyStack (f ft)
 
 -- TODO: This function fails for huge methods, must make it safe
 --       when goto offset is outside of −32,768 to 32,767
 --       which isn't likely to happen.
-branches :: CtrlFlow -> Int -> Instr -> Instr -> InstrRWS ()
+branches :: CtrlFlow -> Int -> Instr -> Instr -> InstrM ()
 branches cf lengthOp ok ko = do
   (koBytes, koCF, koFrames) <- pad 2 ko -- packI16
   writeBytes . packI16 $ BS.length koBytes + lengthJumpOK + lengthOp + 2 -- packI16
@@ -92,7 +128,9 @@ branches cf lengthOp ok ko = do
     where
       pad padding instr = do
         cp <- ask
-        (Offset offset, cf, lt) <- get
+        InstrState { isOffset = Offset offset
+                   , isCtrlFlow = cf
+                   , isLabelTable = lt } <- get
         return $ runInstrWithLabels' instr cp (Offset $ offset + padding) cf lt
       lengthJumpOK = 3 -- op goto <> pack16 $ length ko
 
@@ -107,58 +145,62 @@ ix c = Instr $ do
 op :: Opcode -> Instr
 op = Instr . op'
 
-op' :: Opcode -> InstrRWS ()
+op' :: Opcode -> InstrM ()
 op' = writeBytes . BS.singleton . opcode
 
-ctrlFlow' :: (CtrlFlow -> CtrlFlow) -> InstrRWS ()
-ctrlFlow' f = state $ \(off, cf, lt) -> (mempty, (off, f cf, lt))
+ctrlFlow' :: (CtrlFlow -> CtrlFlow) -> InstrM ()
+ctrlFlow' f = modify' $ \s@InstrState { isCtrlFlow = cf }  -> s { isCtrlFlow = f cf }
 
 ctrlFlow :: (CtrlFlow -> CtrlFlow) -> Instr
 ctrlFlow = Instr . ctrlFlow'
 
 initCtrl :: (CtrlFlow -> CtrlFlow) -> Instr
 initCtrl f = Instr $ do
-  let Instr instr = ctrlFlow f
-  instr
+  unInstr $ ctrlFlow f
   writeStackMapFrame
 
 putCtrlFlow :: CtrlFlow -> Instr
 putCtrlFlow = Instr . putCtrlFlow'
 
-putCtrlFlow' :: CtrlFlow -> InstrRWS ()
-putCtrlFlow' cf = do
-  (off, _, lt) <- get
-  put (off, cf, lt)
+putCtrlFlow' :: CtrlFlow -> InstrM ()
+putCtrlFlow' cf = modify' $ \s -> s { isCtrlFlow = cf }
 
 incOffset :: Int -> Instr
 incOffset = Instr . incOffset'
 
-incOffset' :: Int -> InstrRWS ()
-incOffset' i = state s where s (Offset off, cf, lt) = (mempty, (Offset $ off + i, cf, lt))
+incOffset' :: Int -> InstrM ()
+incOffset' i =
+  modify' $ \s@InstrState { isOffset = Offset off } ->
+              s { isOffset = Offset $ off + i}
 
-write :: ByteString -> StackMapTable -> InstrRWS ()
+write :: ByteString -> StackMapTable -> InstrM ()
 write bs smfs = do
   incOffset' $ BS.length bs
-  tell (bs, smfs)
+  modify' $ \s@InstrState { isByteCode = bs'
+                          , isStackMapTable = smfs' } ->
+    s { isByteCode = bs' <> bs
+      , isStackMapTable = smfs' <> smfs }
 
-writeBytes :: ByteString -> InstrRWS ()
+writeBytes :: ByteString -> InstrM ()
 writeBytes bs = write bs mempty
 
-writeInstr :: Instr -> InstrRWS Int
+writeInstr :: Instr -> InstrM Int
 writeInstr (Instr action) = do
-  (Offset off0, _, _) <- get
+  off0 <- getOffset
   action
-  (Offset off1, _, _) <- get
-  return (off1 - off0)
+  off1 <- getOffset
+  return $ off1 - off0
 
-writeStackMapFrame :: InstrRWS ()
-writeStackMapFrame = get >>= f where
-  f (Offset offset, cf, _) =
-    tell (mempty, StackMapTable $ IntMap.singleton offset cf)
+writeStackMapFrame :: InstrM ()
+writeStackMapFrame = do
+  modify' $ \s@InstrState { isOffset = Offset offset
+                          , isCtrlFlow = cf
+                          , isStackMapTable = StackMapTable smfs } ->
+    s { isStackMapTable = StackMapTable $ IntMap.insert offset cf smfs}
 
-getOffset :: InstrRWS Int
+getOffset :: InstrM Int
 getOffset = do
-  (Offset offset, _, _) <- get
+  Offset offset <- gets isOffset
   return offset
 
 type BranchMap = IntMap.IntMap Instr
@@ -169,7 +211,10 @@ tableswitch low high branchMap deflt = Instr $ do
   baseOffset <- getOffset
   writeInstr $ op OP.tableswitch
   modifyStack' $ CF.pop jint
-  (Offset offset, cf, lt) <- get
+  InstrState { isOffset = Offset offset
+             , isCtrlFlow = cf
+             , isLabelTable = lt } <- get
+  --(Offset offset, cf, lt) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
@@ -215,7 +260,10 @@ lookupswitch branchMap deflt = Instr $ do
   baseOffset <- getOffset
   writeInstr $ op OP.lookupswitch
   modifyStack' $ CF.pop jint
-  (Offset offset, cf, lt) <- get
+  InstrState { isOffset = Offset offset
+             , isCtrlFlow = cf
+             , isLabelTable = lt } <- get
+  --(Offset offset, cf, lt) <- get
   -- Align to 4-byte boundary
   let padding = 4 - (offset `mod` 4)
   writeBytes . BS.pack . replicate padding $ 0
@@ -251,9 +299,9 @@ lookupswitch branchMap deflt = Instr $ do
         numBranches = IntMap.size branchMap
 
 
-lookupLabel :: Label -> InstrRWS Offset
+lookupLabel :: Label -> InstrM Offset
 lookupLabel (Label id)= do
-  (_, _, LabelTable table) <- get
+  InstrState { isLabelTable = LabelTable table } <- get
   -- TODO: Find a better default.
   return $ IntMap.findWithDefault (Offset 0) id table
 
@@ -266,13 +314,13 @@ gotoLabel label = Instr $ do
 
 putLabel :: Label -> Instr
 putLabel (Label id) = Instr $
-  state $ \(off, cf, LabelTable table) ->
-            (mempty, (off, cf, LabelTable $ IntMap.insert id off table))
+  modify' $ \s@InstrState { isLabelTable = LabelTable table
+                          , isOffset = off } ->
+              s { isLabelTable = LabelTable $ IntMap.insert id off table }
 
-addLabels :: [(Label, Offset)] -> InstrRWS()
-addLabels labelOffsets =
-  state $ \(off, cf, LabelTable table) ->
-            ( mempty
-            , (off, cf,
-               LabelTable $ IntMap.union (IntMap.fromList labels) table ))
-  where labels = map (\(Label l, o) -> (l, o)) labelOffsets
+addLabels :: [(Label, Offset)] -> InstrM ()
+addLabels labelOffsets = modify' f
+  where f s@InstrState { isLabelTable = LabelTable table } =
+          s { isLabelTable = LabelTable table' }
+          where table' = IntMap.union (IntMap.fromList labels) table
+        labels = map (\(Label l, o) -> (l, o)) labelOffsets
