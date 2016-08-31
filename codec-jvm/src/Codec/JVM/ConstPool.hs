@@ -1,4 +1,5 @@
 module Codec.JVM.ConstPool where
+
 import Control.Arrow (second)
 import Control.Monad (join, replicateM, forM)
 import Data.IntMap.Lazy ((!))
@@ -24,15 +25,22 @@ newtype ConstPool = ConstPool (Map Const Int)
 type IxConstPool = LazyMap.IntMap Const
 
 mkConstPool :: [Const] -> ConstPool
-mkConstPool defs = ConstPool . snd $ L.foldl' f (0, M.empty) defs where
-  f acc c = L.foldl' f' acc $ unpack c where
-    f' (i, xs) y = if M.member y xs then (i, xs) else (i + 1, M.insert y i xs)
+mkConstPool defs = ConstPool . snd $ L.foldl' f (0, M.empty) defs
+  where f acc c = L.foldl' f' acc $ unpack c
+          where f' (i, xs) y = if M.member y xs
+                               then (i, xs)
+                               else (i + constPoolSpace y, M.insert y i xs)
+
+constPoolSpace :: Const -> Int
+constPoolSpace (CValue (CLong _)) = 2
+constPoolSpace (CValue (CDouble _)) = 2
+constPoolSpace _ = 1
 
 run :: ConstPool -> [Const]
 run (ConstPool xs) = fmap fst $ L.sortOn snd $ M.toList xs
 
 size :: ConstPool -> Int
-size (ConstPool xs) = M.size xs
+size (ConstPool xs) = (M.foldl' max 0 xs) + 1
 
 index :: Const -> ConstPool -> Maybe CIx
 index def (ConstPool xs) =  CIx . (+) 1 <$> M.lookup def xs
@@ -48,6 +56,7 @@ unpack (CClass cn)                = unpackClassName cn
 unpack c@(CValue (CString str))   = [c, CUTF8 str]
 unpack (CFieldRef   ref)          = unpackFieldRef ref
 unpack (CMethodRef  ref)          = unpackMethodRef ref
+unpack (CInterfaceMethodRef ref)  = unpackInterfaceMethodRef ref
 unpack (CNameAndType nd)          = unpackNameAndType nd
 unpack c                          = [c]
 
@@ -64,6 +73,10 @@ unpackFieldRef  ref@(FieldRef cn n ft) =
 unpackMethodRef :: MethodRef -> [Const]
 unpackMethodRef ref@(MethodRef cn n fts rt) =
   CMethodRef ref:unpackClassName cn ++ unpackNameAndType (NameAndDesc n $ Desc (mkMethodDesc' fts rt))
+
+unpackInterfaceMethodRef :: MethodRef -> [Const]
+unpackInterfaceMethodRef ref@(MethodRef cn n fts rt) =
+  CInterfaceMethodRef ref:unpackClassName cn ++ unpackNameAndType (NameAndDesc n $ Desc (mkMethodDesc' fts rt))
 
 unpackNameAndType :: NameAndDesc -> [Const]
 unpackNameAndType nd@(NameAndDesc (UName str0) (Desc str1)) = [CNameAndType nd, CUTF8 str0, CUTF8 str1]

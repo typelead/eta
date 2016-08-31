@@ -179,7 +179,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       need ["install"]
 
     phony "clean" $ do
-      putNormal "Cleaning files in rts/build, sample/build"
+      putNormal "Cleaning files in rts/build, sample/build, libraries/*/build"
       removeFilesAfter rtsBuildDir ["//*"]
       removeFilesAfter sampleBuildDir ["//*"]
       libs <- getLibs
