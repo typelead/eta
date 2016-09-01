@@ -93,7 +93,7 @@ cgLetNoEscapeClosure binder args body = do
   n <- peekNextLocal
   argLocs <- mapM newIdLoc args
   n' <- peekNextLocal
-  setNextLocal n
+    --setNextLocal n
   let code = forkLneBody $ do
           bindArgs $ zip args argLocs
           setNextLocal n'
