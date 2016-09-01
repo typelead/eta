@@ -4,6 +4,7 @@ module Codec.JVM.ASM.Code.Instr where
 import Control.Monad.State
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
+import Data.ByteString.Unsafe (unsafeIndex)
 import Data.Monoid ((<>))
 import Data.List(scanl')
 import Data.Maybe(fromMaybe)
@@ -116,11 +117,15 @@ gbranch f ft oc ok ko = Instr $ do
 branches :: CtrlFlow -> Int -> Instr -> Instr -> InstrM ()
 branches cf lengthOp ok ko = do
   (koBytes, koCF, koFrames) <- pad 2 ko -- packI16
+  let hasGoto = ifLastGoto koBytes
+      lengthJumpOK = if hasGoto then 0 else 3
   writeBytes . packI16 $ BS.length koBytes + lengthJumpOK + lengthOp + 2 -- packI16
   write koBytes koFrames
   (okBytes, okCF, okFrames) <- pad lengthJumpOK ok
-  op' OP.goto
-  writeBytes . packI16 $ BS.length okBytes + 3 -- op goto <> packI16 $ length ok
+  unless hasGoto $ do
+    op' OP.goto
+    writeBytes . packI16 $ BS.length okBytes + 3 -- op goto <> packI16 $ length ok
+    -- TODO: Omit stackframes accordingly?
   writeStackMapFrame
   write okBytes okFrames
   putCtrlFlow' $ CF.merge cf [okCF, koCF]
@@ -132,7 +137,6 @@ branches cf lengthOp ok ko = do
                    , isCtrlFlow = cf
                    , isLabelTable = lt } <- get
         return $ runInstrWithLabels' instr cp (Offset $ offset + padding) cf lt
-      lengthJumpOK = 3 -- op goto <> pack16 $ length ko
 
 bytes :: ByteString -> Instr
 bytes = Instr . writeBytes
@@ -324,3 +328,11 @@ addLabels labelOffsets = modify' f
           s { isLabelTable = LabelTable table' }
           where table' = IntMap.union (IntMap.fromList labels) table
         labels = map (\(Label l, o) -> (l, o)) labelOffsets
+
+-- TODO: Account for goto_w
+ifLastGoto :: ByteString -> Bool
+ifLastGoto bs =
+  if index >= 0
+  then unsafeIndex bs index == opcode OP.goto
+  else False
+  where index = (BS.length bs - 1) - 2
