@@ -137,7 +137,7 @@ tyConClass dflags tyCon = moduleClass typeName typeClass
         typeClass = nameTypeText dflags typeName
 
 labelToMethod :: String -> (Text, Text)
-labelToMethod s = ( T.dropEnd 1 $ T.dropWhileEnd (/= '.') label
+labelToMethod s = ( T.replace "." "/" . T.dropEnd 1 . T.dropWhileEnd (/= '.') $ label
                   , T.takeWhileEnd (/= '.') label )
   where label = T.pack s
 
