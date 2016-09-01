@@ -7,6 +7,7 @@ import qualified Data.IntMap.Lazy as LazyMap
 import qualified Data.ByteString as BS
 import Data.Map.Strict (Map)
 import Data.Function (fix)
+import Data.Maybe (maybe)
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 
 import qualified Data.List as L
@@ -60,6 +61,11 @@ unpack (CInterfaceMethodRef ref)  = unpackInterfaceMethodRef ref
 unpack (CNameAndType nd)          = unpackNameAndType nd
 unpack c                          = [c]
 
+unpackFieldType :: FieldType -> [Const]
+unpackFieldType (ObjectType iclass) = unpackClassName iclass
+unpackFieldType ft@(ArrayType _) = unpackClassName . IClassName $ mkFieldDesc' ft
+unpackFieldType _ = []
+
 unpackClassName :: IClassName -> [Const]
 unpackClassName cn@(IClassName str) = [CClass cn, CUTF8 str]
 
@@ -68,15 +74,15 @@ unpackFieldDesc n (FieldDesc t) = unpackNameAndType (NameAndDesc n $ Desc t)
 
 unpackFieldRef :: FieldRef -> [Const]
 unpackFieldRef  ref@(FieldRef cn n ft) =
-  CFieldRef  ref:unpackClassName cn ++ unpackFieldDesc n (mkFieldDesc ft)
+  CFieldRef  ref:unpackClassName cn ++ unpackFieldDesc n (mkFieldDesc ft) ++ unpackFieldType ft
 
 unpackMethodRef :: MethodRef -> [Const]
 unpackMethodRef ref@(MethodRef cn n fts rt) =
-  CMethodRef ref:unpackClassName cn ++ unpackNameAndType (NameAndDesc n $ Desc (mkMethodDesc' fts rt))
+  CMethodRef ref:unpackClassName cn ++ unpackNameAndType (NameAndDesc n $ Desc (mkMethodDesc' fts rt)) ++ concatMap unpackFieldType fts ++ maybe [] unpackFieldType rt
 
 unpackInterfaceMethodRef :: MethodRef -> [Const]
 unpackInterfaceMethodRef ref@(MethodRef cn n fts rt) =
-  CInterfaceMethodRef ref:unpackClassName cn ++ unpackNameAndType (NameAndDesc n $ Desc (mkMethodDesc' fts rt))
+  CInterfaceMethodRef ref:unpackClassName cn ++ unpackNameAndType (NameAndDesc n $ Desc (mkMethodDesc' fts rt)) ++ concatMap unpackFieldType fts ++ maybe [] unpackFieldType rt
 
 unpackNameAndType :: NameAndDesc -> [Const]
 unpackNameAndType nd@(NameAndDesc (UName str0) (Desc str1)) = [CNameAndType nd, CUTF8 str0, CUTF8 str1]

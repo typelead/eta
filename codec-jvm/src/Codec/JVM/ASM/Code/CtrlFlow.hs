@@ -133,7 +133,7 @@ fieldTypeFlatVerifType ft = case ft of
   BaseType JFloat             -> VFloat
   BaseType JDouble            -> VDouble
   ObjectType cn               -> VObject cn
-  ArrayType ft'               -> VObject . IClassName $ mkFieldDesc' ft'
+  ArrayType  _                -> VObject . IClassName $ mkFieldDesc' ft
 
 fieldTypeToVerifType :: FieldType -> [VerifType]
 fieldTypeToVerifType ft = case ft of
@@ -146,7 +146,7 @@ fieldTypeToVerifType ft = case ft of
   BaseType JFloat             -> [VFloat]
   BaseType JDouble            -> [VTop, VDouble]
   ObjectType cn               -> [VObject cn]
-  ArrayType ft'               -> [VObject . IClassName $ mkFieldDesc' ft']
+  ArrayType  _                -> [VObject . IClassName $ mkFieldDesc' ft]
 
 putVerifType :: ConstPool -> VerifType -> Put
 putVerifType _ VTop                    = putWord8 0
