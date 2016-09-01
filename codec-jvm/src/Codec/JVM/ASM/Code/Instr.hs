@@ -220,7 +220,7 @@ tableswitch low high branchMap deflt = Instr $ do
              , isLabelTable = lt } <- get
   --(Offset offset, cf, lt) <- get
   -- Align to 4-byte boundary
-  let padding = 4 - (offset `mod` 4)
+  let padding = (4 - (offset `mod` 4)) `mod` 4
   writeBytes . BS.pack . replicate padding $ 0
   offset' <- getOffset
   let firstOffset = offset' + 4 * (3 + numBranches)
@@ -269,7 +269,7 @@ lookupswitch branchMap deflt = Instr $ do
              , isLabelTable = lt } <- get
   --(Offset offset, cf, lt) <- get
   -- Align to 4-byte boundary
-  let padding = 4 - (offset `mod` 4)
+  let padding = (4 - (offset `mod` 4)) `mod` 4
   writeBytes . BS.pack . replicate padding $ 0
   offset' <- getOffset
   let firstOffset = offset' + 4 * (2 + 2 * numBranches)
