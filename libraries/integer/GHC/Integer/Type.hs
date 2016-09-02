@@ -359,7 +359,7 @@ gcdInteger a (S# INT_MINBOUND) = gcdInteger a minIntAsBig
 gcdInteger (S# a) (S# b) = S# (gcdInt a b)
 gcdInteger ia@(S# a)  ib@(J# o#)
  =      if isTrue# (a  ==# 0#) then absInteger ib
-   else if isTrue# (o# `equalsInteger#` (zeroInteger# void#)) then absInteger ia
+   else if isTrue# (bool2Int# (o# `equalsInteger#` (zeroInteger# void#))) then absInteger ia
    else                             S# (gcdIntegerInt# absO absA)
        where !absA = if isTrue# (a <# 0#) then negateInt# a  else a
              !absO = absInteger# o#

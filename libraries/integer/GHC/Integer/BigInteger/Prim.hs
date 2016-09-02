@@ -107,7 +107,7 @@ instance Class BigInteger where
 -- NOTE: We need to do this in order to bypass the back that you can't have top level
 -- unboxed value bindings.
 foreign import java unsafe "@static @field java.math.BigInteger.ZERO" zeroInteger# :: Void# -> Integer#
-foreign import java unsafe "java.math.BigInteger.equals" equalsInteger# :: Integer# -> Integer# -> Int#
+foreign import java unsafe "java.math.BigInteger.equals" equalsInteger# :: Integer# -> Integer# -> JBool#
 foreign import java unsafe "java.math.BigInteger.abs" absInteger# :: Integer# -> Integer#
 foreign import java unsafe "java.math.BigInteger.bitLength" bitsInteger# :: Integer# -> Int#
 foreign import java unsafe "java.math.BigInteger.signum" signumInteger# :: Integer# -> Int#
