@@ -93,11 +93,11 @@ mkReturnEntry cgLocs' = loadVals mempty cgLocs' 1 1 1 1 1 1
   where loadVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
-            N -> loadRec (context i) r (i + 1) l f d o
+            N -> loadRec (context i <> gconv jint ft) r (i + 1) l f d o
             L -> loadRec (context l) r i (l + 1) f d o
             F -> loadRec (context f) r i l (f + 1) d o
             D -> loadRec (context d) r i l f (d + 1) o
-            O -> loadRec (context o) r i l f d (o + 1)
+            O -> loadRec (context o <> gconv jobject ft) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
                 argRep = locArgRep cgLoc
