@@ -31,6 +31,7 @@ module GHCVM.CodeGen.Monad
    addBinding,
    addBindings,
    setBindings,
+   printBindings,
    defineMethod,
    defineMethods,
    defineField,
@@ -234,6 +235,11 @@ getCgIdInfo id = do
       else return . mkCgIdInfo dflags id $ mkLFImported id
       -- TODO: Change this back.
       -- crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
+
+printBindings :: CodeGen ()
+printBindings = do
+  bindings <- getBindings
+  debugDoc $ str "printBindings" <+> ppr bindings
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do

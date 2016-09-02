@@ -108,7 +108,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
         genCode dflags lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody True id lfInfo
-                            (nonVoidIds args) (length args) body []
+                            (nonVoidIds args) (length args) body [] False
 
           let ft = obj cgClassName
           -- NOTE: Don't make thunks final so that they can be

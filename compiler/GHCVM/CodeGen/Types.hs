@@ -17,6 +17,7 @@ module GHCVM.CodeGen.Types
    locArgRep,
    mkRepLocDirect,
    mkLocDirect,
+   mkLocLocal,
    getNonVoidFts,
    enterMethod,
    evaluateMethod,
@@ -57,7 +58,6 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Monoid ((<>))
 
--- TODO: Select appropriate fields
 type SelfLoopInfo = (Id, Label, [CgLoc])
 
 data Sequel
@@ -79,6 +79,9 @@ instance Outputable CgLoc where
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
 mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
+
+mkLocLocal :: Bool -> FieldType -> Int -> CgLoc
+mkLocLocal isClosure ft int = LocLocal isClosure ft int
 
 mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
@@ -105,18 +108,6 @@ storeLoc (LocLocal _ ft n) code = code <> gstore ft n
 
 storeDefault :: CgLoc -> Code
 storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
-  -- where defVal = case locFt cgLoc of
-  --         BaseType prim -> case prim of
-  --           JBool   -> intDef jbool
-  --           JChar   -> intDef jchar
-  --           JFloat  -> fconst 0.0
-  --           JDouble -> dconst 0.0
-  --           JByte   -> intDef jbyte
-  --           JShort  -> intDef jshort
-  --           JInt    -> intDef jint
-  --           JLong   -> lconst 0
-  --         _ -> aconst_null
-  --       intDef ft = iconst ft 0
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
@@ -268,6 +259,9 @@ lfStaticThunk _ = False
 
 newtype NonVoid a = NonVoid a
   deriving (Eq, Show)
+
+instance Outputable a => Outputable (NonVoid a) where
+  ppr (NonVoid x) = ppr x
 
 -- Use with care; if used inappropriately, it could break invariants.
 unsafeStripNV :: NonVoid a -> a

@@ -36,13 +36,21 @@ closureCodeBody
   -> Int                   -- arity, including void args
   -> StgExpr               -- body
   -> [NonVoid Id]                  -- the closure's free vars
+  -> Bool
   -> CodeGen [FieldType]
-closureCodeBody topLevel id lfInfo args arity body fvs = do
+closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV = do
   dflags <- getDynFlags
   debug $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
-  (fvLocs, initCodes) <- generateFVs fvs
   thisClass <- getClass
+  (fvLocs', initCodes) <- generateFVs fvs
+  let fvLocs = if binderIsFV
+               then (NonVoid id, mkLocLocal True thisFt 0) : fvLocs'
+               else fvLocs'
+      thisFt = obj thisClass
+      (fts, _) = unzip initCodes
+      codes = flip map (indexList initCodes) $ \(i, (ft, code)) ->
+                gload thisFt 0 <> gload ft i <> code
   if arity == 0 then
     thunkCode lfInfo fvLocs body
   else do
@@ -63,16 +71,8 @@ closureCodeBody topLevel id lfInfo args arity body fvs = do
         mapM_ bindFV fvLocs
         cgExpr body
     return ()
-  -- Generate constructor
-  let thisFt = obj thisClass
-  let (fts, _) = unzip initCodes
-  let codes = flip concatMap (indexList initCodes) $ \(i, (ft, code)) ->
-        [
-          gload thisFt 0,
-          gload ft i,
-          code
-        ]
   superClass <- getSuperClass
+  -- Generate constructor
   defineMethod . mkMethodDef thisClass [Public] "<init>" fts void $ fold
     [
        gload thisFt 0,
@@ -136,7 +136,8 @@ cgBind (StgRec pairs) = do
 cgRhs :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen Code)
 cgRhs id (StgRhsCon _ con args) = buildDynCon id con args
 cgRhs name (StgRhsClosure _ binderInfo fvs updateFlag _ args body)
-  = mkRhsClosure name binderInfo (nonVoidIds fvs) updateFlag args body
+  = mkRhsClosure name binderInfo nonVoidFvs updateFlag args body
+  where nonVoidFvs = nonVoidIds fvs
 
 mkRhsClosure
   :: Id
@@ -175,9 +176,8 @@ mkRhsClosure binder _ fvs updateFlag args body = do
   where genCode lfInfo cgLoc = do
           (fields, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody False binder lfInfo
-                            (nonVoidIds args) (length args) body reducedFVs
+                            (nonVoidIds args) (length args) body reducedFVs binderIsFV
 
-          -- TODO: Check if this is correct
           loads <- forM reducedFVs $ \(NonVoid id) -> do
             idInfo <- getCgIdInfo id
             return $ idInfoLoadCode idInfo
