@@ -149,8 +149,10 @@ toStackMapFrames (StackMapTable smt)
           where smf = generateStackMapFrame cf' cf
 
 generateStackMapFrame :: CtrlFlow -> CtrlFlow -> StackMapFrame
-generateStackMapFrame uncf1@(CtrlFlow unstack1 unlocals1)
-                      uncf2@(CtrlFlow unstack2 unlocals2)
+generateStackMapFrame cf1@(CtrlFlow stack1 locals1)
+                      cf2@(CtrlFlow stack2 locals2)
+-- generateStackMapFrame uncf1@(CtrlFlow unstack1 unlocals1)
+--                       uncf2@(CtrlFlow unstack2 unlocals2)
   | sameLocals && sz < 2
   = case sz of
       0 -> SameFrame
@@ -165,8 +167,9 @@ generateStackMapFrame uncf1@(CtrlFlow unstack1 unlocals1)
       else fullFrame
     else fullFrame
   where
-        cf1@(CtrlFlow stack1 locals1) = CtrlFlow unstack1 (normaliseLocals unlocals1)
-        cf2@(CtrlFlow stack2 locals2) = CtrlFlow unstack2 (normaliseLocals unlocals2)
+        -- TODO: Remove normalization?
+        -- cf1@(CtrlFlow stack1 locals1) = CtrlFlow unstack1 unlocals1--(normaliseLocals unlocals1)
+        -- cf2@(CtrlFlow stack2 locals2) = CtrlFlow unstack2 unlocals2--(normaliseLocals unlocals2)
         (clocals2, cstack2) = compressCtrlFlow cf2
         (clocals1, _) = compressCtrlFlow cf1
         fullFrame = FullFrame clocals2 cstack2
