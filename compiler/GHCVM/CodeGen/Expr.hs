@@ -40,6 +40,7 @@ cgExpr (StgOpApp op args ty) = debugDoc (str "StgOpApp" <+> ppr args <+> ppr ty)
                                cgOpApp op args ty
 cgExpr (StgConApp con args) = debugDoc (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
+-- TODO: Deal with ticks
 cgExpr (StgTick t e) = cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
@@ -212,10 +213,21 @@ cgCase (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) binder altType alts
 cgCase scrut binder altType alts = do
   altLocs <- mapM newIdLoc retBinders
   -- Take into account uses for unboxed tuples
+  -- NOTE: For non-optimized code, a case-of-case expression
+  --       will yield bytecode errors, since we need to initialize
+  --       the binder of the result of evaluation, hence the extra
+  --       check. Currently, we only don't deal with unboxed tuples
+  --       since it doesn't seem to occur in practice. Revisit if so.
+  when (isCaseOfCase && numBinders == 1) $ do
+    emit $ storeDefault (head altLocs)
   withSequel (AssignTo altLocs) $ cgExpr scrut
   bindArgs $ zip retBinders altLocs
   cgAlts (NonVoid binder) altType alts
   where retBinders = chooseReturnBinders binder altType alts
+        isCaseOfCase = case snd (stripStgTicksTop (const True) scrut) of
+              StgCase _ _ _ _ _ _ _ -> True
+              _ -> False
+        numBinders = length retBinders
 
 chooseReturnBinders :: Id -> AltType -> [StgAlt] -> [NonVoid Id]
 chooseReturnBinders binder (PrimAlt _) _ = nonVoidIds [binder]
