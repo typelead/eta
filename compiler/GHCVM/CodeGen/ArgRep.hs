@@ -118,7 +118,7 @@ repFieldTypes = mapMaybe repFieldType_maybe
 contextLoad :: FieldType -> ArgRep -> Int -> Code
 contextLoad ft argRep n =
      loadContext
-  <> iconst ft (fromIntegral n)
+  <> iconst jint (fromIntegral n)
   <> loadMethod
   where loadMethod = case argRep of
           P -> loadR
@@ -132,7 +132,7 @@ contextLoad ft argRep n =
 contextStore :: FieldType -> ArgRep -> Code -> Int -> Code
 contextStore ft argRep storeCode n =
      loadContext
-  <> iconst ft (fromIntegral n)
+  <> iconst jint (fromIntegral n)
   <> storeCode
   <> storeMethod
   where storeMethod = case argRep of

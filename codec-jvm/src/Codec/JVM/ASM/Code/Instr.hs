@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, UnboxedTuples, RecordWildCards, MultiParamTypeClasses, FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, UnboxedTuples, RecordWildCards, MultiParamTypeClasses, FlexibleContexts, NamedFieldPuns #-}
 module Codec.JVM.ASM.Code.Instr where
 
 import Control.Monad.State
@@ -153,7 +153,10 @@ op' :: Opcode -> InstrM ()
 op' = writeBytes . BS.singleton . opcode
 
 ctrlFlow' :: (CtrlFlow -> CtrlFlow) -> InstrM ()
-ctrlFlow' f = modify' $ \s@InstrState { isCtrlFlow = cf }  -> s { isCtrlFlow = f cf }
+ctrlFlow' f = --do
+  modify' $ \s@InstrState { isCtrlFlow = cf }  -> s { isCtrlFlow = f cf }
+  -- InstrState { isOffset, isCtrlFlow } <- get
+  -- traceShow (isOffset, isCtrlFlow) $ return ()
 
 ctrlFlow :: (CtrlFlow -> CtrlFlow) -> Instr
 ctrlFlow = Instr . ctrlFlow'
@@ -167,7 +170,7 @@ putCtrlFlow :: CtrlFlow -> Instr
 putCtrlFlow = Instr . putCtrlFlow'
 
 putCtrlFlow' :: CtrlFlow -> InstrM ()
-putCtrlFlow' cf = modify' $ \s -> s { isCtrlFlow = cf }
+putCtrlFlow' = ctrlFlow' . const
 
 incOffset :: Int -> Instr
 incOffset = Instr . incOffset'

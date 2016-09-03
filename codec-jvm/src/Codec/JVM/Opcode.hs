@@ -3,6 +3,7 @@ module Codec.JVM.Opcode where
 import Data.Word (Word8)
 
 newtype Opcode = Opcode Int
+  deriving (Eq, Show)
 
 opcode :: Opcode -> Word8
 opcode (Opcode i) = fromIntegral i
