@@ -199,13 +199,14 @@ mkRhsClosure binder _ fvs updateFlag args body = do
 
 cgRhsStdThunk :: Id -> LambdaFormInfo -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
 cgRhsStdThunk binder lfInfo payload = do
-  (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
+  let (ft, genThunk) = genStdThunk lfInfo
+  (idInfo, cgLoc) <- rhsGenIdInfo binder lfInfo ft
   debugDoc $ str "cgRhsStdThunk:" <+> ppr idInfo <+> ppr cgLoc <+> ppr binder <+> ppr payload
-  return (idInfo, genCode cgLoc)
-  where genCode cgLoc = do
+  return (idInfo, genCode cgLoc genThunk)
+  where genCode cgLoc genThunk = do
           loads <- mapM (getArgLoadCode . NonVoid) payload
           -- let f (StgVarArg v) = v
           -- locs  <- mapM (getCgLoc . NonVoid . f) payload
           -- debugDoc $ str "cgRhsStdThunk:" <+> ppr locs
-          let thunkInitCode = genStdThunk loads lfInfo
+          let thunkInitCode = genThunk loads
           return $ mkRhsInit cgLoc thunkInitCode
