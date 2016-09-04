@@ -79,6 +79,7 @@ rhsIdInfo id lfInfo = do
   let qualifiedClass = qualifiedName modClass (idNameText dflags id)
   rhsGenIdInfo id lfInfo (obj qualifiedClass)
 
+-- TODO: getJavaInfo generalize to unify rhsIdInfo and rhsConIdInfo
 rhsConIdInfo :: Id -> LambdaFormInfo -> CodeGen (CgIdInfo, CgLoc)
 rhsConIdInfo id lfInfo@(LFCon dataCon) = do
   dflags <- getDynFlags

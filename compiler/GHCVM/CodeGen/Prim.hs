@@ -730,4 +730,4 @@ lONG_MIN_VALUE = lconst 0x8000000000000000
 unsignedLongCmp :: (Code -> Code -> Code) -> [Code] -> Code
 unsignedLongCmp ifop args
   = typedCmp jlong ifop $ map addMin args
-  where addMin x = x <> lONG_MIN_VALUE <> iadd
+  where addMin x = x <> lONG_MIN_VALUE <> ladd
