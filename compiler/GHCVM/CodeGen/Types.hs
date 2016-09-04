@@ -162,7 +162,7 @@ mkStaticLoc dflags id lfInfo = LocStatic closureType modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
-        clName = nameText dflags name
+        clName = nameText dflags True name
         modClass = moduleJavaClass mod
         -- clClass
         --   | Just c <- maybeDataConClass lfInfo = c

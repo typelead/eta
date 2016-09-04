@@ -45,22 +45,29 @@ closure :: Text -> Text
 closure = flip append "_closure"
 
 nameTypeText :: DynFlags -> Name -> Text
-nameTypeText dflags = flip snoc 'T' . nameText dflags
+nameTypeText dflags = flip snoc 'T' . nameText dflags False
 
 nameTypeTable :: DynFlags -> Name -> Text
-nameTypeTable dflags = flip append "_table" . nameText dflags
+nameTypeTable dflags = flip append "_table" . nameText dflags False
 
 nameDataText :: DynFlags -> Name -> Text
-nameDataText dflags = flip snoc 'D' . nameText dflags
+nameDataText dflags = flip snoc 'D' . nameText dflags False
 
-nameText :: DynFlags -> Name -> Text
-nameText dflags = T.pack
-                . zEncodeString
-                . showSDoc dflags
-                . pprNameCI
+nameText :: DynFlags -> Bool -> Name -> Text
+nameText dflags caseEncode = T.pack
+                           . maybeEncodeCase
+                           . zEncodeString
+                           . showSDoc dflags
+                           . pprNameCI
+  where maybeEncodeCase = if caseEncode then encodeCase else id
+
+encodeCase :: String -> String
+encodeCase str@(c:rest)
+  | isUpper c = 'D':str
+  | otherwise = str
 
 idNameText :: DynFlags -> Id -> Text
-idNameText dflags = nameText dflags . idName
+idNameText dflags = nameText dflags True . idName
 
 idClassText :: Id -> Text
 idClassText id =
@@ -116,7 +123,7 @@ upperFirst str = case uncons str of
   Just (c, str') -> cons (C.toUpper c) str'
 
 modClosure :: DynFlags -> Module -> Name -> (Text, Text)
-modClosure dflags mod name = (moduleJavaClass mod, nameText dflags name)
+modClosure dflags mod name = (moduleJavaClass mod, nameText dflags True name)
 
 moduleClass :: Name -> Text -> Text
 moduleClass name = qualifiedName moduleClass

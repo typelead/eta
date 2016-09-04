@@ -142,7 +142,7 @@ mkRtsMainClass dflags mainClass
       gstore rtsConfigType 1,
       gload (jarray jstring) 0,
       -- TODO: Find main module
-      getstatic $ mkFieldRef (moduleJavaClass mainMod) "ZCmain_closure"
+      getstatic $ mkFieldRef (moduleJavaClass mainMod) "DZCmain_closure"
                              closureType,
       gload rtsConfigType 1,
       invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
