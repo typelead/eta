@@ -8,7 +8,6 @@ import GHCVM.BasicTypes.Module
 import GHCVM.BasicTypes.DataCon
 import GHCVM.StgSyn.StgSyn
 import GHCVM.Prelude.PrelInfo (maybeCharLikeCon, maybeIntLikeCon)
-import GHCVM.Utils.Outputable
 import GHCVM.Main.Constants
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad
@@ -17,10 +16,14 @@ import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
-import Data.Foldable (fold)
+import GHCVM.Util
+
+import Control.Monad(foldM)
 import Codec.JVM
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, mapMaybe)
 import Data.Char (ord)
+import Data.Monoid ((<>))
+import Data.Foldable (fold)
 
 cgTopRhsCon :: DynFlags
             -> Id               -- Name of thing bound to this RHS
@@ -39,14 +42,12 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
         genCode = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
           defineField $ mkFieldDef [Public, Static] qClName closureType
-          addInitStep $ fold
-            [
-              new dataFt,
-              dup dataFt,
-              fold loads,
-              invokespecial $ mkMethodRef dataClass "<init>" fields void,
-              putstatic $ mkFieldRef modClass qClName closureType
-            ]
+          addInitStep $
+              new dataFt
+           <> dup dataFt
+           <> fold loads
+           <> invokespecial (mkMethodRef dataClass "<init>" fields void)
+           <> putstatic (mkFieldRef modClass qClName closureType)
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
 buildDynCon binder con [] = do
@@ -76,16 +77,33 @@ buildDynCon binder con args = do
   return (idInfo, genCode cgLoc)
   where lfInfo = mkConLFInfo con
         maybeFields = map repFieldType_maybe $ dataConRepArgTys con
+        nvFtArgs = mapMaybe (\(mft, arg) ->
+                               case mft of
+                                 Just ft -> Just (ft, arg)
+                                 Nothing -> Nothing)
+                   $ zip maybeFields args
+        indexFtArgs = indexList nvFtArgs
         fields = catMaybes maybeFields
+        foldLoads (is, code) (i, (ft, arg))
+          | StgVarArg id <- arg
+          , id == binder
+          = return (i:is, code <> aconst_null closureType)
+          | otherwise = do
+              loadCode <- getArgLoadCode (NonVoid arg)
+              return (is, code <> loadCode)
+
         genCode cgLoc = do
-          loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
-          let conCode = fold
-                [
-                  new dataFt,
-                  dup dataFt,
-                  fold loads,
-                  invokespecial $ mkMethodRef dataClass "<init>" fields void
-                ]
+          (is, loadsCode) <- foldM foldLoads ([], mempty) indexFtArgs
+          let conCode =
+                  new dataFt
+               <> dup dataFt
+               <> loadsCode
+               <> invokespecial (mkMethodRef dataClass "<init>" fields void)
+               <> fold (map (\i ->
+                                 dup dataFt
+                              <> dup dataFt
+                              <> putfield (mkFieldRef dataClass (constrField i) closureType))
+                         is)
           return $ mkRhsInit cgLoc conCode
           where dataFt = locFt cgLoc
                 dataClass = getFtClass dataFt
