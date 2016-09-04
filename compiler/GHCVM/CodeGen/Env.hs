@@ -77,7 +77,17 @@ rhsIdInfo id lfInfo = do
   dflags <- getDynFlags
   modClass <- getModClass
   let qualifiedClass = qualifiedName modClass (idNameText dflags id)
-  cgLoc <- newTemp True (obj qualifiedClass)
+  rhsGenIdInfo id lfInfo (obj qualifiedClass)
+
+rhsConIdInfo :: Id -> LambdaFormInfo -> CodeGen (CgIdInfo, CgLoc)
+rhsConIdInfo id lfInfo@(LFCon dataCon) = do
+  dflags <- getDynFlags
+  let dataClass = dataConClass dflags dataCon
+  rhsGenIdInfo id lfInfo (obj dataClass)
+
+rhsGenIdInfo :: Id -> LambdaFormInfo -> FieldType -> CodeGen (CgIdInfo, CgLoc)
+rhsGenIdInfo id lfInfo ft = do
+  cgLoc <- newTemp True ft
   return (mkCgIdInfoWithLoc id lfInfo cgLoc, cgLoc)
 
 mkRhsInit :: CgLoc -> Code -> Code

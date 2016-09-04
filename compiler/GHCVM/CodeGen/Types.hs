@@ -141,10 +141,8 @@ getJavaInfo dflags CgIdInfo { cgLocation, cgLambdaForm }
                             $ maybeDataConClass dflags cgLambdaForm
 
 maybeDataConClass :: DynFlags -> LambdaFormInfo -> Maybe Text
-maybeDataConClass dflags lfInfo =
-  case lfInfo of
-    LFCon dataCon -> Just $ dataConClass dflags dataCon
-    _ -> Nothing
+maybeDataConClass dflags (LFCon dataCon) = Just $ dataConClass dflags dataCon
+maybeDataConClass dflags _ = Nothing
 
 mkCgIdInfo :: DynFlags -> Id -> LambdaFormInfo -> CgIdInfo
 mkCgIdInfo dflags id lfInfo =

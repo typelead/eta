@@ -72,13 +72,12 @@ buildDynCon binder con [] = do
 --       unimplemented "buildDynCon: CHARLIKE"
 buildDynCon binder con args = do
   dflags <- getDynFlags
-  (idInfo, cgLoc) <- rhsIdInfo binder lfInfo
-  let (_, _, dataClass) = getJavaInfo dflags idInfo
-  return (idInfo, genCode cgLoc dataClass)
+  (idInfo, cgLoc) <- rhsConIdInfo binder lfInfo
+  return (idInfo, genCode cgLoc)
   where lfInfo = mkConLFInfo con
         maybeFields = map repFieldType_maybe $ dataConRepArgTys con
         fields = catMaybes maybeFields
-        genCode cgLoc dataClass = do
+        genCode cgLoc = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
           let conCode = fold
                 [
@@ -88,4 +87,5 @@ buildDynCon binder con args = do
                   invokespecial $ mkMethodRef dataClass "<init>" fields void
                 ]
           return $ mkRhsInit cgLoc conCode
-          where dataFt = obj dataClass
+          where dataFt = locFt cgLoc
+                dataClass = getFtClass dataFt

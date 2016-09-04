@@ -77,6 +77,10 @@ newtype FieldDesc = FieldDesc Text
 data FieldType = BaseType PrimType | ObjectType  IClassName | ArrayType FieldType
   deriving (Eq, Ord, Show)
 
+getFtClass :: FieldType -> Text
+getFtClass (ObjectType (IClassName t)) = t
+getFtClass _ = error $ "getFtClass: Not object type!"
+
 isCategory2 :: FieldType -> Bool
 isCategory2 (BaseType JLong)   = True
 isCategory2 (BaseType JDouble) = True
