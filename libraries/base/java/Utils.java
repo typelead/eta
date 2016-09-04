@@ -30,7 +30,7 @@ public class Utils {
                   (1 << Character.CURRENCY_SYMBOL)           |
                   (1 << Character.INITIAL_QUOTE_PUNCTUATION) |
                   (1 << Character.LETTER_NUMBER)             |
-                  (1 << Character.LETTER_NUMBER)) >> getType(codePoint)) & 1)
+                  (1 << Character.LETTER_NUMBER)) >> Character.getType(c)) & 1)
             != 0;
     }
 
