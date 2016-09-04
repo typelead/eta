@@ -12,6 +12,7 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
+   RecIndexes,
    storeDefault,
    getTagMethod,
    locArgRep,
@@ -319,3 +320,5 @@ getTagMethod code
   = code
  <> gconv closureType conType
  <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
+
+type RecIndexes = [(Int, Id)]

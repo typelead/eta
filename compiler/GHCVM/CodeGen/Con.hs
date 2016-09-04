@@ -49,11 +49,12 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
            <> invokespecial (mkMethodRef dataClass "<init>" fields void)
            <> putstatic (mkFieldRef modClass qClName closureType)
 
-buildDynCon :: Id -> DataCon -> [StgArg] -> CodeGen (CgIdInfo, CodeGen Code)
-buildDynCon binder con [] = do
+buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo
+                                                            , CodeGen (Code, RecIndexes) )
+buildDynCon binder con [] recIds = do
   dflags <- getDynFlags
   return ( mkCgIdInfo dflags binder (mkConLFInfo con)
-         , return mempty )
+         , return (mempty, []) )
 -- buildDynCon binder con [arg]
 --   | maybeIntLikeCon con
 --   , StgLitArg (MachInt val) <- arg
@@ -71,7 +72,7 @@ buildDynCon binder con [] = do
 --   = do
 --       -- TODO: Generate offset into charlike array
 --       unimplemented "buildDynCon: CHARLIKE"
-buildDynCon binder con args = do
+buildDynCon binder con args recIds = do
   dflags <- getDynFlags
   (idInfo, cgLoc) <- rhsConIdInfo binder lfInfo
   return (idInfo, genCode cgLoc)
@@ -84,26 +85,27 @@ buildDynCon binder con args = do
                    $ zip maybeFields args
         indexFtArgs = indexList nvFtArgs
         fields = catMaybes maybeFields
+        -- TODO: Generalize to accommodate StdThunks as well
         foldLoads (is, code) (i, (ft, arg))
           | StgVarArg id <- arg
-          , id == binder
-          = return (i:is, code <> aconst_null closureType)
+          , id `elem` recIds
+          = return ((i, id):is, code <> aconst_null closureType)
           | otherwise = do
               loadCode <- getArgLoadCode (NonVoid arg)
               return (is, code <> loadCode)
 
         genCode cgLoc = do
-          (is, loadsCode) <- foldM foldLoads ([], mempty) indexFtArgs
+          (recIndexes, loadsCode) <- foldM foldLoads ([], mempty) indexFtArgs
           let conCode =
                   new dataFt
                <> dup dataFt
                <> loadsCode
                <> invokespecial (mkMethodRef dataClass "<init>" fields void)
-               <> fold (map (\i ->
-                                 dup dataFt
-                              <> dup dataFt
-                              <> putfield (mkFieldRef dataClass (constrField i) closureType))
-                         is)
-          return $ mkRhsInit cgLoc conCode
+               -- <> fold (map (\i ->
+               --                   dup dataFt
+               --                <> dup dataFt
+               --                <> putfield (mkFieldRef dataClass (constrField i) closureType))
+               --           is)
+          return (mkRhsInit cgLoc conCode, recIndexes)
           where dataFt = locFt cgLoc
                 dataClass = getFtClass dataFt

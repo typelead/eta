@@ -191,7 +191,7 @@ getDataConTag = dataConTag
 mkLFLetNoEscape :: LambdaFormInfo
 mkLFLetNoEscape = LFLetNoEscape
 
-genStdThunk :: LambdaFormInfo -> (FieldType, [Code] -> Code)
+genStdThunk :: LambdaFormInfo -> (FieldType, Code -> Code)
 genStdThunk (LFThunk _ _ updatable stdForm _)
   | SelectorThunk pos rep <- stdForm
   = let selClass = selectThunkName updatable $ T.pack (show rep)
@@ -201,7 +201,7 @@ genStdThunk (LFThunk _ _ updatable stdForm _)
            new ft
         <> dup ft
         <> iconst jint (fromIntegral pos)
-        <> fold loads
+        <> loads
         <> invokespecial (mkMethodRef selClass "<init>" [jint, closureType] void) )
   | ApThunk n <- stdForm
   = let ft = obj apUpdClass
@@ -211,6 +211,6 @@ genStdThunk (LFThunk _ _ updatable stdForm _)
        , \loads ->
            new ft
         <> dup ft
-        <> fold loads
+        <> loads
         <> invokespecial (mkMethodRef apUpdClass "<init>" fields void) )
   | otherwise = panic "genStdThunk: Thunk is not in standard form!"
