@@ -293,7 +293,10 @@ nopOp JBool2IntOp  = True
 nopOp _            = False
 
 normalOp :: Code -> [Code] -> Code
-normalOp code = (<> code) . fold
+normalOp code args = fold args <> code
+
+castThisOp :: Code -> Code -> [Code] -> Code
+castThisOp cast code (this:args) = (this <> cast) <> fold args <> code
 
 idOp :: [Code] -> Code
 idOp = normalOp mempty
@@ -301,23 +304,26 @@ idOp = normalOp mempty
 intCompOp :: (Code -> Code -> Code) -> [Code] -> Code
 intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
+castStgArray :: Code
+castStgArray = gconv closureType stgArrayType
+
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 
 -- Array# & MutableArray# ops
 simpleOp UnsafeFreezeArrayOp  = Just idOp
 simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
 simpleOp SizeofArrayOp = Just $
-  normalOp $ invokevirtual $ mkMethodRef stgArray "size" [] (ret jint)
+  castThisOp castStgArray $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
 simpleOp SizeofMutableArrayOp = Just $
-  normalOp $ invokevirtual $ mkMethodRef stgArray "size" [] (ret jint)
+  castThisOp castStgArray $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
 simpleOp WriteArrayOp = Just $
-  normalOp $ invokevirtual
+  castThisOp castStgArray $ invokevirtual
     $ mkMethodRef stgArray "set" [jint, closureType] void
 simpleOp ReadArrayOp = Just $
-  normalOp $ invokevirtual
+  castThisOp castStgArray $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
 simpleOp IndexArrayOp = Just $
-  normalOp $ invokevirtual
+  castThisOp castStgArray $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
 -- ByteArray# & MutableByteArray# ops
 simpleOp ByteArrayContents_Char = Just $ normalOp $ byteBufferBuf
