@@ -261,7 +261,7 @@ emitPrimOp IntSubCOp [arg1, arg2] = do
            ]
 
 emitPrimOp IntMulMayOfloOp [arg1, arg2] = do
-  tmp <- newTemp False jint
+  tmp <- newTemp False jlong
   emit $ storeLoc tmp ( (arg1 <> gconv jint jlong)
                      <> (arg2 <> gconv jint jlong)
                      <> lmul )
