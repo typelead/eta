@@ -18,8 +18,9 @@ cgLit :: Literal -> (FieldType, Code)
 cgLit (MachChar c)          = (jint, iconst jint . fromIntegral $ ord c)
 cgLit (MachInt i)           = (jint, iconst jint $ fromIntegral i)
 cgLit (MachWord i)          = (jint, iconst jint $ fromIntegral i)
-cgLit (MachInt64 i)         = (jlong, iconst jlong $ fromIntegral i)
-cgLit (MachWord64 i)        = (jlong, iconst jlong $ fromIntegral i)
+cgLit (MachInt64 i)         = (jlong, lconst $ fromIntegral i)
+-- TODO: Verify that fromIntegral converts well
+cgLit (MachWord64 i)        = (jlong, lconst $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
