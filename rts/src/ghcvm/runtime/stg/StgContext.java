@@ -6,11 +6,16 @@ public class StgContext {
     public Capability myCapability;
     public ReturnCode ret;
 
+    public void pushFrame(StackFrame frame) {
+        currentTSO.spPush(frame);
+    }
+
     public void merge(AbstractArgumentStack argStack) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder.from(argStack)
             .setSimple(false)
             .build();
+        // TODO: Need to synchronize this?
         this.argStack = (ArgumentStack) stack;
     }
 

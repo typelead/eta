@@ -53,8 +53,7 @@ public class StgThunk extends StgClosure {
     @Override
     public final void apply(StgContext context, Void v) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApV());
+            context.pushFrame(new ApV());
             enter(context);
         } else {
             indirectee.apply(context, v);
@@ -64,8 +63,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, int n) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApN(n));
+            context.pushFrame(new ApN(n));
             enter(context);
         } else {
             indirectee.apply(context, n);
@@ -75,8 +73,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, long l) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApL(l));
+            context.pushFrame(new ApL(l));
             enter(context);
         } else {
             indirectee.apply(context, l);
@@ -86,8 +83,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, float f) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApF(f));
+            context.pushFrame(new ApF(f));
             enter(context);
         } else {
             indirectee.apply(context, f);
@@ -97,8 +93,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, double d) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApD(d));
+            context.pushFrame(new ApD(d));
             enter(context);
         } else {
             indirectee.apply(context, d);
@@ -108,8 +103,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, Object o) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApO(o));
+            context.pushFrame(new ApO(o));
             enter(context);
         } else {
             indirectee.apply(context, o);
@@ -119,8 +113,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApP(p));
+            context.pushFrame(new ApP(p));
             enter(context);
         } else {
             indirectee.apply(context, p);
@@ -130,8 +123,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p, Void v) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPV(p));
+            context.pushFrame(new ApPV(p));
             enter(context);
         } else {
             indirectee.apply(context, p, v);
@@ -141,8 +133,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p, Void v, Object o) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPVO(p, o));
+            context.pushFrame(new ApPVO(p, o));
             enter(context);
         } else {
             indirectee.apply(context, p, v, o);
@@ -152,8 +143,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPP(p1, p2));
+            context.pushFrame(new ApPP(p1, p2));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2);
@@ -163,8 +153,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPV(p1, p2));
+            context.pushFrame(new ApPPV(p1, p2));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, v);
@@ -174,8 +163,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v, Object o) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPVO(p1, p2, o));
+            context.pushFrame(new ApPPVO(p1, p2, o));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, v, o);
@@ -185,8 +173,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPP(p1, p2, p3));
+            context.pushFrame(new ApPPP(p1, p2, p3));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, p3);
@@ -196,8 +183,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, Void v) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPPV(p1, p2, p3));
+            context.pushFrame(new ApPPPV(p1, p2, p3));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, p3, v);
@@ -207,8 +193,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, Void v, Object o) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPPVO(p1, p2, p3, o));
+            context.pushFrame(new ApPPPVO(p1, p2, p3, o));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, p3, v, o);
@@ -218,8 +203,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPPP(p1, p2, p3, p4));
+            context.pushFrame(new ApPPPP(p1, p2, p3, p4));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, p3, p4);
@@ -229,8 +213,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPPPP(p1, p2, p3, p4, p5));
+            context.pushFrame(new ApPPPPP(p1, p2, p3, p4, p5));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, p3, p4, p5);
@@ -240,8 +223,7 @@ public class StgThunk extends StgClosure {
     @Override
     public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
         if (indirectee == null) {
-            StgTSO tso = context.currentTSO;
-            tso.spPush(new ApPPPPPP(p1, p2, p3, p4, p5, p6));
+            context.pushFrame(new ApPPPPPP(p1, p2, p3, p4, p5, p6));
             enter(context);
         } else {
             indirectee.apply(context, p1, p2, p3, p4, p5, p6);

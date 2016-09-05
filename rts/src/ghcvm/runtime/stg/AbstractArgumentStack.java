@@ -35,7 +35,7 @@ public abstract class AbstractArgumentStack {
     public boolean isSimple() { return false; }
 
     public void populate(AbstractArgumentStack.Builder builder) {
-        builder.closures = (ObjectArrayList) closures.clone();
+        if (closures != null) builder.closures = (ObjectArrayList) closures.clone();
     }
 
     public static class Builder {
@@ -53,12 +53,18 @@ public abstract class AbstractArgumentStack {
 
         public static Builder from(AbstractArgumentStack stack) {
             Builder builder = new Builder();
-            builder.setSimple(stack.isSimple());
-            stack.populate(builder);
+            if (stack != null) {
+                builder.setSimple(stack.isSimple());
+                stack.populate(builder);
+            } else {
+                builder.setSimple(true);
+            }
+            builder.init();
             return builder;
         }
 
         public Builder addC(StgClosure closure) {
+            if (closures == null) closures = new ObjectArrayList(1);
             closures.add(closure);
             return this;
         }
