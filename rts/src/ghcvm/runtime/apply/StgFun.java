@@ -112,7 +112,7 @@ public abstract class StgFun extends StgClosure {
     public void apply(StgContext context, StgClosure p) {
         int arity = getArity();
         if (arity == 1) {
-            context.R(2, p);
+            context.R(1, p);
             enter(context);
         } else {
             AbstractArgumentStack stack =
