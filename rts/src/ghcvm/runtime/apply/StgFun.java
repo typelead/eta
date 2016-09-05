@@ -36,4 +36,20 @@ public abstract class StgFun extends StgClosure {
             context.R(1, pap);
         }
     }
+
+    @Override
+    public void apply(StgContext context, StgClosure p1, StgClosure p2) {
+        int arity = getArity();
+        if (arity == 2) {
+            context.R(2, p1);
+            context.R(3, p2);
+            enter(context);
+        } else {
+            AbstractArgumentStack stack = new SimpleArgumentStack();
+            stack.R(1, p1);
+            stack.R(2, p2);
+            StgPAP pap = new StgPAP(arity - 2, this, stack);
+            context.R(1, pap);
+        }
+    }
 }
