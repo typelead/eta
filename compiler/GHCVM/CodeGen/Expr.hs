@@ -129,14 +129,6 @@ cgIdApp funId args = do
       emit $ multiAssign cgLocs codes
           <> goto label
 
-withContinuation :: CodeGen () -> CodeGen ()
-withContinuation call = do
-  call
-  sequel <- getSequel
-  case sequel of
-    AssignTo cgLocs -> emit $ mkReturnEntry cgLocs
-    _               -> return ()
-
 emitEnter :: CgLoc -> CodeGen ()
 emitEnter thunk = do
   sequel <- getSequel

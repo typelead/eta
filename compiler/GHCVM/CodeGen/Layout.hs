@@ -205,3 +205,11 @@ getUnboxedResultReps resType = [ rep
                                , let rep = typePrimRep ty
                                , not (isVoidRep rep) ]
   where UbxTupleRep tyArgs = repType resType
+
+withContinuation :: CodeGen () -> CodeGen ()
+withContinuation call = do
+  call
+  sequel <- getSequel
+  case sequel of
+    AssignTo cgLocs -> emit $ mkReturnEntry cgLocs
+    _               -> return ()

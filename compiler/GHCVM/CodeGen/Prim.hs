@@ -51,8 +51,10 @@ cgOpApp (StgPrimOp primOp) args resType = do
     case shouldInlinePrimOp dflags primOp argCodes of
       Left primOpLoc -> do
         args' <- getRepFtCodes args
-        emit $ mkCallExit True args'
-            <> mkRtsFunCall primOpLoc
+        withContinuation $ do
+          emit $ mkCallExit True args'
+              <> mkRtsFunCall primOpLoc
+
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
       Right codes'
@@ -78,16 +80,17 @@ cgOpApp (StgPrimOp primOp) args resType = do
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
-cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
-  argsFtCodes <- getNonVoidArgFtCodes args
-  let (argFts, callArgs) = unzip argsFtCodes
-  emit $ loadContext
-      <> fold callArgs
-      <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) void)
-  sequel <- getSequel
-  case sequel of
-    AssignTo targetLocs -> emit $ mkReturnEntry targetLocs
-    _ -> return ()
+cgOpApp (StgPrimCallOp (PrimCall label _)) args resType =
+  withContinuation $ do
+    argsFtCodes <- getNonVoidArgFtCodes args
+    let (argFts, callArgs) = unzip argsFtCodes
+    emit $ loadContext
+        <> fold callArgs
+        <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) void)
+  -- sequel <- getSequel
+  -- case sequel of
+  --   AssignTo targetLocs -> emit $ mkReturnEntry targetLocs
+  --   _ -> return ()
   where (clsName, methodName) = labelToMethod (unpackFS label)
 
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
