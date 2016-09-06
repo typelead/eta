@@ -32,7 +32,7 @@ public class StgContext {
             sp.previous();
             index--;
         }
-        if (sp.hasNext()) {
+        while (sp.hasNext()) {
             sp.next().enter(this);
         }
         return;
