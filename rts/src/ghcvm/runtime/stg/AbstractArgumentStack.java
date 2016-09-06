@@ -35,16 +35,16 @@ public abstract class AbstractArgumentStack {
     public boolean isSimple() { return false; }
 
     public void populate(AbstractArgumentStack.Builder builder) {
-        if (closures != null) builder.closures = (ObjectArrayList) closures.clone();
+        if (closures != null) builder.closures = closures.copy();
     }
 
     public static class Builder {
         public ObjectArrayList closures;
         public ObjectArrayList objects;
-        public AbstractIntList ints;
-        public AbstractLongList longs;
-        public AbstractFloatList floats;
-        public AbstractDoubleList doubles;
+        public IntArrayList ints;
+        public LongArrayList longs;
+        public FloatArrayList floats;
+        public DoubleArrayList doubles;
         public boolean simple = true;
 
         public void init() {
