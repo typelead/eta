@@ -135,9 +135,9 @@ emitEnter thunk = do
   case sequel of
     Return ->
       emit $ enterMethod thunk
-    AssignTo cgLocs ->
-      emit $ evaluateMethod thunk
-          <> mkReturnEntry cgLocs
+    AssignTo cgLocs -> do
+      wrapStackCheck . emit $ evaluateMethod thunk
+      emit $ mkReturnEntry cgLocs
 
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args

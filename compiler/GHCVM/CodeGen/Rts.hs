@@ -101,6 +101,13 @@ currentTSOField = getfield (mkFieldRef stgContext "currentTSO" tsoType)
 spPushMethod :: Code
 spPushMethod = invokevirtual (mkMethodRef stgTSO "spPush" [frameType] void)
 
+spTopMethod :: Code
+spTopMethod = invokevirtual (mkMethodRef stgContext "stackTopIndex" [] (ret jint))
+
+checkForStackFramesMethod :: Code
+checkForStackFramesMethod =
+  invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint] void)
+
 mkApFast :: Text -> Code
 mkApFast patText =
      getstatic (mkFieldRef (apply "Apply") fullPat rtsFunType)

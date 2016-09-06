@@ -1,5 +1,7 @@
 package ghcvm.runtime.stg;
 
+import java.util.ListIterator;
+
 public class StgContext {
     public ArgumentStack argStack = new ArgumentStack();
     public StgTSO currentTSO;
@@ -17,6 +19,23 @@ public class StgContext {
             .build();
         // TODO: Need to synchronize this?
         this.argStack = (ArgumentStack) stack;
+    }
+
+    public int stackTopIndex() {
+        return currentTSO.sp.previousIndex();
+    }
+
+    public void checkForStackFrames(int prevIndex) {
+        ListIterator<StackFrame> sp = currentTSO.sp;
+        int index = sp.previousIndex();
+        while (prevIndex < index) {
+            sp.previous();
+            index--;
+        }
+        if (sp.hasNext()) {
+            sp.next().enter(this);
+        }
+        return;
     }
 
     public StgClosure R(int index) {

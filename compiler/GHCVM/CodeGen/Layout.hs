@@ -208,8 +208,19 @@ getUnboxedResultReps resType = [ rep
 
 withContinuation :: CodeGen () -> CodeGen ()
 withContinuation call = do
-  call
   sequel <- getSequel
   case sequel of
-    AssignTo cgLocs -> emit $ mkReturnEntry cgLocs
-    _               -> return ()
+    AssignTo cgLocs -> do
+      wrapStackCheck call
+      emit $ mkReturnEntry cgLocs
+    _               -> do
+      call
+      return ()
+
+wrapStackCheck :: CodeGen () -> CodeGen ()
+wrapStackCheck call = do
+    -- TODO: Replace the local variable with an internal variable in context?
+    stackIndex <- newTemp False jint
+    emit $ storeLoc stackIndex (loadContext <> spTopMethod)
+    call
+    emit $ loadContext <> loadLoc stackIndex <> checkForStackFramesMethod
