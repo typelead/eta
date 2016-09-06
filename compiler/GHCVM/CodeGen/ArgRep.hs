@@ -90,7 +90,7 @@ primRepFieldType_maybe rep = Just $
     PtrRep              -> closureType
     IntRep              -> jint
     WordRep             -> jint
-    AddrRep             -> jstring -- TODO: When implementing ByteArray#,
+    AddrRep             -> byteBufferType
     Int64Rep            -> jlong
     Word64Rep           -> jlong
     FloatRep            -> jfloat
