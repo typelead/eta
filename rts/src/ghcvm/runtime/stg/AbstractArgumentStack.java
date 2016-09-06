@@ -51,6 +51,7 @@ public abstract class AbstractArgumentStack {
 
         public void init() {
             closures = new ObjectArrayList(1);
+            closures.add(null); // Takes care of R1
         }
 
         public static Builder from(AbstractArgumentStack stack) {
