@@ -21,7 +21,7 @@ public abstract class StackFrame extends StgClosure {
         do {
             /* If the stack has more frames, enter
                into them */
-            if (sp.hasNext()) {
+            while (sp.hasNext()) {
                 sp.next().enter(context);
             }
             int index = sp.previousIndex();
