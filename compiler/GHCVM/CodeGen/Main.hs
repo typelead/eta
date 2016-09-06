@@ -96,15 +96,19 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
           = do cgInfo <- getCgIdInfo f
                let loadCode = idInfoLoadCode cgInfo
                defineField $ mkFieldDef [Public, Static] qClName closureType
-               addInitStep $ fold
+               let field = mkFieldRef modClass qClName closureType
+               addInitStep (fold
                  [
                    new indStaticType,
                    dup indStaticType,
                    loadCode,
                    invokespecial $ mkMethodRef stgIndStatic "<init>"
                      [closureType] void,
-                   putstatic $ mkFieldRef modClass qClName closureType
+                   putstatic field
                  ]
+                 , field
+                 , []
+                 )
         genCode dflags lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody True id lfInfo
@@ -115,13 +119,17 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
           --       replaced by their values by the GC
           let flags = (if isThunk then [] else [Final]) ++ [Public, Static]
           defineField $ mkFieldDef flags qClName closureType
-          addInitStep $ fold
+          let field = mkFieldRef modClass qClName closureType
+          addInitStep (fold
             [
               new ft,
               dup ft,
               invokespecial $ mkMethodRef cgClassName "<init>" [] void,
-              putstatic $ mkFieldRef modClass qClName closureType
+              putstatic field
             ]
+            , field
+            , []
+            )
           return ()
 
 -- Simplifies the code if the mod is associated to the Id
@@ -170,13 +178,17 @@ cgEnumerationTyCon tyConCl tyCon = do
                     , let dataFt    = obj dataClass
                           dataClass = dataConClass dflags con ]
   defineField $ mkFieldDef [Public, Static, Final] fieldName arrayFt
-  addInitStep $ fold
+  let field = mkFieldRef thisClass fieldName arrayFt
+  addInitStep (fold
     [
       iconst jint $ fromIntegral familySize,
       new arrayFt,
       fold loadCodes,
-      putstatic $ mkFieldRef thisClass fieldName arrayFt
+      putstatic field
     ]
+    , field
+    , []
+    )
   where
         arrayFt = jarray elemFt
         elemFt = obj tyConCl
