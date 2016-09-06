@@ -310,6 +310,9 @@ intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 castStgArray :: Code
 castStgArray = gconv closureType stgArrayType
 
+castStgMutVar :: Code
+castStgMutVar = gconv closureType stgMutVarType
+
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 
 -- Array# & MutableArray# ops
@@ -581,7 +584,7 @@ simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
 simpleOp JByte2CharOp = Just $ normalOp preserveByte
 
 -- StgMutVar ops
-simpleOp ReadMutVarOp = Just $ normalOp mutVarValue
+simpleOp ReadMutVarOp = Just $ normalOp $ castStgMutVar <> mutVarValue
 simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
 simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 
