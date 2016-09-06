@@ -127,9 +127,9 @@ public class Rts {
                       config.rtsHsMain);
 
         RtsScheduler.initScheduler();
-        RtsScheduler.initTimer();
+        // RtsScheduler.initTimer();
         /* TODO: Ensure that the timer can start here */
-        RtsScheduler.startTimer();
+        // RtsScheduler.startTimer();
         if (RtsFlags.ModeFlags.threaded) {
             RtsIO.ioManagerStart();
         }
