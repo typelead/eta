@@ -33,6 +33,7 @@ module GHCVM.CodeGen.Types
    nonVoidIds,
    getJavaInfo,
    getNonVoids,
+   getLocField,
    isLFThunk,
    lfFieldType,
    lfStaticThunk)
@@ -300,6 +301,14 @@ getNonVoidFts :: [(Maybe FieldType, a)] -> [(FieldType, NonVoid a)]
 getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
                            Just ft -> Just (ft, NonVoid val)
                            Nothing -> Nothing)
+
+getLocField :: CgLoc -> Maybe FieldRef
+getLocField (LocStatic ft modClass clName) =
+  Just $ mkFieldRef modClass (closure clName) ft
+getLocField (LocField _ ft clClass fieldName) =
+  Just $ mkFieldRef clClass fieldName ft
+getLocField _ =
+  Nothing
 
 enterMethod :: CgLoc -> Code
 enterMethod cgLoc

@@ -41,13 +41,18 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
         typeFt = obj (tyConClass dflags (dataConTyCon dataCon))
         genCode = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
+          deps <- getArgReferences . getNonVoids $ zip maybeFields args
           defineField $ mkFieldDef [Public, Static] qClName closureType
-          addInitStep $
+          let field = (mkFieldRef modClass qClName closureType)
+          addInitStep (
               new dataFt
            <> dup dataFt
            <> fold loads
            <> invokespecial (mkMethodRef dataClass "<init>" fields void)
-           <> putstatic (mkFieldRef modClass qClName closureType)
+           <> putstatic field
+           , field
+           , deps
+           )
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo
                                                             , CodeGen (Code, RecIndexes) )
