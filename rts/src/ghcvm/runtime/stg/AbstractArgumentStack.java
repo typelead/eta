@@ -35,7 +35,9 @@ public abstract class AbstractArgumentStack {
     public boolean isSimple() { return false; }
 
     public void populate(AbstractArgumentStack.Builder builder) {
-        if (closures != null) builder.closures = closures.copy();
+        if (closures != null) {
+            builder.closures = closures.copy();
+        }
     }
 
     public static class Builder {
@@ -58,8 +60,8 @@ public abstract class AbstractArgumentStack {
                 stack.populate(builder);
             } else {
                 builder.setSimple(true);
+                builder.init();
             }
-            builder.init();
             return builder;
         }
 
