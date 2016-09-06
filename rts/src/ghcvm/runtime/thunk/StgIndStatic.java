@@ -26,8 +26,7 @@ public class StgIndStatic extends StgThunk {
             if (bh == null) {
                 enter(context);
             } else {
-                StgTSO tso = context.currentTSO;
-                tso.sp.add(new StgBHUpdateFrame(bh));
+                context.pushFrame(new StgBHUpdateFrame(bh));
                 thunkEnter(context);
             }
         } else {
