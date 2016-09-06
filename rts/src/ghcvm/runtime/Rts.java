@@ -162,8 +162,8 @@ public class Rts {
                 if (RtsFlags.MiscFlags.installSignalHandlers) {
                     /* TODO: Signal Handling: freeSignalHandlers() */
                 }
-                RtsScheduler.stopTimer();
-                RtsScheduler.exitTimer(waitForeign);
+                //RtsScheduler.stopTimer();
+                //RtsScheduler.exitTimer(waitForeign);
                 if (RtsFlags.MiscFlags.installSignalHandlers) {
                     /* TODO: Signal Handling: resetDefaultHandlers() */
                 }
