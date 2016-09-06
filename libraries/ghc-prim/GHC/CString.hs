@@ -60,9 +60,7 @@ unpackCString# str
     len = strLength str
     unpack nh
       | isTrue# (nh ==# len) = []
-      | True       = C# ch : unpack (nh +# 1#)
-      where
-        !ch = indexStrChar# bytes nh
+      | True                 = C# (indexStrChar# bytes nh) : unpack (nh +# 1#)
 
 unpackAppendCString# :: JString# -> [Char] -> [Char]
 {-# NOINLINE unpackAppendCString# #-}
