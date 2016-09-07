@@ -7,6 +7,7 @@ import ghcvm.runtime.stg.StgTSO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.RtsFun;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.ReturnClosure;
 import ghcvm.runtime.exception.StgException;
 import static ghcvm.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static ghcvm.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
@@ -28,9 +29,10 @@ public class Concurrent {
             @Override
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R(1);
+                StgTSO tso;
                 mvar.lock();
                 if (mvar.value == null) {
-                    StgTSO tso = context.currentTSO;
+                    tso = context.currentTSO;
                     tso.blockInfo = mvar;
                     tso.whyBlocked = BlockedOnMVar;
                     tso.inMVarOperation = true;
@@ -43,7 +45,7 @@ public class Concurrent {
                         mvar.unlock();
                         context.R(1, val);
                     } else {
-                        StgTSO tso = mvar.popFromQueue();
+                        tso = mvar.popFromQueue();
                         Capability cap = context.myCapability;
                         BlockPutMVarFrame frame = (BlockPutMVarFrame) tso.spPop();
                         mvar.value = frame.val;
@@ -80,37 +82,42 @@ public class Concurrent {
             @Override
             public void enter(StgContext context) {
                 StgMVar mvar = (StgMVar) context.R(1);
-                mvar.lock();
                 StgClosure val = context.R(2);
+                mvar.lock();
                 StgTSO tso;
                 if (mvar.value != null) {
                     tso = context.currentTSO;
                     tso.blockInfo = mvar;
                     tso.whyBlocked = BlockedOnMVar;
+                    tso.inMVarOperation = true;
                     mvar.pushLast(tso);
                     context.R(1, mvar);
                     context.R(2, val);
                     block_putmvar.enter(context);
                 } else {
-                    tso = mvar.popFromQueue();
-                    if (tso == null) {
-                        mvar.value = val;
-                        // return ()
-                    } else {
-                        WhyBlocked whyBlocked = tso.whyBlocked;
-                        // Is this pop actually necessary?
-                        // TODO: Redo stack
-                        // tso.stack.pop();
-                        // tso.stack.push(new ReturnClosure(val));
-                        tso.inMVarOperation = false;
-                        context.myCapability.tryWakeupThread(tso);
-                        if (whyBlocked == BlockedOnMVarRead) {
-                            // TODO: check this condition if it's valid
+                    boolean loop = false;
+                    do {
+                        tso = mvar.popFromQueue();
+                        if (tso == null) {
+                            mvar.value = val;
+                            mvar.unlock();
+                            context.R(1, null); // Is this necessary?
+                        } else {
+                            Capability cap = context.myCapability;
+                            WhyBlocked whyBlocked = tso.whyBlocked;
+                            tso.spPop();
+                            tso.spPush(new ReturnClosure(val));
+                            tso.inMVarOperation = false;
+                            context.myCapability.tryWakeupThread(tso);
+                            if (whyBlocked == BlockedOnMVarRead) {
+                                loop = true;
+                            } else {
+                                mvar.unlock();
+                                context.R(1, null); // Is this necessary?
+                            }
                         }
-                        // return ()
-                    }
+                    } while (loop);
                 }
-                mvar.unlock();
             }
         };
 
@@ -120,8 +127,7 @@ public class Concurrent {
                 Capability cap = context.myCapability;
                 StgMVar mvar = (StgMVar) context.R(1);
                 StgTSO tso = context.currentTSO;
-                // TODO: Finish this!
-                //tso.sp.add(new BlockTakeMVarFrame(mvar));
+                tso.sp.add(new BlockTakeMVarFrame(mvar));
                 tso.whatNext = ThreadRunGHC;
                 context.ret = ThreadBlocked;
                 cap.threadPaused(tso);
@@ -145,13 +151,16 @@ public class Concurrent {
     public static RtsFun block_putmvar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
                 StgMVar mvar = (StgMVar) context.R(1);
                 StgClosure val = context.R(2);
-                StgTSO tso = context.currentTSO;
-                tso.stack.push(new BlockPutMVarFrame(mvar, val));
+                tso.spPush(new BlockPutMVarFrame(mvar, val));
                 tso.whatNext = ThreadRunGHC;
                 context.ret = ThreadBlocked;
-                Stg.returnToSched.enter(context);
+                cap.threadPaused(tso);
+                mvar.unlock();
+                throw StgException.stgReturnException;
             }
         };
 
