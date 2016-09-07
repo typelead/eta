@@ -596,11 +596,18 @@ simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 simpleOp Addr2IntOp = Just $ normalOp
   $ invokestatic $ mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint)
 simpleOp AddrAddOp = Just $ \[addr, dx] ->
-  addr <> byteBufferDup <> addr <> byteBufferPosGet <> dx <> iadd <> byteBufferPosSet
+     addr
+  <> byteBufferDup
+  <> dup byteBufferType
+  <> addr
+  <> byteBufferPosGet
+  <> dx
+  <> iadd
+  <> byteBufferPosSet
 simpleOp AddrSubOp = Just $ \[addr1, addr2] ->
   addr1 <> byteBufferPosGet <> addr2 <> byteBufferPosGet <> isub
 simpleOp AddrRemOp = Just $ \[addr, n] ->
-  addr <> byteBufferPosGet <> irem
+  addr <> byteBufferPosGet <> n <> irem
 simpleOp AddrGtOp = Just $ addrCmpOp if_icmpgt
 simpleOp AddrGeOp = Just $ addrCmpOp if_icmpge
 simpleOp AddrEqOp = Just $ addrCmpOp if_icmpeq
