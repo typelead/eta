@@ -246,10 +246,10 @@ postInitRecBinds binder recIndexes = do
   CgIdInfo { cgLocation } <- getCgIdInfo binder
   let binderLoad = loadLoc cgLocation
       ft = locFt cgLocation
+      clClass = getFtClass (locFt cgLocation)
   recInitCodes <- forM recIndexes $ \(i, recId) -> do
     CgIdInfo { cgLocation } <- getCgIdInfo recId
     let recLoad = loadLoc cgLocation
-        clClass = getFtClass (locFt cgLocation)
     -- NOTE: We assume that all recursive free vars are closures, which should be
     --       a reasonable assumption. Verify.
     return $ recLoad <> putfield (mkFieldRef clClass (constrField i) closureType)
