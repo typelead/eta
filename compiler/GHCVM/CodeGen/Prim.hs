@@ -500,7 +500,7 @@ simpleOp FloatCoshOp = Just $ normalOp $ floatMathEndoOp "cosh"
 simpleOp FloatTanhOp = Just $ normalOp $ floatMathEndoOp "tanh"
 simpleOp FloatPowerOp = Just $ \[arg1, arg2] ->
      (arg1 <> gconv jfloat jdouble)
-  <> (arg2 <> floatMathOp "pow" [jfloat, jfloat] jfloat)
+  <> (arg2 <> floatMathOp "pow" [jdouble, jdouble] jdouble)
 
 -- Conversions
 simpleOp Int2DoubleOp   = Just $ normalOp $ gconv jint    jdouble
