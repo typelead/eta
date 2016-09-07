@@ -210,6 +210,7 @@ getOffset = do
   Offset offset <- gets isOffset
   return offset
 
+-- TODO: Unify tableswitch with lookupswitch
 type BranchMap = IntMap.IntMap Instr
 
 tableswitch :: Int -> Int -> BranchMap -> Maybe Instr -> Instr
@@ -237,28 +238,30 @@ tableswitch low high branchMap deflt = Instr $ do
   writeBytes . packI32 $ relOffset defOffset
   writeBytes . packI32 $ low
   writeBytes . packI32 $ high
-  forM_ codeInfos $ \(offset, _, _, _, _) ->
+  forM_ codeInfos $ \(offset, _, _, _, _, _) ->
     writeBytes . packI32 $ relOffset offset
-  forM_ codeInfos $ \(offset, len, bytes, cf', frames) -> do
+  forM_ codeInfos $ \(offset, len, bytes, cf', frames, shouldJump) -> do
     writeStackMapFrame
     if len == 0 then do
       op' OP.goto
       writeBytes . packI16 $ (defOffset - offset)
     else do
       write bytes frames
-      op' OP.goto
-      writeBytes . packI16 $ (breakOffset - (offset + len))
+      when shouldJump $ do
+        op' OP.goto
+        writeBytes . packI16 $ (breakOffset - (offset + len))
   writeStackMapFrame
   write defBytes defFrames
-  putCtrlFlow' $ CF.merge cf (defCF : map (\(_, _, _, cf', _) -> cf') codeInfos)
+  putCtrlFlow' $ CF.merge cf (defCF : map (\(_, _, _, cf', _, _) -> cf') codeInfos)
   writeStackMapFrame
   where computeOffsets cf cp lt (offset, _) i =
           ( offset + bytesLength + lengthJump
-          , (offset, bytesLength, bytes, cf', frames) )
+          , (offset, bytesLength, bytes, cf', frames, not hasGoto) )
           where (bytes, cf', frames) = runInstrWithLabels' instr cp (Offset offset) cf lt
                 instr = IntMap.findWithDefault mempty i branchMap
                 bytesLength = BS.length bytes
-        lengthJump = 3 -- op goto <> pack16 $ length ko
+                hasGoto = ifLastGoto bytes
+                lengthJump = if hasGoto then 0 else 3 -- op goto <> pack16 $ length ko
         numBranches = high - low + 1
 
 lookupswitch :: BranchMap -> Maybe Instr -> Instr
@@ -284,25 +287,27 @@ lookupswitch branchMap deflt = Instr $ do
       relOffset x = x - baseOffset
   writeBytes . packI32 $ relOffset defOffset
   writeBytes . packI32 $ length codeInfos
-  forM_ codeInfos $ \(offset, _, val, _, _, _) -> do
+  forM_ codeInfos $ \(offset, _, val, _, _, _, _) -> do
     writeBytes . packI32 $ val
     writeBytes . packI32 $ relOffset offset
-  forM_ codeInfos $ \(offset, len, _, bytes, cf', frames) -> do
+  forM_ codeInfos $ \(offset, len, _, bytes, cf', frames, shouldJump) -> do
     writeStackMapFrame
     write bytes frames
-    op' OP.goto
-    writeBytes . packI16 $ (breakOffset - (offset + len))
+    when shouldJump $ do
+      op' OP.goto
+      writeBytes . packI16 $ (breakOffset - (offset + len))
   writeStackMapFrame
   write defBytes defFrames
   putCtrlFlow' $
-    CF.merge cf (defCF : map (\(_, _, _, _, cf', _) -> cf') codeInfos)
+    CF.merge cf (defCF : map (\(_, _, _, _, cf', _, _) -> cf') codeInfos)
   writeStackMapFrame
   where computeOffsets cf cp lt (offset, _) (val, instr) =
           ( offset + bytesLength + lengthJump
-          , (offset, bytesLength, val, bytes, cf', frames) )
+          , (offset, bytesLength, val, bytes, cf', frames, not hasGoto) )
           where (bytes, cf', frames) = runInstrWithLabels' instr cp (Offset offset) cf lt
                 bytesLength = BS.length bytes
-        lengthJump = 3 -- op goto <> pack16 $ length ko
+                hasGoto = ifLastGoto bytes
+                lengthJump = if hasGoto then 0 else 3 -- op goto <> pack16 $ length ko
         numBranches = IntMap.size branchMap
 
 
