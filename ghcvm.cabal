@@ -49,7 +49,7 @@ library
                        , GHCVM.CodeGen.ArgRep
                        , GHCVM.CodeGen.Bind
                        , GHCVM.CodeGen.Closure
-                       , GHCVM.CodeGen.Con
+                       , GHCVM.CodeGen.Constr
                        , GHCVM.CodeGen.Env
                        , GHCVM.CodeGen.Expr
                        , GHCVM.CodeGen.Foreign

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module GHCVM.CodeGen.Con where
+module GHCVM.CodeGen.Constr where
 
 import GHCVM.BasicTypes.Literal
 import GHCVM.Main.DynFlags hiding (mAX_INTLIKE, mIN_INTLIKE, mAX_INTLIKE, mAX_CHARLIKE)

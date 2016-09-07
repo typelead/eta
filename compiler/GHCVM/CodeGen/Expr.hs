@@ -20,7 +20,7 @@ import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Rts
-import GHCVM.CodeGen.Con
+import GHCVM.CodeGen.Constr
 import GHCVM.CodeGen.Prim
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.LetNoEscape

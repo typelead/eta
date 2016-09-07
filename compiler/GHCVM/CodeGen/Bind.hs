@@ -7,7 +7,7 @@ import GHCVM.BasicTypes.Id
 import GHCVM.Utils.Util (unzipWith)
 import GHCVM.Types.TyCon
 import GHCVM.CodeGen.ArgRep
-import GHCVM.CodeGen.Con
+import GHCVM.CodeGen.Constr
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Rts

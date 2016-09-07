@@ -21,7 +21,7 @@ import GHCVM.Util
 import GHCVM.Debug
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
-import GHCVM.CodeGen.Con
+import GHCVM.CodeGen.Constr
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Bind
 import GHCVM.CodeGen.Name
