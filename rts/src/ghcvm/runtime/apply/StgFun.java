@@ -10,9 +10,6 @@ public abstract class StgFun extends StgClosure {
     public abstract int getArity();
 
     @Override
-    public StgClosure getEvaluated() { return this; }
-
-    @Override
     public void apply(StgContext context, Void v) {
         int arity = getArity();
         if (arity == 1) {
