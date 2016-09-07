@@ -151,12 +151,10 @@ shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
   [ intCompOp ifnull [mvar <> castStgMVar <> mVarValue] ]
 
 shouldInlinePrimOp' dflags MakeStablePtrOp args = Right $ return
-  [ invokestatic
-    $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "makeStablePtr" [closureType] (ret jint) ]
+  [ normalOp (invokestatic (mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "makeStablePtr" [closureType] (ret jint))) args ]
 
 shouldInlinePrimOp' dflags DeRefStablePtrOp args = Right $ return
-  [ invokestatic
-    $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "getClosure" [jint] (ret closureType) ]
+  [ normalOp (invokestatic (mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "getClosure" [jint] (ret closureType))) args ]
 
 
 shouldInlinePrimOp' dflags UnsafeThawArrayOp args = Right $ return [fold args]
@@ -679,7 +677,7 @@ simpleOp Narrow32WordOp = Just idOp
 -- Misc
 simpleOp SameTVarOp    = Just $ intCompOp if_acmpeq
 simpleOp SameMVarOp    = Just $ intCompOp if_acmpeq
-simpleOp EqStablePtrOp = Just $ intCompOp if_acmpeq
+simpleOp EqStablePtrOp = Just $ intCompOp if_icmpeq
 simpleOp TouchOp       = Just idOp
 
 -- Sparks
