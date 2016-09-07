@@ -54,4 +54,7 @@ public class StgMVar extends StgClosure {
     public final boolean tryLock() {
         return lock.getAndSet(true);
     }
+
+    @Override
+    public StgClosure getEvaluated() { return this; }
 }

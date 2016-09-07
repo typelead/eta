@@ -12,7 +12,8 @@ public class StgClosure {
         context.R(1, this);
     }
 
-    public StgClosure getEvaluated() { return this; }
+    public StgClosure getEvaluated() { return null; }
+
     public void evaluate(StgContext context) {
         StgClosure eval = getEvaluated();
         if (eval == null) {

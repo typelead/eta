@@ -64,6 +64,10 @@ public final class StgByteArray extends StgClosure {
     private StgByteArray(ByteBuffer buf) {
         this.buf = buf;
     }
+
+    @Override
+    public StgClosure getEvaluated() { return this; }
+
     @Override
     public void enter(StgContext context) {
         barf("StgByteArray object entered!");

@@ -215,4 +215,12 @@ public final class StgTSO extends StgClosure {
     public final void spPush(StackFrame frame) {
         sp.add(frame);
     }
+
+    @Override
+    public void enter(StgContext context) {
+        barf("TSO object entered!");
+    }
+
+    @Override
+    public StgClosure getEvaluated() { return this; }
 }

@@ -18,6 +18,9 @@ public class StgTVar extends StgClosure {
     }
 
     @Override
+    public StgClosure getEvaluated() { return this; }
+
+    @Override
     public final void enter(StgContext context) {
         barf("TVAR object entered!");
     }

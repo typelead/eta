@@ -27,6 +27,9 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
+    public StgClosure getEvaluated() { return this; }
+
+    @Override
     public void enter(StgContext context) {
         barf("PAP object entered!");
     }

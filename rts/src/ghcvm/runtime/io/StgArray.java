@@ -24,6 +24,9 @@ public final class StgArray extends StgClosure {
     }
 
     @Override
+    public StgClosure getEvaluated() { return this; }
+
+    @Override
     public void enter(StgContext context) {
         barf("StgArray object entered!");
     }

@@ -20,4 +20,7 @@ public class StgMutVar extends StgClosure {
     public boolean cas(StgClosure old, StgClosure new_) {
         return UnsafeUtil.cas(this, old, new_);
     }
+
+    @Override
+    public StgClosure getEvaluated() { return this; }
 }

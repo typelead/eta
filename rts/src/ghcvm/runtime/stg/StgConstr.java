@@ -6,6 +6,9 @@ public abstract class StgConstr extends StgClosure {
 
     public abstract int getTag();
 
+    @Override
+    public StgClosure getEvaluated() { return this; }
+
     public StgClosure getP(int i) {
         barf("getP not implemented!");
         return null;
