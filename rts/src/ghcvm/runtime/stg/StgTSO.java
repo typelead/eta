@@ -227,6 +227,4 @@ public final class StgTSO extends StgClosure {
         barf("TSO object entered!");
     }
 
-    @Override
-    public StgClosure getEvaluated() { return this; }
 }
