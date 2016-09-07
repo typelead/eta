@@ -10,6 +10,7 @@ import Data.List (partition,stripPrefix)
 import Data.Maybe(mapMaybe)
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
+import System.Info(os)
 
 rtsDir = "rts"
 rtsBuildDir = rtsDir </> "build"
@@ -157,7 +158,9 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         Stdout paths <- cmd "stack path"
         let binPath = head . mapMaybe (stripPrefix "compiler-bin: ") $ lines paths
             ghcPath = takeDirectory binPath
-            ghcInclude = ghcPath </> "lib" </> "ghc-7.10.3" </> "include"
+            ghcInclude = if os == "mingw32"
+                         then ghcPath </> "lib" </> "include"
+                         else ghcPath </> "lib" </> "ghc-7.10.3" </> "include"
             ghcvmInclude = ghcvmIncludePath rootDir
         liftIO $ createDirectory ghcvmInclude
         let root x = rootDir </> x
