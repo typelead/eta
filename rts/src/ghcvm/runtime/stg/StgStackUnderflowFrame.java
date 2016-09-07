@@ -1,8 +1,10 @@
 package ghcvm.runtime.stg;
 
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.thunk.StgThunk;
+import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class StgStackUnderflowFrame extends StackFrame {
     public final Stack<StackFrame> nextChunk;
@@ -33,6 +35,12 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
         cap.threadStackUnderflow(tso);
         /* TODO: Figure out how to arrange the stack here.
                  Implement when dealing with StackOverflows. */
+        return true;
+    }
+
+    @Override
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        barf("doRaiseExceptionHelper: StgStackUnderflowFrame unimplemented");
         return true;
     }
 }

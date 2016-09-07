@@ -4,6 +4,7 @@ import java.util.Stack;
 import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.stg.Stg;
 import ghcvm.runtime.stg.Capability;
@@ -152,6 +153,36 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             StgClosure atomically = new StgAtomically(code);
             sp.add(new StgEnter(atomically));
             return true;
+        }
+    }
+
+    @Override
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        tso.sp.next();
+        return false;
+    }
+
+    @Override
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+        StgTRecHeader trec = tso.trec;
+        boolean result = cap.stmValidateNestOfTransactions(trec);
+        StgTRecHeader outer = trec.enclosingTrec;
+        cap.stmAbortTransaction(trec);
+        cap.stmFreeAbortedTrec(trec);
+        if (outer != null) {
+            cap.stmAbortTransaction(outer);
+            cap.stmFreeAbortedTrec(outer);
+        }
+        tso.trec = null;
+        if (result) {
+            tso.spPop();
+            return true;
+        } else {
+            trec = cap.stmStartTransaction(null);
+            tso.trec = trec;
+            context.R(1, code);
+            Apply.ap_v_fast.enter(context);
+            return false;
         }
     }
 }

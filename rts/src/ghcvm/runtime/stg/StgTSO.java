@@ -20,6 +20,7 @@ import ghcvm.runtime.stg.Task.InCall;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.*;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.*;
 import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
+import static ghcvm.runtime.RtsMessages.barf;
 
 public final class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
@@ -214,6 +215,11 @@ public final class StgTSO extends StgClosure {
 
     public final void spPush(StackFrame frame) {
         sp.add(frame);
+    }
+
+    public final void spPop() {
+        sp.previous();
+        sp.remove();
     }
 
     @Override

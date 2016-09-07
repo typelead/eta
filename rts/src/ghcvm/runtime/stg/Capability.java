@@ -11,6 +11,7 @@ import java.util.ArrayDeque;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicReference;
 import ghcvm.runtime.stg.Task.InCall;
 import static ghcvm.runtime.Rts.*;
 import static ghcvm.runtime.RtsMessages.*;
@@ -1831,10 +1832,22 @@ public final class Capability {
         /* TODO: Finish implementation */
     }
 
-    public final int raiseExceptionHelper(StgTSO tso, StgClosure exception) {
-        StgClosure raiseClosure;
-        /* TODO: Finish implementation */
-        return 0;
+    public final StackFrame raiseExceptionHelper(StgTSO tso, StgClosure exception) {
+        // Assumes that tso.sp pointer is beyond stack top
+        ListIterator<StackFrame> sp = tso.sp;
+        boolean shouldContinue = true;
+        AtomicReference<StgClosure> raiseClosure = new AtomicReference<StgClosure>();
+        StackFrame frame = null;
+        while (shouldContinue && sp.hasPrevious()) {
+            frame = sp.previous();
+            shouldContinue = frame.doRaiseExceptionHelper(this, tso, raiseClosure, exception);
+        }
+        // TODO: Rethink this when implementing underflow frames/stack chunks
+        while (sp.hasNext()) {
+            sp.next();
+            sp.remove();
+        }
+        return frame;
     }
 
     public final void stmCondemnTransaction(StgTRecHeader trec) {

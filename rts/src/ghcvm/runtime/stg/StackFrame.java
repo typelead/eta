@@ -1,6 +1,7 @@
 package ghcvm.runtime.stg;
 
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.thunk.StgThunk;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Default;
@@ -76,5 +77,15 @@ public abstract class StackFrame extends StgClosure {
     public boolean doFindRetry(Capability cap, StgTSO tso) {
         /* Move to the next stack frame */
         return true;
+    }
+
+
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        return true;
+    }
+
+
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+        return false;
     }
 }

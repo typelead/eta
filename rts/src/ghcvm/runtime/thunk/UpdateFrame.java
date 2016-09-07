@@ -2,6 +2,7 @@ package ghcvm.runtime.thunk;
 
 import java.util.Stack;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
@@ -9,6 +10,7 @@ import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.stg.StgEnter;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgAPStack;
+import ghcvm.runtime.exception.StgRaise;
 
 public abstract class UpdateFrame extends StackFrame {
     public final StgThunk updatee;
@@ -40,6 +42,16 @@ public abstract class UpdateFrame extends StackFrame {
         sp.remove();
         sp.add(new StgEnter(ap));
         sp.previous();
+        return true;
+    }
+
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        StgClosure raise = raiseClosure.get();
+        if (raise == null) {
+            raise = new StgRaise(exception);
+            raiseClosure.set(raise);
+        }
+        cap.updateThunk(tso, updatee, raise);
         return true;
     }
 }
