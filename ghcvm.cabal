@@ -343,8 +343,12 @@ executable ghcvm
                        , haskeline
                        , process
                        , transformers
-                       , unix
                        , ghcvm
+
+    if os(windows)
+        build-depends:   Win32
+    else
+        build-depends:   unix
 
 
 executable ghcvm-build
