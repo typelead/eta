@@ -26,7 +26,7 @@ import Data.Text (append, pack, unpack)
 import Data.Foldable (fold)
 import Data.Maybe (mapMaybe, maybe, catMaybes)
 import Data.Monoid ((<>))
-import Data.List(delete, find)
+import Data.List(delete, find, foldl')
 
 closureCodeBody
   :: Bool                  -- whether this is a top-level binding
@@ -51,10 +51,16 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
                else fvLocs'
       thisFt = obj thisClass
       (_, fts, _) = unzip3 initCodes
-      codes = map (\(i, ft, code) -> gload thisFt 0
-                                  <> gload ft i
-                                  <> code)
-              initCodes
+      (codes, _) = foldl' (\(initCode, n) (i, ft, code) ->
+                            ( initCode
+                            <> gload thisFt 0
+                            <> gload ft n
+                            <> code
+                            , n + fieldSize ft
+                            )
+                          )
+                          (mempty, 1) initCodes
+
   if arity == 0 then
     thunkCode lfInfo fvLocs body
   else do
@@ -80,7 +86,7 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
   defineMethod . mkMethodDef thisClass [Public] "<init>" fts void $
       gload thisFt 0
    <> invokespecial (mkMethodRef superClass "<init>" [] void)
-   <> fold codes
+   <> codes
    <> vreturn
   return (fts, recIndexes)
 
