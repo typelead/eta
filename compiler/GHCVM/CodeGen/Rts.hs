@@ -71,7 +71,7 @@ stgArray      = io "StgArray"
 stgByteArray  = io "StgByteArray"
 rtsUnsigned   = merge "ghcvm/integer" "Utils"
 stgMutVar     = io "StgMutVar"
-stgMVar       = conc "StgMutVar"
+stgMVar       = conc "StgMVar"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
