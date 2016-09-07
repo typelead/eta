@@ -194,6 +194,12 @@ mkRtsFunCall (group, name) =
   <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)
 
 -- Types
+buffer :: Text
+buffer = "java/nio/Buffer"
+
+bufferType :: FieldType
+bufferType = obj buffer
+
 byteBuffer :: Text
 byteBuffer = "java/nio/ByteBuffer"
 
@@ -218,7 +224,7 @@ byteBufferPosGet :: Code
 byteBufferPosGet = invokevirtual $ mkMethodRef byteBuffer "position" [] (ret jint)
 
 byteBufferPosSet :: Code
-byteBufferPosSet = invokevirtual $ mkMethodRef byteBuffer "position" [jint] void
+byteBufferPosSet = invokevirtual $ mkMethodRef byteBuffer "position" [jint] (ret bufferType)
 
 byteBufferDup :: Code
 byteBufferDup = invokevirtual $ mkMethodRef byteBuffer "duplicate" [] (ret byteBufferType)

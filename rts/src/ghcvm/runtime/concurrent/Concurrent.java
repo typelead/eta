@@ -38,9 +38,21 @@ public class Concurrent {
                     context.R(1, mvar);
                     block_takemvar.enter(context);
                 } else {
-                    // TODO: Complete this operation
+                    StgClosure val = mvar.value;
+                    if (mvar.isEmpty()) {
+                        mvar.unlock();
+                        context.R(1, val);
+                    } else {
+                        StgTSO tso = mvar.popFromQueue();
+                        Capability cap = context.myCapability;
+                        BlockPutMVarFrame frame = (BlockPutMVarFrame) tso.spPop();
+                        mvar.value = frame.val;
+                        tso.inMVarOperation = false;
+                        cap.tryWakeupThread(tso);
+                        mvar.unlock();
+                        context.R(1, val);
+                    }
                 }
-                mvar.unlock();
             }
         };
 

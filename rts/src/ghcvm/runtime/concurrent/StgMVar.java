@@ -24,6 +24,10 @@ public class StgMVar extends StgClosure {
         barf("MVAR object entered!");
     }
 
+    public boolean isEmpty() {
+        return tsoQueue.isEmpty();
+    }
+
     public void pushFirst(StgTSO tso) {
         tsoQueue.offerFirst(tso);
     }

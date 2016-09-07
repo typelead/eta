@@ -598,12 +598,12 @@ simpleOp Addr2IntOp = Just $ normalOp
 simpleOp AddrAddOp = Just $ \[addr, dx] ->
      addr
   <> byteBufferDup
-  <> dup byteBufferType
   <> addr
   <> byteBufferPosGet
   <> dx
   <> iadd
   <> byteBufferPosSet
+  <> gconv bufferType byteBufferType
 simpleOp AddrSubOp = Just $ \[addr1, addr2] ->
   addr1 <> byteBufferPosGet <> addr2 <> byteBufferPosGet <> isub
 simpleOp AddrRemOp = Just $ \[addr, n] ->

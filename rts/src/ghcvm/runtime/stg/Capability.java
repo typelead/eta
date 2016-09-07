@@ -694,8 +694,7 @@ public final class Capability {
                 /* TODO: Is it a good idea to unlock right afterwards? */
                 msg.unlock();
                 if (msg.isValid()) {
-                    tso.sp.previous();
-                    tso.sp.remove();
+                    tso.spPop();
                     unblock = true;
                 }
                 break;

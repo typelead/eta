@@ -217,9 +217,10 @@ public final class StgTSO extends StgClosure {
         sp.add(frame);
     }
 
-    public final void spPop() {
-        sp.previous();
+    public final StackFrame spPop() {
+        StackFrame frame = sp.previous();
         sp.remove();
+        return frame;
     }
 
     @Override
