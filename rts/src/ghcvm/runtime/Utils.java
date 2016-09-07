@@ -20,4 +20,8 @@ public class Utils {
         }
         return e;
     }
+
+    public static int c_isatty(int tty) {
+        return System.console() != null ? 1 : 0;
+    }
 }

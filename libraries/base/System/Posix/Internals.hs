@@ -385,9 +385,8 @@ c_dup2 = undefined
 c_fstat :: CInt -> Ptr CStat -> IO CInt
 c_fstat = undefined
 
--- foreign import ccall unsafe "HsBase.h isatty"
-c_isatty :: CInt -> IO CInt
-c_isatty = undefined
+foreign import java unsafe "@static ghcvm.runtime.Utils.c_isatty"
+  c_isatty :: CInt -> IO CInt
 
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
 -- foreign import ccall unsafe "io.h _lseeki64"
