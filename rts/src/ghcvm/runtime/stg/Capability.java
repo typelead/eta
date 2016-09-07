@@ -478,9 +478,12 @@ public final class Capability {
         if (cap.emptyThreadQueues()) {
             if (threaded) {
                 if (recentActivity != Inactive) return cap;
-                //scheduleDoGC
+            }
+            //scheduleDoGC
+            if (!cap.emptyRunQueue()) return cap;
+            // deal with user signals
 
-            } else {
+            if (!threaded) {
                 if (task.incall.tso != null) {
                     switch (task.incall.tso.whyBlocked) {
                         case BlockedOnSTM:
@@ -489,8 +492,7 @@ public final class Capability {
                         case BlockedOnMVar:
                         case BlockedOnMVarRead:
                             cap.throwToSingleThreaded(task.incall.tso,
-                                                  null /* TODO: nonTermination_closure */
-                                                  );
+                                                      Capability.nonTermination_closure);
                             return cap;
                         default:
                             barf("deadlock: main thread blocked in a strange way");
@@ -910,8 +912,13 @@ public final class Capability {
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
-        /* ASSUMPTION: sp is pointing to the top of the stack */
+
         ListIterator<StackFrame> sp = tso.sp;
+
+        // Ensure sp is pointing to top
+        while (sp.hasNext()) {
+            sp.next();
+        }
 
         StgThunk updatee = null;
         if (stopHere != null) {
@@ -919,13 +926,14 @@ public final class Capability {
         }
 
         StackFrame top = sp.previous();
+        sp.remove();
 
-        /* Ensure stack has a closure at the top */
-        if (top.getClosure() == null)  {
-            sp.next();
-            sp.add(new StgDummyFrame());
-            sp.previous();
-        }
+        // /* Ensure stack has a closure at the top */
+        // if (top.getClosure() == null)  {
+        //     sp.next();
+        //     sp.add(new StgDummyFrame());
+        //     sp.previous();
+        // }
 
         /* Find the index of the update frame to stop at */
         int stopIndex = -1;
@@ -934,18 +942,23 @@ public final class Capability {
             stopIndex = stack.size() - stack.search(stopHere);
         }
 
-        while (sp.previousIndex() > stopIndex) {
+        boolean shouldContinue = true;
+        // TODO: Handle the case where top.getClosure() == null
+        AtomicReference<StgClosure> topClosure =
+            new AtomicReference<StgClosure>(top.getClosure());
+
+        while (shouldContinue && (stopHere == null || sp.previousIndex() > stopIndex)) {
             /* TODO: Make a custom peeking iterator */
-            StackFrame frame = Utils.peekPrevious(sp);
-            boolean shouldContinue = frame.doRaiseAsync(this, tso, exception, stopAtAtomically, updatee);
-            if (!shouldContinue) break;
+            StackFrame frame = sp.previous(); //Utils.peekPrevious(sp);
+            shouldContinue = frame.doRaiseAsync(this, tso, exception, stopAtAtomically,
+                                                updatee, topClosure);
         }
 
-        /* Maintain the invariant that sp should always
-           point to stack top. */
-        while (sp.hasNext()) {
-            sp.next();
-        }
+        // /* Maintain the invariant that sp should always
+        //    point to stack top. */
+        // while (sp.hasNext()) {
+        //     sp.next();
+        // }
 
         if (tso.whyBlocked != NotBlocked) {
             tso.whyBlocked = NotBlocked;
@@ -2082,6 +2095,20 @@ public final class Capability {
             return sparks.size();
         } else {
             return 0;
+        }
+    }
+
+    public static StgClosure nonTermination_closure = null;
+
+    static {
+        try {
+            nonTermination_closure = (StgClosure)
+                Class.forName("base.control.exception.Base")
+                .getField("nonTermination_closure")
+                .get(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            nonTermination_closure = null;
         }
     }
 }

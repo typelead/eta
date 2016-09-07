@@ -228,4 +228,18 @@ public final class StgTSO extends StgClosure {
         barf("TSO object entered!");
     }
 
+    public void dumpStack() {
+        System.out.println("StgTSO #" + id);
+        if (sp.hasPrevious()) {
+            System.out.println("Sp = " + sp.previous());
+            sp.next();
+        }
+        ListIterator<StackFrame> it = stack.listIterator();
+        int i = 0;
+        while (it.hasNext()) {
+            System.out.println("#" + i + ": " + it.next());
+            i++;
+        }
+    }
+
 }

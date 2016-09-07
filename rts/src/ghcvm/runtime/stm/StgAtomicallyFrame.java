@@ -135,12 +135,16 @@ public class StgAtomicallyFrame extends StgSTMFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         ListIterator<StackFrame> sp = tso.sp;
         if (stopAtAtomically) {
             cap.stmCondemnTransaction(tso.trec);
-            /* TODO: Should a separate value be used
-               instead of null? */
+            sp.next(); //Point after Atomically frame
+            // Remove all frames afterward
+            while (sp.hasNext()) {
+                sp.next();
+                sp.remove();
+            }
             sp.add(new ReturnClosure(null));
             tso.whatNext = ThreadRunGHC;
             return false;
@@ -149,9 +153,14 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             StgTRecHeader outer = trec.enclosingTrec;
             cap.stmAbortTransaction(trec);
             cap.stmFreeAbortedTrec(trec);
-            /* TODO: Discard stack above this */
+            tso.trec = outer;
+            // Remove all frames including this one
+            while (sp.hasNext()) {
+                sp.next();
+                sp.remove();
+            }
             StgClosure atomically = new StgAtomically(code);
-            sp.add(new StgEnter(atomically));
+            topClosure.set(atomically);
             return true;
         }
     }

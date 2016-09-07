@@ -27,11 +27,9 @@ public class StgStopThread extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
-        ListIterator<StackFrame> sp = tso.sp;
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         tso.whatNext = ThreadKilled;
-        sp.previous();
-        sp.remove();
+        tso.sp.remove();
         return false;
     }
 

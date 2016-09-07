@@ -30,12 +30,13 @@ public class StgCatchFrame extends StackFrame {
        a trivial operation. Hence, the body is empty. */
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         ListIterator<StackFrame> sp = tso.sp;
         if (exception == null) {
-            sp.previous();
             return true;
         } else {
+            sp.next(); //Point after Catch frame
+            // Remove all frames afterward
             while (sp.hasNext()) {
                 sp.next();
                 sp.remove();
@@ -47,7 +48,7 @@ public class StgCatchFrame extends StackFrame {
                 tso.addFlags(TSO_INTERRUPTIBLE);
             }
             StgRaise raise = new StgRaise(exception);
-            sp.add(new StgEnter(raise));
+            tso.spPush(new StgEnter(raise));
             tso.whatNext = ThreadRunGHC;
             return false;
         }

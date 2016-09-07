@@ -20,28 +20,23 @@ public abstract class UpdateFrame extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         Stack<StackFrame> stack = new Stack<StackFrame>();
         ListIterator<StackFrame> sp = tso.sp;
-        /* ASSUMPTION: There are always a minimum of two frames
-                       after sp */
+        sp.next(); //Shift to above the update frame
         do {
             stack.push(sp.next());
             sp.remove();
         } while (sp.hasNext());
-        StackFrame top = stack.pop();
-        StgClosure fun = top.getClosure();
-        StgAPStack ap = new StgAPStack(fun, stack);
-        /* TODO: Why create an ap just to set it to the updatee? */
+        StgClosure fun = topClosure.get();
+        StgClosure ap = new StgAPStack(fun, stack);
         if (this.updatee == updatee) {
-            ap = (StgAPStack) updatee;
+            ap = updatee;
         } else {
             cap.updateThunk(tso, this.updatee, ap);
         }
-        sp.previous();
-        sp.remove();
-        sp.add(new StgEnter(ap));
-        sp.previous();
+        tso.spPop();
+        topClosure.set(ap);
         return true;
     }
 

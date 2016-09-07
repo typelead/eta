@@ -66,9 +66,7 @@ public abstract class StackFrame extends StgClosure {
         Marked, Stop, Default, Update, UpdateEvaluted
     }
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
-        /* Move to the next stack frame */
-        tso.sp.previous();
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         return true;
     }
 

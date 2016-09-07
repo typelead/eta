@@ -15,6 +15,7 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
+        barf("stackEnter: StgStackUnderflowFrame unimplemented");
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
         // Some return
@@ -24,13 +25,15 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
 
     @Override
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         /* TODO: Implement when dealing with StackOverflowError */
+        barf("doRaiseAsync: StgStackUnderflowFrame unimplemented");
         return true;
     }
 
     @Override
     public boolean doFindRetry(Capability cap, StgTSO tso) {
+        barf("doFindRetry: StgStackUnderflowFrame unimplemented");
         tso.sp.next();
         cap.threadStackUnderflow(tso);
         /* TODO: Figure out how to arrange the stack here.
