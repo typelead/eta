@@ -148,7 +148,7 @@ shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
   ]
 
 shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
-  [ intCompOp ifnull [mvar <> getfield (mkFieldRef stgMVar "value" closureType)] ]
+  [ intCompOp ifnull [mvar <> castStgMVar <> mVarValue] ]
 
 shouldInlinePrimOp' dflags MakeStablePtrOp args = Right $ return
   [ invokestatic
@@ -312,6 +312,9 @@ castStgArray = gconv closureType stgArrayType
 
 castStgMutVar :: Code
 castStgMutVar = gconv closureType stgMutVarType
+
+castStgMVar :: Code
+castStgMVar = gconv closureType stgMVarType
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 

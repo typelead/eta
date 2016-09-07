@@ -241,6 +241,9 @@ mutVarValue = getfield $ mkFieldRef stgMutVar "value" closureType
 mutVarSetValue :: Code
 mutVarSetValue = putfield $ mkFieldRef stgMutVar "value" closureType
 
+mVarValue :: Code
+mVarValue = getfield $ mkFieldRef stgMVar "value" closureType
+
 barf :: Text -> Code
 barf text = sconst text
          <> iconst jint (fromIntegral 0)
