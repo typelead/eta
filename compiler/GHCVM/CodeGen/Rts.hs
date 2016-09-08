@@ -217,7 +217,7 @@ byteBufferGet ft = invokevirtual $ mkMethodRef byteBuffer name [jint] (ret ft)
   where name = append "get" $ fieldTypeSuffix ft
 
 byteBufferPut :: FieldType -> Code
-byteBufferPut ft = invokevirtual $ mkMethodRef byteBuffer name [jint, ft] void
+byteBufferPut ft = invokevirtual $ mkMethodRef byteBuffer name [jint, ft] (ret byteBufferType)
   where name = append "put" $ fieldTypeSuffix ft
 
 byteBufferPosGet :: Code

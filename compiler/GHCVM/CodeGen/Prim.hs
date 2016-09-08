@@ -59,8 +59,10 @@ cgOpApp (StgPrimOp primOp) args resType = do
       --       and allow direct code locations
       Right codes'
         | ReturnsPrim VoidRep <- resultInfo
-        -> --f [] >> emitReturn []
-          emitReturn []
+        -> do
+            codes <- codes'
+            emit $ fold codes
+            emitReturn []
         | ReturnsPrim rep <- resultInfo
               -- res <- newTemp rep'
               -- f [res]
@@ -712,7 +714,7 @@ addrIndexOp :: FieldType -> Code -> [Code] -> Code
 addrIndexOp ft resCode = normalOp $ byteBufferGet ft <> resCode
 
 addrWriteOp :: FieldType -> Code -> [Code] -> Code
-addrWriteOp ft argCode = normalOp $ argCode <> byteBufferPut ft
+addrWriteOp ft argCode = normalOp $ argCode <> byteBufferPut ft <> pop byteBufferType
 
 byteArrayIndexOp :: FieldType -> Code -> [Code] -> Code
 byteArrayIndexOp ft resCode = \[this, ix] ->

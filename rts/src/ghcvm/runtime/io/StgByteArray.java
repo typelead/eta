@@ -34,9 +34,9 @@ public final class StgByteArray extends StgClosure {
             // TODO: Collect allocation statistics
             // TODO: Revamp this implementation once the GC layer is added
             if (pinned) {
-                buf = ByteBuffer.allocateDirect(n + 4); // Off-heap memory
+                buf = ByteBuffer.allocateDirect(n); // Off-heap memory
             } else {
-                buf = ByteBuffer.allocate(n + 4); // Heap memory
+                buf = ByteBuffer.allocate(n); // Heap memory
             }
             addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
             // TODO: Add a check to crash if nextAddress overflows
