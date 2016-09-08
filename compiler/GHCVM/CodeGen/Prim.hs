@@ -711,17 +711,26 @@ doubleMathEndoOp :: Text -> Code
 doubleMathEndoOp f = doubleMathOp f [jdouble] jdouble
 
 addrIndexOp :: FieldType -> Code -> [Code] -> Code
-addrIndexOp ft resCode = normalOp $ iconst jint (fromIntegral (fieldByteSize ft))
-                                 <> imul
-                                 <> byteBufferGet ft
-                                 <> resCode
+addrIndexOp ft resCode = \[this, ix] ->
+     this
+  <> dup byteBufferType
+  <> byteBufferPosGet
+  <> ix
+  <> iconst jint (fromIntegral (fieldByteSize ft))
+  <> imul
+  <> iadd
+  <> byteBufferGet ft
+  <> resCode
 
 addrWriteOp :: FieldType -> Code -> [Code] -> Code
 addrWriteOp ft argCode = \[this, ix, val] ->
     this
+ <> dup byteBufferType
+ <> byteBufferPosGet
  <> ix
  <> iconst jint (fromIntegral (fieldByteSize ft))
  <> imul
+ <> iadd
  <> val
  <> argCode
  <> byteBufferPut ft

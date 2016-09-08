@@ -57,7 +57,6 @@ public class Utils {
         throws UnsupportedEncodingException {
         byte[] bytes = new byte[buffer.remaining()];
         buffer.get(bytes);
-        System.out.println(Arrays.toString(bytes));
         return new String(bytes, "UTF-8");
     }
 
