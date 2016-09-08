@@ -158,7 +158,7 @@ public final class StgTSO extends StgClosure {
     }
 
     @Override
-    public final void thunkUpdate(Capability cap, StgTSO tso) {
+    public final void doUpdateThunk(Capability cap, StgTSO tso) {
         if (tso != this) {
             cap.checkBlockingQueues(tso);
         }

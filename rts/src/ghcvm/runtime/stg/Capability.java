@@ -992,12 +992,11 @@ public final class Capability {
     }
 
     public final void updateThunk(StgTSO tso, StgThunk thunk, StgClosure val) {
-        if (thunk.getEvaluated() != null) {
-            thunk.updateWithIndirection(val);
-        } else {
-            StgClosure v = thunk.indirectee;
-            thunk.updateWithIndirection(val);
-            v.thunkUpdate(this, tso);
+        StgClosure v = thunk.indirectee;
+        thunk.updateWithIndirection(val);
+        /* Only if it's an StgIndStatic, do doUpdateThunk */
+        if (v != null && v.getEvaluated() == null) {
+            v.doUpdateThunk(this, tso);
         }
     }
 

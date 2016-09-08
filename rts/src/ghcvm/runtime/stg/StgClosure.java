@@ -23,7 +23,7 @@ public class StgClosure {
         }
     }
 
-    public void thunkUpdate(Capability cap, StgTSO tso) {
+    public void doUpdateThunk(Capability cap, StgTSO tso) {
         cap.checkBlockingQueues(tso);
     }
     public boolean blackHole(Capability cap, MessageBlackHole msg) { return false; }
