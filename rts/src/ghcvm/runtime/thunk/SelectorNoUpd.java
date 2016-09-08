@@ -17,6 +17,8 @@ public class SelectorNoUpd extends StgThunk {
     @Override
     public void enter(StgContext context) {
         super.enter(context);
+        int top = context.stackTopIndex();
         p.evaluate(context);
+        context.checkForStackFrames(top);
     }
 }

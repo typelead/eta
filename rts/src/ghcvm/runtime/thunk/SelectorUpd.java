@@ -16,6 +16,8 @@ public class SelectorUpd extends StgInd {
 
     @Override
     public void thunkEnter(StgContext context) {
+        int top = context.stackTopIndex();
         p.evaluate(context);
+        context.checkForStackFrames(top);
     }
 }

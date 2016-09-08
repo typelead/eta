@@ -17,7 +17,7 @@ public class RtsMessages {
         System.err.format(msg, args);
         System.err.print("\n");
         System.err.print("    (GHCVM version " + 1.0 /* TODO: ProjectVersion */ + " for " + "Linux" /* TODO: HostPlatform_TYPE */ + ")\n");
-        System.err.print("    Please report this as a GHCVM bug:  https://github.com/rahulmutt/ghcvm/issues");
+        System.err.println("    Please report this as a GHCVM bug:  https://github.com/rahulmutt/ghcvm/issues");
         stgExit(EXIT_INTERNAL_ERROR);
     }
 

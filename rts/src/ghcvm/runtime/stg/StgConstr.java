@@ -10,32 +10,32 @@ public abstract class StgConstr extends StgClosure {
     public StgClosure getEvaluated() { return this; }
 
     public StgClosure getP(int i) {
-        barf("getP not implemented!");
+        barf(this + ": getP not implemented!");
         return null;
     }
 
     public Object getO(int i) {
-        barf("getO not implemented!");
+        barf(this + ": getO not implemented!");
         return null;
     }
 
     public int getN(int i) {
-        barf("getN not implemented!");
+        barf(this + ": getN not implemented!");
         return 0;
     }
 
     public float getF(int i) {
-        barf("getF not implemented!");
+        barf(this + ": getF not implemented!");
         return 0.0f;
     }
 
     public long getL(int i) {
-        barf("getL not implemented!");
+        barf(this + ": getL not implemented!");
         return 0L;
     }
 
     public double getD(int i) {
-        barf("getD not implemented!");
+        barf(this + ": getD not implemented!");
         return 0.0;
     }
 }
