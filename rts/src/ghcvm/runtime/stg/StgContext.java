@@ -21,6 +21,14 @@ public class StgContext {
         this.argStack = (ArgumentStack) stack;
     }
 
+    public void dump() {
+        System.out.println("Context Dump");
+        System.out.println("currentTSO: " + currentTSO);
+        System.out.println("myCapabilitymyCapability: " + myCapability);
+        System.out.println("ret: " + ret);
+        argStack.dump();
+    }
+
     public int stackTopIndex() {
         return currentTSO.sp.previousIndex();
     }

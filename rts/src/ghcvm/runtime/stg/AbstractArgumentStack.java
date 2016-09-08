@@ -40,6 +40,11 @@ public abstract class AbstractArgumentStack {
         }
     }
 
+    public void dump() {
+        System.out.println("Dumping arg stacks...");
+        System.out.println("R" + closures);
+    }
+
     public static class Builder {
         public ObjectArrayList closures;
         public ObjectArrayList objects;

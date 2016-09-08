@@ -43,6 +43,16 @@ public class ArgumentStack extends AbstractArgumentStack {
     }
 
     @Override
+    public void dump() {
+        super.dump();
+        System.out.println("O" + objects);
+        System.out.println("I" + ints);
+        System.out.println("L" + longs);
+        System.out.println("F" + floats);
+        System.out.println("D" + doubles);
+    }
+
+    @Override
     public void populate(Builder builder) {
         super.populate(builder);
         if (objects != null) builder.objects = objects.copy();
