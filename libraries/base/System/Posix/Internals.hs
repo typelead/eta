@@ -432,9 +432,8 @@ c_umask :: CMode -> IO CMode
 c_umask = undefined
 
 -- See Note: CSsize
--- foreign import capi unsafe "HsBase.h write"
-c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
-c_write = undefined
+foreign import java unsafe "@static ghcvm.runtime.Utils.c_write"
+  c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
 -- foreign import capi safe "HsBase.h write"
