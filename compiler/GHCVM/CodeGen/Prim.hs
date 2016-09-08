@@ -591,7 +591,7 @@ simpleOp JByte2CharOp = Just $ normalOp preserveByte
 
 -- StgMutVar ops
 simpleOp ReadMutVarOp = Just $ normalOp $ castStgMutVar <> mutVarValue
-simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
+simpleOp WriteMutVarOp = Just $ castThisOp castStgMutVar $ mutVarSetValue
 simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 
 -- Addr# ops
