@@ -42,6 +42,7 @@ public class Concurrent {
                 } else {
                     StgClosure val = mvar.value;
                     if (mvar.isEmpty()) {
+                        mvar.value = null;
                         mvar.unlock();
                         context.R(1, val);
                     } else {

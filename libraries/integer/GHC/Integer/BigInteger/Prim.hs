@@ -244,11 +244,11 @@ foreign import java unsafe "java.math.BigInteger.isProbablePrime" testPrimeInteg
 foreign import java unsafe "java.math.BigInteger.not" complementInteger#
   :: Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.valueOf" int64ToInteger#
+foreign import java unsafe "@static java.math.BigInteger.valueOf" int64ToInteger#
   :: Int64# -> Integer#
 
 -- TODO: Is this correct?
-foreign import java unsafe "java.math.BigInteger.valueOf" word64ToInteger#
+foreign import java unsafe "@static java.math.BigInteger.valueOf" word64ToInteger#
   :: Word64# -> Integer#
 
 foreign import java unsafe "java.math.BigInteger.longValue" integerToInt64#
