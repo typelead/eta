@@ -426,14 +426,14 @@ guessOutputFile = modifySession $ \env ->
         name = fmap dropExtension mainModuleSrcPath
 
         name_exe = do
-#if defined(mingw32_HOST_OS)
-          -- we must add the .exe extention unconditionally here, otherwise
-          -- when name has an extension of its own, the .exe extension will
-          -- not be added by DriverPipeline.exeFileName.  See #2248
-          name' <- fmap (<.> "exe") name
-#else
+-- #if defined(mingw32_HOST_OS)
+--           -- we must add the .exe extention unconditionally here, otherwise
+--           -- when name has an extension of its own, the .exe extension will
+--           -- not be added by DriverPipeline.exeFileName.  See #2248
+--           name' <- fmap (<.> "exe") name
+-- #else
           name' <- name
-#endif
+-- #endif
           mainModuleSrcPath' <- mainModuleSrcPath
           -- #9930: don't clobber input files (unless they ask for it)
           if name' == mainModuleSrcPath'
