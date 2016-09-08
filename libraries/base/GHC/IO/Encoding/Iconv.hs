@@ -58,11 +58,12 @@ iconv_trace s
 
 {-# NOINLINE localeEncodingName #-}
 localeEncodingName :: String
-localeEncodingName = unsafePerformIO $ do
-   -- Use locale_charset() or nl_langinfo(CODESET) to get the encoding
-   -- if we have either of them.
-   cstr <- c_localeEncoding
-   peekCAString cstr -- Assume charset names are ASCII
+localeEncodingName = haskellChar
+  -- unsafePerformIO $ do
+--    -- Use locale_charset() or nl_langinfo(CODESET) to get the encoding
+--    -- if we have either of them.
+--    cstr <- c_localeEncoding
+--    peekCAString cstr -- Assume charset names are ASCII
 
 -- We hope iconv_t is a storable type.  It should be, since it has at least the
 -- value -1, which is a possible return value from iconv_open.

@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -150,6 +150,11 @@ module Prelude (
     -- ** Exception handling in the I\/O monad
     IOError, ioError, userError,
 
+    -- * GHCVM I/O
+    printShow,
+    JString,
+    Object#,
+    mkJString
   ) where
 
 import Control.Monad
@@ -170,3 +175,6 @@ import GHC.Num
 import GHC.Real
 import GHC.Float
 import GHC.Show
+
+import GHCVM.IO
+import GHCVM.JString
