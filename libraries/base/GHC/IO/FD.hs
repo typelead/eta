@@ -569,7 +569,7 @@ isNonBlocking fd = fdIsNonBlocking fd /= 0
 
 -- foreign import ccall unsafe "fdReady"
 unsafe_fdReady :: CInt -> CInt -> CInt -> CInt -> IO CInt
-unsafe_fdReady = undefined
+unsafe_fdReady _ _ _ _ = return 1
 
 #else /* mingw32_HOST_OS.... */
 
@@ -649,7 +649,7 @@ c_safe_send = undefined
 
 -- foreign import ccall "rtsSupportsBoundThreads"
 threaded :: Bool
-threaded = undefined
+threaded = True
 
 -- -----------------------------------------------------------------------------
 -- utils
