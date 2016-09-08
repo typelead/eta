@@ -436,9 +436,8 @@ foreign import java unsafe "@static ghcvm.runtime.Utils.c_write"
   c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
--- foreign import capi safe "HsBase.h write"
-c_safe_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
-c_safe_write = undefined
+foreign import java unsafe "@static ghcvm.runtime.Utils.c_write"
+  c_safe_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- foreign import ccall unsafe "HsBase.h __hscore_ftruncate"
 c_ftruncate :: CInt -> COff -> IO CInt
