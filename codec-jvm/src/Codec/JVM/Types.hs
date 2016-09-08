@@ -150,6 +150,17 @@ fieldSize (BaseType JLong)    = 2
 fieldSize (BaseType JDouble)  = 2
 fieldSize _                   = 1
 
+fieldByteSize :: FieldType -> Int
+fieldByteSize (BaseType JByte) = 1
+fieldByteSize (BaseType JChar) = 2
+fieldByteSize (BaseType JDouble) = 8
+fieldByteSize (BaseType JFloat) = 4
+fieldByteSize (BaseType JInt) = 4
+fieldByteSize (BaseType JLong) = 8
+fieldByteSize (BaseType JShort) = 2
+fieldByteSize (BaseType JBool) = 1 -- TODO: Is this correct?
+fieldByteSize _ = 4 -- TODO: Is this correct?
+
 prim :: PrimType -> FieldType
 prim = BaseType
 

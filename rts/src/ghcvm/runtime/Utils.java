@@ -3,6 +3,8 @@ package ghcvm.runtime;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.util.ListIterator;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class Utils {
@@ -49,5 +51,19 @@ public class Utils {
         } catch (IllegalArgumentException ignored) {
             return -1;
         }
+    }
+
+    public static String byteBufferToStr(ByteBuffer buffer)
+        throws UnsupportedEncodingException {
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        System.out.println(Arrays.toString(bytes));
+        return new String(bytes, "UTF-8");
+    }
+
+    public static void printBuffer(ByteBuffer buffer) {
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        System.out.println(Arrays.toString(bytes));
     }
 }
