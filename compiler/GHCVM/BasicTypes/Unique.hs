@@ -206,7 +206,7 @@ instance Uniquable Unique where
 showUnique :: Unique -> String
 showUnique uniq
   = case unpkUnique uniq of
-      (tag, u) -> finish_show tag u (iToBase62 u)
+      (tag, u) -> finish_show tag u (iToBase36 u)
 
 finish_show :: Char -> Int -> String -> String
 finish_show 't' u _pp_u | u < 26
@@ -236,22 +236,37 @@ The ``62-its'' are \tr{[0-9a-zA-Z]}.  We don't handle negative Ints.
 Code stolen from Lennart.
 -}
 
-iToBase62 :: Int -> String
-iToBase62 n_
-  = ASSERT(n_ >= 0) go (iUnbox n_) ""
+iToBase36 :: Int -> String
+iToBase36 n_ = go (iUnbox n_) ""
   where
-    go n cs | n <# _ILIT(62)
-             = case chooseChar62 n of { c -> c `seq` (c : cs) }
-             | otherwise
-             =  case (quotRem (iBox n) 62) of { (q_, r_) ->
-                case iUnbox q_ of { q -> case iUnbox r_ of { r ->
-                case (chooseChar62 r) of { c -> c `seq`
-                (go q (c : cs)) }}}}
+    go n cs
+      | n <# 36# = case chooseChar36 n of { c -> c `seq` (c : cs) }
+      | otherwise =  case quotRem (iBox n) 36 of
+                       (q_, r_) -> case iUnbox q_ of
+                         q -> case iUnbox r_ of
+                           r -> case chooseChar36 r of
+                             c -> c `seq` go q (c : cs)
 
-    chooseChar62 :: FastInt -> Char
-    {-# INLINE chooseChar62 #-}
-    chooseChar62 n = C# (indexCharOffAddr# chars62 n)
-    !chars62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"#
+    chooseChar36 :: FastInt -> Char
+    {-# INLINE chooseChar36 #-}
+    chooseChar36 n = C# (indexCharOffAddr# chars36 n)
+    !chars36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"#
+-- iToBase62 :: Int -> String
+-- iToBase62 n_
+--   = ASSERT(n_ >= 0) go (iUnbox n_) ""
+--   where
+--     go n cs | n <# _ILIT(62)
+--              = case chooseChar62 n of { c -> c `seq` (c : cs) }
+--              | otherwise
+--              =  case (quotRem (iBox n) 62) of { (q_, r_) ->
+--                 case iUnbox q_ of { q -> case iUnbox r_ of { r ->
+--                 case (chooseChar62 r) of { c -> c `seq`
+--                 (go q (c : cs)) }}}}
+
+--     chooseChar62 :: FastInt -> Char
+--     {-# INLINE chooseChar62 #-}
+--     chooseChar62 n = C# (indexCharOffAddr# chars62 n)
+--     !chars62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"#
 
 {-
 ************************************************************************

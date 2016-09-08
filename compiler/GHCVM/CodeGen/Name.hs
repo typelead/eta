@@ -13,8 +13,7 @@ module GHCVM.CodeGen.Name (
   moduleClass,
   closure,
   classFilePath,
-  labelToMethod
-  ) where
+  labelToMethod) where
 
 import GHCVM.Main.DynFlags
 import GHCVM.Types.TyCon
@@ -151,41 +150,27 @@ labelToMethod s = ( T.replace "." "/" . T.dropEnd 1 . T.dropWhileEnd (/= '.') $ 
 -- Custom Outputable instance for Name,
 -- since we need to be case-insensitive.
 -- Take directly from GHC with modifications.
-iToBase36 :: Int -> String
-iToBase36 n_ = go (iUnbox n_) ""
-  where
-    go n cs
-      | n <# 36# = case chooseChar36 n of { c -> c `seq` (c : cs) }
-      | otherwise =  case quotRem (iBox n) 36 of
-                       (q_, r_) -> case iUnbox q_ of
-                         q -> case iUnbox r_ of
-                           r -> case chooseChar36 r of
-                             c -> c `seq` go q (c : cs)
+-- iToBase36 :: Int -> String
+-- iToBase36 n_ = go (iUnbox n_) ""
+--   where
+--     go n cs
+--       | n <# 36# = case chooseChar36 n of { c -> c `seq` (c : cs) }
+--       | otherwise =  case quotRem (iBox n) 36 of
+--                        (q_, r_) -> case iUnbox q_ of
+--                          q -> case iUnbox r_ of
+--                            r -> case chooseChar36 r of
+--                              c -> c `seq` go q (c : cs)
 
-    chooseChar36 :: FastInt -> Char
-    {-# INLINE chooseChar36 #-}
-    chooseChar36 n = C# (indexCharOffAddr# chars36 n)
-    !chars36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"#
+--     chooseChar36 :: FastInt -> Char
+--     {-# INLINE chooseChar36 #-}
+--     chooseChar36 n = C# (indexCharOffAddr# chars36 n)
+--     !chars36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"#
 
-pprUniqueCI :: Unique -> SDoc
-pprUniqueCI = text . showUniqueCI
-
-showUniqueCI :: Unique -> String
-showUniqueCI uniq
-  = case unpkUnique uniq of
-      (tag, u) -> finishShow tag u (iToBase36 u)
-
-finishShow :: Char -> Int -> String -> String
-finishShow 't' u _pp_u | u < 26
-  = -- Special case to make v common tyvars, t1, t2, ...
-    -- come out as a, b, ... (shorter, easier to read)
-    [chr (ord 'a' + u)]
-finishShow tag _ pp_u = tag : pp_u
-
--- pretty-print name, case-insensitive
+-- -- pretty-print name, case-insensitive
 pprNameCI :: Name -> SDoc
 pprNameCI name
   = getPprStyle $ \ sty ->
+        -- pprZOccName occ <> pprUnderscoreUnique uniq
       if isInternalName name then pprInternal sty uniq occ
       else if isSystemName name then pprSystem sty uniq occ
       else pprOccName occ
@@ -205,7 +190,7 @@ pprSystem sty uniq occ = pprOccName occ <> pprUnderscoreUnique uniq
 pprUnderscoreUnique :: Unique -> SDoc
 -- Print an underscore separating the name from its unique
 -- But suppress it if we aren't printing the uniques anyway
-pprUnderscoreUnique uniq = char '_' <> pprUniqueCI uniq
+pprUnderscoreUnique uniq = char '_' <> ppr uniq
 
 pprOccName :: OccName -> SDoc
 pprOccName  = ftext . occNameFS
