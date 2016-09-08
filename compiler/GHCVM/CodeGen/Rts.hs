@@ -206,8 +206,8 @@ byteBuffer = "java/nio/ByteBuffer"
 byteBufferType :: FieldType
 byteBufferType = obj byteBuffer
 
-byteBufferBuf :: Code
-byteBufferBuf = getfield $ mkFieldRef stgByteArray "buf" byteBufferType
+byteArrayBuf :: Code
+byteArrayBuf = getfield $ mkFieldRef stgByteArray "buf" byteBufferType
 
 byteBufferCapacity :: Code
 byteBufferCapacity = invokevirtual $ mkMethodRef byteBuffer "capacity" [] (ret jint)

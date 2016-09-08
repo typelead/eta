@@ -314,6 +314,9 @@ castStgMutVar = gconv closureType stgMutVarType
 castStgMVar :: Code
 castStgMVar = gconv closureType stgMVarType
 
+castStgByteArray :: Code
+castStgByteArray = gconv closureType stgByteArrayType
+
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 
 -- Array# & MutableArray# ops
@@ -333,10 +336,10 @@ simpleOp IndexArrayOp = Just $
   castThisOp castStgArray $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
 -- ByteArray# & MutableByteArray# ops
-simpleOp ByteArrayContents_Char = Just $ normalOp $ byteBufferBuf
+simpleOp ByteArrayContents_Char = Just $ normalOp $ castStgByteArray <> byteArrayBuf
 simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
 simpleOp UnsafeFreezeByteArrayOp = Just idOp
-simpleOp SizeofMutableArrayOp = Just $ normalOp $ byteBufferBuf <> byteBufferCapacity
+simpleOp SizeofMutableArrayOp = Just $ normalOp $ castStgByteArray <> byteArrayBuf <> byteBufferCapacity
 simpleOp IndexByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp IndexByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
 simpleOp IndexByteArrayOp_Int = Just $ byteArrayIndexOp jint mempty
@@ -713,11 +716,11 @@ addrWriteOp ft argCode = normalOp $ argCode <> byteBufferPut ft
 
 byteArrayIndexOp :: FieldType -> Code -> [Code] -> Code
 byteArrayIndexOp ft resCode = \[this, ix] ->
-  addrIndexOp ft resCode [this <> byteBufferBuf, ix]
+  addrIndexOp ft resCode [this <> castStgByteArray <> byteArrayBuf, ix]
 
 byteArrayWriteOp :: FieldType -> Code -> [Code] -> Code
 byteArrayWriteOp ft argCode = \[this, ix, val] ->
-  addrWriteOp ft argCode [this <> byteBufferBuf, ix, val]
+  addrWriteOp ft argCode [this <> castStgByteArray <> byteArrayBuf, ix, val]
 
 preserveByte :: Code
 preserveByte = iconst jint 0xFF <> iand
