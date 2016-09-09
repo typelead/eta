@@ -86,7 +86,7 @@ c_localeEncoding :: IO CString
 c_localeEncoding = undefined
 
 haskellChar :: String
-haskellChar = "UTF-16BE"
+haskellChar = "UTF-32BE"
 
 char_shift :: Int
 char_shift = 2
