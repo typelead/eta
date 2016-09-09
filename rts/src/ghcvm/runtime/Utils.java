@@ -1,10 +1,11 @@
 package ghcvm.runtime;
 
 import java.io.PrintStream;
-import java.nio.ByteBuffer;
-import java.util.ListIterator;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.ListIterator;
 
 public class Utils {
     public static <E> E peekPrevious(ListIterator<E> it) {
@@ -38,6 +39,10 @@ public class Utils {
         default:
             throw new IllegalArgumentException("Invalid file descriptor");
         }
+    }
+
+    public static String c_localeEncoding() {
+        return Charset.defaultCharset().name();
     }
 
     public static long c_write(int file, ByteBuffer buffer, long count) {

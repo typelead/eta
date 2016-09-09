@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP
+           , MagicHash
            , NoImplicitPrelude
            , NondecreasingIndentation
   #-}
@@ -58,12 +59,12 @@ iconv_trace s
 
 {-# NOINLINE localeEncodingName #-}
 localeEncodingName :: String
-localeEncodingName = haskellChar
-  -- unsafePerformIO $ do
---    -- Use locale_charset() or nl_langinfo(CODESET) to get the encoding
---    -- if we have either of them.
---    cstr <- c_localeEncoding
---    peekCAString cstr -- Assume charset names are ASCII
+localeEncodingName = unsafePerformIO $ do
+   -- Use locale_charset() or nl_langinfo(CODESET) to get the encoding
+   -- if we have either of them.
+   JS# cstr <- c_localeEncoding
+   -- peekCAString cstr -- Assume charset names are ASCII
+   return $ unpackCString# cstr
 
 -- We hope iconv_t is a storable type.  It should be, since it has at least the
 -- value -1, which is a possible return value from iconv_open.
@@ -81,9 +82,8 @@ hs_iconv_close = undefined
 hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO CSize
 hs_iconv = undefined
 
--- foreign import ccall unsafe "localeEncoding"
-c_localeEncoding :: IO CString
-c_localeEncoding = undefined
+foreign import java unsafe "@static  ghcvm.runtime.Utils.c_localeEncoding"
+  c_localeEncoding :: IO JString
 
 haskellChar :: String
 haskellChar = "UTF-32BE"
