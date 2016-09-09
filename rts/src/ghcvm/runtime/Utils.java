@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import java.util.ListIterator;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class Utils {
     public static <E> E peekPrevious(ListIterator<E> it) {
@@ -46,8 +45,10 @@ public class Utils {
             PrintStream stream = getPrintStream(file);
             byte[] dst = new byte[(int) count];
             buffer.get(dst, 0, (int) count);
-            stream.print(new String(dst, US_ASCII));
-            return 0;
+            stream.print(new String(dst, "US-ASCII"));
+            return count;
+        } catch (UnsupportedEncodingException ignored) {
+            return -1;
         } catch (IllegalArgumentException ignored) {
             return -1;
         }
