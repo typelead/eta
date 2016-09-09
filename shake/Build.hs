@@ -11,8 +11,10 @@ import Data.Maybe(mapMaybe)
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
 import System.Info(os)
+import GHC.IO.Exception(ExitCode)
 
 rtsDir = "rts"
+genBuild x = x </> "build"
 rtsBuildDir = rtsDir </> "build"
 rtsIncludeDir = rtsDir </> "include"
 rtsSrcDir = rtsDir </> "src"
@@ -25,6 +27,7 @@ sampleBuild x = sampleBuildDir </> x
 rtsjar = libJarPath "rts"
 masjar = sampleBuild "mapandsum.jar"
 top x = "../../" ++ x
+testsDir = "tests"
 packageConfDir dir = dir </> "package.conf.d"
 
 ghcvmIncludePath :: FilePath -> FilePath
@@ -118,6 +121,33 @@ buildLibrary debug lib deps = do
   unit $ cmd "stack exec -- ghc-pkg" ["--package-db", packageConfDir rootDir] "--force register" libBuildConf
   return ()
 
+testSpec :: FilePath -> Action ()
+testSpec specPath = do
+  rootDir <- getGhcVmRoot
+  specStr <- readFile' specPath
+  let (command, output') = break (== '\n') specStr
+      expectedOutput     = drop 1 output'
+      testHome           = takeDirectory specPath
+      packageDir         = packageConfDir rootDir
+      testBuildDir       = genBuild testHome
+  createDir testBuildDir
+  unit $ cmd [Cwd testHome, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
+             "ghcvm" ["-outputdir", "build"] ["-o", jarTestFile] command mainTestFile
+  -- TODO: Needs to be fixed
+  Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", jarTestFile] "ghcvm.main"
+  removeFilesAfter testBuildDir ["//*"]
+  if expectedOutput == actualOutput then
+    putNormal $ "Test " ++ specPath ++ " passed."
+  else do
+    putNormal $ "Test " ++ specPath ++ " failed."
+    putNormal $ "Actual:"
+    putNormal $ actualOutput
+    putNormal $ "Expected:"
+    putNormal $ expectedOutput
+  where mainTestFile = fileName -<.> "hs"
+        jarTestFile  = "build" </> (fileName -<.> "jar")
+        fileName     = takeBaseName specPath
+
 createDir :: FilePath -> Action ()
 createDir path = liftIO $ createDirectoryIfMissing True path
 
@@ -138,12 +168,15 @@ flags = [Option "" ["debuginfo"] (NoArg $ Right True) "Run with debugging inform
 -- TODO: Make the build script cleaner
 main :: IO ()
 main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets -> return $ Just $ do
+
     if null targets
       then want [rtsjar]
       else want targets
+
     let debug = case flags of
           (x:_) -> True
           _     -> False
+
     phony "install" $ do
       rootDir <- getGhcVmRoot
       exists <- doesDirectoryExist rootDir
@@ -171,6 +204,14 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug lib (getDependencies lib)
+
+    phony "test" $ do
+      specs <- getDirectoryFiles "" ["//*.spec"]
+      mapM_ testSpec specs
+
+    phony "testclean" $ do
+      specs <- getDirectoryFiles "" ["//*.spec"]
+      mapM_ (\spec -> removeFilesAfter (takeDirectory spec </> "build") ["//*"]) specs
 
     phony "uninstall" $ do
       rootDir <- getGhcVmRoot
