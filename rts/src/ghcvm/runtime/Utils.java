@@ -1,5 +1,6 @@
 package ghcvm.runtime;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -30,6 +31,15 @@ public class Utils {
         return System.console() != null ? 1 : 0;
     }
 
+    private static InputStream getInputStream(int file) {
+        switch (file) {
+        case 0:
+            return System.in;
+        default:
+            throw new IllegalArgumentException("Invalid file descriptor for an InputStream");
+        }
+    }
+
     private static PrintStream getPrintStream(int file) {
         switch (file) {
         case 1:
@@ -37,7 +47,7 @@ public class Utils {
         case 2:
             return System.err;
         default:
-            throw new IllegalArgumentException("Invalid file descriptor");
+            throw new IllegalArgumentException("Invalid file descriptor for a PrintStream");
         }
     }
 
@@ -57,6 +67,18 @@ public class Utils {
         } catch (IllegalArgumentException ignored) {
             return -1;
         }
+    }
+
+    public static long c_read(int file, ByteBuffer buffer, long count) {
+        byte[] bytes = new byte[(int) count];
+        int got;
+        try {
+            got = System.in.read(bytes);
+            buffer.put(bytes);
+        } catch (IOException ignored) {
+            return -1;
+        }
+        return got;
     }
 
     public static String byteBufferToStr(ByteBuffer buffer)

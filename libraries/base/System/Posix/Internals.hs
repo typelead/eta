@@ -414,14 +414,12 @@ c_safe_open :: CFilePath -> CInt -> CMode -> IO CInt
 c_safe_open = undefined
 
 -- See Note: CSsize
--- foreign import capi unsafe "HsBase.h read"
-c_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
-c_read = undefined
+foreign import java unsafe "@static ghcvm.runtime.Utils.c_read"
+  c_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
--- foreign import capi safe "HsBase.h read"
-c_safe_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
-c_safe_read = undefined
+foreign import java unsafe "@static ghcvm.runtime.Utils.c_read"
+  c_safe_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- foreign import ccall unsafe "HsBase.h __hscore_stat"
 c_stat :: CFilePath -> Ptr CStat -> IO CInt
