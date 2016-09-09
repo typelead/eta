@@ -25,10 +25,30 @@ module GHC.TopHandler (
         runMainIO--, runIO, runIOFastExit, runNonIO,
         -- topHandler, topHandlerFastExit,
         -- reportStackOverflow, reportError,
-        -- flushStdHandles
+        , flushStdHandles
     ) where
 
-import GHC.Types
+import Control.Exception
+import Data.Maybe
+
+import Foreign
+import Foreign.C
+import GHC.Base
+import GHC.Conc hiding (throwTo)
+import GHC.Real
+import GHC.IO
+import GHC.IO.Handle.FD
+import GHC.IO.Handle
+import GHC.IO.Exception
+import GHC.Weak
+
+-- TODO: Necessary?
+import Data.Dynamic (toDyn)
 
 runMainIO :: IO a -> IO a
 runMainIO x = x
+
+flushStdHandles :: IO ()
+flushStdHandles = do
+  hFlush stdout `catchAny` \_ -> return ()
+  hFlush stderr `catchAny` \_ -> return ()

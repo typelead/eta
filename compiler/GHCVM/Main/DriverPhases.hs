@@ -282,7 +282,7 @@ haskellish_src_suffixes      = haskellish_user_src_suffixes ++
                                [ "hspp", "hscpp", "hcr", "cmm", "cmmcpp" ]
 haskellish_suffixes          = haskellish_src_suffixes ++ ["hc", "raw_s"]
 cish_suffixes                = [ "c", "cpp", "C", "cc", "cxx", "s", "S", "ll", "bc", "lm_s", "m", "M", "mm" ]
-javaish_suffixes             = [ "java" ]
+javaish_suffixes             = [ "java", "class" ]
 -- Will not be deleted as temp files:
 haskellish_user_src_suffixes =
   haskellish_sig_suffixes ++ [ "hs", "lhs", "hs-boot", "lhs-boot" ]

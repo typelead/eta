@@ -736,6 +736,7 @@ data DynFlags = DynFlags {
   dumpPrefixForce       :: Maybe FilePath,
 
   ldInputs              :: [Option],
+  classPaths            :: [String],
 
   includePaths          :: [String],
   libraryPaths          :: [String],
@@ -1463,6 +1464,7 @@ defaultDynFlags mySettings =
         dumpPrefix              = Nothing,
         dumpPrefixForce         = Nothing,
         ldInputs                = [],
+        classPaths              = [],
         includePaths            = [],
         libraryPaths            = [],
         frameworkPaths          = [],
@@ -2342,6 +2344,8 @@ dynamic_flags = [
         ------- Libraries ---------------------------------------------------
   , defFlag "L"   (Prefix addLibraryPath)
   , defFlag "l"   (hasArg (addLdInputs . Option . ("-l" ++)))
+  , defFlag "classpath"   (hasArg addClassPaths)
+  , defFlag "cp"          (hasArg addClassPaths)
 
         ------- Frameworks --------------------------------------------------
         -- -framework-path should really be -F ...
@@ -3868,6 +3872,9 @@ setMainIs arg
 
 addLdInputs :: Option -> DynFlags -> DynFlags
 addLdInputs p dflags = dflags{ldInputs = ldInputs dflags ++ [p]}
+
+addClassPaths :: String -> DynFlags -> DynFlags
+addClassPaths p dflags = dflags{classPaths = classPaths dflags ++ [p]}
 
 -----------------------------------------------------------------------------
 -- Paths & Libraries
