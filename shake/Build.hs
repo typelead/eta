@@ -133,7 +133,6 @@ testSpec specPath = do
   createDir testBuildDir
   unit $ cmd [Cwd testHome, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
              "ghcvm" ["-outputdir", "build"] ["-o", jarTestFile] command mainTestFile
-  -- TODO: Needs to be fixed
   Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", jarTestFile] "ghcvm.main"
   removeFilesAfter testBuildDir ["//*"]
   if expectedOutput == actualOutput then
