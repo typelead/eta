@@ -32,9 +32,9 @@ public class Utils {
 
     private static PrintStream getPrintStream(int file) {
         switch (file) {
-        case 0:
-            return System.out;
         case 1:
+            return System.out;
+        case 2:
             return System.err;
         default:
             throw new IllegalArgumentException("Invalid file descriptor");
