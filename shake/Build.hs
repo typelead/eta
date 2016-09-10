@@ -1,4 +1,5 @@
 {-# GHC_OPTIONS -XNoOverloadedStrings #-}
+import Data.List(intercalate)
 import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
@@ -132,9 +133,14 @@ testSpec specPath = do
       testBuildDir       = genBuild testHome
   createDir testBuildDir
   unit $ cmd [Cwd testHome, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
-             "ghcvm" ["-outputdir", "build"] ["-o", jarTestFile] command mainTestFile
-  Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", jarTestFile] "ghcvm.main"
-  removeFilesAfter testBuildDir ["//*"]
+             "ghcvm -shared" ["-outputdir", "build"] ["-o", jarTestFile] command mainTestFile
+
+  let classPathsAll = jarTestFile : map libJar ["base", "rts", "ghc-prim", "integer"]
+      libJar lib = rootDir </> lib </> ("HS" ++ lib ++ ".jar")
+      classPathFolded = intercalate ":" classPathsAll
+
+  Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", classPathFolded] "ghcvm.main"
+  --removeFilesAfter testBuildDir ["//*"]
   if expectedOutput == actualOutput then
     putNormal $ "Test " ++ specPath ++ " passed."
   else do
