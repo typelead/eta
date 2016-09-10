@@ -458,10 +458,22 @@ runCc dflags args =   do
    | otherwise = True
 
 runJavac :: DynFlags -> [Option] -> IO ()
-runJavac dflags args =   do
+runJavac dflags args = do
+  wiredInPkgs <- getPackageLibJars dflags pkgs
   let (prog, args0) = pgm_javac dflags
       opts = map Option (getOpts dflags opt_javac)
-  runSomething dflags "Java Compiler" prog (args0 ++ args ++ opts)
+      classPathsAll = wiredInPkgs ++ classPaths dflags
+      classPathFolded = intercalate ":" classPathsAll
+      classPath = if null classPathsAll
+                  then []
+                  else [Option "-cp", Option classPathFolded ]
+  runSomething dflags "Java Compiler" prog (args0 ++ classPath ++ args ++ opts)
+  where pkgs = case thisPackage dflags of
+          rtsPackageKey -> []
+          primPackageKey -> [rtsPackageKey]
+          integerPackageKey -> [rtsPackageKey, primPackageKey]
+          basePackageKey -> [rtsPackageKey, primPackageKey, integerPackageKey]
+          _ -> [rtsPackageKey, primPackageKey, integerPackageKey, basePackageKey]
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)

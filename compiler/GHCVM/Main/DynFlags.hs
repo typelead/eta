@@ -142,6 +142,10 @@ module GHCVM.Main.DynFlags (
         -- * Linker/compiler information
         LinkerInfo(..),
         CompilerInfo(..),
+
+	-- * DynFlags utilities
+	addClassPaths,
+	addJarInputs,
   ) where
 
 #include "HsVersions.h"
@@ -737,6 +741,7 @@ data DynFlags = DynFlags {
 
   ldInputs              :: [Option],
   classPaths            :: [String],
+  jarInputs             :: [String],
 
   includePaths          :: [String],
   libraryPaths          :: [String],
@@ -1465,6 +1470,7 @@ defaultDynFlags mySettings =
         dumpPrefixForce         = Nothing,
         ldInputs                = [],
         classPaths              = [],
+        jarInputs               = [],
         includePaths            = [],
         libraryPaths            = [],
         frameworkPaths          = [],
@@ -1988,7 +1994,7 @@ data Option
                       -- transformed (e.g., "/out=")
               String  -- the filepath/filename portion
  | Option     String
- deriving ( Eq )
+ deriving ( Eq , Show )
 
 showOpt :: Option -> String
 showOpt (FileOption pre f) = pre ++ f
@@ -3874,7 +3880,11 @@ addLdInputs :: Option -> DynFlags -> DynFlags
 addLdInputs p dflags = dflags{ldInputs = ldInputs dflags ++ [p]}
 
 addClassPaths :: String -> DynFlags -> DynFlags
-addClassPaths p dflags = dflags{classPaths = classPaths dflags ++ [p]}
+addClassPaths ps dflags = dflags{classPaths = classPaths dflags ++ paths}
+  where paths = split ':' ps
+
+addJarInputs :: String -> DynFlags -> DynFlags
+addJarInputs jar dflags = dflags{jarInputs = jarInputs dflags ++ [jar]}
 
 -----------------------------------------------------------------------------
 -- Paths & Libraries

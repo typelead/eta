@@ -98,7 +98,7 @@ buildLibrary debug lib deps = do
   if lib == "rts" then
     need [rtsjar]
   else do
-    sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//.java"]
+    sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//*.java"]
     let ghcvmFlags = (if debug
                      then ["-ddump-to-file", "-ddump-stg"] -- "-v"
                      else [])

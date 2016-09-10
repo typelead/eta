@@ -18,6 +18,7 @@ module GHCVM.Main.DriverPipeline (
         -- Interfaces for the compilation manager (interpreted/batch-mode)
    preprocess,
    compileOne, compileOne',
+   compileFiles,
    link,
 
         -- Exports for hooks to override runPhase and link
@@ -81,7 +82,7 @@ import System.Directory
 import System.FilePath
 import System.IO
 import Control.Monad
-import Data.List        ( isSuffixOf )
+import Data.List        ( isSuffixOf, partition )
 import Data.Maybe
 import System.Environment
 import Data.Char
@@ -383,14 +384,7 @@ link _ dflags batchAttemptLinking hpt
           return Succeeded
         else do
           compilationProgressMsg dflags ("Linking " ++ jarFile ++ " ...")
-          let link = case ghcLink dflags of
-                       LinkBinary    -> linkGeneric True
-                       LinkStaticLib -> linkGeneric False
-                       LinkDynLib    -> linkGeneric False
-                       other         ->
-                         panic ("link: GHC not built to link this way: " ++
-                                show other)
-          link dflags jarFiles pkgDeps
+          linkGeneric dflags jarFiles pkgDeps
           debugTraceMsg dflags 3 (text "link: done")
           return Succeeded
   | otherwise
@@ -402,9 +396,38 @@ link _ dflags batchAttemptLinking hpt
 -- -----------------------------------------------------------------------------
 -- Compile files in one-shot mode.
 
+compileFiles :: HscEnv -> Phase -> [(String, Maybe Phase)] -> IO [FilePath]
+compileFiles hsc_env stop_phase srcs = do
+  o_files' <- mapM (compileFile hsc_env stop_phase) non_java_srcs
+  let dflags' = foldr addClassPaths (hsc_dflags hsc_env)
+              $ class_dirs
+              ++ o_files'
+  when (not (null java_source_srcs)) $
+    runJavac dflags' $ map (SysTools.FileOption "") java_source_srcs
+  let classes = java_classes ++ java_class_srcs
+  when (not (null classes)) $
+    createJar extras $ classes
+  return ((if null classes then [] else [extras]) ++ o_files')
+  where (java_srcs, non_java_srcs) = partition (isJavaishFilename . fst) srcs
+        (java_class_srcs, java_source_srcs) = partition isJavaClassishFilename
+                                              $ map fst java_srcs
+        class_dirs = map takeDirectory java_class_srcs
+        java_classes = map (-<.> "class") java_source_srcs
+        extras = "__extras.jar"
+
+createJar :: FilePath -> [FilePath] -> IO ()
+createJar outputFile classes = do
+  createEmptyJar outputFile
+  pathContents <- forM classes $ \classFile -> do
+    contents <- BL.readFile classFile
+    let internalPath = classFileCls contents
+    relPath <- mkPath $ internalPath ++ ".class"
+    return (relPath, BL.toStrict contents)
+  addMultiByteStringsToJar' pathContents outputFile
+
 oneShot :: HscEnv -> Phase -> [(String, Maybe Phase)] -> IO ()
 oneShot hsc_env stop_phase srcs = do
-  o_files <- mapM (compileFile hsc_env stop_phase) srcs
+  o_files <- compileFiles hsc_env stop_phase srcs
   doLink (hsc_dflags hsc_env) stop_phase o_files
 
 compileFile :: HscEnv -> Phase -> (FilePath, Maybe Phase) -> IO FilePath
@@ -448,13 +471,7 @@ doLink dflags stop_phase o_files
   = return ()           -- We stopped before the linking phase
 
   | otherwise
-  = case ghcLink dflags of
-        NoLink        -> return ()
-        LinkBinary    -> linkGeneric True  dflags o_files []
-        LinkStaticLib -> linkGeneric False dflags o_files []
-        LinkDynLib    -> linkGeneric False dflags o_files []
-        _         -> panic "doLink: implement"
-
+  = linkGeneric dflags o_files []
 
 -- ---------------------------------------------------------------------------
 
@@ -667,8 +684,6 @@ getOutputFilename stop_phase output basename dflags next_phase maybe_location
                        As _    | keep_s     -> True
                        LlvmOpt | keep_bc    -> True
                        HCc     | keep_hc    -> True
-                       -- TODO: Quick hack
-                       JClass               -> True
                        _other               -> False
 
           suffix = myPhaseInputExt next_phase
@@ -941,23 +956,23 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
 -----------------------------------------------------------------------------
 -- Java phase
 
-runPhase (RealPhase JJava) inputFile dflags
-  = do let nextPhase = JClass
-       outputFile <- phaseOutputFilename nextPhase
-       liftIO $ runJavac dflags $
-         [ SysTools.FileOption "" inputFile ]
-       return (RealPhase JClass, outputFile)
+-- runPhase (RealPhase JJava) inputFile dflags
+--   = do let nextPhase = JClass
+--        outputFile <- phaseOutputFilename nextPhase
+--        liftIO $ runJavac dflags $
+--          [ SysTools.FileOption "" inputFile ]
+--        return (RealPhase JClass, outputFile)
 
-runPhase (RealPhase JClass) inputFile dflags
-  = do let nextPhase = StopLn
-       outputFile <- phaseOutputFilename nextPhase
-       liftIO $ do
-         createEmptyJar outputFile
-         contents <- BL.readFile inputFile
-         let internalPath = classFileCls contents
-         relPath <- mkPath $ internalPath ++ ".class"
-         addMultiByteStringsToJar' [(relPath, BL.toStrict contents)] outputFile
-         return (RealPhase nextPhase, outputFile)
+-- runPhase (RealPhase JClass) inputFile dflags
+--   = do let nextPhase = StopLn
+--        outputFile <- phaseOutputFilename nextPhase
+--        liftIO $ do
+--          createEmptyJar outputFile
+--          contents <- BL.readFile inputFile
+--          let internalPath = classFileCls contents
+--          relPath <- mkPath $ internalPath ++ ".class"
+--          addMultiByteStringsToJar' [(relPath, BL.toStrict contents)] outputFile
+--          return (RealPhase nextPhase, outputFile)
 
 -----------------------------------------------------------------------------
 -- Cc phase
@@ -1781,8 +1796,8 @@ findHSLib dflags dirs lib = do
       (x:_) -> Just x
   where file = lib <.> "jar"
 
-linkGeneric :: Bool -> DynFlags -> [String] -> [PackageKey] -> IO ()
-linkGeneric isExecutable dflags oFiles depPackages = do
+linkGeneric :: DynFlags -> [String] -> [PackageKey] -> IO ()
+linkGeneric dflags oFiles depPackages = do
     when (haveRtsOptsFlags dflags) $ do
       log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
           ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
@@ -1790,21 +1805,29 @@ linkGeneric isExecutable dflags oFiles depPackages = do
            (text $ "    Call hsInit() from your main() method to set"
              ++ " these options."))
     -- TODO: Use conduits to combine the jars
-    mainFiles' <- maybeMainAndManifest dflags
+    mainFiles' <- maybeMainAndManifest dflags isExecutable
     mainFiles <- forM mainFiles' $ \(a, b) -> do
                    a' <- mkPath a
                    return (a', b)
     oFiles  <- concatMapM getFilesFromJar oFiles
     extraFiles <-
-          if isExecutable then do
+          if includePackages then do
             pkgLibJars <- getPackageLibJars dflags depPackages
             concatMapM getFilesFromJar pkgLibJars
             -- TODO: Verify that the right version ghcvm was used
             --       in the Manifests of the jars being compiled
           else return []
-    let files = extraFiles ++ oFiles ++ mainFiles
+    jarInputFiles  <- concatMapM getFilesFromJar (jarInputs dflags)
+    let files = extraFiles  ++ jarInputFiles ++ oFiles ++ mainFiles
     linkJars dflags files
     -- TODO: Handle frameworks & extra ldInputs
+    where (isExecutable, includePackages) = case ghcLink dflags of
+            LinkBinary    -> (True, True)
+            LinkStaticLib -> (False, False)
+            LinkDynLib    -> (True, False)
+            other         ->
+              panic ("link: GHC not built to link this way: " ++
+                    show other)
 
 linkJars :: DynFlags -> [FileAndContents] -> IO ()
 linkJars dflags files = do
@@ -1815,8 +1838,8 @@ linkJars dflags files = do
     createEmptyJar outputFn
     addMultiByteStringsToJar' files outputFn
 
-maybeMainAndManifest :: DynFlags -> IO [(FilePath, ByteString)]
-maybeMainAndManifest dflags = do
+maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
+maybeMainAndManifest dflags isExecutable = do
   when (gopt Opt_NoHsMain dflags && haveRtsOptsFlags dflags) $ do
       log_action dflags dflags SevInfo noSrcSpan defaultUserStyle $
         (text $ "Warning: -rtsopts and -with-rtsopts have no effect with "
@@ -1828,7 +1851,7 @@ maybeMainAndManifest dflags = do
     mainClass = "ghcvm/main"
     mainClassJava = "ghcvm.main"
     mainFile
-      | gopt Opt_NoHsMain dflags = Nothing
+      | gopt Opt_NoHsMain dflags || not isExecutable = Nothing
       | otherwise = Just ((classFilePath &&& classFileBS)
                           $ mkRtsMainClass dflags mainClass)
     manifestFile = Just ( "META-INF/MANIFEST.MF"
