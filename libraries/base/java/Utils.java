@@ -1,5 +1,13 @@
 package ghcvm.base;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+
 public class Utils {
     // TODO: Verify correctness
     public static float rintFloat(float f) {
@@ -60,5 +68,72 @@ public class Utils {
     public static boolean isDoubleFinite(double d) {
         long bits = Double.doubleToRawLongBits(d);
         return ((bits >> 52) & 0x7ffL) != 0x7ffL;
+    }
+
+    public static int c_isatty(int tty) {
+        return System.console() != null ? 1 : 0;
+    }
+
+    private static InputStream getInputStream(int file) {
+        switch (file) {
+        case 0:
+            return System.in;
+        default:
+            throw new IllegalArgumentException("Invalid file descriptor for an InputStream");
+        }
+    }
+
+    private static PrintStream getPrintStream(int file) {
+        switch (file) {
+        case 1:
+            return System.out;
+        case 2:
+            return System.err;
+        default:
+            throw new IllegalArgumentException("Invalid file descriptor for a PrintStream");
+        }
+    }
+
+    public static String c_localeEncoding() {
+        return Charset.defaultCharset().name();
+    }
+
+    public static long c_write(int file, ByteBuffer buffer, long count) {
+        try {
+            PrintStream stream = getPrintStream(file);
+            byte[] dst = new byte[(int) count];
+            buffer.get(dst, 0, (int) count);
+            stream.print(new String(dst, "US-ASCII"));
+            return count;
+        } catch (UnsupportedEncodingException ignored) {
+            return -1;
+        } catch (IllegalArgumentException ignored) {
+            return -1;
+        }
+    }
+
+    public static long c_read(int file, ByteBuffer buffer, long count) {
+        byte[] bytes = new byte[(int) count];
+        int got;
+        try {
+            got = System.in.read(bytes);
+            buffer.put(bytes);
+        } catch (IOException ignored) {
+            return -1;
+        }
+        return got;
+    }
+
+    public static String byteBufferToStr(ByteBuffer buffer)
+        throws UnsupportedEncodingException {
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        return new String(bytes, "UTF-8");
+    }
+
+    public static void printBuffer(ByteBuffer buffer) {
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        System.out.println(Arrays.toString(bytes));
     }
 }

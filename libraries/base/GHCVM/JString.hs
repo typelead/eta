@@ -90,5 +90,5 @@ utf8EncodeString ptr str = go ptr str
           ptr' <- utf8EncodeChar c ptr
           go ptr' cs
 
-foreign import java unsafe "@static ghcvm.runtime.Utils.byteBufferToStr"
+foreign import java unsafe "@static ghcvm.base.Utils.byteBufferToStr"
   byteBufferToJavaString :: Ptr a -> IO JString

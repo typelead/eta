@@ -385,7 +385,7 @@ c_dup2 = undefined
 c_fstat :: CInt -> Ptr CStat -> IO CInt
 c_fstat = undefined
 
-foreign import java unsafe "@static ghcvm.runtime.Utils.c_isatty"
+foreign import java unsafe "@static ghcvm.base.Utils.c_isatty"
   c_isatty :: CInt -> IO CInt
 
 #if defined(mingw32_HOST_OS) || defined(__MINGW32__)
@@ -414,11 +414,11 @@ c_safe_open :: CFilePath -> CInt -> CMode -> IO CInt
 c_safe_open = undefined
 
 -- See Note: CSsize
-foreign import java unsafe "@static ghcvm.runtime.Utils.c_read"
+foreign import java unsafe "@static ghcvm.base.Utils.c_read"
   c_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
-foreign import java unsafe "@static ghcvm.runtime.Utils.c_read"
+foreign import java unsafe "@static ghcvm.base.Utils.c_read"
   c_safe_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- foreign import ccall unsafe "HsBase.h __hscore_stat"
@@ -430,11 +430,11 @@ c_umask :: CMode -> IO CMode
 c_umask = undefined
 
 -- See Note: CSsize
-foreign import java unsafe "@static ghcvm.runtime.Utils.c_write"
+foreign import java unsafe "@static ghcvm.base.Utils.c_write"
   c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
-foreign import java unsafe "@static ghcvm.runtime.Utils.c_write"
+foreign import java unsafe "@static ghcvm.base.Utils.c_write"
   c_safe_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
 
 -- foreign import ccall unsafe "HsBase.h __hscore_ftruncate"

@@ -404,6 +404,7 @@ compileFiles hsc_env stop_phase srcs = do
               ++ o_files'
   when (not (null java_source_srcs)) $
     runJavac dflags' $ map (SysTools.FileOption "") java_source_srcs
+  extras <- getOutputFilename StopLn Persistent "__extras" dflags' StopLn Nothing
   let classes = java_classes ++ java_class_srcs
   when (not (null classes)) $
     createJar extras $ classes
@@ -413,7 +414,6 @@ compileFiles hsc_env stop_phase srcs = do
                                               $ map fst java_srcs
         class_dirs = map takeDirectory java_class_srcs
         java_classes = map (-<.> "class") java_source_srcs
-        extras = "__extras.jar"
 
 createJar :: FilePath -> [FilePath] -> IO ()
 createJar outputFile classes = do
