@@ -119,7 +119,10 @@ buildLibrary debug lib deps = do
     let src = libBuildDir </> buildFile
         dst = rootLibDir </> buildFile
     copyFileWithDir src dst
-  unit $ cmd "stack exec -- ghc-pkg" ["--package-db", packageConfDir rootDir] "--force register" libBuildConf
+  (Stdout a, Stderr b) <- cmd "stack exec -- ghc-pkg" ["--package-db", packageConfDir rootDir] "--force register" libBuildConf
+  -- Used to force a & b to be strings
+  -- TODO: Find a cleaner way to do this
+  let c = a ++ b :: String
   return ()
 
 testSpec :: FilePath -> Action ()
@@ -209,6 +212,9 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug lib (getDependencies lib)
+        putNormal $ "To finish the installation, add GHCVM_PACKAGE_PATH to your environment with the value '"
+                 ++ packageConfDir rootDir
+                 ++ "'."
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]

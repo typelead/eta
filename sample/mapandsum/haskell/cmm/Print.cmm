@@ -1,4 +1,0 @@
-print_printIntzh (bits64 i)
-{
-  return ();
-}
