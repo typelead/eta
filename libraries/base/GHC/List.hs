@@ -547,59 +547,59 @@ dropWhile p xs@(x:xs')
 -- It is an instance of the more general 'Data.List.genericTake',
 -- in which @n@ may be of any integral type.
 take                   :: Int -> [a] -> [a]
-#ifdef USE_REPORT_PRELUDE
+-- #ifdef USE_REPORT_PRELUDE
 take n _      | n <= 0 =  []
 take _ []              =  []
 take n (x:xs)          =  x : take (n-1) xs
-#else
+-- #else
 
-{- We always want to inline this to take advantage of a known length argument
-sign. Note, however, that it's important for the RULES to grab take, rather
-than trying to INLINE take immediately and then letting the RULES grab
-unsafeTake. Presumably the latter approach doesn't grab it early enough; it led
-to an allocation regression in nofib/fft2. -}
-{-# INLINE [1] take #-}
-take n xs | 0 < n     = unsafeTake n xs
-          | otherwise = []
+-- {- We always want to inline this to take advantage of a known length argument
+-- sign. Note, however, that it's important for the RULES to grab take, rather
+-- than trying to INLINE take immediately and then letting the RULES grab
+-- unsafeTake. Presumably the latter approach doesn't grab it early enough; it led
+-- to an allocation regression in nofib/fft2. -}
+-- {-# INLINE [1] take #-}
+-- take n xs | 0 < n     = unsafeTake n xs
+--           | otherwise = []
 
--- A version of take that takes the whole list if it's given an argument less
--- than 1.
-{-# NOINLINE [1] unsafeTake #-}
-unsafeTake :: Int -> [a] -> [a]
-unsafeTake !_  []     = []
-unsafeTake 1   (x: _) = [x]
-unsafeTake m   (x:xs) = x : unsafeTake (m - 1) xs
+-- -- A version of take that takes the whole list if it's given an argument less
+-- -- than 1.
+-- {-# NOINLINE [1] unsafeTake #-}
+-- unsafeTake :: Int -> [a] -> [a]
+-- unsafeTake !_  []     = []
+-- unsafeTake 1   (x: _) = [x]
+-- unsafeTake m   (x:xs) = x : unsafeTake (m - 1) xs
 
-{-# RULES
-"take"     [~1] forall n xs . take n xs =
-  build (\c nil -> if 0 < n
-                   then foldr (takeFB c nil) (flipSeqTake nil) xs n
-                   else nil)
-"unsafeTakeList"  [1] forall n xs . foldr (takeFB (:) []) (flipSeqTake []) xs n
-                                        = unsafeTake n xs
- #-}
+-- {-# RULES
+-- "take"     [~1] forall n xs . take n xs =
+--   build (\c nil -> if 0 < n
+--                    then foldr (takeFB c nil) (flipSeqTake nil) xs n
+--                    else nil)
+-- "unsafeTakeList"  [1] forall n xs . foldr (takeFB (:) []) (flipSeqTake []) xs n
+--                                         = unsafeTake n xs
+--  #-}
 
-{-# INLINE [0] flipSeqTake #-}
--- Just flip seq, specialized to Int, but not inlined too early.
--- It's important to force the numeric argument here, even though
--- it's not used. Otherwise, take n [] doesn't force n. This is
--- bad for strictness analysis and unboxing, and leads to increased
--- allocation in T7257.
-flipSeqTake :: a -> Int -> a
-flipSeqTake x !_n = x
+-- {-# INLINE [0] flipSeqTake #-}
+-- -- Just flip seq, specialized to Int, but not inlined too early.
+-- -- It's important to force the numeric argument here, even though
+-- -- it's not used. Otherwise, take n [] doesn't force n. This is
+-- -- bad for strictness analysis and unboxing, and leads to increased
+-- -- allocation in T7257.
+-- flipSeqTake :: a -> Int -> a
+-- flipSeqTake x !_n = x
 
-{-# INLINE [0] takeFB #-}
-takeFB :: (a -> b -> b) -> b -> a -> (Int -> b) -> Int -> b
--- The \m accounts for the fact that takeFB is used in a higher-order
--- way by takeFoldr, so it's better to inline.  A good example is
---     take n (repeat x)
--- for which we get excellent code... but only if we inline takeFB
--- when given four arguments
-takeFB c n x xs
-  = \ m -> case m of
-            1 -> x `c` n
-            _ -> x `c` xs (m - 1)
-#endif
+-- {-# INLINE [0] takeFB #-}
+-- takeFB :: (a -> b -> b) -> b -> a -> (Int -> b) -> Int -> b
+-- -- The \m accounts for the fact that takeFB is used in a higher-order
+-- -- way by takeFoldr, so it's better to inline.  A good example is
+-- --     take n (repeat x)
+-- -- for which we get excellent code... but only if we inline takeFB
+-- -- when given four arguments
+-- takeFB c n x xs
+--   = \ m -> case m of
+--             1 -> x `c` n
+--             _ -> x `c` xs (m - 1)
+-- #endif
 
 -- | 'drop' @n xs@ returns the suffix of @xs@
 -- after the first @n@ elements, or @[]@ if @n > 'length' xs@:

@@ -102,7 +102,7 @@ buildLibrary debug lib deps = do
     sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//*.java"]
     let ghcvmFlags = (if debug
                      then ["-ddump-to-file", "-ddump-stg"] -- "-v"
-                     else [])
+                     else []) -- TODO: Add -O2
                      ++
                      (if lib == "base"
                       then ["-Iinclude"]
