@@ -26,6 +26,7 @@ public class RtsMessages {
             System.err.print(progName + ": ");
         }
         System.err.format(msg, args);
+        System.err.print("\n");
     }
 
     public static void debugBelch(String msg, Object... args) {

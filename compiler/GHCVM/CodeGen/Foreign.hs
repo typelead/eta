@@ -107,6 +107,7 @@ labelToTarget hasObj label argFts reps = case words label of
 
 emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
 emitForeignCall safety mbObj results target args
+  -- TODO: For safe function calls we need a stack check.
   | not (playSafe safety) = do
       -- NOTE: We assume that the running Java code WILL NOT change the context
       --       which will be true in almost all cases

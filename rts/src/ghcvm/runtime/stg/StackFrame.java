@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.thunk.StgThunk;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Default;
+import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class StackFrame extends StgClosure {
     private int stackIndex;
@@ -12,8 +13,6 @@ public abstract class StackFrame extends StgClosure {
     @Override
     public final void enter(StgContext context) {
         ListIterator<StackFrame> sp = context.currentTSO.sp;
-        // TODO: Test this logic
-
         /* WARNING: This logic is VERY delicate. Make sure you
                     run test cases before modifying this. */
 
@@ -40,6 +39,8 @@ public abstract class StackFrame extends StgClosure {
                 if (thisFrame == this) {
                     /* Pop the frame since we're done with it now */
                     sp.remove();
+                } else {
+                    barf("StackFrame.enter: Wrong frame after enter.");
                 }
                 /* TODO: Check if a next() or previous() is required here */
             } else {
@@ -52,11 +53,14 @@ public abstract class StackFrame extends StgClosure {
                         index--;
                     } while (stackIndex < index);
                     continue;
+                } else {
+                    barf("StackFrame.enter: stackIndex > index.");
                 }
                 /* Whens stackIndex > index, do nothing and return
                     to the frame below this one */
             }
-        } while (false);
+            break;
+        } while (true);
    }
 
     public abstract void stackEnter(StgContext context);

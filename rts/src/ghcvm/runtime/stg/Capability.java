@@ -650,7 +650,7 @@ public final class Capability {
                     msg.done();
                     tryWakeupThread(source);
                     return true;
-                } while (false);
+                } while (true);
             }
             return false;
         }
