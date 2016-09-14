@@ -565,17 +565,27 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
   -- this is found relative to the ghcvm-pkg.exe binary, whereas on Unix the
   -- location is passed to the binary using the --global-package-db flag by the
   -- wrapper script.
+  -- TODO: We don't have a global package db yet
   let err_msg = "missing --global-package-db option, location of global package database unknown\n"
+  e_appdir <- tryIO $ getAppUserDataDirectory "ghcvm"
   global_conf <-
      case [ f | FlagGlobalConfig f <- my_flags ] of
-        [] -> do mb_dir <- getLibDir
-                 case mb_dir of
-                   Nothing  -> die err_msg
-                   Just dir -> do
-                     r <- lookForPackageDBIn dir
-                     case r of
-                       Nothing -> die ("Can't find package database in " ++ dir)
-                       Just path -> return path
+        [] -> case e_appdir of
+          Left _    -> die err_msg
+          Right dir -> do
+            r <- lookForPackageDBIn dir
+            case r of
+              Nothing -> die ("Can't find package database in " ++ dir)
+              Just path  -> return path
+          -- let dir = e_appdir
+          --        r <- lookForPackageDBIn dir
+          --        case r of
+          --          Nothing -> die ("Can't find package database in " ++ dir)
+          --          Just path -> return path
+          --        mb_dir <- getLibDir
+          --        case mb_dir of
+          --          Nothing  -> die err_msg
+          --          Just dir -> do
         fs -> return (last fs)
 
   -- The value of the $topdir variable used in some package descriptions
@@ -588,7 +598,6 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
 
   -- get the location of the user package database, and create it if necessary
   -- getAppUserDataDirectory can fail (e.g. if $HOME isn't set)
-  e_appdir <- tryIO $ getAppUserDataDirectory "ghcvm"
 
   mb_user_conf <-
     case [ f | FlagUserConfig f <- my_flags ] of
@@ -1661,7 +1670,7 @@ checkHSLib verbosity dirs auto_ghci_libs lib = do
     Nothing -> verror ForceFiles ("cannot find any of " ++ show filenames ++
                                   " on library path")
     Just dir -> return () --liftIO $ checkGHCiLib verbosity dir batch_lib_file lib auto_ghci_libs
-  where filenames = ["HS" ++ lib ++ ".jar"]
+  where filenames = [lib ++ ".jar"]
 
 doesFileExistOnPath :: [FilePath] -> [FilePath] -> IO (Maybe FilePath)
 doesFileExistOnPath filenames paths = go fullFilenames
@@ -1694,12 +1703,14 @@ checkExposedModules db_stack pkg =
 checkModuleFile :: InstalledPackageInfo -> ModuleName -> Validate ()
 checkModuleFile pkg modl =
       -- there's no interface file for GHC.Prim
-      unless (modl == ModuleName.fromString "GHC.Prim") $ do
-      let files = [ ModuleName.toFilePath modl <.> extension
-                  | extension <- ["hi", "p_hi", "dyn_hi" ] ]
-      m <- liftIO $ doesFileExistOnPath files (importDirs pkg)
-      when (isNothing m) $
-         verror ForceFiles ("cannot find any of " ++ show files)
+      return ()
+      -- TODO: Check for re-exports
+      -- unless (modl == ModuleName.fromString "GHC.Prim") $ do
+      -- let files = [ ModuleName.toFilePath modl <.> extension
+      --             | extension <- ["hi", "p_hi", "dyn_hi" ] ]
+      -- m <- liftIO $ doesFileExistOnPath files (importDirs pkg)
+      -- when (isNothing m) $
+      --    verror ForceFiles ("cannot find any of " ++ show files)
 
 -- | Validates that @exposed-modules@ and @hidden-modules@ do not have duplicate
 -- entries.

@@ -119,10 +119,7 @@ buildLibrary debug lib deps = do
     let src = libBuildDir </> buildFile
         dst = rootLibDir </> buildFile
     copyFileWithDir src dst
-  (Stdout a, Stderr b) <- cmd "stack exec -- ghc-pkg" ["--package-db", packageConfDir rootDir] "--force register" libBuildConf
-  -- Used to force a & b to be strings
-  -- TODO: Find a cleaner way to do this
-  let c = a ++ b :: String
+  unit $ cmd "stack exec -- ghcvm-pkg" ["--package-db", packageConfDir rootDir] " register" libBuildConf
   return ()
 
 testSpec :: FilePath -> Action ()
@@ -195,7 +192,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       else do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
-        unit $ cmd "stack exec -- ghc-pkg init " $ packageConfDir rootDir
+        unit $ cmd "stack exec -- ghcvm-pkg init " $ packageConfDir rootDir
         Stdout paths <- cmd "stack path"
         let binPath = head . mapMaybe (stripPrefix "compiler-bin: ") $ lines paths
             ghcPath = takeDirectory binPath
