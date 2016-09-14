@@ -30,6 +30,7 @@ module GHCVM.Utils.Panic (
 
 import {-# SOURCE #-} GHCVM.Utils.Outputable (SDoc)
 
+import GHCVM.Main.Constants
 import GHCVM.Utils.FastTypes
 import GHCVM.Utils.Exception
 import qualified GHCVM.Utils.Exception as Exception
@@ -154,16 +155,16 @@ showGhcException exception
         Panic s
          -> showString $
                 "panic! (the 'impossible' happened)\n"
-                ++ "  (GHCVM version 0.0.1):\n\t"
+                ++ "  (GHCVM version " ++ cProjectVersion ++ "):\n\t"
                 ++ s ++ "\n\n"
-                ++ "Please report this as a GHCVM bug:  http://github.org/rahulmutt/ghcvm\n"
+                ++ "Please report this as a GHCVM bug: " ++ cProjectIssueReportURL ++ "\n"
 
         PprSorry  s _ ->
             showGhcException (Sorry (s ++ "\n<<details unavailable>>"))
         Sorry s
          -> showString $
                 "sorry! (unimplemented feature or known bug)\n"
-                 ++ "  (GHCVM version 0.0.1):\n\t"
+                 ++ "  (GHCVM version " ++ cProjectVersion ++ "):\n\t"
                  ++ s ++ "\n"
 
   where int_code code =

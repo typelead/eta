@@ -16,7 +16,6 @@ import GHCVM.Main.DriverMkDepend   ( doMkDependHS )
 -- import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
 import GHCVM.StgSyn.StgSyn (pprStgBindings)
 import GHCVM.Main.SysTools
-import Config
 import GHCVM.Main.Constants
 import GHCVM.Main.HscTypes
 import GHCVM.Main.Packages (pprPackages, pprPackagesSimple, pprModuleMap)
@@ -662,12 +661,11 @@ showBanner _postLoadMode dflags = do
 
    -- Display details of the configuration in verbose mode
    when (verb >= 2) $
-    do hPutStr stderr "Glasgow Haskell Compiler, Version "
+    do hPutStr stderr cProjectName
+       hPutStr stderr ", Version "
        hPutStr stderr cProjectVersion
-       hPutStr stderr ", stage "
-       hPutStr stderr cStage
        hPutStr stderr " booted by GHC version "
-       hPutStrLn stderr cBooterVersion
+       hPutStrLn stderr ghcProjectVersion
 
 -- We print out a Read-friendly string, but a prettier one than the
 -- Show instance gives us

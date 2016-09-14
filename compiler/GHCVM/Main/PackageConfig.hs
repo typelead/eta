@@ -28,7 +28,7 @@ module GHCVM.Main.PackageConfig (
 
 #include "HsVersions.h"
 
-import GHC.PackageDb
+import GHCVM.PackageDb
 import Data.Version
 
 import GHCVM.Utils.FastString
@@ -162,4 +162,3 @@ pprPackageConfig InstalledPackageInfo {..} =
 -- | Get the GHC 'PackageKey' right out of a Cabalish 'PackageConfig'
 packageConfigId :: PackageConfig -> PackageKey
 packageConfigId = packageKey
-

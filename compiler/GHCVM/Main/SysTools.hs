@@ -64,6 +64,7 @@ import GHCVM.Main.ErrUtils
 import GHCVM.Utils.Panic
 import GHCVM.Utils.Platform
 import GHCVM.Utils.Util
+import GHCVM.Main.Constants
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Exception
 import qualified GHCVM.Utils.Exception as Exception
@@ -324,7 +325,7 @@ initSysTools mbMinusB
                     sLdSupportsFilelist      = ldSupportsFilelist,
                     sLdIsGnuLd               = ldIsGnuLd,
                     sProgramName             = "ghcvm",
-                    sProjectVersion          = "0.0.1",
+                    sProjectVersion          = cProjectVersion,
                     sPgm_L   = unlit_path,
                     sPgm_P   = (cpp_prog, cpp_args),
                     sPgm_F   = "",
@@ -352,7 +353,7 @@ initSysTools mbMinusB
                     sOpt_windres = [],
                     sOpt_lo      = [],
                     sOpt_lc      = [],
-                    sOpt_javac    = []
+                    sOpt_javac   = []
                     }
 
 -- returns a Unix-format path (relying on getBaseDir to do so too)

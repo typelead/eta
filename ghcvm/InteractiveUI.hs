@@ -28,6 +28,7 @@ import Debugger
 
 -- The GHC interface
 import GHCVM.Main.DynFlags
+import GHCVM.Main.DynFlags
 import GHCVM.Main.ErrUtils
 import GHCVM.Main.GhcMonad ( modifySession )
 import qualified GHCVM.Main.GHC
@@ -49,8 +50,8 @@ import GHCVM.Utils.StringBuffer
 import GHCVM.Utils.Outputable hiding ( printForUser, printForUserPartWay, bold )
 
 -- Other random utilities
+import GHCVM.Main.Constants
 import GHCVM.BasicTypes.BasicTypes hiding ( isTopLevel )
-import Config
 import GHCVM.Utils.Digraph
 import GHCVM.Utils.Encoding
 import GHCVM.Utils.FastString

@@ -76,7 +76,7 @@ module GHCVM.BasicTypes.Module
         emptyModuleSet, mkModuleSet, moduleSetElts, extendModuleSet, elemModuleSet
     ) where
 
-import GHC.PackageDb (BinaryStringRep(..))
+import GHCVM.PackageDb (BinaryStringRep(..))
 
 import GHCVM.Utils.Outputable
 import GHCVM.BasicTypes.Unique

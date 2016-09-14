@@ -51,7 +51,7 @@ module GHCVM.Main.Packages (
     )
 where
 
-import GHC.PackageDb
+import GHCVM.PackageDb
 import GHCVM.Main.PackageConfig
 import GHCVM.Main.DynFlags
 import GHCVM.BasicTypes.Name             ( Name, nameModule_maybe )

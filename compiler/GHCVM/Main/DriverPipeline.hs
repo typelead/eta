@@ -36,6 +36,7 @@ import GHCVM.SimplStg.SimplStg         ( stg2stg )
 import GHCVM.StgSyn.CoreToStg        ( coreToStg )
 import GHCVM.Core.CorePrep         ( corePrepPgm )
 import GHCVM.Main.SysTools
+import GHCVM.Main.Constants
 import qualified GHCVM.Main.SysTools as SysTools
 import GHCVM.Types.TyCon ( isDataTyCon )
 import GHCVM.BasicTypes.NameEnv
@@ -1099,7 +1100,8 @@ runPhase (RealPhase cc_phase) input_fn dflags
                        ++ verbFlags
                        ++ [ "-S" ]
                        ++ cc_opt
-                       ++ [ "-D__GLASGOW_HASKELL__=001"
+                       ++ [ "-D__GLASGOW_HASKELL__" ++ ghcProjectVersionInt
+                          , "-D__GHCVM_VERSION__" ++ cProjectVersionInt
                           , "-include", ghcVersionH
                           ]
                        ++ framework_paths
@@ -1561,8 +1563,8 @@ doCpp dflags raw input_fn output_fn = do
     -- Default CPP defines in Haskell source
     ghcVersionH <- getGhcVersionPathName dflags
     let hsSourceCppOpts =
-          [ "-D__GLASGOW_HASKELL__=7103"
-          , "-D__GHCVM__=001"
+          [ "-D__GLASGOW_HASKELL__=" ++ ghcProjectVersionInt
+          , "-D__GHCVM_VERSION__=" ++ cProjectVersionInt
           , "-include", ghcVersionH
           ]
 

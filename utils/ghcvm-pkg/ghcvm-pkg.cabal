@@ -1,0 +1,32 @@
+Name: ghcvm-pkg
+Version: 0.0.1
+Copyright: XXX
+License: BSD3
+-- XXX License-File: LICENSE
+Author: XXX
+Maintainer: cvs-fptools@haskell.org
+Synopsis: XXX
+Description: XXX
+Category: Development
+build-type: Simple
+cabal-version: >=1.10
+
+Executable ghcvm-pkg
+    Default-Language: Haskell2010
+    Main-Is: Main.hs
+    Other-Extensions: CPP
+
+    Build-Depends: base       >= 4   && < 5,
+                   directory  >= 1   && < 1.3,
+                   process    >= 1   && < 1.3,
+                   containers,
+                   filepath,
+                   Cabal,
+                   binary,
+                   ghcvm-pkgdb,
+                   bytestring
+    if !os(windows)
+        Build-Depends: unix,
+                       terminfo
+    if os(windows)
+        c-sources: CRT_noglob.c

@@ -4,10 +4,29 @@
 \section[Constants]{Info about this compilation}
 -}
 
-module GHCVM.Main.Constants (module GHCVM.Main.Constants) where
+module GHCVM.Main.Constants where
+
 
 hiVersion :: Integer
-hiVersion = 7103 -- TODO: Add ghcvm-specific hi version
+hiVersion = read (cProjectVersionInt ++ cProjectPatchLevel) :: Integer
+
+cProjectName, cProjectVersion, cProjectVersionInt, cProjectPatchLevel, cProjectPatchLevel1,
+  cProjectPatchLevel2, cProjectHomeURL, cProjectIssueReportURL, ghcProjectVersion,
+  ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2
+  :: String
+cProjectName = "Glasgow Haskell Compiler for the Java Virtual Machine"
+cProjectVersion = "0.0.1"
+cProjectVersionInt = "000"
+cProjectPatchLevel = "1"
+cProjectPatchLevel1 = "1"
+cProjectPatchLevel2 = ""
+cProjectHomeURL = "http://github.org/rahulmutt/ghcvm"
+cProjectIssueReportURL = cProjectHomeURL ++ "/issues"
+ghcProjectVersion = "7.10.3"
+ghcProjectVersionInt = "710"
+ghcprojectPatchLevel = "3"
+ghcProjectPatchLevel1 = "3"
+ghcProjectPatchLevel2 = ""
 
 -- All pretty arbitrary:
 
