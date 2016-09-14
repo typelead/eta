@@ -3168,8 +3168,8 @@ xFlags = [
   flagSpec "ScopedTypeVariables"              Opt_ScopedTypeVariables,
   flagSpec "StandaloneDeriving"               Opt_StandaloneDeriving,
   flagSpec "StaticPointers"                   Opt_StaticPointers,
-  flagSpec' "TemplateHaskell"                 Opt_TemplateHaskell
-                                              checkTemplateHaskellOk,
+  -- flagSpec' "TemplateHaskell"                 Opt_TemplateHaskell
+  --                                             checkTemplateHaskellOk,
   flagSpec "TraditionalRecordSyntax"          Opt_TraditionalRecordSyntax,
   flagSpec "TransformListComp"                Opt_TransformListComp,
   flagSpec "TupleSections"                    Opt_TupleSections,
