@@ -671,8 +671,10 @@ showBanner _postLoadMode dflags = do
 -- Show instance gives us
 showInfo :: DynFlags -> IO ()
 showInfo dflags = do
-        let sq x = " [" ++ x ++ "\n ]"
-        putStrLn $ sq $ intercalate "\n ," $ map show $ "GHCVM Version 0.0.1"
+  let sq x = " [" ++ x ++ "\n ]"
+  putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo dflags
+  where compilerInfo dflags = [("Project name", cProjectName),
+                               ("Project version", cProjectVersion)]
 
 showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions
