@@ -8,3 +8,4 @@ build
 *.dump-tc-trace
 *.dump-cs-trace
 *.jar
+dist/

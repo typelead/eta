@@ -575,7 +575,10 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
           Right dir -> do
             r <- lookForPackageDBIn dir
             case r of
-              Nothing -> die ("Can't find package database in " ++ dir)
+              Nothing -> do
+                let globalDb = dir </> "package.conf.d"
+                initPackageDB globalDb verbosity []
+                return globalDb
               Just path  -> return path
           -- let dir = e_appdir
           --        r <- lookForPackageDBIn dir
