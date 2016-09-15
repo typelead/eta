@@ -216,8 +216,10 @@ main' postLoadMode dflags0 args flagWarnings = do
      -- away - e.g., for win32 platforms, backslashes are converted
      -- into forward slashes.
     normal_fileish_paths = map (normalise . unLoc) fileish_args
-    (srcs, objs)         = parititionArgs normal_fileish_paths [] []
-    dflags5 = dflags4
+    -- TODO: Clean this up
+    (srcs', objs)        = parititionArgs normal_fileish_paths [] []
+    srcs                 = srcs' ++ map (\o -> (o, Nothing)) objs
+    dflags5              = dflags4
 
     -- dflags5 = dflags4 { ldInputs = map (FileOption "") objs
     --                                ++ ldInputs dflags4 }
