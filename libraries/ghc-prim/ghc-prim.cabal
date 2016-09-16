@@ -1,6 +1,5 @@
 name:           ghc-prim
 version:        0.4.0.0
--- GHC 7.8.4 released with 0.3.1.0
 license:        BSD3
 license-file:   LICENSE
 category:       GHC
@@ -17,10 +16,6 @@ source-repository head
     location: http://git.haskell.org/ghc.git
     subdir:   libraries/ghc-prim
 
-flag include-ghc-prim
-    Description: Include GHC.Prim in exposed-modules
-    default: False
-
 Library
     default-language: Haskell2010
     other-extensions:
@@ -36,20 +31,18 @@ Library
         UnboxedTuples
         UnliftedFFITypes
 
-    build-depends: rts == 1.0.*
+    build-depends: rts == 0.1.*
 
     exposed-modules:
         GHC.CString
         GHC.Classes
-        GHC.Debug
-        GHC.IntWord64
+        -- GHC.Debug
+        -- GHC.IntWord64
         GHC.Magic
-        GHC.PrimopWrappers
+        -- GHC.PrimopWrappers
         GHC.Tuple
         GHC.Types
-
-    if flag(include-ghc-prim)
-        exposed-modules: GHC.Prim
+        GHC.JArray
 
     -- We need to set the package key to ghc-prim (without a version number)
     -- as it's magic.

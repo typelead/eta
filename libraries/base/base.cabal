@@ -65,7 +65,7 @@ Library
         UnliftedFFITypes
         Unsafe
 
-    build-depends: rts == 1.0.*, ghc-prim == 0.4.*
+    build-depends: rts == 0.1.*, ghc-prim == 0.4.*
 
     exposed-modules:
         Control.Applicative
@@ -228,17 +228,17 @@ Library
         Numeric
         Numeric.Natural
         Prelude
-        -- System.CPUTime
-        -- System.Console.GetOpt
-        -- System.Environment
-        -- System.Exit
+        System.CPUTime
+        System.Console.GetOpt
+        System.Environment
+        System.Exit
         System.IO
         System.IO.Error
         System.IO.Unsafe
-        -- System.Info
-        -- System.Mem
-        -- System.Mem.StableName
-        -- System.Mem.Weak
+        System.Info
+        System.Mem
+        System.Mem.StableName
+        System.Mem.Weak
         System.Posix.Internals
         System.Posix.Types
         System.Timeout
@@ -259,14 +259,16 @@ Library
         System.Environment.ExecutablePath
 
     include-dirs: include
-    includes:
+    -- includes:
+    --     CTypes.h
+    --     Signals.h
+    install-includes:
         CTypes.h
         Signals.h
-    -- install-includes:
-    --     HsBase.h
-    --     WCsubst.h
-    --     consUtils.h
-    --     Typeable.h
+        -- HsBase.h
+        -- WCsubst.h
+        -- consUtils.h
+        -- Typeable.h
 
     -- OS Specific
     -- if os(windows)

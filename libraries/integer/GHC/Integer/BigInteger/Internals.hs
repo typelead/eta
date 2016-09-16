@@ -11,7 +11,7 @@
 -- See also
 -- <https://ghc.haskell.org/trac/ghc/wiki/Commentary/Libraries/Integer GHC Commentary: Libraries/Integer>.
 
-module GHC.Integer.GMP.Internals
+module GHC.Integer.BigInteger.Internals
     ( -- * The 'Integer' type
       Integer(..)
 

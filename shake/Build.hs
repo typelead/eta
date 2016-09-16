@@ -7,10 +7,11 @@ import Development.Shake.Util
 import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory, createDirectory, removeDirectory)
 import System.Console.GetOpt
 import Control.Monad(forM_, when)
-import Data.List (partition,stripPrefix)
+import Data.List (partition,stripPrefix, isPrefixOf)
 import Data.Maybe(mapMaybe)
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
+import Distribution.ModuleName (fromString)
 import System.Info(os)
 import GHC.IO.Exception(ExitCode)
 
@@ -83,43 +84,74 @@ buildConf lib confSrc confDst = do
                          (Nothing, s) -> putNormal s
                          (Just l, s) -> putNormal $ show l ++ ": " ++ s
 
+fixGhcPrimConf :: Action ()
+fixGhcPrimConf = do
+  rootDir <- getGhcVmRoot
+  let confDir = packageConfDir rootDir
+  (ghcPrimConf':_) <- fmap (filter ("ghc-prim" `isPrefixOf`))
+                    $ getDirectoryFiles confDir ["*.conf"]
+  let ghcPrimConf = confDir </> ghcPrimConf'
+  confStr <- readFile' ghcPrimConf
+  case parseInstalledPackageInfo confStr of
+    ParseOk warnings ipi -> do
+      mapM_ (putNormal . showPWarning ghcPrimConf) warnings
+      let ipi' = ipi { exposedModules = ExposedModule (fromString "GHC.Prim")
+                                                      Nothing Nothing
+                                      : exposedModules ipi }
+      writeFile' ghcPrimConf $ showInstalledPackageInfo ipi'
+      unit $ cmd "ghcvm-pkg recache"
+    ParseFailed err -> case locatedErrorMsg err of
+                         (Nothing, s) -> putNormal s
+                         (Just l, s) -> putNormal $ show l ++ ": " ++ s
+
 buildLibrary :: Bool -> String -> [String] -> Action ()
 buildLibrary debug lib deps = do
-  rootDir <- getGhcVmRoot
-  installDir <- getInstallDir
-  let libDir = libraryDir </> lib
-      rootLibDir = rootDir </> lib
-      conf = lib <.> "conf"
-      libConf = libDir </> conf
-      libBuildDir = libDir </> "build"
-      libBuildConf = libBuildDir </> conf
-      packageDir = packageConfDir rootDir
-      ghcvmCmd = installDir </> "ghcvm"
-  createDir libBuildDir
-  if lib == "rts" then
-    need [rtsjar]
-  else do
-    sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//*.java"]
-    let ghcvmFlags = (if debug
-                     then ["-ddump-to-file", "-ddump-stg"] -- "-v"
-                     else []) -- TODO: Add -O2
-                     ++
-                     (if lib == "base"
-                      then ["-Iinclude"]
-                      else [])
-    unit $ cmd [Cwd libDir, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
-               ghcvmCmd "-clear-package-db" ghcvmFlags
-               ["-package " ++ dep | dep <- deps]
-               "-staticlib -this-package-key"
-               lib "-o" ("build" </> libName lib)  "-outputdir build" sourceFiles
-  buildConf lib libConf libBuildConf
-  buildFiles <- getDirectoryFiles libBuildDir ["//*"]
+  let dir = library lib
+      installFlags = if lib == "ghc-prim"
+                     then ["--solver=topdown"]
+                          -- NOTE: For ghc-prim, cabal fails if the modular solver is used
+                          --       so we use the top-down solver to make it work.
+                     else []
+      -- libCmd = unit . cmd (Cwd dir)
+  when (lib == "rts") $ need [rtsjar]
+  unit $ cmd (Cwd dir) "cabalvm configure"
+  unit $ cmd (Cwd dir) "cabalvm build"
+  unit $ cmd (Cwd dir) "cabalvm install" installFlags
+  when (lib == "ghc-prim") $ fixGhcPrimConf
+  -- installDir <- getInstallDir
+  -- let libDir = libraryDir </> lib
+  --     rootLibDir = rootDir </> lib
+  --     conf = lib <.> "conf"
+  --     libConf = libDir </> conf
+  --     libBuildDir = libDir </> "build"
+  --     libBuildConf = libBuildDir </> conf
+  --     packageDir = packageConfDir rootDir
+  --     ghcvmCmd = installDir </> "ghcvm"
+  -- createDir libBuildDir
+  -- if lib == "rts" then
+  --   need [rtsjar]
+  -- else do
+  --   sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//*.java"]
+  --   let ghcvmFlags = (if debug
+  --                    then ["-ddump-to-file", "-ddump-stg"] -- "-v"
+  --                    else []) -- TODO: Add -O2
+  --                    ++
+  --                    (if lib == "base"
+  --                     then ["-Iinclude"]
+  --                     else [])
+  --   unit $ cmd [Cwd libDir, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
+  --              ghcvmCmd "-clear-package-db" ghcvmFlags
+  --              ["-package " ++ dep | dep <- deps]
+  --              "-staticlib -this-package-key"
+  --              lib "-o" ("build" </> libName lib)  "-outputdir build" sourceFiles
+  -- buildConf lib libConf libBuildConf
+  -- buildFiles <- getDirectoryFiles libBuildDir ["//*"]
 
-  forM_ buildFiles $ \buildFile -> do
-    let src = libBuildDir </> buildFile
-        dst = rootLibDir </> buildFile
-    copyFileWithDir src dst
-  unit $ cmd "stack exec -- ghcvm-pkg" ["--package-db", packageConfDir rootDir] " register" libBuildConf
+  -- forM_ buildFiles $ \buildFile -> do
+  --   let src = libBuildDir </> buildFile
+  --       dst = rootLibDir </> buildFile
+  --   copyFileWithDir src dst
+  -- unit $ cmd "stack exec -- ghcvm-pkg" ["--package-db", packageConfDir rootDir] " register" libBuildConf
   return ()
 
 testSpec :: FilePath -> Action ()
@@ -196,22 +228,27 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         Stdout paths <- cmd "stack path"
         let binPath = head . mapMaybe (stripPrefix "compiler-bin: ") $ lines paths
             ghcPath = takeDirectory binPath
-            ghcInclude = if os == "mingw32"
-                         then ghcPath </> "lib" </> "include"
-                         else ghcPath </> "lib" </> "ghc-7.10.3" </> "include"
+            ghcLibPath = if os == "mingw32"
+                         then ghcPath </> "lib"
+                         else ghcPath </> "lib" </> "ghc-7.10.3"
+
+            ghcInclude = ghcLibPath </> "include"
             ghcvmInclude = ghcvmIncludePath rootDir
+        -- TODO: Copy usage files as well
         liftIO $ createDirectory ghcvmInclude
         let root x = rootDir </> x
         forM_ ["platform", "version"] $ \s -> do
           let s' = "ghc" ++ s ++ ".h"
           copyFile' (ghcInclude </> s') (ghcvmInclude </> s')
+        copyFile' (ghcLibPath </> "settings") (rootDir </> "settings")
+
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug lib (getDependencies lib)
-        putNormal $ "To finish the installation, add GHCVM_PACKAGE_PATH to your environment with the value '"
-                 ++ packageConfDir rootDir
-                 ++ "'."
+        -- putNormal $ "To finish the installation, add GHCVM_PACKAGE_PATH to your environment with the value '"
+        --          ++ packageConfDir rootDir
+        --          ++ "'."
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]

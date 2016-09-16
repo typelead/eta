@@ -1692,12 +1692,13 @@ haveRtsOptsFlags dflags =
 -- | Find out path to @ghcversion.h@ file
 getGhcVersionPathName :: DynFlags -> IO FilePath
 getGhcVersionPathName dflags = do
-  dirs <- getPackageIncludePath dflags [rtsPackageKey]
-
-  found <- filterM doesFileExist (map (</> "ghcversion.h") dirs)
-  case found of
-      []    -> throwGhcExceptionIO (InstallationError ("ghcversion.h missing"))
-      (x:_) -> return x
+  -- dirs <- getPackageIncludePath dflags [rtsPackageKey]
+  dir <- getAppUserDataDirectory "ghcvm"
+  let versionh = dir </> "include" </> "ghcversion.h"
+  found <- doesFileExist versionh
+  if found
+  then return versionh
+  else throwGhcExceptionIO (InstallationError ("ghcversion.h missing"))
 
 -- genJavaBytecode :: HscEnv -> CgGuts -> ModSummary -> FilePath -> IO FilePath
 -- genJavaBytecode hsc_env cgguts mod_summary output_filename = do
