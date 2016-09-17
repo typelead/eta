@@ -19,9 +19,9 @@
 module System.Timeout ( timeout ) where
 
 -- #ifndef mingw32_HOST_OS
--- import Control.Monad
--- import GHC.Event           (getSystemTimerManager,
---                             registerTimeout, unregisterTimeout)
+import Control.Monad
+import GHC.Event           (getSystemTimerManager,
+                            registerTimeout, unregisterTimeout)
 -- #endif
 
 import Control.Concurrent

@@ -107,14 +107,21 @@ fixGhcPrimConf = do
 buildLibrary :: Bool -> String -> [String] -> Action ()
 buildLibrary debug lib deps = do
   let dir = library lib
-      installFlags = if lib == "ghc-prim"
+      installFlags = if lib == "ghc-prim" || lib == "base"
                      then ["--solver=topdown"]
-                          -- NOTE: For ghc-prim, cabal fails if the modular solver is used
-                          --       so we use the top-down solver to make it work.
+                          -- NOTE: For ghc-prim & base, cabal fails if the modular solver is
+                          --       used so we use the top-down solver to make it work.
                      else []
+      configureFlags = if debug
+                       then ["--enable-optimization=0"
+                            ,"--ghcvm-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
+                       else ["--enable-optimization=0"]
+                            -- TODO: Currently, optimization build is broken.
+                            --       Remove this flag after fixed.
+
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "cabalvm configure"
+  unit $ cmd (Cwd dir) "cabalvm configure" configureFlags
   unit $ cmd (Cwd dir) "cabalvm build"
   unit $ cmd (Cwd dir) "cabalvm install" installFlags
   when (lib == "ghc-prim") $ fixGhcPrimConf

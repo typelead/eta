@@ -28,7 +28,7 @@ performGC = performMajorGC
 --
 -- @since 4.7.0.0
 performMajorGC :: IO ()
-performMinorGC = undefined
+performMajorGC = undefined
 
 -- | Triggers an immediate minor garbage collection.
 --

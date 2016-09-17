@@ -120,14 +120,14 @@ getArgs :: IO [String]
 -- #ifdef mingw32_HOST_OS
 -- getArgs =  fmap tail getWin32ProgArgv_certainly
 -- #else
-getArgs =
-  alloca $ \ p_argc ->
-  alloca $ \ p_argv -> do
-   getProgArgv p_argc p_argv
-   p    <- fromIntegral `liftM` peek p_argc
-   argv <- peek p_argv
-   enc <- getFileSystemEncoding
-   peekArray (p - 1) (advancePtr argv 1) >>= mapM (GHC.peekCString enc)
+getArgs = undefined
+  -- alloca $ \ p_argc ->
+  -- alloca $ \ p_argv -> do
+  --  getProgArgv p_argc p_argv
+  --  p    <- fromIntegral `liftM` peek p_argc
+  --  argv <- peek p_argv
+  --  enc <- getFileSystemEncoding
+  --  peekArray (p - 1) (advancePtr argv 1) >>= mapM (GHC.peekCString enc)
 
 getProgArgv :: Ptr CInt -> Ptr (Ptr CString) -> IO ()
 getProgArgv = undefined
@@ -148,18 +148,19 @@ getProgName :: IO String
 -- -- Ignore the arguments to hs_init on Windows for the sake of Unicode compat
 -- getProgName = fmap (basename . head) getWin32ProgArgv_certainly
 -- #else
-getProgName =
-  alloca $ \ p_argc ->
-  alloca $ \ p_argv -> do
-     getProgArgv p_argc p_argv
-     argv <- peek p_argv
-     unpackProgName argv
+getProgName = undefined
+  -- alloca $ \ p_argc ->
+  -- alloca $ \ p_argv -> do
+  --    getProgArgv p_argc p_argv
+  --    argv <- peek p_argv
+  --    unpackProgName argv
 
 unpackProgName  :: Ptr (Ptr CChar) -> IO String   -- argv[0]
-unpackProgName argv = do
-  enc <- getFileSystemEncoding
-  s <- peekElemOff argv 0 >>= GHC.peekCString enc
-  return (basename s)
+unpackProgName argv = undefined
+  --do
+  -- enc <- getFileSystemEncoding
+  -- s <- peekElemOff argv 0 >>= GHC.peekCString enc
+  -- return (basename s)
 -- #endif
 
 basename :: FilePath -> FilePath
@@ -376,18 +377,20 @@ withProgArgv new_args act = do
           (const act)
 
 freeProgArgv :: Ptr CString -> IO ()
-freeProgArgv argv = do
-  size <- lengthArray0 nullPtr argv
-  sequence_ [ peek (argv `advancePtr` i) >>= free
-            | i <- [size - 1, size - 2 .. 0]]
-  free argv
+freeProgArgv argv = undefined
+  --do
+  -- size <- lengthArray0 nullPtr argv
+  -- sequence_ [ peek (argv `advancePtr` i) >>= free
+  --           | i <- [size - 1, size - 2 .. 0]]
+  -- free argv
 
 setProgArgv :: [String] -> IO (Ptr CString)
-setProgArgv argv = do
-  enc <- getFileSystemEncoding
-  vs <- mapM (GHC.newCString enc) argv >>= newArray0 nullPtr
-  c_setProgArgv (genericLength argv) vs
-  return vs
+setProgArgv argv = undefined
+  --do
+  -- enc <- getFileSystemEncoding
+  -- vs <- mapM (GHC.newCString enc) argv >>= newArray0 nullPtr
+  -- c_setProgArgv (genericLength argv) vs
+  -- return vs
 
 c_setProgArgv  :: CInt -> Ptr CString -> IO ()
 c_setProgArgv = undefined
@@ -431,13 +434,14 @@ getEnvironment :: IO [(String, String)]
 -- foreign import WINDOWS_CCONV unsafe "windows.h FreeEnvironmentStringsW"
 --   c_FreeEnvironmentStrings :: Ptr CWchar -> IO Bool
 -- #else
-getEnvironment = do
-   pBlock <- getEnvBlock
-   if pBlock == nullPtr then return []
-    else do
-      enc <- getFileSystemEncoding
-      stuff <- peekArray0 nullPtr pBlock >>= mapM (GHC.peekCString enc)
-      return (map divvy stuff)
+getEnvironment = undefined
+  --do
+   -- pBlock <- getEnvBlock
+   -- if pBlock == nullPtr then return []
+   --  else do
+   --    enc <- getFileSystemEncoding
+   --    stuff <- peekArray0 nullPtr pBlock >>= mapM (GHC.peekCString enc)
+   --    return (map divvy stuff)
 
 getEnvBlock :: IO (Ptr CString)
 getEnvBlock = undefined

@@ -45,7 +45,7 @@ data MutableByteArray s ix     = MutableByteArray ix ix (MutableByteArray# s)
 unpackCString :: Ptr a -> [Char]
 unpackCString a@(Ptr addr)
   | a == nullPtr  = []
-  | otherwise      = unpackCString# addr
+  | otherwise     = undefined -- TODO: unpackCString# addr
 
 packCString#         :: [Char]          -> ByteArray#
 packCString# str = case (packString str) of { ByteArray _ _ bytes -> bytes }
