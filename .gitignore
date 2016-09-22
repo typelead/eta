@@ -9,3 +9,6 @@ build
 *.dump-cs-trace
 *.jar
 dist/
+tests/verify/META-INF
+utils/trace/Filter
+utils/trace/TRACE_DUMP
