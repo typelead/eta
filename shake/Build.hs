@@ -275,13 +275,12 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       need ["install"]
 
     phony "clean" $ do
-      putNormal "Cleaning files in rts/build, sample/build, libraries/*/build"
+      putNormal "Cleaning files in rts/build, libraries/*/dist"
       removeFilesAfter rtsBuildDir ["//*"]
-      removeFilesAfter sampleBuildDir ["//*"]
       libs <- getLibs
       forM_ libs $ \lib -> do
-        let libBuildDir = libraryDir </> lib </> "build"
-        removeFilesAfter libBuildDir ["//*"]
+        let libDir = libraryDir </> lib
+        unit $ cmd (Cwd libDir) "cabalvm clean"
 
     masjar %> \out -> do
       createDirIfMissing sampleBuildDir

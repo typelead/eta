@@ -66,6 +66,7 @@ Library
         Unsafe
 
     build-depends: rts == 0.1.*, ghc-prim == 0.4.*, integer >= 0.5.1
+    java-sources: java/Utils.java
 
     exposed-modules:
         Control.Applicative
@@ -225,6 +226,8 @@ Library
         GHC.Unicode
         GHC.Weak
         GHC.Word
+        GHCVM.IO
+        GHCVM.JString
         Numeric
         Numeric.Natural
         Prelude
