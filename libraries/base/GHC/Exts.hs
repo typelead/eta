@@ -30,8 +30,6 @@ module GHC.Exts
         -- * Primitive operations
         module GHC.Prim,
         shiftL#, shiftRL#, iShiftL#, iShiftRA#, iShiftRL#,
-        uncheckedShiftL64#, uncheckedShiftRL64#,
-        uncheckedIShiftL64#, uncheckedIShiftRA64#,
         isTrue#,
 
         -- * Fusion

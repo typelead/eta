@@ -1,3 +1,6 @@
 [submodule "cabalvm"]
 	path = cabalvm
 	url = https://github.com/rahulmutt/cabalvm
+[submodule "codec-jvm"]
+	path = codec-jvm
+	url = https://github.com/rahulmutt/codec-jvm
