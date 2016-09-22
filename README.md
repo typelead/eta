@@ -11,7 +11,7 @@ If you get stuck at any point in the installation, feel free to join us on Gitte
 ### Prerequisites
 Make sure you have the following tools installed on your system:
 - [Stack](https://docs.haskellstack.org/en/stable/README/)
-- JDK >= 1.7
+- [JDK 1.7](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html) or [JDK 1.8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
   - make sure `javac` and `java` are on the PATH
 
 ### Installation
@@ -21,13 +21,13 @@ $ git clone --recursive https://github.com/rahulmutt/ghcvm
 $ cd ghcvm
 $ ./install.sh
 ```
-Once the install is done, you will now have access to the following commandline tools:
-- ghcvm
-- cabalvm
-- ghcvm-pkg
-- ghcvm-build - Don't worry about this one. It's used building particular parts of the project.
+Once the install is done, you will now have access to the following command-line tools:
+- **ghcvm** - The main compiler
+- **cabalvm** - The package manager and build tool
 
-The following packages were installed:
+If they are not working, ensure that your stack binary path is included in your PATH.
+
+The following packages are available upon installation:
 - ghc-prim
 - integer
 - base
@@ -36,7 +36,7 @@ The following packages were installed:
 
 Now, go through the following tutorials for understanding how GHCVM works and how you can start running programs.
 
-- [Hello GHCVM!]()
+- [Hello GHCVM!](wiki/Hello-GHCVM!)
 
 ## Contributing
 
