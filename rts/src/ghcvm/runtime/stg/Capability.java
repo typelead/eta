@@ -254,19 +254,18 @@ public final class Capability {
                             /* TODO: Currently, this reload logic assumes that
                                      the tso doesn't change. Remove this when
                                      confirmed. */
-                        } catch (StackOverflowError e) {
-                            /* TODO: Handle a stack overflow by resetting the
-                                     stack and pushing the top most closure
-                                     into an enter frame and restarting.
-                                     Make sure you check whether this is the
-                                     first time, otherwise, a infinite loop
-                                     will occur. */
                         } finally {
                             /* TODO: Is this the right way to grab the
                                      context? */
                             ret = context.ret;
                             cap = context.myCapability;
                         }
+                        /* TODO: Handle a stack overflow by resetting the
+                           stack and pushing the top most closure
+                           into an enter frame and restarting.
+                           Make sure you check whether this is the
+                           first time, otherwise, a infinite loop
+                           will occur. */
                     } while (reload);
                     break;
                 case ThreadInterpret:
