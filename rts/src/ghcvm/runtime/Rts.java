@@ -127,9 +127,9 @@ public class Rts {
                       config.rtsHsMain);
 
         RtsScheduler.initScheduler();
-        RtsScheduler.initTimer();
+        // RtsScheduler.initTimer();
         /* TODO: Ensure that the timer can start here */
-        RtsScheduler.startTimer();
+        // RtsScheduler.startTimer();
         if (RtsFlags.ModeFlags.threaded) {
             RtsIO.ioManagerStart();
         }
@@ -162,8 +162,8 @@ public class Rts {
                 if (RtsFlags.MiscFlags.installSignalHandlers) {
                     /* TODO: Signal Handling: freeSignalHandlers() */
                 }
-                RtsScheduler.stopTimer();
-                RtsScheduler.exitTimer(waitForeign);
+                //RtsScheduler.stopTimer();
+                //RtsScheduler.exitTimer(waitForeign);
                 if (RtsFlags.MiscFlags.installSignalHandlers) {
                     /* TODO: Signal Handling: resetDefaultHandlers() */
                 }
@@ -172,14 +172,25 @@ public class Rts {
         }
     }
 
-    public static void flushStdHandles() {
-        /* TODO: Implement */
-        if (false) {
-            Capability cap = Rts.lock();
-            HaskellResult result = Rts.evalIO(cap, null /* flushStdHandles_closure */);
-            cap = result.cap;
-            Rts.unlock(cap);
+    private static StgClosure flushStdHandles_closure = null;
+
+    static {
+        try {
+            flushStdHandles_closure = (StgClosure)
+                Class.forName("base.ghc.TopHandler")
+                .getField("flushStdHandles_closure")
+                .get(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            flushStdHandles_closure = null;
         }
+    }
+
+    public static void flushStdHandles() {
+        Capability cap = Rts.lock();
+        HaskellResult result = Rts.evalIO(cap, flushStdHandles_closure);
+        cap = result.cap;
+        Rts.unlock(cap);
     }
 
 

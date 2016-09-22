@@ -13,16 +13,17 @@ public class StgClosure {
     }
 
     public StgClosure getEvaluated() { return null; }
-    public StgClosure evaluate(StgContext context) {
+
+    public void evaluate(StgContext context) {
         StgClosure eval = getEvaluated();
         if (eval == null) {
             enter(context);
-            eval = context.R(1);
+        } else {
+            context.R(1, eval);
         }
-        return eval;
     }
 
-    public void thunkUpdate(Capability cap, StgTSO tso) {
+    public void doUpdateThunk(Capability cap, StgTSO tso) {
         cap.checkBlockingQueues(tso);
     }
     public boolean blackHole(Capability cap, MessageBlackHole msg) { return false; }

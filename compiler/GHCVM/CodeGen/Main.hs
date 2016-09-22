@@ -1,25 +1,27 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Main where
 
-import Module
-import HscTypes
-import Type
-import TyCon
-import StgSyn
-import DynFlags
-import FastString
-import VarEnv
-import Id
-import Name
-import OccName
-import DataCon
-import Util (unzipWith)
-import PrelNames (rOOT_MAIN)
+import GHCVM.BasicTypes.Module
+import GHCVM.Main.HscTypes
+import GHCVM.Types.Type
+import GHCVM.Types.TyCon
+import GHCVM.StgSyn.StgSyn
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.FastString
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.BasicTypes.OccName
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Utils.Util (unzipWith)
+import GHCVM.Prelude.PrelNames (rOOT_MAIN)
 
 import GHCVM.Util
-import GHCVM.Primitive
+
+import GHCVM.Debug
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
-import GHCVM.CodeGen.Con
+import GHCVM.CodeGen.Constr
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Bind
 import GHCVM.CodeGen.Name
@@ -32,12 +34,12 @@ import Codec.JVM
 import Data.Maybe (mapMaybe)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
-import Control.Monad (unless)
+import Control.Monad (unless, when)
 
 import Data.Text (Text, pack, cons, append)
 
 codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
-codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
+codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo = do
   runCodeGen env state $ do
       mapM_ (cgTopBinding dflags) stgBinds
       mapM_ cgTyCon dataTyCons
@@ -47,6 +49,7 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo =
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
+  debugDoc $ str "generating " <+> ppr id
   mod <- getModule
   id' <- externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive id' rhs
@@ -56,6 +59,7 @@ cgTopBinding dflags (StgNonRec id rhs) = do
 cgTopBinding dflags (StgRec pairs) = do
   mod <- getModule
   let (binders, rhss) = unzip pairs
+  debugDoc $ str "generating (rec) " <+> ppr binders
   binders' <- mapM (externaliseId dflags) binders
   let pairs'         = zip binders' rhss
       r              = unzipWith (cgTopRhs dflags Recursive) pairs'
@@ -82,44 +86,50 @@ cgTopRhsClosure :: DynFlags
                 -> (CgIdInfo, CodeGen ())
 cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lfInfo)
-  where cgIdInfo = mkCgIdInfo id lfInfo
+  where cgIdInfo = mkCgIdInfo dflags id lfInfo
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
-        (modClass, clName, clClass) = getJavaInfo cgIdInfo
+        (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
         isThunk = isLFThunk lfInfo
         qClName = closure clName
         genCode dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
-               -- TODO: Change the cgLoc for this case to indstatic
                let loadCode = idInfoLoadCode cgInfo
-               defineField $ mkFieldDef [Public, Static, Final] qClName indStaticType
-               addInitStep $ fold
+               defineField $ mkFieldDef [Public, Static] qClName closureType
+               let field = mkFieldRef modClass qClName closureType
+               addInitStep (fold
                  [
-                   new stgIndStatic,
+                   new indStaticType,
                    dup indStaticType,
                    loadCode,
                    invokespecial $ mkMethodRef stgIndStatic "<init>"
                      [closureType] void,
-                   putstatic $ mkFieldRef modClass qClName indStaticType
+                   putstatic field
                  ]
+                 , field
+                 , []
+                 )
         genCode dflags lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody True id lfInfo
-                            (nonVoidIds args) (length args) body []
+                            (nonVoidIds args) (length args) body [] False []
 
           let ft = obj cgClassName
           -- NOTE: Don't make thunks final so that they can be
           --       replaced by their values by the GC
           let flags = (if isThunk then [] else [Final]) ++ [Public, Static]
-          defineField $
-            mkFieldDef flags qClName ft
-          addInitStep $ fold
+          defineField $ mkFieldDef flags qClName closureType
+          let field = mkFieldRef modClass qClName closureType
+          addInitStep (fold
             [
-              new cgClassName,
+              new ft,
               dup ft,
               invokespecial $ mkMethodRef cgClassName "<init>" [] void,
-              putstatic $ mkFieldRef modClass qClName ft
+              putstatic field
             ]
+            , field
+            , []
+            )
           return ()
 
 -- Simplifies the code if the mod is associated to the Id
@@ -145,20 +155,61 @@ externaliseId dflags id = do
 
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
+    dflags <- getDynFlags
+    let tyConClass = nameTypeText dflags . tyConName $ tyCon
     (_, CgState {..}) <- newTypeClosure tyConClass stgConstr
     mapM_ (cgDataCon cgClassName) (tyConDataCons tyCon)
-  where tyConClass = nameTypeText . tyConName $ tyCon
-        dataCons = tyConDataCons tyCon
+    when (isEnumerationTyCon tyCon) $
+      cgEnumerationTyCon cgClassName tyCon
+  where dataCons = tyConDataCons tyCon
+
+cgEnumerationTyCon :: Text -> TyCon -> CodeGen ()
+cgEnumerationTyCon tyConCl tyCon = do
+  dflags <- getDynFlags
+  thisClass <- getClass
+  let fieldName = nameTypeTable dflags $ tyConName tyCon
+      loadCodes = [    dup arrayFt
+                    <> iconst jint i
+                    <> new dataFt
+                    <> dup dataFt
+                    <> invokespecial (mkMethodRef dataClass "<init>" [] void)
+                    <> gastore elemFt
+                    | (i, con) <- zip [0..] $ tyConDataCons tyCon
+                    , let dataFt    = obj dataClass
+                          dataClass = dataConClass dflags con ]
+  defineField $ mkFieldDef [Public, Static, Final] fieldName arrayFt
+  let field = mkFieldRef thisClass fieldName arrayFt
+  addInitStep (fold
+    [
+      iconst jint $ fromIntegral familySize,
+      new arrayFt,
+      fold loadCodes,
+      putstatic field
+    ]
+    , field
+    , []
+    )
+  where
+        arrayFt = jarray elemFt
+        elemFt = obj tyConCl
+        familySize = tyConFamilySize tyCon
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do
+  dflags <- getDynFlags
   modClass <- getModClass
-  let dataConClassName = nameDataText . dataConName $ dataCon
+  let dataConClassName = nameDataText dflags . dataConName $ dataCon
       thisClass = qualifiedName modClass dataConClassName
       thisFt = obj thisClass
+      defineTagMethod =
+          defineMethod . mkMethodDef thisClass [Public] "getTag" [] (ret jint) $
+                         iconst jint conTag
+                      <> greturn jint
+  -- TODO: Reduce duplication
   if isNullaryRepDataCon dataCon then do
-      newExportedClosure dataConClassName typeClass $
+      newExportedClosure dataConClassName typeClass $ do
         defineMethod $ mkDefaultConstructor thisClass typeClass
+        defineTagMethod
       return ()
   else
     do let initCode :: Code
@@ -166,28 +217,40 @@ cgDataCon typeClass dataCon = do
              let maybeDup = if i /= numFields then dup thisFt else mempty
              in maybeDup
              <> gload ft (fromIntegral i)
-             <> putfield (mkFieldRef thisClass (varX i) ft)
-
-           varX :: Int -> Text
-           varX n = cons 'x' . pack . show $ n
-
-           getterX :: Int -> Text
-           getterX n = append "get" . pack . show $ n
-
-           getterDefs :: [MethodDef]
-           getterDefs =
-             flip map indexedFields $ \(i, ft) ->
-               mkMethodDef thisClass [Public] (getterX i) [] (ret ft) $ fold
-               [
-                 gload thisFt 0,
-                 getfield $ mkFieldRef thisClass (varX i) ft,
-                 greturn ft
-               ]
+             <> putfield (mkFieldRef thisClass (constrField i) ft)
 
            fieldDefs :: [FieldDef]
            fieldDefs = map (\(i, ft) ->
-                         mkFieldDef [Private, Final] (varX i) ft)
+                         mkFieldDef [Public, Final] (constrField i) ft)
                        indexedFields
+
+
+           (ps, os, ns, fs, ls, ds) = go indexedFields [] [] [] [] [] []
+
+           go [] ps os ns fs ls ds = (ps, os, ns, fs, ls, ds)
+           go ((i, ft):ifs) ps os ns fs ls ds =
+             case ftArgRep ft of
+               P -> go ifs ((i, code):ps) os ns fs ls ds
+               O -> go ifs ps ((i, code):os) ns fs ls ds
+               N -> go ifs ps os ((i, code):ns) fs ls ds
+               F -> go ifs ps os ns ((i, code):fs) ls ds
+               L -> go ifs ps os ns fs ((i, code):ls) ds
+               D -> go ifs ps os ns fs ls ((i, code):ds)
+               _ -> panic "cgDataCon: V argrep!"
+              where code = gload thisFt 0
+                        <> getfield (mkFieldRef thisClass (constrField i) ft)
+
+           defineGetRep :: ArgRep -> [(Int, Code)] -> CodeGen ()
+           defineGetRep rep [] = return ()
+           defineGetRep rep branches =
+             defineMethod $
+               mkMethodDef thisClass [Public] method [jint] (ret ft) $
+                 gswitch (gload jint 1) branches
+                   (Just $ barf (append method ": invalid field index!")
+                        <> defaultValue ft)
+              <> greturn ft
+             where ft = argRepFt rep
+                   method = append "get" (pack $ show rep)
 
            indexedFields :: [(Int, FieldType)]
            indexedFields = indexList fields
@@ -200,6 +263,13 @@ cgDataCon typeClass dataCon = do
 
        newExportedClosure dataConClassName typeClass $ do
          defineFields fieldDefs
-         defineMethods getterDefs
+         defineTagMethod
+         defineGetRep P ps
+         defineGetRep O os
+         defineGetRep N ns
+         defineGetRep F fs
+         defineGetRep L ls
+         defineGetRep D ds
          defineMethod $ mkConstructorDef thisClass typeClass fields initCode
        return ()
+  where conTag = fromIntegral $ getDataConTag dataCon

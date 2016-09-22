@@ -11,6 +11,7 @@ import java.util.ArrayDeque;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicReference;
 import ghcvm.runtime.stg.Task.InCall;
 import static ghcvm.runtime.Rts.*;
 import static ghcvm.runtime.RtsMessages.*;
@@ -477,9 +478,12 @@ public final class Capability {
         if (cap.emptyThreadQueues()) {
             if (threaded) {
                 if (recentActivity != Inactive) return cap;
-                //scheduleDoGC
+            }
+            //scheduleDoGC
+            if (!cap.emptyRunQueue()) return cap;
+            // deal with user signals
 
-            } else {
+            if (!threaded) {
                 if (task.incall.tso != null) {
                     switch (task.incall.tso.whyBlocked) {
                         case BlockedOnSTM:
@@ -488,8 +492,7 @@ public final class Capability {
                         case BlockedOnMVar:
                         case BlockedOnMVarRead:
                             cap.throwToSingleThreaded(task.incall.tso,
-                                                  null /* TODO: nonTermination_closure */
-                                                  );
+                                                      Capability.nonTermination_closure);
                             return cap;
                         default:
                             barf("deadlock: main thread blocked in a strange way");
@@ -647,7 +650,7 @@ public final class Capability {
                     msg.done();
                     tryWakeupThread(source);
                     return true;
-                } while (false);
+                } while (true);
             }
             return false;
         }
@@ -693,8 +696,7 @@ public final class Capability {
                 /* TODO: Is it a good idea to unlock right afterwards? */
                 msg.unlock();
                 if (msg.isValid()) {
-                    tso.sp.previous();
-                    tso.sp.remove();
+                    tso.spPop();
                     unblock = true;
                 }
                 break;
@@ -910,8 +912,13 @@ public final class Capability {
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
                            boolean stopAtAtomically, StgUpdateFrame stopHere) {
-        /* ASSUMPTION: sp is pointing to the top of the stack */
+
         ListIterator<StackFrame> sp = tso.sp;
+
+        // Ensure sp is pointing to top
+        while (sp.hasNext()) {
+            sp.next();
+        }
 
         StgThunk updatee = null;
         if (stopHere != null) {
@@ -919,13 +926,14 @@ public final class Capability {
         }
 
         StackFrame top = sp.previous();
+        sp.remove();
 
-        /* Ensure stack has a closure at the top */
-        if (top.getClosure() == null)  {
-            sp.next();
-            sp.add(new StgDummyFrame());
-            sp.previous();
-        }
+        // /* Ensure stack has a closure at the top */
+        // if (top.getClosure() == null)  {
+        //     sp.next();
+        //     sp.add(new StgDummyFrame());
+        //     sp.previous();
+        // }
 
         /* Find the index of the update frame to stop at */
         int stopIndex = -1;
@@ -934,18 +942,23 @@ public final class Capability {
             stopIndex = stack.size() - stack.search(stopHere);
         }
 
-        while (sp.previousIndex() > stopIndex) {
+        boolean shouldContinue = true;
+        // TODO: Handle the case where top.getClosure() == null
+        AtomicReference<StgClosure> topClosure =
+            new AtomicReference<StgClosure>(top.getClosure());
+
+        while (shouldContinue && (stopHere == null || sp.previousIndex() > stopIndex)) {
             /* TODO: Make a custom peeking iterator */
-            StackFrame frame = Utils.peekPrevious(sp);
-            boolean shouldContinue = frame.doRaiseAsync(this, tso, exception, stopAtAtomically, updatee);
-            if (!shouldContinue) break;
+            StackFrame frame = sp.previous(); //Utils.peekPrevious(sp);
+            shouldContinue = frame.doRaiseAsync(this, tso, exception, stopAtAtomically,
+                                                updatee, topClosure);
         }
 
-        /* Maintain the invariant that sp should always
-           point to stack top. */
-        while (sp.hasNext()) {
-            sp.next();
-        }
+        // /* Maintain the invariant that sp should always
+        //    point to stack top. */
+        // while (sp.hasNext()) {
+        //     sp.next();
+        // }
 
         if (tso.whyBlocked != NotBlocked) {
             tso.whyBlocked = NotBlocked;
@@ -979,12 +992,11 @@ public final class Capability {
     }
 
     public final void updateThunk(StgTSO tso, StgThunk thunk, StgClosure val) {
-        if (thunk.getEvaluated() != null) {
-            thunk.updateWithIndirection(val);
-        } else {
-            StgClosure v = thunk.indirectee;
-            thunk.updateWithIndirection(val);
-            v.thunkUpdate(this, tso);
+        StgClosure v = thunk.indirectee;
+        thunk.updateWithIndirection(val);
+        /* Only if it's an StgIndStatic, do doUpdateThunk */
+        if (v != null && v.getEvaluated() == null) {
+            v.doUpdateThunk(this, tso);
         }
     }
 
@@ -1831,10 +1843,22 @@ public final class Capability {
         /* TODO: Finish implementation */
     }
 
-    public final int raiseExceptionHelper(StgTSO tso, StgClosure exception) {
-        StgClosure raiseClosure;
-        /* TODO: Finish implementation */
-        return 0;
+    public final StackFrame raiseExceptionHelper(StgTSO tso, StgClosure exception) {
+        // Assumes that tso.sp pointer is beyond stack top
+        ListIterator<StackFrame> sp = tso.sp;
+        boolean shouldContinue = true;
+        AtomicReference<StgClosure> raiseClosure = new AtomicReference<StgClosure>();
+        StackFrame frame = null;
+        while (shouldContinue && sp.hasPrevious()) {
+            frame = sp.previous();
+            shouldContinue = frame.doRaiseExceptionHelper(this, tso, raiseClosure, exception);
+        }
+        // TODO: Rethink this when implementing underflow frames/stack chunks
+        while (sp.hasNext()) {
+            sp.next();
+            sp.remove();
+        }
+        return frame;
     }
 
     public final void stmCondemnTransaction(StgTRecHeader trec) {
@@ -2070,6 +2094,20 @@ public final class Capability {
             return sparks.size();
         } else {
             return 0;
+        }
+    }
+
+    public static StgClosure nonTermination_closure = null;
+
+    static {
+        try {
+            nonTermination_closure = (StgClosure)
+                Class.forName("base.control.exception.Base")
+                .getField("nonTermination_closure")
+                .get(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            nonTermination_closure = null;
         }
     }
 }

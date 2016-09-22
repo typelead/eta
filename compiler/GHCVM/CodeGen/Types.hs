@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Types
   (TopLevelFlag(..),
    RepArity,
@@ -11,14 +12,19 @@ module GHCVM.CodeGen.Types
    Sequel(..),
    SelfLoopInfo,
    CgBindings,
-   toCgLocs,
+   RecIndexes,
+   storeDefault,
+   getTagMethod,
+   locArgRep,
+   mkRepLocDirect,
+   mkLocDirect,
+   mkLocLocal,
+   getNonVoidFts,
    enterMethod,
-   enterLoc,
+   evaluateMethod,
    loadLoc,
    storeLoc,
    locFt,
-   locClass,
-   apUpdThunk,
    isRec,
    isNonRec,
    mkCgIdInfo,
@@ -27,72 +33,92 @@ module GHCVM.CodeGen.Types
    nonVoidIds,
    getJavaInfo,
    getNonVoids,
+   getLocField,
    isLFThunk,
    lfFieldType,
    lfStaticThunk)
 where
 
-import Id
-import VarEnv
-import DataCon
-import TyCon
-import Type
-import Module
-import Name
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.DataCon
+import GHCVM.Types.TyCon
+import GHCVM.Types.Type
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.Name
+import GHCVM.Main.DynFlags
 
 import Codec.JVM
 
-import GHCVM.Primitive
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.ArgRep
+import GHCVM.Debug
+import GHCVM.Util
 
 import Data.Maybe
 import Data.Text (Text)
 import Data.Monoid ((<>))
 
--- TODO: Select appropriate fields
-type SelfLoopInfo = (Id, [CgLoc])
+type SelfLoopInfo = (Id, Label, [CgLoc])
 
 data Sequel
   = Return
   | AssignTo [CgLoc]
 
-data CgLoc = LocLocal FieldType !Int
+data CgLoc = LocLocal Bool FieldType !Int
            | LocStatic FieldType Text Text
-           | LocField FieldType Text Text
-           | LocDirect FieldType Code
+           | LocField Bool FieldType Text Text
+           | LocDirect Bool FieldType Code
+           | LocLne Label [CgLoc]
 
-toCgLocs :: [(FieldType, Code)] -> [CgLoc]
-toCgLocs = map (\(ft, code) -> LocDirect ft code)
+instance Outputable CgLoc where
+  ppr (LocLocal isClosure ft int) = str "local: " <+> ppr int <+> ppr isClosure
+  ppr LocStatic {} = str "static"
+  ppr LocField {} = str "field"
+  ppr LocDirect {} = str "direct"
+  ppr LocLne {} = str "lne"
 
-enterLoc :: CgLoc -> Code
-enterLoc cgLoc = loadLoc cgLoc
-              <> loadContext
-              <> enterMethod cgLoc
+mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
+mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 
-locClass :: CgLoc -> Text
-locClass (LocLocal _ _) = stgClosure -- TODO: We can do better w/ the ft
-locClass (LocStatic _ clClass _) = clClass
-locClass (LocField _ clClass _) = clClass
-locClass (LocDirect _ _) = error "locClass: LocDirect"
+mkLocLocal :: Bool -> FieldType -> Int -> CgLoc
+mkLocLocal isClosure ft int = LocLocal isClosure ft int
+
+mkRepLocDirect :: (PrimRep, Code) -> CgLoc
+mkRepLocDirect (rep, code) = LocDirect isClosure ft code
+  where isClosure = isGcPtrRep rep
+        ft = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
+
+locArgRep :: CgLoc -> ArgRep
+locArgRep loc = case loc of
+  LocLocal isClosure ft _ -> locRep isClosure ft
+  LocStatic ft _ _ -> P
+  LocField isClosure ft _ _ -> locRep isClosure ft
+  LocDirect isClosure ft _ -> locRep isClosure ft
+  LocLne _ _ -> panic "logArgRep: Cannot pass a let-no-escape binding!"
+  where locRep isClosure ft = if isClosure then P else ftArgRep ft
 
 locFt :: CgLoc -> FieldType
-locFt (LocLocal ft _) = ft
+locFt (LocLocal _ ft _) = ft
 locFt (LocStatic ft _ _) = ft
-locFt (LocField ft _ _) = ft
-locFt (LocDirect ft _) = ft
+locFt (LocField _ ft _ _) = ft
+locFt (LocDirect _ ft _) = ft
 
 storeLoc :: CgLoc -> Code -> Code
-storeLoc (LocLocal ft n) code = code <> gstore ft n
+storeLoc (LocLocal _ ft n) code = code <> gstore ft n
+
+storeDefault :: CgLoc -> Code
+storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
 
 loadLoc :: CgLoc -> Code
-loadLoc (LocLocal ft n) = gload ft n
+loadLoc (LocLocal _ ft n) = gload ft n
 loadLoc (LocStatic ft modClass clName) =
   getstatic $ mkFieldRef modClass (closure clName) ft
-loadLoc (LocField ft clClass fieldName) =
+loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
-loadLoc (LocDirect _ code) = code
+loadLoc (LocDirect _ _ code) = code
 
 type CgBindings = IdEnv CgIdInfo
 
@@ -101,39 +127,31 @@ data CgIdInfo =
              cgLambdaForm :: LambdaFormInfo,
              cgLocation   :: CgLoc }
 
+instance Outputable CgIdInfo where
+  ppr CgIdInfo {..} = ppr cgId <+> str "-->" <+> ppr cgLocation
+
 splitStaticLoc :: CgLoc -> (Text, Text)
 splitStaticLoc (LocStatic ft modClass clName) = (modClass, clName)
 splitStaticLoc _ = error $ "splitStaticLoc: Not LocStatic"
 
-getJavaInfo :: CgIdInfo -> (Text, Text, Text)
-getJavaInfo CgIdInfo { cgLocation, cgLambdaForm } = (modClass, clName, clClass)
+getJavaInfo :: DynFlags -> CgIdInfo -> (Text, Text, Text)
+getJavaInfo dflags CgIdInfo { cgLocation, cgLambdaForm }
+  = (modClass, clName, clClass)
   where (modClass, clName) = splitStaticLoc cgLocation
         -- TODO: Reduce duplication
         clClass = fromMaybe (qualifiedName modClass clName)
-                            $ maybeDataConClass cgLambdaForm
+                            $ maybeDataConClass dflags cgLambdaForm
 
-maybeDataConClass :: LambdaFormInfo -> Maybe Text
-maybeDataConClass lfInfo =
-  case lfInfo of
-    LFCon dataCon ->
-      let dataName = dataConName dataCon
-          dataClass = nameDataText dataName
-          -- TODO: Most likely this will fail for same module data cons
-          -- Maybe externalize the data con name?
-          dataModuleClass = moduleJavaClass
-                          . fromMaybe (error "Failed")
-                          $ nameModule_maybe dataName
-      in Just $ qualifiedName dataModuleClass dataClass
-    _ -> Nothing
+maybeDataConClass :: DynFlags -> LambdaFormInfo -> Maybe Text
+maybeDataConClass dflags (LFCon dataCon) = Just $ dataConClass dflags dataCon
+maybeDataConClass dflags _ = Nothing
 
-
-mkCgIdInfo :: Id -> LambdaFormInfo -> CgIdInfo
-mkCgIdInfo id lfInfo =
+mkCgIdInfo :: DynFlags -> Id -> LambdaFormInfo -> CgIdInfo
+mkCgIdInfo dflags id lfInfo =
   CgIdInfo { cgId = id
            , cgLambdaForm = lfInfo
            , cgLocation = loc }
-  where loc = mkStaticLoc id lfInfo
-        mod = nameModule . idName $ id
+  where loc = mkStaticLoc dflags id lfInfo
 
 mkCgIdInfoWithLoc :: Id -> LambdaFormInfo -> CgLoc -> CgIdInfo
 mkCgIdInfoWithLoc id lfInfo cgLoc =
@@ -141,15 +159,22 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLambdaForm = lfInfo
            , cgLocation = cgLoc }
 
-mkStaticLoc :: Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc id lfInfo = LocStatic (obj clClass) modClass clName
+mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
+mkStaticLoc dflags id lfInfo = LocStatic closureType modClass clName
   where name = idName id
-        mod = nameModule name
-        clName = nameText name
+        mod = fromMaybe (error "mkStaticLoc: No module")
+            $ nameModule_maybe name
+        clName = nameText dflags True name
         modClass = moduleJavaClass mod
-        -- TODO: Reduce duplication
-        clClass = fromMaybe (qualifiedName modClass clName)
-                            $ maybeDataConClass lfInfo
+        -- clClass
+        --   | Just c <- maybeDataConClass lfInfo = c
+        --   | Just c <- maybeTyConClass (idType id) = c
+        --   | otherwise = qualifiedName modClass clName
+
+-- maybeTyConClass :: Type -> Maybe Text
+-- maybeTyConClass ty = case repType ty of
+--   UnaryRep (TyConApp tc _) -> Just $ tyConClass tc
+--   _ -> Nothing
 
 type Liveness = [Bool]   -- One Bool per word; True  <=> non-ptr or dead
 
@@ -162,6 +187,8 @@ data StandardFormInfo
         --      case x of
         --           con a1,..,an -> ak
         -- and the constructor is from a single-constr type.
+      Int -- Field position
+      ArgRep -- Field type
         --WordOff         -- 0-origin offset of ak within the "goods" of
                         -- constructor (Recall that the a1,...,an may be laid
                         -- out in the heap in a non-obvious order.)
@@ -210,6 +237,12 @@ lfFieldType LFThunk {} = thunkType
 lfFieldType LFCon {} = conType
 lfFieldType _ = closureType
 
+isLFSimple :: LambdaFormInfo -> Bool
+isLFSimple LFUnLifted = True
+isLFSimple LFUnknown {} = True
+isLFSimple LFLetNoEscape = True
+isLFSimple _ = False
+
 isLFThunk :: LambdaFormInfo -> Bool
 isLFThunk LFThunk {} = True
 isLFThunk _          = False
@@ -227,12 +260,15 @@ lfStaticThunk _ = False
 newtype NonVoid a = NonVoid a
   deriving (Eq, Show)
 
+instance Outputable a => Outputable (NonVoid a) where
+  ppr (NonVoid x) = ppr x
+
 -- Use with care; if used inappropriately, it could break invariants.
 unsafeStripNV :: NonVoid a -> a
 unsafeStripNV (NonVoid a) = a
 
 nonVoidIds :: [Id] -> [NonVoid Id]
-nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidJRep (idJPrimRep id))]
+nonVoidIds ids = [NonVoid id | id <- ids, not (isVoidRep (idPrimRep id))]
 
 data TopLevelFlag
   = TopLevel
@@ -261,10 +297,37 @@ getNonVoids = mapMaybe (\(mft, val) -> case mft of
                            Just _ -> Just (NonVoid val)
                            Nothing -> Nothing)
 
-enterMethod :: CgLoc -> Code
-enterMethod cgLoc =
-  invokevirtual $ mkMethodRef (locClass cgLoc) "enter" [contextType] void
+getNonVoidFts :: [(Maybe FieldType, a)] -> [(FieldType, NonVoid a)]
+getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
+                           Just ft -> Just (ft, NonVoid val)
+                           Nothing -> Nothing)
 
-apUpdThunk :: StandardFormInfo -> (Text, Int)
-apUpdThunk (ApThunk n) = (apUpdName n, n)
-apUpdThunk _ = error $ "apUpdThunk: Wrong standard form"
+getLocField :: CgLoc -> Maybe FieldRef
+getLocField (LocStatic ft modClass clName) =
+  Just $ mkFieldRef modClass (closure clName) ft
+getLocField (LocField _ ft clClass fieldName) =
+  Just $ mkFieldRef clClass fieldName ft
+getLocField _ =
+  Nothing
+
+enterMethod :: CgLoc -> Code
+enterMethod cgLoc
+  = loadLoc cgLoc
+ <> loadContext
+ -- TODO: Do better than stgClosure
+ <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] void)
+
+evaluateMethod :: CgLoc -> Code
+evaluateMethod cgLoc
+  = loadLoc cgLoc
+ <> loadContext
+ <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] void)
+ -- TODO: Narrrow the invokevirtual call with locFt
+
+getTagMethod :: Code -> Code
+getTagMethod code
+  = code
+ <> gconv closureType conType
+ <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
+
+type RecIndexes = [(Int, Id)]

@@ -99,27 +99,27 @@ import Data.Data
 import Data.Typeable
 
 -- compiler/utils
-import Bag
-import Outputable
-import StringBuffer
-import FastString
-import UniqFM
-import Util             ( readRational )
+import GHCVM.Utils.Bag
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.StringBuffer
+import GHCVM.Utils.FastString
+import GHCVM.Utils.UniqFM
+import GHCVM.Utils.Util             ( readRational )
 
 -- compiler/main
-import ErrUtils
-import DynFlags
+import GHCVM.Main.ErrUtils
+import GHCVM.Main.DynFlags
 
 -- compiler/basicTypes
-import SrcLoc
-import Module
-import BasicTypes     ( InlineSpec(..), RuleMatchInfo(..), FractionalLit(..),
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.BasicTypes     ( InlineSpec(..), RuleMatchInfo(..), FractionalLit(..),
                         SourceText )
 
 -- compiler/parser
-import Ctype
+import GHCVM.Parser.Ctype
 
-import ApiAnnotation
+import GHCVM.Parser.ApiAnnotation
 }
 
 -- -----------------------------------------------------------------------------

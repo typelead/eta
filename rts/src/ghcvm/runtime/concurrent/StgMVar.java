@@ -24,6 +24,10 @@ public class StgMVar extends StgClosure {
         barf("MVAR object entered!");
     }
 
+    public boolean isEmpty() {
+        return tsoQueue.isEmpty();
+    }
+
     public void pushFirst(StgTSO tso) {
         tsoQueue.offerFirst(tso);
     }
@@ -54,4 +58,7 @@ public class StgMVar extends StgClosure {
     public final boolean tryLock() {
         return lock.getAndSet(true);
     }
+
+    @Override
+    public StgClosure getEvaluated() { return this; }
 }

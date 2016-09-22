@@ -15,10 +15,10 @@ import ghcvm.runtime.apply.StgPAP;
 
 public class ArgumentStack extends AbstractArgumentStack {
     public ObjectArrayList objects;
-    public AbstractIntList ints;
-    public AbstractLongList longs;
-    public AbstractFloatList floats;
-    public AbstractDoubleList doubles;
+    public IntArrayList ints;
+    public LongArrayList longs;
+    public FloatArrayList floats;
+    public DoubleArrayList doubles;
 
     public ArgumentStack() {
         super(7);
@@ -28,7 +28,12 @@ public class ArgumentStack extends AbstractArgumentStack {
         super(closureSize);
     }
 
-    public ArgumentStack(final ObjectArrayList closures, final ObjectArrayList objects, final AbstractIntList ints, final AbstractLongList longs, AbstractFloatList floats, AbstractDoubleList doubles) {
+    public ArgumentStack(final ObjectArrayList closures,
+                         final ObjectArrayList objects,
+                         final IntArrayList ints,
+                         final LongArrayList longs,
+                         final FloatArrayList floats,
+                         final DoubleArrayList doubles) {
         super(closures);
         this.objects = objects;
         this.ints = ints;
@@ -38,13 +43,23 @@ public class ArgumentStack extends AbstractArgumentStack {
     }
 
     @Override
+    public void dump() {
+        super.dump();
+        System.out.println("O" + objects);
+        System.out.println("I" + ints);
+        System.out.println("L" + longs);
+        System.out.println("F" + floats);
+        System.out.println("D" + doubles);
+    }
+
+    @Override
     public void populate(Builder builder) {
         super.populate(builder);
-        if (objects != null) builder.objects = (ObjectArrayList) objects.clone();
-        if (ints != null) builder.ints = (AbstractIntList) ints.clone();
-        if (longs != null) builder.longs = (AbstractLongList) longs.clone();
-        if (floats != null) builder.floats = (AbstractFloatList) floats.clone();
-        if (doubles != null) builder.doubles = (AbstractDoubleList) doubles.clone();
+        if (objects != null) builder.objects = objects.copy();
+        if (ints != null) builder.ints = ints.copy();
+        if (longs != null) builder.longs = longs.copy();
+        if (floats != null) builder.floats = floats.copy();
+        if (doubles != null) builder.doubles = doubles.copy();
     }
 
     public Object O(int index) {

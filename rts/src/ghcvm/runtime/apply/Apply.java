@@ -3,14 +3,14 @@ package ghcvm.runtime.apply;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.RtsFun;
+import ghcvm.runtime.stg.AbstractArgumentStack;
 
 public class Apply {
     public static RtsFun ap_0_fast = new RtsFun() {
             @Override
             public void enter(StgContext context) {
                 StgClosure fun = context.R(1);
-                StgClosure entered = fun.evaluate(context);
-                context.R(1, entered);
+                fun.evaluate(context);
             }
         };
 
@@ -204,7 +204,8 @@ public class Apply {
             @Override
             public void enter(StgContext context) {
                 StgPAP pap = (StgPAP) context.R(1);
-                context.merge(pap.argStack);
+                AbstractArgumentStack stack = (AbstractArgumentStack) context.O(1);
+                context.merge(stack);
                 StgClosure fun = pap.fun;
                 fun.enter(context);
             }

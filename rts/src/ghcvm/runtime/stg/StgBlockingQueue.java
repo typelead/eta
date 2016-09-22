@@ -41,7 +41,7 @@ public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlac
     }
 
     @Override
-    public void thunkUpdate(Capability cap, StgTSO tso) {
+    public void doUpdateThunk(Capability cap, StgTSO tso) {
         if (owner != tso) {
             cap.checkBlockingQueues(tso);
         } else {

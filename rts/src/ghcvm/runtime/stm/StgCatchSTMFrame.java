@@ -1,6 +1,7 @@
 package ghcvm.runtime.stm;
 
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.stg.Capability;
 import ghcvm.runtime.stg.StgTSO;
@@ -45,5 +46,25 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
         cap.stmFreeAbortedTrec(trec);
         tso.trec = outer;
         return true;
+    }
+
+    @Override
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        tso.sp.next();
+        return false;
+    }
+
+    @Override
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+        StgTRecHeader trec = tso.trec;
+        StgTRecHeader outer = trec.enclosingTrec;
+        cap.stmAbortTransaction(trec);
+        cap.stmFreeAbortedTrec(trec);
+        tso.trec = outer;
+        tso.spPop();
+        context.R(1, handler);
+        context.R(2, exception);
+        Apply.ap_pv_fast.enter(context);
+        return false;
     }
 }

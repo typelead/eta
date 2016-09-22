@@ -4,3 +4,8 @@ build
 *.class
 *.hi
 *.o
+*.dump-stg
+*.dump-tc-trace
+*.dump-cs-trace
+*.jar
+dist/

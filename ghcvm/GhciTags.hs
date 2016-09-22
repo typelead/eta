@@ -13,22 +13,22 @@ module GhciTags (
   createETagsFileCmd
 ) where
 
-import Exception
-import GHC
+import GHCVM.Utils.Exception
+import GHCVM.Main.GHC
 import GhciMonad
-import Outputable
+import GHCVM.Utils.Outputable
 
 -- ToDo: figure out whether we need these, and put something appropriate
 -- into the GHC API instead
-import Name (nameOccName)
-import OccName (pprOccName)
-import ConLike
-import MonadUtils
+import GHCVM.BasicTypes.Name (nameOccName)
+import GHCVM.BasicTypes.OccName (pprOccName)
+import GHCVM.BasicTypes.ConLike
+import GHCVM.Utils.MonadUtils
 
 import Data.Function
 import Data.Maybe
 import Data.Ord
-import Panic
+import GHCVM.Utils.Panic
 import Data.List
 import Control.Monad
 import System.IO

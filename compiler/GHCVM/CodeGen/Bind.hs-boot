@@ -1,6 +1,6 @@
 module GHCVM.CodeGen.Bind where
 
 import GHCVM.CodeGen.Monad( CodeGen )
-import StgSyn( StgBinding )
+import GHCVM.StgSyn.StgSyn( StgBinding )
 
 cgBind :: StgBinding -> CodeGen ()

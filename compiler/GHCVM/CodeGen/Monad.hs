@@ -1,14 +1,24 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.CodeGen.Monad
   (CgEnv(..),
    CgState(..),
    CodeGen(..),
+   crashDoc,
+   debugDoc,
+   debugState,
+   debug,
+   withSequel,
    emit,
    initCg,
+   getCgLoc,
    getCodeWithResult,
    newTemp,
+   newIdLoc,
    peekNextLocal,
    setNextLocal,
-   getNextLocal,
+   newLocal,
+   newLabel,
+   setNextLabel,
    getSequel,
    getSelfLoop,
    setSuperClass,
@@ -21,6 +31,7 @@ module GHCVM.CodeGen.Monad
    addBinding,
    addBindings,
    setBindings,
+   printBindings,
    defineMethod,
    defineMethods,
    defineField,
@@ -34,30 +45,40 @@ module GHCVM.CodeGen.Monad
    runCodeGen,
    addInitStep,
    forkClosureBody,
+   forkLneBody,
+   forkAlts,
    unimplemented,
    getDynFlags)
 where
 
-import DynFlags
-import Module
-import VarEnv
-import Id
-import Name
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.Module
+import GHCVM.BasicTypes.VarEnv
+import GHCVM.BasicTypes.Id
+import GHCVM.BasicTypes.Name
+import GHCVM.Utils.Outputable hiding ((<>))
+import GHCVM.Utils.FastString
+import GHCVM.Types.TyCon
 
 import Data.Monoid((<>))
 import Data.List
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
-import Control.Monad (liftM, ap)
+import Control.Monad (liftM, ap, when, forM)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy as B
 import Codec.JVM
+
 import GHCVM.CodeGen.Types
 import GHCVM.CodeGen.Closure
 import GHCVM.CodeGen.Name
+import GHCVM.CodeGen.ArgRep
+import GHCVM.Debug
+import GHCVM.Util
+import GHCVM.Utils.Digraph
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
@@ -70,7 +91,7 @@ data CgState =
   CgState { cgBindings         :: !CgBindings
           -- Accumulating
           , cgCompiledClosures :: ![ClassFile]
-          , cgClassInitCode    :: !Code
+          , cgClassInitCode    :: ![Node FieldRef Code]
           -- Top-level definitions
           , cgAccessFlags    :: [AccessFlag]
           , cgMethodDefs     :: ![MethodDef]
@@ -79,7 +100,8 @@ data CgState =
           , cgSuperClassName :: !(Maybe Text)
           -- Current method
           , cgCode           :: !Code
-          , cgNextLocal      :: Int }
+          , cgNextLocal      :: Int
+          , cgNextLabel      :: Int }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -143,7 +165,8 @@ initCg dflags mod =
            , cgClassName        = className
            , cgCompiledClosures = []
            , cgSuperClassName   = Nothing
-           , cgNextLocal        = 0 })
+           , cgNextLocal        = 0
+           , cgNextLabel        = 0 })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
@@ -152,8 +175,18 @@ emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
 peekNextLocal :: CodeGen Int
 peekNextLocal = gets cgNextLocal
 
-getNextLocal :: FieldType -> CodeGen Int
-getNextLocal ft = do
+peekNextLabel :: CodeGen Int
+peekNextLabel = gets cgNextLabel
+
+newLabel :: CodeGen Label
+newLabel = do
+  next <- peekNextLabel
+  modify $ \s@CgState { cgNextLabel } ->
+             s { cgNextLabel = cgNextLabel + 1}
+  return $ mkLabel next
+
+newLocal :: FieldType -> CodeGen Int
+newLocal ft = do
   next <- peekNextLocal
   modify $ \s@CgState { cgNextLocal } ->
              s { cgNextLocal = cgNextLocal + fieldSz}
@@ -162,6 +195,9 @@ getNextLocal ft = do
 
 setNextLocal :: Int -> CodeGen ()
 setNextLocal n = modify $ \s -> s { cgNextLocal = n }
+
+setNextLabel :: Int -> CodeGen ()
+setNextLabel n = modify $ \s -> s { cgNextLabel = n }
 
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode
@@ -176,7 +212,7 @@ getModClass :: CodeGen Text
 getModClass = asks cgQClassName
 
 getInitCode :: CodeGen Code
-getInitCode = gets cgClassInitCode
+getInitCode = gets (foldMap (\(a, _, _) -> a) . flattenSCCs . stronglyConnCompG . graphFromEdgedVertices . cgClassInitCode)
 
 getBindings :: CodeGen CgBindings
 getBindings = gets cgBindings
@@ -190,13 +226,21 @@ getCgIdInfo id = do
   case lookupVarEnv localBindings id of
     Just info -> return info
     Nothing -> do
-      let name = idName id
-      let mod = nameModule name
       curMod <- getModule
-      if mod /= curMod then
-        return . mkCgIdInfo id $ mkLFImported id
-      else
-        error "getCgIdInfo: Not external name"
+      let name = idName id
+      -- TODO: Change this back.
+      let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
+      --let mod = fromMaybe curMod $ nameModule_maybe name
+      dflags <- getDynFlags
+      if mod /= curMod then return . mkCgIdInfo dflags id $ mkLFImported id
+      else return . mkCgIdInfo dflags id $ mkLFImported id
+      -- TODO: Change this back.
+      -- crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
+
+printBindings :: CodeGen ()
+printBindings = do
+  bindings <- getBindings
+  debugDoc $ str "printBindings" <+> ppr bindings
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
@@ -275,7 +319,7 @@ setSuperClass superClassName =
 -- NOTE: We make an assumption that we never directly derive from
 --       java.lang.Object
 getSuperClass :: CodeGen Text
-getSuperClass = fmap fromJust . gets $ cgSuperClassName
+getSuperClass = fmap (expectJust "getSuperClass") . gets $ cgSuperClassName
 
 setClosureClass :: Text -> CodeGen ()
 setClosureClass clName = do
@@ -335,9 +379,9 @@ runCodeGen env state codeGenAction = do
 
   return (compiledModuleClass : cgCompiledClosures)
 
-addInitStep :: Code -> CodeGen ()
+addInitStep :: Node FieldRef Code -> CodeGen ()
 addInitStep code = modify $ \s@CgState{..} ->
-  s { cgClassInitCode = cgClassInitCode <> code }
+  s { cgClassInitCode = cgClassInitCode <> [ code ] }
 
 -- NOTE: New bindings generated by the body are forgotten after
 --       the body is executed
@@ -355,17 +399,19 @@ withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () ->
 withMethod accessFlags name fts rt body = do
   oldCode <- getMethodCode
   oldNextLocal <- peekNextLocal
+  oldNextLabel <- peekNextLabel
   setMethodCode mempty
   setNextLocal 2
+  setNextLabel 0
   body
-  -- TODO: Remove this line after finishing cgExpr
-  emit $ vreturn
+  emit vreturn
   clsName <- getClass
   newCode <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
   defineMethod methodDef
   setMethodCode oldCode
   setNextLocal oldNextLocal
+  setNextLabel oldNextLabel
   return methodDef
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
@@ -383,10 +429,10 @@ getSequel = asks cgSequel
 getSelfLoop :: CodeGen (Maybe SelfLoopInfo)
 getSelfLoop = asks cgSelfLoop
 
-newTemp :: FieldType -> CodeGen CgLoc
-newTemp ft = do
-  n <- getNextLocal ft
-  return $ LocLocal ft n
+newTemp :: Bool -> FieldType -> CodeGen CgLoc
+newTemp isClosure ft = do
+  n <- newLocal ft
+  return $ LocLocal isClosure ft n
 
 -- TODO: Verify that this does as intended
 getCodeWithResult :: CodeGen a -> CodeGen (a, Code)
@@ -397,3 +443,58 @@ getCodeWithResult gen = do
   state2 <- get
   put $ state2 { cgCode = cgCode state1 }
   return (a, cgCode state2)
+
+newIdLoc :: NonVoid Id -> CodeGen CgLoc
+newIdLoc (NonVoid id) = newTemp (isGcPtrRep rep) (primRepFieldType rep)
+  where rep = idPrimRep id
+
+getCgLoc :: NonVoid Id -> CodeGen CgLoc
+getCgLoc (NonVoid id) = do
+  info <- getCgIdInfo id
+  return $ cgLocation info
+
+forkAlts :: [(a, CodeGen ())] -> CodeGen [(a, Code)]
+forkAlts alts =
+  forM alts $ \(val, altCode) -> do
+    code <- forkLneBody altCode
+    return (val, code)
+
+withSequel :: Sequel -> CodeGen a -> CodeGen a
+withSequel sequel = local (\env -> env { cgSequel = sequel })
+
+forkLneBody :: CodeGen () -> CodeGen Code
+forkLneBody body = do
+  oldBindings <- getBindings
+  oldCode <- getMethodCode
+  oldNextLocal <- peekNextLocal
+  setMethodCode mempty
+  body
+  newCode <- getMethodCode
+  setMethodCode oldCode
+  setNextLocal oldNextLocal
+  setBindings oldBindings
+  return newCode
+
+debug :: String -> CodeGen ()
+debug msg = do
+  dflags <- getDynFlags
+  when (verbosity dflags > 1) $
+    liftIO $ putStrLn msg
+
+debugDoc :: SDoc -> CodeGen ()
+debugDoc sdoc = do
+  dflags <- getDynFlags
+  when (verbosity dflags > 1) $
+    liftIO . putStrLn $ showSDocDump dflags sdoc
+
+debugState :: CodeGen ()
+debugState = do
+  dflags <- getDynFlags
+  bindings <- getBindings
+  when (verbosity dflags > 1) $
+    debugDoc $ str "cgBindings: " <+> ppr bindings
+
+crashDoc :: SDoc -> CodeGen a
+crashDoc sdoc = do
+  debugDoc sdoc
+  error "crash"

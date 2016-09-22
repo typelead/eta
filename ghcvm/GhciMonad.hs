@@ -28,19 +28,19 @@ module GhciMonad (
 #include "GhcVM.h"
 
 import qualified GHC
-import GhcMonad         hiding (liftIO)
-import Outputable       hiding (printForUser, printForUserPartWay)
+import GHCVM.Main.GhcMonad         hiding (liftIO)
+import GHCVM.Utils.Outputable       hiding (printForUser, printForUserPartWay)
 import qualified Outputable
-import Util
-import DynFlags
-import FastString
-import HscTypes
-import SrcLoc
-import Module
-import ObjLink
-import Linker
+import GHCVM.Utils.Util
+import GHCVM.Main.DynFlags
+import GHCVM.Utils.FastString
+import GHCVM.Main.HscTypes
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.BasicTypes.Module
+import GHCVM.Interactive.ObjLink
+import GHCVM.Interactive.Linker
 
-import Exception
+import GHCVM.Utils.Exception
 import Numeric
 import Data.Array
 import Data.Int         ( Int64 )

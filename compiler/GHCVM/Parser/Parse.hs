@@ -1,16 +1,16 @@
 module GHCVM.Parser.Parse where
 
-import HscStats
-import HscTypes
-import DynFlags
-import ErrUtils
-import MonadUtils
-import SrcLoc
-import FastString
-import StringBuffer
-import Outputable
-import Module
-import Bag
+import GHCVM.Main.HscStats
+import GHCVM.Main.HscTypes
+import GHCVM.Main.DynFlags
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.MonadUtils
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.FastString
+import GHCVM.Utils.StringBuffer
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.Module
+import GHCVM.Utils.Bag
 
 import GHCVM.Parser.Parser
 import GHCVM.Parser.Lexer

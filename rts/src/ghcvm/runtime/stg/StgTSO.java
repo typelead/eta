@@ -20,6 +20,7 @@ import ghcvm.runtime.stg.Task.InCall;
 import static ghcvm.runtime.stg.StgTSO.WhyBlocked.*;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.*;
 import static ghcvm.runtime.concurrent.Concurrent.SPIN_COUNT;
+import static ghcvm.runtime.RtsMessages.barf;
 
 public final class StgTSO extends StgClosure {
     public static AtomicLong maxThreadId = new AtomicLong(0);
@@ -157,7 +158,7 @@ public final class StgTSO extends StgClosure {
     }
 
     @Override
-    public final void thunkUpdate(Capability cap, StgTSO tso) {
+    public final void doUpdateThunk(Capability cap, StgTSO tso) {
         if (tso != this) {
             cap.checkBlockingQueues(tso);
         }
@@ -215,4 +216,30 @@ public final class StgTSO extends StgClosure {
     public final void spPush(StackFrame frame) {
         sp.add(frame);
     }
+
+    public final StackFrame spPop() {
+        StackFrame frame = sp.previous();
+        sp.remove();
+        return frame;
+    }
+
+    @Override
+    public void enter(StgContext context) {
+        barf("TSO object entered!");
+    }
+
+    public void dumpStack() {
+        System.out.println("StgTSO #" + id);
+        if (sp.hasPrevious()) {
+            System.out.println("Sp = " + sp.previous());
+            sp.next();
+        }
+        ListIterator<StackFrame> it = stack.listIterator();
+        int i = 0;
+        while (it.hasNext()) {
+            System.out.println("#" + i + ": " + it.next());
+            i++;
+        }
+    }
+
 }

@@ -4,45 +4,44 @@ module Main (main) where
 import GHC.Paths (libdir)
 
 -- GHC API
-import qualified GHC
-import GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
-import CmdLineParser
-import LoadIface        ( showIface, loadUserInterface)
-import HscMain          ( newHscEnv )
-import DriverPipeline
-import PipelineMonad
-import TyCon (isDataTyCon)
-import DriverMkDepend   ( doMkDependHS )
-import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
-import StgSyn (pprStgBindings)
-import SysTools
-import Config
-import Constants
-import HscTypes
-import Packages (pprPackages, pprPackagesSimple, pprModuleMap)
-import DriverPhases
-import CorePrep ( corePrepPgm )
-import BasicTypes (failed)
-import StaticFlags
-import DynFlags
-import ErrUtils
-import FastString
-import Outputable
-import SrcLoc
-import Util
-import Panic
-import MonadUtils (liftIO)
+import qualified GHCVM.Main.GHC as GHC
+import GHCVM.Main.GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
+import GHCVM.Main.CmdLineParser
+import GHCVM.Iface.LoadIface        ( showIface, loadUserInterface)
+import GHCVM.Main.HscMain          ( newHscEnv )
+import GHCVM.Main.DriverPipeline
+import GHCVM.Main.PipelineMonad
+import GHCVM.Types.TyCon (isDataTyCon)
+import GHCVM.Main.DriverMkDepend   ( doMkDependHS )
+-- import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
+import GHCVM.StgSyn.StgSyn (pprStgBindings)
+import GHCVM.Main.SysTools
+import GHCVM.Main.Constants
+import GHCVM.Main.HscTypes
+import GHCVM.Main.Packages (pprPackages, pprPackagesSimple, pprModuleMap)
+import GHCVM.Main.DriverPhases
+import GHCVM.Core.CorePrep ( corePrepPgm )
+import GHCVM.BasicTypes.BasicTypes (failed)
+import GHCVM.Main.StaticFlags
+import GHCVM.Main.DynFlags
+import GHCVM.Main.ErrUtils
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Outputable
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.Util
+import GHCVM.Utils.Panic
+import GHCVM.Utils.MonadUtils (liftIO)
 
 -- GHCVM API
-import GHCVM.DriverPipeline (runGhcVMPhase, linkGhcVM, ghcvmFrontend)
-import GHCVM.Primitive (ghcvmPrimIface)
+import GHCVM.TypeCheck.TcForeign (tcForeignImports)
+import GHCVM.DeSugar.DsForeign (dsForeigns)
 
 -- Imports for --abi-hash
-import Module              ( mkModuleName, ModLocation(..))
-import Finder              ( findImportedModule, cannotFindInterface )
-import TcRnMonad           ( initIfaceCheck )
-import Binary              ( openBinMem, put_, fingerprintBinMem )
-import Hooks
+import GHCVM.BasicTypes.Module              ( mkModuleName, ModLocation(..))
+import GHCVM.Main.Finder              ( findImportedModule, cannotFindInterface )
+import GHCVM.TypeCheck.TcRnMonad           ( initIfaceCheck )
+import GHCVM.Utils.Binary              ( openBinMem, put_, fingerprintBinMem )
+import GHCVM.Main.Hooks
 
 -- Standard Libraries
 import System.IO
@@ -54,7 +53,7 @@ import Control.Monad
 import Data.Char
 import Data.List
 import Data.Maybe
-import Maybes ( expectJust )
+import GHCVM.Utils.Maybes ( expectJust )
 
 -- dumpPackages :: DynFlags -> IO ()
 -- dumpPackages dflags = putMsg dflags (pprPackages dflags)
@@ -117,29 +116,34 @@ main = do
             -- start our GHC session
             GHC.runGhc mbMinusB $ do
 
-            dflags0 <- GHC.getSessionDynFlags
+              dflags0 <- GHC.getSessionDynFlags
 
-            -- add the override to force GHC to stop at STG code
-            GHC.setSessionDynFlags
-              (dflags0 { hooks = emptyHooks {runPhaseHook = Just runGhcVMPhase,
-                                             linkHook = Just linkGhcVM,
-                                             ghcPrimIfaceHook = Just ghcvmPrimIface,
-                                             hscFrontendHook = Just ghcvmFrontend
-                                            },
-                         objectSuf = "jar"})
+              -- add the override to force GHC to stop at STG code
+              let dflags1 = dflags0
+                            { objectSuf = "jar" }
+                  dflags2 = dflags1 -- foldl xopt_set dflags1
+                            -- [ Opt_ForeignFunctionInterface
+                            -- , Opt_GHCForeignImportPrim
+                            -- , Opt_UnboxedTuples
+                            -- , Opt_BangPatterns
+                            -- , Opt_MultiParamTypeClasses
+                            -- , Opt_MagicHash
+                            -- , Opt_EmptyDataDecls ]
 
-            dflags <- GHC.getSessionDynFlags
+              GHC.setSessionDynFlags dflags2
 
-            case postStartupMode of
-                Left preLoadMode ->
-                    liftIO $
-                        case preLoadMode of
-                            ShowInfo               -> showInfo dflags
-                            ShowGhcUsage           -> showGhcUsage  dflags
-                            ShowGhciUsage          -> showGhciUsage dflags
-                            PrintWithDynFlags f    -> putStrLn (f dflags)
-                Right postLoadMode ->
-                    main' postLoadMode dflags argv3 flagWarnings
+              dflags <- GHC.getSessionDynFlags
+
+              case postStartupMode of
+                  Left preLoadMode ->
+                      liftIO $
+                          case preLoadMode of
+                              ShowInfo               -> showInfo dflags
+                              ShowGhcUsage           -> showGhcUsage  dflags
+                              ShowGhciUsage          -> showGhciUsage dflags
+                              PrintWithDynFlags f    -> putStrLn (f dflags)
+                  Right postLoadMode ->
+                      main' postLoadMode dflags argv3 flagWarnings
     return ()
 
 main' :: PostLoadMode -> DynFlags -> [Located String] -> [Located String]
@@ -212,10 +216,13 @@ main' postLoadMode dflags0 args flagWarnings = do
      -- away - e.g., for win32 platforms, backslashes are converted
      -- into forward slashes.
     normal_fileish_paths = map (normalise . unLoc) fileish_args
-    (srcs, objs)         = parititionArgs normal_fileish_paths [] []
+    -- TODO: Clean this up
+    (srcs', objs)        = parititionArgs normal_fileish_paths [] []
+    srcs                 = srcs' ++ map (\o -> (o, Nothing)) objs
+    dflags5              = dflags4
 
-    dflags5 = dflags4 { ldInputs = map (FileOption "") objs
-                                   ++ ldInputs dflags4 }
+    -- dflags5 = dflags4 { ldInputs = map (FileOption "") objs
+    --                                ++ ldInputs dflags4 }
 
   -- we've finished manipulating the DynFlags, update the session
   _ <- GHC.setSessionDynFlags dflags5
@@ -256,7 +263,7 @@ main' postLoadMode dflags0 args flagWarnings = do
   liftIO $ dumpFinalStats dflags6
 
 ghciUI :: [(FilePath, Maybe Phase)] -> Maybe [String] -> Ghc ()
-ghciUI     = interactiveUI defaultGhciSettings
+ghciUI     = undefined--TODO: GHCI interactiveUI defaultGhciSettings
 
 -- -----------------------------------------------------------------------------
 -- Splitting arguments into source files and object files.  This is where we
@@ -410,11 +417,6 @@ showGhcUsageMode = mkPreLoadMode ShowGhcUsage
 showGhciUsageMode = mkPreLoadMode ShowGhciUsage
 showInfoMode = mkPreLoadMode ShowInfo
 
-printSetting :: String -> Mode
-printSetting k = mkPreLoadMode (PrintWithDynFlags f)
-    where f dflags = fromMaybe (panic ("Setting not found: " ++ show k))
-                   $ lookup k (compilerInfo dflags)
-
 mkPreLoadMode :: PreLoadMode -> Mode
 mkPreLoadMode = Right . Left
 
@@ -539,32 +541,6 @@ modeFlags =
   , defFlag "-supported-extensions" (PassFlag (setMode showSupportedExtensionsMode))
   , defFlag "-show-packages"        (PassFlag (setMode showPackagesMode))
   ] ++
-  [ defFlag k'                      (PassFlag (setMode (printSetting k)))
-  | k <- ["Project version",
-          "Project Git commit id",
-          "Booter version",
-          "Stage",
-          "Build platform",
-          "Host platform",
-          "Target platform",
-          "Have interpreter",
-          "Object splitting supported",
-          "Have native code generator",
-          "Support SMP",
-          "Unregisterised",
-          "Tables next to code",
-          "RTS ways",
-          "Leading underscore",
-          "Debug on",
-          "LibDir",
-          "Global Package DB",
-          "C compiler flags",
-          "Gcc Linker flags",
-          "Ld Linker flags"],
-    let k' = "-print-" ++ map (replaceSpace . toLower) k
-        replaceSpace ' ' = '-'
-        replaceSpace c   = c
-  ] ++
       ------- interfaces ----------------------------------------------------
   [ defFlag "-show-iface"  (HasArg (\f -> setMode (showInterfaceMode f)
                                                "--show-iface"))
@@ -645,37 +621,24 @@ addFlag s flag = liftEwM $ do
 
 doMake :: [(String,Maybe Phase)] -> Ghc ()
 doMake srcs  = do
-    let (hs_srcs, non_hs_srcs) = partition haskellish srcs
-
-        haskellish (f,Nothing) =
-          looksLikeModuleName f || isHaskellUserSrcFilename f || '.' `notElem` f
-        haskellish (_,Just phase) =
-          phase `notElem` [ As True, As False, Cc, Cobjc, Cobjcpp, CmmCpp, Cmm
-                          , StopLn]
-
-    hsc_env <- GHC.getSession
-
-    -- if we have no haskell sources from which to do a dependency
-    -- analysis, then just do one-shot compilation and/or linking.
-    -- This means that "ghc Foo.o Bar.o -o baz" links the program as
-    -- we expect.
-    if null hs_srcs
-       then liftIO (oneShot hsc_env StopLn srcs)
-       else do
-
-    o_files <- mapM (liftIO . compileFile hsc_env StopLn)
-                 non_hs_srcs
+  hsc_env <- GHC.getSession
+  if null hs_srcs
+  then liftIO (oneShot hsc_env StopLn srcs)
+  else do
+    o_files <- liftIO $ compileFiles hsc_env StopLn non_hs_srcs
     dflags <- GHC.getSessionDynFlags
-    let dflags' = dflags { ldInputs = map (FileOption "") o_files
-                                      ++ ldInputs dflags }
+    let dflags' = foldr addJarInputs dflags o_files
     _ <- GHC.setSessionDynFlags dflags'
-
     targets <- mapM (uncurry GHC.guessTarget) hs_srcs
     GHC.setTargets targets
     ok_flag <- GHC.load LoadAllTargets
-
     when (failed ok_flag) (liftIO $ exitWith (ExitFailure 1))
     return ()
+  where (hs_srcs, non_hs_srcs) = partition haskellish srcs
+        haskellish (f,Nothing) =
+          looksLikeModuleName f || isHaskellUserSrcFilename f || '.' `notElem` f
+        haskellish (_,Just phase) =
+          phase `notElem` [ As True, As False, Cc, Cobjc, Cobjcpp, CmmCpp, Cmm, StopLn ]
 
 
 -- ---------------------------------------------------------------------------
@@ -700,19 +663,20 @@ showBanner _postLoadMode dflags = do
 
    -- Display details of the configuration in verbose mode
    when (verb >= 2) $
-    do hPutStr stderr "Glasgow Haskell Compiler, Version "
+    do hPutStr stderr cProjectName
+       hPutStr stderr ", Version "
        hPutStr stderr cProjectVersion
-       hPutStr stderr ", stage "
-       hPutStr stderr cStage
        hPutStr stderr " booted by GHC version "
-       hPutStrLn stderr cBooterVersion
+       hPutStrLn stderr ghcProjectVersion
 
 -- We print out a Read-friendly string, but a prettier one than the
 -- Show instance gives us
 showInfo :: DynFlags -> IO ()
 showInfo dflags = do
-        let sq x = " [" ++ x ++ "\n ]"
-        putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo dflags
+  let sq x = " [" ++ x ++ "\n ]"
+  putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo dflags
+  where compilerInfo dflags = [("Project name", cProjectName),
+                               ("Project version", cProjectVersion)]
 
 showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions
@@ -853,4 +817,3 @@ unknownFlagsErr fs = throwGhcException $ UsageError $ concatMap oneError fs
         (case fuzzyMatch f (nub allFlags) of
             [] -> ""
             suggs -> "did you mean one of:\n" ++ unlines (map ("  " ++) suggs))
-

@@ -4,6 +4,7 @@ import java.util.Stack;
 import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.stg.Stg;
 import ghcvm.runtime.stg.Capability;
@@ -134,12 +135,16 @@ public class StgAtomicallyFrame extends StgSTMFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         ListIterator<StackFrame> sp = tso.sp;
         if (stopAtAtomically) {
             cap.stmCondemnTransaction(tso.trec);
-            /* TODO: Should a separate value be used
-               instead of null? */
+            sp.next(); //Point after Atomically frame
+            // Remove all frames afterward
+            while (sp.hasNext()) {
+                sp.next();
+                sp.remove();
+            }
             sp.add(new ReturnClosure(null));
             tso.whatNext = ThreadRunGHC;
             return false;
@@ -148,10 +153,45 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             StgTRecHeader outer = trec.enclosingTrec;
             cap.stmAbortTransaction(trec);
             cap.stmFreeAbortedTrec(trec);
-            /* TODO: Discard stack above this */
+            tso.trec = outer;
+            // Remove all frames including this one
+            while (sp.hasNext()) {
+                sp.next();
+                sp.remove();
+            }
             StgClosure atomically = new StgAtomically(code);
-            sp.add(new StgEnter(atomically));
+            topClosure.set(atomically);
             return true;
+        }
+    }
+
+    @Override
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        tso.sp.next();
+        return false;
+    }
+
+    @Override
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+        StgTRecHeader trec = tso.trec;
+        boolean result = cap.stmValidateNestOfTransactions(trec);
+        StgTRecHeader outer = trec.enclosingTrec;
+        cap.stmAbortTransaction(trec);
+        cap.stmFreeAbortedTrec(trec);
+        if (outer != null) {
+            cap.stmAbortTransaction(outer);
+            cap.stmFreeAbortedTrec(outer);
+        }
+        tso.trec = null;
+        if (result) {
+            tso.spPop();
+            return true;
+        } else {
+            trec = cap.stmStartTransaction(null);
+            tso.trec = trec;
+            context.R(1, code);
+            Apply.ap_v_fast.enter(context);
+            return false;
         }
     }
 }

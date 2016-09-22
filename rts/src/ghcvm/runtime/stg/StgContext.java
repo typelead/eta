@@ -1,17 +1,49 @@
 package ghcvm.runtime.stg;
 
+import java.util.ListIterator;
+
 public class StgContext {
     public ArgumentStack argStack = new ArgumentStack();
     public StgTSO currentTSO;
     public Capability myCapability;
     public ReturnCode ret;
 
+    public void pushFrame(StackFrame frame) {
+        currentTSO.spPush(frame);
+    }
+
     public void merge(AbstractArgumentStack argStack) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder.from(argStack)
             .setSimple(false)
             .build();
+        // TODO: Need to synchronize this?
         this.argStack = (ArgumentStack) stack;
+    }
+
+    public void dump() {
+        System.out.println("Context Dump");
+        System.out.println("currentTSO: " + currentTSO);
+        System.out.println("myCapabilitymyCapability: " + myCapability);
+        System.out.println("ret: " + ret);
+        argStack.dump();
+    }
+
+    public int stackTopIndex() {
+        return currentTSO.sp.previousIndex();
+    }
+
+    public void checkForStackFrames(int prevIndex) {
+        ListIterator<StackFrame> sp = currentTSO.sp;
+        int index = sp.previousIndex();
+        while (prevIndex < index) {
+            sp.previous();
+            index--;
+        }
+        while (sp.hasNext()) {
+            sp.next().enter(this);
+        }
+        return;
     }
 
     public StgClosure R(int index) {

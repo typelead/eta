@@ -1,9 +1,11 @@
 package ghcvm.runtime.stg;
 
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.thunk.StgThunk;
 import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Default;
+import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class StackFrame extends StgClosure {
     private int stackIndex;
@@ -11,8 +13,6 @@ public abstract class StackFrame extends StgClosure {
     @Override
     public final void enter(StgContext context) {
         ListIterator<StackFrame> sp = context.currentTSO.sp;
-        // TODO: Test this logic
-
         /* WARNING: This logic is VERY delicate. Make sure you
                     run test cases before modifying this. */
 
@@ -21,7 +21,7 @@ public abstract class StackFrame extends StgClosure {
         do {
             /* If the stack has more frames, enter
                into them */
-            if (sp.hasNext()) {
+            while (sp.hasNext()) {
                 sp.next().enter(context);
             }
             int index = sp.previousIndex();
@@ -39,6 +39,8 @@ public abstract class StackFrame extends StgClosure {
                 if (thisFrame == this) {
                     /* Pop the frame since we're done with it now */
                     sp.remove();
+                } else {
+                    barf("StackFrame.enter: Wrong frame after enter.");
                 }
                 /* TODO: Check if a next() or previous() is required here */
             } else {
@@ -51,11 +53,14 @@ public abstract class StackFrame extends StgClosure {
                         index--;
                     } while (stackIndex < index);
                     continue;
+                } else {
+                    barf("StackFrame.enter: stackIndex > index.");
                 }
                 /* Whens stackIndex > index, do nothing and return
                     to the frame below this one */
             }
-        } while (false);
+            break;
+        } while (true);
    }
 
     public abstract void stackEnter(StgContext context);
@@ -65,9 +70,7 @@ public abstract class StackFrame extends StgClosure {
         Marked, Stop, Default, Update, UpdateEvaluted
     }
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
-        /* Move to the next stack frame */
-        tso.sp.previous();
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         return true;
     }
 
@@ -76,5 +79,15 @@ public abstract class StackFrame extends StgClosure {
     public boolean doFindRetry(Capability cap, StgTSO tso) {
         /* Move to the next stack frame */
         return true;
+    }
+
+
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        return true;
+    }
+
+
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+        return false;
     }
 }

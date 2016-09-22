@@ -35,30 +35,44 @@ public abstract class AbstractArgumentStack {
     public boolean isSimple() { return false; }
 
     public void populate(AbstractArgumentStack.Builder builder) {
-        builder.closures = (ObjectArrayList) closures.clone();
+        if (closures != null) {
+            builder.closures = closures.copy();
+        }
+    }
+
+    public void dump() {
+        System.out.println("Dumping arg stacks...");
+        System.out.println("R" + closures);
     }
 
     public static class Builder {
         public ObjectArrayList closures;
         public ObjectArrayList objects;
-        public AbstractIntList ints;
-        public AbstractLongList longs;
-        public AbstractFloatList floats;
-        public AbstractDoubleList doubles;
+        public IntArrayList ints;
+        public LongArrayList longs;
+        public FloatArrayList floats;
+        public DoubleArrayList doubles;
         public boolean simple = true;
 
         public void init() {
             closures = new ObjectArrayList(1);
+            closures.add(null); // Takes care of R1
         }
 
         public static Builder from(AbstractArgumentStack stack) {
             Builder builder = new Builder();
-            builder.setSimple(stack.isSimple());
-            stack.populate(builder);
+            if (stack != null) {
+                builder.setSimple(stack.isSimple());
+                stack.populate(builder);
+            } else {
+                builder.setSimple(true);
+                builder.init();
+            }
             return builder;
         }
 
         public Builder addC(StgClosure closure) {
+            if (closures == null) closures = new ObjectArrayList(1);
             closures.add(closure);
             return this;
         }

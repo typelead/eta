@@ -191,10 +191,11 @@ public class StgException extends RuntimeException {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
                 StgClosure exception = context.R(1);
+                boolean retry = false;
                 do {
-                    cap.raiseExceptionHelper(tso, exception);
-                    /* TODO: Finish implementation */
-                } while (false);
+                    StackFrame frame = cap.raiseExceptionHelper(tso, exception);
+                    retry = frame.doRaise(context, cap, tso, exception);
+                } while (retry);
             }
         };
 

@@ -1,7 +1,9 @@
 package ghcvm.runtime.stg;
 
 import java.util.Deque;
+import java.util.Stack;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.thunk.StgThunk;
 import ghcvm.runtime.exception.StgException;
@@ -25,11 +27,27 @@ public class StgStopThread extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee) {
-        ListIterator<StackFrame> sp = tso.sp;
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
         tso.whatNext = ThreadKilled;
-        sp.previous();
-        sp.remove();
+        tso.sp.remove();
+        return false;
+    }
+
+    @Override
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+        tso.sp.next();
+        return false;
+    }
+
+    @Override
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+        tso.stack.clear();
+        Stack<StackFrame> stack = new Stack<StackFrame>();
+        tso.stack = stack;
+        tso.sp = stack.listIterator();
+        tso.spPush(new StgEnter(exception));
+        tso.whatNext = ThreadKilled;
+        Stg.threadFinished.enter(context);
         return false;
     }
 }

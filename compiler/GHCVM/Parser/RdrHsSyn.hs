@@ -63,33 +63,33 @@ module GHCVM.Parser.RdrHsSyn (
 
     ) where
 
-import HsSyn            hiding (flattenHsForAllTyKeepAnns)
-import Class            ( FunDep )
-import CoAxiom          ( Role, fsFromRole )
-import RdrName          ( RdrName, isRdrTyVar, isRdrTc, mkUnqual, rdrNameOcc,
+import GHCVM.HsSyn.HsSyn            hiding (flattenHsForAllTyKeepAnns)
+import GHCVM.Types.Class            ( FunDep )
+import GHCVM.Types.CoAxiom          ( Role, fsFromRole )
+import GHCVM.BasicTypes.RdrName          ( RdrName, isRdrTyVar, isRdrTc, mkUnqual, rdrNameOcc,
                           isRdrDataCon, isUnqual, getRdrName, setRdrNameSpace,
                           rdrNameSpace )
-import OccName          ( tcClsName, isVarNameSpace )
-import Name             ( Name )
-import BasicTypes       ( maxPrecedence, Activation(..), RuleMatchInfo,
+import GHCVM.BasicTypes.OccName          ( tcClsName, isVarNameSpace )
+import GHCVM.BasicTypes.Name             ( Name )
+import GHCVM.BasicTypes.BasicTypes       ( maxPrecedence, Activation(..), RuleMatchInfo,
                           InlinePragma(..), InlineSpec(..), Origin(..),
                           SourceText )
-import TcEvidence       ( idHsWrapper )
+import GHCVM.TypeCheck.TcEvidence       ( idHsWrapper )
 import GHCVM.Parser.Lexer
-import TysWiredIn       ( unitTyCon, unitDataCon )
-import ForeignCall
-import OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
+import GHCVM.Prelude.TysWiredIn       ( unitTyCon, unitDataCon )
+import GHCVM.Prelude.ForeignCall
+import GHCVM.BasicTypes.OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
                           occNameString )
-import PrelNames        ( forall_tv_RDR, allNameStrings )
-import DynFlags
-import SrcLoc
-import OrdList          ( OrdList, fromOL )
-import Bag              ( emptyBag, consBag )
-import Outputable
-import FastString
-import Maybes
-import Util
-import ApiAnnotation
+import GHCVM.Prelude.PrelNames        ( forall_tv_RDR, allNameStrings )
+import GHCVM.Main.DynFlags
+import GHCVM.BasicTypes.SrcLoc
+import GHCVM.Utils.OrdList          ( OrdList, fromOL )
+import GHCVM.Utils.Bag              ( emptyBag, consBag )
+import GHCVM.Utils.Outputable
+import GHCVM.Utils.FastString
+import GHCVM.Utils.Maybes
+import GHCVM.Utils.Util
+import GHCVM.Parser.ApiAnnotation
 
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative ((<$>))
@@ -1393,9 +1393,9 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
       importSpec = CImport (L lc PrimCallConv) (L ls safety) Nothing funcTarget
                            (L loc (unpackFS entity))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
-  | cconv == JavaScriptCallConv = do
+  | cconv == JavaCallConv = do
   let funcTarget = CFunction (StaticTarget entity Nothing True)
-      importSpec = CImport (L lc JavaScriptCallConv) (L ls safety) Nothing
+      importSpec = CImport (L lc JavaCallConv) (L ls safety) Nothing
                            funcTarget (L loc (unpackFS entity))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   | otherwise = do
