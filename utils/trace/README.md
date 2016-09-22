@@ -9,7 +9,6 @@ This utility uses bytecode instrumentation to trace the execution of the JVM. Us
   ``` $ stack exec -- ghc Filter.hs ```
 
   The `Filter` program is used to nicely indent the call stack.
-  Courtesy of [Brian McKenna](https://github.com/puffnfresh).
 
 2. Dump the archive `tracejars.tar.gz`.
 
@@ -24,3 +23,5 @@ $ ./trace.sh [path-to-jar] | ./Filter > TRACE_DUMP
 ```
 
 Analyze the resulting `TRACE_DUMP` to find your bug.
+
+Courtesy of [Brian McKenna](https://github.com/puffnfresh).
