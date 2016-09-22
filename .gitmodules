@@ -1,0 +1,3 @@
+[submodule "cabalvm"]
+	path = cabalvm
+	url = https://github.com/rahulmutt/cabalvm

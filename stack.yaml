@@ -5,6 +5,8 @@ packages:
 - codec-jvm
 - utils/ghcvm-pkgdb # TODO: Shift this to libraries/
 - utils/ghcvm-pkg
+- cabalvm/cabal-install
+- cabalvm/Cabal
 extra-deps:
 - control-monad-exception-0.11.2
 - failure-0.2.0.3
