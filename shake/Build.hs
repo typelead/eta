@@ -125,40 +125,6 @@ buildLibrary debug lib deps = do
   unit $ cmd (Cwd dir) "cabalvm build"
   unit $ cmd (Cwd dir) "cabalvm install" installFlags
   when (lib == "ghc-prim") $ fixGhcPrimConf
-  -- installDir <- getInstallDir
-  -- let libDir = libraryDir </> lib
-  --     rootLibDir = rootDir </> lib
-  --     conf = lib <.> "conf"
-  --     libConf = libDir </> conf
-  --     libBuildDir = libDir </> "build"
-  --     libBuildConf = libBuildDir </> conf
-  --     packageDir = packageConfDir rootDir
-  --     ghcvmCmd = installDir </> "ghcvm"
-  -- createDir libBuildDir
-  -- if lib == "rts" then
-  --   need [rtsjar]
-  -- else do
-  --   sourceFiles <- getDirectoryFiles libDir ["//*.hs", "//*.java"]
-  --   let ghcvmFlags = (if debug
-  --                    then ["-ddump-to-file", "-ddump-stg"] -- "-v"
-  --                    else []) -- TODO: Add -O2
-  --                    ++
-  --                    (if lib == "base"
-  --                     then ["-Iinclude"]
-  --                     else [])
-  --   unit $ cmd [Cwd libDir, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
-  --              ghcvmCmd "-clear-package-db" ghcvmFlags
-  --              ["-package " ++ dep | dep <- deps]
-  --              "-staticlib -this-package-key"
-  --              lib "-o" ("build" </> libName lib)  "-outputdir build" sourceFiles
-  -- buildConf lib libConf libBuildConf
-  -- buildFiles <- getDirectoryFiles libBuildDir ["//*"]
-
-  -- forM_ buildFiles $ \buildFile -> do
-  --   let src = libBuildDir </> buildFile
-  --       dst = rootLibDir </> buildFile
-  --   copyFileWithDir src dst
-  -- unit $ cmd "stack exec -- ghcvm-pkg" ["--package-db", packageConfDir rootDir] " register" libBuildConf
   return ()
 
 testSpec :: FilePath -> Action ()
@@ -248,6 +214,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
           let s' = "ghc" ++ s ++ ".h"
           copyFile' (ghcInclude </> s') (ghcvmInclude </> s')
         copyFile' (ghcLibPath </> "settings") (rootDir </> "settings")
+        copyFile' (ghcLibPath </> "ghc-usage.txt") (rootDir </> "ghc-usage.txt")
 
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
