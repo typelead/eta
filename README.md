@@ -15,13 +15,13 @@ Make sure you have the following tools installed on your system:
   - make sure `javac` and `java` are on the PATH
 
 ### Installation
-Clone the repo and run the install script at the root of the repo:
+Clone the repository and run the install script at the root of the repo:
 ```
 $ git clone --recursive https://github.com/rahulmutt/ghcvm
 $ cd ghcvm
 $ ./install.sh
 ```
-Once the install is done, you will now have access to the following command-line tools:
+Once the installation is done, you will now have access to the following command-line tools:
 - **ghcvm** - The main compiler
 - **cabalvm** - The package manager and build tool
 
