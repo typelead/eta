@@ -36,11 +36,11 @@ The following packages are available upon installation:
 
 Now, go through the following tutorials for understanding how GHCVM works and how you can start running programs.
 
-- [Hello GHCVM!](wiki/Hello-GHCVM!)
+- [Hello GHCVM!](https://github.com/rahulmutt/ghcvm/wiki/Hello-GHCVM!)
 
 ## Contributing
 
-As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, consult the [wiki page]().
+As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, consult the [wiki page](https://github.com/rahulmutt/ghcvm/wiki/Contributing).
 
 ## License
 GHCVM is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
