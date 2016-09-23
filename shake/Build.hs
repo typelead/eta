@@ -214,6 +214,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
           let s' = "ghc" ++ s ++ ".h"
           copyFile' (ghcInclude </> s') (ghcvmInclude </> s')
         copyFile' (ghcLibPath </> "settings") (rootDir </> "settings")
+        copyFile' (ghcLibPath </> "ghc-usage.txt") (rootDir </> "ghc-usage.txt")
 
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
