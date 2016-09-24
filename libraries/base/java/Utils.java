@@ -98,11 +98,11 @@ public class Utils {
         return Charset.defaultCharset().name();
     }
 
-    public static long c_write(int file, ByteBuffer buffer, long count) {
+    public static int c_write(int file, ByteBuffer buffer, int count) {
         try {
             PrintStream stream = getPrintStream(file);
-            byte[] dst = new byte[(int) count];
-            buffer.get(dst, 0, (int) count);
+            byte[] dst = new byte[count];
+            buffer.get(dst, 0, count);
             stream.print(new String(dst, "US-ASCII"));
             return count;
         } catch (UnsupportedEncodingException ignored) {
@@ -112,8 +112,8 @@ public class Utils {
         }
     }
 
-    public static long c_read(int file, ByteBuffer buffer, long count) {
-        byte[] bytes = new byte[(int) count];
+    public static int c_read(int file, ByteBuffer buffer, int count) {
+        byte[] bytes = new byte[count];
         int got;
         try {
             got = System.in.read(bytes);

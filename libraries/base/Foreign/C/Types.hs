@@ -157,9 +157,9 @@ FLOATING_TYPE(CDouble,Double)
 -- "realToFrac/CLDouble->a"  realToFrac = \(CLDouble x) -> realToFrac x
 
 -- | Haskell type representing the C @ptrdiff_t@ type.
-INTEGRAL_TYPE(CPtrdiff,Int64)
+INTEGRAL_TYPE(CPtrdiff,Int32)
 -- | Haskell type representing the C @size_t@ type.
-INTEGRAL_TYPE(CSize,Word64)
+INTEGRAL_TYPE(CSize,Word32)
 -- | Haskell type representing the C @wchar_t@ type.
 INTEGRAL_TYPE(CWchar,Int32)
 -- | Haskell type representing the C @sig_atomic_t@ type.
