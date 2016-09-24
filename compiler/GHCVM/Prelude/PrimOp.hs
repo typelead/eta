@@ -533,6 +533,8 @@ data PrimOp
    | WriteJByteArrayOp
    | JByte2CharOp
    | JBool2IntOp
+   | StablePtr2AddrOp
+   | Addr2StablePtrOp
 
 -- Used for the Ord instance
 
@@ -540,7 +542,7 @@ primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1099
+maxPrimOpTag = 1101
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1642,6 +1644,8 @@ tagOf_PrimOp ReadJByteArrayOp = _ILIT(1096)
 tagOf_PrimOp WriteJByteArrayOp = _ILIT(1097)
 tagOf_PrimOp JByte2CharOp = _ILIT(1098)
 tagOf_PrimOp JBool2IntOp = _ILIT(1099)
+tagOf_PrimOp StablePtr2AddrOp = _ILIT(1100)
+tagOf_PrimOp Addr2StablePtrOp = _ILIT(1101)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2767,6 +2771,8 @@ allThePrimOps =
    , WriteJByteArrayOp
    , JByte2CharOp
    , JBool2IntOp
+   , StablePtr2AddrOp
+   , Addr2StablePtrOp
    ]
 
 tagToEnumKey :: Unique
@@ -3066,7 +3072,7 @@ primOpInfo SizeofMutableByteArrayOp = mkGenPrimOp (fsLit "sizeofMutableByteArray
 primOpInfo IndexByteArrayOp_Char = mkGenPrimOp (fsLit "indexCharArray#")  [] [byteArrayPrimTy, intPrimTy] (charPrimTy)
 primOpInfo IndexByteArrayOp_WideChar = mkGenPrimOp (fsLit "indexWideCharArray#")  [] [byteArrayPrimTy, intPrimTy] (charPrimTy)
 primOpInfo IndexByteArrayOp_Int = mkGenPrimOp (fsLit "indexIntArray#")  [] [byteArrayPrimTy, intPrimTy] (intPrimTy)
-primOpInfo IndexByteArrayOp_Word = mkGenPrimOp (fsLit "indexWordArray#")  [] [byteArrayPrimTy, intPrimTy] (word64PrimTy)
+primOpInfo IndexByteArrayOp_Word = mkGenPrimOp (fsLit "indexWordArray#")  [] [byteArrayPrimTy, intPrimTy] (wordPrimTy)
 primOpInfo IndexByteArrayOp_Addr = mkGenPrimOp (fsLit "indexAddrArray#")  [] [byteArrayPrimTy, intPrimTy] (addrPrimTy)
 primOpInfo IndexByteArrayOp_Float = mkGenPrimOp (fsLit "indexFloatArray#")  [] [byteArrayPrimTy, intPrimTy] (floatPrimTy)
 primOpInfo IndexByteArrayOp_Double = mkGenPrimOp (fsLit "indexDoubleArray#")  [] [byteArrayPrimTy, intPrimTy] (doublePrimTy)
@@ -4008,15 +4014,13 @@ primOpInfo ReadJByteArrayOp        =
   [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, mkStatePrimTy alphaTy ]
   $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, jbytePrimTy]
 primOpInfo WriteJByteArrayOp        =
-  mkGenPrimOp (fsLit "writeByteArray#") [alphaTyVar]
+  mkGenPrimOp (fsLit "writeJByteArray#") [alphaTyVar]
   [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, jbytePrimTy, mkStatePrimTy alphaTy ]
-  $ mkStatePrimTy betaTy
-primOpInfo WriteJByteArrayOp        =
-  mkGenPrimOp (fsLit "writeByteArray#") [alphaTyVar]
-  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, jbytePrimTy, mkStatePrimTy alphaTy ]
-  $ mkStatePrimTy betaTy
+  $ mkStatePrimTy alphaTy
 primOpInfo JByte2CharOp = mkGenPrimOp (fsLit "byte2Char#")  [] [jbytePrimTy] charPrimTy
 primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "bool2Int#")  [] [jboolPrimTy] intPrimTy
+primOpInfo StablePtr2AddrOp = mkGenPrimOp (fsLit "stablePtr2Addr#") [alphaTyVar] [mkStablePtrPrimTy alphaTy] addrPrimTy
+primOpInfo Addr2StablePtrOp = mkGenPrimOp (fsLit "addr2StablePtr#") [alphaTyVar] [addrPrimTy] (mkStablePtrPrimTy alphaTy)
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4902,6 +4906,8 @@ primOpCodeSize AddrToAnyOp = 0
 -- TODO: Verify
 primOpCodeSize JByte2CharOp = 1
 primOpCodeSize JBool2IntOp = 0
+primOpCodeSize StablePtr2AddrOp = primOpCodeSizeForeignCall
+primOpCodeSize Addr2StablePtrOp = primOpCodeSizeForeignCall
 primOpCodeSize _ =  primOpCodeSizeDefault
 
 primOpCodeSizeDefault :: Int

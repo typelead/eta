@@ -13,7 +13,7 @@ import Control.Concurrent.MVar (MVar, newMVar, withMVar)
 import Data.Dynamic (Dynamic)
 import Foreign.C.Types (CInt)
 import Foreign.ForeignPtr (ForeignPtr, newForeignPtr)
-import Foreign.StablePtr (--castPtrToStablePtr, castStablePtrToPtr,
+import Foreign.StablePtr (castPtrToStablePtr, castStablePtrToPtr,
                           deRefStablePtr, freeStablePtr, newStablePtr)
 import Foreign.Ptr (Ptr, castPtr)
 import Foreign.Marshal.Alloc (finalizerFree)
@@ -87,14 +87,13 @@ runHandlersPtr p s = do
 -- the dynamically-loaded base package are reverted, nothing bad
 -- happens.
 --
--- TODO: Implement
 sharedCAF :: a -> (Ptr a -> IO (Ptr a)) -> IO a
 sharedCAF a get_or_set =
-  mask_ $ undefined --do
-    -- stable_ref <- newStablePtr a
-    -- let ref = castPtr (castStablePtrToPtr stable_ref)
-    -- ref2 <- get_or_set ref
-    -- if ref == ref2
-    --   then return a
-    --   else do freeStablePtr stable_ref
-    --           deRefStablePtr (castPtrToStablePtr (castPtr ref2))
+  mask_ $ do
+    stable_ref <- newStablePtr a
+    let ref = castPtr (castStablePtrToPtr stable_ref)
+    ref2 <- get_or_set ref
+    if ref == ref2
+      then return a
+      else do freeStablePtr stable_ref
+              deRefStablePtr (castPtrToStablePtr (castPtr ref2))

@@ -38,25 +38,25 @@ public final class StgByteArray extends StgClosure {
             } else {
                 buf = ByteBuffer.allocate(n); // Heap memory
             }
-            addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
+            // addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
             // TODO: Add a check to crash if nextAddress overflows
             nextAddress += n;
         }
         return new StgByteArray(buf);
     }
 
-    public static ByteBuffer getBuffer(int address) {
-        Map.Entry<Integer, WeakReference<ByteBuffer>>
-            entry = addressMap.floorEntry(address);
-        int pos = address - entry.getKey();
-        ByteBuffer ref = entry.getValue().get();
-        if (ref != null) {
-            return (ByteBuffer) ref.duplicate().position(pos);
-        } else {
-            barf("Invalid address!");
-            return null;
-        }
-    }
+    // public static ByteBuffer getBuffer(int address) {
+    //     Map.Entry<Integer, WeakReference<ByteBuffer>>
+    //         entry = addressMap.floorEntry(address);
+    //     int pos = address - entry.getKey();
+    //     ByteBuffer ref = entry.getValue().get();
+    //     if (ref != null) {
+    //         return (ByteBuffer) ref.duplicate().position(pos);
+    //     } else {
+    //         barf("Invalid address!");
+    //         return null;
+    //     }
+    // }
 
     // TODO: Is synchronization necessary?
     public ByteBuffer buf;

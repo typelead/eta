@@ -2,6 +2,7 @@ package ghcvm.runtime.stg;
 
 import java.util.ArrayList;
 import java.util.ArrayDeque;
+import java.nio.ByteBuffer;
 
 import ghcvm.runtime.stg.StgClosure;
 
@@ -39,5 +40,9 @@ public class StablePtrTable {
             INSTANCE.ptrs.add(index, null);
             INSTANCE.freeIndexes.push(index);
         }
+    }
+
+    public static ByteBuffer stablePtr2Addr(int stablePtr) {
+        return (ByteBuffer) ByteBuffer.allocate(4).putInt(stablePtr).rewind();
     }
 }
