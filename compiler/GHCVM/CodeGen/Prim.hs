@@ -341,7 +341,6 @@ simpleOp IndexArrayOp = Just $
 simpleOp ByteArrayContents_Char = Just $ normalOp $ castStgByteArray <> byteArrayBuf
 simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
 simpleOp UnsafeFreezeByteArrayOp = Just idOp
-simpleOp SizeofMutableArrayOp = Just $ normalOp $ castStgByteArray <> byteArrayBuf <> byteBufferCapacity
 simpleOp IndexByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp IndexByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
 simpleOp IndexByteArrayOp_Int = Just $ byteArrayIndexOp jint mempty
@@ -680,9 +679,10 @@ simpleOp Narrow16WordOp = Just $ normalOp $ preserveShort
 simpleOp Narrow32WordOp = Just idOp
 
 -- Misc
-simpleOp SameTVarOp    = Just $ intCompOp if_acmpeq
-simpleOp SameMVarOp    = Just $ intCompOp if_acmpeq
-simpleOp EqStablePtrOp = Just $ intCompOp if_icmpeq
+simpleOp SameTVarOp             = Just $ intCompOp if_acmpeq
+simpleOp SameMVarOp             = Just $ intCompOp if_acmpeq
+simpleOp EqStablePtrOp          = Just $ intCompOp if_icmpeq
+simpleOp SameMutableByteArrayOp = Just $ intCompOp if_acmpeq
 simpleOp TouchOp       = Just idOp
 simpleOp StablePtr2AddrOp = Just $ normalOp $
   invokestatic $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "stablePtr2Addr"
@@ -690,6 +690,8 @@ simpleOp StablePtr2AddrOp = Just $ normalOp $
 simpleOp Addr2StablePtrOp = Just $ normalOp $
   invokevirtual $ mkMethodRef byteBuffer "getInt" [] (ret jint)
 simpleOp SizeofMutableByteArrayOp = Just $ normalOp $
+  invokevirtual $ mkMethodRef stgByteArray "remaining" [] (ret jint)
+simpleOp SizeofByteArrayOp = Just $ normalOp $
   invokevirtual $ mkMethodRef stgByteArray "remaining" [] (ret jint)
 
 -- Sparks
