@@ -23,8 +23,8 @@ module Foreign.StablePtr
         , newStablePtr
         , deRefStablePtr
         , freeStablePtr
-        -- , castStablePtrToPtr
-        -- , castPtrToStablePtr
+        , castStablePtrToPtr
+        , castPtrToStablePtr
         , -- ** The C-side interface
 
           -- $cinterface

@@ -684,6 +684,13 @@ simpleOp SameTVarOp    = Just $ intCompOp if_acmpeq
 simpleOp SameMVarOp    = Just $ intCompOp if_acmpeq
 simpleOp EqStablePtrOp = Just $ intCompOp if_icmpeq
 simpleOp TouchOp       = Just idOp
+simpleOp StablePtr2AddrOp = Just $ normalOp $
+  invokestatic $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "stablePtr2Addr"
+                   [jint] (ret byteBufferType)
+simpleOp Addr2StablePtrOp = Just $ normalOp $
+  invokevirtual $ mkMethodRef byteBuffer "getInt" [] (ret jint)
+simpleOp SizeofMutableByteArrayOp = Just $ normalOp $
+  invokevirtual $ mkMethodRef stgByteArray "remaining" [] (ret jint)
 
 -- Sparks
 -- TODO: Implement
