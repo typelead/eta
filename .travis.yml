@@ -27,6 +27,7 @@ before_install:
 
 install:
 # Build dependencies
+- stack --no-terminal --install-ghc
 - ./install.sh
 
 script:
