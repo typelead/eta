@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module GHC.CString (
-        JString#,
+        JString#, getBytesUtf8#,
         unpackCString#, unpackAppendCString#, unpackFoldrCString#,
         unpackCStringUtf8#, unpackNBytes#
     ) where
@@ -31,8 +31,8 @@ foreign import java unsafe "java.lang.String.getBytes" getBytes :: JString# -> J
 
 foreign import java unsafe "java.lang.String.length" strLength :: JString# -> Int#
 
-getBytesUtf8 :: JString# -> JByteArray#
-getBytesUtf8 this = getBytes this "UTF-8"#
+getBytesUtf8# :: JString# -> JByteArray#
+getBytesUtf8# this = getBytes this "UTF-8"#
 
 indexStrChar# :: JByteArray# -> Int# -> Char#
 indexStrChar# bytes n = byte2Char# (indexJByteArray# bytes n)
@@ -56,7 +56,7 @@ unpackCString# :: JString# -> [Char]
 unpackCString# str
   = unpack 0#
   where
-    bytes = getBytesUtf8 str
+    bytes = getBytesUtf8# str
     len = strLength str
     unpack nh
       | isTrue# (nh ==# len) = []
@@ -68,7 +68,7 @@ unpackAppendCString# :: JString# -> [Char] -> [Char]
 unpackAppendCString# str rest
   = unpack 0#
   where
-    bytes = getBytesUtf8 str
+    bytes = getBytesUtf8# str
     len = strLength str
     unpack nh
       | isTrue# (nh ==# len) = rest
@@ -95,7 +95,7 @@ unpackFoldrCString# :: JString# -> (Char -> a -> a) -> a -> a
 unpackFoldrCString# str f z
   = unpack 0#
   where
-    !bytes = getBytesUtf8 str
+    !bytes = getBytesUtf8# str
     !len = strLength str
     unpack nh
       | isTrue# (nh ==# len) = z
@@ -107,7 +107,7 @@ unpackCStringUtf8# :: JString# -> [Char]
 unpackCStringUtf8# str
   = unpack 0#
   where
-    !bytes = getBytesUtf8 str
+    !bytes = getBytesUtf8# str
     !len = strLength str
     unpack nh
       | isTrue# (nh ==# len) = []
@@ -133,7 +133,7 @@ unpackCStringUtf8# str
 unpackNBytes# :: JString# -> Int# -> [Char]
 unpackNBytes# _str 0#   = []
 unpackNBytes#  str len# = unpack [] (len# -# 1#)
-  where !bytes = getBytesUtf8 str
+  where !bytes = getBytesUtf8# str
         !len = strLength str
         unpack acc i#
           | isTrue# (i# <# 0#)  = acc
