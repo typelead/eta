@@ -28,7 +28,7 @@ before_install:
 install:
 # Build dependencies
 - stack --no-terminal --install-ghc test --only-dependencies
-- ./install.sh
+- travis_wait ./install.sh
 
 script:
 # Build the package, its tests, and its docs and run the tests
