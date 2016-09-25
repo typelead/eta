@@ -152,6 +152,9 @@ shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
 shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
   [ intCompOp ifnull [mvar <> castStgMVar <> mVarValue] ]
 
+shouldInlinePrimOp' dflags MakeStableNameOp args = Right $ return
+  [ normalOp (invokestatic (mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint))) args ]
+
 shouldInlinePrimOp' dflags MakeStablePtrOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "makeStablePtr" [closureType] (ret jint))) args ]
 
@@ -682,7 +685,9 @@ simpleOp Narrow32WordOp = Just idOp
 simpleOp SameTVarOp             = Just $ intCompOp if_acmpeq
 simpleOp SameMVarOp             = Just $ intCompOp if_acmpeq
 simpleOp EqStablePtrOp          = Just $ intCompOp if_icmpeq
+simpleOp EqStableNameOp         = Just $ intCompOp if_icmpeq
 simpleOp SameMutableByteArrayOp = Just $ intCompOp if_acmpeq
+simpleOp StableNameToIntOp      = Just idOp
 simpleOp TouchOp       = Just idOp
 simpleOp StablePtr2AddrOp = Just $ normalOp $
   invokestatic $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "stablePtr2Addr"

@@ -31,11 +31,11 @@ module Foreign.Ptr (
 
     -- * Function pointers
 
-    -- FunPtr,
-    -- nullFunPtr,
-    -- castFunPtr,
-    -- castFunPtrToPtr,
-    -- castPtrToFunPtr,
+    FunPtr,
+    nullFunPtr,
+    castFunPtr,
+    castFunPtrToPtr,
+    castPtrToFunPtr,
 
     -- -- freeHaskellFunPtr,
     -- -- Free the function pointer created by foreign export dynamic.
