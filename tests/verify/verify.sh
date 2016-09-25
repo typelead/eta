@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+set -e
+
 # (Re)build the Verify.java script and copy the class file here
 javac ../../utils/class-verifier/Verify.java
 cp ../../utils/class-verifier/Verify.class .
