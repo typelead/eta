@@ -590,6 +590,7 @@ simpleOp IndexJByteArrayOp = Just $ normalOp $ gaload jbyte
 simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
 simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
 simpleOp JByte2CharOp = Just $ normalOp preserveByte
+simpleOp JByte2IntOp = Just idOp
 
 -- StgMutVar ops
 simpleOp ReadMutVarOp = Just $ normalOp $ castStgMutVar <> mutVarValue
@@ -687,6 +688,7 @@ simpleOp SameMVarOp             = Just $ intCompOp if_acmpeq
 simpleOp EqStablePtrOp          = Just $ intCompOp if_icmpeq
 simpleOp EqStableNameOp         = Just $ intCompOp if_icmpeq
 simpleOp SameMutableByteArrayOp = Just $ intCompOp if_acmpeq
+simpleOp ReallyUnsafePtrEqualityOp = Just $ intCompOp if_acmpeq
 simpleOp StableNameToIntOp      = Just idOp
 simpleOp TouchOp       = Just idOp
 simpleOp StablePtr2AddrOp = Just $ normalOp $

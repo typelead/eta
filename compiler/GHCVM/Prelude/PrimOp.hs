@@ -535,6 +535,7 @@ data PrimOp
    | JBool2IntOp
    | StablePtr2AddrOp
    | Addr2StablePtrOp
+   | JByte2IntOp
 
 -- Used for the Ord instance
 
@@ -542,7 +543,7 @@ primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1101
+maxPrimOpTag = 1102
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1646,6 +1647,7 @@ tagOf_PrimOp JByte2CharOp = _ILIT(1098)
 tagOf_PrimOp JBool2IntOp = _ILIT(1099)
 tagOf_PrimOp StablePtr2AddrOp = _ILIT(1100)
 tagOf_PrimOp Addr2StablePtrOp = _ILIT(1101)
+tagOf_PrimOp JByte2IntOp = _ILIT(1102)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2773,6 +2775,7 @@ allThePrimOps =
    , JBool2IntOp
    , StablePtr2AddrOp
    , Addr2StablePtrOp
+   , JByte2IntOp
    ]
 
 tagToEnumKey :: Unique
@@ -4021,6 +4024,7 @@ primOpInfo JByte2CharOp = mkGenPrimOp (fsLit "byte2Char#")  [] [jbytePrimTy] cha
 primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "bool2Int#")  [] [jboolPrimTy] intPrimTy
 primOpInfo StablePtr2AddrOp = mkGenPrimOp (fsLit "stablePtr2Addr#") [alphaTyVar] [mkStablePtrPrimTy alphaTy] addrPrimTy
 primOpInfo Addr2StablePtrOp = mkGenPrimOp (fsLit "addr2StablePtr#") [alphaTyVar] [addrPrimTy] (mkStablePtrPrimTy alphaTy)
+primOpInfo JByte2IntOp = mkGenPrimOp (fsLit "byte2Int#")  [] [jbytePrimTy] intPrimTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4904,8 +4908,8 @@ primOpCodeSize SparkOp =  primOpCodeSizeForeignCall
 primOpCodeSize AddrToAnyOp = 0
 primOpCodeSize AddrToAnyOp = 0
 -- TODO: Verify
-primOpCodeSize JByte2CharOp = 1
 primOpCodeSize JBool2IntOp = 0
+primOpCodeSize JByte2IntOp = 0
 primOpCodeSize StablePtr2AddrOp = primOpCodeSizeForeignCall
 primOpCodeSize Addr2StablePtrOp = primOpCodeSizeForeignCall
 primOpCodeSize _ =  primOpCodeSizeDefault
