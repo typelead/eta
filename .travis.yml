@@ -31,5 +31,6 @@ install:
 
 script:
 # Build the package, its tests, and its docs and run the tests
-- ./tests/verify/verify.sh
+- cd tests/verify/
+- ./verify.sh
 
