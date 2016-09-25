@@ -30,97 +30,97 @@
 --
 -------------------------------------------------------------------------------
 
--- TODO: Implement
 module System.Mem.StableName (
-  -- -- * Stable Names
-  -- StableName,
-  -- makeStableName,
-  -- hashStableName,
-  -- eqStableName
+  -- * Stable Names
+  StableName,
+  makeStableName,
+  hashStableName,
+  eqStableName
   ) where
 
--- import Data.Typeable
+import Data.Typeable
 
--- import GHC.IO           ( IO(..) )
--- import GHC.Base         ( Int(..), StableName#, makeStableName#
---                         , eqStableName#, stableNameToInt# )
+import GHC.IO           ( IO(..) )
+import GHC.Base         ( Int(..), StableName#, makeStableName#
+                        , eqStableName#, stableNameToInt# )
 
--- -----------------------------------------------------------------------------
--- -- Stable Names
+-- TODO: Verify that System.identityHashCode() satisfies the condition of StableName#'s
+-----------------------------------------------------------------------------
+-- Stable Names
 
--- {-|
---   An abstract name for an object, that supports equality and hashing.
+{-|
+  An abstract name for an object, that supports equality and hashing.
 
---   Stable names have the following property:
+  Stable names have the following property:
 
---   * If @sn1 :: StableName@ and @sn2 :: StableName@ and @sn1 == sn2@
---    then @sn1@ and @sn2@ were created by calls to @makeStableName@ on
---    the same object.
+  * If @sn1 :: StableName@ and @sn2 :: StableName@ and @sn1 == sn2@
+   then @sn1@ and @sn2@ were created by calls to @makeStableName@ on
+   the same object.
 
---   The reverse is not necessarily true: if two stable names are not
---   equal, then the objects they name may still be equal.  Note in particular
---   that `mkStableName` may return a different `StableName` after an
---   object is evaluated.
+  The reverse is not necessarily true: if two stable names are not
+  equal, then the objects they name may still be equal.  Note in particular
+  that `mkStableName` may return a different `StableName` after an
+  object is evaluated.
 
---   Stable Names are similar to Stable Pointers ("Foreign.StablePtr"),
---   but differ in the following ways:
+  Stable Names are similar to Stable Pointers ("Foreign.StablePtr"),
+  but differ in the following ways:
 
---   * There is no @freeStableName@ operation, unlike "Foreign.StablePtr"s.
---     Stable names are reclaimed by the runtime system when they are no
---     longer needed.
+  * There is no @freeStableName@ operation, unlike "Foreign.StablePtr"s.
+    Stable names are reclaimed by the runtime system when they are no
+    longer needed.
 
---   * There is no @deRefStableName@ operation.  You can\'t get back from
---     a stable name to the original Haskell object.  The reason for
---     this is that the existence of a stable name for an object does not
---     guarantee the existence of the object itself; it can still be garbage
---     collected.
--- -}
+  * There is no @deRefStableName@ operation.  You can\'t get back from
+    a stable name to the original Haskell object.  The reason for
+    this is that the existence of a stable name for an object does not
+    guarantee the existence of the object itself; it can still be garbage
+    collected.
+-}
 
--- data StableName a = StableName (StableName# a)
---                     deriving Typeable
+data StableName a = StableName (StableName# a)
+                    deriving Typeable
 
--- -- | Makes a 'StableName' for an arbitrary object.  The object passed as
--- -- the first argument is not evaluated by 'makeStableName'.
--- makeStableName  :: a -> IO (StableName a)
--- #if defined(__PARALLEL_HASKELL__)
--- makeStableName a =
---   error "makeStableName not implemented in parallel Haskell"
--- #else
--- makeStableName a = IO $ \ s ->
---     case makeStableName# a s of (# s', sn #) -> (# s', StableName sn #)
--- #endif
+-- | Makes a 'StableName' for an arbitrary object.  The object passed as
+-- the first argument is not evaluated by 'makeStableName'.
+makeStableName  :: a -> IO (StableName a)
+#if defined(__PARALLEL_HASKELL__)
+makeStableName a =
+  error "makeStableName not implemented in parallel Haskell"
+#else
+makeStableName a = IO $ \ s ->
+    case makeStableName# a s of (# s', sn #) -> (# s', StableName sn #)
+#endif
 
--- -- | Convert a 'StableName' to an 'Int'.  The 'Int' returned is not
--- -- necessarily unique; several 'StableName's may map to the same 'Int'
--- -- (in practice however, the chances of this are small, so the result
--- -- of 'hashStableName' makes a good hash key).
--- hashStableName :: StableName a -> Int
--- #if defined(__PARALLEL_HASKELL__)
--- hashStableName (StableName sn) =
---   error "hashStableName not implemented in parallel Haskell"
--- #else
--- hashStableName (StableName sn) = I# (stableNameToInt# sn)
--- #endif
+-- | Convert a 'StableName' to an 'Int'.  The 'Int' returned is not
+-- necessarily unique; several 'StableName's may map to the same 'Int'
+-- (in practice however, the chances of this are small, so the result
+-- of 'hashStableName' makes a good hash key).
+hashStableName :: StableName a -> Int
+#if defined(__PARALLEL_HASKELL__)
+hashStableName (StableName sn) =
+  error "hashStableName not implemented in parallel Haskell"
+#else
+hashStableName (StableName sn) = I# (stableNameToInt# sn)
+#endif
 
--- instance Eq (StableName a) where
--- #if defined(__PARALLEL_HASKELL__)
---     (StableName sn1) == (StableName sn2) =
---       error "eqStableName not implemented in parallel Haskell"
--- #else
---     (StableName sn1) == (StableName sn2) =
---        case eqStableName# sn1 sn2 of
---          0# -> False
---          _  -> True
--- #endif
+instance Eq (StableName a) where
+#if defined(__PARALLEL_HASKELL__)
+    (StableName sn1) == (StableName sn2) =
+      error "eqStableName not implemented in parallel Haskell"
+#else
+    (StableName sn1) == (StableName sn2) =
+       case eqStableName# sn1 sn2 of
+         0# -> False
+         _  -> True
+#endif
 
--- -- | Equality on 'StableName' that does not require that the types of
--- -- the arguments match.
--- --
--- -- @since 4.7.0.0
--- eqStableName :: StableName a -> StableName b -> Bool
--- eqStableName (StableName sn1) (StableName sn2) =
---        case eqStableName# sn1 sn2 of
---          0# -> False
---          _  -> True
---   -- Requested by Emil Axelsson on glasgow-haskell-users, who wants to
---   -- use it for implementing observable sharing.
+-- | Equality on 'StableName' that does not require that the types of
+-- the arguments match.
+--
+-- @since 4.7.0.0
+eqStableName :: StableName a -> StableName b -> Bool
+eqStableName (StableName sn1) (StableName sn2) =
+       case eqStableName# sn1 sn2 of
+         0# -> False
+         _  -> True
+  -- Requested by Emil Axelsson on glasgow-haskell-users, who wants to
+  -- use it for implementing observable sharing.
