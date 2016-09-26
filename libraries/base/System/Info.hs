@@ -1,4 +1,3 @@
-{-# LANGUAGE Safe #-}
 {-# LANGUAGE CPP #-}
 
 -----------------------------------------------------------------------------
@@ -20,11 +19,13 @@ module System.Info
    (
        os,
        arch,
+       bigEndian,
        compilerName,
        compilerVersion
    ) where
 
 import Data.Version
+import GHC.Pack (unpackCString)
 
 -- | The version of 'compilerName' with which the program was compiled
 -- or is being interpreted.
@@ -33,12 +34,14 @@ compilerVersion = Version [major, minor] []
   where (major, minor) = compilerVersionRaw `divMod` 100
 
 -- | The operating system on which the program is running.
+-- | NOTE: This returns the system property os.name.
 os :: String
-os = undefined
+os = unpackCString os'
 
 -- | The machine architecture on which the program is running.
+-- | NOTE: This returns the system property os.arch.
 arch :: String
-arch = undefined
+arch = unpackCString os'
 
 -- | The Haskell implementation with which the program was compiled
 -- or is being interpreted.
@@ -47,3 +50,7 @@ compilerName = "ghcvm"
 
 compilerVersionRaw :: Int
 compilerVersionRaw = 0001
+
+foreign import java unsafe "@static ghcvm.base.Utils.getOS" os' :: JString
+foreign import java unsafe "@static ghcvm.base.Utils.getArch" arch' :: JString
+foreign import java unsafe "@static ghcvm.base.Utils.isBigEndian" bigEndian :: Bool

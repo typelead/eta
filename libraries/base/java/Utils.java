@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -135,5 +136,17 @@ public class Utils {
         byte[] bytes = new byte[buffer.remaining()];
         buffer.get(bytes);
         System.out.println(Arrays.toString(bytes));
+    }
+
+    public static String getOS() {
+        return System.getProperty("os.name");
+    }
+
+    public static String getArch() {
+        return System.getProperty("os.arch");
+    }
+
+    public static boolean isBigEndian() {
+        return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     }
 }

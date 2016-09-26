@@ -282,23 +282,23 @@ Library
     --         GHC.Conc.Windows
     --         GHC.Windows
     -- else
-    --     exposed-modules:
-    --         GHC.Event
-    --     other-modules:
-    --         GHC.Event.Arr
-    --         GHC.Event.Array
-    --         GHC.Event.Clock
-    --         GHC.Event.Control
-    --         GHC.Event.EPoll
-    --         GHC.Event.IntTable
-    --         GHC.Event.Internal
-    --         GHC.Event.KQueue
-    --         GHC.Event.Manager
-    --         GHC.Event.PSQ
-    --         GHC.Event.Poll
-    --         GHC.Event.Thread
-    --         GHC.Event.TimerManager
-    --         GHC.Event.Unique
+    exposed-modules:
+        GHC.Event
+    other-modules:
+        GHC.Event.Arr
+        -- GHC.Event.Array
+        GHC.Event.Clock
+        GHC.Event.Control
+        -- GHC.Event.EPoll
+        GHC.Event.IntTable
+        GHC.Event.Internal
+        -- GHC.Event.KQueue
+        GHC.Event.Manager
+        GHC.Event.PSQ
+        -- GHC.Event.Poll
+        GHC.Event.Thread
+        GHC.Event.TimerManager
+        GHC.Event.Unique
 
     -- We need to set the package key to base (without a version number)
     -- as it's magic.
