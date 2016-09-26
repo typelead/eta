@@ -1,6 +1,7 @@
 # GHCVM - Modern Haskell on the JVM
 
 [![Join the chat at https://gitter.im/rahulmutt/ghcvm](https://badges.gitter.im/rahulmutt/ghcvm.svg)](https://gitter.im/rahulmutt/ghcvm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/rahulmutt/ghcvm.svg?branch=master)](https://travis-ci.org/rahulmutt/ghcvm)
 
 GHCVM compiles Haskell to the JVM while maintaining compatibility with GHC 7.10.3's Haskell.
 
@@ -52,5 +53,6 @@ We would like to specifically thank the following groups/people:
 - [Alois Cochard](https://github.com/aloiscochard) for his [codec-jvm](https://github.com/aloiscochard/codec-jvm) package that we use for code generation.
 - [Christopher Wells](https://github.com/ExcaliburZero) for his JAR packaging [utility](https://github.com/ExcaliburZero/zip-jar-haskell).
 - [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the codegen/runtime and implementation of basic IO facilities.
+- [Sibi](https://github.com/psibi) for configuring TravisCI.
 
 Thank you guys!
