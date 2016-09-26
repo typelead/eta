@@ -197,17 +197,14 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       else do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
-        unit $ cmd "stack exec -- ghcvm-pkg init " $ packageConfDir rootDir
-        Stdout paths <- cmd "stack path"
-        let binPath = head . mapMaybe (stripPrefix "compiler-bin: ") $ lines paths
-            ghcPath = takeDirectory binPath
-            ghcLibPath = if os == "mingw32"
-                         then ghcPath </> "lib"
-                         else ghcPath </> "lib" </> "ghc-7.10.3"
-
+        unit $ cmd "ghcvm-pkg init " $ packageConfDir rootDir
+        Stdout path <- cmd "stack eval GHC.Paths.libdir"
+        let ghcLibPath = drop 1 (init (init path))
+            -- ghcLibPath = if os == "mingw32"
+            --              then ghcPath </> "lib"
+            --              else ghcPath </> "lib" </> "ghc-7.10.3"
             ghcInclude = ghcLibPath </> "include"
             ghcvmInclude = ghcvmIncludePath rootDir
-        -- TODO: Copy usage files as well
         liftIO $ createDirectory ghcvmInclude
         let root x = rootDir </> x
         forM_ ["platform", "version"] $ \s -> do
