@@ -74,8 +74,8 @@ public class Thunk {
                 } else {
                     continue;
                 }
-                break;
             }
+            break;
         } while (true);
     }
 }
