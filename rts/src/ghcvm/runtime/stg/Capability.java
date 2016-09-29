@@ -198,8 +198,7 @@ public final class Capability {
                 runThread = false;
 
                 StgContext context = cap.context;
-                context.currentTSO = t;
-                context.myCapability = cap;
+                context.reset(cap, t);
                 cap.interrupt = false;
                 cap.inHaskell = true;
                 cap.idle = 0;

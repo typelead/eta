@@ -8,6 +8,12 @@ public class StgContext {
     public Capability myCapability;
     public ReturnCode ret;
 
+    public void reset(Capability cap, StgTSO t) {
+        myCapability = cap;
+        currentTSO = t;
+        argStack = new ArgumentStack();
+    }
+
     public void pushFrame(StackFrame frame) {
         currentTSO.spPush(frame);
     }
@@ -27,23 +33,56 @@ public class StgContext {
         System.out.println("myCapabilitymyCapability: " + myCapability);
         System.out.println("ret: " + ret);
         argStack.dump();
+        currentTSO.dump();
+    }
+
+    public StackFrame stackTop() {
+        ListIterator<StackFrame> sp = currentTSO.sp;
+        StackFrame prevFrame = sp.previous();
+        sp.next();
+        return prevFrame;
     }
 
     public int stackTopIndex() {
         return currentTSO.sp.previousIndex();
     }
 
-    public void checkForStackFrames(int prevIndex) {
+    /* Returns false, if execution should proceed with the continuation.
+       Returns true,  if the continuation should terminate
+                       ( either because of an exception
+                       , or because of a context switch )
+     */
+    public boolean checkForStackFrames(int stackIndex, StackFrame frame) {
         ListIterator<StackFrame> sp = currentTSO.sp;
-        int index = sp.previousIndex();
-        while (prevIndex < index) {
-            sp.previous();
-            index--;
-        }
-        while (sp.hasNext()) {
-            sp.next().enter(this);
-        }
-        return;
+        do {
+            /* NOTE: This code bears a strong resemblance to
+                     StackFrame.enter() and so the logic should stay consistent. */
+            /* Grab the current index */
+            int index = sp.previousIndex();
+
+            /* If frames were added, shift the pointer to 'stackIndex' */
+            while (stackIndex < index) {
+                sp.previous();
+                index--;
+            }
+
+            StackFrame thisFrame = sp.previous();
+            sp.next();
+            if (thisFrame == frame) {
+                /* If the stack hasn't changed on us */
+                if (sp.hasNext()) {
+                    /* If frames were added, enter them */
+                    sp.next().enter(this);
+                } else {
+                    /* Otherwise, return to the continuation */
+                    return false;
+                }
+            } else  {
+                /* If frames were removed, pop down the call stack */
+                return true;
+            }
+
+        } while (true);
     }
 
     public StgClosure R(int index) {

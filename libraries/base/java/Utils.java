@@ -9,6 +9,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
+import ghcvm.runtime.Rts;
+import static ghcvm.runtime.Rts.ExitCode;
+import ghcvm.runtime.RtsMessages;
+
 public class Utils {
     // TODO: Verify correctness
     public static float rintFloat(float f) {
@@ -148,5 +152,27 @@ public class Utils {
 
     public static boolean isBigEndian() {
         return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
+    }
+
+    public static void shutdownHaskellAndExit(int exitCode, int fastExit) {
+        System.out.println("shutdownHaskellAndExit");
+        Rts.shutdownHaskellAndExit(ExitCode.from(exitCode), fastExit == 1);
+    }
+
+    public static void shutdownHaskellAndSignal(int signal, int fastExit) {
+        System.out.println("shutdownHaskellAndSignal");
+        Rts.shutdownHaskellAndSignal(signal, fastExit == 1);
+    }
+
+    public static void errorBelch( ByteBuffer formatBuf
+                                 , ByteBuffer stringBuf) {
+        RtsMessages.errorBelch(byteBufferToString(formatBuf)
+                               , byteBufferToString(stringBuf));
+    }
+
+    private static String byteBufferToString(ByteBuffer stringBuf) {
+        byte[] bytes = new byte[stringBuf.remaining()];
+        stringBuf.get(bytes);
+        return new String(bytes);
     }
 }

@@ -8,7 +8,7 @@ import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Default;
 import static ghcvm.runtime.RtsMessages.barf;
 
 public abstract class StackFrame extends StgClosure {
-    private int stackIndex;
+    public int stackIndex;
 
     @Override
     public final void enter(StgContext context) {
@@ -18,49 +18,47 @@ public abstract class StackFrame extends StgClosure {
 
         /* Record the index at which this frame is in the stack */
         stackIndex = sp.previousIndex();
-        do {
-            /* If the stack has more frames, enter
-               into them */
-            while (sp.hasNext()) {
-                sp.next().enter(context);
+        int index = stackIndex;
+
+        /* If the stack has more frames, enter
+           into them */
+        while (sp.hasNext()) {
+            sp.next().enter(context);
+
+            index = sp.previousIndex();
+            if (stackIndex != index) {
+                /* This case occurs when frames have been removed */
+                return;
             }
-            int index = sp.previousIndex();
-            if (stackIndex == index) {
-                /* Execute the entry code for the stack frame */
-                stackEnter(context);
-                /* Ensure that the sp is shifted back
-                    to point to this frame */
-                index = sp.previousIndex();
-                while (stackIndex < index) {
-                    sp.previous();
-                    index--;
-                }
-                StackFrame thisFrame = sp.previous();
-                if (thisFrame == this) {
-                    /* Pop the frame since we're done with it now */
-                    sp.remove();
-                } else {
-                    barf("StackFrame.enter: Wrong frame after enter.");
-                }
-                /* TODO: Check if a next() or previous() is required here */
-            } else {
-                if (stackIndex < index) {
-                    /* If stackIndex < index, new frames have been added
-                        hence, we should update the Java method call stack
-                        to reflect it. */
-                    do {
-                        sp.previous();
-                        index--;
-                    } while (stackIndex < index);
-                    continue;
-                } else {
-                    barf("StackFrame.enter: stackIndex > index.");
-                }
-                /* Whens stackIndex > index, do nothing and return
-                    to the frame below this one */
+            if (sp.hasPrevious()) {
+                /* Check if the frame at this index has been modified */
+                if (sp.previous() != this) return;
+                sp.next();
             }
-            break;
-        } while (true);
+        }
+        assert stackIndex == index:
+               "StackFrame.enter: breaking invariant that stackIndex == index.";
+
+        /* Execute the entry code for the stack frame */
+        stackEnter(context);
+
+        /* Ensure that the sp is shifted back to point to this frame */
+        index = sp.previousIndex();
+        while (stackIndex < index) {
+            sp.previous();
+            index--;
+        }
+
+        /* Grab the frame sp points to */
+        StackFrame thisFrame = sp.previous();
+        if (thisFrame == this) {
+            /* Pop the frame since we're done with it now */
+            sp.remove();
+        } else if (stackIndex != index){
+            /* Shift the pointer to the previous one,
+                only if there doesn't exist a stack frame at this index */
+            sp.next();
+        }
    }
 
     public abstract void stackEnter(StgContext context);

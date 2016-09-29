@@ -45,8 +45,8 @@ litSwitch ft expr branches deflt
   -- TODO: When switching on an object, perform a checkcast
   -- TODO: When switching on long/float/double, use an if-else tree
   | null branches = deflt
-  | ft /= jint = error $ "litSwitch[" ++ show ft ++ "]: " ++
-                         "primitive cases not supported for non-integer values"
+  | ft `notElem` [jint, jbool, jbyte, jshort, jchar] = error $ "litSwitch[" ++ show ft ++ "]: " ++
+                 "primitive cases not supported for non-integer values"
   | otherwise  = intSwitch expr intBranches (Just deflt)
   where intBranches = map (first litToInt) branches
 
