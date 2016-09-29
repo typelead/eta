@@ -171,7 +171,8 @@ public class Utils {
     }
 
     private static String byteBufferToString(ByteBuffer stringBuf) {
-        byte[] bytes = new byte[stringBuf.remaining()];
+        /* The (- 1) is to remove the \0 character */
+        byte[] bytes = new byte[stringBuf.remaining() - 1];
         stringBuf.get(bytes);
         return new String(bytes);
     }
