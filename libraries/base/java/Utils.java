@@ -155,12 +155,10 @@ public class Utils {
     }
 
     public static void shutdownHaskellAndExit(int exitCode, int fastExit) {
-        System.out.println("shutdownHaskellAndExit");
         Rts.shutdownHaskellAndExit(ExitCode.from(exitCode), fastExit == 1);
     }
 
     public static void shutdownHaskellAndSignal(int signal, int fastExit) {
-        System.out.println("shutdownHaskellAndSignal");
         Rts.shutdownHaskellAndSignal(signal, fastExit == 1);
     }
 

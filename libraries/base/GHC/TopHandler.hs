@@ -231,8 +231,7 @@ exitHelper exitKind r
   | otherwise
   = shutdownHaskellAndExit   0xff                exitKind >> unreachable
 
--- TODO: Make this safe
-foreign import java unsafe "@static ghcvm.base.Utils.shutdownHaskellAndSignal"
+foreign import java "@static ghcvm.base.Utils.shutdownHaskellAndSignal"
   shutdownHaskellAndSignal :: CInt -> CInt -> IO ()
 #endif
 
@@ -248,8 +247,7 @@ exitInterrupted =
 
 -- NOTE: shutdownHaskellAndExit must be called "safe", because it *can*
 -- re-enter Haskell land through finalizers.
--- TODO: Make this safe
-foreign import java unsafe "@static ghcvm.base.Utils.shutdownHaskellAndExit"
+foreign import java "@static ghcvm.base.Utils.shutdownHaskellAndExit"
   shutdownHaskellAndExit :: CInt -> CInt -> IO ()
 
 useFastExit, useSafeExit :: CInt
