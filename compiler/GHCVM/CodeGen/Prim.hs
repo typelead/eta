@@ -591,6 +591,7 @@ simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
 simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
 simpleOp JByte2CharOp = Just $ normalOp preserveByte
 simpleOp JByte2IntOp = Just idOp
+simpleOp Int2JBoolOp = Just idOp
 
 -- StgMutVar ops
 simpleOp ReadMutVarOp = Just $ normalOp $ castStgMutVar <> mutVarValue

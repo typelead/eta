@@ -2,6 +2,7 @@ package ghcvm.runtime.thunk;
 
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgContext;
+import ghcvm.runtime.stg.StackFrame;
 import ghcvm.runtime.apply.Apply;
 
 public class SelectorUpd extends StgInd {
@@ -16,8 +17,10 @@ public class SelectorUpd extends StgInd {
 
     @Override
     public void thunkEnter(StgContext context) {
-        int top = context.stackTopIndex();
+        int index = context.stackTopIndex();
+        StackFrame frame = context.stackTop();
         p.evaluate(context);
-        context.checkForStackFrames(top);
+        context.checkForStackFrames(index, frame);
+        // TODO: Do something based on the return value;
     }
 }

@@ -31,12 +31,14 @@ util      = merge (rts "util")
 stm       = merge (rts "stm")
 par       = merge (rts "parallel")
 
-closureType, indStaticType, contextType, funType, tsoType, frameType, rtsFunType, conType,
-  thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType, stgArrayType, stgByteArrayType,
-  stgMutVarType, stgMVarType :: FieldType
+closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType, frameType,
+  rtsFunType, conType, thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType,
+  stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
+capabilityType    = obj capability
+taskType          = obj task
 funType           = obj stgFun
 tsoType           = obj stgTSO
 frameType         = obj stackFrame
@@ -51,12 +53,14 @@ stgMutVarType     = obj stgMutVar
 stgByteArrayType  = obj stgByteArray
 stgMVarType       = obj stgMVar
 
-stgConstr, stgClosure, stgContext, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO, stackFrame,
-  rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned, stgMutVar,
-  stgMVar :: Text
+stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO,
+  stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned,
+  stgMutVar, stgMVar :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
+capability    = stg "Capability"
+task          = stg "Task"
 stgInd        = thunk "StgInd"
 stgIndStatic  = thunk "StgIndStatic"
 stgThunk      = thunk "StgThunk"
@@ -101,12 +105,15 @@ currentTSOField = getfield (mkFieldRef stgContext "currentTSO" tsoType)
 spPushMethod :: Code
 spPushMethod = invokevirtual (mkMethodRef stgTSO "spPush" [frameType] void)
 
+spTopIndexMethod :: Code
+spTopIndexMethod = invokevirtual (mkMethodRef stgContext "stackTopIndex" [] (ret jint))
+
 spTopMethod :: Code
-spTopMethod = invokevirtual (mkMethodRef stgContext "stackTopIndex" [] (ret jint))
+spTopMethod = invokevirtual (mkMethodRef stgContext "stackTop" [] (ret frameType))
 
 checkForStackFramesMethod :: Code
 checkForStackFramesMethod =
-  invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint] void)
+  invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
 
 mkApFast :: Text -> Code
 mkApFast patText =
@@ -130,11 +137,21 @@ constrField = cons 'x' . pack . show
 constrFieldGetter :: Int -> Text
 constrFieldGetter = append "get" . pack . show
 
--- suspendThreadMethod :: Bool -> Code
--- suspendThreadMethod interruptible
---   = iconst jbool (boolToInt)
---  <> loadContext
---  <>
+contextMyCapability :: Code
+contextMyCapability = getfield $ mkFieldRef stgContext "myCapability" capabilityType
+
+suspendThreadMethod :: Bool -> Code
+suspendThreadMethod interruptible =
+     loadContext
+  <> contextMyCapability
+  <> dup capabilityType
+  <> iconst jbool (fromIntegral (boolToInt interruptible))
+  <> invokevirtual (mkMethodRef capability "suspendThread" [jbool] (ret taskType))
+  where boolToInt True = 1
+        boolToInt False = 0
+
+resumeThreadMethod :: Code
+resumeThreadMethod = invokevirtual (mkMethodRef capability "resumeThread" [taskType] void)
 
 mkRtsMainClass :: DynFlags -> String -> ClassFile
 mkRtsMainClass dflags mainClass

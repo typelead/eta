@@ -228,7 +228,7 @@ public final class StgTSO extends StgClosure {
         barf("TSO object entered!");
     }
 
-    public void dumpStack() {
+    public void dump() {
         System.out.println("StgTSO #" + id);
         if (sp.hasPrevious()) {
             System.out.println("Sp = " + sp.previous());

@@ -13,6 +13,7 @@ import GHCVM.CodeGen.Env
 import GHCVM.CodeGen.Monad
 import GHCVM.CodeGen.Name
 import GHCVM.CodeGen.Layout
+import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Types
 
 import GHCVM.Debug
@@ -21,6 +22,7 @@ import Codec.JVM
 import Data.Monoid ((<>))
 import Data.Maybe (catMaybes, fromJust, isJust)
 import Data.Foldable (fold)
+import Control.Monad (when)
 import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
@@ -106,15 +108,16 @@ labelToTarget hasObj label argFts reps = case words label of
           in \c -> c <> instr (mkMethodRef clsName methodName (argFts' isStatic) resFt)
 
 emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
-emitForeignCall safety mbObj results target args
-  -- TODO: For safe function calls we need a stack check.
-  | not (playSafe safety) = do
-      -- NOTE: We assume that the running Java code WILL NOT change the context
-      --       which will be true in almost all cases
-      maybe (emit callCode) (flip emitAssign callCode) resLoc
-      maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
-  | otherwise = pprPanic "emitForeignCall: Safety not implemented" (ppr safety)
-  where callCode = target $ fold args
+emitForeignCall safety mbObj results target args =
+  wrapSafety $ do
+    maybe (emit callCode) (flip emitAssign callCode) resLoc
+    maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
+  where wrapSafety code = do
+          whenSafe $ emit $ suspendThreadMethod (playInterruptible safety)
+          code
+          whenSafe $ emit resumeThreadMethod
+          where whenSafe = when (playSafe safety)
+        callCode = target $ fold args
         (resLoc, objLoc) =
           if isJust mbObj then
             case results of

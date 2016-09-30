@@ -220,7 +220,12 @@ withContinuation call = do
 wrapStackCheck :: CodeGen () -> CodeGen ()
 wrapStackCheck call = do
     -- TODO: Replace the local variable with an internal variable in context?
-    stackIndex <- newTemp False jint
-    emit $ storeLoc stackIndex (loadContext <> spTopMethod)
+    --stackTop <- newTemp False frameType
+    emit $ loadContext <> spTopIndexMethod
+    emit $ loadContext <> spTopMethod
     call
-    emit $ loadContext <> loadLoc stackIndex <> checkForStackFramesMethod
+    emit $ loadContext
+        <> dup_x2 jint frameType contextType
+        <> pop contextType
+        <> checkForStackFramesMethod
+        <> ifeq mempty vreturn

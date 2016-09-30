@@ -28,6 +28,8 @@ import GHCVM.Prelude.ForeignCall
 import GHCVM.Prelude.TysWiredIn
 import GHCVM.Prelude.TysPrim
 import GHCVM.Prelude.PrelNames
+import GHCVM.Prelude.PrelInfo ( primOpId )
+import GHCVM.Prelude.PrimOp
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.SrcLoc
 import GHCVM.Utils.Outputable
@@ -157,13 +159,15 @@ unboxArg vs arg
   | Just tc <- tyConAppTyCon_maybe argType
   , tc `hasKey` boolTyConKey = do
       dflags <- getDynFlags
-      primArg <- newSysLocalDs intPrimTy
+      primArg <- newSysLocalDs jboolPrimTy
       return ( Var primArg
-             , \body -> Case (mkWildCase arg argType intPrimTy
-                              [ (DataAlt falseDataCon, [], Lit (MachInt 0))
-                              , (DataAlt trueDataCon,  [], Lit (MachInt 1)) ])
-                              primArg (exprType body)
-                              [(DEFAULT,[],body)] )
+             , \body ->
+                 App (Var (primOpId Int2JBoolOp))
+                     (Case (mkWildCase arg argType intPrimTy
+                            [ (DataAlt falseDataCon, [], Lit (MachInt 0))
+                            , (DataAlt trueDataCon,  [], Lit (MachInt 1)) ])
+                           primArg (exprType body)
+                           [(DEFAULT,[],body)] ))
   | isProductType && dataConArity == 1 = do
       caseBinder <- newSysLocalDs argType
       primArg <- newSysLocalDs dataConArgTy1
@@ -355,8 +359,8 @@ resultWrapper extendsInfo resultType
   | Just (tc, _) <- maybeTcApp, tc `hasKey` unitTyConKey
   = return (Nothing, \_ -> Var unitDataConId)
   | Just (tc, _) <- maybeTcApp, tc `hasKey` boolTyConKey
-  = return ( Just intPrimTy
-           , \e -> mkWildCase e intPrimTy boolTy
+  = return ( Just jboolPrimTy
+           , \e -> mkWildCase e jboolPrimTy boolTy
                    [ (DEFAULT, [], Var trueDataConId)
                    , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
   | Just (co, repType) <- topNormaliseNewType_maybe resultType

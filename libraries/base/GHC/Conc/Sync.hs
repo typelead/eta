@@ -892,17 +892,16 @@ uncaughtExceptionHandler = unsafePerformIO (newIORef defaultHandler)
          let msg = case cast ex of
                Just Deadlock -> "no threads to run:  infinite loop or deadlock?"
                _ -> case cast ex of
-                    Just (ErrorCall s) -> s
-                    _                  -> showsPrec 0 se ""
+                      Just (ErrorCall s) -> s
+                      _                  -> showsPrec 0 se ""
          withCString "%s" $ \cfmt ->
           withCString msg $ \cmsg ->
             errorBelch cfmt cmsg
 
 -- don't use errorBelch() directly, because we cannot call varargs functions
 -- using the FFI.
--- foreign import ccall unsafe "HsBase.h errorBelch2"
-errorBelch :: CString -> CString -> IO ()
-errorBelch = undefined
+foreign import java unsafe "@static ghcvm.base.Utils.errorBelch"
+  errorBelch :: CString -> CString -> IO ()
 
 setUncaughtExceptionHandler :: (SomeException -> IO ()) -> IO ()
 setUncaughtExceptionHandler = writeIORef uncaughtExceptionHandler

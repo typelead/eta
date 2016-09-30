@@ -144,6 +144,14 @@ public class Rts {
         stgExit(exitStatus);
     }
 
+    public static void shutdownHaskellAndSignal(int signal, boolean fastExit) {
+        if (!fastExit) {
+            hsExit_(false);
+        }
+        // TODO: Implement signals
+        stgExit(ExitCode.EXIT_KILLED);
+    }
+
     public static void hsExit_(boolean waitForeign) {
         if (hsInitCount <= 0) {
             errorBelch("warning: too many hs_exits()s");
@@ -217,6 +225,31 @@ public class Rts {
 
         public int code() {
             return code;
+        }
+
+        public static ExitCode from(int code) {
+            switch (code) {
+                case 0:
+                    return EXIT_SUCCESS;
+                case 1:
+                    return EXIT_FAILURE;
+                case 63:
+                    return EXIT_MISMATCH;
+                case 77:
+                    return EXIT_SKIP;
+                case 250:
+                    return EXIT_KILLED;
+                case 251:
+                    return EXIT_HEAPOVERFLOW;
+                case 252:
+                    return EXIT_INTERRUPTED;
+                case 253:
+                    return EXIT_DEADLOCK;
+                case 254:
+                    return EXIT_INTERNAL_ERROR;
+                default:
+                    throw new IllegalArgumentException("[ExitCode.from(int)] Invalid code: " + code);
+            }
         }
     }
 
