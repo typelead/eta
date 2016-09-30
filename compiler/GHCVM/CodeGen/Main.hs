@@ -221,7 +221,9 @@ cgDataCon typeClass dataCon = do
 
            fieldDefs :: [FieldDef]
            fieldDefs = map (\(i, ft) ->
-                         mkFieldDef [Public, Final] (constrField i) ft)
+                        -- TODO: Find a better way to handle recursion
+                        --       that allows us to use 'final' in most cases.
+                         mkFieldDef [Public] (constrField i) ft)
                        indexedFields
 
 

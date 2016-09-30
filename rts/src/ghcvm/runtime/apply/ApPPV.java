@@ -5,8 +5,8 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApPPV extends StackFrame {
-    private final StgClosure p1;
-    private final StgClosure p2;
+    public StgClosure p1;
+    public StgClosure p2;
 
     public ApPPV(final StgClosure p1, final StgClosure p2) {
         this.p1 = p1;

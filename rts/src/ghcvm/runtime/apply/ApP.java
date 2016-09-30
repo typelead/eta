@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApP extends StackFrame {
-    private final StgClosure p;
+    public StgClosure p;
 
     public ApP(StgClosure p) {
         this.p = p;

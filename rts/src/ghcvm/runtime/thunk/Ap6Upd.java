@@ -5,12 +5,12 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.apply.Apply;
 
 public class Ap6Upd extends StgInd {
-    private final StgClosure p1;
-    private final StgClosure p2;
-    private final StgClosure p3;
-    private final StgClosure p4;
-    private final StgClosure p5;
-    private final StgClosure p6;
+    public StgClosure p1;
+    public StgClosure p2;
+    public StgClosure p3;
+    public StgClosure p4;
+    public StgClosure p5;
+    public StgClosure p6;
 
     public Ap6Upd(final StgClosure p1, final StgClosure p2, final StgClosure p3, final StgClosure p4, final StgClosure p5, final StgClosure p6) {
         super();

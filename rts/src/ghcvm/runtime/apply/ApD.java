@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApD extends StackFrame {
-    private final double d;
+    public double d;
 
     public ApD(double d) {
         this.d = d;

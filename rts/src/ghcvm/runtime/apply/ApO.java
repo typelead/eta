@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApO extends StackFrame {
-    private final Object o;
+    public Object o;
 
     public ApO(Object o) {
         this.o = o;

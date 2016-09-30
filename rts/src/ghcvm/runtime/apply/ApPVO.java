@@ -5,8 +5,8 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApPVO extends StackFrame {
-    private final StgClosure p;
-    private final Object o;
+    public StgClosure p;
+    public Object o;
 
     public ApPVO(StgClosure p, Object o) {
         this.p = p;

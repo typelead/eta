@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApF extends StackFrame {
-    private final float f;
+    public float f;
 
     public ApF(float f) {
         this.f = f;
