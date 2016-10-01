@@ -240,7 +240,7 @@ isTrue# x = tagToEnum# x
 data SPEC = SPEC | SPEC2
 
 -- The Java Monad
-newtype Java c a = Java { runJava_ :: State# RealWorld -> Object# c -> (# State# RealWorld, Object# c, a #) }
+newtype Java c a = Java { runJava_ :: Object# c -> (# Object# c, a #) }
 type role Java nominal representational
 
 data {-# CLASS "java.lang.Object" #-} Object  = Object (Object# Object)
