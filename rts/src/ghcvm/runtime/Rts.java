@@ -97,7 +97,14 @@ public class Rts {
         return scheduleWaitThread(tso, cap);
     }
 
+    public static HaskellResult evalJava(Capability cap, Object o, StgClosure p) {
+        // TODO: Java has a hard-to-get stack size. How do we deal with that?
+        StgTSO tso = createStrictJavaThread(cap, o, p);
+        return scheduleWaitThread(tso, cap);
+    }
+
     public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
+
     public static StgTSO createIOThread(Capability cap, StgClosure p) {
         StgTSO t = new StgTSO(cap);
         t.pushClosure(new ApV());
@@ -109,6 +116,14 @@ public class Rts {
         StgTSO t = new StgTSO(cap);
         t.pushClosure(new ForceIO());
         t.pushClosure(new ApV());
+        t.pushClosure(new StgEnter(p));
+        return t;
+    }
+
+    public static StgTSO createStrictJavaThread(Capability cap, Object thisObj, StgClosure p) {
+        StgTSO t = new StgTSO(cap);
+        t.pushClosure(new ForceIO());
+        t.pushClosure(new ApO(thisObj));
         t.pushClosure(new StgEnter(p));
         return t;
     }

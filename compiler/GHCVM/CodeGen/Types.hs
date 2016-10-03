@@ -14,7 +14,6 @@ module GHCVM.CodeGen.Types
    CgBindings,
    RecIndexes,
    storeDefault,
-   getTagMethod,
    locArgRep,
    mkRepLocDirect,
    mkLocDirect,
@@ -323,11 +322,5 @@ evaluateMethod cgLoc
  <> loadContext
  <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] void)
  -- TODO: Narrrow the invokevirtual call with locFt
-
-getTagMethod :: Code -> Code
-getTagMethod code
-  = code
- <> gconv closureType conType
- <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
 
 type RecIndexes = [(Int, Id)]

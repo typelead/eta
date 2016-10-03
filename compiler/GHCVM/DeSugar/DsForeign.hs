@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.DeSugar.DsForeign where
 
 import GHCVM.Core.CoreSyn
@@ -32,7 +33,7 @@ import GHCVM.Prelude.PrelInfo ( primOpId )
 import GHCVM.Prelude.PrimOp
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.SrcLoc
-import GHCVM.Utils.Outputable
+import GHCVM.Utils.Outputable hiding ((<>))
 import GHCVM.Utils.FastString
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Platform
@@ -41,12 +42,18 @@ import GHCVM.Utils.OrdList
 import GHCVM.Utils.Pair
 import GHCVM.Utils.Util
 import GHCVM.Main.Hooks
+import GHCVM.CodeGen.ArgRep (repFieldType_maybe)
+import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.Name
 
 import Data.Maybe
+import Data.Monoid((<>))
 import Data.List
+import Data.Text (Text)
 import qualified Data.Text as T
 
 import GHCVM.Debug
+import Codec.JVM
 
 type Binding = (Id, CoreExpr)
 type ExtendsInfo = VarEnv (Id, Type)
@@ -63,6 +70,10 @@ dsForeigns fdecls = do
         doDecl (ForeignImport id _ co spec) = do
           (bs, h, c) <- dsFImport (unLoc id) co spec
           return (h, c, [], bs)
+        doDecl (ForeignExport (L _ id) _ co
+                              (CExport (L _ (CExportStatic extName cconv)) _)) = do
+            _ <- dsFExport id co extName cconv False
+            return (empty, empty, [id], [])
         doDecl fi = pprPanic "doDecl: Not implemented" (ppr fi)
 
 dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], SDoc, SDoc)
@@ -95,7 +106,6 @@ dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header
   -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
-  --liftIO . putStrLn $ showSDoc dflags $ ptext (sLit "dsFCall:") <+> ppr co <+> ppr ty <+> ppr tvs <+> ppr argTypes <+> ppr ioResType
   (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
   (valArgs, argWrappers) <- mapAndUnzipM (unboxArg extendsInfo) (map Var args)
@@ -369,3 +379,107 @@ resultWrapper extendsInfo resultType
   | otherwise
   = pprPanic "resultWrapper" (ppr resultType)
   where maybeTcApp = splitTyConApp_maybe resultType
+
+dsFExport :: Id                 -- The exported Id
+          -> Coercion           -- Coercion between the Haskell type callable
+                                -- from C, and its representation type
+          -> CLabelString       -- The name to export to C land
+          -> CCallConv
+          -> Bool               -- True => foreign export dynamic
+                                --         so invoke IO action that's hanging off
+                                --         the first argument's stable pointer
+          -> DsM MethodDef
+
+dsFExport fnId co externalName cconv isDyn = do
+  mod <- fmap ds_mod getGblEnv
+  dflags <- getDynFlags
+  let resClass = typeDataConClass dflags resType
+      boxedArgs =
+        if length argFts > 5
+        then error $ "Foreign exports with number of arguments > 5 are currently not "
+                  ++ "supported."
+        else foldl' (\code (i, argPrimFt, argType) ->
+                        let argClass = typeDataConClass dflags argType
+                            argClassFt = obj argClass
+                        in code
+                        <> gload argPrimFt i
+                        <> (if argPrimFt == jbool
+                            then ifeq falseClosure trueClosure
+                            else    new argClassFt
+                                 <> dup argClassFt
+                                 <> invokespecial (mkMethodRef argClass "<init>" [argPrimFt] void)))
+                    mempty
+                    (zip3 [1..] argFts argTypes)
+      numApplied = length argTypes + 1
+      apClass = apUpdName numApplied
+      apFt = obj apClass
+  return $ mkMethodDef className [Public] methodName argFts resFt $
+       invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
+    <> gload classFt 0
+    -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
+    <> getstatic (mkFieldRef (moduleJavaClass mod) (closure (idNameText dflags fnId))
+                              closureType)
+    <> boxedArgs
+    <> new apFt
+    <> dup apFt
+    <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
+    -- TODO: Support java args > 5
+    <> invokestatic (mkMethodRef rtsGroup "evalJava"
+                                 [capabilityType, jobject, closureType]
+                                 (ret hsResultType))
+    <> if voidResult
+       then dup hsResultType
+       else mempty
+    <> hsResultCap
+    <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
+    -- TODO: add a call to checkSchedStatus
+    <> if voidResult
+       then vreturn
+       else hsResultValue <> unboxResult resType resClass rawResFt
+  where ty = pSnd $ coercionKind co
+        (tvs, thetaFunTy) = tcSplitForAllTys ty
+        (thetaType, funTy) = tcSplitPhiTy thetaFunTy
+        (argTypes, ioResType) = tcSplitFunTys funTy
+        classFt = obj className
+        argFts = map getPrimFt argTypes
+        rawResFt = fromJust resFt
+        resFt = if voidResult
+                then void
+                else repFieldType_maybe $ getPrimTyOf resType
+        voidResult = resFt == void
+        methodName = fastStringText externalName
+        (className, resType) =
+          case tcSplitJavaType_maybe ioResType of
+            Just (javaTyCon, javaTagType, javaResType) ->
+              (tagTypeToText javaTagType, javaResType)
+            _ -> error $ "Result type of 'foreign export java' declaration must be in the "
+                      ++ "Java monad."
+
+typeDataConClass :: DynFlags -> Type -> Text
+typeDataConClass dflags = dataConClass dflags . head . tyConDataCons . tyConAppTyCon
+
+dataConWrapper :: Type -> Code
+dataConWrapper = undefined
+
+unboxResult :: Type -> Text -> FieldType -> Code
+unboxResult ty resClass resPrimFt
+  | isBoolTy ty = getTagMethod mempty
+               <> iconst jbool (fromIntegral 1)
+               <> isub
+               <> greturn resPrimFt
+  | otherwise = gconv closureType resClassFt
+             <> getfield (mkFieldRef resClass (constrField 1) resPrimFt)
+             <> greturn resPrimFt
+  where resClassFt = obj resClass
+
+getPrimFt :: Type -> FieldType
+getPrimFt = fromJust . repFieldType_maybe . getPrimTyOf
+
+getPrimTyOf :: Type -> UnaryType
+getPrimTyOf ty
+  | UnaryRep repTy <- repType ty =
+      if isBoolTy repTy
+      then jboolPrimTy
+      else case splitDataProductType_maybe repTy of
+        Just (_, _, data_con, [primTy]) -> primTy
+        _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty
