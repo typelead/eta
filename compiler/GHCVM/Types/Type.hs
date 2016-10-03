@@ -106,7 +106,7 @@ module GHCVM.Types.Type (
 
         -- * Type representation for the code generator
         typePrimRep, typeRepArity,
-        tagTypeToText,
+        tagTypeToText, rawTagTypeToText,
 
         -- * Main type substitution data types
         TvSubstEnv,     -- Representation widely visible
@@ -182,7 +182,7 @@ import GHCVM.Utils.FastString
 import GHCVM.Utils.Maybes           ( orElse )
 
 import Data.Text (Text)
-import qualified Data.Text as Text
+import qualified Data.Text as T
 import Data.Maybe       ( isJust, mapMaybe )
 import Control.Monad    ( guard )
 
@@ -738,14 +738,21 @@ typePrimRep ty
         _             -> pprPanic "typePrimRep: UnaryRep" (ppr ty)
 
 tagTypeToText :: Type -> Text
-tagTypeToText ty =
+tagTypeToText ty = either (uncurry pprPanic)
+                          (maybe ( T.pack "java/lang/Object" )
+                                 ( T.map (\c -> if c == '.' then '/' else c)
+                                 . head
+                                 . T.words ))
+                          $ rawTagTypeToText ty
+
+rawTagTypeToText :: Type -> Either (String, SDoc) (Maybe Text)
+rawTagTypeToText ty =
   case splitTyConApp_maybe ty of
     Just (tc1, _) ->
       case tyConCType_maybe tc1 of
-        Just (CType _ _ fs) ->
-          Text.map (\c -> if c == '.' then '/' else c) . fastStringToText $ fs
-        Nothing -> pprPanic "tagTypeToText: You should annotate " $ ppr ty
-    Nothing -> Text.pack "java/lang/Object"
+        Just (CType _ _ fs) -> Right . Just $ fastStringToText fs
+        Nothing -> Left ("rawTagTypeToText: You should annotate ", ppr ty)
+    Nothing -> Right Nothing
 
 typeRepArity :: Arity -> Type -> RepArity
 typeRepArity 0 _ = 0

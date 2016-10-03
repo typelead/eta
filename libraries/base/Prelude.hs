@@ -154,7 +154,8 @@ module Prelude (
     printShow,
     JString,
     Object#,
-    mkJString
+    mkJString,
+    Java
   ) where
 
 import Control.Monad

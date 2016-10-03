@@ -20,7 +20,8 @@ module GHCVM.Main.HscTypes (
 
         -- * Information about modules
         ModDetails(..), emptyModDetails,
-        ModGuts(..), CgGuts(..), ForeignStubs(..), appendStubC,
+        ModGuts(..), CgGuts(..), ForeignStubs(..),
+        appendStubC, appendDefs, foreignExportsList,
         ImportedMods, ImportedModsVal,
 
         ModSummary(..), ms_imps, ms_mod_name, showModMsg, isBootSummary,
@@ -185,14 +186,19 @@ import GHCVM.Utils.Platform
 import GHCVM.Utils.Util
 import GHCVM.Utils.Serialized       ( Serialized )
 
+import Codec.JVM (MethodDef)
+
 import Control.Monad    ( guard, liftM, when, ap )
 import Data.Array       ( Array, array )
+import Data.Map         ( Map )
+import Data.Text        ( Text )
 import Data.IORef
 import Data.Time
 import Data.Word
 import Data.Typeable    ( Typeable )
 import GHCVM.Utils.Exception
 import System.FilePath
+import qualified Data.Map as M
 
 -- -----------------------------------------------------------------------------
 -- Compilation state
@@ -1133,11 +1139,13 @@ data CgGuts
     }
 
 -----------------------------------
+type ExportMethods = Map Text [MethodDef]
+
 -- | Foreign export stubs
 data ForeignStubs
   = NoStubs
       -- ^ We don't have any stubs
-  | ForeignStubs SDoc SDoc
+  | ForeignStubs SDoc SDoc ExportMethods
       -- ^ There are some stubs. Parameters:
       --
       --  1) Header file prototypes for
@@ -1145,10 +1153,23 @@ data ForeignStubs
       --
       --  2) C stubs to use when calling
       --     "foreign exported" functions
+      --
+      --  3) Map of class strings to method defintions:
+      --     "place.Garage extends place.Home" --> [defs...]
+
+foreignExportsList :: ExportMethods -> [(Text, [MethodDef])]
+foreignExportsList = M.toList
 
 appendStubC :: ForeignStubs -> SDoc -> ForeignStubs
-appendStubC NoStubs            c_code = ForeignStubs empty c_code
-appendStubC (ForeignStubs h c) c_code = ForeignStubs h (c $$ c_code)
+appendStubC NoStubs            c_code = ForeignStubs empty c_code M.empty
+appendStubC (ForeignStubs h c m) c_code = ForeignStubs h (c $$ c_code) m
+
+appendDefs :: ForeignStubs -> [(Text, MethodDef)] -> ForeignStubs
+appendDefs NoStubs              methods' = ForeignStubs empty empty (M.fromListWith (++) methods)
+  where methods = map (\(t,c) -> (t,[c])) methods'
+appendDefs (ForeignStubs h c m) methods' =
+  ForeignStubs h c (M.unionWith (++) m (M.fromListWith (++) methods))
+  where methods = map (\(t,c) -> (t,[c])) methods'
 
 {-
 ************************************************************************

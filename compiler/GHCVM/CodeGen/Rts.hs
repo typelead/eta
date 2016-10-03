@@ -158,7 +158,7 @@ resumeThreadMethod = invokevirtual (mkMethodRef capability "resumeThread" [taskT
 
 mkRtsMainClass :: DynFlags -> String -> ClassFile
 mkRtsMainClass dflags mainClass
-  = mkClassFile java7 [Public, Super] mainClass' Nothing []
+  = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
   [
     mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
     [

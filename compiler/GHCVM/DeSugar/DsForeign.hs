@@ -61,35 +61,33 @@ type ExtendsInfo = VarEnv (Id, Type)
 dsForeigns :: [LForeignDecl Id] -> DsM (ForeignStubs, OrdList Binding)
 dsForeigns [] = return (NoStubs, nilOL)
 dsForeigns fdecls = do
-  fives <- mapM doLDecl fdecls
-  let (hs, cs, idss, bindss) = unzip4 fives
-      feIds = concat idss
-      -- TODO: Foreign Exports: feInitCode =
-  return (ForeignStubs empty empty, foldr (appOL . toOL) nilOL bindss)
+  ieDecls <- mapM doLDecl fdecls
+  let (methods', bindss) = unzip ieDecls
+      methods = catMaybes methods'
+  return (appendDefs NoStubs methods, foldr (appOL . toOL) nilOL bindss)
   where doLDecl (L loc decl) = putSrcSpanDs loc (doDecl decl)
         doDecl (ForeignImport id _ co spec) = do
-          (bs, h, c) <- dsFImport (unLoc id) co spec
-          return (h, c, [], bs)
+          bs <- dsFImport (unLoc id) co spec
+          return (Nothing, bs)
         doDecl (ForeignExport (L _ id) _ co
                               (CExport (L _ (CExportStatic extName cconv)) _)) = do
-            _ <- dsFExport id co extName cconv False
-            return (empty, empty, [id], [])
+            method <- dsFExport id co extName cconv False
+            return (Just method, [])
         doDecl fi = pprPanic "doDecl: Not implemented" (ppr fi)
 
-dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], SDoc, SDoc)
-dsFImport id co (CImport cconv safety mHeader spec _) = do
-  (ids, h, c) <- dsCImport id co spec (unLoc cconv) (unLoc safety) mHeader
-  return (ids, h, c)
+dsFImport :: Id -> Coercion -> ForeignImport -> DsM [Binding]
+dsFImport id co (CImport cconv safety mHeader spec _) =
+  dsCImport id co spec (unLoc cconv) (unLoc safety) mHeader
 
 dsCImport :: Id -> Coercion -> CImportSpec -> CCallConv -> Safety
-  -> Maybe Header -> DsM ([Binding], SDoc, SDoc)
+  -> Maybe Header -> DsM [Binding]
 dsCImport id co (CFunction target) cconv@PrimCallConv safety _
   = dsPrimCall id co (CCall (CCallSpec target cconv safety))
 dsCImport id co (CFunction target) cconv safety mHeader
   = dsFCall id co (CCall (CCallSpec target cconv safety)) mHeader
 dsCImport id _ _ _ _ _ = pprPanic "doCImport: Not implemented" (ppr id)
 
-dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
+dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM [(Id, Expr TyVar)]
 dsPrimCall funId co fcall = do
   args <- mapM newSysLocalDs argTypes
   ccallUniq <- newUnique
@@ -97,13 +95,12 @@ dsPrimCall funId co fcall = do
   let callApp = mkFCall dflags ccallUniq fcall (map Var args) ioResType
       rhs = mkLams tvs (mkLams args callApp)
       rhs' = Cast rhs co
-  return ([(funId, rhs')], empty, empty)
+  return [(funId, rhs')]
   where ty                    = pFst $ coercionKind co
         (tvs, funTy)          = tcSplitForAllTys ty
         (argTypes, ioResType) = tcSplitFunTys funTy
 
-dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header
-  -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
+dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM [(Id, Expr TyVar)]
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
@@ -128,7 +125,7 @@ dsFCall funId co fcall mDeclHeader = do
       funIdWithInline = funId
                        `setIdUnfolding`
                        mkInlineUnfolding (Just (length args)) wrapRhs'
-  return ([(workId, workRhs), (funIdWithInline, wrapRhs')], empty, empty)
+  return [(workId, workRhs), (funIdWithInline, wrapRhs')]
 
   where ty = pFst $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
@@ -388,7 +385,7 @@ dsFExport :: Id                 -- The exported Id
           -> Bool               -- True => foreign export dynamic
                                 --         so invoke IO action that's hanging off
                                 --         the first argument's stable pointer
-          -> DsM MethodDef
+          -> DsM (Text, MethodDef)
 
 dsFExport fnId co externalName cconv isDyn = do
   mod <- fmap ds_mod getGblEnv
@@ -413,29 +410,30 @@ dsFExport fnId co externalName cconv isDyn = do
       numApplied = length argTypes + 1
       apClass = apUpdName numApplied
       apFt = obj apClass
-  return $ mkMethodDef className [Public] methodName argFts resFt $
-       invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
-    <> gload classFt 0
-    -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
-    <> getstatic (mkFieldRef (moduleJavaClass mod) (closure (idNameText dflags fnId))
-                              closureType)
-    <> boxedArgs
-    <> new apFt
-    <> dup apFt
-    <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
-    -- TODO: Support java args > 5
-    <> invokestatic (mkMethodRef rtsGroup "evalJava"
-                                 [capabilityType, jobject, closureType]
-                                 (ret hsResultType))
-    <> if voidResult
-       then dup hsResultType
-       else mempty
-    <> hsResultCap
-    <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
-    -- TODO: add a call to checkSchedStatus
-    <> if voidResult
-       then vreturn
-       else hsResultValue <> unboxResult resType resClass rawResFt
+  return ( rawClassSpec
+         , mkMethodDef className [Public] methodName argFts resFt $
+             invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
+          <> gload classFt 0
+          -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
+          <> getstatic (mkFieldRef (moduleJavaClass mod) (closure (idNameText dflags fnId))
+                                   closureType)
+          <> boxedArgs
+          <> new apFt
+          <> dup apFt
+          <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
+          -- TODO: Support java args > 5
+          <> invokestatic (mkMethodRef rtsGroup "evalJava"
+                                       [capabilityType, jobject, closureType]
+                                       (ret hsResultType))
+          <> if voidResult
+             then dup hsResultType
+             else mempty
+          <> hsResultCap
+          <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
+          -- TODO: add a call to checkSchedStatus
+          <> if voidResult
+             then vreturn
+             else hsResultValue <> unboxResult resType resClass rawResFt)
   where ty = pSnd $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
@@ -448,10 +446,14 @@ dsFExport fnId co externalName cconv isDyn = do
                 else repFieldType_maybe $ getPrimTyOf resType
         voidResult = resFt == void
         methodName = fastStringText externalName
-        (className, resType) =
+        (rawClassSpec, className, resType) =
           case tcSplitJavaType_maybe ioResType of
             Just (javaTyCon, javaTagType, javaResType) ->
-              (tagTypeToText javaTagType, javaResType)
+              ((either (error $ "The tag type should be annotated with a CLASS annotation.")
+               (maybe (error $ "No type variables for the Java foreign export!") id)
+               $ rawTagTypeToText javaTagType)
+              , tagTypeToText javaTagType
+              , javaResType)
             _ -> error $ "Result type of 'foreign export java' declaration must be in the "
                       ++ "Java monad."
 

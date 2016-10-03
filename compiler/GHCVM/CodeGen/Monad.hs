@@ -357,7 +357,7 @@ newClosureGeneric genCode = do
 
 classFromCgState :: CgState -> ClassFile
 classFromCgState CgState {..} =
-  mkClassFile java7 cgAccessFlags cgClassName cgSuperClassName
+  mkClassFile java7 cgAccessFlags cgClassName cgSuperClassName []
     cgFieldDefs cgMethodDefs
 
 runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
