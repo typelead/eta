@@ -11,6 +11,7 @@ import ghcvm.runtime.stg.ForceIO;
 import ghcvm.runtime.stg.StgClosure;
 import ghcvm.runtime.stg.StgWeak;
 import ghcvm.runtime.apply.ApV;
+import ghcvm.runtime.apply.ApO;
 import static ghcvm.runtime.RtsScheduler.SchedulerStatus;
 import static ghcvm.runtime.RtsScheduler.scheduleWaitThread;
 import static ghcvm.runtime.RtsMessages.errorBelch;
