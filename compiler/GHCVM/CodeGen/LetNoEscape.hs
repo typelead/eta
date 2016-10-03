@@ -48,7 +48,7 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
       defOffset = last offsets
       defInstr = expr
       (defBytes, _, _)
-        = runInstrWithLabels' defInstr cp (Offset defOffset) cf lt
+        = runInstrWithLabelsBCS defInstr cp (Offset defOffset) cf lt
       breakOffset = defOffset + BS.length defBytes
       (_, instrs) = unzip lneBinds
   addLabels labelOffsets
@@ -56,14 +56,14 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   writeGoto $ defOffset - baseOffset
   cfs <- forM (zip labelOffsets instrs) $ \((_, offset), instr) -> do
     writeStackMapFrame
-    let (bytes', cf', frames') = runInstrWithLabels' instr cp offset cf lt'
+    let (bytes', cf', frames') = runInstrWithLabelsBCS instr cp offset cf lt'
     write bytes' frames'
     curOffset <- getOffset
     writeGoto $ breakOffset - curOffset
     return cf'
 
   let (defBytes', defCf', defFrames')
-        = runInstrWithLabels' defInstr cp (Offset defOffset) cf lt'
+        = runInstrWithLabelsBCS defInstr cp (Offset defOffset) cf lt'
   writeStackMapFrame
   write defBytes' defFrames'
   putCtrlFlow' $ CF.merge cf (defCf' : cfs)
@@ -71,7 +71,7 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   where computeOffsets cf cp (offset, _) (label, instr) =
           ( offset + bytesLength + lengthJump
           , (label, Offset offset) )
-          where (bytes, _, _) = runInstr' instr cp
+          where (bytes, _, _) = runInstrBCS' instr cp
                               $ emptyInstrState
                                 { isOffset = Offset offset
                                 , isCtrlFlow = cf }
