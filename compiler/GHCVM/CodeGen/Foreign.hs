@@ -94,7 +94,10 @@ labelToTarget hasObj label argFts reps = case words label of
                   (getInstr, primRepFieldType resRep)
           in \c -> c <> instr (mkFieldRef clsName fieldName fieldFt)
         genMethodTarget isStatic label instr =
-          let (clsName, methodName) = labelToMethod label
+          let (clsName, methodName) =
+                if hasObj && not isStatic
+                then (getObjectClass thisRep, T.pack label)
+                else labelToMethod label
               resFt = primRepFieldType_maybe resRep
           in \c -> c <> instr (mkMethodRef clsName methodName (argFts' isStatic) resFt)
 
