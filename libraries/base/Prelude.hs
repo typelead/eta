@@ -153,9 +153,13 @@ module Prelude (
     -- * GHCVM I/O
     printShow,
     JString,
+    JClass,
+    getClass,
+    Object,
     Object#,
     mkJString,
-    Java
+    Java,
+    ObjectArray
   ) where
 
 import Control.Monad
@@ -179,3 +183,4 @@ import GHC.Show
 
 import GHCVM.IO
 import GHCVM.JString
+import Java

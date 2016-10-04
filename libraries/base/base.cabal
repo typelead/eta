@@ -228,6 +228,7 @@ Library
         GHC.Word
         GHCVM.IO
         GHCVM.JString
+        Java
         Numeric
         Numeric.Natural
         Prelude
