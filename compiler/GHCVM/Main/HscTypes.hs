@@ -1165,7 +1165,9 @@ appendStubC NoStubs            c_code = ForeignStubs empty c_code M.empty
 appendStubC (ForeignStubs h c m) c_code = ForeignStubs h (c $$ c_code) m
 
 appendDefs :: ForeignStubs -> [(Text, MethodDef)] -> ForeignStubs
-appendDefs NoStubs              methods' = ForeignStubs empty empty (M.fromListWith (++) methods)
+appendDefs NoStubs methods'
+  | length methods' > 0 = ForeignStubs empty empty (M.fromListWith (++) methods)
+  | otherwise = NoStubs
   where methods = map (\(t,c) -> (t,[c])) methods'
 appendDefs (ForeignStubs h c m) methods' =
   ForeignStubs h c (M.unionWith (++) m (M.fromListWith (++) methods))

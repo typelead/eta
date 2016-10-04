@@ -18,6 +18,7 @@
 module System.Environment
     (
       getArgs,
+      getJavaArgs,
       getProgName,
       getExecutablePath,
       getEnv,

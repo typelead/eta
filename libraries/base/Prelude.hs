@@ -156,9 +156,15 @@ module Prelude (
     JClass,
     getClass,
     Object,
+    Class(..),
+    Extends(..),
     Object#,
     mkJString,
     Java,
+    java,
+    io,
+    (<.>),
+    (>-),
     ObjectArray
   ) where
 

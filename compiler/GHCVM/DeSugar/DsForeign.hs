@@ -444,7 +444,11 @@ dsFExport fnId co externalName cconv isDyn = do
         resFt = if voidResult
                 then void
                 else repFieldType_maybe $ getPrimTyOf resType
-        voidResult = resFt == void
+        voidResult
+          | UnaryRep repResTy <- repType resType
+          , isUnitTy repResTy
+          = True
+          | otherwise = False
         methodName = fastStringText externalName
         (rawClassSpec, className, resType) =
           case tcSplitJavaType_maybe ioResType of
@@ -483,5 +487,5 @@ getPrimTyOf ty
       if isBoolTy repTy
       then jboolPrimTy
       else case splitDataProductType_maybe repTy of
-        Just (_, _, data_con, [primTy]) -> primTy
+        Just (_, _, _, [primTy]) -> primTy
         _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty

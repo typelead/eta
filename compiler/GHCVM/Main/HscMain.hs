@@ -161,6 +161,7 @@ import GHCVM.Main.Packages
 import GHCVM.Util
 import Codec.JVM
 
+import Debug.Trace(traceShow)
 import Data.List
 import Control.Monad
 import Data.Maybe
@@ -1219,9 +1220,9 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
             <- {-# SCC "CoreToStg" #-}
                myCoreToStg dflags this_mod prepd_binds
 
-        modclasses <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
+        modClasses <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
         let stubClasses = outputForeignStubs dflags foreign_stubs
-            classes = stubClasses ++ modclasses
+            classes = stubClasses ++ modClasses
             jarContents' = map (classFilePath &&& classFileBS) classes
         jarContents <- forM jarContents' $ \(a,b) -> do
           a' <- mkPath a
@@ -1231,6 +1232,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
         return (output_filename, Nothing)
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
+outputForeignStubs dflags NoStubs = []
 outputForeignStubs dflags (ForeignStubs _ _ methods) =
   map f $ foreignExportsList methods
   where f (classSpec, methodDefs) =
@@ -1240,7 +1242,7 @@ outputForeignStubs dflags (ForeignStubs _ _ methods) =
                 (superClass, interfaces) = parseSpecs specs "java/lang/Object" []
         parseSpecs ("extends":superClass:xs) _ is = parseSpecs xs (jvmify superClass) is
         parseSpecs ("implements":interface:xs) sc is = parseSpecs xs sc (jvmify interface:is)
-        parseSpecs [] sc is = (sc, is)
+        parseSpecs [] sc is = (sc, reverse is)
         parseSpecs _ _ _ = error $ "Invalid foreign export spec."
         jvmify = T.map (\c -> if c == '.' then '/' else c)
 

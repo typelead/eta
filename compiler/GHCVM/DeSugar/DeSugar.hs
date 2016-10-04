@@ -128,8 +128,9 @@ deSugar hsc_env
                                    , foreign_prs `appOL` core_prs `appOL` spec_prs
                                                  `appOL` toOL (map snd stBinds)
                                    , spec_rules ++ ds_rules, ds_vects
-                                   , ds_fords `appendStubC` hpc_init
-                                              `appendStubC` spt_init) }
+                                   , ds_fords --`appendStubC` hpc_init
+                                              --`appendStubC` spt_init
+                                   ) }
 
         ; case mb_res of {
            Nothing -> return (msgs, Nothing) ;
