@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+--{-# LANGUAGE Safe #-}
 {-# LANGUAGE CPP #-}
 
 -----------------------------------------------------------------------------
@@ -18,6 +18,7 @@
 module System.Environment
     (
       getArgs,
+      getJavaArgs,
       getProgName,
       getExecutablePath,
       getEnv,
@@ -47,80 +48,18 @@ import System.Posix.Internals (withFilePath)
 #endif
 
 import System.Environment.ExecutablePath
-
--- #ifdef mingw32_HOST_OS
--- # if defined(i386_HOST_ARCH)
--- #  define WINDOWS_CCONV stdcall
--- # elif defined(x86_64_HOST_ARCH)
--- #  define WINDOWS_CCONV ccall
--- # else
--- #  error Unknown mingw32 arch
--- # endif
--- #endif
-
--- #include "HsBaseConfig.h"
-
--- ---------------------------------------------------------------------------
--- getArgs, getProgName, getEnv
-
--- #ifdef mingw32_HOST_OS
-
--- -- Ignore the arguments to hs_init on Windows for the sake of Unicode compat
-
--- getWin32ProgArgv_certainly :: IO [String]
--- getWin32ProgArgv_certainly = do
---         mb_argv <- getWin32ProgArgv
---         case mb_argv of
---           Nothing   -> fmap dropRTSArgs getFullArgs
---           Just argv -> return argv
-
--- withWin32ProgArgv :: [String] -> IO a -> IO a
--- withWin32ProgArgv argv act = bracket begin setWin32ProgArgv (\_ -> act)
---   where
---     begin = do
---           mb_old_argv <- getWin32ProgArgv
---           setWin32ProgArgv (Just argv)
---           return mb_old_argv
-
--- getWin32ProgArgv :: IO (Maybe [String])
--- getWin32ProgArgv = alloca $ \p_argc -> alloca $ \p_argv -> do
---         c_getWin32ProgArgv p_argc p_argv
---         argc <- peek p_argc
---         argv_p <- peek p_argv
---         if argv_p == nullPtr
---          then return Nothing
---          else do
---           argv_ps <- peekArray (fromIntegral argc) argv_p
---           fmap Just $ mapM peekCWString argv_ps
-
--- setWin32ProgArgv :: Maybe [String] -> IO ()
--- setWin32ProgArgv Nothing = c_setWin32ProgArgv 0 nullPtr
--- setWin32ProgArgv (Just argv) = withMany withCWString argv $ \argv_ps -> withArrayLen argv_ps $ \argc argv_p -> do
---         c_setWin32ProgArgv (fromIntegral argc) argv_p
-
--- foreign import ccall unsafe "getWin32ProgArgv"
---   c_getWin32ProgArgv :: Ptr CInt -> Ptr (Ptr CWString) -> IO ()
-
--- foreign import ccall unsafe "setWin32ProgArgv"
---   c_setWin32ProgArgv :: CInt -> Ptr CWString -> IO ()
-
--- dropRTSArgs :: [String] -> [String]
--- dropRTSArgs []             = []
--- dropRTSArgs ("+RTS":rest)  = dropRTSArgs (dropWhile (/= "-RTS") rest)
--- dropRTSArgs ("--RTS":rest) = rest
--- dropRTSArgs ("-RTS":rest)  = dropRTSArgs rest
--- dropRTSArgs (arg:rest)     = arg : dropRTSArgs rest
-
--- #endif
+import Java (StringArray)
 
 -- | Computation 'getArgs' returns a list of the program's command
 -- line arguments (not including the program name).
 getArgs :: IO [String]
-
--- #ifdef mingw32_HOST_OS
--- getArgs =  fmap tail getWin32ProgArgv_certainly
--- #else
 getArgs = undefined
+
+-- | Computation 'getJavaArgs' returns a list of the program's command
+-- line arguments (not including the program name) as a native String[].
+foreign import java unsafe "@static ghcvm.base.Utils.getJavaArgs"
+  getJavaArgs :: IO StringArray
+
   -- alloca $ \ p_argc ->
   -- alloca $ \ p_argv -> do
   --  getProgArgv p_argc p_argv

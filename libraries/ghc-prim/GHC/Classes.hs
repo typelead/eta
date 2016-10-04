@@ -305,8 +305,8 @@ class Class a where
   obj   :: Object# a -> a
 
 instance Class Object where
-  unobj (Object x) = x
-  obj = Object
+  unobj (O# x) = x
+  obj = O#
 
 instance Class JString where
   unobj (JS# x) = x
@@ -318,10 +318,10 @@ class (Class a, Class b) => Extends a b where
   supercast :: a -> b
   supercast x = obj (unsafeCoerce# (unobj x))
 
-instance (Class a) => Extends a Object where
-  supercast x = Object (unsafeCoerce# (unobj x))
+-- instance {-# INCOHERENT #-} (Class a) => Extends a Object where
+--   supercast x = Object (unsafeCoerce# (unobj x))
 
-instance (Class a) => Extends a a where
-  supercast x = x
+-- instance {-# INCOHERENT #-} (Class a) => Extends a a where
+--   supercast x = x
 
-instance (Class a, Class c, Extends a b, Extends b c) => Extends a c where
+instance {-# INCOHERENT #-} (Extends a b, Extends b c) => Extends a c where

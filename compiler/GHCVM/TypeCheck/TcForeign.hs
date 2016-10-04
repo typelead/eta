@@ -44,7 +44,6 @@ import GHCVM.Utils.Outputable
 import GHCVM.Utils.FastString
 import GHCVM.Utils.Maybes
 
-
 import Data.Maybe(fromMaybe)
 
 -- Defines a binding
@@ -190,7 +189,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
       traceTc "tcCheckFIType" $ ppr argTypes <+> ppr resType
       let javaClassVars = extendsVars thetaType
       checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
-      checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags)  resType
+      checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
       return idecl
   -- TODO: Support the other C-based conventions
   | otherwise = pprPanic "Unsupported calling convention." (ppr idecl)
@@ -275,10 +274,31 @@ tcForeignExports decls =
 
 tcForeignExports' :: [LForeignDecl Name]
                  -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt)
--- TODO: Implement foreign exports
-tcForeignExports' _ = return (emptyLHsBinds, [], emptyBag)
-  -- = foldlM combine (emptyLHsBinds, [], emptyBag) (filter isForeignExport decls)
-  -- where
-  --  combine (binds, fs, gres1) (L loc fe) = do
-  --      (b, f, gres2) <- setSrcSpan loc (tcFExport fe)
-  --      return (b `consBag` binds, L loc f : fs, gres1 `unionBags` gres2)
+tcForeignExports' decls = foldlM combine (emptyLHsBinds, [], emptyBag)
+                                 (filter isForeignExport decls)
+  where combine (binds, fs, gres1) (L loc fe) = do
+          (b, f, gres2) <- setSrcSpan loc (tcFExport fe)
+          return (b `consBag` binds, L loc f : fs, gres1 `unionBags` gres2)
+
+tcFExport :: ForeignDecl Name -> TcM (LHsBind Id, ForeignDecl Id, Bag GlobalRdrElt)
+tcFExport fo@(ForeignExport (L loc nm) hs_ty _ spec)
+  = addErrCtxt (foreignDeclCtxt fo) $ do
+      sig_ty <- tcHsSigType (ForSigCtxt nm) hs_ty
+      rhs <- tcPolyExpr (nlHsVar nm) sig_ty
+      (norm_co, norm_sig_ty, gres) <- normaliseFfiType sig_ty
+      spec' <- tcCheckFEType norm_sig_ty spec
+      id  <- mkStableIdFromName nm sig_ty loc mkForeignExportOcc
+      return (mkVarBind id rhs, ForeignExport (L loc id) undefined norm_co spec', gres)
+
+tcFExport d = pprPanic "tcFExport" (ppr d)
+
+tcCheckFEType :: Type -> ForeignExport -> TcM ForeignExport
+tcCheckFEType sigType exportspec = do
+-- (CExport (L l (CExportStatic str cconv)) src)
+    checkForeignArgs isFFIExternalTy argTypes
+    checkForeignRes nonIOok noCheckSafe isFFIExportResultTy resType
+    return exportspec
+  where (_, ty)             = tcSplitForAllTys sigType
+        (thetaType, ty')    = tcSplitPhiTy ty
+        (argTypes, resType) = tcSplitFunTys ty'
+        javaClassVars       = extendsVars thetaType

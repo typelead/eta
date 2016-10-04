@@ -1072,6 +1072,38 @@ thenIO (IO m) k = IO $ \ s -> case m s of (# new_s, _ #) -> unIO k new_s
 unIO :: IO a -> (State# RealWorld -> (# State# RealWorld, a #))
 unIO (IO a) = a
 
+----------------------------------------------
+-- Functor/Applicative/Monad instances for Java
+----------------------------------------------
+
+instance  Functor (Java c) where
+   fmap f x = x >>= (return . f)
+
+instance Applicative (Java c) where
+    pure = return
+    (<*>) = ap
+
+instance  Monad (Java c) where
+    {-# INLINE return #-}
+    {-# INLINE (>>)   #-}
+    {-# INLINE (>>=)  #-}
+    m >> k    = m >>= \ _ -> k
+    return    = returnJava
+    (>>=)     = bindJava
+    fail s    = error s -- TODO: Implement failJava
+
+returnJava :: a -> Java c a
+returnJava x = Java $ \ o -> (# o, x #)
+
+bindJava :: Java c a -> (a -> Java c b) -> Java c b
+bindJava (Java m) k = Java $ \ o -> case m o of (# new_o, a #) -> unJava (k a) new_o
+
+thenJava :: Java c a -> Java c b -> Java c b
+thenJava (Java m) k = Java $ \ o -> case m o of (# new_o, _ #) -> unJava k new_o
+
+unJava :: Java c a -> (Object# c -> (# Object# c, a #))
+unJava (Java a) = a
+
 {- |
 Returns the 'tag' of a constructor application; this function is used
 by the deriving code for Eq, Ord and Enum.

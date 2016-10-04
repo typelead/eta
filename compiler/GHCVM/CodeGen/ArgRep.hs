@@ -101,8 +101,6 @@ primRepFieldType_maybe rep = Just $
     ShortRep            -> jshort
     ObjectRep className -> obj $ className
     ArrayRep  rep       -> ArrayType . fromJust $ primRepFieldType_maybe rep
-    VoidRep             -> error $ "primRepFieldType_maybe: VoidRep"
-    --(VecRep len elem) -> error $ "Unsupported PrimRep: VecRep " ++ show len ++ " " ++ show elem
 
 primRepFieldType :: PrimRep -> FieldType
 primRepFieldType = expectJust "primRepFieldType" . primRepFieldType_maybe

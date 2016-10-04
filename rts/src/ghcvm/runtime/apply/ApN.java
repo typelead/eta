@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApN extends StackFrame {
-    private final int n;
+    public int n;
 
     public ApN(int n) {
         this.n = n;

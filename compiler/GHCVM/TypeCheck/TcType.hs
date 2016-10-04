@@ -92,8 +92,8 @@ module GHCVM.TypeCheck.TcType (
   -- Foreign import and export
   isFFIArgumentTy,     -- :: DynFlags -> Safety -> Type -> Bool
   isFFIImportResultTy, -- :: DynFlags -> Type -> Bool
-  --isFFIExportResultTy, -- :: Type -> Bool
-  --isFFIExternalTy,     -- :: Type -> Bool
+  isFFIExportResultTy, -- :: Type -> Bool
+  isFFIExternalTy,     -- :: Type -> Bool
   --isFFIDynTy,          -- :: Type -> Type -> Bool
   isFFIPrimArgumentTy, -- :: DynFlags -> Type -> Bool
   isFFIPrimResultTy,   -- :: DynFlags -> Type -> Bool
@@ -1618,16 +1618,16 @@ isFFIArgumentTy dflags safety vs ty
   | checkValidTyVar vs ty = IsValid
   | otherwise = checkRepTyCon (legalOutgoingTyCon dflags safety) ty empty
 
--- isFFIExternalTy :: Type -> Validity
--- -- Types that are allowed as arguments of a 'foreign export'
--- isFFIExternalTy ty = checkRepTyCon legalFEArgTyCon ty empty
+isFFIExternalTy :: Type -> Validity
+-- Types that are allowed as arguments of a 'foreign export'
+isFFIExternalTy ty = checkRepTyCon legalFEArgTyCon ty empty
 
 isFFIImportResultTy :: DynFlags -> Type -> Validity
 isFFIImportResultTy dflags ty
   = checkRepTyCon (legalFIResultTyCon dflags) ty empty
 
--- isFFIExportResultTy :: Type -> Validity
--- isFFIExportResultTy ty = checkRepTyCon legalFEResultTyCon ty empty
+isFFIExportResultTy :: Type -> Validity
+isFFIExportResultTy ty = checkRepTyCon legalFEResultTyCon ty empty
 
 -- isFFIDynTy :: Type -> Type -> Validity
 -- -- The type in a foreign import dynamic must be Ptr, FunPtr, or a newtype of
@@ -1719,21 +1719,21 @@ These chaps do the work; they are not exported
 ----------------------------------------------
 -}
 
--- legalFEArgTyCon :: TyCon -> Type -> Bool
--- legalFEArgTyCon tc ty
---   -- It's illegal to make foreign exports that take unboxed
---   -- arguments.  The RTS API currently can't invoke such things.  --SDM 7/2000
---   = boxedMarshalableTyCon tc ty
+legalFEArgTyCon :: TyCon -> Type -> Bool
+legalFEArgTyCon tc ty
+  -- It's illegal to make foreign exports that take unboxed
+  -- arguments.  The RTS API currently can't invoke such things.  --SDM 7/2000
+  = boxedMarshalableTyCon tc ty
 
 legalFIResultTyCon :: DynFlags -> TyCon -> Type -> Bool
 legalFIResultTyCon dflags tc ty
   | tc == unitTyCon         = True
   | otherwise               = marshalableTyCon dflags tc ty
 
--- legalFEResultTyCon :: TyCon -> Type -> Bool
--- legalFEResultTyCon tc ty
---   | tc == unitTyCon         = True
---   | otherwise               = boxedMarshalableTyCon tc ty
+legalFEResultTyCon :: TyCon -> Type -> Bool
+legalFEResultTyCon tc ty
+  | tc == unitTyCon         = True
+  | otherwise               = boxedMarshalableTyCon tc ty
 
 legalOutgoingTyCon :: DynFlags -> Safety -> TyCon -> Type -> Bool
 -- Checks validity of types going from Haskell -> external world

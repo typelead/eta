@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.apply.Apply;
 
 public class Ap1Upd extends StgInd {
-    private final StgClosure p;
+    public StgClosure p;
 
     public Ap1Upd(final StgClosure p) {
         super();

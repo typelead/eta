@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns, MagicHash, NondecreasingIndentation #-}
+{-# LANGUAGE CPP, BangPatterns, MagicHash, NondecreasingIndentation, OverloadedStrings #-}
 
 -------------------------------------------------------------------------------
 --
@@ -161,13 +161,15 @@ import GHCVM.Main.Packages
 import GHCVM.Util
 import Codec.JVM
 
+import Debug.Trace(traceShow)
 import Data.List
 import Control.Monad
 import Data.Maybe
 import Data.IORef
 import System.FilePath as FilePath
 import System.Directory
-import qualified Data.Map as Map
+import qualified Data.Map as M
+import qualified Data.Text as T
 import Control.Arrow((&&&), first)
 
 {- **********************************************************************
@@ -377,8 +379,8 @@ hscParse' mod_summary = do
                       hpm_module    = rdr_module,
                       hpm_src_files = srcs2,
                       hpm_annotations
-                              = (Map.fromListWith (++) $ annotations pst,
-                                 Map.fromList $ ((noSrcSpan,comment_q pst)
+                              = (M.fromListWith (++) $ annotations pst,
+                                 M.fromList $ ((noSrcSpan,comment_q pst)
                                                  :(annotations_comments pst)))
                    }
 
@@ -1199,7 +1201,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
                     cg_module   = this_mod,
                     cg_binds    = core_binds,
                     cg_tycons   = tycons,
-                    cg_foreign  = foreign_stubs0,
+                    cg_foreign  = foreign_stubs,
                     cg_dep_pkgs = dependencies,
                     cg_hpc_info = hpc_info } = cgguts
             dflags = hsc_dflags hsc_env
@@ -1218,14 +1220,31 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
             <- {-# SCC "CoreToStg" #-}
                myCoreToStg dflags this_mod prepd_binds
 
-        classes <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
-        let jarContents' = map (classFilePath &&& classFileBS) classes
+        modClasses <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
+        let stubClasses = outputForeignStubs dflags foreign_stubs
+            classes = stubClasses ++ modClasses
+            jarContents' = map (classFilePath &&& classFileBS) classes
         jarContents <- forM jarContents' $ \(a,b) -> do
           a' <- mkPath a
           return (a', b)
         createEmptyJar output_filename
         addMultiByteStringsToJar' jarContents output_filename
         return (output_filename, Nothing)
+
+outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
+outputForeignStubs dflags NoStubs = []
+outputForeignStubs dflags (ForeignStubs _ _ methods) =
+  map f $ foreignExportsList methods
+  where f (classSpec, methodDefs) =
+          mkClassFile java7 [Public, Super] (jvmify className) (Just superClass) interfaces []
+            (mkDefaultConstructor className superClass : methodDefs)
+          where className:specs = T.words classSpec
+                (superClass, interfaces) = parseSpecs specs "java/lang/Object" []
+        parseSpecs ("extends":superClass:xs) _ is = parseSpecs xs (jvmify superClass) is
+        parseSpecs ("implements":interface:xs) sc is = parseSpecs xs sc (jvmify interface:is)
+        parseSpecs [] sc is = (sc, reverse is)
+        parseSpecs _ _ _ = error $ "Invalid foreign export spec."
+        jvmify = T.map (\c -> if c == '.' then '/' else c)
 
 hscInteractive :: HscEnv
                -> CgGuts

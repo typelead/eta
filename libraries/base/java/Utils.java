@@ -8,8 +8,10 @@ import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.List;
 
 import ghcvm.runtime.Rts;
+import ghcvm.runtime.RtsFlags;
 import static ghcvm.runtime.Rts.ExitCode;
 import ghcvm.runtime.RtsMessages;
 
@@ -173,5 +175,16 @@ public class Utils {
         byte[] bytes = new byte[stringBuf.remaining() - 1];
         stringBuf.get(bytes);
         return new String(bytes);
+    }
+
+    public static String[] getJavaArgs() {
+        List<String> args = RtsFlags.progArgs;
+        int size = args.size();
+        if (size > 1) {
+            String[] resArgs = new String[size - 1];
+            return args.subList(1, size).toArray(resArgs);
+        } else {
+            return new String[0];
+        }
     }
 }

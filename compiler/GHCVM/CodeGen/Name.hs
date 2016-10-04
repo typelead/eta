@@ -1,6 +1,8 @@
 {-# LANGUAGE MagicHash, OverloadedStrings #-}
 module GHCVM.CodeGen.Name (
   qualifiedName,
+  fastStringText,
+  fastZStringText,
   nameText,
   nameTypeText,
   nameTypeTable,
@@ -74,25 +76,20 @@ idClassText id =
     Just mod -> modNameText mod
     Nothing -> error $ "idClassText: "
 
+fastStringText :: FastString -> Text
+fastStringText = decodeUtf8 . fastStringToByteString
+
+fastZStringText :: FastZString -> Text
+fastZStringText = decodeUtf8 . fastZStringToByteString
+
 zEncodeText :: FastString -> Text
-zEncodeText fs = decodeUtf8
-               . fastZStringToByteString
-               . zEncodeFS
-               $ fs
+zEncodeText = fastZStringText . zEncodeFS
 
 modNameText :: Module -> Text
-modNameText mod = decodeUtf8
-                . fastStringToByteString
-                . moduleNameFS
-                . moduleName
-                $ mod
+modNameText = fastStringText . moduleNameFS . moduleName
 
 packageKeyText :: Module -> Text
-packageKeyText mod = zEncodeText
-                   . packageKeyFS
-                   . modulePackageKey
-                   $ mod
-
+packageKeyText = zEncodeText . packageKeyFS . modulePackageKey
 
 -- Codec.JVM.ASM -> "codec/jvm/ASM"
 moduleJavaClass :: Module -> Text

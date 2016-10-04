@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module GHCVM.DeSugar.DsForeign where
 
 import GHCVM.Core.CoreSyn
@@ -32,7 +33,7 @@ import GHCVM.Prelude.PrelInfo ( primOpId )
 import GHCVM.Prelude.PrimOp
 import GHCVM.BasicTypes.BasicTypes
 import GHCVM.BasicTypes.SrcLoc
-import GHCVM.Utils.Outputable
+import GHCVM.Utils.Outputable hiding ((<>))
 import GHCVM.Utils.FastString
 import GHCVM.Main.DynFlags
 import GHCVM.Utils.Platform
@@ -41,12 +42,18 @@ import GHCVM.Utils.OrdList
 import GHCVM.Utils.Pair
 import GHCVM.Utils.Util
 import GHCVM.Main.Hooks
+import GHCVM.CodeGen.ArgRep (repFieldType_maybe)
+import GHCVM.CodeGen.Rts
+import GHCVM.CodeGen.Name
 
 import Data.Maybe
+import Data.Monoid((<>))
 import Data.List
+import Data.Text (Text)
 import qualified Data.Text as T
 
 import GHCVM.Debug
+import Codec.JVM
 
 type Binding = (Id, CoreExpr)
 type ExtendsInfo = VarEnv (Id, Type)
@@ -54,31 +61,33 @@ type ExtendsInfo = VarEnv (Id, Type)
 dsForeigns :: [LForeignDecl Id] -> DsM (ForeignStubs, OrdList Binding)
 dsForeigns [] = return (NoStubs, nilOL)
 dsForeigns fdecls = do
-  fives <- mapM doLDecl fdecls
-  let (hs, cs, idss, bindss) = unzip4 fives
-      feIds = concat idss
-      -- TODO: Foreign Exports: feInitCode =
-  return (ForeignStubs empty empty, foldr (appOL . toOL) nilOL bindss)
+  ieDecls <- mapM doLDecl fdecls
+  let (methods', bindss) = unzip ieDecls
+      methods = catMaybes methods'
+  return (appendDefs NoStubs methods, foldr (appOL . toOL) nilOL bindss)
   where doLDecl (L loc decl) = putSrcSpanDs loc (doDecl decl)
         doDecl (ForeignImport id _ co spec) = do
-          (bs, h, c) <- dsFImport (unLoc id) co spec
-          return (h, c, [], bs)
+          bs <- dsFImport (unLoc id) co spec
+          return (Nothing, bs)
+        doDecl (ForeignExport (L _ id) _ co
+                              (CExport (L _ (CExportStatic extName cconv)) _)) = do
+            method <- dsFExport id co extName cconv False
+            return (Just method, [])
         doDecl fi = pprPanic "doDecl: Not implemented" (ppr fi)
 
-dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], SDoc, SDoc)
-dsFImport id co (CImport cconv safety mHeader spec _) = do
-  (ids, h, c) <- dsCImport id co spec (unLoc cconv) (unLoc safety) mHeader
-  return (ids, h, c)
+dsFImport :: Id -> Coercion -> ForeignImport -> DsM [Binding]
+dsFImport id co (CImport cconv safety mHeader spec _) =
+  dsCImport id co spec (unLoc cconv) (unLoc safety) mHeader
 
 dsCImport :: Id -> Coercion -> CImportSpec -> CCallConv -> Safety
-  -> Maybe Header -> DsM ([Binding], SDoc, SDoc)
+  -> Maybe Header -> DsM [Binding]
 dsCImport id co (CFunction target) cconv@PrimCallConv safety _
   = dsPrimCall id co (CCall (CCallSpec target cconv safety))
 dsCImport id co (CFunction target) cconv safety mHeader
   = dsFCall id co (CCall (CCallSpec target cconv safety)) mHeader
 dsCImport id _ _ _ _ _ = pprPanic "doCImport: Not implemented" (ppr id)
 
-dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
+dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM [(Id, Expr TyVar)]
 dsPrimCall funId co fcall = do
   args <- mapM newSysLocalDs argTypes
   ccallUniq <- newUnique
@@ -86,16 +95,14 @@ dsPrimCall funId co fcall = do
   let callApp = mkFCall dflags ccallUniq fcall (map Var args) ioResType
       rhs = mkLams tvs (mkLams args callApp)
       rhs' = Cast rhs co
-  return ([(funId, rhs')], empty, empty)
+  return [(funId, rhs')]
   where ty                    = pFst $ coercionKind co
         (tvs, funTy)          = tcSplitForAllTys ty
         (argTypes, ioResType) = tcSplitFunTys funTy
 
-dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header
-  -> DsM ([(Id, Expr TyVar)], SDoc, SDoc)
+dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM [(Id, Expr TyVar)]
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
-  --liftIO . putStrLn $ showSDoc dflags $ ptext (sLit "dsFCall:") <+> ppr co <+> ppr ty <+> ppr tvs <+> ppr argTypes <+> ppr ioResType
   (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
   (valArgs, argWrappers) <- mapAndUnzipM (unboxArg extendsInfo) (map Var args)
@@ -118,7 +125,7 @@ dsFCall funId co fcall mDeclHeader = do
       funIdWithInline = funId
                        `setIdUnfolding`
                        mkInlineUnfolding (Just (length args)) wrapRhs'
-  return ([(workId, workRhs), (funIdWithInline, wrapRhs')], empty, empty)
+  return [(workId, workRhs), (funIdWithInline, wrapRhs')]
 
   where ty = pFst $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
@@ -126,12 +133,14 @@ dsFCall funId co fcall mDeclHeader = do
         (argTypes, ioResType) = tcSplitFunTys funTy
         fcall' extendsInfo
           | Just (_, javaTagType, _) <- tcSplitJavaType_maybe ioResType
-          , Just var <- getTyVar_maybe javaTagType
           , CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv safety) <- fcall
-          = let morphTarget f =
-                  CCall (CCallSpec (StaticTarget (mkFastString (f $ unpackFS label))
-                                    mPkgKey isFun) JavaCallConv safety)
-            in case lookupVarEnv extendsInfo var of
+          = let morphTarget f = CCall (CCallSpec (StaticTarget
+                                                  (mkFastString ("@java " ++
+                                                                 (f $ unpackFS label)))
+                                                  mPkgKey isFun) JavaCallConv safety)
+            in case getTyVar_maybe javaTagType of
+              Just var ->
+                case lookupVarEnv extendsInfo var of
                  Just (id, ty) ->
                    morphTarget
                    (\label ->
@@ -140,6 +149,7 @@ dsFCall funId co fcall mDeclHeader = do
                           change = last parts
                       in unwords $ start ++ [T.unpack (tagTypeToText ty) ++ "." ++ change])
                  Nothing -> morphTarget ("@static " ++)
+              _ -> morphTarget id
           | otherwise = fcall
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
@@ -174,12 +184,10 @@ unboxArg vs arg
       return ( Var primArg,
                \body -> Case arg caseBinder (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
-  -- TODO: Handle ByteArray# and MutableByteArray#
   | Just v <- getTyVar_maybe argType
   , Just (dictId, tagType) <- lookupVarEnv vs v = do
       supercastId <- dsLookupGlobalId supercastName
       unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
-  -- TODO: Replace supercastId with the proper core
   | otherwise = do
       l <- getSrcSpanDs
       pprPanic "unboxArg: " (ppr l <+> ppr argType)
@@ -231,7 +239,6 @@ boxResult extendsInfo resultType
        return (realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
   | Just (javaTyCon, javaTagType, javaResType) <- tcSplitJavaType_maybe resultType
   = do dflags <- getDynFlags
-       liftIO . putStrLn . showSDoc dflags $ ppr javaTyCon <+> ppr javaTagType <+> ppr javaResType
        res <- resultWrapper extendsInfo javaResType
        let extraResultTypes =
              case res of
@@ -241,29 +248,26 @@ boxResult extendsInfo resultType
                     in tail ls
                _ -> []
            objectType = mkObjectPrimTy javaTagType
-           returnResult state object anss
+           returnResult object anss
              = mkCoreConApps (tupleCon UnboxedTuple
-                                       (3 + length extraResultTypes))
-                             (map Type ( realWorldStatePrimTy
-                                       : objectType
+                                       (2 + length extraResultTypes))
+                             (map Type ( objectType
                                        : javaResType
                                        : extraResultTypes )
-                              ++ (state : object : anss))
-       (ccallResultType, alt) <- mkAltJava objectType returnResult res
-       stateId <- newSysLocalDs realWorldStatePrimTy
+                              ++ (object : anss))
+       (javaResultType, alt) <- mkAltJava objectType returnResult res
        thisId <- newSysLocalDs objectType
        let javaDataCon = head (tyConDataCons javaTyCon)
            toJavaCon = dataConWrapId javaDataCon
            wrap call = mkApps (Var toJavaCon)
                               [ Type javaTagType
                               , Type javaResType
-                              , Lam stateId . Lam thisId $
-                                mkWildCase (App (App call (Var stateId))
-                                                (Var thisId))
-                                           ccallResultType
+                              , Lam thisId $
+                                mkWildCase (App call (Var thisId))
+                                           javaResultType
                                            (coreAltType alt)
                                            [alt] ]
-       return ( mkFunTys [realWorldStatePrimTy, objectType] ccallResultType
+       return ( objectType `mkFunTy` javaResultType
               , wrap )
   | otherwise
   = do res <- resultWrapper extendsInfo resultType
@@ -276,48 +280,38 @@ boxResult extendsInfo resultType
        where returnResult _ [ans] = ans
              returnResult _ _ = panic "returnResult: expected single result"
 
-mkAltJava :: Type -> (Expr Var -> Expr Var -> [Expr Var] -> Expr Var)
+mkAltJava :: Type -> (Expr Var -> [Expr Var] -> Expr Var)
       -> (Maybe Type, Expr Var -> Expr Var)
       -> DsM (Type, (AltCon, [Id], Expr Var))
 mkAltJava objectType returnResult (Nothing, wrapResult) = do
-  stateId <- newSysLocalDs realWorldStatePrimTy
   objectId <- newSysLocalDs objectType
-  let rhs = returnResult (Var stateId) (Var objectId)
-                         [wrapResult (panic "boxResult")]
-      ccallResultType = mkTyConApp unboxedPairTyCon [ realWorldStatePrimTy
-                                                    , objectType ]
-      alt = (DataAlt unboxedPairDataCon, [stateId, objectId], rhs)
-  return (ccallResultType, alt)
+  let rhs = returnResult (Var objectId) [wrapResult (panic "boxResult")]
+      javaResultType = mkTyConApp unboxedSingletonTyCon [ objectType ]
+      alt = (DataAlt unboxedSingletonDataCon, [objectId], rhs)
+  return (javaResultType, alt)
 mkAltJava objectType returnResult (Just primResType, wrapResult)
   | isUnboxedTupleType primResType = do
       let Just ls = tyConAppArgs_maybe primResType
-          arity = 2 + length ls
+          arity = 1 + length ls
       argIds@(resultId:as) <- mapM newSysLocalDs ls
-      stateId <- newSysLocalDs realWorldStatePrimTy
       objectId <- newSysLocalDs objectType
-      let rhs = returnResult (Var stateId)
-                             (Var objectId)
+      let rhs = returnResult (Var objectId)
                              (wrapResult (Var resultId) : map Var as)
-          ccallResultType = mkTyConApp (tupleTyCon UnboxedTuple arity)
-                                       (realWorldStatePrimTy : objectType : ls)
+          javaResultType = mkTyConApp (tupleTyCon UnboxedTuple arity)
+                                      (objectType : ls)
           alt = ( DataAlt (tupleCon UnboxedTuple arity)
-                , stateId : objectId : argIds
+                , objectId : argIds
                 , rhs )
-      return (ccallResultType, alt)
+      return (javaResultType, alt)
   | otherwise = do
       resultId <- newSysLocalDs primResType
-      stateId <- newSysLocalDs realWorldStatePrimTy
       objectId <- newSysLocalDs objectType
-      let rhs = returnResult (Var stateId) (Var objectId)
-                             [wrapResult (Var resultId)]
-          ccallResultType = mkTyConApp (tupleTyCon UnboxedTuple 3)
-                                       [ realWorldStatePrimTy
-                                       , objectType
-                                       , primResType ]
-          alt = ( DataAlt (tupleCon UnboxedTuple 3)
-                , [stateId, objectId, resultId]
+      let rhs = returnResult (Var objectId) [wrapResult (Var resultId)]
+          alt = ( DataAlt unboxedPairDataCon
+                , [objectId, resultId]
                 , rhs )
-      return (ccallResultType, alt)
+          javaResultType = mkTyConApp unboxedPairTyCon [ objectType , primResType ]
+      return (javaResultType, alt)
 
 mkAlt :: (Expr Var -> [Expr Var] -> Expr Var)
       -> (Maybe Type, Expr Var -> Expr Var)
@@ -382,3 +376,116 @@ resultWrapper extendsInfo resultType
   | otherwise
   = pprPanic "resultWrapper" (ppr resultType)
   where maybeTcApp = splitTyConApp_maybe resultType
+
+dsFExport :: Id                 -- The exported Id
+          -> Coercion           -- Coercion between the Haskell type callable
+                                -- from C, and its representation type
+          -> CLabelString       -- The name to export to C land
+          -> CCallConv
+          -> Bool               -- True => foreign export dynamic
+                                --         so invoke IO action that's hanging off
+                                --         the first argument's stable pointer
+          -> DsM (Text, MethodDef)
+
+dsFExport fnId co externalName cconv isDyn = do
+  mod <- fmap ds_mod getGblEnv
+  dflags <- getDynFlags
+  let resClass = typeDataConClass dflags resType
+      boxedArgs =
+        if length argFts > 5
+        then error $ "Foreign exports with number of arguments > 5 are currently not "
+                  ++ "supported."
+        else foldl' (\code (i, argPrimFt, argType) ->
+                        let argClass = typeDataConClass dflags argType
+                            argClassFt = obj argClass
+                        in code
+                        <> (if argPrimFt == jbool
+                            then gload argPrimFt i <> ifeq falseClosure trueClosure
+                            else    new argClassFt
+                                 <> dup argClassFt
+                                 <> gload argPrimFt i
+                                 <> invokespecial (mkMethodRef argClass "<init>" [argPrimFt] void)))
+                    mempty
+                    (zip3 [1..] argFts argTypes)
+      numApplied = length argTypes + 1
+      apClass = apUpdName numApplied
+      apFt = obj apClass
+  return ( rawClassSpec
+         , mkMethodDef className [Public] methodName argFts resFt $
+             invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
+          <> gload classFt 0
+          -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
+          <> new apFt
+          <> dup apFt
+          <> getstatic (mkFieldRef (moduleJavaClass mod) (closure (idNameText dflags fnId))
+                                   closureType)
+          <> boxedArgs
+          <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
+          -- TODO: Support java args > 5
+          <> invokestatic (mkMethodRef rtsGroup "evalJava"
+                                       [capabilityType, jobject, closureType]
+                                       (ret hsResultType))
+          <> (if voidResult
+              then dup hsResultType
+              else mempty)
+          <> hsResultCap
+          <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
+          -- TODO: add a call to checkSchedStatus
+          <> (if voidResult
+             then vreturn
+             else (hsResultValue <> unboxResult resType resClass rawResFt)))
+  where ty = pSnd $ coercionKind co
+        (tvs, thetaFunTy) = tcSplitForAllTys ty
+        (thetaType, funTy) = tcSplitPhiTy thetaFunTy
+        (argTypes, ioResType) = tcSplitFunTys funTy
+        classFt = obj className
+        argFts = map getPrimFt argTypes
+        rawResFt = fromJust resFt
+        resFt = if voidResult
+                then void
+                else repFieldType_maybe $ getPrimTyOf resType
+        voidResult
+          | UnaryRep repResTy <- repType resType
+          , isUnitTy repResTy
+          = True
+          | otherwise = False
+        methodName = fastStringText externalName
+        (rawClassSpec, className, resType) =
+          case tcSplitJavaType_maybe ioResType of
+            Just (javaTyCon, javaTagType, javaResType) ->
+              ((either (error $ "The tag type should be annotated with a CLASS annotation.")
+               (maybe (error $ "No type variables for the Java foreign export!") id)
+               $ rawTagTypeToText javaTagType)
+              , tagTypeToText javaTagType
+              , javaResType)
+            _ -> error $ "Result type of 'foreign export java' declaration must be in the "
+                      ++ "Java monad."
+
+typeDataConClass :: DynFlags -> Type -> Text
+typeDataConClass dflags = dataConClass dflags . head . tyConDataCons . tyConAppTyCon
+
+dataConWrapper :: Type -> Code
+dataConWrapper = undefined
+
+unboxResult :: Type -> Text -> FieldType -> Code
+unboxResult ty resClass resPrimFt
+  | isBoolTy ty = getTagMethod mempty
+               <> iconst jbool (fromIntegral 1)
+               <> isub
+               <> greturn resPrimFt
+  | otherwise = gconv closureType resClassFt
+             <> getfield (mkFieldRef resClass (constrField 1) resPrimFt)
+             <> greturn resPrimFt
+  where resClassFt = obj resClass
+
+getPrimFt :: Type -> FieldType
+getPrimFt = fromJust . repFieldType_maybe . getPrimTyOf
+
+getPrimTyOf :: Type -> UnaryType
+getPrimTyOf ty
+  | UnaryRep repTy <- repType ty =
+      if isBoolTy repTy
+      then jboolPrimTy
+      else case splitDataProductType_maybe repTy of
+        Just (_, _, _, [primTy]) -> primTy
+        _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty

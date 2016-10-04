@@ -101,7 +101,9 @@ generateFVs fvs recIds = do
         fieldName = constrField i
         code = putfield $ mkFieldRef clClass fieldName ft
         recIndex = if id `elem` recIds then Just (i, id) else Nothing
-    defineField $ mkFieldDef [Public, Final] fieldName ft
+    -- TODO: Find a better way to handle recursion
+    --       that allows us to use 'final' in most cases.
+    defineField $ mkFieldDef [Public] fieldName ft
     return ((nvId, LocField (isGcPtrRep rep) ft clClass fieldName), (i, ft, code), recIndex)
   let (fvLocs, initCodes, recIndexes) = unzip3 result
   return (fvLocs, initCodes, catMaybes recIndexes)

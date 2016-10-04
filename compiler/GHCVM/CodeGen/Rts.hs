@@ -33,7 +33,7 @@ par       = merge (rts "parallel")
 
 closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType, frameType,
   rtsFunType, conType, thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType,
-  stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType :: FieldType
+  stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType, hsResultType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -52,10 +52,11 @@ stgArrayType      = obj stgArray
 stgMutVarType     = obj stgMutVar
 stgByteArrayType  = obj stgByteArray
 stgMVarType       = obj stgMVar
+hsResultType      = obj hsResult
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO,
   stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned,
-  stgMutVar, stgMVar :: Text
+  stgMutVar, stgMVar, rtsGroup, hsResult :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -76,6 +77,8 @@ stgByteArray  = io "StgByteArray"
 rtsUnsigned   = merge "ghcvm/integer" "Utils"
 stgMutVar     = io "StgMutVar"
 stgMVar       = conc "StgMVar"
+rtsGroup      = rts "Rts"
+hsResult      = rts "Rts$HaskellResult"
 
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
@@ -155,7 +158,7 @@ resumeThreadMethod = invokevirtual (mkMethodRef capability "resumeThread" [taskT
 
 mkRtsMainClass :: DynFlags -> String -> ClassFile
 mkRtsMainClass dflags mainClass
-  = mkClassFile java7 [Public, Super] mainClass' Nothing []
+  = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
   [
     mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
     [
@@ -273,3 +276,21 @@ barf text = sconst text
          <> new arrayFt
          <> invokestatic (mkMethodRef (rts "RtsMessages") "barf" [jstring, arrayFt] void)
   where arrayFt = jarray jobject
+
+hsResultCap :: Code
+hsResultCap = getfield $ mkFieldRef hsResult "cap" capabilityType
+
+hsResultValue :: Code
+hsResultValue = getfield $ mkFieldRef hsResult "result" capabilityType
+
+trueClosure :: Code
+trueClosure = getstatic $ mkFieldRef "ghczmprim/ghc/Types" "DTrue_closure" closureType
+
+falseClosure :: Code
+falseClosure = getstatic $ mkFieldRef "ghczmprim/ghc/Types" "DFalse_closure" closureType
+
+getTagMethod :: Code -> Code
+getTagMethod code
+  = code
+ <> gconv closureType conType
+ <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))

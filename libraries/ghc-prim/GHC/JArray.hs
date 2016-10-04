@@ -2,9 +2,14 @@
              GHCForeignImportPrim #-}
 {-# OPTIONS_HADDOCK hide #-}
 module GHC.JArray
-  ( ObjectArray#,
-    JByteArray#,
+  ( JByteArray#,
+    JShortArray#,
+    JCharArray#,
     IntArray#,
+    JLongArray#,
+    FloatArray#,
+    DoubleArray#,
+    ObjectArray#,
     objectArrayAt#,
     objectArraySet#
   ) where
@@ -12,6 +17,11 @@ module GHC.JArray
 import GHC.Prim
 import GHC.Types
 
-type IntArray# = Object# (JArray# Int#)
 type JByteArray# = Object# (JArray# JByte#)
+type JShortArray# = Object# (JArray# JShort#)
+type JCharArray# = Object# (JArray# JChar#)
+type IntArray# = Object# (JArray# Int#)
+type JLongArray# = Object# (JArray# Int64#)
+type FloatArray# = Object# (JArray# Float#)
+type DoubleArray# = Object# (JArray# Double#)
 type ObjectArray# a = Object# (JArray# (Object# a))

@@ -20,42 +20,33 @@ import GHCVM.Debug
 import GHCVM.Util
 import Codec.JVM
 import Data.Monoid ((<>))
-import Data.Maybe (catMaybes, fromJust, isJust)
+import Data.List (stripPrefix)
+import Data.Maybe (catMaybes, fromJust, isJust, maybe)
 import Data.Foldable (fold)
 import Control.Monad (when)
 import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
-cgForeignCall (CCall (CCallSpec target cconv safety)) args resType = do
-  debugDoc $ str "cgForeignCall:" <+> ppr args <+> ppr resType
-  dflags <- getDynFlags
-  argFtCodes <- getNonVoidArgFtCodes shuffledArgs
-  let (argFts, callArgs') = unzip argFtCodes
-      (isStatic, callTarget) = case target of
-        StaticTarget label _ _ -> labelToTarget hasObj (unpackFS label)
-                                                (map fst argFtCodes) resultReps
-        _ -> panic "cgForeignCall: unimplemented"
-      callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
-      mbObj = if hasObj then Just (head callArgs') else Nothing
-  sequel <- getSequel
-  case sequel of
-    AssignTo targetLocs ->
-      emitForeignCall safety mbObj targetLocs callTarget callArgs
-    _ -> do
-      resLocs <- newUnboxedTupleLocs resType
-      emitForeignCall safety mbObj resLocs callTarget callArgs
-      emitReturn resLocs
-  where hasObj =
-          if length args >= 2 then
-               (isObjectRep . typePrimRep . stgArgType $ lastArg)
-            && (isVoidRep   . typePrimRep . stgArgType $ penArg)
-          else False
-        (initArgs, penArg, lastArg) = initLast2 args
-        shuffledArgs = if hasObj then lastArg : initArgs else args
-        resultReps = getUnboxedResultReps resType
-        initLast2 = go []
-          where go res [x, y] = (reverse (x:res), x, y)
-                go res (x:xs) = go (x:res) xs
+cgForeignCall (CCall (CCallSpec target cconv safety)) args resType
+  | StaticTarget label' _ _ <- target = do
+    let labelStr'       = unpackFS label'
+        shuffledArgs    = if hasObj then last args : init args else args
+        (label, hasObj) = maybe (labelStr', False) (, True) $ stripPrefix "@java " labelStr'
+    dflags <- getDynFlags
+    argFtCodes <- getNonVoidArgFtCodes shuffledArgs
+    let (argFts, callArgs') = unzip argFtCodes
+        (isStatic, callTarget) = labelToTarget hasObj label (map fst argFtCodes) resultReps
+        callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
+        mbObj = if hasObj then Just (head callArgs') else Nothing
+    sequel <- getSequel
+    case sequel of
+      AssignTo targetLocs ->
+        emitForeignCall safety mbObj targetLocs callTarget callArgs
+      _ -> do
+        resLocs <- newUnboxedTupleLocs resType
+        emitForeignCall safety mbObj resLocs callTarget callArgs
+        emitReturn resLocs
+  where resultReps = getUnboxedResultReps resType
 
 labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> (Bool, Code -> Code)
 labelToTarget hasObj label argFts reps = case words label of
@@ -93,7 +84,7 @@ labelToTarget hasObj label argFts reps = case words label of
           in \c -> new clsFt
                 <> dup clsFt
                 <> c
-                <> invokespecial (mkMethodRef clsName "<init>" (argFts' isStatic) void)
+                <> invokespecial (mkMethodRef clsName "<init>" (argFts' (not hasObj)) void)
         genFieldTarget isStatic label getInstr putInstr =
           let (clsName, fieldName) = labelToMethod label
               (instr, fieldFt) =
@@ -103,7 +94,10 @@ labelToTarget hasObj label argFts reps = case words label of
                   (getInstr, primRepFieldType resRep)
           in \c -> c <> instr (mkFieldRef clsName fieldName fieldFt)
         genMethodTarget isStatic label instr =
-          let (clsName, methodName) = labelToMethod label
+          let (clsName, methodName) =
+                if hasObj && not isStatic
+                then (getObjectClass thisRep, T.pack label)
+                else labelToMethod label
               resFt = primRepFieldType_maybe resRep
           in \c -> c <> instr (mkMethodRef clsName methodName (argFts' isStatic) resFt)
 

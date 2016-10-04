@@ -11,7 +11,7 @@ rm -rf build/ base/ integer/ ghczmprim/ cern/ ghcvm/ main/
 
 # Compile a simple program and extract the files
 mkdir build
-ghcvm -o build/Out.jar Main.hs && jar xf build/Out.jar
+ghcvm -fforce-recomp -o build/Out.jar Main.hs && jar xf build/Out.jar
 
 # Do bytecode verification on all the core libraries' class files
 java Verify ghczmprim/ghc

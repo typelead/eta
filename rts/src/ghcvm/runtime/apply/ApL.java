@@ -5,7 +5,7 @@ import ghcvm.runtime.stg.StgContext;
 import ghcvm.runtime.stg.StackFrame;
 
 public class ApL extends StackFrame {
-    private final long l;
+    public long l;
 
     public ApL(long l) {
         this.l = l;
