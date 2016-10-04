@@ -399,11 +399,11 @@ dsFExport fnId co externalName cconv isDyn = do
                         let argClass = typeDataConClass dflags argType
                             argClassFt = obj argClass
                         in code
-                        <> gload argPrimFt i
                         <> (if argPrimFt == jbool
-                            then ifeq falseClosure trueClosure
+                            then gload argPrimFt i <> ifeq falseClosure trueClosure
                             else    new argClassFt
                                  <> dup argClassFt
+                                 <> gload argPrimFt i
                                  <> invokespecial (mkMethodRef argClass "<init>" [argPrimFt] void)))
                     mempty
                     (zip3 [1..] argFts argTypes)
@@ -415,25 +415,25 @@ dsFExport fnId co externalName cconv isDyn = do
              invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
           <> gload classFt 0
           -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
+          <> new apFt
+          <> dup apFt
           <> getstatic (mkFieldRef (moduleJavaClass mod) (closure (idNameText dflags fnId))
                                    closureType)
           <> boxedArgs
-          <> new apFt
-          <> dup apFt
           <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
           -- TODO: Support java args > 5
           <> invokestatic (mkMethodRef rtsGroup "evalJava"
                                        [capabilityType, jobject, closureType]
                                        (ret hsResultType))
-          <> if voidResult
-             then dup hsResultType
-             else mempty
+          <> (if voidResult
+              then dup hsResultType
+              else mempty)
           <> hsResultCap
           <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
           -- TODO: add a call to checkSchedStatus
-          <> if voidResult
+          <> (if voidResult
              then vreturn
-             else hsResultValue <> unboxResult resType resClass rawResFt)
+             else (hsResultValue <> unboxResult resType resClass rawResFt)))
   where ty = pSnd $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy

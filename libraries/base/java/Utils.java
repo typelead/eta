@@ -180,7 +180,11 @@ public class Utils {
     public static String[] getJavaArgs() {
         List<String> args = RtsFlags.progArgs;
         int size = args.size();
-        String[] resArgs = new String[size - 1];
-        return args.subList(1, size).toArray(resArgs);
+        if (size > 1) {
+            String[] resArgs = new String[size - 1];
+            return args.subList(1, size).toArray(resArgs);
+        } else {
+            return new String[0];
+        }
     }
 }

@@ -10,6 +10,7 @@ module Java
     FloatArray(..),
     DoubleArray(..),
     ObjectArray(..),
+    StringArray(..),
 
     -- * Java related
     java, io, (<.>), (>-)
@@ -32,6 +33,7 @@ data IntArray = IA# IntArray#
 data JLongArray = JLA# JLongArray#
 data FloatArray = FA# FloatArray#
 data DoubleArray = DA# DoubleArray#
+data StringArray = SA# (ObjectArray# JString)
 data ObjectArray a = OA# (ObjectArray# a)
 
 foreign import java unsafe "@static java.lang.Class.forName" getClass' :: JString -> JClass
@@ -52,6 +54,6 @@ io (IO m) = Java $ \o -> case m realWorld# of (# _, a #) -> (# o, a #)
 (>-) (Java m) (Java n) =
   Java $ \a ->
            case m a of
-             (# _, b #) ->
+             (# a', b #) ->
                case n (unobj b) of
-                 (# _, c #) -> (# a, c #)
+                 (# _, c #) -> (# a', c #)

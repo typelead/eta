@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+--{-# LANGUAGE Safe #-}
 {-# LANGUAGE CPP #-}
 
 -----------------------------------------------------------------------------
@@ -48,6 +48,7 @@ import System.Posix.Internals (withFilePath)
 #endif
 
 import System.Environment.ExecutablePath
+import Java (StringArray)
 
 -- | Computation 'getArgs' returns a list of the program's command
 -- line arguments (not including the program name).
@@ -56,8 +57,8 @@ getArgs = undefined
 
 -- | Computation 'getJavaArgs' returns a list of the program's command
 -- line arguments (not including the program name) as a native String[].
-foreign import java unsafe "@static ghcvm.base.utils.getJavaArgs"
-  getJavaArgs :: IO (ObjectArray JString)
+foreign import java unsafe "@static ghcvm.base.Utils.getJavaArgs"
+  getJavaArgs :: IO StringArray
 
   -- alloca $ \ p_argc ->
   -- alloca $ \ p_argv -> do

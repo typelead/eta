@@ -152,10 +152,10 @@ module Prelude (
 
     -- * GHCVM I/O
     printShow,
-    JString,
-    JClass,
+    JString(..),
+    JClass(..),
     getClass,
-    Object,
+    Object(..),
     Class(..),
     Extends(..),
     Object#,
@@ -165,7 +165,9 @@ module Prelude (
     io,
     (<.>),
     (>-),
-    ObjectArray
+    ObjectArray,
+    StringArray,
+    IntArray
   ) where
 
 import Control.Monad

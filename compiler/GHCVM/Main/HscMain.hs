@@ -1236,7 +1236,7 @@ outputForeignStubs dflags NoStubs = []
 outputForeignStubs dflags (ForeignStubs _ _ methods) =
   map f $ foreignExportsList methods
   where f (classSpec, methodDefs) =
-          mkClassFile java7 [Public, Super] className (Just superClass) interfaces []
+          mkClassFile java7 [Public, Super] (jvmify className) (Just superClass) interfaces []
             (mkDefaultConstructor className superClass : methodDefs)
           where className:specs = T.words classSpec
                 (superClass, interfaces) = parseSpecs specs "java/lang/Object" []

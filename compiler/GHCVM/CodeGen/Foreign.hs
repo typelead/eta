@@ -84,7 +84,7 @@ labelToTarget hasObj label argFts reps = case words label of
           in \c -> new clsFt
                 <> dup clsFt
                 <> c
-                <> invokespecial (mkMethodRef clsName "<init>" (argFts' isStatic) void)
+                <> invokespecial (mkMethodRef clsName "<init>" (argFts' (not hasObj)) void)
         genFieldTarget isStatic label getInstr putInstr =
           let (clsName, fieldName) = labelToMethod label
               (instr, fieldFt) =
