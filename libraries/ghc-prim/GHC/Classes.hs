@@ -1,7 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances,
-             AllowAmbiguousTypes #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, KindSignatures, FlexibleInstances, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 -- XXX -fno-warn-unused-imports needed for the GHC.Tuple import below. Sigh.
 {-# OPTIONS_HADDOCK hide #-}
@@ -314,14 +313,14 @@ instance Class JString where
 
 -- For embedding Java class hierarchies
 -- a is the child, b is the parent
+
+type family Super (a :: *) :: *
+
 class (Class a, Class b) => Extends a b where
   supercast :: a -> b
   supercast x = obj (unsafeCoerce# (unobj x))
 
--- instance {-# INCOHERENT #-} (Class a) => Extends a Object where
---   supercast x = Object (unsafeCoerce# (unobj x))
+instance Class a => Extends a a where
+  supercast x = x
 
--- instance {-# INCOHERENT #-} (Class a) => Extends a a where
---   supercast x = x
-
-instance {-# INCOHERENT #-} (Extends a b, Extends b c) => Extends a c where
+instance {-# INCOHERENT #-} (Class a, Super a ~ b, Extends b c) => Extends a c where

@@ -78,7 +78,7 @@ labelToTarget hasObj label argFts reps = case words label of
               [] -> (VoidRep, VoidRep)
               (a:_) -> (VoidRep, a)
         -- Remove the passed 'this'
-        argFts' isStatic = if isStatic then argFts else drop 1 argFts
+        argFts' isStatic = if isStatic && not hasObj then argFts else drop 1 argFts
         genNewTarget isStatic clsName =
           let clsFt = obj clsName
           in \c -> new clsFt
