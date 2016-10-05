@@ -141,13 +141,13 @@ dsFCall funId co fcall mDeclHeader = do
             in case getTyVar_maybe javaTagType of
               Just var ->
                 case lookupVarEnv extendsInfo var of
-                 Just (id, ty) ->
-                   morphTarget
-                   (\label ->
-                      let parts = words label
-                          start = init parts
-                          change = last parts
-                      in unwords $ start ++ [T.unpack (tagTypeToText ty) ++ "." ++ change])
+                 Just (ident, ty) ->
+                   morphTarget id
+                   -- (\label ->
+                   --    let parts = words label
+                   --        start = init parts
+                   --        change = last parts
+                   --    in unwords $ start ++ [T.unpack (tagTypeToText ty) ++ "." ++ change])
                  Nothing -> morphTarget ("@static " ++)
               _ -> morphTarget id
           | otherwise = fcall
