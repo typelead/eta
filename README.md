@@ -39,6 +39,10 @@ Now, go through the following tutorials for understanding how GHCVM works and ho
 
 - [Hello GHCVM!](https://github.com/rahulmutt/ghcvm/wiki/Hello-GHCVM!)
 
+### Examples
+
+- [JavaFX Example](https://github.com/rahulmutt/ghcvm-javafx)
+
 ## Contributing
 
 As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, consult the [wiki page](https://github.com/rahulmutt/ghcvm/wiki/Contributing).
