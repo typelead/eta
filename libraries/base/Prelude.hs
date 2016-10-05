@@ -167,7 +167,8 @@ module Prelude (
     (>-),
     ObjectArray,
     StringArray,
-    IntArray
+    IntArray,
+    Super(..)
   ) where
 
 import Control.Monad
