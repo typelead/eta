@@ -72,4 +72,35 @@ public final class StgByteArray extends StgClosure {
     public void enter(StgContext context) {
         barf("StgByteArray object entered!");
     }
+
+    public static void copyAddrToByteArray( ByteBuffer src, StgClosure destArray
+                                          , int offset, int n) {
+        ByteBuffer dest = (ByteBuffer) ((StgByteArray) destArray).buf;
+        dest.position(offset);
+        dest.put(src);
+        src.rewind();
+        dest.rewind();
+    }
+
+    public static void copyByteArrayToAddr( StgClosure srcArray, int offset
+                                          , ByteBuffer dest, int n) {
+        ByteBuffer src = (ByteBuffer) ((StgByteArray) srcArray).buf;
+        src.position(offset);
+        src.limit(offset + n);
+        dest.put(src);
+        dest.rewind();
+        src.clear();
+    }
+
+    public static void copyByteArray( StgClosure srcArray, int srcOffset
+                                    , StgClosure destArray, int destOffset, int n) {
+        ByteBuffer src = (ByteBuffer) ((StgByteArray) srcArray).buf;
+        ByteBuffer dest = (ByteBuffer) ((StgByteArray) destArray).buf;
+        src.position(srcOffset);
+        src.limit(srcOffset + n);
+        dest.position(destOffset);
+        dest.put(src);
+        dest.rewind();
+        src.clear();
+    }
 }

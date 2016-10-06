@@ -367,7 +367,7 @@ resultWrapper extendsInfo resultType
     <- splitDataProductType_maybe resultType,
     dataConSourceArity dataCon == 1
   = do let (unwrapperResType : _) = dataConArgTys
-           narrowWrapper = id --TODO: maybeNarrow tyCon
+           narrowWrapper = maybeNarrow tyCon
        (maybeType, wrapper) <- resultWrapper extendsInfo unwrapperResType
        return ( maybeType
               , \e ->
@@ -376,6 +376,14 @@ resultWrapper extendsInfo resultType
   | otherwise
   = pprPanic "resultWrapper" (ppr resultType)
   where maybeTcApp = splitTyConApp_maybe resultType
+
+maybeNarrow :: TyCon -> (CoreExpr -> CoreExpr)
+maybeNarrow tycon
+  | tycon `hasKey` int8TyConKey   = \e -> App (Var (mkPrimOpId Narrow8IntOp)) e
+  | tycon `hasKey` int16TyConKey  = \e -> App (Var (mkPrimOpId Narrow16IntOp)) e
+  | tycon `hasKey` word8TyConKey  = \e -> App (Var (mkPrimOpId Narrow8WordOp)) e
+  | tycon `hasKey` word16TyConKey = \e -> App (Var (mkPrimOpId Narrow16WordOp)) e
+  | otherwise                     = id
 
 dsFExport :: Id                 -- The exported Id
           -> Coercion           -- Coercion between the Haskell type callable

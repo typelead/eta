@@ -10,12 +10,14 @@ GHCVM compiles Haskell to the JVM while maintaining compatibility with GHC 7.10.
 If you get stuck at any point in the installation, feel free to join us on Gitter (using the chat badge above).
 
 ### Prerequisites
+
 Make sure you have the following tools installed on your system:
 - [Stack](https://docs.haskellstack.org/en/stable/README/)
 - [JDK 1.7](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html) or [JDK 1.8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
   - make sure `javac` and `java` are on the PATH
 
 ### Installation
+
 Clone the repository and run the install script at the root of the repo:
 ```
 $ git clone --recursive https://github.com/rahulmutt/ghcvm
@@ -32,6 +34,20 @@ The following packages are available upon installation:
 - ghc-prim
 - integer
 - base
+
+### Updating
+
+GHCVM updates pretty fast and we're incorporating new patches on a daily basis that you might want to get access to.
+
+If you have GHCVM already installed, go to the root of this repository's clone on your system, and run the following commands:
+```
+$ git pull
+$ ./cleaninstall.sh
+
+```
+This will do a fresh install, recompiling all the core libraries with the most recent compiler.
+
+If you have existing CabalVM projects, make sure you run ```cabalvm clean``` inside each project before proceeding with your normal development so that CabalVM recognizes the updated libraries.
 
 ### Tutorial
 

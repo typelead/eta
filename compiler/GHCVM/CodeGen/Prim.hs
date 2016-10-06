@@ -692,6 +692,21 @@ simpleOp SameMutableByteArrayOp = Just $ intCompOp if_acmpeq
 simpleOp ReallyUnsafePtrEqualityOp = Just $ intCompOp if_acmpeq
 simpleOp StableNameToIntOp      = Just idOp
 simpleOp TouchOp       = Just idOp
+simpleOp CopyAddrToByteArrayOp = Just $ normalOp $
+  invokestatic $ mkMethodRef stgByteArray "copyAddrToByteArray"
+                   [byteBufferType, closureType, jint, jint] void
+simpleOp CopyMutableByteArrayToAddrOp = Just $ normalOp $
+  invokestatic $ mkMethodRef stgByteArray "copyByteArrayToAddr"
+                   [closureType, jint, byteBufferType, jint] void
+simpleOp CopyByteArrayToAddrOp = Just $ normalOp $
+  invokestatic $ mkMethodRef stgByteArray "copyByteArrayToAddr"
+                   [closureType, jint, byteBufferType, jint] void
+simpleOp CopyByteArrayOp = Just $ normalOp $
+  invokestatic $ mkMethodRef stgByteArray "copyByteArray"
+                   [closureType, jint, closureType, jint, jint] void
+simpleOp CopyMutableByteArrayOp = Just $ normalOp $
+  invokestatic $ mkMethodRef stgByteArray "copyByteArray"
+                   [closureType, jint, closureType, jint, jint] void
 simpleOp StablePtr2AddrOp = Just $ normalOp $
   invokestatic $ mkMethodRef "ghcvm/runtime/stg/StablePtrTable" "stablePtr2Addr"
                    [jint] (ret byteBufferType)
