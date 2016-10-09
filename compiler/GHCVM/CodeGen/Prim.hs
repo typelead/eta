@@ -113,6 +113,34 @@ shouldInlinePrimOp dflags op args = shouldInlinePrimOp' dflags op $ snd (unzip a
 
 shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
+shouldInlinePrimOp' dflags CopyArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "copyArray"
+                              [closureType, jint, closureType, jint, jint]
+                              (ret stgByteArrayType))
+  ]
+
+shouldInlinePrimOp' dflags CopyMutableArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "copyArray"
+                              [closureType, jint, closureType, jint, jint]
+                              (ret stgByteArrayType))
+  ]
+
+shouldInlinePrimOp' dflags CloneArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
+                                                        (ret stgArrayType))
+  ]
+shouldInlinePrimOp' dflags CloneMutableArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
+                                                        (ret stgArrayType))
+  ]
 shouldInlinePrimOp' dflags NewByteArrayOp_Char args = Right $ return
   [
     fold args
@@ -135,10 +163,8 @@ shouldInlinePrimOp' dflags NewAlignedPinnedByteArrayOp_Char args = Right $ retur
 
 shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
   [
-    new stgArrayType
- <> dup stgArrayType
- <> fold args
- <> invokespecial (mkMethodRef stgArray "<init>" [jint, closureType] void)
+    fold args
+ <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
   ]
 
 shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
@@ -331,6 +357,7 @@ simpleOp SizeofArrayOp = Just $
   castThisOp castStgArray $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
 simpleOp SizeofMutableArrayOp = Just $
   castThisOp castStgArray $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
+-- TODO: Inline the get/set's
 simpleOp WriteArrayOp = Just $
   castThisOp castStgArray $ invokevirtual
     $ mkMethodRef stgArray "set" [jint, closureType] void
