@@ -36,7 +36,7 @@ public final class StgArray extends StgClosure {
         for (int i = 0; i < n; i++) {
             arr[i] = init;
         }
-        return new StgArray arr;
+        return new StgArray(arr);
     }
 
     public static void copyArray( StgClosure srcArray, int srcOffset
