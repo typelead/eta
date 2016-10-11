@@ -48,7 +48,7 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
     argCodes <- getNonVoidArgFtCodes args
-    case shouldInlinePrimOp dflags primOp argCodes of
+    case shouldInlinePrimOp dflags primOp argCodes resType of
       Left primOpLoc -> do
         args' <- getRepFtCodes args
         withContinuation $ do
@@ -98,18 +98,24 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType =
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
 inlinePrimCall name = error $ "inlinePrimCall: unimplemented = " ++ name
 
-shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Either (Text, Text) (CodeGen [Code])
-shouldInlinePrimOp dflags ObjectArrayAtOp args = Right $
+shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Type -> Either (Text, Text) (CodeGen [Code])
+shouldInlinePrimOp dflags ObjectArrayAtOp args _ = Right $
   let (_, codes) = unzip args
       elemFt = getArrayElemFt (fst (head args))
   in return [normalOp (gaload elemFt) codes]
 
-shouldInlinePrimOp dflags ObjectArraySetOp args = Right $
+shouldInlinePrimOp dflags ObjectArraySetOp args _ = Right $
   let (_, codes) = unzip args
       elemFt = getArrayElemFt (fst (head args))
   in return [normalOp (gastore elemFt) codes]
 
-shouldInlinePrimOp dflags op args = shouldInlinePrimOp' dflags op $ snd (unzip args)
+shouldInlinePrimOp dflags ClassCastOp args resType = Right $
+  let (_, codes) = unzip args
+      fromFt = fst (head args)
+      toFt = fromJust . repFieldType_maybe $ resType
+  in return [normalOp (gconv fromFt toFt) codes]
+
+shouldInlinePrimOp dflags op args _ = shouldInlinePrimOp' dflags op $ snd (unzip args)
 
 shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
