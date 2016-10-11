@@ -143,6 +143,9 @@ constrFieldGetter = append "get" . pack . show
 contextMyCapability :: Code
 contextMyCapability = getfield $ mkFieldRef stgContext "myCapability" capabilityType
 
+contextMyCapabilitySet :: Code
+contextMyCapabilitySet = putfield $ mkFieldRef stgContext "myCapability" capabilityType
+
 suspendThreadMethod :: Bool -> Code
 suspendThreadMethod interruptible =
      loadContext
@@ -154,7 +157,11 @@ suspendThreadMethod interruptible =
         boolToInt False = 0
 
 resumeThreadMethod :: Code
-resumeThreadMethod = invokevirtual (mkMethodRef capability "resumeThread" [taskType] void)
+resumeThreadMethod =
+     invokestatic (mkMethodRef capability "resumeThread" [taskType] (ret capabilityType))
+  <> loadContext
+  <> swap capabilityType contextType
+  <> contextMyCapabilitySet
 
 mkRtsMainClass :: DynFlags -> String -> ClassFile
 mkRtsMainClass dflags mainClass

@@ -591,31 +591,31 @@ public final class Capability {
         maybePerformBlockedException(tso);
         if (tso.whatNext == ThreadKilled) return;
         ListIterator<StackFrame> sp = tso.sp;
+        int lastPos = sp.previousIndex();
+        // Adjust the stack pointer to the top.
         while (sp.hasNext()) {
             sp.next();
         }
         boolean stopLoop = false;
-        boolean prevWasUpdateFrame = false;
         while (sp.hasPrevious() && !stopLoop) {
             StackFrame frame = sp.previous();
             MarkFrameResult result = frame.mark(this, tso);
             switch (result) {
                 case Marked:
-                    // do calculations
                 case Stop:
                     stopLoop = true;
                     break;
-                case Default:
-                    // do calculations
-                case UpdateEvaluted:
-                    prevWasUpdateFrame = false;
-                    break;
-                case Update:
-                    prevWasUpdateFrame = true;
+                default:
                     break;
             }
         }
-        // TODO: stack squeezing logic
+        // Adjust the stack pointer to before the pause
+        while (sp.previousIndex() < lastPos && sp.hasNext()) {
+            sp.next();
+        }
+        while (sp.previousIndex() > lastPos && sp.hasPrevious()) {
+            sp.previous();
+        }
     }
 
     public final boolean maybePerformBlockedException(StgTSO tso) {
@@ -860,7 +860,7 @@ public final class Capability {
 
     public final void throwToSingleThreaded__(StgTSO tso, StgClosure exception,
                                         boolean stopAtAtomically,
-                                        StgUpdateFrame stopHere) {
+                                        UpdateFrame stopHere) {
         if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadKilled) {
             return;
         }
@@ -869,7 +869,7 @@ public final class Capability {
         raiseAsync(tso, exception, stopAtAtomically, stopHere);
     }
 
-    public final void suspendComputation(StgTSO tso, StgUpdateFrame stopHere) {
+    public final void suspendComputation(StgTSO tso, UpdateFrame stopHere) {
         throwToSingleThreaded__(tso, null, false, stopHere);
     }
 
@@ -909,7 +909,7 @@ public final class Capability {
     }
 
     public final void raiseAsync(StgTSO tso, StgClosure exception,
-                           boolean stopAtAtomically, StgUpdateFrame stopHere) {
+                           boolean stopAtAtomically, UpdateFrame stopHere) {
 
         ListIterator<StackFrame> sp = tso.sp;
 

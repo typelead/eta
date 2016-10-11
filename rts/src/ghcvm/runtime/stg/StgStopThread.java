@@ -10,6 +10,7 @@ import ghcvm.runtime.exception.StgException;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadComplete;
 import static ghcvm.runtime.stg.StgTSO.WhatNext.ThreadKilled;
 import static ghcvm.runtime.stg.StgContext.ReturnCode.ThreadFinished;
+import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Stop;
 
 public class StgStopThread extends StackFrame {
 
@@ -50,4 +51,7 @@ public class StgStopThread extends StackFrame {
         Stg.threadFinished.enter(context);
         return false;
     }
+
+    @Override
+    public MarkFrameResult mark(Capability cap, StgTSO tso) { return Stop; }
 }

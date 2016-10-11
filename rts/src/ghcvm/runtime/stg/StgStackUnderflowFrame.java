@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ghcvm.runtime.thunk.StgThunk;
 import static ghcvm.runtime.RtsMessages.barf;
+import static ghcvm.runtime.stg.StackFrame.MarkFrameResult.Stop;
 
 public abstract class StgStackUnderflowFrame extends StackFrame {
     public final Stack<StackFrame> nextChunk;
@@ -46,4 +47,7 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
         barf("doRaiseExceptionHelper: StgStackUnderflowFrame unimplemented");
         return true;
     }
+
+    @Override
+    public MarkFrameResult mark(Capability cap, StgTSO tso) { return Stop; }
 }
