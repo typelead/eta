@@ -42,6 +42,7 @@ GHCVM updates pretty fast and we're incorporating new patches on a daily basis t
 If you have GHCVM already installed, go to the root of this repository's clone on your system, and run the following commands:
 ```
 $ git pull
+$ git submodule update --recursive
 $ ./cleaninstall.sh
 
 ```
