@@ -64,7 +64,7 @@ labelToTarget hasObj label argFts reps = case words label of
        , case label2 of
            ["@field",label] -> genFieldTarget notStatic label getfield putfield
            ["@interface",label] -> genMethodTarget notStatic label invokeinterface
-           ["@new",label] -> genNewTarget notStatic (T.pack label)
+           ["@new"] -> genNewTarget notStatic (getObjectClass resRep)
            [label] -> genMethodTarget notStatic label invokevirtual
            _ -> pprPanic "labelToTarget: instance label: " (ppr label2) )
   where (thisRep, resRep) =
