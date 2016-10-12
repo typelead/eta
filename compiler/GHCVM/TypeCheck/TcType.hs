@@ -1622,7 +1622,8 @@ isFFIExternalTy ty = checkRepTyCon legalFEArgTyCon ty empty
 
 isFFIImportResultTy :: DynFlags -> Type -> Validity
 isFFIImportResultTy dflags ty
-  = checkRepTyCon (legalFIResultTyCon dflags) ty empty
+  | isTyVarTy ty = IsValid
+  | otherwise = checkRepTyCon (legalFIResultTyCon dflags) ty empty
 
 isFFIExportResultTy :: Type -> Validity
 isFFIExportResultTy ty = checkRepTyCon legalFEResultTyCon ty empty
