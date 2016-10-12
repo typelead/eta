@@ -318,9 +318,17 @@ type family Super (a :: *) :: *
 
 class (Class a, Class b) => Extends a b where
   supercast :: a -> b
+  {-# INLINE supercast #-}
   supercast x = obj (unsafeCoerce# (unobj x))
+  classcast :: b -> a
+  {-# INLINE classcast #-}
+  classcast x = obj (classCast# (unobj x))
 
 instance Class a => Extends a a where
+  {-# INLINE supercast #-}
   supercast x = x
+  {-# INLINE classcast #-}
+  classcast x = x
 
 instance {-# INCOHERENT #-} (Class a, Super a ~ b, Extends b c) => Extends a c where
+

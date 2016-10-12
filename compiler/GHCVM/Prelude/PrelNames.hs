@@ -371,6 +371,7 @@ basicKnownKeyNames
         , javaDataConName
         , extendsClassName
         , supercastName
+        , classcastName
     ]
 
 genericTyConNames :: [Name]
@@ -1234,6 +1235,7 @@ javaTyConName     = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
 javaDataConName   = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
 extendsClassName  = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
 supercastName     = varQual gHC_CLASSES (fsLit "supercast")  supercastClassOpKey
+classcastName     = varQual gHC_CLASSES (fsLit "classcast")  classcastClassOpKey
 
 {-
 ************************************************************************
@@ -1970,8 +1972,9 @@ toListClassOpKey = mkPreludeMiscIdUnique 501
 proxyHashKey :: Unique
 proxyHashKey = mkPreludeMiscIdUnique 502
 -- GHCVM-specific
-supercastClassOpKey :: Unique
+supercastClassOpKey, classcastClassOpKey :: Unique
 supercastClassOpKey = mkPreludeMiscIdUnique 200
+classcastClassOpKey = mkPreludeMiscIdUnique 201
 
 ---------------- Template Haskell -------------------
 --      USES IdUniques 200-499
