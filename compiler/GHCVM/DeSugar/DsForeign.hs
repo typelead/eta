@@ -60,6 +60,10 @@ data Bound = SuperBound | ExtendsBound
 type Binding = (Id, CoreExpr)
 type ExtendsInfo = VarEnv (Id, Type, Bound)
 
+invertBound :: Bound -> Bound
+invertBound SuperBound = ExtendsBound
+invertBound ExtendsBound = SuperBound
+
 dsForeigns :: [LForeignDecl Id] -> DsM (ForeignStubs, OrdList Binding)
 dsForeigns [] = return (NoStubs, nilOL)
 dsForeigns fdecls = do
@@ -191,10 +195,12 @@ unboxArg vs arg
                \body -> Case arg caseBinder (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
   | Just v <- getTyVar_maybe argType
-  , Just (dictId, tagType, _) <- lookupVarEnv vs v = do
-      -- TODO: Account for the bound type
-      supercastId <- dsLookupGlobalId supercastName
-      unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
+  , Just (dictId, tagType, bound) <- lookupVarEnv vs v = do
+      castId <- getClassCastId bound
+      let typeArgs = if bound == ExtendsBound
+            then [argType, tagType]
+            else [tagType, argType]
+      unboxArg vs $ mkApps (mkTyApps (Var castId) typeArgs) [Var dictId, arg]
   | otherwise = do
       l <- getSrcSpanDs
       pprPanic "unboxArg: " (ppr l <+> ppr argType)
@@ -204,6 +210,11 @@ unboxArg vs arg
         Just (_,_,dataCon,dataConArgTys) = maybeProductType
         dataConArity                     = dataConSourceArity dataCon
         (dataConArgTy1 : _)              = dataConArgTys
+
+getClassCastId :: Bound -> DsM Id
+getClassCastId bound
+  | bound == ExtendsBound = dsLookupGlobalId supercastName
+  | otherwise = dsLookupGlobalId classcastName
 
 mkFCall :: DynFlags -> Unique -> ForeignCall -> [CoreExpr] -> Type -> CoreExpr
 mkFCall dflags unique fcall valArgs resType
@@ -380,6 +391,17 @@ resultWrapper extendsInfo resultType
               , \e ->
                   mkApps (Var (dataConWrapId dataCon))
                          (map Type tyConArgTys ++ [wrapper (narrowWrapper e)]))
+  | Just var <- getTyVar_maybe resultType
+  , Just (dictId, tagType, bound) <- lookupVarEnv extendsInfo var
+  = do (objType, wrapper) <- resultWrapper extendsInfo tagType
+       castId <- getClassCastId (invertBound bound)
+       let typeArgs = map Type $
+             if bound == ExtendsBound
+             then [resultType, tagType]
+             else [tagType, resultType]
+       return ( objType
+              , \e ->
+                  mkApps (Var castId) (typeArgs ++ [Var dictId, wrapper e]))
   | otherwise
   = pprPanic "resultWrapper" (ppr resultType)
   where maybeTcApp = splitTyConApp_maybe resultType
