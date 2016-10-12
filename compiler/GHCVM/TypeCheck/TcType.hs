@@ -1589,24 +1589,22 @@ tcSplitJavaType_maybe ty
         _ ->
             Nothing
 
--- TODO: Currently optimized for the Extends a b case
---       where b is a object tag.
-tcSplitExtendsType_maybe :: Type -> Maybe (Var, Type)
+tcSplitExtendsType_maybe :: Type -> Maybe (Type, Type)
 tcSplitExtendsType_maybe ty
   = case tcSplitTyConApp_maybe ty of
         Just (extendsTyCon, [extendsVarType, extendsTagType])
          | extendsTyCon `hasKey` extendsClassKey  ->
-            Just ( expectJust "tcSplitExtendsType_maybe"
-                   $ getTyVar_maybe extendsVarType
+            Just ( extendsVarType
                  , extendsTagType )
         _ ->
             Nothing
 
-tcSplitExtendsType :: Type -> (Var, Type)
+tcSplitExtendsType :: Type -> (Type, Type)
 tcSplitExtendsType ty = expectJust "tcSplitExtendsType" $ tcSplitExtendsType_maybe ty
 
 extendsVars :: ThetaType -> VarSet
-extendsVars = mkVarSet . mapMaybe ( fmap fst . tcSplitExtendsType_maybe )
+extendsVars = mkVarSet . mapMaybe ( fmap ( getTyVar "extendsVars: Not type variable!"
+                                         . fst) . tcSplitExtendsType_maybe )
 
 -- isFFITy :: Type -> Bool
 -- -- True for any TyCon that can possibly be an arg or result of an FFI call

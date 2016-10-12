@@ -55,8 +55,10 @@ import qualified Data.Text as T
 import GHCVM.Debug
 import Codec.JVM
 
+data Bound = SuperBound | ExtendsBound
+  deriving (Eq, Show)
 type Binding = (Id, CoreExpr)
-type ExtendsInfo = VarEnv (Id, Type)
+type ExtendsInfo = VarEnv (Id, Type, Bound)
 
 dsForeigns :: [LForeignDecl Id] -> DsM (ForeignStubs, OrdList Binding)
 dsForeigns [] = return (NoStubs, nilOL)
@@ -141,7 +143,7 @@ dsFCall funId co fcall mDeclHeader = do
             in case getTyVar_maybe javaTagType of
               Just var ->
                 case lookupVarEnv extendsInfo var of
-                 Just (ident, ty) ->
+                 Just (ident, ty, _) ->
                    morphTarget id
                    -- (\label ->
                    --    let parts = words label
@@ -156,8 +158,12 @@ extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
 extendsMap thetaType = do
   (ids, keyVals) <- flip mapAndUnzipM thetaType $ \thetaTy -> do
     dictId <- newSysLocalDs thetaTy
-    let (var, tagTy) = tcSplitExtendsType thetaTy
-    return (dictId, (var, (dictId, tagTy)))
+    let (var', tagTy') = tcSplitExtendsType thetaTy
+        (var, tagTy, bound)
+          | isTyVarTy var' = (var', tagTy', ExtendsBound)
+          | otherwise = (tagTy', var', SuperBound)
+    return (dictId, ( getTyVar "extendsMap: Not type variable!" var
+                    , (dictId, tagTy, bound)))
   return (ids, mkVarEnv keyVals)
 
 unboxArg :: ExtendsInfo -> CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
@@ -185,7 +191,8 @@ unboxArg vs arg
                \body -> Case arg caseBinder (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
   | Just v <- getTyVar_maybe argType
-  , Just (dictId, tagType) <- lookupVarEnv vs v = do
+  , Just (dictId, tagType, _) <- lookupVarEnv vs v = do
+      -- TODO: Account for the bound type
       supercastId <- dsLookupGlobalId supercastName
       unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
   | otherwise = do
