@@ -202,8 +202,8 @@ unboxArg vs arg
 
 getClassCastId :: Bound -> DsM Id
 getClassCastId bound
-  | bound == ExtendsBound = dsLookupGlobalId supercastName
-  | otherwise = dsLookupGlobalId classcastName
+  | bound == ExtendsBound = dsLookupGlobalId superCastName
+  | otherwise = dsLookupGlobalId unsafeCastName
 
 mkFCall :: DynFlags -> Unique -> ForeignCall -> [CoreExpr] -> Type -> CoreExpr
 mkFCall dflags unique fcall valArgs resType
