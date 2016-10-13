@@ -144,18 +144,7 @@ dsFCall funId co fcall mDeclHeader = do
                                                   (mkFastString ("@java " ++
                                                                  (f $ unpackFS label)))
                                                   mPkgKey isFun) JavaCallConv safety)
-            in case getTyVar_maybe javaTagType of
-              Just var ->
-                case lookupVarEnv extendsInfo var of
-                 Just (ident, ty, _) ->
-                   morphTarget id
-                   -- (\label ->
-                   --    let parts = words label
-                   --        start = init parts
-                   --        change = last parts
-                   --    in unwords $ start ++ [T.unpack (tagTypeToText ty) ++ "." ++ change])
-                 Nothing -> morphTarget ("@static " ++)
-              _ -> morphTarget id
+            in morphTarget id
           | otherwise = fcall
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)

@@ -30,4 +30,4 @@ data {-# CLASS "java.io.PrintStream" #-} PrintStream = PrintStream (Object# Prin
 
 foreign import java unsafe "@static @field java.lang.System.out" stdout :: PrintStream
 
-foreign import java unsafe "java.io.PrintStream.println" printStr :: PrintStream -> JString -> IO ()
+foreign import java unsafe "println" printStr :: PrintStream -> JString -> IO ()

@@ -58,6 +58,9 @@ Now, go through the following tutorials for understanding how GHCVM works and ho
 
 ### Examples
 
+For examples of using GHCVM, check out:
+
+- [ghcvm-examples](https://github.com/rahulmutt/ghcvm-examples) repository
 - [JavaFX Example](https://github.com/rahulmutt/ghcvm-javafx)
 
 ### Libraries
