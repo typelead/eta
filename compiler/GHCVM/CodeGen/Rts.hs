@@ -288,7 +288,7 @@ hsResultCap :: Code
 hsResultCap = getfield $ mkFieldRef hsResult "cap" capabilityType
 
 hsResultValue :: Code
-hsResultValue = getfield $ mkFieldRef hsResult "result" capabilityType
+hsResultValue = getfield $ mkFieldRef hsResult "result" closureType
 
 trueClosure :: Code
 trueClosure = getstatic $ mkFieldRef "ghczmprim/ghc/Types" "DTrue_closure" closureType
@@ -301,3 +301,18 @@ getTagMethod code
   = code
  <> gconv closureType conType
  <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
+
+printStream :: Text
+printStream = "java/io/PrintStream"
+
+printStreamType :: FieldType
+printStreamType = obj printStream
+
+debugPrint :: FieldType -> Code
+debugPrint ft = dup ft
+             <> getstatic (mkFieldRef "java/lang/System" "out" printStreamType)
+             <> swap ft printStreamType
+             <> invokevirtual (mkMethodRef printStream "println" [genFt ft] void)
+  where genFt (ObjectType _) = jobject
+        genFt (ArrayType _)  = jobject
+        genFt ft             = ft

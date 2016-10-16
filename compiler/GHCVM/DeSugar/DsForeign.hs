@@ -452,14 +452,15 @@ dsFExport fnId co externalName cconv isDyn = do
                                        [capabilityType, jobject, closureType]
                                        (ret hsResultType))
           <> (if voidResult
-              then dup hsResultType
-              else mempty)
+              then mempty
+              else dup hsResultType)
           <> hsResultCap
           <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
           -- TODO: add a call to checkSchedStatus
           <> (if voidResult
              then vreturn
-             else (hsResultValue <> unboxResult resType resClass rawResFt)))
+             else ( hsResultValue
+                 <> unboxResult resType resClass rawResFt)))
   where ty = pSnd $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
