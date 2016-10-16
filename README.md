@@ -59,10 +59,10 @@ If you have existing CabalVM projects, make sure you run ```cabalvm clean``` ins
 2. `docker run -it psibi/ghcvm`
 
 The above command will give you a environment with `ghcvm` and other
-related executables present in it. But note that `ghcvm` is a fast
-moving target because of it's development pace. So you may have
+related executables. But note that `ghcvm` is a fast moving target
+because of it's development pace. So you may have
 to [update ghcvm](https://github.com/rahulmutt/ghcvm#updating). You
-can check if it's old by navigation to `/ghcvm` and issuing a `git
+can check if it's old by navigating to `/ghcvm` and issuing a `git
 log` command.
 
 ### Tutorial
