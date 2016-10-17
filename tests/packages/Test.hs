@@ -21,9 +21,9 @@ patchedPackages
     :: [String]
 patchedPackages =
     [ "array"
+    , "bytestring"
     , "base-orphans"
     , "binary"
-    , "bytestring"
     , "containers"
     , "filepath"
     , "primitive"
@@ -38,7 +38,6 @@ unPatchedPackages =
     [ "Adaptive"
     , "agum"
     , "array-utils"
-    , "base-orphans"
     , "base-prelude"
     , "basic-lens"]
 
