@@ -213,11 +213,13 @@ cgDataCon typeClass dataCon = do
       return ()
   else
     do let initCode :: Code
-           initCode = fold . flip map indexedFields $ \(i, ft) ->
-             let maybeDup = if i /= numFields then dup thisFt else mempty
-             in maybeDup
-             <> gload ft (fromIntegral i)
-             <> putfield (mkFieldRef thisClass (constrField i) ft)
+           initCode = go 1 indexedFields
+             where go _ [] = mempty
+                   go n ((i, ft): xs) = code <> go (n + fieldSize ft) xs
+                    where maybeDup = if i /= numFields then dup thisFt else mempty
+                          code     = maybeDup
+                                  <> gload ft (fromIntegral n)
+                                  <> putfield (mkFieldRef thisClass (constrField i) ft)
 
            fieldDefs :: [FieldDef]
            fieldDefs = map (\(i, ft) ->
