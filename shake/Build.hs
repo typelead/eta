@@ -115,7 +115,7 @@ buildLibrary debug lib deps = do
       configureFlags = if debug
                        then ["--enable-optimization=0"
                             ,"--ghcvm-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
-                       else []
+                       else ["--enable-optimization=0"]
 
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
