@@ -460,7 +460,7 @@ forkAlts alts =
     return (val, code)
 
 withSequel :: Sequel -> CodeGen a -> CodeGen a
-withSequel sequel = local (\env -> env { cgSequel = sequel })
+withSequel sequel = local (\env -> env { cgSequel = sequel, cgSelfLoop = Nothing })
 
 forkLneBody :: CodeGen () -> CodeGen Code
 forkLneBody body = do
