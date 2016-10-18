@@ -4,6 +4,7 @@
      --install-ghc
      runghc
      --package turtle
+     --package aeson
 -}
 
 {-#LANGUAGE OverloadedStrings#-}
@@ -14,32 +15,27 @@ import GHC.IO.Exception (ExitCode(..))
 import System.Exit (die)
 import Data.Monoid ((<>))
 import Data.Text (pack)
+import Data.Aeson
 import Turtle.Prelude (shell)
+import qualified Data.Text.IO as TIO
 
--- TODO: Automatize this to fetch from ghcvm-hackage
-patchedPackages
-    :: [String]
-patchedPackages =
-    [ "array"
-    , "bytestring"
-    , "base-orphans"
-    , "binary"
-    , "containers"
-    , "filepath"
-    , "primitive"
-    , "random"
-    , "time"]
+data Packages = Packages {
+      patched :: [Text],
+      vanilla :: [Text]
+    } deriving (Show, Eq, Ord)
 
--- TODO: Have a special file in ghcvm-package with this list to automatize it
--- Packages that are working without any patching
-unPatchedPackages
-    :: [String]
-unPatchedPackages =
-    [ "Adaptive"
-    , "agum"
-    , "array-utils"
-    , "base-prelude"
-    , "basic-lens"]
+instance FromJSON Packages where
+    parseJSON (Object v) = Person <$> v.: "patched" <*> v.: "vanilla"
+    parseJSON _ = empty
+
+parsePackagesFile :: FilePath -> IO Packages
+parsePackagesFile fname = do
+  contents <- TIO.readFile fname
+  packages <- decode contents
+  return packages
+
+packagesFilePath :: FilePath
+packagesFilePath = "~/.cabalvm/patches"
 
 buildPackage :: String -> IO ()
 buildPackage pkg = do
@@ -52,6 +48,13 @@ buildPackage pkg = do
 
 main :: IO ()
 main = do
-    let packages = patchedPackages <> unPatchedPackages
-    shell "cabalvm update" ""
-    mapM_ buildPackage packages
+  pkgs <- parsePackagesFile packagesFilePath
+  print pkgs
+
+
+
+-- main :: IO ()
+-- main = do
+--     let packages = patchedPackages <> unPatchedPackages
+--     shell "cabalvm update" ""
+--     mapM_ buildPackage packages
