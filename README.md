@@ -52,7 +52,7 @@ $ ./cleaninstall.sh
 ```
 This will do a fresh install, recompiling all the core libraries with the most recent compiler.
 
-If you have existing CabalVM projects, make sure you run ```cabalvm clean``` inside each project before proceeding with your normal development so that CabalVM recognizes the updated libraries.
+If you have existing CabalVM projects, make sure you run ```cabalvm clean``` inside each project before proceeding with your normal development so that CabalVM recognizes the updated libraries. If you are experiencing errors even after that, you can try deleting `~/.cabalvm` and running `cabalvm update`.
 
 ### Method 2: Docker
 
