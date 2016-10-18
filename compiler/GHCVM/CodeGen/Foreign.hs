@@ -48,26 +48,17 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType
         emitReturn resLocs
   where resultReps = getUnboxedResultReps resType
 
-labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> (Bool, Code -> Code)
-labelToTarget hasObj label argFts reps = case words label of
-  ("@static":label1) ->
-    let isStatic = True
-    in ( isStatic,
-         case label1 of
-           ["@new"] -> genNewTarget isStatic (getObjectClass resRep)
-           ["@field",label] -> genFieldTarget isStatic label getstatic putstatic
-           [label] -> genMethodTarget isStatic label invokestatic
-           _ -> pprPanic "labelToTarget: static label: " (ppr label1))
-  label2 ->
-    let notStatic = False
-    in ( notStatic
-       , case label2 of
-           ["@field",label] -> genFieldTarget notStatic label getfield putfield
-           ["@interface",label] -> genMethodTarget notStatic label invokeinterface
-           ["@new",label] -> genNewTarget notStatic (T.pack label)
-           [label] -> genMethodTarget notStatic label invokevirtual
-           _ -> pprPanic "labelToTarget: instance label: " (ppr label2) )
-  where (thisRep, resRep) =
+labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> (Bool, [Code] -> Code)
+labelToTarget hasObj label' argFts reps = (isStatic, result)
+  where (label, isStatic) = maybe (label', False) (, True) $ stripPrefix "@static" label'
+        result = case words label of
+          ["@new"]              -> genNewTarget
+          ["@field",label1]     -> genFieldTarget label1
+          ["@interface",label1] -> genMethodTarget True label1
+          [label1]              -> genMethodTarget False label1
+          _                     -> pprPanic "labelToTarget: bad label: " (ppr label')
+        -- Remove the passed 'this'
+        (thisRep, resRep) =
           if hasObj then
             case reps of
               [a]     -> (a, VoidRep)
@@ -77,31 +68,50 @@ labelToTarget hasObj label argFts reps = case words label of
             case reps of
               [] -> (VoidRep, VoidRep)
               (a:_) -> (VoidRep, a)
-        -- Remove the passed 'this'
-        argFts' isStatic = if isStatic && not hasObj then argFts else drop 1 argFts
-        genNewTarget isStatic clsName =
-          let clsFt = obj clsName
-          in \c -> new clsFt
-                <> dup clsFt
-                <> c
-                <> invokespecial (mkMethodRef clsName "<init>" (argFts' (not hasObj)) void)
-        genFieldTarget isStatic label getInstr putInstr =
-          let (clsName, fieldName) = labelToMethod label
+        argFts' dropArg = if dropArg then drop 1 argFts else argFts
+        genNewTarget =
+          let clsName = getObjectClass resRep
+              clsFt = obj clsName
+          in \args -> new clsFt
+                   <> dup clsFt
+                   <> fold (if hasObj then drop 1 args else args)
+                   <> invokespecial (mkMethodRef clsName "<init>" (argFts' hasObj) void)
+        genFieldTarget label =
+          let (getInstr, putInstr) = if isStatic
+                                     then (getstatic, putstatic)
+                                     else (getfield, putfield)
+              (clsName, fieldName) =
+                if isStatic
+                then labelToMethod label
+                else (getFtClass (let args = argFts' False
+                                  in if length args > 0
+                                     then head args
+                                     else primRepFieldType resRep), T.pack label)
               (instr, fieldFt) =
                 if isVoidRep resRep then
-                  (putInstr, head (argFts' isStatic))
+                  (putInstr,
+                   if isStatic
+                   then head (argFts' hasObj)
+                   else head (argFts' True))
                 else
                   (getInstr, primRepFieldType resRep)
-          in \c -> c <> instr (mkFieldRef clsName fieldName fieldFt)
-        genMethodTarget isStatic label instr =
-          let (clsName, methodName) =
-                if hasObj && not isStatic
-                then (getObjectClass thisRep, T.pack label)
-                else labelToMethod label
+          in \args -> fold args
+                   <> instr (mkFieldRef clsName fieldName fieldFt)
+        genMethodTarget isInterface label =
+          let instr = if isInterface
+                      then invokeinterface
+                      else if isStatic
+                           then invokestatic
+                           else invokevirtual
+              (clsName, methodName) =
+                if isStatic
+                then labelToMethod label
+                else (getFtClass (head (argFts' False)), T.pack label)
               resFt = primRepFieldType_maybe resRep
-          in \c -> c <> instr (mkMethodRef clsName methodName (argFts' isStatic) resFt)
+          in \args -> fold args
+                   <> instr (mkMethodRef clsName methodName (argFts' (not isStatic)) resFt)
 
-emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> (Code -> Code) -> [Code] -> CodeGen ()
+emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> ([Code] -> Code) -> [Code] -> CodeGen ()
 emitForeignCall safety mbObj results target args =
   wrapSafety $ do
     maybe (emit callCode) (flip emitAssign callCode) resLoc
@@ -111,7 +121,7 @@ emitForeignCall safety mbObj results target args =
           code
           whenSafe $ emit resumeThreadMethod
           where whenSafe = when (playSafe safety)
-        callCode = target $ fold args
+        callCode = target args
         (resLoc, objLoc) =
           if isJust mbObj then
             case results of

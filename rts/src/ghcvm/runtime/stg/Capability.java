@@ -1171,10 +1171,8 @@ public final class Capability {
             }
 
             if (t.whatNext == ThreadComplete) {
-                if (task.incall.ret != null) {
-                    StgEnter enterFrame = (StgEnter) task.incall.tso.stack.peek();
-                    task.incall.ret = enterFrame.closure;
-                }
+                StgEnter enterFrame = (StgEnter) task.incall.tso.stack.peek();
+                task.incall.ret = enterFrame.closure;
                 task.incall.returnStatus = Success;
             } else {
                 if (task.incall.ret != null) {

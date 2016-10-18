@@ -107,81 +107,81 @@ instance Class BigInteger where
 -- NOTE: We need to do this in order to bypass the back that you can't have top level
 -- unboxed value bindings.
 foreign import java unsafe "@static @field java.math.BigInteger.ZERO" zeroInteger# :: Void# -> Integer#
-foreign import java unsafe "java.math.BigInteger.equals" equalsInteger# :: Integer# -> Integer# -> JBool#
-foreign import java unsafe "java.math.BigInteger.abs" absInteger# :: Integer# -> Integer#
-foreign import java unsafe "java.math.BigInteger.bitLength" bitsInteger# :: Integer# -> Int#
-foreign import java unsafe "java.math.BigInteger.signum" signumInteger# :: Integer# -> Int#
-foreign import java unsafe "java.math.BigInteger.negate" negateInteger# :: Integer# -> Integer#
+foreign import java unsafe "equals" equalsInteger# :: Integer# -> Integer# -> JBool#
+foreign import java unsafe "abs" absInteger# :: Integer# -> Integer#
+foreign import java unsafe "bitLength" bitsInteger# :: Integer# -> Int#
+foreign import java unsafe "signum" signumInteger# :: Integer# -> Int#
+foreign import java unsafe "negate" negateInteger# :: Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.compareTo" cmpInteger#
+foreign import java unsafe "compareTo" cmpInteger#
   :: Integer# -> Integer# -> Int#
 
 cmpIntegerInt# :: Integer# -> Int# -> Int#
 cmpIntegerInt# bigInt int = cmpInteger# bigInt (int2Integer# int)
 
-foreign import java unsafe "java.math.BigInteger.add" plusInteger#
+foreign import java unsafe "add" plusInteger#
   :: Integer# -> Integer# -> Integer#
 
 plusIntegerInt# :: Integer# -> Int# -> Integer#
 plusIntegerInt# bigInt int = plusInteger# bigInt (int2Integer# int)
 
-foreign import java unsafe "java.math.BigInteger.subtract" minusInteger#
+foreign import java unsafe "subtract" minusInteger#
   :: Integer# -> Integer# -> Integer#
 
 minusIntegerInt# :: Integer# -> Int# -> Integer#
 minusIntegerInt# bigInt int = minusInteger# bigInt (int2Integer# int)
 
-foreign import java unsafe "java.math.BigInteger.multiply" timesInteger#
+foreign import java unsafe "multiply" timesInteger#
   :: Integer# -> Integer# -> Integer#
 
 timesIntegerInt# :: Integer# -> Int# -> Integer#
 timesIntegerInt# bigInt int = timesInteger# bigInt (int2Integer# int)
 
-foreign import java unsafe "java.math.BigInteger.divideAndRemainder" quotRemInteger#
+foreign import java unsafe "divideAndRemainder" quotRemInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 quotRemIntegerWord# :: Integer# -> Word# -> IntegerPair#
 quotRemIntegerWord# bigInt word = quotRemInteger# bigInt (word2Integer# word)
 
-foreign import java unsafe "java.math.BigInteger.divide" quotInteger#
+foreign import java unsafe "divide" quotInteger#
   :: Integer# -> Integer# -> Integer#
 
 quotIntegerWord# :: Integer# -> Word# -> Integer#
 quotIntegerWord# bigInt word = quotInteger# bigInt (word2Integer# word)
 
-foreign import java unsafe "java.math.BigInteger.remainder" remInteger#
+foreign import java unsafe "remainder" remInteger#
   :: Integer# -> Integer# -> Integer#
 
 -- TODO: Reconcile differences between divMod/quotRem
 remIntegerWord# :: Integer# -> Word# -> Integer#
 remIntegerWord# bigInt word = remInteger# bigInt (word2Integer# word)
 
-foreign import java unsafe "java.math.BigInteger.divideAndRemainder" divModInteger#
+foreign import java unsafe "divideAndRemainder" divModInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 divModIntegerWord# :: Integer# -> Word# -> IntegerPair#
 divModIntegerWord# bigInt word = divModInteger# bigInt (word2Integer# word)
 
-foreign import java unsafe "java.math.BigInteger.divide" divInteger#
+foreign import java unsafe "divide" divInteger#
   :: Integer# -> Integer# -> Integer#
 
 divIntegerWord# :: Integer# -> Word# -> Integer#
 divIntegerWord# bigInt word = divInteger# bigInt (word2Integer# word)
 
-foreign import java unsafe "java.math.BigInteger.remainder" modInteger#
+foreign import java unsafe "remainder" modInteger#
   :: Integer# -> Integer# -> Integer#
 
 modIntegerWord# :: Integer# -> Word# -> Integer#
 modIntegerWord# bigInt word = modInteger# bigInt (word2Integer# word)
 
 -- TODO: Optimize divExactInteger#
-foreign import java unsafe "java.math.BigInteger.divide" divExactInteger#
+foreign import java unsafe "divide" divExactInteger#
   :: Integer# -> Integer# -> Integer#
 
 divExactIntegerWord# :: Integer# -> Word# -> Integer#
 divExactIntegerWord# bigInt word = divExactInteger# bigInt (word2Integer# word)
 
-foreign import java unsafe "java.math.BigInteger.gcd" gcdInteger#
+foreign import java unsafe "gcd" gcdInteger#
   :: Integer# -> Integer# -> Integer#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.extendedEuclid" gcdExtInteger#
@@ -202,46 +202,46 @@ int2Integer# i# = int64ToInteger# (intToInt64# i#)
 foreign import java unsafe "@static ghcvm.integer.Utils.toUnsignedBigInteger" word2Integer#
   :: Word# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.and" andInteger#
+foreign import java unsafe "and" andInteger#
   :: Integer# -> Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.or" orInteger#
+foreign import java unsafe "or" orInteger#
   :: Integer# -> Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.xor" xorInteger#
+foreign import java unsafe "xor" xorInteger#
   :: Integer# -> Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.testBit" testBitInteger#
+foreign import java unsafe "testBit" testBitInteger#
   :: Integer# -> Int# -> Int#
 
-foreign import java unsafe "java.math.BigInteger.shiftLeft" mul2ExpInteger#
+foreign import java unsafe "shiftLeft" mul2ExpInteger#
   :: Integer# -> Int# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.shiftRight" fdivQ2ExpInteger#
+foreign import java unsafe "shiftRight" fdivQ2ExpInteger#
   :: Integer# -> Int# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.pow" powInteger#
+foreign import java unsafe "pow" powInteger#
   :: Integer# -> Word# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.modPow" powModInteger#
+foreign import java unsafe "modPow" powModInteger#
   :: Integer# -> Integer# -> Integer# -> Integer#
 
 -- TODO: Use the secure version of the algorithm
-foreign import java unsafe "java.math.BigInteger.modPow" powModSecInteger#
+foreign import java unsafe "modPow" powModSecInteger#
   :: Integer# -> Integer# -> Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.modInverse" recipModInteger#
+foreign import java unsafe "modInverse" recipModInteger#
   :: Integer# -> Integer# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.nextProbablePrime" nextPrimeInteger#
+foreign import java unsafe "nextProbablePrime" nextPrimeInteger#
   :: Integer# -> Integer#
 
 -- NOTE: This is different from GHC's integer-gmp in that the 2nd argument is
 --       certainty instead of number of rounds.
-foreign import java unsafe "java.math.BigInteger.isProbablePrime" testPrimeInteger#
+foreign import java unsafe "isProbablePrime" testPrimeInteger#
   :: Integer# -> Int# -> JBool#
 
-foreign import java unsafe "java.math.BigInteger.not" complementInteger#
+foreign import java unsafe "not" complementInteger#
   :: Integer# -> Integer#
 
 foreign import java unsafe "@static java.math.BigInteger.valueOf" int64ToInteger#
@@ -251,24 +251,24 @@ foreign import java unsafe "@static java.math.BigInteger.valueOf" int64ToInteger
 foreign import java unsafe "@static java.math.BigInteger.valueOf" word64ToInteger#
   :: Word64# -> Integer#
 
-foreign import java unsafe "java.math.BigInteger.longValue" integerToInt64#
+foreign import java unsafe "longValue" integerToInt64#
   :: Integer# -> Int64#
 
 -- TODO: Is this correct?
-foreign import java unsafe "java.math.BigInteger.longValue" integerToWord64#
+foreign import java unsafe "longValue" integerToWord64#
   :: Integer# -> Word64#
 
-foreign import java unsafe "java.math.BigInteger.intValue" integer2Int#
+foreign import java unsafe "intValue" integer2Int#
   :: Integer# -> Int#
 
 -- TODO: Is this correct?
-foreign import java unsafe "java.math.BigInteger.intValue" integer2Word#
+foreign import java unsafe "intValue" integer2Word#
   :: Integer# -> Word#
 
-foreign import java unsafe "java.math.BigInteger.floatValue"  integer2Float#
+foreign import java unsafe "floatValue"  integer2Float#
   :: Integer# -> Float#
 
-foreign import java unsafe "java.math.BigInteger.doubleValue" integer2Double#
+foreign import java unsafe "doubleValue" integer2Double#
   :: Integer# -> Double#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.encodeFloat"

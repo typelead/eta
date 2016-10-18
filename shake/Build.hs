@@ -116,8 +116,6 @@ buildLibrary debug lib deps = do
                        then ["--enable-optimization=0"
                             ,"--ghcvm-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
                        else ["--enable-optimization=0"]
-                            -- TODO: Currently, optimization build is broken.
-                            --       Remove this flag after fixed.
 
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
@@ -200,9 +198,6 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         unit $ cmd "ghcvm-pkg init " $ packageConfDir rootDir
         Stdout path <- cmd "stack eval GHC.Paths.libdir"
         let ghcLibPath = drop 1 (init (init path))
-            -- ghcLibPath = if os == "mingw32"
-            --              then ghcPath </> "lib"
-            --              else ghcPath </> "lib" </> "ghc-7.10.3"
             ghcInclude = ghcLibPath </> "include"
             ghcvmInclude = ghcvmIncludePath rootDir
         liftIO $ createDirectory ghcvmInclude
@@ -217,9 +212,6 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug lib (getDependencies lib)
-        -- putNormal $ "To finish the installation, add GHCVM_PACKAGE_PATH to your environment with the value '"
-        --          ++ packageConfDir rootDir
-        --          ++ "'."
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]

@@ -370,7 +370,8 @@ basicKnownKeyNames
         , javaTyConName
         , javaDataConName
         , extendsClassName
-        , supercastName
+        , superCastName
+        , unsafeCastName
     ]
 
 genericTyConNames :: [Name]
@@ -1229,11 +1230,12 @@ fingerprintDataConName =
     conName gHC_FINGERPRINT_TYPE (fsLit "Fingerprint") fingerprintDataConKey
 
 -- GHCVM-specific names
-javaTyConName, javaDataConName, extendsClassName, supercastName :: Name
+javaTyConName, javaDataConName, extendsClassName, superCastName :: Name
 javaTyConName     = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
 javaDataConName   = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
 extendsClassName  = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
-supercastName     = varQual gHC_CLASSES (fsLit "supercast")  supercastClassOpKey
+superCastName     = varQual gHC_CLASSES (fsLit "superCast")  superCastClassOpKey
+unsafeCastName     = varQual gHC_CLASSES (fsLit "unsafeCast")  unsafeCastClassOpKey
 
 {-
 ************************************************************************
@@ -1970,8 +1972,9 @@ toListClassOpKey = mkPreludeMiscIdUnique 501
 proxyHashKey :: Unique
 proxyHashKey = mkPreludeMiscIdUnique 502
 -- GHCVM-specific
-supercastClassOpKey :: Unique
-supercastClassOpKey = mkPreludeMiscIdUnique 200
+superCastClassOpKey, unsafeCastClassOpKey :: Unique
+superCastClassOpKey = mkPreludeMiscIdUnique 200
+unsafeCastClassOpKey = mkPreludeMiscIdUnique 201
 
 ---------------- Template Haskell -------------------
 --      USES IdUniques 200-499

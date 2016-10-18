@@ -1,0 +1,7 @@
+with-compiler: ghc-7.10.3
+packages: .
+  codec-jvm/
+  utils/ghcvm-pkgdb/
+  utils/ghcvm-pkg/
+  cabalvm/cabal-install/
+  cabalvm/Cabal/

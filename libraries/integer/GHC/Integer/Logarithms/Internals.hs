@@ -34,7 +34,14 @@ integerLog2IsPowerOf2# (S# i) =
 integerLog2IsPowerOf2# (J# o#) = (# log2Integer# o#, bool2Int# (isPowerOf2Integer# o#) #)
 
 roundingMode# :: Integer -> Int# -> Int#
-roundingMode# = unsafeCoerce# 0#
+roundingMode# (S# i) t =
+    case int2Word# i `and#` ((uncheckedShiftL# 2## t) `minusWord#` 1##) of
+      k -> case uncheckedShiftL# 1## t of
+            c -> if isTrue# (c `gtWord#` k)
+                    then 0#
+                    else if isTrue# (c `ltWord#` k)
+                            then 2#
+                            else 1#
 
 foreign import java unsafe "@static ghcvm.integer.Utils.isPowerOfTwo" isPowerOf2Word#
   :: Word# -> JBool#

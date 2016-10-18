@@ -55,8 +55,14 @@ import qualified Data.Text as T
 import GHCVM.Debug
 import Codec.JVM
 
+data Bound = SuperBound | ExtendsBound
+  deriving (Eq, Show)
 type Binding = (Id, CoreExpr)
-type ExtendsInfo = VarEnv (Id, Type)
+type ExtendsInfo = VarEnv (Id, Type, Bound)
+
+invertBound :: Bound -> Bound
+invertBound SuperBound = ExtendsBound
+invertBound ExtendsBound = SuperBound
 
 dsForeigns :: [LForeignDecl Id] -> DsM (ForeignStubs, OrdList Binding)
 dsForeigns [] = return (NoStubs, nilOL)
@@ -138,26 +144,19 @@ dsFCall funId co fcall mDeclHeader = do
                                                   (mkFastString ("@java " ++
                                                                  (f $ unpackFS label)))
                                                   mPkgKey isFun) JavaCallConv safety)
-            in case getTyVar_maybe javaTagType of
-              Just var ->
-                case lookupVarEnv extendsInfo var of
-                 Just (ident, ty) ->
-                   morphTarget id
-                   -- (\label ->
-                   --    let parts = words label
-                   --        start = init parts
-                   --        change = last parts
-                   --    in unwords $ start ++ [T.unpack (tagTypeToText ty) ++ "." ++ change])
-                 Nothing -> morphTarget ("@static " ++)
-              _ -> morphTarget id
+            in morphTarget id
           | otherwise = fcall
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
 extendsMap thetaType = do
   (ids, keyVals) <- flip mapAndUnzipM thetaType $ \thetaTy -> do
     dictId <- newSysLocalDs thetaTy
-    let (var, tagTy) = tcSplitExtendsType thetaTy
-    return (dictId, (var, (dictId, tagTy)))
+    let (var', tagTy') = tcSplitExtendsType thetaTy
+        (var, tagTy, bound)
+          | isTyVarTy var' = (var', tagTy', ExtendsBound)
+          | otherwise = (tagTy', var', SuperBound)
+    return (dictId, ( getTyVar "extendsMap: Not type variable!" var
+                    , (dictId, tagTy, bound)))
   return (ids, mkVarEnv keyVals)
 
 unboxArg :: ExtendsInfo -> CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
@@ -185,9 +184,12 @@ unboxArg vs arg
                \body -> Case arg caseBinder (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
   | Just v <- getTyVar_maybe argType
-  , Just (dictId, tagType) <- lookupVarEnv vs v = do
-      supercastId <- dsLookupGlobalId supercastName
-      unboxArg vs $ mkApps (mkTyApps (Var supercastId) [argType, tagType]) [Var dictId, arg]
+  , Just (dictId, tagType, bound) <- lookupVarEnv vs v = do
+      castId <- getClassCastId bound
+      let typeArgs = if bound == ExtendsBound
+            then [argType, tagType]
+            else [tagType, argType]
+      unboxArg vs $ mkApps (mkTyApps (Var castId) typeArgs) [Var dictId, arg]
   | otherwise = do
       l <- getSrcSpanDs
       pprPanic "unboxArg: " (ppr l <+> ppr argType)
@@ -197,6 +199,11 @@ unboxArg vs arg
         Just (_,_,dataCon,dataConArgTys) = maybeProductType
         dataConArity                     = dataConSourceArity dataCon
         (dataConArgTy1 : _)              = dataConArgTys
+
+getClassCastId :: Bound -> DsM Id
+getClassCastId bound
+  | bound == ExtendsBound = dsLookupGlobalId superCastName
+  | otherwise = dsLookupGlobalId unsafeCastName
 
 mkFCall :: DynFlags -> Unique -> ForeignCall -> [CoreExpr] -> Type -> CoreExpr
 mkFCall dflags unique fcall valArgs resType
@@ -373,6 +380,17 @@ resultWrapper extendsInfo resultType
               , \e ->
                   mkApps (Var (dataConWrapId dataCon))
                          (map Type tyConArgTys ++ [wrapper (narrowWrapper e)]))
+  | Just var <- getTyVar_maybe resultType
+  , Just (dictId, tagType, bound) <- lookupVarEnv extendsInfo var
+  = do (objType, wrapper) <- resultWrapper extendsInfo tagType
+       castId <- getClassCastId (invertBound bound)
+       let typeArgs = map Type $
+             if bound == ExtendsBound
+             then [resultType, tagType]
+             else [tagType, resultType]
+       return ( objType
+              , \e ->
+                  mkApps (Var castId) (typeArgs ++ [Var dictId, wrapper e]))
   | otherwise
   = pprPanic "resultWrapper" (ppr resultType)
   where maybeTcApp = splitTyConApp_maybe resultType
@@ -434,14 +452,15 @@ dsFExport fnId co externalName cconv isDyn = do
                                        [capabilityType, jobject, closureType]
                                        (ret hsResultType))
           <> (if voidResult
-              then dup hsResultType
-              else mempty)
+              then mempty
+              else dup hsResultType)
           <> hsResultCap
           <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
           -- TODO: add a call to checkSchedStatus
           <> (if voidResult
              then vreturn
-             else (hsResultValue <> unboxResult resType resClass rawResFt)))
+             else ( hsResultValue
+                 <> unboxResult resType resClass rawResFt)))
   where ty = pSnd $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy

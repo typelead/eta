@@ -27,9 +27,9 @@ import GHC.Prim
 
 type JString# = Object# JString -- convenience
 
-foreign import java unsafe "java.lang.String.getBytes" getBytes :: JString# -> JString# -> JByteArray#
+foreign import java unsafe "getBytes" getBytes :: JString# -> JString# -> JByteArray#
 
-foreign import java unsafe "java.lang.String.length" strLength :: JString# -> Int#
+foreign import java unsafe "length" strLength :: JString# -> Int#
 
 getBytesUtf8# :: JString# -> JByteArray#
 getBytesUtf8# this = getBytes this "UTF-8"#

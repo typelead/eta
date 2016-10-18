@@ -317,10 +317,18 @@ instance Class JString where
 type family Super (a :: *) :: *
 
 class (Class a, Class b) => Extends a b where
-  supercast :: a -> b
-  supercast x = obj (unsafeCoerce# (unobj x))
+  superCast :: a -> b
+  {-# INLINE superCast #-}
+  superCast x = obj (unsafeCoerce# (unobj x))
+  unsafeCast :: b -> a
+  {-# INLINE unsafeCast #-}
+  unsafeCast x = obj (classCast# (unobj x))
 
 instance Class a => Extends a a where
-  supercast x = x
+  {-# INLINE superCast #-}
+  superCast x = x
+  {-# INLINE unsafeCast #-}
+  unsafeCast x = x
 
 instance {-# INCOHERENT #-} (Class a, Super a ~ b, Extends b c) => Extends a c where
+

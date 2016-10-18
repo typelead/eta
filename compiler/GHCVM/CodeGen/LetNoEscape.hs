@@ -43,7 +43,7 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   InstrState { isOffset = Offset baseOffset
              , isCtrlFlow = cf
              , isLabelTable = lt } <- get
-  let firstOffset = baseOffset + lengthJump
+  let firstOffset = baseOffset + 3 -- The 3 is the length of a goto instruction
       (offsets, labelOffsets) = unzip . tail $ scanl' (computeOffsets cf cp) (firstOffset, undefined) lneBinds
       defOffset = last offsets
       defInstr = expr
@@ -51,15 +51,16 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
         = runInstrWithLabelsBCS defInstr cp (Offset defOffset) cf lt
       breakOffset = defOffset + BS.length defBytes
       (_, instrs) = unzip lneBinds
-  addLabels labelOffsets
+  addLabels $ map (\(a,b,_) -> (a,b)) labelOffsets
   InstrState { isLabelTable = lt' } <- get
   writeGoto $ defOffset - baseOffset
-  cfs <- forM (zip labelOffsets instrs) $ \((_, offset), instr) -> do
+  cfs <- forM (zip labelOffsets instrs) $ \((_, offset, shouldJump), instr) -> do
     writeStackMapFrame
     let (bytes', cf', frames') = runInstrWithLabelsBCS instr cp offset cf lt'
     write bytes' frames'
-    curOffset <- getOffset
-    writeGoto $ breakOffset - curOffset
+    when shouldJump $ do
+      curOffset <- getOffset
+      writeGoto $ breakOffset - curOffset
     return cf'
 
   let (defBytes', defCf', defFrames')
@@ -70,13 +71,13 @@ letNoEscapeBlocks lneBinds expr = Instr $ do
   writeStackMapFrame
   where computeOffsets cf cp (offset, _) (label, instr) =
           ( offset + bytesLength + lengthJump
-          , (label, Offset offset) )
-          where (bytes, _, _) = runInstrBCS' instr cp
-                              $ emptyInstrState
-                                { isOffset = Offset offset
-                                , isCtrlFlow = cf }
+          , (label, Offset offset, not hasGoto) )
+          where state@InstrState { isLastGoto, isLastReturn }
+                 = runInstrWithLabels instr cp (Offset offset) cf mempty
+                (bytes, _, _) = getBCS state
                 bytesLength = BS.length bytes
-        lengthJump = 3 -- op goto <> pack16 $ length ko
+                hasGoto = ifLastBranch isLastGoto isLastReturn bytes
+                lengthJump = if hasGoto then 0 else 3 -- op goto <> pack16 $ length ko
         writeGoto offset = do
-          op' OP.goto
+          gotoInstr
           writeBytes . packI16 $ offset

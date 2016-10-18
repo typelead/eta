@@ -1394,15 +1394,18 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
                            (L loc (unpackFS entity))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   | cconv == JavaCallConv = do
-  let funcTarget = CFunction (StaticTarget entity Nothing True)
+  let funcTarget = CFunction (StaticTarget entity' Nothing True)
       importSpec = CImport (L lc JavaCallConv) (L ls safety) Nothing
-                           funcTarget (L loc (unpackFS entity))
+                           funcTarget (L loc (unpackFS entity'))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   | otherwise = do
     case parseCImport (L lc cconv) (L ls safety) (mkExtName (unLoc v))
                       (unpackFS entity) (L loc (unpackFS entity)) of
       Nothing         -> parseErrorSDoc loc (text "Malformed entity string")
       Just importSpec -> return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
+  where entity' | nullFS entity = mkExtName (unLoc v)
+                | otherwise     = entity
+        -- TODO: Z-encode the result?
 
 -- the string "foo" is ambigous: either a header or a C identifier.  The
 -- C identifier case comes first in the alternatives below, so we pick
