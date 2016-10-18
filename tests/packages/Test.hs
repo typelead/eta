@@ -4,7 +4,10 @@
      --install-ghc
      runghc
      --package turtle
+     --package text
      --package aeson
+     --package bytestring
+     --package directory
 -}
 
 {-#LANGUAGE OverloadedStrings#-}
@@ -14,10 +17,12 @@ module Test where
 import GHC.IO.Exception (ExitCode(..))
 import System.Exit (die)
 import Data.Monoid ((<>))
-import Data.Text (pack)
+import Data.Text (unpack, Text)
+import Control.Applicative (empty)
 import Data.Aeson
 import Turtle.Prelude (shell)
-import qualified Data.Text.IO as TIO
+import qualified Data.ByteString.Lazy as BS
+import System.Directory (getHomeDirectory)
 
 data Packages = Packages {
       patched :: [Text],
@@ -25,36 +30,33 @@ data Packages = Packages {
     } deriving (Show, Eq, Ord)
 
 instance FromJSON Packages where
-    parseJSON (Object v) = Person <$> v.: "patched" <*> v.: "vanilla"
+    parseJSON (Object v) = Packages <$> v.: "patched" <*> v.: "vanilla"
     parseJSON _ = empty
 
-parsePackagesFile :: FilePath -> IO Packages
+parsePackagesFile :: FilePath -> IO (Maybe Packages)
 parsePackagesFile fname = do
-  contents <- TIO.readFile fname
-  packages <- decode contents
+  contents <- BS.readFile fname
+  let packages = decode contents
   return packages
 
-packagesFilePath :: FilePath
-packagesFilePath = "~/.cabalvm/patches"
+packagesFilePath :: IO FilePath
+packagesFilePath = (<> "/.cabalvm/packages.json") <$> getHomeDirectory
 
-buildPackage :: String -> IO ()
+buildPackage :: Text -> IO ()
 buildPackage pkg = do
-    let buildCmd = "cabalvm install " <> (pack pkg)
+    let buildCmd = "cabalvm install " <> pkg
     exitCode <- shell buildCmd ""
     case exitCode of
         ExitSuccess -> return ()
-        ExitFailure x -> die ("error in building " <> pkg)
+        ExitFailure x -> die ("error in building " <> unpack pkg)
     return ()
 
 main :: IO ()
 main = do
-  pkgs <- parsePackagesFile packagesFilePath
-  print pkgs
-
-
-
--- main :: IO ()
--- main = do
---     let packages = patchedPackages <> unPatchedPackages
---     shell "cabalvm update" ""
---     mapM_ buildPackage packages
+  cabalvmPkgs <- packagesFilePath
+  pkg <- parsePackagesFile cabalvmPkgs
+  case pkg of
+    Nothing -> die "Problem parsing your packages.json file"
+    Just pkg' -> 
+        let packages = (patched pkg') <> (vanilla pkg')
+        in mapM_ buildPackage packages
