@@ -34,4 +34,6 @@ script:
 # Build the package, its tests, and its docs and run the tests
 - cd tests/verify/
 - ./verify.sh
+- cd ../packages/
+- ./Test.hs
 
