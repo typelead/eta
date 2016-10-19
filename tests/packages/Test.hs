@@ -8,6 +8,7 @@
      --package aeson
      --package bytestring
      --package directory
+     --package filepath
 -}
 
 {-#LANGUAGE OverloadedStrings#-}
@@ -22,7 +23,8 @@ import Control.Applicative (empty)
 import Data.Aeson
 import Turtle.Prelude (shell)
 import qualified Data.ByteString.Lazy as BS
-import System.Directory (getHomeDirectory)
+import System.Directory (getAppUserDataDirectory)
+import System.FilePath ((</>))
 
 data Packages = Packages {
       patched :: [Text],
@@ -40,7 +42,7 @@ parsePackagesFile fname = do
   return packages
 
 packagesFilePath :: IO FilePath
-packagesFilePath = (<> "/.cabalvm/packages.json") <$> getHomeDirectory
+packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "cabalvm"
 
 buildPackage :: Text -> IO ()
 buildPackage pkg = do
