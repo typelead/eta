@@ -55,6 +55,8 @@ buildPackage pkg = do
 
 main :: IO ()
 main = do
+  let vmUpdateCmd = "cabalvm update"
+  shell vmUpdateCmd ""
   cabalvmPkgs <- packagesFilePath
   pkg <- parsePackagesFile cabalvmPkgs
   case pkg of
