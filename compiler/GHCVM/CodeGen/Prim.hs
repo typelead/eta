@@ -724,7 +724,7 @@ simpleOp EqStableNameOp         = Just $ intCompOp if_icmpeq
 simpleOp SameMutableByteArrayOp = Just $ intCompOp if_acmpeq
 simpleOp ReallyUnsafePtrEqualityOp = Just $ intCompOp if_acmpeq
 simpleOp StableNameToIntOp      = Just idOp
-simpleOp TouchOp       = Just idOp
+simpleOp TouchOp                = Just $ const mempty
 simpleOp CopyAddrToByteArrayOp = Just $ normalOp $
   invokestatic $ mkMethodRef stgByteArray "copyAddrToByteArray"
                    [byteBufferType, closureType, jint, jint] void
