@@ -150,7 +150,7 @@ suspendThreadMethod :: Bool -> Code
 suspendThreadMethod interruptible =
      loadContext
   <> contextMyCapability
-  <> dup capabilityType
+  -- <> dup capabilityType
   <> iconst jbool (fromIntegral (boolToInt interruptible))
   <> invokevirtual (mkMethodRef capability "suspendThread" [jbool] (ret taskType))
   where boolToInt True = 1
