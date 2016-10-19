@@ -57,3 +57,6 @@ java Verify base/text/parsercombinators
 java Verify base/text/read
 java Verify base/text/show
 java Verify base/unsafe
+
+# Make sure a simple "Hello World!" program runs
+java -cp build/Out.jar ghcvm.main
