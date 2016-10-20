@@ -1,13 +1,13 @@
 # Interacting with Java in GHCVM
 
 ## Table of Contents
-- [Overview]
-- [Background]
-  - [Primitive Types]
-  - [Declaring Tag Types]
-  - [Java Monad]
-- [Syntax]
-  - [Foreign Imports]
+- [Overview](#overview)
+- [Background](#background)
+  - [Primitive Types](#primitive-types)
+  - [Declaring Tag Types](#declaring-tag-types)
+  - [Java Monad](#java-monad)
+- [Syntax](#syntax)
+  - [Foreign Imports](#foreign-imports)
 
 ## Overview
 
