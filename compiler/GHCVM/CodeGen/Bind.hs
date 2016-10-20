@@ -134,7 +134,7 @@ setupUpdate lfInfo body
   | otherwise = withEnterMethod stgInd "thunkEnter"
   where withEnterMethod thunkType name = do
           setSuperClass thunkType
-          withMethod [Public] "thunkEnter" [contextType] void body
+          withMethod [Public] name [contextType] void body
           return ()
 
 cgBind :: StgBinding -> CodeGen ()
