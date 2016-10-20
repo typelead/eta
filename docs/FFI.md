@@ -1,14 +1,13 @@
 # Interacting with Java in GHCVM
 
 ## Table of Contents
-- # Overview
-- # Background
-  - # Primitive Types
-  - # Declaring Tag Types
-  - # Java Monad
-- #Syntax
-  - #Foreign Imports
-- 
+- [Overview]
+- [Background]
+  - [Primitive Types]
+  - [Declaring Tag Types]
+  - [Java Monad]
+- [Syntax]
+  - [Foreign Imports]
 
 ## Overview
 
@@ -103,7 +102,7 @@ type family Super (a :: *) :: *
 ```
 
 Example:
-```
+```haskell
 {-# LANGUAGE TypeFamilies #-}
 class Class PrintStream where
     obj = PrintStream
