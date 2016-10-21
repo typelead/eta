@@ -57,7 +57,8 @@ cgExpr _ = unimplemented "cgExpr"
 cgLneBinds :: StgBinding -> StgExpr -> CodeGen ()
 cgLneBinds (StgNonRec binder rhs) expr = do
   (info, genBindCode) <- cgLetNoEscapeRhsBody binder rhs
-  bindCode <- genBindCode
+  n' <- peekNextLocal
+  bindCode <- genBindCode n'
   addBinding info
   exprCode <- forkLneBody $ cgExpr expr
   let (bindLabel, argLocs) = expectJust "cgLneBinds:StgNonRec" . maybeLetNoEscape $ info
@@ -66,39 +67,31 @@ cgLneBinds (StgNonRec binder rhs) expr = do
 
 cgLneBinds (StgRec pairs) expr = do
   result <- sequence $ unzipWith cgLetNoEscapeRhsBody pairs
+  n' <- peekNextLocal
   let (infos, genBindCodes) = unzip result
       (labels, argLocss) = unzip $ map (expectJust "cgLneBinds:StgRec" . maybeLetNoEscape) infos
   addBindings infos
-  bindCodes <- sequence genBindCodes
+  bindCodes <- sequence $ ($ n') <$> genBindCodes
   exprCode <- forkLneBody $ cgExpr expr
-  -- TODO: This takes the easy way out.
-  -- Look here for optimization opportunities
-  -- and potential source of bugs involving let-no-escape.
-  -- We are banking on the fact that mututally-recursive lne bindings are
-  -- rare.
   emit $ fold (fold (map (map storeDefault) argLocss))
       <> letNoEscapeCodeBlocks (zip labels bindCodes) exprCode
 
-cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen Code)
+cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, Int -> CodeGen Code)
 cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body)
   = cgLetNoEscapeClosure binder (nonVoidIds args) body
 cgLetNoEscapeRhsBody binder (StgRhsCon _ con args)
   = cgLetNoEscapeClosure binder [] (StgConApp con args)
 
 cgLetNoEscapeClosure
-  :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, CodeGen Code)
+  :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, Int -> CodeGen Code)
 cgLetNoEscapeClosure binder args body = do
   label <- newLabel
-  -- Restore the local variable count so that
-  -- Those locals can be reused later on
   n <- peekNextLocal
   argLocs <- mapM newIdLoc args
-  n' <- peekNextLocal
-    --setNextLocal n
-  let code = forkLneBody $ do
-          bindArgs $ zip args argLocs
-          setNextLocal n'
-          cgExpr body
+  let code n' = forkLneBody $ do
+        bindArgs $ zip args argLocs
+        setNextLocal n'
+        cgExpr body
   return (lneIdInfo label binder argLocs, code)
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
