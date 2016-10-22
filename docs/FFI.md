@@ -8,6 +8,7 @@
   - [Java Monad](#java-monad)
 - [Syntax](#syntax)
   - [Foreign Imports](#foreign-imports)
+  - [Foreign Exports](#foreign-exports)
 
 ## Overview
 
@@ -118,6 +119,49 @@ TODO
 ## Syntax
 
 The following will show the general syntax and what will occur in each of the cases, following by some examples.
+
+### Foreign imports
+
+### Foreign exports
+
+The general syntax for foreign exports:
+``` haskell
+foreign export java "javaFunctionName" functionName :: var1 -> var2 -> var3 -> Java tagType returnType
+```
+Where:
+* `javaFunctionName` - identifier of java method that is generated for `tagType` class
+* `functionName` - haskell function name that is exported. The name can be omitted and the generated Java method will have the same name as Haskell function.
+* `var<N>` - argument types that can be marshalled into Java types. (TODO: which types can be marshalled?)
+* `tagType` - [tag type](#declaring-tag-types) that corresponds to Java class where the function will be generated. You cannot specify polymorphic type variable, only specialised one (see https://github.com/rahulmutt/ghcvm/issues/77).
+* `returnType` - return type that can be marshalled back from Java into Haskell. (TODO: which types can be marshalled?)
+
+The follwoing example:
+``` haskell
+import GHC.Base
+import GHC.Pack
+
+data {-# CLASS "mypackage.Export"} Export = Export (Object# Export)
+
+foreign export java sayHello :: JString -> Java Export JString
+
+sayHello n = return . mkJString $ "Hello, " ++ unpackCString n ++ "!"
+```
+
+And Java class that is generated:
+``` Java
+package hello;
+
+/* Imports */
+
+public class Export {
+    public Export() {
+    }
+
+    public String sayHello(String var1) {
+        /* Implementation */
+    }
+}
+```
 
 ## Examples
 TODO
