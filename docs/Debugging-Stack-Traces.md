@@ -121,8 +121,6 @@ for the project, add a new field called `ghc-options` and set
 Clean and re-build your package again. There will be a corresponding
 `System/Time.dump-stg` file that is generated.
 
-In my system, it produce a STG dump file.
-
 7. Decoding z-encoding
 
 `satzus10SQ` is encoding using
