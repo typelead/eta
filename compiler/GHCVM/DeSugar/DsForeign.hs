@@ -42,7 +42,8 @@ import GHCVM.Utils.OrdList
 import GHCVM.Utils.Pair
 import GHCVM.Utils.Util
 import GHCVM.Main.Hooks
-import GHCVM.CodeGen.ArgRep (repFieldType_maybe)
+import GHCVM.CodeGen.ArgRep ( repFieldTypes, repFieldType_maybe, primRepFieldType
+                            , primRepFieldType_maybe )
 import GHCVM.CodeGen.Rts
 import GHCVM.CodeGen.Name
 
@@ -55,9 +56,9 @@ import qualified Data.Text as T
 import GHCVM.Debug
 import Codec.JVM
 
+type Binding = (Id, CoreExpr)
 data Bound = SuperBound | ExtendsBound
   deriving (Eq, Show)
-type Binding = (Id, CoreExpr)
 type ExtendsInfo = VarEnv (Id, Type, Bound)
 
 invertBound :: Bound -> Bound
@@ -111,15 +112,16 @@ dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
-  (valArgs, argWrappers) <- mapAndUnzipM (unboxArg extendsInfo) (map Var args)
+  (argPrimTypes, valArgs, argWrappers) <- mapAndUnzip3M (unboxArg extendsInfo) (map Var args)
+  (resPrimType, ccallResultType, resWrapper) <- boxResult extendsInfo ioResType
   let workArgIds = [v | Var v <- valArgs]
-  (ccallResultType, resWrapper) <- boxResult extendsInfo ioResType
+      fcall' = genJavaFCall fcall extendsInfo argPrimTypes resPrimType ioResType
   ccallUniq <- newUnique
   workUniq <- newUnique
   -- Build worker
   let workerType = mkForAllTys tvs $
                    mkFunTys (map idType workArgIds) ccallResultType
-      ccallApp   = mkFCall dflags ccallUniq (fcall' extendsInfo) valArgs ccallResultType
+      ccallApp   = mkFCall dflags ccallUniq fcall' valArgs ccallResultType
       workRhs    = mkLams tvs (mkLams workArgIds ccallApp)
       workId     = mkSysLocal (fsLit "$wccall") workUniq workerType
 
@@ -137,15 +139,91 @@ dsFCall funId co fcall mDeclHeader = do
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
-        fcall' extendsInfo
-          | Just (_, javaTagType, _) <- tcSplitJavaType_maybe ioResType
-          , CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv safety) <- fcall
-          = let morphTarget f = CCall (CCallSpec (StaticTarget
-                                                  (mkFastString ("@java " ++
-                                                                 (f $ unpackFS label)))
-                                                  mPkgKey isFun) JavaCallConv safety)
-            in morphTarget id
-          | otherwise = fcall
+
+genJavaFCall :: ForeignCall -> ExtendsInfo -> [Type] -> Maybe Type -> Type -> ForeignCall
+genJavaFCall (CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv safety))
+             extendsInfo argTypes resType ioResType
+  = CCall (CCallSpec (StaticTarget (mkFastString label') mPkgKey isFun) JavaCallConv safety)
+  where label' = serializeTarget hasObj hasSubclass (not (isJust mObj))
+                                 (unpackFS label) argFts resRep
+        argFts' = repFieldTypes argTypes
+        argFts = maybe argFts' (: argFts') mObj
+        resRep = maybe VoidRep typePrimRep resType
+        getArgClass ty
+          | Just var <- getTyVar_maybe ty
+          = case lookupVarEnv extendsInfo var of
+              Just (_, tagType, _) -> let (_, res) = getArgClass tagType
+                                      in (True, res)
+              _ -> (False, Nothing)
+          | otherwise = (False, Just $ tagTypeToText ty)
+
+        (hasObj, hasSubclass, mObj) = case tcSplitJavaType_maybe ioResType of
+          Just (_, tagType, _)
+            | (hasSubclass, Just clsName) <- getArgClass tagType
+            -> (True, hasSubclass, Just $ obj clsName)
+            | otherwise -> (True, False, Nothing)
+          _ -> (False, False, Nothing)
+
+
+serializeTarget :: Bool -> Bool -> Bool -> String -> [FieldType] -> PrimRep -> String
+serializeTarget hasObj hasSubclass qObj label' argFts resRep =
+  show hasObj ++ "|" ++ show isStatic ++ "|" ++ result
+
+  where (label, isStatic') = maybe (label', False) (, True) $ stripPrefix "@static" label'
+        isStatic = isStatic' || (hasObj && qObj)
+
+        result = case words label of
+          ["@new"]              -> genNewTarget
+          ["@field",label1]     -> genFieldTarget label1
+          ["@interface",label1] -> genMethodTarget True label1
+          [label1]              -> genMethodTarget False label1
+          _                     -> pprPanic "labelToTarget: bad label: " (ppr label')
+
+        argFts' dropArg = if dropArg then drop 1 argFts else argFts
+
+        genNewTarget = show 0 ++ ","
+                    ++ show clsName ++ ","
+                    ++ show methodDesc
+          where clsName = getObjectClass resRep
+                methodDesc = mkMethodDesc' (argFts' False) void
+
+        genFieldTarget label = show 1 ++ ","
+                            ++ show clsName ++ ","
+                            ++ show fieldName ++ ","
+                            ++ show fieldDesc ++ ","
+                            ++ show instr
+          where (clsName, fieldName) =
+                  if isStatic
+                  then labelToMethod label
+                  else ( getFtClass (let args = argFts' False
+                                     in if length args > 0
+                                        then head args
+                                        else primRepFieldType resRep)
+                       , T.pack label)
+                fieldDesc = mkFieldDesc' fieldFt
+                (instr, fieldFt) =
+                  if isVoidRep resRep then
+                    ( 0 -- putInstr
+                    , if isStatic
+                      then expectHead "serializeTarget: static field" (argFts' hasObj)
+                      else expectHead "serializeTarget: instance field" (argFts' True) )
+                  else
+                    ( 1 -- getInstr
+                    , primRepFieldType resRep )
+
+        genMethodTarget isInterface label = show 2 ++ ","
+                                         ++ show isInterface ++ ","
+                                         ++ show hasSubclass ++ ","
+                                         ++ show clsName ++ ","
+                                         ++ show methodName ++ ","
+                                         ++ show methodDesc
+          where (clsName, methodName) =
+                  if isStatic
+                  then labelToMethod label
+                  else (getFtClass (expectHead "serializeTarget: non-static method"
+                                    (argFts' False)), T.pack label)
+                resFt = primRepFieldType_maybe resRep
+                methodDesc = mkMethodDesc' (argFts' (not isStatic)) resFt
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
 extendsMap thetaType = do
@@ -159,17 +237,19 @@ extendsMap thetaType = do
                     , (dictId, tagTy, bound)))
   return (ids, mkVarEnv keyVals)
 
-unboxArg :: ExtendsInfo -> CoreExpr -> DsM (CoreExpr, CoreExpr -> CoreExpr)
+unboxArg :: ExtendsInfo -> CoreExpr -> DsM (Type, CoreExpr, CoreExpr -> CoreExpr)
 unboxArg vs arg
   | isPrimitiveType argType
-  = return (arg, id)
+  = return (argType, arg, id)
   | Just (co, _) <- topNormaliseNewType_maybe argType
   = unboxArg vs $ mkCast arg co
   | Just tc <- tyConAppTyCon_maybe argType
   , tc `hasKey` boolTyConKey = do
       dflags <- getDynFlags
       primArg <- newSysLocalDs jboolPrimTy
-      return ( Var primArg
+      -- TODO: Is this correct?
+      return ( jboolPrimTy
+             , Var primArg
              , \body ->
                  App (Var (primOpId Int2JBoolOp))
                      (Case (mkWildCase arg argType intPrimTy
@@ -180,8 +260,9 @@ unboxArg vs arg
   | isProductType && dataConArity == 1 = do
       caseBinder <- newSysLocalDs argType
       primArg <- newSysLocalDs dataConArgTy1
-      return ( Var primArg,
-               \body -> Case arg caseBinder (exprType body)
+      return ( dataConArgTy1
+             , Var primArg
+             , \body -> Case arg caseBinder (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
   | Just v <- getTyVar_maybe argType
   , Just (dictId, tagType, bound) <- lookupVarEnv vs v = do
@@ -214,10 +295,10 @@ mkFCall dflags unique fcall valArgs resType
         ty = mkForAllTys tyVars bodyType
         fcallId = mkFCallId dflags unique fcall ty
 
-boxResult :: ExtendsInfo -> Type -> DsM (Type, CoreExpr -> CoreExpr)
+boxResult :: ExtendsInfo -> Type -> DsM (Maybe Type, Type, CoreExpr -> CoreExpr)
 boxResult extendsInfo resultType
   | Just (ioTyCon, ioResType) <- tcSplitIOType_maybe resultType
-  = do res <- resultWrapper extendsInfo ioResType
+  = do res@(mResType, _) <- resultWrapper extendsInfo ioResType
        let extraResultTypes =
              case res of
                (Just ty, _)
@@ -243,10 +324,10 @@ boxResult extendsInfo resultType
                                            ccallResultType
                                            (coreAltType alt)
                                            [alt] ]
-       return (realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
+       return (mResType, realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
   | Just (javaTyCon, javaTagType, javaResType) <- tcSplitJavaType_maybe resultType
   = do dflags <- getDynFlags
-       res <- resultWrapper extendsInfo javaResType
+       res@(mResType, _) <- resultWrapper extendsInfo javaResType
        let extraResultTypes =
              case res of
                (Just ty, _)
@@ -274,16 +355,15 @@ boxResult extendsInfo resultType
                                            javaResultType
                                            (coreAltType alt)
                                            [alt] ]
-       return ( objectType `mkFunTy` javaResultType
-              , wrap )
+       return (mResType, objectType `mkFunTy` javaResultType, wrap)
   | otherwise
-  = do res <- resultWrapper extendsInfo resultType
+  = do res@(mResType, _) <- resultWrapper extendsInfo resultType
        (ccallResultType, alt) <- mkAlt returnResult res
        let wrap call = mkWildCase (App call (Var realWorldPrimId))
                                   ccallResultType
                                   (coreAltType alt)
                                   [alt]
-       return (realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
+       return (mResType, realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
        where returnResult _ [ans] = ans
              returnResult _ _ = panic "returnResult: expected single result"
 

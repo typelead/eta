@@ -7,6 +7,8 @@ import GHCVM.Types.TyCon
 import GHCVM.StgSyn.StgSyn
 import GHCVM.Prelude.ForeignCall
 import GHCVM.Utils.FastString
+import GHCVM.Utils.Util
+import GHCVM.Util
 
 import GHCVM.CodeGen.ArgRep
 import GHCVM.CodeGen.Env
@@ -28,88 +30,81 @@ import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
 cgForeignCall (CCall (CCallSpec target cconv safety)) args resType
-  | StaticTarget label' _ _ <- target = do
-    let labelStr'       = unpackFS label'
-        shuffledArgs    = if hasObj then last args : init args else args
-        (label, hasObj) = maybe (labelStr', False) (, True) $ stripPrefix "@java " labelStr'
+  | StaticTarget label _ _ <- target = do
+    let (hasObj, isStatic, callTarget) = deserializeTarget (unpackFS label)
+        shuffledArgs = if hasObj then last args : init args else args
     dflags <- getDynFlags
     argFtCodes <- getNonVoidArgFtCodes shuffledArgs
     let (argFts, callArgs') = unzip argFtCodes
-        (isStatic, callTarget) = labelToTarget hasObj label (map fst argFtCodes) resultReps
         callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
-        mbObj = if hasObj then Just (head callArgs') else Nothing
+        mbObj = if hasObj then Just (expectHead "cgForiegnCall: empty callArgs'"
+                                     callArgs') else Nothing
+        mbObjFt = safeHead argFts
     sequel <- getSequel
     case sequel of
       AssignTo targetLocs ->
-        emitForeignCall safety mbObj targetLocs callTarget callArgs
+        emitForeignCall safety mbObj targetLocs (callTarget mbObjFt) callArgs
       _ -> do
         resLocs <- newUnboxedTupleLocs resType
-        emitForeignCall safety mbObj resLocs callTarget callArgs
+        emitForeignCall safety mbObj resLocs (callTarget mbObjFt) callArgs
         emitReturn resLocs
-  where resultReps = getUnboxedResultReps resType
 
-labelToTarget :: Bool -> String -> [FieldType] -> [PrimRep] -> (Bool, [Code] -> Code)
-labelToTarget hasObj label' argFts reps = (isStatic, result)
-  where (label, isStatic) = maybe (label', False) (, True) $ stripPrefix "@static" label'
-        result = case words label of
-          ["@new"]              -> genNewTarget
-          ["@field",label1]     -> genFieldTarget label1
-          ["@interface",label1] -> genMethodTarget True label1
-          [label1]              -> genMethodTarget False label1
-          _                     -> pprPanic "labelToTarget: bad label: " (ppr label')
-        -- Remove the passed 'this'
-        (thisRep, resRep) =
-          if hasObj then
-            case reps of
-              [a]     -> (a, VoidRep)
-              (a:b:_) -> (a, b)
-              []      -> (VoidRep, VoidRep)
-          else
-            case reps of
-              [] -> (VoidRep, VoidRep)
-              (a:_) -> (VoidRep, a)
-        argFts' dropArg = if dropArg then drop 1 argFts else argFts
-        genNewTarget =
-          let clsName = getObjectClass resRep
-              clsFt = obj clsName
-          in \args -> new clsFt
-                   <> dup clsFt
-                   <> fold (if hasObj then drop 1 args else args)
-                   <> invokespecial (mkMethodRef clsName "<init>" (argFts' hasObj) void)
-        genFieldTarget label =
-          let (getInstr, putInstr) = if isStatic
+deserializeTarget :: String -> (Bool, Bool, Maybe FieldType -> [Code] -> Code)
+deserializeTarget label = (hasObj, isStatic, callTarget)
+  where (hasObj':isStatic':callTargetSpec:_) = split '|' label
+        hasObj = read hasObj'
+        isStatic = read isStatic'
+        (tag:restSpec) = split ',' callTargetSpec
+
+        callTarget = case read tag of
+          0 -> genNewTarget restSpec
+          1 -> genFieldTarget restSpec
+          2 -> genMethodTarget restSpec
+          _ -> error $ "deserializeTarget: deserialization failed: " ++ label
+
+        genNewTarget [clsName', methodDesc'] =
+          \_ args -> new clsFt
+                  <> dup clsFt
+                  <> fold args
+                  <> invokespecial (mkMethodRef clsName "<init>" argFts void)
+          where clsName = read clsName'
+                clsFt = obj clsName
+                (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label)
+                            $ decodeMethodDesc (read methodDesc')
+
+        genFieldTarget [clsName', fieldName', fieldDesc', instr'] =
+          \_ args -> fold args
+                  <> instr (mkFieldRef clsName fieldName fieldFt)
+          where (getInstr, putInstr) = if isStatic
                                      then (getstatic, putstatic)
                                      else (getfield, putfield)
-              (clsName, fieldName) =
-                if isStatic
-                then labelToMethod label
-                else (getFtClass (let args = argFts' False
-                                  in if length args > 0
-                                     then head args
-                                     else primRepFieldType resRep), T.pack label)
-              (instr, fieldFt) =
-                if isVoidRep resRep then
-                  (putInstr,
-                   if isStatic
-                   then head (argFts' hasObj)
-                   else head (argFts' True))
-                else
-                  (getInstr, primRepFieldType resRep)
-          in \args -> fold args
-                   <> instr (mkFieldRef clsName fieldName fieldFt)
-        genMethodTarget isInterface label =
-          let instr = if isInterface
-                      then invokeinterface
-                      else if isStatic
-                           then invokestatic
-                           else invokevirtual
-              (clsName, methodName) =
-                if isStatic
-                then labelToMethod label
-                else (getFtClass (head (argFts' False)), T.pack label)
-              resFt = primRepFieldType_maybe resRep
-          in \args -> fold args
-                   <> instr (mkMethodRef clsName methodName (argFts' (not isStatic)) resFt)
+                clsName = read clsName'
+                fieldName = read fieldName'
+                fieldFt = expectJust ("deserializeTarget: bad field desc: " ++ label)
+                        $ decodeFieldDesc (read fieldDesc')
+                instr = case read instr' of
+                  0 -> putInstr
+                  1 -> getInstr
+                  _ -> error $ "deserializeTarget: bad instr: " ++ label
+
+        genMethodTarget [isInterface', hasSubclass', clsName', methodName', methodDesc'] =
+          \mbObjFt args -> fold args
+                        <> instr (mkMethodRef (clsName mbObjFt) methodName argFts resFt)
+          where clsName mbObjFt =
+                  if hasSubclass
+                  then maybe (error "deserializeTarget: no subclass field type.")
+                             getFtClass mbObjFt
+                  else read clsName'
+                methodName = read methodName'
+                isInterface = read isInterface'
+                hasSubclass = read hasSubclass'
+                (argFts, resFt) = expectJust ("deserializeTarget: bad method desc: " ++ label)
+                                $ decodeMethodDesc (read methodDesc')
+                instr = if isInterface
+                        then invokeinterface
+                        else if isStatic
+                             then invokestatic
+                             else invokevirtual
 
 emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> ([Code] -> Code) -> [Code] -> CodeGen ()
 emitForeignCall safety mbObj results target args =
