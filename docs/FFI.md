@@ -36,6 +36,7 @@ They tend to be suffixed with a `#` and require the use of `MagicHash` language 
 | `Float#` | float | |
 | `Double#` | double | |
 | `JChar#` | char | |
+| `JString#`| java.lang.String| To cast it to Haskell `String`, use `unpackCString` from `GHC.Pack`|
 | `JBool#` | boolean | |
 | `JByte#` | byte | |
 | `JShort#` | short | |
