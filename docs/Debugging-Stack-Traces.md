@@ -135,4 +135,5 @@ Search the `Time.dump-stg` file for the definition of `sat_s10SQ` and
 save that to a separate file.
 
 Filing bug report with error message, STG dump and the bytecode is
-highly helpful.
+highly helpful. You can find an example dump of these three messages
+[here](https://gist.github.com/psibi/5bb5387912dec1ca9817cba7de7a1dac).
