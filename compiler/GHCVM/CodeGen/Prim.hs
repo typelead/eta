@@ -264,7 +264,7 @@ emitPrimOp IndexOffAddrOp_Char [arg1, arg2]
                                         [jint] (ret jchar))]
           -- TODO: You may have to cast to int or do some extra stuff here
           --       or maybe instead reference the direct byte array
-emitPrimOp DataToTagOp [arg] = return [getTagMethod arg]
+emitPrimOp DataToTagOp [arg] = return [ getTagMethod arg <> iconst jint 1 <> isub ]
 
 emitPrimOp IntQuotRemOp args = do
   codes1 <- emitPrimOp IntQuotOp args
