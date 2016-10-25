@@ -17,6 +17,7 @@ source-repository head
     location: https://github.com/typelead/eta.git
 
 library
+    c-sources:           compiler/cbits/genSym.c
     default-language:    Haskell2010
     default-extensions:  RecordWildCards
                        , NamedFieldPuns
