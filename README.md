@@ -1,14 +1,16 @@
-# ETA - Modern Haskell on the JVM
+# Eta - Modern Haskell on the JVM
 
-[![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/rahulmutt/ghcvm](https://badges.gitter.im/rahulmutt/ghcvm.svg)](https://gitter.im/rahulmutt/ghcvm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/typelead/eta.svg?branch=master)](https://travis-ci.org/typelead/eta)
 
-ETA compiles Haskell to the JVM while maintaining compatibility with GHC 7.10.3's Haskell.
+Eta is a dialect of Haskell which runs on the JVM and has the following goals:
+- accessiblilty for beginners from imperative languages, especially Java
+- compatibility with GHC 7.10.3's Haskell.
 
 ## Getting Started
 
 If you get stuck at any point in the installation, feel free to join
-us on Gitter (using the chat badge above). There are two ways to do
+us on [Gitter](https://gitter.im/rahulmutt/ghcvm). There are two ways to do
 installation - via Docker or through manual installation.
 
 ### Method 1: Normal installation
@@ -41,9 +43,9 @@ The following packages are available upon installation:
 
 #### Updating
 
-ETA updates pretty fast and we're incorporating new patches on a daily basis that you might want to get access to.
+Eta updates pretty fast and we're incorporating new patches on a daily basis that you might want to get access to.
 
-If you have ETA already installed, go to the root of this repository's clone on your system, and run the following commands:
+If you have Eta already installed, go to the root of this repository's clone on your system, and run the following commands:
 ```
 $ git pull
 $ git submodule update --recursive
@@ -66,28 +68,17 @@ to [update eta](https://github.com/typelead/eta#updating). You
 can check if it's old by navigating to `/eta` and issuing a `git
 log` command.
 
-### Tutorial
-
-Now, go through the following tutorials for understanding how ETA works and how you can start running programs.
-
-- [Hello ETA!](https://github.com/typelead/eta/wiki/Hello-ETA!)
-
 ### Examples
 
-For examples of using ETA, check out:
+For examples of using Eta, check out:
 
 - [eta-examples](https://github.com/typelead/eta-examples) repository
-- [JavaFX Example](https://github.com/typelead/eta-javafx)
 
 ### Libraries
 To see the list of currently supported libraries, check out the [eta-hackage](https://github.com/typelead/eta-hackage) repository.
 
-## Contributing
-
-As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, consult the [wiki page](https://github.com/typelead/eta/wiki/Contributing).
-
 ## License
-ETA is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
+Eta is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
 
 ## Gratitude
 
@@ -96,6 +87,7 @@ We would like to specifically thank the following groups/people:
 - [Alois Cochard](https://github.com/aloiscochard) for his [codec-jvm](https://github.com/aloiscochard/codec-jvm) package that we use for code generation.
 - [Christopher Wells](https://github.com/ExcaliburZero) for his JAR packaging [utility](https://github.com/ExcaliburZero/zip-jar-haskell).
 - [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the codegen/runtime and implementation of basic IO facilities.
-- [Sibi](https://github.com/psibi) for configuring TravisCI.
+- [Sibi](https://github.com/psibi) for helping out with porting packages and setting up Travis.
+- [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on the Java FFI.
 
 Thank you guys!
