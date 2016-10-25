@@ -13,7 +13,8 @@ module ETA.TypeCheck.TcExpr ( tcPolyExpr, tcPolyExprNC, tcMonoExpr, tcMonoExprNC
                 tcSyntaxOp, tcCheckId,
                 addExprErrCtxt) where
 
-import {-# SOURCE #-}   ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
+-- import {-# SOURCE #-}   ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
+import ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
 #ifdef GHCI
 import ETA.DeSugar.DsMeta( liftStringName, liftName )
 #endif

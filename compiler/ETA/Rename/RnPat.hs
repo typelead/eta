@@ -35,8 +35,10 @@ module ETA.Rename.RnPat (-- main entry points
 -- ENH: thin imports to only what is necessary for patterns
 
 import {-# SOURCE #-} ETA.Rename.RnExpr ( rnLExpr )
-import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSplicePat )
-import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasiQuotePat )
+-- import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSplicePat )
+import ETA.Rename.RnSplice ( rnSplicePat )
+-- import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasiQuotePat )
+import ETA.TypeCheck.TcSplice ( runQuasiQuotePat )
 
 import ETA.HsSyn.HsSyn
 import ETA.TypeCheck.TcRnMonad

@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/typelead/eta.svg?branch=master)](https://travis-ci.org/typelead/eta)
 
 Eta is a dialect of Haskell which runs on the JVM and has the following goals:
-- accessiblilty for beginners from imperative languages, especially Java
+- accessibility for beginners from imperative languages, especially Java
 - compatibility with GHC 7.10.3's Haskell.
 
 ## Getting Started

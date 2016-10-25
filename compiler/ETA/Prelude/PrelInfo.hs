@@ -36,7 +36,8 @@ import ETA.Main.HscTypes
 import ETA.Types.Class
 import ETA.Types.TyCon
 import ETA.Utils.Util
-import {-# SOURCE #-} ETA.TypeCheck.TcTypeNats ( typeNatTyCons )
+-- import {-# SOURCE #-} ETA.TypeCheck.TcTypeNats ( typeNatTyCons )
+import ETA.TypeCheck.TcTypeNats ( typeNatTyCons )
 
 import Data.Array
 

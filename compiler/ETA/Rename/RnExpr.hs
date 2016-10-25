@@ -16,7 +16,8 @@ module ETA.Rename.RnExpr (
         rnLExpr, rnExpr, rnStmts
    ) where
 
-import {-# SOURCE #-} ETA.TypeCheck.TcSplice( runQuasiQuoteExpr )
+-- import {-# SOURCE #-} ETA.TypeCheck.TcSplice( runQuasiQuoteExpr )
+import ETA.TypeCheck.TcSplice( runQuasiQuoteExpr )
 
 import ETA.Rename.RnBinds   ( rnLocalBindsAndThen, rnLocalValBindsLHS, rnLocalValBindsRHS,
                    rnMatchGroup, rnGRHS, makeMiniFixityEnv)

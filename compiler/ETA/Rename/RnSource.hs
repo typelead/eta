@@ -10,9 +10,12 @@ module ETA.Rename.RnSource (
         rnSrcDecls, addTcgDUs, rnTyClDecls, findSplice
     ) where
 
-import {-# SOURCE #-} ETA.Rename.RnExpr( rnLExpr )
-import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSpliceDecl )
-import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasiQuoteDecl )
+-- import {-# SOURCE #-} ETA.Rename.RnExpr( rnLExpr )
+import ETA.Rename.RnExpr( rnLExpr )
+-- import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSpliceDecl )
+import ETA.Rename.RnSplice ( rnSpliceDecl )
+-- import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasiQuoteDecl )
+import ETA.TypeCheck.TcSplice ( runQuasiQuoteDecl )
 
 import ETA.HsSyn.HsSyn
 import ETA.BasicTypes.RdrName
