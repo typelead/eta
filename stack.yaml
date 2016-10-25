@@ -5,8 +5,8 @@ packages:
 - codec-jvm
 - utils/eta-pkgdb # TODO: Shift this to libraries/
 - utils/eta-pkg
-- cabalvm/epm
-- cabalvm/Cabal
+- epm/epm
+- epm/Cabal
 extra-deps:
 - control-monad-exception-0.11.2
 - failure-0.2.0.3
