@@ -1,0 +1,362 @@
+name:                eta
+version:             0.0.1
+description:         Modern Haskell on the JVM
+license:             BSD3
+license-file:        LICENSE
+author:              Rahul Muttineni
+maintainer:          Rahul Muttineni <rahulmutt@gmail.com>
+copyright:           Copyright (c) Rahul Muttineni 2016
+stability:           Experimental
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  compiler/ETA/Parser/Parser.y
+                     compiler/ETA/Parser/Lexer.x
+
+source-repository head
+    type: git
+    location: https://github.com/typelead/eta.git
+
+library
+    default-language:    Haskell2010
+    default-extensions:  RecordWildCards
+                       , NamedFieldPuns
+                       , MultiParamTypeClasses
+                       , BangPatterns
+                       , TupleSections
+    exposed-modules:     ETA.BasicTypes.Avail
+                       , ETA.BasicTypes.BasicTypes
+                       , ETA.BasicTypes.ConLike
+                       , ETA.BasicTypes.DataCon
+                       , ETA.BasicTypes.Demand
+                       , ETA.BasicTypes.Id
+                       , ETA.BasicTypes.IdInfo
+                       , ETA.BasicTypes.Lexeme
+                       , ETA.BasicTypes.Literal
+                       , ETA.BasicTypes.MkId
+                       , ETA.BasicTypes.Module
+                       , ETA.BasicTypes.NameEnv
+                       , ETA.BasicTypes.Name
+                       , ETA.BasicTypes.NameSet
+                       , ETA.BasicTypes.OccName
+                       , ETA.BasicTypes.PatSyn
+                       , ETA.BasicTypes.RdrName
+                       , ETA.BasicTypes.SrcLoc
+                       , ETA.BasicTypes.UniqSupply
+                       , ETA.BasicTypes.Unique
+                       , ETA.BasicTypes.VarEnv
+                       , ETA.BasicTypes.Var
+                       , ETA.BasicTypes.VarSet
+                       , ETA.CodeGen.ArgRep
+                       , ETA.CodeGen.Bind
+                       , ETA.CodeGen.Closure
+                       , ETA.CodeGen.Constr
+                       , ETA.CodeGen.Env
+                       , ETA.CodeGen.Expr
+                       , ETA.CodeGen.Foreign
+                       , ETA.CodeGen.Layout
+                       , ETA.CodeGen.LetNoEscape
+                       , ETA.CodeGen.Main
+                       , ETA.CodeGen.Monad
+                       , ETA.CodeGen.Name
+                       , ETA.CodeGen.Prim
+                       , ETA.CodeGen.Rts
+                       , ETA.CodeGen.Types
+                       , ETA.CodeGen.Utils
+                       , ETA.Core.CoreArity
+                       , ETA.Core.CoreFVs
+                       , ETA.Core.CoreLint
+                       , ETA.Core.CorePrep
+                       , ETA.Core.CoreSubst
+                       , ETA.Core.CoreSyn
+                       , ETA.Core.CoreTidy
+                       , ETA.Core.CoreUnfold
+                       , ETA.Core.CoreUtils
+                       , ETA.Core.MkCore
+                       , ETA.Core.PprCore
+                       , ETA.Core.TrieMap
+                       , ETA.DeSugar.Check
+                       , ETA.DeSugar.Coverage
+                       , ETA.DeSugar.DeSugar
+                       , ETA.DeSugar.DsMonad
+                       , ETA.DeSugar.DsArrows
+                       , ETA.DeSugar.DsBinds
+                       , ETA.DeSugar.DsExpr
+                       , ETA.DeSugar.DsGRHSs
+                       , ETA.DeSugar.DsListComp
+                       , ETA.DeSugar.DsMeta
+                       , ETA.DeSugar.DsForeign
+                       , ETA.DeSugar.DsUtils
+                       , ETA.DeSugar.Match
+                       , ETA.DeSugar.MatchCon
+                       , ETA.DeSugar.MatchLit
+                       , ETA.DeSugar.StaticPtrTable
+                       , ETA.HsSyn.HsBinds
+                       , ETA.HsSyn.HsDecls
+                       , ETA.HsSyn.HsDoc
+                       , ETA.HsSyn.HsExpr
+                       , ETA.HsSyn.HsImpExp
+                       , ETA.HsSyn.HsLit
+                       , ETA.HsSyn.HsPat
+                       , ETA.HsSyn.HsSyn
+                       , ETA.HsSyn.HsTypes
+                       , ETA.HsSyn.HsUtils
+                       , ETA.HsSyn.PlaceHolder
+                       , ETA.Iface.BinIface
+                       , ETA.Iface.BuildTyCl
+                       , ETA.Iface.FlagChecker
+                       , ETA.Iface.IfaceEnv
+                       , ETA.Iface.IfaceSyn
+                       , ETA.Iface.IfaceType
+                       , ETA.Iface.LoadIface
+                       , ETA.Iface.MkIface
+                       , ETA.Iface.TcIface
+                       , ETA.Main.Annotations
+                       , ETA.Main.BreakArray
+                       , ETA.Main.CmdLineParser
+                       , ETA.Main.Constants
+                       , ETA.Main.DriverMkDepend
+                       , ETA.Main.DriverPhases
+                       , ETA.Main.DriverPipeline
+                       , ETA.Main.DynamicLoading
+                       , ETA.Main.DynFlags
+                       , ETA.Main.ErrUtils
+                       , ETA.Main.Finder
+                       , ETA.Main.GHC
+                       , ETA.Main.GhcMake
+                       , ETA.Main.GhcMonad
+                       , ETA.Main.GhcPlugins
+                       , ETA.Main.HeaderInfo
+                       , ETA.Main.Hooks
+                       , ETA.Main.HscMain
+                       , ETA.Main.HscStats
+                       , ETA.Main.HscTypes
+                       , ETA.Main.InteractiveEval
+                       , ETA.Main.InteractiveEvalTypes
+                       , ETA.Main.PackageConfig
+                       , ETA.Main.Packages
+                       , ETA.Main.PipelineMonad
+                       , ETA.Main.Plugins
+                       , ETA.Main.PprTyThing
+                       , ETA.Main.StaticFlags
+                       , ETA.Main.SysTools
+                       , ETA.Main.TidyPgm
+                       , ETA.Interactive.ByteCodeAsm
+                       , ETA.Interactive.ByteCodeGen
+                       , ETA.Interactive.ByteCodeInstr
+                       , ETA.Interactive.ByteCodeItbls
+                       , ETA.Interactive.ByteCodeLink
+                       , ETA.Interactive.Debugger
+                       , ETA.Interactive.DebuggerUtils
+                       , ETA.Interactive.Linker
+                       , ETA.Interactive.ObjLink
+                       , ETA.Interactive.RtClosureInspect
+                       , ETA.Parser.Parse
+                       , ETA.Parser.ApiAnnotation
+                       , ETA.Parser.Ctype
+                       , ETA.Parser.HaddockUtils
+                       , ETA.Prelude.ForeignCall
+                       , ETA.Prelude.PrelInfo
+                       , ETA.Prelude.PrelNames
+                       , ETA.Prelude.PrelRules
+                       , ETA.Prelude.PrimOp
+                       , ETA.Prelude.TysPrim
+                       , ETA.Prelude.TysWiredIn
+                       , ETA.Profiling.CostCentre
+                       , ETA.Profiling.ProfInit
+                       , ETA.Profiling.SCCfinal
+                       , ETA.Rename.RnBinds
+                       , ETA.Rename.RnEnv
+                       , ETA.Rename.RnExpr
+                       , ETA.Rename.RnHsDoc
+                       , ETA.Rename.RnNames
+                       , ETA.Rename.RnPat
+                       , ETA.Rename.RnSource
+                       , ETA.Rename.RnSplice
+                       , ETA.Rename.RnTypes
+                       , ETA.SimplCore.CallArity
+                       , ETA.SimplCore.CoreMonad
+                       , ETA.SimplCore.CSE
+                       , ETA.SimplCore.FloatIn
+                       , ETA.SimplCore.FloatOut
+                       , ETA.SimplCore.LiberateCase
+                       , ETA.SimplCore.OccurAnal
+                       , ETA.SimplCore.SAT
+                       , ETA.SimplCore.SetLevels
+                       , ETA.SimplCore.SimplCore
+                       , ETA.SimplCore.SimplEnv
+                       , ETA.SimplCore.Simplify
+                       , ETA.SimplCore.SimplMonad
+                       , ETA.SimplCore.SimplUtils
+                       , ETA.SimplStg.SimplStg
+                       , ETA.SimplStg.StgStats
+                       , ETA.SimplStg.UnariseStg
+                       , ETA.Specialise.Rules
+                       , ETA.Specialise.SpecConstr
+                       , ETA.Specialise.Specialise
+                       , ETA.StgSyn.CoreToStg
+                       , ETA.StgSyn.StgLint
+                       , ETA.StgSyn.StgSyn
+                       , ETA.StrAnal.DmdAnal
+                       , ETA.StrAnal.WorkWrap
+                       , ETA.StrAnal.WwLib
+                       , ETA.TypeCheck.FamInst
+                       , ETA.TypeCheck.FunDeps
+                       , ETA.TypeCheck.Inst
+                       , ETA.TypeCheck.TcAnnotations
+                       , ETA.TypeCheck.TcArrows
+                       , ETA.TypeCheck.TcBinds
+                       , ETA.TypeCheck.TcCanonical
+                       , ETA.TypeCheck.TcClassDcl
+                       , ETA.TypeCheck.TcDefaults
+                       , ETA.TypeCheck.TcDeriv
+                       , ETA.TypeCheck.TcEnv
+                       , ETA.TypeCheck.TcErrors
+                       , ETA.TypeCheck.TcEvidence
+                       , ETA.TypeCheck.TcExpr
+                       , ETA.TypeCheck.TcFlatten
+                       , ETA.TypeCheck.TcForeign
+                       , ETA.TypeCheck.TcGenDeriv
+                       , ETA.TypeCheck.TcGenGenerics
+                       , ETA.TypeCheck.TcHsSyn
+                       , ETA.TypeCheck.TcHsType
+                       , ETA.TypeCheck.TcInstDcls
+                       , ETA.TypeCheck.TcInteract
+                       , ETA.TypeCheck.TcMatches
+                       , ETA.TypeCheck.TcMType
+                       , ETA.TypeCheck.TcPat
+                       , ETA.TypeCheck.TcPatSyn
+                       , ETA.TypeCheck.TcPluginM
+                       , ETA.TypeCheck.TcRnDriver
+                       , ETA.TypeCheck.TcRnMonad
+                       , ETA.TypeCheck.TcRnTypes
+                       , ETA.TypeCheck.TcRules
+                       , ETA.TypeCheck.TcSimplify
+                       , ETA.TypeCheck.TcSMonad
+                       , ETA.TypeCheck.TcSplice
+                       , ETA.TypeCheck.TcTyClsDecls
+                       , ETA.TypeCheck.TcTyDecls
+                       , ETA.TypeCheck.TcType
+                       , ETA.TypeCheck.TcTypeNats
+                       , ETA.TypeCheck.TcUnify
+                       , ETA.TypeCheck.TcValidity
+                       , ETA.Types.Class
+                       , ETA.Types.CoAxiom
+                       , ETA.Types.Coercion
+                       , ETA.Types.FamInstEnv
+                       , ETA.Types.InstEnv
+                       , ETA.Types.Kind
+                       , ETA.Types.OptCoercion
+                       , ETA.Types.TyCon
+                       , ETA.Types.Type
+                       , ETA.Types.TypeRep
+                       , ETA.Types.Unify
+                       , ETA.Utils.Bag
+                       , ETA.Utils.Binary
+                       , ETA.Utils.BooleanFormula
+                       , ETA.Utils.BufWrite
+                       , ETA.Utils.Digraph
+                       , ETA.Utils.Encoding
+                       , ETA.Utils.Exception
+                       , ETA.Utils.ExtsCompat46
+                       , ETA.Utils.FastBool
+                       , ETA.Utils.FastFunctions
+                       , ETA.Utils.FastMutInt
+                       , ETA.Utils.FastString
+                       , ETA.Utils.FastTypes
+                       , ETA.Utils.Fingerprint
+                       , ETA.Utils.FiniteMap
+                       , ETA.Utils.GraphBase
+                       , ETA.Utils.GraphColor
+                       , ETA.Utils.GraphOps
+                       , ETA.Utils.GraphPpr
+                       , ETA.Utils.IOEnv
+                       , ETA.Utils.ListSetOps
+                       , ETA.Utils.Maybes
+                       , ETA.Utils.MonadUtils
+                       , ETA.Utils.OrdList
+                       , ETA.Utils.Outputable
+                       , ETA.Utils.Pair
+                       , ETA.Utils.Panic
+                       , ETA.Utils.Platform
+                       , ETA.Utils.Pretty
+                       , ETA.Utils.Serialized
+                       , ETA.Utils.State
+                       , ETA.Utils.Stream
+                       , ETA.Utils.StringBuffer
+                       , ETA.Utils.UniqFM
+                       , ETA.Utils.UniqSet
+                       , ETA.Utils.UnVarGraph
+                       , ETA.Utils.Util
+                       , ETA.Debug
+                       , ETA.Util
+                       , ETA.JAR
+    other-modules:       ETA.Parser.Parser
+                       , ETA.Parser.Lexer
+                       , ETA.Parser.RdrHsSyn
+    build-depends:       base >= 4.7 && < 5
+                       , bytestring
+                       , text
+                       , eta-pkgdb
+                       , time       >= 1.4 && < 1.7
+                       , process    >= 1   && < 1.3
+                       , directory >= 1.2
+                       , filepath
+                       , codec-jvm >= 0
+                       , control-monad-exception >= 0.11
+                       , hpc
+                       , mtl
+                       , zip
+                       , path
+                       , exceptions
+                       , transformers
+                       , array
+                       , containers
+
+    if os(windows)
+        build-depends:   Win32
+    else
+        build-depends:   unix
+    hs-source-dirs:      compiler
+    include-dirs:        include
+    install-includes:    HsVersions.h Bytecodes.h
+    exposed:             True
+    buildable:           True
+    build-tools:         alex
+                       , happy
+
+executable eta
+    ghc-options:         -Wall
+    hs-source-dirs:      eta
+    main-is:             Main.hs
+    default-language:    Haskell2010
+    other-modules:       GhciMonad
+                         GhciTags
+                         InteractiveUI
+    build-depends:       array
+                       , base >= 4.7 && < 5
+                       , bytestring
+                       , deepseq
+                       , directory
+                       , filepath
+                       , ghc >= 7.10.3 && < 7.11.0
+                       , ghc-paths == 0.1.0.9
+                       , haskeline
+                       , process
+                       , transformers
+                       , eta
+
+    if os(windows)
+        build-depends:   Win32
+    else
+        build-depends:   unix
+
+
+executable eta-build
+    hs-source-dirs:      shake
+    main-is:             Build.hs
+    default-language:    Haskell2010
+    build-depends:       base >= 4.7 && < 5
+                       , shake
+                       , directory
+                       , Cabal
+                       , containers >= 0.5

@@ -42,11 +42,11 @@ parsePackagesFile fname = do
   return packages
 
 packagesFilePath :: IO FilePath
-packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "cabalvm"
+packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "epm"
 
 buildPackage :: Text -> IO ()
 buildPackage pkg = do
-    let buildCmd = "cabalvm install " <> pkg
+    let buildCmd = "epm install " <> pkg
     exitCode <- shell buildCmd ""
     case exitCode of
         ExitSuccess -> return ()
@@ -55,10 +55,10 @@ buildPackage pkg = do
 
 main :: IO ()
 main = do
-  let vmUpdateCmd = "cabalvm update"
+  let vmUpdateCmd = "epm update"
   shell vmUpdateCmd ""
-  cabalvmPkgs <- packagesFilePath
-  pkg <- parsePackagesFile cabalvmPkgs
+  epmPkgs <- packagesFilePath
+  pkg <- parsePackagesFile epmPkgs
   case pkg of
     Nothing -> die "Problem parsing your packages.json file"
     Just pkg' -> 

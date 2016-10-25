@@ -1,4 +1,4 @@
-package ghcvm.base;
+package eta.base;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -10,10 +10,10 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
-import ghcvm.runtime.Rts;
-import ghcvm.runtime.RtsFlags;
-import static ghcvm.runtime.Rts.ExitCode;
-import ghcvm.runtime.RtsMessages;
+import eta.runtime.Rts;
+import eta.runtime.RtsFlags;
+import static eta.runtime.Rts.ExitCode;
+import eta.runtime.RtsMessages;
 
 public class Utils {
     // TODO: Verify correctness

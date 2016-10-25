@@ -67,7 +67,7 @@ import GHC.Integer.BigInteger.Prim (
     -- exportIntegerToMutableByteArray#, exportIntegerToAddr#,
     int64ToInteger#,  integerToInt64#,
     word64ToInteger#, integerToWord64#,
-    --GHCVM-specific
+    --ETA-specific
     zeroInteger#,
     equalsInteger#,
     absInteger#,

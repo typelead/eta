@@ -1071,22 +1071,22 @@ foreign import java unsafe "@static java.lang.Float.isNaN"
   isFloatNaN :: Float -> Bool
 foreign import java unsafe "@static java.lang.Float.isInfinite"
   isFloatInfinite :: Float -> Bool
-foreign import java unsafe "@static ghcvm.base.Utils.isFloatDenormalized"
+foreign import java unsafe "@static eta.base.Utils.isFloatDenormalized"
   isFloatDenormalized :: Float -> Bool
-foreign import java unsafe "@static ghcvm.base.Utils.isFloatNegativeZero"
+foreign import java unsafe "@static eta.base.Utils.isFloatNegativeZero"
   isFloatNegativeZero :: Float -> Bool
-foreign import java unsafe "@static ghcvm.base.Utils.isFloatFinite"
+foreign import java unsafe "@static eta.base.Utils.isFloatFinite"
   isFloatFinite :: Float -> Bool
 
 foreign import java unsafe "@static java.lang.Double.isNaN"
   isDoubleNaN :: Double -> Bool
 foreign import java unsafe "@static java.lang.Double.isInfinite"
   isDoubleInfinite :: Double -> Bool
-foreign import java unsafe "@static ghcvm.base.Utils.isDoubleDenormalized"
+foreign import java unsafe "@static eta.base.Utils.isDoubleDenormalized"
   isDoubleDenormalized :: Double -> Bool
-foreign import java unsafe "@static ghcvm.base.Utils.isDoubleNegativeZero"
+foreign import java unsafe "@static eta.base.Utils.isDoubleNegativeZero"
   isDoubleNegativeZero :: Double -> Bool
-foreign import java unsafe "@static ghcvm.base.Utils.isDoubleFinite"
+foreign import java unsafe "@static eta.base.Utils.isDoubleFinite"
   isDoubleFinite :: Double -> Bool
 
 ------------------------------------------------------------------------

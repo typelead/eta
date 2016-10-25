@@ -1,9 +1,9 @@
-# GHCVM - Modern Haskell on the JVM
+# ETA - Modern Haskell on the JVM
 
-[![Join the chat at https://gitter.im/rahulmutt/ghcvm](https://badges.gitter.im/rahulmutt/ghcvm.svg)](https://gitter.im/rahulmutt/ghcvm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/rahulmutt/ghcvm.svg?branch=master)](https://travis-ci.org/rahulmutt/ghcvm)
+[![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/typelead/eta.svg?branch=master)](https://travis-ci.org/typelead/eta)
 
-GHCVM compiles Haskell to the JVM while maintaining compatibility with GHC 7.10.3's Haskell.
+ETA compiles Haskell to the JVM while maintaining compatibility with GHC 7.10.3's Haskell.
 
 ## Getting Started
 
@@ -24,13 +24,13 @@ Make sure you have the following tools installed on your system:
 
 Clone the repository and run the install script at the root of the repo:
 ```
-$ git clone --recursive https://github.com/rahulmutt/ghcvm
-$ cd ghcvm
+$ git clone --recursive https://github.com/typelead/eta
+$ cd eta
 $ ./install.sh
 ```
 Once the installation is done, you will now have access to the following command-line tools:
-- **ghcvm** - The main compiler
-- **cabalvm** - The package manager and build tool
+- **eta** - The main compiler
+- **epm** - The package manager and build tool
 
 If they are not working, ensure that your stack binary path is included in your PATH.
 
@@ -41,9 +41,9 @@ The following packages are available upon installation:
 
 #### Updating
 
-GHCVM updates pretty fast and we're incorporating new patches on a daily basis that you might want to get access to.
+ETA updates pretty fast and we're incorporating new patches on a daily basis that you might want to get access to.
 
-If you have GHCVM already installed, go to the root of this repository's clone on your system, and run the following commands:
+If you have ETA already installed, go to the root of this repository's clone on your system, and run the following commands:
 ```
 $ git pull
 $ git submodule update --recursive
@@ -52,42 +52,42 @@ $ ./cleaninstall.sh
 ```
 This will do a fresh install, recompiling all the core libraries with the most recent compiler.
 
-If you have existing CabalVM projects, make sure you run ```cabalvm clean``` inside each project before proceeding with your normal development so that CabalVM recognizes the updated libraries. If you are experiencing errors even after that, you can try deleting `~/.cabalvm` and running `cabalvm update`.
+If you have existing Epm projects, make sure you run ```epm clean``` inside each project before proceeding with your normal development so that Epm recognizes the updated libraries. If you are experiencing errors even after that, you can try deleting `~/.epm` and running `epm update`.
 
 ### Method 2: Docker
 
 1. [Install docker for your distribution](https://docs.docker.com/engine/installation/)
-2. `docker run -it psibi/ghcvm`
+2. `docker run -it psibi/eta`
 
-The above command will give you a environment with `ghcvm` and other
-related executables. But note that `ghcvm` is a fast moving target
+The above command will give you a environment with `eta` and other
+related executables. But note that `eta` is a fast moving target
 because of it's development pace. So you may have
-to [update ghcvm](https://github.com/rahulmutt/ghcvm#updating). You
-can check if it's old by navigating to `/ghcvm` and issuing a `git
+to [update eta](https://github.com/typelead/eta#updating). You
+can check if it's old by navigating to `/eta` and issuing a `git
 log` command.
 
 ### Tutorial
 
-Now, go through the following tutorials for understanding how GHCVM works and how you can start running programs.
+Now, go through the following tutorials for understanding how ETA works and how you can start running programs.
 
-- [Hello GHCVM!](https://github.com/rahulmutt/ghcvm/wiki/Hello-GHCVM!)
+- [Hello ETA!](https://github.com/typelead/eta/wiki/Hello-ETA!)
 
 ### Examples
 
-For examples of using GHCVM, check out:
+For examples of using ETA, check out:
 
-- [ghcvm-examples](https://github.com/rahulmutt/ghcvm-examples) repository
-- [JavaFX Example](https://github.com/rahulmutt/ghcvm-javafx)
+- [eta-examples](https://github.com/typelead/eta-examples) repository
+- [JavaFX Example](https://github.com/typelead/eta-javafx)
 
 ### Libraries
-To see the list of currently supported libraries, check out the [ghcvm-hackage](https://github.com/rahulmutt/ghcvm-hackage) repository.
+To see the list of currently supported libraries, check out the [eta-hackage](https://github.com/typelead/eta-hackage) repository.
 
 ## Contributing
 
-As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, consult the [wiki page](https://github.com/rahulmutt/ghcvm/wiki/Contributing).
+As you can see, this project is a large undertaking. If you would love to run your Haskell programs on the JVM and accelerate this project, consult the [wiki page](https://github.com/typelead/eta/wiki/Contributing).
 
 ## License
-GHCVM is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
+ETA is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
 
 ## Gratitude
 

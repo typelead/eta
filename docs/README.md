@@ -1,3 +1,3 @@
-# GHCVM Documentation
+# ETA Documentation
 
 - [Interaction with Java](./FFI.md)

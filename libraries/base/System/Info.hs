@@ -46,11 +46,11 @@ arch = unpackCString os'
 -- | The Haskell implementation with which the program was compiled
 -- or is being interpreted.
 compilerName :: String
-compilerName = "ghcvm"
+compilerName = "eta"
 
 compilerVersionRaw :: Int
 compilerVersionRaw = 0001
 
-foreign import java unsafe "@static ghcvm.base.Utils.getOS" os' :: JString
-foreign import java unsafe "@static ghcvm.base.Utils.getArch" arch' :: JString
-foreign import java unsafe "@static ghcvm.base.Utils.isBigEndian" bigEndian :: Bool
+foreign import java unsafe "@static eta.base.Utils.getOS" os' :: JString
+foreign import java unsafe "@static eta.base.Utils.getArch" arch' :: JString
+foreign import java unsafe "@static eta.base.Utils.isBigEndian" bigEndian :: Bool

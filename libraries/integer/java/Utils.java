@@ -1,7 +1,7 @@
-package ghcvm.integer;
+package eta.integer;
 
 import java.math.BigInteger;
-import ghcvm.runtime.stg.StgContext;
+import eta.runtime.stg.StgContext;
 
 public class Utils {
     /**

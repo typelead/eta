@@ -169,7 +169,7 @@ real_handler exit se = do
 
 -- -- don't use errorBelch() directly, because we cannot call varargs functions
 -- -- using the FFI.
-foreign import java unsafe "@static ghcvm.base.Utils.errorBelch"
+foreign import java unsafe "@static eta.base.Utils.errorBelch"
    errorBelch :: CString -> CString -> IO ()
 
 disasterHandler :: (Int -> IO a) -> IOError -> IO a
@@ -231,7 +231,7 @@ exitHelper exitKind r
   | otherwise
   = shutdownHaskellAndExit   0xff                exitKind >> unreachable
 
-foreign import java "@static ghcvm.base.Utils.shutdownHaskellAndSignal"
+foreign import java "@static eta.base.Utils.shutdownHaskellAndSignal"
   shutdownHaskellAndSignal :: CInt -> CInt -> IO ()
 #endif
 
@@ -247,7 +247,7 @@ exitInterrupted =
 
 -- NOTE: shutdownHaskellAndExit must be called "safe", because it *can*
 -- re-enter Haskell land through finalizers.
-foreign import java "@static ghcvm.base.Utils.shutdownHaskellAndExit"
+foreign import java "@static eta.base.Utils.shutdownHaskellAndExit"
   shutdownHaskellAndExit :: CInt -> CInt -> IO ()
 
 useFastExit, useSafeExit :: CInt

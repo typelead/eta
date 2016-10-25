@@ -318,5 +318,5 @@ float2Integer (F# x) =
 foreign import java unsafe "@static java.lang.Math.rint"
   c_rintDouble :: Double -> Double
 
-foreign import java unsafe "@static ghcvm.base.Utils.rintFloat"
+foreign import java unsafe "@static eta.base.Utils.rintFloat"
     c_rintFloat :: Float -> Float

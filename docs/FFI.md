@@ -1,4 +1,4 @@
-# Interacting with Java in GHCVM
+# Interacting with Java in ETA
 
 ## Table of Contents
 - [Overview](#overview)
@@ -12,11 +12,11 @@
 
 ## Overview
 
-The layer that interacts with Java in GHCVM is called the Foreign Function Interface (FFI). This layer will allow you to import a Java method as a Haskell function and export a Haskell function as a Java method. It automatically handles the intermediate conversions between Java types and Haskell types, so all you have to worry about is the right type signature.
+The layer that interacts with Java in ETA is called the Foreign Function Interface (FFI). This layer will allow you to import a Java method as a Haskell function and export a Haskell function as a Java method. It automatically handles the intermediate conversions between Java types and Haskell types, so all you have to worry about is the right type signature.
 
 ## Background
 
-The FFI revolves around some built-in types that GHCVM specially recognizes, so we'll start by introducing them.
+The FFI revolves around some built-in types that ETA specially recognizes, so we'll start by introducing them.
 
 ### Unboxed & Primitive Types
 
@@ -48,23 +48,23 @@ They tend to be suffixed with a `#` and require the use of `MagicHash` language 
 | `Proxy#` | none | |
 | ``a ~# b`` | none | |
 | ``a ~R# b`` | none | |
-| `RealWorld` | ghcvm.runtime.stg.StgClosure | |
-| `Array#` | ghcvm.runtime.stg.StgClosure | |
-| `ByteArray#` | ghcvm.runtime.stg.StgClosure | |
-| `ArrayArray#` | ghcvm.runtime.stg.StgClosure | |
-| `SmallArray#` | ghcvm.runtime.stg.StgClosure | |
-| `MutableArray#` | ghcvm.runtime.stg.StgClosure | |
-| `MutableByteArray#` | ghcvm.runtime.stg.StgClosure | |
-| `MutableArrayArray#` | ghcvm.runtime.stg.StgClosure | |
-| `SmallMutableArray#` | ghcvm.runtime.stg.StgClosure | |
-| `MutVar#` | ghcvm.runtime.stg.StgClosure | |
-| `MVar#` | ghcvm.runtime.stg.StgClosure | |
-| `TVar#` | ghcvm.runtime.stg.StgClosure | |
+| `RealWorld` | eta.runtime.stg.StgClosure | |
+| `Array#` | eta.runtime.stg.StgClosure | |
+| `ByteArray#` | eta.runtime.stg.StgClosure | |
+| `ArrayArray#` | eta.runtime.stg.StgClosure | |
+| `SmallArray#` | eta.runtime.stg.StgClosure | |
+| `MutableArray#` | eta.runtime.stg.StgClosure | |
+| `MutableByteArray#` | eta.runtime.stg.StgClosure | |
+| `MutableArrayArray#` | eta.runtime.stg.StgClosure | |
+| `SmallMutableArray#` | eta.runtime.stg.StgClosure | |
+| `MutVar#` | eta.runtime.stg.StgClosure | |
+| `MVar#` | eta.runtime.stg.StgClosure | |
+| `TVar#` | eta.runtime.stg.StgClosure | |
 | `StablePtr#` | int | |
 | `StableName#` | int | |
-| `BCO#` | ghcvm.runtime.stg.StgClosure | |
-| `Weak#` | ghcvm.runtime.stg.StgClosure | |
-| `ThreadId#` | ghcvm.runtime.stg.StgClosure | |
+| `BCO#` | eta.runtime.stg.StgClosure | |
+| `Weak#` | eta.runtime.stg.StgClosure | |
+| `ThreadId#` | eta.runtime.stg.StgClosure | |
 
 ### Boxed Types
 
@@ -78,7 +78,7 @@ data Int = I# Int#
 
 ### Declaring Tag Types
 
-In GHCVM, you regularly have to declare tag types. Tag types represent Java objects of a given class in Haskell and are typically wrappers for raw Java objects. 
+In ETA, you regularly have to declare tag types. Tag types represent Java objects of a given class in Haskell and are typically wrappers for raw Java objects. 
 
 ```haskell
 data {-# CLASS "[class-name-here]"} P = P (Object# P)
@@ -133,7 +133,7 @@ Where:
 * `javaFunctionName` - identifier of java method that is generated for `tagType` class
 * `functionName` - haskell function name that is exported. The name can be omitted and the generated Java method will have the same name as Haskell function.
 * `var<N>` - argument types that can be marshalled into Java types. (TODO: which types can be marshalled?)
-* `tagType` - [tag type](#declaring-tag-types) that corresponds to Java class where the function will be generated. You cannot specify polymorphic type variable, only specialised one (see https://github.com/rahulmutt/ghcvm/issues/77).
+* `tagType` - [tag type](#declaring-tag-types) that corresponds to Java class where the function will be generated. You cannot specify polymorphic type variable, only specialised one (see https://github.com/typelead/eta/issues/77).
 * `returnType` - return type that can be marshalled back from Java into Haskell. (TODO: which types can be marshalled?)
 
 The follwoing example:

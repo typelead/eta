@@ -77,7 +77,7 @@ deRefStablePtr (StablePtr sp) = IO $ \s -> deRefStablePtr# sp s
 -- it may be 'Foreign.Ptr.nullPtr').  Nevertheless, the call
 -- to 'castStablePtrToPtr' is guaranteed not to diverge.
 --
-foreign import java unsafe "@static ghcvm.runtime.stg.StablePtrTable.free"
+foreign import java unsafe "@static eta.runtime.stg.StablePtrTable.free"
   freeStablePtr :: StablePtr a -> IO ()
 
 -- |
