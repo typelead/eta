@@ -69,6 +69,9 @@ to [update eta](https://github.com/typelead/eta#updating). You
 can check if it's old by navigating to `/eta` and issuing a `git
 log` command.
 
+### Documentation
+The documentation can be found in the `docs` [directory](./docs/README.md).
+
 ### Examples
 
 For examples of using Eta, check out:
