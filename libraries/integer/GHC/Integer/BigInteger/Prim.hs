@@ -2,7 +2,7 @@
            , UnliftedFFITypes, GHCForeignImportPrim #-}
 {-# OPTIONS_HADDOCK hide #-}
 
--- TODO: Rewrite this module once GHCVM supports external java files.
+-- TODO: Rewrite this module once ETA supports external java files.
 module GHC.Integer.BigInteger.Prim (
   Integer#,
   IntegerPair#,
@@ -70,7 +70,7 @@ module GHC.Integer.BigInteger.Prim (
 
   int64ToInteger#,  integerToInt64#,
   word64ToInteger#, integerToWord64#,
-  -- GHCVM-specific
+  -- ETA-specific
   zeroInteger#,
   equalsInteger#,
   absInteger#,
@@ -184,22 +184,22 @@ divExactIntegerWord# bigInt word = divExactInteger# bigInt (word2Integer# word)
 foreign import java unsafe "gcd" gcdInteger#
   :: Integer# -> Integer# -> Integer#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.extendedEuclid" gcdExtInteger#
+foreign import java unsafe "@static eta.integer.Utils.extendedEuclid" gcdExtInteger#
   :: Integer# -> Integer# -> IntegerPair#
 
 gcdIntegerInt# :: Integer# -> Int# -> Int#
 gcdIntegerInt# bigInt int = integer2Int# (gcdInteger# bigInt (int2Integer# int))
 
-foreign import java unsafe "@static ghcvm.integer.Utils.gcd" gcdInt#
+foreign import java unsafe "@static eta.integer.Utils.gcd" gcdInt#
   :: Int# -> Int# -> Int#
 
-foreign import prim "ghcvm.integer.Utils.decodeDouble" decodeDouble#
+foreign import prim "eta.integer.Utils.decodeDouble" decodeDouble#
   :: Double# -> (# Int#, Integer# #)
 
 int2Integer# :: Int# -> Integer#
 int2Integer# i# = int64ToInteger# (intToInt64# i#)
 
-foreign import java unsafe "@static ghcvm.integer.Utils.toUnsignedBigInteger" word2Integer#
+foreign import java unsafe "@static eta.integer.Utils.toUnsignedBigInteger" word2Integer#
   :: Word# -> Integer#
 
 foreign import java unsafe "and" andInteger#
@@ -271,14 +271,14 @@ foreign import java unsafe "floatValue"  integer2Float#
 foreign import java unsafe "doubleValue" integer2Double#
   :: Integer# -> Double#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.encodeFloat"
+foreign import java unsafe "@static eta.integer.Utils.encodeFloat"
         encodeFloat# :: Integer# -> Int# -> Float#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.int_encodeFloat"
+foreign import java unsafe "@static eta.integer.Utils.int_encodeFloat"
         int_encodeFloat# :: Int# -> Int# -> Float#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.encodeDouble"
+foreign import java unsafe "@static eta.integer.Utils.encodeDouble"
         encodeDouble# :: Integer# -> Int# -> Double#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.int_encodeDouble"
+foreign import java unsafe "@static eta.integer.Utils.int_encodeDouble"
         int_encodeDouble# :: Int# -> Int# -> Double#

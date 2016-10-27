@@ -32,14 +32,14 @@ top x = "../../" ++ x
 testsDir = "tests"
 packageConfDir dir = dir </> "package.conf.d"
 
-ghcvmIncludePath :: FilePath -> FilePath
-ghcvmIncludePath = (</> "include")
+etaIncludePath :: FilePath -> FilePath
+etaIncludePath = (</> "include")
 
 getInstallDir :: Action FilePath
 getInstallDir = fmap (</> "bin") $ liftIO $ getAppUserDataDirectory "local"
 
-getGhcVmRoot :: Action FilePath
-getGhcVmRoot = liftIO $ getAppUserDataDirectory "ghcvm"
+getEtaRoot :: Action FilePath
+getEtaRoot = liftIO $ getAppUserDataDirectory "eta"
 
 libraryDir = "libraries"
 library x = libraryDir </> x
@@ -66,7 +66,7 @@ libJarPath lib = libraryDir </> lib </> "build" </> libName lib
 
 buildConf :: String -> FilePath -> FilePath -> Action ()
 buildConf lib confSrc confDst = do
-  rootDir <- getGhcVmRoot
+  rootDir <- getEtaRoot
   confStr <- readFile' confSrc
   case parseInstalledPackageInfo confStr of
     ParseOk warnings ipi -> do
@@ -76,7 +76,7 @@ buildConf lib confSrc confDst = do
                      , importDirs = [rootDir </> lib]
                      , libraryDirs = [rootDir </> lib]
                      , includeDirs = if lib == "rts" then
-                                       [ghcvmIncludePath rootDir]
+                                       [etaIncludePath rootDir]
                                      else
                                        [] }
       writeFile' confDst $ showInstalledPackageInfo ipi'
@@ -86,7 +86,7 @@ buildConf lib confSrc confDst = do
 
 fixGhcPrimConf :: Action ()
 fixGhcPrimConf = do
-  rootDir <- getGhcVmRoot
+  rootDir <- getEtaRoot
   let confDir = packageConfDir rootDir
   (ghcPrimConf':_) <- fmap (filter ("ghc-prim" `isPrefixOf`))
                     $ getDirectoryFiles confDir ["*.conf"]
@@ -99,7 +99,7 @@ fixGhcPrimConf = do
                                                       Nothing Nothing
                                       : exposedModules ipi }
       writeFile' ghcPrimConf $ showInstalledPackageInfo ipi'
-      unit $ cmd "ghcvm-pkg recache"
+      unit $ cmd "eta-pkg recache"
     ParseFailed err -> case locatedErrorMsg err of
                          (Nothing, s) -> putNormal s
                          (Just l, s) -> putNormal $ show l ++ ": " ++ s
@@ -114,20 +114,20 @@ buildLibrary debug lib deps = do
                      else []
       configureFlags = if debug
                        then ["--enable-optimization=0"
-                            ,"--ghcvm-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
+                            ,"--eta-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
                        else ["--enable-optimization=2"]
 
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "cabalvm configure" configureFlags
-  unit $ cmd (Cwd dir) "cabalvm build"
-  unit $ cmd (Cwd dir) "cabalvm install" installFlags
+  unit $ cmd (Cwd dir) "epm configure" configureFlags
+  unit $ cmd (Cwd dir) "epm build"
+  unit $ cmd (Cwd dir) "epm install" installFlags
   when (lib == "ghc-prim") $ fixGhcPrimConf
   return ()
 
 testSpec :: FilePath -> Action ()
 testSpec specPath = do
-  rootDir <- getGhcVmRoot
+  rootDir <- getEtaRoot
   specStr <- readFile' specPath
   let (command, output') = break (== '\n') specStr
       expectedOutput     = drop 1 output'
@@ -135,14 +135,14 @@ testSpec specPath = do
       packageDir         = packageConfDir rootDir
       testBuildDir       = genBuild testHome
   createDir testBuildDir
-  unit $ cmd [Cwd testHome, AddEnv "GHCVM_PACKAGE_PATH" packageDir]
-             "ghcvm -shared" ["-outputdir", "build"] ["-o", jarTestFile] command mainTestFile
+  unit $ cmd [Cwd testHome, AddEnv "ETA_PACKAGE_PATH" packageDir]
+             "eta -shared" ["-outputdir", "build"] ["-o", jarTestFile] command mainTestFile
 
   let classPathsAll = jarTestFile : map libJar ["base", "rts", "ghc-prim", "integer"]
       libJar lib = rootDir </> lib </> ("HS" ++ lib ++ ".jar")
       classPathFolded = intercalate ":" classPathsAll
 
-  Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", classPathFolded] "ghcvm.main"
+  Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", classPathFolded] "eta.main"
   --removeFilesAfter testBuildDir ["//*"]
   if expectedOutput == actualOutput then
     putNormal $ "Test " ++ specPath ++ " passed."
@@ -186,25 +186,25 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
           _     -> False
 
     phony "install" $ do
-      rootDir <- getGhcVmRoot
+      rootDir <- getEtaRoot
       exists <- doesDirectoryExist rootDir
       if exists then
-        putNormal $ "ghcvm already installed. To perform a clean install,\n"
-                 ++ "run 'ghcvm-build uninstall' followed by 'ghcvm-build"
+        putNormal $ "eta already installed. To perform a clean install,\n"
+                 ++ "run 'eta-build uninstall' followed by 'eta-build"
                  ++ " install'."
       else do
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
-        unit $ cmd "ghcvm-pkg init " $ packageConfDir rootDir
+        unit $ cmd "eta-pkg init " $ packageConfDir rootDir
         Stdout path <- cmd "stack eval GHC.Paths.libdir"
         let ghcLibPath = drop 1 (init (init path))
             ghcInclude = ghcLibPath </> "include"
-            ghcvmInclude = ghcvmIncludePath rootDir
-        liftIO $ createDirectory ghcvmInclude
+            etaInclude = etaIncludePath rootDir
+        liftIO $ createDirectory etaInclude
         let root x = rootDir </> x
         forM_ ["platform", "version"] $ \s -> do
           let s' = "ghc" ++ s ++ ".h"
-          copyFile' (ghcInclude </> s') (ghcvmInclude </> s')
+          copyFile' (ghcInclude </> s') (etaInclude </> s')
         copyFile' (ghcLibPath </> "settings") (rootDir </> "settings")
         copyFile' (ghcLibPath </> "ghc-usage.txt") (rootDir </> "ghc-usage.txt")
 
@@ -222,8 +222,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       mapM_ (\spec -> removeFilesAfter (takeDirectory spec </> "build") ["//*"]) specs
 
     phony "uninstall" $ do
-      rootDir <- getGhcVmRoot
-      putNormal "Cleaning files in ~/.ghcvm"
+      rootDir <- getEtaRoot
+      putNormal "Cleaning files in ~/.eta"
       removeFilesAfter rootDir ["//*"]
 
     phony "reinstall" $ do
@@ -236,7 +236,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       libs <- getLibs
       forM_ libs $ \lib -> do
         let libDir = libraryDir </> lib
-        unit $ cmd (Cwd libDir) "cabalvm clean"
+        unit $ cmd (Cwd libDir) "epm clean"
 
     masjar %> \out -> do
       createDirIfMissing sampleBuildDir

@@ -57,7 +57,7 @@ getArgs = undefined
 
 -- | Computation 'getJavaArgs' returns a list of the program's command
 -- line arguments (not including the program name) as a native String[].
-foreign import java unsafe "@static ghcvm.base.Utils.getJavaArgs"
+foreign import java unsafe "@static eta.base.Utils.getJavaArgs"
   getJavaArgs :: IO StringArray
 
   -- alloca $ \ p_argc ->

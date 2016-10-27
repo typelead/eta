@@ -43,14 +43,14 @@ roundingMode# (S# i) t =
                             then 2#
                             else 1#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.isPowerOfTwo" isPowerOf2Word#
+foreign import java unsafe "@static eta.integer.Utils.isPowerOfTwo" isPowerOf2Word#
   :: Word# -> JBool#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.isPowerOfTwo" isPowerOf2Integer#
+foreign import java unsafe "@static eta.integer.Utils.isPowerOfTwo" isPowerOf2Integer#
   :: Integer# -> JBool#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.log2" log2Integer#
+foreign import java unsafe "@static eta.integer.Utils.log2" log2Integer#
   :: Integer# -> Int#
 
-foreign import java unsafe "@static ghcvm.integer.Utils.log2" wordLog2#
+foreign import java unsafe "@static eta.integer.Utils.log2" wordLog2#
   :: Word# -> Int#

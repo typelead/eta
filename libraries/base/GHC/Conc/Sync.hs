@@ -900,7 +900,7 @@ uncaughtExceptionHandler = unsafePerformIO (newIORef defaultHandler)
 
 -- don't use errorBelch() directly, because we cannot call varargs functions
 -- using the FFI.
-foreign import java unsafe "@static ghcvm.base.Utils.errorBelch"
+foreign import java unsafe "@static eta.base.Utils.errorBelch"
   errorBelch :: CString -> CString -> IO ()
 
 setUncaughtExceptionHandler :: (SomeException -> IO ()) -> IO ()

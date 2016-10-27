@@ -150,7 +150,7 @@ module Prelude (
     -- ** Exception handling in the I\/O monad
     IOError, ioError, userError,
 
-    -- * GHCVM I/O
+    -- * ETA I/O
     printShow,
     JString(..),
     JClass(..),
@@ -186,6 +186,6 @@ import GHC.Real
 import GHC.Float
 import GHC.Show
 
-import GHCVM.IO
-import GHCVM.JString
+import ETA.IO
+import ETA.JString
 import Java

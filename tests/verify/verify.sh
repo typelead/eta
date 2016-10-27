@@ -7,11 +7,11 @@ javac ../../utils/class-verifier/Verify.java
 cp ../../utils/class-verifier/Verify.class .
 
 # Clean-up the previous result
-rm -rf build/ base/ integer/ ghczmprim/ cern/ ghcvm/ main/
+rm -rf build/ base/ integer/ ghczmprim/ cern/ eta/ main/
 
 # Compile a simple program and extract the files
 mkdir build
-ghcvm -fforce-recomp -o build/Out.jar Main.hs && jar xf build/Out.jar
+eta -fforce-recomp -o build/Out.jar Main.hs && jar xf build/Out.jar
 
 # Do bytecode verification on all the core libraries' class files
 java Verify ghczmprim/ghc
@@ -44,7 +44,7 @@ java Verify base/ghc/io
 java Verify base/ghc/io/encoding
 java Verify base/ghc/io/handle
 java Verify base/ghc/rts
-java Verify base/ghcvm
+java Verify base/eta
 java Verify base/numeric
 java Verify base/system
 java Verify base/system/console
@@ -59,4 +59,4 @@ java Verify base/text/show
 java Verify base/unsafe
 
 # Make sure a simple "Hello World!" program runs
-java -cp build/Out.jar ghcvm.main
+java -cp build/Out.jar eta.main

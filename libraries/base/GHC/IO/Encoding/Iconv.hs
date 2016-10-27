@@ -82,7 +82,7 @@ hs_iconv_close = undefined
 hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO CSize
 hs_iconv = undefined
 
-foreign import java unsafe "@static  ghcvm.base.Utils.c_localeEncoding"
+foreign import java unsafe "@static  eta.base.Utils.c_localeEncoding"
   c_localeEncoding :: IO JString
 
 haskellChar :: String

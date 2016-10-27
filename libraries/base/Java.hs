@@ -21,7 +21,7 @@ import GHC.Base
 import GHC.Pack
 import GHC.Types
 import GHC.JArray
-import GHCVM.JString
+import ETA.JString
 import System.IO.Unsafe
 
 data {-# CLASS "java.lang.Class" #-} JClass = JClass (Object# JClass)

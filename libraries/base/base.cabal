@@ -226,8 +226,8 @@ Library
         GHC.Unicode
         GHC.Weak
         GHC.Word
-        GHCVM.IO
-        GHCVM.JString
+        ETA.IO
+        ETA.JString
         Java
         Numeric
         Numeric.Natural

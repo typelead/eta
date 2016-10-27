@@ -1,5 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, NoImplicitPrelude, UnliftedFFITypes,
-             GHCForeignImportPrim #-}
+{-# LANGUAGE MagicHash, NoImplicitPrelude #-}
 {-# OPTIONS_HADDOCK hide #-}
 module GHC.JArray
   ( JByteArray#,

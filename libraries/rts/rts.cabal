@@ -3,9 +3,9 @@
 
 name:                rts
 version:             0.1.0.0
-synopsis:            The GHCVM runtime system
+synopsis:            The ETA runtime system
 -- description:
-homepage:            http://github.org/rahulmutt/ghcvm
+homepage:            http://github.org/typelead/eta
 license:             BSD3
 license-file:        LICENSE
 author:              Rahul Muttineni

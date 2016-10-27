@@ -162,7 +162,7 @@ foreign import java unsafe "@static java.lang.Character.isISOControl"
 foreign import java unsafe "@static java.lang.Character.isSpaceChar"
   iswspace :: Int -> Bool
 
-foreign import java unsafe "@static ghcvm.base.Utils.isPrintableChar"
+foreign import java unsafe "@static eta.base.Utils.isPrintableChar"
   iswprint :: Int -> Bool
 
 foreign import java unsafe "@static java.lang.Character.isLowerCase"
