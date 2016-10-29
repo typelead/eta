@@ -57,6 +57,7 @@ import ETA.Debug
 import Codec.JVM
 
 type Binding = (Id, CoreExpr)
+type MethodExport = (Text, MethodDef)
 data Bound = SuperBound | ExtendsBound
   deriving (Eq, Show)
 type ExtendsInfo = VarEnv (Id, Type, Bound)
@@ -74,27 +75,27 @@ dsForeigns fdecls = do
   return (appendDefs NoStubs methods, foldr (appOL . toOL) nilOL bindss)
   where doLDecl (L loc decl) = putSrcSpanDs loc (doDecl decl)
         doDecl (ForeignImport id _ co spec) = do
-          bs <- dsFImport (unLoc id) co spec
-          return (Nothing, bs)
+          (mMethod, bs) <- dsFImport (unLoc id) co spec
+          return (mMethod, bs)
         doDecl (ForeignExport (L _ id) _ co
                               (CExport (L _ (CExportStatic extName cconv)) _)) = do
             method <- dsFExport id co extName cconv False
             return (Just method, [])
         doDecl fi = pprPanic "doDecl: Not implemented" (ppr fi)
 
-dsFImport :: Id -> Coercion -> ForeignImport -> DsM [Binding]
+dsFImport :: Id -> Coercion -> ForeignImport -> DsM (Maybe MethodExport, [Binding])
 dsFImport id co (CImport cconv safety mHeader spec _) =
   dsCImport id co spec (unLoc cconv) (unLoc safety) mHeader
 
 dsCImport :: Id -> Coercion -> CImportSpec -> CCallConv -> Safety
-  -> Maybe Header -> DsM [Binding]
+  -> Maybe Header -> DsM (Maybe MethodExport, [Binding])
 dsCImport id co (CFunction target) cconv@PrimCallConv safety _
   = dsPrimCall id co (CCall (CCallSpec target cconv safety))
 dsCImport id co (CFunction target) cconv safety mHeader
   = dsFCall id co (CCall (CCallSpec target cconv safety)) mHeader
 dsCImport id _ _ _ _ _ = pprPanic "doCImport: Not implemented" (ppr id)
 
-dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM [(Id, Expr TyVar)]
+dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM (Maybe MethodExport,[Binding])
 dsPrimCall funId co fcall = do
   args <- mapM newSysLocalDs argTypes
   ccallUniq <- newUnique
@@ -102,12 +103,12 @@ dsPrimCall funId co fcall = do
   let callApp = mkFCall dflags ccallUniq fcall (map Var args) ioResType
       rhs = mkLams tvs (mkLams args callApp)
       rhs' = Cast rhs co
-  return [(funId, rhs')]
+  return (Nothing, [(funId, rhs')])
   where ty                    = pFst $ coercionKind co
         (tvs, funTy)          = tcSplitForAllTys ty
         (argTypes, ioResType) = tcSplitFunTys funTy
 
-dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM [(Id, Expr TyVar)]
+dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM (Maybe MethodExport, [Binding])
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
@@ -133,7 +134,7 @@ dsFCall funId co fcall mDeclHeader = do
       funIdWithInline = funId
                        `setIdUnfolding`
                        mkInlineUnfolding (Just (length args)) wrapRhs'
-  return [(workId, workRhs), (funIdWithInline, wrapRhs')]
+  return (Nothing, [(workId, workRhs), (funIdWithInline, wrapRhs')])
 
   where ty = pFst $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
@@ -491,7 +492,7 @@ dsFExport :: Id                 -- The exported Id
           -> Bool               -- True => foreign export dynamic
                                 --         so invoke IO action that's hanging off
                                 --         the first argument's stable pointer
-          -> DsM (Text, MethodDef)
+          -> DsM MethodExport
 
 dsFExport fnId co externalName cconv isDyn = do
   mod <- fmap ds_mod getGblEnv
