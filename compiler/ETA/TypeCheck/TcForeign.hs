@@ -161,39 +161,44 @@ foreignDeclCtxt fo
        2 (ppr fo)
 
 tcCheckFIType :: ThetaType -> [Type] -> Type -> ForeignImport -> TcM ForeignImport
--- TODO: Handle CLabel and CWrapper
 tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safety) mh
-                                               (CFunction target) src)
-  -- TODO: Handle dynamic targets
-  | cconv == PrimCallConv = do
+                                               targetSpec src)
+  | CFunction target <- targetSpec
+  = case cconv of
+      PrimCallConv -> do
+        dflags <- getDynFlags
+        checkTc (xopt Opt_GHCForeignImportPrim dflags)
+                (text "Use GHCForeignImportPrim to allow `foreign import prim'.")
+        -- TODO: Validate the target string
+        checkJavaTarget target
+        checkTc (playSafe safety)
+                (text $ "The safe/unsafe annotation should not be used with "
+                    ++ "`foreign import prim'.")
+        checkForeignArgs (isFFIPrimArgumentTy dflags) argTypes
+        checkForeignRes nonIOok checkSafe (isFFIPrimResultTy dflags) resType
+        return idecl
+      JavaCallConv -> do
+        -- TODO: Validate the target string for @new, @field
+        -- TODO: Validate ThetaType
+        dflags <- getDynFlags
+        checkJavaTarget target
+        let javaClassVars = extendsVars thetaType
+        checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
+        checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
+        return idecl
+      _ -> pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
+  | CWrapper target <- targetSpec
+  , JavaCallConv <- cconv
+  = do
+      -- TODO: Validate target
       dflags <- getDynFlags
-      checkTc (xopt Opt_GHCForeignImportPrim dflags)
-              (text "Use GHCForeignImportPrim to allow `foreign import prim'.")
-      -- TODO: Validate the code generation mode
-      -- TODO: Validate the target string
-      checkJavaTarget target
-      checkTc (playSafe safety)
-              (text $ "The safe/unsafe annotation should not be used with "
-                   ++ "`foreign import prim'.")
-      checkForeignArgs (isFFIPrimArgumentTy dflags) argTypes
-      checkForeignRes nonIOok checkSafe (isFFIPrimResultTy dflags) resType
-      return idecl
-  -- TODO: Because of the rigidity of the GHC API, we have to reuse the
-  --       existing calling convention data types.
-  | cconv == JavaCallConv = do
-      -- TODO: Validate the code generation mode
-      -- TODO: Validate the target string for @new, @field
-      -- TODO: Validate ThetaType
-      dflags <- getDynFlags
-      checkJavaTarget target
-      traceTc "tcCheckFIType" $ ppr argTypes <+> ppr resType
       let javaClassVars = extendsVars thetaType
       checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
       checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
       return idecl
-  -- TODO: Support the other C-based conventions
-  | otherwise = pprPanic "Unsupported calling convention." (ppr idecl)
-tcCheckFIType _ _ _ idecl = pprPanic "Unsupported foriegn function type." (ppr idecl)
+  | otherwise = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
+
+tcCheckFIType _ _ _ idecl = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
 
 check :: Validity -> (MsgDoc -> MsgDoc) -> TcM ()
 check IsValid _             = return ()
