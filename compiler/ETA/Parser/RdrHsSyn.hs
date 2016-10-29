@@ -1421,7 +1421,7 @@ parseCImport cconv safety nm str sourceText =
        skipSpaces
        r <- choice [
           string "dynamic" >> return (mk Nothing (CFunction DynamicTarget)),
-          string "wrapper" >> return (mk Nothing CWrapper),
+          string "@wrapper" >> skipSpaces >> mk Nothing . CWrapper <$> cid nm,
           do optional (token "static" >> skipSpaces)
              ((mk Nothing <$> cimp nm) +++
               (do h <- munch1 hdr_char
@@ -1446,7 +1446,7 @@ parseCImport cconv safety nm str sourceText =
    id_first_char c = isAlpha    c || c == '_'
    id_char       c = isAlphaNum c || c == '_'
 
-   cimp nm = (ReadP.char '&' >> skipSpaces >> CLabel <$> cid)
+   cimp nm = (ReadP.char '&' >> skipSpaces >> CLabel <$> cid nm)
              +++ (do isFun <- case cconv of
                               L _ CApiConv ->
                                   option True
@@ -1454,14 +1454,12 @@ parseCImport cconv safety nm str sourceText =
                                              skipSpaces
                                              return False)
                               _ -> return True
-                     cid' <- cid
+                     cid' <- cid nm
                      return (CFunction (StaticTarget cid' Nothing isFun)))
-          where
-            cid = return nm +++
-                  (do c  <- satisfy id_first_char
-                      cs <-  many (satisfy id_char)
-                      return (mkFastString (c:cs)))
-
+   cid nm = return nm +++
+            (do c  <- satisfy id_first_char
+                cs <-  many (satisfy id_char)
+                return (mkFastString (c:cs)))
 
 -- construct a foreign export declaration
 --

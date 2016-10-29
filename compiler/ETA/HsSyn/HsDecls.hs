@@ -1380,7 +1380,7 @@ data ForeignImport = -- import of a C entity
 --
 data CImportSpec = CLabel    CLabelString     -- import address of a C label
                  | CFunction CCallTarget      -- static or dynamic function
-                 | CWrapper                   -- wrapper to expose closures
+                 | CWrapper  CLabelString     -- wrapper to expose closures
                                               -- (former f.e.d.)
   deriving (Data, Typeable)
 
@@ -1422,7 +1422,7 @@ instance Outputable ForeignImport where
         <+> ppr lbl
       pprCEntity (CFunction (DynamicTarget)) =
         ptext (sLit "dynamic")
-      pprCEntity (CWrapper) = ptext (sLit "wrapper")
+      pprCEntity (CWrapper target) = ptext (sLit "@wrapper") <+> ppr target
 
 instance Outputable ForeignExport where
   ppr (CExport  (L _ (CExportStatic lbl cconv)) _) =
