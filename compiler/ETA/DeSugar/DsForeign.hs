@@ -102,8 +102,8 @@ dsCImport id co (CFunction target) cconv@PrimCallConv safety _
   = dsPrimCall id co (CCall (CCallSpec target cconv safety))
 dsCImport id co (CFunction target) cconv safety mHeader
   = dsFCall id co (CCall (CCallSpec target cconv safety)) mHeader
-dsCImport id co (CWrapper target abstractClass) cconv safety mHeader
-  = dsFWrapper id co target abstractClass
+dsCImport id co (CWrapper target isAbstract) cconv safety mHeader
+  = dsFWrapper id co target isAbstract
 dsCImport id _ _ _ _ _ = pprPanic "doCImport: Not implemented" (ppr id)
 
 dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM ([Binding], [ClassExport])
@@ -508,7 +508,8 @@ dsFExport closureId co externalName classSpec = do
           (\i ->
               let fieldName = constrField i
               in ( Just $ mkFieldDef [Public] fieldName closureType
-                , getfield $ mkFieldRef className fieldName closureType ))
+                , gload classFt 0
+               <> getfield (mkFieldRef className fieldName closureType) ))
           (\fnId ->
               ( Nothing
               , getstatic (mkFieldRef (moduleJavaClass mod)
@@ -622,7 +623,7 @@ getPrimTyOf ty
         _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty
 
 dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
-dsFWrapper id co0 target abstractClass = do
+dsFWrapper id co0 target isAbstract = do
   -- TODO: We effectively assume that the coercion is Refl.
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
@@ -649,11 +650,14 @@ dsFWrapper id co0 target abstractClass = do
        classExports =
          ( classSpec
          , mkMethodDef className [Public] "<init>" (replicate (length args) closureType) void
-           (mconcat
-            $ map (\i -> gload genClassFt 0
+           ( gload genClassFt 0
+          <> invokespecial (mkMethodRef superClassName "<init>" [] void)
+          <> mconcat
+             (map (\i -> gload genClassFt 0
                       <> gload closureType i
                       <> putfield (mkFieldRef genClassName (constrField i) closureType))
                   [1..numMethods])
+          <> vreturn)
          , Nothing )
          : classExports'
 
@@ -663,10 +667,11 @@ dsFWrapper id co0 target abstractClass = do
         (thetaType, funTy)  = tcSplitPhiTy thetaFunTy
         (argTypes, resType) = tcSplitFunTys funTy
         className           = tagTypeToText resType
+        superClassName      = if isAbstract then className else jobjectC
         genClassFt          = obj genClassName
         genClassName        = T.append className "$Eta"
         classSpec           = T.append genClassName $
-                                 T.append (if abstractClass
+                                 T.append (if isAbstract
                                            then " extends "
                                            else " implements ") className
         methodNames         = map mkFastString $ split ',' $ unpackFS target

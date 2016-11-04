@@ -1243,7 +1243,7 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
                               then methodDefs
                               else mkDefaultConstructor className superClass : methodDefs
                 hasConstructor = any (\(MethodDef _ (UName n) _ _) -> n == "<init>") methodDefs
-                (superClass, interfaces) = parseSpecs specs "java/lang/Object" []
+                (superClass, interfaces) = parseSpecs specs jobjectC []
         parseSpecs ("extends":superClass:xs) _ is = parseSpecs xs (jvmify superClass) is
         parseSpecs ("implements":interface:xs) sc is = parseSpecs xs sc (jvmify interface:is)
         parseSpecs [] sc is = (sc, reverse is)

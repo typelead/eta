@@ -193,8 +193,9 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
       -- TODO: Validate target
       dflags <- getDynFlags
       let javaClassVars = extendsVars thetaType
-      checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
-      checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
+      -- TODO: Typecheck foreign wrappers properly
+      -- checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
+      -- checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
       return idecl
   | otherwise = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
 
