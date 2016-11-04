@@ -1081,7 +1081,7 @@ instance  Functor (Java c) where
 
 -- Convenience for desugaring Java generics
 fmapJava :: (a -> b) -> Java c a -> Java c b
-fmapJava = x >>= (return . f)
+fmapJava f x = x >>= (return . f)
 
 instance Applicative (Java c) where
     pure = return
