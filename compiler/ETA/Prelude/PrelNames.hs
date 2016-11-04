@@ -372,6 +372,7 @@ basicKnownKeyNames
         , extendsClassName
         , superCastName
         , unsafeCastName
+        , fmapJavaName
     ]
 
 genericTyConNames :: [Name]
@@ -1230,12 +1231,14 @@ fingerprintDataConName =
     conName gHC_FINGERPRINT_TYPE (fsLit "Fingerprint") fingerprintDataConKey
 
 -- ETA-specific names
-javaTyConName, javaDataConName, extendsClassName, superCastName :: Name
-javaTyConName     = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
-javaDataConName   = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
-extendsClassName  = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
-superCastName     = varQual gHC_CLASSES (fsLit "superCast")  superCastClassOpKey
-unsafeCastName     = varQual gHC_CLASSES (fsLit "unsafeCast")  unsafeCastClassOpKey
+javaTyConName, javaDataConName, extendsClassName, superCastName, unsafeCastName,
+  fmapJavaName :: Name
+javaTyConName    = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
+javaDataConName  = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
+extendsClassName = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
+superCastName    = varQual gHC_CLASSES (fsLit "superCast")  superCastClassOpKey
+unsafeCastName   = varQual gHC_CLASSES (fsLit "unsafeCast") unsafeCastClassOpKey
+fmapJavaName     = varQual gHC_BASE    (fsLit "fmapJava")   fmapJavaIdKey
 
 {-
 ************************************************************************
@@ -1971,10 +1974,6 @@ toListClassOpKey = mkPreludeMiscIdUnique 501
 
 proxyHashKey :: Unique
 proxyHashKey = mkPreludeMiscIdUnique 502
--- ETA-specific
-superCastClassOpKey, unsafeCastClassOpKey :: Unique
-superCastClassOpKey = mkPreludeMiscIdUnique 200
-unsafeCastClassOpKey = mkPreludeMiscIdUnique 201
 
 ---------------- Template Haskell -------------------
 --      USES IdUniques 200-499
@@ -1990,6 +1989,12 @@ mkTyConKey        = mkPreludeMiscIdUnique 503
 mkPolyTyConAppKey = mkPreludeMiscIdUnique 504
 mkAppTyKey        = mkPreludeMiscIdUnique 505
 typeLitTypeRepKey = mkPreludeMiscIdUnique 506
+
+-- ETA-specific
+superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey :: Unique
+superCastClassOpKey  = mkPreludeMiscIdUnique 507
+unsafeCastClassOpKey = mkPreludeMiscIdUnique 508
+fmapJavaIdKey        = mkPreludeMiscIdUnique 509
 
 
 {-

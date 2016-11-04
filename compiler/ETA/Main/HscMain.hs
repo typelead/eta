@@ -1233,12 +1233,16 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
 outputForeignStubs dflags NoStubs = []
-outputForeignStubs dflags (ForeignStubs _ _ methods) =
-  map f $ foreignExportsList methods
-  where f (classSpec, methodDefs) =
-          mkClassFile java7 [Public, Super] (jvmify className) (Just superClass) interfaces []
-            (mkDefaultConstructor className superClass : methodDefs)
+outputForeignStubs dflags (ForeignStubs _ _ classExports) =
+  map f $ foreignExportsList classExports
+  where f (classSpec, (methodDefs, fieldDefs)) =
+          mkClassFile java7 [Public, Super] (jvmify className) (Just superClass) interfaces
+            fieldDefs methodDefs'
           where className:specs = T.words classSpec
+                methodDefs' = if hasConstructor
+                              then methodDefs
+                              else mkDefaultConstructor className superClass : methodDefs
+                hasConstructor = any (\(MethodDef _ (UName n) _ _) -> n == "<init>") methodDefs
                 (superClass, interfaces) = parseSpecs specs "java/lang/Object" []
         parseSpecs ("extends":superClass:xs) _ is = parseSpecs xs (jvmify superClass) is
         parseSpecs ("implements":interface:xs) sc is = parseSpecs xs sc (jvmify interface:is)

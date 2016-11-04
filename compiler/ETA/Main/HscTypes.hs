@@ -186,7 +186,7 @@ import ETA.Utils.Platform
 import ETA.Utils.Util
 import ETA.Utils.Serialized       ( Serialized )
 
-import Codec.JVM (MethodDef)
+import Codec.JVM (MethodDef, FieldDef)
 
 import Control.Monad    ( guard, liftM, when, ap )
 import Data.Array       ( Array, array )
@@ -1139,7 +1139,7 @@ data CgGuts
     }
 
 -----------------------------------
-type ExportMethods = Map Text [MethodDef]
+type ExportMethods = Map Text ([MethodDef], [FieldDef])
 
 -- | Foreign export stubs
 data ForeignStubs
@@ -1157,21 +1157,24 @@ data ForeignStubs
       --  3) Map of class strings to method defintions:
       --     "place.Garage extends place.Home" --> [defs...]
 
-foreignExportsList :: ExportMethods -> [(Text, [MethodDef])]
+foreignExportsList :: ExportMethods -> [(Text, ([MethodDef], [FieldDef]))]
 foreignExportsList = M.toList
 
 appendStubC :: ForeignStubs -> SDoc -> ForeignStubs
 appendStubC NoStubs            c_code = ForeignStubs empty c_code M.empty
 appendStubC (ForeignStubs h c m) c_code = ForeignStubs h (c $$ c_code) m
 
-appendDefs :: ForeignStubs -> [(Text, MethodDef)] -> ForeignStubs
-appendDefs NoStubs methods'
-  | length methods' > 0 = ForeignStubs empty empty (M.fromListWith (++) methods)
+appendDefs :: ForeignStubs -> [(Text, MethodDef, Maybe FieldDef)] -> ForeignStubs
+appendDefs NoStubs defs'
+  | length defs' > 0 = ForeignStubs empty empty (M.fromListWith combineExports defs)
   | otherwise = NoStubs
-  where methods = map (\(t,c) -> (t,[c])) methods'
-appendDefs (ForeignStubs h c m) methods' =
-  ForeignStubs h c (M.unionWith (++) m (M.fromListWith (++) methods))
-  where methods = map (\(t,c) -> (t,[c])) methods'
+  where defs = createExports defs'
+appendDefs (ForeignStubs h c m) defs' =
+  ForeignStubs h c (M.unionWith combineExports m (M.fromListWith combineExports defs))
+  where defs = createExports defs'
+
+combineExports (mds, fds) (mds', fds') = (mds ++ mds', fds ++ fds')
+createExports defs = map (\(t,md,fd) -> (t,([md],maybeToList fd))) defs
 
 {-
 ************************************************************************

@@ -1421,7 +1421,10 @@ parseCImport cconv safety nm str sourceText =
        skipSpaces
        r <- choice [
           string "dynamic" >> return (mk Nothing (CFunction DynamicTarget)),
-          string "@wrapper" >> skipSpaces >> mk Nothing . CWrapper <$> cid nm,
+          do string "@wrapper"
+             skipSpaces
+             isAbstract <- option False (string "@abstract" >> skipSpaces >> pure True)
+             mk Nothing . flip CWrapper isAbstract <$> cid nm,
           do optional (token "static" >> skipSpaces)
              ((mk Nothing <$> cimp nm) +++
               (do h <- munch1 hdr_char

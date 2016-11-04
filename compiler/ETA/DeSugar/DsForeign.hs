@@ -1,3 +1,12 @@
+{-
+(c) Rahul Muttineni 2016
+(c) The University of Glasgow 2006
+(c) The AQUA Project, Glasgow University, 1998
+
+
+Desugaring foreign declarations.
+-}
+
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.DeSugar.DsForeign where
 
@@ -48,7 +57,7 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Name
 
 import Data.Maybe
-import Data.Monoid((<>))
+import Data.Monoid((<>), mconcat)
 import Data.List
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -57,7 +66,7 @@ import ETA.Debug
 import Codec.JVM
 
 type Binding = (Id, CoreExpr)
-type MethodExport = (Text, MethodDef)
+type ClassExport = (Text, MethodDef, Maybe FieldDef)
 data Bound = SuperBound | ExtendsBound
   deriving (Eq, Show)
 type ExtendsInfo = VarEnv (Id, Type, Bound)
@@ -71,31 +80,33 @@ dsForeigns [] = return (NoStubs, nilOL)
 dsForeigns fdecls = do
   ieDecls <- mapM doLDecl fdecls
   let (methods', bindss) = unzip ieDecls
-      methods = catMaybes methods'
+      methods = concat methods'
   return (appendDefs NoStubs methods, foldr (appOL . toOL) nilOL bindss)
   where doLDecl (L loc decl) = putSrcSpanDs loc (doDecl decl)
         doDecl (ForeignImport id _ co spec) = do
-          (mMethod, bs) <- dsFImport (unLoc id) co spec
-          return (mMethod, bs)
+          (bs, methodDefs) <- dsFImport (unLoc id) co spec
+          return (methodDefs, bs)
         doDecl (ForeignExport (L _ id) _ co
                               (CExport (L _ (CExportStatic extName cconv)) _)) = do
-            method <- dsFExport id co extName cconv False
-            return (Just method, [])
+            method <- dsFExport (Right id) co extName Nothing
+            return ([method], [])
         doDecl fi = pprPanic "doDecl: Not implemented" (ppr fi)
 
-dsFImport :: Id -> Coercion -> ForeignImport -> DsM (Maybe MethodExport, [Binding])
+dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], [ClassExport])
 dsFImport id co (CImport cconv safety mHeader spec _) =
   dsCImport id co spec (unLoc cconv) (unLoc safety) mHeader
 
 dsCImport :: Id -> Coercion -> CImportSpec -> CCallConv -> Safety
-  -> Maybe Header -> DsM (Maybe MethodExport, [Binding])
+  -> Maybe Header -> DsM ([Binding], [ClassExport])
 dsCImport id co (CFunction target) cconv@PrimCallConv safety _
   = dsPrimCall id co (CCall (CCallSpec target cconv safety))
 dsCImport id co (CFunction target) cconv safety mHeader
   = dsFCall id co (CCall (CCallSpec target cconv safety)) mHeader
+dsCImport id co (CWrapper target abstractClass) cconv safety mHeader
+  = dsFWrapper id co target abstractClass
 dsCImport id _ _ _ _ _ = pprPanic "doCImport: Not implemented" (ppr id)
 
-dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM (Maybe MethodExport,[Binding])
+dsPrimCall :: Id -> Coercion -> ForeignCall -> DsM ([Binding], [ClassExport])
 dsPrimCall funId co fcall = do
   args <- mapM newSysLocalDs argTypes
   ccallUniq <- newUnique
@@ -103,12 +114,12 @@ dsPrimCall funId co fcall = do
   let callApp = mkFCall dflags ccallUniq fcall (map Var args) ioResType
       rhs = mkLams tvs (mkLams args callApp)
       rhs' = Cast rhs co
-  return (Nothing, [(funId, rhs')])
+  return ([(funId, rhs')], [])
   where ty                    = pFst $ coercionKind co
         (tvs, funTy)          = tcSplitForAllTys ty
         (argTypes, ioResType) = tcSplitFunTys funTy
 
-dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM (Maybe MethodExport, [Binding])
+dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM ([Binding], [ClassExport])
 dsFCall funId co fcall mDeclHeader = do
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
@@ -116,7 +127,7 @@ dsFCall funId co fcall mDeclHeader = do
   (argPrimTypes, valArgs, argWrappers) <- mapAndUnzip3M (unboxArg extendsInfo) (map Var args)
   (resPrimType, ccallResultType, resWrapper) <- boxResult extendsInfo ioResType
   let workArgIds = [v | Var v <- valArgs]
-      fcall' = genJavaFCall fcall extendsInfo argPrimTypes resPrimType ioResType
+      fcall' = genJavaFCall fcall extendsInfo argPrimTypes (Right resPrimType) ioResType
   ccallUniq <- newUnique
   workUniq <- newUnique
   -- Build worker
@@ -134,37 +145,38 @@ dsFCall funId co fcall mDeclHeader = do
       funIdWithInline = funId
                        `setIdUnfolding`
                        mkInlineUnfolding (Just (length args)) wrapRhs'
-  return (Nothing, [(workId, workRhs), (funIdWithInline, wrapRhs')])
+  return ([(workId, workRhs), (funIdWithInline, wrapRhs')], [])
 
   where ty = pFst $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
 
-genJavaFCall :: ForeignCall -> ExtendsInfo -> [Type] -> Maybe Type -> Type -> ForeignCall
+genJavaFCall :: ForeignCall -> ExtendsInfo -> [Type] -> Either PrimRep (Maybe Type) -> Type -> ForeignCall
 genJavaFCall (CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv safety))
-             extendsInfo argTypes resType ioResType
+             extendsInfo argTypes eResType ioResType
   = CCall (CCallSpec (StaticTarget (mkFastString label') mPkgKey isFun) JavaCallConv safety)
   where label' = serializeTarget hasObj hasSubclass (not (isJust mObj))
                                  (unpackFS label) argFts resRep
         argFts' = repFieldTypes argTypes
         argFts = maybe argFts' (: argFts') mObj
-        resRep = maybe VoidRep typePrimRep resType
-        getArgClass ty
-          | Just var <- getTyVar_maybe ty
-          = case lookupVarEnv extendsInfo var of
-              Just (_, tagType, _) -> let (_, res) = getArgClass tagType
-                                      in (True, res)
-              _ -> (False, Nothing)
-          | otherwise = (False, Just $ tagTypeToText ty)
-
+        resRep = either id (maybe VoidRep typePrimRep) eResType
         (hasObj, hasSubclass, mObj) = case tcSplitJavaType_maybe ioResType of
           Just (_, tagType, _)
-            | (hasSubclass, Just clsName) <- getArgClass tagType
+            | (hasSubclass, Just clsName) <- getArgClass extendsInfo tagType
             -> (True, hasSubclass, Just $ obj clsName)
             | otherwise -> (True, False, Nothing)
           _ -> (False, False, Nothing)
 
+getArgClass :: ExtendsInfo -> Type -> (Bool, Maybe Text)
+getArgClass extendsInfo ty
+  | Just var <- getTyVar_maybe ty
+  = case lookupVarEnv extendsInfo var of
+      Just (_, tagType, _) ->
+        let (_, res) = getArgClass extendsInfo tagType
+        in (True, res)
+      _ -> (False, Nothing)
+  | otherwise = (False, Just $ tagTypeToText ty)
 
 serializeTarget :: Bool -> Bool -> Bool -> String -> [FieldType] -> PrimRep -> String
 serializeTarget hasObj hasSubclass qObj label' argFts resRep =
@@ -228,7 +240,7 @@ serializeTarget hasObj hasSubclass qObj label' argFts resRep =
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
 extendsMap thetaType = do
-  (ids, keyVals) <- flip mapAndUnzipM thetaType $ \thetaTy -> do
+  (ids, keyVals) <- flip mapAndUnzipM (zip [1..] thetaType) $ \(i, thetaTy) -> do
     dictId <- newSysLocalDs thetaTy
     let (var', tagTy') = tcSplitExtendsType thetaTy
         (var, tagTy, bound)
@@ -268,9 +280,7 @@ unboxArg vs arg
   | Just v <- getTyVar_maybe argType
   , Just (dictId, tagType, bound) <- lookupVarEnv vs v = do
       castId <- getClassCastId bound
-      let typeArgs = if bound == ExtendsBound
-            then [argType, tagType]
-            else [tagType, argType]
+      let typeArgs = whenExtends bound [argType, tagType]
       unboxArg vs $ mkApps (mkTyApps (Var castId) typeArgs) [Var dictId, arg]
   | otherwise = do
       l <- getSrcSpanDs
@@ -465,10 +475,7 @@ resultWrapper extendsInfo resultType
   , Just (dictId, tagType, bound) <- lookupVarEnv extendsInfo var
   = do (objType, wrapper) <- resultWrapper extendsInfo tagType
        castId <- getClassCastId (invertBound bound)
-       let typeArgs = map Type $
-             if bound == ExtendsBound
-             then [resultType, tagType]
-             else [tagType, resultType]
+       let typeArgs = map Type $ whenExtends bound [resultType, tagType]
        return ( objType
               , \e ->
                   mkApps (Var castId) (typeArgs ++ [Var dictId, wrapper e]))
@@ -484,20 +491,30 @@ maybeNarrow tycon
   | tycon `hasKey` word16TyConKey = \e -> App (Var (mkPrimOpId Narrow16WordOp)) e
   | otherwise                     = id
 
-dsFExport :: Id                 -- The exported Id
+dsFExport :: Either Int Id      -- The exported Id
+                                -- OR field
           -> Coercion           -- Coercion between the Haskell type callable
                                 -- from C, and its representation type
           -> CLabelString       -- The name to export to C land
-          -> CCallConv
-          -> Bool               -- True => foreign export dynamic
-                                --         so invoke IO action that's hanging off
-                                --         the first argument's stable pointer
-          -> DsM MethodExport
+          -> Maybe Text         -- rawClassSpec & className
+          -> DsM ClassExport
 
-dsFExport fnId co externalName cconv isDyn = do
+dsFExport closureId co externalName classSpec = do
   mod <- fmap ds_mod getGblEnv
   dflags <- getDynFlags
   let resClass = typeDataConClass dflags resType
+      (mFieldDef, loadClosureRef) =
+        either
+          (\i ->
+              let fieldName = constrField i
+              in ( Just $ mkFieldDef [Public] fieldName closureType
+                , getfield $ mkFieldRef className fieldName closureType ))
+          (\fnId ->
+              ( Nothing
+              , getstatic (mkFieldRef (moduleJavaClass mod)
+                                      (closure (idNameText dflags fnId))
+                                      closureType)))
+          closureId
       boxedArgs =
         if length argFts > 5
         then error $ "Foreign exports with number of arguments > 5 are currently not "
@@ -508,10 +525,11 @@ dsFExport fnId co externalName cconv isDyn = do
                         in code
                         <> (if argPrimFt == jbool
                             then gload argPrimFt i <> ifeq falseClosure trueClosure
-                            else    new argClassFt
-                                 <> dup argClassFt
-                                 <> gload argPrimFt i
-                                 <> invokespecial (mkMethodRef argClass "<init>" [argPrimFt] void)))
+                            else new argClassFt
+                              <> dup argClassFt
+                              <> gload argPrimFt i
+                              <> invokespecial
+                                   (mkMethodRef argClass "<init>" [argPrimFt] void)))
                     mempty
                     (zip3 [1..] argFts argTypes)
       numApplied = length argTypes + 1
@@ -524,8 +542,7 @@ dsFExport fnId co externalName cconv isDyn = do
           -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
           <> new apFt
           <> dup apFt
-          <> getstatic (mkFieldRef (moduleJavaClass mod) (closure (idNameText dflags fnId))
-                                   closureType)
+          <> loadClosureRef
           <> boxedArgs
           <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
           -- TODO: Support java args > 5
@@ -541,7 +558,8 @@ dsFExport fnId co externalName cconv isDyn = do
           <> (if voidResult
              then vreturn
              else ( hsResultValue
-                 <> unboxResult resType resClass rawResFt)))
+                 <> unboxResult resType resClass rawResFt))
+         , mFieldDef )
   where ty = pSnd $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
@@ -558,7 +576,12 @@ dsFExport fnId co externalName cconv isDyn = do
           = True
           | otherwise = False
         methodName = fastStringText externalName
-        (rawClassSpec, className, resType) =
+        (rawClassSpec, className) = maybe (rawClassSpec', className')
+                                          (\spec ->
+                                            let (className:_) = T.words spec
+                                            in (spec, className))
+                                          classSpec
+        (rawClassSpec', className', resType) =
           case tcSplitJavaType_maybe ioResType of
             Just (javaTyCon, javaTagType, javaResType) ->
               ((either (error $ "The tag type should be annotated with a CLASS annotation.")
@@ -597,3 +620,110 @@ getPrimTyOf ty
       else case splitDataProductType_maybe repTy of
         Just (_, _, _, [primTy]) -> primTy
         _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty
+
+dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
+dsFWrapper id co0 target abstractClass = do
+  -- TODO: We effectively assume that the coercion is Refl.
+  dflags <- getDynFlags
+  (thetaArgs, extendsInfo) <- extendsMap thetaType
+  args <- mapM newSysLocalDs argTypes
+  (realArgs, mCastBinders) <- mapAndUnzipM (genericCast extendsInfo) (map Var args)
+  (resPrimType, resWrapper) <- resultWrapper extendsInfo resType
+  classExports' <- mapM (\(i, arg, methodName) ->
+                          let argType = exprType arg
+                              argCo = mkReflCo Representational argType
+                          in dsFExport (Left i) argCo methodName $ Just classSpec)
+                  $ zip3 [1..] realArgs methodNames
+  javaCallUniq <- newUnique
+  let  castBinders = catMaybes mCastBinders
+       binding     = mkCoreLams (tvs ++ thetaArgs ++ args) $ foldr ($)
+                       (resWrapper javaCallApp) castBinders
+       fcall       = CCall (CCallSpec (StaticTarget (fsLit "@new") Nothing True)
+                            JavaCallConv PlayRisky)
+       fcall'      = genJavaFCall fcall extendsInfo argTypes (Left (ObjectRep genClassName))
+                                  resType
+       javaCallApp = mkFCall dflags javaCallUniq fcall' realArgs (fromJust resPrimType)
+       idWithInline = id
+                      `setIdUnfolding`
+                        mkInlineUnfolding (Just (length args)) (mkCast binding co0)
+       classExports =
+         ( classSpec
+         , mkMethodDef className [Public] "<init>" (replicate (length args) closureType) void
+           (mconcat
+            $ map (\i -> gload genClassFt 0
+                      <> gload closureType i
+                      <> putfield (mkFieldRef genClassName (constrField i) closureType))
+                  [1..numMethods])
+         , Nothing )
+         : classExports'
+
+  return ([(id, binding)], classExports)
+  where ty                  = pFst $ coercionKind co0
+        (tvs, thetaFunTy)   = tcSplitForAllTys ty
+        (thetaType, funTy)  = tcSplitPhiTy thetaFunTy
+        (argTypes, resType) = tcSplitFunTys funTy
+        className           = tagTypeToText resType
+        genClassFt          = obj genClassName
+        genClassName        = T.append className "$Eta"
+        classSpec           = T.append genClassName $
+                                 T.append (if abstractClass
+                                           then " extends "
+                                           else " implements ") className
+        methodNames         = map mkFastString $ split ',' $ unpackFS target
+        numMethods          = length argTypes
+
+castResult :: ExtendsInfo -> Type -> Type -> DsM (Maybe [CoreExpr])
+castResult extendsInfo javaTagType resultType
+  | Just var <- getTyVar_maybe resultType
+  , Just (dictId, tagType, bound) <- lookupVarEnv extendsInfo var
+  = do castId <- getClassCastId bound
+       let  rawTypeArgs = map Type [resultType, tagType]
+            typeArgs = whenExtends bound rawTypeArgs
+       return . Just $ rawTypeArgs ++ [ Type javaTagType
+                                      , mkCoreApps (Var castId) (typeArgs ++ [Var dictId]) ]
+  | otherwise = return Nothing
+
+genericCast :: ExtendsInfo -> CoreExpr -> DsM (CoreExpr, Maybe (CoreExpr -> CoreExpr))
+genericCast extendsInfo methodExpr = do
+  (bindArgs, callArgs, castExprs) <- mapAndUnzip3M (castArg extendsInfo) argTypes
+  mResultCastExpr <- castResult extendsInfo javaTagType resultType
+  let casts = catMaybes castExprs
+  if length casts > 0 || isJust mResultCastExpr
+  then do
+    fmapJavaId <- dsLookupGlobalId fmapJavaName
+    let castedMethodBinding = mkCoreLams bindArgs . foldr ($) origMethodApp $ casts
+        castedMethodType = exprType castedMethodBinding
+        origMethodCall = mkCoreApps methodExpr callArgs
+        origMethodApp = maybe id (\resultCast -> \e ->
+                                   mkCoreApps (Var fmapJavaId) (resultCast ++ [e]))
+                                 mResultCastExpr
+                               $ origMethodCall
+    methodBinder <- newSysLocalDs castedMethodType
+    return ( Var methodBinder, Just $ bindNonRec methodBinder castedMethodBinding )
+  else return (methodExpr, Nothing)
+  where methodType = exprType methodExpr
+        (argTypes, javaResType) = tcSplitFunTys methodType
+        Just (_, javaTagType, resultType) = tcSplitJavaType_maybe javaResType
+
+castArg :: ExtendsInfo -> Type -> DsM (Var, CoreExpr, Maybe (CoreExpr -> CoreExpr))
+castArg extendsInfo argType
+  | Just v <- getTyVar_maybe argType
+  , Just (dictId, tagType, bound) <- lookupVarEnv extendsInfo v
+  = do castId <- getClassCastId (invertBound bound)
+       let typeArgs = whenExtends bound [argType, tagType]
+       origArg <- newSysLocalDs tagType
+       castedArg <- newSysLocalDs argType
+       return ( origArg
+              , Var castedArg
+              , Just $ \body -> Case (mkCoreApps (Var castId)
+                                                 ( map Type typeArgs
+                                                ++ [Var dictId, Var origArg]))
+                                castedArg
+                                (exprType body)
+                                [(DEFAULT,[],body)] )
+  | otherwise = do
+      arg <- newSysLocalDs argType
+      return (arg, Var arg, Nothing)
+
+whenExtends :: Bound -> [a] -> [a]
+whenExtends bound xs = if bound == ExtendsBound then xs else reverse xs

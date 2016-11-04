@@ -187,7 +187,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
         checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
         return idecl
       _ -> pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
-  | CWrapper target <- targetSpec
+  | CWrapper target isAbstract <- targetSpec
   , JavaCallConv <- cconv
   = do
       -- TODO: Validate target

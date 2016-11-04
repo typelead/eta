@@ -1077,7 +1077,11 @@ unIO (IO a) = a
 ----------------------------------------------
 
 instance  Functor (Java c) where
-   fmap f x = x >>= (return . f)
+   fmap = fmapJava
+
+-- Convenience for desugaring Java generics
+fmapJava :: (a -> b) -> Java c a -> Java c b
+fmapJava = x >>= (return . f)
 
 instance Applicative (Java c) where
     pure = return
