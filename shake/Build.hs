@@ -197,7 +197,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         let root x = rootDir </> x
         unit $ cmd "eta-pkg init " $ packageConfDir rootDir
         Stdout path <- cmd "stack eval GHC.Paths.libdir"
-        let ghcLibPath = drop 1 (init (init path))
+        let ghcLibPath = drop 1 $ init $ head $ lines path
             ghcInclude = ghcLibPath </> "include"
             etaInclude = etaIncludePath rootDir
         liftIO $ createDirectory etaInclude
