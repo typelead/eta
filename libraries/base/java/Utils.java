@@ -15,6 +15,9 @@ import eta.runtime.RtsFlags;
 import static eta.runtime.Rts.ExitCode;
 import eta.runtime.RtsMessages;
 
+import java.lang.management.ManagementFactory;
+import com.sun.management.OperatingSystemMXBean;
+
 public class Utils {
     // TODO: Verify correctness
     public static float rintFloat(float f) {
@@ -186,5 +189,11 @@ public class Utils {
         } else {
             return new String[0];
         }
+    }
+
+    public static long getCPUTime() {
+        return ((OperatingSystemMXBean)
+                ManagementFactory.getOperatingSystemMXBean())
+               .getProcessCpuTime();
     }
 }
