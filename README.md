@@ -1,20 +1,41 @@
 # Eta - Modern Haskell on the JVM
 
-[![Join the chat at https://gitter.im/rahulmutt/ghcvm](https://badges.gitter.im/rahulmutt/ghcvm.svg)](https://gitter.im/rahulmutt/ghcvm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/typelead/eta.svg?branch=master)](https://travis-ci.org/typelead/eta)
-[![Build status](https://ci.appveyor.com/api/projects/status/walb8x0befptf86j?svg=true)](https://ci.appveyor.com/project/rahulmutt/eta)
+[![Build status](https://ci.appveyor.com/api/projects/status/walb8x0befptf86j?svg=true)](https://ci.appveyor.com/project/typelead/eta)
 
 Eta is a dialect of Haskell which runs on the JVM and has the following goals:
 - accessibility for beginners from imperative languages, especially Java
 - compatibility with GHC 7.10.3's Haskell.
 
+## Current Status
+
+Eta is currently hobby-ready, meaning that you can start using it for your hobby 
+projects, but you may occasionally come across a compiler panic or unimplemented 
+functions in the standard library. Currently, the following areas are being worked
+on:
+
+- Core library support
+- Support for Java arrays in the FFI
+- Boilerplate generation for Java FFI imports
+- Maven support
+- Concurrent runtime
+
+We hope to get a first release out by early January 2017.
+
+See [projects](https://github.com/typelead/eta/projects) for a more detailed 
+overview of the issues that are being prioritized.
+
+Be warned that since we're playing around with the best way to handle Java interop,
+there will be breaking changes in the Foreign Function Interface from time to time.
+
 ## Getting Started
 
 If you get stuck at any point in the installation, feel free to join
-us on [Gitter](https://gitter.im/rahulmutt/ghcvm). There are two ways to do
+us on [Gitter](https://gitter.im/typelead/eta). There are two ways to do
 installation - via Docker or through manual installation.
 
-### Method 1: Normal installation
+### Method 1: Normal Installation
 
 #### Prerequisites
 
@@ -70,18 +91,22 @@ can check if it's old by navigating to `/eta` and issuing a `git
 log` command.
 
 ### Documentation
-The documentation can be found in the `docs` [directory](./docs/README.md).
 
-### Examples
+The documentation can be found in the `docs` [directory](./docs/README.md). Be sure to check out the [FAQ](./docs/FAQ.md) before asking any questions.
 
-For examples of using Eta, check out:
+### Tutorials & Examples
 
-- [eta-examples](https://github.com/typelead/eta-examples) repository
+For tutorials & examples of using Eta, check out:
+
+- [Repository of Eta Examples](https://github.com/typelead/eta-examples)
+- [Eta 2048 Game Implementation](https://github.com/rahulmutt/eta-2048)
 
 ### Libraries
-To see the list of currently supported libraries, check out the [eta-hackage](https://github.com/typelead/eta-hackage) repository.
+
+To see the list of currently supported libraries, check out [Eta Hackage](https://github.com/typelead/eta-hackage).
 
 ## License
+
 Eta is available under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
 
 ## Gratitude
