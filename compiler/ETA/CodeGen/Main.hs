@@ -31,7 +31,7 @@ import ETA.CodeGen.Env
 
 import Codec.JVM
 
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, catMaybes)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
 import Control.Monad (unless, when)
@@ -97,6 +97,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                let loadCode = idInfoLoadCode cgInfo
                defineField $ mkFieldDef [Public, Static] qClName closureType
                let field = mkFieldRef modClass qClName closureType
+                   deps = catMaybes [getLocField (cgLocation cgInfo)]
                addInitStep (fold
                  [
                    new indStaticType,
@@ -107,7 +108,8 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                    putstatic field
                  ]
                  , field
-                 , []
+                 , deps
+                 -- TODO: Check this works when f is in external module
                  )
         genCode dflags lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
