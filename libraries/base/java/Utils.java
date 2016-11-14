@@ -191,9 +191,11 @@ public class Utils {
         }
     }
 
+    /* Returns CPU time in picoseconds */
     public static long getCPUTime() {
         return ((OperatingSystemMXBean)
                 ManagementFactory.getOperatingSystemMXBean())
-               .getProcessCpuTime();
+               .getProcessCpuTime()
+               * 1000;
     }
 }
