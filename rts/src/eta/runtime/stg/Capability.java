@@ -1840,6 +1840,9 @@ public final class Capability {
     }
 
     public final StackFrame raiseExceptionHelper(StgTSO tso, StgClosure exception) {
+        if (RtsFlags.DebugFlags.printStack) {
+            Thread.dumpStack();
+        }
         // Assumes that tso.sp pointer is beyond stack top
         ListIterator<StackFrame> sp = tso.sp;
         boolean shouldContinue = true;

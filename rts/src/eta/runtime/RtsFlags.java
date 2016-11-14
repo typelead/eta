@@ -33,6 +33,7 @@ public class RtsFlags {
         public static boolean squeeze;
         public static boolean hpc;
         public static boolean sparks;
+        public static boolean printStack;
     }
 
     public static class STM {
@@ -90,6 +91,7 @@ public class RtsFlags {
         RtsFlags.DebugFlags.squeeze              = false;
         RtsFlags.DebugFlags.hpc                  = false;
         RtsFlags.DebugFlags.sparks               = false;
+        RtsFlags.DebugFlags.printStack           = false;
     }
 
     public static void setup(String[] args,
@@ -250,6 +252,8 @@ public class RtsFlags {
                                     break;
                                 case 'r':
                                     RtsFlags.DebugFlags.sparks = true;
+                                case 'k':
+                                    RtsFlags.DebugFlags.printStack = true;
                                     break;
                                 default:
                                     badOption(arg);
