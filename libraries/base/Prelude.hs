@@ -150,7 +150,7 @@ module Prelude (
     -- ** Exception handling in the I\/O monad
     IOError, ioError, userError,
 
-    -- * ETA I/O
+    -- * Eta I/O
     printShow,
     JString(..),
     JClass(..),

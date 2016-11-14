@@ -2,7 +2,7 @@
            , UnliftedFFITypes, GHCForeignImportPrim #-}
 {-# OPTIONS_HADDOCK hide #-}
 
--- TODO: Rewrite this module once ETA supports external java files.
+-- TODO: Rewrite this module once Eta supports external java files.
 module GHC.Integer.BigInteger.Prim (
   Integer#,
   IntegerPair#,

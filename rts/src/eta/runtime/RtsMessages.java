@@ -16,8 +16,9 @@ public class RtsMessages {
         System.err.print("internal error: ");
         System.err.format(msg, args);
         System.err.print("\n");
-        System.err.print("    (ETA version " + 1.0 /* TODO: ProjectVersion */ + " for " + "Linux" /* TODO: HostPlatform_TYPE */ + ")\n");
-        System.err.println("    Please report this as a ETA bug:  https://github.com/typelead/eta/issues");
+        System.err.print("    (Eta version 0.0.1" /* TODO: ProjectVersion */ + ")\n");
+        System.err.println("    Please report this as a Eta bug:  https://github.com/typelead/eta/issues");
+        Thread.dumpStack();
         stgExit(EXIT_INTERNAL_ERROR);
     }
 

@@ -3,7 +3,7 @@
 
 name:                rts
 version:             0.1.0.0
-synopsis:            The ETA runtime system
+synopsis:            The Eta runtime system
 -- description:
 homepage:            http://github.org/typelead/eta
 license:             BSD3

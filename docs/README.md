@@ -1,3 +1,3 @@
-# ETA Documentation
+# Eta Documentation
 
 - [Interaction with Java](./FFI.md)

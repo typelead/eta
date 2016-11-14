@@ -155,16 +155,16 @@ showGhcException exception
         Panic s
          -> showString $
                 "panic! (the 'impossible' happened)\n"
-                ++ "  (ETA version " ++ cProjectVersion ++ "):\n\t"
+                ++ "  (Eta version " ++ cProjectVersion ++ "):\n\t"
                 ++ s ++ "\n\n"
-                ++ "Please report this as a ETA bug: " ++ cProjectIssueReportURL ++ "\n"
+                ++ "Please report this as a Eta bug: " ++ cProjectIssueReportURL ++ "\n"
 
         PprSorry  s _ ->
             showGhcException (Sorry (s ++ "\n<<details unavailable>>"))
         Sorry s
          -> showString $
                 "sorry! (unimplemented feature or known bug)\n"
-                 ++ "  (ETA version " ++ cProjectVersion ++ "):\n\t"
+                 ++ "  (Eta version " ++ cProjectVersion ++ "):\n\t"
                  ++ s ++ "\n"
 
   where int_code code =

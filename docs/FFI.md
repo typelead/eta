@@ -1,4 +1,4 @@
-# Interacting with Java in ETA
+# Interacting with Java in Eta
 
 ## Table of Contents
 - [Overview](#overview)
@@ -12,11 +12,11 @@
 
 ## Overview
 
-The layer that interacts with Java in ETA is called the Foreign Function Interface (FFI). This layer will allow you to import a Java method as a Haskell function and export a Haskell function as a Java method. It automatically handles the intermediate conversions between Java types and Haskell types, so all you have to worry about is the right type signature.
+The layer that interacts with Java in Eta is called the Foreign Function Interface (FFI). This layer will allow you to import a Java method as a Haskell function and export a Haskell function as a Java method. It automatically handles the intermediate conversions between Java types and Haskell types, so all you have to worry about is the right type signature.
 
 ## Background
 
-The FFI revolves around some built-in types that ETA specially recognizes, so we'll start by introducing them.
+The FFI revolves around some built-in types that Eta specially recognizes, so we'll start by introducing them.
 
 ### Unboxed & Primitive Types
 
@@ -78,7 +78,7 @@ data Int = I# Int#
 
 ### Declaring Tag Types
 
-In ETA, you regularly have to declare tag types. Tag types represent Java objects of a given class in Haskell and are typically wrappers for raw Java objects. 
+In Eta, you regularly have to declare tag types. Tag types represent Java objects of a given class in Haskell and are typically wrappers for raw Java objects. 
 
 ```haskell
 data {-# CLASS "[class-name-here]"} P = P (Object# P)
