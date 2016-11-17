@@ -6,7 +6,6 @@ import ETA.Main.DynFlags
 import Data.Text
 import Codec.JVM
 import ETA.Util
-import ETA.CodeGen.Name
 
 import Data.Monoid((<>))
 import Data.Foldable(fold)
@@ -162,49 +161,6 @@ resumeThreadMethod =
   <> loadContext
   <> swap capabilityType contextType
   <> contextMyCapabilitySet
-
-mkRtsMainClass :: DynFlags -> String -> ClassFile
-mkRtsMainClass dflags mainClass
-  = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
-  [
-    mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
-    [
-      invokestatic $ mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType),
-      putRtsHsMain,
-      putRtsOptsEnabled,
-      putRtsOpts,
-      gstore rtsConfigType 1,
-      gload (jarray jstring) 0,
-      -- TODO: Find main module
-      getstatic $ mkFieldRef (moduleJavaClass mainMod) "DZCmain_closure"
-                             closureType,
-      gload rtsConfigType 1,
-      invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
-                                                      , closureType
-                                                      , rtsConfigType]
-                                                      (ret exitCodeType),
-      invokevirtual $ mkMethodRef exitCode "code" [] (ret jint),
-      invokestatic $ mkMethodRef "java/lang/System" "exit" [jint] void,
-      vreturn
-    ]
-  ]
-  where mainClass' = pack mainClass
-        mainMod = mainModIs dflags
-        rtsOptsEnabledText = pack . show . rtsOptsEnabled $ dflags
-        putRtsHsMain =  dup rtsConfigType
-                     <> iconst jbool 1
-                     <> putfield (mkFieldRef rtsConfig "rtsHsMain" jbool)
-        putRtsOptsEnabled
-          =  dup rtsConfigType
-          <> getstatic (mkFieldRef rtsOptsEnbled rtsOptsEnabledText
-                                   rtsOptsEnbledType)
-          <> putfield (mkFieldRef rtsConfig "rtsOptsEnabled"
-                                  rtsOptsEnbledType)
-        putRtsOpts = case rtsOpts dflags of
-          Nothing -> mempty
-          Just s -> dup rtsConfigType
-                 <> sconst (T.pack s)
-                 <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
 
 stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup :: Text
 stgExceptionGroup = exception "StgException"

@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NamedFieldPuns, NondecreasingIndentation #-}
+{-# LANGUAGE CPP, NamedFieldPuns, NondecreasingIndentation, OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-cse #-}
 -- -fno-cse is needed for GLOBAL_VAR's to behave properly
 
@@ -58,7 +58,7 @@ import ETA.Main.DriverPhases
 import ETA.Main.HscMain
 import ETA.Main.Finder
 import ETA.Main.HscTypes hiding ( Hsc )
-import ETA.Utils.Outputable
+import ETA.Utils.Outputable   hiding ((<>))
 import ETA.BasicTypes.Module
 import ETA.Utils.UniqFM           ( eltsUFM )
 import ETA.Main.ErrUtils
@@ -82,8 +82,10 @@ import Data.IORef       ( readIORef )
 import System.Directory
 import System.FilePath
 import System.IO
-import Control.Monad
+import Control.Monad hiding (void)
+import Data.Foldable    (fold)
 import Data.List        ( isSuffixOf, partition )
+import Data.Monoid ((<>))
 import Data.Maybe
 import System.Environment
 import Data.Char
@@ -91,6 +93,7 @@ import Control.Arrow((&&&), first)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
 
 -- ---------------------------------------------------------------------------
 -- Pre-process
@@ -1862,3 +1865,46 @@ maybeMainAndManifest dflags isExecutable = do
                         ++ "Created-By: eta-0.0.1\n"
                         ++ maybe "" (const $ "Main-Class: " ++ mainClassJava)
                                  mainFile)
+
+mkRtsMainClass :: DynFlags -> String -> ClassFile
+mkRtsMainClass dflags mainClass
+  = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
+  [
+    mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
+    [
+      invokestatic $ mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType),
+      putRtsHsMain,
+      putRtsOptsEnabled,
+      putRtsOpts,
+      gstore rtsConfigType 1,
+      gload (jarray jstring) 0,
+      -- TODO: Find main module
+      getstatic $ mkFieldRef (moduleJavaClass mainMod) "DZCmain_closure"
+                             closureType,
+      gload rtsConfigType 1,
+      invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
+                                                      , closureType
+                                                      , rtsConfigType]
+                                                      (ret exitCodeType),
+      invokevirtual $ mkMethodRef exitCode "code" [] (ret jint),
+      invokestatic $ mkMethodRef "java/lang/System" "exit" [jint] void,
+      vreturn
+    ]
+  ]
+  where mainClass' = T.pack mainClass
+        mainMod = mainModIs dflags
+        rtsOptsEnabledText = T.pack . show . rtsOptsEnabled $ dflags
+        putRtsHsMain =  dup rtsConfigType
+                     <> iconst jbool 1
+                     <> putfield (mkFieldRef rtsConfig "rtsHsMain" jbool)
+        putRtsOptsEnabled
+          =  dup rtsConfigType
+          <> getstatic (mkFieldRef rtsOptsEnbled rtsOptsEnabledText
+                                   rtsOptsEnbledType)
+          <> putfield (mkFieldRef rtsConfig "rtsOptsEnabled"
+                                  rtsOptsEnbledType)
+        putRtsOpts = case rtsOpts dflags of
+          Nothing -> mempty
+          Just s -> dup rtsConfigType
+                 <> sconst (T.pack s)
+                 <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
