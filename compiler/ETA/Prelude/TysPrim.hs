@@ -1,11 +1,12 @@
 {-
+(c) Rahul Muttineni, 2016
 (c) The AQUA Project, Glasgow University, 1994-1998
 
 
 \section[TysPrim]{Wired-in knowledge about primitive types}
 -}
 
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 
 -- | This module defines TyCons that can't be expressed in Haskell.
 --   They are all, therefore, wired-in TyCons.  C.f module TysWiredIn
@@ -130,6 +131,8 @@ import ETA.BasicTypes.SrcLoc
 import ETA.BasicTypes.Unique           ( mkAlphaTyVarUnique )
 import ETA.Prelude.PrelNames
 import ETA.Utils.FastString
+
+import ETA.CodeGen.Rts
 
 import Data.Char
 
@@ -880,10 +883,9 @@ jcharPrimTyCon   = pcPrimTyCon0 jcharPrimTyConName CharRep
 jboolPrimTyCon   = pcPrimTyCon0 jboolPrimTyConName BoolRep
 jbytePrimTyCon   = pcPrimTyCon0 jbytePrimTyConName ByteRep
 jshortPrimTyCon  = pcPrimTyCon0 jshortPrimTyConName ShortRep
-jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] $
-                     ObjectRep $ error "Object# shouldn't be used directly!"
+jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] $ ObjectRep ""
 jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles $
-                     ArrayRep $ error "JArray# shouldn't be used directly!"
+                     ArrayRep (ObjectRep "")
   where kind     = mkArrowKinds [unliftedTypeKind] liftedTypeKind
         roles    = [Nominal]
 

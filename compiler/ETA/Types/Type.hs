@@ -724,11 +724,14 @@ typePrimRep ty
       UnaryRep rep -> case rep of
         TyConApp tc tys ->
           case primRep of
-            ObjectRep _ -> case splitTyConApp_maybe (head tys) of
-              Just (tc1, tys1)
-                | tc1 `hasKey` jarrayPrimTyConKey -> ArrayRep $ typePrimRep (head tys1)
-                | otherwise -> objRep
-              _ -> objRep
+            ObjectRep x
+              | T.null x -> case splitTyConApp_maybe (head tys) of
+                Just (tc1, tys1)
+                  | tc1 `hasKey` jarrayPrimTyConKey ->
+                    ArrayRep $ typePrimRep (head tys1)
+                  | otherwise -> objRep
+                _ -> objRep
+              | otherwise -> primRep
             _ -> primRep
           where primRep = tyConPrimRep tc
                 objRep = ObjectRep $ tagTypeToText (head tys)
