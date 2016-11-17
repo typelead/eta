@@ -18,6 +18,9 @@ When Eta makes its first release, we want to make sure the minimum documentation
 
 Estimated time for the first release is January 2017.
 
+## Will Eta have an interpreter and support `TemplateHaskell` in the future?
+Yes. The plan is to use the external interpreter implementation from GHC 8 in Eta. The timeline for this feature is not yet decided, but it is currently not a priority.
+
 ## Will Eta be compatible with GHC 8?
 GHC 8 has made some fairy non-trivial changes to type system, so until that stabilizes and the bugs get ironed out, we want to avoid integrating those commits any time soon. On the other hand, there are quite a number of extensions that are orthogonal to the type system changes that we can integrate without drastic change, such as (but not limited to):
 
@@ -34,6 +37,13 @@ Eta will be a language with commercial support, backed by TypeLead. Therefore, o
 But we are also big fans of Haskell and we are disappointed that it's used so little in industry. We feel that Haskell can solve many big problems in software development, but there's no concerted effort in solving the infrastructure/tooling problems that are hard requirements for large-scale, industrial use. We hope that we can solve these with Eta. We have met one of the biggest industry requirements with Eta: interoperability with the Java ecosystem. 
 
 We will continue to tackle more problems, optimistic that we can reach the wider programming community down the line if we solve the right problems at the right time. We will focus on the user experience and address the problems that are preventing Haskell-like languages from infiltrating industry including useful libraries, an industry-grade IDE, comprehensive documentation, and online training. Rather than forcing our priorities onto the GHC developers, we decided to take our own route to stay nimble and accommodate the needs of industry. We will open source most of our work so that the Haskell community can adopt it if they so choose.
+
+## How does Eta compare to GHC in performance?
+The GHC RTS does lots of wonderful optimizations in memory layout that are only possible at the native-level. Because of this, the speed of Eta will, in almost all cases, be slower than GHC. Therefore, in performance sensitive applications, GHC is probably a better option. We hope to reduce this gap as much as possible.
+
+The current implementation aligns the Java call stack with the Eta runtime stack, allowing for a very efficient implementation of tail calls. This coupled with GHC's optimizations and a JVM-friendly encoding of the STG machine, yields decent performance. This strategy only works for lazy runtimes.
+
+Performance is one of our highest priorities and we are actively looking for new ways to squeeze out a couple of percentage points when we can. The JVM is evolving to support functional programming constructs, so we are optimistic that Eta will benefit from these advances.
 
 ## Why not work along with Haskell.org and help them improve their infrastructure and tooling?
 We are building a company around this, and we cannot rely on the speed of volunteer-based development. If we take matters into our own hands, we can achieve our targets at a much faster rate. This is not to say we will not collaborate with Haskell.org in attempts to keep the Eta ecosystem compatible with the Haskell ecosystem. These collaborations will not affect meeting our targets, so we are more than happy to do so. We will open source most of our work so that the Haskell community can adopt it if they so choose.
