@@ -15,8 +15,8 @@ public final class BlockPutMVarFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        context.R(1, mvar);
-        context.R(2, val);
+        context.O(1, mvar);
+        context.R(1, val);
         Concurrent.putMVar.enter(context);
     }
 }

@@ -182,7 +182,7 @@ shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
   ]
 
 shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
-  [ intCompOp ifnull [mvar <> castStgMVar <> mVarValue] ]
+  [ intCompOp ifnull [mvar <> mVarValue] ]
 
 shouldInlinePrimOp' dflags MakeStableNameOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint))) args ]
@@ -347,9 +347,6 @@ castStgArray = gconv closureType stgArrayType
 
 castStgMutVar :: Code
 castStgMutVar = gconv closureType stgMutVarType
-
-castStgMVar :: Code
-castStgMVar = gconv closureType stgMVarType
 
 castStgByteArray :: Code
 castStgByteArray = gconv closureType stgByteArrayType

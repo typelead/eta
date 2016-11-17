@@ -28,7 +28,7 @@ public class Concurrent {
     public static RtsFun takeMVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R(1);
+                StgMVar mvar = (StgMVar) context.O(1);
                 StgTSO tso;
                 mvar.lock();
                 if (mvar.value == null) {
@@ -37,7 +37,7 @@ public class Concurrent {
                     tso.whyBlocked = BlockedOnMVar;
                     tso.inMVarOperation = true;
                     mvar.pushLast(tso);
-                    context.R(1, mvar);
+                    context.O(1, mvar);
                     block_takemvar.enter(context);
                 } else {
                     StgClosure val = mvar.value;
@@ -62,7 +62,7 @@ public class Concurrent {
     public static RtsFun readMVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R(1);
+                StgMVar mvar = (StgMVar) context.O(1);
                 mvar.lock();
                 if (mvar.value == null) {
                     StgTSO tso = context.currentTSO;
@@ -70,7 +70,7 @@ public class Concurrent {
                     tso.whyBlocked = BlockedOnMVarRead;
                     tso.inMVarOperation = true;
                     mvar.pushFirst(tso);
-                    context.R(1, mvar);
+                    context.O(1, mvar);
                     block_readmvar.enter(context);
                 } else {
                     context.R(1, mvar.value);
@@ -82,8 +82,8 @@ public class Concurrent {
     public static RtsFun putMVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R(1);
-                StgClosure val = context.R(2);
+                StgMVar mvar = (StgMVar) context.O(1);
+                StgClosure val = context.R(1);
                 mvar.lock();
                 StgTSO tso;
                 if (mvar.value != null) {
@@ -92,12 +92,13 @@ public class Concurrent {
                     tso.whyBlocked = BlockedOnMVar;
                     tso.inMVarOperation = true;
                     mvar.pushLast(tso);
-                    context.R(1, mvar);
-                    context.R(2, val);
+                    context.O(1, mvar);
+                    context.R(1, val);
                     block_putmvar.enter(context);
                 } else {
-                    boolean loop = false;
+                    boolean loop;
                     do {
+                        loop = false;
                         tso = mvar.popFromQueue();
                         if (tso == null) {
                             mvar.value = val;
@@ -126,7 +127,7 @@ public class Concurrent {
             @Override
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
-                StgMVar mvar = (StgMVar) context.R(1);
+                StgMVar mvar = (StgMVar) context.O(1);
                 StgTSO tso = context.currentTSO;
                 tso.sp.add(new BlockTakeMVarFrame(mvar));
                 tso.whatNext = ThreadRunGHC;
@@ -140,7 +141,7 @@ public class Concurrent {
     public static RtsFun block_readmvar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgMVar mvar = (StgMVar) context.R(1);
+                StgMVar mvar = (StgMVar) context.O(1);
                 StgTSO tso = context.currentTSO;
                 tso.sp.add(new BlockReadMVarFrame(mvar));
                 tso.whatNext = ThreadRunGHC;
@@ -154,8 +155,8 @@ public class Concurrent {
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgMVar mvar = (StgMVar) context.R(1);
-                StgClosure val = context.R(2);
+                StgMVar mvar = (StgMVar) context.O(1);
+                StgClosure val = context.R(1);
                 tso.spPush(new BlockPutMVarFrame(mvar, val));
                 tso.whatNext = ThreadRunGHC;
                 context.ret = ThreadBlocked;
@@ -168,7 +169,7 @@ public class Concurrent {
     public static RtsFun tryReadMVar = new RtsFun() {
         @Override
         public void enter(StgContext context) {
-            StgMVar mvar = (StgMVar) context.R(1);
+            StgMVar mvar = (StgMVar) context.O(1);
             mvar.lock();
             StgClosure value = mvar.value;
             if (value == null) {
