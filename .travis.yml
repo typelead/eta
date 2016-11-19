@@ -3,9 +3,6 @@ sudo: false
 
 language: java
 
-jdk:
-  - oraclejdk8
-
 # Caching so the next build will be fast too.
 cache:
   directories:
@@ -22,10 +19,12 @@ addons:
 matrix:
   include:
     - env: BUILD=stack ARGS="--resolver lts-6.6"
-      addons: {apt: {packages: [libgmp-dev]}}
+      addons: {apt: {packages: [libgmp-dev, oracle-java8-installer]}}
+      os: linux
       compiler: ": #stack 7.10.3 linux"
     - env: BUILD=stack ARGS="--resolver lts-6.6"
       compiler: ": #stack 7.10.3 osx"
+      osx_image: xcode8
       os: osx
 
 before_install:
