@@ -17,13 +17,14 @@ cache:
 addons:
   apt:
     packages:
-      - libgmp-dev
+      - 
 
 matrix:
   include:
-    - env: CABALVER=1.22 GHCVER=7.10.3
-      addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.3],sources: [hvr-ghc]}}
-    - env: BUILD=stack ARGS="--resolver lts-6.7"
+    - env: BUILD=stack ARGS="--resolver lts-6.6"
+      addons: {apt: {packages: [libgmp-dev]}}
+      compiler: ": #stack 7.10.3 linux"
+    - env: BUILD=stack ARGS="--resolver lts-6.6"
       compiler: ": #stack 7.10.3 osx"
       os: osx
 
