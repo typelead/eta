@@ -100,7 +100,7 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTVar tvar = (StgTVar) context.R(1);
+                StgTVar tvar = (StgTVar) context.O(1);
                 context.R(1, cap.stmReadTvar(tso.trec, tvar));
             }
         };
@@ -109,7 +109,7 @@ public class STM {
             @Override
             public final void enter(StgContext context) {
                 StgClosure result;
-                StgTVar tvar = (StgTVar) context.R(1);
+                StgTVar tvar = (StgTVar) context.O(1);
                 do {
                     result = tvar.currentValue;
                 } while (!result.isTrecHeader());
@@ -122,8 +122,8 @@ public class STM {
             public final void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTVar tvar = (StgTVar) context.R(1);
-                StgClosure newValue = context.R(2);
+                StgTVar tvar = (StgTVar) context.O(1);
+                StgClosure newValue = context.R(1);
                 cap.stmWriteTvar(tso.trec, tvar, newValue);
             }
         };

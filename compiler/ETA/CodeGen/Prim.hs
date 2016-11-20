@@ -181,6 +181,14 @@ shouldInlinePrimOp' dflags NewMutVarOp args = Right $ return
  <> invokespecial (mkMethodRef stgMutVar "<init>" [closureType] void)
   ]
 
+shouldInlinePrimOp' dflags NewTVarOp args = Right $ return
+  [
+    new stgTVarType
+ <> dup stgTVarType
+ <> fold args
+ <> invokespecial (mkMethodRef stgTVar "<init>" [closureType] void)
+  ]
+
 shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
   [
     new stgMVarType
@@ -222,7 +230,6 @@ mkRtsPrimOp RetryOp                 = (stmGroup, "retry")
 mkRtsPrimOp CatchRetryOp            = (stmGroup, "catchRetry")
 mkRtsPrimOp CatchSTMOp              = (stmGroup, "catchSTM")
 mkRtsPrimOp Check                   = (stmGroup, "check")
-mkRtsPrimOp NewTVarOp               = (stmGroup, "newTVar")
 mkRtsPrimOp ReadTVarOp              = (stmGroup, "readTVar")
 mkRtsPrimOp ReadTVarIOOp            = (stmGroup, "readTVarIO")
 mkRtsPrimOp WriteTVarOp             = (stmGroup, "writeTVar")

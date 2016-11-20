@@ -32,7 +32,8 @@ par       = merge (rts "parallel")
 
 closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType, frameType,
   rtsFunType, conType, thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType,
-  stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType, hsResultType :: FieldType
+  stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType, hsResultType,
+  stgTVarType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -51,11 +52,12 @@ stgArrayType      = obj stgArray
 stgMutVarType     = obj stgMutVar
 stgByteArrayType  = obj stgByteArray
 stgMVarType       = obj stgMVar
+stgTVarType       = obj stgTVar
 hsResultType      = obj hsResult
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO,
   stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned,
-  stgMutVar, stgMVar, rtsGroup, hsResult :: Text
+  stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -76,6 +78,7 @@ stgByteArray  = io "StgByteArray"
 rtsUnsigned   = merge "eta/integer" "Utils"
 stgMutVar     = io "StgMutVar"
 stgMVar       = conc "StgMVar"
+stgTVar       = stm "StgTVar"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$HaskellResult"
 

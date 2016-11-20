@@ -4208,7 +4208,6 @@ primOpOutOfLine RetryOp = True
 primOpOutOfLine CatchRetryOp = True
 primOpOutOfLine CatchSTMOp = True
 primOpOutOfLine Check = True
-primOpOutOfLine NewTVarOp = True
 primOpOutOfLine ReadTVarOp = True
 primOpOutOfLine ReadTVarIOOp = True
 primOpOutOfLine WriteTVarOp = True
