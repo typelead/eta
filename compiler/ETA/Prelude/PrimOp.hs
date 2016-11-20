@@ -4194,7 +4194,6 @@ primOpOutOfLine ResizeMutableByteArrayOp_Char = True
 primOpOutOfLine NewArrayArrayOp = True
 primOpOutOfLine CopyArrayArrayOp = True
 primOpOutOfLine CopyMutableArrayArrayOp = True
-primOpOutOfLine NewMutVarOp = True
 primOpOutOfLine AtomicModifyMutVarOp = True
 primOpOutOfLine CasMutVarOp = True
 primOpOutOfLine CatchOp = True

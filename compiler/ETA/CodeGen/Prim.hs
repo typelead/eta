@@ -173,6 +173,14 @@ shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
  <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
   ]
 
+shouldInlinePrimOp' dflags NewMutVarOp args = Right $ return
+  [
+    new stgMutVarType
+ <> dup stgMutVarType
+ <> fold args
+ <> invokespecial (mkMethodRef stgMutVar "<init>" [closureType] void)
+  ]
+
 shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
   [
     new stgMVarType
@@ -209,7 +217,6 @@ mkRtsPrimOp MaskUninterruptibleOp   = (stgExceptionGroup, "maskUninterruptible")
 mkRtsPrimOp UnmaskAsyncExceptionsOp = (stgExceptionGroup, "unmaskAsyncExceptions")
 mkRtsPrimOp MaskStatus              = (stgExceptionGroup, "getMaskingState")
 mkRtsPrimOp FloatDecode_IntOp       = (ioGroup, "decodeFloat_Int")
-mkRtsPrimOp NewMutVarOp             = (ioGroup, "newMutVar")
 mkRtsPrimOp AtomicallyOp            = (stmGroup, "atomically")
 mkRtsPrimOp RetryOp                 = (stmGroup, "retry")
 mkRtsPrimOp CatchRetryOp            = (stmGroup, "catchRetry")
@@ -344,9 +351,6 @@ intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
 castStgArray :: Code
 castStgArray = gconv closureType stgArrayType
-
-castStgMutVar :: Code
-castStgMutVar = gconv closureType stgMutVarType
 
 castStgByteArray :: Code
 castStgByteArray = gconv closureType stgByteArrayType
@@ -624,8 +628,8 @@ simpleOp JByte2IntOp = Just idOp
 simpleOp Int2JBoolOp = Just idOp
 
 -- StgMutVar ops
-simpleOp ReadMutVarOp = Just $ normalOp $ castStgMutVar <> mutVarValue
-simpleOp WriteMutVarOp = Just $ castThisOp castStgMutVar $ mutVarSetValue
+simpleOp ReadMutVarOp = Just $ normalOp mutVarValue
+simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
 simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 
 -- Addr# ops

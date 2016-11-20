@@ -666,7 +666,8 @@ mkSmallMutableArrayPrimTy s elt = TyConApp smallMutableArrayPrimTyCon [s, elt]
 -}
 
 mutVarPrimTyCon :: TyCon
-mutVarPrimTyCon = pcPrimTyCon mutVarPrimTyConName [Nominal, Representational] PtrRep
+mutVarPrimTyCon = pcPrimTyCon mutVarPrimTyConName [Nominal, Representational]
+                                                  (ObjectRep stgMutVar)
 
 mkMutVarPrimTy :: Type -> Type -> Type
 mkMutVarPrimTy s elt        = TyConApp mutVarPrimTyCon [s, elt]

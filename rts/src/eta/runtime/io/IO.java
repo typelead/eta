@@ -28,20 +28,11 @@ public class IO {
         }
     };
 
-    public static RtsFun newMutVar = new RtsFun() {
-            @Override
-            public void enter(StgContext context) {
-                StgClosure init = context.R(1);
-                StgMutVar mv = new StgMutVar(init);
-                context.R(1, mv);
-            }
-        };
-
     public static RtsFun atomicModifyMutVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgMutVar mv = (StgMutVar) context.R(1);
-                StgClosure f = context.R(2);
+                StgMutVar mv = (StgMutVar) context.O(1);
+                StgClosure f = context.R(1);
                 Ap2Upd z = new Ap2Upd(f, null);
                 SelectorPUpd y = new SelectorPUpd(0, z);
                 SelectorPUpd r = new SelectorPUpd(1, z);
@@ -64,9 +55,9 @@ public class IO {
     public static RtsFun casMutVar = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgMutVar mv = (StgMutVar) context.R(1);
-                StgClosure old = context.R(2);
-                StgClosure new_ = context.R(3);
+                StgMutVar mv = (StgMutVar) context.O(1);
+                StgClosure old = context.R(1);
+                StgClosure new_ = context.R(2);
                 if (mv.cas(old, new_)) {
                     context.I(1, 0);
                     context.R(1, new_);
