@@ -60,7 +60,7 @@ script:
 - cd tests/verify/
 - ./verify.sh
 - |
-  if [ `uname` != "Darwin"]
+  if [ `uname` != "Darwin" ]
   then
     cd ../packages/
     ./Test.hs
