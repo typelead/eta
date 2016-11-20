@@ -10,12 +10,6 @@ cache:
   - $HOME/.cabal
   - $HOME/.stack
 
-# Ensure necessary system libraries are present
-addons:
-  apt:
-    packages:
-      - 
-
 matrix:
   include:
     - env: BUILD=stack ARGS="--resolver lts-6.6"
@@ -65,6 +59,9 @@ script:
 # Build the package, its tests, and its docs and run the tests
 - cd tests/verify/
 - ./verify.sh
-- cd ../packages/
-- ./Test.hs
-
+- |
+  if [ `uname` != "Darwin"]
+  then
+    cd ../packages/
+    ./Test.hs
+  fi
