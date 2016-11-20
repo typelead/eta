@@ -18,7 +18,7 @@ import qualified Data.Text as T
 merge :: Text -> Text -> Text
 merge x y = append x . cons '/' $ y
 
-rts, apply, thunk, stg, exception, io, util, stm, par :: Text -> Text
+rts, apply, thunk, stg, exception, io, util, stm, par, interp :: Text -> Text
 rts       = merge "eta/runtime"
 apply     = merge (rts "apply")
 thunk     = merge (rts "thunk")
@@ -29,11 +29,12 @@ conc      = merge (rts "concurrent")
 util      = merge (rts "util")
 stm       = merge (rts "stm")
 par       = merge (rts "parallel")
+interp    = merge (rts "interpreter")
 
-closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType, frameType,
-  rtsFunType, conType, thunkType, rtsConfigType, exitCodeType, rtsOptsEnbledType,
-  stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType, hsResultType,
-  stgTVarType :: FieldType
+closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType,
+  frameType, rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
+  rtsOptsEnbledType, stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType,
+  hsResultType, stgTVarType, stgBCOType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -54,6 +55,7 @@ stgByteArrayType  = obj stgByteArray
 stgMVarType       = obj stgMVar
 stgTVarType       = obj stgTVar
 hsResultType      = obj hsResult
+stgBCOType        = obj stgBCO
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO,
   stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned,
@@ -79,6 +81,7 @@ rtsUnsigned   = merge "eta/integer" "Utils"
 stgMutVar     = io "StgMutVar"
 stgMVar       = conc "StgMVar"
 stgTVar       = stm "StgTVar"
+stgBCO        = interp "StgBCO"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$HaskellResult"
 

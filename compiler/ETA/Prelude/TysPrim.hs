@@ -741,7 +741,7 @@ mkStableNamePrimTy ty = TyConApp stableNamePrimTyCon [ty]
 bcoPrimTy    :: Type
 bcoPrimTy    = mkTyConTy bcoPrimTyCon
 bcoPrimTyCon :: TyCon
-bcoPrimTyCon = pcPrimTyCon0 bcoPrimTyConName PtrRep
+bcoPrimTyCon = pcPrimTyCon0 bcoPrimTyConName (ObjectRep stgBCO)
 
 {-
 ************************************************************************
