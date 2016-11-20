@@ -39,14 +39,14 @@ public final class StgArray extends StgClosure {
         return new StgArray(arr);
     }
 
-    public static void copyArray( StgClosure srcArray, int srcOffset
-                                , StgClosure destArray, int destOffset, int n) {
-        System.arraycopy(((StgArray) srcArray).arr, srcOffset, ((StgArray) destArray), destOffset, n);
+    public static void copyArray( StgArray srcArray, int srcOffset
+                                , StgArray destArray, int destOffset, int n) {
+        System.arraycopy(srcArray.arr, srcOffset, destArray, destOffset, n);
     }
 
-    public static StgArray cloneArray(StgClosure srcArray, int offset, int n) {
+    public static StgArray cloneArray(StgArray srcArray, int offset, int n) {
         StgClosure[] arr = new StgClosure[n];
-        System.arraycopy(((StgArray) srcArray).arr, offset, arr, 0, n);
+        System.arraycopy(srcArray.arr, offset, arr, 0, n);
         return new StgArray(arr);
     }
 }
