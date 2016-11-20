@@ -340,20 +340,11 @@ nopOp _            = False
 normalOp :: Code -> [Code] -> Code
 normalOp code args = fold args <> code
 
-castThisOp :: Code -> Code -> [Code] -> Code
-castThisOp cast code (this:args) = (this <> cast) <> fold args <> code
-
 idOp :: [Code] -> Code
 idOp = normalOp mempty
 
 intCompOp :: (Code -> Code -> Code) -> [Code] -> Code
 intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
-
-castStgArray :: Code
-castStgArray = gconv closureType stgArrayType
-
-castStgByteArray :: Code
-castStgByteArray = gconv closureType stgByteArrayType
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 
@@ -361,21 +352,21 @@ simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 simpleOp UnsafeFreezeArrayOp  = Just idOp
 simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
 simpleOp SizeofArrayOp = Just $
-  castThisOp castStgArray $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
+  normalOp $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
 simpleOp SizeofMutableArrayOp = Just $
-  castThisOp castStgArray $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
+  normalOp $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
 -- TODO: Inline the get/set's
 simpleOp WriteArrayOp = Just $
-  castThisOp castStgArray $ invokevirtual
+  normalOp $ invokevirtual
     $ mkMethodRef stgArray "set" [jint, closureType] void
 simpleOp ReadArrayOp = Just $
-  castThisOp castStgArray $ invokevirtual
+  normalOp $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
 simpleOp IndexArrayOp = Just $
-  castThisOp castStgArray $ invokevirtual
+  normalOp $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
 -- ByteArray# & MutableByteArray# ops
-simpleOp ByteArrayContents_Char = Just $ normalOp $ castStgByteArray <> byteArrayBuf
+simpleOp ByteArrayContents_Char = Just $ normalOp byteArrayBuf
 simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
 simpleOp UnsafeFreezeByteArrayOp = Just idOp
 simpleOp IndexByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
@@ -804,11 +795,11 @@ addrWriteOp ft argCode = \[this, ix, val] ->
 
 byteArrayIndexOp :: FieldType -> Code -> [Code] -> Code
 byteArrayIndexOp ft resCode = \[this, ix] ->
-  addrIndexOp ft resCode [this <> castStgByteArray <> byteArrayBuf, ix]
+  addrIndexOp ft resCode [this <> byteArrayBuf, ix]
 
 byteArrayWriteOp :: FieldType -> Code -> [Code] -> Code
 byteArrayWriteOp ft argCode = \[this, ix, val] ->
-  addrWriteOp ft argCode [this <> castStgByteArray <> byteArrayBuf, ix, val]
+  addrWriteOp ft argCode [this <> byteArrayBuf, ix, val]
 
 preserveByte :: Code
 preserveByte = iconst jint 0xFF <> iand

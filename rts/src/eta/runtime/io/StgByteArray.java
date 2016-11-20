@@ -73,18 +73,18 @@ public final class StgByteArray extends StgClosure {
         barf("StgByteArray object entered!");
     }
 
-    public static void copyAddrToByteArray( ByteBuffer src, StgClosure destArray
+    public static void copyAddrToByteArray( ByteBuffer src, StgByteArray destArray
                                           , int offset, int n) {
-        ByteBuffer dest = (ByteBuffer) ((StgByteArray) destArray).buf;
+        ByteBuffer dest = destArray.buf;
         dest.position(offset);
         dest.put(src);
         src.rewind();
         dest.rewind();
     }
 
-    public static void copyByteArrayToAddr( StgClosure srcArray, int offset
+    public static void copyByteArrayToAddr( StgByteArray srcArray, int offset
                                           , ByteBuffer dest, int n) {
-        ByteBuffer src = (ByteBuffer) ((StgByteArray) srcArray).buf;
+        ByteBuffer src = srcArray.buf;
         src.position(offset);
         src.limit(offset + n);
         dest.put(src);
@@ -92,10 +92,11 @@ public final class StgByteArray extends StgClosure {
         src.clear();
     }
 
-    public static void copyByteArray( StgClosure srcArray, int srcOffset
-                                    , StgClosure destArray, int destOffset, int n) {
-        ByteBuffer src = (ByteBuffer) ((StgByteArray) srcArray).buf;
-        ByteBuffer dest = (ByteBuffer) ((StgByteArray) destArray).buf;
+    public static void copyByteArray( StgByteArray srcArray, int srcOffset
+                                    , StgByteArray destArray, int destOffset
+                                    , int n) {
+        ByteBuffer src  = srcArray.buf;
+        ByteBuffer dest = destArray.buf;
         src.position(srcOffset);
         src.limit(srcOffset + n);
         dest.position(destOffset);
