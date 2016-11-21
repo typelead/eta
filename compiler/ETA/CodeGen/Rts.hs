@@ -34,7 +34,7 @@ interp    = merge (rts "interpreter")
 closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType,
   frameType, rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
   rtsOptsEnbledType, stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType,
-  hsResultType, stgTVarType, stgBCOType :: FieldType
+  hsResultType, stgTVarType, stgBCOType, stgWeakType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -56,10 +56,12 @@ stgMVarType       = obj stgMVar
 stgTVarType       = obj stgTVar
 hsResultType      = obj hsResult
 stgBCOType        = obj stgBCO
+stgWeakType       = obj stgWeak
 
-stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk, stgFun, stgTSO,
-  stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray, stgByteArray, rtsUnsigned,
-  stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult :: Text
+stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
+  stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
+  stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
+  stgBCO, stgWeak :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -82,6 +84,7 @@ stgMutVar     = io "StgMutVar"
 stgMVar       = conc "StgMVar"
 stgTVar       = stm "StgTVar"
 stgBCO        = interp "StgBCO"
+stgWeak       = stg "StgWeak"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$HaskellResult"
 

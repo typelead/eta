@@ -19,7 +19,7 @@ public class Stg {
                 StgClosure finalizer = context.R(3);
                 StgWeak weak = new StgWeak(key, value, finalizer);
                 cap.weakPtrList.add(weak);
-                context.R(1, weak);
+                context.O(1, weak);
             }
         };
 
@@ -35,7 +35,7 @@ public class Stg {
             @Override
             public void enter(StgContext context) {
                 /* TODO: Grab finalizer args */
-                StgWeak w = (StgWeak) context.R(1);
+                StgWeak w = (StgWeak) context.O(1);
                 w.lock();
                 if (w.isDead()) {
                     w.unlock();
@@ -51,7 +51,7 @@ public class Stg {
     public static RtsFun finalizzeWeak = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgWeak w = (StgWeak) context.R(1);
+                StgWeak w = (StgWeak) context.O(1);
                 w.lock();
                 if (w.isDead()) {
                     w.unlock();
@@ -79,7 +79,7 @@ public class Stg {
     public static RtsFun deRefWeak = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgWeak w = (StgWeak) context.R(1);
+                StgWeak w = (StgWeak) context.O(1);
                 if (!w.tryLock()) {
                     w.lock();
                     w.unlock();

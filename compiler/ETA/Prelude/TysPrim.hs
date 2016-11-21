@@ -752,7 +752,7 @@ bcoPrimTyCon = pcPrimTyCon0 bcoPrimTyConName (ObjectRep stgBCO)
 -}
 
 weakPrimTyCon :: TyCon
-weakPrimTyCon = pcPrimTyCon weakPrimTyConName [Representational] PtrRep
+weakPrimTyCon = pcPrimTyCon weakPrimTyConName [Representational] (ObjectRep stgWeak)
 
 mkWeakPrimTy :: Type -> Type
 mkWeakPrimTy v = TyConApp weakPrimTyCon [v]
