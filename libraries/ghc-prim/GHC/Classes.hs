@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns #-}
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, KindSignatures, FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds, DataKinds, TypeFamilies, UndecidableInstances, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, PolyKinds, TypeOperators, NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 -- XXX -fno-warn-unused-imports needed for the GHC.Tuple import below. Sigh.
 {-# OPTIONS_HADDOCK hide #-}
@@ -312,9 +312,28 @@ instance Class JString where
   obj = JS#
 
 -- For embedding Java class hierarchies
--- a is the child, b is the parent
+data Defined = Yes | No
+type family Inherits (a :: *) :: [*]
 
-type family Super (a :: *) :: *
+type family Super (a :: *) :: * where
+  Super a = Head (Inherits a)
+
+type family Head (a :: [*]) :: * where
+  Head (a ': b) = a
+  Head '[] = Object
+
+type family ExtendsList (a :: [*]) (b :: *) :: Defined where
+  ExtendsList '[] y = No
+  ExtendsList (x ': xs) y = Or (Extends' x y) (ExtendsList xs y)
+
+type family Extends' (a :: *) (b :: *) :: Defined where
+  Extends' a a = Yes
+  Extends' Object a = No
+  Extends' a b = ExtendsList (Inherits a) b
+
+type family Or (a :: Defined) (b :: Defined) :: Defined where
+  Or No No = No
+  Or a  b  = Yes
 
 class (Class a, Class b) => Extends a b where
   superCast :: a -> b
@@ -330,5 +349,4 @@ instance Class a => Extends a a where
   {-# INLINE unsafeCast #-}
   unsafeCast x = x
 
-instance {-# INCOHERENT #-} (Class a, Super a ~ b, Extends b c) => Extends a c where
-
+instance (Class a, Class b, Extends' a b ~ Yes) => Extends a b where
