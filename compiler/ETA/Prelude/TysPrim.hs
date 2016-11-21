@@ -777,7 +777,7 @@ to the thread id internally.
 threadIdPrimTy :: Type
 threadIdPrimTy    = mkTyConTy threadIdPrimTyCon
 threadIdPrimTyCon :: TyCon
-threadIdPrimTyCon = pcPrimTyCon0 threadIdPrimTyConName PtrRep
+threadIdPrimTyCon = pcPrimTyCon0 threadIdPrimTyConName (ObjectRep stgTSO)
 
 {-
 ************************************************************************

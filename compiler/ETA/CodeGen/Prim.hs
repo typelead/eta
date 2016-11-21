@@ -243,7 +243,6 @@ mkRtsPrimOp ForkOp                  = (concGroup, "fork")
 mkRtsPrimOp ForkOnOp                = (concGroup, "forkOn")
 mkRtsPrimOp KillThreadOp            = (stgExceptionGroup, "killThread")
 mkRtsPrimOp YieldOp                 = (concGroup, "yield")
-mkRtsPrimOp MyThreadIdOp            = (concGroup, "myThreadId")
 mkRtsPrimOp LabelThreadOp           = (concGroup, "labelThread")
 mkRtsPrimOp IsCurrentThreadBoundOp  = (concGroup, "isCurrentThreadBound")
 mkRtsPrimOp NoDuplicateOp           = (stgGroup, "noDuplicate")
@@ -354,6 +353,8 @@ intCompOp :: (Code -> Code -> Code) -> [Code] -> Code
 intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
+
+simpleOp MyThreadIdOp  = Just $ normalOp $ loadContext <> currentTSOField
 
 -- Array# & MutableArray# ops
 simpleOp UnsafeFreezeArrayOp  = Just idOp

@@ -4226,7 +4226,6 @@ primOpOutOfLine ForkOp = True
 primOpOutOfLine ForkOnOp = True
 primOpOutOfLine KillThreadOp = True
 primOpOutOfLine YieldOp = True
-primOpOutOfLine MyThreadIdOp = True
 primOpOutOfLine LabelThreadOp = True
 primOpOutOfLine IsCurrentThreadBoundOp = True
 primOpOutOfLine NoDuplicateOp = True

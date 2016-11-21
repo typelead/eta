@@ -17,8 +17,8 @@ public class BlockThrowToFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        context.R(1, tso);
-        context.R(2, exception);
+        context.O(1, tso);
+        context.R(1, exception);
         StgException.killThread.enter(context);
     }
 }

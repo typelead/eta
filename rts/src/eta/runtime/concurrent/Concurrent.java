@@ -195,7 +195,7 @@ public class Concurrent {
                 tso.addFlags(currentTSO.flags & (TSO_BLOCKEX | TSO_INTERRUPTIBLE));
                 Rts.scheduleThread(cap, tso);
                 cap.contextSwitch = true;
-                context.R(1, tso);
+                context.O(1, tso);
             }
         };
 
@@ -210,7 +210,7 @@ public class Concurrent {
                 tso.addFlags(currentTSO.flags & (TSO_BLOCKEX | TSO_INTERRUPTIBLE));
                 Rts.scheduleThreadOn(cap, cpu, tso);
                 cap.contextSwitch = true;
-                context.R(1, tso);
+                context.O(1, tso);
             }
         };
 
@@ -233,14 +233,7 @@ public class Concurrent {
             }
         };
 
-    public static RtsFun myThreadId = new RtsFun() {
-            @Override
-            public void enter(StgContext context) {
-                StgTSO tso = context.currentTSO;
-                context.R(1, tso);
-            }
-        };
-
+    /* TODO: Inline this */
     public static RtsFun isCurrentThreadBound = new RtsFun() {
             @Override
             public void enter(StgContext context) {
@@ -252,7 +245,7 @@ public class Concurrent {
     public static RtsFun threadStatus = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgTSO tso = (StgTSO) context.R(1);
+                StgTSO tso = (StgTSO) context.O(1);
                 WhatNext whatNext = tso.whatNext;
                 int ret;
                 WhyBlocked whyBlocked = tso.whyBlocked;

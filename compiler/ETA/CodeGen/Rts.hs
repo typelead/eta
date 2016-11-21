@@ -148,11 +148,14 @@ constrField = cons 'x' . pack . show
 constrFieldGetter :: Int -> Text
 constrFieldGetter = append "get" . pack . show
 
+myCapability :: FieldRef
+myCapability = mkFieldRef stgContext "myCapability" capabilityType
+
 contextMyCapability :: Code
-contextMyCapability = getfield $ mkFieldRef stgContext "myCapability" capabilityType
+contextMyCapability = getfield myCapability
 
 contextMyCapabilitySet :: Code
-contextMyCapabilitySet = putfield $ mkFieldRef stgContext "myCapability" capabilityType
+contextMyCapabilitySet = putfield myCapability
 
 suspendThreadMethod :: Bool -> Code
 suspendThreadMethod interruptible =

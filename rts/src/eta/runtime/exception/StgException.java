@@ -137,12 +137,12 @@ public class StgException extends RuntimeException {
     public static RtsFun killThread = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgTSO target = (StgTSO) context.R(1);
+                StgTSO target = (StgTSO) context.O(1);
                 StgTSO tso = context.currentTSO;
                 if (target == tso) {
                     killMyself.enter(context);
                 } else {
-                    StgClosure exception = context.R(2);
+                    StgClosure exception = context.R(1);
                     Capability cap = context.myCapability;
                     MessageThrowTo msg = cap.throwTo(tso, target, exception);
                     if (msg == null) {
@@ -161,8 +161,8 @@ public class StgException extends RuntimeException {
             public void enter(StgContext context) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                StgTSO target = (StgTSO) context.R(1);
-                StgClosure exception = context.R(2);
+                StgTSO target = (StgTSO) context.O(1);
+                StgClosure exception = context.R(1);
                 cap.throwToSingleThreaded(target, exception);
                 if (tso.whatNext == ThreadKilled) {
                     Stg.threadFinished.enter(context);
@@ -209,8 +209,8 @@ public class StgException extends RuntimeException {
     public static RtsFun block_throwto = new RtsFun() {
             @Override
             public void enter(StgContext context) {
-                StgTSO tso = (StgTSO) context.R(1);
-                StgClosure exception = context.R(2);
+                StgTSO tso = (StgTSO) context.O(1);
+                StgClosure exception = context.R(1);
                 tso.sp.add(new BlockThrowToFrame(tso, exception));
                 MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
                 if (msg.isLocked()) {
