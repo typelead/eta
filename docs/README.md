@@ -2,6 +2,7 @@
 
 The documentation is currently incomplete.
 
+- [Getting Started](./Getting-Started.md)
 - [Interaction with Java](./FFI.md)
 - [Debugging Stack Traces](./Debugging-Stack-Traces.md)
 - [FAQ](./FAQ.md)
