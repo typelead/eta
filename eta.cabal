@@ -1,5 +1,5 @@
 name:                eta
-version:             0.0.1
+version:             0.0.2
 description:         Modern Haskell on the JVM
 license:             BSD3
 license-file:        LICENSE
