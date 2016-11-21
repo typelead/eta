@@ -24,48 +24,6 @@ Unboxed types are those types which must have a well-defined value and hence can
 
 They tend to be suffixed with a `#` and require the use of `MagicHash` language extension in order to be recognized in source code. Primitive types have a special representation at the JVM level, shown below.
 
-| Primitive Type | Java Type | Notes |
-| :---: | :---: | --- |
-| `Char#` | int | |
-| `Int#` | int | |
-| `Int32#` | int | |
-| `Int64#` | long | |
-| `Word#` | int | |
-| `Word32#` | int | |
-| `Word64#` | long | |
-| `Float#` | float | |
-| `Double#` | double | |
-| `JChar#` | char | |
-| `JString#`| java.lang.String| To cast it to Haskell `String`, use `unpackCString` from `GHC.Pack`|
-| `JBool#` | boolean | |
-| `JByte#` | byte | |
-| `JShort#` | short | |
-| `Object# c` | Depends on the tag of c |  |
-| `JArray# c` | Depends on the tag of c | You *cannot* use `JArray# c` directly! It must be used in conjunction with `Object#`, like `Object# (JArray# Int#)` which corresponds to `int[]` or `Object# (JArray# (Object# String))` which corresponds to `String[]`. |
-| `Addr#` | java.nio.ByteBuffer | |
-| ``State# a`` | none | |
-| `Void#` | none | |
-| `Proxy#` | none | |
-| ``a ~# b`` | none | |
-| ``a ~R# b`` | none | |
-| `RealWorld` | eta.runtime.stg.StgClosure | |
-| `Array#` | eta.runtime.stg.StgClosure | |
-| `ByteArray#` | eta.runtime.stg.StgClosure | |
-| `ArrayArray#` | eta.runtime.stg.StgClosure | |
-| `SmallArray#` | eta.runtime.stg.StgClosure | |
-| `MutableArray#` | eta.runtime.stg.StgClosure | |
-| `MutableByteArray#` | eta.runtime.stg.StgClosure | |
-| `MutableArrayArray#` | eta.runtime.stg.StgClosure | |
-| `SmallMutableArray#` | eta.runtime.stg.StgClosure | |
-| `MutVar#` | eta.runtime.stg.StgClosure | |
-| `MVar#` | eta.runtime.stg.StgClosure | |
-| `TVar#` | eta.runtime.stg.StgClosure | |
-| `StablePtr#` | int | |
-| `StableName#` | int | |
-| `BCO#` | eta.runtime.stg.StgClosure | |
-| `Weak#` | eta.runtime.stg.StgClosure | |
-| `ThreadId#` | eta.runtime.stg.StgClosure | |
-
 ### Boxed Types
 
 Boxed types, on the other hand, can have values which can be thunks and may also be undefined if the evaluation of the thunk leads to an error state. Boxed types can store both boxed and unboxed values internally.
@@ -75,6 +33,49 @@ Example:
 ```haskell
 data Int = I# Int#
 ```
+
+### Primitive Types Reference
+
+| Boxed Type | Primitive Type | Java Type | Notes |
+| :---: | :---: | :---: | --- |
+| `Char` | `Char#` | int | |
+| `Int` |  `Int#` | int | |
+| `Int32` |  `Int32#` | int | |
+| `Int64` |`Int64#` | long | |
+| `Word` | `Word#` | int | |
+| `Word32` | `Word32#` | int | |
+| `Word64` | `Word64#` | long | |
+| `Float` | `Float#` | float | |
+| `Double` | `Double#` | double | |
+| - | `JChar#` | char | |
+| `JString` | `JString#`| java.lang.String | To cast it to Haskell `String`, use `unpackCString` from `GHC.Pack`|
+| `Bool` |  `JBool#` | boolean | This is a special case, since `Bool` is not exactly the boxed form of `JBooL#` |
+| - | `JByte#` | byte | |
+| - | `JShort#` | short | |
+| - | `Object# c` | Reference type | Depends on the tag of c |
+| - | `Addr#` | java.nio.ByteBuffer | |
+| - | ``State# a`` | none | |
+| - | `Void#` | none | |
+| `Proxy` | `Proxy#` | none | |
+| `a ~` b |  ``a ~# b`` | none | |
+| `a ~`R b | ``a ~R# b`` | none | |
+| - | `RealWorld` | eta.runtime.stg.StgClosure | |
+| `Array` | `Array#` | eta.runtime.io.StgArray | |
+| - | `ByteArray#` | eta.runtime.io.StgByteArray | |
+| - | `ArrayArray#` | eta.runtime.stg.StgClosure | Unimplemented |
+| - | `SmallArray#` | eta.runtime.stg.StgClosure | Unimplemented |
+| - | `MutableArray#` | eta.runtime.io.StgArray | |
+| - | `MutableByteArray#` | eta.runtime.io.StgByteArray | |
+| - | `MutableArrayArray#` | eta.runtime.stg.StgClosure | Unimplemented |
+| - | `SmallMutableArray#` | eta.runtime.stg.StgClosure | Unimplemented |
+| `IORef`, `STRef` | `MutVar#` | eta.runtime.io.StgMutVar | |
+| `MVar` | `MVar#` | eta.runtime.concurrent.StgMVar | |
+| `TVar` | `TVar#` | eta.runtime.stm.StgTVar | |
+| `StablePtr` a | `StablePtr#` | int | |
+| `StableName` | `StableName#` | int | |
+| - | `BCO#` | eta.runtime.interpreter.StgBCO | |
+| `Weak` | `Weak#` | eta.runtime.stg.StgWeak | |
+| `ThreadId` | `ThreadId#` | eta.runtime.stg.StgTSO | |
 
 ### Declaring Tag Types
 
