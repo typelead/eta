@@ -3,7 +3,7 @@
 --
 -- Type - public interface
 
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Main functions for manipulating types and type-related things
@@ -728,11 +728,24 @@ typePrimRep ty
               | otherwise -> primRep
             _ -> primRep
           where primRep = tyConPrimRep tc
-                objRep = ObjectRep $ tagTypeToText (head tys)
+                objRep = mkObjectRep (tagTypeToText (head tys))
         FunTy _ _     -> PtrRep
         AppTy _ _     -> PtrRep      -- See Note [AppTy rep]
         TyVarTy _     -> PtrRep
         _             -> pprPanic "typePrimRep: UnaryRep" (ppr ty)
+
+mkObjectRep :: Text -> PrimRep
+mkObjectRep text
+  | T.takeEnd 2 text == "[]" = ArrayRep (mkObjectRep $ T.dropEnd 2 text)
+  | otherwise = checkPrimitiveType text
+  where checkPrimitiveType "boolean" = BoolRep
+        checkPrimitiveType "byte"    = ByteRep
+        checkPrimitiveType "char"    = CharRep
+        checkPrimitiveType "int"     = IntRep
+        checkPrimitiveType "long"    = Int64Rep
+        checkPrimitiveType "float"   = FloatRep
+        checkPrimitiveType "double"  = DoubleRep
+        checkPrimitiveType text      = ObjectRep text
 
 tagTypeToText :: Type -> Text
 tagTypeToText ty = either (uncurry pprPanic)
