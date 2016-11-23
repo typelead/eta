@@ -107,7 +107,7 @@ main = do
            die (concat errors ++ shortUsage prog)
 
 myVersion :: String
-myVersion = "0.0.1"
+myVersion = "0.0.2"
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 

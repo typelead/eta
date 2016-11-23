@@ -1862,7 +1862,7 @@ maybeMainAndManifest dflags isExecutable = do
                         , BC.pack $
                            "Manifest-Version: 1.0\n"
                         -- TODO: Add actual versioning information here
-                        ++ "Created-By: eta-0.0.1\n"
+                        ++ "Created-By: eta-0.0.2\n"
                         ++ maybe "" (const $ "Main-Class: " ++ mainClassJava)
                                  mainFile)
 

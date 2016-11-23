@@ -15,7 +15,7 @@ cProjectName, cProjectVersion, cProjectVersionInt, cProjectPatchLevel, cProjectP
   ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2
   :: String
 cProjectName = "The Eta programming language compiler"
-cProjectVersion = "0.0.1"
+cProjectVersion = "0.0.2"
 cProjectVersionInt = "000"
 cProjectPatchLevel = "1"
 cProjectPatchLevel1 = "1"
