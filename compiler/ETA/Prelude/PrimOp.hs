@@ -4008,24 +4008,24 @@ primOpInfo DecodeDoubleInteger =
   --       implementation later. unsafeCoerce# should be used to get the original type
   --       (currently BigInteger)
 primOpInfo ObjectArrayAtOp        =
-  mkGenPrimOp (fsLit "objectArrayAt#") [alphaTyVar, betaTyVar]
-  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
-  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy alphaTy ]
+  mkGenPrimOp (fsLit "objectArrayAt#") [alphaTyVar, betaTyVar, gammaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy gammaTy ]
 primOpInfo ObjectArraySetOp        =
-  mkGenPrimOp (fsLit "objectArraySet#") [alphaTyVar, betaTyVar]
-  [ mkObjectArrayPrimTy alphaTy, intPrimTy, mkObjectPrimTy alphaTy, mkStatePrimTy betaTy ]
+  mkGenPrimOp (fsLit "objectArraySet#") [alphaTyVar, betaTyVar, gammaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkObjectPrimTy gammaTy, mkStatePrimTy betaTy ]
   $ mkStatePrimTy betaTy
 primOpInfo IndexJByteArrayOp       =
-  mkGenPrimOp (fsLit "indexJByteArray#") []
-  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy] $ jbytePrimTy
+  mkGenPrimOp (fsLit "indexJByteArray#") [alphaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy] $ jbytePrimTy
 primOpInfo ReadJByteArrayOp        =
-  mkGenPrimOp (fsLit "readJByteArray#") [alphaTyVar]
-  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, mkStatePrimTy alphaTy ]
-  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, jbytePrimTy]
+  mkGenPrimOp (fsLit "readJByteArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, jbytePrimTy]
 primOpInfo WriteJByteArrayOp        =
-  mkGenPrimOp (fsLit "writeJByteArray#") [alphaTyVar]
-  [ mkJavaArrayPrimTy jbytePrimTy, intPrimTy, jbytePrimTy, mkStatePrimTy alphaTy ]
-  $ mkStatePrimTy alphaTy
+  mkGenPrimOp (fsLit "writeJByteArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, jbytePrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
 primOpInfo JByte2CharOp = mkGenPrimOp (fsLit "byte2Char#")  [] [jbytePrimTy] charPrimTy
 primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "bool2Int#")  [] [jboolPrimTy] intPrimTy
 primOpInfo StablePtr2AddrOp = mkGenPrimOp (fsLit "stablePtr2Addr#") [alphaTyVar] [mkStablePtrPrimTy alphaTy] addrPrimTy

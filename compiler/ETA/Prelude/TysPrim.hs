@@ -83,8 +83,6 @@ module ETA.Prelude.TysPrim(
         jbytePrimTyCon,
         jshortPrimTyCon,
         jobjectPrimTyCon, mkObjectPrimTy,
-        jarrayPrimTyCon, mkJArrayPrimTy, mkObjectArrayPrimTy,
-        mkJavaArrayPrimTy,
 
         -- * SIMD
         -- TODO: Currently vector operations are disabled in ETA
@@ -193,7 +191,6 @@ primTyCons
     , jboolPrimTyCon
     , jshortPrimTyCon
     , jobjectPrimTyCon
-    , jarrayPrimTyCon
     -- TODO: Vector operations disabled in ETA
     -- , int8X16PrimTyCon
     -- , int16X8PrimTyCon
@@ -281,7 +278,6 @@ jboolPrimTyConName             = mkPrimTc (fsLit "JBool#") jboolPrimTyConKey jbo
 jbytePrimTyConName             = mkPrimTc (fsLit "JByte#") jbytePrimTyConKey jbytePrimTyCon
 jshortPrimTyConName             = mkPrimTc (fsLit "JShort#") jshortPrimTyConKey jshortPrimTyCon
 jobjectPrimTyConName = mkPrimTc (fsLit "Object#") jobjectPrimTyConKey jobjectPrimTyCon
-jarrayPrimTyConName = mkPrimTc (fsLit "JArray#") jarrayPrimTyConKey jarrayPrimTyCon
 {-
 ************************************************************************
 *                                                                      *
@@ -881,28 +877,15 @@ jbytePrimTy = mkTyConTy jbytePrimTyCon
 jshortPrimTy = mkTyConTy jshortPrimTyCon
 
 jcharPrimTyCon, jboolPrimTyCon, jbytePrimTyCon, jshortPrimTyCon,
-  jobjectPrimTyCon, jarrayPrimTyCon :: TyCon
+  jobjectPrimTyCon :: TyCon
 jcharPrimTyCon   = pcPrimTyCon0 jcharPrimTyConName CharRep
 jboolPrimTyCon   = pcPrimTyCon0 jboolPrimTyConName BoolRep
 jbytePrimTyCon   = pcPrimTyCon0 jbytePrimTyConName ByteRep
 jshortPrimTyCon  = pcPrimTyCon0 jshortPrimTyConName ShortRep
 jobjectPrimTyCon = pcPrimTyCon jobjectPrimTyConName [Nominal] $ ObjectRep ""
-jarrayPrimTyCon  = mkLiftedPrimTyCon jarrayPrimTyConName kind roles $
-                     ArrayRep (ObjectRep "")
-  where kind     = mkArrowKinds [unliftedTypeKind] liftedTypeKind
-        roles    = [Nominal]
 
 mkObjectPrimTy :: Type -> Type
 mkObjectPrimTy ty = TyConApp jobjectPrimTyCon [ty]
-
-mkJArrayPrimTy :: Type -> Type
-mkJArrayPrimTy ty = TyConApp jarrayPrimTyCon [ty]
-
-mkJavaArrayPrimTy :: Type -> Type
-mkJavaArrayPrimTy ty = mkObjectPrimTy (mkJArrayPrimTy ty)
-
-mkObjectArrayPrimTy :: Type -> Type
-mkObjectArrayPrimTy ty = mkObjectPrimTy (mkJArrayPrimTy (mkObjectPrimTy ty))
 
 {-
 ************************************************************************

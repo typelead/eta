@@ -26,7 +26,6 @@ import ETA.Types.Kind
 import ETA.Types.CoAxiom
 import ETA.Types.Class
 import ETA.Types.TyCon
-import ETA.Prelude.PrelNames ( jarrayPrimTyConKey )
 import ETA.BasicTypes.Unique ( hasKey )
 
 -- others:
@@ -293,7 +292,6 @@ check_type ctxt rank ty@(TyConApp tc tys)
   | isTypeSynonymTyCon tc || isTypeFamilyTyCon tc
   = check_syn_tc_app ctxt rank ty tc tys
   | isUnboxedTupleTyCon tc = check_ubx_tuple  ctxt      ty    tys
-  | tc `hasKey` jarrayPrimTyConKey = mapM_ (check_jarray_arg_type ctxt rank) tys
   | otherwise              = mapM_ (check_arg_type ctxt rank) tys
 
 check_type _ _ (LitTy {}) = return ()
@@ -392,18 +390,6 @@ check_arg_type ctxt rank ty
              --    T State#
              -- where there is an illegal partial application of State# (which has
              -- kind * -> #); see Note [The kind invariant] in TypeRep
-
-check_jarray_arg_type ctxt rank ty = do
-  impred <- xoptM Opt_ImpredicativeTypes
-  let rank' = case rank of          -- Predictive => must be monotype
-                MustBeMonoType     -> MustBeMonoType  -- Monotype, regardless
-                _other | impred    -> ArbitraryRank
-                       | otherwise -> tyConArgMonoType
-                        -- Make sure that MustBeMonoType is propagated,
-                        -- so that we don't suggest -XImpredicativeTypes in
-                        --    (Ord (forall a.a)) => a -> a
-                        -- and so that if it Must be a monotype, we check that it is!
-  check_type ctxt rank' ty
 
 ----------------------------------------
 forAllTyErr :: Rank -> Type -> SDoc

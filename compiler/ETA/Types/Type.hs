@@ -167,8 +167,7 @@ import ETA.Prelude.TysPrim
 import {-# SOURCE #-} ETA.Prelude.TysWiredIn ( eqTyCon, coercibleTyCon, typeNatKind, typeSymbolKind )
 import ETA.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
                    ipClassNameKey, openTypeKindTyConKey,
-                   constraintKindTyConKey, liftedTypeKindTyConKey,
-                   jarrayPrimTyConKey )
+                   constraintKindTyConKey, liftedTypeKindTyConKey)
 import ETA.Prelude.ForeignCall
 import ETA.Types.CoAxiom
 
@@ -725,12 +724,7 @@ typePrimRep ty
         TyConApp tc tys ->
           case primRep of
             ObjectRep x
-              | T.null x -> case splitTyConApp_maybe (head tys) of
-                Just (tc1, tys1)
-                  | tc1 `hasKey` jarrayPrimTyConKey ->
-                    ArrayRep $ typePrimRep (head tys1)
-                  | otherwise -> objRep
-                _ -> objRep
+              | T.null x -> objRep
               | otherwise -> primRep
             _ -> primRep
           where primRep = tyConPrimRep tc

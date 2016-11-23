@@ -21,7 +21,7 @@ module GHC.Types (
         Float(..), Double(..),
         Ordering(..), IO(..),
         Java(..), Object(..), JString(..),
-        Object#, JArray#,
+        Object#,
         isTrue#,
         SPEC(..),
         Coercible,

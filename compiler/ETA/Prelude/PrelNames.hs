@@ -1444,14 +1444,14 @@ tVarPrimTyConKey                        = mkPreludeTyConUnique 76
 
 -- ETA-specific tycons
 jcharPrimTyConKey, jboolPrimTyConKey, jbytePrimTyConKey, jshortPrimTyConKey,
-  jobjectPrimTyConKey, jarrayPrimTyConKey, javaTyConKey, jstringTyConKey
+  jobjectPrimTyConKey, javaTyConKey, jstringTyConKey
   :: Unique
 jcharPrimTyConKey   = mkPreludeTyConUnique 77
 jboolPrimTyConKey   = mkPreludeTyConUnique 78
 jbytePrimTyConKey   = mkPreludeTyConUnique 79
 jshortPrimTyConKey  = mkPreludeTyConUnique 80
 jobjectPrimTyConKey = mkPreludeTyConUnique 81
-jarrayPrimTyConKey  = mkPreludeTyConUnique 83
+-- 83
 javaTyConKey        = mkPreludeTyConUnique 90
 jstringTyConKey     = mkPreludeTyConUnique 91
 
