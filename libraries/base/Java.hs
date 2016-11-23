@@ -5,12 +5,11 @@ module Java
     JByteArray(..),
     JShortArray(..),
     JCharArray(..),
-    IntArray(..),
+    JIntArray(..),
     JLongArray(..),
-    FloatArray(..),
-    DoubleArray(..),
-    ObjectArray(..),
-    StringArray(..),
+    JFloatArray(..),
+    JDoubleArray(..),
+    JStringArray(..),
 
     -- * Java related
     java, io, (<.>), (>-)
@@ -26,17 +25,19 @@ import System.IO.Unsafe
 
 data {-# CLASS "java.lang.Class" #-} JClass = JClass (Object# JClass)
 
-data JByteArray = JBA# JByteArray#
-data JShortArray = JSA# JShortArray#
-data JCharArray = JCA# JCharArray#
-data IntArray = IA# IntArray#
-data JLongArray = JLA# JLongArray#
-data FloatArray = FA# FloatArray#
-data DoubleArray = DA# DoubleArray#
-data StringArray = SA# (ObjectArray# JString)
-data ObjectArray a = OA# (ObjectArray# a)
+data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
+data {-# CLASS "byte[]"    #-} JByteArray    = JByteArray    (Object# JByteArray)
+data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
+data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArray)
+data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
+data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray)
+data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
+data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArray)
 
-foreign import java unsafe "@static java.lang.Class.forName" getClass' :: JString -> JClass
+data {-# CLASS "java.lang.String[]" #-} JStringArray = SA# (Object# JStringArray)
+
+foreign import java unsafe "@static java.lang.Class.forName" getClass'
+  :: JString -> JClass
 
 getClass :: String -> JClass
 getClass = getClass' . mkJString

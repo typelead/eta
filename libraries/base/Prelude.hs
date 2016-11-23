@@ -161,9 +161,8 @@ module Prelude (
     Object#,
     mkJString,
     Java,
-    ObjectArray,
-    StringArray,
-    IntArray,
+    JStringArray,
+    JIntArray,
     Inherits(..)
   ) where
 

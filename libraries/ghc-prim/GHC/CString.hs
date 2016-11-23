@@ -27,6 +27,9 @@ import GHC.Prim
 
 type JString# = Object# JString -- convenience
 
+data {-# CLASS "byte[]" #-} JByteArray
+type JByteArray# = Object# JByteArray
+
 foreign import java unsafe "getBytes" getBytes :: JString# -> JString# -> JByteArray#
 
 foreign import java unsafe "length" strLength :: JString# -> Int#

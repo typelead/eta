@@ -48,7 +48,7 @@ import System.Posix.Internals (withFilePath)
 #endif
 
 import System.Environment.ExecutablePath
-import Java (StringArray)
+import Java (JStringArray)
 
 -- | Computation 'getArgs' returns a list of the program's command
 -- line arguments (not including the program name).
@@ -58,7 +58,7 @@ getArgs = undefined
 -- | Computation 'getJavaArgs' returns a list of the program's command
 -- line arguments (not including the program name) as a native String[].
 foreign import java unsafe "@static eta.base.Utils.getJavaArgs"
-  getJavaArgs :: IO StringArray
+  getJavaArgs :: IO JStringArray
 
   -- alloca $ \ p_argc ->
   -- alloca $ \ p_argv -> do

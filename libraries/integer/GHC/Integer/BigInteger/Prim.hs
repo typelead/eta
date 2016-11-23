@@ -94,10 +94,12 @@ import GHC.JArray
 -- Double isn't available yet, and we shouldn't be using defaults anyway:
 default ()
 
-data {-# CLASS "java.math.BigInteger" #-} BigInteger = BigInteger (Object# BigInteger)
+data {-# CLASS "java.math.BigInteger" #-} BigInteger
+  = BigInteger (Object# BigInteger)
+data {-# CLASS "java.math.BigInteger[]" #-} BigIntegerArray
 
 type Integer# = Object# BigInteger
-type IntegerPair# = ObjectArray# BigInteger
+type IntegerPair# = Object# BigIntegerArray
 
 -- TODO: Add derive mechanism
 instance Class BigInteger where
