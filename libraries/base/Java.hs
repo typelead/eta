@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples,
+             FunctionalDependencies #-}
 module Java
   ( JClass(..),
     getClass,
@@ -12,7 +13,8 @@ module Java
     JStringArray(..),
 
     -- * Java related
-    java, io, (<.>), (>-)
+    java, pureJava, io,
+    (<.>), (>-)
   )
 where
 
@@ -36,6 +38,11 @@ data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArr
 
 data {-# CLASS "java.lang.String[]" #-} JStringArray = SA# (Object# JStringArray)
 
+class (Class c) => JArray e c | c -> e where
+  jarrayNew :: Int -> Java a c
+  jarrayAt  :: Int -> Java c e
+  jarraySet :: Int -> e -> Java c ()
+
 foreign import java unsafe "@static java.lang.Class.forName" getClass'
   :: JString -> JClass
 
@@ -44,6 +51,9 @@ getClass = getClass' . mkJString
 
 java :: (Class c) => c -> Java c a -> IO a
 java c (Java m) = IO $ \s -> case m (unobj c) of (# _, a #) -> (# s, a #)
+
+pureJava :: (Class c) => c -> Java c a -> a
+pureJava c (Java m) = case m (unobj c) of (# _, a #) -> a
 
 (<.>) :: (Class c) => c -> Java c a -> Java b a
 (<.>) cls (Java m) = Java $ \o -> case m (unobj cls) of (# _, a #) -> (# o, a #)
