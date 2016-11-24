@@ -1,12 +1,14 @@
 package eta.runtime.stg;
 
+import java.io.Serializable;
+
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.apply.Void;
 import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.RtsMessages.barf;
 
-public class StgClosure {
+public class StgClosure implements Serializable {
 
     public void enter(StgContext context) {
         context.R(1, this);
