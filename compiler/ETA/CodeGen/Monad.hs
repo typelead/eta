@@ -5,6 +5,7 @@ module ETA.CodeGen.Monad
    CodeGen(..),
    crashDoc,
    debugDoc,
+   printDoc,
    debugState,
    debug,
    withSequel,
@@ -486,6 +487,11 @@ debugDoc sdoc = do
   dflags <- getDynFlags
   when (verbosity dflags > 1) $
     liftIO . putStrLn $ showSDocDump dflags sdoc
+
+printDoc :: SDoc -> CodeGen ()
+printDoc sdoc = do
+  dflags <- getDynFlags
+  liftIO . putStrLn $ showSDocDump dflags sdoc
 
 debugState :: CodeGen ()
 debugState = do
