@@ -204,7 +204,9 @@ getUnboxedResultReps resType = [ rep
                                | ty <- tyArgs
                                , let rep = typePrimRep ty
                                , not (isVoidRep rep) ]
-  where UbxTupleRep tyArgs = repType resType
+  where tyArgs = case repType resType of
+          UbxTupleRep tys -> tys
+          UnaryRep    ty  -> [ty]
 
 withContinuation :: CodeGen () -> CodeGen ()
 withContinuation call = do
