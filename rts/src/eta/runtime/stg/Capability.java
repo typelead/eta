@@ -132,6 +132,7 @@ public final class Capability {
             if (cap.inHaskell) {
                 errorBelch("schedule: re-entered unsafely.\n" +
                            "    Perhaps a 'foreign import unsafe' should be 'safe'?");
+                Thread.dumpStack();
                 stgExit(EXIT_FAILURE);
             }
 
