@@ -36,7 +36,43 @@ data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray
 data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
 data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArray)
 
-data {-# CLASS "java.lang.String[]" #-} JStringArray = SA# (Object# JStringArray)
+data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
+
+instance Class JBooleanArray where
+  unobj (JBooleanArray o) = o
+  obj = JBooleanArray
+
+instance Class JByteArray where
+  unobj (JByteArray o) = o
+  obj = JByteArray
+
+instance Class JCharArray where
+  unobj (JCharArray o) = o
+  obj = JCharArray
+
+instance Class JShortArray where
+  unobj (JShortArray o) = o
+  obj = JShortArray
+
+instance Class JIntArray where
+  unobj (JIntArray o) = o
+  obj = JIntArray
+
+instance Class JLongArray where
+  unobj (JLongArray o) = o
+  obj = JLongArray
+
+instance Class JFloatArray where
+  unobj (JFloatArray o) = o
+  obj = JFloatArray
+
+instance Class JDoubleArray where
+  unobj (JDoubleArray o) = o
+  obj = JDoubleArray
+
+instance Class JStringArray where
+  unobj (JStringArray o) = o
+  obj = JStringArray
 
 class (Class c) => JArray e c | c -> e where
   jarrayNew :: Int -> Java a c

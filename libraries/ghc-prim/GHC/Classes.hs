@@ -313,6 +313,7 @@ instance Class JString where
 
 -- For embedding Java class hierarchies
 data Defined = Yes | No
+
 type family Inherits (a :: *) :: [*]
 
 type family Super (a :: *) :: * where
@@ -322,14 +323,22 @@ type family Head (a :: [*]) :: * where
   Head (a ': b) = a
   Head '[] = Object
 
+type family Implements (a :: *) :: [*] where
+  Implements a = Tail (Inherits a)
+
+type family Tail (a :: [*]) :: [*] where
+  Tail (a ': b) = b
+  Tail '[] = '[]
+
 type family ExtendsList (a :: [*]) (b :: *) :: Defined where
-  ExtendsList '[] y = No
+  ExtendsList '[] y       = No
   ExtendsList (x ': xs) y = Or (Extends' x y) (ExtendsList xs y)
 
 type family Extends' (a :: *) (b :: *) :: Defined where
-  Extends' a a = Yes
+  Extends' a a      = Yes
+  Extends' a Object = Yes
   Extends' Object a = No
-  Extends' a b = ExtendsList (Inherits a) b
+  Extends' a b      = ExtendsList (Inherits a) b
 
 type family Or (a :: Defined) (b :: Defined) :: Defined where
   Or No No = No
@@ -349,4 +358,4 @@ instance Class a => Extends a a where
   {-# INLINE unsafeCast #-}
   unsafeCast x = x
 
-instance (Class a, Class b, Extends' a b ~ Yes) => Extends a b where
+instance {-# OVERLAPPABLE #-} (Class a, Class b, Extends' a b ~ Yes) => Extends a b where
