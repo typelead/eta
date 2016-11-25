@@ -65,16 +65,16 @@ module System.Posix.Types (
   GroupID,
 #endif
 
-  -- ByteCount,
-  -- ClockTick,
-  -- EpochTime,
-  -- FileOffset,
-  -- ProcessID,
-  -- ProcessGroupID,
-  -- DeviceID,
-  -- FileID,
-  -- FileMode,
-  -- Limit
+  ByteCount,
+  ClockTick,
+  EpochTime,
+  FileOffset,
+  ProcessID,
+  ProcessGroupID,
+  DeviceID,
+  FileID,
+  FileMode,
+  Limit
  ) where
 
 import Foreign
@@ -139,13 +139,13 @@ type UserID         = CUid
 type GroupID        = CGid
 #endif
 
--- type ByteCount      = CSize
--- type ClockTick      = CClock
--- type EpochTime      = CTime
--- type DeviceID       = CDev
--- type FileID         = CIno
--- type FileMode       = CMode
--- type ProcessID      = CPid
--- type FileOffset     = COff
--- type ProcessGroupID = CPid
--- type Limit          = CLong
+type ByteCount      = CSize
+type ClockTick      = CClock
+type EpochTime      = CTime
+type DeviceID       = CDev
+type FileID         = CIno
+type FileMode       = CMode
+type ProcessID      = CPid
+type FileOffset     = COff
+type ProcessGroupID = CPid
+type Limit          = CLong
