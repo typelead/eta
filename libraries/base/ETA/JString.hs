@@ -28,11 +28,16 @@ import GHC.Real
 import Data.String
 import Data.Char
 import Foreign
+import GHC.Show (Show(..))
+import GHC.Pack (unpackCString)
 
 -- TODO: Add rules to simplify
 -- fromString (unpackCString# "Hello world!"#) :: JString = JString "Hello world"#
 instance IsString JString where
   fromString = mkJString
+
+instance Show JString where
+    show = unpackCString
 
 -- TODO: Move this to a more appropriate place
 {-# INLINE inlinePerformIO #-}
