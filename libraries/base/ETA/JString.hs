@@ -37,7 +37,7 @@ instance IsString JString where
   fromString = mkJString
 
 instance Show JString where
-    show = unpackCString
+    show = show . unpackCString
 
 -- TODO: Move this to a more appropriate place
 {-# INLINE inlinePerformIO #-}
