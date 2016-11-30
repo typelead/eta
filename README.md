@@ -52,6 +52,15 @@ $ git clone --recursive https://github.com/typelead/eta
 $ cd eta
 $ ./install.sh
 ```
+
+*Note* - If you omit the `--recursive` flag to `git clone`, you will need to
+initialize the project's submodules before running `install.sh` -
+
+```
+$ cd eta
+$ git submodule update --init --recursive
+```
+
 Once the installation is done, you will now have access to the following command-line tools:
 - **eta** - The main compiler
 - **epm** - The package manager and build tool
