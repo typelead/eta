@@ -1,7 +1,7 @@
 {-# LANGUAGE MagicHash, NoImplicitPrelude #-}
 {-# OPTIONS_HADDOCK hide #-}
 module GHC.JArray (
-    objectArrayAt#,
+    jobjectArrayAt#,
     objectArraySet#
   ) where
 

@@ -221,8 +221,8 @@ smartJ# i# = if isTrue# (bits <=# 31#) then
 -- | Variant of 'mpzToInteger' for pairs of 'Integer's
 unboxedIntegerPair :: IntegerPair# -> (# Integer, Integer #)
 unboxedIntegerPair bigIntArr# =
-  case objectArrayAt# bigIntArr# 0# realWorld# of
-    (# s, i1 #) -> case objectArrayAt# bigIntArr# 1# s of
+  case jobjectArrayAt# bigIntArr# 0# realWorld# of
+    (# s, i1 #) -> case jobjectArrayAt# bigIntArr# 1# s of
       (# _, i2 #) -> (# smartJ# i1, smartJ# i2 #)
 
 -- -- |Negate MPZ#

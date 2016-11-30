@@ -4008,7 +4008,7 @@ primOpInfo DecodeDoubleInteger =
   --       implementation later. unsafeCoerce# should be used to get the original type
   --       (currently BigInteger)
 primOpInfo ObjectArrayAtOp        =
-  mkGenPrimOp (fsLit "objectArrayAt#") [alphaTyVar, betaTyVar, gammaTyVar]
+  mkGenPrimOp (fsLit "jobjectArrayAt#") [alphaTyVar, betaTyVar, gammaTyVar]
   [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
   $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy gammaTy ]
 primOpInfo ObjectArraySetOp        =
