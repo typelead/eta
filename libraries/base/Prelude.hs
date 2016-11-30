@@ -151,7 +151,6 @@ module Prelude (
     IOError, ioError, userError,
 
     -- * Eta I/O
-    printShow,
     JString(..),
     JClass(..),
     getClass,
@@ -185,5 +184,4 @@ import GHC.Real
 import GHC.Float
 import GHC.Show
 
-import ETA.JString
 import Java

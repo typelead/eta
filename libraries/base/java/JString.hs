@@ -3,7 +3,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  ETA.JString
+-- Module      :  Java.String
 -- Copyright   :  (c) Rahul Muttineni 2016
 -- License     :  BSD-style (see the file libraries/base/LICENSE)
 --
@@ -15,7 +15,7 @@
 --
 -----------------------------------------------------------------------------
 
-module ETA.JString (
+module Java.String (
    JString
  , mkJString
  -- , withJString

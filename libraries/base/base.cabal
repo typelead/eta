@@ -226,7 +226,6 @@ Library
         GHC.Unicode
         GHC.Weak
         GHC.Word
-        ETA.JString
         Java
         Java.Core
         Java.Array
