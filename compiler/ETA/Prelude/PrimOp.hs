@@ -4012,7 +4012,7 @@ primOpInfo ObjectArrayAtOp        =
   [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
   $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, mkObjectPrimTy gammaTy ]
 primOpInfo ObjectArraySetOp        =
-  mkGenPrimOp (fsLit "objectArraySet#") [alphaTyVar, betaTyVar, gammaTyVar]
+  mkGenPrimOp (fsLit "jobjectArraySet#") [alphaTyVar, betaTyVar, gammaTyVar]
   [ mkObjectPrimTy alphaTy, intPrimTy, mkObjectPrimTy gammaTy, mkStatePrimTy betaTy ]
   $ mkStatePrimTy betaTy
 primOpInfo IndexJByteArrayOp       =

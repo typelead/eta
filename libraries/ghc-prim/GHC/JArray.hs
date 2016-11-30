@@ -2,7 +2,7 @@
 {-# OPTIONS_HADDOCK hide #-}
 module GHC.JArray (
     jobjectArrayAt#,
-    objectArraySet#
+    jobjectArraySet#
   ) where
 
 import GHC.Prim
