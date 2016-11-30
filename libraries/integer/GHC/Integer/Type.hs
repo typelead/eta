@@ -42,7 +42,8 @@ import GHC.Prim (
   geInt64#, leInt64#, leWord64#,
 
   -- Other
-  unsafeCoerce#, bool2Int#
+  unsafeCoerce#, bool2Int#,
+  jobjectArrayAt#
  )
 
 import GHC.Integer.BigInteger.Prim (
@@ -82,7 +83,6 @@ import GHC.Integer.BigInteger.Prim (
     encodeDouble#
  )
 
-import GHC.JArray
 import GHC.Classes
 import GHC.Types
 

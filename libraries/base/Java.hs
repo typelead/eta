@@ -21,7 +21,6 @@ where
 import GHC.Base
 import GHC.Pack
 import GHC.Types
-import GHC.JArray
 import ETA.JString
 import System.IO.Unsafe
 

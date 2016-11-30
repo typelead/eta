@@ -42,7 +42,6 @@ Library
         -- GHC.PrimopWrappers
         GHC.Tuple
         GHC.Types
-        GHC.JArray
 
     -- We need to set the package key to ghc-prim (without a version number)
     -- as it's magic.

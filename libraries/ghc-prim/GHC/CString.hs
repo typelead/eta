@@ -22,7 +22,6 @@ module GHC.CString (
     ) where
 
 import GHC.Types
-import GHC.JArray
 import GHC.Prim
 
 type JString# = Object# JString -- convenience

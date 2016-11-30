@@ -2,7 +2,6 @@
            , UnliftedFFITypes, GHCForeignImportPrim #-}
 {-# OPTIONS_HADDOCK hide #-}
 
--- TODO: Rewrite this module once Eta supports external java files.
 module GHC.Integer.BigInteger.Prim (
   Integer#,
   IntegerPair#,
@@ -89,7 +88,6 @@ module GHC.Integer.BigInteger.Prim (
 import GHC.Prim
 import GHC.Types
 import GHC.Classes
-import GHC.JArray
 
 -- Double isn't available yet, and we shouldn't be using defaults anyway:
 default ()
