@@ -185,6 +185,5 @@ import GHC.Real
 import GHC.Float
 import GHC.Show
 
-import ETA.IO
 import ETA.JString
 import Java

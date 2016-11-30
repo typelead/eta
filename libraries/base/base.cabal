@@ -226,9 +226,10 @@ Library
         GHC.Unicode
         GHC.Weak
         GHC.Word
-        ETA.IO
         ETA.JString
         Java
+        Java.Core
+        Java.Array
         Numeric
         Numeric.Natural
         Prelude
