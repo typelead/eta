@@ -120,10 +120,11 @@ arrayFtCast ft
   where objArray = jarray jobject
 
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Type -> Either (Text, Text) (CodeGen [Code])
-shouldInlinePrimOp dflags ObjectArrayAtOp args _ = Right $
-  let (_, codes) = unzip args
-      elemFt = fromMaybe jobject $ getArrayElemFt (fst (head args))
-  in return [normalOp (gaload elemFt) codes]
+shouldInlinePrimOp dflags ObjectArrayAtOp ((origFt, arrayObj):args) _ =
+  Right $ return [arrayObj <> maybeCast <> fold codes <> gaload elemFt]
+  where (arrayFt, maybeCast) = arrayFtCast origFt
+        (_, codes) = unzip args
+        elemFt = fromJust $ getArrayElemFt arrayFt
 
 shouldInlinePrimOp dflags ObjectArraySetOp ((origFt, arrayObj):args) _ =
   Right $ return [arrayObj <> maybeCast <> fold codes <> gastore elemFt]
