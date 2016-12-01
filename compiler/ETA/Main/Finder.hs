@@ -628,7 +628,7 @@ cantFindErr cannot_find _ dflags mod_name find_result
        | otherwise
        = ptext (sLit "There are files missing in the ") <> quotes (ppr pkg) <>
          ptext (sLit " package,") $$
-         ptext (sLit "try running 'ghc-pkg check'.") $$
+         ptext (sLit "try running 'eta-pkg check'.") $$
          tried_these files
 
     tried_these files

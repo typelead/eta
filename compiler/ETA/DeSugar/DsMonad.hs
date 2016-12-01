@@ -191,7 +191,7 @@ initDs hsc_env mod rdr_env type_env fam_inst_env thing_inside
         paErr       = ptext (sLit "To use ParallelArrays,") <+> specBackend $$ hint1 $$ hint2
         veErr       = ptext (sLit "To use -fvectorise,") <+> specBackend $$ hint1 $$ hint2
         specBackend = ptext (sLit "you must specify a DPH backend package")
-        hint1       = ptext (sLit "Look for packages named 'dph-lifted-*' with 'ghc-pkg'")
+        hint1       = ptext (sLit "Look for packages named 'dph-lifted-*' with 'eta-pkg'")
         hint2       = ptext (sLit "You may need to install them with 'cabal install dph-examples'")
 
     initDPHBuiltins thing_inside

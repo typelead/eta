@@ -378,7 +378,7 @@ readPackageConfig dflags conf_file = do
                then throwGhcExceptionIO $ InstallationError $
                       "ghc no longer supports single-file style package " ++
                       "databases (" ++ conf_file ++
-                      ") use 'ghc-pkg init' to create the database with " ++
+                      ") use 'eta-pkg init' to create the database with " ++
                       "the correct format."
                else throwGhcExceptionIO $ InstallationError $
                       "can't find a package database at " ++ conf_file
