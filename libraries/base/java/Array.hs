@@ -1,4 +1,6 @@
-{-# LANGUAGE NoImplicitPrelude, MagicHash, FunctionalDependencies #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash, TypeFamilies,
+             UnboxedTuples, BangPatterns, FlexibleInstances,
+             FlexibleContexts, UndecidableInstances, DefaultSignatures #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Array
@@ -23,11 +25,17 @@ module Java.Array
     JFloatArray(..),
     JDoubleArray(..),
     JStringArray(..),
-    JArray(..)
+    JArray(..),
+    alength,
+    toList,
+    fromList,
   )
 where
 
 import GHC.Base
+import GHC.List
+import GHC.Num
+import Java.Core
 
 data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
 data {-# CLASS "byte[]"    #-} JByteArray    = JByteArray    (Object# JByteArray)
@@ -76,7 +84,51 @@ instance Class JStringArray where
   unobj (JStringArray o) = o
   obj = JStringArray
 
-class (Class c) => JArray e c | c -> e where
-  jarrayNew :: Int -> Java a c
-  jarrayAt  :: Int -> Java c e
-  jarraySet :: Int -> e -> Java c ()
+class (Class c) => JArray c where
+  type JElem c :: *
+  anew :: Int -> Java a c
+
+  default anew :: (Class (JElem c)) => Int -> Java a c
+  {-# INLINE anew #-}
+  anew (I# n#) = Java $ \o ->
+    case obj (jobjectArrayNew# (proxy# :: Proxy# e) n#) of
+      c -> (# o, c #)
+
+  aget :: Int -> Java c (JElem c)
+  default aget :: (Class (JElem c)) => Int -> Java c (JElem c)
+  {-# INLINE aget #-}
+  aget (I# n#) = Java $ \o ->
+    case jobjectArrayAt# o n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        o'' -> (# o, o'' #)
+
+  aset :: Int -> JElem c -> Java c ()
+  default aset :: (Class (JElem c)) => Int -> JElem c -> Java c ()
+  {-# INLINE aset #-}
+  aset (I# n#) e = Java $ \o ->
+    case jobjectArraySet# o n# (unobj e) realWorld# of
+      _ -> (# o, () #)
+
+instance JArray JStringArray where
+  type JElem JStringArray = JString
+
+alength :: JArray c => Java c Int
+alength = Java $ \o -> (# o, I# (alength# o) #)
+
+toList :: JArray c => Java c [JElem c]
+toList = do
+  len <- alength
+  go (len - 1) []
+  where go n xs
+          | n >= 0 = do
+            x  <- aget n
+            go (n - 1) (x:xs)
+          | otherwise = return xs
+
+fromList :: JArray c => [JElem c] -> Java a c
+fromList xs = do
+  jarray <- anew (length xs)
+  jarray <.> go 0 xs
+  return jarray
+  where go _  []     = return ()
+        go !n (x:xs) = aset n x >> go (n + 1) xs
