@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, TypeFamilies,
              UnboxedTuples, BangPatterns, FlexibleInstances,
-             FlexibleContexts, UndecidableInstances, DefaultSignatures #-}
+             FlexibleContexts, UndecidableInstances, DefaultSignatures,
+             ScopedTypeVariables #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Array
@@ -91,7 +92,7 @@ class (Class c) => JArray c where
   default anew :: (Class (JElem c)) => Int -> Java a c
   {-# INLINE anew #-}
   anew (I# n#) = Java $ \o ->
-    case obj (jobjectArrayNew# (proxy# :: Proxy# e) n#) of
+    case obj (jobjectArrayNew# (proxy# :: Proxy# (JElem c)) n#) of
       c -> (# o, c #)
 
   aget :: Int -> Java c (JElem c)
