@@ -47,13 +47,17 @@ import GHC.Windows
 import System.Posix.Internals (withFilePath)
 #endif
 
+import GHC.Pack
 import System.Environment.ExecutablePath
-import Java (JStringArray)
+import Java
 
 -- | Computation 'getArgs' returns a list of the program's command
 -- line arguments (not including the program name).
 getArgs :: IO [String]
-getArgs = undefined
+getArgs = do
+  jargs <- getJavaArgs
+  jsArgs <- java jargs toList
+  return $ map unpackCString jsArgs
 
 -- | Computation 'getJavaArgs' returns a list of the program's command
 -- line arguments (not including the program name) as a native String[].
