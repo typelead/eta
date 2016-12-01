@@ -6,7 +6,7 @@ h1 {
     text-align: center;
 }
 <p align="center">
-  <h1>Eta - Modern Haskell on the JVM</hi>
+  <h1>Eta - Modern Haskell on the JVM</h1>
 </p>
 
 [![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
