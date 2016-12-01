@@ -756,13 +756,13 @@ tagTypeToText ty = either (uncurry pprPanic)
                           $ rawTagTypeToText ty
 
 rawTagTypeToText :: Type -> Either (String, SDoc) (Maybe Text)
-rawTagTypeToText ty =
-  case splitTyConApp_maybe ty of
-    Just (tc1, _) ->
-      case tyConCType_maybe tc1 of
-        Just (CType _ _ fs) -> Right . Just $ fastStringToText fs
-        Nothing -> Left ("rawTagTypeToText: You should annotate ", ppr ty)
-    Nothing -> Right Nothing
+rawTagTypeToText ty
+  | Just (tc1, _) <- splitTyConApp_maybe ty
+  , not (isFamilyTyCon tc1)
+  = case tyConCType_maybe tc1 of
+      Just (CType _ _ fs) -> Right . Just $ fastStringToText fs
+      Nothing -> Left ("rawTagTypeToText: You should annotate ", ppr ty)
+  | otherwise  = Right Nothing
 
 typeRepArity :: Arity -> Type -> RepArity
 typeRepArity 0 _ = 0
