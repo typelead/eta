@@ -113,9 +113,11 @@ class (Class c) => JArray c where
 instance JArray JStringArray where
   type JElem JStringArray = JString
 
+{-# INLINE alength #-}
 alength :: JArray c => Java c Int
 alength = Java $ \o -> (# o, I# (alength# o) #)
 
+{-# INLINE toList #-}
 toList :: JArray c => Java c [JElem c]
 toList = do
   len <- alength
@@ -126,6 +128,7 @@ toList = do
             go (n - 1) (x:xs)
           | otherwise = return xs
 
+{-# INLINE fromList #-}
 fromList :: JArray c => [JElem c] -> Java a c
 fromList xs = do
   jarray <- anew (length xs)
