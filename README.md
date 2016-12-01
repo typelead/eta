@@ -2,6 +2,9 @@
   <img src="./eta_logo.png" alt="Eta logo" width="30%" />
 </p>
 
+h1 {
+    text-align: center;
+}
 <p align="center">
   <h1>Eta - Modern Haskell on the JVM</h1>
 </p>
