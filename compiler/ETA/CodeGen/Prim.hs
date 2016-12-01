@@ -125,10 +125,11 @@ shouldInlinePrimOp dflags ObjectArrayAtOp args _ = Right $
       elemFt = fromMaybe jobject $ getArrayElemFt (fst (head args))
   in return [normalOp (gaload elemFt) codes]
 
-shouldInlinePrimOp dflags ObjectArraySetOp args _ = Right $
-  let (_, codes) = unzip args
-      elemFt = fromMaybe jobject $ getArrayElemFt (fst (head args))
-  in return [normalOp (gastore elemFt) codes]
+shouldInlinePrimOp dflags ObjectArraySetOp ((origFt, arrayObj):args) _ =
+  Right $ return [arrayObj <> maybeCast <> fold codes <> gastore elemFt]
+  where (arrayFt, maybeCast) = arrayFtCast origFt
+        (_, codes) = unzip args
+        elemFt = fromJust $ getArrayElemFt arrayFt
 
 shouldInlinePrimOp dflags ArrayLengthOp [(origFt, arrayObj)] _ =
   Right $ return [arrayObj <> maybeCast <> arraylength arrayFt]
