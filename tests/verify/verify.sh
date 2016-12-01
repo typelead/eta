@@ -44,7 +44,6 @@ java Verify base/ghc/io
 java Verify base/ghc/io/encoding
 java Verify base/ghc/io/handle
 java Verify base/ghc/rts
-java Verify base/eta
 java Verify base/numeric
 java Verify base/system
 java Verify base/system/console
@@ -57,6 +56,7 @@ java Verify base/text/parsercombinators
 java Verify base/text/read
 java Verify base/text/show
 java Verify base/unsafe
+java Verify base/java
 
 # Make sure a simple "Hello World!" program runs
 java -cp build/Out.jar eta.main
