@@ -1,7 +1,8 @@
 <p align="center">
-  <img src="./eta_logo.png" alt="Eta logo" width="30%" />
+  <img src="./eta_logo.png" alt="Eta logo" width="20%" />
 </p>
 
+----
 
 <p align="center">
   <h1>Eta - Modern Haskell on the JVM</h1>
