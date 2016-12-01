@@ -5,10 +5,11 @@
 
 
 <h1 align="center">Eta - Modern Haskell on the JVM</h1>
-
+<p align="center">
 [![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/typelead/eta.svg?branch=master)](https://travis-ci.org/typelead/eta)
 [![Build status](https://ci.appveyor.com/api/projects/status/walb8x0befptf86j?svg=true)](https://ci.appveyor.com/project/typelead/eta)
+</p>
 
 Eta is a dialect of Haskell which runs on the JVM and has the following goals:
 - accessibility for beginners from imperative languages, especially Java
