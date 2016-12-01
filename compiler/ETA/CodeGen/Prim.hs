@@ -49,10 +49,7 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
 
 cgOpApp (StgPrimOp ObjectArrayNewOp) (proxy:args) _ = do
   let proxyTy = stgArgType proxy
-      arrayType t
-        | T.takeEnd 2 t == "[]" = jarray $ arrayType $ T.dropEnd 2 t
-        | otherwise = obj t
-      arrayFt = arrayType $ tagTypeToText . head . snd $
+      arrayFt = jarray $ obj $ tagTypeToText . head . snd $
                   expectJust "Not a proxy type"
                             (splitTyConApp_maybe $ dropForAlls proxyTy)
   [nCode] <- getNonVoidArgCodes args
