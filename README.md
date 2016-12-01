@@ -1,3 +1,5 @@
+[![Eta logo](./eta_logo.png)]
+
 # Eta - Modern Haskell on the JVM
 
 [![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
