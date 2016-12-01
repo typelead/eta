@@ -24,11 +24,13 @@ import ETA.CodeGen.Name
 import ETA.Debug
 import ETA.Util
 
+import Data.Maybe (fromMaybe)
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
 import Data.Maybe (fromJust, isJust)
 import Data.Text (Text)
 import Data.List (stripPrefix)
+import qualified Data.Text as T
 
 cgOpApp :: StgOp
         -> [StgArg]
@@ -44,6 +46,17 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
         _ -> panic "TagToEnumOp had void arg"
   emitReturn [mkLocDirect True $ tagToClosure dflags tyCon code]
   where tyCon = tyConAppTyCon resType
+
+cgOpApp (StgPrimOp ObjectArrayNewOp) (proxy:args) _ = do
+  let proxyTy = stgArgType proxy
+      arrayType t
+        | T.takeEnd 2 t == "[]" = jarray $ arrayType $ T.dropEnd 2 t
+        | otherwise = obj t
+      arrayFt = arrayType $ tagTypeToText . head . snd $
+                  expectJust "Not a proxy type"
+                            (splitTyConApp_maybe $ dropForAlls proxyTy)
+  [nCode] <- getNonVoidArgCodes args
+  emitReturn [mkLocDirect False (arrayFt, nCode <> new arrayFt)]
 
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
@@ -101,12 +114,12 @@ inlinePrimCall name = error $ "inlinePrimCall: unimplemented = " ++ name
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Type -> Either (Text, Text) (CodeGen [Code])
 shouldInlinePrimOp dflags ObjectArrayAtOp args _ = Right $
   let (_, codes) = unzip args
-      elemFt = getArrayElemFt (fst (head args))
+      elemFt = fromMaybe jobject $ getArrayElemFt (fst (head args))
   in return [normalOp (gaload elemFt) codes]
 
 shouldInlinePrimOp dflags ObjectArraySetOp args _ = Right $
   let (_, codes) = unzip args
-      elemFt = getArrayElemFt (fst (head args))
+      elemFt = fromMaybe jobject $ getArrayElemFt (fst (head args))
   in return [normalOp (gastore elemFt) codes]
 
 shouldInlinePrimOp dflags ClassCastOp args resType = Right $
@@ -354,6 +367,7 @@ intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 
+simpleOp ArrayLengthOp = Just $ normalOp arraylength
 simpleOp MyThreadIdOp  = Just $ normalOp $ loadContext <> currentTSOField
 
 -- Array# & MutableArray# ops

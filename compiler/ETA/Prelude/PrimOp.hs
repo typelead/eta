@@ -528,6 +528,7 @@ data PrimOp
    | DecodeDoubleInteger
    | ObjectArrayAtOp
    | ObjectArraySetOp
+   | ObjectArrayNewOp
    | IndexJByteArrayOp
    | ReadJByteArrayOp
    | WriteJByteArrayOp
@@ -538,14 +539,14 @@ data PrimOp
    | JByte2IntOp
    | Int2JBoolOp
    | ClassCastOp
+   | ArrayLengthOp
 
 -- Used for the Ord instance
-
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1104
+maxPrimOpTag = 1106
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1652,6 +1653,8 @@ tagOf_PrimOp Addr2StablePtrOp = _ILIT(1101)
 tagOf_PrimOp JByte2IntOp = _ILIT(1102)
 tagOf_PrimOp Int2JBoolOp = _ILIT(1103)
 tagOf_PrimOp ClassCastOp = _ILIT(1104)
+tagOf_PrimOp ObjectArrayNewOp = _ILIT(1105)
+tagOf_PrimOp ArrayLengthOp = _ILIT(1106)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2782,6 +2785,8 @@ allThePrimOps =
    , JByte2IntOp
    , Int2JBoolOp
    , ClassCastOp
+   , ObjectArrayNewOp
+   , ArrayLengthOp
    ]
 
 tagToEnumKey :: Unique
@@ -4034,6 +4039,12 @@ primOpInfo JByte2IntOp = mkGenPrimOp (fsLit "byte2Int#")  [] [jbytePrimTy] intPr
 primOpInfo Int2JBoolOp = mkGenPrimOp (fsLit "int2Byte#")  [] [intPrimTy] jbytePrimTy
 primOpInfo ClassCastOp = mkGenPrimOp (fsLit "classCast#") [alphaTyVar, betaTyVar]
                                      [ mkObjectPrimTy alphaTy ] (mkObjectPrimTy betaTy)
+primOpInfo ObjectArrayNewOp =
+  mkGenPrimOp (fsLit "jobjectArrayNew#") [alphaTyVar, betaTyVar]
+  [ mkProxyPrimTy liftedTypeKind alphaTy, intPrimTy] (mkObjectPrimTy betaTy)
+primOpInfo ArrayLengthOp =
+  mkGenPrimOp (fsLit "alength#") [alphaTyVar]
+  [ mkObjectPrimTy alphaTy ] intPrimTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4615,6 +4626,8 @@ primOpHasSideEffects PrefetchAddrOp0 = True
 primOpHasSideEffects PrefetchValueOp0 = True
 primOpHasSideEffects ObjectArrayAtOp     = True
 primOpHasSideEffects ObjectArraySetOp    = True
+primOpHasSideEffects ObjectArrayNewOp    = True
+primOpHasSideEffects ArrayLengthOp       = True
 primOpHasSideEffects ReadJByteArrayOp     = True
 primOpHasSideEffects WriteJByteArrayOp    = True
 primOpHasSideEffects _ = False
@@ -4803,6 +4816,8 @@ primOpCanFail Int64Quot           = True
 primOpCanFail Int64Rem            = True
 primOpCanFail ObjectArrayAtOp     = True
 primOpCanFail ObjectArraySetOp    = True
+primOpCanFail ObjectArrayNewOp    = True
+primOpCanFail ArrayLengthOp       = True
 primOpCanFail IndexJByteArrayOp   = True
 primOpCanFail ReadJByteArrayOp    = True
 primOpCanFail WriteJByteArrayOp   = True
