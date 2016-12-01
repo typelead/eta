@@ -47,13 +47,16 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
   emitReturn [mkLocDirect True $ tagToClosure dflags tyCon code]
   where tyCon = tyConAppTyCon resType
 
-cgOpApp (StgPrimOp ObjectArrayNewOp) (proxy:args) _ = do
-  let proxyTy = stgArgType proxy
-      arrayFt = jarray $ obj $ tagTypeToText . head . snd $
-                  expectJust "Not a proxy type"
-                            (splitTyConApp_maybe $ dropForAlls proxyTy)
+cgOpApp (StgPrimOp ObjectArrayNewOp) args resType = do
   [nCode] <- getNonVoidArgCodes args
   emitReturn [mkLocDirect False (arrayFt, nCode <> new arrayFt)]
+  where arrayFt
+          | arrayFt' == jobject = jarray jobject
+          | otherwise =  arrayFt'
+          where arrayFt' = fromJust
+                         . repFieldType_maybe
+                         . head . tail . snd
+                         $ splitTyConApp resType
 
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
