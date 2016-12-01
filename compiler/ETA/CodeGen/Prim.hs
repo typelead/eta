@@ -111,6 +111,14 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args resType =
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
 inlinePrimCall name = error $ "inlinePrimCall: unimplemented = " ++ name
 
+-- TODO: This is a hack to get around the bytecode verifier for array-related
+--       primops that are used generically.
+arrayFtCast :: FieldType -> (FieldType, Code)
+arrayFtCast ft
+  | ft == jobject = (objArray, gconv ft objArray)
+  | otherwise = (ft, mempty)
+  where objArray = jarray jobject
+
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Type -> Either (Text, Text) (CodeGen [Code])
 shouldInlinePrimOp dflags ObjectArrayAtOp args _ = Right $
   let (_, codes) = unzip args
@@ -121,6 +129,10 @@ shouldInlinePrimOp dflags ObjectArraySetOp args _ = Right $
   let (_, codes) = unzip args
       elemFt = fromMaybe jobject $ getArrayElemFt (fst (head args))
   in return [normalOp (gastore elemFt) codes]
+
+shouldInlinePrimOp dflags ArrayLengthOp [(origFt, arrayObj)] _ =
+  Right $ return [arrayObj <> maybeCast <> arraylength arrayFt]
+  where (arrayFt, maybeCast) = arrayFtCast origFt
 
 shouldInlinePrimOp dflags ClassCastOp args resType = Right $
   let (_, codes) = unzip args
@@ -367,7 +379,6 @@ intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
 
-simpleOp ArrayLengthOp = Just $ normalOp arraylength
 simpleOp MyThreadIdOp  = Just $ normalOp $ loadContext <> currentTSOField
 
 -- Array# & MutableArray# ops
