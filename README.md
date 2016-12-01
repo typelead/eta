@@ -1,4 +1,4 @@
-![Eta logo](./eta_logo.png)
+![Eta logo](./eta_logo.png | width=100)
 
 # Eta - Modern Haskell on the JVM
 
