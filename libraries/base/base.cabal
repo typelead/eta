@@ -229,6 +229,7 @@ Library
         Java
         Java.Core
         Java.Array
+        Java.String
         Numeric
         Numeric.Natural
         Prelude
