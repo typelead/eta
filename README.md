@@ -1,4 +1,7 @@
-![Eta logo](./eta_logo.png | width=100)
+<p align="center">
+  <img src="./eta_logo.png" alt="Eve logo" width="50%" />
+</p>
+![Eta logo](./eta_logo.png | width=80)
 
 # Eta - Modern Haskell on the JVM
 
