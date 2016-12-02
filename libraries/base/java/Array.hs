@@ -1,6 +1,7 @@
-{-# LANGUAGE NoImplicitPrelude, MagicHash, TypeFamilies,
+{-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
              UnboxedTuples, BangPatterns, FlexibleInstances,
-             FlexibleContexts, UndecidableInstances, DefaultSignatures #-}
+             FlexibleContexts, UndecidableInstances, DefaultSignatures,
+             DeriveAnyClass, FunctionalDependencies #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Array
@@ -38,87 +39,57 @@ import GHC.Num
 import Java.Core
 
 data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
+  deriving Class
 data {-# CLASS "byte[]"    #-} JByteArray    = JByteArray    (Object# JByteArray)
+  deriving Class
 data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
+  deriving Class
 data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArray)
+  deriving Class
 data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
+  deriving Class
 data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray)
+  deriving Class
 data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
+  deriving Class
 data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArray)
-
+  deriving Class
 data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
+  deriving Class
 
-instance Class JBooleanArray where
-  unobj (JBooleanArray o) = o
-  obj = JBooleanArray
+instance JArray JString JStringArray
 
-instance Class JByteArray where
-  unobj (JByteArray o) = o
-  obj = JByteArray
-
-instance Class JCharArray where
-  unobj (JCharArray o) = o
-  obj = JCharArray
-
-instance Class JShortArray where
-  unobj (JShortArray o) = o
-  obj = JShortArray
-
-instance Class JIntArray where
-  unobj (JIntArray o) = o
-  obj = JIntArray
-
-instance Class JLongArray where
-  unobj (JLongArray o) = o
-  obj = JLongArray
-
-instance Class JFloatArray where
-  unobj (JFloatArray o) = o
-  obj = JFloatArray
-
-instance Class JDoubleArray where
-  unobj (JDoubleArray o) = o
-  obj = JDoubleArray
-
-instance Class JStringArray where
-  unobj (JStringArray o) = o
-  obj = JStringArray
-
-class (Class c) => JArray c where
-  type JElem c :: *
+class (Class c) => JArray e c | c -> e where
   anew :: Int -> Java a c
 
-  default anew :: (Class (JElem c)) => Int -> Java a c
+  default anew :: (Class e) => Int -> Java a c
   {-# INLINE anew #-}
   anew (I# n#) = Java $ \o ->
     case jobjectArrayNew# n# realWorld# of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
 
-  aget :: Int -> Java c (JElem c)
-  default aget :: (Class (JElem c)) => Int -> Java c (JElem c)
+  aget :: Int -> Java c e
+  default aget :: (Class e) => Int -> Java c e
   {-# INLINE aget #-}
   aget (I# n#) = Java $ \o ->
     case jobjectArrayAt# o n# realWorld# of
       (# _, o' #) -> case obj o' of
         o'' -> (# o, o'' #)
 
-  aset :: Int -> JElem c -> Java c ()
-  default aset :: (Class (JElem c)) => Int -> JElem c -> Java c ()
+  aset :: Int -> e -> Java c ()
+  default aset :: (Class e) => Int -> e -> Java c ()
   {-# INLINE aset #-}
   aset (I# n#) e = Java $ \o ->
     case jobjectArraySet# o n# (unobj e) realWorld# of
       _ -> (# o, () #)
 
-instance JArray JStringArray where
-  type JElem JStringArray = JString
-
 {-# INLINE alength #-}
-alength :: JArray c => Java c Int
+alength :: JArray e c => Java c Int
 alength = Java $ \o -> (# o, I# (alength# o) #)
 
 {-# INLINE toList #-}
-toList :: JArray c => Java c [JElem c]
+toList :: JArray e c => Java c [e]
 toList = do
   len <- alength
   go (len - 1) []
@@ -129,7 +100,7 @@ toList = do
           | otherwise = return xs
 
 {-# INLINE fromList #-}
-fromList :: JArray c => [JElem c] -> Java a c
+fromList :: JArray e c => [e] -> Java a c
 fromList xs = do
   jarray <- anew (length xs)
   jarray <.> go 0 xs
