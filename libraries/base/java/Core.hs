@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples,
-             FunctionalDependencies #-}
+             FunctionalDependencies, ScopedTypeVariables #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Core
@@ -17,9 +17,7 @@
 
 module Java.Core
   ( java, javaWith, pureJava, io,
-    (<.>), (>-),
-    JClass(..),
-    getClass
+    (<.>), (>-)
   )
 where
 
@@ -51,8 +49,3 @@ io (IO m) = Java $ \o -> case m realWorld# of (# _, a #) -> (# o, a #)
              (# a', b #) ->
                case n (unobj b) of
                  (# _, c #) -> (# a', c #)
-
-data {-# CLASS "java.lang.Class" #-} JClass = JClass (Object# JClass)
-
-foreign import java unsafe "@static java.lang.Class.forName" getClass
-  :: JString -> JClass
