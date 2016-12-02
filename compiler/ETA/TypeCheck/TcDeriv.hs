@@ -1212,6 +1212,7 @@ sideConditions mtheta cls
   | cls_key == gen1ClassKey        = Just (checkFlag Opt_DeriveGeneric `andCond`
                                            cond_vanilla `andCond`
                                            cond_Representable1Ok)
+  | cls_key == classClassKey       = Just cond_class
   | otherwise                      = Nothing
   where
     cls_key = getUnique cls
@@ -2120,3 +2121,21 @@ standaloneCtxt ty = hang (ptext (sLit "In the stand-alone deriving instance for"
 derivInstCtxt :: PredType -> MsgDoc
 derivInstCtxt pred
   = ptext (sLit "When deriving the instance for") <+> parens (ppr pred)
+
+cond_class :: Condition
+cond_class (_, rep_tycon, _)
+  | length dataCons /= 1 =
+    NotValid $ quotes (ppr rep_tycon)
+           <+> text "must have exactly one data constructor."
+  | length dataConArgs /= 1 =
+    NotValid $ quotes (ppr dataCon)
+           <+> text "must have exactly one argument of the form \"Object# a\"."
+  | Just (tc, _) <- tcSplitTyConApp_maybe dataConArg
+  , isObjectTyCon tc
+    = IsValid
+  | otherwise = NotValid $ quotes (ppr dataCon)
+                       <+> text "must have an argument of the form \"Object# a\"."
+  where dataCons = tyConDataCons rep_tycon
+        dataCon = head dataCons
+        dataConArgs = dataConOrigArgTys dataCon
+        dataConArg = head dataConArgs

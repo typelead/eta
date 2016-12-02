@@ -373,6 +373,9 @@ basicKnownKeyNames
         , superCastName
         , unsafeCastName
         , fmapJavaName
+        , classClassName
+        , objName
+        , unobjName
     ]
 
 genericTyConNames :: [Name]
@@ -2051,4 +2054,4 @@ standardClassKeys = derivableClassKeys ++ numericClassKeys
 derivableClassKeys :: [Unique]
 derivableClassKeys
   = [ eqClassKey, ordClassKey, enumClassKey, ixClassKey,
-      boundedClassKey, showClassKey, readClassKey ]
+      boundedClassKey, showClassKey, readClassKey, classClassKey ]

@@ -124,7 +124,8 @@ genDerivedBinds dflags fix_env clas loc tycon
                , (dataClassKey,        gen_Data_binds dflags)
                , (functorClassKey,     gen_Functor_binds)
                , (foldableClassKey,    gen_Foldable_binds)
-               , (traversableClassKey, gen_Traversable_binds) ]
+               , (traversableClassKey, gen_Traversable_binds)
+               , (classClassKey,       gen_Class_binds) ]
 
 
 -- Nothing: we can (try to) derive it via Generics
@@ -1834,6 +1835,38 @@ gen_Traversable_binds loc tycon
     mkApCon con []     = nlHsApps pure_RDR [con]
     mkApCon con (x:xs) = foldl appAp (nlHsApps fmap_RDR [con,x]) xs
        where appAp x y = nlHsApps ap_RDR [x,y]
+
+{-
+************************************************************************
+*                                                                      *
+        Class instances
+*                                                                      *
+************************************************************************
+
+From the data type
+
+  data T a b = T1 (Object# (T a b))
+
+we generate
+
+  instance Class (T a b) where
+    unobj (T1 o) = o
+    obj o = T1 o
+-}
+
+gen_Class_binds :: SrcSpan -> TyCon -> (LHsBinds RdrName, BagDerivStuff)
+gen_Class_binds loc tycon
+  = (listToBag [obj_bind, unobj_bind], emptyBag)
+  where obj_bind = mk_easy_FunBind loc obj_RDR [] (nlHsVar dataCon_RDR)
+          -- nlHsApp (nlHsVar dataCon_RDR) (nlHsVar a_RDR)
+        unobj_bind = mk_easy_FunBind loc unobj_RDR
+                       [(nlConVarPat dataCon_RDR [a_RDR])] (nlHsVar a_RDR)
+        dataCon_RDR = getRdrName dataCon
+        [dataCon] = tyConDataCons tycon
+
+obj_RDR, unobj_RDR :: RdrName
+obj_RDR = nameRdrName objName
+unobj_RDR = nameRdrName unobjName
 
 {-
 ************************************************************************
