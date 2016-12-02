@@ -17,7 +17,8 @@
 
 module Java.String (
    JString
- , mkJString
+ , toJString
+ , fromJString
  -- , withJString
  -- , withJStringLen
  ) where
@@ -31,13 +32,16 @@ import Foreign
 import GHC.Show (Show(..))
 import GHC.Pack (unpackCString)
 
+fromJString :: JString -> String
+fromJString = unpackCString
+
 -- TODO: Add rules to simplify
 -- fromString (unpackCString# "Hello world!"#) :: JString = JString "Hello world"#
 instance IsString JString where
-  fromString = mkJString
+  fromString = toJString
 
 instance Show JString where
-  show = show . unpackCString
+  show = show . fromJString
 
 -- TODO: Move this to a more appropriate place
 {-# INLINE inlinePerformIO #-}
@@ -45,8 +49,8 @@ inlinePerformIO :: IO a -> a
 inlinePerformIO (IO m) = case m realWorld# of (# _, r #)   -> r
 
 -- TODO: All the following is taken from ETA.Utils.FastString
-mkJString :: String -> JString
-mkJString str =
+toJString :: String -> JString
+toJString str =
   inlinePerformIO $ do
     let l = utf8EncodedLength str
     buf <- mallocForeignPtrBytes l

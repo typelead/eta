@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ScopedTypeVariables, KindSignatures,
-             UnboxedTuples #-}
+             UnboxedTuples, FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Utils
@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Utils
-  ( JClass, getClass )
+  ( JClass, getClass, toString, equals, classObject, hashCode )
 where
 
 import GHC.Base
@@ -28,3 +28,10 @@ data {-# CLASS "java.lang.Class" #-} JClass a = JClass (Object# (JClass a))
 {-# INLINE getClass #-}
 getClass :: forall (a :: *). Proxy a -> JClass a
 getClass _ = JClass (getClass# (proxy# :: Proxy# a))
+
+foreign import java unsafe classObject :: (Extends a Object) => a -> JClass a
+foreign import java unsafe toString    :: (Extends a Object) => a -> JString
+foreign import java unsafe hashCode    :: (Extends a Object) => a -> Int
+
+foreign import java unsafe equals :: (Extends a Object, Extends b Object)
+                                  => a -> b -> Bool
