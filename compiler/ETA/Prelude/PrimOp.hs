@@ -528,7 +528,6 @@ data PrimOp
    | DecodeDoubleInteger
    | ObjectArrayAtOp
    | ObjectArraySetOp
-   | ObjectArrayNewOp
    | IndexJByteArrayOp
    | ReadJByteArrayOp
    | WriteJByteArrayOp
@@ -539,14 +538,16 @@ data PrimOp
    | JByte2IntOp
    | Int2JBoolOp
    | ClassCastOp
+   | ObjectArrayNewOp
    | ArrayLengthOp
+   | GetClassOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1106
+maxPrimOpTag = 1107
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1655,6 +1656,7 @@ tagOf_PrimOp Int2JBoolOp = _ILIT(1103)
 tagOf_PrimOp ClassCastOp = _ILIT(1104)
 tagOf_PrimOp ObjectArrayNewOp = _ILIT(1105)
 tagOf_PrimOp ArrayLengthOp = _ILIT(1106)
+tagOf_PrimOp GetClassOp = _ILIT(1107)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2787,6 +2789,7 @@ allThePrimOps =
    , ClassCastOp
    , ObjectArrayNewOp
    , ArrayLengthOp
+   , GetClassOp
    ]
 
 tagToEnumKey :: Unique
@@ -4046,6 +4049,9 @@ primOpInfo ObjectArrayNewOp =
 primOpInfo ArrayLengthOp =
   mkGenPrimOp (fsLit "alength#") [alphaTyVar]
   [ mkObjectPrimTy alphaTy ] intPrimTy
+primOpInfo GetClassOp =
+  mkGenPrimOp (fsLit "getClass#") [alphaTyVar, betaTyVar]
+  [ mkProxyPrimTy liftedTypeKind alphaTy ] (mkObjectPrimTy betaTy)
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
