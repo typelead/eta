@@ -1232,13 +1232,16 @@ fingerprintDataConName =
 
 -- ETA-specific names
 javaTyConName, javaDataConName, extendsClassName, superCastName, unsafeCastName,
-  fmapJavaName :: Name
+  fmapJavaName, classClassName, objName, unobjName :: Name
 javaTyConName    = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
 javaDataConName  = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
 extendsClassName = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
 superCastName    = varQual gHC_CLASSES (fsLit "superCast")  superCastClassOpKey
 unsafeCastName   = varQual gHC_CLASSES (fsLit "unsafeCast") unsafeCastClassOpKey
 fmapJavaName     = varQual gHC_BASE    (fsLit "fmapJava")   fmapJavaIdKey
+classClassName   = clsQual gHC_CLASSES (fsLit "Class")      classClassKey
+objName          = varQual gHC_CLASSES (fsLit "obj")        objClassOpKey
+unobjName        = varQual gHC_CLASSES (fsLit "unobj")      unobjClassOpKey
 
 {-
 ************************************************************************
@@ -1345,8 +1348,9 @@ ghciIoClassKey = mkPreludeClassUnique 44
 ipClassNameKey :: Unique
 ipClassNameKey = mkPreludeClassUnique 45
 
-extendsClassKey :: Unique
+extendsClassKey, classClassKey :: Unique
 extendsClassKey = mkPreludeClassUnique 46
+classClassKey   = mkPreludeClassUnique 47
 
 {-
 ************************************************************************
@@ -1991,11 +1995,13 @@ mkAppTyKey        = mkPreludeMiscIdUnique 505
 typeLitTypeRepKey = mkPreludeMiscIdUnique 506
 
 -- ETA-specific
-superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey :: Unique
+superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey, objClassOpKey
+  , unobjClassOpKey :: Unique
 superCastClassOpKey  = mkPreludeMiscIdUnique 507
 unsafeCastClassOpKey = mkPreludeMiscIdUnique 508
 fmapJavaIdKey        = mkPreludeMiscIdUnique 509
-
+objClassOpKey        = mkPreludeMiscIdUnique 510
+unobjClassOpKey      = mkPreludeMiscIdUnique 511
 
 {-
 ************************************************************************
