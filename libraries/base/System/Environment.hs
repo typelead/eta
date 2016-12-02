@@ -56,7 +56,7 @@ import Java
 getArgs :: IO [String]
 getArgs = do
   jargs <- getJavaArgs
-  jsArgs <- java jargs toList
+  jsArgs <- javaWith jargs toList
   return $ map unpackCString jsArgs
 
 -- | Computation 'getJavaArgs' returns a list of the program's command

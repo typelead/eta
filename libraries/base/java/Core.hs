@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Core
-  ( java, pureJava, io,
+  ( java, javaWith, pureJava, io,
     (<.>), (>-),
     JClass(..),
     getClass
@@ -25,8 +25,15 @@ where
 
 import GHC.Base
 
-java :: (Class c) => c -> Java c a -> IO a
-java c (Java m) = IO $ \s -> case m (unobj c) of (# _, a #) -> (# s, a #)
+foreign import java unsafe "@new" globalObject :: Object
+
+java :: Java c a -> IO a
+java (Java m) = IO $ \s ->
+  case m (unsafeCoerce# (unobj globalObject)) of
+    (# _, a #) -> (# s, a #)
+
+javaWith :: (Class c) => c -> Java c a -> IO a
+javaWith c (Java m) = IO $ \s -> case m (unobj c) of (# _, a #) -> (# s, a #)
 
 pureJava :: (Class c) => c -> Java c a -> a
 pureJava c (Java m) = case m (unobj c) of (# _, a #) -> a
