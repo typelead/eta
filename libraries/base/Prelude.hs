@@ -161,7 +161,6 @@ module Prelude (
     toJString,
     fromJString,
     classObject,
-    equals,
     toString,
     Java,
     JStringArray,
