@@ -106,8 +106,9 @@ main = do
            prog <- getProgramName
            die (concat errors ++ shortUsage prog)
 
+-- @VERSION_CHANGE@
 myVersion :: String
-myVersion = "0.0.2"
+myVersion = "0.0.3"
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 

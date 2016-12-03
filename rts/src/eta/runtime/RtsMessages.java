@@ -16,7 +16,8 @@ public class RtsMessages {
         System.err.print("internal error: ");
         System.err.format(msg, args);
         System.err.print("\n");
-        System.err.print("    (Eta version 0.0.2" /* TODO: ProjectVersion */ + ")\n");
+        // @VERSION_CHANGE@
+        System.err.print("    (Eta version 0.0.3" /* TODO: ProjectVersion */ + ")\n");
         System.err.println("    Please report this as a Eta bug:  https://github.com/typelead/eta/issues");
         Thread.dumpStack();
         stgExit(EXIT_INTERNAL_ERROR);

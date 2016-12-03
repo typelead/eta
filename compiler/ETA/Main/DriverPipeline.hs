@@ -1866,9 +1866,8 @@ maybeMainAndManifest dflags isExecutable = do
     manifestFile = Just ( "META-INF/MANIFEST.MF"
                         , BC.pack $
                            "Manifest-Version: 1.0\n"
-                        -- TODO: Add actual versioning information here
-                        ++ "Created-By: eta-0.0.2\n"
-                        ++ maybe "" (const $ "Main-Class: " ++ mainClassJava)
+                        ++ "Created-By: eta-" ++ cProjectVersion ++ "\n"
+                        ++ maybe "" (const $ "Main-Class: " ++ mainClassJava ++ "\n")
                                  mainFile)
 
 mkRtsMainClass :: DynFlags -> String -> ClassFile

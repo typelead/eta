@@ -1034,7 +1034,7 @@ opt_javac dflags = sOpt_javac (settings dflags)
 versionedAppDir :: DynFlags -> IO FilePath
 versionedAppDir dflags = do
   appdir <- getAppUserDataDirectory (programName dflags)
-  return $ appdir </> "0.0.2"
+  return $ appdir </> cProjectVersion
 
 -- | The target code type of the compilation (if any).
 --
