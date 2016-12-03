@@ -312,6 +312,7 @@ library
                        , transformers
                        , array
                        , containers
+                       , cpphs
 
     if os(windows)
         build-depends:   Win32
