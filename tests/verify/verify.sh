@@ -3,60 +3,32 @@
 set -e
 
 # (Re)build the Verify.java script and copy the class file here
+echo "Building the Verify script..."
 javac ../../utils/class-verifier/Verify.java
 cp ../../utils/class-verifier/Verify.class .
+echo "Verify.class built successfully."
 
 # Clean-up the previous result
 rm -rf build/ base/ integer/ ghczmprim/ cern/ eta/ main/
 
 # Compile a simple program and extract the files
+echo "Compiling a simple program..."
+echo "=== Eta Compiler Output ==="
 mkdir build
 eta -fforce-recomp -o build/Out.jar Main.hs && jar xf build/Out.jar
+echo "===                     ==="
+echo "Compiled succesfully."
 
 # Do bytecode verification on all the core libraries' class files
-java Verify ghczmprim/ghc
-java Verify integer/ghc
-java Verify integer/ghc/integer
-java Verify integer/ghc/integer/biginteger
-java Verify integer/ghc/integer/logarithms
-java Verify base
-java Verify base/control
-java Verify base/control/concurrent
-java Verify base/control/exception
-java Verify base/control/monad
-java Verify base/control/monad/st
-java Verify base/control/monad/st/lazy
-java Verify base/data
-java Verify base/data/functor
-java Verify base/data/stref
-java Verify base/data/type
-java Verify base/data/typeable
-java Verify base/debug
-java Verify base/foreign
-java Verify base/foreign/foreignptr
-java Verify base/foreign/marshal
-java Verify base/ghc
-java Verify base/ghc/conc
-java Verify base/ghc/event
-java Verify base/ghc/fingerprint
-java Verify base/ghc/float
-java Verify base/ghc/io
-java Verify base/ghc/io/encoding
-java Verify base/ghc/io/handle
-java Verify base/ghc/rts
-java Verify base/numeric
-java Verify base/system
-java Verify base/system/console
-java Verify base/system/environment
-java Verify base/system/io
-java Verify base/system/mem
-java Verify base/system/posix
-java Verify base/text
-java Verify base/text/parsercombinators
-java Verify base/text/read
-java Verify base/text/show
-java Verify base/unsafe
-java Verify base/java
+echo "Verifying the bytecode of compiled program..."
+echo "=== Verify Script Output ==="
+java Verify ghczmprim/ghc integer/ghc integer/ghc/integer integer/ghc/integer/biginteger integer/ghc/integer/logarithms base base/control base/control/concurrent base/control/exception base/control/monad base/control/monad/st base/control/monad/st/lazy base/data base/data/functor base/data/stref base/data/type base/data/typeable base/debug base/foreign base/foreign/foreignptr base/foreign/marshal base/ghc base/ghc/conc base/ghc/event base/ghc/fingerprint base/ghc/float base/ghc/io base/ghc/io/encoding base/ghc/io/handle base/ghc/rts base/numeric base/system base/system/console base/system/environment base/system/io base/system/mem base/system/posix base/text base/text/parsercombinators base/text/read base/text/show base/unsafe base/java
+echo "===                      ==="
+echo "Bytecode looking good."
 
 # Make sure a simple "Hello World!" program runs
+echo "Running the simple program..."
+echo "=== Simple Program Output ==="
 java -cp build/Out.jar eta.main
+echo "===                       ==="
+echo "Done! Everything's looking good."

@@ -1,20 +1,33 @@
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Verify {
     public static void main(String[] args) {
-        boolean error = false;
+        List<String> failed = new ArrayList<String>();
         try {
-            error = getAllFiles(args[0].replaceAll("/",".") + ".", new File(args[0]).getCanonicalFile());
+            for (String arg: args) {
+                failed.addAll(getAllFiles( arg.replaceAll("/",".") + "."
+                                         , new File(arg).getCanonicalFile()));
+            }
         } catch (IOException e) {
-            error = true;
             e.printStackTrace();
+            System.exit(1);
         }
-        if (error) System.exit(1);
+        if (failed.size() > 0) {
+            System.out.println("The following classes failed verification:");
+            for (String f: failed) {
+                System.out.println("  - " + f);
+            }
+            System.exit(1);
+        } else {
+            System.out.println("All classes passed verification.");
+        }
     }
 
-    private static boolean getAllFiles(String prefix, File curDir) {
-        boolean error = false;
+    private static List<String> getAllFiles(String prefix, File curDir) {
+        List<String> failed = new ArrayList<String>();
         File[] filesList = curDir.listFiles();
         for(File f : filesList){
             if(f.isFile()){
@@ -23,24 +36,24 @@ public class Verify {
                 try {
                     Class.forName(className);
                 } catch (ClassFormatError e) {
-                    error = true;
+                    failed.add(className);
                     System.out.println(className);
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
-                    error = true;
+                    failed.add(className);
                     System.out.println(className);
                     e.printStackTrace();
                 } catch (VerifyError e) {
-                    error = true;
+                    failed.add(className);
                     System.out.println(className);
                     e.printStackTrace();
                 } catch (NoClassDefFoundError e) {
-                    error = true;
+                    failed.add(className);
                     System.out.println(className);
                     e.printStackTrace();
                 }
             }
         }
-        return error;
+        return failed;
     }
 }
