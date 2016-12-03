@@ -95,6 +95,8 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 
+import Language.Preprocessor.Unlit
+
 -- ---------------------------------------------------------------------------
 -- Pre-process
 
@@ -731,19 +733,18 @@ runPhase :: PhasePlus   -- ^ Run this phase
 -- Unlit phase
 
 runPhase (RealPhase (Unlit sf)) input_fn dflags
-  = do
-       output_fn <- phaseOutputFilename (Cpp sf)
+  = do output_fn <- phaseOutputFilename (Cpp sf)
 
-       let flags = [ -- The -h option passes the file name for unlit to
-                     -- put in a #line directive
-                     SysTools.Option     "-h"
-                   , SysTools.Option $ escape $ normalise input_fn
-                   , SysTools.FileOption "" input_fn
-                   , SysTools.FileOption "" output_fn
-                   ]
-
-       liftIO $ SysTools.runUnlit dflags flags
-
+       -- let flags = [ -- The -h option passes the file name for unlit to
+       --               -- put in a #line directive
+       --               SysTools.Option     "-h"
+       --             , SysTools.Option $ escape $ normalise input_fn
+       --             , SysTools.FileOption "" input_fn
+       --             , SysTools.FileOption "" output_fn
+       --             ]
+       -- liftIO $ SysTools.runUnlit dflags flags
+       input <- liftIO $ readFile input_fn
+       liftIO $ writeFile output_fn $ unlit (escape (normalise input_fn)) input
        return (RealPhase (Cpp sf), output_fn)
   where
        -- escape the characters \, ", and ', but don't try to escape
