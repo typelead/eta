@@ -58,12 +58,13 @@ doMkDependHS srcs = do
                      ways = [],
                      buildTag = mkBuildTag [],
                      hiSuf = "hi",
-                     objectSuf = "o"
+                     objectSuf = "jar",
+                     depSuffixes = [""]
                  }
     _ <- GHC.setSessionDynFlags dflags
 
-    when (null (depSuffixes dflags)) $ liftIO $
-        throwGhcExceptionIO (ProgramError "You must specify at least one -dep-suffix")
+    -- when (null (depSuffixes dflags)) $ liftIO $
+    --     throwGhcExceptionIO (ProgramError "You must specify at least one -dep-suffix")
 
     files <- liftIO $ beginMkDependHS dflags
 

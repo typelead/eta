@@ -474,6 +474,10 @@ doLink dflags stop_phase o_files
   | not (isStopLn stop_phase)
   = return ()           -- We stopped before the linking phase
 
+  | NoLink <- ghcLink dflags
+  = return ()
+  | LinkInMemory <- ghcLink dflags
+  = return ()
   | otherwise
   = linkGeneric dflags o_files []
 
@@ -1802,12 +1806,13 @@ findHSLib dflags dirs lib = do
 
 linkGeneric :: DynFlags -> [String] -> [PackageKey] -> IO ()
 linkGeneric dflags oFiles depPackages = do
-    when (haveRtsOptsFlags dflags) $ do
-      log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
-          ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
-             ++ " -no-hs-main.") $$
-           (text $ "    Call hsInit() from your main() method to set"
-             ++ " these options."))
+    -- TODO: Figure out the right place for this error message
+    -- when (haveRtsOptsFlags dflags) $ do
+    --   log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
+    --       ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
+    --          ++ " -no-hs-main.") $$
+    --        (text $ "    Call hsInit() from your main() method to set"
+    --          ++ " these options."))
     -- TODO: Use conduits to combine the jars
     mainFiles' <- maybeMainAndManifest dflags isExecutable
     mainFiles <- forM mainFiles' $ \(a, b) -> do
