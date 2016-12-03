@@ -31,7 +31,7 @@ public class Verify {
         File[] filesList = curDir.listFiles();
         for(File f : filesList){
             if(f.isFile()){
-                String className = prefix + f.getName().replaceAll(".class","");
+                String className = prefix + f.getName().replaceAll("\\.class$","");
                 //System.out.println(className);
                 try {
                     Class.forName(className);
