@@ -266,11 +266,11 @@ Library
 
     include-dirs: include
     -- includes:
-    --     CTypes.h
-    --     Signals.h
+    --   CTypes.h
+    --   Signals.h
     install-includes:
-        CTypes.h
-        Signals.h
+      CTypes.h
+      Signals.h
         -- HsBase.h
         -- WCsubst.h
         -- consUtils.h

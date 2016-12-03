@@ -84,7 +84,7 @@ import System.FilePath
 import System.IO
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
-import Data.List        ( isSuffixOf, partition )
+import Data.List        ( isSuffixOf, partition, nub )
 import Data.Monoid ((<>))
 import Data.Maybe
 import System.Environment
@@ -96,6 +96,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 
 import Language.Preprocessor.Unlit
+import Language.Preprocessor.Cpphs
 
 -- ---------------------------------------------------------------------------
 -- Pre-process
@@ -743,8 +744,9 @@ runPhase (RealPhase (Unlit sf)) input_fn dflags
        --             , SysTools.FileOption "" output_fn
        --             ]
        -- liftIO $ SysTools.runUnlit dflags flags
-       input <- liftIO $ readFile input_fn
-       liftIO $ writeFile output_fn $ unlit (escape (normalise input_fn)) input
+       liftIO $ do
+         input <- readFile input_fn
+         writeFile output_fn $ unlit (escape (normalise input_fn)) input
        return (RealPhase (Cpp sf), output_fn)
   where
        -- escape the characters \, ", and ', but don't try to escape
@@ -1530,13 +1532,13 @@ doCpp dflags raw input_fn output_fn = do
     let cmdline_include_paths = includePaths dflags
 
     pkg_include_dirs <- getPackageIncludePath dflags []
-    let include_paths = foldr (\ x xs -> "-I" : x : xs) []
-                          (cmdline_include_paths ++ pkg_include_dirs)
+    let include_paths = map ("-I" ++) . nub $
+                          cmdline_include_paths ++ pkg_include_dirs
 
     let verbFlags = getVerbFlags dflags
 
-    let cpp_prog args | raw       = SysTools.runCpp dflags args
-                      | otherwise = SysTools.runCc dflags (SysTools.Option "-E" : args)
+    -- let cpp_prog args | raw       = SysTools.runCpp dflags args
+    --                   | otherwise = SysTools.runCc dflags (SysTools.Option "-E" : args)
 
     let target_defs = [] -- TODO: Deal with this
           -- [ "-D" ++ HOST_OS     ++ "_BUILD_OS=1",
@@ -1571,36 +1573,48 @@ doCpp dflags raw input_fn output_fn = do
     let hsSourceCppOpts =
           [ "-D__GLASGOW_HASKELL__=" ++ ghcProjectVersionInt
           , "-D__ETA_VERSION__=" ++ cProjectVersionInt
-          , "-include", ghcVersionH
+          , "--include=" ++ ghcVersionH
           ]
+        flags = verbFlags   ++ include_paths ++ hsSourceCppOpts
+             ++ target_defs ++ backend_defs  ++ th_defs
+             ++ hscpp_opts  ++ sse_defs      ++ avx_defs ++ ["--strip"]
 
-    cpp_prog       (   map SysTools.Option verbFlags
-                    ++ map SysTools.Option include_paths
-                    ++ map SysTools.Option hsSourceCppOpts
-                    ++ map SysTools.Option target_defs
-                    ++ map SysTools.Option backend_defs
-                    ++ map SysTools.Option th_defs
-                    ++ map SysTools.Option hscpp_opts
-                    ++ map SysTools.Option sse_defs
-                    ++ map SysTools.Option avx_defs
-        -- Set the language mode to assembler-with-cpp when preprocessing. This
-        -- alleviates some of the C99 macro rules relating to whitespace and the hash
-        -- operator, which we tend to abuse. Clang in particular is not very happy
-        -- about this.
-                    ++ [ SysTools.Option     "-x"
-                       , SysTools.Option     "assembler-with-cpp"
-                       , SysTools.Option     input_fn
-        -- We hackily use Option instead of FileOption here, so that the file
-        -- name is not back-slashed on Windows.  cpp is capable of
-        -- dealing with / in filenames, so it works fine.  Furthermore
-        -- if we put in backslashes, cpp outputs #line directives
-        -- with *double* backslashes.   And that in turn means that
-        -- our error messages get double backslashes in them.
-        -- In due course we should arrange that the lexer deals
-        -- with these \\ escapes properly.
-                       , SysTools.Option     "-o"
-                       , SysTools.FileOption "" output_fn
-                       ])
+    cppOpts <- either
+      (\s -> throwGhcExceptionIO $
+               ProgramError ("Preprocessing phase failed with: " ++ s))
+      return (parseOptions flags)
+    liftIO $ do
+      input  <- readFile input_fn
+      output <- runCpphs cppOpts input_fn input
+      writeFile output_fn output
+
+    -- cpp_prog       (   map SysTools.Option verbFlags
+    --                 ++ map SysTools.Option include_paths
+    --                 ++ map SysTools.Option hsSourceCppOpts
+    --                 ++ map SysTools.Option target_defs
+    --                 ++ map SysTools.Option backend_defs
+    --                 ++ map SysTools.Option th_defs
+    --                 ++ map SysTools.Option hscpp_opts
+    --                 ++ map SysTools.Option sse_defs
+    --                 ++ map SysTools.Option avx_defs
+    --     -- Set the language mode to assembler-with-cpp when preprocessing. This
+    --     -- alleviates some of the C99 macro rules relating to whitespace and the hash
+    --     -- operator, which we tend to abuse. Clang in particular is not very happy
+    --     -- about this.
+    --                 ++ [ SysTools.Option     "-x"
+    --                    , SysTools.Option     "assembler-with-cpp"
+    --                    , SysTools.Option     input_fn
+    --     -- We hackily use Option instead of FileOption here, so that the file
+    --     -- name is not back-slashed on Windows.  cpp is capable of
+    --     -- dealing with / in filenames, so it works fine.  Furthermore
+    --     -- if we put in backslashes, cpp outputs #line directives
+    --     -- with *double* backslashes.   And that in turn means that
+    --     -- our error messages get double backslashes in them.
+    --     -- In due course we should arrange that the lexer deals
+    --     -- with these \\ escapes properly.
+    --                    , SysTools.Option     "-o"
+    --                    , SysTools.FileOption "" output_fn
+    --                    ])
 
 getBackendDefs :: DynFlags -> IO [String]
 getBackendDefs dflags | hscTarget dflags == HscLlvm = do
