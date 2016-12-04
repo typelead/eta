@@ -1539,6 +1539,15 @@ doCpp dflags raw input_fn output_fn = do
 
     -- let cpp_prog args | raw       = SysTools.runCpp dflags args
     --                   | otherwise = SysTools.runCc dflags (SysTools.Option "-E" : args)
+    let cpp_prog_args = prune (getOpts dflags opt_P)
+                        ++ (if gopt Opt_WarnIsError dflags
+                             then []
+                             else ["--nowarn"])
+        prune :: [String] -> [String]
+        prune ("-include":xs)
+          = ("--include=" ++ head xs) : tail xs
+        prune (x:xs) = x : prune xs
+        prune [] = []
 
     let target_defs = [] -- TODO: Deal with this
           -- [ "-D" ++ HOST_OS     ++ "_BUILD_OS=1",
@@ -1578,6 +1587,7 @@ doCpp dflags raw input_fn output_fn = do
         flags = verbFlags   ++ include_paths ++ hsSourceCppOpts
              ++ target_defs ++ backend_defs  ++ th_defs
              ++ hscpp_opts  ++ sse_defs      ++ avx_defs ++ ["--strip"]
+             ++ cpp_prog_args
 
     cppOpts <- either
       (\s -> throwGhcExceptionIO $
