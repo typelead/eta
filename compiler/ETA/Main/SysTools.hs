@@ -35,7 +35,6 @@ module ETA.Main.SysTools (
 
         askCc,
 
-        touch,                  -- String -> String -> IO ()
         copy,
         copyWithHeader,
 
@@ -270,8 +269,6 @@ initSysTools mbMinusB
 
        tmpdir <- getTemporaryDirectory
 
-       touch_path <- getSetting "touch command"
-
        let -- On Win32 we don't want to rely on #!/bin/perl, so we prepend
            -- a call to Perl to get the invocation of split.
            -- On Unix, scripts are invoked using the '#!' method.  Binary
@@ -334,7 +331,6 @@ initSysTools mbMinusB
                     sPgm_a   = (as_prog, as_args),
                     sPgm_l   = (ld_prog, ld_args),
                     sPgm_dll = (mkdll_prog,mkdll_args),
-                    sPgm_T   = touch_path,
                     sPgm_sysman  = top_dir ++ "/ghc/rts/parallel/SysMan",
                     sPgm_windres = windres_path,
                     sPgm_libtool = libtool_path,
@@ -1035,10 +1031,6 @@ runWindres dflags args = do
             : args
   mb_env <- getGccEnv gcc_args
   runSomethingFiltered dflags id "Windres" windres args' mb_env
-
-touch :: DynFlags -> String -> String -> IO ()
-touch dflags purpose arg =
-  runSomething dflags purpose (pgm_T dflags) [FileOption "" arg]
 
 copy :: DynFlags -> String -> FilePath -> FilePath -> IO ()
 copy dflags purpose from to = copyWithHeader dflags purpose Nothing from to

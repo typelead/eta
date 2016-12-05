@@ -66,7 +66,7 @@ module ETA.Main.DynFlags (
         ghcUsagePath, ghciUsagePath, topDir, tmpDir, rawSettings,
         versionedAppDir,
         extraGccViaCFlags, systemPackageConfig,
-        pgm_L, pgm_P, pgm_F, pgm_c, pgm_s, pgm_a, pgm_l, pgm_dll, pgm_T,
+        pgm_L, pgm_P, pgm_F, pgm_c, pgm_s, pgm_a, pgm_l, pgm_dll,
         pgm_sysman, pgm_windres, pgm_libtool, pgm_readelf, pgm_lo, pgm_lc,
         pgm_javac,
         opt_L, opt_P, opt_F, opt_c, opt_a, opt_l,
@@ -930,7 +930,6 @@ data Settings = Settings {
   sPgm_a                 :: (String,[Option]),
   sPgm_l                 :: (String,[Option]),
   sPgm_dll               :: (String,[Option]),
-  sPgm_T                 :: String,
   sPgm_sysman            :: String,
   sPgm_windres           :: String,
   sPgm_libtool           :: String,
@@ -987,8 +986,6 @@ pgm_l                 :: DynFlags -> (String,[Option])
 pgm_l dflags = sPgm_l (settings dflags)
 pgm_dll               :: DynFlags -> (String,[Option])
 pgm_dll dflags = sPgm_dll (settings dflags)
-pgm_T                 :: DynFlags -> String
-pgm_T dflags = sPgm_T (settings dflags)
 pgm_sysman            :: DynFlags -> String
 pgm_sysman dflags = sPgm_sysman (settings dflags)
 pgm_windres           :: DynFlags -> String
