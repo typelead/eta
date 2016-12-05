@@ -159,17 +159,21 @@ public class Task {
             }
 
             Lock l = cap.lock;
+            boolean unlocked = false;
             l.lock();
             try {
                 if (cap.runningTask != null) {
                     cap.newReturningTask(this);
                     l.unlock();
+                    unlocked = true;
                     cap = waitForReturnCapability();
                 } else {
                     cap.runningTask = this;
                 }
             } finally {
-                l.unlock();
+                if (!unlocked) {
+                    l.unlock();
+                }
             }
             // DEBUG_sched
             // debugTrace
@@ -196,6 +200,8 @@ public class Task {
                 l.unlock();
             }
             l = cap.lock;
+
+            boolean unlocked = false;
             l.lock();
             try {
                 if (cap.runningTask == null) {
@@ -203,16 +209,20 @@ public class Task {
                     if (task != this) {
                         cap.giveToTask(task);
                         l.unlock();
+                        unlocked = true;
                         continue;
                     } else {
                         cap.runningTask = this;
                         cap.popReturningTask();
                         l.unlock();
+                        unlocked = true;
                         break;
                     }
                 }
             } finally {
-                l.unlock();
+                if (!unlocked) {
+                    l.unlock();
+                }
             }
         }
         return cap;
@@ -271,15 +281,18 @@ public class Task {
                 lock.unlock();
             }
             Lock l = cap.lock;
+            boolean unlocked = false;
             l.lock();
             try {
                 if (cap.runningTask != null) {
                     l.unlock();
+                    unlocked = true;
                     continue;
                 }
 
                 if (this.cap != cap) {
                     l.unlock();
+                    unlocked = true;
                     continue;
                 }
 
@@ -288,6 +301,7 @@ public class Task {
                     if (task != this) {
                         cap.giveToTask(task);
                         l.unlock();
+                        unlocked = true;
                         continue;
                     } else {
                         cap.spareWorkers.poll();
@@ -295,9 +309,12 @@ public class Task {
                 }
                 cap.runningTask = this;
                 l.unlock();
+                unlocked = true;
                 break;
             } finally {
-                l.unlock();
+                if (!unlocked) {
+                    l.unlock();
+                }
             }
         }
         return cap;

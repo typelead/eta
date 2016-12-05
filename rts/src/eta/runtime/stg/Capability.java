@@ -140,7 +140,7 @@ public final class Capability {
                 case SCHED_RUNNING:
                     break;
                 case SCHED_INTERRUPTING:
-                    cap = null;//TODO: scheduleDoGC(cap, task, false);
+                    // cap = null;//TODO: scheduleDoGC(cap, task, false);
                 case SCHED_SHUTTING_DOWN:
                     if (!task.isBound() && cap.emptyRunQueue()) {
                         return cap;
@@ -381,6 +381,7 @@ public final class Capability {
 
         task.wakeup = false;
         Lock l = cap.lock;
+        boolean unlocked = false;
         l.lock();
         try {
             if (task.isWorker()) {
@@ -389,14 +390,18 @@ public final class Capability {
             cap.release_(false);
             if (task.isWorker() || task.isBound()) {
                 l.unlock();
+                unlocked = true;
                 cap = task.waitForWorkerCapability();
             } else {
                 cap.newReturningTask(task);
                 l.unlock();
+                unlocked = true;
                 cap = task.waitForReturnCapability();
             }
         } finally {
-            l.unlock();
+            if (!unlocked) {
+                l.unlock();
+            }
         }
         return new YieldResult(cap,didGcLast);
     }
@@ -738,9 +743,9 @@ public final class Capability {
             runningTask = null;
             /* TODO: peek() instead of poll()?
                verify that the task pops itself from the queue */
-            Task workerTask = returningTasks.peekFirst();
+            Task workerTask = returningTasks.peek();
             if (workerTask != null) {
-                giveCapabilityToTask(workerTask);
+                giveToTask(workerTask);
                 return;
             }
             /* TODO: Evaluate if this is required
@@ -750,17 +755,11 @@ public final class Capability {
                return;
                }*/
 
-            // StgTSO nextTSO = peekRunQueue();
-            // if (nextTSO.bound != null) {
-            //     task = nextTSO.bound.task();
-            //     giveCapabilityToTask(task);
-            //     return;
-            // }
             if (!emptyRunQueue()) {
                 StgTSO nextTSO = peekRunQueue();
                 if (nextTSO.bound != null) {
                     task = nextTSO.bound.task();
-                    giveCapabilityToTask(task);
+                    giveToTask(task);
                     return;
                 }
             }
@@ -775,9 +774,11 @@ public final class Capability {
 
             if (alwaysWakeup || !emptyRunQueue() || !emptyInbox()
                 || (!disabled && !emptySparkPool()) || globalWorkToDo()) {
-                task = spareWorkers.poll();
+                task = spareWorkers.peek();
                 if (task != null) {
-                    giveCapabilityToTask(task);
+                    /* TODO: Verify that the worker task pops itself from
+                             queue. */
+                    giveToTask(task);
                     return;
                 }
             }
@@ -809,26 +810,12 @@ public final class Capability {
         }
     }
 
-    public final void giveCapabilityToTask(Task task) {
-        // debugTrace
-        Lock lock = task.lock;
-        lock.lock();
-        try {
-            if (!task.wakeup) {
-                task.wakeup = true;
-                //signalCondition
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
     public final boolean emptyInbox() {
         return inbox.isEmpty();
     }
 
     public final boolean emptySparkPool() {
-        return sparks.isEmpty();
+        return sparks != null && sparks.isEmpty();
     }
 
     public final boolean globalWorkToDo() {
@@ -1026,7 +1013,7 @@ public final class Capability {
     }
 
     public final void newReturningTask(Task task) {
-        returningTasks.addLast(task);
+        returningTasks.add(task);
     }
 
     public final void popReturningTask() {
@@ -2049,9 +2036,11 @@ public final class Capability {
             task.cap = this;
             while (true) {
                 lock.lock();
+                boolean unlocked = false;
                 try {
                     if (runningTask != null) {
                         lock.unlock();
+                        unlocked = true;
                         Thread.yield();
                         continue;
                     }
@@ -2070,6 +2059,7 @@ public final class Capability {
                     if (!emptyRunQueue() || !spareWorkers.isEmpty()) {
                         release_(false);
                         lock.unlock();
+                        unlocked = true;
                         Thread.yield();
                         continue;
                     }
@@ -2077,12 +2067,15 @@ public final class Capability {
                     if (!suspendedJavaCalls.isEmpty() && safe) {
                         runningTask = null;
                         lock.unlock();
+                        unlocked = true;
                         RtsIO.ioManagerDie();
                         Thread.yield();
                         continue;
                     }
                 } finally {
-                    lock.unlock();
+                    if (!unlocked) {
+                        lock.unlock();
+                    }
                 }
                 break;
             }
