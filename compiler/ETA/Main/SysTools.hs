@@ -88,6 +88,7 @@ import qualified System.Posix.Internals
 #else /* Must be Win32 */
 import Foreign
 import Foreign.C.String
+import System.PosixCompat.Files
 #endif
 
 import System.Process
@@ -1038,7 +1039,11 @@ runWindres dflags args = do
 
 touch :: DynFlags -> String -> String -> IO ()
 touch dflags purpose arg =
+#ifndef mingw32_HOST_OS
   runSomething dflags purpose (pgm_T dflags) [FileOption "" arg]
+#else
+  touchFile arg
+#endif
 
 copy :: DynFlags -> String -> FilePath -> FilePath -> IO ()
 copy dflags purpose from to = copyWithHeader dflags purpose Nothing from to
