@@ -13,7 +13,7 @@
 
 {-#LANGUAGE OverloadedStrings#-}
 
-module Test where
+module Main where
 
 import GHC.IO.Exception (ExitCode(..))
 import System.Exit (die)
@@ -61,6 +61,6 @@ main = do
   pkg <- parsePackagesFile epmPkgs
   case pkg of
     Nothing -> die "Problem parsing your packages.json file"
-    Just pkg' -> 
+    Just pkg' ->
         let packages = (patched pkg') <> (vanilla pkg')
         in mapM_ buildPackage packages
