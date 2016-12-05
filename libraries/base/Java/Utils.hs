@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Utils
-  ( JClass, getClass, toString, equals, classObject, hashCode )
+  ( JClass, getClass, toString, equals, classObject, hashCode, Proxy(..) )
 where
 
 import GHC.Base
