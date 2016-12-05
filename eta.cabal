@@ -316,6 +316,7 @@ library
 
     if os(windows)
         build-depends:   Win32
+                       , unix-compat
     else
         build-depends:   unix
     hs-source-dirs:      compiler
