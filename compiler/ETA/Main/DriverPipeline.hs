@@ -82,6 +82,7 @@ import Data.IORef       ( readIORef )
 import System.Directory
 import System.FilePath
 import System.IO
+import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
 import Data.List        ( isSuffixOf, partition, nub )
@@ -1713,7 +1714,10 @@ hscPostBackendPhase dflags _ hsc_lang =
 touchObjectFile :: DynFlags -> FilePath -> IO ()
 touchObjectFile dflags path = do
   createDirectoryIfMissing True $ takeDirectory path
-  SysTools.touch dflags "Touching object file" path
+  exists <- fileExist path
+  if exists
+    then touchFile path
+    else writeFile path ""
 
 haveRtsOptsFlags :: DynFlags -> Bool
 haveRtsOptsFlags dflags =
