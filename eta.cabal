@@ -313,7 +313,7 @@ library
                        , array
                        , containers
                        , cpphs
-                       , unix-compat
+                       , unix-compat >= 0.4.3.0
 
     if os(windows)
         build-depends:   Win32
