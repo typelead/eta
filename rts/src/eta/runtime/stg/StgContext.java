@@ -8,6 +8,10 @@ public class StgContext {
     public Capability myCapability;
     public ReturnCode ret;
 
+    /* Used for ContinuationFrames */
+    public int target;
+    public ArgumentStack localsStack;
+
     public void reset(Capability cap, StgTSO t) {
         myCapability = cap;
         currentTSO = t;
