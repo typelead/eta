@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-stack install && stack exec eta-build -- install $@
+stack setup && stack install && stack exec eta-build -- install $@
