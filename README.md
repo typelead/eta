@@ -16,21 +16,21 @@ Eta is a dialect of Haskell which runs on the JVM and has the following goals:
 - compatibility with GHC 7.10.3's Haskell.
 
 ## Current Status
+**Version:** 0.0.4
 
-Eta is currently hobby-ready, meaning that you can start using it for your hobby 
-projects, but you may occasionally come across a compiler panic or unimplemented 
+Eta is currently hobby-ready, meaning that you can start using it for your hobby
+projects, but you may occasionally come across a compiler panic or unimplemented
 functions in the standard library. Currently, the following areas are being worked
 on:
 
 - Core library support
-- Support for Java arrays in the FFI
 - Boilerplate generation for Java FFI imports
 - Maven support
 - Concurrent runtime
 
 We hope to get a first release out by early January 2017.
 
-See [projects](https://github.com/typelead/eta/projects) for a more detailed 
+See [projects](https://github.com/typelead/eta/projects) for a more detailed
 overview of the issues that are being prioritized.
 
 Be warned that since we're playing around with the best way to handle Java interop,
@@ -61,7 +61,7 @@ $ ./install.sh
 ```
 
 *Note* - If you omit the `--recursive` flag to `git clone`, you will need to
-initialize the project's submodules before running `install.sh` -
+initialize the project's submodules before running `install.sh`:
 
 ```
 $ cd eta
@@ -75,24 +75,30 @@ Once the installation is done, you will now have access to the following command
 If they are not working, ensure that your stack binary path is included in your PATH.
 
 The following packages are available upon installation:
-- ghc-prim
-- integer
-- base
+- **ghc-prim**
+- **integer**
+- **base**
 
 #### Updating
 
-Eta updates pretty fast and we're incorporating new patches on a daily basis that you might want to get access to.
+Eta updates pretty fast and we're incorporating new patches on a daily basis that you
+might want to get access to.
 
-If you have Eta already installed, go to the root of this repository's clone on your system, and run the following commands:
+If you have Eta already installed, go to the root of this repository's clone on your
+system, and run the following commands:
 ```
 $ git pull
 $ git submodule update --recursive
 $ ./cleaninstall.sh
 
 ```
-This will do a fresh install, recompiling all the core libraries with the most recent compiler.
+This will do a fresh install, recompiling all the core libraries with the most recent
+compiler.
 
-If you have existing Epm projects, make sure you run ```epm clean``` inside each project before proceeding with your normal development so that Epm recognizes the updated libraries. If you are experiencing errors even after that, you can try deleting `~/.epm` and running `epm update`.
+If you have existing Epm projects, make sure you run ```epm clean``` inside each
+project before proceeding with your normal development so that Epm recognizes the
+updated libraries. If you are experiencing errors even after that, you can try deleting
+`~/.epm` and running `epm update`.
 
 ### Method 2: Docker
 
