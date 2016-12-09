@@ -219,7 +219,10 @@ public class Rts {
 
 
     public static void stgExit(ExitCode exitCode) {
-        System.exit(exitCode.code());
+        int code = exitCode.code();
+        if (code != 0) {
+            System.exit(code);
+        }
     }
 
     public enum ExitCode {

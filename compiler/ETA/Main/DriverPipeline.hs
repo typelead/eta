@@ -1919,8 +1919,7 @@ mkRtsMainClass dflags mainClass
                                                       , closureType
                                                       , rtsConfigType]
                                                       (ret exitCodeType),
-      invokevirtual $ mkMethodRef exitCode "code" [] (ret jint),
-      invokestatic $ mkMethodRef "java/lang/System" "exit" [jint] void,
+      invokestatic $ mkMethodRef "eta/runtime/Rts" "stgExit" [exitCodeType] void,
       vreturn
     ]
   ]
