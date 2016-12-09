@@ -18,10 +18,19 @@
 module Java.Core
   ( java, javaWith, pureJava, io,
     (<.>), (>-)
-  )
+  -- Useful exports
+  , Int64
+  , Object#
+  , Object
+  , JString
+  , Class(..)
+  , Extends(..)
+  , Inherits(..)
+  , Java(..) )
 where
 
 import GHC.Base
+import Data.Int(Int64)
 
 foreign import java unsafe "@new" globalObject :: Object
 
