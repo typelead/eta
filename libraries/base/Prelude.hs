@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude, MagicHash #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -150,22 +150,6 @@ module Prelude (
     -- ** Exception handling in the I\/O monad
     IOError, ioError, userError,
 
-    -- * Eta I/O
-    JString(..),
-    JClass(..),
-    getClass,
-    Object(..),
-    Class(..),
-    Extends(..),
-    Object#,
-    toJString,
-    fromJString,
-    classObject,
-    toString,
-    Java,
-    JStringArray,
-    JIntArray,
-    Inherits(..)
   ) where
 
 import Control.Monad
@@ -186,5 +170,3 @@ import GHC.Num
 import GHC.Real
 import GHC.Float
 import GHC.Show
-
-import Java

@@ -24,8 +24,9 @@ module System.Info
        compilerVersion
    ) where
 
-import Data.Version
+import GHC.Base
 import GHC.Pack (unpackCString)
+import Data.Version
 
 -- | The version of 'compilerName' with which the program was compiled
 -- or is being interpreted.
