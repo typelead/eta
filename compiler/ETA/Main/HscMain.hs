@@ -163,7 +163,7 @@ import Codec.JVM
 
 import Debug.Trace(traceShow)
 import Data.List
-import Control.Monad
+import Control.Monad hiding (void)
 import Data.Maybe
 import Data.IORef
 import System.FilePath as FilePath
@@ -171,6 +171,7 @@ import System.Directory
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Control.Arrow((&&&), first)
+import Data.Foldable(fold)
 
 {- **********************************************************************
 %*                                                                      *
@@ -1239,16 +1240,26 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
           mkClassFile java7 [Public, Super] (jvmify className) (Just superClass) interfaces
             fieldDefs methodDefs'
           where className:specs = T.words classSpec
-                methodDefs' = if hasConstructor
-                              then methodDefs
-                              else mkDefaultConstructor className superClass : methodDefs
-                hasConstructor = any (\(MethodDef _ (UName n) _ _) -> n == "<init>") methodDefs
+                methodDefs' = genClInit className : methodDefs
+                methodDefs'' = if hasConstructor
+                              then methodDefs'
+                              else  mkDefaultConstructor className superClass
+                                  : methodDefs'
+                hasConstructor = any (\(MethodDef _ (UName n) _ _) ->
+                                        n == "<init>") methodDefs
                 (superClass, interfaces) = parseSpecs specs jobjectC []
         parseSpecs ("extends":superClass:xs) _ is = parseSpecs xs (jvmify superClass) is
         parseSpecs ("implements":interface:xs) sc is = parseSpecs xs sc (jvmify interface:is)
         parseSpecs [] sc is = (sc, reverse is)
         parseSpecs _ _ _ = error $ "Invalid foreign export spec."
         jvmify = T.map (\c -> if c == '.' then '/' else c)
+        genClInit cls = mkMethodDef cls [Public, Static] "<clinit>" [] void $ fold
+                          [ iconst jint (fromIntegral 0)
+                          , new (jarray jstring)
+                          , invokestatic (mkMethodRef "eta/runtime/RtsConfig"
+                                         "getDefault" [] (ret rtsConfigType))
+                          , invokestatic (mkMethodRef "eta/runtime/Rts" "hsInit"
+                                         [jarray jstring, rtsConfigType] void) ]
 
 hscInteractive :: HscEnv
                -> CgGuts
