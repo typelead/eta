@@ -91,7 +91,7 @@ getProgName :: IO String
 -- -- Ignore the arguments to hs_init on Windows for the sake of Unicode compat
 -- getProgName = fmap (basename . head) getWin32ProgArgv_certainly
 -- #else
-getProgName = undefined
+getProgName = return "eta.main"
   -- alloca $ \ p_argc ->
   -- alloca $ \ p_argv -> do
   --    getProgArgv p_argc p_argv
