@@ -1904,24 +1904,21 @@ mkRtsMainClass dflags mainClass
   = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
   [
     mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
-    [
-      invokestatic $ mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType),
-      putRtsHsMain,
-      putRtsOptsEnabled,
-      putRtsOpts,
-      gstore rtsConfigType 1,
-      gload (jarray jstring) 0,
+      [ invokestatic $ mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType)
+      , putRtsHsMain
+      , putRtsOptsEnabled
+      , putRtsOpts
+      , gstore rtsConfigType 1
+      , gload (jarray jstring) 0
       -- TODO: Find main module
-      getstatic $ mkFieldRef (moduleJavaClass mainMod) "DZCmain_closure"
-                             closureType,
-      gload rtsConfigType 1,
-      invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
-                                                      , closureType
-                                                      , rtsConfigType]
-                                                      (ret exitCodeType),
-      invokestatic $ mkMethodRef "eta/runtime/Rts" "stgExit" [exitCodeType] void,
-      vreturn
-    ]
+      , getstatic $ mkFieldRef (moduleJavaClass mainMod) "DZCmain_closure" closureType
+      , gload rtsConfigType 1
+      , invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
+                                                        , closureType
+                                                        , rtsConfigType]
+                                                        (ret exitCodeType)
+      , maybeExit
+      , vreturn ]
   ]
   where mainClass' = T.pack mainClass
         mainMod = mainModIs dflags
@@ -1940,3 +1937,7 @@ mkRtsMainClass dflags mainClass
           Just s -> dup rtsConfigType
                  <> sconst (T.pack s)
                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
+        maybeExit
+          | gopt Opt_NoShutdown dflags = mempty
+          | otherwise =
+            invokestatic $ mkMethodRef "eta/runtime/Rts" "stgExit" [exitCodeType] void
