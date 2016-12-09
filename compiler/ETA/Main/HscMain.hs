@@ -1237,14 +1237,14 @@ outputForeignStubs dflags NoStubs = []
 outputForeignStubs dflags (ForeignStubs _ _ classExports) =
   map f $ foreignExportsList classExports
   where f (classSpec, (methodDefs, fieldDefs)) =
-          mkClassFile java7 [Public, Super] (jvmify className) (Just superClass) interfaces
-            fieldDefs methodDefs'
+          mkClassFile java7 [Public, Super] (jvmify className) (Just superClass)
+            interfaces fieldDefs methodDefs''
           where className:specs = T.words classSpec
                 methodDefs' = genClInit className : methodDefs
                 methodDefs'' = if hasConstructor
-                              then methodDefs'
-                              else  mkDefaultConstructor className superClass
-                                  : methodDefs'
+                               then methodDefs'
+                               else  mkDefaultConstructor className superClass
+                                   : methodDefs'
                 hasConstructor = any (\(MethodDef _ (UName n) _ _) ->
                                         n == "<init>") methodDefs
                 (superClass, interfaces) = parseSpecs specs jobjectC []
@@ -1259,7 +1259,8 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
                           , invokestatic (mkMethodRef "eta/runtime/RtsConfig"
                                          "getDefault" [] (ret rtsConfigType))
                           , invokestatic (mkMethodRef "eta/runtime/Rts" "hsInit"
-                                         [jarray jstring, rtsConfigType] void) ]
+                                         [jarray jstring, rtsConfigType] void)
+                          , vreturn ]
 
 hscInteractive :: HscEnv
                -> CgGuts
