@@ -108,7 +108,7 @@ main = do
 
 -- @VERSION_CHANGE@
 myVersion :: String
-myVersion = "0.0.3"
+myVersion = "0.0.4"
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 
