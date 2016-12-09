@@ -1,12 +1,16 @@
 # Eta Documentation
 
-The documentation is currently incomplete.
+## Prerequisites
 
-- [Getting Started](./Getting-Started.md)
-- [Interaction with Java](./FFI.md)
-- [Debugging Stack Traces](./Debugging-Stack-Traces.md)
-- [FAQ](./FAQ.md)
+- Python
+- [pip](https://pip.pypa.io/en/stable/installing/)
+  - Python 2 >= 2.7.9 or Python 3 >= 3.4 automatically have `pip` installed.
 
-As there are many similarities with GHC 7.10.3, one can consult the corresponding 
-[user guide](https://downloads.haskell.org/~ghc/7.10.3/docs/html/users_guide/) for 
-language-level details.
+```
+$ pip install Sphinx sphinx_rtd_theme
+```
+
+## Building
+```
+$ make html
+```
