@@ -1813,7 +1813,7 @@ linkingNeeded dflags linkables pkgDeps = do
 jarFileName :: DynFlags -> FilePath
 jarFileName dflags
   | Just s <- outputFile dflags = s <?.> "jar"
-  | otherwise = "main.jar"
+  | otherwise = "Run.jar"
   where s <?.> ext | null (takeExtension s) = s <.> ext
                    | otherwise              = s
 
@@ -1856,7 +1856,7 @@ linkGeneric dflags oFiles depPackages = do
             --       in the Manifests of the jars being compiled
           else return []
     jarInputFiles  <- concatMapM getFilesFromJar (jarInputs dflags)
-    let files = extraFiles  ++ jarInputFiles ++ oFiles ++ mainFiles
+    let files = extraFiles ++ jarInputFiles ++ oFiles ++ mainFiles
     linkJars dflags files
     -- TODO: Handle frameworks & extra ldInputs
     where (isExecutable, includePackages) = case ghcLink dflags of

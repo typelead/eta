@@ -440,7 +440,7 @@ guessOutputFile = modifySession $ \env ->
             then throwGhcException . UsageError $
                  "default output name would overwrite the input file; " ++
                  "must specify -o explicitly"
-            else Just name'
+            else Just ("Run" ++ name')
     in
     case outputFile dflags of
         Just _ -> env
