@@ -19,6 +19,7 @@ source-repository head
 
 library
     c-sources:           compiler/cbits/genSym.c
+                         compiler/cbits/cutils.c
     default-language:    Haskell2010
     default-extensions:  RecordWildCards
                        , NamedFieldPuns

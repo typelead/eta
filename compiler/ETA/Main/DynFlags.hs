@@ -2121,11 +2121,10 @@ parseDynamicFlagsFull activeFlags cmdline dflags0 args = do
                         let ss = map (Set.fromList . words) (lines xs)
                         return $ dflags5 { dllSplit = Just ss }
 
-  --TODO: -- Set timer stats & heap size
-  -- when (enableTimeStats dflags6) $ liftIO enableTimingStats
-  -- case (ghcHeapSize dflags6) of
-  --   Just x -> liftIO (setHeapSize x)
-  --   _      -> return ()
+  when (enableTimeStats dflags6) $ liftIO enableTimingStats
+  case (ghcHeapSize dflags6) of
+    Just x -> liftIO (setHeapSize x)
+    _      -> return ()
 
   liftIO $ setUnsafeGlobalDynFlags dflags6
 
@@ -4226,5 +4225,5 @@ decodeSize str
         n      = readRational m
         pred c = isDigit c || c == '.'
 
--- foreign import ccall unsafe "setHeapSize"       setHeapSize       :: Int -> IO ()
--- foreign import ccall unsafe "enableTimingStats" enableTimingStats :: IO ()
+foreign import ccall unsafe "setHeapSize"       setHeapSize       :: Int -> IO ()
+foreign import ccall unsafe "enableTimingStats" enableTimingStats :: IO ()
