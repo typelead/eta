@@ -146,6 +146,7 @@ module ETA.Main.DynFlags (
 	-- * DynFlags utilities
 	addClassPaths,
 	addJarInputs,
+        compressionMethod
   ) where
 
 #include "HsVersions.h"
@@ -168,6 +169,7 @@ import qualified ETA.Utils.Pretty as Pretty
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.FastString
 import ETA.Utils.Outputable
+import ETA.Utils.JAR
 #ifdef GHCI
 import Foreign.C        ( CInt(..) )
 import System.IO.Unsafe ( unsafeDupablePerformIO )
@@ -4227,3 +4229,9 @@ decodeSize str
 
 foreign import ccall unsafe "setHeapSize"       setHeapSize       :: Int -> IO ()
 foreign import ccall unsafe "enableTimingStats" enableTimingStats :: IO ()
+
+compressionMethod :: DynFlags -> CompressionMethod
+compressionMethod dflags
+  | oLevel >= 1 = deflate
+  | otherwise   = normal
+  where oLevel = optLevel dflags

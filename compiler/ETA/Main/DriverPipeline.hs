@@ -26,7 +26,8 @@ module ETA.Main.DriverPipeline (
    phaseOutputFilename, getPipeState, getPipeEnv,
    hscPostBackendPhase, getLocation, setModLocation, setDynFlags,
    runPhase, jarFileName,
-   linkingNeeded, writeInterfaceOnlyMode
+   linkingNeeded, writeInterfaceOnlyMode,
+   compressionMethod
   ) where
 
 import ETA.Core.CoreSyn (CoreProgram)
@@ -46,7 +47,7 @@ import ETA.CodeGen.Name
 import ETA.Debug
 import ETA.CodeGen.Rts
 import ETA.Parser.Parse
-import ETA.JAR
+import ETA.Utils.JAR
 import ETA.Util
 import Codec.JVM
 
@@ -90,8 +91,10 @@ import Data.Monoid ((<>))
 import Data.Maybe
 import System.Environment
 import Data.Char
+import Data.List (isPrefixOf)
 import Control.Arrow((&&&), first)
 import Data.ByteString (ByteString)
+import Data.Time
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -415,7 +418,7 @@ compileFiles hsc_env stop_phase srcs = do
   extras <- getOutputFilename StopLn Persistent "__extras" dflags' StopLn Nothing
   let classes = java_classes ++ java_class_srcs
   when (not (null classes)) $
-    createJar extras $ classes
+    createJar dflags' extras classes
   return ((if null classes then [] else [extras]) ++ o_files')
   where (java_srcs, non_java_srcs) = partition (isJavaishFilename . fst) srcs
         (java_class_srcs, java_source_srcs) = partition isJavaClassishFilename
@@ -423,15 +426,15 @@ compileFiles hsc_env stop_phase srcs = do
         class_dirs = map takeDirectory java_class_srcs
         java_classes = map (-<.> "class") java_source_srcs
 
-createJar :: FilePath -> [FilePath] -> IO ()
-createJar outputFile classes = do
+createJar :: DynFlags -> FilePath -> [FilePath] -> IO ()
+createJar dflags outputFile classes = do
   createEmptyJar outputFile
   pathContents <- forM classes $ \classFile -> do
     contents <- BL.readFile classFile
     let internalPath = classFileCls contents
     relPath <- mkPath $ internalPath ++ ".class"
     return (relPath, BL.toStrict contents)
-  addMultiByteStringsToJar' pathContents outputFile
+  addMultiByteStringsToJar' outputFile (compressionMethod dflags) pathContents
 
 oneShot :: HscEnv -> Phase -> [(String, Maybe Phase)] -> IO ()
 oneShot hsc_env stop_phase srcs = do
@@ -1847,17 +1850,20 @@ linkGeneric dflags oFiles depPackages = do
     mainFiles <- forM mainFiles' $ \(a, b) -> do
                    a' <- mkPath a
                    return (a', b)
-    oFiles  <- concatMapM getFilesFromJar oFiles
-    extraFiles <-
+    outJars <- concatMapM getNonManifestEntries oFiles
+    extraJars <-
           if includePackages then do
             pkgLibJars <- getPackageLibJars dflags depPackages
-            concatMapM getFilesFromJar pkgLibJars
+            concatMapM getNonManifestEntries pkgLibJars
             -- TODO: Verify that the right version eta was used
             --       in the Manifests of the jars being compiled
           else return []
-    jarInputFiles  <- concatMapM getFilesFromJar (jarInputs dflags)
-    let files = extraFiles ++ jarInputFiles ++ oFiles ++ mainFiles
-    linkJars dflags files
+    inputJars <- concatMapM getNonManifestEntries (jarInputs dflags)
+    start <- getCurrentTime
+    mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
+      extraJars ++ inputJars ++ outJars
+    end <- getCurrentTime
+    putStrLn $ "Link time: " ++ show (diffUTCTime end start)
     -- TODO: Handle frameworks & extra ldInputs
     where (isExecutable, includePackages) = case ghcLink dflags of
             LinkBinary    -> (True, True)
@@ -1866,15 +1872,10 @@ linkGeneric dflags oFiles depPackages = do
             other         ->
               panic ("link: GHC not built to link this way: " ++
                     show other)
-
-linkJars :: DynFlags -> [FileAndContents] -> IO ()
-linkJars dflags files = do
-    let outputFn = jarFileName dflags
-    -- fullOutputFn <- if isAbsolute outputFn then return outputFn
-    --                 else do d <- getCurrentDirectory
-    --                         return $ normalise (d </> outputFn)
-    createEmptyJar outputFn
-    addMultiByteStringsToJar' files outputFn
+          outputFn = jarFileName dflags
+          getNonManifestEntries = fmap (filter (\s ->
+                                            not ("MANIFEST" `isPrefixOf` show s)))
+                                    . getEntriesFromJar
 
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do

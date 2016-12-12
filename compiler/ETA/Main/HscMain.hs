@@ -156,7 +156,7 @@ import ETA.CodeGen.Main
 import ETA.CodeGen.Name
 import ETA.Debug
 import ETA.CodeGen.Rts
-import ETA.JAR
+import ETA.Utils.JAR
 import ETA.Main.Packages
 import ETA.Util
 import Codec.JVM
@@ -1229,7 +1229,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
           a' <- mkPath a
           return (a', b)
         createEmptyJar output_filename
-        addMultiByteStringsToJar' jarContents output_filename
+        addMultiByteStringsToJar' output_filename (compressionMethod dflags) jarContents
         return (output_filename, Nothing)
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]

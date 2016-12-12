@@ -292,7 +292,7 @@ library
                        , ETA.Utils.Util
                        , ETA.Debug
                        , ETA.Util
-                       , ETA.JAR
+                       , ETA.Utils.JAR
     other-modules:       ETA.Parser.Parser
                        , ETA.Parser.Lexer
                        , ETA.Parser.RdrHsSyn

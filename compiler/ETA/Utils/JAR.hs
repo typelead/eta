@@ -1,5 +1,5 @@
 {-|
-Module      : JAR
+Module      : ETA.Utils.JAR
 Description : Small utility functions for creating Jars from class files.
 Copyright   : (c) Christopher Wells 2016
               (c) Rahul Muttineni 2016
@@ -26,24 +26,37 @@ let fileContents = packChars "Hello, World!"
 addByteStringToJar fileLocation fileContents jarLocation
 @
 -}
-module ETA.JAR where
+module ETA.Utils.JAR
+  ( addMultiByteStringsToJar'
+  , createEmptyJar
+  , getEntriesFromJar
+  , mergeClassesAndJars
+  , CompressionMethod
+  , deflate
+  , normal
+  , bzip2
+  , mkPath )
+where
 
 import Data.Coerce(coerce)
 import Codec.Archive.Zip
 import Control.Monad (forM_, forM)
-import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Catch (MonadCatch(..), MonadThrow)
 import Data.ByteString.Internal (ByteString)
 import Path
 import Data.Map.Lazy (keys)
+import System.Directory
 
-class MultiPath m where
-  getPath :: FilePath -> Path m File
+type FileAndContents = (RelativeFile, ByteString)
+type AbsoluteFile = Path Abs File
+type RelativeFile = Path Rel File
 
-instance MultiPath Abs
-instance MultiPath Rel
+deflate, normal, bzip2 :: CompressionMethod
+deflate = Deflate
+normal = Store
+bzip2 = BZip2
 
-type FileAndContents = (Path Rel File, ByteString)
 -- | Creates an empty jar archive at the given relative filepath location.
 -- The name of the archive and its file ending should be included in the
 -- filepath.
@@ -125,12 +138,13 @@ createEmptyJar location = do
 -- @
 addByteStringToJar :: (MonadThrow m, MonadIO m)
   => FilePath      -- ^ Location of the new file within the jar
+  -> CompressionMethod -- ^ Compression Method
   -> ByteString    -- ^ Contents of the new file to add
   -> FilePath      -- ^ Location of the jar to add the new file into
   -> m ()
-addByteStringToJar fileLocation contents jarLocation = zipAction
+addByteStringToJar fileLocation compress contents jarLocation = zipAction
   where zipAction = jarPath >>= flip withArchive zipChange
-        zipChange = entrySel >>= addEntry Store contents
+        zipChange = entrySel >>= addEntry compress contents
         entrySel  = filePath >>= mkEntrySelector
         jarPath   = parseRelFile jarLocation
         filePath  = parseRelFile fileLocation
@@ -197,14 +211,16 @@ addByteStringToJar fileLocation contents jarLocation = zipAction
 --     forM_ files $ \(path, contents) -> do
 --       filePath <- parseRelFile path
 --       entrySel <- mkEntrySelector filePath
---       addEntry Store contents entrySel
+--       addEntry Deflate contents entrySel
 
 addMultiByteStringsToJar'
   :: (MonadThrow m, MonadIO m, MonadCatch m)
-  => [(Path Rel File, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
-  -> FilePath                    -- ^ Location of the jar to add the new files into
+
+  => FilePath                    -- ^ Location of the jar to add the new files into
+  -> CompressionMethod -- ^ Compression Method
+  -> [(Path Rel File, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> m ()
-addMultiByteStringsToJar' files jarLocation = do
+addMultiByteStringsToJar' jarLocation compress files  = do
   isRelative <- catch (parseRelFile jarLocation >> return True) handler
   if isRelative then do
     p <- parseRelFile jarLocation
@@ -215,31 +231,51 @@ addMultiByteStringsToJar' files jarLocation = do
   where action =
           forM_ files $ \(path, contents) -> do
             entrySel <- mkEntrySelector path
-            addEntry Store contents entrySel
+            addEntry compress contents entrySel
         handler :: (MonadThrow m, MonadCatch m, MonadIO m)
                 => PathParseException -> m Bool
         handler _ = return False
 
-getFilesFromJar
-  :: (MonadThrow m, MonadCatch m, MonadIO m)
-  => FilePath
-  -> m [(Path Rel File, ByteString)]
-getFilesFromJar jarLocation = do
-  isRelative <- catch (parseRelFile jarLocation >> return True) handler
-  if isRelative then do
-    p <- parseRelFile jarLocation
-    withArchive p action
-  else do
-    p <- parseAbsFile jarLocation
-    withArchive p action
-  where action = do
-          entrySelectors <- keys <$> getEntries
-          forM entrySelectors $ \es -> do
-            contents <- getEntry es
-            return (unEntrySelector es, contents)
-        handler :: (MonadThrow m, MonadCatch m, MonadIO m)
-                => PathParseException -> m Bool
-        handler _ = return False
+-- getFilesFromJar
+--   :: (MonadThrow m, MonadCatch m, MonadIO m)
+--   => FilePath
+--   -> m [(Path Rel File, ByteString)]
+-- getFilesFromJar jarLocation =
+--   withUnsafePath jarLocation (flip withArchive action) (flip withArchive action)
+--   where action = do
+--           entrySelectors <- keys <$> getEntries
+--           forM entrySelectors $ \es -> do
+--             contents <- getEntry es
+--             return (unEntrySelector es, contents)
 
 mkPath :: (MonadThrow m, MonadIO m) => FilePath -> m (Path Rel File)
 mkPath = parseRelFile
+
+makeAbsoluteFilePath :: (MonadIO m, MonadThrow m) => FilePath -> m (Path Abs File)
+makeAbsoluteFilePath fp = do
+  absPath <- liftIO $ canonicalizePath fp
+  parseAbsFile absPath
+
+getEntriesFromJar
+  :: (MonadThrow m, MonadCatch m, MonadIO m)
+  => FilePath
+  -> m [(AbsoluteFile, EntrySelector)]
+getEntriesFromJar jarLocation = do
+  p <- makeAbsoluteFilePath jarLocation
+  fmap (map (p,)) $ withArchive p $ keys <$> getEntries
+
+mergeClassesAndJars :: (MonadIO m, MonadCatch m, MonadThrow m)
+                    => FilePath
+                    -> CompressionMethod -- ^ Compression Method
+                    -> [FileAndContents]
+                    -> [(AbsoluteFile, EntrySelector)]
+                    -> m ()
+mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
+  liftIO $ writeFile jarLocation ""
+  p <- makeAbsoluteFilePath jarLocation
+  createArchive p $ do
+    forM_ fileAndContents $ \(relFile, contents) -> do
+      entrySel <- mkEntrySelector relFile
+      addEntry compress contents entrySel
+    forM_ jarSelectors $ \(absFile, entrySel) -> do
+      copyEntry absFile entrySel entrySel
