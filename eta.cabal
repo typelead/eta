@@ -305,7 +305,6 @@ library
                        , directory >= 1.2
                        , filepath
                        , codec-jvm >= 0
-                       , control-monad-exception >= 0.11
                        , hpc
                        , mtl
                        , zip
@@ -343,7 +342,6 @@ executable eta
                        , deepseq
                        , directory
                        , filepath
-                       , ghc >= 7.10.3 && < 7.11.0
                        , ghc-paths == 0.1.0.9
                        , haskeline
                        , process
