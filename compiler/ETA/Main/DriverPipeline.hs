@@ -1863,7 +1863,8 @@ linkGeneric dflags oFiles depPackages = do
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
       extraJars ++ inputJars ++ outJars
     end <- getCurrentTime
-    putStrLn $ "Link time: " ++ show (diffUTCTime end start)
+    when (verbosity dflags > 0) $
+      putStrLn $ "Link time: " ++ show (diffUTCTime end start)
     -- TODO: Handle frameworks & extra ldInputs
     where (isExecutable, includePackages) = case ghcLink dflags of
             LinkBinary    -> (True, True)
