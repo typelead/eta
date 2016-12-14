@@ -40,13 +40,16 @@ where
 
 import Data.Coerce(coerce)
 import Codec.Archive.Zip
-import Control.Monad (forM_, forM)
+import Control.Monad (forM_, forM, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Catch (MonadCatch(..), MonadThrow)
 import Data.ByteString.Internal (ByteString)
 import Path
+import Path.IO (copyFile)
 import Data.Map.Lazy (keys)
-import System.Directory
+import Data.List (sortBy)
+import System.Directory hiding (copyFile)
+
 
 type FileAndContents = (RelativeFile, ByteString)
 type AbsoluteFile = Path Abs File
@@ -259,23 +262,29 @@ makeAbsoluteFilePath fp = do
 getEntriesFromJar
   :: (MonadThrow m, MonadCatch m, MonadIO m)
   => FilePath
-  -> m [(AbsoluteFile, EntrySelector)]
+  -> m (AbsoluteFile, [EntrySelector])
 getEntriesFromJar jarLocation = do
   p <- makeAbsoluteFilePath jarLocation
-  fmap (map (p,)) $ withArchive p $ keys <$> getEntries
+  fmap (p,) $ withArchive p $ keys <$> getEntries
 
 mergeClassesAndJars :: (MonadIO m, MonadCatch m, MonadThrow m)
                     => FilePath
                     -> CompressionMethod -- ^ Compression Method
                     -> [FileAndContents]
-                    -> [(AbsoluteFile, EntrySelector)]
+                    -> [(AbsoluteFile, [EntrySelector])]
                     -> m ()
 mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
-  liftIO $ writeFile jarLocation ""
+  let ((copy, _):selectors) = sortBy (\(_, e1) (_, e2) ->
+                                  compare (length e2) (length e1)) jarSelectors
+  exists <- liftIO $ doesFileExist jarLocation
+  when (not exists) $
+    liftIO $ writeFile jarLocation ""
   p <- makeAbsoluteFilePath jarLocation
-  createArchive p $ do
+  copyFile copy p
+  withArchive p $ do
+    forM_ selectors $ \(absFile, entries) -> do
+      forM_ entries $ \entry -> do
+        copyEntry absFile entry entry
     forM_ fileAndContents $ \(relFile, contents) -> do
       entrySel <- mkEntrySelector relFile
       addEntry compress contents entrySel
-    forM_ jarSelectors $ \(absFile, entrySel) -> do
-      copyEntry absFile entrySel entrySel

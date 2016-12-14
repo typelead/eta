@@ -309,6 +309,7 @@ library
                        , mtl
                        , zip
                        , path
+                       , path-io
                        , exceptions
                        , transformers
                        , array

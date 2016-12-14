@@ -1850,15 +1850,15 @@ linkGeneric dflags oFiles depPackages = do
     mainFiles <- forM mainFiles' $ \(a, b) -> do
                    a' <- mkPath a
                    return (a', b)
-    outJars <- concatMapM getNonManifestEntries oFiles
+    outJars <- mapM getNonManifestEntries oFiles
     extraJars <-
           if includePackages then do
             pkgLibJars <- getPackageLibJars dflags depPackages
-            concatMapM getNonManifestEntries pkgLibJars
+            mapM getNonManifestEntries pkgLibJars
             -- TODO: Verify that the right version eta was used
             --       in the Manifests of the jars being compiled
           else return []
-    inputJars <- concatMapM getNonManifestEntries (jarInputs dflags)
+    inputJars <- mapM getNonManifestEntries (jarInputs dflags)
     start <- getCurrentTime
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
       extraJars ++ inputJars ++ outJars
@@ -1874,9 +1874,10 @@ linkGeneric dflags oFiles depPackages = do
               panic ("link: GHC not built to link this way: " ++
                     show other)
           outputFn = jarFileName dflags
-          getNonManifestEntries = fmap (filter (\s ->
-                                            not ("MANIFEST" `isPrefixOf` show s)))
-                                    . getEntriesFromJar
+          getNonManifestEntries = -- fmap (filter (\s ->
+                                  --           not ("MANIFEST" `isPrefixOf` show s)))
+                                    -- .
+                                  getEntriesFromJar
 
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do
