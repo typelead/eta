@@ -1982,6 +1982,12 @@ toListClassOpKey = mkPreludeMiscIdUnique 501
 proxyHashKey :: Unique
 proxyHashKey = mkPreludeMiscIdUnique 502
 
+-- ETA-specific
+superCastClassOpKey, unsafeCastClassOpKey, unobjOpKey :: Unique
+superCastClassOpKey = mkPreludeMiscIdUnique 200
+unsafeCastClassOpKey = mkPreludeMiscIdUnique 201
+unobjOpKey = mkPreludeMiscIdUnique 202
+
 ---------------- Template Haskell -------------------
 --      USES IdUniques 200-499
 -----------------------------------------------------

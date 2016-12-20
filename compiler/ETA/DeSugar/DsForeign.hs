@@ -455,6 +455,13 @@ resultWrapper extendsInfo resultType
            , \e -> mkWildCase e jboolPrimTy boolTy
                    [ (DEFAULT, [], Var trueDataConId)
                    , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
+  | Just (tc, [ty]) <- maybeTcApp, tc `hasKey` maybeTyConKey
+    = do
+      unobjId <- dsLookupGlobalId unobjName
+      (_, efn) <- resultWrapper extendsInfo ObjectType
+      return (Just ty, \e -> mkWildCase (App (Var (primOpId ObjectIsNull)) (App (Var unobjId) (efn e))) intPrimTy resultType
+                             [ (DEFAULT, [], mkConApp justDataCon [e])
+                             , (LitAlt (MachInt 0), [], mkConApp nothingDataCon [])])
   | Just (co, repType) <- topNormaliseNewType_maybe resultType
   = do (maybeType, wrapper) <- resultWrapper extendsInfo repType
        return (maybeType, \e -> mkCast (wrapper e) (mkSymCo co))
