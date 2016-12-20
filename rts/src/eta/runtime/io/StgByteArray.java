@@ -12,13 +12,6 @@ import static eta.runtime.RtsMessages.barf;
 
 public final class StgByteArray extends StgClosure {
 
-    private static TreeMap<Integer, WeakReference<ByteBuffer>> addressMap =
-        new TreeMap<Integer, WeakReference<ByteBuffer>>();
-
-    private static Object lock = new Object();
-
-    private static int nextAddress;
-
     public static StgByteArray create(int n) {
         return create(n, false);
     }
@@ -28,37 +21,9 @@ public final class StgByteArray extends StgClosure {
     }
 
     public static StgByteArray create(int n, int alignment, boolean pinned) {
-        ByteBuffer buf;
-        synchronized (lock) {
-            // TODO: Handle alignment
-            // TODO: Collect allocation statistics
-            // TODO: Revamp this implementation once the GC layer is added
-            if (pinned) {
-                buf = ByteBuffer.allocateDirect(n); // Off-heap memory
-            } else {
-                buf = ByteBuffer.allocate(n); // Heap memory
-            }
-            // addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
-            // TODO: Add a check to crash if nextAddress overflows
-            nextAddress += n;
-        }
-        return new StgByteArray(buf);
+        return new StgByteArray(MemoryManager.allocateBuffer(n, pinned));
     }
 
-    // public static ByteBuffer getBuffer(int address) {
-    //     Map.Entry<Integer, WeakReference<ByteBuffer>>
-    //         entry = addressMap.floorEntry(address);
-    //     int pos = address - entry.getKey();
-    //     ByteBuffer ref = entry.getValue().get();
-    //     if (ref != null) {
-    //         return (ByteBuffer) ref.duplicate().position(pos);
-    //     } else {
-    //         barf("Invalid address!");
-    //         return null;
-    //     }
-    // }
-
-    // TODO: Is synchronization necessary?
     public ByteBuffer buf;
 
     private StgByteArray(ByteBuffer buf) {
@@ -73,35 +38,34 @@ public final class StgByteArray extends StgClosure {
         barf("StgByteArray object entered!");
     }
 
+    /* MemoryManager-Sensitive */
     public static void copyAddrToByteArray( ByteBuffer src, StgByteArray destArray
                                           , int offset, int n) {
-        ByteBuffer dest = destArray.buf;
-        dest.position(offset);
+        ByteBuffer dest = destArray.buf.duplicate();
+        src = src.duplicate();
+        dest.position(offset + 4);
         dest.put(src);
-        src.rewind();
-        dest.rewind();
     }
 
+    /* MemoryManager-Sensitive */
     public static void copyByteArrayToAddr( StgByteArray srcArray, int offset
                                           , ByteBuffer dest, int n) {
-        ByteBuffer src = srcArray.buf;
-        src.position(offset);
-        src.limit(offset + n);
+        ByteBuffer src = srcArray.buf.duplicate();
+        dest = dest.duplicate();
+        src.position(offset + 4);
+        src.limit(offset + 4 + n);
         dest.put(src);
-        dest.rewind();
-        src.clear();
     }
 
+    /* MemoryManager-Sensitive */
     public static void copyByteArray( StgByteArray srcArray, int srcOffset
                                     , StgByteArray destArray, int destOffset
                                     , int n) {
-        ByteBuffer src  = srcArray.buf;
-        ByteBuffer dest = destArray.buf;
-        src.position(srcOffset);
-        src.limit(srcOffset + n);
-        dest.position(destOffset);
+        ByteBuffer src  = srcArray.buf.duplicate();
+        ByteBuffer dest = destArray.buf.duplicate();
+        src.position(srcOffset + 4);
+        src.limit(srcOffset + 4 + n);
+        dest.position(destOffset + 4);
         dest.put(src);
-        dest.rewind();
-        src.clear();
     }
 }

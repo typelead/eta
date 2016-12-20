@@ -427,7 +427,9 @@ simpleOp IndexByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp IndexByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
 simpleOp IndexByteArrayOp_Int = Just $ byteArrayIndexOp jint mempty
 simpleOp IndexByteArrayOp_Word = Just $ byteArrayIndexOp jint mempty
--- TODO: simpleOp IndexByteArrayOp_Addr =
+simpleOp IndexByteArrayOp_Addr = Just $ byteArrayIndexOp jint
+  (invokestatic $
+    mkMethodRef memoryManager "getBuffer" [jint] (ret byteBufferType))
 simpleOp IndexByteArrayOp_Float = Just $ byteArrayIndexOp jfloat mempty
 simpleOp IndexByteArrayOp_Double = Just $ byteArrayIndexOp jdouble mempty
 simpleOp IndexByteArrayOp_StablePtr = Just $ byteArrayIndexOp jint mempty
@@ -444,7 +446,9 @@ simpleOp ReadByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp ReadByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
 simpleOp ReadByteArrayOp_Int = Just $ byteArrayIndexOp jint mempty
 simpleOp ReadByteArrayOp_Word = Just $ byteArrayIndexOp jint mempty
--- TODO: simpleOp ReadByteArrayOp_Addr =
+simpleOp ReadByteArrayOp_Addr = Just $ byteArrayIndexOp jint
+  (invokestatic $
+    mkMethodRef memoryManager "getBuffer" [jint] (ret byteBufferType))
 simpleOp ReadByteArrayOp_Float = Just $ byteArrayIndexOp jfloat mempty
 simpleOp ReadByteArrayOp_Double = Just $ byteArrayIndexOp jdouble mempty
 simpleOp ReadByteArrayOp_StablePtr = Just $ byteArrayIndexOp jint mempty
@@ -461,7 +465,9 @@ simpleOp WriteByteArrayOp_Char = Just $ byteArrayWriteOp jbyte mempty
 simpleOp WriteByteArrayOp_WideChar = Just $ byteArrayWriteOp jint mempty
 simpleOp WriteByteArrayOp_Int = Just $ byteArrayWriteOp jint mempty
 simpleOp WriteByteArrayOp_Word = Just $ byteArrayWriteOp jint mempty
--- TODO: simpleOp WriteByteArrayOp_Addr =
+simpleOp WriteByteArrayOp_Addr = Just $ byteArrayWriteOp jint
+  (invokestatic $
+     mkMethodRef memoryManager "getAddress" [byteBufferType] (ret jint))
 simpleOp WriteByteArrayOp_Float = Just $ byteArrayWriteOp jfloat mempty
 simpleOp WriteByteArrayOp_Double = Just $ byteArrayWriteOp jdouble mempty
 -- TODO: Verify writes for Word/Int 8/16 - add additional casts?
@@ -680,7 +686,9 @@ simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 -- Addr# ops
 -- TODO: Inline these primops
 simpleOp Addr2IntOp = Just $ normalOp
-  $ invokestatic $ mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint)
+  $ invokestatic $ mkMethodRef memoryManager "getAddress" [byteBufferType] (ret jint)
+simpleOp Int2AddrOp = Just $ normalOp
+  $ invokestatic $ mkMethodRef memoryManager "getBuffer" [jint] (ret byteBufferType)
 simpleOp AddrAddOp = Just $ \[addr, dx] ->
      addr
   <> byteBufferDup
@@ -705,7 +713,9 @@ simpleOp IndexOffAddrOp_Char = Just $ addrIndexOp jbyte preserveByte
 simpleOp IndexOffAddrOp_WideChar = Just $ addrIndexOp jint mempty
 simpleOp IndexOffAddrOp_Int = Just $ addrIndexOp jint mempty
 simpleOp IndexOffAddrOp_Word = Just $ addrIndexOp jint mempty
--- TODO: simpleOp IndexOffAddrOp_Addr =
+simpleOp IndexOffAddrOp_Addr = Just $ addrIndexOp jint
+  (invokestatic $
+    mkMethodRef memoryManager "getBuffer" [jint] (ret byteBufferType))
 simpleOp IndexOffAddrOp_Float = Just $ addrIndexOp jfloat mempty
 simpleOp IndexOffAddrOp_Double = Just $ addrIndexOp jdouble mempty
 simpleOp IndexOffAddrOp_StablePtr = Just $ addrIndexOp jint mempty
@@ -722,7 +732,9 @@ simpleOp ReadOffAddrOp_Char = Just $ addrIndexOp jbyte preserveByte
 simpleOp ReadOffAddrOp_WideChar = Just $ addrIndexOp jint mempty
 simpleOp ReadOffAddrOp_Int = Just $ addrIndexOp jint mempty
 simpleOp ReadOffAddrOp_Word = Just $ addrIndexOp jint mempty
--- TODO: simpleOp ReadOffAddrOp_Addr =
+simpleOp ReadOffAddrOp_Addr = Just $ addrIndexOp jint
+  (invokestatic $
+    mkMethodRef memoryManager "getBuffer" [jint] (ret byteBufferType))
 simpleOp ReadOffAddrOp_Float = Just $ addrIndexOp jfloat mempty
 simpleOp ReadOffAddrOp_Double = Just $ addrIndexOp jdouble mempty
 simpleOp ReadOffAddrOp_StablePtr = Just $ addrIndexOp jint mempty
@@ -739,7 +751,9 @@ simpleOp WriteOffAddrOp_Char = Just $ addrWriteOp jbyte mempty
 simpleOp WriteOffAddrOp_WideChar = Just $ addrWriteOp jint mempty
 simpleOp WriteOffAddrOp_Int = Just $ addrWriteOp jint mempty
 simpleOp WriteOffAddrOp_Word = Just $ addrWriteOp jint mempty
--- TODO: simpleOp WriteOffAddrOp_Addr =
+simpleOp WriteOffAddrOp_Addr = Just $ addrWriteOp jint
+  (invokestatic $
+     mkMethodRef memoryManager "getAddress" [byteBufferType] (ret jint))
 simpleOp WriteOffAddrOp_Float = Just $ addrWriteOp jfloat mempty
 simpleOp WriteOffAddrOp_Double = Just $ addrWriteOp jdouble mempty
 -- TODO: Verify writes for Word/Int 8/16 - add additional casts?
@@ -807,7 +821,7 @@ clzOp = invokestatic $ mkMethodRef "java/lang/Integer" "numberOfLeadingZeros" [j
 ctzOp = invokestatic $ mkMethodRef "java/lang/Integer" "numberOfTrailingZeros" [jint] (ret jint)
 
 addrCmpOp :: (Code -> Code -> Code) -> [Code] -> Code
-addrCmpOp op args = intCompOp op (map (<> byteBufferPosGet) args)
+addrCmpOp op args = intCompOp op (map (<> byteBufferAddrGet) args)
 
 floatMathEndoOp :: Text -> Code
 floatMathEndoOp f = gconv jfloat jdouble <> doubleMathEndoOp f <> gconv jdouble jfloat

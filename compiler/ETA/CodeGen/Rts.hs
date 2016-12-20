@@ -88,6 +88,10 @@ stgWeak       = stg "StgWeak"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$HaskellResult"
 
+
+memoryManager :: Text
+memoryManager = io "MemoryManager"
+
 storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
  storeO, loadO :: Code
 
@@ -217,6 +221,9 @@ byteBufferPut ft = invokevirtual $ mkMethodRef byteBuffer name [jint, ft] (ret b
 
 byteBufferPosGet :: Code
 byteBufferPosGet = invokevirtual $ mkMethodRef byteBuffer "position" [] (ret jint)
+
+byteBufferAddrGet :: Code
+byteBufferAddrGet = invokestatic $ mkMethodRef memoryManager "getAddress" [byteBufferType] (ret jint)
 
 byteBufferPosSet :: Code
 byteBufferPosSet = invokevirtual $ mkMethodRef byteBuffer "position" [jint] (ret bufferType)
