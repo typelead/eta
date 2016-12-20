@@ -50,6 +50,11 @@ module ETA.Prelude.TysWiredIn (
         listTyCon_RDR, consDataCon_RDR, listTyConName,
         mkListTy, mkPromotedListTy,
 
+        -- * Maybe
+        maybeTyCon, maybeTyConName,
+        nothingDataCon, nothingDataConName, promotedNothingDataCon,
+        justDataCon, justDataConName, promotedJustDataCon,
+
         -- * Tuples
         mkTupleTy, mkBoxedTupleTy,
         tupleTyCon, tupleCon,
@@ -152,6 +157,7 @@ wiredInTyCons = [ unitTyCon     -- Not treated like other tuples, because
               , intTyCon
               , wordTyCon
               , listTyCon
+              , maybeTyCon
               , jstringTyCon
               , parrTyCon
               , eqTyCon
@@ -197,6 +203,14 @@ listTyConName, nilDataConName, consDataConName :: Name
 listTyConName     = mkWiredInTyConName   BuiltInSyntax gHC_TYPES (fsLit "[]") listTyConKey listTyCon
 nilDataConName    = mkWiredInDataConName BuiltInSyntax gHC_TYPES (fsLit "[]") nilDataConKey nilDataCon
 consDataConName   = mkWiredInDataConName BuiltInSyntax gHC_TYPES (fsLit ":") consDataConKey consDataCon
+
+maybeTyConName, nothingDataConName, justDataConName :: Name
+maybeTyConName     = mkWiredInTyConName   UserSyntax gHC_BASE (fsLit "Maybe")
+                                          maybeTyConKey maybeTyCon
+nothingDataConName = mkWiredInDataConName UserSyntax gHC_BASE (fsLit "Nothing")
+                                          nothingDataConKey nothingDataCon
+justDataConName    = mkWiredInDataConName UserSyntax gHC_BASE (fsLit "Just")
+                                          justDataConKey justDataCon
 
 wordTyConName, wordDataConName, floatTyConName, floatDataConName, doubleTyConName, doubleDataConName :: Name
 wordTyConName      = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Word")   wordTyConKey     wordTyCon
@@ -725,6 +739,18 @@ consDataCon = pcDataConWithFixity True {- Declared infix -}
 -- We can't use (mkListTy alphaTy) in the defn of consDataCon, else mkListTy
 -- gets the over-specific type (Type -> Type)
 
+-- Wired-in type Maybe
+
+maybeTyCon :: TyCon
+maybeTyCon = pcTyCon False NonRecursive maybeTyConName Nothing alpha_tyvar
+                     [nothingDataCon, justDataCon]
+
+nothingDataCon :: DataCon
+nothingDataCon = pcDataCon nothingDataConName alpha_tyvar [] maybeTyCon
+
+justDataCon :: DataCon
+justDataCon = pcDataCon justDataConName alpha_tyvar [alphaTy] maybeTyCon
+
 {-
 ************************************************************************
 *                                                                      *
@@ -864,6 +890,11 @@ promotedBoolTyCon, promotedFalseDataCon, promotedTrueDataCon :: TyCon
 promotedBoolTyCon     = promoteTyCon boolTyCon
 promotedTrueDataCon   = promoteDataCon trueDataCon
 promotedFalseDataCon  = promoteDataCon falseDataCon
+
+-- Promoted Maybe
+promotedNothingDataCon, promotedJustDataCon :: TyCon
+promotedNothingDataCon = promoteDataCon nothingDataCon
+promotedJustDataCon    = promoteDataCon justDataCon
 
 -- Promoted Ordering
 
