@@ -633,8 +633,8 @@ mutableByteArrayPrimTyCon  = pcPrimTyCon mutableByteArrayPrimTyConName  [Nominal
 byteArrayPrimTyCon         = pcPrimTyCon0 byteArrayPrimTyConName        (ObjectRep stgByteArray)
 arrayArrayPrimTyCon        = pcPrimTyCon0 arrayArrayPrimTyConName       PtrRep
 mutableArrayArrayPrimTyCon = pcPrimTyCon mutableArrayArrayPrimTyConName [Nominal] PtrRep
-smallArrayPrimTyCon        = pcPrimTyCon smallArrayPrimTyConName        [Representational] PtrRep
-smallMutableArrayPrimTyCon = pcPrimTyCon smallMutableArrayPrimTyConName [Nominal, Representational] PtrRep
+smallArrayPrimTyCon        = pcPrimTyCon smallArrayPrimTyConName        [Representational] (ObjectRep stgArray)
+smallMutableArrayPrimTyCon = pcPrimTyCon smallMutableArrayPrimTyConName [Nominal, Representational] (ObjectRep stgArray)
 
 mkArrayPrimTy :: Type -> Type
 mkArrayPrimTy elt           = TyConApp arrayPrimTyCon [elt]

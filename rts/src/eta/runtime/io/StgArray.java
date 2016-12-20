@@ -41,7 +41,7 @@ public final class StgArray extends StgClosure {
 
     public static void copyArray( StgArray srcArray, int srcOffset
                                 , StgArray destArray, int destOffset, int n) {
-        System.arraycopy(srcArray.arr, srcOffset, destArray, destOffset, n);
+        System.arraycopy(srcArray.arr, srcOffset, destArray.arr, destOffset, n);
     }
 
     public static StgArray cloneArray(StgArray srcArray, int offset, int n) {
