@@ -631,8 +631,8 @@ arrayPrimTyCon             = pcPrimTyCon arrayPrimTyConName             [Represe
 mutableArrayPrimTyCon      = pcPrimTyCon  mutableArrayPrimTyConName     [Nominal, Representational] (ObjectRep stgArray)
 mutableByteArrayPrimTyCon  = pcPrimTyCon mutableByteArrayPrimTyConName  [Nominal] (ObjectRep stgByteArray)
 byteArrayPrimTyCon         = pcPrimTyCon0 byteArrayPrimTyConName        (ObjectRep stgByteArray)
-arrayArrayPrimTyCon        = pcPrimTyCon0 arrayArrayPrimTyConName       PtrRep
-mutableArrayArrayPrimTyCon = pcPrimTyCon mutableArrayArrayPrimTyConName [Nominal] PtrRep
+arrayArrayPrimTyCon        = pcPrimTyCon0 arrayArrayPrimTyConName       (ObjectRep stgArray)
+mutableArrayArrayPrimTyCon = pcPrimTyCon mutableArrayArrayPrimTyConName [Nominal] (ObjectRep stgArray)
 smallArrayPrimTyCon        = pcPrimTyCon smallArrayPrimTyConName        [Representational] (ObjectRep stgArray)
 smallMutableArrayPrimTyCon = pcPrimTyCon smallMutableArrayPrimTyConName [Nominal, Representational] (ObjectRep stgArray)
 

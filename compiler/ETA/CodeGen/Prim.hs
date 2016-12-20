@@ -246,6 +246,23 @@ shouldInlinePrimOp' dflags ThawSmallArrayOp args = Right $ return
                                                         (ret stgArrayType))
   ]
 
+shouldInlinePrimOp' dflags CopyArrayArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "copyArray"
+                              [closureType, jint, closureType, jint, jint]
+                              (ret stgByteArrayType))
+  ]
+
+shouldInlinePrimOp' dflags CopyMutableArrayArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgByteArray "copyArray"
+                              [closureType, jint, closureType, jint, jint]
+                              (ret stgByteArrayType))
+  ]
+
+
 shouldInlinePrimOp' dflags NewByteArrayOp_Char args = Right $ return
   [
     fold args
@@ -273,6 +290,12 @@ shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
   ]
 
 shouldInlinePrimOp' dflags NewSmallArrayOp args = Right $ return
+  [
+    fold args
+ <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
+  ]
+
+shouldInlinePrimOp' dflags NewArrayArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
@@ -497,6 +520,45 @@ simpleOp ReadSmallArrayOp = Just $
 simpleOp IndexSmallArrayOp = Just $
   normalOp $ invokevirtual
     $ mkMethodRef stgArray "get" [jint] (ret closureType)
+
+-- ArrayArray# & MutableArrayArray# ops
+simpleOp UnsafeFreezeArrayArrayOp  = Just idOp
+simpleOp SameMutableArrayArrayOp = Just $ intCompOp if_acmpeq
+simpleOp SizeofArrayArrayOp = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
+simpleOp SizeofMutableArrayArrayOp = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "size" [] (ret jint))
+-- TODO: Inline the get/set's
+simpleOp IndexArrayArrayOp_ByteArray = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "get" [jint] (ret closureType))
+          <> gconv closureType stgByteArrayType
+simpleOp IndexArrayArrayOp_ArrayArray = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "get" [jint] (ret closureType))
+          <> gconv closureType stgArrayType
+simpleOp ReadArrayArrayOp_ByteArray = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "get" [jint] (ret closureType))
+          <> gconv closureType stgByteArrayType
+simpleOp ReadArrayArrayOp_MutableByteArray = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "get" [jint] (ret closureType))
+          <> gconv closureType stgByteArrayType
+simpleOp ReadArrayArrayOp_ArrayArray = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "get" [jint] (ret closureType))
+          <> gconv closureType stgArrayType
+simpleOp ReadArrayArrayOp_MutableArrayArray = Just $
+  normalOp $ invokevirtual (mkMethodRef stgArray "get" [jint] (ret closureType))
+          <> gconv closureType stgArrayType
+simpleOp WriteArrayArrayOp_ByteArray = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "set" [jint, closureType] void
+simpleOp WriteArrayArrayOp_MutableByteArray = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "set" [jint, closureType] void
+simpleOp WriteArrayArrayOp_ArrayArray = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "set" [jint, closureType] void
+simpleOp WriteArrayArrayOp_MutableArrayArray = Just $
+  normalOp $ invokevirtual
+    $ mkMethodRef stgArray "set" [jint, closureType] void
 
 -- ByteArray# & MutableByteArray# ops
 simpleOp ByteArrayContents_Char = Just $ normalOp byteArrayBuf

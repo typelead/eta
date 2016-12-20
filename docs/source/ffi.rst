@@ -98,7 +98,8 @@ Primitive Types Reference
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | -               | ``ByteArray#``         | eta.runtime.io.StgByteArray    |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``ArrayArray#``        | eta.runtime.stg.StgClosure     | Unimplemented                               |
+| -               | ``ArrayArray#``        | eta.runtime.stg.StgArray       | Typically only contains ``ByteArray#`` and  |
+|                 |                        |                                | ``ArrayArray#`` types as elements.          |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | -               | ``SmallArray#``        | eta.runtime.stg.StgArray       | Identical to ``Array#``.                    |
 |                 |                        |                                | Kept for compatibility with GHC.            |
@@ -107,7 +108,9 @@ Primitive Types Reference
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | -               | ``MutableByteArray#``  | eta.runtime.io.StgByteArray    |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``MutableArrayArray#`` | eta.runtime.stg.StgClosure     | Unimplemented                               |
+| -               | ``MutableArrayArray#`` | eta.runtime.stg.StgArray       | Typically only contains ``ByteArray#``,     |
+|                 |                        |                                | ``ArrayArray#``, and the mutable variants   |
+|                 |                        |                                | as elements.                                |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | -               | ``SmallMutableArray#`` | eta.runtime.stg.StgArray       | Identical to ``MutableArray#``.             |
 |                 |                        |                                | Kept for compatibility with GHC.            |
