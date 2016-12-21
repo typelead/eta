@@ -99,13 +99,13 @@ newControl shouldRegister = allocaArray 2 $ \fds -> do
   (wake_rd, wake_wr) <- createPipe
   when shouldRegister $ c_setIOManagerWakeupFd wake_wr
 #endif
-  return W { controlReadFd  = fromIntegral ctrl_rd
-           , controlWriteFd = fromIntegral ctrl_wr
+  return W { controlReadFd  = undefined -- fromIntegral ctrl_rd TODO: channel
+           , controlWriteFd = undefined -- fromIntegral ctrl_wr TODO: channel
 #if defined(HAVE_EVENTFD)
            , controlEventFd = fromIntegral ev
 #else
-           , wakeupReadFd   = fromIntegral wake_rd
-           , wakeupWriteFd  = fromIntegral wake_wr
+           , wakeupReadFd   = undefined -- fromIntegral wake_rd TODO: channel
+           , wakeupWriteFd  = undefined -- fromIntegral wake_wr TODO: channel
 #endif
            , didRegisterWakeupFd = shouldRegister
            }
@@ -117,15 +117,16 @@ newControl shouldRegister = allocaArray 2 $ \fds -> do
 -- file after it has been closed.
 closeControl :: Control -> IO ()
 closeControl w = do
-  _ <- c_close . fromIntegral . controlReadFd $ w
-  _ <- c_close . fromIntegral . controlWriteFd $ w
-  when (didRegisterWakeupFd w) $ c_setIOManagerWakeupFd (-1)
-#if defined(HAVE_EVENTFD)
-  _ <- c_close . fromIntegral . controlEventFd $ w
-#else
-  _ <- c_close . fromIntegral . wakeupReadFd $ w
-  _ <- c_close . fromIntegral . wakeupWriteFd $ w
-#endif
+--  TODO: Channel
+--   _ <- c_close . fromIntegral . controlReadFd $ w
+--   _ <- c_close . fromIntegral . controlWriteFd $ w
+--   when (didRegisterWakeupFd w) $ c_setIOManagerWakeupFd (-1)
+-- #if defined(HAVE_EVENTFD)
+--   _ <- c_close . fromIntegral . controlEventFd $ w
+-- #else
+--   _ <- c_close . fromIntegral . wakeupReadFd $ w
+--   _ <- c_close . fromIntegral . wakeupWriteFd $ w
+-- #endif
   return ()
 
 io_MANAGER_WAKEUP, io_MANAGER_DIE :: Word8
@@ -140,12 +141,14 @@ readControlMessage :: Control -> Fd -> IO ControlMessage
 readControlMessage ctrl fd
     | fd == wakeupReadFd ctrl = allocaBytes wakeupBufferSize $ \p -> do
                     throwErrnoIfMinus1_ "readWakeupMessage" $
-                      c_read (fromIntegral fd) p (fromIntegral wakeupBufferSize)
+                      c_read undefined p (fromIntegral wakeupBufferSize)
+                    --  c_read (fromIntegral fd) p (fromIntegral wakeupBufferSize) TODO: channel
                     return CMsgWakeup
     | otherwise =
         alloca $ \p -> do
             throwErrnoIfMinus1_ "readControlMessage" $
-                c_read (fromIntegral fd) p 1
+                c_read undefined p 1
+                -- c_read (fromIntegral fd) p 1 TODO: channel
             s <- peek p
             case s of
                 -- Wakeup messages shouldn't be sent on the control
@@ -155,7 +158,8 @@ readControlMessage ctrl fd
                 _ -> do  -- Signal
                     fp <- mallocForeignPtrBytes (fromIntegral sizeof_siginfo_t)
                     withForeignPtr fp $ \p_siginfo -> do
-                        r <- c_read (fromIntegral fd) (castPtr p_siginfo)
+                        r <- c_read undefined (castPtr p_siginfo)
+                        -- r <- c_read (fromIntegral fd) (castPtr p_siginfo) TODO: channel
                              sizeof_siginfo_t
                         when (r /= fromIntegral sizeof_siginfo_t) $
                             error "failed to read siginfo_t"
@@ -195,7 +199,8 @@ sendMessage fd msg = alloca $ \p -> do
     CMsgWakeup        -> poke p io_MANAGER_WAKEUP
     CMsgDie           -> poke p io_MANAGER_DIE
     CMsgSignal _fp _s -> error "Signals can only be sent from within the RTS"
-  fromIntegral `fmap` c_write (fromIntegral fd) p 1
+  -- fromIntegral `fmap` c_write (fromIntegral fd) p 1 TODO: channel
+  fromIntegral `fmap` c_write undefined p 1
 
 #if defined(HAVE_EVENTFD)
 -- foreign import ccall unsafe "sys/eventfd.h eventfd"

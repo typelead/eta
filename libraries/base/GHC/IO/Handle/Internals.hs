@@ -800,7 +800,8 @@ debugIO :: String -> IO ()
 debugIO s
  | c_DEBUG_DUMP
     = do _ <- withCStringLen (s ++ "\n") $
-                  \(p, len) -> c_write 1 (castPtr p) (fromIntegral len)
+                  \(p, len) -> c_write undefined (castPtr p) (fromIntegral len)
+                  -- \(p, len) -> c_write 1 (castPtr p) (fromIntegral len)
          return ()
  | otherwise = return ()
 

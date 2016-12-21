@@ -93,10 +93,11 @@ threadWaitRead fd
 #ifndef mingw32_HOST_OS
   | threaded  = Event.threadWaitRead fd
 #endif
-  | otherwise = IO $ \s ->
-        case fromIntegral fd of { I# fd# ->
-        case waitRead# fd# s of { s' -> (# s', () #)
-        }}
+  | otherwise = IO $ \s -> undefined
+        -- case fromIntegral fd of { I# fd# ->
+        -- case waitRead# fd# s of { s' -> (# s', () #)
+        -- }}
+        -- TODO: channel
 
 -- | Block the current thread until data can be written to the
 -- given file descriptor (GHC only).
@@ -109,10 +110,11 @@ threadWaitWrite fd
 #ifndef mingw32_HOST_OS
   | threaded  = Event.threadWaitWrite fd
 #endif
-  | otherwise = IO $ \s ->
-        case fromIntegral fd of { I# fd# ->
-        case waitWrite# fd# s of { s' -> (# s', () #)
-        }}
+  | otherwise = IO $ \s -> undefined
+        -- case fromIntegral fd of { I# fd# ->
+        -- case waitWrite# fd# s of { s' -> (# s', () #)
+        -- }}
+        -- TODO: channel
 
 -- | Returns an STM action that can be used to wait for data
 -- to read from a file descriptor. The second returned value

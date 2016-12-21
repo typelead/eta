@@ -54,6 +54,7 @@ module System.Posix.Types (
 #endif
 
   Fd(..),
+  Channel(..),
 
 #if defined(HTYPE_NLINK_T)
   LinkCount,
@@ -126,7 +127,18 @@ INTEGRAL_TYPE(CRLim,HTYPE_RLIM_T)
 -- suseconds_t, timer_t, useconds_t
 
 -- Make an Fd type rather than using CInt everywhere
-INTEGRAL_TYPE(Fd,CInt)
+
+data {-# CLASS "java.nio.channels.Channel" #-} Channel =
+  Channel (Object# Channel)
+
+newtype Fd = Fd Int
+
+instance Show Fd where
+  show (Fd i) = show i
+
+instance Eq Fd where
+  (==) (Fd i) (Fd j) = i == j
+-- INTEGRAL_TYPE(Fd,CInt)
 
 -- nicer names, and backwards compatibility with POSIX library:
 #if defined(HTYPE_NLINK_T)

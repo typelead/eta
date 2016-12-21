@@ -3,6 +3,7 @@
            , NoImplicitPrelude
            , BangPatterns
            , AutoDeriveTypeable
+           , MagicHash
   #-}
 {-# OPTIONS_GHC -fno-warn-identities #-}
 -- Whether there are identities depends on the platform
@@ -72,7 +73,7 @@ c_DEBUG_DUMP = False
 -- The file-descriptor IO device
 
 data FD = FD {
-  fdFD :: {-# UNPACK #-} !CInt,
+  fdFD :: {-# UNPACK #-} !Channel,
 #ifdef mingw32_HOST_OS
   -- On Windows, a socket file descriptor needs to be read and written
   -- using different functions (send/recv).
@@ -92,7 +93,7 @@ fdIsSocket fd = fdIsSocket_ fd /= 0
 #endif
 
 instance Show FD where
-  show fd = show (fdFD fd)
+  show fd = undefined -- show (fdFD fd) TODO: Show instance for Java-like Objects
 
 instance GHC.IO.Device.RawIO FD where
   read             = fdRead
@@ -262,7 +263,7 @@ mkFD fd iomode mb_stat is_socket is_nonblock = do
     when (not is_socket) $ setmode fd True >> return ()
 #endif
 
-    return (FD{ fdFD = fd,
+    return (FD{ fdFD = undefined, --fd, TODO: File I/O
 #ifndef mingw32_HOST_OS
                 fdIsNonBlocking = fromEnum is_nonblock
 #else
@@ -291,7 +292,7 @@ setmode = undefined
 -- -----------------------------------------------------------------------------
 -- Standard file descriptors
 
-stdFD :: CInt -> FD
+stdFD :: Channel -> FD
 stdFD fd = FD { fdFD = fd,
 #ifdef mingw32_HOST_OS
                 fdIsSocket_ = 0
@@ -303,10 +304,14 @@ stdFD fd = FD { fdFD = fd,
 #endif
                 }
 
+foreign import java unsafe "@static eta.base.Utils.getStdOut" _stdout :: Channel
+foreign import java unsafe "@static eta.base.Utils.getStdIn"  _stdin  :: Channel
+foreign import java unsafe "@static eta.base.Utils.getStdErr" _stderr :: Channel
+
 stdin, stdout, stderr :: FD
-stdin  = stdFD 0
-stdout = stdFD 1
-stderr = stdFD 2
+stdin  = stdFD _stdin
+stdout = stdFD _stdout
+stderr = stdFD _stderr
 
 -- -----------------------------------------------------------------------------
 -- Operations on file descriptors
@@ -315,22 +320,24 @@ close :: FD -> IO ()
 close fd =
   do let closer realFd =
            throwErrnoIfMinus1Retry_ "GHC.IO.FD.close" $
-#ifdef mingw32_HOST_OS
-           if fdIsSocket fd then
-             c_closesocket (fromIntegral realFd)
-           else
-#endif
-             c_close (fromIntegral realFd)
+-- #ifdef mingw32_HOST_OS
+--            if fdIsSocket fd then
+--              c_closesocket (fromIntegral realFd)
+--            else
+-- #endif
+--              c_close (fromIntegral realFd) TODO: channel
+             undefined
 
      -- release the lock *first*, because otherwise if we're preempted
      -- after closing but before releasing, the FD may have been reused.
      -- (#7646)
      release fd
 
-     closeFdWith closer (fromIntegral (fdFD fd))
+     closeFdWith closer undefined
+     -- closeFdWith closer (fromIntegral (fdFD fd)) TODO: channel
 
 release :: FD -> IO ()
-release fd = do _ <- unlockFile (fdFD fd)
+release fd = do _ <- undefined -- unlockFile (fdFD fd) TODO: File I/O
                 return ()
 
 #ifdef mingw32_HOST_OS
@@ -347,7 +354,8 @@ isSeekable fd = do
 seek :: FD -> SeekMode -> Integer -> IO ()
 seek fd mode off = do
   throwErrnoIfMinus1Retry_ "seek" $
-     c_lseek (fdFD fd) (fromIntegral off) seektype
+     c_lseek undefined (fromIntegral off) seektype
+     -- c_lseek (fdFD fd) (fromIntegral off) seektype
  where
     seektype :: CInt
     seektype = case mode of
@@ -359,34 +367,41 @@ tell :: FD -> IO Integer
 tell fd =
  fromIntegral `fmap`
    (throwErrnoIfMinus1Retry "hGetPosn" $
-      c_lseek (fdFD fd) 0 sEEK_CUR)
+      c_lseek undefined 0 sEEK_CUR)
+      -- c_lseek (fdFD fd) 0 sEEK_CUR)
 
 getSize :: FD -> IO Integer
-getSize fd = fdFileSize (fdFD fd)
+getSize fd = fdFileSize undefined
+-- getSize fd = fdFileSize (fdFD fd)
 
 setSize :: FD -> Integer -> IO ()
 setSize fd size = do
   throwErrnoIf_ (/=0) "GHC.IO.FD.setSize"  $
-     c_ftruncate (fdFD fd) (fromIntegral size)
+     c_ftruncate undefined (fromIntegral size)
+     -- c_ftruncate (fdFD fd) (fromIntegral size)
 
 devType :: FD -> IO IODeviceType
-devType fd = do (ty,_,_) <- fdStat (fdFD fd); return ty
+devType fd = do (ty,_,_) <- fdStat undefined; return ty
+-- devType fd = do (ty,_,_) <- fdStat (fdFD fd); return ty
 
 dup :: FD -> IO FD
 dup fd = do
-  newfd <- throwErrnoIfMinus1 "GHC.IO.FD.dup" $ c_dup (fdFD fd)
-  return fd{ fdFD = newfd }
+  newfd <- throwErrnoIfMinus1 "GHC.IO.FD.dup" $ c_dup undefined
+  -- newfd <- throwErrnoIfMinus1 "GHC.IO.FD.dup" $ c_dup (fdFD fd)
+  return fd{ fdFD = undefined }
+  -- return fd{ fdFD = newfd }
 
 dup2 :: FD -> FD -> IO FD
 dup2 fd fdto = do
   -- Windows' dup2 does not return the new descriptor, unlike Unix
   throwErrnoIfMinus1_ "GHC.IO.FD.dup2" $
-    c_dup2 (fdFD fd) (fdFD fdto)
+    c_dup2 undefined undefined
+    -- c_dup2 (fdFD fd) (fdFD fdto)
   return fd{ fdFD = fdFD fdto } -- original FD, with the new fdFD
 
 setNonBlockingMode :: FD -> Bool -> IO FD
 setNonBlockingMode fd set = do
-  setNonBlockingFD (fdFD fd) set
+  setNonBlockingFD undefined set
 #if defined(mingw32_HOST_OS)
   return fd
 #else
@@ -396,7 +411,8 @@ setNonBlockingMode fd set = do
 ready :: FD -> Bool -> Int -> IO Bool
 ready fd write msecs = do
   r <- throwErrnoIfMinus1Retry "GHC.IO.FD.ready" $
-          fdReady (fdFD fd) (fromIntegral $ fromEnum $ write)
+          fdReady undefined (fromIntegral $ fromEnum $ write)
+          -- fdReady (fdFD fd) (fromIntegral $ fromEnum $ write)
                             (fromIntegral msecs)
 #if defined(mingw32_HOST_OS)
                           (fromIntegral $ fromEnum $ fdIsSocket fd)
@@ -413,22 +429,19 @@ fdReady = undefined
 -- Terminal-related stuff
 
 isTerminal :: FD -> IO Bool
-isTerminal fd =
-#if defined(mingw32_HOST_OS)
-    if fdIsSocket fd then return False
-                     else is_console (fdFD fd) >>= return.toBool
-#else
-    c_isatty (fdFD fd) >>= return.toBool
-#endif
+isTerminal _ = return False
 
 setEcho :: FD -> Bool -> IO ()
-setEcho fd on = System.Posix.Internals.setEcho (fdFD fd) on
+setEcho fd on = System.Posix.Internals.setEcho undefined on
+-- setEcho fd on = System.Posix.Internals.setEcho (fdFD fd) on
 
 getEcho :: FD -> IO Bool
-getEcho fd = System.Posix.Internals.getEcho (fdFD fd)
+getEcho fd = System.Posix.Internals.getEcho undefined
+-- getEcho fd = System.Posix.Internals.getEcho (fdFD fd)
 
 setRaw :: FD -> Bool -> IO ()
-setRaw fd raw = System.Posix.Internals.setCooked (fdFD fd) (not raw)
+setRaw fd raw = System.Posix.Internals.setCooked undefined (not raw)
+-- setRaw fd raw = System.Posix.Internals.setCooked (fdFD fd) (not raw)
 
 -- -----------------------------------------------------------------------------
 -- Reading and Writing
@@ -505,14 +518,17 @@ readRawBufferPtr :: String -> FD -> Ptr Word8 -> Int -> CSize -> IO Int
 readRawBufferPtr loc !fd buf off len
   | isNonBlocking fd = unsafe_read -- unsafe is ok, it can't block
   | otherwise    = do r <- throwErrnoIfMinus1 loc
-                                (unsafe_fdReady (fdFD fd) 0 0 0)
+                               (unsafe_fdReady undefined 0 0 0)
+                                -- (unsafe_fdReady (fdFD fd) 0 0 0)
                       if r /= 0
                         then read
-                        else do threadWaitRead (fromIntegral (fdFD fd)); read
+                        else do threadWaitRead undefined; read
+                        -- else do threadWaitRead (fromIntegral (fdFD fd)); read
   where
     do_read call = fromIntegral `fmap`
                       throwErrnoIfMinus1RetryMayBlock loc call
-                            (threadWaitRead (fromIntegral (fdFD fd)))
+                            (threadWaitRead undefined)
+                            -- (threadWaitRead (fromIntegral (fdFD fd))) TODO: channel
     read        = if threaded then safe_read else unsafe_read
     unsafe_read = do_read (c_read (fdFD fd) (buf `plusPtr` off) len)
     safe_read   = do_read (c_safe_read (fdFD fd) (buf `plusPtr` off) len)
@@ -521,7 +537,7 @@ readRawBufferPtr loc !fd buf off len
 readRawBufferPtrNoBlock :: String -> FD -> Ptr Word8 -> Int -> CSize -> IO Int
 readRawBufferPtrNoBlock loc !fd buf off len
   | isNonBlocking fd  = unsafe_read -- unsafe is ok, it can't block
-  | otherwise    = do r <- unsafe_fdReady (fdFD fd) 0 0 0
+  | otherwise    = do r <- unsafe_fdReady undefined 0 0 0
                       if r /= 0 then safe_read
                                 else return 0
        -- XXX see note [nonblock]
@@ -537,14 +553,16 @@ readRawBufferPtrNoBlock loc !fd buf off len
 writeRawBufferPtr :: String -> FD -> Ptr Word8 -> Int -> CSize -> IO CInt
 writeRawBufferPtr loc !fd buf off len
   | isNonBlocking fd = unsafe_write -- unsafe is ok, it can't block
-  | otherwise   = do r <- unsafe_fdReady (fdFD fd) 1 0 0
+  | otherwise   = do r <- unsafe_fdReady undefined 1 0 0
                      if r /= 0
                         then write
-                        else do threadWaitWrite (fromIntegral (fdFD fd)); write
+                        else do threadWaitWrite undefined; write
+                        -- else do threadWaitWrite (fromIntegral (fdFD fd)); write TODO: channel
   where
     do_write call = fromIntegral `fmap`
                       throwErrnoIfMinus1RetryMayBlock loc call
-                        (threadWaitWrite (fromIntegral (fdFD fd)))
+                        (threadWaitWrite undefined)
+                        -- (threadWaitWrite (fromIntegral (fdFD fd)))
     write         = if threaded then safe_write else unsafe_write
     unsafe_write  = do_write (c_write (fdFD fd) (buf `plusPtr` off) len)
     safe_write    = do_write (c_safe_write (fdFD fd) (buf `plusPtr` off) len)
@@ -552,7 +570,7 @@ writeRawBufferPtr loc !fd buf off len
 writeRawBufferPtrNoBlock :: String -> FD -> Ptr Word8 -> Int -> CSize -> IO CInt
 writeRawBufferPtrNoBlock loc !fd buf off len
   | isNonBlocking fd = unsafe_write -- unsafe is ok, it can't block
-  | otherwise   = do r <- unsafe_fdReady (fdFD fd) 1 0 0
+  | otherwise   = do r <- unsafe_fdReady undefined 1 0 0
                      if r /= 0 then write
                                else return 0
   where

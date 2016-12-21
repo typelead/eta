@@ -272,7 +272,8 @@ startIOManagerThread eventManagerArray i = do
         !t <- forkOn i $ do
                 c_setIOManagerControlFd
                   (fromIntegral i)
-                  (fromIntegral $ controlWriteFd $ M.emControl mgr)
+                  undefined
+                  -- (fromIntegral $ controlWriteFd $ M.emControl mgr) TODO: channel
                 loop mgr
         labelThread t ("IOManager on cap " ++ show_int i)
         writeIOArray eventManagerArray i (Just (t,mgr))
@@ -298,8 +299,8 @@ startTimerManagerThread :: IO ()
 startTimerManagerThread = modifyMVar_ timerManagerThreadVar $ \old -> do
   let create = do
         !mgr <- TM.new
-        c_setTimerManagerControlFd
-          (fromIntegral $ controlWriteFd $ TM.emControl mgr)
+        c_setTimerManagerControlFd undefined
+          --  (fromIntegral $ controlWriteFd $ TM.emControl mgr) TODO: channel
         writeIORef timerManager $ Just mgr
         !t <- forkIO $ TM.loop mgr
         labelThread t "TimerManager"

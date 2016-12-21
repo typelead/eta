@@ -135,7 +135,8 @@ callbackArraySize :: Int
 callbackArraySize = 32
 
 hashFd :: Fd -> Int
-hashFd fd = fromIntegral fd .&. (callbackArraySize - 1)
+hashFd fd = undefined {- fromIntegral fd TODO: channel -}
+         .&. (callbackArraySize - 1)
 {-# INLINE hashFd #-}
 
 callbackTableVar :: EventManager -> Fd -> MVar (IntTable [FdData])
@@ -308,7 +309,7 @@ registerFd_ :: EventManager -> IOCallback -> Fd -> Event -> Lifetime
             -> IO (FdKey, Bool)
 registerFd_ mgr@(EventManager{..}) cb fd evs lt = do
   u <- newUnique emUniqueSource
-  let fd'  = fromIntegral fd
+  let fd'  = undefined -- fromIntegral fd TODO: channel
       reg  = FdKey fd u
       el = I.eventLifetime evs lt
       !fdd = FdData reg el cb
@@ -385,7 +386,7 @@ unregisterFd_ :: EventManager -> FdKey -> IO Bool
 unregisterFd_ mgr@(EventManager{..}) (FdKey fd u) =
   withMVar (callbackTableVar mgr fd) $ \tbl -> do
     let dropReg = nullToNothing . filter ((/= u) . keyUnique . fdKey)
-        fd' = fromIntegral fd
+        fd' = undefined -- fromIntegral fd TODO: channel
         pairEvents :: [FdData] -> IO (EventLifetime, EventLifetime)
         pairEvents prev = do
           r <- maybe mempty eventsOf `fmap` IT.lookup fd' tbl
@@ -411,7 +412,8 @@ unregisterFd mgr reg = do
 closeFd :: EventManager -> (Fd -> IO ()) -> Fd -> IO ()
 closeFd mgr close fd = do
   fds <- withMVar (callbackTableVar mgr fd) $ \tbl -> do
-    prev <- IT.delete (fromIntegral fd) tbl
+    -- prev <- IT.delete (fromIntegral fd) tbl -- TODO: Channel
+    prev <- IT.delete undefined tbl
     case prev of
       Nothing  -> close fd >> return []
       Just fds -> do
@@ -432,7 +434,8 @@ closeFd_ :: EventManager
             -> Fd
             -> IO (IO ())
 closeFd_ mgr tbl fd = do
-  prev <- IT.delete (fromIntegral fd) tbl
+  -- prev <- IT.delete (fromIntegral fd) tbl TODO: channel
+  prev <- IT.delete undefined tbl
   case prev of
     Nothing  -> return (return ())
     Just fds -> do
@@ -455,7 +458,8 @@ onFdEvent mgr fd evs
 
   | otherwise = do
     fdds <- withMVar (callbackTableVar mgr fd) $ \tbl ->
-        IT.delete (fromIntegral fd) tbl >>= maybe (return []) (selectCallbacks tbl)
+        -- IT.delete (fromIntegral fd) tbl >>= maybe (return []) (selectCallbacks tbl) TODO: Channel
+        IT.delete undefined tbl >>= maybe (return []) (selectCallbacks tbl)
     forM_ fdds $ \(FdData reg _ cb) -> cb reg evs
   where
     -- | Here we look through the list of registrations for the fd of interest
@@ -482,7 +486,8 @@ onFdEvent mgr fd evs
 
         -- Reinsert multishot registrations.
         -- We deleted the table entry for this fd above so we there isn't a preexisting entry
-        _ <- IT.insertWith (\_ _ -> saved) (fromIntegral fd) saved tbl
+        -- _ <- IT.insertWith (\_ _ -> saved) (fromIntegral fd) saved tbl TODO: channel
+        _ <- IT.insertWith (\_ _ -> saved) undefined saved tbl
 
         case I.elLifetime allEls of
           -- we previously armed the fd for multiple shots, no need to rearm

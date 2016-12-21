@@ -53,7 +53,8 @@ puts :: String -> IO ()
 puts s = withCAStringLen (s ++ "\n") $ \(p, len) -> do
             -- In reality should be withCString, but assume ASCII to avoid loop
             -- if this is called by GHC.Foreign
-           _ <- c_write 1 (castPtr p) (fromIntegral len)
+           _ <- c_write undefined (castPtr p) (fromIntegral len)
+           -- _ <- c_write 1 (castPtr p) (fromIntegral len)
            return ()
 
 
@@ -415,11 +416,11 @@ c_safe_open = undefined
 
 -- See Note: CSsize
 foreign import java unsafe "@static eta.base.Utils.c_read"
-  c_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+  c_read :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
-foreign import java unsafe "@static eta.base.Utils.c_read"
-  c_safe_read :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+foreign import java safe "@static eta.base.Utils.c_read"
+  c_safe_read :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
 -- foreign import ccall unsafe "HsBase.h __hscore_stat"
 c_stat :: CFilePath -> Ptr CStat -> IO CInt
@@ -431,11 +432,11 @@ c_umask = undefined
 
 -- See Note: CSsize
 foreign import java unsafe "@static eta.base.Utils.c_write"
-  c_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+  c_write :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
-foreign import java unsafe "@static eta.base.Utils.c_write"
-  c_safe_write :: CInt -> Ptr Word8 -> CSize -> IO CSsize
+foreign import java safe "@static eta.base.Utils.c_write"
+  c_safe_write :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
 -- foreign import ccall unsafe "HsBase.h __hscore_ftruncate"
 c_ftruncate :: CInt -> COff -> IO CInt

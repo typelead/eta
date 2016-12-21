@@ -7,6 +7,10 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.channels.Channels;
+import java.nio.channels.Channel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.List;
 
@@ -84,54 +88,32 @@ public class Utils {
         return System.console() != null ? 1 : 0;
     }
 
-    private static InputStream getInputStream(int file) {
-        switch (file) {
-        case 0:
-            return System.in;
-        default:
-            throw new IllegalArgumentException("Invalid file descriptor for an InputStream");
-        }
-    }
-
-    private static PrintStream getPrintStream(int file) {
-        switch (file) {
-        case 1:
-            return System.out;
-        case 2:
-            return System.err;
-        default:
-            throw new IllegalArgumentException("Invalid file descriptor for a PrintStream");
-        }
-    }
-
     public static String c_localeEncoding() {
         return Charset.defaultCharset().name();
     }
 
-    public static int c_write(int file, ByteBuffer buffer, int count) {
+    public static int c_write(Channel fd, ByteBuffer buffer, int count) {
         try {
-            PrintStream stream = getPrintStream(file);
-            byte[] dst = new byte[count];
-            buffer.get(dst, 0, count);
-            stream.print(new String(dst, "US-ASCII"));
-            return count;
-        } catch (UnsupportedEncodingException ignored) {
-            return -1;
-        } catch (IllegalArgumentException ignored) {
+            WritableByteChannel wc = (WritableByteChannel) fd;
+            buffer = buffer.duplicate();
+            buffer.limit(buffer.position() + count);
+            return wc.write(buffer);
+        } catch (Exception e) {
+            e.printStackTrace();
             return -1;
         }
     }
 
-    public static int c_read(int file, ByteBuffer buffer, int count) {
-        byte[] bytes = new byte[count];
-        int got;
+    public static int c_read(Channel fd, ByteBuffer buffer, int count) {
         try {
-            got = System.in.read(bytes);
-            buffer.put(bytes);
-        } catch (IOException ignored) {
+            ReadableByteChannel rc = (ReadableByteChannel) fd;
+            buffer = buffer.duplicate();
+            buffer.limit(buffer.position() + count);
+            return rc.read(buffer);
+        } catch (Exception e) {
+            e.printStackTrace();
             return -1;
         }
-        return got;
     }
 
     public static String byteBufferToStr(ByteBuffer buffer)
@@ -192,5 +174,17 @@ public class Utils {
                 ManagementFactory.getOperatingSystemMXBean())
                .getProcessCpuTime()
                * 1000;
+    }
+
+    public static Channel getStdOut() {
+        return Channels.newChannel(System.out);
+    }
+
+    public static Channel getStdIn() {
+        return Channels.newChannel(System.in);
+    }
+
+    public static Channel getStdErr() {
+        return Channels.newChannel(System.err);
     }
 }
