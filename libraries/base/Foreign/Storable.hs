@@ -163,11 +163,9 @@ STORABLE(Int,4,4,readIntOffPtr,writeIntOffPtr)
 
 STORABLE(Word,4,4,readWordOffPtr,writeWordOffPtr)
 
--- STORABLE((Ptr a),SIZEOF_HSPTR,ALIGNMENT_HSPTR,
---          readPtrOffPtr,writePtrOffPtr)
+STORABLE((Ptr a),4,4,readPtrOffPtr,writePtrOffPtr)
 
--- STORABLE((FunPtr a),SIZEOF_HSFUNPTR,ALIGNMENT_HSFUNPTR,
---          readFunPtrOffPtr,writeFunPtrOffPtr)
+STORABLE((FunPtr a),4,4,readFunPtrOffPtr,writeFunPtrOffPtr)
 
 STORABLE((StablePtr a),4,4,readStablePtrOffPtr,writeStablePtrOffPtr)
 

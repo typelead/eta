@@ -14,16 +14,21 @@ public class MemoryManager {
         new TreeMap<Integer, WeakReference<ByteBuffer>>();
 
     public static synchronized ByteBuffer allocateBuffer(int n, boolean direct) {
-        ByteBuffer buf;
-        if (direct) {
-            buf = ByteBuffer.allocateDirect(n + 4); // Off-heap memory
-        } else {
-            buf = ByteBuffer.allocate(n + 4); // Heap memory
-        }
+        ByteBuffer buf = allocateAnonymousBuffer(n, direct);
         buf.putInt(nextAddress);
         addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
         nextAddress += n;
         return buf;
+    }
+
+    /* Use if you want to allocate a buffer that won't be using the getAddress
+       method and you don't want to pollute the addressMap. */
+    public static synchronized ByteBuffer allocateAnonymousBuffer(int n, boolean direct) {
+        if (direct) {
+            return ByteBuffer.allocateDirect(n + 4); // Off-heap memory
+        } else {
+            return ByteBuffer.allocate(n + 4); // Heap memory
+        }
     }
 
     public static ByteBuffer getBuffer(int address) {
@@ -47,15 +52,31 @@ public class MemoryManager {
         if (buf == null) {
             return -1;
         } else {
-            return buf.getInt(0) + buf.position() - 4;
+            return buf.getInt(0) + getPosition(buf);
         }
     }
 
-    public static int bufferPos(ByteBuffer buf) {
-        if (buf == null) {
-            return -1;
-        } else {
-            return buf.position();
-        }
+    public static int getPosition(ByteBuffer buf) {
+        return buf.position() - 4;
+    }
+
+    private static int realPosition(int pos) {
+        return pos + 4;
+    }
+
+    public static int bufGetInt(ByteBuffer buf, int pos) {
+        return buf.getInt(realPosition(pos));
+    }
+
+    public static void bufPutInt(ByteBuffer buf, int pos, int value) {
+        buf.putInt(realPosition(pos), value);
+    }
+
+    public static ByteBuffer bufSetPosition(ByteBuffer buf, int pos) {
+        return (ByteBuffer) buf.position(realPosition(pos));
+    }
+
+    public static ByteBuffer bufSetOffset(ByteBuffer buf, int offset) {
+        return (ByteBuffer) buf.position(buf.position() + offset);
     }
 }

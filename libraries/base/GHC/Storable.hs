@@ -20,8 +20,8 @@ module GHC.Storable
         ( readWideCharOffPtr
         , readIntOffPtr
         , readWordOffPtr
-        -- , readPtrOffPtr
-        -- , readFunPtrOffPtr
+        , readPtrOffPtr
+        , readFunPtrOffPtr
         , readFloatOffPtr
         , readDoubleOffPtr
         , readStablePtrOffPtr
@@ -36,8 +36,8 @@ module GHC.Storable
         , writeWideCharOffPtr
         , writeIntOffPtr
         , writeWordOffPtr
-        -- , writePtrOffPtr
-        -- , writeFunPtrOffPtr
+        , writePtrOffPtr
+        , writeFunPtrOffPtr
         , writeFloatOffPtr
         , writeDoubleOffPtr
         , writeStablePtrOffPtr
@@ -60,8 +60,8 @@ import GHC.Base
 readWideCharOffPtr  :: Ptr Char          -> Int -> IO Char
 readIntOffPtr       :: Ptr Int           -> Int -> IO Int
 readWordOffPtr      :: Ptr Word          -> Int -> IO Word
--- readPtrOffPtr       :: Ptr (Ptr a)       -> Int -> IO (Ptr a)
--- readFunPtrOffPtr    :: Ptr (FunPtr a)    -> Int -> IO (FunPtr a)
+readPtrOffPtr       :: Ptr (Ptr a)       -> Int -> IO (Ptr a)
+readFunPtrOffPtr    :: Ptr (FunPtr a)    -> Int -> IO (FunPtr a)
 readFloatOffPtr     :: Ptr Float         -> Int -> IO Float
 readDoubleOffPtr    :: Ptr Double        -> Int -> IO Double
 readStablePtrOffPtr :: Ptr (StablePtr a) -> Int -> IO (StablePtr a)
@@ -80,10 +80,10 @@ readIntOffPtr (Ptr a) (I# i)
   = IO $ \s -> case readIntOffAddr# a i s       of (# s2, x #) -> (# s2, I# x #)
 readWordOffPtr (Ptr a) (I# i)
   = IO $ \s -> case readWordOffAddr# a i s      of (# s2, x #) -> (# s2, W# x #)
--- readPtrOffPtr (Ptr a) (I# i)
---   = IO $ \s -> case readAddrOffAddr# a i s      of (# s2, x #) -> (# s2, Ptr x #)
--- readFunPtrOffPtr (Ptr a) (I# i)
---   = IO $ \s -> case readAddrOffAddr# a i s      of (# s2, x #) -> (# s2, FunPtr x #)
+readPtrOffPtr (Ptr a) (I# i)
+  = IO $ \s -> case readAddrOffAddr# a i s      of (# s2, x #) -> (# s2, Ptr x #)
+readFunPtrOffPtr (Ptr a) (I# i)
+  = IO $ \s -> case readAddrOffAddr# a i s      of (# s2, x #) -> (# s2, FunPtr x #)
 readFloatOffPtr (Ptr a) (I# i)
   = IO $ \s -> case readFloatOffAddr# a i s     of (# s2, x #) -> (# s2, F# x #)
 readDoubleOffPtr (Ptr a) (I# i)
@@ -110,8 +110,8 @@ readWord64OffPtr (Ptr a) (I# i)
 writeWideCharOffPtr  :: Ptr Char          -> Int -> Char        -> IO ()
 writeIntOffPtr       :: Ptr Int           -> Int -> Int         -> IO ()
 writeWordOffPtr      :: Ptr Word          -> Int -> Word        -> IO ()
--- writePtrOffPtr       :: Ptr (Ptr a)       -> Int -> Ptr a       -> IO ()
--- writeFunPtrOffPtr    :: Ptr (FunPtr a)    -> Int -> FunPtr a    -> IO ()
+writePtrOffPtr       :: Ptr (Ptr a)       -> Int -> Ptr a       -> IO ()
+writeFunPtrOffPtr    :: Ptr (FunPtr a)    -> Int -> FunPtr a    -> IO ()
 writeFloatOffPtr     :: Ptr Float         -> Int -> Float       -> IO ()
 writeDoubleOffPtr    :: Ptr Double        -> Int -> Double      -> IO ()
 writeStablePtrOffPtr :: Ptr (StablePtr a) -> Int -> StablePtr a -> IO ()
@@ -130,10 +130,10 @@ writeIntOffPtr (Ptr a) (I# i) (I# x)
   = IO $ \s -> case writeIntOffAddr# a i x s       of s2 -> (# s2, () #)
 writeWordOffPtr (Ptr a) (I# i) (W# x)
   = IO $ \s -> case writeWordOffAddr# a i x s      of s2 -> (# s2, () #)
--- writePtrOffPtr (Ptr a) (I# i) (Ptr x)
---   = IO $ \s -> case writeAddrOffAddr# a i x s      of s2 -> (# s2, () #)
--- writeFunPtrOffPtr (Ptr a) (I# i) (FunPtr x)
---   = IO $ \s -> case writeAddrOffAddr# a i x s      of s2 -> (# s2, () #)
+writePtrOffPtr (Ptr a) (I# i) (Ptr x)
+  = IO $ \s -> case writeAddrOffAddr# a i x s      of s2 -> (# s2, () #)
+writeFunPtrOffPtr (Ptr a) (I# i) (FunPtr x)
+  = IO $ \s -> case writeAddrOffAddr# a i x s      of s2 -> (# s2, () #)
 writeFloatOffPtr (Ptr a) (I# i) (F# x)
   = IO $ \s -> case writeFloatOffAddr# a i x s     of s2 -> (# s2, () #)
 writeDoubleOffPtr (Ptr a) (I# i) (D# x)
