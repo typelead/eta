@@ -7,7 +7,7 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.*;
@@ -23,8 +23,8 @@ import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 import static eta.runtime.RtsMessages.barf;
 
 public final class StgTSO extends StgClosure {
-    public static AtomicLong maxThreadId = new AtomicLong(0);
-    public long id = nextThreadId();
+    public static AtomicInteger maxThreadId = new AtomicInteger(0);
+    public int id = nextThreadId();
     public volatile StgTSO link;
     public Stack<StackFrame> stack = new Stack<StackFrame>();
     public ListIterator<StackFrame> sp;
@@ -90,8 +90,12 @@ public final class StgTSO extends StgClosure {
         sp.add(frame);
     }
 
-    public static long nextThreadId() {
+    public static int nextThreadId() {
         return maxThreadId.getAndIncrement();
+    }
+
+    public static int getThreadId(StgTSO tso) {
+        return tso.id;
     }
 
     public final boolean interruptible() {
