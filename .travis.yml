@@ -12,11 +12,11 @@ cache:
 
 matrix:
   include:
-    - env: BUILD=stack ARGS="--resolver lts-6.6"
+    - env: BUILD=stack ARGS="--resolver lts-6.27"
       addons: {apt: {packages: [libgmp-dev, oracle-java8-installer]}}
       os: linux
       compiler: ": #stack 7.10.3 linux"
-    - env: BUILD=stack ARGS="--resolver lts-6.6"
+    - env: BUILD=stack ARGS="--resolver lts-6.27"
       compiler: ": #stack 7.10.3 osx"
       osx_image: xcode8
       os: osx
@@ -62,6 +62,5 @@ script:
 - |
   if [ `uname` != "Darwin" ]
   then
-    cd ../packages/
-    ./Test.hs
+    stack test eta
   fi

@@ -1,30 +1,18 @@
-#!/usr/bin/env stack
-{- stack
-     --resolver lts-6.6
-     --install-ghc
-     runghc
-     --package turtle
-     --package text
-     --package aeson
-     --package bytestring
-     --package directory
-     --package filepath
--}
-
-{-#LANGUAGE OverloadedStrings#-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
 import GHC.IO.Exception (ExitCode(..))
 import System.Exit (die)
 import Data.Monoid ((<>))
-import Data.Text (unpack, Text)
 import Control.Applicative (empty)
 import Data.Aeson
-import Turtle.Prelude (shell)
+import Turtle.Prelude (procStrictWithErr, shell)
 import qualified Data.ByteString.Lazy as BS
 import System.Directory (getAppUserDataDirectory)
 import System.FilePath ((</>))
+import Data.Text (unpack, Text)
+import qualified Data.Text.IO as T
 
 data Packages = Packages {
       patched :: [Text],
@@ -46,11 +34,11 @@ packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirecto
 
 buildPackage :: Text -> IO ()
 buildPackage pkg = do
-    let buildCmd = "epm install " <> pkg
-    exitCode <- shell buildCmd ""
+    let args = ["install", "--reinstall", pkg]
+    (exitCode, out, err) <- procStrictWithErr "epm" args empty
     case exitCode of
-        ExitSuccess -> return ()
-        ExitFailure x -> die ("error in building " <> unpack pkg)
+        ExitSuccess -> T.putStr out
+        ExitFailure x -> T.putStr err >> die ("error in building " <> unpack pkg)
     return ()
 
 main :: IO ()

@@ -3,13 +3,14 @@ extra-package-dbs: []
 packages:
 - '.'
 - codec-jvm
-- utils/eta-pkgdb # TODO: Shift this to libraries/
+- utils/eta-pkgdb
 - utils/eta-pkg
 - epm/epm
 - epm/Cabal
 extra-deps:
-- control-monad-exception-0.11.2
-- failure-0.2.0.3
-- text-1.2.2.1
+- aeson-1.0.2.1
+- mmorph-1.0.9
+- optparse-applicative-0.13.0.0
+- turtle-1.3.0
 - unix-compat-0.4.3.1
-resolver: lts-6.6
+resolver: lts-6.27
