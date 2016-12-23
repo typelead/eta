@@ -1,6 +1,8 @@
 # Eta Documentation
 
-## Prerequisites
+## Building
+
+### Prerequisites
 
 - Python
 - [pip](https://pip.pypa.io/en/stable/installing/)
@@ -10,7 +12,27 @@
 $ pip install Sphinx sphinx_rtd_theme
 ```
 
-## Building
+### Build
+
 ```
 $ make html
+```
+
+## Development
+
+It's faster to have automated rebuilds via Gulp during development.
+
+### Prerequisites
+
+- Node.js
+- Gulp
+
+```
+npm install
+```
+
+### Develop
+
+```
+$ gulp
 ```

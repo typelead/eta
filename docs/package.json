@@ -1,0 +1,12 @@
+{
+  "name": "eta-docs",
+  "version": "1.0.0",
+  "description": "Eta documentation",
+  "main": "index.js",
+  "author": "Rahul Muttineni",
+  "license": "BSD",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-shell": "^0.5.2"
+  }
+}

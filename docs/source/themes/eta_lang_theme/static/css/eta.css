@@ -1,0 +1,15 @@
+@import url("theme.css");
+
+.wy-side-nav-search {
+    background: #32bebe;
+}
+
+.wy-side-nav-search>a {
+    width: 50%;
+}
+
+div.eta-version {
+    margin-top: -0.4045em;
+    margin-bottom: 0.809em;
+    color: #ffffff;
+}

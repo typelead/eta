@@ -12,3 +12,4 @@ dist/
 tests/verify/META-INF
 utils/trace/Filter
 utils/trace/TRACE_DUMP
+node_modules/
