@@ -13,3 +13,22 @@ div.eta-version {
     margin-bottom: 0.809em;
     color: #ffffff;
 }
+
+.wy-nav-side{
+background: #2E3037;
+}
+
+body{
+background: #2E3037;
+color: #2E3037;
+}
+
+.wy-menu-vertical a{
+color: #F3F3F3;
+}
+
+.wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+  color: #2E3037;
+  background: #F3F3F3;
+}
+
