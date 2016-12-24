@@ -28,6 +28,7 @@ It's faster to have automated rebuilds via Gulp during development.
 - Gulp
 
 ```
+npm install --global gulp-cli # May require 'sudo'
 npm install
 ```
 
