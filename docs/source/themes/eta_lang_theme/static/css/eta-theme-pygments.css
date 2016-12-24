@@ -1,0 +1,79 @@
+/*
+
+    Name:       Eta Theme
+    Author:     Jyothsna Srinivas
+
+    Based on Base16 Atelier Cave Dark Theme by Bram de Haan
+    https://github.com/atelierbram/syntax-highlighting/blob/master/atelier-schemes/output/pygments/base16-ateliercave.dark.css
+    #655f6d -> #8b8b8d
+    #955ae7 -> #d6d33b
+    #aa573c -> #62cc51
+    #2a9292 -> #32bebe
+    #a06e3b -> #d672b0
+    #576ddb -> #0099c9
+*/
+.highlight .hll { background-color: #585260 }
+.highlight  { background: #19171c; color: #efecf4 }
+.highlight .c { color: #8b8b8d } /* Comment */
+.highlight .err { color: #be4678 } /* Error */
+.highlight .k { color: #d6d33b } /* Keyword */
+.highlight .l { color: #62cc51 } /* Literal */
+.highlight .n { color: #efecf4 } /* Name */
+.highlight .o { color: #398bc6 } /* Operator */
+.highlight .p { color: #efecf4 } /* Punctuation */
+.highlight .cm { color: #8b8b8d } /* Comment.Multiline */
+.highlight .cp { color: #8b8b8d } /* Comment.Preproc */
+.highlight .c1 { color: #8b8b8d } /* Comment.Single */
+.highlight .cs { color: #8b8b8d } /* Comment.Special */
+.highlight .gd { color: #be4678 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .gh { color: #efecf4; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #32bebe } /* Generic.Inserted */
+.highlight .gp { color: #8b8b8d; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #398bc6; font-weight: bold } /* Generic.Subheading */
+.highlight .kc { color: #d6d33b } /* Keyword.Constant */
+.highlight .kd { color: #d6d33b } /* Keyword.Declaration */
+.highlight .kn { color: #398bc6 } /* Keyword.Namespace */
+.highlight .kp { color: #d6d33b } /* Keyword.Pseudo */
+.highlight .kr { color: #d6d33b } /* Keyword.Reserved */
+.highlight .kt { color: #d672b0 } /* Keyword.Type */
+.highlight .ld { color: #32bebe } /* Literal.Date */
+.highlight .m { color: #62cc51 } /* Literal.Number */
+.highlight .s { color: #32bebe } /* Literal.String */
+.highlight .na { color: #0099c9 } /* Name.Attribute */
+.highlight .nb { color: #efecf4 } /* Name.Builtin */
+.highlight .nc { color: #d672b0 } /* Name.Class */
+.highlight .no { color: #be4678 } /* Name.Constant */
+.highlight .nd { color: #398bc6 } /* Name.Decorator */
+.highlight .ni { color: #efecf4 } /* Name.Entity */
+.highlight .ne { color: #be4678 } /* Name.Exception */
+.highlight .nf { color: #0099c9 } /* Name.Function */
+.highlight .nl { color: #efecf4 } /* Name.Label */
+.highlight .nn { color: #d672b0 } /* Name.Namespace */
+.highlight .nx { color: #0099c9 } /* Name.Other */
+.highlight .py { color: #efecf4 } /* Name.Property */
+.highlight .nt { color: #398bc6 } /* Name.Tag */
+.highlight .nv { color: #be4678 } /* Name.Variable */
+.highlight .ow { color: #398bc6 } /* Operator.Word */
+.highlight .w { color: #efecf4 } /* Text.Whitespace */
+.highlight .mf { color: #62cc51 } /* Literal.Number.Float */
+.highlight .mh { color: #62cc51 } /* Literal.Number.Hex */
+.highlight .mi { color: #62cc51 } /* Literal.Number.Integer */
+.highlight .mo { color: #62cc51 } /* Literal.Number.Oct */
+.highlight .sb { color: #32bebe } /* Literal.String.Backtick */
+.highlight .sc { color: #efecf4 } /* Literal.String.Char */
+.highlight .sd { color: #8b8b8d } /* Literal.String.Doc */
+.highlight .s2 { color: #32bebe } /* Literal.String.Double */
+.highlight .se { color: #62cc51 } /* Literal.String.Escape */
+.highlight .sh { color: #32bebe } /* Literal.String.Heredoc */
+.highlight .si { color: #62cc51 } /* Literal.String.Interpol */
+.highlight .sx { color: #32bebe } /* Literal.String.Other */
+.highlight .sr { color: #32bebe } /* Literal.String.Regex */
+.highlight .s1 { color: #32bebe } /* Literal.String.Single */
+.highlight .ss { color: #32bebe } /* Literal.String.Symbol */
+.highlight .bp { color: #efecf4 } /* Name.Builtin.Pseudo */
+.highlight .vc { color: #be4678 } /* Name.Variable.Class */
+.highlight .vg { color: #be4678 } /* Name.Variable.Global */
+.highlight .vi { color: #be4678 } /* Name.Variable.Instance */
+.highlight .il { color: #62cc51 } /* Literal.Number.Integer.Long */

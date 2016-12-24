@@ -1,10 +1,11 @@
 @import url("theme.css");
+@import url("eta-theme-pygments.css");
 
 .wy-side-nav-search {
     background: #32bebe;
 }
 
-.wy-side-nav-search>a {
+.wy-side-nav-search > a {
     width: 50%;
 }
 
@@ -14,21 +15,73 @@ div.eta-version {
     color: #ffffff;
 }
 
-.wy-nav-side{
-background: #2E3037;
+.wy-nav-side {
+    background: #2E3037;
 }
 
-body{
-background: #2E3037;
-color: #2E3037;
+body {
+    background: #2E3037;
+    color: #2E3037;
 }
 
-.wy-menu-vertical a{
-color: #F3F3F3;
+.wy-menu-vertical a {
+    color: #F3F3F3;
 }
 
-.wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
-  color: #2E3037;
-  background: #F3F3F3;
+.wy-menu-vertical li.on a, .wy-menu-vertical li.current > a {
+    color: #2E3037;
+    background: #F3F3F3;
 }
 
+.codeblock div[class^='highlight'], pre.literal-block div[class^='highlight'], .rst-content .literal-block div[class^='highlight'], div[class^='highlight'] div[class^='highlight'] {
+    background: #2E3037;
+}
+
+.codeblock, pre.literal-block, .rst-content .literal-block, .rst-content pre.literal-block, div[class^='highlight'] {
+    background: #2E3037;
+}
+
+.wy-nav-content {
+    max-width: 100%;
+    background: #ffffff;
+}
+
+.wy-nav-top {
+    background: #32bebe;
+}
+
+@font-face {
+    font-family: "Hasklig";
+    font-style: normal;
+    font-weight: 400;
+    src: local("Hasklig Regular"), local("Hasklig-Regular"), url(../fonts/Hasklig-Regular.otf) format("opentype")
+}
+
+@font-face {
+    font-family: "Hasklig";
+    font-style: normal;
+    font-weight: 700;
+    src: local("Hasklig Bold"), local("Hasklig-Bold"), url(../fonts/Hasklig-Bold.otf) format("opentype")
+}
+
+div[class^='highlight'] pre {
+    font-family: "Hasklig";
+    font-size: 14px;
+}
+
+.highlight-haskell {
+    overflow-x: scroll;
+    width: 80%;
+}
+
+@media screen and (max-width: 600px) {
+    .highlight-haskell {
+        width: 100%;
+    }
+}
+
+.rst-content tt.literal, .rst-content tt.literal, .rst-content code.literal {
+    color: #32bebe;
+    font-family: "Hasklig";
+    font-size: 14px;
+}

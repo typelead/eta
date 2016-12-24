@@ -4,7 +4,7 @@ Debugging Stack Traces
 This document will debug stack trace for the following error message which has been
 produced on running the program. This is useful in filing a more helpful bug report.
 
-.. highlight:: bash
+.. highlight:: java
 
 .. code::
 

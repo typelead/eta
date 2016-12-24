@@ -8,5 +8,6 @@ gulp.task('default', ['build-docs'], function() {
                ,'./source/**/*.css'
                ,'./source/**/*.js'
                ,'./source/**/*.html'
-               ,'./sources/**/*.py'], ['build-docs']);
+               ,'./source/**/*.conf'
+               ,'./source/**/*.py'], ['build-docs']);
 });
