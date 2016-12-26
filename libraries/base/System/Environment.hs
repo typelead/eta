@@ -64,18 +64,6 @@ getArgs = do
 foreign import java unsafe "@static eta.base.Utils.getJavaArgs"
   getJavaArgs :: IO JStringArray
 
-  -- alloca $ \ p_argc ->
-  -- alloca $ \ p_argv -> do
-  --  getProgArgv p_argc p_argv
-  --  p    <- fromIntegral `liftM` peek p_argc
-  --  argv <- peek p_argv
-  --  enc <- getFileSystemEncoding
-  --  peekArray (p - 1) (advancePtr argv 1) >>= mapM (GHC.peekCString enc)
-
-getProgArgv :: Ptr CInt -> Ptr (Ptr CString) -> IO ()
-getProgArgv = undefined
--- #endif
-
 {-|
 Computation 'getProgName' returns the name of the program as it was
 invoked.
@@ -87,40 +75,7 @@ between platforms: on Windows, for example, a program invoked as foo
 is probably really @FOO.EXE@, and that is what 'getProgName' will return.
 -}
 getProgName :: IO String
--- #ifdef mingw32_HOST_OS
--- -- Ignore the arguments to hs_init on Windows for the sake of Unicode compat
--- getProgName = fmap (basename . head) getWin32ProgArgv_certainly
--- #else
 getProgName = return "eta.main"
-  -- alloca $ \ p_argc ->
-  -- alloca $ \ p_argv -> do
-  --    getProgArgv p_argc p_argv
-  --    argv <- peek p_argv
-  --    unpackProgName argv
-
-unpackProgName  :: Ptr (Ptr CChar) -> IO String   -- argv[0]
-unpackProgName argv = undefined
-  --do
-  -- enc <- getFileSystemEncoding
-  -- s <- peekElemOff argv 0 >>= GHC.peekCString enc
-  -- return (basename s)
--- #endif
-
-basename :: FilePath -> FilePath
-basename f = go f f
- where
-  go acc [] = acc
-  go acc (x:xs)
-    | isPathSeparator x = go xs xs
-    | otherwise         = go acc xs
-
-  isPathSeparator :: Char -> Bool
-  isPathSeparator '/'  = True
--- #ifdef mingw32_HOST_OS
---   isPathSeparator '\\' = True
--- #endif
-  isPathSeparator _    = False
-
 
 -- | Computation 'getEnv' @var@ returns the value
 -- of the environment variable @var@. For the inverse, POSIX users
