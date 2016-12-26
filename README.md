@@ -114,7 +114,7 @@ log` command.
 
 ### Documentation
 
-The documentation can be found in the `docs` [directory](./docs/README.md). Be sure to check out the [FAQ](./docs/FAQ.md) before asking any questions.
+The documentation can be found in the `docs` [directory](./docs/README.md). Be sure to check out the [FAQ](./docs/source/faq.rst) before asking any questions.
 
 ### Tutorials & Examples
 
