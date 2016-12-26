@@ -541,7 +541,7 @@ data PrimOp
    | ObjectArrayNewOp
    | ArrayLengthOp
    | GetClassOp
-   | ObjectIsNull
+   | IsNullObjectOp
 
 
 -- Used for the Ord instance
@@ -1659,7 +1659,7 @@ tagOf_PrimOp ClassCastOp = _ILIT(1104)
 tagOf_PrimOp ObjectArrayNewOp = _ILIT(1105)
 tagOf_PrimOp ArrayLengthOp = _ILIT(1106)
 tagOf_PrimOp GetClassOp = _ILIT(1107)
-tagOf_PrimOp ObjectIsNull = _ILIT(1108)
+tagOf_PrimOp IsNullObjectOp = _ILIT(1108)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2793,7 +2793,7 @@ allThePrimOps =
    , ObjectArrayNewOp
    , ArrayLengthOp
    , GetClassOp
-   , ObjectIsNull
+   , IsNullObjectOp
    ]
 
 tagToEnumKey :: Unique
@@ -4056,7 +4056,7 @@ primOpInfo ArrayLengthOp =
 primOpInfo GetClassOp =
   mkGenPrimOp (fsLit "getClass#") [alphaTyVar, betaTyVar]
   [ mkProxyPrimTy liftedTypeKind alphaTy ] (mkObjectPrimTy betaTy)
-primOpInfo ObjectIsNull = mkGenPrimOp (fsLit "objIsNull#")  [alphaTyVar] [(mkObjectPrimTy alphaTy)] intPrimTy
+primOpInfo IsNullObjectOp = mkGenPrimOp (fsLit "isNullObject#")  [alphaTyVar] [(mkObjectPrimTy alphaTy)] intPrimTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4834,7 +4834,7 @@ primOpCanFail IndexJByteArrayOp   = True
 primOpCanFail ReadJByteArrayOp    = True
 primOpCanFail WriteJByteArrayOp   = True
 primOpCanFail ClassCastOp         = True
-primOpCanFail ObjectIsNull        = True
+primOpCanFail IsNullObjectOp        = True
 primOpCanFail _ = False
 
 primOpOkForSpeculation :: PrimOp -> Bool

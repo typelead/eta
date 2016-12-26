@@ -955,7 +955,7 @@ simpleOp SizeofByteArrayOp = Just $ normalOp $
 -- TODO: Implement
 simpleOp ParOp = Just $ \_ -> iconst jint 0
 
-simpleOp ObjectIsNull = Just $ \[o] -> o <> ifnull (iconst jint 1) (iconst jint 0)
+simpleOp IsNullObjectOp = Just $ \[o] -> o <> ifnull (iconst jint 1) (iconst jint 0)
 
 simpleOp _             = Nothing
 
