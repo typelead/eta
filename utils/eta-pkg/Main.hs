@@ -682,7 +682,13 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
     infoLn ("modifying: " ++ show to_modify)
     infoLn ("flag db stack: " ++ show (map location flag_db_stack))
 
-  return (db_stack, to_modify, flag_db_stack)
+  return (db_stack, to_modify, (etaPkgDB flag_db_stack))
+    where
+      -- Right now Eta has both the global and the user package
+      -- databases as the same. So we just pass a single element from
+      -- the PackageDBStack for the list command.
+      etaPkgDB [] = []
+      etaPkgDB (x:_) = [x]
 
 
 lookForPackageDBIn :: FilePath -> IO (Maybe FilePath)
