@@ -34,7 +34,7 @@ packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirecto
 
 buildPackage :: Text -> IO ()
 buildPackage pkg = do
-    let args = ["install", "-j1", "--reinstall", pkg]
+    let args = ["install", pkg]
     (exitCode, out, err) <- procStrictWithErr "epm" args empty
     case exitCode of
         ExitSuccess -> T.putStr out
