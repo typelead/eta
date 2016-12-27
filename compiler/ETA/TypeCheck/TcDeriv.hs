@@ -1299,7 +1299,7 @@ cond_args cls (_, tc, _)
     ok_ty arg_ty
      | cls_key == eqClassKey   = check_in arg_ty ordOpTbl || isObjectType arg_ty
      | cls_key == ordClassKey  = check_in arg_ty ordOpTbl
-     | cls_key == showClassKey = check_in arg_ty boxConTbl
+     | cls_key == showClassKey = check_in arg_ty boxConTbl || isObjectType arg_ty
      | otherwise               = False    -- Read, Ix etc
 
     check_in :: Type -> [(Type,a)] -> Bool

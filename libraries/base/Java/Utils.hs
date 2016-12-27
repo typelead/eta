@@ -16,10 +16,11 @@
 -----------------------------------------------------------------------------
 
 module Java.Utils
-  ( JClass, getClass, toString, equals, classObject, hashCode, Proxy(..), eqObject# )
+  ( JClass, getClass, toString, equals, classObject, hashCode, Proxy(..), eqObject#, toString#)
 where
 
 import GHC.Base
+import Java.String
 import Data.Proxy
 
 data {-# CLASS "java.lang.Class" #-} JClass a = JClass (Object# (JClass a))
@@ -37,3 +38,4 @@ foreign import java unsafe equals :: (Extends a Object, Extends b Object)
                                   => a -> b -> Bool
 
 foreign import java unsafe "equals" eqObject# :: Object# a -> Object# b -> Bool
+foreign import java unsafe "toString" toString# :: Object# a -> String

@@ -1183,7 +1183,13 @@ gen_Show_binds get_fixity loc tycon
                 -- Generates (showsPrec p x) for argument x, but it also boxes
                 -- the argument first if necessary.  Note that this prints unboxed
                 -- things without any '#' decorations; could change that if need be
-             show_arg b arg_ty = nlHsApps showsPrec_RDR
+             show_arg b arg_ty
+               | isObjectType arg_ty =
+                 nlHsLam (mkMatch [a_Pat]
+                          (nlHsOpApp (nlHsApp (nlHsVar toString_RDR) (nlHsVar b))
+                                     append_RDR (nlHsVar a_RDR))
+                         emptyLocalBinds)
+               | otherwise = nlHsApps showsPrec_RDR
                                     [nlHsLit (HsInt "" arg_prec),
                                     box_if_necy "Show" tycon (nlHsVar b) arg_ty]
 
@@ -1400,7 +1406,7 @@ gfoldl_RDR, gunfold_RDR, toConstr_RDR, dataTypeOf_RDR, mkConstr_RDR,
     eqAddr_RDR  , ltAddr_RDR  , geAddr_RDR  , gtAddr_RDR  , leAddr_RDR  ,
     eqFloat_RDR , ltFloat_RDR , geFloat_RDR , gtFloat_RDR , leFloat_RDR ,
     eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR ,
-    eqObject_RDR :: RdrName
+    eqObject_RDR, toString_RDR :: RdrName
 gfoldl_RDR     = varQual_RDR  gENERICS (fsLit "gfoldl")
 gunfold_RDR    = varQual_RDR  gENERICS (fsLit "gunfold")
 toConstr_RDR   = varQual_RDR  gENERICS (fsLit "toConstr")
@@ -1454,6 +1460,7 @@ gtDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">##" )
 geDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">=##")
 
 eqObject_RDR   = varQual_RDR  jAVA_UTILS (fsLit "eqObject#")
+toString_RDR   = varQual_RDR  jAVA_UTILS (fsLit "toString#")
 
 {-
 ************************************************************************
