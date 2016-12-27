@@ -47,6 +47,7 @@ import ETA.Utils.FastString
 import ETA.Main.DynFlags
 import ETA.Utils.Platform
 import ETA.Utils.MonadUtils
+import ETA.Utils.Maybes (expectJust)
 import ETA.Utils.OrdList
 import ETA.Utils.Pair
 import ETA.Utils.Util
@@ -263,19 +264,43 @@ unboxArg vs arg
       -- TODO: Is this correct?
       return ( jboolPrimTy
              , Var primArg
-             , \body ->
-                 App (Var (primOpId Int2JBoolOp))
-                     (Case (mkWildCase arg argType intPrimTy
-                            [ (DataAlt falseDataCon, [], Lit (MachInt 0))
-                            , (DataAlt trueDataCon,  [], Lit (MachInt 1)) ])
-                           primArg (exprType body)
-                           [(DEFAULT,[],body)] ))
+             , \body -> Case
+               (mkCoreApp (Var (primOpId Int2JBoolOp))
+                          (mkWildCase arg argType intPrimTy
+                           [ (DataAlt falseDataCon, [], Lit (MachInt 0))
+                           , (DataAlt trueDataCon,  [], Lit (MachInt 1)) ]))
+               primArg (exprType body)
+               [(DEFAULT, [], body)] )
+  | Just (tc, [ty]) <- splitTyConApp_maybe argType
+  , tc `hasKey` listTyConKey
+  -- TODO: Support list types other than Char
+  = do toJStringId <- dsLookupGlobalId toJStringName
+       unboxArg vs $ mkCoreApp (Var toJStringId) arg
+  | Just (tc, [ty]) <- splitTyConApp_maybe argType
+  , tc `hasKey` maybeTyConKey
+  = do innerArg <- newSysLocalDs ty
+       (primTy, primArg, bodyWrapper) <- unboxArg vs (Var innerArg)
+       -- let objType = head . snd
+       --             . expectJust "resultWrapper: splitTyConApp"
+       --             . splitTyConApp_maybe $ primTy
+       -- TODO: This fails for the 'Nothing' case
+       return ( primTy
+              , primArg
+              , \body -> mkWildCase arg argType (exprType body)
+                          [ (DataAlt justDataCon, [innerArg], bodyWrapper body)
+                          , (DataAlt nothingDataCon, [],
+                             mkCoreLet (NonRec (getIdFromTrivialExpr primArg)
+                                               (mkCoreApps (Var unsafeCoerceId)
+                                                           [ Type addrPrimTy
+                                                           , Type primTy
+                                                           , Lit nullAddrLit ]))
+                                       body)])
   | isProductType && dataConArity == 1 = do
-      caseBinder <- newSysLocalDs argType
+      -- caseBinder <- newSysLocalDs argType
       primArg <- newSysLocalDs dataConArgTy1
       return ( dataConArgTy1
              , Var primArg
-             , \body -> Case arg caseBinder (exprType body)
+             , \body -> mkWildCase arg argType (exprType body)
                              [(DataAlt dataCon, [primArg], body)] )
   | Just v <- getTyVar_maybe argType
   , Just (dictId, tagType, bound) <- lookupVarEnv vs v = do
@@ -455,16 +480,26 @@ resultWrapper extendsInfo resultType
            , \e -> mkWildCase e jboolPrimTy boolTy
                    [ (DEFAULT, [], Var trueDataConId)
                    , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
-  | Just (tc, [ty]) <- maybeTcApp, tc `hasKey` maybeTyConKey
-    = do unobjId <- dsLookupGlobalId unobjName
-         (_, efn) <- resultWrapper extendsInfo ty
-         return (Just ty, \e ->
-                    mkWildCase (App (Var (primOpId IsNullObjectOp))
-                                    (App (Var unobjId) (efn e)))
-                               intPrimTy resultType
-                               [ (DEFAULT, [], mkConApp justDataCon [e])
-                               , (LitAlt (MachInt 0), [],
-                                  mkConApp nothingDataCon [])])
+  | Just (tc, [ty]) <- maybeTcApp
+  , tc `hasKey` listTyConKey
+  = do (maybeType, wrapper) <- resultWrapper extendsInfo $
+                                 mkTyConApp jstringTyCon []
+       fromJStringId <- dsLookupGlobalId fromJStringName
+       return (maybeType, \e -> mkCoreApp (Var fromJStringId) (wrapper e))
+  | Just (tc, [ty]) <- maybeTcApp
+  , tc `hasKey` maybeTyConKey
+  = do (maybeType, wrapper) <- resultWrapper extendsInfo ty
+       let objType = head . snd
+                   . expectJust "resultWrapper: splitTyConApp"
+                   . splitTyConApp_maybe
+                   $ expectJust "resultWrapper: maybeType: Nothing" maybeType
+       return (maybeType, \e ->
+                mkWildCase (mkCoreApps (Var (primOpId IsNullObjectOp))
+                                       [Type objType, e])
+                           intPrimTy resultType
+                           [ (DEFAULT, [], mkConApp justDataCon [ Type ty
+                                                                , wrapper e])
+                           , (LitAlt (MachInt 1), [], mkConApp nothingDataCon [Type ty])])
   | Just (co, repType) <- topNormaliseNewType_maybe resultType
   = do (maybeType, wrapper) <- resultWrapper extendsInfo repType
        return (maybeType, \e -> mkCast (wrapper e) (mkSymCo co))

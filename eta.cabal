@@ -13,6 +13,10 @@ cabal-version:       >=1.10
 extra-source-files:  compiler/ETA/Parser/Parser.y
                      compiler/ETA/Parser/Lexer.x
 
+flag debug
+  Description: Enable debug support
+  Default:     False
+
 source-repository head
     type: git
     location: https://github.com/typelead/eta.git
@@ -328,6 +332,8 @@ library
     buildable:           True
     build-tools:         alex
                        , happy
+    if flag(debug)
+       ghc-options:      -DDEBUG
 
 executable eta
     ghc-options:         -Wall

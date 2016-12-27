@@ -1767,7 +1767,8 @@ boxedMarshalableTyCon tc ty
                          , charTyConKey
                          , stablePtrTyConKey
                          , boolTyConKey
-                         ]
+                         , maybeTyConKey
+                         , listTyConKey ]
   = True
    -- TODO: Optimize this to add just raw key checks like above.
    --       Can be done once the GHC source in integrated.

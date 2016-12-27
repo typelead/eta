@@ -376,6 +376,8 @@ basicKnownKeyNames
         , classClassName
         , objName
         , unobjName
+        , fromJStringName
+        , toJStringName
     ]
 
 genericTyConNames :: [Name]
@@ -482,6 +484,9 @@ gHC_STATICPTR = mkBaseModule (fsLit "GHC.StaticPtr")
 
 gHC_FINGERPRINT_TYPE :: Module
 gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
+
+jAVA_STRING :: Module
+jAVA_STRING = mkBaseModule (fsLit "Java.String")
 
 mAIN, rOOT_MAIN :: Module
 mAIN            = mkMainModule_ mAIN_NAME
@@ -1235,16 +1240,19 @@ fingerprintDataConName =
 
 -- ETA-specific names
 javaTyConName, javaDataConName, extendsClassName, superCastName, unsafeCastName,
-  fmapJavaName, classClassName, objName, unobjName :: Name
-javaTyConName    = tcQual  gHC_TYPES   (fsLit "Java")       javaTyConKey
-javaDataConName  = conName gHC_TYPES   (fsLit "Java")       javaDataConKey
-extendsClassName = clsQual gHC_CLASSES (fsLit "Extends")    extendsClassKey
-superCastName    = varQual gHC_CLASSES (fsLit "superCast")  superCastClassOpKey
-unsafeCastName   = varQual gHC_CLASSES (fsLit "unsafeCast") unsafeCastClassOpKey
-fmapJavaName     = varQual gHC_BASE    (fsLit "fmapJava")   fmapJavaIdKey
-classClassName   = clsQual gHC_CLASSES (fsLit "Class")      classClassKey
-objName          = varQual gHC_CLASSES (fsLit "obj")        objClassOpKey
-unobjName        = varQual gHC_CLASSES (fsLit "unobj")      unobjClassOpKey
+  fmapJavaName, classClassName, objName, unobjName, fromJStringName, toJStringName
+  :: Name
+javaTyConName    = tcQual  gHC_TYPES   (fsLit "Java")        javaTyConKey
+javaDataConName  = conName gHC_TYPES   (fsLit "Java")        javaDataConKey
+extendsClassName = clsQual gHC_CLASSES (fsLit "Extends")     extendsClassKey
+superCastName    = varQual gHC_CLASSES (fsLit "superCast")   superCastClassOpKey
+unsafeCastName   = varQual gHC_CLASSES (fsLit "unsafeCast")  unsafeCastClassOpKey
+fmapJavaName     = varQual gHC_BASE    (fsLit "fmapJava")    fmapJavaIdKey
+classClassName   = clsQual gHC_CLASSES (fsLit "Class")       classClassKey
+objName          = varQual gHC_CLASSES (fsLit "obj")         objClassOpKey
+unobjName        = varQual gHC_CLASSES (fsLit "unobj")       unobjClassOpKey
+fromJStringName  = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
+toJStringName    = varQual jAVA_STRING (fsLit "toJString")   toJStringIdKey
 
 {-
 ************************************************************************
@@ -1985,12 +1993,6 @@ toListClassOpKey = mkPreludeMiscIdUnique 501
 proxyHashKey :: Unique
 proxyHashKey = mkPreludeMiscIdUnique 502
 
--- ETA-specific
-superCastClassOpKey, unsafeCastClassOpKey, unobjOpKey :: Unique
-superCastClassOpKey = mkPreludeMiscIdUnique 200
-unsafeCastClassOpKey = mkPreludeMiscIdUnique 201
-unobjOpKey = mkPreludeMiscIdUnique 202
-
 ---------------- Template Haskell -------------------
 --      USES IdUniques 200-499
 -----------------------------------------------------
@@ -2014,6 +2016,8 @@ unsafeCastClassOpKey = mkPreludeMiscIdUnique 508
 fmapJavaIdKey        = mkPreludeMiscIdUnique 509
 objClassOpKey        = mkPreludeMiscIdUnique 510
 unobjClassOpKey      = mkPreludeMiscIdUnique 511
+fromJStringIdKey     = mkPreludeMiscIdUnique 512
+toJStringIdKey       = mkPreludeMiscIdUnique 513
 
 {-
 ************************************************************************

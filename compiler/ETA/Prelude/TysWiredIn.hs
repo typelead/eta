@@ -742,7 +742,7 @@ consDataCon = pcDataConWithFixity True {- Declared infix -}
 -- Wired-in type Maybe
 
 maybeTyCon :: TyCon
-maybeTyCon = pcTyCon False NonRecursive maybeTyConName Nothing alpha_tyvar
+maybeTyCon = pcTyCon False NonRecursive True maybeTyConName Nothing alpha_tyvar
                      [nothingDataCon, justDataCon]
 
 nothingDataCon :: DataCon
