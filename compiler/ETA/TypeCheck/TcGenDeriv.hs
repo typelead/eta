@@ -1399,7 +1399,8 @@ gfoldl_RDR, gunfold_RDR, toConstr_RDR, dataTypeOf_RDR, mkConstr_RDR,
     eqWord_RDR  , ltWord_RDR  , geWord_RDR  , gtWord_RDR  , leWord_RDR  ,
     eqAddr_RDR  , ltAddr_RDR  , geAddr_RDR  , gtAddr_RDR  , leAddr_RDR  ,
     eqFloat_RDR , ltFloat_RDR , geFloat_RDR , gtFloat_RDR , leFloat_RDR ,
-    eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR :: RdrName
+    eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR ,
+    eqObject_RDR :: RdrName
 gfoldl_RDR     = varQual_RDR  gENERICS (fsLit "gfoldl")
 gunfold_RDR    = varQual_RDR  gENERICS (fsLit "gunfold")
 toConstr_RDR   = varQual_RDR  gENERICS (fsLit "toConstr")
@@ -1451,6 +1452,8 @@ ltDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit "<##" )
 leDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit "<=##")
 gtDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">##" )
 geDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">=##")
+
+eqObject_RDR   = varQual_RDR  jAVA_UTILS (fsLit "eqObject#")
 
 {-
 ************************************************************************
@@ -2132,6 +2135,7 @@ and_Expr a b = genOpApp a and_RDR    b
 eq_Expr :: TyCon -> Type -> LHsExpr RdrName -> LHsExpr RdrName -> LHsExpr RdrName
 eq_Expr tycon ty a b
     | not (isUnLiftedType ty) = genOpApp a eq_RDR b
+    | isObjectType ty         = genOpApp a eqObject_RDR b
     | otherwise               = genPrimOpApp a prim_eq b
  where
    (_, _, prim_eq, _, _) = primOrdOps "Eq" tycon ty

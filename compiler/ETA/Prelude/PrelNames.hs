@@ -485,8 +485,9 @@ gHC_STATICPTR = mkBaseModule (fsLit "GHC.StaticPtr")
 gHC_FINGERPRINT_TYPE :: Module
 gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
 
-jAVA_STRING :: Module
+jAVA_STRING, jAVA_UTILS :: Module
 jAVA_STRING = mkBaseModule (fsLit "Java.String")
+jAVA_UTILS  = mkBaseModule (fsLit "Java.Utils")
 
 mAIN, rOOT_MAIN :: Module
 mAIN            = mkMainModule_ mAIN_NAME
@@ -2010,7 +2011,7 @@ typeLitTypeRepKey = mkPreludeMiscIdUnique 506
 
 -- ETA-specific
 superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey, objClassOpKey
-  , unobjClassOpKey :: Unique
+  , unobjClassOpKey, fromJStringIdKey, toJStringIdKey :: Unique
 superCastClassOpKey  = mkPreludeMiscIdUnique 507
 unsafeCastClassOpKey = mkPreludeMiscIdUnique 508
 fmapJavaIdKey        = mkPreludeMiscIdUnique 509

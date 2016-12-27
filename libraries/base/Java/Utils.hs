@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ScopedTypeVariables, KindSignatures,
-             UnboxedTuples, FlexibleContexts #-}
+             UnboxedTuples, FlexibleContexts, UnliftedFFITypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Utils
@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Utils
-  ( JClass, getClass, toString, equals, classObject, hashCode, Proxy(..) )
+  ( JClass, getClass, toString, equals, classObject, hashCode, Proxy(..), eqObject# )
 where
 
 import GHC.Base
@@ -35,3 +35,5 @@ foreign import java unsafe hashCode    :: (Extends a Object) => a -> Int
 
 foreign import java unsafe equals :: (Extends a Object, Extends b Object)
                                   => a -> b -> Bool
+
+foreign import java unsafe "equals" eqObject# :: Object# a -> Object# b -> Bool

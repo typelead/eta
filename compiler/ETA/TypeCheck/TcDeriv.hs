@@ -1297,7 +1297,7 @@ cond_args cls (_, tc, _)
 
     cls_key = classKey cls
     ok_ty arg_ty
-     | cls_key == eqClassKey   = check_in arg_ty ordOpTbl
+     | cls_key == eqClassKey   = check_in arg_ty ordOpTbl || isObjectType arg_ty
      | cls_key == ordClassKey  = check_in arg_ty ordOpTbl
      | cls_key == showClassKey = check_in arg_ty boxConTbl
      | otherwise               = False    -- Read, Ix etc
