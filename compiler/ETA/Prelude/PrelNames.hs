@@ -1369,7 +1369,7 @@ addrPrimTyConKey, arrayPrimTyConKey, arrayArrayPrimTyConKey, boolTyConKey, byteA
     intTyConKey, int8TyConKey, int16TyConKey, int32PrimTyConKey,
     int32TyConKey, int64PrimTyConKey, int64TyConKey,
     integerTyConKey,
-    listTyConKey, foreignObjPrimTyConKey, weakPrimTyConKey,
+    listTyConKey, foreignObjPrimTyConKey, maybeTyConKey, weakPrimTyConKey,
     mutableArrayPrimTyConKey, mutableArrayArrayPrimTyConKey, mutableByteArrayPrimTyConKey,
     orderingTyConKey, mVarPrimTyConKey, ratioTyConKey, rationalTyConKey,
     realWorldTyConKey, stablePtrPrimTyConKey, stablePtrTyConKey,
@@ -1398,6 +1398,7 @@ integerTyConKey                         = mkPreludeTyConUnique 22
 
 listTyConKey                            = mkPreludeTyConUnique 24
 foreignObjPrimTyConKey                  = mkPreludeTyConUnique 25
+maybeTyConKey                           = mkPreludeTyConUnique 26
 weakPrimTyConKey                        = mkPreludeTyConUnique 27
 mutableArrayPrimTyConKey                = mkPreludeTyConUnique 28
 mutableByteArrayPrimTyConKey            = mkPreludeTyConUnique 29
@@ -1683,6 +1684,8 @@ falseDataConKey                         = mkPreludeDataConUnique  4
 floatDataConKey                         = mkPreludeDataConUnique  5
 intDataConKey                           = mkPreludeDataConUnique  6
 integerSDataConKey                      = mkPreludeDataConUnique  7
+nothingDataConKey                       = mkPreludeDataConUnique  8
+justDataConKey                          = mkPreludeDataConUnique  9
 nilDataConKey                           = mkPreludeDataConUnique 11
 ratioDataConKey                         = mkPreludeDataConUnique 12
 stableNameDataConKey                    = mkPreludeDataConUnique 14
@@ -1981,6 +1984,12 @@ toListClassOpKey = mkPreludeMiscIdUnique 501
 
 proxyHashKey :: Unique
 proxyHashKey = mkPreludeMiscIdUnique 502
+
+-- ETA-specific
+superCastClassOpKey, unsafeCastClassOpKey, unobjOpKey :: Unique
+superCastClassOpKey = mkPreludeMiscIdUnique 200
+unsafeCastClassOpKey = mkPreludeMiscIdUnique 201
+unobjOpKey = mkPreludeMiscIdUnique 202
 
 ---------------- Template Haskell -------------------
 --      USES IdUniques 200-499
