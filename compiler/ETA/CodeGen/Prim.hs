@@ -452,6 +452,18 @@ emitPrimOp IntMulMayOfloOp [arg1, arg2] = do
           <> mul
           <> lcmp
            ]
+-- Spark Ops
+emitPrimOp SparkOp [arg] = do
+  tmp <- newTemp True closureType
+  emit $ storeLoc tmp arg
+  let loadArg = loadLoc tmp
+  return [ loadContext
+        <> contextMyCapability
+        <> loadArg
+        <> invokevirtual (mkMethodRef capability "newSpark" [closureType]
+                          (ret jbool))
+        <> pop jbool
+        <> loadArg ]
 
 emitPrimOp op [arg]
   | nopOp op = return [arg]

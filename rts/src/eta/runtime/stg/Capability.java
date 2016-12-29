@@ -1919,7 +1919,7 @@ public final class Capability {
     }
 
     public final boolean newSpark(StgClosure p) {
-        if (true /* TODO: !p.fizzledSpark() */) {
+        if (!p.isFizzledSpark()) {
             if (sparks.push(p)) {
                 sparkStats.created++;
             } else {

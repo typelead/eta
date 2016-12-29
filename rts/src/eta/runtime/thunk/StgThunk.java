@@ -42,6 +42,11 @@ public class StgThunk extends StgClosure {
         else return indirectee.getEvaluated();
     }
 
+    @Override
+    public boolean isFizzledSpark() {
+        return getEvaluated() != null;
+    }
+
     public void thunkEnter(StgContext context) {
         barf("thunkEnter not implemented");
     }

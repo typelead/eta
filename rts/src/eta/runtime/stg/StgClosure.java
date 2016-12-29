@@ -30,6 +30,7 @@ public class StgClosure implements Serializable {
     }
     public boolean blackHole(Capability cap, MessageBlackHole msg) { return false; }
     public boolean isTrecHeader() { return false; }
+    public boolean isFizzledSpark() { return true; }
 
     /* Applications */
     public void apply(StgContext context, Void v) {
