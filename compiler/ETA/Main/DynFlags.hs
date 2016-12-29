@@ -3171,8 +3171,8 @@ xFlags = [
   flagSpec "ScopedTypeVariables"              Opt_ScopedTypeVariables,
   flagSpec "StandaloneDeriving"               Opt_StandaloneDeriving,
   flagSpec "StaticPointers"                   Opt_StaticPointers,
-  -- flagSpec' "TemplateHaskell"                 Opt_TemplateHaskell
-  --                                             checkTemplateHaskellOk,
+  flagSpec' "TemplateHaskell"                 Opt_TemplateHaskell
+                                              checkTemplateHaskellOk,
   flagSpec "TraditionalRecordSyntax"          Opt_TraditionalRecordSyntax,
   flagSpec "TransformListComp"                Opt_TransformListComp,
   flagSpec "TupleSections"                    Opt_TupleSections,
@@ -3486,25 +3486,22 @@ setIncoherentInsts True = do
 
 checkTemplateHaskellOk :: TurnOnFlag -> DynP ()
 -- TODO: #ifdef GHCI
--- checkTemplateHaskellOk turn_on
---   | turn_on && rtsIsProfiled
---   = addErr "You can't use Template Haskell with a profiled compiler"
---   | otherwise
---   = getCurLoc >>= \l -> upd (\d -> d { thOnLoc = l })
+checkTemplateHaskellOk turn_on
+  = getCurLoc >>= \l -> upd (\d -> d { thOnLoc = l })
 -- #else
 -- In stage 1, Template Haskell is simply illegal, except with -M
 -- We don't bleat with -M because there's no problem with TH there,
 -- and in fact GHC's build system does ghc -M of the DPH libraries
 -- with a stage1 compiler
-checkTemplateHaskellOk turn_on
-  | turn_on = do dfs <- liftEwM getCmdLineState
-                 case ghcMode dfs of
-                    MkDepend -> return ()
-                    _        -> addErr msg
-  | otherwise = return ()
-  where
-    msg = "Template Haskell requires GHC with interpreter support\n    " ++
-          "Perhaps you are using a stage-1 compiler?"
+-- checkTemplateHaskellOk turn_on
+--   | turn_on = do dfs <- liftEwM getCmdLineState
+--                  case ghcMode dfs of
+--                     MkDepend -> return ()
+--                     _        -> addErr msg
+--   | otherwise = return ()
+--   where
+--     msg = "Template Haskell requires GHC with interpreter support\n    " ++
+--           "Perhaps you are using a stage-1 compiler?"
 -- #endif
 
 {- **********************************************************************
