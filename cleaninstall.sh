@@ -6,6 +6,6 @@ then
     INSTALL_DIR=`stack path --local-bin`
 fi
 
-shift
+if [ "$#" -gt 0 ]; then shift; fi
 
 stack install --local-bin-path="$INSTALL_DIR" && stack exec eta-build -- clean && stack exec eta-build -- uninstall && stack exec eta-build -- install "$@"
