@@ -2,9 +2,9 @@
 {% set logo = 'img/dragoneta.svg' %}
 {% block sidebartitle %}
 {% if logo and theme_logo_only %}
-<a href="{{ pathto(master_doc) }}">
+<a href="/">
 {% else %}
-<a href="{{ pathto(master_doc) }}" class="icon icon-home"> {{ project }}
+<a href="/" class="icon icon-home"> {{ project }}
 {% endif %}
 
 {% if logo %}
