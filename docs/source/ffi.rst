@@ -1,5 +1,5 @@
 Interacting with Java
-==================
+=====================
 
 Overview
 --------
@@ -17,7 +17,7 @@ The FFI revolves around some built-in types that Eta specially recognizes, so we
 start by introducing them.
 
 Unboxed & Primitive Types
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Unboxed types are those types which must have a well-defined value and hence cannot
 have values that are suspended expressions (thunks). These are typically raw integers,
@@ -41,7 +41,7 @@ Example::
   data Int = I# Int#
 
 Primitive Types Reference
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | Boxed Type      | Primitive Type         | Java Type                      | Notes                                       |
@@ -144,6 +144,7 @@ given class in Eta and are typically wrappers for raw Java objects.
    data {-# CLASS "[class-name-here]"} P = P (Object# P)
 
 This is the generic format for declaring a tag type where:
+
 - ``[class-name-here]`` is the name of a the class the tag type represents. For
   example, it can be ``java.lang.String``.
 - ``P`` is the Eta name you would use to refer to it. Typically, ``P`` is the
@@ -194,11 +195,11 @@ The following will show the general syntax and what will occur in each of the ca
 following by some examples.
 
 Foreign imports
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 TODO
 
 Foreign exports
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 The general syntax for foreign exports::
 
@@ -206,6 +207,7 @@ The general syntax for foreign exports::
     -> Java tagType returnType
 
 Where:
+
 * ``javaFunctionName`` - identifier of java method that is generated for ``tagType``
   class
 * ``functionName`` - haskell function name that is exported. The name can be omitted

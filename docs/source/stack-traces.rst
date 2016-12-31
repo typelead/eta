@@ -98,14 +98,14 @@ produced on running the program. This is useful in filing a more helpful bug rep
 
 #. **Find thunk class file**
 
-   ::
+   .. code-block:: console
 
       cd oldzmtimezm1zi1zi0zi3/system/
       ls Time\$satzus10SQ.class
 
 #. **Run the Java Class disassembler**
 
-   ::
+   .. code-block:: console
 
       javap -c -v Time\$satzus10SQ.class
 
@@ -119,12 +119,12 @@ produced on running the program. This is useful in filing a more helpful bug rep
    ``-ddump-stg -ddump-to-file`` as the value.
 
    Clean and re-build your package again. There will be a corresponding
-  ``System/Time.dump-stg`` file that is generated.
+   ``System/Time.dump-stg`` file that is generated.
 
 #. **Decoding z-encoding**
 
    ``satzus10SQ`` is encoded using
-    [z-encoding](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/SymbolNames)    . Decode it using the table found there. Decoding ``satzus10SQ`` gives
+   `z-encoding <https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/SymbolNames>`_    . Decode it using the table found there. Decoding ``satzus10SQ`` gives
    ``sat_s10SQ``.
 
     **Another example:** ``satzus10ZZ8`` decodes to ``sat_s10Z8``
