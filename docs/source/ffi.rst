@@ -141,7 +141,7 @@ given class in Eta and are typically wrappers for raw Java objects.
 
 ::
 
-   data {-# CLASS "[class-name-here]"} P = P (Object# P)
+   data {-# CLASS "[class-name-here]" #-} P = P (Object# P)
 
 This is the generic format for declaring a tag type where:
 
