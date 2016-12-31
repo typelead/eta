@@ -104,10 +104,9 @@ With EPM, things become *much* smoother.
    revert it back to uberjar-mode with ``--disable-executable-dynamic``.
 
 Contact Us
-==========
+----------
 
 If you had trouble with this tutorial, you can give us feedback by:
 
 - filing an `issue <https://github.com/typelead/eta/issues/new>`_
 - discussing with us on `Gitter <https://gitter.im/typelead/eta>`_
-
