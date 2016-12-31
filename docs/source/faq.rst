@@ -12,11 +12,11 @@ Where does the name "Eta" come from?
 The name originates from eta reduction, the transformation `f x = g x => f = g` which makes lazy FP programs a bit simpler and more efficient. Moreover, *eta* in Greek happens to be the letter *H* in reference to Haskell.
 
 Is Eta ready to use?
--------------------
+--------------------
 Yes! Eta is hobby-ready. You can compile the vast majority of programs that GHC Haskell 7.10.3 can also compile, with the restriction that `TemplateHaskell` is not used and there is no equivalent of GHCi yet. You can call Java within Haskell and Haskell within Java with ease. The tooling is still immature but you can work on fun projects like `2048 <https://github.com/rahulmutt/eta-2048>`_.
 
 When will Eta make its first official release?
-------------------------------------------
+----------------------------------------------
 When Eta makes its first release, we want to make sure the minimum documentation and website are ready. Moreover, we have some pending changes that we want to finish before a release, such as:
 
 - Finish support for the concurrent runtime
@@ -26,11 +26,11 @@ When Eta makes its first release, we want to make sure the minimum documentation
 Estimated time for the first release is January 2017.
 
 Will Eta have an interpreter and support TemplateHaskell in the future?
---------------------------------------------------------------------
+-----------------------------------------------------------------------
 Yes. The plan is to use the external interpreter implementation from GHC 8 in Eta. The timeline for this feature is not yet decided, but it is currently not a priority.
 
 Will Eta be compatible with GHC 8?
----------------------------------
+----------------------------------
 GHC 8 has made some fairy non-trivial changes to type system, so until that stabilizes and the bugs get ironed out, we want to avoid integrating those commits any time soon. On the other hand, there are quite a number of extensions that are orthogonal to the type system changes that we can integrate without drastic change, such as (but not limited to):
 
 - Strict
@@ -41,7 +41,7 @@ GHC 8 has made some fairy non-trivial changes to type system, so until that stab
 If a sufficient number of popular Hackage packages decide to update to GHC 8 without thinking about backwards compatibility, we will prioritize porting the extensions that are required to compile them. Until we get a pull from the packages side, we have no immediate plans of supporting GHC 8. We will probably implement a service to monitor popular packages on Hackage and automatically notify us when the ecosystem starts using newer extensions and adapt accordingly.
 
 Why not make Eta a part of GHC? What will be different about the two?
--------------------------------------------------------------------
+---------------------------------------------------------------------
 Eta will be a language with commercial support, backed by TypeLead. Therefore, our foremost priority is making the language stable, fast, and building a wide user base. This conflicts with the primary goal of GHC - to be a research platform for cutting-edge CS research. We believe that GHC being able to realize its goal and survive for decades is commendable and we have an amazing language as a result of its of labor.
 
 But we are also big fans of Haskell and we are disappointed that it's used so little in industry. We feel that Haskell can solve many big problems in software development, but there's no concerted effort in solving the infrastructure/tooling problems that are hard requirements for large-scale, industrial use. We hope that we can solve these with Eta. We have met one of the biggest industry requirements with Eta: interoperability with the Java ecosystem.
@@ -57,7 +57,7 @@ The current implementation aligns the Java call stack with the Eta runtime stack
 Performance is one of our highest priorities and we are actively looking for new ways to squeeze out a couple of percentage points when we can. The JVM is evolving to support functional programming constructs, so we are optimistic that Eta will benefit from these advances.
 
 Why not work along with Haskell.org and help them improve their infrastructure and tooling?
---------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
 We are building a company around this, and we cannot rely on the speed of volunteer-based development. If we take matters into our own hands, we can achieve our targets at a much faster rate. This is not to say we will not collaborate with Haskell.org in attempts to keep the Eta ecosystem compatible with the Haskell ecosystem. These collaborations will not affect meeting our targets, so we are more than happy to do so. We will open source most of our work so that the Haskell community can adopt it if they so choose.
 
 Why Eta and not Haskell?
@@ -68,7 +68,7 @@ Haskell carries 26 years of psychology and perception that was built around the 
 Moreover, using the JVM as a platform will allow Eta to take advantage of a well-engineered and battle-tested garbage collector, a whole host of Just-In-Time compiler optimizations at runtime, and a vast ecosystem of libraries for almost any task.
 
 Is Eta very different from GHC 7.10.3 in its initial state?
-----------------------------------------------------
+-----------------------------------------------------------
 No. In fact, it's almost identical other than the Foreign Function Interface. The diverging changes will be those that can also be useful for GHC, but haven't been implemented yet due to lack of resources, time, and priority.
 
 For example, we want to extend the type system to support row-type polymorphism and new syntax for anonymous record types as they have shown to be very successful in Elm and PureScript. We also want to focus on the necessary runtime changes to allow support for composable distributed systems. Cloud Haskell currently has limited runtime support with static pointers, but we want to go beyond, exploring Eden-style distribution.
@@ -76,7 +76,7 @@ For example, we want to extend the type system to support row-type polymorphism 
 When we do make such diverging changes, we will present a sketch of the implementation to the GHC devs and the relevant commits in Eta and anyone interested in integrating it to the GHC codebase is free to do so.
 
 How is Eta different from Frege?
-------------------------------
+--------------------------------
 Eta is strategically designed so that Hackage packages can be compiled with little modification, allowing reuse of existing infrastructure. This is done by supporting many of the GHC-specific extensions that are used heavily in popular libraries.
 
 On the other hand, Frege, while it supports basic Haskell, lacks many of the key extensions required to compile Hackage, and hence cannot reuse the existing infrastructure. Moreover, because Eta uses a modified version of GHC's frontend, we have access to all the powerful and well-tuned optimizations that Frege does not.

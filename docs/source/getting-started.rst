@@ -1,5 +1,5 @@
 Getting Started with Eta
-======================
+========================
 
 In this tutorial, you'll compile a simple program with Eta and run it, illustrating the basic workflows.
 
@@ -110,3 +110,4 @@ If you had trouble with this tutorial, you can give us feedback by:
 
 - filing an `issue <https://github.com/typelead/eta/issues/new>`_
 - discussing with us on `Gitter <https://gitter.im/typelead/eta>`_
+
