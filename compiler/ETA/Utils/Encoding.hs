@@ -145,11 +145,9 @@ utf8EncodeChar :: Char -> Ptr Word8 -> IO (Ptr Word8)
 utf8EncodeChar c ptr =
   let x = ord c in
   case () of
-    _ | x > 0 && x <= 0x007f -> do
+    _ | x >= 0 && x <= 0x007f -> do
           poke ptr (fromIntegral x)
           return (ptr `plusPtr` 1)
-        -- NB. '\0' is encoded as '\xC0\x80', not '\0'.  This is so that we
-        -- can have 0-terminated UTF-8 strings (see GHC.Base.unpackCStringUtf8).
       | x <= 0x07ff -> do
           poke ptr (fromIntegral (0xC0 .|. ((x `shiftR` 6) .&. 0x1F)))
           pokeElemOff ptr 1 (fromIntegral (0x80 .|. (x .&. 0x3F)))
