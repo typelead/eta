@@ -175,7 +175,7 @@ utf8EncodedLength :: String -> Int
 utf8EncodedLength str = go 0 str
   where go !n [] = n
         go n (c:cs)
-          | ord c > 0 && ord c <= 0x007f = go (n+1) cs
+          | ord c >= 0 && ord c <= 0x007f = go (n+1) cs
           | ord c <= 0x07ff = go (n+2) cs
           | ord c <= 0xffff = go (n+3) cs
           | otherwise       = go (n+4) cs
