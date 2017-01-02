@@ -300,6 +300,7 @@ data PrimOp
    | UnsafeFreezeArrayArrayOp
    | SizeofArrayArrayOp
    | SizeofMutableArrayArrayOp
+   | GetSizeofMutableByteArrayOp
    | IndexArrayArrayOp_ByteArray
    | IndexArrayArrayOp_ArrayArray
    | ReadArrayArrayOp_ByteArray
@@ -549,7 +550,7 @@ primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1108
+maxPrimOpTag = 1109
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1660,6 +1661,7 @@ tagOf_PrimOp ObjectArrayNewOp = _ILIT(1105)
 tagOf_PrimOp ArrayLengthOp = _ILIT(1106)
 tagOf_PrimOp GetClassOp = _ILIT(1107)
 tagOf_PrimOp IsNullObjectOp = _ILIT(1108)
+tagOf_PrimOp GetSizeofMutableByteArrayOp = _ILIT(1109)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -1865,6 +1867,7 @@ allThePrimOps =
    , UnsafeFreezeByteArrayOp
    , SizeofByteArrayOp
    , SizeofMutableByteArrayOp
+   , GetSizeofMutableByteArrayOp
    , IndexByteArrayOp_Char
    , IndexByteArrayOp_WideChar
    , IndexByteArrayOp_Int
@@ -3090,6 +3093,7 @@ primOpInfo ResizeMutableByteArrayOp_Char = mkGenPrimOp (fsLit "resizeMutableByte
 primOpInfo UnsafeFreezeByteArrayOp = mkGenPrimOp (fsLit "unsafeFreezeByteArray#")  [deltaTyVar] [mkMutableByteArrayPrimTy deltaTy, mkStatePrimTy deltaTy] ((mkTupleTy UnboxedTuple [mkStatePrimTy deltaTy, byteArrayPrimTy]))
 primOpInfo SizeofByteArrayOp = mkGenPrimOp (fsLit "sizeofByteArray#")  [] [byteArrayPrimTy] (intPrimTy)
 primOpInfo SizeofMutableByteArrayOp = mkGenPrimOp (fsLit "sizeofMutableByteArray#")  [deltaTyVar] [mkMutableByteArrayPrimTy deltaTy] (intPrimTy)
+primOpInfo GetSizeofMutableByteArrayOp = mkGenPrimOp (fsLit "getSizeofMutableByteArray#")  [deltaTyVar] [mkMutableByteArrayPrimTy deltaTy, mkStatePrimTy deltaTy] (mkTupleTy UnboxedTuple [mkStatePrimTy deltaTy, intPrimTy])
 primOpInfo IndexByteArrayOp_Char = mkGenPrimOp (fsLit "indexCharArray#")  [] [byteArrayPrimTy, intPrimTy] (charPrimTy)
 primOpInfo IndexByteArrayOp_WideChar = mkGenPrimOp (fsLit "indexWideCharArray#")  [] [byteArrayPrimTy, intPrimTy] (charPrimTy)
 primOpInfo IndexByteArrayOp_Int = mkGenPrimOp (fsLit "indexIntArray#")  [] [byteArrayPrimTy, intPrimTy] (intPrimTy)

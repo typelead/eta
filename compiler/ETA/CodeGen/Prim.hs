@@ -960,6 +960,8 @@ simpleOp Addr2StablePtrOp = Just $ normalOp $
   invokevirtual $ mkMethodRef byteBuffer "getInt" [] (ret jint)
 simpleOp SizeofMutableByteArrayOp = Just $ normalOp $
   invokevirtual $ mkMethodRef stgByteArray "remaining" [] (ret jint)
+simpleOp GetSizeofMutableByteArrayOp = Just $ normalOp $
+  invokevirtual $ mkMethodRef stgByteArray "remaining" [] (ret jint)
 simpleOp SizeofByteArrayOp = Just $ normalOp $
   invokevirtual $ mkMethodRef stgByteArray "remaining" [] (ret jint)
 
