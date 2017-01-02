@@ -2,7 +2,7 @@
 Module      : ETA.Utils.JAR
 Description : Small utility functions for creating Jars from class files.
 Copyright   : (c) Christopher Wells 2016
-              (c) Rahul Muttineni 2016
+              (c) Rahul Muttineni 2016-2017
 License     : MIT
 This module provides utility functions for creating Jar archives from JVM class
 files.
