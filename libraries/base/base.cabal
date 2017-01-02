@@ -228,6 +228,7 @@ Library
         GHC.Word
         Java
         Java.Core
+        Java.Collections
         Java.Array
         Java.String
         Java.Utils
