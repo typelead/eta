@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Core
-  ( java, javaWith, pureJava, io,
+  ( java, javaWith, pureJava, pureJavaWith, io,
     (<.>), (>-)
   -- Useful exports
   , Int64
@@ -34,23 +34,35 @@ import Data.Int(Int64)
 
 foreign import java unsafe "@new" globalObject :: Object
 
+{-# INLINE java #-}
 java :: Java c a -> IO a
 java (Java m) = IO $ \s ->
   case m (unsafeCoerce# (unobj globalObject)) of
     (# _, a #) -> (# s, a #)
 
+{-# INLINE javaWith #-}
 javaWith :: (Class c) => c -> Java c a -> IO a
 javaWith c (Java m) = IO $ \s -> case m (unobj c) of (# _, a #) -> (# s, a #)
 
-pureJava :: (Class c) => c -> Java c a -> a
-pureJava c (Java m) = case m (unobj c) of (# _, a #) -> a
+{-# INLINE pureJava #-}
+pureJava :: Java c a -> a
+pureJava (Java m) =
+  case m (unsafeCoerce# (unobj globalObject)) of
+    (# _, a #) -> a
 
+{-# INLINE pureJavaWith #-}
+pureJavaWith :: (Class c) => c -> Java c a -> a
+pureJavaWith c (Java m) = case m (unobj c) of (# _, a #) -> a
+
+{-# INLINE (<.>) #-}
 (<.>) :: (Class c) => c -> Java c a -> Java b a
 (<.>) cls (Java m) = Java $ \o -> case m (unobj cls) of (# _, a #) -> (# o, a #)
 
+{-# INLINE io #-}
 io :: IO a -> Java c a
 io (IO m) = Java $ \o -> case m realWorld# of (# _, a #) -> (# o, a #)
 
+{-# INLINE (>-) #-}
 (>-) :: (Class b) => Java a b -> Java b c -> Java a c
 (>-) (Java m) (Java n) =
   Java $ \a ->
