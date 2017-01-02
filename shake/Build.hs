@@ -50,6 +50,10 @@ getDependencies :: String -> [String]
 getDependencies "ghc-prim" = ["rts"]
 getDependencies "base" = ["ghc-prim", "integer"]
 getDependencies "integer" = ["ghc-prim"]
+getDependencies "ghci" = ["ghc-boot", "base", "template-haskell"]
+getDependencies "ghc-boot" = ["base"]
+getDependencies "ghc-boot-th" = ["base"]
+getDependencies "template-haskell" = ["base"]
 getDependencies _ = []
 
 topologicalDepsSort :: [String] -> (String -> [String]) -> [String]
@@ -120,7 +124,6 @@ buildLibrary debug lib deps = do
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
   unit $ cmd (Cwd dir) "epm configure" configureFlags
-  unit $ cmd (Cwd dir) "epm build"
   unit $ cmd (Cwd dir) "epm install" installFlags
   when (lib == "ghc-prim") $ fixGhcPrimConf
   return ()
@@ -207,7 +210,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
           copyFile' (ghcInclude </> s') (etaInclude </> s')
         copyFile' (ghcLibPath </> "settings") (rootDir </> "settings")
         copyFile' (ghcLibPath </> "ghc-usage.txt") (rootDir </> "ghc-usage.txt")
-
+        unit $ cmd "epm update"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->

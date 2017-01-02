@@ -3,7 +3,7 @@
 INSTALL_DIR="$1"
 if [ -z "$INSTALL_DIR" ]
 then
-    INSTALL_DIR=`stack path --local-bin-path`
+    INSTALL_DIR=`stack path --local-bin`
 fi
 
 if [ "$#" -gt 0 ]; then shift; fi
