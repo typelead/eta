@@ -88,23 +88,7 @@ getProgName = return "eta.main"
 
 getEnv :: String -> IO String
 getEnv name = lookupEnv name >>= maybe handleError return
-  where
--- #ifdef mingw32_HOST_OS
---     handleError = do
---         err <- c_GetLastError
---         if err == eRROR_ENVVAR_NOT_FOUND
---             then ioe_missingEnvVar name
---             else throwGetLastError "getEnv"
-
--- eRROR_ENVVAR_NOT_FOUND :: DWORD
--- eRROR_ENVVAR_NOT_FOUND = 203
-
--- foreign import WINDOWS_CCONV unsafe "windows.h GetLastError"
---   c_GetLastError:: IO DWORD
-
--- #else
-    handleError = ioe_missingEnvVar name
--- #endif
+  where handleError = ioe_missingEnvVar name
 
 -- | Return the value of the environment variable @var@, or @Nothing@ if
 -- there is no such value.
@@ -112,32 +96,8 @@ getEnv name = lookupEnv name >>= maybe handleError return
 -- For POSIX users, this is equivalent to 'System.Posix.Env.getEnv'.
 --
 -- @since 4.6.0.0
-lookupEnv :: String -> IO (Maybe String)
--- #ifdef mingw32_HOST_OS
--- lookupEnv name = withCWString name $ \s -> try_size s 256
---   where
---     try_size s size = allocaArray (fromIntegral size) $ \p_value -> do
---       res <- c_GetEnvironmentVariable s p_value size
---       case res of
---         0 -> return Nothing
---         _ | res > size -> try_size s res -- Rare: size increased between calls to GetEnvironmentVariable
---           | otherwise  -> peekCWString p_value >>= return . Just
-
--- foreign import WINDOWS_CCONV unsafe "windows.h GetEnvironmentVariableW"
---   c_GetEnvironmentVariable :: LPWSTR -> LPWSTR -> DWORD -> IO DWORD
--- #else
-lookupEnv name =
-    withCString name $ \s -> do
-      litstring <- c_getenv s
-      if litstring /= nullPtr
-        then do enc <- getFileSystemEncoding
-                result <- GHC.peekCString enc litstring
-                return $ Just result
-        else return Nothing
-
-c_getenv :: CString -> IO (Ptr CChar)
-c_getenv = undefined
--- #endif
+foreign import java unsafe "@static java.lang.System.getenv"
+  lookupEnv :: String -> IO (Maybe String)
 
 ioe_missingEnvVar :: String -> IO a
 ioe_missingEnvVar name = ioException (IOError Nothing NoSuchThing "getEnv"
@@ -178,32 +138,12 @@ setEnv key_ value_
     value = takeWhile (/= '\NUL') value_
 
 setEnv_ :: String -> String -> IO ()
--- #ifdef mingw32_HOST_OS
--- setEnv_ key value = withCWString key $ \k -> withCWString value $ \v -> do
---   success <- c_SetEnvironmentVariable k v
---   unless success (throwGetLastError "setEnv")
-
--- foreign import WINDOWS_CCONV unsafe "windows.h SetEnvironmentVariableW"
---   c_SetEnvironmentVariable :: LPTSTR -> LPTSTR -> IO Bool
--- #else
-
--- NOTE: The 'setenv()' function is not available on all systems, hence we use
--- 'putenv()'.  This leaks memory, but so do common implementations of
--- 'setenv()' (AFAIK).
 setEnv_ k v = putEnv (k ++ "=" ++ v)
 
+-- TODO: If this functionally is REALLY required,
+-- we can implement with our own env map.
 putEnv :: String -> IO ()
-putEnv keyvalue = do
-  s <- getFileSystemEncoding >>= (`GHC.newCString` keyvalue)
-  -- IMPORTANT: Do not free `s` after calling putenv!
-  --
-  -- According to SUSv2, the string passed to putenv becomes part of the
-  -- enviroment.
-  throwErrnoIf_ (/= 0) "putenv" (c_putenv s)
-
-c_putenv :: CString -> IO CInt
-c_putenv = undefined
--- #endif
+putEnv keyvalue = undefined
 
 -- | @unSet name@ removes the specified environment variable from the
 -- environment of the current process.
@@ -213,25 +153,7 @@ c_putenv = undefined
 --
 -- @since 4.7.0.0
 unsetEnv :: String -> IO ()
--- #ifdef mingw32_HOST_OS
--- unsetEnv key = withCWString key $ \k -> do
---   success <- c_SetEnvironmentVariable k nullPtr
---   unless success $ do
---     -- We consider unsetting an environment variable that does not exist not as
---     -- an error, hence we ignore eRROR_ENVVAR_NOT_FOUND.
---     err <- c_GetLastError
---     unless (err == eRROR_ENVVAR_NOT_FOUND) $ do
---       throwGetLastError "unsetEnv"
--- #else
-
--- #ifdef HAVE_UNSETENV
--- unsetEnv key = withFilePath key (throwErrnoIf_ (/= 0) "unsetEnv" . c_unsetenv)
--- foreign import ccall unsafe "__hsbase_unsetenv" c_unsetenv :: CString -> IO CInt
--- #else
 unsetEnv key = setEnv_ key ""
--- #endif
-
--- #endif
 
 {-|
 'withArgs' @args act@ - while executing action @act@, have 'getArgs'
