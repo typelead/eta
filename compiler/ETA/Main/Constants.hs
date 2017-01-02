@@ -16,7 +16,7 @@ cProjectName, cProjectVersion, cProjectVersionInt, cProjectPatchLevel, cProjectP
   :: String
 cProjectName = "The Eta programming language compiler"
 -- @VERSION_CHANGE@
-cProjectVersion = "0.0.4"
+cProjectVersion = "0.0.5"
 cProjectVersionInt = "000"
 cProjectPatchLevel = "1"
 cProjectPatchLevel1 = "1"
