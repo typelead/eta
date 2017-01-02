@@ -178,13 +178,14 @@ resumeThreadMethod =
   <> swap capabilityType contextType
   <> contextMyCapabilitySet
 
-stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup :: Text
+stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup :: Text
 stgExceptionGroup = exception "StgException"
 ioGroup = io "IO"
 stmGroup = stm "STM"
 concGroup = conc "Concurrent"
 stgGroup = stg "Stg"
 parGroup = par "Parallel"
+interpGroup = interp "Interpreter"
 
 mkRtsFunCall :: (Text, Text) -> Code
 mkRtsFunCall (group, name) =

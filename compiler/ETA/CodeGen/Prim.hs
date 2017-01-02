@@ -385,6 +385,7 @@ mkRtsPrimOp AtomicModifyMutVarOp    = (ioGroup, "atomicModifyMutVar")
 mkRtsPrimOp CasMutVarOp             = (ioGroup, "casMutVar")
 mkRtsPrimOp GetSparkOp              = (parGroup, "getSpark")
 mkRtsPrimOp NumSparks               = (parGroup, "numSparks")
+mkRtsPrimOp NewBCOOp                = (interpGroup, "newBCO")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
