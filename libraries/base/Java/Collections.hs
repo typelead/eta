@@ -17,6 +17,7 @@
 
 module Java.Collections
   ( Iterator
+  , Iterable
   , consume
   , iterator
   , hasNext
