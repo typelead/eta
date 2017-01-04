@@ -25,6 +25,8 @@ public class Thunk {
 
     private static boolean keepCAFs;
 
+    public static RtsFun block_blackhole = new BlockBlackhole();
+
     public static void setKeepCAFs() {
         keepCAFs = true;
     }
@@ -42,18 +44,18 @@ public class Thunk {
         revertibleCAFList.clear();
     }
 
-    public static RtsFun block_blackhole = new RtsFun() {
-            @Override
-            public void enter(StgContext context) {
-                StgTSO tso = context.currentTSO;
-                StgClosure closure = context.R(1);
-                ListIterator<StackFrame> sp = tso.sp;
-                sp.add(new StgEnter(closure));
-                tso.whatNext = ThreadRunGHC;
-                context.ret = ThreadBlocked;
-                Stg.returnToSched.enter(context);
-            }
-        };
+    private static class BlockBlackhole extends RtsFun {
+        @Override
+        public void enter(StgContext context) {
+            StgTSO tso = context.currentTSO;
+            StgClosure closure = context.R(1);
+            ListIterator<StackFrame> sp = tso.sp;
+            sp.add(new StgEnter(closure));
+            tso.whatNext = ThreadRunGHC;
+            context.ret = ThreadBlocked;
+            Stg.returnToSched.enter(context);
+        }
+    }
 
     public static void blackHole(StgContext context, StgThunk blackhole,  StgClosure indirectee) {
         do {
