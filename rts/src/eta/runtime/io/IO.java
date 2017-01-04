@@ -8,6 +8,9 @@ import eta.runtime.thunk.SelectorPUpd;
 import eta.runtime.RtsFlags;
 
 public class IO {
+    public static RtsFun decodeFloat_Int = new DecodeFloatInt();
+    public static RtsFun atomicModifyMutVar = new AtomicModifyMutVar();
+    public static RtsFun casMutVar = new CasMutVar();
 
     public static void _decodeFloat_Int(StgContext context, float f) {
         int bits = Float.floatToRawIntBits(f);
@@ -20,52 +23,52 @@ public class IO {
         context.I(2, e - 150);
     }
 
-    public static RtsFun decodeFloat_Int = new RtsFun() {
+    private static class DecodeFloatInt extends RtsFun {
         @Override
         public void enter(StgContext context) {
             float f = context.F(1);
             _decodeFloat_Int(context, f);
         }
-    };
+    }
 
-    public static RtsFun atomicModifyMutVar = new RtsFun() {
-            @Override
-            public void enter(StgContext context) {
-                StgMutVar mv = (StgMutVar) context.O(1);
-                StgClosure f = context.R(1);
-                Ap2Upd z = new Ap2Upd(f, null);
-                SelectorPUpd y = new SelectorPUpd(0, z);
-                SelectorPUpd r = new SelectorPUpd(1, z);
-                do {
-                    StgClosure x = mv.value;
-                    z.p2 = x;
-                    if (RtsFlags.ModeFlags.threaded) {
-                        if (!mv.cas(x, y)) {
-                            continue;
-                        }
-                    } else {
-                        mv.value = y;
+    private static class AtomicModifyMutVar extends RtsFun {
+        @Override
+        public void enter(StgContext context) {
+            StgMutVar mv = (StgMutVar) context.O(1);
+            StgClosure f = context.R(1);
+            Ap2Upd z = new Ap2Upd(f, null);
+            SelectorPUpd y = new SelectorPUpd(0, z);
+            SelectorPUpd r = new SelectorPUpd(1, z);
+            do {
+                StgClosure x = mv.value;
+                z.p2 = x;
+                if (RtsFlags.ModeFlags.threaded) {
+                    if (!mv.cas(x, y)) {
+                        continue;
                     }
-                    break;
-                } while (true);
-                context.R(1, r);
-            }
-        };
-
-    public static RtsFun casMutVar = new RtsFun() {
-            @Override
-            public void enter(StgContext context) {
-                StgMutVar mv = (StgMutVar) context.O(1);
-                StgClosure old = context.R(1);
-                StgClosure new_ = context.R(2);
-                if (mv.cas(old, new_)) {
-                    context.I(1, 0);
-                    context.R(1, new_);
                 } else {
-                    context.I(1, 1);
-                    // TODO: Should there be a valid value here?
-                    context.R(1, null);
+                    mv.value = y;
                 }
+                break;
+            } while (true);
+            context.R(1, r);
+        }
+    }
+
+    private static class CasMutVar extends RtsFun {
+        @Override
+        public void enter(StgContext context) {
+            StgMutVar mv = (StgMutVar) context.O(1);
+            StgClosure old = context.R(1);
+            StgClosure new_ = context.R(2);
+            if (mv.cas(old, new_)) {
+                context.I(1, 0);
+                context.R(1, new_);
+            } else {
+                context.I(1, 1);
+                // TODO: Should there be a valid value here?
+                context.R(1, null);
             }
-        };
+        }
+    }
 }
