@@ -1,12 +1,13 @@
 -- Name: Java Generics
 -- Description: Shows how to interface with Java APIs that use Generics.
--- These language extensions are current required to support
--- Java Generics inside of Eta.
+-- These language extensions are currently required to support
+-- Java Generics.
 {-# LANGUAGE MagicHash, FlexibleContexts, TypeFamilies, DataKinds #-}
 
 -- This imports all the standard library functionality that helps
 -- you deal with importing Java methods into Eta.
 import Java
+import Control.Monad
 
 main :: IO ()
 main = java $ do
