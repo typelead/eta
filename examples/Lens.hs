@@ -2,7 +2,6 @@
 -- Description: Shows an example of how to use lens.
 import Control.Lens
 import Data.Char
-import qualified Data.Map as Map
 
 main :: IO ()
 main = do
@@ -15,8 +14,6 @@ main = do
   print $ _1 .~ "hello" $ ((),"world")
   print $ ((), "world") & _1 .~ "hello"
   print $ view _2 (10,20)
-  print $ Map.fromList [("hello","there")] ^.at "hello"
-  print $ Map.fromList [("hello","there")] & at "hello" ?~ "world"
   print $ over mapped succ [1,2,3]
   print $ over (mapped._2) succ [(1,2),(3,4)]
   print $ _1.mapped._2.mapped %~ succ $ ([(42, "hello")],"world")
