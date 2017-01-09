@@ -40,8 +40,6 @@ import Java.Core
 
 data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
   deriving Class
-data {-# CLASS "byte[]"    #-} JByteArray    = JByteArray    (Object# JByteArray)
-  deriving Class
 data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
   deriving Class
 data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArray)
@@ -58,6 +56,11 @@ data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JSt
   deriving Class
 
 instance JArray JString JStringArray
+
+-- We provide a manual instance here since it is originally defined in ghc-prim.
+instance Class JByteArray where
+  unobj (JByteArray o) = o
+  obj = JByteArray
 
 class (Class c) => JArray e c | c -> e where
   anew :: Int -> Java a c

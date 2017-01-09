@@ -16,7 +16,8 @@
 -----------------------------------------------------------------------------
 
 module GHC.CString (
-        JString#, JByteArray#, getBytesUtf8#, indexStrChar#, strLength,
+        JString(..), JString#, JByteArray(..), JByteArray#,
+        getBytesUtf8#, indexStrChar#, strLength,
         unpackCString#, unpackAppendCString#, unpackFoldrCString#,
         unpackCStringUtf8#, unpackNBytes#
     ) where
@@ -26,7 +27,7 @@ import GHC.Prim
 
 type JString# = Object# JString -- convenience
 
-data {-# CLASS "byte[]" #-} JByteArray
+data {-# CLASS "byte[]" #-} JByteArray = JByteArray (Object# JByteArray)
 type JByteArray# = Object# JByteArray
 
 foreign import java unsafe "getBytes" getBytes :: JString# -> JString# -> JByteArray#
