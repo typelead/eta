@@ -49,6 +49,11 @@ body {
 .wy-nav-top {
     background: #32bebe;
 }
+@media screen and (max-width: 768px) {
+  .wy-nav-top {
+      padding-top: 20px;
+  }
+}
 
 @font-face {
     font-family: "Hasklig";
