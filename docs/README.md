@@ -15,7 +15,10 @@ $ pip install Sphinx sphinx_rtd_theme
 ### Build
 
 ```
-$ make html
+$ cd highlight
+$ python setup.py install
+$ cd ..
+$ make clean html
 ```
 
 ## Development
@@ -35,5 +38,5 @@ npm install
 ### Develop
 
 ```
-$ gulp
+$ gulp reload
 ```
