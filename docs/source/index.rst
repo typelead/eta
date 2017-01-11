@@ -12,8 +12,8 @@ Contents:
    :maxdepth: 4
 
    getting-started
-   ffi
-   stack-traces
+   eta-user-guide
+   epm-user-guide
    faq
 
 Indices and tables

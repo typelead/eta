@@ -29,6 +29,7 @@
 .highlight .ge { font-style: italic } /* Generic.Emph */
 .highlight .gh { color: #efecf4; font-weight: bold } /* Generic.Heading */
 .highlight .gi { color: #32bebe } /* Generic.Inserted */
+.highlight .go { color: #ffffff } /* Generic.Output */
 .highlight .gp { color: #8b8b8d; font-weight: bold } /* Generic.Prompt */
 .highlight .gs { font-weight: bold } /* Generic.Strong */
 .highlight .gu { color: #398bc6; font-weight: bold } /* Generic.Subheading */

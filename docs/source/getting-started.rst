@@ -1,7 +1,10 @@
 Getting Started with Eta
 ========================
 
-In the following sections, we'll cover how to get Eta installed on your system and how to work with EPM projects. If at any point you get stuck with any of the steps below, feel free to join us on `Gitter <https://gitter.im/typelead/eta>`_ so we can help you troubleshoot.
+In the following sections, we'll cover how to get Eta installed on your system and
+how to work with EPM projects. If at any point you get stuck with any of the steps
+below, feel free to join us on `Gitter <https://gitter.im/typelead/eta>`_ so we can
+help you troubleshoot.
 
 Installating Eta
 ----------------
@@ -230,8 +233,8 @@ in the Haskell ecosystem, read
       |--eta-first.cabal
       |--Setup.hs
 
-   Your directory structure may vary based on the options you chose in the ``epm
-   init`` step.
+   Your directory structure may vary based on the options you chose in the
+   ``epm init`` step.
 
 #. Update ``eta-first.cabal``, adding an ``other-modules:`` field:
 
@@ -267,22 +270,35 @@ in the Haskell ecosystem, read
 Learning Eta
 ------------
 Now that you're set up with Eta, the next step is to learn about how to write Eta
-programs. If you are comfortable with Haskell, you can skip over to the next
-section and you'll just need to learn how to connect with Java.
+programs.
+
+For tutorials & examples, see the following:
+
+- `Repository of Eta Examples <https://github.com/typelead/eta-examples>`_
+- `Eta 2048 Game Implementation <https://github.com/rahulmutt/eta-2048>`_
+
+For a list of the currently support packages, see:
+
+- `Eta Hackage <https://github.com/typelead/eta-hackage>`_
+
+If you are comfortable with Haskell, you can skip over to the next section and
+you'll just need to learn how to interact with Java.
 
 If you are new to Haskell and pure functional programming in general, we suggest
 the following resources to get your started with the basics:
 
-- `Learn You a Haskell <http://learnyouahaskell.com>`_
 - `Learn You a Haskell in a Nutshell <https://gist.github.com/mikehaertl/3258427>`_
 - `Functional Programming By Example <http://caiorss.github.io/Functional-Programming>`_
+- `Learn You a Haskell <http://learnyouahaskell.com>`_
+- `Real World Haskell <http://book.realworldhaskell.org/read/>`_
 
 Work is in progress to make a free ebook for Eta catered for Java programmers.
 
-Connecting with Java
+Interacting with Java
 --------------------
 
-In this section, we will cover all the different ways you can interact with Java in Eta so that you can reuse your favorite Java libraries. The mechanism for
+In this section, we will cover all the different ways you can interact with Java in
+Eta so that you can reuse your favorite Java libraries. The mechanism for
 interacting with Java in Eta is called the **Foreign Function Interface (FFI)**.
 
 To use Java methods inside Eta, you must first import them with **foreign import
@@ -292,7 +308,8 @@ declarations**. To use Eta methods inside of Java, you must first export them wi
 Prerequisites
 ^^^^^^^^^^^^^
 
-You must have a basic understanding of monads to understand the rest of the section . 
+You must have a basic understanding of monads to understand the rest of the
+section.
 
 Quick Start
 ^^^^^^^^^^^
@@ -520,7 +537,7 @@ action, typically in the Java monad.
 General Syntax
 """"""""""""""
 
-.. code::
+.. code-block:: console
 
    foreign import java [safety] "[import-string]" [eta-identifier]
      :: [arg-type-1] -> [arg-type-2] -> .. -> [return-type]
@@ -835,9 +852,12 @@ The ``Inherits`` type family takes a JWT and returns type-level list of JWTs.
 
    data {-# CLASS "java.io.Serializable" #-} Serializable
      = Serializable (Object# Serializable)
+     deriving Class
+
+   data {-# CLASS "java.io.File" #-} File = File (Object# File)
+     deriving Class
 
    type instance Inherits File = '[Object, Serializable]
-
 
 Note that the ``TypeFamilies`` and the ``DataKinds`` extensions are required to
 define the Java inheritance relationships and that the first element of the
