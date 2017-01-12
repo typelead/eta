@@ -31,6 +31,7 @@ masjar = sampleBuild "mapandsum.jar"
 top x = "../../" ++ x
 testsDir = "tests"
 packageConfDir dir = dir </> "package.conf.d"
+externalDepLibs = ["ghc-boot"]
 
 etaIncludePath :: FilePath -> FilePath
 etaIncludePath = (</> "include")
@@ -111,7 +112,6 @@ fixGhcPrimConf = do
 buildLibrary :: Bool -> String -> [String] -> Action ()
 buildLibrary debug lib deps = do
   let dir = library lib
-      externalDepLibs = ["ghc-boot"]
       installFlags = if lib == "ghc-prim" || lib == "base"
                      then ["--solver=topdown"]
                           -- NOTE: For ghc-prim & base, cabal fails if the modular solver is
