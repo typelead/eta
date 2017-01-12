@@ -127,16 +127,27 @@ resolveObjs = do
 -- Foreign declarations to RTS entry points which does the real work;
 -- ---------------------------------------------------------------------------
 
-foreign import ccall unsafe "addDLL"                  c_addDLL                  :: CFilePath -> IO CString
-foreign import ccall unsafe "initLinker"              initObjLinker             :: IO ()
-foreign import ccall unsafe "lookupSymbol"            c_lookupSymbol            :: CString -> IO (Ptr a)
-foreign import ccall unsafe "loadArchive"             c_loadArchive             :: CFilePath -> IO Int
-foreign import ccall unsafe "loadObj"                 c_loadObj                 :: CFilePath -> IO Int
-foreign import ccall unsafe "unloadObj"               c_unloadObj               :: CFilePath -> IO Int
-foreign import ccall unsafe "resolveObjs"             c_resolveObjs             :: IO Int
-foreign import ccall unsafe "addLibrarySearchPath"    c_addLibrarySearchPath    :: CFilePath -> IO (Ptr ())
-foreign import ccall unsafe "findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
-foreign import ccall unsafe "removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
+-- foreign import ccall unsafe "addDLL"                  c_addDLL                  :: CFilePath -> IO CString
+-- foreign import ccall unsafe "initLinker"              initObjLinker             :: IO ()
+-- foreign import ccall unsafe "lookupSymbol"            c_lookupSymbol            :: CString -> IO (Ptr a)
+-- foreign import ccall unsafe "loadArchive"             c_loadArchive             :: CFilePath -> IO Int
+-- foreign import ccall unsafe "loadObj"                 c_loadObj                 :: CFilePath -> IO Int
+-- foreign import ccall unsafe "unloadObj"               c_unloadObj               :: CFilePath -> IO Int
+-- foreign import ccall unsafe "resolveObjs"             c_resolveObjs             :: IO Int
+-- foreign import ccall unsafe "addLibrarySearchPath"    c_addLibrarySearchPath    :: CFilePath -> IO (Ptr ())
+-- foreign import ccall unsafe "findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
+-- foreign import ccall unsafe "removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
+
+c_addDLL = error "c_addDLL"
+initObjLinker = error "initObjLinker"
+c_lookupSymbol = error "c_lookupSymbol"
+c_loadArchive = error "c_loadArchive"
+c_loadObj = error "c_loadObj"
+c_unloadObj = error "c_unloadObj"
+c_resolveObjs = error "c_resolveObjs"
+c_addLibrarySearchPath = error "c_addLibrarySearchPath"
+c_findSystemLibrary = error "c_findSystemLibrary"
+c_removeLibrarySearchPath = error "c_removeLibrarySearchPath"
 
 -- -----------------------------------------------------------------------------
 -- Configuration

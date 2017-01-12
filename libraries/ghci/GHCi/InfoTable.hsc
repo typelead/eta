@@ -284,13 +284,22 @@ byte7 w = fromIntegral (w `shiftR` 56)
 #include "Rts.h"
 
 -- entry point for direct returns for created constr itbls
-foreign import ccall "&stg_interp_constr1_entry" stg_interp_constr1_entry :: EntryFunPtr
-foreign import ccall "&stg_interp_constr2_entry" stg_interp_constr2_entry :: EntryFunPtr
-foreign import ccall "&stg_interp_constr3_entry" stg_interp_constr3_entry :: EntryFunPtr
-foreign import ccall "&stg_interp_constr4_entry" stg_interp_constr4_entry :: EntryFunPtr
-foreign import ccall "&stg_interp_constr5_entry" stg_interp_constr5_entry :: EntryFunPtr
-foreign import ccall "&stg_interp_constr6_entry" stg_interp_constr6_entry :: EntryFunPtr
-foreign import ccall "&stg_interp_constr7_entry" stg_interp_constr7_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr1_entry" stg_interp_constr1_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr2_entry" stg_interp_constr2_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr3_entry" stg_interp_constr3_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr4_entry" stg_interp_constr4_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr5_entry" stg_interp_constr5_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr6_entry" stg_interp_constr6_entry :: EntryFunPtr
+-- foreign import ccall "&stg_interp_constr7_entry" stg_interp_constr7_entry :: EntryFunPtr
+
+stg_interp_constr1_entry = error "stg_interp_constr1_entry"
+stg_interp_constr2_entry = error "stg_interp_constr2_entry"
+stg_interp_constr3_entry = error "stg_interp_constr3_entry"
+stg_interp_constr4_entry = error "stg_interp_constr4_entry"
+stg_interp_constr5_entry = error "stg_interp_constr5_entry"
+stg_interp_constr6_entry = error "stg_interp_constr6_entry"
+stg_interp_constr7_entry = error "stg_interp_constr7_entry"
+
 
 interpConstrEntry :: [EntryFunPtr]
 interpConstrEntry = [ error "pointer tag 0"
@@ -402,11 +411,14 @@ newExecConItbl obj con_desc
         _flushExec sz ex_ptr -- Cache flush (if needed)
         return (castPtrToFunPtr ex_ptr)
 
-foreign import ccall unsafe "allocateExec"
-  _allocateExec :: CUInt -> Ptr (Ptr a) -> IO (Ptr a)
+-- foreign import ccall unsafe "allocateExec"
+--   _allocateExec :: CUInt -> Ptr (Ptr a) -> IO (Ptr a)
 
-foreign import ccall unsafe "flushExec"
-  _flushExec :: CUInt -> Ptr a -> IO ()
+-- foreign import ccall unsafe "flushExec"
+--   _flushExec :: CUInt -> Ptr a -> IO ()
+
+_allocateExec = error "_allocateExec"
+_flushExec = error "_flushExec"
 
 -- | Convert a pointer to an StgConInfo into an info pointer that can be
 -- used in the header of a closure.
@@ -436,10 +448,11 @@ stdInfoTableSizeB
 conInfoTableSizeB :: Int
 conInfoTableSizeB = stdInfoTableSizeB + wORD_SIZE
 
-foreign import ccall unsafe "rts_isProfiled" rtsIsProfiledIO :: IO CInt
+-- foreign import ccall unsafe "rts_isProfiled" rtsIsProfiledIO :: IO CInt
 
 rtsIsProfiled :: Bool
-rtsIsProfiled = unsafeDupablePerformIO rtsIsProfiledIO /= 0
+rtsIsProfiled = False
+-- rtsIsProfiled = unsafeDupablePerformIO rtsIsProfiledIO /= 0
 
 cONSTR :: Int   -- Defined in ClosureTypes.h
 cONSTR = (#const CONSTR)

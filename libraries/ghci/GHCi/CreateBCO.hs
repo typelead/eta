@@ -35,24 +35,25 @@ createBCOs bcos = do
   mapM mkRemoteRef hvals
 
 createBCO :: Array Int HValue -> ResolvedBCO -> IO HValue
-createBCO arr bco
-   = do BCO bco# <- linkBCO' arr bco
-        -- Why do we need mkApUpd0 here?  Otherwise top-level
-        -- interpreted CAFs don't get updated after evaluation.  A
-        -- top-level BCO will evaluate itself and return its value
-        -- when entered, but it won't update itself.  Wrapping the BCO
-        -- in an AP_UPD thunk will take care of the update for us.
-        --
-        -- Furthermore:
-        --   (a) An AP thunk *must* point directly to a BCO
-        --   (b) A zero-arity BCO *must* be wrapped in an AP thunk
-        --   (c) An AP is always fully saturated, so we *can't* wrap
-        --       non-zero arity BCOs in an AP thunk.
-        --
-        if (resolvedBCOArity bco > 0)
-           then return (HValue (unsafeCoerce# bco#))
-           else case mkApUpd0# bco# of { (# final_bco #) ->
-                  return (HValue final_bco) }
+createBCO = error "createBCO"
+-- createBCO arr bco
+--    = do BCO bco# <- linkBCO' arr bco
+--         -- Why do we need mkApUpd0 here?  Otherwise top-level
+--         -- interpreted CAFs don't get updated after evaluation.  A
+--         -- top-level BCO will evaluate itself and return its value
+--         -- when entered, but it won't update itself.  Wrapping the BCO
+--         -- in an AP_UPD thunk will take care of the update for us.
+--         --
+--         -- Furthermore:
+--         --   (a) An AP thunk *must* point directly to a BCO
+--         --   (b) A zero-arity BCO *must* be wrapped in an AP thunk
+--         --   (c) An AP is always fully saturated, so we *can't* wrap
+--         --       non-zero arity BCOs in an AP thunk.
+--         --
+--         if (resolvedBCOArity bco > 0)
+--            then return (HValue (unsafeCoerce# bco#))
+--            else case mkApUpd0# bco# of { (# final_bco #) ->
+--                   return (HValue final_bco) }
 
 
 linkBCO' :: Array Int HValue -> ResolvedBCO -> IO BCO

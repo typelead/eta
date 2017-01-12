@@ -32,7 +32,7 @@ import Data.Dynamic
 import Data.IORef
 import Data.Map (Map)
 import GHC.Generics
-import GHC.Stack.CCS
+-- import GHC.Stack.CCS
 import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import System.Exit
@@ -122,16 +122,16 @@ data Message a where
    :: HValueRef {- IO a -}
    -> Message (EvalResult ())
 
-  -- | Create a set of CostCentres with the same module name
-  MkCostCentres
-   :: String     -- module, RemotePtr so it can be shared
-   -> [(String,String)] -- (name, SrcSpan)
-   -> Message [RemotePtr CostCentre]
+  -- -- | Create a set of CostCentres with the same module name
+  -- MkCostCentres
+  --  :: String     -- module, RemotePtr so it can be shared
+  --  -> [(String,String)] -- (name, SrcSpan)
+  --  -> Message [RemotePtr CostCentre]
 
-  -- | Show a 'CostCentreStack' as a @[String]@
-  CostCentreStackInfo
-   :: RemotePtr CostCentreStack
-   -> Message [String]
+  -- -- | Show a 'CostCentreStack' as a @[String]@
+  -- CostCentreStackInfo
+  --  :: RemotePtr CostCentreStack
+  --  -> Message [String]
 
   -- | Create a new array of breakpoint flags
   NewBreakArray
@@ -250,7 +250,8 @@ data EvalStatus_ a b
        Int {- break index -}
        Int {- uniq of ModuleName -}
        (RemoteRef (ResumeContext b))
-       (RemotePtr CostCentreStack) -- Cost centre stack
+       (RemotePtr ()) -- Todo: fix it
+       -- (RemotePtr CostCentreStack) -- Cost centre stack
   deriving (Generic, Show)
 
 instance Binary a => Binary (EvalStatus_ a b)
@@ -279,7 +280,7 @@ data SerializableException
   | EOtherException String
   deriving (Generic, Show)
 
-instance Binary ExitCode
+instance Binary ExitCode 
 instance Binary SerializableException
 
 data THResult a
@@ -335,8 +336,8 @@ getMessage = do
       22 -> Msg <$> (EvalString <$> get)
       23 -> Msg <$> (EvalStringToString <$> get <*> get)
       24 -> Msg <$> (EvalIO <$> get)
-      25 -> Msg <$> (MkCostCentres <$> get <*> get)
-      26 -> Msg <$> (CostCentreStackInfo <$> get)
+      -- 25 -> Msg <$> (MkCostCentres <$> get <*> get)
+      -- 26 -> Msg <$> (CostCentreStackInfo <$> get)
       27 -> Msg <$> (NewBreakArray <$> get)
       28 -> Msg <$> (EnableBreakpoint <$> get <*> get <*> get)
       29 -> Msg <$> (BreakpointStatus <$> get <*> get)
@@ -393,8 +394,8 @@ putMessage m = case m of
   EvalString val              -> putWord8 22 >> put val
   EvalStringToString str val  -> putWord8 23 >> put str >> put val
   EvalIO val                  -> putWord8 24 >> put val
-  MkCostCentres mod ccs       -> putWord8 25 >> put mod >> put ccs
-  CostCentreStackInfo ptr     -> putWord8 26 >> put ptr
+  -- MkCostCentres mod ccs       -> putWord8 25 >> put mod >> put ccs
+  -- CostCentreStackInfo ptr     -> putWord8 26 >> put ptr
   NewBreakArray sz            -> putWord8 27 >> put sz
   EnableBreakpoint arr ix b   -> putWord8 28 >> put arr >> put ix >> put b
   BreakpointStatus arr ix     -> putWord8 29 >> put arr >> put ix

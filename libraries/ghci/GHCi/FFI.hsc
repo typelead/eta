@@ -94,18 +94,31 @@ data C_ffi_cif
 type C_ffi_status = (#type ffi_status)
 type C_ffi_abi    = (#type ffi_abi)
 
-foreign import ccall "&ffi_type_void"   ffi_type_void    :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_uint8"  ffi_type_uint8   :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_sint8"  ffi_type_sint8   :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_uint16" ffi_type_uint16  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_sint16" ffi_type_sint16  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_uint32" ffi_type_uint32  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_sint32" ffi_type_sint32  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_uint64" ffi_type_uint64  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_sint64" ffi_type_sint64  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_float"  ffi_type_float   :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_double" ffi_type_double  :: Ptr C_ffi_type
-foreign import ccall "&ffi_type_pointer"ffi_type_pointer :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_void"   ffi_type_void    :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_uint8"  ffi_type_uint8   :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_sint8"  ffi_type_sint8   :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_uint16" ffi_type_uint16  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_sint16" ffi_type_sint16  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_uint32" ffi_type_uint32  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_sint32" ffi_type_sint32  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_uint64" ffi_type_uint64  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_sint64" ffi_type_sint64  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_float"  ffi_type_float   :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_double" ffi_type_double  :: Ptr C_ffi_type
+-- foreign import ccall "&ffi_type_pointer"ffi_type_pointer :: Ptr C_ffi_type
+
+ffi_type_void = error "ffi_type_void"
+ffi_type_pointer = error "ffi_type_pointer"
+ffi_type_float = error "ffi_type_float"
+ffi_type_double = error "ffi_type_double"
+ffi_type_sint8 = error "ffi_type_sint8"
+ffi_type_sint16 = error "ffi_type_sint16"
+ffi_type_sint32 = error "ffi_type_sint32"
+ffi_type_sint64 = error "ffi_type_sint64"
+ffi_type_uint8 = error "ffi_type_uint8"
+ffi_type_uint16 = error "ffi_type_uint16"
+ffi_type_uint32 = error "ffi_type_uint32"
+ffi_type_uint64 = error "ffi_type_uint64"
 
 fFI_OK            :: C_ffi_status
 fFI_OK            = (#const FFI_OK)
@@ -127,13 +140,15 @@ fFI_STDCALL     = (#const FFI_STDCALL)
 --                         ffi_type *rtype,
 --                         ffi_type **atypes);
 
-foreign import ccall "ffi_prep_cif"
-  ffi_prep_cif :: Ptr C_ffi_cif         -- cif
-               -> C_ffi_abi             -- abi
-               -> CUInt                 -- nargs
-               -> Ptr C_ffi_type        -- result type
-               -> Ptr (Ptr C_ffi_type)  -- arg types
-               -> IO C_ffi_status
+-- foreign import ccall "ffi_prep_cif"
+--   ffi_prep_cif :: Ptr C_ffi_cif         -- cif
+--                -> C_ffi_abi             -- abi
+--                -> CUInt                 -- nargs
+--                -> Ptr C_ffi_type        -- result type
+--                -> Ptr (Ptr C_ffi_type)  -- arg types
+--                -> IO C_ffi_status
+
+ffi_prep_cif = error "ffi_prep_cif"
 
 -- Currently unused:
 

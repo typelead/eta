@@ -24,12 +24,12 @@ import GHC.ForeignPtr
 -- Static pointers only; don't use this for heap-resident pointers.
 -- Instead use HValueRef.
 
-#include "MachDeps.h"
-#if SIZEOF_HSINT == 4
-newtype RemotePtr a = RemotePtr Word32
-#elif SIZEOF_HSINT == 8
+-- #include "MachDeps.h"
+-- #if SIZEOF_HSINT == 4
+-- newtype RemotePtr a = RemotePtr Word32
+-- #elif SIZEOF_HSINT == 8
 newtype RemotePtr a = RemotePtr Word64
-#endif
+-- #endif
 
 toRemotePtr :: Ptr a -> RemotePtr a
 toRemotePtr p = RemotePtr (fromIntegral (ptrToWordPtr p))

@@ -61,8 +61,8 @@ run m = case m of
   EvalString r -> evalString r
   EvalStringToString r s -> evalStringToString r s
   EvalIO r -> evalIO r
-  MkCostCentres mod ccs -> mkCostCentres mod ccs
-  CostCentreStackInfo ptr -> ccsToStrings (fromRemotePtr ptr)
+  -- MkCostCentres mod ccs -> mkCostCentres mod ccs
+  -- CostCentreStackInfo ptr -> ccsToStrings (fromRemotePtr ptr)
   NewBreakArray sz -> mkRemoteRef =<< newBreakArray sz
   EnableBreakpoint ref ix b -> do
     arr <- localRef ref
@@ -133,7 +133,8 @@ sandboxIO opts io = do
   breakMVar <- newEmptyMVar
   statusMVar <- newEmptyMVar
   withBreakAction opts breakMVar statusMVar $ do
-    let runIt = measureAlloc $ tryEval $ rethrow opts $ clearCCS io
+    let runIt = measureAlloc $ tryEval $ rethrow opts $ (error "clearCCS") io
+    -- let runIt = measureAlloc $ tryEval $ rethrow opts $ clearCCS io
     if useSandboxThread opts
        then do
          tid <- forkIO $ do unsafeUnmask runIt >>= putMVar statusMVar
@@ -258,7 +259,8 @@ withBreakAction opts breakMVar statusMVar act
            , resumeThreadId = tid }
      resume_r <- mkRemoteRef resume
      apStack_r <- mkRemoteRef apStack
-     ccs <- toRemotePtr <$> getCCSOf apStack
+     ccs <- error "Run.hs ccs"
+     -- ccs <- toRemotePtr <$> getCCSOf apStack
      putMVar statusMVar $ EvalBreak is_exception apStack_r (I# ix#) (I# uniq#) resume_r ccs
      takeMVar breakMVar
 
@@ -298,8 +300,14 @@ abandonStmt hvref = do
   _ <- takeMVar resumeStatusMVar
   return ()
 
-foreign import ccall "&rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
-foreign import ccall "&rts_stop_on_exception"    exceptionFlag :: Ptr CInt
+-- foreign import ccall "&rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
+-- foreign import ccall "&rts_stop_on_exception"    exceptionFlag :: Ptr CInt
+
+stepFlag :: Ptr CInt
+stepFlag = error "stepFlag"
+
+exceptionFlag :: Ptr CInt
+exceptionFlag = error "exceptionFlag"
 
 setStepFlag :: IO ()
 setStepFlag = poke stepFlag 1
@@ -308,8 +316,10 @@ resetStepFlag = poke stepFlag 0
 
 type BreakpointCallback = Int# -> Int# -> Bool -> HValue -> IO ()
 
-foreign import ccall "&rts_breakpoint_io_action"
-   breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
+-- foreign import ccall "&rts_breakpoint_io_action"
+--    breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
+
+breakPointIOAction = error "breakPointIOAction"
 
 noBreakStablePtr :: StablePtr BreakpointCallback
 noBreakStablePtr = unsafePerformIO $ newStablePtr noBreakAction
@@ -333,29 +343,30 @@ mkString0 bs = B.unsafeUseAsCStringLen bs $ \(cstr,len) -> do
   pokeElemOff (ptr :: Ptr CChar) len 0
   return (castRemotePtr (toRemotePtr ptr))
 
-mkCostCentres :: String -> [(String,String)] -> IO [RemotePtr CostCentre]
-#if defined(PROFILING)
-mkCostCentres mod ccs = do
-  c_module <- newCString mod
-  mapM (mk_one c_module) ccs
- where
-  mk_one c_module (decl_path,srcspan) = do
-    c_name <- newCString decl_path
-    c_srcspan <- newCString srcspan
-    toRemotePtr <$> c_mkCostCentre c_name c_module c_srcspan
+-- mkCostCentres :: String -> [(String,String)] -> IO [RemotePtr CostCentre]
+-- #if defined(PROFILING)
+-- mkCostCentres mod ccs = do
+--   c_module <- newCString mod
+--   mapM (mk_one c_module) ccs
+--  where
+--   mk_one c_module (decl_path,srcspan) = do
+--     c_name <- newCString decl_path
+--     c_srcspan <- newCString srcspan
+--     toRemotePtr <$> c_mkCostCentre c_name c_module c_srcspan
 
-foreign import ccall unsafe "mkCostCentre"
-  c_mkCostCentre :: Ptr CChar -> Ptr CChar -> Ptr CChar -> IO (Ptr CostCentre)
-#else
-mkCostCentres _ _ = return []
-#endif
+-- foreign import ccall unsafe "mkCostCentre"
+--   c_mkCostCentre :: Ptr CChar -> Ptr CChar -> Ptr CChar -> IO (Ptr CostCentre)
+-- #else
+-- mkCostCentres _ _ = return []
+-- #endif
 
 getIdValFromApStack :: HValue -> Int -> IO (Maybe HValue)
-getIdValFromApStack apStack (I# stackDepth) = do
-   case getApStackVal# apStack (stackDepth +# 1#) of
-                                -- The +1 is magic!  I don't know where it comes
-                                -- from, but this makes things line up.  --SDM
-        (# ok, result #) ->
-            case ok of
-              0# -> return Nothing -- AP_STACK not found
-              _  -> return (Just (unsafeCoerce# result))
+getIdValFromApStack = error "getIdValFromApStack"
+-- getIdValFromApStack apStack (I# stackDepth) = do
+--    case getApStackVal# apStack (stackDepth +# 1#) of
+--                                 -- The +1 is magic!  I don't know where it comes
+--                                 -- from, but this makes things line up.  --SDM
+--         (# ok, result #) ->
+--             case ok of
+--               0# -> return Nothing -- AP_STACK not found
+--               _  -> return (Just (unsafeCoerce# result))
