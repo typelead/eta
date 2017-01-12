@@ -1032,6 +1032,10 @@ changes:
 
    .. code::
 
+      {-# LANGUAGE MagicHash #-}
+
+      import Java
+
       data {-# CLASS "eta.example.MyExportedClass" #-} MyExportedClass
         = MyExportedClass (Object# MyExportedClass)
 
