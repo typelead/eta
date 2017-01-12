@@ -429,7 +429,7 @@ In this example, we're declaring JWTs for the ``java.lang.Integer`` class and th
 
 .. note::
 
-   You may find the declaration synatx a bit cumbersome or even confusing. There is
+   You may find the declaration syntax a bit cumbersome or even confusing. There is
    work underway to make it
    `a lot more pleasant <https://github.com/typelead/eta/issues/140>`_. If you have
    a preference of syntax, please let us know!
