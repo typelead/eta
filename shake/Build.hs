@@ -111,6 +111,7 @@ fixGhcPrimConf = do
 buildLibrary :: Bool -> String -> [String] -> Action ()
 buildLibrary debug lib deps = do
   let dir = library lib
+      externalDepLibs = ["ghc-boot"]
       installFlags = if lib == "ghc-prim" || lib == "base"
                      then ["--solver=topdown"]
                           -- NOTE: For ghc-prim & base, cabal fails if the modular solver is
@@ -123,7 +124,7 @@ buildLibrary debug lib deps = do
 
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "epm configure" configureFlags
+  when (not $ lib `elem` externalDepLibs) $ unit $ cmd (Cwd dir) "epm configure" configureFlags
   unit $ cmd (Cwd dir) "epm install" installFlags
   when (lib == "ghc-prim") $ fixGhcPrimConf
   return ()
