@@ -295,7 +295,7 @@ the following resources to get your started with the basics:
 Work is in progress to make a free ebook for Eta catered for Java programmers.
 
 Interacting with Java
---------------------
+---------------------
 
 In this section, we will cover all the different ways you can interact with Java in
 Eta so that you can reuse your favorite Java libraries. The mechanism for
@@ -1077,7 +1077,7 @@ import from Java like this:
    import eta.example.MyExportedClass;
 
    public class Main {
-     pubic static void main(String[] args) {
+     public static void main(String[] args) {
        MyExportedClass mec = new MyExportedClass();
        System.out.println("fib(1000): " + mec.fib(1000));
      }
@@ -1117,6 +1117,84 @@ import from Clojure like this:
     (defn -main []
       (let [mec (MyExportedClass.)]
         (println (str "fib(1000): " (.fib mec 1000)))))
+
+Add Java Files to Your Project
+------------------------------
+
+You can include Java-related files like ``.java``, ``.class``, ``.jar`` files to be
+included in your project, by adding their paths to the ``java-sources:`` field in
+the Cabal file.
+
+Example
+^^^^^^^
+
+In this example, we'll take a look at including Java source files in our project
+and importing the defined methods into Eta for use.
+
+Setup a project, just like :ref:`setting-up-first-project` with the following
+changes:
+
+#. **Main.hs**
+
+   .. code::
+
+      import Java
+
+      foreign import java unsafe "@static eta.first.Utils.createFile"
+        createFile :: String -> IO ()
+
+      -- Creates an empty file
+      main :: IO ()
+      main = createFile "HelloWorld.txt"
+
+#. Create a new folder called ``java`` and a file ``Utils.java`` with the following
+   contents:
+
+   .. code-block:: java
+
+      package eta.first;
+
+      import java.nio.file.Files;
+      import java.nio.file.Paths;
+
+      public class Utils {
+
+        /* This helper method lets us avoid variadic arguments which
+           are a bit cumbersome to work with in Eta. */
+
+        public static void createFile(String path) {
+          Files.createFile(Paths.get(path));
+        }
+      }
+
+   Your directory structure should look like this:
+
+   .. code-block:: console
+
+      eta-first/
+      |--src/
+      |----Main.hs
+      |--java/
+      |----Utils.java
+      |--eta-first.cabal
+      |--Setup.hs
+
+   Your directory structure may vary based on the options you chose in the
+   ``epm init`` step.
+
+#. Update ``eta-first.cabal``, adding a ``java-sources:`` field:
+
+   .. code-block:: console
+
+      java-sources: java/Utils.java
+
+   .. note::
+
+      You can add more Java-based files indented under the first entry with either
+      relative or absolute paths. You can thus include arbitrary ``.jar`` files or
+      even individual ``.class`` files that you need.
+
+#. That's it! Run the example with ``epm run``.
 
 Contact Us
 ----------
