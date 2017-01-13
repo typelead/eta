@@ -51,9 +51,9 @@ type PackageConfig = InstalledPackageInfo
 --       feature, but ghc doesn't currently have convenient support for any
 --       other compact string types, e.g. plain ByteString or Text.
 
-newtype InstalledPackageId = InstalledPackageId FastString deriving (Eq, Ord)
-newtype SourcePackageId    = SourcePackageId    FastString deriving (Eq, Ord)
-newtype PackageName        = PackageName        FastString deriving (Eq, Ord)
+newtype InstalledPackageId = InstalledPackageId FastString deriving (Eq, Ord, Show)
+newtype SourcePackageId    = SourcePackageId    FastString deriving (Eq, Ord, Show)
+newtype PackageName        = PackageName        FastString deriving (Eq, Ord, Show)
 
 instance BinaryStringRep InstalledPackageId where
   fromStringRep = InstalledPackageId . mkFastStringByteString

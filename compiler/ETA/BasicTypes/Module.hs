@@ -160,7 +160,7 @@ addBootSuffixLocn locn
 
 -- | A ModuleName is essentially a simple string, e.g. @Data.List@.
 newtype ModuleName = ModuleName FastString
-    deriving Typeable
+    deriving (Show, Typeable)
 
 instance Uniquable ModuleName where
   getUnique (ModuleName nm) = getUnique nm
@@ -303,7 +303,7 @@ class HasModule m where
 -- it is just the package name, but for user compiled packages, it is a hash.
 -- ToDo: when the key is a hash, we can do more clever things than store
 -- the hex representation and hash-cons those strings.
-newtype PackageKey = PId FastString deriving( Eq, Typeable )
+newtype PackageKey = PId FastString deriving( Eq, Show, Typeable )
     -- here to avoid module loops with PackageConfig
 
 instance Uniquable PackageKey where

@@ -211,7 +211,7 @@ instance Monoid (UniqFM a) where
 -}
 
 newtype UniqFM ele = UFM (M.IntMap ele)
-  deriving (Data, Eq, Functor, Traversable.Traversable,
+  deriving (Show, Data, Eq, Functor, Traversable.Traversable,
             Typeable)
 
 deriving instance Foldable.Foldable UniqFM
