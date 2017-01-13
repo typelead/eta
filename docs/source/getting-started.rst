@@ -1093,7 +1093,7 @@ import from Scala like this:
 
     package eta.run
 
-    import eta.example.MyExportedClass;
+    import eta.example.MyExportedClass
 
     object EtaExports {
       def main(args: Array[String]) {
