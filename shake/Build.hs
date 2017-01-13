@@ -171,6 +171,26 @@ copyFileWithDir src dst = do
 getLibs :: Action [String]
 getLibs = getDirectoryDirs libraryDir
 
+getGHCLibPath :: Action String
+getGHCLibPath = do
+  Stdout path <- cmd "stack eval GHC.Paths.libdir"
+  let ghcLibPath = drop 1 $ init $ head $ lines path
+  exists <- doesFileExist (ghcLibPath </> "settings")
+  if exists
+  then return ghcLibPath
+  else do
+    Stdout paths <- cmd "stack path"
+    let binPath = head . mapMaybe (stripPrefix "compiler-bin: ") $ lines paths
+        ghcPath = takeDirectory binPath
+        ghcLibPath = if os == "mingw32"
+                      then ghcPath </> "lib"
+                      else ghcPath </> "lib" </> "ghc-7.10.3"
+    exists <- doesFileExist (ghcLibPath </> "settings")
+    if exists
+    then return ghcLibPath
+    else error $ "Bad GHC lib path.\n  Please file a bug report at \
+                 \https://github.com/typelead/eta/issues/new."
+
 dropDirectoryN :: Int -> FilePath -> FilePath
 dropDirectoryN n = head . drop n . iterate dropDirectory1
 
@@ -199,9 +219,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd "eta-pkg init " $ packageConfDir rootDir
-        Stdout path <- cmd "stack eval GHC.Paths.libdir"
-        let ghcLibPath = drop 1 $ init $ head $ lines path
-            ghcInclude = ghcLibPath </> "include"
+        ghcLibPath <- getGHCLibPath
+        let ghcInclude = ghcLibPath </> "include"
             etaInclude = etaIncludePath rootDir
         liftIO $ createDirectory etaInclude
         let root x = rootDir </> x
