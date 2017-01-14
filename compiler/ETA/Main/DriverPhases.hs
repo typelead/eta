@@ -275,7 +275,7 @@ phaseInputExt SplitAs             = "split_s"
 phaseInputExt CmmCpp              = "cmm"
 phaseInputExt Cmm                 = "cmmcpp"
 phaseInputExt MergeStub           = "o"
-phaseInputExt StopLn              = "o"
+phaseInputExt StopLn              = "jar"
 
 haskellish_src_suffixes, haskellish_suffixes, cish_suffixes,
     haskellish_user_src_suffixes, haskellish_sig_suffixes,

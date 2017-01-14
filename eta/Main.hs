@@ -116,22 +116,6 @@ main = do
             -- start our GHC session
             GHC.runGhc mbMinusB $ do
 
-              dflags0 <- GHC.getSessionDynFlags
-
-              -- add the override to force GHC to stop at STG code
-              let dflags1 = dflags0
-                            { objectSuf = "jar" }
-                  dflags2 = dflags1 -- foldl xopt_set dflags1
-                            -- [ Opt_ForeignFunctionInterface
-                            -- , Opt_GHCForeignImportPrim
-                            -- , Opt_UnboxedTuples
-                            -- , Opt_BangPatterns
-                            -- , Opt_MultiParamTypeClasses
-                            -- , Opt_MagicHash
-                            -- , Opt_EmptyDataDecls ]
-
-              GHC.setSessionDynFlags dflags2
-
               dflags <- GHC.getSessionDynFlags
 
               case postStartupMode of
