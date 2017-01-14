@@ -9,10 +9,11 @@ help you troubleshoot.
 Installating Eta
 ----------------
 
-Currently, the there are only two ways of installing Eta:
+Currently, the there are a few ways of installing Eta:
 
 1. Source
-2. Docker
+2. Homebrew Tap (Mac OS)
+3. Docker
 
 Work on setting up platform-specific installers is in progress.
 
@@ -75,7 +76,40 @@ If you obtain an error that either tool is missing, run the following command:
 
 Add the path that you obtain in the output to your ``PATH`` environment variable.
 
-Method 2: Docker
+Method 2: Homebrew Tap (Mac OS)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Estimated Time:** 30 minutes
+
+Until we have binary releases, brew formula located in
+`temporary tap <https://github.com/cema-sp/homebrew-tap>`_.
+
+Prerequisites
+"""""""""""""
+
+Mac OS comes with preinstalled Java & JDK.
+You can check version with following command: ``/usr/libexec/java_home -V``.
+
+If your version is lower than 1.7, make sure to upgrade (it is possible with ``homebrew cask``).
+
+Currently ``eta`` formula installs ``stack`` from homebrew (``haskell-stack`` formula).
+
+Installation
+""""""""""""
+
+Homebrew ``eta`` formula is HEAD-only (untill we have releases) and therefore should be
+installed with ``--HEAD`` flag:
+
+.. code-block:: console
+
+  brew install --HEAD cema-sp/tap/eta
+  brew test eta
+
+Once the installation is done, you will now have access to the following command-line tools:
+
+- ``eta`` - The main compiler
+- ``epm`` - The package manager and build tool
+
+Method 3: Docker
 ^^^^^^^^^^^^^^^^
 
 Prerequisites
