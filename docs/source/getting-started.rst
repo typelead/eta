@@ -101,14 +101,11 @@ Eta updates pretty fast and we're incorporating new patches on a daily basis tha
 you might want to get access to.
 
 If you have Eta already installed, go to the root of this repository's clone on
-your system, and run the following commands:
+your system, and run the following command:
 
 .. code-block:: console
 
-  git pull
-  git submodule update --recursive
-  ./cleaninstall.sh
-  epm update
+   ./update.sh
 
 This will do a fresh installation, recompiling all the core libraries with the most
 recent version of the compiler.
