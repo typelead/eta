@@ -3646,6 +3646,7 @@ data PkgConfRef
   = GlobalPkgConf
   | UserPkgConf
   | PkgConfFile FilePath
+  deriving Show
 
 addPkgConfRef :: PkgConfRef -> DynP ()
 addPkgConfRef p = upd $ \s -> s { extraPkgConfs = (p:) . extraPkgConfs s }
