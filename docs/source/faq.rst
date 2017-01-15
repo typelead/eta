@@ -83,4 +83,4 @@ On the other hand, Frege, while it supports basic Haskell, lacks many of the key
 
 Will Eta support CLR/.NET?
 --------------------------
-Because of the similarity of Java byteode and CLR bytecode, the code generator can be ported quite easily. The nontrivial part is porting the runtime. There are no plans for supporting it as of now, but in the distant future, it may be a possibility. It all depends on popular demand.
+Because of the similarity of Java bytecode and CLR bytecode, the code generator can be ported quite easily. The nontrivial part is porting the runtime. There are no plans for supporting it as of now, but in the distant future, it may be a possibility. It all depends on popular demand.
