@@ -58,5 +58,7 @@ RUN apt-get update -q && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN curl -sSL https://get.haskellstack.org/ | sh && \
+    pwd && \
+    ls && \
     cd eta && \
     ./install.sh
