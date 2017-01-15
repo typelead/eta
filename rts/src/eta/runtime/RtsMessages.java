@@ -29,6 +29,7 @@ public class RtsMessages {
         }
         System.err.format(msg, args);
         System.err.print("\n");
+        Thread.dumpStack();
     }
 
     public static void debugBelch(String msg, Object... args) {

@@ -15,6 +15,7 @@ import eta.runtime.apply.ApO;
 import static eta.runtime.RtsScheduler.SchedulerStatus;
 import static eta.runtime.RtsScheduler.scheduleWaitThread;
 import static eta.runtime.RtsMessages.errorBelch;
+import static eta.runtime.RtsMessages.debugBelch;
 import static eta.runtime.stg.StgTSO.TSO_LOCKED;
 
 public class Rts {
@@ -133,6 +134,10 @@ public class Rts {
     public static void hsInit(String[] args, RtsConfig config) {
         hsInitCount++;
         if (hsInitCount > 1) return;
+
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("Eta RTS initialized!");
+        }
 
         //setlocale(LC_CTYPE,"");
         RtsStats.startInit();
