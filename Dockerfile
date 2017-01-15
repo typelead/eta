@@ -59,6 +59,8 @@ RUN apt-get update -q && \
 
 RUN curl -sSL https://get.haskellstack.org/ | sh && \
     pwd && \
+    ls && \
     ls -R /home && \
+    find . -name eta && \
     cd eta && \
     ./install.sh
