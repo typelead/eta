@@ -58,7 +58,4 @@ RUN apt-get update -q && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN curl -sSL https://get.haskellstack.org/ | sh && \
-    git clone --recursive https://github.com/typelead/eta && \
-    cd eta && \
-    stack setup && \
     ./install.sh
