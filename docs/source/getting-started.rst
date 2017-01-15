@@ -1015,7 +1015,7 @@ Here is an example::
   fib :: Int -> Java MyExportedClass Int
   fib n = return $ fib' n
 
-  foreign export fib :: Java MyExportedClass Int
+  foreign export java fib :: Int -> Java MyExportedClass Int
 
 This creates a class called ``eta.example.MyExportedClass`` with a default
 constructor and single instance method ``fib``.
