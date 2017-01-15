@@ -13,7 +13,7 @@ ENV JAVA_VERSION_MAJOR=8 \
     LANG=C.UTF-8
 
 RUN apt-get update -q && \
-    apt-get install -q -y --no-install-recommends ca-certificates curl unzip cabal-install libbz2-dev && \
+    apt-get install -q -y --no-install-recommends ca-certificates curl unzip cabal-install libbz2-dev git zlib1g-dev build-essential && \
     curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/java.tar.gz \
       http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_PACKAGE}-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz && \
     gunzip /tmp/java.tar.gz && \
@@ -58,9 +58,7 @@ RUN apt-get update -q && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN curl -sSL https://get.haskellstack.org/ | sh && \
-    pwd && \
-    ls && \
-    ls -R /home && \
-    find . -name eta && \
-    cd eta && \
+    mkdir -p $HOME/.local/bin && \
+    git clone --recursive https://github.com/typelead/eta && \
+    cd /eta && \
     ./install.sh
