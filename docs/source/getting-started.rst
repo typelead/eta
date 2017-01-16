@@ -291,11 +291,17 @@ in the Haskell ecosystem, read
       .. code-block:: console
 
           epm clean
-          epm configure --disable-executable-dynamic
+          epm configure --enable-uberjar-mode
 
       These commands need only be run once to set the local Cabal config. All
-      future builds will generate uberjars. Beware that this can be very slow.
-      Work is being done to
+      future builds will generate uberjars. To go back to shared mode::
+
+      .. code-block:: console
+
+          epm clean
+          epm configure --disbale-uberjar-mode
+
+      Beware that this can be very slow. Work is being done to
       `improve uberjar performance <https://github.com/typelead/eta/issues/20>`_.
 
 Learning Eta
@@ -1089,7 +1095,7 @@ changes:
    .. code-block:: console
 
       epm clean
-      epm configure --disable-executable-dynamic
+      epm configure --enable-uberjar-mode
 
    This will enable uberjar mode so that a standalone JAR will be built.
 
@@ -1226,6 +1232,75 @@ changes:
       You can add more Java-based files indented under the first entry with either
       relative or absolute paths. You can thus include arbitrary ``.jar`` files or
       even individual ``.class`` files that you need.
+
+#. That's it! Run the example with ``epm run``.
+
+Adding Maven Dependencies to Your Project
+-----------------------------------------
+
+You can include Maven dependencies in the format of ``[groupId]:[artifactId]:[version]``
+to include in your project in the ``maven-depends:`` field in the Cabal file. Each
+successive entry should be placed on a separate line and be separated with a comma.
+
+Example
+^^^^^^^
+
+In this example, we'll be binding to the `Unirest <http://unirest.io/java>`_ library.
+
+Setup a project, just like :ref:`setting-up-first-project` with the following
+changes:
+
+#. **Main.hs**
+
+   .. code::
+
+      {-# LANGUAGE MagicHash, FlexibleContexts, DataKinds, TypeFamilies #-}
+
+      import Java
+
+      -- Imports from the Unirest API
+      data {-# CLASS "com.mashape.unirest.request.BaseRequest" #-}
+        BaseRequest = BR (Object# BaseRequest)
+        deriving Class
+
+      data {-# CLASS "com.mashape.unirest.request.GetRequest" #-}
+        GetRequest = GR (Object# GetRequest)
+        deriving Class
+
+      type instance Inherits GetRequest = '[BaseRequest]
+
+      data {-# CLASS "com.mashape.unirest.http.HttpResponse" #-}
+        HttpResponse a = HResp (Object# (HttpResponse a))
+        deriving Class
+
+      foreign import java unsafe "@static com.mashape.unirest.http.Unirest.shutdown"
+        shutdownUnirest :: IO ()
+
+      foreign import java unsafe "@static com.mashape.unirest.http.Unirest.get"
+        get :: String -> Java a GetRequest
+
+      foreign import java unsafe asString
+        :: Extends a BaseRequest => Java a (HttpResponse JString)
+
+      foreign import java unsafe getBody
+        :: Extends a Object => Java (HttpResponse a) a
+
+      -- Run a simple blocking GET request
+      main :: IO ()
+      main = do
+        response <- java $ do
+              get "https://jsonplaceholder.typicode.com/posts/1"
+            >- asString
+            >- getBody
+        print response
+        shutdownUnirest
+
+
+#. Update ``eta-first.cabal``, adding a ``maven-depends:`` field:
+
+   .. code-block:: console
+
+      maven-depends: com.mashape.unirest:unirest-java:1.4.9
 
 #. That's it! Run the example with ``epm run``.
 
