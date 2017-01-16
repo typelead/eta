@@ -21,6 +21,7 @@ Work on setting up platform-specific installers is in progress.
 
   The Windows installation currently does not work. Work is in progress to fix up
   the installation, see `this issue <https://github.com/typelead/eta/issues/106>`_.
+  A workaround for Windows 10 can be found at the end of the Source Installation section.
 
 Method 1: Source Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,6 +76,19 @@ If you obtain an error that either tool is missing, run the following command:
    stack path --local-bin
 
 Add the path that you obtain in the output to your ``PATH`` environment variable.
+
+WSL Workaround
+""""""""""""""
+
+An alternate method of installing Eta on Windows 10 is with WSL (`Windows sub-system for Linux <https://msdn.microsoft.com/en-gb/commandline/wsl/about>`_).
+ 
+Prerequisites
+"""""""""""""
+
+1. Enable WSL within Windows (`Instructions <https://msdn.microsoft.com/en-gb/commandline/wsl/install_guide>`_)
+2. Minimum Windows version: Version 10 build 14986
+3. Enter the root folder of WSL, and create a “.local” folder, and then inside of this create a “bin” folder.
+4. Follow the source installation method.
 
 Method 2: Homebrew Tap (Mac OS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
