@@ -413,7 +413,7 @@ The above example can be imported as follows:
    foreign import java unsafe get :: Java Counter Int
    foreign import java unsafe set :: Int -> Java Counter ()
    foreign import java unsafe "@static @field eta.example.Counter.COUNTER_MAX"
-     cOUNTER_MAX :: Java a Int
+     COUNTER_MAX :: Java a Int
    foreign import java unsafe "@field publicCounter" getPublicCounter
      :: Java Counter Int
    foreign import java unsafe "@field publicCounter" setPublicCounter
