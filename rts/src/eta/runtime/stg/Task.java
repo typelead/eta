@@ -9,6 +9,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import eta.runtime.Rts;
 import eta.runtime.RtsFlags;
 import eta.runtime.stg.*;
 import eta.runtime.thread.WorkerThread;
@@ -112,8 +113,12 @@ public class Task {
 
     public static Task newBoundTask() {
         if (!tasksInitialized) {
-            errorBelch("newBoundTask: RTS is not initialized; call hsInit() first");
-            stgExit(EXIT_FAILURE);
+            // WARNING: This may not be intended behavior!
+            Rts.hsInit(null, null);
+            if (!tasksInitialized) {
+                errorBelch("newBoundTask: RTS is not initialized; unable to re-initialize RTS.");
+                stgExit(EXIT_FAILURE);
+            }
         }
         Task task = allocTask();
         task.stopped = false;

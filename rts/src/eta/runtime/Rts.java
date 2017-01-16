@@ -142,10 +142,13 @@ public class Rts {
         //setlocale(LC_CTYPE,"");
         RtsStats.startInit();
         // TODO: Implement Stable Ptrs, Globals, File Locking, HPC, IO Manager, Storage, Tracing, processing RTS Flags (is this necessary?)
-        RtsFlags.initDefaults();
-        RtsFlags.setFullProgArgs(args);
-        RtsFlags.setup(args, config.rtsOptsEnabled, config.rtsOpts,
-                      config.rtsHsMain);
+        /* Don't override processed RTS args */
+        if (args != null && config != null) {
+            RtsFlags.initDefaults();
+            RtsFlags.setFullProgArgs(args);
+            RtsFlags.setup(args, config.rtsOptsEnabled, config.rtsOpts,
+                           config.rtsHsMain);
+        }
 
         RtsScheduler.initScheduler();
         // RtsScheduler.initTimer();
