@@ -126,7 +126,7 @@ To obtain an environment with `eta` and `epm`, run the following command:
 
 .. code-block:: console
 
-  docker run -it psibi/eta
+  docker run -it typelead/eta
 
 Updating Eta
 ------------
