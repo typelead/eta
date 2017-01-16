@@ -1292,7 +1292,7 @@ changes:
               get "https://jsonplaceholder.typicode.com/posts/1"
             >- asString
             >- getBody
-        print response
+        putStrLn $ read (show response)
         shutdownUnirest
 
 
