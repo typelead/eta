@@ -386,7 +386,7 @@ Consider the following Java code:
        return counter;
      }
 
-     public int set(int value) {
+     public void set(int value) {
        this.counter = Math.min(value, COUNTER_MAX);
        this.publicCounter = counter;
      }
