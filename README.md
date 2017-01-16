@@ -55,5 +55,6 @@ We would like to specifically thank the following groups/people:
 - [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the codegen/runtime and implementation of basic IO facilities.
 - [Sibi](https://github.com/psibi) for helping out with porting packages and setting up Travis.
 - [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on the Java FFI.
+- [Balaji Rao](https://github.com/balajirrao) for contributing to the design & implementation for some parts of the FFI.
 
 Thank you guys!
