@@ -4,15 +4,17 @@ import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
 import Development.Shake.Util
-import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory, createDirectory, removeDirectory)
+import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory,
+                        createDirectory, removeDirectory, findExecutable)
 import System.Console.GetOpt
 import Control.Monad(forM_, when)
 import Data.List (partition,stripPrefix, isPrefixOf)
-import Data.Maybe(mapMaybe)
+import Data.Maybe(mapMaybe,isJust)
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
 import Distribution.ModuleName (fromString)
 import System.Info(os)
+import System.Exit(ExitCode(..))
 import GHC.IO.Exception(ExitCode)
 
 rtsDir = "rts"
@@ -220,6 +222,17 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
                  ++ "run 'eta-build uninstall' followed by 'eta-build"
                  ++ " install'."
       else do
+        -- Install the Coursier script if it doesn't exist already
+        exists <- fmap isJust $ liftIO $ findExecutable "coursier"
+        if exists
+        then do
+          Stdout crOut <- cmd "coursier --help"
+          putNormal $ "Found " ++ head (lines crOut)
+        else do
+          putNormal "Coursier not found, installing coursier..."
+          Stdout out <- cmd "stack path --local-bin-path"
+          let binPath = last (lines out)
+          copyFile' "utils/coursier/coursier" (binPath </> "coursier")
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd "eta-pkg init " $ packageConfDir rootDir
