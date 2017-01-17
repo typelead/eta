@@ -190,7 +190,7 @@ nextPhase dflags p
       Unlit sf   -> Cpp  sf
       Cpp   sf   -> HsPp sf
       HsPp  sf   -> Hsc  sf
-      Hsc   _    -> maybeHCc
+      Hsc   _    -> As False
       Splitter   -> SplitAs
       LlvmOpt    -> LlvmLlc
       LlvmLlc    -> LlvmMangle
@@ -198,19 +198,14 @@ nextPhase dflags p
       SplitAs    -> MergeStub
       As _       -> MergeStub
       Ccpp       -> As False
-      -- JJava      -> JClass
-      -- JClass     -> StopLn
       Cc         -> As False
       Cobjc      -> As False
       Cobjcpp    -> As False
       CmmCpp     -> Cmm
-      Cmm        -> maybeHCc
+      Cmm        -> As False
       HCc        -> As False
       MergeStub  -> StopLn
       StopLn     -> panic "nextPhase: nothing after StopLn"
-    where maybeHCc = if platformUnregisterised (targetPlatform dflags)
-                     then HCc
-                     else As False
 
 -- the first compilation phase for a given file is determined
 -- by its suffix.
@@ -293,17 +288,10 @@ haskellish_user_src_suffixes =
 haskellish_sig_suffixes      = [ "hsig", "lhsig" ]
 
 objish_suffixes :: Platform -> [String]
--- Use the appropriate suffix for the system on which
--- the GHC-compiled code will run
-objish_suffixes platform = "class" : case platformOS platform of
-  OSMinGW32 -> [ "o", "O", "obj", "OBJ" ]
-  _         -> [ "o" ]
+objish_suffixes platform = ["class", "jar"]
 
 dynlib_suffixes :: Platform -> [String]
-dynlib_suffixes platform = case platformOS platform of
-  OSMinGW32 -> ["dll", "DLL"]
-  OSDarwin  -> ["dylib", "so"]
-  _         -> ["so"]
+dynlib_suffixes platform = ["so"]
 
 isHaskellishSuffix, isHaskellSrcSuffix, isCishSuffix,
     isHaskellUserSrcSuffix, isHaskellSigSuffix

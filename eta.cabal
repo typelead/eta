@@ -17,6 +17,10 @@ flag debug
   Description: Enable debug support
   Default:     False
 
+flag warnings
+  Description: Enable warnings 
+  Default:     False
+
 source-repository head
     type: git
     location: https://github.com/typelead/eta.git
@@ -336,7 +340,8 @@ library
        ghc-options:      -DDEBUG
 
 executable eta
-    ghc-options:         -Wall
+    if flag(warnings)
+      ghc-options:       -Wall
     hs-source-dirs:      eta
     main-is:             Main.hs
     default-language:    Haskell2010

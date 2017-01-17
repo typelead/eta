@@ -1136,9 +1136,7 @@ defaultHscTarget = defaultObjectTarget
 -- | The 'HscTarget' value corresponding to the default way to create
 -- object files on the current platform.
 defaultObjectTarget :: Platform -> HscTarget
-defaultObjectTarget platform
-  | platformUnregisterised platform     =  HscC
-  | otherwise                           =  HscAsm
+defaultObjectTarget _ = HscAsm
 
 data DynLibLoader
   = Deployable
@@ -1283,10 +1281,7 @@ wayExtras _ WayNDP      dflags = setExtensionFlag' Opt_ParallelArrays
 
 wayOptc :: Platform -> Way -> [String]
 wayOptc _ (WayCustom {}) = []
-wayOptc platform WayThreaded = case platformOS platform of
-                               OSOpenBSD -> ["-pthread"]
-                               OSNetBSD  -> ["-pthread"]
-                               _         -> []
+wayOptc _ WayThreaded = []
 wayOptc _ WayDebug      = []
 wayOptc _ WayDyn        = []
 wayOptc _ WayProf       = ["-DPROFILING"]
@@ -1297,16 +1292,7 @@ wayOptc _ WayNDP        = []
 
 wayOptl :: Platform -> Way -> [String]
 wayOptl _ (WayCustom {}) = []
-wayOptl platform WayThreaded =
-        case platformOS platform of
-        -- FreeBSD's default threading library is the KSE-based M:N libpthread,
-        -- which GHC has some problems with.  It's currently not clear whether
-        -- the problems are our fault or theirs, but it seems that using the
-        -- alternative 1:1 threading library libthr works around it:
-        OSFreeBSD  -> ["-lthr"]
-        OSOpenBSD  -> ["-pthread"]
-        OSNetBSD   -> ["-pthread"]
-        _          -> []
+wayOptl _ WayThreaded   = []
 wayOptl _ WayDebug      = []
 wayOptl _ WayDyn        = []
 wayOptl _ WayProf       = []
@@ -1368,12 +1354,7 @@ dynamicTooMkDynamicDynFlags dflags0
 -- | Used by 'GHC.runGhc' to partially initialize a new 'DynFlags' value
 initDynFlags :: DynFlags -> IO DynFlags
 initDynFlags dflags = do
- let -- We can't build with dynamic-too on Windows, as labels before
-     -- the fork point are different depending on whether we are
-     -- building dynamically or not.
-     platformCanGenerateDynamicToo
-         = platformOS (targetPlatform dflags) /= OSMinGW32
- refCanGenerateDynamicToo <- newIORef platformCanGenerateDynamicToo
+ refCanGenerateDynamicToo <- newIORef True
  refNextTempSuffix <- newIORef 0
  refFilesToClean <- newIORef []
  refDirsToClean <- newIORef Map.empty
@@ -3207,22 +3188,6 @@ defaultFlags settings
     ++ [f | (ns,f) <- optLevelFlags, 0 `elem` ns]
              -- The default -O0 options
 
-    ++ default_PIC platform
-
-    where platform = sTargetPlatform settings
-
-default_PIC :: Platform -> [GeneralFlag]
-default_PIC platform =
-  case (platformOS platform, platformArch platform) of
-    (OSDarwin, ArchX86_64) -> [Opt_PIC]
-    (OSOpenBSD, ArchX86_64) -> [Opt_PIC] -- Due to PIE support in
-                                         -- OpenBSD since 5.3 release
-                                         -- (1 May 2013) we need to
-                                         -- always generate PIC. See
-                                         -- #10597 for more
-                                         -- information.
-    _                      -> []
-
 impliedGFlags :: [(GeneralFlag, TurnOnFlag, GeneralFlag)]
 impliedGFlags = [(Opt_DeferTypeErrors, turnOn, Opt_DeferTypedHoles)]
 
@@ -4000,31 +3965,7 @@ setOptHpcDir arg  = upd $ \ d -> d{hpcDir = arg}
 -- platform.
 
 picCCOpts :: DynFlags -> [String]
-picCCOpts dflags
-    = case platformOS (targetPlatform dflags) of
-      OSDarwin
-          -- Apple prefers to do things the other way round.
-          -- PIC is on by default.
-          -- -mdynamic-no-pic:
-          --     Turn off PIC code generation.
-          -- -fno-common:
-          --     Don't generate "common" symbols - these are unwanted
-          --     in dynamic libraries.
-
-       | gopt Opt_PIC dflags -> ["-fno-common", "-U__PIC__", "-D__PIC__"]
-       | otherwise           -> ["-mdynamic-no-pic"]
-      OSMinGW32 -- no -fPIC for Windows
-       | gopt Opt_PIC dflags -> ["-U__PIC__", "-D__PIC__"]
-       | otherwise           -> []
-      _
-      -- we need -fPIC for C files when we are compiling with -dynamic,
-      -- otherwise things like stub.c files don't get compiled
-      -- correctly.  They need to reference data in the Haskell
-      -- objects, but can't without -fPIC.  See
-      -- http://ghc.haskell.org/trac/ghc/wiki/Commentary/PositionIndependentCode
-       | gopt Opt_PIC dflags || not (gopt Opt_Static dflags) ->
-          ["-fPIC", "-U__PIC__", "-D__PIC__"]
-       | otherwise                             -> []
+picCCOpts dflags = undefined
 
 picPOpts :: DynFlags -> [String]
 picPOpts dflags
@@ -4071,16 +4012,6 @@ makeDynFlagsConsistent :: DynFlags -> (DynFlags, [Located String])
 -- ensure that a later change doesn't invalidate an earlier check.
 -- Be careful not to introduce potential loops!
 makeDynFlagsConsistent dflags
- -- Disable -dynamic-too on Windows (#8228, #7134, #5987)
- | os == OSMinGW32 && gopt Opt_BuildDynamicToo dflags
-    = let dflags' = gopt_unset dflags Opt_BuildDynamicToo
-          warn    = "-dynamic-too is not supported on Windows"
-      in loop dflags' warn
- | os == OSDarwin &&
-   arch == ArchX86_64 &&
-   not (gopt Opt_PIC dflags)
-    = loop (gopt_set dflags Opt_PIC)
-           "Enabling -fPIC as it is always on for this platform"
  | Left err <- checkOptLevel (optLevel dflags) dflags
     = loop (updOptLevel 0 dflags) err
  | otherwise = (dflags, [])
@@ -4088,9 +4019,6 @@ makeDynFlagsConsistent dflags
           loop updated_dflags warning
               = case makeDynFlagsConsistent updated_dflags of
                 (dflags', ws) -> (dflags', L loc warning : ws)
-          platform = targetPlatform dflags
-          arch = platformArch platform
-          os   = platformOS   platform
 
 {-
 Note [DynFlags consistency]
@@ -4152,21 +4080,10 @@ data SseVersion = SSE1
                 deriving (Eq, Ord)
 
 isSseEnabled :: DynFlags -> Bool
-isSseEnabled dflags = case platformArch (targetPlatform dflags) of
-    ArchX86_64 -> True
-    ArchX86    -> sseVersion dflags >= Just SSE1
-    _          -> False
+isSseEnabled dflags = False
 
 isSse2Enabled :: DynFlags -> Bool
-isSse2Enabled dflags = case platformArch (targetPlatform dflags) of
-    ArchX86_64 -> -- SSE2 is fixed on for x86_64.  It would be
-                  -- possible to make it optional, but we'd need to
-                  -- fix at least the foreign call code where the
-                  -- calling convention specifies the use of xmm regs,
-                  -- and possibly other places.
-                  True
-    ArchX86    -> sseVersion dflags >= Just SSE2
-    _          -> False
+isSse2Enabled dflags = False
 
 isSse4_2Enabled :: DynFlags -> Bool
 isSse4_2Enabled dflags = sseVersion dflags >= Just SSE42

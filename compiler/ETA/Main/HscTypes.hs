@@ -2325,21 +2325,13 @@ data NameCache
 type OrigNameCache   = ModuleEnv (OccEnv Name)
 
 mkSOName :: Platform -> FilePath -> FilePath
-mkSOName platform root
-    = case platformOS platform of
-      OSDarwin  -> ("lib" ++ root) <.> "dylib"
-      OSMinGW32 ->           root  <.> "dll"
-      _         -> ("lib" ++ root) <.> "so"
+mkSOName platform root = ("lib" ++ root) <.> "so"
 
 mkHsSOName :: Platform -> FilePath -> FilePath
 mkHsSOName platform root = ("lib" ++ root) <.> soExt platform
 
 soExt :: Platform -> FilePath
-soExt platform
-    = case platformOS platform of
-      OSDarwin  -> "dylib"
-      OSMinGW32 -> "dll"
-      _         -> "so"
+soExt platform = "so"
 
 {-
 ************************************************************************

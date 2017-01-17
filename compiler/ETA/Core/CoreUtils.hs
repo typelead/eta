@@ -2069,7 +2069,9 @@ rhsIsStatic platform is_dynamic_name cvt_integer rhs = is_static False rhs
   is_static in_arg other_expr = go other_expr 0
    where
     go (Var f) n_val_args
-        | (platformOS platform /= OSMinGW32) ||
+        | -- (platformOS platform /= OSMinGW32) ||
+          -- WARNING: Commenting the above line
+          --          may cause some issues.
           not (is_dynamic_name (idName f))
         =  saturated_data_con f n_val_args
         || (in_arg && n_val_args == 0)
