@@ -27,7 +27,6 @@ Active development is taking place in the following areas:
 - Concurrent runtime
 - Interactive REPL
 - Metaprogramming (TemplateHaskell support)
-- Maven support
 - Core library support
 - Boilerplate generation for Java FFI imports
 - Platform-specific installers
