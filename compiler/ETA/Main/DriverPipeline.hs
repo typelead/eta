@@ -1083,11 +1083,11 @@ doCpp dflags raw input_fn output_fn = do
     let th_defs = [ "-D__GLASGOW_HASKELL_TH__=NO" ]
 #endif
     -- Default CPP defines in Haskell source
-    ghcVersionH <- getEtaVersionPathName dflags
+    etaVersionH <- getEtaVersionPathName dflags
     let hsSourceCppOpts =
           [ "-D__GLASGOW_HASKELL__=" ++ ghcProjectVersionInt
           , "-D__ETA_VERSION__=" ++ cProjectVersionInt
-          , "--include=" ++ ghcVersionH
+          , "--include=" ++ etaVersionH
           ]
         flags = verbFlags   ++ include_paths ++ hsSourceCppOpts
              ++ target_defs ++ backend_defs  ++ th_defs
@@ -1179,12 +1179,12 @@ haveRtsOptsFlags dflags =
 -- | Find out path to @etaversion.h@ file
 getEtaVersionPathName :: DynFlags -> IO FilePath
 getEtaVersionPathName dflags = do
-  dirs <- getPackageIncludePath dflags [rtsPackageKey]
-  let versionh = head dirs </> "include" </> "etaversion.h"
-  found <- doesFileExist versionh
-  if found
-  then return versionh
-  else throwGhcExceptionIO (InstallationError ("etaversion.h missing"))
+  dirs  <- getPackageIncludePath dflags [rtsPackageKey]
+  found <- filterM doesFileExist (map (</> "etaversion.h") dirs)
+  case found of
+    []    -> throwGhcExceptionIO
+               (InstallationError ("etaversion.h missing from " ++ show dirs))
+    (x:_) -> return x
 
 -- genJavaBytecode :: HscEnv -> CgGuts -> ModSummary -> FilePath -> IO FilePath
 -- genJavaBytecode hsc_env cgguts mod_summary output_filename = do
