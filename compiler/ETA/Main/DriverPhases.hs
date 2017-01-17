@@ -198,8 +198,6 @@ nextPhase dflags p
       SplitAs    -> MergeStub
       As _       -> MergeStub
       Ccpp       -> As False
-      -- JJava      -> JClass
-      -- JClass     -> StopLn
       Cc         -> As False
       Cobjc      -> As False
       Cobjcpp    -> As False

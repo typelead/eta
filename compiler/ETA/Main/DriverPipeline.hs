@@ -1061,7 +1061,7 @@ runPhase (RealPhase cc_phase) input_fn dflags
                 -- very weakly typed, being derived from C--.
                 ["-fno-strict-aliasing"]
 
-        ghcVersionH <- liftIO $ getGhcVersionPathName dflags
+        ghcVersionH <- liftIO $ getEtaVersionPathName dflags
 
         let gcc_lang_opt | cc_phase `eqPhase` Ccpp    = "c++"
                          | cc_phase `eqPhase` Cobjc   = "objective-c"
@@ -1582,7 +1582,7 @@ doCpp dflags raw input_fn output_fn = do
     let th_defs = [ "-D__GLASGOW_HASKELL_TH__=NO" ]
 #endif
     -- Default CPP defines in Haskell source
-    ghcVersionH <- getGhcVersionPathName dflags
+    ghcVersionH <- getEtaVersionPathName dflags
     let hsSourceCppOpts =
           [ "-D__GLASGOW_HASKELL__=" ++ ghcProjectVersionInt
           , "-D__ETA_VERSION__=" ++ cProjectVersionInt
@@ -1728,12 +1728,13 @@ haveRtsOptsFlags dflags =
                                         RtsOptsSafeOnly -> False
                                         _ -> True
 
--- | Find out path to @ghcversion.h@ file
-getGhcVersionPathName :: DynFlags -> IO FilePath
-getGhcVersionPathName dflags = do
-  -- dirs <- getPackageIncludePath dflags [rtsPackageKey]
+-- | Find out path to @etaversion.h@ file
+getEtaVersionPathName :: DynFlags -> IO FilePath
+getEtaVersionPathName dflags = do
+  dirs <- getPackageIncludePath dflags [rtsPackageKey]
+  print dirs
   dir <- getAppUserDataDirectory "eta"
-  let versionh = dir </> "include" </> "ghcversion.h"
+  let versionh = dir </> "include" </> "etaversion.h"
   found <- doesFileExist versionh
   if found
   then return versionh
