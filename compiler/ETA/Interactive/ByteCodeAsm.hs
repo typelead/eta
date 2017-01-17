@@ -412,11 +412,6 @@ assembleI dflags i = case i of
                                  emit bci_BRK_FUN [Op p1, SmallOp index, Op p2]
 
   where
-    literal (MachLabel fs (Just sz) _)
-     | platformOS (targetPlatform dflags) == OSMinGW32
-         = litlabel (appendFS fs (mkFastString ('@':show sz)))
-     -- On Windows, stdcall labels have a suffix indicating the no. of
-     -- arg words, e.g. foo@8.  testcase: ffi012(ghci)
     literal (MachLabel fs _ _) = litlabel fs
     literal (MachWord w)       = int (fromIntegral w)
     literal (MachInt j)        = int (fromIntegral j)

@@ -291,17 +291,10 @@ haskellish_user_src_suffixes =
 haskellish_sig_suffixes      = [ "hsig", "lhsig" ]
 
 objish_suffixes :: Platform -> [String]
--- Use the appropriate suffix for the system on which
--- the GHC-compiled code will run
-objish_suffixes platform = "class" : case platformOS platform of
-  OSMinGW32 -> [ "o", "O", "obj", "OBJ" ]
-  _         -> [ "o" ]
+objish_suffixes platform = ["class", "jar"]
 
 dynlib_suffixes :: Platform -> [String]
-dynlib_suffixes platform = case platformOS platform of
-  OSMinGW32 -> ["dll", "DLL"]
-  OSDarwin  -> ["dylib", "so"]
-  _         -> ["so"]
+dynlib_suffixes platform = ["so"]
 
 isHaskellishSuffix, isHaskellSrcSuffix, isCishSuffix,
     isHaskellUserSrcSuffix, isHaskellSigSuffix

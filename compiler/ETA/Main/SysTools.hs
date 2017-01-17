@@ -184,7 +184,16 @@ initSysTools :: Maybe String    -- Maybe TopDir path (without the '-B' prefix)
 initSysTools mbMinusB
   = do topDir <- findTopDir mbMinusB
        tmpdir <- getTemporaryDirectory
-       let platform = Platform { platformWordSize = 4 }
+       let platform = Platform {
+            platformArch = undefined,
+            platformOS   = undefined,
+            platformWordSize = 4,
+            platformUnregisterised = undefined,
+            platformHasGnuNonexecStack = undefined,
+            platformHasIdentDirective = undefined,
+            platformHasSubsectionsViaSymbols = undefined,
+            platformIsCrossCompiling = undefined }
+       
        return $ Settings { sTargetPlatform = platform
                          , sTmpDir         = normalise tmpdir
                          , sTopDir         = topDir
@@ -638,88 +647,7 @@ getLinkerInfo dflags = do
 
 -- See Note [Run-time linker info].
 getLinkerInfo' :: DynFlags -> IO LinkerInfo
-getLinkerInfo' dflags = do
-  let platform = targetPlatform dflags
-      os = platformOS platform
-      (pgm,args0) = pgm_l dflags
-      args1     = map Option (getOpts dflags opt_l)
-      args2     = args0 ++ args1
-      args3     = filter notNull (map showOpt args2)
-
-      -- Try to grab the info from the process output.
-      parseLinkerInfo stdo _stde _exitc
-        | any ("GNU ld" `isPrefixOf`) stdo =
-          -- GNU ld specifically needs to use less memory. This especially
-          -- hurts on small object files. Trac #5240.
-          -- Set DT_NEEDED for all shared libraries. Trac #10110.
-          return (GnuLD $ map Option ["-Wl,--hash-size=31",
-                                      "-Wl,--reduce-memory-overheads",
-                                      -- ELF specific flag
-                                      -- see Note [ELF needed shared libs]
-                                      "-Wl,--no-as-needed"])
-
-        | any ("GNU gold" `isPrefixOf`) stdo =
-          -- GNU gold only needs --no-as-needed. Trac #10110.
-          -- ELF specific flag, see Note [ELF needed shared libs]
-          return (GnuGold [Option "-Wl,--no-as-needed"])
-
-         -- Unknown linker.
-        | otherwise = fail "invalid --version output, or linker is unsupported"
-
-  -- Process the executable call
-  info <- catchIO (do
-             case os of
-               OSSolaris2 ->
-                 -- Solaris uses its own Solaris linker. Even all
-                 -- GNU C are recommended to configure with Solaris
-                 -- linker instead of using GNU binutils linker. Also
-                 -- all GCC distributed with Solaris follows this rule
-                 -- precisely so we assume here, the Solaris linker is
-                 -- used.
-                 return $ SolarisLD []
-               OSDarwin ->
-                 -- Darwin has neither GNU Gold or GNU LD, but a strange linker
-                 -- that doesn't support --version. We can just assume that's
-                 -- what we're using.
-                 return $ DarwinLD []
-               OSiOS ->
-                 -- Ditto for iOS
-                 return $ DarwinLD []
-               OSMinGW32 ->
-                 -- GHC doesn't support anything but GNU ld on Windows anyway.
-                 -- Process creation is also fairly expensive on win32, so
-                 -- we short-circuit here.
-                 return $ GnuLD $ map Option
-                   [ -- Reduce ld memory usage
-                     "-Wl,--hash-size=31"
-                   , "-Wl,--reduce-memory-overheads"
-                     -- Increase default stack, see
-                     -- Note [Windows stack usage]
-                     -- Force static linking of libGCC
-                     -- Note [Windows static libGCC]
-                   , "-Xlinker", "--stack=0x800000,0x800000", "-static-libgcc" ]
-               _ -> do
-                 -- In practice, we use the compiler as the linker here. Pass
-                 -- -Wl,--version to get linker version info.
-                 (exitc, stdo, stde) <- readProcessEnvWithExitCode pgm
-                                        (["-Wl,--version"] ++ args3)
-                                        en_locale_env
-                 -- Split the output by lines to make certain kinds
-                 -- of processing easier. In particular, 'clang' and 'gcc'
-                 -- have slightly different outputs for '-Wl,--version', but
-                 -- it's still easy to figure out.
-                 parseLinkerInfo (lines stdo) (lines stde) exitc
-            )
-            (\err -> do
-                debugTraceMsg dflags 2
-                    (text "Error (figuring out linker information):" <+>
-                     text (show err))
-                errorMsg dflags $ hang (text "Warning:") 9 $
-                  text "Couldn't figure out linker information!" $$
-                  text "Make sure you're using GNU ld, GNU gold" <+>
-                  text "or the built in OS X linker, etc."
-                return UnknownLD)
-  return info
+getLinkerInfo' dflags = undefined
 
 -- Grab compiler info and cache it in DynFlags.
 getCompilerInfo :: DynFlags -> IO CompilerInfo
@@ -775,64 +703,7 @@ getCompilerInfo' dflags = do
   return info
 
 runLink :: DynFlags -> [Option] -> IO ()
-runLink dflags args = do
-  -- See Note [Run-time linker info]
-  linkargs <- neededLinkArgs `fmap` getLinkerInfo dflags
-  let (p,args0) = pgm_l dflags
-      args1     = map Option (getOpts dflags opt_l)
-      args2     = args0 ++ linkargs ++ args1 ++ args
-  mb_env <- getGccEnv args2
-  runSomethingResponseFile dflags ld_filter "Linker" p args2 mb_env
-  where
-    ld_filter = case (platformOS (targetPlatform dflags)) of
-                  OSSolaris2 -> sunos_ld_filter
-                  _ -> id
-{-
-  SunOS/Solaris ld emits harmless warning messages about unresolved
-  symbols in case of compiling into shared library when we do not
-  link against all the required libs. That is the case of GHC which
-  does not link against RTS library explicitly in order to be able to
-  choose the library later based on binary application linking
-  parameters. The warnings look like:
-
-Undefined                       first referenced
- symbol                             in file
-stg_ap_n_fast                       ./T2386_Lib.o
-stg_upd_frame_info                  ./T2386_Lib.o
-templatezmhaskell_LanguageziHaskellziTHziLib_litE_closure ./T2386_Lib.o
-templatezmhaskell_LanguageziHaskellziTHziLib_appE_closure ./T2386_Lib.o
-templatezmhaskell_LanguageziHaskellziTHziLib_conE_closure ./T2386_Lib.o
-templatezmhaskell_LanguageziHaskellziTHziSyntax_mkNameGzud_closure ./T2386_Lib.o
-newCAF                              ./T2386_Lib.o
-stg_bh_upd_frame_info               ./T2386_Lib.o
-stg_ap_ppp_fast                     ./T2386_Lib.o
-templatezmhaskell_LanguageziHaskellziTHziLib_stringL_closure ./T2386_Lib.o
-stg_ap_p_fast                       ./T2386_Lib.o
-stg_ap_pp_fast                      ./T2386_Lib.o
-ld: warning: symbol referencing errors
-
-  this is actually coming from T2386 testcase. The emitting of those
-  warnings is also a reason why so many TH testcases fail on Solaris.
-
-  Following filter code is SunOS/Solaris linker specific and should
-  filter out only linker warnings. Please note that the logic is a
-  little bit more complex due to the simple reason that we need to preserve
-  any other linker emitted messages. If there are any. Simply speaking
-  if we see "Undefined" and later "ld: warning:..." then we omit all
-  text between (including) the marks. Otherwise we copy the whole output.
--}
-    sunos_ld_filter :: String -> String
-    sunos_ld_filter = unlines . sunos_ld_filter' . lines
-    sunos_ld_filter' x = if (undefined_found x && ld_warning_found x)
-                         then (ld_prefix x) ++ (ld_postfix x)
-                         else x
-    breakStartsWith x y = break (isPrefixOf x) y
-    ld_prefix = fst . breakStartsWith "Undefined"
-    undefined_found = not . null . snd . breakStartsWith "Undefined"
-    ld_warn_break = breakStartsWith "ld: warning: symbol referencing errors"
-    ld_postfix = tail . snd . ld_warn_break
-    ld_warning_found = not . null . snd . ld_warn_break
-
+runLink dflags args = undefined
 
 runLibtool :: DynFlags -> [Option] -> IO ()
 runLibtool dflags args = do
@@ -1400,184 +1271,7 @@ linesPlatform xs =
 #endif
 
 linkDynLib :: DynFlags -> [String] -> [PackageKey] -> IO ()
-linkDynLib dflags0 o_files dep_packages
- = do
-    let -- This is a rather ugly hack to fix dynamically linked
-        -- GHC on Windows. If GHC is linked with -threaded, then
-        -- it links against libHSrts_thr. But if base is linked
-        -- against libHSrts, then both end up getting loaded,
-        -- and things go wrong. We therefore link the libraries
-        -- with the same RTS flags that we link GHC with.
-        dflags1 = dflags0
-        dflags2 = dflags1 -- TODO: Debug and threaded
-        dflags = updateWays dflags2
-
-        verbFlags = getVerbFlags dflags
-        o_file = outputFile dflags
-
-    pkgs <- getPreloadPackagesAnd dflags dep_packages
-
-    let pkg_lib_paths = collectLibraryPaths pkgs
-    let pkg_lib_path_opts = concatMap get_pkg_lib_path_opts pkg_lib_paths
-        get_pkg_lib_path_opts l
-         | ( osElfTarget (platformOS (targetPlatform dflags)) ||
-             osMachOTarget (platformOS (targetPlatform dflags)) ) &&
-           dynLibLoader dflags == SystemDependent &&
-           not (gopt Opt_Static dflags)
-            = ["-L" ++ l, "-Wl,-rpath", "-Wl," ++ l]
-         | otherwise = ["-L" ++ l]
-
-    let lib_paths = libraryPaths dflags
-    let lib_path_opts = map ("-L"++) lib_paths
-
-    -- We don't want to link our dynamic libs against the RTS package,
-    -- because the RTS lib comes in several flavours and we want to be
-    -- able to pick the flavour when a binary is linked.
-    -- On Windows we need to link the RTS import lib as Windows does
-    -- not allow undefined symbols.
-    -- The RTS library path is still added to the library search path
-    -- above in case the RTS is being explicitly linked in (see #3807).
-    let platform = targetPlatform dflags
-        os = platformOS platform
-        pkgs_no_rts = case os of
-                      OSMinGW32 ->
-                          pkgs
-                      _ ->
-                          filter ((/= rtsPackageKey) . packageConfigId) pkgs
-    let pkg_link_opts = let (package_hs_libs, extra_libs, other_flags) = collectLinkOpts dflags pkgs_no_rts
-                        in  package_hs_libs ++ extra_libs ++ other_flags
-
-        -- probably _stub.o files
-        -- and last temporary shared object file
-    let extra_ld_inputs = ldInputs dflags
-
-    -- frameworks
-    pkg_framework_opts <- getPkgFrameworkOpts dflags platform
-                                              (map packageKey pkgs)
-    let framework_opts = getFrameworkOpts dflags platform
-
-    case os of
-        OSMinGW32 -> do
-            -------------------------------------------------------------
-            -- Making a DLL
-            -------------------------------------------------------------
-            let output_fn = case o_file of
-                            Just s -> s
-                            Nothing -> "HSdll.dll"
-
-            runLink dflags (
-                    map Option verbFlags
-                 ++ [ Option "-o"
-                    , FileOption "" output_fn
-                    , Option "-shared"
-                    ] ++
-                    [ FileOption "-Wl,--out-implib=" (output_fn ++ ".a")
-                    | gopt Opt_SharedImplib dflags
-                    ]
-                 ++ map (FileOption "") o_files
-
-                 -- Permit the linker to auto link _symbol to _imp_symbol
-                 -- This lets us link against DLLs without needing an "import library"
-                 ++ [Option "-Wl,--enable-auto-import"]
-
-                 ++ extra_ld_inputs
-                 ++ map Option (
-                    lib_path_opts
-                 ++ pkg_lib_path_opts
-                 ++ pkg_link_opts
-                ))
-        OSDarwin -> do
-            -------------------------------------------------------------------
-            -- Making a darwin dylib
-            -------------------------------------------------------------------
-            -- About the options used for Darwin:
-            -- -dynamiclib
-            --   Apple's way of saying -shared
-            -- -undefined dynamic_lookup:
-            --   Without these options, we'd have to specify the correct
-            --   dependencies for each of the dylibs. Note that we could
-            --   (and should) do without this for all libraries except
-            --   the RTS; all we need to do is to pass the correct
-            --   HSfoo_dyn.dylib files to the link command.
-            --   This feature requires Mac OS X 10.3 or later; there is
-            --   a similar feature, -flat_namespace -undefined suppress,
-            --   which works on earlier versions, but it has other
-            --   disadvantages.
-            -- -single_module
-            --   Build the dynamic library as a single "module", i.e. no
-            --   dynamic binding nonsense when referring to symbols from
-            --   within the library. The NCG assumes that this option is
-            --   specified (on i386, at least).
-            -- -install_name
-            --   Mac OS/X stores the path where a dynamic library is (to
-            --   be) installed in the library itself.  It's called the
-            --   "install name" of the library. Then any library or
-            --   executable that links against it before it's installed
-            --   will search for it in its ultimate install location.
-            --   By default we set the install name to the absolute path
-            --   at build time, but it can be overridden by the
-            --   -dylib-install-name option passed to ghc. Cabal does
-            --   this.
-            -------------------------------------------------------------------
-
-            let output_fn = case o_file of { Just s -> s; Nothing -> "a.out"; }
-
-            instName <- case dylibInstallName dflags of
-                Just n -> return n
-                Nothing -> return $ "@rpath" `combine` (takeFileName output_fn)
-            runLink dflags (
-                    map Option verbFlags
-                 ++ [ Option "-dynamiclib"
-                    , Option "-o"
-                    , FileOption "" output_fn
-                    ]
-                 ++ map Option o_files
-                 ++ [ Option "-undefined",
-                      Option "dynamic_lookup",
-                      Option "-single_module" ]
-                 ++ (if platformArch platform == ArchX86_64
-                     then [ ]
-                     else [ Option "-Wl,-read_only_relocs,suppress" ])
-                 ++ [ Option "-install_name", Option instName ]
-                 ++ map Option lib_path_opts
-                 ++ extra_ld_inputs
-                 ++ map Option framework_opts
-                 ++ map Option pkg_lib_path_opts
-                 ++ map Option pkg_link_opts
-                 ++ map Option pkg_framework_opts
-              )
-        OSiOS -> throwGhcExceptionIO (ProgramError "dynamic libraries are not supported on iOS target")
-        _ -> do
-            -------------------------------------------------------------------
-            -- Making a DSO
-            -------------------------------------------------------------------
-
-            let output_fn = case o_file of { Just s -> s; Nothing -> "a.out"; }
-            let buildingRts = thisPackage dflags == rtsPackageKey
-            let bsymbolicFlag = if buildingRts
-                                then -- -Bsymbolic breaks the way we implement
-                                     -- hooks in the RTS
-                                     []
-                                else -- we need symbolic linking to resolve
-                                     -- non-PIC intra-package-relocations
-                                     ["-Wl,-Bsymbolic"]
-
-            runLink dflags (
-                    map Option verbFlags
-                 ++ [ Option "-o"
-                    , FileOption "" output_fn
-                    ]
-                 ++ map Option o_files
-                 ++ [ Option "-shared" ]
-                 ++ map Option bsymbolicFlag
-                    -- Set the library soname. We use -h rather than -soname as
-                    -- Solaris 10 doesn't support the latter:
-                 ++ [ Option ("-Wl,-h," ++ takeFileName output_fn) ]
-                 ++ extra_ld_inputs
-                 ++ map Option lib_path_opts
-                 ++ map Option pkg_lib_path_opts
-                 ++ map Option pkg_link_opts
-              )
+linkDynLib dflags0 o_files dep_packages = undefined
 
 getPkgFrameworkOpts :: DynFlags -> Platform -> [PackageKey] -> IO [String]
 getPkgFrameworkOpts dflags platform dep_packages
