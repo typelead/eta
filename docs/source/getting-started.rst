@@ -1256,6 +1256,34 @@ You can include Maven dependencies in the format of ``[groupId]:[artifactId]:[ve
 to include in your project in the ``maven-depends:`` field in the Cabal file. Each
 successive entry should be placed on a separate line and be separated with a comma.
 
+You can add specific Maven repositories to resolve your dependencies against
+with the ``maven-repos:`` field. You should specify each repository URL on its
+own line (indented) and without commas (unlike the ``maven-depends:`` field). This
+field also supports the following special keywords as shortcuts for some common
+Maven repositories:
+
++------------------------------+------------------------------------------------------+
+|    Keyword                   |  Maven Repository URL                                |
++==============================+======================================================+
+|   central                    | https://repo1.maven.org/maven2/                      |
++------------------------------+------------------------------------------------------+
+|   javaNet1                   | http://download.java.net/maven/1/                    |
++------------------------------+------------------------------------------------------+
+|   sonatype:[type]*           | https://oss.sonatype.org/content/repositories/[type] |
++------------------------------+------------------------------------------------------+
+|   jcenter                    | https://jcenter.bintray.com/                         |
++------------------------------+------------------------------------------------------+
+|   bintray:[owner]:[repo]**   | https://dl.bintray.com/[owner]/[repo]/               |
++------------------------------+------------------------------------------------------+
+* ``[type]`` should be one of ``public``, ``snapshots``, or ``releases``.
+** ``[owner]`` should be the owner of the Bintray repository and ``[repo]`` should
+   be the name of the Bintray repository.
+
+.. note::
+
+   If you need to access a Maven repository that requires credentials, you can
+   specify the URL in the form ``http://[user]:[pass]@[repo-url]``.
+
 Example
 ^^^^^^^
 
@@ -1315,6 +1343,9 @@ changes:
    .. code-block:: console
 
       maven-depends: com.mashape.unirest:unirest-java:1.4.9
+
+   .. note::
+
 
 #. That's it! Run the example with ``epm run``.
 
