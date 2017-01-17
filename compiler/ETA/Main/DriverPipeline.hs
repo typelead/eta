@@ -1180,13 +1180,11 @@ haveRtsOptsFlags dflags =
 getEtaVersionPathName :: DynFlags -> IO FilePath
 getEtaVersionPathName dflags = do
   dirs <- getPackageIncludePath dflags [rtsPackageKey]
-  print dirs
-  dir <- getAppUserDataDirectory "eta"
-  let versionh = dir </> "include" </> "etaversion.h"
+  let versionh = head dirs </> "include" </> "etaversion.h"
   found <- doesFileExist versionh
   if found
   then return versionh
-  else throwGhcExceptionIO (InstallationError ("ghcversion.h missing"))
+  else throwGhcExceptionIO (InstallationError ("etaversion.h missing"))
 
 -- genJavaBytecode :: HscEnv -> CgGuts -> ModSummary -> FilePath -> IO FilePath
 -- genJavaBytecode hsc_env cgguts mod_summary output_filename = do

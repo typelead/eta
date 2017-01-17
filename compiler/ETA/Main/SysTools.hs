@@ -184,33 +184,28 @@ initSysTools :: Maybe String    -- Maybe TopDir path (without the '-B' prefix)
 initSysTools mbMinusB
   = do topDir <- findTopDir mbMinusB
        tmpdir <- getTemporaryDirectory
-       let platform = Platform {
-            platformArch = undefined,
-            platformOS   = undefined,
-            platformWordSize = 4,
-            platformUnregisterised = undefined,
-            platformHasGnuNonexecStack = undefined,
-            platformHasIdentDirective = undefined,
-            platformHasSubsectionsViaSymbols = undefined,
-            platformIsCrossCompiling = undefined }
-       
-       return $ Settings { sTargetPlatform = platform
-                         , sTmpDir         = normalise tmpdir
-                         , sTopDir         = topDir
-                         , sProgramName    = "eta"
-                         , sProjectVersion = cProjectVersion
-                         , sPgm_F          = ""
-                         , sPgm_javac      = ("javac",[])
-                         , sOpt_L          = []
-                         , sOpt_P          = []
-                         , sOpt_F          = []
-                         , sOpt_c          = []
-                         , sOpt_a          = []
-                         , sOpt_l          = []
-                         , sOpt_windres    = []
-                         , sOpt_lo         = []
-                         , sOpt_lc         = []
-                         , sOpt_javac      = [] }
+
+       let platform = Platform { platformWordSize = 4 }
+           pkgconfig_path = topDir </> "package.conf.d"
+
+       return $ Settings { sTargetPlatform      = platform
+                         , sTmpDir              = normalise tmpdir
+                         , sTopDir              = topDir
+                         , sSystemPackageConfig = pkgconfig_path
+                         , sProgramName         = "eta"
+                         , sProjectVersion      = cProjectVersion
+                         , sPgm_F               = ""
+                         , sPgm_javac           = ("javac",[])
+                         , sOpt_L               = []
+                         , sOpt_P               = []
+                         , sOpt_F               = []
+                         , sOpt_c               = []
+                         , sOpt_a               = []
+                         , sOpt_l               = []
+                         , sOpt_windres         = []
+                         , sOpt_lo              = []
+                         , sOpt_lc              = []
+                         , sOpt_javac           = [] }
 
 findTopDir :: Maybe String -- Maybe TopDir path (without the '-B' prefix).
            -> IO String    -- TopDir (in Unix format '/' separated)

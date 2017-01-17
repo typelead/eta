@@ -411,9 +411,4 @@ data BinDictionary = BinDictionary {
   }
 
 getWayDescr :: DynFlags -> String
-getWayDescr dflags
-  | platformUnregisterised (targetPlatform dflags) = 'u':tag
-  | otherwise                                      =     tag
-  where tag = buildTag dflags
-        -- if this is an unregisterised build, make sure our interfaces
-        -- can't be used by a registerised build.
+getWayDescr dflags = buildTag dflags

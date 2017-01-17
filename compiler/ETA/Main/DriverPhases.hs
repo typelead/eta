@@ -190,7 +190,7 @@ nextPhase dflags p
       Unlit sf   -> Cpp  sf
       Cpp   sf   -> HsPp sf
       HsPp  sf   -> Hsc  sf
-      Hsc   _    -> maybeHCc
+      Hsc   _    -> As False
       Splitter   -> SplitAs
       LlvmOpt    -> LlvmLlc
       LlvmLlc    -> LlvmMangle
@@ -202,13 +202,10 @@ nextPhase dflags p
       Cobjc      -> As False
       Cobjcpp    -> As False
       CmmCpp     -> Cmm
-      Cmm        -> maybeHCc
+      Cmm        -> As False
       HCc        -> As False
       MergeStub  -> StopLn
       StopLn     -> panic "nextPhase: nothing after StopLn"
-    where maybeHCc = if platformUnregisterised (targetPlatform dflags)
-                     then HCc
-                     else As False
 
 -- the first compilation phase for a given file is determined
 -- by its suffix.

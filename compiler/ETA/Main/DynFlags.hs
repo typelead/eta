@@ -1136,9 +1136,7 @@ defaultHscTarget = defaultObjectTarget
 -- | The 'HscTarget' value corresponding to the default way to create
 -- object files on the current platform.
 defaultObjectTarget :: Platform -> HscTarget
-defaultObjectTarget platform
-  | platformUnregisterised platform     =  HscC
-  | otherwise                           =  HscAsm
+defaultObjectTarget _ = HscAsm
 
 data DynLibLoader
   = Deployable
