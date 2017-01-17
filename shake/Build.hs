@@ -244,8 +244,6 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         forM_ ["platform", "version"] $ \s -> do
           let s' = "ghc" ++ s ++ ".h"
           copyFile' (ghcInclude </> s') (etaInclude </> s')
-        copyFile' (ghcLibPath </> "settings") (rootDir </> "settings")
-        copyFile' (ghcLibPath </> "ghc-usage.txt") (rootDir </> "ghc-usage.txt")
         unit $ cmd "epm update"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies

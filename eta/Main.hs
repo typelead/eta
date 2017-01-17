@@ -690,15 +690,18 @@ showGhciUsage :: DynFlags -> IO ()
 showGhciUsage = showUsage True
 
 showUsage :: Bool -> DynFlags -> IO ()
-showUsage ghci dflags = do
-  let usage_path = if ghci then ghciUsagePath dflags
-                           else ghcUsagePath dflags
-  usage <- readFile usage_path
-  dump usage
-  where
-     dump ""          = return ()
-     dump ('$':'$':s) = putStr progName >> dump s
-     dump (c:s)       = putChar c >> dump s
+showUsage etai dflags = putStrLn usage
+  where usage = if etai then etaiUsage else etaUsage
+
+-- TODO: Make this better
+etaUsage = "Eta v" ++ cProjectVersion ++ "\n\n\
+See the Eta User Guide:\n\
+http://eta-lang.org/docs/html/eta-user-guide.html\n"
+
+-- TODO: Make this better
+etaiUsage = "Eta Interactive v" ++ cProjectVersion ++ "\n\n\
+See the Eta User Guide:\n\
+http://eta-lang.org/docs/html/eta-user-guide.html\n"
 
 dumpFinalStats :: DynFlags -> IO ()
 dumpFinalStats dflags =
