@@ -1275,9 +1275,10 @@ Maven repositories:
 +------------------------------+------------------------------------------------------+
 |   bintray:[owner]:[repo]**   | https://dl.bintray.com/[owner]/[repo]/               |
 +------------------------------+------------------------------------------------------+
-* ``[type]`` should be one of ``public``, ``snapshots``, or ``releases``.
-** ``[owner]`` should be the owner of the Bintray repository and ``[repo]`` should
-   be the name of the Bintray repository.
+
+\* ``[type]`` should be one of ``public``, ``snapshots``, or ``releases``.
+\*\* ``[owner]`` should be the owner of the  repository and ``[repo]`` should
+     be the name of the Bintray repository.
 
 .. note::
 
