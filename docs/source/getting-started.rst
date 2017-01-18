@@ -1099,7 +1099,7 @@ changes:
       fib :: Int -> Java MyExportedClass Int
       fib n = return $ fib' n
 
-      foreign export fib :: Java MyExportedClass Int
+      foreign export java fib :: Java MyExportedClass Int
 
       main :: IO ()
       main = return ()
