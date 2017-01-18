@@ -91,7 +91,7 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
           \mbObjFt args -> fold args
                         <> instr (mkMethodRef (clsName mbObjFt) methodName argFts resFt)
           where clsName mbObjFt =
-                  if hasSubclass
+                  if hasSubclass && not isInterface
                   then maybe (error "deserializeTarget: no subclass field type.")
                              getFtClass mbObjFt
                   else read clsName'
