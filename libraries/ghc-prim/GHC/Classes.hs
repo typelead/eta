@@ -352,10 +352,11 @@ class (Class a, Class b) => Extends a b where
   {-# INLINE unsafeCast #-}
   unsafeCast x = obj (classCast# (unobj x))
 
-instance Class a => Extends a a where
-  {-# INLINE superCast #-}
-  superCast x = x
-  {-# INLINE unsafeCast #-}
-  unsafeCast x = x
+-- TODO: Find out a way to get the same efficiency
+-- instance Class a => Extends a a where
+--   {-# INLINE superCast #-}
+--   superCast x = x
+--   {-# INLINE unsafeCast #-}
+--   unsafeCast x = x
 
-instance {-# OVERLAPPABLE #-} (Class a, Class b, Extends' a b ~ Yes) => Extends a b where
+instance (Class a, Class b, Extends' a b ~ Yes) => Extends a b where
