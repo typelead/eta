@@ -208,6 +208,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
           putNormal "Coursier not found, installing coursier..."
           Stdout out <- cmd "stack path --local-bin-path"
           let binPath = last (lines out)
+          createDirIfMissing binPath
           copyFile' "utils/coursier/coursier" (binPath </> "coursier")
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
