@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns #-}
-{-# LANGUAGE ConstraintKinds, DataKinds, TypeFamilies, UndecidableInstances, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, PolyKinds, TypeOperators, NoImplicitPrelude #-}
+{-# LANGUAGE ConstraintKinds, DataKinds, TypeFamilies, UndecidableInstances, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, PolyKinds, TypeOperators, NoImplicitPrelude, UnliftedFFITypes #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 -- XXX -fno-warn-unused-imports needed for the GHC.Tuple import below. Sigh.
 {-# OPTIONS_HADDOCK hide #-}
@@ -310,6 +310,19 @@ instance Class Object where
 instance Class JString where
   unobj (JS# x) = x
   obj = JS#
+
+foreign import java unsafe "equals" __equals :: Object# a -> Object# b -> Bool
+
+foreign import java unsafe "compareTo" __compareTo :: JString -> JString -> Int
+
+instance Eq Object where
+  (==) (O# x) (O# y)= __equals x y
+
+instance Eq JString where
+  (==) (JS# x) (JS# y) = __equals x y
+
+instance Ord JString where
+  (<=) x y = __compareTo x y <= (I# 0#)
 
 -- For embedding Java class hierarchies
 data Defined = Yes | No
