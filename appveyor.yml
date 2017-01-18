@@ -25,6 +25,7 @@ build_script:
 - stack setup --no-terminal > nul
 - stack build --only-snapshot --no-terminal
 - stack --local-bin-path . install
+- set PATH=%PATH%;C:\xampp\php
 - stack exec eta-build -- install
 
 test_script:
