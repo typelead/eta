@@ -13,6 +13,8 @@ public class WorkerThread extends Thread {
 
     public void setTask() {
         task.thread = this;
+        task.id = getId();
+        setName("Eta-Worker-" + task.id);
     }
 
     @Override

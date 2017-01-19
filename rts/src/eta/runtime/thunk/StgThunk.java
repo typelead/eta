@@ -47,6 +47,14 @@ public class StgThunk extends StgClosure {
         return getEvaluated() != null;
     }
 
+    public final boolean tryLock(StgClosure oldIndirectee) {
+        return cas(oldIndirectee, StgWhiteHole.closure);
+    }
+
+    public final boolean cas(StgClosure expected, StgClosure update) {
+        return UnsafeUtil.cas(this, expected, update);
+    }
+
     public void thunkEnter(StgContext context) {
         barf("thunkEnter not implemented");
     }

@@ -34,12 +34,4 @@ public class StgIndStatic extends StgThunk {
             indirectee.enter(context);
         }
     }
-
-    public final boolean tryLock(StgClosure oldIndirectee) {
-        return cas(oldIndirectee, StgWhiteHole.closure);
-    }
-
-    public final boolean cas(StgClosure expected, StgClosure update) {
-        return UnsafeUtil.cas(this, expected, update);
-    }
 }

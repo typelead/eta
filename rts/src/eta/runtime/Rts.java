@@ -76,6 +76,7 @@ public class Rts {
             return task.waitForCapability();
         }
     }
+
     public static void unlock(Capability cap) {
         Task task = cap.runningTask;
         Lock l = cap.lock;
@@ -87,6 +88,7 @@ public class Rts {
             l.unlock();
         }
     }
+
     public static HaskellResult evalLazyIO(Capability cap, StgClosure p) {
         // TODO: Java has a hard-to-get stack size. How do we deal with that?
         StgTSO tso = createIOThread(cap, p);
@@ -135,10 +137,6 @@ public class Rts {
         hsInitCount++;
         if (hsInitCount > 1) return;
 
-        if (RtsFlags.DebugFlags.scheduler) {
-            debugBelch("Eta RTS initialized!");
-        }
-
         //setlocale(LC_CTYPE,"");
         RtsStats.startInit();
         // TODO: Implement Stable Ptrs, Globals, File Locking, HPC, IO Manager, Storage, Tracing, processing RTS Flags (is this necessary?)
@@ -150,7 +148,7 @@ public class Rts {
                            config.rtsHsMain);
         }
 
-        RtsScheduler.initScheduler();
+        RtsScheduler.init();
         // RtsScheduler.initTimer();
         /* TODO: Ensure that the timer can start here */
         // RtsScheduler.startTimer();

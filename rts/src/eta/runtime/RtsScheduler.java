@@ -58,7 +58,7 @@ public class RtsScheduler {
         return new HaskellResult(cap, task.incall.ret);
     }
 
-    public static void initScheduler() {
+    public static void init() {
         schedulerState = SCHED_RUNNING;
         recentActivity = Yes;
 

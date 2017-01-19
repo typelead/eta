@@ -129,6 +129,7 @@ public class Stg {
     private static class NoDuplicate extends RtsFun {
         @Override
         public void enter(StgContext context) {
+            // TODO: Fix this unsafePerformIO semantics
             if (Capability.nCapabilities != 1) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
@@ -143,7 +144,7 @@ public class Stg {
                         sp.previous();
                         sp.remove();
                     }
-                    throw StgException.stackReloadException;
+                    //throw StgException.stackReloadException;
                 }
             }
         }

@@ -38,7 +38,7 @@ public class StgException extends RuntimeException {
     public static RtsFun unmaskAsyncExceptions = new UnmaskAsyncExceptions();
     public static RtsFun killThread = new KillThread();
     public static RtsFun killMyself = new KillMyself();
-    public static RtsFun catch_ = new Catch_();
+    public static RtsFun catch_ = new Catch();
     public static RtsFun raise = new Raise();
     public static RtsFun raiseIO = new RaiseIO();
     public static RtsFun block_throwto = new BlockThrowTo();
@@ -183,7 +183,7 @@ public class StgException extends RuntimeException {
         }
     }
 
-    private static class Catch_ extends RtsFun {
+    private static class Catch extends RtsFun {
         @Override
         public void enter(StgContext context) {
             StgClosure handler = context.R(2);

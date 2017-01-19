@@ -128,11 +128,13 @@ public final class Capability {
     public final Capability schedule(Task task) {
         Capability cap = this;
         boolean threaded = RtsFlags.ModeFlags.threaded;
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("cap %d: schedule()", cap.no);
+        }
         while (true) {
             if (cap.inHaskell) {
                 errorBelch("schedule: re-entered unsafely.\n" +
                            "    Perhaps a 'foreign import unsafe' should be 'safe'?");
-                Thread.dumpStack();
                 stgExit(EXIT_FAILURE);
             }
 
@@ -140,8 +142,14 @@ public final class Capability {
                 case SCHED_RUNNING:
                     break;
                 case SCHED_INTERRUPTING:
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("SCHED_INTERRUPTING");
+                    }
                     // cap = null;//TODO: scheduleDoGC(cap, task, false);
                 case SCHED_SHUTTING_DOWN:
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("SCHED_SHUTTING_DOWN");
+                    }
                     if (!task.isBound() && cap.emptyRunQueue()) {
                         return cap;
                     }
@@ -165,11 +173,17 @@ public final class Capability {
                 Task.InCall bound = t.bound;
                 if (bound != null) {
                     if (bound.task() != task) {
+                        if (RtsFlags.DebugFlags.scheduler) {
+                            debugBelch("thread %d bound to another OS thread", t.id);
+                        }
                         cap.pushOnRunQueue(t);
                         continue;
                     }
                 } else {
                     if (task.incall.tso != null) {
+                        if (RtsFlags.DebugFlags.scheduler) {
+                            debugBelch("this OS thread cannot run thread %d", t.id);
+                        }
                         cap.pushOnRunQueue(t);
                         continue;
                     }
@@ -441,8 +455,16 @@ public final class Capability {
         }
         int nFreeCapabilities = freeCapabilities.size();
         if (nFreeCapabilities > 0) {
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("cap %d: %s and %d free capabilities, sharing..."
+                           ,this.no
+                           ,(!emptyRunQueue() && !singletonRunQueue())?
+                           "excess threads on run queue":"sparks to share (>=2)",
+                           nFreeCapabilities);
+            }
             int i = 0;
             if (!emptyRunQueue()) {
+                // TODO: Object pool this?
                 Deque<StgTSO> newRunQueue = new ArrayDeque<StgTSO>(1);
                 newRunQueue.offer(popRunQueue());
                 StgTSO t = peekRunQueue();
@@ -575,7 +597,6 @@ public final class Capability {
             WorkerThread thread = new WorkerThread(task);
             thread.setTask();
             thread.start();
-            task.id = thread.getId();
         } finally {
             l.unlock();
         }
@@ -1107,16 +1128,20 @@ public final class Capability {
     public final boolean tryGrab(Task task) {
         if (runningTask != null) return false;
         lock.lock();
+        boolean unlocked = false;
         try {
             if (runningTask != null) {
                 lock.unlock();
+                unlocked = true;
                 return false;
             } else {
                 task.cap = this;
                 runningTask = task;
             }
         } finally {
-            lock.unlock();
+            if (!unlocked) {
+                lock.unlock();
+            }
         }
         return true;
     }
@@ -2102,5 +2127,16 @@ public final class Capability {
             e.printStackTrace();
             nonTermination_closure = null;
         }
+    }
+
+    public final void assertFullCapabilityInvariants(Task task) {
+        assert runningTask != null && runningTask == task;
+        assert task.cap == this;
+        assertPartialCapabilityInvariants(task);
+    }
+
+    public final void assertPartialCapabilityInvariants(Task task) {
+        assert Task.myTask() == task;
+        task.assertTaskId();
     }
 }

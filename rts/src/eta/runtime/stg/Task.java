@@ -159,10 +159,14 @@ public class Task {
         if (RtsFlags.ModeFlags.threaded) {
             if (cap == null) {
                 cap = getFreeCapability();
+                this.cap = cap;
             } else {
-                // ASSERT(this.cap == cap);
+                assert this.cap == cap: "waitForCapability: this.cap != cap";
             }
 
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("returning; I want capability %d", cap.no);
+            }
             Lock l = cap.lock;
             boolean unlocked = false;
             l.lock();
@@ -180,13 +184,15 @@ public class Task {
                     l.unlock();
                 }
             }
-            // DEBUG_sched
-            // debugTrace
+            cap.assertFullCapabilityInvariants(this);
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("resuming capability %d", cap.no);
+            }
         } else {
             mainCapability.runningTask = this;
             cap = mainCapability;
+            this.cap = cap;
         }
-        this.cap = cap;
         return cap;
     }
 
@@ -197,10 +203,15 @@ public class Task {
             l.lock();
             try {
                 if (!wakeup) condition.await();
+                debugBelch("waitForReturnCapability: Wokeup");
                 cap = this.cap;
+                debugBelch("waitForReturnCapability: cap " + ((cap != null)? cap.no: null));
                 wakeup = false;
             } catch (InterruptedException e) {
-                // Do something here;
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("waitForReturnCapability: Interrupted");
+                }
+                continue;
             } finally {
                 l.unlock();
             }
@@ -348,5 +359,11 @@ public class Task {
 
     public final boolean isAlive() {
         return thread.isAlive();
+    }
+
+    public final void assertTaskId() {
+        if (RtsFlags.ModeFlags.threaded) {
+            assert id == Thread.currentThread().getId();
+        }
     }
 }

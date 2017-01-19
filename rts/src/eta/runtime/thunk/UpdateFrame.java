@@ -69,7 +69,7 @@ public abstract class UpdateFrame extends StackFrame {
                 return Default;
             } else {
                 if (RtsFlags.ModeFlags.threaded) {
-                    if (!((StgIndStatic) bh).tryLock(oldIndirectee)) {
+                    if (!bh.tryLock(oldIndirectee)) {
                         continue;
                     }
                 }
