@@ -123,8 +123,8 @@ main = do
                       liftIO $
                           case preLoadMode of
                               ShowInfo               -> showInfo dflags
-                              ShowGhcUsage           -> showGhcUsage  dflags
-                              ShowGhciUsage          -> showGhciUsage dflags
+                              ShowGhcUsage           -> showEtaUsage  dflags
+                              ShowGhciUsage          -> showEtaiUsage dflags
                               PrintWithDynFlags f    -> putStrLn (f dflags)
                   Right postLoadMode ->
                       main' postLoadMode dflags argv3 flagWarnings
@@ -396,9 +396,9 @@ data PreLoadMode
   | ShowInfo                               -- ghc --info
   | PrintWithDynFlags (DynFlags -> String) -- ghc --print-foo
 
-showGhcUsageMode, showGhciUsageMode, showInfoMode :: Mode
-showGhcUsageMode = mkPreLoadMode ShowGhcUsage
-showGhciUsageMode = mkPreLoadMode ShowGhciUsage
+showEtaUsageMode, showEtaiUsageMode, showInfoMode :: Mode
+showEtaUsageMode = mkPreLoadMode ShowGhcUsage
+showEtaiUsageMode = mkPreLoadMode ShowGhciUsage
 showInfoMode = mkPreLoadMode ShowInfo
 
 mkPreLoadMode :: PreLoadMode -> Mode
@@ -514,8 +514,8 @@ type ModeM = CmdLineP (Maybe (Mode, String), [String], [Located String])
 modeFlags :: [Flag ModeM]
 modeFlags =
   [  ------- help / version ----------------------------------------------
-    defFlag "?"                     (PassFlag (setMode showGhcUsageMode))
-  , defFlag "-help"                 (PassFlag (setMode showGhcUsageMode))
+    defFlag "?"                     (PassFlag (setMode showEtaUsageMode))
+  , defFlag "-help"                 (PassFlag (setMode showEtaUsageMode))
   , defFlag "V"                     (PassFlag (setMode showVersionMode))
   , defFlag "-version"              (PassFlag (setMode showVersionMode))
   , defFlag "-numeric-version"      (PassFlag (setMode showNumVersionMode))
@@ -556,13 +556,13 @@ setMode newMode newFlag = liftEwM $ do
                       ((doMakeMode, "--make"), [])
 
                     -- If we have both --help and --interactive then we
-                    -- want showGhciUsage
+                    -- want showEtaiUsage
                     _ | isShowGhcUsageMode oldMode &&
                         isDoInteractiveMode newMode ->
-                            ((showGhciUsageMode, oldFlag), [])
+                            ((showEtaiUsageMode, oldFlag), [])
                       | isShowGhcUsageMode newMode &&
                         isDoInteractiveMode oldMode ->
-                            ((showGhciUsageMode, newFlag), [])
+                            ((showEtaiUsageMode, newFlag), [])
                     -- Otherwise, --help/--version/--numeric-version always win
                       | isDominantFlag oldMode -> ((oldMode, oldFlag), [])
                       | isDominantFlag newMode -> ((newMode, newFlag), [])
@@ -683,22 +683,25 @@ showOptions isInteractive = putStr (unlines availableOptions)
       -- with static flags
       filterUnwantedStatic      = filter (`notElem`["f", "fno-"])
 
-showGhcUsage :: DynFlags -> IO ()
-showGhcUsage = showUsage False
+showEtaUsage :: DynFlags -> IO ()
+showEtaUsage = showUsage False
 
-showGhciUsage :: DynFlags -> IO ()
-showGhciUsage = showUsage True
+showEtaiUsage :: DynFlags -> IO ()
+showEtaiUsage = showUsage True
 
 showUsage :: Bool -> DynFlags -> IO ()
-showUsage ghci dflags = do
-  let usage_path = if ghci then ghciUsagePath dflags
-                           else ghcUsagePath dflags
-  usage <- readFile usage_path
-  dump usage
-  where
-     dump ""          = return ()
-     dump ('$':'$':s) = putStr progName >> dump s
-     dump (c:s)       = putChar c >> dump s
+showUsage etai dflags = putStrLn usage
+  where usage = if etai then etaiUsage else etaUsage
+
+-- TODO: Make this better
+etaUsage = "Eta v" ++ cProjectVersion ++ "\n\n\
+See the Eta User Guide:\n\
+http://eta-lang.org/docs/html/eta-user-guide.html\n"
+
+-- TODO: Make this better
+etaiUsage = "Eta Interactive v" ++ cProjectVersion ++ "\n\n\
+See the Eta User Guide:\n\
+http://eta-lang.org/docs/html/eta-user-guide.html\n"
 
 dumpFinalStats :: DynFlags -> IO ()
 dumpFinalStats dflags =
