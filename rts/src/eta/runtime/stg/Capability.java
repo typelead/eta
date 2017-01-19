@@ -655,10 +655,10 @@ public final class Capability {
                 return true;
             }
         } else {
-            /* TODO: Add debugging statement here
-            if (!noBlockedExceptions && tso.hasFlag(TSO_BLOCKEX)) {
-                debugTraceCap(DEBUG_SCHED, this, "throwTo: thread %d has blocked exceptions but is inside block", tso.id);
-                } */
+
+            if (!noBlockedExceptions && tso.hasFlag(TSO_BLOCKEX) && RtsFlags.DebugFlags.scheduler) {
+                debugBelch("cap %d: throwTo: thread %d has blocked exceptions but is inside block", this.no, tso.id);
+            }
 
             if (!noBlockedExceptions && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
                 do {
@@ -700,7 +700,10 @@ public final class Capability {
             if (tso.cap != this) {
                 MessageWakeup msg = new MessageWakeup(tso);
                 sendMessage(tso.cap, msg);
-                // debugTraceCap
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("cap %d: message: try wakeup thread %d on cap %d",
+                               tso.id, tso.cap.no);
+                }
                 return;
             }
         }
@@ -718,9 +721,14 @@ public final class Capability {
             case BlockedOnMsgThrowTo:
                 MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
                 msg.lock();
-                /* TODO: Is it a good idea to unlock right afterwards? */
                 msg.unlock();
                 if (msg.isValid()) {
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("cap %d: thread %d still blocked on throwto (%d)"
+                                   , tso.id, msg.id);
+                    }
+                } else {
+                    assert tso.stack.peek().getClass() == BlockThrowToFrame.class;
                     tso.spPop();
                     unblock = true;
                 }
@@ -742,7 +750,6 @@ public final class Capability {
     }
 
     public final void sendMessage(Capability target, Message msg) {
-        // acquire target lock;
         Lock lock = target.lock;
         lock.lock();
         try {
