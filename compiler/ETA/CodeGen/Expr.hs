@@ -41,7 +41,7 @@ cgExpr (StgOpApp op args ty) = debugDoc (str "StgOpApp" <+> ppr args <+> ppr ty)
 cgExpr (StgConApp con args) = debugDoc (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 -- TODO: Deal with ticks
-cgExpr (StgTick t e) = cgExpr e
+cgExpr (StgTick t e) = debugDoc (str "StgTick" <+> ppr t) >> cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   cgBind binds
