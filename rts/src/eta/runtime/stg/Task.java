@@ -290,7 +290,10 @@ public class Task {
                 cap = this.cap;
                 wakeup = false;
             } catch (InterruptedException e) {
-                // Do something here
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("waitForReturnCapability: Interrupted");
+                }
+                continue;
             } finally {
                 lock.unlock();
             }
@@ -299,12 +302,20 @@ public class Task {
             l.lock();
             try {
                 if (cap.runningTask != null) {
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("capabilitity %d is owned by another task",
+                                   cap.no);
+                    }
                     l.unlock();
                     unlocked = true;
                     continue;
                 }
 
                 if (this.cap != cap) {
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("task has been migrated to cap %d",
+                                   this.cap.no);
+                    }
                     l.unlock();
                     unlocked = true;
                     continue;
@@ -312,6 +323,7 @@ public class Task {
 
                 if (incall.tso == null) {
                     Task task = cap.spareWorkers.peek();
+                    assert task != null;
                     if (task != this) {
                         cap.giveToTask(task);
                         l.unlock();
@@ -322,8 +334,6 @@ public class Task {
                     }
                 }
                 cap.runningTask = this;
-                l.unlock();
-                unlocked = true;
                 break;
             } finally {
                 if (!unlocked) {

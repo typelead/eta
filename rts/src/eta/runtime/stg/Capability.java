@@ -769,19 +769,20 @@ public final class Capability {
         if (RtsFlags.ModeFlags.threaded) {
             Task task = runningTask;
             runningTask = null;
-            /* TODO: peek() instead of poll()?
-               verify that the task pops itself from the queue */
             Task workerTask = returningTasks.peek();
             if (workerTask != null) {
                 giveToTask(workerTask);
                 return;
             }
-            /* TODO: Evaluate if this is required
-               if (pendingSync != 0 && pendingSync != SYNC_GC_PAR) {
+
+            if (pendingSync != SyncType.SYNC_NONE
+             && pendingSync != SyncType.SYNC_GC_PAR) {
                lastFreeCapability = this;
-               //debugTrace
+               if (RtsFlags.DebugFlags.scheduler) {
+                   debugBelch("sync pending, set capability %d free", this.no);
+               }
                return;
-               }*/
+            }
 
             if (!emptyRunQueue()) {
                 StgTSO nextTSO = peekRunQueue();
@@ -794,7 +795,9 @@ public final class Capability {
 
             if (spareWorkers.isEmpty()) {
                 if (schedulerState.compare(SCHED_SHUTTING_DOWN) < 0 || !emptyRunQueue()) {
-                    //debugTrace
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("starting a new worker on capability %d", this.no);
+                    }
                     startWorkerTask();
                     return;
                 }
@@ -812,7 +815,9 @@ public final class Capability {
             }
 
             lastFreeCapability = this;
-            //debugTrace;
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("freeing capability %d", this.no);
+            }
         }
     }
 
@@ -1045,7 +1050,7 @@ public final class Capability {
     }
 
     public final void popReturningTask() {
-        returningTasks.pollFirst();
+        returningTasks.poll();
     }
 
     public final void giveToTask(Task task) {
@@ -1157,6 +1162,9 @@ public final class Capability {
         Task task = runningTask;
         boolean taken = spareWorkers.offer(task);
         if (!taken) {
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("%d spare workes already, exiting", spareWorkers.size());
+            }
             release_(false);
             task.workerTaskStop();
             lock.unlock();
@@ -1185,10 +1193,15 @@ public final class Capability {
 
         if (t.bound != null) {
             if (t.bound != task.incall) {
-                // should only happen in THREADED_RTS
-                appendToRunQueue(t);
-                return false;
+                if (RtsFlags.ModeFlags.threaded) {
+                    barf("finished bound thread that isn't mine");
+                } else {
+                    appendToRunQueue(t);
+                    return false;
+                }
             }
+
+            assert task.incall.tso == t;
 
             if (t.whatNext == ThreadComplete) {
                 StgEnter enterFrame = (StgEnter) task.incall.tso.stack.peek();
@@ -1263,11 +1276,11 @@ public final class Capability {
     }
 
     public final MessageThrowTo throwTo(StgTSO source, StgTSO target, StgClosure exception) {
-        /* TODO: Lock this message at start */
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
+        msg.lock();
         boolean result = throwToMsg(msg);
         if (result) {
-            /* TODO: Unlock this message */
+            msg.unlock();
             return null;
         } else {
             return msg;
@@ -1278,6 +1291,9 @@ public final class Capability {
         StgTSO target = msg.target;
         // retry: write_barrier
         retry: do {
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("throwTo: retrying...");
+            }
             if (target.whatNext != ThreadComplete
                 && target.whatNext != ThreadKilled) {
                 Capability targetCap = target.cap;

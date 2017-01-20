@@ -46,7 +46,7 @@ public class RtsScheduler {
         Yes, MaybeNo, Inactive, DoneGC
     }
     public static RecentActivity recentActivity = Yes;
-    public static SchedulerState schedulerState = SCHED_RUNNING;
+    public static volatile SchedulerState schedulerState = SCHED_RUNNING;
     public static HaskellResult scheduleWaitThread(StgTSO tso, Capability cap) {
         Task task = cap.runningTask;
         tso.bound = task.incall;
