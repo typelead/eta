@@ -22,6 +22,7 @@ import eta.runtime.apply.ApPPPVO;
 import eta.runtime.apply.ApPPPP;
 import eta.runtime.apply.ApPPPPP;
 import eta.runtime.apply.ApPPPPPP;
+import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RtsMessages.barf;
 
 public class StgThunk extends StgClosure {

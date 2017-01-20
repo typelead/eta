@@ -203,9 +203,7 @@ public class Task {
             l.lock();
             try {
                 if (!wakeup) condition.await();
-                debugBelch("waitForReturnCapability: Wokeup");
                 cap = this.cap;
-                debugBelch("waitForReturnCapability: cap " + ((cap != null)? cap.no: null));
                 wakeup = false;
             } catch (InterruptedException e) {
                 if (RtsFlags.DebugFlags.scheduler) {

@@ -129,22 +129,18 @@ public class Stg {
     private static class NoDuplicate extends RtsFun {
         @Override
         public void enter(StgContext context) {
-            // TODO: Fix this unsafePerformIO semantics
             if (Capability.nCapabilities != 1) {
                 Capability cap = context.myCapability;
                 StgTSO tso = context.currentTSO;
-                ListIterator<StackFrame> sp = tso.sp;
-                sp.add(new NoDuplicateFrame());
+                tso.spPush(new NoDuplicateFrame());
                 cap.threadPaused(tso);
                 if (tso.whatNext == ThreadKilled) {
                     threadFinished.enter(context);
                 } else {
                     StackFrame top = tso.stack.peek();
                     if (top.getClass() == NoDuplicateFrame.class) {
-                        sp.previous();
-                        sp.remove();
+                        tso.spPop();
                     }
-                    //throw StgException.stackReloadException;
                 }
             }
         }

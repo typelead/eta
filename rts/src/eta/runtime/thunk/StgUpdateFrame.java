@@ -18,6 +18,10 @@ public class StgUpdateFrame extends UpdateFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        updatee.updateWithIndirection(context.R(1));
+        if (marked) {
+            super.stackEnter(context);
+        } else {
+            updatee.updateWithIndirection(context.R(1));
+        }
     }
 }

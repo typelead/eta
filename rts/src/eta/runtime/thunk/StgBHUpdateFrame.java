@@ -1,7 +1,6 @@
 package eta.runtime.thunk;
 
-public class StgBHUpdateFrame extends StgGenUpdateFrame {
-
+public class StgBHUpdateFrame extends UpdateFrame {
     public StgBHUpdateFrame(StgThunk updatee) {
         super(updatee);
     }
