@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Core
-  ( java, javaWith, pureJava, pureJavaWith, io,
+  ( java, javaWith, pureJava, pureJavaWith, io, withObject,
     (<.>), (>-)
   -- Useful exports
   , Int64
@@ -57,6 +57,10 @@ pureJavaWith c (Java m) = case m (unobj c) of (# _, a #) -> a
 {-# INLINE (<.>) #-}
 (<.>) :: (Class c) => c -> Java c a -> Java b a
 (<.>) cls (Java m) = Java $ \o -> case m (unobj cls) of (# _, a #) -> (# o, a #)
+
+{-# INLINE withObject #-}
+withObject :: (Class c) => c -> Java c a -> Java b a
+withObject = (<.>)
 
 {-# INLINE io #-}
 io :: IO a -> Java c a
