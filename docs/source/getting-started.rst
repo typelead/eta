@@ -368,7 +368,9 @@ Quick Start
 ^^^^^^^^^^^
 
 When interfacing with Java, you should import the ``Java`` module from the standard
-library like so::
+library and enable the ``MagicHash`` language extension like so::
+
+   {-# LANGUAGE MagicHash #-}
 
    import Java
 
