@@ -308,12 +308,12 @@ in the Haskell ecosystem, read
           epm configure --enable-uberjar-mode
 
       These commands need only be run once to set the local Cabal config. All
-      future builds will generate uberjars. To go back to shared mode::
+      future builds will generate uberjars. To go back to shared mode:
 
       .. code-block:: console
 
           epm clean
-          epm configure --disbale-uberjar-mode
+          epm configure --disable-uberjar-mode
 
       Beware that this can be very slow. Work is being done to
       `improve uberjar performance <https://github.com/typelead/eta/issues/20>`_.
