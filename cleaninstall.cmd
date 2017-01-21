@@ -1,3 +1,4 @@
+@echo off
 set INSTALL_DIR=%~1
 if not defined INSTALL_DIR (
   for /f "delims=" %%a in ('stack path --local-bin') do @set INSTALL_DIR=%%a

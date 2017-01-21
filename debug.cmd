@@ -1,3 +1,4 @@
+@echo off
 if not exist rts\build\rts.jar (
    echo Error: rts.jar not found!
    echo Run install.cmd first.
