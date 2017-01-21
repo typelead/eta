@@ -1,0 +1,1 @@
+stack setup && cleaninstall
