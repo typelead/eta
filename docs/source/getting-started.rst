@@ -1295,6 +1295,12 @@ In this example, we'll be binding to the `Unirest <http://unirest.io/java>`_ lib
 Setup a project, just like :ref:`setting-up-first-project` with the following
 changes:
 
+#. Update ``eta-first.cabal``, adding a ``maven-depends:`` field:
+
+   .. code-block:: console
+
+      maven-depends: com.mashape.unirest:unirest-java:1.4.9
+
 #. **Main.hs**
 
    .. code::
@@ -1339,16 +1345,6 @@ changes:
             >- getBody
         putStrLn $ read (show response)
         shutdownUnirest
-
-
-#. Update ``eta-first.cabal``, adding a ``maven-depends:`` field:
-
-   .. code-block:: console
-
-      maven-depends: com.mashape.unirest:unirest-java:1.4.9
-
-   .. note::
-
 
 #. That's it! Run the example with ``epm run``.
 
