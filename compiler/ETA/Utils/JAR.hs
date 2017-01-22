@@ -1,3 +1,5 @@
+{-#LANGUAGE OverloadedStrings#-}
+
 {-|
 Module      : ETA.Utils.JAR
 Description : Small utility functions for creating Jars from class files.
@@ -47,8 +49,11 @@ import Data.ByteString.Internal (ByteString)
 import Path
 import Path.IO (copyFile)
 import Data.Map.Lazy (keys)
+import Data.Map.Strict (filterWithKey)
 import Data.List (sortBy)
 import System.Directory hiding (copyFile)
+import Data.Text (Text)
+import qualified Data.Text as T
 
 
 type FileAndContents = (RelativeFile, ByteString)
@@ -282,9 +287,19 @@ mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
   p <- makeAbsoluteFilePath jarLocation
   copyFile copy p
   withArchive p $ do
+    existingEntries <- getEntries
+    let invalidEntries = filterWithKey (\k _ -> invalidEntrySelector k)  existingEntries
+    mapM_ deleteEntry (keys invalidEntries)
     forM_ selectors $ \(absFile, entries) -> do
       forM_ entries $ \entry -> do
-        copyEntry absFile entry entry
+        when (invalidEntrySelector entry /= True) $ copyEntry absFile entry entry
     forM_ fileAndContents $ \(relFile, contents) -> do
       entrySel <- mkEntrySelector relFile
       addEntry compress contents entrySel
+  where
+    invalidEntrySelector :: EntrySelector -> Bool
+    invalidEntrySelector fname = any (endsWith (getEntryName fname)) filterFileExts
+    filterFileExts = [".SF", ".DSA", ".RSA"]
+                     
+    endsWith :: Text -> Text -> Bool
+    endsWith txt pred = T.toUpper (T.takeEnd (T.length pred) txt) == (T.toUpper pred)
