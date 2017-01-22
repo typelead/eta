@@ -1254,9 +1254,11 @@ changes:
 Adding Maven Dependencies to Your Project
 -----------------------------------------
 
-You can include Maven dependencies in the format of ``[groupId]:[artifactId]:[version]``
-to include in your project in the ``maven-depends:`` field in the Cabal file. Each
-successive entry should be placed on a separate line and be separated with a comma.
+You can include Maven dependencies in the format of
+``[groupId]:[artifactId]:[version]`` to include in your project in the
+``maven-depends:`` field of the Cabal file under the ``library`` or
+``executable`` section. Each successive entry should be placed on a
+separate line and be separated with a comma.
 
 You can add specific Maven repositories to resolve your dependencies against
 with the ``maven-repos:`` field. You should specify each repository URL on its
@@ -1281,6 +1283,9 @@ Maven repositories:
 \* ``[type]`` should be one of ``public``, ``snapshots``, or ``releases``.
 \*\* ``[owner]`` should be the owner of the  repository and ``[repo]`` should
      be the name of the Bintray repository.
+
+By default, ``epm`` tries to resolve your dependencies against the
+above repositories. So, you don't need to specify a repository unless required.
 
 .. note::
 
