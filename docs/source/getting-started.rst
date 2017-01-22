@@ -1284,8 +1284,9 @@ Maven repositories:
 \*\* ``[owner]`` should be the owner of the  repository and ``[repo]`` should
      be the name of the Bintray repository.
 
-By default, ``epm`` tries to resolve your dependencies against the
-above repositories. So, you don't need to specify a repository unless required.
+By default, ``epm`` tries to resolve your dependencies against
+``central``. So, you don't need to specify a repository unless
+required.
 
 .. note::
 
