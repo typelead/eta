@@ -543,14 +543,18 @@ data PrimOp
    | ArrayLengthOp
    | GetClassOp
    | IsNullObjectOp
-
+   | Int2JByteOp
+   | JShort2IntOp
+   | Int2JShortOp
+   | JChar2IntOp
+   | Int2JCharOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1109
+maxPrimOpTag = 1114
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1662,6 +1666,11 @@ tagOf_PrimOp ArrayLengthOp = _ILIT(1106)
 tagOf_PrimOp GetClassOp = _ILIT(1107)
 tagOf_PrimOp IsNullObjectOp = _ILIT(1108)
 tagOf_PrimOp GetSizeofMutableByteArrayOp = _ILIT(1109)
+tagOf_PrimOp Int2JByteOp = _ILIT(1110)
+tagOf_PrimOp JShort2IntOp = _ILIT(1111)
+tagOf_PrimOp Int2JShortOp = _ILIT(1112)
+tagOf_PrimOp JChar2IntOp = _ILIT(1113)
+tagOf_PrimOp Int2JCharOp = _ILIT(1114)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2797,6 +2806,11 @@ allThePrimOps =
    , ArrayLengthOp
    , GetClassOp
    , IsNullObjectOp
+   , Int2JByteOp
+   , JShort2IntOp
+   , Int2JShortOp
+   , JChar2IntOp
+   , Int2JCharOp
    ]
 
 tagToEnumKey :: Unique
@@ -4061,6 +4075,11 @@ primOpInfo GetClassOp =
   mkGenPrimOp (fsLit "getClass#") [alphaTyVar, betaTyVar]
   [ mkProxyPrimTy liftedTypeKind alphaTy ] (mkObjectPrimTy betaTy)
 primOpInfo IsNullObjectOp = mkGenPrimOp (fsLit "isNullObject#")  [alphaTyVar] [(mkObjectPrimTy alphaTy)] intPrimTy
+primOpInfo Int2JByteOp = mkGenPrimOp (fsLit "int2jbyte#")  [] [intPrimTy] jbytePrimTy
+primOpInfo JShort2IntOp = mkGenPrimOp (fsLit "jshort2int#")  [] [jshortPrimTy] intPrimTy
+primOpInfo Int2JShortOp = mkGenPrimOp (fsLit "int2jshort#")  [] [intPrimTy] jshortPrimTy
+primOpInfo JChar2IntOp = mkGenPrimOp (fsLit "jchar2int#")  [] [jcharPrimTy] intPrimTy
+primOpInfo Int2JCharOp = mkGenPrimOp (fsLit "int2jchar#")  [] [intPrimTy] jcharPrimTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4946,10 +4965,16 @@ primOpCodeSize ParOp =  primOpCodeSizeForeignCall
 primOpCodeSize SparkOp =  primOpCodeSizeForeignCall
 primOpCodeSize AddrToAnyOp = 0
 primOpCodeSize AddrToAnyOp = 0
--- TODO: Verify
+
 primOpCodeSize JBool2IntOp = 0
 primOpCodeSize JByte2IntOp = 0
 primOpCodeSize Int2JBoolOp = 0
+primOpCodeSize Int2JByteOp = 0
+primOpCodeSize JShort2IntOp = 0
+primOpCodeSize Int2JShortOp = 0
+primOpCodeSize JChar2IntOp = 0
+primOpCodeSize Int2JCharOp = 0
+
 primOpCodeSize StablePtr2AddrOp = primOpCodeSizeForeignCall
 primOpCodeSize Addr2StablePtrOp = primOpCodeSizeForeignCall
 primOpCodeSize _ =  primOpCodeSizeDefault
