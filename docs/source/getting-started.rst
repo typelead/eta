@@ -559,7 +559,7 @@ marshal to a Java class or return type:
 |   ``void``                   | ``()``       |
 +------------------------------+--------------+
 
-When writing FFI declarations that return objects, you be wrap the result type
+When writing FFI declarations that return objects, you can wrap the result type
 in a ``Maybe`` if the documentation of the corresponding Java method clearly
 states that ``null`` is a potential return type. It is always safe to wrap the
 result in a ``Maybe`` type, but the user will have to bear the burden of dealing
