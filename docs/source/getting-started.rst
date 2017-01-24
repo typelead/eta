@@ -502,8 +502,7 @@ Deriving Standard Typeclass Instances
 Currently, deriving the `Class`, `Eq`, and `Show` instances for JWTs is supported.
 You should derive these instances based on the need of the application. The `Eq`
 instance will use the underlying `Object.equals()` method and the `Show` instance
-will use `Object.toString()`. To find out more about the `Class` typeclass, see
-here.
+will use `Object.toString()`.
 
 .. _marshalling-java-eta:
 
@@ -540,6 +539,13 @@ The following table lists the mapping from primitive Java types to Eta types.
 |    ``double``   | ``Double`` |
 +-----------------+------------+
 
+.. note::
+
+   All the Eta types shown above can be treated as numbers since they have
+   instances for ``Num`` and related typeclasses. Thus, you can use functions
+   like `fromIntegral` to convert between them.
+
+
 Java Classes & Arrays
 """""""""""""""""""""
 
@@ -569,6 +575,13 @@ with an unnecessary case if the result is always a non-null object.
 
 If the ``Maybe`` type is not used for a method that actually does return null, then
 a ``NullPointerException`` will occur when a method is invoked on that object.
+
+.. note::
+
+   Since `java.lang.String` is special and also used quite frequently in Java,
+   a JWT called ``JString`` is already provided for you. It supports the
+   ``OverloadedStrings`` extensions so you can have expressions like
+   ``"Some string" :: JString``.
 
 The Java Monad
 ^^^^^^^^^^^^^^
@@ -1002,14 +1015,30 @@ The Extends typeclass
 .. code::
 
   class (Class a, Class b) => Extends a b where
+    superCast :: a -> b
+    unsafeCast :: b -> a
     ...
 
 The ``Extends`` typeclass is a multi-parameter typeclass defined for JWTs where
 ``Extends a b`` means that JWT ``a`` is a subclass of JWT ``b``. The FFI has
 built-in support for the ``Extends`` typeclass so you can freely add those
-constraints into your imports. But for this typeclass, you don't define instances
-directly. Instead, you can declaratively specify parent classes and interfaces
-using the ``Inherits`` type family.
+constraints into your imports.
+
+For this typeclass, you don't define instances directly. Instead, you can
+declaratively specify parent classes and interfaces using the ``Inherits`` type
+family.
+
+.. note::
+
+    While you won't find many situations to use them, you can use the ``superCast``
+    and ``unsafeCast`` functions when you need to cast between object types.
+
+    ``superCast`` just does a conversion at the Eta-level and no explicit
+    conversion is done at the Java-level, so this function is safe to use in all
+    cases.
+
+    ``unsafeCast`` does an explicit cast at the Java-level and can throw a
+    ``ClassCastException`` if you make an invalid conversion, hence the name.
 
 The Inherits type family
 """"""""""""""""""""""""
@@ -1018,7 +1047,7 @@ The Inherits type family
 
    type family Inherits (a :: *) :: [*]
 
-The ``Inherits`` type family takes a JWT and returns type-level list of JWTs.
+The ``Inherits`` type family takes a JWT and returns a type-level list of JWTs.
 
 **Example**
 
