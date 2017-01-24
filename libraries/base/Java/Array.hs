@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
              UnboxedTuples, BangPatterns, FlexibleInstances,
              FlexibleContexts, UndecidableInstances, DefaultSignatures,
-             DeriveAnyClass, FunctionalDependencies #-}
+             DeriveAnyClass, FunctionalDependencies, StandaloneDeriving #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Array
@@ -28,41 +28,20 @@ module Java.Array
     JStringArray(..),
     JArray(..),
     alength,
-    toList,
-    fromList,
+    arrayToList,
+    arrayFromList,
   )
 where
 
 import GHC.Base
 import GHC.List
 import GHC.Num
+import GHC.Show
+import GHC.Int
 import Java.Core
+import Java.Primitive
 
-data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
-  deriving Class
-data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
-  deriving Class
-data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArray)
-  deriving Class
-data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
-  deriving Class
-data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray)
-  deriving Class
-data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
-  deriving Class
-data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArray)
-  deriving Class
-data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
-  deriving Class
-
-instance JArray JString JStringArray
-
--- We provide a manual instance here since it is originally defined in ghc-prim.
-instance Class JByteArray where
-  unobj (JByteArray o) = o
-  obj = JByteArray
-
-class (Class c) => JArray e c | c -> e where
+class (Class c) => JArray e c | c -> e, e -> c where
   anew :: Int -> Java a c
 
   default anew :: (Class e) => Int -> Java a c
@@ -87,13 +66,137 @@ class (Class c) => JArray e c | c -> e where
     case jobjectArraySet# o n# (unobj e) realWorld# of
       _ -> (# o, () #)
 
+data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
+  deriving (Class, Show)
+
+instance JArray Bool JBooleanArray where
+  anew (I# n#) = Java $ \o ->
+    case newJBooleanArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJBooleanArray# o n# realWorld# of
+      (# _, i# #) -> (# o, isTrue# i# #)
+  aset (I# n#) b = Java $ \o ->
+    case writeJBooleanArray# o n# (dataToTag# b) realWorld# of
+      _ -> (# o, () #)
+
+deriving instance Class JByteArray
+
+instance JArray Byte JByteArray where
+  anew (I# n#) = Java $ \o ->
+    case newJByteArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJByteArray# o n# realWorld# of
+      (# _, b #) -> (# o, B# b #)
+  aset (I# n#) (B# e#) = Java $ \o ->
+    case writeJByteArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
+  deriving (Class, Show)
+
+instance JArray JChar JCharArray where
+  anew (I# n#) = Java $ \o ->
+    case newJCharArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJCharArray# o n# realWorld# of
+      (# _, e# #) -> (# o, JC# e# #)
+  aset (I# n#) (JC# e#) = Java $ \o ->
+    case writeJCharArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArray)
+  deriving (Class, Show)
+
+instance JArray Short JShortArray where
+  anew (I# n#) = Java $ \o ->
+    case newJShortArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJShortArray# o n# realWorld# of
+      (# _, e# #) -> (# o, S# e# #)
+  aset (I# n#) (S# e#) = Java $ \o ->
+    case writeJShortArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
+  deriving (Class, Show)
+
+instance JArray Int JIntArray where
+  anew (I# n#) = Java $ \o ->
+    case newJIntArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJIntArray# o n# realWorld# of
+      (# _, e# #) -> (# o, I# e# #)
+  aset (I# n#) (I# e#) = Java $ \o ->
+    case writeJIntArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray)
+  deriving (Class, Show)
+
+instance JArray Int64 JLongArray where
+  anew (I# n#) = Java $ \o ->
+    case newJLongArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJLongArray# o n# realWorld# of
+      (# _, e# #) -> (# o, I64# e# #)
+  aset (I# n#) (I64# e#) = Java $ \o ->
+    case writeJLongArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
+  deriving (Class, Show)
+
+instance JArray Float JFloatArray where
+  anew (I# n#) = Java $ \o ->
+    case newJFloatArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJFloatArray# o n# realWorld# of
+      (# _, e# #) -> (# o, F# e# #)
+  aset (I# n#) (F# e#) = Java $ \o ->
+    case writeJFloatArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArray)
+  deriving (Class, Show)
+
+instance JArray Double JDoubleArray where
+  anew (I# n#) = Java $ \o ->
+    case newJDoubleArray# n# realWorld# of
+      (# _, o' #) -> case obj o' of
+        c -> (# o, c #)
+  aget (I# n#) = Java $ \o ->
+    case readJDoubleArray# o n# realWorld# of
+      (# _, e# #) -> (# o, D# e# #)
+  aset (I# n#) (D# e#) = Java $ \o ->
+    case writeJDoubleArray# o n# e# realWorld# of
+      _ -> (# o, () #)
+
+data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
+  deriving (Class, Show)
+
+instance JArray JString JStringArray
+
 {-# INLINE alength #-}
 alength :: JArray e c => Java c Int
 alength = Java $ \o -> (# o, I# (alength# o) #)
 
-{-# INLINE toList #-}
-toList :: JArray e c => Java c [e]
-toList = do
+{-# INLINE arrayToList #-}
+arrayToList :: JArray e c => Java c [e]
+arrayToList = do
   len <- alength
   go (len - 1) []
   where go n xs
@@ -102,9 +205,9 @@ toList = do
             go (n - 1) (x:xs)
           | otherwise = return xs
 
-{-# INLINE fromList #-}
-fromList :: JArray e c => [e] -> Java a c
-fromList xs = do
+{-# INLINE arrayFromList #-}
+arrayFromList :: JArray e c => [e] -> Java a c
+arrayFromList xs = do
   jarray <- anew (length xs)
   jarray <.> go 0 xs
   return jarray

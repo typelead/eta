@@ -548,13 +548,35 @@ data PrimOp
    | Int2JShortOp
    | JChar2WordOp
    | Word2JCharOp
+   | NewJByteArrayOp
+   | NewJBooleanArrayOp
+   | ReadJBooleanArrayOp
+   | WriteJBooleanArrayOp
+   | NewJCharArrayOp
+   | ReadJCharArrayOp
+   | WriteJCharArrayOp
+   | NewJShortArrayOp
+   | ReadJShortArrayOp
+   | WriteJShortArrayOp
+   | NewJIntArrayOp
+   | ReadJIntArrayOp
+   | WriteJIntArrayOp
+   | NewJLongArrayOp
+   | ReadJLongArrayOp
+   | WriteJLongArrayOp
+   | NewJFloatArrayOp
+   | ReadJFloatArrayOp
+   | WriteJFloatArrayOp
+   | NewJDoubleArrayOp
+   | ReadJDoubleArrayOp
+   | WriteJDoubleArrayOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1114
+maxPrimOpTag = 1136
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1671,6 +1693,28 @@ tagOf_PrimOp JShort2IntOp = _ILIT(1111)
 tagOf_PrimOp Int2JShortOp = _ILIT(1112)
 tagOf_PrimOp JChar2WordOp = _ILIT(1113)
 tagOf_PrimOp Word2JCharOp = _ILIT(1114)
+tagOf_PrimOp NewJByteArrayOp = _ILIT(1115)
+tagOf_PrimOp NewJBooleanArrayOp = _ILIT(1116)
+tagOf_PrimOp ReadJBooleanArrayOp = _ILIT(1117)
+tagOf_PrimOp WriteJBooleanArrayOp = _ILIT(1118)
+tagOf_PrimOp NewJCharArrayOp = _ILIT(1119)
+tagOf_PrimOp ReadJCharArrayOp = _ILIT(1120)
+tagOf_PrimOp WriteJCharArrayOp = _ILIT(1121)
+tagOf_PrimOp NewJShortArrayOp = _ILIT(1122)
+tagOf_PrimOp ReadJShortArrayOp = _ILIT(1123)
+tagOf_PrimOp WriteJShortArrayOp = _ILIT(1124)
+tagOf_PrimOp NewJIntArrayOp = _ILIT(1125)
+tagOf_PrimOp ReadJIntArrayOp = _ILIT(1126)
+tagOf_PrimOp WriteJIntArrayOp = _ILIT(1127)
+tagOf_PrimOp NewJLongArrayOp = _ILIT(1128)
+tagOf_PrimOp ReadJLongArrayOp = _ILIT(1129)
+tagOf_PrimOp WriteJLongArrayOp = _ILIT(1130)
+tagOf_PrimOp NewJFloatArrayOp = _ILIT(1131)
+tagOf_PrimOp ReadJFloatArrayOp = _ILIT(1132)
+tagOf_PrimOp WriteJFloatArrayOp = _ILIT(1133)
+tagOf_PrimOp NewJDoubleArrayOp = _ILIT(1134)
+tagOf_PrimOp ReadJDoubleArrayOp = _ILIT(1135)
+tagOf_PrimOp WriteJDoubleArrayOp = _ILIT(1136)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2811,6 +2855,28 @@ allThePrimOps =
    , Int2JShortOp
    , JChar2WordOp
    , Word2JCharOp
+   , NewJByteArrayOp
+   , NewJBooleanArrayOp
+   , ReadJBooleanArrayOp
+   , WriteJBooleanArrayOp
+   , NewJCharArrayOp
+   , ReadJCharArrayOp
+   , WriteJCharArrayOp
+   , NewJShortArrayOp
+   , ReadJShortArrayOp
+   , WriteJShortArrayOp
+   , NewJIntArrayOp
+   , ReadJIntArrayOp
+   , WriteJIntArrayOp
+   , NewJLongArrayOp
+   , ReadJLongArrayOp
+   , WriteJLongArrayOp
+   , NewJFloatArrayOp
+   , ReadJFloatArrayOp
+   , WriteJFloatArrayOp
+   , NewJDoubleArrayOp
+   , ReadJDoubleArrayOp
+   , WriteJDoubleArrayOp
    ]
 
 tagToEnumKey :: Unique
@@ -4080,6 +4146,94 @@ primOpInfo JShort2IntOp = mkGenPrimOp (fsLit "jshort2int#")  [] [jshortPrimTy] i
 primOpInfo Int2JShortOp = mkGenPrimOp (fsLit "int2jshort#")  [] [intPrimTy] jshortPrimTy
 primOpInfo JChar2WordOp = mkGenPrimOp (fsLit "jchar2word#")  [] [jcharPrimTy] wordPrimTy
 primOpInfo Word2JCharOp = mkGenPrimOp (fsLit "word2jchar#")  [] [wordPrimTy] jcharPrimTy
+primOpInfo NewJByteArrayOp =
+  mkGenPrimOp (fsLit "newJByteArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo NewJBooleanArrayOp =
+  mkGenPrimOp (fsLit "newJBooleanArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJBooleanArrayOp =
+  mkGenPrimOp (fsLit "readJBooleanArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, intPrimTy]
+primOpInfo WriteJBooleanArrayOp =
+  mkGenPrimOp (fsLit "writeJBooleanArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo NewJCharArrayOp =
+  mkGenPrimOp (fsLit "newJCharArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJCharArrayOp =
+  mkGenPrimOp (fsLit "readJCharArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, jcharPrimTy]
+primOpInfo WriteJCharArrayOp =
+  mkGenPrimOp (fsLit "writeJCharArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, jcharPrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo NewJShortArrayOp =
+  mkGenPrimOp (fsLit "newJShortArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJShortArrayOp =
+  mkGenPrimOp (fsLit "readJShortArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, jshortPrimTy]
+primOpInfo WriteJShortArrayOp =
+  mkGenPrimOp (fsLit "writeJShortArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, jshortPrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo NewJIntArrayOp =
+  mkGenPrimOp (fsLit "newJIntArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJIntArrayOp =
+  mkGenPrimOp (fsLit "readJIntArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, intPrimTy]
+primOpInfo WriteJIntArrayOp =
+  mkGenPrimOp (fsLit "writeJIntArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo NewJLongArrayOp =
+  mkGenPrimOp (fsLit "newJLongArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJLongArrayOp =
+  mkGenPrimOp (fsLit "readJLongArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, int64PrimTy]
+primOpInfo WriteJLongArrayOp =
+  mkGenPrimOp (fsLit "writeJLongArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, int64PrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo NewJFloatArrayOp =
+  mkGenPrimOp (fsLit "newJFloatArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJFloatArrayOp =
+  mkGenPrimOp (fsLit "readJFloatArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, floatPrimTy]
+primOpInfo WriteJFloatArrayOp =
+  mkGenPrimOp (fsLit "writeJFloatArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, floatPrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
+primOpInfo NewJDoubleArrayOp =
+  mkGenPrimOp (fsLit "newJDoubleArray#") [alphaTyVar, betaTyVar]
+  [ intPrimTy, mkStatePrimTy alphaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy alphaTy, mkObjectPrimTy betaTy]
+primOpInfo ReadJDoubleArrayOp =
+  mkGenPrimOp (fsLit "readJDoubleArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, mkStatePrimTy betaTy ]
+  $ mkTupleTy UnboxedTuple [mkStatePrimTy betaTy, doublePrimTy]
+primOpInfo WriteJDoubleArrayOp =
+  mkGenPrimOp (fsLit "writeJDoubleArray#") [alphaTyVar, betaTyVar]
+  [ mkObjectPrimTy alphaTy, intPrimTy, doublePrimTy, mkStatePrimTy betaTy ]
+  $ mkStatePrimTy betaTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4659,12 +4813,34 @@ primOpHasSideEffects PrefetchByteArrayOp0 = True
 primOpHasSideEffects PrefetchMutableByteArrayOp0 = True
 primOpHasSideEffects PrefetchAddrOp0 = True
 primOpHasSideEffects PrefetchValueOp0 = True
-primOpHasSideEffects ObjectArrayAtOp     = True
-primOpHasSideEffects ObjectArraySetOp    = True
-primOpHasSideEffects ObjectArrayNewOp    = True
-primOpHasSideEffects ArrayLengthOp       = True
+primOpHasSideEffects ObjectArrayAtOp      = True
+primOpHasSideEffects ObjectArraySetOp     = True
+primOpHasSideEffects ObjectArrayNewOp     = True
+primOpHasSideEffects ArrayLengthOp        = True
 primOpHasSideEffects ReadJByteArrayOp     = True
 primOpHasSideEffects WriteJByteArrayOp    = True
+primOpHasSideEffects NewJByteArrayOp      = True
+primOpHasSideEffects NewJBooleanArrayOp   = True
+primOpHasSideEffects ReadJBooleanArrayOp  = True
+primOpHasSideEffects WriteJBooleanArrayOp = True
+primOpHasSideEffects NewJCharArrayOp      = True
+primOpHasSideEffects ReadJCharArrayOp     = True
+primOpHasSideEffects WriteJCharArrayOp    = True
+primOpHasSideEffects NewJShortArrayOp     = True
+primOpHasSideEffects ReadJShortArrayOp    = True
+primOpHasSideEffects WriteJShortArrayOp   = True
+primOpHasSideEffects NewJIntArrayOp       = True
+primOpHasSideEffects ReadJIntArrayOp      = True
+primOpHasSideEffects WriteJIntArrayOp     = True
+primOpHasSideEffects NewJLongArrayOp      = True
+primOpHasSideEffects ReadJLongArrayOp     = True
+primOpHasSideEffects WriteJLongArrayOp    = True
+primOpHasSideEffects NewJFloatArrayOp     = True
+primOpHasSideEffects ReadJFloatArrayOp    = True
+primOpHasSideEffects WriteJFloatArrayOp   = True
+primOpHasSideEffects NewJDoubleArrayOp    = True
+primOpHasSideEffects ReadJDoubleArrayOp   = True
+primOpHasSideEffects WriteJDoubleArrayOp  = True
 primOpHasSideEffects _ = False
 
 primOpCanFail :: PrimOp -> Bool
@@ -4858,6 +5034,28 @@ primOpCanFail ReadJByteArrayOp    = True
 primOpCanFail WriteJByteArrayOp   = True
 primOpCanFail ClassCastOp         = True
 primOpCanFail IsNullObjectOp        = True
+primOpCanFail NewJByteArrayOp      = True
+primOpCanFail NewJBooleanArrayOp   = True
+primOpCanFail ReadJBooleanArrayOp  = True
+primOpCanFail WriteJBooleanArrayOp = True
+primOpCanFail NewJCharArrayOp      = True
+primOpCanFail ReadJCharArrayOp     = True
+primOpCanFail WriteJCharArrayOp    = True
+primOpCanFail NewJShortArrayOp     = True
+primOpCanFail ReadJShortArrayOp    = True
+primOpCanFail WriteJShortArrayOp   = True
+primOpCanFail NewJIntArrayOp       = True
+primOpCanFail ReadJIntArrayOp      = True
+primOpCanFail WriteJIntArrayOp     = True
+primOpCanFail NewJLongArrayOp      = True
+primOpCanFail ReadJLongArrayOp     = True
+primOpCanFail WriteJLongArrayOp    = True
+primOpCanFail NewJFloatArrayOp     = True
+primOpCanFail ReadJFloatArrayOp    = True
+primOpCanFail WriteJFloatArrayOp   = True
+primOpCanFail NewJDoubleArrayOp    = True
+primOpCanFail ReadJDoubleArrayOp   = True
+primOpCanFail WriteJDoubleArrayOp  = True
 primOpCanFail _ = False
 
 primOpOkForSpeculation :: PrimOp -> Bool

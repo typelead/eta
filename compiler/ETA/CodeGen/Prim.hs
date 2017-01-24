@@ -825,9 +825,35 @@ simpleOp Word2Word64 = Just $ unsignedExtend . head
 -- TODO: Right conversion?
 simpleOp Word64ToWord = Just $ normalOp $ gconv jlong jint
 simpleOp DecodeDoubleInteger = Just $ normalOp $ gconv jlong jint
+
 simpleOp IndexJByteArrayOp = Just $ normalOp $ gaload jbyte
 simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
 simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
+
+simpleOp NewJByteArrayOp      = Just $ normalOp $ new (jarray jbyte)
+simpleOp NewJBooleanArrayOp   = Just $ normalOp $ new (jarray jbool)
+simpleOp ReadJBooleanArrayOp  = Just $ normalOp $ gaload jbool
+simpleOp WriteJBooleanArrayOp = Just $ normalOp $ gastore jbool
+simpleOp NewJCharArrayOp      = Just $ normalOp $ new (jarray jchar)
+simpleOp ReadJCharArrayOp     = Just $ normalOp $ gaload jchar
+simpleOp WriteJCharArrayOp    = Just $ normalOp $ gastore jchar
+simpleOp NewJShortArrayOp     = Just $ normalOp $ new (jarray jshort)
+simpleOp ReadJShortArrayOp    = Just $ normalOp $ gaload jshort
+simpleOp WriteJShortArrayOp   = Just $ normalOp $ gastore jshort
+simpleOp NewJIntArrayOp       = Just $ normalOp $ new (jarray jint)
+simpleOp ReadJIntArrayOp      = Just $ normalOp $ gaload jint
+simpleOp WriteJIntArrayOp     = Just $ normalOp $ gastore jint
+simpleOp NewJLongArrayOp      = Just $ normalOp $ new (jarray jlong)
+simpleOp ReadJLongArrayOp     = Just $ normalOp $ gaload jlong
+simpleOp WriteJLongArrayOp    = Just $ normalOp $ gastore jlong
+simpleOp NewJFloatArrayOp     = Just $ normalOp $ new (jarray jfloat)
+simpleOp ReadJFloatArrayOp    = Just $ normalOp $ gaload jfloat
+simpleOp WriteJFloatArrayOp   = Just $ normalOp $ gastore jfloat
+simpleOp NewJDoubleArrayOp    = Just $ normalOp $ new (jarray jdouble)
+simpleOp ReadJDoubleArrayOp   = Just $ normalOp $ gaload jdouble
+simpleOp WriteJDoubleArrayOp  = Just $ normalOp $ gastore jdouble
+
+-- TODO: Take care of converting the StackMapTable as well
 simpleOp Int2JBoolOp = Just idOp
 simpleOp JByte2CharOp = Just $ normalOp preserveByte
 simpleOp JByte2IntOp = Just idOp
