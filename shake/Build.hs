@@ -212,7 +212,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
           copyFile' "utils/coursier/coursier" (binPath </> "coursier")
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
-        unit $ cmd "eta-pkg" "init" (packageConfDir rootDir)
+        unit $ cmd ["eta-pkg","init",packageConfDir rootDir]
         unit $ cmd "epm update"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
