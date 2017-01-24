@@ -911,7 +911,7 @@ lists the exported types and their element types.
 Example
 """""""
 
-.. code-block::
+.. code::
 
   {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -938,7 +938,7 @@ corresponds to ``String[]`` in Java and has ``JString`` as the element type.
 Example
 """""""
 
-.. code-block::
+.. code::
 
     {-# LANGUAGE MagicHash, MultiParamTypeClasses, ScopedTypeVariables #-}
 
