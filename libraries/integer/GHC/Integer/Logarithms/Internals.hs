@@ -30,8 +30,8 @@ integerLog2# (J# o#) = log2Integer# o#
 integerLog2IsPowerOf2# :: Integer -> (# Int#, Int# #)
 integerLog2IsPowerOf2# (S# i) =
   case int2Word# i of
-    w -> (# wordLog2# w, bool2Int# (isPowerOf2Word# w) #)
-integerLog2IsPowerOf2# (J# o#) = (# log2Integer# o#, bool2Int# (isPowerOf2Integer# o#) #)
+    w -> (# wordLog2# w, jbool2int# (isPowerOf2Word# w) #)
+integerLog2IsPowerOf2# (J# o#) = (# log2Integer# o#, jbool2int# (isPowerOf2Integer# o#) #)
 
 roundingMode# :: Integer -> Int# -> Int#
 roundingMode# (S# i) t =

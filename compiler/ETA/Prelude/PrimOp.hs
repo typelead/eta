@@ -546,8 +546,8 @@ data PrimOp
    | Int2JByteOp
    | JShort2IntOp
    | Int2JShortOp
-   | JChar2IntOp
-   | Int2JCharOp
+   | JChar2WordOp
+   | Word2JCharOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
@@ -1669,8 +1669,8 @@ tagOf_PrimOp GetSizeofMutableByteArrayOp = _ILIT(1109)
 tagOf_PrimOp Int2JByteOp = _ILIT(1110)
 tagOf_PrimOp JShort2IntOp = _ILIT(1111)
 tagOf_PrimOp Int2JShortOp = _ILIT(1112)
-tagOf_PrimOp JChar2IntOp = _ILIT(1113)
-tagOf_PrimOp Int2JCharOp = _ILIT(1114)
+tagOf_PrimOp JChar2WordOp = _ILIT(1113)
+tagOf_PrimOp Word2JCharOp = _ILIT(1114)
 tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
@@ -2809,8 +2809,8 @@ allThePrimOps =
    , Int2JByteOp
    , JShort2IntOp
    , Int2JShortOp
-   , JChar2IntOp
-   , Int2JCharOp
+   , JChar2WordOp
+   , Word2JCharOp
    ]
 
 tagToEnumKey :: Unique
@@ -4056,12 +4056,12 @@ primOpInfo WriteJByteArrayOp        =
   mkGenPrimOp (fsLit "writeJByteArray#") [alphaTyVar, betaTyVar]
   [ mkObjectPrimTy alphaTy, intPrimTy, jbytePrimTy, mkStatePrimTy betaTy ]
   $ mkStatePrimTy betaTy
-primOpInfo JByte2CharOp = mkGenPrimOp (fsLit "byte2Char#")  [] [jbytePrimTy] charPrimTy
-primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "bool2Int#")  [] [jboolPrimTy] intPrimTy
+primOpInfo JByte2CharOp = mkGenPrimOp (fsLit "jbyte2char#")  [] [jbytePrimTy] charPrimTy
+primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "jbool2int#")  [] [jboolPrimTy] intPrimTy
 primOpInfo StablePtr2AddrOp = mkGenPrimOp (fsLit "stablePtr2Addr#") [alphaTyVar] [mkStablePtrPrimTy alphaTy] addrPrimTy
 primOpInfo Addr2StablePtrOp = mkGenPrimOp (fsLit "addr2StablePtr#") [alphaTyVar] [addrPrimTy] (mkStablePtrPrimTy alphaTy)
-primOpInfo JByte2IntOp = mkGenPrimOp (fsLit "byte2Int#")  [] [jbytePrimTy] intPrimTy
-primOpInfo Int2JBoolOp = mkGenPrimOp (fsLit "int2Byte#")  [] [intPrimTy] jbytePrimTy
+primOpInfo JByte2IntOp = mkGenPrimOp (fsLit "jbyte2int#")  [] [jbytePrimTy] intPrimTy
+primOpInfo Int2JBoolOp = mkGenPrimOp (fsLit "int2jbool#")  [] [intPrimTy] jbytePrimTy
 primOpInfo ClassCastOp = mkGenPrimOp (fsLit "classCast#") [alphaTyVar, betaTyVar]
                                      [ mkObjectPrimTy alphaTy ] (mkObjectPrimTy betaTy)
 primOpInfo ObjectArrayNewOp =
@@ -4078,8 +4078,8 @@ primOpInfo IsNullObjectOp = mkGenPrimOp (fsLit "isNullObject#")  [alphaTyVar] [(
 primOpInfo Int2JByteOp = mkGenPrimOp (fsLit "int2jbyte#")  [] [intPrimTy] jbytePrimTy
 primOpInfo JShort2IntOp = mkGenPrimOp (fsLit "jshort2int#")  [] [jshortPrimTy] intPrimTy
 primOpInfo Int2JShortOp = mkGenPrimOp (fsLit "int2jshort#")  [] [intPrimTy] jshortPrimTy
-primOpInfo JChar2IntOp = mkGenPrimOp (fsLit "jchar2int#")  [] [jcharPrimTy] intPrimTy
-primOpInfo Int2JCharOp = mkGenPrimOp (fsLit "int2jchar#")  [] [intPrimTy] jcharPrimTy
+primOpInfo JChar2WordOp = mkGenPrimOp (fsLit "jchar2word#")  [] [jcharPrimTy] wordPrimTy
+primOpInfo Word2JCharOp = mkGenPrimOp (fsLit "word2jchar#")  [] [wordPrimTy] jcharPrimTy
 primOpInfo _ = error "primOpInfo: unknown primop"
 
 
@@ -4972,8 +4972,8 @@ primOpCodeSize Int2JBoolOp = 0
 primOpCodeSize Int2JByteOp = 0
 primOpCodeSize JShort2IntOp = 0
 primOpCodeSize Int2JShortOp = 0
-primOpCodeSize JChar2IntOp = 0
-primOpCodeSize Int2JCharOp = 0
+primOpCodeSize JChar2WordOp = 0
+primOpCodeSize Word2JCharOp = 0
 
 primOpCodeSize StablePtr2AddrOp = primOpCodeSizeForeignCall
 primOpCodeSize Addr2StablePtrOp = primOpCodeSizeForeignCall

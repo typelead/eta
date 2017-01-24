@@ -42,7 +42,7 @@ import GHC.Prim (
   geInt64#, leInt64#, leWord64#,
 
   -- Other
-  unsafeCoerce#, bool2Int#,
+  unsafeCoerce#, jbool2int#,
   jobjectArrayAt#
  )
 
@@ -359,7 +359,7 @@ gcdInteger a (S# INT_MINBOUND) = gcdInteger a minIntAsBig
 gcdInteger (S# a) (S# b) = S# (gcdInt a b)
 gcdInteger ia@(S# a)  ib@(J# o#)
  =      if isTrue# (a  ==# 0#) then absInteger ib
-   else if isTrue# (bool2Int# (o# `equalsInteger#` (zeroInteger# void#))) then absInteger ia
+   else if isTrue# (jbool2int# (o# `equalsInteger#` (zeroInteger# void#))) then absInteger ia
    else                             S# (gcdIntegerInt# absO absA)
        where !absA = if isTrue# (a <# 0#) then negateInt# a  else a
              !absO = absInteger# o#
@@ -751,7 +751,7 @@ recipModInteger (J# o1#) (J# o2#) = smartJ# (recipModInteger# o1# o2#)
 {-# NOINLINE testPrimeInteger #-}
 testPrimeInteger :: Integer -> Int# -> Int#
 testPrimeInteger j@(S# _) reps = testPrimeInteger (toBig j) reps
-testPrimeInteger (J# o#)  reps = bool2Int# (testPrimeInteger# o# reps)
+testPrimeInteger (J# o#)  reps = jbool2int# (testPrimeInteger# o# reps)
 
 -- | Compute next prime greater than @/n/@ probalistically.
 --

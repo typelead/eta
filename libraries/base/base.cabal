@@ -227,9 +227,10 @@ Library
         GHC.Weak
         GHC.Word
         Java
+        Java.Array
         Java.Core
         Java.Collections
-        Java.Array
+        Java.Primitive
         Java.String
         Java.Utils
         Numeric

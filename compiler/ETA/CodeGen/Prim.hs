@@ -834,8 +834,8 @@ simpleOp JByte2IntOp = Just idOp
 simpleOp Int2JByteOp = Just $ normalOp $ gconv jint jbyte
 simpleOp JShort2IntOp = Just idOp
 simpleOp Int2JShortOp = Just $ normalOp $ gconv jint jshort
-simpleOp JChar2IntOp = Just idOp
-simpleOp Int2JCharOp = Just $ normalOp $ gconv jint jchar
+simpleOp JChar2WordOp = Just $ normalOp preserveShort
+simpleOp Word2JCharOp = Just $ normalOp $ gconv jint jchar
 
 -- StgMutVar ops
 simpleOp ReadMutVarOp = Just $ normalOp mutVarValue

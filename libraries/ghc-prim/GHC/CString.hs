@@ -38,7 +38,7 @@ getBytesUtf8# :: JString# -> JByteArray#
 getBytesUtf8# this = getBytes this "UTF-8"#
 
 indexStrChar# :: JByteArray# -> Int# -> Char#
-indexStrChar# bytes n = byte2Char# (indexJByteArray# bytes n)
+indexStrChar# bytes n = jbyte2char# (indexJByteArray# bytes n)
 
 -----------------------------------------------------------------------------
 -- Unpacking C strings}
