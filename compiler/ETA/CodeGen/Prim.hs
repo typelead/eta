@@ -168,100 +168,99 @@ shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (Code
 shouldInlinePrimOp' dflags CopyArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "copyArray"
-                              [closureType, jint, closureType, jint, jint]
-                              (ret stgByteArrayType))
+ <> invokestatic (mkMethodRef stgArray "copyArray"
+                              [stgArrayType, jint, stgArrayType, jint, jint]
+                              void)
   ]
 
 shouldInlinePrimOp' dflags CopyMutableArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "copyArray"
-                              [closureType, jint, closureType, jint, jint]
-                              (ret stgByteArrayType))
+ <> invokestatic (mkMethodRef stgArray "copyArray"
+                              [stgArrayType, jint, stgArrayType, jint, jint]
+                              void)
   ]
 
 shouldInlinePrimOp' dflags CloneArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags CloneMutableArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags FreezeArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags ThawArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags CopySmallArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "copyArray"
-                              [closureType, jint, closureType, jint, jint]
-                              (ret stgByteArrayType))
+ <> invokestatic (mkMethodRef stgArray "copyArray"
+                              [stgArrayType, jint, stgArrayType, jint, jint]
+                              void)
   ]
 
 shouldInlinePrimOp' dflags CopySmallMutableArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "copyArray"
-                              [closureType, jint, closureType, jint, jint]
-                              (ret stgByteArrayType))
+ <> invokestatic (mkMethodRef stgArray "copyArray"
+                              [stgArrayType, jint, stgArrayType, jint, jint]
+                              void)
   ]
 
 shouldInlinePrimOp' dflags CloneSmallArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags CloneSmallMutableArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags FreezeSmallArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 shouldInlinePrimOp' dflags ThawSmallArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "cloneArray" [closureType, jint, jint]
-                                                        (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
+                                                    (ret stgArrayType))
   ]
 
 shouldInlinePrimOp' dflags CopyArrayArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "copyArray"
-                              [closureType, jint, closureType, jint, jint]
-                              (ret stgByteArrayType))
+ <> invokestatic (mkMethodRef stgArray "copyArray"
+                              [stgArrayType, jint, stgArrayType, jint, jint]
+                              void)
   ]
 
 shouldInlinePrimOp' dflags CopyMutableArrayArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgByteArray "copyArray"
-                              [closureType, jint, closureType, jint, jint]
-                              (ret stgByteArrayType))
+ <> invokestatic (mkMethodRef stgArray "copyArray"
+                              [stgArrayType, jint, stgArrayType, jint, jint]
+                              void)
   ]
-
 
 shouldInlinePrimOp' dflags NewByteArrayOp_Char args = Right $ return
   [
@@ -972,19 +971,19 @@ simpleOp StableNameToIntOp      = Just idOp
 simpleOp TouchOp                = Just $ const mempty
 simpleOp CopyAddrToByteArrayOp = Just $ normalOp $
   invokestatic $ mkMethodRef stgByteArray "copyAddrToByteArray"
-                   [byteBufferType, closureType, jint, jint] void
+                   [byteBufferType, stgByteArrayType, jint, jint] void
 simpleOp CopyMutableByteArrayToAddrOp = Just $ normalOp $
   invokestatic $ mkMethodRef stgByteArray "copyByteArrayToAddr"
-                   [closureType, jint, byteBufferType, jint] void
+                   [stgByteArrayType, jint, byteBufferType, jint] void
 simpleOp CopyByteArrayToAddrOp = Just $ normalOp $
   invokestatic $ mkMethodRef stgByteArray "copyByteArrayToAddr"
-                   [closureType, jint, byteBufferType, jint] void
+                   [stgByteArrayType, jint, byteBufferType, jint] void
 simpleOp CopyByteArrayOp = Just $ normalOp $
   invokestatic $ mkMethodRef stgByteArray "copyByteArray"
-                   [closureType, jint, closureType, jint, jint] void
+                   [stgByteArrayType, jint, stgByteArrayType, jint, jint] void
 simpleOp CopyMutableByteArrayOp = Just $ normalOp $
   invokestatic $ mkMethodRef stgByteArray "copyByteArray"
-                   [closureType, jint, closureType, jint, jint] void
+                   [stgByteArrayType, jint, stgByteArrayType, jint, jint] void
 simpleOp StablePtr2AddrOp = Just $ normalOp $
   invokestatic $ mkMethodRef "eta/runtime/stg/StablePtrTable" "stablePtr2Addr"
                    [jint] (ret byteBufferType)
