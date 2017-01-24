@@ -499,10 +499,10 @@ Deriving Standard Typeclass Instances
    data {-# CLASS "[class-name]" #-} X = X (Object# X)
      deriving (Class, Eq, Show)
 
-Currently, deriving the `Class`, `Eq`, and `Show` instances for JWTs is supported.
-You should derive these instances based on the need of the application. The `Eq`
-instance will use the underlying `Object.equals()` method and the `Show` instance
-will use `Object.toString()`.
+Currently, deriving the ``Class``, ``Eq``, and ``Show`` instances for JWTs is
+supported. You should derive these instances based on the need of the application.
+The ``Eq`` instance will use the underlying ``Object.equals()`` method and the
+``Show`` instance will use ``Object.toString()``.
 
 .. _marshalling-java-eta:
 
@@ -543,7 +543,7 @@ The following table lists the mapping from primitive Java types to Eta types.
 
    All the Eta types shown above can be treated as numbers since they have
    instances for ``Num`` and related typeclasses. Thus, you can use functions
-   like `fromIntegral` to convert between them.
+   like ``fromIntegral`` to convert between them.
 
 
 Java Classes & Arrays
@@ -578,7 +578,7 @@ a ``NullPointerException`` will occur when a method is invoked on that object.
 
 .. note::
 
-   Since `java.lang.String` is special and also used quite frequently in Java,
+   Since ``java.lang.String`` is special and also used quite frequently in Java,
    a JWT called ``JString`` is already provided for you. It supports the
    ``OverloadedStrings`` extensions so you can have expressions like
    ``"Some string" :: JString``.
@@ -594,7 +594,7 @@ as the state.
 
    newtype Java c a = Java {- Internal definition -}
 
-As can be seen from the above definition, the `Java` monad has *two* type
+As can be seen from the above definition, the ``Java`` monad has *two* type
 parameters ``c`` and ``a``. The ``c`` parameter should be some JWT and the ``a``
 parameter is the return type of the monad.
 
