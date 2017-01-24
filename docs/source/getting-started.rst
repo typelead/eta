@@ -46,12 +46,12 @@ Clone the repository and run the install script at the root of the repository:
 
     git clone --recursive https://github.com/typelead/eta
     cd eta
-    ./install.sh
+    ./install.sh # or install.cmd in windows command prompt
 
 .. note::
 
   If you omit the `--recursive` flag to `git clone`, you will need to
-  initialize the project's submodules before running `install.sh`:
+  initialize the project's submodules before running `install.sh` or `install.cmd`:
 
   .. code-block:: console
 
@@ -153,7 +153,7 @@ your system, and run the following command:
 
 .. code-block:: console
 
-   ./update.sh
+   ./update.sh # or update.cmd in windows command prompt
 
 This will do a fresh installation, recompiling all the core libraries with the most
 recent version of the compiler.
