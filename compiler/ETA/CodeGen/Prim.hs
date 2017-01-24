@@ -828,9 +828,14 @@ simpleOp DecodeDoubleInteger = Just $ normalOp $ gconv jlong jint
 simpleOp IndexJByteArrayOp = Just $ normalOp $ gaload jbyte
 simpleOp ReadJByteArrayOp  = Just $ normalOp $ gaload jbyte
 simpleOp WriteJByteArrayOp = Just $ normalOp $ gastore jbyte
+simpleOp Int2JBoolOp = Just idOp
 simpleOp JByte2CharOp = Just $ normalOp preserveByte
 simpleOp JByte2IntOp = Just idOp
-simpleOp Int2JBoolOp = Just idOp
+simpleOp Int2JByteOp = Just $ normalOp $ gconv jint jbyte
+simpleOp JShort2IntOp = Just idOp
+simpleOp Int2JShortOp = Just $ normalOp $ gconv jint jshort
+simpleOp JChar2WordOp = Just $ normalOp preserveShort
+simpleOp Word2JCharOp = Just $ normalOp $ gconv jint jchar
 
 -- StgMutVar ops
 simpleOp ReadMutVarOp = Just $ normalOp mutVarValue

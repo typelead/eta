@@ -26,11 +26,16 @@ module Java.Core
   , Class(..)
   , Extends(..)
   , Inherits(..)
-  , Java(..) )
+  , Java(..)
+  , Byte
+  , Short
+  , JChar
+  )
 where
 
 import GHC.Base
 import Data.Int(Int64)
+import Java.Primitive
 
 foreign import java unsafe "@new" globalObject :: Object
 

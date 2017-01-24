@@ -280,23 +280,18 @@ unboxArg vs arg
   , tc `hasKey` maybeTyConKey
   = do innerArg <- newSysLocalDs ty
        (primTy, primArg, bodyWrapper) <- unboxArg vs (Var innerArg)
-       -- let objType = head . snd
-       --             . expectJust "resultWrapper: splitTyConApp"
-       --             . splitTyConApp_maybe $ primTy
-       -- TODO: This fails for the 'Nothing' case
        return ( primTy
               , primArg
               , \body -> mkWildCase arg argType (exprType body)
-                          [ (DataAlt justDataCon, [innerArg], bodyWrapper body)
-                          , (DataAlt nothingDataCon, [],
+                          [ (DataAlt nothingDataCon, [],
                              mkCoreLet (NonRec (getIdFromTrivialExpr primArg)
                                                (mkCoreApps (Var unsafeCoerceId)
                                                            [ Type addrPrimTy
                                                            , Type primTy
                                                            , Lit nullAddrLit ]))
-                                       body)])
+                                       body),
+                            (DataAlt justDataCon, [innerArg], bodyWrapper body)])
   | isProductType && dataConArity == 1 = do
-      -- caseBinder <- newSysLocalDs argType
       primArg <- newSysLocalDs dataConArgTy1
       return ( dataConArgTy1
              , Var primArg

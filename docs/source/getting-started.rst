@@ -559,7 +559,7 @@ marshal to a Java class or return type:
 |   ``void``                   | ``()``       |
 +------------------------------+--------------+
 
-When writing FFI declarations that return objects, you be wrap the result type
+When writing FFI declarations that return objects, you can wrap the result type
 in a ``Maybe`` if the documentation of the corresponding Java method clearly
 states that ``null`` is a potential return type. It is always safe to wrap the
 result in a ``Maybe`` type, but the user will have to bear the burden of dealing
@@ -1254,9 +1254,11 @@ changes:
 Adding Maven Dependencies to Your Project
 -----------------------------------------
 
-You can include Maven dependencies in the format of ``[groupId]:[artifactId]:[version]``
-to include in your project in the ``maven-depends:`` field in the Cabal file. Each
-successive entry should be placed on a separate line and be separated with a comma.
+You can include Maven dependencies in the format of
+``[groupId]:[artifactId]:[version]`` to include in your project in the
+``maven-depends:`` field of the Cabal file under the ``library`` or
+``executable`` section. Each successive entry should be placed on a
+separate line and be separated with a comma.
 
 You can add specific Maven repositories to resolve your dependencies against
 with the ``maven-repos:`` field. You should specify each repository URL on its
@@ -1282,6 +1284,10 @@ Maven repositories:
 \*\* ``[owner]`` should be the owner of the  repository and ``[repo]`` should
      be the name of the Bintray repository.
 
+By default, ``epm`` tries to resolve your dependencies against
+``central``. So, you don't need to specify a repository unless
+required.
+
 .. note::
 
    If you need to access a Maven repository that requires credentials, you can
@@ -1294,6 +1300,12 @@ In this example, we'll be binding to the `Unirest <http://unirest.io/java>`_ lib
 
 Setup a project, just like :ref:`setting-up-first-project` with the following
 changes:
+
+#. Update ``eta-first.cabal``, adding a ``maven-depends:`` field:
+
+   .. code-block:: console
+
+      maven-depends: com.mashape.unirest:unirest-java:1.4.9
 
 #. **Main.hs**
 
@@ -1339,16 +1351,6 @@ changes:
             >- getBody
         putStrLn $ read (show response)
         shutdownUnirest
-
-
-#. Update ``eta-first.cabal``, adding a ``maven-depends:`` field:
-
-   .. code-block:: console
-
-      maven-depends: com.mashape.unirest:unirest-java:1.4.9
-
-   .. note::
-
 
 #. That's it! Run the example with ``epm run``.
 
