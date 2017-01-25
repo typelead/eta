@@ -79,4 +79,8 @@ public class MemoryManager {
     public static ByteBuffer bufSetOffset(ByteBuffer buf, int offset) {
         return (ByteBuffer) buf.position(buf.position() + offset);
     }
+
+    public static ByteBuffer bufSetLimit(ByteBuffer buf, int limit) {
+        return (ByteBuffer) buf.limit(buf.position() + limit);
+    }
 }
