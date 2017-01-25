@@ -933,7 +933,7 @@ The problematic code above can now be fixed::
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
     deriving Class
 
-  type instance Inherits File = '[Object, Serializable]
+  type instance Inherits File = '[Object]
 
   main :: IO ()
   main = do
@@ -950,7 +950,7 @@ We can even change the code above to use the `Java` monad::
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
     deriving Class
 
-  type instance Inherits File = '[Object, Serializable]
+  type instance Inherits File = '[Object]
 
   main :: IO ()
   main = do
