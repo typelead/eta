@@ -37,8 +37,8 @@ public class IO {
             StgMutVar mv = (StgMutVar) context.O(1);
             StgClosure f = context.R(1);
             Ap2Upd z = new Ap2Upd(f, null);
-            SelectorPUpd y = new SelectorPUpd(0, z);
-            SelectorPUpd r = new SelectorPUpd(1, z);
+            SelectorPUpd y = new SelectorPUpd(1, z);
+            SelectorPUpd r = new SelectorPUpd(2, z);
             do {
                 StgClosure x = mv.value;
                 z.p2 = x;
