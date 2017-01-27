@@ -40,6 +40,9 @@ etaIncludePath = (</> "include")
 getInstallDir :: Action FilePath
 getInstallDir = fmap (</> "bin") $ liftIO $ getAppUserDataDirectory "local"
 
+getEpmDir :: Action FilePath
+getEpmDir = liftIO $ getAppUserDataDirectory "epm"
+
 getEtaRoot :: Action FilePath
 getEtaRoot = liftIO $ getAppUserDataDirectory "eta"
 
@@ -198,24 +201,25 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
                  ++ "run 'eta-build uninstall' followed by 'eta-build"
                  ++ " install'."
       else do
-        -- Install the Coursier script if it doesn't exist already
-        Stdout out <- cmd "stack path --local-bin-path"
-        let binPath = last (lines out)
-        let coursierPath =  binPath </> "coursier"
-        exists <- doesFileExist coursierPath
-        if exists
-        then do
-          (Exit crExCode,Stdout crOut) <- cmd "java" 
-                                ["-jar","-noverify",coursierPath,"--help"]
-          case crExCode of
-               ExitSuccess -> putNormal $ "Found " ++ head (lines crOut)
-               ExitFailure code -> putNormal $ 
-                           "Error calling coursier with exit code: " ++ show code
-        else do
-          putNormal "Coursier not found, installing coursier..."
-          createDirIfMissing binPath
-          copyFile' "utils/coursier/coursier" coursierPath
-              
+        -- -- Install the Coursier script if it doesn't exist already
+        -- Stdout out <- cmd "stack path --local-bin-path"
+        -- let binPath = last (lines out)
+        -- let coursierPath =  binPath </> "coursier"
+        -- exists <- doesFileExist coursierPath
+        -- if exists
+        -- then do
+        --   (Exit crExCode,Stdout crOut) <- cmd "java"
+        --                         ["-jar","-noverify",coursierPath,"--help"]
+        --   case crExCode of
+        --        ExitSuccess -> putNormal $ "Found " ++ head (lines crOut)
+        --        ExitFailure code -> putNormal $
+        --                    "Error calling coursier with exit code: " ++ show code
+        -- else do
+        --   putNormal "Coursier not found, installing coursier..."
+        --   createDirIfMissing binPath
+        epmDir <- getEpmDir
+        copyFile' "utils/coursier/coursier" $ epmDir </> "coursier"
+
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd ["eta-pkg","init",packageConfDir rootDir]
