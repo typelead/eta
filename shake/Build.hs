@@ -218,6 +218,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         --   putNormal "Coursier not found, installing coursier..."
         --   createDirIfMissing binPath
         epmDir <- getEpmDir
+        createDirIfMissing epmDir
         copyFile' "utils/coursier/coursier" $ epmDir </> "coursier"
 
         liftIO $ createDirectory rootDir
