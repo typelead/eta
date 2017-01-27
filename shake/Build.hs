@@ -217,14 +217,12 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         -- else do
         --   putNormal "Coursier not found, installing coursier..."
         --   createDirIfMissing binPath
-        epmDir <- getEpmDir
-        createDirIfMissing epmDir
-        copyFile' "utils/coursier/coursier" $ epmDir </> "coursier"
-
         liftIO $ createDirectory rootDir
         let root x = rootDir </> x
         unit $ cmd ["eta-pkg","init",packageConfDir rootDir]
         unit $ cmd "epm update"
+        epmDir <- getEpmDir
+        copyFile' "utils/coursier/coursier" $ epmDir </> "coursier"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
