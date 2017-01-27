@@ -232,10 +232,10 @@ addMultiByteStringsToJar' jarLocation compress files  = do
   isRelative <- catch (parseRelFile jarLocation >> return True) handler
   if isRelative then do
     p <- parseRelFile jarLocation
-    withArchive p action
+    createArchive p action
   else do
     p <- parseAbsFile jarLocation
-    withArchive p action
+    createArchive p action
   where action =
           forM_ files $ \(path, contents) -> do
             entrySel <- mkEntrySelector path

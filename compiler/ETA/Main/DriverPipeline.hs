@@ -428,7 +428,7 @@ compileFiles hsc_env stop_phase srcs = do
 
 createJar :: DynFlags -> FilePath -> [FilePath] -> IO ()
 createJar dflags outputFile classes = do
-  createEmptyJar outputFile
+  -- createEmptyJar outputFile
   pathContents <- forM classes $ \classFile -> do
     contents <- BL.readFile classFile
     let internalPath = classFileCls contents

@@ -1228,7 +1228,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
         jarContents <- forM jarContents' $ \(a,b) -> do
           a' <- mkPath a
           return (a', b)
-        createEmptyJar output_filename
+        -- createEmptyJar output_filename
         addMultiByteStringsToJar' output_filename (compressionMethod dflags) jarContents
         return (output_filename, Nothing)
 
