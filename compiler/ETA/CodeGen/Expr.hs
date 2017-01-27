@@ -198,21 +198,20 @@ cgCase (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) binder altType alts
 cgCase scrut binder altType alts = do
   altLocs <- mapM newIdLoc retBinders
   -- Take into account uses for unboxed tuples
-  -- NOTE: For non-optimized code, a case-of-case expression
-  --       will yield bytecode errors, since we need to initialize
-  --       the binder of the result of evaluation, hence the extra
-  --       check. Currently, we only don't deal with unboxed tuples
-  --       since it doesn't seem to occur in practice. Revisit if so.
-  when (isCaseOfCase && numBinders == 1) $ do
-    emit $ storeDefault (head altLocs)
+  -- Case-of-case expressions need special care
+  -- Since there can be multiple bindings to return
+  -- binder.
+  when (isCaseOfCase scrut) $ do
+    emit $ fold (map storeDefault altLocs)
   withSequel (AssignTo altLocs) $ cgExpr scrut
   bindArgs $ zip retBinders altLocs
   cgAlts (NonVoid binder) altType alts
   where retBinders = chooseReturnBinders binder altType alts
-        isCaseOfCase = case snd (stripStgTicksTop (const True) scrut) of
-              StgCase _ _ _ _ _ _ _ -> True
-              _ -> False
-        numBinders = length retBinders
+        isCaseOfCase = go
+        go (StgLet _ e) = go e
+        go (StgTick _ e) = go e
+        go (StgCase _ _ _ _ _ _ _) = True
+        go _ = False
 
 chooseReturnBinders :: Id -> AltType -> [StgAlt] -> [NonVoid Id]
 chooseReturnBinders binder (PrimAlt _) _ = nonVoidIds [binder]
