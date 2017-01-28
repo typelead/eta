@@ -233,6 +233,7 @@ Library
         Java.Primitive
         Java.String
         Java.Utils
+        Java.Wrappers
         Numeric
         Numeric.Natural
         Prelude

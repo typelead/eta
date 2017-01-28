@@ -15,9 +15,9 @@
 -----------------------------------------------------------------------------
 
 module Java.Primitive
-  (Byte(..)
-  ,Short(..)
-  ,JChar(..))
+  ( Byte(..)
+  , Short(..)
+  , JChar(..) )
 where
 
 import Data.Bits
