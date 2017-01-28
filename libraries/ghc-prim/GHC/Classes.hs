@@ -373,3 +373,5 @@ class (Class a, Class b) => Extends a b where
 --   unsafeCast x = x
 
 instance (Class a, Class b, Extends' a b ~ Yes) => Extends a b where
+
+type (<:) a b = Extends a b

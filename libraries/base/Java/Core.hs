@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples,
-             FunctionalDependencies, ScopedTypeVariables #-}
+             FunctionalDependencies, ScopedTypeVariables, ExplicitNamespaces #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Core
@@ -25,6 +25,7 @@ module Java.Core
   , JString
   , Class(..)
   , Extends(..)
+  , type (<:)
   , Inherits(..)
   , Java(..)
   , Byte
