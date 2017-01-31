@@ -26,10 +26,9 @@ module Java.Array
     JFloatArray(..),
     JDoubleArray(..),
     JStringArray(..),
+    JObjectArray(..),
     JArray(..),
-    alength,
-    arrayToList,
-    arrayFromList,
+    alength
   )
 where
 
@@ -40,6 +39,7 @@ import GHC.Show
 import GHC.Int
 import Java.Core
 import Java.Primitive
+import Java.Utils
 
 class (Class c) => JArray e c | c -> e, e -> c where
   anew :: Int -> Java a c
@@ -190,6 +190,11 @@ data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JSt
 
 instance JArray JString JStringArray
 
+data {-# CLASS "java.lang.Object[]" #-} JObjectArray = JObjectArray (Object# JObjectArray)
+  deriving (Class, Show)
+
+instance JArray Object JObjectArray
+
 {-# INLINE alength #-}
 alength :: JArray e c => Java c Int
 alength = Java $ \o -> (# o, I# (alength# o) #)
@@ -213,3 +218,7 @@ arrayFromList xs = do
   return jarray
   where go _  []     = return ()
         go !n (x:xs) = aset n x >> go (n + 1) xs
+
+instance {-# OVERLAPS #-} (JArray e c) => JavaConverter [e] c where
+  toJava  xs = pureJava $ arrayFromList xs
+  fromJava c = pureJavaWith c arrayToList

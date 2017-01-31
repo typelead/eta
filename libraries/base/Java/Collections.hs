@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
-             FlexibleContexts, AllowAmbiguousTypes #-}
+             FlexibleContexts, DataKinds, AllowAmbiguousTypes,
+             TypeFamilies, ScopedTypeVariables, FlexibleInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Collections
@@ -16,17 +17,79 @@
 -----------------------------------------------------------------------------
 
 module Java.Collections
-  ( Iterator
-  , Iterable
-  , consume
-  , iterator
+  ( Collection
+  , add
+  , List
+  , Iterator
   , hasNext
-  , next )
+  , next
+  , Iterable
+  , iterator
+  , Enumeration
+  , hasMoreElements
+  , nextElement
+  , Dictionary
+  , Map
+  , Set
+  , Properties )
 where
 
 import GHC.Base
+import GHC.List
+import GHC.Read
+import Text.Read (read)
+import GHC.Show
+import Control.Monad
+import Control.Applicative
 import Java.Core
+import Java.String
 
+-- Collection
+data {-# CLASS "java.util.Collection" #-} Collection a =
+  Collection (Object# (Collection a))
+  deriving Class
+
+type instance Inherits (Collection a) = '[Iterable a]
+
+foreign import java unsafe "@interface add" add ::
+  (Extends a Object, Extends b (Collection a)) => a -> Java b Bool
+
+toCollection :: (Extends a Object, Extends b (Collection a))
+             => (Int -> Java c b) -> [a] -> b
+toCollection f xs = pureJava $ do
+  coll <- f (length xs)
+  withObject coll $ mapM_ add xs
+  return coll
+
+instance Extends a Object => JavaConverter [a] (Collection a) where
+  toJava   = superCast . toArrayList
+  fromJava = consumeGen . superCast
+
+-- List
+data {-# CLASS "java.util.List" #-} List a =
+  List (Object# (List a))
+  deriving Class
+
+type instance Inherits (List a) = '[Collection a]
+
+instance Extends a Object => JavaConverter [a] (List a) where
+  toJava   = superCast . toArrayList
+  fromJava = consumeGen . superCast
+
+-- ArrayList
+data {-# CLASS "java.util.ArrayList" #-} ArrayList a =
+  ArrayList (Object# (ArrayList a))
+  deriving Class
+
+type instance Inherits (ArrayList a) = '[Object, List a]
+
+foreign import java unsafe "@new" newArrayList
+  :: Extends a Object => Int -> Java b (ArrayList a)
+
+toArrayList :: (Extends a Object) => [a] -> ArrayList a
+toArrayList = toCollection newArrayList
+
+-- Iterator
 data {-# CLASS "java.util.Iterator" #-} Iterator a =
   Iterator (Object# (Iterator a))
   deriving Class
@@ -37,8 +100,8 @@ foreign import java unsafe "@interface hasNext"
 foreign import java unsafe "@interface next"
   next :: (Extends a Object) => Java (Iterator a) a
 
-consume :: (Extends a Object) => Iterator a -> [a]
-consume it = pureJavaWith it (go id)
+consumeItr :: (Extends a Object) => Iterator a -> [a]
+consumeItr it = pureJavaWith it (go id)
   where go acc = do
           continue <- hasNext
           if continue
@@ -47,9 +110,222 @@ consume it = pureJavaWith it (go id)
             go (acc . (e:))
           else return (acc [])
 
+produceItr :: forall a. (Extends a Object) => [a] -> Iterator a
+produceItr xs = pureJavaWith (superCast (toArrayList xs) :: Iterable a) iterator
+
+instance Extends a Object => JavaConverter [a] (Iterator a) where
+  toJava   = produceItr
+  fromJava = consumeItr
+
+-- Iterable
 data {-# CLASS "java.lang.Iterable" #-} Iterable a =
   Iterable (Object# (Iterable a))
   deriving Class
 
 foreign import java unsafe "@interface iterator"
   iterator :: (Extends a Object, Extends b (Iterable a)) => Java b (Iterator a)
+
+consumeGen :: (Extends a Object) => Iterable a -> [a]
+consumeGen it = pureJava $ do
+  itr <- it <.> iterator
+  return $ consumeItr itr
+
+instance Extends a Object => JavaConverter [a] (Iterable a) where
+  toJava   = superCast . toArrayList
+  fromJava = consumeGen . superCast
+
+-- Enumeration
+data {-# CLASS "java.util.Enumeration" #-} Enumeration a =
+  Enumeration (Object# (Enumeration a))
+  deriving Class
+
+foreign import java unsafe "@interface hasMoreElements"
+  hasMoreElements :: (Extends a Object) => Java (Enumeration a) Bool
+
+foreign import java unsafe "@interface nextElement"
+  nextElement :: (Extends a Object) => Java (Enumeration a) a
+
+consumeEnum :: (Extends a Object) => Enumeration a -> [a]
+consumeEnum it = pureJavaWith it (go id)
+  where go acc = do
+          continue <- hasMoreElements
+          if continue
+          then do
+            e <- nextElement
+            go (acc . (e:))
+          else return (acc [])
+
+instance Extends a Object => JavaConverter [a] (Enumeration a) where
+  toJava xs = pureJavaWith (toVector xs) elements
+  fromJava  = consumeEnum
+
+-- Vector
+data {-# CLASS "java.util.Vector" #-} Vector a = Vector (Object# (Vector a))
+  deriving Class
+
+type instance Inherits (Vector a) = '[Object, List a]
+
+foreign import java unsafe "@new" newVector
+  :: Extends a Object => Int -> Java b (Vector a)
+
+foreign import java unsafe elements
+  :: Extends a Object => Java (Vector a) (Enumeration a)
+
+toVector :: Extends a Object => [a] -> Vector a
+toVector = toCollection newVector
+
+-- Dictionary
+data {-# CLASS "java.util.Dictionary" #-} Dictionary k v =
+  Dictionary (Object# (Dictionary k v))
+  deriving Class
+
+foreign import java unsafe keys
+  :: (Extends k Object, Extends v Object)
+  => Java (Dictionary k v) (Enumeration k)
+
+foreign import java unsafe get
+  :: (Extends k Object, Extends v Object)
+  => Object -> Java (Dictionary k v) v
+
+fromDictionary :: (Extends k Object, Extends v Object)
+               => Dictionary k v -> [(k, v)]
+fromDictionary dict = pureJavaWith dict $ do
+  ks <- keys
+  forM (fromJava ks) $ \k -> do
+    v <- get (superCast k)
+    return (k, v)
+
+instance (Extends k Object, Extends v Object)
+  => JavaConverter [(k, v)] (Dictionary k v) where
+  toJava   = superCast . toHashtable
+  fromJava = fromDictionary
+
+-- Hashtable
+data {-# CLASS "java.util.Hashtable" #-} Hashtable k v =
+  Hashtable (Object# (Hashtable k v))
+  deriving Class
+
+type instance Inherits (Hashtable k v) = '[Dictionary k v, Map k v]
+
+foreign import java unsafe "@new" newHashtable
+  :: (Extends k Object, Extends v Object) => Int -> Java a (Hashtable k v)
+
+toHashtable :: (Extends k Object, Extends v Object) => [(k, v)] -> Hashtable k v
+toHashtable elems = pureJava $ do
+  ht <- newHashtable (length elems)
+  withObject ht $
+    forM_ elems $ \(k, v) ->
+      put k v
+  return ht
+
+-- Map
+data {-# CLASS "java.util.Map" #-} Map k v =
+  Map (Object# (Map k v))
+  deriving Class
+
+foreign import java unsafe "@interface put" put
+  :: (Extends k Object, Extends v Object, Extends b (Map k v))
+  => k -> v -> Java b v
+
+foreign import java unsafe "@interface entrySet" entrySet
+  :: (Extends k Object, Extends v Object, Extends b (Map k v))
+  => Java b (Set (MapEntry k v))
+
+-- Map.Entry
+data {-# CLASS "java.util.Map$Entry" #-} MapEntry k v =
+  MapEntry (Object# (MapEntry k v))
+  deriving Class
+
+foreign import java unsafe "@interface getKey" getKey
+  :: (Extends k Object, Extends v Object)
+  => Java (MapEntry k v) k
+
+foreign import java unsafe "@interface getValue" getValue
+  :: (Extends k Object, Extends v Object)
+  => Java (MapEntry k v) v
+
+fromMap :: forall k v. (Extends k Object, Extends v Object) => Map k v -> [(k, v)]
+fromMap m = pureJavaWith m $ do
+  (set :: Set (MapEntry k v)) <- entrySet
+  forM (fromJava set) $ \me ->
+    withObject me $ (,) <$> getKey <*> getValue
+
+instance (Extends k Object, Extends v Object)
+  => JavaConverter [(k, v)] (Map k v) where
+  toJava   = superCast . toHashMap
+  fromJava = fromMap
+
+data {-# CLASS "java.util.HashMap" #-} HashMap k v =
+  HashMap (Object# (HashMap k v))
+  deriving Class
+
+type instance Inherits (HashMap k v) = '[Object, Map k v]
+
+foreign import java unsafe "@new" newHashMap
+  :: (Extends k Object, Extends v Object) => Int -> Java a (HashMap k v)
+
+toHashMap :: (Extends k Object, Extends v Object) => [(k, v)] -> HashMap k v
+toHashMap elems = pureJava $ do
+  ht <- newHashMap (length elems)
+  withObject ht $
+    forM_ elems $ \(k, v) ->
+      put k v
+  return ht
+
+-- Set
+data {-# CLASS "java.util.Set" #-} Set a = Set (Object# (Set a))
+  deriving Class
+
+type instance Inherits (Set a) = '[Collection a, Iterable a]
+
+data {-# CLASS "java.util.HashSet" #-} HashSet a = HashSet (Object# (HashSet a))
+  deriving Class
+
+foreign import java unsafe "@new" newHashSet
+  :: Extends a Object => Int -> Java b (HashSet a)
+
+toHashSet :: Extends a Object => [a] -> HashSet a
+toHashSet = toCollection newHashSet
+
+type instance Inherits (HashSet a) = '[Object, Set a]
+
+instance Extends a Object => JavaConverter [a] (Set a) where
+  toJava   = superCast . toHashSet
+  fromJava = consumeGen . superCast
+
+-- Properties
+data {-# CLASS "java.util.Properties" #-} Properties =
+  Properties (Object# Properties)
+  deriving Class
+
+type instance Inherits Properties = '[Object, Map Object Object]
+
+foreign import java unsafe "@new" newProperties :: Java a Properties
+
+foreign import java unsafe stringPropertyNames
+  :: Java Properties (Set JString)
+
+foreign import java unsafe getProperty
+  :: JString -> Java Properties String
+
+foreign import java unsafe setProperty
+  :: String -> String -> Java Properties ()
+
+toProperties :: (Show a, Show b) => [(a, b)] -> Properties
+toProperties props = pureJava $ do
+  props' <- newProperties
+  withObject props' $ do
+    forM_ props $ \(key, val) ->
+      setProperty (show key) (show val)
+  return props'
+
+fromProperties :: (Read a, Read b) => Properties -> [(a, b)]
+fromProperties props = pureJavaWith props $ do
+  properties <- stringPropertyNames
+  forM (fromJava properties) $ \key -> do
+    val <- getProperty key
+    return (read (fromJava key), read val)
+
+instance (Show a, Show b, Read a, Read b) => JavaConverter [(a, b)] Properties where
+  toJava   = toProperties
+  fromJava = fromProperties

@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples,
-             FunctionalDependencies, ScopedTypeVariables, ExplicitNamespaces #-}
+             FunctionalDependencies, ScopedTypeVariables, ExplicitNamespaces,
+             UnliftedFFITypes, FlexibleInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Core
@@ -16,8 +17,9 @@
 -----------------------------------------------------------------------------
 
 module Java.Core
-  ( java, javaWith, pureJava, pureJavaWith, io, withObject,
-    (<.>), (>-)
+  ( java, javaWith, pureJava, pureJavaWith, io, withObject
+  , maybeToJava, maybeFromJava
+  , (<.>), (>-)
   -- Useful exports
   , Int64
   , Object#
@@ -31,6 +33,7 @@ module Java.Core
   , Byte
   , Short
   , JChar
+  , JavaConverter(..)
   )
 where
 
@@ -80,3 +83,16 @@ io (IO m) = Java $ \o -> case m realWorld# of (# _, a #) -> (# o, a #)
              (# a', b #) ->
                case n (unobj b) of
                  (# _, c #) -> (# a', c #)
+
+class JavaConverter a b where
+  toJava   :: a -> b
+  fromJava :: b -> a
+
+maybeToJava :: (JavaConverter a b, Class b) => Maybe a -> b
+maybeToJava (Just x) = toJava x
+maybeToJava Nothing  = obj (unsafeCoerce# nullAddr#)
+
+maybeFromJava :: (JavaConverter a b, Class b) => b -> Maybe a
+maybeFromJava x = case isNullObject# (unobj x) of
+  0# -> Just (fromJava x)
+  _  -> Nothing

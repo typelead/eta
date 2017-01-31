@@ -16,12 +16,20 @@
 -----------------------------------------------------------------------------
 
 module Java.Utils
-  ( JClass, getClass, toString, equals, classObject, hashCode, Proxy(..), eqObject#, toString#)
+  ( JClass
+  , getClass
+  , toString
+  , equals
+  , classObject
+  , hashCode
+  , Proxy(..)
+  , eqObject#
+  , toString# )
 where
 
 import GHC.Base
-import Java.String
 import Data.Proxy
+import Java.String
 
 data {-# CLASS "java.lang.Class" #-} JClass a = JClass (Object# (JClass a))
   deriving Class

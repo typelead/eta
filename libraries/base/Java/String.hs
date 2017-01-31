@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples, BangPatterns,
+             FlexibleInstances, MultiParamTypeClasses #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -31,6 +32,7 @@ import Data.Char
 import Foreign
 import GHC.Show (Show(..))
 import GHC.Pack (unpackCString)
+import Java.Core
 
 fromJString :: JString -> String
 fromJString = unpackCString
@@ -42,6 +44,10 @@ instance IsString JString where
 
 instance Show JString where
   show = show . fromJString
+
+instance JavaConverter String JString where
+  toJava   = toJString
+  fromJava = fromJString
 
 -- TODO: Move this to a more appropriate place
 {-# INLINE inlinePerformIO #-}

@@ -31,12 +31,10 @@ import GHC.Base
 import GHC.Show
 import GHC.Int
 import GHC.Real
+import Java.Core
 import Java.Primitive
 import Java.String
-
-class JavaConverter a b where
-  toJava   :: a -> b
-  fromJava :: b -> a
+import Java.Array
 
 data {-# CLASS "java.lang.Boolean" #-} JBoolean = JBoolean (Object# JBoolean)
   deriving (Class, Eq, Show)
@@ -115,7 +113,3 @@ foreign import java unsafe doubleValue :: JDouble -> Double
 instance JavaConverter Double JDouble where
   toJava   = toJDouble
   fromJava = doubleValue
-
-instance JavaConverter String JString where
-  toJava   = toJString
-  fromJava = fromJString
