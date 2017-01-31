@@ -32,7 +32,7 @@ public class Verify {
                 // -6 because of .class
                 String className = je.getName().substring(0,je.getName().length()-6);
                 className = className.replace('/', '.');
-                Class c = cl.loadClass(className);
+                Class.forName(className, true, cl);
             }
 
             System.out.println("All classes passed verification.");
