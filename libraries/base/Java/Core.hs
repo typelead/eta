@@ -4,7 +4,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Core
--- Copyright   :  (c) Rahul Muttineni 2016
+-- Copyright   :  (c) Rahul Muttineni 2016-2017
 --
 -- License     :  BSD-style (see the file libraries/base/LICENSE)
 --

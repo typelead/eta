@@ -576,16 +576,23 @@ dsFExport closureId co externalName classSpec = do
       numApplied = length argTypes + 1
       apClass = apUpdName numApplied
       apFt = obj apClass
+      ap2Class = apUpdName 2
+      ap2Ft = obj ap2Class
   return ( rawClassSpec
          , mkMethodDef className [Public] methodName argFts resFt $
              invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
           <> gload classFt 0
-          -- TODO: Implement runJava :: Java a -> Java a that catches exceptions as well
+          <> new ap2Ft
+          <> dup ap2Ft
+          <> getstatic (mkFieldRef "base/java/TopHandler" "runJava_closure"
+                                   closureType)
           <> new apFt
           <> dup apFt
           <> loadClosureRef
           <> boxedArgs
           <> invokespecial (mkMethodRef apClass "<init>" (replicate numApplied closureType) void)
+          <> invokespecial (mkMethodRef ap2Class "<init>" [ closureType
+                                                          , closureType] void)
           -- TODO: Support java args > 5
           <> invokestatic (mkMethodRef rtsGroup "evalJava"
                                        [capabilityType, jobject, closureType]
@@ -709,7 +716,7 @@ dsFWrapper id co0 target isAbstract = do
         className           = tagTypeToText resType
         superClassName      = if isAbstract then className else jobjectC
         genClassFt          = obj genClassName
-        genClassName        = T.append className "$Eta"
+        genClassName        = T.concat ["eta/", className, "$Eta"]
         classSpec           = T.append genClassName $
                                  T.append (if isAbstract
                                            then " extends "

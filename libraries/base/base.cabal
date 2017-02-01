@@ -232,6 +232,7 @@ Library
         Java.Collections
         Java.Primitive
         Java.String
+        Java.TopHandler
         Java.Utils
         Java.Wrappers
         Numeric
