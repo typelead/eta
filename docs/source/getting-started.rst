@@ -11,9 +11,8 @@ Installating Eta
 
 Currently, the there are a few ways of installing Eta:
 
-1. Source
-2. Homebrew Tap (Mac OS)
-3. Docker
+#. Source
+#. Docker
 
 Work on setting up platform-specific installers is in progress.
 
@@ -81,7 +80,7 @@ WSL Workaround
 """"""""""""""
 
 An alternate method of installing Eta on Windows 10 is with WSL (`Windows sub-system for Linux <https://msdn.microsoft.com/en-gb/commandline/wsl/about>`_).
- 
+
 Prerequisites
 """""""""""""
 
@@ -90,40 +89,7 @@ Prerequisites
 3. Enter the root folder of WSL, and create a “.local” folder, and then inside of this create a “bin” folder.
 4. Follow the source installation method.
 
-Method 2: Homebrew Tap (Mac OS)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**Estimated Time:** 30 minutes
-
-Until we have binary releases, brew formula located in
-`temporary tap <https://github.com/cema-sp/homebrew-tap>`_.
-
-Prerequisites
-"""""""""""""
-
-Mac OS comes with preinstalled Java & JDK.
-You can check version with following command: ``/usr/libexec/java_home -V``.
-
-If your version is lower than 1.7, make sure to upgrade (it is possible with ``homebrew cask``).
-
-Currently ``eta`` formula installs ``stack`` from homebrew (``haskell-stack`` formula).
-
-Installation
-""""""""""""
-
-Homebrew ``eta`` formula is HEAD-only (untill we have releases) and therefore should be
-installed with ``--HEAD`` flag:
-
-.. code-block:: console
-
-  brew install --HEAD cema-sp/tap/eta
-  brew test eta
-
-Once the installation is done, you will now have access to the following command-line tools:
-
-- ``eta`` - The main compiler
-- ``epm`` - The package manager and build tool
-
-Method 3: Docker
+Method 2: Docker
 ^^^^^^^^^^^^^^^^
 
 Prerequisites
@@ -296,7 +262,7 @@ in the Haskell ecosystem, read
 
       epm run
 
-   .. note:: 
+   .. note::
 
       Note that this will create a JAR file *without* dependencies. This is
       best suited for development. If you would like to generate an uberjar, make
@@ -458,7 +424,7 @@ Eta. This is done through **Java Wrapper Types (JWTs)**.
 General Syntax
 """"""""""""""
 
-**Syntax** 
+**Syntax**
 
 .. code::
 
@@ -492,7 +458,7 @@ In this example, we're declaring JWTs for the ``java.lang.Integer`` class and th
 Deriving Standard Typeclass Instances
 """""""""""""""""""""""""""""""""""""
 
-**Syntax** 
+**Syntax**
 
 .. code::
 
@@ -517,7 +483,7 @@ will be translated from Java types to Eta types. This translation process is cal
 Java Primitives
 """""""""""""""
 
-The following table lists the mapping from primitive Java types to Eta types. 
+The following table lists the mapping from primitive Java types to Eta types.
 
 +-----------------+------------+
 |    Java Type    |  Eta Type  |
@@ -759,7 +725,7 @@ The following are all equivalent ways of performing the get/set imports::
   foreign import java unsafe "@field path" getFilePath1 :: File -> IO String
   foreign import java unsafe "@field path" getFilePath2 :: File -> String
 
-  -- Imports for setting the field. 
+  -- Imports for setting the field.
   foreign import java unsafe "@field path" setFilePath  :: String -> Java File ()
   foreign import java unsafe "@field path" setFilePath1 :: File -> String -> IO ()
 
@@ -780,7 +746,7 @@ The following are all equivalent ways of performing the get/set imports::
   foreign import java unsafe "@static @field java.io.File.pathSeparator"
     getPathSeparator2 :: String
 
-  -- Imports for setting the field. 
+  -- Imports for setting the field.
   -- NOTE: These imports are only shown for illustration purposes, but they will
   -- crash if used since `pathSeparator` is a final field.
   foreign import java unsafe "@static @field java.io.File.pathSeparator"
@@ -850,7 +816,7 @@ Using different combinators, we can write it like this::
     if executes
     then putStrLn "File can execute!"
     else putStrLn "File cannot execute!"
-    
+
 Or::
 
   main :: IO ()
@@ -990,7 +956,7 @@ Motivation
 Eta does not understand subclasses by default, so if you try to use a method
 defined in a superclass on a subclass, it won't typecheck.
 
-Using the imports from :ref:`java-imports-examples`, 
+Using the imports from :ref:`java-imports-examples`,
 
 .. code::
 
