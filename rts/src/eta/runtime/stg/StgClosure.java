@@ -5,6 +5,7 @@ import java.io.Serializable;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.apply.Void;
+import eta.runtime.thunk.StgThunk;
 import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.RtsMessages.barf;
 
@@ -28,7 +29,8 @@ public class StgClosure implements Serializable {
     public void doUpdateThunk(Capability cap, StgTSO tso) {
         cap.checkBlockingQueues(tso);
     }
-    public boolean blackHole(Capability cap, MessageBlackHole msg) { return false; }
+    public boolean blackHole(StgThunk bh, Capability cap,
+                             MessageBlackHole msg) { return false; }
     public boolean isTrecHeader() { return false; }
     public boolean isFizzledSpark() { return true; }
 

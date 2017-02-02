@@ -17,10 +17,12 @@ import eta.runtime.concurrent.*;
 import eta.runtime.stm.*;
 import eta.runtime.stg.*;
 import eta.runtime.stg.Task.InCall;
+import eta.runtime.thunk.StgThunk;
 import static eta.runtime.stg.StgTSO.WhyBlocked.*;
 import static eta.runtime.stg.StgTSO.WhatNext.*;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RtsMessages.debugBelch;
 
 public final class StgTSO extends StgClosure {
     public static AtomicInteger maxThreadId = new AtomicInteger(0);
@@ -147,9 +149,14 @@ public final class StgTSO extends StgClosure {
     }
 
     @Override
-    public final boolean blackHole(Capability cap, MessageBlackHole msg) {
-        if (this.cap != cap) {
+    public final boolean blackHole(StgThunk bh, Capability cap,
+                                   MessageBlackHole msg) {
+        if (RtsFlags.ModeFlags.threaded && this.cap != cap) {
             cap.sendMessage(this.cap, msg);
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("cap %d: forwarding message to cap %d",
+                           cap.no, this.cap.no);
+            }
         } else {
             StgBlockingQueue bq = new StgBlockingQueue(this, msg);
             blockingQueues.offer(bq);
@@ -157,6 +164,10 @@ public final class StgTSO extends StgClosure {
                 cap.promoteInRunQueue(this);
             }
             msg.bh.indirectee = bq;
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("cap %d: thread %d blocked on thread %d",
+                           cap.no, msg.tso.id, id);
+            }
         }
         return false;
     }

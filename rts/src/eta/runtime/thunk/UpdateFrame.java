@@ -28,13 +28,15 @@ public abstract class UpdateFrame extends StackFrame {
     public void stackEnter(StgContext context) {
         StgClosure ret = context.R(1);
         StgClosure v = updatee.indirectee;
+        StgTSO tso = context.currentTSO;
+        Capability cap = context.myCapability;
         if (v.getEvaluated() != null) {
-            context.myCapability.checkBlockingQueues(context.currentTSO);
+            cap.checkBlockingQueues(tso);
             context.R(1, v);
-        } else if (v == context.currentTSO) {
+        } else if (v == tso) {
             updatee.updateWithIndirection(ret);
         } else {
-            context.myCapability.updateThunk(context.currentTSO, updatee, ret);
+            cap.updateThunk(tso, updatee, ret);
             context.R(1, ret);
         }
     }

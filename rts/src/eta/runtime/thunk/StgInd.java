@@ -11,7 +11,7 @@ public abstract class StgInd extends StgThunk {
             context.pushFrame(new StgUpdateFrame(this));
             thunkEnter(context);
         } else {
-            Thunk.blackHole(context, this, indirectee);
+            Thunk.blackHole(context, this);
         }
     }
 }

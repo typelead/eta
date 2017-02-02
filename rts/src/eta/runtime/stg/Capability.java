@@ -986,23 +986,26 @@ public final class Capability {
     }
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("cap: %d message: thread %d blocking on blackhole " + msg.bh
+                       , no, msg.tso.id, msg.bh);
+        }
+
         StgThunk bh = msg.bh;
         if (bh.getEvaluated() == null) {
-            boolean failure;
+            boolean newBlockingQueue;
             do {
-                failure = bh.indirectee.blackHole(this, msg);
-            } while (failure);
-            // TODO: Check this logic
-            if (bh.getEvaluated() != null) {
-                return false;
-            } else {
-                return true;
-            }
+                newBlockingQueue = bh.indirectee.blackHole(bh, this, msg);
+            } while (newBlockingQueue);
+            return true;
         }
         return false;
     }
 
     public final void checkBlockingQueues(StgTSO tso) {
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("cap %d: collision occured; checking blockign queues for thread %d", no, tso.id);
+        }
         for (StgBlockingQueue bq: tso.blockingQueues) {
             if (bq.bh.getEvaluated() != null) {
                 wakeBlockingQueue(bq);
