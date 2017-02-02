@@ -2,7 +2,6 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StgClosure;
-import eta.runtime.thunk.StgWhiteHole;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class StgWhiteHole extends StgClosure {
@@ -11,8 +10,7 @@ public class StgWhiteHole extends StgClosure {
 
     @Override
     public void enter(StgContext context) {
-        super.enter(context);
-        StgIndStatic node = (StgIndStatic) context.R(2);
+        StgThunk node = (StgThunk) context.R(1);
         int i = 0;
         /* TODO: Verify the condition */
         while (node.indirectee == closure) {

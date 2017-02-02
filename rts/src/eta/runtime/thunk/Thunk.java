@@ -70,21 +70,22 @@ public class Thunk {
                 if (indirectee.getClass() == StgRaise.class) {
                     indirectee.enter(context);
                 } else {
-                    debugBelch("Eval: " + eval + " Indirectee: " + blackhole.indirectee);
+                    Thread.yield();
+                    continue;
+                    // TODO: When context-switching is done, make this block.
                     /* TODO: Add a condition here to check the empty blocking queue case. */
-                    Capability cap = context.myCapability;
-                    StgTSO tso = context.currentTSO;
-                    MessageBlackHole msg = new MessageBlackHole(tso, blackhole);
-                    boolean blocked = cap.messageBlackHole(msg);
-                    if (blocked) {
-                        // TODO: When context-switching is done, make this block.
-                        tso.whyBlocked = BlockedOnBlackHole;
-                        tso.blockInfo = msg;
-                        context.R(1, blackhole);
-                        Thunk.block_blackhole.enter(context);
-                    } else {
-                        continue;
-                    }
+                    // Capability cap = context.myCapability;
+                    // StgTSO tso = context.currentTSO;
+                    // MessageBlackHole msg = new MessageBlackHole(tso, blackhole);
+                    // boolean blocked = cap.messageBlackHole(msg);
+                    // if (blocked) {
+                    //     tso.whyBlocked = BlockedOnBlackHole;
+                    //     tso.blockInfo = msg;
+                    //     context.R(1, blackhole);
+                    //     Thunk.block_blackhole.enter(context);
+                    // } else {
+                    //     continue;
+                    // }
                 }
             }
             break;
