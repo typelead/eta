@@ -309,23 +309,23 @@ foreign import java unsafe getProperty
   :: JString -> Java Properties String
 
 foreign import java unsafe setProperty
-  :: String -> String -> Java Properties ()
+  :: String -> String -> Java Properties Object
 
-toProperties :: (Show a, Show b) => [(a, b)] -> Properties
+toProperties :: [(String, String)] -> Properties
 toProperties props = pureJava $ do
   props' <- newProperties
   withObject props' $ do
     forM_ props $ \(key, val) ->
-      setProperty (show key) (show val)
+      setProperty key val
   return props'
 
-fromProperties :: (Read a, Read b) => Properties -> [(a, b)]
+fromProperties :: Properties -> [(String, String)]
 fromProperties props = pureJavaWith props $ do
   properties <- stringPropertyNames
   forM (fromJava properties) $ \key -> do
     val <- getProperty key
-    return (read (fromJava key), read val)
+    return (fromJava key, val)
 
-instance (Show a, Show b, Read a, Read b) => JavaConverter [(a, b)] Properties where
+instance JavaConverter [(String, String)] Properties where
   toJava   = toProperties
   fromJava = fromProperties
