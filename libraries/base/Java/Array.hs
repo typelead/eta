@@ -28,7 +28,9 @@ module Java.Array
     JStringArray(..),
     JObjectArray(..),
     JArray(..),
-    alength
+    alength,
+    arrayToList,
+    arrayFromList
   )
 where
 
