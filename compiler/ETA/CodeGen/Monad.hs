@@ -102,7 +102,11 @@ data CgState =
           -- Current method
           , cgCode           :: !Code
           , cgNextLocal      :: Int
-          , cgNextLabel      :: Int }
+          , cgNextLabel      :: Int
+          , cgNextTarget     :: Int
+          , cgMethodArgs     :: (Code, [CgLoc])
+          -- Check points in reverse
+          , cgCheckpoints    :: [(Int, Label, Code)] }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -199,6 +203,36 @@ setNextLocal n = modify $ \s -> s { cgNextLocal = n }
 
 setNextLabel :: Int -> CodeGen ()
 setNextLabel n = modify $ \s -> s { cgNextLabel = n }
+
+peekNextTarget :: CodeGen Int
+peekNextTarget = gets cgNextTarget
+
+setNextTarget :: Int -> CodeGen ()
+setNextTarget n = modify $ \s -> s { cgNextTarget = n }
+
+newTarget :: CodeGen (Int, Label)
+newTarget = do
+  label <- newLabel
+  next <- peekNextTarget
+  modify $ \s@CgState { cgNextTarget } ->
+             s { cgNextTarget = cgNextTarget + 1}
+  return (next, label)
+
+getMethodArgs :: CodeGen (Code, [CgLoc])
+getMethodArgs = gets cgMethodArgs
+
+setMethodArgs :: (Code, [CgLoc]) -> CodeGen ()
+setMethodArgs codeArgs = modify $ \s -> s { cgMethodArgs = codeArgs }
+
+getCheckpoints :: CodeGen [(Int, Label, Code)]
+getCheckpoints = gets cgCheckpoints
+
+setCheckpoints :: [(Int, Label, Code)] -> CodeGen ()
+setCheckpoints checkpoints = modify $ \s -> s { cgCheckpoints = checkpoints }
+
+addCheckpoint :: Int -> Label -> Code -> CodeGen ()
+addCheckpoint target label code = modify $ \s ->
+  s { cgCheckpoints = (target, label, code) : cgCheckpoints s }
 
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode
@@ -401,9 +435,14 @@ withMethod accessFlags name fts rt body = do
   oldCode <- getMethodCode
   oldNextLocal <- peekNextLocal
   oldNextLabel <- peekNextLabel
+  oldNextTarget <- peekNextTarget
+  oldMethodArgs <- getMethodArgs
+  oldCheckpoints <- getCheckpoints
   setMethodCode mempty
   setNextLocal 2
   setNextLabel 0
+  setNextTarget 1
+  setCheckpoints []
   body
   emit vreturn
   clsName <- getClass
@@ -413,6 +452,9 @@ withMethod accessFlags name fts rt body = do
   setMethodCode oldCode
   setNextLocal oldNextLocal
   setNextLabel oldNextLabel
+  setNextTarget oldNextTarget
+  setMethodArgs oldMethodArgs
+  setCheckpoints oldCheckpoints
   return methodDef
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
