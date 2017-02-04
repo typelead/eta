@@ -148,7 +148,7 @@ public class Concurrent {
             context.ret = ThreadBlocked;
             cap.threadPaused(tso);
             mvar.unlock();
-            throw StgException.stgReturnException;
+            context.save = true;
         }
     }
 
@@ -176,7 +176,7 @@ public class Concurrent {
             context.ret = ThreadBlocked;
             cap.threadPaused(tso);
             mvar.unlock();
-            throw StgException.stgReturnException;
+            context.save = true;
         }
     }
 

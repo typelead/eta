@@ -103,8 +103,8 @@ public final class Capability {
     public boolean disabled;
     public Deque<StgTSO> runQueue = new ArrayDeque<StgTSO>();
     public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
-    public boolean contextSwitch;
-    public boolean interrupt;
+    public volatile boolean contextSwitch;
+    public volatile boolean interrupt;
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
@@ -867,7 +867,7 @@ public final class Capability {
     }
 
     public final void stop() {
-        // Find a method to force the stopping of a thread;
+        context.save = true;
     }
 
     public final void throwToSingleThreaded(StgTSO tso, StgClosure exception) {

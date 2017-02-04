@@ -130,8 +130,11 @@ public class StgException extends RuntimeException {
                             Stg.threadFinished.enter(context);
                         } else {
                             /* TODO: Verify R1 is conserved on the next
-                               stack reload. */
-                            throw StgException.stackReloadException;
+                               stack reload.
+                               Verify that return is sufficient to handle
+                               just deleted stack frames.
+                               throw StgException.stackReloadException; */
+                            return;
                         }
                     } else {
                         sp.previous();
@@ -178,7 +181,9 @@ public class StgException extends RuntimeException {
             if (tso.whatNext == ThreadKilled) {
                 Stg.threadFinished.enter(context);
             } else {
-                throw StgException.stackReloadException;
+                /* TODO: Verify that no new stack frames were loaded.
+                   throw StgException.stackReloadException; */
+                return;
             }
         }
     }
@@ -226,7 +231,7 @@ public class StgException extends RuntimeException {
             if (msg.isLocked()) {
                 msg.unlock();
             }
-            throw stgReturnException;
+            context.save = true;
         }
     }
 

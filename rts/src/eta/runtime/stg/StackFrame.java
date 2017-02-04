@@ -25,9 +25,13 @@ public abstract class StackFrame extends StgClosure {
         while (sp.hasNext()) {
             sp.next().enter(context);
 
+            /* Do a check for context switching */
+            context.contextSwitchCheck();
+
             index = sp.previousIndex();
-            if (stackIndex != index) {
-                /* This case occurs when frames have been removed */
+            if (stackIndex != index || context.save) {
+                /* This case occurs when frames have been removed,
+                   or a context switch occurs */
                 return;
             }
             if (sp.hasPrevious()) {

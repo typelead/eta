@@ -2,6 +2,9 @@ package eta.runtime.stg;
 
 import java.util.ListIterator;
 
+import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
+import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+
 public class StgContext {
     public ArgumentStack argStack = new ArgumentStack();
     public StgTSO currentTSO;
@@ -11,11 +14,17 @@ public class StgContext {
     /* Used for ContinuationFrames */
     public int target;
     public ArgumentStack localsStack;
+    public ArgumentStack returnStack;
+    public volatile boolean save;
 
     public void reset(Capability cap, StgTSO t) {
         myCapability = cap;
         currentTSO = t;
         argStack = new ArgumentStack();
+        target = 0;
+        localsStack = null;
+        returnStack = null;
+        save = false;
     }
 
     public void pushFrame(StackFrame frame) {
@@ -59,6 +68,9 @@ public class StgContext {
     public boolean checkForStackFrames(int stackIndex, StackFrame frame) {
         ListIterator<StackFrame> sp = currentTSO.sp;
         do {
+            /* Do a check for context switching */
+            contextSwitchCheck();
+
             /* NOTE: This code bears a strong resemblance to
                      StackFrame.enter() and so the logic should stay consistent. */
             /* Grab the current index */
@@ -72,7 +84,10 @@ public class StgContext {
 
             StackFrame thisFrame = sp.previous();
             sp.next();
-            if (thisFrame == frame) {
+            if (save) {
+                /* Context switch */
+                return false;
+            } else if (thisFrame == frame) {
                 /* If the stack hasn't changed on us */
                 if (sp.hasNext()) {
                     /* If frames were added, enter them */
@@ -87,6 +102,14 @@ public class StgContext {
             }
 
         } while (true);
+    }
+
+    public void contextSwitchCheck() {
+        if (myCapability.contextSwitch || myCapability.interrupt) {
+            ret = ThreadYielding;
+            currentTSO.whatNext = ThreadRunGHC;
+            Stg.returnToSched.enter(this);
+        }
     }
 
     public StgClosure R(int index) {

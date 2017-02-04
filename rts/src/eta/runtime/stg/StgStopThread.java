@@ -24,7 +24,8 @@ public class StgStopThread extends StackFrame {
         sp.add(new StgEnter(ret));
         tso.whatNext = ThreadComplete;
         context.ret = ThreadFinished;
-        throw StgException.stgReturnException;
+        // TODO: Do we need to save?
+        // context.save = true;
     }
 
     @Override

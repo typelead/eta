@@ -32,7 +32,9 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
                 } else {
                     /* TODO: Verify R1 is conserved on the next
                              stack reload. */
-                    throw StgException.stackReloadException;
+                    /* TODO: Verify that no new frames are loaded. */
+                    // throw StgException.stackReloadException;
+                    return;
                 }
             } else {
                 sp.previous();

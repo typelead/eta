@@ -111,7 +111,7 @@ public class Stg {
             Capability cap = context.myCapability;
             StgTSO tso = context.currentTSO;
             cap.threadPaused(tso);
-            throw StgException.stgReturnException;
+            context.save = true;
         }
     }
 
@@ -150,7 +150,8 @@ public class Stg {
         @Override
         public void enter(StgContext context) {
             context.ret = ThreadFinished;
-            throw StgException.stgReturnException;
+            /* TODO: Do we need to save? */
+            context.save = true;
         }
     }
 

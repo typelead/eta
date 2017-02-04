@@ -38,7 +38,7 @@ public class Interpreter {
     private static class ReturnToSchedNotPaused extends RtsFun {
         @Override
         public void enter(StgContext context) {
-            throw StgException.stgReturnException;
+            context.save = true;
         }
     }
 
