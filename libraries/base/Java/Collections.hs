@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
              FlexibleContexts, DataKinds, AllowAmbiguousTypes,
-             TypeFamilies, ScopedTypeVariables, FlexibleInstances #-}
+             TypeFamilies, ScopedTypeVariables, FlexibleInstances,
+             Rank2Types #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Collections
@@ -55,7 +56,7 @@ foreign import java unsafe "@interface add" add ::
   (Extends a Object, Extends b (Collection a)) => a -> Java b Bool
 
 toCollection :: (Extends a Object, Extends b (Collection a))
-             => (Int -> Java c b) -> [a] -> b
+             => (forall c. Int -> Java c b) -> [a] -> b
 toCollection f xs = pureJava $ do
   coll <- f (length xs)
   withObject coll $ mapM_ add xs

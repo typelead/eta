@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples,
              FunctionalDependencies, ScopedTypeVariables, ExplicitNamespaces,
-             UnliftedFFITypes, FlexibleInstances #-}
+             UnliftedFFITypes, FlexibleInstances, Rank2Types #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Core
@@ -44,7 +44,7 @@ import Java.Primitive
 foreign import java unsafe "@new" globalObject :: Object
 
 {-# INLINE java #-}
-java :: Java c a -> IO a
+java :: (forall c. Java c a) -> IO a
 java (Java m) = IO $ \s ->
   case m (unsafeCoerce# (unobj globalObject)) of
     (# _, a #) -> (# s, a #)
@@ -54,7 +54,7 @@ javaWith :: (Class c) => c -> Java c a -> IO a
 javaWith c (Java m) = IO $ \s -> case m (unobj c) of (# _, a #) -> (# s, a #)
 
 {-# INLINE pureJava #-}
-pureJava :: Java c a -> a
+pureJava :: (forall c. Java c a) -> a
 pureJava (Java m) =
   case m (unsafeCoerce# (unobj globalObject)) of
     (# _, a #) -> a
