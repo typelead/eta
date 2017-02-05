@@ -223,11 +223,65 @@ wrapStackCheck :: CodeGen () -> CodeGen ()
 wrapStackCheck call = do
     -- TODO: Replace the local variable with an internal variable in context?
     --stackTop <- newTemp False frameType
-    emit $ loadContext <> spTopIndexMethod
-    emit $ loadContext <> spTopMethod
-    call
+    (target, label) <- newTarget
+    (_, argLocs) <- getMethodArgs
+    let (!argCode, !r, !i, !l, !f, !d, !o) = storeArgs mempty argLocs 2 1 1 1 1 1
+        localStart = 2 + sum (map (fieldSize . locFt) argLocs)
+        storeLocals [(i, ft)] =
+        maybeSaveLocals =
+             loadContext
+          <> swap frameType contextType
+          <> sameAsTopMethod
+          <> loadContext
+          <> saveFieldGet
+          <> iand
+          <> ifeq mempty saveLocals
+
+        saveLocals =
+             new contFrameType
+          <> dup contFrameType
+          -- closure
+          <> gload closureType 0
+          -- target
+          <> iconst jint (fromIntegral target)
+          -- returnStack
+          <> loadContext <> returnStackFieldGet
+          <> ifnull ( loadContext <> argStackFieldGet
+                   <> dup argStackType
+                   <> loadContext
+                   <> swap argStackType contextType
+                   <> returnStackFieldPut )
+                    aconst_null
+          -- argStack
+          <> argCode
+          <> withLocals storeLocals
+          <> invokespecial (mkMethodRef contFrame "<init>"
+                            [closureType, jint, argStackType, argStackType
+                            , argStackType] void)
+
     emit $ loadContext
-        <> dup_x2 jint frameType contextType
-        <> pop contextType
+        <> loadContext <> spTopIndexMethod
+        <> loadContext <> spTopMethod
+    call
+    emit $ dup_x2 contextType jint frameType
         <> checkForStackFramesMethod
-        <> ifeq mempty vreturn
+        <> ifeq mempty (maybeSaveLocals target <> vreturn)
+        <> startLabel label
+    addCheckpoint target label loadCode
+  where -- Almost identical to mkReturnExit
+        storeArgs !code (cgLoc:cgLocs) !r !i !l !f !d !o =
+          case argRep of
+            P -> storeRec (context r) (r + 1) i l f d o
+            N -> storeRec (context i) r (i + 1) l f d o
+            L -> storeRec (context l) r i (l + 1) f d o
+            F -> storeRec (context f) r i l (f + 1) d o
+            D -> storeRec (context d) r i l f (d + 1) o
+            O -> storeRec (context o) r i l f d (o + 1)
+            _ -> error "contextLoad: V"
+          where ft = locFt cgLoc
+                loadCode = loadLoc cgLoc
+                argRep = locArgRep cgLoc
+                context = contextStore ft argRep loadCode
+                storeRec nextCode =
+                  storeArgs (code <> nextCode) cgLocs
+        storeArgs !code !r !i !l !f !d !o = (code, r, i, l, f, d, o)

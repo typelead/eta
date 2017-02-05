@@ -34,7 +34,8 @@ interp    = merge (rts "interpreter")
 closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType,
   frameType, rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
   rtsOptsEnbledType, stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType,
-  hsResultType, stgTVarType, stgBCOType, stgWeakType :: FieldType
+  hsResultType, stgTVarType, stgBCOType, stgWeakType, contFrameType,
+  stackBuilderType :: FieldType
 closureType       = obj stgClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
@@ -57,11 +58,14 @@ stgTVarType       = obj stgTVar
 hsResultType      = obj hsResult
 stgBCOType        = obj stgBCO
 stgWeakType       = obj stgWeak
+contFrameType     = obj contFrame
+stackBuilderType  = obj stackBuilder
+argStackType      = obj argStack
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
-  stgBCO, stgWeak :: Text
+  stgBCO, stgWeak, contFrame, stackBuilder :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -87,7 +91,8 @@ stgBCO        = interp "StgBCO"
 stgWeak       = stg "StgWeak"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$HaskellResult"
-
+contFrame      = stg "ContinuationFrame"
+stackBuilder  = stg "AbstractArgumentStack$Builder"
 
 memoryManager :: Text
 memoryManager = io "MemoryManager"
@@ -129,6 +134,22 @@ spTopMethod = invokevirtual (mkMethodRef stgContext "stackTop" [] (ret frameType
 checkForStackFramesMethod :: Code
 checkForStackFramesMethod =
   invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
+
+sameAsTopMethod :: Code
+sameAsTopMethod =
+  invokevirtual (mkMethodRef stgContext "sameAsTop" [frameType] (ret jbool))
+
+saveFieldGet :: Code
+saveFieldGet = getfield (mkFieldRef stgContext "save" jbool)
+
+argStackFieldGet :: Code
+argStackFieldGet = getfield (mkFieldRef stgContext "argStack" argStackType)
+
+returnStackFieldGet :: Code
+returnStackFieldGet = getfield (mkFieldRef stgContext "returnStack" argStackType)
+
+returnStackFieldPut :: Code
+returnStackFieldPut = putfield (mkFieldRef stgContext "returnStack" argStackType)
 
 mkApFast :: Text -> Code
 mkApFast patText =

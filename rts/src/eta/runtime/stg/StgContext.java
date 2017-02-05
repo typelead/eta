@@ -49,6 +49,10 @@ public class StgContext {
         currentTSO.dump();
     }
 
+    public boolean sameAsTop(StackFrame frame) {
+        return stackTop() == frame;
+    }
+
     public StackFrame stackTop() {
         ListIterator<StackFrame> sp = currentTSO.sp;
         StackFrame prevFrame = sp.previous();
