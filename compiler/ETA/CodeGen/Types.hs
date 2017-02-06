@@ -22,6 +22,7 @@ module ETA.CodeGen.Types
    enterMethod,
    evaluateMethod,
    loadLoc,
+   locLocal,
    storeLoc,
    locFt,
    isRec,
@@ -118,6 +119,10 @@ loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
 loadLoc (LocDirect _ _ code) = code
+
+locLocal :: CgLoc -> Int
+locLocal (LocLocal _ _ n) = n
+locLocal _ = error $ "locLocal: Not LocLocal!"
 
 type CgBindings = IdEnv CgIdInfo
 

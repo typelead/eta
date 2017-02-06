@@ -27,6 +27,10 @@ public class StgContext {
         save = false;
     }
 
+    public void resetArgStack() {
+        argStack = new ArgumentStack();
+    }
+
     public void pushFrame(StackFrame frame) {
         currentTSO.spPush(frame);
     }

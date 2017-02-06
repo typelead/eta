@@ -65,7 +65,7 @@ argStackType      = obj argStack
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
-  stgBCO, stgWeak, contFrame, stackBuilder :: Text
+  stgBCO, stgWeak, contFrame, stackBuilder, argStack :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
 stgContext    = stg "StgContext"
@@ -91,8 +91,9 @@ stgBCO        = interp "StgBCO"
 stgWeak       = stg "StgWeak"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$HaskellResult"
-contFrame      = stg "ContinuationFrame"
+contFrame     = stg "ContinuationFrame"
 stackBuilder  = stg "AbstractArgumentStack$Builder"
+argStack      = stg "ArgumentStack"
 
 memoryManager :: Text
 memoryManager = io "MemoryManager"
@@ -125,6 +126,9 @@ currentTSOField = getfield (mkFieldRef stgContext "currentTSO" tsoType)
 spPushMethod :: Code
 spPushMethod = invokevirtual (mkMethodRef stgTSO "spPush" [frameType] void)
 
+spInsertMethod :: Code
+spInsertMethod = invokevirtual (mkMethodRef stgTSO "spInsert" [frameType] void)
+
 spTopIndexMethod :: Code
 spTopIndexMethod = invokevirtual (mkMethodRef stgContext "stackTopIndex" [] (ret jint))
 
@@ -138,6 +142,10 @@ checkForStackFramesMethod =
 sameAsTopMethod :: Code
 sameAsTopMethod =
   invokevirtual (mkMethodRef stgContext "sameAsTop" [frameType] (ret jbool))
+
+resetArgStackMethod :: Code
+resetArgStackMethod =
+  invokevirtual (mkMethodRef stgContext "resetArgStack" [] void)
 
 saveFieldGet :: Code
 saveFieldGet = getfield (mkFieldRef stgContext "save" jbool)

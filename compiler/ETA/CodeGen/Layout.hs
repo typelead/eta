@@ -225,9 +225,32 @@ wrapStackCheck call = do
     --stackTop <- newTemp False frameType
     (target, label) <- newTarget
     (_, argLocs) <- getMethodArgs
-    let (!argCode, !r, !i, !l, !f, !d, !o) = storeArgs mempty argLocs 2 1 1 1 1 1
-        localStart = 2 + sum (map (fieldSize . locFt) argLocs)
-        storeLocals [(i, ft)] =
+    let localStart = 2 + sum (map (fieldSize . locFt) argLocs)
+    localLocs <- getLocalBindings 1
+    let (!savedArgs, !loadArgs, !r, !i, !l, !f, !d, !o) =
+          loadStoreArgs mempty mempty localLocs 2 1 1 1 1 1
+
+        loadStoreArgs !saveCode !loadCode (cgLoc:cgLocs) !r !i !l !f !d !o =
+          case argRep of
+            P -> storeRec (contextS r) (contextL r) (r + 1) i l f d o
+            N -> storeRec (contextS i) (contextL i) r (i + 1) l f d o
+            L -> storeRec (contextS l) (contextL l) r i (l + 1) f d o
+            F -> storeRec (contextS f) (contextL f) r i l (f + 1) d o
+            D -> storeRec (contextS d) (contextL d) r i l f (d + 1) o
+            O -> storeRec (contextS o) (contextL o) r i l f d (o + 1)
+            _ -> error "contextLoad: V"
+          where ft = locFt cgLoc
+                n = locLocal cgLoc
+                loadCode = loadLoc cgLoc
+                argRep = locArgRep cgLoc
+                contextS = contextStore ft argRep loadCode
+                contextL i = if n >= localStart
+                             then storeLoc cgLoc (contextLoad ft argRep i)
+                             else mempty
+                storeRec code1 code2 =
+                  storeArgs (saveCode <> code1) (loadCode <> code2) cgLocs
+        loadStoreArgs !saveCode !loadCode _ !r !i !l !f !d !o
+          = (saveCode, loadCode, r, i, l, f, d, o)
         maybeSaveLocals =
              loadContext
           <> swap frameType contextType
@@ -238,7 +261,9 @@ wrapStackCheck call = do
           <> ifeq mempty saveLocals
 
         saveLocals =
-             new contFrameType
+          -- Insert into stack
+             loadContext <> currentTSOField
+          <> new contFrameType
           <> dup contFrameType
           -- closure
           <> gload closureType 0
@@ -253,11 +278,14 @@ wrapStackCheck call = do
                    <> returnStackFieldPut )
                     aconst_null
           -- argStack
-          <> argCode
-          <> withLocals storeLocals
+          <> loadContext <> resetArgStackMethod
+          <> savedArgs
+          -- newContinuationFrame
           <> invokespecial (mkMethodRef contFrame "<init>"
                             [closureType, jint, argStackType, argStackType
                             , argStackType] void)
+          -- tso.spInsert
+          <> spInsertMethod
 
     emit $ loadContext
         <> loadContext <> spTopIndexMethod
@@ -265,23 +293,6 @@ wrapStackCheck call = do
     call
     emit $ dup_x2 contextType jint frameType
         <> checkForStackFramesMethod
-        <> ifeq mempty (maybeSaveLocals target <> vreturn)
+        <> ifeq mempty (maybeSaveLocals <> vreturn)
         <> startLabel label
-    addCheckpoint target label loadCode
-  where -- Almost identical to mkReturnExit
-        storeArgs !code (cgLoc:cgLocs) !r !i !l !f !d !o =
-          case argRep of
-            P -> storeRec (context r) (r + 1) i l f d o
-            N -> storeRec (context i) r (i + 1) l f d o
-            L -> storeRec (context l) r i (l + 1) f d o
-            F -> storeRec (context f) r i l (f + 1) d o
-            D -> storeRec (context d) r i l f (d + 1) o
-            O -> storeRec (context o) r i l f d (o + 1)
-            _ -> error "contextLoad: V"
-          where ft = locFt cgLoc
-                loadCode = loadLoc cgLoc
-                argRep = locArgRep cgLoc
-                context = contextStore ft argRep loadCode
-                storeRec nextCode =
-                  storeArgs (code <> nextCode) cgLocs
-        storeArgs !code !r !i !l !f !d !o = (code, r, i, l, f, d, o)
+    addCheckpoint target label loadArgs

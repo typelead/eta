@@ -232,6 +232,11 @@ public final class StgTSO extends StgClosure {
         sp.add(frame);
     }
 
+    public final void spInsert(StackFrame frame) {
+        spPush(frame);
+        sp.previous();
+    }
+
     public final StackFrame spPop() {
         StackFrame frame = sp.previous();
         sp.remove();

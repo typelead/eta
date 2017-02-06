@@ -74,6 +74,7 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
           (_ , cgLocs) = unzip argLocs
       emit code
       setNextLocal n'
+      setMethodArgs (code, cgLocs)
       bindArgs argLocs
       label <- newLabel
       -- TODO: Optimize: We only need to generate the stack map frame

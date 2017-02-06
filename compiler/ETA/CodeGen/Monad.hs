@@ -49,7 +49,8 @@ module ETA.CodeGen.Monad
    forkLneBody,
    forkAlts,
    unimplemented,
-   getDynFlags)
+   getDynFlags,
+   getLocalBindings)
 where
 
 import ETA.Main.DynFlags
@@ -546,3 +547,14 @@ crashDoc :: SDoc -> CodeGen a
 crashDoc sdoc = do
   debugDoc sdoc
   error "crash"
+
+getLocalBindings :: Int -> CodeGen [CgLoc]
+getLocalBindings after = do
+  bindings <- getBindings
+  return . sortOn (\LocLocal _ _ i -> i)
+         . Data.List.filter (\x -> case x of
+                      LocLocal _ _ i
+                        | i > after -> True
+                      _ -> False)
+         . map cgLocation
+         $ varEnvElts bindings
