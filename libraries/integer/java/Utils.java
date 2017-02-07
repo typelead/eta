@@ -46,7 +46,7 @@ public class Utils {
      * Return a BigInteger equal to the unsigned value of the
      * argument.
      */
-    private static BigInteger toUnsignedBigInteger(long i) {
+    public static BigInteger toUnsignedBigInteger(long i) {
         if (i >= 0L)
             return BigInteger.valueOf(i);
         else {
@@ -57,6 +57,10 @@ public class Utils {
             return (BigInteger.valueOf(toUnsignedLong(upper))).shiftLeft(32).
                 add(BigInteger.valueOf(toUnsignedLong(lower)));
         }
+    }
+
+    public static BigInteger toUnsignedBigInteger(int i) {
+      return Utils.toUnsignedBigInteger(toUnsignedLong(i));
     }
 
     /**
