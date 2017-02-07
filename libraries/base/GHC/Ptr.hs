@@ -31,6 +31,8 @@ import GHC.Num
 import GHC.List ( length, replicate )
 import Numeric          ( showHex )
 
+#include "MachDeps.h"
+
 ------------------------------------------------------------------------
 -- Data pointers.
 
@@ -165,7 +167,7 @@ instance Show (Ptr a) where
      where
         -- want 0s prefixed to pad it out to a fixed length.
        pad_out ls =
-          '0':'x':(replicate (2*8 - length ls) '0') ++ ls ++ rs
+         '0':'x':(replicate (2*SIZEOF_HSPTR - length ls) '0') ++ ls ++ rs
 
 instance Show (FunPtr a) where
    showsPrec p = showsPrec p . castFunPtrToPtr
