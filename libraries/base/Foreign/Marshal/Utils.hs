@@ -180,15 +180,22 @@ fillBytes dest char size = do
 -- auxilliary routines
 -- -------------------
 
--- TODO: Implement!
 -- |Basic C routines needed for memory copying
 --
--- foreign import ccall unsafe "string.h"
+foreign import java unsafe "@static eta.base.Utils.c_memcpy" c_memcpy
+  :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
+
 memcpy  :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
-memcpy = undefined
--- foreign import ccall unsafe "string.h"
+memcpy p q s = c_memcpy p q (fromIntegral s)
+
+foreign import java unsafe "@static eta.base.Utils.c_memmove" c_memmove
+  :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
+
 memmove :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
-memmove = undefined
--- foreign import ccall unsafe "string.h"
-memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
-memset = undefined
+memmove p q s = c_memmove p q (fromIntegral s)
+
+foreign import java unsafe "@static eta.base.Utils.c_memset" c_memset
+  :: Ptr a -> CInt -> CSize -> IO (Ptr a)
+
+memset :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
+memset p w s = c_memset p (fromIntegral w) s
