@@ -18,6 +18,7 @@ import eta.runtime.Rts;
 import eta.runtime.RtsFlags;
 import static eta.runtime.Rts.ExitCode;
 import eta.runtime.RtsMessages;
+import eta.runtime.io.MemoryManager;
 
 import java.lang.management.ManagementFactory;
 import com.sun.management.OperatingSystemMXBean;
@@ -121,6 +122,34 @@ public class Utils {
         byte[] bytes = new byte[buffer.remaining()];
         buffer.get(bytes);
         return new String(bytes, "UTF-8");
+    }
+
+    public static ByteBuffer c_memcpy(ByteBuffer dest, ByteBuffer src, int size) {
+        ByteBuffer src2 = src.duplicate();
+        ByteBuffer dest2 = dest.duplicate();
+        MemoryManager.bufSetLimit(src2, size);
+        dest2.put(src2);
+        return dest;
+    }
+
+    public static ByteBuffer c_memset(ByteBuffer b, int c_, int size) {
+        byte c = (byte) c_;
+        ByteBuffer b2 = b.duplicate();
+        while (size-- != 0) {
+            b2.put(c);
+        }
+        return b;
+    }
+
+    public static ByteBuffer c_memmove(ByteBuffer dest, ByteBuffer src, int size) {
+        ByteBuffer src2 = src.duplicate();
+        ByteBuffer dest2 = dest.duplicate();
+        ByteBuffer copy = ByteBuffer.allocate(size);
+        MemoryManager.bufSetLimit(src2, size);
+        copy.put(src2);
+        copy.flip();
+        dest2.put(copy);
+        return dest;
     }
 
     public static void printBuffer(ByteBuffer buffer) {
