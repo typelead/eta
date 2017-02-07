@@ -165,7 +165,7 @@ instance Show (Ptr a) where
      where
         -- want 0s prefixed to pad it out to a fixed length.
        pad_out ls =
-          '0':'x':(replicate (2*32 - length ls) '0') ++ ls ++ rs
+          '0':'x':(replicate (2*8 - length ls) '0') ++ ls ++ rs
 
 instance Show (FunPtr a) where
    showsPrec p = showsPrec p . castFunPtrToPtr
