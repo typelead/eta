@@ -29,5 +29,5 @@ build_script:
 - stack exec eta-build -- install
 
 test_script:
-- bash test\verify\verify.sh
-# - bash test\packages\Test.hs
+- bash tests\verify\verify.sh
+- stack test eta
