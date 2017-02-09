@@ -315,7 +315,7 @@ library
                        , codec-jvm >= 0
                        , hpc
                        , mtl
-                       , zip >= 0.1.6
+                       , zip >= 0.1.7
                        , path
                        , path-io
                        , exceptions
