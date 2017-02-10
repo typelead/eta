@@ -50,7 +50,11 @@ module ETA.CodeGen.Monad
    forkAlts,
    unimplemented,
    getDynFlags,
-   getLocalBindings)
+   getLocalBindings,
+   getMethodArgs,
+   setMethodArgs,
+   newTarget,
+   addCheckpoint)
 where
 
 import ETA.Main.DynFlags
@@ -78,6 +82,7 @@ import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
 import ETA.CodeGen.Name
 import ETA.CodeGen.ArgRep
+import ETA.CodeGen.Rts
 import ETA.Debug
 import ETA.Util
 import ETA.Utils.Digraph
@@ -107,7 +112,7 @@ data CgState =
           , cgNextTarget     :: Int
           , cgMethodArgs     :: (Code, [CgLoc])
           -- Check points in reverse
-          , cgCheckpoints    :: [(Int, Label, Code)] }
+          , cgCheckpoints    :: [(Int, Code)] }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -172,7 +177,10 @@ initCg dflags mod =
            , cgCompiledClosures = []
            , cgSuperClassName   = Nothing
            , cgNextLocal        = 0
-           , cgNextLabel        = 0 })
+           , cgNextLabel        = 0
+           , cgNextTarget       = 0
+           , cgMethodArgs       = (mempty, [])
+           , cgCheckpoints      = [] })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
@@ -225,15 +233,15 @@ getMethodArgs = gets cgMethodArgs
 setMethodArgs :: (Code, [CgLoc]) -> CodeGen ()
 setMethodArgs codeArgs = modify $ \s -> s { cgMethodArgs = codeArgs }
 
-getCheckpoints :: CodeGen [(Int, Label, Code)]
+getCheckpoints :: CodeGen [(Int, Code)]
 getCheckpoints = gets cgCheckpoints
 
-setCheckpoints :: [(Int, Label, Code)] -> CodeGen ()
+setCheckpoints :: [(Int, Code)] -> CodeGen ()
 setCheckpoints checkpoints = modify $ \s -> s { cgCheckpoints = checkpoints }
 
-addCheckpoint :: Int -> Label -> Code -> CodeGen ()
-addCheckpoint target label code = modify $ \s ->
-  s { cgCheckpoints = (target, label, code) : cgCheckpoints s }
+addCheckpoint :: Int -> Code -> CodeGen ()
+addCheckpoint target code = modify $ \s ->
+  s { cgCheckpoints = (target, code) : cgCheckpoints s }
 
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode
@@ -443,11 +451,12 @@ withMethod accessFlags name fts rt body = do
   setNextLocal 2
   setNextLabel 0
   setNextTarget 1
+  setMethodArgs (mempty, [])
   setCheckpoints []
   body
   emit vreturn
   clsName <- getClass
-  newCode <- getMethodCode
+  newCode <- getCodeWithCheckpoints
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
   defineMethod methodDef
   setMethodCode oldCode
@@ -457,6 +466,20 @@ withMethod accessFlags name fts rt body = do
   setMethodArgs oldMethodArgs
   setCheckpoints oldCheckpoints
   return methodDef
+
+getCodeWithCheckpoints :: CodeGen Code
+getCodeWithCheckpoints = do
+  code <- getMethodCode
+  (loadArgs, argLocs)<- getMethodArgs
+  checkpoints <- getCheckpoints
+  return $ loadArgs
+        <> (if Data.List.null checkpoints
+            then mempty
+            else gswitch ( loadContext <> targetFieldGet
+                        <> loadContext <> iconst jint 0 <> targetFieldPut)
+                         checkpoints
+                         (Just mempty))
+        <> code
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =
@@ -551,7 +574,7 @@ crashDoc sdoc = do
 getLocalBindings :: Int -> CodeGen [CgLoc]
 getLocalBindings after = do
   bindings <- getBindings
-  return . sortOn (\LocLocal _ _ i -> i)
+  return . sortOn (\(LocLocal _ _ i) -> i)
          . Data.List.filter (\x -> case x of
                       LocLocal _ _ i
                         | i > after -> True

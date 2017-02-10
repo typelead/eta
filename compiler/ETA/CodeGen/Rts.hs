@@ -147,6 +147,12 @@ resetArgStackMethod :: Code
 resetArgStackMethod =
   invokevirtual (mkMethodRef stgContext "resetArgStack" [] void)
 
+targetFieldGet :: Code
+targetFieldGet = getfield (mkFieldRef stgContext "target" jint)
+
+targetFieldPut :: Code
+targetFieldPut = putfield (mkFieldRef stgContext "target" jint)
+
 saveFieldGet :: Code
 saveFieldGet = getfield (mkFieldRef stgContext "save" jbool)
 

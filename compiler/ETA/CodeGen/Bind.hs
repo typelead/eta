@@ -72,7 +72,6 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
       n <- peekNextLocal
       let (argLocs, code, n') = mkCallEntry n args
           (_ , cgLocs) = unzip argLocs
-      emit code
       setNextLocal n'
       setMethodArgs (code, cgLocs)
       bindArgs argLocs

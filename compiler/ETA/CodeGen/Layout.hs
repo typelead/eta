@@ -248,7 +248,7 @@ wrapStackCheck call = do
                              then storeLoc cgLoc (contextLoad ft argRep i)
                              else mempty
                 storeRec code1 code2 =
-                  storeArgs (saveCode <> code1) (loadCode <> code2) cgLocs
+                  loadStoreArgs (saveCode <> code1) (loadCode <> code2) cgLocs
         loadStoreArgs !saveCode !loadCode _ !r !i !l !f !d !o
           = (saveCode, loadCode, r, i, l, f, d, o)
         maybeSaveLocals =
@@ -276,7 +276,7 @@ wrapStackCheck call = do
                    <> loadContext
                    <> swap argStackType contextType
                    <> returnStackFieldPut )
-                    aconst_null
+                    (aconst_null argStackType)
           -- argStack
           <> loadContext <> resetArgStackMethod
           <> savedArgs
@@ -295,4 +295,11 @@ wrapStackCheck call = do
         <> checkForStackFramesMethod
         <> ifeq mempty (maybeSaveLocals <> vreturn)
         <> startLabel label
-    addCheckpoint target label loadArgs
+    addCheckpoint target ( loadArgs
+                        <> loadContext <> returnStackFieldGet
+                        <> dup argStackType
+                        <> ifnull (pop argStackType)
+                                  ( loadContext
+                                 <> swap argStackType contextType
+                                 <> returnStackFieldPut )
+                        <> goto label)
