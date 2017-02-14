@@ -86,7 +86,7 @@ div[class^='highlight'] pre {
 }
 
 .rst-content tt.literal, .rst-content tt.literal, .rst-content code.literal {
-    color: #32bebe;
+    color: #d672b0;
     font-family: "Hasklig";
     font-size: 14px;
 }
