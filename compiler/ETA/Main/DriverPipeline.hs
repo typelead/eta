@@ -1282,6 +1282,9 @@ findHSLib dflags dirs lib = do
       [] -> Nothing
       (x:_) -> Just x
   where file = lib <.> "jar"
+  
+warnHscFile :: String -> IO ()
+warnHscFile h = putStrLn $ "WARN: File " ++ h ++ " of unsupported type (.hsc)"
 
 linkGeneric :: DynFlags -> [String] -> [PackageKey] -> IO ()
 linkGeneric dflags oFiles depPackages = do
@@ -1293,6 +1296,7 @@ linkGeneric dflags oFiles depPackages = do
     --        (text $ "    Call hsInit() from your main() method to set"
     --          ++ " these options."))
     -- TODO: Use conduits to combine the jars
+    mapM_ warnHscFile $ filter (".hsc" `isSuffixOf`) oFiles
     mainFiles' <- maybeMainAndManifest dflags isExecutable
     mainFiles <- forM mainFiles' $ \(a, b) -> do
                    a' <- mkPath a
@@ -1305,6 +1309,7 @@ linkGeneric dflags oFiles depPackages = do
             -- TODO: Verify that the right version eta was used
             --       in the Manifests of the jars being compiled
           else return []
+    mapM_ warnHscFile $ filter (".hsc" `isSuffixOf`) (jarInputs dflags)
     inputJars <- mapM getNonManifestEntries (jarInputs dflags)
     start <- getCurrentTime
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
