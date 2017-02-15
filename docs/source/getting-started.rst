@@ -851,7 +851,7 @@ which is re-exported by the ``Java`` module. The API is shown below::
   -- Get the length of an array
   alength :: JArray e c => Java c Int
 
-  -- Convert a lazy Eta list to a Java array
+  -- Convert a Java array to a Eta list
   arrayToList :: JArray e c => Java c [e]
 
   -- Convert a lazy Eta list to a Java array
