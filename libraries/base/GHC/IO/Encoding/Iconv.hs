@@ -70,17 +70,15 @@ localeEncodingName = unsafePerformIO $ do
 -- value -1, which is a possible return value from iconv_open.
 type IConv = CLong -- ToDo: (#type iconv_t)
 
--- foreign import ccall unsafe "hs_iconv_open"
-hs_iconv_open :: CString -> CString -> IO IConv
-hs_iconv_open = undefined
+foreign import java unsafe "@static eta.base.HSIConv.hs_iconv_open"
+  hs_iconv_open :: CString -> CString -> IO IConv
 
--- foreign import ccall unsafe "hs_iconv_close"
-hs_iconv_close :: IConv -> IO CInt
-hs_iconv_close = undefined
 
--- foreign import ccall unsafe "hs_iconv"
-hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO CSize
-hs_iconv = undefined
+foreign import java unsafe "@static eta.base.HSIConv.hs_iconv_close"
+  hs_iconv_close :: IConv -> IO CInt
+
+foreign import java unsafe "@static eta.base.HSIConv.hs_iconv"
+  hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO CSize
 
 foreign import java unsafe "@static  eta.base.Utils.c_localeEncoding"
   c_localeEncoding :: IO JString
@@ -148,48 +146,48 @@ iconvRecode :: IConv -> Buffer a -> Int -> Buffer b -> Int
 iconvRecode iconv_t
   input@Buffer{  bufRaw=iraw, bufL=ir, bufR=iw, bufSize=_  }  iscale
   output@Buffer{ bufRaw=oraw, bufL=_,  bufR=ow, bufSize=os }  oscale
-  = undefined --do
-    -- iconv_trace ("haskellChar=" ++ show haskellChar)
-    -- iconv_trace ("iconvRecode before, input=" ++ show (summaryBuffer input))
-    -- iconv_trace ("iconvRecode before, output=" ++ show (summaryBuffer output))
-    -- withRawBuffer iraw $ \ piraw -> do
-    -- withRawBuffer oraw $ \ poraw -> do
-    -- with (piraw `plusPtr` (ir `shiftL` iscale)) $ \ p_inbuf -> do
-    -- with (poraw `plusPtr` (ow `shiftL` oscale)) $ \ p_outbuf -> do
-    -- with (fromIntegral ((iw-ir) `shiftL` iscale)) $ \ p_inleft -> do
-    -- with (fromIntegral ((os-ow) `shiftL` oscale)) $ \ p_outleft -> do
-    --   res <- hs_iconv iconv_t p_inbuf p_inleft p_outbuf p_outleft
-    --   new_inleft  <- peek p_inleft
-    --   new_outleft <- peek p_outleft
-    --   let
-    --       new_inleft'  = fromIntegral new_inleft `shiftR` iscale
-    --       new_outleft' = fromIntegral new_outleft `shiftR` oscale
-    --       new_input
-    --         | new_inleft == 0  = input { bufL = 0, bufR = 0 }
-    --         | otherwise        = input { bufL = iw - new_inleft' }
-    --       new_output = output{ bufR = os - new_outleft' }
-    --   iconv_trace ("iconv res=" ++ show res)
-    --   iconv_trace ("iconvRecode after,  input=" ++ show (summaryBuffer new_input))
-    --   iconv_trace ("iconvRecode after,  output=" ++ show (summaryBuffer new_output))
-    --   if (res /= -1)
-    --     then do -- all input translated
-    --        return (InputUnderflow, new_input, new_output)
-    --     else do
-    --   errno <- getErrno
-    --   case errno of
-    --     e | e == e2BIG  -> return (OutputUnderflow, new_input, new_output)
-    --       | e == eINVAL -> return (InputUnderflow, new_input, new_output)
-    --        -- Sometimes iconv reports EILSEQ for a
-    --        -- character in the input even when there is no room
-    --        -- in the output; in this case we might be about to
-    --        -- change the encoding anyway, so the following bytes
-    --        -- could very well be in a different encoding.
-    --        --
-    --        -- Because we can only say InvalidSequence if there is at least
-    --        -- one element left in the output, we have to special case this.
-    --       | e == eILSEQ -> return (if new_outleft' == 0 then OutputUnderflow else InvalidSequence, new_input, new_output)
-    --       | otherwise -> do
-    --           iconv_trace ("iconv returned error: " ++ show (errnoToIOError "iconv" e Nothing Nothing))
-    --           throwErrno "iconvRecoder"
+  = do
+    iconv_trace ("haskellChar=" ++ show haskellChar)
+    iconv_trace ("iconvRecode before, input=" ++ show (summaryBuffer input))
+    iconv_trace ("iconvRecode before, output=" ++ show (summaryBuffer output))
+    withRawBuffer iraw $ \ piraw -> do
+    withRawBuffer oraw $ \ poraw -> do
+    with (piraw `plusPtr` (ir `shiftL` iscale)) $ \ p_inbuf -> do
+    with (poraw `plusPtr` (ow `shiftL` oscale)) $ \ p_outbuf -> do
+    with (fromIntegral ((iw-ir) `shiftL` iscale)) $ \ p_inleft -> do
+    with (fromIntegral ((os-ow) `shiftL` oscale)) $ \ p_outleft -> do
+      res <- hs_iconv iconv_t p_inbuf p_inleft p_outbuf p_outleft
+      new_inleft  <- peek p_inleft
+      new_outleft <- peek p_outleft
+      let
+          new_inleft'  = fromIntegral new_inleft `shiftR` iscale
+          new_outleft' = fromIntegral new_outleft `shiftR` oscale
+          new_input
+            | new_inleft == 0  = input { bufL = 0, bufR = 0 }
+            | otherwise        = input { bufL = iw - new_inleft' }
+          new_output = output{ bufR = os - new_outleft' }
+      iconv_trace ("iconv res=" ++ show res)
+      iconv_trace ("iconvRecode after,  input=" ++ show (summaryBuffer new_input))
+      iconv_trace ("iconvRecode after,  output=" ++ show (summaryBuffer new_output))
+      if (res /= -1)
+        then do -- all input translated
+           return (InputUnderflow, new_input, new_output)
+        else do
+      errno <- getErrno
+      case errno of
+        e | e == e2BIG  -> return (OutputUnderflow, new_input, new_output)
+          | e == eINVAL -> return (InputUnderflow, new_input, new_output)
+           -- Sometimes iconv reports EILSEQ for a
+           -- character in the input even when there is no room
+           -- in the output; in this case we might be about to
+           -- change the encoding anyway, so the following bytes
+           -- could very well be in a different encoding.
+           --
+           -- Because we can only say InvalidSequence if there is at least
+           -- one element left in the output, we have to special case this.
+          | e == eILSEQ -> return (if new_outleft' == 0 then OutputUnderflow else InvalidSequence, new_input, new_output)
+          | otherwise -> do
+              iconv_trace ("iconv returned error: " ++ show (errnoToIOError "iconv" e Nothing Nothing))
+              throwErrno "iconvRecoder"
 
 #endif /* !mingw32_HOST_OS */
