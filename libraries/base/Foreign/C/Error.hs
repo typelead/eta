@@ -260,10 +260,10 @@ getErrno :: IO Errno
 -- threaded systems, errno is hidden behind a C macro so that each OS
 -- thread gets its own copy.
 getErrno = do e <- get_errno; return (Errno e)
--- TODO: Implement!
--- foreign import ccall unsafe "HsBase.h __hscore_get_errno"
-get_errno :: IO CInt
-get_errno = undefined
+
+foreign import java unsafe "@static eta.base.Utils.get_errno"
+  get_errno :: IO CInt
+
 
 -- | Reset the current thread\'s @errno@ value to 'eOK'.
 --
@@ -272,10 +272,9 @@ resetErrno :: IO ()
 -- Again, setting errno has to be done via a C function.
 resetErrno = set_errno 0
 
--- TODO: Implement!
--- foreign import ccall unsafe "HsBase.h __hscore_set_errno"
-set_errno :: CInt -> IO ()
-set_errno = undefined
+foreign import java unsafe "@static eta.base.Utils.set_errno"
+  set_errno :: CInt -> IO ()
+
 
 -- throw current "errno" value
 -- ---------------------------
