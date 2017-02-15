@@ -66,7 +66,7 @@ Library
         Unsafe
 
     build-depends: rts == 0.1.*, ghc-prim == 0.4.*, integer >= 0.5.1
-    java-sources: java-utils/Utils.java
+    java-sources: java-utils/Utils.java,java-utils/HSIconv.java
 
     exposed-modules:
         Control.Applicative
