@@ -19,16 +19,20 @@ import eta.runtime.io.MemoryManager;
  */
 public class HSIConv {
 	
-	private static ThreadLocal<Map<Long,String[]>> iconvs=new ThreadLocal<>();
-	private static boolean debug=false;
+	private static final ThreadLocal<Map<Long,String[]>> iconvs=new ThreadLocal<>();
+	private static final boolean debug=true;
 	
 	private static void initIconvs() {
 		if (iconvs.get()==null)
 			iconvs.set(new HashMap<>());
 	}
 	
+	private static Boolean isDebugEnabled() {
+		return debug;
+	}
+	
 	private static void debug(String msg) {
-		if (debug)
+		if (isDebugEnabled())
 			System.out.println(msg);
 	}
 	
@@ -46,6 +50,9 @@ public class HSIConv {
 			id=(long)fromTo.hashCode();
 			iconvs.get().put(id, fromTo);
 		} catch (UnsupportedEncodingException e) {
+			debug("Error opening iconv: "+e);
+			if (isDebugEnabled())
+				e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 		return id;
@@ -62,59 +69,35 @@ public class HSIConv {
 	public static int hs_iconv(long iconv, ByteBuffer inbufptr, ByteBuffer inleft, 
 			ByteBuffer outbufptr, ByteBuffer outleft) {
 		String[] fromTo=iconvs.get().get(iconv);
-		int charsWritten=-1; // error by default
+		int charsWritten=0; 
 		try {
 			debug("HSIConv: iconv with id: "+iconv+", from: "+fromTo[0]+", to: "+fromTo[1]);
 			if (inbufptr!=null && inleft!=null) {
-				int inMemAddr=MemoryManager.bufGetInt(inbufptr,0);
-				ByteBuffer inbuf=MemoryManager.getBuffer(inMemAddr);
-				int inLimit=MemoryManager.bufGetInt(inleft,0);
-				inbuf=MemoryManager.bufSetLimit(inbuf, inLimit);
+				debug("Init in buffer:");
+				ByteBuffer inbuf=initBuffer(inbufptr, inleft);
 				int inInitPos=inbuf.position();
-				debug("IN: address: "+inMemAddr+", limit: "+inLimit+", buffer: "+inbuf);
 	
-				int outMemAddr=MemoryManager.bufGetInt(outbufptr,0);
-				ByteBuffer outbuf=MemoryManager.getBuffer(outMemAddr);
-				int outLimit=MemoryManager.bufGetInt(outleft,0);
-				outbuf=MemoryManager.bufSetLimit(outbuf, outLimit);
+				debug("Init out buffer:");
+				ByteBuffer outbuf=initBuffer(outbufptr,outleft);
 				int outInitPos=outbuf.position();
-				debug("OUT: address: "+outMemAddr+", limit: "+outLimit+", buffer: "+outbuf);
-				// Using always fresh coders: maybe it could cause performance penalty
-				// In that case we'll have to cache them (using hs_iconv_open and hs_iconv_close) and handle theirs states 
-				CharsetDecoder dec=Charset.forName(fromTo[0]).newDecoder();
-				CharsetEncoder enc=Charset.forName(fromTo[1]).newEncoder();
-				try {
-					// No overflow in the intermediate out buffer using this method
-					CharBuffer buf16=dec.decode(inbuf);
-					debug("String decoded: "+buf16.toString());
-					// iconv states "In this case iconv returns the number of non-reversible conversions performed during this call."
-					// we simply return the size of the intermediate buffer
-					charsWritten=buf16.limit();
-					CoderResult encRes=enc.encode(buf16, outbuf, true);
-					debug("Encoding result: "+encRes);
-					// The input in the intermediate buffer can't be malformed 
-					if (encRes.isUnderflow())
-						enc.flush(outbuf);
-					else if (encRes.isOverflow())
-						Utils.set_errno(E2BIG);
-					else if(encRes.isUnmappable())
-						Utils.set_errno(EILSEQ);
-				} catch (CharacterCodingException e) {
-					// TODO: handle EINVAL case
-					Utils.set_errno(EILSEQ);
-				}
+				
+				charsWritten=recode(fromTo,inbuf,outbuf);
+
+				debug("After encoding:");
 				debug("IN: buffer: "+inbuf);
 				debug("OUT: buffer: "+outbuf);
 				int inFinalPos=inbuf.position();
 				int outFinalPos=outbuf.position();
-				int inBytesReaded=inFinalPos-inInitPos;
+				int inBytesRead=inFinalPos-inInitPos;
 				int outBytesWritten=outFinalPos-outInitPos;
+				debug("Bytes read: "+inBytesRead);
+				debug("Bytes written: "+outBytesWritten);
 				
-				MemoryManager.bufPutInt(inbufptr, 0, inMemAddr+inBytesReaded);
-				MemoryManager.bufPutInt(inleft, 0, inLimit-inBytesReaded);
+				buffAddInt(inbufptr,0,inBytesRead);
+				buffAddInt(inleft,0,-inBytesRead);
 				
-				MemoryManager.bufPutInt(outbufptr, 0, outMemAddr+outBytesWritten);
-				MemoryManager.bufPutInt(outleft, 0, outLimit-outBytesWritten);
+				buffAddInt(outbufptr,0,outBytesWritten);
+				buffAddInt(outleft,0,-outBytesWritten);
 				
 				
 			} else if (outbufptr != null && outleft != null) {
@@ -128,7 +111,60 @@ public class HSIConv {
 				/** the iconv function sets cd’s conversion state to the initial state. */
 			}
 		} catch (Exception e) {
+			debug("Error in recoding: "+e);
+			if (isDebugEnabled())
+					e.printStackTrace();
 			throw new RuntimeException(e);
+		}
+		return charsWritten;
+	}
+
+	private static void buffAddInt(ByteBuffer buf, int pos, int toAdd) {
+		int prev=MemoryManager.bufGetInt(buf,pos);
+		MemoryManager.bufPutInt(buf, pos, prev+toAdd);
+	}
+
+	private static ByteBuffer initBuffer(ByteBuffer bufptr, ByteBuffer left) {
+		int memAddr=MemoryManager.bufGetInt(bufptr,0);
+		ByteBuffer buf=MemoryManager.getBuffer(memAddr);
+		int limit=MemoryManager.bufGetInt(left,0);
+		buf=MemoryManager.bufSetLimit(buf, limit);
+		debug("initBuffer: address: "+memAddr+", limit: "+limit+", buffer: "+buf);
+		return buf;
+	}
+
+	private static int recode(String[] fromTo, ByteBuffer inbuf, ByteBuffer outbuf) {
+		// Using always fresh coders: maybe it could cause performance penalty
+		// In that case we'll have to cache them (using hs_iconv_open and hs_iconv_close) and handle theirs states 
+		
+		CharsetDecoder dec=Charset.forName(fromTo[0]).newDecoder();
+		CharsetEncoder enc=Charset.forName(fromTo[1]).newEncoder();
+		int charsWritten=0;
+		try {
+			// No overflow in the intermediate out buffer using this method
+			CharBuffer buf16=dec.decode(inbuf);
+			debug("String decoded: "+buf16.toString());
+			// iconv states "In this case iconv returns the number of non-reversible conversions performed during this call."
+			// we simply return the size of the intermediate buffer
+			charsWritten=buf16.limit();
+			CoderResult encRes=enc.encode(buf16, outbuf, true);
+			debug("Encoding result: "+encRes);
+			if (encRes.isUnderflow())
+				enc.flush(outbuf);
+			else  {
+				charsWritten=-1;
+				if (encRes.isOverflow())
+					Utils.set_errno(E2BIG);
+				else if(encRes.isError())
+					Utils.set_errno(EILSEQ);
+			}
+		} catch (CharacterCodingException e) {
+			debug("Error decoding string: "+e);
+			if (isDebugEnabled())
+				e.printStackTrace();
+			charsWritten=-1;
+			// TODO: handle EINVAL case
+			Utils.set_errno(EILSEQ);
 		}
 		return charsWritten;
 	}
