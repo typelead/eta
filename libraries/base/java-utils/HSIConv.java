@@ -20,7 +20,7 @@ import eta.runtime.io.MemoryManager;
 public class HSIConv {
 	
 	private static final ThreadLocal<Map<Long,String[]>> iconvs=new ThreadLocal<>();
-	private static final boolean debug=true;
+	private static final boolean debug=false;
 	
 	private static void initIconvs() {
 		if (iconvs.get()==null)
