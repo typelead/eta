@@ -1283,14 +1283,6 @@ findHSLib dflags dirs lib = do
       (x:_) -> Just x
   where file = lib <.> "jar"
   
-warnHscFile :: String -> IO ()
-warnHscFile h = putStrLn $ "WARN: File " ++ h ++ " of unsupported type (.hsc)"
-
-handleHscFiles :: [String] -> IO ()
-handleHscFiles hs = do
-  mapM_ warnHscFile hs
-  when (length hs > 0) $ panic "Found unsupported files (.hsc). Exiting."
-
 linkGeneric :: DynFlags -> [String] -> [PackageKey] -> IO ()
 linkGeneric dflags oFiles depPackages = do
     -- TODO: Figure out the right place for this error message
@@ -1301,7 +1293,6 @@ linkGeneric dflags oFiles depPackages = do
     --        (text $ "    Call hsInit() from your main() method to set"
     --          ++ " these options."))
     -- TODO: Use conduits to combine the jars
-    handleHscFiles $ filter (".hsc" `isSuffixOf`) (oFiles ++ (jarInputs dflags))
     mainFiles' <- maybeMainAndManifest dflags isExecutable
     mainFiles <- forM mainFiles' $ \(a, b) -> do
                    a' <- mkPath a
