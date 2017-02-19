@@ -362,7 +362,7 @@ Consider the following Java code:
      public Counter() {}
 
      public Counter(int initial) {
-       this.counter = initiail;
+       this.counter = initial;
      }
 
      public void increment() {
