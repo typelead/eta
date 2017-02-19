@@ -1282,7 +1282,7 @@ findHSLib dflags dirs lib = do
       [] -> Nothing
       (x:_) -> Just x
   where file = lib <.> "jar"
-  
+
 linkGeneric :: DynFlags -> [String] -> [PackageKey] -> IO ()
 linkGeneric dflags oFiles depPackages = do
     -- TODO: Figure out the right place for this error message
