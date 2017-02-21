@@ -216,4 +216,20 @@ public class Utils {
     public static Channel getStdErr() {
         return Channels.newChannel(System.err);
     }
+
+    private static ThreadLocal<Integer> errno=new ThreadLocal<Integer>();
+
+    public static void initErrno() {
+        if (errno.get()==null)
+            errno.set(0);
+    }
+    
+    public static int get_errno() {
+        initErrno();
+        return errno.get();
+    }
+
+    public static void set_errno(int errnoCode) {
+        errno.set(errnoCode);
+    }
 }
