@@ -29,5 +29,4 @@ build_script:
 - stack exec eta-build -- install
 
 test_script:
-- bash tests\verify\verify.sh
 - stack test eta

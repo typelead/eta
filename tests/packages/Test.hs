@@ -5,13 +5,16 @@ module Main where
 import GHC.IO.Exception (ExitCode(..))
 import System.Exit (die)
 import Data.Monoid ((<>))
-import Control.Applicative (empty)
+import Control.Applicative
+import Control.Monad
 import Data.Aeson
-import Turtle.Prelude (procStrictWithErr, shell)
+import Data.String
+import Turtle.Shell
+import Turtle.Prelude hiding (die)
 import qualified Data.ByteString.Lazy as BS
 import System.Directory (getAppUserDataDirectory)
 import System.FilePath ((</>))
-import Data.Text (unpack, Text)
+import Data.Text (pack, unpack, Text)
 import qualified Data.Text.IO as T
 
 data Packages = Packages {
@@ -41,8 +44,41 @@ buildPackage pkg = do
         ExitFailure x -> T.putStr err >> die ("error in building " <> unpack pkg)
     return ()
 
+verifyJar :: IO ()
+verifyJar = sh verifyScript
+
+verifyScript :: Shell ()
+verifyScript = do
+  echo "Building the Verify script..."
+  let verifyScriptPath = "utils" </> "class-verifier"
+      verifyScriptCmd  = verifyScriptPath </> "Verify.java"
+      testVerifyPath = "tests" </> "verify"
+      outPath = testVerifyPath </> "build"
+      outJar = outPath </> "Out.jar"
+      mainSource = testVerifyPath </> "Main.hs"
+  proc "javac" [pack verifyScriptCmd] mempty
+  echo "Verify.class built successfully."
+  echo "Compiling a simple program..."
+  echo "=== Eta Compiler Output ==="
+  exists <- testdir (fromString outPath)
+  when (not exists) $ mkdir (fromString outPath)
+  proc "eta" ["-fforce-recomp", "-o", pack outJar, pack mainSource] mempty
+  echo "===                     ==="
+  echo "Compiled succesfully."
+  echo "Verifying the bytecode of compiled program..."
+  echo "=== Verify Script Output ==="
+  proc "java" ["-cp", pack verifyScriptPath, "Verify", pack outJar] mempty
+  echo "===                      ==="
+  echo "Bytecode looking good."
+  echo "Running the simple program..."
+  echo "=== Simple Program Output ==="
+  proc "java" ["-cp", pack outJar, "eta.main"] mempty
+  echo "===                       ==="
+  echo "Done! Everything's looking good."
+
 main :: IO ()
 main = do
+  verifyJar
   let vmUpdateCmd = "epm update"
   shell vmUpdateCmd ""
   epmPkgs <- packagesFilePath
