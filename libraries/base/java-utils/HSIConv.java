@@ -24,7 +24,7 @@ public class HSIConv {
 	
 	private static void initIconvs() {
 		if (iconvs.get()==null)
-			iconvs.set(new HashMap<>());
+                    iconvs.set(new HashMap<Long,String[]>());
 	}
 	
 	private static Boolean isDebugEnabled() {
