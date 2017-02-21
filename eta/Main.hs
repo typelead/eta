@@ -603,9 +603,21 @@ addFlag s flag = liftEwM $ do
 -- ----------------------------------------------------------------------------
 -- Run --make mode
 
+warnHscFile :: String -> IO ()
+warnHscFile f = putStrLn $ "ERROR: File " ++ f ++ " of unsupported type (.hsc)"
+
+handleHscFiles :: [String] -> Ghc ()
+handleHscFiles fs =
+  if null fs
+  then return ()
+  else do
+    liftIO $ mapM_ warnHscFile fs
+    liftIO $ exitWith (ExitFailure 1)
+
 doMake :: [(String,Maybe Phase)] -> Ghc ()
 doMake srcs  = do
   hsc_env <- GHC.getSession
+  handleHscFiles $ filter (".hsc" `isSuffixOf`) (map fst srcs)
   if null hs_srcs
   then liftIO (oneShot hsc_env StopLn srcs)
   else do
