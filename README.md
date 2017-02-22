@@ -55,5 +55,7 @@ We would like to specifically thank the following groups/people:
 - [Sibi](https://github.com/psibi) for helping out with porting packages and setting up Travis.
 - [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on the Java FFI.
 - [Balaji Rao](https://github.com/balajirrao) for contributing to the design & implementation for some parts of the FFI.
+- [Javier Neira](https://github.com/jneira) for making Eta work on Windows and 
+  testing extensively across multiple Windows verisons.
 
 Thank you guys!
