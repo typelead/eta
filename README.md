@@ -51,10 +51,14 @@ We would like to specifically thank the following groups/people:
 - [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki/TeamGHC) for providing a base for us to work on.
 - [Alois Cochard](https://github.com/aloiscochard) for his [codec-jvm](https://github.com/aloiscochard/codec-jvm) package that we use for code generation.
 - [Christopher Wells](https://github.com/ExcaliburZero) for his JAR packaging [utility](https://github.com/ExcaliburZero/zip-jar-haskell).
-- [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the codegen/runtime and implementation of basic IO facilities.
-- [Sibi](https://github.com/psibi) for helping out with porting packages and setting up Travis.
-- [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on the Java FFI.
-- [Balaji Rao](https://github.com/balajirrao) for contributing to the design & implementation for some parts of the FFI.
+- [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the 
+  codegen/runtime and implementation of basic IO facilities.
+- [Sibi](https://github.com/psibi) for helping out with porting packages and 
+  setting up Travis.
+- [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on 
+  the Java FFI.
+- [Balaji Rao](https://github.com/balajirrao) for contributing to the design & 
+  implementation for some parts of the FFI.
 - [Javier Neira](https://github.com/jneira) for making Eta work on Windows and 
   testing extensively across multiple Windows verisons.
 
