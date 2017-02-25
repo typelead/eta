@@ -294,6 +294,8 @@ For tutorials & examples, see the following:
 - `Eta 2048 Game Implementation <https://github.com/rahulmutt/eta-2048>`_
 - `JDBC Example <https://github.com/tatut/eta-jdbc-example/blob/master/src/Main.hs>`_
 - `Neo4j Example <https://github.com/Prillan/eta-neo4j-example>`_
+- `Kafka Client <https://github.com/haskell-works/eta-kafka-client>`_
+- `Kafka Conduit <https://github.com/haskell-works/eta-kafka-conduit>`_
 - `Repository of Eta Examples <https://github.com/typelead/eta-examples>`_
 
 For a list of the currently supported packages, see:
