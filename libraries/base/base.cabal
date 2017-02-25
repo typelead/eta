@@ -238,6 +238,7 @@ Library
         Numeric
         Numeric.Natural
         Prelude
+        Scala
         System.CPUTime
         System.Console.GetOpt
         System.Environment
