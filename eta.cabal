@@ -301,7 +301,7 @@ library
                        , ETA.Debug
                        , ETA.Util
                        , ETA.Utils.JAR
-    other-modules:       ETA.Parser.Parser
+                       , ETA.Parser.Parser
                        , ETA.Parser.Lexer
                        , ETA.Parser.RdrHsSyn
     build-depends:       base >= 4.7 && < 5
