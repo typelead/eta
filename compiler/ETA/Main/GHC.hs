@@ -89,6 +89,9 @@ module ETA.Main.GHC (
         -- * Interactive evaluation
         getBindings, getInsts, getPrintUnqual,
         findModule, lookupModule,
+        exprType,
+        typeKind,
+        parseName,
 #ifdef GHCI
         isModuleTrusted,
         moduleTrustReqs,
@@ -98,9 +101,9 @@ module ETA.Main.GHC (
         getGRE,
         moduleIsInterpreted,
         getInfo,
-        exprType,
-        typeKind,
-        parseName,
+        -- exprType,
+        -- typeKind,
+        -- parseName,
         RunResult(..),
         runStmt, runStmtWithLocation, runDecls, runDeclsWithLocation,
         runTcInteractive,   -- Desired by some clients (Trac #8878)
