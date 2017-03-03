@@ -368,6 +368,7 @@ basicKnownKeyNames
         , integerSDataConName
         -- ETA
         , javaTyConName
+        , extendsFamTyConName
         , javaDataConName
         , extendsClassName
         , superCastName
@@ -1240,20 +1241,21 @@ fingerprintDataConName =
     conName gHC_FINGERPRINT_TYPE (fsLit "Fingerprint") fingerprintDataConKey
 
 -- ETA-specific names
-javaTyConName, javaDataConName, extendsClassName, superCastName, unsafeCastName,
-  fmapJavaName, classClassName, objName, unobjName, fromJStringName, toJStringName
-  :: Name
-javaTyConName    = tcQual  gHC_TYPES   (fsLit "Java")        javaTyConKey
-javaDataConName  = conName gHC_TYPES   (fsLit "Java")        javaDataConKey
-extendsClassName = clsQual gHC_CLASSES (fsLit "Extends")     extendsClassKey
-superCastName    = varQual gHC_CLASSES (fsLit "superCast")   superCastClassOpKey
-unsafeCastName   = varQual gHC_CLASSES (fsLit "unsafeCast")  unsafeCastClassOpKey
-fmapJavaName     = varQual gHC_BASE    (fsLit "fmapJava")    fmapJavaIdKey
-classClassName   = clsQual gHC_CLASSES (fsLit "Class")       classClassKey
-objName          = varQual gHC_CLASSES (fsLit "obj")         objClassOpKey
-unobjName        = varQual gHC_CLASSES (fsLit "unobj")       unobjClassOpKey
-fromJStringName  = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
-toJStringName    = varQual jAVA_STRING (fsLit "toJString")   toJStringIdKey
+javaTyConName, extendsFamTyConName, javaDataConName, extendsClassName,
+  superCastName, unsafeCastName, fmapJavaName, classClassName, objName, unobjName,
+  fromJStringName, toJStringName :: Name
+javaTyConName       = tcQual  gHC_TYPES   (fsLit "Java")        javaTyConKey
+extendsFamTyConName = tcQual  gHC_CLASSES (fsLit "Extends'")    extendsFamTyConKey
+javaDataConName     = conName gHC_TYPES   (fsLit "Java")        javaDataConKey
+extendsClassName    = clsQual gHC_CLASSES (fsLit "Extends")     extendsClassKey
+superCastName       = varQual gHC_CLASSES (fsLit "superCast")   superCastClassOpKey
+unsafeCastName      = varQual gHC_CLASSES (fsLit "unsafeCast")  unsafeCastClassOpKey
+fmapJavaName        = varQual gHC_BASE    (fsLit "fmapJava")    fmapJavaIdKey
+classClassName      = clsQual gHC_CLASSES (fsLit "Class")       classClassKey
+objName             = varQual gHC_CLASSES (fsLit "obj")         objClassOpKey
+unobjName           = varQual gHC_CLASSES (fsLit "unobj")       unobjClassOpKey
+fromJStringName     = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
+toJStringName       = varQual jAVA_STRING (fsLit "toJString")   toJStringIdKey
 
 {-
 ************************************************************************
@@ -1461,7 +1463,7 @@ tVarPrimTyConKey                        = mkPreludeTyConUnique 76
 
 -- ETA-specific tycons
 jcharPrimTyConKey, jboolPrimTyConKey, jbytePrimTyConKey, jshortPrimTyConKey,
-  jobjectPrimTyConKey, javaTyConKey, jstringTyConKey
+  jobjectPrimTyConKey, javaTyConKey, jstringTyConKey, extendsFamTyConKey
   :: Unique
 jcharPrimTyConKey   = mkPreludeTyConUnique 77
 jboolPrimTyConKey   = mkPreludeTyConUnique 78
@@ -1471,6 +1473,7 @@ jobjectPrimTyConKey = mkPreludeTyConUnique 81
 -- 83
 javaTyConKey        = mkPreludeTyConUnique 90
 jstringTyConKey     = mkPreludeTyConUnique 91
+extendsFamTyConKey  = mkPreludeTyConUnique 103
 
 -- Parallel array type constructor
 parrTyConKey :: Unique
