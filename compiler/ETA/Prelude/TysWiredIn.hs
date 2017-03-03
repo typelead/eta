@@ -221,10 +221,9 @@ doubleTyConName    = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Double") 
 doubleDataConName  = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "D#")     doubleDataConKey doubleDataCon
 
 -- ETA-specific
-jstringTyConName, jstringDataConName, extendsTyConName :: Name
+jstringTyConName, jstringDataConName :: Name
 jstringTyConName   = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "JString") jstringTyConKey    jstringTyCon
 jstringDataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "JS#")     jstringDataConKey  jstringDataCon
-extendsTyConName   = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Extends'") extendsTyConKey   extendsTyCon
 
 -- Kinds
 typeNatKindConName, typeSymbolKindConName :: Name
