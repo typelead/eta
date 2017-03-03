@@ -9,12 +9,14 @@ module ETA.TypeCheck.TcFlatten(
 
 import ETA.TypeCheck.TcRnTypes
 import ETA.TypeCheck.TcType
+import ETA.TypeCheck.TcUnify (unifyExtends)
 import ETA.Types.Type
 import ETA.TypeCheck.TcEvidence
 import ETA.Types.TyCon
 import ETA.Types.TypeRep
 import ETA.Types.Kind( isSubKind )
 import ETA.Types.Coercion  ( tyConRolesX )
+import ETA.BasicTypes.Unique
 import ETA.BasicTypes.Var
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.NameEnv
@@ -22,6 +24,7 @@ import ETA.Utils.Outputable
 import ETA.BasicTypes.VarSet
 import ETA.TypeCheck.TcSMonad as TcS
 import ETA.Main.DynFlags( DynFlags )
+import ETA.Prelude.PrelNames
 
 import ETA.Utils.Util
 import ETA.Utils.Bag
@@ -937,6 +940,12 @@ flatten_exact_fam_app_fully fmode tc tys
                                         , cc_fsk    = fsk }
                    ; emitFlatWork ct
 
+                   -- Now that flattening has finished, attempty to unify the
+                   -- type variables of a generic JWT when reducing Extends'.
+                   -- That way, the next time they attempt to solve it, it will
+                   -- succeed.
+                   ; helpExtendsIfStuck tc xis
+
                    ; traceTcS "flatten/flat-cache miss" $ (ppr fam_ty $$ ppr fsk $$ ppr ev)
                    ; return (fsk_ty, maybeTcSubCo (fe_eq_rel fmode)
                                                   (mkTcSymCo co)
@@ -963,6 +972,16 @@ flatten_exact_fam_app_fully fmode tc tys
                          extendFlatCache tc tys (co, xi, fe_flavour fmode)
                        ; return (xi, update_co $ mkTcSymCo co) }
                Nothing -> k }
+
+    helpExtendsIfStuck tc xis
+      | getUnique tc == extendsFamTyConKey = do
+          case xis of (x1:x2:_) -> unifyE x1 x2
+      | otherwise = return ()
+      where unifyE ty1@(TyConApp tc1 tys1) ty2@(TyConApp tc2 tys2)
+              | tc1 == tc2 = do
+                  traceTcS "Extends' is Stuck" (ppr ty1 $$ ppr ty2)
+                  TcS.wrapTcS (unifyExtends ty1 ty2)
+            unifyE _ _ = return ()
 
 {- Note [Reduce type family applications eagerly]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -20,7 +20,7 @@ module ETA.TypeCheck.TcSMonad (
     -- Tracing etc
     panicTcS, traceTcS,
     traceFireTcS, bumpStepCountTcS, csTraceTcS,
-    wrapErrTcS, wrapWarnTcS,
+    wrapErrTcS, wrapWarnTcS, wrapTcS,
 
     -- Evidence creation and transformation
     XEvTerm(..),
