@@ -14,7 +14,7 @@ module ETA.TypeCheck.TcUnify (
 
   -- Various unifications
   unifyType, unifyTypeList, unifyTheta,
-  unifyKindX, unifyExtends,
+  unifyKindX,
 
   --------------------------------
   -- Holes
@@ -649,74 +649,6 @@ unifyTypeList []                 = return ()
 unifyTypeList [_]                = return ()
 unifyTypeList (ty1:tys@(ty2:_)) = do { _ <- unifyType ty1 ty2
                                      ; unifyTypeList tys }
-
-
-{-
-@unifyExtends@ attempts to unify any unification variables inside a "stuck"
-Extends' type family evaluation.
--}
-
-unifyExtends :: TcTauType -> TcTauType -> TcM ()
-unifyExtends = go
-  where
-    go :: TcType -> TcType -> TcM ()
-    go (TyVarTy tv1) ty2
-      = do { lookup_res <- lookupTcTyVar tv1
-           ; case lookup_res of
-               Filled ty1   -> go ty1 ty2
-               -- TODO: AppOrigin
-               Unfilled ds1 -> uUnfilledVar AppOrigin NotSwapped tv1 ds1 ty2 >> return () }
-    go ty1 (TyVarTy tv2)
-      = do { lookup_res <- lookupTcTyVar tv2
-           ; case lookup_res of
-               Filled ty2   -> go ty1 ty2
-               -- TODO: AppOrigin
-               Unfilled ds2 -> uUnfilledVar AppOrigin IsSwapped tv2 ds2 ty1 >> return () }
-    -- We shouldn't need to check for synonyms - that should've already been done
-    -- for us.
-    -- go ty1 ty2
-    --   | Just ty1' <- tcView ty1 = go ty1' ty2
-    --   | Just ty2' <- tcView ty2 = go ty1  ty2'
-
-    go (FunTy fun1 arg1) (FunTy fun2 arg2)
-      = do { go fun1 fun2
-           ; go arg1 arg2 }
-
-    -- Do nothing if a type family is encountered.
-    go ty1@(TyConApp tc1 _) ty2
-      | isTypeFamilyTyCon tc1 = return ()
-    go ty1 ty2@(TyConApp tc2 _)
-      | isTypeFamilyTyCon tc2 = return ()
-
-    go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
-      | tc1 == tc2, length tys1 == length tys2
-      = zipWithM go tys1 tys2 >> return ()
-
-    go (LitTy m) ty@(LitTy n)
-      | m == n
-      = return ()
-
-        -- See Note [Care with type applications]
-        -- Do not decompose FunTy against App;
-        -- it's often a type error, so leave it for the constraint solver
-    go (AppTy s1 t1) (AppTy s2 t2)
-      = go_app s1 t1 s2 t2
-
-    go (AppTy s1 t1) (TyConApp tc2 ts2)
-      | Just (ts2', t2') <- snocView ts2
-      = --ASSERT( isDecomposableTyCon tc2 )
-        go_app s1 t1 (TyConApp tc2 ts2') t2'
-
-    go (TyConApp tc1 ts1) (AppTy s2 t2)
-      | Just (ts1', t1') <- snocView ts1
-      = --ASSERT( isDecomposableTyCon tc1 )
-        go_app (TyConApp tc1 ts1') t1' s2 t2
-
-    go ty1 ty2 = return ()
-
-    go_app s1 t1 s2 t2
-      = do { go s1 s2
-           ; go t1 t2 }
 
 {-
 ************************************************************************

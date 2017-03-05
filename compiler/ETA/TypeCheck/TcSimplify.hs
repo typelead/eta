@@ -71,9 +71,9 @@ simplifyTop wanteds
 simpl_top :: WantedConstraints -> TcS WantedConstraints
     -- See Note [Top-level Defaulting Plan]
 simpl_top wanteds
-  = do { wc_first_go <- nestTcS (solveWantedsAndDrop wanteds)
+  = do { (again, wc_first_go) <- reportUnifiedExtends $ nestTcS (solveWantedsAndDrop wanteds)
                             -- This is where the main work happens
-       ; try_tyvar_defaulting wc_first_go }
+       ; if again then simpl_top wc_first_go else try_tyvar_defaulting wc_first_go }
   where
     try_tyvar_defaulting :: WantedConstraints -> TcS WantedConstraints
     try_tyvar_defaulting wc

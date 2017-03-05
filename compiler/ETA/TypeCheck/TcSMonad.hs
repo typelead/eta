@@ -20,14 +20,15 @@ module ETA.TypeCheck.TcSMonad (
     -- Tracing etc
     panicTcS, traceTcS,
     traceFireTcS, bumpStepCountTcS, csTraceTcS,
-    wrapErrTcS, wrapWarnTcS, wrapTcS,
+    wrapErrTcS, wrapWarnTcS,
 
     -- Evidence creation and transformation
     XEvTerm(..),
     Freshness(..), freshGoals, isFresh,
 
     newTcEvBinds, newWantedEvVar, newWantedEvVarNC,
-    setWantedTyBind, reportUnifications,
+    setWantedTyBind, reportUnifications, reportUnifiedExtends,
+    unifyTypes,
     setEvBind,
     newEvVar, newGivenEvVar, newGivenEvVars,
     newDerived, emitNewDerived,
@@ -36,8 +37,6 @@ module ETA.TypeCheck.TcSMonad (
     getInstEnvs, getFamInstEnvs,                -- Getting the environments
     getTopEnv, getGblEnv, getTcEvBinds, getTcLevel,
     getTcEvBindsMap,
-
-    setUnified,
 
         -- Inerts
     InertSet(..), InertCans(..),
@@ -127,6 +126,7 @@ import ETA.Utils.FastString
 import ETA.Utils.Util
 import ETA.BasicTypes.Id
 import ETA.TypeCheck.TcRnTypes
+import ETA.TypeCheck.TcUnify
 
 import ETA.BasicTypes.Unique
 import ETA.Utils.UniqFM
@@ -1056,6 +1056,9 @@ data TcSEnv
           -- The "dirty-flag" Bool is set True when
           -- we unify a unification variable
 
+      tcs_unified_extends :: IORef Bool,
+          -- Set to true when we unify extends
+
       tcs_count    :: IORef Int, -- Global step count
 
       tcs_inerts    :: IORef InertSet, -- Current inert set
@@ -1161,17 +1164,19 @@ runTcSWithEvBinds :: EvBindsVar
                   -> TcM a
 runTcSWithEvBinds ev_binds_var tcs
   = do { unified_var <- TcM.newTcRef False
+       ; extends_var <- TcM.newTcRef False
        ; step_count <- TcM.newTcRef 0
        ; inert_var <- TcM.newTcRef is
        ; wl_var <- TcM.newTcRef emptyWorkList
        ; fw_var <- TcM.newTcRef (panic "Flat work list")
 
-       ; let env = TcSEnv { tcs_ev_binds  = ev_binds_var
-                          , tcs_unified   = unified_var
-                          , tcs_count     = step_count
-                          , tcs_inerts    = inert_var
-                          , tcs_worklist  = wl_var
-                          , tcs_flat_work = fw_var }
+       ; let env = TcSEnv { tcs_ev_binds        = ev_binds_var
+                          , tcs_unified         = unified_var
+                          , tcs_unified_extends = extends_var
+                          , tcs_count           = step_count
+                          , tcs_inerts          = inert_var
+                          , tcs_worklist        = wl_var
+                          , tcs_flat_work       = fw_var }
 
              -- Run the computation
        ; res <- unTcS tcs env
@@ -1212,6 +1217,7 @@ runTcSWithEvBinds ev_binds_var tcs
 nestImplicTcS :: EvBindsVar -> TcLevel -> TcS a -> TcS a
 nestImplicTcS ref inner_tclvl (TcS thing_inside)
   = TcS $ \ TcSEnv { tcs_unified = unified_var
+                   , tcs_unified_extends = extends_var
                    , tcs_inerts = old_inert_var
                    , tcs_count = count } ->
     do { inerts <- TcM.readTcRef old_inert_var
@@ -1222,6 +1228,7 @@ nestImplicTcS ref inner_tclvl (TcS thing_inside)
        ; new_fw_var    <- TcM.newTcRef (panic "Flat work list")
        ; let nest_env = TcSEnv { tcs_ev_binds    = ref
                                , tcs_unified     = unified_var
+                               , tcs_unified_extends = extends_var
                                , tcs_count       = count
                                , tcs_inerts      = new_inert_var
                                , tcs_worklist    = new_wl_var
@@ -1271,10 +1278,12 @@ tryTcS (TcS thing_inside)
   = TcS $ \env ->
     do { is_var <- TcM.newTcRef emptyInert
        ; unified_var <- TcM.newTcRef False
+       ; extends_var <- TcM.newTcRef False
        ; ev_binds_var <- TcM.newTcEvBinds
        ; wl_var <- TcM.newTcRef emptyWorkList
        ; let nest_env = env { tcs_ev_binds = ev_binds_var
                             , tcs_unified  = unified_var
+                            , tcs_unified_extends = extends_var
                             , tcs_inerts   = is_var
                             , tcs_worklist = wl_var }
        ; thing_inside nest_env }
@@ -1397,6 +1406,14 @@ reportUnifications (TcS thing_inside)
   = TcS $ \ env ->
     do { inner_unified <- TcM.newTcRef False
        ; res <- thing_inside (env { tcs_unified = inner_unified })
+       ; dirty <- TcM.readTcRef inner_unified
+       ; return (dirty, res) }
+
+reportUnifiedExtends :: TcS a -> TcS (Bool, a)
+reportUnifiedExtends (TcS thing_inside)
+  = TcS $ \ env ->
+    do { inner_unified <- TcM.newTcRef False
+       ; res <- thing_inside (env { tcs_unified_extends = inner_unified })
        ; dirty <- TcM.readTcRef inner_unified
        ; return (dirty, res) }
 
@@ -1808,6 +1825,11 @@ deferTcSForAllEq role loc (tvs1,body1) (tvs2,body2)
 
         ; return $ EvCoercion (foldr mkTcForAllCo coe_inside skol_tvs) }
 
-setUnified :: TcS ()
-setUnified = TcS $ \TcSEnv { tcs_unified = ref } -> do
+setUnifiedExtends :: TcS ()
+setUnifiedExtends = TcS $ \TcSEnv { tcs_unified_extends = ref } ->
   TcM.writeTcRef ref True
+
+unifyTypes :: Type -> Type -> TcS ()
+unifyTypes ty1 ty2 = do
+  wrapTcS $ TcM.captureConstraints (unifyType ty1 ty2)
+  setUnifiedExtends

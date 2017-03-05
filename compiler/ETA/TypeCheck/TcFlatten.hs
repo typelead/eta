@@ -9,7 +9,6 @@ module ETA.TypeCheck.TcFlatten(
 
 import ETA.TypeCheck.TcRnTypes
 import ETA.TypeCheck.TcType
-import ETA.TypeCheck.TcUnify (unifyExtends)
 import ETA.Types.Type
 import ETA.TypeCheck.TcEvidence
 import ETA.Types.TyCon
@@ -974,16 +973,14 @@ flatten_exact_fam_app_fully fmode tc tys
                Nothing -> k }
 
     helpExtendsIfStuck tc xis
-      | getUnique tc == extendsFamTyConKey = do
-          case xis of (x1:x2:_) -> unifyE x1 x2
+      | getUnique tc == extendsFamTyConKey
+      , (ty1@(TyConApp tc1 tys1):ty2@(TyConApp tc2 tys2):_) <- xis
+      , tc1 == tc2
+      , any isMetaTyVar (tyVarsOfTypes tys1 `unionVarSet`
+                         tyVarsOfTypes tys2)
+      = do traceTcS "Extends' is Stuck" (ppr ty1 $$ ppr ty2)
+           TcS.unifyTypes ty1 ty2
       | otherwise = return ()
-      where unifyE ty1@(TyConApp tc1 tys1) ty2@(TyConApp tc2 tys2)
-              | tc1 == tc2 = do
-                  traceTcS "Extends' is Stuck" (ppr ty1 $$ ppr ty2)
-                  TcS.wrapTcS (unifyExtends ty1 ty2)
-                  -- Be careful, may cause a loop.
-                  TcS.setUnified
-            unifyE _ _ = return ()
 
 {- Note [Reduce type family applications eagerly]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
