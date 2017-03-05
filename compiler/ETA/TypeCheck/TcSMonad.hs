@@ -1809,5 +1809,5 @@ deferTcSForAllEq role loc (tvs1,body1) (tvs2,body2)
         ; return $ EvCoercion (foldr mkTcForAllCo coe_inside skol_tvs) }
 
 setUnified :: TcS ()
-setUnified = TcS $ \env { tcs_unified = ref } -> do
+setUnified = TcS $ \TcSEnv { tcs_unified = ref } -> do
   TcM.writeTcRef ref True
