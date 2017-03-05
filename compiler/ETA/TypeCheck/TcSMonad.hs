@@ -37,6 +37,8 @@ module ETA.TypeCheck.TcSMonad (
     getTopEnv, getGblEnv, getTcEvBinds, getTcLevel,
     getTcEvBindsMap,
 
+    setUnified,
+
         -- Inerts
     InertSet(..), InertCans(..),
     updInertTcS, updInertCans, updInertDicts, updInertIrreds,
@@ -1806,3 +1808,6 @@ deferTcSForAllEq role loc (tvs1,body1) (tvs2,body2)
 
         ; return $ EvCoercion (foldr mkTcForAllCo coe_inside skol_tvs) }
 
+setUnified :: TcS ()
+setUnified = TcS $ \env { tcs_unified = ref } -> do
+  TcM.writeTcRef ref True

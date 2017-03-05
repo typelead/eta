@@ -981,6 +981,8 @@ flatten_exact_fam_app_fully fmode tc tys
               | tc1 == tc2 = do
                   traceTcS "Extends' is Stuck" (ppr ty1 $$ ppr ty2)
                   TcS.wrapTcS (unifyExtends ty1 ty2)
+                  -- Be careful, may cause a loop.
+                  TcS.setUnified
             unifyE _ _ = return ()
 
 {- Note [Reduce type family applications eagerly]
