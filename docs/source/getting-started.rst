@@ -29,12 +29,21 @@ Method 1: Source Installation
 Prerequisites
 """""""""""""
 
-Make sure you have the following tools installed on your system:
+Make sure you have the listed tools/libraries installed on your system. Check the
+OS-specific sections for additional requirements.
+
+General
+"""""""
 
 - `Stack <https://docs.haskellstack.org/en/stable/README>`_
 - `JDK 1.7 <http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html>`_ or `JDK 1.8 <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_
 
   - make sure ``javac`` and ``java`` are on the PATH
+
+OS X
+""""
+- Make sure you have `XCode <https://developer.apple.com/xcode/>`_ installed.
+
 
 Installation
 """"""""""""
