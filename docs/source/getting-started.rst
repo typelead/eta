@@ -36,14 +36,19 @@ General
 """""""
 
 - `Stack <https://docs.haskellstack.org/en/stable/README>`_
+  - Make sure the path that is obtained from running
+    ```
+    stack path --local-bin
+    ```
+    are present on the PATH.
 - `JDK 1.7 <http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html>`_ or `JDK 1.8 <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_
 
-  - make sure ``javac`` and ``java`` are on the PATH
+  - Make sure ``javac`` and ``java`` are on the PATH.
 
 OS X
 """"
-- Make sure you have `XCode <https://developer.apple.com/xcode/>`_ installed.
-
+- Make sure you have `XCode <https://developer.apple.com/xcode/>`_ installed and
+  have accepted the license agreement (run XCode at least once).
 
 Installation
 """"""""""""
