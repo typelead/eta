@@ -12,8 +12,7 @@ public class StgContext {
     public ReturnCode ret;
 
     /* Used for ContinuationFrames */
-    public int target;
-    public ArgumentStack localsStack;
+    public volatile int target;
     public ArgumentStack returnStack;
     public volatile boolean save;
 
@@ -22,7 +21,6 @@ public class StgContext {
         currentTSO = t;
         argStack = new ArgumentStack();
         target = 0;
-        localsStack = null;
         returnStack = null;
         save = false;
     }

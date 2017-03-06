@@ -54,7 +54,9 @@ module ETA.CodeGen.Monad
    getMethodArgs,
    setMethodArgs,
    newTarget,
-   addCheckpoint)
+   addCheckpoint,
+   addMethodLocal
+   )
 where
 
 import ETA.Main.DynFlags
@@ -67,11 +69,13 @@ import ETA.Utils.FastString
 import ETA.Types.TyCon
 
 import Data.Monoid((<>))
+import Data.IntMap.Strict (IntMap)
+import qualified Data.IntMap as I
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
-import Control.Monad (liftM, ap, when, forM)
+import Control.Monad (liftM, ap, when, forM, forM_)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
@@ -107,12 +111,13 @@ data CgState =
           , cgSuperClassName :: !(Maybe Text)
           -- Current method
           , cgCode           :: !Code
-          , cgNextLocal      :: Int
-          , cgNextLabel      :: Int
-          , cgNextTarget     :: Int
-          , cgMethodArgs     :: (Code, [CgLoc])
+          , cgNextLocal      :: !Int
+          , cgNextLabel      :: !Int
+          , cgNextTarget     :: !Int
+          , cgMethodArgs     :: !(Code, [CgLoc])
+          , cgMethodLocals   :: !(IntMap CgLoc)
           -- Check points in reverse
-          , cgCheckpoints    :: [(Int, Code)] }
+          , cgCheckpoints    :: ![(Int, Code)] }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -180,6 +185,7 @@ initCg dflags mod =
            , cgNextLabel        = 0
            , cgNextTarget       = 0
            , cgMethodArgs       = (mempty, [])
+           , cgMethodLocals     = mempty
            , cgCheckpoints      = [] })
   where className = moduleJavaClass mod
 
@@ -232,6 +238,17 @@ getMethodArgs = gets cgMethodArgs
 
 setMethodArgs :: (Code, [CgLoc]) -> CodeGen ()
 setMethodArgs codeArgs = modify $ \s -> s { cgMethodArgs = codeArgs }
+
+type LocalsMap = IntMap CgLoc
+
+getMethodLocals :: CodeGen LocalsMap
+getMethodLocals = gets cgMethodLocals
+
+setMethodLocals :: LocalsMap -> CodeGen ()
+setMethodLocals locals = modify $ \s -> s { cgMethodLocals = locals }
+
+updMethodLocals :: (LocalsMap -> LocalsMap) -> CodeGen ()
+updMethodLocals upd = modify $ \s -> s { cgMethodLocals = upd (cgMethodLocals s) }
 
 getCheckpoints :: CodeGen [(Int, Code)]
 getCheckpoints = gets cgCheckpoints
@@ -290,15 +307,25 @@ addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
   bindings <- getBindings
   setBindings $ extendVarEnv bindings (cgId cgIdInfo) cgIdInfo
+  addMethodLocal (cgLocation cgIdInfo)
+
+addMethodLocal :: CgLoc -> CodeGen ()
+addMethodLocal cgLoc = when (isLocLocal cgLoc) $
+    updMethodLocals (I.insert (locLocal cgLoc) cgLoc)
 
 addBindings :: [CgIdInfo] -> CodeGen ()
 addBindings newCgIdInfos = do
-        bindings <- getBindings
-        let newBindings = foldl
-              (\binds info -> extendVarEnv binds (cgId info) info)
-              bindings
-              newCgIdInfos
-        setBindings newBindings
+  bindings <- getBindings
+  let newBindings = foldl
+        (\binds info -> extendVarEnv binds (cgId info) info)
+        bindings
+        newCgIdInfos
+  setBindings newBindings
+  -- TODO: Make this more efficient?
+  forM_ newCgIdInfos $ \cgIdInfo -> do
+    let cgLoc = cgLocation cgIdInfo
+    when (isLocLocal cgLoc) $
+      updMethodLocals (I.insert (locLocal cgLoc) cgLoc)
 
 mergeCompiledClosures :: [ClassFile] -> CodeGen ()
 mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
@@ -446,12 +473,14 @@ withMethod accessFlags name fts rt body = do
   oldNextLabel <- peekNextLabel
   oldNextTarget <- peekNextTarget
   oldMethodArgs <- getMethodArgs
+  oldMethodLocals <- getMethodLocals
   oldCheckpoints <- getCheckpoints
   setMethodCode mempty
   setNextLocal 2
   setNextLabel 0
   setNextTarget 1
   setMethodArgs (mempty, [])
+  setMethodLocals mempty
   setCheckpoints []
   body
   emit vreturn
@@ -464,13 +493,14 @@ withMethod accessFlags name fts rt body = do
   setNextLabel oldNextLabel
   setNextTarget oldNextTarget
   setMethodArgs oldMethodArgs
+  setMethodLocals oldMethodLocals
   setCheckpoints oldCheckpoints
   return methodDef
 
 getCodeWithCheckpoints :: CodeGen Code
 getCodeWithCheckpoints = do
   code <- getMethodCode
-  (loadArgs, argLocs)<- getMethodArgs
+  (loadArgs, _) <- getMethodArgs
   checkpoints <- getCheckpoints
   return $ loadArgs
         <> (if Data.List.null checkpoints
@@ -534,12 +564,14 @@ forkLneBody body = do
   oldBindings <- getBindings
   oldCode <- getMethodCode
   oldNextLocal <- peekNextLocal
+  oldMethodLocals <- getMethodLocals
   setMethodCode mempty
   body
   newCode <- getMethodCode
+  setBindings oldBindings
   setMethodCode oldCode
   setNextLocal oldNextLocal
-  setBindings oldBindings
+  setMethodLocals oldMethodLocals
   return newCode
 
 debug :: String -> CodeGen ()
@@ -573,11 +605,5 @@ crashDoc sdoc = do
 
 getLocalBindings :: Int -> CodeGen [CgLoc]
 getLocalBindings after = do
-  bindings <- getBindings
-  return . sortOn (\(LocLocal _ _ i) -> i)
-         . Data.List.filter (\x -> case x of
-                      LocLocal _ _ i
-                        | i > after -> True
-                      _ -> False)
-         . map cgLocation
-         $ varEnvElts bindings
+  locals <- getMethodLocals
+  return $ I.elems $ I.filterWithKey (\i _ -> i > after) locals

@@ -8,12 +8,12 @@ import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.Id
 import Codec.JVM
 import ETA.Util
+import ETA.Utils.MonadUtils
 import ETA.CodeGen.Monad
 import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Rts
 import ETA.CodeGen.Env
-
 
 import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
@@ -223,40 +223,40 @@ wrapStackCheck :: CodeGen () -> CodeGen ()
 wrapStackCheck call = do
     -- TODO: Replace the local variable with an internal variable in context?
     --stackTop <- newTemp False frameType
+    clsName <- getClass
     (target, label) <- newTarget
     (_, argLocs) <- getMethodArgs
     let localStart = 2 + sum (map (fieldSize . locFt) argLocs)
     localLocs <- getLocalBindings 1
-    let (!savedArgs, !loadArgs, !r, !i, !l, !f, !d, !o) =
+    let (!savedArgs, !loadArgs) =
           loadStoreArgs mempty mempty localLocs 2 1 1 1 1 1
 
         loadStoreArgs !saveCode !loadCode (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> storeRec (contextS r) (contextL r) (r + 1) i l f d o
-            N -> storeRec (contextS i) (contextL i) r (i + 1) l f d o
+            N -> storeRec (contextS i) (contextL' i (gconv jint ft)) r (i + 1) l f d o
             L -> storeRec (contextS l) (contextL l) r i (l + 1) f d o
             F -> storeRec (contextS f) (contextL f) r i l (f + 1) d o
             D -> storeRec (contextS d) (contextL d) r i l f (d + 1) o
-            O -> storeRec (contextS o) (contextL o) r i l f d (o + 1)
+            O -> storeRec (contextS o) (contextL' o (gconv jobject ft)) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
                 n = locLocal cgLoc
-                loadCode = loadLoc cgLoc
                 argRep = locArgRep cgLoc
-                contextS = contextStore ft argRep loadCode
-                contextL i = if n >= localStart
-                             then storeLoc cgLoc (contextLoad ft argRep i)
+                contextS = contextStore ft argRep (loadLoc cgLoc)
+                contextL i = contextL' i mempty
+                contextL' i c = if n >= localStart
+                             then storeLoc cgLoc (contextLoad ft argRep i <> c)
                              else mempty
                 storeRec code1 code2 =
                   loadStoreArgs (saveCode <> code1) (loadCode <> code2) cgLocs
         loadStoreArgs !saveCode !loadCode _ !r !i !l !f !d !o
-          = (saveCode, loadCode, r, i, l, f, d, o)
+          = (saveCode, loadCode)
         maybeSaveLocals =
              loadContext
           <> swap frameType contextType
           <> sameAsTopMethod
-          <> loadContext
-          <> saveFieldGet
+          <> loadContext <> saveFieldGet
           <> iand
           <> ifeq mempty saveLocals
 
@@ -264,9 +264,9 @@ wrapStackCheck call = do
           -- Insert into stack
              loadContext <> currentTSOField
           <> new contFrameType
-          <> dup contFrameType
+          <> gdup
           -- closure
-          <> gload closureType 0
+          <> gload (obj clsName) 0
           -- target
           <> iconst jint (fromIntegral target)
           -- returnStack
@@ -280,10 +280,10 @@ wrapStackCheck call = do
           -- argStack
           <> loadContext <> resetArgStackMethod
           <> savedArgs
+          <> loadContext <> argStackFieldGet
           -- newContinuationFrame
           <> invokespecial (mkMethodRef contFrame "<init>"
-                            [closureType, jint, argStackType, argStackType
-                            , argStackType] void)
+                            [closureType, jint, argStackType, argStackType] void)
           -- tso.spInsert
           <> spInsertMethod
 
@@ -293,7 +293,7 @@ wrapStackCheck call = do
     call
     emit $ dup_x2 contextType jint frameType
         <> checkForStackFramesMethod
-        <> ifeq mempty (maybeSaveLocals <> vreturn)
+        <> ifeq (pop frameType) (maybeSaveLocals <> vreturn)
         <> startLabel label
     addCheckpoint target ( loadArgs
                         <> loadContext <> returnStackFieldGet

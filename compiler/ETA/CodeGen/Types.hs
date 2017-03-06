@@ -23,6 +23,7 @@ module ETA.CodeGen.Types
    evaluateMethod,
    loadLoc,
    locLocal,
+   isLocLocal,
    storeLoc,
    locFt,
    isRec,
@@ -123,6 +124,10 @@ loadLoc (LocDirect _ _ code) = code
 locLocal :: CgLoc -> Int
 locLocal (LocLocal _ _ n) = n
 locLocal _ = error $ "locLocal: Not LocLocal!"
+
+isLocLocal :: CgLoc -> Bool
+isLocLocal (LocLocal _ _ _) = True
+isLocLocal _ = False
 
 type CgBindings = IdEnv CgIdInfo
 

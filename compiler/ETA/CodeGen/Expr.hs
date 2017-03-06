@@ -62,8 +62,10 @@ cgLneBinds (StgNonRec binder rhs) expr = do
   addBinding info
   exprCode <- forkLneBody $ cgExpr expr
   let (bindLabel, argLocs) = expectJust "cgLneBinds:StgNonRec" . maybeLetNoEscape $ info
+  defaultLabel <- newLabel
+  exprLabel <- newLabel
   emit $ fold (map storeDefault argLocs)
-      <> letNoEscapeCodeBlocks [(bindLabel, bindCode)] exprCode
+      <> letNoEscapeCodeBlocks defaultLabel [(bindLabel, bindCode)] (exprLabel, exprCode)
 
 cgLneBinds (StgRec pairs) expr = do
   result <- sequence $ unzipWith cgLetNoEscapeRhsBody pairs
@@ -73,8 +75,10 @@ cgLneBinds (StgRec pairs) expr = do
   addBindings infos
   bindCodes <- sequence $ ($ n') <$> genBindCodes
   exprCode <- forkLneBody $ cgExpr expr
+  defaultLabel <- newLabel
+  exprLabel <- newLabel
   emit $ fold (fold (map (map storeDefault) argLocss))
-      <> letNoEscapeCodeBlocks (zip labels bindCodes) exprCode
+      <> letNoEscapeCodeBlocks defaultLabel (zip labels bindCodes) (exprLabel, exprCode)
 
 cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, Int -> CodeGen Code)
 cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body)
@@ -88,6 +92,8 @@ cgLetNoEscapeClosure binder args body = do
   label <- newLabel
   n <- peekNextLocal
   argLocs <- mapM newIdLoc args
+  -- TODO: hack
+  mapM_ addMethodLocal argLocs
   let code n' = forkLneBody $ do
         bindArgs $ zip args argLocs
         setNextLocal n'
@@ -203,6 +209,8 @@ cgCase scrut binder altType alts = do
   -- binder.
   when (isCaseOfCase scrut) $ do
     emit $ fold (map storeDefault altLocs)
+    -- TODO: Really hacky
+    mapM_ addMethodLocal altLocs
   withSequel (AssignTo altLocs) $ cgExpr scrut
   bindArgs $ zip retBinders altLocs
   cgAlts (NonVoid binder) altType alts

@@ -16,6 +16,7 @@ import ETA.CodeGen.Monad
 import ETA.CodeGen.Utils
 import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Name
+import ETA.CodeGen.Rts
 
 import Control.Monad (liftM)
 import Data.Maybe (catMaybes)
@@ -83,14 +84,15 @@ rhsIdInfo id lfInfo = do
   dflags <- getDynFlags
   modClass <- getModClass
   let qualifiedClass = qualifiedName modClass (idNameText dflags id)
-  rhsGenIdInfo id lfInfo (obj qualifiedClass)
+  rhsGenIdInfo id lfInfo closureType -- TODO: (obj qualifiedClass)
 
 -- TODO: getJavaInfo generalize to unify rhsIdInfo and rhsConIdInfo
 rhsConIdInfo :: Id -> LambdaFormInfo -> CodeGen (CgIdInfo, CgLoc)
 rhsConIdInfo id lfInfo@(LFCon dataCon) = do
   dflags <- getDynFlags
   let dataClass = dataConClass dflags dataCon
-  rhsGenIdInfo id lfInfo (obj dataClass)
+  rhsGenIdInfo id lfInfo closureType -- TODO: (obj dataClass)
+
 
 rhsGenIdInfo :: Id -> LambdaFormInfo -> FieldType -> CodeGen (CgIdInfo, CgLoc)
 rhsGenIdInfo id lfInfo ft = do

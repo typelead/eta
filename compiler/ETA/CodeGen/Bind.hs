@@ -80,8 +80,7 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
       --       if there will be a recursive call later. This will
       --       have a significant effect on the size of the resulting
       --       class files.
-      emit $ markStackMap
-          <> startLabel label
+      emit $ startLabel label
       withSelfLoop (id, label, cgLocs) $ do
         mapM_ bindFV fvLocs
         cgExpr body
@@ -235,8 +234,9 @@ cgRhsStdThunk :: Id
               -> CodeGen ( CgIdInfo
                          , CodeGen (Code, RecIndexes) )
 cgRhsStdThunk binder lfInfo payload recIds = do
-  let (ft, genThunk) = genStdThunk lfInfo
-  (idInfo, cgLoc) <- rhsGenIdInfo binder lfInfo ft
+  -- TODO: Remove the ft return type for genStdThunk
+  let (_, genThunk) = genStdThunk lfInfo
+  (idInfo, cgLoc) <- rhsGenIdInfo binder lfInfo closureType
   debugDoc $ str "cgRhsStdThunk:" <+> ppr idInfo <+> ppr cgLoc <+> ppr binder <+> ppr payload
   return (idInfo, genCode cgLoc genThunk)
   where genCode cgLoc genThunk = do

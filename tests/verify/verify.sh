@@ -9,7 +9,7 @@ cp ../../utils/class-verifier/Verify.class .
 echo "Verify.class built successfully."
 
 # Remove old build artifacts
-rm -rf build
+rm -rf META-INF base build cern eta ghczmprim integer main
 
 # Compile a simple program and extract the files
 echo "Compiling a simple program..."
