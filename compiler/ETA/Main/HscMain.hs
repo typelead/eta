@@ -1239,7 +1239,8 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
   where f (classSpec, (methodDefs, fieldDefs)) =
           mkClassFile java7 [Public, Super] (jvmify className) (Just superClass)
             interfaces fieldDefs methodDefs''
-          where className:specs = T.words classSpec
+          where className':specs = T.words classSpec
+                className = jvmify className'
                 methodDefs' = genClInit className : methodDefs
                 methodDefs'' = if hasConstructor
                                then methodDefs'
