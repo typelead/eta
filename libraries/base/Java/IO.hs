@@ -85,4 +85,32 @@ foreign import java unsafe "write" writeString :: (a <: Writer) => String -> Jav
 foreign import java unsafe "write"
   writeSubString :: (a <: Writer) => String -> Int -> Int -> Java a ()
 
--- end java.io.Writer
+-- End java.io.Writer
+
+-- Start java.io.InputStream
+
+data {-# CLASS "java.io.InputStream" #-} InputStream = InputStream (Object# InputStream)
+  deriving Class
+
+type instance Inherits InputStream = '[Object, Closeable]
+
+foreign import java unsafe available :: (a <: InputStream) => Java a Int
+
+foreign import java unsafe "mark" markInputStream :: (a <: InputStream) => Int -> Java a Int
+
+foreign import java unsafe "markSupported"
+  markSupportedInputStream :: (a <: InputStream) => Java a Bool
+
+foreign import java unsafe "read" readInputStream :: (a <: InputStream) => Java a Int
+
+foreign import java unsafe "read"
+  readByteInputStream :: (a <: InputStream) => JByteArray -> Java a Int
+
+foreign import java unsafe "read"
+  readByteInputStream2 :: (a <: InputStream) => JByteArray -> Int -> Int -> Java a Int
+
+foreign import java unsafe "reset" resetInputStream :: (a <: InputStream) => Java a ()
+
+foreign import java unsafe "skip" skipInputStream :: (a <: InputStream) => Int64 -> Java a Int64
+
+-- End java.io.InputStream
