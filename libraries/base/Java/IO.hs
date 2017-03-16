@@ -168,3 +168,19 @@ foreign import java unsafe "skip"
   skipBufferedInputStream :: (a <: BufferedInputStream) => Int64 -> Java a Int64
 
 -- End java.io.BufferedInputStream
+
+-- Start java.io.BufferedOutputStream
+
+data {-# CLASS "java.io.BufferedOutputStream" #-} BufferedOutputStream = BufferedOutputStream (Object# BufferedOutputStream)
+  deriving Class
+
+foreign import java unsafe "flush"
+  flushBufferedOutputStream :: (a <: BufferedOutputStream) => Java a ()
+
+foreign import java unsafe "write"
+  writeBufferedOutputStream :: (a <: BufferedOutputStream) => JByteArray -> Int -> Int -> Java a ()
+
+foreign import java unsafe "write"
+  writeBufferedOutputStream2 :: (a <: BufferedOutputStream) => Int -> Java a ()
+
+-- End java.io.BufferedOutputStream
