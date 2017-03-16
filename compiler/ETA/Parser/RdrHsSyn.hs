@@ -1405,6 +1405,8 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
                                             <+> (ftext entity'))
       Just importSpec -> return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   where entity' | nullFS entity = mkExtName (unLoc v)
+                | unpackFS entity == "@interface" = appendFS (appendFS entity (mkFastString " "))
+                                                             (mkExtName (unLoc v)) 
                 | otherwise     = entity
         -- TODO: Z-encode the result?
 
