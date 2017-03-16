@@ -230,6 +230,7 @@ Library
         Java.Array
         Java.Core
         Java.Collections
+        Java.IO
         Java.Primitive
         Java.String
         Java.TopHandler
