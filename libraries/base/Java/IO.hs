@@ -138,3 +138,33 @@ foreign import java unsafe "write"
   writeOutputStream :: (a <: OutputStream) => Int -> Java a ()
 
 -- End java.io.OutputStream
+
+-- Start java.io.BufferedInputStream
+
+data {-# CLASS "java.io.BufferedInputStream" #-} BufferedInputStream = BufferedInputStream (Object# BufferedInputStream)
+  deriving Class
+
+type instance Inherits BufferedInputStream = '[Object, Closeable]
+
+foreign import java unsafe "available"
+  availableBufferedInputStream :: (a <: BufferedInputStream) => Java a Int
+
+foreign import java unsafe "mark"
+  markBufferedInputStream :: (a <: BufferedInputStream) => Int -> Java a Int
+
+foreign import java unsafe "mark"
+  markSupportedBufferedInputStream :: (a <: BufferedInputStream) => Java a Bool
+
+foreign import java unsafe "read"
+  readBufferedInputStream :: (a <: BufferedInputStream) => Java a Int
+
+foreign import java unsafe "read"
+  readBufferedInputStream2 :: (a <: BufferedInputStream) => JByteArray -> Int -> Int -> Java a Int
+
+foreign import java unsafe "reset"
+  resetBufferedInputStream :: (a <: BufferedInputStream) => Java a ()
+
+foreign import java unsafe "skip"
+  skipBufferedInputStream :: (a <: BufferedInputStream) => Int64 -> Java a Int64
+
+-- End java.io.BufferedInputStream
