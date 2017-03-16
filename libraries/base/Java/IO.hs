@@ -22,12 +22,16 @@ import GHC.Int
 import Java.Array
 import Java.Primitive
 
+-- Start java.io.Closeable
+
 data {-# CLASS "java.io.Closeable" #-} Closeable = Closeable (Object# Closeable)
   deriving Class
 
 foreign import java unsafe close :: (a <: Closeable) => Java a ()
 
--- start java.io.Reader
+-- End java.io.Closeable
+
+-- Start java.io.Reader
 
 data {-# CLASS "java.io.Reader" #-} Reader = Reader (Object# Reader)
   deriving Class
@@ -114,3 +118,23 @@ foreign import java unsafe "reset" resetInputStream :: (a <: InputStream) => Jav
 foreign import java unsafe "skip" skipInputStream :: (a <: InputStream) => Int64 -> Java a Int64
 
 -- End java.io.InputStream
+
+-- Start java.io.OutputStream
+
+data {-# CLASS "java.io.OutputStream" #-} OutputStream = OutputStream (Object# OutputStream)
+  deriving Class
+
+type instance Inherits OutputStream = '[Object, Closeable]
+
+foreign import java unsafe "flush" flushOutputStream :: (a <: OutputStream) => Java a ()
+
+foreign import java unsafe "write"
+  writeArrayOutputStream :: (a <: OutputStream) => JByteArray -> Java a ()
+
+foreign import java unsafe "write"
+  writeSubArrayOutputStream :: (a <: OutputStream) => JByteArray -> Int -> Int -> Java a ()
+
+foreign import java unsafe "write"
+  writeOutputStream :: (a <: OutputStream) => Int -> Java a ()
+
+-- End java.io.OutputStream
