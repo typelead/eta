@@ -21,6 +21,7 @@ module GHC.Types (
         Float(..), Double(..),
         Ordering(..), IO(..),
         Java(..), Object(..), JString(..),
+        CharSequence(..),
         Object#,
         isTrue#,
         SPEC(..),
@@ -245,3 +246,4 @@ type role Java nominal representational
 
 data {-# CLASS "java.lang.Object" #-} Object  = O#  (Object# Object)
 data {-# CLASS "java.lang.String" #-} JString = JS# (Object# JString)
+data {-# CLASS "java.lang.CharSequence" #-} CharSequence = CS# (Object# CharSequence)

@@ -311,6 +311,8 @@ instance Class JString where
   unobj (JS# x) = x
   obj = JS#
 
+type instance Inherits JString = '[Object, CharSequence]
+
 foreign import java unsafe "equals" __equals :: Object# a -> Object# b -> Bool
 
 foreign import java unsafe "compareTo" __compareTo :: JString -> JString -> Int
