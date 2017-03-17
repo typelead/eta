@@ -53,6 +53,7 @@ module ETA.CodeGen.Monad
 where
 
 import ETA.Main.DynFlags
+import ETA.Main.ErrUtils
 import ETA.BasicTypes.Module
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.Id
@@ -484,9 +485,9 @@ debug msg = do
 
 debugDoc :: SDoc -> CodeGen ()
 debugDoc sdoc = do
-  dflags <- getDynFlags
-  when (verbosity dflags > 1) $
-    liftIO . putStrLn $ showSDocDump dflags sdoc
+  dflags   <- getDynFlags
+  when (dopt Opt_D_dump_cg_trace dflags) $
+    liftIO $ dumpSDoc dflags neverQualify Opt_D_dump_cg_trace "" sdoc
 
 printDoc :: SDoc -> CodeGen ()
 printDoc sdoc = do
