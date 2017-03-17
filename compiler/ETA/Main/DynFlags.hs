@@ -288,6 +288,7 @@ data DumpFlag
    | Opt_D_dump_opt_cmm
    | Opt_D_dump_simpl_stats
    | Opt_D_dump_cs_trace -- Constraint solver in type checker
+   | Opt_D_dump_cg_trace
    | Opt_D_dump_tc_trace
    | Opt_D_dump_if_trace
    | Opt_D_dump_vt_trace
@@ -2473,6 +2474,7 @@ dynamic_flags = [
   , defGhcFlag "ddump-rn-trace"          (setDumpFlag Opt_D_dump_rn_trace)
   , defGhcFlag "ddump-if-trace"          (setDumpFlag Opt_D_dump_if_trace)
   , defGhcFlag "ddump-cs-trace"          (setDumpFlag Opt_D_dump_cs_trace)
+  , defGhcFlag "ddump-cg-trace"          (setDumpFlag Opt_D_dump_cg_trace)
   , defGhcFlag "ddump-tc-trace"          (NoArg (do
                                             setDumpFlag' Opt_D_dump_tc_trace
                                             setDumpFlag' Opt_D_dump_cs_trace))
