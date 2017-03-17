@@ -65,7 +65,7 @@ liftIO io = Stream $ io >>= return . Left
 
 -- | Turn a Stream into an ordinary list, by demanding all the elements.
 collect :: Monad m => Stream m a () -> m [a]
-collect str = go str []
+collect stream = go stream []
  where
   go str acc = do
     r <- runStream str
