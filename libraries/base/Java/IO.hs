@@ -21,6 +21,7 @@ import GHC.Base
 import GHC.Int
 import Java.Array
 import Java.Primitive
+import Java.NIO
 
 -- Start java.io.Closeable
 
@@ -38,7 +39,16 @@ data {-# CLASS "java.io.Flushable" #-} Flushable = Flushable (Object# Flushable)
 
 foreign import java unsafe flush :: (a <: Flushable) => Java a ()
 
--- End java.io.Closeable
+-- End java.io.Flushable
+
+-- Start java.io.Readable
+
+data {-# CLASS "java.io.Readable" #-} Readable = Readable (Object# Readable)
+  deriving Class
+
+foreign import java unsafe read :: (a <: Readable) => CharBuffer -> Java a Int
+
+-- End java.io.Readable
 
 -- Start java.io.Reader
 
@@ -51,7 +61,7 @@ foreign import java unsafe mark :: (a <: Reader) => Int -> Java a ()
 
 foreign import java unsafe markSupported :: (a <: Reader) => Java a Bool
 
-foreign import java unsafe read :: (a <: Reader) => Java a Int
+foreign import java unsafe "read" readReader :: (a <: Reader) => Java a Int
 
 foreign import java unsafe "read" readArray :: (a <: Reader) => JCharArray -> Java a Int
 
@@ -158,13 +168,7 @@ type instance Inherits BufferedInputStream = '[InputStream, Closeable]
 data {-# CLASS "java.io.BufferedOutputStream" #-} BufferedOutputStream = BufferedOutputStream (Object# BufferedOutputStream)
   deriving Class
 
-type instance Inherits BufferedOutputStream = '[Object, Closeable, Flushable]
-
-foreign import java unsafe "write"
-  writeBufferedOutputStream :: (a <: BufferedOutputStream) => JByteArray -> Int -> Int -> Java a ()
-
-foreign import java unsafe "write"
-  writeBufferedOutputStream2 :: (a <: BufferedOutputStream) => Int -> Java a ()
+type instance Inherits BufferedOutputStream = '[OutputStream, Closeable, Flushable]
 
 -- End java.io.BufferedOutputStream
 
@@ -173,26 +177,7 @@ foreign import java unsafe "write"
 data {-# CLASS "java.io.BufferedReader" #-} BufferedReader = BufferedReader (Object# BufferedReader)
   deriving Class
 
-type instance Inherits BufferedReader = '[Object, Closeable]
-
-foreign import java unsafe "mark" markBufferedReader :: (a <: BufferedReader) => Int -> Java a ()
-
-foreign import java unsafe "markSupported"
-  markSupportedBufferedReader :: (a <: BufferedReader) => Java a Bool
-
-foreign import java unsafe "read" readBufferedReader :: (a <: BufferedReader) => Java a Int
-
-foreign import java unsafe "read"
-  readBufferedReader2 :: (a <: BufferedReader) => JCharArray -> Int -> Int -> Java a Int
-
-foreign import java unsafe readLine :: (a <: BufferedReader) => Java a String
-
-foreign import java unsafe "ready" readyBufferedReader :: (a <: BufferedReader) => Java a Bool
-
-foreign import java unsafe "reset" resetBufferedReader :: (a <: BufferedReader) => Java a ()
-
-foreign import java unsafe "skip"
-  skipBufferedReader :: (a <: BufferedReader) => Int64 -> Java a Int64
+type instance Inherits BufferedReader = '[Reader, Closeable]
 
 -- End java.io.BufferedReader
 
@@ -201,17 +186,8 @@ foreign import java unsafe "skip"
 data {-# CLASS "java.io.BufferedWriter" #-} BufferedWriter = BufferedWriter (Object# BufferedWriter)
   deriving Class
 
-type instance Inherits BufferedWriter = '[Object, Closeable, Flushable]
+type instance Inherits BufferedWriter = '[Writer, Closeable, Flushable]
 
 foreign import java unsafe newLine :: (a <: BufferedWriter) => Java a ()
-
-foreign import java unsafe "write"
-  writeBufferedWriter :: (a <: BufferedWriter) => JCharArray -> Int -> Int -> Java a ()
-
-foreign import java unsafe "write"
-  writeBufferedWriter2 :: (a <: BufferedWriter) => Int -> Java a ()
-
-foreign import java unsafe "write"
-  writeBufferedWriter3 :: (a <: BufferedWriter) => JString -> Int -> Int -> Java a ()
 
 -- End java.io.BufferedWriter
