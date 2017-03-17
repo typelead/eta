@@ -143,9 +143,9 @@ module ETA.Main.DynFlags (
         LinkerInfo(..),
         CompilerInfo(..),
 
-	-- * DynFlags utilities
-	addClassPaths,
-	addJarInputs,
+        -- * DynFlags utilities
+        addClassPaths,
+        addJarInputs,
         compressionMethod
   ) where
 
@@ -182,15 +182,12 @@ import Control.Arrow ((&&&))
 import Control.Monad
 import Control.Exception (throwIO)
 
-import Data.Bits
 import Data.Char
-import Data.Int
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Word
 import System.FilePath
 import System.Directory
 import System.Environment (getEnv)
@@ -3170,7 +3167,7 @@ xFlags = [
   ]
 
 defaultFlags :: Settings -> [GeneralFlag]
-defaultFlags settings
+defaultFlags _
 -- See Note [Updating flag description in the User's Guide]
   = [ Opt_AutoLinkPackages,
       Opt_EmbedManifest,
@@ -3453,7 +3450,7 @@ setIncoherentInsts True = do
 
 checkTemplateHaskellOk :: TurnOnFlag -> DynP ()
 -- TODO: #ifdef GHCI
-checkTemplateHaskellOk turn_on
+checkTemplateHaskellOk _
   = getCurLoc >>= \l -> upd (\d -> d { thOnLoc = l })
 -- #else
 -- In stage 1, Template Haskell is simply illegal, except with -M
@@ -3967,7 +3964,7 @@ setOptHpcDir arg  = upd $ \ d -> d{hpcDir = arg}
 -- platform.
 
 picCCOpts :: DynFlags -> [String]
-picCCOpts dflags = undefined
+picCCOpts _ = undefined
 
 picPOpts :: DynFlags -> [String]
 picPOpts dflags
@@ -4082,10 +4079,10 @@ data SseVersion = SSE1
                 deriving (Eq, Ord)
 
 isSseEnabled :: DynFlags -> Bool
-isSseEnabled dflags = False
+isSseEnabled _ = False
 
 isSse2Enabled :: DynFlags -> Bool
-isSse2Enabled dflags = False
+isSse2Enabled _ = False
 
 isSse4_2Enabled :: DynFlags -> Bool
 isSse4_2Enabled dflags = sseVersion dflags >= Just SSE42
