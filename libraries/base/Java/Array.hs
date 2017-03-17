@@ -35,10 +35,12 @@ module Java.Array
 where
 
 import GHC.Base
+import GHC.Int
 import GHC.List
 import GHC.Num
+import GHC.Real
 import GHC.Show
-import GHC.Int
+import GHC.Word
 import Java.Core
 import Java.Primitive
 import Java.Utils
@@ -97,6 +99,16 @@ instance JArray Byte JByteArray where
     case writeJByteArray# o n# e# realWorld# of
       _ -> (# o, () #)
 
+instance JavaConverter [Word8] JByteArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Byte]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+
+instance JavaConverter [Int8] JByteArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Byte]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+
 data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
   deriving (Class, Show)
 
@@ -127,6 +139,16 @@ instance JArray Short JShortArray where
     case writeJShortArray# o n# e# realWorld# of
       _ -> (# o, () #)
 
+instance JavaConverter [Word16] JShortArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Short]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+
+instance JavaConverter [Int16] JShortArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Short]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+
 data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
   deriving (Class, Show)
 
@@ -142,6 +164,16 @@ instance JArray Int JIntArray where
     case writeJIntArray# o n# e# realWorld# of
       _ -> (# o, () #)
 
+instance JavaConverter [Word32] JIntArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Int]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+
+instance JavaConverter [Int32] JIntArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Int]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+
 data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray)
   deriving (Class, Show)
 
@@ -156,6 +188,11 @@ instance JArray Int64 JLongArray where
   aset (I# n#) (I64# e#) = Java $ \o ->
     case writeJLongArray# o n# e# realWorld# of
       _ -> (# o, () #)
+
+instance JavaConverter [Word64] JLongArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map fromIntegral ws :: [Int64]
+  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
 
 data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
   deriving (Class, Show)
@@ -191,6 +228,11 @@ data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JSt
   deriving (Class, Show)
 
 instance JArray JString JStringArray
+
+instance JavaConverter [String] JStringArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map toJava ws :: [JString]
+  fromJava ba = map fromJava $ pureJavaWith ba arrayToList
 
 data {-# CLASS "java.lang.Object[]" #-} JObjectArray = JObjectArray (Object# JObjectArray)
   deriving (Class, Show)

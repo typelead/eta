@@ -11,7 +11,7 @@
 -- Stability   :  provisional
 -- Portability :  portable
 --
--- Bindings for Java Date Time utilities
+-- Bindings for Java Text utilities
 --
 -----------------------------------------------------------------------------
 
