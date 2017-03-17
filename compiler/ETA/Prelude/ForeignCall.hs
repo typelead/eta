@@ -178,11 +178,12 @@ calling convention (used by PprAbsC):
 -}
 
 ccallConvAttribute :: CCallConv -> SDoc
-ccallConvAttribute StdCallConv       = text "__attribute__((__stdcall__))"
-ccallConvAttribute CCallConv         = empty
-ccallConvAttribute CApiConv          = empty
-ccallConvAttribute (PrimCallConv {}) = panic "ccallConvAttribute PrimCallConv"
+ccallConvAttribute StdCallConv        = text "__attribute__((__stdcall__))"
+ccallConvAttribute CCallConv          = empty
+ccallConvAttribute CApiConv           = empty
+ccallConvAttribute (PrimCallConv {})  = panic "ccallConvAttribute PrimCallConv"
 ccallConvAttribute JavaScriptCallConv = panic "ccallConvAttribute JavaScriptCallConv"
+ccallConvAttribute JavaCallConv       = panic "ccallConvAttribute JavaCallConv"
 
 type CLabelString = FastString          -- A C label, completely unencoded
 
