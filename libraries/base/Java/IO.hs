@@ -212,3 +212,25 @@ foreign import java unsafe "skip"
   skipBufferedReader :: (a <: BufferedReader) => Int64 -> Java a Int64
 
 -- End java.io.BufferedReader
+
+-- Start java.io.BufferedWriter
+
+data {-# CLASS "java.io.BufferedWriter" #-} BufferedWriter = BufferedWriter (Object# BufferedWriter)
+  deriving Class
+
+type instance Inherits BufferedWriter = '[Object, Closeable]
+
+foreign import java unsafe "flush" flushBufferedWriter :: (a <: BufferedWriter) => Java a ()
+
+foreign import java unsafe newLine :: (a <: BufferedWriter) => Java a ()
+
+foreign import java unsafe "write"
+  writeBufferedWriter :: (a <: BufferedWriter) => JCharArray -> Int -> Int -> Java a ()
+
+foreign import java unsafe "write"
+  writeBufferedWriter2 :: (a <: BufferedWriter) => Int -> Java a ()
+
+foreign import java unsafe "write"
+  writeBufferedWriter3 :: (a <: BufferedWriter) => JString -> Int -> Int -> Java a ()
+
+-- End java.io.BufferedWriter
