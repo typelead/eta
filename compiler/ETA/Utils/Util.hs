@@ -243,7 +243,7 @@ first3M f (x, y, z) = liftM (\x' -> (x', y, z)) (f x)
 -}
 
 expectHead :: String -> [a] -> a
-expectHead _   (x:xs) = x
+expectHead _   (x:_) = x
 expectHead err _      = error ("expectHead " ++ err)
 
 filterOut :: (a->Bool) -> [a] -> [a]
