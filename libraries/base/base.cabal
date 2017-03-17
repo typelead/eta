@@ -231,6 +231,7 @@ Library
         Java.Core
         Java.Collections
         Java.IO
+        Java.Math
         Java.NIO
         Java.Primitive
         Java.String

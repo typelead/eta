@@ -11,7 +11,7 @@
 -- Stability   :  provisional
 -- Portability :  portable
 --
--- Bindings for Java Input/Output utilities
+-- Bindings for Java NIO utilities
 --
 -----------------------------------------------------------------------------
 
