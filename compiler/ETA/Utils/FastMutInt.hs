@@ -32,29 +32,29 @@ writeFastMutPtr :: FastMutPtr -> Ptr a -> IO ()
 data FastMutInt = FastMutInt (MutableByteArray# RealWorld)
 
 newFastMutInt = IO $ \s ->
-  case newByteArray# size s of { (# s, arr #) ->
-  (# s, FastMutInt arr #) }
+  case newByteArray# size s of { (# s', arr #) ->
+  (# s', FastMutInt arr #) }
   where !(I# size) = SIZEOF_HSINT
 
 readFastMutInt (FastMutInt arr) = IO $ \s ->
-  case readIntArray# arr 0# s of { (# s, i #) ->
-  (# s, I# i #) }
+  case readIntArray# arr 0# s of { (# s', i #) ->
+  (# s', I# i #) }
 
 writeFastMutInt (FastMutInt arr) (I# i) = IO $ \s ->
-  case writeIntArray# arr 0# i s of { s ->
-  (# s, () #) }
+  case writeIntArray# arr 0# i s of { s' ->
+  (# s', () #) }
 
 data FastMutPtr = FastMutPtr (MutableByteArray# RealWorld)
 
 newFastMutPtr = IO $ \s ->
-  case newByteArray# size s of { (# s, arr #) ->
-  (# s, FastMutPtr arr #) }
+  case newByteArray# size s of { (# s', arr #) ->
+  (# s', FastMutPtr arr #) }
   where !(I# size) = SIZEOF_VOID_P
 
 readFastMutPtr (FastMutPtr arr) = IO $ \s ->
-  case readAddrArray# arr 0# s of { (# s, i #) ->
-  (# s, Ptr i #) }
+  case readAddrArray# arr 0# s of { (# s', i #) ->
+  (# s', Ptr i #) }
 
 writeFastMutPtr (FastMutPtr arr) (Ptr i) = IO $ \s ->
-  case writeAddrArray# arr 0# i s of { s ->
-  (# s, () #) }
+  case writeAddrArray# arr 0# i s of { s' ->
+  (# s', () #) }
