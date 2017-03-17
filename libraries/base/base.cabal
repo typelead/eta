@@ -234,6 +234,7 @@ Library
         Java.DateTime
         Java.IO
         Java.Math
+        Java.Net
         Java.NIO
         Java.Primitive
         Java.String
