@@ -28,7 +28,7 @@ import Java.NIO
 data {-# CLASS "java.io.Closeable" #-} Closeable = Closeable (Object# Closeable)
   deriving Class
 
-foreign import java unsafe close :: (a <: Closeable) => Java a ()
+foreign import java unsafe "@interface" close :: (a <: Closeable) => Java a ()
 
 -- End java.io.Closeable
 
@@ -37,7 +37,7 @@ foreign import java unsafe close :: (a <: Closeable) => Java a ()
 data {-# CLASS "java.io.Flushable" #-} Flushable = Flushable (Object# Flushable)
   deriving Class
 
-foreign import java unsafe flush :: (a <: Flushable) => Java a ()
+foreign import java unsafe "@interface" flush :: (a <: Flushable) => Java a ()
 
 -- End java.io.Flushable
 
@@ -46,7 +46,7 @@ foreign import java unsafe flush :: (a <: Flushable) => Java a ()
 data {-# CLASS "java.io.Readable" #-} Readable = Readable (Object# Readable)
   deriving Class
 
-foreign import java unsafe read :: (a <: Readable) => CharBuffer -> Java a Int
+foreign import java unsafe "@interface read" readBuffer :: (a <: Readable) => CharBuffer -> Java a Int
 
 -- End java.io.Readable
 
@@ -55,7 +55,7 @@ foreign import java unsafe read :: (a <: Readable) => CharBuffer -> Java a Int
 data {-# CLASS "java.io.Reader" #-} Reader = Reader (Object# Reader)
   deriving Class
 
-type instance Inherits Reader = '[Object, Closeable]
+type instance Inherits Reader = '[Object, Closeable, Readable]
 
 foreign import java unsafe mark :: (a <: Reader) => Int -> Java a ()
 
@@ -67,9 +67,6 @@ foreign import java unsafe "read" readArray :: (a <: Reader) => JCharArray -> Ja
 
 foreign import java unsafe "read"
   readSubArrray :: (a <: Reader) => JCharArray -> Int -> Int -> Java a Int
-
--- TODO: Complete when buffers are imported
--- foreign import java unsafe "read" readBuffer :: (a <: Reader) => CharBuffer -> Java a Int
 
 foreign import java unsafe ready :: (a <: Reader) => Java a Bool
 
