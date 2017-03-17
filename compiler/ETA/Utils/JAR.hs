@@ -30,6 +30,7 @@ addByteStringToJar fileLocation fileContents jarLocation
 -}
 module ETA.Utils.JAR
   ( addMultiByteStringsToJar'
+  , addByteStringToJar
   , createEmptyJar
   , getEntriesFromJar
   , mergeClassesAndJars
@@ -40,9 +41,8 @@ module ETA.Utils.JAR
   , mkPath )
 where
 
-import Data.Coerce(coerce)
 import Codec.Archive.Zip
-import Control.Monad (forM_, forM, when)
+import Control.Monad (forM_, when)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Catch (MonadCatch(..), MonadThrow)
 import Data.ByteString.Internal (ByteString)
@@ -300,6 +300,6 @@ mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
     invalidEntrySelector :: EntrySelector -> Bool
     invalidEntrySelector fname = any (endsWith (getEntryName fname)) filterFileExts
     filterFileExts = [".SF", ".DSA", ".RSA"]
-                     
+
     endsWith :: Text -> Text -> Bool
-    endsWith txt pred = T.toUpper (T.takeEnd (T.length pred) txt) == (T.toUpper pred)
+    endsWith txt ext = T.toUpper (T.takeEnd (T.length ext) txt) == (T.toUpper ext)
