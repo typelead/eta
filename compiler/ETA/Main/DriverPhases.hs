@@ -184,7 +184,7 @@ happensBefore dflags p1 p2 = p1 `happensBefore'` p2
               where after_x = nextPhase dflags x
 
 nextPhase :: DynFlags -> Phase -> Phase
-nextPhase dflags p
+nextPhase _ p
     -- A conservative approximation to the next phase, used in happensBefore
     = case p of
       Unlit sf   -> Cpp  sf
@@ -274,27 +274,28 @@ phaseInputExt StopLn              = "jar"
 
 haskellish_src_suffixes, haskellish_suffixes, cish_suffixes,
     haskellish_user_src_suffixes, haskellish_sig_suffixes,
-    javaish_suffixes
+    javaish_suffixes, javaclassish_suffixes
  :: [String]
 haskellish_src_suffixes      = haskellish_user_src_suffixes ++
                                [ "hspp", "hscpp", "hcr", "cmm", "cmmcpp" ]
 haskellish_suffixes          = haskellish_src_suffixes ++ ["hc", "raw_s"]
 cish_suffixes                = [ "c", "cpp", "C", "cc", "cxx", "s", "S", "ll", "bc", "lm_s", "m", "M", "mm" ]
 javaish_suffixes             = [ "java" ] ++ javaclassish_suffixes
-javaclassish_suffixes             = [ "class" ]
+javaclassish_suffixes        = [ "class" ]
 -- Will not be deleted as temp files:
 haskellish_user_src_suffixes =
   haskellish_sig_suffixes ++ [ "hs", "lhs", "hs-boot", "lhs-boot" ]
 haskellish_sig_suffixes      = [ "hsig", "lhsig" ]
 
 objish_suffixes :: Platform -> [String]
-objish_suffixes platform = ["class", "jar"]
+objish_suffixes _ = ["class", "jar"]
 
 dynlib_suffixes :: Platform -> [String]
-dynlib_suffixes platform = ["so"]
+dynlib_suffixes _ = ["so"]
 
 isHaskellishSuffix, isHaskellSrcSuffix, isCishSuffix,
-    isHaskellUserSrcSuffix, isHaskellSigSuffix
+    isHaskellUserSrcSuffix, isHaskellSigSuffix, isJavaishSuffix,
+    isJavaClassishSuffix
  :: String -> Bool
 isHaskellishSuffix     s = s `elem` haskellish_suffixes
 isHaskellSigSuffix     s = s `elem` haskellish_sig_suffixes
@@ -312,7 +313,8 @@ isSourceSuffix :: String -> Bool
 isSourceSuffix suff  = isHaskellishSuffix suff || isCishSuffix suff || isJavaishSuffix suff
 
 isHaskellishFilename, isHaskellSrcFilename, isCishFilename,
-    isHaskellUserSrcFilename, isSourceFilename, isHaskellSigFilename
+    isHaskellUserSrcFilename, isSourceFilename, isHaskellSigFilename, isJavaishFilename,
+    isJavaClassishFilename
  :: FilePath -> Bool
 -- takeExtension return .foo, so we drop 1 to get rid of the .
 isHaskellishFilename     f = isHaskellishSuffix     (drop 1 $ takeExtension f)
