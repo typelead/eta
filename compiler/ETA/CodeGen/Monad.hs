@@ -4,7 +4,7 @@ module ETA.CodeGen.Monad
    CgState(..),
    CodeGen(..),
    crashDoc,
-   debugDoc,
+   traceCg,
    printDoc,
    debugState,
    debug,
@@ -242,7 +242,7 @@ getCgIdInfo id = do
 printBindings :: CodeGen ()
 printBindings = do
   bindings <- getBindings
-  debugDoc $ str "printBindings" <+> ppr bindings
+  traceCg $ str "printBindings" <+> ppr bindings
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
@@ -483,8 +483,8 @@ debug msg = do
   when (verbosity dflags > 1) $
     liftIO $ putStrLn msg
 
-debugDoc :: SDoc -> CodeGen ()
-debugDoc sdoc = do
+traceCg :: SDoc -> CodeGen ()
+traceCg sdoc = do
   dflags   <- getDynFlags
   when (dopt Opt_D_dump_cg_trace dflags) $
     liftIO $ dumpSDoc dflags neverQualify Opt_D_dump_cg_trace "" sdoc
@@ -499,9 +499,9 @@ debugState = do
   dflags <- getDynFlags
   bindings <- getBindings
   when (verbosity dflags > 1) $
-    debugDoc $ str "cgBindings: " <+> ppr bindings
+    traceCg $ str "cgBindings: " <+> ppr bindings
 
 crashDoc :: SDoc -> CodeGen a
 crashDoc sdoc = do
-  debugDoc sdoc
+  traceCg sdoc
   error "crash"

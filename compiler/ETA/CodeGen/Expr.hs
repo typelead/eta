@@ -33,15 +33,15 @@ import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr (StgApp fun args) = debugDoc (str "SgApp" <+> ppr fun <+> ppr args) >>
+cgExpr (StgApp fun args) = traceCg (str "SgApp" <+> ppr fun <+> ppr args) >>
                            cgIdApp fun args
 cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-cgExpr (StgOpApp op args ty) = debugDoc (str "StgOpApp" <+> ppr args <+> ppr ty) >>
+cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr args <+> ppr ty) >>
                                cgOpApp op args ty
-cgExpr (StgConApp con args) = debugDoc (str "StgConApp" <+> ppr con <+> ppr args) >>
+cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 -- TODO: Deal with ticks
-cgExpr (StgTick t e) = debugDoc (str "StgTick" <+> ppr t) >> cgExpr e
+cgExpr (StgTick t e) = traceCg (str "StgTick" <+> ppr t) >> cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   cgBind binds
@@ -50,7 +50,7 @@ cgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
 
 cgExpr (StgCase expr _ _ binder _ altType alts) =
-  debugDoc (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
+  traceCg (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 

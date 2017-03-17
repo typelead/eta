@@ -49,7 +49,7 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo = do
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
-  debugDoc $ str "generating " <+> ppr id
+  traceCg $ str "generating " <+> ppr id
   mod <- getModule
   id' <- externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive id' rhs
@@ -59,7 +59,7 @@ cgTopBinding dflags (StgNonRec id rhs) = do
 cgTopBinding dflags (StgRec pairs) = do
   mod <- getModule
   let (binders, rhss) = unzip pairs
-  debugDoc $ str "generating (rec) " <+> ppr binders
+  traceCg $ str "generating (rec) " <+> ppr binders
   binders' <- mapM (externaliseId dflags) binders
   let pairs'         = zip binders' rhss
       r              = unzipWith (cgTopRhs dflags Recursive) pairs'

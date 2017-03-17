@@ -139,7 +139,7 @@ setupUpdate lfInfo body
 
 cgBind :: StgBinding -> CodeGen ()
 cgBind (StgNonRec name rhs) = do
-  debugDoc $ str "StgLet" <+> ppr name
+  traceCg $ str "StgLet" <+> ppr name
   (info, genInitCode) <- cgRhs [] name rhs
   addBinding info
   (init, recIndexes) <- genInitCode
@@ -148,7 +148,7 @@ cgBind (StgNonRec name rhs) = do
   emit postInitCode
 
 cgBind (StgRec pairs) = do
-  debugDoc $ str "StgLet" <+> ppr recIds
+  traceCg $ str "StgLet" <+> ppr recIds
   result <- sequence $ unzipWith (cgRhs recIds) pairs
   let (idInfos, genInitCodes) = unzip result
   addBindings idInfos
@@ -237,7 +237,7 @@ cgRhsStdThunk :: Id
 cgRhsStdThunk binder lfInfo payload recIds = do
   let (ft, genThunk) = genStdThunk lfInfo
   (idInfo, cgLoc) <- rhsGenIdInfo binder lfInfo ft
-  debugDoc $ str "cgRhsStdThunk:" <+> ppr idInfo <+> ppr cgLoc <+> ppr binder <+> ppr payload
+  traceCg $ str "cgRhsStdThunk:" <+> ppr idInfo <+> ppr cgLoc <+> ppr binder <+> ppr payload
   return (idInfo, genCode cgLoc genThunk)
   where genCode cgLoc genThunk = do
           (recIndexes, loads) <- foldM foldLoads ([], mempty) $ indexList payload
