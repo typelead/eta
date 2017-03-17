@@ -66,7 +66,7 @@ foreign import java unsafe "read" readReader :: (a <: Reader) => Java a Int
 foreign import java unsafe "read" readArray :: (a <: Reader) => JCharArray -> Java a Int
 
 foreign import java unsafe "read"
-  readSubArrray :: (a <: Reader) => JCharArray -> Int -> Int -> Java a Int
+  readSubArray :: (a <: Reader) => JCharArray -> Int -> Int -> Java a Int
 
 foreign import java unsafe ready :: (a <: Reader) => Java a Bool
 
@@ -122,10 +122,10 @@ foreign import java unsafe "markSupported"
 foreign import java unsafe "read" readInputStream :: (a <: InputStream) => Java a Int
 
 foreign import java unsafe "read"
-  readByteInputStream :: (a <: InputStream) => JByteArray -> Java a Int
+  readArrayInputStream :: (a <: InputStream) => JByteArray -> Java a Int
 
 foreign import java unsafe "read"
-  readByteInputStream2 :: (a <: InputStream) => JByteArray -> Int -> Int -> Java a Int
+  readSubArrayInputStream :: (a <: InputStream) => JByteArray -> Int -> Int -> Java a Int
 
 foreign import java unsafe "reset" resetInputStream :: (a <: InputStream) => Java a ()
 
