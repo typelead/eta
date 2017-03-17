@@ -31,6 +31,15 @@ foreign import java unsafe close :: (a <: Closeable) => Java a ()
 
 -- End java.io.Closeable
 
+-- Start java.io.Flushable
+
+data {-# CLASS "java.io.Flushable" #-} Flushable = Flushable (Object# Flushable)
+  deriving Class
+
+foreign import java unsafe flush :: (a <: Flushable) => Java a ()
+
+-- End java.io.Closeable
+
 -- Start java.io.Reader
 
 data {-# CLASS "java.io.Reader" #-} Reader = Reader (Object# Reader)
@@ -65,7 +74,7 @@ foreign import java unsafe skip :: (a <: Reader) => Int64 -> Java a Int64
 data {-# CLASS "java.io.Writer" #-} Writer = Writer (Object# Writer)
   deriving Class
 
-type instance Inherits Writer = '[Object, Closeable]
+type instance Inherits Writer = '[Object, Closeable, Flushable]
 
 foreign import java unsafe append :: (a <: Writer) => JChar -> Java a Writer
 
@@ -74,8 +83,6 @@ foreign import java unsafe "append"
 
 foreign import java unsafe "append"
   appendSubSequence :: (a <: Writer, b <: CharSequence) => b -> Int -> Int -> Java a Writer
-
-foreign import java unsafe flush :: (a <: Writer) => Java a ()
 
 foreign import java unsafe "write" writeArray :: (a <: Writer) => JCharArray -> Java a ()
 
@@ -124,9 +131,7 @@ foreign import java unsafe "skip" skipInputStream :: (a <: InputStream) => Int64
 data {-# CLASS "java.io.OutputStream" #-} OutputStream = OutputStream (Object# OutputStream)
   deriving Class
 
-type instance Inherits OutputStream = '[Object, Closeable]
-
-foreign import java unsafe "flush" flushOutputStream :: (a <: OutputStream) => Java a ()
+type instance Inherits OutputStream = '[Object, Closeable, Flushable]
 
 foreign import java unsafe "write"
   writeArrayOutputStream :: (a <: OutputStream) => JByteArray -> Java a ()
@@ -144,28 +149,7 @@ foreign import java unsafe "write"
 data {-# CLASS "java.io.BufferedInputStream" #-} BufferedInputStream = BufferedInputStream (Object# BufferedInputStream)
   deriving Class
 
-type instance Inherits BufferedInputStream = '[Object, Closeable]
-
-foreign import java unsafe "available"
-  availableBufferedInputStream :: (a <: BufferedInputStream) => Java a Int
-
-foreign import java unsafe "mark"
-  markBufferedInputStream :: (a <: BufferedInputStream) => Int -> Java a Int
-
-foreign import java unsafe "mark"
-  markSupportedBufferedInputStream :: (a <: BufferedInputStream) => Java a Bool
-
-foreign import java unsafe "read"
-  readBufferedInputStream :: (a <: BufferedInputStream) => Java a Int
-
-foreign import java unsafe "read"
-  readBufferedInputStream2 :: (a <: BufferedInputStream) => JByteArray -> Int -> Int -> Java a Int
-
-foreign import java unsafe "reset"
-  resetBufferedInputStream :: (a <: BufferedInputStream) => Java a ()
-
-foreign import java unsafe "skip"
-  skipBufferedInputStream :: (a <: BufferedInputStream) => Int64 -> Java a Int64
+type instance Inherits BufferedInputStream = '[InputStream, Closeable]
 
 -- End java.io.BufferedInputStream
 
@@ -174,8 +158,7 @@ foreign import java unsafe "skip"
 data {-# CLASS "java.io.BufferedOutputStream" #-} BufferedOutputStream = BufferedOutputStream (Object# BufferedOutputStream)
   deriving Class
 
-foreign import java unsafe "flush"
-  flushBufferedOutputStream :: (a <: BufferedOutputStream) => Java a ()
+type instance Inherits BufferedOutputStream = '[Object, Closeable, Flushable]
 
 foreign import java unsafe "write"
   writeBufferedOutputStream :: (a <: BufferedOutputStream) => JByteArray -> Int -> Int -> Java a ()
@@ -218,9 +201,7 @@ foreign import java unsafe "skip"
 data {-# CLASS "java.io.BufferedWriter" #-} BufferedWriter = BufferedWriter (Object# BufferedWriter)
   deriving Class
 
-type instance Inherits BufferedWriter = '[Object, Closeable]
-
-foreign import java unsafe "flush" flushBufferedWriter :: (a <: BufferedWriter) => Java a ()
+type instance Inherits BufferedWriter = '[Object, Closeable, Flushable]
 
 foreign import java unsafe newLine :: (a <: BufferedWriter) => Java a ()
 
