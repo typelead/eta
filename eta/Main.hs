@@ -45,6 +45,7 @@ import ETA.Main.Hooks
 
 -- Standard Libraries
 import System.IO
+import System.IO.Unsafe
 import System.Environment
 import System.Exit
 import System.FilePath
@@ -401,6 +402,10 @@ showEtaUsageMode = mkPreLoadMode ShowGhcUsage
 showEtaiUsageMode = mkPreLoadMode ShowGhciUsage
 showInfoMode = mkPreLoadMode ShowInfo
 
+printLibDir :: Mode
+printLibDir = mkPreLoadMode (PrintWithDynFlags f)
+  where f _ = unsafePerformIO (findTopDir Nothing)
+
 mkPreLoadMode :: PreLoadMode -> Mode
 mkPreLoadMode = Right . Left
 
@@ -524,9 +529,9 @@ modeFlags =
   , defFlag "-supported-languages"  (PassFlag (setMode showSupportedExtensionsMode))
   , defFlag "-supported-extensions" (PassFlag (setMode showSupportedExtensionsMode))
   , defFlag "-show-packages"        (PassFlag (setMode showPackagesMode))
-  ] ++
+  , defFlag "-print-libdir"         (PassFlag (setMode printLibDir))
       ------- interfaces ----------------------------------------------------
-  [ defFlag "-show-iface"  (HasArg (\f -> setMode (showInterfaceMode f)
+  , defFlag "-show-iface"  (HasArg (\f -> setMode (showInterfaceMode f)
                                                "--show-iface"))
 
       ------- primary modes ------------------------------------------------

@@ -48,9 +48,9 @@ module ETA.Main.SysTools (
 
         -- frameworks
         getPkgFrameworkOpts,
-        getFrameworkOpts
+        getFrameworkOpts,
 
-
+        findTopDir
  ) where
 
 #include "HsVersions.h"
