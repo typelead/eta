@@ -184,3 +184,31 @@ foreign import java unsafe "write"
   writeBufferedOutputStream2 :: (a <: BufferedOutputStream) => Int -> Java a ()
 
 -- End java.io.BufferedOutputStream
+
+-- Start java.io.BufferedReader
+
+data {-# CLASS "java.io.BufferedReader" #-} BufferedReader = BufferedReader (Object# BufferedReader)
+  deriving Class
+
+type instance Inherits BufferedReader = '[Object, Closeable]
+
+foreign import java unsafe "mark" markBufferedReader :: (a <: BufferedReader) => Int -> Java a ()
+
+foreign import java unsafe "markSupported"
+  markSupportedBufferedReader :: (a <: BufferedReader) => Java a Bool
+
+foreign import java unsafe "read" readBufferedReader :: (a <: BufferedReader) => Java a Int
+
+foreign import java unsafe "read"
+  readBufferedReader2 :: (a <: BufferedReader) => JCharArray -> Int -> Int -> Java a Int
+
+foreign import java unsafe readLine :: (a <: BufferedReader) => Java a String
+
+foreign import java unsafe "ready" readyBufferedReader :: (a <: BufferedReader) => Java a Bool
+
+foreign import java unsafe "reset" resetBufferedReader :: (a <: BufferedReader) => Java a ()
+
+foreign import java unsafe "skip"
+  skipBufferedReader :: (a <: BufferedReader) => Int64 -> Java a Int64
+
+-- End java.io.BufferedReader
