@@ -1,12 +1,10 @@
 module ETA.CodeGen.LetNoEscape where
 
 import Codec.JVM hiding (op)
-import Codec.JVM.ASM.Code
 import Codec.JVM.ASM.Code.Instr
 import Codec.JVM.ASM.Code.Types
 import Codec.JVM.Internal
 import qualified Codec.JVM.ASM.Code.CtrlFlow as CF
-import qualified Codec.JVM.Opcode as OP
 
 import Control.Monad.RWS
 import Control.Arrow(second)
