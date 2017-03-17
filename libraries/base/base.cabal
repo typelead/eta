@@ -230,12 +230,15 @@ Library
         Java.Array
         Java.Core
         Java.Collections
+        Java.Concurrent
+        Java.DateTime
         Java.IO
         Java.Math
         Java.NIO
         Java.Primitive
         Java.String
         Java.TopHandler
+        Java.Text
         Java.Utils
         Java.Wrappers
         Numeric
