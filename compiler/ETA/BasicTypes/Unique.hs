@@ -64,7 +64,6 @@ import ETA.Utils.FastTypes
 import ETA.Utils.FastString
 import ETA.Utils.Outputable
 -- import ETA.Main.StaticFlags
-import ETA.Utils.Util
 
 --just for implementing a fast [0,61) -> Char function
 import GHC.Exts (indexCharOffAddr#, Char(..))
