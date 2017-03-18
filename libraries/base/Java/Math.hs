@@ -2,7 +2,7 @@
   DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Java.IO
+-- Module      :  Java.Math
 -- Copyright   :  (c) Jyothsna Srinivas 2017
 --
 -- License     :  BSD-style (see the file libraries/base/LICENSE)

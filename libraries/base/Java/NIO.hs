@@ -2,7 +2,7 @@
   DataKinds, TypeFamilies, FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Java.IO
+-- Module      :  Java.NIO
 -- Copyright   :  (c) Jyothsna Srinivas 2017
 --
 -- License     :  BSD-style (see the file libraries/base/LICENSE)
