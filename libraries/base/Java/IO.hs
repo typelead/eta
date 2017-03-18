@@ -197,3 +197,12 @@ data {-# CLASS "java.io.StringReader" #-} StringReader = StringReader (Object# S
 type instance Inherits StringReader = '[Reader, Closeable]
 
 -- End java.io.StringReader
+
+-- Start java.io.StringWriter
+
+data {-# CLASS "java.io.StringWriter" #-} StringWriter = StringWriter (Object# StringWriter)
+  deriving Class
+
+type instance Inherits StringWriter = '[Writer, Closeable, Flushable]
+
+-- End java.io.StringWriter
