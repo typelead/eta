@@ -188,3 +188,12 @@ type instance Inherits BufferedWriter = '[Writer, Closeable, Flushable]
 foreign import java unsafe newLine :: (a <: BufferedWriter) => Java a ()
 
 -- End java.io.BufferedWriter
+
+-- Start java.io.StringReader
+
+data {-# CLASS "java.io.StringReader" #-} StringReader = StringReader (Object# StringReader)
+  deriving Class
+
+type instance Inherits StringReader = '[Reader, Closeable]
+
+-- End java.io.StringReader
