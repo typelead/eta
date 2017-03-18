@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
-             FlexibleInstances #-}
+             FlexibleInstances, TypeOperators, DataKinds, TypeFamilies, FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Wrappers
@@ -54,8 +54,10 @@ instance JavaConverter Bool JBoolean where
 data {-# CLASS "java.lang.Byte" #-} JByte = JByte (Object# JByte)
   deriving (Class, Eq, Show)
 
+type instance Inherits JByte = '[JNumber]
+
 foreign import java unsafe "@new" toJByte :: Byte -> JByte
-foreign import java unsafe byteValue :: JByte -> Byte
+
 
 instance Integral a => JavaConverter a JByte where
   toJava byte = toJByte (fromIntegral byte)
@@ -64,8 +66,9 @@ instance Integral a => JavaConverter a JByte where
 data {-# CLASS "java.lang.Short" #-} JShort = JShort (Object# JShort)
   deriving (Class, Eq, Show)
 
+type instance Inherits JShort = '[JNumber]
+
 foreign import java unsafe "@new" toJShort :: Short -> JShort
-foreign import java unsafe shortValue :: JShort -> Short
 
 instance Integral a => JavaConverter a JShort where
   toJava short = toJShort (fromIntegral short)
@@ -77,8 +80,9 @@ data {-# CLASS "java.lang.Character" #-} JCharacter = JCharacter (Object# JChara
 data {-# CLASS "java.lang.Integer" #-} JInteger = JInteger (Object# JInteger)
   deriving (Class, Eq, Show)
 
+type instance Inherits JInteger = '[JNumber]
+
 foreign import java unsafe "@new" toJInteger :: Int -> JInteger
-foreign import java unsafe intValue :: JInteger -> Int
 
 instance Integral a => JavaConverter a JInteger where
   toJava int = toJInteger (fromIntegral int)
@@ -86,6 +90,8 @@ instance Integral a => JavaConverter a JInteger where
 
 data {-# CLASS "java.lang.Long" #-} JLong = JLong (Object# JLong)
   deriving (Class, Eq, Show)
+
+type instance Inherits JLong = '[JNumber]
 
 foreign import java unsafe "@new" toJLong :: Int64 -> JLong
 foreign import java unsafe longValue :: JLong -> Int64
@@ -97,8 +103,9 @@ instance Integral a => JavaConverter a JLong where
 data {-# CLASS "java.lang.Float" #-} JFloat = JFloat (Object# JFloat)
   deriving (Class, Eq, Show)
 
+type instance Inherits JFloat = '[JNumber]
+
 foreign import java unsafe "@new" toJFloat :: Float -> JFloat
-foreign import java unsafe floatValue :: JFloat -> Float
 
 instance JavaConverter Float JFloat where
   toJava   = toJFloat
@@ -107,9 +114,29 @@ instance JavaConverter Float JFloat where
 data {-# CLASS "java.lang.Double" #-} JDouble = JDouble (Object# JDouble)
   deriving (Class, Eq, Show)
 
+type instance Inherits JDouble = '[JNumber]
+
 foreign import java unsafe "@new" toJDouble :: Double -> JDouble
-foreign import java unsafe doubleValue :: JDouble -> Double
 
 instance JavaConverter Double JDouble where
   toJava   = toJDouble
   fromJava = doubleValue
+
+-- Start java.lang.Number
+
+data {-# CLASS "java.lang.Number" #-} JNumber = JNumber (Object# JNumber)
+  deriving (Class, Eq, Show)
+
+foreign import java unsafe byteValue :: (b <: JNumber) => b -> Byte
+
+foreign import java unsafe doubleValue :: (b <: JNumber) => b -> Double
+
+foreign import java unsafe floatValue :: (b <: JNumber) => b -> Float
+
+foreign import java unsafe intValue :: (b <: JNumber) => b -> Int
+
+foreign import java unsafe longalue :: (b <: JNumber) => b -> Int64
+
+foreign import java unsafe shortValue :: (b <: JNumber) => b -> Short
+
+-- End java.lang.Number
