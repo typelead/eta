@@ -73,6 +73,13 @@ foreign import java unsafe toExternalForm :: Java URL String
 
 -- End java.net.URL
 
+-- Start java.net.URI
+
+data {-# CLASS "java.net.URI" #-} URI = URI (Object# URI)
+  deriving Class
+
+-- End java.net.URI
+
 -- Start java.net.InetAddress
 
 data {-# CLASS "java.net.InetAddress" #-} InetAddress = InetAddress (Object# InetAddress)
