@@ -206,3 +206,12 @@ data {-# CLASS "java.io.StringWriter" #-} StringWriter = StringWriter (Object# S
 type instance Inherits StringWriter = '[Writer, Closeable, Flushable]
 
 -- End java.io.StringWriter
+
+-- Start java.io.CharArrayReader
+
+data {-# CLASS "java.io.CharArrayReader" #-} CharArrayReader = CharArrayReader (Object# CharArrayReader)
+  deriving Class
+
+type instance Inherits CharArrayReader = '[Reader, Closeable]
+
+-- End java.io.CharArrayReader
