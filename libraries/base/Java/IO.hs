@@ -215,3 +215,12 @@ data {-# CLASS "java.io.CharArrayReader" #-} CharArrayReader = CharArrayReader (
 type instance Inherits CharArrayReader = '[Reader, Closeable]
 
 -- End java.io.CharArrayReader
+
+-- Start java.io.CharArrayWriter
+
+data {-# CLASS "java.io.CharArrayWriter" #-} CharArrayWriter = CharArrayWriter (Object# CharArrayWriter)
+  deriving Class
+
+type instance Inherits CharArrayWriter = '[Writer, Closeable, Flushable]
+
+-- End java.io.CharArrayWriter
