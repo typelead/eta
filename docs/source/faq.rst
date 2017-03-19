@@ -23,7 +23,7 @@ When Eta makes its first release, we want to make sure the minimum documentation
 - Port all the core libraries
 - Mature tooling for Java interoperation
 
-Estimated time for the first release is January 2017.
+Estimated time for the first release is April 30, 2017.
 
 Will Eta have an interpreter and support TemplateHaskell in the future?
 -----------------------------------------------------------------------
