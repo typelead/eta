@@ -9,9 +9,9 @@
 module ETA.Profiling.ProfInit (profilingInitCode) where
 
 import ETA.Profiling.CostCentre
-import ETA.Main.DynFlags
+-- import ETA.Main.DynFlags
 import ETA.Utils.Outputable
-import ETA.Utils.FastString
+-- import ETA.Utils.FastString
 import ETA.BasicTypes.Module
 
 -- -----------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import ETA.BasicTypes.Module
 -- module;
 
 profilingInitCode :: Module -> CollectedCCs -> SDoc
-profilingInitCode this_mod (local_CCs, ___extern_CCs, singleton_CCSs)
+profilingInitCode _ (_, ___extern_CCs, _)
  = sdocWithDynFlags $ const empty
    -- if not (gopt Opt_SccProfilingOn dflags)
    -- then  empty
