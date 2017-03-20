@@ -24,7 +24,6 @@ import Codec.JVM
 import Control.Monad (forM, foldM)
 import Data.Text (unpack)
 import Data.Foldable (fold)
-
 import Data.Monoid ((<>))
 import Data.List(delete, find, foldl')
 

@@ -8,18 +8,12 @@ import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Panic
-import ETA.Utils.FastString
-import ETA.BasicTypes.OccName
 import ETA.BasicTypes.Name
-import ETA.BasicTypes.Module
-
 import ETA.CodeGen.Rts
 import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
-
 import Codec.JVM
 import Data.Monoid((<>))
-import Data.Foldable(fold)
 import qualified Data.Text as T
 
 mkClosureLFInfo :: Id           -- The binder
@@ -75,7 +69,7 @@ mkArgDescr args
          Nothing     -> ArgGen []
 
 stdPattern :: [ArgRep] -> Maybe Int
-stdPattern reps = Nothing
+stdPattern _ = Nothing
 
 mkLFImported :: Id -> LambdaFormInfo
 mkLFImported id
@@ -131,7 +125,7 @@ getCallMethod dflags _ id _ n _ (Just (selfLoopId, label, cgLocs))
   = JumpToIt label cgLocs
 
 -- TODO: Enter via node when in parallel
-getCallMethod dflags name id (LFReEntrant _ arity _ _) n cgLoc _
+getCallMethod _ _ _ (LFReEntrant _ arity _ _) n cgLoc _
   | n == 0         = ReturnIt        -- No args at all
   | n < arity      = SlowCall        -- Not enough args
   | otherwise      = DirectEntry (enterMethod cgLoc) arity
@@ -142,8 +136,8 @@ getCallMethod _ _ _ LFUnLifted _ _ _
 getCallMethod _ _ _ (LFCon _) _ _ _
   = ReturnIt
 
-getCallMethod dflags name id
-              (LFThunk _ _ updatable stdFormInfo isFun) n cgLoc _
+getCallMethod _ _ _
+              (LFThunk _ _ updatable stdFormInfo isFun) _ cgLoc _
   | isFun      -- it *might* be a function, so we must "call" it (which is always safe)
   = SlowCall
   -- Since isFun is False, we are *definitely* looking at a data value
@@ -214,3 +208,4 @@ genStdThunk (LFThunk _ _ updatable stdForm _)
         <> loads
         <> invokespecial (mkMethodRef apUpdClass "<init>" fields void) )
   | otherwise = panic "genStdThunk: Thunk is not in standard form!"
+genStdThunk _ = error $ "genStdThunk: bad genStdThunk"
