@@ -50,6 +50,21 @@ foreign import java unsafe "@interface read" readBuffer :: (a <: Readable) => Ch
 
 -- End java.io.Readable
 
+-- Start java.io.Appendable
+
+data {-# CLASS "java.io.Appendable" #-} Appendable = Appendable (Object# Appendable)
+  deriving Class
+
+foreign import java unsafe "@interface append" append :: (a <: Appendable) => JChar -> Java a Appendable
+
+foreign import java unsafe "@interface append"
+  appendSequence :: (a <: Appendable, b <: CharSequence) => b -> Java a Appendable
+
+foreign import java unsafe "@interface append"
+  appendSubSequence :: (a <: Appendable, b <: CharSequence) => b -> Int -> Int -> Java a Appendable
+
+-- End java.io.Readable
+
 -- Start java.io.Reader
 
 data {-# CLASS "java.io.Reader" #-} Reader = Reader (Object# Reader)
@@ -81,15 +96,7 @@ foreign import java unsafe skip :: (a <: Reader) => Int64 -> Java a Int64
 data {-# CLASS "java.io.Writer" #-} Writer = Writer (Object# Writer)
   deriving Class
 
-type instance Inherits Writer = '[Object, Closeable, Flushable]
-
-foreign import java unsafe append :: (a <: Writer) => JChar -> Java a Writer
-
-foreign import java unsafe "append"
-  appendSequence :: (a <: Writer, b <: CharSequence) => b -> Java a Writer
-
-foreign import java unsafe "append"
-  appendSubSequence :: (a <: Writer, b <: CharSequence) => b -> Int -> Int -> Java a Writer
+type instance Inherits Writer = '[Object, Closeable, Flushable, Appendable]
 
 foreign import java unsafe "write" writeArray :: (a <: Writer) => JCharArray -> Java a ()
 
