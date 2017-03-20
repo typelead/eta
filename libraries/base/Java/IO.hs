@@ -224,3 +224,41 @@ data {-# CLASS "java.io.CharArrayWriter" #-} CharArrayWriter = CharArrayWriter (
 type instance Inherits CharArrayWriter = '[Writer, Closeable, Flushable]
 
 -- End java.io.CharArrayWriter
+
+-- Start java.io.DataInput
+
+data {-# CLASS "java.io.DataInput" #-} DataInput = DataInput (Object# DataInput)
+  deriving Class
+
+foreign import java unsafe "@interface" readBoolean :: (a <: DataInput) => Java a Bool
+
+foreign import java unsafe "@interface" readByte :: (a <: DataInput) => Java a Byte
+
+foreign import java unsafe "@interface" readChar :: (a <: DataInput) => Java a JChar
+
+foreign import java unsafe "@interface" readDouble :: (a <: DataInput) => Java a Double
+
+foreign import java unsafe "@interface" readFloat :: (a <: DataInput) => Java a Float
+
+foreign import java unsafe "@interface" readFully :: (a <: DataInput) => JByteArray -> Java a ()
+
+foreign import java unsafe "@interface readFully"
+  readFullySub :: (a <: DataInput) => JByteArray -> Int -> Int -> Java a ()
+
+foreign import java unsafe "@interface" readInt :: (a <: DataInput) => Java a Int
+
+foreign import java unsafe "@interface" readLine :: (a <: DataInput) => Java a String
+
+foreign import java unsafe "@interface" readLong :: (a <: DataInput) => Java a Int64
+
+foreign import java unsafe "@interface" readShort :: (a <: DataInput) => Java a Short
+
+foreign import java unsafe "@interface" readUnsignedByte :: (a <: DataInput) => Java a Int
+
+foreign import java unsafe "@interface" readUnsignedShort :: (a <: DataInput) => Java a Int
+
+foreign import java unsafe "@interface" readUTF :: (a <: DataInput) => Java a String
+
+foreign import java unsafe "@interface" skipBytes :: (a <: DataInput) => Int -> Java a Int
+
+-- End java.io.DataInput
