@@ -262,3 +262,37 @@ foreign import java unsafe "@interface" readUTF :: (a <: DataInput) => Java a St
 foreign import java unsafe "@interface" skipBytes :: (a <: DataInput) => Int -> Java a Int
 
 -- End java.io.DataInput
+
+-- Start java.io.DataOutput
+
+data {-# CLASS "java.io.DataOutput" #-} DataOutput = DataOutput (Object# DataOutput)
+  deriving Class
+
+foreign import java unsafe "@interface write" writeArrayDO :: (a <: DataOutput) => JByteArray -> Java a ()
+
+foreign import java unsafe "@interface write"
+  writeSubArrayDO :: (a <: DataOutput) => JByteArray -> Int -> Int -> Java a ()
+
+foreign import java unsafe "@interface write" writeDO :: (a <: DataOutput) => Int -> Java a ()
+
+foreign import java unsafe "@interface" writeBoolean :: (a <: DataOutput) => Bool -> Java a ()
+
+foreign import java unsafe "@interface" writeByte :: (a <: DataOutput) => Int -> Java a ()
+
+foreign import java unsafe "@interface" writeBytes :: (a <: DataOutput) => String -> Java a ()
+
+foreign import java unsafe "@interface" writeChar :: (a <: DataOutput) => Int -> Java a ()
+
+foreign import java unsafe "@interface" writeChars :: (a <: DataOutput) => String -> Java a ()
+
+foreign import java unsafe "@interface" writeDouble :: (a <: DataOutput) => Double -> Java a ()
+
+foreign import java unsafe "@interface" writeFloat :: (a <: DataOutput) => Float -> Java a ()
+
+foreign import java unsafe "@interface" writeInt :: (a <: DataOutput) => Int -> Java a ()
+
+foreign import java unsafe "@interface" writeLong :: (a <: DataOutput) => Int64 -> Java a ()
+
+foreign import java unsafe "@interface" writeshort :: (a <: DataOutput) => Short -> Java a ()
+
+foreign import java unsafe "@interface" writeUTF :: (a <: DataOutput) => String -> Java a ()
