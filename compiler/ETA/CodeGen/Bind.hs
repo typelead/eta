@@ -18,13 +18,13 @@ import ETA.CodeGen.Layout
 import ETA.CodeGen.Closure
 import ETA.Debug
 import ETA.Util
-
+import Data.Maybe (catMaybes)
 import ETA.Main.Constants
 import Codec.JVM
 import Control.Monad (forM, foldM)
-import Data.Text (append, pack, unpack)
+import Data.Text (unpack)
 import Data.Foldable (fold)
-import Data.Maybe (mapMaybe, maybe, catMaybes)
+
 import Data.Monoid ((<>))
 import Data.List(delete, find, foldl')
 
@@ -40,7 +40,7 @@ closureCodeBody
   -> [Id]                  -- For a recursive block, the ids of the other
                            -- closures in the group.
   -> CodeGen ([FieldType], RecIndexes)
-closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
+closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
   dflags <- getDynFlags
   debug $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
@@ -51,7 +51,7 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
                else fvLocs'
       thisFt = obj thisClass
       (_, fts, _) = unzip3 initCodes
-      (codes, _) = foldl' (\(initCode, n) (i, ft, code) ->
+      (codes, _) = foldl' (\(initCode, n) (_, ft, code) ->
                             ( initCode
                             <> gload thisFt 0
                             <> gload ft n
@@ -68,7 +68,7 @@ closureCodeBody topLevel id lfInfo args arity body fvs binderIsFV recIds = do
     defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
-    withMethod [Public] "enter" [contextType] void $ do
+    _ <- withMethod [Public] "enter" [contextType] void $ do
       n <- peekNextLocal
       let (argLocs, code, n') = mkCallEntry n args
           (_ , cgLocs) = unzip argLocs
@@ -134,7 +134,7 @@ setupUpdate lfInfo body
   | otherwise = withEnterMethod stgInd "thunkEnter"
   where withEnterMethod thunkType name = do
           setSuperClass thunkType
-          withMethod [Public] name [contextType] void body
+          _ <- withMethod [Public] name [contextType] void body
           return ()
 
 cgBind :: StgBinding -> CodeGen ()
@@ -254,7 +254,7 @@ cgRhsStdThunk binder lfInfo payload recIds = do
               return (is, code <> loadCode)
 
 postInitRecBinds :: Id -> RecIndexes -> CodeGen Code
-postInitRecBinds binder [] = return mempty
+postInitRecBinds _ [] = return mempty
 postInitRecBinds binder recIndexes = do
   CgIdInfo { cgLocation } <- getCgIdInfo binder
   let binderLoad = loadLoc cgLocation
