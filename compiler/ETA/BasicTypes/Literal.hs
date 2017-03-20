@@ -256,9 +256,9 @@ mkLitInteger :: Integer -> Type -> Literal
 mkLitInteger = LitInteger
 
 inIntRange, inWordRange :: DynFlags -> Integer -> Bool
-inIntRange  dflags x = x >= minInt
+inIntRange  _ x = x >= minInt
                     && x <= maxInt
-inWordRange dflags x = x >= 0 && x <= maxWord
+inWordRange _ x = x >= 0 && x <= maxWord
 
 inCharRange :: Char -> Bool
 inCharRange c =  c >= '\0' && c <= chr tARGET_MAX_CHAR
@@ -286,12 +286,12 @@ narrow8IntLit, narrow16IntLit, narrow32IntLit,
   :: Literal -> Literal
 
 word2IntLit, int2WordLit :: DynFlags -> Literal -> Literal
-word2IntLit dflags (MachWord w)
+word2IntLit _ (MachWord w)
   | w > maxInt = MachInt (w - maxWord - 1)
   | otherwise                 = MachInt w
 word2IntLit _ l = pprPanic "word2IntLit" (ppr l)
 
-int2WordLit dflags (MachInt i)
+int2WordLit _ (MachInt i)
   | i < 0     = MachWord (1 + maxWord + i)      -- (-1)  --->  tARGET_MAX_WORD
   | otherwise = MachWord i
 int2WordLit _ l = pprPanic "int2WordLit" (ppr l)
