@@ -184,7 +184,15 @@ initSysTools :: Maybe String    -- Maybe TopDir path (without the '-B' prefix)
 initSysTools mbMinusB
   = do topDir <- findTopDir mbMinusB
        tmpdir <- getTemporaryDirectory
-       let platform = Platform { platformWordSize = 4 }
+       let platform = Platform { platformWordSize = 4
+                          , platformArch = undefined
+                          , platformOS = undefined
+                          , platformUnregisterised = undefined
+                          , platformHasGnuNonexecStack = undefined
+                          , platformHasIdentDirective = undefined
+                          , platformHasSubsectionsViaSymbols = undefined
+                          , platformIsCrossCompiling = undefined
+      }
            pkgconfig_path = topDir </> "package.conf.d"
        return $ Settings { sTargetPlatform      = platform
                          , sTmpDir              = normalise tmpdir
@@ -203,7 +211,29 @@ initSysTools mbMinusB
                          , sOpt_windres         = []
                          , sOpt_lo              = []
                          , sOpt_lc              = []
-                         , sOpt_javac           = [] }
+                         , sOpt_javac           = []
+                         , sGhcUsagePath        = undefined
+                         , sGhciUsagePath       = undefined
+                         , sRawSettings         = undefined
+                         , sExtraGccViaCFlags   = undefined
+                         , sLdSupportsCompactUnwind = undefined
+                         , sLdSupportsBuildId   = undefined
+                         , sLdSupportsFilelist  = undefined
+                         , sLdIsGnuLd           = undefined
+                         , sPgm_L               = undefined
+                         , sPgm_P               = undefined
+                         , sPgm_c               = undefined
+                         , sPgm_s               = undefined
+                         , sPgm_a               = undefined
+                         , sPgm_l               = undefined
+                         , sPgm_dll             = undefined
+                         , sPgm_sysman          = undefined
+                         , sPgm_windres         = undefined
+                         , sPgm_libtool         = undefined
+                         , sPgm_readelf         = undefined
+                         , sPgm_lo              = undefined
+                         , sPgm_lc              = undefined
+                       }
 
 -- returns a Unix-format path (relying on getBaseDir to do so too)
 findTopDir :: Maybe String -- Maybe TopDir path (without the '-B' prefix).
@@ -325,12 +355,9 @@ runJavac dflags args = do
                   then []
                   else [Option "-cp", Option classPathFolded ]
   runSomething dflags "Java Compiler" prog (args0 ++ classPath ++ args ++ opts)
-  where pkgs = case thisPackage dflags of
-          rtsPackageKey -> []
-          primPackageKey -> [rtsPackageKey]
-          integerPackageKey -> [rtsPackageKey, primPackageKey]
-          basePackageKey -> [rtsPackageKey, primPackageKey, integerPackageKey]
-          _ -> [rtsPackageKey, primPackageKey, integerPackageKey, basePackageKey]
+  where (pkgs, _) = break (== thisPkg)
+                      [rtsPackageKey, primPackageKey, integerPackageKey, basePackageKey]
+        thisPkg = thisPackage dflags
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)
@@ -650,7 +677,7 @@ getLinkerInfo dflags = do
 
 -- See Note [Run-time linker info].
 getLinkerInfo' :: DynFlags -> IO LinkerInfo
-getLinkerInfo' dflags = undefined
+getLinkerInfo' _ = undefined
 
 -- Grab compiler info and cache it in DynFlags.
 getCompilerInfo :: DynFlags -> IO CompilerInfo
@@ -706,7 +733,7 @@ getCompilerInfo' dflags = do
   return info
 
 runLink :: DynFlags -> [Option] -> IO ()
-runLink dflags args = undefined
+runLink _ _ = undefined
 
 runLibtool :: DynFlags -> [Option] -> IO ()
 runLibtool dflags args = do
@@ -1215,38 +1242,38 @@ traceCmd dflags phase_name cmd_line action
 -----------------------------------------------------------------------------
 -- Define       getBaseDir     :: IO (Maybe String)
 
-getBaseDir :: IO (Maybe String)
-#if defined(mingw32_HOST_OS)
--- Assuming we are running ghc, accessed by path  $(stuff)/bin/ghc.exe,
--- return the path $(stuff)/lib.
-getBaseDir = try_size 2048 -- plenty, PATH_MAX is 512 under Win32.
-  where
-    try_size size = allocaArray (fromIntegral size) $ \buf -> do
-        ret <- c_GetModuleFileName nullPtr buf size
-        case ret of
-          0 -> return Nothing
-          _ | ret < size -> fmap (Just . rootDir) $ peekCWString buf
-            | otherwise  -> try_size (size * 2)
-
-    rootDir s = case splitFileName $ normalise s of
-                (d, ghc_exe)
-                 | lower ghc_exe `elem` ["ghc.exe",
-                                         "ghc-stage1.exe",
-                                         "ghc-stage2.exe",
-                                         "ghc-stage3.exe"] ->
-                    case splitFileName $ takeDirectory d of
-                    -- ghc is in $topdir/bin/ghc.exe
-                    (d', bin) | lower bin == "bin" -> takeDirectory d' </> "lib"
-                    _ -> fail
-                _ -> fail
-        where fail = panic ("can't decompose ghc.exe path: " ++ show s)
-              lower = map toLower
-
-foreign import WINDOWS_CCONV unsafe "windows.h GetModuleFileNameW"
-  c_GetModuleFileName :: Ptr () -> CWString -> Word32 -> IO Word32
-#else
-getBaseDir = return Nothing
-#endif
+-- getBaseDir :: IO (Maybe String)
+-- #if defined(mingw32_HOST_OS)
+-- -- Assuming we are running ghc, accessed by path  $(stuff)/bin/ghc.exe,
+-- -- return the path $(stuff)/lib.
+-- getBaseDir = try_size 2048 -- plenty, PATH_MAX is 512 under Win32.
+--   where
+--     try_size size = allocaArray (fromIntegral size) $ \buf -> do
+--         ret <- c_GetModuleFileName nullPtr buf size
+--         case ret of
+--           0 -> return Nothing
+--           _ | ret < size -> fmap (Just . rootDir) $ peekCWString buf
+--             | otherwise  -> try_size (size * 2)
+--
+--     rootDir s = case splitFileName $ normalise s of
+--                 (d, ghc_exe)
+--                  | lower ghc_exe `elem` ["ghc.exe",
+--                                          "ghc-stage1.exe",
+--                                          "ghc-stage2.exe",
+--                                          "ghc-stage3.exe"] ->
+--                     case splitFileName $ takeDirectory d of
+--                     -- ghc is in $topdir/bin/ghc.exe
+--                     (d', bin) | lower bin == "bin" -> takeDirectory d' </> "lib"
+--                     _ -> fail
+--                 _ -> fail
+--         where fail = panic ("can't decompose ghc.exe path: " ++ show s)
+--               lower = map toLower
+--
+-- foreign import WINDOWS_CCONV unsafe "windows.h GetModuleFileNameW"
+--   c_GetModuleFileName :: Ptr () -> CWString -> Word32 -> IO Word32
+-- #else
+-- getBaseDir = return Nothing
+-- #endif
 
 #ifdef mingw32_HOST_OS
 foreign import ccall unsafe "_getpid" getProcessID :: IO Int -- relies on Int == Int32 on Windows
@@ -1274,7 +1301,7 @@ linesPlatform xs =
 #endif
 
 linkDynLib :: DynFlags -> [String] -> [PackageKey] -> IO ()
-linkDynLib dflags0 o_files dep_packages = undefined
+linkDynLib _ _ _ = undefined
 
 getPkgFrameworkOpts :: DynFlags -> Platform -> [PackageKey] -> IO [String]
 getPkgFrameworkOpts dflags platform dep_packages
