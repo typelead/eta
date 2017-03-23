@@ -6,7 +6,7 @@
 TcMatches: Typecheck some @Matches@
 -}
 
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, CPP #-}
 
 module ETA.TypeCheck.TcMatches ( tcMatchesFun, tcGRHS, tcGRHSsPat, tcMatchesCase, tcMatchLambda,
                    TcMatchCtxt(..), TcStmtChecker, TcExprStmtChecker, TcCmdStmtChecker,
@@ -41,6 +41,8 @@ import ETA.Utils.FastString
 import ETA.Core.MkCore
 
 import Control.Monad
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -169,7 +171,7 @@ data TcMatchCtxt body   -- c.f. TcStmtCtxt, also in this module
                  -> TcM (Located (body TcId)) }
 
 tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = matches, mg_origin = origin })
-  = --ASSERT( not (null matches) )        -- Ensure that rhs_ty is filled in
+  = ASSERT( not (null matches) )        -- Ensure that rhs_ty is filled in
     do  { matches' <- mapM (tcMatch ctxt pat_tys rhs_ty) matches
         ; return (MG { mg_alts = matches', mg_arg_tys = pat_tys, mg_res_ty = rhs_ty, mg_origin = origin }) }
 
