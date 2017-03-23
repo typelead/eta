@@ -5,6 +5,7 @@
 
 Pattern-matching constructors
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.DeSugar.MatchCon ( matchConFamily, matchPatSyn ) where
 
@@ -27,6 +28,8 @@ import ETA.BasicTypes.SrcLoc
 import ETA.Main.DynFlags
 import ETA.Utils.Outputable
 import Control.Monad(liftM)
+
+#include "HsVersions.h"
 
 {-
 We are confronted with the first column of patterns in a set of
@@ -142,19 +145,19 @@ matchOneConLike vars ty (eqn1 : eqns)   -- All eqns for a single constructor
     val_arg_tys = case con1 of
                     RealDataCon dcon1 -> dataConInstOrigArgTys dcon1 inst_tys
                     PatSynCon psyn1   -> patSynInstArgTys      psyn1 inst_tys
-    inst_tys = --ASSERT( tvs1 `equalLength` ex_tvs )
+    inst_tys = ASSERT( tvs1 `equalLength` ex_tvs )
                arg_tys ++ mkTyVarTys tvs1
         -- dataConInstOrigArgTys takes the univ and existential tyvars
         -- and returns the types of the *value* args, which is what we want
 
-    _ = case con1 of
+    ex_tvs = case con1 of
                RealDataCon dcon1 -> dataConExTyVars dcon1
                PatSynCon psyn1   -> patSynExTyVars psyn1
 
     match_group :: [Id] -> [(ConArgPats, EquationInfo)] -> DsM MatchResult
     -- All members of the group have compatible ConArgPats
     match_group arg_vars arg_eqn_prs
-      = --ASSERT( notNull arg_eqn_prs )
+      = ASSERT( notNull arg_eqn_prs )
         do { (wraps, eqns') <- liftM unzip (mapM shift arg_eqn_prs)
            ; let group_arg_vars = select_arg_vars arg_vars arg_eqn_prs
            ; match_result <- match (group_arg_vars ++ vars) ty eqns'
@@ -177,8 +180,8 @@ matchOneConLike vars ty (eqn1 : eqns)   -- All eqns for a single constructor
       | RecCon flds <- arg_pats
       , let rpats = rec_flds flds
       , not (null rpats)     -- Treated specially; cf conArgPats
-      = --ASSERT2( length fields1 == length arg_vars,
-        --       ppr con1 $$ ppr fields1 $$ ppr arg_vars )
+      = ASSERT2( length fields1 == length arg_vars,
+                 ppr con1 $$ ppr fields1 $$ ppr arg_vars )
         map lookup_fld rpats
       | otherwise
       = arg_vars
