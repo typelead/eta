@@ -44,7 +44,7 @@ import ETA.Utils.Outputable
 import ETA.Utils.Platform
 import ETA.Utils.FastString
 import ETA.Main.Constants
--- import ETA.Utils.Util
+import ETA.Utils.Util
 import Data.Bits
 import Data.Char
 import Data.List
@@ -52,6 +52,8 @@ import Data.Word
 import Data.Array
 import Data.IORef
 import Control.Monad
+
+#include "HsVersions.h"
 
 -- ---------------------------------------------------------------------------
 -- Reading and writing binary interface files
@@ -276,7 +278,7 @@ fromOnDiskName _ nc (pid, mod_name, occ) =
 
 serialiseName :: BinHandle -> Name -> UniqFM (Int,Name) -> IO ()
 serialiseName bh name _ = do
-    let mod = {-ASSERT2( isExternalName name, ppr name )-} nameModule name
+    let mod = ASSERT2( isExternalName name, ppr name ) nameModule name
     put_ bh (modulePackageKey mod, moduleName mod, nameOccName name)
 
 
@@ -314,7 +316,7 @@ putName _dict BinSymbolTable{
                bin_symtab_next = symtab_next }    bh name
   | name `elemUFM` knownKeyNamesMap
   , let (c, u) = unpkUnique (nameUnique name) -- INVARIANT: (ord c) fits in 8 bits
-  = -- ASSERT(u < 2^(22 :: Int))
+  = ASSERT(u < 2^(22 :: Int))
     put_ bh (0x40000000 .|. (fromIntegral (ord c) `shiftL` 22) .|. (fromIntegral u :: Word32))
   | otherwise
   = case wiredInNameTyThing_maybe name of
@@ -330,7 +332,7 @@ putName _dict BinSymbolTable{
          Just (off,_) -> put_ bh (fromIntegral off :: Word32)
          Nothing -> do
             off <- readFastMutInt symtab_next
-            -- MASSERT(off < 2^(30 :: Int))
+            MASSERT(off < 2^(30 :: Int))
             writeFastMutInt symtab_next (off+1)
             writeIORef symtab_map_ref
                 $! addToUFM symtab_map name (off,name)
@@ -338,7 +340,7 @@ putName _dict BinSymbolTable{
 
 putTupleName_ :: BinHandle -> TyCon -> Word32 -> IO ()
 putTupleName_ bh tc thing_tag
-  = -- ASSERT(arity < 2^(30 :: Int))
+  = ASSERT(arity < 2^(30 :: Int))
     put_ bh (0x80000000 .|. (sort_tag `shiftL` 28) .|. (thing_tag `shiftL` 26) .|. arity)
   where
     arity = fromIntegral (tupleTyConArity tc)
