@@ -30,28 +30,28 @@ module ETA.Main.DriverPipeline (
    compressionMethod
   ) where
 
-import ETA.Core.CoreSyn (CoreProgram)
-import ETA.StgSyn.StgSyn (StgBinding, pprStgBindings)
-import ETA.Profiling.CostCentre (CollectedCCs)
-import ETA.SimplStg.SimplStg         ( stg2stg )
-import ETA.StgSyn.CoreToStg        ( coreToStg )
-import ETA.Core.CorePrep         ( corePrepPgm )
+-- import ETA.Core.CoreSyn (CoreProgram)
+-- import ETA.StgSyn.StgSyn (StgBinding)
+-- import ETA.Profiling.CostCentre (CollectedCCs)
+-- import ETA.SimplStg.SimplStg         ( stg2stg )
+-- import ETA.StgSyn.CoreToStg        ( coreToStg )
+-- import ETA.Core.CorePrep         ( corePrepPgm )
 import ETA.Main.SysTools
 import ETA.Main.Constants
 import qualified ETA.Main.SysTools as SysTools
-import ETA.Types.TyCon ( isDataTyCon )
-import ETA.BasicTypes.NameEnv
+-- import ETA.Types.TyCon ( isDataTyCon )
+-- import ETA.BasicTypes.NameEnv
 
-import ETA.CodeGen.Main
+-- import ETA.CodeGen.Main
 import ETA.CodeGen.Name
 import ETA.Debug
 import ETA.CodeGen.Rts
-import ETA.Parser.Parse
+-- import ETA.Parser.Parse
 import ETA.Utils.JAR
 import ETA.Util
 import Codec.JVM
 
-import ETA.Iface.MkIface
+-- import ETA.Iface.MkIface
 import ETA.Main.PipelineMonad
 import ETA.Main.Packages
 import ETA.Main.HeaderInfo
@@ -59,7 +59,7 @@ import ETA.Main.DriverPhases
 import ETA.Main.HscMain
 import ETA.Main.Finder
 import ETA.Main.HscTypes hiding ( Hsc )
-import ETA.Utils.Outputable   hiding ((<>))
+-- import ETA.Utils.Outputable   hiding ((<>))
 import ETA.BasicTypes.Module
 import ETA.Utils.UniqFM           ( eltsUFM )
 import ETA.Main.ErrUtils
@@ -68,31 +68,31 @@ import ETA.Utils.Panic
 import ETA.Utils.Util
 import ETA.Utils.StringBuffer     ( hGetStringBuffer )
 import ETA.BasicTypes.BasicTypes       ( SuccessFlag(..) )
-import ETA.Utils.Maybes           ( expectJust )
+-- import ETA.Utils.Maybes           ( expectJust )
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.FastString
 -- import LlvmCodeGen      ( llvmFixupAsm )
 import ETA.Utils.MonadUtils
-import ETA.Utils.Platform
+-- import ETA.Utils.Platform
 import ETA.TypeCheck.TcRnTypes
 import ETA.Main.Hooks
 
 import ETA.Utils.Exception
-import qualified ETA.Utils.Exception as Exception
-import Data.IORef       ( readIORef )
+-- import qualified ETA.Utils.Exception as Exception
+-- import Data.IORef       ( readIORef )
 import System.Directory
 import System.FilePath
-import System.IO
+-- import System.IO
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
-import Data.List        ( isSuffixOf, partition, nub )
+import Data.List        ( partition, nub )
 import Data.Monoid ((<>))
 import Data.Maybe
-import System.Environment
-import Data.Char
-import Data.List (isPrefixOf)
-import Control.Arrow((&&&), first)
+-- import System.Environment
+-- import Data.Char
+-- import Data.List (isPrefixOf)
+import Control.Arrow((&&&))
 import Data.ByteString (ByteString)
 import Data.Time
 import qualified Data.ByteString.Char8 as BC
@@ -101,6 +101,8 @@ import qualified Data.Text as T
 
 import Language.Preprocessor.Unlit
 import Language.Preprocessor.Cpphs
+
+#include "HsVersions.h"
 
 -- ---------------------------------------------------------------------------
 -- Pre-process
@@ -115,7 +117,7 @@ preprocess :: HscEnv
            -> (FilePath, Maybe Phase) -- ^ filename and starting phase
            -> IO (DynFlags, FilePath)
 preprocess hsc_env (filename, mb_phase) =
-  --ASSERT2(isJust mb_phase || isHaskellSrcFilename filename, text filename)
+  ASSERT2(isJust mb_phase || isHaskellSrcFilename filename, text filename)
   runPipeline anyHsc hsc_env (filename, fmap RealPhase mb_phase)
         Nothing Temporary Nothing{-no ModLocation-} Nothing{-no stub-}
 
@@ -216,7 +218,7 @@ compileOne' m_tc_result mHscMessage
    case e of
        Left iface ->
            do details <- genModDetails hsc_env iface
-              --MASSERT(isJust maybe_old_linkable)
+              MASSERT(isJust maybe_old_linkable)
               return (HomeModInfo{ hm_details  = details,
                                    hm_iface    = iface,
                                    hm_linkable = maybe_old_linkable })
@@ -737,7 +739,7 @@ runPhase :: PhasePlus   -- ^ Run this phase
 -------------------------------------------------------------------------------
 -- Unlit phase
 
-runPhase (RealPhase (Unlit sf)) input_fn dflags
+runPhase (RealPhase (Unlit sf)) input_fn _dflags
   = do output_fn <- phaseOutputFilename (Cpp sf)
 
        -- let flags = [ -- The -h option passes the file name for unlit to
@@ -931,7 +933,7 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
   setModLocation location
 
   let o_file = ml_obj_file location -- The real object file
-      hsc_lang = hscTarget dflags
+      _hsc_lang = hscTarget dflags
       next_phase = StopLn
 
   case result of
@@ -969,11 +971,11 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
 runPhase (RealPhase other) _input_fn _dflags =
    panic ("runPhase: don't know how to run phase " ++ show other)
 
-maybeMergeStub :: CompPipeline Phase
-maybeMergeStub
- = do
-     PipeState{maybe_stub_o} <- getPipeState
-     if isJust maybe_stub_o then return MergeStub else return StopLn
+-- maybeMergeStub :: CompPipeline Phase
+-- maybeMergeStub
+--  = do
+--      PipeState{maybe_stub_o} <- getPipeState
+--      if isJust maybe_stub_o then return MergeStub else return StopLn
 
 getLocation :: HscSource -> ModuleName -> CompPipeline ModLocation
 getLocation src_flavour mod_name = do
@@ -1018,21 +1020,21 @@ getLocation src_flavour mod_name = do
 -----------------------------------------------------------------------------
 -- Look for the /* GHC_PACKAGES ... */ comment at the top of a .hc file
 
-getHCFilePackages :: FilePath -> IO [PackageKey]
-getHCFilePackages filename =
-  Exception.bracket (openFile filename ReadMode) hClose $ \h -> do
-    l <- hGetLine h
-    case l of
-      '/':'*':' ':'G':'H':'C':'_':'P':'A':'C':'K':'A':'G':'E':'S':rest ->
-          return (map stringToPackageKey (words rest))
-      _other ->
-          return []
+-- getHCFilePackages :: FilePath -> IO [PackageKey]
+-- getHCFilePackages filename =
+--   Exception.bracket (openFile filename ReadMode) hClose $ \h -> do
+--     l <- hGetLine h
+--     case l of
+--       '/':'*':' ':'G':'H':'C':'_':'P':'A':'C':'K':'A':'G':'E':'S':rest ->
+--           return (map stringToPackageKey (words rest))
+--       _other ->
+--           return []
 
 -- -----------------------------------------------------------------------------
 -- Running CPP
 
 doCpp :: DynFlags -> Bool -> FilePath -> FilePath -> IO ()
-doCpp dflags raw input_fn output_fn = do
+doCpp dflags _raw input_fn output_fn = do
     let hscpp_opts = picPOpts dflags
     let cmdline_include_paths = includePaths dflags
 
@@ -1163,7 +1165,7 @@ hscPostBackendPhase dflags _ hsc_lang =
         HscInterpreted -> StopLn
 
 touchObjectFile :: DynFlags -> FilePath -> IO ()
-touchObjectFile dflags path = do
+touchObjectFile _dflags path = do
   createDirectoryIfMissing True $ takeDirectory path
   exists <- fileExist path
   if exists
@@ -1221,18 +1223,18 @@ getEtaVersionPathName dflags = do
 --   addMultiByteStringsToJar' jarContents output_filename
 --   return output_filename
 
-myCoreToStg :: DynFlags -> Module -> CoreProgram
-            -> IO ( [StgBinding] -- output program
-                  , CollectedCCs) -- cost centre info (declared and used)
-myCoreToStg dflags this_mod prepd_binds = do
-  stg_binds <- {-# SCC "Core2Stg" #-}
-          coreToStg dflags this_mod prepd_binds
-
-  (stg_binds2, cost_centre_info)
-      <- {-# SCC "Stg2Stg" #-}
-          stg2stg dflags this_mod stg_binds
-
-  return (stg_binds2, cost_centre_info)
+-- myCoreToStg :: DynFlags -> Module -> CoreProgram
+--             -> IO ( [StgBinding] -- output program
+--                   , CollectedCCs) -- cost centre info (declared and used)
+-- myCoreToStg dflags this_mod prepd_binds = do
+--   stg_binds <- {-# SCC "Core2Stg" #-}
+--           coreToStg dflags this_mod prepd_binds
+--
+--   (stg_binds2, cost_centre_info)
+--       <- {-# SCC "Stg2Stg" #-}
+--           stg2stg dflags this_mod stg_binds
+--
+--   return (stg_binds2, cost_centre_info)
 
 linkingNeeded :: DynFlags -> [Linkable] -> [PackageKey] -> IO Bool
 linkingNeeded dflags linkables pkgDeps = do
@@ -1275,7 +1277,7 @@ jarFileName dflags
 --   return tcg_env
 
 findHSLib :: DynFlags -> [String] -> String -> IO (Maybe FilePath)
-findHSLib dflags dirs lib = do
+findHSLib _dflags dirs lib = do
   found <- filterM doesFileExist (map (</> file) dirs)
   return $
     case found of
@@ -1358,7 +1360,7 @@ mkRtsMainClass dflags mainClass
       , putRtsHsMain
       , putRtsOptsEnabled
       , putRtsOpts
-      , gstore rtsConfigType 1
+      , gstore rtsConfigType (1 :: Int)
       , gload (jarray jstring) 0
       -- TODO: Find main module
       , getstatic $ mkFieldRef (moduleJavaClass mainMod) "DZCmain_closure" closureType
