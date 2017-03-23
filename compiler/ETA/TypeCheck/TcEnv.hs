@@ -95,6 +95,8 @@ import ETA.Utils.Maybes( MaybeErr(..) )
 import Data.IORef
 import Data.List
 
+#include "HsVersions.h"
+
 {-
 ************************************************************************
 *                                                                      *
@@ -545,7 +547,7 @@ tcExtendLocalTypeEnv tc_ty_things not_actually_free
 
     get_tvs (_, ATcId { tct_id = id, tct_closed = closed }) tvs
       = case closed of
-          TopLevel    -> --ASSERT2( isEmptyVarSet id_tvs, ppr id $$ ppr (idType id) )
+          TopLevel    -> ASSERT2( isEmptyVarSet id_tvs, ppr id $$ ppr (idType id) )
                          tvs
           NotTopLevel -> tvs `unionVarSet` id_tvs
         where id_tvs = tyVarsOfType (idType id)
