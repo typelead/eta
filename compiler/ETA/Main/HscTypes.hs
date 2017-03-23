@@ -1173,7 +1173,9 @@ appendDefs (ForeignStubs h c m) defs' =
   ForeignStubs h c (M.unionWith combineExports m (M.fromListWith combineExports defs))
   where defs = createExports defs'
 
+combineExports ::  ([a], [b]) -> ([a], [b]) -> ([a], [b])
 combineExports (mds, fds) (mds', fds') = (mds ++ mds', fds ++ fds')
+createExports :: [(t, t1, Maybe a)] -> [(t, ([t1], [a]))]
 createExports defs = map (\(t,md,fd) -> (t,([md],maybeToList fd))) defs
 
 {-
