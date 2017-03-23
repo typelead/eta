@@ -2327,13 +2327,13 @@ data NameCache
 type OrigNameCache   = ModuleEnv (OccEnv Name)
 
 mkSOName :: Platform -> FilePath -> FilePath
-mkSOName platform root = ("lib" ++ root) <.> "so"
+mkSOName _platform root = ("lib" ++ root) <.> "so"
 
 mkHsSOName :: Platform -> FilePath -> FilePath
 mkHsSOName platform root = ("lib" ++ root) <.> soExt platform
 
 soExt :: Platform -> FilePath
-soExt platform = "so"
+soExt _platform = "so"
 
 {-
 ************************************************************************
