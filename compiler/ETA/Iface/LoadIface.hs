@@ -63,7 +63,7 @@ import ETA.Utils.Outputable
 import qualified ETA.Utils.Outputable as Outputable
 import ETA.Iface.BinIface
 import ETA.Utils.Panic
-import ETA.Utils.Util
+-- import ETA.Utils.Util
 import ETA.Utils.FastString
 import ETA.Utils.Fingerprint
 import ETA.Main.Hooks
