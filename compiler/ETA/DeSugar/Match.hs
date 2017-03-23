@@ -5,6 +5,7 @@
 
 The @match@ function
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.DeSugar.Match ( match, matchEquations, matchWrapper, matchSimply, matchSinglePat ) where
 
@@ -44,6 +45,8 @@ import ETA.Utils.FastString
 
 import Control.Monad( when )
 import qualified Data.Map as Map
+
+#include "HsVersions.h"
 
 {-
 This function is a wrapper of @match@, it must be called from all the parts where
@@ -276,11 +279,11 @@ match :: [Id]             -- Variables rep\'ing the exprs we\'re matching with
       -> [EquationInfo]   -- Info about patterns, etc. (type synonym below)
       -> DsM MatchResult  -- Desugared result!
 
-match [] _ eqns
-  = --ASSERT2( not (null eqns), ppr ty )
+match [] ty eqns
+  = ASSERT2( not (null eqns), ppr ty )
     return (foldr1 combineMatchResults match_results)
   where
-    match_results = [ --ASSERT( null (eqn_pats eqn) )
+    match_results = [ ASSERT( null (eqn_pats eqn) )
                       eqn_rhs eqn
                     | eqn <- eqns ]
 
@@ -625,13 +628,13 @@ tidy_bang_pat _ l p = return (idDsWrapper, BangPat (L l p))
 push_bang_into_newtype_arg :: SrcSpan -> HsConPatDetails Id -> HsConPatDetails Id
 -- See Note [Bang patterns and newtypes]
 -- We are transforming   !(N p)   into   (N !p)
-push_bang_into_newtype_arg l (PrefixCon (arg:_))
-  = --ASSERT( null args)
+push_bang_into_newtype_arg l (PrefixCon (arg:args))
+  = ASSERT( null args)
     PrefixCon [L l (BangPat arg)]
 push_bang_into_newtype_arg l (RecCon rf)
-  | HsRecFields { rec_flds = L lf fld : _ } <- rf
+  | HsRecFields { rec_flds = L lf fld : flds } <- rf
   , HsRecField { hsRecFieldArg = arg } <- fld
-  = --ASSERT( null flds)
+  = ASSERT( null flds)
     RecCon (rf { rec_flds = [L lf (fld { hsRecFieldArg = L l (BangPat arg) })] })
 push_bang_into_newtype_arg _ cd
   = pprPanic "push_bang_into_newtype_arg" (pprConArgs cd)
