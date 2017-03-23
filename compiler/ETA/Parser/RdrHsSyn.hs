@@ -97,11 +97,13 @@ import Control.Applicative ((<$>))
 import Control.Monad
 
 import Text.ParserCombinators.ReadP as ReadP
-import Data.Char
+
 
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
 import Data.List       ( partition )
 import qualified Data.Set as Set ( fromList, difference, member )
+
+#include "HsVersions.h"
 
 
 {- **********************************************************************
@@ -377,7 +379,7 @@ mkSpliceDecl :: LHsExpr RdrName -> HsDecl RdrName
 --                     ie a SpliceD
 mkSpliceDecl lexpr@(L loc expr)
   | HsQuasiQuoteE qq <- expr          = QuasiQuoteD qq
-  | HsSpliceE is_typed splice <- expr = -- ASSERT( not is_typed )
+  | HsSpliceE is_typed splice <- expr = ASSERT( not is_typed )
                                         SpliceD (SpliceDecl (L loc splice) ExplicitSplice)
   | otherwise                         = SpliceD (SpliceDecl (L loc splice) ImplicitSplice)
   where
@@ -436,7 +438,7 @@ cvTopDecls decls = go (fromOL decls)
 cvBindGroup :: OrdList (LHsDecl RdrName) -> P (HsValBinds RdrName)
 cvBindGroup binding
   = do { (mbs, sigs, fam_ds, tfam_insts, dfam_insts, _) <- cvBindsAndSigs binding
-       ; -- ASSERT( null fam_ds && null tfam_insts && null dfam_insts)
+       ; ASSERT( null fam_ds && null tfam_insts && null dfam_insts)
          return $ ValBindsIn mbs sigs }
 
 cvBindsAndSigs :: OrdList (LHsDecl RdrName)
@@ -1406,7 +1408,7 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
       Just importSpec -> return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   where entity' | nullFS entity = mkExtName (unLoc v)
                 | unpackFS entity == "@interface" = appendFS (appendFS entity (mkFastString " "))
-                                                             (mkExtName (unLoc v)) 
+                                                             (mkExtName (unLoc v))
                 | otherwise     = entity
         -- TODO: Z-encode the result?
 
@@ -1416,13 +1418,13 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
 parseCImport :: Located CCallConv -> Located Safety -> FastString -> String
              -> Located SourceText
              -> Maybe ForeignImport
-parseCImport cconv safety nm str sourceText =
+parseCImport cconv safety _nm str sourceText =
  listToMaybe $ map fst $ filter (null.snd) $
      readP_to_S parse str
  where
    parse = do
      skipSpaces
-     r <- (do string "@wrapper"
+     r <- (do _ <- string "@wrapper"
               skipSpaces
               isAbstract <- option False (string "@abstract" >> skipSpaces >> pure True)
               mk Nothing . flip CWrapper isAbstract . mkFastString <$> munch1 (const True))
