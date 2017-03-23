@@ -4,6 +4,7 @@
 
 Author: Juan J. Quintela    <quintela@krilin.dc.fi.udc.es>
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.DeSugar.Check ( check , ExhaustivePat ) where
 
@@ -25,6 +26,8 @@ import ETA.Utils.Util
 import ETA.BasicTypes.BasicTypes
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
+
+#include "HsVersions.h"
 
 {-
 This module performs checks about if one list of equations are:
@@ -229,7 +232,7 @@ check' qs
   where
      -- Note: RecPats will have been simplified to ConPats
      --       at this stage.
-    first_pats        = {- ASSERT2( okGroup qs, pprGroup qs ) -} map firstPatN qs
+    first_pats        = ASSERT2( okGroup qs, pprGroup qs ) map firstPatN qs
     some_constructors = any is_con first_pats
     some_literals     = any is_lit first_pats
     only_vars         = all is_var first_pats
@@ -264,11 +267,11 @@ must be one Variable to be complete.
 
 process_literals :: [HsLit] -> [(EqnNo, EquationInfo)] -> ([ExhaustivePat],EqnSet)
 process_literals used_lits qs
-  | null default_eqns  = {-ASSERT( not (null qs) )-} ([make_row_vars used_lits (head qs)] ++ pats,indexs)
+  | null default_eqns  = ASSERT( not (null qs) ) ([make_row_vars used_lits (head qs)] ++ pats,indexs)
   | otherwise          = (pats_default,indexs_default)
      where
        (pats,indexs)   = process_explicit_literals used_lits qs
-       default_eqns    = -- ASSERT2( okGroup qs, pprGroup qs )
+       default_eqns    = ASSERT2( okGroup qs, pprGroup qs )
                          [remove_var q | q <- qs, is_var (firstPatN q)]
        (pats',indexs') = check' default_eqns
        pats_default    = [(nlWildPatName:ps,constraints) |
@@ -291,7 +294,7 @@ remove_first_column_lit :: HsLit
                         -> [(EqnNo, EquationInfo)]
                         -> [(EqnNo, EquationInfo)]
 remove_first_column_lit lit qs
-  = -- ASSERT2( okGroup qs, pprGroup qs )
+  = ASSERT2( okGroup qs, pprGroup qs )
     [(n, shift_pat eqn) | q@(n,eqn) <- qs, is_var_lit lit (firstPatN q)]
   where
      shift_pat eqn@(EqnInfo { eqn_pats = _:ps}) = eqn { eqn_pats = ps }
@@ -344,12 +347,12 @@ need_default_case used_cons unused_cons qs
   | otherwise          = (pats_default,indexs_default)
      where
        (pats,indexs)   = no_need_default_case used_cons qs
-       default_eqns    = -- ASSERT2( okGroup qs, pprGroup qs )
+       default_eqns    = ASSERT2( okGroup qs, pprGroup qs )
                          [remove_var q | q <- qs, is_var (firstPatN q)]
        (pats',indexs') = check' default_eqns
        pats_default    = [(make_whole_con c:ps,constraints) |
                           c <- unused_cons, (ps,constraints) <- pats'] ++ pats
-       new_wilds       = {-ASSERT( not (null qs) )-} make_row_vars_for_constructor (head qs)
+       new_wilds       = ASSERT( not (null qs) ) make_row_vars_for_constructor (head qs)
        pats_default_no_eqns =  [(make_whole_con c:new_wilds,[]) | c <- unused_cons] ++ pats
        indexs_default  = unionUniqSets indexs' indexs
 
@@ -379,7 +382,7 @@ remove_first_column :: Pat Id                -- Constructor
                     -> [(EqnNo, EquationInfo)]
                     -> [(EqnNo, EquationInfo)]
 remove_first_column (ConPatOut{ pat_con = L _ con, pat_args = PrefixCon con_pats }) qs
-  = --ASSERT2( okGroup qs, pprGroup qs )
+  = ASSERT2( okGroup qs, pprGroup qs )
     [(n, shift_var eqn) | q@(n, eqn) <- qs, is_var_con con (firstPatN q)]
   where
      new_wilds = [WildPat (hsLPatType arg_pat) | arg_pat <- con_pats]
@@ -461,7 +464,7 @@ mb_neg _      Nothing  v = v
 mb_neg negate (Just _) v = negate v
 
 get_unused_cons :: [Pat Id] -> [DataCon]
-get_unused_cons used_cons = {-ASSERT( not (null used_cons) )-} unused_cons
+get_unused_cons used_cons = ASSERT( not (null used_cons) ) unused_cons
      where
        used_set :: UniqSet DataCon
        used_set = mkUniqSet [d | ConPatOut{ pat_con = L _ (RealDataCon d) } <- used_cons]
