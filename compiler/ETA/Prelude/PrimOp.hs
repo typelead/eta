@@ -1715,7 +1715,6 @@ tagOf_PrimOp WriteJFloatArrayOp = _ILIT(1133)
 tagOf_PrimOp NewJDoubleArrayOp = _ILIT(1134)
 tagOf_PrimOp ReadJDoubleArrayOp = _ILIT(1135)
 tagOf_PrimOp WriteJDoubleArrayOp = _ILIT(1136)
-tagOf_PrimOp _ = error "tagOf_PrimOp: unknown primop"
 
 instance Eq PrimOp where
     op1 == op2 = tagOf_PrimOp op1 ==# tagOf_PrimOp op2
@@ -4234,7 +4233,6 @@ primOpInfo WriteJDoubleArrayOp =
   mkGenPrimOp (fsLit "writeJDoubleArray#") [alphaTyVar, betaTyVar]
   [ mkObjectPrimTy alphaTy, intPrimTy, doublePrimTy, mkStatePrimTy betaTy ]
   $ mkStatePrimTy betaTy
-primOpInfo _ = error "primOpInfo: unknown primop"
 
 
 {-
@@ -5162,8 +5160,6 @@ primOpCodeSize TouchOp =  0
 primOpCodeSize ParOp =  primOpCodeSizeForeignCall
 primOpCodeSize SparkOp =  primOpCodeSizeForeignCall
 primOpCodeSize AddrToAnyOp = 0
-primOpCodeSize AddrToAnyOp = 0
-
 primOpCodeSize JBool2IntOp = 0
 primOpCodeSize JByte2IntOp = 0
 primOpCodeSize Int2JBoolOp = 0
@@ -5172,7 +5168,6 @@ primOpCodeSize JShort2IntOp = 0
 primOpCodeSize Int2JShortOp = 0
 primOpCodeSize JChar2WordOp = 0
 primOpCodeSize Word2JCharOp = 0
-
 primOpCodeSize StablePtr2AddrOp = primOpCodeSizeForeignCall
 primOpCodeSize Addr2StablePtrOp = primOpCodeSizeForeignCall
 primOpCodeSize _ =  primOpCodeSizeDefault
