@@ -3,15 +3,15 @@ module ETA.CodeGen.Main where
 
 import ETA.BasicTypes.Module
 import ETA.Main.HscTypes
-import ETA.Types.Type
+-- import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.StgSyn.StgSyn
 import ETA.Main.DynFlags
-import ETA.Utils.FastString
-import ETA.BasicTypes.VarEnv
+-- import ETA.Utils.FastString
+-- import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.Name
-import ETA.BasicTypes.OccName
+-- import ETA.BasicTypes.OccName
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Util (unzipWith)
 import ETA.Prelude.PrelNames (rOOT_MAIN)
@@ -31,12 +31,12 @@ import ETA.CodeGen.Env
 
 import Codec.JVM
 
-import Data.Maybe (mapMaybe, catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
 import Control.Monad (unless, when)
 
-import Data.Text (Text, pack, cons, append)
+import Data.Text (Text, pack, append)
 
 codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
 codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo = do
@@ -50,14 +50,14 @@ codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo = do
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
   traceCg $ str "generating " <+> ppr id
-  mod <- getModule
+  _mod <- getModule
   id' <- externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive id' rhs
   code
   addBinding info
 
 cgTopBinding dflags (StgRec pairs) = do
-  mod <- getModule
+  _mod <- getModule
   let (binders, rhss) = unzip pairs
   traceCg $ str "generating (rec) " <+> ppr binders
   binders' <- mapM (externaliseId dflags) binders
@@ -72,7 +72,7 @@ cgTopRhs dflags _ binder (StgRhsCon _ con args) =
   cgTopRhsCon dflags binder con args
 
 cgTopRhs dflags recflag binder
-   (StgRhsClosure _ binderInfo freeVars updateFlag _ args body) =
+   (StgRhsClosure _ binderInfo _freeVars updateFlag _ args body) =
   -- fvs should be empty
   cgTopRhsClosure dflags recflag binder binderInfo updateFlag args body
 
@@ -84,14 +84,14 @@ cgTopRhsClosure :: DynFlags
                 -> [Id]                 -- Args
                 -> StgExpr
                 -> (CgIdInfo, CodeGen ())
-cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
+cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
   = (cgIdInfo, genCode dflags lfInfo)
   where cgIdInfo = mkCgIdInfo dflags id lfInfo
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
-        (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
+        (modClass, clName, _clClass) = getJavaInfo dflags cgIdInfo
         isThunk = isLFThunk lfInfo
         qClName = closure clName
-        genCode dflags _
+        genCode _dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
                let loadCode = idInfoLoadCode cgInfo
@@ -111,7 +111,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
                  , deps
                  -- TODO: Check this works when f is in external module
                  )
-        genCode dflags lf = do
+        genCode _dflags _lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody True id lfInfo
                             (nonVoidIds args) (length args) body [] False []
@@ -136,7 +136,7 @@ cgTopRhsClosure dflags recflag id binderInfo updateFlag args body
 
 -- Simplifies the code if the mod is associated to the Id
 externaliseId :: DynFlags -> Id -> CodeGen Id
-externaliseId dflags id = do
+externaliseId _dflags id = do
   mod <- getModule
   return $
     if isInternalName name then
@@ -209,7 +209,7 @@ cgDataCon typeClass dataCon = do
                       <> greturn jint
   -- TODO: Reduce duplication
   if isNullaryRepDataCon dataCon then do
-      newExportedClosure dataConClassName typeClass $ do
+      _ <- newExportedClosure dataConClassName typeClass $ do
         defineMethod $ mkDefaultConstructor thisClass typeClass
         defineTagMethod
       return ()
@@ -247,7 +247,7 @@ cgDataCon typeClass dataCon = do
                         <> getfield (mkFieldRef thisClass (constrField i) ft)
 
            defineGetRep :: ArgRep -> [(Int, Code)] -> CodeGen ()
-           defineGetRep rep [] = return ()
+           defineGetRep _rep [] = return ()
            defineGetRep rep branches =
              defineMethod $
                mkMethodDef thisClass [Public] method [jint] (ret ft) $
@@ -267,7 +267,7 @@ cgDataCon typeClass dataCon = do
            fields :: [FieldType]
            fields = repFieldTypes $ dataConRepArgTys dataCon
 
-       newExportedClosure dataConClassName typeClass $ do
+       _ <- newExportedClosure dataConClassName typeClass $ do
          defineFields fieldDefs
          defineTagMethod
          defineGetRep P ps
