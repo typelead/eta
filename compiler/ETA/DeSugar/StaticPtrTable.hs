@@ -59,7 +59,7 @@ import GHC.Fingerprint
 --
 sptInitCode :: Module -> [(Fingerprint, (Id,CoreExpr))] -> SDoc
 sptInitCode _ [] = Outputable.empty
-sptInitCode this_mod entries = vcat
+sptInitCode _this_mod _entries = vcat
     [
       Outputable.empty
     -- text "static void hs_spt_init_" <> ppr this_mod
@@ -90,11 +90,11 @@ sptInitCode this_mod entries = vcat
     --     ]
     ]
 
-  where
-
-    pprFingerprint :: Fingerprint -> SDoc
-    pprFingerprint (Fingerprint w1 w2) =
-      braces $ hcat $ punctuate comma
-                 [ integer (fromIntegral w1) <> text "ULL"
-                 , integer (fromIntegral w2) <> text "ULL"
-                 ]
+  -- where
+  --
+  --   pprFingerprint :: Fingerprint -> SDoc
+  --   pprFingerprint (Fingerprint w1 w2) =
+  --     braces $ hcat $ punctuate comma
+  --                [ integer (fromIntegral w1) <> text "ULL"
+  --                , integer (fromIntegral w2) <> text "ULL"
+  --                ]
