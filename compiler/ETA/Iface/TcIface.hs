@@ -1064,12 +1064,12 @@ tcIfaceLit lit = return lit
 tcIfaceAlt :: CoreExpr -> (TyCon, [Type])
            -> (IfaceConAlt, [FastString], IfaceExpr)
            -> IfL (AltCon, [TyVar], CoreExpr)
-tcIfaceAlt _ _ (IfaceDefault, names, rhs)
+tcIfaceAlt _ _ (IfaceDefault, _, rhs)
   = {-ASSERT( null names ) -}do
     rhs' <- tcIfaceExpr rhs
     return (DEFAULT, [], rhs')
 
-tcIfaceAlt _ _ (IfaceLitAlt lit, names, rhs)
+tcIfaceAlt _ _ (IfaceLitAlt lit, _, rhs)
   = {-ASSERT( null names )-} do
     lit' <- tcIfaceLit lit
     rhs' <- tcIfaceExpr rhs
