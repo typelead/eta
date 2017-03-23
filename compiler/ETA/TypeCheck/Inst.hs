@@ -5,6 +5,7 @@
 
 The @Inst@ type: dictionaries or method instances
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.TypeCheck.Inst (
        deeplySkolemise,
@@ -55,6 +56,8 @@ import ETA.Utils.Outputable
 import Control.Monad( unless )
 import Data.Maybe( isJust )
 
+#include "HsVersions.h"
+
 {-
 ************************************************************************
 *                                                                      *
@@ -92,7 +95,7 @@ newMethodFromName origin name inst_ty
              (the_tv:rest) = tvs
              subst = zipOpenTvSubst [the_tv] [inst_ty]
 
-       ; wrap <- --ASSERT( null rest && isSingleton theta )
+       ; wrap <- ASSERT( null rest && isSingleton theta )
                  instCall origin [inst_ty] (substTheta subst theta)
        ; return (mkHsWrap wrap (HsVar id)) }
 
