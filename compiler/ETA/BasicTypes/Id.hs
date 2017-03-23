@@ -21,6 +21,7 @@
 --   be global or local, see "Var#globalvslocal"
 --
 -- * 'Var.Var': see "Var#name_types"
+{-# LANGUAGE CPP #-}
 
 module ETA.BasicTypes.Id (
         -- * The main types
@@ -129,6 +130,8 @@ import ETA.Utils.FastString
 import ETA.Utils.Util
 import ETA.Main.StaticFlags
 
+#include "HsVersions.h"
+
 -- infixl so you can say (id `set` a `set` b)
 infixl  1 `setIdUnfoldingLazily`,
           `setIdUnfolding`,
@@ -183,7 +186,7 @@ localiseId :: Id -> Id
 -- Make an with the same unique and type as the
 -- incoming Id, but with an *Internal* Name and *LocalId* flavour
 localiseId id
-  | {-ASSERT( isId id )-} isLocalId id && isInternalName name
+  | ASSERT( isId id ) isLocalId id && isInternalName name
   = id
   | otherwise
   = mkLocalIdWithInfo (localiseName name) (idType id) (idInfo id)
@@ -539,7 +542,7 @@ zapIdStrictness id = modifyIdInfo (`setStrictnessInfo` nopSig) id
 -- type, we still want @isStrictId id@ to be @True@.
 isStrictId :: Id -> Bool
 isStrictId id
-  = --ASSERT2( isId id, text "isStrictId: not an id: " <+> ppr id )
+  = ASSERT2( isId id, text "isStrictId: not an id: " <+> ppr id )
            (isStrictType (idType id)) ||
            -- Take the best of both strictnesses - old and new
            (isStrictDmd (idDemandInfo id))
