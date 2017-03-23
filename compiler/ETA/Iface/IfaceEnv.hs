@@ -29,7 +29,7 @@ import ETA.Utils.UniqFM
 import ETA.Utils.FastString
 import ETA.BasicTypes.UniqSupply
 import ETA.BasicTypes.SrcLoc
-import ETA.Utils.Util
+-- import ETA.Utils.Util
 
 import ETA.Utils.Outputable
 import ETA.Utils.Exception     ( evaluate )
