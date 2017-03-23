@@ -8,7 +8,7 @@ TcHsSyn: Specialisations of the @HsSyn@ syntax for the typechecker
 This module is an extension of @HsSyn@ syntax, for use in the type
 checker.
 -}
-
+{-# LANGUAGE CPP #-}
 module ETA.TypeCheck.TcHsSyn (
         mkHsConApp, mkHsDictLet, mkHsApp,
         hsLitType, hsLPatType, hsPatType,
@@ -52,10 +52,12 @@ import ETA.BasicTypes.Literal
 import ETA.BasicTypes.BasicTypes
 import ETA.Utils.Maybes
 import ETA.BasicTypes.SrcLoc
+import ETA.Utils.Util
 import ETA.Utils.Bag
 import ETA.Utils.FastString
 import ETA.Utils.Outputable
-import ETA.Utils.Util
+
+#include "HsVersions.h"
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
 -- #endif
@@ -456,7 +458,7 @@ zonk_bind env sig_warn (AbsBinds { abs_tvs = tyvars, abs_ev_vars = evs
                                  , abs_ev_binds = ev_binds
                                  , abs_exports = exports
                                  , abs_binds = val_binds })
-  = --ASSERT( all isImmutableTyVar tyvars )
+  = ASSERT( all isImmutableTyVar tyvars )
     do { (env0, new_tyvars) <- zonkTyBndrsX env tyvars
        ; (env1, new_evs) <- zonkEvBndrsX env0 evs
        ; (env2, new_ev_binds) <- zonkTcEvBinds env1 ev_binds
@@ -850,7 +852,7 @@ zonkCoFn env (WpEvLam ev)   = do { (env', ev') <- zonkEvBndrX env ev
                                  ; return (env', WpEvLam ev') }
 zonkCoFn env (WpEvApp arg)  = do { arg' <- zonkEvTerm env arg
                                  ; return (env, WpEvApp arg') }
-zonkCoFn env (WpTyLam tv)   = --ASSERT( isImmutableTyVar tv )
+zonkCoFn env (WpTyLam tv)   = ASSERT( isImmutableTyVar tv )
                               do { (env', tv') <- zonkTyBndrX env tv
                                  ; return (env', WpTyLam tv') }
 zonkCoFn env (WpTyApp ty)   = do { ty' <- zonkTcTypeToType env ty
@@ -1070,7 +1072,7 @@ zonk_pat env (TuplePat pats boxed tys)
 zonk_pat env p@(ConPatOut { pat_arg_tys = tys, pat_tvs = tyvars
                           , pat_dicts = evs, pat_binds = binds
                           , pat_args = args, pat_wrap = wrapper })
-  = --ASSERT( all isImmutableTyVar tyvars )
+  = ASSERT( all isImmutableTyVar tyvars )
     do  { new_tys <- mapM (zonkTcTypeToType env) tys
         ; (env0, new_tyvars) <- zonkTyBndrsX env tyvars
           -- Must zonk the existential variables, because their
@@ -1193,7 +1195,7 @@ zonkRule env (HsRule name act (vars{-::[RuleBndr TcId]-}) lhs fv_lhs rhs fv_rhs)
    zonk_it env v
      | isId v     = do { v' <- zonkIdBndr env v
                        ; return (extendIdZonkEnv1 env v', v') }
-     | otherwise  = --ASSERT( isImmutableTyVar v)
+     | otherwise  = ASSERT( isImmutableTyVar v)
                     zonkTyBndrX env v
                     -- DV: used to be return (env,v) but that is plain
                     -- wrong because we may need to go inside the kind
@@ -1231,7 +1233,7 @@ zonkVect _ (HsVectInstIn _) = panic "TcHsSyn.zonkVect: HsVectInstIn"
 -}
 
 zonkEvTerm :: ZonkEnv -> EvTerm -> TcM EvTerm
-zonkEvTerm env (EvId v)           = --ASSERT2( isId v, ppr v )
+zonkEvTerm env (EvId v)           = ASSERT2( isId v, ppr v )
                                     return (EvId (zonkIdOcc env v))
 zonkEvTerm env (EvCoercion co)    = do { co' <- zonkTcCoToCo env co
                                        ; return (EvCoercion co') }
@@ -1432,7 +1434,7 @@ zonkTcTypeToType env ty
         -- The two interesting cases!
     go (TyVarTy tv) = zonkTyVarOcc env tv
 
-    go (ForAllTy tv ty) = --ASSERT( isImmutableTyVar tv )
+    go (ForAllTy tv ty) = ASSERT( isImmutableTyVar tv )
                           do { (env', tv') <- zonkTyBndrX env tv
                              ; ty' <- zonkTcTypeToType env' ty
                              ; return (ForAllTy tv' ty') }
@@ -1461,7 +1463,7 @@ zonkCoToCo env co
 
     -- The two interesting cases!
     go (CoVarCo cv)              = return (mkCoVarCo $ zonkIdOcc env cv)
-    go (ForAllCo tv co)          = --ASSERT( isImmutableTyVar tv )
+    go (ForAllCo tv co)          = ASSERT( isImmutableTyVar tv )
                                    do { (env', tv') <- zonkTyBndrX env tv
                                       ; co' <- zonkCoToCo env' co
                                       ; return (mkForAllCo tv' co') }
@@ -1521,7 +1523,7 @@ zonkTcCoToCo env co
     go (TcLRCo lr co)         = do { co' <- go co; return (mkTcLRCo lr co') }
     go (TcTransCo co1 co2)    = do { co1' <- go co1; co2' <- go co2
                                    ; return (mkTcTransCo co1' co2') }
-    go (TcForAllCo tv co)     = --ASSERT( isImmutableTyVar tv )
+    go (TcForAllCo tv co)     = ASSERT( isImmutableTyVar tv )
                                 do { co' <- go co; return (mkTcForAllCo tv co') }
     go (TcSubCo co)           = do { co' <- go co; return (mkTcSubCo co') }
     go (TcAxiomRuleCo co ts cs) = do { ts' <- zonkTcTypeToTypes env ts
