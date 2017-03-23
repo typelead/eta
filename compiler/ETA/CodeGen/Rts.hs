@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Rts where
 
-import ETA.Main.DynFlags
+
 
 import Data.Text
 import Codec.JVM
 import ETA.Util
 
 import Data.Monoid((<>))
-import Data.Foldable(fold)
-import qualified Data.ByteString.Char8 as BC
+
+
 import qualified Data.Text as T
 
 -- NOTE: If the RTS is refactored, this file must also be updated accordingly
@@ -18,7 +18,7 @@ import qualified Data.Text as T
 merge :: Text -> Text -> Text
 merge x y = append x . cons '/' $ y
 
-rts, apply, thunk, stg, exception, io, util, stm, par, interp :: Text -> Text
+rts, apply, thunk, stg, exception, io, util, stm, par, interp, conc :: Text -> Text
 rts       = merge "eta/runtime"
 apply     = merge (rts "apply")
 thunk     = merge (rts "thunk")
@@ -60,7 +60,7 @@ stgWeakType       = obj stgWeak
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
-  stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
+  stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult, rtsFun,
   stgBCO, stgWeak :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
@@ -166,7 +166,7 @@ suspendThreadMethod interruptible =
      loadContext
   <> contextMyCapability
   -- <> dup capabilityType
-  <> iconst jbool (fromIntegral (boolToInt interruptible))
+  <> iconst jbool (boolToInt interruptible)
   <> invokevirtual (mkMethodRef capability "suspendThread" [jbool] (ret taskType))
   where boolToInt True = 1
         boolToInt False = 0
@@ -178,7 +178,7 @@ resumeThreadMethod =
   <> swap capabilityType contextType
   <> contextMyCapabilitySet
 
-stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup :: Text
+stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup, stgGroup :: Text
 stgExceptionGroup = exception "StgException"
 ioGroup = io "IO"
 stmGroup = stm "STM"
@@ -243,6 +243,7 @@ fieldTypeSuffix (BaseType prim) =
     JShort  -> "Short"
     JInt    -> "Int"
     JLong   -> "Long"
+fieldTypeSuffix ft = error $ "fieldTypeSuffix: " ++ show ft
 
 mutVarValue :: Code
 mutVarValue = getfield $ mkFieldRef stgMutVar "value" closureType
@@ -255,7 +256,7 @@ mVarValue = getfield $ mkFieldRef stgMVar "value" closureType
 
 barf :: Text -> Code
 barf text = sconst text
-         <> iconst jint (fromIntegral 0)
+         <> iconst jint (0)
          <> new arrayFt
          <> invokestatic (mkMethodRef (rts "RtsMessages") "barf" [jstring, arrayFt] void)
   where arrayFt = jarray jobject
