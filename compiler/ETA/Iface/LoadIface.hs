@@ -63,7 +63,7 @@ import ETA.Utils.Outputable
 import qualified ETA.Utils.Outputable as Outputable
 import ETA.Iface.BinIface
 import ETA.Utils.Panic
--- import ETA.Utils.Util
+import ETA.Utils.Util
 import ETA.Utils.FastString
 import ETA.Utils.Fingerprint
 import ETA.Main.Hooks
@@ -71,6 +71,8 @@ import ETA.Main.Hooks
 import Control.Monad
 import Data.IORef
 import System.FilePath
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -122,11 +124,11 @@ importDecl :: Name -> IfM lcl (MaybeErr MsgDoc TyThing)
 -- Get the TyThing for this Name from an interface file
 -- It's not a wired-in thing -- the caller caught that
 importDecl name
-  = --ASSERT( not (isWiredInName name) )
+  = ASSERT( not (isWiredInName name) )
     do  { traceIf nd_doc
 
         -- Load the interface, which should populate the PTE
-        ; mb_iface <- --ASSERT2( isExternalName name, ppr name )
+        ; mb_iface <- ASSERT2( isExternalName name, ppr name )
                       loadInterface nd_doc (nameModule name) ImportBySystem
         ; case mb_iface of {
                 Failed err_msg  -> return (Failed err_msg) ;
@@ -190,7 +192,7 @@ checkWiredInTyCon tc
   = return ()
   | otherwise
   = do  { mod <- getModule
-        ; --ASSERT( isExternalName tc_name )
+        ; ASSERT( isExternalName tc_name )
           when (mod /= nameModule tc_name)
                (initIfaceTcRn (loadWiredInHomeIface tc_name))
                 -- Don't look for (non-existent) Float.hi when
@@ -213,7 +215,7 @@ ifCheckWiredInThing thing
                 -- the HPT, so without the test we'll demand-load it into the PIT!
                 -- C.f. the same test in checkWiredInTyCon above
         ; let name = getName thing
-        ; --ASSERT2( isExternalName name, ppr name )
+        ; ASSERT2( isExternalName name, ppr name )
           when (needWiredInHomeIface thing && mod /= nameModule name)
                (loadWiredInHomeIface name) }
 
@@ -323,23 +325,22 @@ loadModuleInterfaces doc mods
 -- Should only be called for an imported name;
 -- otherwise loadSysInterface may not find the interface
 loadInterfaceForName :: SDoc -> Name -> TcRn ModIface
-loadInterfaceForName doc name =
-  initIfaceTcRn $ loadSysInterface doc (nameModule name)
-  -- = do { when debugIsOn $  -- Check pre-condition
-  --        do { this_mod <- getModule
-  --           ; {-MASSERT2( not (nameIsLocalOrFrom this_mod name), ppr name <+> parens doc ) -} }
-  --     ; --ASSERT2( isExternalName name, ppr name )
-        -- initIfaceTcRn $ loadSysInterface doc (nameModule name) }
+loadInterfaceForName doc name
+  = do { when debugIsOn $  -- Check pre-condition
+         do { this_mod <- getModule
+            ; MASSERT2( not (nameIsLocalOrFrom this_mod name), ppr name <+> parens doc ) }
+      ; ASSERT2( isExternalName name, ppr name )
+        initIfaceTcRn $ loadSysInterface doc (nameModule name) }
 
 -- | Loads the interface for a given Module.
 loadInterfaceForModule :: SDoc -> Module -> TcRn ModIface
-loadInterfaceForModule doc m = initIfaceTcRn $ loadSysInterface doc m
-  -- = do
+loadInterfaceForModule doc m
+  = do
     -- Should not be called with this module
-    -- when debugIsOn $ do
-    --   this_mod <- getModule
-    --   --MASSERT2( this_mod /= m, ppr m <+> parens doc )
-    -- initIfaceTcRn $ loadSysInterface doc m
+    when debugIsOn $ do
+      this_mod <- getModule
+      MASSERT2( this_mod /= m, ppr m <+> parens doc )
+    initIfaceTcRn $ loadSysInterface doc m
 
 {-
 *********************************************************
@@ -358,7 +359,7 @@ loadInterfaceForModule doc m = initIfaceTcRn $ loadSysInterface doc m
 -- See Note [Loading instances for wired-in things] in TcIface
 loadWiredInHomeIface :: Name -> IfM lcl ()
 loadWiredInHomeIface name
-  = --ASSERT( isWiredInName name )
+  = ASSERT( isWiredInName name )
     do _ <- loadSysInterface doc (nameModule name); return ()
   where
     doc = ptext (sLit "Need home interface for wired-in thing") <+> ppr name
