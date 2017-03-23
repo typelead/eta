@@ -1,39 +1,40 @@
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Foreign where
 
 import ETA.Main.DynFlags
 import ETA.Types.Type
-import ETA.Types.TyCon
+-- import ETA.Types.TyCon
 import ETA.StgSyn.StgSyn
 import ETA.Prelude.ForeignCall
 import ETA.Utils.FastString
 import ETA.Utils.Util
 import ETA.Util
 
-import ETA.CodeGen.ArgRep
+-- import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Env
 import ETA.CodeGen.Monad
-import ETA.CodeGen.Name
+-- import ETA.CodeGen.Name
 import ETA.CodeGen.Layout
 import ETA.CodeGen.Rts
 import ETA.CodeGen.Types
 
-import ETA.Debug
-import ETA.Util
+-- import ETA.Debug
+-- import ETA.Util
 import Codec.JVM
 import Data.Monoid ((<>))
-import Data.List (stripPrefix)
-import Data.Maybe (catMaybes, fromJust, isJust, maybe)
+-- import Data.List (stripPrefix)
+import Data.Maybe (fromJust, isJust)
 import Data.Foldable (fold)
 import Control.Monad (when)
-import qualified Data.Text as T
+-- import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
-cgForeignCall (CCall (CCallSpec target cconv safety)) args resType
+cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
   | StaticTarget label _ _ <- target = do
     let (hasObj, isStatic, callTarget) = deserializeTarget (unpackFS label)
         shuffledArgs = if hasObj then last args : init args else args
-    dflags <- getDynFlags
+    _dflags <- getDynFlags
     argFtCodes <- getNonVoidArgFtCodes shuffledArgs
     let (argFts, callArgs') = unzip argFtCodes
         callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
@@ -48,6 +49,7 @@ cgForeignCall (CCall (CCallSpec target cconv safety)) args resType
         resLocs <- newUnboxedTupleLocs resType
         emitForeignCall safety mbObj resLocs (callTarget mbObjFt) callArgs
         emitReturn resLocs
+cgForeignCall _ _ _ = error $ "cgForeignCall: bad arguments"
 
 deserializeTarget :: String -> (Bool, Bool, Maybe FieldType -> [Code] -> Code)
 deserializeTarget label = (hasObj, isStatic, callTarget)
@@ -56,7 +58,7 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
         isStatic = read isStatic'
         (tag:restSpec) = split ',' callTargetSpec
 
-        callTarget = case read tag of
+        callTarget = case read tag :: Int of
           0 -> genNewTarget restSpec
           1 -> genFieldTarget restSpec
           2 -> genMethodTarget restSpec
@@ -82,7 +84,7 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                 fieldName = read fieldName'
                 fieldFt = expectJust ("deserializeTarget: bad field desc: " ++ label)
                         $ decodeFieldDesc (read fieldDesc')
-                instr = case read instr' of
+                instr = case read instr' :: Int of
                   0 -> putInstr
                   1 -> getInstr
                   _ -> error $ "deserializeTarget: bad instr: " ++ label
@@ -113,7 +115,7 @@ emitForeignCall safety mbObj results target args =
     maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
   where wrapSafety code = do
           whenSafe $ emit $ suspendThreadMethod (playInterruptible safety)
-          code
+          _ <- code
           whenSafe $ emit resumeThreadMethod
           where whenSafe = when (playSafe safety)
         callCode = target args
