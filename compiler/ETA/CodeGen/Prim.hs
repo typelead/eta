@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, NegativeLiterals #-}
 module ETA.CodeGen.Prim where
 
 import ETA.Main.DynFlags
@@ -8,9 +8,8 @@ import ETA.StgSyn.StgSyn
 import ETA.Prelude.PrimOp
 import ETA.Utils.Panic
 import ETA.Utils.FastString
-
+import Data.Maybe
 import Codec.JVM
-
 import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Monad
 import ETA.CodeGen.Foreign
@@ -22,14 +21,14 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Name
 
 import ETA.Debug
-import ETA.Util
 
-import Data.Maybe (fromMaybe)
+
+
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
-import Data.Maybe (fromJust, isJust)
+
 import Data.Text (Text)
-import Data.List (stripPrefix)
+
 import qualified Data.Text as T
 
 cgOpApp :: StgOp
@@ -38,7 +37,7 @@ cgOpApp :: StgOp
         -> CodeGen ()
 cgOpApp (StgFCallOp fcall _) args resType = cgForeignCall fcall args resType
 -- TODO: Is this primop necessary like in GHC?
-cgOpApp (StgPrimOp TagToEnumOp) args@[arg] resType = do
+cgOpApp (StgPrimOp TagToEnumOp) args@[_arg] resType = do
   dflags <- getDynFlags
   codes <- getNonVoidArgCodes args
   let code = case codes of
@@ -58,13 +57,13 @@ cgOpApp (StgPrimOp ObjectArrayNewOp) args resType = do
                          . head . tail . snd
                          $ splitTyConApp resType
 
-cgOpApp (StgPrimOp GetClassOp) [arg] resType = do
+cgOpApp (StgPrimOp GetClassOp) [_arg] resType = do
   -- TODO: Support array types
   emitReturn [mkLocDirect False
               ( clasFt
               , sconst objText
              <> invokestatic (mkMethodRef clas "forName" [jstring] (ret clasFt)))]
-  where proxyTy  = stgArgType arg
+  where --proxyTy  = stgArgType arg
         objTy    = maybe Nothing (Just . head . snd)
                  . splitTyConApp_maybe
                  . head . snd . splitTyConApp
@@ -114,7 +113,7 @@ cgOpApp (StgPrimOp primOp) args resType = do
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
-cgOpApp (StgPrimCallOp (PrimCall label _)) args resType =
+cgOpApp (StgPrimCallOp (PrimCall label _)) args _resType =
   withContinuation $ do
     argsFtCodes <- getNonVoidArgFtCodes args
     let (argFts, callArgs) = unzip argsFtCodes
@@ -139,23 +138,23 @@ arrayFtCast ft
   where objArray = jarray jobject
 
 shouldInlinePrimOp :: DynFlags -> PrimOp -> [(FieldType, Code)] -> Type -> Either (Text, Text) (CodeGen [Code])
-shouldInlinePrimOp dflags ObjectArrayAtOp ((origFt, arrayObj):args) _ =
+shouldInlinePrimOp _dflags ObjectArrayAtOp ((origFt, arrayObj):args) _ =
   Right $ return [arrayObj <> maybeCast <> fold codes <> gaload elemFt]
   where (arrayFt, maybeCast) = arrayFtCast origFt
         (_, codes) = unzip args
         elemFt = fromJust $ getArrayElemFt arrayFt
 
-shouldInlinePrimOp dflags ObjectArraySetOp ((origFt, arrayObj):args) _ =
+shouldInlinePrimOp _dflags ObjectArraySetOp ((origFt, arrayObj):args) _ =
   Right $ return [arrayObj <> maybeCast <> fold codes <> gastore elemFt]
   where (arrayFt, maybeCast) = arrayFtCast origFt
         (_, codes) = unzip args
         elemFt = fromJust $ getArrayElemFt arrayFt
 
-shouldInlinePrimOp dflags ArrayLengthOp [(origFt, arrayObj)] _ =
+shouldInlinePrimOp _ ArrayLengthOp [(origFt, arrayObj)] _ =
   Right $ return [arrayObj <> maybeCast <> arraylength arrayFt]
   where (arrayFt, maybeCast) = arrayFtCast origFt
 
-shouldInlinePrimOp dflags ClassCastOp args resType = Right $
+shouldInlinePrimOp _ ClassCastOp args resType = Right $
   let (_, codes) = unzip args
       fromFt = fst (head args)
       toFt = fromJust . repFieldType_maybe $ resType
@@ -165,7 +164,7 @@ shouldInlinePrimOp dflags op args _ = shouldInlinePrimOp' dflags op $ snd (unzip
 
 shouldInlinePrimOp' :: DynFlags -> PrimOp -> [Code] -> Either (Text, Text) (CodeGen [Code])
 -- TODO: Inline array operations conditionally
-shouldInlinePrimOp' dflags CopyArrayOp args = Right $ return
+shouldInlinePrimOp' _ CopyArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "copyArray"
@@ -173,7 +172,7 @@ shouldInlinePrimOp' dflags CopyArrayOp args = Right $ return
                               void)
   ]
 
-shouldInlinePrimOp' dflags CopyMutableArrayOp args = Right $ return
+shouldInlinePrimOp' _ CopyMutableArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "copyArray"
@@ -181,31 +180,31 @@ shouldInlinePrimOp' dflags CopyMutableArrayOp args = Right $ return
                               void)
   ]
 
-shouldInlinePrimOp' dflags CloneArrayOp args = Right $ return
+shouldInlinePrimOp' _ CloneArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags CloneMutableArrayOp args = Right $ return
+shouldInlinePrimOp' _ CloneMutableArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags FreezeArrayOp args = Right $ return
+shouldInlinePrimOp' _ FreezeArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags ThawArrayOp args = Right $ return
+shouldInlinePrimOp' _ ThawArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags CopySmallArrayOp args = Right $ return
+shouldInlinePrimOp' _ CopySmallArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "copyArray"
@@ -213,7 +212,7 @@ shouldInlinePrimOp' dflags CopySmallArrayOp args = Right $ return
                               void)
   ]
 
-shouldInlinePrimOp' dflags CopySmallMutableArrayOp args = Right $ return
+shouldInlinePrimOp' _ CopySmallMutableArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "copyArray"
@@ -221,32 +220,32 @@ shouldInlinePrimOp' dflags CopySmallMutableArrayOp args = Right $ return
                               void)
   ]
 
-shouldInlinePrimOp' dflags CloneSmallArrayOp args = Right $ return
+shouldInlinePrimOp' _ CloneSmallArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags CloneSmallMutableArrayOp args = Right $ return
+shouldInlinePrimOp' _ CloneSmallMutableArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags FreezeSmallArrayOp args = Right $ return
+shouldInlinePrimOp' _ FreezeSmallArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
-shouldInlinePrimOp' dflags ThawSmallArrayOp args = Right $ return
+shouldInlinePrimOp' _ ThawSmallArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "cloneArray" [stgArrayType, jint, jint]
                                                     (ret stgArrayType))
   ]
 
-shouldInlinePrimOp' dflags CopyArrayArrayOp args = Right $ return
+shouldInlinePrimOp' _ CopyArrayArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "copyArray"
@@ -254,7 +253,7 @@ shouldInlinePrimOp' dflags CopyArrayArrayOp args = Right $ return
                               void)
   ]
 
-shouldInlinePrimOp' dflags CopyMutableArrayArrayOp args = Right $ return
+shouldInlinePrimOp' _ CopyMutableArrayArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "copyArray"
@@ -262,45 +261,45 @@ shouldInlinePrimOp' dflags CopyMutableArrayArrayOp args = Right $ return
                               void)
   ]
 
-shouldInlinePrimOp' dflags NewByteArrayOp_Char args = Right $ return
+shouldInlinePrimOp' _ NewByteArrayOp_Char args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgByteArray "create" [jint] (ret stgByteArrayType))
   ]
 
-shouldInlinePrimOp' dflags NewPinnedByteArrayOp_Char args = Right $ return
+shouldInlinePrimOp' _ NewPinnedByteArrayOp_Char args = Right $ return
   [
     fold args
  <> iconst jbool 1
  <> invokestatic (mkMethodRef stgByteArray "create" [jint, jbool] (ret stgByteArrayType))
   ]
 
-shouldInlinePrimOp' dflags NewAlignedPinnedByteArrayOp_Char args = Right $ return
+shouldInlinePrimOp' _ NewAlignedPinnedByteArrayOp_Char args = Right $ return
   [
     fold args
  <> iconst jbool 1
  <> invokestatic (mkMethodRef stgByteArray "create" [jint, jint, jbool] (ret stgByteArrayType))
   ]
 
-shouldInlinePrimOp' dflags NewArrayOp args = Right $ return
+shouldInlinePrimOp' _ NewArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
   ]
 
-shouldInlinePrimOp' dflags NewSmallArrayOp args = Right $ return
+shouldInlinePrimOp' _ NewSmallArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
   ]
 
-shouldInlinePrimOp' dflags NewArrayArrayOp args = Right $ return
+shouldInlinePrimOp' _ NewArrayArrayOp args = Right $ return
   [
     fold args
  <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
   ]
 
-shouldInlinePrimOp' dflags NewMutVarOp args = Right $ return
+shouldInlinePrimOp' _ NewMutVarOp args = Right $ return
   [
     new stgMutVarType
  <> dup stgMutVarType
@@ -308,7 +307,7 @@ shouldInlinePrimOp' dflags NewMutVarOp args = Right $ return
  <> invokespecial (mkMethodRef stgMutVar "<init>" [closureType] void)
   ]
 
-shouldInlinePrimOp' dflags NewTVarOp args = Right $ return
+shouldInlinePrimOp' _ NewTVarOp args = Right $ return
   [
     new stgTVarType
  <> dup stgTVarType
@@ -316,7 +315,7 @@ shouldInlinePrimOp' dflags NewTVarOp args = Right $ return
  <> invokespecial (mkMethodRef stgTVar "<init>" [closureType] void)
   ]
 
-shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
+shouldInlinePrimOp' _ NewMVarOp _ = Right $ return
   [
     new stgMVarType
  <> dup stgMVarType
@@ -324,23 +323,23 @@ shouldInlinePrimOp' dflags NewMVarOp args = Right $ return
  <> invokespecial (mkMethodRef stgMVar "<init>" [closureType] void)
   ]
 
-shouldInlinePrimOp' dflags IsEmptyMVarOp [mvar] = Right $ return
+shouldInlinePrimOp' _ IsEmptyMVarOp [mvar] = Right $ return
   [ intCompOp ifnull [mvar <> mVarValue] ]
 
-shouldInlinePrimOp' dflags MakeStableNameOp args = Right $ return
+shouldInlinePrimOp' _ MakeStableNameOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint))) args ]
 
-shouldInlinePrimOp' dflags MakeStablePtrOp args = Right $ return
+shouldInlinePrimOp' _ MakeStablePtrOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "eta/runtime/stg/StablePtrTable" "makeStablePtr" [closureType] (ret jint))) args ]
 
-shouldInlinePrimOp' dflags DeRefStablePtrOp args = Right $ return
+shouldInlinePrimOp' _ DeRefStablePtrOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "eta/runtime/stg/StablePtrTable" "getClosure" [jint] (ret closureType))) args ]
 
 
-shouldInlinePrimOp' dflags UnsafeThawArrayOp args = Right $ return [fold args]
-shouldInlinePrimOp' dflags UnsafeThawSmallArrayOp args = Right $ return [fold args]
+shouldInlinePrimOp' _ UnsafeThawArrayOp args = Right $ return [fold args]
+shouldInlinePrimOp' _ UnsafeThawSmallArrayOp args = Right $ return [fold args]
 
-shouldInlinePrimOp' dflags primOp args
+shouldInlinePrimOp' _ primOp args
   | primOpOutOfLine primOp = Left $ mkRtsPrimOp primOp
   | otherwise = Right $ emitPrimOp primOp args
 
@@ -479,8 +478,8 @@ nopOp OrdOp        = True
 nopOp ChrOp        = True
 nopOp Int642Word64 = True
 nopOp Word642Int64 = True
-nopOp ChrOp        = True
-nopOp ChrOp        = True
+
+
 nopOp JBool2IntOp  = True
 nopOp _            = False
 
@@ -574,7 +573,7 @@ simpleOp WriteArrayArrayOp_MutableArrayArray = Just $
 
 -- ByteArray# & MutableByteArray# ops
 simpleOp ByteArrayContents_Char = Just $ normalOp byteArrayBuf
-simpleOp SameMutableArrayOp = Just $ intCompOp if_acmpeq
+
 simpleOp UnsafeFreezeByteArrayOp = Just idOp
 simpleOp IndexByteArrayOp_Char = Just $ byteArrayIndexOp jbyte preserveByte
 simpleOp IndexByteArrayOp_WideChar = Just $ byteArrayIndexOp jint mempty
@@ -1070,11 +1069,13 @@ unsignedOp op [arg1, arg2]
  <> unsignedExtend arg2
  <> op
  <> gconv jlong jint
+unsignedOp _ _ = error $ "unsignedOp: bad unsignedOp"
 
 typedCmp :: FieldType -> (Code -> Code -> Code) -> [Code] -> Code
 typedCmp ft ifop [arg1, arg2]
   = gcmp ft arg1 arg2
  <> ifop (iconst jint 1) (iconst jint 0)
+typedCmp _ _ _ = error $ "typedCmp: bad typedCmp"
 
 unsignedCmp :: (Code -> Code -> Code) -> [Code] -> Code
 unsignedCmp ifop args
@@ -1084,7 +1085,7 @@ unsignedExtend :: Code -> Code
 unsignedExtend i = i <> gconv jint jlong <> lconst 0xFFFFFFFF <> land
 
 lONG_MIN_VALUE :: Code
-lONG_MIN_VALUE = lconst 0x8000000000000000
+lONG_MIN_VALUE =  lconst (-9223372036854775808)
 
 unsignedLongCmp :: (Code -> Code -> Code) -> [Code] -> Code
 unsignedLongCmp ifop args
