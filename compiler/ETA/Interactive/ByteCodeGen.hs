@@ -8,57 +8,12 @@ module ETA.Interactive.ByteCodeGen ( UnlinkedBCO, byteCodeGen, coreExprToBCOs ) 
 
 #include "HsVersions.h"
 
-import ETA.Interactive.ByteCodeInstr
-import ETA.Interactive.ByteCodeItbls
 import ETA.Interactive.ByteCodeAsm
-import ETA.Interactive.ByteCodeLink
 
-import ETA.Main.DynFlags
-import ETA.Utils.Outputable
-import ETA.Utils.Platform
-import ETA.BasicTypes.Name
-import ETA.BasicTypes.MkId
-import ETA.BasicTypes.Id
-import ETA.CodeGen.ArgRep
-import qualified ETA.BasicTypes.Id as Id
-import ETA.Prelude.ForeignCall
-import ETA.Main.HscTypes
-import ETA.Core.CoreUtils
-import ETA.Core.CoreSyn
-import ETA.Core.PprCore
-import ETA.BasicTypes.Literal
-import ETA.Prelude.PrimOp
-import ETA.Core.CoreFVs
-import ETA.Types.Type
-import ETA.BasicTypes.DataCon
-import ETA.Types.TyCon
-import ETA.Utils.Util
-import ETA.BasicTypes.Var
-import ETA.BasicTypes.VarSet
-import ETA.Prelude.TysPrim
-import ETA.Main.ErrUtils
-import ETA.BasicTypes.Unique
-import ETA.Utils.FastString
-import ETA.Utils.Panic
-import ETA.Utils.OrdList
-import ETA.BasicTypes.UniqSupply
-import ETA.Main.BreakArray
-import ETA.BasicTypes.Module
-
-import Foreign
-import Foreign.C
-import Control.Monad
-import Data.Char
-import Data.Maybe
-import Data.List
-import Data.Map (Map)
-import Data.Ord
-import qualified Data.ByteString        as BS
-import qualified Data.ByteString.Unsafe as BS
-import qualified Data.Map as Map
-import qualified ETA.Utils.FiniteMap as Map
-
+byteCodeGen :: t
 byteCodeGen = undefined
+
+coreExprToBCOs :: t
 coreExprToBCOs = undefined
 
 -- -- -----------------------------------------------------------------------------
