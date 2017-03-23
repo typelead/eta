@@ -110,7 +110,7 @@ import ETA.Types.CoAxiom
 import ETA.Prelude.PrelNames
 import ETA.Utils.Maybes
 import ETA.Utils.Outputable
-import ETA.Main.Constants
+-- import ETA.Main.Constants
 import ETA.Utils.Util
 
 import qualified Data.Data as Data
@@ -984,7 +984,7 @@ isObjectRep _             = False
 
 getObjectClass :: PrimRep -> Text
 getObjectClass (ObjectRep t)   = t
-getObjectClass (ArrayRep  rep) = error $ "getObjectClass: Array type"
+getObjectClass (ArrayRep  _) = error $ "getObjectClass: Array type"
   -- arrayWrap . objectWrap $ getObjectClass rep
 getObjectClass rep             = error $ "getObjectClass: " ++ show rep
 
@@ -992,10 +992,10 @@ getObjectClass rep             = error $ "getObjectClass: " ++ show rep
 primRepSizeW :: DynFlags -> PrimRep -> Int
 primRepSizeW _      IntRep        = 1
 primRepSizeW _      WordRep       = 1
-primRepSizeW dflags Int64Rep      = 2
-primRepSizeW dflags Word64Rep     = 2
+primRepSizeW _      Int64Rep      = 2
+primRepSizeW _      Word64Rep     = 2
 primRepSizeW _      FloatRep      = 1    -- NB. might not take a full word
-primRepSizeW dflags DoubleRep     = 2
+primRepSizeW _      DoubleRep     = 2
 primRepSizeW _      AddrRep       = 1
 primRepSizeW _      PtrRep        = 1
 primRepSizeW _      VoidRep       = 0
@@ -1004,6 +1004,7 @@ primRepSizeW _      CharRep       = 1
 primRepSizeW _      ByteRep       = 1
 primRepSizeW _      ShortRep      = 1
 primRepSizeW _      (ObjectRep _) = 1
+primRepSizeW _ _ = error $ "primRepSizeW: bad primRepSizeW"
 -- primRepSizeW dflags (VecRep len rep) = len * primElemRepSizeB rep `quot` 4
 
 -- primElemRepSizeB :: PrimElemRep -> Int
