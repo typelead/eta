@@ -185,8 +185,6 @@ import ETA.Utils.ListSetOps
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
 import ETA.Main.ErrUtils( Validity(..), isValid )
-
-import Data.Text (Text)
 import Data.IORef
 import Control.Monad (liftM, ap)
 
