@@ -147,21 +147,21 @@ import ETA.Utils.UniqFM           ( emptyUFM )
 import ETA.BasicTypes.UniqSupply
 import ETA.Utils.Bag
 import ETA.Utils.Exception
-import qualified ETA.Utils.Stream as Stream
-import ETA.Utils.Stream (Stream)
+-- import qualified ETA.Utils.Stream as Stream
+-- import ETA.Utils.Stream (Stream)
 
 import ETA.Utils.Util
 
 import ETA.CodeGen.Main
 import ETA.CodeGen.Name
-import ETA.Debug
+-- import ETA.Debug
 import ETA.CodeGen.Rts
 import ETA.Utils.JAR
 import ETA.Main.Packages
-import ETA.Util
+-- import ETA.Util
 import Codec.JVM
 
-import Debug.Trace(traceShow)
+-- import Debug.Trace(traceShow)
 import Data.List
 import Control.Monad hiding (void)
 import Data.Maybe
@@ -170,8 +170,10 @@ import System.FilePath as FilePath
 import System.Directory
 import qualified Data.Map as M
 import qualified Data.Text as T
-import Control.Arrow((&&&), first)
+import Control.Arrow((&&&))
 import Data.Foldable(fold)
+
+#include "HsVersions.h"
 
 {- **********************************************************************
 %*                                                                      *
@@ -260,7 +262,7 @@ ioMsgMaybe ioA = do
     logWarnings warns
     case mb_r of
         Nothing -> throwErrors errs
-        Just r  -> {-ASSERT( isEmptyBag errs )-} return r
+        Just r  -> ASSERT( isEmptyBag errs ) return r
 
 -- | like ioMsgMaybe, except that we ignore error messages and return
 -- 'Nothing' instead.
@@ -1203,7 +1205,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
                     cg_binds    = core_binds,
                     cg_tycons   = tycons,
                     cg_foreign  = foreign_stubs,
-                    cg_dep_pkgs = dependencies,
+                    cg_dep_pkgs = _dependencies,
                     cg_hpc_info = hpc_info } = cgguts
             dflags = hsc_dflags hsc_env
             location = ms_location mod_summary
@@ -1217,7 +1219,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
         prepd_binds <- {-# SCC "CorePrep" #-}
                        corePrepPgm hsc_env location core_binds data_tycons ;
         -----------------  Convert to STG ------------------
-        (stg_binds, cost_centre_info)
+        (stg_binds, _cost_centre_info)
             <- {-# SCC "CoreToStg" #-}
                myCoreToStg dflags this_mod prepd_binds
 
@@ -1233,8 +1235,8 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
         return (output_filename, Nothing)
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
-outputForeignStubs dflags NoStubs = []
-outputForeignStubs dflags (ForeignStubs _ _ classExports) =
+outputForeignStubs _dflags NoStubs = []
+outputForeignStubs _dflags (ForeignStubs _ _ classExports) =
   map f $ foreignExportsList classExports
   where f (classSpec, (methodDefs, fieldDefs)) =
           mkClassFile java7 [Public, Super] (jvmify className) (Just superClass)
@@ -1255,7 +1257,7 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
         parseSpecs _ _ _ = error $ "Invalid foreign export spec."
         jvmify = T.map (\c -> if c == '.' then '/' else c)
         genClInit cls = mkMethodDef cls [Public, Static] "<clinit>" [] void $ fold
-                          [ iconst jint (fromIntegral 0)
+                          [ iconst jint 0
                           , new (jarray jstring)
                           , invokestatic (mkMethodRef "eta/runtime/RtsConfig"
                                          "getDefault" [] (ret rtsConfigType))
