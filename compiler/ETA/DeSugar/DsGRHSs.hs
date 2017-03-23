@@ -23,7 +23,7 @@ import ETA.Prelude.TysWiredIn
 import ETA.Prelude.PrelNames
 import ETA.BasicTypes.Module
 import ETA.BasicTypes.Name
-import ETA.Utils.Util
+
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Outputable
 
