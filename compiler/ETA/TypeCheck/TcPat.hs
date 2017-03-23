@@ -6,7 +6,7 @@
 TcPat: Typechecking patterns
 -}
 
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, CPP #-}
 
 module ETA.TypeCheck.TcPat ( tcLetPat, TcSigFun, TcPragFun
              , TcSigInfo(..), TcPatSynInfo(..)
@@ -48,6 +48,8 @@ import ETA.Utils.Outputable
 import qualified ETA.Utils.Outputable as Outputable
 import ETA.Utils.FastString
 import Control.Monad
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -427,7 +429,7 @@ tc_lpats :: PatEnv
          -> TcM a
          -> TcM ([LPat TcId], a)
 tc_lpats penv pats tys thing_inside
-  = --ASSERT2( equalLength pats tys, ppr pats $$ ppr tys )
+  = ASSERT2( equalLength pats tys, ppr pats $$ ppr tys )
     tcMultiple (\(p,t) -> tc_lpat p t)
                 (zipEqual "tc_lpats" pats tys)
                 penv thing_inside
@@ -569,7 +571,7 @@ tc_pat penv (TuplePat pats boxity _) pat_ty thing_inside
                   isBoxed boxity            = LazyPat (noLoc unmangled_result)
                 | otherwise                 = unmangled_result
 
-        ; --ASSERT( length arg_tys == length pats )      -- Syntactically enforced
+        ; ASSERT( length arg_tys == length pats )      -- Syntactically enforced
           return (mkHsWrapPat coi possibly_mangled_result pat_ty, res)
         }
 
@@ -995,7 +997,7 @@ tcConArgs con_like arg_tys (RecCon (HsRecFields rpats dd)) penv thing_inside
 
                 -- The normal case, when the field comes from the right constructor
            (pat_ty : extras) ->
-                --ASSERT( null extras )
+                ASSERT( null extras )
                 do { sel_id <- tcLookupField field_lbl
                    ; return (sel_id, pat_ty) }
 
