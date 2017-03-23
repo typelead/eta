@@ -237,6 +237,7 @@ Library
         Java.Net
         Java.NIO
         Java.Primitive
+        Java.Security
         Java.String
         Java.TopHandler
         Java.Text
