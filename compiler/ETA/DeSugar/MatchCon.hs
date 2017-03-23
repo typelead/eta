@@ -147,7 +147,7 @@ matchOneConLike vars ty (eqn1 : eqns)   -- All eqns for a single constructor
         -- dataConInstOrigArgTys takes the univ and existential tyvars
         -- and returns the types of the *value* args, which is what we want
 
-    ex_tvs = case con1 of
+    _ = case con1 of
                RealDataCon dcon1 -> dataConExTyVars dcon1
                PatSynCon psyn1   -> patSynExTyVars psyn1
 
