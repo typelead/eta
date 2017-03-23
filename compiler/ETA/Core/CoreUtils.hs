@@ -64,7 +64,6 @@ import ETA.Prelude.PrimOp
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.IdInfo
 import ETA.Types.Type
-import ETA.Types.TypeRep
 import qualified ETA.Types.Type as Type
 import ETA.Types.Coercion
 import ETA.Types.TyCon
@@ -2044,7 +2043,7 @@ rhsIsStatic :: Platform
 --
 --    c) don't look through unfolding of f in (f x).
 
-rhsIsStatic platform is_dynamic_name cvt_integer rhs = is_static False rhs
+rhsIsStatic _ is_dynamic_name cvt_integer rhs = is_static False rhs
   where
   is_static :: Bool     -- True <=> in a constructor argument; must be atomic
             -> CoreExpr -> Bool
