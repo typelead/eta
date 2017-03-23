@@ -3,6 +3,7 @@
 
 \section[RnSource]{Main pass of renamer}
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.Rename.RnTypes (
         -- Type related stuff
@@ -48,6 +49,8 @@ import ETA.Utils.FastString
 import ETA.Utils.Maybes
 import Data.List        ( nub, nubBy )
 import Control.Monad    ( unless, when )
+
+#include "HsVersions.h"
 
 {-
 These type renamers are in a separate module, rather than in (say) RnSource,
@@ -144,7 +147,7 @@ rnHsTyKi isType _ (HsTyVar rdr_name)
 -- a sensible error message, but we don't want to complain about the dot too
 -- Hence the jiggery pokery with ty1
 rnHsTyKi isType doc ty@(HsOpTy ty1 (wrapper, L loc op) ty2)
-  = {-ASSERT( isType )-} setSrcSpan loc $
+  = ASSERT( isType ) setSrcSpan loc $
     do  { ops_ok <- xoptM Opt_TypeOperators
         ; op' <- if ops_ok
                  then rnTyVar isType op
@@ -163,7 +166,7 @@ rnHsTyKi isType doc (HsParTy ty)
        ; return (HsParTy ty', fvs) }
 
 rnHsTyKi isType doc (HsBangTy b ty)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { (ty', fvs) <- rnLHsType doc ty
        ; return (HsBangTy b ty', fvs) }
 
@@ -193,7 +196,7 @@ rnHsTyKi isType doc listTy@(HsListTy ty)
        ; return (HsListTy ty', fvs) }
 
 rnHsTyKi isType doc (HsKindSig ty k)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { kind_sigs_ok <- xoptM Opt_KindSignatures
        ; unless kind_sigs_ok (badSigErr False doc ty)
        ; (ty', fvs1) <- rnLHsType doc ty
@@ -201,7 +204,7 @@ rnHsTyKi isType doc (HsKindSig ty k)
        ; return (HsKindSig ty' k', fvs1 `plusFV` fvs2) }
 
 rnHsTyKi isType doc (HsPArrTy ty)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { (ty', fvs) <- rnLHsType doc ty
        ; return (HsPArrTy ty', fvs) }
 
@@ -230,35 +233,35 @@ rnHsTyKi isType doc (HsAppTy ty1 ty2)
        ; return (HsAppTy ty1' ty2', fvs1 `plusFV` fvs2) }
 
 rnHsTyKi isType doc (HsIParamTy n ty)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { (ty', fvs) <- rnLHsType doc ty
        ; return (HsIParamTy n ty', fvs) }
 
 rnHsTyKi isType doc (HsEqTy ty1 ty2)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { (ty1', fvs1) <- rnLHsType doc ty1
        ; (ty2', fvs2) <- rnLHsType doc ty2
        ; return (HsEqTy ty1' ty2', fvs1 `plusFV` fvs2) }
 
 rnHsTyKi isType _ (HsSpliceTy sp k)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     rnSpliceType sp k
 
 rnHsTyKi isType doc (HsDocTy ty haddock_doc)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { (ty', fvs) <- rnLHsType doc ty
        ; haddock_doc' <- rnLHsDoc haddock_doc
        ; return (HsDocTy ty' haddock_doc', fvs) }
 
 rnHsTyKi isType doc (HsQuasiQuoteTy qq)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { ty <- runQuasiQuoteType qq
          -- Wrap the result of the quasi-quoter in parens so that we don't
          -- lose the outermost location set by runQuasiQuote (#7918)
        ; rnHsType doc (HsParTy ty) }
 
 rnHsTyKi isType _ (HsCoreTy ty)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     return (HsCoreTy ty, emptyFVs)
     -- The emptyFVs probably isn't quite right
     -- but I don't think it matters
@@ -267,14 +270,14 @@ rnHsTyKi _ _ (HsWrapTy {})
   = panic "rnHsTyKi"
 
 rnHsTyKi isType doc ty@(HsExplicitListTy k tys)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { data_kinds <- xoptM Opt_DataKinds
        ; unless data_kinds (addErr (dataKindsErr isType ty))
        ; (tys', fvs) <- rnLHsTypes doc tys
        ; return (HsExplicitListTy k tys', fvs) }
 
 rnHsTyKi isType doc ty@(HsExplicitTupleTy kis tys)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { data_kinds <- xoptM Opt_DataKinds
        ; unless data_kinds (addErr (dataKindsErr isType ty))
        ; (tys', fvs) <- rnLHsTypes doc tys
@@ -284,7 +287,7 @@ rnHsTyKi _ _ HsWildcardTy = panic "rnHsTyKi HsWildcardTy"
                             -- Should be replaced by a HsNamedWildcardTy
 
 rnHsTyKi isType _doc (HsNamedWildcardTy rdr_name)
-  = --ASSERT( isType )
+  = ASSERT( isType )
     do { name <- rnTyVar isType rdr_name
        ; return (HsNamedWildcardTy name, unitFV name) }
 
@@ -292,7 +295,7 @@ rnHsTyKi isType _doc (HsNamedWildcardTy rdr_name)
 rnHsTyKiForAll :: Bool -> HsDocContext -> HsType RdrName
                -> RnM (HsType Name, FreeVars)
 rnHsTyKiForAll isType doc (HsForAllTy Implicit extra _ lctxt@(L _ ctxt) ty)
-  = {-ASSERT( isType )-} do
+  = ASSERT( isType ) do
         -- Implicit quantifiction in source code (no kinds on tyvars)
         -- Given the signature  C => T  we universally quantify
         -- over FV(T) \ {in-scope-tyvars}
@@ -316,7 +319,7 @@ rnHsTyKiForAll isType doc (HsForAllTy Implicit extra _ lctxt@(L _ ctxt) ty)
 
 rnHsTyKiForAll isType doc
                fulltype@(HsForAllTy Qualified extra _ lctxt@(L _ ctxt) ty)
-  = {-ASSERT( isType )-} do
+  = ASSERT( isType ) do
     rdr_env <- getLocalRdrEnv
     loc <- getSrcSpanM
     let
@@ -331,7 +334,7 @@ rnHsTyKiForAll isType doc
 
 rnHsTyKiForAll isType doc
                ty@(HsForAllTy Explicit extra forall_tyvars lctxt@(L _ ctxt) tau)
-  = {-ASSERT( isType )-} do {      -- Explicit quantification.
+  = ASSERT( isType ) do {      -- Explicit quantification.
          -- Check that the forall'd tyvars are actually
          -- mentioned in the type, and produce a warning if not
          let (kvs, mentioned) = extractHsTysRdrTyVars (tau:ctxt)
@@ -658,9 +661,9 @@ mkOpAppRn e1 op1 fix1 e2@(L _ (NegApp _ _))     -- NegApp can occur on the right
 ---------------------------
 --      Default case
 mkOpAppRn e1 op fix e2                  -- Default case, no rearrangment
-  = -- ASSERT2( right_op_ok fix (unLoc e2),
-    --          ppr e1 $$ text "---" $$ ppr op $$ text "---" $$ ppr fix $$ text "---" $$ ppr e2
-    -- )
+  = ASSERT2( right_op_ok fix (unLoc e2),
+             ppr e1 $$ text "---" $$ ppr op $$ text "---" $$ ppr fix $$ text "---" $$ ppr e2
+    )
     return (OpApp e1 op fix e2)
 
 ----------------------------
@@ -683,7 +686,7 @@ right_op_ok _ _
 -- And "deriving" code should respect this (use HsPar if not)
 mkNegAppRn :: LHsExpr id -> SyntaxExpr id -> RnM (HsExpr id)
 mkNegAppRn neg_arg neg_name
-  = --ASSERT( not_op_app (unLoc neg_arg) )
+  = ASSERT( not_op_app (unLoc neg_arg) )
     return (NegApp neg_arg neg_name)
 
 not_op_app :: HsExpr id -> Bool
@@ -735,7 +738,7 @@ mkConOpPatRn op2 fix2 p1@(L loc (ConPatIn op1 (InfixCon p11 p12))) p2
           else return (ConPatIn op2 (InfixCon p1 p2)) }
 
 mkConOpPatRn op _ p1 p2                         -- Default case, no rearrangment
-  = --ASSERT( not_op_pat (unLoc p2) )
+  = ASSERT( not_op_pat (unLoc p2) )
     return (ConPatIn op (InfixCon p1 p2))
 
 not_op_pat :: Pat Name -> Bool
