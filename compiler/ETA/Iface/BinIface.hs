@@ -44,8 +44,7 @@ import ETA.Utils.Outputable
 import ETA.Utils.Platform
 import ETA.Utils.FastString
 import ETA.Main.Constants
-import ETA.Utils.Util
-
+-- import ETA.Utils.Util
 import Data.Bits
 import Data.Char
 import Data.List
