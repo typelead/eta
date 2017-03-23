@@ -79,6 +79,8 @@ import System.IO.Error  ( isDoesNotExistError )
 
 import GHC.Conc ( getNumProcessors, getNumCapabilities, setNumCapabilities )
 
+#include "HsVersions.h"
+
 label_self :: String -> IO ()
 label_self thread_name = do
     self_tid <- CC.myThreadId
@@ -161,7 +163,7 @@ load how_much = do
                         | s <- mod_graph, not (isBootSummary s)]
         bad_boot_mods = [s        | s <- mod_graph, isBootSummary s,
                                     not (ms_mod_name s `elem` all_home_mods)]
-    {-ASSERT( null bad_boot_mods ) return () -}
+    ASSERT( null bad_boot_mods ) return ()
 
     -- check that the module given in HowMuch actually exists, otherwise
     -- topSortModuleGraph will bomb later.
@@ -250,8 +252,8 @@ load how_much = do
         -- is stable).
         partial_mg
             | LoadDependenciesOf _mod <- how_much
-            = --ASSERT( case last partial_mg0 of
-              --        AcyclicSCC ms -> ms_mod_name ms == _mod; _ -> False )
+            = ASSERT( case last partial_mg0 of
+                      AcyclicSCC ms -> ms_mod_name ms == _mod; _ -> False )
               List.init partial_mg0
             | otherwise
             = partial_mg0
@@ -358,7 +360,7 @@ load how_much = do
           liftIO $ intermediateCleanTempFiles dflags mods_to_keep hsc_env1
 
           -- there should be no Nothings where linkables should be, now
-          --ASSERT(all (isJust.hm_linkable) (eltsUFM (hsc_HPT hsc_env))) do
+          ASSERT(all (isJust.hm_linkable) (eltsUFM (hsc_HPT hsc_env))) do
 
           -- Link everything together
           linkresult <- liftIO $ link (ghcLink dflags) dflags False hpt4
@@ -1259,7 +1261,7 @@ upsweep_mod hsc_env old_hpt (stable_obj, stable_bco) summary mod_index nmods
 
           | not (isObjectTarget target), is_stable_bco,
             (target /= HscNothing) `implies` not is_fake_linkable ->
-                --ASSERT(isJust old_hmi) -- must be in the old_hpt
+                ASSERT(isJust old_hmi) -- must be in the old_hpt
                 let Just hmi = old_hmi in do
                 liftIO $ debugTraceMsg (hsc_dflags hsc_env) 5
                            (text "skipping stable BCO mod:" <+> ppr this_mod_name)
@@ -1866,7 +1868,7 @@ summariseModule hsc_env old_summary_map is_boot (L loc wanted_mod)
                          just_found location mod
                 | otherwise ->
                         -- Drop external-pkg
-                        -- ASSERT(modulePackageKey mod /= thisPackage dflags)
+                        ASSERT(modulePackageKey mod /= thisPackage dflags)
                         return Nothing
 
              err -> return $ Just $ Left $ noModError dflags loc wanted_mod err
@@ -2008,7 +2010,7 @@ cyclicModuleErr :: [ModSummary] -> SDoc
 -- From a strongly connected component we find
 -- a single cycle to report
 cyclicModuleErr mss
-  = --ASSERT( not (null mss) )
+  = ASSERT( not (null mss) )
     case findCycle graph of
        Nothing   -> ptext (sLit "Unexpected non-cycle") <+> ppr mss
        Just path -> vcat [ ptext (sLit "Module imports form a cycle:")
