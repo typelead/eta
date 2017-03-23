@@ -57,14 +57,14 @@ import ETA.BasicTypes.IdInfo      ( mayHaveCafRefs )
 import ETA.BasicTypes.Literal     ( Literal, literalType )
 import ETA.BasicTypes.Module      ( Module )
 import ETA.Utils.Outputable
-import ETA.Main.Packages    ( isDllName )
-import ETA.Utils.Platform
+-- import ETA.Main.Packages    ( isDllName )
+-- import ETA.Utils.Platform
 import ETA.Core.PprCore     ( {- instances -} )
 import ETA.Prelude.PrimOp      ( PrimOp, PrimCall )
-import ETA.Types.TyCon       ( PrimRep(..) )
+-- import ETA.Types.TyCon       ( PrimRep(..) )
 import ETA.Types.TyCon       ( TyCon )
 import ETA.Types.Type        ( Type )
-import ETA.Types.Type        ( typePrimRep )
+-- import ETA.Types.Type        ( typePrimRep )
 import ETA.Utils.UniqSet
 import ETA.BasicTypes.Unique      ( Unique )
 import ETA.Utils.Util
@@ -105,7 +105,7 @@ data GenStgArg occ
 -- anything in a different *Windows* DLL?
 -- If so, we can't allocate it statically
 isDllConApp :: DynFlags -> Module -> DataCon -> [StgArg] -> Bool
-isDllConApp dflags this_mod con args = False
+isDllConApp _dflags _this_mod _con _args = False
 
 -- True of machine addresses; these are the things that don't
 -- work across DLLs. The key point here is that VoidRep comes
@@ -119,10 +119,10 @@ isDllConApp dflags this_mod con args = False
 --    $WT1 :: T Int
 --    $WT1 = T1 Int (Coercion (Refl Int))
 -- The coercion argument here gets VoidRep
-isAddrRep :: PrimRep -> Bool
-isAddrRep AddrRep = True
-isAddrRep PtrRep  = True
-isAddrRep _       = False
+-- isAddrRep :: PrimRep -> Bool
+-- isAddrRep AddrRep = True
+-- isAddrRep PtrRep  = True
+-- isAddrRep _       = False
 
 -- | Type of an @StgArg@
 --
