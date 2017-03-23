@@ -59,7 +59,7 @@ import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.Name
 import ETA.Utils.Outputable hiding ((<>))
-import ETA.Utils.FastString
+-- import ETA.Utils.FastString
 import ETA.Types.TyCon
 
 import Data.Monoid((<>))
@@ -71,7 +71,7 @@ import Control.Monad (liftM, ap, when, forM)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
-import qualified Data.ByteString.Lazy as B
+-- import qualified Data.ByteString.Lazy as B
 import Codec.JVM
 
 import ETA.CodeGen.Types
@@ -258,9 +258,9 @@ addBindings newCgIdInfos = do
               newCgIdInfos
         setBindings newBindings
 
-mergeCompiledClosures :: [ClassFile] -> CodeGen ()
-mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
-  s { cgCompiledClosures = classFiles ++ cgCompiledClosures }
+-- mergeCompiledClosures :: [ClassFile] -> CodeGen ()
+-- mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
+--   s { cgCompiledClosures = classFiles ++ cgCompiledClosures }
 
 addCompiledClosure :: ClassFile -> CodeGen ()
 addCompiledClosure classFile = modify $ \s@CgState{..} ->
@@ -333,7 +333,7 @@ setClosureClass clName = do
 --       the body is executed
 newClosureGeneric :: CodeGen a -> CodeGen (a, CgState)
 newClosureGeneric genCode = do
-  state0@CgState
+  CgState
     { cgAccessFlags = a
     , cgMethodDefs = b
     , cgFieldDefs = c
@@ -365,7 +365,7 @@ classFromCgState CgState {..} =
 runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen env state codeGenAction = do
   let codeGenActionPlus = do
-        codeGenAction
+        _ <- codeGenAction
         modClass <- getModClass
         initCode <- getInitCode
         defineMethod $ mkMethodDef modClass
