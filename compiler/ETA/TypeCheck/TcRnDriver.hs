@@ -37,7 +37,7 @@ import ETA.TypeCheck.TcHsSyn
 import ETA.TypeCheck.TcExpr
 import ETA.TypeCheck.TcRnMonad
 import ETA.TypeCheck.TcEvidence
-import ETA.Main.PprTyThing( pprTyThing )
+-- import ETA.Main.PprTyThing( pprTyThing )
 import qualified ETA.Main.PprTyThing as PprTyThing
 import ETA.Types.Coercion( pprCoAxiom )
 import ETA.TypeCheck.FamInst
@@ -106,6 +106,7 @@ import ETA.Utils.Bag
 
 import Control.Monad
 
+#include "HsVersions.h"
 {-
 ************************************************************************
 *                                                                      *
@@ -839,7 +840,7 @@ checkBootDeclM is_boot boot_thing real_thing
 checkBootDecl :: TyThing -> TyThing -> Maybe SDoc
 
 checkBootDecl (AnId id1) (AnId id2)
-  = --ASSERT(id1 == id2)
+  = ASSERT(id1 == id2)
     check (idType id1 `eqType` idType id2)
           (text "The two types are different")
 
@@ -952,13 +953,13 @@ checkBootTyCon tc1 tc2
   | Just syn_rhs1 <- synTyConRhs_maybe tc1
   , Just syn_rhs2 <- synTyConRhs_maybe tc2
   , Just env <- eqTyVarBndrs emptyRnEnv2 (tyConTyVars tc1) (tyConTyVars tc2)
-  = --ASSERT(tc1 == tc2)
+  = ASSERT(tc1 == tc2)
     check (roles1 == roles2) roles_msg `andThenCheck`
     check (eqTypeX env syn_rhs1 syn_rhs2) empty   -- nothing interesting to say
 
   | Just fam_flav1 <- famTyConFlav_maybe tc1
   , Just fam_flav2 <- famTyConFlav_maybe tc2
-  = --ASSERT(tc1 == tc2)
+  = ASSERT(tc1 == tc2)
     let eqFamFlav OpenSynFamilyTyCon OpenSynFamilyTyCon = True
         eqFamFlav AbstractClosedSynFamilyTyCon (ClosedSynFamilyTyCon {}) = True
         eqFamFlav (ClosedSynFamilyTyCon {}) AbstractClosedSynFamilyTyCon = True
@@ -972,7 +973,7 @@ checkBootTyCon tc1 tc2
 
   | isAlgTyCon tc1 && isAlgTyCon tc2
   , Just env <- eqTyVarBndrs emptyRnEnv2 (tyConTyVars tc1) (tyConTyVars tc2)
-  = --ASSERT(tc1 == tc2)
+  = ASSERT(tc1 == tc2)
     check (roles1 == roles2) roles_msg `andThenCheck`
     check (eqListBy (eqPredX env)
                      (tyConStupidTheta tc1) (tyConStupidTheta tc2))
