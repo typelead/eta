@@ -2,6 +2,7 @@
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.TypeCheck.TcValidity (
   Rank, UserTypeCtxt(..), checkValidType, checkValidMonoType,
@@ -26,7 +27,7 @@ import ETA.Types.Kind
 import ETA.Types.CoAxiom
 import ETA.Types.Class
 import ETA.Types.TyCon
-import ETA.BasicTypes.Unique ( hasKey )
+-- import ETA.BasicTypes.Unique ( hasKey )
 
 -- others:
 import ETA.HsSyn.HsSyn            -- HsType
@@ -47,6 +48,8 @@ import ETA.Utils.FastString
 import Control.Monad
 import Data.Maybe
 import Data.List        ( (\\) )
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -1224,11 +1227,11 @@ checkValidFamPats :: TyCon -> [TyVar] -> [Type] -> TcM ()
 --         type instance F (T a) = a
 -- c) Have the right number of patterns
 checkValidFamPats fam_tc tvs ty_pats
-  = --ASSERT( length ty_pats == tyConArity fam_tc )
+  = ASSERT( length ty_pats == tyConArity fam_tc )
       -- A family instance must have exactly the same number of type
       -- parameters as the family declaration.  You can't write
-      --     type family F a :: * -> *
-      --     type instance F Int y = y
+      --    type family F a :: * -> *
+      --    type instance F Int y = y
       -- because then the type (F Int) would be like (\y.y)
       -- But this is checked at the time the axiom is created
     do { mapM_ checkTyFamFreeness ty_pats
