@@ -2,13 +2,13 @@ module ETA.CodeGen.Env where
 
 import ETA.BasicTypes.Id
 import ETA.StgSyn.StgSyn
-import ETA.Types.Type
+-- import ETA.Types.Type
 import ETA.Types.TyCon
 
 import Codec.JVM
 
 import ETA.Util
-import ETA.Debug
+-- import ETA.Debug
 
 import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
@@ -69,7 +69,7 @@ rebindId nvId@(NonVoid id) cgLoc = do
   bindId nvId (cgLambdaForm info) cgLoc
 
 bindId :: NonVoid Id -> LambdaFormInfo -> CgLoc -> CodeGen ()
-bindId nvId@(NonVoid id) lfInfo cgLoc =
+bindId (NonVoid id) lfInfo cgLoc =
   addBinding (mkCgIdInfoWithLoc id lfInfo cgLoc)
 
 bindArg :: NonVoid Id -> CgLoc -> CodeGen ()
@@ -91,6 +91,8 @@ rhsConIdInfo id lfInfo@(LFCon dataCon) = do
   dflags <- getDynFlags
   let dataClass = dataConClass dflags dataCon
   rhsGenIdInfo id lfInfo (obj dataClass)
+
+rhsConIdInfo _ _ = error "rhsConIdInfo: bad arguments"
 
 rhsGenIdInfo :: Id -> LambdaFormInfo -> FieldType -> CodeGen (CgIdInfo, CgLoc)
 rhsGenIdInfo id lfInfo ft = do
