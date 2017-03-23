@@ -38,7 +38,7 @@ import ETA.Core.CoreFVs          ( exprFreeVars, exprsFreeVars, bindFreeVars, ru
 import ETA.Core.CoreUtils        ( exprType, eqExpr, mkTick, mkTicks,
                           stripTicksTopT, stripTicksTopE )
 import ETA.Core.PprCore          ( pprRules )
-import ETA.Types.Type             ( Type, substTy, mkTvSubst )
+import ETA.Types.Type             ( Type, mkTvSubst )
 import qualified ETA.Types.Type as Type
 import ETA.TypeCheck.TcType           ( tcSplitTyConApp_maybe )
 import ETA.Prelude.TysPrim          ( anyTypeOfKind )
@@ -51,7 +51,7 @@ import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.Name             ( Name, NamedThing(..) )
 import ETA.BasicTypes.NameEnv
-import ETA.Types.Unify            ( ruleMatchTyX, MatchEnv(..) )
+import ETA.Types.Unify            ( MatchEnv(..) )
 import qualified ETA.Types.Unify as Unify
 import ETA.BasicTypes.BasicTypes       ( Activation, CompilerPhase, isActive, pprRuleName )
 import ETA.Main.StaticFlags      ( opt_PprStyle_Debug )
