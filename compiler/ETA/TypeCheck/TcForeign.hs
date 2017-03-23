@@ -17,7 +17,7 @@ import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Unique
 import ETA.BasicTypes.SrcLoc
 import ETA.BasicTypes.Name
-import ETA.BasicTypes.VarSet
+-- import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.RdrName
 import ETA.TypeCheck.FamInst
@@ -26,7 +26,7 @@ import ETA.TypeCheck.TcHsType
 import ETA.TypeCheck.TcExpr
 import ETA.TypeCheck.TcEnv
 import ETA.TypeCheck.TcType
-import ETA.Prelude.TysWiredIn (unitTyCon)
+-- import ETA.Prelude.TysWiredIn (unitTyCon)
 import ETA.Prelude.PrelNames
 import ETA.Prelude.ForeignCall
 import ETA.Main.Hooks
@@ -40,11 +40,11 @@ import ETA.Types.TyCon
 import ETA.Debug
 import ETA.HsSyn.HsSyn
 import ETA.Utils.Bag
-import ETA.Utils.Outputable
-import ETA.Utils.FastString
-import ETA.Utils.Maybes
+-- import ETA.Utils.Outputable
+-- import ETA.Utils.FastString
+-- import ETA.Utils.Maybes
 
-import Data.Maybe(fromMaybe)
+-- import Data.Maybe(fromMaybe)
 
 -- Defines a binding
 isForeignImport :: LForeignDecl name -> Bool
@@ -65,9 +65,9 @@ tcForeignImports' decls = do
   (ids, decls, gres) <- mapAndUnzip3M tcFImport $ filter isForeignImport decls
   return (ids, decls, unionManyBags gres)
 
-printDebug h s = do
-  dflags <- getDynFlags
-  liftIO . putStrLn . showSDoc dflags $ (ptext $ sLit h) <+> s
+-- printDebug h s = do
+--   dflags <- getDynFlags
+--   liftIO . putStrLn . showSDoc dflags $ (ptext $ sLit h) <+> s
 
 tcFImport :: LForeignDecl Name -> TcM (Id, LForeignDecl Id, Bag GlobalRdrElt)
 tcFImport (L declLoc fi@(ForeignImport (L nameLoc name) hsType _ impDecl))
@@ -161,8 +161,8 @@ foreignDeclCtxt fo
        2 (ppr fo)
 
 tcCheckFIType :: ThetaType -> [Type] -> Type -> ForeignImport -> TcM ForeignImport
-tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safety) mh
-                                               targetSpec src)
+tcCheckFIType thetaType argTypes resType idecl@(CImport (L _lc cconv) (L _ls safety) _mh
+                                               targetSpec _src)
   | CFunction target <- targetSpec
   = case cconv of
       PrimCallConv -> do
@@ -187,19 +187,19 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L lc cconv) (L ls safet
         checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
         return idecl
       _ -> pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
-  | CWrapper target isAbstract <- targetSpec
+  | CWrapper _target _isAbstract <- targetSpec
   , JavaCallConv <- cconv
   = do
       -- TODO: Validate target
-      dflags <- getDynFlags
-      let javaClassVars = extendsVars thetaType
+      _dflags <- getDynFlags
+      --let javaClassVars = extendsVars thetaType
       -- TODO: Typecheck foreign wrappers properly
       -- checkForeignArgs (isFFIArgumentTy dflags safety javaClassVars) argTypes
       -- checkForeignRes nonIOok checkSafe (isFFIImportResultTy dflags) resType
       return idecl
   | otherwise = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
 
-tcCheckFIType _ _ _ idecl = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
+--tcCheckFIType _ _ _ idecl = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
 
 check :: Validity -> (MsgDoc -> MsgDoc) -> TcM ()
 check IsValid _             = return ()
@@ -261,17 +261,17 @@ nonIOok = True
 mustBeIO = False
 
 checkJavaTarget :: CCallTarget -> TcM ()
-checkJavaTarget (StaticTarget str _ _) = do
+checkJavaTarget _ --(StaticTarget _str _ _) 
+  = return ()
   -- TODO: Validate the name
-  return ()
 
-isAnyTy :: Type -> Bool
-isAnyTy = isTc anyTyConKey
+-- isAnyTy :: Type -> Bool
+-- isAnyTy = isTc anyTyConKey
 
-isTc :: Unique -> Type -> Bool
-isTc uniq ty = case tcSplitTyConApp_maybe ty of
-  Just (tc, _) -> uniq == getUnique tc
-  Nothing      -> False
+-- isTc :: Unique -> Type -> Bool
+-- isTc uniq ty = case tcSplitTyConApp_maybe ty of
+--   Just (tc, _) -> uniq == getUnique tc
+--   Nothing      -> False
 
 tcForeignExports :: [LForeignDecl Name]
                  -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt)
@@ -305,6 +305,6 @@ tcCheckFEType sigType exportspec = do
     checkForeignRes nonIOok noCheckSafe isFFIExportResultTy resType
     return exportspec
   where (_, ty)             = tcSplitForAllTys sigType
-        (thetaType, ty')    = tcSplitPhiTy ty
+        (_thetaType, ty')    = tcSplitPhiTy ty
         (argTypes, resType) = tcSplitFunTys ty'
-        javaClassVars       = extendsVars thetaType
+        --javaClassVars       = extendsVars thetaType
