@@ -118,12 +118,12 @@ deSugar hsc_env
                           ; ds_vects <- mapM dsVect vects
                           ; stBinds <- dsGetStaticBindsVar >>=
                                            liftIO . readIORef
-                          ; let hpc_init
+                          ; let _hpc_init
                                   | gopt Opt_Hpc dflags = hpcInitCode mod ds_hpc_info
                                   | otherwise = empty
                                 -- Stub to insert the static entries of the
                                 -- module into the static pointer table
-                                spt_init = sptInitCode mod stBinds
+                                _spt_init = sptInitCode mod stBinds
                           ; return ( ds_ev_binds
                                    , foreign_prs `appOL` core_prs `appOL` spec_prs
                                                  `appOL` toOL (map snd stBinds)
