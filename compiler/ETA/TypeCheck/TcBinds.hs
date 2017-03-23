@@ -5,7 +5,7 @@
 \section[TcBinds]{TcBinds}
 -}
 
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, CPP #-}
 
 module ETA.TypeCheck.TcBinds ( tcLocalBinds, tcTopBinds, tcRecSelBinds,
                  tcHsBootSigs, tcPolyCheck,
@@ -60,6 +60,8 @@ import ETA.TypeCheck.TcValidity (checkValidType)
 
 import Control.Monad
 import Data.List (partition)
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -544,7 +546,7 @@ tcPolyCheck rec_tc prag_fn
                            , sig_nwcs = sig_nwcs, sig_theta = theta
                            , sig_tau = tau, sig_loc = loc })
             bind
-  = --ASSERT( null sig_nwcs ) -- We should be in tcPolyInfer if there are wildcards
+  = ASSERT( null sig_nwcs ) -- We should be in tcPolyInfer if there are wildcards
     do { ev_vars <- newEvVars theta
        ; let skol_info = SigSkol (FunSigCtxt (idName poly_id)) (mkPhiTy theta tau)
              prag_sigs = prag_fn (idName poly_id)
@@ -1199,8 +1201,8 @@ type MonoBindInfo = (Name, Maybe TcSigInfo, TcId)
 tcLhs :: TcSigFun -> LetBndrSpec -> HsBind Name -> TcM TcMonoBind
 tcLhs sig_fn no_gen (FunBind { fun_id = L nm_loc name, fun_infix = inf, fun_matches = matches })
   | Just sig <- sig_fn name
-  = --ASSERT2( case no_gen of { LetLclBndr -> True; LetGblBndr {} -> False }
-    --     , ppr name )
+  = ASSERT2( case no_gen of { LetLclBndr -> True; LetGblBndr {} -> False }
+           , ppr name )
        -- { f :: ty; f x = e } is always done via CheckGen (full signature)
        --                                      or InferGen (partial signature)
        --               see Note [Partial type signatures and generalisation]
