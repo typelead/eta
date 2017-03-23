@@ -10,7 +10,7 @@ general, all of these functions return a renamed thing, and a set of
 free variables.
 -}
 
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, CPP #-}
 
 module ETA.Rename.RnExpr (
         rnLExpr, rnExpr, rnStmts
@@ -47,6 +47,7 @@ import ETA.Utils.FastString
 import Control.Monad
 import ETA.Prelude.TysWiredIn       ( nilDataConName )
 
+#include "HsVersions.h"
 {-
 ************************************************************************
 *                                                                      *
@@ -1169,7 +1170,7 @@ segsToStmts :: Stmt Name body                   -- A RecStmt with the SyntaxOps 
 
 segsToStmts _ [] fvs_later = ([], fvs_later)
 segsToStmts empty_rec_stmt ((defs, uses, fwds, ss) : segs) fvs_later
-  = --ASSERT( not (null ss) )
+  = ASSERT( not (null ss) )
     (new_stmt : later_stmts, later_uses `plusFV` uses)
   where
     (later_stmts, later_uses) = segsToStmts empty_rec_stmt segs fvs_later
