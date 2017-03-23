@@ -26,47 +26,47 @@ module ETA.Interactive.RtClosureInspect(
 
 #include "HsVersions.h"
 
-import ETA.Interactive.DebuggerUtils
-import ETA.Interactive.ByteCodeItbls    ( StgInfoTable, peekItbl )
-import qualified ETA.Interactive.ByteCodeItbls as BCI( StgInfoTable(..) )
-import ETA.BasicTypes.BasicTypes       ( HValue )
-import ETA.Main.HscTypes
+-- import ETA.Interactive.DebuggerUtils
+-- import ETA.Interactive.ByteCodeItbls    ( StgInfoTable, peekItbl )
+-- import qualified ETA.Interactive.ByteCodeItbls as BCI( StgInfoTable(..) )
+-- import ETA.BasicTypes.BasicTypes       ( HValue )
+-- import ETA.Main.HscTypes
 
-import ETA.BasicTypes.DataCon
-import ETA.Types.Type
-import qualified ETA.Types.Unify as U
-import ETA.BasicTypes.Var
-import ETA.TypeCheck.TcRnMonad
-import ETA.TypeCheck.TcType
-import ETA.TypeCheck.TcMType
-import ETA.TypeCheck.TcHsSyn ( zonkTcTypeToType, mkEmptyZonkEnv )
-import ETA.TypeCheck.TcUnify
-import ETA.TypeCheck.TcEnv
-
-import ETA.Types.TyCon
-import ETA.BasicTypes.Name
-import ETA.BasicTypes.VarEnv
-import ETA.Utils.Util
-import ETA.BasicTypes.VarSet
-import ETA.BasicTypes.BasicTypes       ( TupleSort(UnboxedTuple) )
-import ETA.Prelude.TysPrim
-import ETA.Prelude.PrelNames
-import ETA.Prelude.TysWiredIn
-import ETA.Main.DynFlags
-import ETA.Utils.Outputable as Ppr
-import GHC.Arr          ( Array(..) )
-import GHC.Exts
-import GHC.IO ( IO(..) )
-
-import ETA.Main.StaticFlags( opt_PprStyle_Debug )
-import Control.Monad
-import Data.Maybe
-import Data.Array.Base
-import Data.Ix
-import Data.List
-import qualified Data.Sequence as Seq
-import Data.Sequence (viewl, ViewL(..))
-import System.IO.Unsafe
+-- import ETA.BasicTypes.DataCon
+-- import ETA.Types.Type
+-- import qualified ETA.Types.Unify as U
+-- import ETA.BasicTypes.Var
+-- import ETA.TypeCheck.TcRnMonad
+-- import ETA.TypeCheck.TcType
+-- import ETA.TypeCheck.TcMType
+-- import ETA.TypeCheck.TcHsSyn ( zonkTcTypeToType, mkEmptyZonkEnv )
+-- import ETA.TypeCheck.TcUnify
+-- import ETA.TypeCheck.TcEnv
+--
+-- import ETA.Types.TyCon
+-- import ETA.BasicTypes.Name
+-- import ETA.BasicTypes.VarEnv
+-- import ETA.Utils.Util
+-- import ETA.BasicTypes.VarSet
+-- import ETA.BasicTypes.BasicTypes       ( TupleSort(UnboxedTuple) )
+-- import ETA.Prelude.TysPrim
+-- import ETA.Prelude.PrelNames
+-- import ETA.Prelude.TysWiredIn
+-- import ETA.Main.DynFlags
+-- import ETA.Utils.Outputable as Ppr
+-- import GHC.Arr          ( Array(..) )
+-- import GHC.Exts
+-- import GHC.IO ( IO(..) )
+--
+-- import ETA.Main.StaticFlags( opt_PprStyle_Debug )
+-- import Control.Monad
+-- import Data.Maybe
+-- import Data.Array.Base
+-- import Data.Ix
+-- import Data.List
+-- import qualified Data.Sequence as Seq
+-- import Data.Sequence (viewl, ViewL(..))
+-- import System.IO.Unsafe
 
 -- ---------------------------------------------
 -- -- * A representation of semi evaluated Terms
