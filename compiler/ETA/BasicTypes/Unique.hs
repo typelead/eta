@@ -250,22 +250,6 @@ iToBase36 n_ = go (iUnbox n_) ""
     {-# INLINE chooseChar36 #-}
     chooseChar36 n = C# (indexCharOffAddr# chars36 n)
     !chars36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"#
--- iToBase62 :: Int -> String
--- iToBase62 n_
---   = ASSERT(n_ >= 0) go (iUnbox n_) ""
---   where
---     go n cs | n <# _ILIT(62)
---              = case chooseChar62 n of { c -> c `seq` (c : cs) }
---              | otherwise
---              =  case (quotRem (iBox n) 62) of { (q_, r_) ->
---                 case iUnbox q_ of { q -> case iUnbox r_ of { r ->
---                 case (chooseChar62 r) of { c -> c `seq`
---                 (go q (c : cs)) }}}}
-
---     chooseChar62 :: FastInt -> Char
---     {-# INLINE chooseChar62 #-}
---     chooseChar62 n = C# (indexCharOffAddr# chars62 n)
---     !chars62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"#
 
 {-
 ************************************************************************
