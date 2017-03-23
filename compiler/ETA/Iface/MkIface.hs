@@ -124,6 +124,8 @@ import Data.IORef
 import System.Directory
 import System.FilePath
 
+#include "HsVersions.h"
+
 {-
 ************************************************************************
 *                                                                      *
@@ -417,7 +419,7 @@ mkHashFun
 mkHashFun hsc_env eps
   = \name ->
       let
-        mod = {-ASSERT2( isExternalName name, ppr name )-} nameModule name
+        mod = ASSERT2( isExternalName name, ppr name ) nameModule name
         occ = nameOccName name
         iface = lookupIfaceByModule (hsc_dflags hsc_env) hpt pit mod `orElse`
                    pprPanic "lookupVers2" (ppr mod <+> ppr occ)
@@ -459,7 +461,7 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
                , let out = localOccs $ freeNamesDeclABI abi
                ]
 
-       name_module n = {-ASSERT2( isExternalName n, ppr n )-} nameModule n
+       name_module n = ASSERT2( isExternalName n, ppr n ) nameModule n
        localOccs = map (getUnique . getParent . getOccName)
                         . filter ((== this_mod) . name_module)
                         . nameSetElems
@@ -491,7 +493,7 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
           | isWiredInName name  =  putNameLiterally bh name
            -- wired-in names don't have fingerprints
           | otherwise
-          = --ASSERT2( isExternalName name, ppr name )
+          = ASSERT2( isExternalName name, ppr name )
             let hash | nameModule name /= this_mod =  global_hash_fn name
                      | otherwise = snd (lookupOccEnv local_env (getOccName name)
                            `orElse` pprPanic "urk! lookup local fingerprint"
@@ -878,7 +880,7 @@ lookupOccEnvL env k = lookupOccEnv env k `orElse` []
 -- used when we want to fingerprint a structure without depending on the
 -- fingerprints of external Names that it refers to.
 putNameLiterally :: BinHandle -> Name -> IO ()
-putNameLiterally bh name = --ASSERT( isExternalName name )
+putNameLiterally bh name = ASSERT( isExternalName name )
   do
     put_ bh $! nameModule name
     put_ bh $! nameOccName name
@@ -994,7 +996,7 @@ mk_mod_usage_info pit hsc_env this_mod direct_imports used_names
         | isWiredInName name = mv_map  -- ignore wired-in names
         | otherwise
         = case nameModule_maybe name of
-             Nothing  -> {-ASSERT2( isSystemName name, ppr name )-} mv_map
+             Nothing  -> ASSERT2( isSystemName name, ppr name ) mv_map
                 -- See Note [Internal used_names]
 
              Just mod -> -- This lambda function is really just a
@@ -1735,7 +1737,7 @@ classToIfaceDecl env clas
         (env2, if_decl) = tyConToIfaceDecl env1 tc
 
     toIfaceClassOp (sel_id, def_meth)
-        = --ASSERT(sel_tyvars == clas_tyvars)
+        = ASSERT(sel_tyvars == clas_tyvars)
           IfaceClassOp (getOccName sel_id) (toDmSpec def_meth)
                        (tidyToIfaceType env1 op_ty)
         where
@@ -1744,7 +1746,7 @@ classToIfaceDecl env clas
                 --                op :: (?x :: String) => a -> a
                 -- and          class Baz a where
                 --                op :: (Ord a) => a -> a
-          (_, rho_ty) = splitForAllTys (idType sel_id)
+          (sel_tyvars, rho_ty) = splitForAllTys (idType sel_id)
           op_ty                = funResultTy rho_ty
 
     toDmSpec NoDefMeth      = NoDM
@@ -1785,10 +1787,10 @@ getFS x = occNameFS (getOccName x)
 --------------------------
 instanceToIfaceInst :: ClsInst -> IfaceClsInst
 instanceToIfaceInst (ClsInst { is_dfun = dfun_id, is_flag = oflag
-                             , is_cls_nm = cls_name, is_cls = _
+                             , is_cls_nm = cls_name, is_cls = cls
                              , is_tcs = mb_tcs
                              , is_orphan = orph })
-  = --ASSERT( cls_name == className cls )
+  = ASSERT( cls_name == className cls )
     IfaceClsInst { ifDFun    = dfun_name,
                 ifOFlag   = oflag,
                 ifInstCls = cls_name,
@@ -1815,7 +1817,7 @@ famInstToIfaceFamInst (FamInst { fi_axiom    = axiom,
     do_rough (Just n) = Just (toIfaceTyCon_name n)
 
     fam_decl = tyConName $ coAxiomTyCon axiom
-    mod = --ASSERT( isExternalName (coAxiomName axiom) )
+    mod = ASSERT( isExternalName (coAxiomName axiom) )
           nameModule (coAxiomName axiom)
     is_local name = nameIsLocalOrFrom mod name
 
