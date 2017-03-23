@@ -14,9 +14,9 @@ import ETA.Utils.Panic
 import ETA.Utils.Platform
 import ETA.BasicTypes.Name             ( Name, getName )
 import ETA.BasicTypes.NameEnv
-import ETA.BasicTypes.DataCon          ( DataCon, dataConRepArgTys, dataConIdentity )
+import ETA.BasicTypes.DataCon          ( DataCon, dataConIdentity )
 import ETA.Types.TyCon            ( TyCon, tyConFamilySize, isDataTyCon, tyConDataCons )
-import ETA.Types.Type             ( flattenRepType, repType, typePrimRep )
+-- import ETA.Types.Type             ( flattenRepType, repType, typePrimRep )
 import ETA.Utils.Util
 
 import Control.Monad
@@ -42,7 +42,7 @@ itblCode dflags (ItblPtr ptr)
 
 -- XXX bogus
 conInfoTableSizeB :: DynFlags -> Int
-conInfoTableSizeB dflags = 12
+conInfoTableSizeB _ = 12
 
 type ItblEnv = NameEnv (Name, ItblPtr)
         -- We need the Name in the range so we know which
@@ -85,11 +85,11 @@ make_constr_itbls dflags cons
 
         mk_itbl :: DataCon -> Int -> EntryFunPtr -> IO (Name,ItblPtr)
         mk_itbl dcon conNo entry_addr = do
-           let rep_args = [ (typePrimRep rep_arg,rep_arg) | arg <- dataConRepArgTys dcon, rep_arg <- flattenRepType (repType arg) ]
-               (tot_wds, ptr_wds, _) = error "mkVirtHeapOffsets: unimplemented"
+           let --rep_args = [ (typePrimRep rep_arg,rep_arg) | arg <- dataConRepArgTys dcon, rep_arg <- flattenRepType (repType arg) ]
+               (_, ptr_wds, _) = error "mkVirtHeapOffsets: unimplemented"
                --mkVirtHeapOffsets dflags False{-not a THUNK-} rep_args
                ptrs'  = ptr_wds
-               nptrs' = tot_wds - ptr_wds
+              -- nptrs' = tot_wds - ptr_wds
                nptrs_really = error "unimplemented nptrs_really"
                -- nptrs_really
                --    | ptrs' + nptrs' >= mIN_PAYLOAD_SIZE dflags = nptrs'
@@ -99,8 +99,8 @@ make_constr_itbls dflags cons
                            entry = if ghciTablesNextToCode
                                    then Nothing
                                    else Just entry_addr,
-                           ptrs  = fromIntegral ptrs',
-                           nptrs = fromIntegral nptrs_really,
+                           ptrs  = ptrs',
+                           nptrs = nptrs_really,
                            tipe  = fromIntegral cONSTR,
                            srtlen = fromIntegral conNo,
                            code  = if ghciTablesNextToCode
