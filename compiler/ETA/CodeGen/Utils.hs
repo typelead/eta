@@ -1,7 +1,7 @@
 module ETA.CodeGen.Utils where
 
 import ETA.Main.DynFlags
-import ETA.Types.Type
+-- import ETA.Types.Type
 import ETA.BasicTypes.Name
 import ETA.Types.TyCon
 import ETA.BasicTypes.Literal
@@ -10,7 +10,7 @@ import Data.Char (ord)
 import Control.Arrow(first)
 import ETA.CodeGen.Name
 import ETA.Debug
-import Data.Text (Text)
+-- import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Monoid ((<>))
 
