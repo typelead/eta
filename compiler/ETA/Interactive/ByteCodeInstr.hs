@@ -23,7 +23,7 @@ import ETA.BasicTypes.Id
 import ETA.Core.CoreSyn
 import ETA.BasicTypes.Literal
 import ETA.BasicTypes.DataCon
-import ETA.BasicTypes.Var
+-- import ETA.BasicTypes.Var
 import ETA.BasicTypes.VarSet
 import ETA.Prelude.PrimOp
 
