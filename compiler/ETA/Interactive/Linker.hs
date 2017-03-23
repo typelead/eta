@@ -371,7 +371,7 @@ classifyLdInput dflags f
 
 preloadLib :: DynFlags -> [String] -> [String] -> PersistentLinkerState
            -> LibrarySpec -> IO (PersistentLinkerState)
-preloadLib dflags lib_paths framework_paths pls lib_spec = undefined
+preloadLib _ _ _ _ _ = undefined
 
 
 {- **********************************************************************
@@ -804,16 +804,16 @@ dynLinkBCOs :: DynFlags -> PersistentLinkerState -> [Linkable]
             -> IO PersistentLinkerState
 dynLinkBCOs dflags pls bcos = do
 
-        let (bcos_loaded', new_bcos) = rmDupLinkables (bcos_loaded pls) bcos
+        let (bcos_loaded', _) = rmDupLinkables (bcos_loaded pls) bcos
             pls1                     = pls { bcos_loaded = bcos_loaded' }
-            unlinkeds :: [Unlinked]
-            unlinkeds                = concatMap linkableUnlinked new_bcos
+            -- unlinkeds :: [Unlinked]
+            -- unlinkeds                = concatMap linkableUnlinked new_bcos
 
-            cbcs :: [ETA.Main.HscTypes.CompiledByteCode]
-            cbcs      = map byteCodeOfObject unlinkeds
+            -- cbcs :: [ETA.Main.HscTypes.CompiledByteCode]
+            -- cbcs      = map byteCodeOfObject unlinkeds
 
             ul_bcos    = undefined --[b | ByteCode bs _  <- cbcs, b <- bs]
-            ies        = undefined --[ie | ByteCode _ ie <- cbcs]
+            --ies        = undefined --[ie | ByteCode _ ie <- cbcs]
             gce       = closure_env pls
             final_ie  = undefined --foldr plusNameEnv (itbl_env pls) ies
 
@@ -970,12 +970,12 @@ partOfGHCi
  | otherwise = map (PackageName . mkFastString)
                    ["base", "template-haskell", "editline"]
 
-showLS :: LibrarySpec -> String
-showLS (Object nm)    = "(static) " ++ nm
-showLS (Archive nm)   = "(static archive) " ++ nm
-showLS (DLL nm)       = "(dynamic) " ++ nm
-showLS (DLLPath nm)   = "(dynamic) " ++ nm
-showLS (Framework nm) = "(framework) " ++ nm
+-- showLS :: LibrarySpec -> String
+-- showLS (Object nm)    = "(static) " ++ nm
+-- showLS (Archive nm)   = "(static archive) " ++ nm
+-- showLS (DLL nm)       = "(dynamic) " ++ nm
+-- showLS (DLLPath nm)   = "(dynamic) " ++ nm
+-- showLS (Framework nm) = "(framework) " ++ nm
 
 -- | Link exactly the specified packages, and their dependents (unless of
 -- course they are already linked).  The dependents are linked
