@@ -4,7 +4,7 @@
 \section[RnNames]{Extracting imported and top-level names in scope}
 -}
 
-{-# LANGUAGE NondecreasingIndentation #-}
+{-# LANGUAGE NondecreasingIndentation, CPP #-}
 
 module ETA.Rename.RnNames (
         rnImports, getLocalNonValBinders,
@@ -47,6 +47,8 @@ import Data.List        ( partition, (\\), find )
 import qualified Data.Set as Set
 import System.FilePath  ((</>))
 import System.IO
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -309,11 +311,11 @@ calculateAvails dflags iface mod_safe' want_boot =
 
       -- Compute new transitive dependencies
 
-      orphans | orph_iface = --ASSERT( not (imp_mod `elem` dep_orphs deps) )
+      orphans | orph_iface = ASSERT( not (imp_mod `elem` dep_orphs deps) )
                              imp_mod : dep_orphs deps
               | otherwise  = dep_orphs deps
 
-      finsts | has_finsts = --ASSERT( not (imp_mod `elem` dep_finsts deps) )
+      finsts | has_finsts = ASSERT( not (imp_mod `elem` dep_finsts deps) )
                             imp_mod : dep_finsts deps
              | otherwise  = dep_finsts deps
 
@@ -342,8 +344,8 @@ calculateAvails dflags iface mod_safe' want_boot =
             -- Imported module is from another package
             -- Dump the dependent modules
             -- Add the package imp_mod comes from to the dependent packages
-            --ASSERT2( not (pkg `elem` (map fst $ dep_pkgs deps))
-            --     , ppr pkg <+> ppr (dep_pkgs deps) )
+            ASSERT2( not (pkg `elem` (map fst $ dep_pkgs deps))
+                   , ppr pkg <+> ppr (dep_pkgs deps) )
             ([], (pkg, False) : dep_pkgs deps, False)
 
   in ImportAvails {
@@ -684,7 +686,7 @@ filterImports ifaces decl_spec (Just (want_hiding, L l import_items))
         --    T(T,T1,T2,T3) and C(C,T)  to give   (T, T(T,T1,T2,T3), Just C)
         combine (name1, a1@(AvailTC p1 _), mp1)
                 (name2, a2@(AvailTC p2 _), mp2)
-          = --ASSERT( name1 == name2 && isNothing mp1 && isNothing mp2 )
+          = ASSERT( name1 == name2 && isNothing mp1 && isNothing mp2 )
             if p1 == name1 then (name1, a1, Just p2)
                            else (name1, a2, Just p1)
         combine x y = pprPanic "filterImports/combine" (ppr x $$ ppr y)
@@ -868,7 +870,7 @@ plusAvail a1 a2 = pprPanic "RnEnv.plusAvail" (hsep [ppr a1,ppr a2])
 
 trimAvail :: AvailInfo -> Name -> AvailInfo
 trimAvail (Avail n)      _ = Avail n
-trimAvail (AvailTC n ns) m = {-ASSERT( m `elem` ns)-} AvailTC n [m]
+trimAvail (AvailTC n ns) m = ASSERT( m `elem` ns) AvailTC n [m]
 
 -- | filters 'AvailInfo's by the given predicate
 filterAvails  :: (Name -> Bool) -> [AvailInfo] -> [AvailInfo]
