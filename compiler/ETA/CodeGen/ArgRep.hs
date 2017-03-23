@@ -22,7 +22,7 @@ import ETA.BasicTypes.Id
 import ETA.Types.Type
 import ETA.Types.TyCon            ( PrimRep(..) )
 import ETA.BasicTypes.BasicTypes       ( RepArity )
-import ETA.Main.DynFlags
+-- import ETA.Main.DynFlags
 import ETA.Debug
 import Data.Maybe
 
@@ -101,6 +101,7 @@ primRepFieldType_maybe rep = Just $
     ShortRep            -> jshort
     ObjectRep className -> obj $ className
     ArrayRep  rep       -> ArrayType . fromJust $ primRepFieldType_maybe rep
+    VoidRep             -> undefined
 
 primRepFieldType :: PrimRep -> FieldType
 primRepFieldType = expectJust "primRepFieldType" . primRepFieldType_maybe
@@ -114,7 +115,7 @@ repFieldTypes = mapMaybe repFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
 contextLoad :: FieldType -> ArgRep -> Int -> Code
-contextLoad ft argRep n =
+contextLoad _ argRep n =
      loadContext
   <> iconst jint (fromIntegral n)
   <> loadMethod
@@ -128,7 +129,7 @@ contextLoad ft argRep n =
           _ -> error "contextLoad: V"
 
 contextStore :: FieldType -> ArgRep -> Code -> Int -> Code
-contextStore ft argRep storeCode n =
+contextStore _ argRep storeCode n =
      loadContext
   <> iconst jint (fromIntegral n)
   <> storeCode
