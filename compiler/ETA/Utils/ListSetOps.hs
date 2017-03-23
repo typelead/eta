@@ -4,6 +4,7 @@
 
 \section[ListSetOps]{Set-like operations on lists}
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.Utils.ListSetOps (
         unionLists, minusList, insertList,
@@ -26,6 +27,8 @@ import ETA.Utils.Util
 
 import Data.List
 
+#include "HsVersions.h"
+
 {-
 ---------
 -- #ifndef DEBUG
@@ -40,7 +43,7 @@ import Data.List
 -}
 
 getNth :: Outputable a => [a] -> Int -> a
-getNth xs n = --ASSERT2( xs `lengthExceeds` n, ppr n $$ ppr xs )
+getNth xs n = ASSERT2( xs `lengthExceeds` n, ppr n $$ ppr xs )
               xs !! n
 
 {-
