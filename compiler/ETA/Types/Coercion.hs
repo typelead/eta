@@ -1,6 +1,6 @@
 -- (c) The University of Glasgow 2006
 
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 
 -- | Module for (a) type kinds and (b) type coercions,
 -- as used in System FC. See 'CoreSyn.Expr' for
@@ -106,6 +106,8 @@ import ETA.Utils.ListSetOps
 
 import qualified Data.Data as Data hiding ( TyCon )
 import Control.Arrow ( first )
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -817,7 +819,7 @@ splitForAllCo_maybe _                = Nothing
 coVarKind :: CoVar -> (Type,Type)
 coVarKind cv
  | Just (tc, [_kind,ty1,ty2]) <- splitTyConApp_maybe (varType cv)
- = --ASSERT(tc `hasKey` eqPrimTyConKey || tc `hasKey` eqReprPrimTyConKey)
+ = ASSERT(tc `hasKey` eqPrimTyConKey || tc `hasKey` eqReprPrimTyConKey)
    (ty1,ty2)
  | otherwise = panic "coVarKind, non coercion variable"
 
@@ -913,7 +915,7 @@ mkCoVarCo cv
   | ty1 `eqType` ty2 = Refl (coVarRole cv) ty1
   | otherwise        = CoVarCo cv
   where
-    (ty1, ty2) = {-ASSERT( isCoVar cv )-} coVarKind cv
+    (ty1, ty2) = ASSERT( isCoVar cv ) coVarKind cv
 
 mkReflCo :: Role -> Type -> Coercion
 mkReflCo = Refl
@@ -923,7 +925,7 @@ mkAxInstCo :: Role -> CoAxiom br -> BranchIndex -> [Type] -> Coercion
 -- i.e. with more type arguments than the coercion requires
 mkAxInstCo role ax index tys
   | arity == n_tys = downgradeRole role ax_role $ AxiomInstCo ax_br index rtys
-  | otherwise      = --ASSERT( arity < n_tys )
+  | otherwise      = ASSERT( arity < n_tys )
                      downgradeRole role ax_role $
                      foldl AppCo (AxiomInstCo ax_br index (take arity rtys))
                                  (drop arity rtys)
@@ -949,13 +951,13 @@ mkAxInstLHS, mkAxInstRHS :: CoAxiom br -> BranchIndex -> [Type] -> Type
 mkAxInstLHS ax index tys
   | CoAxBranch { cab_tvs = tvs, cab_lhs = lhs } <- coAxiomNthBranch ax index
   , (tys1, tys2) <- splitAtList tvs tys
-  = --ASSERT( tvs `equalLength` tys1 )
+  = ASSERT( tvs `equalLength` tys1 )
     mkTyConApp (coAxiomTyCon ax) (substTysWith tvs tys1 lhs ++ tys2)
 
 mkAxInstRHS ax index tys
   | CoAxBranch { cab_tvs = tvs, cab_rhs = rhs } <- coAxiomNthBranch ax index
   , (tys1, tys2) <- splitAtList tvs tys
-  = --ASSERT( tvs `equalLength` tys1 )
+  = ASSERT( tvs `equalLength` tys1 )
     mkAppTys (substTyWith tvs tys1 rhs) tys2
 
 mkUnbranchedAxInstRHS :: CoAxiom Unbranched -> [Type] -> Type
@@ -986,14 +988,14 @@ mkAppCoFlexible (Refl r ty1) r2 co2
     zip_roles _       _         = panic "zip_roles" -- but the roles are infinite...
 mkAppCoFlexible (TyConAppCo r tc cos) r2 co
   = case r of
-      Nominal          -> --ASSERT( r2 == Nominal )
+      Nominal          -> ASSERT( r2 == Nominal )
                           TyConAppCo Nominal tc (cos ++ [co])
       Representational -> TyConAppCo Representational tc (cos ++ [co'])
         where new_role = (tyConRolesX Representational tc) !! (length cos)
               co'      = downgradeRole new_role r2 co
       Phantom          -> TyConAppCo Phantom tc (cos ++ [mkPhantomCo co])
 
-mkAppCoFlexible co1 _r2 co2 = --ASSERT( _r2 == Nominal )
+mkAppCoFlexible co1 _r2 co2 = ASSERT( _r2 == Nominal )
                               AppCo co1 co2
 
 
@@ -1022,8 +1024,8 @@ mkFunCo r co1 co2 = mkTyConAppCo r funTyCon [co1, co2]
 -- | Make a 'Coercion' which binds a variable within an inner 'Coercion'
 mkForAllCo :: Var -> Coercion -> Coercion
 -- note that a TyVar should be used here, not a CoVar (nor a TcTyVar)
-mkForAllCo tv (Refl r ty)  = {-ASSERT( isTyVar tv )-} Refl r (mkForAllTy tv ty)
-mkForAllCo tv  co          = {-ASSERT( isTyVar tv )-} ForAllCo tv co
+mkForAllCo tv (Refl r ty)  = ASSERT( isTyVar tv ) Refl r (mkForAllTy tv ty)
+mkForAllCo tv  co          = ASSERT( isTyVar tv ) ForAllCo tv co
 
 -------------------------------
 
@@ -1055,11 +1057,11 @@ mkNthCoRole role n co
     nth_role = coercionRole nth_co
 
 mkNthCo :: Int -> Coercion -> Coercion
-mkNthCo n (Refl r ty) = --ASSERT( ok_tc_app ty n )
+mkNthCo n (Refl r ty) = ASSERT( ok_tc_app ty n )
                         Refl r' (tyConAppArgN n ty)
   where tc = tyConAppTyCon ty
         r' = nthRole r tc n
-mkNthCo n co        = --ASSERT( ok_tc_app _ty1 n && ok_tc_app _ty2 n )
+mkNthCo n co        = ASSERT( ok_tc_app _ty1 n && ok_tc_app _ty2 n )
                       NthCo n co
                     where
                       Pair _ty1 _ty2 = coercionKind co
@@ -1099,7 +1101,7 @@ mkSubCo (Refl Nominal ty) = Refl Representational ty
 mkSubCo (TyConAppCo Nominal tc cos)
   = TyConAppCo Representational tc (applyRoles tc cos)
 mkSubCo (UnivCo s Nominal ty1 ty2) = UnivCo s Representational ty1 ty2
-mkSubCo co = --ASSERT2( coercionRole co == Nominal, ppr co <+> ppr (coercionRole co) )
+mkSubCo co = ASSERT2( coercionRole co == Nominal, ppr co <+> ppr (coercionRole co) )
              SubCo co
 
 -- only *downgrades* a role. See Note [Role twiddling functions]
@@ -1472,7 +1474,7 @@ extendCvSubstAndInScope (CvSubst in_scope tenv cenv) cv co
 
 substCoVarBndr :: CvSubst -> CoVar -> (CvSubst, CoVar)
 substCoVarBndr subst@(CvSubst in_scope tenv cenv) old_var
-  = --ASSERT( isCoVar old_var )
+  = ASSERT( isCoVar old_var )
     (CvSubst (in_scope `extendInScopeSet` new_var) tenv new_cenv, new_var)
   where
     -- When we substitute (co :: t1 ~ t2) we may get the identity (co :: t ~ t)
@@ -1512,7 +1514,7 @@ substCoWithTys in_scope tvs tys co
   | debugIsOn && (length tvs /= length tys)
   = pprTrace "substCoWithTys" (ppr tvs $$ ppr tys) co
   | otherwise
-  = --ASSERT( length tvs == length tys )
+  = ASSERT( length tvs == length tys )
     substCo (CvSubst in_scope (zipVarEnv tvs tys) emptyVarEnv) co
 
 -- | Substitute within a 'Coercion'
@@ -1562,9 +1564,9 @@ subst_co subst co
 substCoVar :: CvSubst -> CoVar -> Coercion
 substCoVar (CvSubst in_scope _ cenv) cv
   | Just co  <- lookupVarEnv cenv cv      = co
-  | Just cv1 <- lookupInScope in_scope cv = {-ASSERT( isCoVar cv1 )-} CoVarCo cv1
+  | Just cv1 <- lookupInScope in_scope cv = ASSERT( isCoVar cv1 ) CoVarCo cv1
   | otherwise = --WARN( True, ptext (sLit "substCoVar not in scope") <+> ppr cv $$ ppr in_scope)
-                {-ASSERT( isCoVar cv )-} CoVarCo cv
+                ASSERT( isCoVar cv ) CoVarCo cv
 
 substCoVars :: CvSubst -> [CoVar] -> [Coercion]
 substCoVars subst cvs = map (substCoVar subst) cvs
@@ -1671,7 +1673,7 @@ ty_co_subst subst role ty
     go role (ForAllTy v ty)   = mkForAllCo v' $! (ty_co_subst subst' role ty)
                          where
                            (subst', v') = liftCoSubstTyVarBndr subst v
-    go role ty@(LitTy {})     = --ASSERT( role == Nominal )
+    go role ty@(LitTy {})     = ASSERT( role == Nominal )
                                 mkReflCo role ty
 
     lift_phantom ty = mkUnivCo (fsLit "lift_phantom")
@@ -1749,7 +1751,7 @@ subst_kind subst@(LCS _ cenv) kind
     subst_kv kv
       | Just co <- lookupVarEnv cenv kv
       , let co_kind = coercionKind co
-      = --ASSERT2( pFst co_kind `eqKind` pSnd co_kind, ppr kv $$ ppr co )
+      = ASSERT2( pFst co_kind `eqKind` pSnd co_kind, ppr kv $$ ppr co )
         pFst co_kind
       | otherwise
       = TyVarTy kv
@@ -1902,7 +1904,7 @@ coercionKind co = go co
     go (AxiomInstCo ax ind cos)
       | CoAxBranch { cab_tvs = tvs, cab_lhs = lhs, cab_rhs = rhs } <- coAxiomNthBranch ax ind
       , Pair tys1 tys2 <- sequenceA (map go cos)
-      = --ASSERT( cos `equalLength` tvs )  -- Invariant of AxiomInstCo: cos should
+      = ASSERT( cos `equalLength` tvs )  -- Invariant of AxiomInstCo: cos should
                                          -- exactly saturate the axiom branch
         Pair (substTyWith tvs tys1 (mkTyConApp (coAxiomTyCon ax) lhs))
              (substTyWith tvs tys2 rhs)
@@ -1954,7 +1956,7 @@ coercionKindRole = go
             (tc1,  args1) = splitTyConApp t1
             (_tc2, args2) = splitTyConApp t2
         in
-        --ASSERT( tc1 == _tc2 )
+        ASSERT( tc1 == _tc2 )
         ((`getNth` d) <$> Pair args1 args2, nthRole r tc1 d)
     go co@(LRCo {}) = (coercionKind co, Nominal)
     go (InstCo co ty) = go_app co [ty]
