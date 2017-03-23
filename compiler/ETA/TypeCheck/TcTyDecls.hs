@@ -8,6 +8,7 @@ Analysis functions over data types.  Specficially, detecting recursive types.
 This stuff is only used for source-code decls; it's recorded in interface
 files for imported data types.
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.TypeCheck.TcTyDecls(
         calcRecFlags, RecTyInfo(..),
@@ -45,6 +46,8 @@ import Data.List
 -- #endif
 
 import Control.Monad
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -812,7 +815,7 @@ runRoleM env thing = (env', update)
 
 addRoleInferenceInfo :: Name -> [TyVar] -> RoleM a -> RoleM a
 addRoleInferenceInfo name tvs thing
-  = RM $ \_nothing state -> --ASSERT( isNothing _nothing )
+  = RM $ \_nothing state -> ASSERT( isNothing _nothing )
                             unRM thing (Just info) state
   where info = RII { var_ns = mkVarEnv (zip tvs [0..]), name = name }
 
