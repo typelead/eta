@@ -5,7 +5,6 @@
 -- | Package manipulation
 module ETA.Main.Packages (
         module ETA.Main.PackageConfig,
-
         -- * Reading the package config, and processing cmdline args
         PackageState(preloadPackages),
         initPackages,
@@ -13,7 +12,6 @@ module ETA.Main.Packages (
         getPackageConfRefs,
         resolvePackageConfig,
         readPackageConfig,
-
         -- * Querying the package config
         lookupPackage,
         resolveInstalledPackageId,
@@ -37,10 +35,7 @@ module ETA.Main.Packages (
         packageHsLibs,
         packageHsLibJars,
         getPackageLibJars,
-
         collectIncludeDirs, collectLibraryPaths, collectLinkOpts,
-        packageHsLibs,
-
         -- * Utils
         packageKeyPackageIdString,
         pprFlag,
@@ -1366,7 +1361,7 @@ fsPackageName = mkFastString . packageNameString
 
 --ETA-specific
 packageHsLibs :: DynFlags -> PackageConfig -> [String]
-packageHsLibs dflags = hsLibraries
+packageHsLibs _ = hsLibraries
 
 packageHsLibJars :: DynFlags -> PackageConfig -> [String]
 packageHsLibJars dflags p = map (<.> "jar") $ packageHsLibs dflags p
