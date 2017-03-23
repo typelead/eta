@@ -29,7 +29,7 @@ import ETA.Prelude.PrimOp
 import ETA.Utils.FastString
 import ETA.Main.DynFlags
 import ETA.Utils.Outputable
-import ETA.Utils.Platform
+-- import ETA.Utils.Platform
 import ETA.Utils.Util
 
 import Control.Monad
@@ -126,7 +126,7 @@ assembleBCOs dflags proto_bcos tycons
         return (ByteCode bcos itblenv)
 
 assembleBCO :: DynFlags -> ProtoBCO Name -> IO UnlinkedBCO
-assembleBCO dflags (ProtoBCO nm instrs bitmap bsize arity _origin _malloced) = do
+assembleBCO dflags (ProtoBCO nm instrs _bitmap _bsize arity _origin _malloced) = do
   -- pass 1: collect up the offsets of the local labels.
   let asm = mapM_ (assembleI dflags) instrs
 
@@ -325,12 +325,12 @@ largeArgInstr :: Word16 -> Word16
 largeArgInstr bci = bci_FLAG_LARGE_ARGS .|. bci
 
 largeArg :: DynFlags -> Word -> [Word16]
-largeArg dflags w
+largeArg _dflags w
   = [fromIntegral (w `shiftR` 16),
      fromIntegral w]
 
 largeArg16s :: DynFlags -> Word
-largeArg16s dflags = 2
+largeArg16s _dflags = 2
 
 assembleI :: DynFlags
           -> BCInstr
@@ -471,7 +471,7 @@ mkLitF f
         return [w0 :: Word]
      )
 
-mkLitD dflags d
+mkLitD _dflags d
    = runST (do
         arr <- newArray_ ((0::Int),1)
         writeArray arr 0 d
@@ -481,7 +481,7 @@ mkLitD dflags d
         return [w0 :: Word, w1]
      )
 
-mkLitI64 dflags ii
+mkLitI64 _dflags ii
    = runST (do
         arr <- newArray_ ((0::Int),1)
         writeArray arr 0 ii
