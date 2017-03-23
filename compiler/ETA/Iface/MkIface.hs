@@ -88,7 +88,7 @@ import ETA.Main.Finder
 import ETA.Main.DynFlags
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.VarSet
-import ETA.BasicTypes.Var
+
 import qualified ETA.BasicTypes.Var as Var
 import ETA.BasicTypes.Name
 import ETA.BasicTypes.Avail
@@ -1744,7 +1744,7 @@ classToIfaceDecl env clas
                 --                op :: (?x :: String) => a -> a
                 -- and          class Baz a where
                 --                op :: (Ord a) => a -> a
-          (sel_tyvars, rho_ty) = splitForAllTys (idType sel_id)
+          (_, rho_ty) = splitForAllTys (idType sel_id)
           op_ty                = funResultTy rho_ty
 
     toDmSpec NoDefMeth      = NoDM
@@ -1785,7 +1785,7 @@ getFS x = occNameFS (getOccName x)
 --------------------------
 instanceToIfaceInst :: ClsInst -> IfaceClsInst
 instanceToIfaceInst (ClsInst { is_dfun = dfun_id, is_flag = oflag
-                             , is_cls_nm = cls_name, is_cls = cls
+                             , is_cls_nm = cls_name, is_cls = _
                              , is_tcs = mb_tcs
                              , is_orphan = orph })
   = --ASSERT( cls_name == className cls )
