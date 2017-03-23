@@ -78,6 +78,8 @@ import qualified Data.Set as Set
 import ETA.Utils.ListSetOps       ( minusList )
 import ETA.Main.Constants        ( mAX_TUPLE_SIZE )
 
+#include "HsVersions.h"
+
 {-
 *********************************************************
 *                                                      *
@@ -508,7 +510,7 @@ greRdrName gre
       | otherwise
       =             -- Only qualified imports available, so make up
                     -- a suitable qualifed name from the first imp_spec
-        --ASSERT( not (null imp_specs) )
+        ASSERT( not (null imp_specs) )
         mkRdrQual (is_as (is_decl (head imp_specs))) occ
 
 lookupSubBndrGREs :: GlobalRdrEnv -> Parent -> RdrName -> [GlobalRdrElt]
@@ -919,7 +921,7 @@ warnIfDeprecated gre@(GRE { gre_name = name, gre_prov = Imported (imp_spec : _) 
                            , parens imp_msg <> colon ]
                      , ppr txt ]
 
-    name_mod = {-ASSERT2( isExternalName name, ppr name )-} nameModule name
+    name_mod = ASSERT2( isExternalName name, ppr name ) nameModule name
     imp_mod  = importSpecModule imp_spec
     imp_msg  = ptext (sLit "imported from") <+> ppr imp_mod <> extra
     extra | imp_mod == moduleName name_mod = Outputable.empty
