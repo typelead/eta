@@ -1,6 +1,6 @@
 -- (c) The University of Glasgow 2002-2006
 
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, CPP #-}
 
 module ETA.Iface.IfaceEnv (
         newGlobalBinder, newImplicitBinder,
@@ -29,12 +29,14 @@ import ETA.Utils.UniqFM
 import ETA.Utils.FastString
 import ETA.BasicTypes.UniqSupply
 import ETA.BasicTypes.SrcLoc
--- import ETA.Utils.Util
+import ETA.Utils.Util
 
 import ETA.Utils.Outputable
 import ETA.Utils.Exception     ( evaluate )
 
 import Data.IORef    ( atomicModifyIORef, readIORef )
+
+#include "HsVersions.h"
 
 {-
 *********************************************************
@@ -204,7 +206,7 @@ lookupOrigNameCache nc mod occ
 
 extendOrigNameCache :: OrigNameCache -> Name -> OrigNameCache
 extendOrigNameCache nc name
-  = --ASSERT2( isExternalName name, ppr name )
+  = ASSERT2( isExternalName name, ppr name )
     extendNameCache nc (nameModule name) (nameOccName name) name
 
 extendNameCache :: OrigNameCache -> Module -> OccName -> Name -> OrigNameCache
