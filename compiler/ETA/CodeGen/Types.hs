@@ -42,19 +42,14 @@ import ETA.BasicTypes.Id
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.DataCon
 import ETA.Types.TyCon
-import ETA.Types.Type
-import ETA.BasicTypes.Module
 import ETA.BasicTypes.Name
 import ETA.Main.DynFlags
-
 import Codec.JVM
-
 import ETA.CodeGen.Name
 import ETA.CodeGen.Rts
 import ETA.CodeGen.ArgRep
 import ETA.Debug
 import ETA.Util
-
 import Data.Maybe
 import Data.Text (Text)
 import Data.Monoid ((<>))
@@ -72,7 +67,7 @@ data CgLoc = LocLocal Bool FieldType !Int
            | LocLne Label [CgLoc]
 
 instance Outputable CgLoc where
-  ppr (LocLocal isClosure ft int) = str "local: " <+> ppr int <+> ppr isClosure
+  ppr (LocLocal isClosure _ int) = str "local: " <+> ppr int <+> ppr isClosure
   ppr LocStatic {} = str "static"
   ppr LocField {} = str "field"
   ppr LocDirect {} = str "direct"
@@ -92,7 +87,7 @@ mkRepLocDirect (rep, code) = LocDirect isClosure ft code
 locArgRep :: CgLoc -> ArgRep
 locArgRep loc = case loc of
   LocLocal isClosure ft _ -> locRep isClosure ft
-  LocStatic ft _ _ -> P
+  LocStatic _ _ _ -> P
   LocField isClosure ft _ _ -> locRep isClosure ft
   LocDirect isClosure ft _ -> locRep isClosure ft
   LocLne _ _ -> panic "logArgRep: Cannot pass a let-no-escape binding!"
@@ -103,9 +98,11 @@ locFt (LocLocal _ ft _) = ft
 locFt (LocStatic ft _ _) = ft
 locFt (LocField _ ft _ _) = ft
 locFt (LocDirect _ ft _) = ft
+locFt _ = error $ "locFt: bad CgLoc"
 
 storeLoc :: CgLoc -> Code -> Code
 storeLoc (LocLocal _ ft n) code = code <> gstore ft n
+storeLoc _ _ = error $ "storeLoc: bad storeLoc"
 
 storeDefault :: CgLoc -> Code
 storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
@@ -118,6 +115,7 @@ loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
 loadLoc (LocDirect _ _ code) = code
+loadLoc _ = error $ "loadLoc: bad loadLoc"
 
 type CgBindings = IdEnv CgIdInfo
 
@@ -130,7 +128,7 @@ instance Outputable CgIdInfo where
   ppr CgIdInfo {..} = ppr cgId <+> str "-->" <+> ppr cgLocation
 
 splitStaticLoc :: CgLoc -> (Text, Text)
-splitStaticLoc (LocStatic ft modClass clName) = (modClass, clName)
+splitStaticLoc (LocStatic _ modClass clName) = (modClass, clName)
 splitStaticLoc _ = error $ "splitStaticLoc: Not LocStatic"
 
 getJavaInfo :: DynFlags -> CgIdInfo -> (Text, Text, Text)
@@ -143,7 +141,7 @@ getJavaInfo dflags CgIdInfo { cgLocation, cgLambdaForm }
 
 maybeDataConClass :: DynFlags -> LambdaFormInfo -> Maybe Text
 maybeDataConClass dflags (LFCon dataCon) = Just $ dataConClass dflags dataCon
-maybeDataConClass dflags _ = Nothing
+maybeDataConClass _ _ = Nothing
 
 mkCgIdInfo :: DynFlags -> Id -> LambdaFormInfo -> CgIdInfo
 mkCgIdInfo dflags id lfInfo =
@@ -159,7 +157,7 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLocation = cgLoc }
 
 mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc dflags id lfInfo = LocStatic closureType modClass clName
+mkStaticLoc dflags id _ = LocStatic closureType modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
@@ -236,11 +234,11 @@ lfFieldType LFThunk {} = thunkType
 lfFieldType LFCon {} = conType
 lfFieldType _ = closureType
 
-isLFSimple :: LambdaFormInfo -> Bool
-isLFSimple LFUnLifted = True
-isLFSimple LFUnknown {} = True
-isLFSimple LFLetNoEscape = True
-isLFSimple _ = False
+-- isLFSimple :: LambdaFormInfo -> Bool
+-- isLFSimple LFUnLifted = True
+-- isLFSimple LFUnknown {} = True
+-- isLFSimple LFLetNoEscape = True
+-- isLFSimple _ = False
 
 isLFThunk :: LambdaFormInfo -> Bool
 isLFThunk LFThunk {} = True
