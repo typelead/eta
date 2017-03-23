@@ -12,8 +12,7 @@ This module is nominally ``subordinate'' to @TcDeriv@, which is the
 This is where we do all the grimy bindings' generation.
 -}
 
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables, CPP, FlexibleContexts #-}
 
 module ETA.TypeCheck.TcGenDeriv (
         BagDerivStuff, DerivStuff(..),
@@ -52,6 +51,7 @@ import ETA.Types.Class
 import ETA.Types.TypeRep
 import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.VarEnv
+import ETA.Utils.Maybes
 import ETA.Utils.State
 import ETA.Utils.Util
 import ETA.BasicTypes.Var
@@ -68,7 +68,10 @@ import ETA.Main.StaticFlags( opt_PprStyle_Debug )
 
 import ETA.Utils.ListSetOps ( assocMaybe )
 import Data.List  ( partition, intersperse )
-import Data.Maybe ( isNothing )
+
+
+#include "HsVersions.h"
+
 
 type BagDerivStuff = Bag DerivStuff
 
@@ -108,8 +111,8 @@ genDerivedBinds dflags fix_env clas loc tycon
   | otherwise
   -- Deriving any class simply means giving an empty instance, so no
   -- bindings have to be generated.
-  = -- ASSERT2( isNothing (canDeriveAnyClass dflags tycon clas)
-    --        , ppr "genDerivStuff: bad derived class" <+> ppr clas )
+  = ASSERT2( isNothing (canDeriveAnyClass dflags tycon clas)
+          , ppr "genDerivStuff: bad derived class" <+> ppr clas )
     (emptyBag, emptyBag)
 
   where
@@ -675,7 +678,7 @@ gen_Bounded_binds loc tycon
   | isEnumerationTyCon tycon
   = (listToBag [ min_bound_enum, max_bound_enum ], emptyBag)
   | otherwise
-  = --ASSERT(isSingleton data_cons)
+  = ASSERT(isSingleton data_cons)
     (listToBag [ min_bound_1con, max_bound_1con ], emptyBag)
   where
     data_cons = tyConDataCons tycon
@@ -1064,7 +1067,7 @@ gen_Read_binds get_fixity loc tycon
 
     data_con_str con = occNameString (getOccName con)
 
-    read_arg a ty = --ASSERT( not (isUnLiftedType ty) )
+    read_arg a ty = ASSERT( not (isUnLiftedType ty) )
                     noLoc (mkBindStmt (nlVarPat a) (nlHsVarApps step_RDR [readPrec_RDR]))
 
     read_field lbl a = read_lbl lbl ++
@@ -1128,7 +1131,7 @@ gen_Show_binds get_fixity loc tycon
 
     pats_etc data_con
       | nullary_con =  -- skip the showParen junk...
-         --ASSERT(null bs_needed)
+         ASSERT(null bs_needed)
          ([nlWildPat, con_pat], mk_showString_app op_con_str)
       | otherwise   =
          ([a_Pat, con_pat],
