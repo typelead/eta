@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, CPP #-}
 
 -- Type definitions for the constraint solver
 module ETA.TypeCheck.TcSMonad (
@@ -138,6 +138,8 @@ import Control.Monad( ap, when, unless, MonadPlus(..) )
 import ETA.Utils.MonadUtils
 import Data.IORef
 import Data.List ( partition, foldl' )
+
+#include "HsVersions.h"
 
 -- #ifdef DEBUG
 -- import ETA.Utils.Digraph
@@ -577,7 +579,7 @@ prepareInertsForImplications is@(IS { inert_cans = cans })
            , inert_insols   = emptyCts }
 
     is_given_ecl :: EqualCtList -> Bool
-    is_given_ecl (ct:rest) | isGivenCt ct = {-ASSERT( null rest )-} True
+    is_given_ecl (ct:rest) | isGivenCt ct = ASSERT( null rest ) True
     is_given_ecl _                        = False
 
 {-
@@ -1388,9 +1390,9 @@ setWantedTyBind :: TcTyVar -> TcType -> TcS ()
 -- Add a type binding
 -- We never do this twice!
 setWantedTyBind tv ty
-  | --ASSERT2( isMetaTyVar tv, ppr tv )
+  | ASSERT2( isMetaTyVar tv, ppr tv )
     isFmvTyVar tv
-  = --ASSERT2( isMetaTyVar tv, ppr tv )
+  = ASSERT2( isMetaTyVar tv, ppr tv )
     wrapTcS (TcM.writeMetaTyVar tv ty)
            -- Write directly into the mutable tyvar
            -- Flatten meta-vars are born and die locally
@@ -1463,7 +1465,7 @@ isTouchableMetaTyVarTcS tv
 
 isFilledMetaTyVar_maybe :: TcTyVar -> TcS (Maybe Type)
 isFilledMetaTyVar_maybe tv
- = --ASSERT2( isTcTyVar tv, ppr tv )
+ = ASSERT2( isTcTyVar tv, ppr tv )
    case tcTyVarDetails tv of
      MetaTv { mtv_ref = ref }
         -> do { cts <- wrapTcS (TcM.readTcRef ref)
@@ -1666,7 +1668,7 @@ newGivenEvVar :: CtLoc -> (TcPredType, EvTerm) -> TcS CtEvidence
 -- Precondition: this is not a kind equality
 --               See Note [Do not create Given kind equalities]
 newGivenEvVar loc (pred, rhs)
-  = --ASSERT2( not (isKindEquality pred), ppr pred $$ pprCtOrigin (ctLocOrigin loc) )
+  = ASSERT2( not (isKindEquality pred), ppr pred $$ pprCtOrigin (ctLocOrigin loc) )
     do { new_ev <- newEvVar pred
        ; setEvBind new_ev rhs
        ; return (CtGiven { ctev_pred = pred, ctev_evtm = EvId new_ev, ctev_loc = loc }) }
@@ -1831,5 +1833,5 @@ setUnifiedExtends = TcS $ \TcSEnv { tcs_unified_extends = ref } ->
 
 unifyTypes :: Type -> Type -> TcS ()
 unifyTypes ty1 ty2 = do
-  wrapTcS $ TcM.captureConstraints (unifyType ty1 ty2)
+  _ <- wrapTcS $ TcM.captureConstraints (unifyType ty1 ty2)
   setUnifiedExtends
