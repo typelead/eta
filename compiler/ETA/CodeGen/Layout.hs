@@ -51,7 +51,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
         args' = map unsafeStripNV nvArgs
         argReps' = map idArgRep args'
         (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
-        loadArgs !n !code !locs (arg:args) (ft:fts) (argRep:argReps)
+        loadArgs !n !code !locs (_arg:args) (ft:fts) (argRep:argReps)
                  !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
@@ -129,7 +129,7 @@ slowCall :: CgLoc -> [StgArg] -> CodeGen ()
 slowCall fun args = do
   dflags <- getDynFlags
   argFtCodes <- getRepFtCodes args
-  let (apPat, arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
+  let (apPat, arity, _fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
       slowCode = directCall' True (mkApFast apPat) arity
                              ((P, Just ft, Just code):argFtCodes)
   if n > arity && optLevel dflags >= 2 then do
