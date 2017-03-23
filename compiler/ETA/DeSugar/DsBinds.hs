@@ -9,6 +9,7 @@ Handles @HsBinds@; those at the top level require different handling,
 in that the @Rec@/@NonRec@/etc structure is thrown away (whereas at
 lower levels it is preserved with @let@/@letrec@s).
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.DeSugar.DsBinds ( dsTopLHsBinds, dsLHsBinds, decomposeRuleLhs, dsSpec,
                  dsHsWrapper, dsTcEvBinds, dsEvBinds
@@ -71,6 +72,8 @@ import Control.Monad( when )
 import ETA.Utils.MonadUtils
 import Control.Monad(liftM)
 import ETA.Utils.Fingerprint(Fingerprint(..), fingerprintString)
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -830,7 +833,7 @@ dsHsWrapper (WpFun c1 c2 t1 _) e = do { x <- newSysLocalDs t1
                                       ; e1 <- dsHsWrapper c1 (Var x)
                                       ; e2 <- dsHsWrapper c2 (e `mkCoreAppDs` e1)
                                       ; return (Lam x e2) }
-dsHsWrapper (WpCast co)       e = --ASSERT(tcCoercionRole co == Representational)
+dsHsWrapper (WpCast co)       e = ASSERT(tcCoercionRole co == Representational)
                                   dsTcCoercion co (mkCast e)
 dsHsWrapper (WpEvLam ev)      e = return $ Lam ev e
 dsHsWrapper (WpTyLam tv)      e = return $ Lam tv e
@@ -882,7 +885,7 @@ dsEvTerm (EvTupleSel tm n)
               Just [dc] = tyConDataCons_maybe tc
               xs = mkTemplateLocals tys
               the_x = getNth xs n
-        ; --ASSERT( isTupleTyCon tc )
+        ; ASSERT( isTupleTyCon tc )
           return $
           Case tup (mkWildValBinder scrut_ty) (idType the_x) [(DataAlt dc, xs, Var the_x)] }
 
