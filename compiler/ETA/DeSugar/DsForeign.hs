@@ -19,18 +19,18 @@ import ETA.Core.CoreUnfold
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.Id
-import ETA.BasicTypes.Var
+
 import ETA.BasicTypes.MkId
 import ETA.BasicTypes.Literal
-import ETA.BasicTypes.Module
-import ETA.BasicTypes.Name
+
+
 import ETA.BasicTypes.DataCon
 import ETA.Types.Type
 import ETA.Types.TyCon
-import ETA.Types.TypeRep
+
 import ETA.Types.Coercion
 import ETA.TypeCheck.TcRnMonad
-import ETA.TypeCheck.TcEnv
+
 import ETA.TypeCheck.TcType
 
 import ETA.Main.HscTypes
@@ -45,25 +45,25 @@ import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Outputable hiding ((<>))
 import ETA.Utils.FastString
 import ETA.Main.DynFlags
-import ETA.Utils.Platform
-import ETA.Utils.MonadUtils
+
+
 import ETA.Utils.Maybes (expectJust)
 import ETA.Utils.OrdList
 import ETA.Utils.Pair
 import ETA.Utils.Util
-import ETA.Main.Hooks
+
 import ETA.CodeGen.ArgRep ( repFieldTypes, repFieldType_maybe, primRepFieldType
                             , primRepFieldType_maybe )
 import ETA.CodeGen.Rts
 import ETA.CodeGen.Name
 
 import Data.Maybe
-import Data.Monoid((<>), mconcat)
+import Data.Monoid((<>))
 import Data.List
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import ETA.Debug
+
 import Codec.JVM
 
 type Binding = (Id, CoreExpr)
@@ -88,10 +88,9 @@ dsForeigns fdecls = do
           (bs, methodDefs) <- dsFImport (unLoc id) co spec
           return (methodDefs, bs)
         doDecl (ForeignExport (L _ id) _ co
-                              (CExport (L _ (CExportStatic extName cconv)) _)) = do
+                              (CExport (L _ (CExportStatic extName _)) _)) = do
             method <- dsFExport (Right id) co extName Nothing
             return ([method], [])
-        doDecl fi = pprPanic "doDecl: Not implemented" (ppr fi)
 
 dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], [ClassExport])
 dsFImport id co (CImport cconv safety mHeader spec _) =
@@ -103,7 +102,7 @@ dsCImport id co (CFunction target) cconv@PrimCallConv safety _
   = dsPrimCall id co (CCall (CCallSpec target cconv safety))
 dsCImport id co (CFunction target) cconv safety mHeader
   = dsFCall id co (CCall (CCallSpec target cconv safety)) mHeader
-dsCImport id co (CWrapper target isAbstract) cconv safety mHeader
+dsCImport id co (CWrapper target isAbstract) _ _ _
   = dsFWrapper id co target isAbstract
 dsCImport id _ _ _ _ _ = pprPanic "doCImport: Not implemented" (ppr id)
 
@@ -121,7 +120,7 @@ dsPrimCall funId co fcall = do
         (argTypes, ioResType) = tcSplitFunTys funTy
 
 dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM ([Binding], [ClassExport])
-dsFCall funId co fcall mDeclHeader = do
+dsFCall funId co fcall _ = do
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
@@ -168,6 +167,7 @@ genJavaFCall (CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv s
             -> (True, hasSubclass, Just $ obj clsName)
             | otherwise -> (True, False, Nothing)
           _ -> (False, False, Nothing)
+genJavaFCall _ _ _ _ _ = error $ "genJavaFCall: bad genJavaFCall"
 
 getArgClass :: ExtendsInfo -> Type -> (Bool, Maybe Text)
 getArgClass extendsInfo ty
@@ -195,17 +195,17 @@ serializeTarget hasObj hasSubclass qObj label' argFts resRep =
 
         argFts' dropArg = if dropArg then drop 1 argFts else argFts
 
-        genNewTarget = show 0 ++ ","
+        genNewTarget = "0,"
                     ++ show clsName ++ ","
                     ++ show methodDesc
           where clsName = getObjectClass resRep
                 methodDesc = mkMethodDesc' (argFts' False) void
 
-        genFieldTarget label = show 1 ++ ","
+        genFieldTarget label = "1,"
                             ++ show clsName ++ ","
                             ++ show fieldName ++ ","
                             ++ show fieldDesc ++ ","
-                            ++ show instr
+                            ++ instr
           where (clsName, fieldName) =
                   if isStatic
                   then labelToMethod label
@@ -217,15 +217,15 @@ serializeTarget hasObj hasSubclass qObj label' argFts resRep =
                 fieldDesc = mkFieldDesc' fieldFt
                 (instr, fieldFt) =
                   if isVoidRep resRep then
-                    ( 0 -- putInstr
+                    ( "0" -- putInstr
                     , if isStatic
                       then expectHead "serializeTarget: static field" (argFts' hasObj)
                       else expectHead "serializeTarget: instance field" (argFts' True) )
                   else
-                    ( 1 -- getInstr
+                    ( "1" -- getInstr
                     , primRepFieldType resRep )
 
-        genMethodTarget isInterface label = show 2 ++ ","
+        genMethodTarget isInterface label = "2,"
                                          ++ show isInterface ++ ","
                                          ++ show hasSubclass ++ ","
                                          ++ show clsName ++ ","
@@ -241,7 +241,7 @@ serializeTarget hasObj hasSubclass qObj label' argFts resRep =
 
 extendsMap :: ThetaType -> DsM ([Id], ExtendsInfo)
 extendsMap thetaType = do
-  (ids, keyVals) <- flip mapAndUnzipM (zip [1..] thetaType) $ \(i, thetaTy) -> do
+  (ids, keyVals) <- flip mapAndUnzipM (zip [1 :: Int ..] thetaType) $ \(_, thetaTy) -> do
     dictId <- newSysLocalDs thetaTy
     let (var', tagTy') = tcSplitExtendsType thetaTy
         (var, tagTy, bound)
@@ -259,7 +259,7 @@ unboxArg vs arg
   = unboxArg vs $ mkCast arg co
   | Just tc <- tyConAppTyCon_maybe argType
   , tc `hasKey` boolTyConKey = do
-      dflags <- getDynFlags
+      _ <- getDynFlags
       primArg <- newSysLocalDs jboolPrimTy
       -- TODO: Is this correct?
       return ( jboolPrimTy
@@ -271,7 +271,7 @@ unboxArg vs arg
                            , (DataAlt trueDataCon,  [], Lit (MachInt 1)) ]))
                primArg (exprType body)
                [(DEFAULT, [], body)] )
-  | Just (tc, [ty]) <- splitTyConApp_maybe argType
+  | Just (tc, [_]) <- splitTyConApp_maybe argType
   , tc `hasKey` listTyConKey
   -- TODO: Support list types other than Char
   = do toJStringId <- dsLookupGlobalId toJStringName
@@ -357,7 +357,7 @@ boxResult extendsInfo resultType
                                            [alt] ]
        return (mResType, realWorldStatePrimTy `mkFunTy` ccallResultType, wrap)
   | Just (javaTyCon, javaTagType, javaResType) <- tcSplitJavaType_maybe resultType
-  = do dflags <- getDynFlags
+  = do _ <- getDynFlags
        res@(mResType, _) <- resultWrapper extendsInfo javaResType
        let extraResultTypes =
              case res of
@@ -475,7 +475,7 @@ resultWrapper extendsInfo resultType
            , \e -> mkWildCase e jboolPrimTy boolTy
                    [ (DEFAULT, [], Var trueDataConId)
                    , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
-  | Just (tc, [ty]) <- maybeTcApp
+  | Just (tc, [_]) <- maybeTcApp
   , tc `hasKey` listTyConKey
   = do (maybeType, wrapper) <- resultWrapper extendsInfo $
                                  mkTyConApp jstringTyCon []
@@ -609,8 +609,8 @@ dsFExport closureId co externalName classSpec = do
                  <> unboxResult resType resClass rawResFt))
          , mFieldDef )
   where ty = pSnd $ coercionKind co
-        (tvs, thetaFunTy) = tcSplitForAllTys ty
-        (thetaType, funTy) = tcSplitPhiTy thetaFunTy
+        (_, thetaFunTy) = tcSplitForAllTys ty
+        (_, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
         classFt = obj className
         argFts = map getPrimFt argTypes
@@ -631,7 +631,7 @@ dsFExport closureId co externalName classSpec = do
                                           classSpec
         (rawClassSpec', className', resType) =
           case tcSplitJavaType_maybe ioResType of
-            Just (javaTyCon, javaTagType, javaResType) ->
+            Just (_, javaTagType, javaResType) ->
               ((either (error $ "The tag type should be annotated with a CLASS annotation.")
                (maybe (error $ "No type variables for the Java foreign export!") id)
                $ rawTagTypeToText javaTagType)
@@ -649,7 +649,7 @@ dataConWrapper = undefined
 unboxResult :: Type -> Text -> FieldType -> Code
 unboxResult ty resClass resPrimFt
   | isBoolTy ty = getTagMethod mempty
-               <> iconst jbool (fromIntegral 1)
+               <> iconst jbool 1
                <> isub
                <> greturn resPrimFt
   | otherwise = gconv closureType resClassFt
@@ -668,6 +668,7 @@ getPrimTyOf ty
       else case splitDataProductType_maybe repTy of
         Just (_, _, _, [primTy]) -> primTy
         _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty
+getPrimTyOf _ = error $ "getPrimTyOf: bad getPrimTyOf"
 
 dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
 dsFWrapper id co0 target isAbstract = do
@@ -691,7 +692,7 @@ dsFWrapper id co0 target isAbstract = do
        fcall'      = genJavaFCall fcall extendsInfo argTypes (Left (ObjectRep genClassName))
                                   resType
        javaCallApp = mkFCall dflags javaCallUniq fcall' realArgs (fromJust resPrimType)
-       idWithInline = id
+       _ = id
                       `setIdUnfolding`
                         mkInlineUnfolding (Just (length args)) (mkCast binding co0)
        classExports =
