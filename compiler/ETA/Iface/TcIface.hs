@@ -6,6 +6,7 @@
 
 Type checking of type signatures in interface files
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.Iface.TcIface (
         tcLookupImported_maybe,
@@ -15,6 +16,8 @@ module ETA.Iface.TcIface (
         tcIfaceExpr,    -- Desired by HERMIT (Trac #7683)
         tcIfaceGlobal
  ) where
+
+#include "HsVersions.h"
 
 import ETA.TypeCheck.TcTypeNats(typeNatCoAxiomRules)
 import ETA.Iface.IfaceSyn
@@ -321,7 +324,7 @@ tc_iface_decl parent _ (IfaceData {ifName = occ_name,
     tc_parent :: IfaceTyConParent -> IfL TyConParent
     tc_parent IfNoParent = return parent
     tc_parent (IfDataInstance ax_name _ arg_tys)
-      = --ASSERT( isNoParent parent )
+      = ASSERT( isNoParent parent )
         do { ax <- tcIfaceCoAxiom ax_name
            ; let fam_tc  = coAxiomTyCon ax
                  ax_unbr = toUnbranchedAxiom ax
@@ -1064,8 +1067,8 @@ tcIfaceLit lit = return lit
 tcIfaceAlt :: CoreExpr -> (TyCon, [Type])
            -> (IfaceConAlt, [FastString], IfaceExpr)
            -> IfL (AltCon, [TyVar], CoreExpr)
-tcIfaceAlt _ _ (IfaceDefault, _, rhs)
-  = {-ASSERT( null names ) -}do
+tcIfaceAlt _ _ (IfaceDefault, names, rhs)
+  = ASSERT( null names ) do
     rhs' <- tcIfaceExpr rhs
     return (DEFAULT, [], rhs')
 
