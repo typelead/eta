@@ -26,8 +26,7 @@ import ETA.Utils.FastTypes
 import ETA.BasicTypes.Name hiding (pprOccName)
 import ETA.BasicTypes.Unique
 import ETA.BasicTypes.Id
-
-import GHC.Base(indexCharOffAddr#, Char(..))
+-- import GHC.Base(indexCharOffAddr#, Char(..))
 import Data.Char as C
 import Data.Maybe
 import Data.Text as T hiding (map, init, last, null)
@@ -63,9 +62,10 @@ nameText dflags caseEncode = T.pack
   where maybeEncodeCase = if caseEncode then encodeCase else id
 
 encodeCase :: String -> String
-encodeCase str@(c:rest)
+encodeCase str@(c:_)
   | isUpper c = 'D':str
   | otherwise = str
+encodeCase _ = "" 
 
 idNameText :: DynFlags -> Id -> Text
 idNameText dflags = nameText dflags True . idName
@@ -118,8 +118,8 @@ upperFirst str = case uncons str of
   Nothing -> str
   Just (c, str') -> cons (C.toUpper c) str'
 
-modClosure :: DynFlags -> Module -> Name -> (Text, Text)
-modClosure dflags mod name = (moduleJavaClass mod, nameText dflags True name)
+-- modClosure :: DynFlags -> Module -> Name -> (Text, Text)
+-- modClosure dflags mod name = (moduleJavaClass mod, nameText dflags True name)
 
 moduleClass :: Name -> Text -> Text
 moduleClass name = qualifiedName moduleClass
@@ -175,14 +175,14 @@ pprNameCI name
         u = nameUnique name
         occ = nameOccName name
 
-pprExternal :: PprStyle -> Unique -> Module -> OccName -> Bool -> BuiltInSyntax -> SDoc
-pprExternal sty uniq mod occ is_wired is_builtin = pprOccName occ
+-- pprExternal :: PprStyle -> Unique -> Module -> OccName -> Bool -> BuiltInSyntax -> SDoc
+-- pprExternal sty uniq mod occ is_wired is_builtin = pprOccName occ
 
 pprInternal :: PprStyle -> Unique -> OccName -> SDoc
-pprInternal sty uniq occ = pprOccName occ <> pprUnderscoreUnique uniq
+pprInternal _ uniq occ = pprOccName occ <> pprUnderscoreUnique uniq
 
 pprSystem :: PprStyle -> Unique -> OccName -> SDoc
-pprSystem sty uniq occ = pprOccName occ <> pprUnderscoreUnique uniq
+pprSystem _ uniq occ = pprOccName occ <> pprUnderscoreUnique uniq
 
 pprUnderscoreUnique :: Unique -> SDoc
 -- Print an underscore separating the name from its unique
@@ -192,5 +192,5 @@ pprUnderscoreUnique uniq = char '_' <> ppr uniq
 pprOccName :: OccName -> SDoc
 pprOccName  = ftext . occNameFS
 
-pprZOccName :: OccName -> SDoc
-pprZOccName = ztext . zEncodeFS . occNameFS
+-- pprZOccName :: OccName -> SDoc
+-- pprZOccName = ztext . zEncodeFS . occNameFS
