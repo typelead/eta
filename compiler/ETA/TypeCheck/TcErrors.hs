@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, CPP #-}
 
 module ETA.TypeCheck.TcErrors(
        reportUnsolved, reportAllUnsolved,
@@ -43,6 +43,8 @@ import ETA.Utils.ListSetOps       ( equivClasses )
 import Control.Monad    ( when )
 import Data.Maybe
 import Data.List        ( partition, mapAccumL, nub, sortBy )
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -1146,7 +1148,7 @@ Warn of loopy local equalities that were dropped.
 
 mkDictErr :: ReportErrCtxt -> [Ct] -> TcM ErrMsg
 mkDictErr ctxt cts
-  = --ASSERT( not (null cts) )
+  = ASSERT( not (null cts) )
     do { inst_envs <- tcGetInstEnvs
        ; let (ct1:_) = cts  -- ct1 just for its location
              min_cts = elim_superclasses cts
@@ -1269,7 +1271,7 @@ mk_dict_err ctxt (ct, (matches, unifiers, safe_haskell))
 
     -- Normal overlap error
     overlap_msg
-      = --ASSERT( not (null matches) )
+      = ASSERT( not (null matches) )
         vcat [  addArising orig (ptext (sLit "Overlapping instances for")
                                 <+> pprType (mkClassPred clas tys))
 
@@ -1322,7 +1324,7 @@ mk_dict_err ctxt (ct, (matches, unifiers, safe_haskell))
     -- Overlap error because of Safe Haskell (first
     -- match should be the most specific match)
     safe_haskell_msg
-      = --ASSERT( length matches > 1 )
+      = ASSERT( length matches > 1 )
         vcat [ addArising orig (ptext (sLit "Unsafe overlapping instances for")
                         <+> pprType (mkClassPred clas tys))
              , sep [ptext (sLit "The matching instance is:"),
