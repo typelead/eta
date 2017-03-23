@@ -5,7 +5,7 @@
 \section[Demand]{@Demand@: A decoupled implementation of a demand domain}
 -}
 
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, CPP #-}
 
 module ETA.BasicTypes.Demand (
         StrDmd, UseDmd(..), Count(..),
@@ -69,6 +69,8 @@ import ETA.Types.Type            ( Type, isUnLiftedType )
 import ETA.Types.TyCon           ( isNewTyCon, isClassTyCon )
 import ETA.BasicTypes.DataCon         ( splitDataProductType_maybe )
 import ETA.Utils.FastString
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -206,7 +208,7 @@ splitMaybeStrProdDmd n (Str s) = splitStrProdDmd n s
 splitStrProdDmd :: Int -> StrDmd -> Maybe [MaybeStr]
 splitStrProdDmd n HyperStr   = Just (replicate n strBot)
 splitStrProdDmd n HeadStr    = Just (replicate n strTop)
-splitStrProdDmd n (SProd ds) = {-ASSERT( ds `lengthIs` n)-} Just ds
+splitStrProdDmd n (SProd ds) = ASSERT( ds `lengthIs` n) Just ds
 splitStrProdDmd _ (SCall {}) = Nothing
       -- This can happen when the programmer uses unsafeCoerce,
       -- and we don't then want to crash the compiler (Trac #9208)
@@ -489,7 +491,7 @@ seqMaybeUsed _          = ()
 splitUseProdDmd :: Int -> UseDmd -> Maybe [MaybeUsed]
 splitUseProdDmd n Used        = Just (replicate n useTop)
 splitUseProdDmd n UHead       = Just (replicate n Abs)
-splitUseProdDmd n (UProd ds)  = --ASSERT2( ds `lengthIs` n, text "splitUseProdDmd" $$ ppr n $$ ppr ds )
+splitUseProdDmd n (UProd ds)  = ASSERT2( ds `lengthIs` n, text "splitUseProdDmd" $$ ppr n $$ ppr ds )
                                 Just ds
 splitUseProdDmd _ (UCall _ _) = Nothing
       -- This can happen when the programmer uses unsafeCoerce,
