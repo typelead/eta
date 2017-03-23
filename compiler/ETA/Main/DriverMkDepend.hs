@@ -5,7 +5,7 @@
 -- (c) The University of Glasgow 2005
 --
 -----------------------------------------------------------------------------
-
+{-# LANGUAGE CPP #-}
 module ETA.Main.DriverMkDepend (
         doMkDependHS
   ) where
@@ -36,6 +36,8 @@ import System.IO
 import System.IO.Error  ( isEOFError )
 import Control.Monad    ( when )
 import Data.Maybe       ( isJust )
+
+#include "HsVersions.h"
 
 -----------------------------------------------------------------
 --
@@ -364,7 +366,7 @@ pprCycle summaries = pp_group (CyclicSCC summaries)
 
     pp_group (AcyclicSCC ms) = pp_ms ms
     pp_group (CyclicSCC mss)
-        = --ASSERT( not (null boot_only) )
+        = ASSERT( not (null boot_only) )
                 -- The boot-only list must be non-empty, else there would
                 -- be an infinite chain of non-boot imoprts, and we've
                 -- already checked for that in processModDeps
