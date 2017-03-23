@@ -6,7 +6,7 @@
 TcTyClsDecls: Typecheck type and class declarations
 -}
 
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections, CPP #-}
 
 module ETA.TypeCheck.TcTyClsDecls (
         tcTyAndClassDecls, tcAddImplicits,
@@ -70,6 +70,8 @@ import ETA.BasicTypes.BasicTypes
 import ETA.Utils.Bag
 import Control.Monad
 import Data.List
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -596,14 +598,14 @@ tcTyClDecl1 parent _rec_info (FamDecl { tcdFam = fd })
   -- "type" synonym declaration
 tcTyClDecl1 _parent rec_info
             (SynDecl { tcdLName = L _ tc_name, tcdTyVars = tvs, tcdRhs = rhs })
-  = --ASSERT( isNoParent _parent )
+  = ASSERT( isNoParent _parent )
     tcTyClTyVars tc_name tvs $ \ tvs' kind ->
     tcTySynRhs rec_info tc_name tvs' kind rhs
 
   -- "data/newtype" declaration
 tcTyClDecl1 _parent rec_info
             (DataDecl { tcdLName = L _ tc_name, tcdTyVars = tvs, tcdDataDefn = defn })
-  = --ASSERT( isNoParent _parent )
+  = ASSERT( isNoParent _parent )
     tcTyClTyVars tc_name tvs $ \ tvs' kind ->
     tcDataDefn rec_info tc_name tvs' kind defn
 
@@ -612,10 +614,10 @@ tcTyClDecl1 _parent rec_info
             , tcdCtxt = ctxt, tcdMeths = meths
             , tcdFDs = fundeps, tcdSigs = sigs
             , tcdATs = ats, tcdATDefs = at_defs })
-  = --ASSERT( isNoParent _parent )
+  = ASSERT( isNoParent _parent )
     do { (clas, tvs', gen_dm_env) <- fixM $ \ ~(clas,_,_) ->
             tcTyClTyVars class_name tvs $ \ tvs' kind ->
-            do { --MASSERT( isConstraintKind kind )
+            do { MASSERT( isConstraintKind kind )
                  -- This little knot is just so we can get
                  -- hold of the name of the class TyCon, which we
                  -- need to look up its recursiveness
@@ -784,7 +786,7 @@ tcDataDefn rec_info tc_name tvs kind
                  then return totallyAbstractTyConRhs  -- "don't know"; hence totally Abstract
                  else case new_or_data of
                    DataType -> return (mkDataTyConRhs data_cons)
-                   NewType  -> --ASSERT( not (null data_cons) )
+                   NewType  -> ASSERT( not (null data_cons) )
                                     mkNewTyConRhs tc_name tycon (head data_cons)
              ; return (buildAlgTyCon tc_name final_tvs roles (fmap unLoc cType)
                                      stupid_theta tc_rhs
@@ -870,14 +872,14 @@ tcDefaultAssocDecl fam_tc [L loc (TyFamEqn { tfe_tycon = L _ tc_name
     do { traceTc "tcDefaultAssocDecl" (ppr tc_name)
        ; checkTc (isTypeFamilyTyCon fam_tc) (wrongKindOfFamily fam_tc)
        ; let (fam_name, fam_pat_arity, _) = famTyConShape fam_tc
-       ; --ASSERT( fam_name == tc_name )
+       ; ASSERT( fam_name == tc_name )
          checkTc (length (hsQTvBndrs hs_tvs) == fam_pat_arity)
                  (wrongNumberOfParmsErr fam_pat_arity)
        ; rhs_ty <- tcCheckLHsType rhs rhs_kind
        ; rhs_ty <- zonkTcTypeToType emptyZonkEnv rhs_ty
        ; let fam_tc_tvs = tyConTyVars fam_tc
              subst = zipTopTvSubst tvs (mkTyVarTys fam_tc_tvs)
-       ; return ( --ASSERT( equalLength fam_tc_tvs tvs )
+       ; return ( ASSERT( equalLength fam_tc_tvs tvs )
                   Just (substTy subst rhs_ty, loc) ) }
     -- We check for well-formedness and validity later, in checkValidClass
 
@@ -1936,7 +1938,7 @@ mkRecSelBind (tycon, sel_name)
     all_cons     = tyConDataCons tycon
     cons_w_field = [ con | con <- all_cons
                    , sel_name `elem` dataConFieldLabels con ]
-    con1 = {-ASSERT( not (null cons_w_field) )-} head cons_w_field
+    con1 = ASSERT( not (null cons_w_field) ) head cons_w_field
 
     -- Selector type; Note [Polymorphic selectors]
     field_ty   = dataConFieldType con1 sel_name
