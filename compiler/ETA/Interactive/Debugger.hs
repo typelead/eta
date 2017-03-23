@@ -14,33 +14,33 @@
 
 module ETA.Interactive.Debugger where --(pprintClosureCommand, showTerm, pprTypeAndContents) where
 
-import ETA.Interactive.Linker
-import ETA.Interactive.RtClosureInspect
-
-import ETA.Main.GhcMonad
-import ETA.Main.HscTypes
-import ETA.BasicTypes.Id
-import ETA.BasicTypes.Name
-import ETA.BasicTypes.Var hiding ( varName )
-import ETA.BasicTypes.VarSet
-import ETA.BasicTypes.UniqSupply
-import ETA.Types.Type
-import ETA.Types.Kind
-import ETA.Main.GHC
-import qualified ETA.Main.GHC as GHC
-import ETA.Utils.Outputable
-import ETA.Main.PprTyThing
-import ETA.Main.ErrUtils
-import ETA.Utils.MonadUtils
-import ETA.Main.DynFlags
-import ETA.Utils.Exception
-
-import Control.Monad
-import Data.List
-import Data.Maybe
-import Data.IORef
-
-import GHC.Exts
+-- import ETA.Interactive.Linker
+-- import ETA.Interactive.RtClosureInspect
+--
+-- import ETA.Main.GhcMonad
+-- import ETA.Main.HscTypes
+-- import ETA.BasicTypes.Id
+-- import ETA.BasicTypes.Name
+-- import ETA.BasicTypes.Var hiding ( varName )
+-- import ETA.BasicTypes.VarSet
+-- import ETA.BasicTypes.UniqSupply
+-- import ETA.Types.Type
+-- import ETA.Types.Kind
+-- import ETA.Main.GHC
+-- import qualified ETA.Main.GHC as GHC
+-- import ETA.Utils.Outputable
+-- import ETA.Main.PprTyThing
+-- import ETA.Main.ErrUtils
+-- import ETA.Utils.MonadUtils
+-- import ETA.Main.DynFlags
+-- import ETA.Utils.Exception
+--
+-- import Control.Monad
+-- import Data.List
+-- import Data.Maybe
+-- import Data.IORef
+--
+-- import GHC.Exts
 
 -- -------------------------------------
 -- -- | The :print & friends commands
@@ -72,7 +72,7 @@ import GHC.Exts
 --    -- Do the obtainTerm--bindSuspensions-computeSubstitution dance
 --    go :: GhcMonad m => TvSubst -> Id -> m (TvSubst, Term)
 --    go subst id = do
---        let id' = id `setIdType` substTy subst (idType id) 
+--        let id' = id `setIdType` substTy subst (idType id)
 --        term_    <- GHC.obtainTermFromId maxBound force id'
 --        term     <- tidyTermTyVars term_
 --        term'    <- if bindThings &&
@@ -115,7 +115,7 @@ import GHC.Exts
 --       availNames_var  <- liftIO $ newIORef availNames
 --       (t', stuff)     <- liftIO $ foldTerm (nameSuspensionsAndGetInfos availNames_var) t
 --       let (names, tys, hvals) = unzip3 stuff
---       let ids = [ mkVanillaGlobal name ty 
+--       let ids = [ mkVanillaGlobal name ty
 --                 | (name,ty) <- zip names tys]
 --           new_ic = extendInteractiveContextWithIds ictxt ids
 --       liftIO $ extendLinkEnv (zip names hvals)
@@ -134,12 +134,12 @@ import GHC.Exts
 --                                     let (terms,names) = unzip tt'
 --                                     return (Term ty dc v terms, concat names)
 --                       , fPrim    = \ty n ->return (Prim ty n,[])
---                       , fNewtypeWrap  = 
---                                 \ty dc t -> do 
+--                       , fNewtypeWrap  =
+--                                 \ty dc t -> do
 --                                     (term, names) <- t
 --                                     return (NewtypeWrap ty dc term, names)
 --                       , fRefWrap = \ty t -> do
---                                     (term, names) <- t 
+--                                     (term, names) <- t
 --                                     return (RefWrap ty term, names)
 --                       }
 --         doSuspension freeNames ct ty hval _name = do
@@ -182,7 +182,7 @@ import GHC.Exts
 --          `gfinally` do
 --            setSession hsc_env
 --            GHC.setSessionDynFlags dflags
---   cPprShowable prec NewtypeWrap{ty=new_ty,wrapped_term=t} = 
+--   cPprShowable prec NewtypeWrap{ty=new_ty,wrapped_term=t} =
 --       cPprShowable prec t{ty=new_ty}
 --   cPprShowable _ _ = return Nothing
 
@@ -194,7 +194,7 @@ import GHC.Exts
 
 --   bindToFreshName hsc_env ty userName = do
 --     name <- newGrimName userName
---     let id       = mkVanillaGlobal name ty 
+--     let id       = mkVanillaGlobal name ty
 --         new_ic   = extendInteractiveContextWithIds (hsc_IC hsc_env) [id]
 --     return (hsc_env {hsc_IC = new_ic }, name)
 
@@ -212,7 +212,7 @@ import GHC.Exts
 --   dflags  <- GHC.getSessionDynFlags
 --   let pcontents = gopt Opt_PrintBindContents dflags
 --       pprdId    = (PprTyThing.pprTyThing . AnId) id
---   if pcontents 
+--   if pcontents
 --     then do
 --       let depthBound = 100
 --       -- If the value is an exception, make sure we catch it and
@@ -226,7 +226,7 @@ import GHC.Exts
 --     else return pprdId
 
 -- --------------------------------------------------------------
--- -- Utils 
+-- -- Utils
 
 -- traceOptIf :: GhcMonad m => DumpFlag -> SDoc -> m ()
 -- traceOptIf flag doc = do
