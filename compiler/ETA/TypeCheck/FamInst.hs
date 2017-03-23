@@ -1,6 +1,6 @@
 -- The @FamInst@ type: family instance heads
 
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, CPP #-}
 
 module ETA.TypeCheck.FamInst (
         FamInstEnvs, tcGetFamInstEnvs,
@@ -36,6 +36,8 @@ import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Arrow ( first, second )
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -377,7 +379,7 @@ conflictInstErr fam_inst conflictingMatch
 
 addFamInstsErr :: SDoc -> [FamInst] -> TcRn ()
 addFamInstsErr herald insts
-  = --ASSERT( not (null insts) )
+  = ASSERT( not (null insts) )
     setSrcSpan srcSpan $ addErr $
     hang herald
        2 (vcat [ pprCoAxBranchHdr (famInstAxiom fi) 0
