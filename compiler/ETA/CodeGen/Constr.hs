@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Constr where
 
-import ETA.BasicTypes.Literal
-import ETA.Main.DynFlags hiding (mAX_INTLIKE, mIN_INTLIKE, mAX_INTLIKE, mAX_CHARLIKE)
+
+import ETA.Main.DynFlags
 import ETA.BasicTypes.Id
-import ETA.BasicTypes.Module
+
 import ETA.BasicTypes.DataCon
 import ETA.StgSyn.StgSyn
-import ETA.Prelude.PrelInfo (maybeCharLikeCon, maybeIntLikeCon)
-import ETA.Main.Constants
+
+
 import ETA.CodeGen.Types
 import ETA.CodeGen.Monad
 import ETA.CodeGen.Closure
@@ -21,7 +21,7 @@ import ETA.Util
 import Control.Monad(foldM)
 import Codec.JVM
 import Data.Maybe (catMaybes, mapMaybe)
-import Data.Char (ord)
+
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
 
@@ -38,7 +38,7 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
         (modClass, clName, dataClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
         dataFt = obj dataClass
-        typeFt = obj (tyConClass dflags (dataConTyCon dataCon))
+        -- typeFt = obj (tyConClass dflags (dataConTyCon dataCon))
         genCode = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
           deps <- getArgReferences . getNonVoids $ zip maybeFields args
@@ -56,7 +56,7 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo
                                                             , CodeGen (Code, RecIndexes) )
-buildDynCon binder con [] recIds = do
+buildDynCon binder con [] _ = do
   dflags <- getDynFlags
   return ( mkCgIdInfo dflags binder (mkConLFInfo con)
          , return (mempty, []) )
@@ -78,7 +78,7 @@ buildDynCon binder con [] recIds = do
 --       -- TODO: Generate offset into charlike array
 --       unimplemented "buildDynCon: CHARLIKE"
 buildDynCon binder con args recIds = do
-  dflags <- getDynFlags
+  _ <- getDynFlags
   (idInfo, cgLoc) <- rhsConIdInfo binder lfInfo
   return (idInfo, genCode cgLoc)
   where lfInfo = mkConLFInfo con
@@ -91,7 +91,7 @@ buildDynCon binder con args recIds = do
         indexFtArgs = indexList nvFtArgs
         fields = catMaybes maybeFields
         -- TODO: Generalize to accommodate StdThunks as well
-        foldLoads (is, code) (i, (ft, arg))
+        foldLoads (is, code) (i, (_, arg))
           | StgVarArg id <- arg
           , id `elem` recIds
           = return ((i, id):is, code <> aconst_null closureType)
