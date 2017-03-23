@@ -991,7 +991,7 @@ dsEvTypeable ev =
        return (mkApps method [proxy])
 
   -- This part could be cached
-  tyConRep dflags mkTyCon tc =
+  tyConRep _ mkTyCon tc =
     do pkgStr  <- mkStringExprFS pkg_fs
        modStr  <- mkStringExprFS modl_fs
        nameStr <- mkStringExprFS name_fs
