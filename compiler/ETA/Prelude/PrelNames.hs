@@ -122,7 +122,7 @@ import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.Name
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.FastString
-import ETA.Utils.Panic ( panic )
+-- import ETA.Utils.Panic ( panic )
 
 {-
 ************************************************************************
@@ -1688,7 +1688,7 @@ unitTyConKey = mkTupleTyConUnique BoxedTuple 0
 charDataConKey, consDataConKey, doubleDataConKey, falseDataConKey,
     floatDataConKey, intDataConKey, integerSDataConKey, nilDataConKey,
     ratioDataConKey, stableNameDataConKey, trueDataConKey, wordDataConKey,
-    ioDataConKey, integerDataConKey, eqBoxDataConKey, coercibleDataConKey :: Unique
+    ioDataConKey, integerDataConKey, eqBoxDataConKey, coercibleDataConKey, nothingDataConKey, justDataConKey :: Unique
 charDataConKey                          = mkPreludeDataConUnique  1
 consDataConKey                          = mkPreludeDataConUnique  2
 doubleDataConKey                        = mkPreludeDataConUnique  3
