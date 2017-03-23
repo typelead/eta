@@ -182,7 +182,7 @@ import ETA.Utils.Maybes           ( orElse )
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Maybe       ( isJust, mapMaybe )
+import Data.Maybe       ( isJust)
 import Control.Monad    ( guard )
 
 infixr 3 `mkFunTy`      -- Associates to the right
