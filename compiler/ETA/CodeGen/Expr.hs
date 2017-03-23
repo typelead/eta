@@ -10,7 +10,6 @@ import ETA.BasicTypes.DataCon
 import ETA.Utils.Panic
 import ETA.Utils.Util (unzipWith)
 import ETA.Util
-
 import ETA.Debug
 import ETA.CodeGen.Utils
 import ETA.CodeGen.Monad
@@ -86,7 +85,7 @@ cgLetNoEscapeClosure
   :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, Int -> CodeGen Code)
 cgLetNoEscapeClosure binder args body = do
   label <- newLabel
-  n <- peekNextLocal
+  _n <- peekNextLocal
   argLocs <- mapM newIdLoc args
   let code n' = forkLneBody $ do
         bindArgs $ zip args argLocs
@@ -101,9 +100,9 @@ cgIdApp funId args = do
   funInfo <- getCgIdInfo funId
   selfLoopInfo <- getSelfLoop
   let cgFunId = cgId funInfo
-      funArg = StgVarArg cgFunId
+      -- funArg = StgVarArg cgFunId
       funName = idName cgFunId
-      fun = idInfoLoadCode funInfo
+      -- fun = idInfoLoadCode funInfo
       lfInfo = cgLambdaForm funInfo
       funLoc = cgLocation funInfo
   case getCallMethod dflags funName cgFunId lfInfo (length args) funLoc
@@ -232,7 +231,7 @@ cgAlts binder (PrimAlt _) alts = do
   let (DEFAULT, deflt) = head taggedBranches
       taggedBranches' = [(lit, code) | (LitAlt lit, code) <- taggedBranches]
   emit $ litSwitch (locFt binderLoc) (loadLoc binderLoc) taggedBranches' deflt
-cgAlts binder (AlgAlt tyCon) alts = do
+cgAlts binder (AlgAlt _) alts = do
   (maybeDefault, branches) <- cgAlgAltRhss binder alts
   binderLoc <- getCgLoc binder
   emit $ intSwitch (getTagMethod $ loadLoc binderLoc) branches maybeDefault
