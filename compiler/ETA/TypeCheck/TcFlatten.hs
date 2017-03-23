@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module ETA.TypeCheck.TcFlatten(
    FlattenEnv(..), FlattenMode(..), mkFlattenEnv,
    flatten, flattenMany, flatten_many,
@@ -31,6 +33,9 @@ import ETA.Utils.FastString
 import Control.Monad( when, liftM )
 import ETA.Utils.MonadUtils ( zipWithAndUnzipM )
 import GHC.Exts ( inline )
+
+
+#include "HsVersions.h"
 
 {-
 Note [The flattening story]
@@ -719,7 +724,7 @@ flatten_many_nom :: FlattenEnv -> [Type] -> TcS ([Xi], [TcCoercion])
 flatten_many_nom _     [] = return ([], [])
 -- See Note [flatten_many performance]
 flatten_many_nom fmode (ty:tys)
-  = --ASSERT( fe_eq_rel fmode == NomEq )
+  = ASSERT( fe_eq_rel fmode == NomEq )
     do { (xi, co) <- flatten_one fmode ty
        ; (xis, cos) <- flatten_many_nom fmode tys
        ; return (xi:xis, co:cos) }
@@ -862,7 +867,7 @@ flatten_fam_app, flatten_exact_fam_app, flatten_exact_fam_app_fully
   --   flatten_exact_fam_app_fully lifts out the application to top level
   -- Postcondition: Coercion :: Xi ~ F tys
 flatten_fam_app fmode tc tys  -- Can be over-saturated
-    = --ASSERT( tyConArity tc <= length tys )  -- Type functions are saturated
+    = ASSERT( tyConArity tc <= length tys )  -- Type functions are saturated
                  -- The type function might be *over* saturated
                  -- in which case the remaining arguments should
                  -- be dealt with by AppTys
@@ -1280,7 +1285,7 @@ flattenTyVarOuter fmode tv
              ->  do { traceTcS "Following inert tyvar" (ppr tv <+> equals <+> ppr rhs_ty $$ ppr ctev)
                     ; let rewrite_co1 = mkTcSymCo (ctEvCoercion ctev)
                           rewrite_co = case (ctEvEqRel ctev, fe_eq_rel fmode) of
-                            (ReprEq, _rel)  -> --ASSERT( _rel == ReprEq )
+                            (ReprEq, _rel)  -> ASSERT( _rel == ReprEq )
                                     -- if this ASSERT fails, then
                                     -- eqCanRewriteFR answered incorrectly
                                                rewrite_co1
@@ -1550,7 +1555,7 @@ tryFill :: DynFlags -> TcTyVar -> TcType -> CtEvidence -> TcS Bool
 -- bind the evidence (which should be a CtWanted) to Refl<rhs>
 -- and return True.  Otherwise return False
 tryFill dflags tv rhs ev
-  = --ASSERT2( not (isGiven ev), ppr ev )
+  = ASSERT2( not (isGiven ev), ppr ev )
     do { is_filled <- isFilledMetaTyVar tv
        ; if is_filled then return False else
     do { rhs' <- zonkTcType rhs
