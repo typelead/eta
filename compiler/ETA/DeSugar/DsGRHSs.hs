@@ -5,6 +5,7 @@
 
 Matching guarded right-hand-sides (GRHSs)
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.DeSugar.DsGRHSs ( dsGuarded, dsGRHSs, dsGRHS ) where
 
@@ -26,6 +27,9 @@ import ETA.BasicTypes.Name
 
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Outputable
+import ETA.Utils.Util
+
+#include "HsVersions.h"
 
 {-
 @dsGuarded@ is used for both @case@ expressions and pattern bindings.
@@ -54,7 +58,7 @@ dsGRHSs :: HsMatchContext Name -> [Pat Id]      -- These are to build a MatchCon
         -> Type                                 -- Type of RHS
         -> DsM MatchResult
 dsGRHSs hs_ctx _ (GRHSs grhss binds) rhs_ty
-  = --ASSERT( notNull grhss )
+  = ASSERT( notNull grhss )
     do { match_results <- mapM (dsGRHS hs_ctx rhs_ty) grhss
        ; let match_result1 = foldr1 combineMatchResults match_results
              match_result2 = adjustMatchResultDs (dsLocalBinds binds) match_result1
