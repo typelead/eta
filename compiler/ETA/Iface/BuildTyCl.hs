@@ -2,6 +2,7 @@
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
 -}
+{-# LANGUAGE CPP #-}
 
 module ETA.Iface.BuildTyCl (
         buildSynonymTyCon,
@@ -36,6 +37,8 @@ import ETA.TypeCheck.TcRnMonad
 import ETA.BasicTypes.UniqSupply
 import ETA.Utils.Util
 import ETA.Utils.Outputable
+
+#include "HsVersions.h"
 
 ------------------------------------------------------
 buildSynonymTyCon :: Name -> [TyVar] -> [Role]
@@ -93,7 +96,7 @@ mkNewTyConRhs tycon_name tycon con
     tvs    = tyConTyVars tycon
     roles  = tyConRoles tycon
     inst_con_ty = applyTys (dataConUserType con) (mkTyVarTys tvs)
-    rhs_ty = {-ASSERT( isFunTy inst_con_ty )-} funArgTy inst_con_ty
+    rhs_ty = ASSERT( isFunTy inst_con_ty ) funArgTy inst_con_ty
         -- Instantiate the data con with the
         -- type variables from the tycon
         -- NB: a newtype DataCon has a type that must look like
@@ -189,13 +192,13 @@ buildPatSyn :: Name -> Bool
             -> PatSyn
 buildPatSyn src_name declared_infix matcher@(matcher_id,_) builder
             (univ_tvs, req_theta) (ex_tvs, prov_theta) arg_tys pat_ty
-  = -- ASSERT((and [ univ_tvs == univ_tvs'
-    --             , ex_tvs == ex_tvs'
-    --             , pat_ty `eqType` pat_ty'
-    --             , prov_theta `eqTypes` prov_theta'
-    --             , req_theta `eqTypes` req_theta'
-    --             , arg_tys `eqTypes` arg_tys'
-    --             ]))
+  = ASSERT((and [ univ_tvs == univ_tvs'
+                , ex_tvs == ex_tvs'
+                , pat_ty `eqType` pat_ty'
+                , prov_theta `eqTypes` prov_theta'
+                , req_theta `eqTypes` req_theta'
+                , arg_tys `eqTypes` arg_tys'
+                ]))
     mkPatSyn src_name declared_infix
              (univ_tvs, req_theta) (ex_tvs, prov_theta)
              arg_tys pat_ty
