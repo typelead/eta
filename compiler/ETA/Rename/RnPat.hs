@@ -10,7 +10,7 @@ general, all of these functions return a renamed thing, and a set of
 free variables.
 -}
 
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, CPP #-}
 
 module ETA.Rename.RnPat (-- main entry points
               rnPat, rnPats, rnBindPat, rnPatAndThen,
@@ -65,6 +65,8 @@ import ETA.Prelude.TysWiredIn          ( nilDataCon )
 import ETA.BasicTypes.DataCon             ( dataConName )
 import Control.Monad       ( when, liftM, ap )
 import Data.Ratio
+
+#include "HsVersions.h"
 
 {-
 *********************************************************
@@ -591,7 +593,7 @@ rnHsRecFields ctxt mk_arg (HsRecFields { rec_flds = flds, rec_dotdot = dotdot })
                 _             -> return ()
            ; return [] }
     rn_dotdot (Just n) (Just con) flds -- ".." on record construction / pat match
-      = --ASSERT( n == length flds )
+      = ASSERT( n == length flds )
         do { loc <- getSrcSpanM -- Rather approximate
            ; dd_flag <- xoptM Opt_RecordWildCards
            ; checkErr dd_flag (needFlagDotDot ctxt)
