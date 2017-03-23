@@ -6,7 +6,7 @@
 Pattern-matching literal patterns
 -}
 
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, CPP #-}
 
 module ETA.DeSugar.MatchLit ( dsLit, dsOverLit, hsLitKey, hsOverLitKey
                 , tidyLitPat, tidyNPat
@@ -49,6 +49,8 @@ import Data.Int
 -- import Data.Traversable (traverse)
 -- #endif
 import Data.Word
+
+#include "HsVersions.h"
 
 {-
 ************************************************************************
@@ -96,7 +98,7 @@ dsLit (HsRat r ty) = do
   where
     (ratio_data_con, integer_ty)
         = case tcSplitTyConApp ty of
-                (tycon, [i_ty]) -> --ASSERT(isIntegerTy i_ty && tycon `hasKey` ratioTyConKey)
+                (tycon, [i_ty]) -> ASSERT(isIntegerTy i_ty && tycon `hasKey` ratioTyConKey)
                                    (head (tyConDataCons tycon), i_ty)
                 x -> pprPanic "dsLit" (ppr x)
 
@@ -332,7 +334,7 @@ matchLiterals :: [Id]
               -> DsM MatchResult
 
 matchLiterals (var:vars) ty sub_groups
-  = --ASSERT( notNull sub_groups && all notNull sub_groups )
+  = ASSERT( notNull sub_groups && all notNull sub_groups )
     do  {       -- Deal with each group
         ; alts <- mapM match_group sub_groups
 
@@ -396,7 +398,7 @@ litValKey (HsIntegral _ i) False = MachInt i
 litValKey (HsIntegral _ i) True  = MachInt (-i)
 litValKey (HsFractional r) False = MachFloat (fl_value r)
 litValKey (HsFractional r) True  = MachFloat (negate (fl_value r))
-litValKey (HsIsString _ s) neg   = {-ASSERT( not neg)-} MachStr
+litValKey (HsIsString _ s) neg   = ASSERT( not neg) MachStr
                                                       (fastStringToByteString s)
 
 {-
