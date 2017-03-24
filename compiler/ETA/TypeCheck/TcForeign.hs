@@ -274,13 +274,17 @@ checkJavaTarget (StaticTarget importFS _ _)
               <+> str "from java.lang.Boolean" <> comma
               <+> str "you must type \"@static java.lang.Boolean.parseBoolean\"" <> dot ]
         staticFieldExample =
-          vcat [ str "For example, if you want to import the static field TRUE from"
-             <+> str "the class java.lang.Boolean,"
+          vcat [ str "For example, if you want to import the static field 'TRUE' from"
+             <+> str "the class 'java.lang.Boolean',"
                , str "you must type \"@static @field java.lang.Boolean.TRUE\"" <> dot ]
         fieldExample =
           vcat [ str "For example, if you want to import the field 'x' from"
-             <+> str "a class Point,"
+             <+> str "a class 'Point',"
                , str "you must type \"@field x\"" <> dot ]
+        interfaceExample =
+          vcat [ str "For example, if you want to import the interface method 'run' from"
+             <+> str "the interface 'java.lang.Runnable',"
+               , str "you must type \"@interface run\"" <> dot ]
 
         checkDotInStatic annotation argument partsRest example
           | '.' `elem` argument = exactlyOneArgument annotation partsRest example
@@ -291,7 +295,7 @@ checkJavaTarget (StaticTarget importFS _ _)
         exactlyOneArgument annotation partsRest example =
           (length partsRest == 1,
             vcat [ str annotation <+> str "annotation should contain exactly one argument" <> comma
-                <+> str "but you have given " <+> int (length partsRest) <> dot
+                <+> str "but you have given" <+> int (length partsRest) <> dot
                  , example ])
 
         validationPair
@@ -313,6 +317,7 @@ checkJavaTarget (StaticTarget importFS _ _)
                  | argument:_partsRest2 <- partsRest
                  -> checkDotInStatic "@static" argument partsRest staticMethodExample
               "field" -> exactlyOneArgument "@field" partsRest fieldExample
+              "interface" -> exactlyOneArgument "@interface" partsRest interfaceExample
               _ -> (True, empty)
           | otherwise = (True, empty)
 checkJavaTarget _ = error $ "checkJavaTarget: bad arguments"
