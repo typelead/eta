@@ -40,8 +40,8 @@ import ETA.Types.TyCon
 import ETA.Debug
 import ETA.HsSyn.HsSyn
 import ETA.Utils.Bag
--- import ETA.Utils.Outputable
--- import ETA.Utils.FastString
+import ETA.Utils.Outputable
+import ETA.Utils.FastString
 -- import ETA.Utils.Maybes
 
 -- import Data.Maybe(fromMaybe)
@@ -261,9 +261,56 @@ nonIOok = True
 mustBeIO = False
 
 checkJavaTarget :: CCallTarget -> TcM ()
-checkJavaTarget _ --(StaticTarget _str _ _) 
-  = return ()
-  -- TODO: Validate the name
+checkJavaTarget (StaticTarget importFS _ _)
+  = case validationPair of
+      (condition, msg)
+        | condition == True -> return ()
+        | otherwise         -> addErrTc msg
+
+  where importString = unpackFS importFS
+        importParts = words importString
+        staticMethodExample =
+          vcat [  str "For example, if you want to import the static method parseBoolean"
+              <+> str "from java.lang.Boolean" <> comma
+              <+> str "you must type \"@static java.lang.Boolean.parseBoolean\"" <> dot ]
+        staticFieldExample =
+          vcat [ str "For example, if you want to import the static field TRUE from"
+             <+> str "the class java.lang.Boolean,"
+               , str "you must type \"@static @field java.lang.Boolean.TRUE\"" <> dot ]
+        checkDotInStatic annotation argument partsRest example =
+          if '.' `elem` argument
+             then (length partsRest == 0,
+                   vcat [ str annotation <+> str "annotation should contain exactly one argument" <> comma
+                       <+> str "but you have given " <+> int (length partsRest) <> dot
+                        , example ])
+             else (False,
+                   vcat [ str annotation <+> str "annotation should contain a fully qualified Java class name"
+                       <> comma <+> str "but you have given" <+> quotes (str argument)
+                        , example ])
+
+        validationPair
+          | (keyword:partsRest) <- importParts
+          , ('@':keywordRest) <- keyword
+          = case keywordRest of
+              "static"
+                 | null partsRest -> (False, vcat [ str "@static annotation must have exactly one argument."
+                                                  , staticMethodExample ])
+                 | ('@':secondKeyword):partsRest2 <- partsRest
+                 -> if secondKeyword == "field"
+                    then case partsRest2 of
+                           argument : partsRest3 ->
+                             checkDotInStatic "@static @field" argument partsRest3 staticFieldExample
+                           _ -> (False, vcat [ str "@static @field annotation must have exactly one argument."
+                                             , staticMethodExample ])
+                    else (False,
+                          vcat [ str "@static @" <> str secondKeyword
+                             <+> str "is not a valid annotiation."
+                               , str "Perhaps you meant to write @static @field?"])
+                 | argument:partsRest2 <- partsRest
+                 -> checkDotInStatic "@static" argument partsRest2 staticMethodExample
+              _ -> (True, empty)
+          | otherwise = (True, empty)
+checkJavaTarget _ = error $ "checkJavaTarget: bad arguments"
 
 -- isAnyTy :: Type -> Bool
 -- isAnyTy = isTc anyTyConKey
