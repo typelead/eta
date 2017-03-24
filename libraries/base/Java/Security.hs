@@ -22,6 +22,7 @@ import GHC.Int
 import Java.Array
 import Java.Primitive
 import Java.IO
+import Java.Collections
 
 -- Start java.security.SecureRandom
 
@@ -48,5 +49,7 @@ foreign import java unsafe "setSeed" setSeedLong :: Int64 -> Java SecureRandom (
 
 data {-# CLASS "java.security.Provider" #-} Provider = Provider (Object# Provider)
   deriving Class
+
+type instance Inherits Provider = '[Properties]
 
 -- End java.security.Provider
