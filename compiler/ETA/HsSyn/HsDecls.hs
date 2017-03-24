@@ -1416,8 +1416,7 @@ instance Outputable ForeignImport where
       pprCEntity (CLabel lbl) =
         ptext (sLit "static") <+> pp_hdr <+> char '&' <> ppr lbl
       pprCEntity (CFunction (StaticTarget lbl _ isFun)) =
-            ptext (sLit "static")
-        <+> pp_hdr
+            pp_hdr
         <+> (if isFun then empty else ptext (sLit "value"))
         <+> ppr lbl
       pprCEntity (CFunction (DynamicTarget)) =
