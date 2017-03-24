@@ -277,37 +277,42 @@ checkJavaTarget (StaticTarget importFS _ _)
           vcat [ str "For example, if you want to import the static field TRUE from"
              <+> str "the class java.lang.Boolean,"
                , str "you must type \"@static @field java.lang.Boolean.TRUE\"" <> dot ]
-        checkDotInStatic annotation argument partsRest example =
-          if '.' `elem` argument
-             then (length partsRest == 0,
-                   vcat [ str annotation <+> str "annotation should contain exactly one argument" <> comma
-                       <+> str "but you have given " <+> int (length partsRest) <> dot
-                        , example ])
-             else (False,
-                   vcat [ str annotation <+> str "annotation should contain a fully qualified Java class name"
-                       <> comma <+> str "but you have given" <+> quotes (str argument)
-                        , example ])
+        fieldExample =
+          vcat [ str "For example, if you want to import the field 'x' from"
+             <+> str "a class Point,"
+               , str "you must type \"@field x\"" <> dot ]
+
+        checkDotInStatic annotation argument partsRest example
+          | '.' `elem` argument = exactlyOneArgument annotation partsRest example
+          | otherwise = (False,
+                         vcat [ str annotation <+> str "annotation should contain a fully qualified Java class name"
+                             <> comma <+> str "but you have given" <+> quotes (str argument)
+                              , example ])
+        exactlyOneArgument annotation partsRest example =
+          (length partsRest == 1,
+            vcat [ str annotation <+> str "annotation should contain exactly one argument" <> comma
+                <+> str "but you have given " <+> int (length partsRest) <> dot
+                 , example ])
 
         validationPair
           | (keyword:partsRest) <- importParts
           , ('@':keywordRest) <- keyword
           = case keywordRest of
               "static"
-                 | null partsRest -> (False, vcat [ str "@static annotation must have exactly one argument."
-                                                  , staticMethodExample ])
+                 | null partsRest -> exactlyOneArgument "@static" partsRest staticMethodExample
                  | ('@':secondKeyword):partsRest2 <- partsRest
                  -> if secondKeyword == "field"
                     then case partsRest2 of
-                           argument : partsRest3 ->
-                             checkDotInStatic "@static @field" argument partsRest3 staticFieldExample
-                           _ -> (False, vcat [ str "@static @field annotation must have exactly one argument."
-                                             , staticMethodExample ])
+                           argument : _partsRest3 ->
+                             checkDotInStatic "@static @field" argument partsRest2 staticFieldExample
+                           _ -> exactlyOneArgument "@static" partsRest2 staticMethodExample
                     else (False,
                           vcat [ str "@static @" <> str secondKeyword
                              <+> str "is not a valid annotiation."
                                , str "Perhaps you meant to write @static @field?"])
-                 | argument:partsRest2 <- partsRest
-                 -> checkDotInStatic "@static" argument partsRest2 staticMethodExample
+                 | argument:_partsRest2 <- partsRest
+                 -> checkDotInStatic "@static" argument partsRest staticMethodExample
+              "field" -> exactlyOneArgument "@field" partsRest fieldExample
               _ -> (True, empty)
           | otherwise = (True, empty)
 checkJavaTarget _ = error $ "checkJavaTarget: bad arguments"
