@@ -285,6 +285,14 @@ checkJavaTarget (StaticTarget importFS _ _)
           vcat [ str "For example, if you want to import the interface method 'run' from"
              <+> str "the interface 'java.lang.Runnable',"
                , str "you must type \"@interface run\"" <> dot ]
+        interfaceWrapperExample =
+          vcat [ str "For example, if you want to wrap the interface method 'run' from"
+             <+> str "the interface 'java.lang.Runnable',"
+               , str "you must type \"@wrapper run\"" <> dot ]
+        abstractWrapperExample =
+          vcat [ str "For example, if you want to wrap the abstract method 'intValue' from"
+             <+> str "the abstract class 'java.lang.Number',"
+               , str "you must type \"@wrapper @abstract intValue\"" <> dot ]
 
         checkDotInStatic annotation argument partsRest example
           | '.' `elem` argument = exactlyOneArgument annotation partsRest example
@@ -309,7 +317,7 @@ checkJavaTarget (StaticTarget importFS _ _)
                     then case partsRest2 of
                            argument : _partsRest3 ->
                              checkDotInStatic "@static @field" argument partsRest2 staticFieldExample
-                           _ -> exactlyOneArgument "@static" partsRest2 staticMethodExample
+                           _ -> exactlyOneArgument "@static @field" partsRest2 staticFieldExample
                     else (False,
                           vcat [ str "@static @" <> str secondKeyword
                              <+> str "is not a valid annotiation."
@@ -321,6 +329,16 @@ checkJavaTarget (StaticTarget importFS _ _)
               "new" -> (length partsRest == 0,
                 vcat [ str "@new" <+> str "annotation should not contain any argument" <> comma
                     <+> str "but you have given" <+> int (length partsRest) <> dot ])
+              "wrapper"
+                  | ('@':secondKeyword):partsRest2 <- partsRest
+                  -> if secondKeyword == "abstract"
+                     then exactlyOneArgument "@wrapper @abstract" partsRest2 abstractWrapperExample
+                     else (False,
+                           vcat [ str "@wrapper @" <> str secondKeyword
+                              <+> str "is not a valid annotiation."
+                                , str "Perhaps you meant to write @wrapper @abstract?"])
+                  | otherwise
+                  -> exactlyOneArgument "@wrapper" partsRest interfaceWrapperExample
               _ -> (True, empty)
           | otherwise = (True, empty)
 checkJavaTarget _ = error $ "checkJavaTarget: bad arguments"
