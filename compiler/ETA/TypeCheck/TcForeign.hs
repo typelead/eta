@@ -318,6 +318,9 @@ checkJavaTarget (StaticTarget importFS _ _)
                  -> checkDotInStatic "@static" argument partsRest staticMethodExample
               "field" -> exactlyOneArgument "@field" partsRest fieldExample
               "interface" -> exactlyOneArgument "@interface" partsRest interfaceExample
+              "new" -> (length partsRest == 0,
+                vcat [ str "@new" <+> str "annotation should not contain any argument" <> comma
+                    <+> str "but you have given" <+> int (length partsRest) <> dot ])
               _ -> (True, empty)
           | otherwise = (True, empty)
 checkJavaTarget _ = error $ "checkJavaTarget: bad arguments"
