@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ScopedTypeVariables, KindSignatures,
-             UnboxedTuples, FlexibleContexts, UnliftedFFITypes #-}
+             UnboxedTuples, FlexibleContexts, UnliftedFFITypes, TypeOperators #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Utils
@@ -24,7 +24,8 @@ module Java.Utils
   , hashCode
   , Proxy(..)
   , eqObject#
-  , toString# )
+  , toString#
+  , safeDowncast )
 where
 
 import GHC.Base
@@ -38,12 +39,19 @@ data {-# CLASS "java.lang.Class" #-} JClass a = JClass (Object# (JClass a))
 getClass :: forall (a :: *). Proxy a -> JClass a
 getClass _ = JClass (getClass# (proxy# :: Proxy# a))
 
-foreign import java unsafe classObject :: (Extends a Object) => a -> JClass a
-foreign import java unsafe toString    :: (Extends a Object) => a -> JString
-foreign import java unsafe hashCode    :: (Extends a Object) => a -> Int
+foreign import java unsafe classObject :: (a <: Object) => a -> JClass a
+foreign import java unsafe toString    :: (a <: Object) => a -> JString
+foreign import java unsafe hashCode    :: (a <: Object) => a -> Int
 
-foreign import java unsafe equals :: (Extends a Object, Extends b Object)
+foreign import java unsafe equals :: (a <: Object, b <: Object)
                                   => a -> b -> Bool
 
 foreign import java unsafe "equals" eqObject# :: Object# a -> Object# b -> Bool
 foreign import java unsafe "toString" toString# :: Object# a -> String
+
+foreign import java unsafe "@static eta.base.Utils.convertInstanceOfObject"
+  castObject :: (t <: Object, o <: Object) => o -> JClass t -> Maybe t
+
+{-# INLINE safeDowncast #-}
+safeDowncast :: forall a b. (Class a, Class b) => a -> Maybe b
+safeDowncast x = castObject x (getClass (Proxy :: Proxy b))

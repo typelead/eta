@@ -223,7 +223,7 @@ public class Utils {
         if (errno.get()==null)
             errno.set(0);
     }
-    
+
     public static int get_errno() {
         initErrno();
         return errno.get();
@@ -231,5 +231,13 @@ public class Utils {
 
     public static void set_errno(int errnoCode) {
         errno.set(errnoCode);
+    }
+
+    public static <T> T convertInstanceOfObject(Object o, Class<T> clazz) {
+        try {
+            return clazz.cast(o);
+        } catch(ClassCastException e) {
+            return null;
+        }
     }
 }
