@@ -365,17 +365,6 @@ executable eta
     else
         build-depends:   unix
 
-
-executable eta-build
-    hs-source-dirs:      shake
-    main-is:             Build.hs
-    default-language:    Haskell2010
-    build-depends:       base >= 4.7 && < 5
-                       , shake
-                       , directory
-                       , Cabal
-                       , containers >= 0.5
-
 test-suite eta-packages
     type:                exitcode-stdio-1.0
     hs-source-dirs:      tests/packages
