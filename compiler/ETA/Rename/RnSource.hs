@@ -48,20 +48,11 @@ import ETA.Utils.Digraph          ( SCC, flattenSCC, stronglyConnCompFromEdgedVe
 import ETA.Utils.Util             ( mapSnd )
 
 import Control.Monad
-import Data.List( partition
-                , sortBy
-                , sort
-                , groupBy
-                , intercalate
-                )
-import qualified Data.Char as C
+import Data.List( partition, sortBy )
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable (traverse)
 -- #endif
 import ETA.Utils.Maybes( orElse, mapMaybe )
-
-import System.IO ( Handle, hPutStrLn, stderr )
-import System.Exit ( ExitCode(..), exitWith )
 
 {-
 @rnSourceDecl@ `renames' declarations.
@@ -140,8 +131,6 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
          all_bndrs   = extendNameSetList tc_bndrs val_binders ;
          val_avails  = map Avail val_binders  } ;
    traceRn (text "rnSrcDecls" <+> ppr val_avails) ;
-   let { similar_names = (findSames (listIds val_avails)) } ;
-   when (length similar_names > 0) (liftIO (exitSimilarNames similar_names)) ;
    (tcg_env, tcl_env) <- extendGlobalRdrEnvRn val_avails local_fix_env ;
    setEnvs (tcg_env, tcl_env) $ do {
 
@@ -228,28 +217,6 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
    traceRn (text "finish Dus" <+> ppr src_dus ) ;
    return (final_tcg_env, rn_group)
                     }}}}
-
-printSimilarNames :: Handle -> [String] -> IO ()
-printSimilarNames h ss = do
-  hPutStrLn h ("  " ++ (intercalate " " ss))
-
-exitSimilarNames :: [[String]] -> IO ()
-exitSimilarNames ss = do
-  hPutStrLn stderr "ERROR: Following names differ only in case. \
-                   \The resulting program would fail to work."
-  mapM_ (printSimilarNames stderr) ss
-  hPutStrLn stderr "ERROR: Exiting."
-  exitWith (ExitFailure 1)
-
-findSames :: [String] -> [[String]]
-findSames = filter (\s -> length s > 1) . groupBy (\s t -> toLower s == toLower t) . sort
-  where toLower = map C.toLower
-  
-listIds :: [AvailInfo] -> [String]
-listIds as = map (occNameString . nameOccName) ns
-  where
-    n = availsToNameSet as
-    ns = foldNameSet (:) [] n
 
 -- some utils because we do this a bunch above
 -- compute and install the new env

@@ -33,6 +33,7 @@ import ETA.Rename.RnPat
 import ETA.Rename.RnNames
 import ETA.Rename.RnEnv
 import ETA.Main.DynFlags
+import ETA.BasicTypes.Avail
 import ETA.BasicTypes.Module
 import ETA.BasicTypes.Name
 import ETA.BasicTypes.NameEnv
@@ -45,12 +46,19 @@ import ETA.Utils.Digraph          ( SCC(..) )
 import ETA.Utils.Bag
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
-import Data.List        ( partition, sort )
+import qualified Data.Char as C
+import Data.List( partition
+                , sortBy
+                , sort
+                , groupBy
+                , intercalate
+                )
 import ETA.Utils.Maybes           ( orElse )
 import Control.Monad
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
 -- #endif
+
 
 {-
 -- ToDo: Put the annotations into the monad, so that they arrive in the proper
@@ -272,12 +280,35 @@ rnValBindsLHS :: NameMaker
               -> RnM (HsValBindsLR Name RdrName)
 rnValBindsLHS topP (ValBindsIn mbinds sigs)
   = do { mbinds' <- mapBagM (wrapLocM (rnBindLHS topP doc)) mbinds
+       ; let
+         { bndrs' = collectHsBindsBinders mbinds'
+         ; val_avails  = map Avail bndrs'
+         ; similar_names = (findSames (listIds val_avails))
+         }
+       ; when (not (null similar_names)) (exitSimilarNames similar_names)
        ; return $ ValBindsIn mbinds' sigs }
   where
     bndrs = collectHsBindsBinders mbinds
     doc   = text "In the binding group for:" <+> pprWithCommas ppr bndrs
 
 rnValBindsLHS _ b = pprPanic "rnValBindsLHSFromDoc" (ppr b)
+
+exitSimilarNames :: [[String]] -> RnM a
+exitSimilarNames ss =
+  let msg = "ERROR: Following names differ only in case. \
+                   \The resulting program would fail to work.\n\t"
+      names_msg = intercalate "\n\t" (map unwords ss)
+  in failWith (text (msg ++ names_msg))
+
+findSames :: [String] -> [[String]]
+findSames = filter (\s -> length s > 1) . groupBy (\s t -> toLower s == toLower t) . sort
+  where toLower = map C.toLower
+  
+listIds :: [AvailInfo] -> [String]
+listIds as = map (occNameString . nameOccName) ns
+  where
+    n = availsToNameSet as
+    ns = foldNameSet (:) [] n
 
 -- General version used both from the top-level and for local things
 -- Assumes the LHS vars are in scope
