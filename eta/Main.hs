@@ -1,8 +1,6 @@
 {-# LANGUAGE CPP, NondecreasingIndentation, TupleSections #-}
 module Main (main) where
 
-import GHC.Paths (libdir)
-
 -- GHC API
 import qualified ETA.Main.GHC as GHC
 import ETA.Main.GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
@@ -85,7 +83,7 @@ main = do
     -- 1. extract the -B flag from the args
     argvm1 <- getArgs
     let argv0 = argvm1 ++ ["-ddump-to-file", "-dumpdir", "."]
-
+    libdir <- findTopDir Nothing
     let (minusB_args, argv1) = partition ("-B" `isPrefixOf`) argv0
         mbMinusB | null minusB_args = Just libdir
                  | otherwise = Just (drop 2 (last minusB_args))
