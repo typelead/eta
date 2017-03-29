@@ -82,13 +82,17 @@ public abstract class UpdateFrame extends StackFrame {
             StgThunk bh = updatee;
             do {
                 StgClosure oldIndirectee = bh.indirectee;
-                if (bh.getEvaluated() == null && bh.indirectee != tso) {
+                // TODO: This check only applies for black and white holes. What
+                //       happens if it's a BlockingQueue?
+                if (bh.getEvaluated() == null && bh.indirectee != null &&
+                    bh.indirectee != tso) {
                     cap.suspendComputation(tso, this);
-                    // TODO: Verify that suspendComputation deletes all frames above this one
-                    ListIterator<StackFrame> sp = tso.sp;
-                    sp.next();
-                    sp.set(new StgEnter(bh));
-                    sp.previous();
+                    // TODO: Verify that suspendComputation deletes all frames above
+                    //       this one.
+                    assert  tso.sp.hasNext() == false
+                          : "mark: suspended computation with extra stack frames.";
+                    tso.spPush(new StgEnter(bh));
+                    tso.spPrevious();
                     return Default;
                 } else {
                     if (RtsFlags.ModeFlags.threaded) {
