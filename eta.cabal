@@ -377,3 +377,4 @@ test-suite eta-packages
                        , bytestring
                        , directory
                        , filepath
+    ghc-options:       -Wall -Werror
