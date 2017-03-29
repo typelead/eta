@@ -25,7 +25,7 @@ import Java.Utils
 
 -- Start java.util.concurrent.Executor
 
-data {-# CLASS "java.concurrent.Executor" #-} Executor = Executor (Object# Executor)
+data {-# CLASS "java.util.concurrent.Executor" #-} Executor = Executor (Object# Executor)
   deriving Class
 
 foreign import java unsafe "@interface" execute :: (a <: Executor) => Runnable -> Java a ()
