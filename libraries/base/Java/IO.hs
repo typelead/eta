@@ -43,16 +43,16 @@ foreign import java unsafe "@interface" flush :: (a <: Flushable) => Java a ()
 
 -- Start java.io.Readable
 
-data {-# CLASS "java.io.Readable" #-} Readable = Readable (Object# Readable)
+data {-# CLASS "java.lang.Readable" #-} Readable = Readable (Object# Readable)
   deriving Class
 
 foreign import java unsafe "@interface read" readBuffer :: (a <: Readable) => CharBuffer -> Java a Int
 
--- End java.io.Readable
+-- End java.lang.Readable
 
--- Start java.io.Appendable
+-- Start java.lang.Appendable
 
-data {-# CLASS "java.io.Appendable" #-} Appendable = Appendable (Object# Appendable)
+data {-# CLASS "java.lang.Appendable" #-} Appendable = Appendable (Object# Appendable)
   deriving Class
 
 foreign import java unsafe "@interface append" append :: (a <: Appendable) => JChar -> Java a Appendable
@@ -63,7 +63,7 @@ foreign import java unsafe "@interface append"
 foreign import java unsafe "@interface append"
   appendSubSequence :: (a <: Appendable, b <: CharSequence) => b -> Int -> Int -> Java a Appendable
 
--- End java.io.Readable
+-- End java.lang.Appendable
 
 -- Start java.io.Reader
 
