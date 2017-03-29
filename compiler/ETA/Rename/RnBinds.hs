@@ -47,12 +47,7 @@ import ETA.Utils.Bag
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
 import qualified Data.Char as C
-import Data.List( partition
-                , sortBy
-                , sort
-                , groupBy
-                , intercalate
-                )
+import Data.List( partition, sort )
 import qualified Data.Map as M
 import ETA.Utils.Maybes           ( orElse )
 import ETA.Utils.Util
@@ -302,7 +297,7 @@ addSimDeclErrors ns = mapM_ addSimDeclErr ns
 addSimDeclErr :: [Name] -> TcRn ()
 addSimDeclErr []
   = panic "addSimDeclErr: empty list"
-addSimDeclErr names@(name : _)
+addSimDeclErr names
   = addErrAt (getSrcSpan (sorted_names !! 1)) $
     -- Report the error at the second instance
     vcat [ptext (sLit "Multiple declarations with names differing only in case."),
