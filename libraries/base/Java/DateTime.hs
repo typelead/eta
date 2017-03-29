@@ -40,8 +40,6 @@ foreign import java unsafe clear :: (a <: Calendar) => Java a ()
 
 foreign import java unsafe "clear" clearInt :: (a <: Calendar) => Int -> Java a ()
 
-foreign import java unsafe clone :: (a <: Calendar) => Java a Object
-
 foreign import java unsafe compareTo :: (a <: Calendar) => Calendar -> Java a Int
 
 foreign import java unsafe complete :: (a <: Calendar) => Java a ()
@@ -82,8 +80,6 @@ foreign import java unsafe getTimeZone :: (a <: Calendar) => Java a TimeZone
 foreign import java unsafe getWeeksInWeekYear :: (a <: Calendar) => Java a Int
 
 foreign import java unsafe getWeekYear :: (a <: Calendar) => Java a Int
-
-foreign import java unsafe "hashCode" hashCodeCalendar :: (a <: Calendar) => Java a Int
 
 foreign import java unsafe internalGet :: (a <: Calendar) => Int -> Java a Int
 
@@ -144,8 +140,6 @@ foreign import java unsafe "setTime" setTimeDate :: (a <: Date) => Java a Int64
 
 data {-# CLASS "java.util.TimeZone" #-} TimeZone = TimeZone (Object# TimeZone)
   deriving Class
-
-foreign import java unsafe "clone" cloneTimeZone :: (a <: TimeZone) => Java a Object
 
 foreign import java unsafe "getDisplayName" getDisplayNameTimeZone :: (a <: TimeZone) => Java a String
 
