@@ -30,8 +30,6 @@ import Java.Wrappers
 data {-# CLASS "java.util.Locale" #-} Locale = Locale (Object# Locale)
   deriving Class
 
-foreign import java unsafe clone :: Java Locale Object
-
 foreign import java unsafe getCountry :: Java Locale String
 
 foreign import java unsafe getDisplayCountry :: Java Locale String
