@@ -4,16 +4,16 @@ import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
 import Development.Shake.Util
-import System.Directory(createDirectoryIfMissing, getAppUserDataDirectory,
-                        createDirectory, removeDirectory, findExecutable)
+import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory,
+                         createDirectory, removeDirectory, findExecutable)
 import System.Console.GetOpt
-import Control.Monad(forM_, when)
-import Data.List (partition,stripPrefix, isPrefixOf)
-import Data.Maybe(mapMaybe,isJust)
+import Control.Monad (forM_, when)
+import Data.List (partition, stripPrefix, isPrefixOf, isInfixOf)
+import Data.Maybe (mapMaybe, isJust)
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
 import Distribution.ModuleName (fromString)
-import System.Info(os)
+import System.Info (os)
 import System.Exit(ExitCode(..))
 import GHC.IO.Exception(ExitCode)
 
@@ -22,14 +22,9 @@ genBuild x = x </> "build"
 rtsBuildDir = rtsDir </> "build"
 rtsIncludeDir = rtsDir </> "include"
 rtsSrcDir = rtsDir </> "src"
-sampleDir = "sample"
-mapandsumDir = sampleDir </> "mapandsum"
-sampleBuildDir = sampleDir </> "build"
 build x = rtsBuildDir </> x
 debug x = liftIO $ print x
-sampleBuild x = sampleBuildDir </> x
 rtsjar = libJarPath "rts"
-masjar = sampleBuild "mapandsum.jar"
 top x = "../../" ++ x
 testsDir = "tests"
 packageConfDir dir = dir </> "package.conf.d"
@@ -49,6 +44,15 @@ getEtaRoot = liftIO $ getAppUserDataDirectory "eta"
 libraryDir = "libraries"
 library x = libraryDir </> x
 
+libName :: String -> String
+libName lib = "HS" ++ lib ++ ".jar"
+
+libCustomBuildDir :: String -> FilePath
+libCustomBuildDir lib = libraryDir </> lib </> "build"
+
+libJarPath :: String -> FilePath
+libJarPath lib = libCustomBuildDir lib </> libName lib
+
 createDirIfMissing = liftIO . createDirectoryIfMissing True
 
 getDependencies :: String -> [String]
@@ -67,11 +71,6 @@ topologicalDepsSort xs deps = sort' xs []
        sort' xs ys = sort' xs2 (xs1 ++ ys)
          where (xs1, xs2) = partition (all (`elem` ys) . deps) xs
 
-libName :: String -> String
-libName lib = "HS" ++ lib ++ ".jar"
-
-libJarPath :: String -> FilePath
-libJarPath lib = libraryDir </> lib </> "build" </> libName lib
 
 buildConf :: String -> FilePath -> FilePath -> Action ()
 buildConf lib confSrc confDst = do
@@ -212,6 +211,20 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
         forM_ sortedLibs $ \lib ->
           buildLibrary debug lib (getDependencies lib)
 
+    phony "rts-clean" $ do
+      liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]
+      need [rtsjar]
+      let libDir = libraryDir </> "rts"
+      unit $ cmd (Cwd libDir) "epm clean"
+      unit $ cmd (Cwd libDir) "epm build"
+      epmDir <- getEpmDir
+      let epmLibDir = epmDir </> "lib"
+      -- @VERSION_CHANGE@
+      epmLibDir' <- fmap (head . filter ("eta-0.0.5" `isInfixOf`))
+                   $ getDirectoryContents epmLibDir
+      copyFile' (libDir </> "dist" </> "build" </> "HSrts-0.1.0.0.jar")
+                (epmLibDir </> epmLibDir' </> "rts-0.1.0.0" </> "HSrts-0.1.0.0.jar")
+
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]
       mapM_ testSpec specs
@@ -236,16 +249,6 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags targets
       forM_ libs $ \lib -> do
         let libDir = libraryDir </> lib
         unit $ cmd (Cwd libDir) "epm clean"
-
-    masjar %> \out -> do
-      createDirIfMissing sampleBuildDir
-      cs <- getDirectoryFiles mapandsumDir ["java/src//*.java"]
-      need [rtsjar]
-      -- TODO: Setup a debug build
-      unit $ cmd (Cwd mapandsumDir) "javac" "-g" "-cp" (top rtsjar) "-d" (top sampleBuildDir) cs
-      classfiles <- getDirectoryFiles sampleBuildDir ["//*.class"]
-      unit $ cmd (Cwd sampleBuildDir) "jar cf" (top out) classfiles
-      putNormal "Generated mapandsum.jar."
 
     rtsjar %> \out -> do
       createDirIfMissing rtsBuildDir
