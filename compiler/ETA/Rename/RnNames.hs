@@ -41,6 +41,7 @@ import ETA.Utils.FastString
 import ETA.Utils.ListSetOps
 
 import Control.Monad
+import qualified Data.Char as C
 import Data.Map         ( Map )
 import qualified Data.Map as Map
 import Data.List        ( partition, (\\), find )
@@ -515,6 +516,13 @@ getLocalNonValBinders fixity_env
   = do  { -- Process all type/class decls *except* family instances
         ; tc_avails <- mapM new_tc (tyClGroupConcat tycl_decls)
         ; traceRn (text "getLocalNonValBinders 1" <+> ppr tc_avails)
+        ; let
+          { (ts, cs) = separateTypesAndConstructors tc_avails
+          ; sames_ts = findSames ts
+          ; sames_cs = findSames cs
+          }
+        ; when (not (null sames_ts)) (addSimDeclErrors sames_ts)
+        ; when (not (null sames_cs)) (addSimDeclErrors sames_cs)
         ; envs <- extendGlobalRdrEnvRn tc_avails fixity_env
         ; setEnvs envs $ do {
             -- Bring these things into scope first
@@ -587,6 +595,44 @@ getLocalNonValBinders fixity_env
              ; sub_names <- mapM newTopSrcBinder (hsDataFamInstBinders ti_decl)
              ; return (AvailTC (unLoc main_name) sub_names) }
                         -- main_name is not bound here!
+                        
+addSimDeclErrors :: [[Name]] -> RnM ()
+addSimDeclErrors ns = mapM_ addSimDeclErr ns
+
+-- Copied from RnNames.addDupDeclErr
+addSimDeclErr :: [Name] -> TcRn ()
+addSimDeclErr []
+  = panic "addSimDeclErr: empty list"
+addSimDeclErr names
+  = addErrAt (getSrcSpan (sorted_names !! 1)) $
+    -- Report the error at the second instance
+    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
+          ptext (sLit "Declared at:") <+>
+                   vcat (map (ppr . nameSrcLoc) sorted_names)]
+  where
+    sorted_names = sortWith nameSrcLoc names
+
+separateTypesAndConstructors :: [AvailInfo] -> ([AvailInfo], [AvailInfo])
+separateTypesAndConstructors [] = ([], [])
+-- The type name also gets added to the head of the list of constructor names.
+-- Ignore it here.
+separateTypesAndConstructors ((AvailTC n (_:ns):as)) = ((Avail n):ts, (map Avail ns) ++ cs)
+  where (ts, cs) = separateTypesAndConstructors as
+-- Panic on anything but a type and constructors.
+separateTypesAndConstructors as = pprPanic "separateTypesAndConstructors" (ppr as)
+
+
+findSames :: [AvailInfo] -> [[Name]]
+findSames as = filter (\l -> length l > 1) (Map.elems sames)
+  where
+    sames = foldr addTo Map.empty as
+    addTo a m =
+      case Map.lookup l m of
+        Just ns -> Map.insert l (n : ns) m
+        Nothing -> Map.insert l [n] m
+      where n = availName a
+            l = toLower $ occNameString $ nameOccName n
+            toLower = map C.toLower
 
 {-
 Note [Looking up family names in family instances]
