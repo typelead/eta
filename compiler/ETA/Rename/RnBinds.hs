@@ -170,8 +170,49 @@ it expects the global environment to contain bindings for the binders
 rnTopBindsLHS :: MiniFixityEnv
               -> HsValBinds RdrName
               -> RnM (HsValBindsLR Name RdrName)
-rnTopBindsLHS fix_env binds
-  = rnValBindsLHS (topRecNameMaker fix_env) binds
+rnTopBindsLHS fix_env binds = do
+  binds' <- rnValBindsLHS (topRecNameMaker fix_env) binds
+  checkSimilarNames binds'
+  return binds'
+
+checkSimilarNames :: HsValBindsLR Name RdrName
+                  -> RnM ()
+checkSimilarNames (ValBindsIn mbinds _)
+  = do { let
+         { bndrs = collectHsBindsBinders mbinds
+         ; val_avails  = map Avail bndrs
+         ; similar_names = (findSames val_avails)
+         }
+       ; when (not (null similar_names)) (addSimDeclErrors similar_names) }
+checkSimilarNames b = pprPanic "checkSimilarNames" (ppr b)
+
+addSimDeclErrors :: [[Name]] -> RnM ()
+addSimDeclErrors ns = mapM_ addSimDeclErr ns
+
+-- Copied from RnNames.addDupDeclErr
+addSimDeclErr :: [Name] -> TcRn ()
+addSimDeclErr []
+  = panic "addSimDeclErr: empty list"
+addSimDeclErr names
+  = addErrAt (getSrcSpan (sorted_names !! 1)) $
+    -- Report the error at the second instance
+    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
+          ptext (sLit "Declared at:") <+>
+                   vcat (map (ppr . nameSrcLoc) sorted_names)]
+  where
+    sorted_names = sortWith nameSrcLoc names
+
+findSames :: [AvailInfo] -> [[Name]]
+findSames as = filter (\l -> length l > 1) (M.elems sames)
+  where
+    sames = foldr addTo M.empty as
+    addTo a m =
+      case M.lookup l m of
+        Just ns -> M.insert l (n : ns) m
+        Nothing -> M.insert l [n] m
+      where n = availName a
+            l = toLower $ occNameString $ nameOccName n
+            toLower = map C.toLower
 
 rnTopBindsRHS :: NameSet -> HsValBindsLR Name RdrName
               -> RnM (HsValBinds Name, DefUses)
@@ -277,46 +318,12 @@ rnValBindsLHS :: NameMaker
               -> RnM (HsValBindsLR Name RdrName)
 rnValBindsLHS topP (ValBindsIn mbinds sigs)
   = do { mbinds' <- mapBagM (wrapLocM (rnBindLHS topP doc)) mbinds
-       ; let
-         { bndrs' = collectHsBindsBinders mbinds'
-         ; val_avails  = map Avail bndrs'
-         ; similar_names = (findSames val_avails)
-         }
-       ; when (not (null similar_names)) (addSimDeclErrors similar_names)
        ; return $ ValBindsIn mbinds' sigs }
   where
     bndrs = collectHsBindsBinders mbinds
     doc   = text "In the binding group for:" <+> pprWithCommas ppr bndrs
 
 rnValBindsLHS _ b = pprPanic "rnValBindsLHSFromDoc" (ppr b)
-
-addSimDeclErrors :: [[Name]] -> RnM ()
-addSimDeclErrors ns = mapM_ addSimDeclErr ns
-
--- Copied from RnNames.addDupDeclErr
-addSimDeclErr :: [Name] -> TcRn ()
-addSimDeclErr []
-  = panic "addSimDeclErr: empty list"
-addSimDeclErr names
-  = addErrAt (getSrcSpan (sorted_names !! 1)) $
-    -- Report the error at the second instance
-    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
-          ptext (sLit "Declared at:") <+>
-                   vcat (map (ppr . nameSrcLoc) sorted_names)]
-  where
-    sorted_names = sortWith nameSrcLoc names
-
-findSames :: [AvailInfo] -> [[Name]]
-findSames as = filter (\l -> length l > 1) (M.elems sames)
-  where
-    sames = foldr addTo M.empty as
-    addTo a m =
-      case M.lookup l m of
-        Just ns -> M.insert l (n : ns) m
-        Nothing -> M.insert l [n] m
-      where n = availName a
-            l = toLower $ occNameString $ nameOccName n
-            toLower = map C.toLower
 
 -- General version used both from the top-level and for local things
 -- Assumes the LHS vars are in scope
