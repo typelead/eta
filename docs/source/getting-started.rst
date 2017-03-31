@@ -36,11 +36,8 @@ General
 """""""
 
 - `Stack <https://docs.haskellstack.org/en/stable/README>`_
-  - Make sure the path that is obtained from running
-    ```
-    stack path --local-bin
-    ```
-    are present on the PATH.
+  - Make sure the path that is obtained from running ``stack path --local-bin``
+    is present on the PATH.
 - `JDK 1.7 <http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html>`_ or `JDK 1.8 <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_
 
   - Make sure ``javac`` and ``java`` are on the PATH.
@@ -53,11 +50,12 @@ OS X
 Installation
 """"""""""""
 
-Clone the repository and run the install script at the root of the repository:
+Clone the repository and run the install script at the root of the repository.
+Replace ``[current-stable-tag]`` with the tag listed in the README of the eta repo.
 
   .. code-block:: console
 
-    git clone --recursive https://github.com/typelead/eta
+    git clone --recursive --branch [current-stable-tag] https://github.com/typelead/eta
     cd eta
     ./install.sh # or install.cmd in windows command prompt
 
