@@ -14,3 +14,4 @@ utils/trace/Filter
 utils/trace/TRACE_DUMP
 node_modules/
 *.egg-info
+result
