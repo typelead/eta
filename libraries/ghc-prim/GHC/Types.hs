@@ -22,6 +22,7 @@ module GHC.Types (
         Ordering(..), IO(..),
         Java(..), Object(..), JString(..),
         CharSequence(..),
+        Comparable(..),
         Object#,
         isTrue#,
         SPEC(..),
@@ -247,3 +248,4 @@ type role Java nominal representational
 data {-# CLASS "java.lang.Object" #-} Object  = O#  (Object# Object)
 data {-# CLASS "java.lang.String" #-} JString = JS# (Object# JString)
 data {-# CLASS "java.lang.CharSequence" #-} CharSequence = CS# (Object# CharSequence)
+data {-# CLASS "java.lang.Comparable" #-} Comparable t = CT# (Object# (Comparable t))

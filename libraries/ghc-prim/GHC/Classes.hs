@@ -311,11 +311,21 @@ instance Class JString where
   unobj (JS# x) = x
   obj = JS#
 
-type instance Inherits JString = '[Object, CharSequence]
+instance Class CharSequence where
+  unobj (CS# x) = x
+  obj = CS#
+
+instance (Class t) => Class (Comparable t) where
+  unobj (CT# x) = x
+  obj = CT#
+
+foreign import java unsafe "@interface compareTo" compareTo :: (t <: Comparable t) => t -> t -> Int
+
+type instance Inherits JString = '[Object, CharSequence, Comparable JString]
 
 foreign import java unsafe "equals" __equals :: Object# a -> Object# b -> Bool
 
-foreign import java unsafe "compareTo" __compareTo :: JString -> JString -> Int
+-- foreign import java unsafe "compareTo" __compareTo :: JString -> JString -> Int
 
 instance Eq Object where
   (==) (O# x) (O# y)= __equals x y
@@ -324,7 +334,7 @@ instance Eq JString where
   (==) (JS# x) (JS# y) = __equals x y
 
 instance Ord JString where
-  (<=) x y = __compareTo x y <= (I# 0#)
+  (<=) x y = compareTo x y <= (I# 0#)
 
 -- For embedding Java class hierarchies
 data Defined = Yes | No
