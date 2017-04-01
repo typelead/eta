@@ -46,13 +46,12 @@ import ETA.Utils.Digraph          ( SCC(..) )
 import ETA.Utils.Bag
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
-import Data.List( partition, sort )
+import Data.List        ( partition, sort )
 import ETA.Utils.Maybes           ( orElse )
 import Control.Monad
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
 -- #endif
-
 
 {-
 -- ToDo: Put the annotations into the monad, so that they arrive in the proper
