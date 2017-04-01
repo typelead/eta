@@ -21,6 +21,7 @@ module Java.Wrappers
   , JShort
   , JCharacter
   , JInteger
+  , JNumber
   , JLong
   , JFloat
   , JDouble
