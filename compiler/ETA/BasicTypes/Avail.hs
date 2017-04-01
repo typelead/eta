@@ -7,9 +7,13 @@ module ETA.BasicTypes.Avail (
     AvailInfo(..),
     availsToNameSet,
     availsToNameEnv,
+    findSames,
     availName, availNames,
     stableAvailCmp
   ) where
+
+import qualified Data.Char as C
+import qualified Data.Map as M
 
 import ETA.BasicTypes.Name
 import ETA.BasicTypes.NameEnv
@@ -62,6 +66,18 @@ availsToNameEnv :: [AvailInfo] -> NameEnv AvailInfo
 availsToNameEnv avails = foldr add emptyNameEnv avails
      where add avail env = extendNameEnvList env
                                 (zip (availNames avail) (repeat avail))
+
+findSames :: [AvailInfo] -> [[Name]]
+findSames as = filter (\l -> length l > 1) (M.elems sames)
+  where
+    sames = foldr addTo M.empty as
+    addTo a m =
+      case M.lookup l m of
+        Just ns -> M.insert l (n : ns) m
+        Nothing -> M.insert l [n] m
+      where n = availName a
+            l = toLower $ occNameString $ nameOccName n
+            toLower = map C.toLower
 
 -- | Just the main name made available, i.e. not the available pieces
 -- of type or class brought into scope by the 'GenAvailInfo'
