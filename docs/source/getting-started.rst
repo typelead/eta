@@ -6,7 +6,7 @@ how to work with EPM projects. If at any point you get stuck with any of the ste
 below, feel free to join us on `Gitter <https://gitter.im/typelead/eta>`_ so we can
 help you troubleshoot.
 
-Installating Eta
+Installing Eta
 ----------------
 
 Currently, the there are a few ways of installing Eta:
