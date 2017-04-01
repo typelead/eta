@@ -517,13 +517,8 @@ getLocalNonValBinders fixity_env
   = do  { -- Process all type/class decls *except* family instances
         ; tc_avails <- mapM new_tc (tyClGroupConcat tycl_decls)
         ; traceRn (text "getLocalNonValBinders 1" <+> ppr tc_avails)
-        ; let
-          { (ts, cs) = separateTypesAndConstructors tc_avails
-          ; sames_ts = findSames ts
-          ; sames_cs = findSames cs
-          }
-        ; when (not (null sames_ts)) (addSimDeclErrors sames_ts)
-        ; when (not (null sames_cs)) (addSimDeclErrors sames_cs)
+        ; let sames = findSames tc_avails
+        ; when (not (null sames)) (addSimDeclErrors sames)
         ; envs <- extendGlobalRdrEnvRn tc_avails fixity_env
         ; setEnvs envs $ do {
             -- Bring these things into scope first
@@ -597,16 +592,6 @@ getLocalNonValBinders fixity_env
              ; return (AvailTC (unLoc main_name) sub_names) }
                         -- main_name is not bound here!
                         
-separateTypesAndConstructors :: [AvailInfo] -> ([AvailInfo], [AvailInfo])
-separateTypesAndConstructors [] = ([], [])
--- The type name also gets added to the head of the list of constructor names.
--- Ignore it here.
-separateTypesAndConstructors ((AvailTC n (_:ns):as)) = ((Avail n):ts, (map Avail ns) ++ cs)
-  where (ts, cs) = separateTypesAndConstructors as
--- Panic on anything but a type and constructors.
-separateTypesAndConstructors as = pprPanic "separateTypesAndConstructors" (ppr as)
-
-
 {-
 Note [Looking up family names in family instances]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
