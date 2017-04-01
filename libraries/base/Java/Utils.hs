@@ -25,7 +25,8 @@ module Java.Utils
   , Proxy(..)
   , eqObject#
   , toString#
-  , safeDowncast )
+  , safeDowncast
+  , Void )
 where
 
 import GHC.Base
