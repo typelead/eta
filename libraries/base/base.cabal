@@ -239,6 +239,7 @@ Library
         Java.Primitive
         Java.Security
         Java.String
+        Java.StringUtils
         Java.TopHandler
         Java.Text
         Java.Utils
