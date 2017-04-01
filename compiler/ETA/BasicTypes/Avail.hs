@@ -68,16 +68,18 @@ availsToNameEnv avails = foldr add emptyNameEnv avails
                                 (zip (availNames avail) (repeat avail))
 
 findSames :: [AvailInfo] -> [[Name]]
-findSames as = filter (\l -> length l > 1) (M.elems sames)
+findSames as = filter (\l -> length l > 1) sames
   where
-    sames = foldr addTo M.empty as
-    addTo a m =
+    sames = M.elems mm ++ M.elems am
+    (mm, am) = foldr addTo (M.empty, M.empty) as
+    addTo a (mm, am) = (addName n mm, foldr addName am ans)
+      where (n:ans) = availNames a
+    addName n m =
       case M.lookup l m of
         Just ns -> M.insert l (n : ns) m
         Nothing -> M.insert l [n] m
-      where n = availName a
-            l = toLower $ occNameString $ nameOccName n
-            toLower = map C.toLower
+      where l = toLower n
+    toLower n = map C.toLower (occNameString (nameOccName n))
 
 -- | Just the main name made available, i.e. not the available pieces
 -- of type or class brought into scope by the 'GenAvailInfo'
