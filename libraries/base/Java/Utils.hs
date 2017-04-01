@@ -55,3 +55,10 @@ foreign import java unsafe "@static eta.base.Utils.convertInstanceOfObject"
 {-# INLINE safeDowncast #-}
 safeDowncast :: forall a b. (Class a, Class b) => a -> Maybe b
 safeDowncast x = castObject x (getClass (Proxy :: Proxy b))
+
+-- Start java.lang.Void
+
+data {-# CLASS "java.lang.Void" #-} Void = Void (Object# Void)
+  deriving Class
+
+-- End java.lang.Void
