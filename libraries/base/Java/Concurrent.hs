@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, TypeOperators,
-  DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses #-}
+  DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses, AllowAmbiguousTypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Concurrent
@@ -40,3 +40,48 @@ data {-# CLASS "java.lang.Runnable" #-} Runnable = Runnable (Object# Runnable)
 foreign import java unsafe "@interface" run :: Java Runnable ()
 
 -- End java.lang.Runnable
+
+-- Start java.util.concurrent.Future
+
+data {-# CLASS "java.util.concurrent.Future" #-} Future v = Future (Object# (Future v))
+  deriving Class
+
+foreign import java unsafe "@interface cancel" cancel :: (v <: Object, b <: (Future v)) => Bool -> Java b Bool
+
+foreign import java unsafe "@interface get" get :: (v <: Object, b <: (Future v)) => Java b v
+
+foreign import java unsafe "@interface get" getTimeUnit :: (v <: Object, b <: (Future v)) => Int64 -> TimeUnit -> Java b v
+
+foreign import java unsafe "@interface isCancelled" isCancelled :: (v <: Object, b <: (Future v)) => Java b Bool
+
+foreign import java unsafe "@interface isDone" isDone :: (v <: Object, b <: (Future v)) => Java b Bool
+
+-- End java.util.concurrent.Future
+
+-- Start java.util.concurrent.TimeUnit
+
+data {-# CLASS "java.util.concurrent.TimeUnit" #-} TimeUnit = TimeUnit (Object# TimeUnit)
+  deriving Class
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.DAYS"
+  timeUnitDAYS :: TimeUnit
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.HOURS"
+  timeUnitHOURS :: TimeUnit
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.MICROSECONDS"
+  timeUnitMICROSECONDS :: TimeUnit
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.MILLISECONDS"
+  timeUnitMILLISECONDS :: TimeUnit
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.MINUTES"
+  timeUnitMINUTES :: TimeUnit
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.NANOSECONDS"
+  timeUnitNANOSECONDS :: TimeUnit
+
+foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.SECONDS"
+  timeUnitSECONDS :: TimeUnit
+
+-- End java.util.concurrent.TimeUnit
