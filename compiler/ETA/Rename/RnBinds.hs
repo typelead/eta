@@ -46,11 +46,8 @@ import ETA.Utils.Digraph          ( SCC(..) )
 import ETA.Utils.Bag
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
-import qualified Data.Char as C
 import Data.List( partition, sort )
-import qualified Data.Map as M
 import ETA.Utils.Maybes           ( orElse )
-import ETA.Utils.Util
 import Control.Monad
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
@@ -185,34 +182,6 @@ checkSimilarNames (ValBindsIn mbinds _)
          }
        ; when (not (null similar_names)) (addSimDeclErrors similar_names) }
 checkSimilarNames b = pprPanic "checkSimilarNames" (ppr b)
-
-addSimDeclErrors :: [[Name]] -> RnM ()
-addSimDeclErrors ns = mapM_ addSimDeclErr ns
-
--- Copied from RnNames.addDupDeclErr
-addSimDeclErr :: [Name] -> TcRn ()
-addSimDeclErr []
-  = panic "addSimDeclErr: empty list"
-addSimDeclErr names
-  = addErrAt (getSrcSpan (sorted_names !! 1)) $
-    -- Report the error at the second instance
-    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
-          ptext (sLit "Declared at:") <+>
-                   vcat (map (ppr . nameSrcLoc) sorted_names)]
-  where
-    sorted_names = sortWith nameSrcLoc names
-
-findSames :: [AvailInfo] -> [[Name]]
-findSames as = filter (\l -> length l > 1) (M.elems sames)
-  where
-    sames = foldr addTo M.empty as
-    addTo a m =
-      case M.lookup l m of
-        Just ns -> M.insert l (n : ns) m
-        Nothing -> M.insert l [n] m
-      where n = availName a
-            l = toLower $ occNameString $ nameOccName n
-            toLower = map C.toLower
 
 rnTopBindsRHS :: NameSet -> HsValBindsLR Name RdrName
               -> RnM (HsValBinds Name, DefUses)

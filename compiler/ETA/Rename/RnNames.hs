@@ -12,7 +12,9 @@ module ETA.Rename.RnNames (
         gresFromAvails,
         calculateAvails,
         reportUnusedNames,
-        checkConName
+        checkConName,
+        -- These error functions are also used in RnBinds
+        addSimDeclErrors, addSimDeclErr
     ) where
 
 import ETA.Main.DynFlags
@@ -41,7 +43,6 @@ import ETA.Utils.FastString
 import ETA.Utils.ListSetOps
 
 import Control.Monad
-import qualified Data.Char as C
 import Data.Map         ( Map )
 import qualified Data.Map as Map
 import Data.List        ( partition, (\\), find )
@@ -596,22 +597,6 @@ getLocalNonValBinders fixity_env
              ; return (AvailTC (unLoc main_name) sub_names) }
                         -- main_name is not bound here!
                         
-addSimDeclErrors :: [[Name]] -> RnM ()
-addSimDeclErrors ns = mapM_ addSimDeclErr ns
-
--- Copied from RnNames.addDupDeclErr
-addSimDeclErr :: [Name] -> TcRn ()
-addSimDeclErr []
-  = panic "addSimDeclErr: empty list"
-addSimDeclErr names
-  = addErrAt (getSrcSpan (sorted_names !! 1)) $
-    -- Report the error at the second instance
-    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
-          ptext (sLit "Declared at:") <+>
-                   vcat (map (ppr . nameSrcLoc) sorted_names)]
-  where
-    sorted_names = sortWith nameSrcLoc names
-
 separateTypesAndConstructors :: [AvailInfo] -> ([AvailInfo], [AvailInfo])
 separateTypesAndConstructors [] = ([], [])
 -- The type name also gets added to the head of the list of constructor names.
@@ -621,18 +606,6 @@ separateTypesAndConstructors ((AvailTC n (_:ns):as)) = ((Avail n):ts, (map Avail
 -- Panic on anything but a type and constructors.
 separateTypesAndConstructors as = pprPanic "separateTypesAndConstructors" (ppr as)
 
-
-findSames :: [AvailInfo] -> [[Name]]
-findSames as = filter (\l -> length l > 1) (Map.elems sames)
-  where
-    sames = foldr addTo Map.empty as
-    addTo a m =
-      case Map.lookup l m of
-        Just ns -> Map.insert l (n : ns) m
-        Nothing -> Map.insert l [n] m
-      where n = availName a
-            l = toLower $ occNameString $ nameOccName n
-            toLower = map C.toLower
 
 {-
 Note [Looking up family names in family instances]
@@ -1787,6 +1760,21 @@ addDupDeclErr names@(name : _)
              -- NB. print the OccName, not the Name, because the
              -- latter might not be in scope in the RdrEnv and so will
              -- be printed qualified.
+          ptext (sLit "Declared at:") <+>
+                   vcat (map (ppr . nameSrcLoc) sorted_names)]
+  where
+    sorted_names = sortWith nameSrcLoc names
+
+addSimDeclErrors :: [[Name]] -> RnM ()
+addSimDeclErrors ns = mapM_ addSimDeclErr ns
+
+addSimDeclErr :: [Name] -> TcRn ()
+addSimDeclErr []
+  = panic "addSimDeclErr: empty list"
+addSimDeclErr names
+  = addErrAt (getSrcSpan (sorted_names !! 1)) $
+    -- Report the error at the second instance
+    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
           ptext (sLit "Declared at:") <+>
                    vcat (map (ppr . nameSrcLoc) sorted_names)]
   where
