@@ -22,6 +22,7 @@ import GHC.Int
 import Java.Array
 import Java.Primitive
 import Java.NIO
+import Java.Text
 
 -- Start java.io.Closeable
 
@@ -303,3 +304,138 @@ foreign import java unsafe "@interface" writeLong :: (a <: DataOutput) => Int64 
 foreign import java unsafe "@interface" writeshort :: (a <: DataOutput) => Short -> Java a ()
 
 foreign import java unsafe "@interface" writeUTF :: (a <: DataOutput) => String -> Java a ()
+
+-- End java.io.DataOutput
+
+-- Start java.io.FilterOutputStream
+
+data {-# CLASS "java.io.FilterOutputStream" #-} FilterOutputStream = FilterOutputStream (Object# FilterOutputStream)
+  deriving Class
+
+type instance Inherits FilterOutputStream = '[OutputStream, Closeable, Flushable]
+
+-- End java.io.FilterOutputStream
+
+-- Start java.io.PrintWriter
+
+data {-# CLASS "java.io.PrintWriter" #-} PrintWriter = PrintWriter (Object# PrintWriter)
+  deriving Class
+
+type instance Inherits PrintWriter = '[Writer, Closeable, Flushable, Appendable]
+
+foreign import java unsafe checkError :: Java PrintWriter Bool
+
+foreign import java unsafe clearError :: Java PrintWriter ()
+
+foreign import java unsafe "format" formatLocale :: Locale -> String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe format :: String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe "print" printBool :: Bool -> Java PrintWriter ()
+
+foreign import java unsafe "print" printChar :: Char -> Java PrintWriter ()
+
+foreign import java unsafe "print" printCharArray :: JCharArray -> Java PrintWriter ()
+
+foreign import java unsafe "print" printDouble :: Double -> Java PrintWriter ()
+
+foreign import java unsafe "print" printFloat :: Float -> Java PrintWriter ()
+
+foreign import java unsafe "print" printInt :: Int -> Java PrintWriter ()
+
+foreign import java unsafe "print" printLong :: Int64 -> Java PrintWriter ()
+
+foreign import java unsafe "print" printObject :: Object -> Java PrintWriter ()
+
+foreign import java unsafe "print" printString :: String -> Java PrintWriter ()
+
+foreign import java unsafe "printf"
+  printfLocale :: Locale -> String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe printf :: String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe println :: Java PrintWriter ()
+
+foreign import java unsafe "println" printlnBool :: Bool -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnChar :: Char -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnCharArray :: JCharArray -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnDouble :: Double -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnFloat :: Float -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnInt :: Int -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnLong :: Int64 -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnObject :: Object -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnString :: String -> Java PrintWriter ()
+
+foreign import java unsafe setError :: Java PrintWriter ()
+
+-- End java.io.PrintWriter
+
+-- Start java.io.PrintStream
+
+data {-# CLASS "java.io.PrintStream" #-} PrintStream = PrintStream (Object# PrintStream)
+  deriving Class
+
+type instance Inherits PrintStream = '[FilterOutputStream, Closeable, Flushable, Appendable]
+
+foreign import java unsafe "checkError" checkErrorPStream :: Java PrintWriter Bool
+
+foreign import java unsafe "clearError" clearErrorPStream :: Java PrintWriter ()
+
+foreign import java unsafe "format" formatLocalePStream :: Locale -> String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe "format" formatPStream :: String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe "print" printBoolPStream :: Bool -> Java PrintWriter ()
+
+foreign import java unsafe "print" printCharPStream :: Char -> Java PrintWriter ()
+
+foreign import java unsafe "print" printCharArrayPStream :: JCharArray -> Java PrintWriter ()
+
+foreign import java unsafe "print" printDoublePStream :: Double -> Java PrintWriter ()
+
+foreign import java unsafe "print" printFloatPStream :: Float -> Java PrintWriter ()
+
+foreign import java unsafe "print" printIntPStream :: Int -> Java PrintWriter ()
+
+foreign import java unsafe "print" printLongPStream :: Int64 -> Java PrintWriter ()
+
+foreign import java unsafe "print" printObjectPStream :: Object -> Java PrintWriter ()
+
+foreign import java unsafe "print" printStringPStream :: String -> Java PrintWriter ()
+
+foreign import java unsafe "printf"
+  printfLocalePStream :: Locale -> String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe "printf" printfPStream :: String -> JObjectArray -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnPStream :: Java PrintWriter ()
+
+foreign import java unsafe "println" printlnBoolPStream :: Bool -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnCharPStream :: Char -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnCharArrayPStream :: JCharArray -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnDoublePStream :: Double -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnFloatPStream :: Float -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnIntPStream :: Int -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnLongPStream :: Int64 -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnObjectPStream :: Object -> Java PrintWriter ()
+
+foreign import java unsafe "println" printlnStringPStream :: String -> Java PrintWriter ()
+
+foreign import java unsafe "setError" setErrorPStream :: Java PrintWriter ()
+
+-- End java.io.PrintStream
