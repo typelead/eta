@@ -232,6 +232,7 @@ Library
         Java.Collections
         Java.Concurrent
         Java.DateTime
+        Java.Exception
         Java.IO
         Java.Math
         Java.Net
