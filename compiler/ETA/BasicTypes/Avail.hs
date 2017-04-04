@@ -72,7 +72,7 @@ findSames as = filter (\l -> length l > 1) sames
   where
     sames = M.elems mm ++ M.elems am
     (mm, am) = foldr addTo (M.empty, M.empty) as
-    addTo a (mm, am) = (addName n mm, foldr addName am ans)
+    addTo a (mm, am) = (addName n mm, foldr (\n m -> if isDataConName n then addName n m else m) am ans)
       where (n:ans) = availNames a
     addName n m =
       case M.lookup l m of
