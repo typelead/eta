@@ -70,10 +70,16 @@ availsToNameEnv avails = foldr add emptyNameEnv avails
 findSames :: [AvailInfo] -> [[Name]]
 findSames as = filter (\l -> length l > 1) sames
   where
-    sames = M.elems mm ++ M.elems am
-    (mm, am) = foldr addTo (M.empty, M.empty) as
-    addTo a (mm, am) = (addName n mm, foldr (\n m -> if isDataConName n then addName n m else m) am ans)
-      where (n:ans) = availNames a
+    sames = M.elems mm ++ M.elems dm ++ M.elems vm
+    (mm, dm, vm) = foldr addTo (M.empty, M.empty, M.empty) as
+    addTo a (mm, dm, vm) =
+        ( addName n mm
+        -- Separate maps for data constructors and variables
+        -- Don't want to mix them up
+        , foldr addName dm (filter isDataConName ns)
+        , foldr addName vm (filter isVarName ns)
+        )
+      where (n:ns) = availNames a
     addName n m =
       case M.lookup l m of
         Just ns -> M.insert l (n : ns) m
