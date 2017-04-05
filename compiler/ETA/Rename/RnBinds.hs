@@ -171,15 +171,25 @@ rnTopBindsLHS fix_env binds = do
   checkSimilarNames binds'
   return binds'
 
+isPatSynBind :: HsBindLR l r -> Bool
+isPatSynBind (PatSynBind _) = True
+isPatSynBind _ = False
+
 checkSimilarNames :: HsValBindsLR Name RdrName
                   -> RnM ()
 checkSimilarNames (ValBindsIn mbinds _)
   = do { let
-         { bndrs = collectHsBindsBinders mbinds
-         ; val_avails  = map Avail bndrs
-         ; similar_names = (findSames val_avails)
-         }
-       ; when (not (null similar_names)) (addSimDeclErrors similar_names) }
+        { (patSyns, others) = partitionBag (isPatSynBind . unLoc) mbinds }
+        ; checkBinds patSyns
+        ; checkBinds others }
+    where
+      checkBinds binds =
+        do { let
+            { bndrs = collectHsBindsBinders binds
+            ; val_avails  = map Avail bndrs
+            ; similar_names = (findSames val_avails)
+            }
+            ; when (not (null similar_names)) (addSimDeclErrors similar_names) }
 checkSimilarNames b = pprPanic "checkSimilarNames" (ppr b)
 
 rnTopBindsRHS :: NameSet -> HsValBindsLR Name RdrName
