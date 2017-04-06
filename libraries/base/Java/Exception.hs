@@ -111,3 +111,12 @@ data {-# CLASS "java.lang.InternalError" #-}
 type instance Inherits InternalError = '[VirtualMachineError]
 
 -- End java.lang.InternalError
+
+-- Start java.io.IOException
+
+data {-# CLASS "java.io.IOException" #-} IOException = IOException (Object# IOException)
+  deriving Class
+
+type instance Inherits IOException = '[Exception]
+
+-- End java.io.IOException
