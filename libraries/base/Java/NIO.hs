@@ -20,6 +20,7 @@ module Java.NIO where
 import GHC.Base
 import GHC.Int
 import Java.Array
+import Java.Collections
 import Java.Primitive
 
 -- Start java.nio.Buffer
@@ -592,3 +593,67 @@ data {-# CLASS "java.nio.Charset" #-} Charset = Charset (Object# Charset)
   deriving Class
 
 -- End java.nio.Charset
+
+-- Start java.nio.file.Path
+
+data {-# CLASS "java.nio.file.Path" #-} Path = Path (Object# Path)
+  deriving Class
+
+type instance Inherits Path = '[Iterable Path, Comparable Path]
+
+foreign import java unsafe "@interface"
+  endsWith :: (a <: Path) => Path -> Java a Bool
+
+foreign import java unsafe "@interface"
+  endsWithString :: (a <: Path) => String -> Java a Bool
+
+foreign import java unsafe "@interface"
+  getFileName :: (a <: Path) => Java a Path
+
+foreign import java unsafe "@interface"
+  getFileSystem :: (a <: Path) => Java a FileSystem
+
+foreign import java unsafe "@interface"
+  getName :: (a <: Path) => Int -> Java a Path
+
+foreign import java unsafe "@interface"
+  getNameCount :: (a <: Path) => Java a Int
+
+foreign import java unsafe "@interface"
+  getParent :: (a <: Path) => Java a Path
+
+foreign import java unsafe "@interface"
+  getRoot :: (a <: Path) => Java a Path
+
+foreign import java unsafe "@interface"
+  normalize :: (a <: Path) => Java a Path
+
+foreign import java unsafe "@interface"
+  relativize :: (a <: Path) => Path -> Java a Path
+
+foreign import java unsafe "@interface"
+  resolve :: (a <: Path) => Path -> Java a Path
+
+foreign import java unsafe "@interface"
+  resolveString :: (a <: Path) => String -> Java a Path
+
+foreign import java unsafe "@interface"
+ resolveSibling :: (a <: Path) => Path -> Java a Path
+
+foreign import java unsafe "@interface"
+ resolveSiblingString :: (a <: Path) => String -> Java a Path
+
+foreign import java unsafe "@interface"
+ startsWith :: (a <: Path) => Path -> Java a Bool
+
+foreign import java unsafe "@interface"
+ startsWithString :: (a <: Path) => String -> Java a Bool
+
+-- End java.nio.file.Path
+
+-- Start java.nio.file.FileSystem
+
+data {-# CLASS "java.nio.file.FileSystem" #-} FileSystem = FileSystem (Object# FileSystem)
+  deriving Class
+
+-- End java.nio.file.FileSystem
