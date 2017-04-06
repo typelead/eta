@@ -91,3 +91,13 @@ data {-# CLASS "java.lang.Error" #-} Error = Error (Object# Error)
 type instance Inherits Error = '[Throwable]
 
 -- End java.lang.Error
+
+-- Start java.lang.VirtualMachineError
+
+data {-# CLASS "java.lang.VirtualMachineError" #-}
+  VirtualMachineError = VirtualMachineError (Object# VirtualMachineError)
+  deriving Class
+
+type instance Inherits VirtualMachineError = '[Error]
+
+-- End java.lang.VirtualMachineError
