@@ -82,3 +82,12 @@ data {-# CLASS "java.lang.Exception" #-} Exception = Exception (Object# Exceptio
 type instance Inherits Exception = '[Throwable]
 
 -- End java.lang.Exception
+
+-- Start java.lang.Error
+
+data {-# CLASS "java.lang.Error" #-} Error = Error (Object# Error)
+  deriving Class
+
+type instance Inherits Error = '[Throwable]
+
+-- End java.lang.Error
