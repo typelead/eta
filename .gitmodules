@@ -1,6 +1,6 @@
 [submodule "codec-jvm"]
 	path = codec-jvm
 	url = https://github.com/rahulmutt/codec-jvm
-[submodule "epm"]
-	path = epm
-	url = https://github.com/typelead/epm
+[submodule "etlas"]
+	path = etlas
+	url = https://github.com/typelead/etlas

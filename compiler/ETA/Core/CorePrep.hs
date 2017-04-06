@@ -1163,9 +1163,9 @@ lookupIntegerSDataConName dflags hsc_env =
 -- | Helper for 'lookupMkIntegerName' and 'lookupIntegerSDataConName'
 guardIntegerUse :: DynFlags -> IO a -> IO a
 guardIntegerUse dflags act
-  | thisPackage dflags == primPackageKey
+  | thisPackage dflags == primUnitId
     = return $ panic "Can't use Integer in ghc-prim"
-  | thisPackage dflags == integerPackageKey
+  | thisPackage dflags == integerUnitId
     = return $ panic "Can't use Integer in integer-*"
   | otherwise = act
 

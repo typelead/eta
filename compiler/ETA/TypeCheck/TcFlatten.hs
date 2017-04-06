@@ -981,8 +981,8 @@ flatten_exact_fam_app_fully fmode tc tys
       | getUnique tc == extendsFamTyConKey
       , (ty1@(TyConApp tc1 tys1):ty2@(TyConApp tc2 tys2):_) <- xis
       , tc1 == tc2
-      , any isMetaTyVar (tyVarsOfTypes tys1 `unionVarSet`
-                         tyVarsOfTypes tys2)
+      , any isMetaTyVar $ varSetElems (tyVarsOfTypes tys1 `unionVarSet`
+                                       tyVarsOfTypes tys2)
       = do traceTcS "Extends' is Stuck" (ppr ty1 $$ ppr ty2)
            TcS.unifyTypes ty1 ty2
       | otherwise = return ()

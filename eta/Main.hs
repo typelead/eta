@@ -3,23 +3,18 @@ module Main (main) where
 
 -- GHC API
 import qualified ETA.Main.GHC as GHC
-import ETA.Main.GHC              ( Ghc, GhcMonad(..), LoadHowMuch(..) )
+import ETA.Main.GHC               ( Ghc, GhcMonad(..), LoadHowMuch(..) )
 import ETA.Main.CmdLineParser
 import ETA.Iface.LoadIface        ( showIface, loadUserInterface)
-import ETA.Main.HscMain          ( newHscEnv )
+import ETA.Main.HscMain           ( newHscEnv )
 import ETA.Main.DriverPipeline
-import ETA.Main.PipelineMonad
-import ETA.Types.TyCon (isDataTyCon)
-import ETA.Main.DriverMkDepend   ( doMkDependHS )
--- import InteractiveUI    ( interactiveUI, ghciWelcomeMsg, defaultGhciSettings )
-import ETA.StgSyn.StgSyn (pprStgBindings)
+import ETA.Main.DriverMkDepend    ( doMkDependHS )
 import ETA.Main.SysTools
 import ETA.Main.Constants
 import ETA.Main.HscTypes
-import ETA.Main.Packages (pprPackages, pprPackagesSimple, pprModuleMap)
+import ETA.Main.Packages          (pprPackages, pprPackagesSimple)
 import ETA.Main.DriverPhases
-import ETA.Core.CorePrep ( corePrepPgm )
-import ETA.BasicTypes.BasicTypes (failed)
+import ETA.BasicTypes.BasicTypes  (failed)
 import ETA.Main.StaticFlags
 import ETA.Main.DynFlags
 import ETA.Main.ErrUtils
@@ -28,18 +23,13 @@ import ETA.Utils.Outputable
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Util
 import ETA.Utils.Panic
-import ETA.Utils.MonadUtils (liftIO)
-
--- ETA API
-import ETA.TypeCheck.TcForeign (tcForeignImports)
-import ETA.DeSugar.DsForeign (dsForeigns)
+import ETA.Utils.MonadUtils       (liftIO)
 
 -- Imports for --abi-hash
-import ETA.BasicTypes.Module              ( mkModuleName, ModLocation(..))
-import ETA.Main.Finder              ( findImportedModule, cannotFindInterface )
-import ETA.TypeCheck.TcRnMonad           ( initIfaceCheck )
-import ETA.Utils.Binary              ( openBinMem, put_, fingerprintBinMem )
-import ETA.Main.Hooks
+import ETA.BasicTypes.Module      ( mkModuleName)
+import ETA.Main.Finder            ( findImportedModule, cannotFindInterface )
+import ETA.TypeCheck.TcRnMonad    ( initIfaceCheck )
+import ETA.Utils.Binary           ( openBinMem, put_, fingerprintBinMem )
 
 -- Standard Libraries
 import System.IO
@@ -47,18 +37,9 @@ import System.IO.Unsafe
 import System.Environment
 import System.Exit
 import System.FilePath
-import System.Directory
 import Control.Monad
-import Data.Char
 import Data.List
 import Data.Maybe
-import ETA.Utils.Maybes ( expectJust )
-
--- dumpPackages :: DynFlags -> IO ()
--- dumpPackages dflags = putMsg dflags (pprPackages dflags)
-
--- printGHCType :: (Outputable a) => DynFlags -> a -> String
--- printGHCType dflags printable = showSDoc dflags (ppr printable)
 
 initETA :: IO ()
 initETA = do
@@ -218,14 +199,6 @@ main' postLoadMode dflags0 args flagWarnings = do
       | v >= 5 -> liftIO $ dumpPackages dflags6
       | otherwise -> return ()
 
-  when (verbosity dflags6 >= 3) $
-        liftIO $ hPutStrLn stderr ("Hsc static flags: " ++ unwords staticFlags)
-
-
-  when (dopt Opt_D_dump_mod_map dflags6) . liftIO $
-    printInfoForUser (dflags6 { pprCols = 200 })
-                     (pkgQual dflags6) (pprModuleMap dflags6)
-
         ---------------- Final sanity checking -----------
   liftIO $ checkOptions postLoadMode dflags6 srcs objs
 
@@ -238,15 +211,12 @@ main' postLoadMode dflags0 args flagWarnings = do
        DoMake                 -> doMake srcs
        DoMkDependHS           -> doMkDependHS (map fst srcs)
        StopBefore p           -> liftIO (oneShot hsc_env p srcs)
-       DoInteractive          -> liftIO $ putStrLn "ETAi not implemented yet" -- ghciUI srcs Nothing
-       DoEval exprs           -> liftIO $ putStrLn "ETAi not implemented yet" -- ghciUI srcs $ Just $ reverse exprs
+       DoInteractive          -> liftIO $ putStrLn "Eta REPL not implemented yet"
+       DoEval _exprs          -> liftIO $ putStrLn "Eta REPL not implemented yet"
        DoAbiHash              -> abiHash (map fst srcs)
        ShowPackages           -> liftIO $ showPackages dflags6
 
   liftIO $ dumpFinalStats dflags6
-
-ghciUI :: [(FilePath, Maybe Phase)] -> Maybe [String] -> Ghc ()
-ghciUI     = undefined--TODO: GHCI interactiveUI defaultGhciSettings
 
 -- -----------------------------------------------------------------------------
 -- Splitting arguments into source files and object files.  This is where we
@@ -671,11 +641,18 @@ showBanner _postLoadMode dflags = do
 -- We print out a Read-friendly string, but a prettier one than the
 -- Show instance gives us
 showInfo :: DynFlags -> IO ()
-showInfo dflags = do
+showInfo _dflags = do
   let sq x = " [" ++ x ++ "\n ]"
-  putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo dflags
-  where compilerInfo dflags = [("Project name", cProjectName),
-                               ("Project version", cProjectVersion)]
+  putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo
+  where compilerInfo = [("Project name", cProjectName),
+                        ("Project version", cProjectVersion)]
+                       ++ map (,"YES")
+                          ["Uses unit IDs"
+                          ,"Support thinning and renaming package flags"
+                          ,"Support parallel --make"
+                          ,"Support reexported-modules"
+                          ,"Uses package keys"
+                          ,"Requires unified installed package IDs"]
 
 showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions
@@ -705,16 +682,17 @@ showEtaiUsage :: DynFlags -> IO ()
 showEtaiUsage = showUsage True
 
 showUsage :: Bool -> DynFlags -> IO ()
-showUsage etai dflags = putStrLn usage
-  where usage = if etai then etaiUsage else etaUsage
+showUsage etaRepl _dflags = putStrLn usage
+  where usage = if etaRepl then etaReplUsage else etaUsage
 
 -- TODO: Make this better
+etaUsage, etaReplUsage :: String
 etaUsage = "Eta v" ++ cProjectVersion ++ "\n\n\
 See the Eta User Guide:\n\
 http://eta-lang.org/docs/html/eta-user-guide.html\n"
 
 -- TODO: Make this better
-etaiUsage = "Eta Interactive v" ++ cProjectVersion ++ "\n\n\
+etaReplUsage = "Eta REPL v" ++ cProjectVersion ++ "\n\n\
 See the Eta User Guide:\n\
 http://eta-lang.org/docs/html/eta-user-guide.html\n"
 

@@ -9,4 +9,4 @@ if [ "$_pull" = "Already up-to-date." ] && [ -z "$_subs" ]; then
 fi
 
 ./cleaninstall.sh
-epm update
+etlas update

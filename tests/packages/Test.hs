@@ -32,10 +32,10 @@ parsePackagesFile fname = do
   return packages
 
 packagesFilePath :: IO FilePath
-packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "epm"
+packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "etlas"
 
 buildPackage :: Text -> IO ()
-buildPackage pkg = sh $ procExitOnError "epm" ["install", pkg] empty
+buildPackage pkg = sh $ procExitOnError "etlas" ["install", pkg] empty
 
 verifyJar :: IO ()
 verifyJar = sh verifyScript
@@ -79,7 +79,7 @@ verifyScript = do
 main :: IO ()
 main = do
   verifyJar
-  let vmUpdateCmd = "epm update"
+  let vmUpdateCmd = "etlas update"
   _ <- shell vmUpdateCmd ""
   epmPkgs <- packagesFilePath
   pkg <- parsePackagesFile epmPkgs

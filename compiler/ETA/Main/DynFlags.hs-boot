@@ -10,3 +10,4 @@ pprCols              :: DynFlags -> Int
 unsafeGlobalDynFlags :: DynFlags
 useUnicode     :: DynFlags -> Bool
 useUnicodeSyntax     :: DynFlags -> Bool
+hasPprDebug          :: DynFlags -> Bool

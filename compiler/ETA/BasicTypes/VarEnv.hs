@@ -9,7 +9,7 @@ module ETA.BasicTypes.VarEnv (
 
         -- ** Manipulating these environments
         emptyVarEnv, unitVarEnv, mkVarEnv,
-        elemVarEnv, varEnvElts, varEnvKeys,
+        elemVarEnv, varEnvElts,
         extendVarEnv, extendVarEnv_C, extendVarEnv_Acc, extendVarEnvList,
         plusVarEnv, plusVarEnv_C, plusVarEnv_CD, alterVarEnv,
         delVarEnvList, delVarEnv,
@@ -30,6 +30,7 @@ module ETA.BasicTypes.VarEnv (
         extendInScopeSet, extendInScopeSetList, extendInScopeSetSet,
         getInScopeVars, lookupInScope, lookupInScope_Directly,
         unionInScope, elemInScopeSet, uniqAway,
+        varSetInScope,
 
         -- * The RnEnv2 type
         RnEnv2,
@@ -50,15 +51,14 @@ module ETA.BasicTypes.VarEnv (
 
 import ETA.BasicTypes.OccName
 import ETA.BasicTypes.Var
+import qualified ETA.BasicTypes.Var as Var
 import ETA.BasicTypes.VarSet
 import ETA.Utils.UniqFM
+import ETA.Utils.UniqSet
 import ETA.BasicTypes.Unique
 import ETA.Utils.Util
 import ETA.Utils.Maybes
 import ETA.Utils.Outputable
-import ETA.Utils.FastTypes
-import ETA.Main.StaticFlags
-import ETA.Utils.FastString
 
 {-
 ************************************************************************
@@ -69,64 +69,70 @@ import ETA.Utils.FastString
 -}
 
 -- | A set of variables that are in scope at some point
-data InScopeSet = InScope (VarEnv Var) FastInt
-        -- The (VarEnv Var) is just a VarSet.  But we write it like
-        -- this to remind ourselves that you can look up a Var in
-        -- the InScopeSet. Typically the InScopeSet contains the
+-- "Secrets of the Glasgow Haskell Compiler inliner" Section 3.2 provides
+-- the motivation for this abstraction.
+data InScopeSet = InScope VarSet {-# UNPACK #-} !Int
+        -- We store a VarSet here, but we use this for lookups rather than
+        -- just membership tests. Typically the InScopeSet contains the
         -- canonical version of the variable (e.g. with an informative
         -- unfolding), so this lookup is useful.
         --
-        -- INVARIANT: the VarEnv maps (the Unique of) a variable to
-        --            a variable with the same Uniqua.  (This was not
-        --            the case in the past, when we had a grevious hack
-        --            mapping var1 to var2.
-        --
-        -- The FastInt is a kind of hash-value used by uniqAway
+        -- The Int is a kind of hash-value used by uniqAway
         -- For example, it might be the size of the set
         -- INVARIANT: it's not zero; we use it as a multiplier in uniqAway
 
 instance Outputable InScopeSet where
-  ppr (InScope s _) = ptext (sLit "InScope") <+> ppr s
+  ppr (InScope s _) =
+    text "InScope" <+>
+    braces (fsep (map (ppr . Var.varName) (nonDetEltsUniqSet s)))
+                      -- It's OK to use nonDetEltsUniqSet here because it's
+                      -- only for pretty printing
+                      -- In-scope sets get big, and with -dppr-debug
+                      -- the output is overwhelming
 
 emptyInScopeSet :: InScopeSet
-emptyInScopeSet = InScope emptyVarSet (_ILIT(1))
+emptyInScopeSet = InScope emptyVarSet 1
 
-getInScopeVars ::  InScopeSet -> VarEnv Var
+getInScopeVars ::  InScopeSet -> VarSet
 getInScopeVars (InScope vs _) = vs
 
-mkInScopeSet :: VarEnv Var -> InScopeSet
-mkInScopeSet in_scope = InScope in_scope (_ILIT(1))
+mkInScopeSet :: VarSet -> InScopeSet
+mkInScopeSet in_scope = InScope in_scope 1
 
 extendInScopeSet :: InScopeSet -> Var -> InScopeSet
-extendInScopeSet (InScope in_scope n) v = InScope (extendVarEnv in_scope v v) (n +# _ILIT(1))
+extendInScopeSet (InScope in_scope n) v
+   = InScope (extendVarSet in_scope v) (n + 1)
 
 extendInScopeSetList :: InScopeSet -> [Var] -> InScopeSet
 extendInScopeSetList (InScope in_scope n) vs
-   = InScope (foldl (\s v -> extendVarEnv s v v) in_scope vs)
-                    (n +# iUnbox (length vs))
+   = InScope (foldl (\s v -> extendVarSet s v) in_scope vs)
+                    (n + length vs)
 
-extendInScopeSetSet :: InScopeSet -> VarEnv Var -> InScopeSet
+extendInScopeSetSet :: InScopeSet -> VarSet -> InScopeSet
 extendInScopeSetSet (InScope in_scope n) vs
-   = InScope (in_scope `plusVarEnv` vs) (n +# iUnbox (sizeUFM vs))
+   = InScope (in_scope `unionVarSet` vs) (n + sizeUniqSet vs)
 
 delInScopeSet :: InScopeSet -> Var -> InScopeSet
-delInScopeSet (InScope in_scope n) v = InScope (in_scope `delVarEnv` v) n
+delInScopeSet (InScope in_scope n) v = InScope (in_scope `delVarSet` v) n
 
 elemInScopeSet :: Var -> InScopeSet -> Bool
-elemInScopeSet v (InScope in_scope _) = v `elemVarEnv` in_scope
+elemInScopeSet v (InScope in_scope _) = v `elemVarSet` in_scope
 
 -- | Look up a variable the 'InScopeSet'.  This lets you map from
 -- the variable's identity (unique) to its full value.
 lookupInScope :: InScopeSet -> Var -> Maybe Var
-lookupInScope (InScope in_scope _) v  = lookupVarEnv in_scope v
+lookupInScope (InScope in_scope _) v  = lookupVarSet in_scope v
 
 lookupInScope_Directly :: InScopeSet -> Unique -> Maybe Var
 lookupInScope_Directly (InScope in_scope _) uniq
-  = lookupVarEnv_Directly in_scope uniq
+  = lookupVarSet_Directly in_scope uniq
 
 unionInScope :: InScopeSet -> InScopeSet -> InScopeSet
 unionInScope (InScope s1 _) (InScope s2 n2)
-  = InScope (s1 `plusVarEnv` s2) n2
+  = InScope (s1 `unionVarSet` s2) n2
+
+varSetInScope :: VarSet -> InScopeSet -> Bool
+varSetInScope vars (InScope s1 _) = vars `subVarSet` s1
 
 -- | @uniqAway in_scope v@ finds a unique that is not used in the
 -- in-scope set, and gives that to v.
@@ -141,19 +147,20 @@ uniqAway in_scope var
 uniqAway' :: InScopeSet -> Var -> Var
 -- This one *always* makes up a new variable
 uniqAway' (InScope set n) var
-  = try (_ILIT(1))
+  = try 1
   where
     orig_unique = getUnique var
     try k
-          | debugIsOn && (k ># _ILIT(1000))
-          = pprPanic "uniqAway loop:" (ppr (iBox k) <+> text "tries" <+> ppr var <+> int (iBox n))
-          | uniq `elemVarSetByKey` set = try (k +# _ILIT(1))
-          | debugIsOn && opt_PprStyle_Debug && (k ># _ILIT(3))
-          = pprTrace "uniqAway:" (ppr (iBox k) <+> text "tries" <+> ppr var <+> int (iBox n))
+          | debugIsOn && (k > 1000)
+          = pprPanic "uniqAway loop:" msg
+          | uniq `elemVarSetByKey` set = try (k + 1)
+          | k > 3
+          = pprTraceDebug "uniqAway:" msg
             setVarUnique var uniq
           | otherwise = setVarUnique var uniq
           where
-            uniq = deriveUnique orig_unique (iBox (n *# k))
+            msg  = ppr k <+> text "tries" <+> ppr var <+> int n
+            uniq = deriveUnique orig_unique (n * k)
 
 {-
 ************************************************************************
@@ -204,9 +211,9 @@ mkRnEnv2 vars = RV2     { envL     = emptyVarEnv
                         , envR     = emptyVarEnv
                         , in_scope = vars }
 
-addRnInScopeSet :: RnEnv2 -> VarEnv Var -> RnEnv2
+addRnInScopeSet :: RnEnv2 -> VarSet -> RnEnv2
 addRnInScopeSet env vs
-  | isEmptyVarEnv vs = env
+  | isEmptyVarSet vs = env
   | otherwise        = env { in_scope = extendInScopeSetSet (in_scope env) vs }
 
 rnInScope :: Var -> RnEnv2 -> Bool
@@ -384,7 +391,6 @@ plusVarEnv_CD     :: (a -> a -> a) -> VarEnv a -> a -> VarEnv a -> a -> VarEnv a
 mapVarEnv         :: (a -> b) -> VarEnv a -> VarEnv b
 modifyVarEnv      :: (a -> a) -> VarEnv a -> Var -> VarEnv a
 varEnvElts        :: VarEnv a -> [a]
-varEnvKeys        :: VarEnv a -> [Unique]
 
 isEmptyVarEnv     :: VarEnv a -> Bool
 lookupVarEnv      :: VarEnv a -> Var -> Maybe a
@@ -416,7 +422,6 @@ mapVarEnv        = mapUFM
 mkVarEnv         = listToUFM
 emptyVarEnv      = emptyUFM
 varEnvElts       = eltsUFM
-varEnvKeys       = keysUFM
 unitVarEnv       = unitUFM
 isEmptyVarEnv    = isNullUFM
 foldVarEnv       = foldUFM

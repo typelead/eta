@@ -24,6 +24,7 @@ module ETA.Main.DynFlags (
         FatalMessager, LogAction, FlushOut(..), FlushErr(..),
         ProfAuto(..),
         glasgowExtsFlags,
+        hasPprDebug, hasNoDebugOutput,
         dopt, dopt_set, dopt_unset,
         gopt, gopt_set, gopt_unset,
         wopt, wopt_set, wopt_unset,
@@ -42,7 +43,9 @@ module ETA.Main.DynFlags (
         GhcMode(..), isOneShot,
         GhcLink(..), isNoLink,
         PackageFlag(..), PackageArg(..), ModRenaming(..),
-        PkgConfRef(..),
+        packageFlagsChanged,
+        IgnorePackageFlag(..), TrustFlag(..),
+        PackageDBFlag(..), PkgConfRef(..),
         Option(..), showOpt,
         DynLibLoader(..),
         fFlags, fWarningFlags, fLangFlags, xFlags,
@@ -52,6 +55,8 @@ module ETA.Main.DynFlags (
 
         Way(..), mkBuildTag, wayRTSOnly, addWay', updateWays,
         wayGeneralFlags, wayUnsetGeneralFlags,
+
+        thisPackage, thisComponentId, thisUnitIdInsts,
 
         -- ** Safe Haskell
         SafeHaskellMode(..),
@@ -89,8 +94,8 @@ module ETA.Main.DynFlags (
         getVerbFlags,
         updOptLevel,
         setTmpDir,
-        setPackageKey,
         interpretPackageEnv,
+        canonicalizeHomeModule,
 
         -- ** Parsing DynFlags
         parseDynamicFlagsCmdLine,
@@ -156,7 +161,7 @@ import ETA.BasicTypes.Module
 import ETA.Main.PackageConfig
 import {-# SOURCE #-} ETA.Main.Hooks
 import {-# SOURCE #-} ETA.Prelude.PrelNames ( mAIN )
-import {-# SOURCE #-} ETA.Main.Packages (PackageState)
+import {-# SOURCE #-} ETA.Main.Packages (PackageState, emptyPackageState)
 import ETA.Main.DriverPhases     ( Phase(..), phaseInputExt )
 import ETA.Main.CmdLineParser
 import ETA.Main.Constants
@@ -304,7 +309,9 @@ data DumpFlag
    | Opt_D_dump_view_pattern_commoning
    | Opt_D_verbose_core2core
    | Opt_D_dump_debug
-
+   | Opt_D_dump_json
+   | Opt_D_ppr_debug
+   | Opt_D_no_debug_output
    deriving (Eq, Show, Enum)
 
 -- | Enumerates the simple on-or-off dynamic flags
@@ -384,6 +391,7 @@ data GeneralFlag
    | Opt_SplitObjs
    | Opt_StgStats
    | Opt_HideAllPackages
+   | Opt_HideAllPluginPackages
    | Opt_PrintBindResult
    | Opt_Haddock
    | Opt_HaddockOptions
@@ -696,7 +704,9 @@ data DynFlags = DynFlags {
   ctxtStkDepth          :: Int,         -- ^ Typechecker context stack depth
   tyFunStkDepth         :: Int,         -- ^ Typechecker type function stack depth
 
-  thisPackage           :: PackageKey,   -- ^ name of package currently being compiled
+  thisInstalledUnitId   :: InstalledUnitId,
+  thisComponentId_      :: Maybe ComponentId,
+  thisUnitIdInsts_      :: Maybe [(ModuleName, Module)],
 
   -- ways
   ways                  :: [Way],       -- ^ Way flags from the command line
@@ -770,19 +780,32 @@ data DynFlags = DynFlags {
   depSuffixes           :: [String],
 
   --  Package flags
-  extraPkgConfs         :: [PkgConfRef] -> [PkgConfRef],
-        -- ^ The @-package-db@ flags given on the command line, in the order
-        -- they appeared.
+  packageDBFlags        :: [PackageDBFlag],
+        -- ^ The @-package-db@ flags given on the command line, In
+        -- *reverse* order that they're specified on the command line.
+        -- This is intended to be applied with the list of "initial"
+        -- package databases derived from @GHC_PACKAGE_PATH@; see
+        -- 'getPackageConfRefs'.
 
+  ignorePackageFlags    :: [IgnorePackageFlag],
+        -- ^ The @-ignore-package@ flags from the command line.
+        -- In *reverse* order that they're specified on the command line.
   packageFlags          :: [PackageFlag],
-        -- ^ The @-package@ and @-hide-package@ flags from the command-line
+        -- ^ The @-package@ and @-hide-package@ flags from the command-line.
+        -- In *reverse* order that they're specified on the command line.
+  pluginPackageFlags    :: [PackageFlag],
+        -- ^ The @-plugin-package-id@ flags from command line.
+        -- In *reverse* order that they're specified on the command line.
+  trustFlags            :: [TrustFlag],
+        -- ^ The @-trust@ and @-distrust@ flags.
+        -- In *reverse* order that they're specified on the command line.
   packageEnv            :: Maybe FilePath,
         -- ^ Filepath to the package environment file (if overriding default)
 
   -- Package state
   -- NB. do not modify this field, it is calculated by
-  -- Packages.initPackages and Packages.updatePackages.
-  pkgDatabase           :: Maybe [PackageConfig],
+  -- Packages.initPackages
+  pkgDatabase           :: Maybe [(FilePath, [PackageConfig])],
   pkgState              :: PackageState,
 
   -- Temporary files
@@ -1112,21 +1135,76 @@ isNoLink :: GhcLink -> Bool
 isNoLink NoLink = True
 isNoLink _      = False
 
-data PackageArg = PackageArg String
-                | PackageIdArg String
-                | PackageKeyArg String
+-- | We accept flags which make packages visible, but how they select
+-- the package varies; this data type reflects what selection criterion
+-- is used.
+data PackageArg =
+      PackageArg String    -- ^ @-package@, by 'PackageName'
+    | UnitIdArg UnitId     -- ^ @-package-id@, by 'UnitId'
   deriving (Eq, Show)
+instance Outputable PackageArg where
+    ppr (PackageArg pn) = text "package" <+> text pn
+    ppr (UnitIdArg uid) = text "unit" <+> ppr uid
 
-data ModRenaming = ModRenaming Bool [(String, String)]
-  deriving (Eq, Show)
+-- | Represents the renaming that may be associated with an exposed
+-- package, e.g. the @rns@ part of @-package "foo (rns)"@.
+--
+-- Here are some example parsings of the package flags (where
+-- a string literal is punned to be a 'ModuleName':
+--
+--      * @-package foo@ is @ModRenaming True []@
+--      * @-package foo ()@ is @ModRenaming False []@
+--      * @-package foo (A)@ is @ModRenaming False [("A", "A")]@
+--      * @-package foo (A as B)@ is @ModRenaming False [("A", "B")]@
+--      * @-package foo with (A as B)@ is @ModRenaming True [("A", "B")]@
+data ModRenaming = ModRenaming {
+    modRenamingWithImplicit :: Bool, -- ^ Bring all exposed modules into scope?
+    modRenamings :: [(ModuleName, ModuleName)] -- ^ Bring module @m@ into scope
+                                               --   under name @n@.
+  } deriving (Eq)
+instance Outputable ModRenaming where
+    ppr (ModRenaming b rns) = ppr b <+> parens (ppr rns)
 
+-- | Flags for manipulating the set of non-broken packages.
+newtype IgnorePackageFlag = IgnorePackage String -- ^ @-ignore-package@
+  deriving (Eq)
+
+-- | Flags for manipulating package trust.
+data TrustFlag
+  = TrustPackage    String -- ^ @-trust@
+  | DistrustPackage String -- ^ @-distrust@
+  deriving (Eq)
+
+-- | Flags for manipulating packages visibility.
 data PackageFlag
-  = ExposePackage   PackageArg ModRenaming
-  | HidePackage     String
-  | IgnorePackage   String
-  | TrustPackage    String
-  | DistrustPackage String
-  deriving (Eq, Show)
+  = ExposePackage   String PackageArg ModRenaming -- ^ @-package@, @-package-id@
+  | HidePackage     String -- ^ @-hide-package@
+  deriving (Eq) -- NB: equality instance is used by packageFlagsChanged
+
+data PackageDBFlag
+  = PackageDB PkgConfRef
+  | NoUserPackageDB
+  | NoGlobalPackageDB
+  | ClearPackageDBs
+  deriving (Eq)
+
+packageFlagsChanged :: DynFlags -> DynFlags -> Bool
+packageFlagsChanged idflags1 idflags0 =
+  packageFlags idflags1 /= packageFlags idflags0 ||
+  ignorePackageFlags idflags1 /= ignorePackageFlags idflags0 ||
+  pluginPackageFlags idflags1 /= pluginPackageFlags idflags0 ||
+  trustFlags idflags1 /= trustFlags idflags0 ||
+  packageDBFlags idflags1 /= packageDBFlags idflags0 ||
+  packageGFlags idflags1 /= packageGFlags idflags0
+ where
+   packageGFlags dflags = map (`gopt` dflags)
+     [ Opt_HideAllPackages
+     , Opt_HideAllPluginPackages
+     , Opt_AutoLinkPackages ]
+
+instance Outputable PackageFlag where
+    ppr (ExposePackage n arg rn) = text n <> braces (ppr arg <+> ppr rn)
+    ppr (HidePackage str) = text "-hide-package" <+> text str
 
 defaultHscTarget :: Platform -> HscTarget
 defaultHscTarget = defaultObjectTarget
@@ -1420,7 +1498,9 @@ defaultDynFlags mySettings =
         ctxtStkDepth            = mAX_CONTEXT_REDUCTION_DEPTH,
         tyFunStkDepth           = mAX_TYPE_FUNCTION_REDUCTION_DEPTH,
 
-        thisPackage             = mainPackageKey,
+        thisInstalledUnitId     = toInstalledUnitId mainUnitId,
+        thisUnitIdInsts_        = Nothing,
+        thisComponentId_        = Nothing,
 
         objectDir               = Nothing,
         dylibInstallName        = Nothing,
@@ -1461,11 +1541,15 @@ defaultDynFlags mySettings =
 
         hpcDir                  = ".hpc",
 
-        extraPkgConfs           = id,
+        packageDBFlags          = [],
         packageFlags            = [],
+        pluginPackageFlags      = [],
+        ignorePackageFlags      = [],
+        trustFlags              = [],
         packageEnv              = Nothing,
         pkgDatabase             = Nothing,
-        pkgState                = panic "no package state yet: call GHC.setSessionDynFlags",
+        -- This gets filled in with GHC.setSessionDynFlags
+        pkgState                = emptyPackageState,
         ways                    = defaultWays mySettings,
         buildTag                = mkBuildTag (defaultWays mySettings),
         rtsBuildTag             = mkBuildTag (defaultWays mySettings),
@@ -1613,6 +1697,11 @@ Note [Verbosity levels]
 
 data OnOff a = On a
              | Off a
+  deriving (Eq, Show)
+
+instance Outputable a => Outputable (OnOff a) where
+  ppr (On x)  = text "On" <+> ppr x
+  ppr (Off x) = text "Off" <+> ppr x
 
 -- OnOffs accumulate in reverse order, so we use foldr in order to
 -- process them in the right order
@@ -1659,6 +1748,12 @@ languageExtensions (Just Haskell2010)
        Opt_PatternGuards,
        Opt_DoAndIfThenElse,
        Opt_RelaxedPolyRec]
+
+hasPprDebug :: DynFlags -> Bool
+hasPprDebug = dopt Opt_D_ppr_debug
+
+hasNoDebugOutput :: DynFlags -> Bool
+hasNoDebugOutput = dopt Opt_D_no_debug_output
 
 -- | Test whether a 'DumpFlag' is set
 dopt :: DumpFlag -> DynFlags -> Bool
@@ -1890,28 +1985,52 @@ setOutputFile f d = d{ outputFile = f}
 setDynOutputFile f d = d{ dynOutputFile = f}
 setOutputHi   f d = d{ outputHi   = f}
 
-parseSigOf :: String -> SigOf
-parseSigOf str = case filter ((=="").snd) (readP_to_S parse str) of
-    [(r, "")] -> r
-    _ -> throwGhcException $ CmdLineError ("Can't parse -sig-of: " ++ str)
-  where parse = parseOne +++ parseMany
-        parseOne = SigOf `fmap` parseModule
-        parseMany = SigOfMap . Map.fromList <$> sepBy parseEntry (R.char ',')
-        parseEntry = do
-            n <- tok $ parseModuleName
-            -- ToDo: deprecate this 'is' syntax?
-            tok $ ((string "is" >> return ()) +++ (R.char '=' >> return ()))
-            m <- tok $ parseModule
-            return (mkModuleName n, m)
-        parseModule = do
-            pk <- munch1 (\c -> isAlphaNum c || c `elem` "-_")
-            _ <- R.char ':'
-            m <- parseModuleName
-            return (mkModule (stringToPackageKey pk) (mkModuleName m))
-        tok m = skipSpaces >> m
+thisComponentId :: DynFlags -> ComponentId
+thisComponentId dflags =
+  case thisComponentId_ dflags of
+    Just cid -> cid
+    Nothing  ->
+      case thisUnitIdInsts_ dflags of
+        Just _  ->
+          throwGhcException $ CmdLineError ("Use of -instantiated-with requires -this-component-id")
+        Nothing -> ComponentId (unitIdFS (thisPackage dflags))
 
-setSigOf :: String -> DynFlags -> DynFlags
-setSigOf s d = d { sigOf = parseSigOf s }
+thisUnitIdInsts :: DynFlags -> [(ModuleName, Module)]
+thisUnitIdInsts dflags =
+    case thisUnitIdInsts_ dflags of
+        Just insts -> insts
+        Nothing    -> []
+
+thisPackage :: DynFlags -> UnitId
+thisPackage dflags =
+    case thisUnitIdInsts_ dflags of
+        Nothing -> default_uid
+        Just insts
+          | all (\(x,y) -> mkHoleModule x == y) insts
+          -> newUnitId (thisComponentId dflags) insts
+          | otherwise
+          -> default_uid
+  where
+    default_uid = DefiniteUnitId (DefUnitId (thisInstalledUnitId dflags))
+
+parseUnitIdInsts :: String -> [(ModuleName, Module)]
+parseUnitIdInsts str = case filter ((=="").snd) (readP_to_S parse str) of
+    [(r, "")] -> r
+    _ -> throwGhcException $ CmdLineError ("Can't parse -instantiated-with: " ++ str)
+  where parse = sepBy parseEntry (R.char ',')
+        parseEntry = do
+            n <- parseModuleName
+            _ <- R.char '='
+            m <- parseModuleId
+            return (n, m)
+
+setUnitIdInsts :: String -> DynFlags -> DynFlags
+setUnitIdInsts s d =
+    d { thisUnitIdInsts_ = Just (parseUnitIdInsts s) }
+
+setComponentId :: String -> DynFlags -> DynFlags
+setComponentId s d =
+    d { thisComponentId_ = Just (ComponentId (fsLit s)) }
 
 addPluginModuleName :: String -> DynFlags -> DynFlags
 addPluginModuleName name d = d { pluginModNames = (mkModuleName name) : (pluginModNames d) }
@@ -2214,7 +2333,8 @@ dynamic_flags = [
   , defFlag "v"        (OptIntSuffix setVerbosity)
 
   , defGhcFlag "j"     (OptIntSuffix (\n -> upd (\d -> d {parMakeCount = n})))
-  , defFlag "sig-of"   (sepArg setSigOf)
+  , defFlag "instantiated-with"   (sepArg setUnitIdInsts)
+  , defFlag "this-component-id"   (sepArg setComponentId)
 
     -- RTS options -------------------------------------------------------------
   , defFlag "H"           (HasArg (\s -> upd (\d ->
@@ -2517,7 +2637,12 @@ dynamic_flags = [
       (NoArg (setGeneralFlag Opt_D_faststring_stats))
   , defGhcFlag "dno-llvm-mangler"
       (NoArg (setGeneralFlag Opt_NoLlvmMangler)) -- hidden flag
-  , defGhcFlag "ddump-debug"             (setDumpFlag Opt_D_dump_debug)
+  , defGhcFlag "ddump-debug"
+      (setDumpFlag Opt_D_dump_debug)
+  , defGhcFlag "dppr-debug"
+      (setDumpFlag Opt_D_ppr_debug)
+  , defGhcFlag "dno-debug-output"
+      (setDumpFlag Opt_D_no_debug_output)
 
         ------ Machine dependant (-m<blah>) stuff ---------------------------
 
@@ -2714,11 +2839,13 @@ package_flags = [
       (NoArg $ do removeUserPkgConf
                   deprecate "Use -no-user-package-db instead")
 
-  , defGhcFlag "package-name"       (hasArg setPackageKey)
-  , defGhcFlag "this-package-key"   (hasArg setPackageKey)
-  , defFlag "package-id"            (HasArg exposePackageId)
+  , defGhcFlag "package-name"       (hasArg setUnitId)
+  , defGhcFlag "this-package-key"   (HasArg $ \uid -> do
+                                        upd (setUnitId uid)
+                                        deprecate "Use -this-unit-id instead")
+  , defGhcFlag "this-unit-id"       (hasArg setUnitId)
   , defFlag "package"               (HasArg exposePackage)
-  , defFlag "package-key"           (HasArg exposePackageKey)
+  , defFlag "package-id"            (HasArg exposePackageId)
   , defFlag "hide-package"          (HasArg hidePackage)
   , defFlag "hide-all-packages"     (NoArg (setGeneralFlag Opt_HideAllPackages))
   , defFlag "package-env"           (HasArg setPackageEnv)
@@ -3610,41 +3737,40 @@ data PkgConfRef
   = GlobalPkgConf
   | UserPkgConf
   | PkgConfFile FilePath
-  deriving Show
+  deriving Eq
 
 addPkgConfRef :: PkgConfRef -> DynP ()
-addPkgConfRef p = upd $ \s -> s { extraPkgConfs = (p:) . extraPkgConfs s }
+addPkgConfRef p = upd $ \s ->
+  s { packageDBFlags = PackageDB p : packageDBFlags s }
 
 removeUserPkgConf :: DynP ()
-removeUserPkgConf = upd $ \s -> s { extraPkgConfs = filter isNotUser . extraPkgConfs s }
-  where
-    isNotUser UserPkgConf = False
-    isNotUser _ = True
+removeUserPkgConf = upd $ \s ->
+  s { packageDBFlags = NoUserPackageDB : packageDBFlags s }
 
 removeGlobalPkgConf :: DynP ()
-removeGlobalPkgConf = upd $ \s -> s { extraPkgConfs = filter isNotGlobal . extraPkgConfs s }
-  where
-    isNotGlobal GlobalPkgConf = False
-    isNotGlobal _ = True
+removeGlobalPkgConf = upd $ \s ->
+ s { packageDBFlags = NoGlobalPackageDB : packageDBFlags s }
 
 clearPkgConf :: DynP ()
-clearPkgConf = upd $ \s -> s { extraPkgConfs = const [] }
+clearPkgConf = upd $ \s ->
+  s { packageDBFlags = ClearPackageDBs : packageDBFlags s }
 
-parseModuleName :: ReadP String
-parseModuleName = munch1 (\c -> isAlphaNum c || c `elem` ".")
-
-parsePackageFlag :: (String -> PackageArg) -- type of argument
+parsePackageFlag :: String                 -- the flag
+                 -> ReadP PackageArg       -- type of argument
                  -> String                 -- string to parse
                  -> PackageFlag
-parsePackageFlag constr str = case filter ((=="").snd) (readP_to_S parse str) of
+parsePackageFlag flag arg_parse str
+ = case filter ((=="").snd) (readP_to_S parse str) of
     [(r, "")] -> r
     _ -> throwGhcException $ CmdLineError ("Can't parse package flag: " ++ str)
-  where parse = do
-            pkg <- tok $ munch1 (\c -> isAlphaNum c || c `elem` ":-_.")
+  where doc = flag ++ " " ++ str
+        parse = do
+            pkg_arg <- tok arg_parse
+            let mk_expose = ExposePackage doc pkg_arg
             ( do _ <- tok $ string "with"
-                 fmap (ExposePackage (constr pkg) . ModRenaming True) parseRns
-             <++ fmap (ExposePackage (constr pkg) . ModRenaming False) parseRns
-             <++ return (ExposePackage (constr pkg) (ModRenaming True [])))
+                 fmap (mk_expose . ModRenaming True) parseRns
+             <++ fmap (mk_expose . ModRenaming False) parseRns
+             <++ return (mk_expose (ModRenaming True [])))
         parseRns = do _ <- tok $ R.char '('
                       rns <- tok $ sepBy parseItem (tok $ R.char ',')
                       _ <- tok $ R.char ')'
@@ -3658,76 +3784,103 @@ parsePackageFlag constr str = case filter ((=="").snd) (readP_to_S parse str) of
              return (orig, orig))
         tok m = m >>= \x -> skipSpaces >> return x
 
-exposePackage, exposePackageId, exposePackageKey, hidePackage, ignorePackage,
+exposePackage, exposePackageId, hidePackage, ignorePackage,
         trustPackage, distrustPackage :: String -> DynP ()
 exposePackage p = upd (exposePackage' p)
 exposePackageId p =
   upd (\s -> s{ packageFlags =
-    parsePackageFlag PackageIdArg p : packageFlags s })
-exposePackageKey p =
-  upd (\s -> s{ packageFlags =
-    parsePackageFlag PackageKeyArg p : packageFlags s })
+    parsePackageFlag "-package-id" parseUnitIdArg p : packageFlags s })
 hidePackage p =
   upd (\s -> s{ packageFlags = HidePackage p : packageFlags s })
 ignorePackage p =
-  upd (\s -> s{ packageFlags = IgnorePackage p : packageFlags s })
+  upd (\s -> s{ ignorePackageFlags = IgnorePackage p : ignorePackageFlags s })
 trustPackage p = exposePackage p >> -- both trust and distrust also expose a package
-  upd (\s -> s{ packageFlags = TrustPackage p : packageFlags s })
+  upd (\s -> s{ trustFlags = TrustPackage p : trustFlags s })
 distrustPackage p = exposePackage p >>
-  upd (\s -> s{ packageFlags = DistrustPackage p : packageFlags s })
+  upd (\s -> s{ trustFlags = DistrustPackage p : trustFlags s })
 
 exposePackage' :: String -> DynFlags -> DynFlags
 exposePackage' p dflags
     = dflags { packageFlags =
-            parsePackageFlag PackageArg p : packageFlags dflags }
+            parsePackageFlag "-package" parsePackageArg p : packageFlags dflags }
 
-setPackageKey :: String -> DynFlags -> DynFlags
-setPackageKey p s =  s{ thisPackage = stringToPackageKey p }
+parsePackageArg :: ReadP PackageArg
+parsePackageArg =
+    fmap PackageArg (munch1 (\c -> isAlphaNum c || c `elem` ":-_."))
+
+parseUnitIdArg :: ReadP PackageArg
+parseUnitIdArg =
+    fmap UnitIdArg parseUnitId
+
+setUnitId :: String -> DynFlags -> DynFlags
+setUnitId p d = d { thisInstalledUnitId = stringToInstalledUnitId p }
+
+-- | Given a 'ModuleName' of a signature in the home library, find
+-- out how it is instantiated.  E.g., the canonical form of
+-- A in @p[A=q[]:A]@ is @q[]:A@.
+canonicalizeHomeModule :: DynFlags -> ModuleName -> Module
+canonicalizeHomeModule dflags mod_name =
+    case lookup mod_name (thisUnitIdInsts dflags) of
+        Nothing  -> mkModule (thisPackage dflags) mod_name
+        Just mod -> mod
+
 
 -- -----------------------------------------------------------------------------
 -- | Find the package environment (if one exists)
 --
 -- We interpret the package environment as a set of package flags; to be
--- specific, if we find a package environment
+-- specific, if we find a package environment file like
 --
--- > id1
--- > id2
--- > ..
--- > idn
+-- > clear-package-db
+-- > global-package-db
+-- > package-db blah/package.conf.d
+-- > package-id id1
+-- > package-id id2
 --
 -- we interpret this as
 --
 -- > [ -hide-all-packages
+-- > , -clear-package-db
+-- > , -global-package-db
+-- > , -package-db blah/package.conf.d
 -- > , -package-id id1
 -- > , -package-id id2
--- > , ..
--- > , -package-id idn
 -- > ]
+--
+-- There's also an older syntax alias for package-id, which is just an
+-- unadorned package id
+--
+-- > id1
+-- > id2
+--
 interpretPackageEnv :: DynFlags -> IO DynFlags
 interpretPackageEnv dflags = do
     mPkgEnv <- runMaybeT $ msum $ [
                    getCmdLineArg >>= \env -> msum [
-                       loadEnvFile  env
-                     , loadEnvName  env
+                       probeEnvFile env
+                     , probeEnvName env
                      , cmdLineError env
                      ]
                  , getEnvVar >>= \env -> msum [
-                       loadEnvFile env
-                     , loadEnvName env
-                     , envError    env
+                       probeEnvFile env
+                     , probeEnvName env
+                     , envError     env
                      ]
-                 , loadEnvFile localEnvFile
-                 , loadEnvName defaultEnvName
+                 , notIfHideAllPackages >> msum [
+                       findLocalEnvFile >>= probeEnvFile
+                     , probeEnvName defaultEnvName
+                     ]
                  ]
     case mPkgEnv of
       Nothing ->
         -- No environment found. Leave DynFlags unchanged.
         return dflags
-      Just ids -> do
+      Just envfile -> do
+        content <- readFile envfile
         let setFlags :: DynP ()
             setFlags = do
               setGeneralFlag Opt_HideAllPackages
-              mapM_ exposePackageId (lines ids)
+              parseEnvFile envfile content
 
             (_, dflags') = runCmdLine (runEwM setFlags) dflags
 
@@ -3740,13 +3893,33 @@ interpretPackageEnv dflags = do
      appdir <- liftMaybeT $ versionedAppDir dflags
      return $ appdir </> "environments" </> name
 
-    loadEnvName :: String -> MaybeT IO String
-    loadEnvName name = loadEnvFile =<< namedEnvPath name
+    probeEnvName :: String -> MaybeT IO FilePath
+    probeEnvName name = probeEnvFile =<< namedEnvPath name
 
-    loadEnvFile :: String -> MaybeT IO String
-    loadEnvFile path = do
+    probeEnvFile :: FilePath -> MaybeT IO FilePath
+    probeEnvFile path = do
       guard =<< liftMaybeT (doesFileExist path)
-      liftMaybeT $ readFile path
+      return path
+
+    parseEnvFile :: FilePath -> String -> DynP ()
+    parseEnvFile envfile = mapM_ parseEntry . lines
+      where
+        parseEntry str = case words str of
+          ("package-db": _)     -> addPkgConfRef (PkgConfFile (envdir </> db))
+            -- relative package dbs are interpreted relative to the env file
+            where envdir = takeDirectory envfile
+                  db     = drop 11 str
+          ["clear-package-db"]  -> clearPkgConf
+          ["global-package-db"] -> addPkgConfRef GlobalPkgConf
+          ["user-package-db"]   -> addPkgConfRef UserPkgConf
+          ["package-id", pkgid] -> exposePackageId pkgid
+          (('-':'-':_):_)       -> return () -- comments
+          -- and the original syntax introduced in 7.10:
+          [pkgid]               -> exposePackageId pkgid
+          []                    -> return ()
+          _                     -> throwGhcException $ CmdLineError $
+                                        "Can't parse environment file entry: "
+                                     ++ envfile ++ ": " ++ str
 
     -- Various ways to define which environment to use
 
@@ -3755,17 +3928,39 @@ interpretPackageEnv dflags = do
 
     getEnvVar :: MaybeT IO String
     getEnvVar = do
-      mvar <- liftMaybeT $ try $ getEnv "GHC_ENVIRONMENT"
+      mvar <- liftMaybeT $ try $ getEnv "ETA_ENVIRONMENT"
       case mvar of
         Right var -> return var
         Left err  -> if isDoesNotExistError err then mzero
                                                 else liftMaybeT $ throwIO err
 
+    notIfHideAllPackages :: MaybeT IO ()
+    notIfHideAllPackages =
+      guard (not (gopt Opt_HideAllPackages dflags))
+
     defaultEnvName :: String
     defaultEnvName = "default"
 
-    localEnvFile :: FilePath
-    localEnvFile = "./.ghc.environment"
+    localEnvFileName :: FilePath
+    localEnvFileName = ".eta.environment"
+
+    -- Search for an env file, starting in the current dir and looking upwards.
+    -- Fail if we get to the users home dir or the filesystem root. That is,
+    -- we don't look for an env file in the user's home dir. The user-wide
+    -- env lives in eta's versionedAppDir/environments/default
+    findLocalEnvFile :: MaybeT IO FilePath
+    findLocalEnvFile = do
+        curdir  <- liftMaybeT getCurrentDirectory
+        homedir <- tryMaybeT getHomeDirectory
+        let probe dir | isDrive dir || dir == homedir
+                      = mzero
+            probe dir = do
+              let file = dir </> localEnvFileName
+              exists <- liftMaybeT (doesFileExist file)
+              if exists
+                then return file
+                else probe (takeDirectory dir)
+        probe curdir
 
     -- Error reporting
 
@@ -3777,7 +3972,7 @@ interpretPackageEnv dflags = do
     envError env = liftMaybeT . throwGhcExceptionIO . CmdLineError $
          "Package environment "
       ++ show env
-      ++ " (specified in GHC_ENVIRIONMENT) not found"
+      ++ " (specified in ETA_ENVIRONMENT) not found"
 
 
 -- If we're linking a binary, then only targets that produce object
@@ -3831,10 +4026,10 @@ setMainIs arg
   | not (null main_fn) && isLower (head main_fn)
      -- The arg looked like "Foo.Bar.baz"
   = upd $ \d -> d{ mainFunIs = Just main_fn,
-                   mainModIs = mkModule mainPackageKey (mkModuleName main_mod) }
+                   mainModIs = mkModule mainUnitId (mkModuleName main_mod) }
 
   | isUpper (head arg)  -- The arg looked like "Foo" or "Foo.Bar"
-  = upd $ \d -> d{ mainModIs = mkModule mainPackageKey (mkModuleName arg) }
+  = upd $ \d -> d{ mainModIs = mkModule mainUnitId (mkModuleName arg) }
 
   | otherwise                   -- The arg looked like "baz"
   = upd $ \d -> d{ mainFunIs = Just arg }

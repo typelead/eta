@@ -420,7 +420,7 @@ setInScope (Subst _ ids tvs cvs) in_scope = Subst in_scope ids tvs cvs
 
 instance Outputable Subst where
   ppr (Subst in_scope ids tvs cvs)
-        =  ptext (sLit "<InScope =") <+> braces (fsep (map ppr (varEnvElts (getInScopeVars in_scope))))
+        =  ptext (sLit "<InScope =") <+> braces (fsep (map ppr (varSetElems (getInScopeVars in_scope))))
         $$ ptext (sLit " IdSubst   =") <+> ppr ids
         $$ ptext (sLit " TvSubst   =") <+> ppr tvs
         $$ ptext (sLit " CvSubst   =") <+> ppr cvs
@@ -962,7 +962,7 @@ simpleOptPgm dflags this_mod binds rules vects
        ; return (reverse binds', substRulesForImportedIds subst' rules, substVects subst' vects) }
   where
     occ_anald_binds  = occurAnalysePgm this_mod (\_ -> False) {- No rules active -}
-                                       rules vects emptyVarEnv binds
+                                       rules vects emptyVarSet binds
     (subst', binds') = foldl do_one (emptySubst, []) occ_anald_binds
 
     do_one (subst, binds') bind

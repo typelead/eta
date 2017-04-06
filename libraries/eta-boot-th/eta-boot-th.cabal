@@ -1,0 +1,33 @@
+name:           eta-boot-th
+-- @VERSION_CHANGE@
+version:        0.0.5
+license:        BSD3
+license-file:   LICENSE
+category:       Boot Library
+maintainer:     typeleadhq@gmail.com
+bug-reports:    http://github.com/typelead/eta/issues
+synopsis:       Shared functionality between Eta and the @template-haskell@
+                library
+description:    This library contains various bits shared between the @eta@ and
+                @template-haskell@ libraries.
+                .
+                This package exists to ensure that @template-haskell@ has a
+                minimal set of transitive dependencies, since it is intended to
+                be depended upon by user code.
+cabal-version:  >=1.10
+build-type:     Simple
+
+source-repository head
+    type:     git
+    location: http://github.com/typelead/eta.git
+    subdir:   libraries/eta-boot-th
+
+Library
+    default-language: Haskell2010
+    other-extensions: DeriveGeneric
+
+    exposed-modules:
+            Eta.LanguageExtensions.Type
+            Eta.Lexeme
+
+    build-depends: base       >= 4.7 && < 4.11

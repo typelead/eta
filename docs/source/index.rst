@@ -13,7 +13,7 @@ Contents:
 
    getting-started
    eta-user-guide
-   epm-user-guide
+   etlas-user-guide
    faq
 
 Indices and tables

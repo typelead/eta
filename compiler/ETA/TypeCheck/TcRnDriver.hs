@@ -82,7 +82,7 @@ import ETA.Types.Type
 import ETA.Types.Class
 import ETA.Types.CoAxiom
 import ETA.Main.Annotations
-import Data.List ( sortBy )
+import Data.List ( sort, sortBy )
 import Data.Ord
 #ifdef GHCI
 import ETA.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
@@ -2020,7 +2020,7 @@ loadUnqualIfaces hsc_env ictxt
     from_external_package name  -- True <=> the Name comes from some other package
                                 --          (not the home package, not the interactive package)
       | Just mod <- nameModule_maybe name
-      , modulePackageKey mod /= this_pkg    -- Not the home package
+      , moduleUnitId mod /= this_pkg    -- Not the home package
       , not (isInteractiveModule mod)       -- Not the 'interactive' package
       = True
       | otherwise
@@ -2073,7 +2073,7 @@ pprTcGblEnv (TcGblEnv { tcg_type_env  = type_env,
          , ptext (sLit "Dependent modules:") <+>
                 ppr (sortBy cmp_mp $ eltsUFM (imp_dep_mods imports))
          , ptext (sLit "Dependent packages:") <+>
-                ppr (sortBy stablePackageKeyCmp $ imp_dep_pkgs imports)]
+                ppr (sort $ imp_dep_pkgs imports)]
   where         -- The two uses of sortBy are just to reduce unnecessary
                 -- wobbling in testsuite output
     cmp_mp (mod_name1, is_boot1) (mod_name2, is_boot2)

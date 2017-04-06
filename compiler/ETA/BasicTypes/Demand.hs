@@ -584,7 +584,7 @@ cleanUseDmd_maybe _                        = Nothing
 splitFVs :: Bool   -- Thunk
          -> DmdEnv -> (DmdEnv, DmdEnv)
 splitFVs is_thunk rhs_fvs
-  | is_thunk  = foldUFM_Directly add (emptyVarEnv, emptyVarEnv) rhs_fvs
+  | is_thunk  = nonDetFoldUFM_Directly add (emptyVarEnv, emptyVarEnv) rhs_fvs
   | otherwise = partitionVarEnv isWeakDmd rhs_fvs
   where
     add uniq dmd@(JD { strd = s, absd = u }) (lazy_fv, sig_fv)
@@ -1094,7 +1094,7 @@ We
 -- Equality needed for fixpoints in DmdAnal
 instance Eq DmdType where
   (==) (DmdType fv1 ds1 res1)
-       (DmdType fv2 ds2 res2) =  ufmToList fv1 == ufmToList fv2
+       (DmdType fv2 ds2 res2) =  nonDetUFMToList fv1 == nonDetUFMToList fv2
                               && ds1 == ds2 && res1 == res2
 
 lubDmdType :: DmdType -> DmdType -> DmdType
@@ -1146,7 +1146,7 @@ instance Outputable DmdType where
             else braces (fsep (map pp_elt fv_elts))]
     where
       pp_elt (uniq, dmd) = ppr uniq <> text "->" <> ppr dmd
-      fv_elts = ufmToList fv
+      fv_elts = nonDetUFMToList fv
 
 emptyDmdEnv :: VarEnv Demand
 emptyDmdEnv = emptyVarEnv

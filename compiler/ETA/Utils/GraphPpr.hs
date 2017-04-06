@@ -1,4 +1,3 @@
-
 -- | Pretty printing of graphs.
 
 module ETA.Utils.GraphPpr (
@@ -20,15 +19,15 @@ import Data.Maybe
 
 -- | Pretty print a graph in a somewhat human readable format.
 dumpGraph
-        :: (Outputable k, Outputable cls, Outputable color)
+        :: (Outputable k, Outputable color)
         => Graph k cls color -> SDoc
 
 dumpGraph graph
         =  text "Graph"
-        $$ (vcat $ map dumpNode $ eltsUFM $ graphMap graph)
+        $$ pprUFM (graphMap graph) (vcat . map dumpNode)
 
 dumpNode
-        :: (Outputable k, Outputable cls, Outputable color)
+        :: (Outputable k, Outputable color)
         => Node k cls color -> SDoc
 
 dumpNode node
@@ -65,7 +64,8 @@ dotGraph
         -> Graph k cls color -> SDoc
 
 dotGraph colorMap triv graph
- = let  nodes   = eltsUFM $ graphMap graph
+ = let  nodes   = nonDetEltsUFM $ graphMap graph
+                  -- See Note [Unique Determinism and code generation]
    in   vcat
                 (  [ text "graph G {" ]
                 ++ map (dotNode colorMap triv) nodes
@@ -74,8 +74,7 @@ dotGraph colorMap triv graph
                    , space ])
 
 
-dotNode :: ( Uniquable k
-           , Outputable k, Outputable cls, Outputable color)
+dotNode :: ( Outputable k, Outputable cls, Outputable color)
         => (color -> SDoc)
         -> Triv k cls color
         -> Node k cls color -> SDoc
@@ -87,7 +86,8 @@ dotNode colorMap triv node
         excludes
                 = hcat $ punctuate space
                 $ map (\n -> text "-" <> ppr n)
-                $ uniqSetToList $ nodeExclusions node
+                $ nonDetEltsUniqSet $ nodeExclusions node
+                -- See Note [Unique Determinism and code generation]
 
         preferences
                 = hcat $ punctuate space
@@ -132,7 +132,7 @@ dotNode colorMap triv node
 
 dotNodeEdges
         :: ( Uniquable k
-           , Outputable k, Outputable cls, Outputable color)
+           , Outputable k)
         => UniqSet k
         -> Node k cls color
         -> (UniqSet k, Maybe SDoc)
@@ -145,12 +145,14 @@ dotNodeEdges visited node
         | otherwise
         = let   dconflicts
                         = map (dotEdgeConflict (nodeId node))
-                        $ uniqSetToList
+                        $ nonDetEltsUniqSet
+                        -- See Note [Unique Determinism and code generation]
                         $ minusUniqSet (nodeConflicts node) visited
 
                 dcoalesces
                         = map (dotEdgeCoalesce (nodeId node))
-                        $ uniqSetToList
+                        $ nonDetEltsUniqSet
+                        -- See Note [Unique Determinism and code generation]
                         $ minusUniqSet (nodeCoalesce node) visited
 
                 out     =  vcat dconflicts

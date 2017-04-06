@@ -15,7 +15,7 @@ module ETA.BasicTypes.VarSet (
         intersectVarSet, intersectsVarSet, disjointVarSet,
         isEmptyVarSet, delVarSet, delVarSetList, delVarSetByKey,
         minusVarSet, foldVarSet, filterVarSet, fixVarSet,
-        lookupVarSet, mapVarSet, sizeVarSet, seqVarSet,
+        lookupVarSet_Directly, lookupVarSet, mapVarSet, sizeVarSet, seqVarSet,
         elemVarSetByKey, partitionVarSet
     ) where
 
@@ -55,6 +55,7 @@ minusVarSet      :: VarSet  -> VarSet -> VarSet
 isEmptyVarSet    :: VarSet  -> Bool
 mkVarSet         :: [Var]   -> VarSet
 foldVarSet       :: (Var    -> a -> a) -> a -> VarSet -> a
+lookupVarSet_Directly :: VarSet -> Unique -> Maybe Var
 lookupVarSet     :: VarSet  -> Var -> Maybe Var
                         -- Returns the set element, which may be
                         -- (==) to the argument, but not the same as
@@ -90,6 +91,7 @@ delVarSetList   = delListFromUniqSet
 isEmptyVarSet   = isEmptyUniqSet
 mkVarSet        = mkUniqSet
 foldVarSet      = foldUniqSet
+lookupVarSet_Directly = lookupUniqSet_Directly
 lookupVarSet    = lookupUniqSet
 mapVarSet       = mapUniqSet
 sizeVarSet      = sizeUniqSet

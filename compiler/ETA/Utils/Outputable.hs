@@ -68,7 +68,7 @@ module ETA.Utils.Outputable (
 
         -- * Error handling and debugging utilities
         pprPanic, pprSorry, assertPprPanic, pprPanicFastInt, pprPgmError,
-        pprTrace, warnPprTrace,
+        pprTrace, pprTraceDebug, warnPprTrace,
         trace, pgmError, panic, sorry, panicFastInt, assertPanic,
         pprDebugAndThen,
     ) where
@@ -76,8 +76,8 @@ module ETA.Utils.Outputable (
 import {-# SOURCE #-}   ETA.Main.DynFlags( DynFlags,
                                   targetPlatform, pprUserLength, pprCols,
                                   useUnicode, useUnicodeSyntax,
-                                  unsafeGlobalDynFlags )
-import {-# SOURCE #-}   ETA.BasicTypes.Module( PackageKey, Module, ModuleName, moduleName )
+                                  unsafeGlobalDynFlags, hasPprDebug )
+import {-# SOURCE #-}   ETA.BasicTypes.Module( UnitId, Module, ModuleName, moduleName )
 import {-# SOURCE #-}   ETA.BasicTypes.OccName( OccName )
 import {-# SOURCE #-}   ETA.Main.StaticFlags( opt_PprStyle_Debug, opt_NoDebugOutput )
 
@@ -165,7 +165,7 @@ type QueryQualifyModule = Module -> Bool
 
 -- | For a given package, we need to know whether to print it with
 -- the package key to disambiguate it.
-type QueryQualifyPackage = PackageKey -> Bool
+type QueryQualifyPackage = UnitId -> Bool
 
 -- See Note [Printing original names] in HscTypes
 data QualifyName                        -- given P:M.T
@@ -990,6 +990,10 @@ pprPgmError :: String -> SDoc -> a
 -- ^ Throw an exception saying "bug in pgm being compiled" (used for unusual program errors)
 pprPgmError = pgmErrorDoc
 
+pprTraceDebug :: String -> SDoc -> a -> a
+pprTraceDebug str doc x
+   | debugIsOn && hasPprDebug unsafeGlobalDynFlags = pprTrace str doc x
+   | otherwise                                     = x
 
 pprTrace :: String -> SDoc -> a -> a
 -- ^ If debug output is on, show some 'SDoc' on the screen

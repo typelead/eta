@@ -40,7 +40,8 @@ import ETA.Core.CoreSyn
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.IdInfo
 import ETA.BasicTypes.NameSet
-import ETA.Utils.UniqFM
+import ETA.BasicTypes.Unique
+import ETA.Utils.UniqSet
 import ETA.BasicTypes.Name
 import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.Var
@@ -292,7 +293,8 @@ idRuleRhsVars is_active id
                   , ru_rhs = rhs, ru_act = act })
       | is_active act
             -- See Note [Finding rule RHS free vars] in OccAnal.lhs
-      = delFromUFM fvs fn        -- Note [Rule free var hack]
+      = delOneFromUniqSet_Directly fvs (getUnique fn)
+            -- Note [Rule free var hack]
       where
         fvs = addBndrs bndrs (expr_fvs rhs) isLocalVar emptyVarSet
     get_fvs _ = noFVs

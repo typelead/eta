@@ -51,4 +51,4 @@ Library
 
     build-depends: ghc-prim == 0.4.*
 
-    ghc-options: -this-package-key integer
+    ghc-options: -this-unit-id integer

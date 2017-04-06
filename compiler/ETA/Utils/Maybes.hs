@@ -14,12 +14,13 @@ module ETA.Utils.Maybes (
         whenIsJust,
         expectJust,
 
-        MaybeT(..), liftMaybeT
+        MaybeT(..), liftMaybeT, tryMaybeT
     ) where
 
 import Control.Applicative
 import Control.Monad
 import Data.Maybe
+import Control.Exception (catch, SomeException(..))
 
 infixr 4 `orElse`
 
@@ -92,6 +93,12 @@ instance Monad m => MonadPlus (MaybeT m) where
 
 liftMaybeT :: Monad m => m a -> MaybeT m a
 liftMaybeT act = MaybeT $ Just `liftM` act
+
+-- | Try performing an 'IO' action, failing on error.
+tryMaybeT :: IO a -> MaybeT IO a
+tryMaybeT action = MaybeT $ catch (Just `fmap` action) handler
+  where
+    handler (SomeException _) = return Nothing
 
 {-
 ************************************************************************

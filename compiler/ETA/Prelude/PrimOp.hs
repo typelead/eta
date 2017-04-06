@@ -39,7 +39,7 @@ import ETA.BasicTypes.Unique           ( Unique, mkPrimOpIdUnique )
 import ETA.Utils.Outputable
 import ETA.Utils.FastTypes
 import ETA.Utils.FastString
-import ETA.BasicTypes.Module           ( PackageKey )
+import ETA.BasicTypes.Module           ( UnitId )
 
 {-
 ************************************************************************
@@ -5302,7 +5302,7 @@ pprPrimOp other_op = pprOccName (primOpOcc other_op)
 ************************************************************************
 -}
 
-data PrimCall = PrimCall CLabelString PackageKey
+data PrimCall = PrimCall CLabelString UnitId
 
 instance Outputable PrimCall where
   ppr (PrimCall lbl pkgId)

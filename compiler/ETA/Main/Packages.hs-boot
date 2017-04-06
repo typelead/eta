@@ -1,6 +1,10 @@
 module ETA.Main.Packages where
--- Well, this is kind of stupid...
-import {-# SOURCE #-} ETA.BasicTypes.Module (PackageKey)
-import {-# SOURCE #-} ETA.Main.DynFlags (DynFlags)
+import {-# SOURCE #-} ETA.Main.DynFlags(DynFlags)
+import {-# SOURCE #-} ETA.BasicTypes.Module(ComponentId, UnitId, InstalledUnitId)
 data PackageState
-packageKeyPackageIdString :: DynFlags -> PackageKey -> Maybe String
+data PackageConfigMap
+emptyPackageState :: PackageState
+componentIdString :: DynFlags -> ComponentId -> Maybe String
+displayInstalledUnitId :: DynFlags -> InstalledUnitId -> Maybe String
+improveUnitId :: PackageConfigMap -> UnitId -> UnitId
+getPackageConfigMap :: DynFlags -> PackageConfigMap

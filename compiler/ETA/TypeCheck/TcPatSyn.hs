@@ -129,7 +129,7 @@ tcCheckPatSynDecl PSB{ psb_id = lname@(L loc name), psb_args = details,
            buildImplication skol_info univ_tvs req_dicts $
            tcPat PatSyn lpat pat_ty $ do
            { ex_sigtvs <- mapM (\tv -> newSigTyVar (getName tv) (tyVarKind tv)) ex_tvs
-           ; let subst = mkTvSubst (mkInScopeSet (zipVarEnv ex_sigtvs ex_sigtvs)) $
+           ; let subst = mkTvSubst (mkInScopeSet (mkVarSet ex_sigtvs)) $
                          zipTyEnv ex_tvs (map mkTyVarTy ex_sigtvs)
            ; let ex_tys = substTys subst $ map mkTyVarTy ex_tvs
                  prov_theta' = substTheta subst prov_theta

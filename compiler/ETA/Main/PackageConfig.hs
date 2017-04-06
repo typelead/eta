@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, RecordWildCards #-}
+{-# LANGUAGE CPP, RecordWildCards, FlexibleInstances, MultiParamTypeClasses #-}
 
 -- |
 -- Package configuration information: essentially the interface to Cabal, with
@@ -9,18 +9,20 @@
 module ETA.Main.PackageConfig (
         -- $package_naming
 
-        -- * PackageKey
+        -- * UnitId
         packageConfigId,
+        expandedPackageConfigId,
+        definitePackageConfigId,
+        installedPackageConfigId,
 
         -- * The PackageConfig type: information about a package
         PackageConfig,
         InstalledPackageInfo(..),
-        InstalledPackageId(..),
+        ComponentId(..),
         SourcePackageId(..),
         PackageName(..),
         Version(..),
         defaultPackageConfig,
-        installedPackageIdString,
         sourcePackageIdString,
         packageNameString,
         pprPackageConfig,
@@ -28,36 +30,33 @@ module ETA.Main.PackageConfig (
 
 #include "HsVersions.h"
 
-import ETA.PackageDb
+import Eta.PackageDb
 import Data.Version
 
 import ETA.Utils.FastString
 import ETA.Utils.Outputable
-import ETA.BasicTypes.Module
-import qualified ETA.BasicTypes.Module as Module
+import ETA.BasicTypes.Module as Module
+import ETA.BasicTypes.Unique
 
 -- -----------------------------------------------------------------------------
--- Our PackageConfig type is the InstalledPackageInfo from bin-package-db,
+-- Our PackageConfig type is the InstalledPackageInfo from ghc-boot,
 -- which is similar to a subset of the InstalledPackageInfo type from Cabal.
 
 type PackageConfig = InstalledPackageInfo
-                       InstalledPackageId
+                       ComponentId
                        SourcePackageId
                        PackageName
-                       Module.PackageKey
+                       Module.InstalledUnitId
+                       Module.UnitId
                        Module.ModuleName
+                       Module.Module
 
 -- TODO: there's no need for these to be FastString, as we don't need the uniq
 --       feature, but ghc doesn't currently have convenient support for any
 --       other compact string types, e.g. plain ByteString or Text.
 
-newtype InstalledPackageId = InstalledPackageId FastString deriving (Eq, Ord, Show)
-newtype SourcePackageId    = SourcePackageId    FastString deriving (Eq, Ord, Show)
-newtype PackageName        = PackageName        FastString deriving (Eq, Ord, Show)
-
-instance BinaryStringRep InstalledPackageId where
-  fromStringRep = InstalledPackageId . mkFastStringByteString
-  toStringRep (InstalledPackageId s) = fastStringToByteString s
+newtype SourcePackageId    = SourcePackageId    FastString deriving (Eq, Ord)
+newtype PackageName        = PackageName        FastString deriving (Eq, Ord)
 
 instance BinaryStringRep SourcePackageId where
   fromStringRep = SourcePackageId . mkFastStringByteString
@@ -67,8 +66,11 @@ instance BinaryStringRep PackageName where
   fromStringRep = PackageName . mkFastStringByteString
   toStringRep (PackageName s) = fastStringToByteString s
 
-instance Outputable InstalledPackageId where
-  ppr (InstalledPackageId str) = ftext str
+instance Uniquable SourcePackageId where
+  getUnique (SourcePackageId n) = getUnique n
+
+instance Uniquable PackageName where
+  getUnique (PackageName n) = getUnique n
 
 instance Outputable SourcePackageId where
   ppr (SourcePackageId str) = ftext str
@@ -76,32 +78,8 @@ instance Outputable SourcePackageId where
 instance Outputable PackageName where
   ppr (PackageName str) = ftext str
 
--- | Pretty-print an 'ExposedModule' in the same format used by the textual
--- installed package database.
-pprExposedModule :: (Outputable a, Outputable b) => ExposedModule a b -> SDoc
-pprExposedModule (ExposedModule exposedName exposedReexport exposedSignature) =
-    sep [ ppr exposedName
-        , case exposedReexport of
-            Just m -> sep [text "from", pprOriginalModule m]
-            Nothing -> empty
-        , case exposedSignature of
-            Just m -> sep [text "is", pprOriginalModule m]
-            Nothing -> empty
-        ]
-
--- | Pretty-print an 'OriginalModule' in the same format used by the textual
--- installed package database.
-pprOriginalModule :: (Outputable a, Outputable b) => OriginalModule a b -> SDoc
-pprOriginalModule (OriginalModule originalPackageId originalModuleName) =
-    ppr originalPackageId <> char ':' <> ppr originalModuleName
-
 defaultPackageConfig :: PackageConfig
 defaultPackageConfig = emptyInstalledPackageInfo
-
-installedPackageIdString :: PackageConfig -> String
-installedPackageIdString pkg = unpackFS str
-  where
-    InstalledPackageId str = installedPackageId pkg
 
 sourcePackageIdString :: PackageConfig -> String
 sourcePackageIdString pkg = unpackFS str
@@ -118,17 +96,14 @@ pprPackageConfig InstalledPackageInfo {..} =
     vcat [
       field "name"                 (ppr packageName),
       field "version"              (text (showVersion packageVersion)),
-      field "id"                   (ppr installedPackageId),
-      field "key"                  (ppr packageKey),
+      field "id"                   (ppr unitId),
       field "exposed"              (ppr exposed),
-      field "exposed-modules"
-        (if all isExposedModule exposedModules
-           then fsep (map pprExposedModule exposedModules)
-           else pprWithCommas pprExposedModule exposedModules),
+      field "exposed-modules"      (ppr exposedModules),
       field "hidden-modules"       (fsep (map ppr hiddenModules)),
       field "trusted"              (ppr trusted),
       field "import-dirs"          (fsep (map text importDirs)),
       field "library-dirs"         (fsep (map text libraryDirs)),
+      field "dynamic-library-dirs" (fsep (map text libraryDynDirs)),
       field "hs-libraries"         (fsep (map text hsLibraries)),
       field "extra-libraries"      (fsep (map text extraLibraries)),
       field "extra-ghci-libraries" (fsep (map text extraGHCiLibraries)),
@@ -144,21 +119,34 @@ pprPackageConfig InstalledPackageInfo {..} =
     ]
   where
     field name body = text name <> colon <+> nest 4 body
-    isExposedModule (ExposedModule _ Nothing Nothing) = True
-    isExposedModule _ = False
-
 
 -- -----------------------------------------------------------------------------
--- PackageKey (package names, versions and dep hash)
+-- UnitId (package names, versions and dep hash)
 
 -- $package_naming
 -- #package_naming#
--- Mostly the compiler deals in terms of 'PackageKey's, which are md5 hashes
+-- Mostly the compiler deals in terms of 'UnitId's, which are md5 hashes
 -- of a package ID, keys of its dependencies, and Cabal flags. You're expected
--- to pass in the package key in the @-this-package-key@ flag. However, for
+-- to pass in the unit id in the @-this-unit-id@ flag. However, for
 -- wired-in packages like @base@ & @rts@, we don't necessarily know what the
 -- version is, so these are handled specially; see #wired_in_packages#.
 
--- | Get the GHC 'PackageKey' right out of a Cabalish 'PackageConfig'
-packageConfigId :: PackageConfig -> PackageKey
-packageConfigId = packageKey
+-- | Get the GHC 'UnitId' right out of a Cabalish 'PackageConfig'
+installedPackageConfigId :: PackageConfig -> InstalledUnitId
+installedPackageConfigId = unitId
+
+packageConfigId :: PackageConfig -> UnitId
+packageConfigId p =
+    if indefinite p
+        then newUnitId (componentId p) (instantiatedWith p)
+        else DefiniteUnitId (DefUnitId (unitId p))
+
+expandedPackageConfigId :: PackageConfig -> UnitId
+expandedPackageConfigId p =
+    newUnitId (componentId p) (instantiatedWith p)
+
+definitePackageConfigId :: PackageConfig -> Maybe DefUnitId
+definitePackageConfigId p =
+    case packageConfigId p of
+        DefiniteUnitId def_uid -> Just def_uid
+        _ -> Nothing

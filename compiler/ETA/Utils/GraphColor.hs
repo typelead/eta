@@ -34,7 +34,7 @@ import Data.List
 --
 colorGraph
         :: ( Uniquable  k, Uniquable cls,  Uniquable  color
-           , Eq color, Eq cls, Ord k
+           , Eq cls, Ord k
            , Outputable k, Outputable cls, Outputable color)
         => Bool                         -- ^ whether to do iterative coalescing
         -> Int                          -- ^ how many times we've tried to color this graph so far.
@@ -45,7 +45,7 @@ colorGraph
 
         -> ( Graph k cls color          -- the colored graph.
            , UniqSet k                  -- the set of nodes that we couldn't find a color for.
-           , UniqFM  k )                -- map of regs (r1 -> r2) that were coaleced
+           , UniqFM  k )                -- map of regs (r1 -> r2) that were coalesced
                                         --       r1 should be replaced by r2 in the source
 
 colorGraph iterative spinCount colors triv spill graph0
@@ -184,7 +184,7 @@ colorScan_spin iterative triv spill graph
                 kksCoalesce
 
         -- Coalesce:
-        --      If we're doing iterative coalescing and no triv nodes are avaliable
+        --      If we're doing iterative coalescing and no triv nodes are available
         --      then it's time for a coalescing pass.
         | iterative
         = case coalesceGraph False triv graph of
@@ -250,7 +250,7 @@ colorScan_spill iterative triv spill graph
 
 assignColors
         :: ( Uniquable k, Uniquable cls, Uniquable color
-           , Eq color, Outputable cls)
+           , Outputable cls)
         => UniqFM (UniqSet color)       -- ^ map of (node class -> set of colors available for this class).
         -> Graph k cls color            -- ^ the graph
         -> [k]                          -- ^ nodes to assign a color to.
@@ -288,7 +288,7 @@ assignColors colors graph ks
 --
 selectColor
         :: ( Uniquable k, Uniquable cls, Uniquable color
-           , Eq color, Outputable cls)
+           , Outputable cls)
         => UniqFM (UniqSet color)       -- ^ map of (node class -> set of colors available for this class).
         -> Graph k cls color            -- ^ the graph
         -> k                            -- ^ key of the node to select a color for.
@@ -309,8 +309,9 @@ selectColor colors graph u
         Just nsConflicts
                         = sequence
                         $ map (lookupNode graph)
-                        $ uniqSetToList
+                        $ nonDetEltsUniqSet
                         $ nodeConflicts node
+                        -- See Note [Unique Determinism and code generation]
 
         colors_conflict = mkUniqSet
                         $ catMaybes
@@ -355,7 +356,8 @@ selectColor colors graph u
 
                 -- it wasn't a preference, but it was still ok
                 | not $ isEmptyUniqSet colors_ok
-                , c : _         <- uniqSetToList colors_ok
+                , c : _         <- nonDetEltsUniqSet colors_ok
+                -- See Note [Unique Determinism and code generation]
                 = Just c
 
                 -- no colors were available for us this time.
@@ -364,6 +366,5 @@ selectColor colors graph u
                 = Nothing
 
    in   chooseColor
-
 
 

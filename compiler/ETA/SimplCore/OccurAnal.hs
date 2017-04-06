@@ -37,6 +37,7 @@ import ETA.Utils.Maybes           ( orElse )
 import ETA.Utils.Digraph          ( SCC(..), stronglyConnCompFromEdgedVerticesR )
 import ETA.BasicTypes.Unique
 import ETA.Utils.UniqFM
+import ETA.Utils.UniqSet
 import ETA.Utils.Util
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
@@ -85,7 +86,8 @@ occurAnalysePgm this_mod active_rule imp_rules vects vectVars binds
 
     -- Note [Preventing loops due to imported functions rules]
     imp_rules_edges = foldr (plusVarEnv_C unionVarSet) emptyVarEnv
-                            [ mapVarEnv (const maps_to) (exprFreeIds arg `delVarSetList` ru_bndrs imp_rule)
+                            [ mapVarEnv (const maps_to) $
+                                getUniqSet (exprFreeIds arg `delVarSetList` ru_bndrs imp_rule)
                             | imp_rule <- imp_rules
                             , let maps_to = exprFreeIds (ru_rhs imp_rule)
                                              `delVarSetList` ru_bndrs imp_rule
@@ -670,7 +672,7 @@ instance Outputable Details where
 
 makeNode :: OccEnv -> IdEnv IdSet -> VarSet -> (Var, CoreExpr) -> Node Details
 makeNode env imp_rules_edges bndr_set (bndr, rhs)
-  = (details, varUnique bndr, keysUFM node_fvs)
+  = (details, varUnique bndr, nonDetKeysUniqSet node_fvs)
   where
     details = ND { nd_bndr = bndr
                  , nd_rhs  = rhs'
@@ -756,7 +758,7 @@ occAnalRec (CyclicSCC nodes) (body_uds, binds)
         -- Tag the binders with their occurrence info
     tagged_nodes = map tag_node nodes
     total_uds = foldl add_uds body_uds nodes
-    final_uds = total_uds `minusVarEnv` bndr_set
+    final_uds = total_uds `minusVarEnv` (getUniqSet bndr_set)
     add_uds usage_so_far (nd, _, _) = usage_so_far +++ nd_uds nd
 
     tag_node :: Node Details -> Node Details
@@ -778,7 +780,7 @@ occAnalRec (CyclicSCC nodes) (body_uds, binds)
         -- See Note [Choosing loop breakers] for loop_breaker_edges
     loop_breaker_edges = map mk_node tagged_nodes
     mk_node (details@(ND { nd_inl = inl_fvs }), k, _)
-      = (details, k, keysUFM (extendFvs_ rule_fv_env inl_fvs))
+      = (details, k, nonDetKeysUniqSet (extendFvs_ rule_fv_env inl_fvs))
 
     ------------------------------------
     rule_fv_env :: IdEnv IdSet
@@ -823,7 +825,9 @@ mk_non_loop_breaker used_in_rules (ND { nd_bndr = bndr, nd_rhs = rhs}, _, _)
 
 udFreeVars :: VarSet -> UsageDetails -> VarSet
 -- Find the subset of bndrs that are mentioned in uds
-udFreeVars bndrs uds = intersectUFM_C (\b _ -> b) bndrs uds
+-- TODO: Change may cause bugs
+udFreeVars bndrs uds = unsafeUFMToUniqSet $
+  intersectUFM_C (\b _ -> b) (getUniqSet bndrs) uds
 
 loopBreakNodes :: Int
                -> VarSet        -- All binders
@@ -1548,7 +1552,7 @@ transClosureFV env
   | no_change = env
   | otherwise = transClosureFV (listToUFM new_fv_list)
   where
-    (no_change, new_fv_list) = mapAccumL bump True (ufmToList env)
+    (no_change, new_fv_list) = mapAccumL bump True (nonDetUFMToList env)
     bump no_change (b,fvs)
       | no_change_here = (no_change, (b,fvs))
       | otherwise      = (False,     (b,new_fvs))
@@ -1570,7 +1574,7 @@ extendFvs env s
   where
     extras :: VarSet    -- env(s)
     extras = foldUFM unionVarSet emptyVarSet $
-             intersectUFM_C (\x _ -> x) env s
+               intersectUFM_C (\x _ -> x) env (getUniqSet s)
 
 {-
 ************************************************************************
@@ -1840,7 +1844,7 @@ mkOneOcc env id int_cxt
   | isLocalId id
   = unitVarEnv id (OneOcc False True int_cxt)
 
-  | id `elemVarEnv` occ_gbl_scrut env
+  | id `elemVarSet` occ_gbl_scrut env
   = unitVarEnv id NoOccInfo
 
   | otherwise
