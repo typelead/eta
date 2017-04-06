@@ -44,6 +44,7 @@ import Control.Monad
 import Control.Applicative
 import Java.Core
 import Java.String
+import Java.Utils
 
 -- Collection
 data {-# CLASS "java.util.Collection" #-} Collection a =
@@ -362,3 +363,38 @@ foreign import java unsafe "@interface entrySet" entrySet
   => Java b (Set (MapEntry k v))
 
 -- End java.util.Map
+
+-- Start java.util.SortedMap
+
+data {-# CLASS "java.util.SortedMap" #-} SortedMap k v =
+  SortedMap (Object# (SortedMap k v))
+  deriving Class
+
+foreign import java unsafe "@interface" comparator :: (k <: Object, v <: Object, b <: (SortedMap k v), k <: a)
+  => Java b (Comparator a)
+
+foreign import java unsafe "@interface entrySet" entrySetSM :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => Java b (Set (MapEntry k v))
+
+foreign import java unsafe "@interface" firstKey :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => Java b k
+
+foreign import java unsafe "@interface" headMap :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => k -> Java b (SortedMap k v)
+
+foreign import java unsafe "@interface keySet" keySetSM :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => Java b (Set k)
+
+foreign import java unsafe "@interface" lastKey :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => Java b k
+
+foreign import java unsafe "@interface" subMap :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => k -> k -> Java b (SortedMap k v)
+
+foreign import java unsafe "@interface" tailMap :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => k -> Java b (SortedMap k v)
+
+foreign import java unsafe "@interface values" valuesSM :: (k <: Object, v <: Object, b <: (SortedMap k v))
+  => k -> Java b (Collection v)
+
+-- End java.util.SortedMap
