@@ -101,3 +101,13 @@ data {-# CLASS "java.lang.VirtualMachineError" #-}
 type instance Inherits VirtualMachineError = '[Error]
 
 -- End java.lang.VirtualMachineError
+
+-- Start java.lang.InternalError
+
+data {-# CLASS "java.lang.InternalError" #-}
+  InternalError = InternalError (Object# InternalError)
+  deriving Class
+
+type instance Inherits InternalError = '[VirtualMachineError]
+
+-- End java.lang.InternalError
