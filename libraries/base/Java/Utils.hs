@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ScopedTypeVariables, KindSignatures,
-             UnboxedTuples, FlexibleContexts, UnliftedFFITypes, TypeOperators #-}
+             UnboxedTuples, FlexibleContexts, UnliftedFFITypes, TypeOperators, AllowAmbiguousTypes #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Utils
@@ -26,7 +26,8 @@ module Java.Utils
   , eqObject#
   , toString#
   , safeDowncast
-  , Void )
+  , Void
+  , Comparator )
 where
 
 import GHC.Base
@@ -63,3 +64,16 @@ data {-# CLASS "java.lang.Void" #-} Void = Void (Object# Void)
   deriving Class
 
 -- End java.lang.Void
+
+-- Start java.util.Comparator
+
+data {-# CLASS "java.util.Comparator" #-} Comparator t = Comparator (Object# (Comparator t))
+  deriving Class
+
+foreign import java unsafe "@interface compare"
+  compare :: (t <: Object, b <: (Comparator t)) => t -> t -> Java b Int
+
+foreign import java unsafe "@interface equals"
+  equalsComparator :: (t <: Object, b <: (Comparator t)) => Object -> Java b Bool
+
+-- End java.util.Comparator
