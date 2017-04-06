@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, TypeOperators,
-  DataKinds, TypeFamilies, FlexibleContexts #-}
+  DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.IO
@@ -23,6 +23,12 @@ import Java.Array
 import Java.Primitive
 import Java.NIO
 import Java.Text
+
+data {-# CLASS "java.io.File[]" #-}
+  FileArray = FileArray (Object# FileArray)
+  deriving Class
+
+instance JArray File FileArray
 
 -- Start java.io.Closeable
 
@@ -449,3 +455,119 @@ data {-# CLASS "java.io.FilterInputStream" #-}
 type instance Inherits FilterInputStream = '[InputStream, Closeable]
 
 -- End java.io.FilterInputStream
+
+-- Start java.io.File
+
+data {-# CLASS "java.io.File" #-}
+  File = File (Object# File)
+  deriving Class
+
+type instance Inherits File = '[Object, (Comparable File)]
+
+foreign import java unsafe canExecute :: Java File Bool
+
+foreign import java unsafe canRead :: Java File Bool
+
+foreign import java unsafe canWrite :: Java File Bool
+
+foreign import java unsafe compareTo :: File -> Java File Int
+
+foreign import java unsafe createNewFile :: Java File Bool
+
+foreign import java unsafe delete :: Java File Bool
+
+foreign import java unsafe deleteOnExit :: Java File ()
+
+foreign import java unsafe exists :: Java File Bool
+
+foreign import java unsafe getAbsoluteFile :: Java File File
+
+foreign import java unsafe getAbsolutePath :: Java File String
+
+foreign import java unsafe getCanonicalFile :: Java File File
+
+foreign import java unsafe getCanonicalPath :: Java File String
+
+foreign import java unsafe getFreeSpace :: Java File Int64
+
+foreign import java unsafe getName :: Java File String
+
+foreign import java unsafe getParent :: Java File String
+
+foreign import java unsafe getParentFile :: Java File File
+
+foreign import java unsafe getPath :: Java File String
+
+foreign import java unsafe getTotalSpace :: Java File Int64
+
+foreign import java unsafe getUsableSpace :: Java File Int64
+
+foreign import java unsafe isAbsolute :: Java File Bool
+
+foreign import java unsafe isDirectory :: Java File Bool
+
+foreign import java unsafe isFile :: Java File Bool
+
+foreign import java unsafe isHidden :: Java File Bool
+
+foreign import java unsafe lastModified :: Java File Int64
+
+foreign import java unsafe length :: Java File Int64
+
+foreign import java unsafe list :: Java File JStringArray
+
+foreign import java unsafe "list" listFilenameFilter :: FilenameFilter -> Java File JStringArray
+
+foreign import java unsafe listFiles :: Java File FileArray
+
+foreign import java unsafe "listFiles" listFilesFileFilter :: FileFilter -> Java File FileArray
+
+foreign import java unsafe "listFiles" listFilesFilenameFilter :: FilenameFilter -> Java File FileArray
+
+foreign import java unsafe mkdir :: Java File Bool
+
+foreign import java unsafe mkdirs :: Java File Bool
+
+foreign import java unsafe renameTo :: File -> Java File Bool
+
+foreign import java unsafe setExecutable :: Bool -> Java File Bool
+
+foreign import java unsafe "setExecutable" setExecutableOwner :: Bool -> Bool -> Java File Bool
+
+foreign import java unsafe setLastModified :: Int64 -> Java File Bool
+
+foreign import java unsafe setReadable :: Bool -> Java File Bool
+
+foreign import java unsafe "setReadable" setReadableOwner :: Bool -> Bool -> Java File Bool
+
+foreign import java unsafe setReadOnly :: Java File Bool
+
+foreign import java unsafe setWritable :: Bool -> Java File Bool
+
+foreign import java unsafe "setWritable" setWritableOwner :: Bool -> Bool -> Java File Bool
+
+foreign import java unsafe toPath :: Java File Path
+
+-- End java.io.File
+
+-- Start java.io.FilenameFilter
+
+data {-# CLASS "java.io.FilenameFilter" #-}
+  FilenameFilter = FilenameFilter (Object# FilenameFilter)
+  deriving Class
+
+foreign import java unsafe "@interface"
+  accept :: (b <: FilenameFilter) => File -> String -> Java b Bool
+
+-- End java.io.FilenameFilter
+
+-- Start java.io.FileFilter
+
+data {-# CLASS "java.io.FileFilter" #-}
+  FileFilter = FileFilter (Object# FileFilter)
+  deriving Class
+
+foreign import java unsafe "@interface"
+  acceptFileFilter :: (b <: FileFilter) => File -> Java b Bool
+
+-- End java.io.FileFilter
