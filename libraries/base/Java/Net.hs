@@ -68,7 +68,11 @@ foreign import java unsafe "set"
 
 foreign import java unsafe toExternalForm :: Java URL String
 
--- foreign import java unsafe toURI :: Java URL URI
+foreign import java unsafe toURI :: Java URL URI
+
+foreign import java unsafe "toURI" toURIFile :: Java File URI
+
+foreign import java unsafe "toURL" toURLFile :: Java File URL
 -- TODO
 
 -- End java.net.URL
