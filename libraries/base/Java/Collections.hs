@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
              FlexibleContexts, DataKinds, AllowAmbiguousTypes,
              TypeFamilies, ScopedTypeVariables, FlexibleInstances,
-             Rank2Types #-}
+             Rank2Types, TypeOperators #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Collections
@@ -219,19 +219,6 @@ toHashtable elems = pureJava $ do
       put k v
   return ht
 
--- Map
-data {-# CLASS "java.util.Map" #-} Map k v =
-  Map (Object# (Map k v))
-  deriving Class
-
-foreign import java unsafe "@interface put" put
-  :: (Extends k Object, Extends v Object, Extends b (Map k v))
-  => k -> v -> Java b v
-
-foreign import java unsafe "@interface entrySet" entrySet
-  :: (Extends k Object, Extends v Object, Extends b (Map k v))
-  => Java b (Set (MapEntry k v))
-
 -- Map.Entry
 data {-# CLASS "java.util.Map$Entry" #-} MapEntry k v =
   MapEntry (Object# (MapEntry k v))
@@ -330,3 +317,48 @@ fromProperties props = pureJavaWith props $ do
 instance JavaConverter [(String, String)] Properties where
   toJava   = toProperties
   fromJava = fromProperties
+
+-- Start java.util.Map
+
+data {-# CLASS "java.util.Map" #-} Map k v =
+  Map (Object# (Map k v))
+  deriving Class
+
+foreign import java unsafe "@interface" clear :: (b <: Map k v, k <: Object, v <: Object) => Java b ()
+
+foreign import java unsafe "@interface" containsKey :: (b <: Map k v,k <: Object, v <: Object)
+                                       => Object -> Java b Bool
+
+foreign import java unsafe "@interface" containsValue :: (b <: Map k v, k <: Object, v <: Object)
+                                         => Object -> Java b Bool
+
+foreign import java unsafe "@interface get"
+  getMap :: (b <: Map k v, k <: Object, v <: Object) => Java b v
+
+foreign import java unsafe "@interface"
+  isEmpty :: (b <: Map k v, k <: Object, v <: Object) => Java b Bool
+
+foreign import java unsafe "@interface"
+  keySet :: (b <: Map k v, k <: Object, v <: Object) => Java b (Set k)
+
+foreign import java unsafe "@interface"
+  putAll :: (b <: Map k v, k <: Object, v <: Object, a <: k, c <: v) => Map a c -> Java b ()
+
+foreign import java unsafe "@interface"
+  remove :: (b <: Map k v, k <: Object, v <: Object) => Object -> Java b v
+
+foreign import java unsafe "@interface"
+  size :: (b <: Map k v, k <: Object, v <: Object) => Java b Int
+
+foreign import java unsafe "@interface"
+  values :: (b <: Map k v, k <: Object, v <: Object) => Java b (Collection v)
+
+foreign import java unsafe "@interface put" put
+  :: (Extends k Object, Extends v Object, Extends b (Map k v))
+  => k -> v -> Java b v
+
+foreign import java unsafe "@interface entrySet" entrySet
+  :: (Extends k Object, Extends v Object, Extends b (Map k v))
+  => Java b (Set (MapEntry k v))
+
+-- End java.util.Map
