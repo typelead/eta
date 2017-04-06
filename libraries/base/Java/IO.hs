@@ -439,3 +439,13 @@ foreign import java unsafe "println" printlnStringPStream :: String -> Java Prin
 foreign import java unsafe "setError" setErrorPStream :: Java PrintWriter ()
 
 -- End java.io.PrintStream
+
+-- Start java.io.FilterInputStream
+
+data {-# CLASS "java.io.FilterInputStream" #-}
+  FilterInputStream = FilterInputStream (Object# FilterInputStream)
+  deriving Class
+
+type instance Inherits FilterInputStream = '[InputStream, Closeable]
+
+-- End java.io.FilterInputStream
