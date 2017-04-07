@@ -15,6 +15,7 @@ dependencies:
 
   pre:
     - mkdir -p ~/.local/bin
+    - git submodule update --init --recursive
     - ./install.sh
 
 test:
