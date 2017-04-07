@@ -28,6 +28,7 @@ rtsjar = libJarPath "rts"
 top x = "../../" ++ x
 testsDir = "tests"
 packageConfDir dir = dir </> "package.conf.d"
+externalDepLibs = ["ghc-boot"]
 
 etaIncludePath :: FilePath -> FilePath
 etaIncludePath = (</> "include")
@@ -127,7 +128,7 @@ buildLibrary debug lib deps = do
 
       -- libCmd = unit . cmd (Cwd dir)
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "epm configure" configureFlags
+  when (not $ lib `elem` externalDepLibs) $ unit $ cmd (Cwd dir) "epm configure" configureFlags
   unit $ cmd (Cwd dir) "epm install" installFlags
   when (lib == "ghc-prim") $ fixGhcPrimConf
   return ()
