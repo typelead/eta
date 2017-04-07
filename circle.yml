@@ -14,9 +14,7 @@ dependencies:
     - ~/.coursier
 
   pre:
-    # - mkdir -p ~/.local/bin
-    # - echo $PATH
-    # - wget -qO- https://get.haskellstack.org/ | sh
+    - mkdir -p ~/.local/bin
     - ./install.sh
 
 test:
