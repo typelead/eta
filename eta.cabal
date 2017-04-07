@@ -343,7 +343,7 @@ library
        ghc-options:      -DDEBUG
 
 executable eta
-    ghc-options:         -Wall -fno-warn-name-shadowing
+    ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts
     hs-source-dirs:      eta
     main-is:             Main.hs
     default-language:    Haskell2010
