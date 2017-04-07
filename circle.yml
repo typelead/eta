@@ -1,0 +1,24 @@
+machine:
+  services:
+    - docker
+  java:
+    version: oraclejdk8
+  environment:
+    PATH: ${HOME}/.local/bin:$PATH
+
+dependencies:
+  cache_directories:
+    - ~/.stack
+    - ~/.local
+    - ~/.etlas
+    - ~/.coursier
+
+  pre:
+    - mkdir -p ~/.local/bin
+    - echo $PATH
+    - wget -qO- https://get.haskellstack.org/ | sh
+    - ./install.sh
+
+test:
+  override:
+    - stack test eta
