@@ -53,3 +53,17 @@ data {-# CLASS "java.security.Provider" #-} Provider = Provider (Object# Provide
 type instance Inherits Provider = '[Properties]
 
 -- End java.security.Provider
+
+-- Start java.security.cert.Certificate
+
+data {-# CLASS "java.security.cert.Certificate" #-} Certificate = Certificate (Object# Certificate)
+  deriving Class
+
+-- End java.security.cert.Certificate
+
+-- Start java.security.cert.CodeSigner
+
+data {-# CLASS "java.security.CodeSigner" #-} CodeSigner = CodeSigner (Object# CodeSigner)
+  deriving Class
+
+-- End java.security.CodeSigner
