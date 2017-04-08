@@ -74,10 +74,9 @@ import ETA.Utils.Outputable
 import ETA.Utils.Util
 
 --just for implementing a fast [0,61) -> Char function
-import GHC.Exts (indexCharOffAddr#, Char(..), Int(..))
 import GHC.Base
 
-import Data.Char        ( chr, ord )
+import Data.Char        ( chr )
 import Data.Bits
 
 {-

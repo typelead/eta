@@ -83,9 +83,6 @@ fastStringText = decodeUtf8 . fastStringToByteString
 fastZStringText :: FastZString -> Text
 fastZStringText = decodeUtf8 . fastZStringToByteString
 
-zEncodeText :: FastString -> Text
-zEncodeText = fastZStringText . zEncodeFS
-
 modNameText :: Module -> Text
 modNameText = fastStringText . moduleNameFS . moduleName
 
