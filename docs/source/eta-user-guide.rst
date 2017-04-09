@@ -6,8 +6,8 @@ Eta User Guide
    This user guide is still under active development. Please consult the `GHC 7.10.3 User Guide <https://downloads.haskell.org/~ghc/7.10.3/docs/html/users_guide/>`_
    for language-level details as it is very similar to Eta.
 
-Interacting with Java
----------------------
+Java Foreign Function Interface
+-------------------------------
 
 Overview
 ^^^^^^^^
@@ -396,4 +396,3 @@ produced on running the program. This is useful in filing a more helpful bug rep
    Filing bug report with error message, STG dump and the bytecode is highly
    helpful. You can find an example dump of these three messages
    `here <https://gist.github.com/psibi/5bb5387912dec1ca9817cba7de7a1dac>`_.
-

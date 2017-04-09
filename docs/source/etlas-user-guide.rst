@@ -1,5 +1,5 @@
 Etlas User Guide
-==============
+================
 
 .. note::
 
@@ -7,7 +7,7 @@ Etlas User Guide
    as it is very similar to Etlas.
 
 Etlas Packages Support
---------------------
+----------------------
 
 You can install a package by typing:
 

@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 4
 
    getting-started
+   eta-tutorials
    eta-user-guide
    etlas-user-guide
    faq
