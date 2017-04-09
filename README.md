@@ -56,7 +56,7 @@ We would like to specifically thank the following groups/people:
 - [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the
   codegen/runtime and implementation of basic IO facilities.
 - [Sibi](https://github.com/psibi) for helping out with porting packages and
-  setting up Travis.
+  setting up TravisCI.
 - [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on
   the Java FFI.
 - [Balaji Rao](https://github.com/balajirrao) for contributing to the design &
@@ -65,5 +65,7 @@ We would like to specifically thank the following groups/people:
   testing extensively across multiple Windows versions.
 - [Paavo Parkkin](https://github.com/pparkkin) for improving error checking in the compiler to prevent runtime bugs.
 - [Ashley Towns](https://github.com/aktowns) for implementing low-level primitives in the standard library.
+- [Alexey Raga](https://github.com/AlexeyRaga) for helping out with CircleCI and actively reporting bugs.
+- And [many others] (https://github.com/typelead/eta/graphs/contributors) who have contributed to Eta in various ways.
 
 Thank you guys!
