@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ScopedTypeVariables, KindSignatures,
-             UnboxedTuples, FlexibleContexts, UnliftedFFITypes, TypeOperators, AllowAmbiguousTypes #-}
+             UnboxedTuples, FlexibleContexts, UnliftedFFITypes, TypeOperators,
+             AllowAmbiguousTypes, DataKinds, TypeFamilies #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Utils
@@ -27,7 +28,9 @@ module Java.Utils
   , toString#
   , safeDowncast
   , Void
-  , Comparator )
+  , Comparator
+  , Comparable
+  , Enum )
 where
 
 import GHC.Base
@@ -77,3 +80,18 @@ foreign import java unsafe "@interface equals"
   equalsComparator :: (t <: Object, b <: (Comparator t)) => Object -> Java b Bool
 
 -- End java.util.Comparator
+
+-- Start java.lang.Enum
+
+data {-# CLASS "java.lang.Enum" #-} Enum e = Enum (Object# (Enum e))
+  deriving Class
+
+type instance Inherits (Enum e) = '[Object, Comparable e]
+
+foreign import java unsafe getDeclaringClass :: (e <: Enum e) => Java e (JClass e)
+
+foreign import java unsafe name :: (e <: Enum e) => Java e String
+
+foreign import java unsafe ordinal :: (e <: Enum e) => Java e Int
+
+-- End java.lang.Enum
