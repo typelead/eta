@@ -13,18 +13,10 @@ Currently, the there are a few ways of installing Eta:
 
 #. Source
 #. Docker
-
-Work on setting up platform-specific installers is in progress.
-
-.. warning::
-
-  The Windows installation currently does not work. Work is in progress to fix up
-  the installation, see `this issue <https://github.com/typelead/eta/issues/106>`_.
-  A workaround for Windows 10 can be found at the end of the Source Installation section.
+#. Nix
 
 Method 1: Source Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**Estimated Time:** 30 minutes
 
 Prerequisites
 """""""""""""
@@ -36,16 +28,36 @@ General
 """""""
 
 - `Stack <https://docs.haskellstack.org/en/stable/README>`_
-  - Make sure the path that is obtained from running ``stack path --local-bin``
-    is present on the PATH.
+  - Make sure the path that is obtained from running ``stack path --local-bin`` is present on the PATH.
 - `JDK 1.7 <http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html>`_ or `JDK 1.8 <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_
 
   - Make sure ``javac`` and ``java`` are on the PATH.
+
+Ubuntu
+""""""
+- Install ``bz2``, ``ncurses``, ``zlib``.
+.. code-block:: console
+
+  sudo apt-get install zlib1g-dev libncurses5-dev libbz2-dev
 
 OS X
 """"
 - Make sure you have `XCode <https://developer.apple.com/xcode/>`_ installed and
   have accepted the license agreement (run XCode at least once).
+
+Windows
+"""""""
+
+- Install ``Cygwin`` and ``MSYS``.
+
+.. note::
+
+  An alternate method of installing Eta on Windows 10 is with WSL (`Windows sub-system for Linux <https://msdn.microsoft.com/en-gb/commandline/wsl/about>`_).
+
+  1. Enable WSL within Windows (`Instructions <https://msdn.microsoft.com/en-gb/commandline/wsl/install_guide>`_)
+  2. Minimum Windows version: Version 10 build 14986
+  3. Enter the root folder of WSL, and create a “.local” folder, and then inside of this create a “bin” folder.
+  4. Follow the source installation method.
 
 Installation
 """"""""""""
@@ -88,18 +100,6 @@ If you obtain an error that either tool is missing, run the following command:
 
 Add the path that you obtain in the output to your ``PATH`` environment variable.
 
-WSL Workaround
-""""""""""""""
-
-An alternate method of installing Eta on Windows 10 is with WSL (`Windows sub-system for Linux <https://msdn.microsoft.com/en-gb/commandline/wsl/about>`_).
-
-Prerequisites
-"""""""""""""
-
-1. Enable WSL within Windows (`Instructions <https://msdn.microsoft.com/en-gb/commandline/wsl/install_guide>`_)
-2. Minimum Windows version: Version 10 build 14986
-3. Enter the root folder of WSL, and create a “.local” folder, and then inside of this create a “bin” folder.
-4. Follow the source installation method.
 
 Method 2: Docker
 ^^^^^^^^^^^^^^^^
@@ -119,6 +119,25 @@ To obtain an environment with `eta` and `etlas`, run the following command:
 .. code-block:: console
 
   docker run -it typelead/eta
+
+Method 3: Nix
+^^^^^^^^^^^^^
+
+Prerequisites
+"""""""""""""
+
+Make sure you have the following tools installed on your system:
+
+- `Nix <https://nixos.org/nix/>`_
+
+Installation
+""""""""""""
+
+To obtain an environment with `eta` and `etlas`, run the following command:
+
+.. code-block:: console
+
+  nix-shell -A eta-build-shell
 
 Updating Eta
 ------------
