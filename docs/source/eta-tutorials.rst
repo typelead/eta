@@ -820,6 +820,32 @@ A full example involving ``java.util.ArrayList`` can be executed in the
 
 .. _working-with-java-interfaces:
 
+Working With Java Enums
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Many Java packages often contain Enums. Let's see how to handle them.
+We'll be importing `ClientInfoStatus <https://docs.oracle.com/javase/7/docs/api/java/sql/ClientInfoStatus.html>`_ as an example.
+
+.. code::
+
+  data {-# CLASS "java.sql.ClientInfoStatus" #-}
+    ClientInfoStatus = ClientInfoStatus (Object# ClientInfoStatus)
+    deriving Class
+
+  type instance Inherits ClientInfoStatus = '[Enum ClientInfoStatus]
+
+  foreign import java unsafe "@static @field java.sql.ClientInfoStatus.REASON_UNKNOWN"
+    reasonUnknown :: ClientInfoStatus
+
+  foreign import java unsafe "@static @field java.sql.ClientInfoStatus.REASON_UNKNOWN_PROPERTY"
+    reasonUnknownProperty :: ClientInfoStatus
+
+  foreign import java unsafe "@static @field java.sql.ClientInfoStatus.REASON_VALUE_INVALID"
+    reasonValueInvalid :: ClientInfoStatus
+
+  foreign import java unsafe "@static @field java.sql.ClientInfoStatus.REASON_VALUE_TRUNCATED"
+    reasonValueTruncated :: ClientInfoStatus
+
 Working With Java Interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -847,6 +873,18 @@ in Eta::
 
 Note that this can be applied for abstract classes as well - just use a
 ``@wrapper @abstract`` annotation instead.
+
+Example:
+
+Let's try to wrap the `java.util.function.Function<T,R> <https://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html>`_
+interface in Java 8. The method we want to implement on the Eta side has signature ``R apply(T t)``.
+
+The import would look like so:
+
+.. code::
+
+  foreign import java unsafe "@wrapper apply"
+    mkFunction :: (t <: Object, r <: Object) => (t -> Java (Function t r) r) -> Function t r
 
 Exporting Eta Methods
 ^^^^^^^^^^^^^^^^^^^^^^
