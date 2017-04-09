@@ -846,6 +846,91 @@ We'll be importing `ClientInfoStatus <https://docs.oracle.com/javase/7/docs/api/
   foreign import java unsafe "@static @field java.sql.ClientInfoStatus.REASON_VALUE_TRUNCATED"
     reasonValueTruncated :: ClientInfoStatus
 
+Working with Variable Arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some methods in Java, like the method `java.util.Formatter.format <https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html#format(java.lang.String,%20java.lang.Object...)>`_
+with signature ``Formatter (String format, Object.. args)``, take variable arguments. Variable arguments
+are simply arrays, hence can be imported easily::
+
+  data {-# CLASS "java.util.Formatter #-"} Formatter = Formatter (Object# Formatter)
+
+  -- Note that we didn't have to import `Object[]` because JObjectArray already exists
+  -- in the standard library.
+  foreign import java unsafe format :: String -> JObjectArray -> Java Formatter Formatter
+
+Working with Java Converters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In Eta, there is a clear distinction JWTs and normal Eta types. Moreover, only JWTs can be used
+in foreign imports/exports.
+
+.. note::
+
+   ``String`` is a notable exception to that rule because it's so commonly used that there's a
+   special case that allows it an autoamtically converts it to ```JString``.
+
+JWTs are inconvenient to use directly in Eta because they are just wrappers of native Java objects.
+So, the following typeclass is defined in the standard library to help convert JWTs to common
+Eta types like lists.
+
+.. code::
+
+    -- The `a` type variable should be a normal Eta type
+    -- The `b` type variable should be a JWT or a primitive type (Byte, Short, Int, ...)
+    class JavaConverter a b where
+      toJava   :: a -> b
+      fromJava :: b -> a
+
+Many instances are provided for you by default so you can simply use `toJava` or `fromJava`
+whenever you want to perform a conversion.
+
+Example:
+
+In this example, we want to work with the `java.io.File.listRoots <https://docs.oracle.com/javase/7/docs/api/java/nio/file/Paths.html#get(java.lang.String,%20java.lang.String...)>`_,
+but it returns an array, which we can't work with that cleanly in Eta. So we convert it to an Eta
+list with a helper function.
+
+.. code::
+
+   data {-# CLASS "java.io.File[]" #-} Files = Files (Object# Files)
+
+   -- Declare that `Files` is an array type with element type `File`.
+   instance JArray File Files
+
+   -- We import into the IO monad because it's more convenient for static methods.
+   foreign import java unsafe "@static java.io.File.listRoots" listRoots' :: IO Files
+
+   listRoots :: IO [File]
+   listRoots = do
+     filesArray <- listRoots'
+     return $ fromJava
+
+Example:
+
+In this example, we want to work with the `java.nio.file.Paths.get <https://docs.oracle.com/javase/7/docs/api/java/nio/file/Paths.html#get(java.lang.String,%20java.lang.String...)>`_,
+but it requires an array. To make it more convenient to use, we provide a helper that does the
+conversion for us.
+
+.. code::
+
+   -- We import into the IO monad because it's more convenient for static methods.
+   foreign import java unsafe "@static java.nio.file.Paths.get" mkPath'
+     :: String -> JStringArray -> IO Path
+
+   mkPath :: [String] -> IO Path
+   mkPath pathFragments
+     | length pathFragments == 0 = error "mkPath: Requires at least one path fragment"
+     | (path:restPaths) <- pathFragments
+     =  mkPath' path restArray
+     where restJStrings = map toJava restPaths -- [JString]
+           restArray    = toJava restJStrings  -- JStringArray
+
+.. note::
+
+  In some cases, you may need to specify a type annotation on the result of `fromJava` in order to
+  specify what you what Eta type you want to convert to: ``(fromJava x :: DesiredResult)``.
+
 Working With Java Interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -883,13 +968,31 @@ The import would look like so:
 
 .. code::
 
+  data {-# CLASS "java.util.function.Function" #-} Function t r = Function (Object# (Function t r))
+
   foreign import java unsafe "@wrapper apply"
     mkFunction :: (t <: Object, r <: Object) => (t -> Java (Function t r) r) -> Function t r
+
+Working With Covariance and Contravariance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In Java, covariance is expressed with ``? extends X`` and contravariance is expressed with
+``? super Y``. The `andThen <https://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html>`_
+method has signature ``<V> Function<T,V> andThen(Function<? super R,? extends V> after)``.
+It exhibits both covariance and contravariance so we will import it as an example
+
+.. code::
+
+  foreign import java unsafe "@interface andThen" andThen ::
+    (t <: Object, r <: Object, v <: Object, r <: a, b <: v)
+    => Function a b -> Java (Function t r) (Function t v)
+
+For each ``?`` we should generate a fresh variable. In the case above we use ``a`` and ``b``.
 
 Exporting Eta Methods
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Just as you can import Java methods into Eta, you can also export Eta fuctions
+Just as you can import Java methods into Eta, you can also export Eta functions
 into Java.
 
 General Syntax
