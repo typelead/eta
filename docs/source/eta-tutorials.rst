@@ -164,8 +164,8 @@ The ``Eq`` instance will use the underlying ``Object.equals()`` method and the
 
 .. _marshalling-java-eta:
 
-Marshaling between Java and Eta types
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Marshalling between Java and Eta types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When writing FFI declarations, you are essentially specifying the type of a function
 whose arguments will be translated from Eta types to Java types and whose result
@@ -229,16 +229,16 @@ When writing FFI declarations that return objects, you can wrap the result type
 in a ``Maybe`` if the documentation of the corresponding Java method clearly
 states that ``null`` is a potential return type. It is always safe to wrap the
 result in a ``Maybe`` type, but the user will have to bear the burden of dealing
-with an unnecessary case if the result is always a non-null object.
+with an unnecessary case if the result is always a non-``null`` object.
 
-If the ``Maybe`` type is not used for a method that actually does return null, then
+If the ``Maybe`` type is not used for a method that actually does return ``null``, then
 a ``NullPointerException`` will occur when a method is invoked on that object.
 
 .. note::
 
    Since ``java.lang.String`` is special and also used quite frequently in Java,
    a JWT called ``JString`` is already provided for you. It supports the
-   ``OverloadedStrings`` extensions so you can have expressions like
+   ``OverloadedStrings`` extension so you can have expressions like
    ``"Some string" :: JString``.
 
 The Java Monad
@@ -271,16 +271,16 @@ General Syntax
      :: [arg-type-1] -> [arg-type-2] -> .. -> [return-type]
 
 #. ``[safety]`` can either be ``safe``, ``unsafe``, or left unspecified in which
-   case it is considerd as ``safe``.
+   case it is considered as ``safe``.
 
    - ``unsafe`` is the option you would typically select. In this case, the java
      method identified in the ``[import-string]`` will be run directly. This can
      be dangerous if the function can block in which case it will block the Eta
-     RTS from switching the current green thread.
+     RTS and reduce efficiency.
 
    - ``safe`` is the option you would select for functions that you would expect to
      block for some time, so they will be safely run in another thread to prevent
-     the call from blocking the Eta's green threads. This option must also be
+     the call from blocking the Eta RTS. This option must also be
      used when importing a Java method that eventually calls an exported Eta
      function.
 
@@ -331,15 +331,14 @@ General Syntax
 
 #. ``[returnType]`` can be of three forms:
 
-   - ``Java [jwt] [return-type]``: This is the form that is used typically.
-     ``[jwt]`` should be the JWT for the class which the declaration pertains. If
-     the declaration is has a ``@static`` annotation, this can be left free with
-     type variable instead of a concrete type.
+   - ``Java [jwt] [return-type]``: This is the form that is used typically and
+     is always safe to use. ``[jwt]`` should be the JWT for the class which the
+     declaration pertains. If the declaration has a ``@static`` annotation,
+     this can be left free with a type variable instead of a concrete type.
      ``[return-type]`` should be a marshallable Eta type.
 
-   - ``IO [return-type]``: This form should be used sparingly and is only present
-     as a convenience in the cases where the only usage of the . Note
-     that if the declaration does not have a ``@static`` annotation, you must
+   - ``IO [return-type]``: This form is also safe and can be used for convenience.
+     Note that if the import string does not have a ``@static`` annotation, you must
      supply the relevant JWT as the first argument (``[argType1]``).
      ``[return-type]`` should be a marshallable Eta type.
 
@@ -368,6 +367,8 @@ The following are all equivalent ways of performing the import::
   foreign import java unsafe canExecute :: Java File Bool
   foreign import java unsafe "canExecute" canExecute1 :: Java File Bool
   foreign import java unsafe "canExecute" canExecute2 :: File -> IO Bool
+  -- Note: The example below is shown for illustration purposes and should never
+  -- be done in practice because "canExecute" is not a pure function.
   foreign import java unsafe "canExecute" canExecute3 :: File -> Bool
 
 **Importing Static Methods**
@@ -384,6 +385,8 @@ The following are all equivalent ways of performing the import::
     createTempFile  :: String -> String -> Java a File
   foreign import java unsafe "@static java.io.File.createTempFile"
     createTempFile1 :: String -> String -> IO File
+  -- Note: The example below is shown for illustration purposes and should never
+  -- be done in practice because "createTempFile" is not a pure function.
   foreign import java unsafe "@static java.io.File.createTempFile"
     createTempFile2 :: String -> String -> File
 
@@ -420,6 +423,8 @@ The following are all equivalent ways of performing the get/set imports::
   -- Imports for setting the field.
   foreign import java unsafe "@field path" setFilePath  :: String -> Java File ()
   foreign import java unsafe "@field path" setFilePath1 :: File -> String -> IO ()
+  -- Note that setting the value of a field is always an impure operation so a pure
+  -- import is not supported by the compiler
 
 **Importing Static Fields**
 
@@ -688,6 +693,12 @@ family.
 
 .. note::
 
+  The standard library defines an alias for the ``Extends`` typeclass referred
+  to as ``<:``. For example, ``Extends a Object`` can written as ``a <: Object``.
+  We will be using this throughout the tutorial because it is more natural.
+
+.. note::
+
     While you won't find many situations to use them, you can use the ``superCast``
     and ``unsafeCast`` functions when you need to cast between object types.
 
@@ -736,7 +747,7 @@ The problematic code above can now be fixed::
 
   {-# LANGUAGE TypeFamilies, DataKinds, FlexibleContexts #-}
 
-  foreign import java unsafe toString :: Extends a Object => a -> String
+  foreign import java unsafe toString :: (a <: Object) => a -> String
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
     deriving Class
@@ -753,7 +764,7 @@ We can even change the code above to use the `Java` monad::
 
   {-# LANGUAGE TypeFamilies, DataKinds, FlexibleContexts #-}
 
-  foreign import java unsafe toString :: Extends a Object => Java a String
+  foreign import java unsafe toString :: (a <: Object) => Java a String
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
     deriving Class
@@ -796,7 +807,7 @@ specify ``Object``.
 .. code::
 
   foreign import java unsafe "@interface add" add
-    :: (Extends a Object, Extends b (List a)) => a -> Java b Bool
+    :: (a <: Object, b <: List a) => a -> Java b Bool
 
 See the `java.util.List.add <https://docs.oracle.com/javase/7/docs/api/java/util/List.html#add(E)>`_
 documentation.
@@ -1144,10 +1155,10 @@ changes:
         get :: String -> Java a GetRequest
 
       foreign import java unsafe asString
-        :: Extends a BaseRequest => Java a (HttpResponse JString)
+        :: (a <: BaseRequest) => Java a (HttpResponse JString)
 
       foreign import java unsafe getBody
-        :: Extends a Object => Java (HttpResponse a) a
+        :: (a <: Object) => Java (HttpResponse a) a
 
       -- Run a simple blocking GET request
       main :: IO ()
