@@ -186,7 +186,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       etlasDir <- getEtlasDir
       let etlasLibDir = etlasDir </> "lib"
       -- @VERSION_CHANGE@
-      etlasLibDir' <- fmap (head . filter ("eta-0.0.5" `isInfixOf`))
+      etlasLibDir' <- fmap (head . filter ("eta-0.0.6" `isInfixOf`))
                    $ getDirectoryContents etlasLibDir
       copyFile' (libDir </> "dist" </> "build" </> "HSrts-0.1.0.0.jar")
                 (etlasLibDir </> etlasLibDir' </> "rts-0.1.0.0" </> "HSrts-0.1.0.0.jar")
