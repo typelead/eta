@@ -28,7 +28,7 @@ General
 """""""
 
 - `Stack <https://docs.haskellstack.org/en/stable/README>`_
-  - Make sure the path that is obtained from running ``stack path --local-bin`` is present on the PATH.
+  - Make sure the path that is obtained from running ``stack path --local-bin`` is present on the ``PATH``.
 - `JDK 1.7 <http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html>`_ or `JDK 1.8 <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_
 
   - Make sure ``javac`` and ``java`` are on the PATH.
@@ -114,7 +114,7 @@ Make sure you have the following tools installed on your system:
 Installation
 """"""""""""
 
-To obtain an environment with `eta` and `etlas`, run the following command:
+To obtain an environment with ``eta`` and ``etlas``, run the following command:
 
 .. code-block:: console
 
@@ -133,7 +133,7 @@ Make sure you have the following tools installed on your system:
 Installation
 """"""""""""
 
-To obtain an environment with `eta` and `etlas`, run the following command:
+To obtain an environment with ``eta`` and ``etlas``, run the following command:
 
 .. code-block:: console
 
@@ -168,7 +168,7 @@ recognizes the updated libraries.
 Running Your First Program
 --------------------------
 
-#. Create a new file called *Main.hs* and with the following contents::
+#. Create a new file called ``Main.hs`` and with the following contents::
 
     module Main where
 
@@ -195,7 +195,7 @@ Running Your First Program
 .. _setting-up-first-project:
 
 Setting up your first Etlas Project
----------------------------------
+-----------------------------------
 
 With Etlas, you don't have to worry about remembering all the particular flags to
 sent to ``eta``. You can simply specify what you want in a human-readable format
@@ -219,28 +219,31 @@ in the Haskell ecosystem, read
    This is an interactive command that will ask you questions and help you generate
    a Cabal project file for your project.
 
-   - *Package name* - Press enter to select the default.
-   - *Package version* - Press enter to select the default.
-   - *License* - Press enter to select the default.
-   - *Author name* - Press enter to select the default.
-   - *Maintainer email* - Press enter to select the default.
-   - *Project homepage URL* - Press enter to select the default.
-   - *Project synopsis* - Press enter to select the default.
-   - *Project category* - Press enter to select the default.
-   - *Package build* - Press 2 to select **Executable**.
-   - *Main module* - Press enter to select the default.
-   - *Base language* - Press enter to select the default.
-   - *Inline documentation* - Press enter to select the default.
-   - *Source directory* - Press 2 to select **src**.
+   - **Package name** - Press enter to select the default.
+   - **Package version** - Press enter to select the default.
+   - **License** - Press enter to select the default.
+   - **Author name** - Press enter to select the default.
+   - **Maintainer email** - Press enter to select the default.
+   - **Project homepage URL** - Press enter to select the default.
+   - **Project synopsis** - Press enter to select the default.
+   - **Project category** - Press enter to select the default.
+   - **Package build** - Press 2 to select **Executable**.
+   - **Main module** - Press enter to select the default.
+   - **Base language** - Press enter to select the default.
+   - **Inline documentation** - Press enter to select the default.
+   - **Source directory** - Press 2 to select **src**.
 
-   This should generate two files: ``Setup.hs`` and ``eta-first.cabal``.
+   The project structure should look like this:
 
-   The ``Setup.hs`` file can be ignored in most cases. It can be used to add Etlas hooks
-   to support your development workflow if required.
+   .. code-block:: console
 
-   The ``eta-first.cabal`` file is used to specify your project configuration. Etlas
-   will take care of calling the necessary tools to complete your build.
-
+      eta-first/
+      |--src/
+      |----Main.hs
+      |--ChangeLog.md
+      |--LICENSE
+      |--eta-first.cabal
+      |--Setup.hs
 
 #. Add the files ``Main.hs`` and ``Primes.hs`` in ``src/`` as shown below.
 
@@ -264,20 +267,6 @@ in the Haskell ecosystem, read
         where filterPrime (p:xs) =
                 p : filterPrime [x | x <- xs, x `mod` p /= 0]
 
-   The project structure should look like this:
-
-   .. code-block:: console
-
-      eta-first/
-      |--src/
-      |----Main.hs
-      |----Primes.hs
-      |--eta-first.cabal
-      |--Setup.hs
-
-   Your directory structure may vary based on the options you chose in the
-   ``etlas init`` step.
-
 #. Update ``eta-first.cabal``, adding an ``other-modules:`` field:
 
    .. code-block:: console
@@ -296,16 +285,19 @@ in the Haskell ecosystem, read
    .. note::
 
       Note that this will create a JAR file *without* dependencies. This is
-      best suited for development. If you would like to generate an uberjar, make
-      sure you run the following two commands:
+      best suited for development.
+
+      For production deployments, you may want to generate a standalone JAR
+      file, also called an **uberjar**. If you would like to generate an uberjar,
+      run the following two commands:
 
       .. code-block:: console
 
           etlas clean
           etlas configure --enable-uberjar-mode
 
-      These commands need only be run once to set the local Cabal config. All
-      future builds will generate uberjars. To go back to shared mode:
+      These commands need only be run once to set the local Etlas configuration.
+      To go back to shared mode for the project:
 
       .. code-block:: console
 
