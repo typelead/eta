@@ -1,20 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import GHC.IO.Exception (ExitCode(..))
-import System.Exit (die)
-import Data.Monoid ((<>))
-import Control.Applicative
-import Control.Monad
-import Data.Aeson
-import Data.String
 import Turtle.Shell
 import Turtle.Line
 import Turtle.Prelude hiding (die)
+
+import Data.Aeson
+import Data.Text (unpack, pack, Text)
+import System.Directory (getAppUserDataDirectory, getDirectoryContents)
+import System.FilePath ((</>), dropExtension)
 import qualified Data.ByteString.Lazy as BS
-import System.Directory (getAppUserDataDirectory)
-import System.FilePath ((</>))
-import Data.Text (pack, Text)
+
+import Data.Monoid ((<>))
+import Data.List
+import Control.Applicative
+import Control.Monad
+import Data.String
+import GHC.IO.Exception (ExitCode(..))
+import System.Exit (die)
 
 data Packages = Packages {
       patched :: [Text],
@@ -29,13 +32,30 @@ parsePackagesFile :: FilePath -> IO (Maybe Packages)
 parsePackagesFile fname = do
   contents <- BS.readFile fname
   let packages = decode contents
-  return packages
+  patched' <- patchedLibraries
+  return $ fmap (\p -> p { patched = patched' }) packages
 
 packagesFilePath :: IO FilePath
-packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "epm"
+packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirectory "etlas"
+
+patchedLibraries :: IO [Text]
+patchedLibraries = do
+  patchesDir <- fmap (</> "patches" </> "patches") $ getAppUserDataDirectory "etlas"
+  packages   <- fmap ( nub
+                     . map dropExtension
+                     . filter (\p -> p `notElem` ["",".",".."]))
+                $ getDirectoryContents patchesDir
+  return $ map pack packages
 
 buildPackage :: Text -> IO ()
-buildPackage pkg = sh $ procExitOnError "epm" ["install", pkg] empty
+buildPackage pkg = do
+  let outString = "Installing package " ++ unpack pkg ++ "..."
+      lenOutString = length outString
+      dashes = replicate lenOutString '-'
+  putStrLn dashes
+  putStrLn outString
+  putStrLn dashes
+  sh $ procExitOnError "etlas" ["install", pkg] empty
 
 verifyJar :: IO ()
 verifyJar = sh verifyScript
@@ -79,12 +99,12 @@ verifyScript = do
 main :: IO ()
 main = do
   verifyJar
-  let vmUpdateCmd = "epm update"
+  let vmUpdateCmd = "etlas update"
   _ <- shell vmUpdateCmd ""
   epmPkgs <- packagesFilePath
   pkg <- parsePackagesFile epmPkgs
   case pkg of
     Nothing -> die "Problem parsing your packages.json file"
-    Just pkg' ->
-        let packages = (patched pkg') <> (vanilla pkg')
-        in mapM_ buildPackage packages
+    Just pkg' -> do
+      let packages = (patched pkg') <> (vanilla pkg')
+      mapM_ buildPackage packages

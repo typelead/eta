@@ -2,7 +2,7 @@ Getting Started with Eta
 ========================
 
 In the following sections, we'll cover how to get Eta installed on your system and
-how to work with EPM projects. If at any point you get stuck with any of the steps
+how to work with Etlas projects. If at any point you get stuck with any of the steps
 below, feel free to join us on `Gitter <https://gitter.im/typelead/eta>`_ so we can
 help you troubleshoot.
 
@@ -71,14 +71,14 @@ Replace ``[current-stable-tag]`` with the tag listed in the README of the eta re
 Once the installation is done, you will now have access to the following command-line tools:
 
 - ``eta`` - The main compiler
-- ``epm`` - The package manager and build tool
+- ``etlas`` - The package manager and build tool
 
 Check to ensure that they are on the ``PATH`` with the following commands:
 
 .. code-block:: console
 
    eta --version
-   epm --version
+   etlas --version
 
 If you obtain an error that either tool is missing, run the following command:
 
@@ -114,7 +114,7 @@ Make sure you have the following tools installed on your system:
 Installation
 """"""""""""
 
-To obtain an environment with `eta` and `epm`, run the following command:
+To obtain an environment with `eta` and `etlas`, run the following command:
 
 .. code-block:: console
 
@@ -136,14 +136,14 @@ your system, and run the following command:
 This will do a fresh installation, recompiling all the core libraries with the most
 recent version of the compiler.
 
-If you have existing EPM projects, make sure you run
+If you have existing Etlas projects, make sure you run
 
 .. code-block:: console
 
-  epm clean
-  epm install --dependencies-only
+  etlas clean
+  etlas install --dependencies-only
 
-inside each project before proceeding with your normal development so that EPM
+inside each project before proceeding with your normal development so that Etlas
 recognizes the updated libraries.
 
 Running Your First Program
@@ -175,10 +175,10 @@ Running Your First Program
 
 .. _setting-up-first-project:
 
-Setting up your first EPM Project
+Setting up your first Etlas Project
 ---------------------------------
 
-With EPM, you don't have to worry about remembering all the particular flags to
+With Etlas, you don't have to worry about remembering all the particular flags to
 sent to ``eta``. You can simply specify what you want in a human-readable format
 called Cabal. To learn more about the specification file format which is also used
 in the Haskell ecosystem, read
@@ -191,11 +191,11 @@ in the Haskell ecosystem, read
       mkdir eta-first
       cd eta-first
 
-#. Initialize the project with EPM.
+#. Initialize the project with Etlas.
 
    .. code-block:: console
 
-      epm init
+      etlas init
 
    This is an interactive command that will ask you questions and help you generate
    a Cabal project file for your project.
@@ -216,10 +216,10 @@ in the Haskell ecosystem, read
 
    This should generate two files: ``Setup.hs`` and ``eta-first.cabal``.
 
-   The ``Setup.hs`` file can be ignored in most cases. It can be used to add EPM hooks
+   The ``Setup.hs`` file can be ignored in most cases. It can be used to add Etlas hooks
    to support your development workflow if required.
 
-   The ``eta-first.cabal`` file is used to specify your project configuration. EPM
+   The ``eta-first.cabal`` file is used to specify your project configuration. Etlas
    will take care of calling the necessary tools to complete your build.
 
 
@@ -257,7 +257,7 @@ in the Haskell ecosystem, read
       |--Setup.hs
 
    Your directory structure may vary based on the options you chose in the
-   ``epm init`` step.
+   ``etlas init`` step.
 
 #. Update ``eta-first.cabal``, adding an ``other-modules:`` field:
 
@@ -272,7 +272,7 @@ in the Haskell ecosystem, read
 
    .. code-block:: console
 
-      epm run
+      etlas run
 
    .. note::
 
@@ -282,16 +282,16 @@ in the Haskell ecosystem, read
 
       .. code-block:: console
 
-          epm clean
-          epm configure --enable-uberjar-mode
+          etlas clean
+          etlas configure --enable-uberjar-mode
 
       These commands need only be run once to set the local Cabal config. All
       future builds will generate uberjars. To go back to shared mode:
 
       .. code-block:: console
 
-          epm clean
-          epm configure --disable-uberjar-mode
+          etlas clean
+          etlas configure --disable-uberjar-mode
 
       Beware that this can be very slow. Work is being done to
       `improve uberjar performance <https://github.com/typelead/eta/issues/20>`_.
@@ -1240,12 +1240,12 @@ changes:
 
    .. code-block:: console
 
-      epm clean
-      epm configure --enable-uberjar-mode
+      etlas clean
+      etlas configure --enable-uberjar-mode
 
    This will enable uberjar mode so that a standalone JAR will be built.
 
-#. Execute ``epm build`` which will generate the final JAR in
+#. Execute ``etlas build`` which will generate the final JAR in
    ``dist/build/eta-first/eta-first.jar``. You can then proceed to take this
    JAR file to wherever necessary to import it to your JVM-based projects.
 
@@ -1365,7 +1365,7 @@ changes:
       |--Setup.hs
 
    Your directory structure may vary based on the options you chose in the
-   ``epm init`` step.
+   ``etlas init`` step.
 
 #. Update ``eta-first.cabal``, adding a ``java-sources:`` field:
 
@@ -1379,7 +1379,7 @@ changes:
       relative or absolute paths. You can thus include arbitrary ``.jar`` files or
       even individual ``.class`` files that you need.
 
-#. That's it! Run the example with ``epm run``.
+#. That's it! Run the example with ``etlas run``.
 
 Adding Maven Dependencies to Your Project
 -----------------------------------------
@@ -1414,7 +1414,7 @@ Maven repositories:
 \*\* ``[owner]`` should be the owner of the  repository and ``[repo]`` should
      be the name of the Bintray repository.
 
-By default, ``epm`` tries to resolve your dependencies against
+By default, ``etlas`` tries to resolve your dependencies against
 ``central``. So, you don't need to specify a repository unless
 required.
 
@@ -1482,7 +1482,7 @@ changes:
         putStrLn $ read (show response)
         shutdownUnirest
 
-#. That's it! Run the example with ``epm run``.
+#. That's it! Run the example with ``etlas run``.
 
 Contact Us
 ----------

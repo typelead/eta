@@ -197,7 +197,7 @@ rnImportDecl this_mod
                            -- c.f. GHC.findModule, and Trac #9997
              Nothing     -> True
              Just pkg_fs -> pkg_fs == fsLit "this" ||
-                            fsToPackageKey pkg_fs == modulePackageKey this_mod))
+                            fsToUnitId pkg_fs == moduleUnitId this_mod))
          (addErr (ptext (sLit "A module cannot import itself:") <+> ppr imp_mod_name))
 
     -- Check for a missing import list (Opt_WarnMissingImportList also
@@ -321,7 +321,8 @@ calculateAvails dflags iface mod_safe' want_boot =
                             imp_mod : dep_finsts deps
              | otherwise  = dep_finsts deps
 
-      pkg = modulePackageKey (mi_module iface)
+      pkg = moduleUnitId (mi_module iface)
+      ipkg = toInstalledUnitId pkg
 
       -- Does this import mean we now require our own pkg
       -- to be trusted? See Note [Trust Own Package]
@@ -346,9 +347,9 @@ calculateAvails dflags iface mod_safe' want_boot =
             -- Imported module is from another package
             -- Dump the dependent modules
             -- Add the package imp_mod comes from to the dependent packages
-            ASSERT2( not (pkg `elem` (map fst $ dep_pkgs deps))
-                   , ppr pkg <+> ppr (dep_pkgs deps) )
-            ([], (pkg, False) : dep_pkgs deps, False)
+            ASSERT2( not (ipkg `elem` (map fst $ dep_pkgs deps))
+                   , ppr ipkg <+> ppr (dep_pkgs deps) )
+            ([], (ipkg, False) : dep_pkgs deps, False)
 
   in ImportAvails {
           imp_mods       = emptyModuleEnv, -- this gets filled in later

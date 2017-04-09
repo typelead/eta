@@ -1593,7 +1593,7 @@ downsweep hsc_env old_summaries excl_mods allow_dup_roots
         calcDeps summ
           | HsigFile <- ms_hsc_src summ
           , Just m <- getSigOf (hsc_dflags hsc_env) (moduleName (ms_mod summ))
-          , modulePackageKey m == thisPackage (hsc_dflags hsc_env)
+          , moduleUnitId m == thisPackage (hsc_dflags hsc_env)
                       = (noLoc (moduleName m), NotBoot) : msDeps summ
           | otherwise = msDeps summ
 
@@ -1868,7 +1868,7 @@ summariseModule hsc_env old_summary_map is_boot (L loc wanted_mod)
                          just_found location mod
                 | otherwise ->
                         -- Drop external-pkg
-                        ASSERT(modulePackageKey mod /= thisPackage dflags)
+                        ASSERT(moduleUnitId mod /= thisPackage dflags)
                         return Nothing
 
              err -> return $ Just $ Left $ noModError dflags loc wanted_mod err

@@ -22,19 +22,20 @@ import ETA.Types.TyCon
 import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Module
 import ETA.Utils.FastString
-import ETA.Utils.FastTypes
 import ETA.BasicTypes.Name hiding (pprOccName)
 import ETA.BasicTypes.Unique
 import ETA.BasicTypes.Id
 -- import GHC.Base(indexCharOffAddr#, Char(..))
 import Data.Char as C
 import Data.Maybe
+import qualified Data.List as L
 import Data.Text as T hiding (map, init, last, null)
 import Data.Text.Encoding
 
 import ETA.Utils.Outputable((<>))
 import ETA.Debug
 import ETA.Utils.Encoding
+import qualified ETA.Utils.Util as Split (split)
 
 import Codec.JVM
 
@@ -65,7 +66,7 @@ encodeCase :: String -> String
 encodeCase str@(c:_)
   | isUpper c = 'D':str
   | otherwise = str
-encodeCase _ = "" 
+encodeCase _ = ""
 
 idNameText :: DynFlags -> Id -> Text
 idNameText dflags = nameText dflags True . idName
@@ -82,14 +83,16 @@ fastStringText = decodeUtf8 . fastStringToByteString
 fastZStringText :: FastZString -> Text
 fastZStringText = decodeUtf8 . fastZStringToByteString
 
-zEncodeText :: FastString -> Text
-zEncodeText = fastZStringText . zEncodeFS
-
 modNameText :: Module -> Text
 modNameText = fastStringText . moduleNameFS . moduleName
 
-packageKeyText :: Module -> Text
-packageKeyText = zEncodeText . packageKeyFS . modulePackageKey
+unitIdText :: Module -> Text
+unitIdText mod = T.pack
+               . map C.toLower
+               . L.intercalate "_"
+               . L.takeWhile (not . L.all (\c -> C.isDigit c || c == '.'))
+               $ Split.split '-' uid
+  where uid = unitIdString $ moduleUnitId mod
 
 -- Codec.JVM.ASM -> "codec/jvm/ASM"
 moduleJavaClass :: Module -> Text
@@ -97,7 +100,7 @@ moduleJavaClass mod = qClassName
   where
     mods = split (== '.') $ modNameText mod
     (parentMods, className') = (init mods, last mods)
-    packageString = T.toLower . packageKeyText $ mod
+    packageString = T.toLower . unitIdText $ mod
     package = if null parentMods
                  then packageString
                  else   append packageString
@@ -171,7 +174,7 @@ pprNameCI name
       if isInternalName name then pprInternal sty uniq occ
       else if isSystemName name then pprSystem sty uniq occ
       else pprOccName occ
-  where uniq = mkUniqueGrimily (iBox (getKeyFastInt u))
+  where uniq = mkUniqueGrimily (getKey u)
         u = nameUnique name
         occ = nameOccName name
 

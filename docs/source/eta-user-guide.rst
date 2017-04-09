@@ -339,12 +339,12 @@ produced on running the program. This is useful in filing a more helpful bug rep
 
 #. **Find the JAR file**
 
-   If you ran the code without using ``epm``, then you might have indicated its
+   If you ran the code without using ``etlas``, then you might have indicated its
    location using the ``-o`` option.
 
    **Example:** ``eta -o Out.jar SuperAwesomeModule.hs``
 
-   If you did use ``epm``, then its probable location is
+   If you did use ``etlas``, then its probable location is
    ``dist/build/<executable-name>/<executable-name>.jar``.
 
 #. **Extract JAR file**

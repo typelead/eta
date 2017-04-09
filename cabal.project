@@ -3,5 +3,6 @@ packages: .
   codec-jvm/
   utils/eta-pkgdb/
   utils/eta-pkg/
-  cabalvm/cabal-install/
-  cabalvm/Cabal/
+  etlas/etlas/
+  etlas/etlas-cabal/
+  etlas/hackage-security/hackage-security/

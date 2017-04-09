@@ -1020,13 +1020,13 @@ getLocation src_flavour mod_name = do
 -----------------------------------------------------------------------------
 -- Look for the /* GHC_PACKAGES ... */ comment at the top of a .hc file
 
--- getHCFilePackages :: FilePath -> IO [PackageKey]
+-- getHCFilePackages :: FilePath -> IO [UnitId]
 -- getHCFilePackages filename =
 --   Exception.bracket (openFile filename ReadMode) hClose $ \h -> do
 --     l <- hGetLine h
 --     case l of
 --       '/':'*':' ':'G':'H':'C':'_':'P':'A':'C':'K':'A':'G':'E':'S':rest ->
---           return (map stringToPackageKey (words rest))
+--           return (map stringToUnitId (words rest))
 --       _other ->
 --           return []
 
@@ -1181,7 +1181,7 @@ haveRtsOptsFlags dflags =
 -- | Find out path to @etaversion.h@ file
 getEtaVersionPathName :: DynFlags -> IO FilePath
 getEtaVersionPathName dflags = do
-  dirs  <- getPackageIncludePath dflags [rtsPackageKey]
+  dirs  <- getPackageIncludePath dflags $ map toInstalledUnitId [rtsUnitId]
   found <- filterM doesFileExist (map (</> "etaversion.h") dirs)
   case found of
     []    -> throwGhcExceptionIO
@@ -1236,7 +1236,7 @@ getEtaVersionPathName dflags = do
 --
 --   return (stg_binds2, cost_centre_info)
 
-linkingNeeded :: DynFlags -> [Linkable] -> [PackageKey] -> IO Bool
+linkingNeeded :: DynFlags -> [Linkable] -> [InstalledUnitId] -> IO Bool
 linkingNeeded dflags linkables pkgDeps = do
         -- if the modification time on the executable is later than the
         -- modification times on all of the objects and libraries, then omit
@@ -1251,7 +1251,7 @@ linkingNeeded dflags linkables pkgDeps = do
         if any (t <) jarTimes then return True
         else do
           let pkgHSLibs  = [ (libraryDirs c, lib)
-                          | Just c <- map (lookupPackage dflags) pkgDeps
+                          | Just c <- map (lookupInstalledPackage dflags) pkgDeps
                           , lib <- packageHsLibs dflags c ]
           pkgLibFiles <- mapM (uncurry $ findHSLib dflags) pkgHSLibs
           if any isNothing pkgLibFiles then
@@ -1285,7 +1285,7 @@ findHSLib _dflags dirs lib = do
       (x:_) -> Just x
   where file = lib <.> "jar"
 
-linkGeneric :: DynFlags -> [String] -> [PackageKey] -> IO ()
+linkGeneric :: DynFlags -> [String] -> [InstalledUnitId] -> IO ()
 linkGeneric dflags oFiles depPackages = do
     -- TODO: Figure out the right place for this error message
     -- when (haveRtsOptsFlags dflags) $ do

@@ -493,7 +493,7 @@ hashInteger i = 1 + abs (fromInteger (i `rem` 10000))
                 -- since we use * to combine hash values
 
 hashFS :: FastString -> Int
-hashFS s = iBox (uniqueOfFS s)
+hashFS s = uniqueOfFS s
 
 maxInt, minInt, maxWord :: Integer
 minInt = toInteger (minBound :: Int32)

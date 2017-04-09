@@ -1496,7 +1496,7 @@ module ETA.DeSugar.DsMeta where
 --   where
 --       mod = {-ASSERT( isExternalName name)-} nameModule name
 --       name_mod = moduleNameString (moduleName mod)
---       name_pkg = packageKeyString (modulePackageKey mod)
+--       name_pkg = unitIdString (moduleUnitId mod)
 --       name_occ = nameOccName name
 --       mk_varg | OccName.isDataOcc name_occ = mkNameG_dName
 --               | OccName.isVarOcc  name_occ = mkNameG_vName
@@ -2215,7 +2215,7 @@ module ETA.DeSugar.DsMeta where
 -- qqLib = mkTHModule (fsLit "Language.Haskell.TH.Quote")
 
 -- mkTHModule :: FastString -> Module
--- mkTHModule m = mkModule thPackageKey (mkModuleNameFS m)
+-- mkTHModule m = mkModule thUnitId (mkModuleNameFS m)
 
 -- libFun, libTc, thFun, thTc, thCon, qqFun :: FastString -> Unique -> Name
 -- libFun = mk_known_key_name OccName.varName  thLib

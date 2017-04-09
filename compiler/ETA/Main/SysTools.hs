@@ -341,7 +341,7 @@ runCc dflags args =   do
 
 runJavac :: DynFlags -> [Option] -> IO ()
 runJavac dflags args = do
-  wiredInPkgs <- getPackageLibJars dflags pkgs
+  wiredInPkgs <- getPackageLibJars dflags $ map toInstalledUnitId pkgs
   let (prog, args0) = pgm_javac dflags
       opts = map Option (getOpts dflags opt_javac)
       classPathsAll = wiredInPkgs ++ classPaths dflags
@@ -356,7 +356,7 @@ runJavac dflags args = do
                   else [Option "-cp", Option classPathFolded ]
   runSomething dflags "Java Compiler" prog (args0 ++ classPath ++ args ++ opts)
   where (pkgs, _) = break (== thisPkg)
-                      [rtsPackageKey, primPackageKey, integerPackageKey, basePackageKey]
+                      [rtsUnitId, primUnitId, integerUnitId, baseUnitId]
         thisPkg = thisPackage dflags
 
 isContainedIn :: String -> String -> Bool
@@ -1300,10 +1300,10 @@ linesPlatform xs =
 
 #endif
 
-linkDynLib :: DynFlags -> [String] -> [PackageKey] -> IO ()
+linkDynLib :: DynFlags -> [String] -> [InstalledUnitId] -> IO ()
 linkDynLib _ _ _ = undefined
 
-getPkgFrameworkOpts :: DynFlags -> Platform -> [PackageKey] -> IO [String]
+getPkgFrameworkOpts :: DynFlags -> Platform -> [InstalledUnitId] -> IO [String]
 getPkgFrameworkOpts dflags platform dep_packages
   | platformUsesFrameworks platform = do
     pkg_framework_path_opts <- do

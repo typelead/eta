@@ -28,7 +28,6 @@ import ETA.BasicTypes.Var
 import ETA.Types.Type             ( Type, isUnLiftedType, splitFunTy, applyTy )
 import ETA.BasicTypes.VarSet
 import ETA.Utils.Util
-import ETA.Utils.UniqFM
 import ETA.Main.DynFlags
 import ETA.Utils.Outputable
 import Data.List( mapAccumL )
@@ -423,14 +422,14 @@ okToFloatInside bndrs = all ok bndrs
     ok b = not (isId b) || isOneShotBndr b
     -- Push the floats inside there are no non-one-shot value binders
 
-noFloatIntoRhs :: AnnExpr' Var (UniqFM Var) -> Type -> Bool
+noFloatIntoRhs :: AnnExpr' Id VarSet -> Type -> Bool
 -- ^ True if it's a bad idea to float bindings into this RHS
 -- Preconditio:  rhs :: rhs_ty
 noFloatIntoRhs rhs rhs_ty
   =  isUnLiftedType rhs_ty   -- See Note [Do not destroy the let/app invariant]
   || noFloatIntoExpr rhs
 
-noFloatIntoExpr :: AnnExpr' Var (UniqFM Var) -> Bool
+noFloatIntoExpr :: AnnExpr' Id VarSet -> Bool
 noFloatIntoExpr (AnnLam bndr e)
    = not (okToFloatInside (bndr:bndrs))
      -- NB: Must line up with fiExpr (AnnLam...); see Trac #7088

@@ -532,8 +532,8 @@ tailFS (FastString _ _ bs _) =
 consFS :: Char -> FastString -> FastString
 consFS c fs = mkFastString (c : unpackFS fs)
 
-uniqueOfFS :: FastString -> FastInt
-uniqueOfFS (FastString u _ _ _) = iUnbox u
+uniqueOfFS :: FastString -> Int
+uniqueOfFS (FastString u _ _ _) = u
 
 nilFS :: FastString
 nilFS = mkFastString ""

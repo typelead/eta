@@ -79,12 +79,12 @@ flushFinderCaches hsc_env = do
         fc_ref = hsc_FC hsc_env
         mlc_ref = hsc_MLC hsc_env
 
-flushModLocationCache :: PackageKey -> IORef ModLocationCache -> IO ()
+flushModLocationCache :: UnitId -> IORef ModLocationCache -> IO ()
 flushModLocationCache this_pkg ref = do
   atomicModifyIORef ref $ \fm -> (filterModuleEnv is_ext fm, ())
   _ <- evaluate =<< readIORef ref
   return ()
-  where is_ext mod _ | modulePackageKey mod /= this_pkg = True
+  where is_ext mod _ | moduleUnitId mod /= this_pkg = True
                      | otherwise = False
 
 addToFinderCache :: IORef FinderCache -> ModuleName -> FindResult -> IO ()
@@ -147,7 +147,7 @@ findImportedModule hsc_env mod_name mb_pkg =
 findExactModule :: HscEnv -> Module -> IO FindResult
 findExactModule hsc_env mod =
     let dflags = hsc_dflags hsc_env
-    in if modulePackageKey mod == thisPackage dflags
+    in if moduleUnitId mod == thisPackage dflags
        then findHomeModule hsc_env (moduleName mod)
        else findPackageModule hsc_env mod
 
@@ -201,8 +201,8 @@ findExposedPackageModule hsc_env mod_name mb_pkg
        return (FoundMultiple rs)
      LookupHidden pkg_hiddens mod_hiddens ->
        return (NotFound{ fr_paths = [], fr_pkg = Nothing
-                       , fr_pkgs_hidden = map (modulePackageKey.fst) pkg_hiddens
-                       , fr_mods_hidden = map (modulePackageKey.fst) mod_hiddens
+                       , fr_pkgs_hidden = map (moduleUnitId.fst) pkg_hiddens
+                       , fr_mods_hidden = map (moduleUnitId.fst) mod_hiddens
                        , fr_suggestions = [] })
      LookupNotFound suggest ->
        return (NotFound{ fr_paths = [], fr_pkg = Nothing
@@ -296,7 +296,7 @@ findPackageModule :: HscEnv -> Module -> IO FindResult
 findPackageModule hsc_env mod = do
   let
         dflags = hsc_dflags hsc_env
-        pkg_id = modulePackageKey mod
+        pkg_id = moduleUnitId mod
   --
   case lookupPackage dflags pkg_id of
      Nothing -> return (NoPackage pkg_id)
@@ -311,7 +311,7 @@ findPackageModule hsc_env mod = do
 -- for the appropriate config.
 findPackageModule_ :: HscEnv -> Module -> PackageConfig -> IO FindResult
 findPackageModule_ hsc_env mod pkg_conf =
-  ASSERT( modulePackageKey mod == packageConfigId pkg_conf )
+  ASSERT( moduleUnitId mod == packageConfigId pkg_conf )
   modLocationCache hsc_env mod $
 
   -- special case for GHC.Prim; we won't find it in the filesystem.
@@ -381,7 +381,7 @@ searchPathExts paths mod exts
                 ]
 
     search [] = return (NotFound { fr_paths = map fst to_search
-                                 , fr_pkg   = Just (modulePackageKey mod)
+                                 , fr_pkg   = Just (moduleUnitId mod)
                                  , fr_mods_hidden = [], fr_pkgs_hidden = []
                                  , fr_suggestions = [] })
 
@@ -569,7 +569,7 @@ cantFindErr _ multiple_found _ mod_name (FoundMultiple mods)
   where
     unambiguousPackages = foldl' unambiguousPackage (Just []) mods
     unambiguousPackage (Just xs) (m, ModOrigin (Just _) _ _ _)
-        = Just (modulePackageKey m : xs)
+        = Just (moduleUnitId m : xs)
     unambiguousPackage _ _ = Nothing
 
     pprMod (m, o) = ptext (sLit "it is bound as") <+> ppr m <+>
@@ -577,7 +577,7 @@ cantFindErr _ multiple_found _ mod_name (FoundMultiple mods)
     pprOrigin _ ModHidden = panic "cantFindErr: bound by mod hidden"
     pprOrigin m (ModOrigin e res _ f) = sep $ punctuate comma (
       if e == Just True
-          then [ptext (sLit "package") <+> ppr (modulePackageKey m)]
+          then [ptext (sLit "package") <+> ppr (moduleUnitId m)]
           else [] ++
       map ((ptext (sLit "a reexport in package") <+>)
                 .ppr.packageConfigId) res ++
@@ -638,7 +638,7 @@ cantFindErr cannot_find _ dflags mod_name find_result
         | otherwise =
                hang (ptext (sLit "Locations searched:")) 2 $ vcat (map text files)
 
-    pkg_hidden :: PackageKey -> SDoc
+    pkg_hidden :: UnitId -> SDoc
     pkg_hidden pkgid =
         ptext (sLit "It is a member of the hidden package")
         <+> quotes (ppr pkgid)
@@ -653,13 +653,13 @@ cantFindErr cannot_find _ dflags mod_name find_result
               ptext (sLit "to the build-depends in your .cabal file.")
      | otherwise = Outputable.empty
 
-    looks_like_srcpkgid :: PackageKey -> SDoc
+    looks_like_srcpkgid :: UnitId -> SDoc
     looks_like_srcpkgid pk
      -- Unsafely coerce a package key FastString into a source package ID
      -- FastString and see if it means anything.
-     | (pkg:pkgs) <- searchPackageId dflags (SourcePackageId (packageKeyFS pk))
+     | (pkg:pkgs) <- searchPackageId dflags (SourcePackageId (unitIdFS pk))
      = parens (text "This package key looks like the source package ID;" $$
-       text "the real package key is" <+> quotes (ftext (packageKeyFS (packageKey pkg))) $$
+       text "the real package key is" <+> quotes (ftext (installedUnitIdFS (unitId pkg))) $$
        (if null pkgs then Outputable.empty
         else text "and" <+> int (length pkgs) <+> text "other candidates"))
      -- Todo: also check if it looks like a package name!
@@ -683,9 +683,9 @@ cantFindErr cannot_find _ dflags mod_name find_result
                                    fromExposedReexport = res,
                                    fromPackageFlag = f })
               | Just True <- e
-                 = parens (ptext (sLit "from") <+> ppr (modulePackageKey mod))
+                 = parens (ptext (sLit "from") <+> ppr (moduleUnitId mod))
               | f && moduleName mod == m
-                 = parens (ptext (sLit "from") <+> ppr (modulePackageKey mod))
+                 = parens (ptext (sLit "from") <+> ppr (moduleUnitId mod))
               | (pkg:_) <- res
                  = parens (ptext (sLit "from") <+> ppr (packageConfigId pkg)
                     <> comma <+> ptext (sLit "reexporting") <+> ppr mod)
@@ -699,7 +699,7 @@ cantFindErr cannot_find _ dflags mod_name find_result
                                    fromHiddenReexport = rhs })
               | Just False <- e
                  = parens (ptext (sLit "needs flag -package-key")
-                    <+> ppr (modulePackageKey mod))
+                    <+> ppr (moduleUnitId mod))
               | (pkg:_) <- rhs
                  = parens (ptext (sLit "needs flag -package-key")
                     <+> ppr (packageConfigId pkg))

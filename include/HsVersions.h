@@ -42,4 +42,10 @@ name = Util.globalM (value);
 #define ASSERTM2(e,msg) do { bool <- e; MASSERT2(bool,msg) }
 #define WARNM2(e,msg)   do { bool <- e; WARN(bool, msg) return () }
 
+/* unique has the following structure:
+ * HsInt unique =
+ *    (unique_tag << (sizeof (HsInt) - UNIQUE_TAG_BITS)) | unique_number
+ */
+#define UNIQUE_TAG_BITS 8
+
 #endif /* HsVersions.h */

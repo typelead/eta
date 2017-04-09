@@ -136,7 +136,7 @@ pprSimplEnv env
           ptext (sLit "InScope:") <+> vcat (map ppr_one in_scope_vars)
     ]
   where
-   in_scope_vars = varEnvElts (getInScopeVars (seInScope env))
+   in_scope_vars = varSetElems (getInScopeVars (seInScope env))
    ppr_one v | isId v = ppr v <+> ppr (idUnfolding v)
              | otherwise = ppr v
 

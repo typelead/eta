@@ -17,10 +17,6 @@ flag debug
   Description: Enable debug support
   Default:     False
 
-flag warnings
-  Description: Enable warnings
-  Default:     False
-
 source-repository head
     type: git
     location: https://github.com/typelead/eta.git
@@ -295,6 +291,8 @@ library
                        , ETA.Utils.State
                        , ETA.Utils.Stream
                        , ETA.Utils.StringBuffer
+                       , ETA.Utils.UniqDFM
+                       , ETA.Utils.UniqDSet
                        , ETA.Utils.UniqFM
                        , ETA.Utils.UniqSet
                        , ETA.Utils.UnVarGraph
@@ -308,7 +306,11 @@ library
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text
-                       , eta-pkgdb
+                       -- @VERSION_CHANGE@
+                       , eta-boot == 0.0.5
+                       -- @VERSION_CHANGE@
+                       , eta-boot-th == 0.0.5
+                       , deepseq    >= 1.4 && < 1.5
                        , time       >= 1.4 && < 1.7
                        , process    >= 1   && < 1.3
                        , directory >= 1.2
@@ -341,8 +343,7 @@ library
        ghc-options:      -DDEBUG
 
 executable eta
-    if flag(warnings)
-      ghc-options:       -Wall
+    ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts
     hs-source-dirs:      eta
     main-is:             Main.hs
     default-language:    Haskell2010
