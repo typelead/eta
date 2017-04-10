@@ -171,6 +171,9 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         unit $ cmd "etlas update"
         etlasDir <- getEtlasDir
         copyFile' "utils/coursier/coursier" $ etlasDir </> "coursier"
+        let verifyExt ext = "utils/class-verifier/Verify" <.> ext
+        unit $ cmd ["javac", verifyExt "java"]
+        copyFile' (verifyExt "class") $ etlasDir </> "Verify.class"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
