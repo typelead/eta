@@ -695,7 +695,10 @@ family.
 
   The standard library defines an alias for the ``Extends`` typeclass referred
   to as ``<:``. For example, ``Extends a Object`` can written as ``a <: Object``.
-  We will be using this throughout the tutorial because it is more natural.
+  We will be using this throughout the tutorial because it is more natural. You
+  **must** enable the `TypeOperators` extension to use `<:` by placing
+  ``{-# LANGUAGE TypeOperators #-}`` at the top of your file.
+
 
 .. note::
 
