@@ -266,3 +266,5 @@ arrayFromList xs = do
 instance {-# OVERLAPS #-} (JArray e c) => JavaConverter [e] c where
   toJava  xs = pureJava $ arrayFromList xs
   fromJava c = pureJavaWith c arrayToList
+  {-# INLINE toJava #-}
+  {-# INLINE fromJava #-}
