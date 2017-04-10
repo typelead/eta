@@ -2,7 +2,7 @@ name:                rts
 version:             0.1.0.0
 synopsis:            The Eta runtime system
 description:         The package for that contains the Eta runtime system.
-homepage:            http://github.org/typelead/eta
+homepage:            http://github.com/typelead/eta
 license:             BSD3
 license-file:        LICENSE
 author:              Rahul Muttineni
