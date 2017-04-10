@@ -128,7 +128,7 @@ defaultGhciSettings =
 
 ghciWelcomeMsg :: String
 ghciWelcomeMsg = "GHCi, version " ++ cProjectVersion ++
-                 ": http://github.org/typelead/eta  :? for help"
+                 ": http://github.com/typelead/eta  :? for help"
 
 cmdName :: Command -> String
 cmdName (n,_,_) = n
