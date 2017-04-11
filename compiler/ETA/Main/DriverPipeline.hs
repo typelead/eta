@@ -430,7 +430,6 @@ compileFiles hsc_env stop_phase srcs = do
         (java_class_srcs, java_source_srcs) = partition isJavaClassishFilename
                                               $ map fst java_srcs
         class_dirs = map takeDirectory java_class_srcs
-        java_classes = map (-<.> "class") java_source_srcs
 
 createJar :: DynFlags -> FilePath -> [FilePath] -> IO ()
 createJar dflags outputFile classes = do
