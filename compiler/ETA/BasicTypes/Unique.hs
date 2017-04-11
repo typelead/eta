@@ -132,8 +132,9 @@ newTagUnique u c = mkUnique c i where (_,i) = unpkUnique u
 
 -- | How many bits are devoted to the unique index (as opposed to the class
 -- character).
-uniqueMask :: Int
-uniqueMask = (1 `shiftL` uNIQUE_BITS) - 1
+-- TODO: Move to new unique system after classes have better names
+-- uniqueMask :: Int
+-- uniqueMask = (1 `shiftL` uNIQUE_BITS) - 1
 
 -- pop the Char in the top 8 bits of the Unique(Supply)
 
