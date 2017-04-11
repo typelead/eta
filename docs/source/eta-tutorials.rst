@@ -878,7 +878,7 @@ in foreign imports/exports.
 .. note::
 
    ``String`` is a notable exception to that rule because it's so commonly used that there's a
-   special case that allows it an autoamtically converts it to ```JString``.
+   special case that allows it an autoamtically converts it to ``JString``.
 
 JWTs are inconvenient to use directly in Eta because they are just wrappers of native Java objects.
 So, the following typeclass is defined in the standard library to help convert JWTs to common
