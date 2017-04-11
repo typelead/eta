@@ -415,10 +415,14 @@ compileFiles hsc_env stop_phase srcs = do
   let dflags' = foldr addClassPaths (hsc_dflags hsc_env)
               $ class_dirs
               ++ o_files'
-  when (not (null java_source_srcs)) $
-    runJavac dflags' $ map (SysTools.FileOption "") java_source_srcs
+      classesDir = fromMaybe "." (objectDir dflags') </> "classes"
+  genClassPaths <- if (not (null java_source_srcs))
+                   then do
+                     createDirectoryIfMissing True classesDir
+                     runJavac dflags' $ ["-d", classesDir] ++ java_source_srcs
+                   else return []
   extras <- getOutputFilename StopLn Persistent "__extras" dflags' StopLn Nothing
-  let classes = java_classes ++ java_class_srcs
+  let classes = genClassPaths ++ java_class_srcs
   when (not (null classes)) $
     createJar dflags' extras classes
   return ((if null classes then [] else [extras]) ++ o_files')

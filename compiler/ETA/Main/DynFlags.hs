@@ -962,7 +962,7 @@ data Settings = Settings {
   sPgm_readelf           :: String,
   sPgm_lo                :: (String,[Option]), -- LLVM: opt llvm optimiser
   sPgm_lc                :: (String,[Option]), -- LLVM: llc static compiler
-  sPgm_javac             :: (String,[Option]),
+  sPgm_javac             :: (String,[String]),
   -- options for particular phases
   sOpt_L                 :: [String],
   sOpt_P                 :: [String],
@@ -1024,7 +1024,7 @@ pgm_lo                :: DynFlags -> (String,[Option])
 pgm_lo dflags = sPgm_lo (settings dflags)
 pgm_lc                :: DynFlags -> (String,[Option])
 pgm_lc dflags = sPgm_lc (settings dflags)
-pgm_javac                :: DynFlags -> (String,[Option])
+pgm_javac                :: DynFlags -> (String,[String])
 pgm_javac dflags = sPgm_javac (settings dflags)
 
 opt_L                 :: DynFlags -> [String]
