@@ -6,47 +6,38 @@ with import <nixpkgs> { };
 #   [nix-shell] $ eta-build install
 
 let
-  # Eta's Cabal can't be built with itself. Stack (incorrectly) caches a Simple
-  # Setup so it accidentally works around this problem. Here we build a Setup so
-  # that we can (incorrectly) reuse it, like Stack does.
-  Setup = stdenv.mkDerivation {
-    name = "eta-setup-hack";
-    phases = ["buildPhase" "installPhase"];
-    buildInputs = [hpkgs.ghc];
-    buildPhase = ''
-      ghc --make -o Setup ${./Setup.hs}
-    '';
-    installPhase = ''
-      mv Setup $out
-    '';
-  };
-
-  Cabal = self: haskell.lib.overrideCabal (self.callPackage ./utils/nix/Cabal.nix { }) (drv: {
-    postCompileBuildDriver = ''
-      rm Setup
-      ln -s ${Setup} Setup
-    '';
-    doCheck = false;
-  });
-
   hpkgs = haskell.packages.ghc7103.override {
     overrides = self: super: {
-      tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
-
-      epm = haskell.lib.overrideCabal (self.callPackage ./utils/nix/epm.nix {
-        Cabal = Cabal self;
-      }) (drv: {
-        postCompileBuildDriver = ''
-          rm Setup
-          ln -s ${Setup} Setup
+      Cabal_1_24_2_0 = haskell.lib.overrideCabal super.Cabal_1_24_2_0 (drv: {
+        # Cabal bug doesn't compile Setup.hs with MIN_VERSION set:
+        # https://github.com/haskell/cabal/issues/3003#issuecomment-167572308
+        preCompileBuildDriver = ''
+          ${drv.preCompileBuildDriver or ""}
+          setupCompileFlags+=" -DMIN_VERSION_binary_0_8_0=1"
         '';
-        doCheck = false;
       });
-      eta-pkg = haskell.lib.doJailbreak (self.callPackage ./utils/nix/eta-pkg.nix { });
-      eta-pkgdb = self.callPackage ./utils/nix/eta-pkgdb.nix { };
-      codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
+      Cabal = self.Cabal_1_24_2_0;
 
-      eta-build = self.callPackage ./utils/nix/eta-build.nix { };
+      tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
+      binary = haskell.lib.dontCheck self.binary_0_8_4_1;
+
+      codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
+      hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
+      eta-boot-th = self.callPackage ./utils/nix/eta-boot-th.nix { };
+      eta-boot = self.callPackage ./utils/nix/eta-boot.nix { };
+      eta-pkg = self.callPackage ./utils/nix/eta-pkg.nix { };
+      etlas-cabal = self.callPackage ./utils/nix/etlas-cabal.nix { };
+
+      etlas = haskell.lib.overrideCabal (self.callPackage ./utils/nix/etlas.nix { }) (drv: {
+        # Nix should only compile Setup.hs with setup-depends, but it doesn't:
+        # https://github.com/NixOS/nixpkgs/issues/24809
+        preCompileBuildDriver = ''
+          ${drv.preCompileBuildDriver or ""}
+          setupCompileFlags+=" -hide-package=etlas-cabal"
+        '';
+        isLibrary = false;
+        jailbreak = true;
+      });
 
       eta = haskell.lib.overrideCabal (self.callPackage ./utils/nix/eta.nix { }) (drv: {
         src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE"] drv.src;
@@ -54,6 +45,8 @@ let
         doCheck = false;
         jailbreak = true;
       });
+
+      eta-build = self.callPackage ./utils/nix/eta-build.nix { };
     };
   };
 
@@ -64,7 +57,7 @@ let
       hpkgs.eta
       hpkgs.eta-build
       hpkgs.eta-pkg
-      hpkgs.epm
+      hpkgs.etlas
       gitMinimal
       jdk
       glibcLocales
@@ -76,4 +69,4 @@ let
   relative = path: name: lib.removePrefix (toString path + "/") name;
   onlyFiles = files: path: builtins.filterSource (name: type: isValidFile (relative path name) files) path;
 in
-hpkgs // { Cabal = Cabal hpkgs; inherit eta-build-shell; }
+hpkgs // { inherit eta-build-shell; }

@@ -13,6 +13,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.List;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import eta.runtime.Rts;
 import eta.runtime.RtsFlags;
@@ -240,5 +242,20 @@ public class Utils {
         } catch(ClassCastException e) {
             return null;
         }
+    }
+
+    public static MessageDigest c_MD5Init() throws NoSuchAlgorithmException {
+        return MessageDigest.getInstance("MD5");
+    }
+
+    public static void c_MD5Update(MessageDigest md, ByteBuffer contents, int len) {
+        ByteBuffer dup = contents.duplicate();
+        MemoryManager.bufSetLimit(dup, len);
+        md.update(dup);
+    }
+
+    public static void c_MD5Final(ByteBuffer result, MessageDigest md) {
+        byte[] hash = md.digest();
+        result.put(hash);
     }
 }

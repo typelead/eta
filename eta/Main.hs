@@ -62,8 +62,7 @@ main = do
   initETA
   GHC.defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
     -- 1. extract the -B flag from the args
-    argvm1 <- getArgs
-    let argv0 = argvm1 ++ ["-ddump-to-file", "-dumpdir", "."]
+    argv0 <- getArgs
     libdir <- findTopDir Nothing
     let (minusB_args, argv1) = partition ("-B" `isPrefixOf`) argv0
         mbMinusB | null minusB_args = Just libdir

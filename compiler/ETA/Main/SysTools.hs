@@ -69,6 +69,7 @@ import ETA.Utils.Exception
 import qualified ETA.Utils.Exception as Exception
 
 import Data.IORef
+import Data.Maybe
 import Control.Monad
 import System.Exit
 import System.Environment
@@ -201,7 +202,7 @@ initSysTools mbMinusB
                          , sProgramName         = "eta"
                          , sProjectVersion      = cProjectVersion
                          , sPgm_F               = ""
-                         , sPgm_javac           = ("javac",[])
+                         , sPgm_javac           = ("javac",["-verbose"])
                          , sOpt_L               = []
                          , sOpt_P               = []
                          , sOpt_F               = []
@@ -339,11 +340,12 @@ runCc dflags args =   do
    | "warning: call-clobbered register used" `isContainedIn` w = False
    | otherwise = True
 
-runJavac :: DynFlags -> [Option] -> IO ()
+-- | Runs `javac` with the given options and returns the list of files generated.
+runJavac :: DynFlags -> [String] -> IO [FilePath]
 runJavac dflags args = do
   wiredInPkgs <- getPackageLibJars dflags $ map toInstalledUnitId pkgs
   let (prog, args0) = pgm_javac dflags
-      opts = map Option (getOpts dflags opt_javac)
+      opts = getOpts dflags opt_javac
       classPathsAll = wiredInPkgs ++ classPaths dflags
 #ifndef mingw32_HOST_OS
       classPathSep = ":"
@@ -353,11 +355,24 @@ runJavac dflags args = do
       classPathFolded = intercalate classPathSep classPathsAll
       classPath = if null classPathsAll
                   then []
-                  else [Option "-cp", Option classPathFolded ]
-  runSomething dflags "Java Compiler" prog (args0 ++ classPath ++ args ++ opts)
+                  else ["-cp", classPathFolded ]
+      allArgs = ["-verbose"] ++ args0 ++ classPath ++ args ++ opts
+  (exitCode, stdout, stderr) <-
+    readProcessEnvWithExitCode prog allArgs  []
+
+  case exitCode of
+    ExitSuccess -> return $ getClassOutputs stderr
+    ExitFailure _ -> die . unlines . filter (not . ("[" `isPrefixOf`)) $ lines stderr
   where (pkgs, _) = break (== thisPkg)
                       [rtsUnitId, primUnitId, integerUnitId, baseUnitId]
         thisPkg = thisPackage dflags
+        getClassFile str = do
+          str' <- stripPrefix "[wrote RegularFileObject[" str
+          return $ init . init $ str'
+        getClassOutputs str = catMaybes
+                            . map getClassFile
+                            . filter ("[wrote" `isPrefixOf`)
+                            $ lines str
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)

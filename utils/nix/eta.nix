@@ -1,18 +1,19 @@
 { mkDerivation, aeson, alex, array, base, bytestring, codec-jvm
-, containers, cpphs, deepseq, directory, eta-pkgdb, exceptions
-, filepath, happy, haskeline, hpc, mtl, path, path-io, process
-, stdenv, text, time, transformers, turtle, unix, unix-compat, zip
+, containers, cpphs, deepseq, directory, eta-boot, eta-boot-th
+, exceptions, filepath, happy, haskeline, hpc, mtl, path, path-io
+, process, stdenv, text, time, transformers, turtle, unix
+, unix-compat, zip
 }:
 mkDerivation {
   pname = "eta";
-  version = "0.0.5";
+  version = "0.0.6";
   src = ../..;
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    array base bytestring codec-jvm containers cpphs directory
-    eta-pkgdb exceptions filepath hpc mtl path path-io process text
-    time transformers unix unix-compat zip
+    array base bytestring codec-jvm containers cpphs deepseq directory
+    eta-boot eta-boot-th exceptions filepath hpc mtl path path-io
+    process text time transformers unix unix-compat zip
   ];
   libraryToolDepends = [ alex happy ];
   executableHaskellDepends = [
