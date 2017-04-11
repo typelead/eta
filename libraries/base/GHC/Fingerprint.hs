@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP
            , NoImplicitPrelude
            , BangPatterns
+           , MagicHash
   #-}
 
 -- ----------------------------------------------------------------------------
@@ -48,12 +49,11 @@ fingerprintFingerprints fs = unsafeDupablePerformIO $
 
 fingerprintData :: Ptr Word8 -> Int -> IO Fingerprint
 fingerprintData buf len = do
-  allocaBytes 88 $ \pctxt -> do
-    c_MD5Init pctxt
-    c_MD5Update pctxt buf (fromIntegral len)
-    allocaBytes 16 $ \pdigest -> do
-      c_MD5Final pdigest pctxt
-      peek (castPtr pdigest :: Ptr Fingerprint)
+  pctxt <- c_MD5Init
+  c_MD5Update pctxt buf (fromIntegral len)
+  allocaBytes 16 $ \pdigest -> do
+    c_MD5Final pdigest pctxt
+    peek (castPtr pdigest :: Ptr Fingerprint)
 
 -- This is duplicated in compiler/utils/Fingerprint.hsc
 fingerprintString :: String -> Fingerprint
@@ -74,14 +74,13 @@ fingerprintString str = unsafeDupablePerformIO $
 -- @since 4.7.0.0
 getFileHash :: FilePath -> IO Fingerprint
 getFileHash path = withBinaryFile path ReadMode $ \h -> do
-  allocaBytes 88 $ \pctxt -> do
-    c_MD5Init pctxt
+  pctxt <- c_MD5Init
 
-    processChunks h (\buf size -> c_MD5Update pctxt buf (fromIntegral size))
+  processChunks h (\buf size -> c_MD5Update pctxt buf (fromIntegral size))
 
-    allocaBytes 16 $ \pdigest -> do
-      c_MD5Final pdigest pctxt
-      peek (castPtr pdigest :: Ptr Fingerprint)
+  allocaBytes 16 $ \pdigest -> do
+    c_MD5Final pdigest pctxt
+    peek (castPtr pdigest :: Ptr Fingerprint)
 
   where
     _BUFSIZE = 4096
@@ -103,14 +102,14 @@ getFileHash path = withBinaryFile path ReadMode $ \h -> do
 
       in loop
 
-data MD5Context
+data {-# CLASS "java.security.MessageDigest" #-} MD5Context
+  = MD5Context (Object# MD5Context)
 
--- foreign import ccall unsafe "__hsbase_MD5Init"
-c_MD5Init   :: Ptr MD5Context -> IO ()
-c_MD5Init = undefined
--- foreign import ccall unsafe "__hsbase_MD5Update"
-c_MD5Update :: Ptr MD5Context -> Ptr Word8 -> CInt -> IO ()
-c_MD5Update = undefined
--- foreign import ccall unsafe "__hsbase_MD5Final"
-c_MD5Final  :: Ptr Word8 -> Ptr MD5Context -> IO ()
-c_MD5Final = undefined
+foreign import java unsafe "@static eta.base.Utils.c_MD5Init"
+  c_MD5Init :: IO MD5Context
+
+foreign import java unsafe "@static eta.base.Utils.c_MD5Update"
+  c_MD5Update :: MD5Context -> Ptr Word8 -> CInt -> IO ()
+
+foreign import java unsafe "@static eta.base.Utils.c_MD5Final"
+  c_MD5Final :: Ptr Word8 -> MD5Context -> IO ()
