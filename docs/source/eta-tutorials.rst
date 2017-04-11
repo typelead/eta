@@ -86,6 +86,7 @@ The above example can be imported as follows:
 .. code::
 
    data {-# CLASS "eta.example.Counter" #-} Counter = Counter (Object# Counter)
+     deriving Class
 
    foreign import java unsafe "@new" newCounter :: Java a Counter
    foreign import java unsafe "@new" newCounterWith :: Int -> Java a Counter
@@ -135,7 +136,9 @@ General Syntax
 .. code::
 
    data {-# CLASS "java.lang.Integer" #-} JInteger = JInteger (Object# JInteger)
+     deriving Class
    data {-# CLASS "java.lang.Integer[]" #-} JIntegers = JIntegers (Object# JIntegers)
+     deriving Class
 
 In this example, we're declaring JWTs for the ``java.lang.Integer`` class and the
 ``java.lang.Integer[]`` array (which is technically a class on its own).
@@ -363,6 +366,7 @@ class.
 The following are all equivalent ways of performing the import::
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
+    deriving Class
 
   foreign import java unsafe canExecute :: Java File Bool
   foreign import java unsafe "canExecute" canExecute1 :: Java File Bool
@@ -380,6 +384,7 @@ class.
 The following are all equivalent ways of performing the import::
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
+    deriving Class
 
   foreign import java unsafe "@static java.io.File.createTempFile"
     createTempFile  :: String -> String -> Java a File
@@ -399,7 +404,7 @@ class.
 The following are all equivalent ways of performing the import::
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
-
+    deriving Class
   foreign import java unsafe "@new" newFile  :: String -> Java a File
   foreign import java unsafe "@new" newFile1 :: String -> IO File
   foreign import java unsafe "@new" newFile2 :: String -> File
@@ -414,7 +419,7 @@ are purely for illustration purposes and will throw an exception if called becau
 The following are all equivalent ways of performing the get/set imports::
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
-
+    deriving Class
   -- Imports for getting the field
   foreign import java unsafe "@field path" getFilePath  :: Java File String
   foreign import java unsafe "@field path" getFilePath1 :: File -> IO String
@@ -660,6 +665,7 @@ Using the imports from :ref:`java-imports-examples`,
   foreign import java unsafe toString :: Object -> String
 
   data {-# CLASS "java.io.File" #-} File = File (Object# File)
+    deriving Class
 
   main :: IO ()
   main = do
@@ -857,6 +863,7 @@ with signature ``Formatter (String format, Object.. args)``, take variable argum
 are simply arrays, hence can be imported easily::
 
   data {-# CLASS "java.util.Formatter #-"} Formatter = Formatter (Object# Formatter)
+    deriving Class
 
   -- Note that we didn't have to import `Object[]` because JObjectArray already exists
   -- in the standard library.
@@ -897,6 +904,7 @@ list with a helper function.
 .. code::
 
    data {-# CLASS "java.io.File[]" #-} Files = Files (Object# Files)
+     deriving Class
 
    -- Declare that `Files` is an array type with element type `File`.
    instance JArray File Files
@@ -946,11 +954,13 @@ Suppose we try to make an implementation of `Runnable <https://docs.oracle.com/j
 in Eta::
 
   data {-# CLASS "java.lang.Runnable" #-} Runnable = Runnable (Object# Runnable)
+    deriving Class
 
   foreign import java unsafe "@wrapper run"
     runnable :: Java Runnable () -> Runnable
 
   data {-# CLASS "java.lang.Thread" #-} Thread = Thread (Object# Thread)
+    deriving Class
 
   foreign import java unsafe "@new" newThread :: Runnable -> Java a Thread
   foreign import java unsafe start :: Java Thread ()
@@ -972,6 +982,7 @@ The import would look like so:
 .. code::
 
   data {-# CLASS "java.util.function.Function" #-} Function t r = Function (Object# (Function t r))
+    deriving Class
 
   foreign import java unsafe "@wrapper apply"
     mkFunction :: (t <: Object, r <: Object) => (t -> Java (Function t r) r) -> Function t r
@@ -1027,6 +1038,7 @@ Here is an example::
 
   data {-# CLASS "eta.example.MyExportedClass" #-} MyExportedClass
     = MyExportedClass (Object# MyExportedClass)
+    deriving Class
 
   fib' 0 = 1
   fib' 1 = 1
@@ -1056,6 +1068,7 @@ changes:
 
       data {-# CLASS "eta.example.MyExportedClass" #-} MyExportedClass
         = MyExportedClass (Object# MyExportedClass)
+        deriving Class
 
       fib' 0 = 1
       fib' 1 = 1
