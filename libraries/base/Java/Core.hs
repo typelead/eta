@@ -30,16 +30,13 @@ module Java.Core
   , type (<:)
   , Inherits(..)
   , Java(..)
-  , Byte
-  , Short
-  , JChar
   , JavaConverter(..)
   )
 where
 
 import GHC.Base
 import Data.Int(Int64)
-import Java.Primitive
+-- import Java.Primitive
 
 foreign import java unsafe "@new" globalObject :: Object
 
