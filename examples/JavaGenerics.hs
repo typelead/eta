@@ -2,11 +2,12 @@
 -- Description: Shows how to interface with Java APIs that use Generics.
 -- These language extensions are currently required to support
 -- Java Generics.
-{-# LANGUAGE MagicHash, FlexibleContexts, TypeFamilies, DataKinds #-}
+{-# LANGUAGE MagicHash, FlexibleContexts, TypeFamilies, DataKinds, TypeOperators #-}
 
 -- This imports all the standard library functionality that helps
--- you deal with importing Java methods into Eta.
-import Java
+-- you deal with importing Java methods into Eta. We are hiding certain classes
+-- because they are already defined in the standard library
+import Java hiding (JInteger, Collection, List, add)
 import Control.Monad
 
 main :: IO ()
@@ -56,6 +57,6 @@ foreign import java unsafe "@new" newArrayList :: Java c (ArrayList a)
 -- is a descendant of the second. This static check is facilitated by
 -- the `Inherits` type family above.
 foreign import java unsafe "add" add ::
-  (Extends a Object, Extends b (Collection a)) => a -> Java b Bool
+  (a <: Object, b <: (Collection a)) => a -> Java b Bool
 foreign import java unsafe "get" get ::
-  (Extends a Object, Extends b (List a)) => Int -> Java b a
+  (a <: Object, b <: (List a)) => Int -> Java b a
