@@ -81,7 +81,8 @@ module System.Posix.Types (
   Limit,
   StandardOpenOption,
   OpenOption,
-  OpenOptionArray
+  OpenOptionArray,
+  FileAttribute
  ) where
 
 import Foreign
@@ -199,3 +200,11 @@ data {-# CLASS "java.nio.file.OpenOption[]" #-}
 instance JArray OpenOption OpenOptionArray
 
 -- End java.nio.file.OpenOption
+
+-- Start java.nio.file.attribute.FileAttribute
+
+data {-# CLASS "java.nio.file.attribute.FileAttribute" #-}
+  FileAttribute = FileAttribute (Object# FileAttribute)
+  deriving Class
+
+-- End java.nio.file.attribute.FileAttribute
