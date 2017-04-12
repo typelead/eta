@@ -4133,7 +4133,11 @@ setTmpDir dir = alterSettings (\s -> s { sTmpDir = normalise dir })
 -- RTS opts
 
 setRtsOpts :: String -> DynP ()
-setRtsOpts arg  = upd $ \ d { rtsOpts } -> d {rtsOpts = fromMaybe "" rtsOpts ++ " " ++ arg }
+setRtsOpts arg  = upd $ \ d@DynFlags { rtsOpts } ->
+  d {rtsOpts = let newRtsOpts = fromMaybe "" rtsOpts ++ " " ++ arg
+               in if null newRtsOpts
+                  then Nothing
+                  else Just $ newRtsOpts }
 
 setRtsOptsEnabled :: RtsOptsEnabled -> DynP ()
 setRtsOptsEnabled arg  = upd $ \ d -> d {rtsOptsEnabled = arg}
