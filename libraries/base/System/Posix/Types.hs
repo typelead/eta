@@ -82,7 +82,8 @@ module System.Posix.Types (
   StandardOpenOption,
   OpenOption,
   OpenOptionArray,
-  FileAttribute
+  FileAttribute,
+  PosixFilePermission
  ) where
 
 import Foreign
@@ -208,3 +209,11 @@ data {-# CLASS "java.nio.file.attribute.FileAttribute" #-}
   deriving Class
 
 -- End java.nio.file.attribute.FileAttribute
+
+-- Start java.nio.file.attribute.PosixFilePermission
+
+data {-# CLASS "java.nio.file.attribute.PosixFilePermission" #-}
+  PosixFilePermission = PosixFilePermission (Object# PosixFilePermission)
+  deriving Class
+
+-- End java.nio.file.attribute.PosixFilePermission
