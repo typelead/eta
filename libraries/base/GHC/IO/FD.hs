@@ -158,7 +158,6 @@ openFile
   -> IO (FD,IODeviceType)
 
 openFile filepath iomode non_blocking =
-  withFilePath filepath $ \ f ->
 
     let
       oflags1 = case iomode of
@@ -166,17 +165,19 @@ openFile filepath iomode non_blocking =
                   WriteMode     -> write_flags
                   ReadWriteMode -> rw_flags
                   AppendMode    -> append_flags
-
-#ifdef mingw32_HOST_OS
-      binary_flags = o_BINARY
-#else
-      binary_flags = 0
-#endif
-
-      oflags2 = oflags1 .|. binary_flags
-
-      oflags | non_blocking = oflags2 .|. nonblock_flags
-             | otherwise    = oflags2
+      oflags = undefined -- oflags1 TODO : uncomment
+      f = undefined --filepath TODO : uncomment
+-- TODO: Handle this
+-- #ifdef mingw32_HOST_OS
+--       binary_flags = o_BINARY
+-- #else
+--       binary_flags = 0
+-- #endif
+--
+--       oflags2 = oflags1 .|. binary_flags
+--
+--       oflags | non_blocking = oflags2 .|. nonblock_flags
+--              | otherwise    = oflags2 s
     in do
 
     -- the old implementation had a complicated series of three opens,
@@ -203,14 +204,14 @@ openFile filepath iomode non_blocking =
     return (fD,fd_type)
 
 std_flags, output_flags, read_flags, write_flags, rw_flags,
-    append_flags, nonblock_flags :: CInt
-std_flags    = o_NOCTTY
-output_flags = std_flags    .|. o_CREAT
-read_flags   = std_flags    .|. o_RDONLY
-write_flags  = output_flags .|. o_WRONLY
-rw_flags     = output_flags .|. o_RDWR
-append_flags = write_flags  .|. o_APPEND
-nonblock_flags = o_NONBLOCK
+    append_flags, nonblock_flags :: [StandardOpenOption]
+std_flags    = []
+output_flags = std_flags    ++ [o_CREATE]
+read_flags   = std_flags    ++ [o_READ]
+write_flags  = output_flags ++ [o_WRITE]
+rw_flags     = output_flags ++ [o_READ, o_WRITE]
+append_flags = write_flags  ++ [o_APPEND1]
+nonblock_flags = [] -- o_NONBLOCK TODO: Handle this
 
 
 -- | Make a 'FD' from an existing file descriptor.  Fails if the FD
