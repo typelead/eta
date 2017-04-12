@@ -717,3 +717,33 @@ When using ccall instead, when the functions failed with -1, we thought
 they were returning with 4294967295, and so didn't throw an exception.
 This lead to a segfault in echo001(ghci).
 -}
+-- Start POSIX permissions
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE"
+  p_GROUP_EXECUTE :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.GROUP_READ"
+  p_GROUP_READ :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.GROUP_WRITE"
+  p_GROUP_WRITE :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE"
+  p_OTHERS_EXECUTE :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OTHERS_READ"
+  p_OTHERS_READ :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE"
+  p_OTHERS_WRITE :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE"
+  p_OWNER_EXECUTE :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OWNER_READ"
+  p_OWNER_READ :: PosixFilePermission
+
+foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OWNER_WRITE"
+  p_OWNER_WRITE :: PosixFilePermission
+
+-- End POSIX permissions
