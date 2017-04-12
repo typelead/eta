@@ -25,6 +25,7 @@ import Java.Array
 import Java.Core
 import Java.NIO
 import Java.Text
+import Java.Primitive
 
 -- Start java.lang.String
 
