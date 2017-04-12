@@ -521,29 +521,59 @@ o_WRONLY = undefined
 -- foreign import ccall unsafe "HsBase.h __hscore_o_rdwr"
 o_RDWR   :: CInt
 o_RDWR = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_o_append"
+--foreign import ccall unsafe "HsBase.h __hscore_o_append"
 o_APPEND :: CInt
 o_APPEND = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_o_creat"
+--foreign import ccall unsafe "HsBase.h __hscore_o_creat"
 o_CREAT  :: CInt
 o_CREAT = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_o_excl"
+--foreign import ccall unsafe "HsBase.h __hscore_o_excl"
 o_EXCL   :: CInt
 o_EXCL = undefined
 -- foreign import ccall unsafe "HsBase.h __hscore_o_trunc"
 o_TRUNC  :: CInt
 o_TRUNC = undefined
 
--- non-POSIX flags.
--- foreign import ccall unsafe "HsBase.h __hscore_o_noctty"
+--non-POSIX flags.
+--foreign import ccall unsafe "HsBase.h __hscore_o_noctty"
 o_NOCTTY   :: CInt
 o_NOCTTY = undefined
 -- foreign import ccall unsafe "HsBase.h __hscore_o_nonblock"
 o_NONBLOCK :: CInt
 o_NONBLOCK = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_o_binary"
+--foreign import ccall unsafe "HsBase.h __hscore_o_binary"
 o_BINARY   :: CInt
 o_BINARY = undefined
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.APPEND"
+ o_APPEND1 :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.CREATE"
+  o_CREATE :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.CREATE_NEW"
+  o_CREATE_NEW :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.DELETE_ON_CLOSE"
+  o_DELETE_ON_CLOSE :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.DSYNC"
+  o_DSYNC :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.READ"
+  o_READ :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.SPARSE"
+  o_SPARSE :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.SYNC"
+  o_SYNC :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.TRUNCATE_EXISTING"
+  o_TRUNCATE_EXISTING :: StandardOpenOption
+
+foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.WRITE"
+  o_WRITE :: StandardOpenOption
 
 -- foreign import capi unsafe "sys/stat.h S_ISREG"
 c_s_isreg  :: CMode -> CInt

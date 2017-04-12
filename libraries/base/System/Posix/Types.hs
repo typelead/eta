@@ -3,6 +3,9 @@
            , NoImplicitPrelude
            , MagicHash
            , GeneralizedNewtypeDeriving
+           , DataKinds
+           , MultiParamTypeClasses
+           , TypeFamilies
   #-}
 {-# LANGUAGE AutoDeriveTypeable, StandaloneDeriving #-}
 
@@ -75,7 +78,10 @@ module System.Posix.Types (
   DeviceID,
   FileID,
   FileMode,
-  Limit
+  Limit,
+  StandardOpenOption,
+  OpenOption,
+  OpenOptionArray
  ) where
 
 import Foreign
@@ -90,6 +96,8 @@ import GHC.Real
 -- import GHC.Prim
 import GHC.Read
 import GHC.Show
+import {-# SOURCE #-} Java.Array (JArray)
+import Java.Core
 
 #include "CTypes.h"
 
@@ -161,3 +169,33 @@ type ProcessID      = CPid
 type FileOffset     = COff
 type ProcessGroupID = CPid
 type Limit          = CLong
+
+-- Start java.nio.file.StandardOpenOption
+
+data {-# CLASS "java.nio.file.StandardOpenOption" #-}
+  StandardOpenOption = StandardOpenOption (Object# StandardOpenOption)
+  deriving Class
+
+type instance Inherits StandardOpenOption = '[Object, OpenOption]
+
+
+
+-- End java.nio.file.StandardOpenOption
+
+-- Start java.nio.file.OpenOption
+
+data {-# CLASS "java.nio.file.OpenOption" #-}
+  OpenOption = OpenOption (Object# OpenOption)
+  deriving Class
+
+-- End java.nio.file.OpenOption
+
+-- Start java.nio.file.OpenOption
+
+data {-# CLASS "java.nio.file.OpenOption[]" #-}
+  OpenOptionArray = OpenOptionArray (Object# OpenOptionArray)
+  deriving Class
+
+instance JArray OpenOption OpenOptionArray
+
+-- End java.nio.file.OpenOption
