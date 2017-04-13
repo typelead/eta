@@ -34,6 +34,7 @@ module Java.Core
   , Short
   , JChar
   , JavaConverter(..)
+  , withThis
   )
 where
 
@@ -96,3 +97,6 @@ maybeFromJava :: (JavaConverter a b, Class b) => b -> Maybe a
 maybeFromJava x = case isNullObject# (unobj x) of
   0# -> Just (fromJava x)
   _  -> Nothing
+
+withThis :: (Class a) => (a -> Java a b) -> Java a b
+withThis f = Java $ \a -> unJava (f (obj a)) a
