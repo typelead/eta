@@ -6,6 +6,11 @@ machine:
   environment:
     PATH: ${HOME}/.local/bin:$PATH
 
+checkout:
+  post:
+    - git submodule sync
+    - git submodule update --init --recursive
+
 dependencies:
   cache_directories:
     - ~/.stack
@@ -15,7 +20,6 @@ dependencies:
 
   pre:
     - mkdir -p ~/.local/bin
-    - git submodule update --init --recursive
 
   override:
     - ./install.sh
