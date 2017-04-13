@@ -22,6 +22,12 @@ Run the trace and dump it to a file.
 $ ./trace.sh [path-to-jar] | ./Filter > TRACE_DUMP
 ```
 
+In windows command prompt it should be
+
+```
+> (trace [path-to-jar] | Filter) 2> TRACE_DUMP
+```
+
 Analyze the resulting `TRACE_DUMP` to find your bug.
 
 Courtesy of [Brian McKenna](https://github.com/puffnfresh).
