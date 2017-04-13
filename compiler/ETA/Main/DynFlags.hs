@@ -10,7 +10,7 @@
 -- (c) The University of Glasgow 2005
 --
 -------------------------------------------------------------------------------
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, NamedWildCards #-}
 {-# OPTIONS_GHC -fno-cse #-}
 -- -fno-cse is needed for GLOBAL_VAR's to behave properly
 
@@ -2351,7 +2351,7 @@ dynamic_flags = [
       (NoArg (addWay WayThreaded >> deprecate "Use -threaded instead"))
   , defGhcFlag "debug"          (NoArg (addWay WayDebug))
   , defGhcFlag "ndp"            (NoArg (addWay WayNDP))
-  , defGhcFlag "threaded"       (NoArg (addWay WayThreaded))
+  , defGhcFlag "threaded"       (NoArg (setRtsOpts "--threaded"))
 
   , defGhcFlag "ticky"
       (NoArg (setGeneralFlag Opt_Ticky >> addWay WayDebug))
@@ -4133,7 +4133,11 @@ setTmpDir dir = alterSettings (\s -> s { sTmpDir = normalise dir })
 -- RTS opts
 
 setRtsOpts :: String -> DynP ()
-setRtsOpts arg  = upd $ \ d -> d {rtsOpts = Just arg}
+setRtsOpts arg  = upd $ \ d@DynFlags { rtsOpts } ->
+  d {rtsOpts = let newRtsOpts = fromMaybe "" rtsOpts ++ " " ++ arg
+               in if null newRtsOpts
+                  then Nothing
+                  else Just $ newRtsOpts }
 
 setRtsOptsEnabled :: RtsOptsEnabled -> DynP ()
 setRtsOptsEnabled arg  = upd $ \ d -> d {rtsOptsEnabled = arg}

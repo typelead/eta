@@ -1359,10 +1359,7 @@ mkRtsMainClass dflags mainClass
   = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
   [
     mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
-      [ invokestatic $ mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType)
-      , putRtsHsMain
-      , putRtsOptsEnabled
-      , putRtsOpts
+      [ renderRtsConfig dflags True
       , gstore rtsConfigType (1 :: Int)
       , gload (jarray jstring) 0
       -- TODO: Find main module
@@ -1377,21 +1374,6 @@ mkRtsMainClass dflags mainClass
   ]
   where mainClass' = T.pack mainClass
         mainMod = mainModIs dflags
-        rtsOptsEnabledText = T.pack . show . rtsOptsEnabled $ dflags
-        putRtsHsMain =  dup rtsConfigType
-                     <> iconst jbool 1
-                     <> putfield (mkFieldRef rtsConfig "rtsHsMain" jbool)
-        putRtsOptsEnabled
-          =  dup rtsConfigType
-          <> getstatic (mkFieldRef rtsOptsEnbled rtsOptsEnabledText
-                                   rtsOptsEnbledType)
-          <> putfield (mkFieldRef rtsConfig "rtsOptsEnabled"
-                                  rtsOptsEnbledType)
-        putRtsOpts = case rtsOpts dflags of
-          Nothing -> mempty
-          Just s -> dup rtsConfigType
-                 <> sconst (T.pack s)
-                 <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
         maybeExit
           | gopt Opt_NoShutdown dflags = mempty
           | otherwise =

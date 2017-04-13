@@ -81,6 +81,7 @@ module ETA.Main.HscMain
     , hscSimpleIface', hscNormalIface'
     , oneShotMsg
     , hscFileFrontEnd, genericHscFrontend, dumpIfaceStats
+    , renderRtsConfig
     ) where
 
 #ifdef GHCI
@@ -172,6 +173,7 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Control.Arrow((&&&))
 import Data.Foldable(fold)
+import qualified Data.Monoid as Mon
 
 #include "HsVersions.h"
 
@@ -1236,7 +1238,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
 outputForeignStubs _dflags NoStubs = []
-outputForeignStubs _dflags (ForeignStubs _ _ classExports) =
+outputForeignStubs dflags (ForeignStubs _ _ classExports) =
   map f $ foreignExportsList classExports
   where f (classSpec, (methodDefs, fieldDefs)) =
           mkClassFile java7 [Public, Super] (jvmify className) (Just superClass)
@@ -1259,8 +1261,7 @@ outputForeignStubs _dflags (ForeignStubs _ _ classExports) =
         genClInit cls = mkMethodDef cls [Public, Static] "<clinit>" [] void $ fold
                           [ iconst jint 0
                           , new (jarray jstring)
-                          , invokestatic (mkMethodRef "eta/runtime/RtsConfig"
-                                         "getDefault" [] (ret rtsConfigType))
+                          , renderRtsConfig dflags False
                           , invokestatic (mkMethodRef "eta/runtime/Rts" "hsInit"
                                          [jarray jstring, rtsConfigType] void)
                           , vreturn ]
@@ -1652,3 +1653,31 @@ showModuleIndex (i,n) = "[" ++ padded ++ " of " ++ n_str ++ "] "
     n_str = show n
     i_str = show i
     padded = replicate (length n_str - length i_str) ' ' ++ i_str
+
+
+-- Render RTS Config
+renderRtsConfig :: DynFlags -> Bool -> Code
+renderRtsConfig dflags isHsMain
+  = invokestatic (mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType))
+ <> putRtsHsMain
+ <> putRtsOptsEnabled
+ <> putRtsOpts
+  where (<>) = (Mon.<>)
+        putRtsHsMain
+          | isHsMain = dup rtsConfigType
+                    <> iconst jbool 1
+                    <> putfield (mkFieldRef rtsConfig "rtsHsMain" jbool)
+          | otherwise = mempty
+        rtsOptsEnabledText = T.pack . show . rtsOptsEnabled $ dflags
+        putRtsOptsEnabled
+          | rtsOptsEnabledText == "RtsOptsSafeOnly" = mempty
+          | otherwise = dup rtsConfigType
+                     <> getstatic (mkFieldRef rtsOptsEnbled rtsOptsEnabledText
+                                   rtsOptsEnbledType)
+                     <> putfield (mkFieldRef rtsConfig "rtsOptsEnabled"
+                                  rtsOptsEnbledType)
+        putRtsOpts = case rtsOpts dflags of
+          Nothing -> mempty
+          Just s  -> dup rtsConfigType
+                  <> sconst (T.pack s)
+                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)
