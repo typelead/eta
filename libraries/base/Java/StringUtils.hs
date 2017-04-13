@@ -15,7 +15,9 @@
 --
 -----------------------------------------------------------------------------
 
-module Java.StringUtils where
+module Java.StringUtils
+  (module Java.StringUtils, CharSequence)
+where
 
 import GHC.Base
 import GHC.Int
