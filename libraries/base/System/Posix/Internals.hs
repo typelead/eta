@@ -46,6 +46,11 @@ import {-# SOURCE #-} GHC.IO.Encoding (getFileSystemEncoding)
 import qualified GHC.Foreign as GHC
 #endif
 
+import {-# SOURCE #-} Java.Array (JStringArray, arrayFromList)
+import {-# SOURCE #-} Java.Collections (Set)
+import {-# SOURCE #-} Java.String (toJString, fromJString)
+import Java.Core
+
 -- ---------------------------------------------------------------------------
 -- Debugging the base package
 
@@ -407,12 +412,31 @@ lstat :: CFilePath -> Ptr CStat -> IO CInt
 lstat = undefined
 
 -- foreign import ccall unsafe "HsBase.h __hscore_open"
-c_open :: CFilePath -> CInt -> CMode -> IO CInt
-c_open = undefined
+c_open :: FilePath -> [StandardOpenOption] -> [PosixFilePermission] -> IO FileChannel
+c_open filepath options permissions = do
+  path <- getPath filepath (pureJava (arrayFromList ([] :: [JString])))
+  let openOptions = toJava (map superCast options :: [OpenOption])
+  fileAttribute <- asFileAttribute (toJava permissions)
+  channel <- open_ path openOptions (pureJava (arrayFromList [fileAttribute]))
+  return channel
+
+foreign import java unsafe "@static java.nio.file.attribute.PosixFilePermissions.asFileAttribute"
+  asFileAttribute :: Set PosixFilePermission -> IO FileAttribute
+
+foreign import java unsafe "@static java.nio.channels.FileChannel.open"
+  open_ :: Path -> Set OpenOption -> FileAttributeArray -> IO FileChannel
 
 -- foreign import ccall safe "HsBase.h __hscore_open"
-c_safe_open :: CFilePath -> CInt -> CMode -> IO CInt
-c_safe_open = undefined
+c_safe_open :: FilePath -> [StandardOpenOption] -> [PosixFilePermission] -> IO FileChannel
+c_safe_open filepath options permissions = do
+  path <- getPath filepath (pureJava (arrayFromList ([] :: [JString])))
+  let openOptions = toJava (map superCast options :: [OpenOption])
+  fileAttribute <- asFileAttribute (toJava permissions)
+  channel <- safe_open path openOptions (pureJava (arrayFromList [fileAttribute]))
+  return channel
+
+foreign import java safe "@static java.nio.channels.FileChannel.open"
+  safe_open :: Path -> Set OpenOption -> FileAttributeArray -> IO FileChannel
 
 -- See Note: CSsize
 foreign import java unsafe "@static eta.base.Utils.c_read"
@@ -747,3 +771,6 @@ foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePerm
   p_OWNER_WRITE :: PosixFilePermission
 
 -- End POSIX permissions
+
+foreign import java unsafe "@static java.nio.file.Paths.get"
+  getPath :: String -> JStringArray -> IO Path

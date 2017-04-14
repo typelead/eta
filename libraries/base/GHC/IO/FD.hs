@@ -165,8 +165,11 @@ openFile filepath iomode non_blocking =
                   WriteMode     -> write_flags
                   ReadWriteMode -> rw_flags
                   AppendMode    -> append_flags
-      oflags = undefined -- oflags1 TODO : uncomment
-      f = undefined --filepath TODO : uncomment
+      oflags = oflags1
+      f = filepath
+      permissions = [p_GROUP_READ, p_GROUP_WRITE, p_OTHERS_READ, p_OTHERS_WRITE,
+                     p_OWNER_READ, p_OWNER_WRITE]
+
 -- TODO: Handle this
 -- #ifdef mingw32_HOST_OS
 --       binary_flags = o_BINARY
@@ -185,23 +188,23 @@ openFile filepath iomode non_blocking =
     -- directories.  However, the man pages I've read say that open()
     -- always returns EISDIR if the file is a directory and was opened
     -- for writing, so I think we're ok with a single open() here...
-    fd <- throwErrnoIfMinus1Retry "openFile"
-                (if non_blocking then c_open      f oflags 0o666
-                                 else c_safe_open f oflags 0o666)
+    fd <- if non_blocking then c_open      f oflags permissions
+                          else c_safe_open f oflags permissions
 
-    (fD,fd_type) <- mkFD fd iomode Nothing{-no stat-}
-                            False{-not a socket-}
-                            non_blocking
-            `catchAny` \e -> do _ <- c_close fd
-                                throwIO e
+    -- (fD,fd_type) <- mkFD fd iomode Nothing{-no stat-}
+    --                         False{-not a socket-}
+    --                         non_blocking
+    --         `catchAny` \e -> do _ <- c_close fd
+    --                             throwIO e
 
     -- we want to truncate() if this is an open in WriteMode, but only
     -- if the target is a RegularFile.  ftruncate() fails on special files
     -- like /dev/null.
-    when (iomode == WriteMode && fd_type == RegularFile) $
-      setSize fD 0
-
-    return (fD,fd_type)
+    -- when (iomode == WriteMode && fd_type == RegularFile) $
+    --   setSize fD 0
+    --
+    -- return (fD,fd_type)
+    return undefined
 
 std_flags, output_flags, read_flags, write_flags, rw_flags,
     append_flags, nonblock_flags :: [StandardOpenOption]
