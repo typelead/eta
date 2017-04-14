@@ -535,7 +535,7 @@ openNewFile filepath binary mode = do
 
       oflags = oflags1 .|. binary_flags
   fd <- withFilePath filepath $ \ f ->
-          c_open f oflags mode
+         undefined  --c_open f oflags mode TODO: uncomment
   if fd < 0
     then do
       errno <- getErrno
