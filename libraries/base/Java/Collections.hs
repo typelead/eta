@@ -31,7 +31,7 @@ module Java.Collections
   , nextElement
   , Dictionary
   , Map
-  , Set
+  , Set(..)
   , Properties )
 where
 
