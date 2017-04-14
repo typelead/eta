@@ -8,7 +8,6 @@
 
 [![Join the chat at https://gitter.im/typelead/eta](https://badges.gitter.im/typelead/eta.svg)](https://gitter.im/typelead/eta?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://circleci.com/gh/typelead/eta.svg?style=shield&circle-token=1b6ae185c1e74eb4a0abd6927b4e1e011dafee0c)](https://circleci.com/gh/typelead/eta)
-[![Build status](https://ci.appveyor.com/api/projects/status/walb8x0befptf86j?svg=true)](https://ci.appveyor.com/project/typelead/eta)
 
 
 The Eta programming language is a dialect of Haskell which runs on the JVM and has
