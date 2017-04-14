@@ -83,7 +83,10 @@ module System.Posix.Types (
   OpenOption,
   OpenOptionArray,
   FileAttribute,
-  PosixFilePermission
+  PosixFilePermission,
+  Path,
+  FileChannel,
+  FileAttributeArray
  ) where
 
 import Foreign
@@ -210,6 +213,16 @@ data {-# CLASS "java.nio.file.attribute.FileAttribute" #-}
 
 -- End java.nio.file.attribute.FileAttribute
 
+-- Start java.nio.file.attribute.FileAttributeArray
+
+data {-# CLASS "java.nio.file.attribute.FileAttribute[]" #-}
+  FileAttributeArray = FileAttributeArray (Object# FileAttributeArray)
+  deriving Class
+
+instance JArray FileAttribute FileAttributeArray
+
+-- End java.nio.file.attribute.FileAttributeArray
+
 -- Start java.nio.file.attribute.PosixFilePermission
 
 data {-# CLASS "java.nio.file.attribute.PosixFilePermission" #-}
@@ -217,3 +230,19 @@ data {-# CLASS "java.nio.file.attribute.PosixFilePermission" #-}
   deriving Class
 
 -- End java.nio.file.attribute.PosixFilePermission
+
+-- Start java.nio.file.Path
+
+data {-# CLASS "java.nio.file.Path" #-}
+  Path = Path (Object# Path)
+  deriving Class
+
+-- End java.nio.file.Path
+
+-- Start java.nio.channels.FileChannel
+
+data {-# CLASS "java.nio.channels.FileChannel" #-}
+  FileChannel = FileChannel (Object# FileChannel)
+  deriving Class
+
+-- End java.nio.channels.FileChannel
