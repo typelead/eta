@@ -19,7 +19,7 @@ This utility uses bytecode instrumentation to trace the execution of the JVM. Us
 Run the trace and dump it to a file.
 
 ```
-$ ./trace.sh [path-to-jar] | ./Filter > TRACE_DUMP
+$ ./trace.sh [path-to-jar] 2>&1 | ./Filter > TRACE_DUMP
 ```
 
 In windows command prompt it should be
