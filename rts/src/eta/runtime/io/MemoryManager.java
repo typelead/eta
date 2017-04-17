@@ -13,14 +13,23 @@ public class MemoryManager {
     private static TreeMap<Integer, WeakReference<ByteBuffer>> addressMap =
         new TreeMap<Integer, WeakReference<ByteBuffer>>();
 
+    /* Special buffer to represent null pointer in eta. Only contains
+       the address -1 */
+
+    public static final ByteBuffer nullAddress = allocateBuffer(0,-1,false);
+
     public static synchronized ByteBuffer allocateBuffer(int n, boolean direct) {
-        ByteBuffer buf = allocateAnonymousBuffer(n, direct);
-        buf.putInt(nextAddress);
+        ByteBuffer buf = allocateBuffer(n, nextAddress, direct);
         addressMap.put(nextAddress, new WeakReference<ByteBuffer>(buf));
         nextAddress += n;
         return buf;
     }
 
+    public static synchronized ByteBuffer allocateBuffer(int n, int address, boolean direct) {
+        ByteBuffer buf = allocateAnonymousBuffer(n, direct);
+        buf.putInt(adddress);
+        return buf;
+    }
     /* Use if you want to allocate a buffer that won't be using the getAddress
        method and you don't want to pollute the addressMap. */
     public static synchronized ByteBuffer allocateAnonymousBuffer(int n, boolean direct) {
@@ -49,11 +58,7 @@ public class MemoryManager {
     }
 
     public static int getAddress(ByteBuffer buf) {
-        if (buf == null) {
-            return -1;
-        } else {
-            return buf.getInt(0) + getPosition(buf);
-        }
+        return buf.getInt(0) + getPosition(buf);
     }
 
     public static int getPosition(ByteBuffer buf) {
