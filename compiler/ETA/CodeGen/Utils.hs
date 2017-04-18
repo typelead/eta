@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Utils where
 
 import ETA.Main.DynFlags
@@ -24,7 +25,9 @@ cgLit (MachWord64 i)        = (jlong, lconst $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
-cgLit MachNullAddr          = (jobject, aconst_null jobject)
+cgLit MachNullAddr          = (jobject, nullAddr)
+  where nullAddr = getfield $ mkFieldRef "eta/runtime/io/MemoryManager"
+                   "nullAddress" (obj "java/nio/ByteBuffer")
 cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
