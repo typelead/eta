@@ -27,7 +27,7 @@ public class MemoryManager {
 
     public static synchronized ByteBuffer allocateBuffer(int n, int address, boolean direct) {
         ByteBuffer buf = allocateAnonymousBuffer(n, direct);
-        buf.putInt(adddress);
+        buf.putInt(address);
         return buf;
     }
     /* Use if you want to allocate a buffer that won't be using the getAddress
