@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Utils where
 
 import ETA.Main.DynFlags
@@ -27,8 +26,6 @@ cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
 cgLit MachNullAddr          = (jobject, nullAddr)
-  where nullAddr = getstatic $ mkFieldRef memoryManager "nullAddress"
-                               byteBufferType
 cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
