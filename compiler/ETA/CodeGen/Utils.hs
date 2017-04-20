@@ -28,7 +28,7 @@ cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
 cgLit MachNullAddr          = (jobject, nullAddr)
   where nullAddr = getstatic $ mkFieldRef memoryManager "nullAddress"
-                               (obj byteBuffer)
+                               byteBufferType
 cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
