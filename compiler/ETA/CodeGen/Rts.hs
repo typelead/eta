@@ -293,3 +293,6 @@ debugPrint ft = dup ft
   where genFt (ObjectType _) = jobject
         genFt (ArrayType _)  = jobject
         genFt ft             = ft
+
+nullAddr :: Code
+nullAddr = getstatic $ mkFieldRef memoryManager "nullAddress" byteBufferType
