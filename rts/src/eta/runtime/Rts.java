@@ -71,6 +71,7 @@ public class Rts {
                        "   To create finalizers that may call back into Haskell, use\n" +
                        "   Foreign.Concurrent.newForeignPtr instead of Foreign.newForeignPtr.");
             stgExit(ExitCode.EXIT_FAILURE);
+
             return null;
         } else {
             return task.waitForCapability();
@@ -225,10 +226,7 @@ public class Rts {
 
 
     public static void stgExit(ExitCode exitCode) {
-        int code = exitCode.code();
-        if (code != 0) {
-            System.exit(code);
-        }
+        System.exit(exitCode.code());
     }
 
     public enum ExitCode {
