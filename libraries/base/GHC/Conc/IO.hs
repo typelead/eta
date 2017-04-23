@@ -204,4 +204,4 @@ registerDelay usecs
 
 -- foreign import ccall unsafe "rtsSupportsBoundThreads"
 threaded :: Bool
-threaded = undefined
+threaded = False

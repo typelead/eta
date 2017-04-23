@@ -326,6 +326,12 @@ shouldInlinePrimOp' _ NewMVarOp _ = Right $ return
 shouldInlinePrimOp' _ IsEmptyMVarOp [mvar] = Right $ return
   [ intCompOp ifnull [mvar <> mVarValue] ]
 
+shouldInlinePrimOp' _ DelayOp [time] = Right $
+  let millis = time <> iconst jint 1000 <> idiv <> gconv jint jlong
+      nanos = time <> iconst jint 1000 <> irem
+                   <> iconst jint 1000 <> imul
+  in return [ normalOp (invokestatic (mkMethodRef "java/lang/Thread" "sleep" [jlong, jint] void)) [millis, nanos] ]
+
 shouldInlinePrimOp' _ MakeStableNameOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint))) args ]
 
