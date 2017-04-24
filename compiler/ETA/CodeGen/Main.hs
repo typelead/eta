@@ -89,50 +89,53 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
   where cgIdInfo = mkCgIdInfo dflags id lfInfo
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
         (modClass, clName, _clClass) = getJavaInfo dflags cgIdInfo
-        isThunk = isLFThunk lfInfo
         qClName = closure clName
         genCode _dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
-               let loadCode = idInfoLoadCode cgInfo
-               defineField $ mkFieldDef [Public, Static] qClName closureType
+               defineField $ mkFieldDef [Private, Static] qClName closureType
                let field = mkFieldRef modClass qClName closureType
-                   deps = catMaybes [getLocField (cgLocation cgInfo)]
-               addInitStep (fold
+                   loadCode = idInfoLoadCode cgInfo
+                   initField =
+                       [
+                         new indStaticType
+                       , dup indStaticType
+                       , loadCode
+                       , invokespecial $ mkMethodRef stgIndStatic "<init>" [closureType] void
+                       , putstatic field
+                       ]
+               defineMethod $ mkMethodDef' [Public, Static] qClName (mkMethodDesc [] (Just closureType)) $ fold
                  [
-                   new indStaticType,
-                   dup indStaticType,
-                   loadCode,
-                   invokespecial $ mkMethodRef stgIndStatic "<init>"
-                     [closureType] void,
-                   putstatic field
+                   getstatic field
+                 , markStackMap
+                 , ifnonnull mempty $ fold initField
+                 , getstatic field
+                 , greturn closureType
                  ]
-                 , field
-                 , deps
-                 -- TODO: Check this works when f is in external module
-                 )
         genCode _dflags _lf = do
           (_, CgState { cgClassName }) <- forkClosureBody $
             closureCodeBody True id lfInfo
                             (nonVoidIds args) (length args) body [] False []
 
           let ft = obj cgClassName
-          -- NOTE: Don't make thunks final so that they can be
-          --       replaced by their values by the GC
-          let flags = (if isThunk then [] else [Final]) ++ [Public, Static]
+          let flags = [Private, Static]
           defineField $ mkFieldDef flags qClName closureType
           let field = mkFieldRef modClass qClName closureType
-          addInitStep (fold
+              initField =
+                  [
+                    new ft
+                  , dup ft
+                  , invokespecial $ mkMethodRef cgClassName "<init>" [] void
+                  , putstatic field
+                  ]
+          defineMethod . mkMethodDef' [Public, Static] qClName (mkMethodDesc [] (Just closureType)) $ fold
             [
-              new ft,
-              dup ft,
-              invokespecial $ mkMethodRef cgClassName "<init>" [] void,
-              putstatic field
+              getstatic field
+            , markStackMap
+            , ifnonnull mempty $ fold initField
+            , getstatic field
+            , greturn closureType
             ]
-            , field
-            , []
-            )
-          return ()
 
 -- Simplifies the code if the mod is associated to the Id
 externaliseId :: DynFlags -> Id -> CodeGen Id
@@ -179,18 +182,21 @@ cgEnumerationTyCon tyConCl tyCon = do
                     | (i, con) <- zip [0..] $ tyConDataCons tyCon
                     , let dataFt    = obj dataClass
                           dataClass = dataConClass dflags con ]
-  defineField $ mkFieldDef [Public, Static, Final] fieldName arrayFt
-  let field = mkFieldRef thisClass fieldName arrayFt
-  addInitStep (fold
+      field = mkFieldRef thisClass fieldName arrayFt
+      initField = [ iconst jint $ fromIntegral familySize
+                  , new arrayFt
+                  , fold loadCodes
+                  , putstatic field
+                  ]
+  defineField $ mkFieldDef [Private, Static] fieldName arrayFt
+  defineMethod $ mkMethodDef' [Public, Static] fieldName (mkMethodDesc [] (Just arrayFt)) $ fold
     [
-      iconst jint $ fromIntegral familySize,
-      new arrayFt,
-      fold loadCodes,
-      putstatic field
+      getstatic field
+    , markStackMap
+    , ifnonnull mempty $ fold initField
+    , getstatic field
+    , greturn arrayFt
     ]
-    , field
-    , []
-    )
   where
         arrayFt = jarray elemFt
         elemFt = obj tyConCl

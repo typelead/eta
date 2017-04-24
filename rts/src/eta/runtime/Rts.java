@@ -209,8 +209,8 @@ public class Rts {
         try {
             flushStdHandles_closure = (StgClosure)
                 Class.forName("base.ghc.TopHandler")
-                .getField("flushStdHandles_closure")
-                .get(null);
+                .getMethod("flushStdHandles_closure")
+                .invoke(null);
         } catch (Exception e) {
             e.printStackTrace();
             flushStdHandles_closure = null;

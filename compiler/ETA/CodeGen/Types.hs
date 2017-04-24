@@ -110,7 +110,7 @@ storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
 loadLoc (LocStatic ft modClass clName) =
-  getstatic $ mkFieldRef modClass (closure clName) ft
+  invokestatic $ mkMethodRef modClass (closure clName) [] (Just ft)
 loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
