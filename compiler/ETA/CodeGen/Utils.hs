@@ -53,7 +53,7 @@ litSwitch ft expr branches deflt
 
 tagToClosure :: DynFlags -> TyCon -> Code -> (FieldType, Code)
 tagToClosure dflags tyCon loadArg = (elemFt, enumCode)
-  where enumCode =  getstatic (mkFieldRef modClass fieldName arrayFt)
+  where enumCode =  invokestatic (mkMethodRef modClass fieldName [] (Just arrayFt))
                  <> loadArg
                  <> gaload elemFt
         tyName = tyConName tyCon

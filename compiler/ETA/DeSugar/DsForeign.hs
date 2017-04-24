@@ -584,8 +584,8 @@ dsFExport closureId co externalName classSpec = do
           <> gload classFt 0
           <> new ap2Ft
           <> dup ap2Ft
-          <> getstatic (mkFieldRef "base/java/TopHandler" "runJava_closure"
-                                   closureType)
+          <> invokestatic (mkMethodRef "base/java/TopHandler" "runJava_closure"
+                                       [] (Just closureType))
           <> new apFt
           <> dup apFt
           <> loadClosureRef

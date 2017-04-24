@@ -2147,8 +2147,8 @@ public final class Capability {
         try {
             nonTermination_closure = (StgClosure)
                 Class.forName("base.control.exception.Base")
-                .getField("nonTermination_closure")
-                .get(null);
+                .getMethod("nonTermination_closure")
+                .invoke(null);
         } catch (Exception e) {
             e.printStackTrace();
             nonTermination_closure = null;

@@ -268,10 +268,10 @@ hsResultValue :: Code
 hsResultValue = getfield $ mkFieldRef hsResult "result" closureType
 
 trueClosure :: Code
-trueClosure = getstatic $ mkFieldRef "ghczmprim/ghc/Types" "DTrue_closure" closureType
+trueClosure = invokestatic . mkMethodRef "ghczmprim/ghc/Types" "DTrue_closure" [] $ Just closureType
 
 falseClosure :: Code
-falseClosure = getstatic $ mkFieldRef "ghczmprim/ghc/Types" "DFalse_closure" closureType
+falseClosure = invokestatic . mkMethodRef "ghczmprim/ghc/Types" "DFalse_closure" [] $ Just closureType
 
 getTagMethod :: Code -> Code
 getTagMethod code
