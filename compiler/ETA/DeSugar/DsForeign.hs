@@ -552,9 +552,10 @@ dsFExport closureId co externalName classSpec = do
                <> getfield (mkFieldRef className fieldName closureType) ))
           (\fnId ->
               ( Nothing
-              , getstatic (mkFieldRef (moduleJavaClass mod)
-                                      (closure (idNameText dflags fnId))
-                                      closureType)))
+              , invokestatic (mkMethodRef (moduleJavaClass mod)
+                                          (closure (idNameText dflags fnId))
+                                          []
+                                          (Just closureType))))
           closureId
       boxedArgs =
         if length argFts > 5
