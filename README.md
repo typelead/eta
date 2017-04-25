@@ -20,8 +20,8 @@ Visit [eta-lang.org](http://eta-lang.org) for instructions on getting started.
 
 ## Current Status
 **Version:** 0.0.5
-**Stable Build:** 0.0.6b2
-**Latest Build:** 0.0.6b2
+**Stable Build:** 0.0.6b3
+**Latest Build:** 0.0.6b3
 
 Active development is taking place in the following areas:
 
