@@ -51,10 +51,9 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
                 , invokespecial (mkMethodRef dataClass "<init>" fields void)
                 , putstatic field
                 ]
-          defineMethod . mkMethodDef' [Public, Static] qClName (mkMethodDesc [] (Just closureType)) $ fold
+          defineMethod . mkMethodDef modClass [Public, Static] qClName [] (Just closureType) $ fold
             [
               getstatic field
-            , markStackMap
             , ifnonnull mempty $ fold loadCodes
             , getstatic field
             , greturn closureType
