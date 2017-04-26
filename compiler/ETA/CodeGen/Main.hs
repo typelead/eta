@@ -31,7 +31,6 @@ import ETA.CodeGen.Env
 
 import Codec.JVM
 
-import Data.Maybe (catMaybes)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
 import Control.Monad (unless, when)
@@ -104,10 +103,9 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
                        , invokespecial $ mkMethodRef stgIndStatic "<init>" [closureType] void
                        , putstatic field
                        ]
-               defineMethod $ mkMethodDef' [Public, Static] qClName (mkMethodDesc [] (Just closureType)) $ fold
+               defineMethod $ mkMethodDef modClass [Public, Static] qClName [] (Just closureType) $ fold
                  [
                    getstatic field
-                 , markStackMap
                  , ifnonnull mempty $ fold initField
                  , getstatic field
                  , greturn closureType
@@ -128,10 +126,9 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
                   , invokespecial $ mkMethodRef cgClassName "<init>" [] void
                   , putstatic field
                   ]
-          defineMethod . mkMethodDef' [Public, Static] qClName (mkMethodDesc [] (Just closureType)) $ fold
+          defineMethod . mkMethodDef modClass [Public, Static] qClName [] (Just closureType) $ fold
             [
               getstatic field
-            , markStackMap
             , ifnonnull mempty $ fold initField
             , getstatic field
             , greturn closureType
@@ -189,10 +186,10 @@ cgEnumerationTyCon tyConCl tyCon = do
                   , putstatic field
                   ]
   defineField $ mkFieldDef [Private, Static] fieldName arrayFt
-  defineMethod $ mkMethodDef' [Public, Static] fieldName (mkMethodDesc [] (Just arrayFt)) $ fold
+  modClass <- getModClass
+  defineMethod $ mkMethodDef modClass [Public, Static] fieldName [] (Just arrayFt) $ fold
     [
       getstatic field
-    , markStackMap
     , ifnonnull mempty $ fold initField
     , getstatic field
     , greturn arrayFt
