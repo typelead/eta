@@ -44,14 +44,9 @@ multiAssign locs codes = fold $ zipWith storeLoc locs codes
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
 mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
-mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
-  where fts' = map ( expectJust "mkCallEntry"
-                   . repFieldType_maybe
-                   . idType ) args'
-        args' = map unsafeStripNV nvArgs
-        argReps' = map idArgRep args'
-        (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
-        loadArgs !n !code !locs (_arg:args) (ft:fts) (argRep:argReps)
+mkCallEntry nStart nvArgs = (zip nvArgs locs, loadContext <> code, n)
+  where (!code, !locs, !n) = loadArgs nStart mempty [] (map mkLayoutArg nvArgs) 2 1 1 1 1 1
+        loadArgs !n !code !locs ((_arg, argRep, ft):args)
                  !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
@@ -63,11 +58,17 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
             _ -> error "contextLoad: V"
           where context = contextLoad ft argRep
                 loadRec nextCode =
-                  loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
-                           (loc:locs) args fts argReps
+                  loadArgs (n + ftSize) (code <> nextCode)
+                           (loc:locs) args
                 ftSize = fieldSize ft
                 loc = LocLocal (argRep == P) ft n
-        loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
+        loadArgs !n !code !locs _ _ _ _ _ _ _ = (code, reverse locs, n)
+
+mkLayoutArg :: NonVoid Id -> (Id, ArgRep, FieldType)
+mkLayoutArg arg = (arg', argRep, ft)
+  where arg' = unsafeStripNV arg
+        argRep = idArgRep arg'
+        ft = expectJust "mkLayoutArg" . repFieldType_maybe $ idType arg'
 
 mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
