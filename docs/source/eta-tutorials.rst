@@ -897,7 +897,7 @@ whenever you want to perform a conversion.
 
 Example:
 
-In this example, we want to work with the `java.io.File.listRoots <https://docs.oracle.com/javase/7/docs/api/java/nio/file/Paths.html#get(java.lang.String,%20java.lang.String...)>`_,
+In this example, we want to work with the `java.io.File.listRoots <https://docs.oracle.com/javase/7/docs/api/java/io/File.html#listRoots()>`_,
 but it returns an array, which we can't work with that cleanly in Eta. So we convert it to an Eta
 list with a helper function.
 
