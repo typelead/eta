@@ -92,8 +92,8 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
         genCode _dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
-               defineField $ mkFieldDef [Private, Static] qClName closureType
-               let field = mkFieldRef modClass qClName closureType
+               defineField $ mkFieldDef [Private, Static] qClName indStaticType
+               let field = mkFieldRef modClass qClName indStaticType
                    loadCode = idInfoLoadCode cgInfo
                    initField =
                        [
@@ -116,9 +116,9 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
                             (nonVoidIds args) (length args) body [] False []
 
           let ft = obj cgClassName
-          let flags = [Private, Static]
-          defineField $ mkFieldDef flags qClName closureType
-          let field = mkFieldRef modClass qClName closureType
+              flags = [Private, Static]
+          defineField $ mkFieldDef flags qClName ft
+          let field = mkFieldRef modClass qClName ft
               initField =
                   [
                     new ft

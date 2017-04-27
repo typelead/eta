@@ -41,8 +41,8 @@ cgTopRhsCon dflags id dataCon args = (cgIdInfo, genCode)
         -- typeFt = obj (tyConClass dflags (dataConTyCon dataCon))
         genCode = do
           loads <- mapM getArgLoadCode . getNonVoids $ zip maybeFields args
-          defineField $ mkFieldDef [Private, Static] qClName closureType
-          let field = mkFieldRef modClass qClName closureType
+          defineField $ mkFieldDef [Private, Static] qClName dataFt
+          let field = mkFieldRef modClass qClName dataFt
               loadCodes =
                 [
                   new dataFt
