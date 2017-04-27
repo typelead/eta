@@ -58,7 +58,7 @@ public class Rts {
             default:
                 RtsMessages.barf("main thread completed with invalid status");
         }
-        shutdownHaskellAndExit(exitStatus, false);
+        shutdownHaskellAndExit(exitStatus, false, false);
         // This return is never seen since shutdownHaskellAndExit() will
         // terminate the process. It's there to keep javac happy.
         return exitStatus;
@@ -159,12 +159,12 @@ public class Rts {
         RtsStats.endInit();
     }
 
-    public static void shutdownHaskellAndExit(ExitCode exitStatus, boolean fastExit) {
+    public static void shutdownHaskellAndExit(ExitCode exitStatus, boolean fastExit, boolean hardExit) {
         if (!fastExit) {
             hsInitCount = 1;
             hsExit_(false);
         }
-        stgExit(exitStatus);
+        if (exitStatus != ExitCode.EXIT_SUCCESS || hardExit) stgExit(exitStatus);
     }
 
     public static void shutdownHaskellAndSignal(int signal, boolean fastExit) {

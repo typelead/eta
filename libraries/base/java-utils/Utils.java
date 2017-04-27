@@ -173,7 +173,7 @@ public class Utils {
     }
 
     public static void shutdownHaskellAndExit(int exitCode, int fastExit) {
-        Rts.shutdownHaskellAndExit(ExitCode.from(exitCode), fastExit == 1);
+        Rts.shutdownHaskellAndExit(ExitCode.from(exitCode), fastExit == 1, true);
     }
 
     public static void shutdownHaskellAndSignal(int signal, int fastExit) {

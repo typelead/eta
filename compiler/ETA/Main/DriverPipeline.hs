@@ -1369,12 +1369,8 @@ mkRtsMainClass dflags mainClass
                                                         , closureType
                                                         , rtsConfigType]
                                                         (ret exitCodeType)
-      , maybeExit
+      , pop exitCodeType
       , vreturn ]
   ]
   where mainClass' = T.pack mainClass
         mainMod = mainModIs dflags
-        maybeExit
-          | gopt Opt_NoShutdown dflags = mempty
-          | otherwise =
-            invokestatic $ mkMethodRef "eta/runtime/Rts" "stgExit" [exitCodeType] void

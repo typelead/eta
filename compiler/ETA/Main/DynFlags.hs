@@ -474,7 +474,6 @@ data GeneralFlag
    | Opt_Debug
 
    -- Eta-specific flags
-   | Opt_NoShutdown
 
    deriving (Eq, Show, Enum)
 
@@ -2795,7 +2794,6 @@ dynamic_flags = [
          ------ Debugging flags ----------------------------------------------
   , defGhcFlag "g"             (NoArg (setGeneralFlag Opt_Debug))
          ------ Eta-specific flags -------------------------------------------
-  , defGhcFlag "no-shutdown"   (NoArg (setGeneralFlag Opt_NoShutdown))
  ]
  ++ map (mkFlag turnOn  ""     setGeneralFlag  ) negatableFlags
  ++ map (mkFlag turnOff "no-"  unSetGeneralFlag) negatableFlags
