@@ -30,3 +30,4 @@ test:
 
   post:
     - ./utils/scripts/circleci-trigger.sh typelead/eta-examples master $ETA_EXAMPLES_TOKEN
+    - ./utils/scripts/circleci-trigger.sh rahulmutt/eta-2048 master $ETA_2048_TOKEN
