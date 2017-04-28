@@ -92,7 +92,7 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
         genCode _dflags _
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
-               defineField $ mkFieldDef [Private, Static] qClName indStaticType
+               defineField $ mkFieldDef [Public, Static] qClName indStaticType
                let field = mkFieldRef modClass qClName indStaticType
                    loadCode = idInfoLoadCode cgInfo
                    initField =
@@ -116,7 +116,7 @@ cgTopRhsClosure dflags recflag id _binderInfo updateFlag args body
                             (nonVoidIds args) (length args) body [] False []
 
           let ft = obj cgClassName
-              flags = [Private, Static]
+              flags = [Public, Static]
           defineField $ mkFieldDef flags qClName ft
           let field = mkFieldRef modClass qClName ft
               initField =
@@ -185,7 +185,7 @@ cgEnumerationTyCon tyConCl tyCon = do
                   , fold loadCodes
                   , putstatic field
                   ]
-  defineField $ mkFieldDef [Private, Static] fieldName arrayFt
+  defineField $ mkFieldDef [Public, Static] fieldName arrayFt
   modClass <- getModClass
   defineMethod $ mkMethodDef modClass [Public, Static] fieldName [] (Just arrayFt) $ fold
     [

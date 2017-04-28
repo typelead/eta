@@ -143,28 +143,52 @@ slowCall fun args = do
         ft = locFt fun
         code = loadLoc fun
 
-directCall :: Bool -> Code -> RepArity -> [StgArg] -> CodeGen ()
-directCall slow entryCode arity args = do
+directCall :: Bool -> CgLoc -> RepArity -> [StgArg] -> CodeGen ()
+directCall slow cgLoc@(LocStatic _ modClass clName) arity args = do
   argFtCodes <- getRepFtCodes args
-  emit $ directCall' slow entryCode arity argFtCodes
+  emit $ directStaticCall slow staticClosure modClass' arity argFtCodes
+  where staticClosure =
+             loadLoc cgLoc
+          <> pop closureType
+          <> getstatic field
+        field = expectJust "directCall" (getLocField cgLoc)
+        modClass' = innerClass modClass clName
+directCall slow cgLoc arity args = do
+  argFtCodes <- getRepFtCodes args
+  emit $ directCall' slow (enterMethod cgLoc) arity argFtCodes
+
+directStaticCall :: Bool -> Code -> Text -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directStaticCall slow closureCode modClass arity args =
+     stackLoadCode restArgs
+  <> closureCode
+  <> loadContext
+  <> fold (mapMaybe argCode callArgs)
+  <> enterBody modClass (mapMaybe argFt callArgs)
+  where (callArgs, restArgs) = splitAt realArity args
+        realArity = if slow then arity + 1 else arity
+        argFt (_, ft', _) = ft'
+        argCode (_, _, code') = code'
 
 directCall' :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' slow entryCode arity args =
-     stackLoadCode
+     stackLoadCode restArgs
   <> mkCallExit slow callArgs
   <> entryCode
   where (callArgs, restArgs) = splitAt realArity args
         realArity = if slow then arity + 1 else arity
-        stackFrames = slowArgFrames restArgs
-        stackFramesLoad = map (\code -> dup tsoType
+
+stackLoadCode :: [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+stackLoadCode args =
+  if null stackFrames then mempty
+  else    loadContext
+       <> currentTSOField
+       <> fold stackFramesLoad
+       <> pop tsoType
+  where stackFramesLoad = map (\code -> dup tsoType
                                      <> code
                                      <> spPushMethod)
                           stackFrames
-        stackLoadCode = if null stackFrames then mempty
-                        else    loadContext
-                             <> currentTSOField
-                             <> fold stackFramesLoad
-                             <> pop tsoType
+        stackFrames = slowArgFrames args
 
 slowArgFrames :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
 slowArgFrames [] = []

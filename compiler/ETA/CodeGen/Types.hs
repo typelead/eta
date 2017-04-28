@@ -21,6 +21,8 @@ module ETA.CodeGen.Types
    getNonVoidFts,
    enterMethod,
    evaluateMethod,
+   enterBody,
+   innerClass,
    loadLoc,
    storeLoc,
    locFt,
@@ -109,8 +111,8 @@ storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
-loadLoc (LocStatic ft modClass clName) =
-  invokestatic $ mkMethodRef modClass (closure clName) [] (Just ft)
+loadLoc (LocStatic _ modClass clName) =
+  invokestatic $ mkMethodRef modClass (closure clName) [] (Just closureType)
 loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
@@ -157,7 +159,7 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLocation = cgLoc }
 
 mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc dflags id _ = LocStatic closureType modClass clName
+mkStaticLoc dflags id _ = LocStatic (obj (innerClass modClass clName)) modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
@@ -167,6 +169,9 @@ mkStaticLoc dflags id _ = LocStatic closureType modClass clName
         --   | Just c <- maybeDataConClass lfInfo = c
         --   | Just c <- maybeTyConClass (idType id) = c
         --   | otherwise = qualifiedName modClass clName
+
+innerClass :: Text -> Text -> Text
+innerClass modName clName = modName <> "$" <> clName
 
 -- maybeTyConClass :: Type -> Maybe Text
 -- maybeTyConClass ty = case repType ty of
@@ -313,6 +318,10 @@ enterMethod cgLoc
  <> loadContext
  -- TODO: Do better than stgClosure
  <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] void)
+
+enterBody :: Text -> [FieldType] -> Code
+enterBody modClass argTypes
+  = invokevirtual (mkMethodRef modClass "body" (contextType:argTypes) Nothing)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc

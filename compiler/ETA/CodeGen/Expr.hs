@@ -113,8 +113,8 @@ cgIdApp funId args = do
                emitEnter funLoc
     SlowCall -> debug "cgIdApp: SlowCall" >>
                 (withContinuation $ slowCall funLoc args)
-    DirectEntry entryCode arity -> debug "cgIdApp: DirectEntry" >>
-                (withContinuation $ directCall False entryCode arity args)
+    DirectEntry cgLoc arity -> debug "cgIdApp: DirectEntry" >>
+                (withContinuation $ directCall False cgLoc arity args)
     JumpToIt label cgLocs -> do
       debug "cgIdApp: JumpToIt"
       codes <- getNonVoidArgCodes args
