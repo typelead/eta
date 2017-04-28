@@ -10,10 +10,11 @@ trigger_build_url=https://circleci.com/api/v1.1/project/github/${_project}/tree/
 post_data=$(cat <<EOF
 {
   "build_parameters": {
-    "TRIGGERED_BUILD": "true",
+    "TRIGGERED_BUILD": "true"
   }
 }
-EOF)
+EOF
+)
 
 curl \
 --header "Accept: application/json" \
