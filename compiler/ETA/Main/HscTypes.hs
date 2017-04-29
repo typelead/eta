@@ -1139,7 +1139,8 @@ data CgGuts
     }
 
 -----------------------------------
-type ExportMethods = Map Text ([MethodDef], [FieldDef])
+type ClassName     = Text
+type ExportMethods = Map ClassName ([MethodDef], [FieldDef])
 
 -- | Foreign export stubs
 data ForeignStubs
