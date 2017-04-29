@@ -41,6 +41,8 @@ import ETA.Prelude.PrelNames
 import ETA.Prelude.PrelInfo ( primOpId )
 import ETA.Prelude.PrimOp
 import ETA.BasicTypes.BasicTypes
+import ETA.BasicTypes.Name
+import ETA.BasicTypes.OccName
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Outputable hiding ((<>))
 import ETA.Utils.FastString
@@ -58,6 +60,7 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Name
 
 import Data.Maybe
+import Data.Char(toUpper)
 import Data.Monoid((<>))
 import Data.List
 import Data.Text (Text)
@@ -65,14 +68,16 @@ import qualified Data.Text as T
 
 
 import Codec.JVM
+import Codec.JVM.Attr hiding (ExtendsBound, SuperBound)
+import qualified Codec.JVM.Attr as A
 
 type Binding = (Id, CoreExpr)
 type ClassExport = (Text, MethodDef, Maybe FieldDef)
-data Bound = SuperBound | ExtendsBound
+data BoundTag = SuperBound | ExtendsBound
   deriving (Eq, Show)
-type ExtendsInfo = VarEnv (Id, Type, Bound)
+type ExtendsInfo = VarEnv (Id, Type, BoundTag)
 
-invertBound :: Bound -> Bound
+invertBound :: BoundTag -> BoundTag
 invertBound SuperBound = ExtendsBound
 invertBound ExtendsBound = SuperBound
 
@@ -312,7 +317,7 @@ unboxArg vs arg
         dataConArity                     = dataConSourceArity dataCon
         (dataConArgTy1 : _)              = dataConArgTys
 
-getClassCastId :: Bound -> DsM Id
+getClassCastId :: BoundTag -> DsM Id
 getClassCastId bound
   | bound == ExtendsBound = dsLookupGlobalId superCastName
   | otherwise = dsLookupGlobalId unsafeCastName
@@ -579,8 +584,51 @@ dsFExport closureId co externalName classSpec = do
       apFt = obj apClass
       ap2Class = apUpdName 2
       ap2Ft = obj ap2Class
+  (_, extendsInfo) <- extendsMap tyVarBounds
+  let sigTyVarText :: Id -> Text
+      sigTyVarText ident = T.pack identString
+        where (c:identString') = occNameString . nameOccName . idName $ ident
+              identString = toUpper c : identString'
+
+  -- TODO: Remove this
+  -- data
+  -- JInteger java.lang.Integer
+  -- a <: Foo a (List b)
+  -- a <: Object, b <: List, c <: Foo a
+  -- (aVar, TyConApp obj [], )
+  -- VarEnv (Id, Type, BoundTag)
+  -- [TypeVariableD]
+  let accumTyVarDecls (ident, typeBound, bound) acc =
+        TypeVariableDeclaration (sigTyVarText ident) [A.ExtendsBound boundSignature]
+        : acc
+        where getClassName ty = case repFieldType_maybe ty of
+                                  Just ft -> getFtClass ft
+                                  Nothing -> error "dsFExport: Not an object type"
+              boundSignature = case genTypeParam typeBound of
+                SimpleTypeParameter genParam -> genParam
+                _                            -> error "dsFExport: Not a simple type parameter"
+              genTypeParam :: Type -> TypeParameter TypeVariable
+              genTypeParam ty
+                | Just tyVar <- getTyVar_maybe ty
+                = SimpleTypeParameter (VariableReferenceParameter (sigTyVarText tyVar))
+                | Just (tyCon, tyArgs) <- splitTyConApp_maybe ty
+                = SimpleTypeParameter
+                  (GenericReferenceParameter
+                   (IClassName (getClassName ty))
+                   (map genTypeParam tyArgs)
+                   [])
+                | otherwise = SimpleTypeParameter
+                  $ error "dsFExport: Not a valid type parameter"
+
+      tyVarDecls = foldVarEnv accumTyVarDecls [] extendsInfo
+      -- TODO: Replace all the undefined with actual values
+      mAttrs = [ASignature (MethodSig (MethodSignature tyVarDecls
+                                       undefined undefined undefined))]
+  liftIO $ print $ tyVarDecls
+
   return ( rawClassSpec
-         , mkMethodDef className [Public] methodName argFts resFt $
+         , addAttrsToMethodDef mAttrs
+         $ mkMethodDef className [Public] methodName argFts resFt $
              invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
           <> gload classFt 0
           <> new ap2Ft
@@ -610,8 +658,8 @@ dsFExport closureId co externalName classSpec = do
                  <> unboxResult resType resClass rawResFt))
          , mFieldDef )
   where ty = pSnd $ coercionKind co
-        (_, thetaFunTy) = tcSplitForAllTys ty
-        (_, funTy) = tcSplitPhiTy thetaFunTy
+        (tyVars, thetaFunTy) = tcSplitForAllTys ty
+        (tyVarBounds, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
         classFt = obj className
         argFts = map getPrimFt argTypes
@@ -779,5 +827,5 @@ castArg extendsInfo argType
       arg <- newSysLocalDs argType
       return (arg, Var arg, Nothing)
 
-whenExtends :: Bound -> [a] -> [a]
+whenExtends :: BoundTag -> [a] -> [a]
 whenExtends bound xs = if bound == ExtendsBound then xs else reverse xs
