@@ -2041,7 +2041,8 @@ public final class Capability {
         StgThunk bh = lockCAF(caf);
         if (bh == null) return null;
         if (Thunk.shouldKeepCAFs()) {
-            Thunk.dynamicCAFList.offer(caf);
+            Thunk.revertibleCAFList.offer(caf);
+            // Thunk.dynamicCAFList.offer(caf); TODO: Handle when Eta REPL is working
         } else {
             /* TODO: Save the info tables during debugging */
         }
