@@ -42,6 +42,7 @@ public final class StgTSO extends StgClosure {
     public boolean inMVarOperation;
     public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
     public AtomicBoolean lock = new AtomicBoolean(false);
+    public StackTraceElement[] stackTrace;
 
     /* TSO Flags */
     public static final int TSO_LOCKED = 2;
@@ -239,11 +240,11 @@ public final class StgTSO extends StgClosure {
     }
 
     @Override
-    public void enter(StgContext context) {
+    public final void enter(StgContext context) {
         barf("TSO object entered!");
     }
 
-    public void dump() {
+    public final void dump() {
         System.out.println("StgTSO #" + id);
         if (sp.hasPrevious()) {
             System.out.println("Sp = " + sp.previous());
@@ -257,4 +258,15 @@ public final class StgTSO extends StgClosure {
         }
     }
 
+    public final void setStackTrace(StackTraceElement[] stackTrace) {
+        this.stackTrace = stackTrace;
+    }
+
+    public final StackTraceElement[] getStackTrace() {
+        return this.stackTrace;
+    }
+
+    public final boolean hasStackTrace() {
+        return this.stackTrace != null;
+    }
 }

@@ -1882,6 +1882,7 @@ public final class Capability {
         if (RtsFlags.DebugFlags.printStack) {
             Thread.dumpStack();
         }
+        tso.setStackTrace(Thread.currentThread().getStackTrace());
         // Assumes that tso.sp pointer is beyond stack top
         ListIterator<StackFrame> sp = tso.sp;
         boolean shouldContinue = true;

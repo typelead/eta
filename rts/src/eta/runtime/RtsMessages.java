@@ -3,6 +3,8 @@ package eta.runtime;
 import eta.runtime.Rts;
 import eta.runtime.RtsFlags;
 import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Task;
+import eta.runtime.stg.StgTSO;
 import static eta.runtime.Rts.stgExit;
 import static eta.runtime.Rts.ExitCode.EXIT_INTERNAL_ERROR;
 import static eta.runtime.RtsFlags.progName;
@@ -27,9 +29,20 @@ public class RtsMessages {
         if (progName != null) {
             System.err.print(progName + ": ");
         }
+        System.err.print("***Exception***: ");
         System.err.format(msg, args);
         System.err.print("\n");
-        Thread.dumpStack();
+        StgTSO tso = Task.myTask().cap.context.currentTSO;
+        if (tso.hasStackTrace()) {
+            StackTraceElement[] stackTrace = tso.getStackTrace();
+            for (StackTraceElement element : stackTrace) {
+                String className = element.getClassName();
+                if (!className.startsWith("eta.runtime") && !className.startsWith("java")) {
+                    System.err.println("    in " + element.getClassName());
+                }
+            }
+            tso.setStackTrace(null);
+        }
     }
 
     public static void debugBelch(String msg, Object... args) {
