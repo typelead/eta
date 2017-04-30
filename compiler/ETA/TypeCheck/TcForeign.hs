@@ -13,6 +13,7 @@ module ETA.TypeCheck.TcForeign
  -- , tcCheckFEType
   ) where
 
+import Control.Monad ( when )
 import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Unique
 import ETA.BasicTypes.SrcLoc
@@ -226,6 +227,8 @@ checkForeignRes nonIOResultOk checkSafe predResType ty
   | Just (_, tagType, resType) <- tcSplitJavaType_maybe ty
   = do
       traceTc "checkForeignRes[Java]" $ ppr tagType <+> ppr resType
+      when (isTyVarTy tagType)
+        (failWithTc (text "Cannot have a type variable in the tag position of the Java monad for exports."))
       check (predResType resType) (illegalForeignTyErr result)
   -- Case for non-IO result type with FFI Import
   | not nonIOResultOk = addErrTc
