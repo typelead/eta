@@ -29,6 +29,6 @@ test:
     - stack test eta
 
   post:
-    - ./utils/scripts/circleci-trigger.sh typelead/eta-examples master $ETA_EXAMPLES_TOKEN
-    - ./utils/scripts/circleci-trigger.sh typelead/eta-benchmarks master $ETA_BENCHMARKS_TOKEN
-    - ./utils/scripts/circleci-trigger.sh rahulmutt/eta-2048 master $ETA_2048_TOKEN
+    - ./utils/scripts/circleci-trigger.sh typelead/eta-examples master $ETA_EXAMPLES_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+    - ./utils/scripts/circleci-trigger.sh typelead/eta-benchmarks master $ETA_BENCHMARKS_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+    - ./utils/scripts/circleci-trigger.sh rahulmutt/eta-2048 master $ETA_2048_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST

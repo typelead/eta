@@ -10,7 +10,10 @@ trigger_build_url=https://circleci.com/api/v1.1/project/github/${_project}/tree/
 post_data=$(cat <<EOF
 {
   "build_parameters": {
-    "TRIGGERED_BUILD": "true"
+    "TRIGGERED_BUILD": "true",
+    "ETA_BRANCH": "$4",
+    "ETA_TAG": "$5",
+    "ETA_PR": "$6"
   }
 }
 EOF
