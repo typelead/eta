@@ -21,6 +21,7 @@ import ETA.Util
 import Data.Maybe (catMaybes)
 import ETA.Main.Constants
 import Codec.JVM
+import Codec.JVM.Opcode (nop)
 import Control.Monad (forM, foldM)
 import Data.Text (unpack)
 import Data.Foldable (fold)
@@ -72,25 +73,25 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
     _ <- withMethod [Public] "enter" [contextType] void $ do
       n <- peekNextLocal
       let (argLocs, code, n') = mkCallEntry n args
-          (_ , cgLocs) = unzip argLocs
       emit $ gload thisFt 0 <> code
       setNextLocal n'
       bindArgs argLocs
+      mapM_ bindFV fvLocs
+      emit $ invokevirtual (mkMethodRef thisClass "body" bodyType void)
+    _ <- withMethod [Public] "body" bodyType void $ do
+      n <- peekNextLocal
+      let (argLocs, _, n') = mkCallEntry n args
+          (_ , cgLocs) = unzip argLocs
+      setNextLocal n'
       label <- newLabel
       -- TODO: Optimize: We only need to generate the stack map frame
       --       if there will be a recursive call later. This will
       --       have a significant effect on the size of the resulting
       --       class files.
-      emit $ markStackMap
+      emit $ op nop
+          <> markStackMap
           <> startLabel label
-      withSelfLoop (id, label, cgLocs) $ do
-        mapM_ bindFV fvLocs
-        emit $ invokevirtual (mkMethodRef thisClass "body" bodyType void)
-    _ <- withMethod [Public] "body" bodyType void $ do
-      n <- peekNextLocal
-      let (_, _, n') = mkCallEntry n args
-      setNextLocal n'
-      cgExpr body
+      withSelfLoop (id, label, cgLocs) $ cgExpr body
     return ()
   superClass <- getSuperClass
   -- Generate constructor
