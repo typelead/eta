@@ -42,6 +42,13 @@ Ubuntu
 
   sudo apt-get install zlib1g-dev libncurses5-dev libbz2-dev
 
+- Make sure locale is set to UTF8.
+
+.. code-block:: console
+
+  export LC_ALL=en_US.UTF-8
+  export LANG=en_US.UTF-8
+
 OS X
 """"
 
