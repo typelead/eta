@@ -22,7 +22,6 @@ module ETA.CodeGen.Types
    enterMethod,
    evaluateMethod,
    enterBody,
-   innerClass,
    loadLoc,
    storeLoc,
    locFt,
@@ -159,7 +158,7 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLocation = cgLoc }
 
 mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc dflags id _ = LocStatic (obj (innerClass modClass clName)) modClass clName
+mkStaticLoc dflags id _ = LocStatic (obj (qualifiedName modClass clName)) modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
@@ -169,9 +168,6 @@ mkStaticLoc dflags id _ = LocStatic (obj (innerClass modClass clName)) modClass 
         --   | Just c <- maybeDataConClass lfInfo = c
         --   | Just c <- maybeTyConClass (idType id) = c
         --   | otherwise = qualifiedName modClass clName
-
-innerClass :: Text -> Text -> Text
-innerClass modName clName = modName <> "$" <> clName
 
 -- maybeTyConClass :: Type -> Maybe Text
 -- maybeTyConClass ty = case repType ty of

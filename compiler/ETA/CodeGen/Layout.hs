@@ -12,6 +12,7 @@ import ETA.CodeGen.Monad
 import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Rts
+import ETA.CodeGen.Name (qualifiedName)
 import ETA.CodeGen.Env
 
 
@@ -152,7 +153,7 @@ directCall slow cgLoc@(LocStatic _ modClass clName) arity args = do
           <> pop closureType
           <> getstatic field
         field = expectJust "directCall" (getLocField cgLoc)
-        modClass' = innerClass modClass clName
+        modClass' = qualifiedName modClass clName
 directCall slow cgLoc arity args = do
   argFtCodes <- getRepFtCodes args
   emit $ directCall' slow (enterMethod cgLoc) arity argFtCodes
