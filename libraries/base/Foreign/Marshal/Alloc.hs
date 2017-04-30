@@ -212,22 +212,17 @@ failWhenNULL name f = do
                                         "out of memory" Nothing Nothing)
       else return addr
 
--- TODO: Implement!
--- basic C routines needed for memory allocation
---
--- foreign import ccall unsafe "stdlib.h malloc"
-_malloc  ::          CSize -> IO (Ptr a)
-_malloc = undefined
--- foreign import ccall unsafe "stdlib.h calloc"
-_calloc  :: CSize -> CSize -> IO (Ptr a)
-_calloc = undefined
+foreign import java unsafe "@static eta.base.Utils._malloc"
+  _malloc :: CSize -> IO (Ptr a)
 
---foreign import ccall unsafe "stdlib.h realloc"
-_realloc :: Ptr a -> CSize -> IO (Ptr b)
-_realloc = undefined
---foreign import ccall unsafe "stdlib.h free"
-_free    :: Ptr a -> IO ()
-_free = undefined
+foreign import java unsafe "@static eta.base.Utils._calloc"
+  _calloc  :: CSize -> CSize -> IO (Ptr a)
+
+foreign import java unsafe "@static eta.base.Utils._realloc"
+  _realloc :: Ptr a -> CSize -> IO (Ptr b)
+
+foreign import java unsafe "@static eta.base.Utils._free"
+  _free    :: Ptr a -> IO ()
 
 -- | A pointer to a foreign function equivalent to 'free', which may be
 -- used as a finalizer (cf 'Foreign.ForeignPtr.ForeignPtr') for storage

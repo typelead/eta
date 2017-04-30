@@ -258,4 +258,26 @@ public class Utils {
         byte[] hash = md.digest();
         result.put(hash);
     }
+
+    public static ByteBuffer _malloc(int size) {
+        return MemoryManager.allocateBuffer(size, true);
+    }
+
+    public static ByteBuffer _calloc(int size, int bytes) {
+        // NOTE: Most JVMs zero out byte buffers so this works.
+        //       May fail on a non-standard JVM.
+        return MemoryManager.allocateBuffer(size * bytes, true);
+    }
+
+    public static ByteBuffer _realloc(ByteBuffer buf, int bytes) {
+        ByteBuffer newBuf = MemoryManager.allocateBuffer(bytes, true);
+        newBuf.put(buf);
+        newBuf.position(4); // NOTE: Skip the first 4 bytes
+        return newBuf;
+    }
+
+    public static void _free(ByteBuffer buf) {
+        // TODO: Implement free once the MemoryManager has a nice compaction algo.
+        return;
+    }
 }
