@@ -43,6 +43,7 @@ patchedLibraries = do
   patchesDir <- fmap (</> "patches" </> "patches") $ getAppUserDataDirectory "etlas"
   packages   <- fmap ( nub
                      . map dropExtension
+                     . sort
                      . filter (\p -> p `notElem` ["",".",".."]))
                 $ getDirectoryContents patchesDir
   return $ map pack packages
