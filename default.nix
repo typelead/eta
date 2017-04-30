@@ -21,7 +21,7 @@ let
       tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
       binary = haskell.lib.dontCheck self.binary_0_8_4_1;
 
-      codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
+      codec-jvm = haskell.lib.dontHaddock (self.callPackage ./utils/nix/codec-jvm.nix { });
       hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
       eta-boot-th = self.callPackage ./utils/nix/eta-boot-th.nix { };
       eta-boot = self.callPackage ./utils/nix/eta-boot.nix { };

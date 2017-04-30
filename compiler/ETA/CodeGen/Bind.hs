@@ -21,7 +21,6 @@ import ETA.Util
 import Data.Maybe (catMaybes)
 import ETA.Main.Constants
 import Codec.JVM
-import Codec.JVM.Opcode (nop)
 import Control.Monad (forM, foldM)
 import Data.Text (unpack)
 import Data.Foldable (fold)
