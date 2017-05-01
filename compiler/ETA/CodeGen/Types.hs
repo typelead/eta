@@ -317,7 +317,7 @@ enterMethod cgLoc
 
 enterBody :: Text -> [FieldType] -> Code
 enterBody modClass argTypes
-  = invokevirtual (mkMethodRef modClass "body" (contextType:argTypes) Nothing)
+  = invokestatic (mkMethodRef modClass "body" (obj modClass:contextType:argTypes) Nothing)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc

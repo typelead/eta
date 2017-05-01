@@ -68,7 +68,7 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
     let layoutArgFieldType (_, _, ft) = ft
-        bodyType = contextType : map (layoutArgFieldType . mkLayoutArg) args
+        bodyType = obj thisClass : contextType : map (layoutArgFieldType . mkLayoutArg) args
     _ <- withMethod [Public] "enter" [contextType] void $ do
       n <- peekNextLocal
       let (argLocs, code, n') = mkCallEntry n args
@@ -76,8 +76,8 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
       setNextLocal n'
       bindArgs argLocs
       mapM_ bindFV fvLocs
-      emit $ invokevirtual (mkMethodRef thisClass "body" bodyType void)
-    _ <- withMethod [Public] "body" bodyType void $ do
+      emit $ invokestatic (mkMethodRef thisClass "body" bodyType void)
+    _ <- withMethod [Public, Static] "body" bodyType void $ do
       n <- peekNextLocal
       let (argLocs, _, n') = mkCallEntry n args
           (_ , cgLocs) = unzip argLocs

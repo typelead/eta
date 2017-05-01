@@ -145,23 +145,18 @@ slowCall fun args = do
         code = loadLoc fun
 
 directCall :: Bool -> CgLoc -> RepArity -> [StgArg] -> CodeGen ()
-directCall slow cgLoc@(LocStatic _ modClass clName) arity args = do
+directCall slow (LocStatic _ modClass clName) arity args = do
   argFtCodes <- getRepFtCodes args
-  emit $ directStaticCall slow staticClosure modClass' arity argFtCodes
-  where staticClosure =
-             loadLoc cgLoc
-          <> pop closureType
-          <> getstatic field
-        field = expectJust "directCall" (getLocField cgLoc)
-        modClass' = qualifiedName modClass clName
+  emit $ directStaticCall slow modClass' arity argFtCodes
+  where modClass' = qualifiedName modClass clName
 directCall slow cgLoc arity args = do
   argFtCodes <- getRepFtCodes args
   emit $ directCall' slow (enterMethod cgLoc) arity argFtCodes
 
-directStaticCall :: Bool -> Code -> Text -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directStaticCall slow closureCode modClass arity args =
+directStaticCall :: Bool -> Text -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directStaticCall slow modClass arity args =
      stackLoadCode restArgs
-  <> closureCode
+  <> aconst_null closureType
   <> loadContext
   <> fold (mapMaybe argCode callArgs)
   <> enterBody modClass (mapMaybe argFt callArgs)
