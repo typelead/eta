@@ -341,7 +341,7 @@ close fd =
      -- closeFdWith closer (fromIntegral (fdFD fd)) TODO: channel
 
 release :: FD -> IO ()
-release fd = do _ <- undefined -- unlockFile (fdFD fd) TODO: File I/O
+release fd = -- do _ <- undefined -- unlockFile (fdFD fd) TODO: File I/O
                 return ()
 
 #ifdef mingw32_HOST_OS
