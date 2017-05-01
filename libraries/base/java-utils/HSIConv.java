@@ -108,7 +108,7 @@ public class HSIConv {
 				 */
 			} else {
 				debug("in and out is null");
-				/** the iconv function sets cd’s conversion state to the initial state. */
+				/** the iconv function sets cd's conversion state to the initial state. */
 			}
 		} catch (Exception e) {
 			debug("Error in recoding: "+e);
