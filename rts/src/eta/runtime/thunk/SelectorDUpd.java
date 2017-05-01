@@ -12,8 +12,7 @@ public class SelectorDUpd extends SelectorUpd {
     }
 
     @Override
-    public void thunkEnter(StgContext context) {
-        super.thunkEnter(context);
+    public void selectEnter(StgContext context) {
         context.D(1, ((StgConstr) context.R(1)).getD(index));
     }
 }

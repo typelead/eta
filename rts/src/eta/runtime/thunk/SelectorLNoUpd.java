@@ -12,8 +12,7 @@ public class SelectorLNoUpd extends SelectorNoUpd {
     }
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
+    public void selectEnter(StgContext context) {
         context.L(1, ((StgConstr) context.R(1)).getL(index));
     }
 }

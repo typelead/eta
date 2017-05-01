@@ -5,7 +5,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.apply.Apply;
 
-public class SelectorUpd extends StgInd {
+public abstract class SelectorUpd extends StgInd {
     protected final int index;
     protected final StgClosure p;
 
@@ -16,11 +16,14 @@ public class SelectorUpd extends StgInd {
     }
 
     @Override
-    public void thunkEnter(StgContext context) {
+    public final void thunkEnter(StgContext context) {
         int index = context.stackTopIndex();
         StackFrame frame = context.stackTop();
         p.evaluate(context);
-        context.checkForStackFrames(index, frame);
-        // TODO: Do something based on the return value;
+        if (!context.checkForStackFrames(index, frame)) {
+            selectEnter(context);
+        }
     }
+
+    public abstract void selectEnter(StgContext context);
 }

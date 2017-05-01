@@ -12,8 +12,7 @@ public class SelectorPUpd extends SelectorUpd {
     }
 
     @Override
-    public void thunkEnter(StgContext context) {
-        super.thunkEnter(context);
+    public void selectEnter(StgContext context) {
         context.R(1, ((StgConstr) context.R(1)).getP(index));
         Apply.ap_0_fast.enter(context);
     }
