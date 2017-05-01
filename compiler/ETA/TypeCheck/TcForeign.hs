@@ -383,7 +383,7 @@ tcCheckFEType sigType exportspec = do
     mapM_ (\(_, tagType, _) ->
       when (isTyVarTy tagType)
         (failWithTc (text "Cannot have a type variable in the tag position of the Java monad for exports."))
-      ) tcSplitJavaType_maybe resType
+      ) (tcSplitJavaType_maybe resType)
     checkForeignArgs isFFIExternalTy argTypes
     checkForeignRes nonIOok noCheckSafe isFFIExportResultTy resType
     return exportspec
