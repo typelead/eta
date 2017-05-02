@@ -379,10 +379,10 @@ tcFExport d = pprPanic "tcFExport" (ppr d)
 tcCheckFEType :: Type -> ForeignExport -> TcM ForeignExport
 tcCheckFEType sigType exportspec = do
 -- (CExport (L l (CExportStatic str cconv)) src)
-    checkForeignArgs isFFIExternalTy argTypes
+    checkForeignArgs (isFFIExternalTy javaClassVars) argTypes
     checkForeignRes nonIOok noCheckSafe isFFIExportResultTy resType
     return exportspec
   where (_, ty)             = tcSplitForAllTys sigType
-        (_thetaType, ty')    = tcSplitPhiTy ty
+        (thetaType, ty')    = tcSplitPhiTy ty
         (argTypes, resType) = tcSplitFunTys ty'
-        --javaClassVars       = extendsVars thetaType
+        javaClassVars       = extendsVars thetaType

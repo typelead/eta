@@ -1614,9 +1614,11 @@ isFFIArgumentTy dflags safety vs ty
   | checkValidTyVar vs ty = IsValid
   | otherwise = checkRepTyCon (legalOutgoingTyCon dflags safety) ty empty
 
-isFFIExternalTy :: Type -> Validity
+isFFIExternalTy :: VarSet -> Type -> Validity
 -- Types that are allowed as arguments of a 'foreign export'
-isFFIExternalTy ty = checkRepTyCon legalFEArgTyCon ty empty
+isFFIExternalTy vs ty
+  | checkValidTyVar vs ty = IsValid
+  | otherwise = checkRepTyCon legalFEArgTyCon ty empty
 
 isFFIImportResultTy :: DynFlags -> Type -> Validity
 isFFIImportResultTy dflags ty
