@@ -7,7 +7,7 @@
 Desugaring foreign declarations.
 -}
 
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, MultiWayIf #-}
 module ETA.DeSugar.DsForeign where
 
 import ETA.Core.CoreSyn
@@ -73,9 +73,14 @@ import qualified Codec.JVM.Attr as A
 
 type Binding = (Id, CoreExpr)
 type ClassExport = (Text, MethodDef, Maybe FieldDef)
+type ExtendsInfo = VarEnv (Id, Type, BoundTag)
+
 data BoundTag = SuperBound | ExtendsBound
   deriving (Eq, Show)
-type ExtendsInfo = VarEnv (Id, Type, BoundTag)
+
+instance Outputable BoundTag where
+  ppr x = text (show x)
+
 
 invertBound :: BoundTag -> BoundTag
 invertBound SuperBound = ExtendsBound
@@ -255,6 +260,16 @@ extendsMap thetaType = do
     return (dictId, ( getTyVar "extendsMap: Not type variable!" var
                     , (dictId, tagTy, bound)))
   return (ids, mkVarEnv keyVals)
+
+extendsMapWithVar :: ThetaType -> ExtendsInfo
+extendsMapWithVar thetaType = mkVarEnv keyVals
+  where keyVals = map extendsMapEntry thetaType
+        extendsMapEntry thetaTy = (var, (var, tagTy, bound))
+          where (varTy', tagTy') = tcSplitExtendsType thetaTy
+                (varTy, tagTy, bound)
+                  | isTyVarTy varTy' = (varTy', tagTy', ExtendsBound)
+                  | otherwise = (tagTy', varTy', SuperBound)
+                var = getTyVar "extendsMap: Not type variable!" varTy
 
 unboxArg :: ExtendsInfo -> CoreExpr -> DsM (Type, CoreExpr, CoreExpr -> CoreExpr)
 unboxArg vs arg
@@ -547,7 +562,7 @@ dsFExport :: Either Int Id      -- The exported Id
 dsFExport closureId co externalName classSpec = do
   mod <- fmap ds_mod getGblEnv
   dflags <- getDynFlags
-  let resClass = typeDataConClass dflags resType
+  let resClass = typeDataConClass dflags extendsInfo resType
       (mFieldDef, loadClosureRef) =
         either
           (\i ->
@@ -567,7 +582,7 @@ dsFExport closureId co externalName classSpec = do
         then error $ "Foreign exports with number of arguments > 5 are currently not "
                   ++ "supported."
         else foldl' (\code (i, argPrimFt, argType) ->
-                        let argClass = typeDataConClass dflags argType
+                        let argClass = typeDataConClass dflags extendsInfo argType
                             argClassFt = obj argClass
                         in code
                         <> (if argPrimFt == jbool
@@ -576,55 +591,9 @@ dsFExport closureId co externalName classSpec = do
                               <> dup argClassFt
                               <> gload argPrimFt i
                               <> invokespecial
-                                   (mkMethodRef argClass "<init>" [argPrimFt] void)))
+                                  (mkMethodRef argClass "<init>" [argPrimFt] void)))
                     mempty
                     (zip3 [1..] argFts argTypes)
-      numApplied = length argTypes + 1
-      apClass = apUpdName numApplied
-      apFt = obj apClass
-      ap2Class = apUpdName 2
-      ap2Ft = obj ap2Class
-  (_, extendsInfo) <- extendsMap tyVarBounds
-  let sigTyVarText :: Id -> Text
-      sigTyVarText ident = T.pack identString
-        where (c:identString') = occNameString . nameOccName . idName $ ident
-              identString = toUpper c : identString'
-
-  -- TODO: Remove this
-  -- data
-  -- JInteger java.lang.Integer
-  -- a <: Foo a (List b)
-  -- a <: Object, b <: List, c <: Foo a
-  -- (aVar, TyConApp obj [], )
-  -- VarEnv (Id, Type, BoundTag)
-  -- [TypeVariableD]
-  let accumTyVarDecls (ident, typeBound, bound) acc =
-        TypeVariableDeclaration (sigTyVarText ident) [A.ExtendsBound boundSignature]
-        : acc
-        where getClassName ty = case repFieldType_maybe ty of
-                                  Just ft -> getFtClass ft
-                                  Nothing -> error "dsFExport: Not an object type"
-              boundSignature = case genTypeParam typeBound of
-                SimpleTypeParameter genParam -> genParam
-                _                            -> error "dsFExport: Not a simple type parameter"
-              genTypeParam :: Type -> TypeParameter TypeVariable
-              genTypeParam ty
-                | Just tyVar <- getTyVar_maybe ty
-                = SimpleTypeParameter (VariableReferenceParameter (sigTyVarText tyVar))
-                | Just (tyCon, tyArgs) <- splitTyConApp_maybe ty
-                = SimpleTypeParameter
-                  (GenericReferenceParameter
-                   (IClassName (getClassName ty))
-                   (map genTypeParam tyArgs)
-                   [])
-                | otherwise = SimpleTypeParameter
-                  $ error "dsFExport: Not a valid type parameter"
-
-      tyVarDecls = foldVarEnv accumTyVarDecls [] extendsInfo
-      -- TODO: Replace all the undefined with actual values
-      mAttrs = [ASignature (MethodSig (MethodSignature tyVarDecls
-                                       undefined undefined undefined))]
-  liftIO $ print $ tyVarDecls
 
   return ( rawClassSpec
          , addAttrsToMethodDef mAttrs
@@ -662,11 +631,7 @@ dsFExport closureId co externalName classSpec = do
         (tyVarBounds, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
         classFt = obj className
-        argFts = map getPrimFt argTypes
-        rawResFt = fromJust resFt
-        resFt = if voidResult
-                then void
-                else repFieldType_maybe $ getPrimTyOf resType
+        extendsInfo = extendsMapWithVar tyVarBounds
         voidResult
           | UnaryRep repResTy <- repType resType
           , isUnitTy repResTy
@@ -689,11 +654,96 @@ dsFExport closureId co externalName classSpec = do
             _ -> error $ "Result type of 'foreign export java' declaration must be in the "
                       ++ "Java monad."
 
-typeDataConClass :: DynFlags -> Type -> Text
-typeDataConClass dflags = dataConClass dflags . head . tyConDataCons . tyConAppTyCon
+        numApplied = length argTypes + 1
+        apClass = apUpdName numApplied
+        apFt = obj apClass
+        ap2Class = apUpdName 2
+        ap2Ft = obj ap2Class
+        argFts = map (getArgFt extendsInfo) argTypes
+        resFt
+          | voidResult = Nothing
+          | otherwise  = Just $ getArgFt extendsInfo resType
+        rawResFt = fromJust resFt
 
-dataConWrapper :: Type -> Code
-dataConWrapper = undefined
+        methodParams = map (uncurry genMethodParam) $ zip argTypes argFts
+        methodResult = fmap (genMethodParam resType) resFt
+        tyVarDecls = genTyVarDecls extendsInfo
+        mAttrs
+          | null tyVars && allParameterLess = []
+          | otherwise = [ASignature
+                        (MethodSig
+                          (MethodSignature tyVarDecls methodParams methodResult []))]
+          where allParameterLess = all checkParameterLess (resType:argTypes)
+                checkParameterLess ty
+                  | Just (_, []) <- splitTyConApp_maybe ty = True
+                  | otherwise = False
+
+-- | Convert an Eta type variable to a Java Generic parameter
+-- | a <: Object --> A
+-- | this <: Object --> This
+sigTyVarText :: Id -> Text
+sigTyVarText ident = T.pack identString
+  where (c:identString') = occNameString . nameOccName . idName $ ident
+        identString = toUpper c : identString'
+
+genTyVarDecls :: ExtendsInfo -> TypeVariableDeclarations TypeVariable
+genTyVarDecls extendsInfo = foldVarEnv accumTyVarDecls [] extendsInfo
+  where
+      accumTyVarDecls (ident, typeBound, bound) acc
+        | SimpleTypeParameter boundSignature <- genTypeParam typeBound
+        = TypeVariableDeclaration (sigTyVarText ident) [A.ExtendsBound boundSignature]
+        : acc
+        | otherwise = pprPanic "accumTyVarDecls: Bad argument" (ppr (ident, typeBound, bound))
+
+typeClassText :: Type -> Text
+typeClassText = tagTypeToText
+
+genTypeParam :: Type -> TypeParameter TypeVariable
+genTypeParam ty
+  | Just tyVar <- getTyVar_maybe ty
+  = SimpleTypeParameter (VariableReferenceParameter (sigTyVarText tyVar))
+  | Just (tyCon, tyArgs) <- splitTyConApp_maybe ty
+  = SimpleTypeParameter
+    (GenericReferenceParameter
+      (IClassName (typeClassText ty))
+      (map genTypeParam tyArgs)
+      [])
+  | otherwise = SimpleTypeParameter
+    $ pprPanic "genTypeParam: Not a valid type parameter" (ppr ty)
+
+genMethodParam :: Type -> FieldType -> Parameter TypeVariable
+genMethodParam argType argFt
+  | isObjectFt argFt = ReferenceParameter $ genClassMethodParam argType argFt
+  | otherwise        = PrimitiveParameter $ baseType argFt
+
+genClassMethodParam :: Type -> FieldType -> ReferenceParameter TypeVariable
+genClassMethodParam argType argFt
+  | Just tyVar <- getTyVar_maybe argType
+  = VariableReferenceParameter $ sigTyVarText tyVar
+  | Just (_, tyArgs)      <- splitTyConApp_maybe argType
+  , ObjectType iclassName <- argFt
+  = GenericReferenceParameter iclassName (map genTypeParam tyArgs) []
+  | otherwise = pprPanic "genClassMethodParam: Not a valid argument." (ppr argType)
+
+getArgFt :: ExtendsInfo -> Type -> FieldType
+getArgFt extendsInfo ty
+  | Just var <- getTyVar_maybe ty
+  = case lookupVarEnv extendsInfo var of
+      Just (_, tagType, _) -> getArgFt extendsInfo tagType
+      _ -> pprPanic "getArgFt: unconstrained type variable" (ppr ty)
+  | otherwise = getPrimFt ty
+
+typeDataConClass :: DynFlags -> ExtendsInfo -> Type -> Text
+typeDataConClass dflags extendsInfo =
+  dataConClass dflags . head . tyConDataCons . tyConAppTyCon . reduceType extendsInfo
+
+reduceType :: ExtendsInfo -> Type -> Type
+reduceType extendsInfo ty
+  | Just var <- getTyVar_maybe ty
+  = if | Just (_, tagType, _) <- lookupVarEnv extendsInfo var ->
+         reduceType extendsInfo tagType
+       | otherwise -> pprPanic "reduceType: unconstrained type variable" (ppr ty)
+  | otherwise = ty
 
 unboxResult :: Type -> Text -> FieldType -> Code
 unboxResult ty resClass resPrimFt
