@@ -102,7 +102,7 @@ data CallMethod
   | JumpToIt Label [CgLoc]
   | ReturnIt
   | SlowCall
-  | DirectEntry Code RepArity
+  | DirectEntry CgLoc RepArity
 
 getCallMethod
   :: DynFlags
@@ -128,7 +128,7 @@ getCallMethod dflags _ id _ n _ (Just (selfLoopId, label, cgLocs))
 getCallMethod _ _ _ (LFReEntrant _ arity _ _) n cgLoc _
   | n == 0         = ReturnIt        -- No args at all
   | n < arity      = SlowCall        -- Not enough args
-  | otherwise      = DirectEntry (enterMethod cgLoc) arity
+  | otherwise      = DirectEntry cgLoc arity
 
 getCallMethod _ _ _ LFUnLifted _ _ _
   = ReturnIt
@@ -149,7 +149,7 @@ getCallMethod _ _ _
   | SelectorThunk {} <- stdFormInfo
   = EnterIt
   | otherwise        -- Jump direct to code for single-entry thunks
-  = DirectEntry (enterMethod cgLoc) 0
+  = DirectEntry cgLoc 0
 
 getCallMethod _ _ _ (LFUnknown True) _ _ _
   = SlowCall -- might be a function

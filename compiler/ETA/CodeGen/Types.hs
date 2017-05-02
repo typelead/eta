@@ -21,6 +21,7 @@ module ETA.CodeGen.Types
    getNonVoidFts,
    enterMethod,
    evaluateMethod,
+   enterBody,
    loadLoc,
    storeLoc,
    locFt,
@@ -109,8 +110,8 @@ storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
-loadLoc (LocStatic ft modClass clName) =
-  invokestatic $ mkMethodRef modClass (closure clName) [] (Just ft)
+loadLoc (LocStatic _ modClass clName) =
+  invokestatic $ mkMethodRef modClass (closure clName) [] (Just closureType)
 loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
@@ -157,7 +158,7 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLocation = cgLoc }
 
 mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc dflags id _ = LocStatic closureType modClass clName
+mkStaticLoc dflags id _ = LocStatic (obj (qualifiedName modClass clName)) modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
@@ -313,6 +314,10 @@ enterMethod cgLoc
  <> loadContext
  -- TODO: Do better than stgClosure
  <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] void)
+
+enterBody :: Text -> [FieldType] -> Code
+enterBody modClass argTypes
+  = invokestatic (mkMethodRef modClass "body" (obj modClass:contextType:argTypes) Nothing)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc

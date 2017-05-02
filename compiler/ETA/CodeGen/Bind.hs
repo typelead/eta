@@ -67,13 +67,21 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
     defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
+    let layoutArgFieldType (_, _, ft) = ft
+        bodyType = obj thisClass : contextType : map (layoutArgFieldType . mkLayoutArg) args
     _ <- withMethod [Public] "enter" [contextType] void $ do
       n <- peekNextLocal
       let (argLocs, code, n') = mkCallEntry n args
-          (_ , cgLocs) = unzip argLocs
-      emit code
+      emit $ gload thisFt 0 <> code
       setNextLocal n'
       bindArgs argLocs
+      mapM_ bindFV fvLocs
+      emit $ invokestatic (mkMethodRef thisClass "body" bodyType void)
+    _ <- withMethod [Public, Static] "body" bodyType void $ do
+      n <- peekNextLocal
+      let (argLocs, _, n') = mkCallEntry n args
+          (_ , cgLocs) = unzip argLocs
+      setNextLocal n'
       label <- newLabel
       -- TODO: Optimize: We only need to generate the stack map frame
       --       if there will be a recursive call later. This will
@@ -81,9 +89,7 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
       --       class files.
       emit $ markStackMap
           <> startLabel label
-      withSelfLoop (id, label, cgLocs) $ do
-        mapM_ bindFV fvLocs
-        cgExpr body
+      withSelfLoop (id, label, cgLocs) $ cgExpr body
     return ()
   superClass <- getSuperClass
   -- Generate constructor

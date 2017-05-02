@@ -12,6 +12,7 @@ import ETA.CodeGen.Monad
 import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Rts
+import ETA.CodeGen.Name (qualifiedName)
 import ETA.CodeGen.Env
 
 
@@ -44,14 +45,9 @@ multiAssign locs codes = fold $ zipWith storeLoc locs codes
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
 mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
-mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
-  where fts' = map ( expectJust "mkCallEntry"
-                   . repFieldType_maybe
-                   . idType ) args'
-        args' = map unsafeStripNV nvArgs
-        argReps' = map idArgRep args'
-        (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
-        loadArgs !n !code !locs (_arg:args) (ft:fts) (argRep:argReps)
+mkCallEntry nStart nvArgs = (zip nvArgs locs, loadContext <> code, n)
+  where (!code, !locs, !n) = loadArgs nStart mempty [] (map mkLayoutArg nvArgs) 2 1 1 1 1 1
+        loadArgs !n !code !locs ((_arg, argRep, ft):args)
                  !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
@@ -63,11 +59,17 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
             _ -> error "contextLoad: V"
           where context = contextLoad ft argRep
                 loadRec nextCode =
-                  loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
-                           (loc:locs) args fts argReps
+                  loadArgs (n + ftSize) (code <> nextCode)
+                           (loc:locs) args
                 ftSize = fieldSize ft
                 loc = LocLocal (argRep == P) ft n
-        loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
+        loadArgs !n !code !locs _ _ _ _ _ _ _ = (code, reverse locs, n)
+
+mkLayoutArg :: NonVoid Id -> (Id, ArgRep, FieldType)
+mkLayoutArg arg = (arg', argRep, ft)
+  where arg' = unsafeStripNV arg
+        argRep = idArgRep arg'
+        ft = expectJust "mkLayoutArg" . repFieldType_maybe $ idType arg'
 
 mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
@@ -142,28 +144,47 @@ slowCall fun args = do
         ft = locFt fun
         code = loadLoc fun
 
-directCall :: Bool -> Code -> RepArity -> [StgArg] -> CodeGen ()
-directCall slow entryCode arity args = do
+directCall :: Bool -> CgLoc -> RepArity -> [StgArg] -> CodeGen ()
+directCall slow (LocStatic _ modClass clName) arity args = do
   argFtCodes <- getRepFtCodes args
-  emit $ directCall' slow entryCode arity argFtCodes
+  emit $ directStaticCall slow modClass' arity argFtCodes
+  where modClass' = qualifiedName modClass clName
+directCall slow cgLoc arity args = do
+  argFtCodes <- getRepFtCodes args
+  emit $ directCall' slow (enterMethod cgLoc) arity argFtCodes
+
+directStaticCall :: Bool -> Text -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directStaticCall slow modClass arity args =
+     stackLoadCode restArgs
+  <> aconst_null closureType
+  <> loadContext
+  <> fold (mapMaybe argCode callArgs)
+  <> enterBody modClass (mapMaybe argFt callArgs)
+  where (callArgs, restArgs) = splitAt realArity args
+        realArity = if slow then arity + 1 else arity
+        argFt (_, ft', _) = ft'
+        argCode (_, _, code') = code'
 
 directCall' :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' slow entryCode arity args =
-     stackLoadCode
+     stackLoadCode restArgs
   <> mkCallExit slow callArgs
   <> entryCode
   where (callArgs, restArgs) = splitAt realArity args
         realArity = if slow then arity + 1 else arity
-        stackFrames = slowArgFrames restArgs
-        stackFramesLoad = map (\code -> dup tsoType
+
+stackLoadCode :: [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+stackLoadCode args =
+  if null stackFrames then mempty
+  else    loadContext
+       <> currentTSOField
+       <> fold stackFramesLoad
+       <> pop tsoType
+  where stackFramesLoad = map (\code -> dup tsoType
                                      <> code
                                      <> spPushMethod)
                           stackFrames
-        stackLoadCode = if null stackFrames then mempty
-                        else    loadContext
-                             <> currentTSOField
-                             <> fold stackFramesLoad
-                             <> pop tsoType
+        stackFrames = slowArgFrames args
 
 slowArgFrames :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
 slowArgFrames [] = []
