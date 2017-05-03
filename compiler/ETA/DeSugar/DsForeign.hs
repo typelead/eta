@@ -593,16 +593,16 @@ dsFExport closureId co externalName classSpec = do
                               <> invokespecial
                                   (mkMethodRef argClass "<init>" [argPrimFt] void)))
                     mempty
-                    (zip3 [1..] argFts argTypes)
+                    (zip3 [localVariableStart..] argFts argTypes)
 
   return ( rawClassSpec
          , addAttrsToMethodDef mAttrs
-         $ mkMethodDef className [Public] methodName argFts resFt $
+         $ mkMethodDef className accessFlags methodName argFts resFt $
              invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
-          <> gload classFt 0
+          <> loadThis
           <> new ap2Ft
           <> dup ap2Ft
-          <> invokestatic (mkMethodRef "base/java/TopHandler" "runJava_closure"
+          <> invokestatic (mkMethodRef runClass runClosure
                                        [] (Just closureType))
           <> new apFt
           <> dup apFt
@@ -612,8 +612,7 @@ dsFExport closureId co externalName classSpec = do
           <> invokespecial (mkMethodRef ap2Class "<init>" [ closureType
                                                           , closureType] void)
           -- TODO: Support java args > 5
-          <> invokestatic (mkMethodRef rtsGroup "evalJava"
-                                       [capabilityType, jobject, closureType]
+          <> invokestatic (mkMethodRef rtsGroup evalMethod evalArgFts
                                        (ret hsResultType))
           <> (if voidResult
               then mempty
@@ -632,27 +631,53 @@ dsFExport closureId co externalName classSpec = do
         (argTypes, ioResType) = tcSplitFunTys funTy
         classFt = obj className
         extendsInfo = extendsMapWithVar tyVarBounds
+        loadThis
+          | isJust staticMethodClass =
+            if runClosure == "runJava_closure"
+            then aconst_null jobject
+            else mempty
+          | otherwise = gload classFt 0
+        (accessFlags, localVariableStart)
+          | isJust staticMethodClass = ([Public, Static], 0)
+          | otherwise = ([Public], 1)
         voidResult
           | UnaryRep repResTy <- repType resType
           , isUnitTy repResTy
           = True
           | otherwise = False
-        methodName = fastStringText externalName
+        (evalArgFts, evalMethod, runClass) =
+          case runClosure of
+            "runJava_closure" ->
+              ([capabilityType, jobject, closureType], "evalJava", "base/java/TopHandler")
+            _                 ->
+              ([capabilityType, closureType], "evalIO", "base/ghc/TopHandler")
+        (staticMethodClass, methodName)
+          | Just camn <- classAndMethodName
+          , let (className, methodName) = labelToMethod camn
+          = (Just className, methodName)
+          | otherwise = (Nothing, T.pack methodString)
+          where methodString = unpackFS externalName
+                classAndMethodName = stripPrefix "@static " methodString
+
         (rawClassSpec, className) = maybe (rawClassSpec', className')
                                           (\spec ->
                                             let (className:_) = T.words spec
                                             in (spec, className))
                                           classSpec
-        (rawClassSpec', className', resType) =
-          case tcSplitJavaType_maybe ioResType of
-            Just (_, javaTagType, javaResType) ->
-              ((either (error $ "The tag type should be annotated with a CLASS annotation.")
-               (maybe (error $ "No type variables for the Java foreign export!") id)
+        (rawClassSpec', className', resType, runClosure)
+          | Just (ioTyCon, resType) <- tcSplitIOType_maybe ioResType
+          = (className, className, resType, "runIO_closure")
+          | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
+          = ((either (error $ "The tag type should be annotated with a CLASS annotation.")
+               (maybe (if isNothing staticMethodClass
+                       then error $ "No type variables for the Java foreign export!"
+                       else className) id)
                $ rawTagTypeToText javaTagType)
               , tagTypeToText javaTagType
-              , javaResType)
-            _ -> error $ "Result type of 'foreign export java' declaration must be in the "
-                      ++ "Java monad."
+              , javaResType
+              , "runJava_closure")
+          | otherwise = (className, className, ioResType, "runNonIO_closure")
+          where className = fromJust staticMethodClass
 
         numApplied = length argTypes + 1
         apClass = apUpdName numApplied
