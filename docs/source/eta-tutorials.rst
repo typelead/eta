@@ -915,7 +915,7 @@ list with a helper function.
    listRoots :: IO [File]
    listRoots = do
      filesArray <- listRoots'
-     return $ fromJava
+     return $ fromJava filesArray
 
 Example:
 
