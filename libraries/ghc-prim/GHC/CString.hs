@@ -111,7 +111,7 @@ unpackCStringUtf8# str
   = unpack 0#
   where
     !bytes = getBytesUtf8# str
-    !len = strLength str
+    !len = alength# bytes
     unpack nh
       | isTrue# (nh ==# len) = []
       | isTrue# (ch `leChar#` '\x7F'#) = C# ch : unpack (nh +# 1#)
