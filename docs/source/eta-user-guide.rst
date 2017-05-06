@@ -232,14 +232,17 @@ Where:
 
 The following example::
 
+  {-# LANGUAGE MagicHash #-}
+
   import GHC.Base
   import GHC.Pack
+  import Java
 
   data {-# CLASS "mypackage.Export" #-} Export = Export (Object# Export)
 
   foreign export java sayHello :: JString -> Java Export JString
 
-  sayHello n = return . mkJString $ "Hello, " ++ unpackCString n ++ "!"
+  sayHello n = return . toJString $ "Hello, " ++ unpackCString n ++ "!"
 
 And Java class that is generated:
 
