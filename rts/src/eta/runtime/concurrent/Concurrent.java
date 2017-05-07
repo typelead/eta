@@ -9,6 +9,7 @@ import eta.runtime.stg.RtsFun;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ReturnClosure;
 import eta.runtime.exception.StgException;
+import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 import static eta.runtime.stg.StgTSO.TSO_LOCKED;
@@ -43,32 +44,10 @@ public class Concurrent {
         @Override
         public void enter(StgContext context) {
             StgMVar mvar = (StgMVar) context.O(1);
-            StgTSO tso;
-            mvar.lock();
-            if (mvar.value == null) {
-                tso = context.currentTSO;
-                tso.blockInfo = mvar;
-                tso.whyBlocked = BlockedOnMVar;
-                tso.inMVarOperation = true;
-                mvar.pushLast(tso);
-                context.O(1, mvar);
-                block_takemvar.enter(context);
-            } else {
-                StgClosure val = mvar.value;
-                if (mvar.isEmpty()) {
-                    mvar.value = null;
-                    mvar.unlock();
-                    context.R(1, val);
-                } else {
-                    tso = mvar.popFromQueue();
-                    Capability cap = context.myCapability;
-                    BlockPutMVarFrame frame = (BlockPutMVarFrame) tso.spPop();
-                    mvar.value = frame.val;
-                    tso.inMVarOperation = false;
-                    cap.tryWakeupThread(tso);
-                    mvar.unlock();
-                    context.R(1, val);
-                }
+            try {
+                context.R(1, mvar.take());
+            } catch (InterruptedException ie) {
+                barf("takeMVar: Unexpected interrupt.");
             }
         }
     }
@@ -77,19 +56,7 @@ public class Concurrent {
         @Override
         public void enter(StgContext context) {
             StgMVar mvar = (StgMVar) context.O(1);
-            mvar.lock();
-            if (mvar.value == null) {
-                StgTSO tso = context.currentTSO;
-                tso.blockInfo = mvar;
-                tso.whyBlocked = BlockedOnMVarRead;
-                tso.inMVarOperation = true;
-                mvar.pushFirst(tso);
-                context.O(1, mvar);
-                block_readmvar.enter(context);
-            } else {
-                context.R(1, mvar.value);
-            }
-            mvar.unlock();
+            context.R(1, mvar.read());
         }
     }
 
@@ -98,41 +65,10 @@ public class Concurrent {
         public void enter(StgContext context) {
             StgMVar mvar = (StgMVar) context.O(1);
             StgClosure val = context.R(1);
-            mvar.lock();
-            StgTSO tso;
-            if (mvar.value != null) {
-                tso = context.currentTSO;
-                tso.blockInfo = mvar;
-                tso.whyBlocked = BlockedOnMVar;
-                tso.inMVarOperation = true;
-                mvar.pushLast(tso);
-                context.O(1, mvar);
-                context.R(1, val);
-                block_putmvar.enter(context);
-            } else {
-                boolean loop;
-                do {
-                    loop = false;
-                    tso = mvar.popFromQueue();
-                    if (tso == null) {
-                        mvar.value = val;
-                        mvar.unlock();
-                        context.R(1, null); // Is this necessary?
-                    } else {
-                        Capability cap = context.myCapability;
-                        WhyBlocked whyBlocked = tso.whyBlocked;
-                        tso.spPop();
-                        tso.spPush(new ReturnClosure(val));
-                        tso.inMVarOperation = false;
-                        context.myCapability.tryWakeupThread(tso);
-                        if (whyBlocked == BlockedOnMVarRead) {
-                            loop = true;
-                        } else {
-                            mvar.unlock();
-                            context.R(1, null); // Is this necessary?
-                        }
-                    }
-                } while (loop);
+            try {
+                mvar.put(val);
+            } catch (InterruptedException ie) {
+                barf("putMVar: Unexpected interrupt.");
             }
         }
     }
@@ -184,18 +120,9 @@ public class Concurrent {
         @Override
         public void enter(StgContext context) {
             StgMVar mvar = (StgMVar) context.O(1);
-            mvar.lock();
-            StgClosure value = mvar.value;
-            if (value == null) {
-                context.I(1, 0);
-                /* TODO: Verify that null is an appropriate value to
-                         return */
-                context.R(1, null);
-            } else {
-                context.I(1, 1);
-                context.R(1, value);
-            }
-            mvar.unlock();
+            StgClosure value = mvar.tryRead();
+            context.I(1, (value == null)? 0: 1);
+            context.R(1, value);
         }
     }
 

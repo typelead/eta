@@ -1,7 +1,8 @@
 package eta.runtime.concurrent;
 
 import java.util.Deque;
-import java.util.ArrayDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.stg.StgTSO;
@@ -11,12 +12,13 @@ import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class StgMVar extends StgClosure {
-    public Deque<StgTSO> tsoQueue = new ArrayDeque<StgTSO>();
-    public StgClosure value;
+    public BlockingQueue<StgClosure> valQueue = new ArrayBlockingQueue<StgClosure>(1, true);
     public AtomicBoolean lock = new AtomicBoolean(false);
 
     public StgMVar(StgClosure value) {
-        this.value = value;
+        if (value != null) {
+            valQueue.offer(value);
+        }
     }
 
     @Override
@@ -24,20 +26,24 @@ public class StgMVar extends StgClosure {
         barf("MVAR object entered!");
     }
 
-    public boolean isEmpty() {
-        return tsoQueue.isEmpty();
+    public StgClosure take() throws InterruptedException {
+        return valQueue.take();
     }
 
-    public void pushFirst(StgTSO tso) {
-        tsoQueue.offerFirst(tso);
+    public void put(StgClosure closure) throws InterruptedException {
+        valQueue.put(closure);
     }
 
-    public void pushLast(StgTSO tso) {
-        tsoQueue.offerLast(tso);
+    public StgClosure read() {
+        StgClosure val;
+        do {
+            val = tryRead();
+        } while (val == null);
+        return val;
     }
 
-    public StgTSO popFromQueue() {
-        return tsoQueue.poll();
+    public StgClosure tryRead() {
+        return valQueue.peek();
     }
 
     public final void lock() {
