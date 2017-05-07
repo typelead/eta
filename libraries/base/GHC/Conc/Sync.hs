@@ -359,10 +359,9 @@ this value, use 'setNumCapabilities'.
 
 @since 4.4.0.0
 -}
-getNumCapabilities :: IO Int
-getNumCapabilities = do
-   n <- peek enabled_capabilities
-   return (fromIntegral n)
+foreign import java unsafe
+  "@static @field eta.runtime.stg.Capability.enabledCapabilities"
+  getNumCapabilities :: IO Int
 
 {- |
 Set the number of Haskell threads that can run truly simultaneously
@@ -383,7 +382,7 @@ setNumCapabilities i = c_setNumCapabilities (fromIntegral i)
 
 -- foreign import ccall safe "setNumCapabilities"
 c_setNumCapabilities :: CUInt -> IO ()
-c_setNumCapabilities = undefined
+c_setNumCapabilities = error $ "setNumCapabilities: unimplemented"
 
 -- | Returns the number of CPUs that the machine has
 --
@@ -391,17 +390,12 @@ c_setNumCapabilities = undefined
 getNumProcessors :: IO Int
 getNumProcessors = fmap fromIntegral c_getNumberOfProcessors
 
--- foreign import ccall unsafe "getNumberOfProcessors"
-c_getNumberOfProcessors :: IO CUInt
-c_getNumberOfProcessors = undefined
+foreign import java unsafe "@static eta.runtime.RtsFlags.getNumberOfProcessors"
+  c_getNumberOfProcessors :: IO CUInt
 
 -- | Returns the number of sparks currently in the local spark pool
 numSparks :: IO Int
 numSparks = IO $ \s -> case numSparks# s of (# s', n #) -> (# s', I# n #)
-
--- foreign import ccall "&enabled_capabilities"
-enabled_capabilities :: Ptr CInt
-enabled_capabilities = undefined
 
 childHandler :: SomeException -> IO ()
 childHandler err = catchException (real_handler err) childHandler
