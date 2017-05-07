@@ -17,6 +17,8 @@ import static eta.runtime.RtsScheduler.scheduleWaitThread;
 import static eta.runtime.RtsMessages.errorBelch;
 import static eta.runtime.RtsMessages.debugBelch;
 import static eta.runtime.stg.StgTSO.TSO_LOCKED;
+import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
+import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 
 public class Rts {
     public static class HaskellResult {
@@ -298,6 +300,14 @@ public class Rts {
         if (task != null) {
             task.runningFinalizers = false;
         }
+    }
+
+    public static StgTSO scheduleIOClosure(StgClosure closure) {
+        Capability cap = Capability.getFreeRunningCapability();
+        StgTSO tso = Rts.createIOThread(cap, closure);
+        tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
+        Rts.scheduleThread(cap, tso);
+        return tso;
     }
 
     public static void scheduleThread(Capability cap, StgTSO tso) {
