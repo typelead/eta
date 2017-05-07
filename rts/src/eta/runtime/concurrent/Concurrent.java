@@ -205,9 +205,7 @@ public class Concurrent {
             Capability cap = context.myCapability;
             StgTSO currentTSO = context.currentTSO;
             StgClosure closure = context.R(1);
-            StgTSO tso = Rts.createIOThread(cap, closure);
-            tso.addFlags(currentTSO.flags & (TSO_BLOCKEX | TSO_INTERRUPTIBLE));
-            Rts.scheduleThread(cap, tso);
+            StgTSO tso = Rts.scheduleIOClosure(closure);
             cap.contextSwitch = true;
             context.O(1, tso);
         }
@@ -221,7 +219,7 @@ public class Concurrent {
             int cpu = context.I(1);
             StgClosure closure = context.R(1);
             StgTSO tso = Rts.createIOThread(cap, closure);
-            tso.addFlags(currentTSO.flags & (TSO_BLOCKEX | TSO_INTERRUPTIBLE));
+            tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
             Rts.scheduleThreadOn(cap, cpu, tso);
             cap.contextSwitch = true;
             context.O(1, tso);
