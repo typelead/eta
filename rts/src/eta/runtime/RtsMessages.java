@@ -47,7 +47,7 @@ public class RtsMessages {
 
     public static void debugBelch(String msg, Object... args) {
         if (RtsFlags.DebugFlags.scheduler) {
-            System.out.print("[Eta-RTS]" + Thread.currentThread() + ": ");
+            System.out.print("[Eta-RTS] " + Thread.currentThread() + ": ");
         }
         System.out.format(msg, args);
         System.out.print("\n");
