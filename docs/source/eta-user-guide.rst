@@ -234,8 +234,6 @@ The following example::
 
   {-# LANGUAGE MagicHash #-}
 
-  import GHC.Base
-  import GHC.Pack
   import Java
 
   data {-# CLASS "mypackage.Export" #-} Export = Export (Object# Export)
