@@ -99,13 +99,13 @@ public final class Capability {
     public Lock lock = new ReentrantLock();
     public StgContext context = new StgContext();
     public Task runningTask;
-    public boolean inHaskell;
+    public volatile boolean inHaskell;
     public int idle;
-    public boolean disabled;
+    public volatile boolean disabled;
     public Deque<StgTSO> runQueue = new ConcurrentLinkedDeque<StgTSO>();
     public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
-    public boolean contextSwitch;
-    public boolean interrupt;
+    public volatile boolean contextSwitch;
+    public volatile boolean interrupt;
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
@@ -130,7 +130,7 @@ public final class Capability {
         Capability cap = this;
         boolean threaded = RtsFlags.ModeFlags.threaded;
         if (RtsFlags.DebugFlags.scheduler) {
-            debugBelch("cap %d: schedule()", cap.no);
+            debugBelch("Capability[%d]: schedule()", cap.no);
         }
         while (true) {
             if (cap.inHaskell) {
@@ -165,7 +165,9 @@ public final class Capability {
             }
             cap = cap.detectDeadlock(task);
             if (threaded) {
-                cap = cap.scheduleYield(task);
+                // TODO: Yielding is causing unnecessary work for all the capabilities.
+                //       Disabling until we find a need for it.
+                // cap = cap.scheduleYield(task);
                 if (cap.emptyRunQueue()) continue;
             }
 
@@ -767,6 +769,10 @@ public final class Capability {
     }
 
     public final void release_(boolean alwaysWakeup) {
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("Releasing Capability[%d].", this.no);
+        }
+
         if (RtsFlags.ModeFlags.threaded) {
             Task task = runningTask;
             runningTask = null;
@@ -789,15 +795,20 @@ public final class Capability {
                 StgTSO nextTSO = peekRunQueue();
                 if (nextTSO.bound != null) {
                     task = nextTSO.bound.task();
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("Giving Capability[%d] to Task[%d].", this.no, task.id);
+                    }
                     giveToTask(task);
                     return;
                 }
             }
 
             if (spareWorkers.isEmpty()) {
-                if (schedulerState.compare(SCHED_SHUTTING_DOWN) < 0 || !emptyRunQueue()) {
+                if (// schedulerState.compare(SCHED_SHUTTING_DOWN) < 0 ||
+                    // TODO: Verify that this condition is ok
+                    !emptyRunQueue()) {
                     if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("starting a new worker on capability %d", this.no);
+                        debugBelch("Starting new Worker Task on Capability[%d]", this.no);
                     }
                     startWorkerTask();
                     return;
@@ -810,6 +821,9 @@ public final class Capability {
                 if (task != null) {
                     /* TODO: Verify that the worker task pops itself from
                              queue. */
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("Giving Capability[%d] to Worker Task[%d].", this.no, task.id);
+                    }
                     giveToTask(task);
                     return;
                 }
@@ -817,7 +831,7 @@ public final class Capability {
 
             lastFreeCapability = this;
             if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("freeing capability %d", this.no);
+                debugBelch("Freeing Capability[%d].", this.no);
             }
         }
     }
@@ -1037,11 +1051,12 @@ public final class Capability {
     }
 
     public final static Capability getFreeRunningCapability() {
-        if (!lastFreeCapability.emptyRunQueue()) {
-            for (Capability cap: capabilities) {
-                if (cap.emptyRunQueue() && cap.runningTask != null) {
-                    return cap;
+        for (Capability cap: capabilities) {
+            if (cap.emptyRunQueue() && cap.runningTask != null && !cap.inHaskell) {
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("Capability[%d] is free to run a new forked thread.", cap.no);
                 }
+                return cap;
             }
         }
         return lastFreeCapability;

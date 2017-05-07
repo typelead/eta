@@ -165,7 +165,7 @@ public class Task {
             }
 
             if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("returning; I want capability %d", cap.no);
+                debugBelch("Waiting for Capability[%d].", cap.no);
             }
             Lock l = cap.lock;
             boolean unlocked = false;
@@ -307,8 +307,7 @@ public class Task {
             try {
                 if (cap.runningTask != null) {
                     if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("capabilitity %d is owned by another task",
-                                   cap.no);
+                        debugBelch("Capability[%d] is owned by another task.", cap.no);
                     }
                     l.unlock();
                     unlocked = true;

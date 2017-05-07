@@ -68,11 +68,12 @@ public class RtsIO {
     }
 
     public static void ioManagerStart() {
+        // TODO: Implement IO manager
         // Check file descriptors or SelectKeys
-        Capability cap = Rts.lock();
-        HaskellResult result = cap.ioManagerStart();
-        cap = result.cap;
-        Rts.unlock(cap);
+        // Capability cap = Rts.lock();
+        // HaskellResult result = cap.ioManagerStart();
+        // cap = result.cap;
+        // Rts.unlock(cap);
     }
 
     public static void ioManagerWakeup() {
