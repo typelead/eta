@@ -67,7 +67,7 @@ public class RtsFlags {
     }
 
     public static void initDefaults() {
-        RtsFlags.ModeFlags.threaded              = false;
+        RtsFlags.ModeFlags.threaded              = true;
         RtsFlags.ModeFlags.userSignals           = false;
         RtsFlags.GcFlags.doIdleGC                = false;
         RtsFlags.GcFlags.squeezeUpdFrames        = true;
