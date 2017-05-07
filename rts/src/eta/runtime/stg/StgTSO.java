@@ -119,7 +119,7 @@ public final class StgTSO extends StgClosure {
     public final void removeFromMVarBlockedQueue() {
         StgMVar mvar = (StgMVar) blockInfo;
         if (!inMVarOperation) return;
-        mvar.tsoQueue.remove(this);
+        // mvar.tsoQueue.remove(this);
         inMVarOperation = false;
     }
 
