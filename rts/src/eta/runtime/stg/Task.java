@@ -123,7 +123,9 @@ public class Task {
         Task task = allocTask();
         task.stopped = false;
         task.newInCall();
-        //debugTrace
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("New Task (task count: %d)", allTasks.size());
+        }
         return task;
     }
 
@@ -143,9 +145,7 @@ public class Task {
         } else {
             task = new Task(false);
             task.initialize();
-            if (RtsFlags.ModeFlags.threaded) {
-                task.id = Thread.currentThread().getId();
-            }
+            task.id = Thread.currentThread().getId();
             setMyTask(task);
             return task;
         }
@@ -186,7 +186,7 @@ public class Task {
             }
             cap.assertFullCapabilityInvariants(this);
             if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("resuming capability %d", cap.no);
+                debugBelch("Resuming Capability[%d].", cap.no);
             }
         } else {
             mainCapability.runningTask = this;
@@ -243,11 +243,15 @@ public class Task {
     }
 
     public void boundTaskExiting() {
+        assert Thread.currentThread().getId() == id;
+        assert myTask() == this;
         endInCall();
         if (incall == null) {
             stopped = true;
         }
-        //debugTrace
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("Task[%d] exiting.", id);
+        }
     }
 
     public void endInCall() {
