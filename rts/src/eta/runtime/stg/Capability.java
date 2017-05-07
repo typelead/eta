@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.Stack;
 import java.util.Queue;
 import java.util.ArrayDeque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -101,7 +102,7 @@ public final class Capability {
     public boolean inHaskell;
     public int idle;
     public boolean disabled;
-    public Deque<StgTSO> runQueue = new ArrayDeque<StgTSO>();
+    public Deque<StgTSO> runQueue = new ConcurrentLinkedDeque<StgTSO>();
     public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
     public boolean contextSwitch;
     public boolean interrupt;
@@ -174,7 +175,7 @@ public final class Capability {
                 if (bound != null) {
                     if (bound.task() != task) {
                         if (RtsFlags.DebugFlags.scheduler) {
-                            debugBelch("thread %d bound to another OS thread", t.id);
+                            debugBelch("TSO[%d] is bound to another OS thread.", t.id);
                         }
                         cap.pushOnRunQueue(t);
                         continue;
@@ -182,7 +183,7 @@ public final class Capability {
                 } else {
                     if (task.incall.tso != null) {
                         if (RtsFlags.DebugFlags.scheduler) {
-                            debugBelch("this OS thread cannot run thread %d", t.id);
+                            debugBelch("This OS thread cannot run TSO[%d].", t.id);
                         }
                         cap.pushOnRunQueue(t);
                         continue;
@@ -456,7 +457,7 @@ public final class Capability {
         int nFreeCapabilities = freeCapabilities.size();
         if (nFreeCapabilities > 0) {
             if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("cap %d: %s and %d free capabilities, sharing..."
+                debugBelch("Capability[%d]: %s and %d free capabilities, sharing..."
                            ,this.no
                            ,(!emptyRunQueue() && !singletonRunQueue())?
                            "excess threads on run queue":"sparks to share (>=2)",
@@ -1035,6 +1036,17 @@ public final class Capability {
         return runningTask.incall.returnStatus;
     }
 
+    public final static Capability getFreeRunningCapability() {
+        if (!lastFreeCapability.emptyRunQueue()) {
+            for (Capability cap: capabilities) {
+                if (cap.emptyRunQueue() && cap.runningTask != null) {
+                    return cap;
+                }
+            }
+        }
+        return lastFreeCapability;
+    }
+
     public final static Capability getFreeCapability() {
         if (lastFreeCapability.runningTask != null) {
             for (Capability cap: capabilities) {
@@ -1042,10 +1054,8 @@ public final class Capability {
                     return cap;
                 }
             }
-            return lastFreeCapability;
-        } else {
-            return lastFreeCapability;
         }
+        return lastFreeCapability;
     }
 
     public final void newReturningTask(Task task) {
