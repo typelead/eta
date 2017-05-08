@@ -5,6 +5,7 @@ import java.util.Deque;
 import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +29,7 @@ public final class StgTSO extends StgClosure {
     public static AtomicInteger maxThreadId = new AtomicInteger(0);
     public int id = nextThreadId();
     public volatile StgTSO link;
-    public Stack<StackFrame> stack = new Stack<StackFrame>();
+    public LinkedList<StackFrame> stack = new LinkedList<StackFrame>();
     public ListIterator<StackFrame> sp;
     public Queue<StgBlockingQueue> blockingQueues = new ArrayDeque<StgBlockingQueue>();
     public WhatNext whatNext = ThreadRunGHC;
