@@ -1,6 +1,7 @@
 package eta.runtime.stg;
 
 import java.util.List;
+import java.util.LinkedList;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
@@ -972,8 +973,7 @@ public final class Capability {
         /* Find the index of the update frame to stop at */
         int stopIndex = -1;
         if (stopHere != null) {
-            Stack<StackFrame> stack = tso.stack;
-            stopIndex = stack.size() - stack.search(stopHere);
+            stopIndex = tso.stack.lastIndexOf(stopHere);
         }
 
         boolean shouldContinue = true;
@@ -1899,7 +1899,6 @@ public final class Capability {
     }
 
     public final void threadStackUnderflow(StgTSO tso) {
-        Stack<StackFrame> oldStack = tso.stack;
         /* TODO: Finish implementation */
     }
 

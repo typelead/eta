@@ -2,6 +2,7 @@ package eta.runtime.stg;
 
 import java.util.Deque;
 import java.util.Stack;
+import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,7 +44,7 @@ public class StgStopThread extends StackFrame {
     @Override
     public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
         tso.stack.clear();
-        Stack<StackFrame> stack = new Stack<StackFrame>();
+        LinkedList<StackFrame> stack = new LinkedList<StackFrame>();
         tso.stack = stack;
         tso.sp = stack.listIterator();
         tso.spPush(new StgEnter(exception));
