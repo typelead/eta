@@ -17,7 +17,7 @@ cProjectName, cProjectVersion, cProjectVersionInt, cProjectPatchLevel, cProjectP
 cProjectName = "The Eta programming language compiler"
 -- @VERSION_CHANGE@
 cProjectVersion = "0.0.6"
-cProjectVersionInt = "000"
+cProjectVersionInt = "6"
 cProjectPatchLevel = "1"
 cProjectPatchLevel1 = "1"
 cProjectPatchLevel2 = ""
