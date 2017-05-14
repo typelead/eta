@@ -127,8 +127,9 @@ main = do
            die (concat errors ++ shortUsage prog)
 
 -- @VERSION_CHANGE@
+-- @BUILD_NUMBER@
 myVersion :: String
-myVersion = "0.0.6"
+myVersion = "0.0.6.5"
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 
