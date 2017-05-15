@@ -1334,6 +1334,62 @@ More examples
 
 Let us look at some more examples of exporting Eta methods to Java.
 
+In this example we are going to export the `Pipes <https://hackage.haskell.org/package/pipes>` library. Pipes 
+is a powerful stream processing library. Let us go ahead and start with creating an ``etlas`` project.
+
+.. code-block:: console
+
+      mkdir pipes-test
+      cd pipes-test
+      etlas init
+
+The project structure should look like:
+
+.. code-block:: console
+
+      pipes-test/
+      |--src/
+      |----Main.hs
+      |--ChangeLog.md
+      |--LICENSE
+      |--pipes-test.cabal
+      |--Setup.hs
+
+Now modify the ``pipes-test.cabal`` file to include ``pipes`` in the ``build-depends:`` section. Followed by that run
+``etlas build``. Now let us modify the ``Main.hs`` file to use ``Pipes`` to take an input from a stream and and output
+each input to the outpu stream. We will try to restrict the program to take a maximum of 3 inputs from the input stream:
+
+.. code::
+
+   {-# LANGUAGE MagicHash,ScopedTypeVariables #-}
+   module Main where
+   import Java
+   import Pipes
+   import Control.Monad (replicateM_)
+   import qualified Pipes.Prelude as P  -- Pipes.Prelude provides 'take', too
+   import System.IO
+
+   take ::  Int -> Pipe a a IO ()
+   take n = do
+    replicateM_ n $ do
+        x <- await
+        yield x
+    lift $ putStrLn "You shall not pass!"
+
+   maxInput :: Int -> Producer String IO ()
+   maxInput n = P.stdinLn >-> Main.take n
+
+   main :: IO ()
+   main = do
+    hSetBuffering stdin LineBuffering
+    hSetBuffering stdout LineBuffering
+    runEffect $ maxInput 3 >-> P.stdoutLn
+
+
+   foreign export java "@static com.typelead.Util.test" main :: IO ()
+
+Here we have delegated the input and output to Eta side and are exporting the entire main method to Java.
+
 
 
 
