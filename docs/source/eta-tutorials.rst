@@ -1369,7 +1369,7 @@ each input to the output stream. We will try to restrict the program to take a m
    import Java
    import Pipes
    import Control.Monad (replicateM_)
-   import qualified Pipes.Prelude as P  -- Pipes.Prelude provides 'take', too
+   import qualified Pipes.Prelude as P
    import System.IO
 
    take ::  Int -> Pipe a a IO ()
