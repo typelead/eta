@@ -1389,6 +1389,20 @@ each input to the outpu stream. We will try to restrict the program to take a ma
    foreign export java "@static com.typelead.Util.test" main :: IO ()
 
 Here we have delegated the input and output to Eta side and are exporting the entire main method to Java.
+Now let us build the uber jar for this:
+
+.. code-block:: console
+
+      etlas clean
+      etlas configure --enable-uberjar-mode
+
+This should create the uber jar buried somewher inside the ``dist`` folder. Now let us test this jar by actually
+creating a Java file and using an exported method. We can create the Java source file in the root of the project
+itself. We shall call it ``Test.java``
+
+
+avac -cp ":/Users/abhiroop/Dev/eta-test/dist/build/eta-test/eta-test.jar" Test.java
+
 
 
 
