@@ -17,3 +17,13 @@ You can install a package by typing:
 
 Visit `eta-hackage <https://github.com/typelead/eta-hackage>`_ to get a list of
 packages currently supported by Eta.
+
+To know the details of the flags supported by ``etlas``:
+
+.. code-block:: console
+
+   etlas --help
+
+This will help with a basic suggestion of what each flag does. 
+
+Below we note some important commands associated with etlas: 
