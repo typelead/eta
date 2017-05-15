@@ -367,12 +367,16 @@ runJavac dflags args = do
                       [rtsUnitId, primUnitId, integerUnitId, baseUnitId]
         thisPkg = thisPackage dflags
         getClassFile str = do
-          str' <- stripPrefix "[wrote RegularFileObject[" str
+          str' <- breakSubstring  "RegularFileObject[" str
           return $ init . init $ str'
         getClassOutputs str = catMaybes
                             . map getClassFile
-                            . filter ("[wrote" `isPrefixOf`)
+                            . filter ( ".class]]" `isInfixOf` )
+                            . filter ("RegularFileObject[" `isInfixOf `)
                             $ lines str
+        breakSubstring str1 str2 = stripPrefix startStr str2
+            where
+                startStr = head $ filter (isSuffixOf str1) $ inits str2
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)
