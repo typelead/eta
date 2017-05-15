@@ -1338,7 +1338,7 @@ Example 1
 ^^^^^^^^^
 
 In this example we are going to export the `Pipes <https://hackage.haskell.org/package/pipes>`_ library. Pipes 
-is a powerful stream processing library. Let us go ahead and start with creating an ``etlas`` project.
+is a powerful stream processing library in Haskell. Let us go ahead and start with creating an ``etlas`` project.
 
 .. code-block:: console
 
@@ -1346,7 +1346,7 @@ is a powerful stream processing library. Let us go ahead and start with creating
       cd pipes-test
       etlas init
 
-The project structure should look like:
+The project structure should look like this sfter you select the basic options:
 
 .. code-block:: console
 
@@ -1360,7 +1360,7 @@ The project structure should look like:
 
 Now modify the ``pipes-test.cabal`` file to include ``pipes`` in the ``build-depends:`` section. Followed by that run
 ``etlas build``. Now let us modify the ``Main.hs`` file to use ``Pipes`` to take an input from a stream and and output
-each input to the outpu stream. We will try to restrict the program to take a maximum of 3 inputs from the input stream:
+each input to the output stream. We will try to restrict the program to take a maximum of 3 inputs from the input stream:
 
 .. code::
 
@@ -1391,7 +1391,7 @@ each input to the outpu stream. We will try to restrict the program to take a ma
 
    foreign export java "@static com.typelead.Util.test" main :: IO ()
 
-Here we have delegated the input and output to Eta side and are exporting the entire main method to Java.
+Here we have delegated the input and output to Eta side and are exporting the entire main method to Java. The line `hSetBuffering stdin LineBuffering` is optional. It establishes the whole point of ``Pipes`` by not holding the input in memory.
 Now let us build the uber jar for this:
 
 .. code-block:: console
@@ -1425,13 +1425,13 @@ Now let us try to run this. Assuming that you are still at the root of the proje
 
 .. code-block:: console
 
-      javac -cp ":/<your absolute file path>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test.java
-      java -cp ".:/<your absolute file path>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test
+      javac -cp ":/<your absolute file path here>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test.java
+      java -cp ".:/<your absolute file path here>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test
 
-You will get the console waiting for input. The moment you type something ad pree Enter it concumes that 
+You will get the console waiting for input. The moment you type something ad press Enter, it consumes that 
 and emits that into the output stream, one at a time. After the third input it will say "You shall not pass!"
-and terminate the program. So through this example we were not only able to delegate the entire library from 
-Eta but also the input and output parts too.
+and terminates the program. So through this example we were not only able to delegate the entire library from 
+Eta, but also the input and output parts too.
 
 
 
