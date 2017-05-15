@@ -1330,11 +1330,14 @@ changes:
 #. That's it! Run the example with ``etlas run``.
 
 More examples
-^^^^^^^^^^^^^
+-------------
 
 Let us look at some more examples of exporting Eta methods to Java.
 
-In this example we are going to export the `Pipes <https://hackage.haskell.org/package/pipes>` library. Pipes 
+Example 1
+^^^^^^^^^
+
+In this example we are going to export the `Pipes <https://hackage.haskell.org/package/pipes>`_ library. Pipes 
 is a powerful stream processing library. Let us go ahead and start with creating an ``etlas`` project.
 
 .. code-block:: console
@@ -1400,8 +1403,35 @@ This should create the uber jar buried somewher inside the ``dist`` folder. Now 
 creating a Java file and using an exported method. We can create the Java source file in the root of the project
 itself. We shall call it ``Test.java``
 
+.. code-block:: java
 
-avac -cp ":/Users/abhiroop/Dev/eta-test/dist/build/eta-test/eta-test.jar" Test.java
+      package eta.first;
+
+      import com.typelead.Util;
+
+      public class Test {
+      public static void main (String args []){
+        Util x = new Util();
+        x.test();
+        }
+      }
+
+.. note::
+
+   The package name is intentionally left blank. If you go ahead and use a package name like
+   ``com.typelead.test``, you have to create a directory structure like the same, as it is a prevalent practise in Java.
+
+Now let us try to run this. Assuming that you are still at the root of the project run this:
+
+.. code-block:: console
+
+      javac -cp ":/<your absolute file path>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test.java
+      java -cp ".:/<your absolute file path>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test
+
+You will get the console waiting for input. The moment you type something ad pree Enter it concumes that 
+and emits that into the output stream, one at a time. After the third input it will say "You shall not pass!"
+and terminate the program. So through this example we were not only able to delegate the entire library from 
+Eta but also the input and output parts too.
 
 
 
