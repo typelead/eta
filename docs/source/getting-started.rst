@@ -9,7 +9,7 @@ help you troubleshoot.
 Installing Eta
 ----------------
 
-Currently, the there are a few ways of installing Eta:
+Currently, there are a few ways of installing Eta:
 
 #. Source
 #. Docker
@@ -36,7 +36,7 @@ General
 Ubuntu
 """"""
 
-- Install ``bz2``, ``ncurses``, ``zlib``.
+- Install ``bz2``, ``ncurses`` and ``zlib``.
 
 .. code-block:: console
 
@@ -48,6 +48,15 @@ Ubuntu
 
   export LC_ALL=en_US.UTF-8
   export LANG=en_US.UTF-8
+
+Fedora
+""""""
+
+- Install ``bzip2``, ``ncurses`` and ``zlib``.
+
+.. code-block:: console
+
+  sudo dnf install zlib-devel ncurses-devel bzip2-devel
 
 OS X
 """"
