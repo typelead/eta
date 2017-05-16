@@ -22,9 +22,9 @@ Visit [eta-lang.org](http://eta-lang.org) for instructions on getting started.
 
 **Version:** 0.0.6
 
-**Stable Build:** 0.0.6b3
+**Stable Build:** 0.0.6b5
 
-**Latest Build:** 0.0.6b4
+**Latest Build:** 0.0.6b5
 
 Active development is taking place in the following areas:
 
