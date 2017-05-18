@@ -1,8 +1,9 @@
-{-# GHC_OPTIONS -XNoOverloadedStrings #-}
+{-# OPTIONS_GHC -XNoOverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 import Development.Shake
-import Development.Shake.Command
+-- import Development.Shake.Command
 import Development.Shake.FilePath
-import Development.Shake.Util
+-- import Development.Shake.Util
 
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
@@ -10,9 +11,10 @@ import Distribution.ModuleName (fromString)
 
 import Control.Monad
 import Data.List
+import Data.Maybe
 import System.Console.GetOpt
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory,
-                         createDirectory, removeDirectory, findExecutable)
+                         createDirectory)
 
 -- * Standard file/directory paths
 rtsDir, libraryDir, rtsBuildDir, rtsSrcDir, rtsjar :: FilePath
@@ -71,10 +73,10 @@ topologicalDepsSort xs deps = sort' xs []
 getLibs :: Action [String]
 getLibs = fmap (\\ ignoreList) $ getDirectoryDirs libraryDir
 
-buildLibrary :: Bool -> String -> [String] -> Action ()
-buildLibrary debug lib _deps = do
+buildLibrary :: Bool -> (String -> String) -> String -> [String] -> Action ()
+buildLibrary debug binPathArg lib _deps = do
   let dir = library lib
-      installFlags = ["--allow-boot-library-installs"]
+      installFlags = ["--allow-boot-library-installs", binPathArg "../../"]
       configureFlags = if debug
                        then ["--enable-optimization=0"
                             ,"--eta-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
@@ -143,8 +145,16 @@ testSpec specPath = do
 
 -- * Command line flags
 
-flags :: [OptDescr (Either a Bool)]
-flags = [Option "" ["debuginfo"] (NoArg $ Right True) "Run with debugging information."]
+data BuildFlags = BuildDebugInfo
+                | BuildBinaries { binFilePath :: FilePath }
+                deriving Eq
+
+flags :: [OptDescr (Either String BuildFlags)]
+flags =
+  [
+    Option "" ["debuginfo"] (NoArg $ Right $ BuildDebugInfo) "Run with debugging information."
+  , Option "" ["binaries"]  (ReqArg (Right . BuildBinaries) "DIR") "Build binaries for the base libraries"
+  ]
 
 -- * The main build script
 main :: IO ()
@@ -154,9 +164,16 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       then want [rtsjar]
       else want targets
 
-    let debug = case flags' of
-                  _:_ -> True
-                  _   -> False
+    let debug = BuildDebugInfo `elem` flags'
+        binaryOutputPath = fmap binFilePath
+                         $ find (\case
+                                    BuildBinaries _ -> True
+                                    _ -> False)
+                         $ reverse flags'
+        binPathArg s = maybe "" (\p -> "--binaries-output-dir="
+                                    ++ (if isRelative p then s else "")
+                                    ++ p)
+                       binaryOutputPath
 
     phony "install" $ do
       rootDir <- getEtaRoot
@@ -177,8 +194,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
-          buildLibrary debug lib (getDependencies lib)
-        unit $ cmd ["etlas", "install", "template-haskell", "--allow-boot-library-installs"]
+          buildLibrary debug binPathArg lib (getDependencies lib)
+        unit $ cmd ["etlas", "install", "template-haskell", "--allow-boot-library-installs",binPathArg ""]
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]

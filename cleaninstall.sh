@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 INSTALL_DIR="$1"
-if [ -z "$INSTALL_DIR" ]
+if [ \( -z "$INSTALL_DIR" \) -o \( "-" = "$INSTALL_DIR" \) ]
 then
     INSTALL_DIR=`stack path --local-bin`
     if [ -z "$INSTALL_DIR" ]
