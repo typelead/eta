@@ -306,9 +306,9 @@ unboxArg vs arg
                           [ (DataAlt nothingDataCon, [],
                              mkCoreLet (NonRec (getIdFromTrivialExpr primArg)
                                                (mkCoreApps (Var unsafeCoerceId)
-                                                           [ Type addrPrimTy
+                                                           [ Type (mkObjectPrimTy jstringTy) -- TODO: Hack, change this? -RM
                                                            , Type primTy
-                                                           , Lit nullAddrLit ]))
+                                                           , Lit nullRefLit ]))
                                        body),
                             (DataAlt justDataCon, [innerArg], bodyWrapper body)])
   | isProductType && dataConArity == 1 = do

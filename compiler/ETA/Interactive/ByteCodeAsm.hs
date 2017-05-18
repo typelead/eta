@@ -416,6 +416,7 @@ assembleI dflags i = case i of
     literal (MachWord w)       = int (fromIntegral w)
     literal (MachInt j)        = int (fromIntegral j)
     literal MachNullAddr       = int 0
+    literal MachNull           = int 0 -- TODO: Must change this
     literal (MachFloat r)      = float (fromRational r)
     literal (MachDouble r)     = double (fromRational r)
     literal (MachChar c)       = int (ord c)

@@ -38,7 +38,7 @@ module ETA.BasicTypes.Literal
         , narrow8WordLit, narrow16WordLit, narrow32WordLit
         , char2IntLit, int2CharLit
         , float2IntLit, int2FloatLit, double2IntLit, int2DoubleLit
-        , nullAddrLit, float2DoubleLit, double2FloatLit
+        , nullAddrLit, nullRefLit, float2DoubleLit, double2FloatLit
         ) where
 
 #include "HsVersions.h"
@@ -116,8 +116,9 @@ data Literal
                                 --    @stdcall@ labels. @Just x@ => @\<x\>@ will
                                 --    be appended to label name when emitting assembly.
 
-  | LitInteger Integer Type --  ^ Integer literals
-                            -- See Note [Integer literals]
+  | LitInteger Integer Type     -- ^ Integer literals
+                                -- See Note [Integer literals]
+  | MachNull                    -- ^ The 'null' reference in Java
   deriving (Data, Typeable)
 
 {-
@@ -158,6 +159,7 @@ instance Binary Literal where
              put_ bh mb
              put_ bh fod
     put_ bh (LitInteger i _) = do putByte bh 10; put_ bh i
+    put_ bh (MachNull)       = do putByte bh 11
     get bh = do
             h <- getByte bh
             case h of
@@ -192,10 +194,13 @@ instance Binary Literal where
                     mb <- get bh
                     fod <- get bh
                     return (MachLabel aj mb fod)
+              10 -> do
+                     i <- get bh
+                     -- See Note [Integer literals]
+                     return $ mkLitInteger i (panic "Evaluated the place holder for mkInteger")
               _ -> do
-                    i <- get bh
-                    -- See Note [Integer literals]
-                    return $ mkLitInteger i (panic "Evaluated the place holder for mkInteger")
+                    return (MachNull)
+
 
 instance Outputable Literal where
     ppr lit = pprLiteral (\d -> d) lit
@@ -332,6 +337,9 @@ double2FloatLit l              = pprPanic "double2FloatLit" (ppr l)
 nullAddrLit :: Literal
 nullAddrLit = MachNullAddr
 
+nullRefLit :: Literal
+nullRefLit = MachNull
+
 {-
         Predicates
         ~~~~~~~~~~
@@ -370,6 +378,7 @@ litIsLifted _               = False
 -- | Find the Haskell 'Type' the literal occupies
 literalType :: Literal -> Type
 literalType MachNullAddr    = addrPrimTy
+literalType MachNull        = mkObjectPrimTy jstringTy -- TODO: Hack, please change this -RM
 literalType (MachChar _)    = charPrimTy
 literalType (MachStr  _)    = mkObjectPrimTy jstringTy
 literalType (MachInt  _)    = intPrimTy
@@ -405,6 +414,7 @@ cmpLit :: Literal -> Literal -> Ordering
 cmpLit (MachChar      a)   (MachChar       b)   = a `compare` b
 cmpLit (MachStr       a)   (MachStr        b)   = a `compare` b
 cmpLit (MachNullAddr)      (MachNullAddr)       = EQ
+cmpLit (MachNull)          (MachNull)           = EQ
 cmpLit (MachInt       a)   (MachInt        b)   = a `compare` b
 cmpLit (MachWord      a)   (MachWord       b)   = a `compare` b
 cmpLit (MachInt64     a)   (MachInt64      b)   = a `compare` b
@@ -428,6 +438,7 @@ litTag (MachFloat     _)   = _ILIT(8)
 litTag (MachDouble    _)   = _ILIT(9)
 litTag (MachLabel _ _ _)   = _ILIT(10)
 litTag (LitInteger  {})    = _ILIT(11)
+litTag (MachNull)          = _ILIT(12)
 
 {-
         Printing
@@ -445,6 +456,7 @@ pprLiteral _       (MachStr s)      = pprHsBytes s
 pprLiteral _       (MachInt i)      = pprIntVal i
 pprLiteral _       (MachDouble d)   = double (fromRat d)
 pprLiteral _       (MachNullAddr)   = ptext (sLit "__NULL")
+pprLiteral _       (MachNull)       = ptext (sLit "__null")
 pprLiteral add_par (LitInteger i _) = add_par (ptext (sLit "__integer") <+> integer i)
 pprLiteral add_par (MachInt64 i)    = add_par (ptext (sLit "__int64") <+> integer i)
 pprLiteral add_par (MachWord w)     = add_par (ptext (sLit "__word") <+> integer w)
@@ -481,8 +493,9 @@ hashLiteral (MachWord i)        = hashInteger i
 hashLiteral (MachWord64 i)      = hashInteger i
 hashLiteral (MachFloat r)       = hashRational r
 hashLiteral (MachDouble r)      = hashRational r
-hashLiteral (MachLabel s _ _)     = hashFS s
+hashLiteral (MachLabel s _ _)   = hashFS s
 hashLiteral (LitInteger i _)    = hashInteger i
+hashLiteral (MachNull)          = 0 -- TODO: Will this cause problems? -RM
 
 hashRational :: Rational -> Int
 hashRational r = hashInteger (numerator r)

@@ -26,6 +26,7 @@ cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
 cgLit MachNullAddr          = (jobject, nullAddr)
+cgLit MachNull              = (jobject, aconst_null jobject)
 cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
