@@ -19,8 +19,8 @@ cProjectName = "The Eta programming language compiler"
 cProjectVersion = "0.0.6b" ++ cProjectPatchLevel
 cProjectVersionInt = "6"
 -- @BUILD_NUMBER@
-cProjectPatchLevel = "5"
-cProjectPatchLevel1 = "5"
+cProjectPatchLevel = "6"
+cProjectPatchLevel1 = "6"
 cProjectPatchLevel2 = ""
 cProjectHomeURL = "http://github.com/typelead/eta"
 cProjectIssueReportURL = cProjectHomeURL ++ "/issues"
