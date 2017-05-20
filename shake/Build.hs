@@ -228,6 +228,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
 
     phony "uninstall" $ do
       rootDir <- getEtaRoot
+      createDirIfMissing rootDir
       putNormal "Cleaning files in ~/.eta"
       removeFilesAfter rootDir ["//*"]
 
