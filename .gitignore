@@ -15,3 +15,6 @@ utils/trace/TRACE_DUMP
 node_modules/
 *.egg-info
 result
+utils/scripts/lib/
+release.log
+binaries/
