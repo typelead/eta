@@ -39,6 +39,7 @@ public class Concurrent {
     public static RtsFun yield_noregs = new YieldNoRegs();
     public static RtsFun isCurrentThreadBound = new IsCurrentThreadBound();
     public static RtsFun threadStatus = new ThreadStatus();
+    public static RtsFun traceEvent = new TraceEvent();
 
     private static class TakeMVar extends RtsFun {
         @Override
@@ -207,6 +208,12 @@ public class Concurrent {
             context.I(1, ret);
             context.I(2, cap);
             context.I(3, locked);
+        }
+    }
+
+    private static class TraceEvent extends RtsFun {
+        @Override
+        public void enter(StgContext context) {
         }
     }
 
