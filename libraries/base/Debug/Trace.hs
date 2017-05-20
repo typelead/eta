@@ -35,8 +35,8 @@ module Debug.Trace (
 
         -- * Eventlog tracing
         -- $eventlog_tracing
-        -- traceEvent, TODO: Implement!
-        -- traceEventIO,
+        traceEvent,
+        traceEventIO,
 
         -- * Execution phase markers
         -- $markers
@@ -221,10 +221,10 @@ traceShowM = traceM . show
 -- that uses 'traceEvent'.
 --
 -- @since 4.5.0.0
--- traceEvent :: String -> a -> a
--- traceEvent msg expr = unsafeDupablePerformIO $ do
---     traceEventIO msg
---     return expr
+traceEvent :: String -> a -> a
+traceEvent msg expr = unsafeDupablePerformIO $ do
+    traceEventIO msg
+    return expr
 
 -- | The 'traceEventIO' function emits a message to the eventlog, if eventlog
 -- profiling is available and enabled at runtime.
@@ -233,10 +233,10 @@ traceShowM = traceM . show
 -- other IO actions.
 --
 -- @since 4.5.0.0
--- traceEventIO :: String -> IO ()
--- traceEventIO msg =
---   GHC.Foreign.withCString utf8 msg $ \(Ptr p) -> IO $ \s ->
---     case traceEvent# p s of s' -> (# s', () #)
+traceEventIO :: String -> IO ()
+traceEventIO msg =
+  GHC.Foreign.withCString utf8 msg $ \(Ptr p) -> IO $ \s ->
+    case traceEvent# p s of s' -> (# s', () #)
 
 -- $markers
 --
