@@ -17,15 +17,20 @@ dependencies:
     - ~/.local
     - ~/.etlas
     - ~/.coursier
+    - ./.stack-work
+    - ./etlas/etlas/.stack-work
 
   pre:
     - mkdir -p ~/.local/bin
 
   override:
     - ./install.sh
+    - ./docker/circleci-build-container.sh build
+    - stack build --test --no-run-tests eta
 
 test:
   override:
+    - echo "Running tests"
     - stack test eta
 
   post:
@@ -33,3 +38,22 @@ test:
     - ./utils/scripts/circleci-trigger.sh typelead/eta-examples master $ETA_EXAMPLES_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
     - ./utils/scripts/circleci-trigger.sh typelead/eta-benchmarks master $ETA_BENCHMARKS_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
     - ./utils/scripts/circleci-trigger.sh rahulmutt/eta-2048 master $ETA_2048_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+
+deployment:
+  release:
+    owner: typelead
+    branch: [master]
+    commands:
+      - ./docker/circleci-build-container.sh push latest
+
+  development:
+    owner: typelead
+    branch: /.*/
+    commands:
+      - ./docker/circleci-build-container.sh push $CIRCLE_BRANCH
+
+  forks:
+    branch: /.*/
+    commands:
+      - echo "Fork branch deployment"
+      # - ./docker/circleci-build-container.sh push $CIRCLE_BRANCH
