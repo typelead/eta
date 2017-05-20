@@ -10,13 +10,12 @@ module ETA.Main.Constants where
 hiVersion :: Integer
 hiVersion = read cProjectVersionInt :: Integer
 
-cProjectName, cProjectVersion, cProjectVersionInt, cProjectPatchLevel, cProjectPatchLevel1,
-  cProjectPatchLevel2, cProjectHomeURL, cProjectIssueReportURL, ghcProjectVersion,
-  ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2
+cProjectName, cProjectVersion, cProjectVersionNumbers, cProjectVersionInt, cProjectPatchLevel, cProjectPatchLevel1, cProjectPatchLevel2, cProjectHomeURL, cProjectIssueReportURL, ghcProjectVersion, ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2
   :: String
-cProjectName = "The Eta programming language compiler"
+cProjectName = "Compiler for the Eta Programming Language"
 -- @VERSION_CHANGE@
 cProjectVersion = "0.0.6b" ++ cProjectPatchLevel
+cProjectVersionNumbers = "0.0.6." ++ cProjectPatchLevel
 cProjectVersionInt = "6"
 -- @BUILD_NUMBER@
 cProjectPatchLevel = "6"

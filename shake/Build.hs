@@ -11,7 +11,6 @@ import Distribution.ModuleName (fromString)
 
 import Control.Monad
 import Data.List
-import Data.Maybe
 import System.Console.GetOpt
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory,
                          createDirectory)
@@ -36,7 +35,9 @@ libJarPath lib = libCustomBuildDir lib </> libName lib
 
 getEtlasDir, getEtaRoot :: Action FilePath
 getEtlasDir = liftIO $ getAppUserDataDirectory "etlas"
-getEtaRoot  = liftIO $ getAppUserDataDirectory "eta"
+-- @VERSION_CHANGE@
+-- @BUILD_NUMBER@
+getEtaRoot  = liftIO $ fmap (</> "0.0.6.6") $ getAppUserDataDirectory "eta"
 
 -- * Utility functions for filepath handling in the Action monad
 
@@ -73,10 +74,16 @@ topologicalDepsSort xs deps = sort' xs []
 getLibs :: Action [String]
 getLibs = fmap (\\ ignoreList) $ getDirectoryDirs libraryDir
 
+nonNullString :: String -> [String]
+nonNullString str
+  | null str = []
+  | otherwise = [str]
+
 buildLibrary :: Bool -> (String -> String) -> String -> [String] -> Action ()
 buildLibrary debug binPathArg lib _deps = do
   let dir = library lib
-      installFlags = ["--allow-boot-library-installs", binPathArg "../../"]
+      installFlags = ["--allow-boot-library-installs"]
+                  ++ nonNullString (binPathArg "../../")
       configureFlags = if debug
                        then ["--enable-optimization=0"
                             ,"--eta-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
@@ -195,7 +202,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
-        unit $ cmd ["etlas", "install", "template-haskell", "--allow-boot-library-installs",binPathArg ""]
+        unit $ cmd $ ["etlas", "install", "template-haskell", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]

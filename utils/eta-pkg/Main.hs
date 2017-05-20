@@ -609,7 +609,8 @@ getPkgDatabases verbosity mode use_user use_cache expand_vars my_flags = do
   -- wrapper script.
   -- TODO: We don't have a global package db yet
   let err_msg = "missing --global-package-db option, location of global package database unknown\n"
-  e_appdir <- tryIO $ getAppUserDataDirectory "eta"
+  -- NOTE: This mean eta-pkg and eta should ALWAYS have the same version
+  e_appdir <- tryIO $ fmap (</> myVersion) $ getAppUserDataDirectory "eta"
   global_conf <-
      case [ f | FlagGlobalConfig f <- my_flags ] of
         [] -> case e_appdir of

@@ -89,8 +89,7 @@ main = do
           case preStartupMode of
             ShowSupportedExtensions   -> showSupportedExtensions
             ShowVersion               -> showVersion
-            ShowNumVersion            -> putStrLn $
-              map (\c -> if c == 'b' then '.' else c) cProjectVersion
+            ShowNumVersion            -> putStrLn cProjectVersionNumbers
             ShowOptions isInteractive -> showOptions isInteractive
         Right postStartupMode ->
             -- start our GHC session
