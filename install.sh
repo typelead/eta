@@ -1,3 +1,6 @@
 #!/usr/bin/env sh
 
-stack setup && ./cleaninstall.sh
+set -e
+
+stack setup
+./cleaninstall.sh "$@"
