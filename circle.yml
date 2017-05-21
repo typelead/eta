@@ -17,8 +17,7 @@ dependencies:
     - ~/.local
     - ~/.etlas
     - ~/.coursier
-    - ./.stack-work
-    - ./etlas/etlas/.stack-work
+    - ~/eta/.stack-work
 
   pre:
     - mkdir -p ~/.local/bin
