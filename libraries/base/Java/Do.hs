@@ -7,6 +7,17 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import Java
 
+class JFunctor (f :: * -> *) where
+  jfmap :: (Class a, Class b) => Function a b -> f a -> f b
+
+class JFunctor f => JApplicative (f :: * -> *) where
+  jpure :: (Class a) => a -> f a
+  jstar :: (Class a, Class b, Class (Function a b)) => f (Function a b) -> f a -> f b
+
+class JApplicative m => JMonad (m :: * -> *) where
+  jbind :: (Class a, Class b) => m a -> (a -> m b) -> m b
+  jreturn :: (Class a) => a -> m a
+
 data {-# CLASS "java.util.function.Function" #-} Function a b = Function (Object# (Function a b))
   deriving (Class, Eq, Show)
 
@@ -15,6 +26,22 @@ foreign import java unsafe "@wrapper apply"
 
 foreign import java unsafe "apply" funApply :: (t <: Object, r <: Object) =>
   Function t r -> t -> r
+
+flatWrap f = fun $ M.return . f
+
+(>>=) :: (JMonad m, Class a, Class b) => m a -> (a -> m b) -> m b
+(>>=) = jbind
+
+(>>) :: (JMonad m, Class a, Class b) => m a -> m b -> m b
+(>>) ma mb = jbind ma (const mb)
+
+(<$>) f a = jfmap (toJavaFun f) a
+
+(<*>) :: (JApplicative f, Class a, Class b) => f (Function a b) -> f a -> f b
+(<*>) = jstar
+
+return :: (JMonad m, Class a) => a -> m a
+return = jreturn
 
 -- Used purely for typeclass instance resolution
 newtype Argument a = Argument a
