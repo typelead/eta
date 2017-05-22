@@ -37,7 +37,7 @@ getEtlasDir, getEtaRoot :: Action FilePath
 getEtlasDir = liftIO $ getAppUserDataDirectory "etlas"
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
-getEtaRoot  = liftIO $ fmap (</> "0.0.6.6") $ getAppUserDataDirectory "eta"
+getEtaRoot  = liftIO $ fmap (</> "0.0.6.7") $ getAppUserDataDirectory "eta"
 
 -- * Utility functions for filepath handling in the Action monad
 
