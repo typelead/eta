@@ -28,26 +28,26 @@ case $1 in
     rm -rf ./docker/bin/.etlas/packages/*
 
     echo "Building an image: $HASH_TAG"
-    docker build -t $HASH_TAG ./docker
+    docker build -t "$HASH_TAG" ./docker
     set +e
   ;;
 
   push)
     set -e
     echo "Logging into docker"
-    docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+    docker login -e "$DOCKER_EMAIL" -u "$DOCKER_USER" -p "$DOCKER_PASS"
 
     echo "Push: $HASH_TAG"
-    docker push $HASH_TAG
+    docker push "$HASH_TAG"
 
     if [ "$CURRENT_TAG" ]; then
       echo "Push: $DOCKER_REPO:$CURRENT_TAG"
-      docker tag $HASH_TAG "$DOCKER_REPO:$CURRENT_TAG"
+      docker tag "$HASH_TAG" "$DOCKER_REPO:$CURRENT_TAG"
       docker push "$DOCKER_REPO:$CURRENT_TAG"
     fi
     if [ "$EXTRA_TAG" ]; then
         echo "Push: $DOCKER_REPO:$EXTRA_TAG"
-        docker tag $HASH_TAG "$DOCKER_REPO:$EXTRA_TAG"
+        docker tag "$HASH_TAG" "$DOCKER_REPO:$EXTRA_TAG"
         docker push "$DOCKER_REPO:$EXTRA_TAG"
     fi
     set +e
