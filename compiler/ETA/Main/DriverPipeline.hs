@@ -1091,7 +1091,8 @@ doCpp dflags _raw input_fn output_fn = do
     etaVersionH <- getEtaVersionPathName dflags
     let hsSourceCppOpts =
           [ "-D__GLASGOW_HASKELL__=" ++ ghcProjectVersionInt
-          , "-D__ETA_VERSION__=" ++ cProjectVersionInt
+          , "-DETA_VERSION=" ++ cProjectVersionInt
+          , "-DETA_BUILD_NUMBER=" ++ cProjectPatchLevel
           , "--include=" ++ etaVersionH
           ]
         flags = verbFlags   ++ include_paths ++ hsSourceCppOpts
