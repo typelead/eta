@@ -1,5 +1,20 @@
 {-# LANGUAGE NoImplicitPrelude, KindSignatures, TypeOperators, MagicHash, FlexibleContexts, TypeFamilies, ScopedTypeVariables, InstanceSigs #-}
 
+module Java.Do
+  ((>>=)
+  ,(>>)
+  ,(<$>)
+  ,(<*>)
+  ,return
+  ,toJavaFun
+  ,flatWrap
+  ,fun
+  ,funApply
+  ,Function(..)
+  ,JFunctor(..)
+  ,JApplicative(..)
+  ,JMonad(..))
+where
 
 import Prelude (const, Eq, Show, ($), (.))
 import qualified Control.Monad as M (return)
