@@ -84,6 +84,10 @@ import System.Directory
 import System.FilePath
 -- import System.IO
 import System.PosixCompat.Files (fileExist, touchFile)
+#ifdef mingw32_HOST_OS
+import qualified System.Win32.File as Win32
+import qualified System.Win32.Time as Win32
+#endif
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
 import Data.List        ( partition, nub )
@@ -1173,8 +1177,30 @@ touchObjectFile _dflags path = do
   createDirectoryIfMissing True $ takeDirectory path
   exists <- fileExist path
   if exists
-    then touchFile path
+    then touchFile' path
     else writeFile path ""
+  where
+    -- this is a shim until unix-compat rightfully
+    -- implements `touchFile` for Windows.
+    touchFile' p = do
+#ifdef mingw32_HOST_OS
+      let open = Win32.createFile
+                   p
+                   Win32.gENERIC_WRITE
+                   Win32.fILE_SHARE_NONE
+                   Nothing
+                   Win32.oPEN_EXISTING
+                   Win32.fILE_ATTRIBUTE_NORMAL
+                   Nothing
+
+      bracket open Win32.closeHandle $ \handle -> do
+        (creationTime, _, _) <- Win32.getFileTime handle
+        systemTime <- Win32.getSystemTimeAsFileTime
+        Win32.setFileTime handle creationTime systemTime systemTime
+#else
+      touchFile p
+#endif
+
 
 haveRtsOptsFlags :: DynFlags -> Bool
 haveRtsOptsFlags dflags =
