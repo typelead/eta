@@ -1464,7 +1464,7 @@ public final class Capability {
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
         TRecEntry entry = searchResult.entry;
-        if (entry == null) {
+        if (entry != null) {
             if (entryIn != trec) {
                 TRecEntry newEntry = getNewEntry(trec);
                 newEntry.tvar = tvar;

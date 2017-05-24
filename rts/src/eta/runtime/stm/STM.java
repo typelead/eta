@@ -71,20 +71,31 @@ public class STM {
 
     public static EntrySearchResult getEntry(StgTRecHeader trec, StgTVar tvar) {
         EntrySearchResult result = null;
+        System.out.println("Testing: " + trec.chunkStack.size() + " more : "+ trec.chunkStack.toArray());
+        StgTRecChunk x = trec.chunkStack.peek();
+        System.out.println("Content: "+ x.entries);
+        System.out.println("The Tvar:" + tvar);
+        System.out.println("TRec:" + trec);
         do {
             ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+            System.out.println(cit.hasPrevious());
             loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
+                System.out.println("Chunk:" + chunk);
+                System.out.println("Entries:" + chunk.entries);
                 for (TRecEntry entry: chunk.entries) {
+                    System.out.println("Check:" + entry.tvar);
                     if (entry.tvar == tvar) {
                         result = new EntrySearchResult(trec, entry);
+                        System.out.println("I am here:" + result);
                         break loop;
                     }
                 }
             }
             trec = trec.enclosingTrec;
         } while (result == null && trec != null);
+        System.out.println("Result:" + result);
         return result;
     }
 
