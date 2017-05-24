@@ -1644,7 +1644,7 @@ public final class Capability {
         /* TODO: Verify logic is correct */
         ListIterator<StgTRecChunk> cit = trec.chunkIterator();
         StgTRecChunk currentChunk = cit.previous();
-        StgTRecChunk chunk = cit.previous();
+        StgTRecChunk chunk = currentChunk;
         while (cit.hasPrevious()) {
             StgTRecChunk prevChunk = cit.previous();
             freeTRecChunk(chunk);
