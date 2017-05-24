@@ -1462,8 +1462,12 @@ public final class Capability {
     public final StgClosure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
         StgClosure result;
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = searchResult.header;
-        TRecEntry entry = searchResult.entry;
+        StgTRecHeader entryIn = null;
+        TRecEntry entry = null;
+        if(searchResult != null){
+            entryIn = searchResult.header;
+            entry = searchResult.entry;
+        }
         if (entry != null) {
             if (entryIn != trec) {
                 TRecEntry newEntry = getNewEntry(trec);
