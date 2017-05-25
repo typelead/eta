@@ -1513,9 +1513,13 @@ public final class Capability {
 
     public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, StgClosure newValue) {
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = searchResult.header;
-        TRecEntry entry = searchResult.entry;
-        if (entry == null) {
+        StgTRecHeader entryIn = null;
+        TRecEntry entry = null;
+        if(searchResult != null){
+            entryIn = searchResult.header;
+            entry = searchResult.entry;
+        }
+        if (entry != null) {
             if (entryIn == trec) {
                 entry.newValue = newValue;
             }else {
