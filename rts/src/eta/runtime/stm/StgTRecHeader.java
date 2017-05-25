@@ -4,7 +4,6 @@ import java.util.Stack;
 import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.ListIterator;
-import java.util.Optional;
 
 import eta.runtime.RtsFlags;
 import eta.runtime.stg.StgClosure;
@@ -62,12 +61,11 @@ public class StgTRecHeader extends StgClosure {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
                 StgTVar s = e.tvar;
-                Optional<EntrySearchResult> result = STM.getEntry(enclosingTrec, s);
-                Optional<TRecEntry> entry = result.map(x -> x.entry);
-                //TRecEntry entry = result.entry;
-                if (entry.isPresent()) {
-                    e.expectedValue = entry.get().newValue;
-                    e.newValue = entry.get().newValue;
+                EntrySearchResult result = STM.getEntry(enclosingTrec, s);
+                TRecEntry entry = result.entry;
+                if (entry != null) {
+                    e.expectedValue = entry.newValue;
+                    e.newValue = entry.newValue;
                 }
                 /* TODO: Verify order */
                 s.watchQueue.offer(inv);

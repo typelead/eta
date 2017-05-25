@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
-import java.util.Optional;
 import java.util.Deque;
 import java.util.Stack;
 import java.util.Queue;
@@ -1462,17 +1461,21 @@ public final class Capability {
     /* STM Operations */
     public final StgClosure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
         StgClosure result;
-        Optional<EntrySearchResult> searchResult = STM.getEntry(trec, tvar);
-        Optional<StgTRecHeader> entryIn = searchResult.map(x -> x.header);
-        Optional<TRecEntry> entry = searchResult.map(x -> x.entry);
-        if (entry.isPresent()) {
-            if (entryIn.get() != trec) {
+        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
+        StgTRecHeader entryIn = null;
+        TRecEntry entry = null;
+        if(searchResult != null){
+            entryIn = searchResult.header;
+            entry = searchResult.entry;
+        }
+        if (entry != null) {
+            if (entryIn != trec) {
                 TRecEntry newEntry = getNewEntry(trec);
                 newEntry.tvar = tvar;
-                newEntry.expectedValue = entry.get().expectedValue;
-                newEntry.newValue = entry.get().newValue;
+                newEntry.expectedValue = entry.expectedValue;
+                newEntry.newValue = entry.newValue;
             }
-            result = entry.get().newValue;
+            result = entry.newValue;
         } else {
             StgClosure currentValue = STM.readCurrentValue(trec, tvar);
             TRecEntry newEntry = getNewEntry(trec);
@@ -1508,24 +1511,17 @@ public final class Capability {
         return result;
     }
 
-    void foo(TRecEntry entry, StgClosure newValue){
-        entry.newValue = newValue;
-    }
-
     public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, StgClosure newValue) {
-        Optional<EntrySearchResult> searchResult = STM.getEntry(trec, tvar);
-        Optional<StgTRecHeader> entryIn = searchResult.map(x -> x.header);
-        Optional<TRecEntry> entry = searchResult.map(x -> x.entry);
-        if (entry.isPresent()) {
-            if (entryIn.get() == trec) {
-                entry.map(e -> {
-                        e.newValue = newValue;
-                        return e;
-                    });
+        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
+        StgTRecHeader entryIn = searchResult.header;
+        TRecEntry entry = searchResult.entry;
+        if (entry == null) {
+            if (entryIn == trec) {
+                entry.newValue = newValue;
             }else {
                 TRecEntry newEntry = getNewEntry(trec);
                 newEntry.tvar = tvar;
-                newEntry.expectedValue = entry.get().expectedValue;
+                newEntry.expectedValue = entry.expectedValue;
                 newEntry.newValue = newValue;
             }
         } else {

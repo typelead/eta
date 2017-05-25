@@ -2,7 +2,6 @@ package eta.runtime.stm;
 
 import java.util.Stack;
 import java.util.ListIterator;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.RtsFlags;
@@ -70,7 +69,7 @@ public class STM {
         }
     }
 
-    public static Optional<EntrySearchResult> getEntry(StgTRecHeader trec, StgTVar tvar) {
+    public static EntrySearchResult getEntry(StgTRecHeader trec, StgTVar tvar) {
         EntrySearchResult result = null;
         do {
             ListIterator<StgTRecChunk> cit = trec.chunkIterator();
@@ -86,7 +85,7 @@ public class STM {
             }
             trec = trec.enclosingTrec;
         } while (result == null && trec != null);
-        return Optional.ofNullable(result);
+        return result;
     }
 
     public static StgClosure readCurrentValue(StgTRecHeader trec, StgTVar tvar) {
