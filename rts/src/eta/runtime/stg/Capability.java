@@ -1303,6 +1303,16 @@ public final class Capability {
         runQueue.remove(tso);
     }
 
+    public final void throwToSelf (StgTSO tso, StgClosure exception)
+    {
+        MessageThrowTo m = throwTo(tso, tso, exception);
+
+        if (m != null) {
+            // throwTo leaves it locked
+            m.unlock();
+        }
+    }
+
     public final MessageThrowTo throwTo(StgTSO source, StgTSO target, StgClosure exception) {
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
         msg.lock();
