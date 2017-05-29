@@ -25,6 +25,7 @@ import GHC.Magic ()
 import GHC.Prim
 import GHC.Tuple
 import GHC.Types
+import GHC.CString
 
 
 infix  4  ==, /=, <, <=, >=, >
@@ -300,24 +301,29 @@ x# `modInt#` y#
     !r# = x# `remInt#` y#
 
 class Class a where
-  unobj :: a -> Object# a
-  obj   :: Object# a -> a
+  unobj           ::         a -> Object# a
+  obj             :: Object# a ->         a
+  classIdentifier :: Proxy#  a -> [Char]
 
 instance Class Object where
   unobj (O# x) = x
   obj = O#
+  classIdentifier _ = "java.lang.Object"
 
 instance Class JString where
   unobj (JS# x) = x
   obj = JS#
+  classIdentifier _ = "java.lang.String"
 
 instance Class CharSequence where
   unobj (CS# x) = x
   obj = CS#
+  classIdentifier _ = "java.lang.CharSequence"
 
 instance (Class t) => Class (Comparable t) where
   unobj (CT# x) = x
   obj = CT#
+  classIdentifier _ = "java.lang.Comparable"
 
 foreign import java unsafe "@interface compareTo" compareTo :: (t <: Comparable t) => t -> t -> Int
 
