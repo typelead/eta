@@ -57,25 +57,6 @@ cgOpApp (StgPrimOp ObjectArrayNewOp) args resType = do
                          . head . tail . snd
                          $ splitTyConApp resType
 
-cgOpApp (StgPrimOp GetClassOp) [_arg] resType = do
-  -- TODO: Support array types
-  emitReturn [mkLocDirect False
-              ( clasFt
-              , sconst objText
-             <> invokestatic (mkMethodRef clas "forName" [jstring] (ret clasFt)))]
-  where --proxyTy  = stgArgType arg
-        objTy    = maybe Nothing (Just . head . snd)
-                 . splitTyConApp_maybe
-                 . head . snd . splitTyConApp
-                 $ resType
-        objText  = maybe
-                     "java.lang.Object"
-                     ( T.map (\c -> if c == '/' then '.' else c)
-                     . tagTypeToText)
-                     objTy
-        clas = "java/lang/Class"
-        clasFt = obj clas
-
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
     argCodes <- getNonVoidArgFtCodes args

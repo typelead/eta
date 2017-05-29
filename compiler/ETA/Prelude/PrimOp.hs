@@ -541,7 +541,6 @@ data PrimOp
    | ClassCastOp
    | ObjectArrayNewOp
    | ArrayLengthOp
-   | GetClassOp
    | IsNullObjectOp
    | Int2JByteOp
    | JShort2IntOp
@@ -1685,7 +1684,7 @@ tagOf_PrimOp Int2JBoolOp = _ILIT(1103)
 tagOf_PrimOp ClassCastOp = _ILIT(1104)
 tagOf_PrimOp ObjectArrayNewOp = _ILIT(1105)
 tagOf_PrimOp ArrayLengthOp = _ILIT(1106)
-tagOf_PrimOp GetClassOp = _ILIT(1107)
+-- 1107 is FREE
 tagOf_PrimOp IsNullObjectOp = _ILIT(1108)
 tagOf_PrimOp GetSizeofMutableByteArrayOp = _ILIT(1109)
 tagOf_PrimOp Int2JByteOp = _ILIT(1110)
@@ -2847,7 +2846,6 @@ allThePrimOps =
    , ClassCastOp
    , ObjectArrayNewOp
    , ArrayLengthOp
-   , GetClassOp
    , IsNullObjectOp
    , Int2JByteOp
    , JShort2IntOp
@@ -4136,9 +4134,6 @@ primOpInfo ObjectArrayNewOp =
 primOpInfo ArrayLengthOp =
   mkGenPrimOp (fsLit "alength#") [alphaTyVar]
   [ mkObjectPrimTy alphaTy ] intPrimTy
-primOpInfo GetClassOp =
-  mkGenPrimOp (fsLit "getClass#") [alphaTyVar, betaTyVar]
-  [ mkProxyPrimTy liftedTypeKind alphaTy ] (mkObjectPrimTy betaTy)
 primOpInfo IsNullObjectOp = mkGenPrimOp (fsLit "isNullObject#")  [alphaTyVar] [(mkObjectPrimTy alphaTy)] intPrimTy
 primOpInfo Int2JByteOp = mkGenPrimOp (fsLit "int2jbyte#")  [] [intPrimTy] jbytePrimTy
 primOpInfo JShort2IntOp = mkGenPrimOp (fsLit "jshort2int#")  [] [jshortPrimTy] intPrimTy
