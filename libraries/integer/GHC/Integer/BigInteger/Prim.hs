@@ -94,15 +94,13 @@ default ()
 
 data {-# CLASS "java.math.BigInteger" #-} BigInteger
   = BigInteger (Object# BigInteger)
+  deriving Class
 data {-# CLASS "java.math.BigInteger[]" #-} BigIntegerArray
+  = BigIntegerArray (Object# BigIntegerArray)
+  deriving Class
 
 type Integer# = Object# BigInteger
 type IntegerPair# = Object# BigIntegerArray
-
--- TODO: Add derive mechanism
-instance Class BigInteger where
-  obj = BigInteger
-  unobj (BigInteger x) = x
 
 -- NOTE: We need to do this in order to bypass the back that you can't have top level
 -- unboxed value bindings.
