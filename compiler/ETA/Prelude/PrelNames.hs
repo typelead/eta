@@ -379,6 +379,7 @@ basicKnownKeyNames
         , unobjName
         , fromJStringName
         , toJStringName
+        , classIdentifierName
     ]
 
 genericTyConNames :: [Name]
@@ -1243,7 +1244,7 @@ fingerprintDataConName =
 -- ETA-specific names
 javaTyConName, extendsFamTyConName, javaDataConName, extendsClassName,
   superCastName, unsafeCastName, fmapJavaName, classClassName, objName, unobjName,
-  fromJStringName, toJStringName :: Name
+  classIdentifierName, fromJStringName, toJStringName :: Name
 javaTyConName       = tcQual  gHC_TYPES   (fsLit "Java")        javaTyConKey
 extendsFamTyConName = tcQual  gHC_CLASSES (fsLit "Extends'")    extendsFamTyConKey
 javaDataConName     = conName gHC_TYPES   (fsLit "Java")        javaDataConKey
@@ -1254,6 +1255,7 @@ fmapJavaName        = varQual gHC_BASE    (fsLit "fmapJava")    fmapJavaIdKey
 classClassName      = clsQual gHC_CLASSES (fsLit "Class")       classClassKey
 objName             = varQual gHC_CLASSES (fsLit "obj")         objClassOpKey
 unobjName           = varQual gHC_CLASSES (fsLit "unobj")       unobjClassOpKey
+classIdentifierName = varQual gHC_CLASSES (fsLit "classIdentifier") classIdentifierClassOpKey
 fromJStringName     = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
 toJStringName       = varQual jAVA_STRING (fsLit "toJString")   toJStringIdKey
 
@@ -2014,7 +2016,8 @@ typeLitTypeRepKey = mkPreludeMiscIdUnique 506
 
 -- ETA-specific
 superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey, objClassOpKey
-  , unobjClassOpKey, fromJStringIdKey, toJStringIdKey :: Unique
+  , unobjClassOpKey, classIdentifierClassOpKey, fromJStringIdKey, toJStringIdKey
+    :: Unique
 superCastClassOpKey  = mkPreludeMiscIdUnique 507
 unsafeCastClassOpKey = mkPreludeMiscIdUnique 508
 fmapJavaIdKey        = mkPreludeMiscIdUnique 509
@@ -2022,6 +2025,7 @@ objClassOpKey        = mkPreludeMiscIdUnique 510
 unobjClassOpKey      = mkPreludeMiscIdUnique 511
 fromJStringIdKey     = mkPreludeMiscIdUnique 512
 toJStringIdKey       = mkPreludeMiscIdUnique 513
+classIdentifierClassOpKey = mkPreludeMiscIdUnique 514
 
 {-
 ************************************************************************

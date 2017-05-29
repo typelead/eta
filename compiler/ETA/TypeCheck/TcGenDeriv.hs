@@ -44,6 +44,7 @@ import ETA.Prelude.PrimOp
 import ETA.BasicTypes.SrcLoc
 import ETA.Types.TyCon
 import ETA.TypeCheck.TcType
+import ETA.Prelude.ForeignCall
 import ETA.Prelude.TysPrim
 import ETA.Prelude.TysWiredIn
 import ETA.Types.Type
@@ -1858,28 +1859,53 @@ gen_Traversable_binds loc tycon
 
 From the data type
 
-  data T a b = T1 (Object# (T a b))
+  data {-# CLASS "a.b.c.T" #-} T a b = T1 (Object# (T a b))
 
 we generate
 
   instance Class (T a b) where
     unobj (T1 o) = o
     obj o = T1 o
+    classIdentifier _ = "a.b.c.T"
 -}
 
 gen_Class_binds :: SrcSpan -> TyCon -> (LHsBinds RdrName, BagDerivStuff)
 gen_Class_binds loc tycon
-  = (listToBag [obj_bind, unobj_bind], emptyBag)
+  = (listToBag [obj_bind, unobj_bind, classIdentifier_bind], emptyBag)
   where obj_bind = mk_easy_FunBind loc obj_RDR [] (nlHsVar dataCon_RDR)
           -- nlHsApp (nlHsVar dataCon_RDR) (nlHsVar a_RDR)
         unobj_bind = mk_easy_FunBind loc unobj_RDR
                        [(nlConVarPat dataCon_RDR [a_RDR])] (nlHsVar a_RDR)
+        classIdentifier_bind = mk_easy_FunBind loc classIdentifier_RDR
+                       [nlWildPat] $ nlHsLit (mkHsString classIdString)
+        classIdString
+          | Just (CType _ _ fs) <- tyConCType_maybe tycon
+          = processClass (unpackFS fs)
+          | otherwise = pprPanic "Missing CLASS annotation for " (ppr tycon)
+        processClass str = go 0 (reverse str)
+          where go n (']':'[':s) = '[' : go (n + 1) s
+                go n s
+                  | n > 0     = convertElementType (reverse s)
+                  | otherwise = s
+        convertElementType elemTy =
+          case elemTy of
+            "boolean" -> "Z"
+            "byte"    -> "B"
+            "short"   -> "S"
+            "char"    -> "C"
+            "int"     -> "I"
+            "long"    -> "J"
+            "float"   -> "F"
+            "double"  -> "D"
+            object    -> "L" ++ object ++ ";"
+
         dataCon_RDR = getRdrName dataCon
         [dataCon] = tyConDataCons tycon
 
-obj_RDR, unobj_RDR :: RdrName
+obj_RDR, unobj_RDR, classIdentifier_RDR :: RdrName
 obj_RDR = nameRdrName objName
 unobj_RDR = nameRdrName unobjName
+classIdentifier_RDR = nameRdrName classIdentifierName
 
 {-
 ************************************************************************
