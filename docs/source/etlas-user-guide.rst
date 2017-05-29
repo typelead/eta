@@ -82,8 +82,25 @@ This enables tests and install HSpec (and any other needed dependencies).
 
 It packages up the files needed to build the project into a ``tar`` ball. Head `over here <https://wiki.haskell.org/How_to_write_a_Haskell_program#Using_Cabal>`_ for more.
 
-
-
 https://wiki.haskell.org/How_to_write_a_Haskell_program
 
-A thorough coverage of all the available fields in a cabal file is mentioned `here <http://cabal.readthedocs.io/en/latest/cabal-projectindex.html>`_  
+A thorough coverage of all the available fields in a cabal file is mentioned `here <http://cabal.readthedocs.io/en/latest/cabal-projectindex.html>`_ 
+
+
+Etlas Configuration
+-------------------
+
+You can edit the cabal configuration file to set defaults, for *nix based systems this is:
+
+#. .. code-block:: console
+
+      ~/.cabal/config
+
+The config file on a Windows system is:
+
+#. .. code-block:: console
+
+      %appdata%\cabal\config
+      
+
+
