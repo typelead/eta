@@ -35,7 +35,7 @@ case $1 in
   push)
     set -e
     echo "Logging into docker"
-    docker login -e '$(shell echo $$DOCKER_EMAIL)' -u "$DOCKER_USER" -p '$(shell echo $$DOCKER_PASS)'
+    docker login -e "$DOCKER_EMAIL" -u "$DOCKER_USER" -p '$(shell echo $$DOCKER_PASS)'
 
     echo "Push: $HASH_TAG"
     docker push "$HASH_TAG"
