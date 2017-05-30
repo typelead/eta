@@ -24,7 +24,7 @@ Visit [eta-lang.org](http://eta-lang.org) for instructions on getting started.
 
 **Stable Build:** 0.0.6b7
 
-**Latest Build:** 0.0.6b7
+**Latest Build:** 0.0.6b8
 
 Active development is taking place in the following areas:
 
