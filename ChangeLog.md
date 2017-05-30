@@ -1,5 +1,15 @@
 # Revision history for eta
 
+## 0.0.6b8  -- 2017-05-30
+
+### Eta
+* `Java.Do` module is now available that lets you use do-notation for Java objects that satisfy a monad-like structure.
+* The `getClass#` primop has been removed due to being ill-defined (performs type inspection). (#403)
+
+### Etlas
+* Eta binaries are installed if no `eta` is found on the PATH.
+* Proxy settings now work (#387).
+
 ## 0.0.6b7  -- 2017-05-22
 
 ### Eta
