@@ -90,7 +90,7 @@ A thorough coverage of all the available fields in a cabal file is mentioned `he
 Etlas Configuration
 -------------------
 
-You can edit the cabal configuration file to set defaults, for *nix based systems this is:
+You can edit the cabal configuration file to change various default settings for etlas and the external programs used by it, for *nix based systems this is:
 
 #. .. code-block:: console
 
@@ -102,5 +102,27 @@ The config file on a Windows system is:
 
       %appdata%\cabal\config
       
+Proxy Configuration
+-------------------
 
+Etlas tries to use your default proxy settings for its connections to download content. However, you can set the proxy settings for fetching maven dependencies in the cabal config file, as `java proxy options <https://docs.oracle.com/javase/8/docs/technotes/guides/net/proxies.html>`_:
 
+Changing:
+
+#. .. code-block:: console
+
+      program-default-options
+      
+      ....
+      
+      -- java-options:
+
+for something like (for https connections):
+
+#. .. code-block:: console
+
+      program-default-options
+      
+      ....
+      
+      java-options: -Dhttps.proxyHost=host -Dhttps.proxyPort=port -Dhttps.proxyUser=user -Dhttps.proxyPassword=pass
