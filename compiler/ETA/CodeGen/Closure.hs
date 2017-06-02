@@ -112,6 +112,7 @@ getCallMethod
                     -- itself
   -> LambdaFormInfo -- Its info
   -> RepArity       -- Number of available arguments
+  -> RepArity       -- Number of void arguments
   -> CgLoc          -- Passed in from cgIdApp so that we can
                     -- handle let-no-escape bindings and self-recursive
                     -- tail calls using the same data constructor,
@@ -120,24 +121,24 @@ getCallMethod
   -> Maybe SelfLoopInfo -- can we perform a self-recursive tail call?
   -> CallMethod
 
-getCallMethod dflags _ id _ n _ (Just (selfLoopId, label, cgLocs))
-  | gopt Opt_Loopification dflags, id == selfLoopId, n == length cgLocs
+getCallMethod dflags _ id _ nArgs vArgs _ (Just (selfLoopId, label, cgLocs))
+  | gopt Opt_Loopification dflags, id == selfLoopId, nArgs - vArgs == length cgLocs
   = JumpToIt label cgLocs
 
 -- TODO: Enter via node when in parallel
-getCallMethod _ _ _ (LFReEntrant _ arity _ _) n cgLoc _
+getCallMethod _ _ _ (LFReEntrant _ arity _ _) n _ cgLoc _
   | n == 0         = ReturnIt        -- No args at all
   | n < arity      = SlowCall        -- Not enough args
   | otherwise      = DirectEntry (enterMethod cgLoc) arity
 
-getCallMethod _ _ _ LFUnLifted _ _ _
+getCallMethod _ _ _ LFUnLifted _ _ _ _
   = ReturnIt
 
-getCallMethod _ _ _ (LFCon _) _ _ _
+getCallMethod _ _ _ (LFCon _) _ _ _ _
   = ReturnIt
 
 getCallMethod _ _ _
-              (LFThunk _ _ updatable stdFormInfo isFun) _ cgLoc _
+              (LFThunk _ _ updatable stdFormInfo isFun) _ _ cgLoc _
   | isFun      -- it *might* be a function, so we must "call" it (which is always safe)
   = SlowCall
   -- Since isFun is False, we are *definitely* looking at a data value
@@ -151,16 +152,16 @@ getCallMethod _ _ _
   | otherwise        -- Jump direct to code for single-entry thunks
   = DirectEntry (enterMethod cgLoc) 0
 
-getCallMethod _ _ _ (LFUnknown True) _ _ _
+getCallMethod _ _ _ (LFUnknown True) _ _ _ _
   = SlowCall -- might be a function
 
-getCallMethod _ _ _ (LFUnknown False) _ _ _
+getCallMethod _ _ _ (LFUnknown False) _ _ _ _
   = EnterIt -- Not a function
 
-getCallMethod _ _ _ LFLetNoEscape _ (LocLne label cgLocs) _
+getCallMethod _ _ _ LFLetNoEscape _ _ (LocLne label cgLocs) _
   = JumpToIt label cgLocs
 
-getCallMethod _ _ _ _ _ _ _ = panic "Unknown call method"
+getCallMethod _ _ _ _ _ _ _ _ = panic "Unknown call method"
 
 mkApLFInfo :: Id -> UpdateFlag -> Int -> LambdaFormInfo
 mkApLFInfo id updateFlag arity

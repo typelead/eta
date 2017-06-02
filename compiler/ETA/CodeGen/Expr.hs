@@ -105,7 +105,9 @@ cgIdApp funId args = do
       -- fun = idInfoLoadCode funInfo
       lfInfo = cgLambdaForm funInfo
       funLoc = cgLocation funInfo
-  case getCallMethod dflags funName cgFunId lfInfo (length args) funLoc
+      nArgs  = length args
+      vArgs  = length $ filter (isVoidTy . stgArgType) args
+  case getCallMethod dflags funName cgFunId lfInfo nArgs vArgs funLoc
                      selfLoopInfo of
     ReturnIt -> traceCg (str "cgIdApp: ReturnIt") >>
                 emitReturn [funLoc]
