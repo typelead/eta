@@ -32,7 +32,7 @@ import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr (StgApp fun args) = traceCg (str "SgApp" <+> ppr fun <+> ppr args) >>
+cgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
                            cgIdApp fun args
 cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
 cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr args <+> ppr ty) >>
@@ -107,16 +107,16 @@ cgIdApp funId args = do
       funLoc = cgLocation funInfo
   case getCallMethod dflags funName cgFunId lfInfo (length args) funLoc
                      selfLoopInfo of
-    ReturnIt -> debug "cgIdApp: ReturnIt" >>
+    ReturnIt -> traceCg (str "cgIdApp: ReturnIt") >>
                 emitReturn [funLoc]
-    EnterIt -> debug "cgIdApp: EnterIt" >>
-               emitEnter funLoc
-    SlowCall -> debug "cgIdApp: SlowCall" >>
+    EnterIt  -> traceCg (str "cgIdApp: EnterIt") >>
+                emitEnter funLoc
+    SlowCall -> traceCg (str "cgIdApp: SlowCall") >>
                 (withContinuation $ slowCall funLoc args)
-    DirectEntry entryCode arity -> debug "cgIdApp: DirectEntry" >>
+    DirectEntry entryCode arity -> traceCg (str "cgIdApp: DirectEntry") >>
                 (withContinuation $ directCall False entryCode arity args)
     JumpToIt label cgLocs -> do
-      debug "cgIdApp: JumpToIt"
+      traceCg (str "cgIdApp: JumpToIt")
       codes <- getNonVoidArgCodes args
       emit $ multiAssign cgLocs codes
           <> goto label

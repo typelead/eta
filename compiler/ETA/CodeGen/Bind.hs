@@ -41,7 +41,7 @@ closureCodeBody
   -> CodeGen ([FieldType], RecIndexes)
 closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
   dflags <- getDynFlags
-  debug $ "creating new closure..." ++ unpack (idNameText dflags id)
+  traceCg $ str $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
   thisClass <- getClass
   (fvLocs', initCodes, recIndexes) <- generateFVs fvs recIds

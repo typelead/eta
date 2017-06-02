@@ -7,7 +7,6 @@ module ETA.CodeGen.Monad
    traceCg,
    printDoc,
    debugState,
-   debug,
    withSequel,
    emit,
    initCg,
@@ -458,12 +457,6 @@ forkLneBody body = do
   setNextLocal oldNextLocal
   setBindings oldBindings
   return newCode
-
-debug :: String -> CodeGen ()
-debug msg = do
-  dflags <- getDynFlags
-  when (verbosity dflags > 1) $
-    liftIO $ putStrLn msg
 
 traceCg :: SDoc -> CodeGen ()
 traceCg sdoc = do
