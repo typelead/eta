@@ -35,7 +35,6 @@ public class STM {
     public static RtsFun catchSTM = new CatchSTM();
     public static RtsFun catchRetry = new CatchRetry();
     public static RtsFun retry = new Retry();
-    public static RtsFun block_stmwait  = new BlockStmWait();
 
     public static boolean shake() {
         if (doShake) {
@@ -210,19 +209,6 @@ public class STM {
                 StgSTMFrame stmFrame = (StgSTMFrame) cap.findRetryFrameHelper(tso);
                 retry = stmFrame.doRetry(cap, tso, trec);
             } while (retry);
-        }
-    }
-
-    private static class BlockStmWait extends  RtsFun {
-        @Override
-        public final void enter(StgContext context) {
-            Capability cap = context.myCapability;
-            StgTSO tso = context.currentTSO;
-            StgTRecHeader trec = (StgTRecHeader) context.R(3);
-            cap.stmWaitUnlock(trec);
-            tso.whatNext = ThreadRunGHC;
-            context.ret = ThreadBlocked;
-            Stg.returnToSched.enter(context);
         }
     }
 }

@@ -19,7 +19,6 @@ public class Stg {
     public static RtsFun returnToSchedButFirst = new ReturnToSchedButFirst();
     public static RtsFun noDuplicate = new NoDuplicate();
     public static RtsFun threadFinished = new ThreadFinished();
-    public static RtsFun block_noregs = new BlockNoRegs();
 
     private static class MkWeak extends RtsFun {
         @Override
@@ -151,16 +150,6 @@ public class Stg {
         public void enter(StgContext context) {
             context.ret = ThreadFinished;
             throw StgException.stgReturnException;
-        }
-    }
-
-    private static class BlockNoRegs extends RtsFun {
-        @Override
-        public void enter(StgContext context) {
-            StgTSO tso = context.currentTSO;
-            tso.whatNext = ThreadRunGHC;
-            context.ret = ThreadBlocked;
-            returnToSched.enter(context);
         }
     }
 }

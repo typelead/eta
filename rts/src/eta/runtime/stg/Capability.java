@@ -732,7 +732,7 @@ public final class Capability {
                                    , tso.id, msg.id);
                     }
                 } else {
-                    assert tso.stack.peek().getClass() == BlockThrowToFrame.class;
+                    // assert tso.stack.peek().getClass() == BlockThrowToFrame.class;
                     tso.spPop();
                     unblock = true;
                 }

@@ -13,6 +13,7 @@ import eta.runtime.stg.RtsFun;
 import eta.runtime.apply.Apply;
 import eta.runtime.apply.ApV;
 import eta.runtime.message.MessageThrowTo;
+import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 import static eta.runtime.stg.StgTSO.WhatNext.ThreadKilled;
@@ -41,7 +42,6 @@ public class StgException extends RuntimeException {
     public static RtsFun catch_ = new Catch();
     public static RtsFun raise = new Raise();
     public static RtsFun raiseIO = new RaiseIO();
-    public static RtsFun block_throwto = new BlockThrowTo();
 
     private static class GetMaskingState extends RtsFun {
         @Override
@@ -161,7 +161,8 @@ public class StgException extends RuntimeException {
                 } else {
                     tso.whyBlocked = BlockedOnMsgThrowTo;
                     tso.blockInfo = msg;
-                    block_throwto.enter(context);
+                    // block_throwto.enter(context);
+                    barf("killThread#: unimplemented RTS primitive operation.");
                 }
             }
         }
@@ -215,19 +216,4 @@ public class StgException extends RuntimeException {
             raise.enter(context);
         }
     }
-
-    private static class BlockThrowTo extends RtsFun {
-        @Override
-        public void enter(StgContext context) {
-            StgTSO tso = (StgTSO) context.O(1);
-            StgClosure exception = context.R(1);
-            tso.sp.add(new BlockThrowToFrame(tso, exception));
-            MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
-            if (msg.isLocked()) {
-                msg.unlock();
-            }
-            throw stgReturnException;
-        }
-    }
-
 }

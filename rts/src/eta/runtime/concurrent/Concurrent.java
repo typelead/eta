@@ -29,9 +29,6 @@ public class Concurrent {
     public static RtsFun takeMVar = new TakeMVar();
     public static RtsFun readMVar = new ReadMVar();
     public static RtsFun putMVar = new PutMVar();
-    public static RtsFun block_takemvar = new BlockTakeMVar();
-    public static RtsFun block_readmvar = new BlockReadMVar();
-    public static RtsFun block_putmvar = new BlockPutMVar();
     public static RtsFun tryReadMVar = new TryReadMVar();
     public static RtsFun fork = new Fork();
     public static RtsFun forkOn = new ForkOn();
@@ -71,49 +68,6 @@ public class Concurrent {
             } catch (InterruptedException ie) {
                 barf("putMVar: Unexpected interrupt.");
             }
-        }
-    }
-
-    private static class BlockTakeMVar extends RtsFun {
-        @Override
-        public void enter(StgContext context) {
-            Capability cap = context.myCapability;
-            StgMVar mvar = (StgMVar) context.O(1);
-            StgTSO tso = context.currentTSO;
-            tso.sp.add(new BlockTakeMVarFrame(mvar));
-            tso.whatNext = ThreadRunGHC;
-            context.ret = ThreadBlocked;
-            cap.threadPaused(tso);
-            mvar.unlock();
-            throw StgException.stgReturnException;
-        }
-    }
-
-    private static class BlockReadMVar extends RtsFun {
-        @Override
-        public void enter(StgContext context) {
-            StgMVar mvar = (StgMVar) context.O(1);
-            StgTSO tso = context.currentTSO;
-            tso.sp.add(new BlockReadMVarFrame(mvar));
-            tso.whatNext = ThreadRunGHC;
-            context.ret = ThreadBlocked;
-            Stg.returnToSched.enter(context);
-        }
-    }
-
-    private static class BlockPutMVar extends RtsFun {
-        @Override
-        public void enter(StgContext context) {
-            Capability cap = context.myCapability;
-            StgTSO tso = context.currentTSO;
-            StgMVar mvar = (StgMVar) context.O(1);
-            StgClosure val = context.R(1);
-            tso.spPush(new BlockPutMVarFrame(mvar, val));
-            tso.whatNext = ThreadRunGHC;
-            context.ret = ThreadBlocked;
-            cap.threadPaused(tso);
-            mvar.unlock();
-            throw StgException.stgReturnException;
         }
     }
 
