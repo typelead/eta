@@ -33,14 +33,31 @@ libCustomBuildDir lib = libraryDir </> lib </> "build"
 libName lib = "HS" ++ lib ++ ".jar"
 libJarPath lib = libCustomBuildDir lib </> libName lib
 
-getEtlasDir, getEtaRoot :: Action FilePath
+getEtlasDir, getEtaRoot, getEtlasLibDir :: Action FilePath
 getEtlasDir = liftIO $ getAppUserDataDirectory "etlas"
--- @VERSION_CHANGE@
--- @BUILD_NUMBER@
-getEtaRoot  = liftIO $ fmap (</> "0.0.6.8") $ getAppUserDataDirectory "eta"
+getEtaRoot  = do
+  Stdout actualOutput <- cmd "eta" "--print-libdir"
+  return . head $ lines actualOutput
+getEtlasLibDir = do
+  etlasDir <- getEtlasDir
+  etaVersion <- getEtaNumericVersion
+  let etlasLibDir = etlasDir </> "lib"
+      etaWithVersion = "eta-" ++ etaVersion
+  findFileOrDir etaWithVersion etlasLibDir
+
+findFileOrDir :: String -> FilePath -> Action FilePath
+findFileOrDir pat dir = do
+  results <- getDirectoryContents dir
+  case filter (pat `isInfixOf`) results of
+    (found:_) -> return (dir </> found)
+    _         -> fail $ "Pattern not found '" ++ pat ++ "' in " ++ dir
+
+getEtaNumericVersion :: Action String
+getEtaNumericVersion = do
+  Stdout actualOutput <- cmd "eta" "--numeric-version"
+  return . head $ lines actualOutput
 
 -- * Utility functions for filepath handling in the Action monad
-
 createDirIfMissing :: FilePath -> Action ()
 createDirIfMissing = liftIO . createDirectoryIfMissing True
 
@@ -48,7 +65,6 @@ createDir :: FilePath -> Action ()
 createDir path = liftIO $ createDirectoryIfMissing True path
 
 -- * Dependency Handling
-
 -- TODO: Read the .cabal files for dependencies?
 getDependencies :: String -> [String]
 getDependencies "ghc-prim" = ["rts"]
@@ -210,13 +226,11 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       let libDir = libraryDir </> "rts"
       unit $ cmd (Cwd libDir) "etlas clean"
       unit $ cmd (Cwd libDir) "etlas build"
-      etlasDir <- getEtlasDir
-      let etlasLibDir = etlasDir </> "lib"
-      -- @VERSION_CHANGE@
-      etlasLibDir' <- fmap (head . filter ("eta-0.0.6" `isInfixOf`))
-                   $ getDirectoryContents etlasLibDir
-      copyFile' (libDir </> "dist" </> "build" </> "HSrts-0.1.0.0.jar")
-                (etlasLibDir </> etlasLibDir' </> "rts-0.1.0.0" </> "HSrts-0.1.0.0.jar")
+      etlasLibDir <- getEtlasLibDir
+      sourceJar   <- findFileOrDir "HSrts-0.1.0.0" (libDir </> "dist" </> "build")
+      destJar     <- findFileOrDir "rts-0.1.0.0" etlasLibDir
+                 >>= findFileOrDir "HSrts-0.1.0.0"
+      copyFile' sourceJar destJar
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]
