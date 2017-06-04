@@ -13,7 +13,6 @@ public class ApP extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, p);
+        context.R(1).applyP(context, p);
     }
 }

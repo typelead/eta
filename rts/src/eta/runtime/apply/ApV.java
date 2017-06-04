@@ -8,7 +8,6 @@ public class ApV extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, Void._void);
+        context.R(1).applyV(context);
     }
 }

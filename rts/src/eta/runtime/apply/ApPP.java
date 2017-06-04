@@ -15,7 +15,6 @@ public class ApPP extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, p1, p2);
+        context.R(1).applyPP(context, p1, p2);
     }
 }

@@ -1,14 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Rts where
 
-
-
-import Data.Text
+import Data.Text (Text)
 import Codec.JVM
 import ETA.Util
 
 import Data.Monoid((<>))
-
 
 import qualified Data.Text as T
 
@@ -16,7 +13,7 @@ import qualified Data.Text as T
 
 -- merge "a" "b" == "a/b"
 merge :: Text -> Text -> Text
-merge x y = append x . cons '/' $ y
+merge x y = T.append x . T.cons '/' $ y
 
 rts, apply, thunk, stg, exception, io, util, stm, par, interp, conc :: Text -> Text
 rts       = merge "eta/runtime"
@@ -108,8 +105,8 @@ contextLoadStore name ft =
   , invokevirtual $ mkMethodRef stgContext name [jint] (ret ft))
 
 argPatToFrame :: Text -> Text
-argPatToFrame patText = append (upperFirst a) (toUpper b)
-  where [a,b] = split (== '_') patText
+argPatToFrame patText = T.append (upperFirst a) (T.toUpper b)
+  where [a,b] = T.split (== '_') patText
 
 loadContext :: Code
 loadContext = gload contextType 1
@@ -130,27 +127,37 @@ checkForStackFramesMethod :: Code
 checkForStackFramesMethod =
   invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
 
-mkApFast :: Text -> Code
-mkApFast patText =
-     getstatic (mkFieldRef (apply "Apply") fullPat rtsFunType)
-  <> loadContext
-  <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)
-  -- TODO: We can do better than rtsFun, but it depends on the
-  --       determinism of javac.
-  where fullPat = append patText "_fast"
+mkApFast :: Int -> [FieldType] -> Code
+mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts void)
+  where fts = drop 1 rawFts
+        applyFun
+          | arity == 0 && null fts = "evaluate"
+          | otherwise              = T.concat ["apply", foldMap toLetter fts, withV]
+        withV
+          | arity /= length fts    = "V"
+          | otherwise              = ""
+        toLetter ft
+          | ft == closureType      = "P"
+          | ft == jobject          = "O"
+          | ft == jint             = "I"
+          | ft == jlong            = "L"
+          | ft == jfloat           = "F"
+          | ft == jdouble          = "D"
+          | otherwise              = error $ "mkApFast: Invalid field type ["
+                                          ++ show ft ++ "]."
 
 apUpdName :: Int -> Text
-apUpdName n = thunk $ T.concat ["Ap",  pack $ show n, "Upd"]
+apUpdName n = thunk $ T.concat ["Ap",  T.pack $ show n, "Upd"]
 
 selectThunkName :: Bool -> Text -> Text
 selectThunkName updatable repText = thunk $ T.concat ["Selector", repText, updText]
   where updText = if updatable then "Upd" else "NoUpd"
 
 constrField :: Int -> Text
-constrField = cons 'x' . pack . show
+constrField = T.cons 'x' . T.pack . show
 
 constrFieldGetter :: Int -> Text
-constrFieldGetter = append "get" . pack . show
+constrFieldGetter = T.append "get" . T.pack . show
 
 myCapability :: FieldRef
 myCapability = mkFieldRef stgContext "myCapability" capabilityType
@@ -214,11 +221,11 @@ byteBufferCapacity = invokevirtual $ mkMethodRef byteBuffer "capacity" [] (ret j
 
 byteBufferGet :: FieldType -> Code
 byteBufferGet ft = invokevirtual $ mkMethodRef byteBuffer name [jint] (ret ft)
-  where name = append "get" $ fieldTypeSuffix ft
+  where name = T.append "get" $ fieldTypeSuffix ft
 
 byteBufferPut :: FieldType -> Code
 byteBufferPut ft = invokevirtual $ mkMethodRef byteBuffer name [jint, ft] (ret byteBufferType)
-  where name = append "put" $ fieldTypeSuffix ft
+  where name = T.append "put" $ fieldTypeSuffix ft
 
 byteBufferPosGet :: Code
 byteBufferPosGet = invokevirtual $ mkMethodRef byteBuffer "position" [] (ret jint)

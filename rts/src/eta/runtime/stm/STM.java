@@ -163,7 +163,7 @@ public class STM {
                 StgTRecHeader newTrec = cap.stmStartTransaction(oldTrec);
                 tso.trec = newTrec;
                 tso.sp.add(new StgAtomicallyFrame(stm));
-                Apply.ap_v_fast.enter(context);
+                stm.applyV(context);
             }
         }
     }
@@ -179,7 +179,7 @@ public class STM {
             StgTRecHeader newTrec = cap.stmStartTransaction(curTrec);
             tso.trec = newTrec;
             tso.sp.add(new StgCatchSTMFrame(code, handler));
-            Apply.ap_v_fast.enter(context);
+            code.applyV(context);
         }
     }
 
@@ -193,7 +193,7 @@ public class STM {
             StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec);
             tso.trec = newTrec;
             tso.sp.add(new StgCatchRetryFrame(firstCode, altCode));
-            Apply.ap_v_fast.enter(context);
+            firstCode.applyV(context);
         }
     }
 

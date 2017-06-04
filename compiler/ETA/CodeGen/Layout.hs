@@ -15,10 +15,10 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Env
 
 
-import Data.Maybe (mapMaybe)
-import Data.Monoid ((<>))
+import Data.Maybe
+import Data.Monoid
 import Data.Text (Text)
-import Data.Foldable (fold)
+import Data.Foldable
 
 emitReturn :: [CgLoc] -> CodeGen ()
 emitReturn results = do
@@ -127,10 +127,10 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs' 1 1 1 1 1 1
 
 slowCall :: CgLoc -> [StgArg] -> CodeGen ()
 slowCall fun args = do
-  dflags <- getDynFlags
+  dflags     <- getDynFlags
   argFtCodes <- getRepFtCodes args
-  let (apPat, arity, _fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
-      slowCode = directCall' True (mkApFast apPat) arity
+  let (apPat, arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
+      slowCode = directCall' True True (mkApFast arity (contextType:fts)) arity
                              ((P, Just ft, Just code):argFtCodes)
   if n > arity && optLevel dflags >= 2 then do
     -- TODO: Implement optimization
@@ -145,15 +145,26 @@ slowCall fun args = do
 directCall :: Bool -> Code -> RepArity -> [StgArg] -> CodeGen ()
 directCall slow entryCode arity args = do
   argFtCodes <- getRepFtCodes args
-  emit $ directCall' slow entryCode arity argFtCodes
+  emit $ directCall' slow False entryCode arity argFtCodes
 
-directCall' :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directCall' slow entryCode arity args =
+directCall' :: Bool -> Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall' slow directLoad entryCode arity args =
      stackLoadCode
-  <> mkCallExit slow callArgs
+  <> node
+  <> loadArgs
   <> entryCode
   where (callArgs, restArgs) = splitAt realArity args
-        realArity = if slow then arity + 1 else arity
+        realArity
+          | slow      = arity + 1
+          | otherwise = arity
+        realCallArgs
+          | slow      = drop 1 callArgs
+          | otherwise = callArgs
+        third (_,_,a) = a
+        (node, loadArgs)
+          | directLoad = (fromMaybe mempty . third $ head callArgs,
+                          loadContext <> fold (catMaybes $ map third realCallArgs))
+          | otherwise  = (mempty, mkCallExit slow callArgs)
         stackFrames = slowArgFrames restArgs
         stackFramesLoad = map (\code -> dup tsoType
                                      <> code

@@ -13,7 +13,6 @@ public class ApO extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, o);
+        context.R(1).applyO(context, o);
     }
 }

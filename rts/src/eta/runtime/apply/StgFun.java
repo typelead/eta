@@ -13,7 +13,7 @@ public abstract class StgFun extends StgClosure {
     public StgClosure getEvaluated() { return this; }
 
     @Override
-    public void apply(StgContext context, Void v) {
+    public void applyV(StgContext context) {
         int arity = getArity();
         if (arity == 1) {
             enter(context);
@@ -24,7 +24,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, int n) {
+    public void applyN(StgContext context, int n) {
         int arity = getArity();
         if (arity == 1) {
             context.I(1, n);
@@ -41,7 +41,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, long l) {
+    public void applyL(StgContext context, long l) {
         int arity = getArity();
         if (arity == 1) {
             context.L(1, l);
@@ -58,7 +58,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, float f) {
+    public void applyF(StgContext context, float f) {
         int arity = getArity();
         if (arity == 1) {
             context.F(1, f);
@@ -75,7 +75,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, double d) {
+    public void applyD(StgContext context, double d) {
         int arity = getArity();
         if (arity == 1) {
             context.D(1, d);
@@ -92,7 +92,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, Object o) {
+    public void applyO(StgContext context, Object o) {
         int arity = getArity();
         if (arity == 1) {
             context.O(1, o);
@@ -109,7 +109,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p) {
+    public void applyP(StgContext context, StgClosure p) {
         int arity = getArity();
         if (arity == 1) {
             context.R(2, p);
@@ -126,7 +126,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p, Void v) {
+    public void applyPV(StgContext context, StgClosure p) {
         int arity = getArity();
         if (arity == 1) {
             context.pushFrame(new ApV());
@@ -148,36 +148,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p, Void v, Object o) {
-        int arity = getArity();
-        if (arity == 1) {
-            // TODO: Add a ApVO frame?
-            context.pushFrame(new ApO(o));
-            context.pushFrame(new ApV());
-            context.R(2, p);
-            enter(context);
-        } else if (arity == 2) {
-            context.pushFrame(new ApO(o));
-            context.R(2, p);
-            enter(context);
-        } else if (arity == 3) {
-            context.R(2, p);
-            context.O(1, o);
-            enter(context);
-        } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .addC(p)
-                .add(o)
-                .build();
-            StgPAP pap = new StgPAP(arity - 3, this, stack);
-            context.R(1, pap);
-        }
-    }
-
-    @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2) {
+    public void applyPP(StgContext context, StgClosure p1, StgClosure p2) {
         int arity = getArity();
         if (arity == 1) {
             context.pushFrame(new ApP(p2));
@@ -200,7 +171,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v) {
+    public void applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
         int arity = getArity();
         switch (arity) {
             case 1:
@@ -233,50 +204,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v, Object o) {
-        int arity = getArity();
-        switch (arity) {
-            case 1:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApPV(p2));
-                context.R(2, p1);
-                enter(context);
-                break;
-            case 2:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApV());
-                context.R(2, p1);
-                context.R(3, p2);
-                enter(context);
-                break;
-            case 3:
-                context.pushFrame(new ApO(o));
-                context.R(2, p1);
-                context.R(3, p2);
-                enter(context);
-                break;
-            case 4:
-                context.R(2, p1);
-                context.R(3, p2);
-                context.O(1, o);
-                enter(context);
-                break;
-            default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .add(o)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 4, this, stack);
-                context.R(1, pap);
-                break;
-        }
-    }
-
-    @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public void applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         int arity = getArity();
         switch (arity) {
             case 1:
@@ -311,8 +239,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , Void v) {
+    public void applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         int arity = getArity();
         switch (arity) {
             case 1:
@@ -354,62 +281,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , Void v, Object o) {
-        int arity = getArity();
-        switch (arity) {
-            case 1:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApPPV(p2, p3));
-                context.R(2, p1);
-                enter(context);
-                break;
-            case 2:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApPV(p3));
-                context.R(2, p1);
-                context.R(3, p2);
-                enter(context);
-                break;
-            case 3:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApV());
-                context.R(2, p1);
-                context.R(3, p2);
-                context.R(4, p3);
-                enter(context);
-                break;
-            case 4:
-                context.pushFrame(new ApO(o));
-                context.R(2, p1);
-                context.R(3, p2);
-                context.R(4, p3);
-                enter(context);
-                break;
-            case 5:
-                context.R(2, p1);
-                context.R(3, p2);
-                context.R(4, p3);
-                context.O(1, o);
-                enter(context);
-                break;
-            default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .addC(p3)
-                    .add(o)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 5, this, stack);
-                context.R(1, pap);
-                break;
-        }
-    }
-
-    @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
+    public void applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
                       , StgClosure p4) {
         int arity = getArity();
         switch (arity) {
@@ -454,7 +326,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
+    public void applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
                       , StgClosure p4, StgClosure p5) {
         int arity = getArity();
         switch (arity) {
@@ -509,7 +381,7 @@ public abstract class StgFun extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
+    public void applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
                       , StgClosure p4, StgClosure p5, StgClosure p6) {
         int arity = getArity();
         switch (arity) {
