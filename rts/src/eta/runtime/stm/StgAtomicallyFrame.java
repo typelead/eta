@@ -16,6 +16,7 @@ import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.StgThunk;
 import eta.runtime.apply.Apply;
+import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 
 public class StgAtomicallyFrame extends StgSTMFrame {
@@ -51,7 +52,8 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             boolean valid = cap.stmReWait(tso);
             if (valid) {
                 sp.add(new StgAtomicallyFrame(code, invariants, result, true));
-                Stg.block_noregs.enter(context);
+                // Stg.block_noregs.enter(context);
+                barf("StgAtomicallyFrame: unimplemented RTS primop");
             } else {
                 StgTRecHeader newTrec = cap.stmStartTransaction(null);
                 tso.trec = newTrec;
@@ -119,7 +121,8 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             waiting = true;
             /* TODO: Adjust stack top to be this frame. */
             context.R(3, trec);
-            STM.block_stmwait.enter(context);
+            // STM.block_stmwait.enter(context);
+            barf("retry#: unimplemented RTS primop.");
             return false;
         } else {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
