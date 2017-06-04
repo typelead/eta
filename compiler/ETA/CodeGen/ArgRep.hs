@@ -148,15 +148,10 @@ slowCallPattern (P: P: P: P: P: P: _) =
   ("ap_pppppp", 6, replicate 6 closureType)
 slowCallPattern (P: P: P: P: P: _)    =
   ("ap_ppppp", 5, replicate 5 closureType)
-slowCallPattern (P: P: P: V: O: _)    =
-  ("ap_pppvo", 5, replicate 3 closureType ++ [jobject])
 slowCallPattern (P: P: P: P: _)       = ("ap_pppp", 4, replicate 4 closureType)
 slowCallPattern (P: P: P: V: _)       = ("ap_pppv", 4, replicate 3 closureType)
-slowCallPattern (P: P: V: O: _)       =
-  ("ap_ppvo", 4, replicate 2 closureType ++ [jobject])
 slowCallPattern (P: P: P: _)          = ("ap_ppp", 3, replicate 3 closureType)
 slowCallPattern (P: P: V: _)          = ("ap_ppv", 3, replicate 2 closureType)
-slowCallPattern (P: V: O: _)          = ("ap_pvo", 3, [closureType, jobject])
 slowCallPattern (P: P: _)             = ("ap_pp", 2, replicate 2 closureType)
 slowCallPattern (P: V: _)             = ("ap_pv", 2, [closureType])
 slowCallPattern (P: _)                = ("ap_p", 1, [closureType])

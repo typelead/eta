@@ -14,7 +14,6 @@ public class Ap1Upd extends StgInd {
 
     @Override
     public void thunkEnter(StgContext context) {
-        context.R(1, p);
-        Apply.ap_0_fast.enter(context);
+        p.evaluate(context);
     }
 }

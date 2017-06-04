@@ -38,13 +38,14 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
         } else {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
+            StgClosure code;
             if (runningAltCode) {
-                context.R(1, altCode);
+                code = altCode;
             } else {
-                context.R(1, firstCode);
+                code = firstCode;
             }
             tso.sp.add(new StgCatchRetryFrame(firstCode, altCode, runningAltCode));
-            Apply.ap_v_fast.enter(context);
+            code.applyV(context);
         }
     }
 
@@ -69,8 +70,7 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             runningAltCode = true;
-            context.R(1, altCode);
-            Apply.ap_v_fast.enter(context);
+            altCode.applyV(context);
             return false;
         }
     }

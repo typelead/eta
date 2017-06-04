@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
-import eta.runtime.apply.Void;
 import eta.runtime.thunk.StgThunk;
 import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.RtsMessages.barf;
@@ -35,75 +34,63 @@ public class StgClosure implements Serializable {
     public boolean isFizzledSpark() { return true; }
 
     /* Applications */
-    public void apply(StgContext context, Void v) {
+    public void applyV(StgContext context) {
         barf("ap_v");
     }
 
-    public void apply(StgContext context, int n) {
+    public void applyN(StgContext context, int n) {
         barf("ap_n");
     }
 
-    public void apply(StgContext context, long l) {
+    public void applyL(StgContext context, long l) {
         barf("ap_l");
     }
 
-    public void apply(StgContext context, float f) {
+    public void applyF(StgContext context, float f) {
         barf("ap_f");
     }
 
-    public void apply(StgContext context, double d) {
+    public void applyD(StgContext context, double d) {
         barf("ap_d");
     }
 
-    public void apply(StgContext context, Object o) {
+    public void applyO(StgContext context, Object o) {
         barf("ap_o");
     }
 
-    public void apply(StgContext context, StgClosure p) {
+    public void applyP(StgContext context, StgClosure p) {
         barf("ap_p");
     }
 
-    public void apply(StgContext context, StgClosure p, Void v) {
+    public void applyPV(StgContext context, StgClosure p) {
         barf("ap_pv");
     }
 
-    public void apply(StgContext context, StgClosure p, Void v, Object o) {
-        barf("ap_pvo");
-    }
-
-    public void apply(StgContext context, StgClosure p1, StgClosure p2) {
+    public void applyPP(StgContext context, StgClosure p1, StgClosure p2) {
         barf("ap_pp");
     }
 
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v) {
+    public void applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
         barf("ap_ppv");
     }
 
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v, Object o) {
-        barf("ap_ppvo");
-    }
-
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public void applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         barf("ap_ppp");
     }
 
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, Void v) {
+    public void applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         barf("ap_pppv");
     }
 
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, Void v, Object o) {
-        barf("ap_pppvo");
-    }
-
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
+    public void applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
         barf("ap_pppp");
     }
 
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
+    public void applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
         barf("ap_ppppp");
     }
 
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
+    public void applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
         barf("ap_pppppp");
     }
 }

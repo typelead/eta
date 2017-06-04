@@ -23,7 +23,6 @@ public class ApPPPPPP extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, p1, p2, p3, p4, p5, p6);
+        context.R(1).applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
     }
 }

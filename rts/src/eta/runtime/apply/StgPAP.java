@@ -35,7 +35,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, Void v) {
+    public void applyV(StgContext context) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -51,7 +51,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, int n) {
+    public void applyN(StgContext context, int n) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -68,7 +68,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, long l) {
+    public void applyL(StgContext context, long l) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -85,7 +85,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, float f) {
+    public void applyF(StgContext context, float f) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -102,7 +102,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, double d) {
+    public void applyD(StgContext context, double d) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -119,7 +119,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, Object o) {
+    public void applyO(StgContext context, Object o) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -136,7 +136,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p) {
+    public void applyP(StgContext context, StgClosure p) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -153,7 +153,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p, Void v) {
+    public void applyPV(StgContext context, StgClosure p) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -179,39 +179,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p, Void v, Object o) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p);
-        switch (arity) {
-            case 1:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApV());
-                context.R(1, this);
-                context.O(1, builder.build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 2:
-                context.pushFrame(new ApO(o));
-                context.R(1, this);
-                context.O(1, builder.build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 3:
-                context.R(1, this);
-                context.O(1, builder.add(o).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            default:
-                StgPAP pap = new StgPAP(arity - 3, fun, builder.add(o).build());
-                context.R(1, pap);
-                break;
-        }
-    }
-
-    @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2) {
+    public void applyPP(StgContext context, StgClosure p1, StgClosure p2) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -236,7 +204,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v) {
+    public void applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -267,46 +235,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, Void v, Object o) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
-        switch (arity) {
-            case 1:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApPV(p2));
-                context.R(1, this);
-                context.O(1, builder.build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 2:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApV());
-                context.R(1, this);
-                context.O(1, builder.addC(p2).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 3:
-                context.pushFrame(new ApO(o));
-                context.R(1, this);
-                context.O(1, builder.addC(p2).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 4:
-                context.R(1, this);
-                context.O(1, builder.addC(p2).add(o).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            default:
-                StgPAP pap = new StgPAP(arity - 4, fun, builder.addC(p2).add(o).build());
-                context.R(1, pap);
-                break;
-        }
-    }
-
-    @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public void applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -337,8 +266,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , Void v) {
+    public void applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -375,55 +303,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , Void v, Object o) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
-        switch (arity) {
-            case 1:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApPPV(p2, p3));
-                context.R(1, this);
-                context.O(1, builder.build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 2:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApPV(p3));
-                context.R(1, this);
-                context.O(1, builder.addC(p2).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 3:
-                context.pushFrame(new ApO(o));
-                context.pushFrame(new ApV());
-                context.R(1, this);
-                context.O(1, builder.addC(p2).addC(p3).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 4:
-                context.pushFrame(new ApO(o));
-                context.R(1, this);
-                context.O(1, builder.addC(p2).addC(p3).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            case 5:
-                context.R(1, this);
-                context.O(1, builder.addC(p2).addC(p3).add(o).build());
-                Apply.PAP_apply.enter(context);
-                break;
-            default:
-                StgPAP pap = new StgPAP(arity - 5, fun, builder.addC(p2).addC(p3)
-                                                               .add(o).build());
-                context.R(1, pap);
-                break;
-        }
-    }
-
-    @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
+    public void applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
                       , StgClosure p4) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
@@ -462,7 +342,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
+    public void applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
                       , StgClosure p4, StgClosure p5) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
@@ -507,7 +387,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public void apply(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
+    public void applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
                       , StgClosure p4, StgClosure p5, StgClosure p6) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder

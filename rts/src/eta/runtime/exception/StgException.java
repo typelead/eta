@@ -72,7 +72,7 @@ public class StgException extends RuntimeException {
             }
             tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
             /* TODO: Ensure that R1 is preserved */
-            Apply.ap_v_fast.enter(context);
+            context.R(1).applyV(context);
         }
     }
 
@@ -97,7 +97,7 @@ public class StgException extends RuntimeException {
             tso.addFlags(TSO_BLOCKEX);
             tso.removeFlags(TSO_INTERRUPTIBLE);
             /* TODO: Ensure that R1 is preserved */
-            Apply.ap_v_fast.enter(context);
+            context.R(1).applyV(context);
         }
     }
 
@@ -141,7 +141,7 @@ public class StgException extends RuntimeException {
                     }
                 }
             }
-            Apply.ap_v_fast.enter(context);
+            io.applyV(context);
         }
     }
 
@@ -191,7 +191,7 @@ public class StgException extends RuntimeException {
             ListIterator<StackFrame> sp = tso.sp;
             int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
             sp.add(new StgCatchFrame(exceptionsBlocked, handler));
-            Apply.ap_v_fast.enter(context);
+            context.R(1).applyV(context);
         }
     }
 

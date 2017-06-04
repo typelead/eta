@@ -13,7 +13,6 @@ public class ApPV extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, p, Void._void);
+        context.R(1).applyPV(context, p);
     }
 }

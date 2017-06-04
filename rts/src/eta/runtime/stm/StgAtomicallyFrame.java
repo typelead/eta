@@ -56,8 +56,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                 StgTRecHeader newTrec = cap.stmStartTransaction(null);
                 tso.trec = newTrec;
                 sp.add(new StgAtomicallyFrame(code, invariants, result));
-                context.R(1, code);
-                Apply.ap_v_fast.enter(context);
+                code.applyV(context);
             }
         } else {
             StgTRecHeader outer = trec.enclosingTrec;
@@ -84,18 +83,16 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                     StgTRecHeader newTrec = cap.stmStartTransaction(null);
                     tso.trec = newTrec;
                     sp.add(new StgAtomicallyFrame(code, invariants, result));
-                    context.R(1, code);
-                    Apply.ap_v_fast.enter(context);
+                    code.applyV(context);
                 }
             } else {
                 trec = cap.stmStartTransaction(trec);
                 tso.trec = trec;
                 StgInvariantCheck q = invariants.peek();
                 StgAtomicInvariant invariant = q.invariant;
-                context.R(1, invariant.code);
                 /* TODO: Ensure that creating a new is the right thing */
                 sp.add(new StgAtomicallyFrame(code, invariants, result));
-                Apply.ap_v_fast.enter(context);
+                invariant.code.applyV(context);
             }
         }
     }
@@ -128,8 +125,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             /* TODO: Adjust stack top to be this frame */
-            context.R(1, code);
-            Apply.ap_v_fast.enter(context);
+            code.applyV(context);
             return false;
         }
     }
@@ -189,8 +185,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
         } else {
             trec = cap.stmStartTransaction(null);
             tso.trec = trec;
-            context.R(1, code);
-            Apply.ap_v_fast.enter(context);
+            code.applyV(context);
             return false;
         }
     }

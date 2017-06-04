@@ -72,7 +72,7 @@ public class StgCatchFrame extends StackFrame {
         }
         context.R(1, handler);
         context.R(2, exception);
-        Apply.ap_pv_fast.enter(context);
+        handler.applyPV(context, exception);
         return false;
     }
 }

@@ -13,7 +13,6 @@ public class ApN extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure fun = context.R(1);
-        fun.apply(context, n);
+        context.R(1).applyN(context, n);
     }
 }

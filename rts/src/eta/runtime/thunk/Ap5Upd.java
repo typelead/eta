@@ -22,11 +22,6 @@ public class Ap5Upd extends StgInd {
 
     @Override
     public void thunkEnter(StgContext context) {
-        context.R(1, p1);
-        context.R(2, p2);
-        context.R(3, p3);
-        context.R(4, p4);
-        context.R(5, p5);
-        Apply.ap_pppp_fast.enter(context);
+        p1.applyPPPP(context, p2, p3, p4, p5);
     }
 }
