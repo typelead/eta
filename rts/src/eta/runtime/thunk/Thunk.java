@@ -11,7 +11,6 @@ import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
-import eta.runtime.stg.RtsFun;
 import eta.runtime.exception.StgRaise;
 import eta.runtime.message.MessageBlackHole;
 

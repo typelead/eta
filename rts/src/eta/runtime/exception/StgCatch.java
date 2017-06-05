@@ -21,8 +21,6 @@ public class StgCatch extends StgFun {
     @Override
     public void enter(StgContext context) {
         super.enter(context);
-        context.R(1, io);
-        context.R(2, handler);
-        StgException.catch_.enter(context);
+        StgException.catch_(context, io, handler);
     }
 }

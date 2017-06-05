@@ -49,7 +49,7 @@ public class StgStopThread extends StackFrame {
         tso.sp = stack.listIterator();
         tso.spPush(new StgEnter(exception));
         tso.whatNext = ThreadKilled;
-        Stg.threadFinished.enter(context);
+        Stg.threadFinished(context);
         return false;
     }
 

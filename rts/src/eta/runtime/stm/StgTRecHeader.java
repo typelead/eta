@@ -29,9 +29,6 @@ public class StgTRecHeader extends StgClosure {
         }
     }
 
-    @Override
-    public boolean isTrecHeader() { return true; }
-
     public boolean checkReadOnly() {
         boolean result = true;
         if (RtsFlags.STM.fineGrained) {

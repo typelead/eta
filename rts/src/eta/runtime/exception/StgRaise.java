@@ -15,7 +15,6 @@ public class StgRaise extends StgThunk {
     @Override
     public void enter(StgContext context) {
         super.enter(context);
-        context.R(1, exception);
-        StgException.raise.enter(context);
+        StgException.raise(context, exception);
     }
 }

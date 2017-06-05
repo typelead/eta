@@ -44,7 +44,7 @@ public class StgTVar extends StgClosure {
         do {
             do {
                 result = currentValue;
-            } while (result.isTrecHeader());
+            } while (result instanceof StgTRecHeader);
         } while (!cas(this, result, trec));
         return result;
     }

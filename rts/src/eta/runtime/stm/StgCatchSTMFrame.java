@@ -8,7 +8,7 @@ import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.apply.Apply;
+
 
 public class StgCatchSTMFrame extends StgSTMCatchFrame {
     public final StgClosure code;

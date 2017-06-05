@@ -14,7 +14,6 @@ public class StgRaiseFrame extends StackFrame {
     @Override
     public void stackEnter(StgContext context) {
         StgException.noBreakOnException = true;
-        context.R(1, exception);
-        StgException.raise.enter(context);
+        StgException.raise(context, exception);
     }
 }
