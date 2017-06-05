@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.Capability;
-import eta.runtime.apply.Apply;
+
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;

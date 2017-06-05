@@ -15,7 +15,7 @@ import eta.runtime.stg.ReturnClosure;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.StgThunk;
-import eta.runtime.apply.Apply;
+
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
 

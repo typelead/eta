@@ -3,7 +3,7 @@ package eta.runtime.thunk;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
-import eta.runtime.apply.Apply;
+
 
 public abstract class SelectorNoUpd extends StgThunk {
     protected final int index;

@@ -61,11 +61,14 @@ cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
     argCodes <- getNonVoidArgFtCodes args
     case shouldInlinePrimOp dflags primOp argCodes resType of
-      Left primOpLoc -> do
-        args' <- getRepFtCodes args
+      Left (rtsGroup, rtsFunName) -> do
+        loadArgs <- getNonVoidArgCodes args
+        let (_, argTypes, _, _, _) = primOpSig primOp
+            fts                    = repFieldTypes argTypes
         withContinuation $ do
-          emit $ mkCallExit True args'
-              <> mkRtsFunCall primOpLoc
+          emit $ loadContext
+              <> fold loadArgs
+              <> invokestatic (mkMethodRef rtsGroup rtsFunName (contextType:fts) void)
 
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
@@ -333,7 +336,7 @@ shouldInlinePrimOp' _ primOp args
 mkRtsPrimOp :: PrimOp -> (Text, Text)
 mkRtsPrimOp RaiseOp                 = (stgExceptionGroup, "raise")
 mkRtsPrimOp CatchOp                 = (stgExceptionGroup, "catch_")
-mkRtsPrimOp RaiseIOOp               = (stgExceptionGroup, "raiseIO")
+mkRtsPrimOp RaiseIOOp               = (stgExceptionGroup, "raise")
 mkRtsPrimOp MaskAsyncExceptionsOp   = (stgExceptionGroup, "maskAsyncExceptions")
 mkRtsPrimOp MaskUninterruptibleOp   = (stgExceptionGroup, "maskUninterruptible")
 mkRtsPrimOp UnmaskAsyncExceptionsOp = (stgExceptionGroup, "unmaskAsyncExceptions")
@@ -362,10 +365,10 @@ mkRtsPrimOp IsCurrentThreadBoundOp  = (concGroup, "isCurrentThreadBound")
 mkRtsPrimOp NoDuplicateOp           = (stgGroup, "noDuplicate")
 mkRtsPrimOp ThreadStatusOp          = (concGroup, "threadStatus")
 mkRtsPrimOp MkWeakOp                = (stgGroup, "mkWeak")
-mkRtsPrimOp MkWeakNoFinalizerOp     = (stgGroup, "mkWeakNoFinalizzer")
-mkRtsPrimOp AddCFinalizerToWeakOp   = (stgGroup, "addJavaFinalizzerToWeak")
+mkRtsPrimOp MkWeakNoFinalizerOp     = (stgGroup, "mkWeakNoFinalizer")
+mkRtsPrimOp AddCFinalizerToWeakOp   = (stgGroup, "addJavaFinalizerToWeak")
 mkRtsPrimOp DeRefWeakOp             = (stgGroup, "deRefWeak")
-mkRtsPrimOp FinalizeWeakOp          = (stgGroup, "finalizzeWeak")
+mkRtsPrimOp FinalizeWeakOp          = (stgGroup, "finalizeWeak")
 mkRtsPrimOp AtomicModifyMutVarOp    = (ioGroup, "atomicModifyMutVar")
 mkRtsPrimOp CasMutVarOp             = (ioGroup, "casMutVar")
 mkRtsPrimOp GetSparkOp              = (parGroup, "getSpark")

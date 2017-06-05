@@ -2,7 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.apply.Apply;
+
 
 public class Ap5Upd extends StgInd {
     public StgClosure p1;

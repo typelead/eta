@@ -28,7 +28,7 @@ public class UnmaskAsyncExceptionsFrame extends StackFrame {
             boolean performed = cap.maybePerformBlockedException(tso);
             if (performed) {
                 if (tso.whatNext == ThreadKilled) {
-                    Stg.threadFinished.enter(context);
+                    Stg.threadFinished(context);
                 } else {
                     /* TODO: Verify R1 is conserved on the next
                              stack reload. */

@@ -6,6 +6,6 @@ public class NoDuplicateFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        Stg.noDuplicate.enter(context);
+        Stg.noDuplicate(context);
     }
 }

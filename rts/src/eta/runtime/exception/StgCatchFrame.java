@@ -10,7 +10,7 @@ import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.StgThunk;
-import eta.runtime.apply.Apply;
+
 import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;

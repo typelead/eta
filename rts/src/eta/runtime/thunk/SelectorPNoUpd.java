@@ -3,7 +3,7 @@ package eta.runtime.thunk;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StgConstr;
-import eta.runtime.apply.Apply;
+
 
 public class SelectorPNoUpd extends SelectorNoUpd {
 

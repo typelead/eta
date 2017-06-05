@@ -15,7 +15,6 @@ public class StgAtomically extends StgThunk {
     @Override
     public void enter(StgContext context) {
         super.enter(context);
-        context.R(1, stmCode);
-        STM.atomically.enter(context);
+        STM.atomically(context, stmCode);
     }
 }

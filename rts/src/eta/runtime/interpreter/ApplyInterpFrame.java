@@ -12,6 +12,6 @@ public class ApplyInterpFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        Interpreter.yieldToInterpreter.enter(context);
+        Interpreter.yieldToInterpreter(context);
     }
 }

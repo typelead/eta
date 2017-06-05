@@ -29,7 +29,7 @@ par       = merge (rts "parallel")
 interp    = merge (rts "interpreter")
 
 closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoType,
-  frameType, rtsFunType, conType, thunkType, rtsConfigType, exitCodeType,
+  frameType, conType, thunkType, rtsConfigType, exitCodeType,
   rtsOptsEnbledType, stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType,
   hsResultType, stgTVarType, stgBCOType, stgWeakType :: FieldType
 closureType       = obj stgClosure
@@ -40,7 +40,6 @@ taskType          = obj task
 funType           = obj stgFun
 tsoType           = obj stgTSO
 frameType         = obj stackFrame
-rtsFunType        = obj rtsFun
 conType           = obj stgConstr
 thunkType         = obj stgThunk
 rtsConfigType     = obj rtsConfig
@@ -57,7 +56,7 @@ stgWeakType       = obj stgWeak
 
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
-  stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult, rtsFun,
+  stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
   stgBCO, stgWeak :: Text
 stgConstr     = stg "StgConstr"
 stgClosure    = stg "StgClosure"
@@ -70,7 +69,6 @@ stgThunk      = thunk "StgThunk"
 stgFun        = apply "StgFun"
 stgTSO        = stg "StgTSO"
 stackFrame    = stg "StackFrame"
-rtsFun        = stg "RtsFun"
 rtsConfig     = rts "RtsConfig"
 rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
 exitCode      = rts "Rts$ExitCode"
@@ -193,12 +191,6 @@ concGroup = conc "Concurrent"
 stgGroup = stg "Stg"
 parGroup = par "Parallel"
 interpGroup = interp "Interpreter"
-
-mkRtsFunCall :: (Text, Text) -> Code
-mkRtsFunCall (group, name) =
-     getstatic (mkFieldRef group name rtsFunType)
-  <> loadContext
-  <> invokevirtual (mkMethodRef rtsFun "enter" [contextType] void)
 
 -- Types
 buffer :: Text
