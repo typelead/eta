@@ -88,9 +88,22 @@ mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
                   storeArgs (code <> nextCode) args
         storeArgs !code _ _ _ _ _ _ _ = code
 
+-- Helper function for generating return entry/exit layout
+findFirstR :: [CgLoc] -> (Just CgLoc, [CgLoc])
+findFirstR = go []
+  where go locs []               = (Nothing, reverse locs)
+        go locs (cgLoc:cgLocs)
+          | locArgRep cgLoc == P = (Just cgLoc, reverse locs ++ cgLocs)
+          | otherwise            = findFirstR (cgLoc:locs) cgLocs
+
+-- This method is extremely sensitive. It assumes that the returned closure is
+-- on the top of the stack
 mkReturnEntry :: [CgLoc] -> Code
-mkReturnEntry cgLocs' = loadVals mempty cgLocs' 1 1 1 1 1 1
-  where loadVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
+mkReturnEntry cgLocs' =
+     maybe (pop closureType) (flip storeLoc mempty) mR1
+  <> loadVals mempty cgLocs'' 2 1 1 1 1 1
+  where (mR1, cgLocs'') = findFirstR cgLocs'
+        loadVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
             N -> loadRec (context i <> gconv jint ft) r (i + 1) l f d o
@@ -106,9 +119,13 @@ mkReturnEntry cgLocs' = loadVals mempty cgLocs' 1 1 1 1 1 1
                   loadVals (code <> storeLoc cgLoc nextCode) cgLocs
         loadVals !code _ _ _ _ _ _ _ = code
 
+-- This method assumes that the bytecode after this code expects a closure at the
+-- top of the stack
 mkReturnExit :: [CgLoc] -> Code
-mkReturnExit cgLocs' = storeVals mempty cgLocs' 1 1 1 1 1 1
-  where storeVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
+mkReturnExit cgLocs' = storeVals mempty cgLocs'' 2 1 1 1 1 1
+                    <> maybe (aconst_null closureType) loadLoc mR1
+  where (mR1, cgLocs'') = findFirstR cgLocs'
+        storeVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> storeRec (context r) (r + 1) i l f d o
             N -> storeRec (context i) r (i + 1) l f d o
@@ -231,14 +248,15 @@ withContinuation call = do
       return ()
 
 wrapStackCheck :: CodeGen () -> CodeGen ()
-wrapStackCheck call = do
-    -- TODO: Replace the local variable with an internal variable in context?
-    --stackTop <- newTemp False frameType
-    emit $ loadContext <> spTopIndexMethod
-    emit $ loadContext <> spTopMethod
-    call
-    emit $ loadContext
-        <> dup_x2 jint frameType contextType
-        <> pop contextType
-        <> checkForStackFramesMethod
-        <> ifeq mempty vreturn
+wrapStackCheck = id
+-- wrapStackCheck call = do
+--     -- TODO: Replace the local variable with an internal variable in context?
+--     --stackTop <- newTemp False frameType
+--     emit $ loadContext <> spTopIndexMethod
+--     emit $ loadContext <> spTopMethod
+--     call
+--     emit $ loadContext
+--         <> dup_x2 jint frameType contextType
+--         <> pop contextType
+--         <> checkForStackFramesMethod
+--         <> ifeq mempty vreturn
