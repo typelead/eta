@@ -37,7 +37,7 @@ module ETA.StgSyn.StgSyn (
         -- utils
         stgBindHasCafRefs, stgArgHasCafRefs, stgRhsArity,
         isDllConApp,
-        stgArgType,
+        stgArgType, stgArgId,
         stripStgTicksTop,
 
         pprStgBinding, pprStgBindings,
@@ -130,6 +130,10 @@ isDllConApp _dflags _this_mod _con _args = False
 stgArgType :: StgArg -> Type
 stgArgType (StgVarArg v)   = idType v
 stgArgType (StgLitArg lit) = literalType lit
+
+stgArgId :: StgArg -> Maybe Id
+stgArgId (StgVarArg v) = Just v
+stgArgId _             = Nothing
 
 
 -- | Strip ticks of a given type from an STG expression

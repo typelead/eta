@@ -19,6 +19,7 @@ module ETA.CodeGen.Monad
    newLocal,
    newLabel,
    setNextLabel,
+   newRecursiveInitNumber,
    getSequel,
    getSelfLoop,
    setSuperClass,
@@ -91,6 +92,7 @@ data CgState =
   CgState { cgBindings         :: !CgBindings
           -- Accumulating
           , cgCompiledClosures :: ![ClassFile]
+          , cgRecursiveInitNumber :: Int
           -- Top-level definitions
           , cgAccessFlags    :: [AccessFlag]
           , cgMethodDefs     :: ![MethodDef]
@@ -161,6 +163,7 @@ initCg dflags mod =
            , cgFieldDefs        = []
            , cgClassName        = className
            , cgCompiledClosures = []
+           , cgRecursiveInitNumber = 0
            , cgSuperClassName   = Nothing
            , cgNextLocal        = 0
            , cgNextLabel        = 0 })
@@ -195,6 +198,12 @@ setNextLocal n = modify $ \s -> s { cgNextLocal = n }
 
 setNextLabel :: Int -> CodeGen ()
 setNextLabel n = modify $ \s -> s { cgNextLabel = n }
+
+newRecursiveInitNumber :: CodeGen Int
+newRecursiveInitNumber = do
+  recInitNo <- gets cgRecursiveInitNumber
+  modify $ \s -> s { cgRecursiveInitNumber = recInitNo + 1 }
+  return recInitNo
 
 getMethodCode :: CodeGen Code
 getMethodCode = gets cgCode

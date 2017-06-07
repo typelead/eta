@@ -13,6 +13,7 @@ module ETA.CodeGen.Types
    SelfLoopInfo,
    CgBindings,
    RecIndexes,
+   RecInfo,
    storeDefault,
    locArgRep,
    mkRepLocDirect,
@@ -322,3 +323,4 @@ evaluateMethod cgLoc
  -- TODO: Narrrow the invokevirtual call with locFt
 
 type RecIndexes = [(Int, Id)]
+type RecInfo = (Text, Text, Text, FieldRef, Code, RecIndexes)
