@@ -3,7 +3,6 @@ package eta.runtime.apply;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
-import eta.runtime.stg.SimpleArgumentStack;
 
 public abstract class StgFun extends StgClosure {
 
@@ -13,413 +12,332 @@ public abstract class StgFun extends StgClosure {
     public StgClosure getEvaluated() { return this; }
 
     @Override
-    public void applyV(StgContext context) {
+    public StgClosure applyV(StgContext context) {
         int arity = getArity();
         if (arity == 1) {
-            enter(context);
+            return enter(context);
         } else {
-            StgPAP pap = new StgPAP(arity - 1, this);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this);
         }
     }
 
     @Override
-    public void applyN(StgContext context, int n) {
+    public StgClosure applyN(StgContext context, int n) {
         int arity = getArity();
         if (arity == 1) {
             context.I(1, n);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .add(n)
-                .build();
-            StgPAP pap = new StgPAP(arity - 1, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .add(n)
+                              .build());
         }
     }
 
     @Override
-    public void applyL(StgContext context, long l) {
+    public StgClosure applyL(StgContext context, long l) {
         int arity = getArity();
         if (arity == 1) {
             context.L(1, l);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .add(l)
-                .build();
-            StgPAP pap = new StgPAP(arity - 1, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .add(l)
+                              .build());
         }
     }
 
     @Override
-    public void applyF(StgContext context, float f) {
+    public StgClosure applyF(StgContext context, float f) {
         int arity = getArity();
         if (arity == 1) {
             context.F(1, f);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .add(f)
-                .build();
-            StgPAP pap = new StgPAP(arity - 1, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .add(f)
+                              .build());
         }
     }
 
     @Override
-    public void applyD(StgContext context, double d) {
+    public StgClosure applyD(StgContext context, double d) {
         int arity = getArity();
         if (arity == 1) {
             context.D(1, d);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .add(d)
-                .build();
-            StgPAP pap = new StgPAP(arity - 1, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .add(d)
+                              .build());
         }
     }
 
     @Override
-    public void applyO(StgContext context, Object o) {
+    public StgClosure applyO(StgContext context, Object o) {
         int arity = getArity();
         if (arity == 1) {
             context.O(1, o);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .add(o)
-                .build();
-            StgPAP pap = new StgPAP(arity - 1, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .add(o)
+                              .build());
         }
     }
 
     @Override
-    public void applyP(StgContext context, StgClosure p) {
+    public StgClosure applyP(StgContext context, StgClosure p) {
         int arity = getArity();
         if (arity == 1) {
             context.R(2, p);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .addC(p)
-                .build();
-            StgPAP pap = new StgPAP(arity - 1, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 1, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .addC(p)
+                              .build());
         }
     }
 
     @Override
-    public void applyPV(StgContext context, StgClosure p) {
+    public StgClosure applyPV(StgContext context, StgClosure p) {
         int arity = getArity();
         if (arity == 1) {
-            context.pushFrame(new ApV());
             context.R(2, p);
-            enter(context);
-
+            return enter(context).applyV(context);
         } else if (arity == 2) {
             context.R(2, p);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .addC(p)
-                .build();
-            StgPAP pap = new StgPAP(arity - 2, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 2, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .addC(p)
+                              .build());
         }
     }
 
     @Override
-    public void applyPP(StgContext context, StgClosure p1, StgClosure p2) {
+    public StgClosure applyPP(StgContext context, StgClosure p1, StgClosure p2) {
         int arity = getArity();
         if (arity == 1) {
-            context.pushFrame(new ApP(p2));
             context.R(2, p1);
-            enter(context);
+            return enter(context).applyP(context, p2);
         } else if (arity == 2) {
             context.R(2, p1);
             context.R(3, p2);
-            enter(context);
+            return enter(context);
         } else {
-            AbstractArgumentStack stack =
-                AbstractArgumentStack.Builder
-                .from(null)
-                .addC(p1)
-                .addC(p2)
-                .build();
-            StgPAP pap = new StgPAP(arity - 2, this, stack);
-            context.R(1, pap);
+            return new StgPAP(arity - 2, this,
+                              AbstractArgumentStack.Builder
+                              .from(null)
+                              .addC(p1)
+                              .addC(p2)
+                              .build());
         }
     }
 
     @Override
-    public void applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
+    public StgClosure applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
         int arity = getArity();
         switch (arity) {
             case 1:
-                context.pushFrame(new ApPV(p2));
                 context.R(2, p1);
-                enter(context);
-                break;
+                return enter(context).applyPV(context, p2);
             case 2:
-                context.pushFrame(new ApV());
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context).applyV(context);
             case 3:
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context);
             default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 3, this, stack);
-                context.R(1, pap);
-                break;
+                return new StgPAP(arity - 3, this,
+                                  AbstractArgumentStack.Builder
+                                  .from(null)
+                                  .addC(p1)
+                                  .addC(p2)
+                                  .build());
         }
     }
 
     @Override
-    public void applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public StgClosure applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         int arity = getArity();
         switch (arity) {
             case 1:
-                context.pushFrame(new ApPP(p2, p3));
                 context.R(2, p1);
-                enter(context);
-                break;
+                return enter(context).applyPP(context, p2, p3);
             case 2:
-                context.pushFrame(new ApP(p3));
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context).applyP(context, p3);
             case 3:
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
-                enter(context);
-                break;
+                return enter(context);
             default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .addC(p3)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 3, this, stack);
-                context.R(1, pap);
-                break;
+                return new StgPAP(arity - 3, this,
+                                  AbstractArgumentStack.Builder
+                                  .from(null)
+                                  .addC(p1)
+                                  .addC(p2)
+                                  .addC(p3)
+                                  .build());
         }
     }
 
     @Override
-    public void applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public StgClosure applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
         int arity = getArity();
         switch (arity) {
             case 1:
-                context.pushFrame(new ApPPV(p2, p3));
                 context.R(2, p1);
-                enter(context);
-                break;
+                return enter(context).applyPPV(context, p2, p3);
             case 2:
-                context.pushFrame(new ApPV(p3));
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context).applyPV(context, p3);
             case 3:
-                context.pushFrame(new ApV());
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
-                enter(context);
-                break;
+                return enter(context).applyV(context);
             case 4:
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
-                enter(context);
-                break;
+                return enter(context);
             default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .addC(p3)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 4, this, stack);
-                context.R(1, pap);
-                break;
+                return new StgPAP(arity - 4, this,
+                                  AbstractArgumentStack.Builder
+                                  .from(null)
+                                  .addC(p1)
+                                  .addC(p2)
+                                  .addC(p3)
+                                  .build());
         }
     }
 
     @Override
-    public void applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , StgClosure p4) {
+    public StgClosure applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
         int arity = getArity();
         switch (arity) {
             case 1:
-                context.pushFrame(new ApPPP(p2, p3, p4));
                 context.R(2, p1);
-                enter(context);
-                break;
+                return enter(context).applyPPP(context, p2, p3, p4);
             case 2:
-                context.pushFrame(new ApPP(p3, p4));
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context).applyPP(context, p3, p4);
             case 3:
-                context.pushFrame(new ApP(p4));
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
-                enter(context);
-                break;
+                return enter(context).applyP(context, p4);
             case 4:
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
                 context.R(5, p4);
-                enter(context);
-                break;
+                return enter(context);
             default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .addC(p3)
-                    .addC(p4)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 4, this, stack);
-                context.R(1, pap);
-                break;
+                return new StgPAP(arity - 4, this,
+                                  AbstractArgumentStack.Builder
+                                  .from(null)
+                                  .addC(p1)
+                                  .addC(p2)
+                                  .addC(p3)
+                                  .addC(p4)
+                                  .build());
         }
     }
 
     @Override
-    public void applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , StgClosure p4, StgClosure p5) {
+    public StgClosure applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
         int arity = getArity();
         switch (arity) {
             case 1:
-                context.pushFrame(new ApPPPP(p2, p3, p4, p5));
                 context.R(2, p1);
-                enter(context);
-                break;
+                return enter(context).applyPPPP(context, p2, p3, p4, p5);
             case 2:
-                context.pushFrame(new ApPPP(p3, p4, p5));
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context).applyPPP(context, p3, p4, p5);
             case 3:
-                context.pushFrame(new ApPP(p4, p5));
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
-                enter(context);
-                break;
+                return enter(context).applyPP(context, p4, p5);
             case 4:
-                context.pushFrame(new ApP(p5));
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
                 context.R(5, p4);
-                enter(context);
-                break;
+                return enter(context).applyP(context, p5);
             case 5:
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
                 context.R(5, p4);
                 context.R(6, p5);
-                enter(context);
-                break;
+                return enter(context);
             default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .addC(p3)
-                    .addC(p4)
-                    .addC(p5)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 5, this, stack);
-                context.R(1, pap);
-                break;
+                return new StgPAP(arity - 5, this,
+                                  AbstractArgumentStack.Builder
+                                  .from(null)
+                                  .addC(p1)
+                                  .addC(p2)
+                                  .addC(p3)
+                                  .addC(p4)
+                                  .addC(p5)
+                                  .build());
         }
     }
 
     @Override
-    public void applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3
-                      , StgClosure p4, StgClosure p5, StgClosure p6) {
+    public StgClosure applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
         int arity = getArity();
         switch (arity) {
             case 1:
-                context.pushFrame(new ApPPPPP(p2, p3, p4, p5, p6));
                 context.R(2, p1);
-                enter(context);
-                break;
+                return enter(context).applyPPPPP(context, p2, p3, p4, p5, p6);
             case 2:
-                context.pushFrame(new ApPPPP(p3, p4, p5, p6));
                 context.R(2, p1);
                 context.R(3, p2);
-                enter(context);
-                break;
+                return enter(context).applyPPPP(context, p3, p4, p5, p6);
             case 3:
-                context.pushFrame(new ApPPP(p4, p5, p6));
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
-                enter(context);
-                break;
+                return enter(context).applyPPP(context, p4, p5, p6);
             case 4:
-                context.pushFrame(new ApPP(p5, p6));
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
                 context.R(5, p4);
-                enter(context);
-                break;
+                return enter(context).applyPP(context, p5, p6);
             case 5:
-                context.pushFrame(new ApP(p6));
                 context.R(2, p1);
                 context.R(3, p2);
                 context.R(4, p3);
                 context.R(5, p4);
                 context.R(6, p5);
-                enter(context);
-                break;
+                return enter(context).applyP(context, p6);
             case 6:
                 context.R(2, p1);
                 context.R(3, p2);
@@ -427,22 +345,18 @@ public abstract class StgFun extends StgClosure {
                 context.R(5, p4);
                 context.R(6, p5);
                 context.R(7, p6);
-                enter(context);
-                break;
+                return enter(context);
             default:
-                AbstractArgumentStack stack =
-                    AbstractArgumentStack.Builder
-                    .from(null)
-                    .addC(p1)
-                    .addC(p2)
-                    .addC(p3)
-                    .addC(p4)
-                    .addC(p5)
-                    .addC(p6)
-                    .build();
-                StgPAP pap = new StgPAP(arity - 6, this, stack);
-                context.R(1, pap);
-                break;
+                return new StgPAP(arity - 6, this,
+                                  AbstractArgumentStack.Builder
+                                  .from(null)
+                                  .addC(p1)
+                                  .addC(p2)
+                                  .addC(p3)
+                                  .addC(p4)
+                                  .addC(p5)
+                                  .addC(p6)
+                                  .build());
         }
     }
 }
