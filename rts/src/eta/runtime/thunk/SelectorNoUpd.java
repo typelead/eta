@@ -16,15 +16,9 @@ public abstract class SelectorNoUpd extends StgThunk {
     }
 
     @Override
-    public final void enter(StgContext context) {
-        super.enter(context);
-        int index = context.stackTopIndex();
-        StackFrame frame = context.stackTop();
-        p.evaluate(context);
-        if (!context.checkForStackFrames(index, frame)) {
-            selectEnter(context);
-        }
+    public final StgClosure enter(StgContext context) {
+        return selectEnter(context, (StgConstr) p.evaluate(context));
     }
 
-    public abstract void selectEnter(StgContext context);
+    public abstract StgClosure selectEnter(StgContext context, StgConstr result);
 }

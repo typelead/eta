@@ -12,7 +12,8 @@ public class SelectorNUpd extends SelectorUpd {
     }
 
     @Override
-    public void selectEnter(StgContext context) {
-        context.I(1, ((StgConstr) context.R(1)).getN(index));
+    public StgClosure selectEnter(StgContext context, StgConstr result) {
+        context.I(1, result.getN(index));
+        return null;
     }
 }
