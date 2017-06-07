@@ -396,7 +396,7 @@ withMethod accessFlags name fts rt body = do
   setNextLocal 2
   setNextLabel 0
   body
-  emit vreturn
+  emit (greturn closureType)
   clsName <- getClass
   newCode <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
