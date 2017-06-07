@@ -16,13 +16,8 @@ public abstract class SelectorUpd extends StgInd {
 
     @Override
     public final void thunkEnter(StgContext context) {
-        int index = context.stackTopIndex();
-        StackFrame frame = context.stackTop();
-        p.evaluate(context);
-        if (!context.checkForStackFrames(index, frame)) {
-            selectEnter(context);
-        }
+        selectEnter(context, (StgConstr) p.evaluate(context));
     }
 
-    public abstract void selectEnter(StgContext context);
+    public abstract void selectEnter(StgContext context, StgConstr result);
 }

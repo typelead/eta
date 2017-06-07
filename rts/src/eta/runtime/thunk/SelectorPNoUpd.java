@@ -12,7 +12,7 @@ public class SelectorPNoUpd extends SelectorNoUpd {
     }
 
     @Override
-    public void selectEnter(StgContext context) {
-        ((StgConstr) context.R(1)).getP(index).evaluate(context);
+    public StgClosure selectEnter(StgContext context, StgConstr result) {
+        return result.getP(index).evaluate(context);
     }
 }
