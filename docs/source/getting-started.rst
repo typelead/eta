@@ -57,6 +57,15 @@ Fedora
 .. code-block:: console
 
   sudo dnf install zlib-devel ncurses-devel bzip2-devel
+  
+OpenSUSE
+""""""""
+
+- Install ``bz2``, ``ncurses``, and ``zlib``.
+
+.. code-block:: console
+
+  sudo zypper install zlib-devel libncurses5 ncurses5-devel libbz2-devel
 
 OS X
 """"
