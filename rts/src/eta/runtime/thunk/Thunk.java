@@ -34,11 +34,9 @@ public class Thunk {
         return keepCAFs;
     }
 
-    public static void revertCAFs() {
+    public static synchronized void revertCAFs() {
         for (StgIndStatic c: revertibleCAFList) {
             c.indirectee = null;
-            /* TODO: Verify that the code to revert the CAF
-                     is correct. */
         }
         revertibleCAFList.clear();
     }
