@@ -23,7 +23,7 @@ public class Ap6Upd extends StgInd {
     }
 
     @Override
-    public void thunkEnter(StgContext context) {
-        p1.applyPPPPP(context, p2, p3, p4, p5, p6);
+    public StgClosure thunkEnter(StgContext context) {
+        return p1.applyPPPPP(context, p2, p3, p4, p5, p6);
     }
 }

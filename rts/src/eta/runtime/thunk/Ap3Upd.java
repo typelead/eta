@@ -17,7 +17,7 @@ public class Ap3Upd extends StgInd {
     }
 
     @Override
-    public void thunkEnter(StgContext context) {
-        p1.applyPP(context, p2, p3);
+    public StgClosure thunkEnter(StgContext context) {
+        return p1.applyPP(context, p2, p3);
     }
 }

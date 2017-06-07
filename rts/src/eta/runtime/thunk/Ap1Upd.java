@@ -13,7 +13,7 @@ public class Ap1Upd extends StgInd {
     }
 
     @Override
-    public void thunkEnter(StgContext context) {
-        p.evaluate(context);
+    public StgClosure thunkEnter(StgContext context) {
+        return p.evaluate(context);
     }
 }
