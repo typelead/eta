@@ -3,21 +3,6 @@ package eta.runtime.thunk;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StgClosure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.apply.ApV;
-import eta.runtime.apply.ApN;
-import eta.runtime.apply.ApL;
-import eta.runtime.apply.ApF;
-import eta.runtime.apply.ApD;
-import eta.runtime.apply.ApO;
-import eta.runtime.apply.ApP;
-import eta.runtime.apply.ApPV;
-import eta.runtime.apply.ApPP;
-import eta.runtime.apply.ApPPV;
-import eta.runtime.apply.ApPPP;
-import eta.runtime.apply.ApPPPV;
-import eta.runtime.apply.ApPPPP;
-import eta.runtime.apply.ApPPPPP;
-import eta.runtime.apply.ApPPPPPP;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RtsMessages.barf;
 
@@ -52,7 +37,7 @@ public class StgThunk extends StgClosure {
         return UnsafeUtil.cas(this, expected, update);
     }
 
-    public void thunkEnter(StgContext context) {
+    public StgClosure thunkEnter(StgContext context) {
         barf("thunkEnter not implemented");
     }
 
@@ -62,151 +47,76 @@ public class StgThunk extends StgClosure {
 
     @Override
     public final void applyV(StgContext context) {
-        if (indirectee == null) {
-            context.pushFrame(new ApV());
-            enter(context);
-        } else {
-            indirectee.applyV(context);
-        }
+        return ((indirectee == null)? enter(context):indirectee).applyV(context);
     }
 
     @Override
-    public void applyN(StgContext context, int n) {
-        if (indirectee == null) {
-            context.pushFrame(new ApN(n));
-            enter(context);
-        } else {
-            indirectee.applyN(context, n);
-        }
+    public StgClosure applyN(StgContext context, int n) {
+        return ((indirectee == null)? enter(context):indirectee).applyN(context, n);
     }
 
     @Override
-    public void applyL(StgContext context, long l) {
-        if (indirectee == null) {
-            context.pushFrame(new ApL(l));
-            enter(context);
-        } else {
-            indirectee.applyL(context, l);
-        }
+    public StgClosure applyL(StgContext context, long l) {
+        return ((indirectee == null)? enter(context):indirectee).applyL(context, l);
     }
 
     @Override
-    public void applyF(StgContext context, float f) {
-        if (indirectee == null) {
-            context.pushFrame(new ApF(f));
-            enter(context);
-        } else {
-            indirectee.applyF(context, f);
-        }
+    public StgClosure applyF(StgContext context, float f) {
+        return ((indirectee == null)? enter(context):indirectee).applyF(context, f);
     }
 
     @Override
-    public void applyD(StgContext context, double d) {
-        if (indirectee == null) {
-            context.pushFrame(new ApD(d));
-            enter(context);
-        } else {
-            indirectee.applyD(context, d);
-        }
+    public StgClosure applyD(StgContext context, double d) {
+        return ((indirectee == null)? enter(context):indirectee).applyD(context, d);
     }
 
     @Override
-    public void applyO(StgContext context, Object o) {
-        if (indirectee == null) {
-            context.pushFrame(new ApO(o));
-            enter(context);
-        } else {
-            indirectee.applyO(context, o);
-        }
+    public StgClosure applyO(StgContext context, Object o) {
+        return ((indirectee == null)? enter(context):indirectee).applyO(context, o);
     }
 
     @Override
-    public void applyP(StgContext context, StgClosure p) {
-        if (indirectee == null) {
-            context.pushFrame(new ApP(p));
-            enter(context);
-        } else {
-            indirectee.applyP(context, p);
-        }
+    public StgClosure applyP(StgContext context, StgClosure p) {
+        return ((indirectee == null)? enter(context):indirectee).applyP(context, p);
     }
 
     @Override
-    public void applyPV(StgContext context, StgClosure p) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPV(p));
-            enter(context);
-        } else {
-            indirectee.applyPV(context, p);
-        }
+    public StgClosure applyPV(StgContext context, StgClosure p) {
+        return ((indirectee == null)? enter(context):indirectee).applyPV(context, p);
     }
 
     @Override
-    public void applyPP(StgContext context, StgClosure p1, StgClosure p2) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPP(p1, p2));
-            enter(context);
-        } else {
-            indirectee.applyPP(context, p1, p2);
-        }
+    public StgClosure applyPP(StgContext context, StgClosure p1, StgClosure p2) {
+        return ((indirectee == null)? enter(context):indirectee).applyPP(context, p1, p2);
     }
 
     @Override
-    public void applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPPV(p1, p2));
-            enter(context);
-        } else {
-            indirectee.applyPPV(context, p1, p2);
-        }
+    public StgClosure applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
+        return ((indirectee == null)? enter(context):indirectee).applyPPV(context, p1, p2);
     }
 
     @Override
-    public void applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPPP(p1, p2, p3));
-            enter(context);
-        } else {
-            indirectee.applyPPP(context, p1, p2, p3);
-        }
+    public StgClosure applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+        return ((indirectee == null)? enter(context):indirectee).applyPPP(context, p1, p2, p3);
     }
 
     @Override
-    public void applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPPPV(p1, p2, p3));
-            enter(context);
-        } else {
-            indirectee.applyPPPV(context, p1, p2, p3);
-        }
+    public StgClosure applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+        return ((indirectee == null)? enter(context):indirectee).applyPPPV(context, p1, p2, p3);
     }
 
     @Override
-    public void applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPPPP(p1, p2, p3, p4));
-            enter(context);
-        } else {
-            indirectee.applyPPPP(context, p1, p2, p3, p4);
-        }
+    public StgClosure applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
+        return ((indirectee == null)? enter(context):indirectee).applyPPPP(context, p1, p2, p3, p4);
     }
 
     @Override
-    public void applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPPPPP(p1, p2, p3, p4, p5));
-            enter(context);
-        } else {
-            indirectee.applyPPPPP(context, p1, p2, p3, p4, p5);
-        }
+    public StgClosure applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
+        return ((indirectee == null)? enter(context):indirectee).applyPPPPP(context, p1, p2, p3, p4, p5);
     }
 
     @Override
-    public void applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
-        if (indirectee == null) {
-            context.pushFrame(new ApPPPPPP(p1, p2, p3, p4, p5, p6));
-            enter(context);
-        } else {
-            indirectee.applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
-        }
+    public StgClosure applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
+        return ((indirectee == null)? enter(context):indirectee).applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
     }
 }
