@@ -65,7 +65,7 @@ stdout = unsafePerformIO $ do
    -- ToDo: acquire lock
    setBinaryMode FD.stdout
    enc <- getLocaleEncoding
-   mkHandle FD.stdout "<stdout>" WriteHandle (BlockBuffering Nothing)
+   mkHandle FD.stdout "<stdout>" WriteHandle LineBuffering
                 (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
