@@ -625,6 +625,7 @@ mkHandle dev filepath ha_type bmode mb_codec nl finalizer other_side = do
    (cbufref, _) <-
      case bmode of
        BlockBuffering _ -> getCharBuffer dev buf_state
+       LineBuffering -> mkUnBuffer buf_state
        _ -> mkUnBuffer buf_state
 
    spares <- newIORef BufferListNil
