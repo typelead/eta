@@ -100,7 +100,7 @@ Primitive Types Reference
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | ``a ~R b``      | ``a ~R# b``            | none                           |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``RealWorld``          | eta.runtime.stg.StgClosure     |                                             |
+| -               | ``RealWorld``          | eta.runtime.stg.Closure     |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | ``Array``       | ``Array#``             | eta.runtime.io.StgArray        |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
@@ -269,7 +269,7 @@ produced on running the program. This is useful in filing a more helpful bug rep
     Exception in thread "main" java.lang.NoClassDefFoundError: Calendar
             at oldzmtimezm1zi1zi0zi3.system.Time$satzus10SQ.thunkEnter(Unknown Source)
             at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
-            at eta.runtime.stg.StgClosure.evaluate(StgClosure.java:20)
+            at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at base.text.parsercombinators.ReadP$skipSpaceszuskip.enter(Unknown Source)
             at base.ghc.Read$satzus5BWW.enter(Unknown Source)
             at eta.runtime.apply.StgFun.apply(StgFun.java:116)
@@ -283,15 +283,15 @@ produced on running the program. This is useful in filing a more helpful bug rep
             at base.text.parsercombinators.ReadP$run.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$satzus10SY.thunkEnter(Unknown Source)
             at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
-            at eta.runtime.stg.StgClosure.evaluate(StgClosure.java:20)
+            at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at oldzmtimezm1zi1zi0zi3.system.Time$lvl98zus13J8.thunkEnter(Unknown Source)
             at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
-            at eta.runtime.stg.StgClosure.evaluate(StgClosure.java:20)
+            at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at base.ghc.Base$zpzp.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$doFmtzus13PB.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$lvl112zus13P6.thunkEnter(Unknown Source)
             at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
-            at eta.runtime.stg.StgClosure.evaluate(StgClosure.java:20)
+            at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at base.ghc.Base$zpzp.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$doFmtzus13PB.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$zdwformatCalendarTime.enter(Unknown Source)

@@ -5,13 +5,29 @@ import eta.runtime.stg.StgContext;
 public abstract class StgInd extends StgThunk {
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
+    public Closure enter(StgContext context) {
         if (indirectee == null) {
-            context.pushFrame(new StgUpdateFrame(this));
-            thunkEnter(context);
+            UpdateInfo ui = context.pushUpdate(this);
+            try {
+                Closure result = thunkEnter(context);
+            } catch (EtaAsyncException ea) {
+                if (ea.stopHere == ui) {
+                    return enter(context);
+                } else {
+                    throw ea;
+                }
+            } finally {
+                StgThunk popped = context.popUpdate();
+                assert popped == this;
+            }
+            if (ui.marked) {
+                return updateCode(context, result);
+            } else {
+                updateWithIndirection(result);
+                return result;
+            }
         } else {
-            Thunk.blackHole(context, this);
+            return blackHole(context);
         }
     }
 }

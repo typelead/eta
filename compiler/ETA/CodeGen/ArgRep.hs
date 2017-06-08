@@ -32,7 +32,7 @@ import Codec.JVM
 import Data.Monoid ((<>))
 import Data.Text (Text)
 
-data ArgRep = P   -- StgClosure
+data ArgRep = P   -- Closure
              | N   -- int-sized non-ptr
              | V   -- Void
              | L   -- long

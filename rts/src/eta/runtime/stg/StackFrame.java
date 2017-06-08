@@ -7,10 +7,9 @@ import eta.runtime.thunk.StgThunk;
 import static eta.runtime.stg.StackFrame.MarkFrameResult.Default;
 import static eta.runtime.RtsMessages.barf;
 
-public abstract class StackFrame extends StgClosure {
+public abstract class StackFrame extends StgValue {
     public int stackIndex;
 
-    @Override
     public final void enter(StgContext context) {
         ListIterator<StackFrame> sp = context.currentTSO.sp;
         /* WARNING: This logic is VERY delicate. Make sure you
@@ -68,11 +67,11 @@ public abstract class StackFrame extends StgClosure {
         Marked, Stop, Default, Update, UpdateEvaluted
     }
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
         return true;
     }
 
-    public StgClosure getClosure() { return null; }
+    public Closure getClosure() { return null; }
 
     public boolean doFindRetry(Capability cap, StgTSO tso) {
         /* Move to the next stack frame */
@@ -80,12 +79,12 @@ public abstract class StackFrame extends StgClosure {
     }
 
 
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         return true;
     }
 
 
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
         return false;
     }
 }

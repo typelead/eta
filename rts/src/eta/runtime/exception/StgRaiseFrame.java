@@ -1,13 +1,13 @@
 package eta.runtime.exception;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 
 public class StgRaiseFrame extends StackFrame {
-    public final StgClosure exception;
+    public final Closure exception;
 
-    public StgRaiseFrame(final StgClosure exception) {
+    public StgRaiseFrame(final Closure exception) {
         this.exception = exception;
     }
 

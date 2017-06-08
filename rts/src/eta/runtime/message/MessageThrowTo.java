@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
@@ -13,10 +13,10 @@ public class MessageThrowTo extends Message {
     public final long id = nextMessageId();
     public final StgTSO source;
     public final StgTSO target;
-    public final  StgClosure exception;
+    public final  Closure exception;
     public volatile AtomicBoolean lock = new AtomicBoolean(false);
 
-    public MessageThrowTo(final StgTSO source, final StgTSO target, final StgClosure exception) {
+    public MessageThrowTo(final StgTSO source, final StgTSO target, final Closure exception) {
         this.source = source;
         this.target = target;
         this.exception = exception;
@@ -41,8 +41,6 @@ public class MessageThrowTo extends Message {
 
     public void done() {
         invalidate();
-        /* TODO: Maybe we should set the Object members to null? */
-        unlock();
     }
 
     public final void lock() {

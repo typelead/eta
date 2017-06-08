@@ -7,20 +7,20 @@ import java.util.concurrent.atomic.AtomicReference;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.Capability;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 
 public class StgCatchRetryFrame extends StgSTMCatchFrame {
     public boolean runningAltCode;
-    public final StgClosure firstCode;
-    public final StgClosure altCode;
+    public final Closure firstCode;
+    public final Closure altCode;
 
-    public StgCatchRetryFrame(final StgClosure firstCode, final StgClosure altCode) {
+    public StgCatchRetryFrame(final Closure firstCode, final Closure altCode) {
         this(firstCode, altCode, false);
     }
 
-    public StgCatchRetryFrame(final StgClosure firstCode, final StgClosure altCode, boolean runningAltCode) {
+    public StgCatchRetryFrame(final Closure firstCode, final Closure altCode, boolean runningAltCode) {
         this.firstCode = firstCode;
         this.altCode = altCode;
         this.runningAltCode = runningAltCode;
@@ -38,7 +38,7 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
         } else {
             StgTRecHeader newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
-            StgClosure code;
+            Closure code;
             if (runningAltCode) {
                 code = altCode;
             } else {
@@ -76,7 +76,7 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         StgTRecHeader trec = tso.trec;
         StgTRecHeader outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);

@@ -4,20 +4,20 @@ import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.nio.ByteBuffer;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 
 public class StablePtrTable {
 
     private static StablePtrTable INSTANCE = new StablePtrTable();
     private static Object lock = new Object();
 
-    private ArrayList<StgClosure> ptrs = new ArrayList<StgClosure>(64);
+    private ArrayList<Closure> ptrs = new ArrayList<Closure>(64);
     private ArrayDeque<Integer> freeIndexes = new ArrayDeque<Integer>(20);
 
     private StablePtrTable() {}
 
     // TODO: Add a "stable ptr compactification" step to the GC
-    public static int makeStablePtr(StgClosure p) {
+    public static int makeStablePtr(Closure p) {
         Integer index;
         synchronized (lock) {
             index = INSTANCE.freeIndexes.poll();
@@ -31,7 +31,7 @@ public class StablePtrTable {
         return index.intValue();
     }
 
-    public static StgClosure getClosure(int index) {
+    public static Closure getClosure(int index) {
         return INSTANCE.ptrs.get(index);
     }
 

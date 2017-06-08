@@ -1,27 +1,27 @@
 package eta.runtime.thunk;
 
 import eta.runtime.stg.StgTSO;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RtsMessages.barf;
 
-public class StgThunk extends StgClosure {
-    public volatile StgClosure indirectee;
+public class StgThunk extends Closure {
+    public volatile Closure indirectee;
 
     public StgThunk() {
         this(null);
     }
 
-    public StgThunk(StgClosure indirectee) {
+    public StgThunk(Closure indirectee) {
         super();
         this.indirectee = indirectee;
     }
 
     @Override
-    public final StgClosure getEvaluated() {
-        if (indirectee == null) return null;
-        else return indirectee.getEvaluated();
+    public final Closure getEvaluated() {
+        if (indirectee instanceof StgValue) return indirectee;
+        else return null;
     }
 
     @Override
@@ -29,20 +29,86 @@ public class StgThunk extends StgClosure {
         return getEvaluated() != null;
     }
 
-    public final boolean tryLock(StgClosure oldIndirectee) {
+    public final boolean tryLock(Closure oldIndirectee) {
         return cas(oldIndirectee, StgWhiteHole.closure);
     }
 
-    public final boolean cas(StgClosure expected, StgClosure update) {
+    public final boolean cas(Closure expected, Closure update) {
         return UnsafeUtil.cas(this, expected, update);
     }
 
-    public StgClosure thunkEnter(StgContext context) {
+    public Closure thunkEnter(StgContext context) {
         barf("thunkEnter not implemented");
     }
 
-    public final void updateWithIndirection(StgClosure ret) {
+    public final void updateWithIndirection(Closure ret) {
         indirectee = ret;
+    }
+
+    public final Closure updateCode(StgContext context, Closure ret) {
+        Closure v = indirectee;
+        Capability cap = context.myCapability;
+        StgTSO tso = context.currentTSO;
+        if (v instanceof StgValue) {
+            cap.checkBlockingQueues(tso);
+            return v;
+        }
+        if (v == tso) {
+            updatee.updateWithIndirection(ret);
+            return ret;
+        }
+        updateThunk(cap, tso, ret);
+        return ret;
+    }
+
+    public final void updateThunk(Capability cap, StgTSO tso, Closure val) {
+        Closure v = indirectee;
+        /* Has not been blackholed, so update with no further checks */
+        if (v == null) {
+            updateWithIndirection(val);
+            return;
+        }
+        updateWithIndirection(val);
+        if (v == tso) return;
+        if (v instanceof StgBlockingQueue) {
+            StgBlockingQueue bq = (StgBlockingQueue) v;
+            StgTSO owner = bq.owner;
+            if (owner != tso) {
+                cap.checkBockingQueues(tso);
+            } else {
+                cap.wakeBlockingQueue(cap, bq);
+            }
+        } else {
+            cap.checkBlockingQueues(tso);
+            return;
+        }
+    }
+
+    public final Closure blackHole(StgContext context) {
+        do {
+            Closure p = indirectee;
+            if (p instanceof StgValue) return p;
+            else if (p instanceof StgEvaluating) {
+                Capability cap = context.myCapability;
+                StgTSO tso = context.currentTSO;
+                MessageBlackHole msg = new MessageBlackHole(tso, blackhole, Thread.currentThread());
+                boolean blocked = cap.messageBlackHole(msg);
+                if (blocked) {
+                    tso.whyBlocked = BlockedOnBlackHole;
+                    tso.blockInfo = msg;
+                    /* TODO: Best spot to do some checks here, say for
+                             asynchronous exceptions. */
+                    LockSupport.park();
+                    /* Takes into account that LockSupport.park() can wake up
+                       spuriously. */
+                    tso.whyBlocked = NotBlocked;
+                    tso.blockInfo = null;
+                }
+                continue;
+            } else {
+                p.enter(context);
+            }
+        } while (false);
     }
 
     @Override
@@ -51,72 +117,72 @@ public class StgThunk extends StgClosure {
     }
 
     @Override
-    public StgClosure applyN(StgContext context, int n) {
+    public Closure applyN(StgContext context, int n) {
         return ((indirectee == null)? enter(context):indirectee).applyN(context, n);
     }
 
     @Override
-    public StgClosure applyL(StgContext context, long l) {
+    public Closure applyL(StgContext context, long l) {
         return ((indirectee == null)? enter(context):indirectee).applyL(context, l);
     }
 
     @Override
-    public StgClosure applyF(StgContext context, float f) {
+    public Closure applyF(StgContext context, float f) {
         return ((indirectee == null)? enter(context):indirectee).applyF(context, f);
     }
 
     @Override
-    public StgClosure applyD(StgContext context, double d) {
+    public Closure applyD(StgContext context, double d) {
         return ((indirectee == null)? enter(context):indirectee).applyD(context, d);
     }
 
     @Override
-    public StgClosure applyO(StgContext context, Object o) {
+    public Closure applyO(StgContext context, Object o) {
         return ((indirectee == null)? enter(context):indirectee).applyO(context, o);
     }
 
     @Override
-    public StgClosure applyP(StgContext context, StgClosure p) {
+    public Closure applyP(StgContext context, Closure p) {
         return ((indirectee == null)? enter(context):indirectee).applyP(context, p);
     }
 
     @Override
-    public StgClosure applyPV(StgContext context, StgClosure p) {
+    public Closure applyPV(StgContext context, Closure p) {
         return ((indirectee == null)? enter(context):indirectee).applyPV(context, p);
     }
 
     @Override
-    public StgClosure applyPP(StgContext context, StgClosure p1, StgClosure p2) {
+    public Closure applyPP(StgContext context, Closure p1, Closure p2) {
         return ((indirectee == null)? enter(context):indirectee).applyPP(context, p1, p2);
     }
 
     @Override
-    public StgClosure applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
+    public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
         return ((indirectee == null)? enter(context):indirectee).applyPPV(context, p1, p2);
     }
 
     @Override
-    public StgClosure applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
         return ((indirectee == null)? enter(context):indirectee).applyPPP(context, p1, p2, p3);
     }
 
     @Override
-    public StgClosure applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
         return ((indirectee == null)? enter(context):indirectee).applyPPPV(context, p1, p2, p3);
     }
 
     @Override
-    public StgClosure applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
+    public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
         return ((indirectee == null)? enter(context):indirectee).applyPPPP(context, p1, p2, p3, p4);
     }
 
     @Override
-    public StgClosure applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
+    public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
         return ((indirectee == null)? enter(context):indirectee).applyPPPPP(context, p1, p2, p3, p4, p5);
     }
 
     @Override
-    public StgClosure applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
+    public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
         return ((indirectee == null)? enter(context):indirectee).applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
     }
 }

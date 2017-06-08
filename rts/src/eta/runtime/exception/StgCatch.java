@@ -1,15 +1,15 @@
 package eta.runtime.exception;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.apply.StgFun;
 
 public class StgCatch extends StgFun {
     /* TODO: Extend from StgFun instead? */
-    public final StgClosure io;
-    public final StgClosure handler;
+    public final Closure io;
+    public final Closure handler;
 
-    public StgCatch(final StgClosure io, final StgClosure handler) {
+    public StgCatch(final Closure io, final Closure handler) {
         this.io = io;
         this.handler = handler;
     }
@@ -19,8 +19,8 @@ public class StgCatch extends StgFun {
     public int getArity() { return 0; }
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
-        StgException.catch_(context, io, handler);
+    public Closure enter(StgContext context) {
+        context.R(1, this); // TODO: Verify
+        return StgException.catch_(context, io, handler);
     }
 }

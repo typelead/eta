@@ -1,9 +1,9 @@
 package eta.runtime.stg;
 
 public class ReturnClosure extends StackFrame {
-    public final StgClosure closure;
+    public final Closure closure;
 
-    public ReturnClosure(final StgClosure closure) {
+    public ReturnClosure(final Closure closure) {
         this.closure = closure;
     }
 

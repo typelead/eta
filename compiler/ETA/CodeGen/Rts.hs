@@ -59,7 +59,7 @@ stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgTh
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
   stgBCO, stgWeak :: Text
 stgConstr     = stg "StgConstr"
-stgClosure    = stg "StgClosure"
+stgClosure    = stg "Closure"
 stgContext    = stg "StgContext"
 capability    = stg "Capability"
 task          = stg "Task"
@@ -126,7 +126,7 @@ checkForStackFramesMethod =
   invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
 
 mkApFast :: Int -> [FieldType] -> Code
-mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts void)
+mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts closureType)
   where fts = drop 1 rawFts
         applyFun
           | arity == 0 && null fts = "evaluate"

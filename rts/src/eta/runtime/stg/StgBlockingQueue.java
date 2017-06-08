@@ -8,12 +8,12 @@ import eta.runtime.RtsFlags;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.Capability;
 import eta.runtime.thunk.StgThunk;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.stg.StgTSO.WhyBlocked.NotBlocked;
 import static eta.runtime.RtsMessages.debugBelch;
 
-public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlackHole> {
+public class StgBlockingQueue extends StgEvaluating implements Iterable<MessageBlackHole> {
     public final StgTSO owner;
     public final StgThunk bh;
     public final Queue<MessageBlackHole> messages;
@@ -23,6 +23,12 @@ public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlac
         this.bh = msg.bh;
         this.messages = new ArrayDeque<MessageBlackHole>();
         messages.offer(msg);
+    }
+
+    @Override
+    public final Closure enter(StgContext context) {
+        barf("StgBlockingQueue object entered!");
+        return null;
     }
 
     @Override
@@ -51,15 +57,6 @@ public class StgBlockingQueue extends StgClosure implements Iterable<MessageBlac
                 }
             }
             return false;
-        }
-    }
-
-    @Override
-    public void doUpdateThunk(Capability cap, StgTSO tso) {
-        if (owner != tso) {
-            cap.checkBlockingQueues(tso);
-        } else {
-            cap.wakeBlockingQueue(this);
         }
     }
 

@@ -6,7 +6,7 @@ import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stm.StgTVar;
 import eta.runtime.thunk.StgThunk;
 import eta.runtime.io.StgMutVar;
@@ -76,15 +76,15 @@ public class UnsafeUtil {
 
     private UnsafeUtil() {}
 
-    public static boolean cas(StgThunk ind, StgClosure expected, StgClosure update) {
+    public static boolean cas(StgThunk ind, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(ind, indirecteeOffset, expected, update);
     }
 
-    public static boolean cas(StgTVar tvar, StgClosure expected, StgClosure update) {
+    public static boolean cas(StgTVar tvar, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(tvar, cvOffset, expected, update);
     }
 
-    public static boolean cas(StgMutVar mv, StgClosure expected, StgClosure update) {
+    public static boolean cas(StgMutVar mv, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(mv, valueOffset, expected, update);
     }
 }

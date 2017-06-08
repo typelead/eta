@@ -4,7 +4,7 @@ import eta.runtime.Rts;
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ReturnClosure;
 import eta.runtime.exception.StgException;
@@ -16,7 +16,7 @@ import static eta.runtime.stg.StgTSO.WhyBlocked;
 import static eta.runtime.stg.StgTSO.WhatNext;
 import static eta.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVar;
 import static eta.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVarRead;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
 import static eta.runtime.stg.StgTSO.WhatNext.ThreadComplete;
 import static eta.runtime.stg.StgTSO.WhatNext.ThreadKilled;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
@@ -25,59 +25,65 @@ import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
 
-    public static void takeMVar(StgContext context, StgMVar mvar) {
-        try {
-            context.R(1, mvar.take());
-        } catch (InterruptedException ie) {
-            barf("takeMVar: Unexpected interrupt.");
-        }
+    public static Closure takeMVar(StgContext context, StgMVar mvar) {
+        do {
+            try {
+                return mvar.take();
+            } catch (InterruptedException ie) {}
+        } while (true);
     }
 
-    public static void readMVar(StgContext context, StgMVar mvar) {
-        context.R(1, mvar.read());
+    public static Closure readMVar(StgContext context, StgMVar mvar) {
+        return mvar.read();
     }
 
-    public static void putMVar(StgContext context, StgMVar mvar, StgClosure val) {
-        try {
-            mvar.put(val);
-        } catch (InterruptedException ie) {
-            barf("putMVar: Unexpected interrupt.");
-        }
+    public static Closure putMVar(StgContext context, StgMVar mvar, Closure val) {
+        do {
+            try {
+                mvar.put(val);
+                return null;
+            } catch (InterruptedException ie) {}
+        } while (true);
     }
 
-    public static void tryReadMVar(StgContext context, StgMVar mvar) {
-        StgClosure value = mvar.tryRead();
+    public static Closure tryReadMVar(StgContext context, StgMVar mvar) {
+        Closure value = mvar.tryRead();
         context.I(1, (value == null)? 0: 1);
-        context.R(1, value);
+        return value;
     }
 
-    public static void fork(StgContext context, StgClosure closure) {
+    /* TODO: Perform blackholing here to prevent duplicate evaluations
+             shared among multiple threads? */
+    public static Closure fork(StgContext context, Closure closure) {
         Capability cap = context.myCapability;
         StgTSO tso = Rts.scheduleIOClosure(closure);
         cap.contextSwitch = true;
         context.O(1, tso);
+        return null;
     }
 
-    public static void forkOn(StgContext context, int cpu, StgClosure closure) {
+    public static Closure forkOn(StgContext context, int cpu, Closure closure) {
         Capability cap = context.myCapability;
         StgTSO tso = Rts.createIOThread(cap, closure);
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         Rts.scheduleThreadOn(cap, cpu, tso);
         cap.contextSwitch = true;
         context.O(1, tso);
+        return null;
     }
 
-    public static void yield(StgContext context) {
+    public static Closure yield(StgContext context) {
         Thread.yield();
+        return null;
     }
 
     /* TODO: Inline this */
-    public static void isCurrentThreadBound(StgContext context) {
-        StgTSO tso = context.currentTSO;
-        context.I(1, tso.isBound()? 1 : 0);
+    public static Closure isCurrentThreadBound(StgContext context) {
+        context.I(1, context.currentTSO.isBound()? 1 : 0);
+        return null;
     }
 
-    public static void threadStatus(StgContext context, StgTSO tso) {
+    public static Closure threadStatus(StgContext context, StgTSO tso) {
         WhatNext whatNext = tso.whatNext;
         int ret;
         WhyBlocked whyBlocked = tso.whyBlocked;
@@ -100,8 +106,11 @@ public class Concurrent {
         context.I(1, ret);
         context.I(2, cap);
         context.I(3, locked);
+        return null;
     }
 
     /* TODO: Implement this */
-    public static void traceEvent(StgContext context) {}
+    public static Closure traceEvent(StgContext context) {
+        return null;
+    }
 }

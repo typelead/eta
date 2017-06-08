@@ -7,19 +7,19 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.StgThunk;
 
 import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
 import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
 
 public class StgCatchFrame extends StackFrame {
     public final int exceptionsBlocked;
-    public final StgClosure handler;
+    public final Closure handler;
 
-    public StgCatchFrame(int exceptionsBlocked, final StgClosure handler) {
+    public StgCatchFrame(int exceptionsBlocked, final Closure handler) {
         this.exceptionsBlocked = exceptionsBlocked;
         this.handler = handler;
     }
@@ -30,7 +30,7 @@ public class StgCatchFrame extends StackFrame {
        a trivial operation. Hence, the body is empty. */
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
         ListIterator<StackFrame> sp = tso.sp;
         if (exception == null) {
             return true;
@@ -49,19 +49,19 @@ public class StgCatchFrame extends StackFrame {
             }
             StgRaise raise = new StgRaise(exception);
             tso.spPush(new StgEnter(raise));
-            tso.whatNext = ThreadRunGHC;
+            tso.whatNext = ThreadRun;
             return false;
         }
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
         tso.spPop();
         if ((exceptionsBlocked & TSO_BLOCKEX) == 0) {
             tso.spPush(new UnmaskAsyncExceptionsFrame());

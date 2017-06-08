@@ -3,29 +3,27 @@ package eta.runtime.stm;
 import java.util.Deque;
 import java.util.ArrayDeque;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.util.UnsafeUtil.cas;
 
-public class StgTVar extends StgClosure {
-    public volatile StgClosure currentValue;
-    public Deque<StgClosure> watchQueue = new ArrayDeque<StgClosure>();
+public class StgTVar extends StgValue {
+    public volatile Closure currentValue;
+    public Deque<Closure> watchQueue = new ArrayDeque<Closure>();
     public int numUpdates;
 
-    public StgTVar(StgClosure currentValue) {
+    public StgTVar(Closure currentValue) {
         this.currentValue = currentValue;
     }
 
     @Override
-    public StgClosure getEvaluated() { return this; }
-
-    @Override
-    public final void enter(StgContext context) {
+    public final Closure enter(StgContext context) {
         barf("TVAR object entered!");
+        return null;
     }
 
-    public boolean condLock(StgTRecHeader trec, StgClosure expected) {
+    public boolean condLock(StgTRecHeader trec, Closure expected) {
         // TODO: Implement the lock based on locking type of STM
         return (currentValue == expected);
     }
@@ -34,13 +32,13 @@ public class StgTVar extends StgClosure {
         return (currentValue == trec);
     }
 
-    public void unlock(StgTRecHeader trec, StgClosure c, boolean forceUpdate) {
+    public void unlock(StgTRecHeader trec, Closure c, boolean forceUpdate) {
         currentValue = c;
     }
 
-    public StgClosure lock(StgTRecHeader trec) {
+    public Closure lock(StgTRecHeader trec) {
         // TODO: Implement different forms of locks
-        StgClosure result;
+        Closure result;
         do {
             do {
                 result = currentValue;

@@ -2,7 +2,7 @@ package eta.runtime;
 
 import eta.runtime.Rts;
 import eta.runtime.RtsFlags;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.Task;
 import eta.runtime.stg.StgTSO;
 import static eta.runtime.Rts.stgExit;
@@ -53,7 +53,7 @@ public class RtsMessages {
         System.out.print("\n");
     }
 
-    public static void printClosure(StgClosure closure) {
+    public static void printClosure(Closure closure) {
         // TODO: Override toString and make the closure more readable
         System.out.println("Closure: " + closure);
     }

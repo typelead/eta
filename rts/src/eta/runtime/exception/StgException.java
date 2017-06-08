@@ -7,7 +7,7 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 import eta.runtime.apply.ApV;
@@ -20,11 +20,6 @@ import static eta.runtime.stg.StgTSO.WhyBlocked.BlockedOnMsgThrowTo;
 
 public class StgException extends RuntimeException {
 
-    @Override
-    public Throwable fillInStackTrace() {
-        return null;
-    }
-
     /* TODO: Should this be volatile/atomic? */
     public static boolean noBreakOnException = false;
 
@@ -32,95 +27,99 @@ public class StgException extends RuntimeException {
     public static StgException threadYieldException = new ThreadYieldException();
     public static StgException stackReloadException = new StackReloadException();
 
-    public static void getMaskingState(StgContext context) {
+    public static Closure getMaskingState(StgContext context) {
         StgTSO tso = context.currentTSO;
         context.I(1, ((tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
                       (tso.hasFlag(TSO_INTERRUPTIBLE)? 1: 0)));
+        return null;
     }
 
-    public static void maskAsyncExceptions(StgContext context, StgClosure io) {
+    public static Closure maskAsyncExceptions(StgContext context, Closure io) {
         StgTSO tso = context.currentTSO;
-        ListIterator<StackFrame> sp = tso.sp;
+        boolean unmask;
+        boolean maskUninterruptible;
         if (tso.hasFlag(TSO_BLOCKEX)) {
             if (!tso.hasFlag(TSO_INTERRUPTIBLE)) {
-                sp.add(new MaskUninterruptibleFrame());
+                maskUninterruptible = true;
             }
         } else {
-            StackFrame top = tso.stack.peek();
-            if (top.getClass() == MaskAsyncExceptionsFrame.class) {
-                sp.previous();
-                sp.remove();
-            } else {
-                sp.add(new UnmaskAsyncExceptionsFrame());
-            }
+            /* TODO: Check if maskAsyncExceptionsContinuation is expected
+               , if so optimize the stack to avoid unmasks multiple times */
+            unmask = true;
         }
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        io.applyV(context);
+        StgTSO result = io.applyV(context);
+        if (maskUninterruptible) {
+            barf("Unimplemented maskUninterruptible");
+        } else if (unmask) {
+            barf("Unimplemented unmask");
+        } else {
+            return result;
+        }
     }
 
-    public static void maskUninterruptible(StgContext context, StgClosure io) {
+    public static Closure maskUninterruptible(StgContext context, Closure io) {
         StgTSO tso = context.currentTSO;
-        ListIterator<StackFrame> sp = tso.sp;
+        boolean unmask;
+        boolean mask;
         if (tso.hasFlag(TSO_BLOCKEX)) {
             if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
-                sp.add(new MaskAsyncExceptionsFrame());
+                mask = true;
             }
         } else {
-            StackFrame top = tso.stack.peek();
-            if (top.getClass() == MaskUninterruptibleFrame.class) {
-                sp.previous();
-                sp.remove();
-            } else {
-                sp.add(new UnmaskAsyncExceptionsFrame());
-            }
+            /* TODO: Check if maskUninterruptibleContinuation is expected
+               , if so optimize the stack to avoid unmasks multiple times */
+            unmask = true;
         }
         tso.addFlags(TSO_BLOCKEX);
         tso.removeFlags(TSO_INTERRUPTIBLE);
-        /* TODO: Ensure that R1 is preserved */
-        context.R(1).applyV(context);
+        Closure result = io.applyV(context);
+        if (mask) {
+            barf("Mask");
+        } else if (unmask) {
+            barf("UnMask");
+        } else {
+            return result;
+        }
     }
 
-    public static void unmaskAsyncExceptions(StgContext context, StgClosure io) {
+    public static Closure unmaskAsyncExceptions(StgContext context, Closure io) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
-        ListIterator<StackFrame> sp = tso.sp;
+        boolean mask;
+        boolean maskUninterruptible;
         if (tso.hasFlag(TSO_BLOCKEX)) {
-            StackFrame top = tso.stack.peek();
-            if (top.getClass() == UnmaskAsyncExceptionsFrame.class) {
-                sp.previous();
-                sp.remove();
+            /* TODO: Check if unmaskContinuation is expected
+               , if so optimize the stack to avoid unmasks multiple times */
+            if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
+                mask = true;
             } else {
-                if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
-                    sp.add(new MaskAsyncExceptionsFrame());
-                } else {
-                    sp.add(new MaskUninterruptibleFrame());
-                }
+                maskUninterruptible = true;
             }
             tso.removeFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
             if (!tso.blockedExceptions.isEmpty()) {
-                sp.add(new ApV());
-                sp.add(new StgEnter(io));
+                /* Preserve io as continuation (first priority) */
                 boolean performed = cap.maybePerformBlockedException(tso);
                 if (performed) {
                     if (tso.whatNext == ThreadKilled) {
                         Stg.threadFinished(context);
                     } else {
-                        /* TODO: Verify R1 is conserved on the next
-                            stack reload. */
-                        throw StgException.stackReloadException;
+                        barf("Unimplemeneted unmask 1");
                     }
                 } else {
-                    sp.previous();
-                    sp.remove();
-                    sp.previous();
-                    sp.remove();
+                    barf("Unimplemeneted unmask 2");
                 }
             }
         }
-        io.applyV(context);
+        Closure result = io.applyV(context);
+        if (mask) {
+            barf("Unimplemeneted unmask 3");
+        } else if (maskUninterruptible) {
+            barf("Unimplemeneted unmask 4");
+        } else return result;
     }
 
-    public static void killThread(StgContext context, StgTSO target, StgClosure exception) {
+    public static void killThread(StgContext context, StgTSO target, Closure exception) {
             StgTSO tso = context.currentTSO;
             if (target == tso) {
                 killMyself(context, target, exception);
@@ -138,7 +137,7 @@ public class StgException extends RuntimeException {
             }
     }
 
-    public static void killMyself(StgContext context, StgTSO target, StgClosure exception) {
+    public static void killMyself(StgContext context, StgTSO target, Closure exception) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
         cap.throwToSingleThreaded(target, exception);
@@ -149,21 +148,54 @@ public class StgException extends RuntimeException {
         }
     }
 
-    public static void catch_(StgContext context, StgClosure io, StgClosure handler) {
+    public static void catch_(StgContext context, Closure io, Closure handler) {
         StgTSO tso = context.currentTSO;
-        ListIterator<StackFrame> sp = tso.sp;
         int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        sp.add(new StgCatchFrame(exceptionsBlocked, handler));
-        io.applyV(context);
+        UpdateInfo ui = tso.updateInfoStack.peek();
+        Closure result;
+        try {
+            result = io.applyV(context);
+        } catch (Exception e) {
+            boolean unmask;
+            Closure exception;
+            boolean async = e instanceof EtaAsyncException;
+            if (async) {
+                exception = ((EtaAsyncException) e).exception;
+            } else if (e instanceof EtaException) {
+                exception = ((EtaException) e).exception;
+            } else {
+                barf("Implement catching Java exceptions.");
+            }
+            if ((exceptionsBlocked & TSO_BLOCKEX) == 0) {
+                unmask = true;
+            }
+            tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
+            if ((exceptionsBlocked & TSO_INTERRUPTIBLE) == 0) {
+                tso.removeFlags(TSO_INTERRUPTIBLE);
+            } else {
+                tso.addFlags(TSO_INTERRUPTIBLE);
+            }
+            if (async) {
+                /* TODO: How should we deal with update frames */
+                tso.whatNext = ThreadRun;
+            } else {
+                /* Deal with update frames above this one */
+                tso.updateInfoStack.raiseExceptionAfter(context.myCapability, tso,
+                                                        new StgRaise(exception), ui);
+            }
+            result = handler.applyPV(context, exception);
+            if (unmask) {
+                barf("Implement UnmaskAsyncExceptionsFrame");
+                //result = unmaskAsynExceptionsFrameCode();
+                // tso.spPush(new UnmaskAsyncExceptionsFrame());
+            }
+        }
+        return result;
     }
 
-    public static void raise(StgContext context, StgClosure exception) {
-        Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
-        boolean retry = false;
-        do {
-            StackFrame frame = cap.raiseExceptionHelper(tso, exception);
-            retry = frame.doRaise(context, cap, tso, exception);
-        } while (retry);
+    public static void raise(StgContext context, Closure exception) {
+        /* TODO: Remove the need for this line by using EtaException directly. */
+        tso.setStackTrace(Thread.currentThread().getStackTrace());
+        throw new EtaException(exception);
     }
 }

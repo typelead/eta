@@ -1,12 +1,12 @@
 package eta.runtime.stg;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 public class StgEnter extends StackFrame {
-    public final StgClosure closure;
+    public final Closure closure;
 
-    public StgEnter(final StgClosure closure) {
+    public StgEnter(final Closure closure) {
         this.closure = closure;
     }
 
@@ -16,7 +16,7 @@ public class StgEnter extends StackFrame {
     }
 
     @Override
-    public StgClosure getClosure() {
+    public Closure getClosure() {
         return closure;
     }
 }

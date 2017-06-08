@@ -1,7 +1,7 @@
 package eta.runtime.stm;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 
-public class STMAwoken extends StgClosure {
+public class STMAwoken {
     public static STMAwoken closure = new STMAwoken();
 }

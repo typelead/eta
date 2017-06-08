@@ -1,7 +1,7 @@
 package eta.runtime.thunk;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 public class StgIndStatic extends StgThunk {
@@ -10,25 +10,35 @@ public class StgIndStatic extends StgThunk {
         super();
     }
 
-    public StgIndStatic(StgClosure indirectee) {
+    public StgIndStatic(Closure indirectee) {
         super(indirectee);
     }
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
+    public Closure enter(StgContext context) {
         if (indirectee == null) {
             Capability cap = context.myCapability;
             StgThunk bh = cap.newCAF(this);
             if (bh == null) {
-                enter(context);
+                return enter(context);
             } else {
-                context.pushFrame(new StgBHUpdateFrame(bh));
-                thunkEnter(context);
+                UpdateInfo ui = context.pushUpdate(this);
+                try {
+                    Closure result = thunkEnter(context);
+                } catch (EtaAsyncException ea) {
+                    if (ea.stopHere == ui) {
+                        return enter(context);
+                    } else {
+                        throw ea;
+                    }
+                } finally {
+                    StgThunk popped = context.popUpdate();
+                    assert popped == this;
+                }
+                return updateCode(context, result);
             }
         } else {
-            context.R(1, this);
-            indirectee.enter(context);
+            return blackHole(context);
         }
     }
 }

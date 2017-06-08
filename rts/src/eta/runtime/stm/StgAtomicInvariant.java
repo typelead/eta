@@ -4,14 +4,14 @@ import java.util.Stack;
 import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 
-public class StgAtomicInvariant extends StgClosure {
-    public StgClosure code;
+public class StgAtomicInvariant {
+    public Closure code;
     public StgTRecHeader lastExecution;
     public AtomicBoolean lock = new AtomicBoolean(false);
 
-    public StgAtomicInvariant(StgClosure code) {
+    public StgAtomicInvariant(Closure code) {
         this.code = code;
     }
 

@@ -5,30 +5,31 @@ import java.util.ArrayList;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
-public final class StgWeak extends StgClosure {
+public final class StgWeak extends StgValue {
     // TODO: Is this the right reference type?
-    public WeakReference<StgClosure> key;
-    public WeakReference<StgClosure> value;
+    public WeakReference<Closure> key;
+    public WeakReference<Closure> value;
     // TODO: Should the finalizer be a weak reference as well?
-    public StgClosure finalizer;
-    public List<StgClosure> javaFinalizers;
+    public Closure finalizer;
+    public List<Closure> javaFinalizers;
     public AtomicBoolean lock = new AtomicBoolean(false);
     public boolean dead = false;
 
-    public StgWeak(StgClosure key, StgClosure value, StgClosure finalizer) {
-        this.key = new WeakReference<StgClosure>(key);
-        this.value = new WeakReference<StgClosure>(value);
+    public StgWeak(Closure key, Closure value, Closure finalizer) {
+        this.key = new WeakReference<Closure>(key);
+        this.value = new WeakReference<Closure>(value);
         this.finalizer = finalizer;
     }
 
     @Override
-    public void enter(StgContext context) {
+    public Closure enter(StgContext context) {
         barf("WEAK object entered!");
+        return null;
     }
 
     public final void lock() {
@@ -58,7 +59,7 @@ public final class StgWeak extends StgClosure {
         return dead;
     }
 
-    public final StgClosure getValue() {
+    public final Closure getValue() {
         return value.get();
     }
 

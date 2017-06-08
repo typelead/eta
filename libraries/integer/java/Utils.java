@@ -2,6 +2,7 @@ package eta.integer;
 
 import java.math.BigInteger;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Closure;
 
 public class Utils {
     /**
@@ -202,7 +203,7 @@ public class Utils {
     }
 
     // TODO: Optimize this - maybe make it an inlined primop?
-    public static void decodeDouble(StgContext context, double d) {
+    public static Closure decodeDouble(StgContext context, double d) {
         long bits = Double.doubleToRawLongBits(d);
         int s = ((bits >> 63) == 0) ? 1 : -1;
         int e = (int)((bits >> 52) & 0x7ffL);
@@ -211,6 +212,7 @@ public class Utils {
             (bits & 0xfffffffffffffL) | 0x10000000000000L;
         context.I(1, e - 1075);
         context.O(1, BigInteger.valueOf(s * m));
+        return null;
     }
 
     /* Taken from Google Guava BigIntMath */
