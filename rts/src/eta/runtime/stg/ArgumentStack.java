@@ -11,7 +11,7 @@ import cern.colt.list.LongArrayList;
 import cern.colt.list.AbstractList;
 import cern.colt.list.ObjectArrayList;
 
-import eta.runtime.apply.StgPAP;
+import eta.runtime.apply.PAP;
 
 public class ArgumentStack extends AbstractArgumentStack {
     public ObjectArrayList objects;

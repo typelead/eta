@@ -31,7 +31,7 @@ public class StgAtomicInvariant {
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
-                StgTVar s = e.tvar;
+                TVar s = e.tvar;
                 s.watchQueue.remove(this);
             }
         }

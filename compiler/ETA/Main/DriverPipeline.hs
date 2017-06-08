@@ -1296,7 +1296,7 @@ linkGeneric dflags oFiles depPackages = do
     --   log_action dflags dflags SevInfo noSrcSpan defaultUserStyle
     --       ((text $ "Warning: -rtsopts and -with-rtsopts have no effect with"
     --          ++ " -no-hs-main.") $$
-    --        (text $ "    Call hsInit() from your main() method to set"
+    --        (text $ "    Call Rts.init() from your main() method to set"
     --          ++ " these options."))
     -- TODO: Use conduits to combine the jars
     mainFiles' <- maybeMainAndManifest dflags isExecutable
@@ -1366,7 +1366,7 @@ mkRtsMainClass dflags mainClass
       -- TODO: Find main module
       , invokestatic $ mkMethodRef (moduleJavaClass mainMod) "DZCmain_closure" [] (Just closureType)
       , gload rtsConfigType 1
-      , invokestatic $ mkMethodRef (rts "Rts") "hsMain" [ jarray jstring
+      , invokestatic $ mkMethodRef (rts "Rts") "main" [ jarray jstring
                                                         , closureType
                                                         , rtsConfigType]
                                                         (ret exitCodeType)

@@ -1,8 +1,8 @@
 package eta.runtime;
 
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;
-import static eta.runtime.Rts.HaskellResult;
+import static eta.runtime.Rts.StgResult;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.RtsScheduler.blockedQueue;
 import static eta.runtime.RtsScheduler.sleepingQueue;
@@ -19,7 +19,7 @@ public class RtsIO {
             if (wakeUpSleepingThreads(now)) {
                 return;
             }
-            for (StgTSO tso: blockedQueue) {
+            for (TSO tso: blockedQueue) {
                 switch (tso.whyBlocked) {
                     case BlockedOnRead:
                         continue;
@@ -48,8 +48,8 @@ public class RtsIO {
                 if (!mainCapability.emptyRunQueue()) return;
             }
 
-            StgTSO prev = null;
-            for (StgTSO tso: blockedQueue) {
+            TSO prev = null;
+            for (TSO tso: blockedQueue) {
                 switch (tso.whyBlocked) {
                     case BlockedOnRead:
                         continue;
@@ -71,7 +71,7 @@ public class RtsIO {
         // TODO: Implement IO manager
         // Check file descriptors or SelectKeys
         // Capability cap = Rts.lock();
-        // HaskellResult result = cap.ioManagerStart();
+        // StgResult result = cap.ioManagerStart();
         // cap = result.cap;
         // Rts.unlock(cap);
     }

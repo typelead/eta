@@ -21,9 +21,9 @@ import static eta.runtime.Rts.ExitCode.*;
 import static eta.runtime.RtsScheduler.*;
 import static eta.runtime.RtsScheduler.SchedulerState.*;
 import static eta.runtime.RtsScheduler.SchedulerStatus.*;
-import static eta.runtime.stg.StgTSO.*;
-import static eta.runtime.stg.StgTSO.WhatNext.*;
-import static eta.runtime.stg.StgTSO.WhyBlocked.*;
+import static eta.runtime.stg.TSO.*;
+import static eta.runtime.stg.TSO.WhatNext.*;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.stg.StgContext.*;
 import static eta.runtime.stg.StgContext.ReturnCode.*;
 import static eta.runtime.RtsScheduler.RecentActivity.*;
@@ -100,10 +100,10 @@ public final class Capability {
     public Lock lock = new ReentrantLock();
     public StgContext context = new StgContext();
     public Task runningTask;
-    public volatile boolean inHaskell;
+    public volatile boolean inStg;
     public int idle;
     public volatile boolean disabled;
-    public Deque<StgTSO> runQueue = new ConcurrentLinkedDeque<StgTSO>();
+    public Deque<TSO> runQueue = new ConcurrentLinkedDeque<TSO>();
     public Deque<InCall> suspendedJavaCalls = new ArrayDeque<InCall>();
     public volatile boolean contextSwitch;
     public volatile boolean interrupt;
@@ -134,7 +134,7 @@ public final class Capability {
             debugBelch("Capability[%d]: schedule()", cap.no);
         }
         while (true) {
-            if (cap.inHaskell) {
+            if (cap.inStg) {
                 errorBelch("schedule: re-entered unsafely.\n" +
                            "    Perhaps a 'foreign import unsafe' should be 'safe'?");
                 stgExit(EXIT_FAILURE);
@@ -172,7 +172,7 @@ public final class Capability {
                 if (cap.emptyRunQueue()) continue;
             }
 
-            StgTSO t = cap.popRunQueue();
+            TSO t = cap.popRunQueue();
             if (threaded) {
                 Task.InCall bound = t.bound;
                 if (bound != null) {
@@ -219,7 +219,7 @@ public final class Capability {
                 StgContext context = cap.context;
                 context.reset(cap, t);
                 cap.interrupt = false;
-                cap.inHaskell = true;
+                cap.inStg = true;
                 cap.idle = 0;
 
                 WhatNext prevWhatNext = t.whatNext;
@@ -265,13 +265,13 @@ public final class Capability {
                     barf("schedule: invalid what_next field");
                 }
 
-                cap.inHaskell = false;
+                cap.inStg = false;
                 t = cap.context.currentTSO;
                 cap.context.currentTSO = null;
 
                 if (ret == ThreadBlocked) {
                     if (t.whyBlocked == BlockedOnBlackHole) {
-                        //StgTSO owner = blackHoleOwner((MessageBlackHole)t.blockInfo.bh);
+                        //TSO owner = blackHoleOwner((MessageBlackHole)t.blockInfo.bh);
 
                     } else {
                     }
@@ -311,21 +311,21 @@ public final class Capability {
         }
     }
 
-    public final void migrateThread(StgTSO tso, Capability to) {
+    public final void migrateThread(TSO tso, Capability to) {
         tso.whyBlocked = ThreadMigrating;
         tso.cap = to;
         tryWakeupThread(tso);
     }
 
-    public final void appendToRunQueue(StgTSO tso) {
+    public final void appendToRunQueue(TSO tso) {
         runQueue.offer(tso);
     }
 
-    public final void pushOnRunQueue(StgTSO tso) {
+    public final void pushOnRunQueue(TSO tso) {
         runQueue.offerFirst(tso);
     }
 
-    public final StgTSO popRunQueue() {
+    public final TSO popRunQueue() {
         return runQueue.poll();
     }
 
@@ -404,7 +404,7 @@ public final class Capability {
                                           : peekRunQueue().bound != task.incall)));
     }
 
-    public final StgTSO peekRunQueue() {
+    public final TSO peekRunQueue() {
         return runQueue.peek();
     }
 
@@ -440,10 +440,10 @@ public final class Capability {
             int i = 0;
             if (!emptyRunQueue()) {
                 // TODO: Object pool this?
-                Deque<StgTSO> newRunQueue = new ArrayDeque<StgTSO>(1);
+                Deque<TSO> newRunQueue = new ArrayDeque<TSO>(1);
                 newRunQueue.offer(popRunQueue());
-                StgTSO t = peekRunQueue();
-                StgTSO next = null;
+                TSO t = peekRunQueue();
+                TSO next = null;
                 for (; t != null; t = next) {
                     next = popRunQueue();
                     if (t.bound == task.incall
@@ -590,7 +590,7 @@ public final class Capability {
         }
     }
 
-    public final void threadPaused(StgTSO tso) {
+    public final void threadPaused(TSO tso) {
         maybePerformBlockedException(tso);
         UpdateInfo ui = tso.updateInfoStack.markBackwardsFrom(this, tso);
         if (ui != null) {
@@ -598,7 +598,7 @@ public final class Capability {
         }
     }
 
-    public final boolean maybePerformBlockedException(StgTSO tso) {
+    public final boolean maybePerformBlockedException(TSO tso) {
         Queue<MessageThrowTo> blockedExceptions = tso.blockedExceptions;
         boolean noBlockedExceptions = blockedExceptions.isEmpty();
         if (tso.whatNext == ThreadComplete) {
@@ -616,7 +616,7 @@ public final class Capability {
 
             if (!noBlockedExceptions && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
                 do {
-                    StgTSO source;
+                    TSO source;
                     MessageThrowTo msg = blockedExceptions.peek();
                     if (msg == null) return false;
                     synchronized (msg) {
@@ -637,12 +637,12 @@ public final class Capability {
         }
     }
 
-    public final void awakenBlockedExceptionQueue(StgTSO tso) {
+    public final void awakenBlockedExceptionQueue(TSO tso) {
         synchronized (tso.blockedExceptions) {
             for (MessageThrowTo msg: tso.blockedExceptions) {
                 msg.lock();
                 if (msg.isValid()) {
-                    StgTSO source = msg.source;
+                    TSO source = msg.source;
                     msg.done();
                     barf("TODO: unpark/park here")
                     // tryWakeupThread(source);
@@ -654,7 +654,7 @@ public final class Capability {
         }
     }
 
-    public final void tryWakeupThread(StgTSO tso) {
+    public final void tryWakeupThread(TSO tso) {
         if (RtsFlags.ModeFlags.threaded) {
             if (tso.cap != this) {
                 MessageWakeup msg = new MessageWakeup(tso);
@@ -748,7 +748,7 @@ public final class Capability {
             }
 
             if (!emptyRunQueue()) {
-                StgTSO nextTSO = peekRunQueue();
+                TSO nextTSO = peekRunQueue();
                 if (nextTSO.bound != null) {
                     task = nextTSO.bound.task();
                     if (RtsFlags.DebugFlags.scheduler) {
@@ -841,16 +841,16 @@ public final class Capability {
         // Find a method to force the stopping of a thread;
     }
 
-    public final void throwToSingleThreaded(StgTSO tso, Closure exception) {
+    public final void throwToSingleThreaded(TSO tso, Closure exception) {
         throwToSingleThreaded__(tso, exception, false, null);
     }
 
-    public final void throwToSingleThreaded_(StgTSO tso, Closure exception,
+    public final void throwToSingleThreaded_(TSO tso, Closure exception,
                                        boolean stopAtAtomically) {
         throwToSingleThreaded__(tso, exception, stopAtAtomically, null);
     }
 
-    public final void throwToSingleThreaded__(StgTSO tso, Closure exception,
+    public final void throwToSingleThreaded__(TSO tso, Closure exception,
                                         boolean stopAtAtomically,
                                         UpdateInfo stopHere) {
         if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadKilled) {
@@ -861,11 +861,11 @@ public final class Capability {
         raiseAsync(tso, exception, stopAtAtomically, stopHere);
     }
 
-    public final void suspendComputation(StgTSO tso, UpdateInfo stopHere) {
+    public final void suspendComputation(TSO tso, UpdateInfo stopHere) {
         throwToSingleThreaded__(tso, null, false, stopHere);
     }
 
-    public final void removeFromQueues(StgTSO tso) {
+    public final void removeFromQueues(TSO tso) {
         switch (tso.whyBlocked) {
             case NotBlocked:
             case ThreadMigrating:
@@ -902,7 +902,7 @@ public final class Capability {
         // appendToRunQueue(tso);
     }
 
-    public final void raiseAsync(StgTSO tso, Closure exception, boolean stopAtAtomically, UpdateInfo stopHere) {
+    public final void raiseAsync(TSO tso, Closure exception, boolean stopAtAtomically, UpdateInfo stopHere) {
 
         if (RtsFlags.DebugFlags.scheduler) {
             debugBelch("cap: %d message: raising exception in thread %d.", tso.id);
@@ -922,14 +922,14 @@ public final class Capability {
                        , no, msg.tso.id, msg.bh);
         }
 
-        StgThunk bh = msg.bh;
+        Thunk bh = msg.bh;
         do {
             Closure p = bh.indirectee;
-            if (p instanceof StgTSO) {
-                StgTSO owner = (StgTSO) p;
+            if (p instanceof TSO) {
+                TSO owner = (TSO) p;
                 if (Capability.nCapabilities > 1) {
                     synchronized (owner) {
-                        if (bh.indirectee instanceof StgTSO) {
+                        if (bh.indirectee instanceof TSO) {
                             StgBlockingQueue bq = new StgBlockingQueue(owner, msg);
                             owner.blockingQueues.offer(bq);
                             bh.indirectee = bq;
@@ -979,7 +979,7 @@ public final class Capability {
         } while (false);
     }
 
-    public final void checkBlockingQueues(StgTSO tso) {
+    public final void checkBlockingQueues(TSO tso) {
         if (RtsFlags.DebugFlags.scheduler) {
             debugBelch("cap %d: collision occured; checking blockign queues for thread %d", no, tso.id);
         }
@@ -993,9 +993,9 @@ public final class Capability {
 
     public final void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
         synchronized (blockingQueue) {
-            StgThunk bh = blockingQueue.bh;
+            Thunk bh = blockingQueue.bh;
             for (MessageBlackHole msg: blockingQueue) {
-                StgTSO tso = msg.tso;
+                TSO tso = msg.tso;
                 /* Ensure that the tso in the list is still blocked on the *same*
                    thunk. This is a safety for doing unpark() in case we use
                    unpark() for other purposes. */
@@ -1014,7 +1014,7 @@ public final class Capability {
 
     public final static Capability getFreeRunningCapability() {
         for (Capability cap: capabilities) {
-            if (cap.emptyRunQueue() && cap.runningTask != null && !cap.inHaskell) {
+            if (cap.emptyRunQueue() && cap.runningTask != null && !cap.inStg) {
                 if (RtsFlags.DebugFlags.scheduler) {
                     debugBelch("Capability[%d] is free to run a new forked thread.", cap.no);
                 }
@@ -1059,7 +1059,7 @@ public final class Capability {
 
     public final Task suspendThread(boolean interruptible) {
         Task task = runningTask;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         tso.whatNext = ThreadRun;
         threadPaused(tso);
         if (interruptible) {
@@ -1074,7 +1074,7 @@ public final class Capability {
         lock.lock();
         try {
             suspendTask(task);
-            inHaskell = false;
+            inStg = false;
             release_(false);
         } finally {
             lock.unlock();
@@ -1088,7 +1088,7 @@ public final class Capability {
         task.cap = cap;
         cap = task.waitForCapability(cap);
         cap.recoverSuspendedTask(task);
-        StgTSO tso = incall.suspendedTso;
+        TSO tso = incall.suspendedTso;
         incall.suspendedTso = null;
         incall.suspendedCap = null;
         // remove the tso _link
@@ -1099,7 +1099,7 @@ public final class Capability {
             }
         }
         cap.context.currentTSO = tso;
-        cap.inHaskell = true;
+        cap.inStg = true;
         return cap;
     }
 
@@ -1178,7 +1178,7 @@ public final class Capability {
         }
     }
 
-    public final boolean handleThreadFinished(Task task, StgTSO t) {
+    public final boolean handleThreadFinished(Task task, TSO t) {
         awakenBlockedExceptionQueue(t);
 
         if (t.bound != null) {
@@ -1219,7 +1219,7 @@ public final class Capability {
         return false;
     }
 
-    public final boolean handleYield(StgTSO t, WhatNext prevWhatNext) {
+    public final boolean handleYield(TSO t, WhatNext prevWhatNext) {
         if (!contextSwitch && t.whatNext != prevWhatNext) {
             return true;
         }
@@ -1234,21 +1234,21 @@ public final class Capability {
         return false;
     }
 
-    public final void threadStackOverflow(StgTSO tso) {
+    public final void threadStackOverflow(TSO tso) {
         // TODO: Do stack related stuff here
     }
 
-    public final boolean handleHeapOverflow(StgTSO tso) {
+    public final boolean handleHeapOverflow(TSO tso) {
         // TODO: Do GC-related stuff here
         return false;
     }
 
-    public final HaskellResult ioManagerStart() {
-        return new HaskellResult(this, null);
+    public final StgResult ioManagerStart() {
+        return new StgResult(this, null);
         /* TODO: Implement IO Manager, Rts.evalIO(this, null /* base_GHCziConcziIO_ensureIOManagerIsRunning_closure */
     }
 
-    public final void postRunThread(StgTSO t) {
+    public final void postRunThread(TSO t) {
         if (t.trec != null && t.whyBlocked == NotBlocked) {
             if (!stmValidateNestOfTransactions(t.trec)) {
                 throwToSingleThreaded_(t, null, true);
@@ -1256,16 +1256,16 @@ public final class Capability {
         }
     }
 
-    public final void promoteInRunQueue(StgTSO tso) {
+    public final void promoteInRunQueue(TSO tso) {
         removeFromRunQueue(tso);
         pushOnRunQueue(tso);
     }
 
-    public final void removeFromRunQueue(StgTSO tso) {
+    public final void removeFromRunQueue(TSO tso) {
         runQueue.remove(tso);
     }
 
-    public final MessageThrowTo throwTo(StgTSO source, StgTSO target, Closure exception) {
+    public final MessageThrowTo throwTo(TSO source, TSO target, Closure exception) {
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
         msg.lock();
         boolean result = throwToMsg(msg);
@@ -1278,7 +1278,7 @@ public final class Capability {
     }
 
     public final boolean throwToMsg(MessageThrowTo msg) {
-        StgTSO target = msg.target;
+        TSO target = msg.target;
         // retry: write_barrier
         retry: do {
             if (RtsFlags.DebugFlags.scheduler) {
@@ -1327,7 +1327,7 @@ public final class Capability {
                             break;
                         case BlockedOnMVar:
                         case BlockedOnMVarRead:
-                            StgMVar mvar = (StgMVar) target.blockInfo;
+                            MVar mvar = (MVar) target.blockInfo;
                             // if not mvar retry
                             mvar.lock();
                             if ((target.whyBlocked != BlockedOnMVar &&
@@ -1421,7 +1421,7 @@ public final class Capability {
     }
 
     /* STM Operations */
-    public final Closure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
+    public final Closure stmReadTvar(StgTRecHeader trec, TVar tvar) {
         Closure result;
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
@@ -1469,7 +1469,7 @@ public final class Capability {
         return result;
     }
 
-    public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, Closure newValue) {
+    public final void stmWriteTvar(StgTRecHeader trec, TVar tvar, Closure newValue) {
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
         TRecEntry entry = searchResult.entry;
@@ -1524,7 +1524,7 @@ public final class Capability {
                 while (cit.hasPrevious()) {
                     StgTRecChunk chunk = cit.previous();
                     for (TRecEntry e: chunk.entries) {
-                        StgTVar s = e.tvar;
+                        TVar s = e.tvar;
                         if (e.isUpdate()) {
                             s.unlock(trec, e.expectedValue, false);
                         }
@@ -1552,7 +1552,7 @@ public final class Capability {
                     StgTRecChunk chunk = cit.previous();
                     for (TRecEntry e: chunk.entries) {
                         // Traversal
-                        StgTVar s = e.tvar;
+                        TVar s = e.tvar;
                         if (acquireAll || e.isUpdate()) {
                             if (!s.condLock(trec, e.expectedValue)) {
                                 result = false;
@@ -1591,7 +1591,7 @@ public final class Capability {
                 StgTRecChunk chunk = cit.previous();
                 for (TRecEntry e: chunk.entries) {
                     if (revertAll || e.isUpdate()) {
-                        StgTVar s = e.tvar;
+                        TVar s = e.tvar;
                         if (s.isLocked(trec)) {
                             s.unlock(trec, e.expectedValue, true);
                         }
@@ -1661,14 +1661,14 @@ public final class Capability {
         return result;
     }
 
-    public final void mergeUpdateInto(StgTRecHeader t, StgTVar tvar, Closure expectedValue, Closure newValue) {
+    public final void mergeUpdateInto(StgTRecHeader t, TVar tvar, Closure expectedValue, Closure newValue) {
         boolean found = false;
         ListIterator<StgTRecChunk> cit = t.chunkIterator();
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
-                StgTVar s = e.tvar;
+                TVar s = e.tvar;
                 if (s == tvar) {
                     found = true;
                     if (e.expectedValue != expectedValue) {
@@ -1697,7 +1697,7 @@ public final class Capability {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
                 if (e.isUpdate()) {
-                    StgTVar s = e.tvar;
+                    TVar s = e.tvar;
                     Closure old = s.lock(trec);
                     for (Closure q: s.watchQueue) {
                         if (STM.watcherIsInvariant(q)) {
@@ -1737,7 +1737,7 @@ public final class Capability {
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
                 for (TRecEntry e: chunk.entries) {
-                    StgTVar s = e.tvar;
+                    TVar s = e.tvar;
                     mergeReadInto(et, s, e.expectedValue);
                 }
             }
@@ -1753,7 +1753,7 @@ public final class Capability {
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
-                StgTVar s = e.tvar;
+                TVar s = e.tvar;
                 Closure saw = s.lock(trec);
                 s.watchQueue.remove(e.newValue); // TODO: Is this valid?
                 s.unlock(trec, saw, false);
@@ -1761,7 +1761,7 @@ public final class Capability {
         }
     }
 
-    public final void mergeReadInto(StgTRecHeader trec, StgTVar tvar, Closure expectedValue) {
+    public final void mergeReadInto(StgTRecHeader trec, TVar tvar, Closure expectedValue) {
         boolean found = false;
         while (!found && trec != null) {
             ListIterator<StgTRecChunk> cit = trec.chunkIterator();
@@ -1841,7 +1841,7 @@ public final class Capability {
                 while (cit.hasPrevious()) {
                     StgTRecChunk chunk = cit.previous();
                     for (TRecEntry e: chunk.entries) {
-                        StgTVar s = e.tvar;
+                        TVar s = e.tvar;
                         if (!useReadPhase || e.newValue != e.expectedValue) {
                             unparkWaitersOn(s);
                             if (RtsFlags.STM.fineGrained) {
@@ -1860,11 +1860,11 @@ public final class Capability {
         return result;
     }
 
-    public final void threadStackUnderflow(StgTSO tso) {
+    public final void threadStackUnderflow(TSO tso) {
         /* TODO: Finish implementation */
     }
 
-    public final StackFrame raiseExceptionHelper(StgTSO tso, Closure exception) {
+    public final StackFrame raiseExceptionHelper(TSO tso, Closure exception) {
         if (RtsFlags.DebugFlags.printStack) {
             Thread.dumpStack();
         }
@@ -1895,17 +1895,17 @@ public final class Capability {
         STM.unlock(trec);
     }
 
-    public final void unparkWaitersOn(StgTVar s) {
+    public final void unparkWaitersOn(TVar s) {
         Iterator<Closure> iterator = s.watchQueue.descendingIterator();
         while (iterator.hasNext()) {
             Closure tso = iterator.next();
             if (STM.watcherIsTSO(tso)) {
-                unparkTSO((StgTSO) tso);
+                unparkTSO((TSO) tso);
             }
         }
     }
 
-    public final void unparkTSO(StgTSO tso) {
+    public final void unparkTSO(TSO tso) {
         tso.lock();
         if (tso.whyBlocked == BlockedOnSTM &&
             tso.blockInfo == STMAwoken.closure) {
@@ -1920,7 +1920,7 @@ public final class Capability {
         tso.unlock();
     }
 
-    public final boolean stmReWait(StgTSO tso) {
+    public final boolean stmReWait(TSO tso) {
         StgTRecHeader trec = tso.trec;
         STM.lock(trec);
         boolean result = validateAndAcquireOwnership(trec, true, true);
@@ -1937,7 +1937,7 @@ public final class Capability {
         return result;
     }
 
-    public final StackFrame findRetryFrameHelper(StgTSO tso) {
+    public final StackFrame findRetryFrameHelper(TSO tso) {
         ListIterator<StackFrame> sp = tso.sp;
         boolean shouldContinue = true;
         StackFrame frame = null;
@@ -1952,7 +1952,7 @@ public final class Capability {
     }
 
     public final void createSparkThread(Capability cap) {
-        StgTSO tso = Rts.createIOThread(cap, null /* TODO: runSparks_closure*/);
+        TSO tso = Rts.createIOThread(cap, null /* TODO: runSparks_closure*/);
         appendToRunQueue(tso);
     }
 
@@ -1973,7 +1973,7 @@ public final class Capability {
         freeTRecHeader(trec);
     }
 
-    public final boolean stmWait(StgTSO tso, StgTRecHeader trec) {
+    public final boolean stmWait(TSO tso, StgTRecHeader trec) {
         STM.lock(trec);
         boolean result = validateAndAcquireOwnership(trec, true, true);
         if (result) {
@@ -1987,12 +1987,12 @@ public final class Capability {
         return result;
     }
 
-    public final void buildWatchQueueEntriesForTrec(StgTSO tso, StgTRecHeader trec) {
+    public final void buildWatchQueueEntriesForTrec(TSO tso, StgTRecHeader trec) {
         ListIterator<StgTRecChunk> cit = trec.chunkIterator();
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
-                StgTVar s = e.tvar;
+                TVar s = e.tvar;
                 /* TODO: Fix order of queue */
                 s.watchQueue.offer(tso);
                 /* NOTE: The original implementation sets a watchqueue
@@ -2023,8 +2023,8 @@ public final class Capability {
         return result;
     }
 
-    public final StgThunk newCAF(StgIndStatic caf) {
-        StgThunk bh = lockCAF(caf);
+    public final Thunk newCAF(StgIndStatic caf) {
+        Thunk bh = lockCAF(caf);
         if (bh == null) return null;
         if (Thunk.shouldKeepCAFs()) {
             Thunk.revertibleCAFList.offer(caf);
@@ -2035,8 +2035,8 @@ public final class Capability {
         return bh;
     }
 
-    public final StgThunk lockCAF(StgIndStatic caf) {
-        StgTSO tso = context.currentTSO;
+    public final Thunk lockCAF(StgIndStatic caf) {
+        TSO tso = context.currentTSO;
         if (Capability.nCapabilites > 1) {
             synchronized (caf) {
                 if (caf.indirectee == null) {

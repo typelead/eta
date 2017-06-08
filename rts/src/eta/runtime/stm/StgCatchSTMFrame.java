@@ -4,7 +4,7 @@ import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicReference;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
@@ -22,7 +22,7 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
     @Override
     public void stackEnter(StgContext context) {
         Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
         StgTRecHeader trec = tso.trec;
         StgTRecHeader outer = trec.enclosingTrec;
@@ -38,7 +38,7 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
     }
 
     @Override
-    public boolean doFindRetry(Capability cap, StgTSO tso) {
+    public boolean doFindRetry(Capability cap, TSO tso) {
         StgTRecHeader trec = tso.trec;
         StgTRecHeader outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
@@ -48,13 +48,13 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, TSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
+    public boolean doRaise(StgContext context, Capability cap, TSO tso, Closure exception) {
         StgTRecHeader trec = tso.trec;
         StgTRecHeader outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);

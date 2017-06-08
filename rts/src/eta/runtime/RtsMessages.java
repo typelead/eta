@@ -4,7 +4,7 @@ import eta.runtime.Rts;
 import eta.runtime.RtsFlags;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Task;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import static eta.runtime.Rts.stgExit;
 import static eta.runtime.Rts.ExitCode.EXIT_INTERNAL_ERROR;
 import static eta.runtime.RtsFlags.progName;
@@ -32,7 +32,7 @@ public class RtsMessages {
         System.err.print("***Exception***: ");
         System.err.format(msg, args);
         System.err.print("\n");
-        StgTSO tso = Task.myTask().cap.context.currentTSO;
+        TSO tso = Task.myTask().cap.context.currentTSO;
         if (tso.hasStackTrace()) {
             StackTraceElement[] stackTrace = tso.getStackTrace();
             for (StackTraceElement element : stackTrace) {

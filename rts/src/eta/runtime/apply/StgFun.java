@@ -4,7 +4,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
 
-public abstract class StgFun extends StgValue {
+public abstract class Function extends StgValue {
 
     public abstract int getArity();
 
@@ -14,7 +14,7 @@ public abstract class StgFun extends StgValue {
         if (arity == 1) {
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this);
+            return new PAP(arity - 1, this);
         }
     }
 
@@ -25,7 +25,7 @@ public abstract class StgFun extends StgValue {
             context.I(1, n);
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this,
+            return new PAP(arity - 1, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(n)
@@ -40,7 +40,7 @@ public abstract class StgFun extends StgValue {
             context.L(1, l);
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this,
+            return new PAP(arity - 1, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(l)
@@ -55,7 +55,7 @@ public abstract class StgFun extends StgValue {
             context.F(1, f);
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this,
+            return new PAP(arity - 1, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(f)
@@ -70,7 +70,7 @@ public abstract class StgFun extends StgValue {
             context.D(1, d);
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this,
+            return new PAP(arity - 1, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(d)
@@ -85,7 +85,7 @@ public abstract class StgFun extends StgValue {
             context.O(1, o);
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this,
+            return new PAP(arity - 1, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(o)
@@ -100,7 +100,7 @@ public abstract class StgFun extends StgValue {
             context.R(2, p);
             return enter(context);
         } else {
-            return new StgPAP(arity - 1, this,
+            return new PAP(arity - 1, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .addC(p)
@@ -118,7 +118,7 @@ public abstract class StgFun extends StgValue {
             context.R(2, p);
             return enter(context);
         } else {
-            return new StgPAP(arity - 2, this,
+            return new PAP(arity - 2, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .addC(p)
@@ -137,7 +137,7 @@ public abstract class StgFun extends StgValue {
             context.R(3, p2);
             return enter(context);
         } else {
-            return new StgPAP(arity - 2, this,
+            return new PAP(arity - 2, this,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .addC(p1)
@@ -162,7 +162,7 @@ public abstract class StgFun extends StgValue {
                 context.R(3, p2);
                 return enter(context);
             default:
-                return new StgPAP(arity - 3, this,
+                return new PAP(arity - 3, this,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -188,7 +188,7 @@ public abstract class StgFun extends StgValue {
                 context.R(4, p3);
                 return enter(context);
             default:
-                return new StgPAP(arity - 3, this,
+                return new PAP(arity - 3, this,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -220,7 +220,7 @@ public abstract class StgFun extends StgValue {
                 context.R(4, p3);
                 return enter(context);
             default:
-                return new StgPAP(arity - 4, this,
+                return new PAP(arity - 4, this,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -253,7 +253,7 @@ public abstract class StgFun extends StgValue {
                 context.R(5, p4);
                 return enter(context);
             default:
-                return new StgPAP(arity - 4, this,
+                return new PAP(arity - 4, this,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -294,7 +294,7 @@ public abstract class StgFun extends StgValue {
                 context.R(6, p5);
                 return enter(context);
             default:
-                return new StgPAP(arity - 5, this,
+                return new PAP(arity - 5, this,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -344,7 +344,7 @@ public abstract class StgFun extends StgValue {
                 context.R(7, p6);
                 return enter(context);
             default:
-                return new StgPAP(arity - 6, this,
+                return new PAP(arity - 6, this,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)

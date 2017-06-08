@@ -5,7 +5,7 @@ import java.util.Map;
 import java.nio.ByteBuffer;
 import java.lang.ref.WeakReference;
 
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;

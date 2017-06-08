@@ -5,16 +5,16 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RtsMessages.barf;
 
-public class StgMutVar extends StgValue {
+public class MutVar extends StgValue {
     public Closure value;
 
-    public StgMutVar(Closure value) {
+    public MutVar(Closure value) {
         this.value = value;
     }
 
     @Override
     public Closure enter(StgContext context) {
-        barf("StgMutVar object entered!");
+        barf("MutVar object entered!");
         return null;
     }
 

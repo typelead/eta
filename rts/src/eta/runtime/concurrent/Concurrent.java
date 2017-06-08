@@ -3,29 +3,29 @@ package eta.runtime.concurrent;
 import eta.runtime.Rts;
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ReturnClosure;
 import eta.runtime.exception.StgException;
 import static eta.runtime.RtsMessages.barf;
-import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
-import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
-import static eta.runtime.stg.StgTSO.TSO_LOCKED;
-import static eta.runtime.stg.StgTSO.WhyBlocked;
-import static eta.runtime.stg.StgTSO.WhatNext;
-import static eta.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVar;
-import static eta.runtime.stg.StgTSO.WhyBlocked.BlockedOnMVarRead;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadComplete;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadKilled;
+import static eta.runtime.stg.TSO.TSO_BLOCKEX;
+import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
+import static eta.runtime.stg.TSO.TSO_LOCKED;
+import static eta.runtime.stg.TSO.WhyBlocked;
+import static eta.runtime.stg.TSO.WhatNext;
+import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMVar;
+import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMVarRead;
+import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
+import static eta.runtime.stg.TSO.WhatNext.ThreadComplete;
+import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
 
-    public static Closure takeMVar(StgContext context, StgMVar mvar) {
+    public static Closure takeMVar(StgContext context, MVar mvar) {
         do {
             try {
                 return mvar.take();
@@ -33,11 +33,11 @@ public class Concurrent {
         } while (true);
     }
 
-    public static Closure readMVar(StgContext context, StgMVar mvar) {
+    public static Closure readMVar(StgContext context, MVar mvar) {
         return mvar.read();
     }
 
-    public static Closure putMVar(StgContext context, StgMVar mvar, Closure val) {
+    public static Closure putMVar(StgContext context, MVar mvar, Closure val) {
         do {
             try {
                 mvar.put(val);
@@ -46,7 +46,7 @@ public class Concurrent {
         } while (true);
     }
 
-    public static Closure tryReadMVar(StgContext context, StgMVar mvar) {
+    public static Closure tryReadMVar(StgContext context, MVar mvar) {
         Closure value = mvar.tryRead();
         context.I(1, (value == null)? 0: 1);
         return value;
@@ -56,7 +56,7 @@ public class Concurrent {
              shared among multiple threads? */
     public static Closure fork(StgContext context, Closure closure) {
         Capability cap = context.myCapability;
-        StgTSO tso = Rts.scheduleIOClosure(closure);
+        TSO tso = Rts.scheduleIOClosure(closure);
         cap.contextSwitch = true;
         context.O(1, tso);
         return null;
@@ -64,7 +64,7 @@ public class Concurrent {
 
     public static Closure forkOn(StgContext context, int cpu, Closure closure) {
         Capability cap = context.myCapability;
-        StgTSO tso = Rts.createIOThread(cap, closure);
+        TSO tso = Rts.createIOThread(cap, closure);
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         Rts.scheduleThreadOn(cap, cpu, tso);
         cap.contextSwitch = true;
@@ -83,7 +83,7 @@ public class Concurrent {
         return null;
     }
 
-    public static Closure threadStatus(StgContext context, StgTSO tso) {
+    public static Closure threadStatus(StgContext context, TSO tso) {
         WhatNext whatNext = tso.whatNext;
         int ret;
         WhyBlocked whyBlocked = tso.whyBlocked;

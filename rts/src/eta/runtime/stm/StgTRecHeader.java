@@ -37,7 +37,7 @@ public class StgTRecHeader {
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
                 for (TRecEntry e: chunk.entries) {
-                    StgTVar s = e.tvar;
+                    TVar s = e.tvar;
                     if (e.isReadOnly()) {
                         if (s.currentValue != e.expectedValue ||
                             s.numUpdates != e.numUpdates) {
@@ -57,7 +57,7 @@ public class StgTRecHeader {
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
-                StgTVar s = e.tvar;
+                TVar s = e.tvar;
                 EntrySearchResult result = STM.getEntry(enclosingTrec, s);
                 TRecEntry entry = result.entry;
                 if (entry != null) {

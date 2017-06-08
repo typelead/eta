@@ -151,7 +151,7 @@ instance Show ThreadId where
         showString "ThreadId " .
         showsPrec d (getThreadId (id2TSO t))
 
-foreign import java unsafe "@static eta.runtime.stg.StgTSO.getThreadId"
+foreign import java unsafe "@static eta.runtime.stg.TSO.getThreadId"
   getThreadId :: ThreadId# -> CInt
 
 id2TSO :: ThreadId -> ThreadId#

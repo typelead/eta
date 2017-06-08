@@ -9,8 +9,8 @@ import java.util.TimerTask;
 
 import eta.runtime.stg.Task;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
-import static eta.runtime.Rts.HaskellResult;
+import eta.runtime.stg.TSO;
+import static eta.runtime.Rts.StgResult;
 import static eta.runtime.RtsScheduler.RecentActivity.*;
 import static eta.runtime.RtsScheduler.SchedulerState.*;
 import static eta.runtime.RtsScheduler.SchedulerStatus.*;
@@ -40,14 +40,14 @@ public class RtsScheduler {
         NoStatus, Success, Killed, Interrupted, HeapExhausted
     }
 
-    public static Queue<StgTSO> blockedQueue = new ArrayDeque<StgTSO>();
-    public static Queue<StgTSO> sleepingQueue = new ArrayDeque<StgTSO>();
+    public static Queue<TSO> blockedQueue = new ArrayDeque<TSO>();
+    public static Queue<TSO> sleepingQueue = new ArrayDeque<TSO>();
     public enum RecentActivity {
         Yes, MaybeNo, Inactive, DoneGC
     }
     public static RecentActivity recentActivity = Yes;
     public static volatile SchedulerState schedulerState = SCHED_RUNNING;
-    public static HaskellResult scheduleWaitThread(StgTSO tso, Capability cap) {
+    public static StgResult scheduleWaitThread(TSO tso, Capability cap) {
         Task task = cap.runningTask;
         tso.bound = task.incall;
         tso.cap = cap;
@@ -55,7 +55,7 @@ public class RtsScheduler {
         task.incall.returnStatus = NoStatus;
         cap.appendToRunQueue(tso);
         cap = cap.schedule(task);
-        return new HaskellResult(cap, task.incall.ret);
+        return new StgResult(cap, task.incall.ret);
     }
 
     public static void init() {

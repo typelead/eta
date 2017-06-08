@@ -212,12 +212,12 @@ safeExit = exitHelper useSafeExit
 fastExit = exitHelper useFastExit
 
 unreachable :: IO a
-unreachable = fail "If you can read this, shutdownHaskellAndExit did not exit."
+unreachable = fail "If you can read this, shutdownAndExit did not exit."
 
 exitHelper :: CInt -> Int -> IO a
 #ifdef mingw32_HOST_OS
 exitHelper exitKind r =
-  shutdownHaskellAndExit (fromIntegral r) exitKind >> unreachable
+  shutdownAndExit (fromIntegral r) exitKind >> unreachable
 #else
 -- On Unix we use an encoding for the ExitCode:
 --      0 -- 255  normal exit code
@@ -225,14 +225,14 @@ exitHelper exitKind r =
 -- For any invalid encoding we just use a replacement (0xff).
 exitHelper exitKind r
   | r >= 0 && r <= 255
-  = shutdownHaskellAndExit   (fromIntegral   r)  exitKind >> unreachable
+  = shutdownAndExit   (fromIntegral   r)  exitKind >> unreachable
   | r >= -127 && r <= -1
-  = shutdownHaskellAndSignal (fromIntegral (-r)) exitKind >> unreachable
+  = shutdownAndSignal (fromIntegral (-r)) exitKind >> unreachable
   | otherwise
-  = shutdownHaskellAndExit   0xff                exitKind >> unreachable
+  = shutdownAndExit   0xff                exitKind >> unreachable
 
-foreign import java "@static eta.base.Utils.shutdownHaskellAndSignal"
-  shutdownHaskellAndSignal :: CInt -> CInt -> IO ()
+foreign import java "@static eta.base.Utils.shutdownAndSignal"
+  shutdownAndSignal :: CInt -> CInt -> IO ()
 #endif
 
 exitInterrupted :: IO a
@@ -245,10 +245,10 @@ exitInterrupted =
   safeExit (-CONST_SIGINT)
 #endif
 
--- NOTE: shutdownHaskellAndExit must be called "safe", because it *can*
+-- NOTE: shutdownAndExit must be called "safe", because it *can*
 -- re-enter Haskell land through finalizers.
-foreign import java "@static eta.base.Utils.shutdownHaskellAndExit"
-  shutdownHaskellAndExit :: CInt -> CInt -> IO ()
+foreign import java "@static eta.base.Utils.shutdownAndExit"
+  shutdownAndExit :: CInt -> CInt -> IO ()
 
 useFastExit, useSafeExit :: CInt
 useFastExit = 1

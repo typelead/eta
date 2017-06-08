@@ -3,9 +3,9 @@ package eta.runtime.stg;
 import java.util.Stack;
 import java.util.ListIterator;
 
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.thunk.Thunk;
 
-public class StgAPStack extends StgThunk {
+public class StgAPStack extends Thunk {
     public final Closure fun;
     public final Stack<StackFrame> stack;
 
@@ -21,7 +21,7 @@ public class StgAPStack extends StgThunk {
         barf("Unimplemented StgAPStack")
         super.enter(context);
         /* TODO: Verify that the order of frames is correct. */
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
         // sp.add(new StgUpdateFrame(this));
         ListIterator<StackFrame> it = stack.listIterator(stack.size());

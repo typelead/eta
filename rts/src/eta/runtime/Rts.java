@@ -5,7 +5,7 @@ import java.util.concurrent.locks.Lock;
 
 import eta.runtime.stg.Task;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.ForceIO;
 import eta.runtime.stg.Closure;
@@ -16,28 +16,28 @@ import static eta.runtime.RtsScheduler.SchedulerStatus;
 import static eta.runtime.RtsScheduler.scheduleWaitThread;
 import static eta.runtime.RtsMessages.errorBelch;
 import static eta.runtime.RtsMessages.debugBelch;
-import static eta.runtime.stg.StgTSO.TSO_LOCKED;
-import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
-import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
+import static eta.runtime.stg.TSO.TSO_LOCKED;
+import static eta.runtime.stg.TSO.TSO_BLOCKEX;
+import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
 
 public class Rts {
-    public static class HaskellResult {
+    public static class StgResult {
         public final Capability cap;
         public final Closure result;
 
-        public HaskellResult(final Capability cap, final Closure result) {
+        public StgResult(final Capability cap, final Closure result) {
             this.cap = cap;
             this.result = result;
         }
     }
 
-    public static ExitCode hsMain(String[] args, Closure mainClosure, RtsConfig config) {
+    public static ExitCode main(String[] args, Closure mainClosure, RtsConfig config) {
         ExitCode exitStatus = ExitCode.EXIT_SUCCESS;
 
-        hsInit(args, config);
+        init(args, config);
 
         Capability cap = lock();
-        HaskellResult result = Rts.evalLazyIO(cap, mainClosure);
+        StgResult result = Rts.evalLazyIO(cap, mainClosure);
         cap = result.cap;
         SchedulerStatus status = cap.getSchedStatus();
         unlock(cap);
@@ -60,8 +60,8 @@ public class Rts {
             default:
                 RtsMessages.barf("main thread completed with invalid status");
         }
-        shutdownHaskellAndExit(exitStatus, false, false);
-        // This return is never seen since shutdownHaskellAndExit() will
+        shutdownAndExit(exitStatus, false, false);
+        // This return is never seen since shutdownAndExit() will
         // terminate the process. It's there to keep javac happy.
         return exitStatus;
     }
@@ -69,8 +69,8 @@ public class Rts {
     public static Capability lock() {
         Task task = Task.newBoundTask();
         if (task.runningFinalizers) {
-            errorBelch("error: a Java finalizer called back into Haskell.\n" +
-                       "   To create finalizers that may call back into Haskell, use\n" +
+            errorBelch("error: a Java finalizer called back into Eta.\n" +
+                       "   To create finalizers that may call back into Eta, use\n" +
                        "   Foreign.Concurrent.newForeignPtr instead of Foreign.newForeignPtr.");
             stgExit(ExitCode.EXIT_FAILURE);
 
@@ -92,18 +92,18 @@ public class Rts {
         }
     }
 
-    public static HaskellResult evalLazyIO(Capability cap, Closure p) {
-        StgTSO tso = createIOThread(cap, p);
+    public static StgResult evalLazyIO(Capability cap, Closure p) {
+        TSO tso = createIOThread(cap, p);
         return scheduleWaitThread(tso, cap);
     }
 
-    public static HaskellResult evalIO(Capability cap, Closure p) {
-        StgTSO tso = createStrictIOThread(cap, p);
+    public static StgResult evalIO(Capability cap, Closure p) {
+        TSO tso = createStrictIOThread(cap, p);
         return scheduleWaitThread(tso, cap);
     }
 
-    public static HaskellResult evalJava(Capability cap, Object o, Closure p) {
-        StgTSO tso = createStrictJavaThread(cap, o, p);
+    public static StgResult evalJava(Capability cap, Object o, Closure p) {
+        TSO tso = createStrictJavaThread(cap, o, p);
         return scheduleWaitThread(tso, cap);
     }
 
@@ -117,8 +117,8 @@ public class Rts {
         }
     }
 
-    public static StgTSO createIOThread(Capability cap, Closure p) {
-        return new StgTSO(cap, evalLazyIO_closure);
+    public static TSO createIOThread(Capability cap, Closure p) {
+        return new TSO(cap, evalLazyIO_closure);
     }
 
     public static Closure evalIO_closure = new EvalIO();
@@ -130,8 +130,8 @@ public class Rts {
     }
 
 
-    public static StgTSO createStrictIOThread(Capability cap, Closure p) {
-        return new StgTSO(cap, evalIO_closure);
+    public static TSO createStrictIOThread(Capability cap, Closure p) {
+        return new TSO(cap, evalIO_closure);
     }
 
     public static Closure evalJava_closure = new EvalJava();
@@ -142,14 +142,14 @@ public class Rts {
         }
     }
 
-    public static StgTSO createStrictJavaThread(Capability cap, Object thisObj, Closure p) {
-        return new StgTSO(cap, evalJava_closure);
+    public static TSO createStrictJavaThread(Capability cap, Object thisObj, Closure p) {
+        return new TSO(cap, evalJava_closure);
     }
 
-    private static int hsInitCount;
-    public static void hsInit(String[] args, RtsConfig config) {
-        hsInitCount++;
-        if (hsInitCount > 1) return;
+    private static int rtsInitCount;
+    public static void init(String[] args, RtsConfig config) {
+        rtsInitCount++;
+        if (rtsInitCount > 1) return;
 
         //setlocale(LC_CTYPE,"");
         RtsStats.startInit();
@@ -169,28 +169,28 @@ public class Rts {
         RtsStats.endInit();
     }
 
-    public static void shutdownHaskellAndExit(ExitCode exitStatus, boolean fastExit, boolean hardExit) {
+    public static void shutdownAndExit(ExitCode exitStatus, boolean fastExit, boolean hardExit) {
         if (!fastExit) {
-            hsInitCount = 1;
-            hsExit_(false);
+            rtsInitCount = 1;
+            exit_(false);
         }
         if (exitStatus != ExitCode.EXIT_SUCCESS || hardExit) stgExit(exitStatus);
     }
 
-    public static void shutdownHaskellAndSignal(int signal, boolean fastExit) {
+    public static void shutdownAndSignal(int signal, boolean fastExit) {
         if (!fastExit) {
-            hsExit_(false);
+            exit_(false);
         }
         // TODO: Implement signals
         stgExit(ExitCode.EXIT_KILLED);
     }
 
-    public static void hsExit_(boolean waitForeign) {
-        if (hsInitCount <= 0) {
-            errorBelch("warning: too many hs_exits()s");
+    public static void exit_(boolean waitForeign) {
+        if (rtsInitCount <= 0) {
+            errorBelch("WARNING: Too many Rts.exit()'s.");
         } else {
-            hsInitCount--;
-            if (hsInitCount <= 0) {
+            rtsInitCount--;
+            if (rtsInitCount <= 0) {
                 // TODO: Finish up
                 flushStdHandles();
                 if (RtsFlags.ModeFlags.threaded) {
@@ -229,7 +229,7 @@ public class Rts {
 
     public static void flushStdHandles() {
         Capability cap = Rts.lock();
-        HaskellResult result = Rts.evalIO(cap, flushStdHandles_closure);
+        StgResult result = Rts.evalIO(cap, flushStdHandles_closure);
         cap = result.cap;
         Rts.unlock(cap);
     }
@@ -286,8 +286,8 @@ public class Rts {
         }
     }
 
-    public static void hsExit() {
-        hsExit_(true);
+    public static void exit() {
+        exit_(true);
     }
 
     public static void wakeUp() {
@@ -310,19 +310,19 @@ public class Rts {
         }
     }
 
-    public static StgTSO scheduleIOClosure(Closure closure) {
+    public static TSO scheduleIOClosure(Closure closure) {
         Capability cap = Capability.getFreeRunningCapability();
-        StgTSO tso = Rts.createIOThread(cap, closure);
+        TSO tso = Rts.createIOThread(cap, closure);
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         Rts.scheduleThread(cap, tso);
         return tso;
     }
 
-    public static void scheduleThread(Capability cap, StgTSO tso) {
+    public static void scheduleThread(Capability cap, TSO tso) {
         cap.appendToRunQueue(tso);
     }
 
-    public static void scheduleThreadOn(Capability cap, int cpu, StgTSO tso) {
+    public static void scheduleThreadOn(Capability cap, int cpu, TSO tso) {
         tso.addFlags(TSO_LOCKED);
         if (RtsFlags.ModeFlags.threaded) {
             cpu %= Capability.enabledCapabilities;

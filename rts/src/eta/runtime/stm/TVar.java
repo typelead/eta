@@ -8,12 +8,12 @@ import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.util.UnsafeUtil.cas;
 
-public class StgTVar extends StgValue {
+public class TVar extends StgValue {
     public volatile Closure currentValue;
     public Deque<Closure> watchQueue = new ArrayDeque<Closure>();
     public int numUpdates;
 
-    public StgTVar(Closure currentValue) {
+    public TVar(Closure currentValue) {
         this.currentValue = currentValue;
     }
 

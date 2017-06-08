@@ -2,10 +2,10 @@ package eta.runtime.exception;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.apply.StgFun;
+import eta.runtime.apply.Function;
 
-public class StgCatch extends StgFun {
-    /* TODO: Extend from StgFun instead? */
+public class StgCatch extends Function {
+    /* TODO: Extend from Function instead? */
     public final Closure io;
     public final Closure handler;
 

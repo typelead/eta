@@ -18,17 +18,17 @@ import eta.runtime.concurrent.*;
 import eta.runtime.stm.*;
 import eta.runtime.stg.*;
 import eta.runtime.stg.Task.InCall;
-import eta.runtime.thunk.StgThunk;
-import static eta.runtime.stg.StgTSO.WhyBlocked.*;
-import static eta.runtime.stg.StgTSO.WhatNext.*;
+import eta.runtime.thunk.Thunk;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
+import static eta.runtime.stg.TSO.WhatNext.*;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.RtsMessages.debugBelch;
 
-public final class StgTSO extends StgEvaluating {
+public final class TSO extends StgEvaluating {
     public static AtomicInteger maxThreadId = new AtomicInteger(0);
     public int id = nextThreadId();
-    public volatile StgTSO link;
+    public volatile TSO link;
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
     public Queue<StgBlockingQueue> blockingQueues = new ArrayDeque<StgBlockingQueue>();
     public WhatNext whatNext = ThreadRun;
@@ -88,7 +88,7 @@ public final class StgTSO extends StgEvaluating {
         }
     }
 
-    public StgTSO(Capability cap, Closure closure) {
+    public TSO(Capability cap, Closure closure) {
         this.cap = cap;
         this.closure = closure;
     }
@@ -101,7 +101,7 @@ public final class StgTSO extends StgEvaluating {
         return maxThreadId.getAndIncrement();
     }
 
-    public static int getThreadId(StgTSO tso) {
+    public static int getThreadId(TSO tso) {
         return tso.id;
     }
 
@@ -121,7 +121,7 @@ public final class StgTSO extends StgEvaluating {
     }
 
     public final void removeFromMVarBlockedQueue() {
-        StgMVar mvar = (StgMVar) blockInfo;
+        MVar mvar = (MVar) blockInfo;
         if (!inMVarOperation) return;
         // mvar.tsoQueue.remove(this);
         inMVarOperation = false;
@@ -154,7 +154,7 @@ public final class StgTSO extends StgEvaluating {
     }
 
     @Override
-    public final boolean blackHole(StgThunk bh, Capability cap,
+    public final boolean blackHole(Thunk bh, Capability cap,
                                    MessageBlackHole msg) {
         if (RtsFlags.ModeFlags.threaded && this.cap != cap) {
             cap.sendMessage(this.cap, msg);
@@ -248,7 +248,7 @@ public final class StgTSO extends StgEvaluating {
     }
 
     public final void dump() {
-        System.out.println("StgTSO #" + id);
+        System.out.println("TSO #" + id);
         if (sp.hasPrevious()) {
             System.out.println("Sp = " + sp.previous());
             sp.next();

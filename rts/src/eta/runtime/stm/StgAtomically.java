@@ -2,9 +2,9 @@ package eta.runtime.stm;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.thunk.Thunk;
 
-public class StgAtomically extends StgThunk {
+public class StgAtomically extends Thunk {
     /* TODO: Should this be an Ind? */
     public final Closure stmCode;
 

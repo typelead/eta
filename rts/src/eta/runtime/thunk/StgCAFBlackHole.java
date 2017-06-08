@@ -3,7 +3,7 @@ package eta.runtime.thunk;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
-public class StgCAFBlackHole extends StgThunk {
+public class StgCAFBlackHole extends Thunk {
 
     public StgCAFBlackHole(Closure indirectee) {
         super(indirectee);
