@@ -4,7 +4,7 @@ import java.util.ListIterator;
 
 public class StgContext {
     public ArgumentStack argStack = new ArgumentStack();
-    public StgTSO currentTSO;
+    public TSO currentTSO;
     public Capability myCapability;
     public ReturnCode ret;
 
@@ -12,7 +12,7 @@ public class StgContext {
     public int target;
     public ArgumentStack localsStack;
 
-    public void reset(Capability cap, StgTSO t) {
+    public void reset(Capability cap, TSO t) {
         myCapability = cap;
         currentTSO = t;
         argStack = new ArgumentStack();
@@ -23,11 +23,11 @@ public class StgContext {
         currentTSO.spPush(frame);
     }
 
-    public UpdateInfo pushUpdate(StgThunk updatee) {
+    public UpdateInfo pushUpdate(Thunk updatee) {
         return currentTSO.updateInfoStack.push(updatee);
     }
 
-    public StgThunk popUpdate() {
+    public Thunk popUpdate() {
         currentTSO.updateInfoStack.pop();
     }
 

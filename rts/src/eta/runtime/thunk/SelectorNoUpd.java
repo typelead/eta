@@ -5,7 +5,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 
 
-public abstract class SelectorNoUpd extends StgThunk {
+public abstract class SelectorNoUpd extends Thunk {
     protected final int index;
     protected final Closure p;
 

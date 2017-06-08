@@ -4,7 +4,7 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
-public class StgIndStatic extends StgThunk {
+public class StgIndStatic extends Thunk {
 
     public StgIndStatic() {
         super();
@@ -18,7 +18,7 @@ public class StgIndStatic extends StgThunk {
     public Closure enter(StgContext context) {
         if (indirectee == null) {
             Capability cap = context.myCapability;
-            StgThunk bh = cap.newCAF(this);
+            Thunk bh = cap.newCAF(this);
             if (bh == null) {
                 return enter(context);
             } else {
@@ -32,7 +32,7 @@ public class StgIndStatic extends StgThunk {
                         throw ea;
                     }
                 } finally {
-                    StgThunk popped = context.popUpdate();
+                    Thunk popped = context.popUpdate();
                     assert popped == this;
                 }
                 return updateCode(context, result);

@@ -1262,7 +1262,7 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
                           [ iconst jint 0
                           , new (jarray jstring)
                           , renderRtsConfig dflags False
-                          , invokestatic (mkMethodRef "eta/runtime/Rts" "hsInit"
+                          , invokestatic (mkMethodRef "eta/runtime/Rts" "init"
                                          [jarray jstring, rtsConfigType] void)
                           , vreturn ]
 

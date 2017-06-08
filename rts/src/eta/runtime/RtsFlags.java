@@ -393,7 +393,7 @@ public class RtsFlags {
         if (isHsMain) {
             advice = "Link with -rtsopts to enable them.";
         } else {
-            advice = "Use Rts.hsInitWithRtsOpts() to enable them.";
+            advice = "Use Rts.initWithRtsOpts() to enable them.";
         }
         errorBelch(s, advice);
     }

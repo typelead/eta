@@ -76,8 +76,8 @@ public class Task {
     public final Condition condition = lock.newCondition();
 
     public class InCall {
-        public StgTSO tso;
-        public StgTSO suspendedTso;
+        public TSO tso;
+        public TSO suspendedTso;
         public Capability suspendedCap;
         public SchedulerStatus returnStatus = NoStatus;
         public Closure ret;
@@ -114,7 +114,7 @@ public class Task {
     public static Task newBoundTask() {
         if (!tasksInitialized) {
             // WARNING: This may not be intended behavior!
-            Rts.hsInit(null, null);
+            Rts.init(null, null);
             if (!tasksInitialized) {
                 errorBelch("newBoundTask: RTS is not initialized; unable to re-initialize RTS.");
                 stgExit(EXIT_FAILURE);

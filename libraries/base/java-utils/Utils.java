@@ -172,12 +172,12 @@ public class Utils {
         return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     }
 
-    public static void shutdownHaskellAndExit(int exitCode, int fastExit) {
-        Rts.shutdownHaskellAndExit(ExitCode.from(exitCode), fastExit == 1, true);
+    public static void shutdownAndExit(int exitCode, int fastExit) {
+        Rts.shutdownAndExit(ExitCode.from(exitCode), fastExit == 1, true);
     }
 
-    public static void shutdownHaskellAndSignal(int signal, int fastExit) {
-        Rts.shutdownHaskellAndSignal(signal, fastExit == 1);
+    public static void shutdownAndSignal(int signal, int fastExit) {
+        Rts.shutdownAndSignal(signal, fastExit == 1);
     }
 
     public static void errorBelch( ByteBuffer formatBuf

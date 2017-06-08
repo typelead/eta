@@ -7,9 +7,9 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 import eta.runtime.stg.Closure;
-import eta.runtime.stm.StgTVar;
-import eta.runtime.thunk.StgThunk;
-import eta.runtime.io.StgMutVar;
+import eta.runtime.stm.TVar;
+import eta.runtime.thunk.Thunk;
+import eta.runtime.io.MutVar;
 
 public class UnsafeUtil {
 
@@ -32,11 +32,11 @@ public class UnsafeUtil {
 
         try {
             indirecteeOffset = unsafe.objectFieldOffset
-                (StgThunk.class.getDeclaredField("indirectee"));
+                (Thunk.class.getDeclaredField("indirectee"));
             cvOffset = unsafe.objectFieldOffset
-                (StgTVar.class.getDeclaredField("currentValue"));
+                (TVar.class.getDeclaredField("currentValue"));
             valueOffset = unsafe.objectFieldOffset
-                (StgMutVar.class.getDeclaredField("value"));
+                (MutVar.class.getDeclaredField("value"));
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException();
         }
@@ -76,15 +76,15 @@ public class UnsafeUtil {
 
     private UnsafeUtil() {}
 
-    public static boolean cas(StgThunk ind, Closure expected, Closure update) {
+    public static boolean cas(Thunk ind, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(ind, indirecteeOffset, expected, update);
     }
 
-    public static boolean cas(StgTVar tvar, Closure expected, Closure update) {
+    public static boolean cas(TVar tvar, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(tvar, cvOffset, expected, update);
     }
 
-    public static boolean cas(StgMutVar mv, Closure expected, Closure update) {
+    public static boolean cas(MutVar mv, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(mv, valueOffset, expected, update);
     }
 }

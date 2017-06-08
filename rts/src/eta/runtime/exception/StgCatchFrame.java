@@ -4,16 +4,16 @@ import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicReference;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.thunk.Thunk;
 
-import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
-import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
+import static eta.runtime.stg.TSO.TSO_BLOCKEX;
+import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
+import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
 
 public class StgCatchFrame extends StackFrame {
     public final int exceptionsBlocked;
@@ -30,7 +30,7 @@ public class StgCatchFrame extends StackFrame {
        a trivial operation. Hence, the body is empty. */
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, TSO tso, Closure exception, boolean stopAtAtomically, Thunk updatee, AtomicReference<Closure> topClosure) {
         ListIterator<StackFrame> sp = tso.sp;
         if (exception == null) {
             return true;
@@ -55,13 +55,13 @@ public class StgCatchFrame extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, TSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
+    public boolean doRaise(StgContext context, Capability cap, TSO tso, Closure exception) {
         tso.spPop();
         if ((exceptionsBlocked & TSO_BLOCKEX) == 0) {
             tso.spPush(new UnmaskAsyncExceptionsFrame());

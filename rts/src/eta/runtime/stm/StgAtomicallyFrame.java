@@ -8,16 +8,16 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.ReturnClosure;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.thunk.Thunk;
 
 import static eta.runtime.RtsMessages.barf;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
+import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
 
 public class StgAtomicallyFrame extends StgSTMFrame {
     public final Closure code;
@@ -45,7 +45,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
         /* TODO: Logic is VERY iffy here. Recheck to make sure it's as
                  intended. */
         Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
         StgTRecHeader trec = tso.trec;
         if (waiting) {
@@ -100,12 +100,12 @@ public class StgAtomicallyFrame extends StgSTMFrame {
     }
 
     @Override
-    public boolean doFindRetry(Capability cap, StgTSO tso) {
+    public boolean doFindRetry(Capability cap, TSO tso) {
         return false;
     }
 
     @Override
-    public boolean doRetry(Capability cap, StgTSO tso, StgTRecHeader trec) {
+    public boolean doRetry(Capability cap, TSO tso, StgTRecHeader trec) {
         /* TODO: Verify that adjusting the context like this is valid. */
         StgContext context = cap.context;
         StgTRecHeader outer = trec.enclosingTrec;
@@ -134,7 +134,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, TSO tso, Closure exception, boolean stopAtAtomically, Thunk updatee, AtomicReference<Closure> topClosure) {
         ListIterator<StackFrame> sp = tso.sp;
         if (stopAtAtomically) {
             cap.stmCondemnTransaction(tso.trec);
@@ -165,13 +165,13 @@ public class StgAtomicallyFrame extends StgSTMFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, TSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
+    public boolean doRaise(StgContext context, Capability cap, TSO tso, Closure exception) {
         StgTRecHeader trec = tso.trec;
         boolean result = cap.stmValidateNestOfTransactions(trec);
         StgTRecHeader outer = trec.enclosingTrec;

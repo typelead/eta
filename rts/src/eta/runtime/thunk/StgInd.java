@@ -2,7 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.StgContext;
 
-public abstract class StgInd extends StgThunk {
+public abstract class StgInd extends Thunk {
 
     @Override
     public Closure enter(StgContext context) {
@@ -17,7 +17,7 @@ public abstract class StgInd extends StgThunk {
                     throw ea;
                 }
             } finally {
-                StgThunk popped = context.popUpdate();
+                Thunk popped = context.popUpdate();
                 assert popped == this;
             }
             if (ui.marked) {

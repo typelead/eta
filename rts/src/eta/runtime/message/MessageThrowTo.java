@@ -3,7 +3,7 @@ package eta.runtime.message;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
@@ -11,12 +11,12 @@ import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 public class MessageThrowTo extends Message {
     public static AtomicLong maxMessageId = new AtomicLong(0);
     public final long id = nextMessageId();
-    public final StgTSO source;
-    public final StgTSO target;
+    public final TSO source;
+    public final TSO target;
     public final  Closure exception;
     public volatile AtomicBoolean lock = new AtomicBoolean(false);
 
-    public MessageThrowTo(final StgTSO source, final StgTSO target, final Closure exception) {
+    public MessageThrowTo(final TSO source, final TSO target, final Closure exception) {
         this.source = source;
         this.target = target;
         this.exception = exception;
@@ -30,7 +30,7 @@ public class MessageThrowTo extends Message {
         } else {
             boolean success = cap.throwToMsg(this);
             if (success) {
-                StgTSO source = this.source;
+                TSO source = this.source;
                 done();
                 cap.tryWakeupThread(source);
             } else {

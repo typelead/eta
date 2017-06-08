@@ -10,7 +10,7 @@ public class StgWhiteHole extends Closure {
 
     @Override
     public Closure enter(StgContext context) {
-        StgThunk node = (StgThunk) context.R(1);
+        Thunk node = (Thunk) context.R(1);
         int i = 0;
         /* TODO: Verify the condition */
         while (node.indirectee == closure) {

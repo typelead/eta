@@ -6,10 +6,10 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicReference;
 
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.thunk.Thunk;
 import eta.runtime.exception.StgException;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadComplete;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadKilled;
+import static eta.runtime.stg.TSO.WhatNext.ThreadComplete;
+import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 import static eta.runtime.stg.StackFrame.MarkFrameResult.Stop;
 
@@ -17,7 +17,7 @@ public class StgStopThread extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
         Closure ret = context.R(1);
         sp.previous();
@@ -29,20 +29,20 @@ public class StgStopThread extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, TSO tso, Closure exception, boolean stopAtAtomically, Thunk updatee, AtomicReference<Closure> topClosure) {
         tso.whatNext = ThreadKilled;
         tso.sp.remove();
         return false;
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, TSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
+    public boolean doRaise(StgContext context, Capability cap, TSO tso, Closure exception) {
         tso.stack.clear();
         LinkedList<StackFrame> stack = new LinkedList<StackFrame>();
         tso.stack = stack;
@@ -54,5 +54,5 @@ public class StgStopThread extends StackFrame {
     }
 
     @Override
-    public MarkFrameResult mark(Capability cap, StgTSO tso) { return Stop; }
+    public MarkFrameResult mark(Capability cap, TSO tso) { return Stop; }
 }

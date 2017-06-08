@@ -852,7 +852,7 @@ simpleOp Int2JShortOp = Just $ normalOp $ gconv jint jshort
 simpleOp JChar2WordOp = Just $ normalOp preserveShort
 simpleOp Word2JCharOp = Just $ normalOp $ gconv jint jchar
 
--- StgMutVar ops
+-- MutVar ops
 simpleOp ReadMutVarOp = Just $ normalOp mutVarValue
 simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
 simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq

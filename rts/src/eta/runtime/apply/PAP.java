@@ -5,16 +5,16 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
 import static eta.runtime.RtsMessages.barf;
 
-public class StgPAP extends StgValue {
+public class PAP extends StgValue {
     public Closure fun;
     public int arity;
     public AbstractArgumentStack argStack;
 
-    public StgPAP(int arity, Closure fun) {
+    public PAP(int arity, Closure fun) {
         this(arity, fun, null);
     }
 
-    public StgPAP(int arity, Closure fun, AbstractArgumentStack argStack) {
+    public PAP(int arity, Closure fun, AbstractArgumentStack argStack) {
         super();
         this.fun = fun;
         this.arity = arity;
@@ -45,7 +45,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -59,7 +59,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -73,7 +73,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -87,7 +87,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -101,7 +101,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -115,7 +115,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -129,7 +129,7 @@ public class StgPAP extends StgValue {
         if (arity == 1) {
             return apply(context, stack);
         } else {
-            return new StgPAP(arity - 1, fun, stack);
+            return new PAP(arity - 1, fun, stack);
         }
     }
 
@@ -146,7 +146,7 @@ public class StgPAP extends StgValue {
             case 2:
                 return apply(context, stack);
             default:
-                return new StgPAP(arity - 2, fun, stack);
+                return new PAP(arity - 2, fun, stack);
         }
     }
 
@@ -162,7 +162,7 @@ public class StgPAP extends StgValue {
             case 2:
                 return apply(context, builder.addC(p2).build());
             default:
-                return new StgPAP(arity - 2, fun, builder.addC(p2).build());
+                return new PAP(arity - 2, fun, builder.addC(p2).build());
                 break;
         }
     }
@@ -181,7 +181,7 @@ public class StgPAP extends StgValue {
             case 3:
                 return apply(context, builder.addC(p2).build());
             default:
-                return new StgPAP(arity - 3, fun, builder.addC(p2).build());
+                return new PAP(arity - 3, fun, builder.addC(p2).build());
         }
     }
 
@@ -199,7 +199,7 @@ public class StgPAP extends StgValue {
             case 3:
                 return apply(context, builder.addC(p2).addC(p3).build());
             default:
-                return new StgPAP(arity - 3, fun, builder.addC(p2).addC(p3).build());
+                return new PAP(arity - 3, fun, builder.addC(p2).addC(p3).build());
         }
     }
 
@@ -219,7 +219,7 @@ public class StgPAP extends StgValue {
             case 4:
                 return apply(context, builder.addC(p2).addC(p3).build());
             default:
-                return new StgPAP(arity - 4, fun, builder.addC(p2).addC(p3).build());
+                return new PAP(arity - 4, fun, builder.addC(p2).addC(p3).build());
         }
     }
 
@@ -239,7 +239,7 @@ public class StgPAP extends StgValue {
             case 4:
                 return apply(context, builder.addC(p2).addC(p3).addC(p4).build());
             default:
-                return new StgPAP(arity - 4, fun, builder.addC(p2).addC(p3).addC(p4).build());
+                return new PAP(arity - 4, fun, builder.addC(p2).addC(p3).addC(p4).build());
         }
     }
 
@@ -261,7 +261,7 @@ public class StgPAP extends StgValue {
             case 5:
                 return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).build());
             default:
-                return new StgPAP(arity - 5, fun, builder.addC(p2).addC(p3).addC(p4).addC(p5).build());
+                return new PAP(arity - 5, fun, builder.addC(p2).addC(p3).addC(p4).addC(p5).build());
         }
     }
 
@@ -285,7 +285,7 @@ public class StgPAP extends StgValue {
             case 6:
                 return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).addC(p6).build());
             default:
-                return new StgPAP(arity - 5, fun, builder.addC(p2).addC(p3).addC(p4).addC(p5).addC(p6).build());
+                return new PAP(arity - 5, fun, builder.addC(p2).addC(p3).addC(p4).addC(p5).addC(p6).build());
         }
     }
 }

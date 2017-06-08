@@ -2,7 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.RtsFlags;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgEnter;
@@ -12,7 +12,7 @@ import static eta.runtime.stg.StackFrame.MarkFrameResult.Update;
 
 public class StgUpdateFrame extends UpdateFrame {
 
-    public StgUpdateFrame(StgThunk updatee) {
+    public StgUpdateFrame(Thunk updatee) {
         super(updatee);
     }
 

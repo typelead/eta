@@ -4,7 +4,7 @@ import java.util.ListIterator;
 
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.Closure;
@@ -13,10 +13,10 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.apply.ApV;
 import eta.runtime.message.MessageThrowTo;
 import static eta.runtime.RtsMessages.barf;
-import static eta.runtime.stg.StgTSO.TSO_BLOCKEX;
-import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadKilled;
-import static eta.runtime.stg.StgTSO.WhyBlocked.BlockedOnMsgThrowTo;
+import static eta.runtime.stg.TSO.TSO_BLOCKEX;
+import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
+import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
+import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMsgThrowTo;
 
 public class StgException extends RuntimeException {
 
@@ -28,14 +28,14 @@ public class StgException extends RuntimeException {
     public static StgException stackReloadException = new StackReloadException();
 
     public static Closure getMaskingState(StgContext context) {
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         context.I(1, ((tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
                       (tso.hasFlag(TSO_INTERRUPTIBLE)? 1: 0)));
         return null;
     }
 
     public static Closure maskAsyncExceptions(StgContext context, Closure io) {
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         boolean unmask;
         boolean maskUninterruptible;
         if (tso.hasFlag(TSO_BLOCKEX)) {
@@ -48,7 +48,7 @@ public class StgException extends RuntimeException {
             unmask = true;
         }
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        StgTSO result = io.applyV(context);
+        TSO result = io.applyV(context);
         if (maskUninterruptible) {
             barf("Unimplemented maskUninterruptible");
         } else if (unmask) {
@@ -59,7 +59,7 @@ public class StgException extends RuntimeException {
     }
 
     public static Closure maskUninterruptible(StgContext context, Closure io) {
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         boolean unmask;
         boolean mask;
         if (tso.hasFlag(TSO_BLOCKEX)) {
@@ -85,7 +85,7 @@ public class StgException extends RuntimeException {
 
     public static Closure unmaskAsyncExceptions(StgContext context, Closure io) {
         Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         boolean mask;
         boolean maskUninterruptible;
         if (tso.hasFlag(TSO_BLOCKEX)) {
@@ -119,8 +119,8 @@ public class StgException extends RuntimeException {
         } else return result;
     }
 
-    public static void killThread(StgContext context, StgTSO target, Closure exception) {
-            StgTSO tso = context.currentTSO;
+    public static void killThread(StgContext context, TSO target, Closure exception) {
+            TSO tso = context.currentTSO;
             if (target == tso) {
                 killMyself(context, target, exception);
             } else {
@@ -137,9 +137,9 @@ public class StgException extends RuntimeException {
             }
     }
 
-    public static void killMyself(StgContext context, StgTSO target, Closure exception) {
+    public static StgClosure killMyself(StgContext context, TSO target, Closure exception) {
         Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         cap.throwToSingleThreaded(target, exception);
         if (tso.whatNext == ThreadKilled) {
             Stg.threadFinished(context);
@@ -148,8 +148,8 @@ public class StgException extends RuntimeException {
         }
     }
 
-    public static void catch_(StgContext context, Closure io, Closure handler) {
-        StgTSO tso = context.currentTSO;
+    public static StgClosure catch_(StgContext context, Closure io, Closure handler) {
+        TSO tso = context.currentTSO;
         int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         UpdateInfo ui = tso.updateInfoStack.peek();
         Closure result;
@@ -193,9 +193,10 @@ public class StgException extends RuntimeException {
         return result;
     }
 
-    public static void raise(StgContext context, Closure exception) {
+    public static StgClosure raise(StgContext context, Closure exception) {
         /* TODO: Remove the need for this line by using EtaException directly. */
         tso.setStackTrace(Thread.currentThread().getStackTrace());
         throw new EtaException(exception);
+        return null;
     }
 }

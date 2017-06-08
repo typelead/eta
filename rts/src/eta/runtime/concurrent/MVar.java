@@ -5,17 +5,17 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
-public class StgMVar extends StgValue {
+public class MVar extends StgValue {
     public BlockingQueue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
     public AtomicBoolean lock = new AtomicBoolean(false);
 
-    public StgMVar(Closure value) {
+    public MVar(Closure value) {
         if (value != null) {
             valQueue.offer(value);
         }

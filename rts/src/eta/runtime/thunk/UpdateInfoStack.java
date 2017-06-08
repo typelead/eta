@@ -9,11 +9,11 @@ public class UpdateInfoStack {
 
     public UpdateInfoStack() {}
 
-    public UpdateInfo push(StgThunk updatee) {
+    public UpdateInfo push(Thunk updatee) {
         return push(updatee, false);
     }
 
-    public UpdateInfo push(StgThunk updatee, boolean marked) {
+    public UpdateInfo push(Thunk updatee, boolean marked) {
         UpdateInfo ui;
         if (free != null) {
             ui = free;
@@ -34,8 +34,8 @@ public class UpdateInfoStack {
         return ui;
     }
 
-    public StgThunk pop() {
-        StgThunk res;
+    public Thunk pop() {
+        Thunk res;
         UpdateInfo ui = top;
         top = top.prev;
         if (top == null) {
@@ -65,7 +65,7 @@ public class UpdateInfoStack {
         bottom = null;
     }
 
-    public void raiseExceptionAfter(Capability cap, StgTSO tso, Closure raise, UpdateInfo ui) {
+    public void raiseExceptionAfter(Capability cap, TSO tso, Closure raise, UpdateInfo ui) {
         if (ui != null) ui = ui.next;
         else ui = bottom;
         while (ui != null) {
@@ -74,16 +74,16 @@ public class UpdateInfoStack {
         }
     }
 
-    public UpdateInfo markBackwardsFrom(Capability cap, StgTSO tso) {
+    public UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {
         markBackwardsFrom(cap, tso, null);
     }
 
-    public UpdateInfo markBackwardsFrom(Capability cap, StgTSO tso, UpdateInfo ui) {
+    public UpdateInfo markBackwardsFrom(Capability cap, TSO tso, UpdateInfo ui) {
         if (ui == null) ui = top;
         UpdateInfo suspend;
         while (ui != null && !ui.marked) {
             ui.marked = true;
-            StgThunk bh = ui.updatee;
+            Thunk bh = ui.updatee;
             do {
                 Closure p = bh.indirectee;
                 if (p != null  && p != tso) {

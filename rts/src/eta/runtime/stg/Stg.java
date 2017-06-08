@@ -4,8 +4,8 @@ import java.util.ListIterator;
 import java.nio.ByteBuffer;
 
 import eta.runtime.exception.StgException;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadKilled;
+import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
+import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
@@ -76,7 +76,7 @@ public class Stg {
 
     public static void returnToSched(StgContext context) {
         Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         cap.threadPaused(tso);
         throw StgException.stgReturnException;
     }
@@ -84,7 +84,7 @@ public class Stg {
     public static Closure noDuplicate(StgContext context) {
         if (Capability.nCapabilities != 1) {
             Capability cap = context.myCapability;
-            StgTSO tso = context.currentTSO;
+            TSO tso = context.currentTSO;
             cap.threadPaused(tso);
         }
         return null;

@@ -3,8 +3,8 @@ package eta.runtime.stg;
 import java.io.Serializable;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.stg.TSO;
+import eta.runtime.thunk.Thunk;
 import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.RtsMessages.barf;
 
@@ -23,7 +23,7 @@ public abstract class Closure implements Serializable {
         }
     }
 
-    public boolean blackHole(StgThunk bh, Capability cap,
+    public boolean blackHole(Thunk bh, Capability cap,
                              MessageBlackHole msg) { return false; }
     public boolean isFizzledSpark() { return true; }
 

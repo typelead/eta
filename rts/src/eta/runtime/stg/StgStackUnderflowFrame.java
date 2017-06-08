@@ -3,7 +3,7 @@ package eta.runtime.stg;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicReference;
 
-import eta.runtime.thunk.StgThunk;
+import eta.runtime.thunk.Thunk;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.stg.StackFrame.MarkFrameResult.Stop;
 
@@ -18,7 +18,7 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
     public void stackEnter(StgContext context) {
         barf("stackEnter: StgStackUnderflowFrame unimplemented");
         Capability cap = context.myCapability;
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         // Some return
         cap.threadStackUnderflow(tso);
         // load_thread_state
@@ -26,14 +26,14 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
 
     @Override
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, TSO tso, Closure exception, boolean stopAtAtomically, Thunk updatee, AtomicReference<Closure> topClosure) {
         /* TODO: Implement when dealing with StackOverflowError */
         barf("doRaiseAsync: StgStackUnderflowFrame unimplemented");
         return true;
     }
 
     @Override
-    public boolean doFindRetry(Capability cap, StgTSO tso) {
+    public boolean doFindRetry(Capability cap, TSO tso) {
         barf("doFindRetry: StgStackUnderflowFrame unimplemented");
         tso.sp.next();
         cap.threadStackUnderflow(tso);
@@ -43,11 +43,11 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, TSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         barf("doRaiseExceptionHelper: StgStackUnderflowFrame unimplemented");
         return true;
     }
 
     @Override
-    public MarkFrameResult mark(Capability cap, StgTSO tso) { return Stop; }
+    public MarkFrameResult mark(Capability cap, TSO tso) { return Stop; }
 }

@@ -19,7 +19,7 @@ public class IO {
         context.I(2, e - 150);
     }
 
-    public static void atomicModifyMutVar(StgContext context, StgMutVar mv, Closure f) {
+    public static void atomicModifyMutVar(StgContext context, MutVar mv, Closure f) {
         Ap2Upd z = new Ap2Upd(f, null);
         SelectorPUpd y = new SelectorPUpd(1, z);
         SelectorPUpd r = new SelectorPUpd(2, z);
@@ -38,7 +38,7 @@ public class IO {
         context.R(1, r);
     }
 
-    public static void casMutVar(StgContext context, StgMutVar mv, Closure old, Closure new_) {
+    public static void casMutVar(StgContext context, MutVar mv, Closure old, Closure new_) {
         if (mv.cas(old, new_)) {
             context.I(1, 0);
             context.R(1, new_);

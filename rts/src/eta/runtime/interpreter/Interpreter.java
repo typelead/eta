@@ -3,13 +3,13 @@ package eta.runtime.interpreter;
 import java.util.ListIterator;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgTSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgContext;
 import eta.runtime.io.StgArray;
 import eta.runtime.io.StgByteArray;
 import eta.runtime.exception.StgException;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadInterpret;
+import static eta.runtime.stg.TSO.WhatNext.ThreadInterpret;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Interpreter {
@@ -21,7 +21,7 @@ public class Interpreter {
     }
 
     public static void yieldToInterpreter(StgContext context) {
-        StgTSO tso = context.currentTSO;
+        TSO tso = context.currentTSO;
         tso.whatNext = ThreadInterpret;
         context.ret = ThreadYielding;
         returnToSchedNotPaused(context);
