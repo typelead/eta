@@ -607,14 +607,14 @@ flushByteReadBuffer h_@Handle__{..} = do
 mkHandle :: (IODevice dev, BufferedIO dev, Typeable dev) => dev
             -> FilePath
             -> HandleType
-            -> Bool                     -- buffered?
+            -> BufferMode
             -> Maybe TextEncoding
             -> NewlineMode
             -> Maybe HandleFinalizer
             -> Maybe (MVar Handle__)
             -> IO Handle
 
-mkHandle dev filepath ha_type buffered mb_codec nl finalizer other_side = do
+mkHandle dev filepath ha_type bmode mb_codec nl finalizer other_side = do
    openTextEncoding mb_codec ha_type $ \ mb_encoder mb_decoder -> do
 
    let buf_state = initBufferState ha_type
@@ -622,9 +622,10 @@ mkHandle dev filepath ha_type buffered mb_codec nl finalizer other_side = do
    bbufref <- newIORef bbuf
    last_decode <- newIORef (error "codec_state", bbuf)
 
-   (cbufref,bmode) <-
-         if buffered then getCharBuffer dev buf_state
-                     else mkUnBuffer buf_state
+   (cbufref, _) <-
+     case bmode of
+       BlockBuffering _ -> getCharBuffer dev buf_state
+       _ -> mkUnBuffer buf_state
 
    spares <- newIORef BufferListNil
    newFileHandle filepath finalizer
@@ -658,7 +659,7 @@ mkFileHandle :: (IODevice dev, BufferedIO dev, Typeable dev)
                     -- Translate newlines?
              -> IO Handle
 mkFileHandle dev filepath iomode mb_codec tr_newlines = do
-   mkHandle dev filepath (ioModeToHandleType iomode) True{-buffered-} mb_codec
+   mkHandle dev filepath (ioModeToHandleType iomode) (BlockBuffering Nothing) mb_codec
             tr_newlines
             (Just handleFinalizer) Nothing{-other_side-}
 
@@ -670,13 +671,13 @@ mkDuplexHandle :: (IODevice dev, BufferedIO dev, Typeable dev) => dev
 mkDuplexHandle dev filepath mb_codec tr_newlines = do
 
   write_side@(FileHandle _ write_m) <-
-       mkHandle dev filepath WriteHandle True mb_codec
+       mkHandle dev filepath WriteHandle (BlockBuffering Nothing) mb_codec
                         tr_newlines
                         (Just handleFinalizer)
                         Nothing -- no othersie
 
   read_side@(FileHandle _ read_m) <-
-      mkHandle dev filepath ReadHandle True mb_codec
+      mkHandle dev filepath ReadHandle (BlockBuffering Nothing) mb_codec
                         tr_newlines
                         Nothing -- no finalizer
                         (Just write_m)

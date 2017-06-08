@@ -53,7 +53,8 @@ stdin = unsafePerformIO $ do
    -- ToDo: acquire lock
    setBinaryMode FD.stdin
    enc <- getLocaleEncoding
-   mkHandle FD.stdin "<stdin>" ReadHandle True (Just enc)
+   mkHandle FD.stdin "<stdin>" ReadHandle (BlockBuffering Nothing)
+                (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
 
@@ -64,7 +65,8 @@ stdout = unsafePerformIO $ do
    -- ToDo: acquire lock
    setBinaryMode FD.stdout
    enc <- getLocaleEncoding
-   mkHandle FD.stdout "<stdout>" WriteHandle True (Just enc)
+   mkHandle FD.stdout "<stdout>" WriteHandle (BlockBuffering Nothing)
+                (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
 
@@ -75,7 +77,7 @@ stderr = unsafePerformIO $ do
     -- ToDo: acquire lock
    setBinaryMode FD.stderr
    enc <- getLocaleEncoding
-   mkHandle FD.stderr "<stderr>" WriteHandle False{-stderr is unbuffered-}
+   mkHandle FD.stderr "<stderr>" WriteHandle NoBuffering{-stderr is unbuffered-}
                 (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
