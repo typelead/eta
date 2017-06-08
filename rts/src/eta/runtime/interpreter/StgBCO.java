@@ -1,10 +1,10 @@
 package eta.runtime.interpreter;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.io.StgArray;
 import eta.runtime.io.StgByteArray;
 
-public class StgBCO extends StgClosure {
+public class StgBCO extends StgValue {
     public final StgByteArray instrs;
     public final StgByteArray literals;
     public final StgArray ptrs;

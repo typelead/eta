@@ -1,38 +1,36 @@
 package eta.runtime.io;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 
-public final class StgArray extends StgClosure {
-    public StgClosure[] arr;
+public final class StgArray extends StgValue {
+    public Closure[] arr;
 
-    public StgArray(StgClosure[] arr) {
+    public StgArray(Closure[] arr) {
         this.arr = arr;
     }
 
-    public StgClosure get(int i) {
+    public Closure get(int i) {
         return arr[i];
     }
 
-    public void set(int i, StgClosure val) {
+    public void set(int i, Closure val) {
         arr[i] = val;
     }
 
     @Override
-    public StgClosure getEvaluated() { return this; }
-
-    @Override
-    public void enter(StgContext context) {
+    public Closure enter(StgContext context) {
         barf("StgArray object entered!");
+        return null;
     }
 
     public int size() {
         return arr.length;
     }
 
-    public static StgArray create(int n, StgClosure init) {
-        StgClosure[] arr = new StgClosure[n];
+    public static StgArray create(int n, Closure init) {
+        Closure[] arr = new Closure[n];
         for (int i = 0; i < n; i++) {
             arr[i] = init;
         }
@@ -45,7 +43,7 @@ public final class StgArray extends StgClosure {
     }
 
     public static StgArray cloneArray(StgArray srcArray, int offset, int n) {
-        StgClosure[] arr = new StgClosure[n];
+        Closure[] arr = new Closure[n];
         System.arraycopy(srcArray.arr, offset, arr, 0, n);
         return new StgArray(arr);
     }

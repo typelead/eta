@@ -1,20 +1,20 @@
 package eta.runtime.apply;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
 import static eta.runtime.RtsMessages.barf;
 
-public class StgPAP extends StgClosure {
-    public StgClosure fun;
+public class StgPAP extends StgValue {
+    public Closure fun;
     public int arity;
     public AbstractArgumentStack argStack;
 
-    public StgPAP(int arity, StgClosure fun) {
+    public StgPAP(int arity, Closure fun) {
         this(arity, fun, null);
     }
 
-    public StgPAP(int arity, StgClosure fun, AbstractArgumentStack argStack) {
+    public StgPAP(int arity, Closure fun, AbstractArgumentStack argStack) {
         super();
         this.fun = fun;
         this.arity = arity;
@@ -26,20 +26,18 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure getEvaluated() { return this; }
-
-    @Override
-    public StgClosure enter(StgContext context) {
+    public Closure enter(StgContext context) {
         barf("PAP object entered!");
+        return null;
     }
 
-    public StgClosure apply(StgContext context, AbstractArgumentStack stack) {
+    public Closure apply(StgContext context, AbstractArgumentStack stack) {
         context.merge(stack);
         return fun.enter(context);
     }
 
     @Override
-    public StgClosure applyV(StgContext context) {
+    public Closure applyV(StgContext context) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -52,7 +50,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyN(StgContext context, int n) {
+    public Closure applyN(StgContext context, int n) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -66,7 +64,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyL(StgContext context, long l) {
+    public Closure applyL(StgContext context, long l) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -80,7 +78,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyF(StgContext context, float f) {
+    public Closure applyF(StgContext context, float f) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -94,7 +92,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyD(StgContext context, double d) {
+    public Closure applyD(StgContext context, double d) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -108,7 +106,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyO(StgContext context, Object o) {
+    public Closure applyO(StgContext context, Object o) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -122,7 +120,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyP(StgContext context, StgClosure p) {
+    public Closure applyP(StgContext context, Closure p) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -136,7 +134,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPV(StgContext context, StgClosure p) {
+    public Closure applyPV(StgContext context, Closure p) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -153,7 +151,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPP(StgContext context, StgClosure p1, StgClosure p2) {
+    public Closure applyPP(StgContext context, Closure p1, Closure p2) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -170,7 +168,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPPV(StgContext context, StgClosure p1, StgClosure p2) {
+    public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -188,7 +186,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -206,7 +204,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPPPV(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3) {
+    public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -226,7 +224,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4) {
+    public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -246,7 +244,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5) {
+    public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -268,7 +266,7 @@ public class StgPAP extends StgClosure {
     }
 
     @Override
-    public StgClosure applyPPPPPP(StgContext context, StgClosure p1, StgClosure p2, StgClosure p3, StgClosure p4, StgClosure p5, StgClosure p6) {
+    public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)

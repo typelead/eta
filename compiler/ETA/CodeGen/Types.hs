@@ -313,13 +313,13 @@ enterMethod cgLoc
   = loadLoc cgLoc
  <> loadContext
  -- TODO: Do better than stgClosure
- <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] void)
+ <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] closureType)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc
   = loadLoc cgLoc
  <> loadContext
- <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] void)
+ <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] closureType)
  -- TODO: Narrrow the invokevirtual call with locFt
 
 type RecIndexes = [(Int, Id)]

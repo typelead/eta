@@ -19,7 +19,16 @@ public class StgContext {
     }
 
     public void pushFrame(StackFrame frame) {
+        barf("pushFrame")
         currentTSO.spPush(frame);
+    }
+
+    public UpdateInfo pushUpdate(StgThunk updatee) {
+        return currentTSO.updateInfoStack.push(updatee);
+    }
+
+    public StgThunk popUpdate() {
+        currentTSO.updateInfoStack.pop();
     }
 
     public void merge(AbstractArgumentStack argStack) {
@@ -41,6 +50,7 @@ public class StgContext {
     }
 
     public StackFrame stackTop() {
+        barf("stackTop");
         ListIterator<StackFrame> sp = currentTSO.sp;
         StackFrame prevFrame = sp.previous();
         sp.next();
@@ -48,6 +58,7 @@ public class StgContext {
     }
 
     public int stackTopIndex() {
+        barf("stackTopIndex");
         return currentTSO.sp.previousIndex();
     }
 
@@ -57,6 +68,7 @@ public class StgContext {
                        , or because of a context switch )
      */
     public boolean checkForStackFrames(int stackIndex, StackFrame frame) {
+        barf("checkForStackFrames");
         ListIterator<StackFrame> sp = currentTSO.sp;
         do {
             /* NOTE: This code bears a strong resemblance to
@@ -89,11 +101,11 @@ public class StgContext {
         } while (true);
     }
 
-    public StgClosure R(int index) {
+    public Closure R(int index) {
         return argStack.R(index);
     }
 
-    public void R(int index, StgClosure closure) {
+    public void R(int index, Closure closure) {
         argStack.R(index, closure);
     }
 

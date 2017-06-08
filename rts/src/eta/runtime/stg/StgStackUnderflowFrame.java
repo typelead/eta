@@ -26,7 +26,7 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
 
     @Override
 
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
         /* TODO: Implement when dealing with StackOverflowError */
         barf("doRaiseAsync: StgStackUnderflowFrame unimplemented");
         return true;
@@ -43,7 +43,7 @@ public abstract class StgStackUnderflowFrame extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         barf("doRaiseExceptionHelper: StgStackUnderflowFrame unimplemented");
         return true;
     }

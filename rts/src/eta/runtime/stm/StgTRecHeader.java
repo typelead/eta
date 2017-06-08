@@ -6,11 +6,11 @@ import java.util.ArrayDeque;
 import java.util.ListIterator;
 
 import eta.runtime.RtsFlags;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import static eta.runtime.stm.TRecState.TREC_ACTIVE;
 import static eta.runtime.stm.STM.EntrySearchResult;
 
-public class StgTRecHeader extends StgClosure {
+public class StgTRecHeader {
     public Stack<StgTRecChunk> chunkStack = new Stack<StgTRecChunk>();
     public Queue<StgInvariantCheck> invariantsToCheck = new ArrayDeque<StgInvariantCheck>();
     public TRecState state;

@@ -24,11 +24,11 @@ public abstract class AbstractArgumentStack {
         this.closures = closures;
     }
 
-    public StgClosure R(int index) {
-        return (StgClosure) closures.get(index - 1);
+    public Closure R(int index) {
+        return (Closure) closures.get(index - 1);
     }
 
-    public void R(int index, StgClosure closure) {
+    public void R(int index, Closure closure) {
         closures.set(index - 1, closure);
     }
 
@@ -71,7 +71,7 @@ public abstract class AbstractArgumentStack {
             return builder;
         }
 
-        public Builder addC(StgClosure closure) {
+        public Builder addC(Closure closure) {
             if (closures == null) closures = new ObjectArrayList(1);
             closures.add(closure);
             return this;

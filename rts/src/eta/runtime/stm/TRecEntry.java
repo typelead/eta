@@ -1,11 +1,11 @@
 package eta.runtime.stm;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 
 public class TRecEntry {
     public StgTVar tvar;
-    public StgClosure expectedValue;
-    public StgClosure newValue;
+    public Closure expectedValue;
+    public Closure newValue;
     public int numUpdates;
 
     public boolean isUpdate() {

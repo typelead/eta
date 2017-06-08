@@ -2,14 +2,11 @@ package eta.runtime.stg;
 
 import static eta.runtime.RtsMessages.barf;
 
-public abstract class StgConstr extends StgClosure {
+public abstract class StgConstr extends StgValue {
 
     public abstract int getTag();
 
-    @Override
-    public StgClosure getEvaluated() { return this; }
-
-    public StgClosure getP(int i) {
+    public Closure getP(int i) {
         barf(this + ": getP not implemented!");
         return null;
     }

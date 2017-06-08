@@ -6,5 +6,5 @@ public class StgDummyFrame extends StackFrame {
     public void stackEnter(StgContext context) {}
 
     @Override
-    public StgClosure getClosure() { return new StgDummyRet(); }
+    public Closure getClosure() { return new StgDummyRet(); }
 }

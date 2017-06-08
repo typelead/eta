@@ -8,7 +8,7 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.ForceIO;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgWeak;
 import eta.runtime.apply.ApV;
 import eta.runtime.apply.ApO;
@@ -23,15 +23,15 @@ import static eta.runtime.stg.StgTSO.TSO_INTERRUPTIBLE;
 public class Rts {
     public static class HaskellResult {
         public final Capability cap;
-        public final StgClosure result;
+        public final Closure result;
 
-        public HaskellResult(final Capability cap, final StgClosure result) {
+        public HaskellResult(final Capability cap, final Closure result) {
             this.cap = cap;
             this.result = result;
         }
     }
 
-    public static ExitCode hsMain(String[] args, StgClosure mainClosure, RtsConfig config) {
+    public static ExitCode hsMain(String[] args, Closure mainClosure, RtsConfig config) {
         ExitCode exitStatus = ExitCode.EXIT_SUCCESS;
 
         hsInit(args, config);
@@ -92,47 +92,58 @@ public class Rts {
         }
     }
 
-    public static HaskellResult evalLazyIO(Capability cap, StgClosure p) {
-        // TODO: Java has a hard-to-get stack size. How do we deal with that?
+    public static HaskellResult evalLazyIO(Capability cap, Closure p) {
         StgTSO tso = createIOThread(cap, p);
         return scheduleWaitThread(tso, cap);
     }
 
-    public static HaskellResult evalIO(Capability cap, StgClosure p) {
-        // TODO: Java has a hard-to-get stack size. How do we deal with that?
+    public static HaskellResult evalIO(Capability cap, Closure p) {
         StgTSO tso = createStrictIOThread(cap, p);
         return scheduleWaitThread(tso, cap);
     }
 
-    public static HaskellResult evalJava(Capability cap, Object o, StgClosure p) {
-        // TODO: Java has a hard-to-get stack size. How do we deal with that?
+    public static HaskellResult evalJava(Capability cap, Object o, Closure p) {
         StgTSO tso = createStrictJavaThread(cap, o, p);
         return scheduleWaitThread(tso, cap);
     }
 
     public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
 
-    public static StgTSO createIOThread(Capability cap, StgClosure p) {
-        StgTSO t = new StgTSO(cap);
-        t.pushClosure(new ApV());
-        t.pushClosure(new StgEnter(p));
-        return t;
+    public static Closure evalLazyIO_closure = new EvalLazyIO();
+    public static class EvalLazyIO extends Closure {
+        @Override
+        public Closure enter(StgContext context) {
+            p.evaluate(context).applyV(context);
+        }
     }
 
-    public static StgTSO createStrictIOThread(Capability cap, StgClosure p) {
-        StgTSO t = new StgTSO(cap);
-        t.pushClosure(new ForceIO());
-        t.pushClosure(new ApV());
-        t.pushClosure(new StgEnter(p));
-        return t;
+    public static StgTSO createIOThread(Capability cap, Closure p) {
+        return new StgTSO(cap, evalLazyIO_closure);
     }
 
-    public static StgTSO createStrictJavaThread(Capability cap, Object thisObj, StgClosure p) {
-        StgTSO t = new StgTSO(cap);
-        t.pushClosure(new ForceIO());
-        t.pushClosure(new ApO(thisObj));
-        t.pushClosure(new StgEnter(p));
-        return t;
+    public static Closure evalIO_closure = new EvalIO();
+    public static class EvalIO extends Closure {
+        @Override
+        public Closure enter(StgContext context) {
+            p.evaluate(context).applyV(context).evaluate(context);
+        }
+    }
+
+
+    public static StgTSO createStrictIOThread(Capability cap, Closure p) {
+        return new StgTSO(cap, evalIO_closure);
+    }
+
+    public static Closure evalJava_closure = new EvalJava();
+    public static class EvalJava extends Closure {
+        @Override
+        public Closure enter(StgContext context) {
+            p.evaluate(context).applyO(context, thisObj).evaluate(context);
+        }
+    }
+
+    public static StgTSO createStrictJavaThread(Capability cap, Object thisObj, Closure p) {
+        return new StgTSO(cap, evalJava_closure);
     }
 
     private static int hsInitCount;
@@ -152,9 +163,6 @@ public class Rts {
         }
 
         RtsScheduler.init();
-        // RtsScheduler.initTimer();
-        /* TODO: Ensure that the timer can start here */
-        // RtsScheduler.startTimer();
         if (RtsFlags.ModeFlags.threaded) {
             RtsIO.ioManagerStart();
         }
@@ -205,11 +213,11 @@ public class Rts {
         }
     }
 
-    private static StgClosure flushStdHandles_closure = null;
+    private static Closure flushStdHandles_closure = null;
 
     static {
         try {
-            flushStdHandles_closure = (StgClosure)
+            flushStdHandles_closure = (Closure)
                 Class.forName("base.ghc.TopHandler")
                 .getMethod("flushStdHandles_closure")
                 .invoke(null);
@@ -302,7 +310,7 @@ public class Rts {
         }
     }
 
-    public static StgTSO scheduleIOClosure(StgClosure closure) {
+    public static StgTSO scheduleIOClosure(Closure closure) {
         Capability cap = Capability.getFreeRunningCapability();
         StgTSO tso = Rts.createIOThread(cap, closure);
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);

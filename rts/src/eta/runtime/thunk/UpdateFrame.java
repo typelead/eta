@@ -10,7 +10,7 @@ import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgEnter;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgAPStack;
 import eta.runtime.exception.StgRaise;
 import static eta.runtime.stg.StackFrame.MarkFrameResult.Default;
@@ -26,84 +26,23 @@ public abstract class UpdateFrame extends StackFrame {
 
     @Override
     public void stackEnter(StgContext context) {
-        StgClosure ret = context.R(1);
-        StgClosure v = updatee.indirectee;
-        StgTSO tso = context.currentTSO;
-        Capability cap = context.myCapability;
-        if (v.getEvaluated() != null) {
-            cap.checkBlockingQueues(tso);
-            context.R(1, v);
-        } else if (v == tso) {
-            updatee.updateWithIndirection(ret);
-        } else {
-            cap.updateThunk(tso, updatee, ret);
-            context.R(1, ret);
-        }
+        barf("Unimplemented");
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
-        Stack<StackFrame> stack = new Stack<StackFrame>();
-        ListIterator<StackFrame> sp = tso.sp;
-        sp.next(); //Shift to above the update frame
-        do {
-            stack.push(sp.next());
-            sp.remove();
-        } while (sp.hasNext());
-        StgClosure fun = topClosure.get();
-        StgClosure ap = new StgAPStack(fun, stack);
-        if (this.updatee == updatee) {
-            ap = updatee;
-        } else {
-            cap.updateThunk(tso, this.updatee, ap);
-        }
-        tso.spPop();
-        topClosure.set(ap);
-        return true;
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
+        barf("Unimplemented");
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
-        StgClosure raise = raiseClosure.get();
-        if (raise == null) {
-            raise = new StgRaise(exception);
-            raiseClosure.set(raise);
-        }
-        cap.updateThunk(tso, updatee, raise);
-        return true;
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
+        barf("Unimplemented");
+        return false;
     }
 
     @Override
     public MarkFrameResult mark(Capability cap, StgTSO tso) {
-        if (marked) {
-            return Marked;
-        } else {
-            marked = true;
-            StgThunk bh = updatee;
-            do {
-                StgClosure oldIndirectee = bh.indirectee;
-                // TODO: This check only applies for black and white holes. What
-                //       happens if it's a BlockingQueue?
-                if (bh.getEvaluated() == null && bh.indirectee != null &&
-                    bh.indirectee != tso) {
-                    cap.suspendComputation(tso, this);
-                    // TODO: Verify that suspendComputation deletes all frames above
-                    //       this one.
-                    assert  tso.sp.hasNext() == false
-                          : "mark: suspended computation with extra stack frames.";
-                    tso.spPush(new StgEnter(bh));
-                    tso.spPrevious();
-                    return Default;
-                } else {
-                    if (RtsFlags.ModeFlags.threaded) {
-                        if (!bh.tryLock(oldIndirectee)) {
-                            continue;
-                        }
-                    }
-                    bh.updateWithIndirection(tso);
-                    return Default;
-                }
-            } while (true);
-        }
+        barf("Unimplemented");
+        return null;
     }
 }

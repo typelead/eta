@@ -25,25 +25,29 @@ import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.RtsMessages.debugBelch;
 
-public final class StgTSO extends StgClosure {
+public final class StgTSO extends StgEvaluating {
     public static AtomicInteger maxThreadId = new AtomicInteger(0);
     public int id = nextThreadId();
     public volatile StgTSO link;
-    public LinkedList<StackFrame> stack = new LinkedList<StackFrame>();
-    public ListIterator<StackFrame> sp;
+    public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
     public Queue<StgBlockingQueue> blockingQueues = new ArrayDeque<StgBlockingQueue>();
-    public WhatNext whatNext = ThreadRunGHC;
+    public WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
     public Task.InCall bound;
     public StgTRecHeader trec;
     public Capability cap;
-    public StgClosure blockInfo;
+    public Object blockInfo;
     public int flags;
+    public Queue<MessageThrowTo> blockedExceptions
+        = new ConcurrentLinkedQueue<ThrowTo>();
+    public StackTraceElement[] stackTrace;
+
+    /* DEPRECATED */
+    public LinkedList<StackFrame> stack;
+    public ListIterator<StackFrame> sp;
     public long wakeTime = -1;
     public boolean inMVarOperation;
-    public Deque<MessageThrowTo> blockedExceptions = new ArrayDeque<MessageThrowTo>();
     public AtomicBoolean lock = new AtomicBoolean(false);
-    public StackTraceElement[] stackTrace;
 
     /* TSO Flags */
     public static final int TSO_LOCKED = 2;
@@ -55,7 +59,7 @@ public final class StgTSO extends StgClosure {
     public static final int  TSO_ALLOC_LIMIT = 256;
 
     public enum WhatNext {
-        ThreadRunGHC,
+        ThreadRun,
         ThreadInterpret,
         ThreadKilled,
         ThreadComplete
@@ -84,10 +88,9 @@ public final class StgTSO extends StgClosure {
         }
     }
 
-    public StgTSO(Capability cap) {
+    public StgTSO(Capability cap, Closure closure) {
         this.cap = cap;
-        this.sp = stack.listIterator();
-        pushClosure(new StgStopThread());
+        this.closure = closure;
     }
 
     public void pushClosure(StackFrame frame) {
@@ -174,13 +177,6 @@ public final class StgTSO extends StgClosure {
         return false;
     }
 
-    @Override
-    public final void doUpdateThunk(Capability cap, StgTSO tso) {
-        if (tso != this) {
-            cap.checkBlockingQueues(tso);
-        }
-    }
-
     public final void lock() {
         do {
             int i = 0;
@@ -219,30 +215,36 @@ public final class StgTSO extends StgClosure {
 
     // Stack operations
     public final void spPrevious() {
+        barf("spPrevious");
         sp.previous();
     }
 
     public final void spNext() {
+        barf("spNext");
         sp.next();
     }
 
     public final void spRemove() {
+        barf("spRemove");
         sp.remove();
     }
 
     public final void spPush(StackFrame frame) {
+        barf("spPush");
         sp.add(frame);
     }
 
     public final StackFrame spPop() {
+        barf("spPop");
         StackFrame frame = sp.previous();
         sp.remove();
         return frame;
     }
 
     @Override
-    public final void enter(StgContext context) {
+    public final Closure enter(StgContext context) {
         barf("TSO object entered!");
+        return null;
     }
 
     public final void dump() {

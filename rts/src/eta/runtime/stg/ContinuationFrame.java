@@ -2,12 +2,12 @@ package eta.runtime.stg;
 
 public class ContinuationFrame extends StackFrame {
 
-    public final StgClosure closure;
+    public final Closure closure;
     public final int target;
     public final ArgumentStack argStack;
     public final ArgumentStack localsStack;
 
-    public ContinuationFrame(StgClosure closure, int target, ArgumentStack argStack,
+    public ContinuationFrame(Closure closure, int target, ArgumentStack argStack,
                              ArgumentStack localsStack) {
         this.closure = closure;
         this.target = target;

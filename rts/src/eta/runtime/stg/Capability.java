@@ -110,7 +110,7 @@ public final class Capability {
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
-    public WSDeque<StgClosure> sparks; //= new WSDeque<StgClosure>();
+    public WSDeque<Closure> sparks; //= new WSDeque<Closure>();
 
     public SparkCounters sparkStats = new SparkCounters();
     public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
@@ -244,47 +244,18 @@ public final class Capability {
                 case ThreadComplete:
                     ret = ThreadFinished;
                     break;
-                case ThreadRunGHC:
+                case ThreadRun:
                     /* Update the context state */
                     context.myCapability = cap;
-
-                    /* Reload is used for synchronizing the Java method call
-                       stack with the actual stack of the TSO. Normally, it
-                       isn't done. */
-                    boolean reload = false;
-                    do {
-                        reload = false;
-                        /* Rewind sp to the bottom of the stack */
-                        ListIterator<StackFrame> sp = t.sp;
-                        while (sp.hasPrevious()) {
-                            sp.previous();
-                        }
-
-                        try {
-                            sp.next().enter(context);
-                        } catch (ThreadYieldException e) {
-
-                        } catch (StgReturnException e) {
-                            /* TODO: Ensure that the StgContext objects
-                                     match. */
-                        } catch (StackReloadException e) {
-                            reload = true;
-                            /* TODO: Currently, this reload logic assumes that
-                                     the tso doesn't change. Remove this when
-                                     confirmed. */
-                        } finally {
-                            /* TODO: Is this the right way to grab the
-                                     context? */
-                            ret = context.ret;
-                            cap = context.myCapability;
-                        }
-                        /* TODO: Handle a stack overflow by resetting the
-                           stack and pushing the top most closure
-                           into an enter frame and restarting.
-                           Make sure you check whether this is the
-                           first time, otherwise, a infinite loop
-                           will occur. */
-                    } while (reload);
+                    try {
+                        tso.closure.enter(context);
+                    } catch (Exception e) {
+                        // TODO: Catch exceptions here?
+                        throw e;
+                    } finally {
+                        ret = context.ret;
+                        cap = context.myCapability;
+                    }
                     break;
                 case ThreadInterpret:
                     cap = interpretBCO(cap);
@@ -618,40 +589,19 @@ public final class Capability {
             return emptyRunQueue() && emptyBlockedQueue() && emptySleepingQueue();
         }
     }
+
     public final void threadPaused(StgTSO tso) {
         maybePerformBlockedException(tso);
-        if (tso.whatNext == ThreadKilled) return;
-        ListIterator<StackFrame> sp = tso.sp;
-        int lastPos = sp.previousIndex();
-        // Adjust the stack pointer to the top.
-        while (sp.hasNext()) {
-            sp.next();
-        }
-        boolean stopLoop = false;
-        while (sp.hasPrevious() && !stopLoop) {
-            StackFrame frame = sp.previous();
-            MarkFrameResult result = frame.mark(this, tso);
-            switch (result) {
-                case Marked:
-                case Stop:
-                    stopLoop = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-        // Adjust the stack pointer to before the pause
-        while (sp.previousIndex() < lastPos && sp.hasNext()) {
-            sp.next();
-        }
-        while (sp.previousIndex() > lastPos && sp.hasPrevious()) {
-            sp.previous();
+        UpdateInfo ui = tso.updateInfoStack.markBackwardsFrom(this, tso);
+        if (ui != null) {
+            suspendComputation(tso, ui);
         }
     }
 
     public final boolean maybePerformBlockedException(StgTSO tso) {
-        boolean noBlockedExceptions = tso.blockedExceptions.isEmpty();
-        if (tso.whatNext == ThreadComplete /*|| tso.whatNext == ThreadFinished */) {
+        Queue<MessageThrowTo> blockedExceptions = tso.blockedExceptions;
+        boolean noBlockedExceptions = blockedExceptions.isEmpty();
+        if (tso.whatNext == ThreadComplete) {
             if (noBlockedExceptions) {
                 return false;
             } else {
@@ -666,37 +616,42 @@ public final class Capability {
 
             if (!noBlockedExceptions && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
                 do {
-                    MessageThrowTo msg = tso.blockedExceptions.peek();
+                    StgTSO source;
+                    MessageThrowTo msg = blockedExceptions.peek();
                     if (msg == null) return false;
-                    msg.lock();
-                    tso.blockedExceptions.poll();
-                    if (!msg.isValid()) {
-                        msg.unlock();
-                        continue;
+                    synchronized (msg) {
+                        blockedExceptions.poll();
+                        if (!msg.isValid()) {
+                            continue;
+                        }
+                        throwToSingleThreaded(msg.target, msg.exception);
+                        source = msg.source;
+                        msg.done();
                     }
-                    throwToSingleThreaded(msg.target, msg.exception);
-                    StgTSO source = msg.source;
-                    msg.done();
-                    tryWakeupThread(source);
-                    return true;
-                } while (true);
+                    barf("TODO: park/unpark here");
+                    // tryWakeupThread(source);
+                } while (false);
+                return true;
             }
             return false;
         }
     }
 
     public final void awakenBlockedExceptionQueue(StgTSO tso) {
-        for (MessageThrowTo msg: tso.blockedExceptions) {
-            msg.lock();
-            if (msg.isValid()) {
-                StgTSO source = msg.source;
-                msg.done();
-                tryWakeupThread(source);
-            } else {
-                msg.unlock();
+        synchronized (tso.blockedExceptions) {
+            for (MessageThrowTo msg: tso.blockedExceptions) {
+                msg.lock();
+                if (msg.isValid()) {
+                    StgTSO source = msg.source;
+                    msg.done();
+                    barf("TODO: unpark/park here")
+                    // tryWakeupThread(source);
+                } else {
+                    msg.unlock();
+                }
             }
+            tso.blockedExceptions.clear();
         }
-        tso.blockedExceptions.clear();
     }
 
     public final void tryWakeupThread(StgTSO tso) {
@@ -886,18 +841,18 @@ public final class Capability {
         // Find a method to force the stopping of a thread;
     }
 
-    public final void throwToSingleThreaded(StgTSO tso, StgClosure exception) {
+    public final void throwToSingleThreaded(StgTSO tso, Closure exception) {
         throwToSingleThreaded__(tso, exception, false, null);
     }
 
-    public final void throwToSingleThreaded_(StgTSO tso, StgClosure exception,
+    public final void throwToSingleThreaded_(StgTSO tso, Closure exception,
                                        boolean stopAtAtomically) {
         throwToSingleThreaded__(tso, exception, stopAtAtomically, null);
     }
 
-    public final void throwToSingleThreaded__(StgTSO tso, StgClosure exception,
+    public final void throwToSingleThreaded__(StgTSO tso, Closure exception,
                                         boolean stopAtAtomically,
-                                        UpdateFrame stopHere) {
+                                        UpdateInfo stopHere) {
         if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadKilled) {
             return;
         }
@@ -906,7 +861,7 @@ public final class Capability {
         raiseAsync(tso, exception, stopAtAtomically, stopHere);
     }
 
-    public final void suspendComputation(StgTSO tso, UpdateFrame stopHere) {
+    public final void suspendComputation(StgTSO tso, UpdateInfo stopHere) {
         throwToSingleThreaded__(tso, null, false, stopHere);
     }
 
@@ -916,6 +871,7 @@ public final class Capability {
             case ThreadMigrating:
                 return;
             case BlockedOnSTM:
+                /* Check for zombie transactions */
                 break;
             case BlockedOnMVar:
             case BlockedOnMVarRead:
@@ -942,62 +898,22 @@ public final class Capability {
                 barf("removeFromQueues: %d", tso.whyBlocked);
         }
         tso.whyBlocked = NotBlocked;
-        appendToRunQueue(tso);
+        // Not necessary - it's already in the run queue!
+        // appendToRunQueue(tso);
     }
 
-    public final void raiseAsync(StgTSO tso, StgClosure exception,
-                           boolean stopAtAtomically, UpdateFrame stopHere) {
+    public final void raiseAsync(StgTSO tso, Closure exception, boolean stopAtAtomically, UpdateInfo stopHere) {
 
-        ListIterator<StackFrame> sp = tso.sp;
-
-        // Ensure sp is pointing to top
-        while (sp.hasNext()) {
-            sp.next();
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("cap: %d message: raising exception in thread %d.", tso.id);
         }
-
-        StgThunk updatee = null;
-        if (stopHere != null) {
-            updatee = stopHere.updatee;
-        }
-
-        StackFrame top = sp.previous();
-        sp.remove();
-
-        // /* Ensure stack has a closure at the top */
-        // if (top.getClosure() == null)  {
-        //     sp.next();
-        //     sp.add(new StgDummyFrame());
-        //     sp.previous();
-        // }
-
-        /* Find the index of the update frame to stop at */
-        int stopIndex = -1;
-        if (stopHere != null) {
-            stopIndex = tso.stack.lastIndexOf(stopHere);
-        }
-
-        boolean shouldContinue = true;
-        // TODO: Handle the case where top.getClosure() == null
-        AtomicReference<StgClosure> topClosure =
-            new AtomicReference<StgClosure>(top.getClosure());
-
-        while (shouldContinue && (stopHere == null || sp.previousIndex() > stopIndex)) {
-            /* TODO: Make a custom peeking iterator */
-            StackFrame frame = sp.previous(); //Utils.peekPrevious(sp);
-            shouldContinue = frame.doRaiseAsync(this, tso, exception, stopAtAtomically,
-                                                updatee, topClosure);
-        }
-
-        // /* Maintain the invariant that sp should always
-        //    point to stack top. */
-        // while (sp.hasNext()) {
-        //     sp.next();
-        // }
+        assert tso.whatNext != ThreadComplete && tso.whatNext != ThreadKilled;
+        assert tso.cap == this;
 
         if (tso.whyBlocked != NotBlocked) {
             tso.whyBlocked = NotBlocked;
-            appendToRunQueue(tso);
         }
+        throw new EtaAsyncException(exception, stopAtAtomically, stopHere);
     }
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
@@ -1007,14 +923,60 @@ public final class Capability {
         }
 
         StgThunk bh = msg.bh;
-        if (bh.getEvaluated() == null) {
-            boolean newBlockingQueue;
-            do {
-                newBlockingQueue = bh.indirectee.blackHole(bh, this, msg);
-            } while (newBlockingQueue);
-            return true;
-        }
-        return false;
+        do {
+            Closure p = bh.indirectee;
+            if (p instanceof StgTSO) {
+                StgTSO owner = (StgTSO) p;
+                if (Capability.nCapabilities > 1) {
+                    synchronized (owner) {
+                        if (bh.indirectee instanceof StgTSO) {
+                            StgBlockingQueue bq = new StgBlockingQueue(owner, msg);
+                            owner.blockingQueues.offer(bq);
+                            bh.indirectee = bq;
+                            if (RtsFlags.DebugFlags.scheduler) {
+                                debugBelch("(synchronized) cap %d: thread %d blocked on thread %d",
+                                           cap.no, msg.tso.id, id);
+                            }
+                        } else {
+                            continue;
+                        }
+                    }
+                } else {
+                    /* NOTE: Keep this in sync with above */
+                    StgBlockingQueue bq = new StgBlockingQueue(owner, msg);
+                    owner.blockingQueues.offer(bq);
+                    bh.indirectee = bq;
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("cap %d: thread %d blocked on thread %d",
+                                   cap.no, msg.tso.id, id);
+                    }
+                }
+                return true;
+            } else if (p instanceof StgBlockingQueue) {
+                StgBlockingQueue bq = (StgBlockingQueue) p;
+                assert bq.bh == bh;
+                if (Capability.nCapabilities > 1) {
+                    synchronized (bq) {
+                        if (bh.indirectee instanceof StgBlockingQueue) {
+                            messages.offer(msg);
+                            if (RtsFlags.DebugFlags.scheduler) {
+                                debugBelch("cap %d: thread %d blocked on thread %d",
+                                           msg.tso.id, owner.id);
+                            }
+                        } else {
+                            continue;
+                        }
+                    }
+                } else {
+                    messages.offer(msg);
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("cap %d: thread %d blocked on thread %d",
+                                   msg.tso.id, owner.id);
+                    }
+                }
+                return true
+            } else return false;
+        } while (false);
     }
 
     public final void checkBlockingQueues(StgTSO tso) {
@@ -1022,28 +984,28 @@ public final class Capability {
             debugBelch("cap %d: collision occured; checking blockign queues for thread %d", no, tso.id);
         }
         for (StgBlockingQueue bq: tso.blockingQueues) {
-            if (bq.bh.getEvaluated() != null) {
+            Closure p = bq.bh;
+            if (p.indirectee == null || p.indirectee != bq) {
                 wakeBlockingQueue(bq);
             }
         }
     }
 
-    public final void updateThunk(StgTSO tso, StgThunk thunk, StgClosure val) {
-        StgClosure v = thunk.indirectee;
-        thunk.updateWithIndirection(val);
-        /* Only if it's an StgIndStatic, do doUpdateThunk */
-        if (v != null && v.getEvaluated() == null) {
-            v.doUpdateThunk(this, tso);
-        }
-    }
-
     public final void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
-        for (MessageBlackHole msg: blockingQueue) {
-            if (msg.isValid())
-                tryWakeupThread(msg.tso);
+        synchronized (blockingQueue) {
+            StgThunk bh = blockingQueue.bh;
+            for (MessageBlackHole msg: blockingQueue) {
+                StgTSO tso = msg.tso;
+                /* Ensure that the tso in the list is still blocked on the *same*
+                   thunk. This is a safety for doing unpark() in case we use
+                   unpark() for other purposes. */
+                if (tso.whyBlocked == BlockedOnBlackHole &&
+                    bh == (((MessageBlackHole) tso.blockInfo).bh)) {
+                    LockSupport.unpark(msg.thread.get());
+                }
+            }
+            blockingQueue.clear();
         }
-        blockingQueue.clear();
-        // do cleanup here to destroy the BQ;
     }
 
     public final SchedulerStatus getSchedStatus() {
@@ -1098,7 +1060,7 @@ public final class Capability {
     public final Task suspendThread(boolean interruptible) {
         Task task = runningTask;
         StgTSO tso = context.currentTSO;
-        tso.whatNext = ThreadRunGHC;
+        tso.whatNext = ThreadRun;
         threadPaused(tso);
         if (interruptible) {
             tso.whyBlocked = BlockedOnJavaCall_Interruptible;
@@ -1303,7 +1265,7 @@ public final class Capability {
         runQueue.remove(tso);
     }
 
-    public final MessageThrowTo throwTo(StgTSO source, StgTSO target, StgClosure exception) {
+    public final MessageThrowTo throwTo(StgTSO source, StgTSO target, Closure exception) {
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
         msg.lock();
         boolean result = throwToMsg(msg);
@@ -1459,8 +1421,8 @@ public final class Capability {
     }
 
     /* STM Operations */
-    public final StgClosure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
-        StgClosure result;
+    public final Closure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
+        Closure result;
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
         TRecEntry entry = searchResult.entry;
@@ -1473,7 +1435,7 @@ public final class Capability {
             }
             result = entry.newValue;
         } else {
-            StgClosure currentValue = STM.readCurrentValue(trec, tvar);
+            Closure currentValue = STM.readCurrentValue(trec, tvar);
             TRecEntry newEntry = getNewEntry(trec);
             newEntry.tvar = tvar;
             newEntry.expectedValue = currentValue;
@@ -1507,7 +1469,7 @@ public final class Capability {
         return result;
     }
 
-    public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, StgClosure newValue) {
+    public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, Closure newValue) {
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
         StgTRecHeader entryIn = searchResult.header;
         TRecEntry entry = searchResult.entry;
@@ -1521,7 +1483,7 @@ public final class Capability {
                 newEntry.newValue = newValue;
             }
         } else {
-            StgClosure currentValue = STM.readCurrentValue(trec, tvar);
+            Closure currentValue = STM.readCurrentValue(trec, tvar);
             TRecEntry newEntry = getNewEntry(trec);
             newEntry.tvar = tvar;
             newEntry.expectedValue = currentValue;
@@ -1529,7 +1491,7 @@ public final class Capability {
         }
     }
 
-    public final void stmAddInvariantToCheck(StgTRecHeader trec, StgClosure code) {
+    public final void stmAddInvariantToCheck(StgTRecHeader trec, Closure code) {
         StgAtomicInvariant invariant = new StgAtomicInvariant(code);
         StgInvariantCheck invariantCheck = getNewInvariantCheck(invariant);
         trec.invariantsToCheck.offer(invariantCheck);
@@ -1699,7 +1661,7 @@ public final class Capability {
         return result;
     }
 
-    public final void mergeUpdateInto(StgTRecHeader t, StgTVar tvar, StgClosure expectedValue, StgClosure newValue) {
+    public final void mergeUpdateInto(StgTRecHeader t, StgTVar tvar, Closure expectedValue, Closure newValue) {
         boolean found = false;
         ListIterator<StgTRecChunk> cit = t.chunkIterator();
         loop:
@@ -1736,8 +1698,8 @@ public final class Capability {
             for (TRecEntry e: chunk.entries) {
                 if (e.isUpdate()) {
                     StgTVar s = e.tvar;
-                    StgClosure old = s.lock(trec);
-                    for (StgClosure q: s.watchQueue) {
+                    Closure old = s.lock(trec);
+                    for (Closure q: s.watchQueue) {
                         if (STM.watcherIsInvariant(q)) {
                             boolean found = false;
                             for (StgInvariantCheck q2: trec.invariantsToCheck) {
@@ -1792,14 +1754,14 @@ public final class Capability {
             StgTRecChunk chunk = cit.previous();
             for (TRecEntry e: chunk.entries) {
                 StgTVar s = e.tvar;
-                StgClosure saw = s.lock(trec);
+                Closure saw = s.lock(trec);
                 s.watchQueue.remove(e.newValue); // TODO: Is this valid?
                 s.unlock(trec, saw, false);
             }
         }
     }
 
-    public final void mergeReadInto(StgTRecHeader trec, StgTVar tvar, StgClosure expectedValue) {
+    public final void mergeReadInto(StgTRecHeader trec, StgTVar tvar, Closure expectedValue) {
         boolean found = false;
         while (!found && trec != null) {
             ListIterator<StgTRecChunk> cit = trec.chunkIterator();
@@ -1902,7 +1864,7 @@ public final class Capability {
         /* TODO: Finish implementation */
     }
 
-    public final StackFrame raiseExceptionHelper(StgTSO tso, StgClosure exception) {
+    public final StackFrame raiseExceptionHelper(StgTSO tso, Closure exception) {
         if (RtsFlags.DebugFlags.printStack) {
             Thread.dumpStack();
         }
@@ -1910,7 +1872,7 @@ public final class Capability {
         // Assumes that tso.sp pointer is beyond stack top
         ListIterator<StackFrame> sp = tso.sp;
         boolean shouldContinue = true;
-        AtomicReference<StgClosure> raiseClosure = new AtomicReference<StgClosure>();
+        AtomicReference<Closure> raiseClosure = new AtomicReference<Closure>();
         StackFrame frame = null;
         while (shouldContinue && sp.hasPrevious()) {
             frame = sp.previous();
@@ -1934,9 +1896,9 @@ public final class Capability {
     }
 
     public final void unparkWaitersOn(StgTVar s) {
-        Iterator<StgClosure> iterator = s.watchQueue.descendingIterator();
+        Iterator<Closure> iterator = s.watchQueue.descendingIterator();
         while (iterator.hasNext()) {
-            StgClosure tso = iterator.next();
+            Closure tso = iterator.next();
             if (STM.watcherIsTSO(tso)) {
                 unparkTSO((StgTSO) tso);
             }
@@ -1994,7 +1956,7 @@ public final class Capability {
         appendToRunQueue(tso);
     }
 
-    public final boolean newSpark(StgClosure p) {
+    public final boolean newSpark(Closure p) {
         if (!p.isFizzledSpark()) {
             if (sparks.push(p)) {
                 sparkStats.created++;
@@ -2074,14 +2036,19 @@ public final class Capability {
     }
 
     public final StgThunk lockCAF(StgIndStatic caf) {
-        if (RtsFlags.ModeFlags.threaded) {
-            StgClosure oldIndirectee = caf.indirectee;
-            if (!caf.tryLock(oldIndirectee)) return null;
-        }
         StgTSO tso = context.currentTSO;
-        StgCAFBlackHole bh = new StgCAFBlackHole(tso);
-        caf.indirectee = bh;
-        return bh;
+        if (Capability.nCapabilites > 1) {
+            synchronized (caf) {
+                if (caf.indirectee == null) {
+                    caf.indirectee = tso;
+                } else {
+                    return null;
+                }
+            }
+        } else {
+            caf.indirectee = tso;
+        }
+        return caf;
     }
 
     public static void freeCapabilities() {
@@ -2167,11 +2134,11 @@ public final class Capability {
         }
     }
 
-    public static StgClosure nonTermination_closure = null;
+    public static Closure nonTermination_closure = null;
 
     static {
         try {
-            nonTermination_closure = (StgClosure)
+            nonTermination_closure = (Closure)
                 Class.forName("base.control.exception.Base")
                 .getMethod("nonTermination_closure")
                 .invoke(null);

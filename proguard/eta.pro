@@ -11,17 +11,17 @@
 }
 
 -keep public class base.ghc.TopHandler {
-  eta.runtime.stg.StgClosure flushStdHandles_closure();
+  eta.runtime.stg.Closure flushStdHandles_closure();
 }
 
 -keep public class base.control.exception.Base {
-  eta.runtime.stg.StgClosure nonTermination_closure();
+  eta.runtime.stg.Closure nonTermination_closure();
 }
 
 -keep public class eta.runtime.Rts {
-  eta.runtime.stg.StgClosure flushStdHandles_closure;
+  eta.runtime.stg.Closure flushStdHandles_closure;
 }
 
 -keep public class eta.runtime.stg.Capability {
-  eta.runtime.stg.StgClosure nonTermination_closure;
+  eta.runtime.stg.Closure nonTermination_closure;
 }

@@ -6,15 +6,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.StackFrame;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 
 public class StgCatchSTMFrame extends StgSTMCatchFrame {
-    public final StgClosure code;
-    public final StgClosure handler;
+    public final Closure code;
+    public final Closure handler;
 
-    public StgCatchSTMFrame(final StgClosure code, StgClosure handler) {
+    public StgCatchSTMFrame(final Closure code, Closure handler) {
         this.code = code;
         this.handler = handler;
     }
@@ -48,13 +48,13 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
         StgTRecHeader trec = tso.trec;
         StgTRecHeader outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);

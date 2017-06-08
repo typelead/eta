@@ -6,11 +6,11 @@ import java.nio.ByteBuffer;
 import java.lang.ref.WeakReference;
 
 import eta.runtime.stg.StgTSO;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 
-public final class StgByteArray extends StgClosure {
+public final class StgByteArray extends StgValue {
 
     public static StgByteArray create(int n) {
         return create(n, false);
@@ -31,11 +31,9 @@ public final class StgByteArray extends StgClosure {
     }
 
     @Override
-    public StgClosure getEvaluated() { return this; }
-
-    @Override
-    public void enter(StgContext context) {
+    public Closure enter(StgContext context) {
         barf("StgByteArray object entered!");
+        return null;
     }
 
     /* MemoryManager-Sensitive */

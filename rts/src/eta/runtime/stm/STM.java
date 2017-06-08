@@ -8,12 +8,12 @@ import eta.runtime.RtsFlags;
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.StgTSO;
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.exception.StgException;
 
 import static eta.runtime.stm.TRecState.TREC_ACTIVE;
-import static eta.runtime.stg.StgTSO.WhatNext.ThreadRunGHC;
+import static eta.runtime.stg.StgTSO.WhatNext.ThreadRun;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 
 public class STM {
@@ -38,12 +38,12 @@ public class STM {
     public static void lock(StgTRecHeader trec) {}
     public static void unlock(StgTRecHeader trec) {}
 
-    public static boolean watcherIsInvariant(StgClosure c) {
+    public static boolean watcherIsInvariant(Closure c) {
         //TODO: Better condition
         return (c.getClass() == StgAtomicInvariant.class);
     }
 
-    public static boolean watcherIsTSO(StgClosure c) {
+    public static boolean watcherIsTSO(Closure c) {
         //TODO: Better condition
         return (c.getClass() == StgTSO.class);
     }
@@ -76,8 +76,8 @@ public class STM {
         return result;
     }
 
-    public static StgClosure readCurrentValue(StgTRecHeader trec, StgTVar tvar) {
-        StgClosure result = tvar.currentValue;
+    public static Closure readCurrentValue(StgTRecHeader trec, StgTVar tvar) {
+        Closure result = tvar.currentValue;
         if (RtsFlags.STM.fineGrained) {
             while (result instanceof StgTRecHeader) {
                 result = tvar.currentValue;
@@ -87,7 +87,7 @@ public class STM {
     }
 
     /* TODO: Inline this */
-    public static void newTVar(StgContext context, StgClosure init) {
+    public static void newTVar(StgContext context, Closure init) {
         context.R(1, new StgTVar(init));
     }
 
@@ -98,30 +98,30 @@ public class STM {
     }
 
     public static void readTVarIO(StgContext context, StgTVar tvar) {
-        StgClosure result;
+        Closure result;
         do {
             result = tvar.currentValue;
         } while (!(result instanceof StgTRecHeader));
         context.R(1, result);
     }
 
-    public static void writeTVar(StgContext context, StgTVar tvar, StgClosure newValue) {
+    public static void writeTVar(StgContext context, StgTVar tvar, Closure newValue) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
         cap.stmWriteTvar(tso.trec, tvar, newValue);
     }
 
-    public static void check(StgContext context, StgClosure invariant) {
+    public static void check(StgContext context, Closure invariant) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
         cap.stmAddInvariantToCheck(tso.trec, invariant);
     }
 
-    private static StgClosure nestedAtomically_closure = null;
+    private static Closure nestedAtomically_closure = null;
 
     static {
         try {
-            nestedAtomically_closure = (StgClosure)
+            nestedAtomically_closure = (Closure)
                 Class.forName("base.control.exception.Base")
                 .getMethod("nestedAtomically_closure")
                 .invoke(null);
@@ -131,7 +131,7 @@ public class STM {
         }
     }
 
-    public static void atomically(StgContext context, StgClosure stm) {
+    public static void atomically(StgContext context, Closure stm) {
         StgTSO tso = context.currentTSO;
         StgTRecHeader oldTrec = tso.trec;
         if (oldTrec != null) {
@@ -145,7 +145,7 @@ public class STM {
         }
     }
 
-    public static void catchSTM(StgContext context, StgClosure code, StgClosure handler) {
+    public static void catchSTM(StgContext context, Closure code, Closure handler) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
         StgTRecHeader curTrec = tso.trec;
@@ -155,7 +155,7 @@ public class STM {
         code.applyV(context);
     }
 
-    public static void catchRetry(StgContext context, StgClosure firstCode, StgClosure altCode) {
+    public static void catchRetry(StgContext context, Closure firstCode, Closure altCode) {
         Capability cap = context.myCapability;
         StgTSO tso = context.currentTSO;
         StgTRecHeader newTrec = cap.stmStartTransaction(tso.trec);

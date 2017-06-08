@@ -19,7 +19,7 @@ public class StgStopThread extends StackFrame {
     public void stackEnter(StgContext context) {
         StgTSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
-        StgClosure ret = context.R(1);
+        Closure ret = context.R(1);
         sp.previous();
         sp.remove();
         sp.add(new StgEnter(ret));
@@ -29,20 +29,20 @@ public class StgStopThread extends StackFrame {
     }
 
     @Override
-    public boolean doRaiseAsync(Capability cap, StgTSO tso, StgClosure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<StgClosure> topClosure) {
+    public boolean doRaiseAsync(Capability cap, StgTSO tso, Closure exception, boolean stopAtAtomically, StgThunk updatee, AtomicReference<Closure> topClosure) {
         tso.whatNext = ThreadKilled;
         tso.sp.remove();
         return false;
     }
 
     @Override
-    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<StgClosure> raiseClosure, StgClosure exception) {
+    public boolean doRaiseExceptionHelper(Capability cap, StgTSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
         tso.sp.next();
         return false;
     }
 
     @Override
-    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, StgClosure exception) {
+    public boolean doRaise(StgContext context, Capability cap, StgTSO tso, Closure exception) {
         tso.stack.clear();
         LinkedList<StackFrame> stack = new LinkedList<StackFrame>();
         tso.stack = stack;

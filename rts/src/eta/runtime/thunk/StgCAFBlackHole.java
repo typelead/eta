@@ -1,17 +1,16 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.StgClosure;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 public class StgCAFBlackHole extends StgThunk {
 
-    public StgCAFBlackHole(StgClosure indirectee) {
+    public StgCAFBlackHole(Closure indirectee) {
         super(indirectee);
     }
 
     @Override
-    public void enter(StgContext context) {
-        super.enter(context);
+    public Closure enter(StgContext context) {
         Thunk.blackHole(context, this);
     }
 }

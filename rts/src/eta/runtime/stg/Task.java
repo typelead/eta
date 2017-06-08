@@ -80,7 +80,7 @@ public class Task {
         public StgTSO suspendedTso;
         public Capability suspendedCap;
         public SchedulerStatus returnStatus = NoStatus;
-        public StgClosure ret;
+        public Closure ret;
         public Task task() {
             return Task.this;
         }
