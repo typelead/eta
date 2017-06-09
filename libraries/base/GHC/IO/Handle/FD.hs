@@ -53,7 +53,11 @@ stdin = unsafePerformIO $ do
    -- ToDo: acquire lock
    setBinaryMode FD.stdin
    enc <- getLocaleEncoding
-   mkHandle FD.stdin "<stdin>" ReadHandle (BlockBuffering Nothing)
+   is_tty <- IODevice.isTerminal FD.stdin
+   let buffer_mode
+         | is_tty = LineBuffering
+         | otherwise = BlockBuffering Nothing
+   mkHandle FD.stdin "<stdin>" ReadHandle buffer_mode
                 (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing

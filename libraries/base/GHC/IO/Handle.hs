@@ -639,7 +639,11 @@ dupHandle_ :: (IODevice dev, BufferedIO dev, Typeable dev) => dev
 dupHandle_ new_dev filepath other_side h_@Handle__{..} mb_finalizer = do
    -- XXX wrong!
   mb_codec <- if isJust haEncoder then fmap Just getLocaleEncoding else return Nothing
-  mkHandle new_dev filepath haType (BlockBuffering Nothing) mb_codec
+  is_tty <- IODevice.isTerminal new_dev
+  let buffer_mode
+         | is_tty = LineBuffering
+         | otherwise = BlockBuffering Nothing
+  mkHandle new_dev filepath haType buffer_mode mb_codec
       NewlineMode { inputNL = haInputNL, outputNL = haOutputNL }
       mb_finalizer other_side
 

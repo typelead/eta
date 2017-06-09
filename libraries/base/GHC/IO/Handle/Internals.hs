@@ -432,25 +432,11 @@ handleFinalizer fp m = do
 dEFAULT_CHAR_BUFFER_SIZE :: Int
 dEFAULT_CHAR_BUFFER_SIZE = 2048 -- 8k/sizeof(HsChar)
 
-getCharBuffer :: IODevice dev => dev -> BufferState
-              -> IO (IORef CharBuffer, BufferMode)
-getCharBuffer dev state = do
+getCharBuffer :: BufferState
+              -> IO (IORef CharBuffer)
+getCharBuffer state = do
   buffer <- newCharBuffer dEFAULT_CHAR_BUFFER_SIZE state
-  ioref  <- newIORef buffer
-  is_tty <- IODevice.isTerminal dev
-
-  let buffer_mode
-         | is_tty    = LineBuffering
-         | otherwise = BlockBuffering Nothing
-
-  return (ioref, buffer_mode)
-
-mkUnBuffer :: BufferState -> IO (IORef CharBuffer, BufferMode)
-mkUnBuffer state = do
-  buffer <- newCharBuffer dEFAULT_CHAR_BUFFER_SIZE state
-              --  See [note Buffer Sizing], GHC.IO.Handle.Types
-  ref <- newIORef buffer
-  return (ref, NoBuffering)
+  newIORef buffer
 
 -- -----------------------------------------------------------------------------
 -- Flushing buffers
@@ -621,12 +607,7 @@ mkHandle dev filepath ha_type bmode mb_codec nl finalizer other_side = do
    bbuf <- Buffered.newBuffer dev buf_state
    bbufref <- newIORef bbuf
    last_decode <- newIORef (error "codec_state", bbuf)
-
-   (cbufref, _) <-
-     case bmode of
-       BlockBuffering _ -> getCharBuffer dev buf_state
-       LineBuffering -> mkUnBuffer buf_state
-       _ -> mkUnBuffer buf_state
+   cbufref <- getCharBuffer buf_state
 
    spares <- newIORef BufferListNil
    newFileHandle filepath finalizer
@@ -660,7 +641,11 @@ mkFileHandle :: (IODevice dev, BufferedIO dev, Typeable dev)
                     -- Translate newlines?
              -> IO Handle
 mkFileHandle dev filepath iomode mb_codec tr_newlines = do
-   mkHandle dev filepath (ioModeToHandleType iomode) (BlockBuffering Nothing) mb_codec
+   is_tty <- IODevice.isTerminal dev
+   let buffer_mode
+         | is_tty = LineBuffering
+         | otherwise = BlockBuffering Nothing
+   mkHandle dev filepath (ioModeToHandleType iomode) buffer_mode mb_codec
             tr_newlines
             (Just handleFinalizer) Nothing{-other_side-}
 
@@ -671,14 +656,18 @@ mkDuplexHandle :: (IODevice dev, BufferedIO dev, Typeable dev) => dev
                -> FilePath -> Maybe TextEncoding -> NewlineMode -> IO Handle
 mkDuplexHandle dev filepath mb_codec tr_newlines = do
 
+  is_tty <- IODevice.isTerminal dev
+  let buffer_mode
+         | is_tty = LineBuffering
+         | otherwise = BlockBuffering Nothing
   write_side@(FileHandle _ write_m) <-
-       mkHandle dev filepath WriteHandle (BlockBuffering Nothing) mb_codec
+       mkHandle dev filepath WriteHandle buffer_mode mb_codec
                         tr_newlines
                         (Just handleFinalizer)
                         Nothing -- no othersie
 
   read_side@(FileHandle _ read_m) <-
-      mkHandle dev filepath ReadHandle (BlockBuffering Nothing) mb_codec
+      mkHandle dev filepath ReadHandle buffer_mode mb_codec
                         tr_newlines
                         Nothing -- no finalizer
                         (Just write_m)
