@@ -63,7 +63,7 @@ public class Task {
     }
 
     public long id;
-    public WorkerThread thread;
+    public WeakReference<Thread> thread;
     public Capability cap;
     public Queue<InCall> spareIncalls = new ArrayDeque<InCall>();
     public InCall incall;
@@ -146,6 +146,7 @@ public class Task {
             task = new Task(false);
             task.initialize();
             task.id = Thread.currentThread().getId();
+            task.thread = new WeakReference<Thread>(Thread.currentThread());
             setMyTask(task);
             return task;
         }
@@ -250,7 +251,7 @@ public class Task {
             stopped = true;
         }
         if (RtsFlags.DebugFlags.scheduler) {
-            debugBelch("Task[%d] exiting.", id);
+            debugBelch("{Scheduler} Task[%d] exiting.", id);
         }
     }
 
@@ -347,7 +348,7 @@ public class Task {
         return cap;
     }
 
-    public final void interruptWorker() {
+    public final void interrupt() {
         thread.interrupt();
     }
 
@@ -372,9 +373,7 @@ public class Task {
         return thread.isAlive();
     }
 
-    public final void assertTaskId() {
-        if (RtsFlags.ModeFlags.threaded) {
-            assert id == Thread.currentThread().getId();
-        }
+    public final boolean assertTaskId() {
+        assert id == Thread.currentThread().getId();
     }
 }

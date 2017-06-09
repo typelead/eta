@@ -27,6 +27,13 @@ public class StgException extends RuntimeException {
     public static StgException threadYieldException = new ThreadYieldException();
     public static StgException stackReloadException = new StackReloadException();
 
+    public static void unmaskAsyncExceptionsRet(StgContext context, TSO tso) {
+        tso.removeFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
+        if (!tso.blockedExceptions.isEmpty()) {
+            context.myCapability.maybePerformBlockedException(tso);
+        }
+    }
+
     public static Closure getMaskingState(StgContext context) {
         TSO tso = context.currentTSO;
         context.I(1, ((tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
@@ -43,20 +50,19 @@ public class StgException extends RuntimeException {
                 maskUninterruptible = true;
             }
         } else {
-            /* TODO: Check if maskAsyncExceptionsContinuation is expected
-               , if so optimize the stack to avoid unmasks multiple times */
             unmask = true;
         }
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        TSO result = io.applyV(context);
-        if (maskUninterruptible) {
-            barf("Unimplemented maskUninterruptible");
-        } else if (unmask) {
-            barf("Unimplemented unmask");
-        } else {
-            return result;
+        Closure result = io.applyV(context);
+        if (unmask) {
+            unmaskAsyncExceptionsRet(context, tso);
+        } else if (maskUninterruptible) {
+            tso.addFlags(TSO_BLOCKEX);
+            tso.removeFlags(TSO_INTERRUPTIBLE);
         }
+        return result;
     }
+
 
     public static Closure maskUninterruptible(StgContext context, Closure io) {
         TSO tso = context.currentTSO;
@@ -67,20 +73,17 @@ public class StgException extends RuntimeException {
                 mask = true;
             }
         } else {
-            /* TODO: Check if maskUninterruptibleContinuation is expected
-               , if so optimize the stack to avoid unmasks multiple times */
             unmask = true;
         }
         tso.addFlags(TSO_BLOCKEX);
         tso.removeFlags(TSO_INTERRUPTIBLE);
         Closure result = io.applyV(context);
-        if (mask) {
-            barf("Mask");
-        } else if (unmask) {
-            barf("UnMask");
-        } else {
-            return result;
+        if (unmask) {
+            unmaskAsyncExceptionsRet(context, tso);
+        } else if (mask) {
+            tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         }
+        return result;
     }
 
     public static Closure unmaskAsyncExceptions(StgContext context, Closure io) {
@@ -89,8 +92,6 @@ public class StgException extends RuntimeException {
         boolean mask;
         boolean maskUninterruptible;
         if (tso.hasFlag(TSO_BLOCKEX)) {
-            /* TODO: Check if unmaskContinuation is expected
-               , if so optimize the stack to avoid unmasks multiple times */
             if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
                 mask = true;
             } else {
@@ -98,28 +99,20 @@ public class StgException extends RuntimeException {
             }
             tso.removeFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
             if (!tso.blockedExceptions.isEmpty()) {
-                /* Preserve io as continuation (first priority) */
-                boolean performed = cap.maybePerformBlockedException(tso);
-                if (performed) {
-                    if (tso.whatNext == ThreadKilled) {
-                        Stg.threadFinished(context);
-                    } else {
-                        barf("Unimplemeneted unmask 1");
-                    }
-                } else {
-                    barf("Unimplemeneted unmask 2");
-                }
+                cap.maybePerformBlockedException(tso);
             }
         }
         Closure result = io.applyV(context);
         if (mask) {
-            barf("Unimplemeneted unmask 3");
+            tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         } else if (maskUninterruptible) {
-            barf("Unimplemeneted unmask 4");
-        } else return result;
+            tso.addFlags(TSO_BLOCKEX);
+            tso.removeFlags(TSO_INTERRUPTIBLE);
+        }
+        return result;
     }
 
-    public static void killThread(StgContext context, TSO target, Closure exception) {
+    public static Closure killThread(StgContext context, TSO target, Closure exception) {
             TSO tso = context.currentTSO;
             if (target == tso) {
                 killMyself(context, target, exception);
@@ -127,28 +120,33 @@ public class StgException extends RuntimeException {
                 Capability cap = context.myCapability;
                 MessageThrowTo msg = cap.throwTo(tso, target, exception);
                 if (msg == null) {
-                    return;
+                    return null;
                 } else {
                     tso.whyBlocked = BlockedOnMsgThrowTo;
                     tso.blockInfo = msg;
-                    // block_throwto.enter(context);
-                    barf("killThread#: unimplemented RTS primitive operation.");
+                    synchronized (msg) {
+                        while (msg.isValid()) {
+                            target.blockedExceptions.offer(msg);
+                            msg.wait();
+                        }
+                    }
+                    LockSupport.park();
+                    barf("Make some condition that can be checked");
+                    tso.whyBlocked = NotBlocked;
+                    tso.blockInfo = null;
+
                 }
+                return null;
             }
     }
 
-    public static StgClosure killMyself(StgContext context, TSO target, Closure exception) {
+    public static Closure killMyself(StgContext context, TSO target, Closure exception) {
         Capability cap = context.myCapability;
         TSO tso = context.currentTSO;
         cap.throwToSingleThreaded(target, exception);
-        if (tso.whatNext == ThreadKilled) {
-            Stg.threadFinished(context);
-        } else {
-            throw StgException.stackReloadException;
-        }
     }
 
-    public static StgClosure catch_(StgContext context, Closure io, Closure handler) {
+    public static Closure catch_(StgContext context, Closure io, Closure handler) {
         TSO tso = context.currentTSO;
         int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         UpdateInfo ui = tso.updateInfoStack.peek();
@@ -166,35 +164,43 @@ public class StgException extends RuntimeException {
             } else {
                 barf("Implement catching Java exceptions.");
             }
-            if ((exceptionsBlocked & TSO_BLOCKEX) == 0) {
+            /* TODO: It seems that there should be more logic as this
+                     discards the masking state before the catch.
+
+                     Note that unmasking is not done for asynchronous exceptions.
+                     This may be due to the fact that raiseAsync &
+                     maybePeformBlockedExceptions only run after unmasking has
+                     been set. Verify. -RM */
+            if (!async && (exceptionsBlocked & TSO_BLOCKEX) == 0) {
                 unmask = true;
             }
             tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-            if ((exceptionsBlocked & TSO_INTERRUPTIBLE) == 0) {
+            if ((exceptionsBlocked & (TSO_BLOCKEX | TSO_INTERRUPTIBLE)) == TSO_BLOCKEX) {
                 tso.removeFlags(TSO_INTERRUPTIBLE);
-            } else {
-                tso.addFlags(TSO_INTERRUPTIBLE);
             }
             if (async) {
-                /* TODO: How should we deal with update frames */
+                /* TODO: How should we deal with update frames in async case?
+
+                         GHC's behavior is to save the stack frame, which is impossible
+                         for us. Maybe we should do something based on whether the
+                         current tso owns the thunk? -RM */
                 tso.whatNext = ThreadRun;
             } else {
-                /* Deal with update frames above this one */
-                tso.updateInfoStack.raiseExceptionAfter(context.myCapability, tso,
-                                                        new StgRaise(exception), ui);
+                /* NOTE: This will replace all the thunks above this update frame
+                         to point to a Raise(exception) thunk. */
+                tso.updateInfoStack.raiseExceptionAfter(context.myCapability, tso, new Raise(exception), ui);
             }
             result = handler.applyPV(context, exception);
             if (unmask) {
-                barf("Implement UnmaskAsyncExceptionsFrame");
-                //result = unmaskAsynExceptionsFrameCode();
-                // tso.spPush(new UnmaskAsyncExceptionsFrame());
+                unmaskAsyncExceptionsRet(context, tso);
             }
         }
         return result;
     }
 
-    public static StgClosure raise(StgContext context, Closure exception) {
-        /* TODO: Remove the need for this line by using EtaException directly. */
+    public static Closure raise(StgContext context, Closure exception) {
+        /* TODO: Remove the need for this line by using EtaException's stack
+                 trace directly. */
         tso.setStackTrace(Thread.currentThread().getStackTrace());
         throw new EtaException(exception);
         return null;

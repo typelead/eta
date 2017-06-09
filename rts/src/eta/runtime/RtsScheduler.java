@@ -185,7 +185,6 @@ public class RtsScheduler {
             schedulerState = SCHED_INTERRUPTING;
             Capability cap = task.cap;
             cap = task.waitForCapability();
-            //scheduleDoDC(cap, task true);
             cap.release();
         }
         schedulerState = SCHED_SHUTTING_DOWN;

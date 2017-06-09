@@ -30,11 +30,11 @@ public final class TSO extends StgEvaluating {
     public int id = nextThreadId();
     public volatile TSO link;
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
-    public Queue<StgBlockingQueue> blockingQueues = new ArrayDeque<StgBlockingQueue>();
+    public Queue<BlockingQueue> blockingQueues = new ArrayDeque<BlockingQueue>();
     public WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
     public Task.InCall bound;
-    public StgTRecHeader trec;
+    public TransactionRecord trec;
     public Capability cap;
     public Object blockInfo;
     public int flags;
@@ -120,14 +120,6 @@ public final class TSO extends StgEvaluating {
         }
     }
 
-    public final void removeFromMVarBlockedQueue() {
-        MVar mvar = (MVar) blockInfo;
-        if (!inMVarOperation) return;
-        // mvar.tsoQueue.remove(this);
-        inMVarOperation = false;
-    }
-
-
     public final boolean isFlagLocked() { return hasFlag(TSO_LOCKED); }
 
     public final void delete() {
@@ -151,30 +143,6 @@ public final class TSO extends StgEvaluating {
 
     public final void addFlags(int flags) {
         this.flags |= flags;
-    }
-
-    @Override
-    public final boolean blackHole(Thunk bh, Capability cap,
-                                   MessageBlackHole msg) {
-        if (RtsFlags.ModeFlags.threaded && this.cap != cap) {
-            cap.sendMessage(this.cap, msg);
-            if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("cap %d: forwarding message to cap %d",
-                           cap.no, this.cap.no);
-            }
-        } else {
-            StgBlockingQueue bq = new StgBlockingQueue(this, msg);
-            blockingQueues.offer(bq);
-            if (whyBlocked == NotBlocked && id != msg.tso.id) {
-                cap.promoteInRunQueue(this);
-            }
-            msg.bh.indirectee = bq;
-            if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("cap %d: thread %d blocked on thread %d",
-                           cap.no, msg.tso.id, id);
-            }
-        }
-        return false;
     }
 
     public final void lock() {

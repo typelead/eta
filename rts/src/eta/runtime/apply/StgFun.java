@@ -4,7 +4,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
 
-public abstract class Function extends StgValue {
+public abstract class Function extends Value {
 
     public abstract int getArity();
 

@@ -11,7 +11,7 @@ import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
-public class MVar extends StgValue {
+public class MVar extends Value {
     public BlockingQueue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
     public AtomicBoolean lock = new AtomicBoolean(false);
 

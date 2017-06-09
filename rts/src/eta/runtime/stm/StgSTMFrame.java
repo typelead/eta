@@ -6,7 +6,7 @@ import eta.runtime.stg.StackFrame;
 
 public abstract class StgSTMFrame extends StackFrame {
 
-    public boolean doRetry(Capability cap, TSO tso, StgTRecHeader trec) {
+    public boolean doRetry(Capability cap, TSO tso, TransactionRecord trec) {
         /* TODO: Throw an exception here */
         return false;
     }

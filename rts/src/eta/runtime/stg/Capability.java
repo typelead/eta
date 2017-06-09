@@ -110,15 +110,15 @@ public final class Capability {
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ArrayDeque<Message>();
-    public WSDeque<Closure> sparks; //= new WSDeque<Closure>();
+    public Deqeue<Closure> sparks = new ConcurrentLinkedDeque<Closure>();
 
     public SparkCounters sparkStats = new SparkCounters();
-    public List<StgWeak> weakPtrList = new ArrayList<StgWeak>();
+    public List<Weak> weakPtrList = new ArrayList<Weak>();
 
     /* STM-related data structures */
     public Stack<StgTRecChunk> freeTRecChunks = new Stack<StgTRecChunk>();
-    public Queue<StgInvariantCheck> freeInvariantChecksQueue = new ArrayDeque<StgInvariantCheck>();
-    public Queue<StgTRecHeader> freeTRecHeaders = new ArrayDeque<StgTRecHeader>();
+    public Queue<InvariantCheck> freeInvariantChecksQueue = new ArrayDeque<InvariantCheck>();
+    public Queue<TransactionRecord> freeTRecHeaders = new ArrayDeque<TransactionRecord>();
     public long transactionTokens;
 
     public int ioManagerControlWrFd; /* TODO: Finish implementation of IO manager */
@@ -129,13 +129,13 @@ public final class Capability {
 
     public final Capability schedule(Task task) {
         Capability cap = this;
-        boolean threaded = RtsFlags.ModeFlags.threaded;
+        Closure result;
         if (RtsFlags.DebugFlags.scheduler) {
             debugBelch("Capability[%d]: schedule()", cap.no);
         }
         while (true) {
             if (cap.inStg) {
-                errorBelch("schedule: re-entered unsafely.\n" +
+                errorBelch("{Scheduler} Re-entered unsafely.\n" +
                            "    Perhaps a 'foreign import unsafe' should be 'safe'?");
                 stgExit(EXIT_FAILURE);
             }
@@ -145,110 +145,66 @@ public final class Capability {
                     break;
                 case SCHED_INTERRUPTING:
                     if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("SCHED_INTERRUPTING");
+                        debugBelch("{Scheduler} Interrupting!");
                     }
-                    // cap = null;//TODO: scheduleDoGC(cap, task, false);
                 case SCHED_SHUTTING_DOWN:
                     if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("SCHED_SHUTTING_DOWN");
+                        debugBelch("{Scheduler} Shutting Down!");
                     }
                     if (!task.isBound() && cap.emptyRunQueue()) {
                         return cap;
                     }
                     break;
                 default:
-                    barf("sched state: " + schedulerState);
+                    barf("FATAL ERROR: Invalid scheduler state: " + schedulerState);
             }
+            cap.findWork();
+            /* TODO: The following still need to be implemented:
+                     - Work stealing algorithm for TSOs - can be implemented as part of findWork().
+                     - Deadlock detection. Be able to detect <<loop>>.
+                     - Killing TSO on shutdown.
+                     - Migrate threads when disabled?
+            */
 
-            cap = cap.findWork();
-            if (threaded) {
-                cap.pushWork(task);
-            }
-            cap = cap.detectDeadlock(task);
-            if (threaded) {
-                // TODO: Yielding is causing unnecessary work for all the capabilities.
-                //       Disabling until we find a need for it.
-                // cap = cap.scheduleYield(task);
-                if (cap.emptyRunQueue()) continue;
-            }
+            // todo: yielding is causing unnecessary work for all the capabilities.
+            //       disabling until we find a need for it.
+            // cap = cap.scheduleyield(task);
+            if (cap.emptyRunQueue()) continue;
 
             TSO t = cap.popRunQueue();
-            if (threaded) {
-                Task.InCall bound = t.bound;
-                if (bound != null) {
-                    if (bound.task() != task) {
-                        if (RtsFlags.DebugFlags.scheduler) {
-                            debugBelch("TSO[%d] is bound to another OS thread.", t.id);
-                        }
-                        cap.pushOnRunQueue(t);
-                        continue;
+            Task.InCall bound = t.bound;
+            if (bound != null) {
+                Task boundTask = bound.task();
+                if (boundTask != task) {
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("{Scheduler} TSO[%d] is bound to Task[%d], but current Task[%d].", t.id, boundTask.id, task.id);
                     }
-                } else {
-                    if (task.incall.tso != null) {
-                        if (RtsFlags.DebugFlags.scheduler) {
-                            debugBelch("This OS thread cannot run TSO[%d].", t.id);
-                        }
-                        cap.pushOnRunQueue(t);
-                        continue;
-                    }
+                    cap.pushOnRunQueue(t);
+                    continue;
                 }
-            }
-
-            if (schedulerState.compare(SCHED_INTERRUPTING) >= 0 &&
-                !(t.whatNext == ThreadComplete || t.whatNext == ThreadKilled)) {
-                t.delete();
-            }
-
-            if (threaded) {
-                if (cap.disabled && t.bound != null) {
-                    Capability destCap = capabilities.get(cap.no % enabledCapabilities);
-                    cap.migrateThread(t, destCap);
+            } else {
+                if (task.incall.tso != null) {
+                    if (RtsFlags.DebugFlags.scheduler) {
+                        debugBelch("{Scheduler} Current Task[%d] cannot run TSO[%d].", task.id, t.id);
+                    }
+                    cap.pushOnRunQueue(t);
                     continue;
                 }
             }
 
-            if (RtsFlags.ConcFlags.ctxtSwitchTicks == 0
-                && !cap.emptyThreadQueues()) {
-                cap.contextSwitch = true;
-            }
+            StgContext context = cap.context;
+            context.reset(cap, t);
+            cap.inStg = true;
 
-            boolean runThread = true;
-            while (runThread) {
-                runThread = false;
-
-                StgContext context = cap.context;
-                context.reset(cap, t);
-                cap.interrupt = false;
-                cap.inStg = true;
-                cap.idle = 0;
-
-                WhatNext prevWhatNext = t.whatNext;
-                // errno
-
-                switch (recentActivity) {
-                case DoneGC:
-                    //xchg(recent_activity, ACTIVITy_YES)
-                    //if (prev == ACTIVITY_DONE_GC)
-                    // startTimer
-                    // stuff here
-                    break;
-                case Inactive:
-                    break;
-                default:
-                    recentActivity = Yes;
-                }
-
-                ReturnCode ret = HeapOverflow;
-                switch (prevWhatNext) {
+            WhatNext prevWhatNext = t.whatNext;
+            switch (prevWhatNext) {
                 case ThreadKilled:
                 case ThreadComplete:
                     ret = ThreadFinished;
                     break;
                 case ThreadRun:
-                    /* Update the context state */
-                    context.myCapability = cap;
                     try {
-                        tso.closure.enter(context);
+                        result = tso.closure.enter(context);
                     } catch (Exception e) {
                         // TODO: Catch exceptions here?
                         throw e;
@@ -262,52 +218,45 @@ public final class Capability {
                     ret = cap.context.ret;
                     break;
                 default:
-                    barf("schedule: invalid what_next field");
-                }
+                    barf("{Scheduler} Invalid whatNext field for TSO[%d].", t.id);
+            }
 
-                cap.inStg = false;
-                t = cap.context.currentTSO;
-                cap.context.currentTSO = null;
+            cap.inStg = false;
+            cap.context.currentTSO = null;
 
-                if (ret == ThreadBlocked) {
-                    if (t.whyBlocked == BlockedOnBlackHole) {
-                        //TSO owner = blackHoleOwner((MessageBlackHole)t.blockInfo.bh);
-
-                    } else {
-                    }
-                } else {
-                }
-
-                boolean readyToGC = false;
-
-                cap.postRunThread(t);
-                switch (ret) {
-                case HeapOverflow:
-                    readyToGC = cap.handleHeapOverflow(t);
-                    break;
-                case StackOverflow:
-                    cap.threadStackOverflow(t);
-                    cap.pushOnRunQueue(t);
-                    break;
-                case ThreadYielding:
-                    if (cap.handleYield(t, prevWhatNext)) {
-                        runThread = true;
-                    }
-                    break;
-                case ThreadBlocked:
-                    t.handleThreadBlocked();
-                    break;
-                case ThreadFinished:
-                    if (cap.handleThreadFinished(task, t)) return cap;
-                    break;
-                default:
-                    barf("schedule: invalid thread return code %d", ret);
-                }
-
-                if (readyToGC && !runThread) {
-                    //cap = scheduleDoGc(cap, task, false);
+            /* TODO: Replace this check elsewhere. It's to detect loops in STM. */
+            if (t.trec != null && t.whyBlocked == NotBlocked) {
+                if (!stmValidateNestOfTransactions(t.trec)) {
+                    throwToSingleThreaded_(t, null, true);
                 }
             }
+
+            awakenBlockedExceptionQueue(t);
+
+            if (t.bound != null) {
+                if (t.bound != task.incall) {
+                    barf("{Scheduler} Finished running a Bound TSO[%d] not bound to me.", t.id);
+                }
+                assert task.incall.tso == t;
+
+                if (t.whatNext == ThreadComplete) {
+                    task.incall.ret = result;
+                    task.incall.returnStatus = Success;
+                } else {
+                    if (task.incall.ret != null) {
+                        task.incall.ret = null;
+                    }
+                    if (schedulerState.compare(SCHED_INTERRUPTING) >= 0) {
+                        task.incall.returnStatus = Interrupted;
+                    } else {
+                        task.incall.returnStatus = Killed;
+                    }
+                }
+                t.bound = null;
+                task.incall.tso = null;
+            }
+
+            return cap;
         }
     }
 
@@ -408,71 +357,6 @@ public final class Capability {
         return runQueue.peek();
     }
 
-    public final void pushWork(Task task) {
-        // TODO: Incorporate the spark logic
-        if (!RtsFlags.ParFlags.migrate) return;
-        if (emptyRunQueue()) {
-            if (sparkPoolSize() < 2) return;
-        } else {
-            if (singletonRunQueue() && sparkPoolSize() < 1) return;
-        }
-        ArrayList<Capability> freeCapabilities = new ArrayList<Capability>(capabilities.size());
-        for (Capability cap: capabilities) {
-            if (cap != this && !cap.disabled && cap.tryGrab(task)) {
-                if (!cap.emptyRunQueue()
-                    || !cap.returningTasks.isEmpty()
-                    || !cap.emptyInbox()) {
-                    cap.release();
-                } else {
-                    freeCapabilities.add(cap);
-                }
-            }
-        }
-        int nFreeCapabilities = freeCapabilities.size();
-        if (nFreeCapabilities > 0) {
-            if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("Capability[%d]: %s and %d free capabilities, sharing..."
-                           ,this.no
-                           ,(!emptyRunQueue() && !singletonRunQueue())?
-                           "excess threads on run queue":"sparks to share (>=2)",
-                           nFreeCapabilities);
-            }
-            int i = 0;
-            if (!emptyRunQueue()) {
-                // TODO: Object pool this?
-                Deque<TSO> newRunQueue = new ArrayDeque<TSO>(1);
-                newRunQueue.offer(popRunQueue());
-                TSO t = peekRunQueue();
-                TSO next = null;
-                for (; t != null; t = next) {
-                    next = popRunQueue();
-                    if (t.bound == task.incall
-                        || t.isFlagLocked()) {
-                        newRunQueue.offer(t);
-                    } else if (i == nFreeCapabilities) {
-                        i = 0;;
-                        newRunQueue.offer(t);
-                    } else {
-                        Capability freeCap = freeCapabilities.get(i);
-                        freeCap.appendToRunQueue(t);
-                        if (t.bound != null) {
-                            t.bound.task().cap = freeCap;
-                        }
-                        t.cap = freeCap;
-                        i++;
-                    }
-                }
-                runQueue = newRunQueue;
-            }
-
-            for (Capability freeCap: freeCapabilities) {
-                task.cap = freeCap;
-                freeCap.releaseAndWakeup();
-            }
-        }
-        task.cap = this;
-    }
-
     public final Capability detectDeadlock(Task task) {
         Capability cap = this;
         boolean threaded = RtsFlags.ModeFlags.threaded;
@@ -505,60 +389,163 @@ public final class Capability {
         return cap;
     }
 
-    public final Capability findWork() {
-        Capability cap = this;
-        startSignalHandlers();
+    /* Sparks */
 
-        if (!RtsFlags.ModeFlags.threaded) {
-            checkBlockedThreads();
-        } else {
-            cap = processInbox();
-            if (emptyRunQueue()) activateSpark();
-        }
-
-        return cap;
+    public final void findWork() {
+        if (emptyRunQueue()) activateSpark();
     }
 
-    public final void activateSpark() {}
-
-    public final void startSignalHandlers() {
-        if (!RtsFlags.ModeFlags.threaded && RtsFlags.ModeFlags.userSignals) {
-
-            if (RtsFlags.MiscFlags.installSignalHandlers /* && signals_pending() */) {
-                // start signal handlers
-                //addShutdownHook
+    public final void activateSpark() {
+        if (anySparks() && !cap.disabled) {
+            TSO tso = createSparkThread();
+            if (RtsFlags.DebugFlag.scheduler) {
+                debugBelch("{Scheduler} Creating a Spark TSO[%d].", tso.id);
             }
         }
     }
 
-    public final void checkBlockedThreads() {
-        if (!emptyBlockedQueue() || !emptySleepingQueue()) {
-            RtsIO.awaitEvent(emptyRunQueue());
+    public static boolean anySparks() {
+        for (Capability cap:capabilities) {
+            if (!cap.emptySparkPool()) {
+                return true;
+            }
         }
+        return false;
     }
 
-    public final Capability processInbox() {
-        Capability cap = this;
-        while (!cap.emptyInbox()) {
-            // scheduleDoGC
-            Lock l = cap.lock;
-            if (l.tryLock()) {
-                Deque<Message> inbox = new ArrayDeque<Message>(cap.inbox);
-                try {
-                    cap.inbox.clear();
-                } finally {
-                    l.unlock();
-                }
-                for (Message m: inbox) {
-                    while (m.isLocked()) {}
-                    if (!m.isValid()) continue;
-                    m.execute(this);
-                }
+    public final TSO createSparkThread(Capability cap) {
+        TSO tso = Rts.createIOThread(cap, runSparks_closure);
+        appendToRunQueue(tso);
+        return tso;
+    }
+
+    public final boolean newSpark(Closure p) {
+        if (p.getEvaluated() == null) {
+            if (sparks.offerFirst(p)) {
+                sparkStats.created++;
             } else {
-                break;
+                sparkStats.overflowed++;
             }
+        } else {
+            sparkStats.dud++;
         }
-        return cap;
+        return true;
+    }
+
+    public final Closure findSpark() {
+        if (!emptyRunQueue() || !cap.returningTasks.isEmpty()) {
+            return null;
+        }
+        boolean retry;
+        do {
+            retry = false;
+            Closure spark = sparks.pollLast();
+            while (spark != null && spark.getEvaluated() != null) {
+                sparkStats.fizzled++;
+                spark = sparks.pollLast();
+            }
+            if (spark != null) {
+                sparkStats.converted++;
+                return spark;
+            }
+            if (!emptySparkPool()) {
+                retry = true;
+            }
+            if (capabilities.size() == 1) return null;
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("{Scheduler} Capability[%d]: Trying to steal work from other Capabilities.");
+            }
+            for (Capability robbed:capabilities) {
+                if (cap == robbed || robbed.emptySparkPool()) continue;
+                spark = robbed.sparks.pollLast();
+                while (spark != null && spark.getEvaluated() != null) {
+                    sparkStats.fizzled++;
+                    spark = robbed.sparks.pollLast();
+                }
+                if (spark == null && !robbed.emptySparkPool()) {
+                    retry = true;
+                }
+                if (spark != null) {
+                    sparkStats.converted++;
+                    return spark;
+                }
+            }
+        } while(retry);
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("{Scheduler} No Sparks stolen.");
+        }
+    }
+
+    public final void pushWork(Task task) {
+        // int spareThreads = cap.emptyRunQueue()? 0 : cap.runQueueSize() - 1;
+        // if (!RtsFlags.ParFlags.migrate) {
+        //     spareThreads = 0;
+        // }
+        // int wantedCaps = cap.sparkPoolSize() + spareThreads;
+        // if (wantedCaps == 0) return;
+        // ArrayList<Capability> freeCapabilities = new ArrayList<Capability>(capabilities.size() / 4);
+        // Capability first = null;
+        // for (Iterator<Capability> it = capabilities.iterator();
+        //      it.hasNext() && freeCapabilities.size() < wantedCaps;)
+        //     Capability cap = it.next();
+        //     if (first == null) first = cap;
+        //     if (cap == first) break;
+        //     if (cap != this && !cap.disabled && cap.tryGrab(task)) {
+        //         if (!cap.emptyRunQueue()
+        //             || !cap.returningTasks.isEmpty()
+        //             || !cap.emptyInbox()) {
+        //             cap.release();
+        //         } else {
+        //             freeCapabilities.add(cap);
+        //         }
+        //     }
+        // }
+        // int nFreeCapabilities = freeCapabilities.size();
+        // if (nFreeCapabilities > 0) {
+        //     int runQueueSize = cap.runQueueSize();
+        //     if (RtsFlags.DebugFlags.scheduler) {
+        //         debugBelch("Capability[%d]: %d TSOs, %d and %d sparks, and %d free capabilities, sharing..."
+        //                    ,this.no
+        //                    , cap.runQueueSize(),
+        //                    , cap.sparkPoolSize()
+        //                    nFreeCapabilities);
+        //     }
+        //     int keepThreads = (runQueueSize + nFreeCapabilities)
+        //                     / (nFreeCapabilities + 1);
+        //     int n = 
+        //     if (!emptyRunQueue()) {
+        //         // TODO: Object pool this?
+        //         Deque<TSO> newRunQueue = new ArrayDeque<TSO>(1);
+        //         newRunQueue.offer(popRunQueue());
+        //         TSO t = peekRunQueue();
+        //         TSO next = null;
+        //         for (; t != null; t = next) {
+        //             next = popRunQueue();
+        //             if (t.bound == task.incall
+        //                 || t.isFlagLocked()) {
+        //                 newRunQueue.offer(t);
+        //             } else if (i == nFreeCapabilities) {
+        //                 i = 0;;
+        //                 newRunQueue.offer(t);
+        //             } else {
+        //                 Capability freeCap = freeCapabilities.get(i);
+        //                 freeCap.appendToRunQueue(t);
+        //                 if (t.bound != null) {
+        //                     t.bound.task().cap = freeCap;
+        //                 }
+        //                 t.cap = freeCap;
+        //                 i++;
+        //             }
+        //         }
+        //         runQueue = newRunQueue;
+        //     }
+
+        //     for (Capability freeCap: freeCapabilities) {
+        //         task.cap = freeCap;
+        //         freeCap.releaseAndWakeup();
+        //     }
+        // }
+        // task.cap = this;
     }
 
     public final void startWorkerTask() {
@@ -581,13 +568,12 @@ public final class Capability {
         return runQueue.isEmpty();
     }
 
+    public final int runQueueSize() {
+        return runQueue.size();
+    }
+
     public final boolean emptyThreadQueues() {
-        // TODO: More optimal way of representing this?
-        if (RtsFlags.ModeFlags.threaded) {
-            return emptyRunQueue();
-        } else {
-            return emptyRunQueue() && emptyBlockedQueue() && emptySleepingQueue();
-        }
+        return emptyRunQueue();
     }
 
     public final void threadPaused(TSO tso) {
@@ -640,14 +626,12 @@ public final class Capability {
     public final void awakenBlockedExceptionQueue(TSO tso) {
         synchronized (tso.blockedExceptions) {
             for (MessageThrowTo msg: tso.blockedExceptions) {
-                msg.lock();
-                if (msg.isValid()) {
-                    TSO source = msg.source;
-                    msg.done();
-                    barf("TODO: unpark/park here")
-                    // tryWakeupThread(source);
-                } else {
-                    msg.unlock();
+                synchronized(msg) {
+                    if (msg.isValid()) {
+                        TSO source = msg.source;
+                        msg.done();
+                        source.interrupt();
+                    }
                 }
             }
             tso.blockedExceptions.clear();
@@ -655,57 +639,7 @@ public final class Capability {
     }
 
     public final void tryWakeupThread(TSO tso) {
-        if (RtsFlags.ModeFlags.threaded) {
-            if (tso.cap != this) {
-                MessageWakeup msg = new MessageWakeup(tso);
-                sendMessage(tso.cap, msg);
-                if (RtsFlags.DebugFlags.scheduler) {
-                    debugBelch("cap %d: message: try wakeup thread %d on cap %d",
-                               tso.id, tso.cap.no);
-                }
-                return;
-            }
-        }
-
-        boolean unblock = false;
-
-        switch (tso.whyBlocked) {
-            case BlockedOnMVar:
-            case BlockedOnMVarRead:
-                if (!tso.inMVarOperation) {
-                    tso.blockInfo = null;
-                    unblock = true;
-                }
-                break;
-            case BlockedOnMsgThrowTo:
-                MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
-                msg.lock();
-                msg.unlock();
-                if (msg.isValid()) {
-                    if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("cap %d: thread %d still blocked on throwto (%d)"
-                                   , tso.id, msg.id);
-                    }
-                } else {
-                    // assert tso.stack.peek().getClass() == BlockThrowToFrame.class;
-                    tso.spPop();
-                    unblock = true;
-                }
-                break;
-            case BlockedOnBlackHole:
-            case BlockedOnSTM:
-            case ThreadMigrating:
-                unblock = true;
-                break;
-            default:
-                break;
-        }
-
-        if (unblock) {
-            tso.whyBlocked = NotBlocked;
-            appendToRunQueue(tso);
-            // can context switch now
-        }
+        tso.interrupt();
     }
 
     public final void sendMessage(Capability target, Message msg) {
@@ -726,11 +660,13 @@ public final class Capability {
 
     public final void release_(boolean alwaysWakeup) {
         if (RtsFlags.DebugFlags.scheduler) {
-            debugBelch("Releasing Capability[%d].", this.no);
+            debugBelch("{Scheduler} Releasing Capability[%d].", this.no);
         }
 
         if (RtsFlags.ModeFlags.threaded) {
             Task task = runningTask;
+            assert assertPartialCapabilityInvariants(task);
+            assert assertReturningTasks(task);
             runningTask = null;
             Task workerTask = returningTasks.peek();
             if (workerTask != null) {
@@ -819,7 +755,7 @@ public final class Capability {
     }
 
     public final boolean emptySparkPool() {
-        return sparks != null && sparks.isEmpty();
+        return sparks.isEmpty();
     }
 
     public final boolean globalWorkToDo() {
@@ -930,7 +866,7 @@ public final class Capability {
                 if (Capability.nCapabilities > 1) {
                     synchronized (owner) {
                         if (bh.indirectee instanceof TSO) {
-                            StgBlockingQueue bq = new StgBlockingQueue(owner, msg);
+                            BlockingQueue bq = new BlockingQueue(owner, msg);
                             owner.blockingQueues.offer(bq);
                             bh.indirectee = bq;
                             if (RtsFlags.DebugFlags.scheduler) {
@@ -943,7 +879,7 @@ public final class Capability {
                     }
                 } else {
                     /* NOTE: Keep this in sync with above */
-                    StgBlockingQueue bq = new StgBlockingQueue(owner, msg);
+                    BlockingQueue bq = new BlockingQueue(owner, msg);
                     owner.blockingQueues.offer(bq);
                     bh.indirectee = bq;
                     if (RtsFlags.DebugFlags.scheduler) {
@@ -952,12 +888,12 @@ public final class Capability {
                     }
                 }
                 return true;
-            } else if (p instanceof StgBlockingQueue) {
-                StgBlockingQueue bq = (StgBlockingQueue) p;
+            } else if (p instanceof BlockingQueue) {
+                BlockingQueue bq = (BlockingQueue) p;
                 assert bq.bh == bh;
                 if (Capability.nCapabilities > 1) {
                     synchronized (bq) {
-                        if (bh.indirectee instanceof StgBlockingQueue) {
+                        if (bh.indirectee instanceof BlockingQueue) {
                             messages.offer(msg);
                             if (RtsFlags.DebugFlags.scheduler) {
                                 debugBelch("cap %d: thread %d blocked on thread %d",
@@ -968,6 +904,7 @@ public final class Capability {
                         }
                     }
                 } else {
+                    /* NOTE: Keep this in sync with above */
                     messages.offer(msg);
                     if (RtsFlags.DebugFlags.scheduler) {
                         debugBelch("cap %d: thread %d blocked on thread %d",
@@ -983,7 +920,7 @@ public final class Capability {
         if (RtsFlags.DebugFlags.scheduler) {
             debugBelch("cap %d: collision occured; checking blockign queues for thread %d", no, tso.id);
         }
-        for (StgBlockingQueue bq: tso.blockingQueues) {
+        for (BlockingQueue bq: tso.blockingQueues) {
             Closure p = bq.bh;
             if (p.indirectee == null || p.indirectee != bq) {
                 wakeBlockingQueue(bq);
@@ -991,7 +928,7 @@ public final class Capability {
         }
     }
 
-    public final void wakeBlockingQueue(StgBlockingQueue blockingQueue) {
+    public final void wakeBlockingQueue(BlockingQueue blockingQueue) {
         synchronized (blockingQueue) {
             Thunk bh = blockingQueue.bh;
             for (MessageBlackHole msg: blockingQueue) {
@@ -1044,7 +981,12 @@ public final class Capability {
     }
 
     public final void giveToTask(Task task) {
-        //debugTrace
+        assert cap.lock.isHeldByCurrentThread();
+        assert task.cap == cap;
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("{Scheduler} Passing Capability[%d] to %s Task[%d].",
+                       cap.no, (task.incall.tso != null)? "Bound" : "Worker", task.id);
+        }
         Lock l = task.lock;
         l.lock();
         try {
@@ -1183,7 +1125,6 @@ public final class Capability {
 
         if (t.bound != null) {
             if (t.bound != task.incall) {
-                if (RtsFlags.ModeFlags.threaded) {
                     barf("finished bound thread that isn't mine");
                 } else {
                     appendToRunQueue(t);
@@ -1234,26 +1175,9 @@ public final class Capability {
         return false;
     }
 
-    public final void threadStackOverflow(TSO tso) {
-        // TODO: Do stack related stuff here
-    }
-
-    public final boolean handleHeapOverflow(TSO tso) {
-        // TODO: Do GC-related stuff here
-        return false;
-    }
-
     public final StgResult ioManagerStart() {
         return new StgResult(this, null);
         /* TODO: Implement IO Manager, Rts.evalIO(this, null /* base_GHCziConcziIO_ensureIOManagerIsRunning_closure */
-    }
-
-    public final void postRunThread(TSO t) {
-        if (t.trec != null && t.whyBlocked == NotBlocked) {
-            if (!stmValidateNestOfTransactions(t.trec)) {
-                throwToSingleThreaded_(t, null, true);
-            }
-        }
     }
 
     public final void promoteInRunQueue(TSO tso) {
@@ -1267,9 +1191,8 @@ public final class Capability {
 
     public final MessageThrowTo throwTo(TSO source, TSO target, Closure exception) {
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
-        msg.lock();
-        boolean result = throwToMsg(msg);
-        if (result) {
+        boolean success = throwToMsg(msg);
+        if (success) {
             msg.unlock();
             return null;
         } else {
@@ -1279,240 +1202,39 @@ public final class Capability {
 
     public final boolean throwToMsg(MessageThrowTo msg) {
         TSO target = msg.target;
-        // retry: write_barrier
-        retry: do {
-            if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("throwTo: retrying...");
-            }
-            if (target.whatNext != ThreadComplete
-                && target.whatNext != ThreadKilled) {
-                Capability targetCap = target.cap;
-                if (target.cap != this) {
-                    sendMessage(targetCap, msg);
-                } else {
-                    WhyBlocked status = target.whyBlocked;
-                    switch (status) {
-                        case NotBlocked:
-                            if (!target.hasFlag(TSO_BLOCKEX)) {
-                                raiseAsync(target, msg.exception, false, null);
-                            } else {
-                                target.blockedExceptions.offer(msg);
-                                return false;
-                            }
-                            break;
-                        case BlockedOnMsgThrowTo:
-                            MessageThrowTo m = (MessageThrowTo) target.blockInfo;
-                            if (m.id < msg.id) {
-                                m.lock();
-                            } else {
-                                if (!m.tryLock()) {
-                                    sendMessage(targetCap, msg);
-                                    return false;
-                                }
-                            }
-                            if (!msg.isValid()) {
-                                m.unlock();
-                                tryWakeupThread(target);
-                                continue retry;
-                            }
-                            //TODO: Extra if check?
-                            if (target.hasFlag(TSO_BLOCKEX)
-                                && !target.hasFlag(TSO_INTERRUPTIBLE)) {
-                                m.unlock();
-                                target.blockedExceptions.offer(msg);
-                                return false;
-                            }
-                            m.done();
-                            raiseAsync(target, msg.exception, false, null);
-                            break;
-                        case BlockedOnMVar:
-                        case BlockedOnMVarRead:
-                            MVar mvar = (MVar) target.blockInfo;
-                            // if not mvar retry
-                            mvar.lock();
-                            if ((target.whyBlocked != BlockedOnMVar &&
-                                target.whyBlocked != BlockedOnMVarRead)
-                                || target.blockInfo != mvar) {
-                                mvar.unlock();
-                                continue retry;
-                            } else if (!target.inMVarOperation) {
-                                mvar.unlock();
-                                tryWakeupThread(target);
-                                continue retry;
-                            } else if (target.hasFlag(TSO_BLOCKEX)
-                                    && !target.hasFlag(TSO_INTERRUPTIBLE)) {
-                                target.blockedExceptions.offer(msg);
-                                mvar.unlock();
-                                return false;
-                            } else {
-                                target.removeFromMVarBlockedQueue();
-                                raiseAsync(target, msg.exception, false, null);
-                                mvar.unlock();
-                            }
-                            break;
-                        case BlockedOnBlackHole:
-                            if (target.hasFlag(TSO_BLOCKEX)) {
-                                target.blockedExceptions.offer(msg);
-                                return false;
-                            } else {
-                                ((MessageBlackHole)target.blockInfo).invalidate();
-                                raiseAsync(target, msg.exception, false, null);
-                            }
-                            break;
-                        case BlockedOnSTM:
-                            target.lock();
-                            if (target.whyBlocked != BlockedOnSTM) {
-                                target.unlock();
-                                continue retry;
-                            } else if (target.hasFlag(TSO_BLOCKEX) &&
-                                    !target.hasFlag(TSO_INTERRUPTIBLE)) {
-                                target.blockedExceptions.offer(msg);
-                                target.unlock();
-                                return false;
-                            } else {
-                                raiseAsync(target, msg.exception, false, null);
-                                target.unlock();
-                            }
-                            break;
-                        case BlockedOnJavaCall_Interruptible:
-                            // check for THREADED_RTS
-                            Task task = null;
-                            for (Task.InCall incall: suspendedJavaCalls) {
-                                if (incall.suspendedTso == target) {
-                                    task = incall.task();
-                                    break;
-                                }
-                            }
-                            if (task != null) {
-                                target.blockedExceptions.offer(msg);
-                                if (!(target.hasFlag(TSO_BLOCKEX) &&
-                                    !target.hasFlag(TSO_INTERRUPTIBLE))) {
-                                    task.interruptWorker();
-                                }
-                                return false;
-                            } else {
-                                //debug output
-                            }
-                        case BlockedOnJavaCall:
-                            target.blockedExceptions.offer(msg);
-                            return false;
-                        case BlockedOnRead:
-                        case BlockedOnWrite:
-                        case BlockedOnDelay:
-                            if (target.hasFlag(TSO_BLOCKEX) &&
-                                !target.hasFlag(TSO_INTERRUPTIBLE)) {
-                                target.blockedExceptions.offer(msg);
-                                return false;
-                            } else {
-                                removeFromQueues(target);
-                                raiseAsync(target, msg.exception, false, null);
-                            }
-                            break;
-                        case ThreadMigrating:
-                            tryWakeupThread(target);
-                            continue retry;
-                        default:
-                            barf("throwTo: unrecognized why_blocked (%p)", target.whyBlocked);
-                    }
-                }
-            }
+        if (target.whatNext == ThreadComplete
+            || target.whatNext == ThreadKilled) {
             return true;
-        } while (true);
+        }
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("Capability[%d](throwTo) From TSO %d to TSO %d.", msg.source.id, msg.target.id);
+        }
+        barf("throwTo: Unimplemented");
+        // synchronized (target) {
+        //     WhyBlocked status = target.whyBlocked;
+        //     switch (status) {
+        //         case NotBlocked:
+        //             synchronized (msg) {
+        //                 target.blockedExceptions.offer(msg);
+        //                 msg.wait();
+        //             }
+        //             return false;
+        //         }
+        //         break;
+
+
+        // }
     }
 
     /* STM Operations */
-    public final Closure stmReadTvar(StgTRecHeader trec, TVar tvar) {
-        Closure result;
-        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = searchResult.header;
-        TRecEntry entry = searchResult.entry;
-        if (entry == null) {
-            if (entryIn != trec) {
-                TRecEntry newEntry = getNewEntry(trec);
-                newEntry.tvar = tvar;
-                newEntry.expectedValue = entry.expectedValue;
-                newEntry.newValue = entry.newValue;
-            }
-            result = entry.newValue;
-        } else {
-            Closure currentValue = STM.readCurrentValue(trec, tvar);
-            TRecEntry newEntry = getNewEntry(trec);
-            newEntry.tvar = tvar;
-            newEntry.expectedValue = currentValue;
-            newEntry.newValue = currentValue;
-            result = currentValue;
-        }
-        return result;
+
+    public final InvariantCheck getNewInvariantCheck(AtomicInvariant invariant) {
+        return new InvariantCheck(invariant);
     }
 
-    public final TRecEntry getNewEntry(StgTRecHeader t) {
-        StgTRecChunk c = t.chunkStack.peek();
-        TRecEntry entry = new TRecEntry();
-        if (c.entries.size() <= TREC_CHUNK_NUM_ENTRIES) {
-            c.entries.add(entry);
-        } else {
-            c = getNewTRecChunk();
-            c.entries.add(entry);
-            t.chunkStack.push(c);
-        }
-        return entry;
-    }
-
-    public final StgTRecChunk getNewTRecChunk() {
-        StgTRecChunk result = null;
-        if (freeTRecChunks.isEmpty()) {
-            result = new StgTRecChunk();
-        } else {
-            result = freeTRecChunks.pop();
-            result.reset();
-        }
-        return result;
-    }
-
-    public final void stmWriteTvar(StgTRecHeader trec, TVar tvar, Closure newValue) {
-        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = searchResult.header;
-        TRecEntry entry = searchResult.entry;
-        if (entry == null) {
-            if (entryIn == trec) {
-                entry.newValue = newValue;
-            }else {
-                TRecEntry newEntry = getNewEntry(trec);
-                newEntry.tvar = tvar;
-                newEntry.expectedValue = entry.expectedValue;
-                newEntry.newValue = newValue;
-            }
-        } else {
-            Closure currentValue = STM.readCurrentValue(trec, tvar);
-            TRecEntry newEntry = getNewEntry(trec);
-            newEntry.tvar = tvar;
-            newEntry.expectedValue = currentValue;
-            newEntry.newValue = newValue;
-        }
-    }
-
-    public final void stmAddInvariantToCheck(StgTRecHeader trec, Closure code) {
-        StgAtomicInvariant invariant = new StgAtomicInvariant(code);
-        StgInvariantCheck invariantCheck = getNewInvariantCheck(invariant);
-        trec.invariantsToCheck.offer(invariantCheck);
-    }
-
-    public final StgInvariantCheck getNewInvariantCheck(StgAtomicInvariant invariant) {
-        // TODO: Finish implementation
-        StgInvariantCheck result = null;
-        if (freeInvariantChecksQueue.isEmpty()) {
-            result = new StgInvariantCheck(invariant);
-        } else {
-            result = freeInvariantChecksQueue.poll();
-            result.invariant = invariant;
-            result.myExecution = null;
-        }
-        return result;
-    }
-
-    public final boolean stmCommitNestedTransaction(StgTRecHeader trec) {
+    public final boolean stmCommitNestedTransaction(TransactionRecord trec) {
         STM.lock(trec);
-        StgTRecHeader et = trec.enclosingTrec;
+        TransactionRecord et = trec.enclosingTrec;
         boolean result = validateAndAcquireOwnership(trec, !STM.configUseReadPhase, true);
         if (result) {
             if (STM.configUseReadPhase) {
@@ -1540,7 +1262,7 @@ public final class Capability {
         return result;
     }
 
-    public final boolean validateAndAcquireOwnership(StgTRecHeader trec, boolean acquireAll, boolean retainOwnership) {
+    public final boolean validateAndAcquireOwnership(TransactionRecord trec, boolean acquireAll, boolean retainOwnership) {
         if (STM.shake()) {
             return false;
         } else {
@@ -1583,7 +1305,7 @@ public final class Capability {
         }
     }
 
-    public final void revertOwnership(StgTRecHeader trec, boolean revertAll) {
+    public final void revertOwnership(TransactionRecord trec, boolean revertAll) {
         if (RtsFlags.STM.fineGrained) {
             ListIterator<StgTRecChunk> cit = trec.chunkIterator();
             loop:
@@ -1602,428 +1324,7 @@ public final class Capability {
         }
     }
 
-    public final void freeTRecHeader(StgTRecHeader trec) {
-        /* TODO: Verify logic is correct */
-        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-        StgTRecChunk currentChunk = cit.previous();
-        StgTRecChunk chunk = cit.previous();
-        while (cit.hasPrevious()) {
-            StgTRecChunk prevChunk = cit.previous();
-            freeTRecChunk(chunk);
-            chunk = prevChunk;
-        }
-        /* Clean out all chunks but one */
-        cit = trec.chunkStack.listIterator();
-        chunk = cit.next();
-        while (cit.hasNext()) {
-            cit.remove();
-            chunk = cit.next();
-        }
-        currentChunk.reset();
-        trec.invariantsToCheck.clear();
-        freeTRecHeaders.offer(trec);
-    }
-
-    public final void freeTRecChunk(StgTRecChunk chunk) {
-        freeTRecChunks.push(chunk);
-    }
-
-    public final StgTRecHeader stmStartTransaction(StgTRecHeader outer) {
-        getToken();
-        return getNewTRecHeader(outer);
-    }
-
-    public final void getToken() {
-        if (RtsFlags.ModeFlags.threaded) {
-            if (transactionTokens == 0) {
-                getTokenBatch();
-            }
-            transactionTokens--;
-        }
-    }
-
-    public final void getTokenBatch() {
-        // TODO: Ensure the cas condition is correct
-        while (STM.tokenLocked.compareAndSet(false, true) == true) {}
-        STM.maxCommits += STM.TOKEN_BATCH_SIZE;
-        transactionTokens = STM.TOKEN_BATCH_SIZE;
-        STM.tokenLocked.set(false);
-    }
-
-    public final StgTRecHeader getNewTRecHeader(StgTRecHeader enclosingTrec) {
-        StgTRecHeader result = null;
-        if (freeTRecHeaders.isEmpty()) {
-            result = new StgTRecHeader();
-        } else {
-            result = freeTRecHeaders.poll();
-        }
-        result.setEnclosing(enclosingTrec);
-        return result;
-    }
-
-    public final void mergeUpdateInto(StgTRecHeader t, TVar tvar, Closure expectedValue, Closure newValue) {
-        boolean found = false;
-        ListIterator<StgTRecChunk> cit = t.chunkIterator();
-        loop:
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
-                TVar s = e.tvar;
-                if (s == tvar) {
-                    found = true;
-                    if (e.expectedValue != expectedValue) {
-                        t.state = TREC_CONDEMNED;
-                    }
-                    e.newValue = newValue;
-                    break loop;
-                }
-            }
-        }
-
-        if (!found) {
-            TRecEntry ne = getNewEntry(t);
-            ne.tvar = tvar;
-            ne.expectedValue = expectedValue;
-            ne.newValue = newValue;
-        }
-    }
-
-    public final Queue<StgInvariantCheck> stmGetInvariantsToCheck(StgTRecHeader trec) {
-
-        STM.lock(trec);
-        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-        loop:
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
-                if (e.isUpdate()) {
-                    TVar s = e.tvar;
-                    Closure old = s.lock(trec);
-                    for (Closure q: s.watchQueue) {
-                        if (STM.watcherIsInvariant(q)) {
-                            boolean found = false;
-                            for (StgInvariantCheck q2: trec.invariantsToCheck) {
-                                if (q2.invariant == q) {
-                                    found = true;
-                                    break;
-                                }
-                            }
-
-                            if (!found) {
-                                StgInvariantCheck q3 = getNewInvariantCheck((StgAtomicInvariant) q);
-                                trec.invariantsToCheck.offer(q3);
-                            }
-                        }
-                    }
-                    s.unlock(trec, old, false);
-                }
-            }
-        }
-
-        STM.unlock(trec);
-        return trec.invariantsToCheck;
-    }
-
-    public final void stmAbortTransaction(StgTRecHeader trec) {
-        STM.lock(trec);
-        StgTRecHeader et = trec.enclosingTrec;
-        if (et == null) {
-            if (trec.state == TREC_WAITING) {
-                removeWatchQueueEntriesForTrec(trec);
-            }
-
-        } else {
-            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-            while (cit.hasPrevious()) {
-                StgTRecChunk chunk = cit.previous();
-                for (TRecEntry e: chunk.entries) {
-                    TVar s = e.tvar;
-                    mergeReadInto(et, s, e.expectedValue);
-                }
-            }
-        }
-
-        trec.state = TREC_ABORTED;
-        STM.unlock(trec);
-    }
-
-    public final void removeWatchQueueEntriesForTrec(StgTRecHeader trec) {
-        ListIterator<StgTRecChunk> cit = trec.chunkIterator();;
-        loop:
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
-                TVar s = e.tvar;
-                Closure saw = s.lock(trec);
-                s.watchQueue.remove(e.newValue); // TODO: Is this valid?
-                s.unlock(trec, saw, false);
-            }
-        }
-    }
-
-    public final void mergeReadInto(StgTRecHeader trec, TVar tvar, Closure expectedValue) {
-        boolean found = false;
-        while (!found && trec != null) {
-            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-            loop:
-            while (cit.hasPrevious()) {
-                StgTRecChunk chunk = cit.previous();
-                for (TRecEntry e: chunk.entries) {
-                    if (e.tvar == tvar) {
-                        found = true;
-                        if (e.expectedValue != expectedValue) {
-                            trec.state = TREC_CONDEMNED;
-                        }
-                        break loop;
-                    }
-                }
-            }
-            trec = trec.enclosingTrec;
-        }
-
-        if (!found) {
-            TRecEntry ne = getNewEntry(trec);
-            ne.tvar = tvar;
-            ne.expectedValue = expectedValue;
-            ne.newValue = expectedValue;
-        }
-    }
-
-    public final boolean stmCommitTransaction(StgTRecHeader trec) {
-        STM.lock(trec);
-        long maxCommitsAtStart = STM.maxCommits;
-        boolean touchedInvariants = !trec.invariantsToCheck.isEmpty();
-        if (touchedInvariants) {
-            for (StgInvariantCheck q: trec.invariantsToCheck) {
-                StgAtomicInvariant inv = q.invariant;
-                if (!inv.lock()) {
-                    trec.state = TREC_CONDEMNED;
-                    break;
-                }
-                StgTRecHeader invOldTrec = inv.lastExecution;
-                if (invOldTrec != null) {
-                    ListIterator<StgTRecChunk> cit = invOldTrec.chunkIterator();
-                    while (cit.hasPrevious()) {
-                        StgTRecChunk chunk = cit.previous();
-                        for (TRecEntry e: chunk.entries) {
-                            mergeReadInto(trec, e.tvar, e.expectedValue);
-                        }
-                    }
-                }
-            }
-        }
-
-        boolean useReadPhase = STM.configUseReadPhase && !touchedInvariants;
-        boolean result = validateAndAcquireOwnership(trec, !useReadPhase, true);
-        if (result) {
-            if (useReadPhase) {
-                result = trec.checkReadOnly();
-                long maxCommitsAtEnd = STM.maxCommits;
-                long maxConcurrentCommits = (maxCommitsAtEnd - maxCommitsAtStart) + nCapabilities * STM.TOKEN_BATCH_SIZE;
-                if ((maxConcurrentCommits >> 32) > 0 || STM.shake()) {
-                    result = false;
-                }
-            }
-
-            if (result) {
-                if (touchedInvariants) {
-                    for (StgInvariantCheck q: trec.invariantsToCheck) {
-                        StgAtomicInvariant inv = q.invariant;
-                        if (inv.lastExecution != null) {
-                            inv.disconnect();
-                        }
-                        q.myExecution.connectInvariant(inv);
-                        inv.unlock();
-                    }
-                }
-
-                ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-                while (cit.hasPrevious()) {
-                    StgTRecChunk chunk = cit.previous();
-                    for (TRecEntry e: chunk.entries) {
-                        TVar s = e.tvar;
-                        if (!useReadPhase || e.newValue != e.expectedValue) {
-                            unparkWaitersOn(s);
-                            if (RtsFlags.STM.fineGrained) {
-                                s.numUpdates++;
-                            }
-                            s.unlock(trec, e.newValue, true);
-                        }
-                    }
-                }
-            } else {
-                revertOwnership(trec, false);
-            }
-        }
-        STM.unlock(trec);
-        freeTRecHeader(trec);
-        return result;
-    }
-
-    public final void threadStackUnderflow(TSO tso) {
-        /* TODO: Finish implementation */
-    }
-
-    public final StackFrame raiseExceptionHelper(TSO tso, Closure exception) {
-        if (RtsFlags.DebugFlags.printStack) {
-            Thread.dumpStack();
-        }
-        tso.setStackTrace(Thread.currentThread().getStackTrace());
-        // Assumes that tso.sp pointer is beyond stack top
-        ListIterator<StackFrame> sp = tso.sp;
-        boolean shouldContinue = true;
-        AtomicReference<Closure> raiseClosure = new AtomicReference<Closure>();
-        StackFrame frame = null;
-        while (shouldContinue && sp.hasPrevious()) {
-            frame = sp.previous();
-            shouldContinue = frame.doRaiseExceptionHelper(this, tso, raiseClosure, exception);
-        }
-        // TODO: Rethink this when implementing underflow frames/stack chunks
-        while (sp.hasNext()) {
-            sp.next();
-            sp.remove();
-        }
-        return frame;
-    }
-
-    public final void stmCondemnTransaction(StgTRecHeader trec) {
-        STM.lock(trec);
-        if (trec.state == TREC_WAITING) {
-            removeWatchQueueEntriesForTrec(trec);
-        }
-        trec.state = TREC_CONDEMNED;
-        STM.unlock(trec);
-    }
-
-    public final void unparkWaitersOn(TVar s) {
-        Iterator<Closure> iterator = s.watchQueue.descendingIterator();
-        while (iterator.hasNext()) {
-            Closure tso = iterator.next();
-            if (STM.watcherIsTSO(tso)) {
-                unparkTSO((TSO) tso);
-            }
-        }
-    }
-
-    public final void unparkTSO(TSO tso) {
-        tso.lock();
-        if (tso.whyBlocked == BlockedOnSTM &&
-            tso.blockInfo == STMAwoken.closure) {
-            // trace woken up
-
-        } else if (tso.whyBlocked == BlockedOnSTM) {
-            tso.blockInfo = STMAwoken.closure;
-            tryWakeupThread(tso);
-        } else {
-            // trace
-        }
-        tso.unlock();
-    }
-
-    public final boolean stmReWait(TSO tso) {
-        StgTRecHeader trec = tso.trec;
-        STM.lock(trec);
-        boolean result = validateAndAcquireOwnership(trec, true, true);
-        if (result) {
-            tso.park();
-            revertOwnership(trec, true);
-        } else {
-            if (trec.state != TREC_CONDEMNED) {
-                removeWatchQueueEntriesForTrec(trec);
-            }
-            freeTRecHeader(trec);
-        }
-        STM.unlock(trec);
-        return result;
-    }
-
-    public final StackFrame findRetryFrameHelper(TSO tso) {
-        ListIterator<StackFrame> sp = tso.sp;
-        boolean shouldContinue = true;
-        StackFrame frame = null;
-        while (shouldContinue) {
-            frame = sp.previous();
-            /* doFindRetry should expect that the current frame be at sp.next()
-               and should return the iterator such that sp.previous() will
-               hold the next frame*/
-            shouldContinue = frame.doFindRetry(this, tso);
-        }
-        return frame;
-    }
-
-    public final void createSparkThread(Capability cap) {
-        TSO tso = Rts.createIOThread(cap, null /* TODO: runSparks_closure*/);
-        appendToRunQueue(tso);
-    }
-
-    public final boolean newSpark(Closure p) {
-        if (!p.isFizzledSpark()) {
-            if (sparks.push(p)) {
-                sparkStats.created++;
-            } else {
-                sparkStats.overflowed++;
-            }
-        } else {
-            sparkStats.dud++;
-        }
-        return true;
-    }
-
-    public final void stmFreeAbortedTrec(StgTRecHeader trec) {
-        freeTRecHeader(trec);
-    }
-
-    public final boolean stmWait(TSO tso, StgTRecHeader trec) {
-        STM.lock(trec);
-        boolean result = validateAndAcquireOwnership(trec, true, true);
-        if (result) {
-            buildWatchQueueEntriesForTrec(tso, trec);
-            tso.park();
-            trec.state = TREC_WAITING;
-        } else {
-            STM.unlock(trec);
-            freeTRecHeader(trec);
-        }
-        return result;
-    }
-
-    public final void buildWatchQueueEntriesForTrec(TSO tso, StgTRecHeader trec) {
-        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
-                TVar s = e.tvar;
-                /* TODO: Fix order of queue */
-                s.watchQueue.offer(tso);
-                /* NOTE: The original implementation sets a watchqueue
-                         closure */
-                e.newValue = tso;
-            }
-        }
-    }
-
-    public final void stmWaitUnlock(StgTRecHeader trec) {
-        revertOwnership(trec, true);
-        STM.unlock(trec);
-    }
-
-    public final boolean stmValidateNestOfTransactions(StgTRecHeader trec) {
-        STM.lock(trec);
-        StgTRecHeader t = trec;
-        boolean result = true;
-        while (t != null) {
-            result = result && validateAndAcquireOwnership(t, true, false);
-            t = t.enclosingTrec;
-        }
-
-        if (!result && trec.state != TREC_WAITING) {
-            trec.state = TREC_CONDEMNED;
-        }
-        STM.unlock(trec);
-        return result;
-    }
-
-    public final Thunk newCAF(StgIndStatic caf) {
+    public final Thunk newCAF(CAF caf) {
         Thunk bh = lockCAF(caf);
         if (bh == null) return null;
         if (Thunk.shouldKeepCAFs()) {
@@ -2035,9 +1336,9 @@ public final class Capability {
         return bh;
     }
 
-    public final Thunk lockCAF(StgIndStatic caf) {
+    public final Thunk lockCAF(CAF caf) {
         TSO tso = context.currentTSO;
-        if (Capability.nCapabilites > 1) {
+        if (Capability.capabilities.size() > 1) {
             synchronized (caf) {
                 if (caf.indirectee == null) {
                     caf.indirectee = tso;
@@ -2052,21 +1353,15 @@ public final class Capability {
     }
 
     public static void freeCapabilities() {
-        if (RtsFlags.ModeFlags.threaded) {
-            for (Capability c: capabilities) {
-                if (c != mainCapability) {
-                    c.free();
-                }
+        for (Capability c: capabilities) {
+            if (c != mainCapability) {
+                c.free();
             }
-        } else {
-            mainCapability.free();
         }
     }
 
     public final void free() {
-        if (sparks != null) {
-            sparks.discardElements();
-        }
+        sparks.clear();
     }
 
     public static void shutdownCapabilities(Task task, boolean safe) {
@@ -2076,86 +1371,66 @@ public final class Capability {
     }
 
     public final void shutdown(Task task, boolean safe) {
-        if (RtsFlags.ModeFlags.threaded) {
-            task.cap = this;
-            while (true) {
-                lock.lock();
-                boolean unlocked = false;
-                try {
-                    if (runningTask != null) {
-                        lock.unlock();
-                        unlocked = true;
-                        Thread.yield();
-                        continue;
-                    }
-                    runningTask = task;
-                    if (!spareWorkers.isEmpty()) {
-                        Task prev = null;
-                        Iterator<Task> it = spareWorkers.iterator();
-                        while (it.hasNext()) {
-                            Task t = it.next();
-                            if (!t.isAlive()) {
-                                it.remove();
-                            }
+        task.cap = this;
+        while (true) {
+            lock.lock();
+            boolean unlocked = false;
+            try {
+                if (runningTask != null) {
+                    lock.unlock();
+                    unlocked = true;
+                    Thread.yield();
+                    continue;
+                }
+                runningTask = task;
+                if (!spareWorkers.isEmpty()) {
+                    Task prev = null;
+                    Iterator<Task> it = spareWorkers.iterator();
+                    while (it.hasNext()) {
+                        Task t = it.next();
+                        if (!t.isAlive()) {
+                            it.remove();
                         }
                     }
-
-                    if (!emptyRunQueue() || !spareWorkers.isEmpty()) {
-                        release_(false);
-                        lock.unlock();
-                        unlocked = true;
-                        Thread.yield();
-                        continue;
-                    }
-
-                    if (!suspendedJavaCalls.isEmpty() && safe) {
-                        runningTask = null;
-                        lock.unlock();
-                        unlocked = true;
-                        RtsIO.ioManagerDie();
-                        Thread.yield();
-                        continue;
-                    }
-                } finally {
-                    if (!unlocked) {
-                        lock.unlock();
-                    }
                 }
-                break;
+
+                if (!emptyRunQueue() || !spareWorkers.isEmpty()) {
+                    release_(false);
+                    lock.unlock();
+                    unlocked = true;
+                    Thread.yield();
+                    continue;
+                }
+
+                if (!suspendedJavaCalls.isEmpty() && safe) {
+                    runningTask = null;
+                    lock.unlock();
+                    unlocked = true;
+                    RtsIO.ioManagerDie();
+                    Thread.yield();
+                    continue;
+                }
+            } finally {
+                if (!unlocked) {
+                    lock.unlock();
+                }
             }
+            break;
         }
     }
 
     public final long sparkPoolSize() {
-        if (sparks != null) {
-            return sparks.size();
-        } else {
-            return 0;
-        }
+        return sparks.size();
     }
 
-    public static Closure nonTermination_closure = null;
-
-    static {
-        try {
-            nonTermination_closure = (Closure)
-                Class.forName("base.control.exception.Base")
-                .getMethod("nonTermination_closure")
-                .invoke(null);
-        } catch (Exception e) {
-            e.printStackTrace();
-            nonTermination_closure = null;
-        }
-    }
-
-    public final void assertFullCapabilityInvariants(Task task) {
+    public final boolean assertFullCapabilityInvariants(Task task) {
         assert runningTask != null && runningTask == task;
         assert task.cap == this;
-        assertPartialCapabilityInvariants(task);
+        return assertPartialCapabilityInvariants(task);
     }
 
-    public final void assertPartialCapabilityInvariants(Task task) {
+    public final boolean assertPartialCapabilityInvariants(Task task) {
         assert Task.myTask() == task;
-        task.assertTaskId();
+        return task.assertTaskId();
     }
 }

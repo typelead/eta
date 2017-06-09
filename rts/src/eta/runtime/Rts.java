@@ -5,11 +5,12 @@ import java.util.concurrent.locks.Lock;
 
 import eta.runtime.stg.Task;
 import eta.runtime.stg.Capability;
+import eta.runtime.stg.Closures;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.ForceIO;
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgWeak;
+import eta.runtime.stg.Weak;
 import eta.runtime.apply.ApV;
 import eta.runtime.apply.ApO;
 import static eta.runtime.RtsScheduler.SchedulerStatus;
@@ -46,13 +47,6 @@ public class Rts {
             case Killed:
                 RtsMessages.errorBelch("main thread exited (uncaught exception)");
                 exitStatus = ExitCode.EXIT_KILLED;
-                break;
-            case Interrupted:
-                RtsMessages.errorBelch("interrupted");
-                exitStatus = ExitCode.EXIT_INTERRUPTED;
-                break;
-            case HeapExhausted:
-                exitStatus = ExitCode.EXIT_HEAPOVERFLOW;
                 break;
             case Success:
                 exitStatus = ExitCode.EXIT_SUCCESS;
@@ -93,57 +87,27 @@ public class Rts {
     }
 
     public static StgResult evalLazyIO(Capability cap, Closure p) {
-        TSO tso = createIOThread(cap, p);
-        return scheduleWaitThread(tso, cap);
+        return scheduleWaitThread(createIOThread(cap, p), cap);
     }
 
     public static StgResult evalIO(Capability cap, Closure p) {
-        TSO tso = createStrictIOThread(cap, p);
-        return scheduleWaitThread(tso, cap);
+        return scheduleWaitThread(createStrictIOThread(cap, p), cap);
     }
 
     public static StgResult evalJava(Capability cap, Object o, Closure p) {
-        TSO tso = createStrictJavaThread(cap, o, p);
-        return scheduleWaitThread(tso, cap);
-    }
-
-    public static SchedulerStatus getSchedStatus(Capability cap) {return null;}
-
-    public static Closure evalLazyIO_closure = new EvalLazyIO();
-    public static class EvalLazyIO extends Closure {
-        @Override
-        public Closure enter(StgContext context) {
-            p.evaluate(context).applyV(context);
-        }
+        return scheduleWaitThread(createStrictJavaThread(cap, o, p), cap);
     }
 
     public static TSO createIOThread(Capability cap, Closure p) {
-        return new TSO(cap, evalLazyIO_closure);
+        return new TSO(cap, Closures.evalLazyIO_closure);
     }
-
-    public static Closure evalIO_closure = new EvalIO();
-    public static class EvalIO extends Closure {
-        @Override
-        public Closure enter(StgContext context) {
-            p.evaluate(context).applyV(context).evaluate(context);
-        }
-    }
-
 
     public static TSO createStrictIOThread(Capability cap, Closure p) {
-        return new TSO(cap, evalIO_closure);
-    }
-
-    public static Closure evalJava_closure = new EvalJava();
-    public static class EvalJava extends Closure {
-        @Override
-        public Closure enter(StgContext context) {
-            p.evaluate(context).applyO(context, thisObj).evaluate(context);
-        }
+        return new TSO(cap, Closures.evalIO_closure);
     }
 
     public static TSO createStrictJavaThread(Capability cap, Object thisObj, Closure p) {
-        return new TSO(cap, evalJava_closure);
+        return new TSO(cap, Closures.evalJava_closure);
     }
 
     private static int rtsInitCount;
@@ -213,27 +177,12 @@ public class Rts {
         }
     }
 
-    private static Closure flushStdHandles_closure = null;
-
-    static {
-        try {
-            flushStdHandles_closure = (Closure)
-                Class.forName("base.ghc.TopHandler")
-                .getMethod("flushStdHandles_closure")
-                .invoke(null);
-        } catch (Exception e) {
-            e.printStackTrace();
-            flushStdHandles_closure = null;
-        }
-    }
-
     public static void flushStdHandles() {
         Capability cap = Rts.lock();
-        StgResult result = Rts.evalIO(cap, flushStdHandles_closure);
+        StgResult result = Rts.evalIO(cap, Closures.flushStdHandles_closure);
         cap = result.cap;
         Rts.unlock(cap);
     }
-
 
     public static void stgExit(ExitCode exitCode) {
         System.exit(exitCode.code());
@@ -294,14 +243,14 @@ public class Rts {
         RtsIO.ioManagerWakeup();
     }
 
-    public static void runAllJavaFinalizers(List<StgWeak> weakPtrs) {
+    public static void runAllJavaFinalizers(List<Weak> weakPtrs) {
         Task task = Task.myTask();
 
         if (task != null) {
             task.runningFinalizers = true;
         }
 
-        for (StgWeak w: weakPtrs) {
+        for (Weak w: weakPtrs) {
             w.runJavaFinalizers();
         }
 

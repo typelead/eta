@@ -23,10 +23,6 @@ public abstract class Closure implements Serializable {
         }
     }
 
-    public boolean blackHole(Thunk bh, Capability cap,
-                             MessageBlackHole msg) { return false; }
-    public boolean isFizzledSpark() { return true; }
-
     /* Applications */
     public Closure applyV(StgContext context) {
         barf("ap_v");

@@ -24,13 +24,13 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
         Capability cap = context.myCapability;
         TSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
-        StgTRecHeader trec = tso.trec;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord trec = tso.trec;
+        TransactionRecord outer = trec.enclosingTrec;
         boolean result = cap.stmCommitNestedTransaction(trec);;
         if (result) {
             tso.trec = outer;
         } else {
-            StgTRecHeader newTrec = cap.stmStartTransaction(outer);
+            TransactionRecord newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             sp.add(new StgCatchSTMFrame(code, handler));
             code.applyV(context);
@@ -39,8 +39,8 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
 
     @Override
     public boolean doFindRetry(Capability cap, TSO tso) {
-        StgTRecHeader trec = tso.trec;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord trec = tso.trec;
+        TransactionRecord outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
         cap.stmFreeAbortedTrec(trec);
         tso.trec = outer;
@@ -55,8 +55,8 @@ public class StgCatchSTMFrame extends StgSTMCatchFrame {
 
     @Override
     public boolean doRaise(StgContext context, Capability cap, TSO tso, Closure exception) {
-        StgTRecHeader trec = tso.trec;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord trec = tso.trec;
+        TransactionRecord outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
         cap.stmFreeAbortedTrec(trec);
         tso.trec = outer;

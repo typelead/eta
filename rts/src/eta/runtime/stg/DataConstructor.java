@@ -2,7 +2,7 @@ package eta.runtime.stg;
 
 import static eta.runtime.RtsMessages.barf;
 
-public abstract class StgConstr extends StgValue {
+public abstract class DataConstructor extends StgValue {
 
     public abstract int getTag();
 

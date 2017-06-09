@@ -5,7 +5,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
 import static eta.runtime.RtsMessages.barf;
 
-public class PAP extends StgValue {
+public class PAP extends Value {
     public Closure fun;
     public int arity;
     public AbstractArgumentStack argStack;

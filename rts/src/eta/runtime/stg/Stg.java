@@ -14,7 +14,7 @@ public class Stg {
 
     public static void mkWeak(StgContext context, Closure key, Closure value, Closure finalizer) {
         Capability cap = context.myCapability;
-        StgWeak weak = new StgWeak(key, value, finalizer);
+        Weak weak = new Weak(key, value, finalizer);
         cap.weakPtrList.add(weak);
         context.O(1, weak);
     }
@@ -23,7 +23,7 @@ public class Stg {
         mkWeak(context, key, value, null);
     }
 
-    public static void addJavaFinalizerToWeak(StgContext context, ByteBuffer fptr, ByteBuffer ptr, int flag, ByteBuffer eptr, StgWeak w) {
+    public static void addJavaFinalizerToWeak(StgContext context, ByteBuffer fptr, ByteBuffer ptr, int flag, ByteBuffer eptr, Weak w) {
         /* TODO: Grab finalizer args */
         w.lock();
         if (w.isDead()) {
@@ -36,7 +36,7 @@ public class Stg {
         }
     }
 
-    public static void finalizeWeak(StgContext context, StgWeak w) {
+    public static void finalizeWeak(StgContext context, Weak w) {
         w.lock();
         if (w.isDead()) {
             w.unlock();
@@ -60,7 +60,7 @@ public class Stg {
         }
     }
 
-    public static void deRefWeak(StgContext context, StgWeak w) {
+    public static void deRefWeak(StgContext context, Weak w) {
         if (!w.tryLock()) {
             w.lock();
             w.unlock();

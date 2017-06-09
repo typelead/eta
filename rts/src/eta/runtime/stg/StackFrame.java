@@ -7,7 +7,7 @@ import eta.runtime.thunk.StgThunk;
 import static eta.runtime.stg.StackFrame.MarkFrameResult.Default;
 import static eta.runtime.RtsMessages.barf;
 
-public abstract class StackFrame extends StgValue {
+public abstract class StackFrame extends Value {
     public int stackIndex;
 
     public final void enter(StgContext context) {

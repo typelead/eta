@@ -2,7 +2,7 @@ package eta.runtime.exception;
 
 public class EtaAsyncException extends StgException {
 
-    public Closure exception;
+    public Closure    exception;
     public boolean    stopAtAtomically;
     public UpdateInfo stopHere;
 

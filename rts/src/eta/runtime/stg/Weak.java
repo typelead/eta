@@ -10,7 +10,7 @@ import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
-public final class StgWeak extends StgValue {
+public final class Weak extends Value {
     // TODO: Is this the right reference type?
     public WeakReference<Closure> key;
     public WeakReference<Closure> value;
@@ -20,7 +20,7 @@ public final class StgWeak extends StgValue {
     public AtomicBoolean lock = new AtomicBoolean(false);
     public boolean dead = false;
 
-    public StgWeak(Closure key, Closure value, Closure finalizer) {
+    public Weak(Closure key, Closure value, Closure finalizer) {
         this.key = new WeakReference<Closure>(key);
         this.value = new WeakReference<Closure>(value);
         this.finalizer = finalizer;

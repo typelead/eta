@@ -30,13 +30,13 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
     public void stackEnter(StgContext context) {
         Capability cap = context.myCapability;
         TSO tso = context.currentTSO;
-        StgTRecHeader trec = tso.trec;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord trec = tso.trec;
+        TransactionRecord outer = trec.enclosingTrec;
         boolean result = cap.stmCommitNestedTransaction(trec);
         if (result) {
             tso.trec = outer;
         } else {
-            StgTRecHeader newTrec = cap.stmStartTransaction(outer);
+            TransactionRecord newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             Closure code;
             if (runningAltCode) {
@@ -55,9 +55,9 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
     }
 
     @Override
-    public boolean doRetry(Capability cap, TSO tso, StgTRecHeader trec) {
+    public boolean doRetry(Capability cap, TSO tso, TransactionRecord trec) {
         StgContext context = cap.context;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
         cap.stmFreeAbortedTrec(trec);
         if (runningAltCode) {
@@ -67,7 +67,7 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
             tso.sp.remove();
             return true;
         } else {
-            StgTRecHeader newTrec = cap.stmStartTransaction(outer);
+            TransactionRecord newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             runningAltCode = true;
             altCode.applyV(context);
@@ -77,8 +77,8 @@ public class StgCatchRetryFrame extends StgSTMCatchFrame {
 
     @Override
     public boolean doRaiseExceptionHelper(Capability cap, TSO tso, AtomicReference<Closure> raiseClosure, Closure exception) {
-        StgTRecHeader trec = tso.trec;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord trec = tso.trec;
+        TransactionRecord outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
         cap.stmFreeAbortedTrec(trec);
         tso.trec = outer;
