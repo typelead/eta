@@ -53,11 +53,7 @@ stdin = unsafePerformIO $ do
    -- ToDo: acquire lock
    setBinaryMode FD.stdin
    enc <- getLocaleEncoding
-   is_tty <- IODevice.isTerminal FD.stdin
-   let buffer_mode
-         | is_tty = LineBuffering
-         | otherwise = BlockBuffering Nothing
-   mkHandle FD.stdin "<stdin>" ReadHandle buffer_mode
+   mkHandle FD.stdin "<stdin>" ReadHandle Nothing
                 (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
@@ -69,7 +65,7 @@ stdout = unsafePerformIO $ do
    -- ToDo: acquire lock
    setBinaryMode FD.stdout
    enc <- getLocaleEncoding
-   mkHandle FD.stdout "<stdout>" WriteHandle LineBuffering
+   mkHandle FD.stdout "<stdout>" WriteHandle (Just LineBuffering)
                 (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
@@ -81,7 +77,7 @@ stderr = unsafePerformIO $ do
     -- ToDo: acquire lock
    setBinaryMode FD.stderr
    enc <- getLocaleEncoding
-   mkHandle FD.stderr "<stderr>" WriteHandle NoBuffering{-stderr is unbuffered-}
+   mkHandle FD.stderr "<stderr>" WriteHandle (Just NoBuffering){-stderr is unbuffered-}
                 (Just enc)
                 nativeNewlineMode{-translate newlines-}
                 (Just stdHandleFinalizer) Nothing
