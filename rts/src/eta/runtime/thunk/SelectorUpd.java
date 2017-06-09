@@ -16,8 +16,8 @@ public abstract class SelectorUpd extends StgInd {
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return selectEnter(context, (StgConstr) p.evaluate(context));
+        return selectEnter(context, (DataConstructor) p.evaluate(context));
     }
 
-    public abstract void selectEnter(StgContext context, StgConstr result);
+    public abstract void selectEnter(StgContext context, DataConstructor result);
 }

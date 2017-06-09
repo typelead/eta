@@ -21,19 +21,19 @@ import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
 
 public class StgAtomicallyFrame extends StgSTMFrame {
     public final Closure code;
-    public Queue<StgInvariantCheck> invariants = new ArrayDeque<StgInvariantCheck>();
+    public Queue<InvariantCheck> invariants = new ArrayDeque<InvariantCheck>();
     public Closure result;
     public boolean waiting;
 
     public StgAtomicallyFrame(final Closure code) {
-        this(code, new ArrayDeque<StgInvariantCheck>(), null);
+        this(code, new ArrayDeque<InvariantCheck>(), null);
     }
 
-    public StgAtomicallyFrame(final Closure code, Queue<StgInvariantCheck> invariants, Closure result) {
+    public StgAtomicallyFrame(final Closure code, Queue<InvariantCheck> invariants, Closure result) {
         this(code, invariants, result, false);
     }
 
-    public StgAtomicallyFrame(final Closure code, Queue<StgInvariantCheck> invariants, Closure result, boolean waiting) {
+    public StgAtomicallyFrame(final Closure code, Queue<InvariantCheck> invariants, Closure result, boolean waiting) {
         this.code = code;
         this.invariants = invariants;
         this.result = result;
@@ -47,7 +47,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
         Capability cap = context.myCapability;
         TSO tso = context.currentTSO;
         ListIterator<StackFrame> sp = tso.sp;
-        StgTRecHeader trec = tso.trec;
+        TransactionRecord trec = tso.trec;
         if (waiting) {
             boolean valid = cap.stmReWait(tso);
             if (valid) {
@@ -55,21 +55,21 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                 // Stg.block_noregs.enter(context);
                 barf("StgAtomicallyFrame: unimplemented RTS primop");
             } else {
-                StgTRecHeader newTrec = cap.stmStartTransaction(null);
+                TransactionRecord newTrec = cap.stmStartTransaction(null);
                 tso.trec = newTrec;
                 sp.add(new StgAtomicallyFrame(code, invariants, result));
                 code.applyV(context);
             }
         } else {
-            StgTRecHeader outer = trec.enclosingTrec;
-            Queue<StgInvariantCheck> invariants = null;
+            TransactionRecord outer = trec.enclosingTrec;
+            Queue<InvariantCheck> invariants = null;
             if (outer == null) {
                 invariants = cap.stmGetInvariantsToCheck(trec);
                 result = context.R(1);
             } else {
                 tso.trec = outer;
                 invariants = this.invariants;
-                StgInvariantCheck check = invariants.peek();
+                InvariantCheck check = invariants.peek();
                 check.myExecution = trec;
                 cap.stmAbortTransaction(trec);
                 invariants.poll();
@@ -82,7 +82,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
                     tso.trec = null;
                     context.R(1, result);
                 } else {
-                    StgTRecHeader newTrec = cap.stmStartTransaction(null);
+                    TransactionRecord newTrec = cap.stmStartTransaction(null);
                     tso.trec = newTrec;
                     sp.add(new StgAtomicallyFrame(code, invariants, result));
                     code.applyV(context);
@@ -90,8 +90,8 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             } else {
                 trec = cap.stmStartTransaction(trec);
                 tso.trec = trec;
-                StgInvariantCheck q = invariants.peek();
-                StgAtomicInvariant invariant = q.invariant;
+                InvariantCheck q = invariants.peek();
+                AtomicInvariant invariant = q.invariant;
                 /* TODO: Ensure that creating a new is the right thing */
                 sp.add(new StgAtomicallyFrame(code, invariants, result));
                 invariant.code.applyV(context);
@@ -105,10 +105,10 @@ public class StgAtomicallyFrame extends StgSTMFrame {
     }
 
     @Override
-    public boolean doRetry(Capability cap, TSO tso, StgTRecHeader trec) {
+    public boolean doRetry(Capability cap, TSO tso, TransactionRecord trec) {
         /* TODO: Verify that adjusting the context like this is valid. */
         StgContext context = cap.context;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord outer = trec.enclosingTrec;
         if (outer != null) {
             cap.stmAbortTransaction(trec);
             cap.stmFreeAbortedTrec(trec);
@@ -125,7 +125,7 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             barf("retry#: unimplemented RTS primop.");
             return false;
         } else {
-            StgTRecHeader newTrec = cap.stmStartTransaction(outer);
+            TransactionRecord newTrec = cap.stmStartTransaction(outer);
             tso.trec = newTrec;
             /* TODO: Adjust stack top to be this frame */
             code.applyV(context);
@@ -148,8 +148,8 @@ public class StgAtomicallyFrame extends StgSTMFrame {
             tso.whatNext = ThreadRun;
             return false;
         } else {
-            StgTRecHeader trec = tso.trec;
-            StgTRecHeader outer = trec.enclosingTrec;
+            TransactionRecord trec = tso.trec;
+            TransactionRecord outer = trec.enclosingTrec;
             cap.stmAbortTransaction(trec);
             cap.stmFreeAbortedTrec(trec);
             tso.trec = outer;
@@ -172,9 +172,9 @@ public class StgAtomicallyFrame extends StgSTMFrame {
 
     @Override
     public boolean doRaise(StgContext context, Capability cap, TSO tso, Closure exception) {
-        StgTRecHeader trec = tso.trec;
+        TransactionRecord trec = tso.trec;
         boolean result = cap.stmValidateNestOfTransactions(trec);
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
         cap.stmFreeAbortedTrec(trec);
         if (outer != null) {

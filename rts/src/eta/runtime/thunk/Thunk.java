@@ -20,13 +20,8 @@ public class Thunk extends Closure {
 
     @Override
     public final Closure getEvaluated() {
-        if (indirectee instanceof StgValue) return indirectee;
+        if (indirectee instanceof Value) return indirectee;
         else return null;
-    }
-
-    @Override
-    public boolean isFizzledSpark() {
-        return getEvaluated() != null;
     }
 
     public final boolean tryLock(Closure oldIndirectee) {
@@ -49,7 +44,7 @@ public class Thunk extends Closure {
         Closure v = indirectee;
         Capability cap = context.myCapability;
         TSO tso = context.currentTSO;
-        if (v instanceof StgValue) {
+        if (v instanceof Value) {
             cap.checkBlockingQueues(tso);
             return v;
         }
@@ -70,8 +65,8 @@ public class Thunk extends Closure {
         }
         updateWithIndirection(val);
         if (v == tso) return;
-        if (v instanceof StgBlockingQueue) {
-            StgBlockingQueue bq = (StgBlockingQueue) v;
+        if (v instanceof BlockingQueue) {
+            BlockingQueue bq = (BlockingQueue) v;
             TSO owner = bq.owner;
             if (owner != tso) {
                 cap.checkBockingQueues(tso);
@@ -87,7 +82,7 @@ public class Thunk extends Closure {
     public final Closure blackHole(StgContext context) {
         do {
             Closure p = indirectee;
-            if (p instanceof StgValue) return p;
+            if (p instanceof Value) return p;
             else if (p instanceof StgEvaluating) {
                 Capability cap = context.myCapability;
                 TSO tso = context.currentTSO;
@@ -186,7 +181,7 @@ public class Thunk extends Closure {
         return ((indirectee == null)? enter(context):indirectee).applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
     }
 
-    public static Queue<StgIndStatic> revertibleCAFList = new ConcurrentLinkedQueue<StgIndStatic>();
+    public static Queue<CAF> revertibleCAFList = new ConcurrentLinkedQueue<CAF>();
 
     private static boolean keepCAFs;
 
@@ -199,7 +194,7 @@ public class Thunk extends Closure {
     }
 
     public static synchronized void revertCAFs() {
-        for (StgIndStatic c: revertibleCAFList) {
+        for (CAF c: revertibleCAFList) {
             c.indirectee = null;
         }
         revertibleCAFList.clear();

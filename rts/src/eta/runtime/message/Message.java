@@ -4,7 +4,7 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import static eta.runtime.RtsMessages.barf;
 
-public abstract class Message extends StgValue {
+public abstract class Message extends Value {
     protected volatile boolean valid = true;
     public boolean isValid() { return valid; }
     public boolean isLocked() { return false; }

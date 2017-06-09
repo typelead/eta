@@ -11,8 +11,8 @@ import eta.runtime.thunk.Thunk;
 public abstract class StgSTMCatchFrame extends StgSTMFrame {
     @Override
     public boolean doRaiseAsync(Capability cap, TSO tso, Closure exception, boolean stopAtAtomically, Thunk updatee, AtomicReference<Closure> topClosure) {
-        StgTRecHeader trec = tso.trec;
-        StgTRecHeader outer = trec.enclosingTrec;
+        TransactionRecord trec = tso.trec;
+        TransactionRecord outer = trec.enclosingTrec;
         cap.stmAbortTransaction(trec);
         cap.stmFreeAbortedTrec(trec);
         tso.trec = outer;

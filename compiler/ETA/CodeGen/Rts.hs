@@ -58,13 +58,13 @@ stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgTh
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
   stgBCO, stgWeak :: Text
-stgConstr     = stg "StgConstr"
+stgConstr     = stg "DataConstructor"
 stgClosure    = stg "Closure"
 stgContext    = stg "StgContext"
 capability    = stg "Capability"
 task          = stg "Task"
 stgInd        = thunk "StgInd"
-stgIndStatic  = thunk "StgIndStatic"
+stgIndStatic  = thunk "CAF"
 stgThunk      = thunk "Thunk"
 stgFun        = apply "Function"
 stgTSO        = stg "TSO"
@@ -79,7 +79,7 @@ stgMutVar     = io "MutVar"
 stgMVar       = conc "MVar"
 stgTVar       = stm "TVar"
 stgBCO        = interp "StgBCO"
-stgWeak       = stg "StgWeak"
+stgWeak       = stg "Weak"
 rtsGroup      = rts "Rts"
 hsResult      = rts "Rts$StgResult"
 

@@ -10,7 +10,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 
-public final class StgByteArray extends StgValue {
+public final class StgByteArray extends Value {
 
     public static StgByteArray create(int n) {
         return create(n, false);

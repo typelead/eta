@@ -6,12 +6,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.stg.Closure;
 
-public class StgAtomicInvariant {
+public class AtomicInvariant {
     public Closure code;
-    public StgTRecHeader lastExecution;
+    public TransactionRecord lastExecution;
     public AtomicBoolean lock = new AtomicBoolean(false);
 
-    public StgAtomicInvariant(Closure code) {
+    public AtomicInvariant(Closure code) {
         this.code = code;
     }
 

@@ -4,7 +4,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 
-public final class StgArray extends StgValue {
+public final class StgArray extends Value {
     public Closure[] arr;
 
     public StgArray(Closure[] arr) {

@@ -10,17 +10,22 @@ import eta.runtime.stg.Closure;
 import static eta.runtime.stm.TRecState.TREC_ACTIVE;
 import static eta.runtime.stm.STM.EntrySearchResult;
 
-public class StgTRecHeader {
+public class TransactionRecord {
     public Stack<StgTRecChunk> chunkStack = new Stack<StgTRecChunk>();
-    public Queue<StgInvariantCheck> invariantsToCheck = new ArrayDeque<StgInvariantCheck>();
+    public Queue<InvariantCheck> invariantsToCheck = new ArrayDeque<InvariantCheck>();
     public TRecState state;
-    public StgTRecHeader enclosingTrec;
+    public TransactionRecord enclosingTrec;
 
-    public StgTRecHeader() {
-        this.chunkStack.push(new StgTRecChunk());
+    public TransactionRecord() {
+        this(null);
     }
 
-    public void setEnclosing(StgTRecHeader enclosingTrec) {
+    public TransactionRecord(TransactionRecord enclosingTrec) {
+        this.chunkStack.push(new StgTRecChunk());
+        this.enclosingTrec = enclosingTrec;
+    }
+
+    public void setEnclosing(TransactionRecord enclosingTrec) {
         this.enclosingTrec = enclosingTrec;
         if (enclosingTrec == null) {
             this.state = TREC_ACTIVE;
@@ -51,7 +56,7 @@ public class StgTRecHeader {
         return result;
     }
 
-    public final void connectInvariant(StgAtomicInvariant inv) {
+    public final void connectInvariant(AtomicInvariant inv) {
         /* ASSERT (inv.lastExection == null) */
         ListIterator<StgTRecChunk> cit = chunkIterator();
         while (cit.hasPrevious()) {

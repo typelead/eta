@@ -53,6 +53,19 @@ public class RtsMessages {
         System.out.print("\n");
     }
 
+    public static void debugScheduler(String msg, Object... args) {
+        debugGeneric("Scheduler", msg, args);
+    }
+
+    public static debugGeneric(String type, String msg, Object... args) {
+        debugBelch("[Eta-RTS](Task %d){" + type + "}: " + msg,
+                   Thread.currentThread().getId(), args);
+    }
+
+    public static void debugSTM(String msg, Object... args) {
+        debugGeneric("STM", msg, args);
+    }
+
     public static void printClosure(Closure closure) {
         // TODO: Override toString and make the closure more readable
         System.out.println("Closure: " + closure);

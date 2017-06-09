@@ -4,7 +4,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.io.StgArray;
 import eta.runtime.io.StgByteArray;
 
-public class StgBCO extends StgValue {
+public class StgBCO extends Value {
     public final StgByteArray instrs;
     public final StgByteArray literals;
     public final StgArray ptrs;

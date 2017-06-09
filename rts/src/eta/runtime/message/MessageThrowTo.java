@@ -10,6 +10,9 @@ import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
     public static AtomicLong maxMessageId = new AtomicLong(0);
+    public static long nextMessageId() {
+        return maxMessageId.getAndIncrement();
+    }
     public final long id = nextMessageId();
     public final TSO source;
     public final TSO target;
@@ -20,23 +23,6 @@ public class MessageThrowTo extends Message {
         this.source = source;
         this.target = target;
         this.exception = exception;
-    }
-
-    @Override
-    public final void execute(Capability cap) {
-        lock();
-        if (!isValid()) {
-            unlock();
-        } else {
-            boolean success = cap.throwToMsg(this);
-            if (success) {
-                TSO source = this.source;
-                done();
-                cap.tryWakeupThread(source);
-            } else {
-                unlock();
-            }
-        }
     }
 
     public void done() {
@@ -65,9 +51,5 @@ public class MessageThrowTo extends Message {
 
     public final boolean tryLock() {
         return lock.getAndSet(true);
-    }
-
-    public long nextMessageId() {
-        return maxMessageId.getAndIncrement();
     }
 }

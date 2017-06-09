@@ -5,7 +5,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RtsMessages.barf;
 
-public class MutVar extends StgValue {
+public class MutVar extends Value {
     public Closure value;
 
     public MutVar(Closure value) {

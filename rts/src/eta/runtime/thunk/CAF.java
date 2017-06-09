@@ -4,13 +4,13 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
-public class StgIndStatic extends Thunk {
+public class CAF extends Thunk {
 
-    public StgIndStatic() {
+    public CAF() {
         super();
     }
 
-    public StgIndStatic(Closure indirectee) {
+    public CAF(Closure indirectee) {
         super(indirectee);
     }
 
