@@ -12,7 +12,7 @@ public class WorkerThread extends Thread {
     }
 
     public void setTask() {
-        task.thread = this;
+        task.thread.set(this);
         task.id = getId();
         setName("Eta-Worker-" + task.id);
     }
@@ -28,7 +28,6 @@ public class WorkerThread extends Thread {
             } finally {
                 l.unlock();
             }
-            // setThreadAffinity
             Task.setMyTask(task);
             task.newInCall();
             cap.scheduleWorker(task);

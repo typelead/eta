@@ -349,7 +349,10 @@ public class Task {
     }
 
     public final void interrupt() {
-        thread.interrupt();
+        Thread thread = thread.get();
+        if (thread != null) {
+            thread.interrupt();
+        }
     }
 
     public static int freeTaskManager() {

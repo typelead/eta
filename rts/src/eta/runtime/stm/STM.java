@@ -19,38 +19,33 @@ import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 public class STM {
     /* STM RTS primops */
 
-    /* TODO: Inline this */
     public static Closure newTVar(StgContext context, Closure init) {
         return new TVar(init);
     }
 
     public static Closure readTVar(StgContext context, TVar tvar) {
-        StgTRrec trec = context.currentTSO.trec;
+        TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
         assert trec.state == TREC_ACTIVE || trec.state = TREC_CONDEMNED;
         Closure result;
-        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = null;
-        TRecEntry entry = null;
+        EntrySearchResult searchResult = trec.getNested(tvar);
+        TransactionRecord entryIn      = null;
+        TransactionEntry  entry        = null;
         if (searchResult != null) {
             entryIn = searchResult.header;
-            entry = searchResult.entry;
+            entry   = searchResult.entry;
         }
         if (entry != null) {
             if (entryIn != trec) {
-                TRecEntry newEntry = getNewEntry(trec);
-                newEntry.tvar = tvar;
-                newEntry.expectedValue = entry.expectedValue;
-                newEntry.newValue = entry.newValue;
+                /* If the entry was found in a parent TRec, copy the entry to
+                   the current trec, since you have just read it in the
+                   current transaction. */
+                trec.put(tvar, entry.expectedValue, entry.newValue);
             }
             result = entry.newValue;
         } else {
             Closure currentValue = tvar.currentValue();
-            TRecEntry newEntry = getNewEntry(trec);
-            newEntry.tvar = tvar;
-            newEntry.expectedValue = currentValue;
-            newEntry.newValue = currentValue;
-            result = currentValue;
+            trec.put(tvar, currentValue, currentValue);
         }
         return result;
     }
@@ -60,29 +55,23 @@ public class STM {
     }
 
     public static Closure writeTVar(StgContext context, TVar tvar, Closure newValue) {
-        StgTRrec trec = context.currentTSO.trec;
-        EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = null;
-        TRecEntry entry = null;
+        TransactionRecord trec         = context.currentTSO.trec;
+        EntrySearchResult searchResult = trec.getNested(tvar);
+        TransactionRecord entryIn      = null;
+        TransactionEntry  entry        = null;
         if (searchResult != null) {
             entryIn = searchResult.header;
-            entry = searchResult.entry;
+            entry   = searchResult.entry;
         }
         if (entry != null) {
             if (entryIn == trec) {
                 entry.newValue = newValue;
             } else {
-                TRecEntry newEntry = getNewEntry(trec);
-                newEntry.tvar = tvar;
-                newEntry.expectedValue = entry.expectedValue;
-                newEntry.newValue = newValue;
+                trec.put(tvar, entry.expectedValue, newValue);
             }
         } else {
             Closure currentValue = tvar.currentValue();
-            TRecEntry newEntry = getNewEntry(trec);
-            newEntry.tvar = tvar;
-            newEntry.expectedValue = currentValue;
-            newEntry.newValue = newValue;
+            trec.put(tvar, currentValue, newValue);
         }
         return null;
     }
@@ -91,28 +80,23 @@ public class STM {
         TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
         assert trec.state == TREC_ACTIVE || trec.state == TREC_CONDEMNED;
-        trec.invariantsToCheck
-            .offer(getNewInvariantCheck(new AtomicInvariant(invariantCode)));
+        trec.checkInvariant(invariant);
         return null;
     }
 
 
     public static void atomically(StgContext context, Closure code) {
         TSO tso = context.currentTSO;
-        TransactionRecord oldTrec = tso.trec;
-        if (oldTrec != null) {
+        TransactionRecord outer = tso.trec;
+        if (outer != null) {
             return StgException.raise(context, nestedAtomically_closure);
         } else {
-            Capability cap = context.myCapability;
-            TransactionRecord trec = startTransaction(oldTrec);
+            TransactionRecord trec = startTransaction(outer);
             tso.trec = trec;
-            Queue<InvariantCheck> invariants = new ArrayDeque<InvariantCheck>();
+            Queue<InvariantCheck> invariants = new LinkedDeque<InvariantCheck>();
             Closure result;
             Closure frameResult;
-            TransactionRecord outer;
-            InvariantCheck nextInvariant;
             boolean runCode = true;
-            boolean waiting = false;
             do {
                 try {
                     if (runCode) {
@@ -122,13 +106,12 @@ public class STM {
                     trec  = tso.trec;
                     outer = trec.enclosingTrec;
                     if (outer == null) {
-                        invariants = getInvariantsToCheck(trec);
+                        trec.getInvariantsToCheck(invariants);
                         frameResult = result;
                     } else {
                         tso.trec = outer;
-                        nextInvariant = invariants.peek();
-                        nextInvariant.myExecution = trec;
-                        abortTransaction(trec);
+                        invariants.peek().myExecution = trec;
+                        trec.abort();
                         invariants.poll();
                         trec = outer;
                     }
@@ -138,7 +121,7 @@ public class STM {
                             tso.trec = null;
                             return frameResult;
                         } else {
-                            trec = startTransaction(trec);
+                            trec = startTransaction(null);
                             tso.trec = trec;
                             invariants.clear();
                             runCode = true;
@@ -147,17 +130,16 @@ public class STM {
                     } else {
                         trec = startTransaction(trec);
                         tso.trec = trec;
-                        nextInvariant = invariants.peek();
-                        result = nextInvariant.invariant.code.applyV(context);
+                        result = invariants.peek().invariant.code.applyV(context);
                         continue;
                     }
                 } catch (EtaException e) {
                     trec = tso.trec;
-                    boolean valid = validateNextOfTransactions(trec);
+                    boolean valid = trec.validateNestOfTransactions();
                     outer = trec.enclosingTrec;
-                    abortTransaction(trec);
+                    trec.abort();
                     if (outer != null) {
-                        abortTransaction(outer);
+                        outer.abort();
                     }
                     tso.trec = null;
                     if (valid) {
@@ -171,13 +153,13 @@ public class STM {
                 } catch (EtaAsyncException e) {
                     if (e.stopAtAtomically) {
                         assert tso.trec.enclosingTrec == null;
-                        condemnTransaction(tso.trec);
+                        tso.trec.condemn();
                         result = null;
                         continue;
                     } else {
                         trec = tso.trec;
                         outer = trec.enclosingTrec;
-                        abortTransaction(trec);
+                        trec.abort();
                         tso.trec = outer;
                         /* TODO: Apparently, we need to replace all thunks with
                                  code that eventually retried the atomically
@@ -190,25 +172,40 @@ public class STM {
                         throw e;
                     }
                 } catch (RetryException e) {
-                    trec = tso.trec;
+                    trec  = tso.trec;
                     outer = trec.enclosingTrec;
                     if (outer != null) {
-                        abortTransaction(trec);
-                        trec = outer;
-                        tso.trec = outer;
-                        outer = trec.enclosingTrec;
+                        trec.abort();
+                        trec     = outer;
+                        tso.trec = trec;
+                        outer    = trec.enclosingTrec;
                     }
                     assert outer == null;
-                    boolean valid = validateAndAcquireOwnership(trec, true, true);
+                    boolean valid = trec.wait(tso);
                     if (valid) {
-                        buildWatchQueueEntriesForTrec(tso, trec);
-                        tso.park();
-                        trec.state = TREC_WAITING;
-                        barf("Unimplemented: blockSTM");
+                        trec.revertOwnership(true);
+                        do {
+                            LockSupport.park();
+                            /* TODO: Should we run the blockedLoop on spurious
+                                     wakeups too? Either way, we should consume
+                                     the interrupted flag, otherwise future
+                                     interrupts won't work. */
+                            if (Thread.interrupted()) {
+                                context.myCapability.blockedLoop(tso);
+                            }
+                            valid = trec.reWait(tso);
+                            if (!valid) {
+                                trec     = startTransaction(null);
+                                tso.trec = trec;
+                                runCode  = true;
+                                break;
+                            }
+                        } while (valid);
+                        continue;
                     } else {
-                        trec = startTransaction(outer);
+                        trec     = startTransaction(outer);
                         tso.trec = trec;
-                        runCode = true;
+                        runCode  = true;
                         continue;
                     }
                 }
@@ -241,19 +238,19 @@ public class STM {
         } catch (EtaException e) {
             trec = tso.trec;
             outer = trec.enclosingTrec;
-            abortTransaction(trec);
+            trec.abort();
             tso.trec = outer;
             return handler.applyPV(context, e.exception);
         } catch (EtaAsyncException e) {
             trec = tso.trec;
             outer = trec.enclosingTrec;
-            abortTransaction(trec);
+            trec.abort();
             tso.trec = outer;
             throw e;
         } catch (RetryException e) {
             trec = tso.trec;
             outer = trec.enclosingTrec;
-            abortTransaction(trec);
+            trec.abort();
             tso.trec = outer;
             throw e;
         }
@@ -288,20 +285,20 @@ public class STM {
             } catch (EtaException e) {
                 trec = tso.trec;
                 outer = trec.enclosingTrec;
-                abortTransaction(trec);
+                trec.abort();
                 tso.trec = outer;
                 throw e;
             } catch (EtaAsyncException e) {
                 trec = tso.trec;
                 outer = trec.enclosingTrec;
-                abortTransaction(trec);
+                trec.abort();
                 tso.trec = outer;
                 throw e;
             } catch (RetryException e) {
                 trec = tso.trec;
                 outer = trec.enclosingTrec;
                 assert outer != null;
-                abortTransaction(trec);
+                trec.abort();
                 if (runningAltCode) {
                     tso.trec = outer;
                     throw e;
@@ -322,32 +319,10 @@ public class STM {
     }
 
     /* STM Helper Functions */
-    public final TRecEntry getNewEntry(TransactionRecord t) {
-        StgTRecChunk c = t.chunkStack.peek();
-        TRecEntry entry = new TRecEntry();
-        if (c.entries.size() <= TREC_CHUNK_NUM_ENTRIES) {
-            c.entries.add(entry);
-        } else {
-            c = newTRecChunk();
-            c.entries.add(entry);
-            t.chunkStack.push(c);
-        }
-        return entry;
-    }
-
-    public static StgTRecChunk newTRecChunk() {
-        /* TODO: Work on pooling if necessary */
-        return new StgTRecChunk();
-    }
 
     public static TransactionRecord startTransaction(TransactionRecord outer) {
         /* TODO: Handle transaction tokens later if necessary. */
-        return getNewTRecHeader(outer);
-    }
-
-    public static TransactionRecord newTRecHeader(TransactionRecord enclosingTrec) {
-        /* TODO: Work on pooling if necessary */
-        return new TransactionRecord(enclosingTrec);
+        return new TransactionRecord(outer);
     }
 
     public static void mergeUpdateInto(TransactionRecord t, TVar tvar, Closure expectedValue, Closure newValue) {
@@ -356,7 +331,7 @@ public class STM {
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
+            for (TransactionEntry e: chunk.entries) {
                 TVar s = e.tvar;
                 if (s == tvar) {
                     found = true;
@@ -370,70 +345,11 @@ public class STM {
         }
 
         if (!found) {
-            TRecEntry ne = getNewEntry(t);
+            TransactionEntry ne = getNewEntry(t);
             ne.tvar = tvar;
             ne.expectedValue = expectedValue;
             ne.newValue = newValue;
         }
-    }
-
-    public static Queue<InvariantCheck> stmGetInvariantsToCheck(TransactionRecord trec) {
-
-        STM.lock(trec);
-        ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-        loop:
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
-                if (e.isUpdate()) {
-                    TVar s = e.tvar;
-                    Closure old = s.lock(trec);
-                    for (Closure q: s.watchQueue) {
-                        if (STM.watcherIsInvariant(q)) {
-                            boolean found = false;
-                            for (InvariantCheck q2: trec.invariantsToCheck) {
-                                if (q2.invariant == q) {
-                                    found = true;
-                                    break;
-                                }
-                            }
-
-                            if (!found) {
-                                InvariantCheck q3 = getNewInvariantCheck((AtomicInvariant) q);
-                                trec.invariantsToCheck.offer(q3);
-                            }
-                        }
-                    }
-                    s.unlock(trec, old, false);
-                }
-            }
-        }
-
-        STM.unlock(trec);
-        return trec.invariantsToCheck;
-    }
-
-    public static void abortTransaction(TransactionRecord trec) {
-        STM.lock(trec);
-        TransactionRecord et = trec.enclosingTrec;
-        if (et == null) {
-            if (trec.state == TREC_WAITING) {
-                removeWatchQueueEntriesForTrec(trec);
-            }
-
-        } else {
-            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
-            while (cit.hasPrevious()) {
-                StgTRecChunk chunk = cit.previous();
-                for (TRecEntry e: chunk.entries) {
-                    TVar s = e.tvar;
-                    mergeReadInto(et, s, e.expectedValue);
-                }
-            }
-        }
-
-        trec.state = TREC_ABORTED;
-        STM.unlock(trec);
     }
 
     public static void removeWatchQueueEntriesForTrec(TransactionRecord trec) {
@@ -441,7 +357,7 @@ public class STM {
         loop:
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
+            for (TransactionEntry e: chunk.entries) {
                 TVar s = e.tvar;
                 Closure saw = s.lock(trec);
                 s.watchQueue.remove(e.newValue); // TODO: Is this valid?
@@ -457,7 +373,7 @@ public class STM {
             loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
-                for (TRecEntry e: chunk.entries) {
+                for (TransactionEntry e: chunk.entries) {
                     if (e.tvar == tvar) {
                         found = true;
                         if (e.expectedValue != expectedValue) {
@@ -471,15 +387,14 @@ public class STM {
         }
 
         if (!found) {
-            TRecEntry ne = getNewEntry(trec);
-            ne.tvar = tvar;
+            TransactionEntry ne     = getNewEntry(trec);
+            ne.tvar          = tvar;
             ne.expectedValue = expectedValue;
-            ne.newValue = expectedValue;
+            ne.newValue      = expectedValue;
         }
     }
 
     public static boolean commitTransaction(TransactionRecord trec) {
-        STM.lock(trec);
         long maxCommitsAtStart = STM.maxCommits;
         boolean touchedInvariants = !trec.invariantsToCheck.isEmpty();
         if (touchedInvariants) {
@@ -494,7 +409,7 @@ public class STM {
                     ListIterator<StgTRecChunk> cit = invOldTrec.chunkIterator();
                     while (cit.hasPrevious()) {
                         StgTRecChunk chunk = cit.previous();
-                        for (TRecEntry e: chunk.entries) {
+                        for (TransactionEntry e: chunk.entries) {
                             mergeReadInto(trec, e.tvar, e.expectedValue);
                         }
                     }
@@ -529,7 +444,7 @@ public class STM {
                 ListIterator<StgTRecChunk> cit = trec.chunkIterator();
                 while (cit.hasPrevious()) {
                     StgTRecChunk chunk = cit.previous();
-                    for (TRecEntry e: chunk.entries) {
+                    for (TransactionEntry e: chunk.entries) {
                         TVar s = e.tvar;
                         if (!useReadPhase || e.newValue != e.expectedValue) {
                             unparkWaitersOn(s);
@@ -544,8 +459,6 @@ public class STM {
                 revertOwnership(trec, false);
             }
         }
-        STM.unlock(trec);
-        freeTRecHeader(trec);
         return result;
     }
 
@@ -598,10 +511,6 @@ public class STM {
         return result;
     }
 
-    public static void freeAbortedTrec(TransactionRecord trec) {
-        freeTRecHeader(trec);
-    }
-
     public static boolean wait(TSO tso, TransactionRecord trec) {
         STM.lock(trec);
         boolean result = validateAndAcquireOwnership(trec, true, true);
@@ -620,7 +529,7 @@ public class STM {
         ListIterator<StgTRecChunk> cit = trec.chunkIterator();
         while (cit.hasPrevious()) {
             StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
+            for (TransactionEntry e: chunk.entries) {
                 TVar s = e.tvar;
                 /* TODO: Fix order of queue */
                 s.watchQueue.offer(tso);
@@ -653,19 +562,17 @@ public class STM {
     }
 
     public static boolean watcherIsInvariant(Closure c) {
-        //TODO: Better condition
-        return (c.getClass() == AtomicInvariant.class);
+        return c.getClass() == AtomicInvariant.class;
     }
 
     public static boolean watcherIsTSO(Closure c) {
-        //TODO: Better condition
-        return (c.getClass() == TSO.class);
+        return c.getClass() == TSO.class;
     }
 
     public static class EntrySearchResult {
         public final TransactionRecord header;
-        public final TRecEntry entry;
-        public EntrySearchResult(final TransactionRecord header, final TRecEntry entry) {
+        public final TransactionEntry entry;
+        public EntrySearchResult(final TransactionRecord header, final TransactionEntry entry) {
             this.header = header;
             this.entry = entry;
         }
@@ -678,7 +585,7 @@ public class STM {
             loop:
             while (cit.hasPrevious()) {
                 StgTRecChunk chunk = cit.previous();
-                for (TRecEntry entry: chunk.entries) {
+                for (TransactionEntry entry: chunk.entries) {
                     if (entry.tvar == tvar) {
                         result = new EntrySearchResult(trec, entry);
                         break loop;
@@ -690,13 +597,99 @@ public class STM {
         return result;
     }
 
-    public static Closure readCurrentValue(TransactionRecord trec, TVar tvar) {
-        Closure result = tvar.currentValue;
-        if (RtsFlags.STM.fineGrained) {
-            while (result instanceof TransactionRecord) {
-                result = tvar.currentValue;
+    public final InvariantCheck newInvariantCheck(AtomicInvariant invariant) {
+        return new InvariantCheck(invariant);
+    }
+
+    public final boolean stmCommitNestedTransaction(TransactionRecord trec) {
+        STM.lock(trec);
+        TransactionRecord et = trec.enclosingTrec;
+        boolean result = validateAndAcquireOwnership(trec, !STM.configUseReadPhase, true);
+        if (result) {
+            if (STM.configUseReadPhase) {
+                result = trec.checkReadOnly();
+            }
+            if (result) {
+                ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+                loop:
+                while (cit.hasPrevious()) {
+                    StgTRecChunk chunk = cit.previous();
+                    for (TransactionEntry e: chunk.entries) {
+                        TVar s = e.tvar;
+                        if (e.isUpdate()) {
+                            s.unlock(trec, e.expectedValue, false);
+                        }
+                        mergeUpdateInto(et, s, e.expectedValue, e.newValue);
+                    }
+                }
+            } else {
+                revertOwnership(trec, false);
             }
         }
+        STM.unlock(trec);
+        freeTRecHeader(trec);
         return result;
+    }
+
+    public final boolean validateAndAcquireOwnership(TransactionRecord trec, boolean acquireAll, boolean retainOwnership) {
+        if (STM.shake()) {
+            return false;
+        } else {
+            boolean result = trec.state != TREC_CONDEMNED;
+            if (result) {
+                ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+                loop:
+                while (cit.hasPrevious()) {
+                    StgTRecChunk chunk = cit.previous();
+                    for (TransactionEntry e: chunk.entries) {
+                        // Traversal
+                        TVar s = e.tvar;
+                        if (acquireAll || e.isUpdate()) {
+                            if (!s.condLock(trec, e.expectedValue)) {
+                                result = false;
+                                break loop;
+                            }
+                        } else {
+                            if (RtsFlags.STM.fineGrained) {
+                                if (s.currentValue != e.expectedValue) {
+                                    result = false;
+                                    break loop;
+                                }
+                                e.numUpdates = s.numUpdates;
+                                if (s.currentValue != e. expectedValue) {
+                                    result = false;
+                                    break loop;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!result || !retainOwnership) {
+                revertOwnership(trec, acquireAll);
+            }
+
+            return result;
+        }
+    }
+
+    public final void revertOwnership(TransactionRecord trec, boolean revertAll) {
+        if (RtsFlags.STM.fineGrained) {
+            ListIterator<StgTRecChunk> cit = trec.chunkIterator();
+            loop:
+            while (cit.hasPrevious()) {
+                StgTRecChunk chunk = cit.previous();
+                for (TransactionEntry e: chunk.entries) {
+                    if (revertAll || e.isUpdate()) {
+                        TVar s = e.tvar;
+                        if (s.isLocked(trec)) {
+                            s.unlock(trec, e.expectedValue, true);
+                        }
+                    }
+
+                }
+            }
+        }
     }
 }

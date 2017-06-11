@@ -2,15 +2,17 @@ package eta.runtime.stm;
 
 import java.util.Deque;
 import java.util.ArrayDeque;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.util.UnsafeUtil.cas
 import static eta.runtime.RtsMessages.barf;
-import static eta.runtime.util.UnsafeUtil.cas;
 
 public class TVar extends Value {
     public volatile Closure currentValue;
-    public Deque<Closure> watchQueue = new ArrayDeque<Closure>();
+    public Set<TSO> watchQueue = new LinkedHashSet<TSO>();
+    public Set<AtomicInvariant> invariants = new LinkedHashSet<AtomicInvariant>();
     public int numUpdates;
 
     public TVar(Closure currentValue) {
@@ -18,7 +20,6 @@ public class TVar extends Value {
     }
 
     public Closure currentValue() {
-        /* TODO: Remove the CAS operation? */
         Closure result;
         do {
             result = currentValue;
@@ -32,18 +33,31 @@ public class TVar extends Value {
         return null;
     }
 
-    public boolean condLock(TransactionRecord trec, Closure expected) {
-        // TODO: Implement the lock based on locking type of STM
-        return (currentValue == expected);
+    /** Watch Queue **/
+
+    public void removeFromWatchQueue(TSO tso) {
+        watchQueue.remove(tso);
     }
 
-    public boolean isLocked(TransactionRecord trec){
-        return (currentValue == trec);
+    public void offerWatchQueue(TSO tso) {
+        watchQueue.add(tso);
     }
 
-    public void unlock(TransactionRecord trec, Closure c, boolean forceUpdate) {
-        currentValue = c;
+    /** Invariants **/
+
+    public Set<AtomicInvariant> getInvariants() {
+        return invariants;
     }
+
+    public void addInvariant(AtomicInvariant inv) {
+        invariants.add(inv);
+    }
+
+    public void removeInvariant(AtomicInvariant inv) {
+        invariants.remove(inv);
+    }
+
+    /** Locking Mechanisms **/
 
     public Closure lock(TransactionRecord trec) {
         Closure result;
@@ -51,5 +65,31 @@ public class TVar extends Value {
             result = currentValue();
         } while (!cas(this, result, trec));
         return result;
+    }
+
+    public boolean conditionalLock(TransactionRecord trec, Closure expected) {
+        return cas(this, expected, trec);
+    }
+
+    public void unlock(Closure c) {
+        currentValue = c;
+    }
+
+    public void isLocked(TransactionRecord trec) {
+        return currentValue == trec;
+    }
+
+    /** CAS Operation Support **/
+
+    private static final AtomicReferenceFieldUpdater<TVar, Closure> cvUpdater
+        = AtomicReferenceFieldUpdater
+            .newUpdater(TVar.class, Closure.class, "currentValue");
+
+    public static boolean cas(TVar tvar, Closure expected, Closure update) {
+        if (UnsafeUtil.UNSAFE == null) {
+            return cvUpdater.compareAndSet(tvar, expected, update);
+        } else {
+            return UnsafeUtil.cas(tvar, expected, update);
+        }
     }
 }

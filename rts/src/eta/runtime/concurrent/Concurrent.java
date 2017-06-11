@@ -25,6 +25,13 @@ import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
 
+    public static final Deque<TSO> globalRunQueue = new ConcurrentLinkedDeque<TSO>();
+
+    public static void pushToGlobalRunQueue(TSO tso) {
+        assert tso.cap == null;
+        globalRunQueue.offerFirst(tso);
+    }
+
     public static Closure takeMVar(StgContext context, MVar mvar) {
         do {
             try {
@@ -55,13 +62,21 @@ public class Concurrent {
     /* TODO: Perform blackholing here to prevent duplicate evaluations
              shared among multiple threads? */
     public static Closure fork(StgContext context, Closure closure) {
-        Capability cap = context.myCapability;
-        TSO tso = Rts.scheduleIOClosure(closure);
-        cap.contextSwitch = true;
+        TSO currentTSO = context.currentTSO;
+        TSO tso = Rts.createIOThread(null, closure);
+        tso.addFlags(currentTSO.andFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE));
+        Capability.pushToGlobalRunQueue(tso);
         context.O(1, tso);
         return null;
     }
 
+    /* TODO: The scheduling policy in Eta is for TSOs to get grabbed by Capabilities
+             and keep executing them to completion (which rarely happens).
+
+             Hence, it makes no sense to use `forkOn` in Eta since threads will
+             be bound to a given thread anyways. If you put multiple threads on
+             a single Capability, be warned that one of the threads may never run!
+     */
     public static Closure forkOn(StgContext context, int cpu, Closure closure) {
         Capability cap = context.myCapability;
         TSO tso = Rts.createIOThread(cap, closure);

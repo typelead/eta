@@ -2,7 +2,7 @@ package eta.runtime.stm;
 
 import eta.runtime.stg.Closure;
 
-public class TRecEntry {
+public class TransactionEntry {
     public TVar tvar;
     public Closure expectedValue;
     public Closure newValue;
