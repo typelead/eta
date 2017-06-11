@@ -26,19 +26,17 @@ public class UnsafeUtil {
         } catch (RuntimeException e) {
             unsafe = null;
         }
-        if (unsafe == null) {
-            throw new RuntimeException("Incompatible JVM - sun.misc.Unsafe support is missing");
-        }
-
-        try {
-            indirecteeOffset = unsafe.objectFieldOffset
-                (Thunk.class.getDeclaredField("indirectee"));
-            cvOffset = unsafe.objectFieldOffset
-                (TVar.class.getDeclaredField("currentValue"));
-            valueOffset = unsafe.objectFieldOffset
-                (MutVar.class.getDeclaredField("value"));
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException();
+        if (unsafe != null) {
+            try {
+                indirecteeOffset = unsafe.objectFieldOffset
+                    (Thunk.class.getDeclaredField("indirectee"));
+                cvOffset = unsafe.objectFieldOffset
+                    (TVar.class.getDeclaredField("currentValue"));
+                valueOffset = unsafe.objectFieldOffset
+                    (MutVar.class.getDeclaredField("value"));
+            } catch (ReflectiveOperationException e) {
+                unsafe = null;
+            }
         }
         UNSAFE = unsafe;
     }

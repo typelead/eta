@@ -137,6 +137,10 @@ public final class TSO extends StgEvaluating {
         return ((flags & flag) != 0);
     }
 
+    public final int andFlags(int flag) {
+        return flags & flag;
+    }
+
     public final void removeFlags(int flags) {
         this.flags &= ~flags;
     }
@@ -146,14 +150,9 @@ public final class TSO extends StgEvaluating {
     }
 
     public final void lock() {
-        do {
-            int i = 0;
-            do {
-                boolean old = lock.getAndSet(true);
-                if (!old) return;
-            } while (++i < SPIN_COUNT);
-            Thread.yield();
-        } while (true);
+        while (!lock.compareAndSet(false, true)) {
+            /* TODO: Add some sort of yielding here? */
+        }
     }
 
     public final void unlock() {
@@ -168,9 +167,25 @@ public final class TSO extends StgEvaluating {
         return this.flags & flags;
     }
 
-    public void park() {
+    public final void park() {
+        assert whyBlocked == NotBlocked;
         whyBlocked = BlockedOnSTM;
         blockInfo = null;
+    }
+
+    public final void unpark() {
+        lock();
+        if (whyBlocked == BlockedOnSTM &&
+            blockInfo == STMAwoken_closure) {
+            /* Already woken up */
+        } else if (whyBlocked == BlockedOnSTM) {
+            blockInfo = STMAwoken_closure;
+            /* TODO: Is this valid? */
+            tso.cap.tryWakeupThread(this);
+        } else {
+            /* Spurious unpark */
+        }
+        .unlock();
     }
 
     public final boolean isBound() {

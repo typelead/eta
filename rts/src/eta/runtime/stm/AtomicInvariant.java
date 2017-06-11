@@ -24,16 +24,9 @@ public class AtomicInvariant {
     }
 
     public final void disconnect() {
-        /* ASSERT (lastExecution != null) */
-
-        ListIterator<StgTRecChunk> cit = lastExecution.chunkIterator();
-        loop:
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TRecEntry e: chunk.entries) {
-                TVar s = e.tvar;
-                s.watchQueue.remove(this);
-            }
+        for (TransactionEntry e:lastExecution) {
+            TVar s = e.tvar;
+            s.removeInvariant(this);
         }
         lastExecution = null;
     }

@@ -259,31 +259,17 @@ public class Rts {
         }
     }
 
-    public static TSO scheduleIOClosure(Closure closure) {
-        Capability cap = Capability.getFreeRunningCapability();
-        TSO tso = Rts.createIOThread(cap, closure);
-        tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        Rts.scheduleThread(cap, tso);
-        return tso;
-    }
-
     public static void scheduleThread(Capability cap, TSO tso) {
         cap.appendToRunQueue(tso);
     }
 
     public static void scheduleThreadOn(Capability cap, int cpu, TSO tso) {
         tso.addFlags(TSO_LOCKED);
-        if (RtsFlags.ModeFlags.threaded) {
-            cpu %= Capability.enabledCapabilities;
-            if (cpu == cap.no) {
-                cap.appendToRunQueue(tso);
-            } else {
-                cap.migrateThread(tso, Capability.capabilities.get(cpu));
-            }
-        } else {
+        cpu %= Capability.enabledCapabilities;
+        if (cpu == cap.no) {
             cap.appendToRunQueue(tso);
+        } else {
+            cap.migrateThread(tso, Capability.capabilities.get(cpu));
         }
     }
-
-
 }
