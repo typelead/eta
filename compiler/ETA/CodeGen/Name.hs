@@ -42,8 +42,9 @@ import Codec.JVM
 qualifiedName :: Text -> Text -> Text
 qualifiedName modClass className = append modClass . cons '$' $ className
 
+-- TODO: Remove this entirely
 closure :: Text -> Text
-closure = flip append "_closure"
+closure = id
 
 nameTypeText :: DynFlags -> Name -> Text
 nameTypeText dflags = flip snoc 'T' . nameText dflags False

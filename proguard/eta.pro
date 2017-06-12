@@ -18,7 +18,7 @@
   eta.runtime.stg.Closure nonTermination_closure();
 }
 
--keep public class eta.runtime.Rts {
+-keep public class eta.Runtime {
   eta.runtime.stg.Closure flushStdHandles_closure;
 }
 

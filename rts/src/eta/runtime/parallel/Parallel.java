@@ -2,10 +2,10 @@ package eta.runtime.parallel;
 
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public class Parallel {
-    public static final Deque<Closure> globalSparkPool = new ConcurrentLinkedDeque<Closure>();
+    public static final Deque<Closure> globalSparkPool = new LinkedBlockingDeque<Closure>(Runtime.getMaxLocalSparks());
     public static final SparkCounters globalSparkStats = new SparkCounters();
 
     public static Closure getSpark(StgContext context) {
@@ -33,18 +33,18 @@ public class Parallel {
             retry = false;
             Closure spark = sparks.pollLast();
             while (spark != null && spark.getEvaluated() != null) {
-                sparkStats.fizzled++;
+                globalSparkStats.fizzled++;
                 spark = sparks.pollLast();
             }
             if (spark != null) {
-                sparkStats.converted++;
+                globalSparkStats.converted++;
                 return spark;
             }
             if (!emptyGlobalSparkPool()) {
                 retry = true;
             }
         } while(retry);
-        if (RtsFlags.DebugFlags.scheduler) {
+        if (RuntimeOptions.DebugFlags.scheduler) {
             debugBelch("{Scheduler} No Sparks stolen.");
         }
     }

@@ -6,9 +6,6 @@ public abstract class UpdatableThunk extends Thunk {
 
     @Override
     public Closure enter(StgContext context) {
-        if (Thread.interrupted()) {
-            context.myCapability.blockedLoop(false);
-        }
         if (indirectee == null) {
             UpdateInfo ui = context.pushUpdate(this);
             try {

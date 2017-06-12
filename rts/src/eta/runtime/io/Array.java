@@ -2,7 +2,7 @@ package eta.runtime.io;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public final class Array extends Value {
     public Closure[] arr;

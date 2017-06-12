@@ -4,7 +4,7 @@ import java.util.Stack;
 import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import eta.runtime.RtsFlags;
+import eta.runtime.RuntimeOptions;
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;

@@ -146,24 +146,6 @@ public class Runtime {
         return new TSO(Closures.evalJava(thisObj, p));
     }
 
-    public static Closure scheduleClosure(Closure p) {
-        return Capability.getLocal().schedule(p);
-    }
-
-    public static void scheduleThread(Capability cap, TSO tso) {
-        cap.appendToRunQueue(tso);
-    }
-
-    public static void scheduleThreadOn(Capability cap, int cpu, TSO tso) {
-        tso.addFlags(TSO_LOCKED);
-        cpu %= Capability.enabledCapabilities;
-        if (cpu == cap.no) {
-            cap.appendToRunQueue(tso);
-        } else {
-            cap.migrateThread(tso, Capability.capabilities.get(cpu));
-        }
-    }
-
     public static void shutdownAndExit(ExitCode exitStatus, boolean fastExit, boolean hardExit) {
         if (!fastExit) {
             exit_();
@@ -179,7 +161,7 @@ public class Runtime {
         stgExit(ExitCode.EXIT_KILLED);
     }
 
-    public static void exit_() {
+    public static void exit() {
         flushStdHandles();
         Capability.runFinalizers();
     }
@@ -188,58 +170,7 @@ public class Runtime {
         evalIO(Closures.flushStdHandles);
     }
 
-    public static void stgExit(ExitCode exitCode) {
-        System.exit(exitCode.code());
-    }
-
-    public enum ExitCode {
-        EXIT_SUCCESS(0),
-        EXIT_FAILURE(1),
-        EXIT_MISMATCH(63),
-        EXIT_SKIP(77),
-        EXIT_KILLED(250),
-        EXIT_HEAPOVERFLOW(251),
-        EXIT_INTERRUPTED(252),
-        EXIT_DEADLOCK(253),
-        EXIT_INTERNAL_ERROR(254);
-
-        private int code;
-
-        ExitCode(int code) {
-            this.code = code;
-        }
-
-        public int code() {
-            return code;
-        }
-
-        public static ExitCode from(int code) {
-            switch (code) {
-                case 0:
-                    return EXIT_SUCCESS;
-                case 1:
-                    return EXIT_FAILURE;
-                case 63:
-                    return EXIT_MISMATCH;
-                case 77:
-                    return EXIT_SKIP;
-                case 250:
-                    return EXIT_KILLED;
-                case 251:
-                    return EXIT_HEAPOVERFLOW;
-                case 252:
-                    return EXIT_INTERRUPTED;
-                case 253:
-                    return EXIT_DEADLOCK;
-                case 254:
-                    return EXIT_INTERNAL_ERROR;
-                default:
-                    throw new IllegalArgumentException("[ExitCode.from(int)] Invalid code: " + code);
-            }
-        }
-    }
-
-    public static void exit() {
-        exit_(true);
+    public static void stgExit(int code) {
+        System.exit();
     }
 }

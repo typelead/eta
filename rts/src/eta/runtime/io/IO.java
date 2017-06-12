@@ -4,7 +4,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.thunk.Ap2Upd;
 import eta.runtime.thunk.SelectorPUpd;
-import eta.runtime.RtsFlags;
+import eta.runtime.RuntimeOptions;
 
 public class IO {
 

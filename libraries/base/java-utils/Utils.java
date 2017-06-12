@@ -16,10 +16,10 @@ import java.util.List;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import eta.runtime.Rts;
-import eta.runtime.RtsFlags;
-import static eta.runtime.Rts.ExitCode;
-import eta.runtime.RtsMessages;
+import eta.Runtime;
+import eta.runtime.RuntimeOptions;
+import static eta.Runtime.ExitCode;
+import eta.runtime.RuntimeLogging;
 import eta.runtime.io.MemoryManager;
 
 import java.lang.management.ManagementFactory;
@@ -182,7 +182,7 @@ public class Utils {
 
     public static void errorBelch( ByteBuffer formatBuf
                                  , ByteBuffer stringBuf) {
-        RtsMessages.errorBelch(byteBufferToString(formatBuf)
+        RuntimeLogging.errorBelch(byteBufferToString(formatBuf)
                                , byteBufferToString(stringBuf));
     }
 
@@ -194,7 +194,7 @@ public class Utils {
     }
 
     public static String[] getJavaArgs() {
-        List<String> args = RtsFlags.progArgs;
+        List<String> args = RuntimeOptions.progArgs;
         String[] resArgs = new String[args.size()];
         return args.toArray(resArgs);
     }

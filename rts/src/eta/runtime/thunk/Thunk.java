@@ -4,7 +4,7 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.util.UnsafeUtil;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public class Thunk extends Closure {
     public volatile Closure indirectee;

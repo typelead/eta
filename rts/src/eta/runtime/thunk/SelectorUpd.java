@@ -16,8 +16,8 @@ public abstract class SelectorUpd extends UpdatableThunk {
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return selectEnter(context, (DataConstructor) p.evaluate(context));
+        return selectEnter(context, (DataCon) p.evaluate(context));
     }
 
-    public abstract void selectEnter(StgContext context, DataConstructor result);
+    public abstract void selectEnter(StgContext context, DataCon result);
 }

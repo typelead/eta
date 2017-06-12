@@ -2,7 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.DataConstructor;
+import eta.runtime.stg.DataCon;
 
 
 public class SelectorDNoUpd extends SelectorNoUpd {
@@ -12,7 +12,7 @@ public class SelectorDNoUpd extends SelectorNoUpd {
     }
 
     @Override
-    public Closure selectEnter(StgContext context, DataConstructor result) {
+    public Closure selectEnter(StgContext context, DataCon result) {
         context.D(1, result.getD(index));
         return null;
     }

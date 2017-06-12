@@ -114,9 +114,10 @@ emitForeignCall safety mbObj results target args =
     maybe (emit callCode) (flip emitAssign callCode) resLoc
     maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
   where wrapSafety code = do
-          whenSafe $ emit $ suspendThreadMethod (playInterruptible safety)
+          -- TODO: Protect interruptibility here
+          -- whenSafe $ emit $ suspendThreadMethod (playInterruptible safety)
           _ <- code
-          whenSafe $ emit resumeThreadMethod
+          -- whenSafe $ emit resumeThreadMethod
           where whenSafe = when (playSafe safety)
         callCode = target args
         (resLoc, objLoc) =

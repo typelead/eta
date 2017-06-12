@@ -8,7 +8,7 @@ import java.lang.ref.WeakReference;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public final class ByteArray extends Value {
 

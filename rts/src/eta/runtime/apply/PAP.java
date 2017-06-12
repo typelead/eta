@@ -3,7 +3,7 @@ package eta.runtime.apply;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public class PAP extends Value {
     public Closure fun;

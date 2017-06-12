@@ -2,7 +2,7 @@ package eta.runtime.message;
 
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public abstract class Message extends Value {
     protected volatile boolean valid = true;
