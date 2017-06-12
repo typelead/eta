@@ -8,7 +8,7 @@ import eta.runtime.RtsFlags;
 
 public class IO {
 
-    public static void decodeFloat_Int(StgContext context, float f) {
+    public static Closure decodeFloat_Int(StgContext context, float f) {
         int bits = Float.floatToRawIntBits(f);
         int s = ((bits >> 31) == 0) ? 1 : -1;
         int e = ((bits >> 23) & 0xff);
@@ -17,34 +17,32 @@ public class IO {
             (bits & 0x7fffff) | 0x800000;
         context.I(1, s * m);
         context.I(2, e - 150);
+        return null;
     }
 
-    public static void atomicModifyMutVar(StgContext context, MutVar mv, Closure f) {
+    public static Closure atomicModifyMutVar(StgContext context, MutVar mv, Closure f) {
         Ap2Upd z = new Ap2Upd(f, null);
         SelectorPUpd y = new SelectorPUpd(1, z);
         SelectorPUpd r = new SelectorPUpd(2, z);
         do {
             Closure x = mv.value;
             z.p2 = x;
-            if (RtsFlags.ModeFlags.threaded) {
-                if (!mv.cas(x, y)) {
-                    continue;
-                }
-            } else {
-                mv.value = y;
+            if (!mv.cas(x, y)) {
+                continue;
             }
+            mv.value = y;
             break;
         } while (true);
-        context.R(1, r);
+        return r;
     }
 
-    public static void casMutVar(StgContext context, MutVar mv, Closure old, Closure new_) {
+    public static Closure casMutVar(StgContext context, MutVar mv, Closure old, Closure new_) {
         if (mv.cas(old, new_)) {
             context.I(1, 0);
-            context.R(1, new_);
+            return new_;
         } else {
             context.I(1, 1);
-            context.R(1, null);
+            return null;
         }
     }
 }

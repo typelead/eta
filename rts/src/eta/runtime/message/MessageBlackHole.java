@@ -8,11 +8,17 @@ public final class MessageBlackHole extends Message {
 
     public final TSO tso;
     public final Thunk bh;
-    public final WeakReference<Thread> thread;
 
-    public MessageBlackHole(final TSO tso, final Thunk bh, final Thread t) {
+    public MessageBlackHole(final TSO tso, final Thunk bh) {
         this.tso = tso;
         this.bh = bh;
-        this.thread = new WeakReference<Thead>(t);
+    }
+
+    @Override
+    public void execute(Capability cap) {
+        boolean blocked = cap.messageBlackHole(bh);
+        if (!blocked) {
+            cap.tryWakeupThread(tso);
+        }
     }
 }

@@ -166,10 +166,10 @@ directCall slow entryCode arity args = do
 
 directCall' :: Bool -> Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' slow directLoad entryCode arity args =
-     stackLoadCode
-  <> node
+     node
   <> loadArgs
   <> entryCode
+  <> applyCode
   where (callArgs, restArgs) = splitAt realArity args
         realArity
           | slow      = arity + 1
@@ -182,33 +182,26 @@ directCall' slow directLoad entryCode arity args =
           | directLoad = (fromMaybe mempty . third $ head callArgs,
                           loadContext <> fold (catMaybes $ map third realCallArgs))
           | otherwise  = (mempty, mkCallExit slow callArgs)
-        stackFrames = slowArgFrames restArgs
-        stackFramesLoad = map (\code -> dup tsoType
-                                     <> code
-                                     <> spPushMethod)
-                          stackFrames
-        stackLoadCode = if null stackFrames then mempty
-                        else    loadContext
-                             <> currentTSOField
-                             <> fold stackFramesLoad
-                             <> pop tsoType
+        applyCalls = genApplyCalls restArgs
+        applyCode
+          | null applyCalls = mempty
+          | otherwise       = fold applyCalls
 
-slowArgFrames :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
-slowArgFrames [] = []
-slowArgFrames args = thisFrame : slowArgFrames restArgs
-  where (argPat, n, fts) = slowCallPattern $ map (\(a,_,_) -> a) args
+genApplyCalls :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
+genApplyCalls []   = []
+genApplyCalls args = applyCall : genApplyCalls restArgs
+  where (argPat, n, fts)     = slowCallPattern $ map (\(a,_,_) -> a) args
         (callArgs, restArgs) = splitAt n args
-        thisFrame = genSlowFrame argPat fts callArgs
+        applyCall            = genApplyCall n fts callArgs
 
-genSlowFrame :: Text -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-genSlowFrame patText fts args =
-     new ft
-  <> dup ft
+genApplyCall :: Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+genApplyCall arity fts args =
+     loadContext
   <> fold loadCodes
-  <> invokespecial (mkMethodRef patClass "<init>" fts void)
-  where patClass = apply $ argPatToFrame patText
+  <> mkApFast arity fts
+  where patClass  = apply $ argPatToFrame patText
         loadCodes = mapMaybe (\(_, _, a) -> a) args
-        ft = obj patClass
+        ft        = obj patClass
 
 getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]
 getRepFtCodes = mapM getFtAmode

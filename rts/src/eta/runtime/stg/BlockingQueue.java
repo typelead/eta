@@ -13,7 +13,7 @@ import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.stg.TSO.WhyBlocked.NotBlocked;
 import static eta.runtime.RtsMessages.debugBelch;
 
-public class BlockingQueue extends StgEvaluating implements Iterable<MessageBlackHole> {
+public class BlockingQueue extends BlackHole implements Iterable<MessageBlackHole> {
     public final TSO owner;
     public final Thunk bh;
     public final Queue<MessageBlackHole> messages;
@@ -37,7 +37,9 @@ public class BlockingQueue extends StgEvaluating implements Iterable<MessageBlac
     }
 
     public final void clear() {
-        messages.clear();
+        owner   = null;
+        bh      = null;
+        message.clear();
     }
 
 }

@@ -16,29 +16,41 @@ public class CAF extends Thunk {
 
     @Override
     public Closure enter(StgContext context) {
-        if (indirectee == null) {
-            Capability cap = context.myCapability;
-            Thunk bh = cap.newCAF(this);
-            if (bh == null) {
-                return enter(context);
-            } else {
-                UpdateInfo ui = context.pushUpdate(this);
-                try {
-                    Closure result = thunkEnter(context);
-                } catch (EtaAsyncException ea) {
-                    if (ea.stopHere == ui) {
-                        return enter(context);
-                    } else {
-                        throw ea;
+        if (Thread.interrupted()) {
+            context.myCapability.blockedLoop(false);
+        }
+        do {
+            if (indirectee == null) {
+                Capability cap = context.myCapability;
+                Thunk bh = cap.newCAF(this);
+                if (bh == null) {
+                    continue;
+                } else {
+                    UpdateInfo ui = context.pushUpdate(this);
+                    try {
+                        Closure result = thunkEnter(context);
+                    } catch (EtaAsyncException ea) {
+                        if (ea.stopHere == ui) {
+                            return enter(context);
+                        } else {
+                            throw ea;
+                        }
+                    } finally {
+                        Thunk popped = context.popUpdate();
+                        assert popped == this;
                     }
-                } finally {
-                    Thunk popped = context.popUpdate();
-                    assert popped == this;
+                    return updateCode(context, result);
                 }
-                return updateCode(context, result);
+            } else {
+                return blackHole(context);
             }
-        } else {
-            return blackHole(context);
+        } while (true);
+    }
+
+    @Override
+    public void clear() {
+        if (!shouldKeepCAFs()) {
+            super.clear();
         }
     }
 }

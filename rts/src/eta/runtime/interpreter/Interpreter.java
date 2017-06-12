@@ -6,34 +6,24 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgContext;
-import eta.runtime.io.StgArray;
-import eta.runtime.io.StgByteArray;
-import eta.runtime.exception.StgException;
+import eta.runtime.io.Array;
+import eta.runtime.io.ByteArray;
+import eta.runtime.exception.Exception;
 import static eta.runtime.stg.TSO.WhatNext.ThreadInterpret;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Interpreter {
 
     public static Capability interpretBCO(Capability cap) {
-        ListIterator<StackFrame> sp = cap.context.currentTSO.sp;
+        barf("Interpreter not implemented yet.");
         // TODO: Implement
         return cap;
     }
 
-    public static void yieldToInterpreter(StgContext context) {
-        TSO tso = context.currentTSO;
-        tso.whatNext = ThreadInterpret;
-        context.ret = ThreadYielding;
-        returnToSchedNotPaused(context);
-    }
-
-    public static void returnToSchedNotPaused(StgContext context) {
-        throw StgException.stgReturnException;
-    }
-
     /* TODO: Inline this */
-    public static void newBCO(StgContext context, StgByteArray instrs, StgByteArray literals, StgArray ptrs, int arity, StgByteArray bitmap) {
+    public static Closure newBCO(StgContext context, ByteArray instrs, ByteArray literals, Array ptrs, int arity, ByteArray bitmap) {
         /* TODO: Copy the bitmap */;
-        context.O(1, new StgBCO(instrs, literals, ptrs, arity, null));
+        context.O(1, new BCO(instrs, literals, ptrs, arity, null));
+        return null;
     }
 }

@@ -1,6 +1,5 @@
 package eta.runtime;
 
-
 import java.util.List;
 import java.util.ArrayList;
 
@@ -11,7 +10,6 @@ import static eta.runtime.RtsFlags.RtsOptsEnabled.*;
 import static eta.runtime.RtsMessages.errorBelch;
 
 public class RtsFlags {
-    public static final int DEFAULT_TICK_INTERVAL = 10;
     public static String progName;
     public static String[] fullProgArgs;
     public static List<String> progArgs = new ArrayList<String>();
@@ -36,44 +34,13 @@ public class RtsFlags {
         public static boolean printStack;
     }
 
-    public static class STM {
-        public static boolean fineGrained = false;
-    }
-
-    public static class GcFlags {
-        public static boolean doIdleGC;
-        public static boolean squeezeUpdFrames;
-    }
-
     public static class ParFlags {
-        public static int nNodes;
-        public static int maxLocalSparks;
-        public static boolean migrate;
-    }
-
-    public static class ConcFlags {
-        public static long ctxtSwitchTicks;
-        public static long ctxtSwitchTime;
-    }
-
-    public static class ModeFlags {
-        public static boolean threaded;
-        public static boolean userSignals;
-    }
-
-    public static class MiscFlags {
-        public static boolean installSignalHandlers;
-        public static long tickInterval;
+        public static int maxWorkerCapabilities = 2 * getNumberOfProcessors() + 1;
+        public static int maxLocalSparks = 4096;
+        public static int minTSOIdleTime = 20;
     }
 
     public static void initDefaults() {
-        RtsFlags.ModeFlags.threaded              = true;
-        RtsFlags.ModeFlags.userSignals           = false;
-        RtsFlags.GcFlags.doIdleGC                = false;
-        RtsFlags.GcFlags.squeezeUpdFrames        = true;
-        RtsFlags.MiscFlags.tickInterval          = DEFAULT_TICK_INTERVAL;
-        RtsFlags.MiscFlags.installSignalHandlers = true;
-        RtsFlags.ConcFlags.ctxtSwitchTime        = 20;
         RtsFlags.ParFlags.nNodes                 = 1;
         RtsFlags.ParFlags.maxLocalSparks         = 4096;
         RtsFlags.ParFlags.migrate                = true;
@@ -110,13 +77,9 @@ public class RtsFlags {
         }
         String env = System.getenv("ETA_RTS");
         if (env != null) {
-            if (rtsOptsEnabled == RtsOptsNone) {
-                errorRtsOptsDisabled(isHsMain, "Warning: Ignoring ETA_RTS variable as RTS options are disabled.\n         %s");
-            } else {
-                splitRtsFlags(env);
-                procRtsOpts(isHsMain, rtsArgc, rtsOptsEnabled);
-                rtsArgc = rtsArgs.size();
-            }
+            splitRtsFlags(env);
+            procRtsOpts(isHsMain, rtsArgc, rtsOptsEnabled);
+            rtsArgc = rtsArgs.size();
         }
 
         int i = 0;
@@ -156,21 +119,9 @@ public class RtsFlags {
         }
     }
 
-    public static void checkUnsafe(boolean isHsMain, RtsOptsEnabled enabled) {
-        if (enabled == RtsOptsSafeOnly) {
-            errorRtsOptsDisabled(isHsMain, "Most RTS options are disabled. %s");
-            stgExit(EXIT_FAILURE);
-        }
-    }
-
     public static void procRtsOpts(boolean isHsMain,
-                                   int rtsArgc,
-                                   RtsOptsEnabled rtsOptsEnabled) {
+                                   int rtsArgc) {
         if (rtsArgc >= rtsArgs.size()) return;
-        if (rtsOptsEnabled == RtsOptsNone) {
-            errorRtsOptsDisabled(isHsMain, "RTS options are disabled. %s");
-            stgExit(EXIT_FAILURE);
-        }
         boolean error = false;
         /* TODO: Check suid? */
         for (int i = rtsArgc; i < rtsArgs.size(); i++) {
@@ -189,16 +140,7 @@ public class RtsFlags {
                     case '-':
                         String option = arg.substring(2);
                         optionChecked = true;
-                        if (option.equals("install-signal-handlers=yes")) {
-                            checkUnsafe(isHsMain, rtsOptsEnabled);
-                            RtsFlags.MiscFlags.installSignalHandlers = true;
-                        } else if (option.equals("install-signal-handlers=no")) {
-                            checkUnsafe(isHsMain, rtsOptsEnabled);
-                            RtsFlags.MiscFlags.installSignalHandlers = false;
-                        } else if (option.equals("threaded")) {
-                            /* TODO: Safe flag? */
-                            RtsFlags.ModeFlags.threaded = true;
-                        } else if (option.equals("info")) {
+                        if (option.equals("info")) {
                             printRtsInfo();
                             stgExit(EXIT_SUCCESS);
                         } else {
@@ -260,11 +202,6 @@ public class RtsFlags {
                             }
                         }
                         break;
-                    case 'Z':
-                        optionChecked = true;
-                        checkUnsafe(isHsMain, rtsOptsEnabled);
-                        RtsFlags.GcFlags.squeezeUpdFrames = false;
-                        break;
                     case 'C':
                         optionChecked = true;
                         checkUnsafe(isHsMain, rtsOptsEnabled);
@@ -273,17 +210,6 @@ public class RtsFlags {
                         } else {
                             /* TODO: Catch exception */
                             RtsFlags.ConcFlags.ctxtSwitchTime =
-                                (long)(1000 * Float.parseFloat(arg.substring(2)));
-                        }
-                        break;
-                    case 'V':
-                        optionChecked = true;
-                        checkUnsafe(isHsMain, rtsOptsEnabled);
-                        if (arg.length() == 2) {
-                            RtsFlags.MiscFlags.tickInterval = 0;
-                        } else {
-                            /* TODO: Catch exception */
-                            RtsFlags.MiscFlags.tickInterval =
                                 (long)(1000 * Float.parseFloat(arg.substring(2)));
                         }
                         break;
@@ -344,35 +270,7 @@ public class RtsFlags {
         stgExit(EXIT_FAILURE);
     }
 
-    public static void normaliseRtsOpts() {
-        if (RtsFlags.MiscFlags.tickInterval < 0) {
-            RtsFlags.MiscFlags.tickInterval = DEFAULT_TICK_INTERVAL;
-        }
-
-        if (RtsFlags.MiscFlags.tickInterval == 0) {
-            RtsFlags.ConcFlags.ctxtSwitchTime  = 0;
-        }
-
-        if (RtsFlags.ConcFlags.ctxtSwitchTime > 0) {
-            RtsFlags.MiscFlags.tickInterval =
-                Math.min(RtsFlags.ConcFlags.ctxtSwitchTime,
-                         RtsFlags.MiscFlags.tickInterval);
-        }
-
-        if (RtsFlags.ConcFlags.ctxtSwitchTime > 0) {
-            RtsFlags.ConcFlags.ctxtSwitchTicks =
-                RtsFlags.ConcFlags.ctxtSwitchTime /
-                RtsFlags.MiscFlags.tickInterval;
-        } else {
-            RtsFlags.ConcFlags.ctxtSwitchTicks = 0;
-        }
-
-        if (RtsFlags.ModeFlags.threaded) {
-            RtsFlags.GcFlags.doIdleGC = true;
-        } else {
-            RtsFlags.GcFlags.doIdleGC = false;
-        }
-    }
+    public static void normaliseRtsOpts() {}
 
     public static int getIntOrZero(String s) {
         int res;

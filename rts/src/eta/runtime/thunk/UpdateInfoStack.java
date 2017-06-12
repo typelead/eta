@@ -80,7 +80,7 @@ public class UpdateInfoStack {
 
     public UpdateInfo markBackwardsFrom(Capability cap, TSO tso, UpdateInfo ui) {
         if (ui == null) ui = top;
-        UpdateInfo suspend;
+        UpdateInfo suspend = null;
         while (ui != null && !ui.marked) {
             ui.marked = true;
             Thunk bh = ui.updatee;
@@ -88,20 +88,16 @@ public class UpdateInfoStack {
                 Closure p = bh.indirectee;
                 if (p != null  && p != tso) {
                     suspend = ui;
+                    break;
                 } else {
-                    if (Capability.nCapabilities > 1) {
-                        synchronized (bh) {
-                            p = bh.indirectee;
-                            if (p != null) {
-                                bh.updateWithIndirection(tso);
-                            } else continue;
-                        }
-                    } else {
+                    if (bh.tryLock()) {
                         bh.updateWithIndirection(tso);
-                    }
+                        break;
+                    } else continue;
                 }
-            } while (false);
+            } while (true);
             ui = ui.prev;
         }
+        return suspend;
     }
 }

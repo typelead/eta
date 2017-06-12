@@ -10,7 +10,7 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.ForceIO;
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.Weak;
+import eta.runtime.stg.WeakPtr;
 import eta.runtime.apply.ApV;
 import eta.runtime.apply.ApO;
 import static eta.runtime.RtsScheduler.SchedulerStatus;
@@ -243,14 +243,14 @@ public class Rts {
         RtsIO.ioManagerWakeup();
     }
 
-    public static void runAllJavaFinalizers(List<Weak> weakPtrs) {
+    public static void runAllJavaFinalizers(List<WeakPtr> weakPtrs) {
         Task task = Task.myTask();
 
         if (task != null) {
             task.runningFinalizers = true;
         }
 
-        for (Weak w: weakPtrs) {
+        for (WeakPtr w: weakPtrs) {
             w.runJavaFinalizers();
         }
 

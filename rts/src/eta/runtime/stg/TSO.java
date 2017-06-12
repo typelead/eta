@@ -25,7 +25,7 @@ import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.RtsMessages.debugBelch;
 
-public final class TSO extends StgEvaluating {
+public final class TSO extends BlackHole {
     public static AtomicInteger maxThreadId = new AtomicInteger(0);
     public int id = nextThreadId();
     public volatile TSO link;
@@ -173,19 +173,18 @@ public final class TSO extends StgEvaluating {
         blockInfo = null;
     }
 
-    public final void unpark() {
+    public final void unpark(Capability cap) {
         lock();
         if (whyBlocked == BlockedOnSTM &&
-            blockInfo == STMAwoken_closure) {
+            blockInfo == STM.awake) {
             /* Already woken up */
         } else if (whyBlocked == BlockedOnSTM) {
-            blockInfo = STMAwoken_closure;
-            /* TODO: Is this valid? */
-            tso.cap.tryWakeupThread(this);
+            blockInfo = STM.awake;
+            cap.tryWakeupThread(this);
         } else {
             /* Spurious unpark */
         }
-        .unlock();
+        unlock();
     }
 
     public final boolean isBound() {

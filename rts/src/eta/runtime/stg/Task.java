@@ -157,42 +157,36 @@ public class Task {
     }
 
     public Capability waitForCapability(Capability cap) {
-        if (RtsFlags.ModeFlags.threaded) {
-            if (cap == null) {
-                cap = getFreeCapability();
-                this.cap = cap;
-            } else {
-                assert this.cap == cap: "waitForCapability: this.cap != cap";
-            }
-
-            if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("Waiting for Capability[%d].", cap.no);
-            }
-            Lock l = cap.lock;
-            boolean unlocked = false;
-            l.lock();
-            try {
-                if (cap.runningTask != null) {
-                    cap.newReturningTask(this);
-                    l.unlock();
-                    unlocked = true;
-                    cap = waitForReturnCapability();
-                } else {
-                    cap.runningTask = this;
-                }
-            } finally {
-                if (!unlocked) {
-                    l.unlock();
-                }
-            }
-            cap.assertFullCapabilityInvariants(this);
-            if (RtsFlags.DebugFlags.scheduler) {
-                debugBelch("Resuming Capability[%d].", cap.no);
-            }
-        } else {
-            mainCapability.runningTask = this;
-            cap = mainCapability;
+        if (cap == null) {
+            cap = getFreeCapability();
             this.cap = cap;
+        } else {
+            assert this.cap == cap: "waitForCapability: this.cap != cap";
+        }
+
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("Waiting for Capability[%d].", cap.no);
+        }
+        Lock l = cap.lock;
+        boolean unlocked = false;
+        l.lock();
+        try {
+            if (cap.runningTask != null) {
+                cap.newReturningTask(this);
+                l.unlock();
+                unlocked = true;
+                cap = waitForReturnCapability();
+            } else {
+                cap.runningTask = this;
+            }
+        } finally {
+            if (!unlocked) {
+                l.unlock();
+            }
+        }
+        cap.assertFullCapabilityInvariants(this);
+        if (RtsFlags.DebugFlags.scheduler) {
+            debugBelch("Resuming Capability[%d].", cap.no);
         }
         return cap;
     }

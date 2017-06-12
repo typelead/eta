@@ -7,7 +7,7 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ReturnClosure;
-import eta.runtime.exception.StgException;
+import eta.runtime.exception.Exception;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.stg.TSO.TSO_BLOCKEX;
 import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
@@ -82,12 +82,12 @@ public class Concurrent {
         TSO tso = Rts.createIOThread(cap, closure);
         tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
         Rts.scheduleThreadOn(cap, cpu, tso);
-        cap.contextSwitch = true;
         context.O(1, tso);
         return null;
     }
 
     public static Closure yield(StgContext context) {
+        cap.blockedLoop(true);
         Thread.yield();
         return null;
     }

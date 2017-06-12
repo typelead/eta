@@ -1,17 +1,17 @@
 package eta.runtime.interpreter;
 
 import eta.runtime.stg.Closure;
-import eta.runtime.io.StgArray;
-import eta.runtime.io.StgByteArray;
+import eta.runtime.io.Array;
+import eta.runtime.io.ByteArray;
 
-public class StgBCO extends Value {
-    public final StgByteArray instrs;
-    public final StgByteArray literals;
-    public final StgArray ptrs;
+public class BCO extends Value {
+    public final ByteArray instrs;
+    public final ByteArray literals;
+    public final Array ptrs;
     public final int arity;
     public final int[] bitmap;
 
-    public StgBCO(StgByteArray instrs, StgByteArray literals, StgArray ptrs,
+    public BCO(ByteArray instrs, ByteArray literals, Array ptrs,
                   int arity, int[] bitmap) {
         this.instrs = instrs;
         this.literals = literals;

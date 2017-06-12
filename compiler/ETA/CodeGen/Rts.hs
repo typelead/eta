@@ -63,7 +63,7 @@ stgClosure    = stg "Closure"
 stgContext    = stg "StgContext"
 capability    = stg "Capability"
 task          = stg "Task"
-stgInd        = thunk "StgInd"
+stgInd        = thunk "UpdatableThunk"
 stgIndStatic  = thunk "CAF"
 stgThunk      = thunk "Thunk"
 stgFun        = apply "Function"
@@ -71,17 +71,17 @@ stgTSO        = stg "TSO"
 stackFrame    = stg "StackFrame"
 rtsConfig     = rts "RtsConfig"
 rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
-exitCode      = rts "Rts$ExitCode"
-stgArray      = io "StgArray"
-stgByteArray  = io "StgByteArray"
+exitCode      = rts "Runtime$ExitCode"
+stgArray      = io "Array"
+stgByteArray  = io "ByteArray"
 rtsUnsigned   = merge "eta/integer" "Utils"
 stgMutVar     = io "MutVar"
 stgMVar       = conc "MVar"
 stgTVar       = stm "TVar"
-stgBCO        = interp "StgBCO"
-stgWeak       = stg "Weak"
-rtsGroup      = rts "Rts"
-hsResult      = rts "Rts$StgResult"
+stgBCO        = interp "BCO"
+stgWeak       = stg "WeakPtr"
+rtsGroup      = rts "Runtime"
+hsResult      = rts "Runtime$StgResult"
 
 
 memoryManager :: Text
@@ -101,10 +101,6 @@ contextLoadStore :: Text -> FieldType -> (Code, Code)
 contextLoadStore name ft =
   ( invokevirtual $ mkMethodRef stgContext name [jint, ft] void
   , invokevirtual $ mkMethodRef stgContext name [jint] (ret ft))
-
-argPatToFrame :: Text -> Text
-argPatToFrame patText = T.append (upperFirst a) (T.toUpper b)
-  where [a,b] = T.split (== '_') patText
 
 loadContext :: Code
 loadContext = gload contextType 1
@@ -184,7 +180,7 @@ resumeThreadMethod =
   <> contextMyCapabilitySet
 
 stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup, stgGroup :: Text
-stgExceptionGroup = exception "StgException"
+stgExceptionGroup = exception "Exception"
 ioGroup = io "IO"
 stmGroup = stm "STM"
 concGroup = conc "Concurrent"

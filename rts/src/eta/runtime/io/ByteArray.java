@@ -10,34 +10,34 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 
-public final class StgByteArray extends Value {
+public final class ByteArray extends Value {
 
-    public static StgByteArray create(int n) {
+    public static ByteArray create(int n) {
         return create(n, false);
     }
 
-    public static StgByteArray create(int n, boolean pinned) {
+    public static ByteArray create(int n, boolean pinned) {
         return create(n, 0, pinned);
     }
 
-    public static StgByteArray create(int n, int alignment, boolean pinned) {
-        return new StgByteArray(MemoryManager.allocateBuffer(n, pinned));
+    public static ByteArray create(int n, int alignment, boolean pinned) {
+        return new ByteArray(MemoryManager.allocateBuffer(n, pinned));
     }
 
     public ByteBuffer buf;
 
-    private StgByteArray(ByteBuffer buf) {
+    private ByteArray(ByteBuffer buf) {
         this.buf = buf;
     }
 
     @Override
     public Closure enter(StgContext context) {
-        barf("StgByteArray object entered!");
+        barf("ByteArray object entered!");
         return null;
     }
 
     /* MemoryManager-Sensitive */
-    public static void copyAddrToByteArray( ByteBuffer src, StgByteArray destArray
+    public static void copyAddrToByteArray( ByteBuffer src, ByteArray destArray
                                           , int offset, int n) {
         ByteBuffer dest = destArray.buf.duplicate();
         src = src.duplicate();
@@ -46,7 +46,7 @@ public final class StgByteArray extends Value {
     }
 
     /* MemoryManager-Sensitive */
-    public static void copyByteArrayToAddr( StgByteArray srcArray, int offset
+    public static void copyByteArrayToAddr( ByteArray srcArray, int offset
                                           , ByteBuffer dest, int n) {
         ByteBuffer src = srcArray.buf.duplicate();
         dest = dest.duplicate();
@@ -56,8 +56,8 @@ public final class StgByteArray extends Value {
     }
 
     /* MemoryManager-Sensitive */
-    public static void copyByteArray( StgByteArray srcArray, int srcOffset
-                                    , StgByteArray destArray, int destOffset
+    public static void copyByteArray( ByteArray srcArray, int srcOffset
+                                    , ByteArray destArray, int destOffset
                                     , int n) {
         ByteBuffer src  = srcArray.buf.duplicate();
         ByteBuffer dest = destArray.buf.duplicate();

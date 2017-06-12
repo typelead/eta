@@ -3,27 +3,27 @@ package eta.runtime.stg;
 import java.util.ListIterator;
 import java.nio.ByteBuffer;
 
-import eta.runtime.exception.StgException;
+import eta.runtime.exception.Exception;
 import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
 import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 import static eta.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
 public class Stg {
-    /* Weak pointer operations */
-
-    public static void mkWeak(StgContext context, Closure key, Closure value, Closure finalizer) {
+    /* Weak Pointer Operations */
+    public static Closure mkWeak(StgContext context, Closure key, Closure value, Closure finalizer) {
         Capability cap = context.myCapability;
-        Weak weak = new Weak(key, value, finalizer);
+        WeakPtr weak = new WeakPtr(key, value, finalizer);
         cap.weakPtrList.add(weak);
         context.O(1, weak);
+        return null;
     }
 
-    public static void mkWeakNoFinalizer(StgContext context, Closure key, Closure value) {
-        mkWeak(context, key, value, null);
+    public static Closure mkWeakNoFinalizer(StgContext context, Closure key, Closure value) {
+        return mkWeak(context, key, value, null);
     }
 
-    public static void addJavaFinalizerToWeak(StgContext context, ByteBuffer fptr, ByteBuffer ptr, int flag, ByteBuffer eptr, Weak w) {
+    public static Closure addJavaFinalizerToWeak(StgContext context, ByteBuffer fptr, ByteBuffer ptr, int flag, ByteBuffer eptr, WeakPtr w) {
         /* TODO: Grab finalizer args */
         w.lock();
         if (w.isDead()) {
@@ -34,15 +34,15 @@ public class Stg {
             w.unlock();
             context.I(1, 1);
         }
+        return null;
     }
 
-    public static void finalizeWeak(StgContext context, Weak w) {
+    public static Closure finalizeWeak(StgContext context, WeakPtr w) {
         w.lock();
         if (w.isDead()) {
             w.unlock();
             context.I(1, 0);
-            /* TODO: Is null the correct return? */
-            context.R(1, null);
+            return null;
         } else {
             /* TODO: Create new finalizer */
             Closure finalizer = w.finalizer;
@@ -51,47 +51,34 @@ public class Stg {
             w.runJavaFinalizers();
             if (finalizer == null) {
                 context.I(1, 0);
-                /* TODO: Is null the correct return? */
-                context.R(1, null);
+                return null;
             } else {
                 context.I(1, 1);
-                context.R(1, finalizer);
+                return finalizer;
             }
         }
     }
 
-    public static void deRefWeak(StgContext context, Weak w) {
+    public static Closure deRefWeak(StgContext context, WeakPtr w) {
         if (!w.tryLock()) {
             w.lock();
             w.unlock();
         }
         if (w.isDead()) {
             context.I(1, 0);
-            context.R(1, w);
+            return w;
         } else {
             context.I(1, 1);
-            context.R(1, w.getValue());
+            return w.getValue();
         }
     }
 
-    public static void returnToSched(StgContext context) {
-        Capability cap = context.myCapability;
-        TSO tso = context.currentTSO;
-        cap.threadPaused(tso);
-        throw StgException.stgReturnException;
-    }
-
     public static Closure noDuplicate(StgContext context) {
-        if (Capability.nCapabilities != 1) {
+        if (capabilities.size() > 1) {
             Capability cap = context.myCapability;
             TSO tso = context.currentTSO;
             cap.threadPaused(tso);
         }
         return null;
-    }
-
-    public static void threadFinished(StgContext context) {
-        context.ret = ThreadFinished;
-        throw StgException.stgReturnException;
     }
 }

@@ -4,10 +4,10 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 
-public final class StgArray extends Value {
+public final class Array extends Value {
     public Closure[] arr;
 
-    public StgArray(Closure[] arr) {
+    public Array(Closure[] arr) {
         this.arr = arr;
     }
 
@@ -21,7 +21,7 @@ public final class StgArray extends Value {
 
     @Override
     public Closure enter(StgContext context) {
-        barf("StgArray object entered!");
+        barf("Array object entered!");
         return null;
     }
 
@@ -29,22 +29,22 @@ public final class StgArray extends Value {
         return arr.length;
     }
 
-    public static StgArray create(int n, Closure init) {
+    public static Array create(int n, Closure init) {
         Closure[] arr = new Closure[n];
         for (int i = 0; i < n; i++) {
             arr[i] = init;
         }
-        return new StgArray(arr);
+        return new Array(arr);
     }
 
-    public static void copyArray( StgArray srcArray, int srcOffset
-                                , StgArray destArray, int destOffset, int n) {
+    public static void copyArray( Array srcArray, int srcOffset
+                                , Array destArray, int destOffset, int n) {
         System.arraycopy(srcArray.arr, srcOffset, destArray.arr, destOffset, n);
     }
 
-    public static StgArray cloneArray(StgArray srcArray, int offset, int n) {
+    public static Array cloneArray(Array srcArray, int offset, int n) {
         Closure[] arr = new Closure[n];
         System.arraycopy(srcArray.arr, offset, arr, 0, n);
-        return new StgArray(arr);
+        return new Array(arr);
     }
 }

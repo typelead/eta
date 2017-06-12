@@ -8,10 +8,10 @@ import eta.runtime.stg.Closure;
 
 public class StablePtrTable {
 
-    private static StablePtrTable INSTANCE = new StablePtrTable();
-    private static Object lock = new Object();
+    private static StablePtrTable INSTANCE  = new StablePtrTable();
+    private static Object         lock      = new Object();
 
-    private ArrayList<Closure> ptrs = new ArrayList<Closure>(64);
+    private ArrayList<Closure>  ptrs        = new ArrayList<Closure>(64);
     private ArrayDeque<Integer> freeIndexes = new ArrayDeque<Integer>(20);
 
     private StablePtrTable() {}
