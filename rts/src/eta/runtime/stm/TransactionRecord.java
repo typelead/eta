@@ -5,7 +5,7 @@ import java.util.Queue;
 import java.util.ArrayDeque;
 import java.util.ListIterator;
 
-import eta.runtime.RtsFlags;
+import eta.runtime.RuntimeOptions;
 import eta.runtime.stg.Closure;
 
 public class TransactionRecord implements Iterable<TransactionEntry> {
@@ -75,7 +75,7 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
 
     public boolean checkReadOnly() {
         boolean result = true;
-        if (RtsFlags.STM.fineGrained) {
+        if (RuntimeOptions.STM.fineGrained) {
             ListIterator<StgTRecChunk> cit = chunkIterator();
             loop:
             while (cit.hasPrevious()) {

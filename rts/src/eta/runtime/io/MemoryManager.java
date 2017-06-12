@@ -5,7 +5,7 @@ import java.util.Map;
 import java.nio.ByteBuffer;
 import java.lang.ref.WeakReference;
 
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public class MemoryManager {
     private static int nextAddress = 0;

@@ -58,7 +58,7 @@ stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgTh
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
   stgBCO, stgWeak :: Text
-stgConstr     = stg "DataConstructor"
+stgConstr     = stg "DataCon"
 stgClosure    = stg "Closure"
 stgContext    = stg "StgContext"
 capability    = stg "Capability"
@@ -70,7 +70,7 @@ stgFun        = apply "Function"
 stgTSO        = stg "TSO"
 stackFrame    = stg "StackFrame"
 rtsConfig     = rts "RtsConfig"
-rtsOptsEnbled = rts "RtsFlags$RtsOptsEnabled"
+rtsOptsEnbled = rts "RuntimeOptions$RtsOptsEnabled"
 exitCode      = rts "Runtime$ExitCode"
 stgArray      = io "Array"
 stgByteArray  = io "ByteArray"
@@ -122,7 +122,7 @@ checkForStackFramesMethod =
   invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
 
 mkApFast :: Int -> [FieldType] -> Code
-mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts closureType)
+mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts (Just closureType))
   where fts = drop 1 rawFts
         applyFun
           | arity == 0 && null fts = "evaluate"
@@ -253,7 +253,7 @@ barf :: Text -> Code
 barf text = sconst text
          <> iconst jint (0)
          <> new arrayFt
-         <> invokestatic (mkMethodRef (rts "RtsMessages") "barf" [jstring, arrayFt] void)
+         <> invokestatic (mkMethodRef (rts "RuntimeLogging") "barf" [jstring, arrayFt] void)
   where arrayFt = jarray jobject
 
 hsResultCap :: Code

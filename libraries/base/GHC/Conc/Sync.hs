@@ -390,7 +390,7 @@ c_setNumCapabilities = error $ "setNumCapabilities: unimplemented"
 getNumProcessors :: IO Int
 getNumProcessors = fmap fromIntegral c_getNumberOfProcessors
 
-foreign import java unsafe "@static eta.runtime.RtsFlags.getNumberOfProcessors"
+foreign import java unsafe "@static eta.runtime.RuntimeOptions.getNumberOfProcessors"
   c_getNumberOfProcessors :: IO CUInt
 
 -- | Returns the number of sparks currently in the local spark pool

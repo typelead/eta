@@ -74,7 +74,7 @@ public class Stg {
     }
 
     public static Closure noDuplicate(StgContext context) {
-        if (capabilities.size() > 1) {
+        if (!singletonCapabilities) {
             Capability cap = context.myCapability;
             TSO tso = context.currentTSO;
             cap.threadPaused(tso);

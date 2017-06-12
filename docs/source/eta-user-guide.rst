@@ -311,9 +311,9 @@ produced on running the program. This is useful in filing a more helpful bug rep
             at eta.runtime.stg.StackFrame.enter(StackFrame.java:26)
             at eta.runtime.stg.StackFrame.enter(StackFrame.java:26)
             at eta.runtime.stg.Capability.schedule(Capability.java:245)
-            at eta.runtime.RtsScheduler.scheduleWaitThread(RtsScheduler.java:57)
-            at eta.runtime.Rts.evalLazyIO(Rts.java:92)
-            at eta.runtime.Rts.main(Rts.java:37)
+            at eta.RuntimeScheduler.scheduleWaitThread(RtsScheduler.java:57)
+            at eta.Runtime.evalLazyIO(Rts.java:92)
+            at eta.Runtime.main(Rts.java:37)
             at eta.main.main(Unknown Source)
     Caused by: java.lang.ClassNotFoundException: Calendar
             at java.net.URLClassLoader.findClass(URLClassLoader.java:381)

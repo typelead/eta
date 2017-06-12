@@ -16,31 +16,24 @@ public class CAF extends Thunk {
 
     @Override
     public Closure enter(StgContext context) {
-        if (Thread.interrupted()) {
-            context.myCapability.blockedLoop(false);
-        }
         do {
             if (indirectee == null) {
-                Capability cap = context.myCapability;
-                Thunk bh = cap.newCAF(this);
-                if (bh == null) {
-                    continue;
-                } else {
-                    UpdateInfo ui = context.pushUpdate(this);
-                    try {
-                        Closure result = thunkEnter(context);
-                    } catch (EtaAsyncException ea) {
-                        if (ea.stopHere == ui) {
-                            return enter(context);
-                        } else {
-                            throw ea;
-                        }
-                    } finally {
-                        Thunk popped = context.popUpdate();
-                        assert popped == this;
+                boolean claimed = claim(context.currentTSO);
+                if (!claimed) continue;
+                UpdateInfo ui = context.pushUpdate(this);
+                try {
+                    Closure result = thunkEnter(context);
+                } catch (EtaAsyncException ea) {
+                    if (ea.stopHere == ui) {
+                        return enter(context);
+                    } else {
+                        throw ea;
                     }
-                    return updateCode(context, result);
+                } finally {
+                    Thunk popped = context.popUpdate();
+                    assert popped == this;
                 }
+                return updateCode(context, result);
             } else {
                 return blackHole(context);
             }
@@ -49,8 +42,19 @@ public class CAF extends Thunk {
 
     @Override
     public void clear() {
-        if (!shouldKeepCAFs()) {
+        if (!Thunk.shouldKeepCAFs()) {
             super.clear();
         }
+    }
+
+    /* Initializing CAFs */
+    public final Thunk claim(TSO tso) {
+        if (caf.tryLock()) {
+            caf.setIndirection(tso);
+            if (Thunk.shouldKeepCAFs()) {
+                Thunk.revertibleCAFList.offer(caf);
+            }
+            return true;
+        } else return false;
     }
 }

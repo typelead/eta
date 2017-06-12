@@ -1,6 +1,6 @@
 package eta.runtime.concurrent;
 
-import eta.runtime.Rts;
+import eta.runtime.Runtime;
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
@@ -8,7 +8,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ReturnClosure;
 import eta.runtime.exception.Exception;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.TSO_BLOCKEX;
 import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
 import static eta.runtime.stg.TSO.TSO_LOCKED;
@@ -111,7 +111,7 @@ public class Concurrent {
                 ret = whyBlocked.getVal();
             }
         }
-        int cap = tso.cap.no;
+        int cap = tso.cap.id;
         int locked;
         if (tso.hasFlag(TSO_LOCKED)) {
             locked = 1;

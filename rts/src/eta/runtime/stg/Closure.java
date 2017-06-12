@@ -6,7 +6,7 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.message.MessageBlackHole;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
 public abstract class Closure implements Serializable {
 
@@ -17,6 +17,9 @@ public abstract class Closure implements Serializable {
     public Closure evaluate(StgContext context) {
         Closure eval = getEvaluated();
         if (eval == null) {
+            if (Thread.interrupted()) {
+                context.myCapability.blockedLoop(false);
+            }
             return enter(context);
         } else {
             return eval;

@@ -3,28 +3,20 @@ package eta.runtime.stg;
 /* Standard closures used throughout the runtime system. */
 
 public class Closures {
+    /* Static closures */
 
-    public static final Closure False_closure            = null;
-    public static final Closure flushStdHandles_closure  = null;
-    public static final Closure runSparks_closure        = null;
-    public static final Closure nonTermination_closure   = null;
-    public static final Closure nestedAtomically_closure = null;
-    public static final Closure evalLazyIO_closure       = new EvalLazyIO();
-    public static final Closure evalIO_closure           = new EvalIO();
-    public static final Closure evalJava_closure         = new EvalJava();
+    public static final Closure False            = null;
+    public static final Closure flushStdHandles  = null;
+    public static final Closure runSparks        = null;
+    public static final Closure nonTermination   = null;
+    public static final Closure nestedAtomically = null;
 
     static {
         try {
-            flushStdHandles_closure  = loadClosure("base.ghc.TopHandler"
-                                                  ,"flushStdHandles");
-            False_closure            = loadClosure("ghc_prim.ghc.Types"
-                                                  ,"False");
-            runSparks_closure        = loadClosure("base.ghc.conc.Sync"
-                                                  ,"runSparks");
-            nonTermination_closure   = loadClosure("base.control.exception.Base"
-                                                  ,"nonTermination");
-            nestedAtomically_closure = loadClosure("base.control.exception.Base"
-                                                  ,"nestedAtomically");
+            flushStdHandles  = loadClosure("base.ghc.TopHandler", "flushStdHandles");
+            False            = loadClosure("ghc_prim.ghc.Types", "False");
+            runSparks        = loadClosure("base.ghc.conc.Sync", "runSparks");
+            nestedAtomically = loadClosure("base.control.exception.Base", "nestedAtomically");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -39,12 +31,30 @@ public class Closures {
        Example: base:GHC.Conc.Sync.runSparks -> base.ghc.conc.Sync, runSparks
     */
     public static Closure loadClosure(String className, String closureName) {
-        return (Closure) Class.forName(className).getMethod(closureName + "_closure").invoke(null);
+        return (Closure) Class.forName(className).getMethod(closureName).invoke(null);
     }
 
     /* Closure definitions that do the main evaluation. */
 
-    public static class EvalLazyIO extends Closure {
+    public static final Closure evalLazyIO(Closure p) {
+        return new EvalLazyIO(p);
+    }
+
+    public static final Closure evalIO(Closure p) {
+        return new EvalIO(p);
+    }
+
+    private static final Closure evalJava(Object thisObj, Closure p) {
+        return new EvalJava(thisObj, p);
+    }
+
+    private static class EvalLazyIO extends Closure {
+        private final Closure p;
+
+        public EvalLazyIO(Closure p) {
+            this.p = p;
+        }
+
         @Override
         public Closure enter(StgContext context) {
             Closure result;
@@ -62,7 +72,13 @@ public class Closures {
         }
     }
 
-    public static class EvalIO extends Closure {
+    private static class EvalIO extends Closure {
+        private final Closure p;
+
+        public EvalIO(Closure p) {
+            this.p = p;
+        }
+
         @Override
         public Closure enter(StgContext context) {
             Closure result;
@@ -81,6 +97,14 @@ public class Closures {
     }
 
     public static class EvalJava extends Closure {
+        private final Object  thisObj;
+        private final Closure p;
+
+        public EvalJava(Object thisObj, Closure p) {
+            this.thisObj = thisObj;
+            this.p       = p;
+        }
+
         @Override
         public Closure enter(StgContext context) {
             Closure result;

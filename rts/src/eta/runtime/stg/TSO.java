@@ -22,18 +22,16 @@ import eta.runtime.thunk.Thunk;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.stg.TSO.WhatNext.*;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
-import static eta.runtime.RtsMessages.barf;
-import static eta.runtime.RtsMessages.debugBelch;
+import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.RuntimeLogging.debugBelch;
 
 public final class TSO extends BlackHole {
     public static AtomicInteger maxThreadId = new AtomicInteger(0);
     public int id = nextThreadId();
-    public volatile TSO link;
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
-    public Queue<BlockingQueue> blockingQueues = new ArrayDeque<BlockingQueue>();
+    public Queue<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
     public WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
-    public Task.InCall bound;
     public TransactionRecord trec;
     public Capability cap;
     public Object blockInfo;
@@ -41,19 +39,18 @@ public final class TSO extends BlackHole {
     public Queue<MessageThrowTo> blockedExceptions
         = new ConcurrentLinkedQueue<ThrowTo>();
     public StackTraceElement[] stackTrace;
+    public AtomicBoolean lock = new AtomicBoolean(false);
 
     /* DEPRECATED */
     public LinkedList<StackFrame> stack;
     public ListIterator<StackFrame> sp;
     public long wakeTime = -1;
     public boolean inMVarOperation;
-    public AtomicBoolean lock = new AtomicBoolean(false);
 
     /* TSO Flags */
     public static final int TSO_LOCKED = 2;
     public static final int TSO_BLOCKEX = 4;
     public static final int TSO_INTERRUPTIBLE = 8;
-    public static final int TSO_STOPPED_ON_BREAKPOINT = 16;
     public static final int TSO_MARKED = 64;
     public static final int TSO_SQUEEZED = 128;
     public static final int  TSO_ALLOC_LIMIT = 256;
@@ -88,8 +85,7 @@ public final class TSO extends BlackHole {
         }
     }
 
-    public TSO(Capability cap, Closure closure) {
-        this.cap = cap;
+    public TSO(Closure closure) {
         this.closure = closure;
     }
 
@@ -188,7 +184,7 @@ public final class TSO extends BlackHole {
     }
 
     public final boolean isBound() {
-        if (RtsFlags.ModeFlags.threaded) {
+        if (RuntimeOptions.ModeFlags.threaded) {
             return bound != null;
         } else {
             return false;
@@ -253,5 +249,44 @@ public final class TSO extends BlackHole {
 
     public final boolean hasStackTrace() {
         return this.stackTrace != null;
+    }
+
+    public final void removeFromQueues() {
+        switch (whyBlocked) {
+            case NotBlocked:
+            case ThreadMigrating:
+                return;
+            case BlockedOnSTM:
+                /* Check for zombie transactions */
+                break;
+            case BlockedOnMVar:
+            case BlockedOnMVarRead:
+                /* TODO: Figure out MVar story */
+                break;
+            case BlockedOnBlackHole:
+                break;
+            case BlockedOnMsgThrowTo:
+                MessageThrowTo m = (MessageThrowTo) blockInfo;
+                m.done();
+                break;
+            case BlockedOnRead:
+            case BlockedOnWrite:
+                // TODO: Remove the following check if this state never occurs
+                // if the threaded rts
+                if (RuntimeOptions.ModeFlags.threaded) {
+                    blockedQueue.remove(tso);
+                }
+                break;
+            case BlockedOnDelay:
+                sleepingQueue.remove(tso);
+                break;
+            default:
+                barf("removeFromQueues: %d", tso.whyBlocked);
+        }
+        whyBlocked = NotBlocked;
+    }
+
+    public final void blockedThrowTo(MessageThrowTo msg) {
+        blockedExceptions.offer(msg);
     }
 }

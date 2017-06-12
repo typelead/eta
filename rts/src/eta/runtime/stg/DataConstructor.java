@@ -1,8 +1,8 @@
 package eta.runtime.stg;
 
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 
-public abstract class DataConstructor extends StgValue {
+public abstract class DataCon extends StgValue {
 
     public abstract int getTag();
 

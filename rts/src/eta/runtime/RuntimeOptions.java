@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import static eta.runtime.Rts.stgExit;
 import static eta.runtime.Rts.ExitCode.EXIT_FAILURE;
 import static eta.runtime.Rts.ExitCode.EXIT_SUCCESS;
-import static eta.runtime.RtsFlags.RtsOptsEnabled.*;
+import static eta.runtime.RuntimeOptions.RtsOptsEnabled.*;
 import static eta.runtime.RuntimeLogging.errorBelch;
 
 public class RuntimeOptions {
@@ -15,7 +15,7 @@ public class RuntimeOptions {
     public static List<String> progArgs = new ArrayList<String>();
     public static List<String> rtsArgs = new ArrayList<String>();
 
-    public static void setup(String[] args) {
+    public static void parse(String[] args) {
         setFullProgArgs(args);
         int argc = args.length;
         int totalArgs = argc;
@@ -23,13 +23,13 @@ public class RuntimeOptions {
         progArgs.clear();
         int rtsArgc = 0;
         if (rtsOpts != null) {
-            splitRtsFlags(rtsOpts);
+            splitRuntimeOptions(rtsOpts);
             procRtsOpts(rtsArgc);
             rtsArgc = rtsArgs.size();
         }
         String env = System.getenv("ETA_RTS");
         if (env != null) {
-            splitRtsFlags(env);
+            splitRuntimeOptions(env);
             procRtsOpts(rtsArgc);
             rtsArgc = rtsArgs.size();
         }
@@ -63,7 +63,7 @@ public class RuntimeOptions {
         normaliseRtsOpts();
     }
 
-    public static void splitRtsFlags(String s) {
+    public static void splitRuntimeOptions(String s) {
         String[] args = s.trim().split("\\s+");
         for (String arg: args) {
             appendRtsArg(arg);
@@ -73,7 +73,6 @@ public class RuntimeOptions {
     public static void procRtsOpts(int rtsArgc) {
         if (rtsArgc >= rtsArgs.size()) return;
         boolean error = false;
-        /* TODO: Check suid? */
         for (int i = rtsArgc; i < rtsArgs.size(); i++) {
             boolean optionChecked = false;
             String arg = rtsArgs.get(i);
@@ -98,22 +97,8 @@ public class RuntimeOptions {
                             error = true;
                         }
                         break;
-                    case 'D':
-                        optionChecked = true;
-                        String rest = arg.substring(2);
-                        for (char c: rest.toCharArray()) {
-                            switch (c) {
-                                case 's':
-                                    RtsFlags.DebugFlags.scheduler = true;
-                                    break;
-                                default:
-                                    badOption(arg);
-                            }
-                        }
-                        break;
                     case 'C':
                         optionChecked = true;
-                        checkUnsafe(isHsMain, rtsOptsEnabled);
                         if (arg.length() == 2) {
                             Runtime.setMinTSOIdleTime(0);
                         } else {
@@ -125,6 +110,16 @@ public class RuntimeOptions {
                                 error = true;
                             }
                             Runtime.setMinTSOIdleTime(ms);
+                        }
+                        break;
+                    case 'D':
+                        optionChecked = true;
+                        String rest = arg.substring(2);
+                        for (char c: rest.toCharArray()) {
+                            boolean valid = Runtime.setDebugMode('s');
+                            if (!valid) {
+                                badOption(arg);
+                            }
                         }
                         break;
                     case 'N':

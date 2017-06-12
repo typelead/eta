@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MVar extends Value {

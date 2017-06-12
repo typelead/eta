@@ -4,7 +4,7 @@ import java.util.Stack;
 import java.util.concurrent.atomic.AtomicReference;
 
 import eta.runtime.thunk.Thunk;
-import static eta.runtime.RtsMessages.barf;
+import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.StackFrame.MarkFrameResult.Stop;
 
 public abstract class StgStackUnderflowFrame extends StackFrame {
