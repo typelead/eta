@@ -24,20 +24,23 @@ public class Thunk extends Closure {
         else return null;
     }
 
-    public final boolean tryLock(Closure oldIndirectee) {
-        return cas(oldIndirectee, StgWhiteHole.closure);
-    }
-
-    public final boolean cas(Closure expected, Closure update) {
-        return UnsafeUtil.cas(this, expected, update);
-    }
-
+    /* Subclasses should override this. The reason it's implemented is that it's
+       used for single-entry thunks. */
     public Closure thunkEnter(StgContext context) {
         barf("thunkEnter not implemented");
     }
 
+    public final void setIndirection(Closure c) {
+        if (useUnsafe) {
+            indirectee = c;
+        } else {
+            indirectee.set(c);
+        }
+    }
+
     public final void updateWithIndirection(Closure ret) {
-        indirectee = ret;
+        setIndirection(ret);
+        clear();
     }
 
     public final Closure updateCode(StgContext context, Closure ret) {
@@ -83,28 +86,24 @@ public class Thunk extends Closure {
         do {
             Closure p = indirectee;
             if (p instanceof Value) return p;
-            else if (p instanceof StgEvaluating) {
+            else if (p instanceof BlackHole) {
                 Capability cap = context.myCapability;
                 TSO tso = context.currentTSO;
-                MessageBlackHole msg = new MessageBlackHole(tso, blackhole, Thread.currentThread());
+                MessageBlackHole msg = new MessageBlackHole(tso, blackhole);
                 boolean blocked = cap.messageBlackHole(msg);
                 if (blocked) {
                     tso.whyBlocked = BlockedOnBlackHole;
                     tso.blockInfo = msg;
-                    /* TODO: Best spot to do some checks here, say for
-                             asynchronous exceptions. */
                     LockSupport.park();
-                    /* Takes into account that LockSupport.park() can wake up
-                       spuriously. */
-                    tso.whyBlocked = NotBlocked;
-                    tso.blockInfo = null;
+                    if (Thread.interrupted()) {}
+                    cap.blockedLoop(true);
                 }
                 continue;
-            } else {
-                p.enter(context);
-            }
-        } while (false);
+            } else return p.enter(context);
+        } while (true);
     }
+
+    /** Apply overrides for Thunks **/
 
     @Override
     public final void applyV(StgContext context) {
@@ -181,12 +180,42 @@ public class Thunk extends Closure {
         return ((indirectee == null)? enter(context):indirectee).applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
     }
 
-    public static Queue<CAF> revertibleCAFList = new ConcurrentLinkedQueue<CAF>();
+    /** Locking Mechanism **/
+
+    public final boolean tryLock() {
+        return cas(null, StgWhiteHole.closure);
+    }
+
+
+    /** CAS Operation Support **/
+
+    private static final useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final AtomicReferenceFieldUpdater<Thunk, Closure> indUpdater
+        = AtomicReferenceFieldUpdater
+            .newUpdater(Thunk.class, Closure.class, "indirectee");
+
+    public final boolean cas(Closure expected, Closure update) {
+        if (useUnsafe) {
+            return indUpdater.compareAndSet(this, expected, update);
+        } else {
+            return UnsafeUtil.cas(this, expected, update);
+        }
+    }
+
+    /** Keep CAFs
+
+       This allows clients to reset all CAFs to unevaluated state.
+    **/
+    private static Queue<CAF> revertibleCAFList = new ConcurrentLinkedQueue<CAF>();
 
     private static boolean keepCAFs;
 
     public static void setKeepCAFs() {
         keepCAFs = true;
+    }
+
+    public static void resetKeepCAFs() {
+        keepCAFs = false;
     }
 
     public static boolean shouldKeepCAFs() {
@@ -195,8 +224,42 @@ public class Thunk extends Closure {
 
     public static synchronized void revertCAFs() {
         for (CAF c: revertibleCAFList) {
-            c.indirectee = null;
+            c.setIndirection(null);
         }
         revertibleCAFList.clear();
+    }
+
+    /* Used to facilitate the free variable clearing code and caches the field
+       lookups to reduce the cost of reflection. */
+    public static WeakHashMap<Class<?>, Field[]> thunkFieldsCache
+      = new WeakHashMap<Class<?>, Field[]>();
+
+    /* Clears out the free variables of a thunk using reflection to free up the
+       strong references of an evaluated thunk. */
+    public void clear() {
+        Class<?> thisClass = getClass();
+        Field[] fields = thunkFieldsCache.get(thisClass);
+        int i = 0;
+        if (fields == null) {
+            Field[] lookupFields = thisClass.getFields();
+            for (Field f:lookupFields) {
+                if (!f.getName().equals("indirectee") && !f.getType().isPrimitive()) {
+                    i++;
+                }
+            }
+            fields = new Field[i];
+            i = 0;
+            for (Field f:lookupFields) {
+                if (!f.getName().equals("indirectee") && !f.getType().isPrimitive()) {
+                    fields[i++] = f;
+                }
+            }
+            thunkFieldsCache.put(thisClass, fields);
+        }
+        for (Field f:fields) {
+            try {
+                f.set(this, null);
+            } catch (IllegalAccessException e) {}
+        }
     }
 }

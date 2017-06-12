@@ -25,19 +25,27 @@ public class MessageThrowTo extends Message {
         this.exception = exception;
     }
 
-    public void done() {
-        invalidate();
+    @Override
+    public void execute(Capability cap) {
+        if (!isValid()) return;
+        lock();
+        assert source.whyBlocked == BlockedOnMsgThrowTo;
+        assert source.blockInfo  == this;
+        boolean success = cap.throwToMsg(this, true);
+        if (!success) {
+            unlock();
+        }
     }
 
+    public void done() {
+        invalidate();
+        unlock();
+    }
+
+    /** Locking Mechanisms **/
+
     public final void lock() {
-        do {
-            int i = 0;
-            do {
-                boolean old = lock.getAndSet(true);
-                if (!old) return;
-            } while (++i < SPIN_COUNT);
-            Thread.yield();
-        } while (true);
+        while (!lock.compareAndSet(false, true)) {}
     }
 
     public final void unlock() {
@@ -50,6 +58,10 @@ public class MessageThrowTo extends Message {
     }
 
     public final boolean tryLock() {
-        return lock.getAndSet(true);
+        return lock.compareAndSet(false, true);
+    }
+
+    public final boolean tryUnlock() {
+        return lock.compareAndSet(true, false);
     }
 }

@@ -4,7 +4,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.StackFrame;
 
-public abstract class SelectorUpd extends StgInd {
+public abstract class SelectorUpd extends UpdatableThunk {
     protected final int index;
     protected final Closure p;
 

@@ -102,25 +102,25 @@ Primitive Types Reference
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | -               | ``RealWorld``          | eta.runtime.stg.Closure     |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| ``Array``       | ``Array#``             | eta.runtime.io.StgArray        |                                             |
+| ``Array``       | ``Array#``             | eta.runtime.io.Array        |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``ByteArray#``         | eta.runtime.io.StgByteArray    |                                             |
+| -               | ``ByteArray#``         | eta.runtime.io.ByteArray    |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``ArrayArray#``        | eta.runtime.stg.StgArray       | Typically only contains ``ByteArray#`` and  |
+| -               | ``ArrayArray#``        | eta.runtime.stg.Array       | Typically only contains ``ByteArray#`` and  |
 |                 |                        |                                | ``ArrayArray#`` types as elements.          |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``SmallArray#``        | eta.runtime.stg.StgArray       | Identical to ``Array#``.                    |
+| -               | ``SmallArray#``        | eta.runtime.stg.Array       | Identical to ``Array#``.                    |
 |                 |                        |                                | Kept for compatibility with GHC.            |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``MutableArray#``      | eta.runtime.io.StgArray        |                                             |
+| -               | ``MutableArray#``      | eta.runtime.io.Array        |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``MutableByteArray#``  | eta.runtime.io.StgByteArray    |                                             |
+| -               | ``MutableByteArray#``  | eta.runtime.io.ByteArray    |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``MutableArrayArray#`` | eta.runtime.stg.StgArray       | Typically only contains ``ByteArray#``,     |
+| -               | ``MutableArrayArray#`` | eta.runtime.stg.Array       | Typically only contains ``ByteArray#``,     |
 |                 |                        |                                | ``ArrayArray#``, and the mutable variants   |
 |                 |                        |                                | as elements.                                |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``SmallMutableArray#`` | eta.runtime.stg.StgArray       | Identical to ``MutableArray#``.             |
+| -               | ``SmallMutableArray#`` | eta.runtime.stg.Array       | Identical to ``MutableArray#``.             |
 |                 |                        |                                | Kept for compatibility with GHC.            |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | ``IORef``,      |                        |                                |                                             |
@@ -134,7 +134,7 @@ Primitive Types Reference
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | ``StableName``  | ``StableName#``        | int                            |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
-| -               | ``BCO#``               | eta.runtime.interpreter.StgBCO |                                             |
+| -               | ``BCO#``               | eta.runtime.interpreter.BCO |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 | ``Weak``        | ``Weak#``              | eta.runtime.stg.Weak        |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
@@ -268,7 +268,7 @@ produced on running the program. This is useful in filing a more helpful bug rep
 
     Exception in thread "main" java.lang.NoClassDefFoundError: Calendar
             at oldzmtimezm1zi1zi0zi3.system.Time$satzus10SQ.thunkEnter(Unknown Source)
-            at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
+            at eta.runtime.thunk.UpdatableThunk.enter(UpdatableThunk.java:19)
             at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at base.text.parsercombinators.ReadP$skipSpaceszuskip.enter(Unknown Source)
             at base.ghc.Read$satzus5BWW.enter(Unknown Source)
@@ -282,15 +282,15 @@ produced on running the program. This is useful in filing a more helpful bug rep
             at eta.runtime.apply.Apply$8.enter(Apply.java:75)
             at base.text.parsercombinators.ReadP$run.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$satzus10SY.thunkEnter(Unknown Source)
-            at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
+            at eta.runtime.thunk.UpdatableThunk.enter(UpdatableThunk.java:19)
             at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at oldzmtimezm1zi1zi0zi3.system.Time$lvl98zus13J8.thunkEnter(Unknown Source)
-            at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
+            at eta.runtime.thunk.UpdatableThunk.enter(UpdatableThunk.java:19)
             at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at base.ghc.Base$zpzp.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$doFmtzus13PB.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$lvl112zus13P6.thunkEnter(Unknown Source)
-            at eta.runtime.thunk.StgInd.enter(StgInd.java:19)
+            at eta.runtime.thunk.UpdatableThunk.enter(UpdatableThunk.java:19)
             at eta.runtime.stg.Closure.evaluate(Closure.java:20)
             at base.ghc.Base$zpzp.enter(Unknown Source)
             at oldzmtimezm1zi1zi0zi3.system.Time$doFmtzus13PB.enter(Unknown Source)

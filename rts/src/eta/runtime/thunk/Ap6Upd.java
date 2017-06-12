@@ -4,7 +4,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 
-public class Ap6Upd extends StgInd {
+public class Ap6Upd extends UpdatableThunk {
     public Closure p1;
     public Closure p2;
     public Closure p3;

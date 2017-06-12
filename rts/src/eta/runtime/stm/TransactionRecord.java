@@ -7,8 +7,6 @@ import java.util.ListIterator;
 
 import eta.runtime.RtsFlags;
 import eta.runtime.stg.Closure;
-import static eta.runtime.stm.TRecState.TREC_ACTIVE;
-import static eta.runtime.stm.STM.EntrySearchResult;
 
 public class TransactionRecord implements Iterable<TransactionEntry> {
     public TransactionRecord enclosingTrec;
@@ -35,6 +33,10 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
         }
     }
 
+    public static TransactionRecord start(TransactionRecord enclosing) {
+        return new TransactionRecord(enclosing);
+    }
+
     public static class EntrySearchResult {
         public final TransactionRecord header;
         public final TransactionEntry entry;
@@ -48,7 +50,7 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
         TransactionEntry entry = null;
         TransactionRecord trec = this;
         do {
-            entry = entries.get(tvar);
+            entry = get(tvar);
         } while (entry == null && ((trec = trec.enclosingTrec) != null));
         return (entry == null? null:new EntrySearchResult(trec, entry));
     }
@@ -153,7 +155,6 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
     }
 
     public void mergeReadInto(TVar tvar, Closure expectedValue) {
-        boolean found = false;
         TransactionRecord t = this;
         TransactionEntry e = null;
         do {
@@ -180,7 +181,7 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
         }
     }
 
-    public boolean commit() {
+    public boolean commit(Capability cap) {
         assert enclosingTrec == null;
         assert state == TREC_ACTIVE
             || state == TREC_CONDEMNED;
@@ -226,7 +227,7 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
                 TVar s = e.tvar;
                 if (!useReadPhase || e.isUpdate()) {
                     assert s.isLocked(this);
-                    s.unparkWaiters();
+                    s.unparkWaiters(cap);
                     s.numUpdates++;
                     s.unlock(e.newValue);
                 }
@@ -351,5 +352,65 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
             s.offerWatchQueue(tso);
             e.newValue = tso;
         }
+    }
+
+    public void condemn() {
+        assert state == TREC_ACTIVE
+            || state == TREC_WAITING
+            || state == TREC_CONDEMNED;
+        if (state == TREC_WAITING) {
+            assert enclosingTrec == null;
+            trec.removeWatchQueueEntries();
+        }
+        state = TREC_CONDEMNED;
+    }
+
+    public void commitNested() {
+        assert enclosingTrec != null;
+        assert state == TREC_ACTIVE || state == TREC_CONDEMNED;
+        boolean valid = validateAndAcquireOwnership(false, true);
+        if (valid) {
+            valid = checkReadOnly();
+            if (valid) {
+                for (TransactionEntry e:entries.values()) {
+                    TVar s = e.tvar;
+                    if (e.isUpdate()) {
+                        s.unlock(e.expectedValue);
+                    }
+                    enclosingTrec.mergeUpdateInto(s, e.expectedValue, e.newVale);
+                    assert s.currentValue != this;
+                }
+            } else {
+                revertOwnership(false);
+            }
+        }
+        return valid;
+    }
+
+    public void mergeUpdateInto(TVar tvar, Closure expectedValue, Closure newValue) {
+        TransactionEntry e = get(tvar);
+        if (e == null) {
+            put(tvar, expectedValue, newValue);
+        } else {
+            if (e.expectedValue != expectedValue) {
+                state = TREC_CONDEMNED;
+            }
+            e.newValue = newValue;
+        }
+    }
+
+    public boolean checkReadOnly() {
+        boolean valid = true;
+        for (TransactionEntry e:entries.values()) {
+            TVar s = e.tvar;
+            if (e.isReadOnly()) {
+                if (s.currentValue != e.expectedValue ||
+                    s.numUpdates != e.numUpdates) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        return valid;
     }
 }

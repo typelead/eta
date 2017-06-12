@@ -1366,7 +1366,7 @@ mkRtsMainClass dflags mainClass
       -- TODO: Find main module
       , invokestatic $ mkMethodRef (moduleJavaClass mainMod) "DZCmain_closure" [] (Just closureType)
       , gload rtsConfigType 1
-      , invokestatic $ mkMethodRef (rts "Rts") "main" [ jarray jstring
+      , invokestatic $ mkMethodRef (rts "Runtime") "main" [ jarray jstring
                                                         , closureType
                                                         , rtsConfigType]
                                                         (ret exitCodeType)

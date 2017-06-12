@@ -43,6 +43,12 @@ public class TVar extends Value {
         watchQueue.add(tso);
     }
 
+    public void unparkWaiters(Capability c) {
+        for (TSO tso: watchQueue) {
+            tso.unpark(c);
+        }
+    }
+
     /** Invariants **/
 
     public Set<AtomicInvariant> getInvariants() {
@@ -63,16 +69,20 @@ public class TVar extends Value {
         Closure result;
         do {
             result = currentValue();
-        } while (!cas(this, result, trec));
+        } while (!cas(result, trec));
         return result;
     }
 
     public boolean conditionalLock(TransactionRecord trec, Closure expected) {
-        return cas(this, expected, trec);
+        return cas(expected, trec);
     }
 
     public void unlock(Closure c) {
-        currentValue = c;
+        if (useUnsafe) {
+            currentValue = c;
+        } else {
+            cvUpdater.set(c);
+        }
     }
 
     public void isLocked(TransactionRecord trec) {
@@ -81,15 +91,16 @@ public class TVar extends Value {
 
     /** CAS Operation Support **/
 
+    private static final useUnsafe = UnsafeUtil.UNSAFE == null;
     private static final AtomicReferenceFieldUpdater<TVar, Closure> cvUpdater
         = AtomicReferenceFieldUpdater
             .newUpdater(TVar.class, Closure.class, "currentValue");
 
-    public static boolean cas(TVar tvar, Closure expected, Closure update) {
-        if (UnsafeUtil.UNSAFE == null) {
-            return cvUpdater.compareAndSet(tvar, expected, update);
+    public final boolean cas(Closure expected, Closure update) {
+        if (useUnsafe) {
+            return cvUpdater.compareAndSet(this, expected, update);
         } else {
-            return UnsafeUtil.cas(tvar, expected, update);
+            return UnsafeUtil.cas(this, expected, update);
         }
     }
 }

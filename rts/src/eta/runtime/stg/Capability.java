@@ -45,6 +45,8 @@ public final class Capability {
     public static final int MAX_SPARE_WORKERS = 6;
     public static Capability lastFreeCapability;
     public static List<Capability> capabilities = new Concurrent<Capability>();
+    public static ReferenceQueue<Capability> capabilities = new Concurrent<Capability>();
+    private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
 
     public static void init() {
         ensureCapabilities(RtsFlags.ParFlags.nNodes);
@@ -91,7 +93,8 @@ public final class Capability {
     public Queue<Task> spareWorkers = new ArrayBlockingQueue<Task>(MAX_SPARE_WORKERS);
     public Deque<Task> returningTasks = new ArrayDeque<Task>();
     public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
-    public List<Weak> weakPtrList = new ArrayList<Weak>();
+    public Map<WeakReference<Closure>, WeakPtr> weakPtrMap = new ArrayList<Weak>();
+    public ReferenceQueue<Closure> refQueue = new ReferenceQueue<Closure>();
 
     public Capability(int i) {
         this.no = i;
@@ -131,7 +134,6 @@ public final class Capability {
             }
             findWork();
             /* TODO: The following still need to be implemented:
-                     - Work stealing algorithm for TSOs - can be implemented as part of findWork().
                      - Deadlock detection. Be able to detect <<loop>>.
                      - Killing TSO on shutdown.
                      - Migrate threads when disabled?
@@ -248,7 +250,6 @@ public final class Capability {
 
     public final Capability scheduleYield(Task task) {
         Capability cap = this;
-        boolean didGcLast = false;
         if (!cap.shouldYield(task,false) &&
             (!cap.emptyRunQueue() ||
              !cap.emptyInbox() ||
@@ -257,34 +258,13 @@ public final class Capability {
         }
 
         do {
-            YieldResult result = cap.yield(task, !didGcLast);
-            didGcLast = result.didGcLast;
-            cap = result.cap;
-        } while (cap.shouldYield(task, didGcLast));
+            cap = cap.yield(task);
+        } while (cap.shouldYield(task));
         return cap;
     }
 
-    public static class YieldResult {
-        public final Capability cap;
-        public final boolean didGcLast;
-
-        public YieldResult(final Capability cap, final boolean didGcLast) {
-            this.cap = cap;
-            this.didGcLast = didGcLast;
-        }
-    }
-
-    public final YieldResult yield(Task task, final boolean gcAllowed) {
+    public final Capability yield(Task task) {
         Capability cap = this;
-        boolean didGcLast = false;
-
-        if ((pendingSync == SyncType.SYNC_GC_PAR) && gcAllowed) {
-            cap.gcWorkerThread();
-            if (task.cap == cap) {
-                didGcLast = true;
-            }
-        }
-
         task.wakeup = false;
         Lock l = cap.lock;
         boolean unlocked = false;
@@ -309,13 +289,12 @@ public final class Capability {
                 l.unlock();
             }
         }
-        return new YieldResult(cap,didGcLast);
+        return cap;
     }
 
     public final boolean shouldYield(Task task, boolean didGcLast) {
         // TODO: Refine this condition
-        return ((pendingSync != SyncType.SYNC_NONE && !didGcLast) ||
-                !returningTasks.isEmpty() ||
+        return (!returningTasks.isEmpty() ||
                 (!emptyRunQueue() && (task.incall.tso == null
                                           ? peekRunQueue().bound != null
                                           : peekRunQueue().bound != task.incall)));
@@ -528,21 +507,20 @@ public final class Capability {
 
             if (!noBlockedExceptions && (!tso.hasFlag(TSO_BLOCKEX) || (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
                 do {
-                    TSO source;
-                    MessageThrowTo msg = blockedExceptions.peek();
+                    MessageThrowTo msg = tso.blockedExceptions.peek();
                     if (msg == null) return false;
-                    synchronized (msg) {
-                        blockedExceptions.poll();
-                        if (!msg.isValid()) {
-                            continue;
-                        }
-                        throwToSingleThreaded(msg.target, msg.exception);
-                        source = msg.source;
-                        msg.done();
+                    msg.lock();
+                    tso.blockedExceptions.poll();
+                    if (!msg.isValid()) {
+                        msg.unlock();
+                        continue;
                     }
-                    barf("TODO: park/unpark here");
-                    // tryWakeupThread(source);
-                } while (false);
+                    TSO source = msg.source;
+                    msg.done();
+                    tryWakeupThread(source);
+                    throwToSingleThreaded(msg.target, msg.exception);
+                    break;
+                } while (true);
                 return true;
             }
             return false;
@@ -550,17 +528,17 @@ public final class Capability {
     }
 
     public final void awakenBlockedExceptionQueue(TSO tso) {
-        synchronized (tso.blockedExceptions) {
-            for (MessageThrowTo msg: tso.blockedExceptions) {
-                synchronized(msg) {
-                    if (msg.isValid()) {
-                        TSO source = msg.source;
-                        msg.done();
-                        source.interrupt();
-                    }
-                }
+        MessageThrowTo msg;
+
+        while ((msg = tso.blockedExceptions.poll()) != null) {
+            msg.lock();
+            if (msg.isValid()) {
+                TSO source = msg.source;
+                msg.done();
+                tryWakeupThread(source);
+            } else {
+                msg.unlock();
             }
-            tso.blockedExceptions.clear();
         }
     }
 
@@ -568,13 +546,24 @@ public final class Capability {
         if (tso.cap != cap) {
             sendMessage(tso.cap, new MessageWakeup(tso));
         } else {
-            barf("Unimplemented");
-            boolean blocked = false;
+            boolean blocked = true;
             switch (tso.whyBlocked) {
+                case BlockedOnMVar:
+                case BlockedOnMVarRead:
+                    /* TODO: fix this */
+                    blocked = true;
+                    break;
+                case BlockedOnMsgThrowTo:
+                    MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
+                    if (msg.isValid()) {
+                        return;
+                    }
                 case BlockedOnBlackHole:
                 case BlockedOnSTM:
                     blocked = true;
+                    break;
                 case ThreadMigrating:
+                    blocked = false;
                     break;
                 default:
                     return;
@@ -591,7 +580,7 @@ public final class Capability {
         Lock lock = target.lock;
         lock.lock();
         try {
-            target.inbox.offerLast(msg);
+            target.inbox.offer(msg);
             if (target.runningTask == null) {
                 target.runningTask = Task.myTask();
                 target.release_(false);
@@ -784,88 +773,62 @@ public final class Capability {
         Thunk bh = msg.bh;
         do {
             Closure p = bh.indirectee;
-            if (p instanceof TSO) {
+            if (p instanceof WhiteHole) {
+                return false;
+            } else if (p instanceof TSO) {
                 TSO owner = (TSO) p;
-                if (Capability.nCapabilities > 1) {
-                    synchronized (owner) {
-                        if (bh.indirectee instanceof TSO) {
-                            BlockingQueue bq = new BlockingQueue(owner, msg);
-                            owner.blockingQueues.offer(bq);
-                            bh.indirectee = bq;
-                            if (RtsFlags.DebugFlags.scheduler) {
-                                debugBelch("(synchronized) cap %d: thread %d blocked on thread %d",
-                                           cap.no, msg.tso.id, id);
-                            }
-                        } else {
-                            continue;
-                        }
-                    }
-                } else {
-                    /* NOTE: Keep this in sync with above */
-                    BlockingQueue bq = new BlockingQueue(owner, msg);
-                    owner.blockingQueues.offer(bq);
-                    bh.indirectee = bq;
-                    if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("cap %d: thread %d blocked on thread %d",
-                                   cap.no, msg.tso.id, id);
-                    }
+                if (owner.cap != this) {
+                    sendMessage(owner.cap, msg);
+                    return true;
+                }
+                BlockingQueue bq = new BlockingQueue(owner, msg);
+                owner.blockingQueues.offer(bq);
+                bh.setIndirection(bq);
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("cap %d: thread %d blocked on thread %d",
+                                cap.no, msg.tso.id, id);
                 }
                 return true;
             } else if (p instanceof BlockingQueue) {
                 BlockingQueue bq = (BlockingQueue) p;
                 assert bq.bh == bh;
-                if (Capability.nCapabilities > 1) {
-                    synchronized (bq) {
-                        if (bh.indirectee instanceof BlockingQueue) {
-                            messages.offer(msg);
-                            if (RtsFlags.DebugFlags.scheduler) {
-                                debugBelch("cap %d: thread %d blocked on thread %d",
-                                           msg.tso.id, owner.id);
-                            }
-                        } else {
-                            continue;
-                        }
-                    }
-                } else {
-                    /* NOTE: Keep this in sync with above */
-                    messages.offer(msg);
-                    if (RtsFlags.DebugFlags.scheduler) {
-                        debugBelch("cap %d: thread %d blocked on thread %d",
-                                   msg.tso.id, owner.id);
-                    }
+                TSO owner = bq.owner;
+                assert owner != null;
+                if (owner.cap != this) {
+                    sendMessage(owner.cap, msg);
+                    return true;
                 }
-                return true
+                messages.offer(msg);
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("cap %d: thread %d blocked on thread %d",
+                                msg.tso.id, owner.id);
+                }
+                return true;
             } else return false;
-        } while (false);
+        } while (true);
     }
 
     public final void checkBlockingQueues(TSO tso) {
         if (RtsFlags.DebugFlags.scheduler) {
-            debugBelch("cap %d: collision occured; checking blockign queues for thread %d", no, tso.id);
+            debugBelch("cap %d: collision occured; checking blocking queues for thread %d", no, tso.id);
         }
         for (BlockingQueue bq: tso.blockingQueues) {
             Closure p = bq.bh;
-            if (p.indirectee == null || p.indirectee != bq) {
+            Closure ind = p.indirectee;
+            /* TODO: Is this the correct condition? */
+            if (ind == null || ind != bq) {
                 wakeBlockingQueue(bq);
             }
         }
     }
 
     public final void wakeBlockingQueue(BlockingQueue blockingQueue) {
-        synchronized (blockingQueue) {
-            Thunk bh = blockingQueue.bh;
-            for (MessageBlackHole msg: blockingQueue) {
-                TSO tso = msg.tso;
-                /* Ensure that the tso in the list is still blocked on the *same*
-                   thunk. This is a safety for doing unpark() in case we use
-                   unpark() for other purposes. */
-                if (tso.whyBlocked == BlockedOnBlackHole &&
-                    bh == (((MessageBlackHole) tso.blockInfo).bh)) {
-                    LockSupport.unpark(msg.thread.get());
-                }
+        for (MessageBlackHole msg: blockingQueue) {
+            if (msg.isValid()) {
+                tryWakeupThread(msg.tso);
             }
-            blockingQueue.clear();
         }
+        blockingQueue.clear();
     }
 
     public final SchedulerStatus getSchedStatus() {
@@ -976,6 +939,7 @@ public final class Capability {
             l.unlock();
         }
     }
+
     public final boolean singletonRunQueue() {
         return (runQueue.size() == 1);
     }
@@ -1015,60 +979,10 @@ public final class Capability {
         }
     }
 
-    public final void gcWorkerThread() {
-        // TODO: Implement
-    }
-
-    public static void contextSwitchAll() {
-        for (Capability c: capabilities) {
-            c.contextSwitch();
-        }
-    }
-
     public static void interruptAll() {
         for (Capability c: capabilities) {
             c.interrupt();
         }
-    }
-
-    public final boolean handleThreadFinished(Task task, TSO t) {
-        awakenBlockedExceptionQueue(t);
-
-        if (t.bound != null) {
-            if (t.bound != task.incall) {
-                    barf("finished bound thread that isn't mine");
-                } else {
-                    appendToRunQueue(t);
-                    return false;
-                }
-            }
-
-            assert task.incall.tso == t;
-
-            if (t.whatNext == ThreadComplete) {
-                StgEnter enterFrame = (StgEnter) task.incall.tso.stack.peek();
-                task.incall.ret = enterFrame.closure;
-                task.incall.returnStatus = Success;
-            } else {
-                if (task.incall.ret != null) {
-                    task.incall.ret = null;
-                }
-                if (schedulerState.compare(SCHED_INTERRUPTING) >= 0) {
-                    if (false /* HeapOverflow */) {
-                        task.incall.returnStatus = HeapExhausted;
-                    } else{
-                        task.incall.returnStatus = Interrupted;
-                    }
-                } else {
-                    task.incall.returnStatus = Killed;
-                }
-            }
-            t.bound = null;
-            task.incall.tso = null;
-            return true;
-        }
-
-        return false;
     }
 
     public final boolean handleYield(TSO t, WhatNext prevWhatNext) {
@@ -1102,7 +1016,8 @@ public final class Capability {
 
     public final MessageThrowTo throwTo(TSO source, TSO target, Closure exception) {
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
-        boolean success = throwToMsg(msg);
+        msg.lock();
+        boolean success = throwToMsg(msg, false);
         if (success) {
             msg.unlock();
             return null;
@@ -1111,58 +1026,124 @@ public final class Capability {
         }
     }
 
-    public final boolean throwToMsg(MessageThrowTo msg) {
-        TSO target = msg.target;
-        if (target.whatNext == ThreadComplete
-            || target.whatNext == ThreadKilled) {
-            return true;
+    public final boolean throwToMsg(MessageThrowTo msg, boolean wakeupSource) {
+        do {
+            TSO target = msg.target;
+            assert target != null;
+            if (target.whatNext == ThreadComplete
+                || target.whatNext == ThreadKilled) {
+                return true;
+            }
+            if (RtsFlags.DebugFlags.scheduler) {
+                debugBelch("Capability[%d](throwTo) From TSO %d to TSO %d.", msg.source.id, msg.target.id);
+            }
+            Capability targetCap = target.cap;
+            if (target.cap != this) {
+                if (RtsFlags.DebugFlags.scheduler) {
+                    debugBelch("Capability[%d](throwTo) Sending a ThrowTo message to Capability[%d].", no, targetCap.no);
+                }
+                sendMessage(targetCap, msg);
+                return false;
+            }
+            switch (target.whyBlocked) {
+                case NotBlocked:
+                    if (target.hasFlag(TSO_BLOCKEX)) {
+                        blockedThrowTo(target, msg);
+                        return false;
+                    }
+                    break;
+                case BlockedOnMsgThrowTo:
+                    MessageThrowTo msg2 = (MessageThrowTo) target.blockInfo;
+                    if (msg2.id < msg.id) {
+                        msg2.lock();
+                    } else {
+                        if (!msg2.tryLock()) {
+                            sendMessage(targetCap, msg);
+                            return false;
+                        }
+                    }
+                    if (!msg2.isValid()) {
+                        msg.unlock();
+                        cap.tryWakeupThread(target);
+                        continue;
+                    }
+                    if (target.hasFlag(TSO_BLOCKEX) && !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                        msg.unlock();
+                        blockedThrowTo(target, msg);
+                        return false;
+                    }
+                    break;
+               case BlockedOnMVar:
+               case BlockedOnMVarRead:
+                   /* TODO: Figure out MVar story */
+                   barf("Unimplemented MVar");
+                   break;
+               case BlockedOnBlackHole:
+                   if (target.hasFlags(TSO_BLOCKEX)) {
+                       blockedThrowTo(target, msg);
+                       return false;
+                   }
+                   assert target.blockInfo instanceof MessageBlackHole;
+                   ((MessageBlackHole) target.blockInfo).invalidate();
+                   break;
+               case BlockedOnSTM:
+                   target.lock();
+                   if (target.whyBlocked != BlockedOnSTM) {
+                       target.unlock();
+                       continue;
+                   } else {
+                       if (target.hasFlag(TSO_BLOCKEX)
+                           && !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                           blockedThrowTo(target, msg);
+                           target.unlock();
+                           return false;
+                       } else {
+                           target.unlock();
+                       }
+                       break;
+                   }
+               case BlockedOnRead:
+               case BlockedOnWrite:
+               case BlockedOnDelay:
+                   barf("Unimplemented IO manager");
+                   break;
+               case ThreadMigrating:
+                   tryWakeupThread(target);
+                   continue;
+               default:
+                   barf("Unimplemented throwTo()");
+            }
+            break;
+        } while (true);
+        if (wakeupSource) {
+            TSO source = msg.source;
+            msg.done();
+            cap.tryWakeupThread(source);
         }
-        if (RtsFlags.DebugFlags.scheduler) {
-            debugBelch("Capability[%d](throwTo) From TSO %d to TSO %d.", msg.source.id, msg.target.id);
-        }
-        barf("throwTo: Unimplemented");
-        // synchronized (target) {
-        //     WhyBlocked status = target.whyBlocked;
-        //     switch (status) {
-        //         case NotBlocked:
-        //             synchronized (msg) {
-        //                 target.blockedExceptions.offer(msg);
-        //                 msg.wait();
-        //             }
-        //             return false;
-        //         }
-        //         break;
-
-
-        // }
+        raiseAsync(target, msg.exception, false, null);
+        return true;
     }
 
-    public final Thunk newCAF(CAF caf) {
-        Thunk bh = lockCAF(caf);
+    public final void blockedThrowTo(TSO target, MessageThrowTo msg) {
+        assert target.cap == this;
+        target.blockedExceptions.offer(target);
+    }
+
+    public final Thunk newCAF(CAF caf, TSO tso) {
+        Thunk bh = lockCAF(caf, tso);
         if (bh == null) return null;
         if (Thunk.shouldKeepCAFs()) {
             Thunk.revertibleCAFList.offer(caf);
-            // Thunk.dynamicCAFList.offer(caf); TODO: Handle when Eta REPL is working
-        } else {
-            /* TODO: Save the info tables during debugging */
         }
         return bh;
     }
 
     public final Thunk lockCAF(CAF caf) {
         TSO tso = context.currentTSO;
-        if (Capability.capabilities.size() > 1) {
-            synchronized (caf) {
-                if (caf.indirectee == null) {
-                    caf.indirectee = tso;
-                } else {
-                    return null;
-                }
-            }
-        } else {
-            caf.indirectee = tso;
-        }
-        return caf;
+        if (caf.tryLock()) {
+            caf.setIndirection(tso);
+            return caf;
+        } else return null;
     }
 
     public static void freeCapabilities() {
@@ -1251,6 +1232,37 @@ public final class Capability {
         TSO tso = globalRunQueue.pollLast();
         if (tso != null) {
             migrateThread(tso, this);
+        }
+    }
+
+    public void checkFinalizers() {
+        if (!weakPtrList.isEmpty()) {
+            Reference<?> ref;
+            while ((ref = refQueue.poll()) != null) {
+
+            }
+        }
+    }
+
+    public void blockedLoop(boolean actuallyBlocked) {
+        TSO tso = context.currentTSO;
+        processInbox();
+        if (actuallyBlocked) {
+            /* When it's blocked, we can assumed that threadPaused() has
+               already been run, hence, we only need to check blocked exceptions. */
+            maybePerformedBlockedExceptions(tso);
+        } else {
+            threadPaused(tso);
+        }
+
+        /* Run finalizers for WeakPtrs and ByteArrays */
+        checkFinalizers();
+    }
+
+    public void processInbox() {
+        Message msg;
+        while ((msg = inbox.poll()) != null) {
+            msg.execute(cap);
         }
     }
 }

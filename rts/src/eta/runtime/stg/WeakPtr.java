@@ -10,17 +10,15 @@ import eta.runtime.stg.StgContext;
 import static eta.runtime.RtsMessages.barf;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
-public final class Weak extends Value {
-    // TODO: Is this the right reference type?
+public final class WeakPtr extends Value {
     public WeakReference<Closure> key;
-    public WeakReference<Closure> value;
-    // TODO: Should the finalizer be a weak reference as well?
+    public Closure value;
     public Closure finalizer;
     public List<Closure> javaFinalizers;
     public AtomicBoolean lock = new AtomicBoolean(false);
     public boolean dead = false;
 
-    public Weak(Closure key, Closure value, Closure finalizer) {
+    public WeakPtr(Closure key, Closure value, Closure finalizer) {
         this.key = new WeakReference<Closure>(key);
         this.value = new WeakReference<Closure>(value);
         this.finalizer = finalizer;
