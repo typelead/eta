@@ -41,19 +41,11 @@ public final class TSO extends BlackHole {
     public StackTraceElement[] stackTrace;
     public AtomicBoolean lock = new AtomicBoolean(false);
 
-    /* DEPRECATED */
-    public LinkedList<StackFrame> stack;
-    public ListIterator<StackFrame> sp;
-    public long wakeTime = -1;
-    public boolean inMVarOperation;
-
     /* TSO Flags */
     public static final int TSO_LOCKED = 2;
     public static final int TSO_BLOCKEX = 4;
     public static final int TSO_INTERRUPTIBLE = 8;
-    public static final int TSO_MARKED = 64;
-    public static final int TSO_SQUEEZED = 128;
-    public static final int  TSO_ALLOC_LIMIT = 256;
+    public static final int TSO_INTERRUPT_IMMUNE = 64;
 
     public enum WhatNext {
         ThreadRun,
@@ -70,11 +62,7 @@ public final class TSO extends BlackHole {
         BlockedOnWrite(4),
         BlockedOnDelay(5),
         BlockedOnSTM(6),
-        BlockedOnGA(8),
-        BlockedOnJavaCall(10),
-        BlockedOnJavaCall_Interruptible(11),
         BlockedOnMsgThrowTo(12),
-        ThreadMigrating(13),
         BlockedOnMVarRead(14);
         private int val;
         WhyBlocked(int val) {
@@ -254,7 +242,6 @@ public final class TSO extends BlackHole {
     public final void removeFromQueues() {
         switch (whyBlocked) {
             case NotBlocked:
-            case ThreadMigrating:
                 return;
             case BlockedOnSTM:
                 /* Check for zombie transactions */

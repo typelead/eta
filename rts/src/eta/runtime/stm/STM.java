@@ -187,6 +187,7 @@ public class STM {
                     if (valid) {
                         trec.revertOwnership(true);
                         do {
+                            cap.blockedLoop(true);
                             LockSupport.park();
                             if (Thread.interrupted()) {}
                             cap.blockedLoop(true);

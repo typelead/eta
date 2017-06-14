@@ -323,9 +323,6 @@ public class Exception {
                case BlockedOnDelay:
                    barf("Unimplemented IO manager");
                    break;
-               case ThreadMigrating:
-                   cap.tryWakeupThread(target);
-                   continue;
                default:
                    barf("Unimplemented throwTo()");
             }

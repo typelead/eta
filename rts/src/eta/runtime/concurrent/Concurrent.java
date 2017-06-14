@@ -25,12 +25,21 @@ import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
 
+    /* Global Run Queue */
+
     public static final Deque<TSO> globalRunQueue = new ConcurrentLinkedDeque<TSO>();
+    public static final long globalRunQueueModifiedTime = 0;
 
     public static void pushToGlobalRunQueue(TSO tso) {
         assert tso.cap == null;
         globalRunQueue.offerFirst(tso);
     }
+
+    public static boolean emptyGlobalRunQueue() {
+        return globalRunQueue.isEmpty();
+    }
+
+    /* MVar Operations */
 
     public static Closure takeMVar(StgContext context, MVar mvar) {
         do {
@@ -71,24 +80,22 @@ public class Concurrent {
     }
 
     /* TODO: The scheduling policy in Eta is for TSOs to get grabbed by Capabilities
-             and keep executing them to completion (which rarely happens).
+             and keep executing them to completion which doesn't happen THAT
+             frequently.
 
              Hence, it makes no sense to use `forkOn` in Eta since threads will
              be bound to a given thread anyways. If you put multiple threads on
              a single Capability, be warned that one of the threads may never run!
      */
     public static Closure forkOn(StgContext context, int cpu, Closure closure) {
-        Capability cap = context.myCapability;
-        TSO tso = Rts.createIOThread(cap, closure);
-        tso.addFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        Rts.scheduleThreadOn(cap, cpu, tso);
-        context.O(1, tso);
-        return null;
+        fork(context, closure);
     }
 
     public static Closure yield(StgContext context) {
-        cap.blockedLoop(true);
-        Thread.yield();
+        cap.blockedLoop(false);
+        LockSupport.park();
+        if (Thread.isInterrupted()) {};
+        cap.blockedLoop(false);
         return null;
     }
 

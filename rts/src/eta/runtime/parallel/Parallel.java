@@ -33,11 +33,11 @@ public class Parallel {
             retry = false;
             Closure spark = sparks.pollLast();
             while (spark != null && spark.getEvaluated() != null) {
-                globalSparkStats.fizzled++;
+                globalSparkStats.fizzled.getAndIncrement();
                 spark = sparks.pollLast();
             }
             if (spark != null) {
-                globalSparkStats.converted++;
+                globalSparkStats.converted.getAndIncrement();
                 return spark;
             }
             if (!emptyGlobalSparkPool()) {
@@ -55,5 +55,9 @@ public class Parallel {
 
     public static int globalSparkPoolSize() {
         return globalSparkPool.size();
+    }
+
+    public static boolean anySparks() {
+        return !emptyGlobalSparkPool();
     }
 }

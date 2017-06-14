@@ -1,10 +1,11 @@
 package eta.runtime.parallel;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class SparkCounters {
-    public int created;
-    public int dud;
-    public int overflowed;
-    public int converted;
-    public int gcd;
-    public int fizzled;
+    public AtomicLong created    = new AtomicLong();
+    public AtomicLong dud        = new AtomicLong();
+    public AtomicLong overflowed = new AtomicLong();
+    public AtomicLong converted  = new AtomicLong();
+    public AtomicLong fizzled    = new AtomicLong();
 }
