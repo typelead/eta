@@ -26,8 +26,8 @@ import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugBelch;
 
 public final class TSO extends BlackHole {
-    public static AtomicInteger maxThreadId = new AtomicInteger(0);
-    public int id = nextThreadId();
+    public static AtomicInteger maxThreadId = new AtomicInteger();
+    public int id = maxThreadId.getAndIncrement();
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
     public Queue<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
     public WhatNext whatNext = ThreadRun;
@@ -60,10 +60,11 @@ public final class TSO extends BlackHole {
         BlockedOnBlackHole(2),
         BlockedOnRead(3),
         BlockedOnWrite(4),
-        BlockedOnDelay(5),
-        BlockedOnSTM(6),
-        BlockedOnMsgThrowTo(12),
-        BlockedOnMVarRead(14);
+        BlockedOnFuture(5),
+        BlockedOnDelay(6),
+        BlockedOnSTM(7),
+        BlockedOnMsgThrowTo(8),
+        BlockedOnMVarRead(9);
         private int val;
         WhyBlocked(int val) {
             this.val = val;
@@ -75,14 +76,6 @@ public final class TSO extends BlackHole {
 
     public TSO(Closure closure) {
         this.closure = closure;
-    }
-
-    public void pushClosure(StackFrame frame) {
-        sp.add(frame);
-    }
-
-    public static int nextThreadId() {
-        return maxThreadId.getAndIncrement();
     }
 
     public static int getThreadId(TSO tso) {
@@ -113,10 +106,6 @@ public final class TSO extends BlackHole {
         }
     }
 
-    public final void handleThreadBlocked() {
-        // debug output
-    }
-
     public final boolean hasFlag(int flag) {
         return ((flags & flag) != 0);
     }
@@ -144,7 +133,7 @@ public final class TSO extends BlackHole {
     }
 
     public final boolean tryLock() {
-        return lock.getAndSet(true);
+        return lock.compareAndSet(false, true);
     }
 
     public final int showIfFlags(int flags) {
@@ -159,52 +148,11 @@ public final class TSO extends BlackHole {
 
     public final void unpark(Capability cap) {
         lock();
-        if (whyBlocked == BlockedOnSTM &&
-            blockInfo == STM.awake) {
-            /* Already woken up */
-        } else if (whyBlocked == BlockedOnSTM) {
+        if (whyBlocked == BlockedOnSTM && blockInfo == null) {
             blockInfo = STM.awake;
             cap.tryWakeupThread(this);
-        } else {
-            /* Spurious unpark */
         }
         unlock();
-    }
-
-    public final boolean isBound() {
-        if (RuntimeOptions.ModeFlags.threaded) {
-            return bound != null;
-        } else {
-            return false;
-        }
-    }
-
-    // Stack operations
-    public final void spPrevious() {
-        barf("spPrevious");
-        sp.previous();
-    }
-
-    public final void spNext() {
-        barf("spNext");
-        sp.next();
-    }
-
-    public final void spRemove() {
-        barf("spRemove");
-        sp.remove();
-    }
-
-    public final void spPush(StackFrame frame) {
-        barf("spPush");
-        sp.add(frame);
-    }
-
-    public final StackFrame spPop() {
-        barf("spPop");
-        StackFrame frame = sp.previous();
-        sp.remove();
-        return frame;
     }
 
     @Override
@@ -275,5 +223,11 @@ public final class TSO extends BlackHole {
 
     public final void blockedThrowTo(MessageThrowTo msg) {
         blockedExceptions.offer(msg);
+    }
+
+    public final void interrupt() {
+        if (cap != null) {
+            cap.interrupt();
+        }
     }
 }

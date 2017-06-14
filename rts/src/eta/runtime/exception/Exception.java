@@ -116,7 +116,7 @@ public class Exception {
                     do {
                         LockSupport.park();
                         if (Thread.interrupted()) {}
-                        cap.blockedLoop(true);
+                        cap.idleLoop(true);
                     } while (msg.isValid());
                     return null;
                     /* TODO: Is this the right condition? */
