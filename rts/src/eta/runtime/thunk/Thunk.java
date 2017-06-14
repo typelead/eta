@@ -94,10 +94,10 @@ public class Thunk extends Closure {
                 if (blocked) {
                     tso.whyBlocked = BlockedOnBlackHole;
                     tso.blockInfo = msg;
-                    cap.blockedLoop(true)
+                    cap.idleLoop(true)
                     LockSupport.park();
                     if (Thread.interrupted()) {}
-                    cap.blockedLoop(true);
+                    cap.idleLoop(true);
                 }
                 continue;
             } else return p.enter(context);

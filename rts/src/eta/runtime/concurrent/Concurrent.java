@@ -39,6 +39,52 @@ public class Concurrent {
         return globalRunQueue.isEmpty();
     }
 
+    /* Future Map */
+
+    public static final Map<Future<?>, TSO> futureMap = new HashMap<Future<?>, TSO>();
+
+    public static final AtomicBoolean futureMapLock = new AtomicBoolean();
+
+    public static final class FutureBlockResult {
+        public Object    result;
+        public Exception exception;
+        public FutureBlockResult(Object result, Exception e) {
+            this.result    = result;
+            this.exception = exception;
+        }
+    }
+
+    public static void checkFutures(Capability cap) {
+        if (futureMapLock.compareAndSet(false, true)) {
+            Iterator<Map.Entry<Future<?>, TSO>> it = futureMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Future<?>, TSO> entry  = it.next();
+                Future<?>                 future = entry.getKey();
+                TSO                       tso    = entry.getValue();
+                if (future.isDone()) {
+                    it.remove();
+                    Object result = null;
+                    Exception e   = null;
+                    do {
+                        try {
+                            result    = future.get();
+                        } catch (CancellationException e) {
+                            exception = e;
+                        } catch (ExecutionException e) {
+                            exception = e;
+                        } catch (Interrupted e) {
+                            continue;
+                        }
+                        break;
+                    } while (true);
+                    tso.blockInfo = new FutureResult(result, exception);
+                    cap.tryWakeupThread(tso);
+                }
+            }
+            futureMapLock.set(false);
+        }
+    }
+
     /* MVar Operations */
 
     public static Closure takeMVar(StgContext context, MVar mvar) {
@@ -92,10 +138,10 @@ public class Concurrent {
     }
 
     public static Closure yield(StgContext context) {
-        cap.blockedLoop(false);
+        cap.idleLoop(false);
         LockSupport.park();
         if (Thread.isInterrupted()) {};
-        cap.blockedLoop(false);
+        cap.idleLoop(false);
         return null;
     }
 

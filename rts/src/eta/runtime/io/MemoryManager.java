@@ -13,6 +13,8 @@ public class MemoryManager {
     private static TreeMap<Integer, WeakReference<ByteBuffer>> addressMap =
         new TreeMap<Integer, WeakReference<ByteBuffer>>();
 
+
+
     /* Special buffer to represent null pointer in eta. Only contains
        the address -1 */
 

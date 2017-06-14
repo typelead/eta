@@ -187,10 +187,10 @@ public class STM {
                     if (valid) {
                         trec.revertOwnership(true);
                         do {
-                            cap.blockedLoop(true);
+                            cap.idleLoop(true);
                             LockSupport.park();
                             if (Thread.interrupted()) {}
-                            cap.blockedLoop(true);
+                            cap.idleLoop(true);
                             valid = trec.reWait(tso);
                             if (!valid) {
                                 trec     = TransactionRecord.start(null);

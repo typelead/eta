@@ -18,7 +18,7 @@ public abstract class Closure implements Serializable {
         Closure eval = getEvaluated();
         if (eval == null) {
             if (Thread.interrupted()) {
-                context.myCapability.blockedLoop(false);
+                context.myCapability.idleLoop(false);
             }
             return enter(context);
         } else {
