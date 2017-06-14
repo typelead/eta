@@ -43,37 +43,53 @@ import static eta.runtime.stg.StackFrame.MarkFrameResult.*;
 
 public final class Capability {
     public static List<Capability> capabilities = new ArrayList<Capability>();
+    public static Set<Capability> workerCapabilities
+        = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
     public static Set<Capability> blockedCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
     private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
 
-    public static Capability getLocal() {
+    public static Capability getLocal(boolean worker) {
         Capability cap = myCapability.get();
         if (cap == null) {
-            cap = new Capability(Thread.currentThread());
-            synchronized (capabilities) {
-                capabilities.add(cap);
-                cap.id = capabilities.size() - 1;
+            cap = new Capability(Thread.currentThread(), worker);
+            if (worker) {
+                workerCapabilities.add(cap);
+            } else {
+                synchronized (capabilities) {
+                    capabilities.add(cap);
+                    cap.id = capabilities.size() - 1;
+                }
             }
         }
         return cap;
     }
 
+    public static Capability getLocal() {
+        return getLocal(false);
+    }
+
+    public static int getNumCapabilities() {
+        return Runtime.getMaxWorkerCapabilities();
+    }
+
     public static void setNumCapabilities(int n) {
-        /* TODO: setMaxWorkerCapabilities here */
+        Runtime.setMaxWorkerCapabilities(n);
     }
 
     public int id;
+    public final boolean worker;
     public WeakReference<Thread> thread;
-    public Lock lock = new ReentrantLock();
-    public StgContext context = new StgContext();
-    public Deque<TSO> runQueue = new LinkedLinked<TSO>();
-    public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
+    public Lock lock                                       = new ReentrantLock();
+    public StgContext context                              = new StgContext();
+    public Deque<TSO> runQueue                             = new LinkedLinked<TSO>();
+    public Deque<Message> inbox                            = new ConcurrentLinkedDeque<Message>();
     public Map<WeakReference<Closure>, WeakPtr> weakPtrMap = new ArrayList<Weak>();
-    public ReferenceQueue<Closure> refQueue = new ReferenceQueue<Closure>();
+    public ReferenceQueue<Closure> refQueue                = new ReferenceQueue<Closure>();
 
-    public Capability(Thread t) {
+    public Capability(Thread t, boolean worker) {
         this.thread = new WeakReference<Thread>(t);
+        this.worker = worker;
     }
 
     public static Closure scheduleClosure(Closure p) {
@@ -86,25 +102,31 @@ public final class Capability {
         }
     }
 
-    public final Closure schedule(TSO tso, boolean worker) {
+    public final Closure schedule(TSO tso) {
         if (tso != null) {
-            cap.appendToRunQueue(tso);
+            appendToRunQueue(tso);
         }
-        Closure    result       = null;
-        TSO        outer        = null;
-        boolean    reEntry      = false;
+        Closure result = null;
+        TSO     outer  = null;
 
         do {
+            result = null;
             if (context.currentTSO != null) {
                 /* Re-entering the RTS, a fresh TSO was generated. */
                 outer = context.currentTSO;
-                reEntry = true;
             }
 
             /* TODO: The following still need to be implemented:
                - Deadlock detection. Be able to detect <<loop>>.
             */
             if (emptyRunQueue()) {
+
+                if (worker && workerCapabilitiesSize() > Runtime.getMaxWorkerCapabilities()) {
+                    /* Terminate this Worker Capability if we've exceeded the limit
+                       of maxWorkerCapabilities. */
+                    return null;
+                }
+
                 tryStealGlobalRunQueue();
                 if (emptyRunQueue()) {
                     activateSpark();
@@ -112,13 +134,9 @@ public final class Capability {
                         blockedCapabilities.add(this);
                         LockSupport.park();
                         if (Thread.interrupted()) {}
-                        if (blockedCapabilities.contains(this)) {
-                            blockedCapabilities.remove(this);
-                        }
                         continue;
                     }
                 }
-
             }
 
             TSO t = popRunQueue();
@@ -146,22 +164,19 @@ public final class Capability {
 
             context.currentTSO = null;
 
-            if (reEntry) {
+            if (outer != null) {
                 context.currentTSO = outer;
-                reEntry = false;
+                outer              = null;
             }
 
             /* Thread is done executing, awaken the blocked exception queue. */
             awakenBlockedExceptionQueue(t);
-            break;
+            if (emptyRunQueue() && !worker) break;
         } while (true);
         return result;
     }
-    public final void findWork() {
-    }
 
     public final void migrateThread(TSO tso, Capability to) {
-        tso.whyBlocked = ThreadMigrating;
         tso.cap = to;
         tryWakeupThread(tso);
     }
@@ -204,7 +219,7 @@ public final class Capability {
     /* Sparks */
 
     public final void activateSpark() {
-        if (anySparks()) {
+        if (Parallel.anySparks()) {
             createSparkThread();
             if (RuntimeOptions.DebugFlag.scheduler) {
                 debugBelch("{Scheduler} Creating a Spark TSO[%d].", tso.id);
@@ -212,24 +227,19 @@ public final class Capability {
         }
     }
 
-    public static boolean anySparks() {
-        return !emptyGlobalRunQueue();
-    }
-
     public final void createSparkThread() {
         appendToRunQueue(Runtime.createIOThread(Closures.runSparks));
     }
 
     public final boolean newSpark(Closure p) {
-        /* TODO: Synchronize the stats */
         if (p.getEvaluated() == null) {
             if (sparks.offerFirst(p)) {
-                globalSparkStats.created++;
+                globalSparkStats.created.getAndIncrement();
             } else {
-                globalSparkStats.overflowed++;
+                globalSparkStats.overflowed.getAndIncrement();
             }
         } else {
-            globalSparkStats.dud++;
+            globalSparkStats.dud.getAndIncrement();
         }
         return true;
     }
@@ -269,7 +279,7 @@ public final class Capability {
                 TSO source = msg.source;
                 msg.done();
                 tryWakeupThread(source);
-                throwToSingleThreaded(msg.target, msg.exception);
+                Exception.throwToSingleThreaded(msg.target, msg.exception);
                 return true;
             } while (true);
         }
@@ -311,9 +321,6 @@ public final class Capability {
                 case BlockedOnSTM:
                     blocked = true;
                     break;
-                case ThreadMigrating:
-                    blocked = false;
-                    break;
                 default:
                     return;
 
@@ -336,7 +343,10 @@ public final class Capability {
 
     public final void interrupt() {
         Thread t = thread.get();
-        if (t != null) t.interrupt();
+        TSO tso = context.currentTSO;
+        if (t != null && (tso == null || !tso.hasFlag(TSO_INTERRUPT_IMMUNE))) {
+            t.interrupt();
+        }
     }
 
     public final boolean messageBlackHole(MessageBlackHole msg) {
@@ -390,10 +400,6 @@ public final class Capability {
         blockingQueue.clear();
     }
 
-    public final SchedulerStatus getSchedStatus() {
-        return runningTask.incall.returnStatus;
-    }
-
     public final static Capability getFreeCapability() {
         if (lastFreeCapability.runningTask != null) {
             for (Capability cap: capabilities) {
@@ -403,38 +409,6 @@ public final class Capability {
             }
         }
         return lastFreeCapability;
-    }
-
-    public final void newReturningTask(Task task) {
-        returningTasks.add(task);
-    }
-
-    public final void popReturningTask() {
-        returningTasks.poll();
-    }
-
-    public final void giveToTask(Task task) {
-        assert cap.lock.isHeldByCurrentThread();
-        assert task.cap == cap;
-        if (RuntimeOptions.DebugFlags.scheduler) {
-            debugBelch("{Scheduler} Passing Capability[%d] to %s Task[%d].",
-                       cap.id, (task.incall.tso != null)? "Bound" : "Worker", task.id);
-        }
-        Lock l = task.lock;
-        l.lock();
-        try {
-            if (!task.wakeup) {
-                task.wakeup = true;
-                task.condition.signalAll();
-            }
-        } finally {
-            l.unlock();
-        }
-    }
-
-    public final void scheduleWorker() {
-        Capability cap = schedule(null);
-        /* TODO: Finish this */
     }
 
 
@@ -447,6 +421,7 @@ public final class Capability {
     public TSO tryStealGlobalRunQueue() {
         TSO tso = globalRunQueue.pollLast();
         if (tso != null) {
+            Concurrent.globalRunQueueModifiedTime = System.currentTimeMillis();
             migrateThread(tso, this);
         }
     }
@@ -475,41 +450,59 @@ public final class Capability {
         processInbox();
 
         /* TODO: Replace this check elsewhere. It's to detect loops in STM. */
-        if (tso.trec != null && tso.whyBlocked == NotBlocked) {
-            if (!tso.trec.validateNestOfTransactions()) {
-                throwToSingleThreaded(tso, null, true);
-            }
-        }
+        // if (tso.trec != null && tso.whyBlocked == NotBlocked) {
+        //     if (!tso.trec.validateNestOfTransactions()) {
+        //         throwToSingleThreaded(tso, null, true);
+        //     }
+        // }
 
-        if (actuallyBlocked) {
-            /* When it's blocked, we can assumed that threadPaused() has
-               already been run, hence, we only need to check blocked exceptions. */
-            maybePerformedBlockedExceptions(tso);
-        } else {
-            threadPaused(tso);
-        }
+        threadPaused(tso);
 
         /* Run finalizers for WeakPtrs and ByteArrays */
         checkFinalizers();
 
         /* Spawn worker capabilities if there's work to do */
-        maybeSpawnWorkers();
+        manageOrSpawnWorkers();
+    }
+
+    public void manageOrSpawnWorkers() {
+
+        /* When we have excess live threads and blocked Capabilities, let's wake
+           them up so they can terminate themselves. */
+        if ((workerCapabilitiesSize() > Runtime.getMaxWorkerCapabilities()) &&
+            !blockedCapabilities.isEmpty()) {
+            unblockCapabilities();
+        }
+            /* Interrupt the blocked capabilities so that they can terminate
+               themselves when they unblock. */
+
+        if ((!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks()) &&
+            ( System.getCurrentTimeMillis()
+            - Concurrent.globalRunQueueModifiedTime
+            > Runtime.getMinTSOIdleTime())) {
+            if (!blockedCapabilities.isEmpty()) {
+                unblockCapabilities();
+            } else if (workerCapabilitiesSize() < Runtime.getMaxWorkerCapabilities()) {
+                new WorkerThread().start();
+            }
+        }
+    }
+
+    public static void unblockCapabilities() {
+        synchronized (blockedCapabilities) {
+            if (!blockedCapabilities.isEmpty()) {
+                for (Capability c:blockedCapabiliies) {
+                    c.interrupt();
+                }
+                blockedCapabilities.clear();
+            }
+        }
     }
 
     public void processInbox() {
         Message msg;
         while ((msg = inbox.poll()) != null) {
             msg.execute(cap);
-        }
-    }
-
-    public final void scheduleThreadOn(int cpu, TSO tso) {
-        tso.addFlags(TSO_LOCKED);
-        cpu %= capabilities.size();
-        if (cpu == cap.id) {
-            appendToRunQueue(tso);
-        } else {
-            migrateThread(tso, capabilities.get(cpu));
         }
     }
 }

@@ -360,7 +360,7 @@ this value, use 'setNumCapabilities'.
 @since 4.4.0.0
 -}
 foreign import java unsafe
-  "@static @field eta.runtime.stg.Capability.enabledCapabilities"
+  "@static eta.runtime.stg.Capability.getNumCapabilities"
   getNumCapabilities :: IO Int
 
 {- |
@@ -380,9 +380,8 @@ to avoid contention with other processes in the machine.
 setNumCapabilities :: Int -> IO ()
 setNumCapabilities i = c_setNumCapabilities (fromIntegral i)
 
--- foreign import ccall safe "setNumCapabilities"
-c_setNumCapabilities :: CUInt -> IO ()
-c_setNumCapabilities = error $ "setNumCapabilities: unimplemented"
+foreign import java unsafe "@static eta.runtime.stg.Capability.setNumCapabilities"
+  c_setNumCapabilities :: CUInt -> IO CUInt
 
 -- | Returns the number of CPUs that the machine has
 --

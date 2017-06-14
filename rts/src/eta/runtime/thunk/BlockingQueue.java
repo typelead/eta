@@ -1,4 +1,4 @@
-package eta.runtime.stg;
+package eta.runtime.thunk;
 
 import java.util.Queue;
 import java.util.Iterator;
