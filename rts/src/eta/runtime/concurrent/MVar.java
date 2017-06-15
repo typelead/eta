@@ -63,6 +63,6 @@ public class MVar extends Value {
     }
 
     public final boolean tryLock() {
-        return lock.getAndSet(true);
+        return lock.compareAndSet(false, true);
     }
 }

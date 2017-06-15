@@ -858,30 +858,20 @@ simpleOp WriteMutVarOp = Just $ normalOp mutVarSetValue
 simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 
 -- Addr# ops
--- TODO: Inline these primops
-simpleOp Addr2IntOp = Just $ normalOp
-  $ invokestatic $ mkMethodRef memoryManager "getAddress" [byteBufferType] (ret jint)
-simpleOp Int2AddrOp = Just $ normalOp
-  $ invokestatic $ mkMethodRef memoryManager "getBuffer" [jint] (ret byteBufferType)
-simpleOp AddrAddOp = Just $ \[addr, dx] ->
-     addr
-  <> byteBufferDup
-  <> addr
-  <> byteBufferPosGet
-  <> dx
-  <> iadd
-  <> byteBufferPosSet
-  <> gconv bufferType byteBufferType
-simpleOp AddrSubOp = Just $ \[addr1, addr2] ->
-  addr1 <> byteBufferPosGet <> addr2 <> byteBufferPosGet <> isub
+-- WARNING: Addr2IntOp and Int2AddrOp are unsafe in the sense that allocating more
+--          than 2GB will disable this from being addressable.
+simpleOp Addr2IntOp = Just $ normalOp $ gconv jlong jint
+simpleOp Int2AddrOp = Just $ normalOp $ gconv jint  jlong
+simpleOp AddrAddOp = Just $ normalOp ladd
+simpleOp AddrSubOp = Just $ normalOp lsub
 simpleOp AddrRemOp = Just $ \[addr, n] ->
-  addr <> byteBufferPosGet <> n <> irem
-simpleOp AddrGtOp = Just $ addrCmpOp if_icmpgt
-simpleOp AddrGeOp = Just $ addrCmpOp if_icmpge
-simpleOp AddrEqOp = Just $ addrCmpOp if_icmpeq
-simpleOp AddrNeOp = Just $ addrCmpOp if_icmpne
-simpleOp AddrLtOp = Just $ addrCmpOp if_icmplt
-simpleOp AddrLeOp = Just $ addrCmpOp if_icmple
+  addr <> gconv jlong jint <> n <> irem
+simpleOp AddrGtOp = Just $ typedCmp jlong ifgt
+simpleOp AddrGeOp = Just $ typedCmp jlong ifge
+simpleOp AddrEqOp = Just $ typedCmp jlong ifeq
+simpleOp AddrNeOp = Just $ typedCmp jlong ifne
+simpleOp AddrLtOp = Just $ typedCmp jlong iflt
+simpleOp AddrLeOp = Just $ typedCmp jlong ifle
 
 simpleOp IndexOffAddrOp_Char = Just $ addrIndexOp jbyte preserveByte
 simpleOp IndexOffAddrOp_WideChar = Just $ addrIndexOp jint mempty
