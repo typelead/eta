@@ -244,7 +244,7 @@ mutVarValue :: Code
 mutVarValue = getfield $ mkFieldRef stgMutVar "value" closureType
 
 mutVarSetValue :: Code
-mutVarSetValue = putfield $ mkFieldRef stgMutVar "value" closureType
+mutVarSetValue = invokevirtual $ mkMethodRef stgMutVar "set" [closureType] void
 
 mVarValue :: Code
 mVarValue = getfield $ mkFieldRef stgMVar "value" closureType

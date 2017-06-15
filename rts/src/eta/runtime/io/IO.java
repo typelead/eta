@@ -36,13 +36,13 @@ public class IO {
         return r;
     }
 
-    public static Closure casMutVar(StgContext context, MutVar mv, Closure old, Closure new_) {
-        if (mv.cas(old, new_)) {
+    public static Closure casMutVar(StgContext context, MutVar mv, Closure old, Closure update) {
+        if (mv.cas(old, update)) {
             context.I(1, 0);
-            return new_;
+            return update;
         } else {
             context.I(1, 1);
-            return null;
+            return mv.value;
         }
     }
 }
