@@ -237,16 +237,16 @@ public class MemoryManager {
         Map<Integer, AtomicBoolean> keyLocks;
         AtomicBoolean freeLock;
         Integer sizeInt = allocatedDirectBlocks.get(address);
-        int     size    = sizeInt.intValue();
         boolean direct  = true;
-        if (size == null) {
-            size = allocatedHeapBlocks.get(address);
-            if (size == null) {
+        if (sizeInt == null) {
+            sizeint = allocatedHeapBlocks.get(address);
+            if (sizeInt == null) {
                 /* This means that `address` was already freed. */
                 return;
             }
             direct = false;
         }
+        int size = sizeInt.intValue();
         if (direct) {
             allocatedBlocks = allocatedDirectBlocks;
             freeAddresses   = freeDirectAddresses;
@@ -408,17 +408,85 @@ public class MemoryManager {
        positioned at the place referred to by the address. It's duplicated so the
        user is free to change the position as necessary. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        int blockMask  = blockMask(address);
-        int indexBits  = indexBits(blockMask);
-        int blockIndex = blockIndex(indexBits);
+        int blockMask     = blockMask(address);
+        int indexBits     = indexBits(blockMask);
+        int blockIndex    = blockIndex(indexBits);
+        int positionIndex = positionIndex(address, indexBits);
+        Integer sizeInt   = allocatedDirectBlocks.get(address);
+        if (sizeInt == null) {
+            sizeInt = allocatedHeapBlocks.get(address);
+            if (sizeInt == null) {
+                /* This means that `address` was already freed. */
+                return;
+            }
+        }
+        int size       = sizeInt.intValue();
         ByteBuffer buf = blockArrays[blockMask].get(blockIndex).duplicate();
-        buf.position(positionIndex(address, indexBits));
+        buf.position(positionIndex);
+        buf.limit(positionIndex + size);
         return buf;
     }
 
+    /* Get values from buffer */
+    public static byte get(long address) {
+        return getBuffer(address).get(positionIndex(address));
+    }
 
-    public static void put(long address, ByteBuffer buf, byte value) {
-        buf.put(positionIndex(address), value);
+    public static short getShort(long address) {
+        return getBuffer(address).getShort(positionIndex(address));
+    }
+
+    public static char getChar(long address) {
+        return getBuffer(address).getChar(positionIndex(address));
+    }
+
+    public static int getInt(long address) {
+        return getBuffer(address).getInt(positionIndex(address));
+    }
+
+    public static long getLong(long address) {
+        return getBuffer(address).getLong(positionIndex(address));
+    }
+
+    public static float getFloat(long address) {
+        return getBuffer(address).getFloat(positionIndex(address));
+    }
+
+    public static double getDouble(long address) {
+        return getBuffer(address).getDouble(positionIndex(address));
+    }
+
+    public static byte getInt(long address) {
+        return getBuffer(address).getInt(positionIndex(address));
+    }
+
+    /* Put values into buffer */
+    public static void put(long address, byte val) {
+        getBuffer(address).put(positionIndex(address), val);
+    }
+
+    public static void putShort(long address, short val) {
+        getBuffer(address).putShort(positionIndex(address), val);
+    }
+
+    public static void putChar(long address, char val) {
+        getBuffer(address).putChar(positionIndex(address), val);
+    }
+
+    public static void putInt(long address, int val) {
+        getBuffer(address).putInt(positionIndex(address), val);
+    }
+
+    public static void putLong(long address, long val) {
+        getBuffer(address).putLong(positionIndex(address), val);
+    }
+
+    public static void putFloat(long address, float val) {
+        getBuffer(address).putFloat(positionIndex(address), val);
+    }
+
+    public static void putDouble(long address, double val) {
+        getBuffer(address).putDouble(positionIndex(address), val);
     }
 
     /* TODO: Write a function that returns the level of fragmentation for

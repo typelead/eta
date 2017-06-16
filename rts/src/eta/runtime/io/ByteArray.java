@@ -21,13 +21,18 @@ public final class ByteArray extends Value {
     }
 
     public static ByteArray create(int n, int alignment, boolean pinned) {
-        return new ByteArray(MemoryManager.allocateBuffer(n, pinned));
+        long address = MemoryManager.allocateBuffer(n, pinned);
+        ByteArray byteArray = new ByteArray(address, n);
+        IO.recordByteArray(byteArray);
+        return byteArray;
     }
 
-    public ByteBuffer buf;
+    public int  size;
+    public long bufferAddress;
 
-    private ByteArray(ByteBuffer buf) {
-        this.buf = buf;
+    private ByteArray(long bufferAddress, int size) {
+        this.size          = size;
+        this.bufferAddress = bufferAddress;
     }
 
     @Override
@@ -36,34 +41,32 @@ public final class ByteArray extends Value {
         return null;
     }
 
-    /* MemoryManager-Sensitive */
-    public static void copyAddrToByteArray( ByteBuffer src, ByteArray destArray
+    public static void copyAddrToByteArray( long srcAddress, ByteArray destArray
                                           , int offset, int n) {
-        ByteBuffer dest = destArray.buf.duplicate();
-        src = src.duplicate();
-        dest.position(offset + 4);
+        ByteBuffer dest = MemoryManager.getBoundedBuffer(destArray.bufferAddress);
+        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
+        dest.position(dest.position() + offset);
+        dest.limit(dest.position() + n);
         dest.put(src);
     }
 
-    /* MemoryManager-Sensitive */
     public static void copyByteArrayToAddr( ByteArray srcArray, int offset
-                                          , ByteBuffer dest, int n) {
-        ByteBuffer src = srcArray.buf.duplicate();
-        dest = dest.duplicate();
-        src.position(offset + 4);
-        src.limit(offset + 4 + n);
+                                          , long destAddress, int n) {
+        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcArray.bufferAddress);
+        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
+        src.position(src.position() + offset);
+        src.limit(src.position() + n);
         dest.put(src);
     }
 
-    /* MemoryManager-Sensitive */
     public static void copyByteArray( ByteArray srcArray, int srcOffset
                                     , ByteArray destArray, int destOffset
                                     , int n) {
-        ByteBuffer src  = srcArray.buf.duplicate();
-        ByteBuffer dest = destArray.buf.duplicate();
-        src.position(srcOffset + 4);
-        src.limit(srcOffset + 4 + n);
-        dest.position(destOffset + 4);
+        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcArray.bufferAddress);
+        ByteBuffer dest = MemoryManager.getBoundedBuffer(destArray.bufferAddress);
+        src.position(src.position() + srcOffset);
+        src.position(src.position() + n);
+        dest.position(dest.position() + destOffset);
         dest.put(src);
     }
 }

@@ -162,22 +162,16 @@ contextMyCapability = getfield myCapability
 contextMyCapabilitySet :: Code
 contextMyCapabilitySet = putfield myCapability
 
-suspendThreadMethod :: Bool -> Code
-suspendThreadMethod interruptible =
+suspendInterruptsMethod :: Code
+suspendInterruptsMethod =
      loadContext
-  <> contextMyCapability
-  -- <> dup capabilityType
-  <> iconst jbool (boolToInt interruptible)
-  <> invokevirtual (mkMethodRef capability "suspendThread" [jbool] (ret taskType))
-  where boolToInt True = 1
-        boolToInt False = 0
+  <> currentTSOField
+  <> dup tsoType
+  <> invokevirtual (mkMethodRef tsoType "suspendInterrupts" [] (ret jbool))
 
-resumeThreadMethod :: Code
-resumeThreadMethod =
-     invokestatic (mkMethodRef capability "resumeThread" [taskType] (ret capabilityType))
-  <> loadContext
-  <> swap capabilityType contextType
-  <> contextMyCapabilitySet
+resumeInterruptsMethod :: Code
+resumeInterruptsMethod =
+  invokevirtual $ mkMethodRef tsoType "resumeInterrupts" [jbool] void
 
 stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup, stgGroup :: Text
 stgExceptionGroup = exception "Exception"
@@ -189,43 +183,19 @@ parGroup = par "Parallel"
 interpGroup = interp "Interpreter"
 
 -- Types
-buffer :: Text
-buffer = "java/nio/Buffer"
-
-bufferType :: FieldType
-bufferType = obj buffer
-
-byteBuffer :: Text
-byteBuffer = "java/nio/ByteBuffer"
-
-byteBufferType :: FieldType
-byteBufferType = obj byteBuffer
-
 byteArrayBuf :: Code
-byteArrayBuf = getfield $ mkFieldRef stgByteArray "buf" byteBufferType
+byteArrayBuf = getfield $ mkFieldRef stgByteArray "bufferAddress" jlong
 
-byteBufferCapacity :: Code
-byteBufferCapacity = invokevirtual $ mkMethodRef byteBuffer "capacity" [] (ret jint)
+byteArraySize :: Code
+byteArraySize = getfield $ mkFieldRef stgByteArray "size" jint
 
-byteBufferGet :: FieldType -> Code
-byteBufferGet ft = invokevirtual $ mkMethodRef byteBuffer name [jint] (ret ft)
+addressGet :: FieldType -> Code
+addressGet ft = invokestatic $ mkMethodRef memoryManager name [jlong] (ret ft)
   where name = T.append "get" $ fieldTypeSuffix ft
 
-byteBufferPut :: FieldType -> Code
-byteBufferPut ft = invokevirtual $ mkMethodRef byteBuffer name [jint, ft] (ret byteBufferType)
+addressPut :: FieldType -> Code
+addressPut ft = invokestatic $ mkMethodRef memoryManager name [jlong, ft] void
   where name = T.append "put" $ fieldTypeSuffix ft
-
-byteBufferPosGet :: Code
-byteBufferPosGet = invokevirtual $ mkMethodRef byteBuffer "position" [] (ret jint)
-
-byteBufferAddrGet :: Code
-byteBufferAddrGet = invokestatic $ mkMethodRef memoryManager "getAddress" [byteBufferType] (ret jint)
-
-byteBufferPosSet :: Code
-byteBufferPosSet = invokevirtual $ mkMethodRef byteBuffer "position" [jint] (ret bufferType)
-
-byteBufferDup :: Code
-byteBufferDup = invokevirtual $ mkMethodRef byteBuffer "duplicate" [] (ret byteBufferType)
 
 fieldTypeSuffix :: FieldType -> Text
 fieldTypeSuffix (BaseType prim) =
@@ -288,6 +258,3 @@ debugPrint ft = dup ft
   where genFt (ObjectType _) = jobject
         genFt (ArrayType _)  = jobject
         genFt ft             = ft
-
-nullAddr :: Code
-nullAddr = getstatic $ mkFieldRef memoryManager "nullAddress" byteBufferType

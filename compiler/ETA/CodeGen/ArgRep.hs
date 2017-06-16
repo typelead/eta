@@ -90,7 +90,7 @@ primRepFieldType_maybe rep = Just $
     PtrRep              -> closureType
     IntRep              -> jint
     WordRep             -> jint
-    AddrRep             -> byteBufferType
+    AddrRep             -> jlong
     Int64Rep            -> jlong
     Word64Rep           -> jlong
     FloatRep            -> jfloat

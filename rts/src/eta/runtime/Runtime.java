@@ -67,7 +67,7 @@ public class Runtime {
     }
 
     /* Parameter: minTSOIdleTime (int)
-       The minimum amount of time (in ms) the runtime should wait to spawn a new worker
+       The minimum amount of time (in ms) the runtime should wait to spawn a new Worker
        Capabiliity to handle an idle TSO in the Global Run Queue if the
        maxWorkerCapabilities requirement is satisfied. */
     private static int minTSOIdleTime = 20;
@@ -78,6 +78,23 @@ public class Runtime {
 
     public static void setMinTSOIdleTime(int newMinTSOIdleTime) {
         minTSOIdleTime = newMinTSOIdleTime;
+    }
+
+    /* Parameter: maxTSOBlockedTime (int)
+       The maximum amount of time (in ms) the runtime should wait to stop blocking
+       and resume other work when blocked on a given action. */
+    private static int maxTSOBlockTime = 1;
+
+    public static int getMaxTSOBlockTime() {
+        return maxTSOBlockTime;
+    }
+
+    public static long getMaxTSOBlockTimeNanos() {
+        return maxTSOBlockTime * 1000000L;
+    }
+
+    public static void setMaxTSOBlockTime(int newMaxTSOBlockTime) {
+        maxTSOBlockTime = newMaxTSOBlockTime;
     }
 
     /* Parameter: minWorkerCapabilityIdleTime (int)

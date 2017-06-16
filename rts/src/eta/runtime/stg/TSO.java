@@ -57,14 +57,14 @@ public final class TSO extends BlackHole {
     public enum WhyBlocked {
         NotBlocked(0),
         BlockedOnMVar(1),
+        BlockedOnMVarRead(14),
         BlockedOnBlackHole(2),
         BlockedOnRead(3),
         BlockedOnWrite(4),
-        BlockedOnFuture(5),
-        BlockedOnDelay(6),
-        BlockedOnSTM(7),
-        BlockedOnMsgThrowTo(8),
-        BlockedOnMVarRead(9);
+        BlockedOnFuture(8),
+        BlockedOnDelay(5),
+        BlockedOnSTM(6),
+        BlockedOnMsgThrowTo(12);
         private int val;
         WhyBlocked(int val) {
             this.val = val;
@@ -85,11 +85,12 @@ public final class TSO extends BlackHole {
     public final boolean interruptible() {
         switch (whyBlocked) {
             case BlockedOnMVar:
+        case BlockedOnMVarRead:
             case BlockedOnSTM:
-            case BlockedOnMVarRead:
             case BlockedOnMsgThrowTo:
             case BlockedOnRead:
             case BlockedOnWrite:
+            case BlockedOnFuture:
             case BlockedOnDelay:
                 return true;
             default:
@@ -229,5 +230,20 @@ public final class TSO extends BlackHole {
         if (cap != null) {
             cap.interrupt();
         }
+    }
+
+    /* Preserves the enclosing interrupt status. */
+    public final boolean suspendInterrupts() {
+        boolean immune = hasFlag(INTERRUPT_IMMUNE);
+        if (!immune) addFlag(INTERRUPT_IMMUNE);
+        cap.idleLoop(true);
+        whyBlocked = BlockedOnJavaCall;
+        return immune;
+    }
+
+    public final void resumeInterrupts(boolean immune) {
+        if (!immune) removeFlag(INTERRUPT_IMMUNE);
+        tso.cap.idleLoop(false);
+        whyBlocked = NotBlocked;
     }
 }
