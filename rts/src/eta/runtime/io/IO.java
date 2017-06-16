@@ -8,6 +8,7 @@ import eta.runtime.RuntimeOptions;
 
 public class IO {
 
+    /* I/O primitive operations */
     public static Closure decodeFloat_Int(StgContext context, float f) {
         int bits = Float.floatToRawIntBits(f);
         int s = ((bits >> 31) == 0) ? 1 : -1;
@@ -45,4 +46,35 @@ public class IO {
             return mv.value;
         }
     }
+
+    /* Managing ByteArrays */
+    public static ReferenceQueue<ByteArray> byteArrayRefQueue = new ReferenceQueue<ByteArray>();
+    public static AtomicBoolean byteArrayFreeLock = new AtomicBoolean();
+
+    public static ConcurrentMap<PhantomReference<ByteArray>, Long> byteArrayRefMap
+        = new ConcurrentHashMap<PhantomReference<ByteArray>, Long>();
+
+    public static void recordByteArray(ByteArray byteArray) {
+        long address = byteArray.bufferAddress;
+        PhantomReference<ByteArray> byteArrayRef
+            = new PhantomReference<ByteArray>(byteArray, byteArrayRefQueue);
+        byteArrayRefMap.put(byteArrayRef, address);
+    }
+
+    public static void checkForFreeByteArrays() {
+        /* This check can be skipped if another thread is doing it. */
+        if (byteArrayFreeLock.compareAndSet(false, true)) {
+            PhantomReference<ByteArray> ref;
+            while ((ref = byteArrayRefQueue.poll()) != null) {
+                Long addressLong = byteArrayRefMap.get(ref);
+                if (address != null) {
+                    MemoryManager.free(addressLong.longValue());
+                }
+            }
+            byteArrayFreeLock.set(false);
+        }
+    }
+
+    /* Managing Non-Blocking I/O */
+
 }

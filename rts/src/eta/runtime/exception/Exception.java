@@ -111,15 +111,11 @@ public class Exception {
                 } else {
                     tso.whyBlocked = BlockedOnMsgThrowTo;
                     tso.blockInfo = msg;
-                    cap.threadPaused(tso);
                     msg.tryUnlock();
                     do {
-                        LockSupport.park();
-                        if (Thread.interrupted()) {}
-                        cap.idleLoop(true);
+                        cap.blockedLoop();
                     } while (msg.isValid());
                     return null;
-                    /* TODO: Is this the right condition? */
                 }
             }
         } while (true);

@@ -11,23 +11,21 @@ public class StablePtrTable {
     private static StablePtrTable INSTANCE  = new StablePtrTable();
     private static Object         lock      = new Object();
 
-    private ArrayList<Closure>  ptrs        = new ArrayList<Closure>(64);
-    private ArrayDeque<Integer> freeIndexes = new ArrayDeque<Integer>(20);
+    private ConcurrentMap<Integer, Closure> ptrs
+        = new ConcurrentHashMap<Integer, Closure>();
+    private AtomicInteger nextIndex = new AtomicInteger();
+    private Queue<Integer> freeIndexes =
+        new ConcurrentLinkedQueue<Integer>();
 
     private StablePtrTable() {}
 
-    // TODO: Add a "stable ptr compactification" step to the GC
     public static int makeStablePtr(Closure p) {
         Integer index;
-        synchronized (lock) {
-            index = INSTANCE.freeIndexes.poll();
-            if (index == null) {
-                INSTANCE.ptrs.add(p);
-                index = INSTANCE.ptrs.size() - 1;
-            } else {
-                INSTANCE.ptrs.add(index, p);
-            }
+        index = INSTANCE.freeIndexes.poll();
+        if (index == null) {
+            index = nextIndex.getAndIncrement();
         }
+        INSTANCE.ptrs.put(index, p);
         return index.intValue();
     }
 
@@ -36,13 +34,9 @@ public class StablePtrTable {
     }
 
     public static void free(int index) {
-        synchronized (lock) {
-            INSTANCE.ptrs.add(index, null);
-            INSTANCE.freeIndexes.push(index);
+        Closure prev = INSTANCE.ptrs.remove(index);
+        if (prev != null) {
+            INSTANCE.freeIndexes.offer(index);
         }
-    }
-
-    public static ByteBuffer stablePtr2Addr(int stablePtr) {
-        return (ByteBuffer) ByteBuffer.allocate(4).putInt(stablePtr).rewind();
     }
 }

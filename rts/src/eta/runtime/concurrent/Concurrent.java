@@ -11,7 +11,6 @@ import eta.runtime.exception.Exception;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.TSO_BLOCKEX;
 import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
-import static eta.runtime.stg.TSO.TSO_LOCKED;
 import static eta.runtime.stg.TSO.WhyBlocked;
 import static eta.runtime.stg.TSO.WhatNext;
 import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMVar;
@@ -37,52 +36,6 @@ public class Concurrent {
 
     public static boolean emptyGlobalRunQueue() {
         return globalRunQueue.isEmpty();
-    }
-
-    /* Future Map */
-
-    public static final Map<Future<?>, TSO> futureMap = new HashMap<Future<?>, TSO>();
-
-    public static final AtomicBoolean futureMapLock = new AtomicBoolean();
-
-    public static final class FutureBlockResult {
-        public Object    result;
-        public Exception exception;
-        public FutureBlockResult(Object result, Exception e) {
-            this.result    = result;
-            this.exception = exception;
-        }
-    }
-
-    public static void checkFutures(Capability cap) {
-        if (futureMapLock.compareAndSet(false, true)) {
-            Iterator<Map.Entry<Future<?>, TSO>> it = futureMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Future<?>, TSO> entry  = it.next();
-                Future<?>                 future = entry.getKey();
-                TSO                       tso    = entry.getValue();
-                if (future.isDone()) {
-                    it.remove();
-                    Object result = null;
-                    Exception e   = null;
-                    do {
-                        try {
-                            result    = future.get();
-                        } catch (CancellationException e) {
-                            exception = e;
-                        } catch (ExecutionException e) {
-                            exception = e;
-                        } catch (Interrupted e) {
-                            continue;
-                        }
-                        break;
-                    } while (true);
-                    tso.blockInfo = new FutureResult(result, exception);
-                    cap.tryWakeupThread(tso);
-                }
-            }
-            futureMapLock.set(false);
-        }
     }
 
     /* MVar Operations */
@@ -138,10 +91,9 @@ public class Concurrent {
     }
 
     public static Closure yield(StgContext context) {
-        cap.idleLoop(false);
-        LockSupport.park();
-        if (Thread.isInterrupted()) {};
-        cap.idleLoop(false);
+        tso.whyBlocked = ThreadYielding;
+        tso.blockInfo  = null;
+        cap.blockedLoop()
         return null;
     }
 
@@ -165,12 +117,10 @@ public class Concurrent {
             }
         }
         int cap = tso.cap.id;
-        int locked;
-        if (tso.hasFlag(TSO_LOCKED)) {
-            locked = 1;
-        } else {
-            locked = 0;
-        }
+        /* NOTE: The Eta RTS doesn't have a concept of TSO locking. It hurts more
+                 than helps performance due to the fact that we can't presently
+                 save/restore the Java stack. */
+        int locked = 0;
         context.I(1, ret);
         context.I(2, cap);
         context.I(3, locked);
@@ -180,5 +130,126 @@ public class Concurrent {
     /* TODO: Implement this */
     public static Closure traceEvent(StgContext context) {
         return null;
+    }
+
+    /* Managing Java Futures */
+
+    public static final ConcurrentMap<Future, TSO> futureMap
+        = new ConcurrentHashMap<Future, TSO>();
+
+    public static final AtomicBoolean futureMapLock = new AtomicBoolean();
+
+    public static final class FutureBlockResult {
+        public Object    result;
+        public Exception exception;
+        public FutureBlockResult(Object result, Exception e) {
+            this.result    = result;
+            this.exception = exception;
+        }
+    }
+
+    public static void checkForCompletedFutures(Capability cap) {
+        /* Only one thread at a time should check the futures. */
+        if (futureMapLock.compareAndSet(false, true)) {
+            Iterator<Map.Entry<Future, TSO>> it = futureMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Future, TSO> entry  = it.next();
+                Future                 future = entry.getKey();
+                TSO                    tso    = entry.getValue();
+                if (future.isDone()) {
+                    it.remove();
+                    Object result = null;
+                    Exception e   = null;
+                    do {
+                        try {
+                            result    = future.get();
+                        } catch (CancellationException e) {
+                            exception = e;
+                        } catch (ExecutionException e) {
+                            exception = e;
+                        } catch (Interrupted e) {
+                            continue;
+                        }
+                        break;
+                    } while (true);
+                    tso.blockInfo = new FutureResult(result, exception);
+                    cap.tryWakeupThread(tso);
+                }
+            }
+            futureMapLock.set(false);
+        }
+    }
+
+    public static Closure threadWaitFuture(StgContext context, Future future) {
+        Capability cap = context.myCapability;
+        TSO tso        = context.currentTSO;
+        tso.whyBlocked = BlockedOnFuture;
+        tso.blockInfo  = future;
+        do {
+            if (futureMap.get(future) == null) {
+                futureMap.add(future, tso);
+            }
+            cap.blockedLoop();
+        } while (!future.isDone());
+        Object exception;
+        Object result;
+        if (tso.blockInfo != null) {
+            FutureResult futureResult = (FutureResult) tso.blockInfo;
+            exception = futureResult.exception;
+            result    = futureResult.result;
+        }
+        context.O(1, exception);
+        context.O(2, result);
+        return null;
+    }
+
+    /* Managing Scalable I/O */
+
+    public static Selector globalSelector = Selector.open();
+    public static AtomicBoolean selectorLock = new AtomicBoolean();
+
+    public static Closure threadWaitIO(StgContext context, Channel channel, int ops) {
+        Capability cap = context.myCapability;
+        TSO tso        = context.currentTSO;
+        if (globalSelector == null) {
+            barf("Your platform does not support non-blocking IO.");
+        }
+        if (!(channel instanceof SelectableChannel)) {
+            barf("Non-selectable channel sent to threadWaitIO#.");
+        }
+        SelectionKey selectKey;
+        try {
+            SelectableChannel selectChannel = (SelectableChannel) channel;
+            selectKey = selectChannel.register(globalSelector, ops);
+            selectKey.attach(tso);
+        } catch (ClosedChannelException e) {
+            /* If the channel is closed, the user should know about it. */
+            throw e;
+        }
+        tso.whyBlocked = BlockedOnIO;
+        tso.blockInfo  = selectKey;
+        do {
+            cap.blockedLoop();
+        } while (selectKey.isValid());
+        return null;
+    }
+
+    public static void checkForReadyIO(Capability cap) {
+        if (selectorLock.compareAndSet(false, true)) {
+            int selectedKeys = selector.selectNow();
+            if (selectedKeys > 0) {
+                Iterator<SelectionKey> it = selector.selectedKeys().iterator();
+                while (it.hasNext()) {
+                    SelectionKey key = it.next();
+                    if (key.isValid() && (key.readOps() & key.interestOps() != 0)) {
+                        TSO tso = (TSO) key.attachment();
+                        key.cancel();
+                        cap.tryWakeupThread(tso);
+                    }
+                    it.remove();
+                }
+            }
+            selectorLock.set(false);
+        }
     }
 }

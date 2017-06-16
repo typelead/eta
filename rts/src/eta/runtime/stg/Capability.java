@@ -439,20 +439,35 @@ public final class Capability {
 
         threadPaused(tso);
 
-        /* Run finalizers for WeakPtrs and ByteArrays */
-        checkFinalizers();
-
         /* Spawn worker capabilities if there's work to do */
         manageOrSpawnWorkers();
 
         if (blocked) {
             /* All computations that are intensive and not absolutely required to
                be running at regular intervals should be done here. */
-            Concurrent.checkFutures();
-        }
 
+            /* Check for any completed futures and wake up the threads. */
+            Concurrent.checkForCompletedFutures(this);
+
+            /* Check for any ready I/O operations and wake up the threads. */
+            Concurrent.checkForReadyIO(this);
+
+            /* Free memory blocks associated with ByteArrays if the ByteArray itself
+               has been garbage collected. */
+            IO.checkForFreeByteArrays();
+
+            /* Run finalizers for WeakPtrs. */
+            checkFinalizers();
+        }
     }
 
+    /* Blocked Loop */
+    public void blockedLoop() {
+        cap.idleLoop(true);
+        LockSupport.parkNanos(Runtime.getMaxTSOBlockTimeNanos());
+        if (Thread.interrupted()) {}
+        cap.idleLoop(false);
+    }
 
     public void manageOrSpawnWorkers() {
 
@@ -485,26 +500,18 @@ public final class Capability {
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
     public static AtomicBoolean blockedCapabilitesLock = new AtomicBoolean();
 
-    public static boolean tryLockBlockedCapabilities() {
-        return blockedCapabilitiesLock.compareAndSet(false, true);
-    }
-
-    public static void unlockBlockedCapabilities() {
-        return blockedCapabilitiesLock.set(false);
-    }
-
     public static void unblockCapabilities() {
         /* TODO: Optimization? Only unlock SOME Capabilities to reduce contention on
                  grabbing from the Global Run Queue and Global Spark Pool. */
         /* NOTE: We just move on if we're unable to lock, as we know for sure
                  another thread must be unblocking them anyways. */
         if (!blockedCapabilities.isEmpty()) {
-            if (tryLockBlockedCapabilities()) {
+            if (blockedCapabilitiesLock.compareAndSet(false, true)) {
                 for (Capability c:blockedCapabiliies) {
                     c.interrupt();
                 }
                 blockedCapabilities.clear();
-                unlockBlockedCapabilities();
+                blockedCapabilitiesLock.set(false);
             }
         }
     }
