@@ -1,64 +1,74 @@
-FROM ubuntu:xenial
-MAINTAINER Sibi Prabakaran <sibi@psibi.in>
+# Oracle stuff taken and modified from https://github.com/dockerfile/java/blob/master/oracle-java8/Dockerfile
+# MIT LICENSE of dockerfile/java  vvv
+#------------------------------------
+#The MIT License (MIT)
+#
+#Copyright (c) Dockerfile Project
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in
+#all copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+#THE SOFTWARE.
+#------------------------------------
+# https://github.com/dockerfile/java/blob/master/LICENSE  ^^^
 
-# Oracle stuff taken and modified from https://github.com/davidcaste/docker-debian-oracle-java/blob/master/8/jdk/Dockerfile
+# Oracle Java 8 Dockerfile
+# https://github.com/dockerfile/java
+# https://github.com/dockerfile/java/tree/master/oracle-java8
+
+
+FROM ubuntu:xenial
 
 ENV JAVA_VERSION_MAJOR=8 \
-    JAVA_VERSION_MINOR=92 \
-    JAVA_VERSION_BUILD=14 \
     JAVA_PACKAGE=jdk \
-    JAVA_HOME=/opt/java \
+    JAVA_HOME=/usr/lib/jvm/java-8-oracle \
     JVM_OPTS="" \
-    PATH=${PATH}:/opt/java/bin:/root/.local/bin \
+    PATH=$PATH:/root/.local/bin \
     LANG=C.UTF-8
 
-RUN apt-get update -q && \
-    apt-get install -q -y --no-install-recommends ca-certificates curl unzip cabal-install libbz2-dev git zlib1g-dev build-essential && \
-    curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/java.tar.gz \
-      http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_PACKAGE}-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz && \
-    gunzip /tmp/java.tar.gz && \
-    tar -C /opt -xf /tmp/java.tar && \
-    ln -s /opt/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR} ${JAVA_HOME} && \
-    curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/unlimited_jce_policy.zip "http://download.oracle.com/otn-pub/java/jce/8/jce_policy-8.zip" && \
-    unzip -jo -d ${JAVA_HOME}/jre/lib/security /tmp/unlimited_jce_policy.zip && \
-    rm -rf ${JAVA_HOME}/*src.zip \
-           ${JAVA_HOME}/lib/missioncontrol \
-           ${JAVA_HOME}/lib/visualvm \
-           ${JAVA_HOME}/lib/*javafx* \
-           ${JAVA_HOME}/jre/plugin \
-           ${JAVA_HOME}/jre/bin/javaws \
-           ${JAVA_HOME}/jre/bin/jjs \
-           ${JAVA_HOME}/jre/bin/keytool \
-           ${JAVA_HOME}/jre/bin/orbd \
-           ${JAVA_HOME}/jre/bin/pack200 \
-           ${JAVA_HOME}/jre/bin/policytool \
-           ${JAVA_HOME}/jre/bin/rmid \
-           ${JAVA_HOME}/jre/bin/rmiregistry \
-           ${JAVA_HOME}/jre/bin/servertool \
-           ${JAVA_HOME}/jre/bin/tnameserv \
-           ${JAVA_HOME}/jre/bin/unpack200 \
-           ${JAVA_HOME}/jre/lib/javaws.jar \
-           ${JAVA_HOME}/jre/lib/deploy* \
-           ${JAVA_HOME}/jre/lib/desktop \
-           ${JAVA_HOME}/jre/lib/*javafx* \
-           ${JAVA_HOME}/jre/lib/*jfx* \
-           ${JAVA_HOME}/jre/lib/amd64/libdecora_sse.so \
-           ${JAVA_HOME}/jre/lib/amd64/libprism_*.so \
-           ${JAVA_HOME}/jre/lib/amd64/libfxplugins.so \
-           ${JAVA_HOME}/jre/lib/amd64/libglass.so \
-           ${JAVA_HOME}/jre/lib/amd64/libgstreamer-lite.so \
-           ${JAVA_HOME}/jre/lib/amd64/libjavafx*.so \
-           ${JAVA_HOME}/jre/lib/amd64/libjfx*.so \
-           ${JAVA_HOME}/jre/lib/ext/jfxrt.jar \
-           ${JAVA_HOME}/jre/lib/ext/nashorn.jar \
-           ${JAVA_HOME}/jre/lib/oblique-fonts \
-           ${JAVA_HOME}/jre/lib/plugin.jar \
-           /tmp/* /var/cache/apk/* && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Initialize apt
+RUN apt-get update -q
 
+# Install eta depedencies
+RUN apt-get install -q -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    unzip \
+    cabal-install \
+    libbz2-dev \
+    git \
+    zlib1g-dev \
+    build-essential
+
+# Install haskell-stack
 RUN curl -sSL https://get.haskellstack.org/ | sh && \
-    mkdir -p $HOME/.local/bin && \
-    git clone --recursive https://github.com/typelead/eta && \
-    cd /eta && \
-    ./install.sh
+    mkdir -p $HOME/.local/bin
+
+# Install java8
+RUN apt-get install -q -y apt-file apt-utils && \
+    apt-file update && \
+    apt-get install -qy software-properties-common && \
+    echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
+    add-apt-repository -y ppa:webupd8team/java && \
+    apt-get update -q && \
+    apt-get install -y oracle-java8-installer && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf /var/cache/oracle-jdk8-installer
+
+# Copy the current source of eta
+COPY ./ /usr/eta
+WORKDIR /usr/eta
+RUN ./install.sh
