@@ -391,58 +391,58 @@ data {-# CLASS "java.io.PrintStream" #-} PrintStream = PrintStream (Object# Prin
 
 type instance Inherits PrintStream = '[FilterOutputStream, Closeable, Flushable, Appendable]
 
-foreign import java unsafe "checkError" checkErrorPStream :: Java PrintWriter Bool
+foreign import java unsafe "checkError" checkErrorPStream :: Java PrintStream Bool
 
-foreign import java unsafe "clearError" clearErrorPStream :: Java PrintWriter ()
+foreign import java unsafe "clearError" clearErrorPStream :: Java PrintStream ()
 
-foreign import java unsafe "format" formatLocalePStream :: Locale -> String -> JObjectArray -> Java PrintWriter ()
+foreign import java unsafe "format" formatLocalePStream :: Locale -> String -> JObjectArray -> Java PrintStream ()
 
-foreign import java unsafe "format" formatPStream :: String -> JObjectArray -> Java PrintWriter ()
+foreign import java unsafe "format" formatPStream :: String -> JObjectArray -> Java PrintStream ()
 
-foreign import java unsafe "print" printBoolPStream :: Bool -> Java PrintWriter ()
+foreign import java unsafe "print" printBoolPStream :: Bool -> Java PrintStream ()
 
-foreign import java unsafe "print" printCharPStream :: Char -> Java PrintWriter ()
+foreign import java unsafe "print" printCharPStream :: Char -> Java PrintStream ()
 
-foreign import java unsafe "print" printCharArrayPStream :: JCharArray -> Java PrintWriter ()
+foreign import java unsafe "print" printCharArrayPStream :: JCharArray -> Java PrintStream ()
 
-foreign import java unsafe "print" printDoublePStream :: Double -> Java PrintWriter ()
+foreign import java unsafe "print" printDoublePStream :: Double -> Java PrintStream ()
 
-foreign import java unsafe "print" printFloatPStream :: Float -> Java PrintWriter ()
+foreign import java unsafe "print" printFloatPStream :: Float -> Java PrintStream ()
 
-foreign import java unsafe "print" printIntPStream :: Int -> Java PrintWriter ()
+foreign import java unsafe "print" printIntPStream :: Int -> Java PrintStream ()
 
-foreign import java unsafe "print" printLongPStream :: Int64 -> Java PrintWriter ()
+foreign import java unsafe "print" printLongPStream :: Int64 -> Java PrintStream ()
 
-foreign import java unsafe "print" printObjectPStream :: Object -> Java PrintWriter ()
+foreign import java unsafe "print" printObjectPStream :: Object -> Java PrintStream ()
 
-foreign import java unsafe "print" printStringPStream :: String -> Java PrintWriter ()
+foreign import java unsafe "print" printStringPStream :: String -> Java PrintStream ()
 
 foreign import java unsafe "printf"
-  printfLocalePStream :: Locale -> String -> JObjectArray -> Java PrintWriter ()
+  printfLocalePStream :: Locale -> String -> JObjectArray -> Java PrintStream ()
 
-foreign import java unsafe "printf" printfPStream :: String -> JObjectArray -> Java PrintWriter ()
+foreign import java unsafe "printf" printfPStream :: String -> JObjectArray -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnPStream :: Java PrintWriter ()
+foreign import java unsafe "println" printlnPStream :: Java PrintStream ()
 
-foreign import java unsafe "println" printlnBoolPStream :: Bool -> Java PrintWriter ()
+foreign import java unsafe "println" printlnBoolPStream :: Bool -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnCharPStream :: Char -> Java PrintWriter ()
+foreign import java unsafe "println" printlnCharPStream :: Char -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnCharArrayPStream :: JCharArray -> Java PrintWriter ()
+foreign import java unsafe "println" printlnCharArrayPStream :: JCharArray -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnDoublePStream :: Double -> Java PrintWriter ()
+foreign import java unsafe "println" printlnDoublePStream :: Double -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnFloatPStream :: Float -> Java PrintWriter ()
+foreign import java unsafe "println" printlnFloatPStream :: Float -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnIntPStream :: Int -> Java PrintWriter ()
+foreign import java unsafe "println" printlnIntPStream :: Int -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnLongPStream :: Int64 -> Java PrintWriter ()
+foreign import java unsafe "println" printlnLongPStream :: Int64 -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnObjectPStream :: Object -> Java PrintWriter ()
+foreign import java unsafe "println" printlnObjectPStream :: Object -> Java PrintStream ()
 
-foreign import java unsafe "println" printlnStringPStream :: String -> Java PrintWriter ()
+foreign import java unsafe "println" printlnStringPStream :: String -> Java PrintStream ()
 
-foreign import java unsafe "setError" setErrorPStream :: Java PrintWriter ()
+foreign import java unsafe "setError" setErrorPStream :: Java PrintStream ()
 
 -- End java.io.PrintStream
 
