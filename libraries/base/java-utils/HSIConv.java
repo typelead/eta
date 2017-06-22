@@ -18,24 +18,27 @@ import eta.runtime.io.MemoryManager;
  *
  */
 public class HSIConv {
-	
-	private static final ThreadLocal<Map<Long,String[]>> iconvs=new ThreadLocal<>();
-	private static final boolean debug=false;
-	
+
+  private static final ThreadLocal<Map<Long, String[]>> iconvs
+      = new ThreadLocal<Map<Long, String[]>();
+	private static final boolean debug = false;
+
 	private static void initIconvs() {
-		if (iconvs.get()==null)
-                    iconvs.set(new HashMap<Long,String[]>());
+      if (iconvs.get() == null) {
+          iconvs.set(new HashMap<Long, String[]>());
+      }
 	}
-	
+
 	private static Boolean isDebugEnabled() {
 		return debug;
 	}
-	
+
 	private static void debug(String msg) {
-		if (isDebugEnabled())
-			System.out.println(msg);
+      if (isDebugEnabled()) {
+          System.out.println(msg);
+      }
 	}
-	
+
 	public static long hs_iconv_open(ByteBuffer toEncoding, ByteBuffer fromEncoding) {
 		Long id=-1l;
 		try {
@@ -57,15 +60,16 @@ public class HSIConv {
 		}
 		return id;
 	}
-	
+
 	public static int hs_iconv_close(long iconv) {
 		debug("HSIConv: Closing iconv with id: "+iconv);
 		return 0;
 	}
-	private final static int E2BIG=7;
-	private final static int EINVAL=22;
-	private final static int EILSEQ=84;
-	
+
+	private final static int E2BIG  = 7;
+	private final static int EINVAL = 22;
+	private final static int EILSEQ = 84;
+
 	public static int hs_iconv(long iconv, ByteBuffer inbufptr, ByteBuffer inleft, 
 			ByteBuffer outbufptr, ByteBuffer outleft) {
 		String[] fromTo=iconvs.get().get(iconv);
@@ -76,13 +80,10 @@ public class HSIConv {
 				debug("Init in buffer:");
 				ByteBuffer inbuf=initBuffer(inbufptr, inleft);
 				int inInitPos=inbuf.position();
-	
 				debug("Init out buffer:");
 				ByteBuffer outbuf=initBuffer(outbufptr,outleft);
 				int outInitPos=outbuf.position();
-				
 				charsWritten=recode(fromTo,inbuf,outbuf);
-
 				debug("After encoding:");
 				debug("IN: buffer: "+inbuf);
 				debug("OUT: buffer: "+outbuf);
@@ -92,14 +93,10 @@ public class HSIConv {
 				int outBytesWritten=outFinalPos-outInitPos;
 				debug("Bytes read: "+inBytesRead);
 				debug("Bytes written: "+outBytesWritten);
-				
 				buffAddInt(inbufptr,0,inBytesRead);
 				buffAddInt(inleft,0,-inBytesRead);
-				
 				buffAddInt(outbufptr,0,outBytesWritten);
 				buffAddInt(outleft,0,-outBytesWritten);
-				
-				
 			} else if (outbufptr != null && outleft != null) {
 				debug("in is null");
 				/** In this case, the iconv function attempts to set cd’s conversion state
@@ -168,5 +165,4 @@ public class HSIConv {
 		}
 		return charsWritten;
 	}
-	
 }

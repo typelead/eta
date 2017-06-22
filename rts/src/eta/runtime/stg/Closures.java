@@ -1,26 +1,30 @@
 package eta.runtime.stg;
 
-/* Standard closures used throughout the runtime system. */
+/* - Utilies for working with Closures from the Java side.
+   - Standard closures used throughout the runtime system. */
 
 public class Closures {
-    /* Static closures */
 
-    public static final Closure False            = null;
-    public static final Closure flushStdHandles  = null;
-    public static final Closure runSparks        = null;
-    public static final Closure nonTermination   = null;
-    public static final Closure nestedAtomically = null;
+    /* Standard Closures */
+
+    public static final Closure False             = null;
+    public static final Closure flushStdHandles   = null;
+    public static final Closure runSparks         = null;
+    public static final Closure nonTermination    = null;
+    public static final Closure nestedAtomically  = null;
+    public static final Closure runFinalizerBatch = null;
 
     static {
         try {
-            flushStdHandles  = loadClosure("base.ghc.TopHandler", "flushStdHandles");
-            False            = loadClosure("ghc_prim.ghc.Types", "False");
-            runSparks        = loadClosure("base.ghc.conc.Sync", "runSparks");
-            nestedAtomically = loadClosure("base.control.exception.Base", "nestedAtomically");
-
+            False             = loadClosure("ghc_prim.ghc.Types", "False");
+            flushStdHandles   = loadClosure("base.ghc.TopHandler", "flushStdHandles");
+            runSparks         = loadClosure("base.ghc.conc.Sync", "runSparks");
+            nonTermination    = loadClosure("base.control.exception.Base", "nonTermination");
+            nestedAtomically  = loadClosure("base.control.exception.Base", "nestedAtomically");
+            runFinalizerBatch = loadClosure("base.ghc.Weak", "runFinalizerBatch");
         } catch (Exception e) {
-            e.printStackTrace();
             System.err.println("FATAL ERROR: Failed to load base closures.");
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -34,7 +38,10 @@ public class Closures {
         return (Closure) Class.forName(className).getMethod(closureName).invoke(null);
     }
 
-    /* Closure definitions that do the main evaluation. */
+    /* Standard Constructors */
+    public static final Class Int = Class.forName("ghc_prim.ghc.Types$IzhD");
+
+    /* Closures for Main Evaluation */
 
     public static final Closure evalLazyIO(Closure p) {
         return new EvalLazyIO(p);
@@ -121,4 +128,44 @@ public class Closures {
             return result;
         }
     }
+
+    /* Closure Utilities */
+
+    public static Closure force(Closure e) {
+        return new Ap1Upd(e);
+    }
+
+    public static Closure apply(Closure e0, Closure e1) {
+        return new Ap2Upd(e0, e1);
+    }
+
+    public static Closure apply(Closure e0, Closure e1, Closure e2) {
+        return new Ap3Upd(e0, e1, e2);
+    }
+
+    public static Closure apply(Closure e0, Closure e1, Closure e2, Closure e3) {
+        return new Ap4Upd(e0, e1, e2, e3);
+    }
+
+    public static Closure apply(Closure e0, Closure e1, Closure e2, Closure e3, Closure e4) {
+        return new Ap5Upd(e0, e1, e2, e3, e4);
+    }
+
+    public static Closure apply(Closure e0, Closure e1, Closure e2, Closure e3, Closure e4, Closure e5) {
+        return new Ap6Upd(e0, e1, e2, e3, e4, e5);
+    }
+
+    public static Closure apply(Closure e0, Closure e1, Closure e2, Closure e3, Closure e4, Closure e5, Closure e6) {
+        return new Ap7Upd(e0, e1, e2, e3, e4, e5, e6);
+    }
+
+    public static Closure applyObject(Closure e, Object o) {
+        return new ApO(e, o);
+    }
+
+    public static Closure mkInt(int i) {
+        return (Closure) Int.newInstance(i);
+    }
+
+    /* TODO: Add utilities for constructing all the primitive types. */
 }

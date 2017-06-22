@@ -106,8 +106,25 @@ public class Runtime {
         return minWorkerCapabilityIdleTime;
     }
 
+    public static int getMinWorkerCapabilityIdleTimeNanos() {
+        return minWorkerCapabilityIdleTime * 1000000L;
+    }
+
     public static void setMinWorkerCapabilityIdleTime(int newMinWorkerCapabilityIdleTime) {
         minWorkerCapabilityIdleTime = newMinWorkerCapabilityIdleTime;
+    }
+
+    /* Parameter: gcOnWeakPtrFinalization (boolean)
+       Should System.gc() be called when finalizing WeakPtrs since their value
+       references will be nulled. Default: False to avoid unnecessary GC overhead. */
+    private static boolean gcOnWeakPtrFinalization = false;
+
+    public static boolean shouldGCOnWeakPtrFinalization() {
+        return gcOnWeakPtrFinalization;
+    }
+
+    public static void setGCOnWeakPtrFinalization(boolean newGCOnWeakPtrFinalization) {
+        gcOnWeakPtrFinalization = newGCOnWeakPtrFinalization;
     }
 
     /* Debug Parameters */
@@ -149,6 +166,14 @@ public class Runtime {
 
     public static Closure evalJava(Object o, Closure p) {
         return scheduleClosure(Closures.evalJava(o, p));
+    }
+
+    public static Closure apply(Closure e0, Closure e1) {
+        return new Ap1Upd(e0, e1);
+    }
+
+    public static Closure apply(Closure e0, Closure e1) {
+        return new Ap1Upd(e0, e1);
     }
 
     public static TSO createIOThread(Closure p) {

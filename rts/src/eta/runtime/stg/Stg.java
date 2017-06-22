@@ -12,10 +12,7 @@ import static eta.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 public class Stg {
     /* Weak Pointer Operations */
     public static Closure mkWeak(StgContext context, Closure key, Closure value, Closure finalizer) {
-        Capability cap = context.myCapability;
-        WeakPtr weak = new WeakPtr(key, value, finalizer);
-        cap.weakPtrList.add(weak);
-        context.O(1, weak);
+        context.O(1, WeakPtr.create(key, value, finalizer));
         return null;
     }
 
@@ -23,15 +20,12 @@ public class Stg {
         return mkWeak(context, key, value, null);
     }
 
-    public static Closure addJavaFinalizerToWeak(StgContext context, ByteBuffer fptr, ByteBuffer ptr, int flag, ByteBuffer eptr, WeakPtr w) {
-        /* TODO: Grab finalizer args */
-        w.lock();
+    public static Closure addJavaFinalizerToWeak(StgContext context, long fptr, long ptr, int flag, long eptr, WeakPtr w) {
+        JavaFinalizer jfinalizer = new JavaFinalizer(flag != 0, fptr, ptr, eptr);
         if (w.isDead()) {
-            w.unlock();
             context.I(1, 0);
         } else {
-            /* TODO: Create new finalizer */
-            w.unlock();
+            w.addJavaFinalizer(jfinalizer);
             context.I(1, 1);
         }
         return null;
@@ -44,11 +38,10 @@ public class Stg {
             context.I(1, 0);
             return null;
         } else {
-            /* TODO: Create new finalizer */
-            Closure finalizer = w.finalizer;
             w.die();
             w.unlock();
             w.runJavaFinalizers();
+            Closure finalizer = w.finalizer;
             if (finalizer == null) {
                 context.I(1, 0);
                 return null;
@@ -62,11 +55,11 @@ public class Stg {
     public static Closure deRefWeak(StgContext context, WeakPtr w) {
         if (!w.tryLock()) {
             w.lock();
-            w.unlock();
         }
+        w.unlock();
         if (w.isDead()) {
             context.I(1, 0);
-            return w;
+            return null;
         } else {
             context.I(1, 1);
             return w.getValue();

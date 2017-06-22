@@ -130,37 +130,75 @@ dsPrimCall funId co fcall = do
         (argTypes, ioResType) = tcSplitFunTys funTy
 
 dsFCall :: Id -> Coercion -> ForeignCall -> Maybe Header -> DsM ([Binding], [ClassExport])
-dsFCall funId co fcall _ = do
-  dflags <- getDynFlags
-  (thetaArgs, extendsInfo) <- extendsMap thetaType
-  args <- mapM newSysLocalDs argTypes
-  (argPrimTypes, valArgs, argWrappers) <- mapAndUnzip3M (unboxArg extendsInfo) (map Var args)
-  (resPrimType, ccallResultType, resWrapper) <- boxResult extendsInfo ioResType
-  let workArgIds = [v | Var v <- valArgs]
-      fcall' = genJavaFCall fcall extendsInfo argPrimTypes (Right resPrimType) ioResType
-  ccallUniq <- newUnique
-  workUniq <- newUnique
-  -- Build worker
-  let workerType = mkForAllTys tvs $
-                   mkFunTys (map idType workArgIds) ccallResultType
-      ccallApp   = mkFCall dflags ccallUniq fcall' valArgs ccallResultType
-      workRhs    = mkLams tvs (mkLams workArgIds ccallApp)
-      workId     = mkSysLocal (fsLit "$wccall") workUniq workerType
+dsFCall funId co fcall _
+  | null thetaType && null argTypes
+  , Just funPtrType <- splitFunPtrType ioResType
+  , CCall (CCallSpec (StaticTarget label mPkgKey _) callConv safety) <- fcall = do
+    dflags    <- getDynFlags
+    ccallUniq <- newUnique
+    let fcall  = CCall (CCallSpec (StaticTarget label' mPkgKey True) callConv safety)
+        label' = serializeTarget False False True (unpackFS label) argFts resRep
+        resRep = maybe VoidRep typePrimRep resPrimType
+        argFts = repFieldTypes $ map unboxType argTypes
+        (argTypes, ioResType) = tcSplitFunTys (dropForAlls funPtrType)
+        resType
+          | Just (tc, _) <- splitTyConApp_maybe ioResType
+          , tc `hasKey` unitTyConKey = Nothing
+          | Just (_, resType') <- tcSplitIOType_maybe ioResType = Just resType'
+          | otherwise = Just ioResType
+        resPrimType = fmap unboxType resType
+        createFunPtrApp = mkFCall dflags ccallUniq fcall [] int64PrimTy
+    funPtrAddrId <- newSysLocalDs objectType
+    funPtrTyCon <- dsLookupTyCon funPtrTyConName
+    let funPtrDataCon = head $ tyConDataCons funPtrTyCon
+        funPtrWrapId  = dataConWrapId funPtrDataCon
+        rhs = mkCoreLet (NonRec funPtrAddrId createFunPtrApp)
+            $ mkCoreApp (Var funPtrWrapId) (Var funPtrAddrId)
+        {- We give a NOINLINE so that the FunPtr doesn't get added to
+           the funPtrMap twice. While getting added twice is thread-safe,
+           it creates unnecessary duplication. -}
+        refIdWithNoInline = funId `setInlinePragInfo` neverInlinePragma
+    return ([(refIdWithNoInline, rhs)], [])
+  | otherwise = do
+    dflags <- getDynFlags
+    (thetaArgs, extendsInfo) <- extendsMap thetaType
+    args <- mapM newSysLocalDs argTypes
+    (argPrimTypes, valArgs, argWrappers) <- mapAndUnzip3M (unboxArg extendsInfo) (map Var args)
+    (resPrimType, ccallResultType, resWrapper) <- boxResult extendsInfo ioResType
+    let workArgIds = [v | Var v <- valArgs]
+        fcall' = genJavaFCall fcall extendsInfo argPrimTypes (Right resPrimType) ioResType
+    ccallUniq <- newUnique
+    workUniq  <- newUnique
+    -- Build worker
+    let workerType = mkForAllTys tvs $ mkFunTys (map idType workArgIds) ccallResultType
+        ccallApp   = mkFCall dflags ccallUniq fcall' valArgs ccallResultType
+        workRhs    = mkLams tvs (mkLams workArgIds ccallApp)
+        workId     = mkSysLocal (fsLit "$wccall") workUniq workerType
 
-  -- Build wrapper
-  let workApp        = mkApps (mkVarApps (Var workId) tvs) valArgs
-      wrapperBody    = foldr ($) (resWrapper workApp) argWrappers
-      wrapRhs        = mkLams (tvs ++ thetaArgs ++ args) wrapperBody
-      wrapRhs'       = Cast wrapRhs co
-      funIdWithInline = funId
-                       `setIdUnfolding`
-                       mkInlineUnfolding (Just (length args)) wrapRhs'
-  return ([(workId, workRhs), (funIdWithInline, wrapRhs')], [])
+    -- Build wrapper
+    let workApp        = mkApps (mkVarApps (Var workId) tvs) valArgs
+        wrapperBody    = foldr ($) (resWrapper workApp) argWrappers
+        wrapRhs        = mkLams (tvs ++ thetaArgs ++ args) wrapperBody
+        wrapRhs'       = Cast wrapRhs co
+        funIdWithInline = funId
+                        `setIdUnfolding`
+                        mkInlineUnfolding (Just (length args)) wrapRhs'
+    return ([(workId, workRhs), (funIdWithInline, wrapRhs')], [])
 
   where ty = pFst $ coercionKind co
         (tvs, thetaFunTy) = tcSplitForAllTys ty
         (thetaType, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
+        splitFunTyCon resType
+          | Just (tc, [tyArg]) <- tcSplitTyConApp_maybe resType
+          , tyConUnique tc == funPtrTyConKey
+          = Just tyArg
+          | otherwise = Nothing
+        splitFunPtrType resType
+          | arg@(Just _) <- splitFunTyCon resType = arg
+          | Just (_, resTy) <- tcSplitIOType_maybe resultType
+          = splitFunPtrType resTy
+          | otherwise = Nothing
 
 genJavaFCall :: ForeignCall -> ExtendsInfo -> [Type] -> Either PrimRep (Maybe Type) -> Type -> ForeignCall
 genJavaFCall (CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv safety))
@@ -270,6 +308,23 @@ extendsMapWithVar thetaType = mkVarEnv keyVals
                   | isTyVarTy varTy' = (varTy', tagTy', ExtendsBound)
                   | otherwise = (tagTy', varTy', SuperBound)
                 var = getTyVar "extendsMap: Not type variable!" varTy
+
+unboxType :: Type -> Type
+unboxType ty
+  | isPrimitiveType ty = ty
+  | Just (_, ty') <- topNormaliseNewType_maybe argType
+  = unboxType ty'
+  | Just tc <- tyConAppTyCon_maybe argType
+  , tc `hasKey` boolTyConKey
+  = jboolPrimTy
+  | Just (tc, [ty']) <- splitTyConApp_maybe argType
+  , tc `hasKey` maybeTyConKey
+  = unboxType ty'
+  | Just (_,_,dataCon,dataConArgTys) <- splitDataProductType_maybe ty
+  , dataConSourceArity dataCon == 1
+  , (dataConArgTy1 : _) <- dataConArgTys
+  = unboxType dataConArgTy1
+  | otherwise = ty
 
 unboxArg :: ExtendsInfo -> CoreExpr -> DsM (Type, CoreExpr, CoreExpr -> CoreExpr)
 unboxArg vs arg

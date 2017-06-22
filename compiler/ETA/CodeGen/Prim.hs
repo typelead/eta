@@ -856,6 +856,8 @@ simpleOp SameMutVarOp = Just $ intCompOp if_acmpeq
 --          than 2GB will disable this from being addressable.
 simpleOp Addr2IntOp = Just $ normalOp $ gconv jlong jint
 simpleOp Int2AddrOp = Just $ normalOp $ gconv jint  jlong
+simpleOp Addr2Int64Op = Just idOp
+simpleOp Int642AddrOp = Just idOp
 simpleOp AddrAddOp = Just $ normalOp ladd
 simpleOp AddrSubOp = Just $ normalOp lsub
 simpleOp AddrRemOp = Just $ \[addr, n] ->

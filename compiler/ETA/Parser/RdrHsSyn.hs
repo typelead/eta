@@ -1431,51 +1431,8 @@ parseCImport cconv safety _nm str sourceText =
           <++ (mk Nothing . (\fs -> (CFunction (StaticTarget (mkFastString fs) Nothing True)))
                         <$> munch1 (const True))
      return r
-   --     skipSpaces
-   --     r <- choice [
-   --        string "dynamic" >> return (mk Nothing (CFunction DynamicTarget)),
-   --        do string "@wrapper"
-   --           skipSpaces
-   --           isAbstract <- option False (string "@abstract" >> skipSpaces >> pure True)
-   --           mk Nothing . flip CWrapper isAbstract <$> cid nm,
-   --        do optional (token "static" >> skipSpaces)
-   --           ((mk Nothing <$> cimp nm) +++
-   --            (do h <- munch1 hdr_char
-   --                skipSpaces
-   --                mk (Just (Header (mkFastString h))) <$> cimp nm))
-   --       ]
-   --     skipSpaces
-   --     return r
-
-   -- token str = do _ <- string str
-   --                toks <- look
-   --                case toks of
-   --                    c : _
-   --                     | id_char c -> pfail
-   --                    _            -> return ()
 
    mk h n = CImport cconv safety h n sourceText
-
-   -- hdr_char c = not (isSpace c) -- header files are filenames, which can contain
-   --                              -- pretty much any char (depending on the platform),
-   --                              -- so just accept any non-space character
-   -- id_first_char c = isAlpha    c || c == '_'
-   -- id_char       c = isAlphaNum c || c == '_'
-
-   -- cimp nm = (ReadP.char '&' >> skipSpaces >> CLabel <$> cid nm)
-   --           +++ (do isFun <- case cconv of
-   --                            L _ CApiConv ->
-   --                                option True
-   --                                       (do token "value"
-   --                                           skipSpaces
-   --                                           return False)
-   --                            _ -> return True
-   --                   cid' <- cid nm
-   --                   return (CFunction (StaticTarget cid' Nothing isFun)))
-   -- cid nm = return nm +++
-   --          (do c  <- satisfy id_first_char
-   --              cs <-  many (satisfy id_char)
-   --              return (mkFastString (c:cs)))
 
 -- construct a foreign export declaration
 --

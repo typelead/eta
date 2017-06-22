@@ -569,13 +569,15 @@ data PrimOp
    | NewJDoubleArrayOp
    | ReadJDoubleArrayOp
    | WriteJDoubleArrayOp
+   | Addr2Int64Op
+   | Int642AddrOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1136
+maxPrimOpTag = 1138
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1714,6 +1716,8 @@ tagOf_PrimOp WriteJFloatArrayOp = _ILIT(1133)
 tagOf_PrimOp NewJDoubleArrayOp = _ILIT(1134)
 tagOf_PrimOp ReadJDoubleArrayOp = _ILIT(1135)
 tagOf_PrimOp WriteJDoubleArrayOp = _ILIT(1136)
+tagOf_PrimOp Addr2Int64Op = _ILIT(1137)
+tagOf_PrimOp Int642AddrOp = _ILIT(1138)
 
 instance Eq PrimOp where
     op1 == op2 = tagOf_PrimOp op1 ==# tagOf_PrimOp op2
@@ -2874,6 +2878,8 @@ allThePrimOps =
    , NewJDoubleArrayOp
    , ReadJDoubleArrayOp
    , WriteJDoubleArrayOp
+   , Addr2Int64Op
+   , Int642AddrOp
    ]
 
 tagToEnumKey :: Unique
@@ -4228,6 +4234,8 @@ primOpInfo WriteJDoubleArrayOp =
   mkGenPrimOp (fsLit "writeJDoubleArray#") [alphaTyVar, betaTyVar]
   [ mkObjectPrimTy alphaTy, intPrimTy, doublePrimTy, mkStatePrimTy betaTy ]
   $ mkStatePrimTy betaTy
+primOpInfo Addr2Int64Op = mkGenPrimOp (fsLit "addr2Int64#")  [] [addrPrimTy] (int64PrimTy)
+primOpInfo Int642AddrOp = mkGenPrimOp (fsLit "int642Addr#")  [] [int64PrimTy] (addrPrimTy)
 
 
 {-
@@ -5150,6 +5158,8 @@ primOpCodeSize CopyAddrToByteArrayOp =  primOpCodeSizeForeignCall + 4
 primOpCodeSize SetByteArrayOp =  primOpCodeSizeForeignCall + 4
 primOpCodeSize Addr2IntOp = 0
 primOpCodeSize Int2AddrOp = 0
+primOpCodeSize Addr2Int64Op = 0
+primOpCodeSize Int642AddrOp = 0
 primOpCodeSize WriteMutVarOp =  primOpCodeSizeForeignCall
 primOpCodeSize TouchOp =  0
 primOpCodeSize ParOp =  primOpCodeSizeForeignCall

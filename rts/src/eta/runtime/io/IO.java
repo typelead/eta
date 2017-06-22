@@ -61,17 +61,20 @@ public class IO {
         byteArrayRefMap.put(byteArrayRef, address);
     }
 
-    public static void checkForFreeByteArrays() {
+    public static void checkForGCByteArrays() {
         /* This check can be skipped if another thread is doing it. */
         if (byteArrayFreeLock.compareAndSet(false, true)) {
-            PhantomReference<ByteArray> ref;
-            while ((ref = byteArrayRefQueue.poll()) != null) {
-                Long addressLong = byteArrayRefMap.get(ref);
-                if (address != null) {
-                    MemoryManager.free(addressLong.longValue());
+            try {
+                PhantomReference<ByteArray> ref;
+                while ((ref = byteArrayRefQueue.poll()) != null) {
+                    Long addressLong = byteArrayRefMap.get(ref);
+                    if (address != null) {
+                        MemoryManager.free(addressLong.longValue());
+                    }
                 }
+            } finally {
+                byteArrayFreeLock.set(false);
             }
-            byteArrayFreeLock.set(false);
         }
     }
 

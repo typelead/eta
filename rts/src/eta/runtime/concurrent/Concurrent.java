@@ -93,7 +93,7 @@ public class Concurrent {
     public static Closure yield(StgContext context) {
         tso.whyBlocked = ThreadYielding;
         tso.blockInfo  = null;
-        cap.blockedLoop()
+        cap.blockedLoop();
         return null;
     }
 
@@ -151,32 +151,35 @@ public class Concurrent {
     public static void checkForCompletedFutures(Capability cap) {
         /* Only one thread at a time should check the futures. */
         if (futureMapLock.compareAndSet(false, true)) {
-            Iterator<Map.Entry<Future, TSO>> it = futureMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Future, TSO> entry  = it.next();
-                Future                 future = entry.getKey();
-                TSO                    tso    = entry.getValue();
-                if (future.isDone()) {
-                    it.remove();
-                    Object result = null;
-                    Exception e   = null;
-                    do {
-                        try {
-                            result    = future.get();
-                        } catch (CancellationException e) {
-                            exception = e;
-                        } catch (ExecutionException e) {
-                            exception = e;
-                        } catch (Interrupted e) {
-                            continue;
-                        }
-                        break;
-                    } while (true);
-                    tso.blockInfo = new FutureResult(result, exception);
-                    cap.tryWakeupThread(tso);
+            try {
+                Iterator<Map.Entry<Future, TSO>> it = futureMap.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry<Future, TSO> entry  = it.next();
+                    Future                 future = entry.getKey();
+                    TSO                    tso    = entry.getValue();
+                    if (future.isDone()) {
+                        it.remove();
+                        Object result = null;
+                        Exception e   = null;
+                        do {
+                            try {
+                                result    = future.get();
+                            } catch (CancellationException e) {
+                                exception = e;
+                            } catch (ExecutionException e) {
+                                exception = e;
+                            } catch (Interrupted e) {
+                                continue;
+                            }
+                            break;
+                        } while (true);
+                        tso.blockInfo = new FutureResult(result, exception);
+                        cap.tryWakeupThread(tso);
+                    }
                 }
+            } finally {
+                futureMapLock.set(false);
             }
-            futureMapLock.set(false);
         }
     }
 
@@ -236,20 +239,23 @@ public class Concurrent {
 
     public static void checkForReadyIO(Capability cap) {
         if (selectorLock.compareAndSet(false, true)) {
-            int selectedKeys = selector.selectNow();
-            if (selectedKeys > 0) {
-                Iterator<SelectionKey> it = selector.selectedKeys().iterator();
-                while (it.hasNext()) {
-                    SelectionKey key = it.next();
-                    if (key.isValid() && (key.readOps() & key.interestOps() != 0)) {
-                        TSO tso = (TSO) key.attachment();
-                        key.cancel();
-                        cap.tryWakeupThread(tso);
+            try {
+                int selectedKeys = selector.selectNow();
+                if (selectedKeys > 0) {
+                    Iterator<SelectionKey> it = selector.selectedKeys().iterator();
+                    while (it.hasNext()) {
+                        SelectionKey key = it.next();
+                        if (key.isValid() && (key.readOps() & key.interestOps() != 0)) {
+                            TSO tso = (TSO) key.attachment();
+                            key.cancel();
+                            cap.tryWakeupThread(tso);
+                        }
+                        it.remove();
                     }
-                    it.remove();
                 }
+            } finally {
+                selectorLock.set(false);
             }
-            selectorLock.set(false);
         }
     }
 }
