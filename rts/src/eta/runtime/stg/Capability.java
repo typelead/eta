@@ -1303,6 +1303,16 @@ public final class Capability {
         runQueue.remove(tso);
     }
 
+    public final void throwToSelf (StgTSO tso, StgClosure exception)
+    {
+        MessageThrowTo m = throwTo(tso, tso, exception);
+
+        if (m != null) {
+            // throwTo leaves it locked
+            m.unlock();
+        }
+    }
+
     public final MessageThrowTo throwTo(StgTSO source, StgTSO target, StgClosure exception) {
         MessageThrowTo msg = new MessageThrowTo(source, target, exception);
         msg.lock();
@@ -1462,9 +1472,13 @@ public final class Capability {
     public final StgClosure stmReadTvar(StgTRecHeader trec, StgTVar tvar) {
         StgClosure result;
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = searchResult.header;
-        TRecEntry entry = searchResult.entry;
-        if (entry == null) {
+        StgTRecHeader entryIn = null;
+        TRecEntry entry = null;
+        if(searchResult != null){
+            entryIn = searchResult.header;
+            entry = searchResult.entry;
+        }
+        if (entry != null) {
             if (entryIn != trec) {
                 TRecEntry newEntry = getNewEntry(trec);
                 newEntry.tvar = tvar;
@@ -1509,9 +1523,13 @@ public final class Capability {
 
     public final void stmWriteTvar(StgTRecHeader trec, StgTVar tvar, StgClosure newValue) {
         EntrySearchResult searchResult = STM.getEntry(trec, tvar);
-        StgTRecHeader entryIn = searchResult.header;
-        TRecEntry entry = searchResult.entry;
-        if (entry == null) {
+        StgTRecHeader entryIn = null;
+        TRecEntry entry = null;
+        if(searchResult != null){
+            entryIn = searchResult.header;
+            entry = searchResult.entry;
+        }
+        if (entry != null) {
             if (entryIn == trec) {
                 entry.newValue = newValue;
             }else {
@@ -1644,7 +1662,7 @@ public final class Capability {
         /* TODO: Verify logic is correct */
         ListIterator<StgTRecChunk> cit = trec.chunkIterator();
         StgTRecChunk currentChunk = cit.previous();
-        StgTRecChunk chunk = cit.previous();
+        StgTRecChunk chunk = currentChunk;
         while (cit.hasPrevious()) {
             StgTRecChunk prevChunk = cit.previous();
             freeTRecChunk(chunk);
