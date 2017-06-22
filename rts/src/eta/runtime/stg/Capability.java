@@ -52,12 +52,11 @@ public final class Capability {
     public int id;
     public final boolean worker;
     public WeakReference<Thread> thread;
-    public Lock lock                                       = new ReentrantLock();
-    public StgContext context                              = new StgContext();
-    public Deque<TSO> runQueue                             = new LinkedLinked<TSO>();
-    public Deque<Message> inbox                            = new ConcurrentLinkedDeque<Message>();
-    public Map<WeakReference<Closure>, WeakPtr> weakPtrMap = new ArrayList<Weak>();
-    public ReferenceQueue<Closure> refQueue                = new ReferenceQueue<Closure>();
+    /* TODO: Is this lock really needed? */
+    public Lock lock            = new ReentrantLock();
+    public StgContext context   = new StgContext();
+    public Deque<TSO> runQueue  = new LinkedList<TSO>();
+    public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
 
     public Capability(Thread t, boolean worker) {
         this.thread = new WeakReference<Thread>(t);
@@ -98,8 +97,9 @@ public final class Capability {
                     activateSpark();
                     if (emptyRunQueue()) {
                         blockedCapabilities.add(this);
-                        LockSupport.park();
-                        if (Thread.interrupted()) {}
+                        do {
+                            blockedLoop(Runtime.getMinWorkerCapabilityIdleTimeNanos());
+                        } while (blockedCapabilities.contains(this));
                         continue;
                     }
                 }
@@ -416,12 +416,7 @@ public final class Capability {
     }
 
     public void checkFinalizers() {
-        if (!weakPtrList.isEmpty()) {
-            Reference<?> ref;
-            while ((ref = refQueue.poll()) != null) {
-
-            }
-        }
+        /* TODO: Implement */
     }
 
     /* Idle Loop */
@@ -454,17 +449,22 @@ public final class Capability {
 
             /* Free memory blocks associated with ByteArrays if the ByteArray itself
                has been garbage collected. */
-            IO.checkForFreeByteArrays();
+            IO.checkForGCByteArrays();
 
-            /* Run finalizers for WeakPtrs. */
-            checkFinalizers();
+            /* Check for any WeakPtr keys that have been GC'd and run both the
+               Eta finalizers and Java finalizers. */
+            WeakPtr.checkForGCWeakPtrs();
         }
     }
 
     /* Blocked Loop */
     public void blockedLoop() {
+        blockedLoop(Runtime.getMaxTSOBlockTimeNanos());
+    }
+
+    public void blockedLoop(long nanos) {
         cap.idleLoop(true);
-        LockSupport.parkNanos(Runtime.getMaxTSOBlockTimeNanos());
+        LockSupport.parkNanos(nanos);
         if (Thread.interrupted()) {}
         cap.idleLoop(false);
     }
@@ -507,11 +507,14 @@ public final class Capability {
                  another thread must be unblocking them anyways. */
         if (!blockedCapabilities.isEmpty()) {
             if (blockedCapabilitiesLock.compareAndSet(false, true)) {
-                for (Capability c:blockedCapabiliies) {
-                    c.interrupt();
+                try {
+                    for (Capability c:blockedCapabiliies) {
+                        c.interrupt();
+                    }
+                    blockedCapabilities.clear();
+                } finally {
+                    blockedCapabilitiesLock.set(false);
                 }
-                blockedCapabilities.clear();
-                blockedCapabilitiesLock.set(false);
             }
         }
     }
