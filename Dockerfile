@@ -68,7 +68,8 @@ RUN apt-get install -q -y apt-file apt-utils && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /var/cache/oracle-jdk8-installer
 
-# Copy the current source of eta
-COPY ./ /usr/eta
-WORKDIR /usr/eta
-RUN ./install.sh
+# Clone the latest eta
+RUN cd /usr && \
+    git clone --recursive https://github.com/typelead/eta && \
+    cd /usr/eta && \
+    ./install.sh
