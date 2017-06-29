@@ -163,7 +163,7 @@ contextMyCapability = getfield myCapability
 contextMyCapabilitySet :: Code
 contextMyCapabilitySet = putfield myCapability
 
-suspendInterruptsMethod :: Code
+suspendInterruptsMethod :: Bool -> Code
 suspendInterruptsMethod interruptible =
      loadContext
   <> currentTSOField
