@@ -221,12 +221,12 @@ foreign import java unsafe "@static eta.base.Utils._calloc"
 foreign import java unsafe "@static eta.base.Utils._realloc"
   _realloc :: Ptr a -> CSize -> IO (Ptr b)
 
-foreign import java unsafe "@static eta.base.Utils._free"
+foreign import java unsafe "@static eta.runtime.io.MemoryManager.free"
   _free    :: Ptr a -> IO ()
 
 -- | A pointer to a foreign function equivalent to 'free', which may be
 -- used as a finalizer (cf 'Foreign.ForeignPtr.ForeignPtr') for storage
 -- allocated with 'malloc', 'mallocBytes', 'realloc' or 'reallocBytes'.
 -- foreign import ccall unsafe "stdlib.h &free" finalizerFree ::
-finalizerFree :: FinalizerPtr a
-finalizerFree = undefined
+foreign import java unsafe "@static eta.runtime.io.MemoryManager.free"
+  finalizerFree :: FinalizerPtr a

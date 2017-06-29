@@ -2,7 +2,7 @@ package eta.runtime.stg;
 
 import static eta.runtime.RuntimeLogging.barf;
 
-public abstract class DataCon extends StgValue {
+public abstract class DataCon extends Value {
 
     public abstract int getTag();
 

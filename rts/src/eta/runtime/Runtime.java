@@ -168,14 +168,6 @@ public class Runtime {
         return scheduleClosure(Closures.evalJava(o, p));
     }
 
-    public static Closure apply(Closure e0, Closure e1) {
-        return new Ap1Upd(e0, e1);
-    }
-
-    public static Closure apply(Closure e0, Closure e1) {
-        return new Ap1Upd(e0, e1);
-    }
-
     public static TSO createIOThread(Closure p) {
         return new TSO(Closures.evalLazyIO(p));
     }

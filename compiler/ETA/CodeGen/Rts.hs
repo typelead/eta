@@ -258,3 +258,26 @@ debugPrint ft = dup ft
   where genFt (ObjectType _) = jobject
         genFt (ArrayType _)  = jobject
         genFt ft             = ft
+
+ftClassObject :: FieldType -> Code
+ftClassObject ft@(BaseType _) =
+  getstatic $ mkFieldRef (ftWrapper ft) "TYPE" classType
+ftClassObject ft@(ObjectType iclassName) = gldc ft (CClass iclassName)
+
+ftWrapper :: FieldType -> Text
+ftWrapper (BaseType prim) =
+  prefix <> case prim of
+    JBool   -> "Boolean"
+    JChar   -> "Character"
+    JFloat  -> "Float"
+    JDouble -> "Double"
+    JByte   -> "Byte"
+    JShort  -> "Short"
+    JInt    -> "Integer"
+    JLong   -> "Long"
+  where prefix = "java/lang/"
+
+classType = "java/lang/Class"
+classFt = obj classType
+
+methodFt = obj "java/lang/reflect/Method"
