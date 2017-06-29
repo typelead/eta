@@ -15,7 +15,7 @@ public class Parallel {
             return spark;
         } else {
             context.I(1, 0);
-            return Closures.False_closure;
+            return Closures.False;
         }
     }
 

@@ -22,13 +22,10 @@ import ETA.CodeGen.Name
 
 import ETA.Debug
 
-
-
 import Data.Monoid ((<>))
 import Data.Foldable (fold)
 
 import Data.Text (Text)
-
 import qualified Data.Text as T
 
 cgOpApp :: StgOp
@@ -68,7 +65,7 @@ cgOpApp (StgPrimOp primOp) args resType = do
         withContinuation $ do
           emit $ loadContext
               <> fold loadArgs
-              <> invokestatic (mkMethodRef rtsGroup rtsFunName (contextType:fts) closureType)
+              <> invokestatic (mkMethodRef rtsGroup rtsFunName (contextType:fts) (ret closureType))
 
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
@@ -103,7 +100,7 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args _resType =
     let (argFts, callArgs) = unzip argsFtCodes
     emit $ loadContext
         <> fold callArgs
-        <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) closureType)
+        <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) (ret closureType))
   -- sequel <- getSequel
   -- case sequel of
   --   AssignTo targetLocs -> emit $ mkReturnEntry targetLocs

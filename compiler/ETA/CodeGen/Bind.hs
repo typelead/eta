@@ -67,7 +67,7 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
     defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
-    _ <- withMethod [Public] "enter" [contextType] closureType $ do
+    _ <- withMethod [Public] "enter" [contextType] (ret closureType) $ do
       n <- peekNextLocal
       let (argLocs, code, n') = mkCallEntry n args
           (_ , cgLocs) = unzip argLocs
@@ -133,7 +133,7 @@ setupUpdate lfInfo body
   | otherwise = withEnterMethod stgInd "thunkEnter"
   where withEnterMethod thunkType name = do
           setSuperClass thunkType
-          _ <- withMethod [Public] name [contextType] closureType body
+          _ <- withMethod [Public] name [contextType] (ret closureType) body
           return ()
 
 cgBind :: StgBinding -> CodeGen ()

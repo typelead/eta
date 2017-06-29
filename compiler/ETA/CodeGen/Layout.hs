@@ -17,7 +17,6 @@ import ETA.CodeGen.Env
 
 import Data.Maybe
 import Data.Monoid
-import Data.Text (Text)
 import Data.Foldable
 
 emitReturn :: [CgLoc] -> CodeGen ()
@@ -89,12 +88,12 @@ mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
         storeArgs !code _ _ _ _ _ _ _ = code
 
 -- Helper function for generating return entry/exit layout
-findFirstR :: [CgLoc] -> (Just CgLoc, [CgLoc])
+findFirstR :: [CgLoc] -> (Maybe CgLoc, [CgLoc])
 findFirstR = go []
-  where go locs []               = (Nothing, reverse locs)
+  where go locs []              = (Nothing, reverse locs)
         go locs (cgLoc:cgLocs)
           | locArgRep cgLoc == P = (Just cgLoc, reverse locs ++ cgLocs)
-          | otherwise            = findFirstR (cgLoc:locs) cgLocs
+          | otherwise            = go (cgLoc:locs) cgLocs
 
 -- This method is extremely sensitive. It assumes that the returned closure is
 -- on the top of the stack
@@ -146,7 +145,7 @@ slowCall :: CgLoc -> [StgArg] -> CodeGen ()
 slowCall fun args = do
   dflags     <- getDynFlags
   argFtCodes <- getRepFtCodes args
-  let (apPat, arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
+  let (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
       slowCode = directCall' True True (mkApFast arity (contextType:fts)) arity
                              ((P, Just ft, Just code):argFtCodes)
   if n > arity && optLevel dflags >= 2 then do
@@ -190,7 +189,7 @@ directCall' slow directLoad entryCode arity args =
 genApplyCalls :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
 genApplyCalls []   = []
 genApplyCalls args = applyCall : genApplyCalls restArgs
-  where (argPat, n, fts)     = slowCallPattern $ map (\(a,_,_) -> a) args
+  where (n, fts)     = slowCallPattern $ map (\(a,_,_) -> a) args
         (callArgs, restArgs) = splitAt n args
         applyCall            = genApplyCall n fts callArgs
 
@@ -199,9 +198,7 @@ genApplyCall arity fts args =
      loadContext
   <> fold loadCodes
   <> mkApFast arity fts
-  where patClass  = apply $ argPatToFrame patText
-        loadCodes = mapMaybe (\(_, _, a) -> a) args
-        ft        = obj patClass
+  where loadCodes = mapMaybe (\(_, _, a) -> a) args
 
 getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]
 getRepFtCodes = mapM getFtAmode

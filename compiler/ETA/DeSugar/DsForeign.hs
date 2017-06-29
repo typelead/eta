@@ -136,7 +136,7 @@ dsFCall funId co fcall _
   , CCall (CCallSpec (StaticTarget label mPkgKey _) callConv safety) <- fcall = do
     dflags    <- getDynFlags
     ccallUniq <- newUnique
-    let fcall  = CCall (CCallSpec (StaticTarget label' mPkgKey True) callConv safety)
+    let fcall  = CCall (CCallSpec (StaticTarget (mkFastString label') mPkgKey True) callConv safety)
         label' = serializeTarget False False True (unpackFS label) argFts resRep
         resRep = maybe VoidRep typePrimRep resPrimType
         argFts = repFieldTypes $ map unboxType argTypes
@@ -148,7 +148,7 @@ dsFCall funId co fcall _
           | otherwise = Just ioResType
         resPrimType = fmap unboxType resType
         createFunPtrApp = mkFCall dflags ccallUniq fcall [] int64PrimTy
-    funPtrAddrId <- newSysLocalDs objectType
+    funPtrAddrId <- newSysLocalDs int64PrimTy
     funPtrTyCon <- dsLookupTyCon funPtrTyConName
     let funPtrDataCon = head $ tyConDataCons funPtrTyCon
         funPtrWrapId  = dataConWrapId funPtrDataCon
@@ -157,7 +157,7 @@ dsFCall funId co fcall _
         {- We give a NOINLINE so that the FunPtr doesn't get added to
            the funPtrMap twice. While getting added twice is thread-safe,
            it creates unnecessary duplication. -}
-        refIdWithNoInline = funId `setInlinePragInfo` neverInlinePragma
+        refIdWithNoInline = funId `setInlinePragma` neverInlinePragma
     return ([(refIdWithNoInline, rhs)], [])
   | otherwise = do
     dflags <- getDynFlags
@@ -196,7 +196,7 @@ dsFCall funId co fcall _
           | otherwise = Nothing
         splitFunPtrType resType
           | arg@(Just _) <- splitFunTyCon resType = arg
-          | Just (_, resTy) <- tcSplitIOType_maybe resultType
+          | Just (_, resTy) <- tcSplitIOType_maybe resType
           = splitFunPtrType resTy
           | otherwise = Nothing
 
@@ -312,12 +312,12 @@ extendsMapWithVar thetaType = mkVarEnv keyVals
 unboxType :: Type -> Type
 unboxType ty
   | isPrimitiveType ty = ty
-  | Just (_, ty') <- topNormaliseNewType_maybe argType
+  | Just (_, ty') <- topNormaliseNewType_maybe ty
   = unboxType ty'
-  | Just tc <- tyConAppTyCon_maybe argType
+  | Just tc <- tyConAppTyCon_maybe ty
   , tc `hasKey` boolTyConKey
   = jboolPrimTy
-  | Just (tc, [ty']) <- splitTyConApp_maybe argType
+  | Just (tc, [ty']) <- splitTyConApp_maybe ty
   , tc `hasKey` maybeTyConKey
   = unboxType ty'
   | Just (_,_,dataCon,dataConArgTys) <- splitDataProductType_maybe ty
@@ -653,8 +653,7 @@ dsFExport closureId co externalName classSpec = do
   return ( rawClassSpec
          , addAttrsToMethodDef mAttrs
          $ mkMethodDef className accessFlags methodName argFts resFt $
-             invokestatic (mkMethodRef rtsGroup "lock" [] (ret capabilityType))
-          <> loadThis
+             loadThis
           <> new ap2Ft
           <> dup ap2Ft
           <> invokestatic (mkMethodRef runClass runClosure
@@ -667,18 +666,10 @@ dsFExport closureId co externalName classSpec = do
           <> invokespecial (mkMethodRef ap2Class "<init>" [ closureType
                                                           , closureType] void)
           -- TODO: Support java args > 5
-          <> invokestatic (mkMethodRef rtsGroup evalMethod evalArgFts
-                                       (ret hsResultType))
+          <> invokestatic (mkMethodRef rtsGroup evalMethod evalArgFts (ret closureType))
           <> (if voidResult
-              then mempty
-              else dup hsResultType)
-          <> hsResultCap
-          <> invokestatic (mkMethodRef rtsGroup "unlock" [capabilityType] void)
-          -- TODO: add a call to checkSchedStatus
-          <> (if voidResult
-             then vreturn
-             else ( hsResultValue
-                 <> unboxResult resType resClass rawResFt))
+              then pop closureType <> vreturn
+              else unboxResult resType resClass rawResFt)
          , mFieldDef )
   where ty = pSnd $ coercionKind co
         (tyVars, thetaFunTy) = tcSplitForAllTys ty
@@ -688,7 +679,7 @@ dsFExport closureId co externalName classSpec = do
         extendsInfo = extendsMapWithVar tyVarBounds
         loadThis
           | isJust staticMethodClass =
-            if runClosure == "runJava_closure"
+            if runClosure == "runJava"
             then aconst_null jobject
             else mempty
           | otherwise = gload classFt 0
@@ -702,10 +693,10 @@ dsFExport closureId co externalName classSpec = do
           | otherwise = False
         (evalArgFts, evalMethod, runClass) =
           case runClosure of
-            "runJava_closure" ->
-              ([capabilityType, jobject, closureType], "evalJava", "base/java/TopHandler")
+            "runJava" ->
+              ([jobject, closureType], "evalJava", "base/java/TopHandler")
             _                 ->
-              ([capabilityType, closureType], "evalIO", "base/ghc/TopHandler")
+              ([closureType], "evalIO", "base/ghc/TopHandler")
         (staticMethodClass, methodName)
           | Just camn <- classAndMethodName
           , let (className, methodName) = labelToMethod camn
@@ -721,7 +712,7 @@ dsFExport closureId co externalName classSpec = do
                                           classSpec
         (rawClassSpec', className', resType, runClosure)
           | Just (ioTyCon, resType) <- tcSplitIOType_maybe ioResType
-          = (className, className, resType, "runIO_closure")
+          = (className, className, resType, "runIO")
           | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
           = ((either (error $ "The tag type should be annotated with a CLASS annotation.")
                (maybe (if isNothing staticMethodClass
@@ -730,8 +721,8 @@ dsFExport closureId co externalName classSpec = do
                $ rawTagTypeToText javaTagType)
               , tagTypeToText javaTagType
               , javaResType
-              , "runJava_closure")
-          | otherwise = (className, className, ioResType, "runNonIO_closure")
+              , "runJava")
+          | otherwise = (className, className, ioResType, "runNonIO")
           where className = fromJust staticMethodClass
 
         numApplied = length argTypes + 1

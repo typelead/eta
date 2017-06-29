@@ -143,25 +143,25 @@ contextStore _ argRep storeCode n =
           O -> storeO
           _ -> error "contextStore: V"
 
-slowCallPattern :: [ArgRep] -> (Text, RepArity, [FieldType])
+slowCallPattern :: [ArgRep] -> (RepArity, [FieldType])
 slowCallPattern (P: P: P: P: P: P: _) =
-  ("ap_pppppp", 6, replicate 6 closureType)
+  (6, replicate 6 closureType)
 slowCallPattern (P: P: P: P: P: _)    =
-  ("ap_ppppp", 5, replicate 5 closureType)
-slowCallPattern (P: P: P: P: _)       = ("ap_pppp", 4, replicate 4 closureType)
-slowCallPattern (P: P: P: V: _)       = ("ap_pppv", 4, replicate 3 closureType)
-slowCallPattern (P: P: P: _)          = ("ap_ppp", 3, replicate 3 closureType)
-slowCallPattern (P: P: V: _)          = ("ap_ppv", 3, replicate 2 closureType)
-slowCallPattern (P: P: _)             = ("ap_pp", 2, replicate 2 closureType)
-slowCallPattern (P: V: _)             = ("ap_pv", 2, [closureType])
-slowCallPattern (P: _)                = ("ap_p", 1, [closureType])
-slowCallPattern (O: _)                = ("ap_o", 1, [jobject])
-slowCallPattern (N: _)                = ("ap_n", 1, [jint])
-slowCallPattern (L: _)                = ("ap_l", 1, [jlong])
-slowCallPattern (F: _)                = ("ap_f", 1, [jfloat])
-slowCallPattern (D: _)                = ("ap_d", 1, [jdouble])
-slowCallPattern (V: _)                = ("ap_v", 1, [])
-slowCallPattern []                    = ("ap_0", 0, [])
+  (5, replicate 5 closureType)
+slowCallPattern (P: P: P: P: _)       = (4, replicate 4 closureType)
+slowCallPattern (P: P: P: V: _)       = (4, replicate 3 closureType)
+slowCallPattern (P: P: P: _)          = (3, replicate 3 closureType)
+slowCallPattern (P: P: V: _)          = (3, replicate 2 closureType)
+slowCallPattern (P: P: _)             = (2, replicate 2 closureType)
+slowCallPattern (P: V: _)             = (2, [closureType])
+slowCallPattern (P: _)                = (1, [closureType])
+slowCallPattern (O: _)                = (1, [jobject])
+slowCallPattern (N: _)                = (1, [jint])
+slowCallPattern (L: _)                = (1, [jlong])
+slowCallPattern (F: _)                = (1, [jfloat])
+slowCallPattern (D: _)                = (1, [jdouble])
+slowCallPattern (V: _)                = (1, [])
+slowCallPattern []                    = (0, [])
 
 idPrimRep :: Id -> PrimRep
 idPrimRep = typePrimRep . idType

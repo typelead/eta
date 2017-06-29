@@ -1360,17 +1360,12 @@ mkRtsMainClass dflags mainClass
   = mkClassFile java7 [Public, Super] mainClass' Nothing [] []
   [
     mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
-      [ renderRtsConfig dflags True
-      , gstore rtsConfigType (1 :: Int)
-      , gload (jarray jstring) 0
+      [ gload (jarray jstring) 0
       -- TODO: Find main module
-      , invokestatic $ mkMethodRef (moduleJavaClass mainMod) "DZCmain_closure" [] (Just closureType)
+      , invokestatic $ mkMethodRef (moduleJavaClass mainMod) "DZCmain" [] (Just closureType)
       , gload rtsConfigType 1
       , invokestatic $ mkMethodRef (rts "Runtime") "main" [ jarray jstring
-                                                        , closureType
-                                                        , rtsConfigType]
-                                                        (ret exitCodeType)
-      , pop exitCodeType
+                                                          , closureType ] void
       , vreturn ]
   ]
   where mainClass' = T.pack mainClass

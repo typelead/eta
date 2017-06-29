@@ -137,23 +137,10 @@ public class Runtime {
         }
     }
 
-
     public static void main(String[] args, Closure mainClosure) {
         RuntimeOptions.parse(args);
-        evalLazyIO(cap, mainClosure);
+        evalLazyIO(mainClosure);
         exit();
-    }
-
-    public static void unlock(Capability cap) {
-        Task task = cap.runningTask;
-        Lock l = cap.lock;
-        l.lock();
-        try {
-            cap.release_(false);
-            task.boundTaskExiting();
-        } finally {
-            l.unlock();
-        }
     }
 
     public static Closure evalLazyIO(Closure p) {

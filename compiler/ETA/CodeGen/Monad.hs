@@ -77,6 +77,7 @@ import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
 import ETA.CodeGen.Name
 import ETA.CodeGen.ArgRep
+import ETA.CodeGen.Rts
 import ETA.Debug
 import ETA.Util
 import ETA.Utils.Digraph

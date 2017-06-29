@@ -90,7 +90,7 @@ public class STM {
         TSO tso = context.currentTSO;
         TransactionRecord outer = tso.trec;
         if (outer != null) {
-            return Exception.raise(context, nestedAtomically_closure);
+            return Exception.raise(context, nestedAtomically);
         } else {
             TransactionRecord trec = TransactionRecord.start(outer);
             tso.trec = trec;
