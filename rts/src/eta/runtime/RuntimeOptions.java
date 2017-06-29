@@ -3,14 +3,10 @@ package eta.runtime;
 import java.util.List;
 import java.util.ArrayList;
 
-import static eta.runtime.Rts.stgExit;
-import static eta.runtime.Rts.ExitCode.EXIT_FAILURE;
-import static eta.runtime.Rts.ExitCode.EXIT_SUCCESS;
-import static eta.runtime.RuntimeOptions.RtsOptsEnabled.*;
+import static eta.runtime.Runtime.stgExit;
 import static eta.runtime.RuntimeLogging.errorBelch;
 
 public class RuntimeOptions {
-    public static String progName;
     public static String[] fullProgArgs;
     public static List<String> progArgs = new ArrayList<String>();
     public static List<String> rtsArgs = new ArrayList<String>();
@@ -91,7 +87,7 @@ public class RuntimeOptions {
                         optionChecked = true;
                         if (option.equals("info")) {
                             printRtsInfo();
-                            stgExit(EXIT_SUCCESS);
+                            stgExit(0);
                         } else {
                             errorBelch("unknown RTS options: %s", arg);
                             error = true;
@@ -154,7 +150,7 @@ public class RuntimeOptions {
                 }
                 if (!optionChecked) {
                     errorBelch("Internal error in the RTS options parser");
-                    stgExit(EXIT_FAILURE);
+                    stgExit(1);
                 }
             }
         }
@@ -165,7 +161,7 @@ public class RuntimeOptions {
         System.out.flush();
         /* TODO: Usage text */
         System.out.println("Wrong usage. Consult the source code.");
-        stgExit(EXIT_FAILURE);
+        stgExit(1);
     }
 
     public static void normaliseRtsOpts() {}
@@ -186,7 +182,7 @@ public class RuntimeOptions {
 
     public static void badOption(String s) {
         errorBelch("bad RTS option: %s", s);
-        stgExit(EXIT_FAILURE);
+        stgExit(1);
     }
 
     public static void appendRtsArg(String arg) {

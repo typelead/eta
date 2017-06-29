@@ -1,16 +1,11 @@
 package eta.runtime.interpreter;
 
-import java.util.ListIterator;
-
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.StackFrame;
 import eta.runtime.stg.StgContext;
 import eta.runtime.io.Array;
 import eta.runtime.io.ByteArray;
-import eta.runtime.exception.Exception;
-import static eta.runtime.stg.TSO.WhatNext.ThreadInterpret;
-import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Interpreter {
 

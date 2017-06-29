@@ -2,15 +2,12 @@ package eta.runtime.exception;
 
 import java.util.ListIterator;
 
-import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.StackFrame;
-import eta.runtime.stg.StgEnter;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.thunk.UpdateInfo;
 
-import eta.runtime.apply.ApV;
 import eta.runtime.message.MessageThrowTo;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.TSO_BLOCKEX;
@@ -246,12 +243,12 @@ public class Exception {
                 || target.whatNext == ThreadKilled) {
                 return true;
             }
-            if (RuntimeOptions.DebugFlags.scheduler) {
+            if (Runtime.debugScheduler()) {
                 debugBelch("Capability[%d](throwTo) From TSO %d to TSO %d.", msg.source.id, msg.target.id);
             }
             Capability targetCap = target.cap;
             if (target.cap != cap) {
-                if (RuntimeOptions.DebugFlags.scheduler) {
+                if (Runtime.debugScheduler()) {
                     debugBelch("Capability[%d](throwTo) Sending a ThrowTo message to Capability[%d].", no, targetcap.id);
                 }
                 cap.sendMessage(targetCap, msg);

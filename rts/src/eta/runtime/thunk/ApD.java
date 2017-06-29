@@ -7,7 +7,7 @@ public class ApD extends UpdatableThunk {
     public Closure p1;
     public double p2;
 
-    public Ap2Upd(final Closure p1, final double p2) {
+    public ApD(final Closure p1, final double p2) {
         super();
         this.p1 = p1;
         this.p2 = p2;

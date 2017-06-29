@@ -1,5 +1,8 @@
 package eta.runtime.io;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class SizeLock {
 
     private AtomicInteger permits = new AtomicInteger(1);

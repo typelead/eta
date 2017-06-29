@@ -1,20 +1,26 @@
 package eta.runtime.stm;
 
-import java.util.Stack;
+import java.util.Collection;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Queue;
-import java.util.ArrayDeque;
-import java.util.ListIterator;
+import java.util.LinkedHashMap;
 
-import eta.runtime.RuntimeOptions;
+import eta.runtime.stg.Value;
+import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.TSO;
 
-public class TransactionRecord implements Iterable<TransactionEntry> {
+import static eta.runtime.stm.TransactionRecord.State.*;
+
+public class TransactionRecord extends Value implements Iterable<TransactionEntry> {
     public TransactionRecord enclosingTrec;
     public Map<TVar, TransactionEntry> entries = new HashMap<TVar, TransactionEntry>();
     public Map<AtomicInvariant, InvariantCheck> invariantsToCheck
         = new LinkedHashMap<AtomicInvariant, InvariantCheck>();
-    public TransactionRecordState state;
-    public enum TransactionRecordState {
+    public State state;
+    public enum State {
         TREC_ACTIVE,
         TREC_CONDEMNED,
         TREC_COMMITTED,
@@ -46,7 +52,7 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
         }
     }
 
-    public TransactionEntry getNested(TVar tvar) {
+    public EntrySearchResult getNested(TVar tvar) {
         TransactionEntry entry = null;
         TransactionRecord trec = this;
         do {
@@ -69,53 +75,12 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
     }
 
     public void checkInvariant(Closure invariantCode) {
-        invariantsToCheck
-            .offerFirst(new InvariantCheck(new AtomicInvariant(invariantCode)));
+        AtomicInvariant inv = new AtomicInvariant(invariantCode);
+        invariantsToCheck.put(inv, new InvariantCheck(inv));
     }
 
-    public boolean checkReadOnly() {
-        boolean result = true;
-        if (RuntimeOptions.STM.fineGrained) {
-            ListIterator<StgTRecChunk> cit = chunkIterator();
-            loop:
-            while (cit.hasPrevious()) {
-                StgTRecChunk chunk = cit.previous();
-                for (TransactionEntry e: chunk.entries) {
-                    TVar s = e.tvar;
-                    if (e.isReadOnly()) {
-                        if (s.currentValue != e.expectedValue ||
-                            s.numUpdates != e.numUpdates) {
-                            result = false;
-                            break loop;
-                        }
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    public final void connectInvariant(AtomicInvariant inv) {
-        /* ASSERT (inv.lastExection == null) */
-        ListIterator<StgTRecChunk> cit = chunkIterator();
-        while (cit.hasPrevious()) {
-            StgTRecChunk chunk = cit.previous();
-            for (TransactionEntry e: chunk.entries) {
-                TVar s = e.tvar;
-                EntrySearchResult result = STM.getEntry(enclosingTrec, s);
-                TransactionEntry entry = result.entry;
-                if (entry != null) {
-                    e.expectedValue = entry.newValue;
-                    e.newValue = entry.newValue;
-                }
-                /* TODO: Verify order */
-                s.watchQueue.offer(inv);
-            }
-        }
-        inv.lastExecution = this;
-    }
-
-    public Queue<InvariantCheck> getInvariantsToCheck(Collection<InvariantCheck> drainTo) {
+    /* Note: This will place invariants into the collection that is passed in. */
+    public void getInvariantsToCheck(Collection<InvariantCheck> drainTo) {
         assert state == TREC_ACTIVE
             || state == TREC_WAITING
             || state == TREC_CONDEMNED;
@@ -133,10 +98,10 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
                         invariantsToCheck.put(inv, new InvariantCheck(inv));
                     }
                 }
-                s.unlock(this, old);
+                s.unlock(old);
             }
         }
-        return drainTo.addAll(invariantsToCheck.values());
+        drainTo.addAll(invariantsToCheck.values());
     }
 
     public void abort() {
@@ -177,7 +142,7 @@ public class TransactionRecord implements Iterable<TransactionEntry> {
             Closure saw = s.lock(this);
             assert s.currentValue == this;
             s.removeFromWatchQueue((TSO) e.newValue);
-            s.unlock(this, saw);
+            s.unlock(saw);
         }
     }
 

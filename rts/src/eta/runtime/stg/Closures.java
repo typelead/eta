@@ -43,15 +43,15 @@ public class Closures {
 
     /* Closures for Main Evaluation */
 
-    public static final Closure evalLazyIO(Closure p) {
+    public static Closure evalLazyIO(Closure p) {
         return new EvalLazyIO(p);
     }
 
-    public static final Closure evalIO(Closure p) {
+    public static Closure evalIO(Closure p) {
         return new EvalIO(p);
     }
 
-    private static final Closure evalJava(Object thisObj, Closure p) {
+    public static Closure evalJava(Object thisObj, Closure p) {
         return new EvalJava(thisObj, p);
     }
 

@@ -12,9 +12,8 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.exception.Exception;
 
-import static eta.runtime.stm.TRecState.TREC_ACTIVE;
+import static eta.runtime.stm.TransactionRecord.State.TREC_ACTIVE;
 import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
-import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
 
 public class STM {
     /* STM RTS primops */

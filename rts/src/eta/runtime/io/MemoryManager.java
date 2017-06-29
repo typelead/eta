@@ -1,9 +1,16 @@
 package eta.runtime.io;
 
-import java.util.TreeMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Queue;
+import java.util.NavigableMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import java.nio.ByteBuffer;
-import java.lang.ref.WeakReference;
 
 import static eta.runtime.RuntimeLogging.barf;
 
@@ -498,10 +505,6 @@ public class MemoryManager {
 
     public static double getDouble(long address) {
         return getBuffer(address).getDouble(positionIndex(address));
-    }
-
-    public static byte getInt(long address) {
-        return getBuffer(address).getInt(positionIndex(address));
     }
 
     /* Put values into buffer */

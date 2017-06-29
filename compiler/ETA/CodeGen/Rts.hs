@@ -164,11 +164,14 @@ contextMyCapabilitySet :: Code
 contextMyCapabilitySet = putfield myCapability
 
 suspendInterruptsMethod :: Code
-suspendInterruptsMethod =
+suspendInterruptsMethod interruptible =
      loadContext
   <> currentTSOField
   <> dup tsoType
-  <> invokevirtual (mkMethodRef stgTSO "suspendInterrupts" [] (ret jbool))
+  <> iconst jbool (boolToInt interruptible)
+  <> invokevirtual (mkMethodRef stgTSO "suspendInterrupts" [jbool] (ret jbool))
+  where boolToInt True  = 1
+        boolToInt False = 0
 
 resumeInterruptsMethod :: Code
 resumeInterruptsMethod =

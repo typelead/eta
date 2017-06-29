@@ -1,8 +1,12 @@
 package eta.runtime.stg;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.stg.Closure;
@@ -119,8 +123,7 @@ public final class WeakPtr extends Value {
     private static ReferenceQueue<Closure> weakPtrRefQueue
         = new ReferenceQueue<Closure>();
 
-    private static ConcurrentMap<WeakReference<Closure>, WeakReference<WeakPtr>>
-        weakPtrRefMap
+    private static Map<WeakReference<Closure>, WeakReference<WeakPtr>> weakPtrRefMap
         = new ConcurrentHashMap<WeakReference<Closure>, WeakReference<WeakPtr>>();
 
     private static AtomicBoolean weakPtrLock = new AtomicBoolean();

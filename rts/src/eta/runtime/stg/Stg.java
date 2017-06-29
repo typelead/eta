@@ -6,8 +6,6 @@ import java.nio.ByteBuffer;
 import eta.runtime.exception.Exception;
 import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
 import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
-import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
-import static eta.runtime.stg.StgContext.ReturnCode.ThreadFinished;
 
 public class Stg {
     /* Weak Pointer Operations */

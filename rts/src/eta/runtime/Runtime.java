@@ -2,17 +2,13 @@ package eta.runtime;
 
 import java.util.List;
 import java.util.concurrent.locks.Lock;
+import java.lang.reflect.Method;
 
-import eta.runtime.stg.Task;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.StgEnter;
-import eta.runtime.stg.ForceIO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.WeakPtr;
-import eta.runtime.apply.ApV;
-import eta.runtime.apply.ApO;
 import static eta.runtime.RuntimeLogging.errorBelch;
 import static eta.runtime.RuntimeLogging.debugBelch;
 import static eta.runtime.stg.TSO.TSO_LOCKED;
@@ -25,7 +21,8 @@ public class Runtime {
 
     /* Parameter: maxWorkerCapabilities (int)
        The total number of Capabilities that can be spawned by the runtime itself. */
-    private static int maxWorkerCapabilities = 2 * getNumberOfProcessors() + 1;
+    private static int maxWorkerCapabilities
+        = 2 * RuntimeOptions.getNumberOfProcessors() + 1;
 
     public static int getMaxWorkerCapabilities() {
         return maxWorkerCapabilities;
@@ -43,7 +40,7 @@ public class Runtime {
         return maxGlobalSparks;
     }
 
-    Method findLoadedClass;
+    private static Method findLoadedClass;
     static {
         try {
             findLoadedClass = ClassLoader.class
@@ -106,7 +103,7 @@ public class Runtime {
         return minWorkerCapabilityIdleTime;
     }
 
-    public static int getMinWorkerCapabilityIdleTimeNanos() {
+    public static long getMinWorkerCapabilityIdleTimeNanos() {
         return minWorkerCapabilityIdleTime * 1000000L;
     }
 
@@ -129,12 +126,23 @@ public class Runtime {
 
     /* Debug Parameters */
     private static boolean debugScheduler;
+    private static boolean debugSTM;
 
     public void setDebugMode(char c) {
         switch(c) {
-          case 's':
-              debugScheduler = true;
+            case 's':
+                debugScheduler = true;
+            case 'm':
+                debugSTM = true;
         }
+    }
+
+    public static boolean debugScheduler() {
+        return debugScheduler;
+    }
+
+    public static boolean debugSTM() {
+        return debugSTM;
     }
 
     public static void main(String[] args, Closure mainClosure) {
@@ -144,15 +152,15 @@ public class Runtime {
     }
 
     public static Closure evalLazyIO(Closure p) {
-        return scheduleClosure(Closures.evalLazyIO(p));
+        return Capability.scheduleClosure(Closures.evalLazyIO(p));
     }
 
     public static Closure evalIO(Closure p) {
-        return scheduleClosure(Closures.evalIO(p));
+        return Capability.scheduleClosure(Closures.evalIO(p));
     }
 
     public static Closure evalJava(Object o, Closure p) {
-        return scheduleClosure(Closures.evalJava(o, p));
+        return Capability.scheduleClosure(Closures.evalJava(o, p));
     }
 
     public static TSO createIOThread(Closure p) {
@@ -167,19 +175,19 @@ public class Runtime {
         return new TSO(Closures.evalJava(thisObj, p));
     }
 
-    public static void shutdownAndExit(ExitCode exitStatus, boolean fastExit, boolean hardExit) {
+    public static void shutdownAndExit(int exitCode, boolean fastExit, boolean hardExit) {
         if (!fastExit) {
-            exit_();
+            exit();
         }
-        if (exitStatus != ExitCode.EXIT_SUCCESS || hardExit) stgExit(exitStatus);
+        if (exitCode != 0 || hardExit) stgExit(exitCode);
     }
 
     public static void shutdownAndSignal(int signal, boolean fastExit) {
         if (!fastExit) {
-            exit_(false);
+            exit(false);
         }
         // TODO: Implement signals
-        stgExit(ExitCode.EXIT_KILLED);
+        stgExit(1);
     }
 
     public static void exit() {
@@ -192,6 +200,6 @@ public class Runtime {
     }
 
     public static void stgExit(int code) {
-        System.exit();
+        System.exit(code);
     }
 }

@@ -1,7 +1,10 @@
 package eta.runtime.stg;
 
-import java.util.ArrayList;
-import java.util.ArrayDeque;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.nio.ByteBuffer;
 
 import eta.runtime.stg.Closure;
@@ -11,11 +14,9 @@ public class StablePtrTable {
     private static StablePtrTable INSTANCE  = new StablePtrTable();
     private static Object         lock      = new Object();
 
-    private ConcurrentMap<Integer, Closure> ptrs
-        = new ConcurrentHashMap<Integer, Closure>();
-    private AtomicInteger nextIndex = new AtomicInteger();
-    private Queue<Integer> freeIndexes =
-        new ConcurrentLinkedQueue<Integer>();
+    private Map<Integer, Closure> ptrs        = new ConcurrentHashMap<Integer, Closure>();
+    private AtomicInteger         nextIndex   = new AtomicInteger();
+    private Queue<Integer>        freeIndexes = new ConcurrentLinkedQueue<Integer>();
 
     private StablePtrTable() {}
 

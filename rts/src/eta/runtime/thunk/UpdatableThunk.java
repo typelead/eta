@@ -1,5 +1,6 @@
 package eta.runtime.thunk;
 
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 public abstract class UpdatableThunk extends Thunk {

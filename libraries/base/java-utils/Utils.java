@@ -16,9 +16,8 @@ import java.util.List;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import eta.Runtime;
+import eta.runtime.Runtime;
 import eta.runtime.RuntimeOptions;
-import static eta.Runtime.ExitCode;
 import eta.runtime.RuntimeLogging;
 import eta.runtime.io.MemoryManager;
 
@@ -140,7 +139,7 @@ public class Utils {
     }
 
     public static void shutdownAndExit(int exitCode, int fastExit) {
-        Rts.shutdownAndExit(ExitCode.from(exitCode), fastExit == 1, true);
+        Rts.shutdownAndExit(exitCode, fastExit == 1, true);
     }
 
     public static void shutdownAndSignal(int signal, int fastExit) {

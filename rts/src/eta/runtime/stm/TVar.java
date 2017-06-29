@@ -1,15 +1,18 @@
 package eta.runtime.stm;
 
+import java.util.Set;
 import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import eta.runtime.stg.TSO;
+import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.util.UnsafeUtil.cas
+import static eta.runtime.util.UnsafeUtil.cas;
 import static eta.runtime.RuntimeLogging.barf;
 
-public class TVar extends Value {
+public class TVar {
     public volatile Closure currentValue;
     public Set<TSO> watchQueue = new LinkedHashSet<TSO>();
     public Set<AtomicInvariant> invariants = new LinkedHashSet<AtomicInvariant>();
@@ -91,7 +94,7 @@ public class TVar extends Value {
 
     /** CAS Operation Support **/
 
-    private static final useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
     private static final AtomicReferenceFieldUpdater<TVar, Closure> cvUpdater
         = AtomicReferenceFieldUpdater
             .newUpdater(TVar.class, Closure.class, "currentValue");

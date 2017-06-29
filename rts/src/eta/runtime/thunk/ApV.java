@@ -6,7 +6,7 @@ import eta.runtime.stg.StgContext;
 public class ApV extends UpdatableThunk {
     public Closure p;
 
-    public Ap2Upd(final Closure p) {
+    public ApV(final Closure p) {
         super();
         this.p = p;
     }

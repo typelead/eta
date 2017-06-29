@@ -7,7 +7,7 @@ public class ApL extends UpdatableThunk {
     public Closure p1;
     public long p2;
 
-    public Ap2Upd(final Closure p1, final long p2) {
+    public ApL(final Closure p1, final long p2) {
         super();
         this.p1 = p1;
         this.p2 = p2;

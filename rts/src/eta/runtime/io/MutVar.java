@@ -1,21 +1,16 @@
 package eta.runtime.io;
 
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.util.UnsafeUtil;
-import static eta.runtime.RuntimeLogging.barf;
 
-public class MutVar extends Value {
+public class MutVar {
     public volatile Closure value;
 
     public MutVar(Closure value) {
         this.value = value;
-    }
-
-    @Override
-    public Closure enter(StgContext context) {
-        barf("MutVar object entered!");
-        return null;
     }
 
     public void set(Closure value) {
@@ -27,7 +22,7 @@ public class MutVar extends Value {
     }
 
     /** CAS Operation Support **/
-    private static final useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
     private static final AtomicReferenceFieldUpdater<MutVar, Closure> vUpdater
         = AtomicReferenceFieldUpdater.newUpdater(MutVar.class, Closure.class, "value");
 
