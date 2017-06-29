@@ -1,6 +1,7 @@
 package eta.runtime.stg;
 
-import java.util.ListIterator;
+import eta.runtime.thunk.Thunk;
+import eta.runtime.thunk.UpdateInfo;
 
 public class StgContext {
     public ArgumentStack argStack = new ArgumentStack();

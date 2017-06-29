@@ -1,5 +1,6 @@
 package eta.runtime.apply;
 
+import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.AbstractArgumentStack;

@@ -3,6 +3,7 @@ package eta.runtime.thunk;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.TSO;
 
 public class CAF extends Thunk {
 

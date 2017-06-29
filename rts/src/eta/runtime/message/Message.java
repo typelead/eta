@@ -1,10 +1,8 @@
 package eta.runtime.message;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
-import static eta.runtime.RuntimeLogging.barf;
 
-public abstract class Message extends Value {
+public abstract class Message {
     protected volatile boolean valid = true;
     public boolean isValid() { return valid; }
     public boolean isLocked() { return false; }

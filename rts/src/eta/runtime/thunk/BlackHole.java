@@ -1,4 +1,6 @@
-package eta.runtime.stg;
+package eta.runtime.thunk;
+
+import eta.runtime.stg.Closure;
 
 public abstract class BlackHole extends Closure {
 

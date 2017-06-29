@@ -140,7 +140,7 @@ emitForeignCall safety mbObj results target args =
     maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
   where -- As of now, interruptible & unsafe mean pretty much the same thing.
         wrapSafety code = do
-          whenSafe $ emit suspendInterruptsMethod
+          whenSafe $ emit suspendInterruptsMethod (playInterruptible safety)
           _ <- code
           whenSafe $ emit resumeInterruptsMethod
           where whenSafe = when (playSafe safety)

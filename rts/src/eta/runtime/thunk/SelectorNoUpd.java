@@ -1,9 +1,8 @@
 package eta.runtime.thunk;
 
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.DataCon;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.StackFrame;
-
 
 public abstract class SelectorNoUpd extends Thunk {
     protected final int index;

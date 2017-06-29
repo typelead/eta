@@ -1,10 +1,8 @@
 package eta.runtime.io;
 
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
-import static eta.runtime.RuntimeLogging.barf;
 
-public final class Array extends Value {
+public final class Array {
     public Closure[] arr;
 
     public Array(Closure[] arr) {
@@ -19,16 +17,11 @@ public final class Array extends Value {
         arr[i] = val;
     }
 
-    @Override
-    public Closure enter(StgContext context) {
-        barf("Array object entered!");
-        return null;
-    }
-
     public int size() {
         return arr.length;
     }
 
+    /* Primitive Operation Utilities */
     public static Array create(int n, Closure init) {
         Closure[] arr = new Closure[n];
         for (int i = 0; i < n; i++) {

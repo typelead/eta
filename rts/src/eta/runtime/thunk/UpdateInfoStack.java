@@ -1,5 +1,9 @@
 package eta.runtime.thunk;
 
+import eta.runtime.stg.Capability;
+import eta.runtime.stg.Closure;
+import eta.runtime.stg.TSO;
+
 public class UpdateInfoStack {
     private UpdateInfo top;
     private UpdateInfo bottom;
@@ -52,7 +56,7 @@ public class UpdateInfoStack {
         return res;
     }
 
-    public void isEmpty() {
+    public boolean isEmpty() {
         return bottom == null;
     }
 

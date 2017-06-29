@@ -1,8 +1,16 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.TSO;
+import java.lang.reflect.Field;
+
+import java.util.Queue;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
+import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RuntimeLogging.barf;
 
@@ -181,13 +189,13 @@ public class Thunk extends Closure {
     /** Locking Mechanism **/
 
     public final boolean tryLock() {
-        return cas(null, StgWhiteHole.closure);
+        return cas(null, WhiteHole.closure);
     }
 
 
     /** CAS Operation Support **/
 
-    private static final useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
     private static final AtomicReferenceFieldUpdater<Thunk, Closure> indUpdater
         = AtomicReferenceFieldUpdater
             .newUpdater(Thunk.class, Closure.class, "indirectee");

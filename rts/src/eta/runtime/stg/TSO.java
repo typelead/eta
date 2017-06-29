@@ -8,26 +8,25 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import eta.runtime.*;
-import eta.runtime.stg.*;
-import eta.runtime.message.*;
-import eta.runtime.concurrent.*;
-import eta.runtime.stm.*;
-import eta.runtime.stg.*;
-import eta.runtime.stg.Task.InCall;
-import eta.runtime.thunk.Thunk;
-import static eta.runtime.stg.TSO.WhyBlocked.*;
-import static eta.runtime.stg.TSO.WhatNext.*;
-import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
+import eta.runtime.message.MessageThrowTo;
+import eta.runtime.stm.STM;
+import eta.runtime.stm.TransactionRecord;
+import eta.runtime.thunk.BlackHole;
+import eta.runtime.thunk.UpdateInfoStack;
+import eta.runtime.thunk.BlockingQueue;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugBelch;
+import static eta.runtime.stg.TSO.WhatNext.*;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
 
 public final class TSO extends BlackHole {
     public static AtomicInteger maxThreadId = new AtomicInteger();
     public int id = maxThreadId.getAndIncrement();
+    public Closure closure;
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
     public Queue<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
     public WhatNext whatNext = ThreadRun;
@@ -37,7 +36,7 @@ public final class TSO extends BlackHole {
     public Object blockInfo;
     public int flags;
     public Queue<MessageThrowTo> blockedExceptions
-        = new ConcurrentLinkedQueue<ThrowTo>();
+        = new ConcurrentLinkedQueue<MessageThrowTo>();
     public StackTraceElement[] stackTrace;
     public AtomicBoolean lock = new AtomicBoolean(false);
 
@@ -64,6 +63,8 @@ public final class TSO extends BlackHole {
         BlockedOnFuture(8),
         BlockedOnDelay(5),
         BlockedOnSTM(6),
+        BlockedOnJavaCall(10),
+        BlockedOnJavaCall_Interruptible(11),
         BlockedOnMsgThrowTo(12);
         private int val;
         WhyBlocked(int val) {
@@ -162,20 +163,6 @@ public final class TSO extends BlackHole {
         return null;
     }
 
-    public final void dump() {
-        System.out.println("TSO #" + id);
-        if (sp.hasPrevious()) {
-            System.out.println("Sp = " + sp.previous());
-            sp.next();
-        }
-        ListIterator<StackFrame> it = stack.listIterator();
-        int i = 0;
-        while (it.hasNext()) {
-            System.out.println("#" + i + ": " + it.next());
-            i++;
-        }
-    }
-
     public final void setStackTrace(StackTraceElement[] stackTrace) {
         this.stackTrace = stackTrace;
     }
@@ -207,17 +194,10 @@ public final class TSO extends BlackHole {
                 break;
             case BlockedOnRead:
             case BlockedOnWrite:
-                // TODO: Remove the following check if this state never occurs
-                // if the threaded rts
-                if (RuntimeOptions.ModeFlags.threaded) {
-                    blockedQueue.remove(tso);
-                }
-                break;
             case BlockedOnDelay:
-                sleepingQueue.remove(tso);
                 break;
             default:
-                barf("removeFromQueues: %d", tso.whyBlocked);
+                barf("removeFromQueues: %d", whyBlocked);
         }
         whyBlocked = NotBlocked;
     }
@@ -233,17 +213,22 @@ public final class TSO extends BlackHole {
     }
 
     /* Preserves the enclosing interrupt status. */
-    public final boolean suspendInterrupts() {
-        boolean immune = hasFlag(INTERRUPT_IMMUNE);
-        if (!immune) addFlag(INTERRUPT_IMMUNE);
+    public final boolean suspendInterrupts(boolean interruptible) {
+        boolean immune = hasFlag(TSO_INTERRUPT_IMMUNE);
+        if (interruptible) {
+            whyBlocked = BlockedOnJavaCall_Interruptible;
+        } else {
+            if (!immune) addFlags(TSO_INTERRUPT_IMMUNE);
+            whyBlocked = BlockedOnJavaCall;
+        }
         cap.idleLoop(true);
-        whyBlocked = BlockedOnJavaCall;
         return immune;
     }
 
     public final void resumeInterrupts(boolean immune) {
-        if (!immune) removeFlag(INTERRUPT_IMMUNE);
-        tso.cap.idleLoop(false);
+        if (!immune) removeFlags(TSO_INTERRUPT_IMMUNE);
+        else addFlags(TSO_INTERRUPT_IMMUNE);
+        cap.idleLoop(false);
         whyBlocked = NotBlocked;
     }
 }

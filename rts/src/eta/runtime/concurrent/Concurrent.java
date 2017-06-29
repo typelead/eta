@@ -1,12 +1,18 @@
 package eta.runtime.concurrent;
 
+import java.util.Map;
+import java.util.Deque;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.channels.Channel;
+import java.nio.channels.Selector;
+
 import eta.runtime.Runtime;
 import eta.runtime.stg.Stg;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.ReturnClosure;
 import eta.runtime.exception.Exception;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.TSO_BLOCKEX;
@@ -18,8 +24,6 @@ import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMVarRead;
 import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
 import static eta.runtime.stg.TSO.WhatNext.ThreadComplete;
 import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
-import static eta.runtime.stg.StgContext.ReturnCode.ThreadBlocked;
-import static eta.runtime.stg.StgContext.ReturnCode.ThreadYielding;
 
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
@@ -134,7 +138,7 @@ public class Concurrent {
 
     /* Managing Java Futures */
 
-    public static final ConcurrentMap<Future, TSO> futureMap
+    public static final Map<Future, TSO> futureMap
         = new ConcurrentHashMap<Future, TSO>();
 
     public static final AtomicBoolean futureMapLock = new AtomicBoolean();

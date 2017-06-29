@@ -3,17 +3,16 @@ package eta.runtime.stg;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.Deque;
-import java.util.Stack;
 import java.util.Queue;
-import java.util.ArrayDeque;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.atomic.AtomicReference;
+import java.lang.ref.WeakReference;
+
+import eta.runtime.message.Message;
+import eta.runtime.message.MessageBlackHole;
+import eta.runtime.thunk.BlockingQueue;
 
 public final class Capability {
     public static List<Capability> capabilities = new ArrayList<Capability>();
@@ -51,9 +50,7 @@ public final class Capability {
 
     public int id;
     public final boolean worker;
-    public WeakReference<Thread> thread;
-    /* TODO: Is this lock really needed? */
-    public Lock lock            = new ReentrantLock();
+    public final WeakReference<Thread> thread;
     public StgContext context   = new StgContext();
     public Deque<TSO> runQueue  = new LinkedList<TSO>();
     public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
@@ -386,7 +383,7 @@ public final class Capability {
 
     /* Capabilities Cleanup */
 
-    public static void shutdownCapabilities(Task task, boolean safe) {
+    public static void shutdownCapabilities(boolean safe) {
         for (Capability c: capabilities) {
             c.shutdown(task, safe);
         }

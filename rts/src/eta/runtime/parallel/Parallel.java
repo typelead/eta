@@ -1,5 +1,9 @@
 package eta.runtime.parallel;
 
+import java.util.Deque;
+
+import eta.runtime.stg.Capability;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RuntimeLogging.barf;
@@ -44,12 +48,12 @@ public class Parallel {
                 retry = true;
             }
         } while(retry);
-        if (RuntimeOptions.DebugFlags.scheduler) {
+        if (Runtime.debugScheduler()) {
             debugBelch("{Scheduler} No Sparks stolen.");
         }
     }
 
-    public static emptyGlobalSparkPool() {
+    public static boolean emptyGlobalSparkPool() {
         return globalSparkPool.isEmpty();
     }
 

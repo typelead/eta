@@ -8,10 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
-public class MVar extends Value {
+public class MVar {
     public BlockingQueue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
     public AtomicBoolean lock = new AtomicBoolean(false);
 
@@ -19,12 +17,6 @@ public class MVar extends Value {
         if (value != null) {
             valQueue.offer(value);
         }
-    }
-
-    @Override
-    public Closure enter(StgContext context) {
-        barf("MVAR object entered!");
-        return null;
     }
 
     public Closure take() throws InterruptedException {

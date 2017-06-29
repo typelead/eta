@@ -1,10 +1,16 @@
 package eta.runtime.io;
 
-import eta.runtime.stg.StgContext;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.PhantomReference;
+
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.Ap2Upd;
 import eta.runtime.thunk.SelectorPUpd;
-import eta.runtime.RuntimeOptions;
 
 public class IO {
 
@@ -51,7 +57,7 @@ public class IO {
     public static ReferenceQueue<ByteArray> byteArrayRefQueue = new ReferenceQueue<ByteArray>();
     public static AtomicBoolean byteArrayFreeLock = new AtomicBoolean();
 
-    public static ConcurrentMap<PhantomReference<ByteArray>, Long> byteArrayRefMap
+    public static Map<PhantomReference<ByteArray>, Long> byteArrayRefMap
         = new ConcurrentHashMap<PhantomReference<ByteArray>, Long>();
 
     public static void recordByteArray(ByteArray byteArray) {

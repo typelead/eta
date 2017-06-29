@@ -5,12 +5,12 @@ import java.util.Map;
 import java.nio.ByteBuffer;
 import java.lang.ref.WeakReference;
 
-import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import static eta.runtime.RuntimeLogging.barf;
 
-public final class ByteArray extends Value {
+public final class ByteArray {
 
     public static ByteArray create(int n) {
         return create(n, false);
@@ -33,12 +33,6 @@ public final class ByteArray extends Value {
     private ByteArray(long bufferAddress, int size) {
         this.size          = size;
         this.bufferAddress = bufferAddress;
-    }
-
-    @Override
-    public Closure enter(StgContext context) {
-        barf("ByteArray object entered!");
-        return null;
     }
 
     public static void copyAddrToByteArray( long srcAddress, ByteArray destArray

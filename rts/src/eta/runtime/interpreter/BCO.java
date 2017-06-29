@@ -1,5 +1,6 @@
 package eta.runtime.interpreter;
 
+import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.io.Array;
 import eta.runtime.io.ByteArray;
