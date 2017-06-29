@@ -2,32 +2,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Foreign where
 
-import ETA.Main.DynFlags
 import ETA.Types.Type
--- import ETA.Types.TyCon
 import ETA.StgSyn.StgSyn
 import ETA.Prelude.ForeignCall
 import ETA.Utils.FastString
 import ETA.Utils.Util
 import ETA.Util
 
--- import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Env
 import ETA.CodeGen.Monad
--- import ETA.CodeGen.Name
 import ETA.CodeGen.Layout
 import ETA.CodeGen.Rts
 import ETA.CodeGen.Types
 
--- import ETA.Debug
--- import ETA.Util
 import Codec.JVM
 import Data.Monoid ((<>))
--- import Data.List (stripPrefix)
 import Data.Maybe (fromJust, isJust)
 import Data.Foldable (fold)
 import Control.Monad (when)
--- import qualified Data.Text as T
+import Data.Text (Text)
+import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
 cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
@@ -43,8 +37,8 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
               _                   -> fmap head $ newUnboxedTupleLocs resType
       resLoc <- grabResLoc
       emitAssign resLoc $
-        <> sconst (T.replace "/" "." clsName)
-        <> iconst jint (length argFts)
+           sconst (T.replace "/" "." clsName)
+        <> iconst jint (fromIntegral (length argFts))
         <> new arrayFt
         <> fold (map (\(i, ft) ->
                          dup arrayFt

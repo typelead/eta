@@ -81,7 +81,6 @@ module ETA.Main.HscMain
     , hscSimpleIface', hscNormalIface'
     , oneShotMsg
     , hscFileFrontEnd, genericHscFrontend, dumpIfaceStats
-    , renderRtsConfig
     ) where
 
 #ifdef GHCI
@@ -1245,7 +1244,7 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
             interfaces fieldDefs methodDefs''
           where className':specs = T.words classSpec
                 className = jvmify className'
-                methodDefs' = genClInit className : methodDefs
+                methodDefs' = methodDefs
                 methodDefs'' = if hasConstructor
                                then methodDefs'
                                else  mkDefaultConstructor className superClass
@@ -1258,13 +1257,6 @@ outputForeignStubs dflags (ForeignStubs _ _ classExports) =
         parseSpecs [] sc is = (sc, reverse is)
         parseSpecs _ _ _ = error $ "Invalid foreign export spec."
         jvmify = T.map (\c -> if c == '.' then '/' else c)
-        genClInit cls = mkMethodDef cls [Public, Static] "<clinit>" [] void $ fold
-                          [ iconst jint 0
-                          , new (jarray jstring)
-                          , renderRtsConfig dflags False
-                          , invokestatic (mkMethodRef "eta/runtime/Rts" "init"
-                                         [jarray jstring, rtsConfigType] void)
-                          , vreturn ]
 
 hscInteractive :: HscEnv
                -> CgGuts
@@ -1653,31 +1645,3 @@ showModuleIndex (i,n) = "[" ++ padded ++ " of " ++ n_str ++ "] "
     n_str = show n
     i_str = show i
     padded = replicate (length n_str - length i_str) ' ' ++ i_str
-
-
--- Render RTS Config
-renderRtsConfig :: DynFlags -> Bool -> Code
-renderRtsConfig dflags isHsMain
-  = invokestatic (mkMethodRef rtsConfig "getDefault" [] (ret rtsConfigType))
- <> putRtsHsMain
- <> putRtsOptsEnabled
- <> putRtsOpts
-  where (<>) = (Mon.<>)
-        putRtsHsMain
-          | isHsMain = dup rtsConfigType
-                    <> iconst jbool 1
-                    <> putfield (mkFieldRef rtsConfig "rtsHsMain" jbool)
-          | otherwise = mempty
-        rtsOptsEnabledText = T.pack . show . rtsOptsEnabled $ dflags
-        putRtsOptsEnabled
-          | rtsOptsEnabledText == "RtsOptsSafeOnly" = mempty
-          | otherwise = dup rtsConfigType
-                     <> getstatic (mkFieldRef rtsOptsEnbled rtsOptsEnabledText
-                                   rtsOptsEnbledType)
-                     <> putfield (mkFieldRef rtsConfig "rtsOptsEnabled"
-                                  rtsOptsEnbledType)
-        putRtsOpts = case rtsOpts dflags of
-          Nothing -> mempty
-          Just s  -> dup rtsConfigType
-                  <> sconst (T.pack s)
-                  <> putfield (mkFieldRef rtsConfig "rtsOpts" jstring)

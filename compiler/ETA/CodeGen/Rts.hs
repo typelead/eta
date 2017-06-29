@@ -3,6 +3,7 @@ module ETA.CodeGen.Rts where
 
 import Data.Text (Text)
 import Codec.JVM
+import Codec.JVM.Const
 import ETA.Util
 
 import Data.Monoid((<>))
@@ -167,11 +168,11 @@ suspendInterruptsMethod =
      loadContext
   <> currentTSOField
   <> dup tsoType
-  <> invokevirtual (mkMethodRef tsoType "suspendInterrupts" [] (ret jbool))
+  <> invokevirtual (mkMethodRef stgTSO "suspendInterrupts" [] (ret jbool))
 
 resumeInterruptsMethod :: Code
 resumeInterruptsMethod =
-  invokevirtual $ mkMethodRef tsoType "resumeInterrupts" [jbool] void
+  invokevirtual $ mkMethodRef stgTSO "resumeInterrupts" [jbool] void
 
 stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup, stgGroup :: Text
 stgExceptionGroup = exception "Exception"
@@ -233,10 +234,10 @@ hsResultValue :: Code
 hsResultValue = getfield $ mkFieldRef hsResult "result" closureType
 
 trueClosure :: Code
-trueClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DTrue_closure" [] $ Just closureType
+trueClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DTrue" [] $ Just closureType
 
 falseClosure :: Code
-falseClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DFalse_closure" [] $ Just closureType
+falseClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DFalse" [] $ Just closureType
 
 getTagMethod :: Code -> Code
 getTagMethod code
@@ -261,7 +262,7 @@ debugPrint ft = dup ft
 
 ftClassObject :: FieldType -> Code
 ftClassObject ft@(BaseType _) =
-  getstatic $ mkFieldRef (ftWrapper ft) "TYPE" classType
+  getstatic $ mkFieldRef (ftWrapper ft) "TYPE" classFt
 ftClassObject ft@(ObjectType iclassName) = gldc ft (CClass iclassName)
 
 ftWrapper :: FieldType -> Text
@@ -277,7 +278,10 @@ ftWrapper (BaseType prim) =
     JLong   -> "Long"
   where prefix = "java/lang/"
 
+classType :: Text
 classType = "java/lang/Class"
+
+classFt :: FieldType
 classFt = obj classType
 
 methodFt = obj "java/lang/reflect/Method"

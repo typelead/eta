@@ -312,13 +312,13 @@ enterMethod :: CgLoc -> Code
 enterMethod cgLoc
   = loadLoc cgLoc
  <> loadContext
- <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] closureType)
+ <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] (ret closureType))
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc
   = loadLoc cgLoc
  <> loadContext
- <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] closureType)
+ <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] (ret closureType))
 
 type RecIndexes = [(Int, Id)]
 type RecInfo = (Text, Text, Text, FieldRef, Code, RecIndexes)
