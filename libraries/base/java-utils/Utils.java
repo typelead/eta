@@ -95,10 +95,10 @@ public class Utils {
         return Charset.defaultCharset().name();
     }
 
-    public static int c_write(Channel fd, ByteBuffer buffer, int count) {
+    public static int c_write(Channel fd, long address, int count) {
         try {
-            WritableByteChannel wc = (WritableByteChannel) fd;
-            buffer = buffer.duplicate();
+            WritableByteChannel wc     = (WritableByteChannel) fd;
+            ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);
             buffer.limit(buffer.position() + count);
             return wc.write(buffer);
         } catch (Exception e) {
@@ -107,10 +107,10 @@ public class Utils {
         }
     }
 
-    public static int c_read(Channel fd, ByteBuffer buffer, int count) {
+    public static int c_read(Channel fd, long address, int count) {
         try {
-            ReadableByteChannel rc = (ReadableByteChannel) fd;
-            buffer = buffer.duplicate();
+            ReadableByteChannel rc     = (ReadableByteChannel) fd;
+            ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);
             buffer.limit(buffer.position() + count);
             return rc.read(buffer);
         } catch (Exception e) {
@@ -119,45 +119,12 @@ public class Utils {
         }
     }
 
-    public static String byteBufferToStr(ByteBuffer buffer)
+    public static String byteBufferToStr(long address)
         throws UnsupportedEncodingException {
-        byte[] bytes = new byte[buffer.remaining()];
+        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
+        byte[]     bytes  = new byte[buffer.remaining()];
         buffer.get(bytes);
         return new String(bytes, "UTF-8");
-    }
-
-    public static ByteBuffer c_memcpy(ByteBuffer dest, ByteBuffer src, int size) {
-        ByteBuffer src2 = src.duplicate();
-        ByteBuffer dest2 = dest.duplicate();
-        MemoryManager.bufSetLimit(src2, size);
-        dest2.put(src2);
-        return dest;
-    }
-
-    public static ByteBuffer c_memset(ByteBuffer b, int c_, int size) {
-        byte c = (byte) c_;
-        ByteBuffer b2 = b.duplicate();
-        while (size-- != 0) {
-            b2.put(c);
-        }
-        return b;
-    }
-
-    public static ByteBuffer c_memmove(ByteBuffer dest, ByteBuffer src, int size) {
-        ByteBuffer src2 = src.duplicate();
-        ByteBuffer dest2 = dest.duplicate();
-        ByteBuffer copy = ByteBuffer.allocate(size);
-        MemoryManager.bufSetLimit(src2, size);
-        copy.put(src2);
-        copy.flip();
-        dest2.put(copy);
-        return dest;
-    }
-
-    public static void printBuffer(ByteBuffer buffer) {
-        byte[] bytes = new byte[buffer.remaining()];
-        buffer.get(bytes);
-        System.out.println(Arrays.toString(bytes));
     }
 
     public static String getOS() {
@@ -180,16 +147,15 @@ public class Utils {
         Rts.shutdownAndSignal(signal, fastExit == 1);
     }
 
-    public static void errorBelch( ByteBuffer formatBuf
-                                 , ByteBuffer stringBuf) {
-        RuntimeLogging.errorBelch(byteBufferToString(formatBuf)
-                               , byteBufferToString(stringBuf));
+    public static void errorBelch(long formatAddress, long stringAddress) {
+        RuntimeLogging.errorBelch(byteBufferToString(formatAddress)
+                                 ,byteBufferToString(stringAddress));
     }
 
-    private static String byteBufferToString(ByteBuffer stringBuf) {
-        /* The (- 1) is to remove the \0 character */
-        byte[] bytes = new byte[stringBuf.remaining() - 1];
-        stringBuf.get(bytes);
+    public static String byteBufferToString(long address) {
+        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
+        byte[]     bytes  = new byte[buffer.remaining() - 1];
+        buffer.get(bytes);
         return new String(bytes);
     }
 
@@ -219,10 +185,10 @@ public class Utils {
         return Channels.newChannel(System.err);
     }
 
-    private static ThreadLocal<Integer> errno=new ThreadLocal<Integer>();
+    private static ThreadLocal<Integer> errno = new ThreadLocal<Integer>();
 
     public static void initErrno() {
-        if (errno.get()==null)
+        if (errno.get() == null)
             errno.set(0);
     }
 
@@ -248,36 +214,70 @@ public class Utils {
         return MessageDigest.getInstance("MD5");
     }
 
-    public static void c_MD5Update(MessageDigest md, ByteBuffer contents, int len) {
-        ByteBuffer dup = contents.duplicate();
-        MemoryManager.bufSetLimit(dup, len);
+    public static void c_MD5Update(MessageDigest md, long address, int len) {
+        ByteBuffer contents = MemoryManager.getBoundedBuffer(address);
+        contents.limit(contents.position() + len);
         md.update(dup);
     }
 
-    public static void c_MD5Final(ByteBuffer result, MessageDigest md) {
-        byte[] hash = md.digest();
+    public static void c_MD5Final(long address, MessageDigest md) {
+        ByteBuffer result = MemoryManager.getBoundedBuffer(address);
+        byte[]     hash   = md.digest();
         result.put(hash);
     }
 
-    public static ByteBuffer _malloc(int size) {
+    public static long _malloc(int size) {
         return MemoryManager.allocateBuffer(size, true);
     }
 
-    public static ByteBuffer _calloc(int size, int bytes) {
-        // NOTE: Most JVMs zero out byte buffers so this works.
-        //       May fail on a non-standard JVM.
-        return MemoryManager.allocateBuffer(size * bytes, true);
+    public static long _calloc(int size, int bytes) {
+        int        totalBytes = size * bytes;
+        long       address    = MemoryManager.allocateBuffer(totalBytes, true);
+        ByteBuffer buffer     = MemoryManager.getBoundedBuffer(address);
+        int        times      = totalBytes / 8;
+        int        remTimes   = totalBytes % 8;
+        while (times-- != 0) {
+            buffer.putLong(0);
+        }
+        while (remTimes-- != 0) {
+            buffer.put(0);
+        }
+        return address;
     }
 
-    public static ByteBuffer _realloc(ByteBuffer buf, int bytes) {
-        ByteBuffer newBuf = MemoryManager.allocateBuffer(bytes, true);
-        newBuf.put(buf);
-        newBuf.position(4); // NOTE: Skip the first 4 bytes
-        return newBuf;
+    public static long _realloc(long oldAddress, int newSize) {
+        long newAddress = MemoryManager.allocateBuffer(newSize, true);
+        int  oldSize    = MemoryManager.allocatedSize(oldAddress);
+        c_memcpy(newAddress, oldAddress, Main.min(oldSize, newSize));
+        MemoryManager.free(oldAddress);
+        return newAddress;
     }
 
-    public static void _free(ByteBuffer buf) {
-        // TODO: Implement free once the MemoryManager has a nice compaction algo.
-        return;
+    public static long c_memcpy(long destAddress, long srcAddress, int size) {
+        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
+        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
+        src.limit(src.position() + size);
+        dest.put(src);
+        return destAddress;
+    }
+
+    public static long c_memset(long address, int c_, int size) {
+        byte c = (byte) c_;
+        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
+        while (size-- != 0) {
+            buffer.put(c);
+        }
+        return address;
+    }
+
+    public static long c_memmove(long destAddress, long srcAddress, int size) {
+        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
+        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
+        ByteBuffer copy = ByteBuffer.allocate(size);
+        src.limit(src.position() + size);
+        copy.put(src);
+        copy.flip();
+        dest.put(copy);
+        return destAddress;
     }
 }

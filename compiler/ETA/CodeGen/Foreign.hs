@@ -31,25 +31,56 @@ import Control.Monad (when)
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
 cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
-  | StaticTarget label _ _ <- target = do
-    let (hasObj, isStatic, callTarget) = deserializeTarget (unpackFS label)
-        shuffledArgs = if hasObj then last args : init args else args
-    _dflags <- getDynFlags
-    argFtCodes <- getNonVoidArgFtCodes shuffledArgs
-    let (argFts, callArgs') = unzip argFtCodes
-        callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
-        mbObj = if hasObj then Just (expectHead "cgForiegnCall: empty callArgs'"
-                                     callArgs') else Nothing
-        mbObjFt = safeHead argFts
-    sequel <- getSequel
-    case sequel of
-      AssignTo targetLocs ->
-        emitForeignCall safety mbObj targetLocs (callTarget mbObjFt) callArgs
-      _ -> do
-        resLocs <- newUnboxedTupleLocs resType
-        emitForeignCall safety mbObj resLocs (callTarget mbObjFt) callArgs
-        emitReturn resLocs
+  | StaticTarget label _ isRef <- target
+  = if isRef
+    then do
+      let (clsName, argFts) = deserializeMethodDesc (unpackFS label)
+          arrayFt = jarray classFt
+          grabResLoc = do
+            sequel <- getSequel
+            case sequel of
+              AssignTo (resLoc:_) -> return resLoc
+              _                   -> fmap head $ newUnboxedTupleLocs resType
+      resLoc <- grabResLoc
+      emitAssign resLoc $
+        <> sconst (T.replace "/" "." clsName)
+        <> iconst jint (length argFts)
+        <> new arrayFt
+        <> fold (map (\(i, ft) ->
+                         dup arrayFt
+                      <> iconst jint i
+                      <> ftClassObject ft
+                      <> gastore classFt)
+                  $ zip [0..] argFts)
+        <> invokevirtual (mkMethodRef classType "getMethod" [jstring, arrayFt]
+                          (ret methodFt))
+        <> invokestatic (mkMethodRef "eta/runtime/stg/FunPtr" "registerFunPtr"
+                         [methodFt] (ret jlong))
+    else do
+      let (hasObj, isStatic, callTarget) = deserializeTarget (unpackFS label)
+          shuffledArgs = if hasObj then last args : init args else args
+      argFtCodes <- getNonVoidArgFtCodes shuffledArgs
+      let (argFts, callArgs') = unzip argFtCodes
+          callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
+          mbObj = if hasObj then Just (expectHead "cgForiegnCall: empty callArgs'"
+                                      callArgs') else Nothing
+          mbObjFt = safeHead argFts
+      sequel <- getSequel
+      case sequel of
+        AssignTo targetLocs ->
+          emitForeignCall safety mbObj targetLocs (callTarget mbObjFt) callArgs
+        _ -> do
+          resLocs <- newUnboxedTupleLocs resType
+          emitForeignCall safety mbObj resLocs (callTarget mbObjFt) callArgs
+          emitReturn resLocs
 cgForeignCall _ _ _ = error $ "cgForeignCall: bad arguments"
+
+deserializeMethodDesc :: String -> (Text, [FieldType])
+deserializeMethodDesc label = (read clsName', argFts)
+  where (_:_:callTargetSpec:_) = split '|' label
+        (_:_:_:clsName':_:methodDesc':_) = split ',' callTargetSpec
+        (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label)
+                    $ decodeMethodDesc (read methodDesc')
 
 deserializeTarget :: String -> (Bool, Bool, Maybe FieldType -> [Code] -> Code)
 deserializeTarget label = (hasObj, isStatic, callTarget)

@@ -12,79 +12,68 @@ public class MemoryManager {
              primitive ints & longs. */
     /* Map block sizes to addresses of free blocks */
     public static final NavigableMap<Integer, Queue<Long>> freeDirectBlocks
-        = new TreeMap<Integer, Queue<Long>>();
+        = new ConcurrentSkipListMap<Integer, Queue<Long>>();
     public static final NavigableMap<Integer, Queue<Long>> freeHeapBlocks
-        = new TreeMap<Integer, Queue<Long>>();
+        = new ConcurrentSkipListMap<Integer, Queue<Long>>();
+
+    /* Locks on each size */
+    public static Map<Integer, SizeLock> directSizeLocks
+        = new ConcurrentHashMap<Integer, SizeLock>();
+
+    public static AtomicBoolean directSizeLocksLock
+        = new AtomicBoolean();
+
+    public static Map<Integer, SizeLock> heapSizeLocks
+        = new ConcurrentHashMap<Integer, SizeLock>();
+
+    public static AtomicBoolean heapSizeLocksLock
+        = new AtomicBoolean();
+
+    public static SizeLock getSizeLock
+        (Map<Integer, SizeLock> sizeLocks, AtomicBoolean sizeLocksLock,
+         Integer key) {
+        SizeLock sizeLock;
+        for (;;) {
+            sizeLock = sizeLocks.get(key);
+            if (sizeLock == null) {
+                if (sizeLocksLock.compareAndSet(false, true)) {
+                    try {
+                        sizeLock = new SizeLock();
+                        sizeLocks.put(key, sizeLock);
+                    } finally {
+                        sizeLocksLock.set(false);
+                    }
+                } else continue;
+            }
+            return sizeLock;
+        }
+    }
 
     /* Map addresses to size of free blocks */
     public static final NavigableMap<Long, Integer> freeDirectAddresses
-        = new TreeMap<Long, Integer>();
-    public static final AtomicBoolean freeDirectLock = new AtomicBoolean();
+        = new ConcurrentSkipListMap<Long, Integer>();
     public static final NavigableMap<Long, Integer> freeHeapAddresses
-        = new TreeMap<Long, Integer>();
-    public static final AtomicBoolean freeHeapLock = new AtomicBoolean();
+        = new ConcurrentSkipListMap<Long, Integer>();
 
     /* Map addresses to size of allocated blocks */
     public static final NavigableMap<Long, Integer> allocatedDirectBlocks
-        = new TreeMap<Long, Integer>();
-    public static final AtomicBoolean allocatedDirectLock = new AtomicBoolean();
+        = new ConcurrentSkipListMap<Long, Integer>();
     public static final NavigableMap<Long, Integer> allocatedHeapBlocks
-        = new TreeMap<Long, Integer>();
-    public static final AtomicBoolean allocatedHeapLock = new AtomicBoolean();
+        = new ConcurrentSkipListMap<Long, Integer>();
 
+    /* Actual storage of blocks */
     public static List<ByteBuffer>[] blockArrays =
         { new ArrayList<ByteBuffer>()
         , new ArrayList<ByteBuffer>()
         , new ArrayList<ByteBuffer>()
         , new ArrayList<ByteBuffer>() };
-    public static AtomicBoolean[]    blockLocks  =
+
+    /* Locks for each blockArray */
+    public static AtomicBoolean[] blockLocks =
         { new AtomicBoolean()
         , new AtomicBoolean()
         , new AtomicBoolean()
         , new AtomicBoolean() };
-    public static Map<Long, AtomicBoolean>[] subBlockLocks =
-        { new HashMap<Long, AtomicBoolean>()
-        , new HashMap<Long, AtomicBoolean>()
-        , new HashMap<Long, AtomicBoolean>()
-        , new HashMap<Long, AtomicBoolean>() };
-
-    /** Cached Buffer Lookup **/
-    /* Start of previous received block. */
-    public static ThreadLocal<Long> cachedLowerAddress = new ThreadLocal<Long>();
-    /* Start of the adjacent block. */
-    /* NOTE: This is the start of the NEXT block so you must do a strict comparison. */
-    public static ThreadLocal<Long> cachedHigherAddress = new ThreadLocal<Long>();
-    /* The cached buffer. */
-    public static ThreadLocal<ByteBuffer> cachedBuffer = new ThreadLocal<ByteBuffer>();
-
-    /* Key Locks */
-    public static Map<Integer, AtomicBoolean> directKeyLocks
-        = new HashMap<Integer, AtomicBoolean>();
-
-    public static Map<Integer, AtomicBoolean> heapKeyLocks
-        = new HashMap<Integer, AtomicBoolean>();
-
-    public static AtomicBoolean getFreeKeyLock(Map<Integer, AtomicBoolean> keyLocks,
-                                               Integer key) {
-        AtomicBoolean keyLock = keyLocks.get(key);
-        if (keyLock == null) {
-            keyLock = new AtomicBoolean();
-            keyLocks.put(key, keyLock);
-        }
-        return keyLock;
-    }
-
-    public static AtomicBoolean getSubBlockLock(long address) {
-        int blockMask  = blockMask(address);
-        int blockIndex = blockIndex(address, indexBits(blockMask));
-        Map<Long, AtomicBoolean> blockLocks = subBlockLocks[blockMask];
-        AtomicBoolean blockLock = blockLocks.get(blockIndex);
-        if (blockLock == null) {
-            blockLock = new AtomicBoolean();
-            blockLocks.put(block, blockLock);
-        }
-        return blockLock;
-    }
 
     /* Buffer Allocation
        This logic is rather complicated but it is done for efficiency purposes. Each
@@ -93,74 +82,75 @@ public class MemoryManager {
        are trying to allocate two different sizes can do so without waiting.
      */
     public static long allocateBuffer(int n, boolean direct) {
+        assert n <= ONE_GB;
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> freeAddresses;
         NavigableMap<Long, Integer> allocatedBlocks;
-        Map<Integer, AtomicBoolean> keyLocks;
+        Map<Integer, AtomicBoolean> sizeLocks;
+        AtomicBoolean sizeLocksLock;
         if (direct) {
             allocatedBlocks = allocatedDirectBlocks;
             freeAddresses   = freeDirectAddresses;
             freeBlocks      = freeDirectBlocks;
-            keyLocks        = directKeyLocks;
+            sizeLocks       = directSizeLocks;
+            sizeLocksLock   = directSizeLocksLock;
         } else {
             allocatedBlocks = allocatedHeapBlocks;
             freeAddresses   = freeHeapAddresses;
             freeBlocks      = freeHeapBlocks;
-            keyLocks        = heapKeyLocks;
+            sizeLocks       = heapSizeLocks;
+            sizeLocksLock   = heapSizeLocksLock;
         }
-        do {
+        for (;;) {
             Map.Entry<Integer, Queue<Long>> freeEntry = freeBlocks.ceilingEntry(n);
             if (freeEntry != null) {
                 int           regionSize = freeEntry.getKey();
-                AtomicBoolean keyLock    = getFreeKeyLock(keyLocks, regionSize);
+                AtomicBoolean sizeLock   = getSizeLock(sizeLocks, sizeLocksLock, regionSize);
                 Queue<Long>   freeQueue  = freeEntry.getValue();
-                Long          address;
-                /* To reduce contention, we attempt to lock and upon failure, proceed
-                   to look for the next higher size. In the worst case, we allocate
-                   a new block which isn't so bad.
-
-                   While we could allow multiple threads to contend if there are
-                   multiple elements in the queue, the logic becomes non-trivial. */
-                if (keyLock.compareAndSet(false, true)) {
-                    try {
-                        address = freeQueue.poll();
-                        /* Check if the queue was emptied while we were
-                           waiting on the lock. */
-                        if (address == null) continue;
-                        else if (freeQueue.isEmpty()) {
-                            /* While we could just leave the queues empty, over time
-                               the map will get too many keys with "dead" entries, so
-                               we clean it up. */
-                            freeQueue.remove(regionSize);
-                        }
-                    } finally {
-                        /* TODO: Does this finally work with that 'continue'? */
-                        keyLock.set(false);
-                    }
+                /* We attempt to acquire a permit (exists if there is a queue element)
+                   and upon failure, continue the loop in case changes were made to
+                   freeBlocks. */
+                if (sizeLock.tryAcquire()) {
+                    assert freeQueue != null;
+                    address = freeQueue.poll();
+                    assert address != null;
                 } else {
-                    /* If unable to lock, continue the loop to see if free blocks
-                       became available in the mean time. */
+                    if (freeQueue.isEmpty() && sizeLock.tryStartTransaction()) {
+                        try {
+                            freeBlocks.remove(regionSize);
+                        } finally {
+                            sizeLock.endTransaction();
+                        }
+                    }
                     continue;
                 }
                 int  newRegionSize = regionSize - n;
-                long newAddress    = address + newRegionSize;
-                insertAllocatedBlock(allocatedBlocks, direct, address, n);
-                insertFreeBlock(freeBlocks, freeAddresses, keyLocks,
-                                newRegionSize, newAddress);
+                long newAddress    = address + n;
+                allocatedBlocks.put(address, size);
+                if (newRegionSize > 0) {
+                    insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
+                                    sizeLocksLock, newRegionSize, newAddress);
+                }
                 return address;
             } else {
                 int              blockType = getBlockType(n);
                 AtomicBoolean    blockLock = blockLocks[blockType];
                 List<ByteBuffer> blocks    = blockArrays[blockType];
                 if (blockLock.compareAndSet(false, true)) {
-                    long blockIndex   = blocks.size();
-                    int  blockSize    = getBlockSize(blockType);
-                    long address      = (blockType  << 62)
-                                      | (blockIndex << indexBits(blockType));
-                    blocks.add(allocateAnonymousBuffer(blockSize, direct));
-                    insertFreeBlock(freeBlocks, freeAddresses, keyLocks,
-                                    startAddress + n, blockSize - n);
-                    blockLock.set(false);
+                    long address;
+                    try {
+                        long blockIndex = blocks.size();
+                        int  blockSize  = getBlockSize(blockType);
+                        address         = (blockType  << 62)
+                                        | (blockIndex << indexBits(blockType));
+                        /* Avoid allocating something on the null pointer address. */
+                        if (address == 0) address = 1;
+                        blocks.add(allocateAnonymousBuffer(blockSize, direct));
+                        insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
+                                        sizeLocksLock, address + n, blockSize - n);
+                    } finally {
+                        blockLock.set(false);
+                    }
                     return address;
                 } else {
                     /* If unable to lock, continue the loop to see if free blocks
@@ -168,8 +158,7 @@ public class MemoryManager {
                     continue;
                 }
             }
-            break;
-        } while (true);
+        }
     }
 
     /* TODO: We can make inserting free blocks asynchronous to speed up allocation
@@ -182,41 +171,25 @@ public class MemoryManager {
     public static void insertFreeBlock
         (NavigableMap<Integer, Queue<Long>> freeBlocks,
          NavigableMap<Long, Integer> freeAddresses,
-         Map<Integer, AtomicBoolean> keyLocks,
+         Map<Integer, AtomicBoolean> sizeLocks,
+         AtomicBoolean sizeLocksLock,
          int newRegionSize, long newAddress) {
-        AtomicBoolean newKeyLock = getFreeKeyLock(keyLocks, newRegionSize);
-        while (!newKeyLock.compareAndSet(false, true)) {}
-        Queue<Long>   freeQueue  = freeBlocks.get(newRegionSize);
+        assert newRegionSize > 0;
+        /* TODO: Do we need to ensure atomicity of this entire function? */
+        SizeLock newSizeLock
+            = getSizeLock(sizeLocks, sizeLocksLock, newRegionSize);
+        while (!newSizeLock.tryStartTransaction()) {}
+        Queue<Long> freeQueue = freeBlocks.get(newRegionSize);
         if (freeQueue != null) {
             freeQueue.offer(newAddress);
         } else {
-            freeQueue = new LinkedList<Long>();
+            freeQueue = new ConcurrentLinkedQueue<Long>();
             freeQueue.offer(newAddress);
-            freeBlocks.put(newAddress, freeQueue);
+            freeBlocks.put(newRegionSize, freeQueue);
         }
-        newKeyLock.set(false);
-        AtomicBoolean blockLock     = getSubBlockLock(newAddress);
-        while (!blockLock.compareAndSet(false, true)) {}
-        AtomicBoolean lock          = direct? freeDirectLock: freeHeapLock;
-        while (!lock.compareAndSet(false, true)) {}
-        Queue<Long>   freeAddresses = free.get(newAddress);
+        newSizeLock.enlarge();
+        newSizeLock.endTransaction();
         freeAddresses.put(newAddress, newRegionSize);
-        lock.set(false);
-        blockLock.set(false);
-    }
-
-    public static void insertAllocatedBlock(NavigableMap<Long, Integer> allocatedBlocks,
-                                            boolean direct, long address, int size) {
-
-        AtomicBoolean lock = direct? allocatedDirectLock: allocatedHeapLock;
-        while (!lock.compareAndSet(false, true)) {}
-        /* We grab the block lock as well so that there are no changes to
-           a given block while we are freeing/reorganizing that blocks memory. */
-        AtomicBoolean blockLock = getSubBlockLock(address);
-        while (!blockLock.compareAndSet(false, true)) {}
-        allocatedBlocks.put(address, size);
-        blockLock.set(false);
-        lock.set(false);
     }
 
     public static long allocateAnonymousBuffer(int n, boolean direct) {
@@ -227,42 +200,43 @@ public class MemoryManager {
                 ByteBuffer.allocate(n));
     }
 
-    /* TODO: Verify the locking and that it won't dead lock, especially the part
-             where they are being removed. */
     public static void free(long address) {
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> allocatedBlocks;
         NavigableMap<Long, Integer> freeAddresses;
-        AtomicBoolean freeLock;
-        Map<Integer, AtomicBoolean> keyLocks;
-        AtomicBoolean freeLock;
+        Map<Integer, AtomicBoolean> sizeLocks;
         Integer sizeInt = allocatedDirectBlocks.get(address);
-        boolean direct  = true;
+        boolean direct;
         if (sizeInt == null) {
-            sizeint = allocatedHeapBlocks.get(address);
+            sizeInt = allocatedHeapBlocks.get(address);
             if (sizeInt == null) {
                 /* This means that `address` was already freed. */
                 return;
+            } else {
+                allocatedBlocks = allocatedHeapBlocks;
+                /* Check if `address` was already freed. */
+                if (!allocatedBlocks.remove(address)) return;
+                direct = false;
             }
-            direct = false;
+        } else {
+            allocatedBlocks = allocatedDirectBlocks;
+            /* Check if `address` was already freed. */
+            if (!allocatedBlocks.remove(address)) return;
+            direct = true;
         }
+
         int size = sizeInt.intValue();
         if (direct) {
-            allocatedBlocks = allocatedDirectBlocks;
             freeAddresses   = freeDirectAddresses;
             freeBlocks      = freeDirectBlocks;
-            freeLock        = freeDirectLock;
-            keyLocks        = directKeyLocks;
+            sizeLocks       = directSizeLocks;
+            sizeLocksLock   = directSizeLocksLock;
         } else {
-            allocatedBlocks = allocatedHeapBlocks;
             freeAddresses   = freeHeapAddresses;
             freeBlocks      = freeHeapBlocks;
-            freeLock        = freeHeapLock;
-            keyLocks        = heapKeyLocks;
+            sizeLocks       = heapSizeLocks;
+            sizeLocksLock   = heapSizeLocksLock;
         }
-        AtomicBoolean blockLock = getSubBlockLock(address);
-        while (!blockLock.compareAndSet(false, true)) {}
-        while (!freeLock.compareAndSet(false, true)) {}
         Map.Entry<Long, Integer> lowerEntry  = freeAddresses.lowerEntry(address);
         Map.Entry<Long, Integer> higherEntry = freeAddresses.higherEntry(address);
         long lowerAddress  = lowerEntry.getKey();
@@ -271,58 +245,76 @@ public class MemoryManager {
         int  higherSize    = higherEntry.getValue();
         AtomicBoolean lowerRegionLock;
         AtomicBoolean higherRegionLock;
+        int newSize    = size;
+        int newAddress = address;
 
         /* After these two checks, lowerAddress will be the starting
            point of the new freeBlock and size will be the size of
            the new block. */
-        if ((lowerAddress + lowerSize) == address) {
-            lowerRegionLock = getFreeKeyLock(keyLocks, lowerSize);
-            while (!lowerRegionLock.compareAndSet(false, true)) {}
-            size += lowerSize;
-        } else {
-            lowerAddress = address;
-        }
-        if ((address + size) == higherAddress) {
-            higherRegionLock = getFreeKeyLock(keyLocks, higherSize);
-            while (!higherRegionLock.compareAndSet(false, true)) {}
-            size += higherSize;
-        }
-        Queue<Long> freeQueue;
-        boolean revert = false;
-        if (lowerRegionLock  != null) {
-            freeQueue = freeBlocks.get(lowerSize);
-            /* If the free block was taken by the time we got the lock. */
-            if (freeQueue == null) {
-                lowerAddress = address;
-                size        -= lowerSize;
-            } else {
-                boolean removed = freeQueue.remove(lowerAddress);
+        try {
+            if ((lowerAddress + lowerSize) == address && sameBlock(lowerAddress, address)) {
+                lowerRegionLock = getSizeLock(sizeLocks, sizeLocksLock, lowerSize);
+                while (!lowerRegionLock.tryStartTransaction()) {}
+                newAddress = lowerAddress;
+                newSize   += lowerSize;
+            }
+            if ((address + size) == higherAddress && sameBlock(address, higherAddress)) {
+                higherRegionLock = getSizeLock(sizeLocks, sizeLocksLock, higherSize);
+                while (!higherRegionLock.tryStartTransaction()) {}
+                newSize += higherSize;
+            }
+            Queue<Long> freeQueue;
+            if (lowerRegionLock  != null) {
+                freeQueue = freeBlocks.get(lowerSize);
                 /* If the free block was taken by the time we got the lock. */
-                if (!removed) {
-                    lowerAddress = address;
-                    size        -= lowerSize;
+                if (freeQueue == null) {
+                    newAddress = address;
+                    newSize   -= lowerSize;
+                } else {
+                    /* If the free block was taken by the time we got the lock. */
+                    if (!freeQueue.remove(lowerAddress)) {
+                        newAddress = address;
+                        newSize   -= lowerSize;
+                    } else {
+                        /* Success, remove a permit */
+                        lowerRegionLock.unconditionalAcquire();
+                    }
                 }
             }
-            lowerRegionLock.set(false);
-        }
-        if (higherRegionLock != null) {
-            freeQueue = freeBlocks.get(higherSize);
-            /* If the free block was taken by the time we got the lock. */
-            if (freeQuee == null) {
-                size -= higherSize;
-            } else {
-                boolean removed = freeQueue.remove(lowerAddress);
+            if (higherRegionLock != null) {
+                freeQueue = freeBlocks.get(higherSize);
                 /* If the free block was taken by the time we got the lock. */
-                if (!removed) {
-                    size -= higherSize;
+                if (freeQueue == null) {
+                    newSize -= higherSize;
+                } else {
+                    /* If the free block was taken by the time we got the lock. */
+                    if (!freeQueue.remove(lowerAddress)) {
+                        newSize -= higherSize;
+                    } else {
+                        /* Success, remove a permit */
+                        higherRegionLock.unconditionalAcquire();
+                    }
                 }
             }
-            higherRegionLock.set(false);
+        } finally {
+            if (lowerRegionLock  != null) lowerRegionLock.endTransaction();
+            if (higherRegionLock != null) higherRegionLock.endTransaction();
         }
-        insertFreeBlock(freeBlocks, freeAddresses, keyLocks, size, lowerAddress);
-        freeLock.set(false); /* TODO: This is a fine-grained lock, should we reduce
-                                  the scope for efficiency? */
-        blockLock.set(false);
+        insertFreeBlock(freeBlocks, freeAddresses, sizeLocks, sizeLocksLock,
+                        newSize, newAddress);
+    }
+
+    public static int allocatedSize(long address) {
+        Integer sizeInt = allocatedDirectBlocks.get(address);
+        if (sizeInt == null) {
+            sizeInt = allocatedHeapBlocks.get(address);
+            if (sizeInt == null) {
+                /* TODO: Throw an exception here. */
+                /* This means that `address` was already freed. */
+                return -1;
+            }
+        }
+        return sizeInt.intValue();
     }
 
     /** Addresses
@@ -335,10 +327,19 @@ public class MemoryManager {
         Hence, the maximum you can allocate a single block for is 1GB.
         We may want to implement a custom ByteBuffer that can handle block borders. */
     public static final long BLOCK_TYPE_MASK = 0xC000000000000000L;
-    public static final int ONE_MB           = 1 << 20;
-    public static final int ONE_SIX_MB       = 1 << 24;
-    public static final int ONE_TWO_EIGHT_MB = 1 << 27;
-    public static final int ONE_GB           = 1 << 30;
+
+    public static final int ONE_MB            = 1 << ONE_MB_INDEX_BITS;
+    public static final int ONE_MB_INDEX_BITS = 20;
+
+    public static final int ONE_SIX_MB            = 1 << ONE_SIX_MB_INDEX_BITS;
+    public static final int ONE_SIX_MB_INDEX_BITS = 24;
+
+    public static final int ONE_TWO_EIGHT_MB
+        = 1 << ONE_TWO_EIGHT_MB_INDEX_BITS;
+    public static final int ONE_TWO_EIGHT_MB_INDEX_BITS = 27;
+
+    public static final int ONE_GB            = 1 << ONE_GB_INDEX_BITS;
+    public static final int ONE_GB_INDEX_BITS = 30;
 
     public static int getBlockType(int n) {
         if      (n <= ONE_MB)           return 0;
@@ -348,36 +349,44 @@ public class MemoryManager {
         else barf("Attempting to allocate a buffer larger than 1GB.");
     }
 
-    public static int getBlockSize(int blockMask) {
-        switch (blockMask) {
-        case 0: return ONE_MD;
-        case 1: return ONE_SIX_MB;
-        case 2: return ONE_TWO_EIGHT_MB;
-        case 3: return ONE_GB;
-        default: barf("Bad index Mask"); return -1;
+    public static int getBlockSize(int blockType) {
+        switch (blockType) {
+            case 0: return ONE_MB;
+            case 1: return ONE_SIX_MB;
+            case 2: return ONE_TWO_EIGHT_MB;
+            case 3: return ONE_GB;
+            default: barf("Bad index Mask"); return -1;
         }
     }
 
-    public static int blockMask(long address) {
+    public static boolean sameBlock(long address1, long address2) {
+        int blockType1 = blockType(address1);
+        int blockType2 = blockType(address2);
+        if (blockType1 != blockType2) return false;
+        return blockIndex(address1, indexBits(blockType1))
+            == blockIndex(address2, indexBits(blockType2));
+    }
+
+    public static int blockType(long address) {
         return (int)((address & BLOCK_TYPE_MASK) >>> 62);
     }
 
-    public static int indexBits(int blockMask) {
-        switch (blockMask) {
-        case 0: return 20;
-        case 1: return 24;
-        case 2: return 27;
-        case 3: return 30;
-        default: barf("Bad index Mask"); return -1;
+    public static int indexBits(int blockType) {
+        switch (blockType) {
+            case 0: return ONE_MB_INDEX_BITS;
+            case 1: return ONE_SIX_MB_INDEX_BITS;
+            case 2: return ONE_TWO_EIGHT_MB_INDEX_BITS;
+            case 3: return ONE_GB_INDEX_BITS;
+            default: barf("Bad index Mask"); return -1;
         }
     }
 
     public static int blockIndex(long address, int indexBits) {
-        return (int)((address & BLOCK_TYPE_MASK) >>> indexBits);
+        return (int)((address & ~BLOCK_TYPE_MASK) >>> indexBits);
     }
 
     public static int positionIndex(long address) {
-        return (int)(address & ((1 << indexBits(blockMask(address))) - 1));
+        return (int)(address & ((1 << indexBits(blockType(address))) - 1));
     }
 
     public static int positionIndex(long address, int indexBits) {
@@ -388,15 +397,34 @@ public class MemoryManager {
 
         This caches the last lookup for reducing the constant factor when
         you're doing a lot of writes/reads on a single buffer (the common case). */
+
+    /* Start of previous received block. */
+    public static ThreadLocal<Long> cachedLowerAddress = new ThreadLocal<Long>();
+
+    /* Start of the adjacent block.
+       NOTE: This is the start of the NEXT block so you must do a strict comparison. */
+    public static ThreadLocal<Long> cachedHigherAddress = new ThreadLocal<Long>();
+
+    /* The cached buffer */
+    public static ThreadLocal<ByteBuffer> cachedBuffer = new ThreadLocal<ByteBuffer>();
+
     public static ByteBuffer getBuffer(long address) {
         if (address >= cachedLowerAddress.get() && address < cachedHigherAddress.get()) {
             return cachedBuffer.get();
         } else {
-            int blockMask  = blockMask(address);
-            int indexBits  = indexBits(blockMask);
+            int blockType  = blockType(address);
+            int indexBits  = indexBits(blockType);
             int blockIndex = blockIndex(indexBits);
-            long lower = (blockMask << 62) | (blockIndex << indexBits);
-            ByteBuffer buf = blockArrays[blockMask].get(blockIndex);
+            long lower = (blockType << 62) | (blockIndex << indexBits);
+            AtomicBoolean blockLock = blockLocks[blockType];
+            ByteBuffer buf;
+            if (blockLock.compareAndSet(false, true)) {
+                try {
+                    buf = blockArrays[blockType].get(blockIndex);
+                } finally {
+                    blockLock.set(false);
+                }
+            }
             cachedLowerAddress.set(lower);
             cachedHigherAddress.set(lower + (1 << indexBits));
             cachedBuffer.set(buf);
@@ -404,24 +432,40 @@ public class MemoryManager {
         }
     }
 
+    /* Helper function that will find an allocated block below the one given. */
+    private static Map.Entry<Long, Integer>
+        findLowerAllocatedAddress(Map<Long, Integer> allocatedBlocks, long address) {
+        Map.Entry<Long, Integer>
+            lowerEntry = allocatedBlocks.floorEntry(address);
+        if (lowerEntry != null &&
+            (address < (lowerEntry.getKey() + lowerEntry.getValue()))) {
+            return lowerEntry;
+        }
+        return null;
+    }
+
     /* When doing bulk operations, this can be useful. It returns a ByteBuffer
        positioned at the place referred to by the address. It's duplicated so the
-       user is free to change the position as necessary. */
+       user is free to change the position as necessary.
+
+       Returns null if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        int blockMask     = blockMask(address);
-        int indexBits     = indexBits(blockMask);
-        int blockIndex    = blockIndex(indexBits);
-        int positionIndex = positionIndex(address, indexBits);
-        Integer sizeInt   = allocatedDirectBlocks.get(address);
-        if (sizeInt == null) {
-            sizeInt = allocatedHeapBlocks.get(address);
-            if (sizeInt == null) {
-                /* This means that `address` was already freed. */
-                return;
+        long lowerAddress;
+        int  lowerSize;
+        Map.Entry<Long, Integer>
+            lowerEntry = findLowerAllocatedAddress(allocatedDirectBlocks, address);
+        if (lowerEntry == null) {
+            lowerEntry = findLowerAllocatedAddress(allocatedHeapBlocks, address);
+            if (lowerEntry == null) {
+                return null;
             }
         }
-        int size       = sizeInt.intValue();
-        ByteBuffer buf = blockArrays[blockMask].get(blockIndex).duplicate();
+        int blockType     = blockType(address);
+        int indexBits     = indexBits(blockType);
+        int blockIndex    = blockIndex(indexBits);
+        int positionIndex = positionIndex(address, indexBits);
+        int size          = lowerAddress + lowerSize - address;
+        ByteBuffer buf    = blockArrays[blockType].get(blockIndex).duplicate();
         buf.position(positionIndex);
         buf.limit(positionIndex + size);
         return buf;
