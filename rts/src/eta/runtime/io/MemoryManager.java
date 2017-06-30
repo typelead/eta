@@ -69,11 +69,11 @@ public class MemoryManager {
         = new ConcurrentSkipListMap<Long, Integer>();
 
     /* Actual storage of blocks */
-    public static List<ByteBuffer>[] blockArrays =
-        { new ArrayList<ByteBuffer>()
-        , new ArrayList<ByteBuffer>()
-        , new ArrayList<ByteBuffer>()
-        , new ArrayList<ByteBuffer>() };
+    public static List[] blockArrays =
+        { new ArrayList()
+        , new ArrayList()
+        , new ArrayList()
+        , new ArrayList() };
 
     /* Locks for each blockArray */
     public static AtomicBoolean[] blockLocks =
@@ -93,7 +93,7 @@ public class MemoryManager {
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> freeAddresses;
         NavigableMap<Long, Integer> allocatedBlocks;
-        Map<Integer, AtomicBoolean> sizeLocks;
+        Map<Integer, SizeLock> sizeLocks;
         AtomicBoolean sizeLocksLock;
         if (direct) {
             allocatedBlocks = allocatedDirectBlocks;
@@ -112,8 +112,9 @@ public class MemoryManager {
             Map.Entry<Integer, Queue<Long>> freeEntry = freeBlocks.ceilingEntry(n);
             if (freeEntry != null) {
                 int           regionSize = freeEntry.getKey();
-                AtomicBoolean sizeLock   = getSizeLock(sizeLocks, sizeLocksLock, regionSize);
+                SizeLock      sizeLock   = getSizeLock(sizeLocks, sizeLocksLock, regionSize);
                 Queue<Long>   freeQueue  = freeEntry.getValue();
+                Long address;
                 /* We attempt to acquire a permit (exists if there is a queue element)
                    and upon failure, continue the loop in case changes were made to
                    freeBlocks. */
@@ -133,7 +134,7 @@ public class MemoryManager {
                 }
                 int  newRegionSize = regionSize - n;
                 long newAddress    = address + n;
-                allocatedBlocks.put(address, size);
+                allocatedBlocks.put(address, n);
                 if (newRegionSize > 0) {
                     insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
                                     sizeLocksLock, newRegionSize, newAddress);
@@ -142,7 +143,8 @@ public class MemoryManager {
             } else {
                 int              blockType = getBlockType(n);
                 AtomicBoolean    blockLock = blockLocks[blockType];
-                List<ByteBuffer> blocks    = blockArrays[blockType];
+                @SuppressWarnings("unchecked") List<ByteBuffer> blocks
+                    = blockArrays[blockType];
                 if (blockLock.compareAndSet(false, true)) {
                     long address;
                     try {
@@ -154,7 +156,7 @@ public class MemoryManager {
                         if (address == 0) address = 1;
                         blocks.add(allocateAnonymousBuffer(blockSize, direct));
                         insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
-                                        sizeLocksLock, address + n, blockSize - n);
+                                        sizeLocksLock, blockSize - n, address + n);
                     } finally {
                         blockLock.set(false);
                     }
@@ -178,7 +180,7 @@ public class MemoryManager {
     public static void insertFreeBlock
         (NavigableMap<Integer, Queue<Long>> freeBlocks,
          NavigableMap<Long, Integer> freeAddresses,
-         Map<Integer, AtomicBoolean> sizeLocks,
+         Map<Integer, SizeLock> sizeLocks,
          AtomicBoolean sizeLocksLock,
          int newRegionSize, long newAddress) {
         assert newRegionSize > 0;
@@ -199,7 +201,7 @@ public class MemoryManager {
         freeAddresses.put(newAddress, newRegionSize);
     }
 
-    public static long allocateAnonymousBuffer(int n, boolean direct) {
+    public static ByteBuffer allocateAnonymousBuffer(int n, boolean direct) {
         return (direct?
                 /* Off-Heap Memory */
                 ByteBuffer.allocateDirect(n):
@@ -211,7 +213,8 @@ public class MemoryManager {
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> allocatedBlocks;
         NavigableMap<Long, Integer> freeAddresses;
-        Map<Integer, AtomicBoolean> sizeLocks;
+        Map<Integer, SizeLock> sizeLocks;
+        AtomicBoolean sizeLocksLock;
         Integer sizeInt = allocatedDirectBlocks.get(address);
         boolean direct;
         if (sizeInt == null) {
@@ -222,13 +225,13 @@ public class MemoryManager {
             } else {
                 allocatedBlocks = allocatedHeapBlocks;
                 /* Check if `address` was already freed. */
-                if (!allocatedBlocks.remove(address)) return;
+                if (allocatedBlocks.remove(address) == null) return;
                 direct = false;
             }
         } else {
             allocatedBlocks = allocatedDirectBlocks;
             /* Check if `address` was already freed. */
-            if (!allocatedBlocks.remove(address)) return;
+            if (allocatedBlocks.remove(address) == null) return;
             direct = true;
         }
 
@@ -250,10 +253,10 @@ public class MemoryManager {
         int  lowerSize     = lowerEntry.getValue();
         long higherAddress = higherEntry.getKey();
         int  higherSize    = higherEntry.getValue();
-        AtomicBoolean lowerRegionLock;
-        AtomicBoolean higherRegionLock;
-        int newSize    = size;
-        int newAddress = address;
+        long newAddress    = address;
+        int  newSize       = size;
+        SizeLock lowerRegionLock = null;
+        SizeLock higherRegionLock = null;
 
         /* After these two checks, lowerAddress will be the starting
            point of the new freeBlock and size will be the size of
@@ -335,25 +338,23 @@ public class MemoryManager {
         We may want to implement a custom ByteBuffer that can handle block borders. */
     public static final long BLOCK_TYPE_MASK = 0xC000000000000000L;
 
-    public static final int ONE_MB            = 1 << ONE_MB_INDEX_BITS;
-    public static final int ONE_MB_INDEX_BITS = 20;
-
-    public static final int ONE_SIX_MB            = 1 << ONE_SIX_MB_INDEX_BITS;
-    public static final int ONE_SIX_MB_INDEX_BITS = 24;
-
-    public static final int ONE_TWO_EIGHT_MB
-        = 1 << ONE_TWO_EIGHT_MB_INDEX_BITS;
+    public static final int ONE_MB_INDEX_BITS           = 20;
+    public static final int ONE_SIX_MB_INDEX_BITS       = 24;
     public static final int ONE_TWO_EIGHT_MB_INDEX_BITS = 27;
+    public static final int ONE_GB_INDEX_BITS           = 30;
 
-    public static final int ONE_GB            = 1 << ONE_GB_INDEX_BITS;
-    public static final int ONE_GB_INDEX_BITS = 30;
+    public static final int ONE_MB           = 1 << ONE_MB_INDEX_BITS;
+    public static final int ONE_SIX_MB       = 1 << ONE_SIX_MB_INDEX_BITS;
+    public static final int ONE_TWO_EIGHT_MB = 1 << ONE_TWO_EIGHT_MB_INDEX_BITS;
+    public static final int ONE_GB           = 1 << ONE_GB_INDEX_BITS;
 
     public static int getBlockType(int n) {
+        assert n <= ONE_GB;
         if      (n <= ONE_MB)           return 0;
         else if (n <= ONE_SIX_MB)       return 1;
         else if (n <= ONE_TWO_EIGHT_MB) return 2;
         else if (n <= ONE_GB)           return 3;
-        else barf("Attempting to allocate a buffer larger than 1GB.");
+        return -1;
     }
 
     public static int getBlockSize(int blockType) {
@@ -421,13 +422,13 @@ public class MemoryManager {
         } else {
             int blockType  = blockType(address);
             int indexBits  = indexBits(blockType);
-            int blockIndex = blockIndex(indexBits);
+            int blockIndex = blockIndex(address, indexBits);
             long lower = (blockType << 62) | (blockIndex << indexBits);
             AtomicBoolean blockLock = blockLocks[blockType];
-            ByteBuffer buf;
+            ByteBuffer buf = null;
             if (blockLock.compareAndSet(false, true)) {
                 try {
-                    buf = blockArrays[blockType].get(blockIndex);
+                    buf = (ByteBuffer) blockArrays[blockType].get(blockIndex);
                 } finally {
                     blockLock.set(false);
                 }
@@ -441,9 +442,10 @@ public class MemoryManager {
 
     /* Helper function that will find an allocated block below the one given. */
     private static Map.Entry<Long, Integer>
-        findLowerAllocatedAddress(Map<Long, Integer> allocatedBlocks, long address) {
+        findLowerAllocatedAddress(NavigableMap<Long, Integer> allocatedBlocks
+                                 ,long address) {
         Map.Entry<Long, Integer>
-            lowerEntry = allocatedBlocks.floorEntry(address);
+            lowerEntry = allocatedBlocks.floorEntry(Long.valueOf(address));
         if (lowerEntry != null &&
             (address < (lowerEntry.getKey() + lowerEntry.getValue()))) {
             return lowerEntry;
@@ -457,8 +459,8 @@ public class MemoryManager {
 
        Returns null if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        long lowerAddress;
-        int  lowerSize;
+        long lowerAddress = 0L;
+        int  lowerSize    = 0;
         Map.Entry<Long, Integer>
             lowerEntry = findLowerAllocatedAddress(allocatedDirectBlocks, address);
         if (lowerEntry == null) {
@@ -469,10 +471,10 @@ public class MemoryManager {
         }
         int blockType     = blockType(address);
         int indexBits     = indexBits(blockType);
-        int blockIndex    = blockIndex(indexBits);
+        int blockIndex    = blockIndex(address, indexBits);
         int positionIndex = positionIndex(address, indexBits);
-        int size          = lowerAddress + lowerSize - address;
-        ByteBuffer buf    = blockArrays[blockType].get(blockIndex).duplicate();
+        int size          = (int)(lowerAddress + lowerSize - address);
+        ByteBuffer buf    = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
         buf.position(positionIndex);
         buf.limit(positionIndex + size);
         return buf;

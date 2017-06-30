@@ -18,11 +18,6 @@ public class RuntimeOptions {
         setProgName(args);
         progArgs.clear();
         int rtsArgc = 0;
-        if (rtsOpts != null) {
-            splitRuntimeOptions(rtsOpts);
-            procRtsOpts(rtsArgc);
-            rtsArgc = rtsArgs.size();
-        }
         String env = System.getenv("ETA_RTS");
         if (env != null) {
             splitRuntimeOptions(env);
@@ -98,9 +93,9 @@ public class RuntimeOptions {
                         if (arg.length() == 2) {
                             Runtime.setMinTSOIdleTime(0);
                         } else {
-                            long ms = 0;;
+                            int ms = 0;
                             try {
-                                ms = (long)(1000 * Float.parseFloat(arg.substring(2)));
+                                ms = (int) (1000.0f * Float.parseFloat(arg.substring(2)));
                             } catch (NumberFormatException e) {
                                 errorBelch("bad value for -C");
                                 error = true;
@@ -112,7 +107,7 @@ public class RuntimeOptions {
                         optionChecked = true;
                         String rest = arg.substring(2);
                         for (char c: rest.toCharArray()) {
-                            boolean valid = Runtime.setDebugMode('s');
+                            boolean valid = Runtime.setDebugMode(c);
                             if (!valid) {
                                 badOption(arg);
                             }
@@ -177,7 +172,7 @@ public class RuntimeOptions {
     }
 
     public static int getNumberOfProcessors() {
-        return Runtime.getRuntime().availableProcessors();
+        return java.lang.Runtime.getRuntime().availableProcessors();
     }
 
     public static void badOption(String s) {

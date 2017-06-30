@@ -4,17 +4,20 @@ import java.lang.reflect.Field;
 
 import java.util.Queue;
 import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import eta.runtime.stg.Value;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
+import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
 
-public class Thunk extends Closure {
+public abstract class Thunk extends Closure {
     public volatile Closure indirectee;
 
     public Thunk() {
@@ -27,22 +30,23 @@ public class Thunk extends Closure {
     }
 
     @Override
+    public Closure enter(StgContext context) {
+        return thunkEnter(context);
+    }
+
+    @Override
     public final Closure getEvaluated() {
         if (indirectee instanceof Value) return indirectee;
         else return null;
     }
 
-    /* Subclasses should override this. The reason it's implemented is that it's
-       used for single-entry thunks. */
-    public Closure thunkEnter(StgContext context) {
-        barf("thunkEnter not implemented");
-    }
+    public abstract Closure thunkEnter(StgContext context);
 
     public final void setIndirection(Closure c) {
         if (useUnsafe) {
             indirectee = c;
         } else {
-            indirectee.set(c);
+            indUpdater.set(this, c);
         }
     }
 
@@ -60,7 +64,7 @@ public class Thunk extends Closure {
             return v;
         }
         if (v == tso) {
-            updatee.updateWithIndirection(ret);
+            updateWithIndirection(ret);
             return ret;
         }
         updateThunk(cap, tso, ret);
@@ -80,9 +84,9 @@ public class Thunk extends Closure {
             BlockingQueue bq = (BlockingQueue) v;
             TSO owner = bq.owner;
             if (owner != tso) {
-                cap.checkBockingQueues(tso);
+                cap.checkBlockingQueues(tso);
             } else {
-                cap.wakeBlockingQueue(cap, bq);
+                cap.wakeBlockingQueue(bq);
             }
         } else {
             cap.checkBlockingQueues(tso);
@@ -97,7 +101,7 @@ public class Thunk extends Closure {
             else if (p instanceof BlackHole) {
                 Capability cap = context.myCapability;
                 TSO tso = context.currentTSO;
-                MessageBlackHole msg = new MessageBlackHole(tso, blackhole);
+                MessageBlackHole msg = new MessageBlackHole(tso, this);
                 boolean blocked = cap.messageBlackHole(msg);
                 if (blocked) {
                     tso.whyBlocked = BlockedOnBlackHole;
@@ -112,7 +116,7 @@ public class Thunk extends Closure {
     /** Apply overrides for Thunks **/
 
     @Override
-    public final void applyV(StgContext context) {
+    public Closure applyV(StgContext context) {
         return ((indirectee == null)? enter(context):indirectee).applyV(context);
     }
 
@@ -212,9 +216,9 @@ public class Thunk extends Closure {
 
        This allows clients to reset all CAFs to unevaluated state.
     **/
-    private static Queue<CAF> revertibleCAFList = new ConcurrentLinkedQueue<CAF>();
+    protected static Queue<CAF> revertibleCAFList = new ConcurrentLinkedQueue<CAF>();
 
-    private static boolean keepCAFs;
+    protected static boolean keepCAFs;
 
     public static void setKeepCAFs() {
         keepCAFs = true;

@@ -10,6 +10,6 @@ public class WorkerThread extends Thread {
     public void run() {
         Capability worker = Capability.getLocal(true);
         worker.schedule(null);
-        workerCapabilities.remove(cap);
+        Capability.workerCapabilities.remove(worker);
     }
 }

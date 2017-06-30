@@ -8,12 +8,13 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.UpdateInfo;
 
+import eta.runtime.message.MessageBlackHole;
 import eta.runtime.message.MessageThrowTo;
 import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.stg.TSO.TSO_BLOCKEX;
-import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
-import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
-import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMsgThrowTo;
+import static eta.runtime.RuntimeLogging.debugScheduler;
+import static eta.runtime.stg.TSO.*;
+import static eta.runtime.stg.TSO.WhatNext.*;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
 
 public class Exception {
 
@@ -26,8 +27,8 @@ public class Exception {
 
     public static Closure maskAsyncExceptions(StgContext context, Closure io) {
         TSO tso = context.currentTSO;
-        boolean unmask;
-        boolean maskUninterruptible;
+        boolean unmask = false;
+        boolean maskUninterruptible = false;
         if (tso.hasFlag(TSO_BLOCKEX)) {
             if (!tso.hasFlag(TSO_INTERRUPTIBLE)) {
                 maskUninterruptible = true;
@@ -49,8 +50,8 @@ public class Exception {
 
     public static Closure maskUninterruptible(StgContext context, Closure io) {
         TSO tso = context.currentTSO;
-        boolean unmask;
-        boolean mask;
+        boolean unmask = false;
+        boolean mask   = false;
         if (tso.hasFlag(TSO_BLOCKEX)) {
             if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
                 mask = true;
@@ -72,8 +73,8 @@ public class Exception {
     public static Closure unmaskAsyncExceptions(StgContext context, Closure io) {
         Capability cap = context.myCapability;
         TSO tso = context.currentTSO;
-        boolean mask;
-        boolean maskUninterruptible;
+        boolean mask = false;
+        boolean maskUninterruptible = false;
         if (tso.hasFlag(TSO_BLOCKEX)) {
             if (tso.hasFlag(TSO_INTERRUPTIBLE)) {
                 mask = true;
@@ -120,7 +121,7 @@ public class Exception {
 
     public static Closure killMyself(StgContext context, TSO target, Closure exception) {
         Capability cap = context.myCapability;
-        cap.throwToSingleThreaded(target, exception);
+        throwToSingleThreaded(target, exception);
         return null;
     }
 
@@ -131,9 +132,9 @@ public class Exception {
         Closure result;
         try {
             result = io.applyV(context);
-        } catch (Exception e) {
-            boolean unmask;
-            Closure exception;
+        } catch (java.lang.Exception e) {
+            boolean unmask = false;
+            Closure exception = null;
             boolean async = e instanceof EtaAsyncException;
             if (async) {
                 exception = ((EtaAsyncException) e).exception;
@@ -179,9 +180,8 @@ public class Exception {
     public static Closure raise(StgContext context, Closure exception) {
         /* TODO: Remove the need for this line by using EtaException's stack
                  trace directly. */
-        tso.setStackTrace(Thread.currentThread().getStackTrace());
+        context.currentTSO.setStackTrace(Thread.currentThread().getStackTrace());
         throw new EtaException(exception);
-        return null;
     }
 
     /** Helper for the exception primops **/
@@ -215,7 +215,6 @@ public class Exception {
 
     public static void raiseAsync(TSO tso, Closure exception, boolean stopAtAtomically, UpdateInfo stopHere) {
         assert tso.whatNext != ThreadComplete && tso.whatNext != ThreadKilled;
-        assert tso.cap == this;
 
         if (tso.whyBlocked != NotBlocked) {
             tso.whyBlocked = NotBlocked;
@@ -235,22 +234,18 @@ public class Exception {
         }
     }
 
-    public final boolean throwToMsg(Capability cap, MessageThrowTo msg, boolean wakeupSource) {
+    public static boolean throwToMsg(Capability cap, MessageThrowTo msg, boolean wakeupSource) {
+        TSO target = msg.target;
         do {
-            TSO target = msg.target;
             assert target != null;
             if (target.whatNext == ThreadComplete
                 || target.whatNext == ThreadKilled) {
                 return true;
             }
-            if (Runtime.debugScheduler()) {
-                debugBelch("Capability[%d](throwTo) From TSO %d to TSO %d.", msg.source.id, msg.target.id);
-            }
+            debugScheduler("Throwing asynchronous exception from TSO %d to TSO %d.", msg.source.id, msg.target.id);
             Capability targetCap = target.cap;
             if (target.cap != cap) {
-                if (Runtime.debugScheduler()) {
-                    debugBelch("Capability[%d](throwTo) Sending a ThrowTo message to Capability[%d].", no, targetcap.id);
-                }
+                debugScheduler("Sending a ThrowTo message to Capability[%d].", targetCap.id);
                 cap.sendMessage(targetCap, msg);
                 return false;
             }
@@ -288,7 +283,7 @@ public class Exception {
                    barf("Unimplemented MVar");
                    break;
                case BlockedOnBlackHole:
-                   if (target.hasFlags(TSO_BLOCKEX)) {
+                   if (target.hasFlag(TSO_BLOCKEX)) {
                        target.blockedThrowTo(msg);
                        return false;
                    }

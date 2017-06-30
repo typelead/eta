@@ -13,7 +13,7 @@ public class Raise extends Thunk {
     }
 
     @Override
-    public Closure enter(StgContext context) {
+    public Closure thunkEnter(StgContext context) {
         return Exception.raise(context, exception);
     }
 }

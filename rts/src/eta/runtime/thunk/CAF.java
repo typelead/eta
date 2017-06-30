@@ -4,8 +4,9 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
+import eta.runtime.exception.EtaAsyncException;
 
-public class CAF extends Thunk {
+public abstract class CAF extends Thunk {
 
     public CAF() {
         super();
@@ -22,8 +23,9 @@ public class CAF extends Thunk {
                 boolean claimed = claim(context.currentTSO);
                 if (!claimed) continue;
                 UpdateInfo ui = context.pushUpdate(this);
+                Closure result;
                 try {
-                    Closure result = thunkEnter(context);
+                    result = thunkEnter(context);
                 } catch (EtaAsyncException ea) {
                     if (ea.stopHere == ui) {
                         return enter(context);
@@ -49,11 +51,11 @@ public class CAF extends Thunk {
     }
 
     /* Initializing CAFs */
-    public final Thunk claim(TSO tso) {
-        if (caf.tryLock()) {
-            caf.setIndirection(tso);
+    public final boolean claim(TSO tso) {
+        if (tryLock()) {
+            setIndirection(tso);
             if (Thunk.shouldKeepCAFs()) {
-                Thunk.revertibleCAFList.offer(caf);
+                Thunk.revertibleCAFList.offer(this);
             }
             return true;
         } else return false;

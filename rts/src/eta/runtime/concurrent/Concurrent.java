@@ -1,11 +1,20 @@
 package eta.runtime.concurrent;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.concurrent.Future;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.nio.channels.Channel;
 import java.nio.channels.Selector;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.ClosedChannelException;
 
 import eta.runtime.Runtime;
 import eta.runtime.stg.Stg;
@@ -15,15 +24,11 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.exception.Exception;
 import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.stg.TSO.TSO_BLOCKEX;
-import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
+import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhyBlocked;
 import static eta.runtime.stg.TSO.WhatNext;
-import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMVar;
-import static eta.runtime.stg.TSO.WhyBlocked.BlockedOnMVarRead;
-import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
-import static eta.runtime.stg.TSO.WhatNext.ThreadComplete;
-import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
+import static eta.runtime.stg.TSO.WhatNext.*;
 
 public class Concurrent {
     public static final int SPIN_COUNT = 1000;
@@ -31,7 +36,7 @@ public class Concurrent {
     /* Global Run Queue */
 
     public static final Deque<TSO> globalRunQueue = new ConcurrentLinkedDeque<TSO>();
-    public static final long globalRunQueueModifiedTime = 0;
+    public static long globalRunQueueModifiedTime = 0;
 
     public static void pushToGlobalRunQueue(TSO tso) {
         assert tso.cap == null;
@@ -75,9 +80,9 @@ public class Concurrent {
              shared among multiple threads? */
     public static Closure fork(StgContext context, Closure closure) {
         TSO currentTSO = context.currentTSO;
-        TSO tso = Rts.createIOThread(null, closure);
+        TSO tso = Runtime.createIOThread(closure);
         tso.addFlags(currentTSO.andFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE));
-        Capability.pushToGlobalRunQueue(tso);
+        pushToGlobalRunQueue(tso);
         context.O(1, tso);
         return null;
     }
@@ -91,19 +96,21 @@ public class Concurrent {
              a single Capability, be warned that one of the threads may never run!
      */
     public static Closure forkOn(StgContext context, int cpu, Closure closure) {
-        fork(context, closure);
+        return fork(context, closure);
     }
 
     public static Closure yield(StgContext context) {
-        tso.whyBlocked = ThreadYielding;
+        Capability cap = context.myCapability;
+        TSO tso        = context.currentTSO;
+        tso.whyBlocked = BlockedOnYield;
         tso.blockInfo  = null;
         cap.blockedLoop();
         return null;
     }
 
-    /* TODO: Inline this */
+    /* In Eta, all the threads are bound, so this always returns true. */
     public static Closure isCurrentThreadBound(StgContext context) {
-        context.I(1, context.currentTSO.isBound()? 1 : 0);
+        context.I(1, 1);
         return null;
     }
 
@@ -163,8 +170,8 @@ public class Concurrent {
                     TSO                    tso    = entry.getValue();
                     if (future.isDone()) {
                         it.remove();
-                        Object result = null;
-                        Exception e   = null;
+                        Object    result    = null;
+                        java.lang.Exception exception = null;
                         do {
                             try {
                                 result    = future.get();
@@ -172,7 +179,8 @@ public class Concurrent {
                                 exception = e;
                             } catch (ExecutionException e) {
                                 exception = e;
-                            } catch (Interrupted e) {
+                            } catch (InterruptedException e) {
+                                /* TODO: Is this the right behavior? */
                                 continue;
                             }
                             break;
@@ -194,16 +202,17 @@ public class Concurrent {
         tso.blockInfo  = future;
         do {
             if (futureMap.get(future) == null) {
-                futureMap.add(future, tso);
+                futureMap.put(future, tso);
             }
             cap.blockedLoop();
         } while (!future.isDone());
-        Object exception;
-        Object result;
+        Object exception = null;
+        Object result    = null;
         if (tso.blockInfo != null) {
             FutureResult futureResult = (FutureResult) tso.blockInfo;
             exception = futureResult.exception;
             result    = futureResult.result;
+            tso.blockInfo = null;
         }
         context.O(1, exception);
         context.O(2, result);
@@ -212,7 +221,15 @@ public class Concurrent {
 
     /* Managing Scalable I/O */
 
-    public static Selector globalSelector = Selector.open();
+    public static Selector globalSelector;
+
+    static {
+        try {
+            globalSelector = Selector.open();
+        } catch (IOException e) {
+            globalSelector = null;
+        }
+    }
     public static AtomicBoolean selectorLock = new AtomicBoolean();
 
     public static Closure threadWaitIO(StgContext context, Channel channel, int ops) {
@@ -224,16 +241,28 @@ public class Concurrent {
         if (!(channel instanceof SelectableChannel)) {
             barf("Non-selectable channel sent to threadWaitIO#.");
         }
-        SelectionKey selectKey;
+        SelectionKey selectKey = null;
         try {
             SelectableChannel selectChannel = (SelectableChannel) channel;
             selectKey = selectChannel.register(globalSelector, ops);
             selectKey.attach(tso);
         } catch (ClosedChannelException e) {
-            /* If the channel is closed, the user should know about it. */
-            throw e;
+            /* TODO: If the channel is closed, the user should know about it.
+               Notify them in some form. */
         }
-        tso.whyBlocked = BlockedOnIO;
+        WhyBlocked blocked;
+            switch (ops) {
+            case SelectionKey.OP_READ:
+                blocked = BlockedOnRead;
+                break;
+            case SelectionKey.OP_WRITE:
+                blocked = BlockedOnRead;
+                break;
+            default:
+                blocked = BlockedOnIO;
+                break;
+        }
+        tso.whyBlocked = blocked;
         tso.blockInfo  = selectKey;
         do {
             cap.blockedLoop();
@@ -244,12 +273,12 @@ public class Concurrent {
     public static void checkForReadyIO(Capability cap) {
         if (selectorLock.compareAndSet(false, true)) {
             try {
-                int selectedKeys = selector.selectNow();
+                int selectedKeys = globalSelector.selectNow();
                 if (selectedKeys > 0) {
-                    Iterator<SelectionKey> it = selector.selectedKeys().iterator();
+                    Iterator<SelectionKey> it = globalSelector.selectedKeys().iterator();
                     while (it.hasNext()) {
                         SelectionKey key = it.next();
-                        if (key.isValid() && (key.readOps() & key.interestOps() != 0)) {
+                        if (key.isValid() && ((key.readyOps() & key.interestOps()) != 0)) {
                             TSO tso = (TSO) key.attachment();
                             key.cancel();
                             cap.tryWakeupThread(tso);
@@ -257,6 +286,9 @@ public class Concurrent {
                         it.remove();
                     }
                 }
+            } catch (IOException e) {
+                /* TODO: If the selector is closed, the user should know about it.
+                   Do some logging here. */
             } finally {
                 selectorLock.set(false);
             }

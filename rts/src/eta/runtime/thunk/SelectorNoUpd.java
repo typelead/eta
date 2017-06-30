@@ -15,7 +15,7 @@ public abstract class SelectorNoUpd extends Thunk {
     }
 
     @Override
-    public final Closure enter(StgContext context) {
+    public final Closure thunkEnter(StgContext context) {
         return selectEnter(context, (DataCon) p.evaluate(context));
     }
 

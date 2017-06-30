@@ -21,13 +21,16 @@ public class StablePtrTable {
     private StablePtrTable() {}
 
     public static int makeStablePtr(Closure p) {
-        Integer index;
-        index = INSTANCE.freeIndexes.poll();
+        return INSTANCE.createStablePtr(p);
+    }
+
+    public int createStablePtr(Closure p) {
+        Integer index = freeIndexes.poll();
         if (index == null) {
             index = nextIndex.getAndIncrement();
         }
-        INSTANCE.ptrs.put(index, p);
-        return index.intValue();
+        ptrs.put(index, p);
+        return index;
     }
 
     public static Closure getClosure(int index) {

@@ -1,53 +1,32 @@
 package eta.runtime.stm;
 
-import java.util.Stack;
-import java.util.ListIterator;
+import java.util.Queue;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import eta.runtime.RuntimeOptions;
-import eta.runtime.stg.Stg;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import eta.runtime.exception.Exception;
-
-import static eta.runtime.stm.TransactionRecord.State.TREC_ACTIVE;
-import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
+import eta.runtime.exception.EtaException;
+import eta.runtime.exception.EtaAsyncException;
+import eta.runtime.exception.RetryException;
 
 public class STM {
     /* STM RTS primops */
     public static final Object awake = new Object();
 
     public static Closure newTVar(StgContext context, Closure init) {
-        return new TVar(init);
+        context.O(1, new TVar(init));
+        return null;
     }
 
     public static Closure readTVar(StgContext context, TVar tvar) {
         TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
-        assert trec.state == TREC_ACTIVE || trec.state = TREC_CONDEMNED;
-        Closure result;
-        EntrySearchResult searchResult = trec.getNested(tvar);
-        TransactionRecord entryIn      = null;
-        TransactionEntry  entry        = null;
-        if (searchResult != null) {
-            entryIn = searchResult.header;
-            entry   = searchResult.entry;
-        }
-        if (entry != null) {
-            if (entryIn != trec) {
-                /* If the entry was found in a parent TRec, copy the entry to
-                   the current trec, since you have just read it in the
-                   current transaction. */
-                trec.put(tvar, entry.expectedValue, entry.newValue);
-            }
-            result = entry.newValue;
-        } else {
-            Closure currentValue = tvar.currentValue();
-            trec.put(tvar, currentValue, currentValue);
-        }
-        return result;
+        return trec.read(tvar);
     }
 
     public static Closure readTVarIO(StgContext context, TVar tvar) {
@@ -56,30 +35,14 @@ public class STM {
 
     public static Closure writeTVar(StgContext context, TVar tvar, Closure newValue) {
         TransactionRecord trec         = context.currentTSO.trec;
-        EntrySearchResult searchResult = trec.getNested(tvar);
-        TransactionRecord entryIn      = null;
-        TransactionEntry  entry        = null;
-        if (searchResult != null) {
-            entryIn = searchResult.header;
-            entry   = searchResult.entry;
-        }
-        if (entry != null) {
-            if (entryIn == trec) {
-                entry.newValue = newValue;
-            } else {
-                trec.put(tvar, entry.expectedValue, newValue);
-            }
-        } else {
-            Closure currentValue = tvar.currentValue();
-            trec.put(tvar, currentValue, newValue);
-        }
+        assert trec != null;
+        trec.write(tvar, newValue);
         return null;
     }
 
     public static Closure check(StgContext context, Closure invariant) {
         TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
-        assert trec.state == TREC_ACTIVE || trec.state == TREC_CONDEMNED;
         trec.checkInvariant(invariant);
         return null;
     }
@@ -89,15 +52,15 @@ public class STM {
         TSO tso = context.currentTSO;
         TransactionRecord outer = tso.trec;
         if (outer != null) {
-            return Exception.raise(context, nestedAtomically);
+            return Exception.raise(context, Closures.nestedAtomically);
         } else {
-            TransactionRecord trec = TransactionRecord.start(outer);
-            tso.trec = trec;
-            Queue<InvariantCheck> invariants = new LinkedDeque<InvariantCheck>();
-            Capability cap = context.currentCapability;
-            Closure result;
-            Closure frameResult;
-            boolean runCode = true;
+            Queue<InvariantCheck> invariants = new LinkedList<InvariantCheck>();
+            TransactionRecord trec           = TransactionRecord.start(outer);
+            Capability cap                   = context.myCapability;
+            Closure result                   = null;
+            Closure frameResult              = null;
+            boolean runCode                  = true;
+            tso.trec                         = trec;
             do {
                 try {
                     if (runCode) {
@@ -203,7 +166,6 @@ public class STM {
                 }
             } while (true);
         }
-        return null;
     }
 
     public static Closure catchSTM(StgContext context, Closure code, Closure handler) {
@@ -246,7 +208,6 @@ public class STM {
             tso.trec = outer;
             throw e;
         }
-        return null;
     }
 
     public static Closure catchRetry(StgContext context, Closure firstCode, Closure altCode) {
@@ -266,7 +227,7 @@ public class STM {
                 trec  = tso.trec;
                 outer = trec.enclosingTrec;
                 boolean committed = trec.commitNested();
-                if (valid) {
+                if (committed) {
                     tso.trec = outer;
                     return result;
                 } else {
@@ -302,11 +263,9 @@ public class STM {
                 }
             }
         } while (true);
-        return null;
     }
 
     public static Closure retry(StgContext context) {
         throw RetryException.INSTANCE;
-        return null;
     }
 }

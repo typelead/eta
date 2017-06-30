@@ -6,19 +6,49 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
+
 import java.lang.ref.WeakReference;
 
+import eta.runtime.Runtime;
+import eta.runtime.io.IO;
+import eta.runtime.concurrent.Concurrent;
+import eta.runtime.concurrent.WorkerThread;
+import eta.runtime.exception.Exception;
+import eta.runtime.interpreter.Interpreter;
 import eta.runtime.message.Message;
 import eta.runtime.message.MessageBlackHole;
+import eta.runtime.message.MessageThrowTo;
+import eta.runtime.message.MessageWakeup;
+import eta.runtime.parallel.Parallel;
 import eta.runtime.thunk.BlockingQueue;
+import eta.runtime.thunk.Thunk;
+import eta.runtime.thunk.UpdateInfo;
+import eta.runtime.thunk.WhiteHole;
+import static eta.runtime.stg.TSO.*;
+import static eta.runtime.stg.TSO.WhatNext;
+import static eta.runtime.stg.TSO.WhatNext.*;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
+import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.RuntimeLogging.debugScheduler;
 
 public final class Capability {
     public static List<Capability> capabilities = new ArrayList<Capability>();
     public static Set<Capability> workerCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
     private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
+
+    public static boolean singletonCapabilities() {
+        return capabilities.size() == 1 && workerCapabilities.isEmpty();
+    }
+
+    public static int workerCapabilitiesSize() {
+        return workerCapabilities.size();
+    }
 
     public static Capability getLocal(boolean worker) {
         Capability cap = myCapability.get();
@@ -103,7 +133,7 @@ public final class Capability {
             }
 
             TSO t = popRunQueue();
-            context.reset(cap, t);
+            context.reset(this, t);
 
             WhatNext prevWhatNext = t.whatNext;
             switch (prevWhatNext) {
@@ -113,13 +143,13 @@ public final class Capability {
                 case ThreadRun:
                     try {
                         result = tso.closure.enter(context);
-                    } catch (Exception e) {
+                    } catch (java.lang.Exception e) {
                         // TODO: Catch exceptions here?
                         throw e;
                     }
                     break;
                 case ThreadInterpret:
-                    interpretBCO(cap);
+                    Interpreter.interpretBCO(this);
                     break;
                 default:
                     barf("{Scheduler} Invalid whatNext field for TSO[%d].", t.id);
@@ -179,7 +209,7 @@ public final class Capability {
     public void processInbox() {
         Message msg;
         while ((msg = inbox.poll()) != null) {
-            msg.execute(cap);
+            msg.execute(this);
         }
     }
 
@@ -193,29 +223,27 @@ public final class Capability {
     }
 
     /* Sparks */
-
     public final void activateSpark() {
         if (Parallel.anySparks()) {
             createSparkThread();
-            if (RuntimeOptions.DebugFlag.scheduler) {
-                debugBelch("{Scheduler} Creating a Spark TSO[%d].", tso.id);
-            }
         }
     }
 
     public final void createSparkThread() {
-        appendToRunQueue(Runtime.createIOThread(Closures.runSparks));
+        TSO tso = Runtime.createIOThread(Closures.runSparks);
+        debugScheduler("Creating a Spark TSO[%d].", tso.id);
+        appendToRunQueue(tso);
     }
 
     public final boolean newSpark(Closure p) {
         if (p.getEvaluated() == null) {
-            if (sparks.offerFirst(p)) {
-                globalSparkStats.created.getAndIncrement();
+            if (Parallel.submitSpark(p)) {
+                Parallel.globalSparkStats.created.getAndIncrement();
             } else {
-                globalSparkStats.overflowed.getAndIncrement();
+                Parallel.globalSparkStats.overflowed.getAndIncrement();
             }
         } else {
-            globalSparkStats.dud.getAndIncrement();
+            Parallel.globalSparkStats.dud.getAndIncrement();
         }
         return true;
     }
@@ -226,7 +254,7 @@ public final class Capability {
         maybePerformBlockedException(tso);
         UpdateInfo ui = tso.updateInfoStack.markBackwardsFrom(this, tso);
         if (ui != null) {
-            suspendComputation(tso, ui);
+            Exception.suspendComputation(tso, ui);
         }
     }
 
@@ -284,7 +312,7 @@ public final class Capability {
     /* Communication between Capabilities */
 
     public final void tryWakeupThread(TSO tso) {
-        if (tso.cap != cap) {
+        if (tso.cap != this) {
             sendMessage(tso.cap, new MessageWakeup(tso));
         } else {
             boolean blocked = true;
@@ -355,7 +383,7 @@ public final class Capability {
                     sendMessage(owner.cap, msg);
                     return true;
                 }
-                messages.offer(msg);
+                bq.messages.offer(msg);
                 return true;
             } else return false;
         } while (true);
@@ -363,7 +391,7 @@ public final class Capability {
 
     public final void checkBlockingQueues(TSO tso) {
         for (BlockingQueue bq: tso.blockingQueues) {
-            Closure p = bq.bh;
+            Thunk p = bq.bh;
             Closure ind = p.indirectee;
             /* TODO: Is this the correct condition? */
             if (ind == null || ind != bq) {
@@ -385,35 +413,24 @@ public final class Capability {
 
     public static void shutdownCapabilities(boolean safe) {
         for (Capability c: capabilities) {
-            c.shutdown(task, safe);
+            c.shutdown(safe);
         }
+    }
+
+    public static void shutdown(boolean safe) {
+        /* TODO: Implement */
     }
 
     /* Globan Run Queue Stealing */
 
     public TSO tryStealGlobalRunQueue() {
-        TSO tso = globalRunQueue.pollLast();
+        TSO tso = Concurrent.globalRunQueue.pollLast();
         if (tso != null) {
             Concurrent.globalRunQueueModifiedTime = System.currentTimeMillis();
-            tso.cap = to;
+            tso.cap = this;
             tryWakeupThread(tso);
         }
-    }
-
-    /* Weak Pointers */
-
-    public static void runFinalizers() {
-        for (Capability c: Capability.capabilities) {
-            c.runAllJavaFinalizers();
-        }
-    }
-
-    public static void runAllJavaFinalizers() {
-        /* TODO: Run finalizers */
-    }
-
-    public void checkFinalizers() {
-        /* TODO: Implement */
+        return tso;
     }
 
     /* Idle Loop */
@@ -460,10 +477,10 @@ public final class Capability {
     }
 
     public void blockedLoop(long nanos) {
-        cap.idleLoop(true);
+        idleLoop(true);
         LockSupport.parkNanos(nanos);
         if (Thread.interrupted()) {}
-        cap.idleLoop(false);
+        idleLoop(false);
     }
 
     public void manageOrSpawnWorkers() {
@@ -478,7 +495,7 @@ public final class Capability {
                themselves when they unblock. */
 
         if ((!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks()) &&
-            ( System.getCurrentTimeMillis()
+            ( System.currentTimeMillis()
             - Concurrent.globalRunQueueModifiedTime
             > Runtime.getMinTSOIdleTime())) {
             if (!blockedCapabilities.isEmpty()) {
@@ -495,7 +512,7 @@ public final class Capability {
 
     public static Set<Capability> blockedCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
-    public static AtomicBoolean blockedCapabilitesLock = new AtomicBoolean();
+    public static AtomicBoolean blockedCapabilitiesLock = new AtomicBoolean();
 
     public static void unblockCapabilities() {
         /* TODO: Optimization? Only unlock SOME Capabilities to reduce contention on
@@ -505,7 +522,7 @@ public final class Capability {
         if (!blockedCapabilities.isEmpty()) {
             if (blockedCapabilitiesLock.compareAndSet(false, true)) {
                 try {
-                    for (Capability c:blockedCapabiliies) {
+                    for (Capability c:blockedCapabilities) {
                         c.interrupt();
                     }
                     blockedCapabilities.clear();

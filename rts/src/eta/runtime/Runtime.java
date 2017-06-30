@@ -1,19 +1,14 @@
 package eta.runtime;
 
-import java.util.List;
-import java.util.concurrent.locks.Lock;
 import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
 
 import eta.runtime.stg.Capability;
+import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Closure;
 import eta.runtime.stg.WeakPtr;
-import static eta.runtime.RuntimeLogging.errorBelch;
-import static eta.runtime.RuntimeLogging.debugBelch;
-import static eta.runtime.stg.TSO.TSO_LOCKED;
-import static eta.runtime.stg.TSO.TSO_BLOCKEX;
-import static eta.runtime.stg.TSO.TSO_INTERRUPTIBLE;
+import eta.runtime.exception.RuntimeInternalError;
 
 public class Runtime {
 
@@ -44,8 +39,8 @@ public class Runtime {
     static {
         try {
             findLoadedClass = ClassLoader.class
-                                .getDeclaredMethod( "findLoadedClass"
-                                                  , new Class[] { String.class });
+                                .getDeclaredMethod("findLoadedClass"
+                                                  ,new Class[] { String.class });
             findLoadedClass.setAccessible(true);
         } catch(Exception e) {
             findLoadedClass = null;
@@ -54,13 +49,20 @@ public class Runtime {
 
     /* This will NOT affect the spark pool if it's already been initialized! */
     public static void setMaxGlobalSparks(int newMaxGlobalSparks) {
-        if(findLoadedClass != null &&
-           findLoadedClass.invoke( ClassLoader.getSystemClassLoader()
-                                 , "eta.runtime.parallel.Parallel") != null) {
-            /* TODO: Replace with custom exception */
-            throw new Exception("eta.runtime.parallel.Parallel has already been initialized!");
+        java.lang.Exception failed = null;
+        try {
+            if(findLoadedClass != null &&
+               findLoadedClass.invoke(ClassLoader.getSystemClassLoader()
+                                     ,"eta.runtime.parallel.Parallel") != null) {
+                /* TODO: Should we indicate to the user that it's already initialized? */
+                return;
+            }
+            maxGlobalSparks = newMaxGlobalSparks;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeInternalError("eta.runtime.parallel.Parallel is not accessible!");
+        } catch (InvocationTargetException e) {
+            throw new RuntimeInternalError("ClassLoader.findLoadedClass() does not exist!");
         }
-        maxGlobalSparks = newMaxGlobalSparks;
     }
 
     /* Parameter: minTSOIdleTime (int)
@@ -124,17 +126,37 @@ public class Runtime {
         gcOnWeakPtrFinalization = newGCOnWeakPtrFinalization;
     }
 
+    /* Parameter: maxLocalSparks (int)
+       The maximum capacity of the bounded Global Spark Queue.
+       */
+    private static int maxLocalSparks = 4096;
+
+    public static int getMaxLocalSparks() {
+        return maxLocalSparks;
+    }
+
+    public static void setMaxLocalSparks(int newMaxLocalSparks) {
+        maxLocalSparks = newMaxLocalSparks;
+    }
+
     /* Debug Parameters */
     private static boolean debugScheduler;
     private static boolean debugSTM;
 
-    public void setDebugMode(char c) {
+    public static boolean setDebugMode(char c) {
+        boolean valid = true;
         switch(c) {
             case 's':
                 debugScheduler = true;
+                break;
             case 'm':
                 debugSTM = true;
+                break;
+            default:
+                valid = false;
+                break;
         }
+        return valid;
     }
 
     public static boolean debugScheduler() {
@@ -184,19 +206,15 @@ public class Runtime {
 
     public static void shutdownAndSignal(int signal, boolean fastExit) {
         if (!fastExit) {
-            exit(false);
+            exit();
         }
         // TODO: Implement signals
         stgExit(1);
     }
 
     public static void exit() {
-        flushStdHandles();
-        Capability.runFinalizers();
-    }
-
-    public static void flushStdHandles() {
         evalIO(Closures.flushStdHandles);
+        WeakPtr.runAllFinalizers();
     }
 
     public static void stgExit(int code) {

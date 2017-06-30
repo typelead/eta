@@ -14,9 +14,9 @@ import eta.runtime.io.MutVar;
 public class UnsafeUtil {
 
     public static final Unsafe UNSAFE;
-    private static final long indirecteeOffset;
-    private static final long cvOffset;
-    private static final long valueOffset;
+    private static long indirecteeOffset = 0;
+    private static long cvOffset         = 0;
+    private static long valueOffset      = 0;
 
     static {
         Unsafe unsafe;

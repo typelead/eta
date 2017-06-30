@@ -6,6 +6,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
+import eta.runtime.exception.Exception;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
@@ -31,7 +33,7 @@ public class MessageThrowTo extends Message {
         lock();
         assert source.whyBlocked == BlockedOnMsgThrowTo;
         assert source.blockInfo  == this;
-        boolean success = cap.throwToMsg(this, true);
+        boolean success = Exception.throwToMsg(cap, this, true);
         if (!success) {
             unlock();
         }
