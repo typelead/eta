@@ -19,5 +19,5 @@ public abstract class SelectorUpd extends UpdatableThunk {
         return selectEnter(context, (DataCon) p.evaluate(context));
     }
 
-    public abstract void selectEnter(StgContext context, DataCon result);
+    public abstract Closure selectEnter(StgContext context, DataCon result);
 }

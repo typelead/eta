@@ -17,7 +17,7 @@ public class MutVar {
         if (useUnsafe) {
             this.value = value;
         } else {
-            vUpdater.set(value);
+            vUpdater.set(this, value);
         }
     }
 
@@ -30,7 +30,7 @@ public class MutVar {
         if (useUnsafe) {
             return vUpdater.compareAndSet(this, expected, update);
         } else {
-            return UnsafeUtil.cas(this, expectedd, update);
+            return UnsafeUtil.cas(this, expected, update);
         }
     }
 }

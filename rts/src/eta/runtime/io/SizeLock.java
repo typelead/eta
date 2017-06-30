@@ -31,11 +31,11 @@ public class SizeLock {
         permits.getAndIncrement();
     }
 
-    public void tryStartTransaction() {
+    public boolean tryStartTransaction() {
         return lock.compareAndSet(false, true);
     }
 
     public void endTransaction() {
-        return lock.set(false);
+        lock.set(false);
     }
 }

@@ -10,8 +10,10 @@ import java.util.LinkedHashMap;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 
+import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stm.TransactionRecord.State.*;
 
 public class TransactionRecord extends Value implements Iterable<TransactionEntry> {
@@ -37,6 +39,12 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
                 || enclosingTrec.state == TREC_CONDEMNED;
             this.state = enclosingTrec.state;
         }
+    }
+
+    @Override
+    public Closure enter(StgContext context) {
+        barf("TransactionRecord entered");
+        return null;
     }
 
     public static TransactionRecord start(TransactionRecord enclosing) {
@@ -66,7 +74,52 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
     }
 
     public void put(TVar tvar, Closure expected, Closure updated) {
-        entries.put(new TransactionEntry(tvar, expected, updated));
+        entries.put(tvar, new TransactionEntry(tvar, expected, updated));
+    }
+
+    public Closure read(TVar tvar) {
+        assert state == TREC_ACTIVE || state == TREC_CONDEMNED;
+        Closure result = null;
+        EntrySearchResult searchResult = getNested(tvar);
+        TransactionRecord entryIn      = null;
+        TransactionEntry  entry        = null;
+        if (searchResult != null) {
+            entryIn = searchResult.header;
+            entry   = searchResult.entry;
+        }
+        if (entry != null) {
+            if (entryIn != this) {
+                /* If the entry was found in a parent TRec, copy the entry to
+                   the current trec, since you have just read it in the
+                   current transaction. */
+                put(tvar, entry.expectedValue, entry.newValue);
+            }
+            result = entry.newValue;
+        } else {
+            Closure currentValue = tvar.currentValue();
+            put(tvar, currentValue, currentValue);
+        }
+        return result;
+    }
+
+    public void write(TVar tvar, Closure newValue) {
+        EntrySearchResult searchResult = getNested(tvar);
+        TransactionRecord entryIn      = null;
+        TransactionEntry  entry        = null;
+        if (searchResult != null) {
+            entryIn = searchResult.header;
+            entry   = searchResult.entry;
+        }
+        if (entry != null) {
+            if (entryIn == this) {
+                entry.newValue = newValue;
+            } else {
+                put(tvar, entry.expectedValue, newValue);
+            }
+        } else {
+            Closure currentValue = tvar.currentValue();
+            put(tvar, currentValue, newValue);
+        }
     }
 
     @Override
@@ -75,6 +128,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
     }
 
     public void checkInvariant(Closure invariantCode) {
+        assert state == TREC_ACTIVE || state == TREC_CONDEMNED;
         AtomicInvariant inv = new AtomicInvariant(invariantCode);
         invariantsToCheck.put(inv, new InvariantCheck(inv));
     }
@@ -137,7 +191,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
         assert enclosingTrec == null;
         assert state == TREC_WAITING
             || state == TREC_CONDEMNED;
-        for (TransactionEntry e:entries) {
+        for (TransactionEntry e:entries.values()) {
             TVar s = e.tvar;
             Closure saw = s.lock(this);
             assert s.currentValue == this;
@@ -213,7 +267,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
             for (TransactionEntry e:entries.values()) {
                 TVar s = e.tvar;
                 if (acquireAll || e.isUpdate()) {
-                    if (!s.conditionalLock(trec, e.expectedValue)) {
+                    if (!s.conditionalLock(this, e.expectedValue)) {
                         result = false;
                         break;
                     }
@@ -232,7 +286,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
         }
 
         if (!result || !retainOwnership) {
-            trec.revertOwnership(acquireAll);
+            revertOwnership(acquireAll);
         }
         return result;
     }
@@ -242,7 +296,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
             if (revertAll || e.isUpdate()) {
                 TVar s = e.tvar;
                 if (s.isLocked(this)) {
-                    tvar.unlock(e.expectedValue);
+                    s.unlock(e.expectedValue);
                 }
             }
         }
@@ -284,9 +338,9 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
     public boolean wait(TSO tso) {
         boolean valid = validateAndAcquireOwnership(true, true);
         if (valid) {
-            trec.buildWatchQueueEntries(tso);
+            buildWatchQueueEntries(tso);
             tso.park();
-            trec.state = TREC_WAITING;
+            state = TREC_WAITING;
         }
         return valid;
     }
@@ -302,7 +356,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
             revertOwnership(true);
         } else {
             if (state != TREC_CONDEMNED) {
-                trec.removeWatchQueueEntries();
+                removeWatchQueueEntries();
             }
         }
         return valid;
@@ -325,12 +379,12 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
             || state == TREC_CONDEMNED;
         if (state == TREC_WAITING) {
             assert enclosingTrec == null;
-            trec.removeWatchQueueEntries();
+            removeWatchQueueEntries();
         }
         state = TREC_CONDEMNED;
     }
 
-    public void commitNested() {
+    public boolean commitNested() {
         assert enclosingTrec != null;
         assert state == TREC_ACTIVE || state == TREC_CONDEMNED;
         boolean valid = validateAndAcquireOwnership(false, true);
@@ -342,7 +396,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
                     if (e.isUpdate()) {
                         s.unlock(e.expectedValue);
                     }
-                    enclosingTrec.mergeUpdateInto(s, e.expectedValue, e.newVale);
+                    enclosingTrec.mergeUpdateInto(s, e.expectedValue, e.newValue);
                     assert s.currentValue != this;
                 }
             } else {

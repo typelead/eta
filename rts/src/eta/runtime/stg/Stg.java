@@ -1,12 +1,5 @@
 package eta.runtime.stg;
 
-import java.util.ListIterator;
-import java.nio.ByteBuffer;
-
-import eta.runtime.exception.Exception;
-import static eta.runtime.stg.TSO.WhatNext.ThreadRun;
-import static eta.runtime.stg.TSO.WhatNext.ThreadKilled;
-
 public class Stg {
     /* Weak Pointer Operations */
     public static Closure mkWeak(StgContext context, Closure key, Closure value, Closure finalizer) {
@@ -65,7 +58,7 @@ public class Stg {
     }
 
     public static Closure noDuplicate(StgContext context) {
-        if (!singletonCapabilities) {
+        if (!Capability.singletonCapabilities()) {
             Capability cap = context.myCapability;
             TSO tso = context.currentTSO;
             cap.threadPaused(tso);

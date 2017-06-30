@@ -19,7 +19,7 @@ public class StgContext {
     }
 
     public Thunk popUpdate() {
-        currentTSO.updateInfoStack.pop();
+        return currentTSO.updateInfoStack.pop();
     }
 
     public void merge(AbstractArgumentStack argStack) {
@@ -36,7 +36,6 @@ public class StgContext {
         System.out.println("currentTSO: " + currentTSO);
         System.out.println("myCapabilitymyCapability: " + myCapability);
         argStack.dump();
-        currentTSO.dump();
     }
 
     public Closure R(int index) {

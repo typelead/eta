@@ -39,7 +39,7 @@ public class UpdateInfoStack {
     }
 
     public Thunk pop() {
-        Thunk res;
+        Thunk res = null;
         UpdateInfo ui = top;
         top = top.prev;
         if (top == null) {
@@ -79,7 +79,7 @@ public class UpdateInfoStack {
     }
 
     public UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {
-        markBackwardsFrom(cap, tso, null);
+        return markBackwardsFrom(cap, tso, null);
     }
 
     public UpdateInfo markBackwardsFrom(Capability cap, TSO tso, UpdateInfo ui) {

@@ -10,8 +10,8 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 public class MVar {
+    public AtomicBoolean lock              = new AtomicBoolean(false);
     public BlockingQueue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
-    public AtomicBoolean lock = new AtomicBoolean(false);
 
     public MVar(Closure value) {
         if (value != null) {
@@ -40,14 +40,7 @@ public class MVar {
     }
 
     public final void lock() {
-        do {
-            int i = 0;
-            do {
-                boolean old = lock.getAndSet(true);
-                if (!old) return;
-            } while (++i < SPIN_COUNT);
-            Thread.yield();
-        } while (true);
+        while (!tryLock()) {}
     }
 
     public final void unlock() {

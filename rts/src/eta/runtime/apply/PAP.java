@@ -164,7 +164,6 @@ public class PAP extends Value {
                 return apply(context, builder.addC(p2).build());
             default:
                 return new PAP(arity - 2, fun, builder.addC(p2).build());
-                break;
         }
     }
 

@@ -262,7 +262,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       createDirIfMissing rtsBuildDir
       cs <- getDirectoryFiles rtsSrcDir ["//*.java"]
       -- TODO: Setup a debug build
-      let javacFlags = if debug then ["-g"] else []
+      let javacFlags = (if debug then ["-g"] else []) ++ ["-Xlint:unchecked"]
       unit $ cmd (Cwd rtsSrcDir) "javac" "-XDignore.symbol.file" javacFlags "-d" (top rtsBuildDir) cs
       classfiles <- getDirectoryFiles rtsBuildDir ["//*.class"]
       unit $ cmd (Cwd rtsBuildDir) "jar cf" (top out) classfiles

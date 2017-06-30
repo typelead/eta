@@ -7,54 +7,23 @@ import java.util.Map;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.io.Array;
+import eta.runtime.concurrent.Concurrent;
 import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public final class WeakPtr extends Value {
-    /* TODO: Should `value` be volatile? */
     public WeakReference<Closure> key;
     public Closure value;
     public Closure finalizer;
     public Deque<JavaFinalizer> javaFinalizers;
     public AtomicBoolean lock = new AtomicBoolean(false);
     public boolean dead = false;
-
-    public static class JavaFinalizer {
-        public boolean hasEnvironment;
-        public long fptr;
-        public long ptr;
-        public long eptr;
-
-        public JavaFinalizer(boolean hasEnvironment, long fptr, long ptr, long eptr) {
-            this.hasEnvironment = hasEnvironment;
-            this.fptr           = fptr;
-            this.ptr            = ptr;
-            this.eptr           = eptr;
-        }
-
-        public void finalize() {
-            Method m = FunPtr.get(fptr);
-            if (m != null) {
-                try {
-                    if (hasEnvironment) {
-                        m.invoke(null, eptr, ptr);
-                    } else {
-                        m.invoke(null, ptr);
-                    }
-                } catch (IllegalAccessException e) {
-                    throw e;
-                } catch (IllegalArgumentException e) {
-                    throw e;
-                } catch (InvocationTargetException e) {
-                    throw e;
-                }
-            }
-        }
-    }
 
     public WeakPtr(Closure key, Closure value, Closure finalizer) {
         this.key       = new WeakReference<Closure>(key, weakPtrRefQueue);
@@ -65,6 +34,23 @@ public final class WeakPtr extends Value {
     public static WeakPtr create(Closure key, Closure value, Closure finalizer) {
         WeakPtr newWeakPtr = new WeakPtr(key, value, finalizer);
         weakPtrRefMap.put(newWeakPtr.key, new WeakReference<WeakPtr>(newWeakPtr));
+        return newWeakPtr;
+    }
+
+    public static void runAllFinalizers() {
+        for (WeakReference<WeakPtr> weakRef: weakPtrRefMap.values()) {
+            WeakPtr weakPtr = weakRef.get();
+            if (weakPtr != null && weakPtr.tryLock() && !weakPtr.isDead()) {
+                try {
+                    weakPtr.die();
+                    weakPtr.value = null;
+                    weakPtr.runJavaFinalizers();
+                    /* TODO: Run Eta finalizers as well? */
+                } finally {
+                    weakPtr.unlock();
+                }
+            }
+        }
     }
 
     @Override
@@ -128,6 +114,7 @@ public final class WeakPtr extends Value {
 
     private static AtomicBoolean weakPtrLock = new AtomicBoolean();
 
+    @SuppressWarnings("unchecked")
     public static void checkForGCWeakPtrs() {
         if (weakPtrLock.compareAndSet(false, true)) {
             try {
@@ -139,7 +126,7 @@ public final class WeakPtr extends Value {
                 /* The total number of weak references that we *actually* processed
                    because the finalizers were alive. */
                 int actuallyCollected = 0;
-                while ((ref = weakPtrRefQueue.poll()) != null) {
+                while ((ref = (WeakReference<Closure>) weakPtrRefQueue.poll()) != null) {
                     WeakReference<WeakPtr> weakWeakPtr = weakPtrRefMap.get(ref);
                     if (weakWeakPtr != null) {
                         WeakPtr weakPtr = weakWeakPtr.get();
@@ -172,7 +159,7 @@ public final class WeakPtr extends Value {
                                         ,Closures.mkInt(numFinalizers))
                          ,new Array(finalizers.toArray(new Closure[numFinalizers])))));
                 }
-                if (collected > 0 && Runtime.getGCOnWeakPtrFinalization()) {
+                if (collected > 0 && Runtime.shouldGCOnWeakPtrFinalization()) {
                     System.gc();
                 }
             } finally {

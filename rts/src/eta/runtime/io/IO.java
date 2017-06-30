@@ -67,15 +67,17 @@ public class IO {
         byteArrayRefMap.put(byteArrayRef, address);
     }
 
+    @SuppressWarnings("unchecked")
     public static void checkForGCByteArrays() {
         /* This check can be skipped if another thread is doing it. */
         if (byteArrayFreeLock.compareAndSet(false, true)) {
             try {
                 PhantomReference<ByteArray> ref;
-                while ((ref = byteArrayRefQueue.poll()) != null) {
-                    Long addressLong = byteArrayRefMap.get(ref);
+                while ((ref = (PhantomReference<ByteArray>) byteArrayRefQueue.poll())
+                       != null) {
+                    Long address = byteArrayRefMap.get(ref);
                     if (address != null) {
-                        MemoryManager.free(addressLong.longValue());
+                        MemoryManager.free(address);
                     }
                 }
             } finally {

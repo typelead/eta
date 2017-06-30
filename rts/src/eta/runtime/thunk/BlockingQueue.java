@@ -25,12 +25,6 @@ public class BlockingQueue extends BlackHole implements Iterable<MessageBlackHol
     }
 
     @Override
-    public final Closure enter(StgContext context) {
-        barf("BlockingQueue object entered!");
-        return null;
-    }
-
-    @Override
     public Iterator<MessageBlackHole> iterator() {
         return messages.iterator();
     }

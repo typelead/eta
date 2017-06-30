@@ -128,12 +128,12 @@ bindFV (id, cgLoc)= rebindId id cgLoc
 setupUpdate :: LambdaFormInfo -> CodeGen () -> CodeGen ()
 setupUpdate lfInfo body
   -- ASSERT lfInfo is of form LFThunk
-  | not (lfUpdatable lfInfo) = withEnterMethod stgThunk "enter"
-  | lfStaticThunk lfInfo = withEnterMethod stgIndStatic "thunkEnter"
-  | otherwise = withEnterMethod stgInd "thunkEnter"
-  where withEnterMethod thunkType name = do
+  | not (lfUpdatable lfInfo) = withEnterMethod stgThunk
+  | lfStaticThunk lfInfo     = withEnterMethod stgIndStatic
+  | otherwise                = withEnterMethod stgInd
+  where withEnterMethod thunkType = do
           setSuperClass thunkType
-          _ <- withMethod [Public] name [contextType] (ret closureType) body
+          _ <- withMethod [Public] "thunkEnter" [contextType] (ret closureType) body
           return ()
 
 cgBind :: StgBinding -> CodeGen ()

@@ -1,15 +1,14 @@
 package eta.runtime.stm;
 
 import java.util.Set;
-import java.util.Deque;
-import java.util.ArrayDeque;
+import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.util.UnsafeUtil.cas;
+import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RuntimeLogging.barf;
 
 public class TVar {
@@ -28,12 +27,6 @@ public class TVar {
             result = currentValue;
         } while (result instanceof TransactionRecord);
         return result;
-    }
-
-    @Override
-    public final Closure enter(StgContext context) {
-        barf("TVAR object entered!");
-        return null;
     }
 
     /** Watch Queue **/
@@ -84,11 +77,11 @@ public class TVar {
         if (useUnsafe) {
             currentValue = c;
         } else {
-            cvUpdater.set(c);
+            cvUpdater.set(this, c);
         }
     }
 
-    public void isLocked(TransactionRecord trec) {
+    public boolean isLocked(TransactionRecord trec) {
         return currentValue == trec;
     }
 

@@ -2,6 +2,7 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.exception.EtaAsyncException;
 
 public abstract class UpdatableThunk extends Thunk {
 
@@ -9,8 +10,9 @@ public abstract class UpdatableThunk extends Thunk {
     public Closure enter(StgContext context) {
         if (indirectee == null) {
             UpdateInfo ui = context.pushUpdate(this);
+            Closure result = null;
             try {
-                Closure result = thunkEnter(context);
+                result = thunkEnter(context);
             } catch (EtaAsyncException ea) {
                 if (ea.stopHere == ui) {
                     return enter(context);

@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import eta.runtime.exception.Exception;
 import eta.runtime.message.MessageThrowTo;
 import eta.runtime.stm.STM;
 import eta.runtime.stm.TransactionRecord;
@@ -56,16 +57,18 @@ public final class TSO extends BlackHole {
     public enum WhyBlocked {
         NotBlocked(0),
         BlockedOnMVar(1),
-        BlockedOnMVarRead(14),
         BlockedOnBlackHole(2),
         BlockedOnRead(3),
         BlockedOnWrite(4),
-        BlockedOnFuture(8),
         BlockedOnDelay(5),
         BlockedOnSTM(6),
+        BlockedOnFuture(8),
+        BlockedOnIO(9),
         BlockedOnJavaCall(10),
         BlockedOnJavaCall_Interruptible(11),
-        BlockedOnMsgThrowTo(12);
+        BlockedOnMsgThrowTo(12),
+        BlockedOnMVarRead(14),
+        BlockedOnYield(15);
         private int val;
         WhyBlocked(int val) {
             this.val = val;
@@ -104,7 +107,7 @@ public final class TSO extends BlackHole {
     public final void delete() {
         if (whyBlocked != BlockedOnJavaCall &&
             whyBlocked != BlockedOnJavaCall_Interruptible) {
-            cap.throwToSingleThreaded(this, null);
+            Exception.throwToSingleThreaded(this, null);
         }
     }
 
@@ -155,12 +158,6 @@ public final class TSO extends BlackHole {
             cap.tryWakeupThread(this);
         }
         unlock();
-    }
-
-    @Override
-    public final Closure enter(StgContext context) {
-        barf("TSO object entered!");
-        return null;
     }
 
     public final void setStackTrace(StackTraceElement[] stackTrace) {
