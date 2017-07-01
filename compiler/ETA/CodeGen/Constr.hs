@@ -110,11 +110,6 @@ buildDynCon binder con args recIds = do
                <> dup dataFt
                <> loadsCode
                <> invokespecial (mkMethodRef dataClass "<init>" fields void)
-               -- <> fold (map (\i ->
-               --                   dup dataFt
-               --                <> dup dataFt
-               --                <> putfield (mkFieldRef dataClass (constrField i) closureType))
-               --           is)
           return (mkRhsInit cgLoc conCode, recIndexes)
           where dataFt = locFt cgLoc
                 dataClass = getFtClass dataFt

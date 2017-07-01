@@ -122,10 +122,8 @@ import ETA.SimplCore.SimplCore
 import ETA.Main.TidyPgm
 import ETA.Core.CorePrep
 import ETA.StgSyn.CoreToStg        ( coreToStg )
---import qualified StgCmm ( codeGen )
 import ETA.StgSyn.StgSyn
 import ETA.Profiling.CostCentre
---import ProfInit
 import ETA.Types.TyCon
 import ETA.BasicTypes.Name
 import ETA.SimplStg.SimplStg         ( stg2stg )
@@ -147,23 +145,16 @@ import ETA.Utils.UniqFM           ( emptyUFM )
 import ETA.BasicTypes.UniqSupply
 import ETA.Utils.Bag
 import ETA.Utils.Exception
--- import qualified ETA.Utils.Stream as Stream
--- import ETA.Utils.Stream (Stream)
 
 import ETA.Utils.Util
 
 import ETA.CodeGen.Main
 import ETA.CodeGen.Name
--- import ETA.Debug
-import ETA.CodeGen.Rts
 import ETA.Utils.JAR
 import ETA.Main.Packages
--- import ETA.Util
 import Codec.JVM
 
--- import Debug.Trace(traceShow)
 import Data.List
-import Control.Monad hiding (void)
 import Data.Maybe
 import Data.IORef
 import System.FilePath as FilePath
@@ -171,8 +162,7 @@ import System.Directory
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Control.Arrow((&&&))
-import Data.Foldable(fold)
-import qualified Data.Monoid as Mon
+import Control.Monad
 
 #include "HsVersions.h"
 
@@ -1237,7 +1227,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
 outputForeignStubs _dflags NoStubs = []
-outputForeignStubs dflags (ForeignStubs _ _ classExports) =
+outputForeignStubs _dflags (ForeignStubs _ _ classExports) =
   map f $ foreignExportsList classExports
   where f (classSpec, (methodDefs, fieldDefs)) =
           mkClassFile java7 [Public, Super] (jvmify className) (Just superClass)

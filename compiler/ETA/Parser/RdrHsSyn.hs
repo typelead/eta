@@ -1391,15 +1391,10 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
       text "In foreign import declaration" <+>
       quotes (ppr v) $$ ppr ty
   | cconv == PrimCallConv                      = do
-  let funcTarget = CFunction (StaticTarget entity Nothing True)
+  let funcTarget = CFunction (StaticTarget entity Nothing False)
       importSpec = CImport (L lc PrimCallConv) (L ls safety) Nothing funcTarget
                            (L loc (unpackFS entity))
   return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
-  -- | cconv == JavaCallConv = do
-  -- let funcTarget = CFunction (StaticTarget entity' Nothing True)
-  --     importSpec = CImport (L lc JavaCallConv) (L ls safety) Nothing
-  --                          funcTarget (L loc (unpackFS entity'))
-  -- return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   | otherwise = do
     case parseCImport (L lc cconv) (L ls safety) (mkExtName (unLoc v))
                       (unpackFS entity') (L loc (unpackFS entity')) of
@@ -1428,7 +1423,7 @@ parseCImport cconv safety _nm str sourceText =
               skipSpaces
               isAbstract <- option False (string "@abstract" >> skipSpaces >> pure True)
               mk Nothing . flip CWrapper isAbstract . mkFastString <$> munch1 (const True))
-          <++ (mk Nothing . (\fs -> (CFunction (StaticTarget (mkFastString fs) Nothing True)))
+          <++ (mk Nothing . (\fs -> (CFunction (StaticTarget (mkFastString fs) Nothing False)))
                         <$> munch1 (const True))
      return r
 

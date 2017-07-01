@@ -87,7 +87,6 @@ import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
 import Data.List        ( partition, nub )
-import Data.Monoid ((<>))
 import Data.Maybe
 -- import System.Environment
 -- import Data.Char

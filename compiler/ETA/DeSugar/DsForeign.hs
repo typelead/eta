@@ -42,7 +42,6 @@ import ETA.Prelude.PrelInfo ( primOpId )
 import ETA.Prelude.PrimOp
 import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.Name
-import ETA.BasicTypes.OccName
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Outputable hiding ((<>))
 import ETA.Utils.FastString
@@ -711,7 +710,7 @@ dsFExport closureId co externalName classSpec = do
                                             in (spec, className))
                                           classSpec
         (rawClassSpec', className', resType, runClosure)
-          | Just (ioTyCon, resType) <- tcSplitIOType_maybe ioResType
+          | Just (_, resType) <- tcSplitIOType_maybe ioResType
           = (className, className, resType, "runIO")
           | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
           = ((either (error $ "The tag type should be annotated with a CLASS annotation.")
@@ -773,7 +772,7 @@ genTypeParam :: Type -> TypeParameter TypeVariable
 genTypeParam ty
   | Just tyVar <- getTyVar_maybe ty
   = SimpleTypeParameter (VariableReferenceParameter (sigTyVarText tyVar))
-  | Just (tyCon, tyArgs) <- splitTyConApp_maybe ty
+  | Just (_, tyArgs) <- splitTyConApp_maybe ty
   = SimpleTypeParameter
     (GenericReferenceParameter
       (IClassName (typeClassText ty))
@@ -857,7 +856,7 @@ dsFWrapper id co0 target isAbstract = do
   let  castBinders = catMaybes mCastBinders
        binding     = mkCoreLams (tvs ++ thetaArgs ++ args) $ foldr ($)
                        (resWrapper javaCallApp) castBinders
-       fcall       = CCall (CCallSpec (StaticTarget (fsLit "@new") Nothing True)
+       fcall       = CCall (CCallSpec (StaticTarget (fsLit "@new") Nothing False)
                             JavaCallConv PlayRisky)
        fcall'      = genJavaFCall fcall extendsInfo argTypes (Left (ObjectRep genClassName))
                                   resType

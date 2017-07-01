@@ -13,7 +13,6 @@ module ETA.TypeCheck.TcForeign
  -- , tcCheckFEType
   ) where
 
-import Control.Monad ( when )
 import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Unique
 import ETA.BasicTypes.SrcLoc
