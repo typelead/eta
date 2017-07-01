@@ -175,7 +175,7 @@ cgTyCon tyCon = unless (null dataCons) $ do
   where dataCons = tyConDataCons tyCon
 
 cgEnumerationTyCon :: Text -> TyCon -> CodeGen ()
-cgEnumerationTyCon tyConCl tyCon = do
+cgEnumerationTyCon _tyConCl tyCon = do
   dflags <- getDynFlags
   thisClass <- getClass
   let fieldName = nameTypeTable dflags $ tyConName tyCon

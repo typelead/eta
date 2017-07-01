@@ -60,7 +60,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
             D -> loadRec (context d) r i l f (d + 1) o
             O -> loadRec (context o <> gconv jobject ft) r i l f d (o + 1)
             _ -> error "contextLoad: V"
-          where context = contextLoad ft argRep
+          where context = contextLoad argRep
                 loadRec nextCode =
                   loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
                            (loc:locs) args fts argReps
@@ -82,7 +82,7 @@ mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
             V -> storeArgs code args r i l f d o
           where ft = expectJust "mkCallExit:ft" ft'
                 loadCode = expectJust "mkCallExit:loadCode" code'
-                context = contextStore ft argRep loadCode
+                context = contextStore argRep loadCode
                 storeRec nextCode =
                   storeArgs (code <> nextCode) args
         storeArgs !code _ _ _ _ _ _ _ = code
@@ -113,7 +113,7 @@ mkReturnEntry cgLocs' =
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
                 argRep = locArgRep cgLoc
-                context = contextLoad ft argRep
+                context = contextLoad argRep
                 loadRec nextCode =
                   loadVals (code <> storeLoc cgLoc nextCode) cgLocs
         loadVals !code _ _ _ _ _ _ _ = code
@@ -136,7 +136,7 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs'' 2 1 1 1 1 1
           where ft = locFt cgLoc
                 loadCode = loadLoc cgLoc
                 argRep = locArgRep cgLoc
-                context = contextStore ft argRep loadCode
+                context = contextStore argRep loadCode
                 storeRec nextCode =
                   storeVals (code <> nextCode) cgLocs
         storeVals !code _ _ _ _ _ _ _ = code

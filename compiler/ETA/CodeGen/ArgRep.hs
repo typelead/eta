@@ -113,8 +113,8 @@ repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
-contextLoad :: FieldType -> ArgRep -> Int -> Code
-contextLoad _ argRep n =
+contextLoad :: ArgRep -> Int -> Code
+contextLoad argRep n =
      loadContext
   <> iconst jint (fromIntegral n)
   <> loadMethod
@@ -127,8 +127,8 @@ contextLoad _ argRep n =
           O -> loadO
           _ -> error "contextLoad: V"
 
-contextStore :: FieldType -> ArgRep -> Code -> Int -> Code
-contextStore _ argRep storeCode n =
+contextStore :: ArgRep -> Code -> Int -> Code
+contextStore argRep storeCode n =
      loadContext
   <> iconst jint (fromIntegral n)
   <> storeCode
