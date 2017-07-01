@@ -478,7 +478,7 @@ cvtForD :: Foreign -> CvtM (ForeignDecl RdrName)
 cvtForD (ImportF callconv safety from nm ty)
   | callconv == TH.Prim || callconv == TH.JavaScript
   = mk_imp (CImport (noLoc (cvt_conv callconv)) (noLoc safety') Nothing
-                    (CFunction (StaticTarget (mkFastString from) Nothing True))
+                    (CFunction (StaticTarget (mkFastString from) Nothing False))
                     (noLoc from))
   | Just impspec <- parseCImport (noLoc (cvt_conv callconv)) (noLoc safety')
                                  (mkFastString (TH.nameBase nm))

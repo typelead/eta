@@ -1390,11 +1390,11 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
       text "Wildcard not allowed" $$
       text "In foreign import declaration" <+>
       quotes (ppr v) $$ ppr ty
-  | cconv == PrimCallConv                      = do
-  let funcTarget = CFunction (StaticTarget entity Nothing False)
-      importSpec = CImport (L lc PrimCallConv) (L ls safety) Nothing funcTarget
-                           (L loc (unpackFS entity))
-  return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
+  | cconv == PrimCallConv = do
+    let funcTarget = CFunction (StaticTarget entity Nothing False)
+        importSpec = CImport (L lc PrimCallConv) (L ls safety) Nothing funcTarget
+                             (L loc (unpackFS entity))
+    return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   | otherwise = do
     case parseCImport (L lc cconv) (L ls safety) (mkExtName (unLoc v))
                       (unpackFS entity') (L loc (unpackFS entity')) of
