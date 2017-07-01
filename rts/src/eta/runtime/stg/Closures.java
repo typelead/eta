@@ -34,12 +34,12 @@ public class Closures {
 
     static {
         try {
-            False             = loadClosure("ghc_prim.ghc.Types", "False");
+            False             = loadClosure("ghc_prim.ghc.Types", "DFalse");
             flushStdHandles   = loadClosure("base.ghc.TopHandler", "flushStdHandles");
             runSparks         = loadClosure("base.ghc.conc.Sync", "runSparks");
             nonTermination    = loadClosure("base.control.exception.Base", "nonTermination");
             nestedAtomically  = loadClosure("base.control.exception.Base", "nestedAtomically");
-            runFinalizerBatch = loadClosure("base.ghc.Weak", "runFinalizerBatch");
+            runFinalizerBatch = loadClosure("base.ghc.Weak", "runFinalizzerBatch");
             Int               = Class.forName("ghc_prim.ghc.Types$IzhD")
                                      .getConstructor(int.class);
         } catch (Exception e) {
