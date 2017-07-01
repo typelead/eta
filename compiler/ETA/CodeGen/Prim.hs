@@ -100,10 +100,6 @@ cgOpApp (StgPrimCallOp (PrimCall label _)) args _resType =
     emit $ loadContext
         <> fold callArgs
         <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) (ret closureType))
-  -- sequel <- getSequel
-  -- case sequel of
-  --   AssignTo targetLocs -> emit $ mkReturnEntry targetLocs
-  --   _ -> return ()
   where (clsName, methodName) = labelToMethod (unpackFS label)
 
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code

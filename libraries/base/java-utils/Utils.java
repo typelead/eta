@@ -139,11 +139,11 @@ public class Utils {
     }
 
     public static void shutdownAndExit(int exitCode, int fastExit) {
-        Rts.shutdownAndExit(exitCode, fastExit == 1, true);
+        Runtime.shutdownAndExit(exitCode, fastExit == 1, true);
     }
 
     public static void shutdownAndSignal(int signal, int fastExit) {
-        Rts.shutdownAndSignal(signal, fastExit == 1);
+        Runtime.shutdownAndSignal(signal, fastExit == 1);
     }
 
     public static void errorBelch(long formatAddress, long stringAddress) {
@@ -216,7 +216,7 @@ public class Utils {
     public static void c_MD5Update(MessageDigest md, long address, int len) {
         ByteBuffer contents = MemoryManager.getBoundedBuffer(address);
         contents.limit(contents.position() + len);
-        md.update(dup);
+        md.update(contents);
     }
 
     public static void c_MD5Final(long address, MessageDigest md) {
@@ -239,7 +239,7 @@ public class Utils {
             buffer.putLong(0);
         }
         while (remTimes-- != 0) {
-            buffer.put(0);
+            buffer.put((byte) 0);
         }
         return address;
     }
@@ -247,7 +247,7 @@ public class Utils {
     public static long _realloc(long oldAddress, int newSize) {
         long newAddress = MemoryManager.allocateBuffer(newSize, true);
         int  oldSize    = MemoryManager.allocatedSize(oldAddress);
-        c_memcpy(newAddress, oldAddress, Main.min(oldSize, newSize));
+        c_memcpy(newAddress, oldAddress, Math.min(oldSize, newSize));
         MemoryManager.free(oldAddress);
         return newAddress;
     }

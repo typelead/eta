@@ -42,14 +42,12 @@ public class HSIConv {
 
     public static long hs_iconv_open(long toEncodingAddress, long fromEncodingAddress) {
         Long id = -1L;
-        ByteBuffer toEncoding   = MemoryManager.getBoundedBuffer(toEncodingAddress);
-        ByteBuffer fromEncoding = MemoryManager.getBoundedBuffer(fromEncodingAddress);
         try {
             initIconvs();
-            String fromEncodingStr = Utils.byteBufferToStr(fromEncoding);
+            String fromEncodingStr = Utils.byteBufferToStr(fromEncodingAddress);
             fromEncodingStr
                 = fromEncodingStr.substring(0, fromEncodingStr.length() - 1);
-            String toEncodingStr = Utils.byteBufferToStr(toEncoding);
+            String toEncodingStr = Utils.byteBufferToStr(toEncodingAddress);
             toEncodingStr = toEncodingStr.substring(0, toEncodingStr.length() - 1);
             debug("HSIConv: Opening iconv from " + fromEncodingStr + " to "
                   + toEncodingStr);
@@ -75,18 +73,14 @@ public class HSIConv {
     private final static int EINVAL = 22;
     private final static int EILSEQ = 84;
 
-    public static int hs_iconv(long iconv, long inbufptrAddress, long inleftAddress,
-                               long outbufptrAddress, long outleftAddress) {
+    public static int hs_iconv(long iconv, long inbufptr, long inleft,
+                               long outbufptr, long outleft) {
         int        charsWritten = 0;
         String[]   fromTo       = iconvs.get().get(iconv);
-        ByteBuffer inbufptr     = MemoryManager.getBoundedBuffer(inbufptrAddress);
-        ByteBuffer inleft       = MemoryManager.getBoundedBuffer(inleftAddress);
-        ByteBuffer outbufptr    = MemoryManager.getBoundedBuffer(outbufptrAddress);
-        ByteBuffer outleft      = MemoryManager.getBoundedBuffer(outleftAddress);
         try {
             debug("HSIConv: iconv with id: " + iconv + ", from: " + fromTo[0] +
                   ", to: " + fromTo[1]);
-            if (inbufptr != null && inleft != null) {
+            if (inbufptr != 0L && inleft != 0L) {
                 debug("Init in buffer:");
                 ByteBuffer inbuf     = initBuffer(inbufptr, inleft);
                 int        inInitPos = inbuf.position();
@@ -107,7 +101,7 @@ public class HSIConv {
                 buffAddInt(inleft, -inBytesRead);
                 buffAddLong(outbufptr, outBytesWritten);
                 buffAddInt(outleft, -outBytesWritten);
-            } else if (outbufptr != null && outleft != null) {
+            } else if (outbufptr != 0L && outleft != 0L) {
                 debug("in is null");
                 /** In this case, the iconv function attempts to set cd’s conversion
                  *  state to the initial state and store a corresponding shift sequence
