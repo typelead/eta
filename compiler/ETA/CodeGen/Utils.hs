@@ -60,7 +60,6 @@ tagToClosure dflags tyCon loadArg = (closureType, enumCode)
         tyName = tyConName tyCon
         modClass = moduleJavaClass $ nameModule tyName
         fieldName = nameTypeTable dflags $ tyConName tyCon
-        tyConCl = tyConClass dflags tyCon
         arrayFt = jarray closureType
 
 initCodeTemplate' :: FieldType -> Bool -> Text -> Text -> FieldRef -> Code -> MethodDef

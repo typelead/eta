@@ -59,11 +59,11 @@ cgTopRhsCon dflags id conRecIds dataCon args = (cgIdInfo, genCode)
           return $ Just (modClass, qClName, dataClass, field, fold loadCodes, recIndexes)
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo
-                                                            , CodeGen (Code, RecIndexes) )
+                                                            , CodeGen (Code, RecIndexes, FieldType) )
 buildDynCon binder con [] _ = do
   dflags <- getDynFlags
   return ( mkCgIdInfo dflags binder (mkConLFInfo con)
-         , return (mempty, []) )
+         , return (mempty, [], obj $ dataConClass dflags con) )
 -- buildDynCon binder con [arg]
 --   | maybeIntLikeCon con
 --   , StgLitArg (MachInt val) <- arg
@@ -82,9 +82,9 @@ buildDynCon binder con [] _ = do
 --       -- TODO: Generate offset into charlike array
 --       unimplemented "buildDynCon: CHARLIKE"
 buildDynCon binder con args recIds = do
-  _ <- getDynFlags
+  dflags <- getDynFlags
   (idInfo, cgLoc) <- rhsConIdInfo binder lfInfo
-  return (idInfo, genCode cgLoc)
+  return (idInfo, genCode dflags cgLoc)
   where lfInfo = mkConLFInfo con
         maybeFields = map repFieldType_maybe $ dataConRepArgTys con
         nvFtArgs = mapMaybe (\(mft, arg) ->
@@ -103,13 +103,13 @@ buildDynCon binder con args recIds = do
               loadCode <- getArgLoadCode (NonVoid arg)
               return (is, code <> loadCode)
 
-        genCode cgLoc = do
+        genCode dflags cgLoc = do
           (recIndexes, loadsCode) <- foldM foldLoads ([], mempty) indexFtArgs
           let conCode =
                   new dataFt
                <> dup dataFt
                <> loadsCode
                <> invokespecial (mkMethodRef dataClass "<init>" fields void)
-          return (mkRhsInit cgLoc conCode, recIndexes)
-          where dataFt = locFt cgLoc
-                dataClass = getFtClass dataFt
+          return (mkRhsInit cgLoc conCode, recIndexes, dataFt)
+          where dataFt    = obj dataClass
+                dataClass = dataConClass dflags con

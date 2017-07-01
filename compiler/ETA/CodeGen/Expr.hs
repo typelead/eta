@@ -139,9 +139,8 @@ cgConApp con args
       repCodes <- getNonVoidArgRepCodes args
       emitReturn $ map mkRepLocDirect repCodes
   | otherwise = do
-      -- TODO: Is dataConWorkId the right thing to pass?
       (idInfo, genInitCode) <- buildDynCon (dataConWorkId con) con args []
-      (initCode, _) <- genInitCode
+      (initCode, _recIndexes, _dataFt) <- genInitCode
       emit initCode
       emitReturn [cgLocation idInfo]
 
