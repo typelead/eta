@@ -59,7 +59,7 @@ public final class ByteArray {
         ByteBuffer src  = MemoryManager.getBoundedBuffer(srcArray.bufferAddress);
         ByteBuffer dest = MemoryManager.getBoundedBuffer(destArray.bufferAddress);
         src.position(src.position() + srcOffset);
-        src.position(src.position() + n);
+        src.limit(src.position() + n);
         dest.position(dest.position() + destOffset);
         dest.put(src);
     }
