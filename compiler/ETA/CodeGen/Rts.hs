@@ -4,7 +4,6 @@ module ETA.CodeGen.Rts where
 import Data.Text (Text)
 import Codec.JVM
 import Codec.JVM.Const
-import ETA.Util
 
 import Data.Monoid((<>))
 
@@ -267,6 +266,7 @@ ftClassObject :: FieldType -> Code
 ftClassObject ft@(BaseType _) =
   getstatic $ mkFieldRef (ftWrapper ft) "TYPE" classFt
 ftClassObject ft@(ObjectType iclassName) = gldc ft (CClass iclassName)
+ftClassObject ft@(ArrayType ft') = gldc ft (CClass . IClassName $ mkFieldDesc' ft')
 
 ftWrapper :: FieldType -> Text
 ftWrapper (BaseType prim) =
@@ -280,11 +280,12 @@ ftWrapper (BaseType prim) =
     JInt    -> "Integer"
     JLong   -> "Long"
   where prefix = "java/lang/"
+ftWrapper ft = error $ "ftWrapper: Not a base type: " ++ show ft
 
-classType :: Text
+classType, methodType :: Text
 classType = "java/lang/Class"
+methodType = "java/lang/reflect/Method"
 
-classFt :: FieldType
-classFt = obj classType
-
-methodFt = obj "java/lang/reflect/Method"
+classFt, methodFt :: FieldType
+classFt  = obj classType
+methodFt = obj methodType

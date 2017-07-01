@@ -26,7 +26,6 @@ import Data.Monoid ((<>))
 import Data.Foldable (fold)
 
 import Data.Text (Text)
-import qualified Data.Text as T
 
 cgOpApp :: StgOp
         -> [StgArg]

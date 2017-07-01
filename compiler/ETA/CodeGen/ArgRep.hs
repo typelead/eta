@@ -30,7 +30,6 @@ import ETA.CodeGen.Rts
 import ETA.Util
 import Codec.JVM
 import Data.Monoid ((<>))
-import Data.Text (Text)
 
 data ArgRep = P   -- Closure
              | N   -- int-sized non-ptr

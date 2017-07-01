@@ -80,7 +80,6 @@ import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Rts
 import ETA.Debug
 import ETA.Util
-import ETA.Utils.Digraph
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
