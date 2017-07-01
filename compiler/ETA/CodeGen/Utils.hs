@@ -53,16 +53,15 @@ litSwitch ft expr branches deflt
   where intBranches = map (first litToInt) branches
 
 tagToClosure :: DynFlags -> TyCon -> Code -> (FieldType, Code)
-tagToClosure dflags tyCon loadArg = (elemFt, enumCode)
+tagToClosure dflags tyCon loadArg = (closureType, enumCode)
   where enumCode =  invokestatic (mkMethodRef modClass fieldName [] (Just arrayFt))
                  <> loadArg
-                 <> gaload elemFt
+                 <> gaload closureType
         tyName = tyConName tyCon
         modClass = moduleJavaClass $ nameModule tyName
         fieldName = nameTypeTable dflags $ tyConName tyCon
         tyConCl = tyConClass dflags tyCon
-        elemFt = obj tyConCl
-        arrayFt = jarray elemFt
+        arrayFt = jarray closureType
 
 initCodeTemplate' :: FieldType -> Bool -> Text -> Text -> FieldRef -> Code -> MethodDef
 initCodeTemplate' retFt synchronized modClass qClName field code =

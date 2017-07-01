@@ -75,15 +75,18 @@ instance Outputable CgLoc where
   ppr LocLne {} = str "lne"
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
-mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
+mkLocDirect isClosure (ft', code) = LocDirect isClosure ft code
+  where ft = if isClosure then closureType else ft'
 
 mkLocLocal :: Bool -> FieldType -> Int -> CgLoc
-mkLocLocal isClosure ft int = LocLocal isClosure ft int
+mkLocLocal isClosure ft' int = LocLocal isClosure ft int
+  where ft = if isClosure then closureType else ft'
 
 mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
   where isClosure = isGcPtrRep rep
-        ft = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
+        ft' = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
+        ft = if isClosure then closureType else ft'
 
 locArgRep :: CgLoc -> ArgRep
 locArgRep loc = case loc of

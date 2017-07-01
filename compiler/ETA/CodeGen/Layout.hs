@@ -65,7 +65,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
                   loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
                            (loc:locs) args fts argReps
                 ftSize = fieldSize ft
-                loc = LocLocal (argRep == P) ft n
+                loc = mkLocLocal (argRep == P) ft n
         loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
 
 mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
