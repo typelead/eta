@@ -381,7 +381,7 @@ setNumCapabilities :: Int -> IO ()
 setNumCapabilities i = c_setNumCapabilities (fromIntegral i)
 
 foreign import java unsafe "@static eta.runtime.stg.Capability.setNumCapabilities"
-  c_setNumCapabilities :: CUInt -> IO CUInt
+  c_setNumCapabilities :: CUInt -> IO ()
 
 -- | Returns the number of CPUs that the machine has
 --

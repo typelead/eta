@@ -146,13 +146,15 @@ dsFCall funId co fcall _
           | Just (_, resType') <- tcSplitIOType_maybe ioResType = Just resType'
           | otherwise = Just ioResType
         resPrimType = fmap unboxType resType
-        createFunPtrApp = mkFCall dflags ccallUniq fcall [] int64PrimTy
+        createFunPtrApp = mkFCall dflags ccallUniq fcall [Var realWorldPrimId] int64PrimTy
     funPtrAddrId <- newSysLocalDs int64PrimTy
     funPtrTyCon <- dsLookupTyCon funPtrTyConName
     let funPtrDataCon = head $ tyConDataCons funPtrTyCon
         funPtrWrapId  = dataConWrapId funPtrDataCon
-        rhs = mkCoreLet (NonRec funPtrAddrId createFunPtrApp)
-            $ mkCoreApp (Var funPtrWrapId) (Var funPtrAddrId)
+        rhs = Case createFunPtrApp funPtrAddrId
+                   (mkTyConApp funPtrTyCon [funPtrType])
+                   [(DEFAULT, [], funPtrApp)]
+        funPtrApp = mkCoreApps (Var funPtrWrapId) [Type funPtrType, Var funPtrAddrId]
         {- We give a NOINLINE so that the FunPtr doesn't get added to
            the funPtrMap twice. While getting added twice is thread-safe,
            it creates unnecessary duplication. -}
