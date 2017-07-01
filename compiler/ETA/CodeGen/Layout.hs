@@ -197,7 +197,7 @@ genApplyCall :: Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] ->
 genApplyCall arity fts args =
      loadContext
   <> fold loadCodes
-  <> mkApFast arity fts
+  <> mkApFast arity (contextType:fts)
   where loadCodes = mapMaybe (\(_, _, a) -> a) args
 
 getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]
