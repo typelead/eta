@@ -169,7 +169,7 @@ cgTyCon tyCon = unless (null dataCons) $ do
     dflags <- getDynFlags
     let tyConClass = nameTypeText dflags . tyConName $ tyCon
     (_, CgState {..}) <- newTypeClosure tyConClass stgConstr
-    mapM_ (cgDataCon cgClassName) (tyConDataCons tyCon)
+    mapM_ (cgDataCon cgClassName) dataCons
     when (isEnumerationTyCon tyCon) $
       cgEnumerationTyCon cgClassName tyCon
   where dataCons = tyConDataCons tyCon
@@ -184,7 +184,7 @@ cgEnumerationTyCon tyConCl tyCon = do
                     <> new dataFt
                     <> dup dataFt
                     <> invokespecial (mkMethodRef dataClass "<init>" [] void)
-                    <> gastore elemFt
+                    <> gastore closureType
                     | (i, con) <- zip [0..] $ tyConDataCons tyCon
                     , let dataFt    = obj dataClass
                           dataClass = dataConClass dflags con ]
@@ -198,8 +198,7 @@ cgEnumerationTyCon tyConCl tyCon = do
   modClass <- getModClass
   defineMethod $ initCodeTemplate' arrayFt False modClass fieldName field $ fold initField
   where
-        arrayFt = jarray elemFt
-        elemFt = obj tyConCl
+        arrayFt = jarray closureType
         familySize = tyConFamilySize tyCon
 
 cgDataCon :: Text -> DataCon -> CodeGen ()

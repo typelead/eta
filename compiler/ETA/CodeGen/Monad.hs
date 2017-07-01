@@ -424,7 +424,7 @@ getSelfLoop = asks cgSelfLoop
 newTemp :: Bool -> FieldType -> CodeGen CgLoc
 newTemp isClosure ft = do
   n <- newLocal ft
-  return $ LocLocal isClosure ft n
+  return $ mkLocLocal isClosure ft n
 
 -- TODO: Verify that this does as intended
 getCodeWithResult :: CodeGen a -> CodeGen (a, Code)
