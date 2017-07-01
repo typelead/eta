@@ -164,6 +164,7 @@ public final class Capability {
 
             /* Thread is done executing, awaken the blocked exception queue. */
             awakenBlockedExceptionQueue(t);
+
             if (emptyRunQueue() && !worker) break;
         } while (true);
         return result;
