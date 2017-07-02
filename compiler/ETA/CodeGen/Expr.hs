@@ -8,7 +8,6 @@ import ETA.Prelude.PrimOp
 import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Panic
-import ETA.Utils.Util (unzipWith)
 import ETA.Util
 import ETA.Debug
 import ETA.CodeGen.Utils
@@ -22,7 +21,6 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Constr
 import ETA.CodeGen.Prim
 import ETA.CodeGen.ArgRep
-import ETA.CodeGen.LetNoEscape
 import {-# SOURCE #-} ETA.CodeGen.Bind (cgBind)
 import Codec.JVM
 
@@ -55,43 +53,62 @@ cgExpr _ = unimplemented "cgExpr"
 
 cgLneBinds :: StgBinding -> StgExpr -> CodeGen ()
 cgLneBinds (StgNonRec binder rhs) expr = do
-  (info, genBindCode) <- cgLetNoEscapeRhsBody binder rhs
+  -- TODO: Optimize this to calculate the smallest type that can hold the target
+  label <- newLabel
+  targetLoc <- newTemp False jint
+  (info, genBindCode) <- cgLetNoEscapeRhsBody binder rhs label 1 targetLoc
   n' <- peekNextLocal
   bindCode <- genBindCode n'
   addBinding info
   exprCode <- forkLneBody $ cgExpr expr
-  let (bindLabel, argLocs) = expectJust "cgLneBinds:StgNonRec" . maybeLetNoEscape $ info
+  let (bindLabel, argLocs) = expectJust "cgLneBinds:StgNonRec"
+                                        . maybeLetNoEscape $ info
   emit $ fold (map storeDefault argLocs)
-      <> letNoEscapeCodeBlocks [(bindLabel, bindCode)] exprCode
+      <> letNoEscapeCodeBlocks label targetLoc [(bindLabel, bindCode)] exprCode
 
 cgLneBinds (StgRec pairs) expr = do
-  result <- sequence $ unzipWith cgLetNoEscapeRhsBody pairs
+  label <- newLabel
+  targetLoc <- newTemp False jint
+  let lneInfos = snd $ foldr (\(a,b) (n,xs) -> (n - 1, (a,b,label,n,targetLoc):xs))
+                             (length pairs, []) pairs
+
+  result <- sequence $ map (\(a,b,c,d,e) -> cgLetNoEscapeRhsBody a b c d e) lneInfos
   n' <- peekNextLocal
   let (infos, genBindCodes) = unzip result
-      (labels, argLocss) = unzip $ map (expectJust "cgLneBinds:StgRec" . maybeLetNoEscape) infos
+      (labels, argLocss) = unzip $ map (expectJust "cgLneBinds:StgRec"
+                                       . maybeLetNoEscape) infos
   addBindings infos
   bindCodes <- sequence $ ($ n') <$> genBindCodes
   exprCode <- forkLneBody $ cgExpr expr
   emit $ fold (fold (map (map storeDefault) argLocss))
-      <> letNoEscapeCodeBlocks (zip labels bindCodes) exprCode
+      <> letNoEscapeCodeBlocks label targetLoc (zip labels bindCodes) exprCode
 
-cgLetNoEscapeRhsBody :: Id -> StgRhs -> CodeGen (CgIdInfo, Int -> CodeGen Code)
-cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body)
-  = cgLetNoEscapeClosure binder (nonVoidIds args) body
-cgLetNoEscapeRhsBody binder (StgRhsCon _ con args)
-  = cgLetNoEscapeClosure binder [] (StgConApp con args)
+cgLetNoEscapeRhsBody :: Id -> StgRhs -> Label -> Int -> CgLoc -> CodeGen (CgIdInfo, Int -> CodeGen Code)
+cgLetNoEscapeRhsBody binder (StgRhsClosure _ _ _ _ _ args body) jumpLabel target targetLoc
+  = cgLetNoEscapeClosure binder (nonVoidIds args) body jumpLabel target targetLoc
+cgLetNoEscapeRhsBody binder (StgRhsCon _ con args) jumpLabel target targetLoc
+  = cgLetNoEscapeClosure binder [] (StgConApp con args) jumpLabel target targetLoc
 
 cgLetNoEscapeClosure
-  :: Id -> [NonVoid Id] -> StgExpr -> CodeGen (CgIdInfo, Int -> CodeGen Code)
-cgLetNoEscapeClosure binder args body = do
-  label <- newLabel
-  _n <- peekNextLocal
+  :: Id -> [NonVoid Id] -> StgExpr -> Label -> Int -> CgLoc -> CodeGen (CgIdInfo, Int -> CodeGen Code)
+cgLetNoEscapeClosure binder args body label target targetLoc = do
   argLocs <- mapM newIdLoc args
   let code n' = forkLneBody $ do
         bindArgs $ zip args argLocs
         setNextLocal n'
         cgExpr body
-  return (lneIdInfo label binder argLocs, code)
+  return (lneIdInfo binder label target targetLoc argLocs, code)
+
+letNoEscapeCodeBlocks :: Label -> CgLoc -> [(Int, Code)] -> Code -> Code
+letNoEscapeCodeBlocks label targetLoc labelledCode body =
+     storeDefault targetLoc
+  <> startLabel label
+  <> intSwitch (loadLoc targetLoc) labelledCode (Just body)
+
+maybeLetNoEscape :: CgIdInfo -> Maybe (Int, [CgLoc])
+maybeLetNoEscape CgIdInfo { cgLocation = LocLne _label target _targetLoc argLocs }
+  = Just (target, argLocs)
+maybeLetNoEscape _ = Nothing
 
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
 cgIdApp funId [] | isVoidTy (idType funId) = emitReturn []
@@ -100,9 +117,7 @@ cgIdApp funId args = do
   funInfo <- getCgIdInfo funId
   selfLoopInfo <- getSelfLoop
   let cgFunId = cgId funInfo
-      -- funArg = StgVarArg cgFunId
       funName = idName cgFunId
-      -- fun = idInfoLoadCode funInfo
       lfInfo = cgLambdaForm funInfo
       funLoc = cgLocation funInfo
       nArgs  = length args
@@ -113,14 +128,22 @@ cgIdApp funId args = do
                 emitReturn [funLoc]
     EnterIt  -> traceCg (str "cgIdApp: EnterIt") >>
                 emitEnter funLoc
-    SlowCall -> traceCg (str "cgIdApp: SlowCall") >>
-                (withContinuation $ slowCall funLoc args)
-    DirectEntry entryCode arity -> traceCg (str "cgIdApp: DirectEntry") >>
-                (withContinuation $ directCall False entryCode arity args)
-    JumpToIt label cgLocs -> do
+    SlowCall -> do
+      traceCg (str "cgIdApp: SlowCall")
+      argFtCodes <- getRepFtCodes args
+      withContinuation $ slowCall dflags funLoc argFtCodes
+    DirectEntry entryCode arity -> do
+      traceCg (str "cgIdApp: DirectEntry")
+      argFtCodes <- getRepFtCodes args
+      withContinuation $ directCall False entryCode arity argFtCodes
+    JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       codes <- getNonVoidArgCodes args
       emit $ multiAssign cgLocs codes
+          <> maybe mempty
+               (\(target, targetLoc) ->
+                  storeLoc targetLoc (iconst (locFt targetLoc) $ fromIntegral target))
+               mLne
           <> goto label
 
 emitEnter :: CgLoc -> CodeGen ()
@@ -128,10 +151,9 @@ emitEnter thunk = do
   sequel <- getSequel
   case sequel of
     Return ->
-      emit $ enterMethod thunk
+      emit $ enterMethod thunk <> greturn closureType
     AssignTo cgLocs -> do
-      wrapStackCheck . emit $ evaluateMethod thunk
-      emit $ mkReturnEntry cgLocs
+      emit $ evaluateMethod thunk <> mkReturnEntry cgLocs
 
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args
@@ -277,9 +299,17 @@ bindConArgs _ _ _ _ = return ()
 cgAlgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen (Maybe Code, [(Int, Code)])
 cgAlgAltRhss binder alts = do
   taggedBranches <- cgAltRhss binder alts
-  let maybeDefault = case taggedBranches of
-                       ((DEFAULT, rhs) : _) -> Just rhs
-                       _ -> Nothing
-      branches = [ (getDataConTag con, code)
-                 | (DataAlt con, code) <- taggedBranches ]
+  let (maybeDefault, branches) =
+        case taggedBranches of
+          ((DEFAULT, rhs) : _) -> (Just rhs, allBranches)
+          {- INVARIANT: length alts > 0
+
+             We select the *last* alternative since that will
+             typically have a higher tag and will require more
+             bytecode to perform the check if it's a simple
+             case with 2 alternatives (the most frequent case). -}
+          _                    -> (Just $ snd remainingBranch, remainingBranches)
+      (remainingBranches, remainingBranch) = (init allBranches, last allBranches)
+      allBranches = [ (getDataConTag con, code)
+                    | (DataAlt con, code) <- taggedBranches ]
   return (maybeDefault, branches)

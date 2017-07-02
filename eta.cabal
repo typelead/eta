@@ -62,7 +62,6 @@ library
                        , ETA.CodeGen.Expr
                        , ETA.CodeGen.Foreign
                        , ETA.CodeGen.Layout
-                       , ETA.CodeGen.LetNoEscape
                        , ETA.CodeGen.Main
                        , ETA.CodeGen.Monad
                        , ETA.CodeGen.Name

@@ -99,7 +99,7 @@ argPrimRep = typePrimRep . stgArgType
 
 data CallMethod
   = EnterIt
-  | JumpToIt Label [CgLoc]
+  | JumpToIt Label [CgLoc] (Maybe (Int, CgLoc))
   | ReturnIt
   | SlowCall
   | DirectEntry Code RepArity
@@ -123,7 +123,7 @@ getCallMethod
 
 getCallMethod dflags _ id _ nArgs vArgs _ (Just (selfLoopId, label, cgLocs))
   | gopt Opt_Loopification dflags, id == selfLoopId, nArgs - vArgs == length cgLocs
-  = JumpToIt label cgLocs
+  = JumpToIt label cgLocs Nothing
 
 -- TODO: Enter via node when in parallel
 getCallMethod _ _ _ (LFReEntrant _ arity _ _) n _ cgLoc _
@@ -158,8 +158,8 @@ getCallMethod _ _ _ (LFUnknown True) _ _ _ _
 getCallMethod _ _ _ (LFUnknown False) _ _ _ _
   = EnterIt -- Not a function
 
-getCallMethod _ _ _ LFLetNoEscape _ _ (LocLne label cgLocs) _
-  = JumpToIt label cgLocs
+getCallMethod _ _ _ LFLetNoEscape _ _ (LocLne label target targetLoc cgLocs) _
+  = JumpToIt label cgLocs (Just (target, targetLoc))
 
 getCallMethod _ _ _ _ _ _ _ _ = panic "Unknown call method"
 
@@ -173,12 +173,12 @@ mkSelectorLFInfo id pos rep updatable
   = LFThunk NotTopLevel False updatable (SelectorThunk pos rep)
         (maybeFunction (idType id))
 
-lneIdInfo :: Label -> Id -> [CgLoc] -> CgIdInfo
-lneIdInfo label id cgLocs =
+lneIdInfo :: Id -> Label -> Int -> CgLoc -> [CgLoc] -> CgIdInfo
+lneIdInfo id label target targetLoc cgLocs =
   CgIdInfo
   { cgId = id
   , cgLambdaForm =  mkLFLetNoEscape
-  , cgLocation = LocLne label cgLocs }
+  , cgLocation = LocLne label target targetLoc cgLocs }
 
 getDataConTag :: DataCon -> Int
 getDataConTag = dataConTag

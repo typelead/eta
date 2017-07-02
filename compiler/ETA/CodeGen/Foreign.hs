@@ -25,13 +25,13 @@ import qualified Data.Text as T
 
 cgForeignCall :: ForeignCall -> [StgArg] -> Type -> CodeGen ()
 cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
-  | StaticTarget label _ isRef <- target
-  = if isRef
+  | StaticTarget label _ isRef <- target = do
+    sequel <- getSequel
+    if isRef
     then do
       let (clsName, argFts) = deserializeMethodDesc (unpackFS label)
           arrayFt = jarray classFt
           grabResLoc = do
-            sequel <- getSequel
             case sequel of
               AssignTo (resLoc:_) -> return resLoc
               _                   -> fmap head $ newUnboxedTupleLocs resType
@@ -50,6 +50,9 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
                           (ret methodFt))
         <> invokestatic (mkMethodRef "eta/runtime/stg/FunPtr" "registerFunPtr"
                          [methodFt] (ret jlong))
+      case sequel of
+        Return -> emitReturn [resLoc]
+        _      -> return ()
     else do
       let (hasObj, isStatic, callTarget) = deserializeTarget (unpackFS label)
           shuffledArgs = if hasObj then last args : init args else args
@@ -59,7 +62,6 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
           mbObj = if hasObj then Just (expectHead "cgForiegnCall: empty callArgs'"
                                       callArgs') else Nothing
           mbObjFt = safeHead argFts
-      sequel <- getSequel
       case sequel of
         AssignTo targetLocs ->
           emitForeignCall safety mbObj targetLocs (callTarget mbObjFt) callArgs

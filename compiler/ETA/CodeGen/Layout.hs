@@ -24,7 +24,7 @@ emitReturn results = do
   sequel <- getSequel
   emit $
     case sequel of
-      Return         -> mkReturnExit results
+      Return         -> mkReturnExit results <> greturn closureType
       AssignTo slots -> multiAssign slots (map loadLoc results)
 
 emitAssign :: CgLoc -> Code -> CodeGen ()
@@ -35,9 +35,6 @@ emitAssign cgLoc code = emit $ storeLoc cgLoc code
 --       algorithm a la GHC
 multiAssign :: [CgLoc] -> [Code] -> Code
 multiAssign locs codes = fold $ zipWith storeLoc locs codes
--- multiAssign [] []       = mempty
--- multiAssign [loc] [rhs] = storeLoc loc rhs
--- multiAssign _ _         = error "multiAssign for more than one location"
 
 -- TODO: Beautify this code
 -- TODO: There are a lot of bangs in this function. Verify that they do
@@ -71,7 +68,7 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
 mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
   where rStart = if slow then 1 else 2
-        storeArgs !code ((argRep, ft', code'):args) !r !i !l !f !d !o =
+        storeArgs !code ((argRep, _ft', code'):args) !r !i !l !f !d !o =
           case argRep of
             P -> storeRec (context r) (r + 1) i l f d o
             N -> storeRec (context i) r (i + 1) l f d o
@@ -80,8 +77,7 @@ mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
             D -> storeRec (context d) r i l f (d + 1) o
             O -> storeRec (context o) r i l f d (o + 1)
             V -> storeArgs code args r i l f d o
-          where ft = expectJust "mkCallExit:ft" ft'
-                loadCode = expectJust "mkCallExit:loadCode" code'
+          where loadCode = expectJust "mkCallExit:loadCode" code'
                 context = contextStore argRep loadCode
                 storeRec nextCode =
                   storeArgs (code <> nextCode) args
@@ -133,35 +129,29 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs'' 2 1 1 1 1 1
             D -> storeRec (context d) r i l f (d + 1) o
             O -> storeRec (context o) r i l f d (o + 1)
             _ -> error "contextLoad: V"
-          where ft = locFt cgLoc
-                loadCode = loadLoc cgLoc
+          where loadCode = loadLoc cgLoc
                 argRep = locArgRep cgLoc
                 context = contextStore argRep loadCode
                 storeRec nextCode =
                   storeVals (code <> nextCode) cgLocs
         storeVals !code _ _ _ _ _ _ _ = code
 
-slowCall :: CgLoc -> [StgArg] -> CodeGen ()
-slowCall fun args = do
-  dflags     <- getDynFlags
-  argFtCodes <- getRepFtCodes args
-  let (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
-      slowCode = directCall' True True (mkApFast arity (contextType:fts)) arity
-                             ((P, Just ft, Just code):argFtCodes)
-  if n > arity && optLevel dflags >= 2 then do
+slowCall :: DynFlags -> CgLoc -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+slowCall dflags fun argFtCodes
     -- TODO: Implement optimization
     --       effectively an evaluation test + fast call
-    emit slowCode
-  else
-    emit slowCode
-  where n = length args
-        ft = locFt fun
-        code = loadLoc fun
+  |  n > arity && optLevel dflags >= 2 = slowCode
+  | otherwise = slowCode
+  where n            = length argFtCodes
+        ft           = locFt fun
+        code         = loadLoc fun
+        (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
+        slowCode     = directCall' True True (mkApFast arity (contextType:fts)) arity
+                                   ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Bool -> Code -> RepArity -> [StgArg] -> CodeGen ()
-directCall slow entryCode arity args = do
-  argFtCodes <- getRepFtCodes args
-  emit $ directCall' slow False entryCode arity argFtCodes
+directCall :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall slow entryCode arity argFtCodes =
+  directCall' slow False entryCode arity argFtCodes
 
 directCall' :: Bool -> Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' slow directLoad entryCode arity args =
@@ -226,16 +216,10 @@ getUnboxedResultReps resType = [ rep
           UbxTupleRep tys -> tys
           UnaryRep    ty  -> [ty]
 
-withContinuation :: CodeGen () -> CodeGen ()
-withContinuation call = do
+withContinuation :: Code -> CodeGen ()
+withContinuation code = do
   sequel <- getSequel
-  case sequel of
-    AssignTo cgLocs -> do
-      wrapStackCheck call
-      emit $ mkReturnEntry cgLocs
-    _               -> do
-      call
-      return ()
-
-wrapStackCheck :: CodeGen () -> CodeGen ()
-wrapStackCheck = id
+  emit code
+  emit $ case sequel of
+           AssignTo cgLocs -> mkReturnEntry cgLocs
+           _               -> greturn closureType
