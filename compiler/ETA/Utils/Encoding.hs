@@ -246,6 +246,9 @@ zEncodeString cs = case maybe_tuple cs of
 unencodedChar :: Char -> Bool   -- True for chars that don't need encoding
 unencodedChar 'Z' = False
 unencodedChar 'z' = False
+unencodedChar '_' = True
+-- TODO: Remove this
+-- unencodedChar '$' = True
 unencodedChar c   =  c >= 'a' && c <= 'z'
                   || c >= 'A' && c <= 'Z'
                   || c >= '0' && c <= '9'
@@ -272,6 +275,7 @@ encode_ch 'z'  = "zz"
 encode_ch '&'  = "za"
 encode_ch '|'  = "zb"
 encode_ch '^'  = "zc"
+-- TODO: Remove this
 encode_ch '$'  = "zd"
 encode_ch '='  = "ze"
 encode_ch '>'  = "zg"
@@ -285,7 +289,7 @@ encode_ch '\'' = "zq"
 encode_ch '\\' = "zr"
 encode_ch '/'  = "zs"
 encode_ch '*'  = "zt"
-encode_ch '_'  = "zu"
+-- encode_ch '_'  = "zu"
 encode_ch '%'  = "zv"
 encode_ch c    = encode_as_unicode_char c
 
@@ -321,6 +325,7 @@ decode_lower 'z' = 'z'
 decode_lower 'a' = '&'
 decode_lower 'b' = '|'
 decode_lower 'c' = '^'
+-- TODO: Remove this
 decode_lower 'd' = '$'
 decode_lower 'e' = '='
 decode_lower 'g' = '>'
@@ -334,7 +339,7 @@ decode_lower 'q' = '\''
 decode_lower 'r' = '\\'
 decode_lower 's' = '/'
 decode_lower 't' = '*'
-decode_lower 'u' = '_'
+-- decode_lower 'u' = '_'
 decode_lower 'v' = '%'
 decode_lower ch  = {-pprTrace "decode_lower" (char ch)-} ch
 

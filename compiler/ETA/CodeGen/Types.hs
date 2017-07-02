@@ -65,7 +65,7 @@ data CgLoc = LocLocal Bool FieldType !Int
            | LocStatic FieldType Text Text
            | LocField Bool FieldType Text Text
            | LocDirect Bool FieldType Code
-           | LocLne Label [CgLoc]
+           | LocLne Label Int CgLoc [CgLoc]
 
 instance Outputable CgLoc where
   ppr (LocLocal isClosure _ int) = str "local: " <+> ppr int <+> ppr isClosure
@@ -91,10 +91,10 @@ mkRepLocDirect (rep, code) = LocDirect isClosure ft code
 locArgRep :: CgLoc -> ArgRep
 locArgRep loc = case loc of
   LocLocal isClosure ft _ -> locRep isClosure ft
-  LocStatic _ _ _ -> P
+  LocStatic {} -> P
   LocField isClosure ft _ _ -> locRep isClosure ft
   LocDirect isClosure ft _ -> locRep isClosure ft
-  LocLne _ _ -> panic "logArgRep: Cannot pass a let-no-escape binding!"
+  LocLne {} -> panic "logArgRep: Cannot pass a let-no-escape binding!"
   where locRep isClosure ft = if isClosure then P else ftArgRep ft
 
 locFt :: CgLoc -> FieldType

@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import java.nio.ByteBuffer;
 
+import eta.runtime.stg.WeakPtr;
 import static eta.runtime.RuntimeLogging.barf;
 
 public class MemoryManager {
@@ -90,6 +91,7 @@ public class MemoryManager {
      */
     public static long allocateBuffer(int n, boolean direct) {
         assert n <= ONE_GB;
+        boolean attemptedGC = false;
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> freeAddresses;
         NavigableMap<Long, Integer> allocatedBlocks;
@@ -108,6 +110,7 @@ public class MemoryManager {
             sizeLocks       = heapSizeLocks;
             sizeLocksLock   = heapSizeLocksLock;
         }
+        main:
         for (;;) {
             Map.Entry<Integer, Queue<Long>> freeEntry = freeBlocks.ceilingEntry(n);
             if (freeEntry != null) {
@@ -141,31 +144,59 @@ public class MemoryManager {
                 }
                 return address;
             } else {
-                int              blockType = getBlockType(n);
-                AtomicBoolean    blockLock = blockLocks[blockType];
-                @SuppressWarnings("unchecked") List<ByteBuffer> blocks
-                    = blockArrays[blockType];
-                if (blockLock.compareAndSet(false, true)) {
-                    long address;
-                    try {
-                        long blockIndex = blocks.size();
-                        int  blockSize  = getBlockSize(blockType);
-                        address         = (blockType  << 62)
-                                        | (blockIndex << indexBits(blockType));
-                        /* Avoid allocating something on the null pointer address. */
-                        if (address == 0) address = 1;
-                        blocks.add(allocateAnonymousBuffer(blockSize, direct));
-                        insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
-                                        sizeLocksLock, blockSize - n, address + n);
-                    } finally {
-                        blockLock.set(false);
+                int blockType = getBlockType(n);
+                do {
+                    AtomicBoolean    blockLock = blockLocks[blockType];
+                    @SuppressWarnings("unchecked") List<ByteBuffer> blocks
+                        = blockArrays[blockType];
+                    if (blocks.size() == MAX_BLOCK_INDEX) {
+                        if (blockType == ONE_GB_BLOCK) {
+                            if (!attemptedGC) {
+                                /* Attempt to free native memory by first GC'ing
+                                   any garbage ByteArrays so that some native
+                                   memory can be freed. */
+                                System.gc();
+                                /* Give some time for the GC to work so that
+                                   the reference queues get populated. */
+                                try {
+                                    Thread.sleep(1);
+                                } catch (InterruptedException e) {}
+                                maybeFreeNativeMemory();
+                                /* Restart the top-level loop to see if any free blocks
+                                   have been allocated. */
+                                attemptedGC = true;
+                                continue main;
+                            } else {
+                                throw new OutOfMemoryError("Eta's MemoryManager is unable to allocate more off-heap memory.");
+                            }
+                        }
+                        /* INVARIANT: Each increment of blockType yields the next
+                                      higher blockSize. */
+                        blockType += 1;
+                        continue;
                     }
-                    return address;
-                } else {
-                    /* If unable to lock, continue the loop to see if free blocks
-                       became available in the mean time. */
-                    continue;
-                }
+                    if (blockLock.compareAndSet(false, true)) {
+                        long address;
+                        try {
+                            long blockIndex = blocks.size();
+                            int  blockSize  = getBlockSize(blockType);
+                            address         = (blockType  << BLOCK_TYPE_BITS)
+                                            | (blockIndex << indexBits(blockType));
+                            /* Avoid allocating something on the null pointer address. */
+                            if (address == 0) address = 1;
+                            blocks.add(allocateAnonymousBuffer(blockSize, direct));
+                            insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
+                                            sizeLocksLock, blockSize - n, address + n);
+                        } finally {
+                            blockLock.set(false);
+                        }
+                        return address;
+                    } else {
+                        /* If unable to lock, continue the loop to see if free blocks
+                        became available in the mean time. */
+                        continue;
+                    }
+                } while (true);
             }
         }
     }
@@ -328,15 +359,17 @@ public class MemoryManager {
     }
 
     /** Addresses
-        The blocks come in four variants:
-        *   1 MB block - 42 block bits, 20 index bits
-        *  16 MB block - 38 block bits, 24 index bits
-        * 128 MB block - 35 block bits, 27 index bits
-        *   1 GB block - 32 block bits, 30 index bits
         The first two bits of the address determine the block type.
+        The blocks come in four variants:
+        *   1 MB block - 11 free bits, 31 block bits, 20 index bits
+        *  16 MB block -  7 free bits, 31 block bits, 24 index bits
+        * 128 MB block -  4 free bits, 31 block bits, 27 index bits
+        *   1 GB block -  1 free bits, 31 block bits, 30 index bits
         Hence, the maximum you can allocate a single block for is 1GB.
         We may want to implement a custom ByteBuffer that can handle block borders. */
     public static final long BLOCK_TYPE_MASK = 0xC000000000000000L;
+    public static final int  BLOCK_TYPE_BITS = 62;
+    public static final int  MAX_BLOCK_INDEX = 0x7FFFFFFF;
 
     public static final int ONE_MB_INDEX_BITS           = 20;
     public static final int ONE_SIX_MB_INDEX_BITS       = 24;
@@ -348,13 +381,18 @@ public class MemoryManager {
     public static final int ONE_TWO_EIGHT_MB = 1 << ONE_TWO_EIGHT_MB_INDEX_BITS;
     public static final int ONE_GB           = 1 << ONE_GB_INDEX_BITS;
 
+    public static final int ONE_MB_BLOCK           = 0;
+    public static final int ONE_SIX_MB_BLOCK       = 1;
+    public static final int ONE_TWO_EIGHT_MB_BLOCK = 2;
+    public static final int ONE_GB_BLOCK           = 3;
+
     public static int getBlockType(int n) {
         assert n <= ONE_GB;
-        if      (n <= ONE_MB)           return 0;
-        else if (n <= ONE_SIX_MB)       return 1;
-        else if (n <= ONE_TWO_EIGHT_MB) return 2;
-        else if (n <= ONE_GB)           return 3;
-        return -1;
+        if      (n <= ONE_MB)           return ONE_MB_BLOCK;
+        else if (n <= ONE_SIX_MB)       return ONE_SIX_MB_BLOCK;
+        else if (n <= ONE_TWO_EIGHT_MB) return ONE_TWO_EIGHT_MB_BLOCK;
+        else if (n <= ONE_GB)           return ONE_GB_BLOCK;
+        else throw new IllegalArgumentException("Cannot allocate a block size greater than 1GB!");
     }
 
     public static int getBlockSize(int blockType) {
@@ -376,7 +414,7 @@ public class MemoryManager {
     }
 
     public static int blockType(long address) {
-        return (int)((address & BLOCK_TYPE_MASK) >>> 62);
+        return (int)((address & BLOCK_TYPE_MASK) >>> BLOCK_TYPE_BITS);
     }
 
     public static int indexBits(int blockType) {
@@ -423,7 +461,7 @@ public class MemoryManager {
             int blockType  = blockType(address);
             int indexBits  = indexBits(blockType);
             int blockIndex = blockIndex(address, indexBits);
-            long lower = (blockType << 62) | (blockIndex << indexBits);
+            long lower = (blockType << BLOCK_TYPE_BITS) | (blockIndex << indexBits);
             AtomicBoolean blockLock = blockLocks[blockType];
             ByteBuffer buf = null;
             if (blockLock.compareAndSet(false, true)) {
@@ -540,4 +578,15 @@ public class MemoryManager {
 
     /* TODO: Write a function that returns the level of fragmentation for
              debugging/testing purposes. */
+
+    public static void maybeFreeNativeMemory() {
+        /* Free memory blocks associated with ByteArrays if the ByteArray itself
+           has been garbage collected. */
+        IO.checkForGCByteArrays();
+
+        /* Check for any WeakPtr keys that have been GC'd and run both the
+           Eta finalizers and Java finalizers. */
+        WeakPtr.checkForGCWeakPtrs();
+    }
+
 }

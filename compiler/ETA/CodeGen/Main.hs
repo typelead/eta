@@ -4,15 +4,11 @@ module ETA.CodeGen.Main where
 import ETA.BasicTypes.Module
 import ETA.BasicTypes.VarEnv
 import ETA.Main.HscTypes
--- import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.StgSyn.StgSyn
 import ETA.Main.DynFlags
--- import ETA.Utils.FastString
--- import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.Name
--- import ETA.BasicTypes.OccName
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Util (unzipWith)
 import ETA.Prelude.PrelNames (rOOT_MAIN)

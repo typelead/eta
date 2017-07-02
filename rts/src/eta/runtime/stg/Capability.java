@@ -16,6 +16,7 @@ import java.lang.ref.WeakReference;
 
 import eta.runtime.Runtime;
 import eta.runtime.io.IO;
+import eta.runtime.io.MemoryManager;
 import eta.runtime.concurrent.Concurrent;
 import eta.runtime.concurrent.WorkerThread;
 import eta.runtime.exception.Exception;
@@ -462,13 +463,8 @@ public final class Capability {
             /* Check for any ready I/O operations and wake up the threads. */
             Concurrent.checkForReadyIO(this);
 
-            /* Free memory blocks associated with ByteArrays if the ByteArray itself
-               has been garbage collected. */
-            IO.checkForGCByteArrays();
-
-            /* Check for any WeakPtr keys that have been GC'd and run both the
-               Eta finalizers and Java finalizers. */
-            WeakPtr.checkForGCWeakPtrs();
+            /* Free any memory if necessary */
+            MemoryManager.maybeFreeNativeMemory();
         }
     }
 

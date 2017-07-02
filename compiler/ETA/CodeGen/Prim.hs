@@ -61,10 +61,10 @@ cgOpApp (StgPrimOp primOp) args resType = do
         loadArgs <- getNonVoidArgCodes args
         let (_, argTypes, _, _, _) = primOpSig primOp
             fts                    = repFieldTypes argTypes
-        withContinuation $ do
-          emit $ loadContext
-              <> fold loadArgs
-              <> invokestatic (mkMethodRef rtsGroup rtsFunName (contextType:fts) (ret closureType))
+        withContinuation $ loadContext
+                        <> fold loadArgs
+                        <> invokestatic (mkMethodRef rtsGroup rtsFunName
+                                         (contextType:fts) (ret closureType))
 
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
@@ -93,13 +93,13 @@ cgOpApp (StgPrimOp primOp) args resType = do
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
-cgOpApp (StgPrimCallOp (PrimCall label _)) args _resType =
-  withContinuation $ do
-    argsFtCodes <- getNonVoidArgFtCodes args
-    let (argFts, callArgs) = unzip argsFtCodes
-    emit $ loadContext
-        <> fold callArgs
-        <> invokestatic (mkMethodRef clsName methodName (contextType:argFts) (ret closureType))
+cgOpApp (StgPrimCallOp (PrimCall label _)) args _resType = do
+  argsFtCodes <- getNonVoidArgFtCodes args
+  let (argFts, callArgs) = unzip argsFtCodes
+  withContinuation $ loadContext
+                  <> fold callArgs
+                  <> invokestatic (mkMethodRef clsName methodName
+                                   (contextType:argFts) (ret closureType))
   where (clsName, methodName) = labelToMethod (unpackFS label)
 
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
@@ -977,12 +977,18 @@ doubleMathOp f args ret = invokestatic $ mkMethodRef "java/lang/Math" f args (Ju
 doubleMathEndoOp :: Text -> Code
 doubleMathEndoOp f = doubleMathOp f [jdouble] jdouble
 
+indexMultiplier :: FieldType -> Code
+indexMultiplier ft
+  | size == 1 = mempty
+  | otherwise = iconst jint (fromIntegral size)
+             <> imul
+  where size = fieldByteSize ft
+
 addrIndexOp :: FieldType -> Code -> [Code] -> Code
 addrIndexOp ft resCode = \[this, ix] ->
      this
   <> ix
-  <> iconst jint (fromIntegral (fieldByteSize ft))
-  <> imul
+  <> indexMultiplier ft
   <> gconv jint jlong
   <> ladd
   <> addressGet ft
@@ -992,8 +998,7 @@ addrWriteOp :: FieldType -> Code -> [Code] -> Code
 addrWriteOp ft argCode = \[this, ix, val] ->
     this
  <> ix
- <> iconst jint (fromIntegral (fieldByteSize ft))
- <> imul
+ <> indexMultiplier ft
  <> gconv jint jlong
  <> ladd
  <> val

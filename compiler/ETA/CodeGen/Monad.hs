@@ -58,7 +58,6 @@ import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.Name
 import ETA.Utils.Outputable hiding ((<>))
--- import ETA.Utils.FastString
 import ETA.Types.TyCon
 
 import Data.Monoid((<>))
@@ -70,14 +69,12 @@ import Control.Monad (liftM, ap, when, forM)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
--- import qualified Data.ByteString.Lazy as B
 import Codec.JVM
 
 import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
 import ETA.CodeGen.Name
 import ETA.CodeGen.ArgRep
-import ETA.CodeGen.Rts
 import ETA.Debug
 import ETA.Util
 
@@ -231,14 +228,10 @@ getCgIdInfo id = do
     Nothing -> do
       curMod <- getModule
       let name = idName id
-      -- TODO: Change this back.
       let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
-      --let mod = fromMaybe curMod $ nameModule_maybe name
       dflags <- getDynFlags
       if mod /= curMod then return . mkCgIdInfo dflags id $ mkLFImported id
       else return . mkCgIdInfo dflags id $ mkLFImported id
-      -- TODO: Change this back.
-      -- crashDoc $ str "getCgIdInfo[not external name]:" <+> ppr id
 
 printBindings :: CodeGen ()
 printBindings = do
@@ -258,10 +251,6 @@ addBindings newCgIdInfos = do
               bindings
               newCgIdInfos
         setBindings newBindings
-
--- mergeCompiledClosures :: [ClassFile] -> CodeGen ()
--- mergeCompiledClosures classFiles = modify $ \s@CgState{..} ->
---   s { cgCompiledClosures = classFiles ++ cgCompiledClosures }
 
 addCompiledClosure :: ClassFile -> CodeGen ()
 addCompiledClosure classFile = modify $ \s@CgState{..} ->
@@ -396,7 +385,6 @@ withMethod accessFlags name fts rt body = do
   setNextLocal 2
   setNextLabel 0
   body
-  emit (greturn closureType)
   clsName <- getClass
   newCode <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
@@ -426,7 +414,6 @@ newTemp isClosure ft = do
   n <- newLocal ft
   return $ mkLocLocal isClosure ft n
 
--- TODO: Verify that this does as intended
 getCodeWithResult :: CodeGen a -> CodeGen (a, Code)
 getCodeWithResult gen = do
   state1 <- get

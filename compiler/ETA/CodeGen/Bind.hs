@@ -253,7 +253,7 @@ cgRhsStdThunk binder lfInfo payload recIds = do
               return (is, code <> loadCode)
 
 postInitRecBinds :: Id -> RecIndexes -> FieldType -> CodeGen Code
-postInitRecBinds _ [] ft = return mempty
+postInitRecBinds _binder [] _ft = return mempty
 postInitRecBinds binder recIndexes ft = do
   CgIdInfo { cgLocation } <- getCgIdInfo binder
   let binderLoad = loadLoc cgLocation
