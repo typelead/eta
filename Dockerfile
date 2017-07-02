@@ -1,5 +1,6 @@
 # Oracle stuff taken and modified from https://github.com/dockerfile/java/blob/master/oracle-java8/Dockerfile
 # MIT LICENSE of dockerfile/java  vvv
+
 #------------------------------------
 #The MIT License (MIT)
 #
@@ -39,6 +40,9 @@ ENV JAVA_VERSION_MAJOR=8 \
     PATH=$PATH:/root/.local/bin \
     LANG=C.UTF-8
 
+# Copy eta
+COPY ./ /usr/eta
+
 # Initialize apt
 RUN apt-get update -q
 
@@ -68,8 +72,10 @@ RUN apt-get install -q -y apt-file apt-utils && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /var/cache/oracle-jdk8-installer
 
-# Clone the latest eta
-RUN cd /usr && \
-    git clone --recursive https://github.com/typelead/eta && \
-    cd /usr/eta && \
+# Return to the latest eta
+RUN cd /usr/eta && \
+    git add -a && \
+    git stash && \
+    git checkout master && \
+    git pull && \
     ./install.sh
