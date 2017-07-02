@@ -33,7 +33,6 @@ module ETA.CodeGen.Types
    nonVoidIds,
    getJavaInfo,
    getNonVoids,
-   getLocField,
    isLFThunk,
    lfFieldType,
    lfStaticThunk)
@@ -75,18 +74,15 @@ instance Outputable CgLoc where
   ppr LocLne {} = str "lne"
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
-mkLocDirect isClosure (ft', code) = LocDirect isClosure ft code
-  where ft = if isClosure then closureType else ft'
+mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 
 mkLocLocal :: Bool -> FieldType -> Int -> CgLoc
-mkLocLocal isClosure ft' int = LocLocal isClosure ft int
-  where ft = if isClosure then closureType else ft'
+mkLocLocal isClosure ft int = LocLocal isClosure ft int
 
 mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
   where isClosure = isGcPtrRep rep
-        ft' = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
-        ft = if isClosure then closureType else ft'
+        ft = expectJust "mkRepLocDirect" $ primRepFieldType_maybe rep
 
 locArgRep :: CgLoc -> ArgRep
 locArgRep loc = case loc of
@@ -302,14 +298,6 @@ getNonVoidFts :: [(Maybe FieldType, a)] -> [(FieldType, NonVoid a)]
 getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
                            Just ft -> Just (ft, NonVoid val)
                            Nothing -> Nothing)
-
-getLocField :: CgLoc -> Maybe FieldRef
-getLocField (LocStatic ft modClass clName) =
-  Just $ mkFieldRef modClass (closure clName) ft
-getLocField (LocField _ ft clClass fieldName) =
-  Just $ mkFieldRef clClass fieldName ft
-getLocField _ =
-  Nothing
 
 enterMethod :: CgLoc -> Code
 enterMethod cgLoc

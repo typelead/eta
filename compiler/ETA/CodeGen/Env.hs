@@ -2,13 +2,11 @@ module ETA.CodeGen.Env where
 
 import ETA.BasicTypes.Id
 import ETA.StgSyn.StgSyn
--- import ETA.Types.Type
 import ETA.Types.TyCon
 
 import Codec.JVM
 
 import ETA.Util
--- import ETA.Debug
 
 import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
@@ -18,13 +16,6 @@ import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Name
 
 import Control.Monad (liftM)
-import Data.Maybe (catMaybes)
-
-getArgReferences :: [NonVoid StgArg] -> CodeGen [FieldRef]
-getArgReferences xs = fmap catMaybes $ traverse f xs
-  where f (NonVoid (StgVarArg var)) = fmap g (getCgIdInfo var)
-        f _ = return Nothing
-        g CgIdInfo { cgLocation } = getLocField cgLocation
 
 getArgLoadCode :: NonVoid StgArg -> CodeGen Code
 getArgLoadCode (NonVoid (StgVarArg var)) = liftM idInfoLoadCode $ getCgIdInfo var

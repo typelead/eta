@@ -4,14 +4,15 @@ import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.TSO;
+import eta.runtime.stg.Value;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.RuntimeLogging.barf;
 
-public class TVar {
+public class TVar extends Value {
     public volatile Closure currentValue;
     public Set<TSO> watchQueue = new LinkedHashSet<TSO>();
     public Set<AtomicInvariant> invariants = new LinkedHashSet<AtomicInvariant>();

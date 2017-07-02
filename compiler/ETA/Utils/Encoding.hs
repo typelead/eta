@@ -247,8 +247,7 @@ unencodedChar :: Char -> Bool   -- True for chars that don't need encoding
 unencodedChar 'Z' = False
 unencodedChar 'z' = False
 unencodedChar '_' = True
--- TODO: Remove this
--- unencodedChar '$' = True
+unencodedChar '$' = True
 unencodedChar c   =  c >= 'a' && c <= 'z'
                   || c >= 'A' && c <= 'Z'
                   || c >= '0' && c <= '9'
@@ -275,8 +274,7 @@ encode_ch 'z'  = "zz"
 encode_ch '&'  = "za"
 encode_ch '|'  = "zb"
 encode_ch '^'  = "zc"
--- TODO: Remove this
-encode_ch '$'  = "zd"
+-- encode_ch '$'  = "zd"
 encode_ch '='  = "ze"
 encode_ch '>'  = "zg"
 encode_ch '#'  = "zh"
@@ -325,8 +323,7 @@ decode_lower 'z' = 'z'
 decode_lower 'a' = '&'
 decode_lower 'b' = '|'
 decode_lower 'c' = '^'
--- TODO: Remove this
-decode_lower 'd' = '$'
+-- decode_lower 'd' = '$'
 decode_lower 'e' = '='
 decode_lower 'g' = '>'
 decode_lower 'h' = '#'

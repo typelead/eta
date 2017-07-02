@@ -41,12 +41,6 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
         }
     }
 
-    @Override
-    public Closure enter(StgContext context) {
-        barf("TransactionRecord entered");
-        return null;
-    }
-
     public static TransactionRecord start(TransactionRecord enclosing) {
         return new TransactionRecord(enclosing);
     }

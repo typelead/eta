@@ -1,6 +1,7 @@
 package eta.runtime.thunk;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import java.util.Queue;
 import java.util.WeakHashMap;
@@ -253,14 +254,14 @@ public abstract class Thunk extends Closure {
         if (fields == null) {
             Field[] lookupFields = thisClass.getFields();
             for (Field f:lookupFields) {
-                if (!f.getName().equals("indirectee") && !f.getType().isPrimitive()) {
+                if (canClearField(f)) {
                     i++;
                 }
             }
             fields = new Field[i];
             i = 0;
             for (Field f:lookupFields) {
-                if (!f.getName().equals("indirectee") && !f.getType().isPrimitive()) {
+                if (canClearField(f)) {
                     fields[i++] = f;
                 }
             }
@@ -271,5 +272,11 @@ public abstract class Thunk extends Closure {
                 f.set(this, null);
             } catch (IllegalAccessException e) {}
         }
+    }
+
+    private static boolean canClearField(Field f) {
+        return !f.getName().equals("indirectee")
+            && !f.getType().isPrimitive()
+            && !Modifier.isStatic(f.getModifiers());
     }
 }

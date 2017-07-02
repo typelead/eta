@@ -4,9 +4,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Value;
 import eta.runtime.util.UnsafeUtil;
 
-public class MutVar {
+public class MutVar extends Value {
     public volatile Closure value;
 
     public MutVar(Closure value) {

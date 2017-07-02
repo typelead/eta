@@ -4,6 +4,9 @@ import static eta.runtime.RuntimeLogging.barf;
 
 public abstract class DataCon extends Value {
 
+    @Override
+    public Closure enter(StgContext context) { return this; }
+
     public abstract int getTag();
 
     public Closure getP(int i) {

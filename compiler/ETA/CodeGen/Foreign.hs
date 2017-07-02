@@ -29,7 +29,7 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
     sequel <- getSequel
     if isRef
     then do
-      let (clsName, argFts) = deserializeMethodDesc (unpackFS label)
+      let (clsName, methodName, argFts) = deserializeMethodDesc (unpackFS label)
           arrayFt = jarray classFt
           grabResLoc = do
             case sequel of
@@ -38,6 +38,8 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
       resLoc <- grabResLoc
       emitAssign resLoc $
            sconst (T.replace "/" "." clsName)
+        <> invokestatic (mkMethodRef classType "forName" [jstring] (ret classFt))
+        <> sconst methodName
         <> iconst jint (fromIntegral (length argFts))
         <> new arrayFt
         <> fold (map (\(i, ft) ->
@@ -71,10 +73,10 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
           emitReturn resLocs
 cgForeignCall _ _ _ = error $ "cgForeignCall: bad arguments"
 
-deserializeMethodDesc :: String -> (Text, [FieldType])
-deserializeMethodDesc label = (read clsName', argFts)
+deserializeMethodDesc :: String -> (Text, Text, [FieldType])
+deserializeMethodDesc label = (read clsName', read methodName', argFts)
   where (_:_:callTargetSpec:_) = split '|' label
-        (_:_:_:clsName':_:methodDesc':_) = split ',' callTargetSpec
+        (_:_:_:clsName':methodName':methodDesc':_) = split ',' callTargetSpec
         (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label)
                     $ decodeMethodDesc (read methodDesc')
 

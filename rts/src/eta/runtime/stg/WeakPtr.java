@@ -53,12 +53,6 @@ public final class WeakPtr extends Value {
         }
     }
 
-    @Override
-    public Closure enter(StgContext context) {
-        barf("WEAK object entered!");
-        return null;
-    }
-
     public final void lock() {
         do {} while(!lock.compareAndSet(false, true));
     }

@@ -141,6 +141,7 @@ public class Exception {
             } else if (e instanceof EtaException) {
                 exception = ((EtaException) e).exception;
             } else {
+                e.printStackTrace();
                 barf("Implement catching Java exceptions.");
             }
             /* TODO: It seems that there should be more logic as this

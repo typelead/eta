@@ -23,10 +23,4 @@ public class BCO extends Value {
         this.arity = arity;
         this.bitmap = bitmap;
     }
-
-    @Override
-    public Closure enter(StgContext context) {
-        barf("BCO entered");
-        return null;
-    }
 }
