@@ -26,12 +26,6 @@ public class PAP extends Value {
         this.argStack = argStack;
     }
 
-    @Override
-    public Closure enter(StgContext context) {
-        barf("PAP object entered!");
-        return null;
-    }
-
     public Closure apply(StgContext context, AbstractArgumentStack stack) {
         context.merge(stack);
         return fun.enter(context);

@@ -8,9 +8,10 @@ import java.lang.ref.WeakReference;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Value;
 import static eta.runtime.RuntimeLogging.barf;
 
-public final class ByteArray {
+public final class ByteArray extends Value {
 
     public static ByteArray create(int n) {
         return create(n, false);

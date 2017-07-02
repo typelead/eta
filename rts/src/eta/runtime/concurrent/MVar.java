@@ -8,8 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Value;
 
-public class MVar {
+public class MVar extends Value {
     public AtomicBoolean lock              = new AtomicBoolean(false);
     public BlockingQueue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
 

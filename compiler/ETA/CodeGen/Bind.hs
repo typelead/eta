@@ -79,8 +79,7 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
       --       if there will be a recursive call later. This will
       --       have a significant effect on the size of the resulting
       --       class files.
-      emit $ markStackMap
-          <> startLabel label
+      emit $ startLabel label
       withSelfLoop (id, label, cgLocs) $ do
         mapM_ bindFV fvLocs
         cgExpr body

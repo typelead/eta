@@ -850,8 +850,10 @@ simpleOp Addr2IntOp = Just $ normalOp $ gconv jlong jint
 simpleOp Int2AddrOp = Just $ normalOp $ gconv jint  jlong
 simpleOp Addr2Int64Op = Just idOp
 simpleOp Int642AddrOp = Just idOp
-simpleOp AddrAddOp = Just $ normalOp ladd
-simpleOp AddrSubOp = Just $ normalOp lsub
+simpleOp AddrAddOp = Just $ \[addr, n] ->
+  addr <> n <> gconv jint jlong <> ladd
+simpleOp AddrSubOp = Just $ normalOp (lsub <> gconv jlong jint)
+-- TODO: Is this the right implementation?
 simpleOp AddrRemOp = Just $ \[addr, n] ->
   addr <> gconv jlong jint <> n <> irem
 simpleOp AddrGtOp = Just $ typedCmp jlong ifgt
