@@ -141,6 +141,7 @@ public class Runtime {
 
     /* Debug Parameters */
     private static boolean debugScheduler;
+    private static boolean debugMemoryManager;
     private static boolean debugSTM;
 
     public static boolean setDebugMode(char c) {
@@ -150,6 +151,9 @@ public class Runtime {
                 debugScheduler = true;
                 break;
             case 'm':
+                debugMemoryManager = true;
+                break;
+            case 't':
                 debugSTM = true;
                 break;
             default:
@@ -165,6 +169,10 @@ public class Runtime {
 
     public static boolean debugSTM() {
         return debugSTM;
+    }
+
+    public static boolean debugMemoryManager() {
+        return debugMemoryManager;
     }
 
     public static void main(String[] args, Closure mainClosure) {
