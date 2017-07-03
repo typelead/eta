@@ -34,6 +34,7 @@ public class UpdateInfoStack {
             ui.prev  = top;
             ui.next  = null;
             top.next = ui;
+            top = ui;
         }
         return ui;
     }
