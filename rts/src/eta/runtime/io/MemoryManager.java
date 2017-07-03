@@ -550,7 +550,15 @@ public class MemoryManager {
         int blockIndex    = blockIndex(address, indexBits);
         int positionIndex = positionIndex(address, indexBits);
         int size          = (int)(lowerAddress + lowerSize - address);
-        ByteBuffer buf    = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
+        AtomicBoolean blockLock = blockLocks[blockType];
+        ByteBuffer buf = null;
+        if (blockLock.compareAndSet(false, true)) {
+            try {
+                buf = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
+            } finally {
+                blockLock.set(false);
+            }
+        }
         buf.position(positionIndex);
         buf.limit(positionIndex + size);
         return buf;
