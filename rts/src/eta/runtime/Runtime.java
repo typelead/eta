@@ -176,21 +176,24 @@ public class Runtime {
         return debugMemoryManager;
     }
 
-    public static void main(String[] args, Closure mainClosure) {
+    public static void main(String[] args, Closure mainClosure) throws Exception {
         RuntimeOptions.parse(args);
-        evalLazyIO(mainClosure);
-        exit();
+        try {
+            evalLazyIO(mainClosure);
+        } finally {
+            exit();
+        }
     }
 
-    public static Closure evalLazyIO(Closure p) {
+    public static Closure evalLazyIO(Closure p) throws Exception {
         return Capability.scheduleClosure(Closures.evalLazyIO(p));
     }
 
-    public static Closure evalIO(Closure p) {
+    public static Closure evalIO(Closure p) throws Exception {
         return Capability.scheduleClosure(Closures.evalIO(p));
     }
 
-    public static Closure evalJava(Object o, Closure p) {
+    public static Closure evalJava(Object o, Closure p) throws Exception {
         return Capability.scheduleClosure(Closures.evalJava(o, p));
     }
 
@@ -222,7 +225,9 @@ public class Runtime {
     }
 
     public static void exit() {
-        evalIO(Closures.flushStdHandles);
+        try {
+          evalIO(Closures.flushStdHandles);
+        } catch (Exception e) {}
         /* FIXME: For some reason, cleanup() causes bugs in the future invocations
                   of the Eta RTS from the same JVM. */
         // MemoryManager.cleanup();

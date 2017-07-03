@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, TypeOperators,
-  DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses #-}
+             DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses,
+             ScopedTypeVariables, FlexibleInstances, UndecidableInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Execption
@@ -22,6 +23,9 @@ import GHC.Int
 import Java
 import Java.Array
 import Java.IO
+import GHC.Show
+import GHC.Exception
+import Data.Typeable (Typeable, cast)
 
 data {-# CLASS "java.lang.StackTraceElement[]" #-} StackTraceElementArray = StackTraceElementArray (Object# StackTraceElementArray)
   deriving Class
@@ -76,10 +80,12 @@ foreign import java unsafe isNativeMethod :: Java StackTraceElement Bool
 
 -- Start java.lang.Exception
 
-data {-# CLASS "java.lang.Exception" #-} Exception = Exception (Object# Exception)
-  deriving Class
+data {-# CLASS "java.lang.Exception" #-} JException = JException (Object# JException)
+  deriving (Class, Show, Typeable)
 
-type instance Inherits Exception = '[Throwable]
+type instance Inherits JException = '[Throwable]
+
+instance Exception JException
 
 -- End java.lang.Exception
 
@@ -115,8 +121,16 @@ type instance Inherits InternalError = '[VirtualMachineError]
 -- Start java.io.IOException
 
 data {-# CLASS "java.io.IOException" #-} IOException = IOException (Object# IOException)
-  deriving Class
+  deriving (Class, Show, Typeable)
 
-type instance Inherits IOException = '[Exception]
+type instance Inherits IOException = '[JException]
 
 -- End java.io.IOException
+
+instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException)
+  => Exception a where
+  toException x = SomeException (JException (unsafeCoerce# (unobj x)))
+  fromException e = do
+    jexception :: JException <- fromException e
+    safeDowncast jexception
+  {-# INLINE fromException #-}

@@ -93,16 +93,17 @@ public final class Capability {
         this.worker = worker;
     }
 
-    public static Closure scheduleClosure(Closure p) {
+    public static Closure scheduleClosure(Closure p) throws java.lang.Exception {
         return getLocal().schedule(new TSO(p));
     }
 
-    public final Closure schedule(TSO tso) {
+    public final Closure schedule(TSO tso) throws java.lang.Exception {
         if (tso != null) {
             appendToRunQueue(tso);
         }
         Closure result = null;
         TSO     outer  = null;
+        java.lang.Exception pendingException = null;
 
         do {
             result = null;
@@ -147,8 +148,8 @@ public final class Capability {
                     try {
                         result = tso.closure.enter(context);
                     } catch (java.lang.Exception e) {
-                        // TODO: Catch exceptions here?
-                        throw e;
+                        context.currentTSO.whatNext = ThreadKilled;
+                        pendingException = e;
                     }
                     break;
                 case ThreadInterpret:
@@ -168,6 +169,15 @@ public final class Capability {
             /* Thread is done executing, awaken the blocked exception queue. */
             awakenBlockedExceptionQueue(t);
 
+            /* If an unhandled exception occured, throw it so that the caller
+               can handle it if they so choose. */
+            if (pendingException != null) {
+                StackTraceElement[] st = t.getStackTrace();
+                if (st != null) {
+                    pendingException.setStackTrace(st);
+                }
+                throw pendingException;
+            }
             if (emptyRunQueue() && !worker) break;
         } while (true);
         return result;
