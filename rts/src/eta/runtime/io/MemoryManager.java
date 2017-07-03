@@ -322,12 +322,20 @@ public class MemoryManager {
             sizeLocks       = heapSizeLocks;
             sizeLocksLock   = heapSizeLocksLock;
         }
+        long lowerAddress  = 0L;
+        int  lowerSize     = 0;
+        long higherAddress = 0L;
+        int  higherSize    = 0;
         Map.Entry<Long, Integer> lowerEntry  = freeAddresses.lowerEntry(address);
         Map.Entry<Long, Integer> higherEntry = freeAddresses.higherEntry(address);
-        long lowerAddress  = lowerEntry.getKey();
-        int  lowerSize     = lowerEntry.getValue();
-        long higherAddress = higherEntry.getKey();
-        int  higherSize    = higherEntry.getValue();
+        if (lowerEntry != null) {
+            lowerAddress  = lowerEntry.getKey();
+            lowerSize     = lowerEntry.getValue();
+        }
+        if (higherEntry != null) {
+            higherAddress = higherEntry.getKey();
+            higherSize    = higherEntry.getValue();
+        }
         long newAddress    = address;
         int  newSize       = size;
         SizeLock lowerRegionLock  = null;
