@@ -444,12 +444,18 @@ public class MemoryManager {
         This caches the last lookup for reducing the constant factor when
         you're doing a lot of writes/reads on a single buffer (the common case). */
 
+    private static class ThreadLocalLong extends ThreadLocal<Long> {
+        protected Long initialValue() {
+            return new Long(0L);
+        }
+    }
+
     /* Start of previous received block. */
-    public static ThreadLocal<Long> cachedLowerAddress = new ThreadLocal<Long>();
+    public static ThreadLocal<Long> cachedLowerAddress = new ThreadLocalLong();
 
     /* Start of the adjacent block.
        NOTE: This is the start of the NEXT block so you must do a strict comparison. */
-    public static ThreadLocal<Long> cachedHigherAddress = new ThreadLocal<Long>();
+    public static ThreadLocal<Long> cachedHigherAddress = new ThreadLocalLong();
 
     /* The cached buffer */
     public static ThreadLocal<ByteBuffer> cachedBuffer = new ThreadLocal<ByteBuffer>();
