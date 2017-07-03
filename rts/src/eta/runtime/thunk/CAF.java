@@ -6,7 +6,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.exception.EtaAsyncException;
 
-public abstract class CAF extends Thunk {
+public class CAF extends Thunk {
 
     public CAF() {
         super();
@@ -41,6 +41,14 @@ public abstract class CAF extends Thunk {
                 return blackHole(context);
             }
         } while (true);
+    }
+
+    /* By default, if the single-argument constructor is used, it will just redirect
+       to the indirectee. Normally, it will be overriden by non-trivial top-level
+       thunks. */
+    @Override
+    public Closure thunkEnter(StgContext context) {
+        return indirectee.enter(context);
     }
 
     @Override
