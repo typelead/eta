@@ -535,8 +535,6 @@ public class MemoryManager {
 
        Returns null if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        long lowerAddress = 0L;
-        int  lowerSize    = 0;
         Map.Entry<Long, Integer>
             lowerEntry = findLowerAllocatedAddress(allocatedDirectBlocks, address);
         if (lowerEntry == null) {
@@ -545,13 +543,15 @@ public class MemoryManager {
                 return null;
             }
         }
-        int blockType     = blockType(address);
-        int indexBits     = indexBits(blockType);
-        int blockIndex    = blockIndex(address, indexBits);
-        int positionIndex = positionIndex(address, indexBits);
-        int size          = (int)(lowerAddress + lowerSize - address);
+        long lowerAddress       = lowerEntry.getKey();
+        int  lowerSize          = lowerEntry.getValue();
+        int blockType           = blockType(address);
+        int indexBits           = indexBits(blockType);
+        int blockIndex          = blockIndex(address, indexBits);
+        int positionIndex       = positionIndex(address, indexBits);
+        int size                = (int)(lowerAddress + lowerSize - address);
+        ByteBuffer buf          = null;
         AtomicBoolean blockLock = blockLocks[blockType];
-        ByteBuffer buf = null;
         if (blockLock.compareAndSet(false, true)) {
             try {
                 buf = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
