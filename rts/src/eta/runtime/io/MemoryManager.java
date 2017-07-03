@@ -130,7 +130,10 @@ public class MemoryManager {
                 if (sizeLock.tryAcquire()) {
                     assert freeQueue != null;
                     address = freeQueue.poll();
+                    /* INVARIANT: sizeLocks.peekPermits() == freeQueue.size()
+                       Currently does not hold. Needs to be investigated. */
                     assert address != null;
+                    freeAddresses.remove(address);
                 } else {
                     if (freeQueue.isEmpty() && sizeLock.tryStartTransaction()) {
                         try {
@@ -194,6 +197,7 @@ public class MemoryManager {
                                             | (blockIndex << indexBits(blockType));
                             /* Avoid allocating something on the null pointer address. */
                             if (address == 0) address = 1;
+                            freeAddresses.remove(address);
                             newRegionSize = blockSize - n;
                             newAddress    = address + n;
                             blocks.add(allocateAnonymousBuffer(blockSize, direct));
@@ -243,16 +247,21 @@ public class MemoryManager {
         SizeLock newSizeLock
             = getSizeLock(sizeLocks, sizeLocksLock, newRegionSize);
         while (!newSizeLock.tryStartTransaction()) {}
-        Queue<Long> freeQueue = freeBlocks.get(newRegionSize);
-        if (freeQueue != null) {
-            freeQueue.offer(newAddress);
-        } else {
-            freeQueue = new ConcurrentLinkedQueue<Long>();
-            freeQueue.offer(newAddress);
-            freeBlocks.put(newRegionSize, freeQueue);
+        try {
+            Queue<Long> freeQueue = freeBlocks.get(newRegionSize);
+            if (freeQueue != null) {
+                freeQueue.offer(newAddress);
+                newSizeLock.enlarge();
+            } else {
+                freeQueue = new ConcurrentLinkedQueue<Long>();
+                freeQueue.offer(newAddress);
+                freeBlocks.put(newRegionSize, freeQueue);
+                /* FIXME: If reset() is not called, the INVARIANT [see above] breaks. */
+                newSizeLock.reset();
+            }
+        } finally {
+            newSizeLock.endTransaction();
         }
-        newSizeLock.enlarge();
-        newSizeLock.endTransaction();
         freeAddresses.put(newAddress, newRegionSize);
     }
 
@@ -352,8 +361,12 @@ public class MemoryManager {
                 newSize   += lowerSize;
             }
             if ((address + size) == higherAddress && sameBlock(address, higherAddress)) {
-                higherRegionLock = getSizeLock(sizeLocks, sizeLocksLock, higherSize);
-                while (!higherRegionLock.tryStartTransaction()) {}
+                if (lowerRegionLock != null && lowerSize == higherSize) {
+                    higherRegionLock = lowerRegionLock;
+                } else {
+                    higherRegionLock = getSizeLock(sizeLocks, sizeLocksLock, higherSize);
+                    while (!higherRegionLock.tryStartTransaction()) {}
+                }
                 newSize += higherSize;
             }
             Queue<Long> freeQueue;
@@ -391,10 +404,28 @@ public class MemoryManager {
             }
         } finally {
             if (lowerRegionLock  != null) lowerRegionLock.endTransaction();
-            if (higherRegionLock != null) higherRegionLock.endTransaction();
+            if (higherRegionLock != null && higherRegionLock != lowerRegionLock) higherRegionLock.endTransaction();
         }
         insertFreeBlock(freeBlocks, freeAddresses, sizeLocks, sizeLocksLock,
                         newSize, newAddress);
+    }
+
+    /* FIXME: For some reason, cleanup() causes bugs in the future invocations
+       of the Eta RTS from the same JVM. */
+    /* This is dangerous if done at any time other than shutdown.
+       It will wipe out all information and free any remaining data. */
+    public static void cleanup() {
+        freeDirectBlocks.clear();
+        freeHeapBlocks.clear();
+        for (List l: blockArrays) {
+            l.clear();
+        }
+        allocatedDirectBlocks.clear();
+        allocatedHeapBlocks.clear();
+        freeDirectAddresses.clear();
+        freeHeapAddresses.clear();
+        directSizeLocks.clear();
+        heapSizeLocks.clear();
     }
 
     /** Addresses
