@@ -41,13 +41,16 @@ public class RuntimeLogging {
         debugGeneric(Runtime.debugSTM(), "STM", msg, args);
     }
 
+    public static void debugMemoryManager(String msg, Object... args) {
+        debugGeneric(Runtime.debugMemoryManager(), "MemoryManager", msg, args);
+    }
+
     public static void debugGeneric(boolean shouldDebug, String type, String msg, Object... args) {
         if (shouldDebug) {
             debugBelch("[Eta-RTS](Capability %d){" + type + "}: " + msg,
                        Capability.getLocal().id, args);
         }
     }
-
 
     public static void printClosure(Closure closure) {
         // TODO: Override toString and make the closure more readable

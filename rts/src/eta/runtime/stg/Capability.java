@@ -58,11 +58,13 @@ public final class Capability {
             if (worker) {
                 workerCapabilities.add(cap);
             } else {
+                /* TODO: Use a concurrent data structure for capabilities */
                 synchronized (capabilities) {
                     capabilities.add(cap);
                     cap.id = capabilities.size() - 1;
                 }
             }
+            myCapability.set(cap);
         }
         return cap;
     }

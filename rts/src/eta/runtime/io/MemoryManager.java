@@ -14,8 +14,12 @@ import java.nio.ByteBuffer;
 
 import eta.runtime.stg.WeakPtr;
 import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.RuntimeLogging.debugMemoryManager;
 
 public class MemoryManager {
+
+    /** Allocating Off-Heap Memory **/
+
     /* TODO: Optimize this to make a specialized data structure that stores
              primitive ints & longs. */
     /* Map block sizes to addresses of free blocks */
@@ -91,6 +95,8 @@ public class MemoryManager {
      */
     public static long allocateBuffer(int n, boolean direct) {
         assert n <= ONE_GB;
+        int     newRegionSize;
+        long    newAddress;
         boolean attemptedGC = false;
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> freeAddresses;
@@ -135,9 +141,11 @@ public class MemoryManager {
                     }
                     continue;
                 }
-                int  newRegionSize = regionSize - n;
-                long newAddress    = address + n;
+                newRegionSize = regionSize - n;
+                newAddress    = address + n;
                 allocatedBlocks.put(address, n);
+                debugMemoryManager("Allocate Block @ " + address + " " +
+                                   renderSize(n) + ".");
                 if (newRegionSize > 0) {
                     insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
                                     sizeLocksLock, newRegionSize, newAddress);
@@ -165,9 +173,11 @@ public class MemoryManager {
                                 /* Restart the top-level loop to see if any free blocks
                                    have been allocated. */
                                 attemptedGC = true;
+                                debugMemoryManager("MemoryManager Space Full." +
+                                                   " GC and Retry.");
                                 continue main;
                             } else {
-                                throw new OutOfMemoryError("Eta's MemoryManager is unable to allocate more off-heap memory.");
+                                throw new OutOfMemoryError("The Eta MemoryManager is unable to allocate more off-heap memory.");
                             }
                         }
                         /* INVARIANT: Each increment of blockType yields the next
@@ -182,18 +192,26 @@ public class MemoryManager {
                             int  blockSize  = getBlockSize(blockType);
                             address         = (blockType  << BLOCK_TYPE_BITS)
                                             | (blockIndex << indexBits(blockType));
+                            newRegionSize = blockSize - n;
+                            newAddress    = address + n;
                             /* Avoid allocating something on the null pointer address. */
                             if (address == 0) address = 1;
                             blocks.add(allocateAnonymousBuffer(blockSize, direct));
+                            debugMemoryManager("Create " + renderIsDirect(direct) +
+                                               " Block " + renderSize(blockSize) +
+                                               ".");
+                            allocatedBlocks.put(address, n);
+                            debugMemoryManager("Allocated Block @ " + address + " " +
+                                               renderSize(n) + ".");
                             insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
-                                            sizeLocksLock, blockSize - n, address + n);
+                                            sizeLocksLock, newRegionSize, newAddress);
                         } finally {
                             blockLock.set(false);
                         }
                         return address;
                     } else {
                         /* If unable to lock, continue the loop to see if free blocks
-                        became available in the mean time. */
+                           became available in the mean time. */
                         continue;
                     }
                 } while (true);
@@ -215,6 +233,12 @@ public class MemoryManager {
          AtomicBoolean sizeLocksLock,
          int newRegionSize, long newAddress) {
         assert newRegionSize > 0;
+        /* TODO: Implement block destroying to release memory when it's no longer
+                 needed. Currently, if your application suddenly allocates a lot
+                 of native memory, it will stay allocated for the lifetime of
+                 the application. */
+        debugMemoryManager("Free Block @ " + newAddress + " " +
+                           renderSize(newRegionSize) + ".");
         /* TODO: Do we need to ensure atomicity of this entire function? */
         SizeLock newSizeLock
             = getSizeLock(sizeLocks, sizeLocksLock, newRegionSize);
@@ -240,6 +264,18 @@ public class MemoryManager {
                 ByteBuffer.allocate(n));
     }
 
+    /** Freeing Off-Heap Memory **/
+
+    public static void maybeFreeNativeMemory() {
+        /* Free memory blocks associated with ByteArrays if the ByteArray itself
+           has been garbage collected. */
+        IO.checkForGCByteArrays();
+
+        /* Check for any WeakPtr keys that have been GC'd and run both the
+           Eta finalizers and Java finalizers. */
+        WeakPtr.checkForGCWeakPtrs();
+    }
+
     public static void free(long address) {
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> allocatedBlocks;
@@ -256,16 +292,24 @@ public class MemoryManager {
             } else {
                 allocatedBlocks = allocatedHeapBlocks;
                 /* Check if `address` was already freed. */
-                if (allocatedBlocks.remove(address) == null) return;
+                if (allocatedBlocks.remove(address) == null) {
+                    debugMemoryManager("Freed @ " + address + " " +
+                                       renderSize(sizeInt) + ".");
+                    return;
+                }
                 direct = false;
             }
         } else {
             allocatedBlocks = allocatedDirectBlocks;
             /* Check if `address` was already freed. */
-            if (allocatedBlocks.remove(address) == null) return;
+            if (allocatedBlocks.remove(address) == null) {
+                debugMemoryManager("Freed @ " + address + " " + renderSize(sizeInt) +
+                                   ".");
+                return;
+            }
             direct = true;
         }
-
+        debugMemoryManager("Free @ " + address + " " + renderSize(sizeInt) + ".");
         int size = sizeInt.intValue();
         if (direct) {
             freeAddresses   = freeDirectAddresses;
@@ -286,7 +330,7 @@ public class MemoryManager {
         int  higherSize    = higherEntry.getValue();
         long newAddress    = address;
         int  newSize       = size;
-        SizeLock lowerRegionLock = null;
+        SizeLock lowerRegionLock  = null;
         SizeLock higherRegionLock = null;
 
         /* After these two checks, lowerAddress will be the starting
@@ -343,19 +387,6 @@ public class MemoryManager {
         }
         insertFreeBlock(freeBlocks, freeAddresses, sizeLocks, sizeLocksLock,
                         newSize, newAddress);
-    }
-
-    public static int allocatedSize(long address) {
-        Integer sizeInt = allocatedDirectBlocks.get(address);
-        if (sizeInt == null) {
-            sizeInt = allocatedHeapBlocks.get(address);
-            if (sizeInt == null) {
-                /* TODO: Throw an exception here. */
-                /* This means that `address` was already freed. */
-                return -1;
-            }
-        }
-        return sizeInt.intValue();
     }
 
     /** Addresses
@@ -439,11 +470,10 @@ public class MemoryManager {
         return (int)(address & ((1 << indexBits) - 1));
     }
 
-    /** Byte Buffer Retrieval
+    /** Byte Buffer API to MemoryManager **/
 
-        This caches the last lookup for reducing the constant factor when
+    /*  This caches the last lookup for reducing the constant factor when
         you're doing a lot of writes/reads on a single buffer (the common case). */
-
     private static class ThreadLocalLong extends ThreadLocal<Long> {
         protected Long initialValue() {
             return new Long(0L);
@@ -462,26 +492,28 @@ public class MemoryManager {
 
     public static ByteBuffer getBuffer(long address) {
         if (address >= cachedLowerAddress.get() && address < cachedHigherAddress.get()) {
-            return cachedBuffer.get();
-        } else {
-            int blockType  = blockType(address);
-            int indexBits  = indexBits(blockType);
-            int blockIndex = blockIndex(address, indexBits);
-            long lower = (blockType << BLOCK_TYPE_BITS) | (blockIndex << indexBits);
-            AtomicBoolean blockLock = blockLocks[blockType];
-            ByteBuffer buf = null;
-            if (blockLock.compareAndSet(false, true)) {
-                try {
-                    buf = (ByteBuffer) blockArrays[blockType].get(blockIndex);
-                } finally {
-                    blockLock.set(false);
-                }
+            ByteBuffer cached = cachedBuffer.get();
+            if (cached != null) {
+                return cached;
             }
-            cachedLowerAddress.set(lower);
-            cachedHigherAddress.set(lower + (1 << indexBits));
-            cachedBuffer.set(buf);
-            return buf;
         }
+        int blockType  = blockType(address);
+        int indexBits  = indexBits(blockType);
+        int blockIndex = blockIndex(address, indexBits);
+        long lower = (blockType << BLOCK_TYPE_BITS) | (blockIndex << indexBits);
+        AtomicBoolean blockLock = blockLocks[blockType];
+        ByteBuffer buf = null;
+        if (blockLock.compareAndSet(false, true)) {
+            try {
+                buf = (ByteBuffer) blockArrays[blockType].get(blockIndex);
+            } finally {
+                blockLock.set(false);
+            }
+        }
+        cachedLowerAddress.set(lower);
+        cachedHigherAddress.set(lower + (1 << indexBits));
+        cachedBuffer.set(buf);
+        return buf;
     }
 
     /* Helper function that will find an allocated block below the one given. */
@@ -524,7 +556,20 @@ public class MemoryManager {
         return buf;
     }
 
-    /* Get values from buffer */
+    /* This returns -1 if `address` has already been freed. */
+    public static int allocatedSize(long address) {
+        Integer sizeInt = allocatedDirectBlocks.get(address);
+        if (sizeInt == null) {
+            sizeInt = allocatedHeapBlocks.get(address);
+            if (sizeInt == null) {
+                return -1;
+            }
+        }
+        return sizeInt.intValue();
+    }
+
+
+    /** Read APIs **/
     public static byte get(long address) {
         return getBuffer(address).get(positionIndex(address));
     }
@@ -553,7 +598,7 @@ public class MemoryManager {
         return getBuffer(address).getDouble(positionIndex(address));
     }
 
-    /* Put values into buffer */
+    /** Write APIs **/
     public static void put(long address, byte val) {
         getBuffer(address).put(positionIndex(address), val);
     }
@@ -582,17 +627,64 @@ public class MemoryManager {
         getBuffer(address).putDouble(positionIndex(address), val);
     }
 
-    /* TODO: Write a function that returns the level of fragmentation for
-             debugging/testing purposes. */
-
-    public static void maybeFreeNativeMemory() {
-        /* Free memory blocks associated with ByteArrays if the ByteArray itself
-           has been garbage collected. */
-        IO.checkForGCByteArrays();
-
-        /* Check for any WeakPtr keys that have been GC'd and run both the
-           Eta finalizers and Java finalizers. */
-        WeakPtr.checkForGCWeakPtrs();
+    /** Monitoring **/
+    private static void printHeading(String heading) {
+        System.out.print("***");
+        System.out.print(heading);
+        System.out.println("***");
     }
 
+    private static void printAddressMap(String heading, Map<Long, Integer> addresses) {
+        printHeading(heading);
+
+        if (addresses.size() > 0) {
+            for (Map.Entry<Long, Integer> entry: addresses.entrySet()) {
+                Long address = entry.getKey();
+                Integer size = entry.getValue();
+                Long end     = entry.getKey() + entry.getValue() - 1;
+                System.out.println(address + "-" + end + " [" + size + " bytes]");
+            }
+        } else {
+            System.out.println("None");
+        }
+    }
+
+    private static void printBlocksMap(String heading, Map<Integer,Queue<Long>> blocks) {
+        printHeading(heading);
+
+        if (blocks.size() > 0) {
+            for (Map.Entry<Integer, Queue<Long>> entry: blocks.entrySet()) {
+                System.out.println("Region Size: " + entry.getKey() + " bytes");
+                Queue<Long> freeAddresses = entry.getValue();
+                if (freeAddresses.size() > 0) {
+                    for (Long address: freeAddresses) {
+                        System.out.println("  " + address);
+                    }
+                } else {
+                    System.out.println("  None");
+                }
+            }
+        } else {
+            System.out.println("None");
+        }
+    }
+
+    public static void dumpMemoryManager() {
+        System.out.println("***Eta-Managed Off-Heap Memory***");
+        printAddressMap("Allocated Direct Blocks", allocatedDirectBlocks);
+        printAddressMap("Allocated Heap Blocks", allocatedHeapBlocks);
+        printAddressMap("Free Direct Addresses", freeDirectAddresses);
+        printAddressMap("Free Heap Addresses", freeHeapAddresses);
+        printBlocksMap("Free Direct Blocks", freeDirectBlocks);
+        printBlocksMap("Free Heap Blocks", freeHeapBlocks);
+    }
+
+    /** Misc. Utilities **/
+    private static String renderSize(int size) {
+        return "["+ size + " bytes]";
+    }
+
+    private static String renderIsDirect(boolean direct) {
+        return direct? "Direct" : "Heap";
+    }
 }
