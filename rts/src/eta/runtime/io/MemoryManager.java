@@ -192,10 +192,10 @@ public class MemoryManager {
                             int  blockSize  = getBlockSize(blockType);
                             address         = (blockType  << BLOCK_TYPE_BITS)
                                             | (blockIndex << indexBits(blockType));
-                            newRegionSize = blockSize - n;
-                            newAddress    = address + n;
                             /* Avoid allocating something on the null pointer address. */
                             if (address == 0) address = 1;
+                            newRegionSize = blockSize - n;
+                            newAddress    = address + n;
                             blocks.add(allocateAnonymousBuffer(blockSize, direct));
                             debugMemoryManager("Create " + renderIsDirect(direct) +
                                                " Block " + renderSize(blockSize) +
