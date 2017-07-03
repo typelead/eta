@@ -8,6 +8,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.WeakPtr;
+import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.RuntimeInternalError;
 
 public class Runtime {
@@ -222,7 +223,13 @@ public class Runtime {
 
     public static void exit() {
         evalIO(Closures.flushStdHandles);
+        /* FIXME: For some reason, cleanup() causes bugs in the future invocations
+                  of the Eta RTS from the same JVM. */
+        // MemoryManager.cleanup();
         WeakPtr.runAllFinalizers();
+        /* TODO: Check that all global state is cleaned up.
+                 If there are Capabilities that are running,
+                 either wait for them to finish or terminate them. */
     }
 
     public static void stgExit(int code) {

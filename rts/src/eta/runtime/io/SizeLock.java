@@ -5,7 +5,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SizeLock {
 
-    private AtomicInteger permits = new AtomicInteger(1);
+    private static final int INITIAL_PERMITS = 1;
+    private AtomicInteger permits = new AtomicInteger(INITIAL_PERMITS);
 
     /* This lock is used for making tryAcquire() atomic. */
     private AtomicBoolean lock = new AtomicBoolean();
@@ -37,5 +38,13 @@ public class SizeLock {
 
     public void endTransaction() {
         lock.set(false);
+    }
+
+    public int peekPermits() {
+        return permits.get();
+    }
+
+    public void reset() {
+        permits.set(INITIAL_PERMITS);
     }
 }
