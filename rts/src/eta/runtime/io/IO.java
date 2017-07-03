@@ -79,6 +79,7 @@ public class IO {
                     if (address != null) {
                         MemoryManager.free(address);
                     }
+                    byteArrayRefMap.remove(ref);
                 }
             } finally {
                 byteArrayFreeLock.set(false);
