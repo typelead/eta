@@ -182,7 +182,10 @@ public final class Capability {
     }
 
     public final void appendToRunQueue(TSO tso) {
-        runQueue.offerLast(tso);
+        if (!runQueue.contains(tso)) {
+            runQueue.offerLast(tso);
+        }
+        tso.cap = this;
     }
 
     public final void pushOnRunQueue(TSO tso) {
@@ -429,7 +432,6 @@ public final class Capability {
         TSO tso = Concurrent.globalRunQueue.pollLast();
         if (tso != null) {
             Concurrent.globalRunQueueModifiedTime = System.currentTimeMillis();
-            tso.cap = this;
             tryWakeupThread(tso);
         }
         return tso;
