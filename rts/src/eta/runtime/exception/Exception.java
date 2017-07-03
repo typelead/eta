@@ -5,6 +5,7 @@ import java.util.ListIterator;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.UpdateInfo;
 
@@ -141,8 +142,7 @@ public class Exception {
             } else if (e instanceof EtaException) {
                 exception = ((EtaException) e).exception;
             } else {
-                e.printStackTrace();
-                barf("Implement catching Java exceptions.");
+                exception = convertJavaException(tso, e);
             }
             /* TODO: It seems that there should be more logic as this
                      discards the masking state before the catch.
@@ -324,5 +324,16 @@ public class Exception {
         }
         Exception.raiseAsync(target, msg.exception, false, null);
         return true;
+    }
+
+    public static Closure convertJavaException(TSO tso, java.lang.Exception e) {
+        tso.setStackTrace(e.getStackTrace());
+        return Closures.mkSomeException(e);
+    }
+
+    public static EtaException toEtaException(TSO tso, java.lang.Exception e) {
+        EtaException newException = new EtaException(convertJavaException(tso, e));
+        newException.initCause(e);
+        return newException;
     }
 }

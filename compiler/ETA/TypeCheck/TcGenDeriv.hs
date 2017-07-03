@@ -1885,8 +1885,9 @@ gen_Class_binds loc tycon
         processClass str = go (0 :: Int) (reverse str)
           where go n (']':'[':s) = '[' : go (n + 1) s
                 go n s
-                  | n > 0     = convertElementType (reverse s)
-                  | otherwise = s
+                  | n > 0     = convertElementType fixStr
+                  | otherwise = fixStr
+                  where fixStr = reverse s
         convertElementType elemTy =
           case elemTy of
             "boolean" -> "Z"

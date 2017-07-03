@@ -9,7 +9,11 @@ public class WorkerThread extends Thread {
     @Override
     public void run() {
         Capability worker = Capability.getLocal(true);
-        worker.schedule(null);
+        try {
+            worker.schedule(null);
+        } catch (Exception e) {
+            /* TODO: Find a better way to handle exceptions? */
+        }
         Capability.workerCapabilities.remove(worker);
     }
 }

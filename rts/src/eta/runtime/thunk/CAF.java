@@ -33,6 +33,8 @@ public class CAF extends Thunk {
                         throw ea;
                     }
                 } finally {
+                    /* TODO: Are there additional conditions to take care of
+                             when an exception is thrown while evaluating a thunk? */
                     Thunk popped = context.popUpdate();
                     assert popped == this;
                 }

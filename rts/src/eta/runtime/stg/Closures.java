@@ -3,8 +3,6 @@ package eta.runtime.stg;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import eta.runtime.exception.EtaException;
-import eta.runtime.exception.EtaAsyncException;
 import eta.runtime.thunk.ApO;
 import eta.runtime.thunk.Ap1Upd;
 import eta.runtime.thunk.Ap2Upd;
@@ -13,6 +11,8 @@ import eta.runtime.thunk.Ap4Upd;
 import eta.runtime.thunk.Ap5Upd;
 import eta.runtime.thunk.Ap6Upd;
 import eta.runtime.thunk.Ap7Upd;
+import eta.runtime.exception.EtaException;
+import eta.runtime.exception.EtaAsyncException;
 import static eta.runtime.stg.TSO.WhatNext.*;
 
 /* - Utilies for working with Closures from the Java side.
@@ -28,9 +28,12 @@ public class Closures {
     public static Closure nonTermination;
     public static Closure nestedAtomically;
     public static Closure runFinalizerBatch;
+    public static Closure $fExceptionJException;
 
     /* Standard Constructors */
     public static Constructor Int = null;
+    public static Constructor JException = null;
+    public static Constructor SomeException = null;
 
     static {
         try {
@@ -40,8 +43,10 @@ public class Closures {
             nonTermination    = loadClosure("base.control.exception.Base", "nonTermination");
             nestedAtomically  = loadClosure("base.control.exception.Base", "nestedAtomically");
             runFinalizerBatch = loadClosure("base.ghc.Weak", "runFinalizzerBatch");
-            Int               = Class.forName("ghc_prim.ghc.Types$IzhD")
-                                     .getConstructor(int.class);
+            Int               = loadDataCon("ghc_prim.ghc.Types", "Izh", int.class);
+            JException        = loadDataCon("base.java.Exception", "JException", Exception.class);
+            SomeException     = loadDataCon("base.ghc.Exception", "SomeException", Closure.class, Closure.class);
+            $fExceptionJException = loadClosure("base.java.Exception", "$fExceptionJException");
         } catch (Exception e) {
             System.err.println("FATAL ERROR: Failed to load base closures.");
             e.printStackTrace();
@@ -49,16 +54,17 @@ public class Closures {
         }
     }
 
-    /* TODO:
-       Make this convert user writable closure names to the internal representation.
-
-       Example: base:GHC.Conc.Sync.runSparks -> base.ghc.conc.Sync, runSparks
-    */
     public static Closure loadClosure(String className, String closureName)
         throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
                InvocationTargetException
     {
         return (Closure) Class.forName(className).getMethod(closureName).invoke(null);
+    }
+
+    public static Constructor loadDataCon(String className, String dataConName, Class<?>... types)
+        throws ClassNotFoundException, IllegalAccessException, NoSuchMethodException
+    {
+        return Class.forName(className + "$" + dataConName + "D").getConstructor(types);
     }
 
 
@@ -85,17 +91,8 @@ public class Closures {
 
         @Override
         public Closure enter(StgContext context) {
-            Closure result;
-            try {
-                result = p.evaluate(context).applyV(context);
-                context.currentTSO.whatNext = ThreadComplete;
-            } catch (EtaException e) {
-                context.currentTSO.whatNext = ThreadKilled;
-                result = e.exception;
-            } catch (EtaAsyncException e) {
-                context.currentTSO.whatNext = ThreadKilled;
-                result = e.exception;
-            }
+            Closure result = p.evaluate(context).applyV(context);
+            context.currentTSO.whatNext = ThreadComplete;
             return result;
         }
     }
@@ -109,17 +106,8 @@ public class Closures {
 
         @Override
         public Closure enter(StgContext context) {
-            Closure result;
-            try {
-                result = p.evaluate(context).applyV(context).evaluate(context);
-                context.currentTSO.whatNext = ThreadComplete;
-            } catch (EtaException e) {
-                context.currentTSO.whatNext = ThreadKilled;
-                result = e.exception;
-            } catch (EtaAsyncException e) {
-                context.currentTSO.whatNext = ThreadKilled;
-                result = e.exception;
-            }
+            Closure result = p.evaluate(context).applyV(context).evaluate(context);
+            context.currentTSO.whatNext = ThreadComplete;
             return result;
         }
     }
@@ -135,17 +123,8 @@ public class Closures {
 
         @Override
         public Closure enter(StgContext context) {
-            Closure result;
-            try {
-                result = p.evaluate(context).applyO(context, thisObj).evaluate(context);
-                context.currentTSO.whatNext = ThreadComplete;
-            } catch (EtaException e) {
-                context.currentTSO.whatNext = ThreadKilled;
-                result = e.exception;
-            } catch (EtaAsyncException e) {
-                context.currentTSO.whatNext = ThreadKilled;
-                result = e.exception;
-            }
+            Closure result = p.evaluate(context).applyO(context, thisObj).evaluate(context);
+            context.currentTSO.whatNext = ThreadComplete;
             return result;
         }
     }
@@ -184,6 +163,7 @@ public class Closures {
         return new ApO(e, o);
     }
 
+    /* Constructing algebraic data types. */
     public static Closure mkInt(int i) {
         try {
             return (Closure) Int.newInstance(i);
@@ -194,4 +174,14 @@ public class Closures {
     }
 
     /* TODO: Add utilities for constructing all the primitive types. */
+
+    public static Closure mkSomeException(Exception ex) {
+        try {
+            return (Closure) SomeException.newInstance($fExceptionJException
+                                                      ,JException.newInstance(ex));
+        } catch (InstantiationException e) {
+        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException e) {}
+        return null;
+    }
 }

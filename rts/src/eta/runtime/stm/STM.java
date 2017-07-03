@@ -97,71 +97,82 @@ public class STM {
                         result = invariants.peek().invariant.code.applyV(context);
                         continue;
                     }
-                } catch (EtaException e) {
-                    trec = tso.trec;
-                    boolean valid = trec.validateNestOfTransactions();
-                    outer = trec.enclosingTrec;
-                    trec.abort();
-                    if (outer != null) {
-                        outer.abort();
-                    }
-                    tso.trec = null;
-                    if (valid) {
-                        throw e;
-                    } else {
-                        trec = TransactionRecord.start(null);
-                        tso.trec = trec;
-                        runCode = true;
-                        continue;
-                    }
-                } catch (EtaAsyncException e) {
-                    if (e.stopAtAtomically) {
-                        assert tso.trec.enclosingTrec == null;
-                        tso.trec.condemn();
-                        result = null;
-                        continue;
-                    } else {
+                } catch (java.lang.Exception e_) {
+                    if (e_ instanceof EtaAsyncException) {
+                        EtaAsyncException e = (EtaAsyncException) e_;
+                        if (e.stopAtAtomically) {
+                            assert tso.trec.enclosingTrec == null;
+                            tso.trec.condemn();
+                            result = null;
+                            continue;
+                        } else {
+                            trec = tso.trec;
+                            outer = trec.enclosingTrec;
+                            trec.abort();
+                            tso.trec = outer;
+                            /* TODO: Apparently, we need to replace all thunks with
+                               code that eventually retried the atomically
+                               transaction.
+
+                               unsafePerformIO/unsafeInterleaveIO break this,
+                               so we need to figure out an alternative
+                               implementation.
+                            */
+                            throw e;
+                        }
+                    } else if (e_ instanceof RetryException) {
+                        RetryException e = (RetryException) e_;
+
+                        trec  = tso.trec;
+                        outer = trec.enclosingTrec;
+                        if (outer != null) {
+                            trec.abort();
+                            trec     = outer;
+                            tso.trec = trec;
+                            outer    = trec.enclosingTrec;
+                        }
+                        assert outer == null;
+                        boolean valid = trec.wait(tso);
+                        if (valid) {
+                            trec.revertOwnership(true);
+                            do {
+                                cap.blockedLoop();
+                                valid = trec.reWait(tso);
+                            } while (valid);
+                            /* If the transaction is invalid, retry. */
+                            trec     = TransactionRecord.start(null);
+                            tso.trec = trec;
+                            runCode  = true;
+                            continue;
+                        } else {
+                            trec     = TransactionRecord.start(outer);
+                            tso.trec = trec;
+                            runCode  = true;
+                            continue;
+                        }
+                    } else  {
+                        EtaException e = null;
+                        if (e_ instanceof EtaException) {
+                            e = (EtaException) e_;
+                        } else {
+                            e = Exception.toEtaException(tso, e_);
+                        }
                         trec = tso.trec;
+                        boolean valid = trec.validateNestOfTransactions();
                         outer = trec.enclosingTrec;
                         trec.abort();
-                        tso.trec = outer;
-                        /* TODO: Apparently, we need to replace all thunks with
-                                 code that eventually retried the atomically
-                                 transaction.
-
-                                 unsafePerformIO/unsafeInterleaveIO break this,
-                                 so we need to figure out an alternative
-                                 implementation.
-                        */
-                        throw e;
-                    }
-                } catch (RetryException e) {
-                    trec  = tso.trec;
-                    outer = trec.enclosingTrec;
-                    if (outer != null) {
-                        trec.abort();
-                        trec     = outer;
-                        tso.trec = trec;
-                        outer    = trec.enclosingTrec;
-                    }
-                    assert outer == null;
-                    boolean valid = trec.wait(tso);
-                    if (valid) {
-                        trec.revertOwnership(true);
-                        do {
-                            cap.blockedLoop();
-                            valid = trec.reWait(tso);
-                        } while (valid);
-                        /* If the transaction is invalid, retry. */
-                        trec     = TransactionRecord.start(null);
-                        tso.trec = trec;
-                        runCode  = true;
-                        continue;
-                    } else {
-                        trec     = TransactionRecord.start(outer);
-                        tso.trec = trec;
-                        runCode  = true;
-                        continue;
+                        if (outer != null) {
+                            outer.abort();
+                        }
+                        tso.trec = null;
+                        if (valid) {
+                            throw e;
+                        } else {
+                            trec = TransactionRecord.start(null);
+                            tso.trec = trec;
+                            runCode = true;
+                            continue;
+                        }
                     }
                 }
             } while (true);
@@ -189,28 +200,30 @@ public class STM {
                     continue;
                 }
             } while (true);
-        } catch (EtaException e) {
+        } catch (java.lang.Exception e) {
+            boolean handle = true;
+            if ((e instanceof EtaAsyncException) || (e instanceof RetryException)) {
+                handle = false;
+            }
             trec  = tso.trec;
             outer = trec.enclosingTrec;
             trec.abort();
             tso.trec = outer;
-            return handler.applyPV(context, e.exception);
-        } catch (EtaAsyncException e) {
-            trec  = tso.trec;
-            outer = trec.enclosingTrec;
-            trec.abort();
-            tso.trec = outer;
-            throw e;
-        } catch (RetryException e) {
-            trec  = tso.trec;
-            outer = trec.enclosingTrec;
-            trec.abort();
-            tso.trec = outer;
-            throw e;
+            if (handle) {
+                EtaException e_;
+                if (e instanceof EtaException) {
+                    e_ = (EtaException) e;
+                } else {
+                    e_ = Exception.toEtaException(tso, e);
+                }
+                return handler.applyPV(context, e_.exception);
+            } else {
+                throw e;
+            }
         }
     }
 
-    public static Closure catchRetry(StgContext context, Closure firstCode, Closure altCode) {
+    public static Closure catchRetry(StgContext context, Closure firstCode, Closure altCode) throws java.lang.Exception {
         TSO tso = context.currentTSO;
         TransactionRecord trec = TransactionRecord.start(tso.trec);
         tso.trec = trec;
@@ -235,31 +248,29 @@ public class STM {
                     tso.trec = trec;
                     continue;
                 }
-            } catch (EtaException e) {
+            } catch (java.lang.Exception e) {
                 trec  = tso.trec;
                 outer = trec.enclosingTrec;
                 trec.abort();
-                tso.trec = outer;
-                throw e;
-            } catch (EtaAsyncException e) {
-                trec  = tso.trec;
-                outer = trec.enclosingTrec;
-                trec.abort();
-                tso.trec = outer;
-                throw e;
-            } catch (RetryException e) {
-                trec  = tso.trec;
-                outer = trec.enclosingTrec;
-                assert outer != null;
-                trec.abort();
-                if (runningAltCode) {
+                if (e instanceof RetryException) {
+                    assert outer != null;
+                    tso.trec = outer;
+                    if (runningAltCode) {
+                        tso.trec = outer;
+                        throw e;
+                    } else {
+                        trec           = TransactionRecord.start(outer);
+                        tso.trec       = trec;
+                        runningAltCode = true;
+                        continue;
+                    }
+                } else {
+                    if (!(e instanceof EtaException) &&
+                        !(e instanceof EtaAsyncException)) {
+                        e = Exception.toEtaException(tso, e);
+                    }
                     tso.trec = outer;
                     throw e;
-                } else {
-                    trec           = TransactionRecord.start(outer);
-                    tso.trec       = trec;
-                    runningAltCode = true;
-                    continue;
                 }
             }
         } while (true);
