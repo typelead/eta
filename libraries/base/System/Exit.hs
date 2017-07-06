@@ -58,10 +58,19 @@ import GHC.IO.Exception
 -- exception will not cause the process itself to exit.
 --
 exitWith :: ExitCode -> IO a
-exitWith ExitSuccess = throwIO ExitSuccess
-exitWith code@(ExitFailure n)
-  | n /= 0 = throwIO code
-  | otherwise = ioError (IOError Nothing InvalidArgument "exitWith" "ExitFailure 0" Nothing Nothing)
+exitWith code =
+  case mExitCode of
+    Just exitCode -> shutdownAndExit exitCode False >> return undefined
+    Nothing       -> ioError (IOError Nothing InvalidArgument
+                                      "exitWith" "ExitFailure 0" Nothing Nothing)
+  where mExitCode = case code of
+          ExitSuccess   -> Just 0
+          ExitFailure n
+            | n == 0    -> Nothing
+            | otherwise -> Just n
+
+foreign import java "@static eta.runtime.Runtime.shutdownAndExit"
+  shutdownAndExit :: Int -> Bool -> IO ()
 
 -- | The computation 'exitFailure' is equivalent to
 -- 'exitWith' @(@'ExitFailure' /exitfail/@)@,

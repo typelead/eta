@@ -179,8 +179,6 @@ public class Exception {
     }
 
     public static Closure raise(StgContext context, Closure exception) {
-        /* TODO: Remove the need for this line by using EtaException's stack
-                 trace directly. */
         context.currentTSO.setStackTrace(Thread.currentThread().getStackTrace());
         throw new EtaException(exception);
     }

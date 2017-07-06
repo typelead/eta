@@ -209,25 +209,15 @@ public class Runtime {
         return new TSO(Closures.evalJava(thisObj, p));
     }
 
-    public static void shutdownAndExit(int exitCode, boolean fastExit, boolean hardExit) {
+    public static void shutdownAndExit(int exitCode, boolean fastExit) {
         if (!fastExit) {
             exit();
         }
-        if (exitCode != 0 || hardExit) stgExit(exitCode);
-    }
-
-    public static void shutdownAndSignal(int signal, boolean fastExit) {
-        if (!fastExit) {
-            exit();
-        }
-        // TODO: Implement signals
-        stgExit(1);
+        stgExit(exitCode);
     }
 
     public static void exit() {
-        try {
-          evalIO(Closures.flushStdHandles);
-        } catch (Exception e) {}
+        maybeFlushStdHandles();
         /* FIXME: For some reason, cleanup() causes bugs in the future invocations
                   of the Eta RTS from the same JVM. */
         // MemoryManager.cleanup();
@@ -235,6 +225,12 @@ public class Runtime {
         /* TODO: Check that all global state is cleaned up.
                  If there are Capabilities that are running,
                  either wait for them to finish or terminate them. */
+    }
+
+    public static void maybeFlushStdHandles() {
+        try {
+            evalIO(Closures.flushStdHandles);
+        } catch (Exception e) {}
     }
 
     public static void stgExit(int code) {

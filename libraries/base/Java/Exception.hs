@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, TypeOperators,
              DataKinds, TypeFamilies, FlexibleContexts, MultiParamTypeClasses,
-             ScopedTypeVariables, FlexibleInstances, UndecidableInstances #-}
+             ScopedTypeVariables, FlexibleInstances, UndecidableInstances,
+             BangPatterns #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Execption
@@ -134,3 +135,7 @@ instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException)
     jexception :: JException <- fromException e
     safeDowncast jexception
   {-# INLINE fromException #-}
+
+showException :: SomeException -> Object# JString
+showException e = s#
+  where !(JS# s#) = toJString (displayException e)

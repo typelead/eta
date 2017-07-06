@@ -1,6 +1,7 @@
 package eta.runtime.exception;
 
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.Closures;
 import eta.runtime.thunk.UpdateInfo;
 
 public class EtaAsyncException extends StgException {
@@ -15,4 +16,8 @@ public class EtaAsyncException extends StgException {
         this.stopHere         = stopHere;
     }
 
+    @Override
+    public String getLocalizedMessage() {
+        return Closures.showException(exception);
+    }
 }

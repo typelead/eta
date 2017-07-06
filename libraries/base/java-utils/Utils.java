@@ -138,14 +138,6 @@ public class Utils {
         return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     }
 
-    public static void shutdownAndExit(int exitCode, int fastExit) {
-        Runtime.shutdownAndExit(exitCode, fastExit == 1, true);
-    }
-
-    public static void shutdownAndSignal(int signal, int fastExit) {
-        Runtime.shutdownAndSignal(signal, fastExit == 1);
-    }
-
     public static void errorBelch(long formatAddress, long stringAddress) {
         RuntimeLogging.errorBelch(byteBufferToString(formatAddress)
                                  ,byteBufferToString(stringAddress));

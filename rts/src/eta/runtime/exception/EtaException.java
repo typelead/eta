@@ -1,6 +1,7 @@
 package eta.runtime.exception;
 
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.Closures;
 
 public class EtaException extends StgException {
 
@@ -10,4 +11,8 @@ public class EtaException extends StgException {
         this.exception = exception;
     }
 
+    @Override
+    public String getLocalizedMessage() {
+        return Closures.showException(exception);
+    }
 }

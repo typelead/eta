@@ -22,8 +22,4 @@ import GHC.TopHandler
 import Control.Exception
 
 runJava :: Java c a -> Java c a
-runJava (Java m) = Java $ \o ->
-  case catch (IO $ \s -> case m o of
-          (# _, a #) -> a `seq` (# s, a #)) topHandler of
-    IO n -> case n realWorld# of
-      (# _, b #) -> (# o, b #)
+runJava (Java m) = Java $ \o -> case m o of (# o', a #) -> a `seq` (# o', a #)
