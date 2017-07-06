@@ -29,6 +29,7 @@ public class Closures {
     public static Closure nestedAtomically;
     public static Closure runFinalizerBatch;
     public static Closure $fExceptionJException;
+    public static Closure showException;
 
     /* Standard Constructors */
     public static Constructor Int = null;
@@ -47,6 +48,7 @@ public class Closures {
             JException        = loadDataCon("base.java.Exception", "JException", Exception.class);
             SomeException     = loadDataCon("base.ghc.Exception", "SomeException", Closure.class, Closure.class);
             $fExceptionJException = loadClosure("base.java.Exception", "$fExceptionJException");
+            showException         = loadClosure("base.java.Exception", "showException");
         } catch (Exception e) {
             System.err.println("FATAL ERROR: Failed to load base closures.");
             e.printStackTrace();
@@ -183,5 +185,13 @@ public class Closures {
         } catch (IllegalAccessException e) {
         } catch (InvocationTargetException e) {}
         return null;
+    }
+
+    public static String showException(Closure exception) {
+        StgContext context = StgContext.acquire();
+        showException.applyP(context, exception);
+        String result = (String) context.O(1);
+        context.reset(null, null);
+        return result;
     }
 }

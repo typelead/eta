@@ -107,6 +107,7 @@ public final class Capability {
 
         do {
             result = null;
+            pendingException = null;
             if (context.currentTSO != null) {
                 /* Re-entering the RTS, a fresh TSO was generated. */
                 outer = context.currentTSO;
@@ -156,7 +157,7 @@ public final class Capability {
                     Interpreter.interpretBCO(this);
                     break;
                 default:
-                    barf("{Scheduler} Invalid whatNext field for TSO[%d].", t.id);
+                    barf("Invalid whatNext field for TSO[%d].", t.id);
             }
 
             context.currentTSO = null;
@@ -172,10 +173,16 @@ public final class Capability {
             /* If an unhandled exception occured, throw it so that the caller
                can handle it if they so choose. */
             if (pendingException != null) {
+                /* A TSO has the ability to control the stack trace of an exception. */
                 StackTraceElement[] st = t.getStackTrace();
                 if (st != null) {
                     pendingException.setStackTrace(st);
+                    t.setStackTrace(null);
                 }
+                /* Cleanup resources in the Runtime before throwing the exception
+                   again. */
+                /* TODO: Will we have a difference between cleanup and exit? */
+                Runtime.exit();
                 throw pendingException;
             }
             if (emptyRunQueue() && !worker) break;

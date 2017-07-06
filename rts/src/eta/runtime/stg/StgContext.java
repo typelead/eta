@@ -4,9 +4,9 @@ import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
 
 public class StgContext {
-    public ArgumentStack argStack = new ArgumentStack();
-    public TSO currentTSO;
     public Capability myCapability;
+    public TSO currentTSO;
+    public ArgumentStack argStack = new ArgumentStack();
 
     public void reset(Capability cap, TSO t) {
         myCapability = cap;
@@ -29,6 +29,17 @@ public class StgContext {
             .build();
         // TODO: Need to synchronize this?
         this.argStack = (ArgumentStack) stack;
+    }
+
+    public static StgContext acquire() {
+        Capability cap = Capability.getLocal();
+        StgContext context = cap.context;
+        if (context.currentTSO != null) {
+            return context;
+        } else {
+            context.currentTSO = new TSO(null);
+            return context;
+        }
     }
 
     public void dump() {
