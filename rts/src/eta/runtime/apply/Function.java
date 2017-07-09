@@ -7,11 +7,11 @@ import eta.runtime.stg.AbstractArgumentStack;
 
 public abstract class Function extends Value {
 
-    public abstract int getArity();
+    public abstract int arity();
 
     @Override
     public Closure applyV(StgContext context) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             return enter(context);
         } else {
@@ -21,7 +21,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyN(StgContext context, int n) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.I(1, n);
             return enter(context);
@@ -36,7 +36,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyL(StgContext context, long l) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.L(1, l);
             return enter(context);
@@ -51,7 +51,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyF(StgContext context, float f) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.F(1, f);
             return enter(context);
@@ -66,7 +66,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyD(StgContext context, double d) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.D(1, d);
             return enter(context);
@@ -81,7 +81,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyO(StgContext context, Object o) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.O(1, o);
             return enter(context);
@@ -96,7 +96,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyP(StgContext context, Closure p) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.R(2, p);
             return enter(context);
@@ -111,7 +111,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPV(StgContext context, Closure p) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.R(2, p);
             return enter(context).applyV(context);
@@ -129,7 +129,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPP(StgContext context, Closure p1, Closure p2) {
-        int arity = getArity();
+        int arity = arity();
         if (arity == 1) {
             context.R(2, p1);
             return enter(context).applyP(context, p2);
@@ -149,7 +149,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
-        int arity = getArity();
+        int arity = arity();
         switch (arity) {
             case 1:
                 context.R(2, p1);
@@ -174,7 +174,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
-        int arity = getArity();
+        int arity = arity();
         switch (arity) {
             case 1:
                 context.R(2, p1);
@@ -201,7 +201,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
-        int arity = getArity();
+        int arity = arity();
         switch (arity) {
             case 1:
                 context.R(2, p1);
@@ -233,7 +233,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
-        int arity = getArity();
+        int arity = arity();
         switch (arity) {
             case 1:
                 context.R(2, p1);
@@ -267,7 +267,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
-        int arity = getArity();
+        int arity = arity();
         switch (arity) {
             case 1:
                 context.R(2, p1);
@@ -309,7 +309,7 @@ public abstract class Function extends Value {
 
     @Override
     public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
-        int arity = getArity();
+        int arity = arity();
         switch (arity) {
             case 1:
                 context.R(2, p1);

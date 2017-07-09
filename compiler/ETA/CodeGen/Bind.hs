@@ -64,7 +64,7 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
     thunkCode lfInfo fvLocs body
   else do
     setSuperClass stgFun
-    defineMethod $ mkMethodDef thisClass [Public] "getArity" [] (ret jint)
+    defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
     _ <- withMethod [Public] "enter" [contextType] (ret closureType) $ do
