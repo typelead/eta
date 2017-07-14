@@ -210,10 +210,13 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         unit $ cmd ["eta-pkg","init",packageConfDir rootDir]
         unit $ cmd "etlas update"
         etlasDir <- getEtlasDir
-        copyFile' "utils/coursier/coursier" $ etlasDir </> "coursier"
+        let etlasToolsDir = etlasDir </> "tools"
+        createDirIfMissing etlasToolsDir
+        copyFile' "utils/coursier/coursier" $ etlasToolsDir </> "coursier"
         let verifyExt ext = "utils/class-verifier/Verify" <.> ext
         unit $ cmd ["javac", verifyExt "java"]
-        copyFile' (verifyExt "class") $ etlasDir </> "Verify.class"
+        createDirIfMissing (etlasToolsDir </> "classes")
+        copyFile' (verifyExt "class") $ etlasToolsDir </> "classes" </> "Verify.class"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
