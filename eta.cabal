@@ -277,8 +277,10 @@ library
                        , ETA.Utils.GraphOps
                        , ETA.Utils.GraphPpr
                        , ETA.Utils.IOEnv
+                       , ETA.Utils.Json
                        , ETA.Utils.ListSetOps
                        , ETA.Utils.Maybes
+                       , ETA.Utils.Metrics
                        , ETA.Utils.MonadUtils
                        , ETA.Utils.OrdList
                        , ETA.Utils.Outputable
@@ -358,6 +360,7 @@ executable eta
                        , haskeline
                        , process
                        , transformers
+                       , time
                        , eta
 
     if os(windows)

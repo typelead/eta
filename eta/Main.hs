@@ -22,6 +22,7 @@ import ETA.Utils.FastString
 import ETA.Utils.Outputable
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Util
+import ETA.Utils.Metrics hiding (Mode)
 import ETA.Utils.Panic
 import ETA.Utils.MonadUtils       (liftIO)
 
@@ -201,17 +202,23 @@ main' postLoadMode dflags0 args flagWarnings = do
         ---------------- Final sanity checking -----------
   liftIO $ checkOptions postLoadMode dflags6 srcs objs
 
+  let measure mode io = do
+        liftIO $ GHC.startMetrics mode
+        r <- io
+        liftIO $ GHC.endMetrics
+        return r
+
   ---------------- Do the business -----------
   handleSourceError (\e -> do
        GHC.printException e
        liftIO $ exitWith (ExitFailure 1)) $
     case postLoadMode of
        ShowInterface f        -> liftIO $ doShowIface dflags6 f
-       DoMake                 -> doMake srcs
+       DoMake                 -> measure MakeMode $ doMake srcs
        DoMkDependHS           -> doMkDependHS (map fst srcs)
-       StopBefore p           -> liftIO (oneShot hsc_env p srcs)
-       DoInteractive          -> liftIO $ putStrLn "Eta REPL not implemented yet"
-       DoEval _exprs          -> liftIO $ putStrLn "Eta REPL not implemented yet"
+       StopBefore p           -> measure OneShotMode $ liftIO (oneShot hsc_env p srcs)
+       DoInteractive          -> measure InteractiveMode $ liftIO $ putStrLn "Eta REPL not implemented yet"
+       DoEval _exprs          -> measure EvalMode $ liftIO $ putStrLn "Eta REPL not implemented yet"
        DoAbiHash              -> abiHash (map fst srcs)
        ShowPackages           -> liftIO $ showPackages dflags6
 
