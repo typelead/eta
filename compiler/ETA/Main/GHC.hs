@@ -251,6 +251,10 @@ module ETA.Main.GHC (
         -- * Miscellaneous
         --sessionHscEnv,
         cyclicModuleErr,
+
+        -- * Telemetry
+        startMetrics,
+        endMetrics
   ) where
 
 {-
@@ -303,6 +307,8 @@ import ETA.Main.SysTools
 import ETA.Main.Annotations
 import ETA.BasicTypes.Module
 import ETA.Utils.UniqFM
+import ETA.Utils.Metrics
+import ETA.Utils.Json
 import ETA.Utils.Panic
 -- import ETA.Utils.Platform
 import ETA.Utils.Bag              ( unitBag )
@@ -329,6 +335,7 @@ import System.Exit      ( exitWith, ExitCode(..) )
 import ETA.Utils.Exception
 import Data.IORef
 import System.FilePath
+import System.Directory
 import System.IO
 import Prelude hiding (init)
 
@@ -349,6 +356,7 @@ defaultErrorHandler :: (ExceptionMonad m, MonadIO m)
 defaultErrorHandler fm (FlushOut flushOut) inner =
   -- top-level exception handler: any unrecognised exception is a compiler bug.
   ghandle (\exception -> liftIO $ do
+           endMetrics
            flushOut
            case fromException exception of
                 -- an IO exception probably isn't our fault, so don't panic
@@ -1424,3 +1432,35 @@ parser str dflags filename =
      POk pst rdr_module ->
          let (warns,_) = getMessages pst in
          Right (warns, rdr_module)
+
+-- Telemetry API
+eventsLog :: IO FilePath
+eventsLog = fmap (</> "metrics" </> "events.log") $ findTopDir Nothing
+
+startMetrics :: Mode -> IO ()
+startMetrics mode = do
+  startTime <- liftIO $ getCurrentTime
+  modifyIORef (metrics unsafeGlobalDynFlags)
+              (const (Just $ emptyMetrics { metStartTime = startTime
+                                          , metMode      = mode }))
+endMetrics :: IO ()
+endMetrics = do
+  endTime <- getCurrentTime
+  modifyIORef (metrics unsafeGlobalDynFlags)
+              (\may -> fmap (\m -> m { metEndTime = endTime }) may)
+  saveMetrics
+
+saveMetrics :: IO ()
+saveMetrics = do
+  mMetrics <- readIORef $ metrics unsafeGlobalDynFlags
+  case mMetrics of
+    Just metrics -> do
+      fp <- eventsLog
+      exists <- doesFileExist fp
+      let payload = (showSDocUnsafe . renderJSON $ json metrics) ++ "\n"
+      if exists
+      then appendFile fp payload
+      else do
+        createDirectoryIfMissing True $ takeDirectory fp
+        writeFile fp payload
+    Nothing -> return ()

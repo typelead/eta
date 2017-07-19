@@ -157,6 +157,7 @@ module ETA.Main.DynFlags (
 #include "HsVersions.h"
 
 import ETA.Utils.Platform
+import ETA.Utils.Metrics
 import ETA.BasicTypes.Module
 import ETA.Main.PackageConfig
 import {-# SOURCE #-} ETA.Main.Hooks
@@ -911,7 +912,10 @@ data DynFlags = DynFlags {
 
   -- | Only inline memset if it generates no more than this many
   -- pseudo (roughly: Cmm) instructions.
-  maxInlineMemsetInsns  :: Int
+  maxInlineMemsetInsns  :: Int,
+
+  -- | Telemetry
+  metrics :: IORef (Maybe Metrics)
 }
 
 class HasDynFlags m where
@@ -1429,35 +1433,35 @@ dynamicTooMkDynamicDynFlags dflags0
 -- | Used by 'GHC.runGhc' to partially initialize a new 'DynFlags' value
 initDynFlags :: DynFlags -> IO DynFlags
 initDynFlags dflags = do
- refCanGenerateDynamicToo <- newIORef True
- refNextTempSuffix <- newIORef 0
- refFilesToClean <- newIORef []
- refDirsToClean <- newIORef Map.empty
+ refCanGenerateDynamicToo       <- newIORef True
+ refNextTempSuffix              <- newIORef 0
+ refFilesToClean                <- newIORef []
+ refDirsToClean                 <- newIORef Map.empty
  refFilesToNotIntermediateClean <- newIORef []
- refGeneratedDumps <- newIORef Set.empty
- refLlvmVersion <- newIORef 28
- refRtldInfo <- newIORef Nothing
- refRtccInfo <- newIORef Nothing
- wrapperNum <- newIORef emptyModuleEnv
+ refGeneratedDumps              <- newIORef Set.empty
+ refLlvmVersion                 <- newIORef 28
+ refRtldInfo                    <- newIORef Nothing
+ refRtccInfo                    <- newIORef Nothing
+ wrapperNum                     <- newIORef emptyModuleEnv
+ refMetrics                     <- newIORef Nothing
  canUseUnicode <- do let enc = localeEncoding
                          str = "‘’"
                      (withCString enc str $ \cstr ->
                           do str' <- peekCString enc cstr
                              return (str == str'))
                          `catchIOError` \_ -> return False
- return dflags{
-        canGenerateDynamicToo = refCanGenerateDynamicToo,
-        nextTempSuffix = refNextTempSuffix,
-        filesToClean   = refFilesToClean,
-        dirsToClean    = refDirsToClean,
-        filesToNotIntermediateClean = refFilesToNotIntermediateClean,
-        generatedDumps = refGeneratedDumps,
-        llvmVersion    = refLlvmVersion,
-        nextWrapperNum = wrapperNum,
-        useUnicode    = canUseUnicode,
-        rtldInfo      = refRtldInfo,
-        rtccInfo      = refRtccInfo
-        }
+ return dflags { canGenerateDynamicToo       = refCanGenerateDynamicToo
+               , nextTempSuffix              = refNextTempSuffix
+               , filesToClean                = refFilesToClean
+               , dirsToClean                 = refDirsToClean
+               , filesToNotIntermediateClean = refFilesToNotIntermediateClean
+               , generatedDumps              = refGeneratedDumps
+               , llvmVersion                 = refLlvmVersion
+               , nextWrapperNum              = wrapperNum
+               , useUnicode                  = canUseUnicode
+               , rtldInfo                    = refRtldInfo
+               , rtccInfo                    = refRtccInfo
+               , metrics                     = refMetrics }
 
 -- | The normal 'DynFlags'. Note that they are not suitable for use in this form
 -- and must be fully initialized by 'GHC.runGhc' first.
@@ -1626,7 +1630,8 @@ defaultDynFlags mySettings =
 
         maxInlineAllocSize = 128,
         maxInlineMemcpyInsns = 32,
-        maxInlineMemsetInsns = 32
+        maxInlineMemsetInsns = 32,
+        metrics = panic "defaultDynFlags: No metrics"
       }
 
 defaultWays :: Settings -> [Way]
