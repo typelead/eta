@@ -382,7 +382,7 @@ public final class Capability {
 
     /* Thunk Evaluation */
 
-    public final boolean messageBlackHole(MessageBlackHole msg) {
+    public final boolean messageBlackHole(MessageBlackHole msg, boolean executingMsg) {
         Thunk bh = msg.bh;
         do {
             Closure p = bh.indirectee;
@@ -393,6 +393,8 @@ public final class Capability {
                 if (owner.cap != this) {
                     sendMessage(owner.cap, msg);
                     return true;
+                } else if (!executingMsg) {
+                    Exception.raise(context, Closures.nonTermination);
                 }
                 BlockingQueue bq = new BlockingQueue(owner, msg);
                 owner.blockingQueues.offer(bq);
