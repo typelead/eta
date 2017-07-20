@@ -189,8 +189,14 @@ public class Closures {
 
     public static String showException(Closure exception) {
         StgContext context = StgContext.acquire();
-        showException.applyP(context, exception);
-        String result = (String) context.O(1);
+        String result;
+        try {
+            showException.applyP(context, exception);
+            result = (String) context.O(1);
+        } catch (Exception e) {
+            result = "Exception was thrown in rendering exception of type "
+                   + e.getClass();
+        }
         context.reset(null, null);
         return result;
     }
