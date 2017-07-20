@@ -103,7 +103,7 @@ public abstract class Thunk extends Closure {
                 Capability cap = context.myCapability;
                 TSO tso = context.currentTSO;
                 MessageBlackHole msg = new MessageBlackHole(tso, this);
-                boolean blocked = cap.messageBlackHole(msg);
+                boolean blocked = cap.messageBlackHole(msg, false);
                 if (blocked) {
                     tso.whyBlocked = BlockedOnBlackHole;
                     tso.blockInfo = msg;

@@ -71,8 +71,14 @@ public class UpdateInfoStack {
     }
 
     public void raiseExceptionAfter(Capability cap, TSO tso, Closure raise, UpdateInfo ui) {
+        top = ui;
         if (ui != null) ui = ui.next;
         else ui = bottom;
+        if (top != null) {
+            top.next = null;
+        } else {
+            bottom = null;
+        }
         while (ui != null) {
             ui.updatee.updateThunk(cap, tso, raise);
             ui = ui.next;

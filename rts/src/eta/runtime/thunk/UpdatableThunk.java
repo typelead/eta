@@ -2,37 +2,48 @@ package eta.runtime.thunk;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.exception.Exception;
+import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
 
 public abstract class UpdatableThunk extends Thunk {
 
     @Override
     public Closure enter(StgContext context) {
-        if (indirectee == null) {
-            UpdateInfo ui = context.pushUpdate(this);
-            Closure result = null;
-            try {
-                result = thunkEnter(context);
-            } catch (EtaAsyncException ea) {
-                if (ea.stopHere == ui) {
-                    return enter(context);
-                } else {
-                    throw ea;
+        do {
+            if (indirectee == null) {
+                UpdateInfo ui = context.pushUpdate(this);
+                Closure result = null;
+                try {
+                    result = thunkEnter(context);
+                } catch (java.lang.Exception e) {
+                    if (e instanceof EtaAsyncException) {
+                        if (((EtaAsyncException) e).stopHere == ui) {
+                            continue;
+                        } else {
+                            throw e;
+                        }
+                    } else {
+                        EtaException e_;
+                        if (e instanceof EtaException) {
+                            e_ = (EtaException) e;
+                        } else {
+                            e_ = Exception.toEtaException(context.currentTSO, e);
+                        }
+                        throw e_;
+                    }
                 }
-            } finally {
-                /* TODO: Are there additional conditions to take care of
-                   when an exception is thrown while evaluating a thunk? */
                 Thunk popped = context.popUpdate();
                 assert popped == this;
-            }
-            if (ui.marked) {
-                return updateCode(context, result);
+                if (ui.marked) {
+                    return updateCode(context, result);
+                } else {
+                    updateWithIndirection(result);
+                    return result;
+                }
             } else {
-                updateWithIndirection(result);
-                return result;
+                return blackHole(context);
             }
-        } else {
-            return blackHole(context);
-        }
+        } while (true);
     }
 }
