@@ -92,6 +92,7 @@ How do I opt-in to telemetry?
 -----------------------------
 
 1. Locate your Etlas config file.
+
    - On Unix-based systems like Linux and Mac, ``~/.etlas/config``
    - On Windows, ``%APPDATA%\Roaming\etlas\config``.
 2. Open the file with a text editor.
@@ -103,6 +104,7 @@ How do I opt-out of telemetry?
 ------------------------------
 
 1. Locate your Etlas config file.
+
    - On Unix-based systems like Linux and Mac, ``~/.etlas/config``
    - On Windows, ``%APPDATA%\Roaming\etlas\config``.
 2. Open the file with a text editor.
