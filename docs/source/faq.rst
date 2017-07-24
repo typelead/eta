@@ -84,3 +84,27 @@ On the other hand, Frege, while it supports basic Haskell, lacks many of the key
 Will Eta support CLR/.NET?
 --------------------------
 Because of the similarity of Java bytecode and CLR bytecode, the code generator can be ported quite easily. The nontrivial part is porting the runtime. There are no plans for supporting it as of now, but in the distant future, it may be a possibility. It all depends on popular demand.
+
+
+.. _opt-in-telemetry:
+
+How do I opt-in to telemetry?
+-----------------------------
+
+1. Locate your Etlas config file.
+   - On Unix-based systems like Linux and Mac, ``~/.etlas/config``
+   - On Windows, ``%APPDATA%\Roaming\etlas\config``.
+2. Open the file with a text editor.
+3. Locate the ``send-metrics:`` field and change the value to ``True``.
+
+.. _opt-out-telemetry:
+
+How do I opt-out of telemetry?
+------------------------------
+
+1. Locate your Etlas config file.
+   - On Unix-based systems like Linux and Mac, ``~/.etlas/config``
+   - On Windows, ``%APPDATA%\Roaming\etlas\config``.
+2. Open the file with a text editor.
+3. Locate the ``send-metrics:`` field and change the value to ``False``.
+

@@ -18,22 +18,13 @@ the following goals:
 
 Visit [eta-lang.org](http://eta-lang.org) for instructions on getting started.
 
-## Current Status
+## Version
 
-**Version:** 0.0.6
+**Version:** 0.0.9
 
-**Stable Build:** 0.0.6b7
+**Stable Build:** 0.0.6b8
 
-**Latest Build:** 0.0.6b8
-
-Active development is taking place in the following areas:
-
-- Concurrent runtime
-- Interactive REPL
-- Metaprogramming (TemplateHaskell support)
-- Core library support
-- Boilerplate generation for Java FFI imports
-- Platform-specific installers
+**Latest Build:** 0.0.9b1
 
 Subscribe to the [Eta-Discuss](https://groups.google.com/forum/#!forum/eta-discuss)
 for updates.

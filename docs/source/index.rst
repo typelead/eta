@@ -16,6 +16,7 @@ Contents:
    eta-user-guide
    etlas-user-guide
    faq
+   privacy-policy
 
 Indices and tables
 ==================
