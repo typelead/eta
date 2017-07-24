@@ -212,6 +212,6 @@ will constitute your acceptance of such change.
 Credit and License
 ------------------
 
-Parts of this policy document were originally included in the `npm Privacy Policy <https://www.npmjs.com/policies/privacy>`.
+Parts of this policy document were originally included in the `npm Privacy Policy <https://www.npmjs.com/policies/privacy>`_.
 
 This document may be reused under a `Creative Commons Attribution-ShareAlike License <https://creativecommons.org/licenses/by-sa/4.0/>`_.
