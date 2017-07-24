@@ -15,7 +15,9 @@ tool, detailed in the following section.
 
 For example, this is a sample payload of metrics stored by the Eta compiler:
 
-{"startTime": "2017-07-20T20:02:00.164452Z","mode": 0,"endTime": "2017-07-20T20:02:08.721724Z"}
+.. code-block:: console
+
+   {"startTime": "2017-07-20T20:02:00.164452Z","mode": 0,"endTime": "2017-07-20T20:02:08.721724Z"}
 
 This includes:
 
@@ -35,7 +37,9 @@ TypeLead, Inc.
 This is a sample of the request log stored on the telemetry server, sent by the Etlas
 build tool:
 
-91.230.47.3 - - [24/07/2017:02:25:07 +0000] "GET /metrics-api HTTP/1.1" 200 - "" "etlas/1.0.1.0 (osx; x86_64)"
+.. code-block:: console
+
+   91.230.47.3 - - [24/07/2017:02:25:07 +0000] "GET /metrics-api HTTP/1.1" 200 - "" "etlas/1.0.1.0 (osx; x86_64)"
 
 This includes:
 
@@ -55,7 +59,10 @@ binary package server are logged and retained by TypeLead, Inc.
 This is a sample of the request log stored on the binary package server, sent by the
 Etlas build tool:
 
-91.230.47.3 - - [20/07/2017:15:45:35 +0000] "GET /index HTTP/1.1" 304 290 "-" "etlas/1.0.1.0 (osx; x86_64)"
+
+.. code-block:: console
+
+   91.230.47.3 - - [20/07/2017:15:45:35 +0000] "GET /index HTTP/1.1" 304 290 "-" "etlas/1.0.1.0 (osx; x86_64)"
 
 This includes the same details as listed above, since the format is exactly the same.
 
