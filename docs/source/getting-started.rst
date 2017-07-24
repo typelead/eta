@@ -27,7 +27,7 @@ Eta Version: 0.0.9b1
    - `Mac (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-osx/etlas>`_
    - `Windows (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-windows/etlas.exe>`_
 
-2. Place the binary in in your ``$PATH`` and head over to :ref:`setting-up-your-first-etlas-project`.
+2. Place the binary in in your ``$PATH`` and head over to :ref:`setting-up-first-project`.
 
 Method 1: Source Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
