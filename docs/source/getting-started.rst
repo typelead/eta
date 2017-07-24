@@ -22,9 +22,11 @@ Method 1: Binary Installation
 Eta Version: 0.0.9b1
 
 1. Download the binary for your platform.
-   - [Linux (64-bit)](http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-linux/etlas)
-   - [Mac (64-bit)](http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-osx/etlas)
-   - [Windows (64-bit)](http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-windows/etlas.exe)
+
+   - `Linux (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-linux/etlas>`_
+   - `Mac (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-osx/etlas>`_
+   - `Windows (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-windows/etlas.exe>`_
+
 2. Place the binary in in your ``$PATH`` and head over to :ref:`running-your-first-program`.
 
 Method 1: Source Installation

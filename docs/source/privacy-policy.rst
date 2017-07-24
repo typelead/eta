@@ -29,7 +29,7 @@ The Etlas Build Tool
 The Etlas build tool does not track metrics of its own and sends the metrics
 stored by the Eta compiler along with a uniquely identifier for the user's system
 to the Eta telemetry server, only if the user had decided to opt-in - a preference
-stored in the user's [Etlas config file](http://eta-lang.org/docs/html/faq.html#opt-in-telemetry). All the requests to the telemetry server are logged and retained by
+stored in the user's `Etlas config file <http://eta-lang.org/docs/html/faq.html#opt-in-telemetry>`_. All the requests to the telemetry server are logged and retained by
 TypeLead, Inc.
 
 This is a sample of the request log stored on the telemetry server, sent by the Etlas
@@ -80,9 +80,9 @@ The Eta website uses Google Analytics to monitor and analyze user behavior. This
 service provides TypeLead, Inc. with information on users' demographics, age, location,
 and interest categories, when such information is available. This information is not
 used to identify individual users, but can in some cases be very specific. You can
-learn more about the information gathered and retained by this service at the [Google
-Analytics privacy policy](https://support.google.com/analytics/answer/2700409?hl=en&utm_id=ad).
-You can opt out of Google Analytics entirely with the [Google Analytics opt-out browser addon](https://support.google.com/analytics/answer/181881?hl=en&ref_topic=2919631).
+learn more about the information gathered and retained by this service at the `Google
+Analytics privacy policy <https://support.google.com/analytics/answer/2700409?hl=en&utm_id=ad>`_.
+You can opt out of Google Analytics entirely with the `Google Analytics opt-out browser addon <https://support.google.com/analytics/answer/181881?hl=en&ref_topic=2919631>`_.
 
 Collection of Personally Identifying Information
 ------------------------------------------------
@@ -93,7 +93,7 @@ address, username, password, personal website, and account names on other servic
 as GitHub, Twitter, and IRC.
 
 If users do not want their information tracked in this manner, they can opt out by
-following the instructions [here](http://eta-lang.org/docs/html/faq.html#opt-out-telemetry). However, this means that some features of the Eta website will be unavailable
+following the instructions `here <http://eta-lang.org/docs/html/faq.html#opt-out-telemetry>`_. However, this means that some features of the Eta website will be unavailable
 to them.
 
 Use of Personally Identifying Information
@@ -194,15 +194,15 @@ Contact Information
 If you have any questions or concerns about how we track user information, or how that
 information is used, please contact us at once.
 
-You may contact TypeLead, Inc. by emailing [legal@typelead.com](mailto:legal@typelead.com).
+You may contact TypeLead, Inc. by emailing `legal@typelead.com <mailto:legal@typelead.com>`_.
 
 Privacy Policy Changes
 ----------------------
 
 Although most changes are likely to be minor, TypeLead, Inc. may change its Privacy
 Policy from time to time, and in TypeLead, Inc.'s sole discretion. Any such changes
-will be posted on [the Eta blog](https://medium.com/eta-programming-language), and
-the detailed history of changes can be found in [the git repository history for this document](https://github.com/typelead/eta/blob/master/docs/source/privacy-policy.rst).
+will be posted on `the Eta blog <https://medium.com/eta-programming-language>`_, and
+the detailed history of changes can be found in `the git repository history for this document <https://github.com/typelead/eta/blob/master/docs/source/privacy-policy.rst>`_.
 
 TypeLead, Inc. encourages visitors to frequently check this page for any changes to its
 Privacy Policy. Your continued use of the Eta website, the Etlas build tool (if
@@ -212,6 +212,6 @@ will constitute your acceptance of such change.
 Credit and License
 ------------------
 
-Parts of this policy document were originally included in the [npm Privacy Policy](https://www.npmjs.com/policies/privacy).
+Parts of this policy document were originally included in the `npm Privacy Policy <https://www.npmjs.com/policies/privacy>`.
 
-This document may be reused under a [Creative Commons Attribution-ShareAlike License](https://creativecommons.org/licenses/by-sa/4.0/).
+This document may be reused under a `Creative Commons Attribution-ShareAlike License <https://creativecommons.org/licenses/by-sa/4.0/>`_.
