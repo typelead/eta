@@ -29,7 +29,7 @@ Eta Version: 0.0.9b1
 
 2. Place the binary in in your ``$PATH`` and head over to :ref:`setting-up-first-project`.
 
-Method 1: Source Installation
+Method 2: Source Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Prerequisites
@@ -143,8 +143,8 @@ If you obtain an error that either tool is missing, run the following command:
 Add the path that you obtain in the output to your ``PATH`` environment variable.
 
 
-Method 2: Docker
-^^^^^^^^^^^^^^^^
+Method 3: Docker Image
+^^^^^^^^^^^^^^^^^^^^^^
 
 Prerequisites
 """""""""""""
@@ -162,8 +162,8 @@ To obtain an environment with ``eta`` and ``etlas``, run the following command:
 
   docker run -it typelead/eta
 
-Method 3: Nix
-^^^^^^^^^^^^^
+Method 4: Nix Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Prerequisites
 """""""""""""
