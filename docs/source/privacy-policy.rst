@@ -209,7 +209,7 @@ Privacy Policy Changes
 Although most changes are likely to be minor, TypeLead, Inc. may change its Privacy
 Policy from time to time, and in TypeLead, Inc.'s sole discretion. Any such changes
 will be posted on `the Eta blog <https://medium.com/eta-programming-language>`_, and
-the detailed history of changes can be found in `the git repository history for this document <https://github.com/typelead/eta/blob/master/docs/source/privacy-policy.rst>`_.
+the detailed history of changes can be found in `the git repository history for this document <https://github.com/typelead/eta/commits/master/docs/source/privacy-policy.rst>`_.
 
 TypeLead, Inc. encourages visitors to frequently check this page for any changes to its
 Privacy Policy. Your continued use of the Eta website, the Etlas build tool (if
