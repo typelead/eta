@@ -20,6 +20,7 @@ Method 1: Binary Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Eta Version: 0.0.9b1
+
 Etlas Version: 1.0.1.0
 
 1. Make sure `JDK 7 or above <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_ are installed on your system and ``java`` is on the ``$PATH``. 
