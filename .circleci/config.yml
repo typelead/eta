@@ -1,0 +1,154 @@
+defaults: &defaults
+  working_directory: ~/eta
+  docker:
+    - image: fpco/stack-build:latest
+
+version: 2.0
+jobs:
+  build:
+    <<: *defaults
+
+    steps:
+      - checkout
+      - run: mkdir -p ~/.local/bin
+      - run: git submodule sync
+      - run: git submodule update --init --recursive
+      - run: grep '^resolver:' stack.yaml > resolver.txt
+
+      - restore_cache:
+          keys:
+            - dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+            - dot-stack-{{ checksum "stack.yaml" }}
+            - dot-stack-{{ checksum "resolver.txt" }}
+            - dot-stack-resolver-{{ checksum "resolver.txt" }}
+      - run: stack setup
+      - save_cache:
+          key: dot-stack-resolver-{{ checksum "resolver.txt" }}
+          paths:
+            - ~/.stack
+      - save_cache:
+          key: dot-stack-{{ checksum "stack.yaml" }}
+          paths:
+            - ~/.stack
+
+      - restore_cache:
+          key: stack-work-{{ checksum "stack.yaml" }}
+
+      - run:
+          name: Installing or updating ETA
+          command: ./install.sh
+
+      - save_cache:
+          key: dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+          paths:
+            - ~/.stack
+      - save_cache:
+          key: stack-work-{{ checksum "stack.yaml" }}
+          paths:
+            - ~/eta/.stack-work
+            - ./etlas/etlas/.stack-work
+            - ./etlas/etlas-cabal/.stack-work
+
+      - save_cache:
+          key: eta-bin
+          paths:
+            - ~/.eta
+            - ~/.etlas
+            - ~/.coursier
+            - ~/.local
+
+      - persist_to_workspace:
+          root: .
+          paths: . \
+
+  test:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: .
+
+      - restore_cache:
+          key: eta-bin
+
+      - run: stack setup
+      - run: stack build --test --no-run-tests eta
+
+      - run:
+          name: Running unit tests
+          command: stack test eta
+
+  release_container:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          key: eta-bin
+      - setup_remote_docker
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.03.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+      - run: ./docker/circleci-build-container.sh build
+      - run: ./docker/circleci-build-container.sh push latest
+
+  dev_container:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          key: eta-bin
+      - setup_remote_docker
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.03.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+      - run: ./docker/circleci-build-container.sh build
+
+  trigger_builds:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: ./utils/scripts/circleci-trigger.sh typelead/eta-hackage master $ETA_HACKAGE_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+      - run: ./utils/scripts/circleci-trigger.sh typelead/eta-examples master $ETA_EXAMPLES_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+      - run: ./utils/scripts/circleci-trigger.sh typelead/eta-benchmarks master $ETA_BENCHMARKS_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+      - run: ./utils/scripts/circleci-trigger.sh rahulmutt/eta-2048 master $ETA_2048_TOKEN $CIRCLE_BRANCH $CIRCLE_TAG $CI_PULL_REQUEST
+
+workflows:
+  version: 2
+
+  full_cycle:
+    jobs:
+      - build
+
+      - test:
+          requires:
+            - build
+
+      - release_container:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+
+      - dev_container:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: master
+
+      - trigger_builds:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master

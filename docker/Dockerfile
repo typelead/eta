@@ -58,12 +58,5 @@ RUN curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/java
            ${JAVA_HOME}/jre/lib/plugin.jar \
            /var/tmp/*
 
-RUN useradd -ms /bin/bash ubuntu && \
-    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
-    adduser ubuntu sudo
-ADD bin/ /home/ubuntu/
-RUN chown -R ubuntu:ubuntu /home/ubuntu
-
-USER ubuntu
-WORKDIR /home/ubuntu
-ENV PATH=${PATH}:/opt/java/bin:/home/ubuntu/.local/bin
+ADD bin/ /root/
+ENV PATH=${PATH}:/opt/java/bin:/root/.local/bin
