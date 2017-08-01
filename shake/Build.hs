@@ -221,7 +221,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
-        unit $ cmd $ ["etlas", "install", "template-haskell", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
+        unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]
