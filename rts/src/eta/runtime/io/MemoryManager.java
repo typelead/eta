@@ -87,6 +87,8 @@ public class MemoryManager {
         , new AtomicBoolean()
         , new AtomicBoolean() };
 
+    public static final long EMPTY_BUFFER_ADDRESS = Long.MAX_VALUE;
+    
     /* Buffer Allocation
        This logic is rather complicated but it is done for efficiency purposes. Each
        free block size has a lock associated with it which is taken whenever a
@@ -95,6 +97,8 @@ public class MemoryManager {
      */
     public static long allocateBuffer(int n, boolean direct) {
         assert n <= ONE_GB;
+        if (n == 0)
+            return EMPTY_BUFFER_ADDRESS;
         int     newRegionSize;
         long    newAddress;
         boolean attemptedGC = false;
@@ -529,7 +533,12 @@ public class MemoryManager {
     /* The cached buffer */
     public static ThreadLocal<ByteBuffer> cachedBuffer = new ThreadLocal<ByteBuffer>();
 
+    /* The shared empty buffer */
+    public final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
+    
     public static ByteBuffer getBuffer(long address) {
+        if (address == EMPTY_BUFFER_ADDRESS)
+            return emptyBuffer;
         if (address >= cachedLowerAddress.get() && address < cachedHigherAddress.get()) {
             ByteBuffer cached = cachedBuffer.get();
             if (cached != null) {
@@ -574,6 +583,8 @@ public class MemoryManager {
 
        Returns null if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
+        if (address == EMPTY_BUFFER_ADDRESS)
+            return emptyBuffer;
         Map.Entry<Long, Integer>
             lowerEntry = findLowerAllocatedAddress(allocatedDirectBlocks, address);
         if (lowerEntry == null) {
