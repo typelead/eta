@@ -33,6 +33,12 @@ Etlas Version: 1.0.1.0
 
 3. Place the binary in in your ``$PATH`` and head over to :ref:`setting-up-first-project`.
 
+4. Give the program executable permissions (on Unix-based systems).
+
+.. code-block:: console
+
+   chmod +x etlas
+
 Method 2: Source Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
