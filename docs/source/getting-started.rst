@@ -127,8 +127,8 @@ Replace ``[current-stable-tag]`` with the tag listed in the README of the eta re
 
 .. note::
 
-  If you omit the `--recursive` flag to `git clone`, you will need to
-  initialize the project's submodules before running `install.sh` or `install.cmd`:
+  If you omit the ``--recursive`` flag to ``git clone``, you will need to
+  initialize the project's submodules before running ``install.sh`` or ``install.cmd``:
 
   .. code-block:: console
 
