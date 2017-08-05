@@ -31,13 +31,15 @@ Etlas Version: 1.0.1.0
    - `Mac (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-osx/etlas>`_
    - `Windows (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-windows/etlas.exe>`_
 
-3. Place the binary in in your ``$PATH`` and head over to :ref:`setting-up-first-project`.
+3. Place the binary in in your ``$PATH``.
 
 4. Give the program executable permissions (on Unix-based systems).
 
 .. code-block:: console
 
    chmod +x etlas
+
+5. Start using it and it will download everything you need on demand. Head over to :ref:`setting-up-first-project`.
 
 Method 2: Source Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
