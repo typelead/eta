@@ -226,14 +226,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]
       need [rtsjar]
-      let libDir = libraryDir </> "rts"
-      unit $ cmd (Cwd libDir) "etlas clean"
-      unit $ cmd (Cwd libDir) "etlas build"
-      etlasLibDir <- getEtlasLibDir
-      sourceJar   <- findFileOrDir "HSrts-0.1.0.0" (libDir </> "dist" </> "build")
-      destJar     <- findFileOrDir "rts-0.1.0.0" etlasLibDir
-                 >>= findFileOrDir "HSrts-0.1.0.0"
-      copyFile' sourceJar destJar
+      buildLibrary debug binPathArg "rts" (getDependencies "rts")
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]
