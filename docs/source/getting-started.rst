@@ -21,15 +21,15 @@ Method 1: Binary Installation
 
 Eta Version: 0.0.9b1
 
-Etlas Version: 1.0.1.0
+Etlas Version: 1.0.2.0
 
 1. Make sure `JDK 7 or above <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_ are installed on your system and ``java`` is on the ``$PATH``. 
 
 2. Download the Etlas binary for your platform.
 
-   - `Linux (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-linux/etlas>`_
-   - `Mac (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-osx/etlas>`_
-   - `Windows (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.1.0/binaries/x86_64-windows/etlas.exe>`_
+   - `Linux (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.2.0/binaries/x86_64-linux/etlas>`_
+   - `Mac (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.2.0/binaries/x86_64-osx/etlas>`_
+   - `Windows (64-bit) <http://88a2a1b21f8e03a6bc8d-8f2e61d843ea88e4f30ab3f81ca0e396.r42.cf5.rackcdn.com/etlas-1.0.2.0/binaries/x86_64-windows/etlas.exe>`_
 
 3. Place the binary in in your ``$PATH``.
 
