@@ -36,19 +36,11 @@ emitAssign cgLoc code = emit $ storeLoc cgLoc code
 multiAssign :: [CgLoc] -> [Code] -> Code
 multiAssign locs codes = fold $ zipWith storeLoc locs codes
 
--- TODO: Beautify this code
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
-mkCallEntry :: Int -> [NonVoid Id] -> ([(NonVoid Id, CgLoc)], Code, Int)
-mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
-  where fts' = map ( expectJust "mkCallEntry"
-                   . repFieldType_maybe
-                   . idType ) args'
-        args' = map unsafeStripNV nvArgs
-        argReps' = map idArgRep args'
-        (!code, !locs, !n) = loadArgs nStart mempty [] args' fts' argReps' 2 1 1 1 1 1
-        loadArgs !n !code !locs (_arg:args) (ft:fts) (argRep:argReps)
-                 !r !i !l !f !d !o =
+mkCallEntry :: [CgLoc] -> Code
+mkCallEntry cgLocs = go mempty cgLocs 2 1 1 1 1 1
+  where go !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
             N -> loadRec (context i <> gconv jint ft) r (i + 1) l f d o
@@ -58,12 +50,10 @@ mkCallEntry nStart nvArgs = (zip nvArgs locs, code, n)
             O -> loadRec (context o <> gconv jobject ft) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where context = contextLoad argRep
-                loadRec nextCode =
-                  loadArgs (n + ftSize) (code <> nextCode <> gstore ft n)
-                           (loc:locs) args fts argReps
-                ftSize = fieldSize ft
-                loc = mkLocLocal (argRep == P) ft n
-        loadArgs !n !code !locs _ _ _ _ _ _ _ _ _ = (code, reverse locs, n)
+                argRep  = locArgRep cgLoc
+                ft      = locFt cgLoc
+                loadRec nextCode = go (code <> storeLoc cgLoc nextCode) cgLocs
+        go !code _ _ _ _ _ _ _ = code
 
 mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1

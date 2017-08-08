@@ -4,6 +4,8 @@ module ETA.CodeGen.Bind where
 import ETA.StgSyn.StgSyn
 import ETA.Core.CoreSyn
 import ETA.BasicTypes.Id
+import ETA.BasicTypes.BasicTypes
+import ETA.BasicTypes.VarEnv
 import ETA.Utils.Util (unzipWith)
 import ETA.Types.TyCon
 import ETA.CodeGen.ArgRep
@@ -21,7 +23,7 @@ import ETA.Util
 import Data.Maybe (catMaybes)
 import ETA.Main.Constants
 import Codec.JVM
-import Control.Monad (forM, foldM)
+import Control.Monad (forM, foldM, when)
 import Data.Text (unpack)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
@@ -32,6 +34,7 @@ closureCodeBody
   -> Id                    -- the closure's name
   -> LambdaFormInfo        -- Lots of information about this closure
   -> [NonVoid Id]          -- incoming args to the closure
+  -> Maybe (Int, VarEnv Int)     -- Recursive ids for functions
   -> Int                   -- arity, including void args
   -> StgExpr               -- body
   -> [NonVoid Id]          -- the closure's free vars
@@ -39,7 +42,7 @@ closureCodeBody
   -> [Id]                  -- For a recursive block, the ids of the other
                            -- closures in the group.
   -> CodeGen ([FieldType], RecIndexes)
-closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
+closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = do
   dflags <- getDynFlags
   traceCg $ str $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
@@ -67,19 +70,26 @@ closureCodeBody _ id lfInfo args arity body fvs binderIsFV recIds = do
     defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
                  $  iconst jint (fromIntegral arity)
                  <> greturn jint
-    _ <- withMethod [Public] "enter" [contextType] (ret closureType) $ do
-      n <- peekNextLocal
-      let (argLocs, code, n') = mkCallEntry n args
-          (_ , cgLocs) = unzip argLocs
-      emit code
-      setNextLocal n'
-      bindArgs argLocs
-      label <- newLabel
-      when (isWeakLoopBreaker $ occInfo $ id_info id) $
-        emit $ startLabel label
-      withSelfLoop (id, label, cgLocs) $ do
-        mapM_ bindFV fvLocs
-        cgExpr body
+    modClass <- getModClass
+    _ <- withMethod [Public] "enter" [contextType] (ret closureType) $
+      case mFunRecIds of
+        Just (n, funRecIds)
+          | Just target <- lookupVarEnv funRecIds id -> do
+            emit $ aconst_null closureType
+                <> loadContext
+                <> iconst jint (fromIntegral target)
+                <> invokestatic (mkMethodRef modClass (mkRecBindingMethodName n)
+                                    [closureType, contextType, jint] (ret closureType))
+                <> greturn closureType
+        _ -> do
+          argLocs <- mapM newIdLoc args
+          emit $ mkCallEntry argLocs
+          bindArgs $ zip args argLocs
+          label <- newLabel
+          emit $ startLabel label
+          withSelfLoop (id, label, argLocs) $ do
+            mapM_ bindFV fvLocs
+            cgExpr body
     return ()
   superClass <- getSuperClass
   -- Generate constructor
@@ -201,7 +211,7 @@ mkRhsClosure binder _ fvs updateFlag args body recIds = do
   return (idInfo, genCode lfInfo cgLoc)
   where genCode lfInfo cgLoc = do
           ((fields, recIndexes), CgState { cgClassName }) <- forkClosureBody $
-            closureCodeBody False binder lfInfo (nonVoidIds args) (length args)
+            closureCodeBody False binder lfInfo (nonVoidIds args) Nothing (length args)
                             body reducedFVs binderIsFV recIds
 
           loads <- forM reducedFVs $ \(NonVoid id) ->

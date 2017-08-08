@@ -289,3 +289,9 @@ methodType = "java/lang/reflect/Method"
 classFt, methodFt :: FieldType
 classFt  = obj classType
 methodFt = obj methodType
+
+mkRecInitMethodName :: Int -> Text
+mkRecInitMethodName n = "$recInit" <> T.pack (show n)
+
+mkRecBindingMethodName :: Int -> Text
+mkRecBindingMethodName n = "$recBinding" <> T.pack (show n)

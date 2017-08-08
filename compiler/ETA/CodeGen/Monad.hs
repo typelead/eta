@@ -31,6 +31,7 @@ module ETA.CodeGen.Monad
    getClass,
    addBinding,
    addBindings,
+   getBindings,
    setBindings,
    printBindings,
    defineMethod,
@@ -380,7 +381,8 @@ withMethod accessFlags name fts rt body = do
   oldNextLocal <- peekNextLocal
   oldNextLabel <- peekNextLabel
   setMethodCode mempty
-  setNextLocal 2
+  setNextLocal ((if Static `elem` accessFlags then 0 else 1)
+                + sum (map fieldSize fts))
   setNextLabel 0
   body
   clsName <- getClass
