@@ -229,7 +229,8 @@ getCgIdInfo id = do
     Nothing -> do
       curMod <- getModule
       let name = idName id
-      let mod = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id)) $ nameModule_maybe name
+      let mod  = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id))
+               $ nameModule_maybe name
       dflags <- getDynFlags
       if mod /= curMod then return . mkCgIdInfo dflags id $ mkLFImported id
       else return . mkCgIdInfo dflags id $ mkLFImported id

@@ -37,7 +37,6 @@ import Data.Foldable
 import Data.Monoid
 import Data.Maybe
 import Control.Monad hiding (void)
-import Control.Monad.IO.Class
 
 import Data.Text (Text, pack, append)
 
@@ -62,7 +61,7 @@ cgTopBinding dflags (StgNonRec id rhs) = do
 cgTopBinding dflags (StgRec pairs) = do
   _mod <- getModule
   let (binders, rhss) = unzip pairs
-  traceCg $ str "generating (rec) " <+> ppr binders
+  traceCg $ str "generating (rec)" <+> ppr binders
   binders' <- mapM (externaliseId dflags) binders
   let pairs'         = zip binders' rhss
       conRecIds      = map fst
@@ -78,10 +77,12 @@ cgTopBinding dflags (StgRec pairs) = do
                              _ -> False)
                   $ pairs'
 
-  mFunRecIds <- if length funRecBinds > 1
-                then do
-                  genFunRecBinds funRecBinds
-                else return Nothing
+  (mFunRecIds, genRecFunCode) <-
+    if length funRecBinds > 1
+    then do
+      traceCg $ str "Found mutually recursive group:" <+> ppr (map fst funRecBinds)
+      genFunRecBinds funRecBinds
+    else return (Nothing, return ())
   let (infos, codes) = unzip $
         unzipWith (cgTopRhs dflags Recursive conRecIds mFunRecIds) pairs'
   addBindings infos
@@ -91,33 +92,38 @@ cgTopBinding dflags (StgRec pairs) = do
               mRecInfo <- code
               return $ fmap (id,) mRecInfo
   genRecInitCode recInfos
+  traceCg $ str "Generating mutually recursive entry codes"
+  genRecFunCode
+  -- NOTE: We do addBindings again to restore the bindings. genRecFunCode temporarily
+  --       adds lneInfos for the ids.
+  addBindings infos
   where genFunRecBinds funRecBinds = do
           n <- newRecursiveInitNumber
-          withMethod [Public, Static] (mkRecBindingMethodName n)
-            [closureType, contextType, jint] (ret closureType) $ do
-            label <- newLabel
-            -- We don't want to leak the recursive top-level bindings's temporary
-            -- loop loc.
-            oldBindings <- getBindings
-            let targetLoc = mkLocLocal False jint 2
-            ((_,loadCode):loadCodes, codes')
-              <- fmap unzip $ forM (zip [0..] funRecBinds) $
-                  \(target, (funId, StgRhsClosure _ _ _ _ _ args' body)) -> do
-                  let args = nonVoidIds args'
-                  argLocs <- mapM newIdLoc args
-                  emit $ fold (map storeDefault argLocs)
-                  let code = fmap (target,) $ forkLneBody $ do
-                        bindArgs $ zip args argLocs
-                        cgExpr body
-                  addBinding (lneIdInfo funId label target targetLoc argLocs)
-                  return ((target, mkCallEntry argLocs), code)
-            ((_,code):codes) <- sequence codes'
-            emit $ intSwitch (loadLoc targetLoc) loadCodes (Just loadCode)
-                <> startLabel label
-                <> intSwitch (loadLoc targetLoc) codes (Just code)
-            setBindings oldBindings
+          let genCode = do
+                _ <- withMethod [Public, Static] (mkRecBindingMethodName n)
+                  [closureType, contextType, jint] (ret closureType) $ do
+                  label <- newLabel
+                  let targetLoc = mkLocLocal False jint 2
+                  ((_,loadCode):loadCodes, codes')
+                    <- fmap unzip $ forM (zip [0..] funRecBinds) $
+                        \(target, (funId, StgRhsClosure _ _ _ _ _ args' body)) -> do
+                        let args = nonVoidIds args'
+                        argLocs <- mapM newIdLoc args
+                        emit $ fold (map storeDefault argLocs)
+                        let code = fmap (target,) $ forkLneBody $ do
+                              traceCg $ str "Generating (mutually recursive)"
+                                    <+> ppr funId
+                              bindArgs $ zip args argLocs
+                              cgExpr body
+                        addBinding (lneIdInfo funId label target targetLoc argLocs)
+                        return ((target, mkCallEntry argLocs), code)
+                  ((_,code):codes) <- sequence codes'
+                  emit $ intSwitch (loadLoc targetLoc) loadCodes (Just loadCode)
+                      <> startLabel label
+                      <> intSwitch (loadLoc targetLoc) codes (Just code)
+                return ()
           let funRecIdsMap = mkVarEnv $ zip (map fst funRecBinds) [0..]
-          return $ Just (n, funRecIdsMap)
+          return (Just (n, funRecIdsMap), genCode)
 
         findFunCycles :: [(Id, StgRhs)] -> [(Id, StgRhs)]
         findFunCycles idExprs = concat
@@ -142,7 +148,7 @@ cgTopBinding dflags (StgRec pairs) = do
                                 StgNonRec _ (StgRhsClosure _ _ _ _ _ _ body) -> go body
                                 StgRec pairs -> concat $
                                   map (\case
-                                          (id, StgRhsClosure _ _ _ _ _ _ body)
+                                          (_, StgRhsClosure _ _ _ _ _ _ body)
                                             -> go body
                                           _ -> []) pairs)
                         go (StgLet _ expr) = go expr
