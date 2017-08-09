@@ -37,7 +37,7 @@ Etlas Version: 1.0.2.0
 
 .. code-block:: console
 
-   > chmod +x etlas
+   $ chmod +x etlas
 
 5. Start using it and it will download everything you need on demand. Head over to :ref:`setting-up-first-project`.
 
@@ -66,14 +66,14 @@ Ubuntu
 
 .. code-block:: console
 
-   > sudo apt-get install zlib1g-dev libncurses5-dev libbz2-dev
+   $ sudo apt-get install zlib1g-dev libncurses5-dev libbz2-dev
 
 - Make sure locale is set to UTF8.
 
 .. code-block:: console
 
-   > export LC_ALL=en_US.UTF-8
-   > export LANG=en_US.UTF-8
+   $ export LC_ALL=en_US.UTF-8
+   $ export LANG=en_US.UTF-8
 
 Fedora
 """"""
@@ -82,7 +82,7 @@ Fedora
 
 .. code-block:: console
 
-   > sudo dnf install zlib-devel ncurses-devel bzip2-devel
+   $ sudo dnf install zlib-devel ncurses-devel bzip2-devel
   
 OpenSUSE
 """"""""
@@ -91,7 +91,7 @@ OpenSUSE
 
 .. code-block:: console
 
-   > sudo zypper install zlib-devel libncurses5 ncurses5-devel libbz2-devel
+   $ sudo zypper install zlib-devel libncurses5 ncurses5-devel libbz2-devel
 
 OS X
 """"
@@ -121,9 +121,9 @@ Replace ``[current-stable-tag]`` with the tag listed in the README of the eta re
 
   .. code-block:: console
 
-     > git clone --recursive --branch [current-stable-tag] https://github.com/typelead/eta
-     > cd eta
-     > ./install.sh # or install.cmd in windows command prompt
+     $ git clone --recursive --branch [current-stable-tag] https://github.com/typelead/eta
+     $ cd eta
+     $ ./install.sh # or install.cmd in windows command prompt
 
 .. note::
 
@@ -132,7 +132,7 @@ Replace ``[current-stable-tag]`` with the tag listed in the README of the eta re
 
   .. code-block:: console
 
-     > git submodule update --init --recursive
+     $ git submodule update --init --recursive
 
 Once the installation is done, you will now have access to the following command-line tools:
 
@@ -143,14 +143,14 @@ Check to ensure that they are on the ``PATH`` with the following commands:
 
 .. code-block:: console
 
-   > eta --version
-   > etlas --version
+   $ eta --version
+   $ etlas --version
 
 If you obtain an error that either tool is missing, run the following command:
 
 .. code-block:: console
 
-   > stack path --local-bin
+   $ stack path --local-bin
 
 Add the path that you obtain in the output to your ``PATH`` environment variable.
 
@@ -172,7 +172,7 @@ To obtain an environment with ``eta`` and ``etlas``, run the following command:
 
 .. code-block:: console
 
-   > docker run -it typelead/eta
+   $ docker run -it typelead/eta
 
 Method 4: Nix Environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -191,7 +191,7 @@ To obtain an environment with ``eta`` and ``etlas``, run the following command:
 
 .. code-block:: console
 
-   > nix-shell -A eta-build-shell
+   $ nix-shell -A eta-build-shell
 
 Updating Eta
 ------------
@@ -204,7 +204,7 @@ your system, and run the following command:
 
 .. code-block:: console
 
-   > ./update.sh # or update.cmd in windows command prompt
+   $ ./update.sh # or update.cmd in windows command prompt
 
 This will do a fresh installation, recompiling all the core libraries with the most
 recent version of the compiler.
@@ -213,8 +213,8 @@ If you have existing Etlas projects, make sure you run
 
 .. code-block:: console
 
-   > etlas clean
-   > etlas install --dependencies-only
+   $ etlas clean
+   $ etlas install --dependencies-only
 
 inside each project before proceeding with your normal development so that Etlas
 recognizes the updated libraries.
@@ -236,7 +236,7 @@ Running Your First Program
 
    .. code-block:: console
 
-      > eta Main.hs
+      $ eta Main.hs
 
    This will compile the program to a standalone JAR with the ``Run``- prefix.
 
@@ -244,7 +244,7 @@ Running Your First Program
 
    .. code-block:: console
 
-      > java -jar RunMain.jar
+      $ java -jar RunMain.jar
 
 .. _setting-up-first-project:
 
@@ -261,14 +261,14 @@ in the Haskell ecosystem, read
 
    .. code-block:: console
 
-      > mkdir eta-first
-      > cd eta-first
+      $ mkdir eta-first
+      $ cd eta-first
 
 #. Initialize the project with Etlas.
 
    .. code-block:: console
 
-      > etlas init
+      $ etlas init
 
       Package name? [default: eta] eta-first
       Package version? [default: 0.1.0.0]
@@ -383,7 +383,7 @@ in the Haskell ecosystem, read
 
    .. code-block:: console
 
-      > etlas run
+      $ etlas run
 
    .. note::
 
@@ -396,16 +396,16 @@ in the Haskell ecosystem, read
 
       .. code-block:: console
 
-         > etlas clean
-         > etlas configure --enable-uberjar-mode
+         $ etlas clean
+         $ etlas configure --enable-uberjar-mode
 
       These commands need only be run once to set the local Etlas configuration.
       To go back to shared mode for the project:
 
       .. code-block:: console
 
-         > etlas clean
-         > etlas configure --disable-uberjar-mode
+         $ etlas clean
+         $ etlas configure --disable-uberjar-mode
 
       Beware that this can be very slow. Work is being done to
       `improve uberjar performance <https://github.com/typelead/eta/issues/20>`_.
