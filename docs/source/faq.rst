@@ -15,6 +15,11 @@ Is Eta ready to use?
 --------------------
 Yes! You can compile the vast majority of programs that GHC Haskell 7.10.3 can also compile, with the restriction that `TemplateHaskell` is not used and there is no equivalent of GHCi yet. You can call Java within Haskell and Haskell within Java with ease.
 
+How does Eta handle TCO?
+-------------------------
+We don’t do anything to handle direct tail calls per se. At compile-time, we optimize tail recursive-calls into loops and we use the fact that lazy evaluation controls stack growth, unless you’re using too much of it. You can think of lazy evaluation as a hierachy of trampolines, but unlike general-purpose trampolines, each “trampoline” is specialized to a given type. And instead of executing a unknown virtual method call after getting a closure, it checks the tag of the closure which will help it select a branch to execute
+next.
+
 Will Eta have an interpreter and support TemplateHaskell in the future?
 -----------------------------------------------------------------------
 Yes. The plan is to use the external interpreter implementation from GHC 8 in Eta. The feature is due by September 15, 2017.
