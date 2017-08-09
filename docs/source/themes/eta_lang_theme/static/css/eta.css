@@ -90,3 +90,7 @@ div[class^='highlight'] pre {
     font-family: "Hasklig";
     font-size: 14px;
 }
+
+div[class^='highlight'] pre {
+    color: #efecf4;
+}
