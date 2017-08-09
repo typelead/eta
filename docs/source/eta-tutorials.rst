@@ -1017,8 +1017,11 @@ General Syntax
    foreign export java "[export-string]" [eta-identifier]
      :: [arg-type-1] -> [arg-type-2] -> .. -> Java [export-jwt] [return-type]
 
-#. ``[export-string]`` should be an unqualified Java instance method name that
-   is the exported function should be referred to in the Java world.
+#. ``[export-string]`` should consist of ``@static`` followed by a fully qualified
+   Java class name with the name of the static method appended to it with a dot. This
+   is the method name that the exported function should be referred to in the Java
+   world. (e.g. ``"@static com.org.SomeClass.someMethodName"``)
+
 
 #. ``[eta-identifier]`` should be a valid Eta identifier for an *existing*
    Eta function that is the target of the export.
@@ -1036,21 +1039,15 @@ Example
 
 Here is an example::
 
-  data {-# CLASS "eta.example.MyExportedClass" #-} MyExportedClass
-    = MyExportedClass (Object# MyExportedClass)
-    deriving Class
+  fib 0 = 1
+  fib 1 = 1
+  fib n = fib (n - 1) + fib (n - 2)
 
-  fib' 0 = 1
-  fib' 1 = 1
-  fib' n = fib' (n - 1) + fib' (n - 2)
-
-  fib :: Int -> Java MyExportedClass Int
-  fib n = return $ fib' n
-
-  foreign export java fib :: Int -> Java MyExportedClass Int
+  foreign export java "@static eta.example.MyExportedClass.fib"
+    fib :: Int -> Int
 
 This creates a class called ``eta.example.MyExportedClass`` with a default
-constructor and single instance method ``fib``.
+constructor and static method ``int fib(int)``.
 
 Setting Up The Project
 """"""""""""""""""""""
@@ -1062,22 +1059,12 @@ changes:
 
    .. code::
 
-      {-# LANGUAGE MagicHash #-}
+      fib 0 = 1
+      fib 1 = 1
+      fib n = fib (n - 1) + fib (n - 2)
 
-      import Java
-
-      data {-# CLASS "eta.example.MyExportedClass" #-} MyExportedClass
-        = MyExportedClass (Object# MyExportedClass)
-        deriving Class
-
-      fib' 0 = 1
-      fib' 1 = 1
-      fib' n = fib' (n - 1) + fib' (n - 2)
-
-      fib :: Int -> Java MyExportedClass Int
-      fib n = return $ fib' n
-
-      foreign export java fib :: Int -> Java MyExportedClass Int
+      foreign export java "@static eta.example.MyExportedClass.fib"
+        fib :: Int -> Int
 
       main :: IO ()
       main = return ()
@@ -1109,8 +1096,7 @@ import from Java like this:
 
    public class Main {
      public static void main(String[] args) {
-       MyExportedClass mec = new MyExportedClass();
-       System.out.println("fib(1000): " + mec.fib(1000));
+       System.out.println("fib(1000): " + MyExportedClass.fib(1000));
      }
    }
 
@@ -1128,8 +1114,7 @@ import from Scala like this:
 
     object EtaExports {
       def main(args: Array[String]) {
-        val mec = new MyExportedClass
-        val fib = mec.fib(1000)
+        val fib = MyExportedClass.fib(1000)
         println(s"fib(1000): $fib")
       }
     }
@@ -1146,8 +1131,7 @@ import from Clojure like this:
         (:import [eta.example MyExportedClass]))
 
     (defn -main []
-      (let [mec (MyExportedClass.)]
-        (println (str "fib(1000): " (.fib mec 1000)))))
+      (println (str "fib(1000): " (MyExportedClass/fib 1000))))
 
 Add Java Files to Your Project
 ------------------------------
