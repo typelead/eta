@@ -87,8 +87,6 @@ public class MemoryManager {
         , new AtomicBoolean()
         , new AtomicBoolean() };
 
-    public static final long EMPTY_BUFFER_ADDRESS = Long.MAX_VALUE;
-    
     /* Buffer Allocation
        This logic is rather complicated but it is done for efficiency purposes. Each
        free block size has a lock associated with it which is taken whenever a
@@ -97,8 +95,6 @@ public class MemoryManager {
      */
     public static long allocateBuffer(int n, boolean direct) {
         assert n <= ONE_GB;
-        if (n == 0)
-            return EMPTY_BUFFER_ADDRESS;
         int     newRegionSize;
         long    newAddress;
         boolean attemptedGC = false;
@@ -537,7 +533,7 @@ public class MemoryManager {
     public final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
     
     public static ByteBuffer getBuffer(long address) {
-        if (address == EMPTY_BUFFER_ADDRESS)
+        if (address == 0)
             return emptyBuffer;
         if (address >= cachedLowerAddress.get() && address < cachedHigherAddress.get()) {
             ByteBuffer cached = cachedBuffer.get();
@@ -571,27 +567,34 @@ public class MemoryManager {
         Map.Entry<Long, Integer>
             lowerEntry = allocatedBlocks.floorEntry(Long.valueOf(address));
         if (lowerEntry != null &&
-            (address < (lowerEntry.getKey() + lowerEntry.getValue()))) {
+            (address <= (lowerEntry.getKey() + lowerEntry.getValue()))) {
             return lowerEntry;
         }
         return null;
     }
 
+
+    public static Map.Entry<Long, Integer> findAllocatedAddress(long address) {
+        Map.Entry<Long, Integer>
+            lowerEntry = findLowerAllocatedAddress(allocatedDirectBlocks, address);
+        if (lowerEntry == null) {
+            lowerEntry = findLowerAllocatedAddress(allocatedHeapBlocks, address);
+        }
+        return lowerEntry;
+    }
     /* When doing bulk operations, this can be useful. It returns a ByteBuffer
        positioned at the place referred to by the address. It's duplicated so the
        user is free to change the position as necessary.
 
        Returns null if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        if (address == EMPTY_BUFFER_ADDRESS)
+        if (address == 0)
             return emptyBuffer;
         Map.Entry<Long, Integer>
-            lowerEntry = findLowerAllocatedAddress(allocatedDirectBlocks, address);
+            lowerEntry = findAllocatedAddress(address);
         if (lowerEntry == null) {
-            lowerEntry = findLowerAllocatedAddress(allocatedHeapBlocks, address);
-            if (lowerEntry == null) {
-                return null;
-            }
+            throw new IllegalStateException("The block that corresponds to the address "+
+                                            address+" is not allocated in memory");
         }
         long lowerAddress       = lowerEntry.getKey();
         int  lowerSize          = lowerEntry.getValue();
