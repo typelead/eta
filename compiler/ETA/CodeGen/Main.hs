@@ -80,7 +80,6 @@ cgTopBinding dflags (StgRec pairs) = do
   (mFunRecIds, genRecFunCode) <-
     if length funRecBinds > 1
     then do
-      traceCg $ str "Found mutually recursive group:" <+> ppr (map fst funRecBinds)
       genFunRecBinds funRecBinds
     else return (Nothing, return ())
   let (infos, codes) = unzip $
@@ -92,13 +91,14 @@ cgTopBinding dflags (StgRec pairs) = do
               mRecInfo <- code
               return $ fmap (id,) mRecInfo
   genRecInitCode recInfos
-  traceCg $ str "Generating mutually recursive entry codes"
   genRecFunCode
   -- NOTE: We do addBindings again to restore the bindings. genRecFunCode temporarily
   --       adds lneInfos for the ids.
   addBindings infos
   where genFunRecBinds funRecBinds = do
           n <- newRecursiveInitNumber
+          traceCg $ str "Found mutually recursive group [" <+> int n <+> str "]:"
+                <+> ppr (map fst funRecBinds)
           let genCode = do
                 _ <- withMethod [Public, Static] (mkRecBindingMethodName n)
                   [closureType, contextType, jint] (ret closureType) $ do
