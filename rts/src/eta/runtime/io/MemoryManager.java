@@ -586,7 +586,7 @@ public class MemoryManager {
        positioned at the place referred to by the address. It's duplicated so the
        user is free to change the position as necessary.
 
-       Returns null if the block that corresponds to the address has been freed. */
+       ThrowS an exception  if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
         if (address == 0)
             return emptyBuffer;
