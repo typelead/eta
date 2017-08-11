@@ -381,13 +381,6 @@ cgPrimOp op args = do
 --            -> [Code]         -- arguments
 --            -> CodeGen ()
 emitPrimOp :: PrimOp -> [Code] -> CodeGen [Code]
-emitPrimOp IndexOffAddrOp_Char [arg1, arg2]
-  = return [ arg1
-          <> arg2
-          <> invokevirtual (mkMethodRef jstringC "charAt"
-                                        [jint] (ret jchar))]
-          -- TODO: You may have to cast to int or do some extra stuff here
-          --       or maybe instead reference the direct byte array
 emitPrimOp DataToTagOp [arg] = return [ getTagMethod arg <> iconst jint 1 <> isub ]
 
 emitPrimOp IntQuotRemOp args = do
