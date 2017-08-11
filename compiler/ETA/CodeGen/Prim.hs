@@ -272,7 +272,7 @@ shouldInlinePrimOp' _ NewSmallArrayOp args = Right $ return
 shouldInlinePrimOp' _ NewArrayArrayOp args = Right $ return
   [
     fold args
- <> invokestatic (mkMethodRef stgArray "create" [jint, closureType] (ret stgArrayType))
+ <> invokestatic (mkMethodRef stgArray "createArrayArray" [jint] (ret stgArrayType))
   ]
 
 shouldInlinePrimOp' _ NewMutVarOp args = Right $ return

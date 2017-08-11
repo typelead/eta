@@ -31,8 +31,17 @@ public final class Array extends Value {
         return new Array(arr);
     }
 
-    public static void copyArray( Array srcArray, int srcOffset
-                                , Array destArray, int destOffset, int n) {
+    public static Array createArrayArray(int n) {
+        Closure[] arr = new Closure[n];
+        Array arrayArray = new Array(arr);
+        for (int i = 0; i < n; i++) {
+            arr[i] = arrayArray;
+        }
+        return arrayArray;
+    }
+
+    public static void copyArray(Array srcArray, int srcOffset
+                                ,Array destArray, int destOffset, int n) {
         System.arraycopy(srcArray.arr, srcOffset, destArray.arr, destOffset, n);
     }
 
