@@ -115,7 +115,8 @@ cgTopBinding dflags (StgRec pairs) = do
                                     <+> ppr funId
                               bindArgs $ zip args argLocs
                               cgExpr body
-                        addBinding (lneIdInfo funId label target targetLoc argLocs)
+                        addScopedBinding $
+                          lneIdInfo funId label target targetLoc argLocs
                         return ((target, mkCallEntry argLocs), code)
                   ((_,code):codes) <- sequence codes'
                   emit $ intSwitch (loadLoc targetLoc) loadCodes (Just loadCode)

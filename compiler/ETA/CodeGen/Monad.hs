@@ -33,6 +33,10 @@ module ETA.CodeGen.Monad
    addBindings,
    getBindings,
    setBindings,
+   forbidScoping,
+   getScopedBindings,
+   addScopedBinding,
+   getAllowScoping,
    printBindings,
    defineMethod,
    defineMethods,
@@ -99,6 +103,8 @@ data CgState =
           , cgSuperClassName :: !(Maybe Text)
           -- Current method
           , cgCode           :: !Code
+          , cgScopedBindings :: CgBindings
+          , cgAllowScoping   :: Bool
           , cgNextLocal      :: Int
           , cgNextLabel      :: Int }
 
@@ -149,22 +155,24 @@ instance MonadIO CodeGen where
 
 initCg :: DynFlags -> Module -> (CgEnv, CgState)
 initCg dflags mod =
-  (CgEnv   { cgModule           = mod
-           , cgQClassName       = className
-           , cgDynFlags         = dflags
-           , cgSequel           = Return
-           , cgSelfLoop         = Nothing },
-   CgState { cgBindings         = emptyVarEnv
-           , cgCode             = mempty
-           , cgAccessFlags      = [Public, Super]
-           , cgMethodDefs       = []
-           , cgFieldDefs        = []
-           , cgClassName        = className
-           , cgCompiledClosures = []
+  (CgEnv   { cgModule              = mod
+           , cgQClassName          = className
+           , cgDynFlags            = dflags
+           , cgSequel              = Return
+           , cgSelfLoop            = Nothing },
+   CgState { cgBindings            = emptyVarEnv
+           , cgCode                = mempty
+           , cgAccessFlags         = [Public, Super]
+           , cgMethodDefs          = []
+           , cgFieldDefs           = []
+           , cgClassName           = className
+           , cgCompiledClosures    = []
            , cgRecursiveInitNumber = 0
-           , cgSuperClassName   = Nothing
-           , cgNextLocal        = 0
-           , cgNextLabel        = 0 })
+           , cgSuperClassName      = Nothing
+           , cgScopedBindings      = emptyVarEnv
+           , cgAllowScoping        = True
+           , cgNextLocal           = 0
+           , cgNextLabel           = 0 })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
@@ -220,6 +228,31 @@ getBindings = gets cgBindings
 
 setBindings :: CgBindings -> CodeGen ()
 setBindings bindings = modify $ \s -> s { cgBindings = bindings }
+
+getScopedBindings :: CodeGen CgBindings
+getScopedBindings = gets cgScopedBindings
+
+addScopedBinding :: CgIdInfo -> CodeGen ()
+addScopedBinding cgIdInfo = do
+  bindings <- getScopedBindings
+  setScopedBindings $ extendVarEnv bindings (cgId cgIdInfo) cgIdInfo
+
+setScopedBindings :: CgBindings -> CodeGen ()
+setScopedBindings bindings = modify $ \s -> s { cgScopedBindings = bindings }
+
+getAllowScoping :: CodeGen Bool
+getAllowScoping = gets cgAllowScoping
+
+forbidScoping :: CodeGen a -> CodeGen a
+forbidScoping cg = do
+  oldScoping <- getAllowScoping
+  setAllowScoping False
+  r <- cg
+  setAllowScoping oldScoping
+  return r
+
+setAllowScoping :: Bool -> CodeGen ()
+setAllowScoping bool = modify $ \s -> s { cgAllowScoping = bool }
 
 getCgIdInfo :: Id -> CodeGen CgIdInfo
 getCgIdInfo id = do
@@ -378,13 +411,17 @@ forkClosureBody body =
 
 withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () -> CodeGen MethodDef
 withMethod accessFlags name fts rt body = do
-  oldCode <- getMethodCode
-  oldNextLocal <- peekNextLocal
-  oldNextLabel <- peekNextLabel
+  oldCode        <- getMethodCode
+  oldNextLocal   <- peekNextLocal
+  oldNextLabel   <- peekNextLabel
+  scopedBindings <- getScopedBindings
+  scoping        <- getAllowScoping
   setMethodCode mempty
   setNextLocal ((if Static `elem` accessFlags then 0 else 1)
                 + sum (map fieldSize fts))
   setNextLabel 0
+  setScopedBindings emptyVarEnv
+  setAllowScoping   True
   body
   clsName <- getClass
   newCode <- getMethodCode
@@ -393,6 +430,8 @@ withMethod accessFlags name fts rt body = do
   setMethodCode oldCode
   setNextLocal oldNextLocal
   setNextLabel oldNextLabel
+  setScopedBindings scopedBindings
+  setAllowScoping scoping
   return methodDef
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a

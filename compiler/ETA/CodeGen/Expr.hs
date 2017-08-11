@@ -4,6 +4,7 @@ import ETA.Core.CoreSyn
 import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.BasicTypes.Id
+import ETA.BasicTypes.VarEnv
 import ETA.Prelude.PrimOp
 import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.DataCon
@@ -41,7 +42,7 @@ cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args)
 cgExpr (StgTick t e) = traceCg (str "StgTick" <+> ppr t) >> cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
-  cgBind binds
+  forbidScoping (cgBind binds)
   cgExpr expr
 cgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
@@ -113,17 +114,22 @@ maybeLetNoEscape _ = Nothing
 cgIdApp :: Id -> [StgArg] -> CodeGen ()
 cgIdApp funId [] | isVoidTy (idType funId) = emitReturn []
 cgIdApp funId args = do
-  dflags <- getDynFlags
-  funInfo <- getCgIdInfo funId
+  dflags       <- getDynFlags
+  funInfo      <- getCgIdInfo funId
   selfLoopInfo <- getSelfLoop
+  scoped       <- getScopedBindings
+  allowScoping <- getAllowScoping
   let cgFunId = cgId funInfo
       funName = idName cgFunId
       lfInfo = cgLambdaForm funInfo
       funLoc = cgLocation funInfo
       nArgs  = length args
       vArgs  = length $ filter (isVoidTy . stgArgType) args
+      mScopeInfo
+        | isEmptyVarEnv scoped || not allowScoping = Nothing
+        | otherwise = fmap cgLocation $ lookupVarEnv scoped funId
   case getCallMethod dflags funName cgFunId lfInfo nArgs vArgs funLoc
-                     selfLoopInfo of
+                     selfLoopInfo mScopeInfo of
     ReturnIt -> traceCg (str "cgIdApp: ReturnIt") >>
                 emitReturn [funLoc]
     EnterIt  -> traceCg (str "cgIdApp: EnterIt") >>
@@ -210,7 +216,7 @@ cgCase (StgApp v []) binder altType@(PrimAlt _) alts
 
 cgCase scrut@(StgApp v []) _ (PrimAlt _) _ = do
   cgLoc <- newIdLoc (NonVoid v)
-  withSequel (AssignTo [cgLoc]) $ cgExpr scrut
+  withSequel (AssignTo [cgLoc]) $ forbidScoping $ cgExpr scrut
   panic "cgCase: bad unsafeCoerce!"
   -- TODO: Generate infinite loop here?
 
@@ -225,7 +231,7 @@ cgCase scrut binder altType alts = do
   -- binder.
   when (isCaseOfCase scrut) $ do
     emit $ fold (map storeDefault altLocs)
-  withSequel (AssignTo altLocs) $ cgExpr scrut
+  withSequel (AssignTo altLocs) $ forbidScoping $ cgExpr scrut
   bindArgs $ zip retBinders altLocs
   cgAlts (NonVoid binder) altType alts
   where retBinders = chooseReturnBinders binder altType alts
