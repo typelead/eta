@@ -16,6 +16,7 @@ import ETA.Core.MkCore
 import ETA.DeSugar.DsMonad
 import ETA.HsSyn.HsSyn
 import ETA.Core.CoreUnfold
+import ETA.BasicTypes.Module
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.Id
@@ -98,7 +99,9 @@ dsForeigns fdecls = do
           return (methodDefs, bs)
         doDecl (ForeignExport (L _ id) _ co
                               (CExport (L _ (CExportStatic extName _)) _)) = do
-            method <- dsFExport (Right id) co extName Nothing
+
+            mod    <- getModule
+            method <- dsFExport (Right id) co extName Nothing mod
             return ([method], [])
 
 dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], [ClassExport])
@@ -613,10 +616,10 @@ dsFExport :: Either Int Id      -- The exported Id
                                 -- from C, and its representation type
           -> CLabelString       -- The name to export to C land
           -> Maybe Text         -- rawClassSpec & className
+          -> Module
           -> DsM ClassExport
 
-dsFExport closureId co externalName classSpec = do
-  mod <- fmap ds_mod getGblEnv
+dsFExport closureId co externalName classSpec mod = do
   dflags <- getDynFlags
   let resClass = typeDataConClass dflags extendsInfo resType
       (mFieldDef, loadClosureRef) =
@@ -628,7 +631,7 @@ dsFExport closureId co externalName classSpec = do
                <> getfield (mkFieldRef className fieldName closureType) ))
           (\fnId ->
               ( Nothing
-              , invokestatic (mkMethodRef (moduleJavaClass mod)
+              , invokestatic (mkMethodRef modClass
                                           (closure (idNameText dflags fnId))
                                           []
                                           (Just closureType))))
@@ -673,10 +676,11 @@ dsFExport closureId co externalName classSpec = do
               else unboxResult resType resClass rawResFt)
          , mFieldDef )
   where ty = pSnd $ coercionKind co
+        modClass = moduleJavaClass mod
         (tyVars, thetaFunTy) = tcSplitForAllTys ty
         (tyVarBounds, funTy) = tcSplitPhiTy thetaFunTy
         (argTypes, ioResType) = tcSplitFunTys funTy
-        classFt = obj className
+        classFt  = obj className
         extendsInfo = extendsMapWithVar tyVarBounds
         loadThis
           | isJust staticMethodClass =
@@ -716,15 +720,15 @@ dsFExport closureId co externalName classSpec = do
           = (className, className, resType, "runIO")
           | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
           = ((either (error $ "The tag type should be annotated with a CLASS annotation.")
-               (maybe (if isNothing staticMethodClass
-                       then error $ "No type variables for the Java foreign export!"
-                       else className) id)
+               (maybe className id)
                $ rawTagTypeToText javaTagType)
               , tagTypeToText javaTagType
               , javaResType
               , "runJava")
           | otherwise = (className, className, ioResType, "runNonIO")
-          where className = fromJust staticMethodClass
+          where className
+                  | Just cls <- staticMethodClass = cls
+                  | otherwise = modClass
 
         numApplied = length argTypes + 1
         apClass = apUpdName numApplied
@@ -844,6 +848,7 @@ getPrimTyOf _ = error $ "getPrimTyOf: bad getPrimTyOf"
 dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
 dsFWrapper id co0 target isAbstract = do
   -- TODO: We effectively assume that the coercion is Refl.
+  mod <- getModule
   dflags <- getDynFlags
   (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
@@ -852,7 +857,7 @@ dsFWrapper id co0 target isAbstract = do
   classExports' <- mapM (\(i, arg, methodName) ->
                           let argType = exprType arg
                               argCo = mkReflCo Representational argType
-                          in dsFExport (Left i) argCo methodName $ Just classSpec)
+                          in dsFExport (Left i) argCo methodName (Just classSpec) mod)
                   $ zip3 [1..] realArgs methodNames
   javaCallUniq <- newUnique
   let  castBinders = catMaybes mCastBinders

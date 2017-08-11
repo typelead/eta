@@ -372,7 +372,7 @@ newClosureGeneric genCode = do
                    , cgSuperClassName = Nothing }
   result <- genCode
   state1 <- get
-  let compiledClosure = classFromCgState state1
+  let compiledClosure = classFromCgState [] [] state1
   -- TODO: Ensure the state is restored properly
   modify $ \s -> s { cgAccessFlags = a
                    , cgMethodDefs = b
@@ -382,20 +382,24 @@ newClosureGeneric genCode = do
   addCompiledClosure compiledClosure
   return (result, state1)
 
-classFromCgState :: CgState -> ClassFile
-classFromCgState CgState {..} =
+classFromCgState :: [MethodDef] -> [FieldDef] -> CgState -> ClassFile
+classFromCgState mds fds CgState {..} =
   mkClassFile java7 cgAccessFlags cgClassName cgSuperClassName []
-    cgFieldDefs cgMethodDefs
+    (cgFieldDefs ++ fds) (cgMethodDefs ++ mds)
 
-runCodeGen :: CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
-runCodeGen env state codeGenAction = do
+runCodeGen :: Maybe ([MethodDef], [FieldDef])
+           -> CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
+runCodeGen mMFs env state codeGenAction = do
   (state'@CgState {..}, _) <- unCG codeGenAction env state
 
   -- NOTE: addInnerClasses is to ensure that any unused data types/closures
   --       are added to the constant pool
   let compiledModuleClass =
-        addInnerClasses cgCompiledClosures $
-          classFromCgState state'
+        addInnerClasses cgCompiledClosures $ do
+          let (mds, fds) = case mMFs of
+                Just (mds, fds) -> (mds, fds)
+                Nothing -> ([], [])
+          classFromCgState mds fds state'
 
   return (compiledModuleClass : cgCompiledClosures)
 

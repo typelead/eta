@@ -40,9 +40,10 @@ import Control.Monad hiding (void)
 
 import Data.Text (Text, pack, append)
 
-codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo -> IO [ClassFile]
-codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo = do
-  runCodeGen env state $ do
+codeGen :: HscEnv -> Module -> [TyCon] -> [StgBinding] -> HpcInfo
+        -> Maybe ([MethodDef], [FieldDef]) -> IO [ClassFile]
+codeGen hscEnv thisMod dataTyCons stgBinds _hpcInfo mMFs = do
+  runCodeGen mMFs env state $ do
     mapM_ (cgTopBinding dflags) stgBinds
     mapM_ cgTyCon dataTyCons
   where

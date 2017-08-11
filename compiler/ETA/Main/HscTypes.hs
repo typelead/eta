@@ -21,7 +21,7 @@ module ETA.Main.HscTypes (
         -- * Information about modules
         ModDetails(..), emptyModDetails,
         ModGuts(..), CgGuts(..), ForeignStubs(..),
-        appendStubC, appendDefs, foreignExportsList,
+        appendStubC, appendDefs, foreignExportsList, lookupStubs,
         ImportedMods, ImportedModsVal,
 
         ModSummary(..), ms_imps, ms_mod_name, showModMsg, isBootSummary,
@@ -1160,6 +1160,11 @@ data ForeignStubs
 
 foreignExportsList :: ExportMethods -> [(Text, ([MethodDef], [FieldDef]))]
 foreignExportsList = M.toList
+
+lookupStubs :: ClassName -> ForeignStubs -> Maybe ([MethodDef], [FieldDef])
+lookupStubs cls stubs
+  | ForeignStubs _ _ m <- stubs = M.lookup cls m
+  | otherwise = Nothing
 
 appendStubC :: ForeignStubs -> SDoc -> ForeignStubs
 appendStubC NoStubs            c_code = ForeignStubs empty c_code M.empty

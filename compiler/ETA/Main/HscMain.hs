@@ -1214,8 +1214,10 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
             <- {-# SCC "CoreToStg" #-}
                myCoreToStg dflags this_mod prepd_binds
 
+        let modClass = moduleJavaClass this_mod
         modClasses <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
-        let stubClasses = outputForeignStubs dflags foreign_stubs
+                              (lookupStubs modClass foreign_stubs)
+        let stubClasses = outputForeignStubs dflags foreign_stubs modClass
             classes = stubClasses ++ modClasses
             jarContents' = map (classFilePath &&& classFileBS) classes
         jarContents <- forM jarContents' $ \(a,b) -> do
@@ -1225,10 +1227,10 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
         addMultiByteStringsToJar' output_filename (compressionMethod dflags) jarContents
         return (output_filename, Nothing)
 
-outputForeignStubs :: DynFlags -> ForeignStubs -> [ClassFile]
-outputForeignStubs _dflags NoStubs = []
-outputForeignStubs _dflags (ForeignStubs _ _ classExports) =
-  map f $ foreignExportsList classExports
+outputForeignStubs :: DynFlags -> ForeignStubs -> T.Text -> [ClassFile]
+outputForeignStubs _dflags NoStubs _ = []
+outputForeignStubs _dflags (ForeignStubs _ _ classExports) modClass =
+  map f $ filter (\(cls, _) -> cls /= modClass) $ foreignExportsList classExports
   where f (classSpec, (methodDefs, fieldDefs)) =
           mkClassFile java7 [Public, Super] (jvmify className) (Just superClass)
             interfaces fieldDefs methodDefs''
