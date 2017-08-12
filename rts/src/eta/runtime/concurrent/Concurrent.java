@@ -76,13 +76,13 @@ public class Concurrent {
         return value;
     }
 
-    /* TODO: Perform blackholing here to prevent duplicate evaluations
-             shared among multiple threads? */
     public static Closure fork(StgContext context, Closure closure) {
+        Capability cap = context.myCapability;
         TSO currentTSO = context.currentTSO;
         TSO tso = Runtime.createIOThread(closure);
         tso.addFlags(currentTSO.andFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE));
         pushToGlobalRunQueue(tso);
+        cap.idleLoop(false);
         context.O(1, tso);
         return null;
     }

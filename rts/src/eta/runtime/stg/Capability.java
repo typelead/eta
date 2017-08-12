@@ -9,8 +9,9 @@ import java.util.Set;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import java.lang.ref.WeakReference;
 
@@ -41,6 +42,7 @@ public final class Capability {
     public static List<Capability> capabilities = new ArrayList<Capability>();
     public static Set<Capability> workerCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
+    public static AtomicInteger workerCapNextId = new AtomicInteger();
     private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
 
     public static boolean singletonCapabilities() {
@@ -57,6 +59,7 @@ public final class Capability {
             cap = new Capability(Thread.currentThread(), worker);
             if (worker) {
                 workerCapabilities.add(cap);
+                cap.id = workerCapNextId.getAndIncrement();
             } else {
                 /* TODO: Use a concurrent data structure for capabilities */
                 synchronized (capabilities) {
@@ -147,7 +150,7 @@ public final class Capability {
                     break;
                 case ThreadRun:
                     try {
-                        result = tso.closure.enter(context);
+                        result = t.closure.enter(context);
                     } catch (java.lang.Exception e) {
                         context.currentTSO.whatNext = ThreadKilled;
                         pendingException = e;
@@ -344,7 +347,6 @@ public final class Capability {
                 case BlockedOnMVar:
                 case BlockedOnMVarRead:
                     /* TODO: fix this */
-                    blocked = true;
                     break;
                 case BlockedOnMsgThrowTo:
                     MessageThrowTo msg = (MessageThrowTo) tso.blockInfo;
@@ -353,11 +355,10 @@ public final class Capability {
                     }
                 case BlockedOnBlackHole:
                 case BlockedOnSTM:
-                    blocked = true;
                     break;
                 default:
-                    return;
-
+                    blocked = false;
+                    break;
             }
             tso.whyBlocked = NotBlocked;
             if (!blocked) {
@@ -453,6 +454,7 @@ public final class Capability {
         TSO tso = Concurrent.globalRunQueue.pollLast();
         if (tso != null) {
             Concurrent.globalRunQueueModifiedTime = System.currentTimeMillis();
+            tso.cap = this;
             tryWakeupThread(tso);
         }
         return tso;
@@ -514,10 +516,13 @@ public final class Capability {
             /* Interrupt the blocked capabilities so that they can terminate
                themselves when they unblock. */
 
-        if ((!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks()) &&
-            ( System.currentTimeMillis()
-            - Concurrent.globalRunQueueModifiedTime
-            > Runtime.getMinTSOIdleTime())) {
+        if ((!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks())
+            // TODO: Is this timeout really necessary?
+            // &&
+            // ( System.currentTimeMillis()
+            // - Concurrent.globalRunQueueModifiedTime
+            // > Runtime.getMinTSOIdleTime())
+            ) {
             if (!blockedCapabilities.isEmpty()) {
                 unblockCapabilities();
             } else if (workerCapabilitiesSize() < Runtime.getMaxWorkerCapabilities()) {
