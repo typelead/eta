@@ -47,8 +47,10 @@ public class RuntimeLogging {
 
     public static void debugGeneric(boolean shouldDebug, String type, String msg, Object... args) {
         if (shouldDebug) {
-            debugBelch("[Eta-RTS](Capability %d){" + type + "}: " + msg,
-                       Capability.getLocal().id, args);
+            Capability cap = Capability.getLocal();
+            String worker = cap.worker? "[Worker]" : "";
+            debugBelch("[Eta-RTS](Capability" + worker + " %d){" + type + "}: " + msg,
+                       cap.id, args);
         }
     }
 
