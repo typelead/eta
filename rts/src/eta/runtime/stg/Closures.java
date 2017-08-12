@@ -80,6 +80,10 @@ public class Closures {
         return new EvalIO(p);
     }
 
+    public static Closure evalStableIO(int stablePtr) {
+        return new EvalStableIO(stablePtr);
+    }
+
     public static Closure evalJava(Object thisObj, Closure p) {
         return new EvalJava(thisObj, p);
     }
@@ -96,6 +100,13 @@ public class Closures {
             Closure result = p.evaluate(context).applyV(context);
             context.currentTSO.whatNext = ThreadComplete;
             return result;
+        }
+    }
+
+    private static class EvalStableIO extends EvalIO {
+
+        public EvalStableIO(int stablePtr) {
+            super(StablePtrTable.getClosure(stablePtr));
         }
     }
 

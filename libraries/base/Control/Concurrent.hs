@@ -253,7 +253,7 @@ waiting for the results in the main thread.
 -- fail.
 
 rtsSupportsBoundThreads :: Bool
-rtsSupportsBoundThreads = undefined
+rtsSupportsBoundThreads = True
 
 
 {- |
@@ -277,16 +277,19 @@ the foreign import is not marked @unsafe@.
 
 forkOS :: IO () -> IO ThreadId
 
-forkOS_entry_reimported :: StablePtr (IO ()) -> IO ()
-forkOS_entry_reimported = undefined
+foreign export java forkOS_entry
+    :: StablePtr (IO ()) -> IO ()
+
+foreign import java "@static base.control.Concurrent.forkOS_entry"
+  forkOS_entry_reimported :: StablePtr (IO ()) -> IO ()
 
 forkOS_entry :: StablePtr (IO ()) -> IO ()
 forkOS_entry stableAction = do
         action <- deRefStablePtr stableAction
         action
 
-forkOS_createThread :: StablePtr (IO ()) -> IO CInt
-forkOS_createThread = undefined
+foreign import java "@static eta.runtime.concurrent.Concurrent.forkOS_createThread"
+  forkOS_createThread :: StablePtr (IO ()) -> IO CInt
 
 failNonThreaded :: IO a
 failNonThreaded = fail $ "RTS doesn't support multiple OS threads "

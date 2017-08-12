@@ -294,4 +294,13 @@ public class Concurrent {
             }
         }
     }
+
+    public static int forkOS_createThread(int stablePtr) {
+        try {
+            new OSThread(stablePtr).start();
+        } catch (java.lang.Exception e) {
+            return 1;
+        }
+        return 0;
+    }
 }

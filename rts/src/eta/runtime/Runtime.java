@@ -189,6 +189,10 @@ public class Runtime {
         return Capability.scheduleClosure(Closures.evalLazyIO(p));
     }
 
+    public static Closure evalStableIO(int stablePtr) throws Exception {
+        return Capability.scheduleClosure(Closures.evalStableIO(stablePtr));
+    }
+
     public static Closure evalIO(Closure p) throws Exception {
         return Capability.scheduleClosure(Closures.evalIO(p));
     }
