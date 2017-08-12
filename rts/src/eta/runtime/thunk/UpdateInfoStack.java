@@ -97,8 +97,10 @@ public class UpdateInfoStack {
             Thunk bh = ui.updatee;
             do {
                 Closure p = bh.indirectee;
-                if (p != null  && p != tso) {
-                    suspend = ui;
+                if (p != null) {
+                    if (p != tso) {
+                        suspend = ui;
+                    }
                     break;
                 } else {
                     if (bh.tryLock()) {
