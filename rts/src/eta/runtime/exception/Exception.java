@@ -1,5 +1,6 @@
 package eta.runtime.exception;
 
+import java.util.Arrays;
 import java.util.ListIterator;
 
 import eta.runtime.stg.Capability;
@@ -179,8 +180,10 @@ public class Exception {
     }
 
     public static Closure raise(StgContext context, Closure exception) {
-        context.currentTSO.setStackTrace(Thread.currentThread().getStackTrace());
-        throw new EtaException(exception);
+        EtaException e = new EtaException(exception);
+        StackTraceElement[] original = Thread.currentThread().getStackTrace();
+        context.saveStackTrace(e, Arrays.copyOfRange(original, 2, original.length));
+        throw e;
     }
 
     /** Helper for the exception primops **/
@@ -325,13 +328,11 @@ public class Exception {
     }
 
     public static Closure convertJavaException(TSO tso, java.lang.Exception e) {
-        tso.setStackTrace(e.getStackTrace());
+        tso.saveStack(e, e.getStackTrace());
         return Closures.mkSomeException(e);
     }
 
     public static EtaException toEtaException(TSO tso, java.lang.Exception e) {
-        EtaException newException = new EtaException(convertJavaException(tso, e));
-        newException.initCause(e);
-        return newException;
+        return new EtaException(convertJavaException(tso, e));
     }
 }

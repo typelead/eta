@@ -14,6 +14,10 @@ public class StgContext {
         argStack = new ArgumentStack();
     }
 
+    public void saveStackTrace(Exception e, StackTraceElement[] ste) {
+        currentTSO.saveStack(e, ste);
+    }
+
     public UpdateInfo pushUpdate(Thunk updatee) {
         return currentTSO.updateInfoStack.push(updatee);
     }

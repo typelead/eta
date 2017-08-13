@@ -180,7 +180,7 @@ public final class Capability {
                 StackTraceElement[] st = t.getStackTrace();
                 if (st != null) {
                     pendingException.setStackTrace(st);
-                    t.setStackTrace(null);
+                    t.resetStack();
                 }
                 /* Cleanup resources in the Runtime before throwing the exception
                    again. */

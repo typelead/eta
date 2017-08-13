@@ -39,6 +39,7 @@ public final class TSO extends BlackHole {
     public Queue<MessageThrowTo> blockedExceptions
         = new ConcurrentLinkedQueue<MessageThrowTo>();
     public StackTraceElement[] stackTrace;
+    public Throwable cause;
     public AtomicBoolean lock = new AtomicBoolean(false);
 
     /* TSO Flags */
@@ -160,12 +161,34 @@ public final class TSO extends BlackHole {
         unlock();
     }
 
+    public final StackTraceElement[] getStackTrace() {
+        return this.stackTrace;
+    }
+
     public final void setStackTrace(StackTraceElement[] stackTrace) {
         this.stackTrace = stackTrace;
     }
 
-    public final StackTraceElement[] getStackTrace() {
-        return this.stackTrace;
+    public final Throwable getCause() {
+        return this.cause;
+    }
+
+    public final void setCause(Throwable cause) {
+        this.cause = cause;
+    }
+
+    public final void saveStack(Throwable t, StackTraceElement[] stes) {
+        if (this.cause != null) {
+            this.cause.setStackTrace(this.stackTrace);
+            t.initCause(this.cause);
+        }
+        this.cause = t;
+        this.stackTrace = stes;
+    }
+
+    public final void resetStack() {
+        this.cause      = null;
+        this.stackTrace = null;
     }
 
     public final boolean hasStackTrace() {
