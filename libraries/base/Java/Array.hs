@@ -1,7 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, MultiParamTypeClasses,
              UnboxedTuples, BangPatterns, FlexibleInstances,
              FlexibleContexts, UndecidableInstances, DefaultSignatures,
-             DeriveAnyClass, FunctionalDependencies, StandaloneDeriving #-}
+             DeriveAnyClass, FunctionalDependencies, StandaloneDeriving,
+             ScopedTypeVariables #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Java.Array
@@ -48,12 +49,13 @@ import Java.Utils
 class (Class c) => JArray e c | c -> e, e -> c where
   anew :: Int -> Java a c
 
-  default anew :: (Class e) => Int -> Java a c
+  default anew :: forall a. (Class e) => Int -> Java a c
   {-# INLINE anew #-}
   anew (I# n#) = Java $ \o ->
-    case jobjectArrayNew# n# realWorld# of
-      (# _, o' #) -> case obj o' of
-        c -> (# o, c #)
+    case getClass (Proxy :: Proxy e) of
+      JClass c# -> case jobjectArrayNew# n# c# realWorld# of
+        (# _, o' #) -> case obj o' of
+          c -> (# o, c #)
 
   aget :: Int -> Java c e
   default aget :: (Class e) => Int -> Java c e

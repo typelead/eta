@@ -17,7 +17,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Utils
-  ( JClass
+  ( JClass(..)
   , getClass
   , toString
   , equals
@@ -28,9 +28,9 @@ module Java.Utils
   , toString#
   , safeDowncast
   , Void
-  , Comparator
-  , Comparable
-  , Enum )
+  , Comparator(..)
+  , Comparable(..)
+  , Enum(..) )
 where
 
 import GHC.Base

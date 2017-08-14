@@ -4134,8 +4134,8 @@ primOpInfo Int2JBoolOp = mkGenPrimOp (fsLit "int2jbool#")  [] [intPrimTy] jbyteP
 primOpInfo ClassCastOp = mkGenPrimOp (fsLit "classCast#") [alphaTyVar, betaTyVar]
                                      [ mkObjectPrimTy alphaTy ] (mkObjectPrimTy betaTy)
 primOpInfo ObjectArrayNewOp =
-  mkGenPrimOp (fsLit "jobjectArrayNew#") [alphaTyVar, betaTyVar, gammaTyVar]
-  [ intPrimTy, mkStatePrimTy gammaTy ]
+  mkGenPrimOp (fsLit "jobjectArrayNew#") [alphaTyVar, betaTyVar, gammaTyVar, deltaTyVar]
+  [ intPrimTy, mkObjectPrimTy deltaTy, mkStatePrimTy gammaTy ]
   $ mkTupleTy UnboxedTuple [mkStatePrimTy gammaTy, mkObjectPrimTy betaTy]
 primOpInfo ArrayLengthOp =
   mkGenPrimOp (fsLit "alength#") [alphaTyVar]

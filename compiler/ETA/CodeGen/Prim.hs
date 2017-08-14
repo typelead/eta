@@ -43,15 +43,21 @@ cgOpApp (StgPrimOp TagToEnumOp) args@[_arg] resType = do
   where tyCon = tyConAppTyCon resType
 
 cgOpApp (StgPrimOp ObjectArrayNewOp) args resType = do
-  [nCode] <- getNonVoidArgCodes args
-  emitReturn [mkLocDirect False (arrayFt, nCode <> new arrayFt)]
-  where arrayFt
-          | arrayFt' == jobject = jarray jobject
-          | otherwise =  arrayFt'
-          where arrayFt' = fromJust
-                         . repFieldType_maybe
-                         . head . tail . snd
-                         $ splitTyConApp resType
+  [nCode, classCode] <- getNonVoidArgCodes args
+  let code
+        | arrayFt == jobject =
+             classCode
+          <> nCode
+          <> invokestatic (mkMethodRef "java/lang/reflect/Array" "newInstance"
+                           [classFt, jint] (ret jobject))
+        | otherwise = nCode <> new arrayFt
+  emitReturn [mkLocDirect False (arrayFt, code)]
+  -- If there's enough type information, generate efficient, specialized code.
+  -- If not, use reflection to generate the instance.
+  where arrayFt = fromJust
+                . repFieldType_maybe
+                . head . tail . snd
+                $ splitTyConApp resType
 
 cgOpApp (StgPrimOp primOp) args resType = do
     dflags <- getDynFlags
