@@ -84,52 +84,45 @@ type FD = CInt
 -- ---------------------------------------------------------------------------
 -- stat()-related stuff
 
-fdFileSize :: FD -> IO Integer
-fdFileSize fd =
-  allocaBytes sizeof_stat $ \ p_stat -> do
-    throwErrnoIfMinus1Retry_ "fileSize" $
-        c_fstat fd p_stat
-    c_mode <- st_mode p_stat :: IO CMode
-    if not (s_isreg c_mode)
-        then return (-1)
-        else do
-      c_size <- st_size p_stat
-      return (fromIntegral c_size)
+fdFileSize :: Path -> IO Integer
+fdFileSize path = do
+  attrs <- c_fstat path
+  isreg <- st_isreg attrs
+  if not isreg
+  then return (-1)
+  else do
+    c_size <- st_size attrs
+    return (fromIntegral c_size)
 
 fileType :: FilePath -> IO IODeviceType
-fileType file =
-  allocaBytes sizeof_stat $ \ p_stat -> do
-  withFilePath file $ \p_file -> do
-    throwErrnoIfMinus1Retry_ "fileType" $
-      c_stat p_file p_stat
-    statGetType p_stat
+fileType file = do
+  path  <- getPath file
+  attrs <- c_fstat path
+  statGetType attrs
 
--- NOTE: On Win32 platforms, this will only work with file descriptors
--- referring to file handles. i.e., it'll fail for socket FDs.
-fdStat :: FD -> IO (IODeviceType, CDev, CIno)
-fdStat fd =
-  allocaBytes sizeof_stat $ \ p_stat -> do
-    throwErrnoIfMinus1Retry_ "fdType" $
-        c_fstat fd p_stat
-    ty <- statGetType p_stat
-    dev <- st_dev p_stat
-    ino <- st_ino p_stat
-    return (ty,dev,ino)
+fdStat :: Path -> IO (IODeviceType, Object)
+fdStat path = do
+    attrs   <- c_fstat path
+    ty      <- statGetType attrs
+    fileKey <- st_fileKey attrs
+    return (ty, fileKey)
 
-fdType :: FD -> IO IODeviceType
-fdType fd = do (ty,_,_) <- fdStat fd; return ty
+fdType :: Path -> IO IODeviceType
+fdType path = do (ty,_) <- fdStat path; return ty
 
-statGetType :: Ptr CStat -> IO IODeviceType
-statGetType p_stat = do
-  c_mode <- st_mode p_stat :: IO CMode
-  case () of
-      _ | s_isdir c_mode        -> return Directory
-        | s_isfifo c_mode || s_issock c_mode || s_ischr  c_mode
-                                -> return Stream
-        | s_isreg c_mode        -> return RegularFile
-         -- Q: map char devices to RawDevice too?
-        | s_isblk c_mode        -> return RawDevice
-        | otherwise             -> ioError ioe_unknownfiletype
+fdKey :: Path -> IO Object
+fdKey path = do (_,key) <- fdStat path; return key
+
+statGetType :: BasicFileAttributes -> IO IODeviceType
+statGetType attrs = do
+  isdir <- st_isdir attrs
+  if isdir
+  then return Directory
+  else do
+    isreg <- st_isreg attrs
+    if isreg
+    then return RegularFile
+    else ioError ioe_unknownfiletype
 
 ioe_unknownfiletype :: IOException
 ioe_unknownfiletype = IOError Nothing UnsupportedOperation "fdType"
@@ -137,40 +130,9 @@ ioe_unknownfiletype = IOError Nothing UnsupportedOperation "fdType"
                         Nothing
                         Nothing
 
-fdGetMode :: FD -> IO IOMode
-#if defined(mingw32_HOST_OS) || defined(__MINGW32__)
-fdGetMode _ = do
-    -- We don't have a way of finding out which flags are set on FDs
-    -- on Windows, so make a handle that thinks that anything goes.
-    let flags = o_RDWR
-#else
-fdGetMode fd = do
-    flags <- throwErrnoIfMinus1Retry "fdGetMode"
-                (c_fcntl_read fd const_f_getfl)
-#endif
-    let
-       wH  = (flags .&. o_WRONLY) /= 0
-       aH  = (flags .&. o_APPEND) /= 0
-       rwH = (flags .&. o_RDWR) /= 0
-
-       mode
-         | wH && aH  = AppendMode
-         | wH        = WriteMode
-         | rwH       = ReadWriteMode
-         | otherwise = ReadMode
-
-    return mode
-
-#ifdef mingw32_HOST_OS
-withFilePath :: FilePath -> (CWString -> IO a) -> IO a
-withFilePath = withCWString
-
-newFilePath :: FilePath -> IO CWString
-newFilePath = newCWString
-
-peekFilePath :: CWString -> IO FilePath
-peekFilePath = peekCWString
-#else
+fdGetMode :: Channel -> IO IOMode
+-- We have no way of determining the read/write flags of a file in Java.
+fdGetMode _ = return ReadWriteMode
 
 withFilePath :: FilePath -> (CString -> IO a) -> IO a
 newFilePath :: FilePath -> IO CString
@@ -181,8 +143,6 @@ withFilePath fp f = getFileSystemEncoding >>= \enc -> GHC.withCString enc fp f
 newFilePath fp = getFileSystemEncoding >>= \enc -> GHC.newCString enc fp
 peekFilePath fp = getFileSystemEncoding >>= \enc -> GHC.peekCString enc fp
 peekFilePathLen fp = getFileSystemEncoding >>= \enc -> GHC.peekCStringLen enc fp
-
-#endif
 
 -- ---------------------------------------------------------------------------
 -- Terminal-related stuff
@@ -324,25 +284,8 @@ is_console = undefined
 -- ---------------------------------------------------------------------------
 -- Turning on non-blocking for a file descriptor
 
-setNonBlockingFD :: FD -> Bool -> IO ()
-#if !defined(mingw32_HOST_OS) && !defined(__MINGW32__)
-setNonBlockingFD fd set = do
-  flags <- throwErrnoIfMinus1Retry "setNonBlockingFD"
-                 (c_fcntl_read fd const_f_getfl)
-  let flags' | set       = flags .|. o_NONBLOCK
-             | otherwise = flags .&. complement o_NONBLOCK
-  when (flags /= flags') $ do
-    -- An error when setting O_NONBLOCK isn't fatal: on some systems
-    -- there are certain file handles on which this will fail (eg. /dev/null
-    -- on FreeBSD) so we throw away the return code from fcntl_write.
-    _ <- c_fcntl_write fd const_f_setfl (fromIntegral flags')
-    return ()
-#else
-
--- bogus defns for win32
-setNonBlockingFD _ _ = return ()
-
-#endif
+foreign import java unsafe "@static eta.base.Utils.setNonBlockingFD"
+  setNonBlockingFD :: Channel -> Bool -> IO ()
 
 -- -----------------------------------------------------------------------------
 -- Set close-on-exec for a file descriptor
@@ -371,9 +314,8 @@ c_access = undefined
 c_chmod :: CString -> CMode -> IO CInt
 c_chmod = undefined
 
--- foreign import ccall unsafe "HsBase.h close"
-c_close :: CInt -> IO CInt
-c_close = undefined
+foreign import java unsafe "@interface close"
+  c_close :: Channel -> IO ()
 
 -- foreign import ccall unsafe "HsBase.h creat"
 c_creat :: CString -> CMode -> IO CInt
@@ -387,35 +329,23 @@ c_dup = undefined
 c_dup2 :: CInt -> CInt -> IO CInt
 c_dup2 = undefined
 
--- foreign import ccall unsafe "HsBase.h __hscore_fstat"
-c_fstat :: CInt -> Ptr CStat -> IO CInt
-c_fstat = undefined
+foreign import java unsafe "@static eta.base.Utils.c_fstat"
+  c_fstat :: Path -> IO BasicFileAttributes
 
 foreign import java unsafe "@static eta.base.Utils.c_isatty"
   c_isatty :: CInt -> IO CInt
 
-#if defined(mingw32_HOST_OS) || defined(__MINGW32__)
--- foreign import ccall unsafe "io.h _lseeki64"
-c_lseek :: CInt -> Int64 -> CInt -> IO Int64
-c_lseek = undefined
-#else
--- We use CAPI as on some OSs (eg. Linux) this is wrapped by a macro
--- which redirects to the 64-bit-off_t versions when large file
--- support is enabled.
--- foreign import capi unsafe "unistd.h lseek"
-c_lseek :: CInt -> COff -> CInt -> IO COff
-c_lseek = undefined
-#endif
+foreign import java unsafe "@static eta.base.Utils.c_lseek"
+  c_lseek :: FileChannel -> Int64 -> CInt -> IO Int64
 
 -- foreign import ccall unsafe "HsBase.h __hscore_lstat"
 lstat :: CFilePath -> Ptr CStat -> IO CInt
 lstat = undefined
 
--- foreign import ccall unsafe "HsBase.h __hscore_open"
-c_open :: FilePath -> [StandardOpenOption] -> [PosixFilePermission] -> IO FileChannel
-c_open filepath options permissions = do
-  path <- getPath filepath (pureJava (arrayFromList ([] :: [JString])))
-  let openOptions = toJava (map superCast options :: [OpenOption])
+c_open :: Path -> [StandardOpenOption] -> CMode -> IO FileChannel
+c_open path options mode = do
+  let permissions = toPermissions mode
+      openOptions = toJava (map superCast options :: [OpenOption])
   fileAttribute <- asFileAttribute (toJava permissions)
   channel <- open_ path openOptions (pureJava (arrayFromList [fileAttribute]))
   return channel
@@ -426,11 +356,10 @@ foreign import java unsafe "@static java.nio.file.attribute.PosixFilePermissions
 foreign import java unsafe "@static java.nio.channels.FileChannel.open"
   open_ :: Path -> Set OpenOption -> FileAttributeArray -> IO FileChannel
 
--- foreign import ccall safe "HsBase.h __hscore_open"
-c_safe_open :: FilePath -> [StandardOpenOption] -> [PosixFilePermission] -> IO FileChannel
-c_safe_open filepath options permissions = do
-  path <- getPath filepath (pureJava (arrayFromList ([] :: [JString])))
-  let openOptions = toJava (map superCast options :: [OpenOption])
+c_safe_open :: Path -> [StandardOpenOption] -> CMode -> IO FileChannel
+c_safe_open path options mode = do
+  let permissions = toPermissions mode
+      openOptions = toJava (map superCast options :: [OpenOption])
   fileAttribute <- asFileAttribute (toJava permissions)
   channel <- safe_open path openOptions (pureJava (arrayFromList [fileAttribute]))
   return channel
@@ -462,9 +391,8 @@ foreign import java unsafe "@static eta.base.Utils.c_write"
 foreign import java safe "@static eta.base.Utils.c_write"
   c_safe_write :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
--- foreign import ccall unsafe "HsBase.h __hscore_ftruncate"
-c_ftruncate :: CInt -> COff -> IO CInt
-c_ftruncate = undefined
+foreign import java safe "truncate"
+  c_ftruncate :: FileChannel -> COff -> IO FileChannel
 
 -- foreign import ccall unsafe "HsBase.h unlink"
 c_unlink :: CString -> IO CInt
@@ -599,57 +527,20 @@ foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.TRUN
 foreign import java unsafe "@static @field java.nio.file.StandardOpenOption.WRITE"
   o_WRITE :: StandardOpenOption
 
--- foreign import capi unsafe "sys/stat.h S_ISREG"
-c_s_isreg  :: CMode -> CInt
-c_s_isreg = undefined
--- foreign import capi unsafe "sys/stat.h S_ISCHR"
-c_s_ischr  :: CMode -> CInt
-c_s_ischr = undefined
--- foreign import capi unsafe "sys/stat.h S_ISBLK"
-c_s_isblk  :: CMode -> CInt
-c_s_isblk = undefined
--- foreign import capi unsafe "sys/stat.h S_ISDIR"
-c_s_isdir  :: CMode -> CInt
-c_s_isdir = undefined
--- foreign import capi unsafe "sys/stat.h S_ISFIFO"
-c_s_isfifo :: CMode -> CInt
-c_s_isfifo = undefined
+foreign import java unsafe "@interface isDirectory"
+  st_isdir   :: BasicFileAttributes -> IO Bool
 
-s_isreg  :: CMode -> Bool
-s_isreg cm = c_s_isreg cm /= 0
-s_ischr  :: CMode -> Bool
-s_ischr cm = c_s_ischr cm /= 0
-s_isblk  :: CMode -> Bool
-s_isblk cm = c_s_isblk cm /= 0
-s_isdir  :: CMode -> Bool
-s_isdir cm = c_s_isdir cm /= 0
-s_isfifo :: CMode -> Bool
-s_isfifo cm = c_s_isfifo cm /= 0
+foreign import java unsafe "@interface isRegularFile"
+  st_isreg   :: BasicFileAttributes -> IO Bool
 
--- foreign import ccall unsafe "HsBase.h __hscore_sizeof_stat"
-sizeof_stat :: Int
-sizeof_stat = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_st_mtime"
-st_mtime :: Ptr CStat -> IO CTime
-st_mtime = undefined
-#ifdef mingw32_HOST_OS
--- foreign import ccall unsafe "HsBase.h __hscore_st_size"
-st_size :: Ptr CStat -> IO Int64
-st_size = undefined
-#else
--- foreign import ccall unsafe "HsBase.h __hscore_st_size"
-st_size :: Ptr CStat -> IO COff
-st_size = undefined
-#endif
--- foreign import ccall unsafe "HsBase.h __hscore_st_mode"
-st_mode :: Ptr CStat -> IO CMode
-st_mode = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_st_dev"
-st_dev :: Ptr CStat -> IO CDev
-st_dev = undefined
--- foreign import ccall unsafe "HsBase.h __hscore_st_ino"
-st_ino :: Ptr CStat -> IO CIno
-st_ino = undefined
+foreign import java unsafe "@interface isOther"
+  st_isother :: BasicFileAttributes -> IO Bool
+
+foreign import java unsafe "@interface size"
+  st_size    :: BasicFileAttributes -> IO Int64
+
+foreign import java unsafe "@interface fileKey"
+  st_fileKey :: BasicFileAttributes -> IO Object
 
 -- foreign import ccall unsafe "HsBase.h __hscore_echo"
 const_echo :: CInt
@@ -720,15 +611,11 @@ s_issock _ = False
 -- foreign import ccall unsafe "__hscore_bufsiz"
 dEFAULT_BUFFER_SIZE :: Int
 dEFAULT_BUFFER_SIZE = undefined
--- foreign import capi  unsafe "stdio.h value SEEK_CUR"
-sEEK_CUR :: CInt
-sEEK_CUR = undefined
--- foreign import capi  unsafe "stdio.h value SEEK_SET"
-sEEK_SET :: CInt
-sEEK_SET = undefined
--- foreign import capi  unsafe "stdio.h value SEEK_END"
-sEEK_END :: CInt
-sEEK_END = undefined
+
+sEEK_CUR, sEEK_SET, sEEK_END :: CInt
+sEEK_CUR = 0
+sEEK_SET = 1
+sEEK_END = 2
 
 {-
 Note: CSsize
@@ -770,7 +657,24 @@ foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePerm
 foreign import java unsafe "@static @field java.nio.file.attribute.PosixFilePermission.OWNER_WRITE"
   p_OWNER_WRITE :: PosixFilePermission
 
+toPermissions :: CMode -> [PosixFilePermission]
+toPermissions mode = foldr (\(i, p) xs -> if testBit mode i
+                                          then (p:xs)
+                                          else xs) [] permsMap
+  where permsMap = [(0, p_OTHERS_EXECUTE)
+                   ,(1, p_OTHERS_WRITE)
+                   ,(2, p_OTHERS_READ)
+                   ,(3, p_GROUP_EXECUTE)
+                   ,(4, p_GROUP_WRITE)
+                   ,(5, p_GROUP_READ)
+                   ,(6, p_OWNER_EXECUTE)
+                   ,(7, p_OWNER_WRITE)
+                   ,(8, p_OWNER_READ)]
+
 -- End POSIX permissions
 
 foreign import java unsafe "@static java.nio.file.Paths.get"
-  getPath :: String -> JStringArray -> IO Path
+  getPath' :: String -> JStringArray -> IO Path
+
+getPath :: String -> IO Path
+getPath fp = getPath' fp (pureJava (arrayFromList ([] :: [JString])))

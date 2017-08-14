@@ -38,19 +38,6 @@ module GHC.Conc.IO
         , threadWaitReadSTM
         , threadWaitWriteSTM
         , closeFdWith
-
-#ifdef mingw32_HOST_OS
-        , asyncRead
-        , asyncWrite
-        , asyncDoProc
-
-        , asyncReadBA
-        , asyncWriteBA
-
-        , ConsoleEvent(..)
-        , win32ConsoleHandler
-        , toWin32ConsoleEvent
-#endif
         ) where
 
 import Foreign
@@ -59,28 +46,13 @@ import GHC.Conc.Sync as Sync
 import GHC.Real ( fromIntegral )
 import System.Posix.Types
 
-#ifdef mingw32_HOST_OS
-import qualified GHC.Conc.Windows as Windows
-import GHC.Conc.Windows (asyncRead, asyncWrite, asyncDoProc, asyncReadBA,
-                         asyncWriteBA, ConsoleEvent(..), win32ConsoleHandler,
-                         toWin32ConsoleEvent)
-#else
-import qualified GHC.Event.Thread as Event
-#endif
-
 ensureIOManagerIsRunning :: IO ()
-#ifndef mingw32_HOST_OS
-ensureIOManagerIsRunning = Event.ensureIOManagerIsRunning
-#else
-ensureIOManagerIsRunning = Windows.ensureIOManagerIsRunning
-#endif
+ensureIOManagerIsRunning =
+  error "ensureIOManagerIsRunning: Eta RTS doesn't support the IO Manager."
 
 ioManagerCapabilitiesChanged :: IO ()
-#ifndef mingw32_HOST_OS
-ioManagerCapabilitiesChanged = Event.ioManagerCapabilitiesChanged
-#else
-ioManagerCapabilitiesChanged = return ()
-#endif
+ioManagerCapabilitiesChanged =
+  error "ioManagerCapabilitiesChanged: Eta RTS doesn't support the IO Manager."
 
 -- | Block the current thread until data is available to read on the
 -- given file descriptor (GHC only).
@@ -88,16 +60,10 @@ ioManagerCapabilitiesChanged = return ()
 -- This will throw an 'IOError' if the file descriptor was closed
 -- while this thread was blocked.  To safely close a file descriptor
 -- that has been used with 'threadWaitRead', use 'closeFdWith'.
-threadWaitRead :: Fd -> IO ()
-threadWaitRead fd
-#ifndef mingw32_HOST_OS
-  | threaded  = Event.threadWaitRead fd
-#endif
-  | otherwise = IO $ \s -> undefined
-        -- case fromIntegral fd of { I# fd# ->
-        -- case waitRead# fd# s of { s' -> (# s', () #)
-        -- }}
-        -- TODO: channel
+threadWaitRead :: Channel -> IO ()
+threadWaitRead fd = IO $ \s ->
+  case fd of { Channel c# ->
+  case waitRead# c# s of { s' -> (# s', () #) }}
 
 -- | Block the current thread until data can be written to the
 -- given file descriptor (GHC only).
@@ -105,54 +71,40 @@ threadWaitRead fd
 -- This will throw an 'IOError' if the file descriptor was closed
 -- while this thread was blocked.  To safely close a file descriptor
 -- that has been used with 'threadWaitWrite', use 'closeFdWith'.
-threadWaitWrite :: Fd -> IO ()
-threadWaitWrite fd
-#ifndef mingw32_HOST_OS
-  | threaded  = Event.threadWaitWrite fd
-#endif
-  | otherwise = IO $ \s -> undefined
-        -- case fromIntegral fd of { I# fd# ->
-        -- case waitWrite# fd# s of { s' -> (# s', () #)
-        -- }}
-        -- TODO: channel
+threadWaitWrite :: Channel -> IO ()
+threadWaitWrite fd = IO $ \s ->
+  case fd of { Channel c# ->
+  case waitWrite# c# s of { s' -> (# s', () #) }}
 
 -- | Returns an STM action that can be used to wait for data
 -- to read from a file descriptor. The second returned value
 -- is an IO action that can be used to deregister interest
 -- in the file descriptor.
-threadWaitReadSTM :: Fd -> IO (Sync.STM (), IO ())
-threadWaitReadSTM fd
-#ifndef mingw32_HOST_OS
-  | threaded  = Event.threadWaitReadSTM fd
-#endif
-  | otherwise = do
-      m <- Sync.newTVarIO False
-      _ <- Sync.forkIO $ do
-        threadWaitRead fd
-        Sync.atomically $ Sync.writeTVar m True
-      let waitAction = do b <- Sync.readTVar m
-                          if b then return () else retry
-      let killAction = return ()
-      return (waitAction, killAction)
+threadWaitReadSTM :: Channel -> IO (Sync.STM (), IO ())
+threadWaitReadSTM fd = do
+  m <- Sync.newTVarIO False
+  _ <- Sync.forkIO $ do
+    threadWaitRead fd
+    Sync.atomically $ Sync.writeTVar m True
+  let waitAction = do b <- Sync.readTVar m
+                      if b then return () else retry
+  let killAction = return ()
+  return (waitAction, killAction)
 
 -- | Returns an STM action that can be used to wait until data
 -- can be written to a file descriptor. The second returned value
 -- is an IO action that can be used to deregister interest
 -- in the file descriptor.
-threadWaitWriteSTM :: Fd -> IO (Sync.STM (), IO ())
-threadWaitWriteSTM fd
-#ifndef mingw32_HOST_OS
-  | threaded  = Event.threadWaitWriteSTM fd
-#endif
-  | otherwise = do
-      m <- Sync.newTVarIO False
-      _ <- Sync.forkIO $ do
-        threadWaitWrite fd
-        Sync.atomically $ Sync.writeTVar m True
-      let waitAction = do b <- Sync.readTVar m
-                          if b then return () else retry
-      let killAction = return ()
-      return (waitAction, killAction)
+threadWaitWriteSTM :: Channel -> IO (Sync.STM (), IO ())
+threadWaitWriteSTM fd = do
+  m <- Sync.newTVarIO False
+  _ <- Sync.forkIO $ do
+    threadWaitWrite fd
+    Sync.atomically $ Sync.writeTVar m True
+  let waitAction = do b <- Sync.readTVar m
+                      if b then return () else retry
+  let killAction = return ()
+  return (waitAction, killAction)
 
 -- | Close a file descriptor in a concurrency-safe way (GHC only).  If
 -- you are using 'threadWaitRead' or 'threadWaitWrite' to perform
@@ -162,14 +114,10 @@ threadWaitWriteSTM fd
 -- Any threads that are blocked on the file descriptor via
 -- 'threadWaitRead' or 'threadWaitWrite' will be unblocked by having
 -- IO exceptions thrown.
-closeFdWith :: (Fd -> IO ()) -- ^ Low-level action that performs the real close.
-            -> Fd            -- ^ File descriptor to close.
+closeFdWith :: (Channel -> IO ()) -- ^ Low-level action that performs the real close.
+            -> Channel            -- ^ File descriptor to close.
             -> IO ()
-closeFdWith close fd
-#ifndef mingw32_HOST_OS
-  | threaded  = Event.closeFdWith close fd
-#endif
-  | otherwise = close fd
+closeFdWith close fd = close fd
 
 -- | Suspends the current thread for a given number of microseconds
 -- (GHC only).
@@ -179,29 +127,12 @@ closeFdWith close fd
 -- run /earlier/ than specified.
 --
 threadDelay :: Int -> IO ()
-threadDelay time
-#ifdef mingw32_HOST_OS
-  | threaded  = Windows.threadDelay time
-#else
-  | threaded  = Event.threadDelay time
-#endif
-  | otherwise = IO $ \s ->
-        case time of { I# time# ->
-        case delay# time# s of { s' -> (# s', () #)
-        }}
+threadDelay time = IO $ \s ->
+  case time of { I# time# ->
+  case delay# time# s of { s' -> (# s', () #) }}
 
 -- | Set the value of returned TVar to True after a given number of
 -- microseconds. The caveats associated with threadDelay also apply.
 --
 registerDelay :: Int -> IO (TVar Bool)
-registerDelay usecs
-#ifdef mingw32_HOST_OS
-  | threaded = Windows.registerDelay usecs
-#else
-  | threaded = Event.registerDelay usecs
-#endif
-  | otherwise = error "registerDelay: requires -threaded"
-
--- foreign import ccall unsafe "rtsSupportsBoundThreads"
-threaded :: Bool
-threaded = False
+registerDelay usecs = error "registerDelay: Eta RTS doesn't support the IO Manager."

@@ -36,6 +36,7 @@ import GHC.IO.Handle
 import GHC.IO.Handle.Types
 import GHC.IO.Handle.Internals
 import qualified GHC.IO.FD as FD
+import qualified System.Posix.Types as Posix
 import qualified System.Posix.Internals as Posix
 
 -- ---------------------------------------------------------------------------
@@ -215,15 +216,10 @@ mkHandleFromFD
 
 mkHandleFromFD fd0 fd_type filepath iomode set_non_blocking mb_codec
   = do
-#ifndef mingw32_HOST_OS
     -- turn on non-blocking mode
     fd <- if set_non_blocking
              then FD.setNonBlockingMode fd0 True
              else return fd0
-#else
-    let _ = set_non_blocking -- warning suppression
-    fd <- return fd0
-#endif
 
     let nl | isJust mb_codec = nativeNewlineMode
            | otherwise       = noNewlineTranslation
@@ -244,7 +240,7 @@ mkHandleFromFD fd0 fd_type filepath iomode set_non_blocking mb_codec
            mkFileHandle fd filepath iomode mb_codec nl
 
 -- | Old API kept to avoid breaking clients
-fdToHandle' :: CInt
+fdToHandle' :: Posix.Channel
             -> Maybe IODeviceType
             -> Bool -- is_socket on Win, non-blocking on Unix
             -> FilePath
@@ -257,10 +253,9 @@ fdToHandle' fdint mb_type is_socket filepath iomode binary = do
                           -- mkFD will do the stat:
                         Just RegularFile -> Nothing
                           -- no stat required for streams etc.:
-                        Just other       -> Just (other,0,0)
-  (fd,fd_type) <- FD.mkFD fdint iomode mb_stat
-                       is_socket
-                       is_socket
+                        Just other       -> Just (other, undefined)
+  f <- Posix.getPath filepath
+  (fd,fd_type) <- FD.mkFD fdint (Just f) iomode mb_stat is_socket
   enc <- if binary then return Nothing else fmap Just getLocaleEncoding
   mkHandleFromFD fd fd_type filepath iomode is_socket enc
 
@@ -271,20 +266,12 @@ fdToHandle' fdint mb_type is_socket filepath iomode binary = do
 -- Makes a binary Handle.  This is for historical reasons; it should
 -- probably be a text Handle with the default encoding and newline
 -- translation instead.
-fdToHandle :: Posix.FD -> IO Handle
+fdToHandle :: Posix.Channel -> IO Handle
 fdToHandle fdint = do
    iomode <- Posix.fdGetMode fdint
-   (fd,fd_type) <- FD.mkFD fdint iomode Nothing
-            False{-is_socket-}
-              -- NB. the is_socket flag is False, meaning that:
-              --  on Windows we're guessing this is not a socket (XXX)
-            False{-is_nonblock-}
-              -- file descriptors that we get from external sources are
-              -- not put into non-blocking mode, because that would affect
-              -- other users of the file descriptor
+   (fd,fd_type) <- FD.mkFD fdint Nothing iomode Nothing False
    let fd_str = "<file descriptor: " ++ show fd ++ ">"
-   mkHandleFromFD fd fd_type fd_str iomode False{-non-block-}
-                  Nothing -- bin mode
+   mkHandleFromFD fd fd_type fd_str iomode False{-non-block-} Nothing -- bin mode
 
 -- ---------------------------------------------------------------------------
 -- Are files opened by default in text or binary mode, if the user doesn't

@@ -244,14 +244,13 @@ public class Concurrent {
         SelectionKey selectKey = null;
         try {
             SelectableChannel selectChannel = (SelectableChannel) channel;
-            selectKey = selectChannel.register(globalSelector, ops);
-            selectKey.attach(tso);
+            selectKey = selectChannel.register(globalSelector, ops, tso);
         } catch (ClosedChannelException e) {
             /* TODO: If the channel is closed, the user should know about it.
                Notify them in some form. */
         }
         WhyBlocked blocked;
-            switch (ops) {
+        switch (ops) {
             case SelectionKey.OP_READ:
                 blocked = BlockedOnRead;
                 break;
@@ -268,6 +267,14 @@ public class Concurrent {
             cap.blockedLoop();
         } while (selectKey.isValid());
         return null;
+    }
+
+    public static Closure waitRead(StgContext context, Object o) {
+        return threadWaitIO(context, (Channel) o, SelectionKey.OP_READ);
+    }
+
+    public static Closure waitWrite(StgContext context, Object o) {
+        return threadWaitIO(context, (Channel) o, SelectionKey.OP_WRITE);
     }
 
     public static void checkForReadyIO(Capability cap) {

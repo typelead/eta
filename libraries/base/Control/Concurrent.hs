@@ -111,7 +111,7 @@ import GHC.IO           ( unsafeUnmask )
 import GHC.IORef        ( newIORef, readIORef, writeIORef )
 import GHC.Base
 
-import System.Posix.Types ( Fd )
+import System.Posix.Types ( Fd, Channel )
 import Foreign.StablePtr
 import Foreign.C.Types
 
@@ -394,23 +394,8 @@ unsafeResult = either Exception.throwIO return
 -- while this thread was blocked.  To safely close a file descriptor
 -- that has been used with 'threadWaitRead', use
 -- 'GHC.Conc.closeFdWith'.
-threadWaitRead :: Fd -> IO ()
-threadWaitRead fd
--- #ifdef mingw32_HOST_OS
---   -- we have no IO manager implementing threadWaitRead on Windows.
---   -- fdReady does the right thing, but we have to call it in a
---   -- separate thread, otherwise threadWaitRead won't be interruptible,
---   -- and this only works with -threaded.
---   | threaded  = withThread (waitFd fd 0)
---   | otherwise = case fd of
---                   0 -> do _ <- hWaitForInput stdin (-1)
---                           return ()
---                         -- hWaitForInput does work properly, but we can only
---                         -- do this for stdin since we know its FD.
---                   _ -> error "threadWaitRead requires -threaded on Windows, or use System.IO.hWaitForInput"
--- #else
-  = GHC.Conc.threadWaitRead fd
--- #endif
+threadWaitRead :: Channel -> IO ()
+threadWaitRead fd = GHC.Conc.threadWaitRead fd
 
 -- | Block the current thread until data can be written to the
 -- given file descriptor (GHC only).
@@ -419,14 +404,8 @@ threadWaitRead fd
 -- while this thread was blocked.  To safely close a file descriptor
 -- that has been used with 'threadWaitWrite', use
 -- 'GHC.Conc.closeFdWith'.
-threadWaitWrite :: Fd -> IO ()
-threadWaitWrite fd
--- #ifdef mingw32_HOST_OS
---   | threaded  = withThread (waitFd fd 1)
---   | otherwise = error "threadWaitWrite requires -threaded on Windows"
--- #else
-  = GHC.Conc.threadWaitWrite fd
--- #endif
+threadWaitWrite :: Channel -> IO ()
+threadWaitWrite fd = GHC.Conc.threadWaitWrite fd
 
 -- | Returns an STM action that can be used to wait for data
 -- to read from a file descriptor. The second returned value
@@ -434,23 +413,8 @@ threadWaitWrite fd
 -- in the file descriptor.
 --
 -- @since 4.7.0.0
-threadWaitReadSTM :: Fd -> IO (STM (), IO ())
-threadWaitReadSTM fd
--- #ifdef mingw32_HOST_OS
---   | threaded = do v <- newTVarIO Nothing
---                   mask_ $ void $ forkIO $ do result <- try (waitFd fd 0)
---                                              atomically (writeTVar v $ Just result)
---                   let waitAction = do result <- readTVar v
---                                       case result of
---                                         Nothing         -> retry
---                                         Just (Right ()) -> return ()
---                                         Just (Left e)   -> throwSTM (e :: IOException)
---                   let killAction = return ()
---                   return (waitAction, killAction)
---   | otherwise = error "threadWaitReadSTM requires -threaded on Windows"
--- #else
-  = GHC.Conc.threadWaitReadSTM fd
--- #endif
+threadWaitReadSTM :: Channel -> IO (STM (), IO ())
+threadWaitReadSTM fd = GHC.Conc.threadWaitReadSTM fd
 
 -- | Returns an STM action that can be used to wait until data
 -- can be written to a file descriptor. The second returned value
@@ -458,47 +422,8 @@ threadWaitReadSTM fd
 -- in the file descriptor.
 --
 -- @since 4.7.0.0
-threadWaitWriteSTM :: Fd -> IO (STM (), IO ())
-threadWaitWriteSTM fd
--- #ifdef mingw32_HOST_OS
---   | threaded = do v <- newTVarIO Nothing
---                   mask_ $ void $ forkIO $ do result <- try (waitFd fd 1)
---                                              atomically (writeTVar v $ Just result)
---                   let waitAction = do result <- readTVar v
---                                       case result of
---                                         Nothing         -> retry
---                                         Just (Right ()) -> return ()
---                                         Just (Left e)   -> throwSTM (e :: IOException)
---                   let killAction = return ()
---                   return (waitAction, killAction)
---   | otherwise = error "threadWaitWriteSTM requires -threaded on Windows"
--- #else
-  = GHC.Conc.threadWaitWriteSTM fd
--- #endif
-
--- #ifdef mingw32_HOST_OS
--- foreign import ccall unsafe "rtsSupportsBoundThreads" threaded :: Bool
-
--- withThread :: IO a -> IO a
--- withThread io = do
---   m <- newEmptyMVar
---   _ <- mask_ $ forkIO $ try io >>= putMVar m
---   x <- takeMVar m
---   case x of
---     Right a -> return a
---     Left e  -> throwIO (e :: IOException)
-
--- waitFd :: Fd -> CInt -> IO ()
--- waitFd fd write = do
---    throwErrnoIfMinus1_ "fdReady" $
---         fdReady (fromIntegral fd) write iNFINITE 0
-
--- iNFINITE :: CInt
--- iNFINITE = 0xFFFFFFFF -- urgh
-
--- foreign import ccall safe "fdReady"
---   fdReady :: CInt -> CInt -> CInt -> CInt -> IO CInt
--- #endif
+threadWaitWriteSTM :: Channel -> IO (STM (), IO ())
+threadWaitWriteSTM fd = GHC.Conc.threadWaitWriteSTM fd
 
 -- ---------------------------------------------------------------------------
 -- More docs

@@ -1,18 +1,29 @@
 package eta.base;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+
 import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.charset.Charset;
 import java.nio.channels.Channels;
 import java.nio.channels.Channel;
+import java.nio.channels.FileChannel;
+import java.nio.channels.Selector;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.Arrays;
-import java.util.List;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -270,5 +281,87 @@ public class Utils {
         copy.flip();
         dest.put(copy);
         return destAddress;
+    }
+
+    public static BasicFileAttributes c_fstat(Path p) throws IOException {
+        return Files.readAttributes(p, BasicFileAttributes.class);
+    }
+
+    public static Map<Object, Integer> fileLocks = new HashMap<Object, Integer>();
+
+    public static synchronized boolean lockFile(Object key, boolean forWriting) {
+        Integer readers = fileLocks.get(key);
+        if (readers == null) {
+            int readersInt = forWriting? -1 : 1;
+            fileLocks.put(key, readersInt);
+        } else {
+            if (forWriting || readers < 0) return false;
+            fileLocks.put(key, readers + 1);
+        }
+        return true;
+    }
+
+    public static synchronized boolean unlockFile(Object key) {
+        Integer readers = fileLocks.get(key);
+        if (readers == null) return false;
+        int newReaders = 0;
+        if (readers < 0) {
+            newReaders = readers + 1;
+        } else {
+            newReaders = readers - 1;
+        }
+        if (newReaders == 0) {
+            fileLocks.remove(key);
+        } else {
+            fileLocks.put(key, newReaders);
+        }
+        return true;
+    }
+
+    public static void setNonBlockingFD(Channel c, boolean blocking) throws IOException {
+        if (c instanceof SelectableChannel) {
+            ((SelectableChannel) c).configureBlocking(blocking);
+        }
+    }
+
+    public static long c_lseek(FileChannel fc, long offset, int mode) throws IOException {
+        switch (mode) {
+            case 0:
+                fc.position(fc.position() + offset);
+                break;
+            case 1:
+                fc.position(offset);
+                break;
+            case 2:
+                fc.position(fc.size() + offset);
+                break;
+            default:
+                return (-1);
+        }
+        return fc.position();
+    }
+
+    public static boolean fdReady(Channel c, boolean write, int msecs) {
+        if (c instanceof SelectableChannel) {
+            try {
+                Selector s             = Selector.open();
+                SelectableChannel sc   = (SelectableChannel) c;
+                SelectionKey selectKey = sc.register(s,
+                                                     write? SelectionKey.OP_WRITE
+                                                          : SelectionKey.OP_READ);
+                if (msecs > 0) {
+                    return (s.select(msecs) > 0);
+                } else {
+                    return (s.selectNow() > 0);
+                }
+            } catch (IOException e) {
+                return true;
+            }
+        }
+        return true;
+    }
+
+    public static int c_rand() {
+        return (int)(Math.random() * 32768.0);
     }
 }

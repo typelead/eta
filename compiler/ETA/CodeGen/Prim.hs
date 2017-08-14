@@ -373,6 +373,8 @@ mkRtsPrimOp GetSparkOp              = (parGroup, "getSpark")
 mkRtsPrimOp NumSparks               = (parGroup, "numSparks")
 mkRtsPrimOp NewBCOOp                = (interpGroup, "newBCO")
 mkRtsPrimOp TraceEventOp            = (concGroup, "traceEvent")
+mkRtsPrimOp WaitWriteOp             = (concGroup, "waitWrite")
+mkRtsPrimOp WaitReadOp              = (concGroup, "waitRead")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op

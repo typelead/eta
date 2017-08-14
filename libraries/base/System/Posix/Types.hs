@@ -86,7 +86,8 @@ module System.Posix.Types (
   PosixFilePermission,
   Path,
   FileChannel,
-  FileAttributeArray
+  FileAttributeArray,
+  BasicFileAttributes
  ) where
 
 import Foreign
@@ -102,6 +103,7 @@ import GHC.Real
 import GHC.Read
 import GHC.Show
 import {-# SOURCE #-} Java.Array (JArray)
+import {-# SOURCE #-} Java.Utils
 import Java.Core
 
 #include "CTypes.h"
@@ -143,6 +145,7 @@ INTEGRAL_TYPE(CRLim,HTYPE_RLIM_T)
 
 data {-# CLASS "java.nio.channels.Channel" #-} Channel =
   Channel (Object# Channel)
+  deriving Class
 
 newtype Fd = Fd Int
 
@@ -179,7 +182,7 @@ type Limit          = CLong
 
 data {-# CLASS "java.nio.file.StandardOpenOption" #-}
   StandardOpenOption = StandardOpenOption (Object# StandardOpenOption)
-  deriving Class
+  deriving (Eq, Class)
 
 type instance Inherits StandardOpenOption = '[Object, OpenOption]
 
@@ -245,4 +248,10 @@ data {-# CLASS "java.nio.channels.FileChannel" #-}
   FileChannel = FileChannel (Object# FileChannel)
   deriving Class
 
+type instance Inherits FileChannel = '[Channel]
+
 -- End java.nio.channels.FileChannel
+
+data {-# CLASS "java.nio.file.attribute.BasicFileAttributes" #-}
+  BasicFileAttributes = BasicFileAttributes (Object# BasicFileAttributes)
+  deriving Class

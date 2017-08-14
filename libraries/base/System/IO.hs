@@ -232,6 +232,7 @@ import System.Posix.Internals
 import System.Posix.Types
 
 import GHC.Base
+import GHC.Real
 import GHC.List
 import GHC.IO hiding ( bracket, onException )
 import GHC.IO.IOMode
@@ -244,6 +245,8 @@ import GHC.IO.Encoding
 import Text.Read
 import GHC.Show
 import GHC.MVar
+
+import {-# SOURCE #-} Java.Primitive
 
 -- -----------------------------------------------------------------------------
 -- Standard IO
@@ -491,12 +494,10 @@ openTempFile' loc tmp_dir template binary mode = findTempName
         FileExists -> findTempName
         OpenNewError errno -> ioError (errnoToIOError loc errno Nothing (Just tmp_dir))
         NewFileCreated fd -> do
-          (fD,fd_type) <- FD.mkFD fd ReadWriteMode Nothing{-no stat-}
-                               False{-is_socket-}
-                               True{-is_nonblock-}
-
+          p <- getPath filepath
+          (fD,fd_type) <- FD.mkFD (superCast fd) (Just p) ReadWriteMode Nothing True
           enc <- getLocaleEncoding
-          h <- mkHandleFromFD fD fd_type filepath ReadWriteMode False{-set non-block-} (Just enc)
+          h <- mkHandleFromFD fD fd_type filepath ReadWriteMode False (Just enc)
 
           return (filepath, h)
 
@@ -509,9 +510,8 @@ openTempFile' loc tmp_dir template binary mode = findTempName
                   | otherwise = a ++ [pathSeparator] ++ b
 
 -- int rand(void) from <stdlib.h>, limited by RAND_MAX (small value, 32768)
--- foreign import capi "stdlib.h rand"
-c_rand :: IO CInt
-c_rand = undefined
+foreign import java unsafe "@static eta.base.Utils.c_rand"
+  c_rand :: IO CInt
 
 -- build large digit-alike number
 rand_string :: IO String
@@ -521,64 +521,23 @@ rand_string = do
   return $ show r1 ++ show r2
 
 data OpenNewFileResult
-  = NewFileCreated CInt
+  = NewFileCreated Channel
   | FileExists
   | OpenNewError Errno
 
 openNewFile :: FilePath -> Bool -> CMode -> IO OpenNewFileResult
 openNewFile filepath binary mode = do
-  let oflags1 = rw_flags .|. o_EXCL
+  let oflags = (filter (/= o_CREATE) FD.rw_flags) ++ [o_CREATE_NEW]
+  f  <- getPath filepath
+  -- TODO: Find a nice way to handle exceptions
+  fd <- c_open f oflags mode
+  return (NewFileCreated (superCast fd))
 
-      binary_flags
-        | binary    = o_BINARY
-        | otherwise = 0
+foreign import java "@static java.io.File.pathSeparatorChar"
+  pathSeparator' :: JChar
 
-      oflags = oflags1 .|. binary_flags
-  fd <- withFilePath filepath $ \ f ->
-         undefined  --c_open f oflags mode TODO: uncomment
-  if fd < 0
-    then do
-      errno <- getErrno
-      case errno of
-        _ | errno == eEXIST -> return FileExists
-#ifdef mingw32_HOST_OS
-        -- If c_open throws EACCES on windows, it could mean that filepath is a
-        -- directory. In this case, we want to return FileExists so that the
-        -- enclosing openTempFile can try again instead of failing outright.
-        -- See bug #4968.
-        _ | errno == eACCES -> do
-          withCString filepath $ \path -> do
-            -- There is a race here: the directory might have been moved or
-            -- deleted between the c_open call and the next line, but there
-            -- doesn't seem to be any direct way to detect that the c_open call
-            -- failed because of an existing directory.
-            exists <- c_fileExists path
-            return $ if exists
-              then FileExists
-              else OpenNewError errno
-#endif
-        _ -> return (OpenNewError errno)
-    else return (NewFileCreated fd)
-
-#ifdef mingw32_HOST_OS
--- foreign import ccall "file_exists"
-c_fileExists :: CString -> IO Bool
-c_fileExists = undefined
-#endif
-
--- XXX Should use filepath library
 pathSeparator :: Char
-#ifdef mingw32_HOST_OS
-pathSeparator = '\\'
-#else
-pathSeparator = '/'
-#endif
-
--- XXX Copied from GHC.Handle
-std_flags, output_flags, rw_flags :: CInt
-std_flags    = o_NONBLOCK   .|. o_NOCTTY
-output_flags = std_flags    .|. o_CREAT
-rw_flags     = output_flags .|. o_RDWR
+pathSeparator = unsafeChr (fromIntegral pathSeparator')
 
 -- $locking
 -- Implementations should enforce as far as possible, at least locally to the
