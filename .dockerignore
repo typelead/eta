@@ -1,0 +1,17 @@
+.git/*
+.stack-work/*
+codec-jvm/.stack-work/*
+etlas/.stack-work/*
+etlas/etlas/.stack-work/*
+etlas/etlas-cabal/.stack-work/*
+etlas/hackage-security/hackage-security/.stack-work/*
+libraries/base/dist/*
+libraries/eta-boot/dist/*
+libraries/eta-boot-th/dist/*
+libraries/ghc-prim/dist/*
+libraries/integer/dist/*
+libraries/rts/dist/*
+libraries/rts/build/*
+shake/.stack-work/*
+tests/verify/*
+utils/eta-pkg/.stack-work/*
