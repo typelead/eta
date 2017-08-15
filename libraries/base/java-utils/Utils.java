@@ -30,6 +30,7 @@ import java.security.NoSuchAlgorithmException;
 import eta.runtime.Runtime;
 import eta.runtime.RuntimeOptions;
 import eta.runtime.RuntimeLogging;
+import eta.runtime.stg.TSO;
 import eta.runtime.io.MemoryManager;
 
 import java.lang.management.ManagementFactory;
@@ -368,5 +369,13 @@ public class Utils {
 
     public static int c_rand() {
         return (int)(Math.random() * 32768.0);
+    }
+
+    public static int cmp_thread(TSO t1, TSO t2) {
+        int id1 = t1.id;
+        int id2 = t2.id;
+        if (id1 == id2) return 0;
+        else if (id1 > id2) return 1;
+        else return -1;
     }
 }

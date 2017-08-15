@@ -157,9 +157,8 @@ foreign import java unsafe "@static eta.runtime.stg.TSO.getThreadId"
 id2TSO :: ThreadId -> ThreadId#
 id2TSO (ThreadId t) = t
 
--- foreign import ccall unsafe "cmp_thread"
-cmp_thread :: ThreadId# -> ThreadId# -> CInt
-cmp_thread = undefined
+foreign import java unsafe "@static eta.base.Utils.cmp_thread"
+  cmp_thread :: ThreadId# -> ThreadId# -> CInt
 -- Returns -1, 0, 1
 
 cmpThread :: ThreadId -> ThreadId -> Ordering
