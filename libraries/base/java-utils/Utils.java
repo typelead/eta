@@ -149,6 +149,11 @@ public class Utils {
         return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     }
 
+    public static void debugBelch(long formatAddress, long stringAddress) {
+        RuntimeLogging.debugBelch(byteBufferToString(formatAddress)
+                                 ,byteBufferToString(stringAddress));
+    }
+
     public static void errorBelch(long formatAddress, long stringAddress) {
         RuntimeLogging.errorBelch(byteBufferToString(formatAddress)
                                  ,byteBufferToString(stringAddress));

@@ -76,7 +76,7 @@ import Data.List
 -- @since 4.5.0.0
 traceIO :: String -> IO ()
 traceIO msg = do
-    withCString "%s\n" $ \cfmt -> do
+    withCString "%s" $ \cfmt -> do
      -- NB: debugBelch can't deal with null bytes, so filter them
      -- out so we don't accidentally truncate the message.  See Trac #9395
      let (nulls, msg') = partition (=='\0') msg
@@ -88,8 +88,8 @@ traceIO msg = do
 
 -- don't use debugBelch() directly, because we cannot call varargs functions
 -- using the FFI.
-debugBelch :: CString -> CString -> IO ()
-debugBelch = undefined
+foreign import java unsafe "@static eta.base.Utils.debugBelch"
+  debugBelch :: CString -> CString -> IO ()
 
 -- |
 putTraceMsg :: String -> IO ()
