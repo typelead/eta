@@ -991,9 +991,8 @@ copyFromRawBuffer ptr raw off bytes =
    do _ <- memcpy ptr (praw `plusPtr` off) (fromIntegral bytes)
       return ()
 
--- foreign import ccall unsafe "memcpy"
-memcpy :: Ptr a -> Ptr a -> CSize -> IO (Ptr ())
-memcpy = undefined
+foreign import java unsafe "@static eta.base.Utils.c_memcpy"
+  memcpy :: Ptr a -> Ptr a -> CSize -> IO (Ptr ())
 
 -----------------------------------------------------------------------------
 -- Internal Utils
