@@ -1,6 +1,5 @@
 name:           base
 version:        4.8.2.0
--- NOTE: Don't forget to update ./changelog.md
 license:        BSD3
 license-file:   LICENSE
 maintainer:     libraries@haskell.org
@@ -281,43 +280,9 @@ Library
         System.Environment.ExecutablePath
 
     include-dirs: include
-    -- includes:
-    --   CTypes.h
-    --   Signals.h
     install-includes:
       CTypes.h
       Signals.h
-        -- HsBase.h
-        -- WCsubst.h
-        -- consUtils.h
-        -- Typeable.h
-
-    -- OS Specific
-    -- if os(windows)
-    --     extra-libraries: wsock32, user32, shell32
-    --     exposed-modules:
-    --         GHC.IO.Encoding.CodePage.API
-    --         GHC.IO.Encoding.CodePage.Table
-    --         GHC.Conc.Windows
-    --         GHC.Windows
-    -- else
-    exposed-modules:
-        -- GHC.Event
-    other-modules:
-        -- GHC.Event.Arr
-        -- -- GHC.Event.Array
-        -- GHC.Event.Clock
-        -- GHC.Event.Control
-        -- -- GHC.Event.EPoll
-        -- GHC.Event.IntTable
-        -- GHC.Event.Internal
-        -- -- GHC.Event.KQueue
-        -- GHC.Event.Manager
-        -- GHC.Event.PSQ
-        -- -- GHC.Event.Poll
-        -- GHC.Event.Thread
-        -- GHC.Event.TimerManager
-        -- GHC.Event.Unique
 
     -- We need to set the package key to base (without a version number)
     -- as it's magic.
