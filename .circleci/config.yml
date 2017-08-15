@@ -32,7 +32,7 @@ jobs:
             - ~/.stack
 
       - restore_cache:
-          key: stack-work-{{ checksum "stack.yaml" }}
+          key: stack-works-{{ checksum "stack.yaml" }}
 
       - run:
           name: Installing or updating ETA
@@ -43,11 +43,15 @@ jobs:
           paths:
             - ~/.stack
       - save_cache:
-          key: stack-work-{{ checksum "stack.yaml" }}
+          key: stack-works-{{ checksum "stack.yaml" }}
           paths:
             - ~/eta/.stack-work
             - ./etlas/etlas/.stack-work
             - ./etlas/etlas-cabal/.stack-work
+            - ./codec-jvm/.stack-work
+            - ./libraries/eta-boot/.stack-work
+            - ./libraries/eta-boot-th/.stack-work
+            - ./shake/.stack-work
 
       - save_cache:
           key: eta-bin
@@ -93,24 +97,7 @@ jobs:
             tar -xz -C /tmp -f /tmp/docker-$VER.tgz
             mv /tmp/docker/* /usr/bin
       - run: ./docker/circleci-build-container.sh build
-      - run: ./docker/circleci-build-container.sh push latest
-
-  dev_container:
-    <<: *defaults
-    steps:
-      - checkout
-      - restore_cache:
-          key: eta-bin
-      - setup_remote_docker
-      - run:
-          name: Install Docker client
-          command: |
-            set -x
-            VER="17.03.0-ce"
-            curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
-            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
-            mv /tmp/docker/* /usr/bin
-      - run: ./docker/circleci-build-container.sh build
+      - run: ./docker/circleci-build-container.sh push
 
   trigger_builds:
     <<: *defaults
@@ -135,16 +122,6 @@ workflows:
       - release_container:
           requires:
             - build
-          filters:
-            branches:
-              only: master
-
-      - dev_container:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: master
 
       - trigger_builds:
           requires:
