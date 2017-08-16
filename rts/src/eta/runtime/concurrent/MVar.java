@@ -20,12 +20,12 @@ public class MVar extends Value {
         }
     }
 
-    public Closure take() throws InterruptedException {
-        return valQueue.take();
+    public Closure tryTake() {
+        return valQueue.poll();
     }
 
-    public void put(Closure closure) throws InterruptedException {
-        valQueue.put(closure);
+    public boolean tryPut(Closure closure) {
+        return valQueue.offer(closure);
     }
 
     public Closure read() {

@@ -50,11 +50,13 @@ public class Concurrent {
     /* MVar Operations */
 
     public static Closure takeMVar(StgContext context, MVar mvar) {
-        do {
-            try {
-                return mvar.take();
-            } catch (InterruptedException ie) {}
-        } while (true);
+        Capability cap = context.myCapability;
+        Closure val = mvar.tryTake();
+        while (val == null) {
+            cap.blockedLoop();
+            val = mvar.tryTake();
+        }
+        return val;
     }
 
     public static Closure readMVar(StgContext context, MVar mvar) {
@@ -62,12 +64,13 @@ public class Concurrent {
     }
 
     public static Closure putMVar(StgContext context, MVar mvar, Closure val) {
-        do {
-            try {
-                mvar.put(val);
-                return null;
-            } catch (InterruptedException ie) {}
-        } while (true);
+        Capability cap = context.myCapability;
+        boolean success = mvar.tryPut(val);
+        while (!success) {
+            cap.blockedLoop();
+            success = mvar.tryPut(val);
+        }
+        return null;
     }
 
     public static Closure tryReadMVar(StgContext context, MVar mvar) {
