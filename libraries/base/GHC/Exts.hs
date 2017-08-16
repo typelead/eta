@@ -121,7 +121,7 @@ groupByFB c n eq xs0 = groupByFBCore xs0
 -- tracing
 
 traceEvent :: String -> IO ()
-traceEvent = undefined -- TODO: Debug.Trace.traceEventIO
+traceEvent = Debug.Trace.traceEventIO
 {-# DEPRECATED traceEvent "Use 'Debug.Trace.traceEvent' or 'Debug.Trace.traceEventIO'" #-} -- deprecated in 7.4
 
 
