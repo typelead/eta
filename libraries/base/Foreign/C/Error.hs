@@ -580,4 +580,4 @@ errnoToIOError loc errno maybeHdl maybeName = unsafePerformIO $ do
 -- TODO: Implement
 -- foreign import ccall unsafe "string.h"
 strerror :: Errno -> IO (Ptr CChar)
-strerror = undefined
+strerror = error "strerror: Not implemented yet."

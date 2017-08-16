@@ -48,7 +48,8 @@ signal_handlers = unsafePerformIO $ do
 
 -- foreign import ccall unsafe "getOrSetGHCConcSignalSignalHandlerStore"
 getOrSetGHCConcSignalSignalHandlerStore :: Ptr a -> IO (Ptr a)
-getOrSetGHCConcSignalSignalHandlerStore = undefined
+getOrSetGHCConcSignalSignalHandlerStore =
+  error "getOrSetGHCConcSignalSignalHandlerStore: Not implemented yet."
 
 setHandler :: Signal -> Maybe (HandlerFun, Dynamic)
            -> IO (Maybe (HandlerFun, Dynamic))
