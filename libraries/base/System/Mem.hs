@@ -27,11 +27,11 @@ performGC = performMajorGC
 -- | Triggers an immediate garbage collection.
 --
 -- @since 4.7.0.0
-performMajorGC :: IO ()
-performMajorGC = undefined
+foreign import java unsafe "@static java.lang.System.gc"
+  performMajorGC :: IO ()
 
 -- | Triggers an immediate minor garbage collection.
 --
 -- @since 4.7.0.0
-performMinorGC :: IO ()
-performMinorGC = undefined
+foreign import java unsafe "@static java.lang.System.gc"
+  performMinorGC :: IO ()
