@@ -76,6 +76,7 @@ import Data.Typeable
 import Data.Maybe
 import Foreign
 import System.Posix.Internals hiding (FD)
+import System.Posix.Types (Channel)
 
 import Foreign.C
 
