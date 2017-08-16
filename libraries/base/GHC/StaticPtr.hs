@@ -74,17 +74,8 @@ staticKey (StaticPtr k _ _) = k
 -- of the returned 'StaticPtr' does not match the expected one.
 --
 unsafeLookupStaticPtr :: StaticKey -> IO (Maybe (StaticPtr a))
-unsafeLookupStaticPtr (Fingerprint w1 w2) = undefined
-    -- TODO: Implement
-    -- do
-    -- ptr@(Ptr addr) <- withArray [w1,w2] (hs_spt_lookup . castPtr)
-    -- if (ptr == nullPtr)
-    -- then return Nothing
-    -- else case addrToAny# addr of
-    --        (# spe #) -> return (Just spe)
-
-hs_spt_lookup :: Ptr () -> IO (Ptr a)
-hs_spt_lookup = undefined
+unsafeLookupStaticPtr (Fingerprint w1 w2) =
+  error "unsafeLookupStaticPtr: Static pointers not implemented in the Eta RTS."
 
 -- | Miscelaneous information available for debugging purposes.
 data StaticPtrInfo = StaticPtrInfo
@@ -107,18 +98,7 @@ staticPtrInfo (StaticPtr _ n _) = n
 
 -- | A list of all known keys.
 staticPtrKeys :: IO [StaticKey]
-staticPtrKeys = undefined
-    -- TODO: Implement
-    -- do
-    -- keyCount <- hs_spt_key_count
-    -- allocaArray (fromIntegral keyCount) $ \p -> do
-    --   count <- hs_spt_keys p keyCount
-    --   peekArray (fromIntegral count) p >>=
-    --     mapM (\pa -> peekArray 2 pa >>= \[w1, w2] -> return $ Fingerprint w1 w2)
+staticPtrKeys =
+  error "staticPtrKeys: Static pointers not implemented in the Eta RTS."
 {-# NOINLINE staticPtrKeys #-}
 
-hs_spt_key_count :: IO CInt
-hs_spt_key_count = undefined
-
-hs_spt_keys :: Ptr a -> CInt -> IO CInt
-hs_spt_keys = undefined

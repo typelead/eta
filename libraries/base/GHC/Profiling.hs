@@ -7,7 +7,7 @@ module GHC.Profiling where
 import GHC.Base
 
 startProfTimer :: IO ()
-startProfTimer = undefined
+startProfTimer = error "startProfTimer: Not implemented in the Eta RTS."
 
 stopProfTimer :: IO ()
-stopProfTimer = undefined
+stopProfTimer = error "stopProfTimer: Not implemented in the Eta RTS."

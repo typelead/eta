@@ -871,7 +871,8 @@ reportError ex = do
 -- the unsafe below.
 -- foreign import ccall unsafe "stackOverflow"
 callStackOverflowHook :: ThreadId# -> IO ()
-callStackOverflowHook = undefined
+callStackOverflowHook =
+  error "callStackOverflowHook: Not implemented yet."
 
 {-# NOINLINE uncaughtExceptionHandler #-}
 uncaughtExceptionHandler :: IORef (SomeException -> IO ())

@@ -67,7 +67,7 @@ c_DEBUG_DUMP :: Bool
 c_DEBUG_DUMP = False
 
 putDebugMsg :: String -> IO ()
-putDebugMsg | c_DEBUG_DUMP = undefined --debugLn TODO: Replace with system.out.println
+putDebugMsg | c_DEBUG_DUMP = error "putDebugMsg: Not implemented yet."
             | otherwise    = const (return ())
 
 

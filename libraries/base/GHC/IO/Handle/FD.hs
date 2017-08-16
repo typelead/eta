@@ -95,18 +95,7 @@ stdHandleFinalizer fp m = do
 -- We have to put the FDs into binary mode on Windows to avoid the newline
 -- translation that the CRT IO library does.
 setBinaryMode :: FD.FD -> IO ()
-#ifdef mingw32_HOST_OS
-setBinaryMode fd = do _ <- setmode (FD.fdFD fd) True
-                      return ()
-#else
 setBinaryMode _ = return ()
-#endif
-
-#ifdef mingw32_HOST_OS
--- foreign import ccall unsafe "__hscore_setmode"
-setmode :: CInt -> Bool -> IO CInt
-setmode = undefined
-#endif
 
 -- ---------------------------------------------------------------------------
 -- isEOF
@@ -253,7 +242,7 @@ fdToHandle' fdint mb_type is_socket filepath iomode binary = do
                           -- mkFD will do the stat:
                         Just RegularFile -> Nothing
                           -- no stat required for streams etc.:
-                        Just other       -> Just (other, undefined)
+                        Just other       -> Just (other, error "fdToHandle: Bad fd.")
   f <- Posix.getPath filepath
   (fd,fd_type) <- FD.mkFD fdint (Just f) iomode mb_stat is_socket
   enc <- if binary then return Nothing else fmap Just getLocaleEncoding

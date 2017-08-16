@@ -41,13 +41,6 @@ getCPUTime = fmap fromIntegral getCPUTime'
 -- precision, you must go through JNI.
 cpuTimePrecision :: Integer
 cpuTimePrecision = 10000000000
-  -- round ((1000000000000::Integer) % fromIntegral (clockTicks))
-
--- clk_tck :: CLong
--- clk_tck = undefined
-
--- clockTicks :: Int
--- clockTicks = fromIntegral clk_tck
 
 foreign import java unsafe "@static eta.base.Utils.getCPUTime"
   getCPUTime' :: IO CLong

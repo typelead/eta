@@ -83,7 +83,7 @@ data FDType = FDGeneric !Channel
             | FDFile !Path !FileChannel
 
 instance Show FD where
-  show fd = undefined -- show (fdFD fd) TODO: Show instance for Java-like Objects
+  show fd = error "Show[FD]: No Show instance yet."
 
 instance GHC.IO.Device.RawIO FD where
   read             = fdRead
@@ -258,7 +258,6 @@ stdFD :: Channel -> FD
 stdFD ch = FD { fdFD = FDGeneric ch
               , fdIsNonBlocking = False }
 
-foreign import java unsafe "@static eta.base.Utils.getStdOut" _stdout :: Channel
 foreign import java unsafe "@static eta.base.Utils.getStdIn"  _stdin  :: Channel
 foreign import java unsafe "@static eta.base.Utils.getStdErr" _stderr :: Channel
 
@@ -341,15 +340,15 @@ isTerminal :: FD -> IO Bool
 isTerminal _ = return False
 
 setEcho :: FD -> Bool -> IO ()
-setEcho fd on = System.Posix.Internals.setEcho undefined on
+setEcho fd on = System.Posix.Internals.setEcho (error "setEcho: Not implemented yet.") on
 -- setEcho fd on = System.Posix.Internals.setEcho (fdFD fd) on
 
 getEcho :: FD -> IO Bool
-getEcho fd = System.Posix.Internals.getEcho undefined
+getEcho fd = System.Posix.Internals.getEcho (error "getEcho: Not implemented yet.")
 -- getEcho fd = System.Posix.Internals.getEcho (fdFD fd)
 
 setRaw :: FD -> Bool -> IO ()
-setRaw fd raw = System.Posix.Internals.setCooked undefined (not raw)
+setRaw fd raw = System.Posix.Internals.setCooked (error "setRaw: Not implemented yet.") (not raw)
 -- setRaw fd raw = System.Posix.Internals.setCooked (fdFD fd) (not raw)
 
 -- -----------------------------------------------------------------------------

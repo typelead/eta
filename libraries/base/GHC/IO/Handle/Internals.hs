@@ -799,8 +799,6 @@ debugIO s
          return ()
  | otherwise = return ()
 
-foreign import java unsafe "@static eta.base.Utils.getStdOut" _stdout :: Channel
-
 -- ----------------------------------------------------------------------------
 -- Text input/output
 
