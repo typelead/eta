@@ -272,7 +272,7 @@ public final class Capability {
         } else {
             Parallel.globalSparkStats.dud.getAndIncrement();
         }
-        cap.idleLoop(false);
+        idleLoop(false);
         return true;
     }
 
