@@ -442,11 +442,22 @@ guessOutputFile = modifySession $ \env ->
             then throwGhcException . UsageError $
                  "default output name would overwrite the input file; " ++
                  "must specify -o explicitly"
-            else Just ("Run" ++ name')
+            else 
+                let (path,name'')= extractPath "" name' 
+                in Just (path  ++"Run" ++ name'')
     in
     case outputFile dflags of
         Just _ -> env
         Nothing -> env { hsc_dflags = dflags { outputFile = name_exe } }
+    where
+    extractPath h xs=
+        let headxs= head xs
+        in if isPathSeparator headxs then extractPath (h ++ [headxs])  $ tail xs
+           else 
+              let (h',t)= break isPathSeparator xs
+              in  if  null t then (h,h') else extractPath ( h  ++ h')   t
+     where
+     isPathSeparator c=  c == '\\' || c == '/'
 
 -- -----------------------------------------------------------------------------
 --
