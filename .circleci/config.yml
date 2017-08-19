@@ -54,7 +54,7 @@ jobs:
             - ./shake/.stack-work
 
       - save_cache:
-          key: eta-bin
+          key: eta-bin-{{ .Revision }}
           paths:
             - ~/.eta
             - ~/.etlas
@@ -72,7 +72,7 @@ jobs:
           at: .
 
       - restore_cache:
-          key: eta-bin
+          key: eta-bin-{{ .Revision }}
 
       - restore_cache:
           keys:
@@ -93,7 +93,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: eta-bin
+          key: eta-bin-{{ .Revision }}
       - setup_remote_docker
       - run:
           name: Install Docker client
