@@ -50,7 +50,7 @@ import Path
 import Path.IO (copyFile)
 import Data.Map.Lazy (keys)
 import Data.Map.Strict (filterWithKey)
-import Data.List (sortBy)
+import Data.List (sortBy,isPrefixOf )
 import System.Directory hiding (copyFile)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -96,15 +96,9 @@ bzip2 = BZip2
 -- @
 createEmptyJar :: (MonadIO m, MonadCatch m) => FilePath -> m ()
 createEmptyJar location = do
-  isRelative <- catch (parseRelFile location >> return True) handler
-  if isRelative then do
-    p <- parseRelFile location
+    p <- makeAbsoluteFilePath location
     createArchive p (return ())
-  else do
-    p <- parseAbsFile location
-    createArchive p (return ())
-  where handler :: (MonadIO m, MonadCatch m) => PathParseException -> m Bool
-        handler _ = return False
+  
 
 -- | Adds the given ByteString as a file at the given location within the given
 -- jar archive.
@@ -229,12 +223,7 @@ addMultiByteStringsToJar'
   -> [(Path Rel File, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> m ()
 addMultiByteStringsToJar' jarLocation compress files  = do
-  isRelative <- catch (parseRelFile jarLocation >> return True) handler
-  if isRelative then do
-    p <- parseRelFile jarLocation
-    createArchive p action
-  else do
-    p <- parseAbsFile jarLocation
+    p <- makeAbsoluteFilePath jarLocation
     createArchive p action
   where action =
           forM_ files $ \(path, contents) -> do
@@ -261,8 +250,20 @@ mkPath = parseRelFile
 
 makeAbsoluteFilePath :: (MonadIO m, MonadThrow m) => FilePath -> m (Path Abs File)
 makeAbsoluteFilePath fp = do
-  absPath <- liftIO $ canonicalizePath fp
-  parseAbsFile absPath
+  absPath <- liftIO $ makeAbsolute  fp
+  let absPath'= removeDots [] absPath
+  parseAbsFile absPath'
+  where
+  removeDots :: String -> String -> String
+  removeDots s ""= s
+  removeDots s "/"= s ++ "/"
+  removeDots scanned  path=
+      let (h,t) = break (\c -> c=='\\' || c == '/') path
+      in if null t then scanned ++ h 
+         else if ".." `isPrefixOf` tail t
+             then removeDots scanned $ drop 4 t
+             else removeDots(scanned ++ h ++ [head t] ) $ tail t
+
 
 getEntriesFromJar
   :: (MonadThrow m, MonadCatch m, MonadIO m)
