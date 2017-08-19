@@ -63,7 +63,7 @@ jobs:
 
       - persist_to_workspace:
           root: .
-          paths: . \
+          paths: .
 
   test:
     <<: *defaults
@@ -73,6 +73,13 @@ jobs:
 
       - restore_cache:
           key: eta-bin
+
+      - restore_cache:
+          keys:
+            - dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+            - dot-stack-{{ checksum "stack.yaml" }}
+            - dot-stack-{{ checksum "resolver.txt" }}
+            - dot-stack-resolver-{{ checksum "resolver.txt" }}
 
       - run: stack setup
       - run: stack build --test --no-run-tests eta
