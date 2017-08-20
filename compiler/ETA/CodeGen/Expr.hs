@@ -34,7 +34,7 @@ cgExpr :: StgExpr -> CodeGen ()
 cgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
                            cgIdApp fun args
 cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr args <+> ppr ty) >>
+cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty) >>
                                cgOpApp op args ty
 cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
