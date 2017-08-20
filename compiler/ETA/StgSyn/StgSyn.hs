@@ -575,6 +575,12 @@ data StgOp
         -- (which lacks a unique supply), notably when generating a
         -- typedef for foreign-export-dynamic
 
+instance Outputable StgOp where
+    ppr op = case op of
+      StgPrimOp op -> ppr op
+      StgPrimCallOp primCall -> ppr primCall
+      StgFCallOp fc u -> ppr fc <+> brackets (ppr u)
+
 {-
 ************************************************************************
 *                                                                      *
