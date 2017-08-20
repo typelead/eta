@@ -61,4 +61,4 @@ We would like to specifically thank the following groups/people:
 - [Alexey Raga](https://github.com/AlexeyRaga) for helping out with CircleCI and actively reporting bugs.
 - And [many others](https://github.com/typelead/eta/graphs/contributors) who have contributed to Eta in various ways.
 
-Thank you guys!
+Thanks folks!
