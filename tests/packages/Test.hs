@@ -40,13 +40,47 @@ packagesFilePath = (</> "patches" </> "packages.json") <$> getAppUserDataDirecto
 
 patchedLibraries :: IO [Text]
 patchedLibraries = do
-  patchesDir <- fmap (</> "patches" </> "patches") $ getAppUserDataDirectory "etlas"
-  packages   <- fmap ( nub
-                     . map dropExtension
-                     . sort
-                     . filter (\p -> p `notElem` ["",".",".."]))
-                $ getDirectoryContents patchesDir
-  return $ map pack packages
+  patchesDir     <- fmap (</> "patches" </> "patches") $ getAppUserDataDirectory "etlas"
+  packageListing <- getDirectoryContents patchesDir
+  let packages = map T.pack
+               . sort
+               . nub
+               . map dropExtension
+               . filter (\p -> p `notElem` ["",".",".."])
+               $ packageListing
+  return $ filterLibraries packages
+
+-- These will not be built for various reasons.
+ignoredPackages :: [Text]
+ignoredPackages = ["singletons" ,"directory", "servant-docs"]
+
+ignoredPackageVersions :: [Text]
+ignoredPackageVersions = []
+
+filterLibraries :: [Text] -> [Text]
+filterLibraries set0 = recentVersions ++ remoteVersions ++ concat restVersions
+  where (recentVersions, restVersions) = unzip $ map findAndExtractMaximum
+                                               $ groupBy grouping set1
+        remoteVersions = map actualName recentVersions
+        set1 = filter (\s -> not ((any (== (actualName s)) ignoredPackages) ||
+                                  (any (== s) ignoredPackageVersions))) set0
+        grouping p1 p2 = actualName p1 == actualName p2
+
+actualName :: Text -> Text
+actualName = T.dropEnd 1 . T.dropWhileEnd (/= '-')
+
+actualVersion :: Text -> [Int]
+actualVersion = map (read . T.unpack) . T.split (== '.') .  T.takeWhileEnd (/= '-')
+
+cmpVersion :: [Int] -> [Int] -> Ordering
+cmpVersion xs ys
+  | (x:_) <- dropWhile (== 0) $ map (uncurry (-)) $ zip xs ys
+  = compare x 0
+  | otherwise = compare (length xs) (length ys)
+
+findAndExtractMaximum :: [Text] -> (Text, [Text])
+findAndExtractMaximum g = (last pkgVersions, init pkgVersions)
+  where pkgVersions = sortBy (\a b -> cmpVersion (actualVersion a) (actualVersion b)) g
 
 buildPackage :: Text -> IO ()
 buildPackage pkg = do
