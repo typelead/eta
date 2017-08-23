@@ -6,7 +6,8 @@ import Turtle.Line
 import Turtle.Prelude hiding (die)
 
 import Data.Aeson
-import Data.Text (unpack, pack, Text)
+import Data.Text (Text)
+import qualified Data.Text as T
 import System.Directory (getAppUserDataDirectory, getDirectoryContents)
 import System.FilePath ((</>), dropExtension)
 import qualified Data.ByteString.Lazy as BS
