@@ -91,6 +91,19 @@ learn more about the information gathered and retained by this service at the `G
 Analytics privacy policy <https://support.google.com/analytics/answer/2700409?hl=en&utm_id=ad>`_.
 You can opt out of Google Analytics entirely with the `Google Analytics opt-out browser addon <https://support.google.com/analytics/answer/181881?hl=en&ref_topic=2919631>`_.
 
+Tour of Eta
+-----------
+
+In order to access the tour you need to sign in. You can either Sign In with GitHub or Twitter.
+
+When granting the Tour access, we request the following capabalities.
+
+* Read Email: This is notify you with future versions and updates of the Tour of Eta.
+* Full Name and User Name: This is to create your account on the Tour of Eta.
+* Avatar: This is to create the avatar on the Tour of Eta account.
+
+You can opt-out of the Tour of Eta any time by Signing out.
+
 Collection of Personally Identifying Information
 ------------------------------------------------
 
@@ -100,7 +113,8 @@ address, username, password, personal website, and account names on other servic
 as GitHub, Twitter, and IRC.
 
 If users do not want their information tracked in this manner, they can opt out by
-following the instructions `here <http://eta-lang.org/docs/html/faq.html#opt-out-telemetry>`_. However, this means that some features of the Eta website will be unavailable
+following the instructions `here <http://eta-lang.org/docs/html/faq.html#opt-out-telemetry>`_.
+However, this means that some features of the Eta website will be unavailable
 to them.
 
 Use of Personally Identifying Information
@@ -117,7 +131,8 @@ to do so.
 
 We may share your personal information with third parties or affiliates where it is
 necessary for us to complete a transaction or do something you have asked us to do.
-Likewise, we may share your personal information with third parties or affiliates with whom we have contracted to perform services on our behalf. Companies that act on our
+Likewise, we may share your personal information with third parties or affiliates with
+whom we have contracted to perform services on our behalf. Companies that act on our
 behalf are required to keep the personal information we provide to them confidential
 and to use the personal information we share only to provide the services we ask them
 to perform.
@@ -133,7 +148,8 @@ company assets, or acquisition.
 Cookies
 -------
 
-A cookie is a string of information that a website stores on a visitor's computer, and that the visitor's browser provides to the website each time the visitor returns.
+A cookie is a string of information that a website stores on a visitor's computer,
+and that the visitor's browser provides to the website each time the visitor returns.
 
 The Eta website uses cookies to help identify and track visitors, their usage of the
 Eta website, and their website access credentials. Eta website visitors who do not wish
@@ -157,7 +173,7 @@ We also analyze log data for a variety of reasons, including counting up downloa
 Etlas are in use in the wild, and researching how Eta packages are used together with
 one another. This helps us to better understand the usage patterns of Eta, and make
 better decisions about the evolving Eta in the future.
- 
+
 Use by Minors
 -------------
 
@@ -216,9 +232,9 @@ Privacy Policy. Your continued use of the Eta website, the Etlas build tool (if
 already opted-in), and any supporting services after any change in this Privacy Policy
 will constitute your acceptance of such change.
 
-Credit and License
+License
 ------------------
 
-Parts of this policy document were originally included in the `npm Privacy Policy <https://www.npmjs.com/policies/privacy>`_.
-
 This document may be reused under a `Creative Commons Attribution-ShareAlike License <https://creativecommons.org/licenses/by-sa/4.0/>`_.
+
+This Privacy Policy is effective as of August 23, 2017
