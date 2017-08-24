@@ -92,6 +92,7 @@ public class TransactionRecord extends Value implements Iterable<TransactionEntr
         } else {
             Closure currentValue = tvar.currentValue();
             put(tvar, currentValue, currentValue);
+            result = currentValue;
         }
         return result;
     }
