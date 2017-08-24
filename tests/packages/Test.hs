@@ -85,7 +85,7 @@ findAndExtractMaximum g = (last pkgVersions, init pkgVersions)
 
 buildPackage :: Text -> IO ()
 buildPackage pkg = do
-  let outString = "Installing package " ++ unpack pkg ++ "..."
+  let outString = "Installing package " ++ T.unpack pkg ++ "..."
       lenOutString = length outString
       dashes = replicate lenOutString '-'
   putStrLn dashes
@@ -112,23 +112,23 @@ verifyScript = do
       outPath = testVerifyPath </> "build"
       outJar = outPath </> "Out.jar"
       mainSource = testVerifyPath </> "Main.hs"
-  procExitOnError "javac" [pack verifyScriptCmd] mempty
+  procExitOnError "javac" [T.pack verifyScriptCmd] mempty
   echo "Verify.class built successfully."
   echo "Compiling a simple program..."
   echo "=== Eta Compiler Output ==="
   exists <- testdir (fromString outPath)
   when (not exists) $ mkdir (fromString outPath)
-  procExitOnError "eta" ["-fforce-recomp", "-o", pack outJar, pack mainSource] mempty
+  procExitOnError "eta" ["-fforce-recomp", "-o", T.pack outJar, T.pack mainSource] mempty
   echo "===                     ==="
   echo "Compiled succesfully."
   echo "Verifying the bytecode of compiled program..."
   echo "=== Verify Script Output ==="
-  procExitOnError "java" ["-cp", pack verifyScriptPath, "Verify", pack outJar] mempty
+  procExitOnError "java" ["-cp", T.pack verifyScriptPath, "Verify", T.pack outJar] mempty
   echo "===                      ==="
   echo "Bytecode looking good."
   echo "Running the simple program..."
   echo "=== Simple Program Output ==="
-  procExitOnError "java" ["-cp", pack outJar, "eta.main"] mempty
+  procExitOnError "java" ["-cp", T.pack outJar, "eta.main"] mempty
   echo "===                       ==="
   echo "Done! Everything's looking good."
 
