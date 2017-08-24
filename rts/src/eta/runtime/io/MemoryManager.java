@@ -196,7 +196,7 @@ public class MemoryManager {
                         try {
                             long blockIndex = blocks.size();
                             int  blockSize  = getBlockSize(blockType);
-                            address         = (blockType  << BLOCK_TYPE_BITS)
+                            address         = (((long) blockType) << BLOCK_TYPE_BITS)
                                             | (blockIndex << indexBits(blockType));
                             /* Avoid allocating something on the null pointer address. */
                             if (address == 0) address = 1;
@@ -505,11 +505,11 @@ public class MemoryManager {
     }
 
     public static int positionIndex(long address) {
-        return (int)(address & ((1 << indexBits(blockType(address))) - 1));
+        return (int)(address & ((((long) 1) << indexBits(blockType(address))) - 1));
     }
 
     public static int positionIndex(long address, int indexBits) {
-        return (int)(address & ((1 << indexBits) - 1));
+        return (int)(address & ((((long) 1) << indexBits) - 1));
     }
 
     /** Byte Buffer API to MemoryManager **/
