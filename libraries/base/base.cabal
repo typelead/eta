@@ -129,6 +129,7 @@ Library
         Data.Void
         Data.Word
         Debug.Trace
+        Eta.RTS
         Foreign
         Foreign.C
         Foreign.C.Error

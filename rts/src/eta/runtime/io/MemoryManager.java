@@ -1,6 +1,7 @@
 package eta.runtime.io;
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Queue;
@@ -9,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import java.io.UnsupportedEncodingException;
 
 import java.nio.ByteBuffer;
 
@@ -531,7 +534,7 @@ public class MemoryManager {
 
     /* The shared empty buffer */
     public final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
-    
+
     public static ByteBuffer getBuffer(long address) {
         if (address == 0)
             return emptyBuffer;
@@ -738,6 +741,42 @@ public class MemoryManager {
         printAddressMap("Free Heap Addresses", freeHeapAddresses);
         printBlocksMap("Free Direct Blocks", freeDirectBlocks);
         printBlocksMap("Free Heap Blocks", freeHeapBlocks);
+    }
+
+    public static void printAddressMapVerbose(Map<Long, Integer> addresses) {
+        for (Long address: addresses.keySet()) {
+            System.out.println("@" + address + ":");
+            ByteBuffer buf = getBoundedBuffer(address);
+            int limit   = buf.limit();
+            int current = buf.position();
+            int pos = 0;
+            boolean found = false;
+            for (pos = limit - 1; pos >= current; pos--) {
+                if (buf.get(pos) != 0) {
+                    pos++;
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                byte[] bytes = new byte[pos - current];
+                buf.get(bytes);
+                try {
+                    System.out.println(new String(bytes, "ISO-8859-1"));
+                } catch (UnsupportedEncodingException e) {}
+                System.out.println(Arrays.toString(bytes));
+            } else {
+                System.out.println("Empty");
+            }
+            System.out.println("---------------------");
+        }
+    }
+
+    public static void dumpMemoryManagerVerbose() {
+        System.out.println("Allocated Direct Blocks:");
+        printAddressMapVerbose(allocatedDirectBlocks);
+        System.out.println("Allocated Heap Blocks:");
+        printAddressMapVerbose(allocatedHeapBlocks);
     }
 
     /** Misc. Utilities **/
