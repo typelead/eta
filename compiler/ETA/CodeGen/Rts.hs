@@ -133,7 +133,7 @@ mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts (J
         toLetter ft
           | ft == closureType      = "P"
           | ft == jobject          = "O"
-          | ft == jint             = "I"
+          | ft == jint             = "N"
           | ft == jlong            = "L"
           | ft == jfloat           = "F"
           | ft == jdouble          = "D"
