@@ -1882,7 +1882,7 @@ gen_Class_binds loc tycon
           | Just (CType _ _ fs) <- tyConCType_maybe tycon
           = processClass (unpackFS fs)
           | otherwise = pprPanic "Missing CLASS annotation for " (ppr tycon)
-        processClass str = go (0 :: Int) (reverse str)
+        processClass str = go (0 :: Int) (reverse (takeWhile (/= ' ') str))
           where go n (']':'[':s) = '[' : go (n + 1) s
                 go n s
                   | n > 0     = convertElementType fixStr
