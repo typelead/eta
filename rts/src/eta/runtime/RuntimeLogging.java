@@ -6,25 +6,45 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.TSO;
 import eta.runtime.exception.RuntimeInternalError;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class RuntimeLogging {
+    public static final AtomicBoolean errorLock = new AtomicBoolean();
+
     public static void barf(String msg, Object... args) {
         throw new RuntimeInternalError(String.format(msg, args));
     }
 
     public static void errorBelch(String msg, Object... args) {
-        System.err.print("***Exception***: ");
-        System.err.format(msg, args);
-        System.err.print("\n");
+        StringBuilder sw = new StringBuilder();
+        sw.append("Exception in thread \""
+                  + Thread.currentThread().getName()
+                  + "\" eta.runtime.exception.EtaException: ");
+        sw.append(String.format(msg, args));
+        sw.append("\n");
         TSO tso = Capability.getLocal().context.currentTSO;
         if (tso.hasStackTrace()) {
             StackTraceElement[] stackTrace = tso.getStackTrace();
             for (StackTraceElement element : stackTrace) {
                 String className = element.getClassName();
-                if (!className.startsWith("eta.runtime") && !className.startsWith("java")) {
-                    System.err.println("    in " + element.getClassName());
+                String sourceFile = element.getFileName();
+                if (sourceFile != null) {
+                    sourceFile = "(" + sourceFile + ":" + element.getLineNumber() + ")";
+                } else {
+                    sourceFile = "";
                 }
+                sw.append("    at " + element.getClassName() + "."
+                                    + element.getMethodName()
+                                    + sourceFile
+                                    + "\n");
             }
             tso.setStackTrace(null);
+            try {
+                while (!errorLock.compareAndSet(false, true));
+                System.err.print(sw.toString());
+            } finally {
+                errorLock.set(false);
+            }
         }
     }
 
