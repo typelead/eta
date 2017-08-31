@@ -38,8 +38,13 @@ cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <
                                cgOpApp op args ty
 cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
--- TODO: Deal with ticks
-cgExpr (StgTick t e) = traceCg (str "StgTick" <+> ppr t) >> cgExpr e
+
+cgExpr (StgTick t e) = do
+  traceCg (str "StgTick" <+> ppr t)
+  cgTick t
+  cgExpr e
+
+  
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   forbidScoping (cgBind binds)
@@ -319,3 +324,7 @@ cgAlgAltRhss binder alts = do
       allBranches = [ (getDataConTag con, code)
                     | (DataAlt con, code) <- taggedBranches ]
   return (maybeDefault, branches)
+
+cgTick :: Tickish Id -> CodeGen ()
+cgTick (SourceNote srcSpan srcName) = undefined
+cgTick _ = return ()
