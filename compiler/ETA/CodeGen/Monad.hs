@@ -67,7 +67,7 @@ import ETA.Types.TyCon
 
 import Data.Monoid((<>))
 import Data.List
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
 import Control.Monad (liftM, ap, when, forM)
@@ -106,7 +106,8 @@ data CgState =
           , cgScopedBindings :: CgBindings
           , cgAllowScoping   :: Bool
           , cgNextLocal      :: Int
-          , cgNextLabel      :: Int }
+          , cgNextLabel      :: Int
+          , cgLineNumbers    :: [Int]}
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -172,7 +173,8 @@ initCg dflags mod =
            , cgScopedBindings      = emptyVarEnv
            , cgAllowScoping        = True
            , cgNextLocal           = 0
-           , cgNextLabel           = 0 })
+           , cgNextLabel           = 0
+           , cgLineNumbers           = [] })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
@@ -382,10 +384,12 @@ newClosureGeneric genCode = do
   addCompiledClosure compiledClosure
   return (result, state1)
 
-classFromCgState :: [MethodDef] -> [FieldDef] -> CgState -> ClassFile
+classFromCgState :: [MethodDef] -> [FieldDef] -> CgState
+                 -> ClassFile
 classFromCgState mds fds CgState {..} =
-  mkClassFile java7 cgAccessFlags cgClassName cgSuperClassName []
-    (cgFieldDefs ++ fds) (cgMethodDefs ++ mds)
+  mkClassFileWithAttrs java7 cgAccessFlags cgClassName cgSuperClassName []
+    (cgFieldDefs ++ fds) [srcFile] (cgMethodDefs ++ mds)
+  where srcFile = undefined
 
 runCodeGen :: Maybe ([MethodDef], [FieldDef])
            -> CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
@@ -497,6 +501,19 @@ forkLneBody body = do
   setNextLocal oldNextLocal
   setBindings oldBindings
   return newCode
+
+addLineNumber :: Int -> CodeGen ()
+addLineNumber ln = modify $ \s@CgState{..} ->
+  s { cgLineNumbers = ln : cgLineNumbers }
+
+resetLineNumbers :: CodeGen ()
+resetLineNumbers =  modify $ \s@CgState{..} ->
+  s { cgLineNumbers = [] }
+
+getInnermostLineNumber :: CodeGen (Maybe Int)
+getInnermostLineNumber =  do
+  lns <- gets cgLineNumbers
+  return $ listToMaybe lns
 
 traceCg :: SDoc -> CodeGen ()
 traceCg sdoc = do
