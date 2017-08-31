@@ -1,6 +1,6 @@
 -- (c) The University of Glasgow 2006
 
-{-# LANGUAGE CPP, FlexibleInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, LambdaCase #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance MonadThings is necessarily an orphan
 
 module ETA.TypeCheck.TcEnv(
@@ -94,6 +94,7 @@ import ETA.Utils.Util
 import ETA.Utils.Maybes( MaybeErr(..) )
 import Data.IORef
 import Data.List
+import Data.Foldable
 
 #include "HsVersions.h"
 
@@ -784,10 +785,24 @@ newDFunName :: Class -> [Type] -> SrcSpan -> TcM Name
 newDFunName clas tys loc
   = do  { is_boot <- tcIsHsBootOrSig
         ; mod     <- getModule
-        ; let info_string = occNameString (getOccName clas) ++
-                            concatMap (occNameString.getDFunTyKey) tys
-        ; dfun_occ <- chooseUniqueOccTc (mkDFunOcc info_string is_boot)
+        ; dfun_occ <- chooseUniqueOccTc $ mkDFunOcc (mkInfoString clas tys) is_boot
         ; newGlobalBinder mod dfun_occ loc }
+
+{-
+It may be advantageous at some point to build a string for a type which actually
+encompasses the structure of the type like parethesizing.
+Even in the new mkInfoString something like `a (b c)` and `(a b) c` will result
+in the same string "a_b_c".
+-}
+
+mkInfoString :: Class -> [Type] -> String
+mkInfoString clas tys 
+  = intercalate "_"
+  $ map (escapeName . occNameString)
+  $ getOccName clas : map getDFunTyKey tys
+  where
+    escapeName = foldr' (\case '_' -> \l -> '_':'_':l; a -> (a:)) []
+
 
 {-
 Make a name for the representation tycon of a family instance.  It's an
