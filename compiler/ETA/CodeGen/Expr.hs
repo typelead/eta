@@ -5,6 +5,7 @@ import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.VarEnv
+import ETA.BasicTypes.SrcLoc
 import ETA.Prelude.PrimOp
 import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.DataCon
@@ -27,35 +28,49 @@ import Codec.JVM
 
 import Data.Monoid((<>))
 import Data.Foldable(fold)
-import Data.Maybe(mapMaybe)
+import Data.Maybe(mapMaybe,maybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
+cgExpr expr = do
+  expr' <- preCgExpr expr
+  doCgExpr expr' 
+
+preCgExpr :: StgExpr -> CodeGen StgExpr
+preCgExpr e@(StgTick _ _) = return e 
+preCgExpr expr = do
+  mbLn <- getInnermostLineNumber
+  let ln = fmap mkLineNumber mbLn
+  traceCg (str $ "Emitting line number: " ++ show ln)
+  emit $ maybe mempty emitLineNumber ln
+  resetLineNumbers
+  return expr
+  
+doCgExpr :: StgExpr -> CodeGen ()
+doCgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
                            cgIdApp fun args
-cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty) >>
+doCgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
+doCgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty) >>
                                cgOpApp op args ty
-cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
+doCgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 
-cgExpr (StgTick t e) = do
-  traceCg (str "StgTick" <+> ppr t)
+doCgExpr (StgTick t e) = do
+  traceCg (str "StgTick, tickish:" <+> ppr t)
   cgTick t
   cgExpr e
-
   
-cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
-cgExpr (StgLet binds expr) = do
+doCgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
+doCgExpr (StgLet binds expr) = do
   forbidScoping (cgBind binds)
   cgExpr expr
-cgExpr (StgLetNoEscape _ _ binds expr) =
+doCgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
 
-cgExpr (StgCase expr _ _ binder _ altType alts) =
+doCgExpr (StgCase expr _ _ binder _ altType alts) =
   traceCg (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
   cgCase expr binder altType alts
-cgExpr _ = unimplemented "cgExpr"
+doCgExpr _ = unimplemented "cgExpr"
 
 cgLneBinds :: StgBinding -> StgExpr -> CodeGen ()
 cgLneBinds (StgNonRec binder rhs) expr = do
@@ -326,5 +341,9 @@ cgAlgAltRhss binder alts = do
   return (maybeDefault, branches)
 
 cgTick :: Tickish Id -> CodeGen ()
-cgTick (SourceNote srcSpan srcName) = undefined
+cgTick (SourceNote srcSpan _) = do
+  let srcLoc = realSrcSpanStart srcSpan
+  traceCg (str $ "SourceNote, srcSpan: " ++ show srcSpan)
+  addLineNumber $ srcLocLine srcLoc
+  setSourceFileName $ fastStringText $ srcLocFile srcLoc
 cgTick _ = return ()
