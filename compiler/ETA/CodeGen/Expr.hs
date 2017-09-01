@@ -40,10 +40,12 @@ preCgExpr :: StgExpr -> CodeGen StgExpr
 preCgExpr e@(StgTick _ _) = return e 
 preCgExpr expr = do
   mbLn <- getInnermostLineNumber
-  let ln = fmap mkLineNumber mbLn
-  traceCg (str $ "Emitting line number: " ++ show ln)
-  emit $ maybe mempty emitLineNumber ln
-  resetLineNumbers
+  case mbLn of
+    Just ln -> do
+      traceCg (str $ "StgExpr emitting line number: " ++ show ln)
+      emit $ emitLineNumber $ mkLineNumber ln
+      resetLineNumbers
+    Nothing -> return ()
   return expr
   
 doCgExpr :: StgExpr -> CodeGen ()
@@ -343,7 +345,7 @@ cgAlgAltRhss binder alts = do
 cgTick :: Tickish Id -> CodeGen ()
 cgTick (SourceNote srcSpan _) = do
   let srcLoc = realSrcSpanStart srcSpan
-  traceCg (str $ "SourceNote, srcSpan: " ++ show srcSpan)
+  traceCg (str $ "StgTick , tickish: SourceNote, srcSpan: " ++ show srcSpan)
   addLineNumber $ srcLocLine srcLoc
   setSourceFileName $ fastStringText $ srcLocFile srcLoc
 cgTick _ = return ()
