@@ -101,6 +101,7 @@ data CgState =
           , cgFieldDefs      :: ![FieldDef]
           , cgClassName      :: !Text
           , cgSuperClassName :: !(Maybe Text)
+          , cgSourceFileName :: !(Maybe Text)
           -- Current method
           , cgCode           :: !Code
           , cgScopedBindings :: CgBindings
@@ -167,6 +168,7 @@ initCg dflags mod =
            , cgMethodDefs          = []
            , cgFieldDefs           = []
            , cgClassName           = className
+           , cgSourceFileName      = Nothing
            , cgCompiledClosures    = []
            , cgRecursiveInitNumber = 0
            , cgSuperClassName      = Nothing
