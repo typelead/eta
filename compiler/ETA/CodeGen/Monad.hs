@@ -74,6 +74,8 @@ import Data.List
 import Data.Maybe (fromMaybe, listToMaybe, maybeToList)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
+import System.FilePath (takeFileName)
+
 import Control.Monad (liftM, ap, when, forM)
 import Control.Monad.State (MonadState(..), get, gets, modify)
 import Control.Monad.Reader (MonadReader(..), ask, asks, local)
@@ -159,8 +161,8 @@ instance MonadIO CodeGen where
   {-# INLINE liftIO #-}
   liftIO io = CG $ \_ s -> io >>= (\a -> return (s, a))
 
-initCg :: DynFlags -> Module -> (CgEnv, CgState)
-initCg dflags mod =
+initCg :: DynFlags -> Module -> ModLocation -> (CgEnv, CgState)
+initCg dflags mod modLoc =
   (CgEnv   { cgModule              = mod
            , cgQClassName          = className
            , cgDynFlags            = dflags
@@ -172,7 +174,7 @@ initCg dflags mod =
            , cgMethodDefs          = []
            , cgFieldDefs           = []
            , cgClassName           = className
-           , cgSourceFileName      = Nothing
+           , cgSourceFileName      = srcFileName
            , cgCompiledClosures    = []
            , cgRecursiveInitNumber = 0
            , cgSuperClassName      = Nothing
@@ -182,6 +184,7 @@ initCg dflags mod =
            , cgNextLabel           = 0
            , cgLineNumbers           = [] })
   where className = moduleJavaClass mod
+        srcFileName = fmap (pack . takeFileName) $ ml_hs_file modLoc
 
 emit :: Code -> CodeGen ()
 emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }

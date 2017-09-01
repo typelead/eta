@@ -1215,7 +1215,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
                myCoreToStg dflags this_mod prepd_binds
 
         let modClass = moduleJavaClass this_mod
-        modClasses <- codeGen hsc_env this_mod data_tycons stg_binds hpc_info
+        modClasses <- codeGen hsc_env this_mod location data_tycons stg_binds hpc_info
                               (lookupStubs modClass foreign_stubs)
         let stubClasses = outputForeignStubs dflags foreign_stubs modClass
             classes = stubClasses ++ modClasses
