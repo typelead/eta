@@ -46,9 +46,9 @@ import {-# SOURCE #-} GHC.IO.Encoding (getFileSystemEncoding)
 import qualified GHC.Foreign as GHC
 #endif
 
-import {-# SOURCE #-} Java.Array (JStringArray, arrayFromList)
+import {-# SOURCE #-} Java.Array (arrayFromList)
 import {-# SOURCE #-} Java.Collections (Set)
-import {-# SOURCE #-} Java.String (toJString, fromJString)
+import {-# SOURCE #-} Java.String (toJString, fromJString, JStringArray)
 import Java.Core
 
 -- ---------------------------------------------------------------------------

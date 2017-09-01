@@ -380,7 +380,7 @@ literalType :: Literal -> Type
 literalType MachNullAddr    = addrPrimTy
 literalType MachNull        = mkObjectPrimTy jstringTy -- TODO: Hack, please change this -RM
 literalType (MachChar _)    = charPrimTy
-literalType (MachStr  _)    = mkObjectPrimTy jstringTy
+literalType (MachStr  _)    = addrPrimTy
 literalType (MachInt  _)    = intPrimTy
 literalType (MachWord  _)   = wordPrimTy
 literalType (MachInt64  _)  = int64PrimTy

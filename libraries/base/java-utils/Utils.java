@@ -132,10 +132,7 @@ public class Utils {
 
     public static String byteBufferToStr(long address)
         throws UnsupportedEncodingException {
-        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        byte[]     bytes  = new byte[buffer.remaining()];
-        buffer.get(bytes);
-        return new String(bytes, "UTF-8");
+        return new String(eta.ghc_prim.Utils.byteBufferToBytes(address), "UTF-8");
     }
 
     public static String getOS() {
@@ -377,5 +374,26 @@ public class Utils {
         if (id1 == id2) return 0;
         else if (id1 > id2) return 1;
         else return -1;
+    }
+
+    public static int[] jstringToString(String str) {
+        int off = 0;
+        int len = str.length();
+        int numCodepoints = 0;
+        for (off = 0;
+             off < len;
+             off += Character.charCount(str.codePointAt(off)), numCodepoints++) {}
+        int[] codepoints = new int[numCodepoints];
+        int codepoint = 0;
+        int i = 0;
+        off = 0;
+        for (i = 0, off = 0;
+             i < numCodepoints;
+             off += Character.charCount(codepoint),
+             i++) {
+            codepoint = str.codePointAt(off);
+            codepoints[i] = codepoint;
+        }
+        return codepoints;
     }
 }

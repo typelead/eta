@@ -105,7 +105,7 @@ hsLitType :: HsLit -> TcType
 hsLitType (HsChar _ _)       = charTy
 hsLitType (HsCharPrim _ _)   = charPrimTy
 hsLitType (HsString _ _)     = stringTy
-hsLitType (HsStringPrim _ _) = mkObjectPrimTy jstringTy
+hsLitType (HsStringPrim _ _) = addrPrimTy
 hsLitType (HsInt _ _)        = intTy
 hsLitType (HsIntPrim _ _)    = intPrimTy
 hsLitType (HsWordPrim _ _)   = wordPrimTy

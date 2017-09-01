@@ -36,13 +36,11 @@ compilerVersion = Version [major, minor] []
 
 -- | The operating system on which the program is running.
 -- | NOTE: This returns the system property os.name.
-os :: String
-os = unpackCString os'
+foreign import java unsafe "@static eta.base.Utils.getOS" os :: String
 
 -- | The machine architecture on which the program is running.
 -- | NOTE: This returns the system property os.arch.
-arch :: String
-arch = unpackCString os'
+foreign import java unsafe "@static eta.base.Utils.getArch" arch :: String
 
 -- | The Haskell implementation with which the program was compiled
 -- or is being interpreted.
@@ -52,6 +50,4 @@ compilerName = "eta"
 compilerVersionRaw :: Int
 compilerVersionRaw = 0001
 
-foreign import java unsafe "@static eta.base.Utils.getOS" os' :: JString
-foreign import java unsafe "@static eta.base.Utils.getArch" arch' :: JString
 foreign import java unsafe "@static eta.base.Utils.isBigEndian" bigEndian :: Bool

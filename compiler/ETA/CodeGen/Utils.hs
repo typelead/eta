@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module ETA.CodeGen.Utils where
 
 import ETA.Main.DynFlags
@@ -11,9 +12,11 @@ import ETA.CodeGen.Name
 import ETA.CodeGen.Rts
 import ETA.Debug
 import Data.Text (Text)
-import Data.Text.Encoding (decodeUtf8)
+import Data.Text.Encoding (decodeUtf8, decodeLatin1)
 import Data.Monoid
 import Data.Foldable
+import Control.Exception
+import System.IO.Unsafe
 
 cgLit :: Literal -> (FieldType, Code)
 cgLit (MachChar c)          = (jint, iconst jint . fromIntegral $ ord c)
@@ -25,9 +28,17 @@ cgLit (MachWord64 i)        = (jlong, lconst $ fromIntegral i)
 cgLit (MachFloat r)         = (jfloat, fconst $ fromRational r)
 cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
-cgLit MachNullAddr          = (jobject, lconst 0)
+cgLit MachNullAddr          = (jlong, lconst 0)
 cgLit MachNull              = (jobject, aconst_null jobject)
-cgLit (MachStr s)           = (jstring, sconst $ decodeUtf8 s)
+cgLit (MachStr s)           = (jlong, sconst string <> loadString )
+  where (string, isLatin1) =
+          unsafeDupablePerformIO $
+            catch (fmap (,False) $ evaluate $ decodeUtf8 s)
+                  (\(e :: ErrorCall) -> fmap (,True) $ evaluate $ decodeLatin1 s)
+        loadString
+          | isLatin1  = loadStringLatin1
+          | otherwise = loadStringUTF8
+
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
 cgLit other                 = pprPanic "mkSimpleLit" (ppr other)

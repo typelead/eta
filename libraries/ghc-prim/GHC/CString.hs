@@ -17,7 +17,7 @@
 
 module GHC.CString (
         JString(..), JString#, JByteArray(..), JByteArray#,
-        getBytesUtf8#, indexStrChar#, strLength,
+        getBytesUtf8#, indexStrChar#, byteArrayLength,
         unpackCString#, unpackAppendCString#, unpackFoldrCString#,
         unpackCStringUtf8#, unpackNBytes#
     ) where
@@ -30,12 +30,14 @@ type JString# = Object# JString -- convenience
 data {-# CLASS "byte[]" #-} JByteArray = JByteArray (Object# JByteArray)
 type JByteArray# = Object# JByteArray
 
-foreign import java unsafe "getBytes" getBytes :: JString# -> JString# -> JByteArray#
+foreign import java unsafe "@static eta.ghc_prim.Utils.byteBufferToBytes"
+  getBytes :: Addr# -> JByteArray#
 
-foreign import java unsafe "length" strLength :: JString# -> Int#
+getBytesUtf8# :: Addr# -> JByteArray#
+getBytesUtf8# a = getBytes a
 
-getBytesUtf8# :: JString# -> JByteArray#
-getBytesUtf8# this = getBytes this "UTF-8"#
+byteArrayLength :: JByteArray# -> Int#
+byteArrayLength x = alength# x
 
 indexStrChar# :: JByteArray# -> Int# -> Char#
 indexStrChar# bytes n = jbyte2char# (indexJByteArray# bytes n)
@@ -51,7 +53,7 @@ indexStrChar# bytes n = jbyte2char# (indexJByteArray# bytes n)
 -- stuff uses Strings in the representation, so to give representations for
 -- ghc-prim types we need unpackCString#
 
-unpackCString# :: JString# -> [Char]
+unpackCString# :: Addr# -> [Char]
 {-# NOINLINE unpackCString# #-}
     -- There's really no point in inlining this, ever, as the loop doesn't
     -- specialise in an interesting But it's pretty small, so there's a danger
@@ -59,27 +61,27 @@ unpackCString# :: JString# -> [Char]
 unpackCString# str
   = unpack 0#
   where
-    bytes = getBytesUtf8# str
-    len = strLength str
+    bytes = getBytes str
+    len   = byteArrayLength bytes
     unpack nh
       | isTrue# (nh ==# len) = []
       | True                 = C# (indexStrChar# bytes nh) : unpack (nh +# 1#)
 
-unpackAppendCString# :: JString# -> [Char] -> [Char]
+unpackAppendCString# :: Addr# -> [Char] -> [Char]
 {-# NOINLINE unpackAppendCString# #-}
      -- See the NOINLINE note on unpackCString#
 unpackAppendCString# str rest
   = unpack 0#
   where
-    bytes = getBytesUtf8# str
-    len = strLength str
+    bytes = getBytes str
+    len = byteArrayLength bytes
     unpack nh
       | isTrue# (nh ==# len) = rest
       | True       = C# ch : unpack (nh +# 1#)
       where
         !ch = indexStrChar# bytes nh
 
-unpackFoldrCString# :: JString# -> (Char -> a -> a) -> a -> a
+unpackFoldrCString# :: Addr# -> (Char -> a -> a) -> a -> a
 
 -- Usually the unpack-list rule turns unpackFoldrCString# into unpackCString#
 
@@ -98,19 +100,19 @@ unpackFoldrCString# :: JString# -> (Char -> a -> a) -> a -> a
 unpackFoldrCString# str f z
   = unpack 0#
   where
-    !bytes = getBytesUtf8# str
-    !len = strLength str
+    !bytes = getBytes str
+    !len = byteArrayLength bytes
     unpack nh
       | isTrue# (nh ==# len) = z
       | True       = C# ch `f` unpack (nh +# 1#)
       where
         !ch = indexStrChar# bytes nh
 
-unpackCStringUtf8# :: JString# -> [Char]
+unpackCStringUtf8# :: Addr# -> [Char]
 unpackCStringUtf8# str
   = unpack 0#
   where
-    !bytes = getBytesUtf8# str
+    !bytes = getBytes str
     !len = alength# bytes
     unpack nh
       | isTrue# (nh ==# len) = []
@@ -133,11 +135,11 @@ unpackCStringUtf8# str
       where
         !ch = indexStrChar# bytes nh
 
-unpackNBytes# :: JString# -> Int# -> [Char]
+unpackNBytes# :: Addr# -> Int# -> [Char]
 unpackNBytes# _str 0#   = []
 unpackNBytes#  str len# = unpack [] (len# -# 1#)
-  where !bytes = getBytesUtf8# str
-        !len = strLength str
+  where !bytes = getBytes str
+        !len = byteArrayLength bytes
         unpack acc i#
           | isTrue# (i# <# 0#)  = acc
           | True                = case indexStrChar# bytes i# of

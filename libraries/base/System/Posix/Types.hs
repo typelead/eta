@@ -103,7 +103,7 @@ import GHC.Real
 import GHC.Read
 import GHC.Show
 import {-# SOURCE #-} Java.Array (JArray)
-import {-# SOURCE #-} Java.Utils
+import Java.Utils hiding (Enum)
 import Java.Core
 
 #include "CTypes.h"
@@ -145,7 +145,7 @@ INTEGRAL_TYPE(CRLim,HTYPE_RLIM_T)
 
 data {-# CLASS "java.nio.channels.Channel" #-} Channel =
   Channel (Object# Channel)
-  deriving Class
+  deriving (Class, Show)
 
 newtype Fd = Fd Int
 

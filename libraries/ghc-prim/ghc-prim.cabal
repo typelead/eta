@@ -43,6 +43,7 @@ Library
         GHC.Tuple
         GHC.Types
 
+    java-sources: java/Utils.java
     -- We need to set the package key to ghc-prim (without a version number)
     -- as it's magic.
     ghc-options: -this-unit-id ghc-prim

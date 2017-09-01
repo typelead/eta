@@ -50,6 +50,7 @@ import System.Posix.Internals (withFilePath)
 import GHC.Pack
 import System.Environment.ExecutablePath
 import Java
+import Java.String
 import Java.Collections
 
 -- | Computation 'getArgs' returns a list of the program's command
@@ -57,7 +58,7 @@ import Java.Collections
 getArgs :: IO [String]
 getArgs = do
   jargs <- getJavaArgs
-  return (map unpackCString (fromJava jargs))
+  return (map fromJString (fromJava jargs))
 
 -- | Computation 'getJavaArgs' returns a list of the program's command
 -- line arguments (not including the program name) as a native String[].
@@ -183,7 +184,7 @@ withArgv = error "withArgv: Cannot modify arguments."
 getEnvironment :: IO [(String, String)]
 getEnvironment = do
   env <- getenv
-  return $ map (\(k, v) -> (unpackCString k, unpackCString v))
+  return $ map (\(k, v) -> (fromJString k, fromJString v))
          $ fromJava env
 
 foreign import java unsafe "@static java.lang.System.getenv" getenv

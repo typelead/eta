@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.NavigableMap;
+import java.util.IdentityHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -786,5 +787,30 @@ public class MemoryManager {
 
     private static String renderIsDirect(boolean direct) {
         return direct? "Direct" : "Heap";
+    }
+
+    /** Allocating constant strings **/
+    public static IdentityHashMap<String, Long> loadedStrings = new IdentityHashMap<String, Long>();
+
+    public static long loadString(String s, String charset) throws UnsupportedEncodingException {
+        Long address = loadedStrings.get(s);
+        if (address == null) {
+            byte[] bytes    = s.getBytes(charset);
+            address         = allocateBuffer(bytes.length, false);
+            ByteBuffer dest = getBoundedBuffer(address);
+            dest.put(bytes);
+            loadedStrings.put(s, address);
+        }
+        return address;
+    }
+
+    public static long loadStringLatin1(String s) throws UnsupportedEncodingException
+    {
+        return loadString(s, "ISO-8859-1");
+    }
+
+    public static long loadStringUTF8(String s) throws UnsupportedEncodingException
+    {
+        return loadString(s, "UTF-8");
     }
 }

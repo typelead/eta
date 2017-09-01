@@ -30,8 +30,4 @@ class (Class c) => JArray e c | c -> e, e -> c where
     case jobjectArraySet# o n# (unobj e) realWorld# of
       _ -> (# o, () #)
 
-data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
-
 arrayFromList :: JArray e c => [e] -> Java a c
-
-instance JArray JString JStringArray

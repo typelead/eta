@@ -35,7 +35,7 @@ where
 
 import GHC.Base
 import Data.Proxy
-import Java.String
+import {-# SOURCE #-} Java.String (fromJString, toJString)
 
 data {-# CLASS "java.lang.Class" #-} JClass a = JClass (Object# (JClass a))
   deriving Class

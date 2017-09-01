@@ -385,7 +385,7 @@ instance Exception NestedAtomically
 recSelError, recConError, irrefutPatError, runtimeError,
   nonExhaustiveGuardsError, patError, noMethodBindingError,
   absentError
-        :: JString# -> a   -- All take a UTF8-encoded C string
+        :: Addr# -> a   -- All take a UTF8-encoded C string
 
 recSelError              s = throw (RecSelError ("No match in record selector "
                                                  ++ unpackCStringUtf8# s))  -- No location info unfortunately

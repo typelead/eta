@@ -24,7 +24,7 @@
 -----------------------------------------------------------------------------
 
 module GHC.IO.FD (
-        FD(..),
+        FD(..), FDType(..),
         openFile, mkFD, release,
         setNonBlockingMode,
         readRawBufferPtr, readRawBufferPtrNoBlock, writeRawBufferPtr,

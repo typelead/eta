@@ -5,3 +5,5 @@ import GHC.Base
 
 eqObject# :: Object# a -> Object# b -> Bool
 
+toString# :: Object# a -> String
+

@@ -59,12 +59,7 @@ iconv_trace s
 
 {-# NOINLINE localeEncodingName #-}
 localeEncodingName :: String
-localeEncodingName = unsafePerformIO $ do
-   -- Use locale_charset() or nl_langinfo(CODESET) to get the encoding
-   -- if we have either of them.
-   JS# cstr <- c_localeEncoding
-   -- peekCAString cstr -- Assume charset names are ASCII
-   return $ unpackCString# cstr
+localeEncodingName = unsafePerformIO $ c_localeEncoding
 
 -- We hope iconv_t is a storable type.  It should be, since it has at least the
 -- value -1, which is a possible return value from iconv_open.
@@ -81,7 +76,7 @@ foreign import java unsafe "@static eta.base.HSIConv.hs_iconv"
   hs_iconv :: IConv -> Ptr CString -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO CSize
 
 foreign import java unsafe "@static  eta.base.Utils.c_localeEncoding"
-  c_localeEncoding :: IO JString
+  c_localeEncoding :: IO String
 
 haskellChar :: String
 haskellChar = "UTF-32BE"

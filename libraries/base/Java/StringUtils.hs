@@ -26,6 +26,7 @@ import Java.Core
 import Java.NIO
 import Java.Text
 import Java.Primitive
+import Java.String
 
 -- Start java.lang.String
 

@@ -703,7 +703,7 @@ mkRuntimeErrorId name = pc_bottoming_Id1 name runtimeErrorTy
 
 runtimeErrorTy :: Type
 -- The runtime error Ids take a UTF8-encoded string as argument
-runtimeErrorTy = mkSigmaTy [openAlphaTyVar] [] (mkFunTy (mkObjectPrimTy jstringTy) openAlphaTy)
+runtimeErrorTy = mkSigmaTy [openAlphaTyVar] [] (mkFunTy addrPrimTy openAlphaTy)
 
 errorName :: Name
 errorName = mkWiredInIdName gHC_ERR (fsLit "error") errorIdKey eRROR_ID

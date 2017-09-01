@@ -31,7 +31,7 @@ module GHC.Exts
         module GHC.Prim,
         shiftL#, shiftRL#, iShiftL#, iShiftRA#, iShiftRL#,
         isTrue#,
-        getBytesUtf8#,
+        -- getBytesUtf8#,
 
         -- * Fusion
         build, augment,

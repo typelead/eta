@@ -295,3 +295,9 @@ mkRecInitMethodName n = "$recInit" <> T.pack (show n)
 
 mkRecBindingMethodName :: Int -> Text
 mkRecBindingMethodName n = "$recBinding" <> T.pack (show n)
+
+loadStringLatin1, loadStringUTF8 :: Code
+loadStringLatin1 =
+  invokestatic $ mkMethodRef memoryManager "loadStringLatin1" [jstring] (ret jlong)
+loadStringUTF8   =
+  invokestatic $ mkMethodRef memoryManager "loadStringUTF8"   [jstring] (ret jlong)

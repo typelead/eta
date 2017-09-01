@@ -22,6 +22,7 @@ import GHC.Int
 import Java.Array
 import Java.Primitive
 import Java.NIO
+import Java.String
 import Java.Text
 
 data {-# CLASS "java.io.File[]" #-}

@@ -7,11 +7,12 @@ module GHC.Environment (getFullArgs) where
 import GHC.Base
 import GHC.Pack
 import Java
+import Java.String
 
 getFullArgs :: IO [String]
 getFullArgs = do
   jargs <- getFullArgs'
-  return (map unpackCString (fromJava jargs))
+  return (map fromJString (fromJava jargs))
 
 foreign import java unsafe "@static @field eta.runtime.RuntimeOptions.fullProgArgs"
   getFullArgs' :: IO JStringArray

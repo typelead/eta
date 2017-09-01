@@ -26,7 +26,6 @@ module Java.Array
     JLongArray(..),
     JFloatArray(..),
     JDoubleArray(..),
-    JStringArray(..),
     JObjectArray(..),
     JArray(..),
     alength,
@@ -225,16 +224,6 @@ instance JArray Double JDoubleArray where
   aset (I# n#) (D# e#) = Java $ \o ->
     case writeJDoubleArray# o n# e# realWorld# of
       _ -> (# o, () #)
-
-data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
-  deriving (Class, Show)
-
-instance JArray JString JStringArray
-
-instance JavaConverter [String] JStringArray where
-  toJava ws = pureJava $ arrayFromList bytes
-    where bytes = map toJava ws :: [JString]
-  fromJava ba = map fromJava $ pureJavaWith ba arrayToList
 
 data {-# CLASS "java.lang.Object[]" #-} JObjectArray = JObjectArray (Object# JObjectArray)
   deriving (Class, Show)

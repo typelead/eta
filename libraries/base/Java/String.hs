@@ -20,8 +20,7 @@ module Java.String (
    JString
  , toJString
  , fromJString
- -- , withJString
- -- , withJStringLen
+ , JStringArray(..)
  ) where
 
 import GHC.Base
@@ -30,12 +29,17 @@ import GHC.Real
 import Data.String
 import Data.Char
 import Foreign
+import GHC.Char
 import GHC.Show (Show(..))
-import GHC.Pack (unpackCString)
 import Java.Core
+import Java.Array
+
+foreign import java unsafe "@static eta.base.Utils.jstringToString"
+  jstringInts :: JString -> JIntArray
 
 fromJString :: JString -> String
-fromJString = unpackCString
+fromJString string = map chr $ pureJavaWith ints arrayToList
+  where ints = jstringInts string
 
 -- TODO: Add rules to simplify
 -- fromString (unpackCString# "Hello world!"#) :: JString = JString "Hello world"#
@@ -48,6 +52,17 @@ instance Show JString where
 instance JavaConverter String JString where
   toJava   = toJString
   fromJava = fromJString
+
+data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JStringArray)
+  deriving (Class, Show)
+
+instance JArray JString JStringArray
+
+instance JavaConverter [String] JStringArray where
+  toJava ws = pureJava $ arrayFromList bytes
+    where bytes = map toJava ws :: [JString]
+  fromJava ba = map fromJava $ pureJavaWith ba arrayToList
+
 
 -- TODO: Move this to a more appropriate place
 {-# INLINE inlinePerformIO #-}
