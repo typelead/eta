@@ -53,7 +53,11 @@ module ETA.CodeGen.Monad
    forkLneBody,
    forkAlts,
    unimplemented,
-   getDynFlags)
+   getDynFlags,
+   addLineNumber,
+   resetLineNumbers,
+   getInnermostLineNumber,
+   setSourceFileName)
 where
 
 import ETA.Main.DynFlags
@@ -67,7 +71,7 @@ import ETA.Types.TyCon
 
 import Data.Monoid((<>))
 import Data.List
-import Data.Maybe (fromMaybe, listToMaybe)
+import Data.Maybe (fromMaybe, listToMaybe, maybeToList)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
 import Control.Monad (liftM, ap, when, forM)
@@ -390,8 +394,8 @@ classFromCgState :: [MethodDef] -> [FieldDef] -> CgState
                  -> ClassFile
 classFromCgState mds fds CgState {..} =
   mkClassFileWithAttrs java7 cgAccessFlags cgClassName cgSuperClassName []
-    (cgFieldDefs ++ fds) [srcFile] (cgMethodDefs ++ mds)
-  where srcFile = undefined
+    (cgFieldDefs ++ fds) srcFile (cgMethodDefs ++ mds)
+  where srcFile = maybeToList (fmap mkSourceFileAttr cgSourceFileName)
 
 runCodeGen :: Maybe ([MethodDef], [FieldDef])
            -> CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
@@ -516,6 +520,10 @@ getInnermostLineNumber :: CodeGen (Maybe Int)
 getInnermostLineNumber =  do
   lns <- gets cgLineNumbers
   return $ listToMaybe lns
+
+setSourceFileName :: Text -> CodeGen ()
+setSourceFileName name =  modify $ \s@CgState{..} ->
+  s { cgSourceFileName = Just name  }
 
 traceCg :: SDoc -> CodeGen ()
 traceCg sdoc = do
