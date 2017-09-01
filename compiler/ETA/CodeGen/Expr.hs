@@ -345,7 +345,5 @@ cgAlgAltRhss binder alts = do
 cgTick :: Tickish Id -> CodeGen ()
 cgTick (SourceNote srcSpan _) = do
   let srcLoc = realSrcSpanStart srcSpan
-  traceCg (str $ "StgTick , tickish: SourceNote, srcSpan: " ++ show srcSpan)
   addLineNumber $ srcLocLine srcLoc
-  setSourceFileName $ fastStringText $ srcLocFile srcLoc
 cgTick _ = return ()
