@@ -102,7 +102,7 @@ buildLibrary debug binPathArg lib _deps = do
                   ++ nonNullString (binPathArg "../../")
       configureFlags = if debug
                        then ["--enable-optimization=0"
-                            ,"--eta-options=-ddump-to-file -ddump-stg -dumpdir=dump"]
+                            ,"--eta-options=-g -ddump-to-file -ddump-stg -dumpdir=dump"]
                        else ["--enable-optimization=2"]
 
       -- libCmd = unit . cmd (Cwd dir)
