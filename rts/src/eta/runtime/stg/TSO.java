@@ -251,4 +251,13 @@ public final class TSO extends BlackHole {
         cap.idleLoop(false);
         whyBlocked = NotBlocked;
     }
+
+    public final void setName(String name) {
+        if (cap != null) {
+            Thread t = cap.thread.get();
+            if (t != null) {
+                t.setName(name);
+            }
+        }
+    }
 }

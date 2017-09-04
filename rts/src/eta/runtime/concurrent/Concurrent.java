@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
@@ -22,6 +23,7 @@ import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.Exception;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.*;
@@ -143,6 +145,14 @@ public class Concurrent {
 
     /* TODO: Implement this */
     public static Closure traceEvent(StgContext context) {
+        return null;
+    }
+
+    public static Closure labelThread(StgContext context, TSO tso, long address) {
+        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
+        byte[]     bytes  = new byte[buffer.remaining() - 1];
+        buffer.get(bytes);
+        tso.setName(new String(bytes));
         return null;
     }
 
