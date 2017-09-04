@@ -57,6 +57,7 @@ module ETA.CodeGen.Monad
    addLineNumber,
    resetLineNumbers,
    getInnermostLineNumber,
+   getSourceFileName,
    setSourceFileName)
 where
 
@@ -523,6 +524,9 @@ getInnermostLineNumber :: CodeGen (Maybe Int)
 getInnermostLineNumber =  do
   lns <- gets cgLineNumbers
   return $ listToMaybe lns
+
+getSourceFileName :: CodeGen (Maybe Text)
+getSourceFileName = gets cgSourceFileName
 
 setSourceFileName :: Text -> CodeGen ()
 setSourceFileName name =  modify $ \s@CgState{..} ->
