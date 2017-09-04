@@ -342,8 +342,13 @@ cgAlgAltRhss binder alts = do
                     | (DataAlt con, code) <- taggedBranches ]
   return (maybeDefault, branches)
 
-cgTick :: Tickish Id -> CodeGen ()
+cgTick :: Tickish a -> CodeGen ()
 cgTick (SourceNote srcSpan _) = do
-  let srcLoc = realSrcSpanStart srcSpan
-  addLineNumber $ srcLocLine srcLoc
+  mbCgSrcFile <- getSourceFileName
+  case mbCgSrcFile of
+    Just cgSrcFile -> do
+      let srcLoc  = realSrcSpanStart srcSpan
+          srcFile = fastStringText $ srcLocFile srcLoc
+      when (srcFile == cgSrcFile) $ addLineNumber $ srcLocLine srcLoc
+    Nothing -> return ()
 cgTick _ = return ()
