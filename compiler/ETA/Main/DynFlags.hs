@@ -2797,7 +2797,7 @@ dynamic_flags = [
   , defGhcFlag "fno-PIC"       (NoArg (unSetGeneralFlag Opt_PIC))
 
          ------ Debugging flags ----------------------------------------------
-  , defGhcFlag "g"             (NoArg (setGeneralFlag Opt_Debug))
+  , defGhcFlag "g"             (OptIntSuffix setDebugLevel)
          ------ Eta-specific flags -------------------------------------------
  ]
  ++ map (mkFlag turnOn  ""     setGeneralFlag  ) negatableFlags
@@ -3311,7 +3311,8 @@ defaultFlags _
       Opt_ProfCountEntries,
       Opt_RPath,
       Opt_SharedImplib,
-      Opt_SimplPreInlining
+      Opt_SimplPreInlining,
+      Opt_Debug
     ]
 
     ++ [f | (ns,f) <- optLevelFlags, 0 `elem` ns]
@@ -3732,6 +3733,11 @@ setVerboseCore2Core = setDumpFlag' Opt_D_verbose_core2core
 
 setVerbosity :: Maybe Int -> DynP ()
 setVerbosity mb_n = upd (\dfs -> dfs{ verbosity = mb_n `orElse` 3 })
+
+setDebugLevel :: Maybe Int -> DynP ()
+setDebugLevel (Just 0) = unSetGeneralFlag Opt_Debug
+setDebugLevel _ = setGeneralFlag Opt_Debug
+
 
 addCmdlineHCInclude :: String -> DynP ()
 addCmdlineHCInclude a = upd (\s -> s{cmdlineHcIncludes =  a : cmdlineHcIncludes s})
