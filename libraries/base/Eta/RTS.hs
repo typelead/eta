@@ -17,6 +17,7 @@
 module Eta.RTS
   ( dumpMemoryManager
   , dumpMemoryManagerVerbose
+  , setKeepCAFs
   ) where
 
 import GHC.Base
@@ -26,3 +27,6 @@ foreign import java unsafe "@static eta.runtime.io.MemoryManager.dumpMemoryManag
 
 foreign import java unsafe "@static eta.runtime.io.MemoryManager.dumpMemoryManagerVerbose"
   dumpMemoryManagerVerbose :: IO ()
+
+foreign import java unsafe "@static eta.runtime.thunk.Thunk.setKeepCAFs"
+  setKeepCAFs :: IO ()
