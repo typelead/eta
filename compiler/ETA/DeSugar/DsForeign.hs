@@ -551,7 +551,8 @@ resultWrapper extendsInfo resultType
   = return (Nothing, \_ -> Var unitDataConId)
   | Just (tc, _) <- maybeTcApp, tc `hasKey` boolTyConKey
   = return ( Just jboolPrimTy
-           , \e -> mkWildCase e jboolPrimTy boolTy
+           , \e -> mkWildCase (mkCoreApp (Var (primOpId JBool2IntOp)) e)
+                   intPrimTy boolTy
                    [ (DEFAULT, [], Var trueDataConId)
                    , (LitAlt (MachInt 0), [], Var falseDataConId) ] )
   | Just (tc, [_]) <- maybeTcApp

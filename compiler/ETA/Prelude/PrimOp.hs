@@ -4130,7 +4130,7 @@ primOpInfo JBool2IntOp = mkGenPrimOp (fsLit "jbool2int#")  [] [jboolPrimTy] intP
 primOpInfo StablePtr2AddrOp = mkGenPrimOp (fsLit "stablePtr2Addr#") [alphaTyVar] [mkStablePtrPrimTy alphaTy] addrPrimTy
 primOpInfo Addr2StablePtrOp = mkGenPrimOp (fsLit "addr2StablePtr#") [alphaTyVar] [addrPrimTy] (mkStablePtrPrimTy alphaTy)
 primOpInfo JByte2IntOp = mkGenPrimOp (fsLit "jbyte2int#")  [] [jbytePrimTy] intPrimTy
-primOpInfo Int2JBoolOp = mkGenPrimOp (fsLit "int2jbool#")  [] [intPrimTy] jbytePrimTy
+primOpInfo Int2JBoolOp = mkGenPrimOp (fsLit "int2jbool#")  [] [intPrimTy] jboolPrimTy
 primOpInfo ClassCastOp = mkGenPrimOp (fsLit "classCast#") [alphaTyVar, betaTyVar]
                                      [ mkObjectPrimTy alphaTy ] (mkObjectPrimTy betaTy)
 primOpInfo ObjectArrayNewOp =
