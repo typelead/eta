@@ -11,6 +11,7 @@ import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Panic
 import ETA.Util
+import ETA.Utils.FastString (unpackFS)
 import ETA.Debug
 import ETA.CodeGen.Utils
 import ETA.CodeGen.Monad
@@ -26,6 +27,7 @@ import ETA.CodeGen.ArgRep
 import {-# SOURCE #-} ETA.CodeGen.Bind (cgBind)
 import Codec.JVM
 
+import System.FilePath (equalFilePath)
 import Data.Monoid((<>))
 import Data.Foldable(fold)
 import Data.Maybe(mapMaybe,maybe)
@@ -348,10 +350,7 @@ cgTick (SourceNote srcSpan _) = do
   case mbCgFilePath of
     Just cgFilePath -> do
       let srcLoc  = realSrcSpanStart srcSpan
-          srcFile = show $ srcLocFile srcLoc
-      traceCg (str $ "StgTick: tickish, adding line number [SrcSpan: srcFile $" ++
-               srcFile ++ "$, cgFile: $" ++ cgFilePath ++
-               "$, match source files: " ++ show (srcFile == cgFilePath)  ++"]")
-      when (srcFile == cgFilePath) $ addLineNumber $ srcLocLine srcLoc
+          srcFile = unpackFS $ srcLocFile srcLoc
+      when (equalFilePath srcFile cgFilePath) $ addLineNumber $ srcLocLine srcLoc
     Nothing -> return ()
 cgTick _ = return ()
