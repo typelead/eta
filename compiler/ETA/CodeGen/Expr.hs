@@ -344,11 +344,14 @@ cgAlgAltRhss binder alts = do
 
 cgTick :: Tickish a -> CodeGen ()
 cgTick (SourceNote srcSpan _) = do
-  mbCgSrcFile <- getSourceFileName
-  case mbCgSrcFile of
-    Just cgSrcFile -> do
+  mbCgFilePath <- getSourceFilePath
+  case mbCgFilePath of
+    Just cgFilePath -> do
       let srcLoc  = realSrcSpanStart srcSpan
-          srcFile = fastStringText $ srcLocFile srcLoc
-      when (srcFile == cgSrcFile) $ addLineNumber $ srcLocLine srcLoc
+          srcFile = show $ srcLocFile srcLoc
+      traceCg (str $ "StgTick: tickish, adding line number [SrcSpan: srcFile $" ++
+               srcFile ++ "$, cgFile: $" ++ cgFilePath ++
+               "$, match source files: " ++ show (srcFile == cgFilePath)  ++"]")
+      when (srcFile == cgFilePath) $ addLineNumber $ srcLocLine srcLoc
     Nothing -> return ()
 cgTick _ = return ()

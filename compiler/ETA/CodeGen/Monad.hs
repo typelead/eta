@@ -57,8 +57,7 @@ module ETA.CodeGen.Monad
    addLineNumber,
    resetLineNumbers,
    getInnermostLineNumber,
-   getSourceFileName,
-   setSourceFileName)
+   getSourceFilePath)
 where
 
 import ETA.Main.DynFlags
@@ -108,7 +107,7 @@ data CgState =
           , cgFieldDefs      :: ![FieldDef]
           , cgClassName      :: !Text
           , cgSuperClassName :: !(Maybe Text)
-          , cgSourceFileName :: !(Maybe Text)
+          , cgSourceFilePath :: !(Maybe FilePath)
           -- Current method
           , cgCode           :: !Code
           , cgScopedBindings :: CgBindings
@@ -175,7 +174,7 @@ initCg dflags mod modLoc =
            , cgMethodDefs          = []
            , cgFieldDefs           = []
            , cgClassName           = className
-           , cgSourceFileName      = srcFileName
+           , cgSourceFilePath      = srcFilePath
            , cgCompiledClosures    = []
            , cgRecursiveInitNumber = 0
            , cgSuperClassName      = Nothing
@@ -185,7 +184,7 @@ initCg dflags mod modLoc =
            , cgNextLabel           = 0
            , cgLineNumbers           = [] })
   where className = moduleJavaClass mod
-        srcFileName = fmap (pack . takeFileName) $ ml_hs_file modLoc
+        srcFilePath =  ml_hs_file modLoc
 
 emit :: Code -> CodeGen ()
 emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
@@ -399,8 +398,9 @@ classFromCgState :: [MethodDef] -> [FieldDef] -> CgState
 classFromCgState mds fds CgState {..} =
   mkClassFileWithAttrs java7 cgAccessFlags cgClassName cgSuperClassName []
     (cgFieldDefs ++ fds) srcFile (cgMethodDefs ++ mds)
-  where srcFile = maybeToList (fmap mkSourceFileAttr cgSourceFileName)
-
+  where srcFile = maybeToList $ sourceFileAttr cgSourceFilePath
+        sourceFileAttr = fmap (mkSourceFileAttr . pack . takeFileName)
+ 
 runCodeGen :: Maybe ([MethodDef], [FieldDef])
            -> CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen mMFs env state codeGenAction = do
@@ -525,12 +525,8 @@ getInnermostLineNumber =  do
   lns <- gets cgLineNumbers
   return $ listToMaybe lns
 
-getSourceFileName :: CodeGen (Maybe Text)
-getSourceFileName = gets cgSourceFileName
-
-setSourceFileName :: Text -> CodeGen ()
-setSourceFileName name =  modify $ \s@CgState{..} ->
-  s { cgSourceFileName = Just name  }
+getSourceFilePath :: CodeGen (Maybe FilePath)
+getSourceFilePath = gets cgSourceFilePath
 
 traceCg :: SDoc -> CodeGen ()
 traceCg sdoc = do
