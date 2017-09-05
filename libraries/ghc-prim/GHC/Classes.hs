@@ -325,7 +325,7 @@ instance (Class t) => Class (Comparable t) where
   obj = CT#
   classIdentifier _ = "java.lang.Comparable"
 
-foreign import java unsafe "@interface compareTo" compareTo :: (t <: Comparable t) => t -> t -> Int
+foreign import java unsafe "@interface compareTo" compareTo :: (t <: Object, this <: Comparable t) => this -> t -> Int
 
 type instance Inherits JString = '[Object, CharSequence, Comparable JString]
 
