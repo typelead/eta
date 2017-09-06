@@ -34,47 +34,27 @@ import Data.Maybe(mapMaybe,maybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr expr = do
-  expr' <- preCgExpr expr
-  doCgExpr expr' 
-
-preCgExpr :: StgExpr -> CodeGen StgExpr
-preCgExpr e@(StgTick _ _) = return e 
-preCgExpr expr = do
-  mbLn <- getInnermostLineNumber
-  case mbLn of
-    Just ln -> do
-      traceCg (str $ "StgExpr emitting line number: " ++ show ln)
-      emit $ emitLineNumber $ mkLineNumber ln
-      resetLineNumbers
-    Nothing -> return ()
-  return expr
-  
-doCgExpr :: StgExpr -> CodeGen ()
-doCgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
+cgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
                            cgIdApp fun args
-doCgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-doCgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty) >>
+cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
+cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty) >>
                                cgOpApp op args ty
-doCgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
+cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 
-doCgExpr (StgTick t e) = do
-  traceCg (str "StgTick, tickish:" <+> ppr t)
-  cgTick t
-  cgExpr e
+cgExpr t@(StgTick _ _) = cgTick t
   
-doCgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
-doCgExpr (StgLet binds expr) = do
+cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
+cgExpr (StgLet binds expr) = do
   forbidScoping (cgBind binds)
   cgExpr expr
-doCgExpr (StgLetNoEscape _ _ binds expr) =
+cgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
 
-doCgExpr (StgCase expr _ _ binder _ altType alts) =
+cgExpr (StgCase expr _ _ binder _ altType alts) =
   traceCg (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
   cgCase expr binder altType alts
-doCgExpr _ = unimplemented "cgExpr"
+cgExpr _ = unimplemented "cgExpr"
 
 cgLneBinds :: StgBinding -> StgExpr -> CodeGen ()
 cgLneBinds (StgNonRec binder rhs) expr = do
@@ -344,13 +324,29 @@ cgAlgAltRhss binder alts = do
                     | (DataAlt con, code) <- taggedBranches ]
   return (maybeDefault, branches)
 
-cgTick :: Tickish a -> CodeGen ()
-cgTick (SourceNote srcSpan _) = do
-  mbCgFilePath <- getSourceFilePath
-  case mbCgFilePath of
-    Just cgFilePath -> do
-      let srcLoc  = realSrcSpanStart srcSpan
-          srcFile = unpackFS $ srcLocFile srcLoc
-      when (equalFilePath srcFile cgFilePath) $ addLineNumber $ srcLocLine srcLoc
-    Nothing -> return ()
-cgTick _ = return ()
+cgTick :: StgExpr -> CodeGen ()
+cgTick = cgTickWithLn 0 
+  where cgTickWithLn n (StgTick tickish subExpr) = do
+          traceCg (str "StgTick, tickish:" <+> ppr tickish)
+          nxtLn <- nextLine tickish n
+          cgTickWithLn nxtLn subExpr
+
+        cgTickWithLn n stgExpr = do
+          when (n > 0) $ do
+            traceCg (str $ "Emitting line number: " ++ show n)
+            emit $ emitLineNumber $ mkLineNumber n
+          cgExpr stgExpr
+
+        nextLine (SourceNote srcSpan _) prev = do
+          let srcLoc  = realSrcSpanStart srcSpan
+              srcFile = unpackFS $ srcLocFile srcLoc
+              ln      = srcLocLine srcLoc
+          match <- matchModuleSrcFile srcFile
+          return $ if match then ln else prev
+
+        nextLine _ prev = return prev
+        
+        matchModuleSrcFile srcFile = do
+          mbCgFilePath <- getSourceFilePath
+          return $ maybe False (equalFilePath srcFile) mbCgFilePath
+  
