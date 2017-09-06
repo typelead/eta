@@ -341,6 +341,4 @@ cgTick expr = do
       emit $ emitLineNumber $ mkLineNumber n
     _ -> return ()
   cgExpr subExpr
-
-
   
