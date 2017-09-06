@@ -325,28 +325,22 @@ cgAlgAltRhss binder alts = do
   return (maybeDefault, branches)
 
 cgTick :: StgExpr -> CodeGen ()
-cgTick = cgTickWithLn 0 
-  where cgTickWithLn n (StgTick tickish subExpr) = do
-          traceCg (str "StgTick, tickish:" <+> ppr tickish)
-          nxtLn <- nextLine tickish n
-          cgTickWithLn nxtLn subExpr
+cgTick expr = do
+  mbCgFilePath <- getSourceFilePath
+  let srcLoc = realSrcSpanStart
+      isModuleTick (SourceNote srcSpan _) =
+          let srcFile = unpackFS $ srcLocFile $ srcLoc srcSpan
+          in  maybe False (equalFilePath srcFile) mbCgFilePath
+      isModuleTick _ = False
+      (ticks,subExpr) = stripStgTicksTop (not . tickishIsCode) expr
+  forM_ ticks $ \ t -> traceCg (str "StgTick, tickish:" <+> ppr t)
+  case  reverse $ filter isModuleTick ticks of
+    (SourceNote srcSpan _:_) -> do
+      let n = srcLocLine $ srcLoc srcSpan
+      traceCg (str $ "Emitting line number: " ++ show n)
+      emit $ emitLineNumber $ mkLineNumber n
+    _ -> return ()
+  cgExpr subExpr
 
-        cgTickWithLn n stgExpr = do
-          when (n > 0) $ do
-            traceCg (str $ "Emitting line number: " ++ show n)
-            emit $ emitLineNumber $ mkLineNumber n
-          cgExpr stgExpr
 
-        nextLine (SourceNote srcSpan _) prev = do
-          let srcLoc  = realSrcSpanStart srcSpan
-              srcFile = unpackFS $ srcLocFile srcLoc
-              ln      = srcLocLine srcLoc
-          match <- matchModuleSrcFile srcFile
-          return $ if match then ln else prev
-
-        nextLine _ prev = return prev
-        
-        matchModuleSrcFile srcFile = do
-          mbCgFilePath <- getSourceFilePath
-          return $ maybe False (equalFilePath srcFile) mbCgFilePath
   
