@@ -54,9 +54,6 @@ module ETA.CodeGen.Monad
    forkAlts,
    unimplemented,
    getDynFlags,
-   addLineNumber,
-   resetLineNumbers,
-   getInnermostLineNumber,
    getSourceFilePath)
 where
 
@@ -71,7 +68,7 @@ import ETA.Types.TyCon
 
 import Data.Monoid((<>))
 import Data.List
-import Data.Maybe (fromMaybe, listToMaybe, maybeToList)
+import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text hiding (foldl, length, concatMap, map, intercalate)
 
 import System.FilePath (takeFileName)
@@ -113,8 +110,7 @@ data CgState =
           , cgScopedBindings :: CgBindings
           , cgAllowScoping   :: Bool
           , cgNextLocal      :: Int
-          , cgNextLabel      :: Int
-          , cgLineNumbers    :: [Int]}
+          , cgNextLabel      :: Int }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -181,8 +177,7 @@ initCg dflags mod modLoc =
            , cgScopedBindings      = emptyVarEnv
            , cgAllowScoping        = True
            , cgNextLocal           = 0
-           , cgNextLabel           = 0
-           , cgLineNumbers           = [] })
+           , cgNextLabel           = 0 })
   where className = moduleJavaClass mod
         srcFilePath =  ml_hs_file modLoc
 
@@ -511,19 +506,6 @@ forkLneBody body = do
   setNextLocal oldNextLocal
   setBindings oldBindings
   return newCode
-
-addLineNumber :: Int -> CodeGen ()
-addLineNumber ln = modify $ \s@CgState{..} ->
-  s { cgLineNumbers = ln : cgLineNumbers }
-
-resetLineNumbers :: CodeGen ()
-resetLineNumbers =  modify $ \s@CgState{..} ->
-  s { cgLineNumbers = [] }
-
-getInnermostLineNumber :: CodeGen (Maybe Int)
-getInnermostLineNumber =  do
-  lns <- gets cgLineNumbers
-  return $ listToMaybe lns
 
 getSourceFilePath :: CodeGen (Maybe FilePath)
 getSourceFilePath = gets cgSourceFilePath
