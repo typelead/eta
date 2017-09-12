@@ -123,7 +123,9 @@ public class Utils {
             ReadableByteChannel rc     = (ReadableByteChannel) fd;
             ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);
             buffer.limit(buffer.position() + count);
-            return rc.read(buffer);
+            int size = rc.read(buffer);
+            if (size < 0) return 0;
+            else return size;
         } catch (Exception e) {
             e.printStackTrace();
             return -1;
