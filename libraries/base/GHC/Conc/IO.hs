@@ -35,6 +35,8 @@ module GHC.Conc.IO
         , registerDelay
         , threadWaitRead
         , threadWaitWrite
+        , threadWaitConnect
+        , threadWaitAccept
         , threadWaitReadSTM
         , threadWaitWriteSTM
         , closeFdWith
@@ -75,6 +77,16 @@ threadWaitWrite :: Channel -> IO ()
 threadWaitWrite fd = IO $ \s ->
   case fd of { Channel c# ->
   case waitWrite# c# s of { s' -> (# s', () #) }}
+
+threadWaitConnect :: Channel -> IO ()
+threadWaitConnect fd = IO $ \s ->
+  case fd of { Channel c# ->
+  case waitConnect# c# s of { s' -> (# s', () #) }}
+
+threadWaitAccept :: Channel -> IO ()
+threadWaitAccept fd = IO $ \s ->
+  case fd of { Channel c# ->
+  case waitAccept# c# s of { s' -> (# s', () #) }}
 
 -- | Returns an STM action that can be used to wait for data
 -- to read from a file descriptor. The second returned value

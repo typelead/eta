@@ -571,13 +571,15 @@ data PrimOp
    | WriteJDoubleArrayOp
    | Addr2Int64Op
    | Int642AddrOp
+   | WaitConnectOp
+   | WaitAcceptOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1138
+maxPrimOpTag = 1140
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1718,6 +1720,8 @@ tagOf_PrimOp ReadJDoubleArrayOp = _ILIT(1135)
 tagOf_PrimOp WriteJDoubleArrayOp = _ILIT(1136)
 tagOf_PrimOp Addr2Int64Op = _ILIT(1137)
 tagOf_PrimOp Int642AddrOp = _ILIT(1138)
+tagOf_PrimOp WaitConnectOp = _ILIT(1139)
+tagOf_PrimOp WaitAcceptOp = _ILIT(1140)
 
 instance Eq PrimOp where
     op1 == op2 = tagOf_PrimOp op1 ==# tagOf_PrimOp op2
@@ -2880,6 +2884,8 @@ allThePrimOps =
    , WriteJDoubleArrayOp
    , Addr2Int64Op
    , Int642AddrOp
+   , WaitConnectOp
+   , WaitAcceptOp
    ]
 
 tagToEnumKey :: Unique
@@ -4236,6 +4242,8 @@ primOpInfo WriteJDoubleArrayOp =
   $ mkStatePrimTy betaTy
 primOpInfo Addr2Int64Op = mkGenPrimOp (fsLit "addr2Int64#")  [] [addrPrimTy] (int64PrimTy)
 primOpInfo Int642AddrOp = mkGenPrimOp (fsLit "int642Addr#")  [] [int64PrimTy] (addrPrimTy)
+primOpInfo WaitConnectOp = mkGenPrimOp (fsLit "waitConnect#")  [alphaTyVar, deltaTyVar] [mkObjectPrimTy alphaTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
+primOpInfo WaitAcceptOp = mkGenPrimOp (fsLit "waitAccept#")  [alphaTyVar, deltaTyVar] [mkObjectPrimTy alphaTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
 
 
 {-
@@ -4423,6 +4431,8 @@ primOpOutOfLine IsEmptyMVarOp = True
 primOpOutOfLine DelayOp = True
 primOpOutOfLine WaitReadOp = True
 primOpOutOfLine WaitWriteOp = True
+primOpOutOfLine WaitConnectOp = True
+primOpOutOfLine WaitAcceptOp = True
 primOpOutOfLine ForkOp = True
 primOpOutOfLine ForkOnOp = True
 primOpOutOfLine KillThreadOp = True
@@ -4758,6 +4768,8 @@ primOpHasSideEffects IsEmptyMVarOp = True
 primOpHasSideEffects DelayOp = True
 primOpHasSideEffects WaitReadOp = True
 primOpHasSideEffects WaitWriteOp = True
+primOpHasSideEffects WaitConnectOp = True
+primOpHasSideEffects WaitAcceptOp = True
 primOpHasSideEffects ForkOp = True
 primOpHasSideEffects ForkOnOp = True
 primOpHasSideEffects KillThreadOp = True

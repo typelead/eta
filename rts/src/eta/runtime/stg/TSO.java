@@ -69,7 +69,9 @@ public final class TSO extends BlackHole {
         BlockedOnJavaCall_Interruptible(11),
         BlockedOnMsgThrowTo(12),
         BlockedOnMVarRead(14),
-        BlockedOnYield(15);
+        BlockedOnYield(15),
+        BlockedOnConnect(16),
+        BlockedOnAccept(17);
         private int val;
         WhyBlocked(int val) {
             this.val = val;

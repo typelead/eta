@@ -268,7 +268,13 @@ public class Concurrent {
                 blocked = BlockedOnRead;
                 break;
             case SelectionKey.OP_WRITE:
-                blocked = BlockedOnRead;
+                blocked = BlockedOnWrite;
+                break;
+            case SelectionKey.OP_CONNECT:
+                blocked = BlockedOnConnect;
+                break;
+            case SelectionKey.OP_ACCEPT:
+                blocked = BlockedOnAccept;
                 break;
             default:
                 blocked = BlockedOnIO;
@@ -288,6 +294,14 @@ public class Concurrent {
 
     public static Closure waitWrite(StgContext context, Object o) {
         return threadWaitIO(context, (Channel) o, SelectionKey.OP_WRITE);
+    }
+
+    public static Closure waitConnect(StgContext context, Object o) {
+        return threadWaitIO(context, (Channel) o, SelectionKey.OP_CONNECT);
+    }
+
+    public static Closure waitAccept(StgContext context, Object o) {
+        return threadWaitIO(context, (Channel) o, SelectionKey.OP_ACCEPT);
     }
 
     public static void checkForReadyIO(Capability cap) {

@@ -55,6 +55,8 @@ module GHC.Conc
         , registerDelay
         , threadWaitRead
         , threadWaitWrite
+        , threadWaitConnect
+        , threadWaitAccept
         , threadWaitReadSTM
         , threadWaitWriteSTM
         , closeFdWith

@@ -375,6 +375,8 @@ mkRtsPrimOp NewBCOOp                = (interpGroup, "newBCO")
 mkRtsPrimOp TraceEventOp            = (concGroup, "traceEvent")
 mkRtsPrimOp WaitWriteOp             = (concGroup, "waitWrite")
 mkRtsPrimOp WaitReadOp              = (concGroup, "waitRead")
+mkRtsPrimOp WaitConnectOp           = (concGroup, "waitConnect")
+mkRtsPrimOp WaitAcceptOp            = (concGroup, "waitAccept")
 mkRtsPrimOp primop = pprPanic "mkRtsPrimOp: unimplemented!" (ppr primop)
 
 cgPrimOp   :: PrimOp            -- the op
