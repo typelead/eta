@@ -1,5 +1,5 @@
 { mkDerivation, array, base, binary, bytestring, containers, mtl
-, stdenv, text
+, stdenv, stringsearch, text, transformers
 }:
 mkDerivation {
   pname = "codec-jvm";
@@ -8,7 +8,8 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    array base binary bytestring containers mtl text
+    array base binary bytestring containers mtl stringsearch text
+    transformers
   ];
   executableHaskellDepends = [ base bytestring text ];
   license = stdenv.lib.licenses.asl20;
