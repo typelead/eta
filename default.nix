@@ -19,7 +19,7 @@ let
       Cabal = self.Cabal_1_24_2_0;
 
       tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
-      binary = haskell.lib.dontCheck self.binary_0_8_5_1;
+      binary = haskell.lib.dontCheck self.binary_0_8_5_1 or self.binary_0_8_4_1;
 
       codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
       hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
