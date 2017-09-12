@@ -471,8 +471,7 @@ errnoToIOError  :: String       -- ^ the location where the error occurred
                 -> Maybe String -- ^ optional filename associated with the error
                 -> IOError
 errnoToIOError loc errno maybeHdl maybeName = unsafePerformIO $ do
-    str <- strerror errno >>= peekCString
-    return (IOError maybeHdl errType loc str (Just errno') maybeName)
+    return (IOError maybeHdl errType loc "" (Just errno') maybeName)
     where
     Errno errno' = errno
     errType
@@ -576,8 +575,3 @@ errnoToIOError loc errno maybeHdl maybeName = unsafePerformIO $ do
         | errno == eWOULDBLOCK     = OtherError
         | errno == eXDEV           = UnsupportedOperation
         | otherwise                = OtherError
-
--- TODO: Implement
--- foreign import ccall unsafe "string.h"
-strerror :: Errno -> IO (Ptr CChar)
-strerror = error "strerror: Not implemented yet."
