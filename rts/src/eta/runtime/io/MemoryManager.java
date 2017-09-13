@@ -551,12 +551,21 @@ public class MemoryManager {
         long lower = (blockType << BLOCK_TYPE_BITS) | (blockIndex << indexBits);
         AtomicBoolean blockLock = blockLocks[blockType];
         ByteBuffer buf = null;
+        Exception e = null;
         if (blockLock.compareAndSet(false, true)) {
             try {
                 buf = (ByteBuffer) blockArrays[blockType].get(blockIndex);
+            } catch (Exception f) {
+                e = f;
+                buf = null;
             } finally {
                 blockLock.set(false);
             }
+        }
+        if (buf == null) {
+            throw new IllegalStateException(
+              "getBuffer: The block that corresponds to the address " + address +
+              " does not exist.", e);
         }
         cachedLowerAddress.set(lower);
         cachedHigherAddress.set(lower + (1 << indexBits));
@@ -609,12 +618,21 @@ public class MemoryManager {
         int size                = (int)(lowerAddress + lowerSize - address);
         ByteBuffer buf          = null;
         AtomicBoolean blockLock = blockLocks[blockType];
+        Exception e = null;
         if (blockLock.compareAndSet(false, true)) {
             try {
                 buf = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
+            } catch (Exception f) {
+                e = f;
+                buf = null;
             } finally {
                 blockLock.set(false);
             }
+        }
+        if (buf == null) {
+            throw new IllegalStateException(
+              "getBoundedBuffer: The block that corresponds to the address " + address +
+              " does not exist.", e);
         }
         buf.position(positionIndex);
         buf.limit(positionIndex + size);
