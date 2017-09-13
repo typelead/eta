@@ -175,6 +175,7 @@ public class Exception {
             if (unmask) {
                 unmaskAsyncExceptionsRet(context, tso);
             }
+            tso.resetStack();
         }
         return result;
     }
