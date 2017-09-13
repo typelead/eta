@@ -104,7 +104,7 @@ public class UpdateInfoStack {
                     break;
                 } else {
                     if (bh.tryLock()) {
-                        bh.updateWithIndirection(tso);
+                        bh.setIndirection(tso);
                         break;
                     } else continue;
                 }
