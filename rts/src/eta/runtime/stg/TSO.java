@@ -240,7 +240,11 @@ public final class TSO extends BlackHole {
         if (interruptible) {
             whyBlocked = BlockedOnJavaCall_Interruptible;
         } else {
-            if (!immune) addFlags(TSO_INTERRUPT_IMMUNE);
+            if (!immune) {
+                addFlags(TSO_INTERRUPT_IMMUNE);
+                // Erase interrupt status
+                Thread.interrupted();
+            }
             whyBlocked = BlockedOnJavaCall;
         }
         cap.idleLoop(true);

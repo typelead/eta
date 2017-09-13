@@ -9,6 +9,7 @@ import java.lang.ref.PhantomReference;
 
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.TSO;
 import eta.runtime.thunk.Ap2Upd;
 import eta.runtime.thunk.SelectorPUpd;
 
@@ -24,6 +25,19 @@ public class IO {
             (bits & 0x7fffff) | 0x800000;
         context.I(1, s * m);
         context.I(2, e - 150);
+        return null;
+    }
+
+    public static Closure delay(StgContext context, int time) {
+        TSO tso = context.currentTSO;
+        boolean immune = tso.suspendInterrupts(false);
+        try {
+            Thread.sleep(time / 1000, (time % 1000) * 1000);
+        } catch (InterruptedException ie) {
+            // If interrupted, run the idleLoop to see why.
+            context.myCapability.idleLoop(false);
+        }
+        tso.resumeInterrupts(immune);
         return null;
     }
 

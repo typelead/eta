@@ -502,7 +502,7 @@ public final class Capability {
     public void blockedLoop(long nanos) {
         idleLoop(true);
         LockSupport.parkNanos(nanos);
-        if (Thread.interrupted()) {}
+        Thread.interrupted();
         idleLoop(false);
     }
 

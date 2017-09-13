@@ -308,12 +308,6 @@ shouldInlinePrimOp' _ NewMVarOp _ = Right $ return
 shouldInlinePrimOp' _ IsEmptyMVarOp [mvar] = Right $ return
   [ intCompOp ifnull [mvar <> mVarValue] ]
 
-shouldInlinePrimOp' _ DelayOp [time] = Right $
-  let millis = time <> iconst jint 1000 <> idiv <> gconv jint jlong
-      nanos = time <> iconst jint 1000 <> irem
-                   <> iconst jint 1000 <> imul
-  in return [ normalOp (invokestatic (mkMethodRef "java/lang/Thread" "sleep" [jlong, jint] void)) [millis, nanos] ]
-
 shouldInlinePrimOp' _ MakeStableNameOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint))) args ]
 
@@ -339,6 +333,7 @@ mkRtsPrimOp MaskAsyncExceptionsOp   = (stgExceptionGroup, "maskAsyncExceptions")
 mkRtsPrimOp MaskUninterruptibleOp   = (stgExceptionGroup, "maskUninterruptible")
 mkRtsPrimOp UnmaskAsyncExceptionsOp = (stgExceptionGroup, "unmaskAsyncExceptions")
 mkRtsPrimOp MaskStatus              = (stgExceptionGroup, "getMaskingState")
+mkRtsPrimOp DelayOp                 = (ioGroup, "delay")
 mkRtsPrimOp FloatDecode_IntOp       = (ioGroup, "decodeFloat_Int")
 mkRtsPrimOp AtomicallyOp            = (stmGroup, "atomically")
 mkRtsPrimOp RetryOp                 = (stmGroup, "retry")
