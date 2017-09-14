@@ -1792,11 +1792,9 @@ legalFIPrimArgTyCon dflags tc _
 legalFIPrimResultTyCon :: DynFlags -> TyCon -> Type -> Bool
 -- Check result type of 'foreign import prim'. Allow simple unlifted
 -- types and also unboxed tuple result types '... -> (# , , #)'
-legalFIPrimResultTyCon dflags tc ty
+legalFIPrimResultTyCon dflags tc _ty
   | xopt Opt_UnliftedFFITypes dflags
     && isUnLiftedTyCon tc
-    && (isUnboxedTupleTyCon tc
-        || not (isVoidRep (typePrimRep ty)))
   = True
   | otherwise
   = False
