@@ -139,17 +139,12 @@ public class STM {
                                 cap.blockedLoop();
                                 valid = trec.reWait(tso);
                             } while (valid);
-                            /* If the transaction is invalid, retry. */
-                            trec     = TransactionRecord.start(null);
-                            tso.trec = trec;
-                            runCode  = true;
-                            continue;
-                        } else {
-                            trec     = TransactionRecord.start(outer);
-                            tso.trec = trec;
-                            runCode  = true;
-                            continue;
                         }
+                        /* If the transaction is invalid, retry. */
+                        trec     = TransactionRecord.start(null);
+                        tso.trec = trec;
+                        runCode  = true;
+                        continue;
                     } else  {
                         EtaException e = null;
                         if (e_ instanceof EtaException) {
