@@ -47,7 +47,7 @@ public class Closures {
             Int               = loadDataCon("ghc_prim.ghc.Types", "Izh", int.class);
             JException        = loadDataCon("base.java.Exception", "JException", Exception.class);
             SomeException     = loadDataCon("base.ghc.Exception", "SomeException", Closure.class, Closure.class);
-            $fExceptionJException = loadClosure("base.java.Exception", "$fExceptionJException");
+            $fExceptionJException = loadClosure("base.java.Exception", "$fException_JException");
             showException         = loadClosure("base.java.Exception", "showException");
         } catch (Exception e) {
             System.err.println("FATAL ERROR: Failed to load base closures.");
