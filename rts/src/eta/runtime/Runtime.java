@@ -18,7 +18,7 @@ public class Runtime {
     /* Parameter: maxWorkerCapabilities (int)
        The total number of Capabilities that can be spawned by the runtime itself. */
     private static int maxWorkerCapabilities
-        = 2 * RuntimeOptions.getNumberOfProcessors() + 1;
+        = RuntimeOptions.getNumberOfProcessors();
 
     public static int getMaxWorkerCapabilities() {
         return maxWorkerCapabilities;
