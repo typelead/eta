@@ -16,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 
 import java.nio.ByteBuffer;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.WeakPtr;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugMemoryManager;
@@ -552,17 +553,19 @@ public class MemoryManager {
         AtomicBoolean blockLock = blockLocks[blockType];
         ByteBuffer buf = null;
         Exception e = null;
-        if (blockLock.compareAndSet(false, true)) {
-            try {
-                buf = (ByteBuffer) blockArrays[blockType].get(blockIndex);
-            } catch (Exception f) {
-                e = f;
-                buf = null;
-            } finally {
-                blockLock.set(false);
-            }
+        while (!blockLock.compareAndSet(false, true)) {}
+        try {
+            buf = (ByteBuffer) blockArrays[blockType].get(blockIndex);
+        } catch (Exception f) {
+            e = f;
+            buf = null;
+        } finally {
+            blockLock.set(false);
         }
         if (buf == null) {
+            if(Runtime.debugMemoryManager()) {
+                dumpMemoryManager();
+            }
             throw new IllegalStateException(
               "getBuffer: The block that corresponds to the address " + address +
               " does not exist.", e);
@@ -606,6 +609,9 @@ public class MemoryManager {
         Map.Entry<Long, Integer>
             lowerEntry = findAllocatedAddress(address);
         if (lowerEntry == null) {
+            if(Runtime.debugMemoryManager()) {
+                dumpMemoryManager();
+            }
             throw new IllegalStateException("The block that corresponds to the address "+
                                             address+" is not allocated in memory");
         }
@@ -619,17 +625,19 @@ public class MemoryManager {
         ByteBuffer buf          = null;
         AtomicBoolean blockLock = blockLocks[blockType];
         Exception e = null;
-        if (blockLock.compareAndSet(false, true)) {
-            try {
-                buf = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
-            } catch (Exception f) {
-                e = f;
-                buf = null;
-            } finally {
-                blockLock.set(false);
-            }
+        while (!blockLock.compareAndSet(false, true)) {}
+        try {
+            buf = ((ByteBuffer) blockArrays[blockType].get(blockIndex)).duplicate();
+        } catch (Exception f) {
+            e = f;
+            buf = null;
+        } finally {
+            blockLock.set(false);
         }
         if (buf == null) {
+            if(Runtime.debugMemoryManager()) {
+                dumpMemoryManager();
+            }
             throw new IllegalStateException(
               "getBoundedBuffer: The block that corresponds to the address " + address +
               " does not exist.", e);
