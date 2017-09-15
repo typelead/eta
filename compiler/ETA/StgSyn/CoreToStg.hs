@@ -581,7 +581,7 @@ coreToStgApp _ f args ticks = do
                 -- A call to some primitive Cmm function.
                 FCallId (CCall (CCallSpec (StaticTarget lbl _ _) PrimCallConv _))
                                  -> ASSERT( saturated )
-                                    StgOpApp (StgPrimCallOp (PrimCall lbl undefined)) args' res_ty
+                                    StgOpApp (StgPrimCallOp (PrimCall lbl (fsToUnitId (mkFastString "")))) args' res_ty
 
                 -- A regular foreign call.
                 FCallId call     -> ASSERT( saturated )
