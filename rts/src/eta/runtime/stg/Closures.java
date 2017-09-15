@@ -98,7 +98,10 @@ public class Closures {
         @Override
         public Closure enter(StgContext context) {
             Closure result = p.evaluate(context).applyV(context);
-            context.currentTSO.whatNext = ThreadComplete;
+            TSO tso = context.currentTSO;
+            if (tso.whatNext == ThreadRun) {
+                tso.whatNext = ThreadComplete;
+            }
             return result;
         }
     }
@@ -120,7 +123,10 @@ public class Closures {
         @Override
         public Closure enter(StgContext context) {
             Closure result = p.evaluate(context).applyV(context).evaluate(context);
-            context.currentTSO.whatNext = ThreadComplete;
+            TSO tso = context.currentTSO;
+            if (tso.whatNext == ThreadRun) {
+                tso.whatNext = ThreadComplete;
+            }
             return result;
         }
     }
@@ -137,7 +143,10 @@ public class Closures {
         @Override
         public Closure enter(StgContext context) {
             Closure result = p.evaluate(context).applyO(context, thisObj).evaluate(context);
-            context.currentTSO.whatNext = ThreadComplete;
+            TSO tso = context.currentTSO;
+            if (tso.whatNext == ThreadRun) {
+                tso.whatNext = ThreadComplete;
+            }
             return result;
         }
     }

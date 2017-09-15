@@ -152,7 +152,7 @@ public final class Capability {
                     try {
                         result = t.closure.enter(context);
                     } catch (java.lang.Exception e) {
-                        context.currentTSO.whatNext = ThreadKilled;
+                        t.whatNext = ThreadKilled;
                         pendingException = e;
                     }
                     break;
@@ -170,24 +170,31 @@ public final class Capability {
                 outer              = null;
             }
 
-            /* Thread is done executing, awaken the blocked exception queue. */
-            awakenBlockedExceptionQueue(t);
+            if (t.whatNext == ThreadYield) {
+                t.whatNext = ThreadRun;
+                t.cap = null;
+                Concurrent.pushToGlobalRunQueue(t);
+            } else {
+                /* Thread is done executing, awaken the blocked exception queue. */
+                awakenBlockedExceptionQueue(t);
 
-            /* If an unhandled exception occured, throw it so that the caller
-               can handle it if they so choose. */
-            if (pendingException != null) {
-                /* A TSO has the ability to control the stack trace of an exception. */
-                StackTraceElement[] st = t.getStackTrace();
-                if (st != null) {
-                    pendingException.setStackTrace(st);
-                    t.resetStack();
+                /* If an unhandled exception occured, throw it so that the caller
+                   can handle it if they so choose. */
+                if (pendingException != null) {
+                    /* A TSO has the ability to control the stack trace of an exception. */
+                    StackTraceElement[] st = t.getStackTrace();
+                    if (st != null) {
+                        pendingException.setStackTrace(st);
+                        t.resetStack();
+                    }
+                    /* Cleanup resources in the Runtime before throwing the exception
+                       again. */
+                    /* TODO: Will we have a difference between cleanup and exit? */
+                    Runtime.exit();
+                    throw pendingException;
                 }
-                /* Cleanup resources in the Runtime before throwing the exception
-                   again. */
-                /* TODO: Will we have a difference between cleanup and exit? */
-                Runtime.exit();
-                throw pendingException;
             }
+
             if (emptyRunQueue() && !worker) break;
         } while (true);
         return result;
