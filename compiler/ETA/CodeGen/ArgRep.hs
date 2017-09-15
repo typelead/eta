@@ -100,7 +100,7 @@ primRepFieldType_maybe rep = Just $
     ShortRep            -> jshort
     ObjectRep className -> obj $ className
     ArrayRep  rep       -> ArrayType . fromJust $ primRepFieldType_maybe rep
-    VoidRep             -> undefined
+    VoidRep             -> error "primRepFieldType_maybe: VoidRep - should never happen."
 
 primRepFieldType :: PrimRep -> FieldType
 primRepFieldType = expectJust "primRepFieldType" . primRepFieldType_maybe
