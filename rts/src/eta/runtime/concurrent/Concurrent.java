@@ -75,6 +75,17 @@ public class Concurrent {
         return null;
     }
 
+    public static Closure tryTakeMVar(StgContext context, MVar mvar) {
+        Closure value = mvar.tryTake();
+        context.I(1, (value == null)? 0 : 1);
+        return value;
+    }
+
+    public static Closure tryPutMVar(StgContext context, MVar mvar, Closure val) {
+        context.I(1, mvar.tryPut(val)? 1 : 0);
+        return null;
+    }
+
     public static Closure tryReadMVar(StgContext context, MVar mvar) {
         Closure value = mvar.tryRead();
         context.I(1, (value == null)? 0: 1);
