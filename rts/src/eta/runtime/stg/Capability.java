@@ -498,6 +498,17 @@ public final class Capability {
 
             /* Free any memory if necessary */
             MemoryManager.maybeFreeNativeMemory();
+
+            /* Check if there are any deadlocked MVars. */
+            detectMVarDeadlock(tso.whyBlocked);
+        }
+    }
+
+    public void detectMVarDeadlock(WhyBlocked whyBlocked) {
+        if (whyBlocked == BlockedOnMVar || whyBlocked == BlockedOnMVarRead) {
+            if (workerCapabilitiesSize() == 0 && !globalWorkToDo()) {
+                Exception.raise(context, Closures.blockedIndefinitelyOnMVar);
+            }
         }
     }
 
@@ -513,6 +524,10 @@ public final class Capability {
         idleLoop(false);
     }
 
+    public static boolean globalWorkToDo() {
+        return (!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks());
+    }
+
     public void manageOrSpawnWorkers() {
 
         /* When we have excess live threads and blocked Capabilities, let's wake
@@ -524,7 +539,7 @@ public final class Capability {
             /* Interrupt the blocked capabilities so that they can terminate
                themselves when they unblock. */
 
-        if ((!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks())
+        if (globalWorkToDo()
             // TODO: Is this timeout really necessary?
             // &&
             // ( System.currentTimeMillis()

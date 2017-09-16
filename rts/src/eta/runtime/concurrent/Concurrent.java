@@ -54,23 +54,59 @@ public class Concurrent {
     public static Closure takeMVar(StgContext context, MVar mvar) {
         Capability cap = context.myCapability;
         Closure val = mvar.tryTake();
-        while (val == null) {
-            cap.blockedLoop();
-            val = mvar.tryTake();
+        if (val == null) {
+            TSO tso = context.currentTSO;
+            tso.whyBlocked = BlockedOnMVar;
+            tso.blockInfo  = mvar;
+            try {
+                do {
+                    cap.blockedLoop();
+                    val = mvar.tryTake();
+                } while (val == null);
+            } finally {
+                tso.whyBlocked = NotBlocked;
+                tso.blockInfo  = null;
+            }
         }
         return val;
     }
 
     public static Closure readMVar(StgContext context, MVar mvar) {
-        return mvar.read();
+        Capability cap = context.myCapability;
+        Closure val = mvar.tryRead();
+        if (val == null) {
+            TSO tso = context.currentTSO;
+            tso.whyBlocked = BlockedOnMVarRead;
+            tso.blockInfo  = mvar;
+            try {
+                do {
+                    cap.blockedLoop();
+                    val = mvar.tryRead();
+                } while (val == null);
+            } finally {
+                tso.whyBlocked = NotBlocked;
+                tso.blockInfo  = null;
+            }
+        }
+        return val;
     }
 
     public static Closure putMVar(StgContext context, MVar mvar, Closure val) {
         Capability cap = context.myCapability;
         boolean success = mvar.tryPut(val);
-        while (!success) {
-            cap.blockedLoop();
-            success = mvar.tryPut(val);
+        if (!success) {
+            TSO tso = context.currentTSO;
+            tso.whyBlocked = BlockedOnMVar;
+            tso.blockInfo  = mvar;
+            try {
+                do {
+                    cap.blockedLoop();
+                    success = mvar.tryPut(val);
+                } while (!success);
+            } finally {
+                tso.blockInfo  = null;
+                tso.whyBlocked = NotBlocked;
+            }
         }
         return null;
     }

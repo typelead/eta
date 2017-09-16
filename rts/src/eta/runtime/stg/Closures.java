@@ -26,6 +26,7 @@ public class Closures {
     public static Closure flushStdHandles;
     public static Closure runSparks;
     public static Closure nonTermination;
+    public static Closure blockedIndefinitelyOnMVar;
     public static Closure nestedAtomically;
     public static Closure runFinalizerBatch;
     public static Closure $fExceptionJException;
@@ -42,6 +43,9 @@ public class Closures {
             flushStdHandles   = loadClosure("base.ghc.TopHandler", "flushStdHandles");
             runSparks         = loadClosure("base.ghc.conc.Sync", "runSparks");
             nonTermination    = loadClosure("base.control.exception.Base", "nonTermination");
+            blockedIndefinitelyOnMVar = loadClosure("base.ghc.io.Exception",
+                                                    "blockedIndefinitelyOnMVar");
+
             nestedAtomically  = loadClosure("base.control.exception.Base", "nestedAtomically");
             runFinalizerBatch = loadClosure("base.ghc.Weak", "runFinalizzerBatch");
             Int               = loadDataCon("ghc_prim.ghc.Types", "Izh", int.class);
