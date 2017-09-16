@@ -51,6 +51,7 @@ public final class TSO extends BlackHole {
     public enum WhatNext {
         ThreadRun,
         ThreadYield,
+        ThreadBlock,
         ThreadInterpret,
         ThreadKilled,
         ThreadComplete
