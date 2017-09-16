@@ -25,6 +25,7 @@ import eta.runtime.interpreter.Interpreter;
 import eta.runtime.message.Message;
 import eta.runtime.message.MessageBlackHole;
 import eta.runtime.message.MessageThrowTo;
+import eta.runtime.message.MessageShutdown;
 import eta.runtime.message.MessageWakeup;
 import eta.runtime.parallel.Parallel;
 import eta.runtime.thunk.BlockingQueue;
@@ -115,6 +116,8 @@ public final class Capability {
                 /* Re-entering the RTS, a fresh TSO was generated. */
                 outer = context.currentTSO;
             }
+
+            processInbox();
 
             /* TODO: The following still need to be implemented:
                - Deadlock detection. Be able to detect <<loop>>.
@@ -247,9 +250,9 @@ public final class Capability {
         }
     }
 
-    public final void sendMessage(Capability target, Message msg) {
+    public final boolean sendMessage(Capability target, Message msg) {
         target.inbox.offer(msg);
-        target.interrupt();
+        return target.interrupt();
     }
 
     public final boolean emptyInbox() {
@@ -375,11 +378,14 @@ public final class Capability {
         }
     }
 
-    public final void interrupt() {
+    public final boolean interrupt() {
         Thread t = thread.get();
         TSO tso = context.currentTSO;
         if (t != null && (tso == null || !tso.hasFlag(TSO_INTERRUPT_IMMUNE))) {
             t.interrupt();
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -447,13 +453,16 @@ public final class Capability {
     /* Capabilities Cleanup */
 
     public static void shutdownCapabilities(boolean safe) {
-        for (Capability c: capabilities) {
-            c.shutdown(safe);
+        while (workerCapabilities.size() > 0) {
+            for (Capability c: workerCapabilities) {
+                c.shutdown(safe);
+            }
+            LockSupport.parkNanos(1000000L);
         }
     }
 
-    public static void shutdown(boolean safe) {
-        /* TODO: Implement */
+    public boolean shutdown(boolean safe) {
+        return sendMessage(this, MessageShutdown.getInstance());
     }
 
     /* Globan Run Queue Stealing */

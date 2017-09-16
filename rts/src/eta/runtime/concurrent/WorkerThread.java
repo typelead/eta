@@ -13,7 +13,8 @@ public class WorkerThread extends Thread {
             worker.schedule(null);
         } catch (Exception e) {
             /* TODO: Find a better way to handle exceptions? */
+        } finally {
+            Capability.workerCapabilities.remove(worker);
         }
-        Capability.workerCapabilities.remove(worker);
     }
 }

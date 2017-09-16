@@ -226,6 +226,7 @@ public class Runtime {
                   of the Eta RTS from the same JVM. */
         // MemoryManager.cleanup();
         WeakPtr.runAllFinalizers();
+        Capability.shutdownCapabilities(true);
         /* TODO: Check that all global state is cleaned up.
                  If there are Capabilities that are running,
                  either wait for them to finish or terminate them. */

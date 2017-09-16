@@ -1,7 +1,6 @@
 package eta.runtime.message;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Capability;

@@ -39,16 +39,4 @@ public class MVar extends Value {
     public Closure tryRead() {
         return valQueue.peek();
     }
-
-    public final void lock() {
-        while (!tryLock()) {}
-    }
-
-    public final void unlock() {
-        lock.set(false);
-    }
-
-    public final boolean tryLock() {
-        return lock.compareAndSet(false, true);
-    }
 }
