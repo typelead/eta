@@ -261,7 +261,7 @@ public class Exception {
                     break;
                 case BlockedOnMsgThrowTo:
                     MessageThrowTo msg2 = (MessageThrowTo) target.blockInfo;
-                    if (msg2.id < msg.id) {
+                    if (msg2.hashCode() < msg.hashCode()) {
                         msg2.lock();
                     } else {
                         if (!msg2.tryLock()) {

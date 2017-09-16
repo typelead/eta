@@ -11,11 +11,6 @@ import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
-    public static AtomicLong maxMessageId = new AtomicLong(0);
-    public static long nextMessageId() {
-        return maxMessageId.getAndIncrement();
-    }
-    public final long id = nextMessageId();
     public final TSO source;
     public final TSO target;
     public final  Closure exception;
