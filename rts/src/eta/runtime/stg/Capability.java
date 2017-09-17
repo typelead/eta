@@ -176,11 +176,11 @@ public final class Capability {
             prevWhatNext = t.whatNext;
 
             if (prevWhatNext == ThreadYield || prevWhatNext == ThreadBlock) {
-                t.whatNext = ThreadRun;
-                t.cap = null;
-                if (t.whatNext == ThreadYield) {
+                if (prevWhatNext == ThreadYield) {
                     Concurrent.pushToGlobalRunQueue(t);
                 }
+                t.whatNext = ThreadRun;
+                t.cap = null;
             } else {
                 /* Thread is done executing, awaken the blocked exception queue. */
                 awakenBlockedExceptionQueue(t);
