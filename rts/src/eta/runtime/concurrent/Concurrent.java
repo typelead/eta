@@ -352,26 +352,28 @@ public class Concurrent {
     }
 
     public static void checkForReadyIO(Capability cap) {
-        if (selectorLock.compareAndSet(false, true)) {
-            try {
-                int selectedKeys = globalSelector.selectNow();
-                if (selectedKeys > 0) {
-                    Iterator<SelectionKey> it = globalSelector.selectedKeys().iterator();
-                    while (it.hasNext()) {
-                        SelectionKey key = it.next();
-                        if (key.isValid() && ((key.readyOps() & key.interestOps()) != 0)) {
-                            TSO tso = (TSO) key.attachment();
-                            key.cancel();
-                            cap.tryWakeupThread(tso);
+        if (globalSelector.keys().size() > 0) {
+            if (selectorLock.compareAndSet(false, true)) {
+                try {
+                    int selectedKeys = globalSelector.selectNow();
+                    if (selectedKeys > 0) {
+                        Iterator<SelectionKey> it = globalSelector.selectedKeys().iterator();
+                        while (it.hasNext()) {
+                            SelectionKey key = it.next();
+                            if (key.isValid() && ((key.readyOps() & key.interestOps()) != 0)) {
+                                TSO tso = (TSO) key.attachment();
+                                key.cancel();
+                                cap.tryWakeupThread(tso);
+                            }
+                            it.remove();
                         }
-                        it.remove();
                     }
+                } catch (IOException e) {
+                    /* TODO: If the selector is closed, the user should know about it.
+                       Do some logging here. */
+                } finally {
+                    selectorLock.set(false);
                 }
-            } catch (IOException e) {
-                /* TODO: If the selector is closed, the user should know about it.
-                   Do some logging here. */
-            } finally {
-                selectorLock.set(false);
             }
         }
     }
