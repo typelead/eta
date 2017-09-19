@@ -29,77 +29,77 @@ public abstract class Closure implements Serializable {
 
     /* Applications */
     public Closure applyV(StgContext context) {
-        barf("ap_v");
+        barf("Cannot apply realWorld# to " + this);
         return null;
     }
 
     public Closure applyN(StgContext context, int n) {
-        barf("ap_n");
+        barf("Cannot apply an int to " + this);
         return null;
     }
 
     public Closure applyL(StgContext context, long l) {
-        barf("ap_l");
+        barf("Cannot apply a long to " + this);
         return null;
     }
 
     public Closure applyF(StgContext context, float f) {
-        barf("ap_f");
+        barf("Cannot apply a float to " + this);
         return null;
     }
 
     public Closure applyD(StgContext context, double d) {
-        barf("ap_d");
+        barf("Cannot apply a double to " + this);
         return null;
     }
 
     public Closure applyO(StgContext context, Object o) {
-        barf("ap_o");
+        barf("Cannot apply an object to " + this);
         return null;
     }
 
     public Closure applyP(StgContext context, Closure p) {
-        barf("ap_p");
+        barf("Cannot apply a closure to " + this);
         return null;
     }
 
     public Closure applyPV(StgContext context, Closure p) {
-        barf("ap_pv");
+        barf("Cannot apply a closure and realWorld# to " + this);
         return null;
     }
 
     public Closure applyPP(StgContext context, Closure p1, Closure p2) {
-        barf("ap_pp");
+        barf("Cannot apply 2 closures to " + this);
         return null;
     }
 
     public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
-        barf("ap_ppv");
+        barf("Cannot apply 2 closures and realWorld# to " + this);
         return null;
     }
 
     public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
-        barf("ap_ppp");
+        barf("Cannot apply 3 closures to " + this);
         return null;
     }
 
     public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
-        barf("ap_pppv");
+        barf("Cannot apply 3 closures and realWorld# to " + this);
         return null;
     }
 
     public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
-        barf("ap_pppp");
+        barf("Cannot apply 4 closures to " + this);
         return null;
     }
 
     public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
-        barf("ap_ppppp");
+        barf("Cannot apply 5 closures to " + this);
         return null;
     }
 
     public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
-        barf("ap_pppppp");
+        barf("Cannot apply 6 closures to " + this);
         return null;
     }
 }
