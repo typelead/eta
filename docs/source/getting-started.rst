@@ -23,7 +23,7 @@ Eta Version: 0.0.9b1
 
 Etlas Version: 1.0.2.0
 
-1. Make sure `JDK 7 or above <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_ are installed on your system and ``java`` is on the ``$PATH``. 
+1. Make sure `JDK 7 or above <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_ are installed on your system and ``java`` is on the ``$PATH``.
 
 2. Download the Etlas binary for your platform.
 
@@ -83,7 +83,7 @@ Fedora
 .. code-block:: console
 
    $ sudo dnf install zlib-devel ncurses-devel bzip2-devel
-  
+
 OpenSUSE
 """"""""
 
@@ -418,12 +418,8 @@ programs. If you are already familiar with haskell you can jump straight to the
 connect with Java libraries.
 
 If you are new to Haskell and pure functional programming in general, we suggest
-the following resources to get you started with the basics:
-
-- `Learn You a Haskell in a Nutshell <https://gist.github.com/mikehaertl/3258427>`_
-- `Functional Programming By Example <http://caiorss.github.io/Functional-Programming>`_
-- `Learn You a Haskell <http://learnyouahaskell.com>`_
-- `Real World Haskell <http://book.realworldhaskell.org/read/>`_
+you to head over to `Tour of Eta <https://tour.eta-lang.org>`_. Check the
+`Eta Blog <https://blog.eta-lang.org>`_ for more tutorials and updates.
 
 For tutorials & examples, see the following:
 
@@ -434,8 +430,14 @@ For tutorials & examples, see the following:
 - `Kafka Client <https://github.com/haskell-works/eta-kafka-client>`_
 - `Kafka Conduit <https://github.com/haskell-works/eta-kafka-conduit>`_
 - `Repository of Eta Examples <https://github.com/typelead/eta-examples>`_
+- `Android Example in Eta <https://brianmckenna.org/blog/eta_android>`_
+- `AWS Lambda Functions with Eta <https://mattops.io/aws-lambda-functions-with-eta/>`_
+- `Eta Playground by Filippo Vitale <https://github.com/filippovitale/eta-playground/>`_
+- `Integrate Eta into your Scala Projects <https://blog.eta-lang.org/integrating-eta-into-your-scala-projects-a8d494a2c5b0>`_
+- `Basic Dependent Typing in Eta <https://github.com/typelead/eta-examples/tree/master/4-matrix>`_
+- `Haskell Servant in Eta <https://github.com/rahulmutt/eta-servant-example>`_
 
-For a list of the currently supported packages, see:
+For a list of the currently supported Haskell Packages, see:
 
 - `Eta Hackage <https://github.com/typelead/eta-hackage>`_
 
