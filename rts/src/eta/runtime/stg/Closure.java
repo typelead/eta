@@ -16,15 +16,8 @@ public abstract class Closure implements Serializable {
     public Closure getEvaluated() { return null; }
 
     public Closure evaluate(StgContext context) {
-        Closure eval = getEvaluated();
-        if (eval == null) {
-            if (Thread.interrupted()) {
-                context.myCapability.idleLoop(false);
-            }
-            return enter(context);
-        } else {
-            return eval;
-        }
+        barf("Cannot evaluate " + this);
+        return null;
     }
 
     /* Applications */
