@@ -58,47 +58,47 @@ public abstract class Closure implements Serializable {
         return null;
     }
 
-    public Closure applyP(StgContext context, Closure p) {
+    public Closure apply1(StgContext context, Closure p) {
         barf("Cannot apply a closure to " + this);
         return null;
     }
 
-    public Closure applyPV(StgContext context, Closure p) {
+    public Closure apply1V(StgContext context, Closure p) {
         barf("Cannot apply a closure and realWorld# to " + this);
         return null;
     }
 
-    public Closure applyPP(StgContext context, Closure p1, Closure p2) {
+    public Closure apply2(StgContext context, Closure p1, Closure p2) {
         barf("Cannot apply 2 closures to " + this);
         return null;
     }
 
-    public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
+    public Closure apply2V(StgContext context, Closure p1, Closure p2) {
         barf("Cannot apply 2 closures and realWorld# to " + this);
         return null;
     }
 
-    public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
+    public Closure apply3(StgContext context, Closure p1, Closure p2, Closure p3) {
         barf("Cannot apply 3 closures to " + this);
         return null;
     }
 
-    public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
+    public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
         barf("Cannot apply 3 closures and realWorld# to " + this);
         return null;
     }
 
-    public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
+    public Closure apply4(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
         barf("Cannot apply 4 closures to " + this);
         return null;
     }
 
-    public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
+    public Closure apply5(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
         barf("Cannot apply 5 closures to " + this);
         return null;
     }
 
-    public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
+    public Closure apply6(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
         barf("Cannot apply 6 closures to " + this);
         return null;
     }

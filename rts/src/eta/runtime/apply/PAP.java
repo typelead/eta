@@ -115,7 +115,7 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyP(StgContext context, Closure p) {
+    public Closure apply1(StgContext context, Closure p) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -129,7 +129,7 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPV(StgContext context, Closure p) {
+    public Closure apply1V(StgContext context, Closure p) {
         AbstractArgumentStack stack =
             AbstractArgumentStack.Builder
             .from(argStack)
@@ -146,14 +146,14 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPP(StgContext context, Closure p1, Closure p2) {
+    public Closure apply2(StgContext context, Closure p1, Closure p2) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyP(context, p2);
+                return apply(context, builder.build()).apply1(context, p2);
             case 2:
                 return apply(context, builder.addC(p2).build());
             default:
@@ -162,14 +162,14 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
+    public Closure apply2V(StgContext context, Closure p1, Closure p2) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyPV(context, p2);
+                return apply(context, builder.build()).apply1V(context, p2);
             case 2:
                 return apply(context, builder.addC(p2).build()).applyV(context);
             case 3:
@@ -180,16 +180,16 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
+    public Closure apply3(StgContext context, Closure p1, Closure p2, Closure p3) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyPP(context, p2, p3);
+                return apply(context, builder.build()).apply2(context, p2, p3);
             case 2:
-                return apply(context, builder.addC(p2).build()).applyP(context, p3);
+                return apply(context, builder.addC(p2).build()).apply1(context, p3);
             case 3:
                 return apply(context, builder.addC(p2).addC(p3).build());
             default:
@@ -198,16 +198,16 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
+    public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyPPV(context, p2, p3);
+                return apply(context, builder.build()).apply2V(context, p2, p3);
             case 2:
-                return apply(context, builder.addC(p2).build()).applyPV(context, p3);
+                return apply(context, builder.addC(p2).build()).apply1V(context, p3);
             case 3:
                 return apply(context, builder.addC(p2).addC(p3).build()).applyV(context);
             case 4:
@@ -218,18 +218,18 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
+    public Closure apply4(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyPPP(context, p2, p3, p4);
+                return apply(context, builder.build()).apply3(context, p2, p3, p4);
             case 2:
-                return apply(context, builder.addC(p2).build()).applyPP(context, p3, p4);
+                return apply(context, builder.addC(p2).build()).apply2(context, p3, p4);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).applyP(context, p4);
+                return apply(context, builder.addC(p2).addC(p3).build()).apply1(context, p4);
             case 4:
                 return apply(context, builder.addC(p2).addC(p3).addC(p4).build());
             default:
@@ -238,20 +238,20 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
+    public Closure apply5(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyPPPP(context, p2, p3, p4, p5);
+                return apply(context, builder.build()).apply4(context, p2, p3, p4, p5);
             case 2:
-                return apply(context, builder.addC(p2).build()).applyPPP(context, p3, p4, p5);
+                return apply(context, builder.addC(p2).build()).apply3(context, p3, p4, p5);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).applyPP(context, p4, p5);
+                return apply(context, builder.addC(p2).addC(p3).build()).apply2(context, p4, p5);
             case 4:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).build()).applyP(context, p5);
+                return apply(context, builder.addC(p2).addC(p3).addC(p4).build()).apply1(context, p5);
             case 5:
                 return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).build());
             default:
@@ -260,22 +260,22 @@ public class PAP extends Value {
     }
 
     @Override
-    public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
+    public Closure apply6(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
         AbstractArgumentStack.Builder builder =
             AbstractArgumentStack.Builder
             .from(argStack)
             .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).applyPPPPP(context, p2, p3, p4, p5, p6);
+                return apply(context, builder.build()).apply5(context, p2, p3, p4, p5, p6);
             case 2:
-                return apply(context, builder.addC(p2).build()).applyPPPP(context, p3, p4, p5, p6);
+                return apply(context, builder.addC(p2).build()).apply4(context, p3, p4, p5, p6);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).applyPPP(context, p4, p5, p6);
+                return apply(context, builder.addC(p2).addC(p3).build()).apply3(context, p4, p5, p6);
             case 4:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).build()).applyPP(context, p5, p6);
+                return apply(context, builder.addC(p2).addC(p3).addC(p4).build()).apply2(context, p5, p6);
             case 5:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).build()).applyP(context, p6);
+                return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).build()).apply1(context, p6);
             case 6:
                 return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).addC(p6).build());
             default:

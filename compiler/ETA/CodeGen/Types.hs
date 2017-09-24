@@ -7,9 +7,12 @@ module ETA.CodeGen.Types
    NonVoid(..),
    LambdaFormInfo(..),
    StandardFormInfo(..),
-   ArgDescr(..),
+   ArgFVDescr(..),
    RecFlag(..),
    Sequel(..),
+   FunRecInfo,
+   FunRecMap,
+   CallPattern,
    SelfLoopInfo,
    CgBindings,
    RecIndexes,
@@ -19,6 +22,7 @@ module ETA.CodeGen.Types
    mkRepLocDirect,
    mkLocDirect,
    mkLocLocal,
+   mkLocArg,
    getNonVoidFts,
    enterMethod,
    evaluateMethod,
@@ -67,6 +71,7 @@ data CgLoc = LocLocal Bool FieldType !Int
            | LocField Bool FieldType Text Text
            | LocDirect Bool FieldType Code
            | LocLne Label Int CgLoc [CgLoc]
+           | LocMask FieldType CgLoc
 
 instance Outputable CgLoc where
   ppr (LocLocal isClosure ft int)
@@ -87,6 +92,19 @@ mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 mkLocLocal :: Bool -> FieldType -> Int -> CgLoc
 mkLocLocal isClosure ft int = LocLocal isClosure ft int
 
+mkLocArg :: NonVoid Id -> Int -> CgLoc
+mkLocArg (NonVoid id) n
+  | argFt /= ft = LocMask ft locLocal
+  | otherwise   = locLocal
+  where rep       = idPrimRep id
+        isClosure = isGcPtrRep rep
+        argFt     = argRepFt $ toArgRep rep
+        ft        = primRepFieldType rep
+        locLocal  = mkLocLocal isClosure argFt n
+        maybeConv
+          | argFt /= ft = gconv argFt ft
+          | otherwise   = mempty
+
 mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
   where isClosure = isGcPtrRep rep
@@ -98,6 +116,7 @@ locArgRep loc = case loc of
   LocStatic {} -> P
   LocField isClosure ft _ _ -> locRep isClosure ft
   LocDirect isClosure ft _ -> locRep isClosure ft
+  LocMask ft _ -> locRep (ft == closureType) ft
   LocLne {} -> panic "logArgRep: Cannot pass a let-no-escape binding!"
   where locRep isClosure ft = if isClosure then P else ftArgRep ft
 
@@ -106,10 +125,12 @@ locFt (LocLocal _ ft _) = ft
 locFt (LocStatic ft _ _) = ft
 locFt (LocField _ ft _ _) = ft
 locFt (LocDirect _ ft _) = ft
+locFt (LocMask ft _) = ft
 locFt loc = pprPanic "locFt" $ ppr loc
 
 storeLoc :: CgLoc -> Code -> Code
 storeLoc (LocLocal _ ft n) code = code <> gstore ft n
+storeLoc (LocMask _ loc) code = storeLoc loc code
 storeLoc loc _ = pprPanic "storeLoc" $ ppr loc
 
 storeDefault :: CgLoc -> Code
@@ -117,6 +138,7 @@ storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
 
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
+loadLoc (LocMask ft loc) = loadLoc loc <> gconv (locFt loc) ft
 loadLoc (LocStatic ft modClass clName) =
   invokestatic $ mkMethodRef modClass (closure clName) [] (Just ft)
 loadLoc (LocField _ ft clClass fieldName) =
@@ -181,8 +203,6 @@ mkStaticLoc dflags id _ = LocStatic closureType modClass clName
 --   UnaryRep (TyConApp tc _) -> Just $ tyConClass tc
 --   _ -> Nothing
 
-type Liveness = [Bool]   -- One Bool per word; True  <=> non-ptr or dead
-
 data StandardFormInfo
   = NonStandardThunk
         -- The usual case: not of the standard forms
@@ -206,19 +226,16 @@ data StandardFormInfo
         -- in the RTS to save space.
         RepArity                -- Arity, n
 
-data ArgDescr
-  = ArgSpec             -- Fits one of the standard patterns
-        !Int            -- RTS type identifier ARG_P, ARG_N, ...
+type CallPattern = (RepArity, [FieldType])
 
-  | ArgGen              -- General case
-        Liveness        -- Details about the arguments
+data ArgFVDescr = ArgFVSpec (Maybe CallPattern)
 
 data LambdaFormInfo
   = LFReEntrant {
       lfTopLevelFlag :: TopLevelFlag,
       lfArity :: !RepArity,
       lfNoFreeVars :: !Bool,
-      lfArgDescriptor :: ArgDescr }
+      lfArgDescriptor :: ArgFVDescr }
 
   | LFThunk {
       lfTopLevelFlag :: TopLevelFlag,
@@ -299,3 +316,9 @@ evaluateMethod cgLoc
 
 type RecIndexes = [(Int, Id)]
 type RecInfo = (Text, Text, Text, FieldRef, Code, RecIndexes)
+
+type FunRecInfo = (Int, FunRecMap)
+type FunRecMap  = VarEnv (Int, [FieldType])
+
+instance Outputable FieldType where
+  ppr = str . show

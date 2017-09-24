@@ -422,7 +422,7 @@ forkClosureBody body =
     setBindings oldBindings
     return result
 
-withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () -> CodeGen MethodDef
+withMethod :: [AccessFlag] -> Text -> [FieldType] -> ReturnType -> CodeGen () -> CodeGen ()
 withMethod accessFlags name fts rt body = do
   oldCode        <- getMethodCode
   oldNextLocal   <- peekNextLocal
@@ -445,7 +445,6 @@ withMethod accessFlags name fts rt body = do
   setNextLabel oldNextLabel
   setScopedBindings scopedBindings
   setAllowScoping scoping
-  return methodDef
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =

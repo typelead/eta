@@ -17,4 +17,9 @@ public class ApD extends UpdatableThunk {
     public Closure thunkEnter(StgContext context) {
         return p1.applyD(context, p2);
     }
+
+    @Override
+    public void clear() {
+        this.p1 = null;
+    }
 }

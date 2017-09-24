@@ -211,7 +211,7 @@ public class STM {
                 } else {
                     e_ = Exception.toEtaException(tso, e);
                 }
-                Closure ret = handler.applyPV(context, e_.exception);
+                Closure ret = handler.apply1V(context, e_.exception);
                 tso.resetStack();
                 return ret;
             } else {

@@ -15,6 +15,12 @@ public class Ap2Upd extends UpdatableThunk {
 
     @Override
     public Closure thunkEnter(StgContext context) {
-        return p1.applyP(context, p2);
+        return p1.apply1(context, p2);
+    }
+
+    @Override
+    public void clear() {
+        this.p1 = null;
+        this.p2 = null;
     }
 }
