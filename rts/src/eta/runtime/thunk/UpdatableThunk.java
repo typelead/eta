@@ -9,9 +9,12 @@ import eta.runtime.exception.EtaAsyncException;
 public abstract class UpdatableThunk extends Thunk {
 
     @Override
-    public Closure enter(StgContext context) {
+    public Closure evaluate(StgContext context) {
         do {
             if (indirectee == null) {
+                if (Thread.interrupted()) {
+                    context.myCapability.idleLoop(false);
+                }
                 UpdateInfo ui = context.pushUpdate(this);
                 Closure result = null;
                 try {

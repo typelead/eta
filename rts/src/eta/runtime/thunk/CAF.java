@@ -19,9 +19,12 @@ public class CAF extends Thunk {
     }
 
     @Override
-    public Closure enter(StgContext context) {
+    public Closure evaluate(StgContext context) {
         do {
             if (indirectee == null) {
+                if (Thread.interrupted()) {
+                    context.myCapability.idleLoop(false);
+                }
                 TSO tso = context.currentTSO;
                 boolean claimed = claim(tso);
                 if (!claimed) continue;

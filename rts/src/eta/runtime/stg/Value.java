@@ -12,4 +12,7 @@ public abstract class Value extends Closure {
 
     @Override
     public final Closure getEvaluated() { return this; }
+
+    @Override
+    public final Closure evaluate(StgContext context) { return this; }
 }
