@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings, NamedFieldPuns, MultiWayIf #-}
 module ETA.CodeGen.Bind where
 
 import ETA.StgSyn.StgSyn
@@ -20,21 +20,21 @@ import ETA.CodeGen.Layout
 import ETA.CodeGen.Closure
 import ETA.Debug
 import ETA.Util
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isNothing)
 import ETA.Main.Constants
 import Codec.JVM
 import Control.Monad (forM, foldM, when)
 import Data.Text (unpack)
 import Data.Foldable (fold)
 import Data.Monoid ((<>))
-import Data.List(delete, find, foldl')
+import Data.List(delete, find, foldl', sortOn)
 
 closureCodeBody
   :: Bool                  -- whether this is a top-level binding
   -> Id                    -- the closure's name
   -> LambdaFormInfo        -- Lots of information about this closure
   -> [NonVoid Id]          -- incoming args to the closure
-  -> Maybe (Int, VarEnv Int)     -- Recursive ids for functions
+  -> Maybe FunRecInfo      -- Recursive ids for functions
   -> Int                   -- arity, including void args
   -> StgExpr               -- body
   -> [NonVoid Id]          -- the closure's free vars
@@ -47,7 +47,11 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
   traceCg $ str $ "creating new closure..." ++ unpack (idNameText dflags id)
   setClosureClass $ idNameText dflags id
   thisClass <- getClass
-  (fvLocs', initCodes, recIndexes) <- generateFVs fvs recIds
+  let hasStdLayout
+        | all (== P) $ map (idArgRep . unsafeStripNV) fvs
+        = lfStandardForm arity (length fvs)
+        | otherwise = False
+  (fvLocs', initCodes, recIndexes) <- generateFVs (not hasStdLayout) fvs recIds
   let fvLocs = if binderIsFV
                then (NonVoid id, mkLocLocal True thisFt 0) : fvLocs'
                else fvLocs'
@@ -63,49 +67,115 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                           )
                           (mempty, 1) initCodes
 
+  setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
   if arity == 0 then
-    thunkCode lfInfo fvLocs body
+    -- TODO: Implement eager blackholing
+    withMethod [Public] "thunkEnter" [contextType] (ret closureType) $ do
+      mapM_ bindFV fvLocs
+      cgExpr body
   else do
-    setSuperClass stgFun
-    defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
-                 $  iconst jint (fromIntegral arity)
-                 <> greturn jint
+    let mCallPattern = lfCallPattern lfInfo
+    when (not hasStdLayout) $
+      defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
+                  $  iconst jint (fromIntegral arity)
+                  <> greturn jint
     modClass <- getModClass
-    _ <- withMethod [Public] "enter" [contextType] (ret closureType) $
-      case mFunRecIds of
-        Just (n, funRecIds)
-          | Just target <- lookupVarEnv funRecIds id -> do
-            emit $ aconst_null closureType
-                <> loadContext
-                <> iconst jint (fromIntegral target)
-                <> invokestatic (mkMethodRef modClass (mkRecBindingMethodName n)
-                                    [closureType, contextType, jint] (ret closureType))
-                <> greturn closureType
-        _ -> do
-          argLocs <- mapM newIdLoc args
-          emit $ mkCallEntry argLocs
-          bindArgs $ zip args argLocs
-          label <- newLabel
-          emit $ startLabel label
-          withSelfLoop (id, label, argLocs) $ do
-            mapM_ bindFV fvLocs
-            cgExpr body
-    return ()
+    if | Just (arity, fts) <- mCallPattern -> do
+         withMethod [Public] "enter" [contextType] (ret closureType) $ do
+           argLocs <- mapM newIdLoc args
+           emit $ gload thisFt 0
+               <> loadContext
+               <> mkCallEntry False False argLocs
+               <> mkApFast arity (contextType:fts)
+               <> greturn closureType
+         withMethod [Public] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
+           let argLocs = argLocsFrom 2 args
+           case mFunRecIds of
+             Just (n, funRecIds)
+               | Just (target, loadCode, allArgFts) <-
+                   funRecIdsInfo True argLocs id funRecIds ->
+               emit $ aconst_null closureType
+                   <> loadContext
+                   <> iconst jint (fromIntegral target)
+                   <> loadCode
+                   <> invokestatic (mkMethodRef modClass (mkRecBindingMethodName n)
+                                       ([closureType, contextType, jint] ++ allArgFts)
+                                       (ret closureType))
+                   <> greturn closureType
+             _ -> do
+               bindArgs $ zip args argLocs
+               label <- newLabel
+               emit $ startLabel label
+               withSelfLoop (id, label, argLocs) $ do
+                 mapM_ bindFV fvLocs
+                 cgExpr body
+       | otherwise ->
+         withMethod [Public] "enter" [contextType] (ret closureType) $
+           case mFunRecIds of
+             Just (n, funRecIds)
+               | let argLocs = argLocsFrom 2 args
+               , Just (target, loadCode, allArgFts) <-
+                   funRecIdsInfo False argLocs id funRecIds ->
+               emit $ aconst_null closureType
+                   <> loadContext
+                   <> iconst jint (fromIntegral target)
+                   <> loadCode
+                   <> invokestatic (mkMethodRef modClass (mkRecBindingMethodName n)
+                                       ([closureType, contextType, jint] ++ allArgFts)
+                                       (ret closureType))
+                   <> greturn closureType
+             _ -> do
+               argLocs <- mapM newIdLoc args
+               emit $ mkCallEntry True True argLocs
+               bindArgs $ zip args argLocs
+               label <- newLabel
+               emit $ startLabel label
+               withSelfLoop (id, label, argLocs) $ do
+                 mapM_ bindFV fvLocs
+                 cgExpr body
+
   superClass <- getSuperClass
   -- Generate constructor
   defineMethod . mkMethodDef thisClass [Public] "<init>" fts void $
-      gload thisFt 0
-   <> invokespecial (mkMethodRef superClass "<init>" [] void)
-   <> codes
-   <> vreturn
+    if hasStdLayout
+    then ( gload thisFt 0
+        <> fold (map (uncurry $ flip gload)
+                 $ zip (scanl (\n ft -> n + fieldSize ft) 1 fts) fts)
+        <> invokespecial (mkMethodRef superClass "<init>" fts void)
+        <> vreturn)
+    else ( gload thisFt 0
+        <> invokespecial (mkMethodRef superClass "<init>" [] void)
+        <> codes
+        <> vreturn)
   return (fts, recIndexes)
 
-generateFVs :: [NonVoid Id] -> [Id]
+funRecIdsInfo :: Bool -> [CgLoc] -> Id -> FunRecMap -> Maybe (Int, Code, [FieldType])
+funRecIdsInfo stdLayout argLocs funId funRecInfoMap
+  | Just (target, _argFts) <- lookupVarEnv funRecInfoMap funId
+  , let indexedArgFts = sortOn fst $ varEnvElts funRecInfoMap
+        (code, fts) = foldl' (\(!code, !allFts) (i, fts) ->
+                          (code <>
+                           (if i == target
+                            then (if stdLayout
+                                  then foldMap loadLoc argLocs
+                                  else mkCallEntry True False argLocs)
+                            else foldMap defaultValue fts)
+                          ,allFts ++ fts))
+                        (mempty, []) indexedArgFts
+  = Just (target, code, fts)
+  | otherwise = Nothing
+
+funRecIdsArgFts :: FunRecMap -> [FieldType]
+funRecIdsArgFts = concatMap snd . sortOn fst . varEnvElts
+
+generateFVs :: Bool -> [NonVoid Id] -> [Id]
             -> CodeGen ( [(NonVoid Id, CgLoc)]
                        , [(Int, FieldType, Code)]
                        , RecIndexes )
-generateFVs fvs recIds = do
+generateFVs defineFields fvs recIds = do
   clClass <- getClass
+  when (not (null fvs)) $
+    traceCg $ str "Free variables " <+> hcat (punctuate comma (map ppr fvs))
   result <- forM (indexList nonVoidFvs) $ \(i, (nvId@(NonVoid id), rep)) -> do
     let ft = expectJust "generateFVs" $ primRepFieldType_maybe rep
         fieldName = constrField i
@@ -113,7 +183,7 @@ generateFVs fvs recIds = do
         recIndex = if id `elem` recIds then Just (i, id) else Nothing
     -- TODO: Find a better way to handle recursion
     --       that allows us to use 'final' in most cases.
-    defineField $ mkFieldDef [Public] fieldName ft
+    when defineFields $ defineField $ mkFieldDef [Public] fieldName ft
     return ((nvId, LocField (isGcPtrRep rep) ft clClass fieldName), (i, ft, code), recIndex)
   let (fvLocs, initCodes, recIndexes) = unzip3 result
   return (fvLocs, initCodes, catMaybes recIndexes)
@@ -121,26 +191,8 @@ generateFVs fvs recIds = do
         addFt nvFV@(NonVoid fv) = (nvFV, rep)
           where rep = idPrimRep fv
 
--- TODO: Implement eager blackholing
-thunkCode :: LambdaFormInfo -> [(NonVoid Id, CgLoc)] -> StgExpr -> CodeGen ()
-thunkCode lfInfo fvs body =
-  setupUpdate lfInfo $ do
-    mapM_ bindFV fvs
-    cgExpr body
-
 bindFV :: (NonVoid Id, CgLoc) -> CodeGen ()
 bindFV (id, cgLoc)= rebindId id cgLoc
-
-setupUpdate :: LambdaFormInfo -> CodeGen () -> CodeGen ()
-setupUpdate lfInfo body
-  -- ASSERT lfInfo is of form LFThunk
-  | not (lfUpdatable lfInfo) = withEnterMethod stgThunk
-  | lfStaticThunk lfInfo     = withEnterMethod stgIndStatic
-  | otherwise                = withEnterMethod stgInd
-  where withEnterMethod thunkType = do
-          setSuperClass thunkType
-          _ <- withMethod [Public] "thunkEnter" [contextType] (ret closureType) body
-          return ()
 
 cgBind :: StgBinding -> CodeGen ()
 cgBind (StgNonRec name rhs) = do

@@ -6,6 +6,7 @@ import ETA.BasicTypes.Id
 import ETA.StgSyn.StgSyn
 import ETA.Types.Type
 import ETA.Types.TyCon
+import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Panic
 import ETA.BasicTypes.Name
@@ -14,6 +15,7 @@ import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
 import Codec.JVM
 import Data.Monoid((<>))
+import Data.Text (Text)
 import qualified Data.Text as T
 
 mkClosureLFInfo :: Id           -- The binder
@@ -24,16 +26,15 @@ mkClosureLFInfo :: Id           -- The binder
                 -> LambdaFormInfo
 mkClosureLFInfo binder topLevelFlag freeVars updateFlag args
   | null args =
-        mkLFThunk (idType binder) topLevelFlag
-          (map unsafeStripNV freeVars) updateFlag
+        mkLFThunk (idType binder) topLevelFlag nvFreeVars updateFlag
   | otherwise =
-        mkLFReEntrant topLevelFlag (map unsafeStripNV freeVars)
-          args (mkArgDescr args)
+        mkLFReEntrant topLevelFlag nvFreeVars args (mkArgDescr args)
+  where nvFreeVars = map unsafeStripNV freeVars
 
 mkConLFInfo :: DataCon -> LambdaFormInfo
 mkConLFInfo = LFCon
 
-mkLFReEntrant :: TopLevelFlag -> [Id] -> [Id] -> ArgDescr -> LambdaFormInfo
+mkLFReEntrant :: TopLevelFlag -> [Id] -> [Id] -> ArgFVDescr -> LambdaFormInfo
 mkLFReEntrant topLevelFlag freeVars args argDescriptor =
   LFReEntrant {
     lfTopLevelFlag = topLevelFlag,
@@ -51,6 +52,39 @@ mkLFThunk thunkType topLevelFlag freeVars updateFlag
       lfStandardFormInfo = NonStandardThunk,
       lfMaybeFunction = maybeFunction thunkType }
 
+lfStandardForm :: Int -> Int -> Bool
+lfStandardForm args fvs
+  | args == 0 = fvs <= 6
+  | args <= 4 = fvs <= 4
+  | args <= 6 = fvs <= 1
+  | otherwise = False
+
+lfClass :: Bool -> Int -> Int -> LambdaFormInfo -> Text
+lfClass hasStdLayout _arity fvs (LFThunk {..}) =
+  "eta/runtime/thunk/" <> thunkBase <> thunkExt
+  where thunkBase
+          | isTopLevel lfTopLevelFlag = "CAF"
+          | lfUpdatable               = "UpdatableThunk"
+          | otherwise                 = "SingleEntryThunk"
+        thunkExt
+          | isTopLevel lfTopLevelFlag = mempty
+          | hasStdLayout = T.pack (show fvs)
+          | otherwise = mempty
+lfClass hasStdLayout args fvs (LFReEntrant {..})
+  = stgFun <> funExt
+  where funExt
+          | hasStdLayout = T.pack (show args) <> fvsText
+          | otherwise = mempty
+        fvsText
+          | fvs > 0   = "_" <> T.pack (show fvs)
+          | otherwise = mempty
+lfClass _ _ _ _ = panic "lfClass: Not a Function or a Thunk"
+
+lfCallPattern :: LambdaFormInfo -> Maybe CallPattern
+lfCallPattern (LFReEntrant {..})
+  | ArgFVSpec afts <- lfArgDescriptor = afts
+lfCallPattern _ = Nothing
+
 maybeFunction :: Type -> Bool
 maybeFunction ty
   | UnaryRep rep <- repType ty
@@ -60,16 +94,16 @@ maybeFunction ty
   | otherwise
   = True
 
-mkArgDescr :: [Id] -> ArgDescr
-mkArgDescr args
-  = let argReps = filter isNonV (map idArgRep args)
-           -- Getting rid of voids eases matching of standard patterns
-    in case stdPattern argReps of
-         Just specId -> ArgSpec specId
-         Nothing     -> ArgGen []
+mkArgDescr :: [Id] -> ArgFVDescr
+mkArgDescr args = ArgFVSpec callPattern
+  where callPattern = stdPattern argReps
+        argReps = map idArgRep args
 
-stdPattern :: [ArgRep] -> Maybe Int
-stdPattern _ = Nothing
+stdPattern :: [ArgRep] -> Maybe CallPattern
+stdPattern argReps
+  | length argReps == arity = Just (arity, fts)
+  | otherwise = Nothing
+  where (arity, fts) = slowCallPattern argReps
 
 mkLFImported :: Id -> LambdaFormInfo
 mkLFImported id
@@ -81,7 +115,7 @@ mkLFImported id
       lfTopLevelFlag = TopLevel,
       lfArity = arity,
       lfNoFreeVars = True,
-      lfArgDescriptor = panic "arg_descr" }
+      lfArgDescriptor = panic "mkLFImported: lfArgDescriptor" }
   | otherwise
   = mkLFArgument id
   where arity = idRepArity id
@@ -102,7 +136,7 @@ data CallMethod
   | JumpToIt Label [CgLoc] (Maybe (Int, CgLoc))
   | ReturnIt
   | SlowCall
-  | DirectEntry Code RepArity
+  | DirectEntry CgLoc RepArity
 
 getCallMethod
   :: DynFlags
@@ -134,7 +168,7 @@ getCallMethod dflags _ id _ nArgs vArgs _ (Just (selfLoopId, label, cgLocs)) _
 getCallMethod _ _ _ (LFReEntrant _ arity _ _) n _ cgLoc _ _
   | n == 0         = ReturnIt        -- No args at all
   | n < arity      = SlowCall        -- Not enough args
-  | otherwise      = DirectEntry (enterMethod cgLoc) arity
+  | otherwise      = DirectEntry cgLoc arity
 
 getCallMethod _ _ _ LFUnLifted _ _ _ _ _
   = ReturnIt
@@ -155,7 +189,7 @@ getCallMethod _ _ _
   | SelectorThunk {} <- stdFormInfo
   = EnterIt
   | otherwise        -- Jump direct to code for single-entry thunks
-  = DirectEntry (enterMethod cgLoc) 0
+  = DirectEntry cgLoc 0
 
 getCallMethod _ _ _ (LFUnknown True) _ _ _ _ _
   = SlowCall -- might be a function

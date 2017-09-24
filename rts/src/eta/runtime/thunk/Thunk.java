@@ -31,11 +31,6 @@ public abstract class Thunk extends Closure {
     }
 
     @Override
-    public Closure enter(StgContext context) {
-        return thunkEnter(context);
-    }
-
-    @Override
     public final Closure getEvaluated() {
         if (indirectee instanceof Value) return indirectee;
         else return null;
@@ -118,77 +113,77 @@ public abstract class Thunk extends Closure {
 
     @Override
     public Closure applyV(StgContext context) {
-        return ((indirectee == null)? enter(context):indirectee).applyV(context);
+        return ((indirectee != null)? indirectee:enter(context)).applyV(context);
     }
 
     @Override
     public Closure applyN(StgContext context, int n) {
-        return ((indirectee == null)? enter(context):indirectee).applyN(context, n);
+        return ((indirectee != null)? indirectee:enter(context)).applyN(context, n);
     }
 
     @Override
     public Closure applyL(StgContext context, long l) {
-        return ((indirectee == null)? enter(context):indirectee).applyL(context, l);
+        return ((indirectee != null)? indirectee:enter(context)).applyL(context, l);
     }
 
     @Override
     public Closure applyF(StgContext context, float f) {
-        return ((indirectee == null)? enter(context):indirectee).applyF(context, f);
+        return ((indirectee != null)? indirectee:enter(context)).applyF(context, f);
     }
 
     @Override
     public Closure applyD(StgContext context, double d) {
-        return ((indirectee == null)? enter(context):indirectee).applyD(context, d);
+        return ((indirectee != null)? indirectee:enter(context)).applyD(context, d);
     }
 
     @Override
     public Closure applyO(StgContext context, Object o) {
-        return ((indirectee == null)? enter(context):indirectee).applyO(context, o);
+        return ((indirectee != null)? indirectee:enter(context)).applyO(context, o);
     }
 
     @Override
-    public Closure applyP(StgContext context, Closure p) {
-        return ((indirectee == null)? enter(context):indirectee).applyP(context, p);
+    public Closure apply1(StgContext context, Closure p) {
+        return ((indirectee != null)? indirectee:enter(context)).apply1(context, p);
     }
 
     @Override
-    public Closure applyPV(StgContext context, Closure p) {
-        return ((indirectee == null)? enter(context):indirectee).applyPV(context, p);
+    public Closure apply1V(StgContext context, Closure p) {
+        return ((indirectee != null)? indirectee:enter(context)).apply1V(context, p);
     }
 
     @Override
-    public Closure applyPP(StgContext context, Closure p1, Closure p2) {
-        return ((indirectee == null)? enter(context):indirectee).applyPP(context, p1, p2);
+    public Closure apply2(StgContext context, Closure p1, Closure p2) {
+        return ((indirectee != null)? indirectee:enter(context)).apply2(context, p1, p2);
     }
 
     @Override
-    public Closure applyPPV(StgContext context, Closure p1, Closure p2) {
-        return ((indirectee == null)? enter(context):indirectee).applyPPV(context, p1, p2);
+    public Closure apply2V(StgContext context, Closure p1, Closure p2) {
+        return ((indirectee != null)? indirectee:enter(context)).apply2V(context, p1, p2);
     }
 
     @Override
-    public Closure applyPPP(StgContext context, Closure p1, Closure p2, Closure p3) {
-        return ((indirectee == null)? enter(context):indirectee).applyPPP(context, p1, p2, p3);
+    public Closure apply3(StgContext context, Closure p1, Closure p2, Closure p3) {
+        return ((indirectee != null)? indirectee:enter(context)).apply3(context, p1, p2, p3);
     }
 
     @Override
-    public Closure applyPPPV(StgContext context, Closure p1, Closure p2, Closure p3) {
-        return ((indirectee == null)? enter(context):indirectee).applyPPPV(context, p1, p2, p3);
+    public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
+        return ((indirectee != null)? indirectee:enter(context)).apply3V(context, p1, p2, p3);
     }
 
     @Override
-    public Closure applyPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
-        return ((indirectee == null)? enter(context):indirectee).applyPPPP(context, p1, p2, p3, p4);
+    public Closure apply4(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
+        return ((indirectee != null)? indirectee:enter(context)).apply4(context, p1, p2, p3, p4);
     }
 
     @Override
-    public Closure applyPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
-        return ((indirectee == null)? enter(context):indirectee).applyPPPPP(context, p1, p2, p3, p4, p5);
+    public Closure apply5(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
+        return ((indirectee != null)? indirectee:enter(context)).apply5(context, p1, p2, p3, p4, p5);
     }
 
     @Override
-    public Closure applyPPPPPP(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
-        return ((indirectee == null)? enter(context):indirectee).applyPPPPPP(context, p1, p2, p3, p4, p5, p6);
+    public Closure apply6(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
+        return ((indirectee != null)? indirectee:enter(context)).apply6(context, p1, p2, p3, p4, p5, p6);
     }
 
     /** Locking Mechanism **/

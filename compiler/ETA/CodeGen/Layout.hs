@@ -5,9 +5,9 @@ import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.Main.DynFlags
 import ETA.StgSyn.StgSyn
-import ETA.BasicTypes.Id
 import Codec.JVM
 import ETA.Util
+import ETA.BasicTypes.Var
 import ETA.CodeGen.Monad
 import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
@@ -38,21 +38,30 @@ multiAssign locs codes = fold $ zipWith storeLoc locs codes
 
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
-mkCallEntry :: [CgLoc] -> Code
-mkCallEntry cgLocs = go mempty cgLocs 2 1 1 1 1 1
+mkCallEntry :: Bool -> Bool -> [CgLoc] -> Code
+mkCallEntry convert store cgLocs = go mempty cgLocs 2 1 1 1 1 1
   where go !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
-            N -> loadRec (context i <> gconv jint ft) r (i + 1) l f d o
+            N -> loadRec (context i <> maybeConvInt) r (i + 1) l f d o
             L -> loadRec (context l) r i (l + 1) f d o
             F -> loadRec (context f) r i l (f + 1) d o
             D -> loadRec (context d) r i l f (d + 1) o
-            O -> loadRec (context o <> gconv jobject ft) r i l f d (o + 1)
+            O -> loadRec (context o <> maybeConvObj) r i l f d (o + 1)
             _ -> error "contextLoad: V"
           where context = contextLoad argRep
                 argRep  = locArgRep cgLoc
                 ft      = locFt cgLoc
-                loadRec nextCode = go (code <> storeLoc cgLoc nextCode) cgLocs
+                maybeStoreLoc nextCode
+                  | store     = storeLoc cgLoc nextCode
+                  | otherwise = nextCode
+                loadRec nextCode = go (code <> maybeStoreLoc nextCode) cgLocs
+                maybeConvInt
+                  | convert   = gconv jint ft
+                  | otherwise = mempty
+                maybeConvObj
+                  | convert   = gconv jobject ft
+                  | otherwise = mempty
         go !code _ _ _ _ _ _ _ = code
 
 mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
@@ -130,7 +139,7 @@ slowCall :: DynFlags -> CgLoc -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 slowCall dflags fun argFtCodes
     -- TODO: Implement optimization
     --       effectively an evaluation test + fast call
-  |  n > arity && optLevel dflags >= 2 = slowCode
+  | n > arity && optLevel dflags >= 2 = slowCode
   | otherwise = slowCode
   where n            = length argFtCodes
         ft           = locFt fun
@@ -139,9 +148,16 @@ slowCall dflags fun argFtCodes
         slowCode     = directCall' True True (mkApFast arity (contextType:fts)) arity
                                    ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directCall slow entryCode arity argFtCodes =
-  directCall' slow False entryCode arity argFtCodes
+directCall :: Bool -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall slow fun arity argFtCodes
+  | arity' == arity =
+    directCall' True True (mkApFast arity' (contextType:fts)) arity'
+      ((P, Just ft, Just code):argFtCodes)
+  | otherwise = directCall' slow False entryCode arity argFtCodes
+  where (arity', fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
+        code         = loadLoc fun
+        ft           = locFt fun
+        entryCode    = enterMethod fun
 
 directCall' :: Bool -> Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' slow directLoad entryCode arity args =
@@ -213,3 +229,10 @@ withContinuation code = do
   emit $ case sequel of
            AssignTo cgLocs -> mkReturnEntry cgLocs
            _               -> greturn closureType
+
+argLocsFrom :: Int -> [NonVoid Id] -> [CgLoc]
+argLocsFrom startLocal args =
+  reverse $ snd $ foldl' (\(!n, rest) arg ->
+                            let argLoc = mkLocArg arg n
+                            in (n + fieldSize (locFt argLoc), argLoc : rest))
+                         (startLocal, []) args

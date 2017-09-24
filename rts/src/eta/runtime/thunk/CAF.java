@@ -65,9 +65,7 @@ public class CAF extends Thunk {
 
     @Override
     public void clear() {
-        if (!Thunk.shouldKeepCAFs()) {
-            super.clear();
-        }
+        /* TODO: This assume that CAFs carry no free variables */
     }
 
     /* Initializing CAFs */

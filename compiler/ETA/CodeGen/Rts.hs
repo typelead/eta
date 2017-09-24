@@ -122,11 +122,23 @@ checkForStackFramesMethod =
   invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
 
 mkApFast :: Int -> [FieldType] -> Code
-mkApFast arity rawFts = invokevirtual (mkMethodRef stgClosure applyFun rawFts (Just closureType))
+mkApFast arity rawFts =
+  invokevirtual (mkMethodRef stgClosure applyFun rawFts (Just closureType))
   where fts = drop 1 rawFts
-        applyFun
+        applyFun = mkApFun arity fts
+
+mkApFun :: Int -> [FieldType] -> Text
+mkApFun arity fts = applyFun
+  where applyFun
           | arity == 0 && null fts = "evaluate"
-          | otherwise              = T.concat ["apply", foldMap toLetter fts, withV]
+          | otherwise              = T.concat ["apply", applyExt, withV]
+          where (ps, rest) = span (== "P") letters
+                showPs
+                  | len > 0   = T.pack (show len)
+                  | otherwise = mempty
+                  where len = length ps
+                letters    = map toLetter fts
+                applyExt   = showPs <> mconcat rest
         withV
           | arity /= length fts    = "V"
           | otherwise              = ""

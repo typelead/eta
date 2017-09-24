@@ -30,7 +30,7 @@ import Codec.JVM
 import System.FilePath (equalFilePath)
 import Data.Monoid((<>))
 import Data.Foldable(fold)
-import Data.Maybe(mapMaybe,maybe)
+import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
@@ -142,10 +142,10 @@ cgIdApp funId args = do
       traceCg (str "cgIdApp: SlowCall")
       argFtCodes <- getRepFtCodes args
       withContinuation $ slowCall dflags funLoc argFtCodes
-    DirectEntry entryCode arity -> do
+    DirectEntry nodeLoc arity -> do
       traceCg (str "cgIdApp: DirectEntry")
       argFtCodes <- getRepFtCodes args
-      withContinuation $ directCall False entryCode arity argFtCodes
+      withContinuation $ directCall False nodeLoc arity argFtCodes
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       codes <- getNonVoidArgCodes args

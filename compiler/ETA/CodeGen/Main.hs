@@ -101,31 +101,37 @@ cgTopBinding dflags (StgRec pairs) = do
           n <- newRecursiveInitNumber
           traceCg $ str "Found mutually recursive group [" <+> int n <+> str "]:"
                 <+> ppr (map fst funRecBinds)
-          let genCode = do
-                _ <- withMethod [Public, Static] (mkRecBindingMethodName n)
-                  [closureType, contextType, jint] (ret closureType) $ do
+          let indexedFunRecBinds = zip [0..] funRecBinds
+              funRecIdsMap =
+                mkVarEnv $
+                  map
+                  (\(i, (funId, StgRhsClosure _ _ _ _ _ args' body)) ->
+                    (funId,
+                      (i, map (primRepFieldType . idPrimRep . unsafeStripNV)
+                        $ nonVoidIds args')))
+                  indexedFunRecBinds
+              allArgFts = funRecIdsArgFts funRecIdsMap
+              genCode =
+                withMethod [Public, Static] (mkRecBindingMethodName n)
+                  ([closureType, contextType, jint] ++ allArgFts) (ret closureType) $ do
                   label <- newLabel
                   let targetLoc = mkLocLocal False jint 2
-                  ((_,loadCode):loadCodes, codes')
-                    <- fmap unzip $ forM (zip [0..] funRecBinds) $
-                        \(target, (funId, StgRhsClosure _ _ _ _ _ args' body)) -> do
-                        let args = nonVoidIds args'
-                        argLocs <- mapM newIdLoc args
-                        emit $ fold (map storeDefault argLocs)
-                        let code = fmap (target,) $ forkLneBody $ do
-                              traceCg $ str "Generating (mutually recursive)"
-                                    <+> ppr funId
-                              bindArgs $ zip args argLocs
-                              cgExpr body
-                        addScopedBinding $
-                          lneIdInfo funId label target targetLoc argLocs
-                        return ((target, mkCallEntry argLocs), code)
+                  setNextLocal 3
+                  codes' <- forM (zip [0..] funRecBinds) $
+                    \(target, (funId, StgRhsClosure _ _ _ _ _ args' body)) -> do
+                    let args = nonVoidIds args'
+                    argLocs <- mapM newIdLoc args
+                    let code = fmap (target,) $ forkLneBody $ do
+                          traceCg $ str "Generating (mutually recursive)"
+                                <+> ppr funId
+                          bindArgs $ zip args argLocs
+                          cgExpr body
+                    addScopedBinding $
+                      lneIdInfo funId label target targetLoc argLocs
+                    return code
                   ((_,code):codes) <- sequence codes'
-                  emit $ intSwitch (loadLoc targetLoc) loadCodes (Just loadCode)
-                      <> startLabel label
+                  emit $ startLabel label
                       <> intSwitch (loadLoc targetLoc) codes (Just code)
-                return ()
-          let funRecIdsMap = mkVarEnv $ zip (map fst funRecBinds) [0..]
           return (Just (n, funRecIdsMap), genCode)
 
         findFunCycles :: [(Id, StgRhs)] -> [(Id, StgRhs)]
@@ -157,7 +163,7 @@ cgTopBinding dflags (StgRec pairs) = do
                         go (StgLet _ expr) = go expr
                         go _ = []
 
-cgTopRhs :: DynFlags -> RecFlag -> [Id] -> Maybe (Int, VarEnv Int) -> Id -> StgRhs -> (CgIdInfo, CodeGen (Maybe RecInfo))
+cgTopRhs :: DynFlags -> RecFlag -> [Id] -> Maybe FunRecInfo -> Id -> StgRhs -> (CgIdInfo, CodeGen (Maybe RecInfo))
 cgTopRhs dflags _ conRecIds _ binder (StgRhsCon _ con args) =
   cgTopRhsCon dflags binder conRecIds con args
 
@@ -168,7 +174,7 @@ cgTopRhs dflags recflag _ mFunRecIds binder
 
 cgTopRhsClosure :: DynFlags
                 -> RecFlag              -- member of a recursive group?
-                -> Maybe (Int, VarEnv Int)
+                -> Maybe FunRecInfo
                 -> Id
                 -> StgBinderInfo
                 -> UpdateFlag

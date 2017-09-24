@@ -171,7 +171,7 @@ public class Exception {
                          to point to a Raise(exception) thunk. */
                 tso.updateInfoStack.raiseExceptionAfter(context.myCapability, tso, new Raise(exception), ui);
             }
-            result = handler.applyPV(context, exception);
+            result = handler.apply1V(context, exception);
             if (unmask) {
                 unmaskAsyncExceptionsRet(context, tso);
             }

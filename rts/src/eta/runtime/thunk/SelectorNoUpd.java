@@ -4,9 +4,9 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.DataCon;
 import eta.runtime.stg.StgContext;
 
-public abstract class SelectorNoUpd extends Thunk {
+public abstract class SelectorNoUpd extends SingleEntryThunk {
     protected final int index;
-    protected final Closure p;
+    protected Closure p;
 
     public SelectorNoUpd(int i, Closure p) {
         super();
@@ -18,6 +18,12 @@ public abstract class SelectorNoUpd extends Thunk {
     public final Closure thunkEnter(StgContext context) {
         return selectEnter(context, (DataCon) p.evaluate(context));
     }
+
+    @Override
+    public void clear() {
+        this.p = null;
+    }
+
 
     public abstract Closure selectEnter(StgContext context, DataCon result);
 }

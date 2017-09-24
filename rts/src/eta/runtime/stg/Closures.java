@@ -215,7 +215,7 @@ public class Closures {
         StgContext context = StgContext.acquire();
         String result;
         try {
-            showException.applyP(context, exception);
+            showException.apply1(context, exception);
             result = (String) context.O(1);
         } catch (Exception e) {
             result = "Exception was thrown in rendering exception of type "

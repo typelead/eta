@@ -18,6 +18,13 @@ public class Ap3Upd extends UpdatableThunk {
 
     @Override
     public Closure thunkEnter(StgContext context) {
-        return p1.applyPP(context, p2, p3);
+        return p1.apply2(context, p2, p3);
+    }
+
+    @Override
+    public void clear() {
+        this.p1 = null;
+        this.p2 = null;
+        this.p3 = null;
     }
 }

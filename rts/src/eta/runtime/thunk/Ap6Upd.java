@@ -24,6 +24,16 @@ public class Ap6Upd extends UpdatableThunk {
 
     @Override
     public Closure thunkEnter(StgContext context) {
-        return p1.applyPPPPP(context, p2, p3, p4, p5, p6);
+        return p1.apply5(context, p2, p3, p4, p5, p6);
+    }
+
+    @Override
+    public void clear() {
+        this.p1 = null;
+        this.p2 = null;
+        this.p3 = null;
+        this.p4 = null;
+        this.p5 = null;
+        this.p6 = null;
     }
 }
