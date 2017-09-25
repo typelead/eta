@@ -54,24 +54,22 @@ public class RuntimeLogging {
     }
 
     public static void debugScheduler(String msg, Object... args) {
-        debugGeneric(Runtime.debugScheduler(), "Scheduler", msg, args);
+        debugGeneric("Scheduler", msg, args);
     }
 
     public static void debugSTM(String msg, Object... args) {
-        debugGeneric(Runtime.debugSTM(), "STM", msg, args);
+        debugGeneric("STM", msg, args);
     }
 
     public static void debugMemoryManager(String msg, Object... args) {
-        debugGeneric(Runtime.debugMemoryManager(), "MemoryManager", msg, args);
+        debugGeneric("MemoryManager", msg, args);
     }
 
-    public static void debugGeneric(boolean shouldDebug, String type, String msg, Object... args) {
-        if (shouldDebug) {
-            Capability cap = Capability.getLocal();
-            String worker = cap.worker? "[Worker]" : "";
-            debugBelch("[Eta-RTS](Capability" + worker + " %d){" + type + "}: " + msg,
-                       cap.id, args);
-        }
+    public static void debugGeneric(String type, String msg, Object... args) {
+        Capability cap = Capability.getLocal();
+        String worker = cap.worker? "[Worker]" : "";
+        debugBelch("[Eta-RTS](Capability" + worker + " %d){" + type + "}: " + msg,
+                    cap.id, args);
     }
 
     public static void printClosure(Closure closure) {

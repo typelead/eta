@@ -10,6 +10,7 @@ import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.UpdateInfo;
 
+import eta.runtime.Runtime;
 import eta.runtime.message.MessageBlackHole;
 import eta.runtime.message.MessageThrowTo;
 import static eta.runtime.RuntimeLogging.barf;
@@ -230,6 +231,7 @@ public class Exception {
     }
 
     public static boolean throwToMsg(Capability cap, MessageThrowTo msg, boolean wakeupSource) {
+        boolean debug = Runtime.debugScheduler();
         TSO target = msg.target;
         do {
             assert target != null;
@@ -237,10 +239,14 @@ public class Exception {
                 || target.whatNext == ThreadKilled) {
                 return true;
             }
-            debugScheduler("Throwing asynchronous exception from TSO %d to TSO %d.", msg.source.id, msg.target.id);
+            if (debug) {
+                debugScheduler("Throwing asynchronous exception from TSO %d to TSO %d.", msg.source.id, msg.target.id);
+            }
             Capability targetCap = target.cap;
             if (target.cap != cap) {
-                debugScheduler("Sending a ThrowTo message to Capability[%d].", targetCap.id);
+                if (debug) {
+                    debugScheduler("Sending a ThrowTo message to Capability[%d].", targetCap.id);
+                }
                 cap.sendMessage(targetCap, msg);
                 return false;
             }

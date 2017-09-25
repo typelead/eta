@@ -50,7 +50,9 @@ public class Parallel {
                 retry = true;
             }
         } while(retry);
-        debugScheduler("No Sparks stolen.");
+        if (Runtime.debugScheduler()) {
+            debugScheduler("No Sparks stolen.");
+        }
         return null;
     }
 
