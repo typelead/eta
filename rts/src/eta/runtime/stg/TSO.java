@@ -28,7 +28,6 @@ public final class TSO extends BlackHole {
     public static AtomicInteger maxThreadId = new AtomicInteger();
     public int id = maxThreadId.getAndIncrement();
     public Closure closure;
-    public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
     public Queue<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
     public WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
@@ -41,6 +40,11 @@ public final class TSO extends BlackHole {
     public StackTraceElement[] stackTrace;
     public Throwable cause;
     public AtomicBoolean lock = new AtomicBoolean(false);
+
+    /* Temporary per execution */
+    public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
+    public Stack<Closure> contStack = new Stack<Closure>();
+    public Closure currentCont;
 
     /* TSO Flags */
     public static final int TSO_LOCKED = 2;
@@ -271,5 +275,7 @@ public final class TSO extends BlackHole {
 
     public final void reset() {
         updateInfoStack.clear();
+        currentCont = null;
+        contStack.clear();
     }
 }

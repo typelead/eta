@@ -1,18 +1,16 @@
 package eta.runtime.concurrent;
 
-import java.util.Deque;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Value;
 
 public class MVar extends Value {
-    public AtomicBoolean lock              = new AtomicBoolean(false);
-    public BlockingQueue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
+    public Queue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
+    public Queue<TSO> listeners    = new ConcurrentLinkedQueue<TSO>();
 
     public MVar(Closure value) {
         if (value != null) {
@@ -38,5 +36,13 @@ public class MVar extends Value {
 
     public Closure tryRead() {
         return valQueue.peek();
+    }
+
+    public void addListener(TSO tso) {
+        listeners.offer(tso);
+    }
+
+    public TSO grabListener() {
+        return listeners.poll();
     }
 }
