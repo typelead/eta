@@ -17,9 +17,8 @@ public class Interpreter {
     }
 
     /* TODO: Inline this */
-    public static Closure newBCO(StgContext context, ByteArray instrs, ByteArray literals, Array ptrs, int arity, ByteArray bitmap) {
+    public static BCO newBCO(StgContext context, ByteArray instrs, ByteArray literals, Array ptrs, int arity, ByteArray bitmap) {
         /* TODO: Copy the bitmap */
-        context.O(1, new BCO(instrs, literals, ptrs, arity, null));
-        return null;
+        return new BCO(instrs, literals, ptrs, arity, null);
     }
 }

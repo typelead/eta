@@ -230,6 +230,33 @@ withContinuation code = do
            AssignTo cgLocs -> mkReturnEntry cgLocs
            _               -> greturn closureType
 
+withPrimContinuation :: Type -> (Maybe FieldType -> Code) -> CodeGen ()
+withPrimContinuation resultType retCode = do
+  sequel <- getSequel
+  emit (code sequel)
+  where code sequel
+          | numResults == 0
+          = retCode Nothing
+         <> (case sequel of
+               AssignTo _ -> mempty
+               _ -> mkReturnExit [] <> greturn closureType)
+          | numResults == 1
+          , let resFt   = primRepFieldType (head reps)
+                resCode = retCode (Just resFt)
+          = case sequel of
+              AssignTo cgLocs
+                | let cgLoc = head cgLocs -> storeLoc cgLoc resCode
+              _ -> mkReturnExit
+                     [mkLocDirect (isClosureFt resFt) (resFt, resCode)]
+                <> greturn closureType
+          | otherwise
+          = retCode (Just closureType)
+         <> (case sequel of
+               AssignTo cgLocs -> mkReturnEntry cgLocs
+               _               -> greturn closureType)
+        reps = getUnboxedResultReps resultType
+        numResults = length reps
+
 argLocsFrom :: Int -> [NonVoid Id] -> [CgLoc]
 argLocsFrom startLocal args =
   reverse $ snd $ foldl' (\(!n, rest) arg ->
