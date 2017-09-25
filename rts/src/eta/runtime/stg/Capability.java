@@ -272,7 +272,9 @@ public final class Capability {
 
     public final void createSparkThread() {
         TSO tso = Runtime.createIOThread(Closures.runSparks);
-        debugScheduler("Creating a Spark TSO[%d].", tso.id);
+        if (Runtime.debugScheduler()) {
+            debugScheduler("Creating a Spark TSO[%d].", tso.id);
+        }
         appendToRunQueue(tso);
     }
 

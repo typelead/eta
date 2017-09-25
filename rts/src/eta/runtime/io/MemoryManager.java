@@ -103,6 +103,7 @@ public class MemoryManager {
         int     newRegionSize;
         long    newAddress;
         boolean attemptedGC = false;
+        boolean debug = Runtime.debugMemoryManager();
         NavigableMap<Integer, Queue<Long>> freeBlocks;
         NavigableMap<Long, Integer> freeAddresses;
         NavigableMap<Long, Integer> allocatedBlocks;
@@ -152,8 +153,10 @@ public class MemoryManager {
                 newRegionSize = regionSize - n;
                 newAddress    = address + n;
                 allocatedBlocks.put(address, n);
-                debugMemoryManager("Allocate Block @ " + address + " " +
-                                   renderSize(n) + ".");
+                if (debug) {
+                    debugMemoryManager("Allocate Block @ " + address + " " +
+                                       renderSize(n) + ".");
+                }
                 if (newRegionSize > 0) {
                     insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
                                     sizeLocksLock, newRegionSize, newAddress);
@@ -181,8 +184,10 @@ public class MemoryManager {
                                 /* Restart the top-level loop to see if any free blocks
                                    have been allocated. */
                                 attemptedGC = true;
-                                debugMemoryManager("MemoryManager Space Full." +
-                                                   " GC and Retry.");
+                                if (debug) {
+                                    debugMemoryManager("MemoryManager Space Full." +
+                                                       " GC and Retry.");
+                                }
                                 continue main;
                             } else {
                                 throw new OutOfMemoryError("The Eta MemoryManager is unable to allocate more off-heap memory.");
@@ -206,12 +211,14 @@ public class MemoryManager {
                             newRegionSize = blockSize - n;
                             newAddress    = address + n;
                             blocks.add(allocateAnonymousBuffer(blockSize, direct));
-                            debugMemoryManager("Create " + renderIsDirect(direct) +
-                                               " Block " + renderSize(blockSize) +
-                                               ".");
                             allocatedBlocks.put(address, n);
-                            debugMemoryManager("Allocated Block @ " + address + " " +
-                                               renderSize(n) + ".");
+                            if (debug) {
+                                debugMemoryManager("Create " + renderIsDirect(direct) +
+                                                   " Block " + renderSize(blockSize) +
+                                                   ".");
+                                debugMemoryManager("Allocated Block @ " + address + " " +
+                                                   renderSize(n) + ".");
+                            }
                             insertFreeBlock(freeBlocks, freeAddresses, sizeLocks,
                                             sizeLocksLock, newRegionSize, newAddress);
                         } finally {
@@ -246,8 +253,10 @@ public class MemoryManager {
                  needed. Currently, if your application suddenly allocates a lot
                  of native memory, it will stay allocated for the lifetime of
                  the application. */
-        debugMemoryManager("Free Block @ " + newAddress + " " +
-                           renderSize(newRegionSize) + ".");
+        if (Runtime.debugMemoryManager()) {
+            debugMemoryManager("Free Block @ " + newAddress + " " +
+                               renderSize(newRegionSize) + ".");
+        }
         /* TODO: Do we need to ensure atomicity of this entire function? */
         SizeLock newSizeLock
             = getSizeLock(sizeLocks, sizeLocksLock, newRegionSize);
@@ -298,6 +307,7 @@ public class MemoryManager {
         AtomicBoolean sizeLocksLock;
         Integer sizeInt = allocatedDirectBlocks.get(address);
         boolean direct;
+        boolean debug = Runtime.debugMemoryManager();
         if (sizeInt == null) {
             sizeInt = allocatedHeapBlocks.get(address);
             if (sizeInt == null) {
@@ -307,8 +317,10 @@ public class MemoryManager {
                 allocatedBlocks = allocatedHeapBlocks;
                 /* Check if `address` was already freed. */
                 if (allocatedBlocks.remove(address) == null) {
-                    debugMemoryManager("Freed @ " + address + " " +
-                                       renderSize(sizeInt) + ".");
+                    if (debug) {
+                        debugMemoryManager("Freed @ " + address + " " +
+                                           renderSize(sizeInt) + ".");
+                    }
                     return;
                 }
                 direct = false;
@@ -317,13 +329,17 @@ public class MemoryManager {
             allocatedBlocks = allocatedDirectBlocks;
             /* Check if `address` was already freed. */
             if (allocatedBlocks.remove(address) == null) {
-                debugMemoryManager("Freed @ " + address + " " + renderSize(sizeInt) +
-                                   ".");
+                if (debug) {
+                    debugMemoryManager("Freed @ " + address + " " + renderSize(sizeInt) +
+                                       ".");
+                }
                 return;
             }
             direct = true;
         }
-        debugMemoryManager("Free @ " + address + " " + renderSize(sizeInt) + ".");
+        if (debug) {
+            debugMemoryManager("Free @ " + address + " " + renderSize(sizeInt) + ".");
+        }
         int size = sizeInt.intValue();
         if (direct) {
             freeAddresses   = freeDirectAddresses;
@@ -604,12 +620,13 @@ public class MemoryManager {
 
        Throws an exception  if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
+        boolean debug = Runtime.debugMemoryManager();
         if (address == 0)
             return emptyBuffer;
         Map.Entry<Long, Integer>
             lowerEntry = findAllocatedAddress(address);
         if (lowerEntry == null) {
-            if(Runtime.debugMemoryManager()) {
+            if(debug) {
                 dumpMemoryManager();
             }
             throw new IllegalStateException("The block that corresponds to the address "+
@@ -635,7 +652,7 @@ public class MemoryManager {
             blockLock.set(false);
         }
         if (buf == null) {
-            if(Runtime.debugMemoryManager()) {
+            if(debug) {
                 dumpMemoryManager();
             }
             throw new IllegalStateException(
