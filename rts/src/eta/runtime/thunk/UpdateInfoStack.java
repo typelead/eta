@@ -43,10 +43,10 @@ public class UpdateInfoStack {
         Thunk res = null;
         UpdateInfo ui = top;
         top = top.prev;
+        res = ui.updatee;
         if (top == null) {
             bottom = null;
         } else {
-            res = ui.updatee;
             top.next = null;
         }
         ui.prev = free;
