@@ -91,7 +91,7 @@ public class Concurrent {
         return val;
     }
 
-    public static Closure putMVar(StgContext context, MVar mvar, Closure val) {
+    public static void putMVar(StgContext context, MVar mvar, Closure val) {
         Capability cap = context.myCapability;
         boolean success = mvar.tryPut(val);
         if (!success) {
@@ -108,7 +108,6 @@ public class Concurrent {
                 tso.whyBlocked = NotBlocked;
             }
         }
-        return null;
     }
 
     public static Closure tryTakeMVar(StgContext context, MVar mvar) {
@@ -117,9 +116,8 @@ public class Concurrent {
         return value;
     }
 
-    public static Closure tryPutMVar(StgContext context, MVar mvar, Closure val) {
-        context.I(1, mvar.tryPut(val)? 1 : 0);
-        return null;
+    public static int tryPutMVar(StgContext context, MVar mvar, Closure val) {
+        return mvar.tryPut(val)? 1 : 0;
     }
 
     public static Closure tryReadMVar(StgContext context, MVar mvar) {
@@ -128,15 +126,14 @@ public class Concurrent {
         return value;
     }
 
-    public static Closure fork(StgContext context, Closure closure) {
+    public static TSO fork(StgContext context, Closure closure) {
         Capability cap = context.myCapability;
         TSO currentTSO = context.currentTSO;
         TSO tso = Runtime.createIOThread(closure);
         tso.addFlags(currentTSO.andFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE));
         pushToGlobalRunQueue(tso);
         cap.idleLoop(false);
-        context.O(1, tso);
-        return null;
+        return tso;
     }
 
     /* TODO: The scheduling policy in Eta is for TSOs to get grabbed by Capabilities
@@ -147,23 +144,21 @@ public class Concurrent {
              be bound to a given thread anyways. If you put multiple threads on
              a single Capability, be warned that one of the threads may never run!
      */
-    public static Closure forkOn(StgContext context, int cpu, Closure closure) {
+    public static TSO forkOn(StgContext context, int cpu, Closure closure) {
         return fork(context, closure);
     }
 
-    public static Closure yield(StgContext context) {
+    public static void yield(StgContext context) {
         Capability cap = context.myCapability;
         TSO tso        = context.currentTSO;
         tso.whyBlocked = BlockedOnYield;
         tso.blockInfo  = null;
         cap.blockedLoop();
-        return null;
     }
 
     /* In Eta, all the threads are bound, so this always returns true. */
-    public static Closure isCurrentThreadBound(StgContext context) {
-        context.I(1, 1);
-        return null;
+    public static int isCurrentThreadBound(StgContext context) {
+        return 1;
     }
 
     public static Closure threadStatus(StgContext context, TSO tso) {
@@ -191,16 +186,13 @@ public class Concurrent {
     }
 
     /* TODO: Implement this */
-    public static Closure traceEvent(StgContext context) {
-        return null;
-    }
+    public static void traceEvent(StgContext context) {}
 
-    public static Closure labelThread(StgContext context, TSO tso, long address) {
+    public static void labelThread(StgContext context, TSO tso, long address) {
         ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
         byte[]     bytes  = new byte[buffer.remaining() - 1];
         buffer.get(bytes);
         tso.setName(new String(bytes));
-        return null;
     }
 
     /* Managing Java Futures */
@@ -292,7 +284,7 @@ public class Concurrent {
     }
     public static AtomicBoolean selectorLock = new AtomicBoolean();
 
-    public static Closure threadWaitIO(StgContext context, Channel channel, int ops) {
+    public static void threadWaitIO(StgContext context, Channel channel, int ops) {
         Capability cap = context.myCapability;
         TSO tso        = context.currentTSO;
         if (globalSelector == null) {
@@ -332,23 +324,22 @@ public class Concurrent {
         do {
             cap.blockedLoop();
         } while (selectKey.isValid());
-        return null;
     }
 
-    public static Closure waitRead(StgContext context, Object o) {
-        return threadWaitIO(context, (Channel) o, SelectionKey.OP_READ);
+    public static void waitRead(StgContext context, Object o) {
+        threadWaitIO(context, (Channel) o, SelectionKey.OP_READ);
     }
 
-    public static Closure waitWrite(StgContext context, Object o) {
-        return threadWaitIO(context, (Channel) o, SelectionKey.OP_WRITE);
+    public static void waitWrite(StgContext context, Object o) {
+        threadWaitIO(context, (Channel) o, SelectionKey.OP_WRITE);
     }
 
-    public static Closure waitConnect(StgContext context, Object o) {
-        return threadWaitIO(context, (Channel) o, SelectionKey.OP_CONNECT);
+    public static void waitConnect(StgContext context, Object o) {
+        threadWaitIO(context, (Channel) o, SelectionKey.OP_CONNECT);
     }
 
-    public static Closure waitAccept(StgContext context, Object o) {
-        return threadWaitIO(context, (Channel) o, SelectionKey.OP_ACCEPT);
+    public static void waitAccept(StgContext context, Object o) {
+        threadWaitIO(context, (Channel) o, SelectionKey.OP_ACCEPT);
     }
 
     public static void checkForReadyIO(Capability cap) {

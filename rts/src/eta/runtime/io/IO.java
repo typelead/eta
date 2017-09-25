@@ -28,7 +28,7 @@ public class IO {
         return null;
     }
 
-    public static Closure delay(StgContext context, int time) {
+    public static void delay(StgContext context, int time) {
         TSO tso = context.currentTSO;
         boolean immune = tso.suspendInterrupts(false);
         try {
@@ -38,7 +38,6 @@ public class IO {
             context.myCapability.idleLoop(false);
         }
         tso.resumeInterrupts(immune);
-        return null;
     }
 
     public static Closure atomicModifyMutVar(StgContext context, MutVar mv, Closure f) {

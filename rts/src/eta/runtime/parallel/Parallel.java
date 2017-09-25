@@ -26,9 +26,8 @@ public class Parallel {
         }
     }
 
-    public static Closure numSparks(StgContext context) {
-        context.I(1, globalSparkPoolSize());
-        return null;
+    public static int numSparks(StgContext context) {
+        return globalSparkPoolSize();
     }
 
     public static Closure findSpark(Capability cap) {

@@ -20,11 +20,10 @@ import static eta.runtime.stg.TSO.WhyBlocked.*;
 
 public class Exception {
 
-    public static Closure getMaskingState(StgContext context) {
+    public static int getMaskingState(StgContext context) {
         TSO tso = context.currentTSO;
-        context.I(1, ((tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
-                      (tso.hasFlag(TSO_INTERRUPTIBLE)? 1: 0)));
-        return null;
+        return (tso.hasFlag(TSO_BLOCKEX)? 1: 0) +
+               (tso.hasFlag(TSO_INTERRUPTIBLE)? 1: 0);
     }
 
     public static Closure maskAsyncExceptions(StgContext context, Closure io) {
@@ -98,33 +97,26 @@ public class Exception {
         return result;
     }
 
-    public static Closure killThread(StgContext context, TSO target, Closure exception) {
-        do {
-            TSO tso = context.currentTSO;
-            if (target == tso) {
-                return killMyself(context, target, exception);
-            } else {
-                Capability cap = context.myCapability;
-                MessageThrowTo msg = throwTo(cap, tso, target, exception);
-                if (msg == null) {
-                    return null;
-                } else {
-                    tso.whyBlocked = BlockedOnMsgThrowTo;
-                    tso.blockInfo = msg;
-                    msg.tryUnlock();
-                    do {
-                        cap.blockedLoop();
-                    } while (msg.isValid());
-                    return null;
-                }
+    public static void killThread(StgContext context, TSO target, Closure exception) {
+        TSO tso = context.currentTSO;
+        if (target == tso) {
+            killMyself(context, target, exception);
+        } else {
+            Capability cap = context.myCapability;
+            MessageThrowTo msg = throwTo(cap, tso, target, exception);
+            if (msg != null) {
+                tso.whyBlocked = BlockedOnMsgThrowTo;
+                tso.blockInfo = msg;
+                msg.tryUnlock();
+                do {
+                    cap.blockedLoop();
+                } while (msg.isValid());
             }
-        } while (true);
+        }
     }
 
-    public static Closure killMyself(StgContext context, TSO target, Closure exception) {
-        Capability cap = context.myCapability;
+    public static void killMyself(StgContext context, TSO target, Closure exception) {
         throwToSingleThreaded(target, exception);
-        return null;
     }
 
     public static Closure catch_(StgContext context, Closure io, Closure handler) {

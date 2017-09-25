@@ -313,3 +313,6 @@ loadStringLatin1 =
   invokestatic $ mkMethodRef memoryManager "loadStringLatin1" [jstring] (ret jlong)
 loadStringUTF8   =
   invokestatic $ mkMethodRef memoryManager "loadStringUTF8"   [jstring] (ret jlong)
+
+isClosureFt :: FieldType -> Bool
+isClosureFt ft = ft == closureType

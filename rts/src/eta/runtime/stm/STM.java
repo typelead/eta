@@ -18,9 +18,8 @@ public class STM {
     /* STM RTS primops */
     public static final Object awake = new Object();
 
-    public static Closure newTVar(StgContext context, Closure init) {
-        context.O(1, new TVar(init));
-        return null;
+    public static TVar newTVar(StgContext context, Closure init) {
+        return new TVar(init);
     }
 
     public static Closure readTVar(StgContext context, TVar tvar) {
@@ -33,18 +32,16 @@ public class STM {
         return tvar.currentValue();
     }
 
-    public static Closure writeTVar(StgContext context, TVar tvar, Closure newValue) {
-        TransactionRecord trec         = context.currentTSO.trec;
+    public static void writeTVar(StgContext context, TVar tvar, Closure newValue) {
+        TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
         trec.write(tvar, newValue);
-        return null;
     }
 
-    public static Closure check(StgContext context, Closure invariant) {
+    public static void check(StgContext context, Closure invariant) {
         TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
         trec.checkInvariant(invariant);
-        return null;
     }
 
 

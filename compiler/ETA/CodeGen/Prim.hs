@@ -67,10 +67,11 @@ cgOpApp (StgPrimOp primOp) args resType = do
         loadArgs <- getNonVoidArgCodes args
         let (_, argTypes, _, _, _) = primOpSig primOp
             fts                    = repFieldTypes argTypes
-        withContinuation $ loadContext
-                        <> fold loadArgs
-                        <> invokestatic (mkMethodRef rtsGroup rtsFunName
-                                         (contextType:fts) (ret closureType))
+        withPrimContinuation resType $ \retFt ->
+             loadContext
+          <> fold loadArgs
+          <> invokestatic (mkMethodRef rtsGroup rtsFunName
+                          (contextType:fts) retFt)
 
       -- TODO: Optimize: Remove the intermediate temp locations
       --       and allow direct code locations
@@ -99,13 +100,14 @@ cgOpApp (StgPrimOp primOp) args resType = do
         | otherwise -> panic "cgPrimOp"
         where resultInfo = getPrimOpResultInfo primOp
 
-cgOpApp (StgPrimCallOp (PrimCall label _)) args _resType = do
+cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
   argsFtCodes <- getNonVoidArgFtCodes args
   let (argFts, callArgs) = unzip argsFtCodes
-  withContinuation $ loadContext
-                  <> fold callArgs
-                  <> invokestatic (mkMethodRef clsName methodName
-                                   (contextType:argFts) (ret closureType))
+  withPrimContinuation resType $ \retFt ->
+       loadContext
+    <> fold callArgs
+    <> invokestatic (mkMethodRef clsName methodName
+                    (contextType:argFts) retFt)
   where (clsName, methodName) = labelToMethod (unpackFS label)
 
 inlinePrimCall :: String -> [(FieldType, Code)] -> Code
