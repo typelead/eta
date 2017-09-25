@@ -12,6 +12,7 @@ public class StgContext {
         myCapability = cap;
         currentTSO = t;
         argStack = new ArgumentStack();
+        t.reset();
     }
 
     public void saveStackTrace(Exception e, StackTraceElement[] ste) {

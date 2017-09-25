@@ -48,9 +48,11 @@ public class CAF extends Thunk {
                         }
                         throw e_;
                     }
+                } finally {
+                    Thunk popped = context.popUpdate();
+                    assert popped == this:
+                        "Popped " + popped + " from update stack and expected [CAF] " + this;
                 }
-                Thunk popped = context.popUpdate();
-                assert popped == this;
                 return updateCode(context, result);
             } else {
                 return blackHole(context);

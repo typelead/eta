@@ -35,9 +35,11 @@ public abstract class UpdatableThunk extends Thunk {
                         }
                         throw e_;
                     }
+                } finally {
+                    Thunk popped = context.popUpdate();
+                    assert popped == this:
+                        "Popped " + popped + " from update stack and expected [UpdatableThunk] " + this;
                 }
-                Thunk popped = context.popUpdate();
-                assert popped == this;
                 if (ui.marked) {
                     return updateCode(context, result);
                 } else {
