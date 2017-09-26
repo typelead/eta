@@ -18,7 +18,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for applyV.");
             return null;
         } else {
-            return new PAP(arity - 1, this);
+            return new PAPSlow(this, arity - 1, null);
         }
     }
 
@@ -29,7 +29,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for applyN.");
             return null;
         } else {
-            return new PAP(arity - 1, this,
+            return new PAPSlow(this, arity - 1,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(n)
@@ -44,7 +44,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for applyL.");
             return null;
         } else {
-            return new PAP(arity - 1, this,
+            return new PAPSlow(this, arity - 1,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(l)
@@ -59,7 +59,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for applyF.");
             return null;
         } else {
-            return new PAP(arity - 1, this,
+            return new PAPSlow(this, arity - 1,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(f)
@@ -74,7 +74,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for applyD.");
             return null;
         } else {
-            return new PAP(arity - 1, this,
+            return new PAPSlow(this, arity - 1,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(d)
@@ -89,7 +89,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for applyO.");
             return null;
         } else {
-            return new PAP(arity - 1, this,
+            return new PAPSlow(this, arity - 1,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .add(o)
@@ -100,15 +100,18 @@ public abstract class Function extends Value {
     @Override
     public Closure apply1(StgContext context, Closure p) {
         int arity = arity();
-        if (arity == 1) {
-            barf(this + ": Expected implementation for apply1.");
-            return null;
-        } else {
-            return new PAP(arity - 1, this,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .addC(p)
-                              .build());
+        switch (arity) {
+          case 1:
+              barf(this + ": Expected implementation for apply1.");
+              return null;
+          case 2:
+              return new PAP1_1(this, p);
+          default:
+              return new PAPSlow(this, arity - 1,
+                             AbstractArgumentStack.Builder
+                             .from(null)
+                             .addC(p)
+                             .build());
         }
     }
 
@@ -121,7 +124,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for apply1V.");
             return null;
         } else {
-            return new PAP(arity - 2, this,
+            return new PAPSlow(this, arity - 2,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .addC(p)
@@ -138,7 +141,7 @@ public abstract class Function extends Value {
             barf(this + ": Expected implementation for apply2.");
             return null;
         } else {
-            return new PAP(arity - 2, this,
+            return new PAPSlow(this, arity - 2,
                               AbstractArgumentStack.Builder
                               .from(null)
                               .addC(p1)
@@ -159,7 +162,7 @@ public abstract class Function extends Value {
                 barf(this + ": Expected implementation for apply2V.");
                 return null;
             default:
-                return new PAP(arity - 3, this,
+                return new PAPSlow(this, arity - 3,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -180,7 +183,7 @@ public abstract class Function extends Value {
                 barf(this + ": Expected implementation for apply3.");
                 return null;
             default:
-                return new PAP(arity - 3, this,
+                return new PAPSlow(this, arity - 3,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -204,7 +207,7 @@ public abstract class Function extends Value {
                 barf(this + ": Expected implementation for apply3V.");
                 return null;
             default:
-                return new PAP(arity - 4, this,
+                return new PAPSlow(this, arity - 4,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -228,7 +231,7 @@ public abstract class Function extends Value {
                 barf(this + ": Expected implementation for apply4.");
                 return null;
             default:
-                return new PAP(arity - 4, this,
+                return new PAPSlow(this, arity - 4,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -255,7 +258,7 @@ public abstract class Function extends Value {
                 barf(this + ": Expected implementation for apply5.");
                 return null;
             default:
-                return new PAP(arity - 5, this,
+                return new PAPSlow(this, arity - 5,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
@@ -285,7 +288,7 @@ public abstract class Function extends Value {
                 barf(this + ": Expected implementation for apply6.");
                 return null;
             default:
-                return new PAP(arity - 6, this,
+                return new PAPSlow(this, arity - 6,
                                   AbstractArgumentStack.Builder
                                   .from(null)
                                   .addC(p1)
