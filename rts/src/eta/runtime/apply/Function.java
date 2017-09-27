@@ -3,7 +3,7 @@ package eta.runtime.apply;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.AbstractArgumentStack;
+import eta.runtime.stg.ArgumentStack;
 
 import static eta.runtime.RuntimeLogging.barf;
 
@@ -30,10 +30,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 1,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .add(n)
-                              .build());
+                               ArgumentStack.createFrom(null, n));
         }
     }
 
@@ -45,10 +42,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 1,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .add(l)
-                              .build());
+                               ArgumentStack.createFrom(null, l));
         }
     }
 
@@ -60,10 +54,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 1,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .add(f)
-                              .build());
+                               ArgumentStack.createFrom(null, f));
         }
     }
 
@@ -75,10 +66,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 1,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .add(d)
-                              .build());
+                               ArgumentStack.createFrom(null, d));
         }
     }
 
@@ -90,10 +78,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 1,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .add(o)
-                              .build());
+                               ArgumentStack.createFrom(null, o));
         }
     }
 
@@ -108,10 +93,7 @@ public abstract class Function extends Value {
               return new PAP1_1(this, p);
           default:
               return new PAPSlow(this, arity - 1,
-                             AbstractArgumentStack.Builder
-                             .from(null)
-                             .addC(p)
-                             .build());
+                                 ArgumentStack.createFromP(null, p));
         }
     }
 
@@ -125,10 +107,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 2,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .addC(p)
-                              .build());
+                               ArgumentStack.createFromP(null, p));
         }
     }
 
@@ -142,11 +121,7 @@ public abstract class Function extends Value {
             return null;
         } else {
             return new PAPSlow(this, arity - 2,
-                              AbstractArgumentStack.Builder
-                              .from(null)
-                              .addC(p1)
-                              .addC(p2)
-                              .build());
+                               ArgumentStack.createFromP(null, p1, p2));
         }
     }
 
@@ -163,11 +138,7 @@ public abstract class Function extends Value {
                 return null;
             default:
                 return new PAPSlow(this, arity - 3,
-                                  AbstractArgumentStack.Builder
-                                  .from(null)
-                                  .addC(p1)
-                                  .addC(p2)
-                                  .build());
+                                   ArgumentStack.createFromP(null, p1, p2));
         }
     }
 
@@ -184,12 +155,7 @@ public abstract class Function extends Value {
                 return null;
             default:
                 return new PAPSlow(this, arity - 3,
-                                  AbstractArgumentStack.Builder
-                                  .from(null)
-                                  .addC(p1)
-                                  .addC(p2)
-                                  .addC(p3)
-                                  .build());
+                                   ArgumentStack.createFromP(null, p1, p2, p3));
         }
     }
 
@@ -208,12 +174,7 @@ public abstract class Function extends Value {
                 return null;
             default:
                 return new PAPSlow(this, arity - 4,
-                                  AbstractArgumentStack.Builder
-                                  .from(null)
-                                  .addC(p1)
-                                  .addC(p2)
-                                  .addC(p3)
-                                  .build());
+                                   ArgumentStack.createFromP(null, p1, p2, p3));
         }
     }
 
@@ -232,13 +193,7 @@ public abstract class Function extends Value {
                 return null;
             default:
                 return new PAPSlow(this, arity - 4,
-                                  AbstractArgumentStack.Builder
-                                  .from(null)
-                                  .addC(p1)
-                                  .addC(p2)
-                                  .addC(p3)
-                                  .addC(p4)
-                                  .build());
+                                   ArgumentStack.createFromP(null, p1, p2, p3, p4));
         }
     }
 
@@ -259,14 +214,7 @@ public abstract class Function extends Value {
                 return null;
             default:
                 return new PAPSlow(this, arity - 5,
-                                  AbstractArgumentStack.Builder
-                                  .from(null)
-                                  .addC(p1)
-                                  .addC(p2)
-                                  .addC(p3)
-                                  .addC(p4)
-                                  .addC(p5)
-                                  .build());
+                                   ArgumentStack.createFromP(null, p1, p2, p3, p4, p5));
         }
     }
 
@@ -289,15 +237,7 @@ public abstract class Function extends Value {
                 return null;
             default:
                 return new PAPSlow(this, arity - 6,
-                                  AbstractArgumentStack.Builder
-                                  .from(null)
-                                  .addC(p1)
-                                  .addC(p2)
-                                  .addC(p3)
-                                  .addC(p4)
-                                  .addC(p5)
-                                  .addC(p6)
-                                  .build());
+                                   ArgumentStack.createFromP(null, p1, p2, p3, p4, p5, p6));
         }
     }
 }

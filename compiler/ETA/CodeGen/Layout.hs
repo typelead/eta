@@ -39,7 +39,7 @@ multiAssign locs codes = fold $ zipWith storeLoc locs codes
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
 mkCallEntry :: Bool -> Bool -> [CgLoc] -> Code
-mkCallEntry convert store cgLocs = go mempty cgLocs 2 1 1 1 1 1
+mkCallEntry convert store cgLocs = go mempty cgLocs 1 1 1 1 1 1
   where go !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
@@ -64,10 +64,9 @@ mkCallEntry convert store cgLocs = go mempty cgLocs 2 1 1 1 1 1
                   | otherwise = mempty
         go !code _ _ _ _ _ _ _ = code
 
-mkCallExit :: Bool -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-mkCallExit slow args' = storeArgs mempty args' rStart 1 1 1 1 1
-  where rStart = if slow then 1 else 2
-        storeArgs !code ((argRep, _ft', code'):args) !r !i !l !f !d !o =
+mkCallExit :: [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+mkCallExit args' = storeArgs mempty args' 1 1 1 1 1 1
+  where storeArgs !code ((argRep, _ft', code'):args) !r !i !l !f !d !o =
           case argRep of
             P -> storeRec (context r) (r + 1) i l f d o
             N -> storeRec (context i) r (i + 1) l f d o
@@ -95,7 +94,7 @@ findFirstR = go []
 mkReturnEntry :: [CgLoc] -> Code
 mkReturnEntry cgLocs' =
      maybe (pop closureType) (flip storeLoc mempty) mR1
-  <> loadVals mempty cgLocs'' 2 1 1 1 1 1
+  <> loadVals mempty cgLocs'' 1 1 1 1 1 1
   where (mR1, cgLocs'') = findFirstR cgLocs'
         loadVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
@@ -116,7 +115,7 @@ mkReturnEntry cgLocs' =
 -- This method assumes that the bytecode after this code expects a closure at the
 -- top of the stack
 mkReturnExit :: [CgLoc] -> Code
-mkReturnExit cgLocs' = storeVals mempty cgLocs'' 2 1 1 1 1 1
+mkReturnExit cgLocs' = storeVals mempty cgLocs'' 1 1 1 1 1 1
                     <> maybe (aconst_null closureType) loadLoc mR1
   where (mR1, cgLocs'') = findFirstR cgLocs'
         storeVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
@@ -176,7 +175,7 @@ directCall' slow directLoad entryCode arity args =
         (node, loadArgs)
           | directLoad = (fromMaybe mempty . third $ head callArgs,
                           loadContext <> fold (catMaybes $ map third realCallArgs))
-          | otherwise  = (mempty, mkCallExit slow callArgs)
+          | otherwise  = (mempty, mkCallExit callArgs)
         applyCalls = genApplyCalls restArgs
         applyCode
           | null applyCalls = mempty

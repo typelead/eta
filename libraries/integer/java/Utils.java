@@ -210,8 +210,8 @@ public class Utils {
         long m = (e == 0) ?
             (bits & 0xfffffffffffffL) << 1 :
             (bits & 0xfffffffffffffL) | 0x10000000000000L;
-        context.I(1, e - 1075);
-        context.O(1, BigInteger.valueOf(s * m));
+        context.I1 = e - 1075;
+        context.O1 = BigInteger.valueOf(s * m);
         return null;
     }
 

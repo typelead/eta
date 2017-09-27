@@ -13,7 +13,7 @@ public class SelectorFNoUpd extends SelectorNoUpd {
 
     @Override
     public Closure selectEnter(StgContext context, DataCon result) {
-        context.F(1, result.getF(index));
+        context.F1 = result.getF(index);
         return null;
     }
 }

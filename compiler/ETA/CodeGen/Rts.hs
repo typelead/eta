@@ -97,10 +97,26 @@ storeR, loadR, storeI, loadI, storeL, loadL, storeF, loadF, storeD, loadD,
 (storeD, loadD) = contextLoadStore "D" jdouble
 (storeO, loadO) = contextLoadStore "O" jobject
 
+fieldStoreR, fieldLoadR, fieldStoreI, fieldLoadI, fieldStoreL, fieldLoadL, fieldStoreF, fieldLoadF, fieldStoreD, fieldLoadD,
+ fieldStoreO, fieldLoadO :: Int -> Code
+
+(fieldStoreR, fieldLoadR) = contextLoadStoreField "R" closureType
+(fieldStoreI, fieldLoadI) = contextLoadStoreField "I" jint
+(fieldStoreL, fieldLoadL) = contextLoadStoreField "L" jlong
+(fieldStoreF, fieldLoadF) = contextLoadStoreField "F" jfloat
+(fieldStoreD, fieldLoadD) = contextLoadStoreField "D" jdouble
+(fieldStoreO, fieldLoadO) = contextLoadStoreField "O" jobject
+
 contextLoadStore :: Text -> FieldType -> (Code, Code)
 contextLoadStore name ft =
   ( invokevirtual $ mkMethodRef stgContext name [jint, ft] void
   , invokevirtual $ mkMethodRef stgContext name [jint] (ret ft))
+
+contextLoadStoreField :: Text -> FieldType -> (Int -> Code, Int -> Code)
+contextLoadStoreField name ft =
+  ( \n -> putfield (fieldRef n)
+  , \n -> getfield (fieldRef n))
+  where fieldRef n = mkFieldRef stgContext (name <> T.pack (show n)) ft
 
 loadContext :: Code
 loadContext = gload contextType 1

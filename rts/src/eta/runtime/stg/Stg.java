@@ -24,7 +24,7 @@ public class Stg {
         w.lock();
         if (w.isDead()) {
             w.unlock();
-            context.I(1, 0);
+            context.I1 = 0;
             return null;
         } else {
             w.die();
@@ -32,10 +32,10 @@ public class Stg {
             w.runJavaFinalizers();
             Closure finalizer = w.finalizer;
             if (finalizer == null) {
-                context.I(1, 0);
+                context.I1 = 0;
                 return null;
             } else {
-                context.I(1, 1);
+                context.I1 = 1;
                 return finalizer;
             }
         }
@@ -47,10 +47,10 @@ public class Stg {
         }
         w.unlock();
         if (w.isDead()) {
-            context.I(1, 0);
+            context.I1 = 0;
             return null;
         } else {
-            context.I(1, 1);
+            context.I1 = 1;
             return w.getValue();
         }
     }
