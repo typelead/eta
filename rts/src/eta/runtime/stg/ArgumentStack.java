@@ -1,109 +1,242 @@
 package eta.runtime.stg;
 
-import cern.colt.list.AbstractDoubleList;
-import cern.colt.list.DoubleArrayList;
-import cern.colt.list.AbstractFloatList;
-import cern.colt.list.FloatArrayList;
-import cern.colt.list.AbstractIntList;
-import cern.colt.list.IntArrayList;
-import cern.colt.list.AbstractLongList;
-import cern.colt.list.LongArrayList;
-import cern.colt.list.AbstractList;
-import cern.colt.list.ObjectArrayList;
+import java.util.Arrays;
 
-import eta.runtime.apply.PAP;
+public class ArgumentStack implements Cloneable {
+    public static final int NONE = 0;
+    public static final int P_FLAG = 1;
+    public static final int O_FLAG = 2;
+    public static final int I_FLAG = 4;
+    public static final int L_FLAG = 8;
+    public static final int F_FLAG = 16;
+    public static final int D_FLAG = 32;
+    public Closure[] closures;
+    public Object[] objects;
+    public int[] ints;
+    public long[] longs;
+    public float[] floats;
+    public double[] doubles;
+    public byte typeFlag;
 
-public class ArgumentStack extends AbstractArgumentStack {
-    public ObjectArrayList objects;
-    public IntArrayList ints;
-    public LongArrayList longs;
-    public FloatArrayList floats;
-    public DoubleArrayList doubles;
+    private ArgumentStack() {}
 
-    public ArgumentStack() {
-        super(7);
+    public ArgumentStack copy() {
+        try {
+            return (ArgumentStack) clone();
+        } catch (CloneNotSupportedException cne) {
+            return null;
+        }
     }
 
-    public ArgumentStack(int closureSize) {
-        super(closureSize);
+    public static ArgumentStack createFrom(ArgumentStack from, int n) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 1;
+        int[] oldInts = to.ints;
+        if (oldInts != null) {
+            len += oldInts.length;
+        }
+        int[] newInts = new int[len];
+        if (oldInts != null) {
+            System.arraycopy(oldInts, 0, newInts, 0, len - 1);
+        }
+        newInts[len - 1] = n;
+        to.ints = newInts;
+        to.typeFlag |= I_FLAG;
+        return to;
     }
 
-    public ArgumentStack(final ObjectArrayList closures,
-                         final ObjectArrayList objects,
-                         final IntArrayList ints,
-                         final LongArrayList longs,
-                         final FloatArrayList floats,
-                         final DoubleArrayList doubles) {
-        super(closures);
-        this.objects = objects;
-        this.ints = ints;
-        this.longs = longs;
-        this.floats = floats;
-        this.doubles = doubles;
+    public static ArgumentStack createFrom(ArgumentStack from, long l) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 1;
+        long[] oldLongs = to.longs;
+        if (oldLongs != null) {
+            len += oldLongs.length;
+        }
+        long[] newLongs = new long[len];
+        if (oldLongs != null) {
+            System.arraycopy(oldLongs, 0, newLongs, 0, len - 1);
+        }
+        newLongs[len - 1] = l;
+        to.longs = newLongs;
+        to.typeFlag |= L_FLAG;
+        return to;
     }
 
-    @Override
+    public static ArgumentStack createFrom(ArgumentStack from, float f) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 1;
+        float[] oldFloats = to.floats;
+        if (oldFloats != null) {
+            len += oldFloats.length;
+        }
+        float[] newFloats = new float[len];
+        if (oldFloats != null) {
+            System.arraycopy(oldFloats, 0, newFloats, 0, len - 1);
+        }
+        newFloats[len - 1] = f;
+        to.floats = newFloats;
+        to.typeFlag |= F_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFrom(ArgumentStack from, double d) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 1;
+        double[] oldDoubles = to.doubles;
+        if (oldDoubles != null) {
+            len += oldDoubles.length;
+        }
+        double[] newDoubles = new double[len];
+        if (oldDoubles != null) {
+            System.arraycopy(oldDoubles, 0, newDoubles, 0, len - 1);
+        }
+        newDoubles[len - 1] = d;
+        to.doubles = newDoubles;
+        to.typeFlag |= D_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFrom(ArgumentStack from, Object o) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 1;
+        Object[] oldObjects = to.objects;
+        if (oldObjects != null) {
+            len += oldObjects.length;
+        }
+        Object[] newObjects = new Object[len];
+        if (oldObjects != null) {
+            System.arraycopy(oldObjects, 0, newObjects, 0, len - 1);
+        }
+        newObjects[len - 1] = o;
+        to.objects = newObjects;
+        to.typeFlag |= O_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFromP(ArgumentStack from, Closure closure) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 1;
+        Closure[] oldClosures = to.closures;
+        if (oldClosures != null) {
+            len += oldClosures.length;
+        }
+        Closure[] newClosures = new Closure[len];
+        if (oldClosures != null) {
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+        }
+        newClosures[len - 1] = closure;
+        to.closures = newClosures;
+        to.typeFlag |= P_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFromP(ArgumentStack from, Closure p1, Closure p2) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 2;
+        Closure[] oldClosures = to.closures;
+        if (oldClosures != null) {
+            len += oldClosures.length;
+        }
+        Closure[] newClosures = new Closure[len];
+        if (oldClosures != null) {
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+        }
+        newClosures[len - 2] = p1;
+        newClosures[len - 1] = p2;
+        to.closures = newClosures;
+        to.typeFlag |= P_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFromP(ArgumentStack from, Closure p1, Closure p2, Closure p3) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 3;
+        Closure[] oldClosures = to.closures;
+        if (oldClosures != null) {
+            len += oldClosures.length;
+        }
+        Closure[] newClosures = new Closure[len];
+        if (oldClosures != null) {
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+        }
+        newClosures[len - 3] = p1;
+        newClosures[len - 2] = p2;
+        newClosures[len - 1] = p3;
+        to.closures = newClosures;
+        to.typeFlag |= P_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFromP(ArgumentStack from, Closure p1, Closure p2, Closure p3, Closure p4) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 4;
+        Closure[] oldClosures = to.closures;
+        if (oldClosures != null) {
+            len += oldClosures.length;
+        }
+        Closure[] newClosures = new Closure[len];
+        if (oldClosures != null) {
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+        }
+        newClosures[len - 4] = p1;
+        newClosures[len - 3] = p2;
+        newClosures[len - 2] = p3;
+        newClosures[len - 1] = p4;
+        to.closures = newClosures;
+        to.typeFlag |= P_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFromP(ArgumentStack from, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 5;
+        Closure[] oldClosures = to.closures;
+        if (oldClosures != null) {
+            len += oldClosures.length;
+        }
+        Closure[] newClosures = new Closure[len];
+        if (oldClosures != null) {
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+        }
+        newClosures[len - 5] = p1;
+        newClosures[len - 4] = p2;
+        newClosures[len - 3] = p3;
+        newClosures[len - 2] = p4;
+        newClosures[len - 1] = p5;
+        to.closures = newClosures;
+        to.typeFlag |= P_FLAG;
+        return to;
+    }
+
+    public static ArgumentStack createFromP(ArgumentStack from, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
+        ArgumentStack to = (from == null)? new ArgumentStack():from.copy();
+        int len = 6;
+        Closure[] oldClosures = to.closures;
+        if (oldClosures != null) {
+            len += oldClosures.length;
+        }
+        Closure[] newClosures = new Closure[len];
+        if (oldClosures != null) {
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+        }
+        newClosures[len - 6] = p1;
+        newClosures[len - 5] = p2;
+        newClosures[len - 4] = p3;
+        newClosures[len - 3] = p4;
+        newClosures[len - 2] = p5;
+        newClosures[len - 1] = p6;
+        to.closures = newClosures;
+        to.typeFlag |= P_FLAG;
+        return to;
+    }
+
     public void dump() {
-        super.dump();
-        System.out.println("O" + objects);
-        System.out.println("I" + ints);
-        System.out.println("L" + longs);
-        System.out.println("F" + floats);
-        System.out.println("D" + doubles);
+        System.out.println("R" + Arrays.toString(closures));
+        System.out.println("O" + Arrays.toString(objects));
+        System.out.println("I" + Arrays.toString(ints));
+        System.out.println("L" + Arrays.toString(longs));
+        System.out.println("F" + Arrays.toString(floats));
+        System.out.println("D" + Arrays.toString(doubles));
     }
 
-    @Override
-    public void populate(Builder builder) {
-        super.populate(builder);
-        if (objects != null) builder.objects = objects.copy();
-        if (ints != null) builder.ints = ints.copy();
-        if (longs != null) builder.longs = longs.copy();
-        if (floats != null) builder.floats = floats.copy();
-        if (doubles != null) builder.doubles = doubles.copy();
-    }
-
-    public Object O(int index) {
-        return objects.get(index - 1);
-    }
-
-    public void O(int index, Object o) {
-        if (objects == null) objects = new ObjectArrayList(1);
-        objects.set(index - 1, o);
-    }
-
-    public int I(int index) {
-        return ints.get(index - 1);
-    }
-
-    public void I(int index, int i) {
-        if (ints == null) ints = new IntArrayList(1);
-        ints.set(index - 1, i);
-    }
-
-    public long L(int index) {
-        return longs.get(index - 1);
-    }
-
-    public void L(int index, long l) {
-        if (longs == null) longs = new LongArrayList(1);
-        longs.set(index - 1, l);
-    }
-
-    public float F(int index) {
-        return floats.get(index - 1);
-    }
-
-    public void F(int index, float f) {
-        if (floats == null) floats = new FloatArrayList(1);
-        floats.set(index - 1, f);
-    }
-
-    public double D(int index) {
-        return doubles.get(index - 1);
-    }
-
-    public void D(int index, double d) {
-        if (doubles == null) doubles = new DoubleArrayList(1);
-        doubles.set(index - 1, d);
-    }
 }

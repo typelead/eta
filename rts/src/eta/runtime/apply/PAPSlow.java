@@ -3,46 +3,119 @@ package eta.runtime.apply;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.AbstractArgumentStack;
+import eta.runtime.stg.ArgumentStack;
 import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.stg.ArgumentStack.*;
 
 public class PAPSlow extends PAP {
-    public AbstractArgumentStack argStack;
+    public ArgumentStack argStack;
 
-    public PAPSlow(Closure fun, int arity, AbstractArgumentStack argStack) {
+    public PAPSlow(Function fun, int arity, ArgumentStack argStack) {
         super(fun, arity);
         this.argStack = argStack;
     }
 
-    public void setStack(AbstractArgumentStack argStack) {
+    public void setStack(ArgumentStack argStack) {
         this.argStack = argStack;
     }
 
-    public Closure apply(StgContext context, AbstractArgumentStack stack) {
+    public Closure apply(StgContext context, ArgumentStack stack) {
+        int funArity = fun.arity();
+        switch (stack.typeFlag) {
+          case NONE:
+              if (funArity == 1) {
+                  return fun.applyV(context);
+              }
+              break;
+          case P_FLAG:
+              Closure[] closures = stack.closures;
+              int pLen = closures.length;
+              switch (funArity - pLen) {
+                case 0:
+                    switch (funArity) {
+                      case 1:
+                          return fun.apply1(context, closures[0]);
+                      case 2:
+                          return fun.apply2(context, closures[0], closures[1]);
+                      case 3:
+                          return fun.apply3(context, closures[0], closures[1],
+                                            closures[2]);
+                      case 4:
+                          return fun.apply4(context, closures[0], closures[1],
+                                            closures[2], closures[3]);
+                      case 5:
+                          return fun.apply5(context, closures[0], closures[1],
+                                            closures[2], closures[3], closures[4]);
+                      case 6:
+                          return fun.apply6(context, closures[0], closures[1],
+                                            closures[2], closures[3], closures[4],
+                                            closures[5]);
+                      default:
+                          break;
+                    }
+                    break;
+                case 1:
+                    switch (pLen) {
+                      case 1:
+                          return fun.apply1V(context, closures[0]);
+                      case 2:
+                          return fun.apply2V(context, closures[0], closures[1]);
+                      case 3:
+                          return fun.apply3V(context, closures[0], closures[1],
+                                            closures[2]);
+                      default:
+                          break;
+                    }
+                    break;
+                default:
+                    break;
+              }
+              break;
+          case O_FLAG:
+              if (funArity == 1) {
+                  return fun.applyO(context, stack.objects[0]);
+              }
+              break;
+          case I_FLAG:
+              if (funArity == 1) {
+                  return fun.applyN(context, stack.ints[0]);
+              }
+              break;
+          case L_FLAG:
+              if (funArity == 1) {
+                  return fun.applyL(context, stack.longs[0]);
+              }
+              break;
+          case F_FLAG:
+              if (funArity == 1) {
+                  return fun.applyF(context, stack.floats[0]);
+              }
+              break;
+          case D_FLAG:
+              if (funArity == 1) {
+                  return fun.applyD(context, stack.doubles[0]);
+              }
+              break;
+          default:
+              context.merge(stack);
+              return fun.enter(context);
+        }
         context.merge(stack);
         return fun.enter(context);
     }
 
     @Override
     public Closure applyV(StgContext context) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .build();
         if (arity == 1) {
-            return apply(context, stack);
+            return apply(context, argStack);
         } else {
-            return new PAPSlow(fun, arity - 1, stack);
+            return new PAPSlow(fun, arity - 1, argStack);
         }
     }
 
     @Override
     public Closure applyN(StgContext context, int n) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .add(n)
-            .build();
+        ArgumentStack stack = ArgumentStack.createFrom(null, n);
         if (arity == 1) {
             return apply(context, stack);
         } else {
@@ -52,11 +125,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure applyL(StgContext context, long l) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .add(l)
-            .build();
+        ArgumentStack stack = ArgumentStack.createFrom(argStack, l);
         if (arity == 1) {
             return apply(context, stack);
         } else {
@@ -66,11 +135,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure applyF(StgContext context, float f) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .add(f)
-            .build();
+        ArgumentStack stack = ArgumentStack.createFrom(argStack, f);
         if (arity == 1) {
             return apply(context, stack);
         } else {
@@ -80,11 +145,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure applyD(StgContext context, double d) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .add(d)
-            .build();
+        ArgumentStack stack = ArgumentStack.createFrom(argStack, d);
         if (arity == 1) {
             return apply(context, stack);
         } else {
@@ -94,11 +155,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure applyO(StgContext context, Object o) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .add(o)
-            .build();
+        ArgumentStack stack = ArgumentStack.createFrom(argStack, o);
         if (arity == 1) {
             return apply(context, stack);
         } else {
@@ -108,11 +165,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply1(StgContext context, Closure p) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p)
-            .build();
+        ArgumentStack stack = ArgumentStack.createFromP(argStack, p);
         if (arity == 1) {
             return apply(context, stack);
         } else {
@@ -122,11 +175,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply1V(StgContext context, Closure p) {
-        AbstractArgumentStack stack =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p)
-            .build() ;
+        ArgumentStack stack = ArgumentStack.createFromP(argStack, p);
         switch (arity) {
             case 1:
                 return apply(context, stack).applyV(context);
@@ -139,139 +188,144 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply2(StgContext context, Closure p1, Closure p2) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply1(context, p2);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply1(context, p2);
             case 2:
-                return apply(context, builder.addC(p2).build());
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2));
             default:
-                return new PAPSlow(fun, arity - 2, builder.addC(p2).build());
+                return new PAPSlow(fun, arity - 2,
+                                   ArgumentStack.createFromP(argStack, p1, p2));
         }
     }
 
     @Override
     public Closure apply2V(StgContext context, Closure p1, Closure p2) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply1V(context, p2);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply1V(context, p2);
             case 2:
-                return apply(context, builder.addC(p2).build()).applyV(context);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
+                      .applyV(context);
             case 3:
-                return apply(context, builder.addC(p2).build());
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2));
             default:
-                return new PAPSlow(fun, arity - 3, builder.addC(p2).build());
+                return new PAPSlow(fun, arity - 3,
+                                   ArgumentStack.createFromP(argStack, p1, p2));
         }
     }
 
     @Override
     public Closure apply3(StgContext context, Closure p1, Closure p2, Closure p3) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply2(context, p2, p3);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply2(context, p2, p3);
             case 2:
-                return apply(context, builder.addC(p2).build()).apply1(context, p3);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
+                      .apply1(context, p3);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build());
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
             default:
-                return new PAPSlow(fun, arity - 3, builder.addC(p2).addC(p3).build());
+                return new PAPSlow(fun, arity - 3,
+                                   ArgumentStack.createFromP(argStack, p1, p2, p3));
         }
     }
 
     @Override
     public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply2V(context, p2, p3);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply2V(context, p2, p3);
             case 2:
-                return apply(context, builder.addC(p2).build()).apply1V(context, p3);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
+                      .apply1V(context, p3);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).applyV(context);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
+                      .applyV(context);
             case 4:
-                return apply(context, builder.addC(p2).addC(p3).build());
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
             default:
-                return new PAPSlow(fun, arity - 4, builder.addC(p2).addC(p3).build());
+                return new PAPSlow(fun, arity - 4,
+                                   ArgumentStack.createFromP(argStack, p1, p2, p3));
         }
     }
 
     @Override
     public Closure apply4(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply3(context, p2, p3, p4);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply3(context, p2, p3, p4);
             case 2:
-                return apply(context, builder.addC(p2).build()).apply2(context, p3, p4);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
+                      .apply2(context, p3, p4);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).apply1(context, p4);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
+                      .apply1(context, p4);
             case 4:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).build());
+                return apply(context,
+                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4));
             default:
-                return new PAPSlow(fun, arity - 4, builder.addC(p2).addC(p3).addC(p4).build());
+                return new PAPSlow(fun, arity - 4,
+                                   ArgumentStack.createFromP(argStack, p1, p2, p3, p4));
         }
     }
 
     @Override
     public Closure apply5(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply4(context, p2, p3, p4, p5);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply4(context, p2, p3, p4, p5);
             case 2:
-                return apply(context, builder.addC(p2).build()).apply3(context, p3, p4, p5);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
+                      .apply3(context, p3, p4, p5);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).apply2(context, p4, p5);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
+                      .apply2(context, p4, p5);
             case 4:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).build()).apply1(context, p5);
+                return apply(context,
+                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4))
+                      .apply1(context, p5);
             case 5:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).build());
+                return apply(context,
+                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5));
             default:
-                return new PAPSlow(fun, arity - 5, builder.addC(p2).addC(p3).addC(p4).addC(p5).build());
+                return new PAPSlow(fun, arity - 5,
+                                   ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5));
         }
     }
 
     @Override
     public Closure apply6(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
-        AbstractArgumentStack.Builder builder =
-            AbstractArgumentStack.Builder
-            .from(argStack)
-            .addC(p1);
         switch (arity) {
             case 1:
-                return apply(context, builder.build()).apply5(context, p2, p3, p4, p5, p6);
+                return apply(context, ArgumentStack.createFromP(argStack, p1))
+                      .apply5(context, p2, p3, p4, p5, p6);
             case 2:
-                return apply(context, builder.addC(p2).build()).apply4(context, p3, p4, p5, p6);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
+                      .apply4(context, p3, p4, p5, p6);
             case 3:
-                return apply(context, builder.addC(p2).addC(p3).build()).apply3(context, p4, p5, p6);
+                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
+                      .apply3(context, p4, p5, p6);
             case 4:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).build()).apply2(context, p5, p6);
+                return apply(context,
+                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4))
+                      .apply2(context, p5, p6);
             case 5:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).build()).apply1(context, p6);
+                return apply(context,
+                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5))
+                      .apply1(context, p6);
             case 6:
-                return apply(context, builder.addC(p2).addC(p3).addC(p4).addC(p5).addC(p6).build());
+                return apply(context,
+                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5, p6));
             default:
-                return new PAPSlow(fun, arity - 5, builder.addC(p2).addC(p3).addC(p4).addC(p5).addC(p6).build());
+                return new PAPSlow(fun, arity - 6,
+                                   ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5, p6));
         }
     }
 }

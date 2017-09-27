@@ -6,7 +6,7 @@ import eta.runtime.stg.StgContext;
 public class PAP1_1 extends PAP {
     public Closure p;
 
-    public PAP1_1(Closure fun, Closure p) {
+    public PAP1_1(Function fun, Closure p) {
         super(fun, 1);
         this.p = p;
     }
@@ -18,36 +18,36 @@ public class PAP1_1 extends PAP {
 
     @Override
     public Closure applyN(StgContext context, int n) {
-        context.R(2, p);
-        context.I(1, n);
+        context.R1 = p;
+        context.I1 = n;
         return fun.enter(context);
     }
 
     @Override
     public Closure applyL(StgContext context, long l) {
-        context.R(2, p);
-        context.L(1, l);
+        context.R1 = p;
+        context.L1 = l;
         return fun.enter(context);
     }
 
     @Override
     public Closure applyF(StgContext context, float f) {
-        context.R(2, p);
-        context.F(1, f);
+        context.R1 = p;
+        context.F1 = f;
         return fun.enter(context);
     }
 
     @Override
     public Closure applyD(StgContext context, double d) {
-        context.R(2, p);
-        context.D(1, d);
+        context.R1 = p;
+        context.D1 = d;
         return fun.enter(context);
     }
 
     @Override
     public Closure applyO(StgContext context, Object o) {
-        context.R(2, p);
-        context.O(1, o);
+        context.R1 = p;
+        context.O1 = o;
         return fun.enter(context);
     }
 

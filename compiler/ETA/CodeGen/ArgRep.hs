@@ -114,32 +114,33 @@ repFieldTypes = mapMaybe repFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
 contextLoad :: ArgRep -> Int -> Code
-contextLoad argRep n =
-     loadContext
-  <> iconst jint (fromIntegral n)
-  <> loadMethod
-  where loadMethod = case argRep of
-          P -> loadR
-          N -> loadI
-          L -> loadL
-          F -> loadF
-          D -> loadD
-          O -> loadO
+contextLoad argRep n
+  | n <= 6
+  = loadContext <> loadField n
+  | otherwise
+  = loadContext <> iconst jint (fromIntegral n) <> loadMethod
+  where (loadMethod, loadField) = case argRep of
+          P -> (loadR, fieldLoadR)
+          N -> (loadI, fieldLoadI)
+          L -> (loadL, fieldLoadL)
+          F -> (loadF, fieldLoadF)
+          D -> (loadD, fieldLoadD)
+          O -> (loadO, fieldLoadO)
           _ -> error "contextLoad: V"
 
 contextStore :: ArgRep -> Code -> Int -> Code
-contextStore argRep storeCode n =
-     loadContext
-  <> iconst jint (fromIntegral n)
-  <> storeCode
-  <> storeMethod
-  where storeMethod = case argRep of
-          P -> storeR
-          N -> storeI
-          L -> storeL
-          F -> storeF
-          D -> storeD
-          O -> storeO
+contextStore argRep storeCode n
+  | n <= 6
+  = loadContext <> storeCode <> storeField n
+  | otherwise
+  = loadContext <> iconst jint (fromIntegral n) <> storeCode <> storeMethod
+  where (storeMethod, storeField) = case argRep of
+          P -> (storeR, fieldStoreR)
+          N -> (storeI, fieldStoreI)
+          L -> (storeL, fieldStoreL)
+          F -> (storeF, fieldStoreF)
+          D -> (storeD, fieldStoreD)
+          O -> (storeO, fieldStoreO)
           _ -> error "contextStore: V"
 
 slowCallPattern :: [ArgRep] -> (RepArity, [FieldType])

@@ -18,10 +18,10 @@ public class Parallel {
     public static Closure getSpark(StgContext context) {
         Closure spark = findSpark(context.myCapability);
         if (spark != null) {
-            context.I(1, 1);
+            context.I1 = 1;
             return spark;
         } else {
-            context.I(1, 0);
+            context.I1 = 0;
             return Closures.False;
         }
     }

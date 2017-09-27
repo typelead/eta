@@ -23,8 +23,8 @@ public class IO {
         int m = (e == 0) ?
             (bits & 0x7fffff) << 1 :
             (bits & 0x7fffff) | 0x800000;
-        context.I(1, s * m);
-        context.I(2, e - 150);
+        context.I1 = s * m;
+        context.I2 = e - 150;
         return null;
     }
 
@@ -58,10 +58,10 @@ public class IO {
 
     public static Closure casMutVar(StgContext context, MutVar mv, Closure old, Closure update) {
         if (mv.cas(old, update)) {
-            context.I(1, 0);
+            context.I1 = 0;
             return update;
         } else {
-            context.I(1, 1);
+            context.I1 = 1;
             return mv.value;
         }
     }

@@ -112,7 +112,7 @@ public class Concurrent {
 
     public static Closure tryTakeMVar(StgContext context, MVar mvar) {
         Closure value = mvar.tryTake();
-        context.I(1, (value == null)? 0 : 1);
+        context.I1 = (value == null)? 0 : 1;
         return value;
     }
 
@@ -122,7 +122,7 @@ public class Concurrent {
 
     public static Closure tryReadMVar(StgContext context, MVar mvar) {
         Closure value = mvar.tryRead();
-        context.I(1, (value == null)? 0: 1);
+        context.I1 = (value == null)? 0: 1;
         return value;
     }
 
@@ -179,9 +179,9 @@ public class Concurrent {
                  than helps performance due to the fact that we can't presently
                  save/restore the Java stack. */
         int locked = 0;
-        context.I(1, ret);
-        context.I(2, cap);
-        context.I(3, locked);
+        context.I1 = ret;
+        context.I2 = cap;
+        context.I3 = locked;
         return null;
     }
 
@@ -266,8 +266,8 @@ public class Concurrent {
             result    = futureResult.result;
             tso.blockInfo = null;
         }
-        context.O(1, exception);
-        context.O(2, result);
+        context.O1 = exception;
+        context.O2 = result;
         return null;
     }
 
