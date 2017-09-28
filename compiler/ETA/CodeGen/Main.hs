@@ -251,8 +251,7 @@ externaliseId _dflags id = do
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
     dflags <- getDynFlags
-    let tyConClass = nameTypeText dflags . tyConName $ tyCon
-    (_, CgState {..}) <- newTypeClosure tyConClass stgConstr
+    (_, CgState {..}) <- newTypeClosure (tyConClass dflags tyCon) stgConstr
     mapM_ (cgDataCon cgClassName) dataCons
     when (isEnumerationTyCon tyCon) $
       cgEnumerationTyCon cgClassName tyCon
@@ -289,8 +288,7 @@ cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do
   dflags <- getDynFlags
   modClass <- getModClass
-  let dataConClassName = nameDataText dflags . dataConName $ dataCon
-      thisClass = qualifiedName modClass dataConClassName
+  let thisClass = dataConClass dflags dataCon
       thisFt = obj thisClass
       defineTagMethod =
           defineMethod . mkMethodDef thisClass [Public] "getTag" [] (ret jint) $
@@ -298,7 +296,7 @@ cgDataCon typeClass dataCon = do
                       <> greturn jint
   -- TODO: Reduce duplication
   if isNullaryRepDataCon dataCon then do
-      _ <- newExportedClosure dataConClassName typeClass $ do
+      _ <- newDataClosure thisClass typeClass $ do
         defineMethod $ mkDefaultConstructor thisClass typeClass
         defineTagMethod
       return ()
@@ -356,7 +354,7 @@ cgDataCon typeClass dataCon = do
            fields :: [FieldType]
            fields = repFieldTypes $ dataConRepArgTys dataCon
 
-       _ <- newExportedClosure dataConClassName typeClass $ do
+       _ <- newDataClosure thisClass typeClass $ do
          defineFields fieldDefs
          defineTagMethod
          defineGetRep P ps

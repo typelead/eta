@@ -70,7 +70,7 @@ public class Closures {
     public static Constructor loadDataCon(String className, String dataConName, Class<?>... types)
         throws ClassNotFoundException, IllegalAccessException, NoSuchMethodException
     {
-        return Class.forName(className + "$" + dataConName + "D").getConstructor(types);
+        return Class.forName(className.toLowerCase() + ".datacons." + dataConName).getConstructor(types);
     }
 
 
