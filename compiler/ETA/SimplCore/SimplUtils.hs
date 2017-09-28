@@ -53,7 +53,7 @@ import ETA.BasicTypes.Demand
 import ETA.SimplCore.SimplMonad
 import ETA.Types.Type     hiding( substTy )
 import ETA.Types.Coercion hiding( substCo, substTy )
-import ETA.BasicTypes.DataCon          ( dataConWorkId )
+import ETA.BasicTypes.DataCon          ( dataConWorkId, isNullaryRepDataCon )
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.VarSet
 import ETA.BasicTypes.BasicTypes
@@ -62,10 +62,11 @@ import ETA.Utils.MonadUtils
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
 import ETA.Utils.Pair
+import ETA.Prelude.PrelRules
 import ETA.Utils.ListSetOps       ( minusList )
 
 import Control.Monad    ( when )
-import Data.List        ( partition )
+import Data.List        ( partition, sortBy )
 
 {-
 ************************************************************************
@@ -1896,15 +1897,16 @@ mkCase1 _dflags scrut case_bndr _ alts@((_,_,rhs1) : _)      -- Identity case
     ticks = concatMap (stripTicksT tickishFloatable . thirdOf3) (tail alts)
     identity_alt (con, args, rhs) = check_eq rhs con args
 
-    check_eq (Cast rhs co) con        args
+    check_eq (Cast rhs co) con args        -- See Note [RHS casts]
       = not (any (`elemVarSet` tyCoVarsOfCo co) args) && check_eq rhs con args
-        -- See Note [RHS casts]
+    check_eq (Tick t e) alt args
+      = tickishFloatable t && check_eq e alt args
+
     check_eq (Lit lit)  (LitAlt lit') _    = lit == lit'
     check_eq (Var v) _ _  | v == case_bndr = True
-    check_eq (Var v)    (DataAlt con) []   = v == dataConWorkId con
+    check_eq (Var v)    (DataAlt con) args
+      | null arg_tys, null args            = v == dataConWorkId con
                                              -- Optimisation only
-    check_eq (Tick t e) alt           args = tickishFloatable t &&
-                                             check_eq e alt args
     check_eq rhs        (DataAlt con) args = cheapEqExpr' tickishFloatable rhs $
                                              mkConApp con (arg_tys ++
                                                            varsToCoreExprs args)
@@ -1930,9 +1932,77 @@ mkCase1 _dflags scrut case_bndr _ alts@((_,_,rhs1) : _)      -- Identity case
 mkCase1 dflags scrut bndr alts_ty alts = mkCase2 dflags scrut bndr alts_ty alts
 
 --------------------------------------------------
+--      3. Scrutinee Constant Folding
+--------------------------------------------------
+
+mkCase2 dflags scrut bndr alts_ty alts
+  | -- See Note [Scrutinee Constant Folding]
+    case alts of  -- Not if there is just a DEFAULT alterantive
+      [(DEFAULT,_,_)] -> False
+      _               -> True
+  , gopt Opt_CaseFolding dflags
+  , Just (scrut', tx_con, mk_orig) <- caseRules dflags scrut
+  = do { bndr' <- newId (fsLit "lwild") (exprType scrut')
+       ; alts' <- mapM  (tx_alt tx_con mk_orig bndr') alts
+       ; mkCase3 dflags scrut' bndr' alts_ty $
+         add_default (re_sort alts')
+       }
+
+  | otherwise
+  = mkCase3 dflags scrut bndr alts_ty alts
+  where
+    -- We need to keep the correct association between the scrutinee and its
+    -- binder if the latter isn't dead. Hence we wrap rhs of alternatives with
+    -- "let bndr = ... in":
+    --
+    --     case v + 10 of y        =====> case v of y
+    --        20      -> e1                 10      -> let y = 20     in e1
+    --        DEFAULT -> e2                 DEFAULT -> let y = v + 10 in e2
+    --
+    -- Other transformations give: =====> case v of y'
+    --                                      10      -> let y = 20      in e1
+    --                                      DEFAULT -> let y = y' + 10 in e2
+    --
+    -- This wrapping is done in tx_alt; we use mk_orig, returned by caseRules,
+    -- to construct an expression equivalent to the original one, for use
+    -- in the DEFAULT case
+
+    tx_alt tx_con mk_orig new_bndr (con, bs, rhs)
+      | DataAlt dc <- con', not (isNullaryRepDataCon dc)
+      = -- For non-nullary data cons we must invent some fake binders
+        -- See Note [caseRules for dataToTag] in PrelRules
+        do { us <- getUniquesM
+           ; let (ex_tvs, arg_ids) = dataConRepInstPat us dc
+                                         (tyConAppArgs (idType new_bndr))
+           ; return (con', ex_tvs ++ arg_ids, rhs') }
+      | otherwise
+      = return (con', [], rhs')
+      where
+        con' = tx_con con
+
+        rhs' | isDeadBinder bndr = rhs
+             | otherwise         = bindNonRec bndr orig_val rhs
+
+        orig_val = case con of
+                      DEFAULT    -> mk_orig new_bndr
+                      LitAlt l   -> Lit l
+                      DataAlt dc -> mkConApp2 dc (tyConAppArgs (idType bndr)) bs
+
+
+    re_sort :: [CoreAlt] -> [CoreAlt]  -- Re-sort the alternatives to
+    re_sort alts = sortBy cmpAlt alts  -- preserve the #case_invariants#
+
+    add_default :: [CoreAlt] -> [CoreAlt]
+    -- TagToEnum may change a boolean True/False set of alternatives
+    -- to LitAlt 0#/1# alterantives.  But literal alternatives always
+    -- have a DEFAULT (I think).  So add it.
+    add_default ((LitAlt {}, bs, rhs) : alts) = (DEFAULT, bs, rhs) : alts
+    add_default alts                          = alts
+
+--------------------------------------------------
 --      Catch-all
 --------------------------------------------------
-mkCase2 _dflags scrut bndr alts_ty alts
+mkCase3 _dflags scrut bndr alts_ty alts
   = return (Case scrut bndr alts_ty alts)
 
 {-

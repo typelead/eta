@@ -13,8 +13,10 @@ module ETA.BasicTypes.Literal
           Literal(..)           -- Exported to ParseIface
 
         -- ** Creating Literals
-        , mkMachInt, mkMachWord
-        , mkMachInt64, mkMachWord64
+        , mkMachInt, mkMachIntWrap
+        , mkMachWord, mkMachWordWrap
+        , mkMachInt64, mkMachInt64Wrap
+        , mkMachWord64, mkMachWord64Wrap
         , mkMachFloat, mkMachDouble
         , mkMachChar, mkMachString
         , mkLitInteger
@@ -31,6 +33,7 @@ module ETA.BasicTypes.Literal
         , maxInt, minInt, maxWord, maxChar
         , isZeroLit
         , litFitsInChar
+        , litValue, isLitValue, isLitValue_maybe, mapLitValue
 
         -- ** Coercions
         , word2IntLit, int2WordLit
@@ -63,6 +66,7 @@ import Data.Int
 import Data.Ratio
 import Data.Word
 import Data.Char
+import Data.Maybe ( isJust )
 import Data.Data ( Data, Typeable )
 import Numeric ( fromRat )
 
@@ -221,23 +225,65 @@ instance Ord Literal where
         ~~~~~~~~~~~~
 -}
 
+{- Note [Word/Int underflow/overflow]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+According to the Haskell Report 2010 (Sections 18.1 and 23.1 about signed and
+unsigned integral types): "All arithmetic is performed modulo 2^n, where n is
+the number of bits in the type."
+
+GHC stores Word# and Int# constant values as Integer. Core optimizations such
+as constant folding must ensure that the Integer value remains in the valid
+target Word/Int range (see #13172). The following functions are used to
+ensure this.
+
+Note that we *don't* warn the user about overflow. It's not done at runtime
+either, and compilation of completely harmless things like
+   ((124076834 :: Word32) + (2147483647 :: Word32))
+doesn't yield a warning. Instead we simply squash the value into the *target*
+Int/Word range.
+-}
+
 -- | Creates a 'Literal' of type @Int#@
 mkMachInt :: DynFlags -> Integer -> Literal
 mkMachInt dflags x   = ASSERT2( inIntRange dflags x,  integer x )
                        MachInt x
+
+-- | Creates a 'Literal' of type @Int#@.
+--   If the argument is out of the (target-dependent) range, it is wrapped.
+--   See Note [Word/Int underflow/overflow]
+mkMachIntWrap :: DynFlags -> Integer -> Literal
+mkMachIntWrap dflags i
+ = MachInt (toInteger (fromIntegral i :: Int32))
 
 -- | Creates a 'Literal' of type @Word#@
 mkMachWord :: DynFlags -> Integer -> Literal
 mkMachWord dflags x   = ASSERT2( inWordRange dflags x, integer x )
                         MachWord x
 
+-- | Creates a 'Literal' of type @Word#@.
+--   If the argument is out of the (target-dependent) range, it is wrapped.
+--   See Note [Word/Int underflow/overflow]
+mkMachWordWrap :: DynFlags -> Integer -> Literal
+mkMachWordWrap dflags i
+ = MachWord (toInteger (fromInteger i :: Word32))
+
 -- | Creates a 'Literal' of type @Int64#@
 mkMachInt64 :: Integer -> Literal
 mkMachInt64  x = MachInt64 x
 
+-- | Creates a 'Literal' of type @Int64#@.
+--   If the argument is out of the range, it is wrapped.
+mkMachInt64Wrap :: Integer -> Literal
+mkMachInt64Wrap  i = MachInt64 (toInteger (fromIntegral i :: Int64))
+
 -- | Creates a 'Literal' of type @Word64#@
 mkMachWord64 :: Integer -> Literal
 mkMachWord64 x = MachWord64 x
+
+-- | Creates a 'Literal' of type @Word64#@.
+--   If the argument is out of the range, it is wrapped.
+mkMachWord64Wrap :: Integer -> Literal
+mkMachWord64Wrap i = MachWord64 (toInteger (fromIntegral i :: Word64))
 
 -- | Creates a 'Literal' of type @Float#@
 mkMachFloat :: Rational -> Literal
@@ -277,6 +323,44 @@ isZeroLit (MachWord64 0) = True
 isZeroLit (MachFloat  0) = True
 isZeroLit (MachDouble 0) = True
 isZeroLit _              = False
+
+-- | Returns the 'Integer' contained in the 'Literal', for when that makes
+-- sense, i.e. for 'Char', 'Int', 'Word' and 'LitInteger'.
+litValue  :: Literal -> Integer
+litValue l = case isLitValue_maybe l of
+   Just x  -> x
+   Nothing -> pprPanic "litValue" (ppr l)
+
+-- | Returns the 'Integer' contained in the 'Literal', for when that makes
+-- sense, i.e. for 'Char', 'Int', 'Word' and 'LitInteger'.
+isLitValue_maybe  :: Literal -> Maybe Integer
+isLitValue_maybe (MachChar   c)   = Just $ toInteger $ ord c
+isLitValue_maybe (MachInt    i)   = Just i
+isLitValue_maybe (MachInt64  i)   = Just i
+isLitValue_maybe (MachWord   i)   = Just i
+isLitValue_maybe (MachWord64 i)   = Just i
+isLitValue_maybe (LitInteger i _) = Just i
+isLitValue_maybe _                = Nothing
+
+-- | Apply a function to the 'Integer' contained in the 'Literal', for when that
+-- makes sense, e.g. for 'Char', 'Int', 'Word' and 'LitInteger'. For
+-- fixed-size integral literals, the result will be wrapped in
+-- accordance with the semantics of the target type.
+-- See Note [Word/Int underflow/overflow]
+mapLitValue  :: DynFlags -> (Integer -> Integer) -> Literal -> Literal
+mapLitValue _      f (MachChar   c)   = mkMachChar (fchar c)
+   where fchar = chr . fromInteger . f . toInteger . ord
+mapLitValue dflags f (MachInt    i)   = mkMachIntWrap dflags (f i)
+mapLitValue _      f (MachInt64  i)   = mkMachInt64Wrap (f i)
+mapLitValue dflags f (MachWord   i)   = mkMachWordWrap dflags (f i)
+mapLitValue _      f (MachWord64 i)   = mkMachWord64Wrap (f i)
+mapLitValue _      f (LitInteger i t) = mkLitInteger (f i) t
+mapLitValue _      _ l                = pprPanic "mapLitValue" (ppr l)
+
+-- | Indicate if the `Literal` contains an 'Integer' value, e.g. 'Char',
+-- 'Int', 'Word' and 'LitInteger'.
+isLitValue  :: Literal -> Bool
+isLitValue = isJust . isLitValue_maybe
 
 {-
         Coercions

@@ -19,7 +19,7 @@ types that
 module ETA.BasicTypes.BasicTypes(
         Version, bumpVersion, initialVersion,
 
-        ConTag, fIRST_TAG,
+        ConTag, ConTagZ, fIRST_TAG,
 
         Arity, RepArity,
 
@@ -128,6 +128,9 @@ type RepArity = Int
 
 -- | Type of the tags associated with each constructor possibility
 type ConTag = Int
+
+-- | A *zero-indexed* constructor tag
+type ConTagZ = Int
 
 fIRST_TAG :: ConTag
 -- ^ Tags are allocated from here for real constructors
