@@ -6,7 +6,6 @@ module ETA.CodeGen.Name (
   nameText,
   nameTypeText,
   nameTypeTable,
-  nameDataText,
   idNameText,
   idClassText,
   moduleJavaClass,
@@ -42,18 +41,22 @@ import Codec.JVM
 qualifiedName :: Text -> Text -> Text
 qualifiedName modClass className = append modClass . cons '$' $ className
 
+subpackageName :: Text -> Text -> Text -> Text
+subpackageName subpkg modClass className
+  = T.concat [T.toLower modClass, "/", subpkg, "/", className]
+
 -- TODO: Remove this entirely
 closure :: Text -> Text
 closure = id
 
 nameTypeText :: DynFlags -> Name -> Text
-nameTypeText dflags = flip snoc 'T' . nameText dflags False
+nameTypeText dflags name
+  | T.toLower res == "con" = T.concat ["Z", res, "Z"]
+  | otherwise = res
+  where res = nameText dflags False name
 
 nameTypeTable :: DynFlags -> Name -> Text
 nameTypeTable dflags = flip append "_table" . nameText dflags False
-
-nameDataText :: DynFlags -> Name -> Text
-nameDataText dflags = flip snoc 'D' . nameText dflags False
 
 nameText :: DynFlags -> Bool -> Name -> Text
 nameText dflags caseEncode = T.pack
@@ -122,24 +125,25 @@ upperFirst str = case uncons str of
   Nothing -> str
   Just (c, str') -> cons (C.toUpper c) str'
 
--- modClosure :: DynFlags -> Module -> Name -> (Text, Text)
--- modClosure dflags mod name = (moduleJavaClass mod, nameText dflags True name)
-
 moduleClass :: Name -> Text -> Text
 moduleClass name = qualifiedName moduleClass
-        -- TODO: Most likely this will fail for same module data cons
-        -- Maybe externalize the data con name?
+  where moduleClass = moduleJavaClass
+                    . fromMaybe (error "Failed")
+                    $ nameModule_maybe name
+
+submoduleClass :: Text -> Name -> Text -> Text
+submoduleClass subpkg name = subpackageName subpkg moduleClass
   where moduleClass = moduleJavaClass
                     . fromMaybe (error "Failed")
                     $ nameModule_maybe name
 
 dataConClass :: DynFlags -> DataCon -> Text
-dataConClass dflags dataCon = moduleClass dataName dataClass
+dataConClass dflags dataCon = submoduleClass "datacons" dataName dataClass
   where dataName = dataConName dataCon
-        dataClass = nameDataText dflags dataName
+        dataClass = nameTypeText dflags dataName
 
 tyConClass :: DynFlags -> TyCon -> Text
-tyConClass dflags tyCon = moduleClass typeName typeClass
+tyConClass dflags tyCon = submoduleClass "tycons" typeName typeClass
   where typeName = tyConName tyCon
         typeClass = nameTypeText dflags typeName
 

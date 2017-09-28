@@ -22,6 +22,7 @@ module ETA.CodeGen.Monad
    newRecursiveInitNumber,
    getSequel,
    getSelfLoop,
+   setClass,
    setSuperClass,
    getSuperClass,
    setClosureClass,
@@ -44,8 +45,7 @@ module ETA.CodeGen.Monad
    defineFields,
    getCgIdInfo,
    newTypeClosure,
-   newExportedClosure,
-   newHiddenClosure,
+   newDataClosure,
    newClosure,
    classFromCgState,
    runCodeGen,
@@ -313,13 +313,12 @@ defineFields :: [FieldDef] -> CodeGen ()
 defineFields md = modify $ \s@CgState{..} ->
   s { cgFieldDefs = md ++ cgFieldDefs }
 
-newExportedClosure, newHiddenClosure
+newDataClosure
   :: Text
   -> Text
   -> CodeGen a
   -> CodeGen (a, CgState)
-newExportedClosure = newClosure [Public, Super, Final]
-newHiddenClosure = newClosure [Private, Super, Final]
+newDataClosure = newClosure [Public, Super, Final]
 
 newTypeClosure
   :: Text
@@ -338,7 +337,7 @@ newClosure
 newClosure accessFlags clName superClassName genCode =
   newClosureGeneric $ do
     setAccessFlags accessFlags
-    setClosureClass clName
+    setClass clName
     setSuperClass superClassName
     genCode
 
@@ -359,6 +358,9 @@ setClosureClass clName = do
   modClass <- getModClass
   let qClName = qualifiedName modClass clName
   modify $ \s -> s { cgClassName = qClName }
+
+setClass :: Text -> CodeGen ()
+setClass clName = modify $ \s -> s { cgClassName = clName }
 
 -- NOTE: Changes made to class generation state are forgotten after
 --       the body is executed
