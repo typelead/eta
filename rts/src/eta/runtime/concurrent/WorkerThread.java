@@ -12,7 +12,7 @@ public class WorkerThread extends Thread {
         try {
             worker.schedule(null);
         } catch (Exception e) {
-            /* TODO: Find a better way to handle exceptions? */
+            e.printStackTrace();
         } finally {
             Capability.workerCapabilities.remove(worker);
         }

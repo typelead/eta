@@ -92,8 +92,8 @@ public class Closures {
         return new EvalJava(thisObj, p);
     }
 
-    private static class EvalLazyIO extends Closure {
-        private final Closure p;
+    public static class EvalLazyIO extends Closure {
+        public Closure p;
 
         public EvalLazyIO(Closure p) {
             this.p = p;
@@ -110,14 +110,14 @@ public class Closures {
         }
     }
 
-    private static class EvalStableIO extends EvalIO {
+    public static class EvalStableIO extends EvalIO {
 
         public EvalStableIO(int stablePtr) {
             super(StablePtrTable.getClosure(stablePtr));
         }
     }
 
-    private static class EvalIO extends Closure {
+    public static class EvalIO extends Closure {
         private final Closure p;
 
         public EvalIO(Closure p) {
@@ -221,7 +221,6 @@ public class Closures {
             result = "Exception was thrown in rendering exception of type "
                    + e.getClass();
         }
-        context.reset(null, null);
         return result;
     }
 }
