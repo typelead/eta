@@ -252,7 +252,7 @@ mkMachInt dflags x   = ASSERT2( inIntRange dflags x,  integer x )
 --   If the argument is out of the (target-dependent) range, it is wrapped.
 --   See Note [Word/Int underflow/overflow]
 mkMachIntWrap :: DynFlags -> Integer -> Literal
-mkMachIntWrap dflags i
+mkMachIntWrap _dflags i
  = MachInt (toInteger (fromIntegral i :: Int32))
 
 -- | Creates a 'Literal' of type @Word#@
@@ -264,7 +264,7 @@ mkMachWord dflags x   = ASSERT2( inWordRange dflags x, integer x )
 --   If the argument is out of the (target-dependent) range, it is wrapped.
 --   See Note [Word/Int underflow/overflow]
 mkMachWordWrap :: DynFlags -> Integer -> Literal
-mkMachWordWrap dflags i
+mkMachWordWrap _dflags i
  = MachWord (toInteger (fromInteger i :: Word32))
 
 -- | Creates a 'Literal' of type @Int64#@

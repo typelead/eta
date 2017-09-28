@@ -4,6 +4,7 @@ module ETA.CodeGen.Utils where
 import ETA.Main.DynFlags
 import ETA.BasicTypes.Name
 import ETA.Types.TyCon
+import ETA.BasicTypes.DataCon (DataCon)
 import ETA.BasicTypes.Literal
 import Codec.JVM
 import Data.Char (ord)
@@ -14,6 +15,7 @@ import ETA.Debug
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, decodeLatin1)
 import Data.Monoid
+import Data.Maybe (fromMaybe)
 import Data.Foldable
 import Control.Exception
 import System.IO.Unsafe
@@ -62,6 +64,15 @@ litSwitch ft expr branches deflt
                  "primitive cases not supported for non-integer values"
   | otherwise  = intSwitch expr intBranches (Just deflt)
   where intBranches = map (first litToInt) branches
+
+instanceofTree :: DynFlags -> Code -> [(DataCon, Code)] -> Maybe Code -> Code
+instanceofTree _ _  []          (Just deflt) = deflt
+instanceofTree _ _  [(_, code)] Nothing      = code
+instanceofTree dflags x branches maybeDefault =
+  foldr f def branches
+  where def = fromMaybe mempty maybeDefault
+        f (con, branchCode) code =
+          x <> ginstanceof (obj (dataConClass dflags con)) <> ifeq code branchCode
 
 tagToClosure :: DynFlags -> TyCon -> Code -> (FieldType, Code)
 tagToClosure dflags tyCon loadArg = (closureType, enumCode)

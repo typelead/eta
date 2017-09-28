@@ -20,7 +20,7 @@ import ETA.CodeGen.Layout
 import ETA.CodeGen.Closure
 import ETA.Debug
 import ETA.Util
-import Data.Maybe (catMaybes, isNothing)
+import Data.Maybe (catMaybes)
 import ETA.Main.Constants
 import Codec.JVM
 import Control.Monad (forM, foldM, when)

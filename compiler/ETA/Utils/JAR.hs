@@ -229,9 +229,6 @@ addMultiByteStringsToJar' jarLocation compress files  = do
           forM_ files $ \(path, contents) -> do
             entrySel <- mkEntrySelector path
             addEntry compress contents entrySel
-        handler :: (MonadThrow m, MonadCatch m, MonadIO m)
-                => PathParseException -> m Bool
-        handler _ = return False
 
 -- getFilesFromJar
 --   :: (MonadThrow m, MonadCatch m, MonadIO m)
@@ -259,7 +256,7 @@ makeAbsoluteFilePath fp = do
   removeDots s "/"= s ++ "/"
   removeDots scanned  path=
       let (h,t) = break (\c -> c=='\\' || c == '/') path
-      in if null t then scanned ++ h 
+      in if null t then scanned ++ h
          else if ".." `isPrefixOf` tail t
              then removeDots scanned $ drop 4 t
              else removeDots(scanned ++ h ++ [head t] ) $ tail t

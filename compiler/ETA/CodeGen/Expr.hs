@@ -265,9 +265,10 @@ cgAlts binder (PrimAlt _) alts = do
       taggedBranches' = [(lit, code) | (LitAlt lit, code) <- taggedBranches]
   emit $ litSwitch (locFt binderLoc) (loadLoc binderLoc) taggedBranches' deflt
 cgAlts binder (AlgAlt _) alts = do
-  (maybeDefault, branches) <- cgAlgAltRhss binder alts
+  (maybeDefault, branches) <- cgAlgAltRhssCons binder alts
   binderLoc <- getCgLoc binder
-  emit $ intSwitch (getTagMethod $ loadLoc binderLoc) branches maybeDefault
+  dflags <- getDynFlags
+  emit $ instanceofTree dflags (loadLoc binderLoc) branches maybeDefault
 cgAlts _ _ _ = panic "cgAlts"
 
 cgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen [(AltCon, Code)]
@@ -307,7 +308,14 @@ bindConArgs (DataAlt con) binder args uses
 bindConArgs _ _ _ _ = return ()
 
 cgAlgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen (Maybe Code, [(Int, Code)])
-cgAlgAltRhss binder alts = do
+cgAlgAltRhss = cgAlgAltRhss' getDataConTag
+
+cgAlgAltRhssCons :: NonVoid Id -> [StgAlt] -> CodeGen (Maybe Code, [(DataCon, Code)])
+cgAlgAltRhssCons = cgAlgAltRhss' id
+
+cgAlgAltRhss' :: (DataCon -> a) -> NonVoid Id -> [StgAlt] ->
+                 CodeGen (Maybe Code, [(a, Code)])
+cgAlgAltRhss' f binder alts = do
   taggedBranches <- cgAltRhss binder alts
   let (maybeDefault, branches) =
         case taggedBranches of
@@ -320,7 +328,7 @@ cgAlgAltRhss binder alts = do
              case with 2 alternatives (the most frequent case). -}
           _                    -> (Just $ snd remainingBranch, remainingBranches)
       (remainingBranches, remainingBranch) = (init allBranches, last allBranches)
-      allBranches = [ (getDataConTag con, code)
+      allBranches = [ (f con, code)
                     | (DataAlt con, code) <- taggedBranches ]
   return (maybeDefault, branches)
 
@@ -341,4 +349,3 @@ cgTick expr = do
       emit $ emitLineNumber $ mkLineNumber n
     _ -> return ()
   cgExpr subExpr
-  
