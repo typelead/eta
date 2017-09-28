@@ -275,7 +275,5 @@ public final class TSO extends BlackHole {
 
     public final void reset() {
         updateInfoStack.clear();
-        currentCont = null;
-        contStack.clear();
     }
 }

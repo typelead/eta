@@ -21,6 +21,7 @@ import eta.runtime.io.MemoryManager;
 import eta.runtime.concurrent.Concurrent;
 import eta.runtime.concurrent.WorkerThread;
 import eta.runtime.exception.Exception;
+import eta.runtime.exception.FiberYieldException;
 import eta.runtime.interpreter.Interpreter;
 import eta.runtime.message.Message;
 import eta.runtime.message.MessageBlackHole;
@@ -154,6 +155,8 @@ public final class Capability {
                 case ThreadRun:
                     try {
                         result = t.closure.enter(context);
+                    } catch (FiberYieldException fye) {
+                        result = null;
                     } catch (java.lang.Exception e) {
                         t.whatNext = ThreadKilled;
                         pendingException = e;
@@ -197,7 +200,9 @@ public final class Capability {
                     /* Cleanup resources in the Runtime before throwing the exception
                        again. */
                     /* TODO: Will we have a difference between cleanup and exit? */
-                    Runtime.exit();
+                    if (!worker) {
+                        Runtime.exit();
+                    }
                     throw pendingException;
                 }
             }
@@ -496,7 +501,7 @@ public final class Capability {
         //     }
         // }
 
-        threadPaused(tso);
+        if (tso != null) threadPaused(tso);
 
         /* Spawn worker capabilities if there's work to do */
         manageOrSpawnWorkers();
@@ -515,7 +520,7 @@ public final class Capability {
             MemoryManager.maybeFreeNativeMemory();
 
             /* Check if there are any deadlocked MVars. */
-            detectMVarDeadlock(tso.whyBlocked);
+            if (tso != null) detectMVarDeadlock(tso.whyBlocked);
         }
     }
 
