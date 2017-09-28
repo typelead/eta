@@ -827,8 +827,6 @@ gtVal = Var gtDataConId
 
 mkIntVal :: DynFlags -> Integer -> Expr CoreBndr
 mkIntVal dflags i = Lit (mkMachInt dflags i)
-mkWordVal :: DynFlags -> Integer -> Expr CoreBndr
-mkWordVal dflags w = Lit (mkMachWord dflags w)
 mkFloatVal :: DynFlags -> Rational -> Expr CoreBndr
 mkFloatVal dflags f = Lit (convFloating dflags (MachFloat  f))
 mkDoubleVal :: DynFlags -> Rational -> Expr CoreBndr
