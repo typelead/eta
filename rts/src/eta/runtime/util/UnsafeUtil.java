@@ -10,6 +10,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stm.TVar;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.io.MutVar;
+import eta.runtime.concurrent.MVar;
 
 public class UnsafeUtil {
 
@@ -17,6 +18,7 @@ public class UnsafeUtil {
     private static long indirecteeOffset = 0;
     private static long cvOffset         = 0;
     private static long valueOffset      = 0;
+    private static long mvarValueOffset  = 0;
 
     static {
         Unsafe unsafe;
@@ -34,6 +36,8 @@ public class UnsafeUtil {
                     (TVar.class.getDeclaredField("currentValue"));
                 valueOffset = unsafe.objectFieldOffset
                     (MutVar.class.getDeclaredField("value"));
+                mvarValueOffset = unsafe.objectFieldOffset
+                    (MVar.class.getDeclaredField("value"));
             } catch (ReflectiveOperationException e) {
                 unsafe = null;
             }
@@ -84,5 +88,9 @@ public class UnsafeUtil {
 
     public static boolean cas(MutVar mv, Closure expected, Closure update) {
         return UNSAFE.compareAndSwapObject(mv, valueOffset, expected, update);
+    }
+
+    public static boolean cas(MVar mv, Closure expected, Closure update) {
+        return UNSAFE.compareAndSwapObject(mv, mvarValueOffset, expected, update);
     }
 }

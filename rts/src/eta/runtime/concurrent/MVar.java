@@ -1,41 +1,36 @@
 package eta.runtime.concurrent;
 
 import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Value;
+import eta.runtime.util.UnsafeUtil;
 
 public class MVar extends Value {
-    public Queue<Closure> valQueue = new ArrayBlockingQueue<Closure>(1, true);
-    public Queue<TSO> listeners    = new ConcurrentLinkedQueue<TSO>();
+    public volatile Closure value;
+    public Queue<TSO> listeners = new ConcurrentLinkedQueue<TSO>();
 
     public MVar(Closure value) {
-        if (value != null) {
-            valQueue.offer(value);
-        }
+        this.value = value;
     }
 
     public Closure tryTake() {
-        return valQueue.poll();
+        Closure val = value;
+        if (val != null && cas(val, null)) {
+            return val;
+        }
+        return null;
     }
 
     public boolean tryPut(Closure closure) {
-        return valQueue.offer(closure);
-    }
-
-    public Closure read() {
-        Closure val;
-        do {
-            val = tryRead();
-        } while (val == null);
-        return val;
+        return cas(null, closure);
     }
 
     public Closure tryRead() {
-        return valQueue.peek();
+        return value;
     }
 
     public void addListener(TSO tso) {
@@ -44,5 +39,18 @@ public class MVar extends Value {
 
     public TSO grabListener() {
         return listeners.poll();
+    }
+
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final AtomicReferenceFieldUpdater<MVar, Closure> valueUpdater
+        = AtomicReferenceFieldUpdater
+        .newUpdater(MVar.class, Closure.class, "value");
+
+    public final boolean cas(Closure expected, Closure update) {
+        if (useUnsafe) {
+            return valueUpdater.compareAndSet(this, expected, update);
+        } else {
+            return UnsafeUtil.cas(this, expected, update);
+        }
     }
 }
