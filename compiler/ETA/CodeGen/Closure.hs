@@ -74,7 +74,8 @@ lfClass hasStdLayout args fvs (LFReEntrant {..})
   = stgFun <> funExt
   where funExt
           | hasStdLayout = T.pack (show args) <> fvsText
-          | otherwise = mempty
+          | args <= 6    = T.pack (show args)
+          | otherwise    = mempty
         fvsText
           | fvs > 0   = "_" <> T.pack (show fvs)
           | otherwise = mempty
