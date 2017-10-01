@@ -15,6 +15,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
 import eta.runtime.message.MessageBlackHole;
+import static eta.runtime.util.UnsafeUtil.UNSAFE;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
 
@@ -197,19 +198,30 @@ public abstract class Thunk extends Closure {
         return cas(null, WhiteHole.closure);
     }
 
-
     /** CAS Operation Support **/
 
-    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE != null;
+    private static long indirecteeOffset = 0;
+    static {
+        if (useUnsafe) {
+            try {
+                indirecteeOffset = UNSAFE.objectFieldOffset
+                    (Thunk.class.getDeclaredField("indirectee"));
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private static final AtomicReferenceFieldUpdater<Thunk, Closure> indUpdater
         = AtomicReferenceFieldUpdater
             .newUpdater(Thunk.class, Closure.class, "indirectee");
 
     public final boolean cas(Closure expected, Closure update) {
         if (useUnsafe) {
-            return indUpdater.compareAndSet(this, expected, update);
+            return UNSAFE.compareAndSwapObject(this, indirecteeOffset, expected, update);
         } else {
-            return UnsafeUtil.cas(this, expected, update);
+            return indUpdater.compareAndSet(this, expected, update);
         }
     }
 

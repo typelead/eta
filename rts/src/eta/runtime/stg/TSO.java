@@ -40,6 +40,7 @@ public final class TSO extends BlackHole {
     public StackTraceElement[] stackTrace;
     public Throwable cause;
     public AtomicBoolean lock = new AtomicBoolean(false);
+    public TSO link;
 
     /* Temporary per execution */
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();

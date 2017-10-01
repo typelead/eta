@@ -8,10 +8,11 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Value;
 import eta.runtime.util.UnsafeUtil;
+import static eta.runtime.util.UnsafeUtil.UNSAFE;
 
 public class MVar extends Value {
     public volatile Closure value;
-    public Queue<TSO> listeners = new ConcurrentLinkedQueue<TSO>();
+    public volatile TSO top;
 
     public MVar(Closure value) {
         this.value = value;
@@ -19,38 +20,69 @@ public class MVar extends Value {
 
     public Closure tryTake() {
         Closure val = value;
-        if (val != null && cas(val, null)) {
+        if (val != null && casValue(val, null)) {
             return val;
         }
         return null;
     }
 
     public boolean tryPut(Closure closure) {
-        return cas(null, closure);
+        return casValue(null, closure);
     }
 
     public Closure tryRead() {
         return value;
     }
 
-    public void addListener(TSO tso) {
-        listeners.offer(tso);
+    public final void registerListener(TSO tso) {
+        TSO oldTop;
+        while(!casTop((oldTop = top), tso)) {}
+        tso.link = oldTop;
     }
 
-    public TSO grabListener() {
-        return listeners.poll();
+    public final TSO getListeners() {
+        TSO oldTop;
+        while(!casTop((oldTop = top), null)) {}
+        return oldTop;
     }
 
-    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE != null;
+    private static long mvarValueOffset    = 0;
+    private static long mvarTopOffset      = 0;
+
+    static {
+        if (useUnsafe) {
+            try {
+                mvarValueOffset = UNSAFE.objectFieldOffset
+                    (MVar.class.getDeclaredField("value"));
+                mvarTopOffset = UNSAFE.objectFieldOffset
+                    (MVar.class.getDeclaredField("top"));
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private static final AtomicReferenceFieldUpdater<MVar, Closure> valueUpdater
         = AtomicReferenceFieldUpdater
         .newUpdater(MVar.class, Closure.class, "value");
+    private static final AtomicReferenceFieldUpdater<MVar, TSO> topUpdater
+        = AtomicReferenceFieldUpdater
+        .newUpdater(MVar.class, TSO.class, "top");
 
-    public final boolean cas(Closure expected, Closure update) {
+    public final boolean casValue(Closure expected, Closure update) {
         if (useUnsafe) {
-            return valueUpdater.compareAndSet(this, expected, update);
+            return UNSAFE.compareAndSwapObject(this, mvarValueOffset, expected, update);
         } else {
-            return UnsafeUtil.cas(this, expected, update);
+            return valueUpdater.compareAndSet(this, expected, update);
+        }
+    }
+
+    public final boolean casTop(TSO expected, TSO update) {
+        if (useUnsafe) {
+            return UNSAFE.compareAndSwapObject(this, mvarTopOffset, expected, update);
+        } else {
+            return topUpdater.compareAndSet(this, expected, update);
         }
     }
 }

@@ -15,32 +15,13 @@ import eta.runtime.concurrent.MVar;
 public class UnsafeUtil {
 
     public static final Unsafe UNSAFE;
-    private static long indirecteeOffset = 0;
-    private static long cvOffset         = 0;
-    private static long valueOffset      = 0;
-    private static long mvarValueOffset  = 0;
 
     static {
         Unsafe unsafe;
-
         try {
             unsafe = findUnsafe();
         } catch (RuntimeException e) {
             unsafe = null;
-        }
-        if (unsafe != null) {
-            try {
-                indirecteeOffset = unsafe.objectFieldOffset
-                    (Thunk.class.getDeclaredField("indirectee"));
-                cvOffset = unsafe.objectFieldOffset
-                    (TVar.class.getDeclaredField("currentValue"));
-                valueOffset = unsafe.objectFieldOffset
-                    (MutVar.class.getDeclaredField("value"));
-                mvarValueOffset = unsafe.objectFieldOffset
-                    (MVar.class.getDeclaredField("value"));
-            } catch (ReflectiveOperationException e) {
-                unsafe = null;
-            }
         }
         UNSAFE = unsafe;
     }
@@ -77,20 +58,4 @@ public class UnsafeUtil {
     }
 
     private UnsafeUtil() {}
-
-    public static boolean cas(Thunk ind, Closure expected, Closure update) {
-        return UNSAFE.compareAndSwapObject(ind, indirecteeOffset, expected, update);
-    }
-
-    public static boolean cas(TVar tvar, Closure expected, Closure update) {
-        return UNSAFE.compareAndSwapObject(tvar, cvOffset, expected, update);
-    }
-
-    public static boolean cas(MutVar mv, Closure expected, Closure update) {
-        return UNSAFE.compareAndSwapObject(mv, valueOffset, expected, update);
-    }
-
-    public static boolean cas(MVar mv, Closure expected, Closure update) {
-        return UNSAFE.compareAndSwapObject(mv, mvarValueOffset, expected, update);
-    }
 }
