@@ -6,6 +6,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Value;
 import eta.runtime.util.UnsafeUtil;
+import static eta.runtime.util.UnsafeUtil.UNSAFE;
 
 public class MutVar extends Value {
     public volatile Closure value;
@@ -23,15 +24,27 @@ public class MutVar extends Value {
     }
 
     /** CAS Operation Support **/
-    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE != null;
+    private static long mutVarOffset = 0;
+    static {
+        if (useUnsafe) {
+            try {
+                mutVarOffset = UNSAFE.objectFieldOffset
+                    (MutVar.class.getDeclaredField("value"));
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private static final AtomicReferenceFieldUpdater<MutVar, Closure> vUpdater
         = AtomicReferenceFieldUpdater.newUpdater(MutVar.class, Closure.class, "value");
 
     public boolean cas(Closure expected, Closure update) {
         if (useUnsafe) {
-            return vUpdater.compareAndSet(this, expected, update);
+            return UNSAFE.compareAndSwapObject(this, mutVarOffset, expected, update);
         } else {
-            return UnsafeUtil.cas(this, expected, update);
+            return vUpdater.compareAndSet(this, expected, update);
         }
     }
 }

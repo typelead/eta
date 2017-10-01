@@ -10,6 +10,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.Value;
 import eta.runtime.util.UnsafeUtil;
+import static eta.runtime.util.UnsafeUtil.UNSAFE;
 import static eta.runtime.RuntimeLogging.barf;
 
 public class TVar extends Value {
@@ -88,16 +89,28 @@ public class TVar extends Value {
 
     /** CAS Operation Support **/
 
-    private static final boolean useUnsafe = UnsafeUtil.UNSAFE == null;
+    private static final boolean useUnsafe = UnsafeUtil.UNSAFE != null;
+    private static long tVarOffset = 0;
+    static {
+        if (useUnsafe) {
+            try {
+                tVarOffset = UNSAFE.objectFieldOffset
+                    (TVar.class.getDeclaredField("currentValue"));
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private static final AtomicReferenceFieldUpdater<TVar, Closure> cvUpdater
         = AtomicReferenceFieldUpdater
             .newUpdater(TVar.class, Closure.class, "currentValue");
 
     public final boolean cas(Closure expected, Closure update) {
         if (useUnsafe) {
-            return cvUpdater.compareAndSet(this, expected, update);
+            return UNSAFE.compareAndSwapObject(this, tVarOffset, expected, update);
         } else {
-            return UnsafeUtil.cas(this, expected, update);
+            return cvUpdater.compareAndSet(this, expected, update);
         }
     }
 }
