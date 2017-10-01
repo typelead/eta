@@ -75,9 +75,9 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
       cgExpr body
   else do
     let mCallPattern = lfCallPattern lfInfo
-    when (not hasStdLayout) $
+    when (arity > 6) $
       defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
-                  $  iconst jint (fromIntegral arity)
+                   $ iconst jint (fromIntegral arity)
                   <> greturn jint
     modClass <- getModClass
     if | Just (arity, fts) <- mCallPattern -> do
