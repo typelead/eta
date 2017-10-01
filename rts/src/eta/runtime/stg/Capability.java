@@ -479,7 +479,7 @@ public final class Capability {
     /* Globan Run Queue Stealing */
 
     public TSO tryStealGlobalRunQueue() {
-        TSO tso = Concurrent.globalRunQueue.pollLast();
+        TSO tso = Concurrent.stealFromGlobalRunQueue();
         if (tso != null) {
             Concurrent.globalRunQueueModifiedTime = System.currentTimeMillis();
             tso.cap = this;
