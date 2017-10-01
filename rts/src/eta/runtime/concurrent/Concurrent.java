@@ -2,11 +2,11 @@ package eta.runtime.concurrent;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Deque;
+import java.util.Queue;
 import java.util.Iterator;
 import java.util.concurrent.Future;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,16 +37,20 @@ public class Concurrent {
 
     /* Global Run Queue */
 
-    public static final Deque<TSO> globalRunQueue = new ConcurrentLinkedDeque<TSO>();
+    public static final Queue<TSO> globalRunQueue = new ConcurrentLinkedQueue<TSO>();
+
     public static long globalRunQueueModifiedTime = 0;
 
     public static void pushToGlobalRunQueue(TSO tso) {
-        assert tso.cap == null;
-        globalRunQueue.offerFirst(tso);
+        globalRunQueue.offer(tso);
+    }
+
+    public static TSO stealFromGlobalRunQueue() {
+        return globalRunQueue.poll();
     }
 
     public static boolean emptyGlobalRunQueue() {
-        return globalRunQueue.isEmpty();
+        return globalRunQueue.size() <= 0;
     }
 
     /* MVar Operations */
