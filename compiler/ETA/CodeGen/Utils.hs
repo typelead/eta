@@ -88,10 +88,19 @@ initCodeTemplate' :: FieldType -> Bool -> Text -> Text -> FieldRef -> Code -> Me
 initCodeTemplate' retFt synchronized modClass qClName field code =
   mkMethodDef modClass accessFlags qClName [] (Just retFt) $ fold
     [ getstatic field
-    , ifnonnull mempty code
+    , ifnonnull mempty bodyCode
     , getstatic field
     , greturn retFt ]
-  where accessFlags = [Public, Static] ++ (if synchronized then [Synchronized] else [])
+  where accessFlags = [Public, Static]
+        modFt = obj modClass
+        bodyCode
+          | synchronized = ftClassObject modFt
+                        <> dup classFt
+                        <> monitorenter classFt
+                        <> getstatic field
+                        <> ifnonnull mempty code
+                        <> monitorexit classFt
+          | otherwise = code
 
 initCodeTemplate :: Bool -> Text -> Text -> FieldRef -> Code -> MethodDef
 initCodeTemplate synchronized modClass qClName field code =
