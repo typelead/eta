@@ -293,8 +293,8 @@ debugPrint ft = dup ft
 ftClassObject :: FieldType -> Code
 ftClassObject ft@(BaseType _) =
   getstatic $ mkFieldRef (ftWrapper ft) "TYPE" classFt
-ftClassObject ft@(ObjectType iclassName) = gldc ft (CClass iclassName)
-ftClassObject ft@(ArrayType ft') = gldc ft (CClass . IClassName $ mkFieldDesc' ft')
+ftClassObject ft@(ObjectType iclassName) = gldc classFt (CClass iclassName)
+ftClassObject ft@(ArrayType ft') = gldc classFt (CClass . IClassName $ mkFieldDesc' ft')
 
 ftWrapper :: FieldType -> Text
 ftWrapper (BaseType prim) =

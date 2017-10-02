@@ -53,7 +53,9 @@ patchedLibraries = do
 
 -- These will not be built for various reasons.
 ignoredPackages :: [Text]
-ignoredPackages = ["singletons" ,"directory", "servant-docs"]
+ignoredPackages = ["singletons" ,"directory", "servant-docs", "regex-tdfa", "tasty"]
+
+-- WARNING: regex-tdfa exceeds the bytecode offset limit for if_acmpeq, ditto tasty
 
 ignoredPackageVersions :: [Text]
 ignoredPackageVersions = []
@@ -91,7 +93,7 @@ buildPackage pkg = do
   putStrLn dashes
   putStrLn outString
   putStrLn dashes
-  sh $ procExitOnError "etlas" ["install", pkg] empty
+  sh $ procExitOnError "etlas" ["install", pkg, "--enable-verify"] empty
 
 verifyJar :: IO ()
 verifyJar = sh verifyScript
