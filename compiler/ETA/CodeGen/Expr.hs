@@ -29,6 +29,7 @@ import Codec.JVM
 
 import System.FilePath (equalFilePath)
 import Data.Monoid((<>))
+import qualified Data.Set as Set
 import Data.Foldable(fold)
 import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
@@ -43,7 +44,7 @@ cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args)
                               cgConApp con args
 
 cgExpr t@(StgTick _ _) = cgTick t
-  
+
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   forbidScoping (cgBind binds)
@@ -197,6 +198,11 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
           codes <- cgPrimOp primop args
           return $ head codes
 
+cgCase (StgOpApp (StgPrimOp op) args _) binder (PrimAlt _) alts
+  | isDeadBinder binder
+  , Just genCode <- comparisonPrimOp op
+  = genCode (NonVoid binder) args alts
+
 cgCase (StgApp v []) _ (PrimAlt _) alts
   | isVoidRep (idPrimRep v)
   , [(DEFAULT, _, _, rhs)] <- alts
@@ -349,3 +355,156 @@ cgTick expr = do
       emit $ emitLineNumber $ mkLineNumber n
     _ -> return ()
   cgExpr subExpr
+
+comparisonPrimOp :: PrimOp -> Maybe (NonVoid Id -> [StgArg] -> [StgAlt] -> CodeGen ())
+comparisonPrimOp primop
+  | Set.member primop opsSet
+  = Just $ \binder args alts -> do
+      [(_, falseBranch), (_, trueBranch)] <- cgAltRhss binder alts
+      argExprs <- getNonVoidArgCodes args
+      emit $ (cmpOp primop) argExprs trueBranch falseBranch
+  | otherwise = Nothing
+  where opsSet = Set.fromList comparisonOps
+        comparisonOps = [ IntEqOp
+                        , IntNeOp
+                        , IntLeOp
+                        , IntLtOp
+                        , IntGeOp
+                        , IntGtOp
+
+                        , Int64Eq
+                        , Int64Ne
+                        , Int64Le
+                        , Int64Lt
+                        , Int64Ge
+                        , Int64Gt
+
+                        , WordEqOp
+                        , WordNeOp
+                        , WordLeOp
+                        , WordLtOp
+                        , WordGeOp
+                        , WordGtOp
+
+                        , Word64Eq
+                        , Word64Ne
+                        , Word64Le
+                        , Word64Lt
+                        , Word64Ge
+                        , Word64Gt
+
+                        , CharEqOp
+                        , CharNeOp
+                        , CharLeOp
+                        , CharLtOp
+                        , CharGeOp
+                        , CharGtOp
+
+                        , DoubleEqOp
+                        , DoubleNeOp
+                        , DoubleLeOp
+                        , DoubleLtOp
+                        , DoubleGeOp
+                        , DoubleGtOp
+
+                        , FloatEqOp
+                        , FloatNeOp
+                        , FloatLeOp
+                        , FloatLtOp
+                        , FloatGeOp
+                        , FloatGtOp
+
+                        , AddrEqOp
+                        , AddrNeOp
+                        , AddrLeOp
+                        , AddrLtOp
+                        , AddrGeOp
+                        , AddrGtOp
+
+
+                        , SameMutableArrayOp
+                        , SameSmallMutableArrayOp
+                        , SameMutableArrayArrayOp
+                        , SameMutVarOp
+                        , SameTVarOp
+                        , SameMVarOp
+                        , SameMutableByteArrayOp
+                        , ReallyUnsafePtrEqualityOp
+
+                        , EqStablePtrOp
+                        , EqStableNameOp
+
+                        ]
+        cmpOp IntEqOp = liftNormalOp if_icmpeq
+        cmpOp IntNeOp = liftNormalOp if_icmpne
+        cmpOp IntLeOp = liftNormalOp if_icmple
+        cmpOp IntLtOp = liftNormalOp if_icmplt
+        cmpOp IntGeOp = liftNormalOp if_icmpge
+        cmpOp IntGtOp = liftNormalOp if_icmpgt
+
+        cmpOp Int64Eq = liftTypedCmpOp jlong ifeq
+        cmpOp Int64Ne = liftTypedCmpOp jlong ifne
+        cmpOp Int64Le = liftTypedCmpOp jlong ifle
+        cmpOp Int64Lt = liftTypedCmpOp jlong iflt
+        cmpOp Int64Ge = liftTypedCmpOp jlong ifge
+        cmpOp Int64Gt = liftTypedCmpOp jlong ifgt
+
+        cmpOp WordEqOp = liftNormalOp if_icmpeq
+        cmpOp WordNeOp = liftNormalOp if_icmpne
+        cmpOp WordLeOp = liftUnsignedOp ifle
+        cmpOp WordLtOp = liftUnsignedOp iflt
+        cmpOp WordGeOp = liftUnsignedOp ifge
+        cmpOp WordGtOp = liftUnsignedOp ifgt
+
+        cmpOp Word64Eq = liftTypedCmpOp jlong ifeq
+        cmpOp Word64Ne = liftTypedCmpOp jlong ifne
+        cmpOp Word64Lt = liftUnsignedLongCmp iflt
+        cmpOp Word64Le = liftUnsignedLongCmp ifle
+        cmpOp Word64Gt = liftUnsignedLongCmp ifgt
+        cmpOp Word64Ge = liftUnsignedLongCmp ifge
+
+        cmpOp CharEqOp = liftNormalOp if_icmpeq
+        cmpOp CharNeOp = liftNormalOp if_icmpne
+        cmpOp CharLeOp = liftUnsignedOp ifle
+        cmpOp CharLtOp = liftUnsignedOp iflt
+        cmpOp CharGeOp = liftUnsignedOp ifge
+        cmpOp CharGtOp = liftUnsignedOp ifgt
+
+        cmpOp DoubleEqOp = liftTypedCmpOp jdouble ifeq
+        cmpOp DoubleNeOp = liftTypedCmpOp jdouble ifne
+        cmpOp DoubleGeOp = liftTypedCmpOp jdouble ifge
+        cmpOp DoubleLeOp = liftTypedCmpOp jdouble ifle
+        cmpOp DoubleGtOp = liftTypedCmpOp jdouble ifgt
+        cmpOp DoubleLtOp = liftTypedCmpOp jdouble iflt
+
+        cmpOp FloatEqOp = liftTypedCmpOp jfloat ifeq
+        cmpOp FloatNeOp = liftTypedCmpOp jfloat ifne
+        cmpOp FloatGeOp = liftTypedCmpOp jfloat ifge
+        cmpOp FloatLeOp = liftTypedCmpOp jfloat ifle
+        cmpOp FloatGtOp = liftTypedCmpOp jfloat ifgt
+        cmpOp FloatLtOp = liftTypedCmpOp jfloat iflt
+
+        cmpOp AddrEqOp = liftTypedCmpOp jlong ifeq
+        cmpOp AddrNeOp = liftTypedCmpOp jlong ifne
+        cmpOp AddrLeOp = liftTypedCmpOp jlong ifle
+        cmpOp AddrLtOp = liftTypedCmpOp jlong iflt
+        cmpOp AddrGeOp = liftTypedCmpOp jlong ifge
+        cmpOp AddrGtOp = liftTypedCmpOp jlong ifgt
+
+        cmpOp SameMutableArrayOp        = liftNormalOp if_acmpeq
+        cmpOp SameSmallMutableArrayOp   = liftNormalOp if_acmpeq
+        cmpOp SameMutableArrayArrayOp   = liftNormalOp if_acmpeq
+        cmpOp SameMutVarOp              = liftNormalOp if_acmpeq
+        cmpOp SameTVarOp                = liftNormalOp if_acmpeq
+        cmpOp SameMVarOp                = liftNormalOp if_acmpeq
+        cmpOp SameMutableByteArrayOp    = liftNormalOp if_acmpeq
+        cmpOp ReallyUnsafePtrEqualityOp = liftNormalOp if_acmpeq
+
+        cmpOp EqStablePtrOp             = liftNormalOp if_icmpeq
+        cmpOp EqStableNameOp            = liftNormalOp if_icmpeq
+        liftNormalOp f = \args b1 b2 -> fold args <> f b1 b2
+        liftUnsignedOp f = \args b1 b2 ->
+          liftTypedCmpOp jlong f (map unsignedExtend args) b1 b2
+        liftTypedCmpOp ft f = \[arg1, arg2] b1 b2 -> gcmp ft arg1 arg2 <> f b1 b2
+        liftUnsignedLongCmp f = \args b1 b2 ->
+          liftTypedCmpOp jlong f (map addMin args) b1 b2

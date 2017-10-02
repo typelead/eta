@@ -637,7 +637,7 @@ simpleOp IntGtOp = Just $ intCompOp if_icmpgt
 -- TODO: Take a look at compareUnsigned in JDK 8
 --       and see if that's more efficient
 simpleOp WordEqOp   = Just $ intCompOp if_icmpeq
-simpleOp WordNeOp   = Just $ intCompOp if_icmpeq
+simpleOp WordNeOp   = Just $ intCompOp if_icmpne
 simpleOp WordAddOp  = Just $ normalOp iadd
 simpleOp WordSubOp  = Just $ normalOp isub
 simpleOp WordMulOp  = Just $ normalOp imul
@@ -1048,4 +1048,6 @@ lONG_MIN_VALUE =  lconst (-9223372036854775808)
 unsignedLongCmp :: (Code -> Code -> Code) -> [Code] -> Code
 unsignedLongCmp ifop args
   = typedCmp jlong ifop $ map addMin args
-  where addMin x = x <> lONG_MIN_VALUE <> ladd
+
+addMin :: Code -> Code
+addMin x = x <> lONG_MIN_VALUE <> ladd
