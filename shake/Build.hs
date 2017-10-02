@@ -109,7 +109,7 @@ buildLibrary debug binPathArg lib _deps = do
   when (lib == "rts") $ need [rtsjar]
   unit $ cmd (Cwd dir) "etlas configure" configureFlags
   unit $ cmd (Cwd dir) "etlas install" installFlags
-  when (lib == "ghc-prim") $ fixGhcPrimConf
+  -- when (lib == "ghc-prim") $ fixGhcPrimConf
   return ()
 
 -- By default, GHC.Prim is NOT included, and we must manually add it in for
