@@ -112,8 +112,9 @@ However on windows ones the story is a little bit more complex:
 - Not all windows systems supports well ``utf-8`` (as code page ``65001``) or simply does not support it.
 
 So you usually are going to have to change the default java character encoding to get a correct output of non-ascii chars.
-Fortunately eta programs launcher scripts uses the environment variables ``$JAVA_ARGS`` and ``$ETA_JAVA_ARGS`` so you can do change java default charencoding with ``ETA_JAVA_ARGS="-Dfile.encoding=my_encoding"``.
+Fortunately eta programs launcher scripts uses the environment variables ``$JAVA_ARGS`` and ``$ETA_JAVA_ARGS`` so you can do change java default char encoding with ``ETA_JAVA_ARGS="-Dfile.encoding=my_encoding"``.
 You can determine ``my_encoding`` code in the `current java supported charsets page <https://docs.oracle.com/javase/8/docs/technotes/guides/intl/encoding.doc.html>`_.
+
 For example, to get an ``utf-8`` output in a windows system you should:
 
 - Change the console font to one that supports unicode characters (f.e. ``Lucida``).
@@ -121,4 +122,5 @@ For example, to get an ``utf-8`` output in a windows system you should:
 - Tell etlas you want to use it when executing eta programs with ``set ETA_JAVA_ARGS="-Dfile.encoding=UTF-8"``.
 
 Of course you can use ``$JAVA_ARGS`` or ``$ETA_JAVA_ARGS`` to change java file encoding in Linux/Unix systems if you have to do it.
+
 The current behaviour of eta programs when you try to output chars that are not supported in the current file encoding is to throw an error (``<stdout>: commitBuffer: failed``), like ghc.
