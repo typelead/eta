@@ -101,3 +101,24 @@ How do I opt-out of telemetry?
 2. Open the file with a text editor.
 3. Locate the ``send-metrics:`` field and change the value to ``False``.
 
+How do I change character encoding of eta programs output?
+----------------------------------------------------------
+
+Most modern Linux/Unix systems has utf-8 as default character encoding and almost surely java will use it for output so you will not have many problems.
+However on windows ones the story is a little bit more complex:
+
+   - The default console character encoding usually is ``ibm850`` or similar.
+   - The default system wide encoding varies depending on lang settings but it usually doesn't to match the console one (f.e. ``windows-1252``). Java (and eta) uses it as default char encoding.
+   - Not all windows systems supports well ``utf-8`` (as code page ``65001``) or simply does not support it.
+
+So you usually are going to have to change the default java character encoding to get a correct output of non-ascii chars.
+Fortunately eta programs launcher scripts uses the environment variables ``$JAVA_ARGS`` and ``$ETA_JAVA_ARGS`` so you can do change java default charencoding with ``ETA_JAVA_ARGS="-Dfile.encoding=my_encoding"``.
+You can determine ``my_encoding`` code in the `current java supported charsets page <https://docs.oracle.com/javase/8/docs/technotes/guides/intl/encoding.doc.html>`_.
+For example, to get an ``utf-8`` output in a windows system you should:
+
+    - Change the console font to one that supports unicode characters (f.e. ``Lucida``)
+    - Change the encoding of console to ``utf-8`` with the command ``chcp 65001``. Without a suitable font the command will fail without notice any error.
+    - Tell etlas you want to use it when executing eta programs with ``set ETA_JAVA_ARGS="-Dfile.encoding=UTF-8"``
+
+Of course you can use ``$JAVA_ARGS`` or ``$ETA_JAVA_ARGS`` to change java file encoding in Linux/Unix systems if you have to do it.
+The current behaviour of eta programs when you try to output chars that are not supported in the current file encoding is to throw an error (``<stdout>: commitBuffer: failed``), like ghc.
