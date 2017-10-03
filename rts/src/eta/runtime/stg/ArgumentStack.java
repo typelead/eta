@@ -139,7 +139,7 @@ public class ArgumentStack implements Cloneable {
         }
         Closure[] newClosures = new Closure[len];
         if (oldClosures != null) {
-            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 2);
         }
         newClosures[len - 2] = p1;
         newClosures[len - 1] = p2;
@@ -157,7 +157,7 @@ public class ArgumentStack implements Cloneable {
         }
         Closure[] newClosures = new Closure[len];
         if (oldClosures != null) {
-            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 3);
         }
         newClosures[len - 3] = p1;
         newClosures[len - 2] = p2;
@@ -176,7 +176,7 @@ public class ArgumentStack implements Cloneable {
         }
         Closure[] newClosures = new Closure[len];
         if (oldClosures != null) {
-            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 4);
         }
         newClosures[len - 4] = p1;
         newClosures[len - 3] = p2;
@@ -196,7 +196,7 @@ public class ArgumentStack implements Cloneable {
         }
         Closure[] newClosures = new Closure[len];
         if (oldClosures != null) {
-            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 5);
         }
         newClosures[len - 5] = p1;
         newClosures[len - 4] = p2;
@@ -217,7 +217,7 @@ public class ArgumentStack implements Cloneable {
         }
         Closure[] newClosures = new Closure[len];
         if (oldClosures != null) {
-            System.arraycopy(oldClosures, 0, newClosures, 0, len - 1);
+            System.arraycopy(oldClosures, 0, newClosures, 0, len - 6);
         }
         newClosures[len - 6] = p1;
         newClosures[len - 5] = p2;
