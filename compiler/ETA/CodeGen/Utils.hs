@@ -96,9 +96,11 @@ initCodeTemplate' retFt synchronized modClass qClName field code =
         bodyCode
           | synchronized = ftClassObject modFt
                         <> dup classFt
+                        <> gstore classFt 0
                         <> monitorenter classFt
                         <> getstatic field
                         <> ifnonnull mempty code
+                        <> gload classFt 0
                         <> monitorexit classFt
           | otherwise = code
 
