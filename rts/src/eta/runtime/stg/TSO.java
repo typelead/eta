@@ -44,7 +44,8 @@ public final class TSO extends BlackHole {
 
     /* Temporary per execution */
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
-    public Stack<Closure> contStack = new Stack<Closure>();
+    public Closure[] contStack = new Closure[6];
+    public int contStackTop;
     public Closure currentCont;
 
     /* TSO Flags */
@@ -276,5 +277,26 @@ public final class TSO extends BlackHole {
 
     public final void reset() {
         updateInfoStack.clear();
+    }
+
+    public final void pushCont(Closure action) {
+        int len = contStackTop + 1;
+        if (len > contStack.length) extendContStack();
+        contStack[contStackTop++] = action;
+    }
+
+    public final void extendContStack() {
+        int len = contStack.length;
+        Closure[] newContStack = new Closure[2 * len];
+        System.arraycopy(contStack, 0, newContStack, 0, len);
+        contStack = newContStack;
+    }
+
+    public final Closure popCont() {
+        return contStack[--contStackTop];
+    }
+
+    public final boolean emptyContStack() {
+        return contStackTop == 0;
     }
 }
