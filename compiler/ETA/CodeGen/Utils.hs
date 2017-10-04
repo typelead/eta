@@ -4,7 +4,9 @@ module ETA.CodeGen.Utils where
 import ETA.Main.DynFlags
 import ETA.BasicTypes.Name
 import ETA.Types.TyCon
+import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.DataCon (DataCon)
+import ETA.BasicTypes.Id
 import ETA.BasicTypes.Literal
 import Codec.JVM
 import Data.Char (ord)
@@ -107,3 +109,8 @@ initCodeTemplate' retFt synchronized modClass qClName field code =
 initCodeTemplate :: Bool -> Text -> Text -> FieldRef -> Code -> MethodDef
 initCodeTemplate synchronized modClass qClName field code =
   initCodeTemplate' closureType synchronized modClass qClName field code
+
+idUsedOnce :: Id -> Bool
+idUsedOnce id
+  | OneOcc False True _ctxt <- idOccInfo id = True
+  | otherwise = False

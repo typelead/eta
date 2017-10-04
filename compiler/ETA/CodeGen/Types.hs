@@ -21,6 +21,7 @@ module ETA.CodeGen.Types
    locArgRep,
    mkRepLocDirect,
    mkLocDirect,
+   newLocDirect,
    mkLocLocal,
    mkLocArg,
    getNonVoidFts,
@@ -91,6 +92,11 @@ mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
 
 mkLocLocal :: Bool -> FieldType -> Int -> CgLoc
 mkLocLocal isClosure ft int = LocLocal isClosure ft int
+
+newLocDirect :: NonVoid Id -> Code -> CgLoc
+newLocDirect (NonVoid id) code =
+  mkLocDirect (isGcPtrRep rep) (primRepFieldType rep, code)
+  where rep = idPrimRep id
 
 mkLocArg :: NonVoid Id -> Int -> CgLoc
 mkLocArg (NonVoid id) n

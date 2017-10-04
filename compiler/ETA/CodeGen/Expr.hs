@@ -31,6 +31,7 @@ import System.FilePath (equalFilePath)
 import Data.Monoid((<>))
 import qualified Data.Set as Set
 import Data.Foldable(fold)
+import Data.List(zip4)
 import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
@@ -288,29 +289,41 @@ cgAltRhss binder alts =
 
 bindConArgs :: AltCon -> NonVoid Id -> [Id] -> [Bool] -> CodeGen ()
 bindConArgs (DataAlt con) binder args uses
-  | not (null args), or uses = do
+  | not (null args), or uses
+  , length indexedFields >= 1 = do
     dflags <- getDynFlags
+    base <- getCgLoc binder
     let conClass = dataConClass dflags con
         dataFt   = obj conClass
-    base <- getCgLoc binder
-    emit $ loadLoc base
-        <> gconv conType dataFt
-    -- TODO: Take into account uses as well
-    forM_ indexedFields $ \(i, (ft, (arg, use))) ->
-      when use $ do
-        let nvArg = NonVoid arg
-        cgLoc <- newIdLoc nvArg
-        emitAssign cgLoc $ dup dataFt
-                        <> getfield (mkFieldRef conClass (constrField i) ft)
-        bindArg nvArg cgLoc
-    -- TODO: Remove this pop in a clever way
-    emit $ pop dataFt
-    where indexedFields = indexList . mapMaybe (\(mb, args) ->
-                                                  case mb of
-                                                    Just m -> Just (m, args)
-                                                    Nothing -> Nothing)
-                                    $ zip maybeFields (zip args uses)
-          maybeFields = map repFieldType_maybe $ dataConRepArgTys con
+        castCode = loadLoc base <> gconv conType dataFt
+    if length indexedFields > 1
+    then do
+      dataLoc <- newTemp True dataFt
+      emit $ storeLoc dataLoc castCode
+      forM_ indexedFields $ \(i, ft, arg) ->
+        bindFieldCgLoc arg $
+          loadLoc dataLoc <> getfield (mkFieldRef conClass (constrField i) ft)
+    else do
+      let (i, ft, arg) = head indexedFields
+      bindFieldCgLoc arg $
+        castCode <> getfield (mkFieldRef conClass (constrField i) ft)
+    where indexedFields = mapMaybe (\(i, mb, arg, use) ->
+                                      case mb of
+                                        Just m
+                                          | use       -> Just (i, m, arg)
+                                          | otherwise -> Nothing
+                                        Nothing -> Nothing)
+                        $ zip4 [1..] maybeFields args uses
+          maybeFields  = map repFieldType_maybe $ dataConRepArgTys con
+          bindFieldCgLoc arg loadCode =
+            getFieldCgLoc >>= bindArg nvArg
+            where getFieldCgLoc
+                    | idUsedOnce arg = return $ newLocDirect nvArg loadCode
+                    | otherwise = do
+                      cgLoc <- newIdLoc nvArg
+                      emitAssign cgLoc loadCode
+                      return cgLoc
+                  nvArg = NonVoid arg
 bindConArgs _ _ _ _ = return ()
 
 cgAlgAltRhss :: NonVoid Id -> [StgAlt] -> CodeGen (Maybe Code, [(Int, Code)])
