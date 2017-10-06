@@ -137,9 +137,9 @@ checkForStackFramesMethod :: Code
 checkForStackFramesMethod =
   invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
 
-mkApFast :: Int -> [FieldType] -> Code
-mkApFast arity rawFts =
-  invokevirtual (mkMethodRef stgClosure applyFun rawFts (Just closureType))
+mkApFast :: Int -> Text -> [FieldType] -> Code
+mkApFast arity realCls rawFts =
+  invokevirtual (mkMethodRef realCls applyFun rawFts (Just closureType))
   where fts = drop 1 rawFts
         applyFun = mkApFun arity fts
 

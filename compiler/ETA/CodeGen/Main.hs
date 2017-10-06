@@ -183,10 +183,14 @@ cgTopRhsClosure :: DynFlags
                 -> (CgIdInfo, CodeGen (Maybe RecInfo))
 cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
   = (cgIdInfo, genCode)
-  where cgIdInfo = mkCgIdInfo dflags id lfInfo
+  where cgIdInfo = mkCgIdInfo dflags id (Just clType) lfInfo
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
-        (modClass, clName, _clClass) = getJavaInfo dflags cgIdInfo
+        (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
+        clType
+          | StgApp f [] <- body, null args, isNonRec recflag
+          = indStaticType
+          | otherwise = obj clClass
         genCode
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f

@@ -70,7 +70,7 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
   setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
   if arity == 0 then
     -- TODO: Implement eager blackholing
-    withMethod [Public] "thunkEnter" [contextType] (ret closureType) $ do
+    withMethod [Public, Final] "thunkEnter" [contextType] (ret closureType) $ do
       mapM_ bindFV fvLocs
       cgExpr body
   else do
@@ -81,14 +81,14 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                   <> greturn jint
     modClass <- getModClass
     if | Just (arity, fts) <- mCallPattern -> do
-         withMethod [Public] "enter" [contextType] (ret closureType) $ do
+         withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            argLocs <- mapM newIdLoc args
            emit $ gload thisFt 0
                <> loadContext
                <> mkCallEntry False False argLocs
-               <> mkApFast arity (contextType:fts)
+               <> mkApFast arity thisClass (contextType:fts)
                <> greturn closureType
-         withMethod [Public] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
+         withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
            let argLocs = argLocsFrom 2 args
            case mFunRecIds of
              Just (n, funRecIds)
@@ -110,7 +110,7 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                  mapM_ bindFV fvLocs
                  cgExpr body
        | otherwise ->
-         withMethod [Public] "enter" [contextType] (ret closureType) $
+         withMethod [Public, Final] "enter" [contextType] (ret closureType) $
            case mFunRecIds of
              Just (n, funRecIds)
                | let argLocs = argLocsFrom 2 args

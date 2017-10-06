@@ -32,7 +32,7 @@ cgTopRhsCon :: DynFlags
             -> [StgArg]         -- Args
             -> (CgIdInfo, CodeGen (Maybe RecInfo))
 cgTopRhsCon dflags id conRecIds dataCon args = (cgIdInfo, genCode)
-  where cgIdInfo                      = mkCgIdInfo dflags id lfInfo
+  where cgIdInfo                      = mkCgIdInfo dflags id (Just dataFt) lfInfo
         lfInfo                        = mkConLFInfo dataCon
         maybeFields                   = map repFieldType_maybe
                                       $ dataConRepArgTys dataCon
@@ -62,8 +62,9 @@ buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo
                                                             , CodeGen (Code, RecIndexes, FieldType) )
 buildDynCon binder con [] _ = do
   dflags <- getDynFlags
-  return ( mkCgIdInfo dflags binder (mkConLFInfo con)
-         , return (mempty, [], obj $ dataConClass dflags con) )
+  let dataFt = obj (dataConClass dflags con)
+  return ( mkCgIdInfo dflags binder (Just dataFt) (mkConLFInfo con)
+         , return (mempty, [], dataFt) )
 -- buildDynCon binder con [arg]
 --   | maybeIntLikeCon con
 --   , StgLitArg (MachInt val) <- arg

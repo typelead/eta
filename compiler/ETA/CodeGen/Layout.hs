@@ -18,6 +18,7 @@ import ETA.CodeGen.Env
 import Data.Maybe
 import Data.Monoid
 import Data.Foldable
+import Data.Text (Text)
 
 emitReturn :: [CgLoc] -> CodeGen ()
 emitReturn results = do
@@ -143,23 +144,26 @@ slowCall dflags fun argFtCodes
   where n            = length argFtCodes
         ft           = locFt fun
         code         = loadLoc fun
+        realCls      = fromMaybe stgClosure $ locClass fun
         (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
-        slowCode     = directCall' True True (mkApFast arity (contextType:fts)) arity
-                                   ((P, Just ft, Just code):argFtCodes)
+        slowCode     = directCall' True True realCls
+                         (mkApFast arity realCls (contextType:fts))
+                         arity ((P, Just ft, Just code):argFtCodes)
 
 directCall :: Bool -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall slow fun arity argFtCodes
   | arity' == arity =
-    directCall' True True (mkApFast arity' (contextType:fts)) arity'
+    directCall' True True realCls (mkApFast arity' realCls (contextType:fts)) arity'
       ((P, Just ft, Just code):argFtCodes)
-  | otherwise = directCall' slow False entryCode arity argFtCodes
+  | otherwise = directCall' slow False realCls entryCode arity argFtCodes
   where (arity', fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
         code         = loadLoc fun
         ft           = locFt fun
         entryCode    = enterMethod fun
+        realCls      = fromMaybe stgClosure $ locClass fun
 
-directCall' :: Bool -> Bool -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directCall' slow directLoad entryCode arity args =
+directCall' :: Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall' slow directLoad realCls entryCode arity args =
      node
   <> loadArgs
   <> entryCode
@@ -173,7 +177,8 @@ directCall' slow directLoad entryCode arity args =
           | otherwise = callArgs
         third (_,_,a) = a
         (node, loadArgs)
-          | directLoad = (fromMaybe mempty . third $ head callArgs,
+          | directLoad = ((fromMaybe mempty . third $ head callArgs)
+                         <> gconv closureType (obj realCls),
                           loadContext <> fold (catMaybes $ map third realCallArgs))
           | otherwise  = (mempty, mkCallExit callArgs)
         applyCalls = genApplyCalls restArgs
@@ -192,7 +197,7 @@ genApplyCall :: Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] ->
 genApplyCall arity fts args =
      loadContext
   <> fold loadCodes
-  <> mkApFast arity (contextType:fts)
+  <> mkApFast arity stgClosure (contextType:fts)
   where loadCodes = mapMaybe (\(_, _, a) -> a) args
 
 getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]

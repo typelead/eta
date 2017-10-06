@@ -19,6 +19,7 @@ module ETA.CodeGen.Types
    RecInfo,
    storeDefault,
    locArgRep,
+   locClass,
    mkRepLocDirect,
    mkLocDirect,
    newLocDirect,
@@ -128,7 +129,7 @@ locArgRep loc = case loc of
 
 locFt :: CgLoc -> FieldType
 locFt (LocLocal _ ft _) = ft
-locFt (LocStatic ft _ _) = ft
+locFt (LocStatic _ft _ _) = closureType
 locFt (LocField _ ft _ _) = ft
 locFt (LocDirect _ ft _) = ft
 locFt (LocMask ft _) = ft
@@ -145,13 +146,17 @@ storeDefault cgLoc = storeLoc cgLoc $ defaultValue (locFt cgLoc)
 loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
 loadLoc (LocMask ft loc) = loadLoc loc <> gconv (locFt loc) ft
-loadLoc (LocStatic ft modClass clName) =
-  invokestatic $ mkMethodRef modClass (closure clName) [] (Just ft)
+loadLoc (LocStatic _ft modClass clName) =
+  invokestatic $ mkMethodRef modClass (closure clName) [] (Just closureType)
 loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
 loadLoc (LocDirect _ _ code) = code
 loadLoc loc = pprPanic "loadLoc" $ ppr loc
+
+locClass :: CgLoc -> Maybe Text
+locClass (LocStatic (ObjectType (IClassName cls)) _ _) = Just cls
+locClass _ = Nothing
 
 type CgBindings = IdEnv CgIdInfo
 
@@ -164,7 +169,7 @@ instance Outputable CgIdInfo where
   ppr CgIdInfo {..} = ppr cgId <+> str "-->" <+> ppr cgLocation
 
 splitStaticLoc :: CgLoc -> (Text, Text)
-splitStaticLoc (LocStatic _ modClass clName) = (modClass, clName)
+splitStaticLoc (LocStatic _ft modClass clName) = (modClass, clName)
 splitStaticLoc loc = pprPanic "splitStaticLoc" $ ppr loc
 
 getJavaInfo :: DynFlags -> CgIdInfo -> (Text, Text, Text)
@@ -179,12 +184,12 @@ maybeDataConClass :: DynFlags -> LambdaFormInfo -> Maybe Text
 maybeDataConClass dflags (LFCon dataCon) = Just $ dataConClass dflags dataCon
 maybeDataConClass _ _ = Nothing
 
-mkCgIdInfo :: DynFlags -> Id -> LambdaFormInfo -> CgIdInfo
-mkCgIdInfo dflags id lfInfo =
+mkCgIdInfo :: DynFlags -> Id -> Maybe FieldType -> LambdaFormInfo -> CgIdInfo
+mkCgIdInfo dflags id realFt lfInfo =
   CgIdInfo { cgId = id
            , cgLambdaForm = lfInfo
            , cgLocation = loc }
-  where loc = mkStaticLoc dflags id lfInfo
+  where loc = mkStaticLoc dflags id realFt lfInfo
 
 mkCgIdInfoWithLoc :: Id -> LambdaFormInfo -> CgLoc -> CgIdInfo
 mkCgIdInfoWithLoc id lfInfo cgLoc =
@@ -192,13 +197,14 @@ mkCgIdInfoWithLoc id lfInfo cgLoc =
            , cgLambdaForm = lfInfo
            , cgLocation = cgLoc }
 
-mkStaticLoc :: DynFlags -> Id -> LambdaFormInfo -> CgLoc
-mkStaticLoc dflags id _ = LocStatic closureType modClass clName
+mkStaticLoc :: DynFlags -> Id -> Maybe FieldType -> LambdaFormInfo -> CgLoc
+mkStaticLoc dflags id realFt' _ = LocStatic realFt modClass clName
   where name = idName id
         mod = fromMaybe (error "mkStaticLoc: No module")
             $ nameModule_maybe name
         clName = nameText dflags True name
         modClass = moduleJavaClass mod
+        realFt = fromMaybe closureType realFt'
         -- clClass
         --   | Just c <- maybeDataConClass lfInfo = c
         --   | Just c <- maybeTyConClass (idType id) = c
@@ -311,14 +317,18 @@ getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
 enterMethod :: CgLoc -> Code
 enterMethod cgLoc
   = loadLoc cgLoc
+ <> gconv closureType (obj closureCls)
  <> loadContext
- <> invokevirtual (mkMethodRef stgClosure "enter" [contextType] (ret closureType))
+ <> invokevirtual (mkMethodRef closureCls "enter" [contextType] (ret closureType))
+ where closureCls = fromMaybe stgClosure (locClass cgLoc)
 
 evaluateMethod :: CgLoc -> Code
 evaluateMethod cgLoc
   = loadLoc cgLoc
+ <> gconv closureType (obj closureCls)
  <> loadContext
- <> invokevirtual (mkMethodRef stgClosure "evaluate" [contextType] (ret closureType))
+ <> invokevirtual (mkMethodRef closureCls "evaluate" [contextType] (ret closureType))
+ where closureCls = fromMaybe stgClosure (locClass cgLoc)
 
 type RecIndexes = [(Int, Id)]
 type RecInfo = (Text, Text, Text, FieldRef, Code, RecIndexes)

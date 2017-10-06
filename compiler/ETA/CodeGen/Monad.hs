@@ -271,8 +271,8 @@ getCgIdInfo id = do
       let mod  = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id))
                $ nameModule_maybe name
       dflags <- getDynFlags
-      if mod /= curMod then return . mkCgIdInfo dflags id $ mkLFImported id
-      else return . mkCgIdInfo dflags id $ mkLFImported id
+      if mod /= curMod then return . mkCgIdInfo dflags id Nothing $ mkLFImported id
+      else return . mkCgIdInfo dflags id Nothing $ mkLFImported id
 
 printBindings :: CodeGen ()
 printBindings = do
