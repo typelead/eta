@@ -37,7 +37,7 @@ public class CAF extends Thunk {
                         if (((EtaAsyncException) e).stopHere == ui) {
                             continue;
                         } else {
-                            throw e;
+                            throw (EtaAsyncException) e;
                         }
                     } else {
                         EtaException e_;
