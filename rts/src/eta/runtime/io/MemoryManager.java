@@ -34,16 +34,16 @@ public class MemoryManager {
         = new ConcurrentSkipListMap<Integer, Queue<Long>>();
 
     /* Locks on each size */
-    public static Map<Integer, SizeLock> directSizeLocks
+    public static final Map<Integer, SizeLock> directSizeLocks
         = new ConcurrentHashMap<Integer, SizeLock>();
 
-    public static AtomicBoolean directSizeLocksLock
+    public static final AtomicBoolean directSizeLocksLock
         = new AtomicBoolean();
 
-    public static Map<Integer, SizeLock> heapSizeLocks
+    public static final Map<Integer, SizeLock> heapSizeLocks
         = new ConcurrentHashMap<Integer, SizeLock>();
 
-    public static AtomicBoolean heapSizeLocksLock
+    public static final AtomicBoolean heapSizeLocksLock
         = new AtomicBoolean();
 
     public static SizeLock getSizeLock
@@ -79,14 +79,14 @@ public class MemoryManager {
         = new ConcurrentSkipListMap<Long, Integer>();
 
     /* Actual storage of blocks */
-    public static List[] blockArrays =
+    private static final ArrayList[] blockArrays =
         { new ArrayList()
         , new ArrayList()
         , new ArrayList()
         , new ArrayList() };
 
     /* Locks for each blockArray */
-    public static AtomicBoolean[] blockLocks =
+    private static final AtomicBoolean[] blockLocks =
         { new AtomicBoolean()
         , new AtomicBoolean()
         , new AtomicBoolean()
@@ -533,41 +533,44 @@ public class MemoryManager {
     /** Byte Buffer API to MemoryManager **/
 
     /*  This caches the last lookup for reducing the constant factor when
-        you're doing a lot of writes/reads on a single buffer (the common case). */
-    private static class ThreadLocalLong extends ThreadLocal<Long> {
-        protected Long initialValue() {
-            return new Long(0L);
+    you're doing a lot of writes/reads on a single buffer (the common case). */
+    private static final class CachedBuffer {
+        CachedBuffer(long lowerAddress, long higherAddress, ByteBuffer buffer) {
+            this.lowerAddress = lowerAddress;
+            this.higherAddress = higherAddress;
+            this.buffer = buffer;
         }
+        /* Start of previous received block. */
+        final long lowerAddress;
+        /* Start of the adjacent block.
+           NOTE: This is the start of the NEXT block so you must do a strict comparison. */
+        final long higherAddress;
+        /* The cached buffer */
+        final ByteBuffer buffer;
     }
 
-    /* Start of previous received block. */
-    public static ThreadLocal<Long> cachedLowerAddress = new ThreadLocalLong();
-
-    /* Start of the adjacent block.
-       NOTE: This is the start of the NEXT block so you must do a strict comparison. */
-    public static ThreadLocal<Long> cachedHigherAddress = new ThreadLocalLong();
-
     /* The cached buffer */
-    public static ThreadLocal<ByteBuffer> cachedBuffer = new ThreadLocal<ByteBuffer>();
+    private static final ThreadLocal<CachedBuffer> cachedBuffer = new ThreadLocal<CachedBuffer>();
 
     /* The shared empty buffer */
-    public final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
+    private final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
 
-    public static ByteBuffer getBuffer(long address) {
+    private static ByteBuffer getBuffer(long address) {
+        CachedBuffer cb = cachedBuffer.get();
+        if (cb != null && address >= cb.lowerAddress && address < cb.higherAddress) {
+            return cb.buffer;
+        }
+        return getBufferSlow(address);
+    }
+
+    private static ByteBuffer getBufferSlow(long address) {
         if (address == 0)
             return emptyBuffer;
-        if (address >= cachedLowerAddress.get() && address < cachedHigherAddress.get()) {
-            ByteBuffer cached = cachedBuffer.get();
-            if (cached != null) {
-                return cached;
-            }
-        }
         int blockType  = blockType(address);
         int indexBits  = indexBits(blockType);
         int blockIndex = blockIndex(address, indexBits);
-        long lower = (blockType << BLOCK_TYPE_BITS) | (blockIndex << indexBits);
         AtomicBoolean blockLock = blockLocks[blockType];
-        ByteBuffer buf = null;
+        ByteBuffer buf;
         Exception e = null;
         while (!blockLock.compareAndSet(false, true)) {}
         try {
@@ -586,9 +589,8 @@ public class MemoryManager {
               "getBuffer: The block that corresponds to the address " + address +
               " does not exist.", e);
         }
-        cachedLowerAddress.set(lower);
-        cachedHigherAddress.set(lower + (1 << indexBits));
-        cachedBuffer.set(buf);
+        long lower = (blockType << BLOCK_TYPE_BITS) | (blockIndex << indexBits);
+        cachedBuffer.set(new CachedBuffer(lower, lower + (1 << indexBits), buf));
         return buf;
     }
 
