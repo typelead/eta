@@ -212,7 +212,7 @@ public class STM {
                 tso.resetStack();
                 return ret;
             } else {
-                throw e;
+                throw (RuntimeException) e;
             }
         }
     }
