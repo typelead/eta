@@ -34,7 +34,7 @@
 module ETA.BasicTypes.Var (
         -- * The main data type and synonyms
         Var, CoVar, Id, DictId, DFunId, EvVar, EqVar, EvId, IpId,
-        TyVar, TypeVar, KindVar, TKVar,
+        TyVar, TypeVar, KindVar, TKVar, TyCoVar,
 
         -- ** Taking 'Var's apart
         varName, varUnique, varType,
@@ -108,6 +108,10 @@ type IpId   = EvId      -- A term-level implicit parameter
 type EqVar  = EvId      -- Boxed equality evidence
 
 type CoVar = Id         -- See Note [Evidence: EvIds and CoVars]
+
+-- | Type or Coercion Variable
+type TyCoVar = Id       -- Type, *or* coercion variable
+                        --   predicate: isTyCoVar
 
 {-
 Note [Evidence: EvIds and CoVars]

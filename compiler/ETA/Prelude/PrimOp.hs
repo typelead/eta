@@ -2943,16 +2943,16 @@ primOpStrictness :: PrimOp -> Arity -> StrictSig
         -- See Demand.StrictnessInfo for discussion of what the results
         -- The arity should be the arity of the primop; that's why
         -- this function isn't exported.
-primOpStrictness CatchOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,apply2Dmd,topDmd] topRes
+primOpStrictness CatchOp =  \ _arity -> mkClosedStrictSig [lazyApply1Dmd,lazyApply2Dmd,topDmd] topRes
 primOpStrictness RaiseOp =  \ _arity -> mkClosedStrictSig [topDmd] botRes
 primOpStrictness RaiseIOOp =  \ _arity -> mkClosedStrictSig [topDmd, topDmd] botRes
-primOpStrictness MaskAsyncExceptionsOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,topDmd] topRes
-primOpStrictness MaskUninterruptibleOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,topDmd] topRes
-primOpStrictness UnmaskAsyncExceptionsOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,topDmd] topRes
-primOpStrictness AtomicallyOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,topDmd] topRes
+primOpStrictness MaskAsyncExceptionsOp =  \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes
+primOpStrictness MaskUninterruptibleOp =  \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes
+primOpStrictness UnmaskAsyncExceptionsOp =  \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes
+primOpStrictness AtomicallyOp =  \ _arity -> mkClosedStrictSig [strictApply1Dmd,topDmd] topRes
 primOpStrictness RetryOp =  \ _arity -> mkClosedStrictSig [topDmd] botRes
-primOpStrictness CatchRetryOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,apply1Dmd,topDmd] topRes
-primOpStrictness CatchSTMOp =  \ _arity -> mkClosedStrictSig [apply1Dmd,apply2Dmd,topDmd] topRes
+primOpStrictness CatchRetryOp =  \ _arity -> mkClosedStrictSig [catchArgDmd,lazyApply1Dmd,topDmd] topRes
+primOpStrictness CatchSTMOp =  \ _arity -> mkClosedStrictSig [lazyApply1Dmd,lazyApply2Dmd,topDmd] topRes
 primOpStrictness DataToTagOp =  \ _arity -> mkClosedStrictSig [evalDmd] topRes
 primOpStrictness PrefetchValueOp3 =  \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes
 primOpStrictness PrefetchValueOp2 =  \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes

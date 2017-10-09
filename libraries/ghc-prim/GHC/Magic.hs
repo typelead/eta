@@ -1,5 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.Magic
@@ -17,7 +21,10 @@
 --
 -----------------------------------------------------------------------------
 
-module GHC.Magic ( inline, lazy, oneShot ) where
+module GHC.Magic ( inline, noinline, lazy, oneShot, runRW# ) where
+
+import GHC.Prim
+import GHC.CString ()
 
 -- | The call @inline f@ arranges that 'f' is inlined, regardless of
 -- its size. More precisely, the call @inline f@ rewrites to the
@@ -37,6 +44,13 @@ module GHC.Magic ( inline, lazy, oneShot ) where
 {-# NOINLINE[0] inline #-}
 inline :: a -> a
 inline x = x
+
+-- | The call @noinline f@ arranges that 'f' will not be inlined.
+-- It is removed during CorePrep so that its use imposes no overhead
+-- (besides the fact that it blocks inlining.)
+{-# NOINLINE noinline #-}
+noinline :: a -> a
+noinline x = x
 
 -- | The 'lazy' function restrains strictness analysis a little. The
 -- call @lazy e@ means the same as 'e', but 'lazy' has a magical
@@ -73,3 +87,15 @@ oneShot :: (a -> b) -> (a -> b)
 oneShot f = f
 -- Implementation note: This is wired in in MkId.lhs, so the code here is
 -- mostly there to have a place for the documentation.
+
+-- | Apply a function to a 'RealWorld' token.
+runRW# :: (State# RealWorld -> (# State# RealWorld, o #))
+       -> (# State# RealWorld, o #)
+-- See Note [runRW magic] in MkId
+#if !defined(__HADDOCK_VERSION__)
+runRW# m = m realWorld#
+#else
+runRW# = runRW#   -- The realWorld# is too much for haddock
+#endif
+{-# NOINLINE runRW# #-}
+-- This is inlined manually in CorePrep

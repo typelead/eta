@@ -5,14 +5,16 @@
 
 module ETA.BasicTypes.VarEnv (
         -- * Var, Id and TyVar environments (maps)
-        VarEnv, IdEnv, TyVarEnv, CoVarEnv,
+        VarEnv, IdEnv, TyVarEnv, CoVarEnv, TyCoVarEnv,
 
         -- ** Manipulating these environments
-        emptyVarEnv, unitVarEnv, mkVarEnv,
-        elemVarEnv, varEnvElts,
-        extendVarEnv, extendVarEnv_C, extendVarEnv_Acc, extendVarEnvList,
-        plusVarEnv, plusVarEnv_C, plusVarEnv_CD, alterVarEnv,
-        delVarEnvList, delVarEnv,
+        emptyVarEnv, unitVarEnv, mkVarEnv, mkVarEnv_Directly,
+        elemVarEnv, disjointVarEnv, varEnvElts,
+        extendVarEnv, extendVarEnv_C, extendVarEnv_Acc, extendVarEnv_Directly,
+        extendVarEnvList,
+        plusVarEnv, plusVarEnv_C, plusVarEnv_CD, plusMaybeVarEnv_C,
+        plusVarEnvList, alterVarEnv,
+        delVarEnvList, delVarEnv, delVarEnv_Directly,
         minusVarEnv, intersectsVarEnv,
         lookupVarEnv, lookupVarEnv_NF, lookupWithDefaultVarEnv,
         mapVarEnv, zipVarEnv,
@@ -21,6 +23,27 @@ module ETA.BasicTypes.VarEnv (
         elemVarEnvByKey, lookupVarEnv_Directly,
         filterVarEnv, filterVarEnv_Directly, restrictVarEnv,
         partitionVarEnv,
+
+        -- * Deterministic Var environments (maps)
+        DVarEnv, DIdEnv, DTyVarEnv,
+
+        -- ** Manipulating these environments
+        emptyDVarEnv, mkDVarEnv,
+        dVarEnvElts,
+        extendDVarEnv, extendDVarEnv_C,
+        extendDVarEnvList,
+        lookupDVarEnv, elemDVarEnv,
+        isEmptyDVarEnv, foldDVarEnv,
+        mapDVarEnv,
+        modifyDVarEnv,
+        alterDVarEnv,
+        plusDVarEnv, plusDVarEnv_C,
+        unitDVarEnv,
+        delDVarEnv,
+        delDVarEnvList,
+        minusDVarEnv,
+        partitionDVarEnv,
+        anyDVarEnv,
 
         -- * The InScopeSet type
         InScopeSet,
@@ -36,13 +59,14 @@ module ETA.BasicTypes.VarEnv (
         RnEnv2,
 
         -- ** Operations on RnEnv2s
-        mkRnEnv2, rnBndr2, rnBndrs2,
+        mkRnEnv2, rnBndr2, rnBndrs2, rnBndr2_var,
         rnOccL, rnOccR, inRnEnvL, inRnEnvR, rnOccL_maybe, rnOccR_maybe,
-        rnBndrL, rnBndrR, nukeRnEnvL, nukeRnEnvR,
+        rnBndrL, rnBndrR, nukeRnEnvL, nukeRnEnvR, rnSwap,
         delBndrL, delBndrR, delBndrsL, delBndrsR,
         addRnInScopeSet,
         rnEtaL, rnEtaR,
         rnInScope, rnInScopeSet, lookupRnInScope,
+        rnEnvL, rnEnvR,
 
         -- * TidyEnv and its operation
         TidyEnv,
@@ -53,8 +77,9 @@ import ETA.BasicTypes.OccName
 import ETA.BasicTypes.Var
 import qualified ETA.BasicTypes.Var as Var
 import ETA.BasicTypes.VarSet
-import ETA.Utils.UniqFM
 import ETA.Utils.UniqSet
+import ETA.Utils.UniqFM
+import ETA.Utils.UniqDFM
 import ETA.BasicTypes.Unique
 import ETA.Utils.Util
 import ETA.Utils.Maybes
@@ -170,7 +195,9 @@ uniqAway' (InScope set n) var
 ************************************************************************
 -}
 
--- | When we are comparing (or matching) types or terms, we are faced with
+-- | Rename Environment 2
+--
+-- When we are comparing (or matching) types or terms, we are faced with
 -- \"going under\" corresponding binders.  E.g. when comparing:
 --
 -- > \x. e1     ~   \y. e2
@@ -222,6 +249,14 @@ rnInScope x env = x `elemInScopeSet` in_scope env
 rnInScopeSet :: RnEnv2 -> InScopeSet
 rnInScopeSet = in_scope
 
+-- | Retrieve the left mapping
+rnEnvL :: RnEnv2 -> VarEnv Var
+rnEnvL = envL
+
+-- | Retrieve the right mapping
+rnEnvR :: RnEnv2 -> VarEnv Var
+rnEnvR = envR
+
 rnBndrs2 :: RnEnv2 -> [Var] -> [Var] -> RnEnv2
 -- ^ Applies 'rnBndr2' to several variables: the two variable lists must be of equal length
 rnBndrs2 env bsL bsR = foldl2 rnBndr2 env bsL bsR
@@ -231,10 +266,15 @@ rnBndr2 :: RnEnv2 -> Var -> Var -> RnEnv2
 --                       and binder @bR@ in the Right term.
 -- It finds a new binder, @new_b@,
 -- and returns an environment mapping @bL -> new_b@ and @bR -> new_b@
-rnBndr2 (RV2 { envL = envL, envR = envR, in_scope = in_scope }) bL bR
-  = RV2 { envL     = extendVarEnv envL bL new_b   -- See Note
-        , envR     = extendVarEnv envR bR new_b   -- [Rebinding]
-        , in_scope = extendInScopeSet in_scope new_b }
+rnBndr2 env bL bR = fst $ rnBndr2_var env bL bR
+
+rnBndr2_var :: RnEnv2 -> Var -> Var -> (RnEnv2, Var)
+-- ^ Similar to 'rnBndr2' but returns the new variable as well as the
+-- new environment
+rnBndr2_var (RV2 { envL = envL, envR = envR, in_scope = in_scope }) bL bR
+  = (RV2 { envL            = extendVarEnv envL bL new_b   -- See Note
+         , envR            = extendVarEnv envR bR new_b   -- [Rebinding]
+         , in_scope = extendInScopeSet in_scope new_b }, new_b)
   where
         -- Find a new binder not in scope in either term
     new_b | not (bL `elemInScopeSet` in_scope) = bL
@@ -324,6 +364,11 @@ nukeRnEnvL, nukeRnEnvR :: RnEnv2 -> RnEnv2
 nukeRnEnvL env = env { envL = emptyVarEnv }
 nukeRnEnvR env = env { envR = emptyVarEnv }
 
+rnSwap :: RnEnv2 -> RnEnv2
+-- ^ swap the meaning of left and right
+rnSwap (RV2 { envL = envL, envR = envR, in_scope = in_scope })
+  = RV2 { envL = envR, envR = envL, in_scope = in_scope }
+
 {-
 Note [Eta expansion]
 ~~~~~~~~~~~~~~~~~~~~
@@ -347,7 +392,9 @@ succeeding with [a -> v y], which is bogus of course.
 ************************************************************************
 -}
 
--- | When tidying up print names, we keep a mapping of in-scope occ-names
+-- | Tidy Environment
+--
+-- When tidying up print names, we keep a mapping of in-scope occ-names
 -- (the 'TidyOccEnv') and a Var-to-Var of the current renamings
 type TidyEnv = (TidyOccEnv, VarEnv Var)
 
@@ -362,24 +409,38 @@ emptyTidyEnv = (emptyTidyOccEnv, emptyVarEnv)
 ************************************************************************
 -}
 
-type VarEnv elt   = UniqFM elt
-type IdEnv elt    = VarEnv elt
-type TyVarEnv elt = VarEnv elt
-type CoVarEnv elt = VarEnv elt
+-- | Variable Environment
+type VarEnv elt     = UniqFM elt
+
+-- | Identifier Environment
+type IdEnv elt      = VarEnv elt
+
+-- | Type Variable Environment
+type TyVarEnv elt   = VarEnv elt
+
+-- | Type or Coercion Variable Environment
+type TyCoVarEnv elt = VarEnv elt
+
+-- | Coercion Variable Environment
+type CoVarEnv elt   = VarEnv elt
 
 emptyVarEnv       :: VarEnv a
 mkVarEnv          :: [(Var, a)] -> VarEnv a
+mkVarEnv_Directly :: [(Unique, a)] -> VarEnv a
 zipVarEnv         :: [Var] -> [a] -> VarEnv a
 unitVarEnv        :: Var -> a -> VarEnv a
 alterVarEnv       :: (Maybe a -> Maybe a) -> VarEnv a -> Var -> VarEnv a
 extendVarEnv      :: VarEnv a -> Var -> a -> VarEnv a
 extendVarEnv_C    :: (a->a->a) -> VarEnv a -> Var -> a -> VarEnv a
 extendVarEnv_Acc  :: (a->b->b) -> (a->b) -> VarEnv b -> Var -> a -> VarEnv b
+extendVarEnv_Directly :: VarEnv a -> Unique -> a -> VarEnv a
 plusVarEnv        :: VarEnv a -> VarEnv a -> VarEnv a
+plusVarEnvList    :: [VarEnv a] -> VarEnv a
 extendVarEnvList  :: VarEnv a -> [(Var, a)] -> VarEnv a
 
 lookupVarEnv_Directly :: VarEnv a -> Unique -> Maybe a
 filterVarEnv_Directly :: (Unique -> a -> Bool) -> VarEnv a -> VarEnv a
+delVarEnv_Directly    :: VarEnv a -> Unique -> VarEnv a
 partitionVarEnv   :: (a -> Bool) -> VarEnv a -> (VarEnv a, VarEnv a)
 restrictVarEnv    :: VarEnv a -> VarSet -> VarEnv a
 delVarEnvList     :: VarEnv a -> [Var] -> VarEnv a
@@ -388,6 +449,7 @@ minusVarEnv       :: VarEnv a -> VarEnv b -> VarEnv a
 intersectsVarEnv  :: VarEnv a -> VarEnv a -> Bool
 plusVarEnv_C      :: (a -> a -> a) -> VarEnv a -> VarEnv a -> VarEnv a
 plusVarEnv_CD     :: (a -> a -> a) -> VarEnv a -> a -> VarEnv a -> a -> VarEnv a
+plusMaybeVarEnv_C :: (a -> a -> Maybe a) -> VarEnv a -> VarEnv a -> VarEnv a
 mapVarEnv         :: (a -> b) -> VarEnv a -> VarEnv b
 modifyVarEnv      :: (a -> a) -> VarEnv a -> Var -> VarEnv a
 varEnvElts        :: VarEnv a -> [a]
@@ -400,26 +462,32 @@ lookupWithDefaultVarEnv :: VarEnv a -> a -> Var -> a
 elemVarEnv        :: Var -> VarEnv a -> Bool
 elemVarEnvByKey   :: Unique -> VarEnv a -> Bool
 foldVarEnv        :: (a -> b -> b) -> b -> VarEnv a -> b
+disjointVarEnv    :: VarEnv a -> VarEnv a -> Bool
 
 elemVarEnv       = elemUFM
 elemVarEnvByKey  = elemUFM_Directly
+disjointVarEnv   = disjointUFM
 alterVarEnv      = alterUFM
 extendVarEnv     = addToUFM
 extendVarEnv_C   = addToUFM_C
 extendVarEnv_Acc = addToUFM_Acc
+extendVarEnv_Directly = addToUFM_Directly
 extendVarEnvList = addListToUFM
 plusVarEnv_C     = plusUFM_C
 plusVarEnv_CD    = plusUFM_CD
+plusMaybeVarEnv_C = plusMaybeUFM_C
 delVarEnvList    = delListFromUFM
 delVarEnv        = delFromUFM
 minusVarEnv      = minusUFM
 intersectsVarEnv e1 e2 = not (isEmptyVarEnv (e1 `intersectUFM` e2))
 plusVarEnv       = plusUFM
+plusVarEnvList   = plusUFMList
 lookupVarEnv     = lookupUFM
 filterVarEnv     = filterUFM
 lookupWithDefaultVarEnv = lookupWithDefaultUFM
 mapVarEnv        = mapUFM
 mkVarEnv         = listToUFM
+mkVarEnv_Directly= listToUFM_Directly
 emptyVarEnv      = emptyUFM
 varEnvElts       = eltsUFM
 unitVarEnv       = unitUFM
@@ -427,6 +495,7 @@ isEmptyVarEnv    = isNullUFM
 foldVarEnv       = foldUFM
 lookupVarEnv_Directly = lookupUFM_Directly
 filterVarEnv_Directly = filterUFM_Directly
+delVarEnv_Directly    = delFromUFM_Directly
 partitionVarEnv       = partitionUFM
 
 restrictVarEnv env vs = filterVarEnv_Directly keep env
@@ -453,3 +522,82 @@ modifyVarEnv_Directly mangle_fn env key
   = case (lookupUFM_Directly env key) of
       Nothing -> env
       Just xx -> addToUFM_Directly env key (mangle_fn xx)
+
+-- Deterministic VarEnv
+-- See Note [Deterministic UniqFM] in UniqDFM for explanation why we need
+-- DVarEnv.
+
+-- | Deterministic Variable Environment
+type DVarEnv elt = UniqDFM elt
+
+-- | Deterministic Identifier Environment
+type DIdEnv elt = DVarEnv elt
+
+-- | Deterministic Type Variable Environment
+type DTyVarEnv elt = DVarEnv elt
+
+emptyDVarEnv :: DVarEnv a
+emptyDVarEnv = emptyUDFM
+
+dVarEnvElts :: DVarEnv a -> [a]
+dVarEnvElts = eltsUDFM
+
+mkDVarEnv :: [(Var, a)] -> DVarEnv a
+mkDVarEnv = listToUDFM
+
+extendDVarEnv :: DVarEnv a -> Var -> a -> DVarEnv a
+extendDVarEnv = addToUDFM
+
+minusDVarEnv :: DVarEnv a -> DVarEnv a' -> DVarEnv a
+minusDVarEnv = minusUDFM
+
+lookupDVarEnv :: DVarEnv a -> Var -> Maybe a
+lookupDVarEnv = lookupUDFM
+
+foldDVarEnv :: (a -> b -> b) -> b -> DVarEnv a -> b
+foldDVarEnv = foldUDFM
+
+mapDVarEnv :: (a -> b) -> DVarEnv a -> DVarEnv b
+mapDVarEnv = mapUDFM
+
+alterDVarEnv :: (Maybe a -> Maybe a) -> DVarEnv a -> Var -> DVarEnv a
+alterDVarEnv = alterUDFM
+
+plusDVarEnv :: DVarEnv a -> DVarEnv a -> DVarEnv a
+plusDVarEnv = plusUDFM
+
+plusDVarEnv_C :: (a -> a -> a) -> DVarEnv a -> DVarEnv a -> DVarEnv a
+plusDVarEnv_C = plusUDFM_C
+
+unitDVarEnv :: Var -> a -> DVarEnv a
+unitDVarEnv = unitUDFM
+
+delDVarEnv :: DVarEnv a -> Var -> DVarEnv a
+delDVarEnv = delFromUDFM
+
+delDVarEnvList :: DVarEnv a -> [Var] -> DVarEnv a
+delDVarEnvList = delListFromUDFM
+
+isEmptyDVarEnv :: DVarEnv a -> Bool
+isEmptyDVarEnv = isNullUDFM
+
+elemDVarEnv :: Var -> DVarEnv a -> Bool
+elemDVarEnv = elemUDFM
+
+extendDVarEnv_C :: (a -> a -> a) -> DVarEnv a -> Var -> a -> DVarEnv a
+extendDVarEnv_C = addToUDFM_C
+
+modifyDVarEnv :: (a -> a) -> DVarEnv a -> Var -> DVarEnv a
+modifyDVarEnv mangle_fn env key
+  = case (lookupDVarEnv env key) of
+      Nothing -> env
+      Just xx -> extendDVarEnv env key (mangle_fn xx)
+
+partitionDVarEnv :: (a -> Bool) -> DVarEnv a -> (DVarEnv a, DVarEnv a)
+partitionDVarEnv = partitionUDFM
+
+extendDVarEnvList :: DVarEnv a -> [(Var, a)] -> DVarEnv a
+extendDVarEnvList = addListToUDFM
+
+anyDVarEnv :: (a -> Bool) -> DVarEnv a -> Bool
+anyDVarEnv = anyUDFM

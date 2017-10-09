@@ -40,6 +40,7 @@ module ETA.Core.CoreSubst (
 #include "HsVersions.h"
 
 import ETA.Core.CoreSyn
+import ETA.Core.CoreSeq
 import ETA.Core.CoreFVs
 import ETA.Core.CoreUtils
 import ETA.BasicTypes.Literal  ( Literal(MachStr) )

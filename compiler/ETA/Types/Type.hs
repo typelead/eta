@@ -33,6 +33,7 @@ module ETA.Types.Type (
 
         mkForAllTy, mkForAllTys, splitForAllTy_maybe, splitForAllTys,
         mkPiKinds, mkPiType, mkPiTypes,
+        piResultTy,
         applyTy, applyTys, applyTysD, applyTysX, dropForAlls,
 
         mkNumLitTy, isNumLitTy,
@@ -526,6 +527,30 @@ funArgTy :: Type -> Type
 funArgTy ty | Just ty' <- coreView ty = funArgTy ty'
 funArgTy (FunTy arg _res)  = arg
 funArgTy ty                = pprPanic "funArgTy" (ppr ty)
+
+piResultTy :: Type -> Type ->  Type
+piResultTy ty arg = case piResultTy_maybe ty arg of
+                      Just res -> res
+                      Nothing  -> pprPanic "piResultTy" (ppr ty $$ ppr arg)
+
+piResultTy_maybe :: Type -> Type -> Maybe Type
+
+-- ^ Just like 'piResultTys' but for a single argument
+-- Try not to iterate 'piResultTy', because it's inefficient to substitute
+-- one variable at a time; instead use 'piResultTys"
+piResultTy_maybe ty arg
+  | Just ty' <- coreView ty = piResultTy_maybe ty' arg
+
+  | FunTy _ res <- ty
+  = Just res
+
+  | ForAllTy tv res <- ty
+  = let empty_subst = extendTvInScopeList emptyTvSubst
+                    $ varSetElems $ tyVarsOfTypes [arg,res]
+    in Just (substTy (extendTvSubst empty_subst tv arg) res)
+
+  | otherwise
+  = Nothing
 
 {-
 ---------------------------------------------------------------------

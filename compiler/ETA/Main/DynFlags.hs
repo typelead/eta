@@ -373,6 +373,7 @@ data GeneralFlag
    | Opt_DictsStrict                     -- be strict in argument dictionaries
    | Opt_DmdTxDictSel              -- use a special demand transformer for dictionary selectors
    | Opt_Loopification                  -- See Note [Self-recursive tail calls]
+   | Opt_CatchBottoms
 
    -- Interface files
    | Opt_IgnoreInterfacePragmas
@@ -471,9 +472,6 @@ data GeneralFlag
    -- safe haskell flags
    | Opt_DistrustAllPackages
    | Opt_PackageTrust
-
-   -- debugging flags
-   | Opt_Debug
 
    -- Eta-specific flags
 
@@ -673,6 +671,7 @@ data DynFlags = DynFlags {
   sigOf                 :: SigOf,       -- ^ Compiling an hs-boot against impl.
   verbosity             :: Int,         -- ^ Verbosity level: see Note [Verbosity levels]
   optLevel              :: Int,         -- ^ Optimisation level
+  debugLevel            :: Int,         -- ^ How much debug information to produce
   simplPhases           :: Int,         -- ^ Number of simplifier phases
   maxSimplIterations    :: Int,         -- ^ Max simplifier iterations
   ruleCheck             :: Maybe String,
@@ -1476,6 +1475,7 @@ defaultDynFlags mySettings =
         sigOf                   = NotSigOf,
         verbosity               = 0,
         optLevel                = 0,
+        debugLevel              = 0,
         simplPhases             = 2,
         maxSimplIterations      = 4,
         ruleCheck               = Nothing,
@@ -3104,7 +3104,8 @@ fFlags = [
   flagSpec "unbox-small-strict-fields"        Opt_UnboxSmallStrictFields,
   flagSpec "unbox-strict-fields"              Opt_UnboxStrictFields,
   flagSpec "vectorisation-avoidance"          Opt_VectorisationAvoidance,
-  flagSpec "vectorise"                        Opt_Vectorise
+  flagSpec "vectorise"                        Opt_Vectorise,
+  flagSpec "catch-bottoms"                    Opt_CatchBottoms
   ]
 
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@
@@ -3313,8 +3314,7 @@ defaultFlags _
       Opt_ProfCountEntries,
       Opt_RPath,
       Opt_SharedImplib,
-      Opt_SimplPreInlining,
-      Opt_Debug
+      Opt_SimplPreInlining
     ]
 
     ++ [f | (ns,f) <- optLevelFlags, 0 `elem` ns]
@@ -3738,9 +3738,7 @@ setVerbosity :: Maybe Int -> DynP ()
 setVerbosity mb_n = upd (\dfs -> dfs{ verbosity = mb_n `orElse` 3 })
 
 setDebugLevel :: Maybe Int -> DynP ()
-setDebugLevel (Just 0) = unSetGeneralFlag Opt_Debug
-setDebugLevel _ = setGeneralFlag Opt_Debug
-
+setDebugLevel mb_n = upd (\dfs -> dfs{ debugLevel = mb_n `orElse` 2 })
 
 addCmdlineHCInclude :: String -> DynP ()
 addCmdlineHCInclude a = upd (\s -> s{cmdlineHcIncludes =  a : cmdlineHcIncludes s})

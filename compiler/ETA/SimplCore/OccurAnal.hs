@@ -1087,7 +1087,7 @@ occAnalNonRecRhs env bndr rhs
   = occAnal rhs_env rhs
   where
     -- See Note [Use one-shot info]
-    env1 = env { occ_one_shots = argOneShots OneShotLam dmd }
+    env1 = env { occ_one_shots = argOneShots dmd }
 
     -- See Note [Cascading inlines]
     rhs_env | certainly_inline = env1

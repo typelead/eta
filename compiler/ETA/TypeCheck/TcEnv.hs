@@ -19,6 +19,7 @@ module ETA.TypeCheck.TcEnv(
         tcLookupDataCon, tcLookupPatSyn, tcLookupConLike,
         tcLookupLocatedGlobalId, tcLookupLocatedTyCon,
         tcLookupLocatedClass, tcLookupAxiom,
+        lookupGlobal,
 
         -- Local environment
         tcExtendKindEnv, tcExtendKindEnv2,
@@ -56,6 +57,8 @@ module ETA.TypeCheck.TcEnv(
         mkStableIdFromString, mkStableIdFromName,
         mkWrapperName
   ) where
+
+#include "HsVersions.h"
 
 import ETA.HsSyn.HsSyn
 import ETA.Iface.IfaceEnv
@@ -96,7 +99,21 @@ import Data.IORef
 import Data.List
 import Data.Foldable
 
-#include "HsVersions.h"
+{- *********************************************************************
+*                                                                      *
+            An IO interface to looking up globals
+*                                                                      *
+********************************************************************* -}
+
+lookupGlobal :: HscEnv -> Name -> IO TyThing
+-- An IO version, used outside the typechecker
+-- It's more complicated than it looks, because it may
+-- need to suck in an interface file
+lookupGlobal hsc_env name
+  = initTcForLookup hsc_env (tcLookupGlobal name)
+    -- This initTcForLookup stuff is massive overkill
+    -- but that's how it is right now, and at least
+    -- this function localises it
 
 {-
 ************************************************************************

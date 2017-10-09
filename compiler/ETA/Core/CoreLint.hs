@@ -1787,7 +1787,7 @@ withoutAnnots :: (ModGuts -> CoreM ModGuts) -> ModGuts -> CoreM ModGuts
 withoutAnnots pass guts = do
   -- Remove debug flag from environment.
   dflags <- getDynFlags
-  let removeFlag env = env{hsc_dflags = gopt_unset dflags Opt_Debug}
+  let removeFlag env = env { hsc_dflags = dflags { debugLevel = 0 } }
       withoutFlag corem =
         liftIO =<< runCoreM <$> fmap removeFlag getHscEnv <*> getRuleBase <*>
                                 getUniqueSupplyM <*> getModule <*>

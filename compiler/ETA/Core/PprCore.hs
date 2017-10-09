@@ -14,6 +14,7 @@ module ETA.Core.PprCore (
     ) where
 
 import ETA.Core.CoreSyn
+import ETA.Core.CoreSeq
 import ETA.BasicTypes.Literal( pprLiteral )
 import ETA.BasicTypes.Name( pprInfixName, pprPrefixName )
 import ETA.BasicTypes.Var

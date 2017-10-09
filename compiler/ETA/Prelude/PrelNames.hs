@@ -1870,11 +1870,12 @@ rootMainKey, runMainKey :: Unique
 rootMainKey                   = mkPreludeMiscIdUnique 101
 runMainKey                    = mkPreludeMiscIdUnique 102
 
-thenIOIdKey, lazyIdKey, assertErrorIdKey, oneShotKey :: Unique
+thenIOIdKey, lazyIdKey, assertErrorIdKey, oneShotKey, runRWKey :: Unique
 thenIOIdKey                   = mkPreludeMiscIdUnique 103
 lazyIdKey                     = mkPreludeMiscIdUnique 104
 assertErrorIdKey              = mkPreludeMiscIdUnique 105
 oneShotKey                    = mkPreludeMiscIdUnique 106
+runRWKey                      = mkPreludeMiscIdUnique 107
 
 breakpointIdKey, breakpointCondIdKey, breakpointAutoIdKey,
     breakpointJumpIdKey, breakpointCondJumpIdKey,
@@ -1886,7 +1887,7 @@ breakpointJumpIdKey           = mkPreludeMiscIdUnique 113
 breakpointCondJumpIdKey       = mkPreludeMiscIdUnique 114
 breakpointAutoJumpIdKey       = mkPreludeMiscIdUnique 115
 
-inlineIdKey :: Unique
+inlineIdKey, noinlineIdKey :: Unique
 inlineIdKey                   = mkPreludeMiscIdUnique 120
 
 mapIdKey, groupWithIdKey, dollarIdKey :: Unique
@@ -1896,6 +1897,8 @@ dollarIdKey           = mkPreludeMiscIdUnique 123
 
 coercionTokenIdKey :: Unique
 coercionTokenIdKey    = mkPreludeMiscIdUnique 124
+
+noinlineIdKey         = mkPreludeMiscIdUnique 125
 
 rationalToFloatIdKey, rationalToDoubleIdKey :: Unique
 rationalToFloatIdKey   = mkPreludeMiscIdUnique 130

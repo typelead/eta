@@ -63,6 +63,14 @@ module ETA.BasicTypes.Id (
         -- ** Evidence variables
         DictId, isDictId, dfunNSilent, isEvVar,
 
+        -- ** Join variables
+        -- TODO: Implement join points
+        -- JoinId,
+        isJoinId, isJoinId_maybe,
+        -- idJoinArity,
+        -- asJoinId, asJoinId_maybe, zapJoinId,
+
+
         -- ** Inline pragma stuff
         idInlinePragma, setInlinePragma, modifyInlinePragma,
         idInlineActivation, setInlineActivation, idRuleMatchInfo,
@@ -422,6 +430,26 @@ isDataConId_maybe id = case Var.idDetails id of
                          DataConWorkId con -> Just con
                          DataConWrapId con -> Just con
                          _                 -> Nothing
+
+isJoinId :: Var -> Bool
+-- It is convenient in SetLevels.lvlMFE to apply isJoinId
+-- to the free vars of an expression, so it's convenient
+-- if it returns False for type variables
+isJoinId id
+  -- TODO: Implement join points
+  -- | isId id = case Var.idDetails id of
+  --               JoinId {} -> True
+  --               _         -> False
+  | otherwise = False
+
+isJoinId_maybe :: Var -> Maybe JoinArity
+isJoinId_maybe id
+ -- TODO: Implement join points
+ -- | isId id  = ASSERT2( isId id, ppr id )
+ --              case Var.idDetails id of
+ --                JoinId arity -> Just arity
+ --                _            -> Nothing
+ | otherwise = Nothing
 
 idDataCon :: Id -> DataCon
 -- ^ Get from either the worker or the wrapper 'Id' to the 'DataCon'. Currently used only in the desugarer.

@@ -33,7 +33,7 @@ import ETA.BasicTypes.IdInfo
 import ETA.Types.InstEnv
 import ETA.Types.FamInstEnv
 import ETA.Types.Type             ( tidyTopType )
-import ETA.BasicTypes.Demand           ( appIsBottom, isNopSig, isBottomingSig )
+import ETA.BasicTypes.Demand           ( appIsBottom, isTopSig, isBottomingSig )
 import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.Name hiding (varName)
 import ETA.BasicTypes.NameSet
@@ -1229,7 +1229,7 @@ tidyTopIdInfo dflags rhs_tidy_env name orig_rhs tidy_rhs idinfo show_unfold caf_
     mb_bot_str = exprBotStrictness_maybe orig_rhs
 
     sig = strictnessInfo idinfo
-    final_sig | not $ isNopSig sig
+    final_sig | not $ isTopSig sig
                  = {-WARN( _bottom_hidden sig , ppr name )-} sig
                  -- try a cheap-and-cheerful bottom analyser
                  | Just (_, nsig) <- mb_bot_str = nsig

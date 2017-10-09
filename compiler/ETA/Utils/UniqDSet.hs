@@ -21,7 +21,7 @@ module ETA.Utils.UniqDSet (
         unionUniqDSets, unionManyUniqDSets,
         minusUniqDSet, uniqDSetMinusUniqSet,
         intersectUniqDSets,
-        intersectsUniqDSets,
+        intersectsUniqDSets, uniqDSetIntersectUniqSet,
         foldUniqDSet,
         elementOfUniqDSet,
         filterUniqDSet,
@@ -74,6 +74,9 @@ uniqDSetMinusUniqSet xs ys = udfmMinusUFM xs (getUniqSet ys)
 
 intersectUniqDSets :: UniqDSet a -> UniqDSet a -> UniqDSet a
 intersectUniqDSets = intersectUDFM
+
+uniqDSetIntersectUniqSet :: UniqDSet a -> UniqSet b -> UniqDSet a
+uniqDSetIntersectUniqSet xs ys = xs `udfmIntersectUFM` getUniqSet ys
 
 intersectsUniqDSets :: UniqDSet a -> UniqDSet a -> Bool
 intersectsUniqDSets = intersectsUDFM

@@ -22,7 +22,7 @@ public abstract class Closure implements Serializable {
 
     /* Applications */
     public Closure applyV(StgContext context) {
-        barf("Cannot apply realWorld# to " + this);
+        barf("Cannot apply state token to " + this);
         return null;
     }
 
@@ -57,7 +57,7 @@ public abstract class Closure implements Serializable {
     }
 
     public Closure apply1V(StgContext context, Closure p) {
-        barf("Cannot apply a closure and realWorld# to " + this);
+        barf("Cannot apply a closure and state token to " + this);
         return null;
     }
 
@@ -67,7 +67,7 @@ public abstract class Closure implements Serializable {
     }
 
     public Closure apply2V(StgContext context, Closure p1, Closure p2) {
-        barf("Cannot apply 2 closures and realWorld# to " + this);
+        barf("Cannot apply 2 closures and state token to " + this);
         return null;
     }
 
@@ -77,7 +77,7 @@ public abstract class Closure implements Serializable {
     }
 
     public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
-        barf("Cannot apply 3 closures and realWorld# to " + this);
+        barf("Cannot apply 3 closures and state token to " + this);
         return null;
     }
 

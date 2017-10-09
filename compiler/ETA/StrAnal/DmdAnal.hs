@@ -14,9 +14,10 @@ module ETA.StrAnal.DmdAnal ( dmdAnalProgram ) where
 #include "HsVersions.h"
 
 import ETA.Main.DynFlags
-import ETA.StrAnal.WwLib            ( findTypeShape, deepSplitProductType_maybe )
+import ETA.StrAnal.WwLib   ( findTypeShape, deepSplitProductType_maybe )
 import ETA.BasicTypes.Demand   -- All of it
 import ETA.Core.CoreSyn
+import ETA.Core.CoreSeq    (seqBinds)
 import ETA.Utils.Outputable
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.BasicTypes
@@ -24,17 +25,20 @@ import ETA.Utils.FastString
 import Data.List
 import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Id
-import ETA.Core.CoreUtils        ( exprIsHNF, exprType, exprIsTrivial )
+import ETA.Core.CoreUtils  ( exprIsHNF, exprType, exprIsTrivial )
 import ETA.Types.TyCon
 import ETA.Types.Type
+import ETA.Types.Coercion  ( Coercion, coVarsOfCo )
 import ETA.Types.FamInstEnv
 import ETA.Utils.Util
-import ETA.Utils.Maybes           ( isJust )
-import ETA.Prelude.TysWiredIn       ( unboxedPairDataCon )
-import ETA.Prelude.TysPrim          ( realWorldStatePrimTy )
-import ETA.Main.ErrUtils         ( dumpIfSet_dyn )
-import ETA.BasicTypes.Name             ( getName, stableNameCmp )
-import Data.Function    ( on )
+import ETA.Utils.Maybes    ( isJust )
+import ETA.Prelude.TysWiredIn
+import ETA.Prelude.TysPrim ( realWorldStatePrimTy )
+import ETA.Main.ErrUtils   ( dumpIfSet_dyn )
+import ETA.BasicTypes.Name ( getName, stableNameCmp )
+import Data.Function       ( on )
+import ETA.Utils.UniqSet
+
 
 {-
 ************************************************************************
@@ -48,9 +52,11 @@ dmdAnalProgram :: DynFlags -> FamInstEnvs -> CoreProgram -> IO CoreProgram
 dmdAnalProgram dflags fam_envs binds
   = do {
         let { binds_plus_dmds = do_prog binds } ;
-        dumpIfSet_dyn dflags Opt_D_dump_strsigs "Strictness signatures" $
+        dumpIfSet_dyn dflags Opt_D_dump_strsigs
+                      "Strictness signatures" $
             dumpStrSig binds_plus_dmds ;
-        return binds_plus_dmds
+        -- See Note [Stamp out space leaks in demand analysis]
+        seqBinds binds_plus_dmds `seq` return binds_plus_dmds
     }
   where
     do_prog :: CoreProgram -> CoreProgram
@@ -60,21 +66,43 @@ dmdAnalProgram dflags fam_envs binds
 dmdAnalTopBind :: AnalEnv
                -> CoreBind
                -> (AnalEnv, CoreBind)
-dmdAnalTopBind sigs (NonRec id rhs)
-  = (extendAnalEnv TopLevel sigs id sig, NonRec id2 rhs2)
+dmdAnalTopBind env (NonRec id rhs)
+  = (extendAnalEnv TopLevel env id2 (idStrictness id2), NonRec id2 rhs2)
   where
-    (  _, _, _,   rhs1) = dmdAnalRhs TopLevel Nothing sigs             id rhs
-    (sig, _, id2, rhs2) = dmdAnalRhs TopLevel Nothing (nonVirgin sigs) id rhs1
+    ( _, _,   rhs1) = dmdAnalRhsLetDown TopLevel Nothing env             cleanEvalDmd id rhs
+    ( _, id2, rhs2) = dmdAnalRhsLetDown TopLevel Nothing (nonVirgin env) cleanEvalDmd id rhs1
         -- Do two passes to improve CPR information
-        -- See comments with ignore_cpr_info in mk_sig_ty
-        -- and with extendSigsWithLam
+        -- See Note [CPR for thunks]
+        -- See Note [Optimistic CPR in the "virgin" case]
+        -- See Note [Initial CPR for strict binders]
 
-dmdAnalTopBind sigs (Rec pairs)
-  = (sigs', Rec pairs')
+dmdAnalTopBind env (Rec pairs)
+  = (env', Rec pairs')
   where
-    (sigs', _, pairs')  = dmdFix TopLevel sigs pairs
+    (env', _, pairs')  = dmdFix TopLevel env cleanEvalDmd pairs
                 -- We get two iterations automatically
                 -- c.f. the NonRec case above
+
+{- Note [Stamp out space leaks in demand analysis]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The demand analysis pass outputs a new copy of the Core program in
+which binders have been annotated with demand and strictness
+information. It's tiresome to ensure that this information is fully
+evaluated everywhere that we produce it, so we just run a single
+seqBinds over the output before returning it, to ensure that there are
+no references holding on to the input Core program.
+
+This makes a ~30% reduction in peak memory usage when compiling
+DynFlags (cf Trac #9675 and #13426).
+
+This is particularly important when we are doing late demand analysis,
+since we don't do a seqBinds at any point thereafter. Hence code
+generation would hold on to an extra copy of the Core program, via
+unforced thunks in demand or strictness information; and it is the
+most memory-intensive part of the compilation process, so this added
+seqBinds makes a big difference in peak memory usage.
+-}
+
 
 {-
 ************************************************************************
@@ -109,14 +137,14 @@ dmdTransformThunkDmd e
 
 -- Do not process absent demands
 -- Otherwise act like in a normal demand analysis
--- See |-* relation in the companion paper
+-- See ↦* relation in the Cardinality Analysis paper
 dmdAnalStar :: AnalEnv
             -> Demand   -- This one takes a *Demand*
             -> CoreExpr -> (BothDmdArg, CoreExpr)
 dmdAnalStar env dmd e
-  | (cd, defer_and_use) <- toCleanDmd dmd (exprType e)
+  | (defer_and_use, cd) <- toCleanDmd dmd (exprType e)
   , (dmd_ty, e')        <- dmdAnal env cd e
-  = (postProcessDmdTypeM defer_and_use dmd_ty, e')
+  = (postProcessDmdType defer_and_use dmd_ty, e')
 
 -- Main Demand Analsysis machinery
 dmdAnal, dmdAnal' :: AnalEnv
@@ -131,13 +159,14 @@ dmdAnal env d e = -- pprTrace "dmdAnal" (ppr d <+> ppr e) $
 
 dmdAnal' _ _ (Lit lit)     = (nopDmdType, Lit lit)
 dmdAnal' _ _ (Type ty)     = (nopDmdType, Type ty)      -- Doesn't happen, in fact
-dmdAnal' _ _ (Coercion co) = (nopDmdType, Coercion co)
+dmdAnal' _ _ (Coercion co)
+  = (unitDmdType (coercionDmdEnv co), Coercion co)
 
 dmdAnal' env dmd (Var var)
   = (dmdTransform env var dmd, Var var)
 
 dmdAnal' env dmd (Cast e co)
-  = (dmd_ty, Cast e' co)
+  = (dmd_ty `bothDmdType` mkBothDmdArg (coercionDmdEnv co), Cast e' co)
   where
     (dmd_ty, e') = dmdAnal env dmd e
 
@@ -186,7 +215,7 @@ dmdAnal' env dmd (App fun arg)
 --         , text "overall res dmd_ty =" <+> ppr (res_ty `bothDmdType` arg_ty) ])
     (res_ty `bothDmdType` arg_ty, App fun' arg')
 
--- this is an anonymous lambda, since @dmdAnalRhs@ uses @collectBinders@
+-- this is an anonymous lambda, since @dmdAnalRhsLetDown@ uses @collectBinders@
 dmdAnal' env dmd (Lam var body)
   | isTyVar var
   = let
@@ -195,43 +224,29 @@ dmdAnal' env dmd (Lam var body)
     (body_ty, Lam var body')
 
   | otherwise
-  = let (body_dmd, defer_and_use@(_,one_shot)) = peelCallDmd dmd
-          -- body_dmd  - a demand to analyze the body
-          -- one_shot  - one-shotness of the lambda
-          --             hence, cardinality of its free vars
+  = let (body_dmd, defer_and_use) = peelCallDmd dmd
+          -- body_dmd: a demand to analyze the body
 
         env'             = extendSigsWithLam env var
         (body_ty, body') = dmdAnal env' body_dmd body
-        (lam_ty, var')   = annotateLamIdBndr env notArgOfDfun body_ty one_shot var
+        (lam_ty, var')   = annotateLamIdBndr env notArgOfDfun body_ty var
     in
     (postProcessUnsat defer_and_use lam_ty, Lam var' body')
 
 dmdAnal' env dmd (Case scrut case_bndr ty [(DataAlt dc, bndrs, rhs)])
   -- Only one alternative with a product constructor
   | let tycon = dataConTyCon dc
-  , isProductTyCon tycon
+  , isJust (isDataProductTyCon_maybe tycon)
   , Just rec_tc' <- checkRecTc (ae_rec_tc env) tycon
   = let
-        env_w_tc      = env { ae_rec_tc = rec_tc' }
-        env_alt       = extendAnalEnv NotTopLevel env_w_tc case_bndr case_bndr_sig
-        case_bndr_sig = cprProdSig (dataConRepArity dc)
-                -- cprProdSig: inside the alternative, the case binder has the CPR property.
-                -- Meaning that a case on it will successfully cancel.
-                -- Example:
-                --      f True  x = case x of y { I# x' -> if x' ==# 3 then y else I# 8 }
-                --      f False x = I# 3
-                --
-                -- We want f to have the CPR property:
-                --      f b x = case fw b x of { r -> I# r }
-                --      fw True  x = case x of y { I# x' -> if x' ==# 3 then x' else 8 }
-                --      fw False x = 3
-
-        (rhs_ty, rhs')                  = dmdAnal env_alt dmd rhs
-        (alt_ty1, dmds)                 = findBndrsDmds env rhs_ty bndrs
-        (alt_ty2, case_bndr_dmd)        = findBndrDmd env False alt_ty1 case_bndr
-        id_dmds                         = addCaseBndrDmd case_bndr_dmd dmds
-        alt_ty3 | io_hack_reqd dc bndrs = deferAfterIO alt_ty2
-                | otherwise             = alt_ty2
+        env_w_tc                 = env { ae_rec_tc = rec_tc' }
+        env_alt                  = extendEnvForProdAlt env_w_tc scrut case_bndr dc bndrs
+        (rhs_ty, rhs')           = dmdAnal env_alt dmd rhs
+        (alt_ty1, dmds)          = findBndrsDmds env rhs_ty bndrs
+        (alt_ty2, case_bndr_dmd) = findBndrDmd env False alt_ty1 case_bndr
+        id_dmds                  = addCaseBndrDmd case_bndr_dmd dmds
+        alt_ty3 | io_hack_reqd scrut dc bndrs = deferAfterIO alt_ty2
+                | otherwise                   = alt_ty2
 
         -- Compute demand on the scrutinee
         -- See Note [Demand on scrutinee of a product case]
@@ -255,6 +270,9 @@ dmdAnal' env dmd (Case scrut case_bndr ty alts)
         (alt_tys, alts')     = mapAndUnzip (dmdAnalAlt env dmd case_bndr) alts
         (scrut_ty, scrut')   = dmdAnal env cleanEvalDmd scrut
         (alt_ty, case_bndr') = annotateBndr env (foldr lubDmdType botDmdType alt_tys) case_bndr
+                               -- NB: Base case is botDmdType, for empty case alternatives
+                               --     This is a unit for lubDmdType, and the right result
+                               --     when there really are no alternatives
         res_ty               = alt_ty `bothDmdType` toBothDmdArg scrut_ty
     in
 --    pprTrace "dmdAnal:Case2" (vcat [ text "scrut" <+> ppr scrut
@@ -264,17 +282,39 @@ dmdAnal' env dmd (Case scrut case_bndr ty alts)
 --                                   , text "res_ty" <+> ppr res_ty ]) $
     (res_ty, Case scrut' case_bndr' ty alts')
 
+-- Let bindings can be processed in two ways:
+-- Down (RHS before body) or Up (body before RHS).
+-- The following case handle the up variant.
+--
+-- It is very simple. For  let x = rhs in body
+--   * Demand-analyse 'body' in the current environment
+--   * Find the demand, 'rhs_dmd' placed on 'x' by 'body'
+--   * Demand-analyse 'rhs' in 'rhs_dmd'
+--
+-- This is used for a non-recursive local let without manifest lambdas.
+-- This is the LetUp rule in the paper “Higher-Order Cardinality Analysis”.
 dmdAnal' env dmd (Let (NonRec id rhs) body)
-  = (body_ty2, Let (NonRec id2 annotated_rhs) body')
+  | useLetUp id rhs
+  , Nothing <- unpackTrivial rhs
+      -- dmdAnalRhsLetDown treats trivial right hand sides specially
+      -- so if we have a trival right hand side, fall through to that.
+  = (final_ty, Let (NonRec id' rhs') body')
   where
-    (sig, lazy_fv, id1, rhs') = dmdAnalRhs NotTopLevel Nothing env id rhs
-    (body_ty, body')          = dmdAnal (extendAnalEnv NotTopLevel env id sig) dmd body
-    (body_ty1, id2)           = annotateBndr env body_ty id1
-    body_ty2                  = addLazyFVs body_ty1 lazy_fv
+    (body_ty, body')   = dmdAnal env dmd body
+    (body_ty', id_dmd) = findBndrDmd env notArgOfDfun body_ty id
+    id'                = setIdDemandInfo id id_dmd
 
-    -- Annotate top-level lambdas at RHS basing on the aggregated demand info
-    -- See Note [Annotating lambdas at right-hand side]
-    annotated_rhs = annLamWithShotness (idDemandInfo id2) rhs'
+    (rhs_ty, rhs')     = dmdAnalStar env (dmdTransformThunkDmd rhs id_dmd) rhs
+    final_ty           = body_ty' `bothDmdType` rhs_ty
+
+dmdAnal' env dmd (Let (NonRec id rhs) body)
+  = (body_ty2, Let (NonRec id2 rhs') body')
+  where
+    (lazy_fv, id1, rhs') = dmdAnalRhsLetDown NotTopLevel Nothing env dmd id rhs
+    env1                 = extendAnalEnv NotTopLevel env id1 (idStrictness id1)
+    (body_ty, body')     = dmdAnal env1 dmd body
+    (body_ty1, id2)      = annotateBndr env body_ty id1
+    body_ty2             = addLazyFVs body_ty1 lazy_fv -- see Note [Lazy and unleashable free variables]
 
         -- If the actual demand is better than the vanilla call
         -- demand, you might think that we might do better to re-analyse
@@ -291,58 +331,26 @@ dmdAnal' env dmd (Let (NonRec id rhs) body)
 
 dmdAnal' env dmd (Let (Rec pairs) body)
   = let
-        (env', lazy_fv, pairs') = dmdFix NotTopLevel env pairs
+        (env', lazy_fv, pairs') = dmdFix NotTopLevel env dmd pairs
         (body_ty, body')        = dmdAnal env' dmd body
         body_ty1                = deleteFVs body_ty (map fst pairs)
-        body_ty2                = addLazyFVs body_ty1 lazy_fv
+        body_ty2                = addLazyFVs body_ty1 lazy_fv -- see Note [Lazy and unleashable free variables]
     in
     body_ty2 `seq`
     (body_ty2,  Let (Rec pairs') body')
 
-io_hack_reqd :: DataCon -> [Var] -> Bool
--- Note [IO hack in the demand analyser]
---
--- There's a hack here for I/O operations.  Consider
---      case foo x s of { (# s, r #) -> y }
--- Is this strict in 'y'.  Normally yes, but what if 'foo' is an I/O
--- operation that simply terminates the program (not in an erroneous way)?
--- In that case we should not evaluate y before the call to 'foo'.
--- Hackish solution: spot the IO-like situation and add a virtual branch,
--- as if we had
---      case foo x s of
---         (# s, r #) -> y
---         other      -> return ()
--- So the 'y' isn't necessarily going to be evaluated
---
--- A more complete example (Trac #148, #1592) where this shows up is:
---      do { let len = <expensive> ;
---         ; when (...) (exitWith ExitSuccess)
---         ; print len }
-io_hack_reqd con bndrs
+io_hack_reqd :: CoreExpr -> DataCon -> [Var] -> Bool
+-- See Note [IO hack in the demand analyser]
+io_hack_reqd scrut con bndrs
   | (bndr:_) <- bndrs
-  = con == unboxedPairDataCon &&
-    idType bndr `eqType` realWorldStatePrimTy
+  , con == tupleCon UnboxedTuple 2
+  , idType bndr `eqType` realWorldStatePrimTy
+  , (fun, _) <- collectArgs scrut
+  = case fun of
+      Var f -> not (isPrimOpId f)
+      _     -> True
   | otherwise
   = False
-
-annLamWithShotness :: Demand -> CoreExpr -> CoreExpr
-annLamWithShotness d e
-  | Just u <- cleanUseDmd_maybe d
-  = go u e
-  | otherwise = e
-  where
-    go u e
-      | Just (c, u') <- peelUseCall u
-      , Lam bndr body <- e
-      = if isTyVar bndr
-        then Lam bndr                    (go u  body)
-        else Lam (setOneShotness c bndr) (go u' body)
-      | otherwise
-      = e
-
-setOneShotness :: Count -> Id -> Id
-setOneShotness One  bndr = setOneShotLambda bndr
-setOneShotness Many bndr = bndr
 
 dmdAnalAlt :: AnalEnv -> CleanDemand -> Id -> Alt Var -> (DmdType, Alt Var)
 dmdAnalAlt env dmd case_bndr (con,bndrs,rhs)
@@ -357,8 +365,52 @@ dmdAnalAlt env dmd case_bndr (con,bndrs,rhs)
         id_dmds       = addCaseBndrDmd case_bndr_dmd dmds
   = (alt_ty, (con, setBndrsDemandInfo bndrs id_dmds, rhs'))
 
-{- Note [Demand on the scrutinee of a product case]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+{- Note [IO hack in the demand analyser]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+There's a hack here for I/O operations.  Consider
+
+     case foo x s of { (# s', r #) -> y }
+
+Is this strict in 'y'? Often not! If foo x s performs some observable action
+(including raising an exception with raiseIO#, modifying a mutable variable, or
+even ending the program normally), then we must not force 'y' (which may fail
+to terminate) until we have performed foo x s.
+
+Hackish solution: spot the IO-like situation and add a virtual branch,
+as if we had
+     case foo x s of
+        (# s, r #) -> y
+        other      -> return ()
+So the 'y' isn't necessarily going to be evaluated
+
+A more complete example (Trac #148, #1592) where this shows up is:
+     do { let len = <expensive> ;
+        ; when (...) (exitWith ExitSuccess)
+        ; print len }
+
+However, consider
+  f x s = case getMaskingState# s of
+            (# s, r #) ->
+          case x of I# x2 -> ...
+
+Here it is terribly sad to make 'f' lazy in 's'.  After all,
+getMaskingState# is not going to diverge or throw an exception!  This
+situation actually arises in GHC.IO.Handle.Internals.wantReadableHandle
+(on an MVar not an Int), and made a material difference.
+
+So if the scrutinee is a primop call, we *don't* apply the
+state hack:
+  - If is a simple, terminating one like getMaskingState,
+    applying the hack is over-conservative.
+  - If the primop is raise# then it returns bottom, so
+    the case alternatives are already discarded.
+  - If the primop can raise a non-IO exception, like
+    divide by zero or seg-fault (eg writing an array
+    out of bounds) then we don't mind evaluating 'x' first.
+
+Note [Demand on the scrutinee of a product case]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When figuring out the demand on the scrutinee of a product case,
 we use the demands of the case alternative, i.e. id_dmds.
 But note that these include the demand on the case binder;
@@ -410,64 +462,6 @@ free variable |y|. Conversely, if the demand on |h| is unleashed right
 on the spot, we will get the desired result, namely, that |f| is
 strict in |y|.
 
-Note [Annotating lambdas at right-hand side]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Let us take a look at the following example:
-
-g f = let x = 100
-          h = \y -> f x y
-       in h 5
-
-One can see that |h| is called just once, therefore the RHS of h can
-be annotated as a one-shot lambda. This is done by the function
-annLamWithShotness *a posteriori*, i.e., basing on the aggregated
-usage demand on |h| from the body of |let|-expression, which is C1(U)
-in this case.
-
-In other words, for locally-bound lambdas we can infer
-one-shotness.
--}
-
-
-{-
-Note [Add demands for strict constructors]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Consider this program (due to Roman):
-
-    data X a = X !a
-
-    foo :: X Int -> Int -> Int
-    foo (X a) n = go 0
-     where
-       go i | i < n     = a + go (i+1)
-            | otherwise = 0
-
-We want the worker for 'foo' too look like this:
-
-    $wfoo :: Int# -> Int# -> Int#
-
-with the first argument unboxed, so that it is not eval'd each time
-around the 'go' loop (which would otherwise happen, since 'foo' is not
-strict in 'a').  It is sound for the wrapper to pass an unboxed arg
-because X is strict, so its argument must be evaluated.  And if we
-*don't* pass an unboxed argument, we can't even repair it by adding a
-`seq` thus:
-
-    foo (X a) n = a `seq` go 0
-
-because the seq is discarded (very early) since X is strict!
-
-There is the usual danger of reboxing, which as usual we ignore. But
-if X is monomorphic, and has an UNPACK pragma, then this optimisation
-is even more important.  We don't want the wrapper to rebox an unboxed
-argument, and pass an Int to $wfoo!
-
-We add these extra strict demands to the demand on the *scrutinee* of
-the case expression; hence the use of addDataConStrictness when
-forming scrut_dmd.  The case alternatives aren't strict in their
-sub-components, but simply evaluating the scrutinee to HNF does force
-those sub-components.
-
 
 ************************************************************************
 *                                                                      *
@@ -504,7 +498,7 @@ dmdTransform env var dmd
     else addVarDmd fn_ty var (mkOnceUsedDmd dmd)
 
   | otherwise                                    -- Local non-letrec-bound thing
-  = unitVarDmd var (mkOnceUsedDmd dmd)
+  = unitDmdType (unitVarEnv var (mkOnceUsedDmd dmd))
 
 {-
 ************************************************************************
@@ -516,55 +510,53 @@ dmdTransform env var dmd
 
 -- Recursive bindings
 dmdFix :: TopLevelFlag
-       -> AnalEnv               -- Does not include bindings for this binding
+       -> AnalEnv                            -- Does not include bindings for this binding
+       -> CleanDemand
        -> [(Id,CoreExpr)]
-       -> (AnalEnv, DmdEnv,
-           [(Id,CoreExpr)])     -- Binders annotated with stricness info
+       -> (AnalEnv, DmdEnv, [(Id,CoreExpr)]) -- Binders annotated with stricness info
 
-dmdFix top_lvl env orig_pairs
-  = (updSigEnv env (sigEnv final_env), lazy_fv, pairs')
-     -- Return to original virgin state, keeping new signatures
+dmdFix top_lvl env let_dmd orig_pairs
+  = loop 1 initial_pairs
   where
-    bndrs        = map fst orig_pairs
-    initial_env = addInitialSigs top_lvl env bndrs
-    (final_env, lazy_fv, pairs') = loop 1 initial_env orig_pairs
+    bndrs = map fst orig_pairs
 
-    loop :: Int
-         -> AnalEnv                     -- Already contains the current sigs
-         -> [(Id,CoreExpr)]
-         -> (AnalEnv, DmdEnv, [(Id,CoreExpr)])
-    loop n env pairs
-      = -- pprTrace "dmd loop" (ppr n <+> ppr bndrs $$ ppr env) $
-        loop' n env pairs
+    -- See Note [Initialising strictness]
+    initial_pairs | ae_virgin env = [(setIdStrictness id botSig, rhs) | (id, rhs) <- orig_pairs ]
+                  | otherwise     = orig_pairs
 
-    loop' n env pairs
-      | found_fixpoint
-      = (env', lazy_fv, pairs')
-                -- Note: return pairs', not pairs.   pairs' is the result of
-                -- processing the RHSs with sigs (= sigs'), whereas pairs
-                -- is the result of processing the RHSs with the *previous*
-                -- iteration of sigs.
+    -- If fixed-point iteration does not yield a result we use this instead
+    -- See Note [Safe abortion in the fixed-point iteration]
+    abort :: (AnalEnv, DmdEnv, [(Id,CoreExpr)])
+    abort = (env, lazy_fv', zapped_pairs)
+      where (lazy_fv, pairs') = step True (zapIdStrictness orig_pairs)
+            -- Note [Lazy and unleashable free variables]
+            non_lazy_fvs = plusVarEnvList $ map (strictSigDmdEnv . idStrictness . fst) pairs'
+            lazy_fv'     = lazy_fv `plusVarEnv` mapVarEnv (const topDmd) non_lazy_fvs
+            zapped_pairs = zapIdStrictness pairs'
 
-      | n >= 10
-      = -- pprTrace "dmdFix loop" (ppr n <+> (vcat
-        --                 [ text "Sigs:" <+> ppr [ (id,lookupVarEnv (sigEnv env) id,
-        --                                              lookupVarEnv (sigEnv env') id)
-        --                                          | (id,_) <- pairs],
-        --                   text "env:" <+> ppr env,
-        --                   text "binds:" <+> pprCoreBinding (Rec pairs)]))
-        (env, lazy_fv, orig_pairs)      -- Safe output
-                -- The lazy_fv part is really important!  orig_pairs has no strictness
-                -- info, including nothing about free vars.  But if we have
-                --      letrec f = ....y..... in ...f...
-                -- where 'y' is free in f, we must record that y is mentioned,
-                -- otherwise y will get recorded as absent altogether
-
-      | otherwise
-      = loop (n+1) (nonVirgin env') pairs'
+    -- The fixed-point varies the idStrictness field of the binders, and terminates if that
+    -- annotation does not change any more.
+    loop :: Int -> [(Id,CoreExpr)] -> (AnalEnv, DmdEnv, [(Id,CoreExpr)])
+    loop n pairs
+      | found_fixpoint = (final_anal_env, lazy_fv, pairs')
+      | n == 10        = abort
+      | otherwise      = loop (n+1) pairs'
       where
-        found_fixpoint = all (same_sig (sigEnv env) (sigEnv env')) bndrs
+        found_fixpoint    = map (idStrictness . fst) pairs' == map (idStrictness . fst) pairs
+        first_round       = n == 1
+        (lazy_fv, pairs') = step first_round pairs
+        final_anal_env    = extendAnalEnvs top_lvl env (map fst pairs')
 
-        ((env',lazy_fv), pairs') = mapAccumL my_downRhs (env, emptyDmdEnv) pairs
+    step :: Bool -> [(Id, CoreExpr)] -> (DmdEnv, [(Id, CoreExpr)])
+    step first_round pairs = (lazy_fv, pairs')
+      where
+        -- In all but the first iteration, delete the virgin flag
+        start_env | first_round = env
+                  | otherwise   = nonVirgin env
+
+        start = (extendAnalEnvs top_lvl start_env (map fst pairs), emptyDmdEnv)
+
+        ((_,lazy_fv), pairs') = mapAccumL my_downRhs start pairs
                 -- mapAccumL: Use the new signature to do the next pair
                 -- The occurrence analyser has arranged them in a good order
                 -- so this can significantly reduce the number of iterations needed
@@ -572,40 +564,86 @@ dmdFix top_lvl env orig_pairs
         my_downRhs (env, lazy_fv) (id,rhs)
           = ((env', lazy_fv'), (id', rhs'))
           where
-            (sig, lazy_fv1, id', rhs') = dmdAnalRhs top_lvl (Just bndrs) env id rhs
-            lazy_fv'                   = plusVarEnv_C bothDmd lazy_fv lazy_fv1
-            env'                       = extendAnalEnv top_lvl env id sig
+            (lazy_fv1, id', rhs') = dmdAnalRhsLetDown top_lvl (Just bndrs) env let_dmd id rhs
+            lazy_fv'              = plusVarEnv_C bothDmd lazy_fv lazy_fv1
+            env'                  = extendAnalEnv top_lvl env id (idStrictness id')
 
-    same_sig sigs sigs' var = lookup sigs var == lookup sigs' var
-    lookup sigs var = case lookupVarEnv sigs var of
-                        Just (sig,_) -> sig
-                        Nothing      -> pprPanic "dmdFix" (ppr var)
 
--- Non-recursive bindings
-dmdAnalRhs :: TopLevelFlag
+    zapIdStrictness :: [(Id, CoreExpr)] -> [(Id, CoreExpr)]
+    zapIdStrictness pairs = [(setIdStrictness id nopSig, rhs) | (id, rhs) <- pairs ]
+
+{-
+Note [Safe abortion in the fixed-point iteration]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Fixed-point iteration may fail to terminate. But we cannot simply give up and
+return the environment and code unchanged! We still need to do one additional
+round, for two reasons:
+
+ * To get information on used free variables (both lazy and strict!)
+   (see Note [Lazy and unleashable free variables])
+ * To ensure that all expressions have been traversed at least once, and any left-over
+   strictness annotations have been updated.
+
+This final iteration does not add the variables to the strictness signature
+environment, which effectively assigns them 'nopSig' (see "getStrictness")
+
+-}
+
+-- Trivial RHS
+-- See Note [Demand analysis for trivial right-hand sides]
+dmdAnalTrivialRhs ::
+    AnalEnv -> Id -> CoreExpr -> Var ->
+    (DmdEnv, Id, CoreExpr)
+dmdAnalTrivialRhs env id rhs fn
+  = (fn_fv, set_idStrictness env id fn_str, rhs)
+  where
+    fn_str = getStrictness env fn
+    fn_fv | isLocalId fn = unitVarEnv fn topDmd
+          | otherwise    = emptyDmdEnv
+    -- Note [Remember to demand the function itself]
+    -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    -- fn_fv: don't forget to produce a demand for fn itself
+    -- Lacking this caused Trac #9128
+    -- The demand is very conservative (topDmd), but that doesn't
+    -- matter; trivial bindings are usually inlined, so it only
+    -- kicks in for top-level bindings and NOINLINE bindings
+
+-- Let bindings can be processed in two ways:
+-- Down (RHS before body) or Up (body before RHS).
+-- dmdAnalRhsLetDown implements the Down variant:
+--  * assuming a demand of <L,U>
+--  * looking at the definition
+--  * determining a strictness signature
+--
+-- It is used for toplevel definition, recursive definitions and local
+-- non-recursive definitions that have manifest lambdas.
+-- Local non-recursive definitions without a lambda are handled with LetUp.
+--
+-- This is the LetDown rule in the paper “Higher-Order Cardinality Analysis”.
+dmdAnalRhsLetDown :: TopLevelFlag
            -> Maybe [Id]   -- Just bs <=> recursive, Nothing <=> non-recursive
-           -> AnalEnv -> Id -> CoreExpr
-           -> (StrictSig,  DmdEnv, Id, CoreExpr)
+           -> AnalEnv -> CleanDemand
+           -> Id -> CoreExpr
+           -> (DmdEnv, Id, CoreExpr)
 -- Process the RHS of the binding, add the strictness signature
 -- to the Id, and augment the environment with the signature as well.
-dmdAnalRhs top_lvl rec_flag env id rhs
+dmdAnalRhsLetDown top_lvl rec_flag env let_dmd id rhs
   | Just fn <- unpackTrivial rhs   -- See Note [Demand analysis for trivial right-hand sides]
-  , let fn_str = getStrictness env fn
-        fn_fv | isLocalId fn = unitVarEnv fn topDmd
-              | otherwise    = emptyDmdEnv
-        -- Note [Remember to demand the function itself]
-        -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        -- fn_fv: don't forget to produce a demand for fn itself
-        -- Lacking this caused Trac #9128
-        -- The demand is very conservative (topDmd), but that doesn't
-        -- matter; trivial bindings are usually inlined, so it only
-        -- kicks in for top-level bindings and NOINLINE bindings
-  = (fn_str, fn_fv, set_idStrictness env id fn_str, rhs)
+  = dmdAnalTrivialRhs env id rhs fn
 
   | otherwise
-  = (sig_ty, lazy_fv, id', mkLams bndrs' body')
+  = (lazy_fv, id', mkLams bndrs' body')
   where
-    (bndrs, body)    = collectBinders rhs
+    (bndrs, body, body_dmd)
+       = case isJoinId_maybe id of
+           Just join_arity  -- See Note [Demand analysis for join points]
+                   | (bndrs, body) <- collectNBinders join_arity rhs
+                   -> (bndrs, body, let_dmd)
+
+           Nothing | (bndrs, body) <- collectBinders rhs
+                   -> (bndrs, body, mkBodyDmd env body)
+
     env_body         = foldl extendSigsWithLam env bndrs
     (body_ty, body') = dmdAnal env_body body_dmd body
     body_ty'         = removeDmdTyArgs body_ty -- zap possible deep CPR info
@@ -615,17 +653,13 @@ dmdAnalRhs top_lvl rec_flag env id rhs
     id'              = set_idStrictness env id sig_ty
         -- See Note [NOINLINE and strictness]
 
-    -- See Note [Product demands for function body]
-    body_dmd = case deepSplitProductType_maybe (ae_fam_envs env) (exprType body) of
-                 Nothing            -> cleanEvalDmd
-                 Just (dc, _, _, _) -> cleanEvalProdDmd (dataConRepArity dc)
 
-    -- See Note [Lazy and unleashable free variables]
     -- See Note [Aggregated demand for cardinality]
     rhs_fv1 = case rec_flag of
                 Just bs -> reuseEnv (delVarEnvList rhs_fv bs)
                 Nothing -> rhs_fv
 
+    -- See Note [Lazy and unleashable free variables]
     (lazy_fv, sig_fv) = splitFVs is_thunk rhs_fv1
 
     rhs_res'  = trimCPRInfo trim_all trim_sums rhs_res
@@ -633,12 +667,19 @@ dmdAnalRhs top_lvl rec_flag env id rhs
     trim_sums = not (isTopLevel top_lvl) -- See Note [CPR for sum types]
 
     -- See Note [CPR for thunks]
-    is_thunk = not (exprIsHNF rhs)
+    is_thunk = not (exprIsHNF rhs) && not (isJoinId id)
     not_strict
        =  isTopLevel top_lvl  -- Top level and recursive things don't
        || isJust rec_flag     -- get their demandInfo set at all
        || not (isStrictDmd (idDemandInfo id) || ae_virgin env)
           -- See Note [Optimistic CPR in the "virgin" case]
+
+mkBodyDmd :: AnalEnv -> CoreExpr -> CleanDemand
+-- See Note [Product demands for function body]
+mkBodyDmd env body
+  = case deepSplitProductType_maybe (ae_fam_envs env) (exprType body) of
+       Nothing            -> cleanEvalDmd
+       Just (dc, _, _, _) -> cleanEvalProdDmd (dataConRepArity dc)
 
 unpackTrivial :: CoreExpr -> Maybe Id
 -- Returns (Just v) if the arg is really equal to v, modulo
@@ -650,7 +691,51 @@ unpackTrivial (Lam v e) | isTyVar v   = unpackTrivial e
 unpackTrivial (App e a) | isTypeArg a = unpackTrivial e
 unpackTrivial _                       = Nothing
 
-{-
+-- | If given the RHS of a let-binding, this 'useLetUp' determines
+-- whether we should process the binding up (body before rhs) or
+-- down (rhs before body).
+--
+-- We use LetDown if there is a chance to get a useful strictness signature.
+-- This is the case when there are manifest value lambdas or the binding is a
+-- join point (hence always acts like a function, not a value).
+useLetUp :: Var -> CoreExpr -> Bool
+useLetUp f _         | isJoinId f = False
+useLetUp f (Lam v e) | isTyVar v  = useLetUp f e
+useLetUp _ (Lam _ _)              = False
+useLetUp _ _                      = True
+
+
+{- Note [Demand analysis for join points]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Consider
+   g :: (Int,Int) -> Int
+   g (p,q) = p+q
+
+   f :: T -> Int -> Int
+   f x p = g (join j y = (p,y)
+              in case x of
+                   A -> j 3
+                   B -> j 4
+                   C -> (p,7))
+
+If j was a vanilla function definition, we'd analyse its body with
+evalDmd, and think that it was lazy in p.  But for join points we can
+do better!  We know that j's body will (if called at all) be evaluated
+with the demand that consumes the entire join-binding, in this case
+the argument demand from g.  Whizzo!  g evaluates both components of
+its argument pair, so p will certainly be evaluated if j is called.
+
+For f to be strict in p, we need /all/ paths to evaluate p; in this
+case the C branch does so too, so we are fine.  So, as usual, we need
+to transport demands on free variables to the call site(s).  Compare
+Note [Lazy and unleashable free variables].
+
+The implementation is easy.  When analysing a join point, we can
+analyse its body with the demand from the entire join-binding (written
+let_dmd here).
+
+Another win for join points!  Trac #13543.
+
 Note [Demand analysis for trivial right-hand sides]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Consider
@@ -700,9 +785,12 @@ a product type.
 ************************************************************************
 -}
 
-unitVarDmd :: Var -> Demand -> DmdType
-unitVarDmd var dmd
-  = DmdType (unitVarEnv var dmd) [] topRes
+unitDmdType :: DmdEnv -> DmdType
+unitDmdType dmd_env = DmdType dmd_env [] topRes
+
+coercionDmdEnv :: Coercion -> DmdEnv
+coercionDmdEnv co = mapVarEnv (const topDmd) (getUniqSet $ coVarsOfCo co)
+                    -- The VarSet from coVarsOfCo is really a VarEnv Var
 
 addVarDmd :: DmdType -> Var -> Demand -> DmdType
 addVarDmd (DmdType fv ds res) var dmd
@@ -719,7 +807,7 @@ addLazyFVs dmd_ty lazy_fvs
         -- demand with the bottom coming up from 'error'
         --
         -- I got a loop in the fixpointer without this, due to an interaction
-        -- with the lazy_fv filtering in dmdAnalRhs.  Roughly, it was
+        -- with the lazy_fv filtering in dmdAnalRhsLetDown.  Roughly, it was
         --      letrec f n x
         --          = letrec g y = x `fatbar`
         --                         letrec h z = z + ...g...
@@ -765,23 +853,22 @@ annotateLamBndrs :: AnalEnv -> DFunFlag -> DmdType -> [Var] -> (DmdType, [Var])
 annotateLamBndrs env args_of_dfun ty bndrs = mapAccumR annotate ty bndrs
   where
     annotate dmd_ty bndr
-      | isId bndr = annotateLamIdBndr env args_of_dfun dmd_ty Many bndr
+      | isId bndr = annotateLamIdBndr env args_of_dfun dmd_ty bndr
       | otherwise = (dmd_ty, bndr)
 
 annotateLamIdBndr :: AnalEnv
                   -> DFunFlag   -- is this lambda at the top of the RHS of a dfun?
                   -> DmdType    -- Demand type of body
-                  -> Count      -- One-shot-ness of the lambda
                   -> Id         -- Lambda binder
                   -> (DmdType,  -- Demand type of lambda
                       Id)       -- and binder annotated with demand
 
-annotateLamIdBndr env arg_of_dfun dmd_ty one_shot id
+annotateLamIdBndr env arg_of_dfun dmd_ty id
 -- For lambdas we add the demand to the argument demands
 -- Only called for Ids
   = ASSERT( isId id )
     -- pprTrace "annLamBndr" (vcat [ppr id, ppr _dmd_ty]) $
-    (final_ty, setOneShotness one_shot (setIdDemandInfo id dmd))
+    (final_ty, setIdDemandInfo id dmd)
   where
       -- Watch out!  See note [Lambda-bound unfoldings]
     final_ty = case maybeUnfoldingTemplate (idUnfolding id) of
@@ -947,8 +1034,8 @@ strictness.  For example, if you have a function implemented by an
 error stub, but which has RULES, you may want it not to be eliminated
 in favour of error!
 
-Note [Lazy and unleasheable free variables]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Note [Lazy and unleashable free variables]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We put the strict and once-used FVs in the DmdType of the Id, so
 that at its call sites we unleash demands on its strict fvs.
 An example is 'roll' in imaginary/wheel-sieve2
@@ -976,12 +1063,35 @@ Incidentally, here's a place where lambda-lifting h would
 lose the cigar --- we couldn't see the joint strictness in t/x
 
         ON THE OTHER HAND
+
 We don't want to put *all* the fv's from the RHS into the
-DmdType, because that makes fixpointing very slow --- the
-DmdType gets full of lazy demands that are slow to converge.
+DmdType. Because
+
+ * it makes the strictness signatures larger, and hence slows down fixpointing
+
+and
+
+ * it is useless information at the call site anyways:
+   For lazy, used-many times fv's we will never get any better result than
+   that, no matter how good the actual demand on the function at the call site
+   is (unless it is always absent, but then the whole binder is useless).
+
+Therefore we exclude lazy multiple-used fv's from the environment in the
+DmdType.
+
+But now the signature lies! (Missing variables are assumed to be absent.) To
+make up for this, the code that analyses the binding keeps the demand on those
+variable separate (usually called "lazy_fv") and adds it to the demand of the
+whole binding later.
+
+What if we decide _not_ to store a strictness signature for a binding at all, as
+we do when aborting a fixed-point iteration? The we risk losing the information
+that the strict variables are being used. In that case, we take all free variables
+mentioned in the (unsound) strictness signature, conservatively approximate the
+demand put on them (topDmd), and add that to the "lazy_fv" returned by "dmdFix".
 
 
-Note [Lamba-bound unfoldings]
+Note [Lambda-bound unfoldings]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We allow a lambda-bound variable to carry an unfolding, a facility that is used
 exclusively for join points; see Note [Case binders and join points].  If so,
@@ -1023,9 +1133,9 @@ type SigEnv = VarEnv (StrictSig, TopLevelFlag)
 
 instance Outputable AnalEnv where
   ppr (AE { ae_sigs = env, ae_virgin = virgin })
-    = ptext (sLit "AE") <+> braces (vcat
-         [ ptext (sLit "ae_virgin =") <+> ppr virgin
-         , ptext (sLit "ae_sigs =") <+> ppr env ])
+    = text "AE" <+> braces (vcat
+         [ text "ae_virgin =" <+> ppr virgin
+         , text "ae_sigs =" <+> ppr env ])
 
 emptyAnalEnv :: DynFlags -> FamInstEnvs -> AnalEnv
 emptyAnalEnv dflags fam_envs
@@ -1039,11 +1149,14 @@ emptyAnalEnv dflags fam_envs
 emptySigEnv :: SigEnv
 emptySigEnv = emptyVarEnv
 
-sigEnv :: AnalEnv -> SigEnv
-sigEnv = ae_sigs
+-- | Extend an environment with the strictness IDs attached to the id
+extendAnalEnvs :: TopLevelFlag -> AnalEnv -> [Id] -> AnalEnv
+extendAnalEnvs top_lvl env vars
+  = env { ae_sigs = extendSigEnvs top_lvl (ae_sigs env) vars }
 
-updSigEnv :: AnalEnv -> SigEnv -> AnalEnv
-updSigEnv env sigs = env { ae_sigs = sigs }
+extendSigEnvs :: TopLevelFlag -> SigEnv -> [Id] -> SigEnv
+extendSigEnvs top_lvl sigs vars
+  = extendVarEnvList sigs [ (var, (idStrictness var, top_lvl)) | var <- vars]
 
 extendAnalEnv :: TopLevelFlag -> AnalEnv -> Id -> StrictSig -> AnalEnv
 extendAnalEnv top_lvl env var sig
@@ -1061,15 +1174,6 @@ getStrictness env fn
   | Just (sig, _) <- lookupSigEnv env fn = sig
   | otherwise                            = nopSig
 
-addInitialSigs :: TopLevelFlag -> AnalEnv -> [Id] -> AnalEnv
--- See Note [Initialising strictness]
-addInitialSigs top_lvl env@(AE { ae_sigs = sigs, ae_virgin = virgin }) ids
-  = env { ae_sigs = extendVarEnvList sigs [ (id, (init_sig id, top_lvl))
-                                          | id <- ids ] }
-  where
-    init_sig | virgin    = \_ -> botSig
-             | otherwise = idStrictness
-
 nonVirgin :: AnalEnv -> AnalEnv
 nonVirgin env = env { ae_virgin = False }
 
@@ -1086,6 +1190,30 @@ extendSigsWithLam env id
   | otherwise
   = env
 
+extendEnvForProdAlt :: AnalEnv -> CoreExpr -> Id -> DataCon -> [Var] -> AnalEnv
+-- See Note [CPR in a product case alternative]
+extendEnvForProdAlt env scrut case_bndr dc bndrs
+  = foldl do_con_arg env1 ids_w_strs
+  where
+    env1 = extendAnalEnv NotTopLevel env case_bndr case_bndr_sig
+
+    ids_w_strs    = filter isId bndrs `zip` dataConRepStrictness dc
+    case_bndr_sig = cprProdSig (dataConRepArity dc)
+    fam_envs      = ae_fam_envs env
+
+    do_con_arg env (id, str)
+       | let is_strict = isStrictDmd (idDemandInfo id) || isMarkedStrict str
+       , ae_virgin env || (is_var_scrut && is_strict)  -- See Note [CPR in a product case alternative]
+       , Just (dc,_,_,_) <- deepSplitProductType_maybe fam_envs $ idType id
+       = extendAnalEnv NotTopLevel env id (cprProdSig (dataConRepArity dc))
+       | otherwise
+       = env
+
+    is_var_scrut = is_var scrut
+    is_var (Cast e _) = is_var e
+    is_var (Var v)    = isLocalId v
+    is_var _          = False
+
 addDataConStrictness :: DataCon -> [Demand] -> [Demand]
 -- See Note [Add demands for strict constructors]
 addDataConStrictness con ds
@@ -1093,9 +1221,9 @@ addDataConStrictness con ds
     zipWith add ds strs
   where
     strs = dataConRepStrictness con
-    add dmd str | isMarkedStrict str = dmd `bothDmd` seqDmd
+    add dmd str | isMarkedStrict str
+                , not (isAbsDmd dmd) = dmd `bothDmd` seqDmd
                 | otherwise          = dmd
-    -- Yes, even if 'dmd' is Absent!
 
 findBndrsDmds :: AnalEnv -> DmdType -> [Var] -> (DmdType, [Demand])
 -- Return the demands on the Ids in the [Var]
@@ -1110,7 +1238,7 @@ findBndrsDmds env dmd_ty bndrs
       | otherwise = go dmd_ty bs
 
 findBndrDmd :: AnalEnv -> Bool -> DmdType -> Id -> (DmdType, Demand)
--- See Note [Trimming a demand to a type] in Demand.lhs
+-- See Note [Trimming a demand to a type] in Demand.hs
 findBndrDmd env arg_of_dfun dmd_ty id
   = (dmd_ty', dmd')
   where
@@ -1147,7 +1275,101 @@ dumpStrSig binds = vcat (map printId ids)
   printId id | isExportedId id = ppr id <> colon <+> pprIfaceStrictSig (idStrictness id)
              | otherwise       = empty
 
-{-
+{- Note [CPR in a product case alternative]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In a case alternative for a product type, we want to give some of the
+binders the CPR property.  Specifically
+
+ * The case binder; inside the alternative, the case binder always has
+   the CPR property, meaning that a case on it will successfully cancel.
+   Example:
+        f True  x = case x of y { I# x' -> if x' ==# 3
+                                           then y
+                                           else I# 8 }
+        f False x = I# 3
+
+   By giving 'y' the CPR property, we ensure that 'f' does too, so we get
+        f b x = case fw b x of { r -> I# r }
+        fw True  x = case x of y { I# x' -> if x' ==# 3 then x' else 8 }
+        fw False x = 3
+
+   Of course there is the usual risk of re-boxing: we have 'x' available
+   boxed and unboxed, but we return the unboxed version for the wrapper to
+   box.  If the wrapper doesn't cancel with its caller, we'll end up
+   re-boxing something that we did have available in boxed form.
+
+ * Any strict binders with product type, can use
+   Note [Initial CPR for strict binders].  But we can go a little
+   further. Consider
+
+      data T = MkT !Int Int
+
+      f2 (MkT x y) | y>0       = f2 (MkT x (y-1))
+                   | otherwise = x
+
+   For $wf2 we are going to unbox the MkT *and*, since it is strict, the
+   first argument of the MkT; see Note [Add demands for strict constructors].
+   But then we don't want box it up again when returning it!  We want
+   'f2' to have the CPR property, so we give 'x' the CPR property.
+
+ * It's a bit delicate because if this case is scrutinising something other
+   than an argument the original function, we really don't have the unboxed
+   version available.  E.g
+      g v = case foo v of
+              MkT x y | y>0       -> ...
+                      | otherwise -> x
+   Here we don't have the unboxed 'x' available.  Hence the
+   is_var_scrut test when making use of the strictness annotation.
+   Slightly ad-hoc, because even if the scrutinee *is* a variable it
+   might not be a onre of the arguments to the original function, or a
+   sub-component thereof.  But it's simple, and nothing terrible
+   happens if we get it wrong.  e.g. Trac #10694.
+
+Note [Add demands for strict constructors]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Consider this program (due to Roman):
+
+    data X a = X !a
+
+    foo :: X Int -> Int -> Int
+    foo (X a) n = go 0
+     where
+       go i | i < n     = a + go (i+1)
+            | otherwise = 0
+
+We want the worker for 'foo' too look like this:
+
+    $wfoo :: Int# -> Int# -> Int#
+
+with the first argument unboxed, so that it is not eval'd each time
+around the 'go' loop (which would otherwise happen, since 'foo' is not
+strict in 'a').  It is sound for the wrapper to pass an unboxed arg
+because X is strict, so its argument must be evaluated.  And if we
+*don't* pass an unboxed argument, we can't even repair it by adding a
+`seq` thus:
+
+    foo (X a) n = a `seq` go 0
+
+because the seq is discarded (very early) since X is strict!
+
+We achieve the effect using addDataConStrictness.  It is called at a
+case expression, such as the pattern match on (X a) in the example
+above.  After computing how 'a' is used in the alternatives, we add an
+extra 'seqDmd' to it.  The case alternative isn't itself strict in the
+sub-components, but simply evaluating the scrutinee to HNF does force
+those sub-components.
+
+If the argument is not used at all in the alternative (i.e. it is
+Absent), then *don't* add a 'seqDmd'.  If we do, it makes it look used
+and hence it'll be passed to the worker when it doesn't need to be.
+Hence the isAbsDmd test in addDataConStrictness.
+
+There is the usual danger of reboxing, which as usual we ignore. But
+if X is monomorphic, and has an UNPACK pragma, then this optimisation
+is even more important.  We don't want the wrapper to rebox an unboxed
+argument, and pass an Int to $wfoo!
+
+
 Note [Initial CPR for strict binders]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 CPR is initialized for a lambda binder in an optimistic manner, i.e,
@@ -1156,19 +1378,86 @@ a product are used, which is checked by the value of the absence
 demand.
 
 If the binder is marked demanded with a strict demand, then give it a
-CPR signature, because in the likely event that this is a lambda on a
-fn defn [we only use this when the lambda is being consumed with a
-call demand], it'll be w/w'd and so it will be CPR-ish.  E.g.
+CPR signature. Here's a concrete example ('f1' in test T10482a),
+assuming h is strict:
 
-        f = \x::(Int,Int).  if ...strict in x... then
-                                x
-                            else
-                                (a,b)
-We want f to have the CPR property because x does, by the time f has been w/w'd
+  f1 :: Int -> Int
+  f1 x = case h x of
+          A -> x
+          B -> f1 (x-1)
+          C -> x+1
 
-Also note that we only want to do this for something that definitely
-has product type, else we may get over-optimistic CPR results
-(e.g. from \x -> x!).
+If we notice that 'x' is used strictly, we can give it the CPR
+property; and hence f1 gets the CPR property too.  It's sound (doesn't
+change strictness) to give it the CPR property because by the time 'x'
+is returned (case A above), it'll have been evaluated (by the wrapper
+of 'h' in the example).
+
+Moreover, if f itself is strict in x, then we'll pass x unboxed to
+f1, and so the boxed version *won't* be available; in that case it's
+very helpful to give 'x' the CPR property.
+
+Note that
+
+  * We only want to do this for something that definitely
+    has product type, else we may get over-optimistic CPR results
+    (e.g. from \x -> x!).
+
+  * See Note [CPR examples]
+
+Note [CPR examples]
+~~~~~~~~~~~~~~~~~~~~
+Here are some examples (stranal/should_compile/T10482a) of the
+usefulness of Note [CPR in a product case alternative].  The main
+point: all of these functions can have the CPR property.
+
+    ------- f1 -----------
+    -- x is used strictly by h, so it'll be available
+    -- unboxed before it is returned in the True branch
+
+    f1 :: Int -> Int
+    f1 x = case h x x of
+            True  -> x
+            False -> f1 (x-1)
+
+
+    ------- f2 -----------
+    -- x is a strict field of MkT2, so we'll pass it unboxed
+    -- to $wf2, so it's available unboxed.  This depends on
+    -- the case expression analysing (a subcomponent of) one
+    -- of the original arguments to the function, so it's
+    -- a bit more delicate.
+
+    data T2 = MkT2 !Int Int
+
+    f2 :: T2 -> Int
+    f2 (MkT2 x y) | y>0       = f2 (MkT2 x (y-1))
+                  | otherwise = x
+
+
+    ------- f3 -----------
+    -- h is strict in x, so x will be unboxed before it
+    -- is rerturned in the otherwise case.
+
+    data T3 = MkT3 Int Int
+
+    f1 :: T3 -> Int
+    f1 (MkT3 x y) | h x y     = f3 (MkT3 x (y-1))
+                  | otherwise = x
+
+
+    ------- f4 -----------
+    -- Just like f2, but MkT4 can't unbox its strict
+    -- argument automatically, as f2 can
+
+    data family Foo a
+    newtype instance Foo Int = Foo Int
+
+    data T4 a = MkT4 !(Foo a) Int
+
+    f4 :: T4 Int -> Int
+    f4 (MkT4 x@(Foo v) y) | y>0       = f4 (MkT4 x (y-1))
+                          | otherwise = v
 
 
 Note [Initialising strictness]
@@ -1177,7 +1466,7 @@ See section 9.2 (Finding fixpoints) of the paper.
 
 Our basic plan is to initialise the strictness of each Id in a
 recursive group to "bottom", and find a fixpoint from there.  However,
-this group B might be inside an *enclosing* recursiveb group A, in
+this group B might be inside an *enclosing* recursive group A, in
 which case we'll do the entire fixpoint shebang on for each iteration
 of A. This can be illustrated by the following example:
 
@@ -1207,4 +1496,34 @@ of the Id, and start from "bottom".  Nowadays the Id can have a current
 strictness, because interface files record strictness for nested bindings.
 To know when we are in the first iteration, we look at the ae_virgin
 field of the AnalEnv.
+
+
+Note [Final Demand Analyser run]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Some of the information that the demand analyser determines is not always
+preserved by the simplifier.  For example, the simplifier will happily rewrite
+  \y [Demand=1*U] let x = y in x + x
+to
+  \y [Demand=1*U] y + y
+which is quite a lie.
+
+The once-used information is (currently) only used by the code
+generator, though.  So:
+
+ * We zap the used-once info in the worker-wrapper;
+   see Note [Zapping Used Once info in WorkWrap] in WorkWrap. If it's
+   not reliable, it's better not to have it at all.
+
+ * Just before TidyCore, we add a pass of the demand analyser,
+      but WITHOUT subsequent worker/wrapper and simplifier,
+   right before TidyCore.  See SimplCore.getCoreToDo.
+
+   This way, correct information finds its way into the module interface
+   (strictness signatures!) and the code generator (single-entry thunks!)
+
+Note that, in contrast, the single-call information (C1(..)) /can/ be
+relied upon, as the simplifier tends to be very careful about not
+duplicating actual function calls.
+
+Also see #11731.
 -}

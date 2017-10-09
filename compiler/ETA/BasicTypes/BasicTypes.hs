@@ -21,7 +21,7 @@ module ETA.BasicTypes.BasicTypes(
 
         ConTag, ConTagZ, fIRST_TAG,
 
-        Arity, RepArity,
+        Arity, RepArity, JoinArity,
 
         Alignment,
 
@@ -117,6 +117,12 @@ type Arity = Int
 --  \x -> fib x                has representation arity 1
 --  \(# x, y #) -> fib (x + y) has representation arity 2
 type RepArity = Int
+
+-- | The number of arguments that a join point takes. Unlike the arity of a
+-- function, this is a purely syntactic property and is fixed when the join
+-- point is created (or converted from a value). Both type and value arguments
+-- are counted.
+type JoinArity = Int
 
 {-
 ************************************************************************

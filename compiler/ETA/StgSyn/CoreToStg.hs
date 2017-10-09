@@ -41,7 +41,7 @@ import ETA.Utils.FastString
 import ETA.Utils.Util
 import ETA.Main.DynFlags
 import ETA.Prelude.ForeignCall
-import ETA.BasicTypes.Demand           ( isSingleUsed )
+import ETA.BasicTypes.Demand           ( isUsedOnce )
 import ETA.Prelude.PrimOp           ( PrimCall(..) )
 
 import Data.Maybe    (isJust)
@@ -832,7 +832,7 @@ mkStgRhs' con_updateable rhs_fvs srt bndr binder_info rhs
 
     (_, unticked_rhs) = stripStgTicksTop (not . tickishIsCode) rhs
 
-    upd_flag | isSingleUsed (idDemandInfo bndr)  = SingleEntry
+    upd_flag | isUsedOnce (idDemandInfo bndr)    = SingleEntry
              | otherwise                         = Updatable
 
   {-

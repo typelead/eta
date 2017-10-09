@@ -38,7 +38,7 @@ cgLit (MachStr s)           = (jlong, sconst string <> loadString )
   where (string, isLatin1) =
           unsafeDupablePerformIO $
             catch (fmap (,False) $ evaluate $ decodeUtf8 s)
-                  (\(e :: ErrorCall) -> fmap (,True) $ evaluate $ decodeLatin1 s)
+                  (\(_ :: ErrorCall) -> fmap (,True) $ evaluate $ decodeLatin1 s)
         loadString
           | isLatin1  = loadStringLatin1
           | otherwise = loadStringUTF8
@@ -98,11 +98,11 @@ initCodeTemplate' retFt synchronized modClass qClName field code =
         bodyCode
           | synchronized = ftClassObject modFt
                         <> dup classFt
-                        <> gstore classFt 0
+                        <> gstore classFt (0 :: Int)
                         <> monitorenter classFt
                         <> getstatic field
                         <> ifnonnull mempty code
-                        <> gload classFt 0
+                        <> gload classFt (0 :: Int)
                         <> monitorexit classFt
           | otherwise = code
 

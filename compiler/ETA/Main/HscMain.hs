@@ -1208,7 +1208,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
         -- PREPARE FOR CODE GENERATION
         -- Do saturation and convert to A-normal form
         prepd_binds <- {-# SCC "CorePrep" #-}
-                       corePrepPgm hsc_env location core_binds data_tycons ;
+                       corePrepPgm hsc_env this_mod location core_binds data_tycons ;
         -----------------  Convert to STG ------------------
         (stg_binds, _cost_centre_info)
             <- {-# SCC "CoreToStg" #-}

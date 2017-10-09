@@ -73,6 +73,7 @@ library
                        , ETA.Core.CoreFVs
                        , ETA.Core.CoreLint
                        , ETA.Core.CorePrep
+                       , ETA.Core.CoreSeq
                        , ETA.Core.CoreSubst
                        , ETA.Core.CoreSyn
                        , ETA.Core.CoreTidy

@@ -43,7 +43,10 @@ module GHC.Exts
         breakpoint, breakpointCond,
 
         -- * Ids with special behaviour
-        lazy, inline,
+        lazy, inline, oneShot,
+
+        -- * Running 'RealWorld' state transformers
+        runRW#,
 
         -- * Safe coercions
         --
