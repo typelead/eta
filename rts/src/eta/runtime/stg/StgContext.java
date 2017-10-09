@@ -81,20 +81,28 @@ public class StgContext {
     }
 
     public void resetArgStack() {
+        resetRs();
+        Arrays.fill(Rs, null);
+        resetOs();
+        Arrays.fill(Os, null);
+    }
+
+    public void resetRs() {
         R1 = null;
         R2 = null;
         R3 = null;
         R4 = null;
         R5 = null;
         R6 = null;
+    }
+
+    public void resetOs() {
         O1 = null;
         O2 = null;
         O3 = null;
         O4 = null;
         O5 = null;
         O6 = null;
-        Arrays.fill(Rs, null);
-        Arrays.fill(Os, null);
     }
 
     public void saveStackTrace(Exception e, StackTraceElement[] ste) {
