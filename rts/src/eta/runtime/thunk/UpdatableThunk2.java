@@ -12,7 +12,7 @@ public abstract class UpdatableThunk2 extends UpdatableThunk {
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         this.x1 = null;
         this.x2 = null;
     }

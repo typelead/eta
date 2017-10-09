@@ -20,7 +20,7 @@ public abstract class SelectorUpd extends UpdatableThunk {
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         this.p = null;
     }
 

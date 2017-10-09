@@ -1,12 +1,8 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
-import eta.runtime.exception.Exception;
-import eta.runtime.exception.EtaException;
-import eta.runtime.exception.EtaAsyncException;
 
 public class CAF extends Thunk {
 
@@ -19,45 +15,28 @@ public class CAF extends Thunk {
     }
 
     @Override
-    public Closure evaluate(StgContext context) {
-        do {
+    public final Closure evaluate(StgContext context) {
+        for (;;) {
             if (indirectee == null) {
                 if (Thread.interrupted()) {
                     context.myCapability.idleLoop(false);
                 }
                 TSO tso = context.currentTSO;
-                boolean claimed = claim(tso);
-                if (!claimed) continue;
+                if (!claim(tso)) continue;
                 UpdateInfo ui = context.pushUpdate(this);
-                Closure result;
+                Closure result = null;
                 try {
                     result = thunkEnter(context);
                 } catch (java.lang.Exception e) {
-                    if (e instanceof EtaAsyncException) {
-                        if (((EtaAsyncException) e).stopHere == ui) {
-                            continue;
-                        } else {
-                            throw (EtaAsyncException) e;
-                        }
-                    } else {
-                        EtaException e_;
-                        if (e instanceof EtaException) {
-                            e_ = (EtaException) e;
-                        } else {
-                            e_ = Exception.toEtaException(tso, e);
-                        }
-                        throw e_;
-                    }
+                    if (Thunk.handleException(e, tso, ui)) continue;
                 } finally {
-                    Thunk popped = context.popUpdate();
-                    assert popped == this:
-                        "Popped " + popped + " from update stack and expected [CAF] " + this;
+                    context.popUpdate();
                 }
                 return updateCode(context, result);
             } else {
                 return blackHole(context);
             }
-        } while (true);
+        }
     }
 
     /* By default, if the single-argument constructor is used, it will just redirect
@@ -69,9 +48,7 @@ public class CAF extends Thunk {
     }
 
     @Override
-    public void clear() {
-        /* TODO: This assume that CAFs carry no free variables */
-    }
+    public final void clear() {}
 
     /* Initializing CAFs */
     public final boolean claim(TSO tso) {

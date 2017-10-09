@@ -14,12 +14,12 @@ public class ApI extends UpdatableThunk {
     }
 
     @Override
-    public Closure thunkEnter(StgContext context) {
+    public final Closure thunkEnter(StgContext context) {
         return p1.applyN(context, p2);
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         this.p1 = null;
     }
 }

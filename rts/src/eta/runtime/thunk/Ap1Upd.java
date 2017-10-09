@@ -13,12 +13,12 @@ public class Ap1Upd extends UpdatableThunk {
     }
 
     @Override
-    public Closure thunkEnter(StgContext context) {
+    public final Closure thunkEnter(StgContext context) {
         return p.evaluate(context);
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         this.p = null;
     }
 }

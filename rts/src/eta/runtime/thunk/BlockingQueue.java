@@ -25,7 +25,7 @@ public class BlockingQueue extends BlackHole implements Iterable<MessageBlackHol
     }
 
     @Override
-    public Iterator<MessageBlackHole> iterator() {
+    public final Iterator<MessageBlackHole> iterator() {
         return messages.iterator();
     }
 

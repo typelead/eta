@@ -20,7 +20,7 @@ public abstract class SelectorNoUpd extends SingleEntryThunk {
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         this.p = null;
     }
 

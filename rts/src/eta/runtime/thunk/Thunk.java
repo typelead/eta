@@ -15,6 +15,9 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
 import eta.runtime.message.MessageBlackHole;
+import eta.runtime.exception.Exception;
+import eta.runtime.exception.EtaException;
+import eta.runtime.exception.EtaAsyncException;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
@@ -290,5 +293,24 @@ public abstract class Thunk extends Closure {
         return !f.getName().equals("indirectee")
             && !f.getType().isPrimitive()
             && !Modifier.isStatic(f.getModifiers());
+    }
+
+    protected static final boolean handleException(java.lang.Exception e, TSO tso, UpdateInfo ui) {
+        if (e instanceof EtaAsyncException) {
+            EtaAsyncException ea = (EtaAsyncException) e;
+            if (ea.stopHere == ui) {
+                return true;
+            } else {
+                throw ea;
+            }
+        } else {
+            EtaException e_;
+            if (e instanceof EtaException) {
+                e_ = (EtaException) e;
+            } else {
+                e_ = Exception.toEtaException(tso, e);
+            }
+            throw e_;
+        }
     }
 }

@@ -6,7 +6,7 @@ import eta.runtime.stg.StgContext;
 public abstract class SingleEntryThunk extends Thunk {
 
     @Override
-    public Closure evaluate(StgContext context) {
+    public final Closure evaluate(StgContext context) {
         if (Thread.interrupted()) {
             context.myCapability.idleLoop(false);
         }

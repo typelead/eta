@@ -12,12 +12,12 @@ public class ApV extends UpdatableThunk {
     }
 
     @Override
-    public Closure thunkEnter(StgContext context) {
+    public final Closure thunkEnter(StgContext context) {
         return p.applyV(context);
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         this.p = null;
     }
 }
