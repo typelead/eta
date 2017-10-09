@@ -13,64 +13,78 @@ public class UpdateInfoStack {
 
     public UpdateInfoStack() {}
 
-    public UpdateInfo push(Thunk updatee) {
-        return push(updatee, false);
-    }
-
-    public UpdateInfo push(Thunk updatee, boolean marked) {
-        UpdateInfo ui;
-        if (free != null) {
-            ui = free;
-            free = free.prev;
-            ui.updatee = updatee;
-        } else {
-            ui = new UpdateInfo(updatee, marked);
-        }
+    public final UpdateInfo push(Thunk updatee) {
+        UpdateInfo ui = acquireUpdateInfo(updatee);
         if (bottom == null) {
-            bottom = top = ui;
-            ui.prev = null;
-            ui.next = null;
+            pushBottom(ui);
         } else {
-            ui.prev  = top;
-            ui.next  = null;
-            top.next = ui;
-            top = ui;
+            pushMiddle(ui);
         }
         return ui;
     }
 
-    public Thunk pop() {
-        Thunk res = null;
+    private final void pushMiddle(UpdateInfo ui) {
+        ui.prev  = top;
+        ui.next  = null;
+        top.next = ui;
+        top = ui;
+    }
+
+    private final void pushBottom(UpdateInfo ui) {
+        bottom = top = ui;
+        ui.prev = null;
+        ui.next = null;
+    }
+
+    private final UpdateInfo acquireUpdateInfo(Thunk updatee) {
+        UpdateInfo ui;
+        if (free != null) {
+            ui = grabFreeUpdateInfo(updatee);
+        } else {
+            ui = new UpdateInfo(updatee);
+        }
+        return ui;
+    }
+
+    private final UpdateInfo grabFreeUpdateInfo(Thunk updatee) {
+        UpdateInfo ui = free;
+        ui.updatee = updatee;
+        free = free.prev;
+        return ui;
+    }
+
+    public final Thunk pop() {
         UpdateInfo ui = top;
+        Thunk res = ui.updatee;
+        adjustAfterPop(ui);
+        free = ui.reset(free);
+        return res;
+    }
+
+    private final void adjustAfterPop(UpdateInfo top) {
         top = top.prev;
-        res = ui.updatee;
         if (top == null) {
             bottom = null;
         } else {
             top.next = null;
         }
-        ui.prev = free;
-        ui.next = null;
-        ui.updatee = null;
-        ui.marked = false;
-        free = ui;
-        return res;
+        this.top = top;
     }
 
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return bottom == null;
     }
 
-    public UpdateInfo peek() {
+    public final UpdateInfo peek() {
         return top;
     }
 
-    public void clear() {
+    public final void clear() {
         top    = null;
         bottom = null;
     }
 
-    public void raiseExceptionAfter(Capability cap, TSO tso, Closure raise, UpdateInfo ui) {
+    public final void raiseExceptionAfter(Capability cap, TSO tso, Closure raise, UpdateInfo ui) {
         top = ui;
         if (ui != null) ui = ui.next;
         else ui = bottom;
@@ -85,11 +99,11 @@ public class UpdateInfoStack {
         }
     }
 
-    public UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {
+    public final UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {
         return markBackwardsFrom(cap, tso, null);
     }
 
-    public UpdateInfo markBackwardsFrom(Capability cap, TSO tso, UpdateInfo ui) {
+    public final UpdateInfo markBackwardsFrom(Capability cap, TSO tso, UpdateInfo ui) {
         if (ui == null) ui = top;
         UpdateInfo suspend = null;
         while (ui != null && !ui.marked) {
