@@ -229,25 +229,12 @@ public final class Capability {
         tso.cap = this;
     }
 
-    public final void pushOnRunQueue(TSO tso) {
-        runQueue.offerFirst(tso);
-    }
-
     public final TSO popRunQueue() {
         return runQueue.pollFirst();
     }
 
     public final TSO peekRunQueue() {
         return runQueue.peekFirst();
-    }
-
-    public final void promoteInRunQueue(TSO tso) {
-        removeFromRunQueue(tso);
-        pushOnRunQueue(tso);
-    }
-
-    public final void removeFromRunQueue(TSO tso) {
-        runQueue.remove(tso);
     }
 
     /* Message Inbox */
@@ -472,13 +459,13 @@ public final class Capability {
         }
     }
 
-    public boolean shutdown(boolean safe) {
+    public final boolean shutdown(boolean safe) {
         return sendMessage(this, MessageShutdown.getInstance());
     }
 
     /* Globan Run Queue Stealing */
 
-    public TSO tryStealGlobalRunQueue() {
+    public final TSO tryStealGlobalRunQueue() {
         TSO tso = Concurrent.stealFromGlobalRunQueue();
         if (tso != null) {
             Concurrent.globalRunQueueModifiedTime = System.currentTimeMillis();
@@ -490,7 +477,7 @@ public final class Capability {
 
     /* Idle Loop */
 
-    public void idleLoop(boolean blocked) {
+    public final void idleLoop(boolean blocked) {
         TSO tso = context.currentTSO;
         processInbox();
 
@@ -524,7 +511,7 @@ public final class Capability {
         }
     }
 
-    public void detectMVarDeadlock(WhyBlocked whyBlocked) {
+    public final void detectMVarDeadlock(WhyBlocked whyBlocked) {
         if (whyBlocked == BlockedOnMVar || whyBlocked == BlockedOnMVarRead) {
             if (workerCapabilitiesSize() == 0 && !globalWorkToDo()) {
                 Exception.raise(context, Closures.blockedIndefinitelyOnMVar);
@@ -533,11 +520,11 @@ public final class Capability {
     }
 
     /* Blocked Loop */
-    public void blockedLoop() {
+    public final void blockedLoop() {
         blockedLoop(Runtime.getMaxTSOBlockTimeNanos());
     }
 
-    public void blockedLoop(long nanos) {
+    public final void blockedLoop(long nanos) {
         idleLoop(true);
         LockSupport.parkNanos(nanos);
         Thread.interrupted();
@@ -548,7 +535,7 @@ public final class Capability {
         return (!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks());
     }
 
-    public void manageOrSpawnWorkers() {
+    public final void manageOrSpawnWorkers() {
 
         /* When we have excess live threads and blocked Capabilities, let's wake
            them up so they can terminate themselves. */
