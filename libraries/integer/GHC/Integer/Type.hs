@@ -21,6 +21,8 @@
 
 module GHC.Integer.Type where
 
+import GHC.Magic (runRW#)
+
 import GHC.Prim (
   -- Other types we use, convert from, or convert to
   Int#, Word#, Double#, Float#, ByteArray#, MutableByteArray#, Addr#, State#,
@@ -33,7 +35,7 @@ import GHC.Prim (
   (==#), (/=#), (<=#), (>=#), (<#), (>#),
   mulIntMayOflo#, addIntC#, subIntC#,
   and#, or#, xor#,
-  realWorld#, void#,
+  void#,
 
   -- 64-bit operations
   Int64#, Word64#,
@@ -221,7 +223,7 @@ smartJ# i# = if isTrue# (bits <=# 31#) then
 -- | Variant of 'mpzToInteger' for pairs of 'Integer's
 unboxedIntegerPair :: IntegerPair# -> (# Integer, Integer #)
 unboxedIntegerPair bigIntArr# =
-  case jobjectArrayAt# bigIntArr# 0# realWorld# of
+  case runRW# (\s -> jobjectArrayAt# bigIntArr# 0# s) of
     (# s, i1 #) -> case jobjectArrayAt# bigIntArr# 1# s of
       (# _, i2 #) -> (# smartJ# i1, smartJ# i2 #)
 

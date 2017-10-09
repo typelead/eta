@@ -200,9 +200,26 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (AlgAlt tyCon) alts
           return $ head codes
 
 cgCase (StgOpApp (StgPrimOp op) args _) binder (PrimAlt _) alts
+  | op `elem` [FreshStateTokenOp, FreshObjectTokenOp, FreshNullObjectTokenOp]
+  = case op of
+      FreshStateTokenOp -> do
+        let [(DEFAULT, _, _, rhs)] = alts
+        cgExpr rhs
+      FreshObjectTokenOp -> do
+        let (_:obj:_) = args
+            nvObj = NonVoid obj
+            [(DEFAULT, _, _, rhs)] = alts
+        objCode <- getArgLoadCode nvObj
+        bindArg nvBinder (newLocDirect nvBinder objCode)
+        cgExpr rhs
+      FreshNullObjectTokenOp -> do
+        let [(DEFAULT, _, _, rhs)] = alts
+        bindArg nvBinder (newLocDirect nvBinder (aconst_null jobject))
+        cgExpr rhs
   | isDeadBinder binder
   , Just genCode <- comparisonPrimOp op
-  = genCode (NonVoid binder) args alts
+  = genCode nvBinder args alts
+  where nvBinder = NonVoid binder
 
 cgCase (StgApp v []) _ (PrimAlt _) alts
   | isVoidRep (idPrimRep v)

@@ -573,13 +573,16 @@ data PrimOp
    | Int642AddrOp
    | WaitConnectOp
    | WaitAcceptOp
+   | FreshStateTokenOp
+   | FreshObjectTokenOp
+   | FreshNullObjectTokenOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1140
+maxPrimOpTag = 1143
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1722,6 +1725,9 @@ tagOf_PrimOp Addr2Int64Op = _ILIT(1137)
 tagOf_PrimOp Int642AddrOp = _ILIT(1138)
 tagOf_PrimOp WaitConnectOp = _ILIT(1139)
 tagOf_PrimOp WaitAcceptOp = _ILIT(1140)
+tagOf_PrimOp FreshStateTokenOp = _ILIT(1141)
+tagOf_PrimOp FreshObjectTokenOp = _ILIT(1142)
+tagOf_PrimOp FreshNullObjectTokenOp = _ILIT(1143)
 
 instance Eq PrimOp where
     op1 == op2 = tagOf_PrimOp op1 ==# tagOf_PrimOp op2
@@ -2886,6 +2892,9 @@ allThePrimOps =
    , Int642AddrOp
    , WaitConnectOp
    , WaitAcceptOp
+   , FreshStateTokenOp
+   , FreshObjectTokenOp
+   , FreshNullObjectTokenOp
    ]
 
 tagToEnumKey :: Unique
@@ -2958,6 +2967,9 @@ primOpStrictness PrefetchValueOp3 =  \ _arity -> mkClosedStrictSig [botDmd, topD
 primOpStrictness PrefetchValueOp2 =  \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes
 primOpStrictness PrefetchValueOp1 =  \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes
 primOpStrictness PrefetchValueOp0 =  \ _arity -> mkClosedStrictSig [botDmd, topDmd] topRes
+primOpStrictness FreshStateTokenOp =  \ _arity -> mkClosedStrictSig [seqDmd] topRes
+primOpStrictness FreshObjectTokenOp =  \ _arity -> mkClosedStrictSig [seqDmd, seqDmd] topRes
+primOpStrictness FreshNullObjectTokenOp =  \ _arity -> mkClosedStrictSig [seqDmd] topRes
 primOpStrictness _ =  \ arity -> mkClosedStrictSig (replicate arity topDmd) topRes
 
 {-
@@ -4244,7 +4256,9 @@ primOpInfo Addr2Int64Op = mkGenPrimOp (fsLit "addr2Int64#")  [] [addrPrimTy] (in
 primOpInfo Int642AddrOp = mkGenPrimOp (fsLit "int642Addr#")  [] [int64PrimTy] (addrPrimTy)
 primOpInfo WaitConnectOp = mkGenPrimOp (fsLit "waitConnect#")  [alphaTyVar, deltaTyVar] [mkObjectPrimTy alphaTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
 primOpInfo WaitAcceptOp = mkGenPrimOp (fsLit "waitAccept#")  [alphaTyVar, deltaTyVar] [mkObjectPrimTy alphaTy, mkStatePrimTy deltaTy] (mkStatePrimTy deltaTy)
-
+primOpInfo FreshStateTokenOp = mkGenPrimOp (fsLit "freshStateToken#") [openAlphaTyVar, betaTyVar] [openAlphaTy] (mkStatePrimTy betaTy)
+primOpInfo FreshObjectTokenOp = mkGenPrimOp (fsLit "freshObjectToken#") [openAlphaTyVar, betaTyVar] [openAlphaTy, mkObjectPrimTy betaTy] (mkObjectPrimTy betaTy)
+primOpInfo FreshNullObjectTokenOp = mkGenPrimOp (fsLit "freshNullObjectToken#") [openAlphaTyVar, betaTyVar] [openAlphaTy] (mkObjectPrimTy betaTy)
 
 {-
 Here are a load of comments from the old primOp info:
@@ -5046,7 +5060,7 @@ primOpCanFail IndexJByteArrayOp   = True
 primOpCanFail ReadJByteArrayOp    = True
 primOpCanFail WriteJByteArrayOp   = True
 primOpCanFail ClassCastOp         = True
-primOpCanFail IsNullObjectOp        = True
+primOpCanFail IsNullObjectOp       = True
 primOpCanFail NewJByteArrayOp      = True
 primOpCanFail NewJBooleanArrayOp   = True
 primOpCanFail ReadJBooleanArrayOp  = True
@@ -5187,6 +5201,9 @@ primOpCodeSize JChar2WordOp = 0
 primOpCodeSize Word2JCharOp = 0
 primOpCodeSize StablePtr2AddrOp = primOpCodeSizeForeignCall
 primOpCodeSize Addr2StablePtrOp = primOpCodeSizeForeignCall
+primOpCodeSize FreshStateTokenOp = 0
+primOpCodeSize FreshObjectTokenOp = 0
+primOpCodeSize FreshNullObjectTokenOp = 0
 primOpCodeSize _ =  primOpCodeSizeDefault
 
 primOpCodeSizeDefault :: Int

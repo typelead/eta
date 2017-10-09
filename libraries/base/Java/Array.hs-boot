@@ -11,7 +11,7 @@ class (Class c) => JArray e c | c -> e, e -> c where
   default anew :: (Class e) => Int -> Java a c
   {-# INLINE anew #-}
   anew (I# n#) = Java $ \o ->
-    case jobjectArrayNew# n# realWorld# of
+    case runRW# (\s -> jobjectArrayNew# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
 
@@ -19,7 +19,7 @@ class (Class c) => JArray e c | c -> e, e -> c where
   default aget :: (Class e) => Int -> Java c e
   {-# INLINE aget #-}
   aget (I# n#) = Java $ \o ->
-    case jobjectArrayAt# o n# realWorld# of
+    case runRW# (\s -> jobjectArrayAt# o n# s) of
       (# _, o' #) -> case obj o' of
         o'' -> (# o, o'' #)
 
@@ -27,7 +27,7 @@ class (Class c) => JArray e c | c -> e, e -> c where
   default aset :: (Class e) => Int -> e -> Java c ()
   {-# INLINE aset #-}
   aset (I# n#) e = Java $ \o ->
-    case jobjectArraySet# o n# (unobj e) realWorld# of
+    case runRW# (\s -> jobjectArraySet# o n# (unobj e) s) of
       _ -> (# o, () #)
 
 arrayFromList :: JArray e c => [e] -> Java a c

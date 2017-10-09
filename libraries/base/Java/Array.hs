@@ -52,7 +52,7 @@ class (Class c) => JArray e c | c -> e, e -> c where
   {-# INLINE anew #-}
   anew (I# n#) = Java $ \o ->
     case getClass (Proxy :: Proxy e) of
-      JClass c# -> case jobjectArrayNew# n# c# realWorld# of
+      JClass c# -> case runRW# (\s -> jobjectArrayNew# n# c# s) of
         (# _, o' #) -> case obj o' of
           c -> (# o, c #)
 
@@ -60,7 +60,7 @@ class (Class c) => JArray e c | c -> e, e -> c where
   default aget :: (Class e) => Int -> Java c e
   {-# INLINE aget #-}
   aget (I# n#) = Java $ \o ->
-    case jobjectArrayAt# o n# realWorld# of
+    case runRW# (\s -> jobjectArrayAt# o n# s) of
       (# _, o' #) -> case obj o' of
         o'' -> (# o, o'' #)
 
@@ -68,7 +68,7 @@ class (Class c) => JArray e c | c -> e, e -> c where
   default aset :: (Class e) => Int -> e -> Java c ()
   {-# INLINE aset #-}
   aset (I# n#) e = Java $ \o ->
-    case jobjectArraySet# o n# (unobj e) realWorld# of
+    case runRW# (\s -> jobjectArraySet# o n# (unobj e) s) of
       _ -> (# o, () #)
 
 data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanArray)
@@ -76,28 +76,28 @@ data {-# CLASS "boolean[]" #-} JBooleanArray = JBooleanArray (Object# JBooleanAr
 
 instance JArray Bool JBooleanArray where
   anew (I# n#) = Java $ \o ->
-    case newJBooleanArray# n# realWorld# of
+    case runRW# (\s -> newJBooleanArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJBooleanArray# o n# realWorld# of
+    case runRW# (\s -> readJBooleanArray# o n# s) of
       (# _, i# #) -> (# o, isTrue# i# #)
   aset (I# n#) b = Java $ \o ->
-    case writeJBooleanArray# o n# (dataToTag# b) realWorld# of
+    case runRW# (\s -> writeJBooleanArray# o n# (dataToTag# b) s) of
       _ -> (# o, () #)
 
 deriving instance Class JByteArray
 
 instance JArray Byte JByteArray where
   anew (I# n#) = Java $ \o ->
-    case newJByteArray# n# realWorld# of
+    case runRW# (\s -> newJByteArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJByteArray# o n# realWorld# of
+    case runRW# (\s -> readJByteArray# o n# s) of
       (# _, b #) -> (# o, B# b #)
   aset (I# n#) (B# e#) = Java $ \o ->
-    case writeJByteArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJByteArray# o n# e# s) of
       _ -> (# o, () #)
 
 instance JavaConverter [Word8] JByteArray where
@@ -115,14 +115,14 @@ data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray
 
 instance JArray JChar JCharArray where
   anew (I# n#) = Java $ \o ->
-    case newJCharArray# n# realWorld# of
+    case runRW# (\s -> newJCharArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJCharArray# o n# realWorld# of
+    case runRW# (\s -> readJCharArray# o n# s) of
       (# _, e# #) -> (# o, JC# e# #)
   aset (I# n#) (JC# e#) = Java $ \o ->
-    case writeJCharArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJCharArray# o n# e# s) of
       _ -> (# o, () #)
 
 data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArray)
@@ -130,14 +130,14 @@ data {-# CLASS "short[]"   #-} JShortArray   = JShortArray   (Object# JShortArra
 
 instance JArray Short JShortArray where
   anew (I# n#) = Java $ \o ->
-    case newJShortArray# n# realWorld# of
+    case runRW# (\s -> newJShortArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJShortArray# o n# realWorld# of
+    case runRW# (\s -> readJShortArray# o n# s) of
       (# _, e# #) -> (# o, S# e# #)
   aset (I# n#) (S# e#) = Java $ \o ->
-    case writeJShortArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJShortArray# o n# e# s) of
       _ -> (# o, () #)
 
 instance JavaConverter [Word16] JShortArray where
@@ -155,14 +155,14 @@ data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
 
 instance JArray Int JIntArray where
   anew (I# n#) = Java $ \o ->
-    case newJIntArray# n# realWorld# of
+    case runRW# (\s -> newJIntArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJIntArray# o n# realWorld# of
+    case runRW# (\s -> readJIntArray# o n# s) of
       (# _, e# #) -> (# o, I# e# #)
   aset (I# n#) (I# e#) = Java $ \o ->
-    case writeJIntArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJIntArray# o n# e# s) of
       _ -> (# o, () #)
 
 instance JavaConverter [Word32] JIntArray where
@@ -180,14 +180,14 @@ data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray
 
 instance JArray Int64 JLongArray where
   anew (I# n#) = Java $ \o ->
-    case newJLongArray# n# realWorld# of
+    case runRW# (\s -> newJLongArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJLongArray# o n# realWorld# of
+    case runRW# (\s -> readJLongArray# o n# s) of
       (# _, e# #) -> (# o, I64# e# #)
   aset (I# n#) (I64# e#) = Java $ \o ->
-    case writeJLongArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJLongArray# o n# e# s) of
       _ -> (# o, () #)
 
 instance JavaConverter [Word64] JLongArray where
@@ -200,14 +200,14 @@ data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArra
 
 instance JArray Float JFloatArray where
   anew (I# n#) = Java $ \o ->
-    case newJFloatArray# n# realWorld# of
+    case runRW# (\s -> newJFloatArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJFloatArray# o n# realWorld# of
+    case runRW# (\s -> readJFloatArray# o n# s) of
       (# _, e# #) -> (# o, F# e# #)
   aset (I# n#) (F# e#) = Java $ \o ->
-    case writeJFloatArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJFloatArray# o n# e# s) of
       _ -> (# o, () #)
 
 data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArray)
@@ -215,14 +215,15 @@ data {-# CLASS "double[]"  #-} JDoubleArray  = JDoubleArray  (Object# JDoubleArr
 
 instance JArray Double JDoubleArray where
   anew (I# n#) = Java $ \o ->
-    case newJDoubleArray# n# realWorld# of
+    case runRW# (\s -> newJDoubleArray# n# s) of
       (# _, o' #) -> case obj o' of
         c -> (# o, c #)
   aget (I# n#) = Java $ \o ->
-    case readJDoubleArray# o n# realWorld# of
-      (# _, e# #) -> (# o, D# e# #)
+    case runRW# (\s -> readJDoubleArray# o n# s) of
+      (# s1, e# #) -> (# o, D# e# #)
+
   aset (I# n#) (D# e#) = Java $ \o ->
-    case writeJDoubleArray# o n# e# realWorld# of
+    case runRW# (\s -> writeJDoubleArray# o n# e# s) of
       _ -> (# o, () #)
 
 data {-# CLASS "java.lang.Object[]" #-} JObjectArray = JObjectArray (Object# JObjectArray)

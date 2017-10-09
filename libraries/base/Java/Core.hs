@@ -37,6 +37,7 @@ where
 
 import GHC.Base
 import Data.Int(Int64)
+import System.IO.Unsafe(unsafePerformIO)
 -- import Java.Primitive
 
 foreign import java unsafe "@new" globalObject :: Object
@@ -44,26 +45,28 @@ foreign import java unsafe "@new" globalObject :: Object
 {-# INLINE java #-}
 java :: (forall c. Java c a) -> IO a
 java (Java m) = IO $ \s ->
-  case m (unsafeCoerce# (unobj globalObject)) of
-    (# _, a #) -> (# s, a #)
+  case m (freshNullObjectToken# s) of
+      (# o1, a #) -> (# freshStateToken# o1, a #)
 
 {-# INLINE javaWith #-}
 javaWith :: (Class c) => c -> Java c a -> IO a
-javaWith c (Java m) = IO $ \s -> case m (unobj c) of (# _, a #) -> (# s, a #)
+javaWith c (Java m) = IO $ \s ->
+  case m (freshObjectToken# s (unobj c)) of
+    (# o1, a #) -> (# freshStateToken# o1, a #)
 
 {-# INLINE pureJava #-}
 pureJava :: (forall c. Java c a) -> a
-pureJava (Java m) =
-  case m (unsafeCoerce# (unobj globalObject)) of
-    (# _, a #) -> a
+pureJava action = unsafePerformIO (java action)
 
 {-# INLINE pureJavaWith #-}
 pureJavaWith :: (Class c) => c -> Java c a -> a
-pureJavaWith c (Java m) = case m (unobj c) of (# _, a #) -> a
+pureJavaWith c action = unsafePerformIO (javaWith c action)
 
 {-# INLINE (<.>) #-}
 (<.>) :: (Class c) => c -> Java c a -> Java b a
-(<.>) cls (Java m) = Java $ \o -> case m (unobj cls) of (# _, a #) -> (# o, a #)
+(<.>) cls (Java m) = Java $ \o ->
+  case m (freshObjectToken# o (unobj cls)) of
+    (# o1, a #) -> (# freshObjectToken# o1 o, a #)
 
 {-# INLINE withObject #-}
 withObject :: (Class c) => c -> Java c a -> Java b a
@@ -71,7 +74,9 @@ withObject = (<.>)
 
 {-# INLINE io #-}
 io :: IO a -> Java c a
-io (IO m) = Java $ \o -> case m realWorld# of (# _, a #) -> (# o, a #)
+io (IO m) = Java $ \o ->
+  case m (freshStateToken# o) of
+    (# o1, a #) -> (# freshObjectToken# o1 o, a #)
 
 {-# INLINE (>-) #-}
 (>-) :: (Class b) => Java a b -> Java b c -> Java a c
