@@ -90,7 +90,7 @@ initCodeTemplate' :: FieldType -> Bool -> Text -> Text -> FieldRef -> Code -> Me
 initCodeTemplate' retFt synchronized modClass qClName field code =
   mkMethodDef modClass accessFlags qClName [] (Just retFt) $ fold
     [ getstatic field
-    , ifnonnull mempty bodyCode
+    , ifnull bodyCode mempty
     , getstatic field
     , greturn retFt ]
   where accessFlags = [Public, Static]
@@ -101,7 +101,7 @@ initCodeTemplate' retFt synchronized modClass qClName field code =
                         <> gstore classFt (0 :: Int)
                         <> monitorenter classFt
                         <> getstatic field
-                        <> ifnonnull mempty code
+                        <> ifnull code mempty
                         <> gload classFt (0 :: Int)
                         <> monitorexit classFt
           | otherwise = code
