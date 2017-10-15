@@ -257,13 +257,16 @@ cgCase scrut binder altType alts = do
   -- Case-of-case expressions need special care
   -- Since there can be multiple bindings to return
   -- binder.
-  when (isCaseOfCase scrut) $ do
+  when isCaseOfCase $ do
     emit $ fold (map storeDefault altLocs)
-  withSequel (AssignTo altLocs) $ forbidScoping $ cgExpr scrut
+  let maybePreserve
+        | isCaseOfCase = preserveCaseOfCase
+        | otherwise    = id
+  withSequel (AssignTo altLocs) $ maybePreserve $ forbidScoping $ cgExpr scrut
   bindArgs $ zip retBinders altLocs
   cgAlts (NonVoid binder) altType alts
   where retBinders = chooseReturnBinders binder altType alts
-        isCaseOfCase = go
+        isCaseOfCase = go scrut
         go (StgLet _ e) = go e
         go (StgTick _ e) = go e
         go (StgCase _ _ _ _ _ _ _) = True

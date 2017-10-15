@@ -38,6 +38,9 @@ module ETA.CodeGen.Monad
    getScopedBindings,
    addScopedBinding,
    getAllowScoping,
+   getPreserveCaseOfCase,
+   preserveCaseOfCase,
+   setPreserveCaseOfCase,
    printBindings,
    defineMethod,
    defineMethods,
@@ -51,6 +54,7 @@ module ETA.CodeGen.Monad
    runCodeGen,
    forkClosureBody,
    forkLneBody,
+   forkLneBodyNoLocals,
    forkAlts,
    unimplemented,
    getDynFlags,
@@ -109,6 +113,7 @@ data CgState =
           , cgCode           :: !Code
           , cgScopedBindings :: CgBindings
           , cgAllowScoping   :: Bool
+          , cgPreserveCaseOfCase :: Bool
           , cgNextLocal      :: Int
           , cgNextLabel      :: Int }
 
@@ -176,6 +181,7 @@ initCg dflags mod modLoc =
            , cgSuperClassName      = Nothing
            , cgScopedBindings      = emptyVarEnv
            , cgAllowScoping        = True
+           , cgPreserveCaseOfCase  = False
            , cgNextLocal           = 0
            , cgNextLabel           = 0 })
   where className = moduleJavaClass mod
@@ -259,6 +265,20 @@ forbidScoping cg = do
 
 setAllowScoping :: Bool -> CodeGen ()
 setAllowScoping bool = modify $ \s -> s { cgAllowScoping = bool }
+
+getPreserveCaseOfCase :: CodeGen Bool
+getPreserveCaseOfCase = gets cgPreserveCaseOfCase
+
+preserveCaseOfCase :: CodeGen a -> CodeGen a
+preserveCaseOfCase cg = do
+  oldPreserve <- getPreserveCaseOfCase
+  setPreserveCaseOfCase True
+  r <- cg
+  setPreserveCaseOfCase oldPreserve
+  return r
+
+setPreserveCaseOfCase :: Bool -> CodeGen ()
+setPreserveCaseOfCase bool = modify $ \s -> s { cgPreserveCaseOfCase = bool }
 
 getCgIdInfo :: Id -> CodeGen CgIdInfo
 getCgIdInfo id = do
@@ -397,7 +417,7 @@ classFromCgState mds fds CgState {..} =
     (cgFieldDefs ++ fds) srcFile (cgMethodDefs ++ mds)
   where srcFile = maybeToList $ sourceFileAttr cgSourceFilePath
         sourceFileAttr = fmap (mkSourceFileAttr . pack . takeFileName)
- 
+
 runCodeGen :: Maybe ([MethodDef], [FieldDef])
            -> CgEnv -> CgState -> CodeGen a -> IO [ClassFile]
 runCodeGen mMFs env state codeGenAction = do
@@ -431,12 +451,14 @@ withMethod accessFlags name fts rt body = do
   oldNextLabel   <- peekNextLabel
   scopedBindings <- getScopedBindings
   scoping        <- getAllowScoping
+  preserve       <- getPreserveCaseOfCase
   setMethodCode mempty
   setNextLocal ((if Static `elem` accessFlags then 0 else 1)
                 + sum (map fieldSize fts))
   setNextLabel 0
   setScopedBindings emptyVarEnv
-  setAllowScoping   True
+  setAllowScoping True
+  setPreserveCaseOfCase False
   body
   clsName <- getClass
   newCode <- getMethodCode
@@ -447,6 +469,7 @@ withMethod accessFlags name fts rt body = do
   setNextLabel oldNextLabel
   setScopedBindings scopedBindings
   setAllowScoping scoping
+  setPreserveCaseOfCase preserve
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =
@@ -487,7 +510,17 @@ getCgLoc (NonVoid id) = do
   return $ cgLocation info
 
 forkAlts :: [(a, CodeGen ())] -> CodeGen [(a, Code)]
-forkAlts alts =
+forkAlts [(val, altCode)] = do
+  preserve <- getPreserveCaseOfCase
+  let fork
+        | preserve  = forkLneBodyNoLocals
+        | otherwise = forkLneBody
+  code <- fork altCode
+  return [(val, code)]
+forkAlts alts = do
+  preserve <- getPreserveCaseOfCase
+  when preserve $
+    setPreserveCaseOfCase False
   forM alts $ \(val, altCode) -> do
     code <- forkLneBody altCode
     return (val, code)
@@ -505,6 +538,17 @@ forkLneBody body = do
   newCode <- getMethodCode
   setMethodCode oldCode
   setNextLocal oldNextLocal
+  setBindings oldBindings
+  return newCode
+
+forkLneBodyNoLocals :: CodeGen () -> CodeGen Code
+forkLneBodyNoLocals body = do
+  oldBindings <- getBindings
+  oldCode <- getMethodCode
+  setMethodCode mempty
+  body
+  newCode <- getMethodCode
+  setMethodCode oldCode
   setBindings oldBindings
   return newCode
 
