@@ -582,9 +582,7 @@ public class MemoryManager {
             blockLock.set(false);
         }
         if (buf == null) {
-            if(Runtime.debugMemoryManager()) {
-                dumpMemoryManager();
-            }
+            dumpMemoryManager();
             throw new IllegalStateException(
               "getBuffer: The block that corresponds to the address " + address +
               " does not exist.", e);
@@ -628,10 +626,8 @@ public class MemoryManager {
         Map.Entry<Long, Integer>
             lowerEntry = findAllocatedAddress(address);
         if (lowerEntry == null) {
-            if(debug) {
-                dumpMemoryManager();
-            }
-            throw new IllegalStateException("The block that corresponds to the address "+
+            dumpMemoryManager();
+            throw new IllegalStateException("getBoundedBuffer#0: The block that corresponds to the address "+
                                             address+" is not allocated in memory");
         }
         long lowerAddress       = lowerEntry.getKey();
@@ -654,11 +650,9 @@ public class MemoryManager {
             blockLock.set(false);
         }
         if (buf == null) {
-            if(debug) {
-                dumpMemoryManager();
-            }
+            dumpMemoryManager();
             throw new IllegalStateException(
-              "getBoundedBuffer: The block that corresponds to the address " + address +
+              "getBoundedBuffer#1: The block that corresponds to the address " + address +
               " does not exist.", e);
         }
         buf.position(positionIndex);
