@@ -358,7 +358,8 @@ runJavac dflags args = do
       classPath = if null classPathsAll
                   then []
                   else ["-cp", classPathFolded ]
-      allArgs = ["-verbose"] ++ args0 ++ classPath ++ args ++ opts
+      allArgs = ["-verbose"] ++ args0 ++ classPath
+                ++ ["-source", "1.7", "-target", "1.7"] ++ opts ++ args
   (exitCode, _stdout, stderr) <-
     readProcessEnvWithExitCode prog allArgs  []
 

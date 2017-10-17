@@ -2412,7 +2412,7 @@ dynamic_flags = [
 
     -- need to appear before -optl/-opta to be parsed as LLVM flags.
   , defFlag "optjavac"
-      (hasArg (\f -> alterSettings (\s -> s { sOpt_javac  = f : sOpt_javac s})))
+      (hasArg (\f -> alterSettings (\s -> s { sOpt_javac  = reverse (words f) ++ sOpt_javac s})))
   , defFlag "optlo"
       (hasArg (\f -> alterSettings (\s -> s { sOpt_lo  = f : sOpt_lo s})))
   , defFlag "optlc"
