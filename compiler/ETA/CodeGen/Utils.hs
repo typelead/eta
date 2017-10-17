@@ -38,7 +38,7 @@ cgLit (MachStr s)           = (jlong, sconst string <> loadString )
   where (string, isLatin1) =
           unsafeDupablePerformIO $
             catch (fmap (,False) $ evaluate $ decodeUtf8 s)
-                  (\(_ :: ErrorCall) -> fmap (,True) $ evaluate $ decodeLatin1 s)
+                  (\(_ :: SomeException) -> fmap (,True) $ evaluate $ decodeLatin1 s)
         loadString
           | isLatin1  = loadStringLatin1
           | otherwise = loadStringUTF8
