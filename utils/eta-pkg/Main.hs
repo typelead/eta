@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -67,34 +66,6 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 import qualified Data.ByteString.Char8 as BS
-
-#if defined(mingw32_HOST_OS)
--- mingw32 needs these for getExecDir
-import Foreign
-import Foreign.C
-import System.Directory ( canonicalizePath )
-import GHC.ConsoleHandler
-#else
-import System.Posix hiding (fdToHandle)
-#endif
-
-#if defined(GLOB)
-import qualified System.Info(os)
-#endif
-
-#ifdef WITH_TERMINFO
-import System.Console.Terminfo as Terminfo
-#endif
-
-#ifdef mingw32_HOST_OS
-# if defined(i386_HOST_ARCH)
-#  define WINDOWS_CCONV stdcall
-# elif defined(x86_64_HOST_ARCH)
-#  define WINDOWS_CCONV ccall
-# else
-#  error Unknown mingw32 arch
-# endif
-#endif
 
 -- | Short-circuit 'any' with a \"monadic predicate\".
 anyM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
@@ -360,7 +331,6 @@ data PackageArg
 
 runit :: Verbosity -> [Flag] -> [String] -> IO ()
 runit verbosity cli nonopts = do
-  installSignalHandlers -- catch ^C and clean up
   when (verbosity >= Verbose)
     (putStr ourCopyright)
   prog <- getProgramName
@@ -418,26 +388,9 @@ runit verbosity cli nonopts = do
             _           -> Nothing
           where f | FlagIgnoreCase `elem` cli = map toLower
                   | otherwise                 = id
-#if defined(GLOB)
-        glob x | System.Info.os=="mingw32" = do
-          -- glob echoes its argument, after win32 filename globbing
-          (_,o,_,_) <- runInteractiveCommand ("glob "++x)
-          txt <- hGetContents o
-          return (read txt)
-        glob x | otherwise = return [x]
-#endif
   --
   -- first, parse the command
   case nonopts of
-#if defined(GLOB)
-    -- dummy command to demonstrate usage and permit testing
-    -- without messing things up; use glob to selectively enable
-    -- windows filename globbing for file parameters
-    -- register, update, FlagGlobalConfig, FlagConfig; others?
-    ["glob", filename] -> do
-        print filename
-        glob filename >>= print
-#endif
     ["init", filename] ->
         initPackageDB filename verbosity cli
     ["register", filename] ->
@@ -1470,41 +1423,7 @@ listPackages verbosity my_flags mPackageName mModuleName = do
      prog <- getProgramName
      warn ("WARNING: there are broken packages.  Run '" ++ prog ++ " check' for more details.")
 
-  if simple_output then show_simple stack else do
-
-
-#ifndef WITH_TERMINFO
-    mapM_ show_normal stack
-#else
-    let
-       show_colour withF db@PackageDB{ packages = pkg_confs } =
-           if null pkg_confs
-           then termText (location db) <#> termText "\n    (no packages)\n"
-           else
-               mconcat $ map (<#> termText "\n") $
-                           (termText (location db)
-                            : map (termText "   " <#>) (map pp_pkg (packages db)))
-          where
-                   pp_pkg p
-                     | installedUnitId p `elem` broken = withF Red  doc
-                     | exposed p                       = doc
-                     | otherwise                       = withF Blue doc
-                     where doc | verbosity >= Verbose
-                               = termText (printf "%s (%s)" pkg (display (installedUnitId p)))
-                               | otherwise
-                               = termText pkg
-                            where
-                            pkg = display (sourcePackageId p)
-
-    is_tty <- hIsTerminalDevice stdout
-    if not is_tty
-       then mapM_ show_normal stack
-       else do tty <- Terminfo.setupTermFromEnv
-               case Terminfo.getCapability tty withForegroundColor of
-                   Nothing -> mapM_ show_normal stack
-                   Just w  -> runTermOutput tty $ mconcat $
-                                                  map (show_colour w) stack
-#endif
+  if simple_output then show_simple stack else mapM_ show_normal stack
 
 simplePackageList :: [Flag] -> [InstalledPackageInfo] -> IO ()
 simplePackageList my_flags pkgs = do
@@ -2105,73 +2024,7 @@ dieForcible :: String -> IO ()
 dieForcible s = die (s ++ " (use --force to override)")
 
 -----------------------------------------
--- Cut and pasted from ETA.Main.SysTools
-
-#if defined(mingw32_HOST_OS)
-subst :: Char -> Char -> String -> String
-subst a b ls = map (\ x -> if x == a then b else x) ls
-
-unDosifyPath :: FilePath -> FilePath
-unDosifyPath xs = subst '\\' '/' xs
-
--- TODO: Verify this
-getLibDir :: IO (Maybe String)
-getLibDir = fmap (fmap (</> "lib")) $ getExecDir "/bin/eta-pkg.exe"
-
--- (getExecDir cmd) returns the directory in which the current
---                  executable, which should be called 'cmd', is running
--- So if the full path is /a/b/c/d/e, and you pass "d/e" as cmd,
--- you'll get "/a/b/c" back as the result
-getExecDir :: String -> IO (Maybe String)
-getExecDir cmd =
-    getExecPath >>= maybe (return Nothing) removeCmdSuffix
-    where initN n = reverse . drop n . reverse
-          removeCmdSuffix = return . Just . initN (length cmd) . unDosifyPath
-
-getExecPath :: IO (Maybe String)
-getExecPath = try_size 2048 -- plenty, PATH_MAX is 512 under Win32.
-  where
-    try_size size = allocaArray (fromIntegral size) $ \buf -> do
-        ret <- c_GetModuleFileName nullPtr buf size
-        case ret of
-          0 -> return Nothing
-          _ | ret < size -> fmap Just $ peekCWString buf
-            | otherwise  -> try_size (size * 2)
-
-foreign import WINDOWS_CCONV unsafe "windows.h GetModuleFileNameW"
-  c_GetModuleFileName :: Ptr () -> CWString -> Word32 -> IO Word32
-#else
-getLibDir :: IO (Maybe String)
-getLibDir = return Nothing
-#endif
-
------------------------------------------
 -- Adapted from ETA.Utils.Panic
-
-installSignalHandlers :: IO ()
-installSignalHandlers = do
-  threadid <- myThreadId
-  let
-      interrupt = Exception.throwTo threadid
-                                    (Exception.ErrorCall "interrupted")
-  --
-#if !defined(mingw32_HOST_OS)
-  _ <- installHandler sigQUIT (Catch interrupt) Nothing
-  _ <- installHandler sigINT  (Catch interrupt) Nothing
-  return ()
-#else
-  -- ETA 6.3+ has support for console events on Windows
-  -- NOTE: running GHCi under a bash shell for some reason requires
-  -- you to press Ctrl-Break rather than Ctrl-C to provoke
-  -- an interrupt.  Ctrl-C is getting blocked somewhere, I don't know
-  -- why --SDM 17/12/2004
-  let sig_handler ControlC = interrupt
-      sig_handler Break    = interrupt
-      sig_handler _        = return ()
-
-  _ <- installHandler (Catch sig_handler)
-  return ()
-#endif
 
 catchIO :: IO a -> (Exception.IOException -> IO a) -> IO a
 catchIO = Exception.catch

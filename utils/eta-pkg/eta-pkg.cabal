@@ -16,15 +16,9 @@ Category: Development
 build-type: Simple
 cabal-version: >=1.10
 
-Flag terminfo
-    Description: Build eta-pkg with terminfo support on non-Windows platforms.
-    Default: True
-    Manual: False
-
 Executable eta-pkg
     Default-Language: Haskell2010
     Main-Is: Main.hs
-    Other-Extensions: CPP
 
     Build-Depends: base       >= 4   && < 5,
                    directory  >= 1   && < 1.4,
@@ -35,10 +29,3 @@ Executable eta-pkg
                    binary,
                    eta-boot,
                    bytestring
-    if !os(windows) && flag(terminfo)
-        Build-Depends: terminfo
-        Cpp-Options: -DWITH_TERMINFO
-    if !os(windows)
-        Build-Depends: unix
-    if os(windows)
-        c-sources: CRT_noglob.c
