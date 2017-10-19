@@ -324,7 +324,6 @@ import qualified ETA.Parser.Parser as Parser
 import ETA.Parser.Lexer
 import ETA.Parser.ApiAnnotation
 
-import System.Directory ( doesFileExist )
 import Data.Maybe
 import Data.List        ( find )
 import Data.Time
