@@ -28,6 +28,7 @@ import ETA.BasicTypes.Literal
 import ETA.BasicTypes.DataCon
 import ETA.Types.Type
 import ETA.Types.TyCon
+import ETA.Types.FamInstEnv
 
 import ETA.Types.Coercion
 import ETA.TypeCheck.TcRnMonad
@@ -99,9 +100,10 @@ dsForeigns fdecls = do
           return (methodDefs, bs)
         doDecl (ForeignExport (L _ id) _ co
                               (CExport (L _ (CExportStatic extName _)) _)) = do
-
             mod    <- getModule
-            method <- dsFExport (Right id) co extName Nothing mod
+            envs   <- dsGetFamInstEnvs
+            inheritsFamTyCon <- dsLookupTyCon inheritsFamTyConName
+            method <- dsFExport (Right id) inheritsFamTyCon envs co extName Nothing mod
             return ([method], [])
 
 dsFImport :: Id -> Coercion -> ForeignImport -> DsM ([Binding], [ClassExport])
@@ -613,6 +615,8 @@ maybeNarrow tycon
 
 dsFExport :: Either Int Id      -- The exported Id
                                 -- OR field
+          -> TyCon
+          -> FamInstEnvs
           -> Coercion           -- Coercion between the Haskell type callable
                                 -- from C, and its representation type
           -> CLabelString       -- The name to export to C land
@@ -620,7 +624,7 @@ dsFExport :: Either Int Id      -- The exported Id
           -> Module
           -> DsM ClassExport
 
-dsFExport closureId co externalName classSpec mod = do
+dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod = do
   dflags <- getDynFlags
   let resClass = typeDataConClass dflags extendsInfo resType
       (mFieldDef, loadClosureRef) =
@@ -720,12 +724,10 @@ dsFExport closureId co externalName classSpec mod = do
           | Just (_, resType) <- tcSplitIOType_maybe ioResType
           = (className, className, resType, "runIO")
           | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
-          = ((either (error $ "The tag type should be annotated with a CLASS annotation.")
-               (maybe className id)
-               $ rawTagTypeToText javaTagType)
-              , tagTypeToText javaTagType
-              , javaResType
-              , "runJava")
+          = (rawClassSpecFromInherits className famInstEnvs inheritsFamTyCon javaTagType
+            ,tagTypeToText javaTagType
+            ,javaResType
+            ,"runJava")
           | otherwise = (className, className, ioResType, "runNonIO")
           where className
                   | Just cls <- staticMethodClass = cls
@@ -754,6 +756,35 @@ dsFExport closureId co externalName classSpec mod = do
                 checkParameterLess ty
                   | Just (_, []) <- splitTyConApp_maybe ty = True
                   | otherwise = False
+
+-- This will evaluate Inherits X and traverse the resulting type-level list and
+-- construct a class spec:
+-- X extends Y implements Z ...
+rawClassSpecFromInherits :: Text -> FamInstEnvs -> TyCon -> Type -> Text
+rawClassSpecFromInherits className famInstEnvs inheritsFamTyCon classType
+  | isReflCo normalizeCo
+  = rawClassSpec
+  | (base:ext:impls) <- map tagTypeToText (classType : extractListElems inheritsList)
+  = T.concat $ [base, " extends ", ext] ++ map (T.append " implements ") impls
+  | otherwise = missingInheritsError
+  where (normalizeCo, inheritsList) =
+          normaliseTcApp famInstEnvs Nominal inheritsFamTyCon [classType]
+
+        extractListElems ty
+          | Just (_, [_kind, elem, recList]) <- splitTyConApp_maybe ty
+          = elem : extractListElems recList
+          | otherwise = []
+
+        rawClassSpec =
+          either missingAnnotationError (maybe className id)
+          $ rawTagTypeToText classType
+
+        missingInheritsError =
+          pprPanic "The Inherits list for the following type must contain at least one element: " (ppr classType <+> ppr normalizeCo <+> ppr inheritsList)
+
+        missingAnnotationError =
+              pprPanic "The following type should be annotated with a CLASS annotation: "
+                (ppr classType)
 
 -- | Convert an Eta type variable to a Java Generic parameter
 -- | a <: Object --> A
@@ -849,8 +880,10 @@ getPrimTyOf _ = error $ "getPrimTyOf: bad getPrimTyOf"
 dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
 dsFWrapper id co0 target isAbstract = do
   -- TODO: We effectively assume that the coercion is Refl.
-  mod <- getModule
+  mod    <- getModule
   dflags <- getDynFlags
+  envs   <- dsGetFamInstEnvs
+  inheritsFamTyCon <- dsLookupTyCon inheritsFamTyConName
   (thetaArgs, extendsInfo) <- extendsMap thetaType
   args <- mapM newSysLocalDs argTypes
   (realArgs, mCastBinders) <- mapAndUnzipM (genericCast extendsInfo) (map Var args)
@@ -858,7 +891,8 @@ dsFWrapper id co0 target isAbstract = do
   classExports' <- mapM (\(i, arg, methodName) ->
                           let argType = exprType arg
                               argCo = mkReflCo Representational argType
-                          in dsFExport (Left i) argCo methodName (Just classSpec) mod)
+                          in dsFExport (Left i) inheritsFamTyCon envs argCo
+                               methodName (Just classSpec) mod)
                   $ zip3 [1..] realArgs methodNames
   javaCallUniq <- newUnique
   let  castBinders = catMaybes mCastBinders
