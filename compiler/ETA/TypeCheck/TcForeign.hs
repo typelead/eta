@@ -118,8 +118,11 @@ normaliseFfiType' env ty0 = go initRecTc ty0
           , not (isReflCo co)
           = do (co', ty', gres) <- go recNts nty
                return (mkTransCo co co', ty', gres)
-          | otherwise
-          = nothing
+          | null tys  = nothing
+          -- We add this case to support nested type families.
+          | otherwise =
+            let (co, tys') = normaliseTcArgs env Representational tc tys
+            in return (co, mkTyConApp tc tys', emptyBag)
           where tcKey = getUnique tc
                 childrenOnly isJava = do
                   xs <- mapM (go recNts) tys

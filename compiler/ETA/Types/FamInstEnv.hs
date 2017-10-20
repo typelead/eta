@@ -24,7 +24,7 @@ module ETA.Types.FamInstEnv (
         
         -- Normalisation
         topNormaliseType, topNormaliseType_maybe,
-        normaliseType, normaliseTcApp,
+        normaliseType, normaliseTcApp, normaliseTcArgs,
         reduceTyFamApp_maybe, chooseBranch,
 
         -- Flattening
