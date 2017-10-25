@@ -827,8 +827,6 @@ Example
 A full example involving ``java.util.ArrayList`` can be executed in the
 `Eta Playground <http://eta-lang.org/playground.html>`_.
 
-.. _working-with-java-interfaces:
-
 Working With Java Enums
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -941,6 +939,8 @@ conversion for us.
 
   In some cases, you may need to specify a type annotation on the result of `fromJava` in order to
   specify what you what Eta type you want to convert to: ``(fromJava x :: DesiredResult)``.
+
+.. _working-with-java-interfaces:
 
 Working With Java Interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
