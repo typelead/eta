@@ -720,15 +720,15 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
                                             let (className:_) = T.words spec
                                             in (spec, className))
                                           classSpec
-        (rawClassSpec', className', resType, runClosure)
+        (rawClassSpec', className', resType, runClosure, isTagTypeVar)
           | Just (_, resType) <- tcSplitIOType_maybe ioResType
-          = (className, className, resType, "runIO")
+          = (className, className, resType, "runIO", False)
           | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
           = (rawClassSpecFromInherits className famInstEnvs inheritsFamTyCon javaTagType
             ,tagTypeToText javaTagType
             ,javaResType
-            ,"runJava")
-          | otherwise = (className, className, ioResType, "runNonIO")
+            ,"runJava", isTyVarTy javaTagType)
+          | otherwise = (className, className, ioResType, "runNonIO", False)
           where className
                   | Just cls <- staticMethodClass = cls
                   | otherwise = modClass
@@ -748,7 +748,11 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
         methodResult = fmap (genMethodParam resType) resFt
         tyVarDecls = genTyVarDecls extendsInfo
         mAttrs
-          | null tyVars && allParameterLess = []
+          | (null tyVars ||
+            -- Don't generate signature if the only tyVar is Java a r in
+            -- a static method signature
+            ((length tyVars == 1) && isJust staticMethodClass && isTagTypeVar))
+            && allParameterLess = []
           | otherwise = [ASignature
                         (MethodSig
                           (MethodSignature tyVarDecls methodParams methodResult []))]
@@ -829,9 +833,9 @@ genClassMethodParam argType argFt
   | Just tyVar <- getTyVar_maybe argType
   = VariableReferenceParameter $ sigTyVarText tyVar
   | Just (_, tyArgs)      <- splitTyConApp_maybe argType
-  , ObjectType iclassName <- argFt
-  = GenericReferenceParameter iclassName (map genTypeParam tyArgs) []
-  | otherwise = pprPanic "genClassMethodParam: Not a valid argument." (ppr argType)
+  , isObjectFt argFt
+  = GenericReferenceParameter (IClassName (getFtClass argFt)) (map genTypeParam tyArgs) []
+  | otherwise = pprPanic "genClassMethodParam: Not a valid argument." (ppr argType <+> ppr (show argFt))
 
 getArgFt :: ExtendsInfo -> Type -> FieldType
 getArgFt extendsInfo ty
