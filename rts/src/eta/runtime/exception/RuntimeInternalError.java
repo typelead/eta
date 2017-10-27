@@ -4,6 +4,7 @@ public class RuntimeInternalError extends Error {
 
     public RuntimeInternalError(String message) {
         // @VERSION_CHANGE@
-        super("\n[Eta v0.0.9b1] " + message + "\nPlease report this as a bug: https://github.com/typelead/eta/issues");
+        // @BUILD_NUMBER
+        super("\n[Eta v0.0.9b3] " + message + "\nPlease report this as a bug: https://github.com/typelead/eta/issues");
     }
 }
