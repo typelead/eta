@@ -196,10 +196,12 @@ Make sure you have the following tools installed on your system:
 
 - `Nix <https://nixos.org/nix/>`_
 
+- Clone ``eta`` github repository (don't forget recursive mode) as explained in `Method 2: Source Installation`_ but **don't run** ``install.sh`` or ``install.cmd``
+
 Installation
 """"""""""""
 
-To obtain an environment with ``eta`` and ``etlas``, run the following command:
+To obtain an environment with ``eta`` and ``etlas``, from directory of ``eta`` github cloned repository, run the following command:
 
 .. code-block:: console
 
