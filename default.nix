@@ -47,6 +47,8 @@ let
       });
 
       eta-build = self.callPackage ./utils/nix/eta-build.nix { };
+
+      zip = haskell.lib.dontCheck super.zip;
     };
   };
 
