@@ -76,8 +76,8 @@ cgForeignCall _ _ _ = error $ "cgForeignCall: bad arguments"
 deserializeMethodDesc :: String -> (Text, Text, [FieldType])
 deserializeMethodDesc label = (read clsName', read methodName', argFts)
   where (_:_:callTargetSpec:_) = split '|' label
-        (_:_:_:clsName':methodName':methodDesc':_) = split ',' callTargetSpec
-        (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label)
+        (_:_:_:_:clsName':methodName':methodDesc':_) = split ',' callTargetSpec
+        (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label ++ " " ++ methodDesc')
                     $ decodeMethodDesc (read methodDesc')
 
 deserializeTarget :: String -> (Bool, Bool, Maybe FieldType -> [Code] -> Code)
@@ -100,7 +100,7 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                   <> invokespecial (mkMethodRef clsName "<init>" argFts void)
           where clsName = read clsName'
                 clsFt = obj clsName
-                (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label)
+                (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label ++ " " ++ methodDesc')
                             $ decodeMethodDesc (read methodDesc')
 
         genFieldTarget [clsName', fieldName', fieldDesc', instr'] =
@@ -118,18 +118,19 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                   1 -> getInstr
                   _ -> error $ "deserializeTarget: bad instr: " ++ label
 
-        genMethodTarget [isInterface', hasSubclass', clsName', methodName', methodDesc'] =
+        genMethodTarget [isInterface', isSuper', hasSubclass', clsName', methodName', methodDesc'] =
           \mbObjFt args -> fold args
                         <> instr (mkMethodRef (clsName mbObjFt) methodName argFts resFt)
           where clsName mbObjFt =
-                  if hasSubclass && not isInterface
+                  if hasSubclass && not (isInterface || isSuper)
                   then maybe (error "deserializeTarget: no subclass field type.")
                              getFtClass mbObjFt
                   else read clsName'
                 methodName = read methodName'
                 isInterface = read isInterface'
+                isSuper = read isSuper'
                 hasSubclass = read hasSubclass'
-                (argFts, resFt) = expectJust ("deserializeTarget: bad method desc: " ++ label)
+                (argFts, resFt) = expectJust ("deserializeTarget: bad method desc: " ++ label ++ " " ++ methodDesc')
                                 $ decodeMethodDesc (read methodDesc')
                 instr = if isInterface
                         then invokeinterface

@@ -233,6 +233,13 @@ getArgClass extendsInfo ty
       _ -> (False, Nothing)
   | otherwise = (False, Just $ tagTypeToText ty)
 
+getArgType :: ExtendsInfo -> Type -> Type
+getArgType extendsInfo ty
+  | Just var <- getTyVar_maybe ty
+  , Just (_, tagType, _) <- lookupVarEnv extendsInfo var
+  = getArgType extendsInfo tagType
+  | otherwise = ty
+
 serializeTarget :: Bool -> Bool -> Bool -> String -> [FieldType] -> PrimRep -> String
 serializeTarget hasObj hasSubclass qObj label' argFts resRep =
   show hasObj ++ "|" ++ show isStatic ++ "|" ++ result
@@ -243,8 +250,9 @@ serializeTarget hasObj hasSubclass qObj label' argFts resRep =
         result = case words label of
           ["@new"]              -> genNewTarget
           ["@field",label1]     -> genFieldTarget label1
-          ["@interface",label1] -> genMethodTarget True label1
-          [label1]              -> genMethodTarget False label1
+          ["@interface",label1] -> genMethodTarget True  False label1
+          ["@super",label1]     -> genMethodTarget False True label1
+          [label1]              -> genMethodTarget False False label1
           _                     -> pprPanic "labelToTarget: bad label: " (ppr label')
 
         argFts' dropArg = if dropArg then drop 1 argFts else argFts
@@ -279,12 +287,14 @@ serializeTarget hasObj hasSubclass qObj label' argFts resRep =
                     ( "1" -- getInstr
                     , primRepFieldType resRep )
 
-        genMethodTarget isInterface label = "2,"
-                                         ++ show isInterface ++ ","
-                                         ++ show hasSubclass ++ ","
-                                         ++ show clsName ++ ","
-                                         ++ show methodName ++ ","
-                                         ++ show methodDesc
+        genMethodTarget isInterface isSuper label =
+             "2,"
+          ++ show isInterface ++ ","
+          ++ show isSuper ++ ","
+          ++ show hasSubclass ++ ","
+          ++ show clsName ++ ","
+          ++ show methodName ++ ","
+          ++ show methodDesc
           where (clsName, methodName) =
                   if isStatic
                   then labelToMethod label
@@ -658,10 +668,15 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
                                   (mkMethodRef argClass "<init>" [argPrimFt] void)))
                     mempty
                     (zip3 [localVariableStart..] argFts argTypes)
-
-  return ( rawClassSpec
-         , addAttrsToMethodDef mAttrs
-         $ mkMethodDef className accessFlags methodName argFts resFt $
+      methodCode
+        | Just superClassName <- genSuperAccessor
+        , let go _ [] = mempty
+              go n (ft:fts) = gload ft (fromIntegral n) <> go (n + fieldSize ft) fts
+        =    gload classFt 0
+          <> go 1 argFts
+          <> invokespecial (mkMethodRef superClassName (T.drop 1 methodName) argFts resFt)
+         <> maybe vreturn greturn resFt
+        | otherwise =
              loadThis
           <> new ap2Ft
           <> dup ap2Ft
@@ -679,6 +694,10 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
           <> (if voidResult
               then pop closureType <> vreturn
               else unboxResult resType resClass rawResFt)
+
+  return ( rawClassSpec
+         , addAttrsToMethodDef mAttrs $
+           mkMethodDef className accessFlags methodName argFts resFt methodCode
          , mFieldDef )
   where ty = pSnd $ coercionKind co
         modClass = moduleJavaClass mod
@@ -707,13 +726,21 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
               ([jobject, closureType], "evalJava", "base/java/TopHandler")
             _                 ->
               ([closureType], "evalIO", "base/ghc/TopHandler")
-        (staticMethodClass, methodName)
-          | Just camn <- classAndMethodName
+        (staticMethodClass, methodName, genSuperAccessor)
+          | Just camn <- stripPrefix "@static " methodString
           , let (className, methodName) = labelToMethod camn
-          = (Just className, methodName)
-          | otherwise = (Nothing, T.pack methodString)
+          = (Just className, methodName, Nothing)
+          | Just mn <- stripPrefix "@super " methodString
+          = (Nothing, T.pack ('$':mn), Just retrieveSuperClass)
+          | otherwise = (Nothing, T.pack methodString, Nothing)
           where methodString = unpackFS externalName
-                classAndMethodName = stripPrefix "@static " methodString
+
+        retrieveSuperClass
+          | (_, rest) <- T.break (== ' ') rawClassSpec
+          , let superClassPrefix = T.drop 9 rest
+          , (superClass,_) <- T.break (== ' ') superClassPrefix
+          = superClass
+          | otherwise = pprPanic "Unable to find super class: " (ppr (T.unpack rawClassSpec))
 
         (rawClassSpec, className) = maybe (rawClassSpec', className')
                                           (\spec ->
@@ -723,7 +750,8 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
         (rawClassSpec', className', resType, runClosure, isTagTypeVar)
           | Just (_, resType) <- tcSplitIOType_maybe ioResType
           = (className, className, resType, "runIO", False)
-          | Just (_, javaTagType, javaResType) <- tcSplitJavaType_maybe ioResType
+          | Just (_, javaTagType', javaResType) <- tcSplitJavaType_maybe ioResType
+          , javaTagType <- getArgType extendsInfo javaTagType'
           = (rawClassSpecFromInherits className famInstEnvs inheritsFamTyCon javaTagType
             ,tagTypeToText javaTagType
             ,javaResType
@@ -897,7 +925,7 @@ dsFWrapper id co0 target isAbstract = do
                               argCo = mkReflCo Representational argType
                           in dsFExport (Left i) inheritsFamTyCon envs argCo
                                methodName (Just classSpec) mod)
-                  $ zip3 [1..] realArgs methodNames
+                        $ zip3 [1..] realArgs methodNames
   javaCallUniq <- newUnique
   let  castBinders = catMaybes mCastBinders
        binding     = mkCoreLams (tvs ++ thetaArgs ++ args) $ foldr ($)

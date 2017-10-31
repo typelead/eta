@@ -56,7 +56,7 @@ module ETA.HsSyn.HsDecls (
   SpliceDecl(..), LSpliceDecl,
   -- ** Foreign function interface declarations
   ForeignDecl(..), LForeignDecl, ForeignImport(..), ForeignExport(..),
-  noForeignImportCoercionYet, noForeignExportCoercionYet,
+  noForeignImportCoercionYet, noForeignExportCoercionYet, isForeignExportSuper,
   CImportSpec(..),
   -- ** Data-constructor declarations
   ConDecl(..), LConDecl, ResType(..),
@@ -103,6 +103,7 @@ import ETA.Utils.FastString
 
 import ETA.Utils.Bag
 import Data.Data        hiding (TyCon,Fixity)
+import Data.List
 #if __GLASGOW_HASKELL__ < 709
 import Data.Foldable ( Foldable )
 import Data.Traversable ( Traversable )
@@ -1350,6 +1351,10 @@ noForeignImportCoercionYet = PlaceHolder
 
 noForeignExportCoercionYet :: PlaceHolder
 noForeignExportCoercionYet = PlaceHolder
+
+isForeignExportSuper :: ForeignExport -> Bool
+isForeignExportSuper (CExport (L _ (CExportStatic labelString _)) _)
+  = isJust (stripPrefix "@super" (unpackFS labelString))
 
 -- Specification Of an imported external entity in dependence on the calling
 -- convention

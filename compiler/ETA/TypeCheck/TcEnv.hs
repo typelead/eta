@@ -864,7 +864,13 @@ mkStableIdFromString str sig_ty loc occ_wrapper = do
     return id
 
 mkStableIdFromName :: Name -> Type -> SrcSpan -> (OccName -> OccName) -> TcM TcId
-mkStableIdFromName nm = mkStableIdFromString (getOccString nm)
+mkStableIdFromName nm sig_ty loc _occ_wrapper = do
+    mod <- getModule
+    let occ = mkVarOcc (getOccString nm)
+        gnm = mkExternalName (getUnique nm) mod occ loc
+        id  = mkExportedLocalId VanillaId gnm sig_ty
+    return id
+  -- mkStableIdFromString (getOccString nm)
 
 mkWrapperName :: (MonadIO m, HasDynFlags m, HasModule m)
               => String -> String -> m FastString

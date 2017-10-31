@@ -407,10 +407,13 @@ rnHsForeignDecl (ForeignImport name ty _ spec)
 
        ; return (ForeignImport name' ty' noForeignImportCoercionYet spec', fvs) }
 
-rnHsForeignDecl (ForeignExport name ty _ spec)
+rnHsForeignDecl fe@(ForeignExport name ty _ spec)
   = do { name' <- lookupLocatedOccRn name
        ; (ty', fvs) <- rnLHsType (ForeignDeclCtx name) ty
-       ; return (ForeignExport name' ty' noForeignExportCoercionYet spec, fvs `addOneFV` unLoc name') }
+       ; let fvs'
+               | isForeignExportSuper spec = fvs
+               | otherwise =  fvs `addOneFV` unLoc name'
+       ; return (ForeignExport name' ty' noForeignExportCoercionYet spec, fvs') }
         -- NB: a foreign export is an *occurrence site* for name, so
         --     we add it to the free-variable list.  It might, for example,
         --     be imported from another module

@@ -100,7 +100,7 @@ import Text.ParserCombinators.ReadP as ReadP
 
 
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
-import Data.List       ( partition )
+import Data.List       ( partition, stripPrefix )
 import qualified Data.Set as Set ( fromList, difference, member )
 
 #include "HsVersions.h"
@@ -432,6 +432,20 @@ cvTopDecls decls = go (fromOL decls)
     go []                   = []
     go (L l (ValD b) : ds)  = L l' (ValD b') : go ds'
                             where (L l' b', ds') = getMonoBind (L l b) ds
+    go (fe@(L l (ForD (ForeignExport v ty _co
+                      (CExport (L lc (CExportStatic entity _cconv))
+                               _source)))) : ds)
+       | Just superRest <- stripPrefix "@super " entityStr
+       , let superRest' = '$' : superRest
+             entityStr' = superRest'
+             entity'    = mkFastString entityStr'
+             importSpec =
+               CImport (noLoc JavaCallConv) (noLoc PlayRisky) Nothing
+                 (CFunction (StaticTarget entity' Nothing False))
+                 (L lc entityStr')
+       = L l (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
+       : fe : go ds
+       where entityStr = unpackFS entity
     go (d : ds)             = d : go ds
 
 -- Declaration list may only contain value bindings and signatures.
@@ -1402,8 +1416,9 @@ mkImport (L lc cconv) (L ls safety) (L loc entity, v, ty)
                                             <+> (ftext entity'))
       Just importSpec -> return (ForD (ForeignImport v ty noForeignImportCoercionYet importSpec))
   where entity' | nullFS entity = mkExtName (unLoc v)
-                | unpackFS entity == "@interface" = appendFS (appendFS entity (mkFastString " "))
-                                                             (mkExtName (unLoc v))
+                | unpackFS entity `elem` ["@interface", "@super"] =
+                  appendFS (appendFS entity (mkFastString " "))
+                           (mkExtName (unLoc v))
                 | otherwise     = entity
         -- TODO: Z-encode the result?
 
@@ -1442,6 +1457,8 @@ mkExport (L lc cconv) (L le entity, v, ty) = do
                           (L le (unpackFS entity))))
   where
     entity' | nullFS entity = mkExtName (unLoc v)
+            | unpackFS entity == "@super" =
+              appendFS (appendFS entity (mkFastString " ")) (mkExtName (unLoc v))
             | otherwise     = entity
 
 -- Supplying the ext_name in a foreign decl is optional; if it

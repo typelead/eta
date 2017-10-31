@@ -288,6 +288,10 @@ checkJavaTarget (StaticTarget importFS _ _)
           vcat [ str "For example, if you want to import the interface method 'run' from"
              <+> str "the interface 'java.lang.Runnable',"
                , str "you must type \"@interface run\"" <> dot ]
+        superExample =
+          vcat [ str "For example, if you want to import the super method 'run' from"
+             <+> str "the super 'java.lang.Runnable',"
+               , str "you must type \"@super run\"" <> dot ]
         interfaceWrapperExample =
           vcat [ str "For example, if you want to wrap the interface method 'run' from"
              <+> str "the interface 'java.lang.Runnable',"
@@ -329,6 +333,7 @@ checkJavaTarget (StaticTarget importFS _ _)
                  -> checkDotInStatic "@static" argument partsRest staticMethodExample
               "field" -> exactlyOneArgument "@field" partsRest fieldExample
               "interface" -> exactlyOneArgument "@interface" partsRest interfaceExample
+              "super" -> exactlyOneArgument "@super" partsRest superExample
               "new" -> (length partsRest == 0,
                 vcat [ str "@new" <+> str "annotation should not contain any argument" <> comma
                     <+> str "but you have given" <+> int (length partsRest) <> dot ])
@@ -365,17 +370,26 @@ tcForeignExports' decls = foldlM combine (emptyLHsBinds, [], emptyBag)
                                  (filter isForeignExport decls)
   where combine (binds, fs, gres1) (L loc fe) = do
           (b, f, gres2) <- setSrcSpan loc (tcFExport fe)
-          return (b `consBag` binds, L loc f : fs, gres1 `unionBags` gres2)
+          let binds'
+                | Just b' <- b = b' `consBag` binds
+                | otherwise    = binds
+          return (binds', L loc f : fs, gres1 `unionBags` gres2)
 
-tcFExport :: ForeignDecl Name -> TcM (LHsBind Id, ForeignDecl Id, Bag GlobalRdrElt)
+tcFExport :: ForeignDecl Name -> TcM (Maybe (LHsBind Id), ForeignDecl Id, Bag GlobalRdrElt)
 tcFExport fo@(ForeignExport (L loc nm) hs_ty _ spec)
   = addErrCtxt (foreignDeclCtxt fo) $ do
       sig_ty <- tcHsSigType (ForSigCtxt nm) hs_ty
-      rhs <- tcPolyExpr (nlHsVar nm) sig_ty
+      rhs <- if isSuper
+             then return Nothing
+             else fmap Just $ tcPolyExpr (nlHsVar nm) sig_ty
       (norm_co, norm_sig_ty, gres) <- normaliseFfiType sig_ty
       spec' <- tcCheckFEType norm_sig_ty spec
-      id  <- mkStableIdFromName nm sig_ty loc mkForeignExportOcc
-      return (mkVarBind id rhs, ForeignExport (L loc id) undefined norm_co spec', gres)
+      nm' <- if isSuper
+             then return nm
+             else newUnique >>= return . setNameUnique nm
+      id  <- mkStableIdFromName nm' sig_ty loc mkForeignExportOcc
+      return (fmap (mkVarBind id) rhs, ForeignExport (L loc id) undefined norm_co spec', gres)
+  where isSuper = isForeignExportSuper spec
 
 tcFExport d = pprPanic "tcFExport" (ppr d)
 
