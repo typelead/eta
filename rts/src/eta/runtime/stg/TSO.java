@@ -28,7 +28,7 @@ public final class TSO extends BlackHole {
     public static AtomicInteger maxThreadId = new AtomicInteger();
     public int id = maxThreadId.getAndIncrement();
     public Closure closure;
-    public Queue<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
+    public LinkedList<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
     public WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
     public TransactionRecord trec;

@@ -395,57 +395,56 @@ public final class Capability {
 
     /* Thunk Evaluation */
 
-    public final boolean messageBlackHole(MessageBlackHole msg, boolean executingMsg) {
-        Thunk bh = msg.bh;
-        do {
-            Closure p = bh.indirectee;
-            if (p instanceof WhiteHole) {
-                return false;
-            } else if (p instanceof TSO) {
-                TSO owner = (TSO) p;
-                if (owner.cap != this) {
-                    sendMessage(owner.cap, msg);
-                    return true;
-                } else if (!executingMsg) {
-                    Exception.raise(context, Closures.nonTermination);
+    public final boolean messageBlackHole(Thunk bh, TSO tso, boolean executingMsg) {
+        Closure p = bh.indirectee;
+        if (p instanceof TSO) {
+            TSO owner = (TSO) p;
+            if (owner.cap != this) {
+                if (tso.blockInfo != bh) {
+                    sendMessage(owner.cap, new MessageBlackHole(tso, bh));
                 }
-                BlockingQueue bq = new BlockingQueue(owner, msg);
+            } else if (!executingMsg) {
+                Exception.raise(context, Closures.nonTermination);
+            } else {
+                BlockingQueue bq = new BlockingQueue(owner, bh, tso);
+                /* TODO: Optimize blockingQueues */
                 owner.blockingQueues.offer(bq);
                 bh.setIndirection(bq);
-                return true;
-            } else if (p instanceof BlockingQueue) {
-                BlockingQueue bq = (BlockingQueue) p;
-                assert bq.bh == bh;
-                TSO owner = bq.owner;
-                assert owner != null;
-                if (owner.cap != this) {
-                    sendMessage(owner.cap, msg);
-                    return true;
+            }
+            return true;
+        } else if (p instanceof BlockingQueue) {
+            BlockingQueue bq = (BlockingQueue) p;
+            TSO owner = bq.owner;
+            if (owner.cap != this) {
+                if (tso.blockInfo != bh) {
+                    sendMessage(owner.cap, new MessageBlackHole(tso, bh));
                 }
-                bq.messages.offer(msg);
-                return true;
-            } else return false;
-        } while (true);
+            } else {
+                if (tso != owner) {
+                    bq.queue(tso);
+                }
+            }
+            return true;
+        } else return false;
     }
 
     public final void checkBlockingQueues(TSO tso) {
-        for (BlockingQueue bq: tso.blockingQueues) {
+        LinkedList<BlockingQueue> bqs = tso.blockingQueues;
+        for (BlockingQueue bq: bqs) {
             Thunk p = bq.bh;
             Closure ind = p.indirectee;
-            /* TODO: Is this the correct condition? */
-            if (ind == null || ind != bq) {
+            if (ind != bq) {
                 wakeBlockingQueue(bq);
+                bqs.remove(bq);
             }
         }
     }
 
-    public final void wakeBlockingQueue(BlockingQueue blockingQueue) {
-        for (MessageBlackHole msg: blockingQueue) {
-            if (msg.isValid()) {
-                tryWakeupThread(msg.tso);
-            }
+    public final void wakeBlockingQueue(BlockingQueue bq) {
+        for (TSO tso = bq.queued; tso != null; tso = tso.link) {
+            tryWakeupThread(tso);
         }
-        blockingQueue.clear();
+        bq.queued = null;
     }
 
     /* Capabilities Cleanup */

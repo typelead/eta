@@ -5,7 +5,6 @@ import java.io.Serializable;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
 import eta.runtime.thunk.Thunk;
-import eta.runtime.message.MessageBlackHole;
 
 import static eta.runtime.RuntimeLogging.barf;
 

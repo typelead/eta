@@ -12,27 +12,21 @@ import eta.runtime.thunk.Thunk;
 import eta.runtime.message.MessageBlackHole;
 import static eta.runtime.RuntimeLogging.barf;
 
-public class BlockingQueue extends BlackHole implements Iterable<MessageBlackHole> {
-    public TSO owner;
-    public Thunk bh;
-    public final Queue<MessageBlackHole> messages;
+public class BlockingQueue extends BlackHole {
+    public final TSO   owner;
+    public final Thunk bh;
+    public TSO queued;
 
-    public BlockingQueue(final TSO owner, final MessageBlackHole msg) {
+    public BlockingQueue(final TSO owner, final Thunk bh, final TSO queued) {
         this.owner    = owner;
-        this.bh       = msg.bh;
-        this.messages = new ArrayDeque<MessageBlackHole>();
-        messages.offer(msg);
+        this.bh       = bh;
+        this.queued   = queued;
+        queued.link   = null;
     }
 
-    @Override
-    public final Iterator<MessageBlackHole> iterator() {
-        return messages.iterator();
-    }
-
-    public final void clear() {
-        owner   = null;
-        bh      = null;
-        messages.clear();
+    public final void queue(TSO tso) {
+        tso.link = queued;
+        queued = tso;
     }
 
 }

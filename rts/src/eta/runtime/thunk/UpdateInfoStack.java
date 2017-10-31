@@ -3,6 +3,7 @@ package eta.runtime.thunk;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.TSO;
+import static eta.runtime.stg.TSO.WhyBlocked.*;
 
 public class UpdateInfoStack {
     private UpdateInfo top;
@@ -100,11 +101,7 @@ public class UpdateInfoStack {
     }
 
     public final UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {
-        return markBackwardsFrom(cap, tso, null);
-    }
-
-    public final UpdateInfo markBackwardsFrom(Capability cap, TSO tso, UpdateInfo ui) {
-        if (ui == null) ui = top;
+        UpdateInfo ui = top;
         UpdateInfo suspend = null;
         while (ui != null && !ui.marked) {
             ui.marked = true;
@@ -112,8 +109,23 @@ public class UpdateInfoStack {
             do {
                 Closure p = bh.indirectee;
                 if (p != null) {
-                    if (p != tso) {
-                        suspend = ui;
+                    if (p instanceof BlockingQueue) {
+                        BlockingQueue bq = (BlockingQueue) p;
+                        TSO owner = bq.owner;
+                        if (owner != tso) {
+                            /* Only suspend computations if the owner is unblocked,
+                               otherwise we get deadlocks. See #520. */
+                            if (owner.whyBlocked == NotBlocked) {
+                                suspend = ui;
+                            }
+                        }
+                    } else if (p != tso) {
+                        if (p instanceof TSO) {
+                            // Same as above.
+                            if (((TSO)p).whyBlocked == NotBlocked) {
+                                suspend = ui;
+                            }
+                        }
                     }
                     break;
                 } else {

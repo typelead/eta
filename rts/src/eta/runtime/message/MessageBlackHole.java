@@ -16,8 +16,7 @@ public final class MessageBlackHole extends Message {
 
     @Override
     public void execute(Capability cap) {
-        boolean blocked = cap.messageBlackHole(new MessageBlackHole(tso, bh), true);
-        if (!blocked) {
+        if (!cap.messageBlackHole(bh, tso, true)) {
             cap.tryWakeupThread(tso);
         }
     }

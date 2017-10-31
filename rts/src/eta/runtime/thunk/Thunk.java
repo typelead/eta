@@ -68,54 +68,46 @@ public abstract class Thunk extends Closure {
             cap.checkBlockingQueues(tso);
             return v;
         }
-        if (v == tso) {
-            updateWithIndirection(ret);
-            return ret;
+        updateWithIndirection(ret);
+        if (v != null && v != tso) {
+            updateThunk(cap, tso, v);
         }
-        updateThunk(cap, tso, ret);
         return ret;
     }
 
-    public final void updateThunk(Capability cap, TSO tso, Closure val) {
-        Closure v = indirectee;
-        /* Has not been blackholed, so update with no further checks */
-        if (v == null) {
-            updateWithIndirection(val);
-            return;
-        }
-        updateWithIndirection(val);
-        if (v == tso) return;
+    public final void updateThunk(Capability cap, TSO tso, Closure v) {
         if (v instanceof BlockingQueue) {
             BlockingQueue bq = (BlockingQueue) v;
-            TSO owner = bq.owner;
-            if (owner != tso) {
-                cap.checkBlockingQueues(tso);
-            } else {
+            if (bq.owner == tso) {
                 cap.wakeBlockingQueue(bq);
+                tso.blockingQueues.remove(bq);
+                return;
             }
-        } else {
-            cap.checkBlockingQueues(tso);
-            return;
         }
+        cap.checkBlockingQueues(tso);
     }
 
     public final Closure blackHole(StgContext context) {
-        do {
+        for (;;) {
             Closure p = indirectee;
             if (p instanceof Value) return p;
             else if (p instanceof BlackHole) {
-                Capability cap = context.myCapability;
-                TSO tso = context.currentTSO;
-                MessageBlackHole msg = new MessageBlackHole(tso, this);
-                boolean blocked = cap.messageBlackHole(msg, false);
-                if (blocked) {
-                    tso.whyBlocked = BlockedOnBlackHole;
-                    tso.blockInfo = msg;
-                    cap.blockedLoop();
-                }
+                handleBlackHole(context);
                 continue;
             } else return p.enter(context);
-        } while (true);
+        }
+    }
+
+    public final void handleBlackHole(StgContext context) {
+        TSO tso         = context.currentTSO;
+        Capability cap  = context.myCapability;
+        if (cap.messageBlackHole(this, tso, false)) {
+            if (tso.whyBlocked != BlockedOnBlackHole) {
+                tso.whyBlocked = BlockedOnBlackHole;
+                tso.blockInfo  = this;
+            }
+            cap.blockedLoop();
+        }
     }
 
     /** Apply overrides for Thunks **/
