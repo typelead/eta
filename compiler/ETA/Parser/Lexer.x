@@ -196,8 +196,7 @@ $docsym    = [\| \^ \* \$]
 @signed = @negative ?
 
 -- Java Annotations
-@javaannot = $graphic+
-
+@javaannot = [^$symbol] $graphic*
 
 -- -----------------------------------------------------------------------------
 -- Alex "Identifier"
