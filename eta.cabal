@@ -24,7 +24,7 @@ source-repository head
 library
     c-sources:           compiler/cbits/genSym.c
                          compiler/cbits/cutils.c
-    ghc-options:         -Wall -fno-warn-name-shadowing
+    ghc-options:         -Wall -fno-warn-name-shadowing -Werror
     default-language:    Haskell2010
     default-extensions:  RecordWildCards
                        , NamedFieldPuns
@@ -345,7 +345,7 @@ library
        ghc-options:      -DDEBUG
 
 executable eta
-    ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts
+    ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -Werror
     hs-source-dirs:      eta
     main-is:             Main.hs
     default-language:    Haskell2010

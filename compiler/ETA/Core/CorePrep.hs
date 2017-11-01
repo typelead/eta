@@ -57,7 +57,6 @@ import ETA.Utils.FastString
 import ETA.BasicTypes.Name             ( NamedThing(..), nameSrcSpan )
 import ETA.BasicTypes.SrcLoc           ( SrcSpan(..), realSrcLocSpan, mkRealSrcLoc )
 import Data.Bits
-import ETA.Utils.MonadUtils       ( mapAccumLM )
 import Data.List        ( mapAccumL )
 import Control.Monad
 
@@ -168,7 +167,7 @@ type CpeRhs  = CoreExpr    -- Non-terminal 'rhs'
 
 corePrepPgm :: HscEnv -> Module -> ModLocation -> CoreProgram -> [TyCon]
             -> IO CoreProgram
-corePrepPgm hsc_env this_mod mod_loc binds data_tycons = do
+corePrepPgm hsc_env _this_mod mod_loc binds data_tycons = do
     let dflags = hsc_dflags hsc_env
     us <- mkSplitUniqSupply 's'
     initialCorePrepEnv <- mkInitialCorePrepEnv dflags hsc_env
@@ -187,7 +186,6 @@ corePrepPgm hsc_env this_mod mod_loc binds data_tycons = do
 
 corePrepExpr :: DynFlags -> HscEnv -> CoreExpr -> IO CoreExpr
 corePrepExpr dflags hsc_env expr = do
-    let dflags = hsc_dflags hsc_env
     us <- mkSplitUniqSupply 's'
     initialCorePrepEnv <- mkInitialCorePrepEnv dflags hsc_env
     let new_expr = initUs_ us (cpeBodyNF initialCorePrepEnv expr)

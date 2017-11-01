@@ -407,7 +407,7 @@ rnHsForeignDecl (ForeignImport name ty _ spec)
 
        ; return (ForeignImport name' ty' noForeignImportCoercionYet spec', fvs) }
 
-rnHsForeignDecl fe@(ForeignExport name ty _ spec)
+rnHsForeignDecl (ForeignExport name ty _ spec)
   = do { name' <- lookupLocatedOccRn name
        ; (ty', fvs) <- rnLHsType (ForeignDeclCtx name) ty
        ; let fvs'

@@ -216,6 +216,7 @@ cgCase (StgOpApp (StgPrimOp op) args _) binder (PrimAlt _) alts
         let [(DEFAULT, _, _, rhs)] = alts
         bindArg nvBinder (newLocDirect nvBinder (aconst_null jobject))
         cgExpr rhs
+      _ -> panic "cgCase: StgOpApp: This shouldn't be possible!"
   | isDeadBinder binder
   , Just genCode <- comparisonPrimOp op
   = genCode nvBinder args alts
@@ -535,6 +536,8 @@ comparisonPrimOp primop
 
         cmpOp EqStablePtrOp             = liftNormalOp if_icmpeq
         cmpOp EqStableNameOp            = liftNormalOp if_icmpeq
+        cmpOp op                        =
+          pprPanic "comparisonPrimOp: Bad primop" (ppr op)
         liftNormalOp f = \args b1 b2 -> fold args <> f b1 b2
         liftUnsignedOp f = \args b1 b2 ->
           liftTypedCmpOp jlong f (map unsignedExtend args) b1 b2

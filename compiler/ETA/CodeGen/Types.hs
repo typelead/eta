@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Types
   (TopLevelFlag(..),
@@ -87,6 +88,8 @@ instance Outputable CgLoc where
   ppr (LocLne (Label l) target cgLoc cgLocs)
     = str "lne: label:" <+> ppr l <+> str "target:" <+> ppr target <+>
       str "targetLoc:" <+> ppr cgLoc <+> str "argLocs:" <+> hcat (map ppr cgLocs)
+  ppr (LocMask ft cgLoc)
+    = str "mask: ft:" <+> ppr ft <+> ppr cgLoc
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
 mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
@@ -108,9 +111,6 @@ mkLocArg (NonVoid id) n
         argFt     = argRepFt $ toArgRep rep
         ft        = primRepFieldType rep
         locLocal  = mkLocLocal isClosure argFt n
-        maybeConv
-          | argFt /= ft = gconv argFt ft
-          | otherwise   = mempty
 
 mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code

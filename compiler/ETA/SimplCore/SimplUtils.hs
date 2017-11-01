@@ -1837,7 +1837,7 @@ mkCase tries these things
     and similar friends.
 -}
 
-mkCase, mkCase1, mkCase2
+mkCase, mkCase1, mkCase2, mkCase3
    :: DynFlags
    -> OutExpr -> OutId
    -> OutType -> [OutAlt]               -- Alternatives in standard (increasing) order

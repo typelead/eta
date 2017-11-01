@@ -435,7 +435,7 @@ isJoinId :: Var -> Bool
 -- It is convenient in SetLevels.lvlMFE to apply isJoinId
 -- to the free vars of an expression, so it's convenient
 -- if it returns False for type variables
-isJoinId id
+isJoinId _id
   -- TODO: Implement join points
   -- | isId id = case Var.idDetails id of
   --               JoinId {} -> True
@@ -443,7 +443,7 @@ isJoinId id
   | otherwise = False
 
 isJoinId_maybe :: Var -> Maybe JoinArity
-isJoinId_maybe id
+isJoinId_maybe _id
  -- TODO: Implement join points
  -- | isId id  = ASSERT2( isId id, ppr id )
  --              case Var.idDetails id of

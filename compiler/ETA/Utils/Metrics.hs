@@ -3,8 +3,6 @@ module ETA.Utils.Metrics where
 import ETA.Utils.Json
 
 import Data.Time
-import Data.Time.Calendar
-import Data.Time.Format
 
 data Metrics = Metrics { metStartTime :: UTCTime
                        , metMode      :: Mode
@@ -22,9 +20,6 @@ instance ToJson Metrics where
 
 defaultUTCTime :: UTCTime
 defaultUTCTime = UTCTime (fromGregorian 0 0 0) (fromInteger 0)
-
-instance ToJson UTCTime where
-  json = JSString . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"
 
 data Mode = MakeMode | OneShotMode | InteractiveMode | EvalMode
   deriving Enum

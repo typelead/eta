@@ -3,6 +3,7 @@ module ETA.Utils.Json where
 
 import ETA.Utils.Outputable
 import Data.Char
+import Data.Time
 import Numeric
 
 -- | Simple data type to represent JSON documents.
@@ -52,3 +53,6 @@ escapeJsonString = concatMap escapeChar
 
 class ToJson a where
   json :: a -> JsonDoc
+
+instance ToJson UTCTime where
+  json = JSString . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"

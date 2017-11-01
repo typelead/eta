@@ -20,7 +20,6 @@ import ETA.Util
 import ETA.Debug
 import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
-import ETA.CodeGen.Layout
 import ETA.CodeGen.Constr
 import ETA.CodeGen.Expr
 import ETA.CodeGen.Monad
@@ -105,7 +104,7 @@ cgTopBinding dflags (StgRec pairs) = do
               funRecIdsMap =
                 mkVarEnv $
                   map
-                  (\(i, (funId, StgRhsClosure _ _ _ _ _ args' body)) ->
+                  (\(i, (funId, StgRhsClosure _ _ _ _ _ args' _)) ->
                     (funId,
                       (i, map (primRepFieldType . idPrimRep . unsafeStripNV)
                         $ nonVoidIds args')))
@@ -155,6 +154,7 @@ cgTopBinding dflags (StgRec pairs) = do
                           go expr
                           ++ (case binding of
                                 StgNonRec _ (StgRhsClosure _ _ _ _ _ _ body) -> go body
+                                StgNonRec _ (StgRhsCon _ _ _) -> []
                                 StgRec pairs -> concat $
                                   map (\case
                                           (_, StgRhsClosure _ _ _ _ _ _ body)
@@ -162,6 +162,7 @@ cgTopBinding dflags (StgRec pairs) = do
                                           _ -> []) pairs)
                         go (StgLet _ expr) = go expr
                         go _ = []
+                findRecCalls _ _ = []
 
 cgTopRhs :: DynFlags -> RecFlag -> [Id] -> Maybe FunRecInfo -> Id -> StgRhs -> (CgIdInfo, CodeGen (Maybe RecInfo))
 cgTopRhs dflags _ conRecIds _ binder (StgRhsCon _ con args) =
@@ -188,7 +189,7 @@ cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
         (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
         clType
-          | StgApp f [] <- body, null args, isNonRec recflag
+          | StgApp _ [] <- body, null args, isNonRec recflag
           = indStaticType
           | otherwise = obj clClass
         genCode
@@ -291,7 +292,6 @@ cgEnumerationTyCon _tyConCl tyCon = do
 cgDataCon :: Text -> DataCon -> CodeGen ()
 cgDataCon typeClass dataCon = do
   dflags <- getDynFlags
-  modClass <- getModClass
   let thisClass = dataConClass dflags dataCon
       thisFt = obj thisClass
       defineTagMethod =

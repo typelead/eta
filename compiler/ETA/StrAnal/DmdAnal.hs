@@ -21,7 +21,6 @@ import ETA.Core.CoreSeq    (seqBinds)
 import ETA.Utils.Outputable
 import ETA.BasicTypes.VarEnv
 import ETA.BasicTypes.BasicTypes
-import ETA.Utils.FastString
 import Data.List
 import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Id

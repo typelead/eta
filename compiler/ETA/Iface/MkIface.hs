@@ -79,7 +79,6 @@ import ETA.BasicTypes.PatSyn
 import ETA.Types.Type
 import ETA.TypeCheck.TcType
 import ETA.Prelude.TysPrim ( alphaTyVars )
-import ETA.BasicTypes.MkId ( noinlineIdName )
 import ETA.Types.InstEnv
 import ETA.Types.FamInstEnv
 import ETA.TypeCheck.TcRnMonad

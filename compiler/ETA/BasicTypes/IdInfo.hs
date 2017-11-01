@@ -416,9 +416,6 @@ mayHaveCafRefs :: CafInfo -> Bool
 mayHaveCafRefs  MayHaveCafRefs = True
 mayHaveCafRefs _               = False
 
-seqCaf :: CafInfo -> ()
-seqCaf c = c `seq` ()
-
 instance Outputable CafInfo where
    ppr = ppCafInfo
 

@@ -62,7 +62,6 @@ module ETA.BasicTypes.Demand (
 
 #include "HsVersions.h"
 
-import ETA.Main.StaticFlags
 import ETA.Main.DynFlags
 import ETA.Utils.Outputable
 import ETA.BasicTypes.Var ( Var )
@@ -76,7 +75,6 @@ import ETA.Utils.Maybes           ( orElse )
 import ETA.Types.Type            ( Type, isUnLiftedType )
 import ETA.Types.TyCon           ( isNewTyCon, isClassTyCon )
 import ETA.BasicTypes.DataCon         ( splitDataProductType_maybe )
-import ETA.Utils.FastString
 
 {-
 ************************************************************************
