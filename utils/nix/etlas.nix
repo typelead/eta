@@ -6,7 +6,8 @@
 }:
 mkDerivation {
   pname = "etlas";
-  version = "1.0.0.0";
+  # @VERSION
+  version = "1.1.0.0";
   src = ../../etlas/etlas;
   isLibrary = true;
   isExecutable = true;

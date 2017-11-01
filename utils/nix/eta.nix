@@ -6,7 +6,9 @@
 }:
 mkDerivation {
   pname = "eta";
-  version = "0.0.6";
+  # @VERSION_CHANGE@
+  # @BUILD_NUMBER@
+  version = "0.0.9.3";
   src = ../..;
   isLibrary = true;
   isExecutable = true;
