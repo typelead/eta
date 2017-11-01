@@ -68,7 +68,7 @@ import ETA.Types.Class            ( FunDep )
 import ETA.Types.CoAxiom          ( Role, fsFromRole )
 import ETA.BasicTypes.RdrName          ( RdrName, isRdrTyVar, isRdrTc, mkUnqual, rdrNameOcc,
                           isRdrDataCon, isUnqual, getRdrName, setRdrNameSpace,
-                          rdrNameSpace )
+                          rdrNameSpace, nameRdrName )
 import ETA.BasicTypes.OccName          ( tcClsName, isVarNameSpace )
 import ETA.BasicTypes.Name             ( Name )
 import ETA.BasicTypes.BasicTypes       ( maxPrecedence, Activation(..), RuleMatchInfo,
@@ -77,6 +77,7 @@ import ETA.BasicTypes.BasicTypes       ( maxPrecedence, Activation(..), RuleMatc
 import ETA.TypeCheck.TcEvidence       ( idHsWrapper )
 import ETA.Parser.Lexer
 import ETA.Prelude.TysWiredIn       ( unitTyCon, unitDataCon )
+import ETA.Prelude.TysPrim          ( jobjectPrimTyConName )
 import ETA.Prelude.ForeignCall
 import ETA.BasicTypes.OccName          ( srcDataName, varName, isDataOcc, isTcOcc,
                           occNameString )
@@ -95,6 +96,7 @@ import ETA.Parser.ApiAnnotation
 import Control.Applicative ((<$>))
 #endif
 import Control.Monad
+import Control.Applicative ((<|>))
 
 import Text.ParserCombinators.ReadP as ReadP
 
@@ -274,32 +276,47 @@ mkTyData loc new_or_data cType (L _ (mcxt, tycl_hdr)) ksig data_cons maybe_deriv
   = do { (tc, tparams,ann) <- checkTyClHdr tycl_hdr
        ; mapM_ (\a -> a loc) ann -- Add any API Annotations to the top SrcSpan
        ; tyvars <- checkTyVarsP (ppr new_or_data) equalsDots tc tparams
-       ; defn <- mkDataDefn new_or_data cType mcxt ksig data_cons maybe_deriv
+       ; defn <- mkDataDefn (unLoc tc) new_or_data cType mcxt ksig data_cons maybe_deriv
        ; return (L loc (DataDecl { tcdLName = tc, tcdTyVars = tyvars,
                                    tcdDataDefn = defn,
                                    tcdFVs = placeHolderNames })) }
 
-mkDataDefn :: NewOrData
+mkDataDefn :: RdrName
+           -> NewOrData
            -> Maybe (Located CType)
            -> Maybe (LHsContext RdrName)
            -> Maybe (LHsKind RdrName)
            -> [LConDecl RdrName]
            -> Maybe (Located [LHsType RdrName])
            -> P (HsDataDefn RdrName)
-mkDataDefn new_or_data cType mcxt ksig data_cons maybe_deriv
+mkDataDefn tcName new_or_data cType mcxt ksig data_cons maybe_deriv
   = do { checkDatatypeContext mcxt
        ; checkNoPartialCon data_cons
        ; whenIsJust maybe_deriv $
          \(L _ deriv) -> mapM_ (checkNoPartialType (errDeriv deriv)) deriv
        ; let cxt = fromMaybe (noLoc []) mcxt
-       ; return (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
+       ; return (HsDataDefn { dd_ND = new_or_data, dd_cType = cType'
                             , dd_ctxt = cxt
-                            , dd_cons = data_cons
+                            , dd_cons = data_cons'
                             , dd_kindSig = ksig
                             , dd_derivs = maybe_deriv }) }
     where errDeriv deriv = text "In the deriving items:" <+>
                            pprHsContextNoArrow deriv
 
+          jobjectPrimTyCon_RDR = nameRdrName jobjectPrimTyConName
+          (cTypeFromDC, data_cons')
+            | length data_cons == 1
+            , L loc conDecl@(ConDecl { con_details = PrefixCon [ty] })
+                <- head data_cons
+            , Just (javaRdrName, argTys) <- hsTyGetAppHead_maybe ty
+            , '@':javaName <- occNameString (rdrNameOcc javaRdrName)
+            , let ty' = L (getLoc ty) $
+                          mkHsAppTys (noLoc (HsTyVar jobjectPrimTyCon_RDR))
+                          [L (getLoc ty) $ mkHsAppTys (noLoc (HsTyVar tcName)) argTys]
+            = (Just . noLoc . CType javaName Nothing $ mkFastString javaName,
+               [L loc (conDecl { con_details = PrefixCon [ty'] })])
+            | otherwise = (Nothing, data_cons)
+          cType' = cTypeFromDC <|> cType
 
 mkTySynonym :: SrcSpan
             -> LHsType RdrName  -- LHS
@@ -341,7 +358,7 @@ mkDataFamInst :: SrcSpan
 mkDataFamInst loc new_or_data cType (L _ (mcxt, tycl_hdr)) ksig data_cons maybe_deriv
   = do { (tc, tparams,ann) <- checkTyClHdr tycl_hdr
        ; mapM_ (\a -> a loc) ann -- Add any API Annotations to the top SrcSpan
-       ; defn <- mkDataDefn new_or_data cType mcxt ksig data_cons maybe_deriv
+       ; defn <- mkDataDefn (unLoc tc) new_or_data cType mcxt ksig data_cons maybe_deriv
        ; return (L loc (DataFamInstD (
                   DataFamInstDecl { dfid_tycon = tc, dfid_pats = mkHsWithBndrs tparams
                                   , dfid_defn = defn, dfid_fvs = placeHolderNames }))) }

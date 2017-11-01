@@ -409,6 +409,8 @@ for some background.
  DOCNAMED       { L _ (ITdocCommentNamed _) }
  DOCSECTION     { L _ (ITdocSection _ _) }
 
+ JAVAANNOT      { L _ (ITjavaannot _) }
+
 -- Template Haskell
 '[|'            { L _ ITopenExpQuote  }
 '[p|'           { L _ ITopenPatQuote  }
@@ -1521,9 +1523,17 @@ typedoc :: { LHsType RdrName }
         | btype SIMPLEQUOTE varop  type  {% ams (sLL $1 $> $ mkHsOpTy $1 $3 $4)
                                                 [mj AnnSimpleQuote $2] }
 
+conbtype :: { LHsType RdrName }
+         : conbtype conatype { sLL $1 $> $ HsAppTy $1 $2 }
+         | conatype          { $1 }
+
+conatype :: { LHsType RdrName }
+         : atype      { $1 }
+         | JAVAANNOT  { sL1 $1 (HsTyVar $! mkUnqual tcClsName (getJAVAANNOT $1)) }
+
 btype :: { LHsType RdrName }
-        : btype atype                   { sLL $1 $> $ HsAppTy $1 $2 }
-        | atype                         { $1 }
+        : btype conatype                { sLL $1 $> $ HsAppTy $1 $2 }
+        | conatype                      { $1 }
 
 atype :: { LHsType RdrName }
         : ntgtycon                       { sL1 $1 (HsTyVar (unLoc $1)) }      -- Not including unit tuples
@@ -1781,8 +1791,8 @@ constr_stuff :: { Located (Located RdrName, HsConDeclDetails RdrName) }
 --      C t1 t2 %: D Int
 -- in which case C really would be a type constructor.  We can't resolve this
 -- ambiguity till we come across the constructor oprerator :% (or not, more usually)
-        : btype                         {% splitCon $1 >>= return.sLL $1 $> }
-        | btype conop btype             {  sLL $1 $> ($2, InfixCon $1 $3) }
+        : btype                   {% splitCon $1 >>= return.sLL $1 $> }
+        | btype conop btype          {  sLL $1 $> ($2, InfixCon $1 $3) }
 
 fielddecls :: { [LConDeclField RdrName] }
         : {- empty -}     { [] }
@@ -2966,6 +2976,7 @@ getQVARID       (L _ (ITqvarid   x)) = x
 getQCONID       (L _ (ITqconid   x)) = x
 getQVARSYM      (L _ (ITqvarsym  x)) = x
 getQCONSYM      (L _ (ITqconsym  x)) = x
+getJAVAANNOT     (L _ (ITjavaannot  x)) = x
 getPREFIXQVARSYM (L _ (ITprefixqvarsym  x)) = x
 getPREFIXQCONSYM (L _ (ITprefixqconsym  x)) = x
 getIPDUPVARID   (L _ (ITdupipvarid   x)) = x

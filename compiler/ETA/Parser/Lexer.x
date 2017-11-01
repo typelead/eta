@@ -195,6 +195,9 @@ $docsym    = [\| \^ \* \$]
 @negative = \-
 @signed = @negative ?
 
+-- Java Annotations
+@javaannot = $graphic+
+
 
 -- -----------------------------------------------------------------------------
 -- Alex "Identifier"
@@ -396,6 +399,10 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   -- qualified quasi-quote (#5555)
   "[" @qvarid "|"  / { ifExtension qqEnabled }
                      { lex_qquasiquote_tok }
+}
+
+<0> {
+    [^ $idchar \) ] ^ "@" @javaannot { javaAnnotationToken }
 }
 
 <0> {
@@ -699,6 +706,9 @@ data Token
   | ITdocOptionsOld   String     -- doc options declared "-- # ..."-style
   | ITlineComment     String     -- comment starting by "--"
   | ITblockComment    String     -- comment in {- -}
+
+  -- Java annotations
+  | ITjavaannot FastString
 
   deriving Show
 
@@ -2670,4 +2680,10 @@ isDocComment (ITdocSection      _ _) = True
 isDocComment (ITdocOptions      _)   = True
 isDocComment (ITdocOptionsOld   _)   = True
 isDocComment _ = False
+
+---- Java Annotations
+javaAnnotationToken :: Action
+javaAnnotationToken span buf len =
+  return $ L span $ ITjavaannot fs
+  where !fs = lexemeToFastString buf len
 }

@@ -702,7 +702,7 @@ hsTyGetAppHead_maybe = go []
     go _   _                             = Nothing
 
 mkHsAppTys :: OutputableBndr n => LHsType n -> [LHsType n] -> HsType n
-mkHsAppTys fun_ty [] = pprPanic "mkHsAppTys" (ppr fun_ty)
+mkHsAppTys fun_ty [] = unLoc fun_ty
 mkHsAppTys fun_ty (arg_ty:arg_tys)
   = foldl mk_app (HsAppTy fun_ty arg_ty) arg_tys
   where

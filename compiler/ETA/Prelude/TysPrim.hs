@@ -82,7 +82,8 @@ module ETA.Prelude.TysPrim(
         jboolPrimTyCon,
         jbytePrimTyCon,
         jshortPrimTyCon,
-        jobjectPrimTyCon, mkObjectPrimTy,
+        jobjectPrimTyCon, jobjectPrimTyConName,
+        mkObjectPrimTy,
 
         -- * SIMD
         -- TODO: Currently vector operations are disabled in ETA
