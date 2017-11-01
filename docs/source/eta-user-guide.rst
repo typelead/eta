@@ -6,6 +6,25 @@ Eta User Guide
    This user guide is still under active development. Please consult the `GHC 7.10.3 User Guide <https://downloads.haskell.org/~ghc/7.10.3/docs/html/users_guide/>`_
    for language-level details as it is very similar to Eta.
 
+Using the Eta CLI
+-----------------
+
+The Eta compiler can be invoked from the command line using the ``eta`` command.
+
+.. code-block:: console
+
+    eta [MODE_FLAGS] [OPTIONS] [SOURCE_FILES]
+
+See `eta --help` for more details.
+
+If you are using Etlas, can you directly invoke it as follows:
+
+.. code-block:: console
+
+   etlas exec eta -- [MODE_FLAGS] [OPTIONS] [SOURCE_FILES]
+
+See `etlas exec eta -- --help` for more details.
+
 Java Foreign Function Interface
 -------------------------------
 

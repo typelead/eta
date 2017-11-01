@@ -6,6 +6,118 @@ Etlas User Guide
    This user guide is still under active development. Please consult the `Cabal 1.22.8.0 User Guide <http://cabal.readthedocs.io/en/latest>`_
    as it is very similar to Etlas.
 
+Configuration File
+------------------
+
+You can find your Etlas user configuration file at:
+
+* Unix-based systems (Linux, Mac): ``~/.etlas/config``
+* Windows: ``%APPDATA%\Roaming\etlas\config``
+
+The following sections will describe in detail the meaning of all the configuration
+options.
+
+Remote Repositories
+^^^^^^^^^^^^^^^^^^^
+
+Remote repositories contain indices that point to the locations of source and/or binary
+packages that can be used with Eta. Etlas reads these indices and will query them
+whenever you invoke ``etlas install [package-name]``.
+
+.. code:: config
+   repository [repository-name]
+     url: [repository-url]
+     git-indexed: [indexed]
+
+where:
+* ``[git-indexed]`` takes either ``True`` or ``False``.
+  - ``True`` means that the remote repository is backed by a git repository that
+    indexes all the packages and their corresponding source git repositories.
+    (e.g. Etlas)
+  - ``False`` means that the remote repository is backed by a server that mirrors
+    Hackage. (e.g. Hackage itself)
+
+* ``[repository-url]`` is the url to:
+  - the git repository, if git-indexed
+  - the Hackage mirror, if not git-indexed
+
+Remaining Fields
+^^^^^^^^^^^^^^^^
+
+A field takes the form of:
+
+.. code:: config
+   [field-name]: [field-value]
+
+For Example:
+
+.. code:: config
+   auto-update: True
+
++-----------------+------------------------+--------------+----------------+
+| Name            | Description            | Valid Values | Default Value  |
++=================+========================+==============+================+
+| auto-update     | If turned on, will automatically update the package index periodically caches so the user stays up to date with the latest package patches. | False, True | True |
++-----------------+------------------------+--------------+----------------+
+
+TODO: This is incomplete.
+
+Installing Packages
+-------------------
+
+Package Types
+^^^^^^^^^^^^^
+
+Eta packages come in two types:
+
+1. **Hackage Packages** - Packages that can be found in `Hackage <https://hackage.haskell.org>`_, Haskell's package repository.
+
+2. **Etlas Packages** - Etlas is the package repository for Eta. We refer to a
+package that can only be compiled with Eta (and not GHC) as an Etlas package. This
+means the package contains Eta-specific features or uses the Java Foreign Function
+Interface.
+
+`etlas` itself can only distinguish between the two based on the source package indexes.
+
+From Etlas
+^^^^^^^^^^
+
+From Hackage
+^^^^^^^^^^^^
+
+Interacting with Etlas
+----------------------
+
+Interacting with Hackage
+------------------------
+
+Eta's `etlas` derives from Haskell's `cabal`, so it has great support for working with
+Hackage, Haskell's package repository.
+
+If you need to use a package from Hackage, you invoke the following command:
+
+.. code-block:: console
+
+   etlas install [hackage-package-name]
+
+For Example:
+
+Suppose you want to install the
+`bytestring <https://hackage.haskell.org/package/bytestring>`_ package.
+
+.. code-block:: console
+
+   etlas install bytestring
+
+There are cases where this command might take a long time.
+If so, terminate the command (typically via Ctrl-C) and instead run:
+
+.. code-block:: console
+
+   etlas install [hackage-package-name] --allow-newer
+
+which will fix in 99% of the time.
+
 Etlas Packages Support
 ----------------------
 

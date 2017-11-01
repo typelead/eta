@@ -8,7 +8,7 @@ mkDerivation {
   pname = "eta";
   # @VERSION_CHANGE@
   # @BUILD_NUMBER@
-  version = "0.0.9.3";
+  version = "0.0.9.4";
   src = ../..;
   isLibrary = true;
   isExecutable = true;

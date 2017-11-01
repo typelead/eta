@@ -19,8 +19,11 @@ Currently, there are a few ways of installing Eta:
 Method 1: Binary Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Eta Version: 0.0.9b3
+.. @VERSION_CHANGE@
+.. @BUILD_NUMBER@
+Eta Version: 0.0.9b4
 
+.. @VERSION@
 Etlas Version: 1.1.0.0
 
 The installation process works as follows:
