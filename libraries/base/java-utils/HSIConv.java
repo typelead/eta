@@ -103,7 +103,7 @@ public class HSIConv {
                 buffAddInt(outleft, -outBytesWritten);
             } else if (outbufptr != 0L && outleft != 0L) {
                 debug("in is null");
-                /** In this case, the iconv function attempts to set cd’s conversion
+                /** In this case, the iconv function attempts to set cd's conversion
                  *  state to the initial state and store a corresponding shift sequence
                  *  at *outbuf.
                  *  At most *outbytesleft bytes, starting at *outbuf, will be written.
