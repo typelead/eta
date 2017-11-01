@@ -83,17 +83,19 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
     if | Just (arity, fts) <- mCallPattern -> do
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            argLocs <- mapM newIdLoc args
+           loadContext <- getContextLoc
            emit $ gload thisFt 0
                <> loadContext
-               <> mkCallEntry False False argLocs
+               <> mkCallEntry loadContext False False argLocs
                <> mkApFast arity thisClass (contextType:fts)
                <> greturn closureType
          withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
            let argLocs = argLocsFrom 2 args
+           loadContext <- getContextLoc
            case mFunRecIds of
              Just (n, funRecIds)
                | Just (target, loadCode, allArgFts) <-
-                   funRecIdsInfo True argLocs id funRecIds ->
+                   funRecIdsInfo loadContext True argLocs id funRecIds ->
                emit $ aconst_null closureType
                    <> loadContext
                    <> iconst jint (fromIntegral target)
@@ -110,12 +112,13 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                  mapM_ bindFV fvLocs
                  cgExpr body
        | otherwise ->
-         withMethod [Public, Final] "enter" [contextType] (ret closureType) $
+         withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
+           loadContext <- getContextLoc
            case mFunRecIds of
              Just (n, funRecIds)
                | let argLocs = argLocsFrom 2 args
                , Just (target, loadCode, allArgFts) <-
-                   funRecIdsInfo False argLocs id funRecIds ->
+                   funRecIdsInfo loadContext False argLocs id funRecIds ->
                emit $ aconst_null closureType
                    <> loadContext
                    <> iconst jint (fromIntegral target)
@@ -126,7 +129,7 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                    <> greturn closureType
              _ -> do
                argLocs <- mapM newIdLoc args
-               emit $ mkCallEntry True True argLocs
+               emit $ mkCallEntry loadContext True True argLocs
                bindArgs $ zip args argLocs
                label <- newLabel
                emit $ startLabel label
@@ -149,8 +152,8 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
         <> vreturn)
   return (fts, recIndexes)
 
-funRecIdsInfo :: Bool -> [CgLoc] -> Id -> FunRecMap -> Maybe (Int, Code, [FieldType])
-funRecIdsInfo stdLayout argLocs funId funRecInfoMap
+funRecIdsInfo :: Code -> Bool -> [CgLoc] -> Id -> FunRecMap -> Maybe (Int, Code, [FieldType])
+funRecIdsInfo loadContext stdLayout argLocs funId funRecInfoMap
   | Just (target, _argFts) <- lookupVarEnv funRecInfoMap funId
   , let indexedArgFts = sortOn fst $ varEnvElts funRecInfoMap
         (code, fts) = foldl' (\(!code, !allFts) (i, fts) ->
@@ -158,7 +161,7 @@ funRecIdsInfo stdLayout argLocs funId funRecInfoMap
                            (if i == target
                             then (if stdLayout
                                   then foldMap loadLoc argLocs
-                                  else mkCallEntry True False argLocs)
+                                  else mkCallEntry loadContext True False argLocs)
                             else foldMap defaultValue fts)
                           ,allFts ++ fts))
                         (mempty, []) indexedArgFts

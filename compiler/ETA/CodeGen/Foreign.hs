@@ -139,13 +139,14 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                              else invokevirtual
 
 emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> ([Code] -> Code) -> [Code] -> CodeGen ()
-emitForeignCall safety mbObj results target args =
-  wrapSafety $ do
+emitForeignCall safety mbObj results target args = do
+  loadContext <- getContextLoc
+  wrapSafety loadContext $ do
     maybe (emit callCode) (flip emitAssign callCode) resLoc
     maybe (return ()) (flip emitAssign (fromJust mbObj)) objLoc
   where -- As of now, interruptible & unsafe mean pretty much the same thing.
-        wrapSafety code = do
-          whenSafe $ emit $ suspendInterruptsMethod (playInterruptible safety)
+        wrapSafety loadContext code = do
+          whenSafe $ emit $ suspendInterruptsMethod loadContext (playInterruptible safety)
           _ <- code
           whenSafe $ emit resumeInterruptsMethod
           where whenSafe = when (playSafe safety)

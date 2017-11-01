@@ -23,9 +23,10 @@ import Data.Text (Text)
 emitReturn :: [CgLoc] -> CodeGen ()
 emitReturn results = do
   sequel <- getSequel
+  loadContext <- getContextLoc
   emit $
     case sequel of
-      Return         -> mkReturnExit results <> greturn closureType
+      Return         -> mkReturnExit loadContext results <> greturn closureType
       AssignTo slots -> multiAssign slots (map loadLoc results)
 
 emitAssign :: CgLoc -> Code -> CodeGen ()
@@ -39,8 +40,8 @@ multiAssign locs codes = fold $ zipWith storeLoc locs codes
 
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
-mkCallEntry :: Bool -> Bool -> [CgLoc] -> Code
-mkCallEntry convert store cgLocs = go mempty cgLocs 1 1 1 1 1 1
+mkCallEntry :: Code -> Bool -> Bool -> [CgLoc] -> Code
+mkCallEntry loadContext convert store cgLocs = go mempty cgLocs 1 1 1 1 1 1
   where go !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
             P -> loadRec (context r) (r + 1) i l f d o
@@ -50,7 +51,7 @@ mkCallEntry convert store cgLocs = go mempty cgLocs 1 1 1 1 1 1
             D -> loadRec (context d) r i l f (d + 1) o
             O -> loadRec (context o <> maybeConvObj) r i l f d (o + 1)
             _ -> error "contextLoad: V"
-          where context = contextLoad argRep
+          where context = contextLoad loadContext argRep
                 argRep  = locArgRep cgLoc
                 ft      = locFt cgLoc
                 maybeStoreLoc nextCode
@@ -65,8 +66,8 @@ mkCallEntry convert store cgLocs = go mempty cgLocs 1 1 1 1 1 1
                   | otherwise = mempty
         go !code _ _ _ _ _ _ _ = code
 
-mkCallExit :: [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-mkCallExit args' = storeArgs mempty args' 1 1 1 1 1 1
+mkCallExit :: Code -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+mkCallExit loadContext args' = storeArgs mempty args' 1 1 1 1 1 1
   where storeArgs !code ((argRep, _ft', code'):args) !r !i !l !f !d !o =
           case argRep of
             P -> storeRec (context r) (r + 1) i l f d o
@@ -77,7 +78,7 @@ mkCallExit args' = storeArgs mempty args' 1 1 1 1 1 1
             O -> storeRec (context o) r i l f d (o + 1)
             V -> storeArgs code args r i l f d o
           where loadCode = expectJust "mkCallExit:loadCode" code'
-                context = contextStore argRep loadCode
+                context = contextStore loadContext argRep loadCode
                 storeRec nextCode =
                   storeArgs (code <> nextCode) args
         storeArgs !code _ _ _ _ _ _ _ = code
@@ -92,8 +93,8 @@ findFirstR = go []
 
 -- This method is extremely sensitive. It assumes that the returned closure is
 -- on the top of the stack
-mkReturnEntry :: [CgLoc] -> Code
-mkReturnEntry cgLocs' =
+mkReturnEntry :: Code -> [CgLoc] -> Code
+mkReturnEntry loadContext cgLocs' =
      maybe (pop closureType) (flip storeLoc mempty) mR1
   <> loadVals mempty cgLocs'' 1 1 1 1 1 1
   where (mR1, cgLocs'') = findFirstR cgLocs'
@@ -108,16 +109,17 @@ mkReturnEntry cgLocs' =
             _ -> error "contextLoad: V"
           where ft = locFt cgLoc
                 argRep = locArgRep cgLoc
-                context = contextLoad argRep
+                context = contextLoad loadContext argRep
                 loadRec nextCode =
                   loadVals (code <> storeLoc cgLoc nextCode) cgLocs
         loadVals !code _ _ _ _ _ _ _ = code
 
 -- This method assumes that the bytecode after this code expects a closure at the
 -- top of the stack
-mkReturnExit :: [CgLoc] -> Code
-mkReturnExit cgLocs' = storeVals mempty cgLocs'' 1 1 1 1 1 1
-                    <> maybe (aconst_null closureType) loadLoc mR1
+mkReturnExit :: Code -> [CgLoc] -> Code
+mkReturnExit loadContext cgLocs' =
+     storeVals mempty cgLocs'' 1 1 1 1 1 1
+  <> maybe (aconst_null closureType) loadLoc mR1
   where (mR1, cgLocs'') = findFirstR cgLocs'
         storeVals !code (cgLoc:cgLocs) !r !i !l !f !d !o =
           case argRep of
@@ -130,13 +132,13 @@ mkReturnExit cgLocs' = storeVals mempty cgLocs'' 1 1 1 1 1 1
             _ -> error "contextLoad: V"
           where loadCode = loadLoc cgLoc
                 argRep = locArgRep cgLoc
-                context = contextStore argRep loadCode
+                context = contextStore loadContext argRep loadCode
                 storeRec nextCode =
                   storeVals (code <> nextCode) cgLocs
         storeVals !code _ _ _ _ _ _ _ = code
 
-slowCall :: DynFlags -> CgLoc -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-slowCall dflags fun argFtCodes
+slowCall :: DynFlags -> Code -> CgLoc -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+slowCall dflags loadContext fun argFtCodes
     -- TODO: Implement optimization
     --       effectively an evaluation test + fast call
   | n > arity && optLevel dflags >= 2 = slowCode
@@ -146,24 +148,24 @@ slowCall dflags fun argFtCodes
         code         = loadLoc fun
         realCls      = fromMaybe stgClosure $ locClass fun
         (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
-        slowCode     = directCall' True True realCls
+        slowCode     = directCall' loadContext True True realCls
                          (mkApFast arity realCls (contextType:fts))
                          arity ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Bool -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directCall slow fun arity argFtCodes
+directCall :: Code -> Bool -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall loadContext slow fun arity argFtCodes
   | arity' == arity =
-    directCall' True True realCls (mkApFast arity' realCls (contextType:fts)) arity'
+    directCall' loadContext True True realCls (mkApFast arity' realCls (contextType:fts)) arity'
       ((P, Just ft, Just code):argFtCodes)
-  | otherwise = directCall' slow False realCls entryCode arity argFtCodes
+  | otherwise = directCall' loadContext slow False realCls entryCode arity argFtCodes
   where (arity', fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
         code         = loadLoc fun
         ft           = locFt fun
-        entryCode    = enterMethod fun
+        entryCode    = enterMethod loadContext fun
         realCls      = fromMaybe stgClosure $ locClass fun
 
-directCall' :: Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directCall' slow directLoad realCls entryCode arity args =
+directCall' :: Code -> Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall' loadContext slow directLoad realCls entryCode arity args =
      node
   <> loadArgs
   <> entryCode
@@ -180,21 +182,21 @@ directCall' slow directLoad realCls entryCode arity args =
           | directLoad = ((fromMaybe mempty . third $ head callArgs)
                          <> gconv closureType (obj realCls),
                           loadContext <> fold (catMaybes $ map third realCallArgs))
-          | otherwise  = (mempty, mkCallExit callArgs)
-        applyCalls = genApplyCalls restArgs
+          | otherwise  = (mempty, mkCallExit loadContext callArgs)
+        applyCalls = genApplyCalls loadContext restArgs
         applyCode
           | null applyCalls = mempty
           | otherwise       = fold applyCalls
 
-genApplyCalls :: [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
-genApplyCalls []   = []
-genApplyCalls args = applyCall : genApplyCalls restArgs
+genApplyCalls :: Code -> [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
+genApplyCalls _ []   = []
+genApplyCalls loadContext args = applyCall : genApplyCalls loadContext restArgs
   where (n, fts)     = slowCallPattern $ map (\(a,_,_) -> a) args
         (callArgs, restArgs) = splitAt n args
-        applyCall            = genApplyCall n fts callArgs
+        applyCall            = genApplyCall loadContext n fts callArgs
 
-genApplyCall :: Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-genApplyCall arity fts args =
+genApplyCall :: Code -> Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+genApplyCall loadContext arity fts args =
      loadContext
   <> fold loadCodes
   <> mkApFast arity stgClosure (contextType:fts)
@@ -229,34 +231,36 @@ getUnboxedResultReps resType = [ rep
 withContinuation :: Code -> CodeGen ()
 withContinuation code = do
   sequel <- getSequel
+  loadContext <- getContextLoc
   emit code
   emit $ case sequel of
-           AssignTo cgLocs -> mkReturnEntry cgLocs
+           AssignTo cgLocs -> mkReturnEntry loadContext cgLocs
            _               -> greturn closureType
 
 withPrimContinuation :: Type -> (Maybe FieldType -> Code) -> CodeGen ()
 withPrimContinuation resultType retCode = do
   sequel <- getSequel
-  emit (code sequel)
-  where code sequel
+  loadContext <- getContextLoc
+  emit (code sequel loadContext)
+  where code sequel loadContext
           | numResults == 0
           = retCode Nothing
          <> (case sequel of
                AssignTo _ -> mempty
-               _ -> mkReturnExit [] <> greturn closureType)
+               _ -> mkReturnExit loadContext [] <> greturn closureType)
           | numResults == 1
           , let resFt   = primRepFieldType (head reps)
                 resCode = retCode (Just resFt)
           = case sequel of
               AssignTo cgLocs
                 | let cgLoc = head cgLocs -> storeLoc cgLoc resCode
-              _ -> mkReturnExit
+              _ -> mkReturnExit loadContext
                      [mkLocDirect (isClosureFt resFt) (resFt, resCode)]
                 <> greturn closureType
           | otherwise
           = retCode (Just closureType)
          <> (case sequel of
-               AssignTo cgLocs -> mkReturnEntry cgLocs
+               AssignTo cgLocs -> mkReturnEntry loadContext cgLocs
                _               -> greturn closureType)
         reps = getUnboxedResultReps resultType
         numResults = length reps

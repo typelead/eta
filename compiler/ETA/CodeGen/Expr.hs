@@ -143,11 +143,13 @@ cgIdApp funId args = do
     SlowCall -> do
       traceCg (str "cgIdApp: SlowCall")
       argFtCodes <- getRepFtCodes args
-      withContinuation $ slowCall dflags funLoc argFtCodes
+      loadContext <- getContextLoc
+      withContinuation $ slowCall dflags loadContext funLoc argFtCodes
     DirectEntry nodeLoc arity -> do
       traceCg (str "cgIdApp: DirectEntry")
       argFtCodes <- getRepFtCodes args
-      withContinuation $ directCall False nodeLoc arity argFtCodes
+      loadContext <- getContextLoc
+      withContinuation $ directCall loadContext False nodeLoc arity argFtCodes
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       codes <- getNonVoidArgCodes args
@@ -161,11 +163,12 @@ cgIdApp funId args = do
 emitEnter :: CgLoc -> CodeGen ()
 emitEnter thunk = do
   sequel <- getSequel
+  loadContext <- getContextLoc
   case sequel of
     Return ->
-      emit $ enterMethod thunk <> greturn closureType
+      emit $ enterMethod loadContext thunk <> greturn closureType
     AssignTo cgLocs -> do
-      emit $ evaluateMethod thunk <> mkReturnEntry cgLocs
+      emit $ evaluateMethod loadContext thunk <> mkReturnEntry loadContext cgLocs
 
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args

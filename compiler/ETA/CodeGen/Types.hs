@@ -314,16 +314,16 @@ getNonVoidFts = mapMaybe (\(mft, val) -> case mft of
                            Just ft -> Just (ft, NonVoid val)
                            Nothing -> Nothing)
 
-enterMethod :: CgLoc -> Code
-enterMethod cgLoc
+enterMethod :: Code -> CgLoc -> Code
+enterMethod loadContext cgLoc
   = loadLoc cgLoc
  <> gconv closureType (obj closureCls)
  <> loadContext
  <> invokevirtual (mkMethodRef closureCls "enter" [contextType] (ret closureType))
  where closureCls = fromMaybe stgClosure (locClass cgLoc)
 
-evaluateMethod :: CgLoc -> Code
-evaluateMethod cgLoc
+evaluateMethod :: Code -> CgLoc -> Code
+evaluateMethod loadContext cgLoc
   = loadLoc cgLoc
  <> gconv closureType (obj closureCls)
  <> loadContext

@@ -113,8 +113,8 @@ repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
-contextLoad :: ArgRep -> Int -> Code
-contextLoad argRep n
+contextLoad :: Code -> ArgRep -> Int -> Code
+contextLoad loadContext argRep n
   | n <= 6
   = loadContext <> loadField n
   | otherwise
@@ -128,8 +128,8 @@ contextLoad argRep n
           O -> (loadO, fieldLoadO)
           _ -> error "contextLoad: V"
 
-contextStore :: ArgRep -> Code -> Int -> Code
-contextStore argRep storeCode n
+contextStore :: Code -> ArgRep -> Code -> Int -> Code
+contextStore loadContext argRep storeCode n
   | n <= 6
   = loadContext <> storeCode <> storeField n
   | otherwise

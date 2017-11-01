@@ -65,6 +65,7 @@ cgOpApp (StgPrimOp primOp) args resType = do
     case shouldInlinePrimOp dflags primOp argCodes resType of
       Left (rtsGroup, rtsFunName) -> do
         loadArgs <- getNonVoidArgCodes args
+        loadContext <- getContextLoc
         let (_, argTypes, _, _, _) = primOpSig primOp
             fts                    = repFieldTypes argTypes
         withPrimContinuation resType $ \retFt ->
@@ -102,6 +103,7 @@ cgOpApp (StgPrimOp primOp) args resType = do
 
 cgOpApp (StgPrimCallOp (PrimCall label _)) args resType = do
   argsFtCodes <- getNonVoidArgFtCodes args
+  loadContext <- getContextLoc
   let (argFts, callArgs) = unzip argsFtCodes
   withPrimContinuation resType $ \retFt ->
        loadContext
@@ -439,6 +441,7 @@ emitPrimOp SparkOp [arg] = do
   tmp <- newTemp True closureType
   emit $ storeLoc tmp arg
   let loadArg = loadLoc tmp
+  loadContext <- getContextLoc
   return [ loadContext
         <> contextMyCapability
         <> loadArg
@@ -446,7 +449,9 @@ emitPrimOp SparkOp [arg] = do
                           (ret jbool))
         <> pop jbool
         <> loadArg ]
-
+emitPrimOp MyThreadIdOp [] = do
+  loadContext <- getContextLoc
+  return [loadContext <> currentTSOField]
 emitPrimOp op [arg]
   | nopOp op = return [arg]
 emitPrimOp op args
@@ -476,8 +481,6 @@ intCompOp :: (Code -> Code -> Code) -> [Code] -> Code
 intCompOp op args = flip normalOp args $ op (iconst jint 1) (iconst jint 0)
 
 simpleOp :: PrimOp -> Maybe ([Code] -> Code)
-
-simpleOp MyThreadIdOp  = Just $ normalOp $ loadContext <> currentTSOField
 
 -- Array# & MutableArray# ops
 simpleOp UnsafeFreezeArrayOp  = Just idOp

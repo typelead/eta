@@ -118,9 +118,6 @@ contextLoadStoreField name ft =
   , \n -> getfield (fieldRef n))
   where fieldRef n = mkFieldRef stgContext (name <> T.pack (show n)) ft
 
-loadContext :: Code
-loadContext = gload contextType 1
-
 currentTSOField :: Code
 currentTSOField = getfield (mkFieldRef stgContext "currentTSO" tsoType)
 
@@ -190,8 +187,8 @@ contextMyCapability = getfield myCapability
 contextMyCapabilitySet :: Code
 contextMyCapabilitySet = putfield myCapability
 
-suspendInterruptsMethod :: Bool -> Code
-suspendInterruptsMethod interruptible =
+suspendInterruptsMethod :: Code -> Bool -> Code
+suspendInterruptsMethod loadContext interruptible =
      loadContext
   <> currentTSOField
   <> dup tsoType

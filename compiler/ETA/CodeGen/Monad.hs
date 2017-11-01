@@ -30,6 +30,8 @@ module ETA.CodeGen.Monad
    withMethod,
    getModClass,
    getClass,
+   getContextLoc,
+   setContextLoc,
    addBinding,
    addBindings,
    getBindings,
@@ -73,7 +75,7 @@ import ETA.Types.TyCon
 import Data.Monoid((<>))
 import Data.List
 import Data.Maybe (fromMaybe, maybeToList)
-import Data.Text hiding (foldl, length, concatMap, map, intercalate)
+import Data.Text hiding (foldl, length, concatMap, map, intercalate, findIndex)
 
 import System.FilePath (takeFileName)
 
@@ -87,6 +89,7 @@ import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
 import ETA.CodeGen.Name
 import ETA.CodeGen.ArgRep
+import ETA.CodeGen.Rts
 import ETA.Debug
 import ETA.Util
 
@@ -111,6 +114,7 @@ data CgState =
           , cgSourceFilePath :: !(Maybe FilePath)
           -- Current method
           , cgCode           :: !Code
+          , cgContextLoc     :: Code
           , cgScopedBindings :: CgBindings
           , cgAllowScoping   :: Bool
           , cgPreserveCaseOfCase :: Bool
@@ -171,6 +175,7 @@ initCg dflags mod modLoc =
            , cgSelfLoop            = Nothing },
    CgState { cgBindings            = emptyVarEnv
            , cgCode                = mempty
+           , cgContextLoc          = mempty
            , cgAccessFlags         = [Public, Super]
            , cgMethodDefs          = []
            , cgFieldDefs           = []
@@ -228,6 +233,12 @@ getMethodCode = gets cgCode
 
 setMethodCode :: Code -> CodeGen ()
 setMethodCode code = modify $ \s -> s { cgCode = code }
+
+getContextLoc :: CodeGen Code
+getContextLoc = gets cgContextLoc
+
+setContextLoc :: Code -> CodeGen ()
+setContextLoc code = modify $ \s -> s { cgContextLoc = code }
 
 getClass :: CodeGen Text
 getClass = gets cgClassName
@@ -453,8 +464,8 @@ withMethod accessFlags name fts rt body = do
   scoping        <- getAllowScoping
   preserve       <- getPreserveCaseOfCase
   setMethodCode mempty
-  setNextLocal ((if Static `elem` accessFlags then 0 else 1)
-                + sum (map fieldSize fts))
+  setNextLocal (staticOffset + sum (map fieldSize fts))
+  setContextLoc contextLoc
   setNextLabel 0
   setScopedBindings emptyVarEnv
   setAllowScoping True
@@ -470,6 +481,14 @@ withMethod accessFlags name fts rt body = do
   setScopedBindings scopedBindings
   setAllowScoping scoping
   setPreserveCaseOfCase preserve
+  where staticOffset
+          | Static `elem` accessFlags = 0
+          | otherwise                 = 1
+        contextLoc = gload contextType contextLocIndex
+        contextLocIndex
+          | Just n <- findIndex (== contextType) fts
+          = staticOffset + n
+          | otherwise = 0
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =
