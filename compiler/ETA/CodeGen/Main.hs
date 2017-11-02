@@ -188,12 +188,16 @@ cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
         lfInfo = mkClosureLFInfo id TopLevel [] updateFlag args
         (modClass, clName, clClass) = getJavaInfo dflags cgIdInfo
         qClName = closure clName
+        getFS = occNameFS . nameOccName . idName
+        notSameAsId f = getFS f /= getFS id
         clType
-          | StgApp _ [] <- body, null args, isNonRec recflag
+          | StgApp f [] <- body, null args, isNonRec recflag
+          , notSameAsId f
           = indStaticType
           | otherwise = obj clClass
         genCode
           | StgApp f [] <- body, null args, isNonRec recflag
+          , notSameAsId f
           = do cgInfo <- getCgIdInfo f
                defineField $ mkFieldDef [Private, Static] qClName closureType
                let field = mkFieldRef modClass qClName closureType
@@ -209,6 +213,12 @@ cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
                defineMethod $ initCodeTemplate True modClass qClName field
                               (fold initField)
                return Nothing
+        -- TODO: This hack exists because of overrides that happen with foreign exports
+        --       Find a cleaner way to do it because it may break some invariants in
+        --       the typechecker. See #547.
+          | StgApp f _ <- body, isNonRec recflag
+          , not (notSameAsId f)
+          = return Nothing
           | otherwise = do
             let arity = length args
             (_, CgState { cgClassName }) <- forkClosureBody $
