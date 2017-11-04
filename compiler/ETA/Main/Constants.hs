@@ -18,8 +18,8 @@ cProjectVersion = "0.0.9b" ++ cProjectPatchLevel
 cProjectVersionNumbers = "0.0.9." ++ cProjectPatchLevel
 cProjectVersionInt = "9"
 -- @BUILD_NUMBER@
-cProjectPatchLevel = "4"
-cProjectPatchLevel1 = "4"
+cProjectPatchLevel = "5"
+cProjectPatchLevel1 = "5"
 cProjectPatchLevel2 = ""
 cProjectHomeURL = "http://github.com/typelead/eta"
 cProjectIssueReportURL = cProjectHomeURL ++ "/issues"
