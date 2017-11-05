@@ -384,10 +384,7 @@ tcFExport fo@(ForeignExport (L loc nm) hs_ty _ spec)
              else fmap Just $ tcPolyExpr (nlHsVar nm) sig_ty
       (norm_co, norm_sig_ty, gres) <- normaliseFfiType sig_ty
       spec' <- tcCheckFEType norm_sig_ty spec
-      nm' <- if isSuper
-             then return nm
-             else newUnique >>= return . setNameUnique nm
-      id  <- mkStableIdFromName nm' sig_ty loc mkForeignExportOcc
+      id  <- mkStableIdFromName nm sig_ty loc mkForeignExportOcc
       return (fmap (mkVarBind id) rhs, ForeignExport (L loc id) undefined norm_co spec', gres)
   where isSuper = isForeignExportSuper spec
 
