@@ -17,10 +17,11 @@
 -----------------------------------------------------------------------------
 
 module Java.String (
-   JString
+   JString(..)
  , toJString
  , fromJString
  , JStringArray(..)
+ , CharSequence(..)
  ) where
 
 import GHC.Base

@@ -99,8 +99,9 @@ main = do
 
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
+-- @BUILD_NUMBER_INTERNAL@
 myVersion :: String
-myVersion = "0.0.9.6"
+myVersion = "0.0.9.7"
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 

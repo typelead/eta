@@ -5,7 +5,8 @@ mkDerivation {
   pname = "eta-pkg";
   # @VERSION_CHANGE@
   # @BUILD_NUMBER@
-  version = "0.0.9.6";
+  # @BUILD_NUMBER_INTERNAL@
+  version = "0.0.9.7";
   src = ../../utils/eta-pkg;
   isLibrary = false;
   isExecutable = true;

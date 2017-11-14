@@ -1,7 +1,8 @@
 Name: eta-pkg
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
-Version: 0.0.9.6
+-- @BUILD_NUMBER_INTERNAL@
+Version: 0.0.9.7
 Copyright: XXX
 License: BSD3
 -- XXX License-File: LICENSE
