@@ -669,7 +669,7 @@ shiftRInteger (J# o#)  i = smartJ# (fdivQ2ExpInteger# o# i)
 {-# NOINLINE testBitInteger #-}
 testBitInteger :: Integer -> Int# -> Bool
 testBitInteger j@(S# _) i = testBitInteger (toBig j) i
-testBitInteger (J# o#)  i = isTrue# (testBitInteger# o# i /=# 0#)
+testBitInteger (J# o#)  i = isTrue# (jbool2int# (testBitInteger# o# i) /=# 0#)
 
 -- | \"@'powInteger' /b/ /e/@\" computes base @/b/@ raised to exponent @/e/@.
 --

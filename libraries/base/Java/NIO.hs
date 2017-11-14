@@ -589,7 +589,7 @@ foreign import java unsafe load :: (a <: MappedByteBuffer) => Java a MappedByteB
 
 -- Start java.nio.Charset
 
-data {-# CLASS "java.nio.Charset" #-} Charset = Charset (Object# Charset)
+data {-# CLASS "java.nio.charset.Charset" #-} Charset = Charset (Object# Charset)
   deriving Class
 
 -- End java.nio.Charset

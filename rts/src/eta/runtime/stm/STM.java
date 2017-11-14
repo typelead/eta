@@ -38,10 +38,12 @@ public class STM {
         trec.write(tvar, newValue);
     }
 
-    public static void check(StgContext context, Closure invariant) {
+    public static Closure check(StgContext context, Closure invariant) {
         TransactionRecord trec = context.currentTSO.trec;
         assert trec != null;
         trec.checkInvariant(invariant);
+        /* TODO: Maybe we should make this ghc_prim.Types.DZ0T()? */
+        return null;
     }
 
 

@@ -190,7 +190,7 @@ public class Concurrent {
     }
 
     /* TODO: Implement this */
-    public static void traceEvent(StgContext context) {}
+    public static void traceEvent(StgContext context, long addr) {}
 
     public static void labelThread(StgContext context, TSO tso, long address) {
         ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);

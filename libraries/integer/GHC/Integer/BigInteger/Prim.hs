@@ -105,7 +105,11 @@ type IntegerPair# = Object# BigIntegerArray
 -- NOTE: We need to do this in order to bypass the back that you can't have top level
 -- unboxed value bindings.
 foreign import java unsafe "@static @field java.math.BigInteger.ZERO" zeroInteger# :: Void# -> Integer#
-foreign import java unsafe "equals" equalsInteger# :: Integer# -> Integer# -> JBool#
+foreign import java unsafe "equals" equalsInteger'# :: Integer# -> Object# Object -> JBool#
+
+equalsInteger# :: Integer# -> Integer# -> JBool#
+equalsInteger# i1 i2 = equalsInteger'# i1 (unsafeCoerce# i2)
+
 foreign import java unsafe "abs" absInteger# :: Integer# -> Integer#
 foreign import java unsafe "bitLength" bitsInteger# :: Integer# -> Int#
 foreign import java unsafe "signum" signumInteger# :: Integer# -> Int#
@@ -210,7 +214,7 @@ foreign import java unsafe "xor" xorInteger#
   :: Integer# -> Integer# -> Integer#
 
 foreign import java unsafe "testBit" testBitInteger#
-  :: Integer# -> Int# -> Int#
+  :: Integer# -> Int# -> JBool#
 
 foreign import java unsafe "shiftLeft" mul2ExpInteger#
   :: Integer# -> Int# -> Integer#

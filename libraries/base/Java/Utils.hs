@@ -45,7 +45,7 @@ getClass _ = forName (classIdentifier (proxy# :: Proxy# a))
 
 foreign import java unsafe "@static java.lang.Class.forName" forName :: String -> JClass a
 
-foreign import java unsafe classObject :: (a <: Object) => a -> JClass a
+foreign import java unsafe "getClass" classObject :: (a <: Object) => a -> JClass a
 foreign import java unsafe toString    :: (a <: Object) => a -> JString
 foreign import java unsafe hashCode    :: (a <: Object) => a -> Int
 
