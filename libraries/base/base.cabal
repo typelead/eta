@@ -231,25 +231,17 @@ Library
         Java.Core
         Java.Collections
         Java.Concurrent
-        Java.DateTime
         Java.Do
         Java.Exception
-        Java.IO
         Java.Math
-        Java.Net
-        Java.NIO
         Java.Primitive
-        Java.Security
         Java.String
-        Java.StringUtils
         Java.TopHandler
-        Java.Text
         Java.Utils
         Java.Wrappers
         Numeric
         Numeric.Natural
         Prelude
-        Scala
         System.CPUTime
         System.Console.GetOpt
         System.Environment
