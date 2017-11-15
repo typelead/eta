@@ -133,11 +133,20 @@ showException :: SomeException -> Object# JString
 showException e = s#
   where !(JS# s#) = toJString (displayException e)
 
-  -- Start java.lang.ReflectiveOperationException
+-- Start java.lang.ReflectiveOperationException
 
 data ReflectiveOperationException = ReflectiveOperationException @java.lang.ReflectiveOperationException
   deriving Class
 
 type instance Inherits ReflectiveOperationException = '[JException]
 
-  -- End java.lang.ReflectiveOperationException
+-- End java.lang.ReflectiveOperationException
+
+-- Start java.lang.RuntimeException
+
+data RuntimeException = RuntimeException @java.lang.RuntimeException
+  deriving Class
+
+type instance Inherits RuntimeException = '[JException]
+
+  -- End java.lang.RuntimeException
