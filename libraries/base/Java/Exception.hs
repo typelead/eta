@@ -132,3 +132,12 @@ instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException)
 showException :: SomeException -> Object# JString
 showException e = s#
   where !(JS# s#) = toJString (displayException e)
+
+  -- Start java.lang.ReflectiveOperationException
+
+data ReflectiveOperationException = ReflectiveOperationException @java.lang.ReflectiveOperationException
+  deriving Class
+
+type instance Inherits ReflectiveOperationException = '[JException]
+
+  -- End java.lang.ReflectiveOperationException
