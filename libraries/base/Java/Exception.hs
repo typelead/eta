@@ -23,7 +23,6 @@ import GHC.Base
 import GHC.Int
 import Java
 import Java.Array
-import Java.IO
 import GHC.Show
 import GHC.Exception
 import Data.Typeable (Typeable, cast)
@@ -51,12 +50,6 @@ foreign import java unsafe getStackTrace :: Java Throwable StackTraceElementArra
 foreign import java unsafe initCause :: Throwable -> Java Throwable Throwable
 
 foreign import java unsafe printStackTrace :: Java Throwable ()
-
-foreign import java unsafe "printStackTrace"
-  printStackTracePrintStream :: PrintStream -> Java Throwable ()
-
-foreign import java unsafe "printStackTrace"
-  printStackTracePrintWriter :: PrintStream -> Java Throwable ()
 
 foreign import java unsafe setStackTrace :: StackTraceElementArray -> Java Throwable ()
 
