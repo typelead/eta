@@ -45,16 +45,23 @@ closureCodeBody
 closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = do
   dflags <- getDynFlags
   traceCg $ str $ "creating new closure..." ++ unpack (idNameText dflags id)
-  setClosureClass $ idNameText dflags id
+  let closureName = idNameText dflags id
+  setClosureClass closureName
+  modClass  <- getModClass
   thisClass <- getClass
   let hasStdLayout
         | all (== P) $ map (idArgRep . unsafeStripNV) fvs
         = lfStandardForm arity (length fvs)
         | otherwise = False
   (fvLocs', initCodes, recIndexes) <- generateFVs (not hasStdLayout) fvs recIds
-  let fvLocs = if binderIsFV
-               then (NonVoid id, mkLocLocal True thisFt 0) : fvLocs'
-               else fvLocs'
+  let fvLocs isStatic
+        | binderIsFV = (NonVoid id,
+          (if isStatic
+           then mkLocDirect True
+             (closureType, invokestatic (mkMethodRef modClass closureName []
+                             (ret closureType)))
+           else mkLocLocal True thisFt 0)) : fvLocs'
+        | otherwise  = fvLocs'
       thisFt = obj thisClass
       (_, fts, _) = unzip3 initCodes
       (codes, _) = foldl' (\(initCode, n) (_, ft, code) ->
@@ -71,7 +78,7 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
   if arity == 0 then
     -- TODO: Implement eager blackholing
     withMethod [Public, Final] "thunkEnter" [contextType] (ret closureType) $ do
-      mapM_ bindFV fvLocs
+      mapM_ bindFV (fvLocs False)
       cgExpr body
   else do
     let mCallPattern = lfCallPattern lfInfo
@@ -79,18 +86,29 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
       defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
                    $ iconst jint (fromIntegral arity)
                   <> greturn jint
-    modClass <- getModClass
-    if | Just (arity, fts) <- mCallPattern -> do
-         withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
-           argLocs <- mapM newIdLoc args
-           loadContext <- getContextLoc
-           emit $ gload thisFt 0
-               <> loadContext
-               <> mkCallEntry loadContext False False argLocs
-               <> mkApFast arity thisClass (contextType:fts)
+    if | null fvs -> do
+         let argLocs = argLocsFrom False 1 args
+             argFts  = map locFt argLocs
+             callStaticMethod =
+                  invokestatic (mkMethodRef modClass closureName (contextType:argFts)
+                                 (ret closureType))
+               -- TODO: Make the return type fine-grained
                <> greturn closureType
-         withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
-           let argLocs = argLocsFrom 2 args
+         withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
+           loadContext <- getContextLoc
+           emit $ loadContext
+               <> mkCallEntry loadContext True False argLocs
+               <> callStaticMethod
+         case mCallPattern of
+           Just (arity, fts) ->
+             withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
+               let argLocs' = argLocsFrom True 2 args
+               loadContext <- getContextLoc
+               emit $ loadContext
+                   <> fold (map loadLoc argLocs')
+                   <> callStaticMethod
+           _ -> return ()
+         withModClass $ withMethod [Public, Static] closureName (contextType:argFts) (ret closureType) $ do
            loadContext <- getContextLoc
            case mFunRecIds of
              Just (n, funRecIds)
@@ -109,14 +127,45 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                label <- newLabel
                emit $ startLabel label
                withSelfLoop (id, label, argLocs) $ do
-                 mapM_ bindFV fvLocs
+                 mapM_ bindFV (fvLocs True)
+                 cgExpr body
+       | Just (arity, fts) <- mCallPattern -> do
+         withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
+           argLocs <- mapM newIdLoc args
+           loadContext <- getContextLoc
+           emit $ gload thisFt 0
+               <> loadContext
+               <> mkCallEntry loadContext False False argLocs
+               <> mkApFast arity thisClass (contextType:fts)
+               <> greturn closureType
+         withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
+           let argLocs = argLocsFrom True 2 args
+           loadContext <- getContextLoc
+           case mFunRecIds of
+             Just (n, funRecIds)
+               | Just (target, loadCode, allArgFts) <-
+                   funRecIdsInfo loadContext True argLocs id funRecIds ->
+               emit $ aconst_null closureType
+                   <> loadContext
+                   <> iconst jint (fromIntegral target)
+                   <> loadCode
+                   <> invokestatic (mkMethodRef modClass (mkRecBindingMethodName n)
+                                       ([closureType, contextType, jint] ++ allArgFts)
+                                       (ret closureType))
+                   <> greturn closureType
+             _ -> do
+               bindArgs $ zip args argLocs
+               label <- newLabel
+               emit $ startLabel label
+               withSelfLoop (id, label, argLocs) $ do
+                 mapM_ bindFV (fvLocs False)
                  cgExpr body
        | otherwise ->
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            loadContext <- getContextLoc
            case mFunRecIds of
              Just (n, funRecIds)
-               | let argLocs = argLocsFrom 2 args
+               | let argLocs = argLocsFrom False 2 args
                , Just (target, loadCode, allArgFts) <-
                    funRecIdsInfo loadContext False argLocs id funRecIds ->
                emit $ aconst_null closureType
@@ -134,7 +183,7 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                label <- newLabel
                emit $ startLabel label
                withSelfLoop (id, label, argLocs) $ do
-                 mapM_ bindFV fvLocs
+                 mapM_ bindFV (fvLocs False)
                  cgExpr body
 
   superClass <- getSuperClass

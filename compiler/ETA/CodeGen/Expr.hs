@@ -149,7 +149,7 @@ cgIdApp funId args = do
       traceCg (str "cgIdApp: DirectEntry")
       argFtCodes <- getRepFtCodes args
       loadContext <- getContextLoc
-      withContinuation $ directCall loadContext False nodeLoc arity argFtCodes
+      withContinuation $ directCall loadContext nodeLoc arity argFtCodes
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       codes <- getNonVoidArgCodes args
