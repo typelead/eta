@@ -21,6 +21,7 @@ import GHC.Base
 import GHC.Int
 import Java.Array
 import Java.Primitive
+import Java.Wrappers
 
 -- Start java.math.BigDecimal
 
@@ -190,3 +191,12 @@ foreign import java unsafe "@static @field java.math.RoundingMode.UNNECCESSARY" 
 foreign import java unsafe "@static @field java.math.RoundingMode.UP" rmUP :: RoundingMode
 
 -- End java.math.RoundingMode
+
+-- Start java.math.BigInteger
+
+data BigInteger = BigInteger @java.math.BigInteger
+  deriving Class
+
+type instance Inherits BigInteger = '[JNumber, Object]
+
+-- End java.math.BigInteger
