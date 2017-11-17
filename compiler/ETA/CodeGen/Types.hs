@@ -23,6 +23,7 @@ module ETA.CodeGen.Types
    locClass,
    mkRepLocDirect,
    mkLocDirect,
+   mkStaticLoc,
    newLocDirect,
    mkLocLocal,
    mkLocArg,
@@ -30,6 +31,7 @@ module ETA.CodeGen.Types
    enterMethod,
    evaluateMethod,
    loadLoc,
+   loadStaticMethod,
    storeLoc,
    locFt,
    isRec,
@@ -102,15 +104,15 @@ newLocDirect (NonVoid id) code =
   mkLocDirect (isGcPtrRep rep) (primRepFieldType rep, code)
   where rep = idPrimRep id
 
-mkLocArg :: NonVoid Id -> Int -> CgLoc
-mkLocArg (NonVoid id) n
-  | argFt /= ft = LocMask ft locLocal
+mkLocArg :: Bool -> NonVoid Id -> Int -> CgLoc
+mkLocArg mask (NonVoid id) n
+  | mask && argFt /= ft = LocMask ft locLocal
   | otherwise   = locLocal
   where rep       = idPrimRep id
         isClosure = isGcPtrRep rep
         argFt     = argRepFt $ toArgRep rep
         ft        = primRepFieldType rep
-        locLocal  = mkLocLocal isClosure argFt n
+        locLocal = mkLocLocal isClosure (if mask then argFt else ft) n
 
 mkRepLocDirect :: (PrimRep, Code) -> CgLoc
 mkRepLocDirect (rep, code) = LocDirect isClosure ft code
@@ -147,12 +149,18 @@ loadLoc :: CgLoc -> Code
 loadLoc (LocLocal _ ft n) = gload ft n
 loadLoc (LocMask ft loc) = loadLoc loc <> gconv (locFt loc) ft
 loadLoc (LocStatic _ft modClass clName) =
-  invokestatic $ mkMethodRef modClass (closure clName) [] (Just closureType)
+  invokestatic $ mkMethodRef modClass (closure clName) [] (ret closureType)
 loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
 loadLoc (LocDirect _ _ code) = code
 loadLoc loc = pprPanic "loadLoc" $ ppr loc
+
+loadStaticMethod :: CgLoc -> [FieldType] -> Maybe Code
+loadStaticMethod (LocStatic _ft modClass clName) fts =
+  Just $ invokestatic $ mkMethodRef modClass (closure clName) (contextType:fts)
+           (ret closureType)
+loadStaticMethod _loc _fts = Nothing
 
 locClass :: CgLoc -> Maybe Text
 locClass (LocStatic (ObjectType (IClassName cls)) _ _) = Just cls

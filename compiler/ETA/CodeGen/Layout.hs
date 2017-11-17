@@ -152,17 +152,21 @@ slowCall dflags loadContext fun argFtCodes
                          (mkApFast arity realCls (contextType:fts))
                          arity ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Code -> Bool -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-directCall loadContext slow fun arity argFtCodes
+directCall :: Code -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+directCall loadContext fun arity argFtCodes
+  | Just staticCode <- loadStaticMethod fun argFts
+  = directCall' loadContext True True stgClosure
+      staticCode arity ((P, Nothing, Nothing):argFtCodes)
   | arity' == arity =
     directCall' loadContext True True realCls (mkApFast arity' realCls (contextType:fts)) arity'
       ((P, Just ft, Just code):argFtCodes)
-  | otherwise = directCall' loadContext slow False realCls entryCode arity argFtCodes
+  | otherwise = directCall' loadContext False False realCls entryCode arity argFtCodes
   where (arity', fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
         code         = loadLoc fun
         ft           = locFt fun
         entryCode    = enterMethod loadContext fun
         realCls      = fromMaybe stgClosure $ locClass fun
+        argFts       = mapMaybe (\(_,ft,_) -> ft) $ take arity argFtCodes
 
 directCall' :: Code -> Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
 directCall' loadContext slow directLoad realCls entryCode arity args =
@@ -265,9 +269,9 @@ withPrimContinuation resultType retCode = do
         reps = getUnboxedResultReps resultType
         numResults = length reps
 
-argLocsFrom :: Int -> [NonVoid Id] -> [CgLoc]
-argLocsFrom startLocal args =
+argLocsFrom :: Bool -> Int -> [NonVoid Id] -> [CgLoc]
+argLocsFrom mask startLocal args =
   reverse $ snd $ foldl' (\(!n, rest) arg ->
-                            let argLoc = mkLocArg arg n
+                            let argLoc = mkLocArg mask arg n
                             in (n + fieldSize (locFt argLoc), argLoc : rest))
                          (startLocal, []) args

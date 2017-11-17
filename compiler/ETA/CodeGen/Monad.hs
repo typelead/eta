@@ -23,6 +23,7 @@ module ETA.CodeGen.Monad
    getSequel,
    getSelfLoop,
    setClass,
+   withModClass,
    setSuperClass,
    getSuperClass,
    setClosureClass,
@@ -45,7 +46,7 @@ module ETA.CodeGen.Monad
    setPreserveCaseOfCase,
    printBindings,
    defineMethod,
-   defineMethods,
+   defineStaticMethod,
    defineField,
    defineFields,
    getCgIdInfo,
@@ -101,25 +102,26 @@ data CgEnv =
         , cgSelfLoop   :: !(Maybe SelfLoopInfo) }
 
 data CgState =
-  CgState { cgBindings         :: !CgBindings
+  CgState { cgBindings            :: !CgBindings
           -- Accumulating
-          , cgCompiledClosures :: ![ClassFile]
+          , cgCompiledClosures    :: [ClassFile]
           , cgRecursiveInitNumber :: Int
+          , cgStaticMethodDefs    :: [MethodDef]
           -- Top-level definitions
-          , cgAccessFlags    :: [AccessFlag]
-          , cgMethodDefs     :: ![MethodDef]
-          , cgFieldDefs      :: ![FieldDef]
-          , cgClassName      :: !Text
-          , cgSuperClassName :: !(Maybe Text)
-          , cgSourceFilePath :: !(Maybe FilePath)
+          , cgAccessFlags         :: ![AccessFlag]
+          , cgMethodDefs          :: ![MethodDef]
+          , cgFieldDefs           :: ![FieldDef]
+          , cgClassName           :: !Text
+          , cgSuperClassName      :: !(Maybe Text)
+          , cgSourceFilePath      :: !(Maybe FilePath)
           -- Current method
-          , cgCode           :: !Code
-          , cgContextLoc     :: Code
-          , cgScopedBindings :: CgBindings
-          , cgAllowScoping   :: Bool
-          , cgPreserveCaseOfCase :: Bool
-          , cgNextLocal      :: Int
-          , cgNextLabel      :: Int }
+          , cgCode                :: !Code
+          , cgContextLoc          :: Code
+          , cgScopedBindings      :: CgBindings
+          , cgAllowScoping        :: Bool
+          , cgPreserveCaseOfCase  :: Bool
+          , cgNextLocal           :: Int
+          , cgNextLabel           :: Int }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -185,6 +187,7 @@ initCg dflags mod modLoc =
            , cgRecursiveInitNumber = 0
            , cgSuperClassName      = Nothing
            , cgScopedBindings      = emptyVarEnv
+           , cgStaticMethodDefs    = []
            , cgAllowScoping        = True
            , cgPreserveCaseOfCase  = False
            , cgNextLocal           = 0
@@ -332,9 +335,9 @@ defineMethod :: MethodDef -> CodeGen ()
 defineMethod md = modify $ \s@CgState{..} ->
   s { cgMethodDefs = md : cgMethodDefs }
 
-defineMethods :: [MethodDef] -> CodeGen ()
-defineMethods mds = modify $ \s@CgState{..} ->
-  s { cgMethodDefs = mds ++ cgMethodDefs }
+defineStaticMethod :: MethodDef -> CodeGen ()
+defineStaticMethod md = modify $ \s@CgState{..} ->
+  s { cgStaticMethodDefs = md : cgStaticMethodDefs }
 
 defineField :: FieldDef -> CodeGen ()
 defineField md = modify $ \s@CgState{..} ->
@@ -387,11 +390,18 @@ getSuperClass = fmap (expectJust "getSuperClass") . gets $ cgSuperClassName
 setClosureClass :: Text -> CodeGen ()
 setClosureClass clName = do
   modClass <- getModClass
-  let qClName = qualifiedName modClass clName
-  modify $ \s -> s { cgClassName = qClName }
+  setClass (qualifiedName modClass clName)
 
 setClass :: Text -> CodeGen ()
 setClass clName = modify $ \s -> s { cgClassName = clName }
+
+withModClass :: CodeGen a -> CodeGen a
+withModClass codeGen = do
+  cls' <- getClass
+  getModClass >>= setClass
+  r <- codeGen
+  setClass cls'
+  return r
 
 -- NOTE: Changes made to class generation state are forgotten after
 --       the body is executed
@@ -441,7 +451,7 @@ runCodeGen mMFs env state codeGenAction = do
           let (mds, fds) = case mMFs of
                 Just (mds, fds) -> (mds, fds)
                 Nothing -> ([], [])
-          classFromCgState mds fds state'
+          classFromCgState (mds ++ cgStaticMethodDefs) fds state'
 
   return (compiledModuleClass : cgCompiledClosures)
 
@@ -463,6 +473,7 @@ withMethod accessFlags name fts rt body = do
   scopedBindings <- getScopedBindings
   scoping        <- getAllowScoping
   preserve       <- getPreserveCaseOfCase
+  contextLoc'    <- getContextLoc
   setMethodCode mempty
   setNextLocal (staticOffset + sum (map fieldSize fts))
   setContextLoc contextLoc
@@ -471,16 +482,21 @@ withMethod accessFlags name fts rt body = do
   setAllowScoping True
   setPreserveCaseOfCase False
   body
-  clsName <- getClass
-  newCode <- getMethodCode
+  modClass <- getModClass
+  clsName  <- getClass
+  newCode  <- getMethodCode
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
-  defineMethod methodDef
+      defineMeth
+        | modClass == clsName = defineStaticMethod
+        | otherwise           = defineMethod
+  defineMeth methodDef
   setMethodCode oldCode
   setNextLocal oldNextLocal
   setNextLabel oldNextLabel
   setScopedBindings scopedBindings
   setAllowScoping scoping
   setPreserveCaseOfCase preserve
+  setContextLoc contextLoc'
   where staticOffset
           | Static `elem` accessFlags = 0
           | otherwise                 = 1
