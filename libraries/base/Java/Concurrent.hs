@@ -85,3 +85,10 @@ foreign import java unsafe "@static @field java.util.concurrent.TimeUnit.SECONDS
   timeUnitSECONDS :: TimeUnit
 
 -- End java.util.concurrent.TimeUnit
+
+-- Start java.util.concurrent.ExecutorService
+
+data ExecutorService = ExecutorService @java.util.concurrent.ExecutorService
+  deriving Class
+
+-- End java.util.concurrent.ExecutorService
