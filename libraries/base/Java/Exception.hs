@@ -136,7 +136,7 @@ showException e = s#
 -- Start java.lang.ReflectiveOperationException
 
 data ReflectiveOperationException = ReflectiveOperationException @java.lang.ReflectiveOperationException
-  deriving Class
+  deriving (Class, Typeable)
 
 type instance Inherits ReflectiveOperationException = '[JException]
 
@@ -145,7 +145,7 @@ type instance Inherits ReflectiveOperationException = '[JException]
 -- Start java.lang.RuntimeException
 
 data RuntimeException = RuntimeException @java.lang.RuntimeException
-  deriving Class
+  deriving (Class, Typeable)
 
 type instance Inherits RuntimeException = '[JException]
 
