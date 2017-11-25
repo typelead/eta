@@ -530,7 +530,7 @@ data WarningFlag =
    deriving (Eq, Show, Enum)
 
 data Language = Haskell98 | Haskell2010
-   deriving Enum
+   deriving (Eq, Enum, Show)
 
 -- | The various Safe Haskell modes
 data SafeHaskellMode
