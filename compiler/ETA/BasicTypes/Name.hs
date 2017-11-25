@@ -68,6 +68,7 @@ module ETA.BasicTypes.Name (
         getSrcLoc, getSrcSpan, getOccString,
 
         pprInfixName, pprPrefixName, pprModulePrefix,
+        nameStableString,
 
         -- Re-export the OccName stuff
         module ETA.BasicTypes.OccName
@@ -568,6 +569,20 @@ pprNameDefnLoc name
          -> ptext (sLit "at") <+> ftext s
          | otherwise
          -> ptext (sLit "in") <+> quotes (ppr (nameModule name))
+
+-- | Get a string representation of a 'Name' that's unique and stable
+-- across recompilations. Used for deterministic generation of binds for
+-- derived instances.
+-- eg. "$aeson_70dylHtv1FFGeai1IoxcQr$Data.Aeson.Types.Internal$String"
+nameStableString :: Name -> String
+nameStableString Name{..} =
+  nameSortStableString n_sort ++ "$" ++ occNameString n_occ
+
+nameSortStableString :: NameSort -> String
+nameSortStableString System = "$_sys"
+nameSortStableString Internal = "$_in"
+nameSortStableString (External mod) = moduleStableString mod
+nameSortStableString (WiredIn mod _ _) = moduleStableString mod
 
 {-
 ************************************************************************

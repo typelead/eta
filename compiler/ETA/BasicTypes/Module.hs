@@ -20,7 +20,7 @@ module ETA.BasicTypes.Module
         moduleNameFS,
         moduleNameString,
         moduleNameSlashes, moduleNameColons,
-        -- TODO: Implement moduleStableString,
+        moduleStableString,
         moduleFreeHoles,
         moduleIsDefinite,
         mkModuleName,
@@ -362,13 +362,18 @@ moduleNameFS (ModuleName mod) = mod
 moduleNameString :: ModuleName -> String
 moduleNameString (ModuleName mod) = unpackFS mod
 
+-- | Get a string representation of a 'Module' that's unique and stable
+-- across recompilations.
+-- eg. "$aeson_70dylHtv1FFGeai1IoxcQr$Data.Aeson.Types.Internal"
+moduleStableString :: Module -> String
+moduleStableString Module{..} =
+  "$" ++ unitIdString moduleUnitId ++ "$" ++ moduleNameString moduleName
+
 mkModuleName :: String -> ModuleName
 mkModuleName s = ModuleName (mkFastString s)
 
 mkModuleNameFS :: FastString -> ModuleName
 mkModuleNameFS s = ModuleName s
-
--- TODO: Port moduleStableString (After good debugging tools are in) -RM
 
 -- |Returns the string version of the module name, with dots replaced by slashes.
 --
