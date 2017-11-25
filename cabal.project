@@ -1,7 +1,6 @@
 with-compiler: ghc-7.10.3
 packages: .
   codec-jvm/
-  utils/eta-pkgdb/
   utils/eta-pkg/
   etlas/etlas/
   etlas/etlas-cabal/
