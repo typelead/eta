@@ -59,7 +59,7 @@ module ETA.HsSyn.HsDecls (
   noForeignImportCoercionYet, noForeignExportCoercionYet, isForeignExportSuper,
   CImportSpec(..),
   -- ** Data-constructor declarations
-  ConDecl(..), LConDecl, ResType(..),
+  ConDecl(..), getConNames, LConDecl, ResType(..),
   HsConDeclDetails, hsConDeclArgTys,
   -- ** Document comments
   DocDecl(..), LDocDecl, docDeclDoc,
@@ -911,6 +911,9 @@ data ConDecl name
         -- need to report decprecated use
     } deriving (Typeable)
 deriving instance (DataId name) => Data (ConDecl name)
+
+getConNames :: ConDecl name -> [Located name]
+getConNames ConDecl { con_names = names } = names
 
 type HsConDeclDetails name
    = HsConDetails (LBangType name) (Located [LConDeclField name])
