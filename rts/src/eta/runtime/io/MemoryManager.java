@@ -829,7 +829,8 @@ public class MemoryManager {
     }
 
     /** Allocating constant strings **/
-    public static IdentityHashMap<String, Long> loadedStrings = new IdentityHashMap<String, Long>();
+    public static ConcurrentHashMap<String, Long> loadedStrings
+        = new ConcurrentHashMap<String, Long>();
 
     public static long loadString(String s, String charset) throws UnsupportedEncodingException {
         Long address = loadedStrings.get(s);
@@ -843,13 +844,43 @@ public class MemoryManager {
         return address;
     }
 
+    public static long loadStrings(String[] ss, String charset) throws UnsupportedEncodingException {
+        Long address = loadedStrings.get(ss[0]);
+        if (address == null) {
+            byte[][] bytess = new byte[ss.length][];
+            int size = 0;
+            for (int i = 0; i < ss.length; i++) {
+                byte[] ssBytes = ss[i].getBytes(charset);
+                size += ssBytes.length;
+                bytess[i] = ssBytes;
+            }
+            address         = allocateBuffer(size, false);
+            ByteBuffer dest = getBoundedBuffer(address);
+            for (int i = 0; i < ss.length; i++) {
+                dest.put(bytess[i]);
+            }
+            loadedStrings.put(ss[0], address);
+        }
+        return address;
+    }
+
     public static long loadStringLatin1(String s) throws UnsupportedEncodingException
     {
         return loadString(s, "ISO-8859-1");
     }
 
+    public static long loadStringsLatin1(String[] ss) throws UnsupportedEncodingException
+    {
+        return loadStrings(ss, "ISO-8859-1");
+    }
+
     public static long loadStringUTF8(String s) throws UnsupportedEncodingException
     {
         return loadString(s, "UTF-8");
+    }
+
+    public static long loadStringsUTF8(String[] ss) throws UnsupportedEncodingException
+    {
+        return loadStrings(ss, "UTF-8");
     }
 }
