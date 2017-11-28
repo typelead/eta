@@ -9,18 +9,22 @@ import ETA.BasicTypes.DataCon (DataCon)
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.Literal
 import Codec.JVM
+import Codec.JVM.Encoding
 import Data.Char (ord)
 import Control.Arrow(first)
 import ETA.CodeGen.Name
 import ETA.CodeGen.Rts
 import ETA.Debug
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8, decodeLatin1)
+import Data.Int
 import Data.Monoid
 import Data.Maybe (fromMaybe)
 import Data.Foldable
 import Control.Exception
 import System.IO.Unsafe
+import qualified Data.ByteString.Lazy as BL
 
 cgLit :: Literal -> (FieldType, Code)
 cgLit (MachChar c)          = (jint, iconst jint . fromIntegral $ ord c)
@@ -34,14 +38,44 @@ cgLit (MachDouble r)        = (jdouble, dconst $ fromRational r)
 -- TODO: Remove this literal variant?
 cgLit MachNullAddr          = (jlong, lconst 0)
 cgLit MachNull              = (jobject, aconst_null jobject)
-cgLit (MachStr s)           = (jlong, sconst string <> loadString )
+cgLit (MachStr s)           = (jlong, genCode)
   where (string, isLatin1) =
           unsafeDupablePerformIO $
             catch (fmap (,False) $ evaluate $ decodeUtf8 s)
                   (\(_ :: SomeException) -> fmap (,True) $ evaluate $ decodeLatin1 s)
-        loadString
-          | isLatin1  = loadStringLatin1
-          | otherwise = loadStringUTF8
+
+        strings :: [Text]
+        strings
+          | byteLen > 65535
+          = splitIntoChunks byteLen string
+          | otherwise = [string]
+          where byteLen = BL.length (encodeModifiedUtf8 string)
+
+        splitIntoChunks :: Int64 -> Text -> [Text]
+        splitIntoChunks byteLen string = go string
+          where charLen       = T.length string
+                -- Conservative estimate
+                bytesPerChar  = ceiling ((fromIntegral byteLen :: Double) / fromIntegral charLen) :: Int
+                chunkSize     = 65535 `div` bytesPerChar
+                go string
+                  | T.null string = []
+                  | otherwise     = chunk : go rest
+                  where (chunk, rest) = T.splitAt chunkSize string
+
+        genCode
+          | numStrings > 1 =
+               iconst jint (fromIntegral numStrings)
+            <> new (jarray jstring)
+            <> fold (map (\(i, str) -> dup (jarray jstring)
+                                    <> iconst jint i
+                                    <> sconst str
+                                    <> gastore jstring) (zip [0..] strings))
+            <> loadString True
+          | otherwise      = sconst string <> loadString False
+          where numStrings = length strings
+        loadString arrayForm
+          | isLatin1  = loadStringLatin1 arrayForm
+          | otherwise = loadStringUTF8 arrayForm
 
 -- TODO: Implement MachLabel
 cgLit MachLabel {}          = error "cgLit: MachLabel"
