@@ -32,7 +32,7 @@ Overview
 ^^^^^^^^
 
 The layer that interacts with Java in Eta is called the Foreign Function Interface
-(FFI). This layer will allow you to import a Java method as a Eta function and
+(FFI). This layer will allow you to import a Java method as an Eta function and
 export a Eta function as a Java method. It automatically handles the intermediate
 conversions between Java types and Eta types, so all you have to worry about is the
 right type signature.
@@ -46,13 +46,12 @@ start by introducing them.
 Unboxed & Primitive Types
 """""""""""""""""""""""""
 
-Unboxed types are those types which must have a well-defined value and hence cannot
-have values that are suspended expressions (thunks). These are typically raw integers,
-floats, and objects at the JVM level. Moreover, these types can be thought of as
-primitive and cannot be defined using the Eta language and hence need to be given
-special support by the compiler.
+Unboxed types are primitive types which must have values that are fully evaluated and
+cannot have values that are suspended expressions (thunks) like normal types do.
+Since they are primitives, they cannot be defined using the Eta language and need to
+be given special support by the compiler.
 
-They tend to be suffixed with a ``#`` and require the use of ``MagicHash`` language
+They suffixed with a ``#`` and require the use of ``MagicHash`` language
 extension in order to be recognized in source code. Primitive types have a special
 representation at the JVM level, shown below.
 
@@ -160,55 +159,48 @@ Primitive Types Reference
 | ``ThreadId``    | ``ThreadId#``          | eta.runtime.stg.TSO         |                                             |
 +-----------------+------------------------+--------------------------------+---------------------------------------------+
 
-Declaring Tag Types
-"""""""""""""""""""
+Declaring Java Wrapper Types
+""""""""""""""""""""""""""""
 
-In Eta, you regularly have to declare tag types. Tag types represent Java objects of a
-given class in Eta and are typically wrappers for raw Java objects.
+In Eta, you declare a JWT (Java Wrapper Type) in order to create a link between an Eta
+data type and a Java class or interface. JWTs can be though of as wrappers over raw
+Java objects.
 
 .. code::
 
-   data {-# CLASS "[class-name-here]" #-} P = P (Object# P)
+   data P a b c ... = P (@[class-name-here] a b c ...)
+     deriving Class
 
 This is the generic format for declaring a tag type where:
 
-- ``[class-name-here]`` is the name of a the class the tag type represents. For
-  example, it can be ``java.lang.String``.
 - ``P`` is the Eta name you would use to refer to it. Typically, ``P`` is the
   unqualified class name.
+- ``a b c ...``` are the type variables that correspond to the generic parameters
+  of the underlying Java class. Note that type variables in Eta *must* start with
+  a lowercase letter.
+- ``[class-name-here]`` is the name of a the class the tag type represents. For
+  example, it can be ``java.lang.String``.
 
 Example::
 
-  data {-# CLASS "java.io.PrintStream" #-} PrintStream =
-    PrintStream (Object# PrintStream)
+  data PrintStream = PrintStream (@java.io.PrintStream)
+    deriving Class
 
-In order to tell Eta about it's parent/child relationships for use in the strongly
-typed usages of the FFI, a ``Class`` typeclass instance and a ``Super`` type family
-declaration must be defined. The ``Class`` typeclass contains methods that the FFI
-internally uses to get the underlying raw Java object from the tag type in the cases
-where one does polymorphic FFI imports. The ``Super`` type family defines the direct
-parent relationship of the class and that will be extended into an entire class
-hierarchy within Eta using the laws defined for the ``Extends`` typeclass. The
-``Extends a b`` typeclass is a multi-parameter typeclass that stores a relationship
-that ``a`` is descendent of ``b``.
+In order to tell Eta about the JWT's parent/child relationships, a ``Class`` typeclass
+instance and a ``Inherits`` type family declaration must be defined. A ``Class``
+instance is obtained with the `deriving` clause above.
 
-.. code::
-
-   {-# LANGUAGE TypeFamilies #-}
-   class Class c where
-       obj :: Object# c -> c
-       unobj :: c -> Object# c
-
-   type family Super (a :: *) :: *
+An example of declaring an instance of the ``Inherits`` type family is shown below:
 
 Example::
 
   {-# LANGUAGE TypeFamilies #-}
-  class Class PrintStream where
-      obj = PrintStream
-      unobj (PrintStream o) =  o
 
-  type instance Super PrintStream = FilterOutputStream
+  type instance Inherits PrintStream = '[FilterOutputStream]
+
+The first element in the type-level list should be the parent class and the remaining
+elements can be the interfaces it implements. Note that the ``TypeFamilies`` extension
+must be enabled in order to declare the instance.
 
 Java Monad
 ^^^^^^^^^^^
@@ -251,26 +243,26 @@ Where:
 
 The following example::
 
-  {-# LANGUAGE MagicHash #-}
-
   import Java
 
-  data {-# CLASS "mypackage.Export" #-} Export = Export (Object# Export)
+  data Export = Export (@mypackage.Export)
 
   foreign export java sayHello :: JString -> Java Export JString
 
-  sayHello n = return . toJString $ "Hello, " ++ unpackCString n ++ "!"
+  sayHello n = return . toJava $ "Hello, " ++ fromJava n ++ "!"
 
 And Java class that is generated:
 
 .. code-block:: java
 
-    package hello;
+    package mypackage;
 
     public class Export {
         public Export() {}
 
-        public String sayHello(String var1) {}
+        public String sayHello(String n) {
+          // Code to invoke the Eta runtime system.
+        }
     }
 
 Examples
