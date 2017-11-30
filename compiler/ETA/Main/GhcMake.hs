@@ -442,9 +442,9 @@ guessOutputFile = modifySession $ \env ->
             then throwGhcException . UsageError $
                  "default output name would overwrite the input file; " ++
                  "must specify -o explicitly"
-            else 
-                let (path,name'')= splitFileName  name' 
-                in Just (path  ++"Run" ++ name'')
+            else
+                let (path,name'') = splitFileName  name'
+                in Just (path ++ "Run" ++ name'')
     in
     case outputFile dflags of
         Just _ -> env

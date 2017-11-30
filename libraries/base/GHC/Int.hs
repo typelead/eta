@@ -44,7 +44,7 @@ import Data.Typeable
 -- Int8 is represented in the same way as Int. Operations may assume
 -- and must ensure that it holds only values from its logical range.
 
-data {-# CTYPE "HsInt8" #-} Int8 = I8# Int# deriving (Eq, Ord, Typeable)
+data Int8 = I8# Int# deriving (Eq, Ord, Typeable)
 -- ^ 8-bit signed integer type
 
 instance Show Int8 where
@@ -205,7 +205,7 @@ instance FiniteBits Int8 where
 -- Int16 is represented in the same way as Int. Operations may assume
 -- and must ensure that it holds only values from its logical range.
 
-data {-# CTYPE "HsInt16" #-} Int16 = I16# Int# deriving (Eq, Ord, Typeable)
+data Int16 = I16# Int# deriving (Eq, Ord, Typeable)
 -- ^ 16-bit signed integer type
 
 instance Show Int16 where
@@ -366,7 +366,7 @@ instance FiniteBits Int16 where
 ------------------------------------------------------------------------
 
 -- Int32 is represented in the same way as Int.
-data {-# CTYPE "HsInt32" #-} Int32 = I32# Int# deriving (Eq, Ord, Typeable)
+data Int32 = I32# Int# deriving (Eq, Ord, Typeable)
 -- ^ 32-bit signed integer type
 
 instance Show Int32 where
@@ -534,7 +534,7 @@ instance Ix Int32 where
 -- type Int64
 ------------------------------------------------------------------------
 
-data {-# CTYPE "HsInt64" #-} Int64 = I64# Int64# deriving( Typeable )
+data Int64 = I64# Int64# deriving( Typeable )
 -- ^ 64-bit signed integer type
 
 instance Eq Int64 where

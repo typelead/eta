@@ -47,7 +47,7 @@ which can treat it as an opaque reference to a Haskell value.
 A value of type @StablePtr a@ is a stable pointer to a Haskell
 expression of type @a@.
 -}
-data {-# CTYPE "HsStablePtr" #-} StablePtr a = StablePtr (StablePtr# a)
+data StablePtr a = StablePtr (StablePtr# a)
   deriving( Typeable )
 
 -- |

@@ -51,7 +51,8 @@ import ETA.Utils.JAR
 import ETA.Util
 import Codec.JVM
 
--- import ETA.Iface.MkIface
+import ETA.Iface.IfaceSyn
+import ETA.Prelude.ForeignCall
 import ETA.Main.PipelineMonad
 import ETA.Main.Packages
 import ETA.Main.HeaderInfo
@@ -69,6 +70,7 @@ import ETA.Utils.Util
 import ETA.Utils.StringBuffer     ( hGetStringBuffer )
 import ETA.BasicTypes.BasicTypes       ( SuccessFlag(..) )
 -- import ETA.Utils.Maybes           ( expectJust )
+import ETA.BasicTypes.OccName
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.FastString
 -- import LlvmCodeGen      ( llvmFixupAsm )
@@ -378,6 +380,7 @@ link _ dflags batchAttemptLinking hpt
                               . dep_pkgs
                               . mi_deps
                               . hm_iface ) homeModInfos
+          ffiMappings = pkgFFIMappings homeModInfos
           linkables = map (expectJust "link" . hm_linkable) homeModInfos
       debugTraceMsg dflags 3 (text "link: linkables are ..." $$ vcat (map ppr linkables))
       if isNoLink (ghcLink dflags) then do
@@ -397,6 +400,7 @@ link _ dflags batchAttemptLinking hpt
         else do
           compilationProgressMsg dflags ("Linking " ++ jarFile ++ " ...")
           linkGeneric dflags jarFiles pkgDeps
+          genFFIMapFile dflags ffiMappings
           debugTraceMsg dflags 3 (text "link: done")
           return Succeeded
   | otherwise
@@ -404,6 +408,40 @@ link _ dflags batchAttemptLinking hpt
          (text "link(batch): upsweep (partially) failed OR" $$
           text "   Main.main not exported; not linking.")
        return Succeeded
+
+data FFIMapping =
+  FFIMapping {
+    fmFCQN     :: String,
+    fmDataName :: String,
+    fmModule   :: String
+  }
+
+-- Generate FFI Mapping File
+pkgFFIMappings :: [HomeModInfo] -> [FFIMapping]
+pkgFFIMappings homeModInfos = concatMap modFFIMappings homeModInfos
+  where modFFIMappings hm = catMaybes $ map (getJWTMapping modName) ifaceDecls
+          where iface      = hm_iface hm
+                modName    = moduleNameString . moduleName $ mi_module iface
+                ifaceDecls = map snd $ mi_decls iface
+
+getJWTMapping :: String -> IfaceDecl -> Maybe FFIMapping
+getJWTMapping modName (IfaceData { ifName, ifCType })
+  | Just (CType _ _ fs) <- ifCType
+  = Just $ FFIMapping {
+      fmFCQN     = unpackFS fs,
+      fmDataName = occNameString ifName,
+      fmModule   = modName
+    }
+getJWTMapping _ _ = Nothing
+
+genFFIMapFile :: DynFlags -> [FFIMapping] -> IO ()
+genFFIMapFile dflags ffiMappings =
+  unless (null contents) $
+    writeFile outputFile contents
+  where serializeMapping FFIMapping { fmFCQN, fmDataName, fmModule } =
+          fmFCQN ++ "," ++ fmDataName ++ "," ++ fmModule
+        contents = unlines $ map serializeMapping ffiMappings
+        outputFile = ffiMapFileName dflags
 
 -- -----------------------------------------------------------------------------
 -- Compile files in one-shot mode.
@@ -1269,8 +1307,15 @@ jarFileName :: DynFlags -> FilePath
 jarFileName dflags
   | Just s <- outputFile dflags = s <?.> "jar"
   | otherwise = "Run.jar"
-  where s <?.> ext | null (takeExtension s) = s <.> ext
-                   | otherwise              = s
+
+ffiMapFileName :: DynFlags -> FilePath
+ffiMapFileName dflags
+  | Just s <- outputFile dflags = s -<.> "ffimap"
+  | otherwise = "Run.ffimap"
+
+(<?.>) :: FilePath -> String -> FilePath
+s <?.> ext | null (takeExtension s) = s <.> ext
+           | otherwise              = s
 
 -- etaFrontend :: ModSummary -> Hsc TcGblEnv
 -- etaFrontend mod_summary = do

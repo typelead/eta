@@ -46,7 +46,7 @@ import GHC.Show
 -- Word8 is represented in the same way as Word. Operations may assume
 -- and must ensure that it holds only values from its logical range.
 
-data {-# CTYPE "HsWord8" #-} Word8 = W8# Word# deriving (Eq, Ord)
+data Word8 = W8# Word# deriving (Eq, Ord)
 -- ^ 8-bit unsigned integer type
 
 instance Show Word8 where
@@ -195,7 +195,7 @@ instance FiniteBits Word8 where
 -- Word16 is represented in the same way as Word. Operations may assume
 -- and must ensure that it holds only values from its logical range.
 
-data {-# CTYPE "HsWord16" #-} Word16 = W16# Word# deriving (Eq, Ord)
+data Word16 = W16# Word# deriving (Eq, Ord)
 -- ^ 16-bit unsigned integer type
 
 instance Show Word16 where
@@ -349,7 +349,7 @@ byteSwap16 (W16# w#) = W16# (narrow16Word# (byteSwap16# w#))
 ------------------------------------------------------------------------
 
 -- Word32 is represented in the same way as Word.
-data {-# CTYPE "HsWord32" #-} Word32 = W32# Word# deriving (Eq, Ord)
+data Word32 = W32# Word# deriving (Eq, Ord)
 -- ^ 32-bit unsigned integer type
 
 instance Num Word32 where
@@ -481,7 +481,7 @@ byteSwap32 (W32# w#) = W32# (narrow32Word# (byteSwap32# w#))
 -- type Word64
 ------------------------------------------------------------------------
 
-data {-# CTYPE "HsWord64" #-} Word64 = W64# Word64#
+data Word64 = W64# Word64#
 -- ^ 64-bit unsigned integer type
 
 instance Eq Word64 where

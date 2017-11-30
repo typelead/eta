@@ -68,11 +68,11 @@ foreign import java unsafe "@static eta.base.Utils.getStdOut" _stdout :: Channel
 -- Types
 
 type CFLock     = ()
-data {-# CTYPE "struct group" #-} CGroup
+data CGroup
 type CLconv     = ()
 type CPasswd    = ()
 type CSigaction = ()
-data {-# CTYPE "sigset_t" #-} CSigset
+data CSigset
 type CStat      = ()
 type CTermios   = ()
 type CTm        = ()
