@@ -28,6 +28,7 @@ module GHC.IO.FD (
         openFile, mkFD, release,
         setNonBlockingMode,
         readRawBufferPtr, readRawBufferPtrNoBlock, writeRawBufferPtr,
+        fdPath, fdChannel,
         stdin, stdout, stderr,
         rw_flags
     ) where
