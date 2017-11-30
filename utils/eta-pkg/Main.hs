@@ -7,6 +7,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE EmptyCase #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -----------------------------------------------------------------------------
@@ -37,7 +38,6 @@ import Distribution.Simple.Utils (fromUTF8, toUTF8, writeUTF8File, readUTF8File)
 import qualified Data.Version as Version
 import System.FilePath as FilePath
 import qualified System.FilePath.Posix as FilePath.Posix
-import System.Process
 import System.Directory ( getAppUserDataDirectory, createDirectoryIfMissing,
                           getModificationTime )
 import Text.Printf
@@ -51,7 +51,7 @@ import Data.Maybe
 import Data.Char ( isSpace, toLower )
 import Control.Monad
 import System.Directory ( doesDirectoryExist, getDirectoryContents,
-                          doesFileExist, renameFile, removeFile,
+                          doesFileExist, removeFile,
                           getCurrentDirectory )
 import System.Exit ( exitWith, ExitCode(..) )
 import System.Environment ( getArgs, getProgName, getEnv )
@@ -59,7 +59,6 @@ import System.IO
 import System.IO.Error
 import GHC.IO.Exception (IOErrorType(InappropriateType))
 import Data.List
-import Control.Concurrent
 import qualified Data.Foldable as F
 import qualified Data.Traversable as F
 import qualified Data.Set as Set
@@ -737,6 +736,7 @@ getPkgDatabases verbosity mode use_user use_cache expand_vars my_flags = do
                           case packageDbLock db of
                             EtaPkg.DbOpenReadWrite lock ->
                               EtaPkg.unlockPackageDb lock
+                            _ -> case undefined of {}
                           return (ro_db, Nothing)
             | db_path <- final_stack ]
 
@@ -1251,6 +1251,7 @@ convertPackageInfoToCacheFormat pkg =
        EtaPkg.trusted            = trusted pkg
     }
   where convertExposed (ExposedModule n reexport) = (n, reexport)
+
 
 instance EtaPkg.BinaryStringRep ComponentId where
   fromStringRep = mkComponentId . fromStringRep
@@ -1838,7 +1839,7 @@ checkDuplicateDepends deps
        dups = [ p | (p:_:_) <- group (sort deps) ]
 
 checkHSLib :: Verbosity -> [String] -> String -> Validate ()
-checkHSLib verbosity dirs lib = do
+checkHSLib _verbosity dirs lib = do
   b <- liftIO $ doesFileExistOnPath filenames dirs
   when (not b) $
     verror ForceFiles ("cannot find any of " ++ show filenames ++

@@ -1,29 +1,30 @@
-Name: eta-pkg
+name: eta-pkg
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
 -- @BUILD_NUMBER_INTERNAL@
-Version: 0.0.9.7
-Copyright: XXX
-License: BSD3
+version: 0.0.9.7
+copyright: XXX
+license: BSD3
 -- XXX License-File: LICENSE
-Author: XXX
-Maintainer: typeleadhq@gmail.com
-Synopsis: A utility for querying and managing the Eta package database.
-Description:
+author: XXX
+maintainer: typeleadhq@gmail.com
+synopsis: A utility for querying and managing the Eta package database.
+description:
     Eta maintains a database of known packages. This tools allows tools
     and users to query and modify this database. See @eta-pkg --help@ for
     usage information.
-Category: Development
+category: Development
 build-type: Simple
 cabal-version: >=1.10
 
-Executable eta-pkg
-    Default-Language: Haskell2010
-    Main-Is: Main.hs
+executable eta-pkg
+    default-language: Haskell2010
+    main-is: Main.hs
 
-    Build-Depends: base       >= 4   && < 5,
+    ghc-options: -Wall -fno-warn-name-shadowing -Werror
+
+    build-depends: base       >= 4   && < 5,
                    directory  >= 1   && < 1.4,
-                   process    >= 1   && < 1.5,
                    containers,
                    filepath,
                    etlas-cabal,
