@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 -----------------------------------------------------------------------------
@@ -42,7 +43,15 @@ import GHC.Weak
 -- called in the program).  It catches otherwise uncaught exceptions,
 -- and also flushes stdout\/stderr before exiting.
 runMainIO :: IO a -> IO a
-runMainIO main = main
+runMainIO main =
+  catch main (\(e :: ExitCode) -> do
+                 case e of
+                   ExitSuccess   -> exit 0
+                   ExitFailure n -> exit n
+                 return (error "runMainIO: Exception raised."))
+
+foreign import java unsafe "@static java.lang.System.exit"
+  exit :: Int -> IO ()
 
 -- | 'runIO' is wrapped around every @foreign export@ and @foreign
 -- import \"wrapper\"@ to mop up any uncaught exceptions.  Thus, the
