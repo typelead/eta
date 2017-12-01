@@ -160,6 +160,7 @@ module System.IO (
     -- * Temporary files
 
     openTempFile,
+    openTempFile',
     openBinaryTempFile,
     openTempFileWithDefaultPermissions,
     openBinaryTempFileWithDefaultPermissions,
