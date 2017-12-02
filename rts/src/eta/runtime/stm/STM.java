@@ -196,8 +196,10 @@ public class STM {
             } while (true);
         } catch (java.lang.Exception e) {
             boolean handle = true;
-            if ((e instanceof EtaAsyncException) || (e instanceof RetryException)) {
-                handle = false;
+            if (e instanceof StgException) {
+                if (!(e instanceof EtaException)) {
+                    handle = false;
+                }
             }
             trec  = tso.trec;
             outer = trec.enclosingTrec;
@@ -261,8 +263,7 @@ public class STM {
                         continue;
                     }
                 } else {
-                    if (!(e instanceof EtaException) &&
-                        !(e instanceof EtaAsyncException)) {
+                    if (!(e instanceof StgException)) {
                         e = Exception.toEtaException(tso, e);
                     }
                     tso.trec = outer;

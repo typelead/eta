@@ -135,6 +135,8 @@ public class Exception {
                 exception = ((EtaAsyncException) e).exception;
             } else if (e instanceof EtaException) {
                 exception = ((EtaException) e).exception;
+            } else if (e instanceof StgException) {
+                throw e;
             } else {
                 exception = convertJavaException(tso, e);
             }
