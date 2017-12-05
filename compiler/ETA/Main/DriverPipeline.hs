@@ -1406,7 +1406,7 @@ mkRtsMainClass dflags mainClass
     mkMethodDef mainClass' [Public, Static] "main" [jarray jstring] void $ fold
       [ gload (jarray jstring) 0
       -- TODO: Find main module
-      , invokestatic $ mkMethodRef (moduleJavaClass mainMod) "DZCmain" [] (Just closureType)
+      , invokestatic $ mkMethodRef (moduleJavaClass mainMod) "DZCmain" [] (ret closureType)
       , invokestatic $ mkMethodRef (rts "Runtime") "main" [ jarray jstring
                                                           , closureType ] void
       , vreturn ]

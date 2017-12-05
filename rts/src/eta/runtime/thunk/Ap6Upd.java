@@ -3,7 +3,6 @@ package eta.runtime.thunk;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
-
 public class Ap6Upd extends UpdatableThunk {
     public Closure p1;
     public Closure p2;

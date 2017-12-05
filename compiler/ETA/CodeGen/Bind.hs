@@ -42,7 +42,7 @@ closureCodeBody
   -> [Id]                  -- For a recursive block, the ids of the other
                            -- closures in the group.
   -> CodeGen ([FieldType], RecIndexes)
-closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = do
+closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = do
   dflags <- getDynFlags
   traceCg $ str $ "creating new closure..." ++ unpack (idNameText dflags id)
   let closureName = idNameText dflags id
@@ -82,11 +82,18 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
       cgExpr body
   else do
     let mCallPattern = lfCallPattern lfInfo
+        tailCallCheck fun args lc =
+            lc <> trampolineField
+         <> ifeq mempty (lc <> gload closureType 0
+                            <> fold (map loadLoc args)
+                            <> fun)
+        enterTail = tailCallCheck enterTailMethod []
+        applyTail fts = tailCallCheck (mkApFastTail arity fts)
     when (arity > 6) $
       defineMethod $ mkMethodDef thisClass [Public] "arity" [] (ret jint)
                    $ iconst jint (fromIntegral arity)
                   <> greturn jint
-    if | null fvs -> do
+    if | topLevel -> do
          let argLocs = argLocsFrom False 1 args
              argFts  = map locFt argLocs
              callStaticMethod =
@@ -96,7 +103,8 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
                <> greturn closureType
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            loadContext <- getContextLoc
-           emit $ loadContext
+           emit $ enterTail loadContext
+               <> loadContext
                <> mkCallEntry loadContext True False argLocs
                <> callStaticMethod
          case mCallPattern of
@@ -104,7 +112,8 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
              withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
                let argLocs' = argLocsFrom True 2 args
                loadContext <- getContextLoc
-               emit $ loadContext
+               emit $ applyTail fts argLocs' loadContext
+                   <> loadContext
                    <> fold (map loadLoc argLocs')
                    <> callStaticMethod
            _ -> return ()
@@ -133,14 +142,16 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            argLocs <- mapM newIdLoc args
            loadContext <- getContextLoc
-           emit $ gload thisFt 0
+           emit $ enterTail loadContext
+               <> gload thisFt 0
                <> loadContext
                <> mkCallEntry loadContext False False argLocs
-               <> mkApFast arity thisClass (contextType:fts)
+               <> mkApFast arity thisClass fts
                <> greturn closureType
          withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
            let argLocs = argLocsFrom True 2 args
            loadContext <- getContextLoc
+           emit $ applyTail fts argLocs loadContext
            case mFunRecIds of
              Just (n, funRecIds)
                | Just (target, loadCode, allArgFts) <-
@@ -163,6 +174,7 @@ closureCodeBody _ id lfInfo args mFunRecIds arity body fvs binderIsFV recIds = d
        | otherwise ->
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            loadContext <- getContextLoc
+           emit $ enterTail loadContext
            case mFunRecIds of
              Just (n, funRecIds)
                | let argLocs = argLocsFrom False 2 args

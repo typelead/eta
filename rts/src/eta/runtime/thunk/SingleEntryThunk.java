@@ -11,7 +11,18 @@ public abstract class SingleEntryThunk extends Thunk {
             context.myCapability.idleLoop(false);
         }
         /* TODO: Have some mechanism to *ensure* that it doesn't run multiple times. */
-        Closure result = thunkEnter(context);
+        boolean trampoline = context.trampoline;
+        if (context.firstTime) {
+            context.firstTime = false;
+        } else {
+            context.trampoline = false;
+        }
+        Closure result = null;
+        try {
+            result = thunkEnter(context);
+        } finally {
+            context.trampoline = trampoline;
+        }
         clear();
         return result;
     }

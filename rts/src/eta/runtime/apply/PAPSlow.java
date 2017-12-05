@@ -176,9 +176,14 @@ public class PAPSlow extends PAP {
     @Override
     public Closure apply1V(StgContext context, Closure p) {
         ArgumentStack stack = ArgumentStack.createFromP(argStack, p);
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, stack).applyV(context);
+                old = context.getAndSetTrampoline();
+                result = apply(context, stack);
+                context.trampoline = old;
+                return result.applyV(context);
             case 2:
                 return apply(context, stack);
             default:
@@ -188,10 +193,14 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply2(StgContext context, Closure p1, Closure p2) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply1(context, p2);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply1(context, p2);
             case 2:
                 return apply(context, ArgumentStack.createFromP(argStack, p1, p2));
             default:
@@ -202,13 +211,19 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply2V(StgContext context, Closure p1, Closure p2) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply1V(context, p2);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply1V(context, p2);
             case 2:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
-                      .applyV(context);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2));
+                context.trampoline = old;
+                return result.applyV(context);
             case 3:
                 return apply(context, ArgumentStack.createFromP(argStack, p1, p2));
             default:
@@ -219,13 +234,19 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply3(StgContext context, Closure p1, Closure p2, Closure p3) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply2(context, p2, p3);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply2(context, p2, p3);
             case 2:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
-                      .apply1(context, p3);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2));
+                context.trampoline = old;
+                return result.apply1(context, p3);
             case 3:
                 return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
             default:
@@ -236,16 +257,24 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply2V(context, p2, p3);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply2V(context, p2, p3);
             case 2:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
-                      .apply1V(context, p3);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2));
+                context.trampoline = old;
+                return result.apply1V(context, p3);
             case 3:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
-                      .applyV(context);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
+                context.trampoline = old;
+                return result.applyV(context);
             case 4:
                 return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
             default:
@@ -256,16 +285,24 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply4(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply3(context, p2, p3, p4);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply3(context, p2, p3, p4);
             case 2:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
-                      .apply2(context, p3, p4);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2));
+                context.trampoline = old;
+                return result.apply2(context, p3, p4);
             case 3:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
-                      .apply1(context, p4);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
+                context.trampoline = old;
+                return result.apply1(context, p4);
             case 4:
                 return apply(context,
                              ArgumentStack.createFromP(argStack, p1, p2, p3, p4));
@@ -277,20 +314,30 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply5(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply4(context, p2, p3, p4, p5);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply4(context, p2, p3, p4, p5);
             case 2:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
-                      .apply3(context, p3, p4, p5);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2));
+                context.trampoline = old;
+                return result.apply3(context, p3, p4, p5);
             case 3:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
-                      .apply2(context, p4, p5);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
+                context.trampoline = old;
+                return result.apply2(context, p4, p5);
             case 4:
-                return apply(context,
-                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4))
-                      .apply1(context, p5);
+                old = context.getAndSetTrampoline();
+                result =
+                    apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3, p4));
+                context.trampoline = old;
+                return result.apply1(context, p5);
             case 5:
                 return apply(context,
                              ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5));
@@ -302,24 +349,36 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure apply6(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
+        boolean old;
+        Closure result;
         switch (arity) {
             case 1:
-                return apply(context, ArgumentStack.createFromP(argStack, p1))
-                      .apply5(context, p2, p3, p4, p5, p6);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1));
+                context.trampoline = old;
+                return result.apply5(context, p2, p3, p4, p5, p6);
             case 2:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2))
-                      .apply4(context, p3, p4, p5, p6);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2));
+                context.trampoline = old;
+                return result.apply4(context, p3, p4, p5, p6);
             case 3:
-                return apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3))
-                      .apply3(context, p4, p5, p6);
+                old = context.getAndSetTrampoline();
+                result = apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3));
+                context.trampoline = old;
+                return result.apply3(context, p4, p5, p6);
             case 4:
-                return apply(context,
-                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4))
-                      .apply2(context, p5, p6);
+                old = context.getAndSetTrampoline();
+                result =
+                    apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3, p4));
+                context.trampoline = old;
+                return result.apply2(context, p5, p6);
             case 5:
-                return apply(context,
-                             ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5))
-                      .apply1(context, p6);
+                old = context.getAndSetTrampoline();
+                result =
+                    apply(context, ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5));
+                context.trampoline = old;
+                return result.apply1(context, p6);
             case 6:
                 return apply(context,
                              ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5, p6));

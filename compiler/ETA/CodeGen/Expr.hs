@@ -144,12 +144,15 @@ cgIdApp funId args = do
       traceCg (str "cgIdApp: SlowCall")
       argFtCodes <- getRepFtCodes args
       loadContext <- getContextLoc
-      withContinuation $ slowCall dflags loadContext funLoc argFtCodes
+      let (contCode, lastCode) = slowCall dflags loadContext funLoc argFtCodes
+      withContinuation True contCode lastCode
     DirectEntry nodeLoc arity -> do
       traceCg (str "cgIdApp: DirectEntry")
-      argFtCodes <- getRepFtCodes args
+      argFtCodes  <- getRepFtCodes args
       loadContext <- getContextLoc
-      withContinuation $ directCall loadContext nodeLoc arity argFtCodes
+      let (unknownCall, (contCode, lastCode)) =
+            directCall loadContext nodeLoc arity argFtCodes
+      withContinuation unknownCall contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       codes <- getNonVoidArgCodes args
@@ -166,7 +169,8 @@ emitEnter thunk = do
   loadContext <- getContextLoc
   case sequel of
     Return ->
-      emit $ enterMethod loadContext thunk <> greturn closureType
+      -- TODO: Better type information for evaluate
+      emit $ evaluateMethod loadContext thunk <> greturn closureType
     AssignTo cgLocs -> do
       emit $ evaluateMethod loadContext thunk <> mkReturnEntry loadContext cgLocs
 

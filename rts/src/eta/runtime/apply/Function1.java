@@ -8,41 +8,65 @@ public class Function1 extends Function {
 
     @Override
     public Closure apply1V(StgContext context, Closure p) {
-        return apply1(context, p).applyV(context);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p);
+        context.trampoline = old;
+        return result.applyV(context);
     }
 
     @Override
     public Closure apply2(StgContext context, Closure p1, Closure p2) {
-        return apply1(context, p1).apply1(context, p2);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply1(context, p2);
     }
 
     @Override
     public Closure apply2V(StgContext context, Closure p1, Closure p2) {
-        return apply1(context, p1).apply1V(context, p2);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply1V(context, p2);
     }
 
     @Override
     public Closure apply3(StgContext context, Closure p1, Closure p2, Closure p3) {
-        return apply1(context, p1).apply2(context, p2, p3);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply2(context, p2, p3);
     }
 
     @Override
     public Closure apply3V(StgContext context, Closure p1, Closure p2, Closure p3) {
-        return apply1(context, p1).apply2V(context, p2, p3);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply2V(context, p2, p3);
     }
 
     @Override
     public Closure apply4(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4) {
-        return apply1(context, p1).apply3(context, p2, p3, p4);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply3(context, p2, p3, p4);
     }
 
     @Override
     public Closure apply5(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
-        return apply1(context, p1).apply4(context, p2, p3, p4, p5);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply4(context, p2, p3, p4, p5);
     }
 
     @Override
     public Closure apply6(StgContext context, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
-        return apply1(context, p1).apply5(context, p2, p3, p4, p5, p6);
+        boolean old = context.getAndSetTrampoline();
+        Closure result = apply1(context, p1);
+        context.trampoline = old;
+        return result.apply5(context, p2, p3, p4, p5, p6);
     }
 }

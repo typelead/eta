@@ -1,5 +1,9 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnliftedFFITypes #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -23,9 +27,10 @@ module Data.Function
   , (&)
   , fix
   , on
+  , trampoline
   ) where
 
-import GHC.Base ( ($), (.), id, const, flip )
+import GHC.Base ( ($), (.), id, const, flip, Any, unsafeCoerce# )
 
 infixl 0 `on`
 infixl 1 &
@@ -98,3 +103,13 @@ on :: (b -> b -> c) -> (a -> b) -> a -> a -> c
 -- @since 4.8.0.0
 (&) :: a -> (a -> b) -> b
 x & f = f x
+
+
+-- | Turns on tail-call optimization when evaluating the argument.
+trampoline :: a -> a
+trampoline x =
+  case (trampoline# (unsafeCoerce# x)) of
+    (# y #) -> unsafeCoerce# y
+
+foreign import prim "eta.runtime.stg.Stg.trampoline"
+  trampoline# :: Any -> (# Any #)

@@ -16,6 +16,7 @@ import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
 import eta.runtime.message.MessageBlackHole;
 import eta.runtime.exception.Exception;
+import eta.runtime.exception.StgException;
 import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
@@ -287,7 +288,7 @@ public abstract class Thunk extends Closure {
             && !Modifier.isStatic(f.getModifiers());
     }
 
-    protected static final boolean handleException(java.lang.Exception e, TSO tso, UpdateInfo ui) {
+    protected static boolean handleException(java.lang.Exception e, TSO tso, UpdateInfo ui) {
         if (e instanceof EtaAsyncException) {
             EtaAsyncException ea = (EtaAsyncException) e;
             if (ea.stopHere == ui) {
@@ -296,13 +297,11 @@ public abstract class Thunk extends Closure {
                 throw ea;
             }
         } else {
-            EtaException e_;
-            if (e instanceof EtaException) {
-                e_ = (EtaException) e;
+            if (e instanceof StgException) {
+                throw (StgException)e;
             } else {
-                e_ = Exception.toEtaException(tso, e);
+                throw Exception.toEtaException(tso, e);
             }
-            throw e_;
         }
     }
 }

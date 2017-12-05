@@ -25,12 +25,19 @@ public class CAF extends Thunk {
                 if (!claim(tso)) continue;
                 UpdateInfo ui = context.pushUpdate(this);
                 Closure result = null;
+                boolean trampoline = context.trampoline;
+                if (context.firstTime) {
+                    context.firstTime = false;
+                } else {
+                    context.trampoline = false;
+                }
                 try {
                     result = thunkEnter(context);
                 } catch (java.lang.Exception e) {
                     if (Thunk.handleException(e, tso, ui)) continue;
                 } finally {
                     context.popUpdate();
+                    context.trampoline = trampoline;
                 }
                 return updateCode(context, result);
             } else {

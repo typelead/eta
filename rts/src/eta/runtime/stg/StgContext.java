@@ -11,6 +11,11 @@ import static eta.runtime.stg.ArgumentStack.*;
 public class StgContext {
     public Capability myCapability;
     public TSO currentTSO;
+    // ALl related to trampoline
+    public int tailCalls;
+    public boolean trampoline;
+    public boolean firstTime;
+    public Closure next;
 
     /* Stack fields */
     public static final int R_LIMIT = 6;
@@ -77,7 +82,21 @@ public class StgContext {
         myCapability = cap;
         currentTSO = t;
         resetArgStack();
+        resetTrampoline(0, false);
         if (t != null) t.reset();
+    }
+
+    public boolean getAndSetTrampoline() {
+        boolean old = trampoline;
+        trampoline = false;
+        return old;
+    }
+
+    public void resetTrampoline(int tailCalls, boolean trampoline) {
+        this.tailCalls  = tailCalls;
+        this.trampoline = trampoline;
+        this.firstTime  = false;
+        this.next       = null;
     }
 
     public void resetArgStack() {

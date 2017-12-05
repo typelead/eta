@@ -121,24 +121,29 @@ contextLoadStoreField name ft =
 currentTSOField :: Code
 currentTSOField = getfield (mkFieldRef stgContext "currentTSO" tsoType)
 
-spPushMethod :: Code
-spPushMethod = invokevirtual (mkMethodRef stgTSO "spPush" [frameType] void)
+trampolineField :: Code
+trampolineField = getfield (mkFieldRef stgContext "trampoline" jbool)
 
-spTopIndexMethod :: Code
-spTopIndexMethod = invokevirtual (mkMethodRef stgContext "stackTopIndex" [] (ret jint))
+putTrampolineField :: Code
+putTrampolineField = putfield (mkFieldRef stgContext "trampoline" jbool)
 
-spTopMethod :: Code
-spTopMethod = invokevirtual (mkMethodRef stgContext "stackTop" [] (ret frameType))
-
-checkForStackFramesMethod :: Code
-checkForStackFramesMethod =
-  invokevirtual (mkMethodRef stgContext "checkForStackFrames" [jint, frameType] (ret jbool))
+getAndSetTrampolineMethod :: Code
+getAndSetTrampolineMethod = invokevirtual (mkMethodRef stgContext "getAndSetTrampoline" [] (ret jbool))
 
 mkApFast :: Int -> Text -> [FieldType] -> Code
-mkApFast arity realCls rawFts =
-  invokevirtual (mkMethodRef realCls applyFun rawFts (Just closureType))
-  where fts = drop 1 rawFts
-        applyFun = mkApFun arity fts
+mkApFast arity realCls fts =
+  invokevirtual (mkMethodRef realCls applyFun (contextType:fts) (ret closureType))
+  where applyFun = mkApFun arity fts
+
+enterTailMethod :: Code
+enterTailMethod =
+  invokestatic (mkMethodRef stgGroup "enterTail" [contextType,closureType] void)
+
+mkApFastTail :: Int -> [FieldType] -> Code
+mkApFastTail arity fts =
+  invokestatic (mkMethodRef stgGroup applyFun ctxtFts void)
+  where applyFun = mkApFun arity fts <> "Tail"
+        ctxtFts  = contextType:closureType:fts
 
 mkApFun :: Int -> [FieldType] -> Text
 mkApFun arity fts = applyFun
@@ -261,10 +266,10 @@ hsResultValue :: Code
 hsResultValue = getfield $ mkFieldRef hsResult "result" closureType
 
 trueClosure :: Code
-trueClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DTrue" [] $ Just closureType
+trueClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DTrue" [] $ ret closureType
 
 falseClosure :: Code
-falseClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DFalse" [] $ Just closureType
+falseClosure = invokestatic . mkMethodRef "ghc_prim/ghc/Types" "DFalse" [] $ ret closureType
 
 getTagMethod :: Code -> Code
 getTagMethod code
@@ -335,3 +340,6 @@ loadStringUTF8 arrayForm
 
 isClosureFt :: FieldType -> Bool
 isClosureFt ft = ft == closureType
+
+-- Tail methods
+

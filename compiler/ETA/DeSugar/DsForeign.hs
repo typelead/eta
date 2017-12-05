@@ -649,7 +649,7 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
               , invokestatic (mkMethodRef modClass
                                           (closure (idNameText dflags fnId))
                                           []
-                                          (Just closureType))))
+                                          (ret closureType))))
           closureId
       boxedArgs =
         if length argFts > 5
@@ -681,7 +681,7 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
           <> new ap2Ft
           <> dup ap2Ft
           <> invokestatic (mkMethodRef runClass runClosure
-                                       [] (Just closureType))
+                                       [] (ret closureType))
           <> new apFt
           <> dup apFt
           <> loadClosureRef

@@ -14,12 +14,19 @@ public abstract class UpdatableThunk extends Thunk {
                 }
                 UpdateInfo ui = context.pushUpdate(this);
                 Closure result = null;
+                boolean trampoline = context.trampoline;
+                if (context.firstTime) {
+                    context.firstTime = false;
+                } else {
+                    context.trampoline = false;
+                }
                 try {
                     result = thunkEnter(context);
                 } catch (Exception e) {
                     if (Thunk.handleException(e, context.currentTSO, ui)) continue;
                 } finally {
                     context.popUpdate();
+                    context.trampoline = trampoline;
                 }
                 if (ui.marked) {
                     return updateCode(context, result);

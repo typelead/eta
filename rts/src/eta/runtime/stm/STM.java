@@ -10,6 +10,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import eta.runtime.exception.Exception;
+import eta.runtime.exception.StgException;
 import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
 import eta.runtime.exception.RetryException;

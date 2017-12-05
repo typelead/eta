@@ -1,5 +1,8 @@
 package eta.runtime.stg;
 
+import eta.runtime.thunk.*;
+import eta.runtime.exception.TrampolineBounceException;
+
 public class Stg {
     /* Weak Pointer Operations */
     public static WeakPtr mkWeak(StgContext context, Closure key, Closure value, Closure finalizer) {
@@ -60,6 +63,157 @@ public class Stg {
             Capability cap = context.myCapability;
             TSO tso = context.currentTSO;
             cap.threadPaused(tso);
+        }
+    }
+
+    /* Trampolining Implementation */
+
+    // TODO: Replace this with a configurable runtime parameter.
+    public static final int TAIL_CALL_THRESHOLD = 30;
+
+    public static final ThreadLocal<TrampolineBounceException> bounce =
+        new ThreadLocal<TrampolineBounceException>() {
+            @Override
+            public TrampolineBounceException initialValue() {
+                return new TrampolineBounceException();
+            }
+        };
+
+    public static Closure trampoline(StgContext context, Closure closure) {
+        int     tailCalls  = context.tailCalls;
+        Closure ret        = null;
+        Closure next       = closure;
+        boolean trampoline = context.trampoline;
+        context.trampoline = true;
+        while (next != null) {
+            context.tailCalls = 0;
+            context.firstTime = true;
+            try {
+                ret  = next.enter(context);
+                next = null;
+            } catch (Exception e) {
+                if (e instanceof TrampolineBounceException) {
+                    next = context.next;
+                } else {
+                    context.resetTrampoline(tailCalls, trampoline);
+                    throw e;
+                }
+            }
+        }
+        context.resetTrampoline(tailCalls, trampoline);
+        return ret;
+    }
+
+    public static void enterTail(StgContext context, Closure node) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = node;
+            throw bounce.get();
+        }
+    }
+
+    // TODO: Replace Ap* with Ap*NonUpd to avoid overhead of evaluate()
+    public static void applyVTail(StgContext context, Closure node) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap1VUpd(node);
+            throw bounce.get();
+        }
+    }
+
+    public static void applyNTail(StgContext context, Closure node, int n) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new ApI(node, n);
+            throw bounce.get();
+        }
+    }
+
+    public static void applyLTail(StgContext context, Closure node, long l) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new ApL(node, l);
+            throw bounce.get();
+        }
+    }
+
+    public static void applyFTail(StgContext context, Closure node, float f) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new ApF(node, f);
+            throw bounce.get();
+        }
+    }
+
+    public static void applyDTail(StgContext context, Closure node, double d) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new ApD(node, d);
+            throw bounce.get();
+        }
+    }
+
+    public static void applyOTail(StgContext context, Closure node, Object o) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new ApO(node, o);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply1Tail(StgContext context, Closure node, Closure p) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap2Upd(node, p);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply1VTail(StgContext context, Closure node, Closure p) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap2VUpd(node, p);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply2Tail(StgContext context, Closure node, Closure p1, Closure p2) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap3Upd(node, p1, p2);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply2VTail(StgContext context, Closure node, Closure p1, Closure p2) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap3VUpd(node, p1, p2);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply3Tail(StgContext context, Closure node, Closure p1, Closure p2, Closure p3) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap4Upd(node, p1, p2, p3);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply3VTail(StgContext context, Closure node, Closure p1, Closure p2, Closure p3) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap4VUpd(node, p1, p2, p3);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply4Tail(StgContext context, Closure node, Closure p1, Closure p2, Closure p3, Closure p4) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap5Upd(node, p1, p2, p3, p4);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply5Tail(StgContext context, Closure node, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap6Upd(node, p1, p2, p3, p4, p5);
+            throw bounce.get();
+        }
+    }
+
+    public static void apply6Tail(StgContext context, Closure node, Closure p1, Closure p2, Closure p3, Closure p4, Closure p5, Closure p6) {
+        if (++context.tailCalls >= TAIL_CALL_THRESHOLD) {
+            context.next = new Ap7Upd(node, p1, p2, p3, p4, p5, p6);
+            throw bounce.get();
         }
     }
 }
