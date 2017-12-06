@@ -151,7 +151,7 @@ cgIdApp funId args = do
       argFtCodes  <- getRepFtCodes args
       loadContext <- getContextLoc
       let (unknownCall, (contCode, lastCode)) =
-            directCall loadContext nodeLoc arity argFtCodes
+            directCall loadContext (idType funId) nodeLoc arity argFtCodes
       withContinuation unknownCall contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")

@@ -152,8 +152,8 @@ slowCall dflags loadContext fun argFtCodes
                          (mkApFast arity realCls fts)
                          arity ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Code -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Bool, (Code, Maybe Code))
-directCall loadContext fun arity argFtCodes
+directCall :: Code -> Type -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Bool, (Code, Maybe Code))
+directCall loadContext funType fun arity argFtCodes
   | Just staticCode <- loadStaticMethod fun argFts
   = (False, directCall' loadContext True True stgClosure
       staticCode arity ((P, Nothing, Nothing):argFtCodes))
@@ -166,7 +166,11 @@ directCall loadContext fun arity argFtCodes
         ft           = locFt fun
         entryCode    = enterMethod loadContext fun
         realCls      = fromMaybe stgClosure $ locClass fun
-        argFts       = mapMaybe (\(_,ft,_) -> ft) $ take arity argFtCodes
+        argFts       = staticMethodFts funType arity
+
+staticMethodFts :: Type -> Int -> [FieldType]
+staticMethodFts funType n =
+  catMaybes . map repFieldType_maybe . take n . fst . splitFunTys . snd $ splitForAllTys funType
 
 directCall' :: Code -> Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
 directCall' loadContext slow directLoad realCls entryCode arity args =
