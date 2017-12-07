@@ -166,11 +166,24 @@ directCall loadContext funType fun arity argFtCodes
         ft           = locFt fun
         entryCode    = enterMethod loadContext fun
         realCls      = fromMaybe stgClosure $ locClass fun
-        argFts       = staticMethodFts funType arity
+        argFts'      = catMaybes . take arity $ map (\(_,ft,_) -> ft) argFtCodes
+        -- All this logic is to get around some weird issues with
+        -- the java monad type inlining. Ideally, argFts = staticFts
+        -- in all cases.
+        argFts
+          | numStaticFts == length argFts' = staticFts
+          | otherwise = staticFts ++ drop numStaticFts argFts'
+        numStaticFts = length staticFts
+        staticFts = staticMethodFts funType arity
 
 staticMethodFts :: Type -> Int -> [FieldType]
 staticMethodFts funType n =
-  catMaybes . map repFieldType_maybe . take n . fst . splitFunTys . snd $ splitForAllTys funType
+  catMaybes . map repFieldType_maybe . take n $ deepSplitFunTys funType
+  where deepSplitFunTys ty
+          | null args = []
+          | otherwise = args ++ deepSplitFunTys res
+          where rest = dropForAlls ty
+                (args, res) = splitFunTys rest
 
 directCall' :: Code -> Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
 directCall' loadContext slow directLoad realCls entryCode arity args =
