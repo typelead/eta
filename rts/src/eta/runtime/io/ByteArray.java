@@ -40,6 +40,7 @@ public final class ByteArray extends Value {
                                           , int offset, int n) {
         ByteBuffer dest = MemoryManager.getBoundedBuffer(destArray.bufferAddress);
         ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
+        src.limit(src.position() + n);
         dest.position(dest.position() + offset);
         dest.limit(dest.position() + n);
         dest.put(src);
