@@ -232,21 +232,25 @@ mkHandleFromFD fd0 fd_type filepath iomode set_non_blocking mb_codec
 fdToHandle' :: Posix.Channel
             -> Maybe IODeviceType
             -> Bool -- is_socket on Win, non-blocking on Unix
-            -> FilePath
+            -> Maybe FilePath
             -> IOMode
             -> Bool -- binary
             -> IO Handle
-fdToHandle' fdint mb_type is_socket filepath iomode binary = do
+fdToHandle' fdint mb_type is_socket mFilepath iomode binary = do
   let mb_stat = case mb_type of
                         Nothing          -> Nothing
                           -- mkFD will do the stat:
                         Just RegularFile -> Nothing
                           -- no stat required for streams etc.:
                         Just other       -> Just (other, error "fdToHandle: Bad fd.")
-  f <- Posix.getPath filepath
-  (fd,fd_type) <- FD.mkFD fdint (Just f) iomode mb_stat is_socket
+  mPath <- case mFilepath of
+    Just path -> do
+      f <- Posix.getPath path
+      return $ Just f
+    Nothing -> return Nothing
+  (fd,fd_type) <- FD.mkFD fdint mPath iomode mb_stat is_socket
   enc <- if binary then return Nothing else fmap Just getLocaleEncoding
-  mkHandleFromFD fd fd_type filepath iomode is_socket enc
+  mkHandleFromFD fd fd_type (fromMaybe "" mFilepath) iomode is_socket enc
 
 
 -- | Turn an existing file descriptor into a Handle.  This is used by

@@ -295,7 +295,7 @@ public class Concurrent {
             barf("Your platform does not support non-blocking IO.");
         }
         if (!(channel instanceof SelectableChannel)) {
-            barf("Non-selectable channel sent to threadWaitIO#.");
+            barf("Non-selectable channel " + channel + " sent to threadWaitIO#.");
         }
         SelectionKey selectKey = null;
         try {
