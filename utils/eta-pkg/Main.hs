@@ -54,7 +54,7 @@ import System.Directory ( doesDirectoryExist, getDirectoryContents,
                           doesFileExist, removeFile,
                           getCurrentDirectory )
 import System.Exit ( exitWith, ExitCode(..) )
-import System.Environment ( getArgs, getProgName, getEnv )
+import System.Environment ( getArgs, getEnv )
 import System.IO
 import System.IO.Error
 import GHC.IO.Exception (IOErrorType(InappropriateType))
@@ -242,8 +242,8 @@ usageHeader prog = substProg prog $
   "\n" ++
   "  $p dot\n" ++
   "    Generate a graph of the package dependencies in a form suitable\n" ++
-  "    for input for the graphviz tools.  For example, to generate a PDF" ++
-  "    of the dependency graph: eta-pkg dot | tred | dot -Tpdf >pkgs.pdf" ++
+  "    for input for the graphviz tools.  For example, to generate a PDF\n" ++
+  "    of the dependency graph: eta-pkg dot | tred | dot -Tpdf >pkgs.pdf\n" ++
   "\n" ++
   "  $p find-module {module}\n" ++
   "    List registered packages exposing module {module} in the global\n" ++
@@ -1985,10 +1985,7 @@ expandEnvVars str0 force = go str0 ""
 -----------------------------------------------------------------------------
 
 getProgramName :: IO String
-getProgramName = liftM (`withoutSuffix` ".bin") getProgName
-   where str `withoutSuffix` suff
-            | suff `isSuffixOf` str = take (length str - length suff) str
-            | otherwise             = str
+getProgramName = return "eta-pkg"
 
 bye :: String -> IO a
 bye s = putStr s >> exitWith ExitSuccess
