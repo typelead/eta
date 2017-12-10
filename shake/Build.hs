@@ -5,10 +5,6 @@ import Development.Shake
 import Development.Shake.FilePath
 -- import Development.Shake.Util
 
-import Distribution.InstalledPackageInfo
-import Distribution.ParseUtils
-import Distribution.ModuleName (fromString)
-
 import Control.Monad
 import Data.List
 import System.Console.GetOpt
@@ -33,28 +29,10 @@ libCustomBuildDir lib = libraryDir </> lib </> "build"
 libName lib = "HS" ++ lib ++ ".jar"
 libJarPath lib = libCustomBuildDir lib </> libName lib
 
-getEtlasDir, getEtaRoot, getEtlasLibDir :: Action FilePath
+getEtlasDir, getEtaRoot :: Action FilePath
 getEtlasDir = liftIO $ getAppUserDataDirectory "etlas"
 getEtaRoot  = do
   Stdout actualOutput <- cmd "eta" "--print-libdir"
-  return . head $ lines actualOutput
-getEtlasLibDir = do
-  etlasDir <- getEtlasDir
-  etaVersion <- getEtaNumericVersion
-  let etlasLibDir = etlasDir </> "lib"
-      etaWithVersion = "eta-" ++ etaVersion
-  findFileOrDir etaWithVersion etlasLibDir
-
-findFileOrDir :: String -> FilePath -> Action FilePath
-findFileOrDir pat dir = do
-  results <- getDirectoryContents dir
-  case filter (pat `isInfixOf`) results of
-    (found:_) -> return (dir </> found)
-    _         -> fail $ "Pattern not found '" ++ pat ++ "' in " ++ dir
-
-getEtaNumericVersion :: Action String
-getEtaNumericVersion = do
-  Stdout actualOutput <- cmd "eta" "--numeric-version"
   return . head $ lines actualOutput
 
 -- * Utility functions for filepath handling in the Action monad
@@ -70,14 +48,13 @@ getDependencies :: String -> [String]
 getDependencies "ghc-prim" = ["rts"]
 getDependencies "base" = ["ghc-prim", "integer"]
 getDependencies "integer" = ["ghc-prim"]
-getDependencies "eta-repl" = ["eta-boot", "base", "template-haskell"]
+getDependencies "eta-repl" = ["eta-boot", "base"]
 getDependencies "eta-boot" = ["eta-boot-th", "base"]
 getDependencies "eta-boot-th" = ["base"]
-getDependencies "template-haskell" = ["base", "eta-boot-th"]
 getDependencies _ = []
 
-ignoreList :: [String]
-ignoreList = ["eta-boot", "eta-boot-th", "eta-repl"]
+bootLibs :: [String]
+bootLibs = ["ghc-prim", "integer", "base", "rts"]
 
 topologicalDepsSort :: [String] -> (String -> [String]) -> [String]
 topologicalDepsSort xs deps = sort' xs []
@@ -88,43 +65,22 @@ topologicalDepsSort xs deps = sort' xs []
 -- * Building boot libraries
 
 getLibs :: Action [String]
-getLibs = fmap (\\ ignoreList) $ getDirectoryDirs libraryDir
+getLibs = getDirectoryDirs libraryDir
 
 nonNullString :: String -> [String]
 nonNullString str
   | null str = []
   | otherwise = [str]
 
-buildLibrary :: Bool -> (String -> String) -> String -> [String] -> Action ()
-buildLibrary debug binPathArg lib _deps = do
+buildLibrary :: Bool -> (String -> String) -> String -> Action ()
+buildLibrary _debug binPathArg lib = do
   let dir = library lib
-      installFlags = ["--allow-boot-library-installs"]
+      installFlags = ["--allow-boot-library-installs" | lib `elem` bootLibs]
                   ++ nonNullString (binPathArg "../../")
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "etlas configure"
+  -- unit $ cmd (Cwd dir) "etlas configure"
   unit $ cmd (Cwd dir) "etlas install" installFlags
   return ()
-
--- By default, GHC.Prim is NOT included, and we must manually add it in for
--- consistency.
-fixGhcPrimConf :: Action ()
-fixGhcPrimConf = do
-  rootDir <- getEtaRoot
-  let confDir = packageConfDir rootDir
-  (ghcPrimConf':_) <- fmap (filter ("ghc-prim" `isPrefixOf`))
-                    $ getDirectoryFiles confDir ["*.conf"]
-  let ghcPrimConf = confDir </> ghcPrimConf'
-  confStr <- readFile' ghcPrimConf
-  case parseInstalledPackageInfo confStr of
-    ParseOk warnings ipi -> do
-      mapM_ (putNormal . showPWarning ghcPrimConf) warnings
-      let ipi' = ipi { exposedModules = ExposedModule (fromString "GHC.Prim") Nothing
-                                      : exposedModules ipi }
-      writeFile' ghcPrimConf $ showInstalledPackageInfo ipi'
-      unit $ cmd "eta-pkg recache"
-    ParseFailed err -> case locatedErrorMsg err of
-                         (Nothing, s) -> putNormal s
-                         (Just l, s) -> putNormal $ show l ++ ": " ++ s
 
 -- * Testing utilities
 testSpec :: FilePath -> Action ()
@@ -212,14 +168,18 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         copyFile' (verifyExt "class") $ etlasToolsDir </> "classes" </> "Verify.class"
         libs <- getLibs
         let sortedLibs = topologicalDepsSort libs getDependencies
-        forM_ sortedLibs $ \lib ->
-          buildLibrary debug binPathArg lib (getDependencies lib)
+            (beforeLibs, afterLibs) = break (== "eta-repl") sortedLibs
+
+        forM_ beforeLibs $ \lib ->
+          buildLibrary debug binPathArg lib
         unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
+        forM_ afterLibs $ \lib ->
+          buildLibrary debug binPathArg lib
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]
       need [rtsjar]
-      buildLibrary debug binPathArg "rts" (getDependencies "rts")
+      buildLibrary debug binPathArg "rts"
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]
