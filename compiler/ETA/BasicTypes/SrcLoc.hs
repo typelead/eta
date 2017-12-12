@@ -43,6 +43,7 @@ module ETA.BasicTypes.SrcLoc (
         wiredInSrcSpan,         -- Something wired into the compiler
         srcLocSpan, realSrcLocSpan,
         combineSrcSpans,
+        realSrcSpan_maybe,
 
         -- ** Deconstructing SrcSpan
         srcSpanStart, srcSpanEnd,
@@ -339,6 +340,10 @@ combineRealSrcSpans span1 span2
                                   (srcSpanEndLine span2, srcSpanEndCol span2)
     file = srcSpanFile span1
 
+realSrcSpan_maybe :: SrcSpan -> Maybe RealSrcSpan
+realSrcSpan_maybe (UnhelpfulSpan _)  = Nothing
+realSrcSpan_maybe (RealSrcSpan span) = Just span
+
 {-
 ************************************************************************
 *                                                                      *
@@ -396,6 +401,7 @@ srcSpanStartCol SrcSpanPoint{ srcSpanCol=l } = l
 srcSpanEndCol SrcSpanOneLine{ srcSpanECol=c } = c
 srcSpanEndCol SrcSpanMultiLine{ srcSpanECol=c } = c
 srcSpanEndCol SrcSpanPoint{ srcSpanCol=c } = c
+
 
 {-
 ************************************************************************

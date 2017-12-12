@@ -5,6 +5,8 @@ import ETA.StgSyn.StgSyn
 import ETA.Core.CoreSyn
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.BasicTypes
+import ETA.BasicTypes.Name
+import ETA.BasicTypes.SrcLoc
 import ETA.BasicTypes.VarEnv
 import ETA.Utils.Util (unzipWith)
 import ETA.Types.TyCon
@@ -74,10 +76,16 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
                           )
                           (mempty, 1) initCodes
 
+  let mLineNumber = fmap srcSpanStartLine $ realSrcSpan_maybe (nameSrcSpan (idName id))
+      emitStartLine
+        | Just line <- mLineNumber
+        = emitLineNumber $ mkLineNumber line
+        | otherwise = mempty
   setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
   if arity == 0 then
     -- TODO: Implement eager blackholing
     withMethod [Public, Final] "thunkEnter" [contextType] (ret closureType) $ do
+      emit $ emitStartLine
       mapM_ bindFV (fvLocs False)
       cgExpr body
   else do
@@ -103,7 +111,8 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
                <> greturn closureType
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            loadContext <- getContextLoc
-           emit $ enterTail loadContext
+           emit $ emitStartLine
+               <> enterTail loadContext
                <> loadContext
                <> mkCallEntry loadContext True False argLocs
                <> callStaticMethod
@@ -112,7 +121,8 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
              withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
                let argLocs' = argLocsFrom True 2 args
                loadContext <- getContextLoc
-               emit $ applyTail fts argLocs' loadContext
+               emit $ emitStartLine
+                   <> applyTail fts argLocs' loadContext
                    <> loadContext
                    <> fold (map loadLoc argLocs')
                    <> callStaticMethod
@@ -123,7 +133,8 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
              Just (n, funRecIds)
                | Just (target, loadCode, allArgFts) <-
                    funRecIdsInfo loadContext True argLocs id funRecIds ->
-               emit $ aconst_null closureType
+               emit $ emitStartLine
+                   <> aconst_null closureType
                    <> loadContext
                    <> iconst jint (fromIntegral target)
                    <> loadCode
@@ -134,7 +145,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
              _ -> do
                bindArgs $ zip args argLocs
                label <- newLabel
-               emit $ startLabel label
+               emit $ emitStartLine <> startLabel label
                withSelfLoop (id, label, argLocs) $ do
                  mapM_ bindFV (fvLocs True)
                  cgExpr body
@@ -142,7 +153,8 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            argLocs <- mapM newIdLoc args
            loadContext <- getContextLoc
-           emit $ enterTail loadContext
+           emit $ emitStartLine
+               <> enterTail loadContext
                <> gload thisFt 0
                <> loadContext
                <> mkCallEntry loadContext False False argLocs
@@ -151,7 +163,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
          withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
            let argLocs = argLocsFrom True 2 args
            loadContext <- getContextLoc
-           emit $ applyTail fts argLocs loadContext
+           emit $ emitStartLine <> applyTail fts argLocs loadContext
            case mFunRecIds of
              Just (n, funRecIds)
                | Just (target, loadCode, allArgFts) <-
@@ -174,7 +186,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
        | otherwise ->
          withMethod [Public, Final] "enter" [contextType] (ret closureType) $ do
            loadContext <- getContextLoc
-           emit $ enterTail loadContext
+           emit $ emitStartLine <> enterTail loadContext
            case mFunRecIds of
              Just (n, funRecIds)
                | let argLocs = argLocsFrom False 2 args
