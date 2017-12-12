@@ -77,7 +77,7 @@ getDependencies "template-haskell" = ["base", "eta-boot-th"]
 getDependencies _ = []
 
 ignoreList :: [String]
-ignoreList = ["eta-boot", "eta-boot-th", "eta-repl"]
+ignoreList = ["eta-boot", "eta-boot-th", "eta-repl", "eta-meta"]
 
 topologicalDepsSort :: [String] -> (String -> [String]) -> [String]
 topologicalDepsSort xs deps = sort' xs []
