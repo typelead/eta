@@ -280,11 +280,6 @@ public class Exception {
                         return false;
                     }
                     break;
-               case BlockedOnMVar:
-               case BlockedOnMVarRead:
-                   /* TODO: Figure out MVar story */
-                   barf("Unimplemented MVar");
-                   break;
                case BlockedOnBlackHole:
                    if (target.hasFlag(TSO_BLOCKEX)) {
                        target.blockedThrowTo(msg);
@@ -312,10 +307,17 @@ public class Exception {
                case BlockedOnRead:
                case BlockedOnWrite:
                case BlockedOnDelay:
-                   barf("Unimplemented IO manager");
+               case BlockedOnMVar:
+               case BlockedOnMVarRead:
+               case BlockedOnJavaCall:
+               case BlockedOnJavaCall_Interruptible:
+                   if (target.hasFlag(TSO_BLOCKEX) && !target.hasFlag(TSO_INTERRUPTIBLE)) {
+                       target.blockedThrowTo(msg);
+                       return false;
+                   }
                    break;
                default:
-                   barf("Unimplemented throwTo()");
+                   barf("Unimplemented throwTo(): " + target.whyBlocked);
             }
             break;
         } while (true);
