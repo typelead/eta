@@ -70,7 +70,8 @@ cgLneBinds (StgNonRec binder rhs) expr = do
   exprCode <- forkLneBody $ cgExpr expr
   let (bindLabel, argLocs) = expectJust "cgLneBinds:StgNonRec"
                                         . maybeLetNoEscape $ info
-  emit $ fold (map storeDefault argLocs)
+  emit $ storeDefault targetLoc
+      <> fold (map storeDefault argLocs)
       <> letNoEscapeCodeBlocks label targetLoc [(bindLabel, bindCode)] exprCode
 
 cgLneBinds (StgRec pairs) expr = do
@@ -87,7 +88,8 @@ cgLneBinds (StgRec pairs) expr = do
   addBindings infos
   bindCodes <- sequence $ ($ n') <$> genBindCodes
   exprCode <- forkLneBody $ cgExpr expr
-  emit $ fold (fold (map (map storeDefault) argLocss))
+  emit $ storeDefault targetLoc
+      <> fold (fold (map (map storeDefault) argLocss))
       <> letNoEscapeCodeBlocks label targetLoc (zip labels bindCodes) exprCode
 
 cgLetNoEscapeRhsBody :: Id -> StgRhs -> Label -> Int -> CgLoc -> CodeGen (CgIdInfo, Int -> CodeGen Code)
@@ -108,8 +110,7 @@ cgLetNoEscapeClosure binder args body label target targetLoc = do
 
 letNoEscapeCodeBlocks :: Label -> CgLoc -> [(Int, Code)] -> Code -> Code
 letNoEscapeCodeBlocks label targetLoc labelledCode body =
-     storeDefault targetLoc
-  <> startLabel label
+     startLabel label
   <> intSwitch (loadLoc targetLoc) labelledCode (Just body)
 
 maybeLetNoEscape :: CgIdInfo -> Maybe (Int, [CgLoc])
