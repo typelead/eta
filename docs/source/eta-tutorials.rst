@@ -85,7 +85,7 @@ The above example can be imported as follows:
 
 .. code::
 
-   data {-# CLASS "eta.example.Counter" #-} Counter = Counter (Object# Counter)
+   data Counter = Counter @eta.example.Counter
      deriving Class
 
    foreign import java unsafe "@new" newCounter :: Java a Counter
@@ -121,7 +121,7 @@ General Syntax
 
 .. code::
 
-   data {-# CLASS "[class-name]" #-} X = X (Object# X)
+   data X = X @[class-name]
      deriving Class
 
 - ``[class-name]`` should be the fully qualified Java class name and ``X`` should
@@ -135,9 +135,9 @@ General Syntax
 
 .. code::
 
-   data {-# CLASS "java.lang.Integer" #-} JInteger = JInteger (Object# JInteger)
+   data JInteger = JInteger @java.lang.Integer
      deriving Class
-   data {-# CLASS "java.lang.Integer[]" #-} JIntegers = JIntegers (Object# JIntegers)
+   data JIntegers = JIntegers @java.lang.Integer[]
      deriving Class
 
 In this example, we're declaring JWTs for the ``java.lang.Integer`` class and the
@@ -145,9 +145,7 @@ In this example, we're declaring JWTs for the ``java.lang.Integer`` class and th
 
 .. note::
 
-   You may find the declaration syntax a bit cumbersome or even confusing. There is
-   work underway to make it
-   `a lot more pleasant <https://github.com/typelead/eta/issues/140>`_. If you have
+   You may find the declaration syntax a bit cumbersome or even confusing. If you have
    a preference of syntax, please let us know!
 
 Deriving Standard Typeclass Instances
@@ -157,7 +155,7 @@ Deriving Standard Typeclass Instances
 
 .. code::
 
-   data {-# CLASS "[class-name]" #-} X = X (Object# X)
+   data X = X @[class-name]
      deriving (Class, Eq, Show)
 
 Currently, deriving the ``Class``, ``Eq``, and ``Show`` instances for JWTs is
@@ -365,7 +363,7 @@ class.
 
 The following are all equivalent ways of performing the import::
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
 
   foreign import java unsafe canExecute :: Java File Bool
@@ -383,7 +381,7 @@ class.
 
 The following are all equivalent ways of performing the import::
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
 
   foreign import java unsafe "@static java.io.File.createTempFile"
@@ -403,7 +401,7 @@ class.
 
 The following are all equivalent ways of performing the import::
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
   foreign import java unsafe "@new" newFile  :: String -> Java a File
   foreign import java unsafe "@new" newFile1 :: String -> IO File
@@ -418,7 +416,7 @@ are purely for illustration purposes and will throw an exception if called becau
 
 The following are all equivalent ways of performing the get/set imports::
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
   -- Imports for getting the field
   foreign import java unsafe "@field path" getFilePath  :: Java File String
@@ -625,11 +623,11 @@ Example
 
     import Java
 
-    data {-# CLASS "java.lang.Integer" #-} JInteger
+    data JInteger = JInteger @java.lang.Integer
       = JInteger (Object# JInteger)
       deriving (Class, Show)
 
-    data {-# CLASS "java.lang.Integer[]" #-} JIntegerArray
+    data JIntegerArray = JIntegerArray @java.lang.Integer[]
       = JIntegerArray (Object# JIntegerArray)
       deriving Class
 
@@ -664,7 +662,7 @@ Using the imports from :ref:`java-imports-examples`,
 
   foreign import java unsafe toString :: Object -> String
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
 
   main :: IO ()
@@ -733,11 +731,11 @@ The ``Inherits`` type family takes a JWT and returns a type-level list of JWTs.
 
    {-# LANGUAGE TypeFamilies, DataKinds #-}
 
-   data {-# CLASS "java.io.Serializable" #-} Serializable
-     = Serializable (Object# Serializable)
+   data Serializable
+     = Serializable @java.io.Serializable
      deriving Class
 
-   data {-# CLASS "java.io.File" #-} File = File (Object# File)
+   data File = File @java.io.File
      deriving Class
 
    type instance Inherits File = '[Object, Serializable]
@@ -758,7 +756,7 @@ The problematic code above can now be fixed::
 
   foreign import java unsafe toString :: (a <: Object) => a -> String
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
 
   type instance Inherits File = '[Object]
@@ -775,7 +773,7 @@ We can even change the code above to use the `Java` monad::
 
   foreign import java unsafe toString :: (a <: Object) => Java a String
 
-  data {-# CLASS "java.io.File" #-} File = File (Object# File)
+  data File = File @java.io.File
     deriving Class
 
   type instance Inherits File = '[Object]
@@ -802,7 +800,7 @@ just add some type parameter.
 
 .. code::
 
-  data {-# CLASS "java.util.List" #-} List a = List (Object# (List a))
+  data List a = List (@java.util.List a)
     deriving Class
 
 Importing Generic Methods
@@ -835,8 +833,7 @@ We'll be importing `ClientInfoStatus <https://docs.oracle.com/javase/7/docs/api/
 
 .. code::
 
-  data {-# CLASS "java.sql.ClientInfoStatus" #-}
-    ClientInfoStatus = ClientInfoStatus (Object# ClientInfoStatus)
+  data ClientInfoStatus = ClientInfoStatus @java.sql.ClientInfoStatus
     deriving Class
 
   type instance Inherits ClientInfoStatus = '[Enum ClientInfoStatus]
@@ -860,7 +857,7 @@ Some methods in Java, like the method `java.util.Formatter.format <https://docs.
 with signature ``Formatter (String format, Object.. args)``, take variable arguments. Variable arguments
 are simply arrays, hence can be imported easily::
 
-  data {-# CLASS "java.util.Formatter #-"} Formatter = Formatter (Object# Formatter)
+  data Formatter = Formatter @java.util.Formatter
     deriving Class
 
   -- Note that we didn't have to import `Object[]` because JObjectArray already exists
@@ -901,7 +898,7 @@ list with a helper function.
 
 .. code::
 
-   data {-# CLASS "java.io.File[]" #-} Files = Files (Object# Files)
+   data Files = Files @java.io.File[]
      deriving Class
 
    -- Declare that `Files` is an array type with element type `File`.
@@ -953,13 +950,13 @@ Eta functions and implement these interfaces.
 Suppose we try to make an implementation of `Runnable <https://docs.oracle.com/javase/7/docs/api/java/lang/Runnable.html>`_
 in Eta::
 
-  data {-# CLASS "java.lang.Runnable" #-} Runnable = Runnable (Object# Runnable)
+  data Runnable = Runnable @java.lang.Runnable
     deriving Class
 
   foreign import java unsafe "@wrapper run"
     runnable :: Java Runnable () -> Runnable
 
-  data {-# CLASS "java.lang.Thread" #-} Thread = Thread (Object# Thread)
+  data Thread = Thread @java.lang.Thread
     deriving Class
 
   foreign import java unsafe "@new" newThread :: Runnable -> Java a Thread
@@ -981,7 +978,7 @@ The import would look like so:
 
 .. code::
 
-  data {-# CLASS "java.util.function.Function" #-} Function t r = Function (Object# (Function t r))
+  data Function t r = Function (@java.util.function.Function t r)
     deriving Class
 
   foreign import java unsafe "@wrapper apply"
@@ -1275,18 +1272,15 @@ changes:
       import Java
 
       -- Imports from the Unirest API
-      data {-# CLASS "com.mashape.unirest.request.BaseRequest" #-}
-        BaseRequest = BR (Object# BaseRequest)
+      data BaseRequest = BR @com.mashape.unirest.request.BaseRequest
         deriving Class
 
-      data {-# CLASS "com.mashape.unirest.request.GetRequest" #-}
-        GetRequest = GR (Object# GetRequest)
+      data GetRequest = GR @com.mashape.unirest.request.GetRequest
         deriving Class
 
       type instance Inherits GetRequest = '[BaseRequest]
 
-      data {-# CLASS "com.mashape.unirest.http.HttpResponse" #-}
-        HttpResponse a = HResp (Object# (HttpResponse a))
+      data HttpResponse a = HResp (com.mashape.unirest.http.HttpResponse a)
         deriving Class
 
       foreign import java unsafe "@static com.mashape.unirest.http.Unirest.shutdown"
@@ -1321,7 +1315,7 @@ Let us look at some more examples of exporting Eta methods to Java.
 Example 1
 ^^^^^^^^^
 
-In this example we are going to export the `Pipes <https://hackage.haskell.org/package/pipes>`_ library. Pipes 
+In this example we are going to export the `Pipes <https://hackage.haskell.org/package/pipes>`_ library. Pipes
 is a powerful stream processing library in Haskell. Let us go ahead and start with creating an ``etlas`` project.
 
 .. code-block:: console
@@ -1412,9 +1406,9 @@ Now let us try to run this. Assuming that you are still at the root of the proje
       javac -cp ":/<your absolute file path here>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test.java
       java -cp ".:/<your absolute file path here>/pipes-test/dist/build/pipes-test/pipes-test.jar" Test
 
-You will get the console waiting for input. The moment you type something ad press Enter, it consumes that 
+You will get the console waiting for input. The moment you type something ad press Enter, it consumes that
 and emits that into the output stream, one at a time. After the third input it will say "You shall not pass!"
-and terminates the program. So through this example we were not only able to delegate the entire library from 
+and terminates the program. So through this example we were not only able to delegate the entire library from
 Eta, but also the input and output parts too.
 
 
