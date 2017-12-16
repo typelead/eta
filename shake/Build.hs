@@ -245,7 +245,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       libs <- getLibs
       forM_ libs $ \lib -> do
         let libDir = libraryDir </> lib
-        unit $ cmd (Cwd libDir) (Stdin "n") "etlas clean"
+        unit $ cmd (Cwd libDir) "etlas clean"
 
     rtsjar %> \out -> do
       createDirIfMissing rtsBuildDir
