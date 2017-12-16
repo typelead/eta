@@ -54,7 +54,7 @@ cgExpr (StgLetNoEscape _ _ binds expr) =
   cgLneBinds binds expr
 
 cgExpr (StgCase expr _ _ binder _ altType alts) =
-  traceCg (str "StgCase" <+> ppr expr <+> ppr binder <+> ppr altType) >>
+  traceCg (str "StgCase" <+> ppr binder <+> ppr altType) >>
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 
