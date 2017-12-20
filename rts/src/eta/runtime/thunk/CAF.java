@@ -34,7 +34,7 @@ public class CAF extends Thunk {
                 try {
                     result = thunkEnter(context);
                 } catch (java.lang.Exception e) {
-                    if (Thunk.handleException(e, tso, ui)) continue;
+                    if (Thunk.handleException(context, e, ui)) continue;
                 } finally {
                     context.popUpdate();
                     context.trampoline = trampoline;

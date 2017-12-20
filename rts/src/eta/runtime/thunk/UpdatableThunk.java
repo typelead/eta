@@ -23,7 +23,7 @@ public abstract class UpdatableThunk extends Thunk {
                 try {
                     result = thunkEnter(context);
                 } catch (Exception e) {
-                    if (Thunk.handleException(e, context.currentTSO, ui)) continue;
+                    if (Thunk.handleException(context, e, ui)) continue;
                 } finally {
                     context.popUpdate();
                     context.trampoline = trampoline;

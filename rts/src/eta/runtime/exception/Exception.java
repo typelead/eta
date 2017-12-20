@@ -128,6 +128,7 @@ public class Exception {
         try {
             result = io.applyV(context);
         } catch (java.lang.Exception e) {
+            context.raise = null;
             boolean unmask = false;
             Closure exception = null;
             boolean async = e instanceof EtaAsyncException;
@@ -161,10 +162,6 @@ public class Exception {
                          for us. Maybe we should do something based on whether the
                          current tso owns the thunk? -RM */
                 tso.whatNext = ThreadRun;
-            } else {
-                /* NOTE: This will replace all the thunks above this update frame
-                         to point to a Raise(exception) thunk. */
-                tso.updateInfoStack.raiseExceptionAfter(context.myCapability, tso, new Raise(exception), ui);
             }
             result = handler.apply1V(context, exception);
             if (unmask) {

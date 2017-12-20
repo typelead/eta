@@ -38,13 +38,11 @@ public class UpdateInfoStack {
     }
 
     private final UpdateInfo acquireUpdateInfo(Thunk updatee) {
-        UpdateInfo ui;
         if (free != null) {
-            ui = grabFreeUpdateInfo(updatee);
+            return grabFreeUpdateInfo(updatee);
         } else {
-            ui = new UpdateInfo(updatee);
+            return new UpdateInfo(updatee);
         }
-        return ui;
     }
 
     private final UpdateInfo grabFreeUpdateInfo(Thunk updatee) {
@@ -83,21 +81,6 @@ public class UpdateInfoStack {
     public final void clear() {
         top    = null;
         bottom = null;
-    }
-
-    public final void raiseExceptionAfter(Capability cap, TSO tso, Closure raise, UpdateInfo ui) {
-        top = ui;
-        if (ui != null) ui = ui.next;
-        else ui = bottom;
-        if (top != null) {
-            top.next = null;
-        } else {
-            bottom = null;
-        }
-        while (ui != null) {
-            ui.updatee.updateThunk(cap, tso, raise);
-            ui = ui.next;
-        }
     }
 
     public final UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {

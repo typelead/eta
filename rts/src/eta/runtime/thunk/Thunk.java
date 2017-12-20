@@ -16,9 +16,10 @@ import eta.runtime.stg.TSO;
 import eta.runtime.util.UnsafeUtil;
 import eta.runtime.message.MessageBlackHole;
 import eta.runtime.exception.Exception;
-import eta.runtime.exception.StgException;
 import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
+import eta.runtime.exception.Raise;
+import eta.runtime.exception.StgException;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
@@ -288,20 +289,29 @@ public abstract class Thunk extends Closure {
             && !Modifier.isStatic(f.getModifiers());
     }
 
-    protected static boolean handleException(java.lang.Exception e, TSO tso, UpdateInfo ui) {
+    protected static boolean handleException(StgContext context, java.lang.Exception e, UpdateInfo ui) {
+        StgException thrw = null;
         if (e instanceof EtaAsyncException) {
             EtaAsyncException ea = (EtaAsyncException) e;
             if (ea.stopHere == ui) {
                 return true;
             } else {
-                throw ea;
+                thrw = ea;
             }
         } else {
             if (e instanceof StgException) {
-                throw (StgException)e;
+                thrw = (StgException)e;
             } else {
-                throw Exception.toEtaException(tso, e);
+                thrw = Exception.toEtaException(context.currentTSO, e);
             }
         }
+        if (thrw instanceof EtaException) {
+            Closure raise = context.raise;
+            if (raise == null) {
+                context.raise = raise = new Raise(((EtaException) thrw).exception);
+            }
+            ui.updatee.updateCode(context, raise);
+        } //TODO: Handle EtaAsyncExceptions?
+        throw thrw;
     }
 }
