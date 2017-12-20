@@ -534,7 +534,7 @@ openNewFile filepath binary mode = do
   fd <- c_open f oflags mode
   return (NewFileCreated (superCast fd))
 
-foreign import java "@static java.io.File.pathSeparatorChar"
+foreign import java "@static @field java.io.File.pathSeparatorChar"
   pathSeparator' :: JChar
 
 pathSeparator :: Char
