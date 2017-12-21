@@ -299,6 +299,7 @@ encode_as_unicode_char c = 'z' : if isDigit (head hex_str) then hex_str
   -- eg. strings of unicode characters come out as 'z1234Uz5678U', we
   -- could remove the 'U' in the middle (the 'z' works as a separator).
 
+-- NOTE: This should be kept in sync with eta.runtime.stg.Print.zdecode.
 zDecodeString :: EncodedString -> UserString
 zDecodeString [] = []
 zDecodeString ('Z' : d : rest)

@@ -38,4 +38,14 @@ public abstract class DataCon extends Value {
         barf(this + ": getD not implemented!");
         return 0.0;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        Class<? extends DataCon> clazz = getClass();
+        // TODO: Maybe make this a fully qualified name?
+        sb.append(Print.getClosureName(clazz));
+        Print.writeFields(sb, clazz, this, false);
+        return sb.toString();
+    }
 }

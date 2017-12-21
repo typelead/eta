@@ -387,4 +387,9 @@ public class PAPSlow extends PAP {
                                    ArgumentStack.createFromP(argStack, p1, p2, p3, p4, p5, p6));
         }
     }
+
+    @Override
+    protected void writeArgs(StringBuilder sb) {
+        sb.append(argStack.toString());
+    }
 }

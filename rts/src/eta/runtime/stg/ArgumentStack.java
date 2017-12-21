@@ -239,4 +239,31 @@ public class ArgumentStack implements Cloneable {
         System.out.println("D" + Arrays.toString(doubles));
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        if (closures != null && closures.length > 0) {
+            Print.writeObjectField(sb, closures[0]);
+            for (int i = 1; i < closures.length; i++) {
+                sb.append(' ');
+                Print.writeObjectField(sb, closures[i]);
+            }
+        }
+        if (objects != null && objects.length > 0) {
+            sb.append(Arrays.toString(objects));
+        }
+        if (ints != null && ints.length > 0) {
+            sb.append(Arrays.toString(ints));
+        }
+        if (longs != null && longs.length > 0) {
+            sb.append(Arrays.toString(longs));
+        }
+        if (floats != null && floats.length > 0) {
+            sb.append(Arrays.toString(floats));
+        }
+        if (doubles != null && doubles.length > 0) {
+            sb.append(Arrays.toString(doubles));
+        }
+        return sb.toString();
+    }
 }

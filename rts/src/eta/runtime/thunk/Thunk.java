@@ -1,13 +1,11 @@
 package eta.runtime.thunk;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-
 import java.util.Queue;
-import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
@@ -249,44 +247,15 @@ public abstract class Thunk extends Closure {
         revertibleCAFList.clear();
     }
 
-    /* Used to facilitate the free variable clearing code and caches the field
-       lookups to reduce the cost of reflection. */
-    public static WeakHashMap<Class<?>, Field[]> thunkFieldsCache
-      = new WeakHashMap<Class<?>, Field[]>();
-
     /* Clears out the free variables of a thunk using reflection to free up the
        strong references of an evaluated thunk. */
     public void clear() {
-        Class<?> thisClass = getClass();
-        Field[] fields = thunkFieldsCache.get(thisClass);
-        int i = 0;
-        if (fields == null) {
-            Field[] lookupFields = thisClass.getFields();
-            for (Field f:lookupFields) {
-                if (canClearField(f)) {
-                    i++;
-                }
-            }
-            fields = new Field[i];
-            i = 0;
-            for (Field f:lookupFields) {
-                if (canClearField(f)) {
-                    fields[i++] = f;
-                }
-            }
-            thunkFieldsCache.put(thisClass, fields);
-        }
-        for (Field f:fields) {
+        Field[] fields = Thunks.lookupFields(getClass());
+        for (Field f: fields) {
             try {
                 f.set(this, null);
             } catch (IllegalAccessException e) {}
         }
-    }
-
-    private static boolean canClearField(Field f) {
-        return !f.getName().equals("indirectee")
-            && !f.getType().isPrimitive()
-            && !Modifier.isStatic(f.getModifiers());
     }
 
     protected static boolean handleException(StgContext context, java.lang.Exception e, UpdateInfo ui) {
@@ -313,5 +282,21 @@ public abstract class Thunk extends Closure {
             ui.updatee.updateCode(context, raise);
         } //TODO: Handle EtaAsyncExceptions?
         throw thrw;
+    }
+
+    @Override
+    public String toString() {
+        Closure indirectee = this.indirectee;
+        if (indirectee instanceof Value) {
+            return indirectee.toString();
+        } else {
+            StringBuilder sb = new StringBuilder();
+            Class<? extends Thunk> clazz = getClass();
+            // TODO: Maybe make this a fully qualified name?
+            sb.append(Print.getClosureName(clazz));
+            sb.append("[_]");
+            Print.writeFields(sb, clazz, this, true);
+            return sb.toString();
+        }
     }
 }

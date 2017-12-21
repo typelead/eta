@@ -1,5 +1,6 @@
 package eta.runtime.apply;
 
+import eta.runtime.stg.Print;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
@@ -118,5 +119,10 @@ public class PAP1_1 extends PAP {
         Closure result = fun.apply2(context, this.p, p1);
         context.trampoline = old;
         return result.apply5(context, p2, p3, p4, p5, p6);
+    }
+
+    @Override
+    protected void writeArgs(StringBuilder sb) {
+        Print.writeObjectField(sb, p);
     }
 }
