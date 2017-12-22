@@ -1,5 +1,6 @@
 package eta.runtime.io;
 
+import java.util.Arrays;
 import java.util.TreeMap;
 import java.util.Map;
 import java.nio.ByteBuffer;
@@ -34,6 +35,14 @@ public final class ByteArray extends Value {
     private ByteArray(long bufferAddress, int size) {
         this.size          = size;
         this.bufferAddress = bufferAddress;
+    }
+
+    @Override
+    public String toString() {
+        ByteBuffer buf = MemoryManager.getBoundedBuffer(bufferAddress);
+        byte[] bytes = new byte[size];
+        buf.get(bytes);
+        return "ByteArray " + Arrays.toString(bytes);
     }
 
     public static void copyAddrToByteArray( long srcAddress, ByteArray destArray
