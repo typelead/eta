@@ -115,7 +115,7 @@ public class PAPSlow extends PAP {
 
     @Override
     public Closure applyN(StgContext context, int n) {
-        ArgumentStack stack = ArgumentStack.createFrom(null, n);
+        ArgumentStack stack = ArgumentStack.createFrom(argStack, n);
         if (arity == 1) {
             return apply(context, stack);
         } else {
