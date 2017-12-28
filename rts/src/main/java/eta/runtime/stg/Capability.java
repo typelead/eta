@@ -2,6 +2,7 @@ package eta.runtime.stg;
 
 import java.util.List;
 import java.util.LinkedList;
+import java.util.TreeMap;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Queue;
@@ -29,6 +30,7 @@ import eta.runtime.message.MessageThrowTo;
 import eta.runtime.message.MessageShutdown;
 import eta.runtime.message.MessageWakeup;
 import eta.runtime.parallel.Parallel;
+import eta.runtime.storage.Block;
 import eta.runtime.thunk.BlockingQueue;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
@@ -58,18 +60,23 @@ public final class Capability {
     public static Capability getLocal(boolean worker) {
         Capability cap = myCapability.get();
         if (cap == null) {
-            cap = new Capability(Thread.currentThread(), worker);
-            if (worker) {
-                workerCapabilities.add(cap);
-                cap.id = workerCapNextId.getAndIncrement();
-            } else {
-                /* TODO: Use a concurrent data structure for capabilities */
-                synchronized (capabilities) {
-                    capabilities.add(cap);
-                    cap.id = capabilities.size() - 1;
-                }
-            }
+            cap = Capability.create(worker);
             myCapability.set(cap);
+        }
+        return cap;
+    }
+
+    private static Capability create(boolean worker) {
+        Capability cap = new Capability(Thread.currentThread(), worker);
+        if (worker) {
+            workerCapabilities.add(cap);
+            cap.id = workerCapNextId.getAndIncrement();
+        } else {
+            /* TODO: Use a concurrent data structure for capabilities */
+            synchronized (capabilities) {
+                capabilities.add(cap);
+                cap.id = capabilities.size() - 1;
+            }
         }
         return cap;
     }
@@ -92,6 +99,12 @@ public final class Capability {
     public StgContext context   = new StgContext();
     public Deque<TSO> runQueue  = new LinkedList<TSO>();
     public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
+
+    /* MemoryManager related stuff */
+    public Block currentDirectBlock;
+    public Block currentHeapBlock;
+    public TreeMap<Integer, Block> freeDirectBlocks = new TreeMap<Integer, Block>();
+    public TreeMap<Integer, Block> freeHeapBlocks   = new TreeMap<Integer, Block>();
 
     public Capability(Thread t, boolean worker) {
         this.thread = new WeakReference<Thread>(t);
@@ -587,4 +600,42 @@ public final class Capability {
         }
     }
 
+    public final void setCurrentBlock(Block block, boolean direct) {
+        if (direct) {
+            currentDirectBlock = block;
+        } else {
+            currentHeapBlock = block;
+        }
+    }
+
+    public final void insertFreeBlock(Block block, boolean direct) {
+        int size = block.remaining();
+        if (size > 0) {
+            TreeMap<Integer, Block> freeBlocks = (direct? freeDirectBlocks: freeHeapBlocks);
+            block.setLink(freeBlocks.get(size));
+            freeBlocks.put(size, block);
+        }
+    }
+
+    /* The Capability will attempt to allocate the data with the local resources
+       it has. */
+    public final long allocateLocal(int n, boolean direct) {
+        Block block = direct? currentDirectBlock : currentHeapBlock;
+        long address = block.allocate(n, this);
+        if (address == 0) {
+            TreeMap<Integer, Block> freeBlocks = (direct? freeDirectBlocks: freeHeapBlocks);
+            block = freeBlocks.floorEntry(n).getValue();
+            if (block == null) return 0;
+            Block next = block.getLink();
+            int blockSize = block.remaining();
+            if (next != null) {
+                freeBlocks.put(blockSize, next);
+            } else {
+                freeBlocks.remove(blockSize);
+            }
+            address = block.allocate(n, this);
+            insertFreeBlock(block, direct);
+        }
+        return address;
+    }
 }

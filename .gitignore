@@ -18,3 +18,4 @@ result
 utils/scripts/lib/
 release.log
 binaries/
+.gradle

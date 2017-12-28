@@ -20,7 +20,7 @@ rtsDir, libraryDir, rtsBuildDir, rtsSrcDir, rtsjar :: FilePath
 rtsDir = "rts"
 libraryDir = "libraries"
 rtsBuildDir = rtsDir </> "build"
-rtsSrcDir = rtsDir </> "src"
+rtsSrcDir = rtsDir </> "src" </> "main" </> "java"
 rtsjar = libJarPath "rts"
 
 library, genBuild, top, packageConfDir, libCustomBuildDir, libJarPath,
