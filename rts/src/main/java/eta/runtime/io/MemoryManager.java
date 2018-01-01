@@ -105,6 +105,10 @@ public class MemoryManager {
         return getBlock(address).getBoundedBuffer(address);
     }
 
+    public static int allocatedSize(long address) {
+        return getBlock(address).allocatedSize(address);
+    }
+
     /** Read APIs **/
     public static byte get(long address) {
         return getBlock(address).get(address);

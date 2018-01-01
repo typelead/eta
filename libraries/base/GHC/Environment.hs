@@ -7,7 +7,7 @@ module GHC.Environment (getFullArgs) where
 import GHC.Base
 import GHC.Pack
 import Java
-import Java.String
+import Java.StringBase
 
 getFullArgs :: IO [String]
 getFullArgs = do

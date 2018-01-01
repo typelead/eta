@@ -45,6 +45,7 @@ import GHC.Show
 import GHC.Real
 import System.IO.Unsafe (unsafePerformIO)
 import System.Posix.Internals
+import Java.StringBase
 
 c_DEBUG_DUMP :: Bool
 c_DEBUG_DUMP = False
@@ -66,8 +67,7 @@ localeEncodingName = unsafePerformIO $ c_localeEncoding
 type IConv = CLong -- ToDo: (#type iconv_t)
 
 foreign import java unsafe "@static eta.base.HSIConv.hs_iconv_open"
-  hs_iconv_open :: CString -> CString -> IO IConv
-
+  hs_iconv_open :: String -> String -> IO IConv
 
 foreign import java unsafe "@static eta.base.HSIConv.hs_iconv_close"
   hs_iconv_close :: IConv -> IO CInt
@@ -114,20 +114,17 @@ newIConv :: String -> String
    -> (Buffer a -> Buffer b -> IO (Buffer a, Buffer b))
    -> (IConv -> Buffer a -> Buffer b -> IO (CodingProgress, Buffer a, Buffer b))
    -> IO (BufferCodec a b ())
-newIConv from to rec fn =
-  -- Assume charset names are ASCII
-  withCAString from $ \ from_str ->
-  withCAString to   $ \ to_str -> do
-    iconvt <- throwErrnoIfMinus1 "mkTextEncoding" $ hs_iconv_open to_str from_str
-    let iclose = throwErrnoIfMinus1_ "Iconv.close" $ hs_iconv_close iconvt
-    return BufferCodec{
-                encode = fn iconvt,
-                recover = rec,
-                close  = iclose,
-                -- iconv doesn't supply a way to save/restore the state
-                getState = return (),
-                setState = const $ return ()
-                }
+newIConv from to rec fn = do
+  iconvt <- throwErrnoIfMinus1 "mkTextEncoding" $ hs_iconv_open to from
+  let iclose = throwErrnoIfMinus1_ "Iconv.close" $ hs_iconv_close iconvt
+  return BufferCodec{
+              encode = fn iconvt,
+              recover = rec,
+              close  = iclose,
+              -- iconv doesn't supply a way to save/restore the state
+              getState = return (),
+              setState = const $ return ()
+              }
 
 iconvDecode :: IConv -> DecodeBuffer
 iconvDecode iconv_t ibuf obuf = iconvRecode iconv_t ibuf 0 obuf char_shift

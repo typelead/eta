@@ -102,7 +102,6 @@ import GHC.Real
 -- import GHC.Prim
 import GHC.Read
 import GHC.Show
-import {-# SOURCE #-} Java.Array (JArray)
 import Java.Utils hiding (Enum)
 import Java.Core
 
@@ -204,8 +203,6 @@ data {-# CLASS "java.nio.file.OpenOption[]" #-}
   OpenOptionArray = OpenOptionArray (Object# OpenOptionArray)
   deriving Class
 
-instance JArray OpenOption OpenOptionArray
-
 -- End java.nio.file.OpenOption
 
 -- Start java.nio.file.attribute.FileAttribute
@@ -221,8 +218,6 @@ data {-# CLASS "java.nio.file.attribute.FileAttribute" #-}
 data {-# CLASS "java.nio.file.attribute.FileAttribute[]" #-}
   FileAttributeArray = FileAttributeArray (Object# FileAttributeArray)
   deriving Class
-
-instance JArray FileAttribute FileAttributeArray
 
 -- End java.nio.file.attribute.FileAttributeArray
 

@@ -50,7 +50,7 @@ import System.Posix.Internals (withFilePath)
 import GHC.Pack
 import System.Environment.ExecutablePath
 import Java
-import Java.String
+import Java.StringBase
 import Java.Collections
 
 -- | Computation 'getArgs' returns a list of the program's command

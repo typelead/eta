@@ -40,10 +40,8 @@ import GHC.List
 import GHC.Read
 import Text.Read (read)
 import GHC.Show
-import Control.Monad
-import Control.Applicative
 import Java.Core
-import Java.String
+import Java.StringBase
 import Java.Utils
 
 -- Collection
@@ -60,7 +58,7 @@ toCollection :: (Extends a Object, Extends b (Collection a))
              => (forall c. Int -> Java c b) -> [a] -> b
 toCollection f xs = pureJava $ do
   coll <- f (length xs)
-  withObject coll $ mapM_ add xs
+  _ <- withObject coll $ mapM add xs
   return coll
 
 instance Extends a Object => JavaConverter [a] (Collection a) where
@@ -193,7 +191,7 @@ fromDictionary :: (Extends k Object, Extends v Object)
                => Dictionary k v -> [(k, v)]
 fromDictionary dict = pureJavaWith dict $ do
   ks <- keys
-  forM (fromJava ks) $ \k -> do
+  flip mapM (fromJava ks) $ \k -> do
     v <- get (superCast k)
     return (k, v)
 
@@ -215,8 +213,8 @@ foreign import java unsafe "@new" newHashtable
 toHashtable :: (Extends k Object, Extends v Object) => [(k, v)] -> Hashtable k v
 toHashtable elems = pureJava $ do
   ht <- newHashtable (length elems)
-  withObject ht $
-    forM_ elems $ \(k, v) ->
+  _ <- withObject ht $
+    flip mapM elems $ \(k, v) ->
       put k v
   return ht
 
@@ -236,8 +234,11 @@ foreign import java unsafe "@interface getValue" getValue
 fromMap :: forall k v. (Extends k Object, Extends v Object) => Map k v -> [(k, v)]
 fromMap m = pureJavaWith m $ do
   (set :: Set (MapEntry k v)) <- entrySet
-  forM (fromJava set) $ \me ->
-    withObject me $ (,) <$> getKey <*> getValue
+  flip mapM (fromJava set) $ \me -> do
+    withObject me $ do
+      key <- getKey
+      val <- getValue
+      return (key, val)
 
 instance (Extends k Object, Extends v Object)
   => JavaConverter [(k, v)] (Map k v) where
@@ -256,8 +257,8 @@ foreign import java unsafe "@new" newHashMap
 toHashMap :: (Extends k Object, Extends v Object) => [(k, v)] -> HashMap k v
 toHashMap elems = pureJava $ do
   ht <- newHashMap (length elems)
-  withObject ht $
-    forM_ elems $ \(k, v) ->
+  _ <- withObject ht $
+    flip mapM elems $ \(k, v) ->
       put k v
   return ht
 
@@ -303,15 +304,15 @@ foreign import java unsafe setProperty
 toProperties :: [(String, String)] -> Properties
 toProperties props = pureJava $ do
   props' <- newProperties
-  withObject props' $ do
-    forM_ props $ \(key, val) ->
+  _ <- withObject props' $ do
+    flip mapM props $ \(key, val) ->
       setProperty key val
   return props'
 
 fromProperties :: Properties -> [(String, String)]
 fromProperties props = pureJavaWith props $ do
   properties <- stringPropertyNames
-  forM (fromJava properties) $ \key -> do
+  flip mapM (fromJava properties) $ \key -> do
     val <- getProperty key
     return (fromJava key, val)
 

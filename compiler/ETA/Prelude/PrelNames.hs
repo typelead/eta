@@ -489,7 +489,7 @@ gHC_FINGERPRINT_TYPE :: Module
 gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
 
 jAVA_STRING, jAVA_UTILS :: Module
-jAVA_STRING = mkBaseModule (fsLit "Java.String")
+jAVA_STRING = mkBaseModule (fsLit "Java.StringBase")
 jAVA_UTILS  = mkBaseModule (fsLit "Java.Utils")
 
 mAIN, rOOT_MAIN :: Module

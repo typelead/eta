@@ -80,6 +80,12 @@ public class Block {
         return (ByteBuffer) buffer.duplicate().position((int)(address - startAddress));
     }
 
+    public final int allocatedSize(long address) {
+        int miniBlockSize = getMiniBlockSize();
+        return av.allocatedSize((int)(address - startAddress) / miniBlockSize)
+             * miniBlockSize;
+    }
+
     /* Reading from/writing to memory. */
     public final byte get(long address) {
         return buffer.get((int)(address - startAddress));

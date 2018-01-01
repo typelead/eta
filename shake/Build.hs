@@ -28,6 +28,7 @@ library, genBuild, top, packageConfDir, libCustomBuildDir, libJarPath,
 library x = libraryDir </> x
 genBuild x = x </> "build"
 top x = "../../../../" ++ x
+top2 x = "../../" ++ x
 packageConfDir dir = dir </> "package.conf.d"
 libCustomBuildDir lib = libraryDir </> lib </> "build"
 libName lib = "HS" ++ lib ++ ".jar"
@@ -254,4 +255,4 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       let javacFlags = (if debug then ["-g"] else []) ++ ["-Xlint:-options", "-source", "1.7", "-target", "1.7"]
       unit $ cmd (Cwd rtsSrcDir) "javac" "-XDignore.symbol.file" javacFlags "-d" (top rtsBuildDir) cs
       classfiles <- getDirectoryFiles rtsBuildDir ["//*.class"]
-      unit $ cmd (Cwd rtsBuildDir) "jar cf" (top out) classfiles
+      unit $ cmd (Cwd rtsBuildDir) "jar cf" (top2 out) classfiles

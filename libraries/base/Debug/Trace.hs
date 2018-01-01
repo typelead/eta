@@ -76,20 +76,17 @@ import Data.List
 -- @since 4.5.0.0
 traceIO :: String -> IO ()
 traceIO msg = do
-    withCString "%s" $ \cfmt -> do
-     -- NB: debugBelch can't deal with null bytes, so filter them
-     -- out so we don't accidentally truncate the message.  See Trac #9395
-     let (nulls, msg') = partition (=='\0') msg
-     withCString msg' $ \cmsg ->
-      debugBelch cfmt cmsg
-     when (not (null nulls)) $
-       withCString "WARNING: previous trace message had null bytes" $ \cmsg ->
-         debugBelch cfmt cmsg
+  -- NB: debugBelch can't deal with null bytes, so filter them
+  -- out so we don't accidentally truncate the message.  See Trac #9395
+  let (nulls, msg') = partition (=='\0') msg
+  debugBelch "%s" msg'
+  when (not (null nulls)) $
+    debugBelch "%s" "WARNING: previous trace message had null bytes"
 
 -- don't use debugBelch() directly, because we cannot call varargs functions
 -- using the FFI.
 foreign import java unsafe "@static eta.base.Utils.debugBelch"
-  debugBelch :: CString -> CString -> IO ()
+  debugBelch :: String -> String -> IO ()
 
 -- |
 putTraceMsg :: String -> IO ()

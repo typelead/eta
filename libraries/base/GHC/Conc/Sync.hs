@@ -119,6 +119,7 @@ import GHC.Ptr
 import GHC.Real         ( fromIntegral )
 import GHC.Show         ( Show(..), showString )
 import GHC.Weak
+import Java.StringBase
 
 infixr 0 `par`, `pseq`
 
@@ -886,14 +887,12 @@ uncaughtExceptionHandler = unsafePerformIO (newIORef defaultHandler)
                _ -> case cast ex of
                       Just (ErrorCall s) -> s
                       _                  -> showsPrec 0 se ""
-         withCString "%s" $ \cfmt ->
-          withCString msg $ \cmsg ->
-            errorBelch cfmt cmsg
+         errorBelch "%s" msg
 
 -- don't use errorBelch() directly, because we cannot call varargs functions
 -- using the FFI.
 foreign import java unsafe "@static eta.base.Utils.errorBelch"
-  errorBelch :: CString -> CString -> IO ()
+  errorBelch :: String -> String -> IO ()
 
 setUncaughtExceptionHandler :: (SomeException -> IO ()) -> IO ()
 setUncaughtExceptionHandler = writeIORef uncaughtExceptionHandler

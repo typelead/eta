@@ -235,7 +235,9 @@ Library
         Java.Exception
         Java.Math
         Java.Primitive
+        Java.PrimitiveBase
         Java.String
+        Java.StringBase
         Java.TopHandler
         Java.Utils
         Java.Wrappers

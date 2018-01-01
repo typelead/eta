@@ -33,8 +33,8 @@ import GHC.Show
 import GHC.Int
 import GHC.Real
 import Java.Core
-import Java.Primitive
-import Java.String
+import Java.PrimitiveBase
+import Java.StringBase
 import Java.Array
 
 data {-# CLASS "java.lang.Boolean" #-} JBoolean = JBoolean (Object# JBoolean)

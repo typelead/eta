@@ -20,7 +20,7 @@ module Java.Math where
 import GHC.Base
 import GHC.Int
 import Java.Array
-import Java.Primitive
+import Java.PrimitiveBase
 import Java.Wrappers
 
 -- Start java.math.BigDecimal

@@ -37,8 +37,7 @@ where
 
 import GHC.Base
 import Data.Int(Int64)
-import System.IO.Unsafe(unsafePerformIO)
--- import Java.Primitive
+import GHC.IO(unsafePerformIO)
 
 foreign import java unsafe "@new" globalObject :: Object
 

@@ -3,8 +3,10 @@ package eta.base;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.List;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.InputStream;
@@ -14,7 +16,11 @@ import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.OpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.FileAttribute;
 import java.nio.charset.Charset;
 import java.nio.channels.Channels;
 import java.nio.channels.Channel;
@@ -31,7 +37,14 @@ import eta.runtime.Runtime;
 import eta.runtime.RuntimeOptions;
 import eta.runtime.RuntimeLogging;
 import eta.runtime.stg.TSO;
+import eta.runtime.stg.StgContext;
+import eta.runtime.stg.Closure;
 import eta.runtime.io.MemoryManager;
+
+import ghc_prim.ghc.types.datacons.Czh;
+import ghc_prim.ghc.types.datacons.ZC;
+import ghc_prim.ghc.types.tycons.ZMZN;
+import ghc_prim.ghc.Types;
 
 import java.lang.management.ManagementFactory;
 import com.sun.management.OperatingSystemMXBean;
@@ -132,9 +145,9 @@ public class Utils {
         }
     }
 
-    public static String byteBufferToStr(long address)
+    public static String byteBufferToStr(long address, int len)
         throws UnsupportedEncodingException {
-        return new String(eta.ghc_prim.Utils.byteBufferToBytes(address), "UTF-8");
+        return new String(eta.ghc_prim.Utils.byteBufferToBytes(address, len), "UTF-8");
     }
 
     public static String getOS() {
@@ -149,21 +162,12 @@ public class Utils {
         return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     }
 
-    public static void debugBelch(long formatAddress, long stringAddress) {
-        RuntimeLogging.debugBelch(byteBufferToString(formatAddress)
-                                 ,byteBufferToString(stringAddress));
+    public static void debugBelch(String format, String string) {
+        RuntimeLogging.debugBelch(format, string);
     }
 
-    public static void errorBelch(long formatAddress, long stringAddress) {
-        RuntimeLogging.errorBelch(byteBufferToString(formatAddress)
-                                 ,byteBufferToString(stringAddress));
-    }
-
-    public static String byteBufferToString(long address) {
-        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        byte[]     bytes  = new byte[buffer.remaining() - 1];
-        buffer.get(bytes);
-        return new String(bytes);
+    public static void errorBelch(String format, String string) {
+        RuntimeLogging.errorBelch(format, string);
     }
 
     public static String[] getJavaArgs() {
@@ -378,24 +382,38 @@ public class Utils {
         else return -1;
     }
 
-    public static int[] jstringToString(String str) {
+    public static Closure jstringToString(StgContext context, String str) {
         int off = 0;
         int len = str.length();
-        int numCodepoints = 0;
+        int codepoint = 0;
+        ZC prevCurrent = null;
+        ZC current = new ZC(null, null);
+        ZC head    = current;
         for (off = 0;
              off < len;
-             off += Character.charCount(str.codePointAt(off)), numCodepoints++) {}
-        int[] codepoints = new int[numCodepoints];
-        int codepoint = 0;
-        int i = 0;
-        off = 0;
-        for (i = 0, off = 0;
-             i < numCodepoints;
-             off += Character.charCount(codepoint),
-             i++) {
+             off += Character.charCount(codepoint)) {
             codepoint = str.codePointAt(off);
-            codepoints[i] = codepoint;
+            current.x1 = new Czh(codepoint);
+            ZC next = new ZC(null, null);
+            current.x2 = next;
+            prevCurrent = current;
+            current = next;
         }
-        return codepoints;
+        if (head.x1 == null) return Types.DZMZN();
+        prevCurrent.x2 = Types.DZMZN();
+        return head;
     }
+
+    public static Path getPath(String path) {
+        return Paths.get(path);
+    }
+
+    public static FileChannel
+        fileChannelOpen(Path path, Set<OpenOption> options,
+                        FileAttribute<Set<PosixFilePermission>> attribute)
+      throws IOException {
+        return FileChannel.open(path, options, attribute);
+    }
+
+    public static final int pathSeparatorChar = File.pathSeparatorChar;
 }

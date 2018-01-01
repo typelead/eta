@@ -20,7 +20,7 @@ module Java.Concurrent where
 import GHC.Base
 import GHC.Int
 import Java.Array
-import Java.Primitive
+import Java.PrimitiveBase
 import Java.Utils
 
 -- Start java.util.concurrent.Executor

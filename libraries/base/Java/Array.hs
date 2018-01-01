@@ -42,7 +42,7 @@ import GHC.Real
 import GHC.Show
 import GHC.Word
 import Java.Core
-import Java.Primitive
+import Java.PrimitiveBase
 import Java.Utils
 
 class (Class c) => JArray e c | c -> e, e -> c where

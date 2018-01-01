@@ -46,9 +46,7 @@ import {-# SOURCE #-} GHC.IO.Encoding (getFileSystemEncoding)
 import qualified GHC.Foreign as GHC
 #endif
 
-import {-# SOURCE #-} Java.Array (arrayFromList)
-import {-# SOURCE #-} Java.Collections (Set)
-import {-# SOURCE #-} Java.String (toJString, fromJString, JStringArray)
+import Java.Collections (Set)
 import Java.Core
 
 -- ---------------------------------------------------------------------------
@@ -348,25 +346,25 @@ c_open path options mode = do
   let permissions = toPermissions mode
       openOptions = toJava (map superCast options :: [OpenOption])
   fileAttribute <- asFileAttribute (toJava permissions)
-  channel <- open_ path openOptions (pureJava (arrayFromList [fileAttribute]))
+  channel <- open_ path openOptions fileAttribute
   return channel
 
 foreign import java unsafe "@static java.nio.file.attribute.PosixFilePermissions.asFileAttribute"
   asFileAttribute :: Set PosixFilePermission -> IO FileAttribute
 
-foreign import java unsafe "@static java.nio.channels.FileChannel.open"
-  open_ :: Path -> Set OpenOption -> FileAttributeArray -> IO FileChannel
+foreign import java unsafe "@static eta.base.Utils.fileChannelOpen"
+  open_ :: Path -> Set OpenOption -> FileAttribute -> IO FileChannel
 
 c_safe_open :: Path -> [StandardOpenOption] -> CMode -> IO FileChannel
 c_safe_open path options mode = do
   let permissions = toPermissions mode
       openOptions = toJava (map superCast options :: [OpenOption])
   fileAttribute <- asFileAttribute (toJava permissions)
-  channel <- safe_open path openOptions (pureJava (arrayFromList [fileAttribute]))
+  channel <- safe_open path openOptions fileAttribute
   return channel
 
-foreign import java safe "@static java.nio.channels.FileChannel.open"
-  safe_open :: Path -> Set OpenOption -> FileAttributeArray -> IO FileChannel
+foreign import java safe "@static eta.base.Utils.fileChannelOpen"
+  safe_open :: Path -> Set OpenOption -> FileAttribute -> IO FileChannel
 
 -- See Note: CSsize
 foreign import java unsafe "@static eta.base.Utils.c_read"
@@ -674,8 +672,5 @@ toPermissions mode = foldr (\(i, p) xs -> if testBit mode i
 
 -- End POSIX permissions
 
-foreign import java unsafe "@static java.nio.file.Paths.get"
-  getPath' :: String -> JStringArray -> IO Path
-
-getPath :: String -> IO Path
-getPath fp = getPath' fp (pureJava (arrayFromList ([] :: [JString])))
+foreign import java unsafe "@static eta.base.Utils.getPath"
+  getPath :: String -> IO Path

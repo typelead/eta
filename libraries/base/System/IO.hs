@@ -247,8 +247,6 @@ import Text.Read
 import GHC.Show
 import GHC.MVar
 
-import {-# SOURCE #-} Java.Primitive
-
 -- -----------------------------------------------------------------------------
 -- Standard IO
 
@@ -534,11 +532,11 @@ openNewFile filepath binary mode = do
   fd <- c_open f oflags mode
   return (NewFileCreated (superCast fd))
 
-foreign import java "@static @field java.io.File.pathSeparatorChar"
-  pathSeparator' :: JChar
+foreign import java "@static @field eta.base.Utils.pathSeparatorChar"
+  pathSeparator' :: Int
 
 pathSeparator :: Char
-pathSeparator = unsafeChr (fromIntegral pathSeparator')
+pathSeparator = unsafeChr pathSeparator'
 
 -- $locking
 -- Implementations should enforce as far as possible, at least locally to the

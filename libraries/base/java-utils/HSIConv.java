@@ -40,27 +40,13 @@ public class HSIConv {
         }
     }
 
-    public static long hs_iconv_open(long toEncodingAddress, long fromEncodingAddress) {
-        Long id = -1L;
-        try {
-            initIconvs();
-            String fromEncodingStr = Utils.byteBufferToStr(fromEncodingAddress);
-            fromEncodingStr
-                = fromEncodingStr.substring(0, fromEncodingStr.length() - 1);
-            String toEncodingStr = Utils.byteBufferToStr(toEncodingAddress);
-            toEncodingStr = toEncodingStr.substring(0, toEncodingStr.length() - 1);
-            debug("HSIConv: Opening iconv from " + fromEncodingStr + " to "
-                  + toEncodingStr);
-            String[] fromTo = new String[] { fromEncodingStr, toEncodingStr };
-            id = (long) fromTo.hashCode();
-            iconvs.get().put(id, fromTo);
-        } catch (UnsupportedEncodingException e) {
-            debug("Error opening iconv: " + e);
-            if (isDebugEnabled()) {
-                e.printStackTrace();
-            }
-            throw new RuntimeException(e);
-        }
+    public static long hs_iconv_open(String toEncodingStr, String fromEncodingStr) {
+        initIconvs();
+        debug("HSIConv: Opening iconv from " + fromEncodingStr + " to "
+                + toEncodingStr);
+        String[] fromTo = new String[] { fromEncodingStr, toEncodingStr };
+        long id = (long) fromTo.hashCode();
+        iconvs.get().put(id, fromTo);
         return id;
     }
 

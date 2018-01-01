@@ -123,6 +123,38 @@ public class AllocationVector {
         return n;
     }
 
+    public final int allocatedSize(int index) {
+        int len = vector.length;
+        int off = 0;
+        int idx = index;
+        int val = vector[idx];
+
+        int n = 0;
+        boolean stop = false;
+        while (!stop && idx < len) {
+            switch (bits(val, off)) {
+                // Non-terminal allocated bit
+                case 3:
+                    n++;
+                    break;
+                // Terminal allocated bit
+                case 2:
+                    n++;
+                    return n;
+                default:
+                    break;
+            }
+            if (off == 3) {
+                off = 0;
+                idx++;
+                val = vector[idx];
+            } else {
+                off++;
+            }
+        }
+        throw new IllegalArgumentException("Cannot compute allocated size of illegal index " + index + ".");
+    }
+
     public final int findFree(int blocks) {
         int len = vector.length;
         int off = 0;
