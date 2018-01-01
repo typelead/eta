@@ -2,7 +2,6 @@ package eta.runtime.stg;
 
 import java.util.List;
 import java.util.LinkedList;
-import java.util.TreeMap;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Queue;
@@ -31,10 +30,12 @@ import eta.runtime.message.MessageShutdown;
 import eta.runtime.message.MessageWakeup;
 import eta.runtime.parallel.Parallel;
 import eta.runtime.storage.Block;
+import eta.runtime.storage.LocalHeap;
 import eta.runtime.thunk.BlockingQueue;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
 import eta.runtime.thunk.WhiteHole;
+import eta.runtime.util.MPSCLongQueue;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhatNext;
 import static eta.runtime.stg.TSO.WhatNext.*;
@@ -42,7 +43,7 @@ import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugScheduler;
 
-public final class Capability {
+public final class Capability implements LocalHeap {
     public static List<Capability> capabilities = new ArrayList<Capability>();
     public static Set<Capability> workerCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
@@ -101,10 +102,13 @@ public final class Capability {
     public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
 
     /* MemoryManager related stuff */
-    public Block currentDirectBlock;
-    public Block currentHeapBlock;
-    public TreeMap<Integer, Block> freeDirectBlocks = new TreeMap<Integer, Block>();
-    public TreeMap<Integer, Block> freeHeapBlocks   = new TreeMap<Integer, Block>();
+    public Block activeDirectBlock;
+    public Block activeHeapBlock;
+    public Block activeDirectSuperBlock;
+    public Block activeHeapSuperBlock;
+
+    public MPSCLongQueue freeMessages = new MPSCLongQueue();
+    public long freeSequence;
 
     public Capability(Thread t, boolean worker) {
         this.thread = new WeakReference<Thread>(t);
@@ -600,42 +604,57 @@ public final class Capability {
         }
     }
 
-    public final void setCurrentBlock(Block block, boolean direct) {
+    public final void setActiveBlock(Block block, boolean direct, boolean supr) {
         if (direct) {
-            currentDirectBlock = block;
+            if (supr) {
+                block.setLink(activeDirectSuperBlock);
+                activeDirectSuperBlock = block;
+            } else {
+                block.setLink(activeDirectBlock);
+                activeDirectBlock = block;
+            }
         } else {
-            currentHeapBlock = block;
-        }
-    }
-
-    public final void insertFreeBlock(Block block, boolean direct) {
-        int size = block.remaining();
-        if (size > 0) {
-            TreeMap<Integer, Block> freeBlocks = (direct? freeDirectBlocks: freeHeapBlocks);
-            block.setLink(freeBlocks.get(size));
-            freeBlocks.put(size, block);
+            if (supr) {
+                block.setLink(activeHeapSuperBlock);
+                activeHeapSuperBlock = block;
+            } else {
+                block.setLink(activeHeapBlock);
+                activeHeapBlock = block;
+            }
         }
     }
 
     /* The Capability will attempt to allocate the data with the local resources
        it has. */
-    public final long allocateLocal(int n, boolean direct) {
-        Block block = direct? currentDirectBlock : currentHeapBlock;
-        long address = block.allocate(n, this);
+    public final long allocateLocal(int miniblocks, boolean direct, boolean _supr) {
+        /* We eagerly process free messages to minimize fragmentation. */
+        processFreeMessages();
+        Block block = direct? activeDirectBlock : activeHeapBlock;
+        long address = 0;
+        if (block != null) {
+            address = Block.findFreeInBlockStack(block, miniblocks, direct);
+        }
         if (address == 0) {
-            TreeMap<Integer, Block> freeBlocks = (direct? freeDirectBlocks: freeHeapBlocks);
-            block = freeBlocks.floorEntry(n).getValue();
-            if (block == null) return 0;
-            Block next = block.getLink();
-            int blockSize = block.remaining();
-            if (next != null) {
-                freeBlocks.put(blockSize, next);
-            } else {
-                freeBlocks.remove(blockSize);
+            block = direct? activeDirectSuperBlock : activeHeapSuperBlock;
+            if (block != null) {
+                address = Block.findFreeInBlockStack(block, miniblocks, direct);
             }
-            address = block.allocate(n, this);
-            insertFreeBlock(block, direct);
         }
         return address;
+    }
+
+    private final void processFreeMessages() {
+        while (freeMessages.canRead(freeSequence)) {
+            MemoryManager.getHeap().free(freeMessages.read(freeSequence++));
+        }
+    }
+
+    public final void cleanupLocalHeap() {
+        activeDirectBlock      = null;
+        activeHeapBlock        = null;
+        activeDirectSuperBlock = null;
+        activeHeapSuperBlock   = null;
+        freeMessages           = new MPSCLongQueue();
+        freeSequence           = 0;
     }
 }

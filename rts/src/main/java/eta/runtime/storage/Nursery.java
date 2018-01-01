@@ -1,55 +1,84 @@
 package eta.runtime.storage;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 public class Nursery {
+
+    private final long startAddress;
     private final Block[] blocks;
+
+    /* Cached constants */
     private final int numBlocks;
     private final int blockSize;
-    private final long startAddress;
-    private final AtomicInteger nextIndex;
-    public volatile Nursery next;
+    private final int miniBlockSize;
 
-    public Nursery(int size, int blockSize, long startAddress) {
-        this.blocks = new Block[size];
-        this.numBlocks = size;
+    private final AtomicInteger nextIndex;
+    private volatile Nursery next;
+    private static final AtomicReferenceFieldUpdater<Nursery, Nursery> nextUpdater
+        = AtomicReferenceFieldUpdater.newUpdater(Nursery.class, Nursery.class, "next");
+
+    public Nursery(int size, int blockSize, int miniBlockSize, long startAddress) {
+        this.blocks        = new Block[size];
+        this.numBlocks     = size;
+        this.blockSize     = blockSize;
+        this.miniBlockSize = miniBlockSize;
+        this.startAddress  = startAddress;
+        this.nextIndex     = new AtomicInteger();
+
         for (int i = 0; i < size; i++) {
             blocks[i] = new Block();
         }
-        this.blockSize = blockSize;
-        this.startAddress = startAddress;
-        this.nextIndex  = new AtomicInteger();
     }
 
-    public Block allocateBlocks(int n, ByteBuffer buffer) {
+    public Nursery getNext() {
+        return next;
+    }
+
+    public Block allocateBlocks(int n, ByteBuffer buffer, ManagedHeap heap) {
         int baseIndex = nextIndex.getAndAdd(n);
-        if (baseIndex < blockSize) {
-            if (baseIndex + n >= numBlocks) {
-                /* This is the boundary case, and this thread is responsible for
-                   allocating the next Nursery while the other threads wait
-                   on this. */
-                /* TODO: Figure out a way to address potential (minor) loss of
-                   the address space at the boundary. */
-                next = new Nursery(numBlocks, blockSize,
-                                   startAddress + numBlocks * blockSize);
-                return next.allocateBlocks(n, buffer);
-            } else {
-                /* Common case */
-                long address = startAddress + baseIndex * blockSize;
-                int bufferOffset = 0;
-                for (int i = 0; i < n;
-                     i++, address += blockSize, bufferOffset += blockSize) {
-                    blocks[baseIndex + i]
-                        .init(address, blockSize, buffer, bufferOffset);
-                }
-                return blocks[baseIndex];
-            }
-        } else {
-            /* baseIndex >= numBlocks
-               Must wait on the next Nursery to get allocated. */
-            while (next == null) { Thread.yield(); }
-            return next.allocateBlocks(n, buffer);
+        if (baseIndex + n > numBlocks)
+            return allocateBlocksFromNext(n, buffer, heap);
+        long address = startAddress + baseIndex * blockSize;
+        Block startBlock = blocks[baseIndex];
+        startBlock.init(address, blockSize, miniBlockSize, buffer);
+        for (int i = 1; i < n; i++) {
+            blocks[baseIndex + i] = startBlock;
         }
+        return blocks[baseIndex];
+    }
+
+    public Block getBlock(int blockIndex) {
+        return blocks[blockIndex];
+    }
+
+    private Block allocateBlocksFromNext(int n, ByteBuffer buffer, ManagedHeap heap) {
+        Nursery curNext = next;
+        if (curNext == null) {
+            Nursery nursery =
+                heap.allocateNursery(startAddress + numBlocks * blockSize);
+            if (nextUpdater.compareAndSet(this, null, nursery)) {
+                heap.setActiveNursery(nursery);
+                return nursery.allocateBlocks(n, buffer, heap);
+            } else {
+                curNext = next;
+            }
+        }
+        return curNext.allocateBlocks(n, buffer, heap);
+    }
+
+    /* Monitoring */
+    public NurseryStats getStatistics() {
+        ArrayList<BlockStats> blockStats = new ArrayList<BlockStats>(numBlocks);
+        for (Block block: blocks) {
+            if (block.isActive()) {
+                blockStats.add(block.getStatistics());
+            } else {
+                break;
+            }
+        }
+        return new NurseryStats(startAddress, blockStats);
     }
 }

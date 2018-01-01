@@ -17,7 +17,10 @@ tasks.withType(JavaCompile) {
     sourceCompatibility = jdkLevel
     targetCompatibility = jdkLevel
     options.encoding    = encoding
-    options.compilerArgs << '-XDignore.symbol.file'
-    options.compilerArgs << '-Xlint:unchecked'
+    options.compilerArgs += [ '-XDignore.symbol.file', '-Xlint:-options' ]
+    /* We fork a JVM because the argument above flag doesn't work via the
+       Java Compiler API */
+    options.fork = true
+    options.forkOptions.executable = 'javac'
 }
 
