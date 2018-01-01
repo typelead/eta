@@ -27,7 +27,7 @@ library, genBuild, top, packageConfDir, libCustomBuildDir, libJarPath,
   libName :: String -> FilePath
 library x = libraryDir </> x
 genBuild x = x </> "build"
-top x = "../../" ++ x
+top x = "../../../../" ++ x
 packageConfDir dir = dir </> "package.conf.d"
 libCustomBuildDir lib = libraryDir </> lib </> "build"
 libName lib = "HS" ++ lib ++ ".jar"
