@@ -88,6 +88,11 @@ jobs:
           name: Running unit tests
           command: stack test eta
 
+      - run:
+          name: Running rts tests
+          working_directory: rts
+          command: ./gradlew test
+
   release_container:
     <<: *defaults
     steps:

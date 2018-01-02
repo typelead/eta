@@ -65,10 +65,10 @@ public class HSIConv {
                   ", to: " + fromTo[1]);
             if (inbufptr != 0L && inleft != 0L) {
                 debug("Init in buffer:");
-                ByteBuffer inbuf     = initBuffer(inbufptr, inleft);
+                ByteBuffer inbuf     = initBuffer(inbufptr, inleft, true);
                 int        inInitPos = inbuf.position();
                 debug("Init out buffer:");
-                ByteBuffer outbuf     = initBuffer(outbufptr, outleft);
+                ByteBuffer outbuf     = initBuffer(outbufptr, outleft, false);
                 int        outInitPos = outbuf.position();
                 charsWritten = recode(fromTo, inbuf, outbuf);
                 debug("After encoding:");
@@ -114,7 +114,7 @@ public class HSIConv {
         MemoryManager.putLong(bufAddress, MemoryManager.getLong(bufAddress) + toAdd);
     }
 
-    private static ByteBuffer initBuffer(long bufptrAddress, long leftAddress) {
+    private static ByteBuffer initBuffer(long bufptrAddress, long leftAddress, boolean input) {
         int limit      = MemoryManager.getInt(leftAddress);
         long memAddr   = MemoryManager.getLong(bufptrAddress);
         ByteBuffer buf = MemoryManager.getBoundedBuffer(memAddr);
@@ -122,7 +122,7 @@ public class HSIConv {
         byte[] contents = new byte[limit];
         buf.duplicate().get(contents);
         debug("initBuffer: address: " + memAddr + ", limit: " + limit +
-              ", buffer: " + buf + ", contents: " + Arrays.toString(contents));
+              ", buffer: " + buf + (input? ", contents: " + Arrays.toString(contents) : ""));
         return buf;
     }
 

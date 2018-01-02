@@ -101,4 +101,18 @@ public class ManagedHeapTest {
                          new int[] {64}
                      });
     }
+
+    @Test
+    public void testManagedHeapSuperBlocks() {
+        long address = heap.allocateBuffer(blockSize * 2 + 1, false, cap);
+        assertEquals(3 * blockSize, heap.getBlock(address).getSize());
+        long[] addresses = new long[blockSize];
+        addresses[0] = address;
+        for (int i = 1; i < blockSize; i++) {
+            addresses[i] = heap.allocateBuffer(1, false, cap);
+        }
+        for (int i = 0; i < blockSize; i++) {
+            heap.free(addresses[i]);
+        }
+    }
 }

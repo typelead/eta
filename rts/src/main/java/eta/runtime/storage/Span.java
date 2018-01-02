@@ -2,6 +2,8 @@ package eta.runtime.storage;
 
 import java.util.Arrays;
 
+import static eta.runtime.util.Report.*;
+
 public class Span {
     final boolean allocated;
     final int size;
@@ -28,5 +30,14 @@ public class Span {
     public String toString() {
         return "Span { allocated = " + allocated + ", size = " + size + ", bytes = "
              + Arrays.toString(bytes) + " }";
+    }
+
+    public void generateReport(StringBuilder sb) {
+        String status = allocated? "allocated" : "free";
+        String miniblocks = (size > 1)? "miniblocks" : "miniblock";
+        format(sb, " %d %s %s", size, status, miniblocks);
+        if (bytes != null) {
+            format(sb, "%s", Arrays.toString(bytes));
+        }
     }
 }

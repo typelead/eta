@@ -35,6 +35,10 @@ public class Block {
         return startAddress;
     }
 
+    public final int getSize() {
+        return buffer.remaining();
+    }
+
     public final void setLink(Block link) {
         this.link = link;
     }
@@ -43,10 +47,9 @@ public class Block {
         return link;
     }
 
-    public final void init(long startAddress, int blockSize, int miniBlockSize,
-                           ByteBuffer buffer) {
+    public final void init(long startAddress, int miniBlockSize, ByteBuffer buffer) {
         this.startAddress = startAddress;
-        this.av           = new AllocationVector(blockSize / miniBlockSize);
+        this.av           = new AllocationVector(buffer.remaining() / miniBlockSize);
         this.buffer       = buffer;
         this.owner        = Capability.getLocal(false);
     }

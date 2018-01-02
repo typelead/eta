@@ -43,7 +43,7 @@ public class Nursery {
             return allocateBlocksFromNext(n, buffer, heap);
         long address = startAddress + baseIndex * blockSize;
         Block startBlock = blocks[baseIndex];
-        startBlock.init(address, blockSize, miniBlockSize, buffer);
+        startBlock.init(address, miniBlockSize, buffer);
         for (int i = 1; i < n; i++) {
             blocks[baseIndex + i] = startBlock;
         }
@@ -72,9 +72,13 @@ public class Nursery {
     /* Monitoring */
     public NurseryStats getStatistics() {
         ArrayList<BlockStats> blockStats = new ArrayList<BlockStats>(numBlocks);
+        long lastAddress = 0;
         for (Block block: blocks) {
             if (block.isActive()) {
+                long address = block.getAddress();
+                if (address == lastAddress) continue;
                 blockStats.add(block.getStatistics());
+                lastAddress = address;
             } else {
                 break;
             }

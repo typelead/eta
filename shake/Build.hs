@@ -218,7 +218,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]
       need [rtsjar]
-      buildLibrary debug binPathArg "rts" (getDependencies "rts")
+      buildLibrary debug binPathArg "rts" []
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]

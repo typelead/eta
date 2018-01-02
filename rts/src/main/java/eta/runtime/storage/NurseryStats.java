@@ -2,6 +2,8 @@ package eta.runtime.storage;
 
 import java.util.List;
 
+import static eta.runtime.util.Report.*;
+
 public class NurseryStats {
     long startAddress;
     List<BlockStats> blockStats;
@@ -27,5 +29,20 @@ public class NurseryStats {
 
     public List<BlockStats> getBlockStats() {
         return blockStats;
+    }
+
+    public void generateReport(StringBuilder sb) {
+        format(sb, "Start Address: %d", startAddress);
+        blankLine(sb);
+        format(sb, "Blocks:");
+        blankLine(sb);
+        int i = 0;
+        for (BlockStats stats: blockStats) {
+            format(sb, "Block %d:", i);
+            blankLine(sb);
+            stats.generateReport(sb);
+            blankLine(sb);
+            i++;
+        }
     }
 }
