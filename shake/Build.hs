@@ -1,9 +1,7 @@
 {-# OPTIONS_GHC -XNoOverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 import Development.Shake
--- import Development.Shake.Command
 import Development.Shake.FilePath
--- import Development.Shake.Util
 
 import Distribution.InstalledPackageInfo
 import Distribution.ParseUtils
