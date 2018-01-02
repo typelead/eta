@@ -68,7 +68,11 @@ public class Block {
     }
 
     public final void sendFreeMessage(long address) {
-        owner.freeMessages.write(address);
+        if (owner == Capability.getLocal(false)) {
+            free(address);
+        } else {
+            owner.freeMessages.write(address);
+        }
     }
 
     public final void free(long address) {
