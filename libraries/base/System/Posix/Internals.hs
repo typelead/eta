@@ -52,15 +52,10 @@ import Java.Core
 -- ---------------------------------------------------------------------------
 -- Debugging the base package
 
-puts :: String -> IO ()
-puts s = withCAStringLen (s ++ "\n") $ \(p, len) -> do
-            -- In reality should be withCString, but assume ASCII to avoid loop
-            -- if this is called by GHC.Foreign
-           _ <- c_write _stdout (castPtr p) (fromIntegral len)
-           return ()
+foreign import java unsafe "@static eta.base.Utils.puts"
+  puts :: String -> IO ()
 
 foreign import java unsafe "@static eta.base.Utils.getStdOut" _stdout :: Channel
-
 
 -- ---------------------------------------------------------------------------
 -- Types

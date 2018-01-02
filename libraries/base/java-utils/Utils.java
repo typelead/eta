@@ -416,4 +416,8 @@ public class Utils {
     }
 
     public static final int pathSeparatorChar = File.pathSeparatorChar;
+
+    public static void puts(String msg) {
+        System.out.println(msg);
+    }
 }
