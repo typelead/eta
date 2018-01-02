@@ -1,5 +1,6 @@
 package eta.base;
 
+import java.util.Arrays;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -30,12 +31,8 @@ public class HSIConv {
         }
     }
 
-    private static Boolean isDebugEnabled() {
-        return debug;
-    }
-
     private static void debug(String msg) {
-        if (isDebugEnabled()) {
+        if (debug) {
             System.out.println(msg);
         }
     }
@@ -101,7 +98,7 @@ public class HSIConv {
             }
         } catch (Exception e) {
             debug("Error in recoding: " + e);
-            if (isDebugEnabled()) {
+            if (debug) {
                 e.printStackTrace();
             }
             throw new RuntimeException(e);
@@ -122,8 +119,10 @@ public class HSIConv {
         long memAddr   = MemoryManager.getLong(bufptrAddress);
         ByteBuffer buf = MemoryManager.getBoundedBuffer(memAddr);
         buf.limit(buf.position() + limit);
+        byte[] contents = new byte[limit];
+        buf.duplicate().get(contents);
         debug("initBuffer: address: " + memAddr + ", limit: " + limit +
-              ", buffer: " + buf);
+              ", buffer: " + buf + ", contents: " + Arrays.toString(contents));
         return buf;
     }
 
@@ -157,7 +156,7 @@ public class HSIConv {
             }
         } catch (CharacterCodingException e) {
             debug("Error decoding string: " + e);
-            if (isDebugEnabled()) {
+            if (debug) {
                 e.printStackTrace();
             }
             charsWritten = -1;
