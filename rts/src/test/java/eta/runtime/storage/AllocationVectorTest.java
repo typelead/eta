@@ -1,11 +1,9 @@
-package eta.runtime;
+package eta.runtime.storage;
 
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static eta.runtime.TestUtils.*;
-
-import eta.runtime.storage.AllocationVector;
 
 public class AllocationVectorTest {
 

@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import eta.runtime.stg.Capability;
-import eta.runtime.storage.ManagedHeap;
 
 public class ManagedHeapTest {
 

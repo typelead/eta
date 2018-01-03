@@ -75,9 +75,11 @@ public class IO {
 
     public static void recordByteArray(ByteArray byteArray) {
         long address = byteArray.bufferAddress;
-        PhantomReference<ByteArray> byteArrayRef
-            = new PhantomReference<ByteArray>(byteArray, byteArrayRefQueue);
-        byteArrayRefMap.put(byteArrayRef, address);
+        if (address != 0) {
+            PhantomReference<ByteArray> byteArrayRef
+                = new PhantomReference<ByteArray>(byteArray, byteArrayRefQueue);
+            byteArrayRefMap.put(byteArrayRef, address);
+        }
     }
 
     @SuppressWarnings("unchecked")
