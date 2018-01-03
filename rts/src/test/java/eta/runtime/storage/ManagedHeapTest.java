@@ -115,4 +115,11 @@ public class ManagedHeapTest {
             heap.free(addresses[i]);
         }
     }
+
+    @Test
+    public void testManagedHeapEmptyBuffer() {
+        heap.allocateBuffer(0, false, cap);
+        heap.allocateBuffer(0, true, cap);
+        assertBlocks(0, new boolean[0][0], new int[0][0]);
+    }
 }

@@ -40,6 +40,7 @@ public class ManagedHeap {
     }
 
     public long allocateBuffer(int n, boolean direct, LocalHeap localHeap) {
+        if (n <= 0) return 0;
         int miniblocks = (n + miniBlockMask) >>> miniBlockBits;
         int blocks     = (n + blockMask) >>> blockBits;
         boolean supr   = blocks > 1;
