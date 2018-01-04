@@ -138,7 +138,7 @@ shouldInlinePrimOp _dflags ObjectArraySetOp ((origFt, arrayObj):args) _ =
 
 shouldInlinePrimOp _ ArrayLengthOp [(origFt, arrayObj)] _ =
   Right $ return [arrayObj <> maybeCast <> arraylength]
-  where (arrayFt, maybeCast) = arrayFtCast origFt
+  where (_arrayFt, maybeCast) = arrayFtCast origFt
 
 shouldInlinePrimOp _ ClassCastOp args resType = Right $
   let (_, codes) = unzip args
