@@ -163,6 +163,9 @@ public class HSIConv {
             // TODO: handle EINVAL case
             Utils.set_errno(EILSEQ);
         }
+        if (charsWritten == -1 && debug) {
+            System.err.println(MemoryManager.getHeap().getStatistics().generateReport());
+        }
         return charsWritten;
     }
 }
