@@ -40,9 +40,8 @@ public class ManagedHeap {
     }
 
     public long allocateBuffer(int n, boolean direct, LocalHeap localHeap) {
-        if (n <= 0) return 0;
         int miniblocks = (n + miniBlockMask) >>> miniBlockBits;
-        int blocks     = (n + blockMask) >>> blockBits;
+        int blocks     = Math.max(1, (n + blockMask) >>> blockBits);
         boolean supr   = blocks > 1;
         /* First, try allocating from the thread-local blocks. */
         long address = localHeap.allocateLocal(miniblocks, direct, supr);

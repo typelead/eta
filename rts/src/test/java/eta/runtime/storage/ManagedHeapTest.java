@@ -117,8 +117,17 @@ public class ManagedHeapTest {
 
     @Test
     public void testManagedHeapEmptyBuffer() {
-        heap.allocateBuffer(0, false, cap);
-        heap.allocateBuffer(0, true, cap);
-        assertBlocks(0, new boolean[0][0], new int[0][0]);
+        assertEquals(blockSize, heap.allocateBuffer(0, false, cap));
+        assertEquals(2 * blockSize, heap.allocateBuffer(0, true, cap));
+        assertBlocks(2,
+                     new boolean[][] {
+                         new boolean[] {false},
+                         new boolean[] {false}
+                     }
+                     ,
+                     new int[][] {
+                         new int[] {64},
+                         new int[] {64}
+                     });
     }
 }

@@ -25,7 +25,9 @@ public final class ByteArray extends Value {
     public static ByteArray create(int n, int alignment, boolean pinned) {
         long address = MemoryManager.allocateBuffer(n, pinned);
         ByteArray byteArray = new ByteArray(address, n);
-        IO.recordByteArray(byteArray);
+        if (n > 0) {
+            IO.recordByteArray(byteArray);
+        }
         return byteArray;
     }
 

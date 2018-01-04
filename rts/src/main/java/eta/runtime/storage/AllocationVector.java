@@ -62,18 +62,17 @@ public class AllocationVector {
     public final void allocate(int i, int n, boolean recompute) {
         int off = i & 0x3;
         int idx = i >>> 2;
-        while (n-- > 1) {
+        while (n-- > 0) {
             vector[idx] |= 0x3 << (off << 1);
-            if (off == 3) {
+            if (n == 0) {
+                vector[idx] &= ~(0x1 << (off << 1));
+            } else if (off == 3) {
                 off = 0;
                 idx++;
             } else {
                 off++;
             }
         }
-        off <<= 1;
-        vector[idx] = (byte)((vector[idx] & ~(0x3 << off))
-                                          |  (0x2 << off));
         if (recompute) {
             recomputeState();
         }
