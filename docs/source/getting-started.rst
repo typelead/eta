@@ -21,7 +21,7 @@ Method 1: Binary Installation
 
 .. @VERSION_CHANGE@
 .. @BUILD_NUMBER@
-Eta Version: 0.0.9b6
+Eta Version: 0.7.0b1
 
 .. @VERSION@
 Etlas Version: 1.1.0.0

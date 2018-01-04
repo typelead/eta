@@ -24,7 +24,7 @@ Visit [eta-lang.org](http://eta-lang.org) for instructions on getting started.
 
 **Stable Build:** 0.0.9b3
 
-**Latest Build:** 0.0.9b6
+**Latest Build:** 0.7.0b1
 
 Subscribe to the [Eta-Discuss](https://groups.google.com/forum/#!forum/eta-discuss)
 for updates.

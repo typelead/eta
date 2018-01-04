@@ -14,13 +14,13 @@ cProjectName, cProjectVersion, cProjectVersionNumbers, cProjectVersionInt, cProj
   :: String
 cProjectName = "Compiler for the Eta Programming Language"
 -- @VERSION_CHANGE@
-cProjectVersion = "0.0.9b" ++ cProjectPatchLevel
-cProjectVersionNumbers = "0.0.9." ++ cProjectPatchLevel
-cProjectVersionInt = "9"
+cProjectVersion = "0.7.0b" ++ cProjectPatchLevel
+cProjectVersionNumbers = "0.7.0." ++ cProjectPatchLevel
+cProjectVersionInt = "70"
 -- @BUILD_NUMBER@
 -- @BUILD_NUMBER_INTERNAL@
-cProjectPatchLevel = "7"
-cProjectPatchLevel1 = "7"
+cProjectPatchLevel = "1"
+cProjectPatchLevel1 = "1"
 cProjectPatchLevel2 = ""
 cProjectHomeURL = "http://github.com/typelead/eta"
 cProjectIssueReportURL = cProjectHomeURL ++ "/issues"
