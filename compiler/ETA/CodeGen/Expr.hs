@@ -33,7 +33,9 @@ import qualified Data.Set as Set
 import Data.Foldable(fold)
 import Data.List(zip4)
 import Data.Maybe(mapMaybe)
+import qualified Data.Graph as G
 import Control.Monad(when, forM_, unless)
+import qualified Data.IntMap.Lazy as LM
 
 cgExpr :: StgExpr -> CodeGen ()
 cgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
@@ -156,13 +158,50 @@ cgIdApp funId args = do
       withContinuation unknownCall contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
-      codes <- getNonVoidArgCodes args
-      emit $ multiAssign cgLocs codes
+      deps <- dependencies cgLocs args
+      let sorted = sortedDeps deps
+      codes <- getNonVoidArgCodes $ arg <$> sorted
+      emit $ multiAssign (from <$> sorted) codes
           <> maybe mempty
                (\(target, targetLoc) ->
                   storeLoc targetLoc (iconst (locFt targetLoc) $ fromIntegral target))
                mLne
           <> goto label
+
+data LocalDep = LocalDep Int Int
+{-
+type CgBindings = IdEnv CgIdInfo
+-- | Variable Environment
+type VarEnv elt     = UniqFM elt
+
+-- | Identifier Environment
+type IdEnv elt      = VarEnv elt
+newtype UniqFM ele = UFM (M.IntMap ele)
+
+-}
+data CgDependency = CgDependency { from::CgLoc, to:: CgLoc, arg::StgArg } -- deriving (Show)
+
+sortedDeps deps = ( \(node,b,c) -> node)  <$> ( map vertexToNode $ G.topSort myGraph )
+        where (myGraph,vertexToNode,keyToVertex) = G.graphFromEdges $  (\x -> (x, show $ from x ,[show $ to x])) <$> deps
+
+dependencies::[CgLoc]->[StgArg]->CodeGen [CgDependency]
+dependencies locs [] =  pure []
+dependencies (y:ys) (x:xs) = dependencies ys xs  >>=  joinDependency y x
+dependencies _ _ = pure []
+
+joinDependency  loc x deps =
+    joinSingle x loc deps  <$> dep
+    where dep = dependency x
+
+joinSingle arg loc deps Nothing = deps
+joinSingle arg loc deps (Just x) = CgDependency{from=loc, to=x, arg=arg}:deps
+
+dependency::StgArg->CodeGen (Maybe CgLoc)
+dependency arg = getGetDepCgLoad (NonVoid arg)
+
+getGetDepCgLoad :: NonVoid StgArg -> CodeGen (Maybe CgLoc)
+getGetDepCgLoad (NonVoid (StgVarArg var)) = Just <$> cgLocation <$> getCgIdInfo var
+getGetDepCgLoad (NonVoid (StgLitArg literal)) = return Nothing
 
 emitEnter :: CgLoc -> CodeGen ()
 emitEnter thunk = do
