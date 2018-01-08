@@ -17,9 +17,9 @@ public class MutVar extends Value {
 
     public void set(Closure value) {
         if (useUnsafe) {
-            this.value = value;
+            UNSAFE.putOrderedObject(this, mutVarOffset, value);
         } else {
-            vUpdater.set(this, value);
+            vUpdater.lazySet(this, value);
         }
     }
 
