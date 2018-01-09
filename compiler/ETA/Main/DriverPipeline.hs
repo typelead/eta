@@ -13,7 +13,7 @@
 module ETA.Main.DriverPipeline (
         -- Run a series of compilation steps in a pipeline, for a
         -- collection of source files.
-   oneShot, compileFile,
+   oneShot,
 
         -- Interfaces for the compilation manager (interpreted/batch-mode)
    preprocess,
@@ -453,6 +453,7 @@ compileFiles hsc_env stop_phase srcs = do
               $ class_dirs
               ++ o_files'
       classesDir = fromMaybe "." (objectDir dflags') </> "classes"
+  debugTraceMsg dflags' 3 (text $ "compileFiles : start")
   genClassPaths <- if (not (null java_source_srcs))
                    then do
                      createDirectoryIfMissing True classesDir
@@ -460,9 +461,13 @@ compileFiles hsc_env stop_phase srcs = do
                    else return []
   extras <- getOutputFilename StopLn Persistent "__extras" dflags' StopLn Nothing
   let classes = genClassPaths ++ java_class_srcs
-  when (not (null classes)) $
+  when (not (null classes)) $ do
+    debugTraceMsg dflags' 3 (text $ "compileFiles : generating "
+                                  ++ extras ++ " with " ++ show classes)
     createJar dflags' extras classes
-  return ((if null classes then [] else [extras]) ++ o_files')
+  let o_files'' = (if null classes then [] else [extras]) ++ o_files'
+  debugTraceMsg dflags' 3 (text $ "compileFiles : returning "++ show o_files'')
+  return o_files''
   where (java_srcs, non_java_srcs) = partition (isJavaishFilename . fst) srcs
         (java_class_srcs, java_source_srcs) = partition isJavaClassishFilename
                                               $ map fst java_srcs
@@ -1348,15 +1353,20 @@ linkGeneric dflags oFiles depPackages = do
                    a' <- mkPath a
                    return (a', b)
     outJars <- mapM getNonManifestEntries oFiles
+    pkgLibJars <- getPackageLibJars dflags depPackages
     extraJars <-
           if includePackages then do
-            pkgLibJars <- getPackageLibJars dflags depPackages
-            mapM getNonManifestEntries pkgLibJars
+             mapM getNonManifestEntries pkgLibJars
             -- TODO: Verify that the right version eta was used
             --       in the Manifests of the jars being compiled
           else return []
     inputJars <- mapM getNonManifestEntries (jarInputs dflags)
     start <- getCurrentTime
+    debugTraceMsg dflags 3 (text $ "linkGeneric: linkables are: " ++
+                            show ( ["mainFiles"]  ++ map (show . fst) mainFiles
+                                ++ ["pkgLibJars"] ++  pkgLibJars
+                                ++ ["jarInputs"]  ++ jarInputs dflags
+                                ++ ["oFiles"]     ++ oFiles) )
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
       extraJars ++ inputJars ++ outJars
     end <- getCurrentTime
