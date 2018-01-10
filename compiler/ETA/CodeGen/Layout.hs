@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances#-}
 module ETA.CodeGen.Layout where
 
 import ETA.Types.Type
@@ -15,6 +15,7 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Env
 import ETA.Utils.Digraph
 import ETA.Utils.Panic
+import ETA.Debug
 
 import Data.Maybe
 import Data.Monoid
@@ -59,7 +60,17 @@ type Key  = Int
 
 
 data Statement = Statement { from::CgLoc, to::CgLoc}
+
+
 type Vrtx = (Key, Statement)
+
+instance Show Statement where
+  show  s  = "from:" ++ (show $ findVarId ( from s ) ) ++  " to:" ++( show $ findVarId ( to s) )
+
+instance Show (SCC Vrtx) where
+  show  (AcyclicSCC vrtx)  = "AcyclicSCC(" ++ show vrtx ++ ")"
+  show  (CyclicSCC vrtxs)  = "CyclicSCC(" ++ show vrtxs ++ ")"
+
 
 makeStatements::[CgLoc]->[CgLoc]->[Statement]
 makeStatements [] [] = []
@@ -69,7 +80,7 @@ makeStatements _ _ = panic "not matching stmts"
 
 
 unscramble ::[Statement] -> CodeGen ()
-unscramble vertices = mapM_ do_component components
+unscramble vertices = traceCg (str $ "J:Edges" ++ show edges) >> traceCg( str $ "J:components" ++ show components) >> mapM_ do_component components
   where
         edges :: [ Node Key Vrtx ]
         edges = [ (vertex, key1, (edges_from stmt1))
@@ -86,19 +97,20 @@ unscramble vertices = mapM_ do_component components
         edge_to stmt1 = head ( findVarId $ to stmt1 )
 
         components :: [SCC Vrtx]
-        components = stronglyConnCompFromEdgedVertices edges
+        components = reverse $ stronglyConnCompFromEdgedVertices edges
 
         -- do_components deal with one strongly-connected component
         -- Not cyclic, or singleton?  Just do it
         do_component :: SCC Vrtx -> CodeGen ()
-        do_component (AcyclicSCC (_,stmt))  = mk_graph stmt
+        do_component (AcyclicSCC (_,stmt))  = traceCg(str  "J:acyclic") >> mk_graph stmt
         do_component (CyclicSCC [])         = panic "do_component"
         -- do_component (CyclicSCC [(_,stmt)]) = mk_graph stmt
-        do_component (CyclicSCC [(_,stmt)]) = mk_graph stmt
+        do_component (CyclicSCC [(_,stmt)]) = traceCg(str  "J:semi cyclic") >>mk_graph stmt
                 -- Cyclic?  Then go via temporaries.  Pick one to
                 -- break the loop and try again with the rest.
         do_component (CyclicSCC ((_,first_stmt) : rest)) = do
             u <- emitTemp $ to first_stmt
+            traceCg(str  "J:full cyclic")
             let (to_tmp, from_tmp) = split u first_stmt
             mk_graph to_tmp
             unscramble $ snd <$> rest
