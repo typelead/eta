@@ -156,8 +156,12 @@ cgIdApp funId args = do
       withContinuation unknownCall contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
-      --  codes <- getNonVoidArgCodes args
+      codes <- getNonVoidArgCodes args
+      printBindings
+      traceCg (ppr args)
+      traceCg (str $ show ( length codes) )
       deps <- dependencies args
+      traceCg (str "JAREK: deps calculated")
       emitMultiAssign cgLocs deps
       emit $ maybe  mempty
                                               (\(target, targetLoc) ->
@@ -167,7 +171,9 @@ cgIdApp funId args = do
 
 dependencies::[StgArg]->CodeGen [Either Code CgLoc]
 dependencies  [] =  pure []
-dependencies (x:xs) = dependencies xs  >>=  joinDependency  x
+dependencies (arg:args)
+  | isVoidRep (argPrimRep arg) = dependencies args
+  | otherwise = dependencies args  >>=  joinDependency  arg
 
 joinDependency :: StgArg->[Either Code CgLoc] -> CodeGen [Either Code CgLoc]
 joinDependency  x deps =
