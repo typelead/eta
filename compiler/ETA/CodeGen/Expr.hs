@@ -156,41 +156,35 @@ cgIdApp funId args = do
       withContinuation unknownCall contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
-      codes <- getNonVoidArgCodes args
-      printBindings
-      traceCg (ppr args)
-      traceCg (str $ show ( length codes) )
       deps <- dependencies args
-      traceCg (str "JAREK: deps calculated")
       emitMultiAssign cgLocs deps
       emit $ maybe  mempty
-                                              (\(target, targetLoc) ->
-                                               storeLoc targetLoc (iconst (locFt targetLoc) $ fromIntegral target))
-                                               mLne
+                      (\(target, targetLoc) ->
+                       storeLoc targetLoc (iconst (locFt targetLoc) $ fromIntegral target))
+                       mLne
                   <>   goto label
 
-dependencies::[StgArg]->CodeGen [Either Code CgLoc]
-dependencies  [] =  pure []
-dependencies (arg:args)
-  | isVoidRep (argPrimRep arg) = dependencies args
-  | otherwise = dependencies args  >>=  joinDependency  arg
+    where
+        dependencies::[StgArg]->CodeGen [Either Code CgLoc]
+        dependencies  [] =  pure []
+        dependencies (arg:args)
+          | isVoidRep (argPrimRep arg) = dependencies args
+          | otherwise = dependencies args  >>=  joinDependency  arg
 
-joinDependency :: StgArg->[Either Code CgLoc] -> CodeGen [Either Code CgLoc]
-joinDependency  x deps =
-    joinSingle  deps  <$> dep
-    where dep = dependency x
+        joinDependency :: StgArg->[Either Code CgLoc] -> CodeGen [Either Code CgLoc]
+        joinDependency  x deps =
+            joinSingle  deps  <$> dep
+            where dep = dependency x
 
+        joinSingle :: [Either Code CgLoc]->Either Code CgLoc->[Either Code CgLoc]
+        joinSingle  deps x = x : deps
 
-joinSingle :: [Either Code CgLoc]->Either Code CgLoc->[Either Code CgLoc]
-joinSingle  deps x = x : deps
+        dependency::StgArg->CodeGen (Either Code CgLoc)
+        dependency arg = getGetDepCgLoad (NonVoid arg)
 
-
-dependency::StgArg->CodeGen (Either Code CgLoc)
-dependency arg = getGetDepCgLoad (NonVoid arg)
-
-getGetDepCgLoad :: NonVoid StgArg -> CodeGen (Either Code CgLoc)
-getGetDepCgLoad (NonVoid (StgVarArg var)) = Right <$> cgLocation <$> getCgIdInfo var
-getGetDepCgLoad (NonVoid (arg)) = Left <$> getArgLoadCode (NonVoid arg)
+        getGetDepCgLoad :: NonVoid StgArg -> CodeGen (Either Code CgLoc)
+        getGetDepCgLoad (NonVoid (StgVarArg var)) = Right <$> cgLocation <$> getCgIdInfo var
+        getGetDepCgLoad (NonVoid (arg)) = Left <$> getArgLoadCode (NonVoid arg)
 
 
 emitEnter :: CgLoc -> CodeGen ()
