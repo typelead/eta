@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances#-}
+{-# LANGUAGE OverloadedStrings #-}
 module ETA.CodeGen.Layout where
 
 import ETA.Types.Type
@@ -15,7 +15,6 @@ import ETA.CodeGen.Rts
 import ETA.CodeGen.Env
 import ETA.Utils.Digraph
 import ETA.Utils.Panic
-import ETA.Debug
 
 import Data.Maybe
 import Data.Monoid
@@ -26,17 +25,14 @@ emitReturn :: [CgLoc] -> CodeGen ()
 emitReturn results = do
   sequel <- getSequel
   loadContext <- getContextLoc
-  emit $
-    case sequel of
-      Return         -> mkReturnExit loadContext results <> greturn closureType
-      AssignTo slots -> multiAssign slots (map loadLoc results)
+  case sequel of
+      Return         -> emit $ mkReturnExit loadContext results <> greturn closureType
+      AssignTo slots -> emitMultiAssign slots (map Right  results)
 
 emitAssign :: CgLoc -> Code -> CodeGen ()
 emitAssign cgLoc code = emit $ storeLoc cgLoc code
 
--- TODO: Verify that this is valid in all cases,
---       otherwise fall back on the strongly connected components
---       algorithm a la GHC
+-- this code is called after locs and codes are sorted topologically
 multiAssign :: [CgLoc] -> [Code] -> Code
 multiAssign locs codes = fold $ zipWith storeLoc locs codes
 
@@ -52,25 +48,13 @@ emitMultiAssign stores exprs =  (emit $ multiAssign (fst  codes) (snd codes) ) >
 
 emitMultiAssignVars  :: [CgLoc] -> [CgLoc] -> CodeGen ()
 emitMultiAssignVars stores load = do
-    --  ??dflags <- getDynFlags
     unscramble $ makeStatements stores load
 
 type Key  = Int
--- type Vrtx = (Key, Stmt)
-
 
 data Statement = Statement { from::CgLoc, to::CgLoc}
 
-
 type Vrtx = (Key, Statement)
-
-instance Show Statement where
-  show  s  = "from:" ++ (show $ findVarId ( from s ) ) ++  " to:" ++( show $ findVarId ( to s) )
-
-instance Show (SCC Vrtx) where
-  show  (AcyclicSCC vrtx)  = "AcyclicSCC(" ++ show vrtx ++ ")"
-  show  (CyclicSCC vrtxs)  = "CyclicSCC(" ++ show vrtxs ++ ")"
-
 
 makeStatements::[CgLoc]->[CgLoc]->[Statement]
 makeStatements [] [] = []
@@ -78,9 +62,9 @@ makeStatements (toHead:toTail) (fromHead:fromTail) =
     Statement { from = fromHead, to = toHead} : makeStatements toTail fromTail
 makeStatements _ _ = panic "not matching stmts"
 
-
+--  this is more or less close copy of algorithm used in GHC
 unscramble ::[Statement] -> CodeGen ()
-unscramble vertices = traceCg (str $ "J:Edges" ++ show edges) >> traceCg( str $ "J:components" ++ show components) >> mapM_ do_component components
+unscramble vertices = mapM_ do_component components
   where
         edges :: [ Node Key Vrtx ]
         edges = [ (vertex, key1, (edges_from stmt1))
@@ -88,7 +72,6 @@ unscramble vertices = traceCg (str $ "J:Edges" ++ show edges) >> traceCg( str $ 
 
         to_vertices::[Statement]->[Vrtx]
         to_vertices stmts = (\x -> (edge_to x, x)) <$> stmts
-
 
         edges_from :: Statement -> [Key]
         edges_from stmt1 = findVarId  $ from stmt1
@@ -99,18 +82,13 @@ unscramble vertices = traceCg (str $ "J:Edges" ++ show edges) >> traceCg( str $ 
         components :: [SCC Vrtx]
         components = reverse $ stronglyConnCompFromEdgedVertices edges
 
-        -- do_components deal with one strongly-connected component
-        -- Not cyclic, or singleton?  Just do it
         do_component :: SCC Vrtx -> CodeGen ()
-        do_component (AcyclicSCC (_,stmt))  = traceCg(str  "J:acyclic") >> mk_graph stmt
+        do_component (AcyclicSCC (_,stmt))  = mk_graph stmt
         do_component (CyclicSCC [])         = panic "do_component"
-        -- do_component (CyclicSCC [(_,stmt)]) = mk_graph stmt
-        do_component (CyclicSCC [(_,stmt)]) = traceCg(str  "J:semi cyclic") >>mk_graph stmt
-                -- Cyclic?  Then go via temporaries.  Pick one to
-                -- break the loop and try again with the rest.
+        do_component (CyclicSCC [(_,stmt)]) = mk_graph stmt
+
         do_component (CyclicSCC ((_,first_stmt) : rest)) = do
             u <- emitTemp $ to first_stmt
-            traceCg(str  "J:full cyclic")
             let (to_tmp, from_tmp) = split u first_stmt
             mk_graph to_tmp
             unscramble $ snd <$> rest
@@ -122,11 +100,8 @@ unscramble vertices = traceCg (str $ "J:Edges" ++ show edges) >> traceCg( str $ 
 
         mk_graph :: Statement -> CodeGen ()
         mk_graph stmt = emitAssign (to stmt) code
-            where code = emitLoad $ from stmt
+            where code = loadLoc $ from stmt
 
--- this might be removed as well - loadLoc has it all
-emitLoad::CgLoc->Code
-emitLoad = loadLoc
 
 emitTemp::CgLoc -> CodeGen CgLoc
 emitTemp (LocLocal isClosure ft _) = newTemp isClosure ft
@@ -137,7 +112,7 @@ codesOnly [] [] = ([], [])
 codesOnly (storeHead:stores) (Left exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
     where tail = codesOnly stores exprs
 codesOnly  (_:stores) (Right _:exprs) = codesOnly stores exprs
-codesOnly _ _ = ([],[]) -- could this even happen at all?? would it not be better to have list of Tuples  as  argument?
+codesOnly _ _ = panic "unequal assigmnents"
 
 -- so bad copy paste almost
 cgLocsOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [CgLoc])
@@ -145,22 +120,11 @@ cgLocsOnly [] [] = ([], [])
 cgLocsOnly (storeHead:stores) (Right exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
     where tail = cgLocsOnly stores exprs
 cgLocsOnly  (_:stores) (Left _:exprs) = cgLocsOnly stores exprs
-cgLocsOnly _ _ = ([],[]) -- could this even happen at all?? would it not be better to have list of Tuples  as  argument?
-
+cgLocsOnly _ _ = panic "unequal assigmnents"
 
 findVarId::CgLoc->[Int]
 findVarId (LocLocal _ _ x) = [x]
 findVarId _ = []
-
-
-{-
-data CgLoc = LocLocal Bool FieldType !Int
-           | LocStatic FieldType Text Text
-           | LocField Bool FieldType Text Text
-           | LocDirect Bool FieldType Code
-           | LocLne Label Int CgLoc [CgLoc]
-           | LocMask FieldType CgLoc
--}
 
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
