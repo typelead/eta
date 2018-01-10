@@ -169,10 +169,13 @@ dependencies::[StgArg]->CodeGen [Either Code CgLoc]
 dependencies  [] =  pure []
 dependencies (x:xs) = dependencies xs  >>=  joinDependency  x
 
+joinDependency :: StgArg->[Either Code CgLoc] -> CodeGen [Either Code CgLoc]
 joinDependency  x deps =
     joinSingle  deps  <$> dep
     where dep = dependency x
 
+
+joinSingle :: [Either Code CgLoc]->Either Code CgLoc->[Either Code CgLoc]
 joinSingle  deps x = x : deps
 
 
