@@ -13,7 +13,8 @@ import ETA.CodeGen.Types
 import ETA.CodeGen.ArgRep
 import ETA.CodeGen.Rts
 import ETA.CodeGen.Env
-
+import ETA.Utils.Digraph
+import ETA.Utils.Panic
 
 import Data.Maybe
 import Data.Monoid
@@ -37,6 +38,116 @@ emitAssign cgLoc code = emit $ storeLoc cgLoc code
 --       algorithm a la GHC
 multiAssign :: [CgLoc] -> [Code] -> Code
 multiAssign locs codes = fold $ zipWith storeLoc locs codes
+
+-- generic way - might be used fod "any" code or known vars
+emitMultiAssign  :: [CgLoc] -> [Either Code CgLoc] -> CodeGen ()
+emitMultiAssign stores exprs =  (emit $ multiAssign (fst  codes) (snd codes) ) >> emitMultiAssignVars (fst  locs)  (snd locs)
+--emitMultiAssign stores exprs =  (emit $ multiAssign stores exprs ) >> emitMultiAssignVars []  []
+    where
+        codes = codesOnly stores exprs
+        locs = cgLocsOnly stores exprs
+-- emitMultiAssign (storeHead:stores) (Left exprHead:exprs) = multiAssign storeHead
+-- emitMultiAssign locs codes = fold $ zipWith storeLoc locs codes
+
+emitMultiAssignVars  :: [CgLoc] -> [CgLoc] -> CodeGen ()
+emitMultiAssignVars stores load = do
+    --  ??dflags <- getDynFlags
+    unscramble $ makeStatements stores load
+
+type Key  = Int
+-- type Vrtx = (Key, Stmt)
+
+
+data Statement = Statement { from::CgLoc, to::CgLoc}
+type Vrtx = (Key, Statement)
+
+makeStatements::[CgLoc]->[CgLoc]->[Statement]
+makeStatements [] [] = []
+makeStatements (toHead:toTail) (fromHead:fromTail) =
+    Statement { from = fromHead, to = toHead} : makeStatements toTail fromTail
+
+unscramble ::[Statement] -> CodeGen ()
+unscramble vertices = mapM_ do_component components
+  where
+        edges :: [ Node Key Vrtx ]
+        edges = [ (vertex, key1, (edges_from stmt1))
+                | vertex@(key1, stmt1) <- to_vertices vertices ]
+
+        to_vertices::[Statement]->[Vrtx]
+        to_vertices stmts = (\x -> (edge_to x, x)) <$> stmts
+
+
+        edges_from :: Statement -> [Key]
+        edges_from stmt1 = findVarId  $ to stmt1
+
+        edge_to:: Statement -> Key
+        edge_to stmt1 = head ( findVarId $ from stmt1 )
+
+        components :: [SCC Vrtx]
+        components = stronglyConnCompFromEdgedVertices edges
+
+        -- do_components deal with one strongly-connected component
+        -- Not cyclic, or singleton?  Just do it
+        do_component :: SCC Vrtx -> CodeGen ()
+        do_component (AcyclicSCC (_,stmt))  = mk_graph stmt
+        do_component (CyclicSCC [])         = panic "do_component"
+        -- do_component (CyclicSCC [(_,stmt)]) = mk_graph stmt
+        do_component (CyclicSCC [(_,stmt)]) = mk_graph stmt
+                -- Cyclic?  Then go via temporaries.  Pick one to
+                -- break the loop and try again with the rest.
+        do_component (CyclicSCC ((_,first_stmt) : rest)) = do
+            -- dflags <- getDynFlags
+            u <- emitTemp $ to first_stmt
+            let (to_tmp, from_tmp) = split u first_stmt
+            mk_graph to_tmp
+            unscramble $ snd <$> rest
+            mk_graph from_tmp
+
+        split :: CgLoc -> Statement -> (Statement, Statement)
+        split uniq Statement{ from = f, to = t}
+          = (Statement{from=f, to = uniq}, Statement{from = uniq, to =t})
+
+        mk_graph :: Statement -> CodeGen ()
+        mk_graph stmt = emitAssign (to stmt) code
+            where code = emitLoad $ from stmt
+
+-- this might be removed as well - loadLoc has it all
+emitLoad::CgLoc->Code
+emitLoad = loadLoc
+
+emitTemp::CgLoc -> CodeGen CgLoc
+emitTemp (LocLocal isClosure ft _) = newTemp isClosure ft
+emitTemp _ = panic "not implemented"
+
+codesOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [Code])
+codesOnly [] [] = ([], [])
+codesOnly (storeHead:stores) (Left exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
+    where tail = codesOnly stores exprs
+codesOnly  (storeHead:stores) (Right exprHead:exprs) = codesOnly stores exprs
+codesOnly _ _ = ([],[]) -- could this even happen at all?? would it not be better to have list of Tuples  as  argument?
+
+-- so bad copy paste almost
+cgLocsOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [CgLoc])
+cgLocsOnly [] [] = ([], [])
+cgLocsOnly (storeHead:stores) (Right exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
+    where tail = cgLocsOnly stores exprs
+cgLocsOnly  (storeHead:stores) (Left exprHead:exprs) = cgLocsOnly stores exprs
+cgLocsOnly _ _ = ([],[]) -- could this even happen at all?? would it not be better to have list of Tuples  as  argument?
+
+
+findVarId::CgLoc->[Int]
+findVarId (LocLocal _ _ x) = [x]
+findVarId _ = []
+
+
+{-
+data CgLoc = LocLocal Bool FieldType !Int
+           | LocStatic FieldType Text Text
+           | LocField Bool FieldType Text Text
+           | LocDirect Bool FieldType Code
+           | LocLne Label Int CgLoc [CgLoc]
+           | LocMask FieldType CgLoc
+-}
 
 -- TODO: There are a lot of bangs in this function. Verify that they do
 --       indeed help.
