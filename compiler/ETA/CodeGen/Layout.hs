@@ -65,6 +65,8 @@ makeStatements::[CgLoc]->[CgLoc]->[Statement]
 makeStatements [] [] = []
 makeStatements (toHead:toTail) (fromHead:fromTail) =
     Statement { from = fromHead, to = toHead} : makeStatements toTail fromTail
+makeStatements _ _ = panic "not matching stmts"
+
 
 unscramble ::[Statement] -> CodeGen ()
 unscramble vertices = mapM_ do_component components
@@ -78,10 +80,10 @@ unscramble vertices = mapM_ do_component components
 
 
         edges_from :: Statement -> [Key]
-        edges_from stmt1 = findVarId  $ to stmt1
+        edges_from stmt1 = findVarId  $ from stmt1
 
         edge_to:: Statement -> Key
-        edge_to stmt1 = head ( findVarId $ from stmt1 )
+        edge_to stmt1 = head ( findVarId $ to stmt1 )
 
         components :: [SCC Vrtx]
         components = stronglyConnCompFromEdgedVertices edges
@@ -96,7 +98,6 @@ unscramble vertices = mapM_ do_component components
                 -- Cyclic?  Then go via temporaries.  Pick one to
                 -- break the loop and try again with the rest.
         do_component (CyclicSCC ((_,first_stmt) : rest)) = do
-            -- dflags <- getDynFlags
             u <- emitTemp $ to first_stmt
             let (to_tmp, from_tmp) = split u first_stmt
             mk_graph to_tmp
@@ -123,7 +124,7 @@ codesOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [Code])
 codesOnly [] [] = ([], [])
 codesOnly (storeHead:stores) (Left exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
     where tail = codesOnly stores exprs
-codesOnly  (storeHead:stores) (Right exprHead:exprs) = codesOnly stores exprs
+codesOnly  (_:stores) (Right _:exprs) = codesOnly stores exprs
 codesOnly _ _ = ([],[]) -- could this even happen at all?? would it not be better to have list of Tuples  as  argument?
 
 -- so bad copy paste almost
@@ -131,7 +132,7 @@ cgLocsOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [CgLoc])
 cgLocsOnly [] [] = ([], [])
 cgLocsOnly (storeHead:stores) (Right exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
     where tail = cgLocsOnly stores exprs
-cgLocsOnly  (storeHead:stores) (Left exprHead:exprs) = cgLocsOnly stores exprs
+cgLocsOnly  (_:stores) (Left _:exprs) = cgLocsOnly stores exprs
 cgLocsOnly _ _ = ([],[]) -- could this even happen at all?? would it not be better to have list of Tuples  as  argument?
 
 
