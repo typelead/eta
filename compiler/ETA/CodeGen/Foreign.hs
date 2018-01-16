@@ -119,13 +119,23 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                   _ -> error $ "deserializeTarget: bad instr: " ++ label
 
         genMethodTarget [isInterface', isSuper', hasSubclass', clsName', methodName', methodDesc'] =
-          \mbObjFt args -> fold args
-                        <> instr (mkMethodRef (clsName mbObjFt) methodName argFts resFt)
+          \mbObjFt args -> foldedArgs mbObjFt args
+                        <> instr (mkMethodRef (snd $ clsName mbObjFt) methodName argFts resFt)
           where clsName mbObjFt =
                   if hasSubclass && not (isInterface || isSuper)
-                  then maybe (error "deserializeTarget: no subclass field type.")
-                             getFtClass mbObjFt
-                  else read clsName'
+                  then let cls' = maybe (error "deserializeTarget: no subclass field type.") getFtClass mbObjFt
+                       in if (cls' == jobjectC) && (className /= jobjectC)
+                          then (True, className)
+                          else (False, cls')
+                  else (False, className)
+                foldedArgs mbObjFt args
+                  | (doCast, clsName') <- clsName mbObjFt
+                  , let (thisArg:restArgs) = args
+                        maybeConv
+                          | doCast    = gconv jobject (obj clsName')
+                          | otherwise = mempty
+                  = thisArg <> maybeConv <> fold restArgs
+                className  = read clsName'
                 methodName = read methodName'
                 isInterface = read isInterface'
                 isSuper = read isSuper'
