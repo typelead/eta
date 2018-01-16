@@ -130,11 +130,13 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                   else (False, className)
                 foldedArgs mbObjFt args
                   | (doCast, clsName') <- clsName mbObjFt
-                  , let (thisArg:restArgs) = args
-                        maybeConv
-                          | doCast    = gconv jobject (obj clsName')
-                          | otherwise = mempty
-                  = thisArg <> maybeConv <> fold restArgs
+                  = case args of
+                      (thisArg:restArgs) ->
+                        let maybeConv
+                              | doCast    = gconv jobject (obj clsName')
+                              | otherwise = mempty
+                        in thisArg <> maybeConv <> fold restArgs
+                      _ -> mempty
                 className  = read clsName'
                 methodName = read methodName'
                 isInterface = read isInterface'
