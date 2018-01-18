@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.OpenOption;
+import java.nio.file.FileSystems;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.FileAttribute;
@@ -412,7 +413,14 @@ public class Utils {
         fileChannelOpen(Path path, Set<OpenOption> options,
                         FileAttribute<Set<PosixFilePermission>> attribute)
       throws IOException {
-        return FileChannel.open(path, options, attribute);
+        // checks where file store for our path does know about POSIX
+        Set<String> faViews = FileSystems.getDefault().supportedFileAttributeViews();
+        if (faViews.contains("posix")) {
+            return FileChannel.open(path, options, attribute);
+        }
+
+        // default system behaviour
+        return FileChannel.open(path, options);
     }
 
     public static final int pathSeparatorChar = File.pathSeparatorChar;
