@@ -287,7 +287,7 @@ in the Haskell ecosystem, read
 
       $ etlas init
 
-      Package name? [default: eta] eta-first
+      Package name? [default: eta-first]
       Package version? [default: 0.1.0.0]
       Please choose a license:
         1) GPL-2
@@ -334,6 +334,11 @@ in the Haskell ecosystem, read
         1) Library
         2) Executable
       Your choice? 2
+      What is the main module of the executable:
+      * 1) Main.hs (does not yet exist, but will be created)
+        2) Main.lhs (does not yet exist, but will be created)
+        3) Other (specify)
+      Your choice? [default: Main.hs (does not yet exist, but will be created)]
       Source directory:
       * 1) (none)
         2) src
