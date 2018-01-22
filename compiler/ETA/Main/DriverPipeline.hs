@@ -80,6 +80,7 @@ import ETA.TypeCheck.TcRnTypes
 import ETA.Main.Hooks
 
 import ETA.Utils.Exception
+import ETA.Utils.Fingerprint
 -- import qualified ETA.Utils.Exception as Exception
 -- import Data.IORef       ( readIORef )
 import System.Directory
@@ -89,6 +90,8 @@ import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
 import Data.List        ( partition, nub )
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe
 -- import System.Environment
 -- import Data.Char
@@ -1306,7 +1309,9 @@ linkingNeeded dflags linkables pkgDeps = do
             eLibTimes <- mapM (tryIO . getModificationUTCTime)
                               (catMaybes pkgLibFiles)
             let (libErrs, libTimes) = splitEithers eLibTimes
-            return $ not (null libErrs) || any (t <) libTimes
+            if not (null libErrs) || any (t <) libTimes
+               then return True
+               else checkLinkInfo dflags linkables pkgDeps jarFile
 
 jarFileName :: DynFlags -> FilePath
 jarFileName dflags
@@ -1321,6 +1326,23 @@ ffiMapFileName dflags
 (<?.>) :: FilePath -> String -> FilePath
 s <?.> ext | null (takeExtension s) = s <.> ext
            | otherwise              = s
+
+checkLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> FilePath -> IO Bool
+checkLinkInfo  dflags linkables pkg_deps jar_file = do
+  link_info <- getLinkInfo dflags pkg_deps
+  debugTraceMsg dflags 3 $ text ("Link info: " ++ link_info)
+  m_jar_link_info <- extractLinkInfoFromJarFile dflags etaLinkInfoSectionName jar_file
+  debugTraceMsg dflags 3 $ text ("Exe link info: " ++ show m_jar_link_info)
+  return (Just link_info /= m_jar_link_info)
+
+-- getLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> LinkInfo
+getLinkInfo = _
+extractLinkInfoFromJarFile = _
+
+etaLinkInfoSectionName :: String
+etaLinkInfoSectionName = ".eta-link-info"
+
+type LinkInfo = Map Fingerprint String
 
 -- etaFrontend :: ModSummary -> Hsc TcGblEnv
 -- etaFrontend mod_summary = do
