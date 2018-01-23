@@ -80,7 +80,7 @@ import ETA.TypeCheck.TcRnTypes
 import ETA.Main.Hooks
 
 import ETA.Utils.Exception
--- import ETA.Utils.Fingerprint
+import ETA.Utils.Fingerprint
 -- import qualified ETA.Utils.Exception as Exception
 -- import Data.IORef       ( readIORef )
 import System.Directory
@@ -90,8 +90,8 @@ import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
 import Data.List        ( partition, nub, union )
--- import Data.Map (Map)
--- import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.Set (Set)
 import Data.Maybe
 -- import System.Environment
 -- import Data.Char
@@ -1338,20 +1338,27 @@ checkLinkInfo  dflags linkables pkg_deps jar_file = do
   debugTraceMsg dflags 3 $ text ("Exe link info: " ++ show m_jar_link_info)
   return (Just link_info /= m_jar_link_info)
 
-type LinkInfo = [String]
+type LinkInfo = Set Fingerprint
 
 getLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> IO LinkInfo
 getLinkInfo dflags linkables dep_packages = do
   debugTraceMsg dflags 3 $ (text "linkables:" <+> vcat (map ppr linkables))
   debugTraceMsg dflags 3 $ (text "dep_packages:" <+> vcat (map ppr dep_packages))
-  return []
-
+  pkgLibJars <- getPackageLibJars dflags dep_packages
+  let includedPkgLibJars = if includePackages then pkgLibJars else []
+      inputJars = jarInputs dflags
+      allJars = includedPkgLibJars `union` inputJars
+  return $ Set.fromList $ map fingerprintString allJars
+  where includePackages = case ghcLink dflags of
+          LinkBinary -> True
+          _          -> False  
+  
 extractLinkInfoFromJarFile :: DynFlags -> String -> FilePath
                            -> IO (Maybe LinkInfo)
 extractLinkInfoFromJarFile dflags linkInfoName jarFile = do
   debugTraceMsg dflags 3 (text $ "linkInfoName:" ++ show linkInfoName)
   debugTraceMsg dflags 3 (text $ "jarFile:" ++ show jarFile)
-  return $ Just []
+  return $ Just Set.empty
   
 etaLinkInfoSectionName :: String
 etaLinkInfoSectionName = ".eta-link-info"
@@ -1418,6 +1425,7 @@ linkGeneric dflags oFiles depPackages = do
                       show other)
           outputFn = jarFileName dflags
           getNonManifestEntries = getEntriesFromJar
+
 
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do
