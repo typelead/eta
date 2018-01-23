@@ -80,7 +80,7 @@ import ETA.TypeCheck.TcRnTypes
 import ETA.Main.Hooks
 
 import ETA.Utils.Exception
-import ETA.Utils.Fingerprint
+-- import ETA.Utils.Fingerprint
 -- import qualified ETA.Utils.Exception as Exception
 -- import Data.IORef       ( readIORef )
 import System.Directory
@@ -89,9 +89,9 @@ import System.FilePath
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
-import Data.List        ( partition, nub )
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.List        ( partition, nub, union )
+-- import Data.Map (Map)
+-- import qualified Data.Map as Map
 import Data.Maybe
 -- import System.Environment
 -- import Data.Char
@@ -1291,13 +1291,15 @@ linkingNeeded dflags linkables pkgDeps = do
         -- modification times on all of the objects and libraries, then omit
         -- linking (unless the -fforce-recomp flag was given).
   let jarFile = jarFileName dflags
-  eJarTime <- tryIO $ getModificationUTCTime jarFile
+      getTime = tryIO . getModificationUTCTime
+  eJarTime <- getTime jarFile
   case eJarTime of
     Left _  -> return True
     Right t -> do
         -- TODO: Factor in ldOptions too
         let jarTimes = map linkableTime linkables
-        if any (t <) jarTimes then return True
+        if any (t <) jarTimes then
+          return True
         else do
           let pkgHSLibs  = [ (libraryDirs c, lib)
                           | Just c <- map (lookupInstalledPackage dflags) pkgDeps
@@ -1306,8 +1308,9 @@ linkingNeeded dflags linkables pkgDeps = do
           if any isNothing pkgLibFiles then
             return True
           else do
-            eLibTimes <- mapM (tryIO . getModificationUTCTime)
-                              (catMaybes pkgLibFiles)
+            let inputJars = jarInputs dflags
+                pkgAndInputJars = catMaybes pkgLibFiles `union` inputJars
+            eLibTimes <- mapM getTime pkgAndInputJars
             let (libErrs, libTimes) = splitEithers eLibTimes
             if not (null libErrs) || any (t <) libTimes
                then return True
@@ -1329,20 +1332,31 @@ s <?.> ext | null (takeExtension s) = s <.> ext
 
 checkLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> FilePath -> IO Bool
 checkLinkInfo  dflags linkables pkg_deps jar_file = do
-  link_info <- getLinkInfo dflags pkg_deps
-  debugTraceMsg dflags 3 $ text ("Link info: " ++ link_info)
+  link_info <- getLinkInfo dflags linkables pkg_deps
+  debugTraceMsg dflags 3 $ text ("Link info: " ++ show link_info)
   m_jar_link_info <- extractLinkInfoFromJarFile dflags etaLinkInfoSectionName jar_file
   debugTraceMsg dflags 3 $ text ("Exe link info: " ++ show m_jar_link_info)
   return (Just link_info /= m_jar_link_info)
 
--- getLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> LinkInfo
-getLinkInfo = _
-extractLinkInfoFromJarFile = _
+type LinkInfo = [String]
 
+getLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> IO LinkInfo
+getLinkInfo dflags linkables dep_packages = do
+  debugTraceMsg dflags 3 $ (text "linkables:" <+> vcat (map ppr linkables))
+  debugTraceMsg dflags 3 $ (text "dep_packages:" <+> vcat (map ppr dep_packages))
+  return []
+
+extractLinkInfoFromJarFile :: DynFlags -> String -> FilePath
+                           -> IO (Maybe LinkInfo)
+extractLinkInfoFromJarFile dflags linkInfoName jarFile = do
+  debugTraceMsg dflags 3 (text $ "linkInfoName:" ++ show linkInfoName)
+  debugTraceMsg dflags 3 (text $ "jarFile:" ++ show jarFile)
+  return $ Just []
+  
 etaLinkInfoSectionName :: String
 etaLinkInfoSectionName = ".eta-link-info"
 
-type LinkInfo = Map Fingerprint String
+
 
 -- etaFrontend :: ModSummary -> Hsc TcGblEnv
 -- etaFrontend mod_summary = do
@@ -1386,7 +1400,7 @@ linkGeneric dflags oFiles depPackages = do
     start <- getCurrentTime
     debugTraceMsg dflags 3 (text $ "linkGeneric: linkables are: " ++
                             show ( ["mainFiles"]  ++ map (show . fst) mainFiles
-                                ++ ["pkgLibJars"] ++  pkgLibJars
+                                ++ ["pkgLibJars"] ++ pkgLibJars
                                 ++ ["jarInputs"]  ++ jarInputs dflags
                                 ++ ["oFiles"]     ++ oFiles) )
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
@@ -1396,17 +1410,14 @@ linkGeneric dflags oFiles depPackages = do
       putStrLn $ "Link time: " ++ show (diffUTCTime end start)
     -- TODO: Handle frameworks & extra ldInputs
     where (isExecutable, includePackages) = case ghcLink dflags of
-            LinkBinary    -> (True, True)
-            LinkStaticLib -> (False, False)
-            LinkDynLib    -> (True, False)
-            other         ->
-              panic ("link: GHC not built to link this way: " ++
-                    show other)
+             LinkBinary    -> (True, True)
+             LinkStaticLib -> (False, False)
+             LinkDynLib    -> (True, False)
+             other         ->
+               panic ("link: GHC not built to link this way: " ++
+                      show other)
           outputFn = jarFileName dflags
-          getNonManifestEntries = -- fmap (filter (\s ->
-                                  --           not ("MANIFEST" `isPrefixOf` show s)))
-                                    -- .
-                                  getEntriesFromJar
+          getNonManifestEntries = getEntriesFromJar
 
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do
