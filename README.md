@@ -16,7 +16,7 @@ the following goals:
 - accessibility for beginners from imperative languages, especially Java
 - compatibility with GHC 7.10.3's Haskell.
 
-Visit [eta-lang.org](http://eta-lang.org) for instructions on getting started.
+Visit [eta-lang.org](https://eta-lang.org) for instructions on getting started.
 
 ## Version
 
@@ -31,7 +31,7 @@ for updates.
 
 ## Getting Started
 
-Visit the [Getting Started](http://eta-lang.org/docs/html/getting-started.html) page
+Visit the [Getting Started](https://eta-lang.org/docs/eta-concepts/getting-started/what-is-eta) page
 in the documentation.
 
 ## License
