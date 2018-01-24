@@ -1166,6 +1166,7 @@ changes:
 
       package eta.first;
 
+      import java.io.IOException;
       import java.nio.file.Files;
       import java.nio.file.Paths;
 
@@ -1174,7 +1175,7 @@ changes:
         /* This helper method lets us avoid variadic arguments which
            are a bit cumbersome to work with in Eta. */
 
-        public static void createFile(String path) {
+        public static void createFile(String path) throws IOException {
           Files.createFile(Paths.get(path));
         }
       }
