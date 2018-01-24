@@ -1316,8 +1316,7 @@ linkingNeeded dflags linkables pkgDeps = do
                           , lib <- packageHsLibs dflags c ]
           pkgLibFiles <- mapM (uncurry $ findHSLib dflags) pkgHSLibs
           if any isNothing pkgLibFiles then do
-             debugTraceMsg dflags 3 (text $ "linkingNeeded: any isNothing pkgLibFiles = " ++
-                                     show jarTimes)
+             debugTraceMsg dflags 3 (text $ "linkingNeeded: any isNothing pkgLibFiles")
              return True
           else do
             extras <- getExtrasFileName dflags
