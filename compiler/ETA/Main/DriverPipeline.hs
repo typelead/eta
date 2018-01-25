@@ -1358,12 +1358,12 @@ type LinkInfo = Set Fingerprint
 
 getLinkInfo :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO LinkInfo
 getLinkInfo dflags linkablesJars dep_packages = do
-  pkgLibJars <- getPackageLibJars dflags dep_packages
+  includedPkgLibJars <- if includePackages then getPackageLibJars dflags dep_packages
+                        else return []  
   mainAndManifest <- fmap (map fst) $ maybeMainAndManifest dflags isExecutable
   extras <- getExtrasFileName dflags
   mExtrasHash <- getFileHashIfExists extras
-  let includedPkgLibJars = if includePackages then pkgLibJars else []
-      inputJars = jarInputs dflags
+  let inputJars = jarInputs dflags
       allJars =  (linkablesJars ++ (includedPkgLibJars `union` inputJars)) \\ [extras]
       linkInfo = (show $ compressionMethod dflags) : (mainAndManifest ++ allJars)
       extrasHash = maybeToList mExtrasHash
@@ -1428,13 +1428,11 @@ linkGeneric dflags oFiles depPackages = do
                    a' <- mkPath a
                    return (a', b)
     outJars <- mapM getNonManifestEntries oFiles
-    pkgLibJars <- getPackageLibJars dflags depPackages
-    extraJars <-
-          if includePackages then do
-             mapM getNonManifestEntries pkgLibJars
-            -- TODO: Verify that the right version eta was used
-            --       in the Manifests of the jars being compiled
-          else return []
+    pkgLibJars <- if includePackages then getPackageLibJars dflags depPackages
+                  else return []
+    extraJars <- mapM getNonManifestEntries pkgLibJars
+                  -- TODO: Verify that the right version eta was used
+                  -- in the Manifests of the jars being compiled
     inputJars <- mapM getNonManifestEntries (jarInputs dflags)
     start <- getCurrentTime
     debugTraceMsg dflags 3 (text $ "linkGeneric: linkables are: " ++
