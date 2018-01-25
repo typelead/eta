@@ -13,7 +13,7 @@
 module ETA.Main.DriverPipeline (
         -- Run a series of compilation steps in a pipeline, for a
         -- collection of source files.
-   oneShot, compileFile,
+   oneShot,
 
         -- Interfaces for the compilation manager (interpreted/batch-mode)
    preprocess,
@@ -80,6 +80,7 @@ import ETA.TypeCheck.TcRnTypes
 import ETA.Main.Hooks
 
 import ETA.Utils.Exception
+import ETA.Utils.Fingerprint
 -- import qualified ETA.Utils.Exception as Exception
 -- import Data.IORef       ( readIORef )
 import System.Directory
@@ -88,7 +89,9 @@ import System.FilePath
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
-import Data.List        ( partition, nub )
+import Data.List        ( partition, nub, union , (\\))
+import qualified Data.Set as Set
+import Data.Set (Set)
 import Data.Maybe
 -- import System.Environment
 -- import Data.Char
@@ -388,8 +391,7 @@ link _ dflags batchAttemptLinking hpt
           (text "link(batch): linking omitted (-c flag given).")
         return Succeeded
       else do
-        let getOfiles (LM _ _ us) = map nameOfObject (filter isObject us)
-            jarFiles = concatMap getOfiles linkables
+        let jarFiles = linkablesToJars linkables
             jarFile = jarFileName dflags
         shouldLink <- linkingNeeded dflags linkables pkgDeps
         if not (gopt Opt_ForceRecomp dflags) && not shouldLink then do
@@ -408,6 +410,10 @@ link _ dflags batchAttemptLinking hpt
          (text "link(batch): upsweep (partially) failed OR" $$
           text "   Main.main not exported; not linking.")
        return Succeeded
+
+linkablesToJars :: [Linkable] -> [FilePath]
+linkablesToJars ls = concatMap getOfiles ls 
+  where getOfiles (LM _ _ us) = map nameOfObject (filter isObject us)
 
 data FFIMapping =
   FFIMapping {
@@ -453,20 +459,29 @@ compileFiles hsc_env stop_phase srcs = do
               $ class_dirs
               ++ o_files'
       classesDir = fromMaybe "." (objectDir dflags') </> "classes"
+  debugTraceMsg dflags' 3 (text $ "compileFiles : start")
   genClassPaths <- if (not (null java_source_srcs))
                    then do
                      createDirectoryIfMissing True classesDir
                      runJavac dflags' $ ["-d", classesDir] ++ java_source_srcs
                    else return []
-  extras <- getOutputFilename StopLn Persistent "__extras" dflags' StopLn Nothing
+  extras <- getExtrasFileName dflags'
   let classes = genClassPaths ++ java_class_srcs
-  when (not (null classes)) $
+  when (not (null classes)) $ do
+    debugTraceMsg dflags' 3 (text $ "compileFiles : generating "
+                                  ++ extras ++ " with " ++ show classes)
     createJar dflags' extras classes
-  return ((if null classes then [] else [extras]) ++ o_files')
+  let o_files'' = (if null classes then [] else [extras]) ++ o_files'
+  debugTraceMsg dflags' 3 (text $ "compileFiles : returning "++ show o_files'')
+  return o_files''
   where (java_srcs, non_java_srcs) = partition (isJavaishFilename . fst) srcs
         (java_class_srcs, java_source_srcs) = partition isJavaClassishFilename
                                               $ map fst java_srcs
         class_dirs = map takeDirectory java_class_srcs
+
+getExtrasFileName :: DynFlags -> IO FilePath
+getExtrasFileName dflags =
+  getOutputFilename StopLn Persistent "__extras" dflags StopLn Nothing
 
 createJar :: DynFlags -> FilePath -> [FilePath] -> IO ()
 createJar dflags outputFile classes = do
@@ -1283,25 +1298,38 @@ linkingNeeded dflags linkables pkgDeps = do
         -- modification times on all of the objects and libraries, then omit
         -- linking (unless the -fforce-recomp flag was given).
   let jarFile = jarFileName dflags
-  eJarTime <- tryIO $ getModificationUTCTime jarFile
+      getTime = tryIO . getModificationUTCTime
+  eJarTime <- getTime jarFile
   case eJarTime of
     Left _  -> return True
     Right t -> do
+        debugTraceMsg dflags 3 (text $ "linkingNeeded: previousJar time = " ++ show t)
         -- TODO: Factor in ldOptions too
         let jarTimes = map linkableTime linkables
-        if any (t <) jarTimes then return True
+        debugTraceMsg dflags 3 (text $ "linkingNeeded: linkablesJar times = " ++
+                                show jarTimes)
+        if any (t <) jarTimes then
+          return True
         else do
           let pkgHSLibs  = [ (libraryDirs c, lib)
                           | Just c <- map (lookupInstalledPackage dflags) pkgDeps
                           , lib <- packageHsLibs dflags c ]
           pkgLibFiles <- mapM (uncurry $ findHSLib dflags) pkgHSLibs
-          if any isNothing pkgLibFiles then
-            return True
+          if any isNothing pkgLibFiles then do
+             debugTraceMsg dflags 3 (text $ "linkingNeeded: any isNothing pkgLibFiles")
+             return True
           else do
-            eLibTimes <- mapM (tryIO . getModificationUTCTime)
-                              (catMaybes pkgLibFiles)
+            extras <- getExtrasFileName dflags
+            let -- Currently __extras.jar is always generated even when modules are not compiled
+                inputJars = jarInputs dflags \\ [extras]
+                pkgAndInputJars = catMaybes pkgLibFiles `union` inputJars
+            eLibTimes <- mapM getTime pkgAndInputJars
             let (libErrs, libTimes) = splitEithers eLibTimes
-            return $ not (null libErrs) || any (t <) libTimes
+            debugTraceMsg dflags 3 (text $ "linkingNeeded: pkgAndInputJars times = " ++
+                                show libTimes ++ ",libErrs = " ++ show libErrs)
+            if not (null libErrs) || any (t <) libTimes
+               then return True
+               else checkLinkInfo dflags linkables pkgDeps jarFile
 
 jarFileName :: DynFlags -> FilePath
 jarFileName dflags
@@ -1316,6 +1344,57 @@ ffiMapFileName dflags
 (<?.>) :: FilePath -> String -> FilePath
 s <?.> ext | null (takeExtension s) = s <.> ext
            | otherwise              = s
+
+checkLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> FilePath -> IO Bool
+checkLinkInfo  dflags linkables pkg_deps jar_file = do
+  let linkablesJars = linkablesToJars linkables
+  link_info <- getLinkInfo dflags linkablesJars pkg_deps
+  debugTraceMsg dflags 3 $ text ("checkLinkInfo: Link info= " ++ show link_info)
+  m_jar_link_info <- extractLinkInfoFromJarFile dflags etaLinkInfoSectionName jar_file
+  debugTraceMsg dflags 3 $ text ("checkLinkInfo: Exe link info= " ++ show m_jar_link_info)
+  return (Just link_info /= m_jar_link_info)
+
+type LinkInfo = Set Fingerprint
+
+getLinkInfo :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO LinkInfo
+getLinkInfo dflags linkablesJars dep_packages = do
+  includedPkgLibJars <- if includePackages then getPackageLibJars dflags dep_packages
+                        else return []  
+  mainAndManifest <- fmap (map fst) $ maybeMainAndManifest dflags isExecutable
+  extras <- getExtrasFileName dflags
+  mExtrasHash <- getFileHashIfExists extras
+  let inputJars = jarInputs dflags
+      allJars =  (linkablesJars ++ (includedPkgLibJars `union` inputJars)) \\ [extras]
+      linkInfo = (show $ compressionMethod dflags) : (mainAndManifest ++ allJars)
+      extrasHash = maybeToList mExtrasHash
+  return $ Set.fromList $ map fingerprintString linkInfo ++ extrasHash
+  where LinkFlags { isExecutable, includePackages } = getLinkFlags dflags
+
+getFileHashIfExists :: FilePath -> IO (Maybe Fingerprint) 
+getFileHashIfExists file = do
+   exists <- doesFileExist file
+   if exists then fmap Just $ getFileHash file
+   else return Nothing 
+
+         
+getLinkInfoFile :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO (FilePath, ByteString)
+getLinkInfoFile dflags linkablesJars dep_packages = do
+  linkInfo <- getLinkInfo dflags linkablesJars dep_packages
+  return (etaLinkInfoSectionName, BC.pack . unlines . map show . Set.toList $ linkInfo)
+
+extractLinkInfoFromJarFile :: DynFlags -> String -> FilePath
+                           -> IO (Maybe LinkInfo)
+extractLinkInfoFromJarFile dflags linkInfoName jarFile = do
+  debugTraceMsg dflags 3 (text $ "extractLinkInfoFromJarFile: jarFile=" ++ show jarFile)
+  existJar <- doesFileExist jarFile
+  let bsToLinkInfo = Set.fromList . map readHexFingerprint . lines . BC.unpack
+  if (not existJar) then return Nothing
+  else do
+    mContent <- getEntryContentFromJar jarFile linkInfoName
+    return $ fmap bsToLinkInfo mContent
+  
+etaLinkInfoSectionName :: String
+etaLinkInfoSectionName = ".eta-link-info"
 
 -- etaFrontend :: ModSummary -> Hsc TcGblEnv
 -- etaFrontend mod_summary = do
@@ -1343,38 +1422,46 @@ linkGeneric dflags oFiles depPackages = do
     --        (text $ "    Call Rts.init() from your main() method to set"
     --          ++ " these options."))
     -- TODO: Use conduits to combine the jars
+    linkInfoFile <- getLinkInfoFile dflags oFiles depPackages
     mainFiles' <- maybeMainAndManifest dflags isExecutable
-    mainFiles <- forM mainFiles' $ \(a, b) -> do
+    mainFiles <- forM (linkInfoFile : mainFiles') $ \(a, b) -> do
                    a' <- mkPath a
                    return (a', b)
     outJars <- mapM getNonManifestEntries oFiles
-    extraJars <-
-          if includePackages then do
-            pkgLibJars <- getPackageLibJars dflags depPackages
-            mapM getNonManifestEntries pkgLibJars
-            -- TODO: Verify that the right version eta was used
-            --       in the Manifests of the jars being compiled
-          else return []
+    pkgLibJars <- if includePackages then getPackageLibJars dflags depPackages
+                  else return []
+    extraJars <- mapM getNonManifestEntries pkgLibJars
+                  -- TODO: Verify that the right version eta was used
+                  -- in the Manifests of the jars being compiled
     inputJars <- mapM getNonManifestEntries (jarInputs dflags)
     start <- getCurrentTime
+    debugTraceMsg dflags 3 (text $ "linkGeneric: linkables are: " ++
+                            show ( ["mainFiles"]  ++ map (show . fst) mainFiles
+                                ++ ["pkgLibJars"] ++ pkgLibJars
+                                ++ ["jarInputs"]  ++ jarInputs dflags
+                                ++ ["oFiles"]     ++ oFiles) )
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
       extraJars ++ inputJars ++ outJars
     end <- getCurrentTime
     when (verbosity dflags > 1) $
       putStrLn $ "Link time: " ++ show (diffUTCTime end start)
     -- TODO: Handle frameworks & extra ldInputs
-    where (isExecutable, includePackages) = case ghcLink dflags of
-            LinkBinary    -> (True, True)
-            LinkStaticLib -> (False, False)
-            LinkDynLib    -> (True, False)
-            other         ->
-              panic ("link: GHC not built to link this way: " ++
-                    show other)
+    where LinkFlags { isExecutable, includePackages } = getLinkFlags dflags
           outputFn = jarFileName dflags
-          getNonManifestEntries = -- fmap (filter (\s ->
-                                  --           not ("MANIFEST" `isPrefixOf` show s)))
-                                    -- .
-                                  getEntriesFromJar
+          getNonManifestEntries = getEntriesFromJar
+
+data LinkFlags = LinkFlags { isExecutable :: Bool, includePackages :: Bool }
+
+getLinkFlags :: DynFlags -> LinkFlags
+getLinkFlags dflags =  uncurry LinkFlags $
+  case ghcLink dflags of
+    LinkBinary    -> (True, True)
+    LinkStaticLib -> (False, False)
+    LinkDynLib    -> (True, False)
+    other         ->
+     panic ("link: GHC not built to link this way: " ++
+            show other)
+
 
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do

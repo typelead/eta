@@ -33,6 +33,7 @@ module ETA.Utils.JAR
   , addByteStringToJar
   , createEmptyJar
   , getEntriesFromJar
+  , getEntryContentFromJar
   , mergeClassesAndJars
   , CompressionMethod
   , deflate
@@ -50,7 +51,7 @@ import Path
 import Path.IO (copyFile)
 import Data.Map.Lazy (keys)
 import Data.Map.Strict (filterWithKey)
-import Data.List (sortBy,isPrefixOf )
+import Data.List (sortBy,isPrefixOf)
 import System.Directory hiding (copyFile)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -270,6 +271,20 @@ getEntriesFromJar jarLocation = do
   p <- makeAbsoluteFilePath jarLocation
   fmap (p,) $ withArchive p $ keys <$> getEntries
 
+getEntryContentFromJar 
+  :: (MonadThrow m, MonadCatch m, MonadIO m)
+  => FilePath
+  -> FilePath
+  -> m (Maybe ByteString)
+getEntryContentFromJar jarLocation file = do
+  p <- makeAbsoluteFilePath jarLocation
+  s <- parseRelFile file >>= mkEntrySelector
+  exists <- withArchive p $ doesEntryExist s
+  if exists then do
+    content <- withArchive p $ getEntry s
+    return $ Just content
+  else return Nothing
+  
 mergeClassesAndJars :: (MonadIO m, MonadCatch m, MonadThrow m)
                     => FilePath
                     -> CompressionMethod -- ^ Compression Method
