@@ -146,14 +146,14 @@ cgIdApp funId args = do
       argFtCodes <- getRepFtCodes args
       loadContext <- getContextLoc
       let (contCode, lastCode) = slowCall dflags loadContext funLoc argFtCodes
-      withContinuation True contCode lastCode
+      withContinuation contCode lastCode
     DirectEntry nodeLoc arity -> do
       traceCg (str "cgIdApp: DirectEntry")
       argFtCodes  <- getRepFtCodes args
       loadContext <- getContextLoc
-      let (unknownCall, (contCode, lastCode)) =
+      let (contCode, lastCode) =
             directCall loadContext (idType funId) nodeLoc arity argFtCodes
-      withContinuation unknownCall contCode lastCode
+      withContinuation contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       deps <- dependencies args

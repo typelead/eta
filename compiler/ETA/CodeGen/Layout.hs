@@ -27,7 +27,7 @@ emitReturn results = do
   loadContext <- getContextLoc
   case sequel of
       Return         -> emit $ mkReturnExit loadContext results <> greturn closureType
-      AssignTo slots -> emitMultiAssign slots (map Right  results)
+      AssignTo slots -> emitMultiAssign slots (map Right results)
 
 emitAssign :: CgLoc -> Code -> CodeGen ()
 emitAssign cgLoc code = emit $ storeLoc cgLoc code
@@ -240,15 +240,15 @@ slowCall dflags loadContext fun argFtCodes
                          (mkApFast arity realCls fts)
                          arity ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Code -> Type -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Bool, (Code, Maybe Code))
+directCall :: Code -> Type -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
 directCall loadContext funType fun arity argFtCodes
   | Just staticCode <- loadStaticMethod fun argFts
-  = (False, directCall' loadContext True True stgClosure
-      staticCode arity ((P, Nothing, Nothing):argFtCodes))
+  = directCall' loadContext True True stgClosure
+      staticCode arity ((P, Nothing, Nothing):argFtCodes)
   | arity' == arity =
-    (True, directCall' loadContext True True realCls (mkApFast arity' realCls fts) arity'
-      ((P, Just ft, Just code):argFtCodes))
-  | otherwise = (True, directCall' loadContext False False realCls entryCode arity argFtCodes)
+    directCall' loadContext True True realCls (mkApFast arity' realCls fts) arity'
+      ((P, Just ft, Just code):argFtCodes)
+  | otherwise = directCall' loadContext False False realCls entryCode arity argFtCodes
   where (arity', fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
         code         = loadLoc fun
         ft           = locFt fun
@@ -341,13 +341,13 @@ getUnboxedResultReps resType = [ rep
           UbxTupleRep tys -> tys
           UnaryRep    ty  -> [ty]
 
-withContinuation :: Bool -> Code -> Maybe Code -> CodeGen ()
-withContinuation saveTrampoline contCode mLastCode = do
+withContinuation :: Code -> Maybe Code -> CodeGen ()
+withContinuation contCode mLastCode = do
   sequel      <- getSequel
   loadContext <- getContextLoc
   let shouldGenSavePoint
         | Return <- sequel = isJust mLastCode
-        | otherwise = saveTrampoline || isJust mLastCode
+        | otherwise = True
       genContLoc
         | Return <- sequel
         , isJust mLastCode
