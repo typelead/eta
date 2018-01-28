@@ -1268,7 +1268,7 @@ changes:
 
    .. code::
 
-      {-# LANGUAGE MagicHash, FlexibleContexts, DataKinds, TypeFamilies #-}
+      {-# LANGUAGE FlexibleContexts, DataKinds, TypeFamilies, TypeOperators #-}
 
       import Java
 
@@ -1281,7 +1281,7 @@ changes:
 
       type instance Inherits GetRequest = '[BaseRequest]
 
-      data HttpResponse a = HResp (com.mashape.unirest.http.HttpResponse a)
+      data HttpResponse a = HResp (@com.mashape.unirest.http.HttpResponse a)
         deriving Class
 
       foreign import java unsafe "@static com.mashape.unirest.http.Unirest.shutdown"
@@ -1343,7 +1343,6 @@ each input to the output stream. We will try to restrict the program to take a m
 
 .. code::
 
-   {-# LANGUAGE MagicHash,ScopedTypeVariables #-}
    module Main where
    import Java
    import Pipes
