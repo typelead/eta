@@ -39,6 +39,9 @@ public class MemoryManager {
                         MANAGED_HEAP_BLOCK_SIZE,
                         MANAGED_HEAP_MINIBLOCK_SIZE);
 
+    /* The shared empty buffer */
+    private final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
+    
     public static ManagedHeap getHeap() {
         return globalManagedHeap;
     }
@@ -102,6 +105,8 @@ public class MemoryManager {
 
        Throws an exception  if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
+        if (address == 0)
+            return emptyBuffer;
         return getBlock(address).getBoundedBuffer(address);
     }
 
