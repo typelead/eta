@@ -43,6 +43,7 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.io.MemoryManager;
+import eta.runtime.io.StgByteArray;
 
 import ghc_prim.ghc.types.datacons.Czh;
 import ghc_prim.ghc.types.datacons.ZC;
@@ -275,6 +276,29 @@ public class Utils {
         return destAddress;
     }
 
+    // New ones
+   public static ByteBuffer c_memcpy(ByteBuffer destBuffer, ByteBuffer srcBuffer, int size) {
+        ByteBuffer dest = destBuffer.duplicate();
+        ByteBuffer src = srcBuffer.duplicate();
+        int srcOffset = src.position();
+        src.limit(srcOffset + size);
+        dest.put(srcBuffer);
+        return dest;
+    }
+
+    public static ByteBuffer c_memcpy(StgByteArray destArray, StgByteArray srcArray, int size) {
+        return c_memcpy(destArray.buf, srcArray.buf, size);
+    }
+
+    public static ByteBuffer c_memcpy(StgByteArray destArray, ByteBuffer srcBuffer, int size) {
+
+        return c_memcpy(destArray.buf, srcBuffer, size);
+    }
+
+    public static ByteBuffer c_memcpy(ByteBuffer destBuffer, StgByteArray srcArray, int size) {
+        return c_memcpy(destBuffer, srcArray.buf, size);
+    }
+    
     public static long c_memset(long address, int c_, int size) {
         byte c = (byte) c_;
         ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
@@ -284,6 +308,13 @@ public class Utils {
         return address;
     }
 
+    public static long c_memset(long address, byte[] bytes) {
+        ByteBuffer buf = MemoryManager.getBoundedBuffer(address);
+        buf.put(bytes);
+        buf.clear();
+        return address;
+    }
+    
     public static long c_memmove(long destAddress, long srcAddress, int size) {
         ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
         ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
@@ -295,6 +326,35 @@ public class Utils {
         return destAddress;
     }
 
+    public static int c_memcmp(long a1, long a2, int n)  {
+        ByteBuffer b1 = MemoryManager.getBoundedBuffer(a1);
+        ByteBuffer b2 = MemoryManager.getBoundedBuffer(a2);
+        while (n-- != 0) {
+            int a = b1.get() & 0xFF;
+            int b = b2.get() & 0xFF;
+            if (a != b) {
+                return a - b;
+            }
+        }
+        return 0;
+    }
+    
+    public static byte[] deref(long ptr, int offset, int length) {
+        ByteBuffer buf = MemoryManager.getBoundedBuffer(ptr);
+        buf.position(buf.position() + offset);
+        buf.limit(buf.position() + length);
+        byte[] b = new byte[buf.remaining()];
+        buf.get(b);
+        return b;
+    }
+
+    public static long c_mallocAndMemSet(byte[] bytes)
+      throws IOException {
+        long address = _malloc(bytes.length,true);
+        ByteBuffer buf = c_memset(adrress,bytes);
+        return address;
+    }
+    
     public static BasicFileAttributes c_fstat(Path p) throws IOException {
         return Files.readAttributes(p, BasicFileAttributes.class);
     }
