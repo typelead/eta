@@ -40,7 +40,8 @@ public class MemoryManager {
                         MANAGED_HEAP_MINIBLOCK_SIZE);
 
     /* The shared empty buffer */
-    private final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
+    public final static long nullAddress = 0L;
+    public final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
     
     public static ManagedHeap getHeap() {
         return globalManagedHeap;
@@ -105,7 +106,7 @@ public class MemoryManager {
 
        Throws an exception  if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        if (address == 0)
+        if (address == nullAddress)
             return emptyBuffer;
         return getBlock(address).getBoundedBuffer(address);
     }
@@ -237,4 +238,45 @@ public class MemoryManager {
     {
         return loadStrings(ss, "UTF-8");
     }
+
+    public static ByteBuffer copyByteBuffer( ByteBuffer src, ByteBuffer dest, int n) {
+        return copyByteBuffer(src, 0, dest, 0, n);
+    }
+    
+    public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
+                                           , ByteBuffer dest, int destOffset
+                                           , int n) {
+        src.position(src.position() + srcOffset);
+        src.limit(src.position() + n);
+        dest.position(dest.position() + destOffset);
+        dest.put(src);
+        return dest;
+    }
+
+    public static ByteBuffer copyByteBuffer( long srcAddress, int srcOffset
+                                           , ByteBuffer dest, int destOffset
+                                           , int n) {
+        ByteBuffer src = getBoundedBuffer(srcAddress);
+        return copyByteBuffer(src,srcOffset,dest,destOffset,n);
+    }
+
+    public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
+                                           , long destAddress, int destOffset
+                                           , int n) {
+        ByteBuffer dest = getBoundedBuffer(destAddress);
+        return copyByteBuffer(src,srcOffset,dest,destOffset,n);
+    }
+
+    
+    public static ByteBuffer copyByteBuffer( long srcAddress, int srcOffset
+                                           , long destAddress, int destOffset
+                                           , int size) {
+        ByteBuffer src  = getBoundedBuffer(srcAddress);
+        ByteBuffer dest = getBoundedBuffer(destAddress);
+        return copyByteBuffer(src,srcOffset,dest,destOffset,size);
+    }
+
+     public static ByteBuffer copyByteBuffer(long srcAddress, long destAddress, int size) {
+         return copyByteBuffer(srcAddress, 0, destAddress, 0, size);
+     }
 }
