@@ -356,7 +356,7 @@ public class Utils {
     public static int memcmp(ByteArray b1, ByteArray b2, int n) {
         return memcmp(b1.getBuffer(), b2.getBuffer(), n);
     }
-    
+
     public static ByteBuffer memchr(ByteBuffer b, int c, int n) {
         c = (int)((byte) c);
         b = b.duplicate();
@@ -367,16 +367,27 @@ public class Utils {
         }
         return MemoryManager.emptyBuffer;
     }
-   
-    public static byte[] deref(long ptr, int offset, int length) {
+
+    public static int findbyte_ptr(long address, int startofs, int endofs, int c) {
+        int n = endofs - startofs;
+        long result = memchr(deref(address, startofs, n), c, n);
+        return (result == 0L)? endofs : (int)(result - address);
+    }
+    
+    public static ByteBuffer deref(long ptr, int offset, int length) {
         ByteBuffer buf = MemoryManager.getBoundedBuffer(ptr);
         buf.position(buf.position() + offset);
         buf.limit(buf.position() + length);
+        return buf;
+    }
+
+     public static byte[] derefJByteArray(long ptr, int offset, int length) {
+        ByteBuffer buf = deref(ptr,offset,length);
         byte[] b = new byte[buf.remaining()];
         buf.get(b);
         return b;
     }
-
+    
     public static long mallocAndMemSet(byte[] bytes)
       throws IOException {
         long address = _malloc(bytes.length);
