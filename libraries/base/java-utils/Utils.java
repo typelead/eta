@@ -269,149 +269,18 @@ public class Utils {
     }
 
     public static long c_memcpy(long destAddress, long srcAddress, int size) {
-        memcpy(destAddress, srcAddress, size);
+        MemoryManager.copy(srcAddress,destAddress,size);
         return destAddress;
     }
 
-    public static ByteBuffer memcpy(long destAddress, long srcAddress, int size) {
-        return MemoryManager.copyByteBuffer(srcAddress,destAddress,size);
-    }
-
-    public static ByteBuffer memcpyDirect(ByteBuffer destBuffer, ByteBuffer srcBuffer, int size) {
-        return MemoryManager.copyByteBuffer(srcBuffer,destBuffer,size);
-    }
-    
-    public static ByteBuffer memcpy(ByteBuffer destBuffer, ByteBuffer srcBuffer, int size) {
-        ByteBuffer dest = destBuffer.duplicate();
-        ByteBuffer src = srcBuffer.duplicate();
-        return memcpyDirect(dest,src,size);
-    }
-
-    public static ByteBuffer memcpy(ByteArray destArray, ByteArray srcArray, int size) {
-        return ByteArray.copyByteArray(srcArray, 0, destArray, 0, size);
-    }
-
-    public static ByteBuffer memcpy(ByteArray destArray, ByteBuffer srcBuffer, int size) {
-        return ByteArray.copyByteArray(srcBuffer, 0, destArray,0, size);
-    }
-
-    public static ByteBuffer memcpy(ByteBuffer destBuffer, ByteArray srcArray, int size) {
-        return ByteArray.copyByteArray(srcArray, 0, destBuffer, 0, size);
-    }
-    
     public static long c_memset(long address, int c_, int size) {
-        memset(address, c_, size);
+        MemoryManager.set(address, c_, size);
         return address;
-    }
-
-    public static ByteBuffer memset(long address, int c_, int size) {
-        byte c = (byte) c_;
-        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        while (size-- != 0) {
-            buffer.put(c);
-        }
-        return buffer;
-    }
-    
-    public static ByteBuffer memset(long address, byte[] bytes) {
-        ByteBuffer buf = MemoryManager.getBoundedBuffer(address);
-        buf.put(bytes);
-        buf.clear();
-        return buf;
     }
 
     public static long c_memmove(long destAddress, long srcAddress, int size) {
-        memmove(destAddress, srcAddress, size);
+        MemoryManager.move(destAddress, srcAddress, size);
         return destAddress;
-    }
-    
-    public static ByteBuffer memmove(long destAddress, long srcAddress, int size) {
-        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
-        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
-        ByteBuffer copy = ByteBuffer.allocate(size);
-        src.limit(src.position() + size);
-        copy.put(src);
-        copy.flip();
-        dest.put(copy);
-        return dest;
-    }
-
-    public static int memcmp(long a1, long a2, int n)  {
-        ByteBuffer b1 = MemoryManager.getBoundedBuffer(a1);
-        ByteBuffer b2 = MemoryManager.getBoundedBuffer(a2);
-        return memcmp(b1, b2, n);
-    }
-
-    public static int memcmp(ByteBuffer b1, ByteBuffer b2, int n)  {
-        while (n-- != 0) {
-            int a = b1.get() & 0xFF;
-            int b = b2.get() & 0xFF;
-            if (a != b) {
-                return a - b;
-            }
-        }
-        return 0;
-    }
-
-    public static int memcmp(ByteArray b1, ByteArray b2, int n) {
-        return memcmp(b1.getBuffer(), b2.getBuffer(), n);
-    }
-
-    public static int memcmp(ByteArray b1, int o1, ByteArray b2, int o2, int n) {
-        return memcmp(b1.getBuffer(o1,n), b2.getBuffer(o2,n), n);
-    }
-
-    public static int memcmp(ByteArray b1, int o1, long a2, int o2, int n) {
-        return memcmp(b1.getBuffer(o1,n), deref(a2,o2,n), n);
-    }
-
-    public static int memcmp(long a1, int o1, ByteArray b2, int o2, int n) {
-        return memcmp(deref(a1,o1,n), b2.getBuffer(o2,n), n);
-    }
-
-    public static int memcmp(long a1, int o1, long a2, int o2, int n) {
-        return memcmp(deref(a1,o1,n), deref(a2,o2,n), n);
-    }
-    
-    public static ByteBuffer memchr(ByteBuffer b, int c, int n) {
-        c = (int)((byte) c);
-        int idx = memchr_idx(b, c, n);
-        if (idx == 0)
-            return MemoryManager.emptyBuffer;
-        else
-            return (ByteBuffer) b.position(b.position() + idx);
-    }
-    // This method mutates the ByteBuffer changing its position
-    private static int memchr_idx(ByteBuffer b, int c, int n) {
-        c = (int)((byte) c);
-        b = b.duplicate();
-        while (n-- != 0) {
-            if (b.get() == c) {
-                break;
-            }
-        }
-        return n;
-    }
-    
-    public static int memchr_ptr(long address, int startofs, int endofs, int c) {
-        int n = endofs - startofs;
-        long idxFound = memchr_idx(deref(address, startofs, n), c, n);
-        return (idxFound == 0L)? endofs : (int)(address + startofs + idxFound);
-    }
-    
-    public static ByteBuffer deref(long ptr, int offset, int length) {
-        return MemoryManager.getBuffer(ptr,offset,length);
-    }
-    
-    public static byte[] derefBytes(long ptr, int offset, int length) {
-        return MemoryManager.getBytes(ptr,offset,length);
-    }
-    
-    public static long mallocAndMemSet(byte[] bytes)
-      throws IOException {
-        long address = _malloc(bytes.length);
-        ByteBuffer buf = memset(address,bytes);
-        return address;
     }
     
     public static BasicFileAttributes c_fstat(Path p) throws IOException {

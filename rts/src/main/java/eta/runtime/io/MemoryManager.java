@@ -239,7 +239,7 @@ public class MemoryManager {
         return loadStrings(ss, "UTF-8");
     }
 
-    public static ByteBuffer getBuffer(long ptr, int offset, int length) {
+    public static ByteBuffer getBoundedBuffer(long ptr, int offset, int length) {
         ByteBuffer buf = MemoryManager.getBoundedBuffer(ptr);
         buf.position(buf.position() + offset);
         buf.limit(buf.position() + length);
@@ -247,7 +247,7 @@ public class MemoryManager {
     }
 
     public static byte[] getBytes(long ptr, int offset, int length) {
-        ByteBuffer buf = getBuffer(ptr,offset,length);
+        ByteBuffer buf = getBoundedBuffer(ptr,offset,length);
         byte[] b = new byte[buf.remaining()];
         buf.get(b);
         return b;
@@ -260,37 +260,132 @@ public class MemoryManager {
     public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
                                            , ByteBuffer dest, int destOffset
                                            , int n) {
+        dest = dest.duplicate();
+        src = src.duplicate();
+        return copyByteBufferDirect(src, srcOffset, dest, destOffset, n);
+    }
+
+     public static ByteBuffer copyByteBufferDirect( ByteBuffer src, int srcOffset
+                                           , ByteBuffer dest, int destOffset
+                                           , int n) {
         src.position(src.position() + srcOffset);
         src.limit(src.position() + n);
         dest.position(dest.position() + destOffset);
         dest.put(src);
         return dest;
     }
-
-    public static ByteBuffer copyByteBuffer( long srcAddress, int srcOffset
-                                           , ByteBuffer dest, int destOffset
-                                           , int n) {
+    
+    public static ByteBuffer copy( long srcAddress, int srcOffset
+                                 , ByteBuffer dest, int destOffset
+                                 , int n) {
         ByteBuffer src = getBoundedBuffer(srcAddress);
         return copyByteBuffer(src,srcOffset,dest,destOffset,n);
     }
 
-    public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
-                                           , long destAddress, int destOffset
-                                           , int n) {
+    public static ByteBuffer copy( ByteBuffer src, int srcOffset
+                                 , long destAddress, int destOffset
+                                 , int n) {
         ByteBuffer dest = getBoundedBuffer(destAddress);
         return copyByteBuffer(src,srcOffset,dest,destOffset,n);
     }
 
     
-    public static ByteBuffer copyByteBuffer( long srcAddress, int srcOffset
-                                           , long destAddress, int destOffset
-                                           , int size) {
+    public static ByteBuffer copy( long srcAddress, int srcOffset
+                                 , long destAddress, int destOffset
+                                 , int size) {
         ByteBuffer src  = getBoundedBuffer(srcAddress);
         ByteBuffer dest = getBoundedBuffer(destAddress);
         return copyByteBuffer(src,srcOffset,dest,destOffset,size);
     }
 
-     public static ByteBuffer copyByteBuffer(long srcAddress, long destAddress, int size) {
-         return copyByteBuffer(srcAddress, 0, destAddress, 0, size);
-     }
+    public static ByteBuffer copy(long srcAddress, long destAddress, int size) {
+        return copy(srcAddress, 0, destAddress, 0, size);
+    }
+
+    public static ByteBuffer set(long address, int val, int size) {
+        ByteBuffer buffer = getBoundedBuffer(address);
+        while (size-- != 0) {
+            buffer.put((byte) val);
+        }
+        return buffer;
+    }
+       
+    public static ByteBuffer set(long address, byte[] bytes) {
+        ByteBuffer buf = getBoundedBuffer(address);
+        buf.put(bytes);
+        buf.clear();
+        return buf;
+    }
+
+    public static ByteBuffer move(long srcAddress, long destAddress, int size) {
+        ByteBuffer src  = getBoundedBuffer(srcAddress);
+        ByteBuffer dest = getBoundedBuffer(destAddress);
+        ByteBuffer copy = ByteBuffer.allocate(size);
+        src.limit(src.position() + size);
+        copy.put(src);
+        copy.flip();
+        dest.put(copy);
+        return dest;
+    }
+
+    public static int compare(long a1, long a2, int n)  {
+        ByteBuffer b1 = getBoundedBuffer(a1);
+        ByteBuffer b2 = getBoundedBuffer(a2);
+        return compare(b1, b2, n);
+    }
+
+    public static int compare(ByteBuffer b1, ByteBuffer b2, int n)  {
+        while (n-- != 0) {
+            int a = b1.get() & 0xFF;
+            int b = b2.get() & 0xFF;
+            if (a != b) {
+                return a - b;
+            }
+        }
+        return 0;
+    }
+
+    public static int compare(long a1, int o1, long a2, int o2, int n) {
+        return compare(getBoundedBuffer(a1,o1,n), getBoundedBuffer(a2,o2,n), n);
+    }
+
+    public static int compare(long a1, int o1, ByteBuffer b2, int n) {
+        return compare(getBoundedBuffer(a1,o1,n), b2, n);
+    }
+
+    public static int compare(ByteBuffer b1, long a2, int o2, int n) {
+        return compare(b1, getBoundedBuffer(a2,o2,n), n);
+    }
+
+    public static ByteBuffer chr(ByteBuffer b, int c, int n) {
+        c = (int)((byte) c);
+        int idx = chrIndex(b, c, n);
+        if (idx == 0)
+            return emptyBuffer;
+        else
+            return (ByteBuffer) b.position(b.position() + idx);
+    }
+
+    private static int chrIndex(ByteBuffer b, int c, int n) {
+        c = (int)((byte) c);
+        b = b.duplicate();
+        while (n-- != 0) {
+            if (b.get() == c) {
+                break;
+            }
+        }
+        return n;
+    }
+    
+    public static int chrAddress(long address, int startofs, int endofs, int c) {
+        int n = endofs - startofs;
+        long idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
+        return (idxFound == 0L)? endofs : (int)(address + startofs + idxFound);
+    }
+
+    public static long allocateAndSet(byte[] bytes) {
+        long address = allocateBuffer(bytes.length,true);
+        set(address,bytes);
+        return address;
+    }
 }
