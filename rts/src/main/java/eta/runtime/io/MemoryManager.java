@@ -256,16 +256,12 @@ public class MemoryManager {
     public static ByteBuffer copyByteBuffer( ByteBuffer src, ByteBuffer dest, int n) {
         return copyByteBuffer(src, 0, dest, 0, n);
     }
+
+    public static ByteBuffer copyByteBufferDups( ByteBuffer src, ByteBuffer dest, int n) {
+        return copyByteBufferDups(src, 0, dest, 0, n);
+    }
     
     public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
-                                           , ByteBuffer dest, int destOffset
-                                           , int n) {
-        dest = dest.duplicate();
-        src = src.duplicate();
-        return copyByteBufferDirect(src, srcOffset, dest, destOffset, n);
-    }
-
-     public static ByteBuffer copyByteBufferDirect( ByteBuffer src, int srcOffset
                                            , ByteBuffer dest, int destOffset
                                            , int n) {
         src.position(src.position() + srcOffset);
@@ -273,6 +269,14 @@ public class MemoryManager {
         dest.position(dest.position() + destOffset);
         dest.put(src);
         return dest;
+    }
+
+    public static ByteBuffer copyByteBufferDups( ByteBuffer src, int srcOffset
+                                               , ByteBuffer dest, int destOffset
+                                               , int n) {
+        src = src.duplicate();
+        dest = dest.duplicate();
+        return copyByteBuffer(src, srcOffset, dest, destOffset, n);
     }
     
     public static ByteBuffer copy( long srcAddress, int srcOffset
