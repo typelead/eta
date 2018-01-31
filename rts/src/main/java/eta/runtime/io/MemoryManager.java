@@ -239,6 +239,20 @@ public class MemoryManager {
         return loadStrings(ss, "UTF-8");
     }
 
+    public static ByteBuffer getBuffer(long ptr, int offset, int length) {
+        ByteBuffer buf = MemoryManager.getBoundedBuffer(ptr);
+        buf.position(buf.position() + offset);
+        buf.limit(buf.position() + length);
+        return buf;
+    }
+
+    public static byte[] getBytes(long ptr, int offset, int length) {
+        ByteBuffer buf = getBuffer(ptr,offset,length);
+        byte[] b = new byte[buf.remaining()];
+        buf.get(b);
+        return b;
+    }
+    
     public static ByteBuffer copyByteBuffer( ByteBuffer src, ByteBuffer dest, int n) {
         return copyByteBuffer(src, 0, dest, 0, n);
     }

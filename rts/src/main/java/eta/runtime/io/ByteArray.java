@@ -50,7 +50,11 @@ public final class ByteArray extends Value {
     public ByteBuffer getBuffer() {
         return MemoryManager.getBoundedBuffer(bufferAddress);
     }
-    
+
+    public ByteBuffer getBuffer(int offset, int n) {
+        return MemoryManager.getBuffer(bufferAddress, offset, n);
+    }
+
     public static ByteBuffer copyAddrToByteArray( long srcAddress, ByteArray destArray
                                                 , int offset, int n) {
         return MemoryManager.copyByteBuffer(srcAddress,offset,
