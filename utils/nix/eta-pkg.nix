@@ -6,7 +6,7 @@ mkDerivation {
   # @VERSION_CHANGE@
   # @BUILD_NUMBER@
   # @BUILD_NUMBER_INTERNAL@
-  version = "0.7.0.1";
+  version = "0.7.0.2";
   src = ../../utils/eta-pkg;
   isLibrary = false;
   isExecutable = true;
