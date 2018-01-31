@@ -37,31 +37,42 @@ for updates.
 Visit the [Getting Started](https://eta-lang.org/docs/eta-concepts/getting-started/what-is-eta) page
 in the documentation.
 
+## Contribute
+
+Visit the [Contribute](https://eta-lang.org/contribute) page in the official website.
+
+You are required to sign [TypeLead Individual CLA](https://eta-lang.org/legal/cla) before we can merge any of your work into our code base.
+
+## Report issues
+
+You can report issues at [eta issue tracker](https://github.com/typelead/eta/issues) for more details check [Bug Report](https://eta-lang.org/contribute/bug-report) page in the official website for more details.
+
+## Eta Proposals
+
+Visit the [Eta Proposals](https://eta-lang.org/contribute/bug-report) page in the official website to propose changes to Eta.
+
 ## License
 
 Eta is available under the
 [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE`
 for more information.
 
-## Gratitude
+## Contributors
 
 We would like to specifically thank the following groups/people:
-- [GHC HQ](https://ghc.haskell.org/trac/ghc/wiki/TeamGHC) for providing a base for us to work on.
-- [Alois Cochard](https://github.com/aloiscochard) for his [codec-jvm](https://github.com/aloiscochard/codec-jvm) package that we use for code generation.
-- [Christopher Wells](https://github.com/ExcaliburZero) for his JAR packaging [utility](https://github.com/ExcaliburZero/zip-jar-haskell).
-- [Brian McKenna](https://github.com/puffnfresh) for his bug fixes in the
-  codegen/runtime and implementation of basic IO facilities.
-- [Sibi](https://github.com/psibi) for helping out with porting packages and
-  setting up TravisCI.
-- [Anton Gushcha](https://github.com/NCrashed) for giving detailed bug reports on
-  the Java FFI.
-- [Balaji Rao](https://github.com/balajirrao) for contributing to the design &
-  implementation for some parts of the FFI.
-- [Javier Neira](https://github.com/jneira) for making Eta work on Windows and
-  testing extensively across multiple Windows versions.
-- [Paavo Parkkin](https://github.com/pparkkin) for improving error checking in the compiler to prevent runtime bugs.
-- [Ashley Towns](https://github.com/aktowns) for implementing low-level primitives in the standard library.
-- [Alexey Raga](https://github.com/AlexeyRaga) for helping out with CircleCI and actively reporting bugs.
+- [Alois Cochard](https://github.com/aloiscochard)
+- [Christopher Wells](https://github.com/ExcaliburZero)
+- [Brian McKenna](https://github.com/puffnfresh)
+- [Sibi](https://github.com/psibi)
+- [Anton Gushcha](https://github.com/NCrashed).
+- [Balaji Rao](https://github.com/balajirrao)
+- [Javier Neira](https://github.com/jneira)
+- [Paavo Parkkin](https://github.com/pparkkin)
+- [Ashley Towns](https://github.com/aktowns)
+- [Alexey Raga](https://github.com/AlexeyRaga)
+- [Jarek Ratajski](https://github.com/jarekratajski)
+- [Takahashi Yuto](https://github.com/y-taka-23)
+- [Alberto G Corona](https://github.com/agocorona)
 - And [many others](https://github.com/typelead/eta/graphs/contributors) who have contributed to Eta in various ways.
 
 Thanks folks!
