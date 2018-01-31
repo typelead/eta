@@ -39,7 +39,7 @@ in the documentation.
 
 ## Contribute
 
-Visit the [Contribute](https://eta-lang.org/contribute) page in the official website.
+Visit the [Contribute](https://eta-lang.org/contribute) page in the official website for details.
 
 You are required to sign [TypeLead Individual CLA](https://eta-lang.org/legal/cla) before we can merge any of your work into our code base.
 
