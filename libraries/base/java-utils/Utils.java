@@ -357,35 +357,55 @@ public class Utils {
         return memcmp(b1.getBuffer(), b2.getBuffer(), n);
     }
 
+    public static int memcmp(ByteArray b1, int o1, ByteArray b2, int o2, int n) {
+        return memcmp(b1.getBuffer(o1,n), b2.getBuffer(o2,n), n);
+    }
+
+    public static int memcmp(ByteArray b1, int o1, long a2, int o2, int n) {
+        return memcmp(b1.getBuffer(o1,n), deref(a2,o2,n), n);
+    }
+
+    public static int memcmp(long a1, int o1, ByteArray b2, int o2, int n) {
+        return memcmp(deref(a1,o1,n), b2.getBuffer(o2,n), n);
+    }
+
+    public static int memcmp(long a1, int o1, long a2, int o2, int n) {
+        return memcmp(deref(a1,o1,n), deref(a2,o2,n), n);
+    }
+    
     public static ByteBuffer memchr(ByteBuffer b, int c, int n) {
+        c = (int)((byte) c);
+        b = b.duplicate();
+        int idx = memchr_idx(b, c, n);
+        if (idx == 0)
+            return MemoryManager.emptyBuffer;
+        else
+            return (ByteBuffer) b.position(b.position() - 1);
+    }
+    // This method mutates the ByteBuffer changing its position
+    private static int memchr_idx(ByteBuffer b, int c, int n) {
         c = (int)((byte) c);
         b = b.duplicate();
         while (n-- != 0) {
             if (b.get() == c) {
-                return (ByteBuffer) b.position(b.position() - 1);
+                break;
             }
         }
-        return MemoryManager.emptyBuffer;
+        return n;
     }
-
-    public static int findbyte_ptr(long address, int startofs, int endofs, int c) {
+    
+    public static int memchr_ptr(long address, int startofs, int endofs, int c) {
         int n = endofs - startofs;
-        long result = memchr(deref(address, startofs, n), c, n);
-        return (result == 0L)? endofs : (int)(result - address);
+        long idxFound = memchr_idx(deref(address, startofs, n), c, n);
+        return (idxFound == 0L)? endofs : (int)(address + startofs + idxFound);
     }
     
     public static ByteBuffer deref(long ptr, int offset, int length) {
-        ByteBuffer buf = MemoryManager.getBoundedBuffer(ptr);
-        buf.position(buf.position() + offset);
-        buf.limit(buf.position() + length);
-        return buf;
+        return MemoryManager.getBuffer(ptr,offset,length);
     }
-
-     public static byte[] derefJByteArray(long ptr, int offset, int length) {
-        ByteBuffer buf = deref(ptr,offset,length);
-        byte[] b = new byte[buf.remaining()];
-        buf.get(b);
-        return b;
+    
+    public static byte[] derefBytes(long ptr, int offset, int length) {
+        return MemoryManager.getBytes(ptr,offset,length);
     }
     
     public static long mallocAndMemSet(byte[] bytes)
