@@ -101,18 +101,21 @@ public final class ByteArray extends Value {
     }
 
     public static int compare(ByteArray b1, ByteArray b2, int n) {
-        return MemoryManager.compare(b1.getBuffer(), b2.getBuffer(), n);
+        return MemoryManager.compare(b1.getBuffer().duplicate(),
+                                     b2.getBuffer().duplicate(), n);
     }
 
     public static int compare(ByteArray b1, int o1, ByteArray b2, int o2, int n) {
-        return MemoryManager.compare(b1.getBuffer(o1,n), b2.getBuffer(o2,n), n);
+        return MemoryManager.compare(b1.getBuffer(o1,n).duplicate(),
+                                     b2.getBuffer(o2,n).duplicate(), n);
     }
 
     public static int compare(ByteArray b1, int o1, long a2, int o2, int n) {
-        return MemoryManager.compare(b1.getBuffer(o1,n), a2, o2, n);
+        return MemoryManager.compare(b1.getBuffer(o1,n).duplicate(),
+                                     a2, o2, n);
     }
 
     public static int compare(long a1, int o1, ByteArray b2, int o2, int n) {
-        return MemoryManager.compare(a1, o1, b2.getBuffer(o2,n), n);
+        return MemoryManager.compare(a1, o1, b2.getBuffer(o2,n).duplicate(), n);
     }
 }
