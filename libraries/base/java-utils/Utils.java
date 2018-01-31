@@ -375,12 +375,11 @@ public class Utils {
     
     public static ByteBuffer memchr(ByteBuffer b, int c, int n) {
         c = (int)((byte) c);
-        b = b.duplicate();
         int idx = memchr_idx(b, c, n);
         if (idx == 0)
             return MemoryManager.emptyBuffer;
         else
-            return (ByteBuffer) b.position(b.position() - 1);
+            return (ByteBuffer) b.position(b.position() + idx);
     }
     // This method mutates the ByteBuffer changing its position
     private static int memchr_idx(ByteBuffer b, int c, int n) {
