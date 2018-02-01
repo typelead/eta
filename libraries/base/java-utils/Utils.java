@@ -43,7 +43,6 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.io.MemoryManager;
-import eta.runtime.io.ByteArray;
 
 import ghc_prim.ghc.types.datacons.Czh;
 import ghc_prim.ghc.types.datacons.ZC;
