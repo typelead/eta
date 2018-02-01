@@ -38,6 +38,7 @@ import System.IO.Unsafe
 import System.Environment
 import System.Exit
 import System.FilePath
+import System.Directory
 import Control.Monad
 import Data.List
 import Data.Maybe
@@ -664,7 +665,14 @@ showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions
 
 showVersion :: IO ()
-showVersion = putStrLn (cProjectName ++ ", version " ++ cProjectVersion)
+showVersion = do
+  appdir <- getAppUserDataDirectory "eta"
+  let hashFile = appdir </> cProjectVersionNumbers </> "commit-hash"
+  exists  <- doesFileExist hashFile
+  mGitHash <- if exists
+              then fmap (", Git Revision " ++) $ readFile hashFile
+              else return ""
+  putStrLn (cProjectName ++ ", Version " ++ cProjectVersion ++ mGitHash)
 
 showOptions :: Bool -> IO ()
 showOptions isInteractive = putStr (unlines availableOptions)
@@ -695,12 +703,12 @@ showUsage etaRepl _dflags = putStrLn usage
 etaUsage, etaReplUsage :: String
 etaUsage = "Eta v" ++ cProjectVersion ++ "\n\n\
 See the Eta User Guide:\n\
-http://eta-lang.org/docs/html/eta-user-guide.html\n"
+https://eta-lang.org/docs/\n"
 
 -- TODO: Make this better
 etaReplUsage = "Eta REPL v" ++ cProjectVersion ++ "\n\n\
 See the Eta User Guide:\n\
-http://eta-lang.org/docs/html/eta-user-guide.html\n"
+https://eta-lang.org/docs/\n"
 
 dumpFinalStats :: DynFlags -> IO ()
 dumpFinalStats dflags =

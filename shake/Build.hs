@@ -199,6 +199,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
                  ++ " install'."
       else do
         liftIO $ createDirectory rootDir
+        Stdout result <- cmd ["git", "rev-parse", "HEAD"]
+        liftIO $ writeFile (rootDir </> "commit-hash") result
         unit $ cmd ["eta-pkg","init",packageConfDir rootDir]
         unit $ cmd "etlas update"
         etlasDir <- getEtlasDir

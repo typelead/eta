@@ -19,7 +19,7 @@ mkDerivation {
     pretty process random stm tar time unix zlib
   ];
   executableHaskellDepends = [ base directory etlas-cabal filepath ];
-  homepage = "https://etlas.typelead.com";
+  homepage = "https://eta-lang.org";
   description = "The package manager for Eta";
   license = stdenv.lib.licenses.bsd3;
 }

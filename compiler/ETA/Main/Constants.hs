@@ -12,7 +12,7 @@ hiVersion = read cProjectVersionInt :: Integer
 
 cProjectName, cProjectVersion, cProjectVersionNumbers, cProjectVersionInt, cProjectPatchLevel, cProjectPatchLevel1, cProjectPatchLevel2, cProjectHomeURL, cProjectIssueReportURL, ghcProjectVersion, ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2
   :: String
-cProjectName = "Compiler for the Eta Programming Language"
+cProjectName = "The Eta Programming Language Compiler"
 -- @VERSION_CHANGE@
 cProjectVersion = "0.7.0b" ++ cProjectPatchLevel
 cProjectVersionNumbers = "0.7.0." ++ cProjectPatchLevel
