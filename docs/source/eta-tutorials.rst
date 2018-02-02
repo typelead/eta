@@ -752,9 +752,12 @@ Problem Resolution
 
 The problematic code above can now be fixed::
 
-  {-# LANGUAGE TypeFamilies, DataKinds, FlexibleContexts #-}
+  {-# LANGUAGE TypeFamilies, TypeOperators, DataKinds, FlexibleContexts #-}
+
+  import Java hiding (toString)
 
   foreign import java unsafe toString :: (a <: Object) => a -> String
+  foreign import java unsafe "@new" newFile  :: String -> Java a File
 
   data File = File @java.io.File
     deriving Class
