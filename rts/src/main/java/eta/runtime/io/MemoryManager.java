@@ -264,6 +264,8 @@ public class MemoryManager {
     public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
                                            , ByteBuffer dest, int destOffset
                                            , int n) {
+        if (src == dest)
+            return dest;
         src.position(src.position() + srcOffset);
         src.limit(src.position() + n);
         dest.position(dest.position() + destOffset);
