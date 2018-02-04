@@ -71,11 +71,43 @@ public class MemoryManagerTest {
                    Arrays.equals(b2.array(),cpyB2.array()));
     }
 
+    @Test
+    public void testAllocateBuffer() {
+        long address = allocateBuffer(16,true);
+        assertTrue("The address must be greater than 0",
+                   address > 0);
+        int size = allocatedSize(address);
+        assertTrue("The allocated size is as bigger as the requested",
+                   size >= 16);
+    } 
+
+    @Test
+    public void testGetBuffer() {
+        ByteBuffer b = getBoundedBuffer(0);
+        ByteBuffer empty = ByteBuffer.allocate(0);
+        assertThat("With zero address it returns an empty buffer",
+                   b, is(empty));
+        long addr = allocateBuffer(1024, true);
+        b = getBoundedBuffer(addr);
+        assertTrue("The buffer is as bigger as the allocated size",
+                   b.remaining() > 1024);
+        ByteBuffer b2 = getBoundedBuffer(addr);
+        assertThat("Two invocations with the same adress ,"+
+                   "should return the same result", b, is(b2));
+    }
+
     // Utils
+
+    private void debug(ByteBuffer b) {
+        debug(toString(b));
+    }
+    
     private String toString(ByteBuffer b) {
-        return "{pos:"+b.position()+", limit:"+b.limit()+
+        return "{hash:"+b.hashCode()+", pos:"+b.position()+
+            ", limit:"+b.limit()+
             ", remaining:"+b.remaining()+
-            ", bytes:"+byteArrayToHex(b.array())+"}";
+            (b.hasArray()?
+             ", bytes:"+byteArrayToHex(b.array()):"")+"}";
     }
 
     public static String byteArrayToHex(byte[] a) {
@@ -111,7 +143,4 @@ public class MemoryManagerTest {
         fill(bs,(byte)val);
         return bs;
     }
-              
-
-    
 }

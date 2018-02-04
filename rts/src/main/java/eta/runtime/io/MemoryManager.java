@@ -240,7 +240,7 @@ public class MemoryManager {
     }
 
     public static ByteBuffer getBoundedBuffer(long ptr, int offset, int length) {
-        ByteBuffer buf = MemoryManager.getBoundedBuffer(ptr);
+        ByteBuffer buf = getBoundedBuffer(ptr);
         buf.position(buf.position() + offset);
         buf.limit(buf.position() + length);
         return buf;
