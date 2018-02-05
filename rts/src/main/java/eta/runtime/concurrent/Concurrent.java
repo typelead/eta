@@ -193,8 +193,11 @@ public class Concurrent {
     public static void traceEvent(StgContext context, long addr) {}
 
     public static void labelThread(StgContext context, TSO tso, long address) {
-        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        byte[]     bytes  = new byte[buffer.remaining() - 1];
+        ByteBuffer buffer  = MemoryManager.getBoundedBuffer(address);
+        ByteBuffer iterate = buffer.duplicate();
+        int n = 0;
+        for (n = 0; iterate.get() != 0; n++) {}
+        byte[] bytes = new byte[n];
         buffer.get(bytes);
         tso.setName(new String(bytes));
     }
