@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.List;
+import java.util.HashSet;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,9 +19,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.OpenOption;
+import java.nio.file.FileSystems;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.StandardOpenOption;
 import java.nio.charset.Charset;
 import java.nio.channels.Channels;
 import java.nio.channels.Channel;
@@ -409,10 +412,45 @@ public class Utils {
     }
 
     public static FileChannel
-        fileChannelOpen(Path path, Set<OpenOption> options,
-                        FileAttribute<Set<PosixFilePermission>> attribute)
-      throws IOException {
-        return FileChannel.open(path, options, attribute);
+    fileChannelOpen(Path path, Set<OpenOption> options,
+                    FileAttribute<Set<PosixFilePermission>> attribute)
+            throws IOException {
+        // checks where file store for our path does know about POSIX
+        Set<String> faViews = FileSystems.getDefault().supportedFileAttributeViews();
+        if (faViews.contains("posix")) {
+            return FileChannel.open(path, options, attribute);
+        }
+
+        // default behaviour -- create file, use old file api to set permissions
+        // return and open channel
+        File fChan = path.toFile();
+        if(options.contains(StandardOpenOption.CREATE_NEW)) {
+            // creates new file
+            boolean created = fChan.createNewFile();
+            if (!created) {
+                throw new IOException("Could not create file " + fChan.getAbsolutePath());
+            }
+        }
+
+        Set<PosixFilePermission> perms = attribute.value();
+        fChan.setExecutable(
+                perms.contains(PosixFilePermission.OWNER_EXECUTE),
+                perms.contains(PosixFilePermission.GROUP_EXECUTE) || perms.contains(PosixFilePermission.OTHERS_EXECUTE)
+        );
+        fChan.setWritable(
+                perms.contains(PosixFilePermission.OWNER_WRITE),
+                perms.contains(PosixFilePermission.GROUP_WRITE) || perms.contains(PosixFilePermission.OTHERS_WRITE)
+        );
+        fChan.setReadable(
+                perms.contains(PosixFilePermission.OWNER_READ),
+                perms.contains(PosixFilePermission.GROUP_READ) || perms.contains(PosixFilePermission.OTHERS_READ)
+        );
+
+        // prepare options, if file was crated --> removed from map
+        HashSet<OpenOption> fOpts = new HashSet<>(options);
+        fOpts.remove(StandardOpenOption.CREATE_NEW);
+
+        return FileChannel.open(fChan.toPath(), fOpts);
     }
 
     public static final int pathSeparatorChar = File.pathSeparatorChar;
