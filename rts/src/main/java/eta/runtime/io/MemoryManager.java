@@ -51,7 +51,11 @@ public class MemoryManager {
 
     /* Buffer Allocation */
     public static long allocateBuffer(int n, boolean direct) {
-        return globalManagedHeap.allocateBuffer(n, direct, Capability.getLocal(false));
+        if (n < 0)
+            throw new
+                IllegalArgumentException("Allocated size must be positive");
+        return globalManagedHeap.
+            allocateBuffer(n, direct, Capability.getLocal(false));
     }
 
     /** Freeing Off-Heap Memory **/
@@ -319,10 +323,15 @@ public class MemoryManager {
     public static ByteBuffer set(long address, byte[] bytes) {
         ByteBuffer buf = getBoundedBuffer(address);
         buf.put(bytes);
-        buf.clear();
         return buf;
     }
 
+    public static long allocateAndSet(byte[] bytes) {
+        long address = allocateBuffer(bytes.length,true);
+        set(address,bytes);
+        return address;
+    }
+    
     public static ByteBuffer move(long srcAddress, long destAddress, int size) {
         ByteBuffer src  = getBoundedBuffer(srcAddress);
         ByteBuffer dest = getBoundedBuffer(destAddress);
@@ -389,9 +398,5 @@ public class MemoryManager {
         return (idxFound == 0L)? endofs : (int)(address + startofs + idxFound);
     }
 
-    public static long allocateAndSet(byte[] bytes) {
-        long address = allocateBuffer(bytes.length,true);
-        set(address,bytes);
-        return address;
-    }
+   
 }

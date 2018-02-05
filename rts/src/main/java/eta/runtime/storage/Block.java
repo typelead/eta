@@ -89,8 +89,8 @@ public class Block {
 
     public final int allocatedSize(long address) {
         int miniBlockSize = getMiniBlockSize();
-        return av.allocatedSize((int)(address - startAddress) / miniBlockSize)
-             * miniBlockSize;
+        int idx = (int)(address - startAddress) / miniBlockSize;
+        return av.allocatedSize(idx) * miniBlockSize;
     }
 
     /* Reading from/writing to memory. */
