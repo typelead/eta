@@ -73,6 +73,7 @@ We would like to specifically thank the following groups/people:
 - [Jarek Ratajski](https://github.com/jarekratajski)
 - [Takahashi Yuto](https://github.com/y-taka-23)
 - [Alberto G Corona](https://github.com/agocorona)
+- [Denys Dushyn](https://github.com/indegro)
 - And [many others](https://github.com/typelead/eta/graphs/contributors) who have contributed to Eta in various ways.
 
 Thanks folks!
