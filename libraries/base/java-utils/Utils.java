@@ -435,15 +435,15 @@ public class Utils {
         Set<PosixFilePermission> perms = attribute.value();
         fChan.setExecutable(
                 perms.contains(PosixFilePermission.OWNER_EXECUTE),
-                perms.contains(PosixFilePermission.GROUP_EXECUTE)
+                perms.contains(PosixFilePermission.GROUP_EXECUTE) || perms.contains(PosixFilePermission.OTHERS_EXECUTE)
         );
         fChan.setWritable(
                 perms.contains(PosixFilePermission.OWNER_WRITE),
-                perms.contains(PosixFilePermission.GROUP_WRITE)
+                perms.contains(PosixFilePermission.GROUP_WRITE) || perms.contains(PosixFilePermission.OTHERS_WRITE)
         );
         fChan.setReadable(
                 perms.contains(PosixFilePermission.OWNER_READ),
-                perms.contains(PosixFilePermission.GROUP_READ)
+                perms.contains(PosixFilePermission.GROUP_READ) || perms.contains(PosixFilePermission.OTHERS_READ)
         );
 
         // prepare options, if file was crated --> removed from map
