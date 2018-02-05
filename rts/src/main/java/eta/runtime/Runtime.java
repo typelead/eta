@@ -36,33 +36,14 @@ public class Runtime {
         return maxGlobalSparks;
     }
 
-    private static Method findLoadedClass;
-    static {
-        try {
-            findLoadedClass = ClassLoader.class
-                                .getDeclaredMethod("findLoadedClass"
-                                                  ,new Class[] { String.class });
-            findLoadedClass.setAccessible(true);
-        } catch(Exception e) {
-            findLoadedClass = null;
-        }
-    }
+    public static volatile boolean parallelClassLoaded = false;
 
     /* This will NOT affect the spark pool if it's already been initialized! */
     public static void setMaxGlobalSparks(int newMaxGlobalSparks) {
-        java.lang.Exception failed = null;
-        try {
-            if(findLoadedClass != null &&
-               findLoadedClass.invoke(ClassLoader.getSystemClassLoader()
-                                     ,"eta.runtime.parallel.Parallel") != null) {
-                /* TODO: Should we indicate to the user that it's already initialized? */
-                return;
-            }
+        if (parallelClassLoaded) {
+            throw new IllegalStateException("Cannot set the size of the spark pool after it has been initialized!");
+        } else {
             maxGlobalSparks = newMaxGlobalSparks;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeInternalError("eta.runtime.parallel.Parallel is not accessible!");
-        } catch (InvocationTargetException e) {
-            throw new RuntimeInternalError("ClassLoader.findLoadedClass() does not exist!");
         }
     }
 

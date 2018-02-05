@@ -15,6 +15,10 @@ public class Parallel {
     public static final Deque<Closure> globalSparkPool = new LinkedBlockingDeque<Closure>(Runtime.getMaxLocalSparks());
     public static final SparkCounters globalSparkStats = new SparkCounters();
 
+    static {
+        Runtime.parallelClassLoaded = true;
+    }
+
     public static Closure getSpark(StgContext context) {
         Closure spark = findSpark(context.myCapability);
         if (spark != null) {
