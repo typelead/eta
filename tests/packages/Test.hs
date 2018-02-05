@@ -55,6 +55,10 @@ patchedLibraries = do
 ignoredPackages :: [Text]
 ignoredPackages = ["singletons" ,"directory", "servant-docs", "regex-tdfa", "tasty"]
 
+-- These packages will not be verified
+dontVerify :: [Text]
+dontVerify = ["sbv"]
+
 -- WARNING: regex-tdfa exceeds the bytecode offset limit for if_acmpeq, ditto tasty
 
 ignoredPackageVersions :: [Text]
@@ -90,10 +94,14 @@ buildPackage pkg = do
   let outString = "Installing package " ++ T.unpack pkg ++ "..."
       lenOutString = length outString
       dashes = replicate lenOutString '-'
+      maybeVerify
+        | any (`T.isPrefixOf` pkg) dontVerify
+        = []
+        | otherwise = ["--enable-verify"]
   putStrLn dashes
   putStrLn outString
   putStrLn dashes
-  sh $ procExitOnError "etlas" ["install", pkg, "--enable-verify"] empty
+  sh $ procExitOnError "etlas" (["install", pkg] ++ maybeVerify) empty
 
 verifyJar :: IO ()
 verifyJar = sh verifyScript
