@@ -374,28 +374,28 @@ public class MemoryManager {
 
     public static ByteBuffer chr(ByteBuffer b, int c, int n) {
         c = (int)((byte) c);
+        b = b.duplicate();
         int idx = chrIndex(b, c, n);
-        if (idx == 0)
+        if (idx == -1)
             return emptyBuffer;
         else
-            return (ByteBuffer) b.position(b.position() + idx);
+            return (ByteBuffer) b.position(b.position() - 1);
     }
 
-    private static int chrIndex(ByteBuffer b, int c, int n) {
+    public static int chrIndex(ByteBuffer b, int c, int n) {
         c = (int)((byte) c);
-        b = b.duplicate();
-        while (n-- != 0) {
-            if (b.get() == c) {
-                break;
-            }
+        for (int i = 0; i < n ; i++) {
+            byte nxt = b.get();
+            if (nxt == c)
+              return i;
         }
-        return n;
+        return -1;
     }
-    
+    // from 
     public static int chrAddress(long address, int startofs, int endofs, int c) {
         int n = endofs - startofs;
-        long idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
-        return (idxFound == 0L)? endofs : (int)(address + startofs + idxFound);
+        int idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
+        return (idxFound == -1)? endofs : idxFound;
     }
 
    

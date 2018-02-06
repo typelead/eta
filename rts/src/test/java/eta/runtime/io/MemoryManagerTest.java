@@ -82,7 +82,6 @@ public class MemoryManagerTest {
             assertTrue("Allocating "+size+" bites: the address must be greater than 0",
                    address > 0);
         }
-        
     } 
 
     @Test(expected = IllegalArgumentException.class)
@@ -110,7 +109,8 @@ public class MemoryManagerTest {
         assertThat("Two invocations with the same adress ,"+
                    "should return the same buffer", b2, is(b));
         b2 = getBoundedBuffer(addr,0,b.remaining());
-        assertThat("Calling it with the same address, without offset and the same length ,"+
+        assertThat("Calling it with the same address, "+ 
+                   "without offset and the same length ,"+
                    "should return the same buffer", b2, is(b));
     }
 
@@ -195,6 +195,45 @@ public class MemoryManagerTest {
         assertTrue("If the last byte of the second buffer is smaller, "+
                    "it should return a positive int",
                    cmp > 0);
+    }
+
+    @Test
+    public void testChrIndex() {
+        ByteBuffer b = buffer(new byte[16]);
+        int result = chrIndex(b.duplicate(), 1, 16);
+        assertThat("If the buffer doesn't contain the value, it returns -1",
+                   result, is(-1));
+        b.put(15,(byte) 1);
+        result = chrIndex(b.duplicate(), 1, 16);
+        assertThat("If the buffer constains the value, it returns its index ",
+                   result, is(15));
+        b.put(0, (byte) 1);
+        result = chrIndex(b.duplicate(), 1, 16);
+        assertThat("If the buffer constains the value, it returns the index " +
+                   "of its first occurrence", result, is(0));
+        
+    }
+
+    @Test
+    public void testChr() {
+        ByteBuffer b = buffer(new byte[16]);
+        ByteBuffer result = chr(b, 1, 16);
+        assertThat("If the buffer doesn't contain the value, "+
+                   "it returns an empty buffer",
+                   result, is(buffer(new byte[0])));
+        assertThat(result, is(not(sameInstance(b))));
+        b.put(15,(byte) 1);
+        result = chr(b, 1, 16);
+        assertThat("If the buffer contains the value, "+
+                   "it returns a buffer pointing out it",
+                   result.get(),is((byte)1));
+    }
+
+    @Test
+    public void testChrAdress() {
+        long addr = allocateBuffer(16,true);
+        
+        set(addr+10, 1, 1); 
     }
     
     // Utils
