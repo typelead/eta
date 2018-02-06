@@ -64,7 +64,7 @@ localeEncodingName = unsafePerformIO $ c_localeEncoding
 
 -- We hope iconv_t is a storable type.  It should be, since it has at least the
 -- value -1, which is a possible return value from iconv_open.
-type IConv = CLong -- ToDo: (#type iconv_t)
+data {-# CLASS "eta.base.HSIConv" #-} IConv = IConv (Object# IConv)
 
 foreign import java unsafe "@static eta.base.HSIConv.hs_iconv_open"
   hs_iconv_open :: String -> String -> IO IConv
@@ -115,7 +115,7 @@ newIConv :: String -> String
    -> (IConv -> Buffer a -> Buffer b -> IO (CodingProgress, Buffer a, Buffer b))
    -> IO (BufferCodec a b ())
 newIConv from to rec fn = do
-  iconvt <- throwErrnoIfMinus1 "mkTextEncoding" $ hs_iconv_open to from
+  iconvt <- hs_iconv_open to from
   let iclose = throwErrnoIfMinus1_ "Iconv.close" $ hs_iconv_close iconvt
   return BufferCodec{
               encode = fn iconvt,

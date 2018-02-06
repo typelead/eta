@@ -21,15 +21,15 @@ import eta.runtime.io.MemoryManager;
  */
 public class HSIConv {
 
-    private static final ThreadLocal<Map<Long, String[]>> iconvs
-        = new ThreadLocal<Map<Long, String[]>>();
-    private static final boolean debug = false;
+    public final CharsetDecoder decoder;
+    public final CharsetEncoder encoder;
 
-    private static void initIconvs() {
-        if (iconvs.get() == null) {
-            iconvs.set(new HashMap<Long, String[]>());
-        }
+    public HSIConv(CharsetDecoder decoder, CharsetEncoder encoder) {
+        this.decoder = decoder;
+        this.encoder = encoder;
     }
+
+    private static final boolean debug = false;
 
     private static void debug(String msg) {
         if (debug) {
@@ -37,17 +37,14 @@ public class HSIConv {
         }
     }
 
-    public static long hs_iconv_open(String toEncodingStr, String fromEncodingStr) {
-        initIconvs();
+    public static HSIConv hs_iconv_open(String toEncodingStr, String fromEncodingStr) {
         debug("HSIConv: Opening iconv from " + fromEncodingStr + " to "
                 + toEncodingStr);
-        String[] fromTo = new String[] { fromEncodingStr, toEncodingStr };
-        long id = (long) fromTo.hashCode();
-        iconvs.get().put(id, fromTo);
-        return id;
+        return new HSIConv(Charset.forName(fromEncodingStr).newDecoder(),
+                           Charset.forName(toEncodingStr).newEncoder());
     }
 
-    public static int hs_iconv_close(long iconv) {
+    public static int hs_iconv_close(HSIConv iconv) {
         debug("HSIConv: Closing iconv with id: " + iconv);
         return 0;
     }
@@ -56,13 +53,12 @@ public class HSIConv {
     private final static int EINVAL = 22;
     private final static int EILSEQ = 84;
 
-    public static int hs_iconv(long iconv, long inbufptr, long inleft,
+    public static int hs_iconv(HSIConv iconv, long inbufptr, long inleft,
                                long outbufptr, long outleft) {
-        int        charsWritten = 0;
-        String[]   fromTo       = iconvs.get().get(iconv);
+        int charsWritten = 0;
         try {
-            debug("HSIConv: iconv with id: " + iconv + ", from: " + fromTo[0] +
-                  ", to: " + fromTo[1]);
+            debug("HSIConv: from: " + iconv.decoder.charset().displayName()
+                         + ", to: " + iconv.encoder.charset().displayName());
             if (inbufptr != 0L && inleft != 0L) {
                 debug("Init in buffer:");
                 ByteBuffer inbuf     = initBuffer(inbufptr, inleft, true);
@@ -70,7 +66,7 @@ public class HSIConv {
                 debug("Init out buffer:");
                 ByteBuffer outbuf     = initBuffer(outbufptr, outleft, false);
                 int        outInitPos = outbuf.position();
-                charsWritten = recode(fromTo, inbuf, outbuf);
+                charsWritten = recode(iconv, inbuf, outbuf);
                 debug("After encoding:");
                 debug("IN: buffer: "  + inbuf);
                 debug("OUT: buffer: " + outbuf);
@@ -126,14 +122,14 @@ public class HSIConv {
         return buf;
     }
 
-    private static int recode(String[] fromTo, ByteBuffer inbuf, ByteBuffer outbuf) {
+    private static int recode(HSIConv iconv, ByteBuffer inbuf, ByteBuffer outbuf) {
         /* Using always fresh coders: maybe it could cause performance penalty
            In that case we'll have to cache them (using hs_iconv_open and
            hs_iconv_close) and handle theirs states. */
 
         int charsWritten   = 0;
-        CharsetDecoder dec = Charset.forName(fromTo[0]).newDecoder();
-        CharsetEncoder enc = Charset.forName(fromTo[1]).newEncoder();
+        CharsetDecoder dec = iconv.decoder;
+        CharsetEncoder enc = iconv.encoder;
         try {
             /* No overflow in the intermediate out buffer using this method. */
             CharBuffer buf16 = dec.decode(inbuf);
