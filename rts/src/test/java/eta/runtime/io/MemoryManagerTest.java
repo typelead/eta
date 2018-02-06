@@ -230,10 +230,15 @@ public class MemoryManagerTest {
     }
 
     @Test
-    public void testChrAdress() {
+    public void testChrOffset() {
         long addr = allocateBuffer(16,true);
-        
-        set(addr+10, 1, 1); 
+        int result = chrOffset(addr,5,16,1);
+        assertThat("If the buffer doesn't contain the value, "+
+                   "it returns the ending offset", result, is(16));
+        set(addr+10, 1, 1);
+        result = chrOffset(addr,5,16,1);
+        assertThat("If the buffer contains the value, "+
+                   "it returns its buffer index", result,is(5));
     }
     
     // Utils
