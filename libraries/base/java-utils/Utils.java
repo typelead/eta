@@ -278,7 +278,7 @@ public class Utils {
     }
 
     public static long c_memmove(long destAddress, long srcAddress, int size) {
-        MemoryManager.move(destAddress, srcAddress, size);
+        MemoryManager.move(srcAddress, destAddress, size);
         return destAddress;
     }
     
