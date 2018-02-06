@@ -389,7 +389,7 @@ public class MemoryManager {
         }
         return -1;
     }
-    // from 
+
     public static int chrOffset(long address, int startofs, int endofs, byte c) {
         int n = endofs - startofs;
         int idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
