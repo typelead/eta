@@ -312,10 +312,10 @@ public class MemoryManager {
         return copy(srcAddress, 0, destAddress, 0, size);
     }
 
-    public static ByteBuffer set(long address, int val, int size) {
+    public static ByteBuffer set(long address, byte val, int size) {
         ByteBuffer buffer = getBoundedBuffer(address);
         while (size-- != 0) {
-            buffer.put((byte) val);
+            buffer.put(val);
         }
         return buffer;
     }
@@ -372,8 +372,7 @@ public class MemoryManager {
         return compare(b1, getBoundedBuffer(a2,o2,n), n);
     }
 
-    public static ByteBuffer chr(ByteBuffer b, int c, int n) {
-        c = (int)((byte) c);
+    public static ByteBuffer chr(ByteBuffer b, byte c, int n) {
         b = b.duplicate();
         int idx = chrIndex(b, c, n);
         if (idx == -1)
@@ -382,8 +381,7 @@ public class MemoryManager {
             return (ByteBuffer) b.position(b.position() - 1);
     }
 
-    public static int chrIndex(ByteBuffer b, int c, int n) {
-        c = (int)((byte) c);
+    public static int chrIndex(ByteBuffer b, byte c, int n) {
         for (int i = 0; i < n ; i++) {
             byte nxt = b.get();
             if (nxt == c)
@@ -392,7 +390,7 @@ public class MemoryManager {
         return -1;
     }
     // from 
-    public static int chrOffset(long address, int startofs, int endofs, int c) {
+    public static int chrOffset(long address, int startofs, int endofs, byte c) {
         int n = endofs - startofs;
         int idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
         return (idxFound == -1)? endofs : idxFound;

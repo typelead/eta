@@ -141,7 +141,7 @@ public class MemoryManagerTest {
         ByteBuffer unset=buffer(new byte[16]);
         assertThat("A new buffer bytes are not set",
                    b,is(unset));
-        set(addr,1,16);
+        set(addr,(byte)1,16);
         ByteBuffer set=buffer(repeat(16,1));
         assertThat("The buffer has changed",
                    b,is(set));
@@ -200,15 +200,15 @@ public class MemoryManagerTest {
     @Test
     public void testChrIndex() {
         ByteBuffer b = buffer(new byte[16]);
-        int result = chrIndex(b.duplicate(), 1, 16);
+        int result = chrIndex(b.duplicate(), (byte) 1, 16);
         assertThat("If the buffer doesn't contain the value, it returns -1",
                    result, is(-1));
-        b.put(15,(byte) 1);
-        result = chrIndex(b.duplicate(), 1, 16);
+        b.put(15, (byte) 1);
+        result = chrIndex(b.duplicate(), (byte) 1, 16);
         assertThat("If the buffer constains the value, it returns its index ",
                    result, is(15));
         b.put(0, (byte) 1);
-        result = chrIndex(b.duplicate(), 1, 16);
+        result = chrIndex(b.duplicate(), (byte) 1, 16);
         assertThat("If the buffer constains the value, it returns the index " +
                    "of its first occurrence", result, is(0));
         
@@ -217,13 +217,13 @@ public class MemoryManagerTest {
     @Test
     public void testChr() {
         ByteBuffer b = buffer(new byte[16]);
-        ByteBuffer result = chr(b, 1, 16);
+        ByteBuffer result = chr(b, (byte) 1, 16);
         assertThat("If the buffer doesn't contain the value, "+
                    "it returns an empty buffer",
                    result, is(buffer(new byte[0])));
         assertThat(result, is(not(sameInstance(b))));
         b.put(15,(byte) 1);
-        result = chr(b, 1, 16);
+        result = chr(b, (byte) 1, 16);
         assertThat("If the buffer contains the value, "+
                    "it returns a buffer pointing out it",
                    result.get(),is((byte)1));
@@ -232,11 +232,11 @@ public class MemoryManagerTest {
     @Test
     public void testChrOffset() {
         long addr = allocateBuffer(16,true);
-        int result = chrOffset(addr,5,16,1);
+        int result = chrOffset(addr,5,16, (byte) 1);
         assertThat("If the buffer doesn't contain the value, "+
                    "it returns the ending offset", result, is(16));
-        set(addr+10, 1, 1);
-        result = chrOffset(addr,5,16,1);
+        set(addr+10, (byte) 1, 1);
+        result = chrOffset(addr,5,16, (byte) 1);
         assertThat("If the buffer contains the value, "+
                    "it returns its buffer index", result,is(5));
     }
