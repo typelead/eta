@@ -81,17 +81,17 @@ jobs:
             - dot-stack-{{ checksum "resolver.txt" }}
             - dot-stack-resolver-{{ checksum "resolver.txt" }}
 
+      - run:
+          name: Running rts tests
+          working_directory: rts
+          command: ./gradlew test
+
       - run: stack setup
       - run: stack build --test --no-run-tests eta
 
       - run:
           name: Running unit tests
           command: stack test eta
-
-      - run:
-          name: Running rts tests
-          working_directory: rts
-          command: ./gradlew test
 
   release_container:
     <<: *defaults
