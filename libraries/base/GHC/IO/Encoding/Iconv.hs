@@ -132,7 +132,6 @@ iconvDecode iconv_t ibuf obuf = iconvRecode iconv_t ibuf 0 obuf char_shift
 iconvEncode :: IConv -> EncodeBuffer
 iconvEncode iconv_t ibuf obuf = iconvRecode iconv_t ibuf char_shift obuf 0
 
--- TODO: Implement
 iconvRecode :: IConv -> Buffer a -> Int -> Buffer b -> Int
             -> IO (CodingProgress, Buffer a, Buffer b)
 iconvRecode iconv_t
@@ -161,25 +160,24 @@ iconvRecode iconv_t
       iconv_trace ("iconv res=" ++ show res)
       iconv_trace ("iconvRecode after,  input=" ++ show (summaryBuffer new_input))
       iconv_trace ("iconvRecode after,  output=" ++ show (summaryBuffer new_output))
-      if (res /= -1)
-        then do -- all input translated
-           return (InputUnderflow, new_input, new_output)
-        else do
-      errno <- getErrno
-      case errno of
-        e | e == e2BIG  -> return (OutputUnderflow, new_input, new_output)
-          | e == eINVAL -> return (InputUnderflow, new_input, new_output)
-           -- Sometimes iconv reports EILSEQ for a
-           -- character in the input even when there is no room
-           -- in the output; in this case we might be about to
-           -- change the encoding anyway, so the following bytes
-           -- could very well be in a different encoding.
-           --
-           -- Because we can only say InvalidSequence if there is at least
-           -- one element left in the output, we have to special case this.
-          | e == eILSEQ -> return (if new_outleft' == 0 then OutputUnderflow else InvalidSequence, new_input, new_output)
-          | otherwise -> do
-              iconv_trace ("iconv returned error: " ++ show (errnoToIOError "iconv" e Nothing Nothing))
-              throwErrno "iconvRecoder"
+      if res >= 0
+      then return (InputUnderflow, new_input, new_output)
+      else case Errno (fromIntegral (-res) :: CInt) of
+             e | e == e2BIG  -> return (OutputUnderflow, new_input, new_output)
+               | e == eINVAL -> return (InputUnderflow, new_input, new_output)
+                -- Sometimes iconv reports EILSEQ for a
+                -- character in the input even when there is no room
+                -- in the output; in this case we might be about to
+                -- change the encoding anyway, so the following bytes
+                -- could very well be in a different encoding.
+                --
+                -- Because we can only say InvalidSequence if there is at least
+                -- one element left in the output, we have to special case this.
+               | e == eILSEQ ->
+                 return (if new_outleft' == 0 then OutputUnderflow else InvalidSequence,
+                         new_input, new_output)
+               | otherwise -> do
+                 iconv_trace ("iconv returned error: " ++ show (errnoToIOError "iconv" e Nothing Nothing))
+                 throwErrno "iconvRecoder"
 
 #endif /* !mingw32_HOST_OS */

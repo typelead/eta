@@ -33,7 +33,7 @@ public class HSIConv {
 
     private static void debug(String msg) {
         if (debug) {
-            System.out.println(msg);
+            System.out.println(Thread.currentThread() + ":" + msg);
         }
     }
 
@@ -123,10 +123,6 @@ public class HSIConv {
     }
 
     private static int recode(HSIConv iconv, ByteBuffer inbuf, ByteBuffer outbuf) {
-        /* Using always fresh coders: maybe it could cause performance penalty
-           In that case we'll have to cache them (using hs_iconv_open and
-           hs_iconv_close) and handle theirs states. */
-
         int charsWritten   = 0;
         CharsetDecoder dec = iconv.decoder;
         CharsetEncoder enc = iconv.encoder;
@@ -143,11 +139,12 @@ public class HSIConv {
             if (encRes.isUnderflow()) {
                 enc.flush(outbuf);
             } else {
-                charsWritten = -1;
                 if (encRes.isOverflow()) {
-                    Utils.set_errno(E2BIG);
+                    charsWritten = -E2BIG;
                 } else if(encRes.isError()) {
-                    Utils.set_errno(EILSEQ);
+                    charsWritten = -EILSEQ;
+                } else {
+                    charsWritten = -1;
                 }
             }
         } catch (CharacterCodingException e) {
@@ -155,9 +152,11 @@ public class HSIConv {
             if (debug) {
                 e.printStackTrace();
             }
-            charsWritten = -1;
             // TODO: handle EINVAL case
-            Utils.set_errno(EILSEQ);
+            charsWritten = -EILSEQ;
+        } finally {
+            dec.reset();
+            enc.reset();
         }
         if (charsWritten == -1 && debug) {
             System.err.println(MemoryManager.getHeap().getStatistics().generateReport());
