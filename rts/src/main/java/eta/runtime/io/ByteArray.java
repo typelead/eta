@@ -41,39 +41,81 @@ public final class ByteArray extends Value {
 
     @Override
     public String toString() {
-        ByteBuffer buf = MemoryManager.getBoundedBuffer(bufferAddress);
+        ByteBuffer buf = getBuffer();
         byte[] bytes = new byte[size];
         buf.get(bytes);
         return "ByteArray " + Arrays.toString(bytes);
     }
 
-    public static void copyAddrToByteArray( long srcAddress, ByteArray destArray
-                                          , int offset, int n) {
-        ByteBuffer dest = MemoryManager.getBoundedBuffer(destArray.bufferAddress);
-        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
-        src.limit(src.position() + n);
-        dest.position(dest.position() + offset);
-        dest.limit(dest.position() + n);
-        dest.put(src);
+    public ByteBuffer getBuffer() {
+        return MemoryManager.getBoundedBuffer(bufferAddress);
     }
 
-    public static void copyByteArrayToAddr( ByteArray srcArray, int offset
-                                          , long destAddress, int n) {
-        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcArray.bufferAddress);
-        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
-        src.position(src.position() + offset);
-        src.limit(src.position() + n);
-        dest.put(src);
+    public ByteBuffer getBuffer(int offset, int n) {
+        return MemoryManager.getBoundedBuffer(bufferAddress, offset, n);
     }
 
-    public static void copyByteArray( ByteArray srcArray, int srcOffset
-                                    , ByteArray destArray, int destOffset
-                                    , int n) {
-        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcArray.bufferAddress);
-        ByteBuffer dest = MemoryManager.getBoundedBuffer(destArray.bufferAddress);
-        src.position(src.position() + srcOffset);
-        src.limit(src.position() + n);
-        dest.position(dest.position() + destOffset);
-        dest.put(src);
+    public static ByteBuffer copyAddrToByteArray( long srcAddress, ByteArray destArray
+                                                , int offset, int n) {
+        return MemoryManager.copy(srcAddress, 0,
+                                  destArray.getBuffer(), offset, n);
+    }
+
+    public static ByteBuffer copyByteArrayToAddr( ByteArray srcArray, int offset
+                                                , long destAddress, int n) {
+        return MemoryManager.copy(srcArray.getBuffer(), offset,
+                                  destAddress, 0, n);
+    }
+
+    public static ByteBuffer copyByteArray( ByteArray srcArray, int srcOffset
+                                          , ByteArray destArray, int destOffset
+                                          , int n) {
+        return MemoryManager.copyByteBuffer(srcArray.getBuffer(), srcOffset,
+                                  destArray.getBuffer(), destOffset, n);
+    }
+
+    public static ByteBuffer copyByteArray( ByteArray srcArray, int srcOffset
+                                          , ByteBuffer dest, int destOffset
+                                          , int n) {
+        return MemoryManager.copyByteBuffer(srcArray.getBuffer(), srcOffset,
+                                  dest, destOffset,n);
+    }
+
+    public static ByteBuffer copyByteArray( ByteBuffer src, int srcOffset
+                                           , ByteArray destArray, int destOffset
+                                           , int n) {
+        return MemoryManager.copyByteBuffer(src, srcOffset,
+                                  destArray.getBuffer(), destOffset, n);
+    }
+
+    public static ByteBuffer copyByteArray( ByteArray srcArray, ByteArray destArray,
+                                            int size) {
+        return copyByteArray(srcArray, 0, destArray, 0, size);
+    }
+
+    public static ByteBuffer copyByteArray(ByteBuffer srcBuffer, ByteArray destArray,
+                                           int size) {
+        return copyByteArray(srcBuffer, 0, destArray,0, size);
+    }
+
+    public static ByteBuffer copyByteArray(ByteArray srcArray, ByteBuffer destBuffer,
+                                           int size) {
+        return copyByteArray(srcArray, 0, destBuffer, 0, size);
+    }
+
+    public static int compare(ByteArray b1, ByteArray b2, int n) {
+        return MemoryManager.compare(b1.getBuffer(), b2.getBuffer(), n);
+    }
+
+    public static int compare(ByteArray b1, int o1, ByteArray b2, int o2, int n) {
+        return MemoryManager.compare(b1.getBuffer(o1,n), b2.getBuffer(o2,n), n);
+    }
+
+    public static int compare(ByteArray b1, int o1, long a2, int o2, int n) {
+        return MemoryManager.compare(b1.getBuffer(o1,n), a2, o2, n);
+    }
+
+    public static int compare(long a1, int o1, ByteArray b2, int o2, int n) {
+        return MemoryManager.compare(a1, o1, b2.getBuffer(o2,n), n);
     }
 }

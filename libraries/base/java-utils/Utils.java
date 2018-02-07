@@ -268,33 +268,20 @@ public class Utils {
     }
 
     public static long c_memcpy(long destAddress, long srcAddress, int size) {
-        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
-        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
-        src.limit(src.position() + size);
-        dest.put(src);
+        MemoryManager.copy(srcAddress,destAddress,size);
         return destAddress;
     }
 
     public static long c_memset(long address, int c_, int size) {
-        byte c = (byte) c_;
-        ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        while (size-- != 0) {
-            buffer.put(c);
-        }
+        MemoryManager.set(address, c_, size);
         return address;
     }
 
     public static long c_memmove(long destAddress, long srcAddress, int size) {
-        ByteBuffer src  = MemoryManager.getBoundedBuffer(srcAddress);
-        ByteBuffer dest = MemoryManager.getBoundedBuffer(destAddress);
-        ByteBuffer copy = ByteBuffer.allocate(size);
-        src.limit(src.position() + size);
-        copy.put(src);
-        copy.flip();
-        dest.put(copy);
+        MemoryManager.move(srcAddress, destAddress, size);
         return destAddress;
     }
-
+    
     public static BasicFileAttributes c_fstat(Path p) throws IOException {
         return Files.readAttributes(p, BasicFileAttributes.class);
     }
