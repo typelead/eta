@@ -26,6 +26,10 @@ import static eta.runtime.stg.TSO.WhyBlocked.*;
 
 public final class TSO extends BlackHole {
     public static AtomicInteger maxThreadId = new AtomicInteger();
+
+    /* Used for concurrent access to linked lists coordinated by the `link` field. */
+    public static final TSO TRANSIENT_LINK = new TSO(null);
+
     public int id = maxThreadId.getAndIncrement();
     public Closure closure;
     public LinkedList<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
@@ -40,7 +44,7 @@ public final class TSO extends BlackHole {
     public StackTraceElement[] stackTrace;
     public Throwable cause;
     public AtomicBoolean lock = new AtomicBoolean(false);
-    public TSO link;
+    public volatile TSO link;
 
     /* Temporary per execution */
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
@@ -91,6 +95,11 @@ public final class TSO extends BlackHole {
 
     public TSO(Closure closure) {
         this.closure = closure;
+    }
+
+    @Override
+    public String toString() {
+        return "TSO[" + id + "]";
     }
 
     public static int getThreadId(TSO tso) {

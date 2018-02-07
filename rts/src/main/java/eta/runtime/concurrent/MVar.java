@@ -27,7 +27,10 @@ public class MVar extends Value {
     }
 
     public boolean tryPut(Closure closure) {
-        return casValue(null, closure);
+        if (value == null && casValue(null, closure)) {
+            return true;
+        }
+        return false;
     }
 
     public Closure tryRead() {
@@ -35,15 +38,31 @@ public class MVar extends Value {
     }
 
     public final void registerListener(TSO tso) {
-        TSO oldTop;
-        while(!casTop((oldTop = top), tso)) {}
-        tso.link = oldTop;
+        tso.link = TSO.TRANSIENT_LINK;
+        for (;;) {
+            TSO oldTop = top;
+            if (casTop(oldTop, tso)) {
+                /* TRANSIENT_LINK forms a synchronization point.
+                   When this cas succeeds, there's a narrow window
+                   where the cas from the getListeners() can happen
+                   and the client can try to traverse the listeners
+                   queue. Thus, a client is expected to check for link
+                   values of TRANSIENT_LINK before terminating a traversal. */
+                tso.link = oldTop;
+                return;
+            }
+        }
     }
 
     public final TSO getListeners() {
-        TSO oldTop;
-        while(!casTop((oldTop = top), null)) {}
-        return oldTop;
+        for (;;) {
+            TSO oldTop = top;
+            if (oldTop == null) {
+                return null;
+            } else if (casTop(oldTop, null)) {
+                return oldTop;
+            }
+        }
     }
 
     private static final boolean useUnsafe = UnsafeUtil.UNSAFE != null;
