@@ -311,7 +311,7 @@ public class MemoryManager {
     public static ByteBuffer copy(long srcAddress, long destAddress, int size) {
         return copy(srcAddress, 0, destAddress, 0, size);
     }
-
+   
     public static ByteBuffer set(long address, byte val, int size) {
         ByteBuffer buffer = getBoundedBuffer(address);
         while (size-- != 0) {
@@ -319,7 +319,12 @@ public class MemoryManager {
         }
         return buffer;
     }
-       
+
+    public static ByteBuffer set(long address, int val, int size) {
+        return set(address, (byte) val, size);
+    }
+    
+    
     public static ByteBuffer set(long address, byte[] bytes) {
         ByteBuffer buf = getBoundedBuffer(address);
         buf.put(bytes);
@@ -381,6 +386,10 @@ public class MemoryManager {
             return (ByteBuffer) b.position(b.position() - 1);
     }
 
+    public static ByteBuffer chr(ByteBuffer b, int c, int n) {
+        return chr(b, (byte) c, n);
+    }
+    
     public static int chrIndex(ByteBuffer b, byte c, int n) {
         for (int i = 0; i < n ; i++) {
             byte nxt = b.get();
@@ -390,11 +399,19 @@ public class MemoryManager {
         return -1;
     }
 
+    public static int chrIndex(ByteBuffer b, int c, int n) {
+        return chrIndex(b, (byte) c, n);
+    }
+     
     public static int chrOffset(long address, int startofs, int endofs, byte c) {
         int n = endofs - startofs;
         int idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
         return (idxFound == -1)? endofs : idxFound;
     }
 
+    public static int chrOffset(long address, int startofs, int endofs, int c) {
+        return chrOffset(address, startofs, endofs, (byte) c);
+    }
+   
    
 }
