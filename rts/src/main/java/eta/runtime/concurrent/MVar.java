@@ -18,6 +18,12 @@ public class MVar extends Value {
         this.value = value;
     }
 
+    @Override
+    public String toString() {
+        Closure val = value;
+        return "MVar@" + hashCode() + "[" + ((val == null)? "_" : val.toString()) + "]";
+    }
+
     public Closure tryTake() {
         Closure val = value;
         if (val != null && casValue(val, null)) {
