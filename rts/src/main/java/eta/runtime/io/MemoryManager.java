@@ -211,15 +211,14 @@ public class MemoryManager {
             int size = 0;
             for (int i = 0; i < ss.length; i++) {
                 byte[] ssBytes = ss[i].getBytes(charset);
-                size += ssBytes.length + 1;
                 bytess[i] = ssBytes;
             }
-            address         = allocateBuffer(size, false);
+            address         = allocateBuffer(size + 1, false);
             ByteBuffer dest = getBoundedBuffer(address);
             for (int i = 0; i < ss.length; i++) {
                 dest.put(bytess[i]);
-                dest.put((byte) 0);
             }
+            dest.put((byte) 0);
             loadedStrings.put(ss[0], address);
         }
         return address;
