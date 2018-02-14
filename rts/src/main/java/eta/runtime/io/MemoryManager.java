@@ -211,6 +211,7 @@ public class MemoryManager {
             int size = 0;
             for (int i = 0; i < ss.length; i++) {
                 byte[] ssBytes = ss[i].getBytes(charset);
+                size += ssBytes.length;
                 bytess[i] = ssBytes;
             }
             address         = allocateBuffer(size + 1, false);
