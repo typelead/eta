@@ -195,9 +195,10 @@ public class MemoryManager {
         Long address = loadedStrings.get(s);
         if (address == null) {
             byte[] bytes    = s.getBytes(charset);
-            address         = allocateBuffer(bytes.length, false);
+            address         = allocateBuffer(bytes.length + 1, false);
             ByteBuffer dest = getBoundedBuffer(address);
             dest.put(bytes);
+            dest.put((byte) 0);
             loadedStrings.put(s, address);
         }
         return address;
@@ -213,11 +214,12 @@ public class MemoryManager {
                 size += ssBytes.length;
                 bytess[i] = ssBytes;
             }
-            address         = allocateBuffer(size, false);
+            address         = allocateBuffer(size + 1, false);
             ByteBuffer dest = getBoundedBuffer(address);
             for (int i = 0; i < ss.length; i++) {
                 dest.put(bytess[i]);
             }
+            dest.put((byte) 0);
             loadedStrings.put(ss[0], address);
         }
         return address;
