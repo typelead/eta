@@ -41,7 +41,7 @@ public class ManagedHeapTest {
     @Before
     public void init() {
         heap = new ManagedHeap(nurserySize, blockSize, miniBlockSize);
-        cap = Capability.getLocal(false);
+        cap = Capability.getLocal();
         cap.cleanupLocalHeap();
     }
 
