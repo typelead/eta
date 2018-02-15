@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,6 +46,7 @@ public final class TSO extends BlackHole {
     public Throwable cause;
     public AtomicBoolean lock = new AtomicBoolean(false);
     public volatile TSO link;
+    public HashMap<String,Object> extensibleState = new HashMap<String,Object>();
 
     /* Temporary per execution */
     public UpdateInfoStack updateInfoStack = new UpdateInfoStack();
@@ -307,5 +309,17 @@ public final class TSO extends BlackHole {
 
     public final boolean emptyContStack() {
         return contStackTop == 0;
+    }
+
+    private final String getNamespacedKey(String namespace, String key) {
+        return namespace + "@" + key;
+    }
+
+    public final Object getState(String namespace, String key) {
+        return extensibleState.get(getNamespacedKey(namespace, key));
+    }
+
+    public final void setState(String namespace, String key, Object value) {
+        extensibleState.put(getNamespacedKey(namespace, key), value);
     }
 }
