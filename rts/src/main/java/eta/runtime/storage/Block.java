@@ -51,7 +51,7 @@ public class Block {
         this.startAddress = startAddress;
         this.av           = new AllocationVector(buffer.remaining() / miniBlockSize);
         this.buffer       = buffer;
-        this.owner        = Capability.getLocal(false);
+        this.owner        = Capability.getLocal();
     }
 
     private final long findFreeBlocks(int miniblocks, boolean direct) {
@@ -71,7 +71,7 @@ public class Block {
     }
 
     public final void sendFreeMessage(long address) {
-        if (owner == Capability.getLocal(false)) {
+        if (owner == Capability.getLocal()) {
             free(address);
         } else {
             owner.freeMessages.write(address);
