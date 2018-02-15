@@ -18,7 +18,7 @@ public class Runtime {
     /* Parameter: maxWorkerCapabilities (int)
        The total number of Capabilities that can be spawned by the runtime itself. */
     private static int maxWorkerCapabilities
-        = RuntimeOptions.getNumberOfProcessors();
+        = getNumberOfProcessors();
 
     public static int getMaxWorkerCapabilities() {
         return maxWorkerCapabilities;
@@ -158,7 +158,7 @@ public class Runtime {
     }
 
     public static void main(String[] args, Closure mainClosure) throws Exception {
-        RuntimeOptions.parse(args);
+        Runtime.setProgramArguments(args);
         try {
             evalLazyIO(mainClosure);
         } finally {
@@ -222,4 +222,40 @@ public class Runtime {
     public static void stgExit(int code) {
         System.exit(code);
     }
+
+    /** Command Line Arguments **/
+
+    private static final String RUNTIME_NAMESPACE = "eta.runtime";
+    private static String[] programArguments;
+
+    public static String[] getProgramArguments() {
+        return programArguments;
+    }
+
+    public static void setProgramArguments(String[] newProgramArguments) {
+        programArguments = newProgramArguments;
+    }
+
+    public static String[] getLocalProgramArguments() {
+        Capability cap = Capability.getLocal();
+        TSO tso = cap.context.currentTSO;
+        Object result = tso.getState(Runtime.RUNTIME_NAMESPACE, "args");
+        if (result == null) {
+            return getProgramArguments();
+        } else {
+            return (String[]) result;
+        }
+
+    }
+
+    public static void setLocalProgramArguments(String[] newArgs) {
+        Capability cap = Capability.getLocal();
+        TSO tso = cap.context.currentTSO;
+        tso.setState(Runtime.RUNTIME_NAMESPACE, "args", newArgs);
+    }
+
+    public static int getNumberOfProcessors() {
+        return java.lang.Runtime.getRuntime().availableProcessors();
+    }
+
 }

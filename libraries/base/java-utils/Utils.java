@@ -37,7 +37,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import eta.runtime.Runtime;
-import eta.runtime.RuntimeOptions;
 import eta.runtime.RuntimeLogging;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
@@ -171,12 +170,6 @@ public class Utils {
 
     public static void errorBelch(String format, String string) {
         RuntimeLogging.errorBelch(format, string);
-    }
-
-    public static String[] getJavaArgs() {
-        List<String> args = RuntimeOptions.progArgs;
-        String[] resArgs = new String[args.size()];
-        return args.toArray(resArgs);
     }
 
     /* Returns CPU time in picoseconds */

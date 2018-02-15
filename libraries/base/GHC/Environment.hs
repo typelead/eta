@@ -14,6 +14,6 @@ getFullArgs = do
   jargs <- getFullArgs'
   return (map fromJString (fromJava jargs))
 
-foreign import java unsafe "@static @field eta.runtime.RuntimeOptions.fullProgArgs"
+foreign import java unsafe "@static eta.runtime.Runtime.getLocalProgramArguments"
   getFullArgs' :: IO JStringArray
 

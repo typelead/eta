@@ -62,7 +62,7 @@ getArgs = do
 
 -- | Computation 'getJavaArgs' returns a list of the program's command
 -- line arguments (not including the program name) as a native String[].
-foreign import java unsafe "@static eta.base.Utils.getJavaArgs"
+foreign import java unsafe "@static eta.runtime.Runtime.getLocalProgramArguments"
   getJavaArgs :: IO JStringArray
 
 {-|
@@ -147,34 +147,23 @@ unsetEnv key = setEnv key ""
 return @args@.
 -}
 withArgs :: [String] -> IO a -> IO a
-withArgs xs act = do
-   p <- System.Environment.getProgName
-   withArgv (p:xs) act
+withArgs newArgs act = do
+  let newArgs' = toJava (map toJString newArgs)
+  existingArgs <- getJavaArgs
+  bracket (setArgs newArgs')
+          (const (setArgs existingArgs))
+          (const act)
+
+foreign import java unsafe "@static eta.runtime.Runtime.setLocalProgramArguments"
+  setArgs :: JStringArray -> IO ()
 
 {-|
 'withProgName' @name act@ - while executing action @act@,
 have 'getProgName' return @name@.
 -}
+-- TODO: Figure out how to handle this
 withProgName :: String -> IO a -> IO a
-withProgName nm act = do
-   xs <- System.Environment.getArgs
-   withArgv (nm:xs) act
-
--- Worker routine which marshals and replaces an argv vector for
--- the duration of an action.
-
-withArgv :: [String] -> IO a -> IO a
-withArgv = error "withArgv: Cannot modify arguments."
-  -- withProgArgv
-
--- withProgArgv :: [String] -> IO a -> IO a
--- withProgArgv new_args act = do
---   pName <- System.Environment.getProgName
---   existing_args <- System.Environment.getArgs
---   bracket (setProgArgv new_args)
---           (\argv -> do _ <- setProgArgv (pName:existing_args)
---                        freeProgArgv argv)
---           (const act)
+withProgName _nm act = act
 
 -- |'getEnvironment' retrieves the entire environment as a
 -- list of @(key,value)@ pairs.

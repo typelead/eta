@@ -389,7 +389,7 @@ foreign import java unsafe "@static eta.runtime.stg.Capability.setNumCapabilitie
 getNumProcessors :: IO Int
 getNumProcessors = fmap fromIntegral c_getNumberOfProcessors
 
-foreign import java unsafe "@static eta.runtime.RuntimeOptions.getNumberOfProcessors"
+foreign import java unsafe "@static eta.runtime.Runtime.getNumberOfProcessors"
   c_getNumberOfProcessors :: IO CUInt
 
 -- | Returns the number of sparks currently in the local spark pool
