@@ -55,7 +55,7 @@ public class MemoryManager {
             throw new
                 IllegalArgumentException("Allocated size must be positive");
         return globalManagedHeap.
-            allocateBuffer(n, direct, Capability.getLocal(false));
+            allocateBuffer(n, direct, Capability.getLocal());
     }
 
     /** Freeing Off-Heap Memory **/
