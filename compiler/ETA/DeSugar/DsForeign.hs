@@ -655,19 +655,20 @@ dsFExport closureId inheritsFamTyCon famInstEnvs co externalName classSpec mod =
         if length argFts > 5
         then error $ "Foreign exports with number of arguments > 5 are currently not "
                   ++ "supported."
-        else foldl' (\code (i, argPrimFt, argType) ->
-                        let argClass = typeDataConClass dflags extendsInfo argType
-                            argClassFt = obj argClass
-                        in code
-                        <> (if argPrimFt == jbool
-                            then gload argPrimFt i <> ifeq falseClosure trueClosure
-                            else new argClassFt
-                              <> dup argClassFt
-                              <> gload argPrimFt i
-                              <> invokespecial
-                                  (mkMethodRef argClass "<init>" [argPrimFt] void)))
-                    mempty
-                    (zip3 [localVariableStart..] argFts argTypes)
+        else fst $ foldl' (\(code, stackIndex) (i, argPrimFt, argType) ->
+                           let argClass = typeDataConClass dflags extendsInfo argType
+                               argClassFt = obj argClass
+                           in (code
+                           <> (if argPrimFt == jbool
+                               then gload argPrimFt i <> ifeq falseClosure trueClosure
+                               else new argClassFt
+                                 <> dup argClassFt
+                                 <> gload argPrimFt stackIndex
+                                 <> invokespecial
+                                     (mkMethodRef argClass "<init>" [argPrimFt] void))
+                               , stackIndex + fieldSize argPrimFt))
+                           (mempty, localVariableStart)
+                           (zip3 [localVariableStart..] argFts argTypes)
       methodCode
         | Just superClassName <- genSuperAccessor
         , let go _ [] = mempty
