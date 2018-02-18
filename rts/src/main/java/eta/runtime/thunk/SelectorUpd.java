@@ -6,7 +6,7 @@ import eta.runtime.stg.StgContext;
 
 public abstract class SelectorUpd extends UpdatableThunk {
     protected final int index;
-    protected Closure x1;
+    public Closure x1;
 
     public SelectorUpd(int i, Closure x1) {
         super();
