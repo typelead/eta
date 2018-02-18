@@ -6,22 +6,22 @@ import eta.runtime.stg.StgContext;
 
 public abstract class SelectorUpd extends UpdatableThunk {
     protected final int index;
-    protected Closure p;
+    protected Closure x1;
 
-    public SelectorUpd(int i, Closure p) {
+    public SelectorUpd(int i, Closure x1) {
         super();
         this.index = i;
-        this.p = p;
+        this.x1 = x1;
     }
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return selectEnter(context, (DataCon) p.evaluate(context));
+        return selectEnter(context, (DataCon) x1.evaluate(context));
     }
 
     @Override
     public final void clear() {
-        this.p = null;
+        this.x1 = null;
     }
 
     public abstract Closure selectEnter(StgContext context, DataCon result);

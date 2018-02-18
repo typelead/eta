@@ -46,7 +46,7 @@ public class IO {
         SelectorPUpd r = new SelectorPUpd(2, z);
         do {
             Closure x = mv.value;
-            z.p2 = x;
+            z.x2 = x;
             if (!mv.cas(x, y)) {
                 continue;
             }

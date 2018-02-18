@@ -4,22 +4,22 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
 public class ApD extends UpdatableThunk {
-    public Closure p1;
-    public double p2;
+    public Closure x1;
+    public double x2;
 
-    public ApD(final Closure p1, final double p2) {
+    public ApD(final Closure x1, final double x2) {
         super();
-        this.p1 = p1;
-        this.p2 = p2;
+        this.x1 = x1;
+        this.x2 = x2;
     }
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return p1.applyD(context, p2);
+        return x1.applyD(context, x2);
     }
 
     @Override
     public final void clear() {
-        this.p1 = null;
+        this.x1 = null;
     }
 }
