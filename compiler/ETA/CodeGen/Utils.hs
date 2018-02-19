@@ -121,23 +121,17 @@ tagToClosure dflags tyCon loadArg = (closureType, enumCode)
         arrayFt = jarray closureType
 
 initCodeTemplate' :: FieldType -> Bool -> Text -> Text -> FieldRef -> Code -> MethodDef
-initCodeTemplate' retFt synchronized modClass qClName field code =
+initCodeTemplate' retFt sync modClass qClName field code =
   mkMethodDef modClass accessFlags qClName [] (Just retFt) $ fold
     [ getstatic field
-    , ifnull bodyCode mempty
+    , ifnonnull mempty bodyCode
     , getstatic field
     , greturn retFt ]
   where accessFlags = [Public, Static]
         modFt = obj modClass
         bodyCode
-          | synchronized = ftClassObject modFt
-                        <> dup classFt
-                        <> gstore classFt (0 :: Int)
-                        <> monitorenter classFt
-                        <> getstatic field
-                        <> ifnull code mempty
-                        <> gload classFt (0 :: Int)
-                        <> monitorexit classFt
+          | sync = synchronized 1 0 classFt (ftClassObject modFt) $
+                     getstatic field <> ifnonnull mempty code
           | otherwise = code
 
 initCodeTemplate :: Bool -> Text -> Text -> FieldRef -> Code -> MethodDef
