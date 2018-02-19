@@ -53,6 +53,7 @@ module ETA.CodeGen.Monad
    newTypeClosure,
    newDataClosure,
    newClosure,
+   defineSingletonInstance,
    classFromCgState,
    runCodeGen,
    forkClosureBody,
@@ -612,3 +613,14 @@ crashDoc :: SDoc -> CodeGen a
 crashDoc sdoc = do
   traceCg sdoc
   error "crash"
+
+defineSingletonInstance :: Text -> CodeGen ()
+defineSingletonInstance thisClass = do
+  defineField  $ mkFieldDef [Public, Static] singletonInstanceName thisFt
+  defineMethod $ mkMethodDef thisClass [Static] "<clinit>" [] void $
+       new thisFt
+    <> dup thisFt
+    <> invokespecial (mkMethodRef thisClass "<init>" [] void)
+    <> putstatic (mkFieldRef thisClass singletonInstanceName thisFt)
+    <> vreturn
+  where thisFt = obj thisClass

@@ -55,7 +55,7 @@ cgTopRhsCon dflags id conRecIds dataCon args = (cgIdInfo, genCode)
                                      , fold loads
                                      , invokespecial $
                                          mkMethodRef dataClass "<init>" fields void ]
-          defineField $ mkFieldDef [Private, Static] qClName closureType
+          defineField $ mkFieldDef [Private, Static, Volatile] qClName closureType
           return $ Just (modClass, qClName, dataClass, field, fold loadCodes, recIndexes)
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo

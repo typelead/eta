@@ -343,3 +343,5 @@ isClosureFt ft = ft == closureType
 
 -- Tail methods
 
+singletonInstanceName :: Text
+singletonInstanceName = "INSTANCE"

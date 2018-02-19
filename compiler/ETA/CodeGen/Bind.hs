@@ -82,6 +82,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
         = emitLineNumber $ mkLineNumber line
         | otherwise = mempty
   setSuperClass (lfClass hasStdLayout arity (length fvs) lfInfo)
+  when topLevel (defineSingletonInstance thisClass)
   if arity == 0 then
     -- TODO: Implement eager blackholing
     withMethod [Public, Final] "thunkEnter" [contextType] (ret closureType) $ do

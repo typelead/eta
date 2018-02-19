@@ -122,7 +122,7 @@ tagToClosure dflags tyCon loadArg = (closureType, enumCode)
 
 initCodeTemplate' :: FieldType -> Bool -> Text -> Text -> FieldRef -> Code -> MethodDef
 initCodeTemplate' retFt sync modClass qClName field code =
-  mkMethodDef modClass accessFlags qClName [] (Just retFt) $ fold
+  mkMethodDef modClass accessFlags qClName [] (ret retFt) $ fold
     [ getstatic field
     , ifnonnull mempty bodyCode
     , getstatic field

@@ -195,7 +195,7 @@ cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
         genCode
           | StgApp f [] <- body, null args, isNonRec recflag
           = do cgInfo <- getCgIdInfo f
-               defineField $ mkFieldDef [Private, Static] qClName closureType
+               defineField $ mkFieldDef [Private, Static, Volatile] qClName closureType
                let field = mkFieldRef modClass qClName closureType
                    loadCode = idInfoLoadCode cgInfo
                    initField =
@@ -215,21 +215,11 @@ cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
               closureCodeBody True id lfInfo
                               (nonVoidIds args) mFunRecIds arity body [] False []
 
-            let ft        = obj cgClassName
-                flags     = [Private, Static]
-                isThunk   = arity == 0
-                field     = mkFieldRef modClass qClName closureType
-                initField =
-                    [
-                      new ft
-                    , dup ft
-                    , invokespecial $ mkMethodRef cgClassName "<init>" [] void
-                    , putstatic field
-                    ]
-            defineField $ mkFieldDef flags qClName closureType
-            -- Only thunk init codes should be synchronized since they are stateful.
-            defineMethod $ initCodeTemplate isThunk modClass qClName field
-                          (fold initField)
+            let ft = obj cgClassName
+            defineMethod $
+              mkMethodDef modClass [Public, Static] qClName [] (ret closureType) $
+                  getstatic (mkFieldRef cgClassName singletonInstanceName ft)
+               <> greturn ft
             return Nothing
 
 -- Simplifies the code if the mod is associated to the Id
@@ -282,11 +272,10 @@ cgEnumerationTyCon _tyConCl tyCon = do
                   , fold loadCodes
                   , putstatic field
                   ]
-  defineField $ mkFieldDef [Private, Static] fieldName arrayFt
+  defineField $ mkFieldDef [Private, Static, Volatile] fieldName arrayFt
   modClass <- getModClass
   defineMethod $ initCodeTemplate' arrayFt False modClass fieldName field $ fold initField
-  where
-        arrayFt = jarray closureType
+  where arrayFt = jarray closureType
         familySize = tyConFamilySize tyCon
 
 cgDataCon :: Text -> DataCon -> CodeGen ()
@@ -303,6 +292,7 @@ cgDataCon typeClass dataCon = do
       _ <- newDataClosure thisClass typeClass $ do
         defineMethod $ mkDefaultConstructor thisClass typeClass
         defineTagMethod
+        defineSingletonInstance thisClass
       return ()
   else
     do let initCode :: Code
@@ -381,7 +371,7 @@ genRecInitCode [(_ , (modClass, qClName, dataClass, field, code, recIndexes))] =
                      <> putfield (mkFieldRef dataClass (constrField i) closureType))
                  recIndexes
       dataFt   = obj dataClass
-  defineMethod $ initCodeTemplate True modClass qClName field $
+  defineMethod $ initCodeTemplate False modClass qClName field $
     code <> fold postCode <> putstatic field
 -- Rare case
 genRecInitCode recIdInfos = do
