@@ -64,7 +64,7 @@ We would like to specifically thank the following groups/people:
 - [Christopher Wells](https://github.com/ExcaliburZero)
 - [Brian McKenna](https://github.com/puffnfresh)
 - [Sibi](https://github.com/psibi)
-- [Anton Gushcha](https://github.com/NCrashed).
+- [Anton Gushcha](https://github.com/NCrashed)
 - [Balaji Rao](https://github.com/balajirrao)
 - [Javier Neira](https://github.com/jneira)
 - [Paavo Parkkin](https://github.com/pparkkin)
