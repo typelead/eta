@@ -157,6 +157,10 @@ cgIdApp funId args = do
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
       deps <- dependencies args
+      traceCg (str "J:cgLocs:" <+> ppr cgLocs)
+      traceCg (str $ "J:cgLocsL:" ++ show ( length cgLocs )  ++ " depsL:" ++ show ( length deps )  )
+      traceCg (str $ "J:argsL:" ++ show ( length args ))
+      traceCg (str "J:args:" <+> ppr args)
       emitMultiAssign cgLocs deps
       emit $ maybe  mempty
                       (\(target, targetLoc) ->

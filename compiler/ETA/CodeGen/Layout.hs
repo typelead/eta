@@ -36,7 +36,7 @@ emitAssign cgLoc code = emit $ storeLoc cgLoc code
 multiAssign :: [CgLoc] -> [Code] -> Code
 multiAssign locs codes = fold $ zipWith storeLoc locs codes
 
--- generic way - might be used fod "any" code or known vars
+-- generic way - might be used for "any" code or known vars
 emitMultiAssign  :: [CgLoc] -> [Either Code CgLoc] -> CodeGen ()
 emitMultiAssign stores exprs =  (emit $ multiAssign (fst  codes) (snd codes) ) >> emitMultiAssignVars (fst  locs)  (snd locs)
 --emitMultiAssign stores exprs =  (emit $ multiAssign stores exprs ) >> emitMultiAssignVars []  []
@@ -112,7 +112,7 @@ codesOnly [] [] = ([], [])
 codesOnly (storeHead:stores) (Left exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
     where tail = codesOnly stores exprs
 codesOnly  (_:stores) (Right _:exprs) = codesOnly stores exprs
-codesOnly _ _ = panic "unequal assigmnents"
+codesOnly _ _ = panic "unequal assignments a1"
 
 -- so bad copy paste almost
 cgLocsOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [CgLoc])
@@ -120,7 +120,7 @@ cgLocsOnly [] [] = ([], [])
 cgLocsOnly (storeHead:stores) (Right exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
     where tail = cgLocsOnly stores exprs
 cgLocsOnly  (_:stores) (Left _:exprs) = cgLocsOnly stores exprs
-cgLocsOnly _ _ = panic "unequal assigmnents"
+cgLocsOnly _ _ = panic "unequal assignments a2"
 
 findVarId::CgLoc->[Int]
 findVarId (LocLocal _ _ x) = [x]
