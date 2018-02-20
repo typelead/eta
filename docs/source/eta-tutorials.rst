@@ -619,16 +619,14 @@ Example
 
 .. code::
 
-    {-# LANGUAGE MagicHash, MultiParamTypeClasses, ScopedTypeVariables #-}
+    {-# LANGUAGE MultiParamTypeClasses #-}
 
     import Java
 
     data JInteger = JInteger @java.lang.Integer
-      = JInteger (Object# JInteger)
       deriving (Class, Show)
 
     data JIntegerArray = JIntegerArray @java.lang.Integer[]
-      = JIntegerArray (Object# JIntegerArray)
       deriving Class
 
     foreign import java unsafe "@new" toJInteger :: Int -> JInteger
