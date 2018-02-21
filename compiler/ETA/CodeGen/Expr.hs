@@ -156,8 +156,8 @@ cgIdApp funId args = do
       withContinuation contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")
-      deps <- dependencies args
-      emitMultiAssign $ zipWith (\loc dep -> AnyAssignment{from = dep, to = loc}) cgLocs deps
+      deps <- dependencies $ zip args cgLocs
+      emitMultiAssign  deps
       emit $ maybe  mempty
                       (\(target, targetLoc) ->
                        storeLoc targetLoc (iconst (locFt targetLoc) $ fromIntegral target))
@@ -165,26 +165,26 @@ cgIdApp funId args = do
                   <>   goto label
 
     where
-        dependencies::[StgArg]->CodeGen [Either Code CgLoc]
+        dependencies::[(StgArg,CgLoc)]->CodeGen [Assignment]
         dependencies  [] =  pure []
         dependencies (arg:args)
-          | isVoidRep (argPrimRep arg) = dependencies args
+          | isVoidRep (argPrimRep $ fst arg) = dependencies args
           | otherwise = dependencies args  >>=  joinDependency  arg
 
-        joinDependency :: StgArg->[Either Code CgLoc] -> CodeGen [Either Code CgLoc]
+        joinDependency :: (StgArg,CgLoc)->[Assignment] -> CodeGen [Assignment]
         joinDependency  x deps =
             joinSingle  deps  <$> dep
             where dep = dependency x
 
-        joinSingle :: [Either Code CgLoc]->Either Code CgLoc->[Either Code CgLoc]
+        joinSingle :: [Assignment]->Assignment->[Assignment]
         joinSingle  deps x = x : deps
 
-        dependency::StgArg->CodeGen (Either Code CgLoc)
-        dependency arg = getGetDepCgLoad (NonVoid arg)
+        dependency::(StgArg,CgLoc)->CodeGen Assignment
+        dependency (arg,loc) = getGetDepCgLoad (NonVoid arg, loc)
 
-        getGetDepCgLoad :: NonVoid StgArg -> CodeGen (Either Code CgLoc)
-        getGetDepCgLoad (NonVoid (StgVarArg var)) = Right <$> cgLocation <$> getCgIdInfo var
-        getGetDepCgLoad (NonVoid (arg)) = Left <$> getArgLoadCode (NonVoid arg)
+        getGetDepCgLoad :: (NonVoid StgArg, CgLoc) -> CodeGen Assignment
+        getGetDepCgLoad (NonVoid (StgVarArg var), loc) = (\x -> AnyAssignment{ from=Right x, to =loc  }) <$> cgLocation <$> getCgIdInfo var
+        getGetDepCgLoad (NonVoid (arg) ,loc) = (\x ->AnyAssignment{ from =Left x, to = loc}) <$> getArgLoadCode (NonVoid arg)
 
 
 emitEnter :: CgLoc -> CodeGen ()
