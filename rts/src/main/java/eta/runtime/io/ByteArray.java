@@ -55,52 +55,56 @@ public final class ByteArray extends Value {
         return MemoryManager.getBoundedBuffer(bufferAddress, offset, n);
     }
 
-    public static ByteBuffer copyAddrToByteArray( long srcAddress, ByteArray destArray
-                                                , int offset, int n) {
-        return MemoryManager.copy(srcAddress, 0,
-                                  destArray.getBuffer(), offset, n);
+    public static void copyAddrToByteArray( long srcAddress, ByteArray destArray
+                                          , int offset, int n) {
+        MemoryManager.copy(srcAddress, 0,
+                           destArray.getBuffer(), offset, n);
     }
 
-    public static ByteBuffer copyByteArrayToAddr( ByteArray srcArray, int offset
-                                                , long destAddress, int n) {
-        return MemoryManager.copy(srcArray.getBuffer(), offset,
-                                  destAddress, 0, n);
+    public static void copyByteArrayToAddr( ByteArray srcArray, int offset
+                                          , long destAddress, int n) {
+        MemoryManager.copy(srcArray.getBuffer(), offset,
+                           destAddress, 0, n);
     }
 
-    public static ByteBuffer copyByteArray( ByteArray srcArray, int srcOffset
-                                          , ByteArray destArray, int destOffset
-                                          , int n) {
-        return MemoryManager.copyByteBuffer(srcArray.getBuffer(), srcOffset,
-                                  destArray.getBuffer(), destOffset, n);
+    public static void copyByteArray( ByteArray srcArray, int srcOffset
+                                    , ByteArray destArray, int destOffset
+                                    , int n) {
+        MemoryManager.copyByteBuffer(srcArray.getBuffer(), srcOffset,
+                                     destArray.getBuffer(), destOffset, n);
     }
 
-    public static ByteBuffer copyByteArray( ByteArray srcArray, int srcOffset
-                                          , ByteBuffer dest, int destOffset
-                                          , int n) {
-        return MemoryManager.copyByteBuffer(srcArray.getBuffer(), srcOffset,
-                                  dest, destOffset,n);
+    public static void copyByteArray( ByteArray srcArray, int srcOffset
+                                    , ByteBuffer dest, int destOffset
+                                    , int n) {
+        MemoryManager.copyByteBuffer(srcArray.getBuffer(), srcOffset,
+                                     dest, destOffset,n);
     }
 
-    public static ByteBuffer copyByteArray( ByteBuffer src, int srcOffset
-                                           , ByteArray destArray, int destOffset
-                                           , int n) {
-        return MemoryManager.copyByteBuffer(src, srcOffset,
-                                  destArray.getBuffer(), destOffset, n);
+    public static void copyByteArray( ByteBuffer src, int srcOffset
+                                    , ByteArray destArray, int destOffset
+                                    , int n) {
+        MemoryManager.copyByteBuffer(src, srcOffset,
+                                     destArray.getBuffer(), destOffset, n);
     }
 
-    public static ByteBuffer copyByteArray( ByteArray srcArray, ByteArray destArray,
-                                            int size) {
-        return copyByteArray(srcArray, 0, destArray, 0, size);
+    public static void copyByteArray( ByteArray srcArray, ByteArray destArray
+                                     , int size) {
+        copyByteArray(srcArray, 0, destArray, 0, size);
     }
 
-    public static ByteBuffer copyByteArray(ByteBuffer srcBuffer, ByteArray destArray,
-                                           int size) {
-        return copyByteArray(srcBuffer, 0, destArray,0, size);
+    public static void copyByteArray( ByteArray srcArray, ByteArray destArray) {
+        copyByteArray(srcArray, 0, destArray, 0, srcArray.size);
+    }
+    
+    public static void copyByteArray( ByteBuffer srcBuffer, ByteArray destArray
+                                    , int size) {
+        copyByteArray(srcBuffer, 0, destArray,0, size);
     }
 
-    public static ByteBuffer copyByteArray(ByteArray srcArray, ByteBuffer destBuffer,
-                                           int size) {
-        return copyByteArray(srcArray, 0, destBuffer, 0, size);
+    public static void copyByteArray( ByteArray srcArray, ByteBuffer destBuffer
+                                    , int size) {
+        copyByteArray(srcArray, 0, destBuffer, 0, size);
     }
 
     public static int compare(ByteArray b1, ByteArray b2, int n) {
