@@ -13,6 +13,7 @@ import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Util
 
 import Data.Char
+import Data.Monoid
 
 -- | Source Statistics
 ppSourceStats :: Bool -> Located (HsModule RdrName) -> SDoc
@@ -150,7 +151,6 @@ ppSourceStats short (L _ (HsModule _ exports imports ldecls _ _))
       where
         methods = map unLoc $ bagToList inst_meths
 
-    -- TODO: use Sum monoid
     addpr :: (Int,Int,Int) -> Int
     sum2 :: [(Int, Int)] -> (Int, Int)
     sum3 :: [(Int, Int, Int)] -> (Int, Int, Int)
@@ -160,15 +160,18 @@ ppSourceStats short (L _ (HsModule _ exports imports ldecls _ _))
          -> (Int, Int, Int, Int, Int, Int, Int)
 
     addpr (x,y,z) = x+y+z
-    sum2 = foldr add2 (0,0)
+    sum2 = getSum2 . mconcat . map toSum2
       where
-        add2 (x1,x2) (y1,y2) = (x1+y1,x2+y2)
-    sum3 = foldr add3 (0,0,0)
+        toSum2 (x1,x2) = (Sum x1,Sum x2)
+        getSum2 (Sum x1,Sum x2) = (x1,x2)
+    sum3 = getSum3 . mconcat . map toSum3
       where
-        add3 (x1,x2,x3) (y1,y2,y3) = (x1+y1,x2+y2,x3+y3)
-    sum5 = foldr add5 (0,0,0,0,0)
+        toSum3 (x1,x2,x3) = (Sum x1,Sum x2,Sum x3)
+        getSum3 (Sum x1,Sum x2,Sum x3) = (x1,x2,x3)
+    sum5 = getSum5 . mconcat . map toSum5
       where
-        add5 (x1,x2,x3,x4,x5) (y1,y2,y3,y4,y5) = (x1+y1,x2+y2,x3+y3,x4+y4,x5+y5)
+        toSum5 (x1,x2,x3,x4,x5) = (Sum x1,Sum x2,Sum x3,Sum x4,Sum x5)
+        getSum5 (Sum x1,Sum x2,Sum x3,Sum x4,Sum x5) = (x1,x2,x3,x4,x5)
     sum7 = foldr add7 (0,0,0,0,0,0,0)
 
     add7 (x1,x2,x3,x4,x5,x6,x7) (y1,y2,y3,y4,y5,y6,y7) = (x1+y1,x2+y2,x3+y3,x4+y4,x5+y5,x6+y6,x7+y7)
