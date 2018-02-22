@@ -2,7 +2,7 @@
 -- Description: Shows how to interface with Java APIs that use Generics.
 -- These language extensions are currently required to support
 -- Java Generics.
-{-# LANGUAGE MagicHash, FlexibleContexts, TypeFamilies, DataKinds, TypeOperators #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies, DataKinds, TypeOperators #-}
 
 -- This imports all the standard library functionality that helps
 -- you deal with importing Java methods into Eta. We are hiding certain classes
@@ -24,29 +24,22 @@ populateArray n = do
     io $ print $ intValue jint * 5
   where range = [0..n]
 
--- The following a declarations of Java wrapper types. These types let you
--- interact directly with the corresponding Java objects.
--- This will not be the final syntax for Java wrapper types, see:
--- https://github.com/typelead/eta/issues/140
-data {-# CLASS "java.util.Collection" #-} Collection a =
-  Collection (Object# (Collection a))
+data Collection a = Collection (@java.util.Collection a)
   deriving Class
 
-data {-# CLASS "java.util.List" #-} List a =
-  List (Object# (List a))
+data List a = List (@java.util.List a)
   deriving Class
 
 -- The `Inherits` type family specifies parent classes and interfaces
 -- so that the Eta typechecker can statically check inheritance relationships.
 type instance Inherits (List a) = '[Collection a]
 
-data {-# CLASS "java.util.ArrayList" #-} ArrayList a =
-  ArrayList (Object# (ArrayList a))
+data ArrayList a = ArrayList (@java.util.ArrayList a)
   deriving Class
 
 type instance Inherits (ArrayList a) = '[List a]
 
-data {-# CLASS "java.lang.Integer" #-} JInteger = JInteger (Object# JInteger)
+data JInteger = JInteger @java.lang.Integer
   deriving Class
 
 foreign import java unsafe "@new" newInteger :: Int -> JInteger
