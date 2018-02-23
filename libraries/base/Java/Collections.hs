@@ -56,15 +56,13 @@ foreign import java unsafe "@interface add" add ::
 
 toCollection :: (Extends a Object, Extends b (Collection a))
              => (forall c. Int -> Java c b) -> [a] -> b
-toCollection f xs = unsafePerformJava $ do
+toCollection f xs = pureJava $ do
   coll <- f (length xs)
   _ <- withObject coll $ mapM add xs
   return coll
 
-instance Extends a Object => ToJava [a] (Collection a) where
+instance Extends a Object => JavaConverter [a] (Collection a) where
   toJava   = superCast . toArrayList
-
-instance Extends a Object => FromJava [a] (Collection a) where
   fromJava = consumeGen . superCast
 
 -- List
@@ -74,10 +72,8 @@ data {-# CLASS "java.util.List" #-} List a =
 
 type instance Inherits (List a) = '[Collection a]
 
-instance Extends a Object => ToJava [a] (List a) where
+instance Extends a Object => JavaConverter [a] (List a) where
   toJava   = superCast . toArrayList
-
-instance Extends a Object => FromJava [a] (List a) where
   fromJava = consumeGen . superCast
 
 -- ArrayList
@@ -105,7 +101,7 @@ foreign import java unsafe "@interface next"
   next :: (Extends a Object) => Java (Iterator a) a
 
 consumeItr :: (Extends a Object) => Iterator a -> [a]
-consumeItr it = unsafePerformJavaWith it (go id)
+consumeItr it = pureJavaWith it (go id)
   where go acc = do
           continue <- hasNext
           if continue
@@ -115,11 +111,10 @@ consumeItr it = unsafePerformJavaWith it (go id)
           else return (acc [])
 
 produceItr :: forall a. (Extends a Object) => [a] -> Iterator a
-produceItr xs = unsafePerformJavaWith (superCast (toArrayList xs) :: Iterable a) iterator
+produceItr xs = pureJavaWith (superCast (toArrayList xs) :: Iterable a) iterator
 
-instance Extends a Object => ToJava [a] (Iterator a) where
+instance Extends a Object => JavaConverter [a] (Iterator a) where
   toJava   = produceItr
-instance Extends a Object => FromJava [a] (Iterator a) where
   fromJava = consumeItr
 
 -- Iterable
@@ -131,13 +126,12 @@ foreign import java unsafe "@interface iterator"
   iterator :: (Extends a Object, Extends b (Iterable a)) => Java b (Iterator a)
 
 consumeGen :: (Extends a Object) => Iterable a -> [a]
-consumeGen it = unsafePerformJava $ do
+consumeGen it = pureJava $ do
   itr <- it <.> iterator
   return $ consumeItr itr
 
-instance Extends a Object => ToJava [a] (Iterable a) where
+instance Extends a Object => JavaConverter [a] (Iterable a) where
   toJava   = superCast . toArrayList
-instance Extends a Object => FromJava [a] (Iterable a) where
   fromJava = consumeGen . superCast
 
 -- Enumeration
@@ -152,7 +146,7 @@ foreign import java unsafe "@interface nextElement"
   nextElement :: (Extends a Object) => Java (Enumeration a) a
 
 consumeEnum :: (Extends a Object) => Enumeration a -> [a]
-consumeEnum it = unsafePerformJavaWith it (go id)
+consumeEnum it = pureJavaWith it (go id)
   where go acc = do
           continue <- hasMoreElements
           if continue
@@ -161,9 +155,8 @@ consumeEnum it = unsafePerformJavaWith it (go id)
             go (acc . (e:))
           else return (acc [])
 
-instance Extends a Object => ToJava [a] (Enumeration a) where
-  toJava xs = unsafePerformJavaWith (toVector xs) elements
-instance Extends a Object => FromJava [a] (Enumeration a) where
+instance Extends a Object => JavaConverter [a] (Enumeration a) where
+  toJava xs = pureJavaWith (toVector xs) elements
   fromJava  = consumeEnum
 
 -- Vector
@@ -196,17 +189,15 @@ foreign import java unsafe get
 
 fromDictionary :: (Extends k Object, Extends v Object)
                => Dictionary k v -> [(k, v)]
-fromDictionary dict = unsafePerformJavaWith dict $ do
+fromDictionary dict = pureJavaWith dict $ do
   ks <- keys
   flip mapM (fromJava ks) $ \k -> do
     v <- get (superCast k)
     return (k, v)
 
 instance (Extends k Object, Extends v Object)
-  => ToJava [(k, v)] (Dictionary k v) where
+  => JavaConverter [(k, v)] (Dictionary k v) where
   toJava   = superCast . toHashtable
-instance (Extends k Object, Extends v Object)
-  => FromJava [(k, v)] (Dictionary k v) where
   fromJava = fromDictionary
 
 -- Hashtable
@@ -220,7 +211,7 @@ foreign import java unsafe "@new" newHashtable
   :: (Extends k Object, Extends v Object) => Int -> Java a (Hashtable k v)
 
 toHashtable :: (Extends k Object, Extends v Object) => [(k, v)] -> Hashtable k v
-toHashtable elems = unsafePerformJava $ do
+toHashtable elems = pureJava $ do
   ht <- newHashtable (length elems)
   _ <- withObject ht $
     flip mapM elems $ \(k, v) ->
@@ -241,7 +232,7 @@ foreign import java unsafe "@interface getValue" getValue
   => Java (MapEntry k v) v
 
 fromMap :: forall k v. (Extends k Object, Extends v Object) => Map k v -> [(k, v)]
-fromMap m = unsafePerformJavaWith m $ do
+fromMap m = pureJavaWith m $ do
   (set :: Set (MapEntry k v)) <- entrySet
   flip mapM (fromJava set) $ \me -> do
     withObject me $ do
@@ -250,10 +241,8 @@ fromMap m = unsafePerformJavaWith m $ do
       return (key, val)
 
 instance (Extends k Object, Extends v Object)
-  => ToJava [(k, v)] (Map k v) where
+  => JavaConverter [(k, v)] (Map k v) where
   toJava   = superCast . toHashMap
-instance (Extends k Object, Extends v Object)
-  => FromJava [(k, v)] (Map k v) where
   fromJava = fromMap
 
 data {-# CLASS "java.util.HashMap" #-} HashMap k v =
@@ -266,7 +255,7 @@ foreign import java unsafe "@new" newHashMap
   :: (Extends k Object, Extends v Object) => Int -> Java a (HashMap k v)
 
 toHashMap :: (Extends k Object, Extends v Object) => [(k, v)] -> HashMap k v
-toHashMap elems = unsafePerformJava $ do
+toHashMap elems = pureJava $ do
   ht <- newHashMap (length elems)
   _ <- withObject ht $
     flip mapM elems $ \(k, v) ->
@@ -290,9 +279,8 @@ toHashSet = toCollection newHashSet
 
 type instance Inherits (HashSet a) = '[Object, Set a]
 
-instance Extends a Object => ToJava [a] (Set a) where
+instance Extends a Object => JavaConverter [a] (Set a) where
   toJava   = superCast . toHashSet
-instance Extends a Object => FromJava [a] (Set a) where
   fromJava = consumeGen . superCast
 
 -- Properties
@@ -314,7 +302,7 @@ foreign import java unsafe setProperty
   :: String -> String -> Java Properties Object
 
 toProperties :: [(String, String)] -> Properties
-toProperties props = unsafePerformJava $ do
+toProperties props = pureJava $ do
   props' <- newProperties
   _ <- withObject props' $ do
     flip mapM props $ \(key, val) ->
@@ -322,15 +310,14 @@ toProperties props = unsafePerformJava $ do
   return props'
 
 fromProperties :: Properties -> [(String, String)]
-fromProperties props = unsafePerformJavaWith props $ do
+fromProperties props = pureJavaWith props $ do
   properties <- stringPropertyNames
   flip mapM (fromJava properties) $ \key -> do
     val <- getProperty key
     return (fromJava key, val)
 
-instance ToJava [(String, String)] Properties where
+instance JavaConverter [(String, String)] Properties where
   toJava   = toProperties
-instance FromJava [(String, String)] Properties where
   fromJava = fromProperties
 
 -- Start java.util.Map
