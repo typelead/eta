@@ -17,7 +17,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Core
-  ( java, javaWith, pureJava, pureJavaWith, io, withObject
+  ( java, javaWith, unsafePerformJava, unsafePerformJavaWith, io, withObject
   , maybeToJava, maybeFromJava
   , (<.>), (>-)
   -- Useful exports
@@ -53,13 +53,13 @@ javaWith c (Java m) = IO $ \s ->
   case m (freshObjectToken# s (unobj c)) of
     (# o1, a #) -> (# freshStateToken# o1, a #)
 
-{-# INLINE pureJava #-}
-pureJava :: (forall c. Java c a) -> a
-pureJava action = unsafePerformIO (java action)
+{-# INLINE unsafePerformJava #-}
+unsafePerformJava :: (forall c. Java c a) -> a
+unsafePerformJava action = unsafePerformIO (java action)
 
-{-# INLINE pureJavaWith #-}
-pureJavaWith :: (Class c) => c -> Java c a -> a
-pureJavaWith c action = unsafePerformIO (javaWith c action)
+{-# INLINE unsafePerformJavaWith #-}
+unsafePerformJavaWith :: (Class c) => c -> Java c a -> a
+unsafePerformJavaWith c action = unsafePerformIO (javaWith c action)
 
 {-# INLINE (<.>) #-}
 (<.>) :: (Class c) => c -> Java c a -> Java b a
