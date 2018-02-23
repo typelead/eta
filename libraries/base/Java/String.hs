@@ -39,7 +39,8 @@ data {-# CLASS "java.lang.String[]" #-} JStringArray = JStringArray (Object# JSt
 
 instance JArray JString JStringArray
 
-instance JavaConverter [String] JStringArray where
-  toJava ws = pureJava $ arrayFromList bytes
+instance ToJava [String] JStringArray where
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map toJava ws :: [JString]
-  fromJava ba = map fromJava $ pureJavaWith ba arrayToList
+instance FromJava [String] JStringArray where
+  fromJava ba = map fromJava $ unsafePerformJavaWith ba arrayToList

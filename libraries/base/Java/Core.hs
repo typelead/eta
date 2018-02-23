@@ -17,7 +17,7 @@
 -----------------------------------------------------------------------------
 
 module Java.Core
-  ( java, javaWith, pureJava, pureJavaWith, io, withObject
+  ( java, javaWith, unsafePerformJava, unsafePerformJavaWith, io, withObject
   , maybeToJava, maybeFromJava
   , (<.>), (>-)
   -- Useful exports
@@ -30,7 +30,8 @@ module Java.Core
   , type (<:)
   , Inherits(..)
   , Java(..)
-  , JavaConverter(..)
+  , ToJava(..)
+  , FromJava(..)
   , withThis
   )
 where
@@ -53,13 +54,13 @@ javaWith c (Java m) = IO $ \s ->
   case m (freshObjectToken# s (unobj c)) of
     (# o1, a #) -> (# freshStateToken# o1, a #)
 
-{-# INLINE pureJava #-}
-pureJava :: (forall c. Java c a) -> a
-pureJava action = unsafePerformIO (java action)
+{-# INLINE unsafePerformJava #-}
+unsafePerformJava :: (forall c. Java c a) -> a
+unsafePerformJava action = unsafePerformIO (java action)
 
-{-# INLINE pureJavaWith #-}
-pureJavaWith :: (Class c) => c -> Java c a -> a
-pureJavaWith c action = unsafePerformIO (javaWith c action)
+{-# INLINE unsafePerformJavaWith #-}
+unsafePerformJavaWith :: (Class c) => c -> Java c a -> a
+unsafePerformJavaWith c action = unsafePerformIO (javaWith c action)
 
 {-# INLINE (<.>) #-}
 (<.>) :: (Class c) => c -> Java c a -> Java b a
@@ -86,15 +87,17 @@ io (IO m) = Java $ \o ->
                case n (unobj b) of
                  (# _, c #) -> (# a', c #)
 
-class JavaConverter a b where
+class ToJava a b  | a -> b where
   toJava   :: a -> b
+
+class FromJava a b | a -> b where
   fromJava :: b -> a
 
-maybeToJava :: (JavaConverter a b, Class b) => Maybe a -> b
+maybeToJava :: (ToJava a b, Class b) => Maybe a -> b
 maybeToJava (Just x) = toJava x
 maybeToJava Nothing  = obj (unsafeCoerce# nullAddr#)
 
-maybeFromJava :: (JavaConverter a b, Class b) => b -> Maybe a
+maybeFromJava :: (FromJava a b, Class b) => b -> Maybe a
 maybeFromJava x = case isNullObject# (unobj x) of
   0# -> Just (fromJava x)
   _  -> Nothing

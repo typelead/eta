@@ -46,8 +46,9 @@ fromJString (JS# js#) = case jstringToString# js# of
 instance Show JString where
   show = show . fromJString
 
-instance JavaConverter String JString where
+instance ToJava String JString where
   toJava   = toJString
+instance FromConverter String JString where
   fromJava = fromJString
 
 -- TODO: Move this to a more appropriate place
