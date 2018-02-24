@@ -483,10 +483,10 @@ available::
   io :: IO a -> Java c a
 
   -- Execute a Java action purely, i.e. order of execution does not matter.
-  pureJava :: Java c a -> a
+  unsafePerformJava :: Java c a -> a
 
   -- Analagous to `javaWith`, but pure.
-  pureJavaWith :: (Class c) => c -> Java c a -> a
+  unsafePerformJavaWith :: (Class c) => c -> Java c a -> a
 
 
 Using the imports from :ref:`java-imports-examples`, we can write the following
