@@ -101,14 +101,14 @@ instance JArray Byte JByteArray where
       _ -> (# o, () #)
 
 instance JavaConverter [Word8] JByteArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Byte]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 instance JavaConverter [Int8] JByteArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Byte]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 data {-# CLASS "char[]"    #-} JCharArray    = JCharArray    (Object# JCharArray)
   deriving (Class, Show)
@@ -141,14 +141,14 @@ instance JArray Short JShortArray where
       _ -> (# o, () #)
 
 instance JavaConverter [Word16] JShortArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Short]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 instance JavaConverter [Int16] JShortArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Short]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 data {-# CLASS "int[]"     #-} JIntArray     = JIntArray     (Object# JIntArray)
   deriving (Class, Show)
@@ -166,14 +166,14 @@ instance JArray Int JIntArray where
       _ -> (# o, () #)
 
 instance JavaConverter [Word32] JIntArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Int]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 instance JavaConverter [Int32] JIntArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Int]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 data {-# CLASS "long[]"    #-} JLongArray    = JLongArray    (Object# JLongArray)
   deriving (Class, Show)
@@ -191,9 +191,9 @@ instance JArray Int64 JLongArray where
       _ -> (# o, () #)
 
 instance JavaConverter [Word64] JLongArray where
-  toJava ws = pureJava $ arrayFromList bytes
+  toJava ws = unsafePerformJava $ arrayFromList bytes
     where bytes = map fromIntegral ws :: [Int64]
-  fromJava ba = map fromIntegral $ pureJavaWith ba arrayToList
+  fromJava ba = map fromIntegral $ unsafePerformJavaWith ba arrayToList
 
 data {-# CLASS "float[]"   #-} JFloatArray   = JFloatArray   (Object# JFloatArray)
   deriving (Class, Show)
@@ -256,7 +256,7 @@ arrayFromList xs = do
         go !n (x:xs) = aset n x >> go (n + 1) xs
 
 instance {-# OVERLAPS #-} (JArray e c) => JavaConverter [e] c where
-  toJava  xs = pureJava $ arrayFromList xs
-  fromJava c = pureJavaWith c arrayToList
+  toJava  xs = unsafePerformJava $ arrayFromList xs
+  fromJava c = unsafePerformJavaWith c arrayToList
   {-# INLINE toJava #-}
   {-# INLINE fromJava #-}
