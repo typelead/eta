@@ -59,10 +59,10 @@ foreign import java unsafe "divide" divide5 :: BigDecimal -> BigDecimal -> MathC
 
 foreign import java unsafe "divide" divide6 :: BigDecimal -> BigDecimal -> RoundingMode -> BigDecimal
 
-foreign import java unsafe divideAndReminder :: BigDecimal -> BigDecimal -> BigDecimalArray
+foreign import java unsafe divideAndRemainder :: BigDecimal -> BigDecimal -> BigDecimalArray
 
 foreign import java unsafe "divideAndRemainder"
-  divideAndReminder2 :: BigDecimal -> BigDecimal -> MathContext -> BigDecimalArray
+  divideAndRemainder2 :: BigDecimal -> BigDecimal -> MathContext -> BigDecimalArray
 
 foreign import java unsafe divideToIntegralValue :: BigDecimal -> BigDecimal -> BigDecimal
 
