@@ -61,7 +61,7 @@ foreign import java unsafe "divide" divide6 :: BigDecimal -> BigDecimal -> Round
 
 foreign import java unsafe divideAndReminder :: BigDecimal -> BigDecimal -> BigDecimalArray
 
-foreign import java unsafe "divideAndReminder"
+foreign import java unsafe "divideAndRemainder"
   divideAndReminder2 :: BigDecimal -> BigDecimal -> MathContext -> BigDecimalArray
 
 foreign import java unsafe divideToIntegralValue :: BigDecimal -> BigDecimal -> BigDecimal
@@ -186,7 +186,7 @@ foreign import java unsafe "@static @field java.math.RoundingMode.HALF_EVEN" rmH
 
 foreign import java unsafe "@static @field java.math.RoundingMode.HALF_UP" rmHALF_UP :: RoundingMode
 
-foreign import java unsafe "@static @field java.math.RoundingMode.UNNECCESSARY" rmUNNECCESSARY :: RoundingMode
+foreign import java unsafe "@static @field java.math.RoundingMode.UNNECESSARY" rmUNNECESSARY :: RoundingMode
 
 foreign import java unsafe "@static @field java.math.RoundingMode.UP" rmUP :: RoundingMode
 
