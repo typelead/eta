@@ -59,10 +59,10 @@ foreign import java unsafe "divide" divide5 :: BigDecimal -> BigDecimal -> MathC
 
 foreign import java unsafe "divide" divide6 :: BigDecimal -> BigDecimal -> RoundingMode -> BigDecimal
 
-foreign import java unsafe divideAndReminder :: BigDecimal -> BigDecimal -> BigDecimalArray
+foreign import java unsafe divideAndRemainder :: BigDecimal -> BigDecimal -> BigDecimalArray
 
-foreign import java unsafe "divideAndReminder"
-  divideAndReminder2 :: BigDecimal -> BigDecimal -> MathContext -> BigDecimalArray
+foreign import java unsafe "divideAndRemainder"
+  divideAndRemainder2 :: BigDecimal -> BigDecimal -> MathContext -> BigDecimalArray
 
 foreign import java unsafe divideToIntegralValue :: BigDecimal -> BigDecimal -> BigDecimal
 
@@ -186,7 +186,7 @@ foreign import java unsafe "@static @field java.math.RoundingMode.HALF_EVEN" rmH
 
 foreign import java unsafe "@static @field java.math.RoundingMode.HALF_UP" rmHALF_UP :: RoundingMode
 
-foreign import java unsafe "@static @field java.math.RoundingMode.UNNECCESSARY" rmUNNECCESSARY :: RoundingMode
+foreign import java unsafe "@static @field java.math.RoundingMode.UNNECESSARY" rmUNNECESSARY :: RoundingMode
 
 foreign import java unsafe "@static @field java.math.RoundingMode.UP" rmUP :: RoundingMode
 
