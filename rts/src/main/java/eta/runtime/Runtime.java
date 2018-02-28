@@ -2,6 +2,7 @@ package eta.runtime;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Properties;
 
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
@@ -10,6 +11,8 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.WeakPtr;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.RuntimeInternalError;
+
+import static eta.runtime.RuntimeOptions.getValue;
 
 public class Runtime {
 
@@ -157,8 +160,16 @@ public class Runtime {
         return debugMemoryManager;
     }
 
+    public static void init_params(){
+        Properties p = RuntimeOptions.load_properties();
+        /*
+         * TODO: Initialize parameters explicitly
+         */
+    }
+
     public static void main(String[] args, Closure mainClosure) throws Exception {
         Runtime.setProgramArguments(args);
+        init_params();
         try {
             evalLazyIO(mainClosure);
         } finally {
