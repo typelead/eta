@@ -15,14 +15,15 @@ import eta.runtime.exception.RuntimeInternalError;
 
 public class Runtime {
 
-    /** Runtime Parameters **/
+    /**
+     * Runtime Parameters
+     **/
 
     public static final String RTS_PROPERTIES_PATH = "eta/rts.properties";
 
     /* Parameter: maxWorkerCapabilities (int)
        The total number of Capabilities that can be spawned by the runtime itself. */
-    private static int maxWorkerCapabilities
-        = getNumberOfProcessors();
+    private static int maxWorkerCapabilities;
 
     public static int getMaxWorkerCapabilities() {
         return maxWorkerCapabilities;
@@ -34,7 +35,7 @@ public class Runtime {
 
     /* Parameter: maxGlobalSparks (int)
        The total number of sparks that are allowed in the Global Spark Pool at a time. */
-    private static int maxGlobalSparks = 4096;
+    private static int maxGlobalSparks;
 
     public static int getMaxGlobalSparks() {
         return maxGlobalSparks;
@@ -132,7 +133,7 @@ public class Runtime {
 
     public static boolean setDebugMode(char c) {
         boolean valid = true;
-        switch(c) {
+        switch (c) {
             case 's':
                 debugScheduler = true;
                 break;
@@ -161,11 +162,16 @@ public class Runtime {
         return debugMemoryManager;
     }
 
-    public static void init_params(){
+    public static void init_params() {
         RuntimeOptions rto = new RuntimeOptions(RTS_PROPERTIES_PATH);
-        /*
-         * TODO: Initialize parameters explicitly
-         */
+        // Initialize parameters explicitly
+        maxWorkerCapabilities = rto.getInt("maxWorkerCapabilities", getNumberOfProcessors());
+        maxGlobalSparks = rto.getInt("maxGlobalSparks", 4096);
+        minTSOIdleTime = rto.getInt("minTSOIdleTime", 20);
+        maxTSOBlockTime = rto.getInt("maxTSOBlockTime", 1);
+        minWorkerCapabilityIdleTime = rto.getInt("minWorkerCapabilityIdleTime", 1000);
+        gcOnWeakPtrFinalization = rto.getBoolean("gcOnWeakPtrFinalization", false);
+        maxLocalSparks = rto.getInt("maxLocalSparks", 4096);
     }
 
     public static void main(String[] args, Closure mainClosure) throws Exception {
@@ -228,14 +234,17 @@ public class Runtime {
     public static void maybeFlushStdHandles() {
         try {
             evalIO(Closures.flushStdHandles);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     public static void stgExit(int code) {
         System.exit(code);
     }
 
-    /** Command Line Arguments **/
+    /**
+     * Command Line Arguments
+     **/
 
     private static final String RUNTIME_NAMESPACE = "eta.runtime";
     private static String[] programArguments;
