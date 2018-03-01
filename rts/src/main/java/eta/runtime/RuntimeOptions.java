@@ -4,44 +4,71 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-public class RuntimeOptions{
-    public static final String RTS_PROPERTIES_PATH = "eta/rts.properties";
+public class RuntimeOptions {
+    private Properties p;
+
+    public RuntimeOptions(String path) {
+        load_properties(path);
+    }
+
     /*
      * Loads properties from resource which
      * may be override by system properties
      */
-    public static Properties load_properties(){
-        Properties p = new Properties();
+    private void load_properties(String path) {
+        Properties lp = new Properties();
         // Load properties from resource
-        try(InputStream in = RuntimeOptions.class.getClassLoader().getResourceAsStream(RTS_PROPERTIES_PATH)){
-            if(in != null) p.load(in);
-        }catch(IOException e){
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(path)) {
+            if (in != null) lp.load(in);
+        } catch (IOException e) {
             e.printStackTrace();
         }
         Properties sp = System.getProperties();
         // Set loaded properties to be override by System properties
-        for(String key : sp.stringPropertyNames()){
-            p.setProperty(key,sp.getProperty(key));
+        for (String key : lp.stringPropertyNames()) {
+            if (sp.getProperty(key) == null) {
+                sp.setProperty(key, sp.getProperty(key));
+            }
         }
+        p = sp;
+    }
+
+    public Properties getProperties() {
         return p;
     }
+
     /*
      * Get and parse value from properties.
      * Return default value if failed.
      */
-    public static Object getValue(Properties p, String key, String type, Object d){
+    private Object getValue(String key, String type, Object d) {
         String val = p.getProperty(key);
-        if(val==null) return d;
-        try{
-            switch(type){
-                case "Integer": return Integer.parseInt(val);
-                case "Double": return Double.parseDouble(val);
-                case "Float": return Float.parseFloat(val);
-                case "Boolean": return Boolean.parseBoolean(val);
-                default: throw new IllegalArgumentException("Unsupported property type.");
+        if (val == null) return d;
+        try {
+            switch (type) {
+                case "INT":
+                    return Integer.parseInt(val);
+                case "DOUBLE":
+                    return Double.parseDouble(val);
+                case "BOOLEAN":
+                    return Boolean.parseBoolean(val);
+                default:
+                    throw new IllegalArgumentException("Unsupported property type.");
             }
-        }catch(NumberFormatException e){
+        } catch (NumberFormatException e) {
             return d;
         }
+    }
+
+    public int getInt(String key, int d) {
+        return (int) getValue(key, "INT", d);
+    }
+
+    public double getDouble(String key, double d) {
+        return (double) getValue(key, "DOUBLE", d);
+    }
+
+    public boolean getBoolean(String key, boolean d) {
+        return (boolean) getValue(key, "BOOLEAN", d);
     }
 }

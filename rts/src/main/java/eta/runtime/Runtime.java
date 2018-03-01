@@ -12,11 +12,12 @@ import eta.runtime.stg.WeakPtr;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.RuntimeInternalError;
 
-import static eta.runtime.RuntimeOptions.getValue;
 
 public class Runtime {
 
     /** Runtime Parameters **/
+
+    public static final String RTS_PROPERTIES_PATH = "eta/rts.properties";
 
     /* Parameter: maxWorkerCapabilities (int)
        The total number of Capabilities that can be spawned by the runtime itself. */
@@ -161,7 +162,7 @@ public class Runtime {
     }
 
     public static void init_params(){
-        Properties p = RuntimeOptions.load_properties();
+        RuntimeOptions rto = new RuntimeOptions(RTS_PROPERTIES_PATH);
         /*
          * TODO: Initialize parameters explicitly
          */
