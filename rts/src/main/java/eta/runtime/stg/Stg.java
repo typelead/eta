@@ -1,5 +1,6 @@
 package eta.runtime.stg;
 
+import eta.runtime.Runtime;
 import eta.runtime.thunk.*;
 import eta.runtime.exception.TrampolineBounceException;
 
@@ -68,8 +69,7 @@ public class Stg {
 
     /* Trampolining Implementation */
 
-    // TODO: Replace this with a configurable runtime parameter.
-    public static final int TAIL_CALL_THRESHOLD = 30;
+    public static final int TAIL_CALL_THRESHOLD = Runtime.getTailCallThreshold();
 
     public static final ThreadLocal<TrampolineBounceException> bounce =
         new ThreadLocal<TrampolineBounceException>() {

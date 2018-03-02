@@ -140,9 +140,25 @@ public class Runtime {
         maxLocalSparks = newMaxLocalSparks;
     }
 
+    /* Parameter: tailCallThreshold (int)
+        Threshold for trampoline bouncing
+     */
+    private static int tailCallThreshold;
+
+    public static final String TAIL_CALL_THRESHOLD = "eta.rts.tailCallThreshold";
+
+    public static int getTailCallThreshold() {
+        return tailCallThreshold;
+    }
+
+    public static void setTailCallThreshold(int tailCallThreshold) {
+        Runtime.tailCallThreshold = tailCallThreshold;
+    }
+
     /* Debug Parameters */
     private static boolean debugScheduler;
     private static boolean debugMemoryManager;
+
     private static boolean debugSTM;
 
     public static boolean setDebugMode(char c) {
@@ -186,6 +202,7 @@ public class Runtime {
         minWorkerCapabilityIdleTime = rto.getInt(MIN_WORKER_CAPABILITY_IDLE_TIME, 1000);
         gcOnWeakPtrFinalization = rto.getBoolean(GC_ON_WEAK_PTR_FINALIZATION, false);
         maxLocalSparks = rto.getInt(MAX_LOCAL_SPARKS, 4096);
+        tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 30);
     }
 
     static {
@@ -264,6 +281,7 @@ public class Runtime {
      **/
 
     private static final String RUNTIME_NAMESPACE = "eta.runtime";
+
     private static String[] programArguments;
 
     public static String[] getProgramArguments() {
@@ -295,5 +313,4 @@ public class Runtime {
     public static int getNumberOfProcessors() {
         return java.lang.Runtime.getRuntime().availableProcessors();
     }
-
 }
