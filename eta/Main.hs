@@ -40,6 +40,7 @@ import System.Exit
 import System.FilePath
 import System.Directory
 import Control.Monad
+import Data.Char
 import Data.List
 import Data.Maybe
 
@@ -377,9 +378,10 @@ showEtaUsageMode = mkPreLoadMode ShowGhcUsage
 showEtaiUsageMode = mkPreLoadMode ShowGhciUsage
 showInfoMode = mkPreLoadMode ShowInfo
 
-printLibDir :: Mode
-printLibDir = mkPreLoadMode (PrintWithDynFlags f)
-  where f _ = unsafePerformIO (findTopDir Nothing)
+printSetting :: String -> Mode
+printSetting k = mkPreLoadMode (PrintWithDynFlags f)
+    where f _dflags = fromMaybe (panic ("Setting not found: " ++ show k))
+                    $ lookup k compilerInfo
 
 mkPreLoadMode :: PreLoadMode -> Mode
 mkPreLoadMode = Right . Left
@@ -503,10 +505,36 @@ modeFlags =
   , defFlag "-show-options"         (PassFlag (setMode showOptionsMode))
   , defFlag "-supported-languages"  (PassFlag (setMode showSupportedExtensionsMode))
   , defFlag "-supported-extensions" (PassFlag (setMode showSupportedExtensionsMode))
-  , defFlag "-show-packages"        (PassFlag (setMode showPackagesMode))
-  , defFlag "-print-libdir"         (PassFlag (setMode printLibDir))
+  , defFlag "-show-packages"        (PassFlag (setMode showPackagesMode)) ]
+  ++
+  [ defFlag k'                      (PassFlag (setMode (printSetting k)))
+  | k <- ["Project version",
+          "Project Git commit id",
+          "Booter version",
+          "Stage",
+          "Build platform",
+          "Host platform",
+          "Target platform",
+          "Have interpreter",
+          "Object splitting supported",
+          "Have native code generator",
+          "Support SMP",
+          "Unregisterised",
+          "Tables next to code",
+          "RTS ways",
+          "Leading underscore",
+          "Debug on",
+          "LibDir",
+          "Global Package DB",
+          "C compiler flags",
+          "C compiler link flags",
+          "ld flags"],
+    let k' = "-print-" ++ map (replaceSpace . toLower) k
+        replaceSpace ' ' = '-'
+        replaceSpace c   = c
+  ] ++
       ------- interfaces ----------------------------------------------------
-  , defFlag "-show-iface"  (HasArg (\f -> setMode (showInterfaceMode f)
+  [ defFlag "-show-iface"  (HasArg (\f -> setMode (showInterfaceMode f)
                                                "--show-iface"))
 
       ------- primary modes ------------------------------------------------
@@ -651,15 +679,20 @@ showInfo :: DynFlags -> IO ()
 showInfo _dflags = do
   let sq x = " [" ++ x ++ "\n ]"
   putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo
-  where compilerInfo = [("Project name", cProjectName),
-                        ("Project version", cProjectVersion)]
-                       ++ map (,"YES")
-                          ["Uses unit IDs"
-                          ,"Support thinning and renaming package flags"
-                          ,"Support parallel --make"
-                          ,"Support reexported-modules"
-                          ,"Uses package keys"
-                          ,"Requires unified installed package IDs"]
+
+compilerInfo :: [(String, String)]
+compilerInfo = [("Project name", cProjectName),
+                ("Project version", cProjectVersion),
+                ("LibDir", topDir),
+                ("Global Package DB", topDir </> "package.conf.d")
+               ] ++ map (,"YES")
+                  ["Uses unit IDs"
+                  ,"Support thinning and renaming package flags"
+                  ,"Support parallel --make"
+                  ,"Support reexported-modules"
+                  ,"Uses package keys"
+                  ,"Requires unified installed package IDs"]
+  where topDir = unsafePerformIO (findTopDir Nothing)
 
 showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions
