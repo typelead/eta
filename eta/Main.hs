@@ -683,6 +683,8 @@ showInfo _dflags = do
 compilerInfo :: [(String, String)]
 compilerInfo = [("Project name", cProjectName),
                 ("Project version", cProjectVersion),
+                ("Project Git commit id", cProjectGitCommitId),
+                ("Project version", cProjectVersion),
                 ("LibDir", topDir),
                 ("Global Package DB", topDir </> "package.conf.d")
                ] ++ map (,"YES")
@@ -699,13 +701,19 @@ showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions
 
 showVersion :: IO ()
 showVersion = do
+  putStrLn (cProjectName ++ ", Version " ++ cProjectVersion ++ gitHashMessage)
+  where gitHash | null cProjectGitCommitId = Nothing
+                | otherwise = Just cProjectGitCommitId
+        gitHashMessage = maybe "" (", Git Revision " ++ ) gitHash
+
+cProjectGitCommitId :: String
+cProjectGitCommitId = unsafePerformIO $ do
   appdir <- getAppUserDataDirectory "eta"
   let hashFile = appdir </> cProjectVersionNumbers </> "commit-hash"
-  exists  <- doesFileExist hashFile
-  mGitHash <- if exists
-              then fmap (", Git Revision " ++) $ readFile hashFile
-              else return ""
-  putStrLn (cProjectName ++ ", Version " ++ cProjectVersion ++ mGitHash)
+  exists <- doesFileExist hashFile
+  if exists
+    then return ""
+    else readFile hashFile
 
 showOptions :: Bool -> IO ()
 showOptions isInteractive = putStr (unlines availableOptions)
