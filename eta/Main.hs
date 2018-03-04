@@ -712,8 +712,12 @@ cProjectGitCommitId = unsafePerformIO $ do
   let hashFile = appdir </> cProjectVersionNumbers </> "commit-hash"
   exists <- doesFileExist hashFile
   if exists
-    then return ""
-    else readFile hashFile
+    then do
+      result <- fmap lines $ readFile hashFile
+      case result of
+        (x:_) -> return x
+        _     -> return ""
+    else return ""
 
 showOptions :: Bool -> IO ()
 showOptions isInteractive = putStr (unlines availableOptions)
