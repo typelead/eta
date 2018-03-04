@@ -34,6 +34,8 @@ import Distribution.Text
 import Distribution.Version
 import Distribution.Backpack
 import Distribution.Types.UnqualComponentName
+import Distribution.Types.MungedPackageName
+import Distribution.Types.MungedPackageId
 import Distribution.Simple.Utils (fromUTF8, toUTF8, writeUTF8File, readUTF8File)
 import qualified Data.Version as Version
 import System.FilePath as FilePath
@@ -124,8 +126,6 @@ data Flag
   | FlagNoUserDb
   | FlagVerbosity (Maybe String)
   | FlagUnitId
-  -- | FlagIPId
-  -- | FlagPackageKey
   deriving Eq
 
 flags :: [OptDescr Flag]
@@ -170,10 +170,6 @@ flags = [
         "ignore case for substring matching",
   Option [] ["ipid", "unit-id"] (NoArg FlagUnitId)
         "interpret package arguments as unit IDs (e.g. installed package IDs)",
-  -- Option [] ["ipid"] (NoArg FlagIPId)
-  --       "interpret package arguments as installed package IDs",
-  -- Option [] ["package-key"] (NoArg FlagPackageKey)
-  --       "interpret package arguments as installed package keys",
   Option ['v'] ["verbose"] (OptArg FlagVerbosity "Verbosity")
         "verbosity level (0-2, default 1)"
   ]
@@ -313,19 +309,17 @@ data Force = NoForce | ForceFiles | ForceAll | CannotForce
 -- | Enum flag representing argument type
 data AsPackageArg
     = AsUnitId
-    --   AsIpid
-    --   AsPackageKey
     | AsDefault
 
 -- | Represents how a package may be specified by a user on the command line.
 data PackageArg
-    -- | A package identifier foo-0.1, or a glob foo-*.
+    -- | A package identifier foo-0.1, or a glob foo-*
     = Id GlobPackageIdentifier
     -- | An installed package ID foo-0.1-HASH.  This is guaranteed to uniquely
     -- match a single entry in the package database.
     | IUId UnitId
     -- | A glob against the package name.  The first string is the literal
-    -- glob, the second is a function which returns @True@ if the the argument
+    -- glob, the second is a function which returns @True@ if the argument
     -- matches.
     | Substring String (String->Bool)
 
@@ -340,8 +334,6 @@ runit verbosity cli nonopts = do
           | FlagForceFiles `elem` cli   = ForceFiles
           | otherwise                   = NoForce
         as_arg | FlagUnitId      `elem` cli = AsUnitId
-               -- | FlagIPId        `elem` cli = AsIpid
-               -- | FlagPackageKey  `elem` cli = AsPackageKey
                | otherwise                  = AsDefault
         multi_instance = FlagMultiInstance `elem` cli
         expand_env_vars= FlagExpandEnvVars `elem` cli
@@ -401,9 +393,10 @@ runit verbosity cli nonopts = do
         registerPackage filename verbosity cli
                         multi_instance
                         expand_env_vars True force
-    ["unregister", pkgarg_str] -> do
-        pkgarg <- readPackageArg as_arg pkgarg_str
-        unregisterPackage pkgarg verbosity cli force
+    "unregister" : pkgarg_strs@(_:_) -> do
+        forM_ pkgarg_strs $ \pkgarg_str -> do
+          pkgarg <- readPackageArg as_arg pkgarg_str
+          unregisterPackage pkgarg verbosity cli force
     ["expose", pkgarg_str] -> do
         pkgarg <- readPackageArg as_arg pkgarg_str
         exposePackage pkgarg verbosity cli force
@@ -468,8 +461,8 @@ parseCheck parser str what =
 -- | Either an exact 'PackageIdentifier', or a glob for all packages
 -- matching 'PackageName'.
 data GlobPackageIdentifier
-    = ExactPackageIdentifier PackageIdentifier
-    | GlobPackageIdentifier  PackageName
+    = ExactPackageIdentifier MungedPackageId
+    | GlobPackageIdentifier  MungedPackageName
 
 displayGlobPkgId :: GlobPackageIdentifier -> String
 displayGlobPkgId (ExactPackageIdentifier pid) = display pid
@@ -489,15 +482,7 @@ parseGlobPackageId =
 readPackageArg :: AsPackageArg -> String -> IO PackageArg
 readPackageArg AsUnitId str =
     parseCheck (IUId `fmap` parse) str "installed package id"
--- readPackageArg AsIpid str =
---     parseCheck (IPId `fmap` parse) str "installed package id"
--- readPackageArg AsPackageKey str =
---     parseCheck (PkgKey `fmap` parse) str "package key"
 readPackageArg AsDefault str = Id `fmap` readGlobPkgId str
-
--- globVersion means "all versions"
--- globVersion :: Version
--- globVersion = Version [] ["*"]
 
 -- -----------------------------------------------------------------------------
 -- Package databases
@@ -514,7 +499,7 @@ readPackageArg AsDefault str = Id `fmap` readGlobPkgId str
 data PackageDB (mode :: EtaPkg.DbMode)
   = PackageDB {
       location, locationAbsolute :: !FilePath,
-      -- We need both possibly-relative and definately-absolute package
+      -- We need both possibly-relative and definitely-absolute package
       -- db locations. This is because the relative location is used as
       -- an identifier for the db, so it is important we do not modify it.
       -- On the other hand we need the absolute path in a few places
@@ -549,6 +534,7 @@ getPkgDatabases :: Verbosity
                           -- the real package DB stack: [global,user] ++
                           -- DBs specified on the command line with -f.
                        EtaPkg.DbOpenMode mode (PackageDB mode),
+                          -- which one to modify, if any
                        PackageDBStack)
                           -- the package DBs specified on the command
                           -- line, or [global,user] otherwise.  This
@@ -664,108 +650,107 @@ getPkgDatabases verbosity mode use_user use_cache expand_vars my_flags = do
     infoLn ("flag db stack: " ++ show (map location flag_db_stack))
 
   return (db_stack, db_to_operate_on, (etaPkgDB flag_db_stack))
-    where
-      -- Right now Eta has both the global and the user package
-      -- databases as the same. So we just pass a single element from
-      -- the PackageDBStack for the list command.
-      etaPkgDB [] = []
-      etaPkgDB (x:_) = [x]
+  where
+    -- Right now Eta has both the global and the user package
+    -- databases as the same. So we just pass a single element from
+    -- the PackageDBStack for the list command.
+    etaPkgDB [] = []
+    etaPkgDB (x:_) = [x]
 
-      getDatabases top_dir mb_user_conf flag_db_names
-                  final_stack top_db = case mode of
-        -- When we open in read only mode, we simply read all of the databases/
-        EtaPkg.DbOpenReadOnly -> do
-          db_stack <- mapM readDatabase final_stack
-          return (db_stack, EtaPkg.DbOpenReadOnly)
+    getDatabases top_dir mb_user_conf flag_db_names
+                 final_stack top_db = case mode of
+      -- When we open in read only mode, we simply read all of the databases/
+      EtaPkg.DbOpenReadOnly -> do
+        db_stack <- mapM readDatabase final_stack
+        return (db_stack, EtaPkg.DbOpenReadOnly)
 
-        -- The only package db we open in read write mode is the one on the top of
-        -- the stack.
-        EtaPkg.DbOpenReadWrite TopOne -> do
-          (db_stack, mto_modify) <- stateSequence Nothing
-            [ \case
-                to_modify@(Just _) -> (, to_modify) <$> readDatabase db_path
-                Nothing -> if db_path /= top_db
-                  then (, Nothing) <$> readDatabase db_path
-                  else do
+      -- The only package db we open in read write mode is the one on the top of
+      -- the stack.
+      EtaPkg.DbOpenReadWrite TopOne -> do
+        (db_stack, mto_modify) <- stateSequence Nothing
+          [ \case
+              to_modify@(Just _) -> (, to_modify) <$> readDatabase db_path
+              Nothing -> if db_path /= top_db
+                then (, Nothing) <$> readDatabase db_path
+                else do
+                  db <- readParseDatabase verbosity mb_user_conf
+                                          mode use_cache db_path
+                    `Exception.catch` couldntOpenDbForModification db_path
+                  let ro_db = db { packageDbLock = EtaPkg.DbOpenReadOnly }
+                  return (ro_db, Just db)
+          | db_path <- final_stack ]
+
+        to_modify <- case mto_modify of
+          Just db -> return db
+          Nothing -> die "no database selected for modification"
+
+        return (db_stack, EtaPkg.DbOpenReadWrite to_modify)
+
+      -- The package db we open in read write mode is the first one included in
+      -- flag_db_names that contains specified package. Therefore we need to
+      -- open each one in read/write mode first and decide whether it's for
+      -- modification based on its contents.
+      EtaPkg.DbOpenReadWrite (ContainsPkg pkgarg) -> do
+        (db_stack, mto_modify) <- stateSequence Nothing
+          [ \case
+              to_modify@(Just _) -> (, to_modify) <$> readDatabase db_path
+              Nothing -> if db_path `notElem` flag_db_names
+                then (, Nothing) <$> readDatabase db_path
+                else do
+                  let hasPkg :: PackageDB mode -> Bool
+                      hasPkg = not . null . findPackage pkgarg . packages
+
+                      openRo (e::IOError) = do
+                        db <- readDatabase db_path
+                        if hasPkg db
+                          then couldntOpenDbForModification db_path e
+                          else return (db, Nothing)
+
+                  -- If we fail to open the database in read/write mode, we need
+                  -- to check if it's for modification first before throwing an
+                  -- error, so we attempt to open it in read only mode.
+                  Exception.handle openRo $ do
                     db <- readParseDatabase verbosity mb_user_conf
                                             mode use_cache db_path
-                      `Exception.catch` couldntOpenDbForModification db_path
                     let ro_db = db { packageDbLock = EtaPkg.DbOpenReadOnly }
-                    return (ro_db, Just db)
-            | db_path <- final_stack ]
+                    if hasPkg db
+                      then return (ro_db, Just db)
+                      else do
+                        -- If the database is not for modification after all,
+                        -- drop the write lock as we are already finished with
+                        -- the database.
+                        case packageDbLock db of
+                          EtaPkg.DbOpenReadWrite lock ->
+                            EtaPkg.unlockPackageDb lock
+                          _ -> case undefined of {}
+                        return (ro_db, Nothing)
+          | db_path <- final_stack ]
 
-          to_modify <- case mto_modify of
-            Just db -> return db
-            Nothing -> die "no database selected for modification"
+        to_modify <- case mto_modify of
+          Just db -> return db
+          Nothing -> cannotFindPackage pkgarg Nothing
 
-          return (db_stack, EtaPkg.DbOpenReadWrite to_modify)
+        return (db_stack, EtaPkg.DbOpenReadWrite to_modify)
+      where
+        couldntOpenDbForModification :: FilePath -> IOError -> IO a
+        couldntOpenDbForModification db_path e = die $ "Couldn't open database "
+          ++ db_path ++ " for modification: " ++ show e
 
-        -- The package db we open in read write mode is the first one included in
-        -- flag_db_names that contains specified package. Therefore we need to
-        -- open each one in read/write mode first and decide whether it's for
-        -- modification based on its contents.
-        EtaPkg.DbOpenReadWrite (ContainsPkg pkgarg) -> do
-          (db_stack, mto_modify) <- stateSequence Nothing
-            [ \case
-                to_modify@(Just _) -> (, to_modify) <$> readDatabase db_path
-                Nothing -> if db_path `notElem` flag_db_names
-                  then (, Nothing) <$> readDatabase db_path
-                  else do
-                    let hasPkg :: PackageDB mode -> Bool
-                        hasPkg = not . null . findPackage pkgarg . packages
+        -- Parse package db in read-only mode.
+        readDatabase :: FilePath -> IO (PackageDB 'EtaPkg.DbReadOnly)
+        readDatabase db_path = do
+          db <- readParseDatabase verbosity mb_user_conf
+                                  EtaPkg.DbOpenReadOnly use_cache db_path
+          if expand_vars
+            then return $ mungePackageDBPaths top_dir db
+            else return db
 
-                        openRo (e::IOError) = do
-                          db <- readDatabase db_path
-                          if hasPkg db
-                            then couldntOpenDbForModification db_path e
-                            else return (db, Nothing)
-
-                    -- If we fail to open the database in read/write mode, we need
-                    -- to check if it's for modification first before throwing an
-                    -- error, so we attempt to open it in read only mode.
-                    Exception.handle openRo $ do
-                      db <- readParseDatabase verbosity mb_user_conf
-                                              mode use_cache db_path
-                      let ro_db = db { packageDbLock = EtaPkg.DbOpenReadOnly }
-                      if hasPkg db
-                        then return (ro_db, Just db)
-                        else do
-                          -- If the database is not for modification after all,
-                          -- drop the write lock as we are already finished with
-                          -- the database.
-                          case packageDbLock db of
-                            EtaPkg.DbOpenReadWrite lock ->
-                              EtaPkg.unlockPackageDb lock
-                            _ -> case undefined of {}
-                          return (ro_db, Nothing)
-            | db_path <- final_stack ]
-
-          to_modify <- case mto_modify of
-            Just db -> return db
-            Nothing -> cannotFindPackage pkgarg Nothing
-
-          return (db_stack, EtaPkg.DbOpenReadWrite to_modify)
-        where
-          couldntOpenDbForModification :: FilePath -> IOError -> IO a
-          couldntOpenDbForModification db_path e = die $ "Couldn't open database "
-            ++ db_path ++ " for modification: " ++ show e
-
-          -- Parse package db in read-only mode.
-          readDatabase :: FilePath -> IO (PackageDB 'EtaPkg.DbReadOnly)
-          readDatabase db_path = do
-            db <- readParseDatabase verbosity mb_user_conf
-                                    EtaPkg.DbOpenReadOnly use_cache db_path
-            if expand_vars
-              then return $ mungePackageDBPaths top_dir db
-              else return db
-
-      stateSequence :: Monad m => s -> [s -> m (a, s)] -> m ([a], s)
-      stateSequence s []     = return ([], s)
-      stateSequence s (m:ms) = do
-        (a, s')   <- m s
-        (as, s'') <- stateSequence s' ms
-        return (a : as, s'')
-
+    stateSequence :: Monad m => s -> [s -> m (a, s)] -> m ([a], s)
+    stateSequence s []     = return ([], s)
+    stateSequence s (m:ms) = do
+      (a, s')   <- m s
+      (as, s'') <- stateSequence s' ms
+      return (a : as, s'')
 
 lookForPackageDBIn :: FilePath -> IO (Maybe FilePath)
 lookForPackageDBIn dir = do
@@ -814,7 +799,7 @@ readParseDatabase verbosity mb_user_conf mode use_cache path
                 Left ex -> do
                   whenReportCacheErrors $
                     if isDoesNotExistError ex
-                      then do
+                      then
                         -- It's fine if the cache is not there as long as the
                         -- database is empty.
                         when (not $ null confs) $ do
@@ -863,7 +848,7 @@ readParseDatabase verbosity mb_user_conf mode use_cache path
                      lock <- F.mapM (const $ EtaPkg.lockPackageDb cache) mode
                      let doFile f = do checkTime f
                                        parseSingletonPackageConf verbosity f
-                     pkgs <- mapM doFile $ map (path </>) confs
+                     pkgs <- mapM doFile confs
                      mkPackageDB pkgs lock
 
                  -- We normally report cache errors for read-only commands,
@@ -884,7 +869,7 @@ readParseDatabase verbosity mb_user_conf mode use_cache path
                 -> IO (PackageDB mode)
     mkPackageDB pkgs lock = do
       path_abs <- absolutePath path
-      return PackageDB {
+      return $ PackageDB {
         location = path,
         locationAbsolute = path_abs,
         packageDbLock = lock,
@@ -1091,7 +1076,7 @@ registerPackage input verbosity my_flags multi_instance
 
   -- report any warnings from the parse phase
   _ <- reportValidateErrors verbosity [] ws
-         (display (sourcePackageId pkg) ++ ": Warning: ") Nothing
+         (display (mungedId pkg) ++ ": Warning: ") Nothing
 
   -- validate the expanded pkg, but register the unexpanded
   pkgroot <- absolutePath (takeDirectory to_modify)
@@ -1112,7 +1097,8 @@ registerPackage input verbosity my_flags multi_instance
      removes = [ RemovePackage p
                | not multi_instance,
                  p <- packages db_to_operate_on,
-                 sourcePackageId p == sourcePackageId pkg,
+                 mungedId p == mungedId pkg,
+                 -- Only remove things that were instantiated the same way!
                  instantiatedWith p == instantiatedWith pkg ]
   --
   changeDB verbosity (removes ++ [AddPackage pkg]) db_to_operate_on
@@ -1122,8 +1108,7 @@ parsePackageInfo
         -> IO (InstalledPackageInfo, [ValidateWarning])
 parsePackageInfo str =
   case parseInstalledPackageInfo str of
-    ParseOk warnings ok -> do
-      return (mungePackageInfo ok, ws)
+    ParseOk warnings ok -> return (mungePackageInfo ok, ws)
       where
         ws = [ msg | PWarning msg <- warnings
                    , not ("Unrecognized field pkgroot" `isPrefixOf` msg) ]
@@ -1214,17 +1199,10 @@ convertPackageInfoToCacheFormat pkg =
        EtaPkg.instantiatedWith   = instantiatedWith pkg,
        EtaPkg.sourcePackageId    = sourcePackageId pkg,
        EtaPkg.packageName        = packageName pkg,
-
-        -- -- TODO: May cause bugs
-        -- case sourcePackageId pkg of
-        --     Nothing -> packageName pkg
-        --     Just pn -> pn,
        EtaPkg.packageVersion     = Version.Version (versionNumbers (packageVersion pkg)) [],
+       -- GhcPkg.sourceLibName      =
+       --   fmap (mkPackageName . unUnqualComponentName) (sourceLibName pkg),
        EtaPkg.mungedPackageName  = Nothing,
-        -- TODO: May cause bugs
-         -- case sourcePackageId pkg of
-         --    Nothing -> Nothing
-         --    Just _  -> Just (packageName pkg),
        EtaPkg.libName            =
          fmap (mkPackageName . unUnqualComponentName) (sourceLibName pkg),
        EtaPkg.depends            = depends pkg,
@@ -1344,11 +1322,11 @@ modifyPackage fn pkgarg verbosity my_flags force = do
                             . installedUnitId) new_broken
   --
   let displayQualPkgId pkg
-        | [_] <- filter ((== pkgid) . sourcePackageId)
+        | [_] <- filter ((== pkgid) . mungedId)
                         (allPackagesInStack db_stack)
             = display pkgid
         | otherwise = display pkgid ++ "@" ++ display (installedUnitId pkg)
-        where pkgid = sourcePackageId pkg
+        where pkgid = mungedId pkg
   when (not (null newly_broken)) $
       dieOrForceAll force ("unregistering would break the following packages: "
               ++ unwords (map displayQualPkgId newly_broken))
@@ -1388,14 +1366,14 @@ listPackages verbosity my_flags mPackageName mModuleName = do
             | db <- db_stack_filtered ]
           where sort_pkgs = sortBy cmpPkgIds
                 cmpPkgIds pkg1 pkg2 =
-                   case pkgName p1 `compare` pkgName p2 of
+                   case mungedName p1 `compare` mungedName p2 of
                         LT -> LT
                         GT -> GT
-                        EQ -> case pkgVersion p1 `compare` pkgVersion p2 of
+                        EQ -> case mungedVersion p1 `compare` mungedVersion p2 of
                                 LT -> LT
                                 GT -> GT
                                 EQ -> installedUnitId pkg1 `compare` installedUnitId pkg2
-                   where (p1,p2) = (sourcePackageId pkg1, sourcePackageId pkg2)
+                   where (p1,p2) = (mungedId pkg1, mungedId pkg2)
 
       stack = reverse db_stack_sorted
 
@@ -1417,7 +1395,7 @@ listPackages verbosity my_flags mPackageName mModuleName = do
                    where doc | verbosity >= Verbose = printf "%s (%s)" pkg (display (installedUnitId p))
                              | otherwise            = pkg
                           where
-                            pkg = display (sourcePackageId p)
+                            pkg = display (mungedId p)
 
       show_simple = simplePackageList my_flags . allPackagesInStack
 
@@ -1429,9 +1407,9 @@ listPackages verbosity my_flags mPackageName mModuleName = do
 
 simplePackageList :: [Flag] -> [InstalledPackageInfo] -> IO ()
 simplePackageList my_flags pkgs = do
-   let showPkg = if FlagNamesOnly `elem` my_flags then display . pkgName
+   let showPkg = if FlagNamesOnly `elem` my_flags then display . mungedName
                                                   else display
-       strs = map showPkg $ map sourcePackageId pkgs
+       strs = map showPkg $ map mungedId pkgs
    when (not (null pkgs)) $
       hPutStrLn stdout $ concat $ intersperse " " strs
 
@@ -1448,17 +1426,17 @@ showPackageDot verbosity myflags = do
   let quote s = '"':s ++ "\""
   mapM_ putStrLn [ quote from ++ " -> " ++ quote to
                  | p <- all_pkgs,
-                   let from = display (sourcePackageId p),
+                   let from = display (mungedId p),
                    key <- depends p,
                    Just dep <- [PackageIndex.lookupUnitId ipix key],
-                   let to = display (sourcePackageId dep)
+                   let to = display (mungedId dep)
                  ]
   putStrLn "}"
 
 -- -----------------------------------------------------------------------------
 -- Prints the highest (hidden or exposed) version of a package
 
--- ToDo: This is no longer well-defined with package keys, because the
+-- ToDo: This is no longer well-defined with unit ids, because the
 -- dependencies may be varying versions
 latestPackage ::  Verbosity -> [Flag] -> GlobPackageIdentifier -> IO ()
 latestPackage verbosity my_flags pkgid = do
@@ -1469,7 +1447,7 @@ latestPackage verbosity my_flags pkgid = do
   ps <- findPackages flag_db_stack (Id pkgid)
   case ps of
     [] -> die "no matches"
-    _  -> show_pkg . maximum . map sourcePackageId $ ps
+    _  -> show_pkg . maximum . map mungedId $ ps
   where
     show_pkg pid = hPutStrLn stdout (display pid)
 
@@ -1532,17 +1510,17 @@ cannotFindPackage pkgarg mdb = die $ "cannot find package " ++ pkg_msg pkgarg
     pkg_msg (IUId ipid)          = display ipid
     pkg_msg (Substring pkgpat _) = "matching " ++ pkgpat
 
-matches :: GlobPackageIdentifier -> PackageIdentifier -> Bool
+matches :: GlobPackageIdentifier -> MungedPackageId -> Bool
 GlobPackageIdentifier pn `matches` pid'
-  = (pn == pkgName pid')
+  = (pn == mungedName pid')
 ExactPackageIdentifier pid `matches` pid'
-  = pkgName pid == pkgName pid' &&
-    (pkgVersion pid == pkgVersion pid' || pkgVersion pid == nullVersion)
+  = mungedName pid == mungedName pid' &&
+    (mungedVersion pid == mungedVersion pid' || mungedVersion pid == nullVersion)
 
 matchesPkg :: PackageArg -> InstalledPackageInfo -> Bool
-(Id pid)        `matchesPkg` pkg = pid `matches` sourcePackageId pkg
+(Id pid)        `matchesPkg` pkg = pid `matches` mungedId pkg
 (IUId ipid)     `matchesPkg` pkg = ipid == installedUnitId pkg
-(Substring _ m) `matchesPkg` pkg = m (display (sourcePackageId pkg))
+(Substring _ m) `matchesPkg` pkg = m (display (mungedId pkg))
 
 -- -----------------------------------------------------------------------------
 -- Field
@@ -1589,7 +1567,7 @@ checkConsistency verbosity my_flags = do
                     return []
             else do
               when (not simple_output) $ do
-                  reportError ("There are problems in package " ++ display (sourcePackageId p) ++ ":")
+                  reportError ("There are problems in package " ++ display (mungedId p) ++ ":")
                   _ <- reportValidateErrors verbosity es ws "  " Nothing
                   return ()
               return [p]
@@ -1597,8 +1575,8 @@ checkConsistency verbosity my_flags = do
   broken_pkgs <- concat `fmap` mapM checkPackage pkgs
 
   let filterOut pkgs1 pkgs2 = filter not_in pkgs2
-        where not_in p = sourcePackageId p `notElem` all_ps
-              all_ps = map sourcePackageId pkgs1
+        where not_in p = mungedId p `notElem` all_ps
+              all_ps = map mungedId pkgs1
 
   let not_broken_pkgs = filterOut broken_pkgs pkgs
       (_, trans_broken_pkgs) = closure [] not_broken_pkgs
@@ -1610,7 +1588,7 @@ checkConsistency verbosity my_flags = do
       else do
        reportError ("\nThe following packages are broken, either because they have a problem\n"++
                 "listed above, or because they depend on a broken package.")
-       mapM_ (hPutStrLn stderr . display . sourcePackageId) all_broken_pkgs
+       mapM_ (hPutStrLn stderr . display . mungedId) all_broken_pkgs
 
   when (not (null all_broken_pkgs)) $ exitWith (ExitFailure 1)
 
@@ -1704,7 +1682,7 @@ validatePackageConfig pkg verbosity db_stack
                  checkPackageConfig pkg verbosity db_stack
                                     multi_instance update
   ok <- reportValidateErrors verbosity es ws
-          (display (sourcePackageId pkg) ++ ": ") (Just force)
+          (display (mungedId pkg) ++ ": ") (Just force)
   when (not ok) $ exitWith (ExitFailure 1)
 
 checkPackageConfig :: InstalledPackageInfo
@@ -1742,8 +1720,8 @@ checkPackageConfig pkg verbosity db_stack
 -- we check that the package id can be parsed properly here.
 checkPackageId :: InstalledPackageInfo -> Validate ()
 checkPackageId ipi =
-  let str = display (sourcePackageId ipi) in
-  case [ x :: PackageIdentifier | (x,ys) <- readP_to_S parse str, all isSpace ys ] of
+  let str = display (mungedId ipi) in
+  case [ x :: MungedPackageId | (x,ys) <- readP_to_S parse str, all isSpace ys ] of
     [_] -> return ()
     []  -> verror CannotForce ("invalid package identifier: " ++ str)
     _   -> verror CannotForce ("ambiguous package identifier: " ++ str)
@@ -1768,19 +1746,19 @@ checkDuplicates :: PackageDBStack -> InstalledPackageInfo
                 -> Bool -> Bool-> Validate ()
 checkDuplicates db_stack pkg multi_instance update = do
   let
-        pkgid = sourcePackageId pkg
+        pkgid = mungedId pkg
         pkgs  = packages (head db_stack)
   --
   -- Check whether this package id already exists in this DB
   --
   when (not update && not multi_instance
-                   && (pkgid `elem` map sourcePackageId pkgs)) $
+                   && (pkgid `elem` map mungedId pkgs)) $
        verror CannotForce $
           "package " ++ display pkgid ++ " is already installed"
 
   let
         uncasep = map toLower . display
-        dups = filter ((== uncasep pkgid) . uncasep) (map sourcePackageId pkgs)
+        dups = filter ((== uncasep pkgid) . uncasep) (map mungedId pkgs)
 
   when (not update && not multi_instance
                    && not (null dups)) $ verror ForceAll $
@@ -2037,5 +2015,7 @@ removeFileSafe fn =
   removeFile fn `catchIO` \ e ->
     when (not $ isDoesNotExistError e) $ ioError e
 
+-- | Turn a path relative to the current directory into a (normalised)
+-- absolute path.
 absolutePath :: FilePath -> IO FilePath
 absolutePath path = return . normalise . (</> path) =<< getCurrentDirectory
