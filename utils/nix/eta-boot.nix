@@ -4,7 +4,7 @@
 mkDerivation {
   pname = "eta-boot";
   # @VERSION_CHANGE@
-  version = "0.7.0";
+  version = "0.7.1";
   src = ../../libraries/eta-boot;
   libraryHaskellDepends = [
     base binary bytestring directory eta-boot-th filepath

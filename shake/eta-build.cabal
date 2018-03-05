@@ -1,6 +1,6 @@
 name:                eta-build
 -- @VERSION_CHANGE@
-version:             0.7.0
+version:             0.7.1
 description:         Build script for the Eta compiler & associated tools
 license:             BSD3
 license-file:        LICENSE

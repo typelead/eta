@@ -1,6 +1,6 @@
 name:                eta
 -- @VERSION_CHANGE@
-version:             0.7.0
+version:             0.7.1
 description:         Modern Haskell on the JVM
 license:             BSD3
 license-file:        LICENSE
@@ -309,9 +309,9 @@ library
                        , bytestring
                        , text
                        -- @VERSION_CHANGE@
-                       , eta-boot == 0.7.0
+                       , eta-boot == 0.7.1
                        -- @VERSION_CHANGE@
-                       , eta-boot-th == 0.7.0
+                       , eta-boot-th == 0.7.1
                        , deepseq    >= 1.4 && < 1.5
                        , time       >= 1.4 && < 1.7
                        , process    >= 1   && < 1.3

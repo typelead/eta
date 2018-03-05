@@ -4,7 +4,7 @@
 mkDerivation {
   pname = "etlas-cabal";
   # @VERSION
-  version = "1.1.0.0";
+  version = "1.3.0.0";
   src = ../../etlas/etlas-cabal;
   libraryHaskellDepends = [
     array base binary bytestring containers deepseq directory filepath
