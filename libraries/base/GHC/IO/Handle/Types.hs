@@ -367,15 +367,14 @@ data NewlineMode
                  }
              deriving (Eq, Ord, Read, Show)
 
+foreign import java unsafe "@static eta.base.Utils.isNewlineCRLF"
+   isNewlineCRLF :: Bool
+
 -- | The native newline representation for the current platform: 'LF'
 -- on Unix systems, 'CRLF' on Windows.
 nativeNewline :: Newline
-#ifdef mingw32_HOST_OS
-nativeNewline = CRLF
-#else
-nativeNewline = LF
-#endif
-
+nativeNewline = if isNewlineCRLF then CRLF else LF
+  
 -- | Map '\r\n' into '\n' on input, and '\n' to the native newline
 -- represetnation on output.  This mode can be used on any platform, and
 -- works with text files using any newline convention.  The downside is

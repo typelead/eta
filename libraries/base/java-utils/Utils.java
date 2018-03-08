@@ -164,6 +164,10 @@ public class Utils {
         return ByteOrder.nativeOrder().equals(ByteOrder.BIG_ENDIAN);
     }
 
+    public static boolean isNewlineCRLF() {
+        return "\r\n".equals(System.lineSeparator()); 
+    }
+    
     public static void debugBelch(String format, String string) {
         RuntimeLogging.debugBelch(format, string);
     }
