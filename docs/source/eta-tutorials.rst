@@ -773,6 +773,7 @@ We can even change the code above to use the `Java` monad::
   {-# LANGUAGE TypeFamilies, DataKinds, FlexibleContexts #-}
 
   foreign import java unsafe toString :: (a <: Object) => Java a String
+  foreign import java unsafe "@new" newFile  :: String -> Java a File
 
   data File = File @java.io.File
     deriving Class
