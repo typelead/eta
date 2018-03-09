@@ -21,6 +21,7 @@ module Java.Utils
   , getClass
   , toString
   , equals
+  , instanceOf
   , classObject
   , hashCode
   , Proxy(..)
@@ -57,6 +58,9 @@ foreign import java unsafe "toString" toString# :: Object# a -> String
 
 foreign import java unsafe "@static eta.base.Utils.convertInstanceOfObject"
   castObject :: (t <: Object, o <: Object) => o -> JClass t -> Maybe t
+
+foreign import java unsafe "@static eta.base.Utils.instanceOf"
+  instanceOf :: forall t o. (t <: Object, o <: Object) => o -> JClass t -> Bool
 
 {-# INLINE safeDowncast #-}
 safeDowncast :: forall a b. (Class a, Class b) => a -> Maybe b

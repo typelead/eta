@@ -221,6 +221,10 @@ public class Utils {
         }
     }
 
+    public static boolean instanceOf(Object o, Class clazz) {
+        return clazz.isInstance(o);
+    }
+    
     public static MessageDigest c_MD5Init() throws NoSuchAlgorithmException {
         return MessageDigest.getInstance("MD5");
     }

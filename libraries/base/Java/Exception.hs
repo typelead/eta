@@ -25,7 +25,9 @@ import Java
 import Java.Array
 import GHC.Show
 import GHC.Exception
+import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
+import Data.List (any)
 
 data {-# CLASS "java.lang.StackTraceElement[]" #-} StackTraceElementArray = StackTraceElementArray (Object# StackTraceElementArray)
   deriving Class
@@ -37,21 +39,21 @@ instance JArray StackTraceElement StackTraceElementArray
 data {-# CLASS "java.lang.Throwable" #-} Throwable = Throwable (Object# Throwable)
   deriving Class
 
-foreign import java unsafe fillInStackTrace :: Java Throwable Throwable
+foreign import java unsafe fillInStackTrace :: (a <: Throwable, b <:Throwable) => Java a b
 
-foreign import java unsafe getCause :: Java Throwable Throwable
+foreign import java unsafe getCause :: (a <: Throwable, b <:Throwable) => Java a b
 
-foreign import java unsafe getLocalizedMessage :: Java Throwable String
+foreign import java unsafe getLocalizedMessage :: (a <: Throwable) => Java a String
 
-foreign import java unsafe getMessage :: Java Throwable String
+foreign import java unsafe getMessage :: (a <: Throwable) => Java a String
 
-foreign import java unsafe getStackTrace :: Java Throwable StackTraceElementArray
+foreign import java unsafe getStackTrace ::  (a <: Throwable) => Java a StackTraceElementArray
 
-foreign import java unsafe initCause :: Throwable -> Java Throwable Throwable
+foreign import java unsafe initCause :: (a <: Throwable, b <:Throwable) => a -> Java b b
 
-foreign import java unsafe printStackTrace :: Java Throwable ()
+foreign import java unsafe printStackTrace ::  (a <: Throwable) => Java a ()
 
-foreign import java unsafe setStackTrace :: StackTraceElementArray -> Java Throwable ()
+foreign import java unsafe setStackTrace ::  (a <: Throwable) => StackTraceElementArray -> Java a ()
 
 -- End java.lang.Throwable
 
@@ -118,6 +120,40 @@ data {-# CLASS "java.io.IOException" #-} IOException = IOException (Object# IOEx
   deriving (Class, Show, Typeable)
 
 type instance Inherits IOException = '[JException]
+
+data {-# CLASS "java.nio.file.FileSystemException" #-} FileSystemException = FileSystemException (Object# FileSystemException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits FileSystemException = '[IOException]
+
+data {-# CLASS "java.io.FileNotFoundException" #-} FileNotFoundException =
+  FileNotFoundException (Object# FileNotFoundException)
+
+type instance Inherits FileNotFoundException = '[IOException]
+
+data {-# CLASS "java.nio.file.NotSuchFileException" #-} NotSuchFileException =
+  NotSuchFileException (Object# NotSuchFileException)
+
+type instance Inherits NotSuchFileException = '[FileSystemException]
+
+data {-# CLASS "java.io.EOFException" #-} EOFException =
+  EOFException (Object# EOFException)
+
+type instance Inherits EOFException = '[IOException]
+
+toIOError :: IOException -> SysIOErr.IOError
+toIOError jioex =  SysIOErr.ioeSetErrorString ioErr msg
+  where ioErr = SysIOErr.mkIOError type' "" Nothing Nothing
+        type' | isDoesNotExistError = SysIOErr.doesNotExistErrorType
+              | instanceOf jioex EOFException =
+                  SysIOErr.eofErrorType
+              | otherwise = SysIOErr.userErrorType
+        clazz = classObject jioex
+        msg   = unsafePerformJavaWith jioex getMessage
+        isDoesNotExistError =
+          any (instanceOf jioex) [JClass FileNotFoundException Void,
+                                  JClass NotSuchFileException Void] ||
+          msg == "The system cannot find the path specified"
 
 -- End java.io.IOException
 
