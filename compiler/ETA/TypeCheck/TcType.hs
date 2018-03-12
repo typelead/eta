@@ -153,6 +153,8 @@ module ETA.TypeCheck.TcType (
 
 #include "HsVersions.h"
 
+import System.IO.Unsafe
+
 -- friends:
 import ETA.Types.Kind
 import ETA.Types.TypeRep
@@ -1678,15 +1680,16 @@ checkRepTyCon checkTc ty extra
   = case splitTyConApp_maybe ty of
       Just (tc, tys)
         | isNewTyCon tc  -> NotValid (hang msg 2 (mk_nt_reason tc tys $$ nt_fix))
-        | checkTc tc ty  -> IsValid
-        | otherwise      -> NotValid (msg $$ extra)
+        | checkTc tc ty -> IsValid
+        | otherwise      -> IsValid -- Instead of: NotValid (msg $$ extra)
+                                    -- we allow all data types to be exported.
       Nothing -> NotValid (quotes (ppr ty) <+> ptext (sLit "is not a data type") $$ extra)
   where
     msg = quotes (ppr ty) <+> ptext (sLit "cannot be marshalled in a foreign call")
     mk_nt_reason tc tys
-      | null tys  = ptext (sLit "because its data construtor is not in scope")
-      | otherwise = ptext (sLit "because the data construtor for")
-                    <+> quotes (ppr tc) <+> ptext (sLit "is not in scope")
+     | null tys  = ptext (sLit "because its data construtor is not in scope")
+     | otherwise = ptext (sLit "because the data construtor for")
+                  <+> quotes (ppr tc) <+> ptext (sLit "is not in scope")
     nt_fix = ptext (sLit "Possible fix: import the data constructor to bring it into scope")
 
 checkValidTyVar :: VarSet -> Type -> Bool

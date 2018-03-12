@@ -897,17 +897,20 @@ unboxResult ty resClass resPrimFt
              <> greturn resPrimFt
   where resClassFt = obj resClass
 
-getPrimFt :: Type -> FieldType
-getPrimFt = fromJust . repFieldType_maybe . getPrimTyOf
 
-getPrimTyOf :: Type -> UnaryType
+-- TODO (NickSeagull): Take into account the case when a data type has no
+-- type constructors like `data Empty`.
+getPrimFt :: Type -> FieldType
+getPrimFt ty = maybe (fromJust $ repFieldType_maybe ty) id (repFieldType_maybe =<< getPrimTyOf ty)
+
+getPrimTyOf :: Type -> Maybe UnaryType
 getPrimTyOf ty
   | UnaryRep repTy <- repType ty =
       if isBoolTy repTy
-      then jboolPrimTy
+      then Just jboolPrimTy
       else case splitDataProductType_maybe repTy of
-        Just (_, _, _, [primTy]) -> primTy
-        _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty
+        Just (_, _, _, [primTy]) -> Just primTy
+        _ -> Nothing -- pprPanic "DsForeign.getPrimTyOf" $ ppr ty
 getPrimTyOf _ = error $ "getPrimTyOf: bad getPrimTyOf"
 
 dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
