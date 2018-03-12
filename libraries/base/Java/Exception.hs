@@ -27,7 +27,8 @@ import GHC.Show
 import GHC.Exception
 import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
-import Data.List (any)
+import Data.List (any, elem)
+import Data.Either
 
 data {-# CLASS "java.lang.StackTraceElement[]" #-} StackTraceElementArray = StackTraceElementArray (Object# StackTraceElementArray)
   deriving Class
@@ -128,38 +129,79 @@ type instance Inherits FileSystemException = '[IOException]
 
 data {-# CLASS "java.io.FileNotFoundException" #-} FileNotFoundException =
   FileNotFoundException (Object# FileNotFoundException)
+  deriving (Class, Show, Typeable)
 
 type instance Inherits FileNotFoundException = '[IOException]
 
-data {-# CLASS "java.nio.file.NotSuchFileException" #-} NotSuchFileException =
-  NotSuchFileException (Object# NotSuchFileException)
+data {-# CLASS "java.nio.file.NoSuchFileException" #-} NoSuchFileException =
+  NoSuchFileException (Object# NoSuchFileException)
+  deriving (Class, Show, Typeable)
 
-type instance Inherits NotSuchFileException = '[FileSystemException]
+type instance Inherits NoSuchFileException = '[FileSystemException]
 
 data {-# CLASS "java.io.EOFException" #-} EOFException =
   EOFException (Object# EOFException)
+  deriving (Class, Show, Typeable)
 
 type instance Inherits EOFException = '[IOException]
 
-toIOError :: IOException -> SysIOErr.IOError
-toIOError jioex =  SysIOErr.ioeSetErrorString ioErr msg
-  where ioErr = SysIOErr.mkIOError type' "" Nothing Nothing
-        type' | isDoesNotExistError = SysIOErr.doesNotExistErrorType
-              | jioex `instanceOf` (undefined JClass EOFException) =
-                  SysIOErr.eofErrorType
-              | otherwise = SysIOErr.userErrorType
-        clazz = classObject jioex
-        msg   = unsafePerformJavaWith jioex getMessage
-        isDoesNotExistError =
-          jioex `instanceOf` (undefined :: JClass FileNotFoundException) ||
-          jioex `instanceOf` (undefined :: JClass NotSuchFileException) ||
-          msg == "The system cannot find the path specified"
+data {-# CLASS "java.nio.file.FileAlreadyExistsException" #-} FileAlreadyExistsException =
+  FileAlreadyExistsException (Object# FileAlreadyExistsException)
+  deriving (Class, Show, Typeable)
 
+type instance Inherits FileAlreadyExistsException = '[FileSystemException]
+
+data {-# CLASS "java.nio.channels.OverlappingFileLockException" #-} OverlappingFileLockException =
+  OverlappingFileLockException (Object# OverlappingFileLockException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits OverlappingFileLockException = '[IllegalStateException]
+
+toIOError :: (ioex <: JException, ioex <: Throwable)
+          => ioex -> Maybe SysIOErr.IOError
+toIOError jioex =  fmap ioErr type'
+  where ioErr type' =  SysIOErr.ioeSetErrorString
+                       (SysIOErr.mkIOError type' "" Nothing Nothing) msg
+
+        type' | isDoesNotExistError  = Just SysIOErr.doesNotExistErrorType
+              | isAlreadyInUseError  = Just SysIOErr.alreadyInUseErrorType
+              | isAlreadyExistsError = Just SysIOErr.alreadyExistsErrorType
+              | isPermissionError    = Just SysIOErr.permissionErrorType
+              | isEofError           = Just SysIOErr.eofErrorType
+              | isFullError          = Just SysIOErr.fullErrorType
+              | otherwise            = Nothing
+
+        msg = unsafePerformJavaWith jioex getMessage
+
+        isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
+        isDoesNotExistError =
+          jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy NoSuchFileException)) ||
+          ( isJIOException && msg == "The system cannot find the path specified" )
+        isAlreadyInUseError =
+          ( isJIOException &&
+            msg == "The process cannot access the file " ++
+            "because another process has locked a portion of the file" ) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy OverlappingFileLockException))
+        isAlreadyExistsError =
+          ( isJIOException && msg == "File already exists" ) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy FileAlreadyExistsException))
+        isPermissionError = isJIOException && msg == "Permission denied"  
+        isEofError = jioex `instanceOf` (getClass (Proxy :: Proxy EOFException))
+        isFullError = isJIOException &&
+          msg `elem` ["There is not enough space on the disk", -- windows
+                      "Not enough space",                      -- nix
+                      "Not space left on device"]              -- GCJ
 -- End java.io.IOException
 
-instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException)
+toSomeException :: (a <: JException) => a -> SomeException
+toSomeException ex = SomeException (JException (unsafeCoerce# (unobj ex)))
+
+instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException, a <: Throwable)
   => Exception a where
-  toException x = SomeException (JException (unsafeCoerce# (unobj x)))
+  toException x = case toIOError x of
+    Nothing  -> toSomeException x
+    Just ioErr -> toException ioErr
   fromException e = do
     jexception :: JException <- fromException e
     safeDowncast jexception
@@ -185,4 +227,14 @@ data RuntimeException = RuntimeException @java.lang.RuntimeException
 
 type instance Inherits RuntimeException = '[JException]
 
-  -- End java.lang.RuntimeException
+-- End java.lang.RuntimeException
+
+-- Start of java.lang.IllegalStateException
+
+data {-# CLASS "java.lang.IllegalStateException" #-} IllegalStateException =
+  IllegalStateException (Object# IllegalStateException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits IllegalStateException = '[RuntimeException]
+
+-- End of java.lang.IllegalstateException
