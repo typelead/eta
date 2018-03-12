@@ -174,15 +174,15 @@ toIOError jioex =  fmap ioErr type'
         msg = unsafePerformJavaWith jioex getMessage
 
         isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
-        isDoesNotExistError =
-          jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
-          jioex `instanceOf` (getClass (Proxy :: Proxy NoSuchFileException)) ||
-          ( isJIOException && msg == "The system cannot find the path specified" )
         isAlreadyInUseError =
           ( isJIOException &&
             msg == "The process cannot access the file " ++
             "because another process has locked a portion of the file" ) ||
           jioex `instanceOf` (getClass (Proxy :: Proxy OverlappingFileLockException))
+        isDoesNotExistError =
+          jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy NoSuchFileException)) ||
+          ( isJIOException && msg == "The system cannot find the path specified" )
         isAlreadyExistsError =
           ( isJIOException && msg == "File already exists" ) ||
           jioex `instanceOf` (getClass (Proxy :: Proxy FileAlreadyExistsException))
