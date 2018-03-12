@@ -39,7 +39,7 @@ instance JArray StackTraceElement StackTraceElementArray
 data {-# CLASS "java.lang.Throwable" #-} Throwable = Throwable (Object# Throwable)
   deriving Class
 
-foreign import java unsafe fillInStackTrace :: (a <: Throwable, b <:Throwable) => Java a b
+foreign import java unsafe fillInStackTrace :: (a <: Throwable) => Java a a
 
 foreign import java unsafe getCause :: (a <: Throwable, b <:Throwable) => Java a b
 
@@ -145,14 +145,14 @@ toIOError :: IOException -> SysIOErr.IOError
 toIOError jioex =  SysIOErr.ioeSetErrorString ioErr msg
   where ioErr = SysIOErr.mkIOError type' "" Nothing Nothing
         type' | isDoesNotExistError = SysIOErr.doesNotExistErrorType
-              | instanceOf jioex EOFException =
+              | jioex `instanceOf` (undefined JClass EOFException) =
                   SysIOErr.eofErrorType
               | otherwise = SysIOErr.userErrorType
         clazz = classObject jioex
         msg   = unsafePerformJavaWith jioex getMessage
         isDoesNotExistError =
-          any (instanceOf jioex) [JClass FileNotFoundException Void,
-                                  JClass NotSuchFileException Void] ||
+          jioex `instanceOf` (undefined :: JClass FileNotFoundException) ||
+          jioex `instanceOf` (undefined :: JClass NotSuchFileException) ||
           msg == "The system cannot find the path specified"
 
 -- End java.io.IOException

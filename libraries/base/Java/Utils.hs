@@ -60,7 +60,7 @@ foreign import java unsafe "@static eta.base.Utils.convertInstanceOfObject"
   castObject :: (t <: Object, o <: Object) => o -> JClass t -> Maybe t
 
 foreign import java unsafe "@static eta.base.Utils.instanceOf"
-  instanceOf :: forall t o. (t <: Object, o <: Object) => o -> JClass t -> Bool
+  instanceOf :: (o <: Object) => o -> JClass t -> Bool
 
 {-# INLINE safeDowncast #-}
 safeDowncast :: forall a b. (Class a, Class b) => a -> Maybe b
