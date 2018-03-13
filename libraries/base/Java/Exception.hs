@@ -175,9 +175,9 @@ toIOError jioex =  fmap ioErr type'
 
         isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
         isAlreadyInUseError =
-          ( isJIOException &&
-            msg `isSubsequenceOf` ( "The process cannot access the file " ++
-            "because another process has locked a portion of the file" )) ||
+          (isJIOException && ("The process cannot access the file " ++
+                              "because another process has locked a portion of the file" )
+                              `isSubsequenceOf` msg) ||
           jioex `instanceOf` (getClass (Proxy :: Proxy OverlappingFileLockException))
         isDoesNotExistError =
           jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
