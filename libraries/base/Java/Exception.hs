@@ -27,7 +27,7 @@ import GHC.Show
 import GHC.Exception
 import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
-import Data.List (any, elem)
+import Data.List (any, elem, isSubsequenceOf)
 import Data.Either
 
 data {-# CLASS "java.lang.StackTraceElement[]" #-} StackTraceElementArray = StackTraceElementArray (Object# StackTraceElementArray)
@@ -176,8 +176,8 @@ toIOError jioex =  fmap ioErr type'
         isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
         isAlreadyInUseError =
           ( isJIOException &&
-            msg == "The process cannot access the file " ++
-            "because another process has locked a portion of the file" ) ||
+            msg `isSubsequenceOf` ( "The process cannot access the file " ++
+            "because another process has locked a portion of the file" )) ||
           jioex `instanceOf` (getClass (Proxy :: Proxy OverlappingFileLockException))
         isDoesNotExistError =
           jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
