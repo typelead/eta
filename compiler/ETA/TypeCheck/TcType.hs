@@ -153,8 +153,6 @@ module ETA.TypeCheck.TcType (
 
 #include "HsVersions.h"
 
-import System.IO.Unsafe
-
 -- friends:
 import ETA.Types.Kind
 import ETA.Types.TypeRep
@@ -1678,14 +1676,16 @@ isFunPtrTy ty = isValid (checkRepTyCon (\tc _ -> tc `hasKey` funPtrTyConKey) ty 
 checkRepTyCon :: (TyCon -> Type -> Bool) -> Type -> SDoc -> Validity
 checkRepTyCon checkTc ty extra
   = case splitTyConApp_maybe ty of
-      Just (tc, tys)
-        | isNewTyCon tc  -> NotValid (hang msg 2 (mk_nt_reason tc tys $$ nt_fix))
-        | checkTc tc ty -> IsValid
-        | otherwise      -> IsValid -- Instead of: NotValid (msg $$ extra)
-                                    -- we allow all data types to be exported.
-      Nothing -> NotValid (quotes (ppr ty) <+> ptext (sLit "is not a data type") $$ extra)
+        Just (tc, tys)
+          | isNewTyCon tc           -> NotValid (hang msg 2 (mk_nt_reason tc tys $$ nt_fix))
+          | checkTc tc ty           -> IsValid
+          | null (tyConDataCons tc) -> NotValid (nullDataConstructorMessage $$ extra)
+          | otherwise               -> IsValid
+        Nothing -> NotValid (quotes (ppr ty) <+> ptext (sLit "is not a data type") $$ extra)
   where
     msg = quotes (ppr ty) <+> ptext (sLit "cannot be marshalled in a foreign call")
+    nullDataConstructorMessage =
+      quotes (ppr ty) <+> ptext (sLit "cannot be marshalled in a foreign call, as it has no data constructors.")
     mk_nt_reason tc tys
      | null tys  = ptext (sLit "because its data construtor is not in scope")
      | otherwise = ptext (sLit "because the data construtor for")
