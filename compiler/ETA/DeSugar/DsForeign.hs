@@ -898,8 +898,6 @@ unboxResult ty resClass resPrimFt
   where resClassFt = obj resClass
 
 
--- TODO (NickSeagull): Take into account the case when a data type has no
--- type constructors like `data Empty`.
 getPrimFt :: Type -> FieldType
 getPrimFt ty = maybe (fromJust $ repFieldType_maybe ty) id (repFieldType_maybe =<< getPrimTyOf ty)
 
