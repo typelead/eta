@@ -393,9 +393,7 @@ unboxArg vs arg
       castId <- getClassCastId bound
       let typeArgs = whenExtends bound [argType, tagType]
       unboxArg vs $ mkApps (mkTyApps (Var castId) typeArgs) [Var dictId, arg]
-  | otherwise = do
-      l <- getSrcSpanDs
-      pprPanic "unboxArg: " (ppr l <+> ppr argType)
+  | otherwise = return (argType, arg, id)  --TODO: What are the implications of allowing everything here?  - NickSeagull
   where argType                          = exprType arg
         maybeProductType                 = splitDataProductType_maybe argType
         isProductType                    = isJust maybeProductType
@@ -611,9 +609,8 @@ resultWrapper extendsInfo resultType
        return ( objType
               , \e ->
                   mkApps (Var castId) (typeArgs ++ [Var dictId, wrapper e]))
-  | otherwise
-  = pprPanic "resultWrapper" (ppr resultType)
-  where maybeTcApp = splitTyConApp_maybe resultType
+  | otherwise = return (Just resultType, id)
+  where maybeTcApp = splitTyConApp_maybe resultType  -- TODO: What are the implications of allowing everything here?  - NickSeagull
 
 maybeNarrow :: TyCon -> (CoreExpr -> CoreExpr)
 maybeNarrow tycon
