@@ -157,9 +157,15 @@ data {-# CLASS "java.nio.channels.OverlappingFileLockException" #-} OverlappingF
 
 type instance Inherits OverlappingFileLockException = '[IllegalStateException]
 
-toIOError :: (ioex <: JException, ioex <: Throwable)
+class (e <: Throwable) => ToIOError e where
+  toIOError :: e -> Maybe SysIOErr.IOError
+  toIOError e = defaultToIOError e
+
+instance (e <: Throwable) => ToIOError e
+
+defaultToIOError :: (ioex <: Throwable)
           => ioex -> Maybe SysIOErr.IOError
-toIOError jioex =  fmap ioErr type'
+defaultToIOError jioex =  fmap ioErr type'
   where ioErr type' =  SysIOErr.ioeSetErrorString
                        (SysIOErr.mkIOError type' "" Nothing Nothing) msg
 
@@ -172,7 +178,7 @@ toIOError jioex =  fmap ioErr type'
               | otherwise            = Nothing
 
         msg = unsafePerformJavaWith jioex getMessage
-
+          
         isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
         isAlreadyInUseError =
           (isJIOException && ("The process cannot access the file " ++
@@ -194,10 +200,10 @@ toIOError jioex =  fmap ioErr type'
                       "Not space left on device"]              -- GCJ
 -- End java.io.IOException
 
-toSomeException :: (a <: JException) => a -> SomeException
+toSomeException :: (a <: Throwable) => a -> SomeException
 toSomeException ex = SomeException (JException (unsafeCoerce# (unobj ex)))
 
-instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException, a <: Throwable)
+instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: Throwable)
   => Exception a where
   toException x = case toIOError x of
     Nothing  -> toSomeException x
