@@ -10,8 +10,11 @@
   public static void main(java.lang.String[]);
 }
 
+-keep public class eta.runtime.stg.Closure
+-keep public class eta.runtime.stg.StgContext
+
 -keep public class ghc_prim.ghc.Types {
-  eta.runtime.stg.Closure False() ;
+  eta.runtime.stg.Closure DFalse();
 }
 
 -keep public class base.ghc.TopHandler {
@@ -19,7 +22,7 @@
 }
 
 -keep public class base.ghc.conc.Sync {
-  eta.runtime.stg.Closure runSparks() ;
+  eta.runtime.stg.Closure runSparks();
 }
 
 -keep public class base.control.exception.Base {
@@ -27,6 +30,21 @@
   eta.runtime.stg.Closure nestedAtomically();
 }
 
+-keep public class base.ghc.io.Exception {
+  eta.runtime.stg.Closure blockedIndefinitelyOnMVar();
+}
+
 -keep public class base.ghc.Weak {
-  eta.runtime.stg.Closure runFinalizerBatch();
+  eta.runtime.stg.Closure runFinalizzerBatch();
+}
+
+-keep public class ghc_prim.ghc.types.datacons.Izh {* ;}
+
+-keep public class base.java.exception.datacons.JException {* ;}
+
+-keep public class base.ghc.exception.datacons.SomeException {* ;}
+
+-keep public class base.java.Exception {
+  eta.runtime.stg.Closure $fException_JException();
+  eta.runtime.stg.Closure showException();
 }
