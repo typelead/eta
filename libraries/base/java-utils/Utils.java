@@ -41,6 +41,7 @@ import eta.runtime.RuntimeLogging;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
+import eta.runtime.stg.Capability;
 import eta.runtime.io.MemoryManager;
 
 import ghc_prim.ghc.types.datacons.Czh;
@@ -165,9 +166,9 @@ public class Utils {
     }
 
     public static boolean isNewlineCRLF() {
-        return "\r\n".equals(System.lineSeparator()); 
+        return "\r\n".equals(System.lineSeparator());
     }
-    
+
     public static void debugBelch(String format, String string) {
         RuntimeLogging.debugBelch(format, string);
     }
@@ -176,12 +177,26 @@ public class Utils {
         RuntimeLogging.errorBelch(format, string);
     }
 
+    private static boolean hasMXBean = false;
+
+    static {
+        try {
+            Class.forName("java.lang.management.ManagementFactory");
+            Class.forName("com.sun.management.OperatingSystemMXBean");
+            hasMXBean = true;
+        } catch (ClassNotFoundException cne) {}
+    }
+
     /* Returns CPU time in picoseconds */
     public static long getCPUTime() {
-        return ((OperatingSystemMXBean)
-                ManagementFactory.getOperatingSystemMXBean())
-               .getProcessCpuTime()
-               * 1000;
+        if (hasMXBean) {
+            return ((OperatingSystemMXBean)
+                    ManagementFactory.getOperatingSystemMXBean())
+                .getProcessCpuTime()
+                * 1000;
+        } else {
+            return (System.nanoTime() - Capability.startTimeNanos) * 1000;
+        }
     }
 
     public static Channel getStdOut() {

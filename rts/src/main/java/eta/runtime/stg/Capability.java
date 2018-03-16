@@ -44,6 +44,7 @@ import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugScheduler;
 
 public final class Capability implements LocalHeap {
+    public static final long startTimeNanos = System.nanoTime();
     public static List<Capability> capabilities = new ArrayList<Capability>();
     public static Set<Capability> workerCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
