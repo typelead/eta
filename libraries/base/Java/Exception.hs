@@ -25,6 +25,7 @@ import Java
 import Java.Array
 import GHC.Show
 import GHC.Exception
+import GHC.IO (catchException, throwIO)
 import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
 import Data.List (any, elem, isSubsequenceOf)
@@ -157,18 +158,12 @@ data {-# CLASS "java.nio.channels.OverlappingFileLockException" #-} OverlappingF
 
 type instance Inherits OverlappingFileLockException = '[IllegalStateException]
 
-class (e <: Throwable) => ToIOError e where
-  toIOError :: e -> Maybe SysIOErr.IOError
-  toIOError e = defaultToIOError e
-
-instance (e <: Throwable) => ToIOError e
-
-defaultToIOError :: (ioex <: Throwable)
+toIOError :: (ioex <: Throwable)
           => ioex -> Maybe SysIOErr.IOError
-defaultToIOError jioex =  fmap ioErr type'
+toIOError ex =  fmap ioErr type'
   where ioErr type' =  SysIOErr.ioeSetErrorString
                        (SysIOErr.mkIOError type' "" Nothing Nothing) msg
-
+        
         type' | isDoesNotExistError  = Just SysIOErr.doesNotExistErrorType
               | isAlreadyInUseError  = Just SysIOErr.alreadyInUseErrorType
               | isAlreadyExistsError = Just SysIOErr.alreadyExistsErrorType
@@ -177,6 +172,7 @@ defaultToIOError jioex =  fmap ioErr type'
               | isFullError          = Just SysIOErr.fullErrorType
               | otherwise            = Nothing
 
+        (jioex :: Throwable) = unsafePerformJavaWith ex getCause
         msg = unsafePerformJavaWith jioex getMessage
           
         isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
@@ -198,6 +194,19 @@ defaultToIOError jioex =  fmap ioErr type'
           msg `elem` ["There is not enough space on the disk", -- windows
                       "Not enough space",                      -- nix
                       "Not space left on device"]              -- GCJ
+
+catchJavaIOError :: IO a -> (SysIOErr.IOError -> IO a) -> IO a
+catchJavaIOError io handle =
+  catchException (SysIOErr.catchIOError io handle) $
+    \ (jex :: JException) -> case toIOError jex of
+                               Just ioerr -> handle ioerr
+                               Nothing -> throwIO jex
+
+tryJavaIOError :: IO a -> IO (Either SysIOErr.IOError a)
+tryJavaIOError f   =  catchJavaIOError (do r <- f
+                                           return (Right r))
+                      (return . Left)
+
 -- End java.io.IOException
 
 toSomeException :: (a <: Throwable) => a -> SomeException
@@ -205,9 +214,7 @@ toSomeException ex = SomeException (JException (unsafeCoerce# (unobj ex)))
 
 instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: Throwable)
   => Exception a where
-  toException x = case toIOError x of
-    Nothing  -> toSomeException x
-    Just ioErr -> toException ioErr
+  toException =  toSomeException
   fromException e = do
     jexception :: JException <- fromException e
     safeDowncast jexception
