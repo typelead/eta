@@ -100,7 +100,6 @@ buildLibrary debug binPathArg lib _deps = do
       installFlags = ["--allow-boot-library-installs"]
                   ++ nonNullString (binPathArg "../../")
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "etlas configure"
   unit $ cmd (Cwd dir) "etlas install" installFlags
   return ()
 
