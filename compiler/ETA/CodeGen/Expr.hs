@@ -341,7 +341,7 @@ cgAltRhss binder alts =
 
 bindConArgs :: AltCon -> NonVoid Id -> [Id] -> [Bool] -> CodeGen ()
 bindConArgs (DataAlt con) binder args uses
-  | not (null args), or uses
+  | not (null args'), or uses'
   , length indexedFields >= 1 = do
     dflags <- getDynFlags
     base <- getCgLoc binder
@@ -365,7 +365,10 @@ bindConArgs (DataAlt con) binder args uses
                                           | use       -> Just (i, m, arg)
                                           | otherwise -> Nothing
                                         Nothing -> Nothing)
-                        $ zip4 [1..] maybeFields args uses
+                        $ zip4 [1..] maybeFields' args' uses'
+          (args', uses', maybeFields') = unzip3
+                         $ filter (\(arg,_,_) -> not . isVoidRep $ idPrimRep arg)
+                         $ zip3 args uses maybeFields
           maybeFields  = map repFieldType_maybe $ dataConRepArgTys con
           bindFieldCgLoc arg loadCode =
             getFieldCgLoc >>= bindArg nvArg
