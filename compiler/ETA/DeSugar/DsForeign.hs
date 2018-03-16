@@ -393,9 +393,7 @@ unboxArg vs arg
       castId <- getClassCastId bound
       let typeArgs = whenExtends bound [argType, tagType]
       unboxArg vs $ mkApps (mkTyApps (Var castId) typeArgs) [Var dictId, arg]
-  | otherwise = do
-      l <- getSrcSpanDs
-      pprPanic "unboxArg: " (ppr l <+> ppr argType)
+  | otherwise = return (argType, arg, id)  --TODO: What are the implications of allowing everything here?  - NickSeagull
   where argType                          = exprType arg
         maybeProductType                 = splitDataProductType_maybe argType
         isProductType                    = isJust maybeProductType
@@ -611,9 +609,8 @@ resultWrapper extendsInfo resultType
        return ( objType
               , \e ->
                   mkApps (Var castId) (typeArgs ++ [Var dictId, wrapper e]))
-  | otherwise
-  = pprPanic "resultWrapper" (ppr resultType)
-  where maybeTcApp = splitTyConApp_maybe resultType
+  | otherwise = return (Just resultType, id)
+  where maybeTcApp = splitTyConApp_maybe resultType  -- TODO: What are the implications of allowing everything here?  - NickSeagull
 
 maybeNarrow :: TyCon -> (CoreExpr -> CoreExpr)
 maybeNarrow tycon
@@ -897,17 +894,18 @@ unboxResult ty resClass resPrimFt
              <> greturn resPrimFt
   where resClassFt = obj resClass
 
-getPrimFt :: Type -> FieldType
-getPrimFt = fromJust . repFieldType_maybe . getPrimTyOf
 
-getPrimTyOf :: Type -> UnaryType
+getPrimFt :: Type -> FieldType
+getPrimFt ty = maybe (fromJust $ repFieldType_maybe ty) id (repFieldType_maybe =<< getPrimTyOf ty)
+
+getPrimTyOf :: Type -> Maybe UnaryType
 getPrimTyOf ty
   | UnaryRep repTy <- repType ty =
       if isBoolTy repTy
-      then jboolPrimTy
+      then Just jboolPrimTy
       else case splitDataProductType_maybe repTy of
-        Just (_, _, _, [primTy]) -> primTy
-        _ -> pprPanic "DsForeign.getPrimTyOf" $ ppr ty
+        Just (_, _, _, [primTy]) -> Just primTy
+        _ -> Nothing -- pprPanic "DsForeign.getPrimTyOf" $ ppr ty
 getPrimTyOf _ = error $ "getPrimTyOf: bad getPrimTyOf"
 
 dsFWrapper :: Id -> Coercion -> CLabelString -> Bool -> DsM ([Binding], [ClassExport])
