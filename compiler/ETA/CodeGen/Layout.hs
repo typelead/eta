@@ -27,39 +27,49 @@ emitReturn results = do
   loadContext <- getContextLoc
   case sequel of
       Return         -> emit $ mkReturnExit loadContext results <> greturn closureType
-      AssignTo slots -> emitMultiAssign slots (map Right results)
+      AssignTo slots -> emitMultiAssign $ zipWith (\slot res -> AnyAssignment{from=res, to=slot}) slots (map toCode results)
+
+toCode::CgLoc->(Either Code CgLoc)
+toCode x = Right x
+
 
 emitAssign :: CgLoc -> Code -> CodeGen ()
 emitAssign cgLoc code = emit $ storeLoc cgLoc code
 
+
+data AnyAssignment a = AnyAssignment { to :: CgLoc, from :: a }
+type Assignment = (AnyAssignment (Either Code CgLoc))
+type Statement = (AnyAssignment CgLoc)
+type CodeAssignment = (AnyAssignment Code)
+-- data Assignment a = Assignment { to :: CgLoc, from :: [Either Code CgLoc] }
+
+
 -- this code is called after locs and codes are sorted topologically
-multiAssign :: [CgLoc] -> [Code] -> Code
-multiAssign locs codes = fold $ zipWith storeLoc locs codes
+multiAssign :: [CodeAssignment] -> Code
+multiAssign assignments = fold $  map ( \AnyAssignment{from=from, to =to} -> storeLoc to from ) assignments
 
--- generic way - might be used fod "any" code or known vars
-emitMultiAssign  :: [CgLoc] -> [Either Code CgLoc] -> CodeGen ()
-emitMultiAssign stores exprs =  (emit $ multiAssign (fst  codes) (snd codes) ) >> emitMultiAssignVars (fst  locs)  (snd locs)
---emitMultiAssign stores exprs =  (emit $ multiAssign stores exprs ) >> emitMultiAssignVars []  []
+
+
+-- generic way - might be used for "any" code or known vars
+emitMultiAssign::[Assignment] -> CodeGen ()
+emitMultiAssign assignments =  (emit $ multiAssign codes ) >> emitMultiAssignVars locs
     where
-        codes = codesOnly stores exprs
-        locs = cgLocsOnly stores exprs
--- emitMultiAssign (storeHead:stores) (Left exprHead:exprs) = multiAssign storeHead
--- emitMultiAssign locs codes = fold $ zipWith storeLoc locs codes
+        codes = codesOnly assignments
+        locs = cgLocsOnly assignments
 
-emitMultiAssignVars  :: [CgLoc] -> [CgLoc] -> CodeGen ()
-emitMultiAssignVars stores load = do
-    unscramble $ makeStatements stores load
+emitMultiAssignVars  :: [Statement] -> CodeGen ()
+emitMultiAssignVars assignments = unscramble $ assignments
 
 type Key  = Int
 
-data Statement = Statement { from::CgLoc, to::CgLoc}
+
 
 type Vrtx = (Key, Statement)
 
 makeStatements::[CgLoc]->[CgLoc]->[Statement]
 makeStatements [] [] = []
 makeStatements (toHead:toTail) (fromHead:fromTail) =
-    Statement { from = fromHead, to = toHead} : makeStatements toTail fromTail
+    AnyAssignment { from = fromHead, to = toHead} : makeStatements toTail fromTail
 makeStatements _ _ = panic "not matching stmts"
 
 --  this is more or less close copy of algorithm used in GHC
@@ -95,8 +105,8 @@ unscramble vertices = mapM_ do_component components
             mk_graph from_tmp
 
         split :: CgLoc -> Statement -> (Statement, Statement)
-        split uniq Statement{ from = f, to = t}
-          = (Statement{from=f, to = uniq}, Statement{from = uniq, to =t})
+        split uniq AnyAssignment{ from = f, to = t}
+          = (AnyAssignment{from=f, to = uniq}, AnyAssignment{from = uniq, to =t})
 
         mk_graph :: Statement -> CodeGen ()
         mk_graph stmt = emitAssign (to stmt) code
@@ -107,20 +117,17 @@ emitTemp::CgLoc -> CodeGen CgLoc
 emitTemp (LocLocal isClosure ft _) = newTemp isClosure ft
 emitTemp _ = panic "not implemented"
 
-codesOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [Code])
-codesOnly [] [] = ([], [])
-codesOnly (storeHead:stores) (Left exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
-    where tail = codesOnly stores exprs
-codesOnly  (_:stores) (Right _:exprs) = codesOnly stores exprs
-codesOnly _ _ = panic "unequal assigmnents"
+codesOnly::[Assignment]->[CodeAssignment]
+codesOnly []  = []
+codesOnly ((AnyAssignment{from = Left code, to=to}):tail)  = AnyAssignment{from = code, to = to}: codesOnly tail
+codesOnly (_:tail) =  codesOnly tail
 
--- so bad copy paste almost
-cgLocsOnly:: [CgLoc] -> [Either Code CgLoc] -> ([CgLoc], [CgLoc])
-cgLocsOnly [] [] = ([], [])
-cgLocsOnly (storeHead:stores) (Right exprHead:exprs) = ( storeHead : fst tail, exprHead : snd tail)
-    where tail = cgLocsOnly stores exprs
-cgLocsOnly  (_:stores) (Left _:exprs) = cgLocsOnly stores exprs
-cgLocsOnly _ _ = panic "unequal assigmnents"
+
+cgLocsOnly:: [Assignment] -> [Statement]
+cgLocsOnly []  = []
+cgLocsOnly ((AnyAssignment{from = Right loc, to=to}):tail) =  AnyAssignment{from = loc, to = to}: cgLocsOnly tail
+cgLocsOnly (_:tail) = cgLocsOnly tail
+
 
 findVarId::CgLoc->[Int]
 findVarId (LocLocal _ _ x) = [x]
