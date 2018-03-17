@@ -24,8 +24,7 @@ import GHC.Int
 import Java
 import Java.Array
 import GHC.Show
-import GHC.Exception
-import GHC.IO (catchException, throwIO)
+import Control.Exception hiding (IOException)
 import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
 import Data.List (any, elem, isSubsequenceOf)
@@ -160,9 +159,9 @@ type instance Inherits OverlappingFileLockException = '[IllegalStateException]
 
 toIOError :: (ioex <: Throwable)
           => ioex -> Maybe SysIOErr.IOError
-toIOError ex =  fmap ioErr type'
+toIOError jioex =  fmap ioErr type'
   where ioErr type' =  SysIOErr.ioeSetErrorString
-                       (SysIOErr.mkIOError type' "" Nothing Nothing) msg
+                       (SysIOErr.mkIOError type' "" Nothing Nothing) errStr
         
         type' | isDoesNotExistError  = Just SysIOErr.doesNotExistErrorType
               | isAlreadyInUseError  = Just SysIOErr.alreadyInUseErrorType
@@ -172,7 +171,7 @@ toIOError ex =  fmap ioErr type'
               | isFullError          = Just SysIOErr.fullErrorType
               | otherwise            = Nothing
 
-        (jioex :: Throwable) = unsafePerformJavaWith ex getCause
+        errStr = fromJava $ toString jioex
         msg = unsafePerformJavaWith jioex getMessage
           
         isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
@@ -196,16 +195,15 @@ toIOError ex =  fmap ioErr type'
                       "Not space left on device"]              -- GCJ
 
 catchJavaIOError :: IO a -> (SysIOErr.IOError -> IO a) -> IO a
-catchJavaIOError io handle =
-  catchException (SysIOErr.catchIOError io handle) $
-    \ (jex :: JException) -> case toIOError jex of
-                               Just ioerr -> handle ioerr
-                               Nothing -> throwIO jex
+catchJavaIOError io handle = io `catches`
+  [Handler handle, Handler (\ (ex :: JException) ->
+                               case toIOError ex of
+                                 Just ioerr -> handle ioerr
+                                 Nothing -> throwIO ex )]
 
 tryJavaIOError :: IO a -> IO (Either SysIOErr.IOError a)
-tryJavaIOError f   =  catchJavaIOError (do r <- f
-                                           return (Right r))
-                      (return . Left)
+tryJavaIOError f   =  catchJavaIOError (f >>= return . Right)
+                        (return . Left)
 
 -- End java.io.IOException
 
