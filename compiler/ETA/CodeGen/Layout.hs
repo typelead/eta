@@ -27,53 +27,42 @@ emitReturn results = do
   loadContext <- getContextLoc
   case sequel of
       Return         -> emit $ mkReturnExit loadContext results <> greturn closureType
-      AssignTo slots -> emitMultiAssign $ zipWith (\slot res -> AnyAssignment{from=res, to=slot}) slots (map toCode results)
-
-toCode::CgLoc->(Either Code CgLoc)
-toCode x = Right x
-
+      AssignTo slots -> emitMultiAssign $
+        zipWith (\slot res -> AnyAssignment{from = res, to = slot}) slots $
+          map Right results
 
 emitAssign :: CgLoc -> Code -> CodeGen ()
 emitAssign cgLoc code = emit $ storeLoc cgLoc code
 
-
 data AnyAssignment a = AnyAssignment { to :: CgLoc, from :: a }
-type Assignment = (AnyAssignment (Either Code CgLoc))
-type Statement = (AnyAssignment CgLoc)
-type CodeAssignment = (AnyAssignment Code)
--- data Assignment a = Assignment { to :: CgLoc, from :: [Either Code CgLoc] }
+type Assignment = AnyAssignment (Either Code CgLoc)
+type Statement = AnyAssignment CgLoc
+type CodeAssignment = AnyAssignment Code
 
-
--- this code is called after locs and codes are sorted topologically
 multiAssign :: [CodeAssignment] -> Code
-multiAssign assignments = fold $  map ( \AnyAssignment{from=from, to =to} -> storeLoc to from ) assignments
+multiAssign assignments =
+  fold $ map (\AnyAssignment{from=from, to =to} -> storeLoc to from) assignments
 
-
-
--- generic way - might be used for "any" code or known vars
-emitMultiAssign::[Assignment] -> CodeGen ()
-emitMultiAssign assignments =  (emit $ multiAssign codes ) >> emitMultiAssignVars locs
+emitMultiAssign :: [Assignment] -> CodeGen ()
+emitMultiAssign assignments = (emit $ multiAssign codes) >> emitMultiAssignVars locs
     where
         codes = codesOnly assignments
-        locs = cgLocsOnly assignments
+        locs  = cgLocsOnly assignments
 
 emitMultiAssignVars  :: [Statement] -> CodeGen ()
 emitMultiAssignVars assignments = unscramble $ assignments
 
 type Key  = Int
-
-
-
 type Vrtx = (Key, Statement)
 
-makeStatements::[CgLoc]->[CgLoc]->[Statement]
+makeStatements :: [CgLoc] -> [CgLoc] -> [Statement]
 makeStatements [] [] = []
 makeStatements (toHead:toTail) (fromHead:fromTail) =
     AnyAssignment { from = fromHead, to = toHead} : makeStatements toTail fromTail
 makeStatements _ _ = panic "not matching stmts"
 
 --  this is more or less close copy of algorithm used in GHC
-unscramble ::[Statement] -> CodeGen ()
+unscramble :: [Statement] -> CodeGen ()
 unscramble vertices = mapM_ do_component components
   where
         edges :: [ Node Key Vrtx ]
@@ -113,23 +102,23 @@ unscramble vertices = mapM_ do_component components
             where code = loadLoc $ from stmt
 
 
-emitTemp::CgLoc -> CodeGen CgLoc
+emitTemp :: CgLoc -> CodeGen CgLoc
 emitTemp (LocLocal isClosure ft _) = newTemp isClosure ft
 emitTemp _ = panic "not implemented"
 
-codesOnly::[Assignment]->[CodeAssignment]
+codesOnly :: [Assignment] -> [CodeAssignment]
 codesOnly []  = []
 codesOnly ((AnyAssignment{from = Left code, to=to}):tail)  = AnyAssignment{from = code, to = to}: codesOnly tail
 codesOnly (_:tail) =  codesOnly tail
 
 
-cgLocsOnly:: [Assignment] -> [Statement]
+cgLocsOnly :: [Assignment] -> [Statement]
 cgLocsOnly []  = []
 cgLocsOnly ((AnyAssignment{from = Right loc, to=to}):tail) =  AnyAssignment{from = loc, to = to}: cgLocsOnly tail
 cgLocsOnly (_:tail) = cgLocsOnly tail
 
 
-findVarId::CgLoc->[Int]
+findVarId :: CgLoc -> [Int]
 findVarId (LocLocal _ _ x) = [x]
 findVarId _ = []
 
