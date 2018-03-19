@@ -24,8 +24,11 @@ import GHC.Int
 import Java
 import Java.Array
 import GHC.Show
-import GHC.Exception
+import Control.Exception hiding (IOException)
+import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
+import Data.List (any, elem, isSubsequenceOf)
+import Data.Either
 
 data {-# CLASS "java.lang.StackTraceElement[]" #-} StackTraceElementArray = StackTraceElementArray (Object# StackTraceElementArray)
   deriving Class
@@ -37,21 +40,21 @@ instance JArray StackTraceElement StackTraceElementArray
 data {-# CLASS "java.lang.Throwable" #-} Throwable = Throwable (Object# Throwable)
   deriving Class
 
-foreign import java unsafe fillInStackTrace :: Java Throwable Throwable
+foreign import java unsafe fillInStackTrace :: (a <: Throwable) => Java a a
 
-foreign import java unsafe getCause :: Java Throwable Throwable
+foreign import java unsafe getCause :: (a <: Throwable, b <:Throwable) => Java a b
 
-foreign import java unsafe getLocalizedMessage :: Java Throwable String
+foreign import java unsafe getLocalizedMessage :: (a <: Throwable) => Java a String
 
-foreign import java unsafe getMessage :: Java Throwable String
+foreign import java unsafe getMessage :: (a <: Throwable) => Java a String
 
-foreign import java unsafe getStackTrace :: Java Throwable StackTraceElementArray
+foreign import java unsafe getStackTrace ::  (a <: Throwable) => Java a StackTraceElementArray
 
-foreign import java unsafe initCause :: Throwable -> Java Throwable Throwable
+foreign import java unsafe initCause :: (a <: Throwable, b <:Throwable) => a -> Java b b
 
-foreign import java unsafe printStackTrace :: Java Throwable ()
+foreign import java unsafe printStackTrace ::  (a <: Throwable) => Java a ()
 
-foreign import java unsafe setStackTrace :: StackTraceElementArray -> Java Throwable ()
+foreign import java unsafe setStackTrace ::  (a <: Throwable) => StackTraceElementArray -> Java a ()
 
 -- End java.lang.Throwable
 
@@ -119,11 +122,97 @@ data {-# CLASS "java.io.IOException" #-} IOException = IOException (Object# IOEx
 
 type instance Inherits IOException = '[JException]
 
+data {-# CLASS "java.nio.file.FileSystemException" #-} FileSystemException = FileSystemException (Object# FileSystemException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits FileSystemException = '[IOException]
+
+data {-# CLASS "java.io.FileNotFoundException" #-} FileNotFoundException =
+  FileNotFoundException (Object# FileNotFoundException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits FileNotFoundException = '[IOException]
+
+data {-# CLASS "java.nio.file.NoSuchFileException" #-} NoSuchFileException =
+  NoSuchFileException (Object# NoSuchFileException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits NoSuchFileException = '[FileSystemException]
+
+data {-# CLASS "java.io.EOFException" #-} EOFException =
+  EOFException (Object# EOFException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits EOFException = '[IOException]
+
+data {-# CLASS "java.nio.file.FileAlreadyExistsException" #-} FileAlreadyExistsException =
+  FileAlreadyExistsException (Object# FileAlreadyExistsException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits FileAlreadyExistsException = '[FileSystemException]
+
+data {-# CLASS "java.nio.channels.OverlappingFileLockException" #-} OverlappingFileLockException =
+  OverlappingFileLockException (Object# OverlappingFileLockException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits OverlappingFileLockException = '[IllegalStateException]
+
+toIOError :: (ioex <: Throwable)
+          => ioex -> Maybe SysIOErr.IOError
+toIOError jioex =  fmap ioErr type'
+  where ioErr type' =  SysIOErr.ioeSetErrorString
+                       (SysIOErr.mkIOError type' "" Nothing Nothing) errStr
+        
+        type' | isDoesNotExistError  = Just SysIOErr.doesNotExistErrorType
+              | isAlreadyInUseError  = Just SysIOErr.alreadyInUseErrorType
+              | isAlreadyExistsError = Just SysIOErr.alreadyExistsErrorType
+              | isPermissionError    = Just SysIOErr.permissionErrorType
+              | isEofError           = Just SysIOErr.eofErrorType
+              | isFullError          = Just SysIOErr.fullErrorType
+              | otherwise            = Nothing
+
+        errStr = fromJava $ toString jioex
+        msg = unsafePerformJavaWith jioex getMessage
+          
+        isJIOException = jioex `instanceOf` (getClass (Proxy :: Proxy IOException)) 
+        isAlreadyInUseError =
+          (isJIOException && ("The process cannot access the file " ++
+                              "because another process has locked a portion of the file" )
+                              `isSubsequenceOf` msg) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy OverlappingFileLockException))
+        isDoesNotExistError =
+          jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy NoSuchFileException)) ||
+          ( isJIOException && msg == "The system cannot find the path specified" )
+        isAlreadyExistsError =
+          ( isJIOException && msg == "File already exists" ) ||
+          jioex `instanceOf` (getClass (Proxy :: Proxy FileAlreadyExistsException))
+        isPermissionError = isJIOException && msg == "Permission denied"  
+        isEofError = jioex `instanceOf` (getClass (Proxy :: Proxy EOFException))
+        isFullError = isJIOException &&
+          msg `elem` ["There is not enough space on the disk", -- windows
+                      "Not enough space",                      -- nix
+                      "Not space left on device"]              -- GCJ
+
+catchJavaIOError :: IO a -> (SysIOErr.IOError -> IO a) -> IO a
+catchJavaIOError io handle = io `catches`
+  [Handler handle, Handler (\ (ex :: JException) ->
+                               case toIOError ex of
+                                 Just ioerr -> handle ioerr
+                                 Nothing -> throwIO ex )]
+
+tryJavaIOError :: IO a -> IO (Either SysIOErr.IOError a)
+tryJavaIOError f   =  catchJavaIOError (f >>= return . Right)
+                        (return . Left)
+
 -- End java.io.IOException
 
-instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: JException)
+toSomeException :: (a <: Throwable) => a -> SomeException
+toSomeException ex = SomeException (JException (unsafeCoerce# (unobj ex)))
+
+instance {-# OVERLAPPABLE #-} (Show a, Typeable a, a <: Throwable)
   => Exception a where
-  toException x = SomeException (JException (unsafeCoerce# (unobj x)))
+  toException =  toSomeException
   fromException e = do
     jexception :: JException <- fromException e
     safeDowncast jexception
@@ -149,4 +238,14 @@ data RuntimeException = RuntimeException @java.lang.RuntimeException
 
 type instance Inherits RuntimeException = '[JException]
 
-  -- End java.lang.RuntimeException
+-- End java.lang.RuntimeException
+
+-- Start of java.lang.IllegalStateException
+
+data {-# CLASS "java.lang.IllegalStateException" #-} IllegalStateException =
+  IllegalStateException (Object# IllegalStateException)
+  deriving (Class, Show, Typeable)
+
+type instance Inherits IllegalStateException = '[RuntimeException]
+
+-- End of java.lang.IllegalstateException
