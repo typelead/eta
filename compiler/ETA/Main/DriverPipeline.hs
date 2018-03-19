@@ -412,7 +412,7 @@ link _ dflags batchAttemptLinking hpt
        return Succeeded
 
 linkablesToJars :: [Linkable] -> [FilePath]
-linkablesToJars ls = concatMap getOfiles ls 
+linkablesToJars ls = concatMap getOfiles ls
   where getOfiles (LM _ _ us) = map nameOfObject (filter isObject us)
 
 data FFIMapping =
@@ -1359,7 +1359,7 @@ type LinkInfo = Set Fingerprint
 getLinkInfo :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO LinkInfo
 getLinkInfo dflags linkablesJars dep_packages = do
   includedPkgLibJars <- if includePackages then getPackageLibJars dflags dep_packages
-                        else return []  
+                        else return []
   mainAndManifest <- fmap (map fst) $ maybeMainAndManifest dflags isExecutable
   extras <- getExtrasFileName dflags
   mExtrasHash <- getFileHashIfExists extras
@@ -1370,13 +1370,12 @@ getLinkInfo dflags linkablesJars dep_packages = do
   return $ Set.fromList $ map fingerprintString linkInfo ++ extrasHash
   where LinkFlags { isExecutable, includePackages } = getLinkFlags dflags
 
-getFileHashIfExists :: FilePath -> IO (Maybe Fingerprint) 
+getFileHashIfExists :: FilePath -> IO (Maybe Fingerprint)
 getFileHashIfExists file = do
    exists <- doesFileExist file
    if exists then fmap Just $ getFileHash file
-   else return Nothing 
+   else return Nothing
 
-         
 getLinkInfoFile :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO (FilePath, ByteString)
 getLinkInfoFile dflags linkablesJars dep_packages = do
   linkInfo <- getLinkInfo dflags linkablesJars dep_packages
@@ -1392,7 +1391,7 @@ extractLinkInfoFromJarFile dflags linkInfoName jarFile = do
   else do
     mContent <- getEntryContentFromJar jarFile linkInfoName
     return $ fmap bsToLinkInfo mContent
-  
+
 etaLinkInfoSectionName :: String
 etaLinkInfoSectionName = ".eta-link-info"
 
