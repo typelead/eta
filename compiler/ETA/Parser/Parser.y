@@ -720,6 +720,9 @@ topdecl :: { OrdList (LHsDecl RdrName) }
                                                          ,mop $2,mcp $4] }}
         | 'foreign' fdecl          {% amsu (sLL $1 $> (snd $ unLoc $2))
                                            (mj AnnForeign $1:(fst $ unLoc $2)) }
+        -- FIXME (NickSeagull): Doesnt compile
+        | '@' JAVAANNOT fdecl      {% amsu (sLL $2 $> (snd $ unLoc $3))
+                                           (mj AnnForeign $2:(fst $ unLoc $3)) }
         | '{-# DEPRECATED' deprecations '#-}'   {% amsu (sLL $1 $> $ WarningD (Warnings (getDEPRECATED_PRAGs $1) (fromOL $2)))
                                                        [mo $1,mc $3] }
         | '{-# WARNING' warnings '#-}'          {% amsu (sLL $1 $> $ WarningD (Warnings (getWARNING_PRAGs $1) (fromOL $2)))
