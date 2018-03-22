@@ -103,27 +103,6 @@ buildLibrary debug binPathArg lib _deps = do
   unit $ cmd (Cwd dir) "etlas install" installFlags
   return ()
 
--- By default, GHC.Prim is NOT included, and we must manually add it in for
--- consistency.
-fixGhcPrimConf :: Action ()
-fixGhcPrimConf = do
-  rootDir <- getEtaRoot
-  let confDir = packageConfDir rootDir
-  (ghcPrimConf':_) <- fmap (filter ("ghc-prim" `isPrefixOf`))
-                    $ getDirectoryFiles confDir ["*.conf"]
-  let ghcPrimConf = confDir </> ghcPrimConf'
-  confStr <- readFile' ghcPrimConf
-  case parseInstalledPackageInfo confStr of
-    ParseOk warnings ipi -> do
-      mapM_ (putNormal . showPWarning ghcPrimConf) warnings
-      let ipi' = ipi { exposedModules = ExposedModule (fromString "GHC.Prim") Nothing
-                                      : exposedModules ipi }
-      writeFile' ghcPrimConf $ showInstalledPackageInfo ipi'
-      unit $ cmd "eta-pkg recache"
-    ParseFailed err -> case locatedErrorMsg err of
-                         (Nothing, s) -> putNormal s
-                         (Just l, s) -> putNormal $ show l ++ ": " ++ s
-
 -- * Testing utilities
 testSpec :: FilePath -> Action ()
 testSpec specPath = do
@@ -201,9 +180,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         Stdout result <- cmd ["git", "rev-parse", "HEAD"]
         liftIO $ writeFile (rootDir </> "commit-hash") result
         unit $ cmd ["eta-pkg","init",packageConfDir rootDir]
-        -- This errors out on an empty file for the CI, need to fix that.
-        -- unit $ cmd "etlas select local"
         unit $ cmd "etlas update"
+        unit $ cmd "etlas select local"
         etlasDir <- getEtlasDir
         let etlasToolsDir = etlasDir </> "tools"
         createDirIfMissing etlasToolsDir
