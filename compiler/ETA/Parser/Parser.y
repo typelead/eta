@@ -720,9 +720,10 @@ topdecl :: { OrdList (LHsDecl RdrName) }
                                                          ,mop $2,mcp $4] }}
         | 'foreign' fdecl          {% amsu (sLL $1 $> (snd $ unLoc $2))
                                            (mj AnnForeign $1:(fst $ unLoc $2)) }
-        -- FIXME (NickSeagull): Doesnt compile
-        | '@' JAVAANNOT fdecl      {% amsu (sLL $2 $> (snd $ unLoc $3))
-                                           (mj AnnForeign $2:(fst $ unLoc $3)) }
+        | '@' conatype javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $3))
+                                                          (mj AnnForeign $2:(fst $ unLoc $3)) }
+        | '@' conatype ';' javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $4))
+                                                          (mj AnnForeign $2:(fst $ unLoc $4)) }
         | '{-# DEPRECATED' deprecations '#-}'   {% amsu (sLL $1 $> $ WarningD (Warnings (getDEPRECATED_PRAGs $1) (fromOL $2)))
                                                        [mo $1,mc $3] }
         | '{-# WARNING' warnings '#-}'          {% amsu (sLL $1 $> $ WarningD (Warnings (getWARNING_PRAGs $1) (fromOL $2)))
@@ -1384,6 +1385,14 @@ fspec :: { Located ([AddAnn]
          -- if the entity string is missing, it defaults to the empty string;
          -- the meaning of an empty entity string depends on the calling
          -- convention
+
+javaAnnotationExported :: { Located ([AddAnn],HsDecl RdrName) }
+                        : fspec
+                                   {%  do
+                                       let callConv = noLoc JavaCallConv
+                                       declaration <- mkExport callConv (snd $ unLoc $1)
+                                       return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $1), declaration) )
+                                   }
 
 -----------------------------------------------------------------------------
 -- Type signatures
