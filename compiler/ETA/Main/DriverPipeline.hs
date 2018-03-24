@@ -1158,6 +1158,13 @@ doCpp dflags _raw input_fn output_fn = do
       return (parseOptions flags)
     liftIO $ do
       input  <- readFile input_fn
+      let options = cppOpts
+      out1 <- runCpphsPass1 options input_fn input
+      print (out1, boolopts options, defines options)
+      out2 <- runCpphsPass2 (boolopts options) (defines options) input_fn out1
+      print out2
+      out3 <- runCpphsReturningSymTab options input_fn input
+      print out3
       output <- runCpphs cppOpts input_fn input
       writeFile output_fn output
 
