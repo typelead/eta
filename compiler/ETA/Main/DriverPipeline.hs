@@ -89,7 +89,7 @@ import System.FilePath
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
-import Data.List        ( partition, nub, union , (\\))
+import Data.List        ( partition, nub, union , (\\), isInfixOf )
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Maybe
@@ -104,7 +104,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 
 import Language.Preprocessor.Unlit
-import Language.Preprocessor.Cpphs
+import qualified Hpp.CmdLine as Hpp
 
 #include "HsVersions.h"
 
@@ -845,8 +845,8 @@ runPhase (RealPhase (Cpp sf)) input_fn dflags0
            return (RealPhase (HsPp sf), input_fn)
         else do
             output_fn <- phaseOutputFilename (HsPp sf)
-            liftIO $ doCpp dflags1 True{-raw-}
-                           input_fn output_fn
+            orig_fn <- fmap src_filename getPipeEnv
+            liftIO $ doCpp dflags1 orig_fn input_fn output_fn
             -- re-read the pragmas now that we've preprocessed the file
             -- See #2464,#3457
             src_opts <- liftIO $ getOptionsFromFile dflags0 output_fn
@@ -1088,123 +1088,44 @@ getLocation src_flavour mod_name = do
 -- -----------------------------------------------------------------------------
 -- Running CPP
 
-doCpp :: DynFlags -> Bool -> FilePath -> FilePath -> IO ()
-doCpp dflags _raw input_fn output_fn = do
-    let hscpp_opts = picPOpts dflags
-    let cmdline_include_paths = includePaths dflags
-
+doCpp :: DynFlags -> FilePath -> FilePath -> FilePath -> IO ()
+doCpp dflags origFile input_fn output_fn = do
     pkg_include_dirs <- getPackageIncludePath dflags []
-    let include_paths = map ("-I" ++) . nub $
-                          cmdline_include_paths ++ pkg_include_dirs
 
-    let verbFlags = getVerbFlags dflags
-
-    -- let cpp_prog args | raw       = SysTools.runCpp dflags args
-    --                   | otherwise = SysTools.runCc dflags (SysTools.Option "-E" : args)
-    let cpp_prog_args = prune (getOpts dflags opt_P)
-                        ++ (if gopt Opt_WarnIsError dflags
-                             then []
-                             else ["--nowarn"])
-        prune :: [String] -> [String]
-        prune ("-include":xs)
-          = ("--include=" ++ head xs) : tail xs
-        prune (x:xs) = x : prune xs
-        prune [] = []
-
-    let target_defs = [] -- TODO: Deal with this
-          -- [ "-D" ++ HOST_OS     ++ "_BUILD_OS=1",
-          --   "-D" ++ HOST_ARCH   ++ "_BUILD_ARCH=1",
-          --   "-D" ++ TARGET_OS   ++ "_HOST_OS=1",
-          --   "-D" ++ TARGET_ARCH ++ "_HOST_ARCH=1" ]
-        -- remember, in code we *compile*, the HOST is the same our TARGET,
-        -- and BUILD is the same as our HOST.
-
-    let sse_defs =
-          [ "-D__SSE__=1"    | isSseEnabled    dflags ] ++
-          [ "-D__SSE2__=1"   | isSse2Enabled   dflags ] ++
-          [ "-D__SSE4_2__=1" | isSse4_2Enabled dflags ]
-
-    let avx_defs =
-          [ "-D__AVX__=1"  | isAvxEnabled  dflags ] ++
-          [ "-D__AVX2__=1" | isAvx2Enabled dflags ] ++
-          [ "-D__AVX512CD__=1" | isAvx512cdEnabled dflags ] ++
-          [ "-D__AVX512ER__=1" | isAvx512erEnabled dflags ] ++
-          [ "-D__AVX512F__=1"  | isAvx512fEnabled  dflags ] ++
-          [ "-D__AVX512PF__=1" | isAvx512pfEnabled dflags ]
-
-    backend_defs <- getBackendDefs dflags
-
-#ifdef GHCI
-    let th_defs = [ "-D__GLASGOW_HASKELL_TH__=YES" ]
-#else
-    let th_defs = [ "-D__GLASGOW_HASKELL_TH__=NO" ]
-#endif
     -- Default CPP defines in Haskell source
     etaVersionH <- getEtaVersionPathName dflags
-    let hsSourceCppOpts =
+
+    let hscpp_opts = picPOpts dflags
+        cmdline_include_paths = includePaths dflags
+
+        include_paths = map ("-I" ++) . nub $
+                          cmdline_include_paths ++ pkg_include_dirs
+
+        cpp_prog_args = getOpts dflags opt_P
+
+        verbFlags = getVerbFlags dflags
+
+#ifdef GHCI
+        th_defs = [ "-D__GLASGOW_HASKELL_TH__=YES" ]
+#else
+        th_defs = [ "-D__GLASGOW_HASKELL_TH__=NO" ]
+#endif
+        hsSourceCppOpts =
           [ "-D__GLASGOW_HASKELL__=" ++ ghcProjectVersionInt
           , "-DETA_VERSION=" ++ cProjectVersionInt
           , "-DETA_BUILD_NUMBER=" ++ cProjectPatchLevel
-          , "--include=" ++ etaVersionH
+          , "-include" ++ etaVersionH
           ]
-        flags = verbFlags   ++ include_paths ++ hsSourceCppOpts
-             ++ target_defs ++ backend_defs  ++ th_defs
-             ++ hscpp_opts  ++ sse_defs      ++ avx_defs ++ ["--strip"]
-             ++ cpp_prog_args
+        flags = verbFlags ++ include_paths ++ hsSourceCppOpts
+             ++ th_defs ++ hscpp_opts ++ cpp_prog_args
 
-    cppOpts <- either
-      (\s -> throwGhcExceptionIO $
-               ProgramError ("Preprocessing phase failed with: " ++ s))
-      return (parseOptions flags)
+        cppOpts = flags ++ [input_fn, "-o", output_fn]
     liftIO $ do
-      input  <- readFile input_fn
-      let options = cppOpts
-      out1 <- runCpphsPass1 options input_fn input
-      print (out1, boolopts options, defines options)
-      out2 <- runCpphsPass2 (boolopts options) (defines options) input_fn out1
-      print out2
-      out3 <- runCpphsReturningSymTab options input_fn input
-      print out3
-      output <- runCpphs cppOpts input_fn input
-      writeFile output_fn output
-
-    -- cpp_prog       (   map SysTools.Option verbFlags
-    --                 ++ map SysTools.Option include_paths
-    --                 ++ map SysTools.Option hsSourceCppOpts
-    --                 ++ map SysTools.Option target_defs
-    --                 ++ map SysTools.Option backend_defs
-    --                 ++ map SysTools.Option th_defs
-    --                 ++ map SysTools.Option hscpp_opts
-    --                 ++ map SysTools.Option sse_defs
-    --                 ++ map SysTools.Option avx_defs
-    --     -- Set the language mode to assembler-with-cpp when preprocessing. This
-    --     -- alleviates some of the C99 macro rules relating to whitespace and the hash
-    --     -- operator, which we tend to abuse. Clang in particular is not very happy
-    --     -- about this.
-    --                 ++ [ SysTools.Option     "-x"
-    --                    , SysTools.Option     "assembler-with-cpp"
-    --                    , SysTools.Option     input_fn
-    --     -- We hackily use Option instead of FileOption here, so that the file
-    --     -- name is not back-slashed on Windows.  cpp is capable of
-    --     -- dealing with / in filenames, so it works fine.  Furthermore
-    --     -- if we put in backslashes, cpp outputs #line directives
-    --     -- with *double* backslashes.   And that in turn means that
-    --     -- our error messages get double backslashes in them.
-    --     -- In due course we should arrange that the lexer deals
-    --     -- with these \\ escapes properly.
-    --                    , SysTools.Option     "-o"
-    --                    , SysTools.FileOption "" output_fn
-    --                    ])
-
-getBackendDefs :: DynFlags -> IO [String]
-getBackendDefs dflags | hscTarget dflags == HscLlvm = do
-    llvmVer <- figureLlvmVersion dflags
-    return $ case llvmVer of
-               Just n -> [ "-D__GLASGOW_HASKELL_LLVM__="++show n ]
-               _      -> []
-
-getBackendDefs _ =
-    return []
+      Hpp.runWithArgs cppOpts
+      when (False && "Data/Text/Lazy/Builder/Int" `isInfixOf` origFile) $ do
+      -- when ("Show" `isInfixOf` origFile) $ do
+        putStrLn $ "OUTPUT: " ++ output_fn
+        putStrLn =<< readFile output_fn
 
 -- -----------------------------------------------------------------------------
 -- Misc.

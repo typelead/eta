@@ -327,6 +327,7 @@ library
                        , transformers
                        , array
                        , containers
+                       , hpp >= 0.5.2
                        , cpphs
                        , unix-compat >= 0.4.3.1
 
