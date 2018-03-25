@@ -105,6 +105,7 @@ import qualified Data.Text as T
 
 import Language.Preprocessor.Unlit
 import qualified Hpp.CmdLine as Hpp
+import qualified Hpp.Types   as Hpp
 
 #include "HsVersions.h"
 
@@ -1121,11 +1122,18 @@ doCpp dflags origFile input_fn output_fn = do
 
         cppOpts = flags ++ [input_fn, "-o", output_fn]
     liftIO $ do
-      Hpp.runWithArgs cppOpts
-      when (False && "Data/Text/Lazy/Builder/Int" `isInfixOf` origFile) $ do
-      -- when ("Show" `isInfixOf` origFile) $ do
+      mError <- Hpp.runWithArgs cppOpts
+      case mError of
+        Just err -> throwGhcExceptionIO $ ProgramError (renderHppError origFile err)
+        _ -> return ()
+      when (False && "Directory" `isInfixOf` origFile) $ do
+      -- -- when ("Show" `isInfixOf` origFile) $ do
         putStrLn $ "OUTPUT: " ++ output_fn
         putStrLn =<< readFile output_fn
+
+-- TODO: Make this more detailed and better
+renderHppError :: FilePath -> Hpp.Error -> String
+renderHppError origFile err = origFile ++ ":\n    " ++ show err
 
 -- -----------------------------------------------------------------------------
 -- Misc.
