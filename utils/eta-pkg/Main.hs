@@ -102,7 +102,7 @@ main = do
 -- @BUILD_NUMBER@
 -- @BUILD_NUMBER_INTERNAL@
 myVersion :: String
-myVersion = "0.7.1.2"
+myVersion = "0.7.1.3"
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 
