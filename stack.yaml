@@ -8,7 +8,7 @@ extra-deps:
 - mmorph-1.0.9
 - optparse-applicative-0.13.0.0
 - git: https://github.com/rahulmutt/hpp.git
-  commit: f46b5a00b4c55792f3bebafa465e152b8a9c806b
+  commit: d510b94bc2a6154ca0faed7216cd7ecd3276abb3
 - tar-0.5.0.3
 - text-1.2.2.1
 - turtle-1.3.0
