@@ -32,7 +32,7 @@ import Data.Data
 import Data.Typeable
 
 import Data.Char
-import Prelude(minBound, maxBound)
+import Prelude(maxBound)
 
 deriving instance Typeable Byte
 
