@@ -1381,6 +1381,9 @@ fspec :: { Located ([AddAnn]
        : STRING var '::' sigtypedoc     { sLL $1 $> ([mj AnnDcolon $3]
                                              ,(L (getLoc $1)
                                                     (getSTRING $1), $2, $4)) }
+       | STRING ';' var '::' sigtypedoc     { sLL $1 $> ([mj AnnDcolon $5]
+                                             ,(L (getLoc $1)
+                                                    (getSTRING $1), $3, $5)) }
        |        var '::' sigtypedoc     { sLL $1 $> ([mj AnnDcolon $2]
                                              ,(noLoc nilFS, $1, $3)) }
          -- if the entity string is missing, it defaults to the empty string;
@@ -1388,12 +1391,20 @@ fspec :: { Located ([AddAnn]
          -- convention
 
 javaAnnotationExported :: { Located ([AddAnn],HsDecl RdrName) }
-                        : fspec
-                                   {%  do
-                                       let callConv = noLoc JavaCallConv
-                                       declaration <- mkExport callConv (snd $ unLoc $1) []
-                                       return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $1), declaration) )
-                                   }
+    : conatype ';' fspec {% do
+        let callConv = noLoc JavaCallConv
+        declaration <- mkExport callConv (snd $ unLoc $3) []
+        return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $4), declaration) )
+    }
+
+
+javaAnnotationArguments :: { Located [RdrName] }
+    : var {%
+        [sLL $1 $> (mj AnnName $1 : (fst $ unloc $1))]
+    }
+    | var ',' javaAnnotationArguments {%
+        [sLL $1 $> (mj AnnName $1 : (fst $ unloc $1))]
+    }
 
 -----------------------------------------------------------------------------
 -- Type signatures
