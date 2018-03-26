@@ -64,19 +64,18 @@ deriving instance Typeable JChar
 
 charToJChar :: Char -> Maybe JChar
 charToJChar chr
-    | minJChar <= chrVal && chrVal <= maxJChar = Just $ fromIntegral chrVal
+    | chrVal <= maxJChar = Just $ fromIntegral chrVal
     | otherwise = Nothing
-    where minJChar = fromIntegral (minBound :: JChar)
-          maxJChar = fromIntegral (maxBound :: JChar)
+    where maxJChar = fromIntegral (maxBound :: JChar)
           chrVal = ord chr
 
 jcharToChar :: JChar -> Maybe Char
 jcharToChar jchr
-    | minChar <= jchrVal && jchrVal <= maxChar = Just $ chr jchrVal
-    | otherwise = Nothing
-    where minChar = ord (minBound :: Char)
-          maxChar = ord (maxBound :: Char)
-          jchrVal = fromIntegral jchr
+  | not isSurrogate = Just $ chr jchrVal
+  | otherwise = Nothing
+  where jchrVal = fromIntegral jchr
+        -- check if JChar is reserved UTF-16 value - not a valid character
+        isSurrogate = 0xD800 <= jchrVal && jchrVal <= 0xDFFF
 
 jcharType :: DataType
 jcharType = mkIntType "Java.Primitive.JChar"
