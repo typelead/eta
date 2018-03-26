@@ -64,10 +64,12 @@ deriving instance Typeable JChar
 
 charToJChar :: Char -> Maybe JChar
 charToJChar chr
-    | chrVal <= maxJChar = Just $ fromIntegral chrVal
+    | chrVal <= maxJChar && not isSurrogate = Just $ fromIntegral chrVal
     | otherwise = Nothing
     where maxJChar = fromIntegral (maxBound :: JChar)
           chrVal = ord chr
+          -- check if Char is reserved UTF-16 value - not a valid JChar
+          isSurrogate = 0xD800 <= chrVal && chrVal <= 0xDFFF
 
 jcharToChar :: JChar -> Maybe Char
 jcharToChar jchr
