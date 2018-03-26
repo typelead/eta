@@ -17,7 +17,9 @@
 module Java.Primitive
   ( Byte(..)
   , Short(..)
-  , JChar(..) )
+  , JChar(..)
+  , charToJChar
+  , jcharToChar)
 where
 
 import GHC.Base
@@ -28,6 +30,9 @@ import Java.PrimitiveBase
 
 import Data.Data
 import Data.Typeable
+
+import Data.Char
+import Prelude(minBound, maxBound)
 
 deriving instance Typeable Byte
 
@@ -57,6 +62,22 @@ instance Data Short where
 
 deriving instance Typeable JChar
 
+charToJChar :: Char -> Maybe JChar
+charToJChar chr
+    | minJChar <= chrVal && chrVal <= maxJChar = Just $ fromIntegral chrVal
+    | otherwise = Nothing
+    where minJChar = fromIntegral (minBound :: JChar)
+          maxJChar = fromIntegral (maxBound :: JChar)
+          chrVal = ord chr
+
+jcharToChar :: JChar -> Maybe Char
+jcharToChar jchr
+    | minChar <= jchrVal && jchrVal <= maxChar = Just $ chr jchrVal
+    | otherwise = Nothing
+    where minChar = ord (minBound :: Char)
+          maxChar = ord (maxBound :: Char)
+          jchrVal = fromIntegral jchr
+
 jcharType :: DataType
 jcharType = mkIntType "Java.Primitive.JChar"
 
@@ -67,4 +88,3 @@ instance Data JChar where
                     _ -> error $ "Data.Data.gunfold: Constructor " ++ show c
                                  ++ " is not of type JChar."
   dataTypeOf _ = jcharType
-
