@@ -376,7 +376,7 @@ tcForeignExports' decls = foldlM combine (emptyLHsBinds, [], emptyBag)
           return (binds', L loc f : fs, gres1 `unionBags` gres2)
 
 tcFExport :: ForeignDecl Name -> TcM (Maybe (LHsBind Id), ForeignDecl Id, Bag GlobalRdrElt)
-tcFExport fo@(ForeignExport (L loc nm) hs_ty _ spec)
+tcFExport fo@(ForeignExport (L loc nm) hs_ty _ spec _)
   = addErrCtxt (foreignDeclCtxt fo) $ do
       sig_ty <- tcHsSigType (ForSigCtxt nm) hs_ty
       rhs <- if isSuper
@@ -385,7 +385,7 @@ tcFExport fo@(ForeignExport (L loc nm) hs_ty _ spec)
       (norm_co, norm_sig_ty, gres) <- normaliseFfiType sig_ty
       spec' <- tcCheckFEType norm_sig_ty spec
       id  <- mkStableIdFromName nm sig_ty loc mkForeignExportOcc
-      return (fmap (mkVarBind id) rhs, ForeignExport (L loc id) undefined norm_co spec', gres)
+      return (fmap (mkVarBind id) rhs, ForeignExport (L loc id) undefined norm_co spec' [], gres)
   where isSuper = isForeignExportSuper spec
 
 tcFExport d = pprPanic "tcFExport" (ppr d)

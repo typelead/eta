@@ -450,8 +450,8 @@ cvTopDecls decls = go (fromOL decls)
     go (L l (ValD b) : ds)  = L l' (ValD b') : go ds'
                             where (L l' b', ds') = getMonoBind (L l b) ds
     go (fe@(L l (ForD (ForeignExport v ty _co
-                      (CExport (L lc (CExportStatic entity _cconv))
-                               _source)))) : ds)
+                        (CExport (L lc (CExportStatic entity _cconv))
+                               _source) _))) : ds)
        | Just superRest <- stripPrefix "@super " entityStr
        , let superRest' = '$' : superRest
              entityStr' = superRest'
@@ -1465,13 +1465,16 @@ parseCImport cconv safety _nm str sourceText =
 --
 mkExport :: Located CCallConv
          -> (Located FastString, Located RdrName, LHsType RdrName)
+         -> [Located RdrName]
          -> P (HsDecl RdrName)
-mkExport (L lc cconv) (L le entity, v, ty) = do
+mkExport (L lc cconv) (L le entity, v, ty) anns = do
   checkNoPartialType (ptext (sLit "In foreign export declaration") <+>
                       quotes (ppr v) $$ ppr ty) ty
   return $ ForD (ForeignExport v ty noForeignExportCoercionYet
                  (CExport (L lc (CExportStatic entity' cconv))
-                          (L le (unpackFS entity))))
+                          (L le (unpackFS entity)))
+                 (map (\(L _ n) -> JavaAnnotation n) anns)
+                )
   where
     entity' | nullFS entity = mkExtName (unLoc v)
             | unpackFS entity == "@super" =

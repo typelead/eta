@@ -99,7 +99,7 @@ dsForeigns fdecls = do
           (bs, methodDefs) <- dsFImport (unLoc id) co spec
           return (methodDefs, bs)
         doDecl (ForeignExport (L _ id) _ co
-                              (CExport (L _ (CExportStatic extName _)) _)) = do
+                              (CExport (L _ (CExportStatic extName _)) _) _) = do
             mod    <- getModule
             envs   <- dsGetFamInstEnvs
             inheritsFamTyCon <- dsLookupTyCon inheritsFamTyConName

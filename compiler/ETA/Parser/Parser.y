@@ -708,20 +708,21 @@ topdecls :: { OrdList (LHsDecl RdrName) }
                                          >> return $1 }
         | topdecl                     { $1 }
 
+
 topdecl :: { OrdList (LHsDecl RdrName) }
         : cl_decl                               { unitOL (sL1 $1 (TyClD (unLoc $1))) }
         | ty_decl                               { unitOL (sL1 $1 (TyClD (unLoc $1))) }
         | inst_decl                             { unitOL (sL1 $1 (InstD (unLoc $1))) }
         | stand_alone_deriving                  { unitOL (sLL $1 $> (DerivD (unLoc $1))) }
         | role_annot                            { unitOL (sL1 $1 (RoleAnnotD (unLoc $1))) }
-        | 'default' '(' comma_types0 ')'    {% do { def <- checkValidDefaults $3
-                                                  ; amsu (sLL $1 $> (DefD def))
-                                                         [mj AnnDefault $1
-                                                         ,mop $2,mcp $4] }}
-        | 'foreign' fdecl          {% amsu (sLL $1 $> (snd $ unLoc $2))
-                                           (mj AnnForeign $1:(fst $ unLoc $2)) }
-        | '@' conatype javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $3))
-                                                          (mj AnnForeign $2:(fst $ unLoc $3)) }
+        | 'default' '(' comma_types0 ')'        {% do { def <- checkValidDefaults $3
+                                                      ; amsu (sLL $1 $> (DefD def))
+                                                             [mj AnnDefault $1
+                                                             ,mop $2,mcp $4] }}
+        | 'foreign' fdecl                       {% amsu (sLL $1 $> (snd $ unLoc $2))
+                                                        (mj AnnForeign $1:(fst $ unLoc $2)) }
+        | '@' conatype javaAnnotationExported   {% amsu (sLL $2 $> (snd $ unLoc $3))
+                                                        (mj AnnForeign $2:(fst $ unLoc $3)) }
         | '@' conatype ';' javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $4))
                                                           (mj AnnForeign $2:(fst $ unLoc $4)) }
         | '{-# DEPRECATED' deprecations '#-}'   {% amsu (sLL $1 $> $ WarningD (Warnings (getDEPRECATED_PRAGs $1) (fromOL $2)))
@@ -1360,7 +1361,7 @@ fdecl : 'import' callconv safety fspec
                {% do { d <- mkImport $2 (noLoc PlaySafe) (snd $ unLoc $3);
                     return (sLL $1 $> (mj AnnImport $1 : (fst $ unLoc $3),d)) }}
       | 'export' callconv fspec
-               {% mkExport $2 (snd $ unLoc $3) >>= \i ->
+               {% mkExport $2 (snd $ unLoc $3) [] >>= \i ->
                   return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $3),i) ) }
 
 callconv :: { Located CCallConv }
@@ -1390,7 +1391,7 @@ javaAnnotationExported :: { Located ([AddAnn],HsDecl RdrName) }
                         : fspec
                                    {%  do
                                        let callConv = noLoc JavaCallConv
-                                       declaration <- mkExport callConv (snd $ unLoc $1)
+                                       declaration <- mkExport callConv (snd $ unLoc $1) []
                                        return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $1), declaration) )
                                    }
 

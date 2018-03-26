@@ -57,7 +57,7 @@ module ETA.HsSyn.HsDecls (
   -- ** Foreign function interface declarations
   ForeignDecl(..), LForeignDecl, ForeignImport(..), ForeignExport(..),
   noForeignImportCoercionYet, noForeignExportCoercionYet, isForeignExportSuper,
-  CImportSpec(..),
+  CImportSpec(..), JavaAnnotation(..),
   -- ** Data-constructor declarations
   ConDecl(..), getConNames, LConDecl, ResType(..),
   HsConDeclDetails, hsConDeclArgTys,
@@ -1323,6 +1323,11 @@ instance (OutputableBndr name)
 --
 type LForeignDecl name = Located (ForeignDecl name)
 
+newtype JavaAnnotation name
+  = JavaAnnotation name
+  deriving (Typeable)
+deriving instance (DataId name) => Data (JavaAnnotation name)
+
 data ForeignDecl name
   = ForeignImport (Located name) -- defines this name
                   (LHsType name) -- sig_ty
@@ -1332,6 +1337,7 @@ data ForeignDecl name
                   (LHsType name) -- sig_ty
                   (PostTc name Coercion)  -- sig_ty ~ rep_ty
                   ForeignExport
+                  [JavaAnnotation name]
         -- ^
         --  - 'ApiAnnotation.AnnKeywordId' : 'ApiAnnotation.AnnForeign',
         --           'ApiAnnotation.AnnImport','ApiAnnotation.AnnExport',
@@ -1404,11 +1410,14 @@ data ForeignExport = CExport  (Located CExportSpec) -- contains the calling
 -- pretty printing of foreign declarations
 --
 
+instance OutputableBndr name => Outputable (JavaAnnotation name) where
+  ppr (JavaAnnotation n) = ppr n
+
 instance OutputableBndr name => Outputable (ForeignDecl name) where
   ppr (ForeignImport n ty _ fimport) =
     hang (ptext (sLit "foreign import") <+> ppr fimport <+> ppr n)
        2 (dcolon <+> ppr ty)
-  ppr (ForeignExport n ty _ fexport) =
+  ppr (ForeignExport n ty _ fexport _) =
     hang (ptext (sLit "foreign export") <+> ppr fexport <+> ppr n)
        2 (dcolon <+> ppr ty)
 

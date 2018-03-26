@@ -1158,8 +1158,8 @@ zonkForeignExports :: ZonkEnv -> [LForeignDecl TcId] -> TcM [LForeignDecl Id]
 zonkForeignExports env ls = mapM (wrapLocM (zonkForeignExport env)) ls
 
 zonkForeignExport :: ZonkEnv -> ForeignDecl TcId -> TcM (ForeignDecl Id)
-zonkForeignExport env (ForeignExport i _hs_ty co spec) =
-   return (ForeignExport (fmap (zonkIdOcc env) i) undefined co spec)
+zonkForeignExport env (ForeignExport i _hs_ty co spec _) =
+   return (ForeignExport (fmap (zonkIdOcc env) i) undefined co spec [])
 zonkForeignExport _ for_imp
   = return for_imp     -- Foreign imports don't need zonking
 

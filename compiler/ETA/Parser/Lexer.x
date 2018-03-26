@@ -707,7 +707,7 @@ data Token
   | ITblockComment    String     -- comment in {- -}
 
   -- Java annotations
-  | ITjavaannot FastString
+  | ITjavaannot         FastString
 
   deriving Show
 
