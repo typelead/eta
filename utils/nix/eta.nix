@@ -9,7 +9,7 @@ mkDerivation {
   # @VERSION_CHANGE@
   # @BUILD_NUMBER@
   # @BUILD_NUMBER_INTERNAL@
-  version = "0.7.1.1";
+  version = "0.7.1.3";
   src = ../..;
   isLibrary = true;
   isExecutable = true;

@@ -10,6 +10,7 @@
 #endif
 
 #define __GLASGOW_HASKELL_PATCHLEVEL1__ 3
+#define __GLASGOW_HASKELL_PATCHLEVEL2__ 3
 
 #define MIN_VERSION_GLASGOW_HASKELL(ma,mi,pl1,pl2) (\
   ((ma)*100+(mi)) <  __GLASGOW_HASKELL__ || \
