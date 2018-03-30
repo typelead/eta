@@ -14,7 +14,7 @@ cabal-version:       >=1.10
 
 library
   default-language:    Haskell2010
-  java-sources:        build/HSrts.jar
+  java-sources:        build/rts.jar
   ghc-options:         -this-unit-id rts
   install-includes:    etaversion.h
                        MachDeps.h
