@@ -89,7 +89,7 @@ import System.FilePath
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
-import Data.List        ( partition, nub, union , (\\), isInfixOf )
+import Data.List        ( partition, nub, union , (\\) )
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Maybe
