@@ -14,7 +14,7 @@ fi
 
 if [ "$#" -gt 0 ]; then shift; fi
 
-stack install eta eta-pkg etlas --local-bin-path="$INSTALL_DIR"
+stack install eta eta-pkg etlas eta-build --local-bin-path="$INSTALL_DIR"
 stack exec eta-build -- clean
 stack exec eta-build -- uninstall
 stack exec eta-build -- install "$@"
