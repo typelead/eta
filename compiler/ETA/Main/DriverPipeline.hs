@@ -1126,10 +1126,6 @@ doCpp dflags origFile input_fn output_fn = do
       case mError of
         Just err -> throwGhcExceptionIO $ ProgramError (renderHppError origFile err)
         _ -> return ()
-      when (False && "Directory" `isInfixOf` origFile) $ do
-      -- -- when ("Show" `isInfixOf` origFile) $ do
-        putStrLn $ "OUTPUT: " ++ output_fn
-        putStrLn =<< readFile output_fn
 
 -- TODO: Make this more detailed and better
 renderHppError :: FilePath -> Hpp.Error -> String

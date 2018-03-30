@@ -29,7 +29,7 @@ top x = "../../../../" ++ x
 top2 x = "../../" ++ x
 packageConfDir dir = dir </> "package.conf.d"
 libCustomBuildDir lib = libraryDir </> lib </> "build"
-libName lib = "HS" ++ lib ++ ".jar"
+libName lib = lib ++ ".jar"
 libJarPath lib = libCustomBuildDir lib </> libName lib
 
 getEtlasDir, getEtaRoot, getEtlasLibDir :: Action FilePath
@@ -118,7 +118,7 @@ testSpec specPath = do
              "eta -shared" ["-outputdir", "build"] ["-o", jarTestFile] command' mainTestFile
 
   let classPathsAll = jarTestFile : map libJar ["base", "rts", "ghc-prim", "integer"]
-      libJar lib = rootDir </> lib </> ("HS" ++ lib ++ ".jar")
+      libJar lib = rootDir </> lib </> (lib ++ ".jar")
       classPathFolded = intercalate ":" classPathsAll
 
   Stdout actualOutput <- cmd (Cwd testHome) "java" ["-classpath", classPathFolded] "eta.main"
