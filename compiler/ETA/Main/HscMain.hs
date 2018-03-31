@@ -725,10 +725,10 @@ batchMsg hsc_env mod_index recomp mod_summary =
         dflags = hsc_dflags hsc_env
         showMsg msg reason =
             compilationProgressMsg dflags $
-            (showModuleIndex mod_index ++
-            msg ++ showModMsg dflags (hscTarget dflags)
-                              (recompileRequired recomp) mod_summary)
-                ++ reason
+            ("\ESC[33m" ++ showModuleIndex mod_index
+             ++ msg ++ showModMsg dflags (hscTarget dflags)
+               (recompileRequired recomp) mod_summary)
+             ++ reason ++ "\ESC[0m"
 
 --------------------------------------------------------------
 -- FrontEnds

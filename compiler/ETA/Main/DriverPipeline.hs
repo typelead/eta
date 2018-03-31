@@ -406,7 +406,13 @@ link _ dflags batchAttemptLinking hpt
           linkGeneric dflags jarFiles pkgDeps
           genFFIMapFile dflags ffiMappings
           debugTraceMsg dflags 3 (text "link: done")
-          compilationProgressMsg dflags "Success!\n"
+          let numModules = length homeModInfos
+              modulesMsg
+                | numModules > 1 = show numModules ++ " modules"
+                | otherwise = show numModules ++ " module"
+          compilationProgressMsg dflags $ "\ESC[1m\ESC[32m\x2713 Successfully built "
+            ++ modulesMsg ++ ". Great hustle!\n\ESC[0m"
+
           return Succeeded
   | otherwise
   = do debugTraceMsg dflags 3
