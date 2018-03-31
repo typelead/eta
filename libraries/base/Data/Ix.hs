@@ -47,7 +47,7 @@ module Data.Ix
     -- is the same numbering defined by the 'Enum' class. For example, given
     -- the datatype:
     --
-    -- >        data Colour = Red | Orange | Yellow | Green | Blue | Indigo | Violet
+    -- >        data Color = Red | Orange | Yellow | Green | Blue | Indigo | Violet
     --
     -- we would have:
     --

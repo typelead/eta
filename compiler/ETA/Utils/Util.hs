@@ -102,6 +102,10 @@ module ETA.Utils.Util (
 
         -- * Hashing
         hashString,
+
+        -- * Utils for flags
+        OverridingBool(..),
+        overrideWith,
     ) where
 
 #include "HsVersions.h"
@@ -1141,3 +1145,14 @@ mulHi :: Int32 -> Int32 -> Int32
 mulHi a b = fromIntegral (r `shiftR` 32)
    where r :: Int64
          r = fromIntegral a * fromIntegral b
+
+data OverridingBool
+  = Auto
+  | Always
+  | Never
+  deriving Show
+
+overrideWith :: Bool -> OverridingBool -> Bool
+overrideWith b Auto   = b
+overrideWith _ Always = True
+overrideWith _ Never  = False

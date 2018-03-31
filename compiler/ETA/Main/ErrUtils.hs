@@ -13,7 +13,7 @@ module ETA.Main.ErrUtils (
         ErrMsg, WarnMsg, Severity(..),
         Messages, ErrorMessages, WarningMessages,
         errMsgSpan, errMsgContext, errMsgShortDoc, errMsgExtraInfo,
-        mkLocMessage, pprMessageBag, pprErrMsgBag, pprErrMsgBagWithLoc,
+        mkLocMessage, mkLocMessageAnn, pprMessageBag, pprErrMsgBag, pprErrMsgBagWithLoc,
         pprLocErrMsg, makeIntoWarning, isWarning,
 
         errorsFound, emptyMessages, isEmptyMessages,
@@ -22,7 +22,12 @@ module ETA.Main.ErrUtils (
         warnIsErrorMsg, mkLongWarnMsg,
 
         ghcExit,
+
+        -- * Utilities
         doIfSet, doIfSet_dyn,
+        getCaretDiagnostic,
+
+        -- * Dump files
         dumpIfSet, dumpIfSet_dyn, dumpIfSet_dyn_printer,
         mkDumpDoc, dumpSDoc,
 
@@ -44,7 +49,9 @@ import ETA.Utils.Bag              ( Bag, bagToList, isEmptyBag, emptyBag )
 import ETA.Utils.Exception
 import ETA.Utils.Outputable
 import ETA.Utils.Panic
-import ETA.Utils.FastString
+import ETA.Utils.FastString (unpackFS)
+import ETA.Utils.StringBuffer (atLine, hGetStringBuffer, len, lexemeToString)
+import qualified ETA.Utils.PprColor as Col
 import ETA.BasicTypes.SrcLoc
 import ETA.Main.DynFlags
 
@@ -59,6 +66,7 @@ import Data.Time
 import Control.Monad
 import Control.Monad.IO.Class
 import System.IO
+import System.IO.Error (catchIOError)
 
 -------------------------
 type MsgDoc  = SDoc
@@ -117,22 +125,133 @@ instance Show ErrMsg where
 pprMessageBag :: Bag MsgDoc -> SDoc
 pprMessageBag msgs = vcat (punctuate blankLine (bagToList msgs))
 
+
+-- | Make an unannotated error message with location info.
 mkLocMessage :: Severity -> SrcSpan -> MsgDoc -> MsgDoc
+mkLocMessage = mkLocMessageAnn Nothing
+
+-- | Make a possibly annotated error message with location info.
+mkLocMessageAnn
+  :: Maybe String                       -- ^ optional annotation
+  -> Severity                           -- ^ severity
+  -> SrcSpan                            -- ^ location
+  -> MsgDoc                             -- ^ message
+  -> MsgDoc
   -- Always print the location, even if it is unhelpful.  Error messages
   -- are supposed to be in a standard format, and one without a location
   -- would look strange.  Better to say explicitly "<no location info>".
-mkLocMessage severity locn msg
+mkLocMessageAnn ann severity locn msg
     = sdocWithDynFlags $ \dflags ->
       let locn' = if gopt Opt_ErrorSpans dflags
                   then ppr locn
                   else ppr (srcSpanStart locn)
-      in hang (locn' <> colon <+> sev_info) 4 msg
+
+          sevColor = getSeverityColor severity (colScheme dflags)
+
+          -- Add optional information
+          optAnn = case ann of
+            Nothing -> text ""
+            Just i  -> text " [" <> colored sevColor (text i) <> text "]"
+
+          -- Add prefixes, like    Foo.hs:34: warning:
+          --                           <the warning message>
+          header = locn' <> colon <+>
+                   colored sevColor sevText <> optAnn
+
+      in colored (Col.sMessage (colScheme dflags))
+                  (hang (colored (Col.sHeader (colScheme dflags)) header) 4
+                        msg)
+
   where
-    sev_info = case severity of
-                 SevWarning -> ptext (sLit "Warning:")
-                 _other     -> empty
-      -- For warnings, print    Foo.hs:34: Warning:
-      --                           <the warning message>
+    sevText =
+      case severity of
+        SevWarning -> text "warning:"
+        SevError   -> text "error:"
+        SevFatal   -> text "fatal:"
+        _          -> empty
+
+getSeverityColor :: Severity -> Col.Scheme -> Col.PprColor
+getSeverityColor SevWarning = Col.sWarning
+getSeverityColor SevError   = Col.sError
+getSeverityColor SevFatal   = Col.sFatal
+getSeverityColor _          = const mempty
+
+getCaretDiagnostic :: Severity -> SrcSpan -> IO MsgDoc
+getCaretDiagnostic _ (UnhelpfulSpan _) = pure empty
+getCaretDiagnostic severity (RealSrcSpan span) = do
+  caretDiagnostic <$> getSrcLine (srcSpanFile span) row
+
+  where
+    getSrcLine fn i =
+      getLine i (unpackFS fn)
+        `catchIOError` \_ ->
+          pure Nothing
+
+    getLine i fn = do
+      -- StringBuffer has advantages over readFile:
+      -- (a) no lazy IO, otherwise IO exceptions may occur in pure code
+      -- (b) always UTF-8, rather than some system-dependent encoding
+      --     (Haskell source code must be UTF-8 anyway)
+      content <- hGetStringBuffer fn
+      case atLine i content of
+        Just at_line -> pure $
+          case lines (fix <$> lexemeToString at_line (len at_line)) of
+            srcLine : _ -> Just srcLine
+            _           -> Nothing
+        _ -> pure Nothing
+
+    -- allow user to visibly see that their code is incorrectly encoded
+    -- (StringBuffer.nextChar uses \0 to represent undecodable characters)
+    fix '\0' = '\xfffd'
+    fix c    = c
+
+    row = srcSpanStartLine span
+    rowStr = show row
+    multiline = row /= srcSpanEndLine span
+
+    caretDiagnostic Nothing = empty
+    caretDiagnostic (Just srcLineWithNewline) =
+      sdocWithDynFlags $ \ dflags ->
+      let sevColor = getSeverityColor severity (colScheme dflags)
+          marginColor = Col.sMargin (colScheme dflags)
+      in
+      colored marginColor (text marginSpace) <>
+      text ("\n") <>
+      colored marginColor (text marginRow) <>
+      text (" " ++ srcLinePre) <>
+      colored sevColor (text srcLineSpan) <>
+      text (srcLinePost ++ "\n") <>
+      colored marginColor (text marginSpace) <>
+      colored sevColor (text (" " ++ caretLine))
+
+      where
+
+        -- expand tabs in a device-independent manner #13664
+        expandTabs tabWidth i s =
+          case s of
+            ""        -> ""
+            '\t' : cs -> replicate effectiveWidth ' ' ++
+                         expandTabs tabWidth (i + effectiveWidth) cs
+            c    : cs -> c : expandTabs tabWidth (i + 1) cs
+          where effectiveWidth = tabWidth - i `mod` tabWidth
+
+        srcLine = filter (/= '\n') (expandTabs 8 0 srcLineWithNewline)
+
+        start = srcSpanStartCol span - 1
+        end | multiline = length srcLine
+            | otherwise = srcSpanEndCol span - 1
+        width = max 1 (end - start)
+
+        marginWidth = length rowStr
+        marginSpace = replicate marginWidth ' ' ++ " |"
+        marginRow   = rowStr ++ " |"
+
+        (srcLinePre,  srcLineRest) = splitAt start srcLine
+        (srcLineSpan, srcLinePost) = splitAt width srcLineRest
+
+        caretEllipsis | multiline = "..."
+                      | otherwise = ""
+        caretLine = replicate start ' ' ++ replicate width '^' ++ caretEllipsis
 
 makeIntoWarning :: ErrMsg -> ErrMsg
 makeIntoWarning err = err { errMsgSeverity = SevWarning }
@@ -141,6 +260,7 @@ isWarning :: ErrMsg -> Bool
 isWarning err
   | SevWarning <- errMsgSeverity err = True
   | otherwise                        = False
+
 -- -----------------------------------------------------------------------------
 -- Collecting up messages for later ordering and printing.
 

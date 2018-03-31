@@ -11,3 +11,4 @@ unsafeGlobalDynFlags :: DynFlags
 useUnicode     :: DynFlags -> Bool
 useUnicodeSyntax     :: DynFlags -> Bool
 hasPprDebug          :: DynFlags -> Bool
+shouldUseColor       :: DynFlags -> Bool

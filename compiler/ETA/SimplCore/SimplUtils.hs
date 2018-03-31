@@ -1680,7 +1680,7 @@ case binder, for use when simplifying the alternatives.
 Eliminating the default alternative in (1) isn't so obvious, but it can
 happen:
 
-data Colour = Red | Green | Blue
+data Color = Red | Green | Blue
 
 f x = case x of
         Red -> ..

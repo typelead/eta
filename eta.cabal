@@ -82,6 +82,7 @@ library
                        , ETA.Core.MkCore
                        , ETA.Core.PprCore
                        , ETA.Core.TrieMap
+                       , ETA.Debug
                        , ETA.DeSugar.Check
                        , ETA.DeSugar.Coverage
                        , ETA.DeSugar.DeSugar
@@ -158,10 +159,13 @@ library
                        , ETA.Interactive.Linker
                        , ETA.Interactive.ObjLink
                        , ETA.Interactive.RtClosureInspect
-                       , ETA.Parser.Parse
                        , ETA.Parser.ApiAnnotation
                        , ETA.Parser.Ctype
                        , ETA.Parser.HaddockUtils
+                       , ETA.Parser.Lexer
+                       , ETA.Parser.Parse
+                       , ETA.Parser.Parser
+                       , ETA.Parser.RdrHsSyn
                        , ETA.Prelude.ForeignCall
                        , ETA.Prelude.PrelInfo
                        , ETA.Prelude.PrelNames
@@ -207,6 +211,7 @@ library
                        , ETA.StrAnal.DmdAnal
                        , ETA.StrAnal.WorkWrap
                        , ETA.StrAnal.WwLib
+                       , ETA.SysTools.Terminal
                        , ETA.TypeCheck.FamInst
                        , ETA.TypeCheck.FunDeps
                        , ETA.TypeCheck.Inst
@@ -288,6 +293,7 @@ library
                        , ETA.Utils.Pair
                        , ETA.Utils.Panic
                        , ETA.Utils.Platform
+                       , ETA.Utils.PprColor
                        , ETA.Utils.Pretty
                        , ETA.Utils.Serialized
                        , ETA.Utils.State
@@ -299,12 +305,8 @@ library
                        , ETA.Utils.UniqSet
                        , ETA.Utils.UnVarGraph
                        , ETA.Utils.Util
-                       , ETA.Debug
                        , ETA.Util
                        , ETA.Utils.JAR
-                       , ETA.Parser.Parser
-                       , ETA.Parser.Lexer
-                       , ETA.Parser.RdrHsSyn
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text

@@ -15,3 +15,5 @@ data Severity
 type MsgDoc = SDoc
 
 mkLocMessage :: Severity -> SrcSpan -> MsgDoc -> MsgDoc
+mkLocMessageAnn :: Maybe String -> Severity -> SrcSpan -> MsgDoc -> MsgDoc
+getCaretDiagnostic :: Severity -> SrcSpan -> IO MsgDoc

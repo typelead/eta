@@ -52,6 +52,7 @@ module ETA.Main.DynFlags (
         dynFlagDependencies,
         SigOf(..), getSigOf,
         makeDynFlagsConsistent,
+        shouldUseColor,
 
         Way(..), mkBuildTag, wayRTSOnly, addWay', updateWays,
         wayGeneralFlags, wayUnsetGeneralFlags,
@@ -176,11 +177,13 @@ import ETA.BasicTypes.SrcLoc
 import ETA.Utils.FastString
 import ETA.Utils.Outputable
 import ETA.Utils.JAR
+import qualified ETA.Utils.PprColor as Col
 #ifdef GHCI
 import Foreign.C        ( CInt(..) )
 import System.IO.Unsafe ( unsafeDupablePerformIO )
 #endif
-import {-# SOURCE #-} ETA.Main.ErrUtils ( Severity(..), MsgDoc, mkLocMessage )
+import {-# SOURCE #-} ETA.Main.ErrUtils ( Severity(..), MsgDoc, mkLocMessageAnn,
+                                          getCaretDiagnostic)
 
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.IORef
@@ -206,6 +209,7 @@ import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
 
 import GHC.Foreign (withCString, peekCString)
+import ETA.SysTools.Terminal
 
 -- Note [Updating flag description in the User's Guide]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -435,6 +439,7 @@ data GeneralFlag
    -- output style opts
    | Opt_ErrorSpans -- Include full span info in error messages,
                     -- instead of just the start position.
+   | Opt_DiagnosticsShowCaret -- Show snippets of offending code
    | Opt_PprCaseAsLet
    | Opt_PprShowTicks
 
@@ -875,7 +880,10 @@ data DynFlags = DynFlags {
   pprCols               :: Int,
   traceLevel            :: Int, -- Standard level is 1. Less verbose is 0.
 
-  useUnicode      :: Bool,
+  useUnicode            :: Bool,
+  useColor              :: OverridingBool,
+  canUseColor           :: Bool,
+  colScheme             :: Col.Scheme,
 
   -- | what kind of {-# SCC #-} to add automatically
   profAuto              :: ProfAuto,
@@ -1225,6 +1233,9 @@ data DynLibLoader
 data RtsOptsEnabled = RtsOptsNone | RtsOptsSafeOnly | RtsOptsAll
   deriving (Show)
 
+shouldUseColor :: DynFlags -> Bool
+shouldUseColor dflags = overrideWith (canUseColor dflags) (useColor dflags)
+
 -----------------------------------------------------------------------------
 -- Ways
 
@@ -1450,6 +1461,7 @@ initDynFlags dflags = do
                           do str' <- peekCString enc cstr
                              return (str == str'))
                          `catchIOError` \_ -> return False
+ canUseColor <- stderrSupportsAnsiColors
  return dflags { canGenerateDynamicToo       = refCanGenerateDynamicToo
                , nextTempSuffix              = refNextTempSuffix
                , filesToClean                = refFilesToClean
@@ -1459,6 +1471,7 @@ initDynFlags dflags = do
                , llvmVersion                 = refLlvmVersion
                , nextWrapperNum              = wrapperNum
                , useUnicode                  = canUseUnicode
+               , canUseColor                 = canUseColor
                , rtldInfo                    = refRtldInfo
                , rtccInfo                    = refRtccInfo
                , metrics                     = refMetrics }
@@ -1614,6 +1627,9 @@ defaultDynFlags mySettings =
         pprUserLength = 5,
         pprCols = 100,
         useUnicode = False,
+        useColor = Auto,
+        canUseColor = False,
+        colScheme = Col.defaultScheme,
         traceLevel = 1,
         profAuto = NoProfAuto,
         llvmVersion = panic "defaultDynFlags: No llvmVersion",
@@ -1657,15 +1673,27 @@ defaultLogAction dflags severity srcSpan style msg
       SevInteractive -> putStrSDoc msg style
       SevInfo        -> printErrs msg style
       SevFatal       -> printErrs msg style
-      _              -> do hPutChar stderr '\n'
-                           printErrs (mkLocMessage severity srcSpan msg) style
-                           -- careful (#2302): printErrs prints in UTF-8,
-                           -- whereas converting to string first and using
-                           -- hPutStr would just emit the low 8 bits of
-                           -- each unicode char.
+      SevWarning     -> printWarns
+      SevError       -> printWarns
     where printSDoc  = defaultLogActionHPrintDoc  dflags stdout
           printErrs  = defaultLogActionHPrintDoc  dflags stderr
           putStrSDoc = defaultLogActionHPutStrDoc dflags stdout
+
+          -- Pretty print the warning flag, if any (#10752)
+          message = mkLocMessageAnn Nothing severity srcSpan msg
+
+          printWarns = do
+            hPutChar stderr '\n'
+            caretDiagnostic <-
+                if gopt Opt_DiagnosticsShowCaret dflags
+                then getCaretDiagnostic severity srcSpan
+                else pure empty
+            printErrs (message $+$ caretDiagnostic)
+                (setStyleColored True style)
+            -- careful (#2302): printErrs prints in UTF-8,
+            -- whereas converting to string first and using
+            -- hPutStr would just emit the low 8 bits of
+            -- each unicode char.
 
 defaultLogActionHPrintDoc :: DynFlags -> Handle -> SDoc -> PprStyle -> IO ()
 defaultLogActionHPrintDoc dflags h d sty
@@ -2531,6 +2559,11 @@ dynamic_flags = [
         ------ Output style options -----------------------------------------
   , defFlag "dppr-user-length" (intSuffix (\n d -> d{ pprUserLength = n }))
   , defFlag "dppr-cols"        (intSuffix (\n d -> d{ pprCols = n }))
+  , defFlag "fdiagnostics-color=auto" (NoArg (upd (\d -> d { useColor = Auto })))
+  , defFlag "fdiagnostics-color=always"
+      (NoArg (upd (\d -> d { useColor = Always })))
+  , defFlag "fdiagnostics-color=never"
+      (NoArg (upd (\d -> d { useColor = Never })))
   , defGhcFlag "dtrace-level"  (intSuffix (\n d -> d{ traceLevel = n }))
   -- Suppress all that is suppressable in core dumps.
   -- Except for uniques, as some simplifier phases introduce new varibles that
@@ -3042,6 +3075,7 @@ fFlags = [
   flagSpec "cse"                              Opt_CSE,
   flagSpec "defer-type-errors"                Opt_DeferTypeErrors,
   flagSpec "defer-typed-holes"                Opt_DeferTypedHoles,
+  flagSpec "diagnostics-show-caret"           Opt_DiagnosticsShowCaret,
   flagSpec "dicts-cheap"                      Opt_DictsCheap,
   flagSpec "dicts-strict"                     Opt_DictsStrict,
   flagSpec "dmd-tx-dict-sel"                  Opt_DmdTxDictSel,
@@ -3303,6 +3337,7 @@ defaultFlags :: Settings -> [GeneralFlag]
 defaultFlags _
 -- See Note [Updating flag description in the User's Guide]
   = [ Opt_AutoLinkPackages,
+      Opt_DiagnosticsShowCaret,
       Opt_EmbedManifest,
       Opt_FlatCache,
       Opt_GenManifest,
