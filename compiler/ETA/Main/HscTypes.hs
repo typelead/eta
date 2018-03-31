@@ -2456,19 +2456,23 @@ instance Outputable ModSummary where
 showModMsg :: DynFlags -> HscTarget -> Bool -> ModSummary -> String
 showModMsg dflags target recomp mod_summary
   = showSDoc dflags $
-        hsep [text (mod_str ++ replicate (max 0 (16 - length mod_str)) ' '),
-              char '(', text (normalise $ msHsFilePath mod_summary) <> comma,
-              case target of
-                  HscInterpreted | recomp
-                             -> text "interpreted"
-                  HscNothing -> text "nothing"
-                  _ | HsigFile == ms_hsc_src mod_summary -> text "nothing"
-                    | otherwise -> text (normalise $ msObjFilePath mod_summary),
-              char ')']
+        hsep $ [text (mod_str ++ replicate (max 0 (16 - length mod_str)) ' ')]
+           ++ fileDetails
  where
     mod     = moduleName (ms_mod mod_summary)
     mod_str = showPpr dflags mod
                 ++ hscSourceString' dflags mod (ms_hsc_src mod_summary)
+    fileDetails
+      | verbosity dflags > 1 =
+        [char '(', text (normalise $ msHsFilePath mod_summary) <> comma,
+        case target of
+            HscInterpreted | recomp
+                       -> text "interpreted"
+            HscNothing -> text "nothing"
+            _ | HsigFile == ms_hsc_src mod_summary -> text "nothing"
+              | otherwise -> text (normalise $ msObjFilePath mod_summary),
+        char ')']
+      | otherwise = []
 
 -- | Variant of hscSourceString which prints more information for signatures.
 -- This can't live in DriverPhases because this would cause a module loop.
