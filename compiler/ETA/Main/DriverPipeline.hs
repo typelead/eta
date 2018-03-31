@@ -406,7 +406,7 @@ link _ dflags batchAttemptLinking hpt
           linkGeneric dflags jarFiles pkgDeps
           genFFIMapFile dflags ffiMappings
           debugTraceMsg dflags 3 (text "link: done")
-          compilationProgressMsg dflags "Success!"
+          compilationProgressMsg dflags "Success!\n"
           return Succeeded
   | otherwise
   = do debugTraceMsg dflags 3

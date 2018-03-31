@@ -28,7 +28,7 @@ module ETA.Main.ErrUtils (
 
         --  * Messages during compilation
         putMsg, printInfoForUser, printOutputForUser,
-        logInfo, logOutput,
+        logInfo, logOutput, logInteractive,
         errorMsg, warningMsg,
         fatalErrorMsg, fatalErrorMsg', fatalErrorMsg'',
         compilationProgressMsg,
@@ -389,7 +389,7 @@ fatalErrorMsg'' fm msg = fm msg
 compilationProgressMsg :: DynFlags -> String -> IO ()
 compilationProgressMsg dflags msg
   = ifVerbose dflags 1 $
-    logOutput dflags defaultUserStyle (text msg)
+    logInteractive dflags defaultUserStyle (text ("\r\ESC[K" ++ msg ++ "\ESC[0m"))
 
 showPass :: DynFlags -> String -> IO ()
 showPass dflags what
@@ -417,6 +417,10 @@ logInfo dflags sty msg = log_action dflags dflags SevInfo noSrcSpan sty msg
 logOutput :: DynFlags -> PprStyle -> MsgDoc -> IO ()
 -- Like logInfo but with SevOutput rather then SevInfo
 logOutput dflags sty msg = log_action dflags dflags SevOutput noSrcSpan sty msg
+
+logInteractive :: DynFlags -> PprStyle -> MsgDoc -> IO ()
+-- Like logInfo but with SevOutput rather then SevInfo
+logInteractive dflags sty msg = log_action dflags dflags SevInteractive noSrcSpan sty msg
 
 prettyPrintGhcErrors :: ExceptionMonad m => DynFlags -> m a -> m a
 prettyPrintGhcErrors dflags
