@@ -50,6 +50,9 @@ colCyanFg = colCustom "36"
 colWhiteFg :: PprColor
 colWhiteFg = colCustom "37"
 
+colEtaFg :: PprColor
+colEtaFg = colCustom "38;5;31"
+
 data Scheme =
   Scheme
   { sHeader  :: PprColor
@@ -68,7 +71,7 @@ defaultScheme =
   , sWarning = colBold `mappend` colMagentaFg
   , sError   = colBold `mappend` colRedFg
   , sFatal   = colBold `mappend` colRedFg
-  , sMargin  = colBold `mappend` colBlueFg
+  , sMargin  = colBold `mappend` colEtaFg
   }
 
 -- | Parse the color scheme from a string (presumably from the @GHC_COLORS@
