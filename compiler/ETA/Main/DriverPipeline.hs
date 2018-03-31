@@ -93,6 +93,8 @@ import Data.List        ( partition, nub, union , (\\) )
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Maybe
+import Data.Time.Clock.POSIX
+import Data.Int
 -- import System.Environment
 -- import Data.Char
 -- import Data.List (isPrefixOf)
@@ -410,15 +412,25 @@ link _ dflags batchAttemptLinking hpt
               modulesMsg
                 | numModules > 1 = show numModules ++ " modules"
                 | otherwise = show numModules ++ " module"
+          randomSource <- fmap round getPOSIXTime
+          let encMessage = getEncouragingMessage randomSource
           compilationProgressMsg dflags $ "\ESC[1m\ESC[32m\x2713 Successfully built "
-            ++ modulesMsg ++ ". Great hustle!\n\ESC[0m"
-
+            ++ modulesMsg ++ ". " ++ encMessage ++ "\ESC[0m\n"
           return Succeeded
   | otherwise
   = do debugTraceMsg dflags 3
          (text "link(batch): upsweep (partially) failed OR" $$
           text "   Main.main not exported; not linking.")
        return Succeeded
+
+getEncouragingMessage :: Int64 -> String
+getEncouragingMessage randomSource =
+  messages !! fromIntegral (randomSource `rem` (fromIntegral (length messages)))
+  where messages = ["Great Hustle!"
+                   ,"Happy Hacking!"
+                   ,"Way To Go!"
+                   ,"Keep Hustling!"
+                   ,"Mission Accomplished!"]
 
 linkablesToJars :: [Linkable] -> [FilePath]
 linkablesToJars ls = concatMap getOfiles ls
