@@ -401,10 +401,12 @@ link _ dflags batchAttemptLinking hpt
              (str "is up to date, linking not required."))
           return Succeeded
         else do
-          compilationProgressMsg dflags ("Linking " ++ jarFile ++ " ...")
+          when (verbosity dflags > 1) $
+            compilationProgressMsg dflags ("Linking " ++ jarFile ++ " ...")
           linkGeneric dflags jarFiles pkgDeps
           genFFIMapFile dflags ffiMappings
           debugTraceMsg dflags 3 (text "link: done")
+          compilationProgressMsg dflags "Success!"
           return Succeeded
   | otherwise
   = do debugTraceMsg dflags 3
