@@ -400,8 +400,8 @@ data GeneralFlag
    | Opt_HideAllPackages
    | Opt_HideAllPluginPackages
    | Opt_PrintBindResult
-   | Opt_Haddock
-   | Opt_HaddockOptions
+   | Opt_EtaDoc
+   | Opt_EtaDocOptions
    | Opt_Hpc_No_Auto
    | Opt_BreakOnException
    | Opt_BreakOnError
@@ -872,7 +872,7 @@ data DynFlags = DynFlags {
   flushOut              :: FlushOut,
   flushErr              :: FlushErr,
 
-  haddockOptions        :: Maybe String,
+  etadocOptions         :: Maybe String,
   ghciScripts           :: [String],
 
   -- Output style options
@@ -1583,7 +1583,7 @@ defaultDynFlags mySettings =
         dirsToClean    = panic "defaultDynFlags: No dirsToClean",
         filesToNotIntermediateClean = panic "defaultDynFlags: No filesToNotIntermediateClean",
         generatedDumps = panic "defaultDynFlags: No generatedDumps",
-        haddockOptions = Nothing,
+        etadocOptions = Nothing,
         dumpFlags = IntSet.empty,
         generalFlags = IntSet.fromList (map fromEnum (defaultFlags mySettings)),
         warningFlags = IntSet.fromList (map fromEnum standardWarnings),
@@ -1992,7 +1992,7 @@ setObjectDir, setHiDir, setStubDir, setDumpDir, setOutputDir,
          setDylibInstallName,
          setObjectSuf, setHiSuf, setHcSuf, parseDynLibLoaderMode,
          setPgmP, addOptl, addOptc, addOptP,
-         addCmdlineFramework, addHaddockOpts, addGhciScript,
+         addCmdlineFramework, addEtaDocOpts, addGhciScript,
          setInteractivePrint
    :: String -> DynFlags -> DynFlags
 setOutputFile, setDynOutputFile, setOutputHi, setDumpPrefixForce
@@ -2106,7 +2106,7 @@ addDepSuffix s d = d { depSuffixes = s : depSuffixes d }
 
 addCmdlineFramework f d = d{ cmdlineFrameworks = f : cmdlineFrameworks d}
 
-addHaddockOpts f d = d{ haddockOptions = Just f}
+addEtaDocOpts f d = d{ etadocOptions = Just f}
 
 addGhciScript f d = d{ ghciScripts = f : ghciScripts d}
 
@@ -2534,8 +2534,10 @@ dynamic_flags = [
   , defGhcFlag "rtsopts=none"   (NoArg (setRtsOptsEnabled RtsOptsNone))
   , defGhcFlag "no-rtsopts"     (NoArg (setRtsOptsEnabled RtsOptsNone))
   , defGhcFlag "main-is"        (SepArg setMainIs)
-  , defGhcFlag "haddock"        (NoArg (setGeneralFlag Opt_Haddock))
-  , defGhcFlag "haddock-opts"   (hasArg addHaddockOpts)
+  , defGhcFlag "haddock"        (NoArg (setGeneralFlag Opt_EtaDoc))
+  , defGhcFlag "haddock-opts"   (hasArg addEtaDocOpts)
+  , defGhcFlag "etadoc"         (NoArg (setGeneralFlag Opt_EtaDoc))
+  , defGhcFlag "etadoc-opts"    (hasArg addEtaDocOpts)
   , defGhcFlag "hpcdir"         (SepArg setOptHpcDir)
   , defGhciFlag "ghci-script"    (hasArg addGhciScript)
   , defGhciFlag "interactive-print" (hasArg setInteractivePrint)

@@ -2126,7 +2126,7 @@ mkPState flags buf loc =
                .|. IpBit                       `setBitIf` xopt Opt_ImplicitParams           flags
                .|. ExplicitForallBit           `setBitIf` xopt Opt_ExplicitForAll           flags
                .|. BangPatBit                  `setBitIf` xopt Opt_BangPatterns             flags
-               .|. HaddockBit                  `setBitIf` gopt Opt_Haddock                  flags
+               .|. HaddockBit                  `setBitIf` gopt Opt_EtaDoc                  flags
                .|. MagicHashBit                `setBitIf` xopt Opt_MagicHash                flags
                .|. KindSigsBit                 `setBitIf` xopt Opt_KindSignatures           flags
                .|. RecursiveDoBit              `setBitIf` xopt Opt_RecursiveDo              flags
@@ -2510,7 +2510,7 @@ reportLexError loc1 loc2 buf str
 
 lexTokenStream :: StringBuffer -> RealSrcLoc -> DynFlags -> ParseResult [Located Token]
 lexTokenStream buf loc dflags = unP go initState
-    where dflags' = gopt_set (gopt_unset dflags Opt_Haddock) Opt_KeepRawTokenStream
+    where dflags' = gopt_set (gopt_unset dflags Opt_EtaDoc) Opt_KeepRawTokenStream
           initState = mkPState dflags' buf loc
           go = do
             ltok <- lexer False return

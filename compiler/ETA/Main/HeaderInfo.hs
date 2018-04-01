@@ -146,9 +146,9 @@ getOptionsFromFile dflags filename
           -- left at the end of a buffer then the haddock doc may
           -- continue past the end of the buffer, despite the fact that
           -- we already have an apparently-complete token.
-          -- We therefore just turn Opt_Haddock off when doing the lazy
+          -- We therefore just turn Opt_EtaDoc off when doing the lazy
           -- lex.
-          dflags' = gopt_unset dflags Opt_Haddock
+          dflags' = gopt_unset dflags Opt_EtaDoc
 
 blockSize :: Int
 -- blockSize = 17 -- for testing :-)
