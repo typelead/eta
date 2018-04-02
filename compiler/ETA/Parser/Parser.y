@@ -721,10 +721,11 @@ topdecl :: { OrdList (LHsDecl RdrName) }
                                                              ,mop $2,mcp $4] }}
         | 'foreign' fdecl                       {% amsu (sLL $1 $> (snd $ unLoc $2))
                                                         (mj AnnForeign $1:(fst $ unLoc $2)) }
-        | '@' conatype javaAnnotationExported   {% amsu (sLL $2 $> (snd $ unLoc $3))
-                                                        (mj AnnForeign $2:(fst $ unLoc $3)) }
-        | '@' conatype ';' javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $4))
-                                                          (mj AnnForeign $2:(fst $ unLoc $4)) }
+--         | '@' conatype javaAnnotationExported   {% amsu (sLL $2 $> (snd $ unLoc $3))
+--                                                         (mj AnnForeign $2:(fst $ unLoc $3)) }
+--         | '@' conatype ';' javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $4))
+--                                                           (mj AnnForeign $2:(fst $ unLoc $4)) }
+        | annotated_declaration                 {% amsu ( fmap snd $1 ) [mj AnnForeign $1] }
         | '{-# DEPRECATED' deprecations '#-}'   {% amsu (sLL $1 $> $ WarningD (Warnings (getDEPRECATED_PRAGs $1) (fromOL $2)))
                                                        [mo $1,mc $3] }
         | '{-# WARNING' warnings '#-}'          {% amsu (sLL $1 $> $ WarningD (Warnings (getWARNING_PRAGs $1) (fromOL $2)))
@@ -1361,7 +1362,7 @@ fdecl : 'import' callconv safety fspec
                {% do { d <- mkImport $2 (noLoc PlaySafe) (snd $ unLoc $3);
                     return (sLL $1 $> (mj AnnImport $1 : (fst $ unLoc $3),d)) }}
       | 'export' callconv fspec
-               {% mkExport $2 (snd $ unLoc $3) [] >>= \i ->
+               {% mkExport $2 (snd $ unLoc $3) ( L (getLoc $1) [] ) >>= \i ->
                   return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $3),i) ) }
 
 callconv :: { Located CCallConv }
@@ -1390,21 +1391,44 @@ fspec :: { Located ([AddAnn]
          -- the meaning of an empty entity string depends on the calling
          -- convention
 
+annotated_declaration :: { Located ( [AddAnn], (HsDecl RdrName)) }
+    : java_annotations fspec {% do
+        let callConv = noLoc JavaCallConv
+        declaration <- mkExport callConv (snd $ unLoc $2) $1
+        return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $2), declaration) )
+    }
+
+java_annotations :: { Located [RdrName] }
+    : '@' conatype ';' java_annotations {% do
+        let nameLocation = getLoc $2
+        case (unLoc $2) of
+            HsTyVar name -> return (L nameLocation $ [name] ++ (unLoc $4))
+            _ -> return (L nameLocation [])
+    }
+    | '@' conatype ';' {% do
+        let nameLocation = getLoc $2
+        case (unLoc $2) of
+            HsTyVar name -> return (L nameLocation [name])
+            _ -> return (L nameLocation [])
+    }
+
+
+
 javaAnnotationExported :: { Located ([AddAnn],HsDecl RdrName) }
     : conatype ';' fspec {% do
         let callConv = noLoc JavaCallConv
-        declaration <- mkExport callConv (snd $ unLoc $3) []
-        return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $4), declaration) )
+        declaration <- mkExport callConv (snd $ unLoc $3) ( L (getLoc $1) [] )
+        return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $3), declaration) )
     }
 
 
-javaAnnotationArguments :: { Located [RdrName] }
-    : var {%
-        [sLL $1 $> (mj AnnName $1 : (fst $ unloc $1))]
-    }
-    | var ',' javaAnnotationArguments {%
-        [sLL $1 $> (mj AnnName $1 : (fst $ unloc $1))]
-    }
+-- javaAnnotationArguments :: { [Located [AddAnn]] }  -- FIXME: Wrong type
+--     : var {
+--         [sLL $1 $> (mj AnnName $1 : (fst $ unLoc $1))]
+--     }
+--     | var ',' javaAnnotationArguments {
+--         [sLL $1 $> (mj AnnName $1 : (fst $ unLoc $1))]
+--     }
 
 -----------------------------------------------------------------------------
 -- Type signatures

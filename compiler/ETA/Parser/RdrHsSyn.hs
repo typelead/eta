@@ -1465,15 +1465,20 @@ parseCImport cconv safety _nm str sourceText =
 --
 mkExport :: Located CCallConv
          -> (Located FastString, Located RdrName, LHsType RdrName)
-         -> [Located RdrName]
+         -> Located [RdrName]
          -> P (HsDecl RdrName)
 mkExport (L lc cconv) (L le entity, v, ty) anns = do
   checkNoPartialType (ptext (sLit "In foreign export declaration") <+>
                       quotes (ppr v) $$ ppr ty) ty
-  return $ ForD (ForeignExport v ty noForeignExportCoercionYet
+  let loc = getLoc $ anns
+  let doc = ppr $ unLoc $ anns
+  let w = True
+  if w
+    then failSpanMsgP loc doc
+    else return $ ForD (ForeignExport v ty noForeignExportCoercionYet
                  (CExport (L lc (CExportStatic entity' cconv))
                           (L le (unpackFS entity)))
-                 (map (\(L _ n) -> JavaAnnotation n) anns)
+                 (map (JavaAnnotation) (unLoc anns))
                 )
   where
     entity' | nullFS entity = mkExtName (unLoc v)
