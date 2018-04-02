@@ -87,11 +87,11 @@ jobs:
           command: ./gradlew test
 
       - run: stack setup
-      - run: stack build --test --no-run-tests eta
+      - run: stack build eta-test
 
       - run:
           name: Running unit tests
-          command: stack test eta
+          command: stack exec eta-test
 
   release_container:
     <<: *defaults
