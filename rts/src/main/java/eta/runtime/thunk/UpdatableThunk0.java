@@ -1,6 +1,6 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Closure;
+import eta.UpdatableThunk;
 
 public abstract class UpdatableThunk0 extends UpdatableThunk {
 

@@ -1,5 +1,7 @@
 package eta.runtime.stg;
 
+import eta.Closure;
+import eta.runtime.Capability;
 import eta.runtime.Runtime;
 import eta.runtime.thunk.*;
 import eta.runtime.exception.TrampolineBounceException;

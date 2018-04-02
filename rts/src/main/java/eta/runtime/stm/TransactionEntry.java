@@ -1,6 +1,6 @@
 package eta.runtime.stm;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
 
 public class TransactionEntry {
     public TVar    tvar;

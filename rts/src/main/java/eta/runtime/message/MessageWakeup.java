@@ -1,7 +1,7 @@
 package eta.runtime.message;
 
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 
 public final class MessageWakeup extends Message {
 

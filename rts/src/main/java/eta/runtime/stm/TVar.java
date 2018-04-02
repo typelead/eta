@@ -3,15 +3,12 @@ package eta.runtime.stm;
 import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.StgContext;
+import eta.runtime.Capability;
+import eta.Closure;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Value;
+import eta.Value;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
-import static eta.runtime.RuntimeLogging.barf;
 
 public class TVar extends Value {
     public volatile Closure currentValue;

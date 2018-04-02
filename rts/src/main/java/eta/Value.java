@@ -1,5 +1,6 @@
-package eta.runtime.stg;
+package eta;
 
+import eta.runtime.stg.StgContext;
 import static eta.runtime.RuntimeLogging.barf;
 
 public abstract class Value extends Closure {

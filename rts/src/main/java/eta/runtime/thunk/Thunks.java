@@ -1,7 +1,7 @@
 package eta.runtime.thunk;
 
+import eta.Thunk;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.WeakHashMap;
 
 public class Thunks {

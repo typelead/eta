@@ -3,11 +3,9 @@ package eta.runtime.storage;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-
 import java.util.Iterator;
 import java.util.List;
-
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 
 public class ManagedHeapTest {
 

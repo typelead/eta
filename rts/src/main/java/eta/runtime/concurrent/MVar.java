@@ -1,12 +1,9 @@
 package eta.runtime.concurrent;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.Value;
+import eta.Closure;
+import eta.Value;
 import eta.runtime.util.UnsafeUtil;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
 

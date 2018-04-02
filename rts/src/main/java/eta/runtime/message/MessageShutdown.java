@@ -1,6 +1,6 @@
 package eta.runtime.message;
 
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 
 public class MessageShutdown extends Message {
 

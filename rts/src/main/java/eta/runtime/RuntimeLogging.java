@@ -1,11 +1,8 @@
 package eta.runtime;
 
-import eta.runtime.Runtime;
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.TSO;
 import eta.runtime.exception.RuntimeInternalError;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RuntimeLogging {

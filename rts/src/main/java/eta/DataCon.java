@@ -1,4 +1,7 @@
-package eta.runtime.stg;
+package eta;
+
+import eta.runtime.stg.Print;
+import eta.runtime.stg.StgContext;
 
 import static eta.runtime.RuntimeLogging.barf;
 

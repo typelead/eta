@@ -1,15 +1,14 @@
-package eta.runtime.exception;
+package eta.exception;
 
 import java.util.Arrays;
-import java.util.ListIterator;
-
-import eta.runtime.stg.Capability;
+import eta.Closure;
+import eta.runtime.exception.StgException;
+import eta.runtime.exception.EtaAsyncException;
+import eta.runtime.Capability;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
 import eta.runtime.thunk.UpdateInfo;
-
 import eta.runtime.Runtime;
 import eta.runtime.message.MessageBlackHole;
 import eta.runtime.message.MessageThrowTo;

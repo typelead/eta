@@ -1,7 +1,6 @@
 package eta.runtime.storage;
 
 import java.util.Arrays;
-
 import static eta.runtime.util.Report.*;
 
 public class Span {

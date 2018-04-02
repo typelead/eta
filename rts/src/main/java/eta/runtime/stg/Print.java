@@ -1,7 +1,7 @@
 package eta.runtime.stg;
 
+import eta.Closure;
 import java.lang.reflect.Field;
-
 import java.util.Arrays;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;

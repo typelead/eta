@@ -2,7 +2,7 @@ package eta.runtime.stg;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-
+import eta.Closure;
 import eta.runtime.thunk.ApO;
 import eta.runtime.thunk.Ap1Upd;
 import eta.runtime.thunk.Ap2Upd;
@@ -11,8 +11,6 @@ import eta.runtime.thunk.Ap4Upd;
 import eta.runtime.thunk.Ap5Upd;
 import eta.runtime.thunk.Ap6Upd;
 import eta.runtime.thunk.Ap7Upd;
-import eta.runtime.exception.EtaException;
-import eta.runtime.exception.EtaAsyncException;
 import static eta.runtime.stg.TSO.WhatNext.*;
 
 /* - Utilies for working with Closures from the Java side.

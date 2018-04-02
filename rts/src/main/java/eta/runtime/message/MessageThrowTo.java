@@ -3,11 +3,10 @@ package eta.runtime.message;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
-import eta.runtime.exception.Exception;
+import eta.runtime.Capability;
+import eta.Closure;
+import eta.exception.Exception;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
-import static eta.runtime.concurrent.Concurrent.SPIN_COUNT;
 
 public class MessageThrowTo extends Message {
     public final TSO source;

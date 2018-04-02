@@ -2,7 +2,7 @@ package eta.integer;
 
 import java.math.BigInteger;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.Closure;
+import eta.Closure;
 
 public class Utils {
     /**

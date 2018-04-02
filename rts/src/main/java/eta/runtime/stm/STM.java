@@ -2,16 +2,14 @@ package eta.runtime.stm;
 
 import java.util.Queue;
 import java.util.LinkedList;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import eta.exception.EtaException;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
+import eta.runtime.Capability;
+import eta.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
-import eta.runtime.exception.Exception;
+import eta.exception.Exception;
 import eta.runtime.exception.StgException;
-import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
 import eta.runtime.exception.RetryException;
 

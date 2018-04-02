@@ -1,10 +1,28 @@
 package eta.runtime.thunk;
 
+import eta.Thunk;
+
 public class UpdateInfo {
-    Thunk      updatee;
-    boolean    marked;
+    private Thunk updatee;
+    private boolean    marked;
     UpdateInfo next;
     UpdateInfo prev;
+
+    public Thunk getUpdatee() {
+        return updatee;
+    }
+
+    public void setUpdatee(Thunk updatee) {
+        this.updatee = updatee;
+    }
+
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
+    }
 
     public UpdateInfo(Thunk updatee) {
         this.updatee = updatee;

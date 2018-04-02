@@ -1,7 +1,7 @@
-package eta.runtime.thunk;
+package eta;
 
-import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.thunk.UpdateInfo;
 
 public abstract class UpdatableThunk extends Thunk {
 
@@ -28,7 +28,7 @@ public abstract class UpdatableThunk extends Thunk {
                     context.popUpdate();
                     context.trampoline = trampoline;
                 }
-                if (ui.marked) {
+                if (ui.isMarked()) {
                     return updateCode(context, result);
                 } else {
                     updateWithIndirection(result);

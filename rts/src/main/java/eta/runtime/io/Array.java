@@ -1,7 +1,7 @@
 package eta.runtime.io;
 
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.Value;
+import eta.Closure;
+import eta.Value;
 
 public final class Array extends Value {
     public Closure[] arr;

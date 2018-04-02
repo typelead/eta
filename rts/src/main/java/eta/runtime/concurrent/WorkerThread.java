@@ -1,6 +1,6 @@
 package eta.runtime.concurrent;
 
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 
 public class WorkerThread extends Thread {
 

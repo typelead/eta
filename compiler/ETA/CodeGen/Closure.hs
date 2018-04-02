@@ -71,7 +71,7 @@ lfClass hasStdLayout _arity fvs (LFThunk {..}) =
           | hasStdLayout = T.pack (show fvs)
           | otherwise = mempty
 lfClass hasStdLayout args fvs (LFReEntrant {..})
-  = stgFun <> funExt
+  = etaFun <> funExt
   where funExt
           | hasStdLayout = T.pack (show args) <> fvsText
           | args <= 6    = T.pack (show args)

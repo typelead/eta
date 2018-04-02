@@ -15,8 +15,10 @@ import qualified Data.Text as T
 merge :: Text -> Text -> Text
 merge x y = T.append x . T.cons '/' $ y
 
-rts, apply, thunk, stg, exception, io, util, stm, par, interp, conc :: Text -> Text
+rts, eta, etaex, apply, thunk, stg, exception, io, util, stm, par, interp, conc :: Text -> Text
 rts       = merge "eta/runtime"
+eta       = merge "eta"
+etaex     = merge "eta/exception"
 apply     = merge (rts "apply")
 thunk     = merge (rts "thunk")
 stg       = merge (rts "stg")
@@ -32,16 +34,16 @@ closureType, indStaticType, contextType, capabilityType, taskType, funType, tsoT
   frameType, conType, thunkType, rtsConfigType, exitCodeType,
   rtsOptsEnbledType, stgArrayType, stgByteArrayType, stgMutVarType, stgMVarType,
   hsResultType, stgTVarType, stgBCOType, stgWeakType :: FieldType
-closureType       = obj stgClosure
+closureType       = obj etaClosure
 indStaticType     = obj stgIndStatic
 contextType       = obj stgContext
 capabilityType    = obj capability
 taskType          = obj task
-funType           = obj stgFun
+funType           = obj etaFun
 tsoType           = obj stgTSO
 frameType         = obj stackFrame
-conType           = obj stgConstr
-thunkType         = obj stgThunk
+conType           = obj etaDataCon
+thunkType         = obj etaThunk
 rtsConfigType     = obj rtsConfig
 rtsOptsEnbledType = obj rtsOptsEnbled
 exitCodeType      = obj exitCode
@@ -54,19 +56,19 @@ hsResultType      = obj hsResult
 stgBCOType        = obj stgBCO
 stgWeakType       = obj stgWeak
 
-stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
-  stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
+etaDataCon, etaClosure, stgContext, capability, task, stgInd, stgIndStatic, etaThunk,
+  etaFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
   stgBCO, stgWeak :: Text
-stgConstr     = stg "DataCon"
-stgClosure    = stg "Closure"
+etaDataCon    = eta "DataCon"
+etaClosure    = eta "Closure"
 stgContext    = stg "StgContext"
-capability    = stg "Capability"
+capability    = rts "Capability"
 task          = stg "Task"
-stgInd        = thunk "UpdatableThunk"
+stgInd        = eta "UpdatableThunk"
 stgIndStatic  = thunk "CAF"
-stgThunk      = thunk "Thunk"
-stgFun        = apply "Function"
+etaThunk      = eta  "Thunk"
+etaFun        = eta "Function"
 stgTSO        = stg "TSO"
 stackFrame    = stg "StackFrame"
 rtsConfig     = rts "RtsConfig"
@@ -206,7 +208,7 @@ resumeInterruptsMethod :: Code
 resumeInterruptsMethod =
   invokevirtual $ mkMethodRef stgTSO "resumeInterrupts" [jbool] void
 
-stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup, stgGroup :: Text
+stgExceptionGroup, ioGroup, stmGroup, concGroup, parGroup, interpGroup, stgGroup, applyGroup :: Text
 stgExceptionGroup = exception "Exception"
 ioGroup = io "IO"
 stmGroup = stm "STM"
@@ -214,6 +216,7 @@ concGroup = conc "Concurrent"
 stgGroup = stg "Stg"
 parGroup = par "Parallel"
 interpGroup = interp "Interpreter"
+applyGroup = apply "Apply"
 
 -- Types
 byteArrayBuf :: Code
@@ -275,7 +278,7 @@ getTagMethod :: Code -> Code
 getTagMethod code
   = code
  <> gconv closureType conType
- <> invokevirtual (mkMethodRef stgConstr "getTag" [] (ret jint))
+ <> invokevirtual (mkMethodRef etaDataCon "getTag" [] (ret jint))
 
 printStream :: Text
 printStream = "java/io/PrintStream"

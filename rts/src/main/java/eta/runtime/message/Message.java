@@ -1,6 +1,6 @@
 package eta.runtime.message;
 
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 
 public abstract class Message {
     protected volatile boolean valid = true;

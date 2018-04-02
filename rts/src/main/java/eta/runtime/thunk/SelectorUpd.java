@@ -1,7 +1,8 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.DataCon;
+import eta.Closure;
+import eta.DataCon;
+import eta.UpdatableThunk;
 import eta.runtime.stg.StgContext;
 
 public abstract class SelectorUpd extends UpdatableThunk {

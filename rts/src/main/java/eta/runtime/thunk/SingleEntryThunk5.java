@@ -1,6 +1,6 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
 
 public abstract class SingleEntryThunk5 extends SingleEntryThunk {
     public Closure x1;

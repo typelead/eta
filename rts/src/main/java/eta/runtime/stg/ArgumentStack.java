@@ -1,5 +1,6 @@
 package eta.runtime.stg;
 
+import eta.Closure;
 import java.util.Arrays;
 
 public class ArgumentStack implements Cloneable {

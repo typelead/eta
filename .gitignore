@@ -19,3 +19,8 @@ utils/scripts/lib/
 release.log
 binaries/
 .gradle
+.idea
+rts/.classpath
+rts/.project
+rts/.settings/
+rts/rts.iml

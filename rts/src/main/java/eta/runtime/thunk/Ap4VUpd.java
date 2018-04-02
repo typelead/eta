@@ -1,6 +1,7 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
+import eta.UpdatableThunk;
 import eta.runtime.stg.StgContext;
 
 public class Ap4VUpd extends UpdatableThunk {

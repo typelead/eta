@@ -1,12 +1,8 @@
 package eta.runtime.interpreter;
 
-import eta.runtime.stg.Value;
-import eta.runtime.stg.StgContext;
-import eta.runtime.stg.Closure;
+import eta.Value;
 import eta.runtime.io.Array;
 import eta.runtime.io.ByteArray;
-
-import static eta.runtime.RuntimeLogging.barf;
 
 public class BCO extends Value {
     public final ByteArray instrs;

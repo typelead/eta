@@ -2,13 +2,11 @@ package eta.runtime.parallel;
 
 import java.util.Deque;
 import java.util.concurrent.LinkedBlockingDeque;
-
 import eta.runtime.Runtime;
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
+import eta.runtime.Capability;
+import eta.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
-import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.RuntimeLogging.debugScheduler;
 
 public class Parallel {

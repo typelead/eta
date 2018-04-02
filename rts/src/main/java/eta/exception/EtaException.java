@@ -1,6 +1,7 @@
-package eta.runtime.exception;
+package eta.exception;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
+import eta.runtime.exception.StgException;
 import eta.runtime.stg.Closures;
 
 public class EtaException extends StgException {
