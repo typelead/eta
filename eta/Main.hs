@@ -38,7 +38,6 @@ import System.IO.Unsafe
 import System.Environment
 import System.Exit
 import System.FilePath
-import System.Directory
 import Control.Monad
 import Data.Char
 import Data.List
@@ -705,19 +704,6 @@ showVersion = do
   where gitHash | null cProjectGitCommitId = Nothing
                 | otherwise = Just cProjectGitCommitId
         gitHashMessage = maybe "" (", Git Revision " ++ ) gitHash
-
-cProjectGitCommitId :: String
-cProjectGitCommitId = unsafePerformIO $ do
-  appdir <- getAppUserDataDirectory "eta"
-  let hashFile = appdir </> cProjectVersionNumbers </> "commit-hash"
-  exists <- doesFileExist hashFile
-  if exists
-    then do
-      result <- fmap lines $ readFile hashFile
-      case result of
-        (x:_) -> return x
-        _     -> return ""
-    else return ""
 
 showOptions :: Bool -> IO ()
 showOptions isInteractive = putStr (unlines availableOptions)

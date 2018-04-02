@@ -1,6 +1,6 @@
 name:                eta
 -- @VERSION_CHANGE@
-version:             0.7.1
+version:             0.7.1.3
 description:         Modern Haskell on the JVM
 license:             BSD3
 license-file:        LICENSE
@@ -307,13 +307,12 @@ library
                        , ETA.Utils.Util
                        , ETA.Util
                        , ETA.Utils.JAR
+                       , Paths_eta
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , text
-                       -- @VERSION_CHANGE@
-                       , eta-boot == 0.7.1
-                       -- @VERSION_CHANGE@
-                       , eta-boot-th == 0.7.1
+                       , eta-boot
+                       , eta-boot-th
                        , deepseq    >= 1.4 && < 1.5
                        , time       >= 1.4 && < 1.7
                        , process    >= 1   && < 1.3
@@ -332,6 +331,7 @@ library
                        , hpp >= 0.5.2
                        , cpphs
                        , unix-compat >= 0.4.3.1
+                       , gitrev
 
     if os(windows)
         build-depends:   Win32

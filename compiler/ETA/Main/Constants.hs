@@ -3,27 +3,35 @@
 
 \section[Constants]{Info about this compilation}
 -}
-
+{-# LANGUAGE TemplateHaskell #-}
 module ETA.Main.Constants where
 
+import Paths_eta (version)
+import Data.Version (versionBranch)
+import Development.GitRev
 
 hiVersion :: Integer
 hiVersion = read cProjectVersionInt :: Integer
 
-cProjectName, cProjectVersion, cProjectVersionNumbers, cProjectVersionInt, cProjectPatchLevel, cProjectPatchLevel1, cProjectPatchLevel2, cProjectHomeURL, cProjectIssueReportURL, ghcProjectVersion, ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2
+cProjectName, cProjectVersion, cProjectVersionNumbers, cProjectVersionInt, cProjectPatchLevel, cProjectPatchLevel1, cProjectPatchLevel2, cProjectHomeURL, cProjectIssueReportURL, ghcProjectVersion, ghcProjectVersionInt, ghcprojectPatchLevel, ghcProjectPatchLevel1, ghcProjectPatchLevel2, cProjectGitCommitId
   :: String
 cProjectName = "The Eta Programming Language Compiler"
--- @VERSION_CHANGE@
-cProjectVersion = "0.7.1b" ++ cProjectPatchLevel
-cProjectVersionNumbers = "0.7.1." ++ cProjectPatchLevel
-cProjectVersionInt = "71"
--- @BUILD_NUMBER@
--- @BUILD_NUMBER_INTERNAL@
-cProjectPatchLevel = "3"
-cProjectPatchLevel1 = "3"
+cProjectVersion = show maj ++ "." ++ show minor ++ "." ++ show patch ++ "b"
+               ++ cProjectPatchLevel
+  where [maj,minor,patch,_] = versionBranch version
+cProjectVersionNumbers = show maj ++ "." ++ show minor ++ "." ++ show patch ++ "."
+                     ++ cProjectPatchLevel
+  where [maj,minor,patch,_] = versionBranch version
+cProjectVersionInt = show (maj * 100 + minor * 10 + patch)
+  where [maj,minor,patch,_] = versionBranch version
+
+cProjectPatchLevel = show (last (versionBranch version))
+cProjectPatchLevel1 = cProjectPatchLevel
 cProjectPatchLevel2 = ""
 cProjectHomeURL = "http://github.com/typelead/eta"
 cProjectIssueReportURL = cProjectHomeURL ++ "/issues"
+cProjectGitCommitId = $(gitHash)
+
 ghcProjectVersion = "7.10.3"
 ghcProjectVersionInt = "710"
 ghcprojectPatchLevel = "3"
