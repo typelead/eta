@@ -236,18 +236,10 @@ initSysTools mbMinusB
 -- returns a Unix-format path (relying on getBaseDir to do so too)
 findTopDir :: Maybe String -- Maybe TopDir path (without the '-B' prefix).
            -> IO String    -- TopDir (in Unix format '/' separated)
+findTopDir (Just minusb) = return (normalise minusb)
 findTopDir _ = do
   appdir <- getAppUserDataDirectory "eta"
   return $ appdir </> cProjectVersionNumbers
-
--- findTopDir (Just minusb) = return (normalise minusb)
--- findTopDir Nothing
---     = do -- Get directory of executable
---          maybe_exec_dir <- getBaseDir
---          case maybe_exec_dir of
---              -- "Just" on Windows, "Nothing" on unix
---              Nothing  -> throwGhcExceptionIO (InstallationError "missing -B<dir> option")
---              Just dir -> return dir
 
 {-
 ************************************************************************
