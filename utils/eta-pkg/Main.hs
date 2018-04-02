@@ -51,6 +51,7 @@ import qualified Control.Exception as Exception
 import Data.Maybe
 
 import Data.Char ( isSpace, toLower )
+import Data.Version (showVersion)
 import Control.Monad
 import System.Directory ( doesDirectoryExist, getDirectoryContents,
                           doesFileExist, removeFile,
@@ -67,6 +68,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 import qualified Data.ByteString.Char8 as BS
+import Paths_eta_pkg (version)
 
 -- | Short-circuit 'any' with a \"monadic predicate\".
 anyM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
@@ -98,11 +100,8 @@ main = do
            prog <- getProgramName
            die (concat errors ++ shortUsage prog)
 
--- @VERSION_CHANGE@
--- @BUILD_NUMBER@
--- @BUILD_NUMBER_INTERNAL@
 myVersion :: String
-myVersion = "0.7.1.3"
+myVersion = showVersion version
 -- -----------------------------------------------------------------------------
 -- Command-line syntax
 
