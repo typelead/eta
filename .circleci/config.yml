@@ -87,7 +87,7 @@ jobs:
           command: ./gradlew test
 
       - run: stack setup
-      - run: stack build eta-test
+      - run: stack build eta:exe:eta-test
 
       - run:
           name: Running unit tests

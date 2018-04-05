@@ -14,4 +14,4 @@ if "%~1" NEQ "" (
  shift
  goto :parse_args
 )
-stack install eta eta-pkg etlas eta-build --local-bin-path="%INSTALL_DIR%" && stack exec eta-build -- clean && stack exec eta-build -- uninstall && stack exec eta-build -- install %ARG_LINE%
+stack install eta:exe:eta eta-pkg etlas eta-build --local-bin-path="%INSTALL_DIR%" && stack exec eta-build -- clean && stack exec eta-build -- uninstall && stack exec eta-build -- install %ARG_LINE%
