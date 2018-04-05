@@ -61,20 +61,21 @@ lfStandardForm args fvs
 
 lfClass :: Bool -> Int -> Int -> LambdaFormInfo -> Text
 lfClass hasStdLayout _arity fvs (LFThunk {..}) =
-  "eta/runtime/thunk/" <> thunkBase <> thunkExt
+  "eta/" <> thunkBase <> thunkExt
   where thunkBase
-          | isTopLevel lfTopLevelFlag = "CAF"
+          | isTopLevel lfTopLevelFlag = "runtime/thunk/CAF"
           | lfUpdatable               = "UpdatableThunk"
-          | otherwise                 = "SingleEntryThunk"
+          | otherwise                 = "runtime/thunk/SingleEntryThunk"
         thunkExt
           | isTopLevel lfTopLevelFlag = mempty
-          | hasStdLayout = T.pack (show fvs)
+          | hasStdLayout = T.pack ((++) (show fvs) "runtime/thunk/")
           | otherwise = mempty
+
 lfClass hasStdLayout args fvs (LFReEntrant {..})
-  = etaFun <> funExt
+  = "eta/runtime/apply/Function" <> funExt
   where funExt
           | hasStdLayout = T.pack (show args) <> fvsText
-          | args <= 6    = T.pack (show args)
+          | args <= 6    = T.pack ((show args))
           | otherwise    = mempty
         fvsText
           | fvs > 0   = "_" <> T.pack (show fvs)
