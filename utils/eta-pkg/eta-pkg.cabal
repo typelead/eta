@@ -20,6 +20,7 @@ cabal-version: >=1.10
 executable eta-pkg
     default-language: Haskell2010
     main-is: Main.hs
+    other-modules: Paths_eta_pkg
 
     ghc-options: -Wall -fno-warn-name-shadowing -Werror
 
