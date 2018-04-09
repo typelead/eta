@@ -1,8 +1,8 @@
 package eta.runtime.apply;
 
+import eta.Function;
 import eta.runtime.stg.Print;
-import eta.runtime.stg.Value;
-import eta.runtime.stg.Closure;
+import eta.Value;
 
 public abstract class PAP extends Value {
     public Function fun;

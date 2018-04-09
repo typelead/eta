@@ -1,4 +1,4 @@
-package eta.runtime.stg;
+package eta.runtime;
 
 import java.util.List;
 import java.util.LinkedList;
@@ -12,15 +12,11 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import java.lang.ref.WeakReference;
-
-import eta.runtime.Runtime;
-import eta.runtime.io.IO;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.concurrent.Concurrent;
 import eta.runtime.concurrent.WorkerThread;
-import eta.runtime.exception.Exception;
+import eta.exception.Exception;
 import eta.runtime.exception.FiberYieldException;
 import eta.runtime.interpreter.Interpreter;
 import eta.runtime.message.Message;
@@ -29,12 +25,15 @@ import eta.runtime.message.MessageThrowTo;
 import eta.runtime.message.MessageShutdown;
 import eta.runtime.message.MessageWakeup;
 import eta.runtime.parallel.Parallel;
+import eta.Closure;
+import eta.runtime.stg.Closures;
+import eta.runtime.stg.StgContext;
+import eta.runtime.stg.TSO;
 import eta.runtime.storage.Block;
 import eta.runtime.storage.LocalHeap;
 import eta.runtime.thunk.BlockingQueue;
-import eta.runtime.thunk.Thunk;
+import eta.Thunk;
 import eta.runtime.thunk.UpdateInfo;
-import eta.runtime.thunk.WhiteHole;
 import eta.runtime.util.MPSCLongQueue;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhatNext;

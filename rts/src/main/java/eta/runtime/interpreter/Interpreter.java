@@ -1,8 +1,6 @@
 package eta.runtime.interpreter;
 
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.TSO;
+import eta.runtime.Capability;
 import eta.runtime.stg.StgContext;
 import eta.runtime.io.Array;
 import eta.runtime.io.ByteArray;

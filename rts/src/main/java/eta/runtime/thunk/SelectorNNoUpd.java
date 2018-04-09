@@ -1,9 +1,8 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.DataCon;
-
+import eta.DataCon;
 
 public class SelectorNNoUpd extends SelectorNoUpd {
 

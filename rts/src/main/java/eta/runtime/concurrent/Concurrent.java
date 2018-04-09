@@ -16,15 +16,13 @@ import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.ClosedChannelException;
-
 import eta.runtime.Runtime;
-import eta.runtime.stg.Stg;
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.io.MemoryManager;
-import eta.runtime.exception.Exception;
+import eta.exception.Exception;
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhyBlocked;

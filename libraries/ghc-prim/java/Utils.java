@@ -1,7 +1,6 @@
 package eta.ghc_prim;
 
 import java.nio.ByteBuffer;
-
 import eta.runtime.io.MemoryManager;
 
 public class Utils {

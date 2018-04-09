@@ -1,17 +1,9 @@
 package eta.runtime;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Properties;
-
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.WeakPtr;
-import eta.runtime.io.MemoryManager;
-import eta.runtime.exception.RuntimeInternalError;
-
 
 public class Runtime {
 

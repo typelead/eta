@@ -1,7 +1,8 @@
 package eta.runtime.thunk;
 
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.Closure;
+import eta.Thunk;
+import eta.runtime.Capability;
+import eta.Closure;
 import eta.runtime.stg.TSO;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
 
@@ -47,14 +48,14 @@ public class UpdateInfoStack {
 
     private final UpdateInfo grabFreeUpdateInfo(Thunk updatee) {
         UpdateInfo ui = free;
-        ui.updatee = updatee;
+        ui.setUpdatee(updatee);
         free = free.prev;
         return ui;
     }
 
     public final Thunk pop() {
         UpdateInfo ui = top;
-        Thunk res = ui.updatee;
+        Thunk res = ui.getUpdatee();
         adjustAfterPop(ui);
         free = ui.reset(free);
         return res;
@@ -86,9 +87,9 @@ public class UpdateInfoStack {
     public final UpdateInfo markBackwardsFrom(Capability cap, TSO tso) {
         UpdateInfo ui = top;
         UpdateInfo suspend = null;
-        while (ui != null && !ui.marked) {
-            ui.marked = true;
-            Thunk bh = ui.updatee;
+        while (ui != null && !ui.isMarked()) {
+            ui.setMarked(true);
+            Thunk bh = ui.getUpdatee();
             do {
                 Closure p = bh.indirectee;
                 if (p != null) {

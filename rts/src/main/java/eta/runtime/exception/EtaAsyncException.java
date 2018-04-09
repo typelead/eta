@@ -1,6 +1,6 @@
 package eta.runtime.exception;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.thunk.UpdateInfo;
 

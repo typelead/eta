@@ -1,7 +1,8 @@
 package eta.runtime.apply;
 
+import eta.Function;
 import eta.runtime.stg.Print;
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.StgContext;
 
 public class PAP1_1 extends PAP {

@@ -6,13 +6,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.List;
 import java.util.HashSet;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-
 import java.nio.ByteOrder;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -35,20 +33,17 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 import eta.runtime.Runtime;
 import eta.runtime.RuntimeLogging;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
-import eta.runtime.stg.Closure;
-import eta.runtime.stg.Capability;
+import eta.Closure;
+import eta.runtime.Capability;
 import eta.runtime.io.MemoryManager;
-
 import ghc_prim.ghc.types.datacons.Czh;
 import ghc_prim.ghc.types.datacons.ZC;
 import ghc_prim.ghc.types.tycons.ZMZN;
 import ghc_prim.ghc.Types;
-
 import java.lang.management.ManagementFactory;
 import com.sun.management.OperatingSystemMXBean;
 

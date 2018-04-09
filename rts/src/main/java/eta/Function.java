@@ -1,11 +1,10 @@
-package eta.runtime.apply;
+package eta;
 
+import eta.runtime.apply.PAPSlow;
+import eta.runtime.apply.PAP1_1;
 import eta.runtime.stg.Print;
-import eta.runtime.stg.Value;
-import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ArgumentStack;
-
 import static eta.runtime.RuntimeLogging.barf;
 
 public abstract class Function extends Value {

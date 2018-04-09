@@ -1,8 +1,8 @@
 package eta.runtime.message;
 
 import eta.runtime.stg.TSO;
-import eta.runtime.stg.Capability;
-import eta.runtime.thunk.Thunk;
+import eta.runtime.Capability;
+import eta.Thunk;
 
 public final class MessageBlackHole extends Message {
 

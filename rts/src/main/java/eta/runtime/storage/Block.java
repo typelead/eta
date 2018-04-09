@@ -2,8 +2,7 @@ package eta.runtime.storage;
 
 import java.util.List;
 import java.nio.ByteBuffer;
-
-import eta.runtime.stg.Capability;
+import eta.runtime.Capability;
 
 public class Block {
     private long startAddress;

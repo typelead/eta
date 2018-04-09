@@ -230,7 +230,7 @@ slowCall dflags loadContext fun argFtCodes
   where n            = length argFtCodes
         ft           = locFt fun
         code         = loadLoc fun
-        realCls      = fromMaybe stgClosure $ locClass fun
+        realCls      = fromMaybe etaClosure $ locClass fun
         (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
         slowCode     = directCall' loadContext True True realCls
                          (mkApFast arity realCls fts)
@@ -239,7 +239,7 @@ slowCall dflags loadContext fun argFtCodes
 directCall :: Code -> Type -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
 directCall loadContext funType fun arity argFtCodes
   | Just staticCode <- loadStaticMethod fun argFts
-  = directCall' loadContext True True stgClosure
+  = directCall' loadContext True True etaClosure
       staticCode arity ((P, Nothing, Nothing):argFtCodes)
   | arity' == arity =
     directCall' loadContext True True realCls (mkApFast arity' realCls fts) arity'
@@ -249,7 +249,7 @@ directCall loadContext funType fun arity argFtCodes
         code         = loadLoc fun
         ft           = locFt fun
         entryCode    = enterMethod loadContext fun
-        realCls      = fromMaybe stgClosure $ locClass fun
+        realCls      = fromMaybe etaClosure $ locClass fun
         argFts'      = catMaybes . take arity $ map (\(_,ft,_) -> ft) argFtCodes
         -- All this logic is to get around some weird issues with
         -- the java monad type inlining. Ideally, argFts = staticFts
@@ -308,7 +308,7 @@ genApplyCall :: Code -> Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe C
 genApplyCall loadContext arity fts args =
      loadContext
   <> fold loadCodes
-  <> mkApFast arity stgClosure fts
+  <> mkApFast arity etaClosure fts
   where loadCodes = mapMaybe (\(_, _, a) -> a) args
 
 getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]

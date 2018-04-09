@@ -3,11 +3,9 @@ package eta.runtime.io;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.PhantomReference;
-
-import eta.runtime.stg.Closure;
+import eta.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.thunk.Ap2Upd;

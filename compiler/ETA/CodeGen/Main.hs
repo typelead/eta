@@ -246,7 +246,7 @@ externaliseId _dflags id = do
 cgTyCon :: TyCon -> CodeGen ()
 cgTyCon tyCon = unless (null dataCons) $ do
     dflags <- getDynFlags
-    (_, CgState {..}) <- newTypeClosure (tyConClass dflags tyCon) stgConstr
+    (_, CgState {..}) <- newTypeClosure (tyConClass dflags tyCon) etaDataCon
     mapM_ (cgDataCon cgClassName) dataCons
     when (isEnumerationTyCon tyCon) $
       cgEnumerationTyCon cgClassName tyCon

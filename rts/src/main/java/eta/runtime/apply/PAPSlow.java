@@ -1,10 +1,10 @@
 package eta.runtime.apply;
 
-import eta.runtime.stg.Value;
-import eta.runtime.stg.Closure;
+import eta.Function;
+import eta.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ArgumentStack;
-import static eta.runtime.RuntimeLogging.barf;
+
 import static eta.runtime.stg.ArgumentStack.*;
 
 public class PAPSlow extends PAP {

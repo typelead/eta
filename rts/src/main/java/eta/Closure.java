@@ -1,11 +1,7 @@
-package eta.runtime.stg;
+package eta;
 
+import eta.runtime.stg.StgContext;
 import java.io.Serializable;
-
-import eta.runtime.stg.Capability;
-import eta.runtime.stg.TSO;
-import eta.runtime.thunk.Thunk;
-
 import static eta.runtime.RuntimeLogging.barf;
 
 public abstract class Closure implements Serializable {

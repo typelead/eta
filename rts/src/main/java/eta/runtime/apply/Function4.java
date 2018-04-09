@@ -1,6 +1,7 @@
 package eta.runtime.apply;
 
-import eta.runtime.stg.Closure;
+import eta.Function;
+import eta.Closure;
 import eta.runtime.stg.StgContext;
 
 public class Function4 extends Function {

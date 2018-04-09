@@ -1,6 +1,6 @@
 package eta.runtime.apply;
 
-import eta.runtime.stg.Closure;
+import eta.Closure;
 
 public class Function4_1 extends Function4 {
     public Closure x1;

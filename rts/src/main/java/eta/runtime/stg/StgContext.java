@@ -1,10 +1,10 @@
 package eta.runtime.stg;
 
 import java.util.Arrays;
-
-import eta.runtime.thunk.Thunk;
+import eta.Closure;
+import eta.Thunk;
+import eta.runtime.Capability;
 import eta.runtime.thunk.UpdateInfo;
-
 import static eta.runtime.RuntimeLogging.barf;
 import static eta.runtime.stg.ArgumentStack.*;
 
