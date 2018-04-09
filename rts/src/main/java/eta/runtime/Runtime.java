@@ -202,7 +202,7 @@ public class Runtime {
         minWorkerCapabilityIdleTime = rto.getInt(MIN_WORKER_CAPABILITY_IDLE_TIME, 1000);
         gcOnWeakPtrFinalization = rto.getBoolean(GC_ON_WEAK_PTR_FINALIZATION, false);
         maxLocalSparks = rto.getInt(MAX_LOCAL_SPARKS, 4096);
-        tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 30);
+        tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 10000);
     }
 
     static {
