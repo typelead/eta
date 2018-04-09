@@ -3,8 +3,7 @@
 }:
 mkDerivation {
   pname = "eta-build";
-  # @VERSION_CHANGE@
-  version = "0.7.1";
+  version = "0.0.0";
   src = ../../shake;
   isLibrary = false;
   isExecutable = true;
