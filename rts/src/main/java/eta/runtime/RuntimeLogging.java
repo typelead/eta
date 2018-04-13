@@ -57,6 +57,10 @@ public class RuntimeLogging {
         debugGeneric("Scheduler", msg, args);
     }
 
+    public static void debugMVar(String msg, Object... args) {
+        debugGeneric("MVar", msg, args);
+    }
+
     public static void debugSTM(String msg, Object... args) {
         debugGeneric("STM", msg, args);
     }

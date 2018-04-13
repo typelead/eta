@@ -40,8 +40,7 @@ import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhatNext;
 import static eta.runtime.stg.TSO.WhatNext.*;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
-import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.RuntimeLogging.debugScheduler;
+import static eta.runtime.RuntimeLogging.*;
 
 public final class Capability implements LocalHeap {
     public static final long startTimeNanos = System.nanoTime();
@@ -100,6 +99,8 @@ public final class Capability implements LocalHeap {
     public final WeakReference<Thread> thread;
     public StgContext context   = new StgContext();
     public Deque<TSO> runQueue  = new LinkedList<TSO>();
+    public int  lastWorkSize;
+    public long lastBlockCheck;
     public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
 
     /* MemoryManager related stuff */
@@ -142,17 +143,16 @@ public final class Capability implements LocalHeap {
                - Deadlock detection. Be able to detect <<loop>>.
             */
             if (emptyRunQueue()) {
-
-                if (worker && workerCapabilitiesSize() > Runtime.getMaxWorkerCapabilities()) {
-                    /* Terminate this Worker Capability if we've exceeded the limit
-                       of maxWorkerCapabilities. */
-                    return null;
-                }
-
                 tryStealGlobalRunQueue();
                 if (emptyRunQueue()) {
                     activateSpark();
                     if (emptyRunQueue()) {
+                        if (worker && workerCapabilitiesSize() >
+                            Runtime.getMaxWorkerCapabilities()) {
+                            /* Terminate this Worker Capability if we've exceeded the
+                               limit of maxWorkerCapabilities. */
+                            return null;
+                        }
                         blockedCapabilities.add(this);
                         do {
                             blockedLoop(Runtime.getMinWorkerCapabilityIdleTimeNanos());
@@ -524,13 +524,16 @@ public final class Capability implements LocalHeap {
             MemoryManager.maybeFreeNativeMemory();
 
             /* Check if there are any deadlocked MVars. */
-            if (tso != null) detectMVarDeadlock(tso.whyBlocked);
+            if (tso != null) detectMVarDeadlock(tso.whyBlocked, tso.blockInfo);
         }
     }
 
-    public final void detectMVarDeadlock(WhyBlocked whyBlocked) {
+    public final void detectMVarDeadlock(WhyBlocked whyBlocked, Object blockInfo) {
         if (whyBlocked == BlockedOnMVar || whyBlocked == BlockedOnMVarRead) {
             if (workerCapabilitiesSize() == 0 && !globalWorkToDo()) {
+                if (Runtime.debugMVar()) {
+                    debugMVar("BlockedIndefinitelyOnMVar: " + blockInfo.hashCode());
+                }
                 Exception.raise(context, Closures.blockedIndefinitelyOnMVar);
             }
         }
@@ -549,7 +552,11 @@ public final class Capability implements LocalHeap {
     }
 
     public static boolean globalWorkToDo() {
-        return (!Concurrent.emptyGlobalRunQueue() || Parallel.anySparks());
+        return !Concurrent.emptyGlobalRunQueue() || Parallel.anySparks();
+    }
+
+    public static int globalWorkSize() {
+        return Concurrent.getGlobalRunQueueSize() + ((Parallel.anySparks())? 1 : 0);
     }
 
     public final void manageOrSpawnWorkers() {
@@ -563,17 +570,21 @@ public final class Capability implements LocalHeap {
             /* Interrupt the blocked capabilities so that they can terminate
                themselves when they unblock. */
 
-        if (globalWorkToDo()
-            // TODO: Is this timeout really necessary?
-            // &&
-            // ( System.currentTimeMillis()
-            // - Concurrent.globalRunQueueModifiedTime
-            // > Runtime.getMinTSOIdleTime())
-            ) {
+        if (globalWorkToDo()) {
             if (!blockedCapabilities.isEmpty()) {
                 unblockCapabilities();
             } else if (workerCapabilitiesSize() < Runtime.getMaxWorkerCapabilities()) {
                 new WorkerThread().start();
+            } else if ((System.nanoTime() - lastBlockCheck) >
+                       Runtime.getMinTSOIdleTimeNanos()) {
+                int currentWorkSize = globalWorkSize();
+                /* If no work was done since the last block check, spin up a thread,
+                   even though it exceeds the limit. */
+                if (lastWorkSize <= currentWorkSize) {
+                    new WorkerThread().start();
+                }
+                lastWorkSize   = currentWorkSize;
+                lastBlockCheck = System.nanoTime();
             }
         }
     }

@@ -68,6 +68,10 @@ public class Runtime {
         return minTSOIdleTime;
     }
 
+    public static long getMinTSOIdleTimeNanos() {
+        return maxTSOBlockTime * 1000000L;
+    }
+
     public static void setMinTSOIdleTime(int newMinTSOIdleTime) {
         minTSOIdleTime = newMinTSOIdleTime;
     }
@@ -157,36 +161,32 @@ public class Runtime {
 
     /* Debug Parameters */
     private static boolean debugScheduler;
-    private static boolean debugMemoryManager;
 
-    private static boolean debugSTM;
-
-    public static boolean setDebugMode(char c) {
-        boolean valid = true;
-        switch (c) {
-            case 's':
-                debugScheduler = true;
-                break;
-            case 'm':
-                debugMemoryManager = true;
-                break;
-            case 't':
-                debugSTM = true;
-                break;
-            default:
-                valid = false;
-                break;
-        }
-        return valid;
-    }
+    public static final String DEBUG_SCHEDULER_PROPERTY = "eta.debug.scheduler";
 
     public static boolean debugScheduler() {
         return debugScheduler;
     }
 
+    private static boolean debugMVar;
+
+    public static final String DEBUG_MVAR_PROPERTY = "eta.debug.mvar";
+
+    public static boolean debugMVar() {
+        return debugMVar;
+    }
+
+    private static boolean debugSTM;
+
+    public static final String DEBUG_STM_PROPERTY = "eta.debug.stm";
+
     public static boolean debugSTM() {
         return debugSTM;
     }
+
+    private static boolean debugMemoryManager;
+
+    public static final String DEBUG_MEMORY_MANAGER_PROPERTY = "eta.debug.memorymanager";
 
     public static boolean debugMemoryManager() {
         return debugMemoryManager;
@@ -203,6 +203,10 @@ public class Runtime {
         gcOnWeakPtrFinalization = rto.getBoolean(GC_ON_WEAK_PTR_FINALIZATION, false);
         maxLocalSparks = rto.getInt(MAX_LOCAL_SPARKS, 4096);
         tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 10000);
+        debugScheduler = rto.getBoolean(DEBUG_SCHEDULER_PROPERTY, false);
+        debugMVar = rto.getBoolean(DEBUG_MVAR_PROPERTY, false);
+        debugSTM = rto.getBoolean(DEBUG_STM_PROPERTY, false);
+        debugMemoryManager = rto.getBoolean(DEBUG_MEMORY_MANAGER_PROPERTY, false);
     }
 
     static {

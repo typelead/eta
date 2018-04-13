@@ -26,6 +26,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.Exception;
 import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.RuntimeLogging.debugMVar;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhyBlocked;
 import static eta.runtime.stg.TSO.WhatNext;
@@ -49,8 +50,12 @@ public class Concurrent {
         return globalRunQueue.poll();
     }
 
+    public static int getGlobalRunQueueSize() {
+        return globalRunQueue.size();
+    }
+
     public static boolean emptyGlobalRunQueue() {
-        return globalRunQueue.size() <= 0;
+        return globalRunQueue.isEmpty();
     }
 
     /* MVar Operations */
@@ -58,6 +63,9 @@ public class Concurrent {
     public static Closure takeMVar(StgContext context, MVar mvar) {
         Capability cap = context.myCapability;
         Closure val = mvar.tryTake();
+        if (Runtime.debugMVar()) {
+            debugMVar("takeMVar start: " + mvar.hashCode());
+        }
         if (val == null) {
             TSO tso = context.currentTSO;
             tso.whyBlocked = BlockedOnMVar;
@@ -72,10 +80,16 @@ public class Concurrent {
                 tso.blockInfo  = null;
             }
         }
+        if (Runtime.debugMVar()) {
+            debugMVar("takeMVar done: " + mvar.hashCode());
+        }
         return val;
     }
 
     public static Closure readMVar(StgContext context, MVar mvar) {
+        if (Runtime.debugMVar()) {
+            debugMVar("readMVar start: " + mvar.hashCode());
+        }
         Capability cap = context.myCapability;
         Closure val = mvar.tryRead();
         if (val == null) {
@@ -92,10 +106,16 @@ public class Concurrent {
                 tso.blockInfo  = null;
             }
         }
+        if (Runtime.debugMVar()) {
+            debugMVar("readMVar done: " + mvar.hashCode());
+        }
         return val;
     }
 
     public static void putMVar(StgContext context, MVar mvar, Closure val) {
+        if (Runtime.debugMVar()) {
+            debugMVar("putMVar start: " + mvar.hashCode() + " " + val.hashCode());
+        }
         Capability cap = context.myCapability;
         boolean success = mvar.tryPut(val);
         if (!success) {
@@ -111,6 +131,9 @@ public class Concurrent {
                 tso.blockInfo  = null;
                 tso.whyBlocked = NotBlocked;
             }
+        }
+        if (Runtime.debugMVar()) {
+            debugMVar("putMVar done: " + mvar.hashCode());
         }
     }
 
