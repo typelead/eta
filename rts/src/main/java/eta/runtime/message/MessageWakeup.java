@@ -15,4 +15,9 @@ public final class MessageWakeup extends Message {
     public final void execute(Capability cap) {
         cap.tryWakeupThread(tso);
     }
+
+    @Override
+    public String toString() {
+        return "MessageWakeup[tso=" + tso + "]";
+    }
 }

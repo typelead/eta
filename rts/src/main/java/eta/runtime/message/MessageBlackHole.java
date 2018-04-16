@@ -20,4 +20,9 @@ public final class MessageBlackHole extends Message {
             cap.tryWakeupThread(tso);
         }
     }
+
+    @Override
+    public String toString() {
+        return "MessageBlackHole[tso=" + tso + ",thunk=" + bh + "]";
+    }
 }

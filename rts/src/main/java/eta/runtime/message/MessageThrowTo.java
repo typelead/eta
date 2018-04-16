@@ -60,4 +60,10 @@ public class MessageThrowTo extends Message {
     public final boolean tryUnlock() {
         return lock.compareAndSet(true, false);
     }
+
+    @Override
+    public String toString() {
+        return "MessageBlackHole[source=" + source + ",target=" + target
+             + ",exception=" + exception + "]";
+    }
 }

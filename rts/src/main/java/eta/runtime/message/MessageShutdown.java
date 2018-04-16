@@ -18,4 +18,9 @@ public class MessageShutdown extends Message {
     public void execute(Capability cap) {
         throw THREAD_DEATH_EXCEPTION;
     }
+
+    @Override
+    public String toString() {
+        return "MessageShutdown";
+    }
 }
