@@ -121,6 +121,7 @@ public final class Capability implements LocalHeap {
         return getLocal().schedule(new TSO(p));
     }
 
+    /* TODO: Break up this schedule function into chunks for better JIT. */
     public final Closure schedule(TSO tso) throws java.lang.Exception {
         if (tso != null) {
             appendToRunQueue(tso);
@@ -154,6 +155,11 @@ public final class Capability implements LocalHeap {
                             return null;
                         }
                         blockedCapabilities.add(this);
+
+                        if (Runtime.debugScheduler()) {
+                            debugScheduler("Blocked!");
+                        }
+
                         do {
                             blockedLoop(Runtime.getMinWorkerCapabilityIdleTimeNanos());
                         } while (blockedCapabilities.contains(this));
@@ -266,6 +272,9 @@ public final class Capability implements LocalHeap {
 
     public final boolean sendMessage(Capability target, Message msg) {
         target.inbox.offer(msg);
+        if (Runtime.debugScheduler()) {
+            debugScheduler("Sending message " + msg + " to " + target);
+        }
         return target.interrupt();
     }
 
@@ -281,9 +290,9 @@ public final class Capability implements LocalHeap {
     }
 
     public final void createSparkThread() {
-        TSO tso = Runtime.createIOThread(Closures.runSparks);
+        final TSO tso = Runtime.createIOThread(Closures.runSparks);
         if (Runtime.debugScheduler()) {
-            debugScheduler("Creating a Spark TSO[%d].", tso.id);
+            debugScheduler("Creating a Spark " + tso);
         }
         appendToRunQueue(tso);
     }
@@ -306,7 +315,7 @@ public final class Capability implements LocalHeap {
 
     public final void threadPaused(TSO tso) {
         maybePerformBlockedException(tso);
-        UpdateInfo ui = tso.updateInfoStack.markBackwardsFrom(this, tso);
+        final UpdateInfo ui = tso.updateInfoStack.markBackwardsFrom(this, tso);
         if (ui != null) {
             Exception.suspendComputation(tso, ui);
         }
@@ -315,8 +324,8 @@ public final class Capability implements LocalHeap {
     /* Asychronous Exceptions */
 
     public final boolean maybePerformBlockedException(TSO tso) {
-        Queue<MessageThrowTo> blockedExceptions = tso.blockedExceptions;
-        boolean noBlockedExceptions = blockedExceptions.isEmpty();
+        final Queue<MessageThrowTo> blockedExceptions = tso.blockedExceptions;
+        final boolean noBlockedExceptions = blockedExceptions.isEmpty();
         if (tso.whatNext == ThreadComplete) {
             if (noBlockedExceptions) {
                 return false;
@@ -330,7 +339,7 @@ public final class Capability implements LocalHeap {
             (!tso.hasFlag(TSO_BLOCKEX) ||
              (tso.hasFlag(TSO_INTERRUPTIBLE) && tso.interruptible()))) {
             do {
-                MessageThrowTo msg = tso.blockedExceptions.peek();
+                final MessageThrowTo msg = tso.blockedExceptions.peek();
                 if (msg == null) return false;
                 msg.lock();
                 tso.blockedExceptions.poll();
@@ -338,7 +347,7 @@ public final class Capability implements LocalHeap {
                     msg.unlock();
                     continue;
                 }
-                TSO source = msg.source;
+                final TSO source = msg.source;
                 msg.done();
                 tryWakeupThread(source);
                 Exception.throwToSingleThreaded(msg.target, msg.exception);
@@ -398,6 +407,13 @@ public final class Capability implements LocalHeap {
         Thread t = thread.get();
         TSO tso = context.currentTSO;
         if (t != null && (tso == null || !tso.hasFlag(TSO_INTERRUPT_IMMUNE))) {
+            if (Runtime.debugScheduler()) {
+                if (tso == null) {
+                    debugScheduler(this + " interrupted while waiting!");
+                } else {
+                    debugScheduler(this + " interrupted while running " + tso);
+                }
+            }
             t.interrupt();
             return true;
         } else {
@@ -406,6 +422,9 @@ public final class Capability implements LocalHeap {
     }
 
     public static void interruptAll() {
+        if (Runtime.debugScheduler()) {
+            debugScheduler("Interrupting all capabilities.");
+        }
         for (Capability c: capabilities) {
             c.interrupt();
         }
@@ -565,19 +584,19 @@ public final class Capability implements LocalHeap {
            them up so they can terminate themselves. */
         if ((workerCapabilitiesSize() > Runtime.getMaxWorkerCapabilities()) &&
             !blockedCapabilities.isEmpty()) {
-            unblockCapabilities();
+            unblockCapabilities(0);
         }
             /* Interrupt the blocked capabilities so that they can terminate
                themselves when they unblock. */
 
-        if (globalWorkToDo()) {
+        final int currentWorkSize = globalWorkSize();
+        if (currentWorkSize > 0) {
             if (!blockedCapabilities.isEmpty()) {
-                unblockCapabilities();
+                unblockCapabilities(currentWorkSize);
             } else if (workerCapabilitiesSize() < Runtime.getMaxWorkerCapabilities()) {
                 new WorkerThread().start();
             } else if ((System.nanoTime() - lastBlockCheck) >
                        Runtime.getMinTSOIdleTimeNanos()) {
-                int currentWorkSize = globalWorkSize();
                 /* If no work was done since the last block check, spin up a thread,
                    even though it exceeds the limit. */
                 if (lastWorkSize <= currentWorkSize) {
@@ -597,15 +616,19 @@ public final class Capability implements LocalHeap {
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
     public static AtomicBoolean blockedCapabilitiesLock = new AtomicBoolean();
 
-    public static void unblockCapabilities() {
-        /* TODO: Optimization? Only unlock SOME Capabilities to reduce contention on
-                 grabbing from the Global Run Queue and Global Spark Pool. */
-        /* NOTE: We just move on if we're unable to lock, as we know for sure
-                 another thread must be unblocking them anyways. */
+    public static void unblockCapabilities(int n) {
+        /* TODO: Take into account the amount of work available instead of unblocking
+                 everything. */
+        /* TODO: Make it easier to pair work with capabilities in data structure form
+                 such that contention is reduced. */
         if (!blockedCapabilities.isEmpty()) {
-            if (blockedCapabilitiesLock.compareAndSet(false, true)) {
+            if (!blockedCapabilitiesLock.get() &&
+                blockedCapabilitiesLock.compareAndSet(false, true)) {
                 try {
                     for (Capability c:blockedCapabilities) {
+                        if (Runtime.debugScheduler()) {
+                            debugScheduler("Interrupting blocked capability: " + c);
+                        }
                         c.interrupt();
                     }
                     blockedCapabilities.clear();
@@ -668,5 +691,11 @@ public final class Capability implements LocalHeap {
         activeHeapSuperBlock   = null;
         freeMessages           = new MPSCLongQueue();
         freeSequence           = 0;
+    }
+
+    @Override
+    public String toString() {
+        String workerString = worker? "[Worker]" : "";
+        return "Capability" + workerString + "[" + id + "]";
     }
 }

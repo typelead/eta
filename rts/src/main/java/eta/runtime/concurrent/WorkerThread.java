@@ -1,6 +1,9 @@
 package eta.runtime.concurrent;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.Capability;
+
+import static eta.runtime.RuntimeLogging.*;
 
 public class WorkerThread extends Thread {
 
@@ -12,6 +15,9 @@ public class WorkerThread extends Thread {
         try {
             worker.schedule(null);
         } catch (Exception e) {
+            if (Runtime.debugScheduler()) {
+                debugScheduler("Died from exception: " + e.getMessage());
+            }
             e.printStackTrace();
         } finally {
             Capability.workerCapabilities.remove(worker);

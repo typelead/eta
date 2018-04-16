@@ -37,7 +37,7 @@ public final class TSO extends BlackHole {
     public WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
     public TransactionRecord trec;
-    public Capability cap;
+    public volatile Capability cap;
     public Object blockInfo;
     public int flags;
     public Queue<MessageThrowTo> blockedExceptions

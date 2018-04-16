@@ -14,7 +14,7 @@ import eta.runtime.Runtime;
 import eta.runtime.message.MessageBlackHole;
 import eta.runtime.message.MessageThrowTo;
 import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.RuntimeLogging.debugScheduler;
+import static eta.runtime.RuntimeLogging.*;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhatNext.*;
 import static eta.runtime.stg.TSO.WhyBlocked.*;
@@ -230,22 +230,19 @@ public class Exception {
     }
 
     public static boolean throwToMsg(Capability cap, MessageThrowTo msg, boolean wakeupSource) {
-        boolean debug = Runtime.debugScheduler();
-        TSO target = msg.target;
+        final TSO target = msg.target;
         do {
             assert target != null;
             if (target.whatNext == ThreadComplete
                 || target.whatNext == ThreadKilled) {
                 return true;
             }
-            if (debug) {
-                debugScheduler("Throwing asynchronous exception from TSO %d to TSO %d.", msg.source.id, msg.target.id);
+            if (Runtime.debugScheduler()) {
+                debugScheduler("Throwing asynchronous exception from "
+                               + msg.source + " to " + msg.target);
             }
-            Capability targetCap = target.cap;
+            final Capability targetCap = target.cap;
             if (target.cap != cap) {
-                if (debug) {
-                    debugScheduler("Sending a ThrowTo message to Capability[%d].", targetCap.id);
-                }
                 cap.sendMessage(targetCap, msg);
                 return false;
             }
@@ -319,7 +316,7 @@ public class Exception {
             break;
         } while (true);
         if (wakeupSource) {
-            TSO source = msg.source;
+            final TSO source = msg.source;
             msg.done();
             cap.tryWakeupThread(source);
         }

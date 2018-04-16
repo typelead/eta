@@ -53,31 +53,23 @@ public class RuntimeLogging {
         System.out.print("\n");
     }
 
-    public static void debugScheduler(String msg, Object... args) {
-        debugGeneric("Scheduler", msg, args);
+    public static void debugScheduler(String msg) {
+        debugGeneric("Scheduler", msg);
     }
 
-    public static void debugMVar(String msg, Object... args) {
-        debugGeneric("MVar", msg, args);
+    public static void debugMVar(String msg) {
+        debugGeneric("MVar", msg);
     }
 
-    public static void debugSTM(String msg, Object... args) {
-        debugGeneric("STM", msg, args);
+    public static void debugSTM(String msg) {
+        debugGeneric("STM", msg);
     }
 
-    public static void debugMemoryManager(String msg, Object... args) {
-        debugGeneric("MemoryManager", msg, args);
+    public static void debugMemoryManager(String msg) {
+        debugGeneric("MemoryManager", msg);
     }
 
-    public static void debugGeneric(String type, String msg, Object... args) {
-        Capability cap = Capability.getLocal();
-        String worker = cap.worker? "[Worker]" : "";
-        debugBelch("[Eta-RTS](Capability" + worker + " %d){" + type + "}: " + msg,
-                    cap.id, args);
-    }
-
-    public static void printClosure(Closure closure) {
-        // TODO: Override toString and make the closure more readable
-        System.out.println("Closure: " + closure);
+    public static void debugGeneric(String type, String msg) {
+        debugBelch("[Eta-RTS](%s){%s}: %s", Capability.getLocal(), type, msg);
     }
 }
