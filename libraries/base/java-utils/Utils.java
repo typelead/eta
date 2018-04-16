@@ -37,12 +37,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import eta.runtime.Runtime;
-import eta.runtime.RuntimeLogging;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Capability;
 import eta.runtime.io.MemoryManager;
+import static eta.runtime.RuntimeLogging.*;
 
 import ghc_prim.ghc.types.datacons.Czh;
 import ghc_prim.ghc.types.datacons.ZC;
@@ -129,6 +129,9 @@ public class Utils {
             buffer.limit(buffer.position() + count);
             return wc.write(buffer);
         } catch (Exception e) {
+            if (Runtime.debugScheduler()) {
+                debugScheduler("c_write: IOException: " + e.getMessage());
+            }
             e.printStackTrace();
             return -1;
         }
@@ -143,6 +146,9 @@ public class Utils {
             if (size < 0) return 0;
             else return size;
         } catch (Exception e) {
+            if (Runtime.debugScheduler()) {
+                debugScheduler("c_read: IOException: " + e.getMessage());
+            }
             e.printStackTrace();
             return -1;
         }
@@ -154,7 +160,21 @@ public class Utils {
     }
 
     public static String getOS() {
-        return System.getProperty("os.name");
+        final String originalRawName = System.getProperty("os.name");
+        final String rawName = originalRawName.toLowerCase();
+        if (rawName.startsWith("windows")) {
+            return "mingw32";
+        } else if (rawName.startsWith("mac")) {
+            return "darwin";
+        } else if (rawName.startsWith("linux")) {
+            return "linux";
+        } else if (rawName.startsWith("freebsd")) {
+            return "freebsd";
+        } else if (rawName.startsWith("sunos")) {
+            return "solaris";
+        } else {
+            return originalRawName;
+        }
     }
 
     public static String getArch() {
@@ -170,11 +190,11 @@ public class Utils {
     }
 
     public static void debugBelch(String format, String string) {
-        RuntimeLogging.debugBelch(format, string);
+        debugBelch(format, string);
     }
 
     public static void errorBelch(String format, String string) {
-        RuntimeLogging.errorBelch(format, string);
+        errorBelch(format, string);
     }
 
     private static boolean hasMXBean = false;
@@ -239,7 +259,7 @@ public class Utils {
     public static boolean instanceOf(Object o, Class clazz) {
         return clazz.isInstance(o);
     }
-    
+
     public static MessageDigest c_MD5Init() throws NoSuchAlgorithmException {
         return MessageDigest.getInstance("MD5");
     }
@@ -297,7 +317,7 @@ public class Utils {
         MemoryManager.move(srcAddress, destAddress, size);
         return destAddress;
     }
-    
+
     public static BasicFileAttributes c_fstat(Path p) throws IOException {
         return Files.readAttributes(p, BasicFileAttributes.class);
     }
