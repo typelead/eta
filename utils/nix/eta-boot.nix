@@ -3,7 +3,6 @@
 }:
 mkDerivation {
   pname = "eta-boot";
-  # @VERSION_CHANGE@
   version = "0.8.0";
   src = ../../libraries/eta-boot;
   libraryHaskellDepends = [
