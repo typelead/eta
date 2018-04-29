@@ -38,7 +38,7 @@ public class RuntimeLogging {
                                     + sourceFile
                                     + "\n");
             }
-            tso.setStackTrace(null);
+            tso.resetStack();
             try {
                 while (!errorLock.compareAndSet(false, true));
                 System.err.print(sw.toString());

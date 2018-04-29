@@ -99,12 +99,12 @@ public class Exception {
     }
 
     public static void killThread(StgContext context, TSO target, Closure exception) {
-        TSO tso = context.currentTSO;
+        final TSO tso = context.currentTSO;
         if (target == tso) {
             killMyself(context, target, exception);
         } else {
-            Capability cap = context.myCapability;
-            MessageThrowTo msg = throwTo(cap, tso, target, exception);
+            final Capability cap = context.myCapability;
+            final MessageThrowTo msg = throwTo(cap, tso, target, exception);
             if (msg != null) {
                 tso.whyBlocked = BlockedOnMsgThrowTo;
                 tso.blockInfo = msg;
@@ -121,9 +121,9 @@ public class Exception {
     }
 
     public static Closure catch_(StgContext context, Closure io, Closure handler) {
-        TSO tso = context.currentTSO;
-        int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
-        UpdateInfo ui = tso.updateInfoStack.peek();
+        final TSO tso = context.currentTSO;
+        final int exceptionsBlocked = tso.showIfFlags(TSO_BLOCKEX | TSO_INTERRUPTIBLE);
+        final UpdateInfo ui = tso.updateInfoStack.peek();
         Closure result;
         try {
             result = io.applyV(context);
@@ -173,9 +173,22 @@ public class Exception {
     }
 
     public static Closure raise(StgContext context, Closure exception) {
-        EtaException e = new EtaException(exception);
-        StackTraceElement[] original = Thread.currentThread().getStackTrace();
-        context.saveStackTrace(e, Arrays.copyOfRange(original, 2, original.length));
+        java.lang.Exception cause = context.getCause();
+        EtaException e = null;
+        if (cause == null) {
+            // If no previous exception was thrown in the current chain.
+            e = EtaException.create(context, exception);
+        } else {
+            if (context.getException() != exception) {
+                // If the last exception in thrown in the chain was different
+                // than the one being thrown now, create a cause chain.
+                final java.lang.Exception oldCause = cause;
+                e = EtaException.create(context, exception);
+                e.initCause(oldCause);
+            } else {
+                e = (EtaException) cause;
+            }
+        }
         throw e;
     }
 
@@ -325,7 +338,7 @@ public class Exception {
     }
 
     public static Closure convertJavaException(TSO tso, java.lang.Exception e) {
-        tso.saveStack(e, e.getStackTrace());
+        tso.setCauseAndException(e, null);
         return Closures.mkSomeException(e);
     }
 

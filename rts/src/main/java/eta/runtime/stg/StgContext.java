@@ -129,8 +129,16 @@ public class StgContext {
         O6 = null;
     }
 
-    public void saveStackTrace(Exception e, StackTraceElement[] ste) {
-        currentTSO.saveStack(e, ste);
+    public Exception getCause() {
+        return currentTSO.getCause();
+    }
+
+    public Closure getException() {
+        return currentTSO.getException();
+    }
+
+    public void setCauseAndException(Exception e, Closure exception) {
+        currentTSO.setCauseAndException(e, exception);
     }
 
     public UpdateInfo pushUpdate(Thunk updatee) {

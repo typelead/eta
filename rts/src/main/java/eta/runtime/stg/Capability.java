@@ -215,14 +215,9 @@ public final class Capability implements LocalHeap {
                 /* If an unhandled exception occured, throw it so that the caller
                    can handle it if they so choose. */
                 if (pendingException != null) {
-                    /* A TSO has the ability to control the stack trace of an exception. */
-                    StackTraceElement[] st = t.getStackTrace();
-                    if (st != null) {
-                        pendingException.setStackTrace(st);
-                        t.resetStack();
-                    }
                     /* Cleanup resources in the Runtime before throwing the exception
                        again. */
+                    t.resetStack();
                     /* TODO: Will we have a difference between cleanup and exit? */
                     if (!worker) {
                         Runtime.exit();

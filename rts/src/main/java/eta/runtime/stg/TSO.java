@@ -43,7 +43,8 @@ public final class TSO extends BlackHole {
     public Queue<MessageThrowTo> blockedExceptions
         = new ConcurrentLinkedQueue<MessageThrowTo>();
     public StackTraceElement[] stackTrace;
-    public Throwable cause;
+    public java.lang.Exception cause;
+    public Closure exception;
     public AtomicBoolean lock = new AtomicBoolean(false);
     public volatile TSO link;
     public HashMap<String,Object> extensibleState = new HashMap<String,Object>();
@@ -183,37 +184,33 @@ public final class TSO extends BlackHole {
     }
 
     public final StackTraceElement[] getStackTrace() {
-        return this.stackTrace;
+        return this.cause.getStackTrace();
     }
 
     public final void setStackTrace(StackTraceElement[] stackTrace) {
-        this.stackTrace = stackTrace;
+        this.cause.setStackTrace(stackTrace);
     }
 
-    public final Throwable getCause() {
+    public final java.lang.Exception getCause() {
         return this.cause;
     }
 
-    public final void setCause(Throwable cause) {
-        this.cause = cause;
+    public final Closure getException() {
+        return this.exception;
     }
 
-    public final void saveStack(Throwable t, StackTraceElement[] stes) {
-        if (this.cause != null) {
-            this.cause.setStackTrace(this.stackTrace);
-            t.initCause(this.cause);
-        }
-        this.cause = t;
-        this.stackTrace = stes;
+    public final void setCauseAndException(java.lang.Exception cause, Closure exception) {
+        this.cause     = cause;
+        this.exception = exception;
     }
 
     public final void resetStack() {
-        this.cause      = null;
-        this.stackTrace = null;
+        this.cause     = null;
+        this.exception = null;
     }
 
     public final boolean hasStackTrace() {
-        return this.stackTrace != null;
+        return this.cause != null;
     }
 
     public final void removeFromQueues() {
