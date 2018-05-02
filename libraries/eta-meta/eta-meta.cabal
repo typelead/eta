@@ -1,0 +1,52 @@
+name:           eta-meta
+version:        0.7.2.2
+-- NOTE: Don't forget to update ./changelog.md
+license:        BSD3
+license-file:   LICENSE
+category:       Template Haskell
+maintainer:     typeleadhq@gmail.com
+bug-reports:    http://github.com/typelead/eta/issues
+synopsis:       Support library for Template Haskell
+build-type:     Simple
+Cabal-Version:  >= 1.10
+description:
+    This package provides modules containing facilities for manipulating
+    Eta source code using Template Haskell.
+
+extra-source-files: changelog.md
+
+Library
+    default-language: Haskell2010
+    other-extensions:
+        BangPatterns
+        CPP
+        DefaultSignatures
+        DeriveDataTypeable
+        DeriveGeneric
+        FlexibleInstances
+        RankNTypes
+        RoleAnnotations
+        ScopedTypeVariables
+
+    exposed-modules:
+        Language.Haskell.TH
+        Language.Haskell.TH.Lib
+        Language.Haskell.TH.Ppr
+        Language.Haskell.TH.PprLib
+        Language.Haskell.TH.Quote
+        Language.Haskell.TH.Syntax
+        Language.Haskell.TH.LanguageExtensions
+
+    other-modules:
+        Language.Haskell.TH.Lib.Map
+
+    build-depends:
+        base        >= 4.7 && < 4.10,
+        eta-boot-th,
+        pretty      == 1.1.*
+
+    -- We need to set the unit ID to eta-meta (without a
+    -- version number) as it's magic.
+    ghc-options: -Wall
+    -- if impl(eta)
+    --     eta-options:  -this-unit-id eta-meta

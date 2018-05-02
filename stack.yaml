@@ -20,6 +20,8 @@ resolver: lts-6.27
 flags:
   mintty:
     win32-2-5: false
+  eta-repl:
+    eta-repl: false
 extra-package-dbs: []
 packages:
 - '.'
@@ -28,6 +30,8 @@ packages:
 - codec-jvm
 - libraries/eta-boot
 - libraries/eta-boot-th
+- libraries/eta-meta
+- libraries/eta-repl
 - utils/eta-pkg
 - etlas/etlas
 - etlas/etlas-cabal

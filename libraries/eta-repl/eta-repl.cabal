@@ -1,0 +1,75 @@
+name:           eta-repl
+-- @VERSION_CHANGE@
+-- @BUILD_NUMBER@
+version:        0.7.2.2
+license:        BSD3
+license-file:   LICENSE
+category:       Eta Tools
+maintainer:     typeleadhq@gmail.com
+bug-reports:    http://github.com/typelead/eta/issues
+synopsis:       The library supporting Eta's interactive interpreter
+description:
+            This library offers interfaces which mediate interactions between the
+            @eta-repl@ interactive shell and @eta-repl-serv@, Eta's out-of-process
+            interpreter backend.
+cabal-version:  >=1.10
+build-type:     Simple
+extra-source-files: changelog.md
+
+Flag eta-repl
+    Description: Build Eta REPL support.
+    Default: True
+    Manual: False
+
+library
+    default-language: Haskell2010
+    other-extensions:
+        BangPatterns
+        CPP
+        DeriveGeneric
+        ExistentialQuantification
+        FlexibleInstances
+        GADTs
+        GeneralizedNewtypeDeriving
+        InstanceSigs
+        MagicHash
+        MultiParamTypeClasses
+        RecordWildCards
+        ScopedTypeVariables
+        StandaloneDeriving
+        TupleSections
+        UnboxedTuples
+
+    if flag(eta-repl)
+        CPP-Options: -DETA_REPL
+        exposed-modules:
+            Eta.REPL.CreateBCO
+            Eta.REPL.ObjLink
+            Eta.REPL.Run
+            Eta.REPL.Signals
+            Eta.REPL.TH
+
+    exposed-modules:
+        Eta.REPL.BinaryArray
+        Eta.REPL.BreakArray
+        -- Eta.REPL.FFI
+        -- Eta.REPL.InfoTable
+        Eta.REPL.Message
+        Eta.REPL.RemoteTypes
+        Eta.REPL.ResolvedBCO
+        -- Eta.REPL.StaticPtrTable
+        Eta.REPL.TH.Binary
+        SizedSeq
+
+    Build-Depends:
+        array            == 0.5.*,
+        base             >= 4.8 && < 4.12,
+        binary           == 0.8.*,
+        bytestring       == 0.10.*,
+        containers       == 0.5.*,
+        deepseq          == 1.4.*,
+        filepath         == 1.4.*,
+        eta-boot,
+        eta-boot-th,
+        eta-meta == 0.7.2.2,
+        transformers     == 0.4.*

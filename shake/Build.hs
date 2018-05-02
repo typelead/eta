@@ -69,14 +69,14 @@ getDependencies :: String -> [String]
 getDependencies "ghc-prim" = ["rts"]
 getDependencies "base" = ["ghc-prim", "integer"]
 getDependencies "integer" = ["ghc-prim"]
-getDependencies "eta-repl" = ["eta-boot", "base", "template-haskell"]
+getDependencies "eta-repl" = ["eta-boot", "base", "eta-meta"]
 getDependencies "eta-boot" = ["eta-boot-th", "base"]
 getDependencies "eta-boot-th" = ["base"]
-getDependencies "template-haskell" = ["base", "eta-boot-th"]
+getDependencies "eta-meta" = ["base", "eta-boot-th"]
 getDependencies _ = []
 
 ignoreList :: [String]
-ignoreList = ["eta-boot", "eta-boot-th", "eta-repl", "eta-meta"]
+ignoreList = []
 
 topologicalDepsSort :: [String] -> (String -> [String]) -> [String]
 topologicalDepsSort xs deps = sort' xs []
@@ -194,7 +194,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
-        unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
+        -- unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]

@@ -17,6 +17,10 @@ extra-source-files:  compiler/ETA/Parser/Parser.y
 flag debug
   Description: Enable debug support
   Default:     False
+  
+flag repl
+  Description: Enable repl support
+  Default:     True
 
 source-repository head
     type: git
@@ -349,29 +353,49 @@ library
        ghc-options:      -DDEBUG
 
 executable eta
-    ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -Werror
-    hs-source-dirs:      eta
-    main-is:             Main.hs
-    default-language:    Haskell2010
-    other-modules:       GhciMonad
-                         GhciTags
-                         InteractiveUI
-    build-depends:       array
-                       , base >= 4.7 && < 5
-                       , bytestring
-                       , deepseq
-                       , directory
-                       , filepath
-                       , haskeline
-                       , process
-                       , transformers
-                       , time
-                       , eta
+   ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -Werror
+   hs-source-dirs:      eta
+   main-is:             Main.hs
+   default-language:    Haskell2010
+   -- other-modules:       GhciMonad
+   --                      GhciTags
+   --                      InteractiveUI
 
-    if os(windows)
-        build-depends:   Win32
-    else
-        build-depends:   unix
+   build-depends:       array
+                      , base >= 4.7 && < 5
+                      , bytestring
+                      , deepseq == 1.4.*
+                      , directory
+                      , filepath
+                      , process
+                      , transformers == 0.4.*
+                      , time == 1.5.*
+                      , eta
+   if flag(repl)
+       -- NB: this is never built by the bootstrapping GHC+libraries
+       Build-depends:
+           containers     == 0.5.*,
+           eta-repl,
+           haskeline      == 0.7.*
+       CPP-Options: -DETA_REPL
+       GHC-Options: -fno-warn-name-shadowing
+      --  Other-Modules:
+      --      Eta.REPL.UI
+      --      Eta.REPL.UI.Info
+      --      Eta.REPL.UI.Monad
+      --      Eta.REPL.UI.Tags
+       Other-Extensions:
+           BangPatterns
+           FlexibleInstances
+           LambdaCase
+           MagicHash
+           MultiWayIf
+           OverloadedStrings
+           RankNTypes
+           RecordWildCards
+           ScopedTypeVariables
+           UnboxedTuples
+           ViewPatterns
 
 executable eta-test
     hs-source-dirs:      tests/packages
