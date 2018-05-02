@@ -29,7 +29,7 @@ public class HSIConv {
         this.encoder = encoder;
     }
 
-    private static final boolean debug = false;
+    private static final boolean debug = true;
 
     private static void debug(String msg) {
         if (debug) {
@@ -53,21 +53,26 @@ public class HSIConv {
     private final static int EINVAL = 22;
     private final static int EILSEQ = 84;
 
-    public static int hs_iconv(HSIConv iconv, long inbufptr, long inleft,
-                               long outbufptr, long outleft) {
+    public static int hs_iconv(HSIConv iconv, long inbufptr, long inleftptr,
+                               long outbufptr, long outleftptr) {
         int charsWritten = 0;
         try {
+            int inleft = buffGetInt(inleftptr);
+            int outleft = buffGetInt(outleftptr);
             debug("HSIConv: from: " + iconv.decoder.charset().displayName()
                          + ", to: " + iconv.encoder.charset().displayName());
+            debug("in num bytes left: "+inleft);
+            debug("out num bytes left: "+outleft);
             if (inbufptr != 0L && inleft != 0L) {
                 debug("Init in buffer:");
-                ByteBuffer inbuf     = initBuffer(inbufptr, inleft, true);
+                ByteBuffer inbuf     = initBuffer(inbufptr, inleftptr, true);
                 int        inInitPos = inbuf.position();
                 debug("Init out buffer:");
-                ByteBuffer outbuf     = initBuffer(outbufptr, outleft, false);
+                ByteBuffer outbuf     = initBuffer(outbufptr, outleftptr, false);
                 int        outInitPos = outbuf.position();
                 charsWritten = recode(iconv, inbuf, outbuf);
                 debug("After encoding:");
+                debug("Chars written: " + charsWritten);
                 debug("IN: buffer: "  + inbuf);
                 debug("OUT: buffer: " + outbuf);
                 int inFinalPos      = inbuf.position();
@@ -77,9 +82,9 @@ public class HSIConv {
                 debug("Bytes read: "    + inBytesRead);
                 debug("Bytes written: " + outBytesWritten);
                 buffAddLong(inbufptr, inBytesRead);
-                buffAddInt(inleft, -inBytesRead);
+                buffAddInt(inleftptr, -inBytesRead);
                 buffAddLong(outbufptr, outBytesWritten);
-                buffAddInt(outleft, -outBytesWritten);
+                buffAddInt(outleftptr, -outBytesWritten);
             } else if (outbufptr != 0L && outleft != 0L) {
                 debug("in is null");
                 /** In this case, the iconv function attempts to set cd's conversion
@@ -102,6 +107,10 @@ public class HSIConv {
         return charsWritten;
     }
 
+    private static int buffGetInt(long bufAddress) {
+        return MemoryManager.getInt(bufAddress);
+    }
+    
     private static void buffAddInt(long bufAddress, int toAdd) {
         MemoryManager.putInt(bufAddress, MemoryManager.getInt(bufAddress) + toAdd);
     }
@@ -134,6 +143,7 @@ public class HSIConv {
                conversions performed during this call."
                We simply return the size of the intermediate buffer. */
             charsWritten = buf16.limit();
+            debug("Chars written: " + charsWritten);
             CoderResult encRes = enc.encode(buf16, outbuf, true);
             debug("Encoding result: " + encRes);
             if (encRes.isUnderflow()) {
