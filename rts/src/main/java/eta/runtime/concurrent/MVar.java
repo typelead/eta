@@ -20,7 +20,7 @@ public class MVar extends Value {
 
     @Override
     public String toString() {
-        Closure val = value;
+        final Closure val = value;
         return "MVar@" + hashCode() + "[" + ((val == null)? "_" : val.toString()) + "]";
     }
 

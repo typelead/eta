@@ -1,6 +1,7 @@
 package eta.runtime.stg;
 
 import java.util.Arrays;
+import java.util.IdentityHashMap;
 
 public class ArgumentStack implements Cloneable {
     public static final int NONE = 0;
@@ -239,14 +240,15 @@ public class ArgumentStack implements Cloneable {
         System.out.println("D" + Arrays.toString(doubles));
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
+    public String toString(IdentityHashMap<Object, Boolean> seen) {
+        final StringBuilder sb = new StringBuilder();
         if (closures != null && closures.length > 0) {
-            Print.writeObjectField(sb, closures[0]);
+            Closure c = closures[0];
+            Print.writeObjectField(sb, seen, "0", c);
             for (int i = 1; i < closures.length; i++) {
+                c = closures[i];
                 sb.append(' ');
-                Print.writeObjectField(sb, closures[i]);
+                Print.writeObjectField(sb, seen, Integer.toString(i), c);
             }
         }
         if (objects != null && objects.length > 0) {

@@ -255,9 +255,14 @@ public class Exception {
                                + msg.source + " to " + msg.target);
             }
             final Capability targetCap = target.cap;
-            if (target.cap != cap) {
-                cap.sendMessage(targetCap, msg);
-                return false;
+            if (targetCap != cap) {
+                if (targetCap == null) {
+                    target.whatNext = ThreadKilled;
+                    return true;
+                } else {
+                    cap.sendMessage(targetCap, msg);
+                    return false;
+                }
             }
             switch (target.whyBlocked) {
                 case NotBlocked:
@@ -338,11 +343,15 @@ public class Exception {
     }
 
     public static Closure convertJavaException(TSO tso, java.lang.Exception e) {
+        if (Runtime.debugExceptions()) {
+            debugExceptions("Converting Java Exception: " + e);
+            e.printStackTrace();
+        }
         tso.setCauseAndException(e, null);
         return Closures.mkSomeException(e);
     }
 
     public static EtaException toEtaException(TSO tso, java.lang.Exception e) {
-        return new EtaException(convertJavaException(tso, e));
+        return EtaException.create(tso.getContext(), convertJavaException(tso, e));
     }
 }

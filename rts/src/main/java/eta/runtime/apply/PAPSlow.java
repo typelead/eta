@@ -1,5 +1,7 @@
 package eta.runtime.apply;
 
+import java.util.IdentityHashMap;
+
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
@@ -389,7 +391,8 @@ public class PAPSlow extends PAP {
     }
 
     @Override
-    protected void writeArgs(StringBuilder sb) {
-        sb.append(argStack.toString());
+    public void writeArgs(final StringBuilder sb,
+                          final IdentityHashMap<Object, Boolean> seen) {
+        sb.append(argStack.toString(seen));
     }
 }

@@ -14,6 +14,11 @@ public abstract class Closure implements Serializable {
 
     public Closure getEvaluated() { return null; }
 
+    @Override
+    public String toString() {
+        return Print.closureToString(this);
+    }
+
     public Closure evaluate(StgContext context) {
         barf("Cannot evaluate " + this);
         return null;

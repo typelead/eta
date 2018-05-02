@@ -96,7 +96,7 @@ public final class ByteArray extends Value {
     public static void copyByteArray( ByteArray srcArray, ByteArray destArray) {
         copyByteArray(srcArray, 0, destArray, 0, srcArray.size);
     }
-    
+
     public static void copyByteArray( ByteBuffer srcBuffer, ByteArray destArray
                                     , int size) {
         copyByteArray(srcBuffer, 0, destArray,0, size);

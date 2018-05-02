@@ -1,5 +1,7 @@
 package eta.runtime.apply;
 
+import java.util.IdentityHashMap;
+
 import eta.runtime.stg.Print;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
@@ -122,7 +124,8 @@ public class PAP1_1 extends PAP {
     }
 
     @Override
-    protected void writeArgs(StringBuilder sb) {
-        Print.writeObjectField(sb, p);
+    public void writeArgs(final StringBuilder sb,
+                          final IdentityHashMap<Object, Boolean> seen) {
+        Print.writeObjectField(sb, seen, "p", p);
     }
 }

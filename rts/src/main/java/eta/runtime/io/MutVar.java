@@ -47,4 +47,10 @@ public class MutVar extends Value {
             return vUpdater.compareAndSet(this, expected, update);
         }
     }
+
+    @Override
+    public String toString() {
+        final Closure val = value;
+        return "MutVar@" + hashCode() + "[" + ((val == null)? "_" : val.toString()) + "]";
+    }
 }

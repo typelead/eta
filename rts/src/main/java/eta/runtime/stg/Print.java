@@ -4,44 +4,149 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
 import java.util.Arrays;
+import java.util.IdentityHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
+import eta.runtime.stg.Closure;
+import eta.runtime.stg.DataCon;
+import eta.runtime.apply.Function;
+import eta.runtime.apply.PAP;
+import eta.runtime.thunk.Thunk;
+
 public class Print {
 
-    public static void writeFields(StringBuilder sb, Class<?> clazz, Object c, boolean skipIndirectee) {
-        Field[] fs = clazz.getFields();
+    private static final ThreadLocal<IdentityHashMap<Object, Boolean>> localSeen =
+        new ThreadLocal<IdentityHashMap<Object, Boolean>>() {
+            @Override
+            public IdentityHashMap<Object, Boolean> initialValue() {
+                return new IdentityHashMap<Object, Boolean>(16);
+            }
+        };
+
+    private static final ThreadLocal<Integer> localDepth =
+        new ThreadLocal<Integer>() {
+            @Override
+            public Integer initialValue() {
+                return 0;
+            }
+        };
+
+    private static void incLocalDepth() {
+        localDepth.set(localDepth.get() + 1);
+    }
+
+    private static void decLocalDepth() {
+        localDepth.set(localDepth.get() - 1);
+    }
+
+    public static String closureToString(Closure target) {
+        final int preDepth = localDepth.get();
+        final StringBuilder sb = new StringBuilder();
+        final Closure origTarget = target;
+        final IdentityHashMap<Object, Boolean> seen = localSeen.get();
+        if (preDepth == 0) {
+            seen.clear();
+        }
+        incLocalDepth();
+        // System.out.println("START: " + target.getClass() + "@" + target.hashCode());
+        while (target != null) {
+            final Class<?> clazz = target.getClass();
+            Closure newTarget = null;
+            seen.put(target, Boolean.TRUE);
+            if (target instanceof Function) {
+                // TODO: Maybe make this a fully qualified name?
+                sb.append(getClosureName(clazz));
+                sb.append('[');
+                sb.append(Integer.toString(((Function)target).arity()));
+                sb.append(']');
+                writeFields(sb, seen, clazz, target, false);
+            } else if (target instanceof Thunk) {
+                final Closure indirectee = ((Thunk)target).indirectee;
+                if (indirectee instanceof Value) {
+                    // TODO: Should make some indication of an indirection?
+                    newTarget = indirectee;
+                } else {
+                    // TODO: Maybe make this a fully qualified name?
+                    sb.append(getClosureName(clazz));
+                    sb.append("[_]");
+                    writeFields(sb, seen, clazz, target, true);
+                }
+            } else if (target instanceof PAP) {
+                final PAP pap = (PAP) target;
+                Class<? extends Function> funClazz = pap.fun.getClass();
+                // TODO: Maybe make this a fully qualified name?
+                sb.append('{');
+                sb.append(Print.getClosureName(funClazz));
+                sb.append(' ');
+                pap.writeArgs(sb, seen);
+                sb.append('}');
+                sb.append('[');
+                sb.append(Integer.toString(pap.arity));
+                sb.append(']');
+            } else if (target instanceof DataCon) {
+                // TODO: Maybe make this a fully qualified name?
+                sb.append(getClosureName(clazz));
+                writeFields(sb, seen, clazz, target, false);
+            } else {
+                throw new IllegalArgumentException
+                    ("Unable to stringify " + target.getClass().getName() + " in "
+                     + origTarget.getClass().getName() + "!");
+            }
+            target = newTarget;
+        }
+        decLocalDepth();
+        if (preDepth == 0) {
+            localSeen.get().clear();
+        }
+        return sb.toString();
+    }
+
+    public static void writeFields(final StringBuilder sb,
+                                   final IdentityHashMap<Object, Boolean> seen,
+                                   final Class<?> clazz, final Object c,
+                                   final boolean skipIndirectee) {
+        final Field[] fs = clazz.getFields();
         for (int i = 0; i < fs.length; i++) {
-            Field f = fs[i];
+            final Field f = fs[i];
             if (!Modifier.isStatic(f.getModifiers())
              && !(skipIndirectee && f.getName().equals("indirectee"))) {
-                writeField(sb, f, c);
+                writeField(sb, seen, f, c);
             }
         }
     }
 
-    public static void writeField(StringBuilder sb, Field f, Object c) {
+    public static void writeField(final StringBuilder sb,
+                                  final IdentityHashMap<Object, Boolean> seen,
+                                  final Field f, final Object c) {
         try {
             sb.append(' ');
-            Class<?> type = f.getType();
+            final Class<?> type = f.getType();
             if (type.isPrimitive()) {
                 writePrimitiveField(sb, f, c, type);
             } else if (type.isArray()) {
                 writeArrayField(sb, f.get(c), type.getComponentType());
             } else {
-                writeObjectField(sb, f.get(c));
+                writeObjectField(sb, seen, f.getName(), f.get(c));
             }
         } catch (IllegalAccessException iae) {
-            /* TODO: We need to shift the StringBuilder back by one.
-               Although, this case should never happen since we always
-               generate code with public access. */
+            throw new RuntimeException("writeField", iae);
         }
     }
 
-    public static void writeObjectField(StringBuilder sb, Object o) {
-        if (o == null) sb.append("null");
-        else {
-            String s = o.toString();
+    public static void writeObjectField(final StringBuilder sb,
+                                        final IdentityHashMap<Object, Boolean> seen,
+                                        final String fieldName, final Object o) {
+        if (o == null) {
+            sb.append('{');
+            sb.append(fieldName);
+            sb.append("=null}");
+        } else if (seen.get(o) != null) {
+            sb.append('@');
+            sb.append(getClosureName(o.getClass()));
+        } else {
+            // System.out.println(o.getClass());
+            final String s = o.toString();
             if (hasWhitespace(s)) {
                 sb.append('(');
                 sb.append(s);
@@ -49,6 +154,7 @@ public class Print {
             } else {
                 sb.append(s);
             }
+            seen.put(o, Boolean.TRUE);
         }
     }
 
@@ -71,6 +177,7 @@ public class Print {
         } else if (type == Character.TYPE) {
             res = Arrays.toString((char[])c);
         } else {
+            // TOOD: Take into account the 'seen' array.
             res = Arrays.deepToString((Object[])c);
         }
         sb.append(res);
@@ -99,18 +206,20 @@ public class Print {
             } else if (type == Character.TYPE) {
                 sb.append(f.getChar(c));
             }
-        } catch (IllegalAccessException iae) {}
+        } catch (IllegalAccessException iae) {
+            throw new RuntimeException("writePrimitiveField", iae);
+        }
     }
 
-    public static String getClosureName(Class<? extends Closure> cls) {
+    public static String getClosureName(Class<?> cls) {
         // TODO: We may have to handle the '$' sign.
         return zdecode(cls.getSimpleName());
     }
 
     public static String zdecode(String zstring) {
-        StringBuilder out = new StringBuilder();
+        final StringBuilder out = new StringBuilder();
+        final int encodedLen = zstring.length();
         int cp1, cp2;
-        int encodedLen = zstring.length();
         int offset = 0;
         while (offset < encodedLen) {
             cp1 = zstring.codePointAt(offset);
@@ -198,7 +307,7 @@ public class Print {
         }
     }
 
-    public static int zdecodeTuple(StringBuilder sb, String zstring, int offset, int cp) {
+    public static int zdecodeTuple(final StringBuilder sb, final String zstring, int offset, int cp) {
         int n = Character.getNumericValue(cp);
         while (offset < zstring.length()) {
             cp      = zstring.codePointAt(offset);
@@ -233,7 +342,7 @@ public class Print {
         throw new IllegalArgumentException("The input string seems to be a fragment of a proper Z-encoded string.");
     }
 
-    public static int zdecodeNumEscape(StringBuilder sb, String zstring, int offset, int cp) {
+    public static int zdecodeNumEscape(final StringBuilder sb, final String zstring, int offset, int cp) {
         int n = Character.getNumericValue(cp);
         while (offset < zstring.length()) {
             cp      = zstring.codePointAt(offset);
@@ -251,7 +360,7 @@ public class Print {
         throw new IllegalArgumentException("The input string is a fragmented Z-encoded string.");
     }
 
-    public static boolean isHexDigit(int cp) {
+    public static boolean isHexDigit(final int cp) {
         return Character.isDigit(cp)
             || (cp >= 'A' && cp <= 'F')
             || (cp >= 'a' && cp <= 'f');
@@ -266,8 +375,8 @@ public class Print {
             }
         };
 
-    private static boolean hasWhitespace(String s) {
-        Matcher m = whitespaceMatcher.get();
+    private static boolean hasWhitespace(final String s) {
+        final Matcher m = whitespaceMatcher.get();
         m.reset(s);
         return m.matches();
     }

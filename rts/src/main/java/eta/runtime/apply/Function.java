@@ -316,17 +316,4 @@ public abstract class Function extends Value {
                                    ArgumentStack.createFromP(null, p1, p2, p3, p4, p5, p6));
         }
     }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        Class<? extends Function> clazz = getClass();
-        // TODO: Maybe make this a fully qualified name?
-        sb.append(Print.getClosureName(clazz));
-        sb.append('[');
-        sb.append(Integer.toString(arity()));
-        sb.append(']');
-        Print.writeFields(sb, clazz, this, false);
-        return sb.toString();
-    }
 }

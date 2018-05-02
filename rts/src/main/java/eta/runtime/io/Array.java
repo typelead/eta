@@ -1,5 +1,7 @@
 package eta.runtime.io;
 
+import java.util.Arrays;
+
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Value;
 
@@ -49,5 +51,10 @@ public final class Array extends Value {
         Closure[] arr = new Closure[n];
         System.arraycopy(srcArray.arr, offset, arr, 0, n);
         return new Array(arr);
+    }
+
+    @Override
+    public String toString() {
+        return "Array" + Arrays.deepToString(arr);
     }
 }

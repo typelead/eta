@@ -69,6 +69,10 @@ public class RuntimeLogging {
         debugGeneric("MemoryManager", msg);
     }
 
+    public static void debugExceptions(String msg) {
+        debugGeneric("Exceptions", msg);
+    }
+
     public static void debugGeneric(String type, String msg) {
         debugBelch("[Eta-RTS](%s){%s}: %s", Capability.getLocal(), type, msg);
     }

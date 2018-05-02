@@ -283,20 +283,4 @@ public abstract class Thunk extends Closure {
         } //TODO: Handle EtaAsyncExceptions?
         throw thrw;
     }
-
-    @Override
-    public String toString() {
-        Closure indirectee = this.indirectee;
-        if (indirectee instanceof Value) {
-            return indirectee.toString();
-        } else {
-            StringBuilder sb = new StringBuilder();
-            Class<? extends Thunk> clazz = getClass();
-            // TODO: Maybe make this a fully qualified name?
-            sb.append(Print.getClosureName(clazz));
-            sb.append("[_]");
-            Print.writeFields(sb, clazz, this, true);
-            return sb.toString();
-        }
-    }
 }

@@ -42,6 +42,7 @@ import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Capability;
 import eta.runtime.io.MemoryManager;
+import eta.runtime.RuntimeLogging;
 import static eta.runtime.RuntimeLogging.*;
 
 import ghc_prim.ghc.types.datacons.Czh;
@@ -194,7 +195,7 @@ public class Utils {
     }
 
     public static void errorBelch(String format, String string) {
-        errorBelch(format, string);
+        RuntimeLogging.errorBelch(format, string);
     }
 
     private static boolean hasMXBean = false;

@@ -186,10 +186,18 @@ public class Runtime {
 
     private static boolean debugMemoryManager;
 
-    public static final String DEBUG_MEMORY_MANAGER_PROPERTY = "eta.debug.memorymanager";
+    public static final String DEBUG_MEMORY_MANAGER_PROPERTY = "eta.debug.memoryManager";
 
     public static boolean debugMemoryManager() {
         return debugMemoryManager;
+    }
+
+    private static boolean debugExceptions;
+
+    public static final String DEBUG_EXCEPTIONS_PROPERTY = "eta.debug.exceptions";
+
+    public static boolean debugExceptions() {
+        return debugExceptions;
     }
 
     public static void initializeRuntimeParameters() {
@@ -207,6 +215,7 @@ public class Runtime {
         debugMVar = rto.getBoolean(DEBUG_MVAR_PROPERTY, false);
         debugSTM = rto.getBoolean(DEBUG_STM_PROPERTY, false);
         debugMemoryManager = rto.getBoolean(DEBUG_MEMORY_MANAGER_PROPERTY, false);
+        debugExceptions = rto.getBoolean(DEBUG_EXCEPTIONS_PROPERTY, false);
     }
 
     static {

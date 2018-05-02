@@ -34,7 +34,7 @@ public final class TSO extends BlackHole {
     public int id = maxThreadId.getAndIncrement();
     public Closure closure;
     public LinkedList<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
-    public WhatNext whatNext = ThreadRun;
+    public volatile WhatNext whatNext = ThreadRun;
     public WhyBlocked whyBlocked = NotBlocked;
     public TransactionRecord trec;
     public volatile Capability cap;
@@ -112,7 +112,7 @@ public final class TSO extends BlackHole {
     public final boolean interruptible() {
         switch (whyBlocked) {
             case BlockedOnMVar:
-        case BlockedOnMVarRead:
+            case BlockedOnMVarRead:
             case BlockedOnSTM:
             case BlockedOnMsgThrowTo:
             case BlockedOnRead:
@@ -193,6 +193,10 @@ public final class TSO extends BlackHole {
 
     public final java.lang.Exception getCause() {
         return this.cause;
+    }
+
+    public final StgContext getContext() {
+        return cap.context;
     }
 
     public final Closure getException() {
