@@ -119,6 +119,7 @@ public final class TSO extends BlackHole {
             case BlockedOnWrite:
             case BlockedOnFuture:
             case BlockedOnDelay:
+            case BlockedOnJavaCall_Interruptible:
                 return true;
             default:
                 return false;
@@ -257,15 +258,20 @@ public final class TSO extends BlackHole {
     /* Preserves the enclosing interrupt status. */
     public final boolean suspendInterrupts(boolean interruptible) {
         boolean immune = hasFlag(TSO_INTERRUPT_IMMUNE);
+        boolean oldInterrupt = false;
         if (interruptible) {
             whyBlocked = BlockedOnJavaCall_Interruptible;
         } else {
             if (!immune) {
                 addFlags(TSO_INTERRUPT_IMMUNE);
                 // Erase interrupt status
-                Thread.interrupted();
+                cap.interrupted();
+                oldInterrupt = Thread.interrupted();
             }
             whyBlocked = BlockedOnJavaCall;
+        }
+        if (oldInterrupt) {
+            Thread.currentThread().interrupt();
         }
         cap.idleLoop(true);
         return immune;

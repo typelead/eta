@@ -362,7 +362,7 @@ foreign import java safe "@static eta.base.Utils.fileChannelOpen"
   safe_open :: Path -> Set OpenOption -> FileAttribute -> IO FileChannel
 
 -- See Note: CSsize
-foreign import java safe "@static eta.base.Utils.c_read"
+foreign import java unsafe "@static eta.base.Utils.c_read"
   c_read :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize
@@ -378,7 +378,7 @@ c_umask :: CMode -> IO CMode
 c_umask = error "c_umask: Not implemented yet."
 
 -- See Note: CSsize
-foreign import java safe "@static eta.base.Utils.c_write"
+foreign import java unsafe "@static eta.base.Utils.c_write"
   c_write :: Channel -> Ptr Word8 -> CSize -> IO CSsize
 
 -- See Note: CSsize

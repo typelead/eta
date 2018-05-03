@@ -124,6 +124,8 @@ public class Utils {
     }
 
     public static int c_write(Channel fd, long address, int count) {
+        // Clear interrupt status to avoid unnecessarily closing the stream.
+        Thread.interrupted();
         try {
             WritableByteChannel wc     = (WritableByteChannel) fd;
             ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);
@@ -139,6 +141,8 @@ public class Utils {
     }
 
     public static int c_read(Channel fd, long address, int count) {
+        // Clear interrupt status to avoid unnecessarily closing the stream.
+        Thread.interrupted();
         try {
             ReadableByteChannel rc     = (ReadableByteChannel) fd;
             ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);

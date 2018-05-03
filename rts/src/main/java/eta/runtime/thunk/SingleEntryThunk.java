@@ -7,7 +7,7 @@ public abstract class SingleEntryThunk extends Thunk {
 
     @Override
     public final Closure evaluate(StgContext context) {
-        if (Thread.interrupted()) {
+        if (context.interrupted()) {
             context.myCapability.idleLoop(false);
         }
         /* TODO: Have some mechanism to *ensure* that it doesn't run multiple times. */

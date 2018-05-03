@@ -112,6 +112,8 @@ public final class Capability implements LocalHeap {
     public MPSCLongQueue freeMessages = new MPSCLongQueue();
     public long freeSequence;
 
+    public volatile boolean interrupt;
+
     public Capability(Thread t, boolean worker) {
         this.thread = new WeakReference<Thread>(t);
         this.worker = worker;
@@ -399,17 +401,32 @@ public final class Capability implements LocalHeap {
     }
 
     public final boolean interrupt() {
-        Thread t = thread.get();
-        TSO tso = context.currentTSO;
+        final Thread t = thread.get();
+        final TSO tso = context.currentTSO;
         if (t != null && (tso == null || !tso.hasFlag(TSO_INTERRUPT_IMMUNE))) {
-            if (Runtime.debugScheduler()) {
-                if (tso == null) {
-                    debugScheduler(this + " interrupted while waiting!");
-                } else {
-                    debugScheduler(this + " interrupted while running " + tso);
+            final boolean debug = Runtime.debugScheduler();
+            interrupt = true;
+            if (tso == null || tso.interruptible()) {
+                if (debug) {
+                    final String message = (tso == null)? "waiting for work" :
+                      tso + " is blocked because " + tso.whyBlocked;
+                    debugScheduler(this + " hard interrupted because " + message);
+                }
+                t.interrupt();
+            } else {
+                if (debug) {
+                    debugScheduler(this + " soft interrupted while running " + tso);
                 }
             }
-            t.interrupt();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public final boolean interrupted() {
+        if (interrupt) {
+            interrupt = false;
             return true;
         } else {
             return false;
@@ -561,7 +578,7 @@ public final class Capability implements LocalHeap {
     public final void blockedLoop(long nanos) {
         idleLoop(true);
         LockSupport.parkNanos(nanos);
-        Thread.interrupted();
+        interrupted();
         idleLoop(false);
     }
 

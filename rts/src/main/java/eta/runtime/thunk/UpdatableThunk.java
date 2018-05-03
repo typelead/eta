@@ -9,7 +9,7 @@ public abstract class UpdatableThunk extends Thunk {
     public final Closure evaluate(StgContext context) {
         do {
             if (indirectee == null) {
-                if (Thread.interrupted()) {
+                if (context.interrupted()) {
                     context.myCapability.idleLoop(false);
                 }
                 UpdateInfo ui = context.pushUpdate(this);

@@ -18,7 +18,7 @@ public class CAF extends Thunk {
     public final Closure evaluate(StgContext context) {
         for (;;) {
             if (indirectee == null) {
-                if (Thread.interrupted()) {
+                if (context.interrupted()) {
                     context.myCapability.idleLoop(false);
                 }
                 TSO tso = context.currentTSO;

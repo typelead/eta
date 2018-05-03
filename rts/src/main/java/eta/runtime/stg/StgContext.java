@@ -82,7 +82,7 @@ public class StgContext {
     public float F6;
     public float[] Fs = new float[1];
 
-    public void reset(Capability cap, TSO t) {
+    public final void reset(final Capability cap, final TSO t) {
         myCapability = cap;
         currentTSO = t;
         raise = null;
@@ -91,27 +91,27 @@ public class StgContext {
         if (t != null) t.reset();
     }
 
-    public boolean getAndSetTrampoline() {
-        boolean old = trampoline;
+    public final boolean getAndSetTrampoline() {
+        final boolean old = trampoline;
         trampoline = false;
         return old;
     }
 
-    public void resetTrampoline(int tailCalls, boolean trampoline) {
+    public final void resetTrampoline(final int tailCalls, final boolean trampoline) {
         this.tailCalls  = tailCalls;
         this.trampoline = trampoline;
         this.firstTime  = false;
         this.next       = null;
     }
 
-    public void resetArgStack() {
+    public final void resetArgStack() {
         resetRs();
         Arrays.fill(Rs, null);
         resetOs();
         Arrays.fill(Os, null);
     }
 
-    public void resetRs() {
+    public final void resetRs() {
         R1 = null;
         R2 = null;
         R3 = null;
@@ -120,7 +120,7 @@ public class StgContext {
         R6 = null;
     }
 
-    public void resetOs() {
+    public final void resetOs() {
         O1 = null;
         O2 = null;
         O3 = null;
@@ -129,32 +129,36 @@ public class StgContext {
         O6 = null;
     }
 
-    public Exception getCause() {
+    public final boolean interrupted() {
+        return myCapability.interrupted();
+    }
+
+    public final Exception getCause() {
         return currentTSO.getCause();
     }
 
-    public Closure getException() {
+    public final Closure getException() {
         return currentTSO.getException();
     }
 
-    public void setCauseAndException(Exception e, Closure exception) {
+    public final void setCauseAndException(final Exception e, final Closure exception) {
         currentTSO.setCauseAndException(e, exception);
     }
 
-    public UpdateInfo pushUpdate(Thunk updatee) {
+    public final UpdateInfo pushUpdate(final Thunk updatee) {
         return currentTSO.updateInfoStack.push(updatee);
     }
 
-    public Thunk popUpdate() {
+    public final Thunk popUpdate() {
         return currentTSO.updateInfoStack.pop();
     }
 
-    public void merge(ArgumentStack stack) {
-        byte flag = stack.typeFlag;
+    public final void merge(final ArgumentStack stack) {
+        final byte flag = stack.typeFlag;
 
         if ((flag & P_FLAG) != 0) {
-            Closure[] closures = stack.closures;
-            int len = closures.length;
+            final Closure[] closures = stack.closures;
+            final int len = closures.length;
             switch (Math.min(len, R_LIMIT)) {
               case 6:
                  R6 = closures[5];
@@ -171,7 +175,7 @@ public class StgContext {
               default:
                 break;
             }
-            int newLen = len - R_LIMIT;
+            final int newLen = len - R_LIMIT;
             if (newLen > 0) {
                 if (Rs.length < newLen) {
                     Rs = new Closure[newLen];
@@ -181,8 +185,8 @@ public class StgContext {
         }
 
         if ((flag & O_FLAG) != 0) {
-            Object[] objects = stack.objects;
-            int len = objects.length;
+            final Object[] objects = stack.objects;
+            final int len = objects.length;
             switch (Math.min(len, O_LIMIT)) {
               case 6:
                   O6 = objects[5];
@@ -199,7 +203,7 @@ public class StgContext {
               default:
                   break;
             }
-            int newLen = len - O_LIMIT;
+            final int newLen = len - O_LIMIT;
             if (newLen > 0) {
                 if (Os.length < newLen) {
                     Os = new Object[newLen];
@@ -209,8 +213,8 @@ public class StgContext {
         }
 
         if ((flag & I_FLAG) != 0) {
-            int[] ints = stack.ints;
-            int len = ints.length;
+            final int[] ints = stack.ints;
+            final int len = ints.length;
             switch (Math.min(len, 6)) {
               case 6:
                   I6 = ints[5];
@@ -227,7 +231,7 @@ public class StgContext {
               default:
                   break;
             }
-            int newLen = len - I_LIMIT;
+            final int newLen = len - I_LIMIT;
             if (newLen > 0) {
                 if (Is.length < newLen) {
                     Is = new int[newLen];
@@ -237,8 +241,8 @@ public class StgContext {
         }
 
         if ((flag & L_FLAG) != 0) {
-            long[] longs = stack.longs;
-            int len = longs.length;
+            final long[] longs = stack.longs;
+            final int len = longs.length;
             switch (Math.min(len, 6)) {
               case 6:
                   L6 = longs[5];
@@ -255,7 +259,7 @@ public class StgContext {
               default:
                   break;
             }
-            int newLen = len - L_LIMIT;
+            final int newLen = len - L_LIMIT;
             if (newLen > 0) {
                 if (Ls.length < newLen) {
                     Ls = new long[newLen];
@@ -265,8 +269,8 @@ public class StgContext {
         }
 
         if ((flag & F_FLAG) != 0) {
-            float[] floats = stack.floats;
-            int len = floats.length;
+            final float[] floats = stack.floats;
+            final int len = floats.length;
             switch (Math.min(len, 6)) {
               case 6:
                   F6 = floats[5];
@@ -283,7 +287,7 @@ public class StgContext {
               default:
                   break;
             }
-            int newLen = len - F_LIMIT;
+            final int newLen = len - F_LIMIT;
             if (newLen > 0) {
                 if (Fs.length < newLen) {
                     Fs = new float[newLen];
@@ -293,8 +297,8 @@ public class StgContext {
         }
 
         if ((flag & D_FLAG) != 0) {
-            double[] doubles = stack.doubles;
-            int len = doubles.length;
+            final double[] doubles = stack.doubles;
+            final int len = doubles.length;
             switch (Math.min(len, 6)) {
               case 6:
                   D6 = doubles[5];
@@ -311,7 +315,7 @@ public class StgContext {
               default:
                   break;
             }
-            int newLen = len - D_LIMIT;
+            final int newLen = len - D_LIMIT;
             if (newLen > 0) {
                 if (Ds.length < newLen) {
                     Ds = new double[newLen];
@@ -322,24 +326,21 @@ public class StgContext {
     }
 
     public static StgContext acquire() {
-        Capability cap = Capability.getLocal();
-        StgContext context = cap.context;
-        if (context.currentTSO != null) {
-            return context;
-        } else {
+        final StgContext context = Capability.getLocal().context;
+        if (context.currentTSO == null) {
             context.currentTSO = new TSO(null);
-            return context;
         }
+        return context;
     }
 
-    public void dump() {
+    public final void dump() {
         System.out.println("Context Dump");
         System.out.println("currentTSO: " + currentTSO);
         System.out.println("myCapabilitymyCapability: " + myCapability);
     }
 
-    public Closure R(int index) {
-        int idx = index - R_OFFSET;
+    public final Closure R(final int index) {
+        final int idx = index - R_OFFSET;
         if (idx < Rs.length) {
             return Rs[idx];
         } else {
@@ -348,10 +349,10 @@ public class StgContext {
         }
     }
 
-    public void R(int index, Closure closure) {
-        int idx = index - R_OFFSET;
+    public final void R(final int index, final Closure closure) {
+        final int idx = index - R_OFFSET;
         if (idx >= Rs.length) {
-            Closure[] oldRs = Rs;
+            final Closure[] oldRs = Rs;
             Rs = new Closure[idx + 3];
             System.arraycopy(oldRs, 0, Rs, 0, oldRs.length);
 
@@ -359,8 +360,8 @@ public class StgContext {
         Rs[idx] = closure;
     }
 
-    public Object O(int index) {
-        int idx = index - O_OFFSET;
+    public final Object O(final int index) {
+        final int idx = index - O_OFFSET;
         if (idx < Os.length) {
             return Os[idx];
         } else {
@@ -369,10 +370,10 @@ public class StgContext {
         }
     }
 
-    public void O(int index, Object o) {
-        int idx = index - O_OFFSET;
+    public final void O(final int index, final Object o) {
+        final int idx = index - O_OFFSET;
         if (idx >= Os.length) {
-            Object[] oldOs = Os;
+            final Object[] oldOs = Os;
             Os = new Object[idx + 3];
             System.arraycopy(oldOs, 0, Os, 0, oldOs.length);
 
@@ -380,8 +381,8 @@ public class StgContext {
         Os[idx] = o;
     }
 
-    public int I(int index) {
-        int idx = index - I_OFFSET;
+    public final int I(final int index) {
+        final int idx = index - I_OFFSET;
         if (idx < Is.length) {
             return Is[idx];
         } else {
@@ -390,10 +391,10 @@ public class StgContext {
         }
     }
 
-    public void I(int index, int i) {
-        int idx = index - I_OFFSET;
+    public final void I(final int index, final int i) {
+        final int idx = index - I_OFFSET;
         if (idx >= Is.length) {
-            int[] oldIs = Is;
+            final int[] oldIs = Is;
             Is = new int[idx + 3];
             System.arraycopy(oldIs, 0, Is, 0, oldIs.length);
 
@@ -401,8 +402,8 @@ public class StgContext {
         Is[idx] = i;
     }
 
-    public long L(int index) {
-        int idx = index - L_OFFSET;
+    public final long L(final int index) {
+        final int idx = index - L_OFFSET;
         if (idx < Ls.length) {
             return Ls[idx];
         } else {
@@ -411,10 +412,10 @@ public class StgContext {
         }
     }
 
-    public void L(int index, long l) {
-        int idx = index - L_OFFSET;
+    public final void L(final int index, final long l) {
+        final int idx = index - L_OFFSET;
         if (idx >= Ls.length) {
-            long[] oldLs = Ls;
+            final long[] oldLs = Ls;
             Ls = new long[idx + 3];
             System.arraycopy(oldLs, 0, Ls, 0, oldLs.length);
 
@@ -422,8 +423,8 @@ public class StgContext {
         Ls[idx] = l;
     }
 
-    public float F(int index) {
-        int idx = index - F_OFFSET;
+    public final float F(final int index) {
+        final int idx = index - F_OFFSET;
         if (idx < Fs.length) {
             return Fs[idx];
         } else {
@@ -432,10 +433,10 @@ public class StgContext {
         }
     }
 
-    public void F(int index, float f) {
-        int idx = index - F_OFFSET;
+    public final void F(final int index, final float f) {
+        final int idx = index - F_OFFSET;
         if (idx >= Fs.length) {
-            float[] oldFs = Fs;
+            final float[] oldFs = Fs;
             Fs = new float[idx + 3];
             System.arraycopy(oldFs, 0, Fs, 0, oldFs.length);
 
@@ -443,8 +444,8 @@ public class StgContext {
         Fs[idx] = f;
     }
 
-    public double D(int index) {
-        int idx = index - D_OFFSET;
+    public final double D(final int index) {
+        final int idx = index - D_OFFSET;
         if (idx < Ds.length) {
             return Ds[idx];
         } else {
@@ -453,10 +454,10 @@ public class StgContext {
         }
     }
 
-    public void D(int index, double d) {
-        int idx = index - D_OFFSET;
+    public final void D(final int index, final double d) {
+        final int idx = index - D_OFFSET;
         if (idx >= Ds.length) {
-            double[] oldDs = Ds;
+            final double[] oldDs = Ds;
             Ds = new double[idx + 3];
             System.arraycopy(oldDs, 0, Ds, 0, oldDs.length);
 
