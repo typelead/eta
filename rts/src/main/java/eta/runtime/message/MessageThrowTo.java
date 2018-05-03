@@ -63,7 +63,7 @@ public class MessageThrowTo extends Message {
 
     @Override
     public String toString() {
-        return "MessageBlackHole[source=" + source + ",target=" + target
+        return "MessageThrowTo[source=" + source + ",target=" + target
              + ",exception=" + exception + "]";
     }
 }
