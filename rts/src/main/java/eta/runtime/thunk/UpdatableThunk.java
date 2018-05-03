@@ -12,14 +12,9 @@ public abstract class UpdatableThunk extends Thunk {
                 if (context.interrupted()) {
                     context.myCapability.idleLoop(false);
                 }
-                UpdateInfo ui = context.pushUpdate(this);
+                final UpdateInfo ui = context.pushUpdate(this);
+                final boolean trampoline = context.getAndSetTrampolineUnlessFirst();
                 Closure result = null;
-                boolean trampoline = context.trampoline;
-                if (context.firstTime) {
-                    context.firstTime = false;
-                } else {
-                    context.trampoline = false;
-                }
                 try {
                     result = thunkEnter(context);
                 } catch (Exception e) {

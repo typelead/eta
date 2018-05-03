@@ -21,16 +21,11 @@ public class CAF extends Thunk {
                 if (context.interrupted()) {
                     context.myCapability.idleLoop(false);
                 }
-                TSO tso = context.currentTSO;
+                final TSO tso = context.currentTSO;
                 if (!claim(tso)) continue;
-                UpdateInfo ui = context.pushUpdate(this);
+                final UpdateInfo ui = context.pushUpdate(this);
+                final boolean trampoline = context.getAndSetTrampolineUnlessFirst();
                 Closure result = null;
-                boolean trampoline = context.trampoline;
-                if (context.firstTime) {
-                    context.firstTime = false;
-                } else {
-                    context.trampoline = false;
-                }
                 try {
                     result = thunkEnter(context);
                 } catch (java.lang.Exception e) {

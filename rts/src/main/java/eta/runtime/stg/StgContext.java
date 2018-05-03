@@ -97,6 +97,16 @@ public class StgContext {
         return old;
     }
 
+    public final boolean getAndSetTrampolineUnlessFirst() {
+        final boolean old = trampoline;
+        if (firstTime) {
+            firstTime = false;
+        } else {
+            trampoline = false;
+        }
+        return old;
+    }
+
     public final void resetTrampoline(final int tailCalls, final boolean trampoline) {
         this.tailCalls  = tailCalls;
         this.trampoline = trampoline;

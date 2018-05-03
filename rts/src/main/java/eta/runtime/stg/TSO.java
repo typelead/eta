@@ -266,12 +266,9 @@ public final class TSO extends BlackHole {
                 addFlags(TSO_INTERRUPT_IMMUNE);
                 // Erase interrupt status
                 cap.interrupted();
-                oldInterrupt = Thread.interrupted();
+                Thread.interrupted();
             }
             whyBlocked = BlockedOnJavaCall;
-        }
-        if (oldInterrupt) {
-            Thread.currentThread().interrupt();
         }
         cap.idleLoop(true);
         return immune;
