@@ -37,6 +37,12 @@ public class HSIConv {
         }
     }
 
+     private static void error(String msg) {
+        if (debug) {
+            System.err.println(Thread.currentThread() + ":" + msg);
+        }
+    }
+    
     public static HSIConv hs_iconv_open(String toEncodingStr, String fromEncodingStr) {
         debug("HSIConv: Opening iconv from " + fromEncodingStr + " to "
                 + toEncodingStr);
@@ -136,40 +142,54 @@ public class HSIConv {
         CharsetDecoder dec = iconv.decoder;
         CharsetEncoder enc = iconv.encoder;
         try {
-            /* No overflow in the intermediate out buffer using this method. */
-            CharBuffer buf16 = dec.decode(inbuf);
-            debug("String decoded: " + buf16.toString());
-            /* iconv states "In this case iconv returns the number of non-reversible
-               conversions performed during this call."
-               We simply return the size of the intermediate buffer. */
-            charsWritten = buf16.limit();
-            debug("Chars written: " + charsWritten);
-            CoderResult encRes = enc.encode(buf16, outbuf, true);
-            debug("Encoding result: " + encRes);
-            if (encRes.isUnderflow()) {
-                enc.flush(outbuf);
-            } else {
-                if (encRes.isOverflow()) {
-                    charsWritten = -E2BIG;
-                } else if(encRes.isError()) {
-                    charsWritten = -EILSEQ;
-                } else {
-                    charsWritten = -1;
+            
+            if (inbuf.remaining() == 0 || outbuf.remaining() == 0)
+                return 0;
+
+            CharBuffer buf16 = CharBuffer.allocate(1);
+
+            for (;;) {
+                int inInitPos = inbuf.position();
+                buf16.clear();
+
+                CoderResult decRes =  inbuf.hasRemaining() ?
+                    dec.decode(inbuf, buf16, true) : CoderResult.UNDERFLOW;
+               
+                if (decRes.isUnderflow())
+                    decRes = dec.flush(buf16);
+                else if (decRes.isError()) {
+                    if (decRes.isMalformed() &&
+                        decRes.length() == inbuf.remaining())
+                        charsWritten = -EINVAL;
+                    else
+                        charsWritten = -EILSEQ;
+                    break;
                 }
+                buf16.flip();
+
+                CoderResult encRes = enc.encode(buf16,outbuf,true);
+                if (encRes.isUnderflow()) {
+                    charsWritten ++;
+                } else {
+                    if (encRes.isOverflow())
+                        charsWritten = -E2BIG;
+                    else if (encRes.isError())
+                        charsWritten = -EILSEQ;
+                    inbuf.position(inInitPos);
+                    break;
+                }
+                if (decRes.isUnderflow() || !inbuf.hasRemaining())
+                    break;
+               
             }
-        } catch (CharacterCodingException e) {
-            debug("Error decoding string: " + e);
-            if (debug) {
-                e.printStackTrace();
-            }
-            // TODO: handle EINVAL case
-            charsWritten = -EILSEQ;
+            debug("Chars written: " + charsWritten);
         } finally {
             dec.reset();
             enc.reset();
         }
-        if (charsWritten == -1 && debug) {
-            System.err.println(MemoryManager.getHeap().getStatistics().generateReport());
+        if (charsWritten == -1) {
+            error(MemoryManager.getHeap().getStatistics().
+                  generateReport());
         }
         return charsWritten;
     }
