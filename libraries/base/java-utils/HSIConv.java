@@ -29,29 +29,31 @@ public class HSIConv {
         this.encoder = encoder;
     }
 
-    private static final boolean debug = true;
+    private static final boolean debug = false;
 
     private static void debug(String msg) {
         if (debug) {
-            System.out.println(Thread.currentThread() + ":" + msg);
+            System.out.println("HSIConv [debug] " +
+                               Thread.currentThread() + ":" + msg);
         }
     }
 
      private static void error(String msg) {
         if (debug) {
-            System.err.println(Thread.currentThread() + ":" + msg);
+            System.err.println("HSIConv [error] " +
+                               Thread.currentThread() + ":" + msg);
         }
     }
     
     public static HSIConv hs_iconv_open(String toEncodingStr, String fromEncodingStr) {
-        debug("HSIConv: Opening iconv from " + fromEncodingStr + " to "
+        debug("Opening iconv from " + fromEncodingStr + " to "
                 + toEncodingStr);
         return new HSIConv(Charset.forName(fromEncodingStr).newDecoder(),
                            Charset.forName(toEncodingStr).newEncoder());
     }
 
     public static int hs_iconv_close(HSIConv iconv) {
-        debug("HSIConv: Closing iconv with id: " + iconv);
+        debug("Closing iconv with id: " + iconv);
         return 0;
     }
 
@@ -65,7 +67,7 @@ public class HSIConv {
         try {
             int inleft = buffGetInt(inleftptr);
             int outleft = buffGetInt(outleftptr);
-            debug("HSIConv: from: " + iconv.decoder.charset().displayName()
+            debug("Recoding from: " + iconv.decoder.charset().displayName()
                          + ", to: " + iconv.encoder.charset().displayName());
             debug("in num bytes left: "+inleft);
             debug("out num bytes left: "+outleft);
@@ -78,9 +80,8 @@ public class HSIConv {
                 int        outInitPos = outbuf.position();
                 charsWritten = recode(iconv, inbuf, outbuf);
                 debug("After encoding:");
-                debug("Chars written: " + charsWritten);
-                debug("IN: buffer: "  + inbuf);
-                debug("OUT: buffer: " + outbuf);
+                debug("In buffer: "  + inbuf);
+                debug("Out buffer: " + outbuf);
                 int inFinalPos      = inbuf.position();
                 int outFinalPos     = outbuf.position();
                 int inBytesRead     = inFinalPos  - inInitPos;
@@ -118,26 +119,30 @@ public class HSIConv {
     }
     
     private static void buffAddInt(long bufAddress, int toAdd) {
-        MemoryManager.putInt(bufAddress, MemoryManager.getInt(bufAddress) + toAdd);
+        MemoryManager.putInt(bufAddress,
+                             MemoryManager.getInt(bufAddress) + toAdd);
     }
 
     private static void buffAddLong(long bufAddress, long toAdd) {
-        MemoryManager.putLong(bufAddress, MemoryManager.getLong(bufAddress) + toAdd);
+        MemoryManager.putLong(bufAddress,
+                              MemoryManager.getLong(bufAddress) + toAdd);
     }
 
-    private static ByteBuffer initBuffer(long bufptrAddress, long leftAddress, boolean input) {
+    private static ByteBuffer initBuffer(long bufptrAddress,
+                                         long leftAddress, boolean input) {
         int limit      = MemoryManager.getInt(leftAddress);
         long memAddr   = MemoryManager.getLong(bufptrAddress);
         ByteBuffer buf = MemoryManager.getBoundedBuffer(memAddr);
         buf.limit(buf.position() + limit);
         byte[] contents = new byte[limit];
         buf.duplicate().get(contents);
-        debug("initBuffer: address: " + memAddr + ", limit: " + limit +
-              ", buffer: " + buf + (input? ", contents: " + Arrays.toString(contents) : ""));
+        debug("initBuffer: address = " + memAddr +
+              ", limit = " + limit + ", buffer = " + buf);
         return buf;
     }
 
-    private static int recode(HSIConv iconv, ByteBuffer inbuf, ByteBuffer outbuf) {
+    private static int recode(HSIConv iconv, ByteBuffer inbuf,
+                              ByteBuffer outbuf) {
         int charsWritten   = 0;
         CharsetDecoder dec = iconv.decoder;
         CharsetEncoder enc = iconv.encoder;
@@ -152,12 +157,12 @@ public class HSIConv {
                 int inInitPos = inbuf.position();
                 buf16.clear();
 
-                CoderResult decRes =  inbuf.hasRemaining() ?
-                    dec.decode(inbuf, buf16, true) : CoderResult.UNDERFLOW;
+                CoderResult decRes =  dec.decode(inbuf, buf16, true);
                
                 if (decRes.isUnderflow())
                     decRes = dec.flush(buf16);
                 else if (decRes.isError()) {
+                    error("Error decoding: " + decRes); 
                     if (decRes.isMalformed() &&
                         decRes.length() == inbuf.remaining())
                         charsWritten = -EINVAL;
@@ -173,8 +178,10 @@ public class HSIConv {
                 } else {
                     if (encRes.isOverflow())
                         charsWritten = -E2BIG;
-                    else if (encRes.isError())
+                    else if (encRes.isError()) {
+                        error("Error encoding: "+encRes);
                         charsWritten = -EILSEQ;
+                    }
                     inbuf.position(inInitPos);
                     break;
                 }
