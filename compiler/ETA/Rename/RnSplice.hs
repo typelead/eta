@@ -14,7 +14,7 @@ module ETA.Rename.RnSplice (
 import ETA.BasicTypes.Name
 import ETA.BasicTypes.NameSet
 import ETA.HsSyn.HsSyn
-
+import ETA.BasicTypes.Id
 import ETA.BasicTypes.RdrName
 import ETA.TypeCheck.TcRnMonad
 import ETA.Rename.RnEnv
@@ -22,7 +22,7 @@ import ETA.Rename.RnEnv
 -- import ETA.Rename.RnUnbound        ( isUnboundName )
 import ETA.Rename.RnSource         ( rnSrcDecls, findSplice )
 import ETA.Rename.RnPat            ( rnPat )
-import ETA.BasicTypes.BasicTypes       ( TopLevelFlag, isTopLevel, SourceText(..) )
+import ETA.BasicTypes.BasicTypes       ( TopLevelFlag, isTopLevel)
 import ETA.Utils.Outputable
 import ETA.BasicTypes.Module
 import ETA.BasicTypes.SrcLoc
@@ -56,8 +56,6 @@ import {-# SOURCE #-} ETA.TypeCheck.TcSplice
 import Eta.REPL.RemoteTypes ( ForeignRef )
 import qualified Language.Haskell.TH as TH (Q)
 
-import qualified Eta.LanguageExtensions as LangExt
-
 {-
 ************************************************************************
 *                                                                      *
@@ -70,7 +68,7 @@ rnBracket :: HsExpr RdrName -> HsBracket RdrName -> RnM (HsExpr Name, FreeVars)
 rnBracket e br_body
   = addErrCtxt (quotationCtxtDoc br_body) $
     do { -- Check that -XTemplateHaskellQuotes is enabled and available
-         thQuotesEnabled <- xoptM LangExt.TemplateHaskellQuotes
+         thQuotesEnabled <- xoptM Opt_TemplateHaskell
        ; unless thQuotesEnabled $
            failWith ( vcat
                       [ text "Syntax error on" <+> ppr e
@@ -100,7 +98,7 @@ rnBracket e br_body
                         ; (body', fvs_e) <-
                           setStage (Brack cur_stage RnPendingTyped) $
                                    rn_bracket cur_stage br_body
-                        ; return (HsBracket noExt body', fvs_e) }
+                        ; return (HsBracket body', fvs_e) }
 
             False -> do { traceRn "Renaming untyped TH bracket" empty
                         ; ps_var <- newMutVar []
@@ -108,11 +106,11 @@ rnBracket e br_body
                           setStage (Brack cur_stage (RnPendingUntyped ps_var)) $
                                    rn_bracket cur_stage br_body
                         ; pendings <- readMutVar ps_var
-                        ; return (HsRnBracketOut noExt body' pendings, fvs_e) }
+                        ; return (HsRnBracketOut body' pendings, fvs_e) }
        }
 
 rn_bracket :: ThStage -> HsBracket RdrName -> RnM (HsBracket Name, FreeVars)
-rn_bracket outer_stage br@(VarBr x flg rdr_name)
+rn_bracket outer_stage br@(VarBr flg rdr_name)
   = do { name <- lookupOccRn rdr_name
        ; this_mod <- getModule
 
@@ -134,30 +132,30 @@ rn_bracket outer_stage br@(VarBr x flg rdr_name)
                                              (quotedNameStageErr br) }
                         }
                     }
-       ; return (VarBr x flg name, unitFV name) }
+       ; return (VarBr flg name, unitFV name) }
 
-rn_bracket _ (ExpBr x e) = do { (e', fvs) <- rnLExpr e
-                            ; return (ExpBr x e', fvs) }
+rn_bracket _ (ExpBr e) = do { (e', fvs) <- rnLExpr e
+                            ; return (ExpBr e', fvs) }
 
-rn_bracket _ (PatBr x p)
-  = rnPat ThPatQuote p $ \ p' -> return (PatBr x p', emptyFVs)
+rn_bracket _ (PatBr p)
+  = rnPat ThPatQuote p $ \ p' -> return (PatBr p', emptyFVs)
 
-rn_bracket _ (TypBr x t) = do { (t', fvs) <- rnLHsType TypBrCtx t
-                              ; return (TypBr x t', fvs) }
+rn_bracket _ (TypBr t) = do { (t', fvs) <- rnLHsType TypBrCtx t
+                              ; return (TypBr t', fvs) }
 
-rn_bracket _ (DecBrL x decls)
+rn_bracket _ (DecBrL decls)
   = do { group <- groupDecls decls
        ; gbl_env  <- getGblEnv
        ; let new_gbl_env = gbl_env { tcg_dus = emptyDUs }
                           -- The emptyDUs is so that we just collect uses for this
                           -- group alone in the call to rnSrcDecls below
        ; (tcg_env, group') <- setGblEnv new_gbl_env $
-                              rnSrcDecls group
+                              rnSrcDecls [] group
 
               -- Discard the tcg_env; it contains only extra info about fixity
         ; traceRn "rn_bracket dec" (ppr (tcg_dus tcg_env) $$
                    ppr (duUses (tcg_dus tcg_env)))
-        ; return (DecBrG x group', duUses (tcg_dus tcg_env)) }
+        ; return (DecBrG group', duUses (tcg_dus tcg_env)) }
   where
     groupDecls :: [LHsDecl RdrName] -> RnM (HsGroup RdrName)
     groupDecls decls
@@ -173,10 +171,10 @@ rn_bracket _ (DecBrL x decls)
 
 rn_bracket _ (DecBrG {}) = panic "rn_bracket: unexpected DecBrG"
 
-rn_bracket _ (TExpBr x e) = do { (e', fvs) <- rnLExpr e
-                               ; return (TExpBr x e', fvs) }
+rn_bracket _ (TExpBr e) = do { (e', fvs) <- rnLExpr e
+                               ; return (TExpBr e', fvs) }
 
-rn_bracket _ (XBracket {}) = panic "rn_bracket: unexpected XBracket"
+-- rn_bracket _ (XBracket {}) = panic "rn_bracket: unexpected XBracket"
 
 quotationCtxtDoc :: HsBracket RdrName -> SDoc
 quotationCtxtDoc br_body
@@ -285,7 +283,7 @@ rnSpliceGen run_splice pend_splice splice
 --
 -- See Note [Delaying modFinalizers in untyped splices].
 runRnSplice :: UntypedSpliceFlavour
-            -> (LHsExpr GhcTc -> TcRn res)
+            -> (LHsExpr Id -> TcRn res)
             -> (res -> SDoc)    -- How to pretty-print res
                                 -- Usually just ppr, but not for [Decl]
             -> HsSplice Name   -- Always untyped
@@ -294,11 +292,10 @@ runRnSplice flavour run_meta ppr_res splice
   = do { splice' <- getHooked runRnSpliceHook return >>= ($ splice)
 
        ; let the_expr = case splice' of
-                HsUntypedSplice _ _ _ e   ->  e
-                HsQuasiQuote _ _ q qs str -> mkQuasiQuoteExpr flavour q qs str
+                HsUntypedSplice _ _ e   ->  e
+                HsQuasiQuote _ q qs str -> mkQuasiQuoteExpr flavour q qs str
                 HsTypedSplice {}          -> pprPanic "runRnSplice" (ppr splice)
                 HsSpliced {}              -> pprPanic "runRnSplice" (ppr splice)
-                XSplice {}                -> pprPanic "runRnSplice" (ppr splice)
 
              -- Typecheck the expression
        ; meta_exp_ty   <- tcMetaTy meta_ty_name
@@ -336,15 +333,13 @@ runRnSplice flavour run_meta ppr_res splice
 makePending :: UntypedSpliceFlavour
             -> HsSplice Name
             -> PendingRnSplice
-makePending flavour (HsUntypedSplice _ _ n e)
+makePending flavour (HsUntypedSplice _ n e)
   = PendingRnSplice flavour n e
-makePending flavour (HsQuasiQuote _ n quoter q_span quote)
+makePending flavour (HsQuasiQuote n quoter q_span quote)
   = PendingRnSplice flavour n (mkQuasiQuoteExpr flavour quoter q_span quote)
 makePending _ splice@(HsTypedSplice {})
   = pprPanic "makePending" (ppr splice)
 makePending _ splice@(HsSpliced {})
-  = pprPanic "makePending" (ppr splice)
-makePending _ splice@(XSplice {})
   = pprPanic "makePending" (ppr splice)
 
 ------------------
@@ -353,13 +348,13 @@ mkQuasiQuoteExpr :: UntypedSpliceFlavour -> Name -> SrcSpan -> FastString
 -- Return the expression (quoter "...quote...")
 -- which is what we must run in a quasi-quote
 mkQuasiQuoteExpr flavour quoter q_span quote
-  = L q_span $ HsApp noExt (L q_span $
-                  HsApp noExt (L q_span (HsVar noExt (L q_span quote_selector)))
+  = L q_span $ HsApp (L q_span $
+                  HsApp (L q_span (HsVar quote_selector))
                             quoterExpr)
                      quoteExpr
   where
-    quoterExpr = L q_span $! HsVar noExt $! (L q_span quoter)
-    quoteExpr  = L q_span $! HsLit noExt $! HsString NoSourceText quote
+    quoterExpr = L q_span $! HsVar $! quoter
+    quoteExpr  = L q_span $! HsLit $! HsString "" quote
     quote_selector = case flavour of
                        UntypedExpSplice  -> quoteExpName
                        UntypedPatSplice  -> quotePatName
@@ -369,21 +364,21 @@ mkQuasiQuoteExpr flavour quoter q_span quote
 ---------------------
 rnSplice :: HsSplice RdrName -> RnM (HsSplice Name, FreeVars)
 -- Not exported...used for all
-rnSplice (HsTypedSplice x hasParen splice_name expr)
+rnSplice (HsTypedSplice hasParen splice_name expr)
   = do  { checkTH expr "Template Haskell typed splice"
         ; loc  <- getSrcSpanM
         ; n' <- newLocalBndrRn (L loc splice_name)
         ; (expr', fvs) <- rnLExpr expr
-        ; return (HsTypedSplice x hasParen n' expr', fvs) }
+        ; return (HsTypedSplice hasParen n' expr', fvs) }
 
-rnSplice (HsUntypedSplice x hasParen splice_name expr)
+rnSplice (HsUntypedSplice hasParen splice_name expr)
   = do  { checkTH expr "Template Haskell untyped splice"
         ; loc  <- getSrcSpanM
         ; n' <- newLocalBndrRn (L loc splice_name)
         ; (expr', fvs) <- rnLExpr expr
-        ; return (HsUntypedSplice x hasParen n' expr', fvs) }
+        ; return (HsUntypedSplice hasParen n' expr', fvs) }
 
-rnSplice (HsQuasiQuote x splice_name quoter q_loc quote)
+rnSplice (HsQuasiQuote splice_name quoter q_loc quote)
   = do  { checkTH quoter "Template Haskell quasi-quote"
         ; loc  <- getSrcSpanM
         ; splice_name' <- newLocalBndrRn (L loc splice_name)
@@ -394,11 +389,10 @@ rnSplice (HsQuasiQuote x splice_name quoter q_loc quote)
         ; when (nameIsLocalOrFrom this_mod quoter') $
           checkThLocalName quoter'
 
-        ; return (HsQuasiQuote x splice_name' quoter' q_loc quote
+        ; return (HsQuasiQuote splice_name' quoter' q_loc quote
                                                              , unitFV quoter') }
 
 rnSplice splice@(HsSpliced {}) = pprPanic "rnSplice" (ppr splice)
-rnSplice splice@(XSplice {})   = pprPanic "rnSplice" (ppr splice)
 
 ---------------------
 rnSpliceExpr :: HsSplice RdrName -> RnM (HsExpr Name, FreeVars)
@@ -407,7 +401,7 @@ rnSpliceExpr splice
   where
     pend_expr_splice :: HsSplice Name -> (PendingRnSplice, HsExpr Name)
     pend_expr_splice rn_splice
-        = (makePending UntypedExpSplice rn_splice, HsSpliceE noExt rn_splice)
+        = (makePending UntypedExpSplice rn_splice, HsSpliceE rn_splice)
 
     run_expr_splice :: HsSplice Name -> RnM (HsExpr Name, FreeVars)
     run_expr_splice rn_splice
@@ -420,7 +414,7 @@ rnSpliceExpr splice
                                                      , isLocalGRE gre]
                  lcl_names = mkNameSet (localRdrEnvElts lcl_rdr)
 
-           ; return (HsSpliceE noExt rn_splice, lcl_names `plusFV` gbl_names) }
+           ; return (HsSpliceE rn_splice, lcl_names `plusFV` gbl_names) }
 
       | otherwise  -- Run it here, see Note [Running splices in the Renamer]
       = do { traceRn "rnSpliceExpr: untyped expression splice" empty
@@ -428,8 +422,8 @@ rnSpliceExpr splice
                 runRnSplice UntypedExpSplice runMetaE ppr rn_splice
            ; (lexpr3, fvs) <- checkNoErrs (rnLExpr rn_expr)
              -- See Note [Delaying modFinalizers in untyped splices].
-           ; return ( HsPar noExt $ HsSpliceE noExt
-                            . HsSpliced noExt (ThModFinalizers mod_finalizers)
+           ; return ( HsPar $ HsSpliceE
+                            . HsSpliced (ThModFinalizers mod_finalizers)
                             . HsSplicedExpr <$>
                             lexpr3
                     , fvs)
@@ -532,7 +526,7 @@ rnSpliceType splice
   where
     pend_type_splice rn_splice
        = ( makePending UntypedTypeSplice rn_splice
-         , HsSpliceTy noExt rn_splice)
+         , HsSpliceTy rn_splice placeHolderType)
 
     run_type_splice rn_splice
       = do { traceRn "rnSpliceType: untyped type splice" empty
@@ -542,8 +536,8 @@ rnSpliceType splice
                                  ; checkNoErrs $ rnLHsType doc hs_ty2 }
                                     -- checkNoErrs: see Note [Renamer errors]
              -- See Note [Delaying modFinalizers in untyped splices].
-           ; return ( HsParTy noExt $ HsSpliceTy noExt
-                              . HsSpliced noExt (ThModFinalizers mod_finalizers)
+           ; return ( HsParTy $ (flip HsSpliceTy placeHolderType)
+                              . HsSpliced (ThModFinalizers mod_finalizers)
                               . HsSplicedTy <$>
                               hs_ty3
                     , fvs
@@ -600,15 +594,15 @@ rnSplicePat splice
   where
     pend_pat_splice rn_splice
       = (makePending UntypedPatSplice rn_splice
-        , Right (SplicePat noExt rn_splice))
+        , Right (SplicePat rn_splice))
 
     run_pat_splice rn_splice
       = do { traceRn "rnSplicePat: untyped pattern splice" empty
            ; (pat, mod_finalizers) <-
                 runRnSplice UntypedPatSplice runMetaP ppr rn_splice
              -- See Note [Delaying modFinalizers in untyped splices].
-           ; return ( Left $ ParPat noExt $ (SplicePat noExt)
-                              . HsSpliced noExt (ThModFinalizers mod_finalizers)
+           ; return ( Left $ ParPat $ (SplicePat)
+                              . HsSpliced (ThModFinalizers mod_finalizers)
                               . HsSplicedPat <$>
                               pat
                     , emptyFVs
@@ -618,15 +612,14 @@ rnSplicePat splice
 
 ----------------------
 rnSpliceDecl :: SpliceDecl RdrName -> RnM (SpliceDecl Name, FreeVars)
-rnSpliceDecl (SpliceDecl _ (L loc splice) flg)
+rnSpliceDecl (SpliceDecl (L loc splice) flg)
   = rnSpliceGen run_decl_splice pend_decl_splice splice
   where
     pend_decl_splice rn_splice
        = ( makePending UntypedDeclSplice rn_splice
-         , SpliceDecl noExt (L loc rn_splice) flg)
+         , SpliceDecl (L loc rn_splice) flg)
 
     run_decl_splice rn_splice = pprPanic "rnSpliceDecl" (ppr rn_splice)
-rnSpliceDecl (XSpliceDecl _) = panic "rnSpliceDecl"
 
 rnTopSpliceDecls :: HsSplice RdrName -> RnM ([LHsDecl RdrName], FreeVars)
 -- Declaration splice at the very top level of the module
@@ -695,7 +688,6 @@ spliceCtxt splice
              HsTypedSplice   {} -> text "typed splice:"
              HsQuasiQuote    {} -> text "quasi-quotation:"
              HsSpliced       {} -> text "spliced expression:"
-             XSplice         {} -> text "spliced expression:"
 
 -- | The splice data to be logged
 data SpliceInfo
@@ -752,8 +744,8 @@ illegalUntypedSplice = text "Untyped splices may not appear in typed brackets"
 
 checkThLocalName :: Name -> RnM ()
 checkThLocalName name
-  | isUnboundName name   -- Do not report two errors for
-  = return ()            --   $(not_in_scope args)
+  -- | isUnboundName name   -- Do not report two errors for
+  -- = return ()            --   $(not_in_scope args)
 
   | otherwise
   = do  { traceRn "checkThLocalName" (ppr name)

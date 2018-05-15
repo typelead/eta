@@ -473,10 +473,10 @@ extendGlobalRdrEnvRn avails new_fixities
 
               gbl_env' = gbl_env { tcg_rdr_env = rdr_env2, tcg_fix_env = fix_env' }
 
-        ; traceRn (text "extendGlobalRdrEnvRn 1" <+> (ppr avails $$ (ppr dups)))
+        ; traceRn "extendGlobalRdrEnvRn 1" (ppr avails $$ (ppr dups))
         ; mapM_ (addDupDeclErr . map gre_name) dups
 
-        ; traceRn (text "extendGlobalRdrEnvRn 2" <+> (pprGlobalRdrEnv True rdr_env2))
+        ; traceRn "extendGlobalRdrEnvRn 2" (pprGlobalRdrEnv True rdr_env2)
         ; return (gbl_env', lcl_env3) }
   where
     new_names = concatMap availNames avails
@@ -517,7 +517,7 @@ getLocalNonValBinders fixity_env
                 hs_fords  = foreign_decls })
   = do  { -- Process all type/class decls *except* family instances
         ; tc_avails <- mapM new_tc (tyClGroupConcat tycl_decls)
-        ; traceRn (text "getLocalNonValBinders 1" <+> ppr tc_avails)
+        ; traceRn "getLocalNonValBinders 1" (ppr tc_avails)
         ; let sames = findSames tc_avails
         ; when (not (null sames)) (addSimDeclErrors sames)
         ; envs <- extendGlobalRdrEnvRn tc_avails fixity_env
@@ -540,7 +540,7 @@ getLocalNonValBinders fixity_env
         ; let avails    = nti_avails ++ val_avails
               new_bndrs = availsToNameSet avails `unionNameSet`
                           availsToNameSet tc_avails
-        ; traceRn (text "getLocalNonValBinders 2" <+> ppr avails)
+        ; traceRn "getLocalNonValBinders 2" (ppr avails)
         ; envs <- extendGlobalRdrEnvRn avails fixity_env
         ; return (envs, new_bndrs) } }
   where
@@ -1040,7 +1040,7 @@ rnExports explicit_mod exports
         ; (rn_exports, avails) <- exports_from_avail real_exports rdr_env imports this_mod
         ; let final_avails = nubAvails avails    -- Combine families
 
-        ; traceRn (text "rnExports: Exports:" <+> ppr final_avails)
+        ; traceRn "rnExports: Exports:" (ppr final_avails)
 
         ; return (tcg_env { tcg_exports    = final_avails,
                             tcg_rn_exports = case tcg_rn_exports tcg_env of
@@ -1116,8 +1116,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                       -- 'M.x' is in scope in several ways, we'll have
                       -- several members of mod_avails with the same
                       -- OccName.
-             ; traceRn (vcat [ text "export mod" <+> ppr mod
-                             , ppr new_exports ])
+             ; traceRn "export mod" (vcat [ ppr mod, ppr new_exports ])
              ; return (L loc (IEModuleContents (L lm mod)) : ie_names,
                        occs', new_exports ++ exports) }
 
@@ -1299,7 +1298,7 @@ dupExport_ok n ie1 ie2
 reportUnusedNames :: Maybe (Located [LIE RdrName])  -- Export list
                   -> TcGblEnv -> RnM ()
 reportUnusedNames _export_decls gbl_env
-  = do  { traceRn ((text "RUN") <+> (ppr (tcg_dus gbl_env)))
+  = do  { traceRn "RUN" (ppr (tcg_dus gbl_env))
         ; warnUnusedImportDecls gbl_env
         ; warnUnusedTopBinds   unused_locals }
   where
@@ -1367,8 +1366,8 @@ warnUnusedImportDecls gbl_env
        ; let usage :: [ImportDeclUsage]
              usage = findImportUsage user_imports rdr_env (Set.elems uses)
 
-       ; traceRn (vcat [ ptext (sLit "Uses:") <+> ppr (Set.elems uses)
-                       , ptext (sLit "Import usage") <+> ppr usage])
+       ; traceRn "Uses:" (vcat [ ppr (Set.elems uses)
+                               , text "Import usage" <+> ppr usage])
        ; whenWOptM Opt_WarnUnusedImports $
          mapM_ warnUnusedImport usage
 

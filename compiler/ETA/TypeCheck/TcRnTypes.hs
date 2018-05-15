@@ -142,6 +142,7 @@ import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
 import Data.Typeable ( TypeRep )
 import Eta.REPL.RemoteTypes
+import Eta.REPL.Message
 
 import qualified Language.Haskell.TH as TH
 #endif
@@ -446,10 +447,14 @@ data TcGblEnv
         tcg_th_topnames :: TcRef NameSet,
         -- ^ Exact names bound in top-level declarations in tcg_th_topdecls
 
-        tcg_th_modfinalizers :: TcRef [TH.Q ()],
-        -- ^ Template Haskell module finalizers
+        tcg_th_modfinalizers :: TcRef [TcM ()],
+        -- ^ Template Haskell module finalizers.
+        --
+        -- They are computations in the @TcM@ monad rather than @Q@ because we
+        -- set them to use particular local environments.
 
         tcg_th_state :: TcRef (Map TypeRep Dynamic),
+        tcg_th_remote_state :: TcRef (Maybe (ForeignRef (IORef QState))),
         -- ^ Template Haskell state
 #endif /* ETA_REPL */
 

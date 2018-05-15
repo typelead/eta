@@ -126,7 +126,7 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
                        -- them in step (B)
          all_bndrs   = extendNameSetList tc_bndrs val_binders ;
          val_avails  = map Avail val_binders  } ;
-   traceRn (text "rnSrcDecls" <+> ppr val_avails) ;
+   traceRn "rnSrcDecls" (ppr val_avails) ;
    (tcg_env, tcl_env) <- extendGlobalRdrEnvRn val_avails local_fix_env ;
    setEnvs (tcg_env, tcl_env) $ do {
 
@@ -142,13 +142,13 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
    -- So we content ourselves with gathering uses only; that
    -- means we'll only report a declaration as unused if it isn't
    -- mentioned at all.  Ah well.
-   traceRn (text "Start rnTyClDecls") ;
+   traceRn "Start rnTyClDecls" empty ;
    (rn_tycl_decls, src_fvs1) <- rnTyClDecls extra_deps tycl_decls ;
 
    -- (F) Rename Value declarations right-hand sides
-   traceRn (text "Start rnmono") ;
+   traceRn "Start rnmono" empty ;
    (rn_val_decls, bind_dus) <- rnTopBindsRHS all_bndrs new_lhs ;
-   traceRn (text "finish rnmono" <+> ppr rn_val_decls) ;
+   traceRn "finish rnmono" (ppr rn_val_decls) ;
 
    -- (G) Rename Fixity and deprecations
 
@@ -209,8 +209,8 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
                         tcg_env' { tcg_warns = tcg_warns tcg_env' `plusWarns` rn_warns };
        } ;
 
-   traceRn (text "finish rnSrc" <+> ppr rn_group) ;
-   traceRn (text "finish Dus" <+> ppr src_dus ) ;
+   traceRn "finish rnSrc" (ppr rn_group) ;
+   traceRn "finish Dus" (ppr src_dus ) ;
    return (final_tcg_env, rn_group)
                     }}}}
 
@@ -476,7 +476,7 @@ rnClsInstDecl (ClsInstDecl { cid_poly_ty = inst_ty, cid_binds = mbinds
 
        -- Rename the associated types, and type signatures
        -- Both need to have the instance type variables in scope
-       ; traceRn (text "rnSrcInstDecl"  <+> ppr inst_ty' $$ ppr inst_tyvars $$ ppr ktv_names)
+       ; traceRn "rnSrcInstDecl" (ppr inst_ty' $$ ppr inst_tyvars $$ ppr ktv_names)
        ; ((ats', adts', other_sigs'), more_fvs)
              <- extendTyVarEnvFVRn ktv_names $
                 do { (ats',  at_fvs)  <- rnATInstDecls rnTyFamInstDecl cls inst_tyvars ats
@@ -977,7 +977,7 @@ rnTyClDecls extra_deps tycl_ds
                        raw_groups
 
        ; mapM_ orphanRoleAnnotErr (nameEnvElts orphan_roles)
-       ; traceRn (text "rnTycl"  <+> (ppr ds_w_fvs $$ ppr sccs))
+       ; traceRn "rnTycl" (ppr ds_w_fvs $$ ppr sccs)
        ; return (groups, all_fvs) }
 
 rnTyClDecl :: TyClDecl RdrName
@@ -994,7 +994,7 @@ rnTyClDecl (SynDecl { tcdLName = tycon, tcdTyVars = tyvars, tcdRhs = rhs })
   = do { tycon' <- lookupLocatedTopBndrRn tycon
        ; let kvs = fst (extractHsTyRdrTyVars rhs)
              doc = TySynCtx tycon
-       ; traceRn (text "rntycl-ty" <+> ppr tycon <+> ppr kvs)
+       ; traceRn "rntycl-ty" (ppr tycon <+> ppr kvs)
        ; ((tyvars', rhs'), fvs) <- bindHsTyVars doc Nothing kvs tyvars $
                                     \ tyvars' ->
                                     do { (rhs', fvs) <- rnTySyn doc rhs
@@ -1008,7 +1008,7 @@ rnTyClDecl (DataDecl { tcdLName = tycon, tcdTyVars = tyvars, tcdDataDefn = defn 
   = do { tycon' <- lookupLocatedTopBndrRn tycon
        ; let kvs = extractDataDefnKindVars defn
              doc = TyDataCtx tycon
-       ; traceRn (text "rntycl-data" <+> ppr tycon <+> ppr kvs)
+       ; traceRn "rntycl-data" (ppr tycon <+> ppr kvs)
        ; ((tyvars', defn'), fvs) <- bindHsTyVars doc Nothing kvs tyvars $ \ tyvars' ->
                                     do { (defn', fvs) <- rnDataDefn doc defn
                                        ; return ((tyvars', defn'), fvs) }

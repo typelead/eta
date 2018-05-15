@@ -262,7 +262,7 @@ lookupTopBndrRn :: RdrName -> RnM Name
 lookupTopBndrRn n = do nopt <- lookupTopBndrRn_maybe n
                        case nopt of
                          Just n' -> return n'
-                         Nothing -> do traceRn $ (text "lookupTopBndrRn fail" <+> ppr n)
+                         Nothing -> do traceRn "lookupTopBndrRn fail" (ppr n)
                                        unboundName WL_LocalTop n
 
 lookupLocatedTopBndrRn :: Located RdrName -> RnM (Located Name)
@@ -780,7 +780,7 @@ lookupGlobalOccRn rdr_name
   = do { mb_name <- lookupGlobalOccRn_maybe rdr_name
        ; case mb_name of
            Just n  -> return n
-           Nothing -> do { traceRn (text "lookupGlobalOccRn" <+> ppr rdr_name)
+           Nothing -> do { traceRn "lookupGlobalOccRn" (ppr rdr_name)
                          ; unboundName WL_Global rdr_name } }
 
 lookupInfoOccRn :: RdrName -> RnM [Name]
@@ -836,7 +836,7 @@ lookupGreRn rdr_name
         ; case mb_gre of {
             Just gre -> return gre ;
             Nothing  -> do
-        { traceRn (text "lookupGreRn" <+> ppr rdr_name)
+        { traceRn "lookupGreRn" (ppr rdr_name)
         ; name <- unboundName WL_Global rdr_name
         ; return (GRE { gre_name = name, gre_par = NoParent,
                         gre_prov = LocalDef }) }}}
@@ -1006,7 +1006,7 @@ lookupQualifiedNameGHCi rdr_name
 
                 _ -> -- Either we couldn't load the interface, or
                      -- we could but we didn't find the name in it
-                     do { traceRn (text "lookupQualifiedNameGHCi" <+> ppr rdr_name)
+                     do { traceRn "lookupQualifiedNameGHCi" (ppr rdr_name)
                         ; return [] } }
 
       | otherwise
@@ -1313,8 +1313,8 @@ lookupFixityRn name
       -- loadInterfaceForName will find B.hi even if B is a hidden module,
       -- and that's what we want.
       = do { iface <- loadInterfaceForName doc name
-           ; traceRn (text "lookupFixityRn: looking up name in iface cache and found:" <+>
-                      vcat [ppr name, ppr $ mi_fix_fn iface (nameOccName name)])
+           ; traceRn "lookupFixityRn: looking up name in iface cache and found:"
+                      (vcat [ppr name, ppr $ mi_fix_fn iface (nameOccName name)])
            ; return (mi_fix_fn iface (nameOccName name)) }
 
     doc = ptext (sLit "Checking fixity for") <+> ppr name
@@ -1509,7 +1509,7 @@ checkShadowedOccs :: (GlobalRdrEnv, LocalRdrEnv)
                   -> [a] -> RnM ()
 checkShadowedOccs (global_env,local_env) get_loc_occ ns
   = whenWOptM Opt_WarnNameShadowing $
-    do  { traceRn (text "shadow" <+> ppr (map get_loc_occ ns))
+    do  { traceRn "shadow" (ppr (map get_loc_occ ns))
         ; mapM_ check_shadow ns }
   where
     check_shadow n

@@ -100,6 +100,7 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
         th_topnames_var      <- newIORef emptyNameSet ;
         th_modfinalizers_var <- newIORef [] ;
         th_state_var         <- newIORef Map.empty ;
+        th_remote_state_var  <- newIORef Nothing ;
 #endif /* ETA_REPL */
         let {
              dflags = hsc_dflags hsc_env ;
@@ -115,6 +116,7 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 tcg_th_topnames      = th_topnames_var,
                 tcg_th_modfinalizers = th_modfinalizers_var,
                 tcg_th_state         = th_state_var,
+                tcg_th_remote_state  = th_remote_state_var,
 #endif /* ETA_REPL */
 
                 tcg_mod            = mod,
@@ -506,8 +508,19 @@ traceTcN level doc
          when (level <= traceLevel dflags && not opt_NoDebugOutput) $
              traceOptTcRn Opt_D_dump_tc_trace doc
 
-traceRn :: SDoc -> TcRn ()
-traceRn = traceOptTcRn Opt_D_dump_rn_trace -- Renamer Trace
+-- Renamer Trace
+traceRn :: String -> SDoc -> TcRn ()
+traceRn =
+ labelledTraceOptTcRn Opt_D_dump_rn_trace
+
+-- | Trace when a certain flag is enabled. This is like `traceOptTcRn`
+-- but accepts a string as a label and formats the trace message uniformly.
+labelledTraceOptTcRn :: DumpFlag -> String -> SDoc -> TcRn ()
+labelledTraceOptTcRn flag herald doc = do
+  traceOptTcRn flag (formatTraceMsg herald doc)
+
+formatTraceMsg :: String -> SDoc -> SDoc
+formatTraceMsg herald doc = hang (text herald) 2 doc
 
 -- | Output a doc if the given 'DumpFlag' is set.
 --
@@ -1253,7 +1266,7 @@ recordThSpliceUse = do { env <- getGblEnv; writeTcRef (tcg_th_splice_used env) T
 keepAlive :: Name -> TcRn ()     -- Record the name in the keep-alive set
 keepAlive name
   = do { env <- getGblEnv
-       ; traceRn (ptext (sLit "keep alive") <+> ppr name)
+       ; traceRn "keep alive" (ppr name)
        ; updTcRef (tcg_keep env) (`extendNameSet` name) }
 
 getStage :: TcM ThStage

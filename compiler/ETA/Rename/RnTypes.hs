@@ -331,7 +331,7 @@ rnHsTyKiForAll isType doc
              in_type_doc = ptext (sLit "In the type") <+> quotes (ppr ty)
        ; warnUnusedForAlls (in_type_doc $$ docOfHsDocContext doc)
                            forall_tyvars mentioned
-       ; traceRn (text "rnHsTyKiForAll:Exlicit" <+> vcat
+       ; traceRn "rnHsTyKiForAll:Exlicit" (vcat
             [ppr forall_tyvars, ppr lctxt,ppr tau ])
        ; rnForAll doc Explicit extra kvs forall_tyvars lctxt tau }
 
@@ -443,7 +443,7 @@ bindHsTyVars doc mb_assoc kv_bndrs tv_bndrs thing_inside
        ; (tv_bndrs', fvs1) <- mapFvRn rn_tv_bndr tvs
        ; (res, fvs2) <- bindLocalNamesFV (map hsLTyVarName tv_bndrs') $
                         do { inner_rdr_env <- getLocalRdrEnv
-                           ; traceRn (text "bhtv" <+> vcat
+                           ; traceRn "bhtv" (vcat
                                  [ ppr tvs, ppr kv_bndrs, ppr kvs_from_tv_bndrs
                                  , ppr $ map (`elemLocalRdrEnv` rdr_env) all_kvs'
                                  , ppr $ map (getUnique . rdrNameOcc) all_kvs'
