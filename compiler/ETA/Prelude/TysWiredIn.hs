@@ -42,6 +42,9 @@ module ETA.Prelude.TysWiredIn (
         -- * Word
         wordTyCon, wordDataCon, wordTyConName, wordTy,
 
+        -- * Word8
+        word8TyCon, word8DataCon, word8TyConName, word8Ty,
+
         -- * JString
         jstringTyCon, jstringDataCon, jstringTy,
 
@@ -212,9 +215,12 @@ nothingDataConName = mkWiredInDataConName UserSyntax gHC_BASE (fsLit "Nothing")
 justDataConName    = mkWiredInDataConName UserSyntax gHC_BASE (fsLit "Just")
                                           justDataConKey justDataCon
 
-wordTyConName, wordDataConName, floatTyConName, floatDataConName, doubleTyConName, doubleDataConName :: Name
+wordTyConName, wordDataConName, word8TyConName, word8DataConName,
+  floatTyConName, floatDataConName, doubleTyConName, doubleDataConName :: Name
 wordTyConName      = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Word")   wordTyConKey     wordTyCon
 wordDataConName    = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "W#")     wordDataConKey   wordDataCon
+word8TyConName     = mkWiredInTyConName   UserSyntax gHC_WORD  (fsLit "Word8")  word8TyConKey    word8TyCon
+word8DataConName   = mkWiredInDataConName UserSyntax gHC_WORD  (fsLit "W8#")    word8DataConKey  word8DataCon
 floatTyConName     = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Float")  floatTyConKey    floatTyCon
 floatDataConName   = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "F#")     floatDataConKey  floatDataCon
 doubleTyConName    = mkWiredInTyConName   UserSyntax gHC_TYPES (fsLit "Double") doubleTyConKey   doubleTyCon
@@ -586,6 +592,17 @@ wordTyCon = pcNonRecDataTyCon wordTyConName
                               [wordDataCon]
 wordDataCon :: DataCon
 wordDataCon = pcDataCon wordDataConName [] [wordPrimTy] wordTyCon
+
+word8Ty :: Type
+word8Ty = mkTyConTy word8TyCon
+
+word8TyCon :: TyCon
+word8TyCon = pcNonRecDataTyCon word8TyConName
+                     (Just (CType "" Nothing (fsLit "HsWord8"))) []
+                     [word8DataCon]
+
+word8DataCon :: DataCon
+word8DataCon = pcDataCon word8DataConName [] [wordPrimTy] word8TyCon
 
 floatTy :: Type
 floatTy = mkTyConTy floatTyCon

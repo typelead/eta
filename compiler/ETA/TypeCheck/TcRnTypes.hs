@@ -137,7 +137,7 @@ import GHC.Fingerprint
 import Data.Set (Set)
 import Control.Monad (ap, liftM)
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
 import Data.Typeable ( TypeRep )
@@ -438,7 +438,7 @@ data TcGblEnv
 
         tcg_dependent_files :: TcRef [FilePath], -- ^ dependencies from addDependentFile
 
-#ifdef GHCI
+#ifdef ETA_REPL
         tcg_th_topdecls :: TcRef [LHsDecl RdrName],
         -- ^ Top-level declarations from addTopDecls
 
@@ -450,7 +450,7 @@ data TcGblEnv
 
         tcg_th_state :: TcRef (Map TypeRep Dynamic),
         -- ^ Template Haskell state
-#endif /* GHCI */
+#endif /* ETA_REPL */
 
         tcg_ev_binds  :: Bag EvBind,        -- Top-level evidence bindings
 

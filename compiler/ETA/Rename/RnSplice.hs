@@ -13,7 +13,7 @@ import ETA.BasicTypes.RdrName
 import ETA.TypeCheck.TcRnMonad
 import ETA.Types.Kind
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.Main.ErrUtils         ( dumpIfSet_dyn_printer )
 import Control.Monad    ( unless, when )
 import ETA.Main.DynFlags
@@ -36,7 +36,7 @@ import {-# SOURCE #-} ETA.TypeCheck.TcExpr   ( tcMonoExpr )
 import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runMetaD, runMetaE, runMetaP, runMetaT, tcTopSpliceExpr )
 #endif
 
-#ifndef GHCI
+#ifndef ETA_REPL
 rnBracket :: HsExpr RdrName -> HsBracket RdrName -> RnM (HsExpr Name, FreeVars)
 rnBracket e _ = failTH e "Template Haskell bracket"
 
@@ -490,13 +490,13 @@ quotationCtxtDoc br_body
 #endif
 
 checkThLocalName :: Name -> RnM ()
-#ifndef GHCI  /* GHCI and TH is off */
+#ifndef ETA_REPL  /* ETA_REPL and TH is off */
 --------------------------------------
 -- Check for cross-stage lifting
 checkThLocalName _name
   = return ()
 
-#else         /* GHCI and TH is on */
+#else         /* ETA_REPL and TH is on */
 checkThLocalName name
   = do  { traceRn (text "checkThLocalName" <+> ppr name)
         ; mb_local_use <- getStageAndBindLevel name
@@ -544,7 +544,7 @@ checkCrossStageLifting top_lvl name (Brack _ (RnPendingUntyped ps_var))
         ; writeMutVar ps_var (PendingRnCrossStageSplice name : ps) }
 
 checkCrossStageLifting _ _ _ = return ()
-#endif /* GHCI */
+#endif /* ETA_REPL */
 
 {-
 Note [Keeping things alive for Template Haskell]

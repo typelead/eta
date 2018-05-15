@@ -105,7 +105,7 @@ mkPtrsArray arr n_ptrs ptrs = do
       BCO bco# <- linkBCO' arr bco
       writePtrsArrayBCO i bco# marr
     fill (ResolvedBCOPtrBreakArray r) i = do
-      BA mba <- localRef r
+      BA mba _ <- localRef r
       writePtrsArrayMBA i mba marr
   zipWithM_ fill ptrs [0..]
   return marr

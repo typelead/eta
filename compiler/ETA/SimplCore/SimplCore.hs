@@ -53,7 +53,7 @@ import ETA.BasicTypes.UniqSupply       ( UniqSupply, mkSplitUniqSupply, splitUni
 import ETA.Utils.Outputable
 import Control.Monad
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.Main.DynamicLoading   ( loadPlugins )
 import ETA.Main.Plugins          ( installCoreToDos )
 #endif
@@ -316,7 +316,7 @@ getCoreToDo dflags
 -- Loading plugins
 
 addPluginPasses :: [CoreToDo] -> CoreM [CoreToDo]
-#ifndef GHCI
+#ifndef ETA_REPL
 addPluginPasses builtin_passes = return builtin_passes
 #else
 addPluginPasses builtin_passes
@@ -389,7 +389,7 @@ doCorePass (CoreDoRuleCheck phase pat)  = ruleCheckPass phase pat
 doCorePass CoreDoNothing                = return
 doCorePass (CoreDoPasses passes)        = runCorePasses passes
 
-#ifdef GHCI
+#ifdef ETA_REPL
 doCorePass (CoreDoPluginPass _ pass) = {-# SCC "Plugin" #-} pass
 #endif
 

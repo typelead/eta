@@ -41,6 +41,7 @@ import ETA.Types.Coercion ( Role(..) )
 import ETA.TypeCheck.TcType
 import ETA.Main.HscTypes
 import ETA.Types.Class( Class )
+import ETA.BasicTypes.BasicTypes ( IntegralLit(..) )
 import ETA.BasicTypes.MkId( mkDictFunId )
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.Name
@@ -54,7 +55,7 @@ import ETA.Utils.Bag
 import ETA.Utils.Util
 import ETA.Utils.Outputable
 import Control.Monad( unless )
-import Data.Maybe( isJust )
+import Data.Maybe( isJust, fromJust )
 
 #include "HsVersions.h"
 
@@ -296,9 +297,9 @@ newOverloadedLit' dflags orig
 
 ------------
 mkOverLit :: OverLitVal -> TcM HsLit
-mkOverLit (HsIntegral src i)
+mkOverLit (HsIntegral i)
   = do  { integer_ty <- tcMetaTy integerTyConName
-        ; return (HsInteger src i integer_ty) }
+        ; return (HsInteger (fromJust (il_text i)) (il_value i) integer_ty) }
 
 mkOverLit (HsFractional r)
   = do  { rat_ty <- tcMetaTy rationalTyConName

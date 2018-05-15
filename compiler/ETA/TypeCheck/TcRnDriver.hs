@@ -8,7 +8,7 @@
 {-# LANGUAGE CPP, NondecreasingIndentation #-}
 
 module ETA.TypeCheck.TcRnDriver (
-#ifdef GHCI
+#ifdef ETA_REPL
         tcRnStmt, tcRnExpr, tcRnType,
         tcRnImportDecls,
         tcRnLookupRdrName,
@@ -23,9 +23,9 @@ module ETA.TypeCheck.TcRnDriver (
         tcTopSrcDecls,
     ) where
 
-#ifdef GHCI
-import {-# SOURCE #-} TcSplice ( runQuasi, traceSplice, SpliceInfo(..) )
-import RnSplice ( rnTopSpliceDecls )
+#ifdef ETA_REPL
+import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasi, traceSplice, SpliceInfo(..) )
+import ETA.Rename.RnSplice ( rnTopSpliceDecls )
 #endif
 
 import ETA.Main.DynFlags
@@ -84,7 +84,7 @@ import ETA.Types.CoAxiom
 import ETA.Main.Annotations
 import Data.List ( sort, sortBy )
 import Data.Ord
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.BasicTypes.BasicTypes hiding( SuccessFlag(..) )
 import ETA.TypeCheck.TcType   ( isUnitTy, isTauTy )
 import ETA.TypeCheck.TcHsType
@@ -92,7 +92,7 @@ import ETA.TypeCheck.TcMatches
 import ETA.Rename.RnTypes
 import ETA.Rename.RnExpr
 import ETA.BasicTypes.MkId
-import TidyPgm    ( globaliseAndTidyId )
+import ETA.Main.TidyPgm    ( globaliseAndTidyId )
 import ETA.Prelude.TysWiredIn ( unitTy, mkListTy )
 import ETA.Main.DynamicLoading ( loadPlugins )
 import ETA.Main.Plugins ( tcPlugin )
@@ -545,7 +545,7 @@ tc_rn_src_decls boot_details ds
       ; (tcg_env, rn_decls) <- rnTopSrcDecls extra_deps first_group
                 -- rnTopSrcDecls fails if there are any errors
 
-#ifdef GHCI
+#ifdef ETA_REPL
         -- Get TH-generated top-level declarations and make sure they don't
         -- contain any splices since we don't handle that at the moment
       ; th_topdecls_var <- fmap tcg_th_topdecls getGblEnv
@@ -577,7 +577,7 @@ tc_rn_src_decls boot_details ds
 
                     ; return (tcg_env, appendGroups rn_decls th_rn_decls)
                     }
-#endif /* GHCI */
+#endif /* ETA_REPL */
 
       -- Type check all declarations
       ; (tcg_env, tcl_env) <- setGblEnv tcg_env $
@@ -587,17 +587,17 @@ tc_rn_src_decls boot_details ds
       ; setEnvs (tcg_env, tcl_env) $
         case group_tail of
           { Nothing -> do { tcg_env <- checkMain       -- Check for `main'
-#ifdef GHCI
+#ifdef ETA_REPL
                             -- Run all module finalizers
                           ; th_modfinalizers_var <- fmap tcg_th_modfinalizers getGblEnv
                           ; modfinalizers <- readTcRef th_modfinalizers_var
                           ; writeTcRef th_modfinalizers_var []
                           ; mapM_ runQuasi modfinalizers
-#endif /* GHCI */
+#endif /* ETA_REPL */
                           ; return (tcg_env, tcl_env)
                           }
 
-#ifndef GHCI
+#ifndef ETA_REPL
             -- There shouldn't be a splice
           ; Just (SpliceDecl {}, _) ->
             failWithTc (text "Can't do a top-level splice; need a bootstrapped compiler")
@@ -613,7 +613,7 @@ tc_rn_src_decls boot_details ds
                  tc_rn_src_decls boot_details (spliced_decls ++ rest_ds)
                }
           }
-#endif /* GHCI */
+#endif /* ETA_REPL */
       }
 
 {-
@@ -1466,7 +1466,7 @@ runTcInteractive hsc_env thing_inside
                  , c <- tyConDataCons t ]
 
 
-#ifdef GHCI
+#ifdef ETA_REPL
 -- | The returned [Id] is the list of new Ids bound by this statement. It can
 -- be used to extend the InteractiveContext via extendInteractiveContext.
 --
@@ -1907,7 +1907,7 @@ tcRnDeclsi hsc_env local_decls =
 ************************************************************************
 -}
 
-#ifdef GHCI
+#ifdef ETA_REPL
 -- | ASSUMES that the module is either in the 'HomePackageTable' or is
 -- a package module with an interface on disk.  If neither of these is
 -- true, then the result will be an error indicating the interface
@@ -2161,7 +2161,7 @@ withTcPlugins hsc_env m =
        return (solve s, stop s)
 
 loadTcPlugins :: HscEnv -> IO [TcPlugin]
-#ifndef GHCI
+#ifndef ETA_REPL
 loadTcPlugins _ = return []
 #else
 loadTcPlugins hsc_env =

@@ -84,6 +84,7 @@ import ETA.Prelude.TysPrim          ( liftedTypeKindTyConName, eqPrimTyCon )
 import ETA.Prelude.TysWiredIn       ( unitTyCon, unitDataCon, tupleTyCon, tupleCon, nilDataCon,
                           unboxedUnitTyCon, unboxedUnitDataCon,
                           listTyCon_RDR, parrTyCon_RDR, consDataCon_RDR, eqTyCon_RDR )
+import Data.Maybe
 
 }
 
@@ -394,7 +395,7 @@ for some background.
 
  CHAR           { L _ (ITchar   _ _) }
  STRING         { L _ (ITstring _ _) }
- INTEGER        { L _ (ITinteger _ _) }
+ INTEGER        { L _ (ITinteger _) }
  RATIONAL       { L _ (ITrational _) }
 
  PRIMCHAR       { L _ (ITprimchar   _ _) }
@@ -686,7 +687,7 @@ impspec :: { Located (Bool, Located [LIE RdrName]) }
 prec    :: { Located Int }
         : {- empty -}           { noLoc 9 }
         | INTEGER
-                 {% checkPrecP (sL1 $1 (fromInteger (getINTEGER $1))) }
+                 {% checkPrecP (sL1 $1 (fromInteger (il_value (getINTEGER $1)))) }
 
 infix   :: { Located FixityDirection }
         : 'infix'                               { sL1 $1 InfixN  }
@@ -1264,9 +1265,9 @@ rule_activation :: { ([AddAnn],Maybe Activation) }
 rule_explicit_activation :: { ([AddAnn]
                               ,Activation) }  -- In brackets
         : '[' INTEGER ']'       { ([mos $1,mj AnnVal $2,mcs $3]
-                                  ,ActiveAfter  (fromInteger (getINTEGER $2))) }
+                                  ,ActiveAfter  (fromInteger (il_value (getINTEGER $2)))) }
         | '[' '~' INTEGER ']'   { ([mos $1,mj AnnTilde $2,mj AnnVal $3,mcs $4]
-                                  ,ActiveBefore (fromInteger (getINTEGER $3))) }
+                                  ,ActiveBefore (fromInteger (il_value (getINTEGER $3)))) }
         | '[' '~' ']'           { ([mos $1,mj AnnTilde $2,mcs $3]
                                   ,NeverActive) }
 
@@ -1593,8 +1594,8 @@ atype :: { LHsType RdrName }
                                              ams (sLL $1 $> $ HsExplicitListTy
                                                      placeHolderKind ($2 : $4))
                                                  [mos $1,mcs $5] }
-        | INTEGER              { sLL $1 $> $ HsTyLit $ HsNumTy (getINTEGERs $1)
-                                                               (getINTEGER $1) }
+        | INTEGER              { sLL $1 $> $ HsTyLit $ HsNumTy (fromJust (getINTEGERs $1))
+                                                               (il_value (getINTEGER $1)) }
         | STRING               { sLL $1 $> $ HsTyLit $ HsStrTy (getSTRINGs $1)
                                                                (getSTRING  $1) }
         | '_'                  { sL1 $1 $ HsWildcardTy }
@@ -1744,7 +1745,7 @@ gadt_constrs :: { Located [LConDecl RdrName] }
 gadt_constr :: { LConDecl RdrName }
                    -- Returns a list because of:   C,D :: ty
         : con_list '::' sigtype
-                {% do { (anns,gadtDecl) <- mkGadtDecl (unLoc $1) $3
+                {% do { (anns,gadtDecl) <- mkGadtDeclP (unLoc $1) $3
                       ; ams (sLL $1 $> $ gadtDecl)
                             (mj AnnDcolon $2:anns) } }
 
@@ -1976,10 +1977,10 @@ activation :: { ([AddAnn],Maybe Activation) }
 
 explicit_activation :: { ([AddAnn],Activation) }  -- In brackets
         : '[' INTEGER ']'       { ([mj AnnOpenS $1,mj AnnVal $2,mj AnnCloseS $3]
-                                  ,ActiveAfter  (fromInteger (getINTEGER $2))) }
+                                  ,ActiveAfter  (fromInteger (il_value (getINTEGER $2)))) }
         | '[' '~' INTEGER ']'   { ([mj AnnOpenS $1,mj AnnTilde $2,mj AnnVal $3
                                                  ,mj AnnCloseS $4]
-                                  ,ActiveBefore (fromInteger (getINTEGER $3))) }
+                                  ,ActiveBefore (fromInteger (il_value (getINTEGER $3)))) }
 
 -----------------------------------------------------------------------------
 -- Expressions
@@ -2099,11 +2100,11 @@ hpc_annot :: { Located (([AddAnn],SourceText),(FastString,(Int,Int),(Int,Int))) 
                                               ,mj AnnVal $9,mc $10],
                                                 getGENERATED_PRAGs $1)
                                               ,(getSTRING $2
-                                               ,( fromInteger $ getINTEGER $3
-                                                , fromInteger $ getINTEGER $5
+                                               ,( fromInteger $ il_value $ getINTEGER $3
+                                                , fromInteger $ il_value $ getINTEGER $5
                                                 )
-                                               ,( fromInteger $ getINTEGER $7
-                                                , fromInteger $ getINTEGER $9
+                                               ,( fromInteger $ il_value $ getINTEGER $7
+                                                , fromInteger $ il_value $ getINTEGER $9
                                                 )
                                                ))
                                          }
@@ -2134,7 +2135,7 @@ aexp2   :: { LHsExpr RdrName }
 -- into HsOverLit when -foverloaded-strings is on.
 --      | STRING    { sL (getLoc $1) (HsOverLit $! mkHsIsString (getSTRINGs $1)
 --                                       (getSTRING $1) placeHolderType) }
-        | INTEGER   { sL (getLoc $1) (HsOverLit $! mkHsIntegral (getINTEGERs $1)
+        | INTEGER   { sL (getLoc $1) (HsOverLit $! mkHsIntegral
                                          (getINTEGER $1) placeHolderType) }
         | RATIONAL  { sL (getLoc $1) (HsOverLit $! mkHsFractional
                                           (getRATIONAL $1) placeHolderType) }
@@ -2982,7 +2983,7 @@ getPREFIXQCONSYM (L _ (ITprefixqconsym  x)) = x
 getIPDUPVARID   (L _ (ITdupipvarid   x)) = x
 getCHAR         (L _ (ITchar   _ x)) = x
 getSTRING       (L _ (ITstring _ x)) = x
-getINTEGER      (L _ (ITinteger _ x)) = x
+getINTEGER      (L _ (ITinteger x))  = x
 getRATIONAL     (L _ (ITrational x)) = x
 getPRIMCHAR     (L _ (ITprimchar _ x)) = x
 getPRIMSTRING   (L _ (ITprimstring _ x)) = x
@@ -3001,9 +3002,9 @@ getDOCPREV (L _ (ITdocCommentPrev x)) = x
 getDOCNAMED (L _ (ITdocCommentNamed x)) = x
 getDOCSECTION (L _ (ITdocSection n x)) = (n, x)
 
+getINTEGERs     (L _ (ITinteger (IL src _ _))) = src
 getCHARs        (L _ (ITchar       src _)) = src
 getSTRINGs      (L _ (ITstring     src _)) = src
-getINTEGERs     (L _ (ITinteger    src _)) = src
 getPRIMCHARs    (L _ (ITprimchar   src _)) = src
 getPRIMSTRINGs  (L _ (ITprimstring src _)) = src
 getPRIMINTEGERs (L _ (ITprimint    src _)) = src

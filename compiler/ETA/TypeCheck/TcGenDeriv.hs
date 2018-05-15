@@ -629,7 +629,7 @@ gen_Enum_binds loc tycon
              (illegal_Expr "pred" occ_nm "tried to take `pred' of first tag in enumeration")
              (nlHsApp (nlHsVar (tag2con_RDR tycon))
                            (nlHsApps plus_RDR [nlHsVarApps intDataCon_RDR [ah_RDR],
-                                               nlHsLit (HsInt "-1" (-1))]))
+                                               nlHsLit (HsInt (mkIntegralLit (-1 :: Int)))]))
 
     to_enum
       = mk_easy_FunBind loc toEnum_RDR [a_Pat] $
@@ -1137,7 +1137,7 @@ gen_Show_binds get_fixity loc tycon
       | otherwise   =
          ([a_Pat, con_pat],
           showParen_Expr (nlHsPar (genOpApp a_Expr ge_RDR
-                                        (nlHsLit (HsInt "" con_prec_plus_one))))
+                                        (nlHsLit (HsInt (mkIntegralLit con_prec_plus_one)))))
                          (nlHsPar (nested_compose_Expr show_thingies)))
         where
              data_con_RDR  = getRdrName data_con
@@ -1194,7 +1194,7 @@ gen_Show_binds get_fixity loc tycon
                                      append_RDR (nlHsVar a_RDR))
                          emptyLocalBinds)
                | otherwise = nlHsApps showsPrec_RDR
-                                    [nlHsLit (HsInt "" arg_prec),
+                                    [nlHsLit (HsInt (mkIntegralLit arg_prec)),
                                     box_if_necy "Show" tycon (nlHsVar b) arg_ty]
 
                 -- Fixity stuff

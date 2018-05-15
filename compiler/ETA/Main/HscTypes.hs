@@ -14,6 +14,7 @@ module ETA.Main.HscTypes (
         Target(..), TargetId(..), pprTarget, pprTargetId,
         ModuleGraph, emptyMG,
         HscStatus(..),
+        IServ(..),
 
         -- * Hsc monad
         Hsc(..), runHsc, runInteractiveHsc,
@@ -130,8 +131,10 @@ module ETA.Main.HscTypes (
 
 #include "HsVersions.h"
 
-#ifdef GHCI
-import ETA.Interactive.ByteCodeAsm      ( CompiledByteCode )
+#ifdef ETA_REPL
+import Eta.REPL.Message ( Pipe )
+import Eta.REPL.RemoteTypes
+-- import ETA.Interactive.ByteCodeAsm      ( CompiledByteCode )
 import ETA.Main.InteractiveEvalTypes ( Resume )
 #endif
 
@@ -197,7 +200,10 @@ import Data.Time
 import Data.Word
 import Data.Typeable    ( Typeable )
 import ETA.Utils.Exception
+import Foreign
 import System.FilePath
+import System.Process   ( ProcessHandle )
+import Control.Concurrent
 import qualified Data.Map as M
 
 -- -----------------------------------------------------------------------------
@@ -398,15 +404,25 @@ data HscEnv
                 -- ^ This caches the location of modules, so we don't have to
                 -- search the filesystem multiple times. See also 'hsc_FC'.
 
-        hsc_type_env_var :: Maybe (Module, IORef TypeEnv)
+        hsc_type_env_var :: Maybe (Module, IORef TypeEnv),
                 -- ^ Used for one-shot compilation only, to initialise
                 -- the 'IfGblEnv'. See 'TcRnTypes.tcg_type_env_var' for
                 -- 'TcRunTypes.TcGblEnv'
+        hsc_iserv :: MVar (Maybe IServ)
+              -- ^ interactive server process.  Created the first
+              -- time it is needed.
  }
 
 instance ContainsDynFlags HscEnv where
     extractDynFlags env = hsc_dflags env
     replaceDynFlags env dflags = env {hsc_dflags = dflags}
+
+data IServ = IServ
+  { iservPipe :: Pipe
+  , iservProcess :: ProcessHandle
+  , iservLookupSymbolCache :: IORef (UniqFM (Ptr ()))
+  , iservPendingFrees :: [HValueRef]
+  }
 
 -- | Retrieve the ExternalPackageState cache.
 hscEPS :: HscEnv -> IO ExternalPackageState
@@ -1366,7 +1382,7 @@ data InteractiveContext
          ic_default :: Maybe [Type],
              -- ^ The current default types, set by a 'default' declaration
 
-#ifdef GHCI
+#ifdef ETA_REPL
           ic_resume :: [Resume],
              -- ^ The stack of breakpoint contexts
 #endif
@@ -1407,7 +1423,7 @@ emptyInteractiveContext dflags
        ic_monad      = ioTyConName,  -- IO monad by default
        ic_int_print  = printName,    -- System.IO.print by default
        ic_default    = Nothing,
-#ifdef GHCI
+#ifdef ETA_REPL
        ic_resume     = [],
 #endif
        ic_cwd        = Nothing }
@@ -2781,8 +2797,12 @@ data Unlinked
    | DotDLL FilePath    -- ^ Dynamically linked library file (.so, .dll, .dylib)
    | BCOs CompiledByteCode ModBreaks    -- ^ A byte-code object, lives only in memory
 
-#ifndef GHCI
+#ifdef ETA_REPL
 data CompiledByteCode = CompiledByteCodeUndefined
+
+instance Outputable CompiledByteCode where
+  ppr _ = text "Unlinked"
+
 _unused :: CompiledByteCode
 _unused = CompiledByteCodeUndefined
 #endif
@@ -2791,7 +2811,7 @@ instance Outputable Unlinked where
    ppr (DotO path)   = text "DotO" <+> text path
    ppr (DotA path)   = text "DotA" <+> text path
    ppr (DotDLL path) = text "DotDLL" <+> text path
-#ifdef GHCI
+#ifdef ETA_REPL
    ppr (BCOs bcos _) = text "BCOs" <+> ppr bcos
 #else
    ppr (BCOs _ _)    = text "No byte code"

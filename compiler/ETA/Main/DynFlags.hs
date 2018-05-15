@@ -74,8 +74,8 @@ module ETA.Main.DynFlags (
         extraGccViaCFlags, systemPackageConfig,
         pgm_L, pgm_P, pgm_F, pgm_c, pgm_s, pgm_a, pgm_l, pgm_dll,
         pgm_sysman, pgm_windres, pgm_libtool, pgm_readelf, pgm_lo, pgm_lc,
-        pgm_javac,
-        opt_L, opt_P, opt_F, opt_c, opt_a, opt_l,
+        pgm_javac, pgm_i,
+        opt_L, opt_P, opt_F, opt_c, opt_a, opt_l, opt_i,
         opt_windres, opt_lo, opt_lc, opt_javac,
 
 
@@ -120,9 +120,9 @@ module ETA.Main.DynFlags (
         StgToDo(..),
         getStgToDo,
 
-#ifdef GHCI
-        rtsIsProfiled,
-#endif
+-- #ifdef ETA_REPL
+--         rtsIsProfiled,
+-- #endif
         dynamicGhc,
 
 -- #include "../includes/dist-derivedconstants/header/GHCConstantsHaskellExports.hs"
@@ -178,10 +178,10 @@ import ETA.Utils.FastString
 import ETA.Utils.Outputable
 import ETA.Utils.JAR
 import qualified ETA.Utils.PprColor as Col
-#ifdef GHCI
-import Foreign.C        ( CInt(..) )
-import System.IO.Unsafe ( unsafeDupablePerformIO )
-#endif
+-- #ifdef ETA_REPL
+-- import Foreign.C        ( CInt(..) )
+-- import System.IO.Unsafe ( unsafeDupablePerformIO )
+-- #endif
 import {-# SOURCE #-} ETA.Main.ErrUtils ( Severity(..), MsgDoc, mkLocMessageAnn,
                                           getCaretDiagnostic)
 
@@ -431,6 +431,7 @@ data GeneralFlag
    | Opt_RelativeDynlibPaths
    | Opt_Hpc
    | Opt_FlatCache
+   | Opt_ExternalInterpreter
 
    -- PreInlining is on by default. The option is there just to see how
    -- bad things get if you turn it off!
@@ -974,6 +975,7 @@ data Settings = Settings {
   sPgm_lo                :: (String,[Option]), -- LLVM: opt llvm optimiser
   sPgm_lc                :: (String,[Option]), -- LLVM: llc static compiler
   sPgm_javac             :: (String,[String]),
+  sPgm_i                 :: String,
   -- options for particular phases
   sOpt_L                 :: [String],
   sOpt_P                 :: [String],
@@ -984,7 +986,8 @@ data Settings = Settings {
   sOpt_windres           :: [String],
   sOpt_lo                :: [String], -- LLVM: llvm optimiser
   sOpt_lc                :: [String], -- LLVM: llc static compiler
-  sOpt_javac             :: [String]
+  sOpt_javac             :: [String],
+  sOpt_i                 :: [String] -- iserv options
  }
 
 targetPlatform :: DynFlags -> Platform
@@ -1037,7 +1040,8 @@ pgm_lc                :: DynFlags -> (String,[Option])
 pgm_lc dflags = sPgm_lc (settings dflags)
 pgm_javac                :: DynFlags -> (String,[String])
 pgm_javac dflags = sPgm_javac (settings dflags)
-
+pgm_i                 :: DynFlags -> String
+pgm_i dflags = sPgm_i (settings dflags)
 opt_L                 :: DynFlags -> [String]
 opt_L dflags = sOpt_L (settings dflags)
 opt_P                 :: DynFlags -> [String]
@@ -1061,6 +1065,8 @@ opt_lc                :: DynFlags -> [String]
 opt_lc dflags = sOpt_lc (settings dflags)
 opt_javac                :: DynFlags -> [String]
 opt_javac dflags = sOpt_javac (settings dflags)
+opt_i                 :: DynFlags -> [String]
+opt_i dflags = sOpt_i (settings dflags)
 
 -- | The directory for this version of ghc in the user's app directory
 -- (typically something like @~/.ghc/x86_64-linux-7.6.3@)
@@ -2415,6 +2421,8 @@ dynamic_flags = [
       (hasArg (\f -> alterSettings (\s -> s { sPgm_lo  = (f,[])})))
   , defFlag "pgmlc"
       (hasArg (\f -> alterSettings (\s -> s { sPgm_lc  = (f,[])})))
+  , defFlag "pgmi"
+      (hasArg (\f -> alterSettings (\s -> s { sPgm_i  =  f})))
   , defFlag "pgmL"
       (hasArg (\f -> alterSettings (\s -> s { sPgm_L   = f})))
   , defFlag "pgmP"
@@ -2441,6 +2449,8 @@ dynamic_flags = [
     -- need to appear before -optl/-opta to be parsed as LLVM flags.
   , defFlag "optjavac"
       (hasArg (\f -> alterSettings (\s -> s { sOpt_javac  = reverse (words f) ++ sOpt_javac s})))
+  , defFlag "opti"
+      (hasArg (\f -> alterSettings (\s -> s { sOpt_i   = f : sOpt_i s})))
   , defFlag "optlo"
       (hasArg (\f -> alterSettings (\s -> s { sOpt_lo  = f : sOpt_lo s})))
   , defFlag "optlc"
@@ -3351,7 +3361,8 @@ defaultFlags _
       Opt_ProfCountEntries,
       Opt_RPath,
       Opt_SharedImplib,
-      Opt_SimplPreInlining
+      Opt_SimplPreInlining,
+      Opt_ExternalInterpreter
     ]
 
     ++ [f | (ns,f) <- optLevelFlags, 0 `elem` ns]
@@ -3565,7 +3576,7 @@ glasgowExtsFlags = [
            , Opt_UnicodeSyntax
            , Opt_UnliftedFFITypes ]
 
--- TODO: #ifdef GHCI
+-- TODO: #ifdef ETA_REPL
 -- -- Consult the RTS to find whether GHC itself has been built profiled
 -- -- If so, you can't use Template Haskell
 -- foreign import ccall unsafe "rts_isProfiled" rtsIsProfiledIO :: IO CInt
@@ -3574,7 +3585,7 @@ glasgowExtsFlags = [
 -- rtsIsProfiled = unsafeDupablePerformIO rtsIsProfiledIO /= 0
 -- #endif
 
--- #ifdef GHCI
+-- #ifdef ETA_REPL
 -- -- Consult the RTS to find whether GHC itself has been built with
 -- -- dynamic linking.  This can't be statically known at compile-time,
 -- -- because we build both the static and dynamic versions together with
@@ -3620,7 +3631,7 @@ setIncoherentInsts True = do
   upd (\d -> d { incoherentOnLoc = l })
 
 checkTemplateHaskellOk :: TurnOnFlag -> DynP ()
--- TODO: #ifdef GHCI
+-- TODO: #ifdef ETA_REPL
 checkTemplateHaskellOk _
   = getCurLoc >>= \l -> upd (\d -> d { thOnLoc = l })
 -- #else

@@ -195,7 +195,7 @@ mkParPat lp@(L loc p) | hsPatNeedsParens p = L loc (ParPat lp)
 -- These are the bits of syntax that contain rebindable names
 -- See RnEnv.lookupSyntaxName
 
-mkHsIntegral   :: String -> Integer -> PostTc RdrName Type -> HsOverLit RdrName
+mkHsIntegral   :: IntegralLit -> PostTc RdrName Type -> HsOverLit RdrName
 mkHsFractional :: FractionalLit -> PostTc RdrName Type -> HsOverLit RdrName
 mkHsIsString :: String -> FastString -> PostTc RdrName Type -> HsOverLit RdrName
 mkHsDo         :: HsStmtContext Name -> [ExprLStmt RdrName] -> HsExpr RdrName
@@ -216,7 +216,7 @@ emptyRecStmtId   :: StmtLR Id   Id      bodyR
 mkRecStmt    :: [LStmtLR idL RdrName bodyR] -> StmtLR idL RdrName bodyR
 
 
-mkHsIntegral src i  = OverLit (HsIntegral   src i) noRebindableInfo noSyntaxExpr
+mkHsIntegral     i  = OverLit (HsIntegral       i) noRebindableInfo noSyntaxExpr
 mkHsFractional   f  = OverLit (HsFractional     f) noRebindableInfo noSyntaxExpr
 mkHsIsString src s  = OverLit (HsIsString   src s) noRebindableInfo noSyntaxExpr
 
@@ -326,6 +326,9 @@ nlHsVar n = noLoc (HsVar n)
 nlHsLit :: HsLit -> LHsExpr id
 nlHsLit n = noLoc (HsLit n)
 
+nlHsIntLit :: Integer -> LHsExpr id
+nlHsIntLit n = noLoc (HsLit (HsInt (mkIntegralLit n)))
+
 nlVarPat :: id -> LPat id
 nlVarPat n = noLoc (VarPat n)
 
@@ -334,9 +337,6 @@ nlLitPat l = noLoc (LitPat l)
 
 nlHsApp :: LHsExpr id -> LHsExpr id -> LHsExpr id
 nlHsApp f x = noLoc (HsApp f x)
-
-nlHsIntLit :: Integer -> LHsExpr id
-nlHsIntLit n = noLoc (HsLit (HsInt (show n) n))
 
 nlHsApps :: id -> [LHsExpr id] -> LHsExpr id
 nlHsApps f xs = foldl nlHsApp (nlHsVar f) xs

@@ -15,7 +15,7 @@ module ETA.TypeCheck.TcExpr ( tcPolyExpr, tcPolyExprNC, tcMonoExpr, tcMonoExprNC
 
 -- import {-# SOURCE #-}   ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
 import ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.DeSugar.DsMeta( liftStringName, liftName )
 #endif
 
@@ -1240,13 +1240,13 @@ tcTagToEnum loc fun_name arg res_ty
 -}
 
 checkThLocalId :: Id -> TcM ()
-#ifndef GHCI  /* GHCI and TH is off */
+#ifndef ETA_REPL  /* ETA_REPL and TH is off */
 --------------------------------------
 -- Check for cross-stage lifting
 checkThLocalId _id
   = return ()
 
-#else         /* GHCI and TH is on */
+#else         /* ETA_REPL and TH is on */
 checkThLocalId id
   = do  { mb_local_use <- getStageAndBindLevel (idName id)
         ; case mb_local_use of
@@ -1306,7 +1306,7 @@ checkCrossStageLifting _ _ = return ()
 polySpliceErr :: Id -> SDoc
 polySpliceErr id
   = ptext (sLit "Can't splice the polymorphic local variable") <+> quotes (ppr id)
-#endif /* GHCI */
+#endif /* ETA_REPL */
 
 {-
 Note [Lifting strings]

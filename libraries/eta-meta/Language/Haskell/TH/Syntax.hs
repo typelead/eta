@@ -1606,7 +1606,7 @@ data Foreign = ImportF Callconv Safety String Name Type
          deriving( Show, Eq, Ord, Data, Typeable, Generic )
 
 -- keep Callconv in sync with module ForeignCall in ghc/compiler/prelude/ForeignCall.hs
-data Callconv = CCall | StdCall | CApi | Prim | JavaScript
+data Callconv = CCall | StdCall | CApi | Prim | JavaScript | Java
           deriving( Show, Eq, Ord, Data, Typeable, Generic )
 
 data Safety = Unsafe | Safe | Interruptible

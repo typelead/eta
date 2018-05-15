@@ -200,6 +200,7 @@ initSysTools mbMinusB
                          , sProjectVersion      = cProjectVersion
                          , sPgm_F               = ""
                          , sPgm_javac           = ("javac",["-verbose"])
+                         , sPgm_i               = ""
                          , sOpt_L               = []
                          , sOpt_P               = []
                          , sOpt_F               = []
@@ -210,6 +211,7 @@ initSysTools mbMinusB
                          , sOpt_lo              = []
                          , sOpt_lc              = []
                          , sOpt_javac           = []
+                         , sOpt_i               = []
                          , sGhcUsagePath        = undefined
                          , sGhciUsagePath       = undefined
                          , sRawSettings         = undefined

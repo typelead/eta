@@ -71,5 +71,7 @@ library
         filepath         == 1.4.*,
         eta-boot,
         eta-boot-th,
-        eta-meta == 0.7.2.2,
+        eta-meta,
         transformers     == 0.4.*
+    if !os(windows)
+      Build-Depends: unix >= 2.7 && < 2.9

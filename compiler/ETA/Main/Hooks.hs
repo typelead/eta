@@ -23,6 +23,7 @@ module ETA.Main.Hooks ( Hooks
              , runQuasiQuoteHook
              , runRnSpliceHook
              , getValueSafelyHook
+             , createIservProcessHook
              ) where
 
 import ETA.Main.DynFlags
@@ -44,6 +45,7 @@ import ETA.Types.Type
 import ETA.BasicTypes.SrcLoc
 
 import Data.Maybe
+import System.Process
 
 {-
 ************************************************************************
@@ -58,9 +60,22 @@ import Data.Maybe
 --   uses the default built-in behaviour
 
 emptyHooks :: Hooks
-emptyHooks = Hooks Nothing Nothing Nothing Nothing Nothing Nothing
-                   Nothing Nothing Nothing Nothing Nothing Nothing
-                   Nothing
+emptyHooks = Hooks
+  { dsForeignsHook         = Nothing
+  , tcForeignImportsHook   = Nothing
+  , tcForeignExportsHook   = Nothing
+  , hscFrontendHook        = Nothing
+  , hscCompileOneShotHook  = Nothing
+  , hscCompileCoreExprHook = Nothing
+  , ghcPrimIfaceHook       = Nothing
+  , runPhaseHook           = Nothing
+  , runMetaHook            = Nothing
+  , linkHook               = Nothing
+  , runQuasiQuoteHook      = Nothing
+  , runRnSpliceHook        = Nothing
+  , getValueSafelyHook     = Nothing
+  , createIservProcessHook = Nothing
+  }
 
 data Hooks = Hooks
   { dsForeignsHook         :: Maybe ([LForeignDecl Id] -> DsM (ForeignStubs, OrdList (Id, CoreExpr)))
@@ -76,6 +91,7 @@ data Hooks = Hooks
   , runQuasiQuoteHook      :: Maybe (HsQuasiQuote Name -> RnM (HsQuasiQuote Name))
   , runRnSpliceHook        :: Maybe (LHsExpr Name -> RnM (LHsExpr Name))
   , getValueSafelyHook     :: Maybe (HscEnv -> Name -> Type -> IO (Maybe HValue))
+  , createIservProcessHook :: Maybe (CreateProcess -> IO ProcessHandle)
   }
 
 getHooked :: (Functor f, HasDynFlags f) => (Hooks -> Maybe a) -> a -> f a

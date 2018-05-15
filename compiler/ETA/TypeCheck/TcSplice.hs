@@ -20,9 +20,9 @@ module ETA.TypeCheck.TcSplice(
      runQuasiQuoteDecl, runQuasiQuoteType,
      runAnnotation,
 
-#ifdef GHCI
+#ifdef ETA_REPL
      -- These ones are defined only in stage2, and are
-     -- called only in stage2 (ie GHCI is on)
+     -- called only in stage2 (ie ETA_REPL is on)
      runMetaE, runMetaP, runMetaT, runMetaD, runQuasi,
      tcTopSpliceExpr, lookupThName_maybe, traceSplice, SpliceInfo(..),
      defaultRunMeta, runMeta'
@@ -36,7 +36,7 @@ import ETA.TypeCheck.TcRnMonad
 import ETA.BasicTypes.RdrName
 import ETA.TypeCheck.TcType
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.Main.HscMain
         -- These imports are the reason that TcSplice
         -- is very high up the module hierarchy
@@ -47,7 +47,7 @@ import ETA.Rename.RnExpr
 import ETA.Rename.RnEnv
 import ETA.Rename.RnTypes
 import ETA.TypeCheck.TcExpr
-import ETA.TypeCheck.TchsSyn
+import ETA.TypeCheck.TcHsSyn
 import ETA.TypeCheck.TcSimplify
 import ETA.TypeCheck.TcUnify
 import ETA.Types.Type
@@ -58,7 +58,7 @@ import ETA.TypeCheck.TcMType
 import ETA.TypeCheck.TcHsType
 import ETA.Iface.TcIface
 import ETA.Types.TypeRep
-import FamInst
+import ETA.TypeCheck.FamInst
 import ETA.Types.FamInstEnv
 import ETA.Types.InstEnv
 import ETA.BasicTypes.NameEnv
@@ -69,7 +69,7 @@ import ETA.BasicTypes.Var
 import ETA.BasicTypes.Module
 import ETA.Iface.LoadIface
 import ETA.Types.Class
-import Inst
+import ETA.TypeCheck.Inst
 import ETA.Types.TyCon
 import ETA.Types.CoAxiom
 import ETA.BasicTypes.PatSyn ( patSynName )
@@ -78,7 +78,7 @@ import ETA.BasicTypes.DataCon
 import ETA.TypeCheck.TcEvidence( TcEvBinds(..) )
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.IdInfo
-import DsExpr
+import ETA.DeSugar.DsExpr
 import ETA.DeSugar.DsMonad
 import ETA.Utils.Serialized
 import ETA.Main.ErrUtils
@@ -115,7 +115,7 @@ import GHC.Exts         ( unsafeCoerce# )
 {-
 ************************************************************************
 *                                                                      *
-\subsection{Main interface + stubs for the non-GHCI case
+\subsection{Main interface + stubs for the non-ETA_REPL case
 *                                                                      *
 ************************************************************************
 -}
@@ -132,7 +132,7 @@ runQuasiQuoteDecl :: HsQuasiQuote RdrName -> RnM [LHsDecl RdrName]
 
 runAnnotation     :: CoreAnnTarget -> LHsExpr Name -> TcM Annotation
 
-#ifndef GHCI
+#ifndef ETA_REPL
 tcTypedBracket   x _   = failTH x "Template Haskell bracket"
 tcUntypedBracket x _ _ = failTH x "Template Haskell bracket"
 tcSpliceExpr  e _      = failTH e "Template Haskell splice"
@@ -1748,4 +1748,4 @@ will appear in TH syntax like this
            | (a ~ Int) => MkT2
 -}
 
-#endif  /* GHCI */
+#endif  /* ETA_REPL */

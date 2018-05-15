@@ -22,7 +22,7 @@ import ETA.BasicTypes.Name
 import ETA.BasicTypes.NameEnv
 import ETA.Types.FamInstEnv( topNormaliseType )
 
-#ifdef GHCI
+#ifdef ETA_REPL
 -- Template Haskell stuff iff bootstrapped
 import ETA.DeSugar.DsMeta
 #endif
@@ -646,7 +646,7 @@ dsExpr expr@(RecordUpd record_expr (HsRecFields { rec_flds = fields })
 -- Template Haskell stuff
 
 dsExpr (HsRnBracketOut _ _) = panic "dsExpr HsRnBracketOut"
-#ifdef GHCI
+#ifdef ETA_REPL
 dsExpr (HsTcBracketOut x ps) = dsBracket x ps
 #else
 dsExpr (HsTcBracketOut _ _) = panic "dsExpr HsBracketOut"

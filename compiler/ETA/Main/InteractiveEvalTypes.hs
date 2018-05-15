@@ -9,12 +9,12 @@
 -- -----------------------------------------------------------------------------
 
 module ETA.Main.InteractiveEvalTypes (
-#ifdef GHCI
+#ifdef ETA_REPL
         RunResult(..), Status(..), Resume(..), History(..),
 #endif
         ) where
 
-#ifdef GHCI
+#ifdef ETA_REPL
 
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.BasicTypes
@@ -64,4 +64,3 @@ data History
         historyEnclosingDecls :: [String]  -- declarations enclosing the breakpoint
    }
 #endif
-

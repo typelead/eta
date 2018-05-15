@@ -9,7 +9,7 @@
 -- -----------------------------------------------------------------------------
 
 module ETA.Main.InteractiveEval (
-#ifdef GHCI
+#ifdef ETA_REPL
         RunResult(..), Status(..), Resume(..), History(..),
         runStmt, runStmtWithLocation, runDecls, runDeclsWithLocation,
         parseImportDecl, SingleStep(..),
@@ -36,7 +36,7 @@ module ETA.Main.InteractiveEval (
 #endif
         ) where
 
-#ifdef GHCI
+#ifdef ETA_REPL
 
 #include "HsVersions.h"
 
@@ -1047,5 +1047,5 @@ reconstructType hsc_env bound id = do
 
 mkRuntimeUnkTyVar :: Name -> Kind -> TyVar
 mkRuntimeUnkTyVar name kind = mkTcTyVar name kind RuntimeUnk
-#endif /* GHCI */
+#endif /* ETA_REPL */
 

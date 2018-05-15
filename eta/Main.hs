@@ -25,7 +25,9 @@ import ETA.Utils.Util
 import ETA.Utils.Metrics hiding (Mode)
 import ETA.Utils.Panic
 import ETA.Utils.MonadUtils       (liftIO)
-
+#if defined(ETA_REPL)
+import Eta.REPL.UI          ( interactiveUI, etaReplWelcomeMsg, defaultEtaReplSettings )
+#endif
 -- Imports for --abi-hash
 import ETA.BasicTypes.Module      ( mkModuleName)
 import ETA.Main.Finder            ( findImportedModule, cannotFindInterface )
@@ -436,7 +438,7 @@ isDoMakeMode :: Mode -> Bool
 isDoMakeMode (Right (Right DoMake)) = True
 isDoMakeMode _ = False
 
-#ifdef GHCI
+#ifdef ETA_REPL
 isInteractiveMode :: PostLoadMode -> Bool
 isInteractiveMode DoInteractive = True
 isInteractiveMode _             = False
@@ -659,9 +661,9 @@ showBanner :: PostLoadMode -> DynFlags -> IO ()
 showBanner _postLoadMode dflags = do
    let verb = verbosity dflags
 
-#ifdef GHCI
+#ifdef ETA_REPL
    -- Show the GHCi banner
-   when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn ghciWelcomeMsg
+   when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn etaReplWelcomeMsg
 #endif
 
    -- Display details of the configuration in verbose mode

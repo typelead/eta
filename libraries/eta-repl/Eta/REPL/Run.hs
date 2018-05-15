@@ -290,8 +290,13 @@ abandonStmt hvref = do
   _ <- takeMVar resumeStatusMVar
   return ()
 
+#if defined(ETA_VERSION)
 foreign import java unsafe "@static eta.repl.Utils.rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
 foreign import java unsafe "@static eta.repl.Utils.rts_stop_on_exception"    exceptionFlag :: Ptr CInt
+#else
+foreign import ccall "&rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
+foreign import ccall "&rts_stop_on_exception"    exceptionFlag :: Ptr CInt
+#endif
 
 setStepFlag :: IO ()
 setStepFlag = poke stepFlag 1
@@ -305,8 +310,13 @@ type BreakpointCallback
     -> HValue  -- the AP_STACK, or exception
     -> IO ()
 
+#if defined(ETA_VERSION)
 foreign import java unsafe "@static eta.repl.Utils.rts_breakpoint_io_action"
    breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
+#else
+foreign import ccall "&rts_breakpoint_io_action"
+   breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
+#endif
 
 noBreakStablePtr :: StablePtr BreakpointCallback
 noBreakStablePtr = unsafePerformIO $ newStablePtr noBreakAction

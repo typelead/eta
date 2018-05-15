@@ -36,6 +36,8 @@ module ETA.Utils.Util (
 
         isIn, isn'tIn,
 
+        chunkList,
+
         -- * Tuples
         fstOf3, sndOf3, thirdOf3,
         firstM, first3M,
@@ -164,7 +166,7 @@ the flags are off.
 -}
 
 ghciSupported :: Bool
-#ifdef GHCI
+#ifdef ETA_REPL
 ghciSupported = True
 #else
 ghciSupported = False
@@ -490,6 +492,10 @@ isn'tIn msg x ys
                                 (x `notElem` (y:ys))
       | otherwise      =  x /= y && notElem100 (i +# _ILIT(1)) x ys
 # endif /* DEBUG */
+
+chunkList :: Int -> [a] -> [[a]]
+chunkList _ [] = []
+chunkList n xs = as : chunkList n bs where (as,bs) = splitAt n xs
 
 {-
 ************************************************************************

@@ -48,13 +48,13 @@ module ETA.SimplCore.CoreMonad (
     debugTraceMsg, debugTraceMsgS,
     dumpIfSet_dyn,
 
-#ifdef GHCI
+#ifdef ETA_REPL
     -- * Getting 'Name's
     thNameToGhcName
 #endif
   ) where
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.BasicTypes.Name( Name )
 #endif
 import ETA.Core.CoreSyn
@@ -93,10 +93,10 @@ import Control.Monad
 
 import Prelude hiding   ( read )
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import Control.Concurrent.MVar (MVar)
 import ETA.Interactive.Linker ( PersistentLinkerState, saveLinkerGlobals, restoreLinkerGlobals )
-import {-# SOURCE #-} TcSplice ( lookupThName_maybe )
+import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( lookupThName_maybe )
 import qualified Language.Haskell.TH as TH
 #else
 saveLinkerGlobals :: IO ()
@@ -521,7 +521,7 @@ data CoreReader = CoreReader {
         cr_rule_base :: RuleBase,
         cr_module :: Module,
         cr_print_unqual :: PrintUnqualified,
-#ifdef GHCI
+#ifdef ETA_REPL
         cr_globals :: (MVar PersistentLinkerState, Bool)
 #else
         cr_globals :: ()
@@ -867,7 +867,7 @@ instance MonadThings CoreM where
 ************************************************************************
 -}
 
-#ifdef GHCI
+#ifdef ETA_REPL
 -- | Attempt to convert a Template Haskell name to one that GHC can
 -- understand. Original TH names such as those you get when you use
 -- the @'foo@ syntax will be translated to their equivalent GHC name

@@ -113,8 +113,8 @@ import ETA.Main.DynFlags
 -- compiler/basicTypes
 import ETA.BasicTypes.SrcLoc
 import ETA.BasicTypes.Module
-import ETA.BasicTypes.BasicTypes     ( InlineSpec(..), RuleMatchInfo(..), FractionalLit(..),
-                        SourceText )
+import ETA.BasicTypes.BasicTypes
+  ( InlineSpec(..), RuleMatchInfo(..), IntegralLit(..), FractionalLit(..), SourceText )
 
 -- compiler/parser
 import ETA.Parser.Ctype
@@ -651,7 +651,7 @@ data Token
 
   | ITchar     SourceText Char       -- Note [Literal source text] in BasicTypes
   | ITstring   SourceText FastString -- Note [Literal source text] in BasicTypes
-  | ITinteger  SourceText Integer    -- Note [Literal source text] in BasicTypes
+  | ITinteger  IntegralLit           -- Note [Literal source text] in BasicTypes
   | ITrational FractionalLit
 
   | ITprimchar   SourceText Char     -- Note [Literal source text] in BasicTypes
@@ -1181,28 +1181,35 @@ sym con span buf len =
     !fs = lexemeToFastString buf len
 
 -- Variations on the integral numeric literal.
-tok_integral :: (String -> Integer -> Token)
+tok_integral :: (Maybe SourceText -> Integer -> Token)
              -> (Integer -> Integer)
              -> Int -> Int
              -> (Integer, (Char -> Int))
              -> Action
 tok_integral itint transint transbuf translen (radix,char_to_int) span buf len
- = return $ L span $ itint (lexemeToString buf len)
+ = return $ L span $ itint (Just (lexemeToString buf len))
        $! transint $ parseUnsignedInteger
        (offsetBytes transbuf buf) (subtract translen len) radix char_to_int
 
--- some conveniences for use with tok_integral
 tok_num :: (Integer -> Integer)
         -> Int -> Int
         -> (Integer, (Char->Int)) -> Action
-tok_num = tok_integral ITinteger
+tok_num = tok_integral itint
+  where itint st@(Just ('-':str)) val = ITinteger (((IL $! st) $! True)      $! val)
+        itint st@(Just      str ) val = ITinteger (((IL $! st) $! False)     $! val)
+        itint st@Nothing          val = ITinteger (((IL $! st) $! (val < 0)) $! val)
+
 tok_primint :: (Integer -> Integer)
             -> Int -> Int
             -> (Integer, (Char->Int)) -> Action
-tok_primint = tok_integral ITprimint
+tok_primint = tok_integral (trans ITprimint )
+
+trans :: (String -> a) -> (Maybe String -> a)
+trans f = \(Just str) -> f str
+
 tok_primword :: Int -> Int
              -> (Integer, (Char->Int)) -> Action
-tok_primword = tok_integral ITprimword positive
+tok_primword = tok_integral (trans ITprimword) positive
 positive, negative :: (Integer -> Integer)
 positive = id
 negative = negate
@@ -1214,12 +1221,15 @@ hexadecimal = (16,hexDigit)
 
 -- readRational can understand negative rationals, exponents, everything.
 tok_float, tok_primfloat, tok_primdouble :: String -> Token
-tok_float        str = ITrational   $! readFractionalLit str
-tok_primfloat    str = ITprimfloat  $! readFractionalLit str
-tok_primdouble   str = ITprimdouble $! readFractionalLit str
+tok_float        str  = ITrational   $! readFractionalLit str
+tok_primfloat    str  = ITprimfloat  $! readFractionalLit str
+tok_primdouble   str  = ITprimdouble $! readFractionalLit str
 
 readFractionalLit :: String -> FractionalLit
-readFractionalLit str = (FL $! str) $! readRational str
+readFractionalLit str = ((FL $! (Just str)) $! is_neg) $! readRational str
+  where is_neg = case str of
+                   ('-':_) -> True
+                   _       -> False
 
 -- -----------------------------------------------------------------------------
 -- Layout processing

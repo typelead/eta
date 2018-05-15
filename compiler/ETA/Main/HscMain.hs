@@ -62,7 +62,7 @@ module ETA.Main.HscMain
     , hscTcRnGetInfo
     , hscCheckSafe
     , hscGetSafe
-#ifdef GHCI
+#ifdef ETA_REPL
     , hscIsGHCiMonad
     , hscGetModuleInterface
     , hscRnImportDecls
@@ -83,7 +83,7 @@ module ETA.Main.HscMain
     , hscFileFrontEnd, genericHscFrontend, dumpIfaceStats
     ) where
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.BasicTypes.Id
 import ETA.BasicTypes.BasicTypes       ( HValue )
 import ETA.Interactive.ByteCodeGen      ( byteCodeGen, coreExprToBCOs )
@@ -195,7 +195,7 @@ knownKeyNames :: [Name]      -- Put here to avoid loops involving DsMeta,
 knownKeyNames =              -- where templateHaskellNames are defined
     map getName wiredInThings
         ++ basicKnownKeyNames
-#ifdef GHCI
+#ifdef ETA_REPL
         ++ templateHaskellNames
 #endif
 
@@ -266,7 +266,7 @@ ioMsgMaybe' ioA = do
 -- -----------------------------------------------------------------------------
 -- | Lookup things in the compiler's environment
 
-#ifdef GHCI
+#ifdef ETA_REPL
 hscTcRnLookupRdrName :: HscEnv -> Located RdrName -> IO [Name]
 hscTcRnLookupRdrName hsc_env0 rdr_name
   = runInteractiveHsc hsc_env0 $
@@ -288,7 +288,7 @@ hscTcRnGetInfo hsc_env0 name
     do { hsc_env <- getHscEnv
        ; ioMsgMaybe' $ tcRnGetInfo hsc_env name }
 
-#ifdef GHCI
+#ifdef ETA_REPL
 hscIsGHCiMonad :: HscEnv -> String -> IO Name
 hscIsGHCiMonad hsc_env name
   = runHsc hsc_env $ ioMsgMaybe $ isGHCiMonad hsc_env name
@@ -1006,7 +1006,7 @@ hscCheckSafe' dflags m l = do
         let pkgIfaceT = eps_PIT hsc_eps
             homePkgT  = hsc_HPT hsc_env
             iface     = lookupIfaceByModule dflags homePkgT pkgIfaceT m
-#ifdef GHCI
+#ifdef ETA_REPL
         -- the 'lookupIfaceByModule' method will always fail when calling from GHCi
         -- as the compiler hasn't filled in the various module tables
         -- so we need to call 'getModuleInterface' to load from disk
@@ -1254,7 +1254,7 @@ hscInteractive :: HscEnv
                -> CgGuts
                -> ModSummary
                -> IO (Maybe FilePath, CompiledByteCode, ModBreaks)
-#ifdef GHCI
+#ifdef ETA_REPL
 hscInteractive hsc_env cgguts mod_summary = do
     let dflags = hsc_dflags hsc_env
     let CgGuts{ -- This is the last use of the ModGuts in a compilation.
@@ -1315,7 +1315,7 @@ A naked expression returns a singleton Name [it]. The stmt is lifted into the
 IO monad as explained in Note [Interactively-bound Ids in GHCi] in HscTypes
 -}
 
-#ifdef GHCI
+#ifdef ETA_REPL
 -- | Compile a stmt all the way to an HValue, but don't run it
 --
 -- We return Nothing to indicate an empty statement (or comment only), not a
@@ -1571,7 +1571,7 @@ mkModGuts mod safe binds =
 %*                                                                      *
 %********************************************************************* -}
 
-#ifdef GHCI
+#ifdef ETA_REPL
 hscCompileCoreExpr :: HscEnv -> SrcSpan -> CoreExpr -> IO HValue
 hscCompileCoreExpr hsc_env =
   lookupHook hscCompileCoreExprHook hscCompileCoreExpr' (hsc_dflags hsc_env) hsc_env

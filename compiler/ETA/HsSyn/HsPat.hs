@@ -24,6 +24,7 @@ module ETA.HsSyn.HsPat (
 
         isStrictHsBind, looksLazyPatBind,
         isStrictLPat, hsPatNeedsParens,
+        isCompoundPat, parenthesizeCompoundPat,
         isIrrefutableHsPat,
 
         pprParendLPat, pprConArgs
@@ -38,6 +39,7 @@ import ETA.HsSyn.PlaceHolder ( PostTc,DataId )
 import ETA.HsSyn.HsTypes
 import ETA.TypeCheck.TcEvidence
 import ETA.BasicTypes.BasicTypes
+import ETA.BasicTypes.RdrName
 -- others:
 import ETA.Core.PprCore          ( {- instance OutputableBndr TyVar -} )
 import ETA.Prelude.TysWiredIn
@@ -520,3 +522,55 @@ conPatNeedsParens :: HsConDetails a b -> Bool
 conPatNeedsParens (PrefixCon args) = not (null args)
 conPatNeedsParens (InfixCon {})    = True
 conPatNeedsParens (RecCon {})      = True
+
+-- | Returns 'True' for compound patterns that need parentheses when used in
+-- an argument position.
+--
+-- Note that this is different from 'hsPatNeedsParens', which only says if
+-- a pattern needs to be parenthesized to parse in /any/ position, whereas
+-- 'isCompountPat' says if a pattern needs to be parenthesized in an /argument/
+-- position. In other words, @'hsPatNeedsParens' x@ implies
+-- @'isCompoundPat' x@, but not necessarily the other way around.
+isCompoundPat :: Pat a -> Bool
+isCompoundPat (NPlusKPat {})       = True
+isCompoundPat (SplicePat {})       = False
+isCompoundPat (QuasiQuotePat {})   = False
+isCompoundPat (ConPatIn _ ds)      = isCompoundConPat ds
+isCompoundPat p@(ConPatOut {})     = isCompoundConPat (pat_args p)
+isCompoundPat (SigPatIn {})        = True
+isCompoundPat (SigPatOut {})       = True
+isCompoundPat (ViewPat {})         = True
+isCompoundPat (CoPat _ p _)        = isCompoundPat p
+isCompoundPat (WildPat {})         = False
+isCompoundPat (VarPat {})          = False
+isCompoundPat (LazyPat {})         = False
+isCompoundPat (BangPat {})         = False
+isCompoundPat (ParPat {})          = False
+isCompoundPat (AsPat {})           = False
+isCompoundPat (TuplePat {})        = False
+-- isCompoundPat (SumPat {})          = False
+isCompoundPat (ListPat {})         = False
+isCompoundPat (PArrPat {})         = False
+isCompoundPat (LitPat p)           = isCompoundHsLit p
+isCompoundPat (NPat (L _ p) _ _)   = isCompoundHsOverLit p
+-- isCompoundPat (XPat {})            = False -- Assumption
+
+-- | Returns 'True' for compound constructor patterns that need parentheses
+-- when used in an argument position.
+--
+-- Note that this is different from 'conPatNeedsParens', which only says if
+-- a constructor pattern needs to be parenthesized to parse in /any/ position,
+-- whereas 'isCompountConPat' says if a pattern needs to be parenthesized in an
+-- /argument/ position. In other words, @'conPatNeedsParens' x@ implies
+-- @'isCompoundConPat' x@, but not necessarily the other way around.
+isCompoundConPat :: HsConDetails a b -> Bool
+isCompoundConPat (PrefixCon args) = not (null args)
+isCompoundConPat (InfixCon {})    = True
+isCompoundConPat (RecCon {})      = False
+
+-- | @'parenthesizeCompoundPat' p@ checks if @'isCompoundPat' p@ is true, and
+-- if so, surrounds @p@ with a 'ParPat'. Otherwise, it simply returns @p@.
+parenthesizeCompoundPat :: LPat RdrName -> LPat RdrName
+parenthesizeCompoundPat lp@(L loc p)
+  | isCompoundPat p = L loc (ParPat lp)
+  | otherwise       = lp

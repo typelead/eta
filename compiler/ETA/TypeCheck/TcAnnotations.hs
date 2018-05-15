@@ -9,8 +9,8 @@
 
 module ETA.TypeCheck.TcAnnotations ( tcAnnotations, annCtxt ) where
 
-#ifdef GHCI
-import {-# SOURCE #-} TcSplice ( runAnnotation )
+#ifdef ETA_REPL
+import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runAnnotation )
 import ETA.BasicTypes.Module
 import ETA.Main.DynFlags
 import Control.Monad ( when )
@@ -25,10 +25,10 @@ import ETA.Utils.Outputable
 
 import ETA.Utils.FastString
 
-#ifndef GHCI
+#ifndef ETA_REPL
 
 tcAnnotations :: [LAnnDecl Name] -> TcM [Annotation]
--- No GHCI; emit a warning (not an error) and ignore. cf Trac #4268
+-- No ETA_REPL; emit a warning (not an error) and ignore. cf Trac #4268
 tcAnnotations [] = return []
 tcAnnotations anns@(L loc _ : _)
   = do { setSrcSpan loc $ addWarnTc $
@@ -39,7 +39,7 @@ tcAnnotations anns@(L loc _ : _)
 #else
 
 tcAnnotations :: [LAnnDecl Name] -> TcM [Annotation]
--- GHCI exists, typecheck the annotations
+-- ETA_REPL exists, typecheck the annotations
 tcAnnotations anns = mapM tcAnnotation anns
 
 tcAnnotation :: LAnnDecl Name -> TcM Annotation

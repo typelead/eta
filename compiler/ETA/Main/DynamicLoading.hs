@@ -2,7 +2,7 @@
 
 -- | Dynamically lookup up values from modules and loading them.
 module ETA.Main.DynamicLoading (
-#ifdef GHCI
+#ifdef ETA_REPL
         -- * Loading plugins
         loadPlugins,
 
@@ -21,7 +21,7 @@ module ETA.Main.DynamicLoading (
 #endif
     ) where
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.Interactive.Linker           ( linkModule, getHValue )
 import ETA.BasicTypes.SrcLoc           ( noSrcSpan )
 import ETA.Main.Finder           ( findImportedModule, cannotFindModule )

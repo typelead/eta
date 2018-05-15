@@ -82,11 +82,14 @@ module ETA.BasicTypes.BasicTypes(
 
         SuccessFlag(..), succeeded, failed, successIf,
 
-        FractionalLit(..), negateFractionalLit, integralFractionalLit,
+        IntegralLit(..), FractionalLit(..),
+        negateIntegralLit, negateFractionalLit,
+        mkIntegralLit, mkFractionalLit,
+        integralFractionalLit,
 
         HValue(..),
 
-        SourceText
+        SourceText, pprWithSourceText
    ) where
 
 import ETA.Utils.FastString
@@ -855,6 +858,10 @@ For OverLitVal
 
 type SourceText = String -- Note [Literal source text],[Pragma source text]
 
+-- | Special combinator for showing string literals.
+pprWithSourceText :: Maybe SourceText -> SDoc -> SDoc
+pprWithSourceText Nothing     d = d
+pprWithSourceText (Just src)  _ = text src
 
 {-
 ************************************************************************
@@ -1089,29 +1096,77 @@ isAlwaysActive AlwaysActive = True
 isAlwaysActive _            = False
 
 isEarlyActive AlwaysActive      = True
-isEarlyActive (ActiveBefore {}) = True
+isEarlyActive ActiveBefore {}   = True
 isEarlyActive _                 = False
 
+-- | Integral Literal
+--
+-- Used (instead of Integer) to represent negative zegative zero which is
+-- required for NegativeLiterals extension to correctly parse `-0::Double`
+-- as negative zero. See also #13211.
+data IntegralLit
+  = IL { il_text  :: Maybe SourceText
+       , il_neg   :: Bool -- See Note [Negative zero]
+       , il_value :: Integer
+       }
+  deriving (Data, Show)
+
+mkIntegralLit :: Integral a => a -> IntegralLit
+mkIntegralLit i = IL { il_text = Just $ show (fromIntegral i :: Int)
+                     , il_neg = i < 0
+                     , il_value = toInteger i }
+
+negateIntegralLit :: IntegralLit -> IntegralLit
+negateIntegralLit (IL text neg value)
+  = case text of
+      Just ('-':src) -> IL (Just src)       False     (negate value)
+      Just src       -> IL (Just ('-':src)) True      (negate value)
+      Nothing        -> IL Nothing   (not neg) (negate value)
+
+-- | Fractional Literal
+--
 -- Used (instead of Rational) to represent exactly the floating point literal that we
 -- encountered in the user's source program. This allows us to pretty-print exactly what
 -- the user wrote, which is important e.g. for floating point numbers that can't represented
 -- as Doubles (we used to via Double for pretty-printing). See also #2245.
 data FractionalLit
-  = FL { fl_text :: String         -- How the value was written in the source
+  = FL { fl_text  :: Maybe SourceText    -- How the value was written in the source
+       , fl_neg   :: Bool          -- See Note [Negative zero]
        , fl_value :: Rational      -- Numeric value of the literal
        }
   deriving (Data, Typeable, Show)
   -- The Show instance is required for the derived Lexer.x:Token instance when DEBUG is on
 
-negateFractionalLit :: FractionalLit -> FractionalLit
-negateFractionalLit (FL { fl_text = '-':text, fl_value = value }) = FL { fl_text = text, fl_value = negate value }
-negateFractionalLit (FL { fl_text = text, fl_value = value }) = FL { fl_text = '-':text, fl_value = negate value }
+mkFractionalLit :: Real a => a -> FractionalLit
+mkFractionalLit r = FL { fl_text  = Just $ show (realToFrac r::Double)
+                       , fl_neg   = r < 0
+                       , fl_value = toRational r }
 
-integralFractionalLit :: Integer -> FractionalLit
-integralFractionalLit i = FL { fl_text = show i, fl_value = fromInteger i }
+
+negateFractionalLit :: FractionalLit -> FractionalLit
+negateFractionalLit (FL text neg value)
+  = case text of
+      Just ('-':src) -> FL (Just src)       False     value
+      Just      src  -> FL (Just ('-':src)) True      value
+      Nothing        -> FL Nothing          (not neg) (negate value)
+
+integralFractionalLit :: Bool -> Integer -> FractionalLit
+integralFractionalLit neg i = FL { fl_text  = Just (show i)
+                                 , fl_neg   = neg
+                                 , fl_value = fromInteger i }
 
 -- Comparison operations are needed when grouping literals
 -- for compiling pattern-matching (module MatchLit)
+
+instance Eq IntegralLit where
+  (==) = (==) `on` il_value
+
+instance Ord IntegralLit where
+  compare = compare `on` il_value
+
+instance Outputable IntegralLit where
+  ppr (IL (Just src) _ _) = text src
+  ppr (IL Nothing _ value) = text (show value)
 
 instance Eq FractionalLit where
   (==) = (==) `on` fl_value
@@ -1120,6 +1175,6 @@ instance Ord FractionalLit where
   compare = compare `on` fl_value
 
 instance Outputable FractionalLit where
-  ppr = text . fl_text
+  ppr f = pprWithSourceText (fl_text f) (rational (fl_value f))
 
 newtype HValue = HValue Any

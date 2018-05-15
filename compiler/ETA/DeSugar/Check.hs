@@ -26,6 +26,7 @@ import ETA.Utils.Util
 import ETA.BasicTypes.BasicTypes
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
+import Data.Maybe
 
 #include "HsVersions.h"
 
@@ -451,8 +452,8 @@ get_lit :: Pat id -> Maybe HsLit
 -- It doesn't matter which one, because they will only be compared
 -- with other HsLits gotten in the same way
 get_lit (LitPat lit)                                      = Just lit
-get_lit (NPat (L _ (OverLit { ol_val = HsIntegral src i}))    mb _)
-                        = Just (HsIntPrim src (mb_neg negate              mb i))
+get_lit (NPat (L _ (OverLit { ol_val = HsIntegral i}))    mb _)
+                        = Just (HsIntPrim (fromJust (il_text i)) (mb_neg negate mb (il_value i)))
 get_lit (NPat (L _ (OverLit { ol_val = HsFractional f })) mb _)
                         = Just (HsFloatPrim (mb_neg negateFractionalLit mb f))
 get_lit (NPat (L _ (OverLit { ol_val = HsIsString src s }))   _  _)

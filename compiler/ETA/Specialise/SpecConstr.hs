@@ -14,7 +14,7 @@ ToDo [Oct 2013]
 
 module ETA.Specialise.SpecConstr(
         specConstrProgram
-#ifdef GHCI
+#ifdef ETA_REPL
         , SpecConstrAnnotation(..)
 #endif
     ) where
@@ -60,7 +60,7 @@ import Data.List
 import ETA.Prelude.PrelNames        ( specTyConName )
 
 -- See Note [Forcing specialisation]
-#ifndef GHCI
+#ifndef ETA_REPL
 type SpecConstrAnnotation = ()
 #else
 import ETA.Types.TyCon ( TyCon )
@@ -924,10 +924,10 @@ ignoreType    :: ScEnv -> Type   -> Bool
 ignoreDataCon  :: ScEnv -> DataCon -> Bool
 forceSpecBndr :: ScEnv -> Var    -> Bool
 
-#ifndef GHCI
+#ifndef ETA_REPL
 ignoreType    _ _  = False
 ignoreDataCon  _ _ = False
-#else /* GHCI */
+#else /* ETA_REPL */
 
 ignoreDataCon env dc = ignoreTyCon env (dataConTyCon dc)
 
@@ -939,7 +939,7 @@ ignoreType env ty
 ignoreTyCon :: ScEnv -> TyCon -> Bool
 ignoreTyCon env tycon
   = lookupUFM (sc_annotations env) tycon == Just NoSpecConstr
-#endif /* GHCI */
+#endif /* ETA_REPL */
 
 forceSpecBndr env var = forceSpecFunTy env . snd . splitForAllTys . varType $ var
 
@@ -954,7 +954,7 @@ forceSpecArgTy env ty
   | Just (tycon, tys) <- splitTyConApp_maybe ty
   , tycon /= funTyCon
       = tyConName tycon == specTyConName
-#ifdef GHCI
+#ifdef ETA_REPL
         || lookupUFM (sc_annotations env) tycon == Just ForceSpecConstr
 #endif
         || any (forceSpecArgTy env) tys

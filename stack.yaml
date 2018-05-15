@@ -20,8 +20,6 @@ resolver: lts-6.27
 flags:
   mintty:
     win32-2-5: false
-  eta-repl:
-    eta-repl: false
 extra-package-dbs: []
 packages:
 - '.'

@@ -38,7 +38,7 @@ module ETA.Types.TyCon(
         isTypeSynonymTyCon,
         isDecomposableTyCon,
         isPromotedDataCon, isPromotedTyCon,
-        isPromotedDataCon_maybe, isPromotedTyCon_maybe,
+        isPromotedDataCon_maybe, isPromotedTyCon_maybe, isLiftedTypeKindTyConName,
         promotableTyCon_maybe, promoteTyCon,
 
         isDataTyCon, isProductTyCon, isDataProductTyCon_maybe,
@@ -1510,6 +1510,9 @@ isPromotedDataCon _                    = False
 isPromotedDataCon_maybe :: TyCon -> Maybe DataCon
 isPromotedDataCon_maybe (PromotedDataCon { dataCon = dc }) = Just dc
 isPromotedDataCon_maybe _ = Nothing
+
+isLiftedTypeKindTyConName :: Name -> Bool
+isLiftedTypeKindTyConName n = n `hasKey` liftedTypeKindTyConKey
 
 -- | Identifies implicit tycons that, in particular, do not go into interface
 -- files (because they are implicitly reconstructed when the interface is

@@ -161,7 +161,7 @@ resolveObjs = do
 -- ---------------------------------------------------------------------------
 -- Foreign declarations to RTS entry points which does the real work;
 -- ---------------------------------------------------------------------------
-
+#if defined(ETA_VERSION)
 foreign import java unsafe "@static eta.repl.Utils.addDLL"                  c_addDLL                  :: CFilePath -> IO CString
 foreign import java unsafe "@static eta.repl.Utils.initLinker_"             c_initLinker_             :: CInt -> IO ()
 foreign import java unsafe "@static eta.repl.Utils.lookupSymbol"            c_lookupSymbol            :: CString -> IO (Ptr a)
@@ -173,7 +173,19 @@ foreign import java unsafe "@static eta.repl.Utils.resolveObjs"             c_re
 foreign import java unsafe "@static eta.repl.Utils.addLibrarySearchPath"    c_addLibrarySearchPath    :: CFilePath -> IO (Ptr ())
 foreign import java unsafe "@static eta.repl.Utils.findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
 foreign import java unsafe "@static eta.repl.Utils.removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
-
+#else
+foreign import ccall unsafe "addDLL"                  c_addDLL                  :: CFilePath -> IO CString
+foreign import ccall unsafe "initLinker_"             c_initLinker_             :: CInt -> IO ()
+foreign import ccall unsafe "lookupSymbol"            c_lookupSymbol            :: CString -> IO (Ptr a)
+foreign import ccall unsafe "loadArchive"             c_loadArchive             :: CFilePath -> IO Int
+foreign import ccall unsafe "loadObj"                 c_loadObj                 :: CFilePath -> IO Int
+foreign import ccall unsafe "purgeObj"                c_purgeObj                :: CFilePath -> IO Int
+foreign import ccall unsafe "unloadObj"               c_unloadObj               :: CFilePath -> IO Int
+foreign import ccall unsafe "resolveObjs"             c_resolveObjs             :: IO Int
+foreign import ccall unsafe "addLibrarySearchPath"    c_addLibrarySearchPath    :: CFilePath -> IO (Ptr ())
+foreign import ccall unsafe "findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
+foreign import ccall unsafe "removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
+#endif
 -- -----------------------------------------------------------------------------
 -- Configuration
 #if !defined(ETA_VERSION)

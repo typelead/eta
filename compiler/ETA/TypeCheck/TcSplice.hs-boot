@@ -9,7 +9,7 @@ import ETA.TypeCheck.TcRnTypes( TcM, TcId )
 import ETA.TypeCheck.TcType   ( TcRhoType )
 import ETA.Main.Annotations ( Annotation, CoreAnnTarget )
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import ETA.BasicTypes.Id         ( Id )
 import qualified Language.Haskell.TH as TH
 import ETA.Utils.Outputable (SDoc)
@@ -34,7 +34,7 @@ runQuasiQuoteType :: HsQuasiQuote RdrName -> TcM (LHsType RdrName)
 runQuasiQuotePat  :: HsQuasiQuote RdrName -> TcM (LPat RdrName)
 runAnnotation     :: CoreAnnTarget -> LHsExpr Name -> TcM Annotation
 
-#ifdef GHCI
+#ifdef ETA_REPL
 tcTopSpliceExpr :: Bool -> TcM (LHsExpr Id) -> TcM (LHsExpr Id)
 
 runMetaE :: LHsExpr Id -> TcM (LHsExpr RdrName)

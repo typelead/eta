@@ -88,8 +88,8 @@ dsLit (HsDoublePrim   d) = return (Lit (MachDouble (fl_value d)))
 dsLit (HsChar _ c)       = return (mkCharExpr c)
 dsLit (HsString _ str)   = mkStringExprFS str
 dsLit (HsInteger _ i _)  = mkIntegerExpr i
-dsLit (HsInt _ i)        = do dflags <- getDynFlags
-                              return (mkIntExpr dflags i)
+dsLit (HsInt i)          = do dflags <- getDynFlags
+                              return (mkIntExpr dflags (il_value i))
 
 dsLit (HsRat r ty) = do
    num   <- mkIntegerExpr (numerator (fl_value r))
@@ -243,9 +243,9 @@ getLHsIntegralLit (L _ (HsOverLit over_lit)) = getIntegralLit over_lit
 getLHsIntegralLit _ = Nothing
 
 getIntegralLit :: HsOverLit Id -> Maybe (Integer, Name)
-getIntegralLit (OverLit { ol_val = HsIntegral _ i, ol_type = ty })
+getIntegralLit (OverLit { ol_val = HsIntegral i, ol_type = ty })
   | Just tc <- tyConAppTyCon_maybe ty
-  = Just (i, tyConName tc)
+  = Just (il_value i, tyConName tc)
 getIntegralLit _ = Nothing
 
 {-
@@ -308,8 +308,8 @@ tidyNPat tidy_lit_pat (OverLit val False _ ty) mb_neg _
 
     mb_int_lit :: Maybe Integer
     mb_int_lit = case (mb_neg, val) of
-                   (Nothing, HsIntegral _ i) -> Just i
-                   (Just _,  HsIntegral _ i) -> Just (-i)
+                   (Nothing, HsIntegral i) -> Just (il_value i)
+                   (Just _,  HsIntegral i) -> Just (-(il_value i))
                    _ -> Nothing
 
     mb_str_lit :: Maybe FastString
@@ -394,8 +394,8 @@ hsOverLitKey (OverLit { ol_val = l }) neg = litValKey l neg
 
 ---------------------------
 litValKey :: OverLitVal -> Bool -> Literal
-litValKey (HsIntegral _ i) False = MachInt i
-litValKey (HsIntegral _ i) True  = MachInt (-i)
+litValKey (HsIntegral i) False = MachInt (il_value i)
+litValKey (HsIntegral i) True  = MachInt (-(il_value i))
 litValKey (HsFractional r) False = MachFloat (fl_value r)
 litValKey (HsFractional r) True  = MachFloat (negate (fl_value r))
 litValKey (HsIsString _ s) neg   = ASSERT( not neg) MachStr

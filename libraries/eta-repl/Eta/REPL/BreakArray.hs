@@ -38,7 +38,7 @@ import GHC.Exts
 import GHC.IO ( IO(..) )
 import System.IO.Unsafe ( unsafeDupablePerformIO )
 
-data BreakArray = BA (MutableByteArray# RealWorld)
+data BreakArray = BA (MutableByteArray# RealWorld) Int#
 
 breakOff, breakOn :: Word8
 breakOn  = 1
@@ -76,45 +76,36 @@ safeIndex :: BreakArray -> Int -> Bool
 safeIndex array index = index < size array && index >= 0
 
 size :: BreakArray -> Int
-size (BA array) = size
-  where
-    -- We want to keep this operation pure. The mutable byte array
-    -- is never resized so this is safe.
-    size = unsafeDupablePerformIO $ sizeofMutableByteArray array
-
-    sizeofMutableByteArray :: MutableByteArray# RealWorld -> IO Int
-    sizeofMutableByteArray arr =
-        IO $ \s -> case getSizeofMutableByteArray# arr s of
-                       (# s', n# #) -> (# s', I# n# #)
+size (BA array sz) = I# sz
 
 allocBA :: Int -> IO BreakArray
 allocBA (I# sz) = IO $ \s1 ->
-    case newByteArray# sz s1 of { (# s2, array #) -> (# s2, BA array #) }
+    case newByteArray# sz s1 of { (# s2, array #) -> (# s2, BA array sz #) }
 
 -- create a new break array and initialise elements to zero
 newBreakArray :: Int -> IO BreakArray
 newBreakArray entries@(I# sz) = do
-    BA array <- allocBA entries
+    ba@(BA array _) <- allocBA entries
     case breakOff of
         W8# off -> do
            let loop n | isTrue# (n ==# sz) = return ()
                       | otherwise = do writeBA# array n off; loop (n +# 1#)
            loop 0#
-    return $ BA array
+    return ba
 
 writeBA# :: MutableByteArray# RealWorld -> Int# -> Word# -> IO ()
 writeBA# array i word = IO $ \s ->
     case writeWord8Array# array i word s of { s -> (# s, () #) }
 
 writeBreakArray :: BreakArray -> Int -> Word8 -> IO ()
-writeBreakArray (BA array) (I# i) (W8# word) = writeBA# array i word
+writeBreakArray (BA array _) (I# i) (W8# word) = writeBA# array i word
 
 readBA# :: MutableByteArray# RealWorld -> Int# -> IO Word8
 readBA# array i = IO $ \s ->
     case readWord8Array# array i s of { (# s, c #) -> (# s, W8# c #) }
 
 readBreakArray :: BreakArray -> Int -> IO Word8
-readBreakArray (BA array) (I# i) = readBA# array i
+readBreakArray (BA array _) (I# i) = readBA# array i
 #else
 data BreakArray
 #endif

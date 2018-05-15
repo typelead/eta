@@ -56,7 +56,7 @@ import Data.IORef
 import qualified Data.Set as Set
 import Control.Monad
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import qualified Data.Map as Map
 #endif
 
@@ -95,12 +95,12 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
 
         dependent_files_var <- newIORef [] ;
         static_wc_var       <- newIORef emptyWC ;
-#ifdef GHCI
+#ifdef ETA_REPL
         th_topdecls_var      <- newIORef [] ;
         th_topnames_var      <- newIORef emptyNameSet ;
         th_modfinalizers_var <- newIORef [] ;
         th_state_var         <- newIORef Map.empty ;
-#endif /* GHCI */
+#endif /* ETA_REPL */
         let {
              dflags = hsc_dflags hsc_env ;
 
@@ -110,12 +110,12 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 | otherwise      = Nothing ;
 
              gbl_env = TcGblEnv {
-#ifdef GHCI
+#ifdef ETA_REPL
                 tcg_th_topdecls      = th_topdecls_var,
                 tcg_th_topnames      = th_topnames_var,
                 tcg_th_modfinalizers = th_modfinalizers_var,
                 tcg_th_state         = th_state_var,
-#endif /* GHCI */
+#endif /* ETA_REPL */
 
                 tcg_mod            = mod,
                 tcg_src            = hsc_src,
@@ -891,7 +891,7 @@ failIfErrsM :: TcRn ()
 failIfErrsM = ifErrsM failM (return ())
 
 checkTH :: Outputable a => a -> String -> TcRn ()
-#ifdef GHCI
+#ifdef ETA_REPL
 checkTH _ _ = return () -- OK
 #else
 checkTH e what = failTH e what  -- Raise an error in a stage-1 compiler

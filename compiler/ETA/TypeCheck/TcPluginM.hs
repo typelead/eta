@@ -4,7 +4,7 @@
 {-# LANGUAGE CPP #-}
 
 module ETA.TypeCheck.TcPluginM (
-#ifdef GHCI
+#ifdef ETA_REPL
         -- * Basic TcPluginM functionality
         TcPluginM,
         tcPluginIO,
@@ -41,15 +41,15 @@ module ETA.TypeCheck.TcPluginM (
 #endif
     ) where
 
-#ifdef GHCI
-import qualified TcRnMonad
-import qualified TcSMonad
-import qualified TcEnv
-import qualified TcMType
-import qualified Inst
-import qualified FamInst
+#ifdef ETA_REPL
+import qualified ETA.TypeCheck.TcRnMonad as TcRnMonad
+import qualified ETA.TypeCheck.TcSMonad as TcSMonad
+import qualified ETA.TypeCheck.TcEnv as TcEnv
+import qualified ETA.TypeCheck.TcMType as TcMType
+import qualified ETA.TypeCheck.Inst as Inst
+import qualified ETA.TypeCheck.FamInst as FamInst
 import qualified ETA.Iface.IfaceEnv as IfaceEnv
-import qualified Finder
+import qualified ETA.Main.Finder as Finder
 
 import ETA.Types.FamInstEnv ( FamInstEnv )
 import ETA.TypeCheck.TcRnMonad  ( TcGblEnv, TcLclEnv, Ct, TcPluginM

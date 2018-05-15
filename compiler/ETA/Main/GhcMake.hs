@@ -21,9 +21,9 @@ module ETA.Main.GhcMake(
         noModError, cyclicModuleErr
     ) where
 
-#ifdef GHCI
-import qualified Linker         ( unload )
-#endif
+-- #ifdef ETA_REPL
+-- import qualified Linker         ( unload )
+-- #endif
 
 import ETA.Main.DriverPhases
 import ETA.Main.DriverPipeline
@@ -516,7 +516,7 @@ findPartiallyCompletedCycles modsDone theGraph
 unload :: HscEnv -> [Linkable] -> IO ()
 unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
   = case ghcLink (hsc_dflags hsc_env) of
-#ifdef GHCI
+#ifdef ETA_REPL
         LinkInMemory -> Linker.unload (hsc_dflags hsc_env) stable_linkables
 #else
         LinkInMemory -> panic "unload: no interpreter"

@@ -114,8 +114,11 @@ rnExpr (HsLit lit)
        ; return (HsLit lit, emptyFVs) }
 
 rnExpr (HsOverLit lit)
-  = do { (lit', fvs) <- rnOverLit lit
-       ; return (HsOverLit lit', fvs) }
+  = do { (lit', mb_neg, fvs) <- rnOverLit lit
+       ; case mb_neg of
+              Nothing -> return (HsOverLit lit', fvs)
+              Just neg -> return ( HsApp (noLoc neg) (noLoc (HsOverLit lit'))
+                                 , fvs ) }
 
 rnExpr (HsApp fun arg)
   = do { (fun',fvFun) <- rnLExpr fun
@@ -150,7 +153,7 @@ rnExpr (NegApp e _)
 
 ------------------------------------------
 -- Template Haskell extensions
--- Don't ifdef-GHCI them because we want to fail gracefully
+-- Don't ifdef-ETA_REPL them because we want to fail gracefully
 -- (not with an rnExpr crash) in a stage-1 compiler.
 rnExpr e@(HsBracket br_body) = rnBracket e br_body
 

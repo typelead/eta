@@ -1126,7 +1126,7 @@ doCpp dflags origFile input_fn output_fn = do
 
         verbFlags = getVerbFlags dflags
 
-#ifdef GHCI
+#ifdef ETA_REPL
         th_defs = [ "-D__GLASGOW_HASKELL_TH__=YES" ]
 #else
         th_defs = [ "-D__GLASGOW_HASKELL_TH__=NO" ]

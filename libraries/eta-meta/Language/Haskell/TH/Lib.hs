@@ -771,12 +771,13 @@ inferR            = InferR
 -------------------------------------------------------------------------------
 -- *   Callconv
 
-cCall, stdCall, cApi, prim, javaScript :: Callconv
+cCall, stdCall, cApi, prim, javaScript, java :: Callconv
 cCall      = CCall
 stdCall    = StdCall
 cApi       = CApi
 prim       = Prim
 javaScript = JavaScript
+java      = Java
 
 -------------------------------------------------------------------------------
 -- *   Safety

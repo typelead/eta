@@ -6,7 +6,7 @@
 --
 -- Entries in the array are Word sized Conceptually, a zero-indexed IOArray of
 -- Bools, initially False.  They're represented as Words with 0==False, 1==True.
--- They're used to determine whether GHCI breakpoints are on or off.
+-- They're used to determine whether ETA_REPL breakpoints are on or off.
 --
 -- (c) The University of Glasgow 2007
 --
@@ -15,11 +15,11 @@
 module ETA.Main.BreakArray
     (
       BreakArray
-#ifdef GHCI
+#ifdef ETA_REPL
           (BA) -- constructor is exported only for ByteCodeGen
 #endif
     , newBreakArray
-#ifdef GHCI
+#ifdef ETA_REPL
     , getBreak
     , setBreakOn
     , setBreakOff
@@ -29,7 +29,7 @@ module ETA.Main.BreakArray
 
 import ETA.Main.DynFlags
 
-#ifdef GHCI
+#ifdef ETA_REPL
 import Control.Monad
 
 import ETA.Utils.ExtsCompat46
@@ -73,7 +73,7 @@ safeIndex :: DynFlags -> BreakArray -> Int -> Bool
 safeIndex dflags array index = index < size dflags array && index >= 0
 
 size :: DynFlags -> BreakArray -> Int
-size dflags (BA array) = (I# (sizeofMutableByteArray# array)) `div` wORD_SIZE dflags
+size _dflags (BA array) = (I# (sizeofMutableByteArray# array)) `div` 4
 
 allocBA :: Int -> IO BreakArray
 allocBA (I# sz) = IO $ \s1 ->
@@ -81,8 +81,8 @@ allocBA (I# sz) = IO $ \s1 ->
 
 -- create a new break array and initialise elements to zero
 newBreakArray :: DynFlags -> Int -> IO BreakArray
-newBreakArray dflags entries@(I# sz) = do
-    BA array <- allocBA (entries * wORD_SIZE dflags)
+newBreakArray _dflags entries@(I# sz) = do
+    BA array <- allocBA (entries * 4)
     case breakOff of
         W# off -> do    -- Todo: there must be a better way to write zero as a Word!
             let loop n | n ==# sz = return ()
@@ -106,16 +106,15 @@ readBA# array i = IO $ \s ->
 readBreakArray :: BreakArray -> Int -> IO Word
 readBreakArray (BA array) (I# i) = readBA# array i
 
-#else /* !GHCI */
+#else /* !ETA_REPL */
 
 -- stub implementation to make main/, etc., code happier.
 -- IOArray and IOUArray are increasingly non-portable,
--- still don't have quite the same interface, and (for GHCI)
+-- still don't have quite the same interface, and (for ETA_REPL)
 -- presumably have a different representation.
 data BreakArray = Unspecified
 
 newBreakArray :: DynFlags -> Int -> IO BreakArray
 newBreakArray _ _ = return Unspecified
 
-#endif /* GHCI */
-
+#endif /* ETA_REPL */

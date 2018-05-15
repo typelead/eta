@@ -44,13 +44,14 @@ module ETA.HsSyn.HsTypes (
         hsLTyVarName, hsLTyVarNames, hsLTyVarLocName, hsLTyVarLocNames,
         splitLHsInstDeclTy_maybe,
         splitHsClassTy_maybe, splitLHsClassTy_maybe,
-        splitHsFunType,
+        splitHsFunType, splitLHsSigmaTy, splitLHsPatSynTy,
         splitHsAppTys, hsTyGetAppHead_maybe, mkHsAppTys, mkHsOpTy,
         isWildcardTy, isNamedWildcardTy,
+        hsLTyVarBndrToType, hsLTyVarBndrsToTypes,
 
         -- Printing
         pprParendHsType, pprHsForAll, pprHsForAllExtra,
-        pprHsContext, pprHsContextNoArrow, pprHsContextMaybe
+        pprHsContext, pprHsContextNoArrow, pprHsContextMaybe, isCompoundHsType
     ) where
 
 import {-# SOURCE #-} ETA.HsSyn.HsExpr ( HsSplice, pprUntypedSplice )
@@ -673,6 +674,18 @@ hsLTyVarLocName = fmap hsTyVarName
 hsLTyVarLocNames :: LHsTyVarBndrs name -> [Located name]
 hsLTyVarLocNames qtvs = map hsLTyVarLocName (hsQTvBndrs qtvs)
 
+-- | Convert a LHsTyVarBndr to an equivalent LHsType.
+hsLTyVarBndrToType :: LHsTyVarBndr name -> LHsType name
+hsLTyVarBndrToType = fmap cvt
+  where cvt (UserTyVar n) = HsTyVar n
+        cvt (KindedTyVar (L name_loc n) kind)
+          = HsKindSig (L name_loc (HsTyVar n)) kind
+
+-- | Convert a LHsTyVarBndrs to a list of types.
+-- Works on *type* variable only, no kind vars.
+hsLTyVarBndrsToTypes :: LHsTyVarBndrs name -> [LHsType name]
+hsLTyVarBndrsToTypes qvs = map hsLTyVarBndrToType (hsQTvBndrs qvs)
+
 ---------------------
 isWildcardTy :: HsType a -> Bool
 isWildcardTy HsWildcardTy = True
@@ -718,6 +731,25 @@ splitLHsInstDeclTy_maybe inst_ty = do
     let (tvs, cxt, ty) = splitLHsForAllTy inst_ty
     (cls, tys) <- splitLHsClassTy_maybe ty
     return (tvs, cxt, cls, tys)
+
+splitLHsPatSynTy :: LHsType name
+                 -> ( [LHsTyVarBndr name]    -- universals
+                    , LHsContext name        -- required constraints
+                    , [LHsTyVarBndr name]    -- existentials
+                    , LHsContext name        -- provided constraints
+                    , LHsType name)          -- body type
+splitLHsPatSynTy ty = (univs, reqs, exis, provs, ty2)
+  where
+    (univs, reqs, ty1) = splitLHsSigmaTy ty
+    (exis, provs, ty2) = splitLHsSigmaTy ty1
+
+splitLHsSigmaTy :: LHsType name
+                -> ([LHsTyVarBndr name], LHsContext name, LHsType name)
+splitLHsSigmaTy ty
+   = case unLoc ty of
+         HsParTy ty                -> splitLHsSigmaTy ty
+         HsForAllTy _ _ tvs cxt ty -> (hsq_tvs tvs, cxt, ty)
+         _                         -> ([], noLoc [], ty)
 
 splitLHsForAllTy
     :: LHsType name
@@ -962,3 +994,13 @@ ppr_fun_ty ctxt_prec ty1 ty2
 ppr_tylit :: HsTyLit -> SDoc
 ppr_tylit (HsNumTy _ i) = integer i
 ppr_tylit (HsStrTy _ s) = text (show s)
+
+-- | Return 'True' for compound types that will need parentheses when used in
+-- an argument position.
+isCompoundHsType :: LHsType pass -> Bool
+isCompoundHsType (L _ HsAppTy{} ) = True
+-- isCompoundHsType (L _ HsAppsTy{}) = True
+isCompoundHsType (L _ HsEqTy{}  ) = True
+isCompoundHsType (L _ HsFunTy{} ) = True
+isCompoundHsType (L _ HsOpTy{}  ) = True
+isCompoundHsType _                = False
