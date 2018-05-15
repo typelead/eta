@@ -73,7 +73,7 @@ dsBracket :: HsBracket Name -> [PendingTcSplice] -> DsM CoreExpr
 dsBracket brack splices
   = dsExtendMetaEnv new_bit (do_brack brack)
   where
-    new_bit = mkNameEnv [(n, DsSplice (unLoc e)) | PendSplice n e <- splices]
+    new_bit = mkNameEnv [(n, DsSplice (unLoc e)) | PendingTcSplice n e <- splices]
 
     do_brack (VarBr _ n) = do { MkC e1  <- lookupOcc n ; return e1 }
     do_brack (ExpBr e)   = do { MkC e1  <- repLE e     ; return e1 }
@@ -1229,11 +1229,10 @@ repRole (L _ Nothing)                 = rep2 inferRName []
 repSplice :: HsSplice Name -> DsM (Core a)
 -- See Note [How brackets and nested splices are handled] in TcSplice
 -- We return a CoreExpr of any old type; the context should know
--- repSplice (HsTypedSplice   _ _ n _) = rep_splice n
--- repSplice (HsUntypedSplice _ _ n _) = rep_splice n
--- repSplice (HsQuasiQuote _ n _ _ _)  = rep_splice n
--- repSplice e@(HsSpliced {})          = pprPanic "repSplice" (ppr e)
-repSplice (HsSplice n _) = rep_splice n
+repSplice (HsTypedSplice  _ n _)  = rep_splice n
+repSplice (HsUntypedSplice _ n _) = rep_splice n
+repSplice (HsQuasiQuote n _ _ _)  = rep_splice n
+repSplice e@(HsSpliced {})        = pprPanic "repSplice" (ppr e)
 
 rep_splice :: Name -> DsM (Core a)
 rep_splice splice_name
@@ -1377,7 +1376,7 @@ repE (ArithSeq _ _ aseq) =
                              ds3 <- repLE e3
                              repFromThenTo ds1 ds2 ds3
 
-repE (HsSpliceE _ splice)  = repSplice splice
+repE (HsSpliceE splice)  = repSplice splice
 repE (HsStatic e)        = repLE e >>= rep2 staticEName . (:[]) . unC
 repE e@(HsUnboundVar _)   = notHandled "Unbounded Vars" (ppr e)
 

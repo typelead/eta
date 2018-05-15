@@ -240,22 +240,15 @@ rnHsTyKi isType doc (HsEqTy ty1 ty2)
        ; (ty2', fvs2) <- rnLHsType doc ty2
        ; return (HsEqTy ty1' ty2', fvs1 `plusFV` fvs2) }
 
-rnHsTyKi isType _ (HsSpliceTy sp k)
+rnHsTyKi isType _ (HsSpliceTy sp _)
   = ASSERT( isType )
-    rnSpliceType sp k
+    rnSpliceType sp
 
 rnHsTyKi isType doc (HsDocTy ty haddock_doc)
   = ASSERT( isType )
     do { (ty', fvs) <- rnLHsType doc ty
        ; haddock_doc' <- rnLHsDoc haddock_doc
        ; return (HsDocTy ty' haddock_doc', fvs) }
-
-rnHsTyKi _isType _doc (HsQuasiQuoteTy _qq) = panic "rnHsTyKi"
-  -- = ASSERT( isType )
-  --   do { ty <- runQuasiQuoteType qq
-  --        -- Wrap the result of the quasi-quoter in parens so that we don't
-  --        -- lose the outermost location set by runQuasiQuote (#7918)
-  --      ; rnHsType doc (HsParTy ty) }
 
 rnHsTyKi isType _ (HsCoreTy ty)
   = ASSERT( isType )
@@ -995,7 +988,6 @@ extract_lty (L _ ty) acc
       HsOpTy ty1 (_, (L _ tv)) ty2 -> extract_tv tv (extract_lty ty1 (extract_lty ty2 acc))
       HsParTy ty                -> extract_lty ty acc
       HsCoreTy {}               -> acc  -- The type is closed
-      HsQuasiQuoteTy {}         -> acc  -- Quasi quotes mention no type variables
       HsSpliceTy {}             -> acc  -- Type splices mention no type variables
       HsDocTy ty _              -> extract_lty ty acc
       HsExplicitListTy _ tys    -> extract_ltys tys acc
@@ -1070,7 +1062,7 @@ extractWildcards ty
             rdrName = nameRdrName name
         return ([], [L l rdrName], L l $ HsNamedWildcardTy rdrName)
       (HsNamedWildcardTy name)    -> return ([L l name], [], orig)
-      -- HsQuasiQuoteTy, HsSpliceTy, HsRecTy, HsCoreTy, HsTyLit, HsWrapTy
+      -- HsSpliceTy, HsRecTy, HsCoreTy, HsTyLit, HsWrapTy
       _                           -> return ([], [], orig)
       where
         go1 f t = do (nwcs, awcs, t') <- go t

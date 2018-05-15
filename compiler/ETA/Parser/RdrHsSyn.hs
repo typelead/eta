@@ -399,10 +399,10 @@ mkSpliceDecl :: LHsExpr RdrName -> HsDecl RdrName
 -- Typed splices are not allowed at the top level, thus we do not represent them
 -- as spliced declaration.  See #10945
 mkSpliceDecl lexpr@(L loc expr)
-  | HsSpliceE _ splice@(HsUntypedSplice {}) <- expr
+  | HsSpliceE splice@(HsUntypedSplice {}) <- expr
   = SpliceD (SpliceDecl (L loc splice) ExplicitSplice)
 
-  | HsSpliceE _ splice@(HsQuasiQuote {}) <- expr
+  | HsSpliceE splice@(HsQuasiQuote {}) <- expr
   = SpliceD (SpliceDecl (L loc splice) ExplicitSplice)
 
   | otherwise

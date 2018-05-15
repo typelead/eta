@@ -284,17 +284,17 @@ mkHsOpApp e1 op e2 = OpApp e1 (noLoc (HsVar op)) (error "mkOpApp:fixity") e2
 unqualSplice :: RdrName
 unqualSplice = mkRdrUnqual (mkVarOccFS (fsLit "splice"))
 
-mkUntypedSplice :: LHsExpr RdrName -> HsSplice RdrName
-mkUntypedSplice e = HsUntypedSplice unqualSplice e
+mkUntypedSplice :: SpliceDecoration -> LHsExpr RdrName -> HsSplice RdrName
+mkUntypedSplice hasParen e = HsUntypedSplice hasParen unqualSplice e
 
-mkHsSpliceE :: LHsExpr RdrName -> HsExpr RdrName
-mkHsSpliceE e = HsSpliceE (mkUntypedSplice e)
+mkHsSpliceE :: SpliceDecoration -> LHsExpr RdrName -> HsExpr RdrName
+mkHsSpliceE hasParen e = HsSpliceE (mkUntypedSplice hasParen e)
 
-mkHsSpliceTE :: LHsExpr RdrName -> HsExpr RdrName
-mkHsSpliceTE e = HsSpliceE (HsTypedSplice unqualSplice e)
+mkHsSpliceTE :: SpliceDecoration -> LHsExpr RdrName -> HsExpr RdrName
+mkHsSpliceTE hasParen e = HsSpliceE (HsTypedSplice hasParen unqualSplice e)
 
-mkHsSpliceTy :: LHsExpr RdrName -> HsType RdrName
-mkHsSpliceTy e = HsSpliceTy (HsUntypedSplice unqualSplice e) placeHolderKind
+mkHsSpliceTy :: SpliceDecoration -> LHsExpr RdrName -> HsType RdrName
+mkHsSpliceTy hasParen e = HsSpliceTy (HsUntypedSplice hasParen unqualSplice e) placeHolderType
 
 mkHsQuasiQuote :: RdrName -> SrcSpan -> FastString -> HsSplice RdrName
 mkHsQuasiQuote quoter span quote = HsQuasiQuote unqualSplice quoter span quote

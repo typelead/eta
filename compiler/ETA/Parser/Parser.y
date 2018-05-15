@@ -1568,9 +1568,9 @@ atype :: { LHsType RdrName }
         | '(' ctype '::' kind ')'     {% ams (sLL $1 $> $ HsKindSig $2 $4)
                                              [mop $1,mj AnnDcolon $3,mcp $5] }
         | quasiquote                  { sL1 $1 (HsSpliceTy (unLoc $1) placeHolderKind) }
-        | '$(' exp ')'                {% ams (sLL $1 $> $ mkHsSpliceTy $2)
+        | '$(' exp ')'                {% ams (sLL $1 $> $ mkHsSpliceTy HasParens $2)
                                              [mj AnnOpenPE $1,mj AnnCloseP $3] }
-        | TH_ID_SPLICE                {%ams (sLL $1 $> $ mkHsSpliceTy $ sL1 $1 $ HsVar $
+        | TH_ID_SPLICE                {%ams (sLL $1 $> $ mkHsSpliceTy HasDollar $ sL1 $1 $ HsVar $
                                              mkUnqual varName (getTH_ID_SPLICE $1))
                                              [mj AnnThIdSplice $1] }
                                       -- see Note [Promotion] for the followings
@@ -2184,17 +2184,17 @@ aexp2   :: { LHsExpr RdrName }
                                           [mo $1,mc $4] }
 
 splice_exp :: { LHsExpr RdrName }
-        : TH_ID_SPLICE          {% ams (sL1 $1 $ mkHsSpliceE
+        : TH_ID_SPLICE          {% ams (sL1 $1 $ mkHsSpliceE HasDollar
                                         (sL1 $1 $ HsVar (mkUnqual varName
                                                         (getTH_ID_SPLICE $1))))
                                        [mj AnnThIdSplice $1] }
-        | '$(' exp ')'          {% ams (sLL $1 $> $ mkHsSpliceE $2)
+        | '$(' exp ')'          {% ams (sLL $1 $> $ mkHsSpliceE HasParens $2)
                                        [mj AnnOpenPE $1,mj AnnCloseP $3] }
-        | TH_ID_TY_SPLICE       {% ams (sL1 $1 $ mkHsSpliceTE
+        | TH_ID_TY_SPLICE       {% ams (sL1 $1 $ mkHsSpliceTE HasDollar
                                         (sL1 $1 $ HsVar (mkUnqual varName
                                                      (getTH_ID_TY_SPLICE $1))))
                                        [mj AnnThIdTySplice $1] }
-        | '$$(' exp ')'         {% ams (sLL $1 $> $ mkHsSpliceTE $2)
+        | '$$(' exp ')'         {% ams (sLL $1 $> $ mkHsSpliceTE HasParens $2)
                                        [mj AnnOpenPTE $1,mj AnnCloseP $3] }
 
 cmdargs :: { [LHsCmdTop RdrName] }
