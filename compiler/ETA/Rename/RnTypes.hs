@@ -24,10 +24,7 @@ module ETA.Rename.RnTypes (
         extractWildcards, filterInScope
   ) where
 
--- import {-# SOURCE #-} ETA.TypeCheck.TcSplice( runQuasiQuoteType )
-import ETA.TypeCheck.TcSplice( runQuasiQuoteType )
--- import {-# SOURCE #-} ETA.Rename.RnSplice( rnSpliceType )
-import ETA.Rename.RnSplice( rnSpliceType )
+import {-# SOURCE #-} ETA.Rename.RnSplice( rnSpliceType )
 
 import ETA.Main.DynFlags
 import ETA.HsSyn.HsSyn
@@ -253,12 +250,12 @@ rnHsTyKi isType doc (HsDocTy ty haddock_doc)
        ; haddock_doc' <- rnLHsDoc haddock_doc
        ; return (HsDocTy ty' haddock_doc', fvs) }
 
-rnHsTyKi isType doc (HsQuasiQuoteTy qq)
-  = ASSERT( isType )
-    do { ty <- runQuasiQuoteType qq
-         -- Wrap the result of the quasi-quoter in parens so that we don't
-         -- lose the outermost location set by runQuasiQuote (#7918)
-       ; rnHsType doc (HsParTy ty) }
+rnHsTyKi _isType _doc (HsQuasiQuoteTy _qq) = panic "rnHsTyKi"
+  -- = ASSERT( isType )
+  --   do { ty <- runQuasiQuoteType qq
+  --        -- Wrap the result of the quasi-quoter in parens so that we don't
+  --        -- lose the outermost location set by runQuasiQuote (#7918)
+  --      ; rnHsType doc (HsParTy ty) }
 
 rnHsTyKi isType _ (HsCoreTy ty)
   = ASSERT( isType )

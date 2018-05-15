@@ -78,7 +78,8 @@ module ETA.HsSyn.HsDecls (
     ) where
 
 -- friends:
-import {-# SOURCE #-}   ETA.HsSyn.HsExpr( LHsExpr, HsExpr, HsSplice, pprExpr, pprUntypedSplice )
+import {-# SOURCE #-}   ETA.HsSyn.HsExpr( LHsExpr, HsExpr, HsSplice, pprExpr,
+                                          pprSpliceDecl )
         -- Because Expr imports Decls via HsBracket
 
 import ETA.HsSyn.HsBinds
@@ -139,9 +140,8 @@ data HsDecl id
   | AnnD        (AnnDecl id)
   | RuleD       (RuleDecls id)
   | VectD       (VectDecl id)
-  | SpliceD     (SpliceDecl id)
+  | SpliceD     (SpliceDecl id)  -- Includes quasi-quotes
   | DocD        (DocDecl)
-  | QuasiQuoteD (HsQuasiQuote id)
   | RoleAnnotD  (RoleAnnotDecl id)
   deriving (Typeable)
 deriving instance (DataId id) => Data (HsDecl id)
@@ -265,7 +265,6 @@ instance OutputableBndr name => Outputable (HsDecl name) where
     ppr (AnnD ad)               = ppr ad
     ppr (SpliceD dd)            = ppr dd
     ppr (DocD doc)              = ppr doc
-    ppr (QuasiQuoteD qq)        = ppr qq
     ppr (RoleAnnotD ra)         = ppr ra
 
 instance OutputableBndr name => Outputable (HsGroup name) where
@@ -303,10 +302,6 @@ instance OutputableBndr name => Outputable (HsGroup name) where
           vcat_mb gap (Nothing : ds) = vcat_mb gap ds
           vcat_mb gap (Just d  : ds) = gap $$ d $$ vcat_mb blankLine ds
 
-data SpliceExplicitFlag = ExplicitSplice | -- <=> $(f x y)
-                          ImplicitSplice   -- <=> f x y,  i.e. a naked top level expression
-    deriving (Data, Typeable)
-
 type LSpliceDecl name = Located (SpliceDecl name)
 data SpliceDecl id
   = SpliceDecl                  -- Top level splice
@@ -316,7 +311,7 @@ data SpliceDecl id
 deriving instance (DataId id) => Data (SpliceDecl id)
 
 instance OutputableBndr name => Outputable (SpliceDecl name) where
-   ppr (SpliceDecl (L _ e) _) = pprUntypedSplice e
+   ppr (SpliceDecl (L _ e) f) = pprSpliceDecl e f
 
 {-
 ************************************************************************

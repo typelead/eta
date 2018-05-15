@@ -742,8 +742,8 @@ dynLoadObjs :: DynFlags -> PersistentLinkerState -> [FilePath]
             -> IO PersistentLinkerState
 dynLoadObjs _      pls []   = return pls
 dynLoadObjs dflags pls objs = do
-    let platform = targetPlatform dflags
-    (soFile, libPath , libName) <- newTempLibName dflags (soExt platform)
+    let _platform = targetPlatform dflags
+    (soFile, libPath , libName) <- undefined
     let -- When running TH for a non-dynamic way, we still need to make
         -- -l flags to link against the dynamic libraries, so we turn
         -- Opt_Static off

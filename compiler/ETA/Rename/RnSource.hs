@@ -10,12 +10,8 @@ module ETA.Rename.RnSource (
         rnSrcDecls, addTcgDUs, rnTyClDecls, findSplice
     ) where
 
--- import {-# SOURCE #-} ETA.Rename.RnExpr( rnLExpr )
-import ETA.Rename.RnExpr( rnLExpr )
--- import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSpliceDecl )
-import ETA.Rename.RnSplice ( rnSpliceDecl )
--- import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasiQuoteDecl )
-import ETA.TypeCheck.TcSplice ( runQuasiQuoteDecl )
+import {-# SOURCE #-} ETA.Rename.RnExpr( rnLExpr )
+import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSpliceDecl )
 
 import ETA.HsSyn.HsSyn
 import ETA.BasicTypes.RdrName
@@ -362,7 +358,7 @@ rnAnnDecl :: AnnDecl RdrName -> RnM (AnnDecl Name, FreeVars)
 rnAnnDecl ann@(HsAnnotation s provenance expr)
   = addErrCtxt (annCtxt ann) $
     do { (provenance', provenance_fvs) <- rnAnnProvenance provenance
-       ; (expr', expr_fvs) <- setStage (Splice False) $
+       ; (expr', expr_fvs) <- setStage (Splice Untyped) $
                               rnLExpr expr
        ; return (HsAnnotation s provenance' expr',
                  provenance_fvs `plusFV` expr_fvs) }
@@ -1522,10 +1518,6 @@ add gp loc (SpliceD splice@(SpliceDecl _ flag)) ds
   where
     badImplicitSplice = ptext (sLit "Parse error: naked expression at top level")
                      $$ ptext (sLit "Perhaps you intended to use TemplateHaskell")
-
-add gp _ (QuasiQuoteD qq) ds            -- Expand quasiquotes
-  = do { ds' <- runQuasiQuoteDecl qq
-       ; addl gp (ds' ++ ds) }
 
 -- Class declarations: pull out the fixity signatures to the top
 add gp@(HsGroup {hs_tyclds = ts, hs_fixds = fs}) l (TyClD d) ds

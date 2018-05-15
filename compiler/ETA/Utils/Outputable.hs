@@ -16,14 +16,14 @@ module ETA.Utils.Outputable (
         -- * Pretty printing combinators
         SDoc, runSDoc, initSDocContext,
         docToSDoc,
-        interppSP, interpp'SP, pprQuotedList, pprWithCommas, quotedListWithOr,
+        interppSP, interpp'SP, pprQuotedList, pprWithCommas, quotedListWithOr, quotedListWithNor,
         empty, nest,
         char,
         text, ftext, ptext, ztext,
         int, intWithCommas, integer, float, double, rational,
         parens, cparen, brackets, braces, quotes, quote,
         doubleQuotes, angleBrackets, paBrackets,
-        semi, comma, colon, dcolon, space, equals, dot,
+        semi, comma, colon, dcolon, space, equals, dot, vbar,
         arrow, larrow, darrow, arrowt, larrowt, arrowtt, larrowtt,
         lparen, rparen, lbrack, rbrack, lbrace, rbrace, underscore,
         blankLine, forAllLit,
@@ -519,7 +519,7 @@ quotes d =
              ('\'' : _, _)       -> pp_d
              _other              -> Pretty.quotes pp_d
 
-semi, comma, colon, equals, space, dcolon, underscore, dot :: SDoc
+semi, comma, colon, equals, space, dcolon, underscore, dot, vbar :: SDoc
 arrow, larrow, darrow, arrowt, larrowt, arrowtt, larrowtt :: SDoc
 lparen, rparen, lbrack, rbrack, lbrace, rbrace, blankLine :: SDoc
 
@@ -539,6 +539,7 @@ equals     = docToSDoc $ Pretty.equals
 space      = docToSDoc $ Pretty.space
 underscore = char '_'
 dot        = char '.'
+vbar       = char '|'
 lparen     = docToSDoc $ Pretty.lparen
 rparen     = docToSDoc $ Pretty.rparen
 lbrack     = docToSDoc $ Pretty.lbrack
@@ -866,6 +867,11 @@ quotedListWithOr :: [SDoc] -> SDoc
 -- [x,y,z]  ==>  `x', `y' or `z'
 quotedListWithOr xs@(_:_:_) = quotedList (init xs) <+> ptext (sLit "or") <+> quotes (last xs)
 quotedListWithOr xs = quotedList xs
+
+quotedListWithNor :: [SDoc] -> SDoc
+-- [x,y,z]  ==>  `x', `y' nor `z'
+quotedListWithNor xs@(_:_:_) = quotedList (init xs) <+> text "nor" <+> quotes (last xs)
+quotedListWithNor xs = quotedList xs
 
 {-
 ************************************************************************

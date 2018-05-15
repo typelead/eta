@@ -41,7 +41,7 @@ module ETA.TypeCheck.TcRnTypes(
         DsMetaEnv, DsMetaVal(..),
 
         -- Template Haskell
-        ThStage(..), PendingStuff(..), topStage, topAnnStage, topSpliceStage,
+        ThStage(..), SpliceType(..), PendingStuff(..), topStage, topAnnStage, topSpliceStage,
         ThLevel, impLevel, outerLevel, thLevel,
 
         -- Arrows
@@ -141,6 +141,7 @@ import Control.Monad (ap, liftM)
 import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
 import Data.Typeable ( TypeRep )
+import Eta.REPL.RemoteTypes
 
 import qualified Language.Haskell.TH as TH
 #endif
@@ -685,12 +686,28 @@ type TcIdSet     = IdSet
 -- Template Haskell stages and levels
 ---------------------------
 
+data SpliceType = Typed | Untyped
+
 data ThStage    -- See Note [Template Haskell state diagram] in TcSplice
-  = Splice      -- Inside a top-level splice splice
-                -- This code will be run *at compile time*;
-                --   the result replaces the splice
-                -- Binding level = 0
-      Bool      -- True if in a typed splice, False otherwise
+  = Splice SpliceType -- Inside a top-level splice
+                      -- This code will be run *at compile time*;
+                      --   the result replaces the splice
+                      -- Binding level = 0
+
+  | RunSplice (TcRef [ForeignRef (TH.Q ())])
+      -- Set when running a splice, i.e. NOT when renaming or typechecking the
+      -- Haskell code for the splice. See Note [RunSplice ThLevel].
+      --
+      -- Contains a list of mod finalizers collected while executing the splice.
+      --
+      -- 'addModFinalizer' inserts finalizers here, and from here they are taken
+      -- to construct an @HsSpliced@ annotation for untyped splices. See Note
+      -- [Delaying modFinalizers in untyped splices] in "RnSplice".
+      --
+      -- For typed splices, the typechecker takes finalizers from here and
+      -- inserts them in the list of finalizers in the global environment.
+      --
+      -- See Note [Collecting modFinalizers in typed splices] in "TcSplice".
 
   | Comp        -- Ordinary Haskell code
                 -- Binding level = 1
@@ -711,13 +728,14 @@ data PendingStuff
 
 topStage, topAnnStage, topSpliceStage :: ThStage
 topStage       = Comp
-topAnnStage    = Splice False
-topSpliceStage = Splice False
+topAnnStage    = Splice Untyped
+topSpliceStage = Splice Untyped
 
 instance Outputable ThStage where
-   ppr (Splice _)  = text "Splice"
-   ppr Comp        = text "Comp"
-   ppr (Brack s _) = text "Brack" <> parens (ppr s)
+   ppr (Splice _)    = text "Splice"
+   ppr (RunSplice _) = text "RunSplice"
+   ppr Comp          = text "Comp"
+   ppr (Brack s _)   = text "Brack" <> parens (ppr s)
 
 type ThLevel = Int
     -- NB: see Note [Template Haskell levels] in TcSplice
@@ -732,8 +750,24 @@ outerLevel = 1  -- Things defined outside brackets
 
 thLevel :: ThStage -> ThLevel
 thLevel (Splice _)  = 0
+thLevel (RunSplice _) =
+    -- See Note [RunSplice ThLevel].
+    panic "thLevel: called when running a splice"
 thLevel Comp        = 1
 thLevel (Brack s _) = thLevel s + 1
+
+{- Node [RunSplice ThLevel]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The 'RunSplice' stage is set when executing a splice, and only when running a
+splice. In particular it is not set when the splice is renamed or typechecked.
+
+'RunSplice' is needed to provide a reference where 'addModFinalizer' can insert
+the finalizer (see Note [Delaying modFinalizers in untyped splices]), and
+'addModFinalizer' runs when doing Q things. Therefore, It doesn't make sense to
+set 'RunSplice' when renaming or typechecking the splice, where 'Splice', 'Brak'
+or 'Comp' are used instead.
+
+-}
 
 ---------------------------
 -- Arrow-notation context

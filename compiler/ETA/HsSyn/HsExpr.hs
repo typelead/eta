@@ -19,7 +19,7 @@ module ETA.HsSyn.HsExpr where
 import ETA.HsSyn.HsDecls
 import ETA.HsSyn.HsPat
 import ETA.HsSyn.HsLit
-import ETA.HsSyn.PlaceHolder ( PostTc,PostRn,DataId )
+import ETA.HsSyn.PlaceHolder ( PostTc, PostRn, DataId )
 import ETA.HsSyn.HsTypes
 import ETA.HsSyn.HsBinds
 
@@ -37,9 +37,12 @@ import ETA.Main.StaticFlags( opt_PprStyle_Debug )
 import ETA.Utils.Outputable
 import ETA.Utils.FastString
 import ETA.Types.Type
+import Eta.REPL.RemoteTypes ( ForeignRef )
+import qualified Language.Haskell.TH as TH (Q)
 
 -- libraries:
-import Data.Data hiding (Fixity)
+import Data.Data hiding (Fixity(..))
+import qualified Data.Data as Data (Fixity(..))
 
 {-
 ************************************************************************
@@ -381,11 +384,7 @@ data HsExpr id
   --         'ApiAnnotation.AnnClose'
 
   -- For details on above see note [Api annotations] in ApiAnnotation
-  | HsSpliceE    Bool                   -- True <=> typed splice
-                 (HsSplice id)          -- False <=> untyped
-
-  | HsQuasiQuoteE (HsQuasiQuote id)
-        -- See Note [Quasi-quote overview] in TcSplice
+  | HsSpliceE  (HsSplice id)
 
   -----------------------------------------------------------
   -- Arrow notation extension
@@ -720,13 +719,12 @@ ppr_expr (HsSCC _ lbl expr)
 ppr_expr (HsWrap co_fn e) = pprHsWrapper (pprExpr e) co_fn
 ppr_expr (HsType id)      = ppr id
 
-ppr_expr (HsSpliceE t s)       = pprSplice t s
+ppr_expr (HsSpliceE s)         = pprSplice s
 ppr_expr (HsBracket b)         = pprHsBracket b
 ppr_expr (HsRnBracketOut e []) = ppr e
 ppr_expr (HsRnBracketOut e ps) = ppr e $$ ptext (sLit "pending(rn)") <+> ppr ps
 ppr_expr (HsTcBracketOut e []) = ppr e
 ppr_expr (HsTcBracketOut e ps) = ppr e $$ ptext (sLit "pending(tc)") <+> ppr ps
-ppr_expr (HsQuasiQuoteE qq)    = ppr qq
 
 ppr_expr (HsProc pat (L _ (HsCmdTop cmd _ _ _)))
   = hsep [ptext (sLit "proc"), ppr pat, ptext (sLit "->"), ppr cmd]
@@ -1592,31 +1590,94 @@ pprQuals quals = interpp'SP quals
 -}
 
 data HsSplice id
-   = HsSplice            --  $z  or $(f 4)
+   = HsTypedSplice       --  $$z  or $$(f 4)
+        SpliceDecoration -- Whether $$( ) variant found, for pretty printing
         id               -- A unique name to identify this splice point
         (LHsExpr id)     -- See Note [Pending Splices]
-  deriving (Typeable )
 
--- See Note [Pending Splices]
-data PendingSplice id
-  = PendSplice Name (LHsExpr id)
-  deriving( Typeable )
-        -- It'd be convenient to re-use HsSplice, but the splice-name
-        -- really is a Name, never an Id.  Using (PostRn id Name) is
-        -- nearly OK, but annoyingly we can't pretty-print it.
+   | HsUntypedSplice     --  $z  or $(f 4)
+        SpliceDecoration -- Whether $( ) variant found, for pretty printing
+        id               -- A unique name to identify this splice point
+        (LHsExpr id)     -- See Note [Pending Splices]
 
-data PendingRnSplice
-  = PendingRnExpSplice        (PendingSplice Name)
-  | PendingRnPatSplice        (PendingSplice Name)
-  | PendingRnTypeSplice       (PendingSplice Name)
-  | PendingRnDeclSplice       (PendingSplice Name)
-  | PendingRnCrossStageSplice Name
-  deriving (Data, Typeable)
+   | HsQuasiQuote        -- See Note [Quasi-quote overview] in TcSplice
+        id               -- Splice point
+        id               -- Quoter
+        SrcSpan          -- The span of the enclosed string
+        FastString       -- The enclosed string
 
-type PendingTcSplice = PendingSplice Id
+   -- AZ:TODO: use XSplice instead of HsSpliced
+   | HsSpliced  -- See Note [Delaying modFinalizers in untyped splices] in
+                -- RnSplice.
+                -- This is the result of splicing a splice. It is produced by
+                -- the renamer and consumed by the typechecker. It lives only
+                -- between the two.
+        ThModFinalizers     -- TH finalizers produced by the splice.
+        (HsSplicedThing id) -- The result of splicing
 
 deriving instance (DataId id) => Data (HsSplice id)
-deriving instance (DataId id) => Data (PendingSplice id)
+
+-- | A splice can appear with various decorations wrapped around it. This data
+-- type captures explicitly how it was originally written, for use in the pretty
+-- printer.
+data SpliceDecoration
+  = HasParens -- ^ $( splice ) or $$( splice )
+  | HasDollar -- ^ $splice or $$splice
+  | NoParens  -- ^ bare splice
+  deriving (Data, Eq, Show)
+
+instance Outputable SpliceDecoration where
+  ppr x = text $ show x
+
+isTypedSplice :: HsSplice id -> Bool
+isTypedSplice (HsTypedSplice {}) = True
+isTypedSplice _                  = False   -- Quasi-quotes are untyped splices
+
+-- | Finalizers produced by a splice with
+-- 'Language.Haskell.TH.Syntax.addModFinalizer'
+--
+-- See Note [Delaying modFinalizers in untyped splices] in RnSplice. For how
+-- this is used.
+--
+newtype ThModFinalizers = ThModFinalizers [ForeignRef (TH.Q ())]
+
+-- A Data instance which ignores the argument of 'ThModFinalizers'.
+instance Data ThModFinalizers where
+  gunfold _ z _ = z $ ThModFinalizers []
+  toConstr  a   = mkConstr (dataTypeOf a) "ThModFinalizers" [] Data.Prefix
+  dataTypeOf a  = mkDataType "HsExpr.ThModFinalizers" [toConstr a]
+
+-- | Haskell Spliced Thing
+--
+-- Values that can result from running a splice.
+data HsSplicedThing id
+    = HsSplicedExpr (HsExpr id) -- ^ Haskell Spliced Expression
+    | HsSplicedTy   (HsType id) -- ^ Haskell Spliced Type
+    | HsSplicedPat  (Pat id)    -- ^ Haskell Spliced Pattern
+
+deriving instance (DataId id) => Data (HsSplicedThing id)
+
+-- See Note [Pending Splices]
+type SplicePointName = Name
+
+-- | Pending Renamer Splice
+data PendingRnSplice
+  = PendingRnSplice UntypedSpliceFlavour SplicePointName (LHsExpr Name)
+
+ deriving Data
+
+data UntypedSpliceFlavour
+  = UntypedExpSplice
+  | UntypedPatSplice
+  | UntypedTypeSplice
+  | UntypedDeclSplice
+  deriving Data
+
+-- | Pending Type-checker Splice
+data PendingTcSplice
+  -- AZ:TODO: The hard-coded Id feels wrong.
+  = PendingTcSplice SplicePointName (LHsExpr Id)
+ deriving Data
 
 {-
 Note [Pending Splices]
@@ -1633,9 +1694,9 @@ looks like
 which the renamer rewrites to
 
     HsRnBracketOut (HsApp (HsVar f) (HsSpliceE sn (g x)))
-                   [PendingRnExpSplice (HsSplice sn (g x))]
+                   [PendingRnSplice UntypedExpSplice sn (g x)]
 
-* The 'sn' is the Name of the splice point.
+* The 'sn' is the Name of the splice point, the SplicePointName
 
 * The PendingRnExpSplice gives the splice that splice-point name maps to;
   and the typechecker can now conveniently find these sub-expressions
@@ -1644,30 +1705,35 @@ which the renamer rewrites to
                                 in the renamed first arg of HsRnBracketOut
   is used only for pretty printing
 
-There are four varieties of pending splices generated by the renamer:
+There are four varieties of pending splices generated by the renamer,
+distinguished by their UntypedSpliceFlavour
 
- * Pending expression splices (PendingRnExpSplice), e.g.,
+ * Pending expression splices (UntypedExpSplice), e.g.,
+       [|$(f x) + 2|]
 
-   [|$(f x) + 2|]
+   UntypedExpSplice is also used for
+     * quasi-quotes, where the pending expression expands to
+          $(quoter "...blah...")
+       (see RnSplice.makePending, HsQuasiQuote case)
 
- * Pending pattern splices (PendingRnPatSplice), e.g.,
+     * cross-stage lifting, where the pending expression expands to
+          $(lift x)
+       (see RnSplice.checkCrossStageLifting)
 
-   [|\ $(f x) -> x|]
+ * Pending pattern splices (UntypedPatSplice), e.g.,
+       [| \$(f x) -> x |]
 
- * Pending type splices (PendingRnTypeSplice), e.g.,
+ * Pending type splices (UntypedTypeSplice), e.g.,
+       [| f :: $(g x) |]
 
-   [|f :: $(g x)|]
-
- * Pending cross-stage splices (PendingRnCrossStageSplice), e.g.,
-
-   \x -> [| x |]
+ * Pending declaration (UntypedDeclSplice), e.g.,
+       [| let $(f x) in ... |]
 
 There is a fifth variety of pending splice, which is generated by the type
 checker:
 
   * Pending *typed* expression splices, (PendingTcSplice), e.g.,
-
-    [||1 + $$(f 2)||]
+        [||1 + $$(f 2)||]
 
 It would be possible to eliminate HsRnBracketOut and use HsBracketOut for the
 output of the renamer. However, when pretty printing the output of the renamer,
@@ -1677,31 +1743,53 @@ splices. In contrast, when pretty printing the output of the type checker, we
 sense, although I hate to add another constructor to HsExpr.
 -}
 
-instance OutputableBndr id => Outputable (HsSplice id) where
-  ppr (HsSplice n e) = angleBrackets (ppr n <> comma <+> ppr e)
+instance (OutputableBndr id)
+       => Outputable (HsSplicedThing id) where
+  ppr (HsSplicedExpr e) = ppr_expr e
+  ppr (HsSplicedTy   t) = ppr t
+  ppr (HsSplicedPat  p) = ppr p
 
-instance OutputableBndr id => Outputable (PendingSplice id) where
-  ppr (PendSplice n e) = angleBrackets (ppr n <> comma <+> ppr e)
+instance (OutputableBndr id) => Outputable (HsSplice id) where
+  ppr s = pprSplice s
 
-pprUntypedSplice :: OutputableBndr id => HsSplice id -> SDoc
-pprUntypedSplice = pprSplice False
+pprPendingSplice :: (OutputableBndr id)
+                 => SplicePointName -> LHsExpr id -> SDoc
+pprPendingSplice n e = angleBrackets (ppr n <> comma <+> ppr e)
 
-pprTypedSplice :: OutputableBndr id => HsSplice id -> SDoc
-pprTypedSplice = pprSplice True
+pprSpliceDecl ::  (OutputableBndr id) => HsSplice id -> SpliceExplicitFlag -> SDoc
+pprSpliceDecl e@HsQuasiQuote{} _ = pprSplice e
+pprSpliceDecl e ExplicitSplice   = text "$(" <> ppr_splice_decl e <> text ")"
+pprSpliceDecl e ImplicitSplice   = ppr_splice_decl e
 
-pprSplice :: OutputableBndr id => Bool -> HsSplice id -> SDoc
-pprSplice is_typed (HsSplice n e)
-    = (if is_typed then ptext (sLit "$$") else char '$')
-      <> ifPprDebug (brackets (ppr n)) <> eDoc
-    where
-          -- We use pprLExpr to match pprParendExpr:
-          --     Using pprLExpr makes sure that we go 'deeper'
-          --     I think that is usually (always?) right
-          pp_as_was = pprLExpr e
-          eDoc = case unLoc e of
-                 HsPar _ -> pp_as_was
-                 HsVar _ -> pp_as_was
-                 _ -> parens pp_as_was
+ppr_splice_decl :: (OutputableBndr id) => HsSplice id -> SDoc
+ppr_splice_decl (HsUntypedSplice _ n e) = ppr_splice empty n e empty
+ppr_splice_decl e = pprSplice e
+
+pprSplice :: (OutputableBndr id) => HsSplice id -> SDoc
+pprSplice (HsTypedSplice HasParens n e)
+  = ppr_splice (text "$$(") n e (text ")")
+pprSplice (HsTypedSplice HasDollar n e)
+  = ppr_splice (text "$$") n e empty
+pprSplice (HsTypedSplice NoParens n e)
+  = ppr_splice empty n e empty
+pprSplice (HsUntypedSplice HasParens  n e)
+  = ppr_splice (text "$(") n e (text ")")
+pprSplice (HsUntypedSplice HasDollar n e)
+  = ppr_splice (text "$")  n e empty
+pprSplice (HsUntypedSplice NoParens n e)
+  = ppr_splice empty  n e empty
+pprSplice (HsQuasiQuote n q _ s)      = ppr_quasi n q s
+pprSplice (HsSpliced _ thing)         = ppr thing
+
+ppr_quasi :: OutputableBndr p => p -> p -> FastString -> SDoc
+ppr_quasi n quoter quote = ifPprDebug (brackets (ppr n)) <>
+                           char '[' <> ppr quoter <> vbar <>
+                           ppr quote <> text "|]"
+
+ppr_splice :: (OutputableBndr id)
+           => SDoc -> id -> LHsExpr id -> SDoc -> SDoc
+ppr_splice herald n e trail
+    = herald <> ifPprDebug (brackets (ppr n)) <> ppr e <> trail
 
 data HsBracket id = ExpBr (LHsExpr id)   -- [|  expr  |]
                   | PatBr (LPat id)      -- [p| pat   |]
@@ -1721,7 +1809,6 @@ isTypedBracket _           = False
 instance OutputableBndr id => Outputable (HsBracket id) where
   ppr = pprHsBracket
 
-
 pprHsBracket :: OutputableBndr id => HsBracket id -> SDoc
 pprHsBracket (ExpBr e)   = thBrackets empty (ppr e)
 pprHsBracket (PatBr p)   = thBrackets (char 'p') (ppr p)
@@ -1740,11 +1827,10 @@ thTyBrackets :: SDoc -> SDoc
 thTyBrackets pp_body = ptext (sLit "[||") <+> pp_body <+> ptext (sLit "||]")
 
 instance Outputable PendingRnSplice where
-  ppr (PendingRnExpSplice s)   = ppr s
-  ppr (PendingRnPatSplice s)   = ppr s
-  ppr (PendingRnTypeSplice s)  = ppr s
-  ppr (PendingRnDeclSplice s)  = ppr s
-  ppr (PendingRnCrossStageSplice name) = ppr name
+  ppr (PendingRnSplice _ n e) = pprPendingSplice n e
+
+instance Outputable PendingTcSplice where
+  ppr (PendingTcSplice n e) = pprPendingSplice n e
 
 {-
 ************************************************************************

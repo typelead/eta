@@ -35,10 +35,7 @@ module ETA.Rename.RnPat (-- main entry points
 -- ENH: thin imports to only what is necessary for patterns
 
 import {-# SOURCE #-} ETA.Rename.RnExpr ( rnLExpr )
--- import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSplicePat )
-import ETA.Rename.RnSplice ( rnSplicePat )
--- import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasiQuotePat )
-import ETA.TypeCheck.TcSplice ( runQuasiQuotePat )
+import {-# SOURCE #-} ETA.Rename.RnSplice ( rnSplicePat )
 
 import ETA.HsSyn.HsSyn
 import ETA.TypeCheck.TcRnMonad
@@ -466,12 +463,6 @@ rnPatAndThen mk (SplicePat splice)
            Left not_yet_renamed -> rnPatAndThen mk not_yet_renamed
            Right already_renamed -> return already_renamed }
 
-rnPatAndThen mk (QuasiQuotePat qq)
-  = do { pat <- liftCps $ runQuasiQuotePat qq
-         -- Wrap the result of the quasi-quoter in parens so that we don't
-         -- lose the outermost location set by runQuasiQuote (#7918)
-       ; rnPatAndThen mk (ParPat pat) }
-
 rnPatAndThen _ pat = pprPanic "rnLPatAndThen" (ppr pat)
 
 
@@ -746,7 +737,7 @@ can apply it explicitly. In this case it stays negative zero.  Trac #13211
 -}
 
 rnOverLit :: HsOverLit t ->
-             RnM ((HsOverLit GhcRn, Maybe (HsExpr GhcRn)), FreeVars)
+             RnM ((HsOverLit Name, Maybe (HsExpr Name)), FreeVars)
 rnOverLit origLit
   -- = do  { opt_NumDecimals <- xoptM Opt_NumDecimals
   --       ; let { lit@(OverLit {ol_val=val})
@@ -761,21 +752,22 @@ rnOverLit origLit
   --       ; return (lit { ol_witness = from_thing_name
   --                     , ol_rebindable = rebindable
   --                     , ol_type = placeHolderType }, fvs) }
-  = do  { opt_NumDecimals <- xoptM LangExt.NumDecimals
+  = do  { opt_NumDecimals <- xoptM Opt_NumDecimals
         ; let { lit@(OverLit {ol_val=val})
             | opt_NumDecimals = origLit {ol_val = generalizeOverLitVal (ol_val origLit)}
             | otherwise       = origLit
           }
         ; let std_name = hsOverLitName val
-        ; (SyntaxExpr { syn_expr = from_thing_name }, fvs1)
+        ; (from_thing_name, fvs1)
             <- lookupSyntaxName std_name
         ; let rebindable = case from_thing_name of
-                                HsVar _ (L _ v) -> v /= std_name
+                                HsVar v -> v /= std_name
                                 _               -> panic "rnOverLit"
         ; let lit' = lit { ol_witness = from_thing_name
-                         , ol_ext = rebindable }
+                         , ol_rebindable = rebindable
+                         , ol_type = placeHolderType  }
         ; if isNegativeZeroOverLit lit'
-          then do { (SyntaxExpr { syn_expr = negate_name }, fvs2)
+          then do {(negate_name, fvs2)
                       <- lookupSyntaxName negateName
                   ; return ((lit' { ol_val = negateOverLitVal val }, Just negate_name)
                                   , fvs1 `plusFV` fvs2) }

@@ -395,13 +395,19 @@ mkSpliceDecl :: LHsExpr RdrName -> HsDecl RdrName
 -- but if she wrote, say,
 --      f x            then behave as if she'd written $(f x)
 --                     ie a SpliceD
+--
+-- Typed splices are not allowed at the top level, thus we do not represent them
+-- as spliced declaration.  See #10945
 mkSpliceDecl lexpr@(L loc expr)
-  | HsQuasiQuoteE qq <- expr          = QuasiQuoteD qq
-  | HsSpliceE is_typed splice <- expr = ASSERT( not is_typed )
-                                        SpliceD (SpliceDecl (L loc splice) ExplicitSplice)
-  | otherwise                         = SpliceD (SpliceDecl (L loc splice) ImplicitSplice)
-  where
-    splice = mkHsSplice lexpr
+  | HsSpliceE _ splice@(HsUntypedSplice {}) <- expr
+  = SpliceD (SpliceDecl (L loc splice) ExplicitSplice)
+
+  | HsSpliceE _ splice@(HsQuasiQuote {}) <- expr
+  = SpliceD (SpliceDecl (L loc splice) ExplicitSplice)
+
+  | otherwise
+  = SpliceD (SpliceDecl (L loc (mkUntypedSplice NoParens lexpr))
+                              ImplicitSplice)
 
 mkRoleAnnotDecl :: SrcSpan
                 -> Located RdrName                   -- type being annotated
@@ -928,9 +934,8 @@ checkAPat msg loc e0 = do
    RecordCon c _ (HsRecFields fs dd)
                         -> do fs <- mapM (checkPatField msg) fs
                               return (ConPatIn c (RecCon (HsRecFields fs dd)))
-   HsSpliceE is_typed s | not is_typed
+   HsSpliceE s | not (isTypedSplice s)
                         -> return (SplicePat s)
-   HsQuasiQuoteE q      -> return (QuasiQuotePat q)
    _                    -> patFail msg loc e0
 
 placeHolderPunRhs :: LHsExpr RdrName

@@ -14,7 +14,7 @@ import ETA.Utils.Outputable ( SDoc, OutputableBndr, Outputable )
 import {-# SOURCE #-} ETA.HsSyn.HsPat  ( LPat )
 import ETA.HsSyn.PlaceHolder ( DataId )
 import Data.Data hiding ( Fixity )
-
+import ETA.BasicTypes.BasicTypes
 #if __GLASGOW_HASKELL__ > 706
 type role HsExpr nominal
 type role HsCmd nominal
@@ -59,8 +59,9 @@ pprLExpr :: (OutputableBndr i) =>
 pprExpr :: (OutputableBndr i) =>
         HsExpr i -> SDoc
 
-pprUntypedSplice :: (OutputableBndr i) =>
-                    HsSplice i -> SDoc
+pprSplice :: (OutputableBndr id) => HsSplice id -> SDoc
+
+pprSpliceDecl ::  (OutputableBndr id) => HsSplice id -> SpliceExplicitFlag -> SDoc
 
 pprPatBind :: (OutputableBndr bndr, OutputableBndr id, Outputable body)
            => LPat bndr -> GRHSs id body -> SDoc

@@ -20,14 +20,12 @@ module ETA.Main.Hooks ( Hooks
              , runPhaseHook
              , runMetaHook
              , linkHook
-             , runQuasiQuoteHook
              , runRnSpliceHook
              , getValueSafelyHook
              , createIservProcessHook
              ) where
 
 import ETA.Main.DynFlags
-import ETA.HsSyn.HsTypes
 import ETA.BasicTypes.Name
 import ETA.Main.PipelineMonad
 import ETA.Main.HscTypes
@@ -71,7 +69,6 @@ emptyHooks = Hooks
   , runPhaseHook           = Nothing
   , runMetaHook            = Nothing
   , linkHook               = Nothing
-  , runQuasiQuoteHook      = Nothing
   , runRnSpliceHook        = Nothing
   , getValueSafelyHook     = Nothing
   , createIservProcessHook = Nothing
@@ -88,8 +85,7 @@ data Hooks = Hooks
   , runPhaseHook           :: Maybe (PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath))
   , runMetaHook            :: Maybe (MetaHook TcM)
   , linkHook               :: Maybe (GhcLink -> DynFlags -> Bool -> HomePackageTable -> IO SuccessFlag)
-  , runQuasiQuoteHook      :: Maybe (HsQuasiQuote Name -> RnM (HsQuasiQuote Name))
-  , runRnSpliceHook        :: Maybe (LHsExpr Name -> RnM (LHsExpr Name))
+  , runRnSpliceHook        :: Maybe (HsSplice Name -> RnM (HsSplice Name))
   , getValueSafelyHook     :: Maybe (HscEnv -> Name -> Type -> IO (Maybe HValue))
   , createIservProcessHook :: Maybe (CreateProcess -> IO ProcessHandle)
   }

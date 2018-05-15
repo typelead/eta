@@ -89,7 +89,8 @@ module ETA.BasicTypes.BasicTypes(
 
         HValue(..),
 
-        SourceText, pprWithSourceText
+        SourceText, pprWithSourceText,
+        SpliceExplicitFlag(..)
    ) where
 
 import ETA.Utils.FastString
@@ -1178,3 +1179,8 @@ instance Outputable FractionalLit where
   ppr f = pprWithSourceText (fl_text f) (rational (fl_value f))
 
 newtype HValue = HValue Any
+
+data SpliceExplicitFlag
+          = ExplicitSplice | -- ^ <=> $(f x y)
+            ImplicitSplice   -- ^ <=> f x y,  i.e. a naked top level expression
+    deriving Data

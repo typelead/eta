@@ -6,8 +6,8 @@ description:         Modern Haskell on the JVM
 license:             BSD3
 license-file:        LICENSE
 author:              Rahul Muttineni
-maintainer:          Rahul Muttineni <rahulmutt@gmail.com>
-copyright:           Copyright (c) Rahul Muttineni 2016-2017
+maintainer:          Rahul Muttineni <rahulmutt@gmail.com>, Jyothsna Patnam <jyothsnasrinivas17@gmail.com>
+copyright:           Copyright (c) Rahul Muttineni 2016-2017, Jyothsna Patnam 2017-2018
 stability:           Experimental
 build-type:          Simple
 cabal-version:       >=1.10
@@ -139,6 +139,7 @@ library
                        , ETA.Main.DynFlags
                        , ETA.Main.ErrUtils
                        , ETA.Main.Finder
+                       , ETA.Main.FileCleanup
                        , ETA.Main.GHC
                        , ETA.Main.GhcMake
                        , ETA.Main.GhcMonad
@@ -190,12 +191,15 @@ library
                        , ETA.Rename.RnBinds
                        , ETA.Rename.RnEnv
                        , ETA.Rename.RnExpr
+                      --  , ETA.Rename.RnFixity
                        , ETA.Rename.RnHsDoc
                        , ETA.Rename.RnNames
                        , ETA.Rename.RnPat
                        , ETA.Rename.RnSource
                        , ETA.Rename.RnSplice
                        , ETA.Rename.RnTypes
+                      --  , ETA.Rename.RnUnbound
+                      --  , ETA.Rename.RnUtils
                        , ETA.SimplCore.CallArity
                        , ETA.SimplCore.CoreMonad
                        , ETA.SimplCore.CSE
@@ -280,6 +284,7 @@ library
                        , ETA.Utils.BufWrite
                        , ETA.Utils.Digraph
                        , ETA.Utils.Encoding
+                       , ETA.Utils.EnumSet
                        , ETA.Utils.Exception
                        , ETA.Utils.ExtsCompat46
                        , ETA.Utils.FastBool
@@ -289,6 +294,7 @@ library
                        , ETA.Utils.FastTypes
                        , ETA.Utils.Fingerprint
                        , ETA.Utils.FiniteMap
+                       , ETA.Utils.FV
                        , ETA.Utils.GraphBase
                        , ETA.Utils.GraphColor
                        , ETA.Utils.GraphOps
@@ -344,6 +350,7 @@ library
                        , cpphs
                        , unix-compat >= 0.4.3.1
                        , gitrev
+                       , semigroups
 
     if os(windows)
         build-depends:   Win32
