@@ -50,7 +50,7 @@ import ETA.CodeGen.Rts
 import ETA.Utils.JAR
 import ETA.Util
 import Codec.JVM
-
+import ETA.Main.FileCleanup
 import ETA.Iface.IfaceSyn
 import ETA.Prelude.ForeignCall
 import ETA.Main.PipelineMonad
@@ -357,7 +357,7 @@ compileEmptyStub dflags hsc_env basename location = do
   -- To maintain the invariant that every Haskell file
   -- compiles to object code, we make an empty (but
   -- valid) stub object file for signatures
-  empty_stub <- newTempName dflags "c"
+  empty_stub <- newTempName dflags TFL_CurrentModule "c"
   writeFile empty_stub ""
   _ <- runPipeline StopLn hsc_env
                   (empty_stub, Nothing)
@@ -753,7 +753,7 @@ getOutputFilename stop_phase output basename dflags next_phase maybe_location
                                            Nothing ->
                                                panic "SpecificFile: No filename"
  | keep_this_output                      = persistent_fn
- | otherwise                             = newTempName dflags suffix
+ | otherwise                             = newTempName dflags TFL_CurrentModule suffix
     where
           hcsuf      = hcSuf dflags
           odir       = objectDir dflags

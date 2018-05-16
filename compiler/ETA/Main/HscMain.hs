@@ -71,6 +71,8 @@ module ETA.Main.HscMain
     , hscDecls, hscDeclsWithLocation
     , hscTcExpr, hscImport, hscKcType
     , hscCompileCoreExpr
+    , hscParseExpr
+    , hscParsedStmt
     -- * Low-level exports for hooks
     , hscCompileCoreExpr'
 #endif
@@ -84,8 +86,8 @@ module ETA.Main.HscMain
     ) where
 
 #ifdef ETA_REPL
+import Eta.REPL.RemoteTypes ( ForeignHValue )
 import ETA.BasicTypes.Id
-import ETA.BasicTypes.BasicTypes       ( HValue )
 import ETA.Interactive.ByteCodeGen      ( byteCodeGen, coreExprToBCOs )
 import ETA.Interactive.Linker
 import ETA.Core.CoreTidy         ( tidyExpr )
@@ -93,12 +95,10 @@ import ETA.Types.Type             ( Type )
 import ETA.Prelude.PrelNames
 import {- Kind parts of -} ETA.Types.Type         ( Kind )
 import ETA.Core.CoreLint         ( lintInteractiveExpr )
-import ETA.DeSugar.DsMeta           ( templateHaskellNames )
+import ETA.Prelude.THNames           ( templateHaskellNames )
 import ETA.BasicTypes.VarEnv           ( emptyTidyEnv )
 import ETA.Utils.Panic
 import ETA.BasicTypes.ConLike
-
-import GHC.Exts
 #endif
 
 import ETA.BasicTypes.Module
@@ -163,7 +163,8 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Control.Arrow((&&&))
 import Control.Monad
-
+import Data.Data hiding (Fixity)
+import Control.Concurrent
 #include "HsVersions.h"
 
 {- **********************************************************************
@@ -178,6 +179,7 @@ newHscEnv dflags = do
     us      <- mkSplitUniqSupply 'r'
     nc_var  <- newIORef (initNameCache us knownKeyNames)
     fc_var  <- newIORef emptyUFM
+    iserv_mvar <- newMVar Nothing
     mlc_var <- newIORef emptyModuleEnv
     return HscEnv {  hsc_dflags       = dflags,
                      hsc_targets      = [],
@@ -187,6 +189,7 @@ newHscEnv dflags = do
                      hsc_EPS          = eps_var,
                      hsc_NC           = nc_var,
                      hsc_FC           = fc_var,
+                     hsc_iserv        = iserv_mvar,
                      hsc_MLC          = mlc_var,
                      hsc_type_env_var = Nothing }
 
@@ -282,7 +285,7 @@ hscTcRcLookupName hsc_env0 name = runInteractiveHsc hsc_env0 $ do
       -- "name not found", and the Maybe in the return type
       -- is used to indicate that.
 
-hscTcRnGetInfo :: HscEnv -> Name -> IO (Maybe (TyThing, Fixity, [ClsInst], [FamInst]))
+hscTcRnGetInfo :: HscEnv -> Name -> IO (Maybe (TyThing, Fixity, [ClsInst], [FamInst], SDoc))
 hscTcRnGetInfo hsc_env0 name
   = runInteractiveHsc hsc_env0 $
     do { hsc_env <- getHscEnv
@@ -1262,7 +1265,7 @@ hscInteractive hsc_env cgguts mod_summary = do
                cg_module   = this_mod,
                cg_binds    = core_binds,
                cg_tycons   = tycons,
-               cg_foreign  = foreign_stubs,
+               cg_foreign  = _foreign_stubs,
                cg_modBreaks = mod_breaks } = cgguts
 
         location = ms_location mod_summary
@@ -1274,13 +1277,14 @@ hscInteractive hsc_env cgguts mod_summary = do
     -- PREPARE FOR CODE GENERATION
     -- Do saturation and convert to A-normal form
     prepd_binds <- {-# SCC "CorePrep" #-}
-                   corePrepPgm hsc_env location core_binds data_tycons
+                   corePrepPgm hsc_env this_mod location core_binds data_tycons
     -----------------  Generate byte code ------------------
     comp_bc <- byteCodeGen dflags this_mod prepd_binds data_tycons mod_breaks
     ------------------ Create f-x-dynamic C-side stuff ---
-    (_istub_h_exists, istub_c_exists)
-        <- outputForeignStubs dflags this_mod location foreign_stubs
-    return (istub_c_exists, comp_bc, mod_breaks)
+    -- let modClass = moduleJavaClass this_mod
+    -- _
+    --     <- outputForeignStubs dflags foreign_stubs modClass
+    return (panic "hscInteractive stubs", comp_bc, mod_breaks)
 #else
 hscInteractive _ _ = panic "GHC not compiled with interpreter"
 #endif
@@ -1320,7 +1324,7 @@ IO monad as explained in Note [Interactively-bound Ids in GHCi] in HscTypes
 --
 -- We return Nothing to indicate an empty statement (or comment only), not a
 -- parse error.
-hscStmt :: HscEnv -> String -> IO (Maybe ([Id], IO [HValue], FixityEnv))
+hscStmt :: HscEnv -> String -> IO (Maybe ([Id], ForeignHValue, FixityEnv))
 hscStmt hsc_env stmt = hscStmtWithLocation hsc_env stmt "<interactive>" 1
 
 -- | Compile a stmt all the way to an HValue, but don't run it
@@ -1331,32 +1335,41 @@ hscStmtWithLocation :: HscEnv
                     -> String -- ^ The statement
                     -> String -- ^ The source
                     -> Int    -- ^ Starting line
-                    -> IO (Maybe ([Id], IO [HValue], FixityEnv))
+                    -> IO ( Maybe ([Id]
+                          , ForeignHValue {- IO [HValue] -}
+                          , FixityEnv))
 hscStmtWithLocation hsc_env0 stmt source linenumber =
- runInteractiveHsc hsc_env0 $ do
+  runInteractiveHsc hsc_env0 $ do
     maybe_stmt <- hscParseStmtWithLocation source linenumber stmt
     case maybe_stmt of
-        Nothing -> return Nothing
+      Nothing -> return Nothing
 
-        Just parsed_stmt -> do
-            -- Rename and typecheck it
-            hsc_env <- getHscEnv
-            (ids, tc_expr, fix_env) <- ioMsgMaybe $ tcRnStmt hsc_env parsed_stmt
+      Just parsed_stmt -> do
+        hsc_env <- getHscEnv
+        liftIO $ hscParsedStmt hsc_env parsed_stmt
 
-            -- Desugar it
-            ds_expr <- ioMsgMaybe $ deSugarExpr hsc_env tc_expr
-            liftIO (lintInteractiveExpr "desugar expression" hsc_env ds_expr)
-            handleWarnings
+hscParsedStmt :: HscEnv
+              -> GhciLStmt RdrName  -- ^ The parsed statement
+              -> IO ( Maybe ([Id]
+                    , ForeignHValue {- IO [HValue] -}
+                    , FixityEnv))
+hscParsedStmt hsc_env stmt = runInteractiveHsc hsc_env $ do
+  -- Rename and typecheck it
+  (ids, tc_expr, fix_env) <- ioMsgMaybe $ tcRnStmt hsc_env stmt
 
-            -- Then code-gen, and link it
-            -- It's important NOT to have package 'interactive' as thisUnitId
-            -- for linking, else we try to link 'main' and can't find it.
-            -- Whereas the linker already knows to ignore 'interactive'
-            let  src_span     = srcLocSpan interactiveSrcLoc
-            hval <- liftIO $ hscCompileCoreExpr hsc_env src_span ds_expr
-            let hval_io = unsafeCoerce# hval :: IO [HValue]
+  -- Desugar it
+  ds_expr <- ioMsgMaybe $ deSugarExpr hsc_env tc_expr
+  liftIO (lintInteractiveExpr "desugar expression" hsc_env ds_expr)
+  handleWarnings
 
-            return $ Just (ids, hval_io, fix_env)
+  -- Then code-gen, and link it
+  -- It's important NOT to have package 'interactive' as thisUnitId
+  -- for linking, else we try to link 'main' and can't find it.
+  -- Whereas the linker already knows to ignore 'interactive'
+  let src_span = srcLocSpan interactiveSrcLoc
+  hval <- liftIO $ hscCompileCoreExpr hsc_env src_span ds_expr
+
+  return $ Just (ids, hval, fix_env)
 
 -- | Compile a decls
 hscDecls :: HscEnv
@@ -1394,12 +1407,14 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
 
     {- Simplify -}
     simpl_mg <- liftIO $ hscSimplify hsc_env ds_result
+    -- simpl_mg <- liftIO $ do
+    --   plugins <- readIORef (tcg_th_coreplugins tc_gblenv)
+    --   hscSimplify hsc_env plugins ds_result
 
     {- Tidy -}
     (tidy_cg, mod_details) <- liftIO $ tidyProgram hsc_env simpl_mg
 
-    let dflags = hsc_dflags hsc_env
-        !CgGuts{ cg_module    = this_mod,
+    let !CgGuts{ cg_module    = this_mod,
                  cg_binds     = core_binds,
                  cg_tycons    = tycons,
                  cg_modBreaks = mod_breaks } = tidy_cg
@@ -1413,14 +1428,17 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
     {- Prepare For Code Generation -}
     -- Do saturation and convert to A-normal form
     prepd_binds <- {-# SCC "CorePrep" #-}
-      liftIO $ corePrepPgm hsc_env iNTERACTIVELoc core_binds data_tycons
+      liftIO $ corePrepPgm hsc_env this_mod iNTERACTIVELoc core_binds data_tycons
 
     {- Generate byte code -}
-    cbc <- liftIO $ byteCodeGen dflags this_mod
+    cbc <- liftIO $ byteCodeGen hsc_env this_mod
                                 prepd_binds data_tycons mod_breaks
 
     let src_span = srcLocSpan interactiveSrcLoc
     liftIO $ linkDecls hsc_env src_span cbc
+    --
+    -- {- Load static pointer table entries -}
+    -- liftIO $ hscAddSptEntries hsc_env (cg_spt_entries tidy_cg)
 
     let tcs = filterOut isImplicitTyCon (mg_tcs simpl_mg)
         patsyns = mg_patsyns simpl_mg
@@ -1430,16 +1448,34 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
                        , not (isDFunId id || isImplicitId id) ]
             -- We only need to keep around the external bindings
             -- (as decided by TidyPgm), since those are the only ones
-            -- that might be referenced elsewhere.
-            -- The DFunIds are in 'cls_insts' (see Note [ic_tythings] in HscTypes
-            -- Implicit Ids are implicit in tcs
+            -- that might later be looked up by name.  But we can exclude
+            --    - DFunIds, which are in 'cls_insts' (see Note [ic_tythings] in HscTypes
+            --    - Implicit Ids, which are implicit in tcs
+            -- c.f. TcRnDriver.runTcInteractive, which reconstructs the TypeEnv
 
-        tythings =  map AnId ext_ids ++ map ATyCon tcs ++ map (AConLike . PatSynCon) patsyns
+        new_tythings = map AnId ext_ids ++ map ATyCon tcs ++ map (AConLike . PatSynCon) patsyns
+        ictxt        = hsc_IC hsc_env
+        -- See Note [Fixity declarations in GHCi]
+        fix_env      = tcg_fix_env tc_gblenv
+        new_ictxt    = extendInteractiveContext ictxt new_tythings cls_insts
+                                                fam_insts defaults fix_env
+    return (new_tythings, new_ictxt)
 
-    let icontext = hsc_IC hsc_env
-        ictxt    = extendInteractiveContext icontext ext_ids tcs
-                                            cls_insts fam_insts defaults patsyns
-    return (tythings, ictxt)
+{-
+  Note [Fixity declarations in GHCi]
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  To support fixity declarations on types defined within GHCi (as requested
+  in #10018) we record the fixity environment in InteractiveContext.
+  When we want to evaluate something TcRnDriver.runTcInteractive pulls out this
+  fixity environment and uses it to initialize the global typechecker environment.
+  After the typechecker has finished its business, an updated fixity environment
+  (reflecting whatever fixity declarations were present in the statements we
+  passed it) will be returned from hscParsedStmt. This is passed to
+  updateFixityEnv, which will stuff it back into InteractiveContext, to be
+  used in evaluating the next statement.
+
+-}
 
 hscImport :: HscEnv -> String -> IO (ImportDecl RdrName)
 hscImport hsc_env str = runInteractiveHsc hsc_env $ do
@@ -1449,22 +1485,16 @@ hscImport hsc_env str = runInteractiveHsc hsc_env $ do
         [L _ i] -> return i
         _ -> liftIO $ throwOneError $
                  mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan $
-                     ptext (sLit "parse error in import declaration")
+                     text "parse error in import declaration"
 
 -- | Typecheck an expression (but don't run it)
--- Returns its most general type
 hscTcExpr :: HscEnv
           -> String -- ^ The expression
           -> IO Type
 hscTcExpr hsc_env0 expr = runInteractiveHsc hsc_env0 $ do
-    hsc_env <- getHscEnv
-    maybe_stmt <- hscParseStmt expr
-    case maybe_stmt of
-        Just (L _ (BodyStmt expr _ _ _)) ->
-            ioMsgMaybe $ tcRnExpr hsc_env expr
-        _ ->
-            throwErrors $ unitBag $ mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan
-                (text "not an expression:" <+> quotes (text expr))
+  hsc_env <- getHscEnv
+  parsed_expr <- hscParseExpr expr
+  ioMsgMaybe $ tcRnExpr hsc_env (noLoc parsed_expr)
 
 -- | Find the kind of a type
 -- Currently this does *not* generalise the kinds of the type
@@ -1478,6 +1508,15 @@ hscKcType hsc_env0 normalise str = runInteractiveHsc hsc_env0 $ do
     ty <- hscParseType str
     ioMsgMaybe $ tcRnType hsc_env normalise ty
 
+hscParseExpr :: String -> Hsc (HsExpr RdrName)
+hscParseExpr expr = do
+  hsc_env <- getHscEnv
+  maybe_stmt <- hscParseStmt expr
+  case maybe_stmt of
+    Just (L _ (BodyStmt _ expr _ _)) -> return expr
+    _ -> throwErrors $ unitBag $ mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan
+      (text "not an expression:" <+> quotes (text expr))
+
 hscParseStmt :: String -> Hsc (Maybe (GhciLStmt RdrName))
 hscParseStmt = hscParseThing parseStmt
 
@@ -1488,19 +1527,24 @@ hscParseStmtWithLocation source linenumber stmt =
 
 hscParseType :: String -> Hsc (LHsType RdrName)
 hscParseType = hscParseThing parseType
+
 #endif
 
 hscParseIdentifier :: HscEnv -> String -> IO (Located RdrName)
 hscParseIdentifier hsc_env str =
     runInteractiveHsc hsc_env $ hscParseThing parseIdentifier str
 
-hscParseThing :: (Outputable thing) => Lexer.P thing -> String -> Hsc thing
+hscParseThing :: (Outputable thing, Data thing)
+              => Lexer.P thing -> String -> Hsc thing
 hscParseThing = hscParseThingWithLocation "<interactive>" 1
 
-hscParseThingWithLocation :: (Outputable thing) => String -> Int
+hscParseThingWithLocation :: (Outputable thing, Data thing) => String -> Int
                           -> Lexer.P thing -> String -> Hsc thing
 hscParseThingWithLocation source linenumber parser str
   = {-# SCC "Parser" #-} do
+    -- withTiming getDynFlags
+    --            (text "Parser [source]")
+    --            (const ()) $
     dflags <- getDynFlags
     liftIO $ showPass dflags "Parser"
 
@@ -1508,14 +1552,24 @@ hscParseThingWithLocation source linenumber parser str
         loc = mkRealSrcLoc (fsLit source) linenumber 1
 
     case unP parser (mkPState dflags buf loc) of
-        PFailed span err -> do
-            let msg = mkPlainErrMsg dflags span err
-            throwErrors $ unitBag msg
+        PFailed span err ->
+              liftIO $ throwOneError (mkPlainErrMsg dflags span err)
+        -- PFailed warnFn span err -> do
+        --     logWarningsReportErrors (warnFn dflags)
+        --     handleWarnings
+        --     let msg = mkPlainErrMsg dflags span err
+        --     throwErrors $ unitBag msg
 
         POk pst thing -> do
             logWarningsReportErrors (getMessages pst)
             liftIO $ dumpIfSet_dyn dflags Opt_D_dump_parsed "Parser" (ppr thing)
             return thing
+        -- POk pst thing -> do
+        --     logWarningsReportErrors (getMessages pst dflags)
+        --     liftIO $ dumpIfSet_dyn dflags Opt_D_dump_parsed "Parser" (ppr thing)
+            -- liftIO $ dumpIfSet_dyn dflags Opt_D_dump_parsed_ast "Parser AST" $
+            --                        showAstData NoBlankSrcSpan thing
+            -- return thing
 
 hscCompileCore :: HscEnv -> Bool -> SafeHaskellMode -> ModSummary
                -> CoreProgram -> FilePath -> IO ()
@@ -1572,17 +1626,13 @@ mkModGuts mod safe binds =
 %********************************************************************* -}
 
 #ifdef ETA_REPL
-hscCompileCoreExpr :: HscEnv -> SrcSpan -> CoreExpr -> IO HValue
+
+hscCompileCoreExpr :: HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue
 hscCompileCoreExpr hsc_env =
   lookupHook hscCompileCoreExprHook hscCompileCoreExpr' (hsc_dflags hsc_env) hsc_env
 
-hscCompileCoreExpr' :: HscEnv -> SrcSpan -> CoreExpr -> IO HValue
+hscCompileCoreExpr' :: HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue
 hscCompileCoreExpr' hsc_env srcspan ds_expr
-    | rtsIsProfiled
-    = throwIO (InstallationError "You can't call hscCompileCoreExpr in a profiled compiler")
-            -- Otherwise you get a seg-fault when you run it
-
-    | otherwise
     = do { let dflags = hsc_dflags hsc_env
 
            {- Simplify it -}
@@ -1598,14 +1648,15 @@ hscCompileCoreExpr' hsc_env srcspan ds_expr
          ; lintInteractiveExpr "hscCompileExpr" hsc_env prepd_expr
 
            {- Convert to BCOs -}
-         ; bcos <- coreExprToBCOs dflags (icInteractiveModule (hsc_IC hsc_env)) prepd_expr
+         ; bcos <- coreExprToBCOs hsc_env
+                     (icInteractiveModule (hsc_IC hsc_env)) prepd_expr
 
            {- link it -}
-         ; hval <- linkExpr hsc_env srcspan bcos
+         ; _hval <- linkExpr hsc_env srcspan bcos
 
-         ; return hval }
+         ; return (panic "hval needs to be changed!")}
+
 #endif
-
 
 {- **********************************************************************
 %*                                                                      *

@@ -103,7 +103,7 @@ module ETA.Utils.Util (
         charToC,
 
         -- * Hashing
-        hashString,
+        hashString, lengthLessThan,
 
         -- * Utils for flags
         OverridingBool(..),
@@ -445,6 +445,9 @@ leLength xs ys = case compareLength xs ys of
                    EQ -> True
                    GT -> False
 
+-- | @(lengthLessThan xs n) == (length xs < n)@
+lengthLessThan :: [a] -> Int -> Bool
+lengthLessThan = atLength (const False) (const True)
 ----------------------------
 singleton :: a -> [a]
 singleton x = [x]

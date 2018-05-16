@@ -50,7 +50,6 @@ import ETA.Utils.Outputable
 import ETA.Utils.Panic
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.StringBuffer
-import ETA.Main.SysTools
 import ETA.Utils.UniqFM
 import ETA.Utils.Util
 
@@ -59,7 +58,7 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 import qualified Data.Set as Set
 import qualified ETA.Utils.FiniteMap as Map ( insertListWith )
-
+import ETA.Main.FileCleanup
 import Control.Concurrent ( forkIOWithUnmask, killThread )
 import qualified GHC.Conc as CC
 import Control.Concurrent.MVar
@@ -275,9 +274,10 @@ load how_much = do
         mg = stable_mg ++ unstable_mg
 
     -- clean up between compilations
-    let cleanup hsc_env = intermediateCleanTempFiles (hsc_dflags hsc_env)
-                              (flattenSCCs mg2_with_srcimps)
-                              hsc_env
+    -- let cleanup hsc_env = intermediateCleanTempFiles (hsc_dflags hsc_env)
+    --                           (flattenSCCs mg2_with_srcimps)
+    --                           hsc_env
+    let cleanup = cleanCurrentModuleTempFiles . hsc_dflags
 
     liftIO $ debugTraceMsg dflags 2 (hang (text "Ready for upsweep")
                                2 (ppr mg))
@@ -309,7 +309,7 @@ load how_much = do
 
           -- Clean up after ourselves
           hsc_env1 <- getSession
-          liftIO $ intermediateCleanTempFiles dflags modsDone hsc_env1
+          liftIO $ cleanCurrentModuleTempFiles dflags
 
           -- Issue a warning for the confusing case where the user
           -- said '-o foo' but we're not going to do any linking.
@@ -348,16 +348,32 @@ load how_much = do
           let mods_to_zap_names
                  = findPartiallyCompletedCycles modsDone_names
                       mg2_with_srcimps
-          let mods_to_keep
-                 = filter ((`notElem` mods_to_zap_names).ms_mod)
-                      modsDone
+          -- let mods_to_keep
+          --        = filter ((`notElem` mods_to_zap_names).ms_mod)
+          --             modsDone
+          let (mods_to_clean, mods_to_keep) =
+                partition ((`notElem` mods_to_zap_names).ms_mod) modsDone
 
           hsc_env1 <- getSession
-          let hpt4 = retainInTopLevelEnvs (map ms_mod_name mods_to_keep)
-                                          (hsc_HPT hsc_env1)
 
-          -- Clean up after ourselves
-          liftIO $ intermediateCleanTempFiles dflags mods_to_keep hsc_env1
+          let hpt4' = hsc_HPT hsc_env1
+              -- We must change the lifetime to TFL_CurrentModule for any temp
+              -- file created for an element of mod_to_clean during the upsweep.
+              -- These include preprocessed files and object files for loaded
+              -- modules.
+              unneeded_temps = concat
+                [ms_hspp_file : object_files
+                | ModSummary{ms_mod, ms_hspp_file} <- mods_to_clean
+                , let object_files = maybe [] linkableObjs $
+                        lookupHpt hpt4' (moduleName ms_mod)
+                        >>= hm_linkable
+                ]
+          liftIO $
+            changeTempFilesLifetime dflags TFL_CurrentModule unneeded_temps
+          liftIO $ cleanCurrentModuleTempFiles dflags
+
+          let hpt4 = retainInTopLevelEnvs (map ms_mod_name mods_to_keep)
+                                          hpt4'
 
           -- there should be no Nothings where linkables should be, now
           ASSERT(all (isJust.hm_linkable) (eltsUFM (hsc_HPT hsc_env))) do
@@ -397,22 +413,22 @@ discardIC :: HscEnv -> HscEnv
 discardIC hsc_env
   = hsc_env { hsc_IC = emptyInteractiveContext (ic_dflags (hsc_IC hsc_env)) }
 
-intermediateCleanTempFiles :: DynFlags -> [ModSummary] -> HscEnv -> IO ()
-intermediateCleanTempFiles dflags summaries hsc_env
- = do notIntermediate <- readIORef (filesToNotIntermediateClean dflags)
-      cleanTempFilesExcept dflags (notIntermediate ++ except)
-  where
-    except =
-          -- Save preprocessed files. The preprocessed file *might* be
-          -- the same as the source file, but that doesn't do any
-          -- harm.
-          map ms_hspp_file summaries ++
-          -- Save object files for loaded modules.  The point of this
-          -- is that we might have generated and compiled a stub C
-          -- file, and in the case of GHCi the object file will be a
-          -- temporary file which we must not remove because we need
-          -- to load/link it later.
-          hptObjs (hsc_HPT hsc_env)
+-- intermediateCleanTempFiles :: DynFlags -> [ModSummary] -> HscEnv -> IO ()
+-- intermediateCleanTempFiles dflags summaries hsc_env
+--  = do notIntermediate <- readIORef (filesToNotIntermediateClean dflags)
+--       cleanTempFilesExcept dflags (notIntermediate ++ except)
+--   where
+--     except =
+--           -- Save preprocessed files. The preprocessed file *might* be
+--           -- the same as the source file, but that doesn't do any
+--           -- harm.
+--           map ms_hspp_file summaries ++
+--           -- Save object files for loaded modules.  The point of this
+--           -- is that we might have generated and compiled a stub C
+--           -- file, and in the case of GHCi the object file will be a
+--           -- temporary file which we must not remove because we need
+--           -- to load/link it later.
+--           hptObjs (hsc_HPT hsc_env)
 
 -- | If there is no -o option, guess the name of target executable
 -- by using top-level source file name as a base.
@@ -514,10 +530,11 @@ findPartiallyCompletedCycles modsDone theGraph
 --
 -- | Unloading
 unload :: HscEnv -> [Linkable] -> IO ()
-unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
+unload hsc_env _stable_linkables -- Unload everthing *except* 'stable_linkables'
   = case ghcLink (hsc_dflags hsc_env) of
 #ifdef ETA_REPL
-        LinkInMemory -> Linker.unload (hsc_dflags hsc_env) stable_linkables
+        LinkInMemory -> panic "unload: not supportedin Eta!"
+        -- Linker.unload (hsc_dflags hsc_env) stable_linkables
 #else
         LinkInMemory -> panic "unload: no interpreter"
                                 -- urgh.  avoid warnings:
@@ -794,7 +811,7 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
                 -- compilation for that module is finished) without having to
                 -- worry about accidentally deleting a simultaneous compile's
                 -- important files.
-                lcl_files_to_clean <- newIORef []
+                lcl_files_to_clean <- newIORef emptyFilesToClean
                 let lcl_dflags = dflags { log_action = parLogAction log_queue
                                         , filesToClean = lcl_files_to_clean }
 
@@ -827,8 +844,14 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
 
                 -- Add the remaining files that weren't cleaned up to the
                 -- global filesToClean ref, for cleanup later.
-                files_kept <- readIORef (filesToClean lcl_dflags)
-                addFilesToClean dflags files_kept
+                -- files_kept <- readIORef (filesToClean lcl_dflags)
+                -- addFilesToClean dflags files_kept
+                FilesToClean
+                  { ftcCurrentModule = cm_files
+                  , ftcGhcSession = gs_files
+                  } <- readIORef (filesToClean lcl_dflags)
+                addFilesToClean dflags TFL_CurrentModule $ Set.toList cm_files
+                addFilesToClean dflags TFL_GhcSession $ Set.toList gs_files
 
 
         -- Kill all the workers, masking interrupts (since killThread is

@@ -50,7 +50,7 @@ module ETA.Types.TypeRep (
         tidyOpenTyVar, tidyOpenTyVars,
         tidyTyVarOcc,
         tidyTopType,
-        tidyKind,
+        tidyKind, noFreeVarsOfType,
 
         -- Substitutions
         TvSubst(..), TvSubstEnv
@@ -941,3 +941,15 @@ tidyOpenKind = tidyOpenType
 
 tidyKind :: TidyEnv -> Kind -> Kind
 tidyKind = tidyType
+
+-- | Returns True if this type has no free variables. Should be the same as
+-- isEmptyVarSet . tyCoVarsOfType, but faster in the non-forall case.
+noFreeVarsOfType :: Type -> Bool
+noFreeVarsOfType (TyVarTy _)      = False
+noFreeVarsOfType (AppTy t1 t2)    = noFreeVarsOfType t1 && noFreeVarsOfType t2
+noFreeVarsOfType (TyConApp _ tys) = all noFreeVarsOfType tys
+noFreeVarsOfType ty@(ForAllTy {}) = isEmptyVarSet (tyVarsOfType ty)
+noFreeVarsOfType (FunTy t1 t2)    = noFreeVarsOfType t1 && noFreeVarsOfType t2
+noFreeVarsOfType (LitTy _)        = True
+-- noFreeVarsOfType (CastTy ty co)   = noFreeVarsOfType ty && noFreeVarsOfCo co
+-- noFreeVarsOfType (CoercionTy co)  = noFreeVarsOfCo co

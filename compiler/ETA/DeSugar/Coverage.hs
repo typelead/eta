@@ -31,7 +31,7 @@ import ETA.BasicTypes.BasicTypes
 import ETA.Utils.MonadUtils
 import ETA.Utils.Maybes
 import ETA.Utils.Util
-import ETA.Main.BreakArray
+-- import Eta.REPL.BreakArray
 
 import Control.Monad
 import Data.List
@@ -129,14 +129,15 @@ guessSourceFile binds orig_file =
 
 
 mkModBreaks :: DynFlags -> Int -> [MixEntry_] -> IO ModBreaks
-mkModBreaks dflags count entries = do
-  breakArray <- newBreakArray dflags $ length entries
+mkModBreaks _dflags count entries = do
+  -- _breakArray <- newBreakArray dflags $ length entries
+  _ <- panic "BreakArray not handled!"
   let
          locsTicks = listArray (0,count-1) [ span  | (span,_,_,_)  <- entries ]
          varsTicks = listArray (0,count-1) [ vars  | (_,_,vars,_)  <- entries ]
          declsTicks= listArray (0,count-1) [ decls | (_,decls,_,_) <- entries ]
          modBreaks = emptyModBreaks
-                     { modBreaks_flags = breakArray
+                     { modBreaks_flags = panic "BreakArray not handled!"
                      , modBreaks_locs  = locsTicks
                      , modBreaks_vars  = varsTicks
                      , modBreaks_decls = declsTicks

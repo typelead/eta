@@ -16,9 +16,6 @@ module ETA.Rename.RnExpr (
         rnLExpr, rnExpr, rnStmts
    ) where
 
--- import {-# SOURCE #-} ETA.TypeCheck.TcSplice( runQuasiQuoteExpr )
-import ETA.TypeCheck.TcSplice( runQuasiQuoteExpr )
-
 import ETA.Rename.RnBinds   ( rnLocalBindsAndThen, rnLocalValBindsLHS, rnLocalValBindsRHS,
                    rnMatchGroup, rnGRHS, makeMiniFixityEnv)
 import ETA.HsSyn.HsSyn
@@ -114,7 +111,7 @@ rnExpr (HsLit lit)
        ; return (HsLit lit, emptyFVs) }
 
 rnExpr (HsOverLit lit)
-  = do { (lit', mb_neg, fvs) <- rnOverLit lit
+  = do { ((lit', mb_neg), fvs) <- rnOverLit lit -- See Note [Negative zero]
        ; case mb_neg of
               Nothing -> return (HsOverLit lit', fvs)
               Just neg -> return ( HsApp (noLoc neg) (noLoc (HsOverLit lit'))
@@ -157,14 +154,7 @@ rnExpr (NegApp e _)
 -- (not with an rnExpr crash) in a stage-1 compiler.
 rnExpr e@(HsBracket br_body) = rnBracket e br_body
 
-rnExpr (HsSpliceE is_typed splice) = rnSpliceExpr is_typed splice
-
-
-rnExpr (HsQuasiQuoteE qq)
-  = do { lexpr' <- runQuasiQuoteExpr qq
-         -- Wrap the result of the quasi-quoter in parens so that we don't
-         -- lose the outermost location set by runQuasiQuote (#7918)
-       ; rnExpr (HsPar lexpr') }
+rnExpr (HsSpliceE splice) = rnSpliceExpr splice
 
 ---------------------------------------------
 --      Sections
@@ -779,7 +769,7 @@ rnStmt ctxt _ (L loc (TransStmt { trS_stmts = stmts, trS_by = by, trS_form = for
              bndr_map = used_bndrs `zip` used_bndrs
              -- See Note [TransStmt binder map] in HsExpr
 
-       ; traceRn (text "rnStmt: implicitly rebound these used binders:" <+> ppr bndr_map)
+       ; traceRn "rnStmt: implicitly rebound these used binders:" (ppr bndr_map)
        ; return (([L loc (TransStmt { trS_stmts = stmts', trS_bndrs = bndr_map
                                     , trS_by = by', trS_using = using', trS_form = form
                                     , trS_ret = return_op, trS_bind = bind_op

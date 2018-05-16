@@ -16,7 +16,7 @@ import ETA.HsSyn.HsSyn            ( ImportDecl(..) )
 import ETA.Main.DynFlags
 import ETA.Utils.Util
 import ETA.Main.HscTypes
-import ETA.Main.SysTools         ( newTempName )
+import ETA.Main.FileCleanup
 import qualified ETA.Main.SysTools as SysTools
 import ETA.BasicTypes.Module
 import ETA.Utils.Digraph          ( SCC(..) )
@@ -121,7 +121,7 @@ beginMkDependHS :: DynFlags -> IO MkDepFiles
 beginMkDependHS dflags = do
         -- open a new temp file in which to stuff the dependency info
         -- as we go along.
-  tmp_file <- newTempName dflags "dep"
+  tmp_file <- newTempName dflags TFL_CurrentModule "dep"
   tmp_hdl <- openFile tmp_file WriteMode
 
         -- open the makefile

@@ -129,7 +129,6 @@ library
                        , ETA.Iface.MkIface
                        , ETA.Iface.TcIface
                        , ETA.Main.Annotations
-                       , ETA.Main.BreakArray
                        , ETA.Main.CmdLineParser
                        , ETA.Main.Constants
                        , ETA.Main.DriverMkDepend

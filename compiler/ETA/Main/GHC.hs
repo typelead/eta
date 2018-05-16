@@ -89,7 +89,7 @@ module ETA.Main.GHC (
         -- * Interactive evaluation
         getBindings, getInsts, getPrintUnqual,
         findModule, lookupModule,
-#ifdef ETA_REPL
+#ifndef ETA_REPL
         isModuleTrusted,
         moduleTrustReqs,
         setContext, getContext,
@@ -125,7 +125,7 @@ module ETA.Main.GHC (
 #endif
         lookupName,
 
-#ifdef ETA_REPL
+#ifndef ETA_REPL
         -- ** EXPERIMENTAL
         setGHCiMonad,
 #endif
@@ -264,10 +264,10 @@ module ETA.Main.GHC (
   * what StaticFlags should we expose, if any?
 -}
 
-#ifdef ETA_REPL
+#ifndef ETA_REPL
 import ETA.Interactive.ByteCodeInstr
-import ETA.Main.BreakArray
-import ETA.Main.InteractiveEval
+import Eta.REPL.BreakArray
+import ETA.Main.InteractiveEval as InteractiveEval
 import ETA.TypeCheck.TcRnDriver       ( runTcInteractive )
 #endif
 
@@ -337,6 +337,7 @@ import System.FilePath
 import System.Directory
 import System.IO
 import Prelude hiding (init)
+import ETA.Main.FileCleanup
 
 
 -- %************************************************************************
@@ -829,7 +830,7 @@ typecheckModule pmod = do
            minf_instances = md_insts details,
            minf_iface     = Nothing,
            minf_safe      = safe
-#ifdef ETA_REPL
+#ifndef ETA_REPL
           ,minf_modBreaks = emptyModBreaks
 #endif
          }}
@@ -1020,7 +1021,7 @@ data ModuleInfo = ModuleInfo {
         minf_instances :: [ClsInst],
         minf_iface     :: Maybe ModIface,
         minf_safe      :: SafeHaskellMode
-#ifdef ETA_REPL
+#ifndef ETA_REPL
        ,minf_modBreaks :: ModBreaks
 #endif
   }
@@ -1045,7 +1046,7 @@ getModuleInfo mdl = withSession $ \hsc_env -> do
    -- exist... hence the isHomeModule test here.  (ToDo: reinstate)
 
 getPackageModuleInfo :: HscEnv -> Module -> IO (Maybe ModuleInfo)
-#ifdef ETA_REPL
+#ifndef ETA_REPL
 getPackageModuleInfo hsc_env mdl
   = do  eps <- hscEPS hsc_env
         iface <- hscGetModuleInterface hsc_env mdl
@@ -1085,7 +1086,7 @@ getHomeModuleInfo hsc_env mdl =
                         minf_instances = md_insts details,
                         minf_iface     = Just iface,
                         minf_safe      = getSafeMode $ mi_trust iface
-#ifdef ETA_REPL
+#ifndef ETA_REPL
                        ,minf_modBreaks = getModBreaks hmi
 #endif
                         }))
@@ -1133,7 +1134,7 @@ modInfoIface = minf_iface
 modInfoSafe :: ModuleInfo -> SafeHaskellMode
 modInfoSafe = minf_safe
 
-#ifdef ETA_REPL
+#ifndef ETA_REPL
 modInfoModBreaks :: ModuleInfo -> ModBreaks
 modInfoModBreaks = minf_modBreaks
 #endif
@@ -1155,7 +1156,7 @@ findGlobalAnns deserialize target = withSession $ \hsc_env -> do
     ann_env <- liftIO $ prepareAnnotations hsc_env Nothing
     return (findAnns deserialize ann_env target)
 
-#ifdef ETA_REPL
+#ifndef ETA_REPL
 -- | get the GlobalRdrEnv for a session
 getGRE :: GhcMonad m => m GlobalRdrEnv
 getGRE = withSession $ \hsc_env-> return $ ic_rn_gbl_env (hsc_IC hsc_env)
@@ -1358,7 +1359,7 @@ lookupLoadedHomeModule mod_name = withSession $ \hsc_env ->
     Just mod_info      -> return (Just (mi_module (hm_iface mod_info)))
     _not_a_home_module -> return Nothing
 
-#ifdef ETA_REPL
+#ifndef ETA_REPL
 -- | Check that a module is safe to import (according to Safe Haskell).
 --
 -- We return True to indicate the import is safe and False otherwise
@@ -1368,7 +1369,7 @@ isModuleTrusted m = withSession $ \hsc_env ->
     liftIO $ hscCheckSafe hsc_env m noSrcSpan
 
 -- | Return if a module is trusted and the pkgs it depends on to be trusted.
-moduleTrustReqs :: GhcMonad m => Module -> m (Bool, [UnitId])
+moduleTrustReqs :: GhcMonad m => Module -> m (Bool, [InstalledUnitId])
 moduleTrustReqs m = withSession $ \hsc_env ->
     liftIO $ hscGetSafe hsc_env m noSrcSpan
 

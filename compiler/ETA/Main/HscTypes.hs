@@ -40,9 +40,10 @@ module ETA.Main.HscTypes (
         hptObjs,
 
         -- * State relating to known packages
-        ExternalPackageState(..), EpsStats(..), addEpsInStats,
+        ExternalPackageState(..), EpsStats(..), addEpsInStats, updNameCacheIO,
         PackageTypeEnv, PackageIfaceTable, emptyPackageIfaceTable,
         lookupIfaceByModule, emptyModIface, lookupHptByModule,
+        lookupHpt, lookupHptDirectly,
 
         PackageInstEnv, PackageFamInstEnv, PackageRuleBase,
 
@@ -173,9 +174,9 @@ import ETA.Iface.IfaceSyn
 import ETA.Core.CoreSyn          ( CoreRule, CoreVect )
 import ETA.Utils.Maybes
 import ETA.Utils.Outputable
-import ETA.Main.BreakArray
+import Eta.REPL.BreakArray
 import ETA.BasicTypes.SrcLoc
--- import ETA.BasicTypes.Unique
+import ETA.BasicTypes.Unique
 import ETA.Utils.UniqFM
 import ETA.BasicTypes.UniqSupply
 import ETA.Utils.FastString
@@ -505,6 +506,12 @@ lookupHptByModule hpt mod
   = case lookupUFM hpt (moduleName mod) of
       Just hm | mi_module (hm_iface hm) == mod -> Just hm
       _otherwise                               -> Nothing
+
+lookupHpt :: HomePackageTable -> ModuleName -> Maybe HomeModInfo
+lookupHpt = lookupUFM
+
+lookupHptDirectly :: HomePackageTable -> Unique -> Maybe HomeModInfo
+lookupHptDirectly = lookupUFM_Directly
 
 -- | Information about modules in the package being compiled
 data HomeModInfo
@@ -1247,7 +1254,7 @@ The details are a bit tricky though:
    extend the HPT.
 
  * The 'thisPackage' field of DynFlags is *not* set to 'interactive'.
-   It stays as 'main' (or whatever -this-package-key says), and is the
+   It stays as 'main' (or whatever -this-unit-key says), and is the
    package to which :load'ed modules are added to.
 
  * So how do we arrange that declarations at the command prompt get to
@@ -1256,7 +1263,7 @@ The details are a bit tricky though:
    call to initTc in initTcInteractive, which in turn get the module
    from it 'icInteractiveModule' field of the interactive context.
 
-   The 'thisPackage' field stays as 'main' (or whatever -this-package-key says.
+   The 'thisPackage' field stays as 'main' (or whatever -this-unit-key says.
 
  * The main trickiness is that the type environment (tcg_type_env) and
    fixity envt (tcg_fix_env), now contain entities from all the
@@ -1276,31 +1283,39 @@ The details are a bit tricky though:
   modules.
 
 
-Note [Interactively-bound Ids in GHCi]
+Note [Interactively-bound Ids in Eta REPL]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The Ids bound by previous Stmts in GHCi are currently
-        a) GlobalIds
-        b) with an Internal Name (not External)
-        c) and a tidied type
+The Ids bound by previous Stmts in Eta REPL are currently
+        a) GlobalIds, with
+        b) An External Name, like Ghci4.foo
+           See Note [The interactive package] above
+        c) A tidied type
 
  (a) They must be GlobalIds (not LocalIds) otherwise when we come to
      compile an expression using these ids later, the byte code
      generator will consider the occurrences to be free rather than
      global.
 
- (b) They start with an Internal Name because a Stmt is a local
-     construct, so the renamer naturally builds an Internal name for
-     each of its binders.  It would be possible subsequently to give
-     them an External Name (in a GhciN module) but then we'd have
-     to substitute it out.  So for now they stay Internal.
+ (b) Having an External Name is important because of Note
+     [GlobalRdrEnv shadowing] in RdrName
 
- (c) Their types are tidied. This is important, because :info may ask
-     to look at them, and :info expects the things it looks up to have
-     tidy types
+Where do interactively-bound Ids come from?
 
-However note that TyCons, Classes, and even Ids bound by other top-level
-declarations in GHCi (eg foreign import, record selectors) currently get
-External Names, with Ghci9 (or 8, or 7, etc) as the module name.
+  - Eta REPL Stmts   e.g.
+         ghci> let foo x = x+1
+    These start with an Internal Name because a Stmt is a local
+    construct, so the renamer naturally builds an Internal name for
+    each of its binders.  Then in tcRnStmt they are externalised via
+    TcRnDriver.externaliseAndTidyId, so they get Names like Ghic4.foo.
+
+  - Ids bound by the debugger etc have Names constructed by
+    IfaceEnv.newInteractiveBinder; at the call sites it is followed by
+    mkVanillaGlobal or mkVanillaGlobalWithInfo.  So again, they are
+    all Global, External.
+
+  - TyCons, Classes, and Ids bound by other top-level declarations in
+    GHCi (eg foreign import, record selectors) also get External
+    Names, with Ghci9 (or 8, or 7, etc) as the module name.
 
 
 Note [ic_tythings]
@@ -1449,38 +1464,43 @@ icPrintUnqual dflags InteractiveContext{ ic_rn_gbl_env = grenv } =
 -- to them (e.g. instances for classes or values of the type for TyCons), it's
 -- not clear whether removing them is even the appropriate behavior.
 extendInteractiveContext :: InteractiveContext
-                         -> [Id] -> [TyCon]
+                         -> [TyThing]
                          -> [ClsInst] -> [FamInst]
                          -> Maybe [Type]
-                         -> [PatSyn]
+                         -> FixityEnv
                          -> InteractiveContext
-extendInteractiveContext ictxt ids tcs new_cls_insts new_fam_insts defaults new_patsyns
+extendInteractiveContext ictxt new_tythings new_cls_insts new_fam_insts defaults fix_env
   = ictxt { ic_mod_index  = ic_mod_index ictxt + 1
                             -- Always bump this; even instances should create
                             -- a new mod_index (Trac #9426)
           , ic_tythings   = new_tythings ++ old_tythings
           , ic_rn_gbl_env = ic_rn_gbl_env ictxt `icExtendGblRdrEnv` new_tythings
-          , ic_instances  = (new_cls_insts ++ old_cls_insts, new_fam_insts ++ old_fam_insts)
-          , ic_default    = defaults }
+          , ic_instances  = ( new_cls_insts ++ old_cls_insts
+                            , new_fam_insts ++ fam_insts )
+                            -- we don't shadow old family instances (#7102),
+                            -- so don't need to remove them here
+          , ic_default    = defaults
+          , ic_fix_env    = fix_env  -- See Note [Fixity declarations in GHCi]
+          }
   where
-    new_tythings = map AnId ids ++ map ATyCon tcs ++ map (AConLike . PatSynCon) new_patsyns
-    old_tythings = filterOut (shadowed_by ids) (ic_tythings ictxt)
+    new_ids = [id | AnId id <- new_tythings]
+    old_tythings = filterOut (shadowed_by new_ids) (ic_tythings ictxt)
 
-    -- Discard old instances that have been fully overrridden
+    -- Discard old instances that have been fully overridden
     -- See Note [Override identical instances in GHCi]
     (cls_insts, fam_insts) = ic_instances ictxt
     old_cls_insts = filterOut (\i -> any (identicalClsInstHead i) new_cls_insts) cls_insts
-    old_fam_insts = filterOut (\i -> any (identicalFamInstHead i) new_fam_insts) fam_insts
 
 extendInteractiveContextWithIds :: InteractiveContext -> [Id] -> InteractiveContext
-extendInteractiveContextWithIds ictxt ids
-  | null ids  = ictxt
+-- Just a specialised version
+extendInteractiveContextWithIds ictxt new_ids
+  | null new_ids  = ictxt
   | otherwise = ictxt { ic_mod_index  = ic_mod_index ictxt + 1
                       , ic_tythings   = new_tythings ++ old_tythings
                       , ic_rn_gbl_env = ic_rn_gbl_env ictxt `icExtendGblRdrEnv` new_tythings }
   where
-    new_tythings = map AnId ids
-    old_tythings = filterOut (shadowed_by ids) (ic_tythings ictxt)
+    new_tythings = map AnId new_ids
+    old_tythings = filterOut (shadowed_by new_ids) (ic_tythings ictxt)
 
 shadowed_by :: [Id] -> TyThing -> Bool
 shadowed_by ids = shadowed
@@ -1515,8 +1535,13 @@ substInteractiveContext ictxt@InteractiveContext{ ic_tythings = tts } subst
   | isEmptyTvSubst subst = ictxt
   | otherwise            = ictxt { ic_tythings = map subst_ty tts }
   where
-    subst_ty (AnId id) = AnId $ id `setIdType` substTy subst (idType id)
-    subst_ty tt        = tt
+    subst_ty (AnId id)
+      = AnId $ id `setIdType` substTyAddInScope subst (idType id)
+      -- Variables in the interactive context *can* mention free type variables
+      -- because of the runtime debugger. Otherwise you'd expect all
+      -- variables bound in the interactive context to be closed.
+    subst_ty tt
+      = tt
 
 instance Outputable InteractiveImport where
   ppr (IIModule m) = char '*' <> ppr m
@@ -1559,20 +1584,13 @@ exposed (say P2), so we use M.T for that, and P1:M.T for the other one.
 This is handled by the qual_mod component of PrintUnqualified, inside
 the (ppr mod) of case (3), in Name.pprModulePrefix
 
-Note [Printing package keys]
+Note [Printing unit ids]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In the old days, original names were tied to PackageIds, which directly
 corresponded to the entities that users wrote in Cabal files, and were perfectly
 suitable for printing when we need to disambiguate packages.  However, with
-UnitId, the situation is different.  First, the key is not a human readable
-at all, so we need to consult the package database to find the appropriate
-PackageId to display.  Second, there may be multiple copies of a library visible
-with the same PackageId, in which case we need to disambiguate.  For now,
-we just emit the actual package key (which the user can go look up); however,
-another scheme is to (recursively) say which dependencies are different.
-
-NB: When we extend package keys to also have holes, we will have to disambiguate
-those as well.
+UnitId, the situation can be different: if the key is instantiated with
+some holes, we should try to give the user some more useful information.
 -}
 
 -- | Creates some functions that work out the best ways to format
@@ -2336,6 +2354,12 @@ interface file); so we give it 'noSrcLoc' then.  Later, when we find
 its binding site, we fix it up.
 -}
 
+updNameCacheIO :: HscEnv
+               -> (NameCache -> (NameCache, c))  -- The updating function
+               -> IO c
+updNameCacheIO hsc_env upd_fn
+  = atomicModifyIORef' (hsc_NC hsc_env) upd_fn
+
 -- | The NameCache makes sure that there is just one Unique assigned for
 -- each original name; i.e. (module-name, occ-name) pair and provides
 -- something of a lookup mechanism for those names.
@@ -2854,7 +2878,7 @@ type BreakIndex = Int
 -- | All the information about the breakpoints for a given module
 data ModBreaks
    = ModBreaks
-   { modBreaks_flags :: BreakArray
+   { modBreaks_flags :: ForeignRef BreakArray
         -- ^ The array of flags, one per breakpoint,
         -- indicating which breakpoints are enabled.
    , modBreaks_locs :: !(Array BreakIndex SrcSpan)

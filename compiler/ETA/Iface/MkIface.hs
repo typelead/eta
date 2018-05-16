@@ -77,7 +77,7 @@ import ETA.BasicTypes.ConLike
 import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.PatSyn
 import ETA.Types.Type
-import ETA.TypeCheck.TcType
+import ETA.TypeCheck.TcType hiding (orphNamesOfCoCon)
 import ETA.Prelude.TysPrim ( alphaTyVars )
 import ETA.Types.InstEnv
 import ETA.Types.FamInstEnv

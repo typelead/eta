@@ -50,10 +50,10 @@ module ETA.BasicTypes.RdrName (
         transformGREs, findLocalDupsRdrEnv, pickGREs,
 
         -- * GlobalRdrElts
-        gresFromAvails, gresFromAvail,
+        gresFromAvails, gresFromAvail, greRdrNames, greUsedRdrName,
 
         -- ** Global 'RdrName' mapping elements: 'GlobalRdrElt', 'Provenance', 'ImportSpec'
-        GlobalRdrElt(..), isLocalGRE, unQualOK, qualSpecOK, unQualSpecOK,
+        GlobalRdrElt(..), isLocalGRE, unQualOK, qualSpecOK, unQualSpecOK, greOccName,
         Provenance(..), pprNameProvenance,
         Parent(..),
         ImportSpec(..), ImpDeclSpec(..), ImpItemSpec(..),
@@ -75,6 +75,7 @@ import ETA.Utils.Util
 import ETA.Main.StaticFlags( opt_PprStyle_Debug )
 
 import Data.Data
+import Data.List
 
 {-
 ************************************************************************
@@ -558,6 +559,10 @@ lookupGlobalRdrEnv env occ_name = case lookupOccEnv env occ_name of
                                   Nothing   -> []
                                   Just gres -> gres
 
+greOccName :: GlobalRdrElt -> OccName
+-- greOccName (GRE{gre_par = FldParent{par_lbl = Just lbl}}) = mkVarOccFS lbl
+greOccName gre = nameOccName (gre_name gre)
+
 lookupGRE_RdrName :: RdrName -> GlobalRdrEnv -> [GlobalRdrElt]
 lookupGRE_RdrName rdr_name env
   = case lookupOccEnv env (rdrNameOcc rdr_name) of
@@ -851,6 +856,30 @@ data ImpItemSpec
         -- Here the constructors of @T@ are not named explicitly;
         -- only @T@ is named explicitly.
 
+bestImport :: [ImportSpec] -> ImportSpec
+-- Given a non-empty bunch of ImportSpecs, return the one that
+-- imported the item most specifically (e.g. by name), using
+-- textually-first as a tie breaker. This is used when reporting
+-- redundant imports
+bestImport iss
+  = case sortBy best iss of
+      (is:_) -> is
+      []     -> pprPanic "bestImport" (ppr iss)
+  where
+    best :: ImportSpec -> ImportSpec -> Ordering
+    -- Less means better
+    best (ImpSpec { is_item = item1, is_decl = d1 })
+         (ImpSpec { is_item = item2, is_decl = d2 })
+      = best_item item1 item2 `thenCmp` (is_dloc d1 `compare` is_dloc d2)
+
+    best_item :: ImpItemSpec -> ImpItemSpec -> Ordering
+    best_item ImpAll ImpAll = EQ
+    best_item ImpAll (ImpSome {}) = GT
+    best_item (ImpSome {}) ImpAll = LT
+    best_item (ImpSome { is_explicit = e1 })
+              (ImpSome { is_explicit = e2 }) = e2 `compare` e1
+     -- False < True, so if e1 is explicit and e2 is not, we get LT
+
 unQualSpecOK :: ImportSpec -> Bool
 -- ^ Is in scope unqualified?
 unQualSpecOK is = not (is_qual (is_decl is))
@@ -869,6 +898,10 @@ importSpecModule is = is_mod (is_decl is)
 isExplicitItem :: ImpItemSpec -> Bool
 isExplicitItem ImpAll                        = False
 isExplicitItem (ImpSome {is_explicit = exp}) = exp
+
+splitProvenance :: Provenance -> (Bool, [ImportSpec])
+splitProvenance LocalDef       = (True, [])
+splitProvenance (Imported iss) = (False, iss)
 
 -- Note [Comparing provenance]
 -- Comparison of provenance is just used for grouping
@@ -949,3 +982,28 @@ instance Outputable ImportSpec where
 pprLoc :: SrcSpan -> SDoc
 pprLoc (RealSrcSpan s)    = ptext (sLit "at") <+> ppr s
 pprLoc (UnhelpfulSpan {}) = empty
+
+greUsedRdrName :: GlobalRdrElt -> RdrName
+-- For imported things, return a RdrName to add to the used-RdrName
+-- set, which is used to generate unused-import-decl warnings.
+-- Return a Qual RdrName if poss, so that identifies the most
+-- specific ImportSpec.  See Trac #10890 for some good examples.
+greUsedRdrName gre@GRE{ gre_name = name, gre_prov = prov }
+  | lcl, Just mod <- nameModule_maybe name = Qual (moduleName mod)     occ
+  | not (null iss), is <- bestImport iss   = Qual (is_as (is_decl is)) occ
+  | otherwise                              = pprTrace "greUsedRdrName" (ppr gre) (Unqual occ)
+  where
+    occ = greOccName gre
+    (lcl, iss) = splitProvenance prov
+
+greRdrNames :: GlobalRdrElt -> [RdrName]
+greRdrNames gre@GRE{ gre_prov = prov }
+  = (if lcl then [unqual] else []) ++ concatMap do_spec (map is_decl iss)
+  where
+    occ    = greOccName gre
+    unqual = Unqual occ
+    do_spec decl_spec
+        | is_qual decl_spec = [qual]
+        | otherwise         = [unqual,qual]
+        where qual = Qual (is_as decl_spec) occ
+    (lcl, iss) = splitProvenance prov

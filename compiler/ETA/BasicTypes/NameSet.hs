@@ -11,7 +11,7 @@ module ETA.BasicTypes.NameSet (
         emptyNameSet, unitNameSet, mkNameSet, unionNameSet, unionNameSets,
         minusNameSet, elemNameSet, nameSetElems, extendNameSet, extendNameSetList,
         delFromNameSet, delListFromNameSet, isEmptyNameSet, foldNameSet, filterNameSet,
-        intersectsNameSet, intersectNameSet,
+        intersectsNameSet, intersectNameSet, nameSetAll, nameSetAny,
 
         -- * Free variables
         FreeVars,
@@ -80,6 +80,12 @@ intersectNameSet  = intersectUniqSets
 delListFromNameSet set ns = foldl delFromNameSet set ns
 
 intersectsNameSet s1 s2 = not (isEmptyNameSet (s1 `intersectNameSet` s2))
+
+nameSetAny :: (Name -> Bool) -> NameSet -> Bool
+nameSetAny = uniqSetAny
+
+nameSetAll :: (Name -> Bool) -> NameSet -> Bool
+nameSetAll = uniqSetAll
 
 {-
 ************************************************************************

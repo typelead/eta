@@ -37,7 +37,6 @@ import ETA.TypeCheck.TcRnMonad
 import ETA.TypeCheck.TcType
 import ETA.Types.Type
 import ETA.TypeCheck.TcEvidence
-import ETA.BasicTypes.Name ( isSystemName )
 import ETA.TypeCheck.Inst
 import ETA.Types.Kind
 import ETA.Types.TyCon
@@ -55,7 +54,7 @@ import ETA.Utils.Util
 import ETA.Utils.Outputable
 import qualified ETA.Utils.Outputable as Outputable
 import ETA.Utils.FastString
-
+import ETA.BasicTypes.Name
 import Control.Monad
 
 #include "HsVersions.h"
@@ -482,6 +481,7 @@ tcWrapResult expr actual_ty res_ty
        ; return (mkHsWrap cow expr) }
 
 -----------------------------------
+
 wrapFunResCoercion
         :: [TcType]        -- Type of args
         -> HsWrapper       -- HsExpr a -> HsExpr b

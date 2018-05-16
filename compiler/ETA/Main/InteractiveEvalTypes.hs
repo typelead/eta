@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 -- -----------------------------------------------------------------------------
 --
 -- (c) The University of Glasgow, 2005-2007
@@ -9,58 +7,81 @@
 -- -----------------------------------------------------------------------------
 
 module ETA.Main.InteractiveEvalTypes (
-#ifdef ETA_REPL
-        RunResult(..), Status(..), Resume(..), History(..),
-#endif
+        Resume(..), History(..), ExecResult(..),
+        SingleStep(..), isStep, ExecOptions(..),
+        BreakInfo(..)
         ) where
 
-#ifdef ETA_REPL
-
+import Eta.REPL.RemoteTypes
+import Eta.REPL.Message (EvalExpr, ResumeContext)
 import ETA.BasicTypes.Id
-import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.Name
+import ETA.BasicTypes.Module
 import ETA.BasicTypes.RdrName
-import ETA.Types.TypeRep
-import ETA.Interactive.ByteCodeInstr
+import ETA.Types.Type
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Exception
-import Control.Concurrent
 
-data RunResult
-  = RunOk [Name]                -- ^ names bound by this evaluation
-  | RunException SomeException  -- ^ statement raised an exception
-  | RunBreak ThreadId [Name] (Maybe BreakInfo)
+import Data.Word
+-- import GHC.Stack.CCS
 
-data Status
-   = Break Bool HValue BreakInfo ThreadId
-          -- ^ the computation hit a breakpoint (Bool <=> was an exception)
-   | Complete (Either SomeException [HValue])
-          -- ^ the computation completed with either an exception or a value
+data ExecOptions
+ = ExecOptions
+     { execSingleStep :: SingleStep         -- ^ stepping mode
+     , execSourceFile :: String             -- ^ filename (for errors)
+     , execLineNumber :: Int                -- ^ line number (for errors)
+     , execWrap :: ForeignHValue -> EvalExpr ForeignHValue
+     }
 
-data Resume
-   = Resume {
-       resumeStmt      :: String,       -- the original statement
-       resumeThreadId  :: ThreadId,     -- thread running the computation
-       resumeBreakMVar :: MVar (),
-       resumeStatMVar  :: MVar Status,
-       resumeBindings  :: ([TyThing], GlobalRdrEnv),
-       resumeFinalIds  :: [Id],         -- [Id] to bind on completion
-       resumeApStack   :: HValue,       -- The object from which we can get
+data SingleStep
+   = RunToCompletion
+   | SingleStep
+   | RunAndLogSteps
+
+isStep :: SingleStep -> Bool
+isStep RunToCompletion = False
+isStep _ = True
+
+data ExecResult
+  = ExecComplete
+       { execResult :: Either SomeException [Name]
+       , execAllocation :: Word64
+       }
+  | ExecBreak
+       { breakNames :: [Name]
+       , breakInfo :: Maybe BreakInfo
+       }
+
+data BreakInfo = BreakInfo
+  { breakInfo_module :: Module
+  , breakInfo_number :: Int
+  }
+
+data Resume = Resume
+       { resumeStmt      :: String       -- the original statement
+       , resumeContext   :: ForeignRef (ResumeContext [HValueRef])
+       , resumeBindings  :: ([TyThing], GlobalRdrEnv)
+       , resumeFinalIds  :: [Id]         -- [Id] to bind on completion
+       , resumeApStack   :: ForeignHValue -- The object from which we can get
                                         -- value of the free variables.
-       resumeBreakInfo :: Maybe BreakInfo,
+       , resumeBreakInfo :: Maybe BreakInfo
                                         -- the breakpoint we stopped at
+                                        -- (module, index)
                                         -- (Nothing <=> exception)
-       resumeSpan      :: SrcSpan,      -- just a cache, otherwise it's a pain
-                                        -- to fetch the ModDetails & ModBreaks
-                                        -- to get this.
-       resumeHistory   :: [History],
-       resumeHistoryIx :: Int           -- 0 <==> at the top of the history
-   }
+       , resumeSpan      :: SrcSpan      -- just a copy of the SrcSpan
+                                        -- from the ModBreaks,
+                                        -- otherwise it's a pain to
+                                        -- fetch the ModDetails &
+                                        -- ModBreaks to get this.
+       , resumeDecl      :: String       -- ditto
+       , resumeCCS       :: RemotePtr ()--CostCentreStack
+       , resumeHistory   :: [History]
+       , resumeHistoryIx :: Int           -- 0 <==> at the top of the history
+       }
 
 data History
    = History {
-        historyApStack   :: HValue,
+        historyApStack   :: ForeignHValue,
         historyBreakInfo :: BreakInfo,
         historyEnclosingDecls :: [String]  -- declarations enclosing the breakpoint
    }
-#endif

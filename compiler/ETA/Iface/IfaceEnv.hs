@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes, CPP #-}
 
 module ETA.Iface.IfaceEnv (
-        newGlobalBinder, newImplicitBinder,
+        newGlobalBinder, newInteractiveBinder, newImplicitBinder,
         lookupIfaceTop,
         lookupOrig, lookupOrigNameCache, extendNameCache,
         newIfaceName, newIfaceNames,
@@ -75,6 +75,14 @@ newGlobalBinder mod occ loc
 --     traceIf (text "newGlobalBinder" <+> ppr mod <+> ppr occ <+> ppr loc)
        updNameCache $ \name_cache ->
          allocateGlobalBinder name_cache mod occ loc
+
+newInteractiveBinder :: HscEnv -> OccName -> SrcSpan -> IO Name
+-- Works in the IO monad, and gets the Module
+-- from the interactive context
+newInteractiveBinder hsc_env occ loc
+  = do { let mod = icInteractiveModule (hsc_IC hsc_env)
+        ; updNameCacheIO hsc_env $ \name_cache ->
+          allocateGlobalBinder name_cache mod occ loc }
 
 allocateGlobalBinder
   :: NameCache

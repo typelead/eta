@@ -41,7 +41,7 @@ import ETA.Core.CoreSyn
 import ETA.BasicTypes.BasicTypes
 import ETA.Types.Type
 import ETA.BasicTypes.SrcLoc
-
+import Eta.REPL.RemoteTypes (ForeignHValue)
 import Data.Maybe
 import System.Process
 
@@ -80,7 +80,7 @@ data Hooks = Hooks
   , tcForeignExportsHook   :: Maybe ([LForeignDecl Name] -> TcM (LHsBinds TcId, [LForeignDecl TcId], Bag GlobalRdrElt))
   , hscFrontendHook        :: Maybe (ModSummary -> Hsc TcGblEnv)
   , hscCompileOneShotHook  :: Maybe (HscEnv -> ModSummary -> SourceModified -> IO HscStatus)
-  , hscCompileCoreExprHook :: Maybe (HscEnv -> SrcSpan -> CoreExpr -> IO HValue)
+  , hscCompileCoreExprHook :: Maybe (HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue)
   , ghcPrimIfaceHook       :: Maybe ModIface
   , runPhaseHook           :: Maybe (PhasePlus -> FilePath -> DynFlags -> CompPipeline (PhasePlus, FilePath))
   , runMetaHook            :: Maybe (MetaHook TcM)

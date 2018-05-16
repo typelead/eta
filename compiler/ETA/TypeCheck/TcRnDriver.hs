@@ -24,8 +24,8 @@ module ETA.TypeCheck.TcRnDriver (
     ) where
 
 #ifdef ETA_REPL
-import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( runQuasi, traceSplice, SpliceInfo(..) )
-import ETA.Rename.RnSplice ( rnTopSpliceDecls )
+import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( finishTH )
+import ETA.Rename.RnSplice ( rnTopSpliceDecls, traceSplice, SpliceInfo(..) )
 #endif
 
 import ETA.Main.DynFlags
@@ -91,6 +91,7 @@ import ETA.TypeCheck.TcHsType
 import ETA.TypeCheck.TcMatches
 import ETA.Rename.RnTypes
 import ETA.Rename.RnExpr
+import ETA.Prelude.PrelInfo
 import ETA.BasicTypes.MkId
 import ETA.Main.TidyPgm    ( globaliseAndTidyId )
 import ETA.Prelude.TysWiredIn ( unitTy, mkListTy )
@@ -281,7 +282,9 @@ tcRnModuleTcRnM hsc_env hsc_src
                 })
                 (this_mod, prel_imp_loc)
  = setSrcSpan loc $
-   do { let { dflags = hsc_dflags hsc_env } ;
+   do { let { dflags = hsc_dflags hsc_env
+            ; explicit_mod_hdr = isJust maybe_mod
+            } ;
 
         tcg_env <- tcRnSignature dflags hsc_src ;
         setGblEnv tcg_env $ do {
@@ -324,18 +327,19 @@ tcRnModuleTcRnM hsc_env hsc_src
             } ;
 
                 -- Rename and type check the declarations
-        traceRn (text "rn1a") ;
+        traceRn "rn1a" empty ;
         tcg_env <- if isHsBootOrSig hsc_src then
                         tcRnHsBootDecls hsc_src local_decls
                    else
                         {-# SCC "tcRnSrcDecls" #-}
-                        tcRnSrcDecls boot_iface exports_occs local_decls ;
+                        tcRnSrcDecls explicit_mod_hdr boot_iface exports_occs
+                          local_decls ;
         setGblEnv tcg_env               $ do {
 
                 -- Process the export list
-        traceRn (text "rn4a: before exports");
+        traceRn "rn4a: before exports" empty;
         tcg_env <- rnExports (isJust maybe_mod) export_ies tcg_env ;
-        traceRn (text "rn4b: after exports") ;
+        traceRn "rn4b: after exports" empty ;
 
                 -- Check that main is exported (must be after rnExports)
         checkMainExported tcg_env ;
@@ -434,7 +438,7 @@ tcRnImports hsc_env import_decls
               tcg_hpc          = hpc_info
             }) $ do {
 
-        ; traceRn (text "rn1" <+> ppr (imp_dep_mods imports))
+        ; traceRn "rn1" (ppr (imp_dep_mods imports))
                 -- Fail if there are any errors so far
                 -- The error printing (if needed) takes advantage
                 -- of the tcg_env we have now set
@@ -448,7 +452,7 @@ tcRnImports hsc_env import_decls
                                (imp_orphs imports)
 
                 -- Check type-family consistency
-        ; traceRn (text "rn1: checking family instance consistency")
+        ; traceRn "rn1: checking family instance consistency" empty
         ; let { dir_imp_mods = moduleEnvKeys
                              . imp_mods
                              $ imports }
@@ -464,24 +468,25 @@ tcRnImports hsc_env import_decls
 ************************************************************************
 -}
 
-tcRnSrcDecls :: ModDetails -> Bag OccName -> [LHsDecl RdrName] -> TcM TcGblEnv
+tcRnSrcDecls :: Bool -> ModDetails -> Bag OccName -> [LHsDecl RdrName] -> TcM TcGblEnv
         -- Returns the variables free in the decls
         -- Reason: solely to report unused imports and bindings
-tcRnSrcDecls boot_iface exports decls
+tcRnSrcDecls explicit_mod_hdr boot_iface exports decls
  = do {         -- Do all the declarations
-        ((tcg_env, tcl_env), lie) <- captureConstraints $ tc_rn_src_decls boot_iface decls ;
-      ; traceTc "Tc8" empty ;
-      ; setEnvs (tcg_env, tcl_env) $
-   do {
-        -- wanted constraints from static forms
-        stWC <- tcg_static_wc <$> getGblEnv >>= readTcRef ;
+        ((tcg_env, tcl_env), lie) <- captureTopConstraints $
+              do { (tcg_env, tcl_env) <- tc_rn_src_decls boot_iface decls
 
-             --         Finish simplifying class constraints
-             --
-             -- simplifyTop deals with constant or ambiguous InstIds.
-             -- How could there be ambiguous ones?  They can only arise if a
-             -- top-level decl falls under the monomorphism restriction
-             -- and no subsequent decl instantiates its type.
+                   -- Check for the 'main' declaration
+                   -- Must do this inside the captureTopConstraints
+                 ; tcg_env <- setEnvs (tcg_env, tcl_env) $
+                              checkMain explicit_mod_hdr
+                 ; return (tcg_env, tcl_env) }
+
+      ; traceTc "Tc8" empty ;
+
+      ; setEnvs (tcg_env, tcl_env) $ do {
+
+             --         Simplify constraints
              --
              -- We do this after checkMain, so that we use the type info
              -- that checkMain adds
@@ -490,18 +495,28 @@ tcRnSrcDecls boot_iface exports decls
              --  * the global env exposes the instances to simplifyTop
              --  * the local env exposes the local Ids to simplifyTop,
              --    so that we get better error messages (monomorphism restriction)
-        new_ev_binds <- {-# SCC "simplifyTop" #-}
-                        simplifyTop (andWC stWC lie) ;
-        traceTc "Tc9" empty ;
+      ; new_ev_binds <- {-# SCC "simplifyTop" #-}
+                        simplifyTop lie
 
-        failIfErrsM ;   -- Don't zonk if there have been errors
+        -- Finalizers must run after constraints are simplified, or some types
+        -- might not be complete when using reify (see #12777).
+      ; (tcg_env, tcl_env) <- setGblEnv tcg_env (run_th_modfinalizers boot_iface)
+
+      ; setEnvs (tcg_env, tcl_env) $ do {
+
+      ; finishTH
+
+      ; traceTc "Tc9" empty
+
+      ; failIfErrsM     -- Don't zonk if there have been errors
                         -- It's a waste of time; and we may get debug warnings
                         -- about strangely-typed TyCons!
+      ; traceTc "Tc10" empty
 
         -- Zonk the final code.  This must be done last.
         -- Even simplifyTop may do some unification.
         -- This pass also warns about missing type signatures
-        let { TcGblEnv { tcg_type_env  = type_env,
+      ; let { TcGblEnv { tcg_type_env  = type_env,
                          tcg_binds     = binds,
                          tcg_sigs      = sig_ns,
                          tcg_ev_binds  = cur_ev_binds,
@@ -511,12 +526,15 @@ tcRnSrcDecls boot_iface exports decls
                          tcg_fords     = fords } = tcg_env
             ; all_ev_binds = cur_ev_binds `unionBags` new_ev_binds } ;
 
-        (bind_ids, ev_binds', binds', fords', imp_specs', rules', vects')
+      ; (bind_ids, ev_binds', binds', fords', imp_specs', rules', vects')
             <- {-# SCC "zonkTopDecls" #-}
                zonkTopDecls all_ev_binds binds exports sig_ns rules vects
                             imp_specs fords ;
 
-        let { final_type_env = extendTypeEnvWithIds type_env bind_ids
+      ; traceTc "Tc11" empty
+
+
+      ; let { final_type_env = extendTypeEnvWithIds type_env bind_ids
             ; tcg_env' = tcg_env { tcg_binds    = binds',
                                    tcg_ev_binds = ev_binds',
                                    tcg_imp_specs = imp_specs',
@@ -525,8 +543,34 @@ tcRnSrcDecls boot_iface exports decls
                                    tcg_fords    = fords' } } ;
 
         setGlobalTypeEnv tcg_env' final_type_env
-
+   }
    } }
+
+-- | Runs TH finalizers and renames and typechecks the top-level declarations
+-- that they could introduce.
+run_th_modfinalizers :: ModDetails -> TcM (TcGblEnv, TcLclEnv)
+run_th_modfinalizers boot_iface = do
+  th_modfinalizers_var <- fmap tcg_th_modfinalizers getGblEnv
+  th_modfinalizers <- readTcRef th_modfinalizers_var
+  if null th_modfinalizers
+  then getEnvs
+  else do
+    writeTcRef th_modfinalizers_var []
+    (envs, lie) <- captureTopConstraints $ do
+      sequence_ th_modfinalizers
+      -- Finalizers can add top-level declarations with addTopDecls.
+      tc_rn_src_decls boot_iface []
+    setEnvs envs $ do
+      -- Subsequent rounds of finalizers run after any new constraints are
+      -- simplified, or some types might not be complete when using reify
+      -- (see #12777).
+      new_ev_binds <- {-# SCC "simplifyTop2" #-}
+                      simplifyTop lie
+      updGblEnv (\tcg_env ->
+        tcg_env { tcg_ev_binds = tcg_ev_binds tcg_env `unionBags` new_ev_binds }
+        )
+        -- addTopDecls can add declarations which add new finalizers.
+        (run_th_modfinalizers boot_iface)
 
 tc_rn_src_decls :: ModDetails
                 -> [LHsDecl RdrName]
@@ -548,6 +592,8 @@ tc_rn_src_decls boot_details ds
 #ifdef ETA_REPL
         -- Get TH-generated top-level declarations and make sure they don't
         -- contain any splices since we don't handle that at the moment
+        --
+        -- The plumbing here is a bit odd: see Trac #10853
       ; th_topdecls_var <- fmap tcg_th_topdecls getGblEnv
       ; th_ds <- readTcRef th_topdecls_var
       ; writeTcRef th_topdecls_var []
@@ -560,7 +606,7 @@ tc_rn_src_decls boot_details ds
                         { Nothing -> return () ;
                         ; Just (SpliceDecl (L loc _) _, _)
                             -> setSrcSpan loc $
-                               addErr (ptext (sLit "Declaration splices are not permitted inside top-level declarations added with addTopDecls"))
+                               addErr (text "Declaration splices are not permitted inside top-level declarations added with addTopDecls")
                         } ;
 
                     -- Rename TH-generated top-level declarations
@@ -569,11 +615,10 @@ tc_rn_src_decls boot_details ds
 
                     -- Dump generated top-level declarations
                     ; let msg = "top-level declarations added with addTopDecls"
-                    ; traceSplice $ SpliceInfo True
-                                               msg
-                                               Nothing
-                                               Nothing
-                                               (ppr th_rn_decls)
+                    ; traceSplice $ SpliceInfo { spliceDescription = msg
+                                               , spliceIsDecl    = True
+                                               , spliceSource    = Nothing
+                                               , spliceGenerated = ppr th_rn_decls }
 
                     ; return (tcg_env, appendGroups rn_decls th_rn_decls)
                     }
@@ -586,17 +631,7 @@ tc_rn_src_decls boot_details ds
         -- If there is no splice, we're nearly done
       ; setEnvs (tcg_env, tcl_env) $
         case group_tail of
-          { Nothing -> do { tcg_env <- checkMain       -- Check for `main'
-#ifdef ETA_REPL
-                            -- Run all module finalizers
-                          ; th_modfinalizers_var <- fmap tcg_th_modfinalizers getGblEnv
-                          ; modfinalizers <- readTcRef th_modfinalizers_var
-                          ; writeTcRef th_modfinalizers_var []
-                          ; mapM_ runQuasi modfinalizers
-#endif /* ETA_REPL */
-                          ; return (tcg_env, tcl_env)
-                          }
-
+          { Nothing ->  return (tcg_env, tcl_env)
 #ifndef ETA_REPL
             -- There shouldn't be a splice
           ; Just (SpliceDecl {}, _) ->
@@ -642,7 +677,7 @@ tcRnHsBootDecls hsc_src decls
                    hs_valds  = val_binds }) <- rnTopSrcDecls [] first_group
         -- The empty list is for extra dependencies coming from .hs-boot files
         -- See Note [Extra dependencies from .hs-boot files] in RnSource
-        ; (gbl_env, lie) <- captureConstraints $ setGblEnv tcg_env $ do {
+        ; (gbl_env, lie) <- captureTopConstraints $ setGblEnv tcg_env $ do {
 
 
                 -- Check for illegal declarations
@@ -1283,16 +1318,16 @@ type checking 'S' we'll produce a decent error message.
 ************************************************************************
 -}
 
-checkMain :: TcM TcGblEnv
+checkMain :: Bool  -- False => no 'module M(..) where' header at all
+          -> TcM TcGblEnv
 -- If we are in module Main, check that 'main' is defined.
-checkMain
-  = do { tcg_env   <- getGblEnv ;
-         dflags    <- getDynFlags ;
-         check_main dflags tcg_env
-    }
+checkMain explicit_mod_hdr
+ = do   { dflags  <- getDynFlags
+        ; tcg_env <- getGblEnv
+        ; check_main dflags tcg_env explicit_mod_hdr }
 
-check_main :: DynFlags -> TcGblEnv -> TcM TcGblEnv
-check_main dflags tcg_env
+check_main :: DynFlags -> TcGblEnv -> Bool -> TcM TcGblEnv
+check_main dflags tcg_env explicit_mod_hdr
  | mod /= main_mod
  = traceTc "checkMain not" (ppr main_mod <+> ppr mod) >>
    return tcg_env
@@ -1341,16 +1376,17 @@ check_main dflags tcg_env
     mod          = tcg_mod tcg_env
     main_mod     = mainModIs dflags
     main_fn      = getMainFun dflags
+    interactive  = ghcLink dflags == LinkInMemory
 
-    complain_no_main | ghcLink dflags == LinkInMemory = return ()
-                     | otherwise = failWithTc noMainMsg
-        -- In interactive mode, don't worry about the absence of 'main'
+    complain_no_main = checkTc (interactive && not explicit_mod_hdr) noMainMsg
+        -- In interactive mode, without an explicit module header, don't
+        -- worry about the absence of 'main'.
         -- In other modes, fail altogether, so that we don't go on
         -- and complain a second time when processing the export list.
 
-    mainCtxt  = ptext (sLit "When checking the type of the") <+> pp_main_fn
-    noMainMsg = ptext (sLit "The") <+> pp_main_fn
-                <+> ptext (sLit "is not defined in module") <+> quotes (ppr main_mod)
+    mainCtxt  = text "When checking the type of the" <+> pp_main_fn
+    noMainMsg = text "The" <+> pp_main_fn
+                <+> text "is not defined in module" <+> quotes (ppr main_mod)
     pp_main_fn = ppMainFn main_fn
 
 -- | Get the unqualified name of the function to use as the \"main\" for the main module.
@@ -1629,7 +1665,7 @@ tcUserStmt rdr_stmt@(L loc _)
              fix_env <- getFixityEnv
              return (fix_env, emptyFVs)
             -- Don't try to typecheck if the renamer fails!
-       ; traceRn (text "tcRnStmt" <+> vcat [ppr rdr_stmt, ppr rn_stmt, ppr fvs])
+       ; traceRn "tcRnStmt" (vcat [ppr rdr_stmt, ppr rn_stmt, ppr fvs])
        ; rnDump (ppr rn_stmt) ;
 
        ; ghciStep <- getGhciStepIO
@@ -1661,6 +1697,27 @@ tcUserStmt rdr_stmt@(L loc _)
                                     (HsVar thenIOName) noSyntaxExpr
                                     placeHolderType
 
+{-
+Note [GHCi Plans]
+
+When a user types an expression in the repl we try to print it in three different
+ways. Also, depending on whether -fno-it is set, we bind a variable called `it`
+which can be used to refer to the result of the expression subsequently in the repl.
+
+The normal plans are :
+  A. [it <- e; print e]     but not if it::()
+  B. [it <- e]
+  C. [let it = e; print it]
+
+When -fno-it is set, the plans are:
+  A. [e >>= print]
+  B. [e]
+  C. [let it = e in print it]
+
+The reason for -fno-it is explained in #14336. `it` can lead to the repl
+leaking memory as it is repeatedly queried.
+-}
+
 -- | Typecheck the statements given and then return the results of the
 -- statement in the form 'IO [()]'.
 tcGhciStmts :: [GhciLStmt Name] -> TcM PlanResult
@@ -1676,18 +1733,15 @@ tcGhciStmts stmts
 
         -- OK, we're ready to typecheck the stmts
         traceTc "TcRnDriver.tcGhciStmts: tc stmts" empty ;
-        ((tc_stmts, ids), lie) <- captureConstraints $
+        ((tc_stmts, ids), lie) <- captureTopConstraints $
                                   tc_io_stmts $ \ _ ->
                                   mapM tcLookupId names  ;
                         -- Look up the names right in the middle,
                         -- where they will all be in scope
 
-        -- wanted constraints from static forms
-        stWC <- tcg_static_wc <$> getGblEnv >>= readTcRef ;
-
         -- Simplify the context
         traceTc "TcRnDriver.tcGhciStmts: simplify ctxt" empty ;
-        const_binds <- checkNoErrs (simplifyInteractive (andWC stWC lie)) ;
+        const_binds <- checkNoErrs (simplifyInteractive lie) ;
                 -- checkNoErrs ensures that the plan fails if context redn fails
 
         traceTc "TcRnDriver.tcGhciStmts: done" empty ;
@@ -1767,17 +1821,14 @@ tcRnExpr hsc_env rdr_expr
     (((_tc_expr, res_ty), tclvl), lie) <- captureConstraints $
                                           captureTcLevel     $
                                           tcInferRho rn_expr ;
-    ((qtvs, dicts, _, _), lie_top) <- captureConstraints $
+    ((qtvs, dicts, _, _), lie_top) <- captureTopConstraints $
                                       {-# SCC "simplifyInfer" #-}
                                       simplifyInfer tclvl
                                                     False {- No MR for now -}
                                                     [(fresh_it, res_ty)]
                                                     lie ;
-    -- wanted constraints from static forms
-    stWC <- tcg_static_wc <$> getGblEnv >>= readTcRef ;
-
     -- Ignore the dictionary bindings
-    _ <- simplifyInteractive (andWC stWC lie_top) ;
+    _ <- simplifyInteractive lie_top ;
 
     let { all_expr_ty = mkForAllTys qtvs (mkPiTypes dicts res_ty) } ;
     ty <- zonkTcType all_expr_ty ;
@@ -1863,13 +1914,10 @@ tcRnDeclsi hsc_env local_decls =
   runTcInteractive hsc_env $ do
 
     ((tcg_env, tclcl_env), lie) <-
-        captureConstraints $ tc_rn_src_decls emptyModDetails local_decls
+        captureTopConstraints $ tc_rn_src_decls emptyModDetails local_decls
     setEnvs (tcg_env, tclcl_env) $ do
 
-    -- wanted constraints from static forms
-    stWC <- tcg_static_wc <$> getGblEnv >>= readTcRef
-
-    new_ev_binds <- simplifyTop (andWC stWC lie)
+    new_ev_binds <- simplifyTop lie
 
     failIfErrsM
     let TcGblEnv { tcg_type_env  = type_env,
@@ -1952,7 +2000,7 @@ tcRnLookupName' name = do
 
 tcRnGetInfo :: HscEnv
             -> Name
-            -> IO (Messages, Maybe (TyThing, Fixity, [ClsInst], [FamInst]))
+            -> IO (Messages, Maybe (TyThing, Fixity, [ClsInst], [FamInst], SDoc))
 
 -- Used to implement :info in GHCi
 --
@@ -1972,7 +2020,8 @@ tcRnGetInfo hsc_env name
        ; thing  <- tcRnLookupName' name
        ; fixity <- lookupFixityRn name
        ; (cls_insts, fam_insts) <- lookupInsts thing
-       ; return (thing, fixity, cls_insts, fam_insts) }
+       ; let info = lookupKnownNameInfo name
+       ; return (thing, fixity, cls_insts, fam_insts, info) }
 
 lookupInsts :: TyThing -> TcM ([ClsInst],[FamInst])
 lookupInsts (ATyCon tc)

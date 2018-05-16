@@ -106,7 +106,7 @@ module ETA.Types.Type (
         tyConsOfType,
 
         -- * Type representation for the code generator
-        typePrimRep, typeRepArity,
+        typePrimRep, typePrimRepMany, typeRepArity,
         tagTypeToText, rawTagTypeToText,
 
         -- * Main type substitution data types
@@ -125,7 +125,7 @@ module ETA.Types.Type (
         isEmptyTvSubst, unionTvSubst,
 
         -- ** Performing substitution on types and kinds
-        substTy, substTys, substTyWith, substTysWith, substTheta,
+        substTy, substTyAddInScope, substTys, substTyWith, substTysWith, substTheta,
         substTyVar, substTyVars, substTyVarBndr,
         cloneTyVarBndr, deShadowTy, lookupTyVar,
         substKiWith, substKisWith,
@@ -758,6 +758,12 @@ typePrimRep ty
         AppTy _ _     -> PtrRep      -- See Note [AppTy rep]
         TyVarTy _     -> PtrRep
         _             -> pprPanic "typePrimRep: UnaryRep" (ppr ty)
+
+typePrimRepMany :: Type -> [PrimRep]
+typePrimRepMany ty
+  = case repType ty of
+      UbxTupleRep utys -> map typePrimRep utys
+      UnaryRep uty -> [typePrimRep uty]
 
 mkObjectRep :: Text -> PrimRep
 mkObjectRep text
@@ -1640,6 +1646,14 @@ substTysWith tvs tys = ASSERT( length tvs == length tys )
 
 substKisWith :: [KindVar] -> [Kind] -> [Kind] -> [Kind]
 substKisWith = substTysWith
+
+-- | Substitute within a 'Type' after adding the free variables of the type
+-- to the in-scope set. This is useful for the case when the free variables
+-- aren't already in the in-scope set or easily available.
+-- See also Note [The substitution invariant].
+substTyAddInScope :: TvSubst -> Type -> Type
+substTyAddInScope subst ty =
+  substTy (extendTvInScopeList subst $ varSetElems $ tyVarsOfType ty) ty
 
 -- | Substitute within a 'Type'
 substTy :: TvSubst -> Type  -> Type

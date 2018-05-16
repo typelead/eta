@@ -13,10 +13,9 @@ module ETA.TypeCheck.TcExpr ( tcPolyExpr, tcPolyExprNC, tcMonoExpr, tcMonoExprNC
                 tcSyntaxOp, tcCheckId,
                 addExprErrCtxt) where
 
--- import {-# SOURCE #-}   ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
-import ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
+import {-# SOURCE #-}   ETA.TypeCheck.TcSplice( tcSpliceExpr, tcTypedBracket, tcUntypedBracket )
 #ifdef ETA_REPL
-import ETA.DeSugar.DsMeta( liftStringName, liftName )
+import ETA.Prelude.THNames as THNames
 #endif
 
 import ETA.HsSyn.HsSyn
@@ -825,12 +824,15 @@ tcExpr (PArrSeq _ _) _
 ************************************************************************
 -}
 
-tcExpr (HsSpliceE is_ty splice)  res_ty
-  = ASSERT( is_ty )   -- Untyped splices are expanded by the renamer
-   tcSpliceExpr splice res_ty
+tcExpr (HsSpliceE (HsSpliced mod_finalizers (HsSplicedExpr expr)))
+       res_ty
+  = do addModFinalizersWithLclEnv mod_finalizers
+       tcExpr expr res_ty
+tcExpr (HsSpliceE splice)          res_ty
+  = tcSpliceExpr splice res_ty
 
-tcExpr (HsBracket brack)         res_ty = tcTypedBracket   brack res_ty
-tcExpr (HsRnBracketOut brack ps) res_ty = tcUntypedBracket brack ps res_ty
+tcExpr e@(HsBracket brack)         res_ty = tcTypedBracket e brack res_ty
+tcExpr e@(HsRnBracketOut brack ps) res_ty = tcUntypedBracket e brack ps res_ty
 
 {-
 ************************************************************************
@@ -1285,18 +1287,18 @@ checkCrossStageLifting id (Brack _ (TcPending ps_var lie_var))
                -- just going to flag an error for now
 
         ; lift <- if isStringTy id_ty then
-                     do { sid <- tcLookupId DsMeta.liftStringName
+                     do { sid <- tcLookupId THNames.liftStringName
                                      -- See Note [Lifting strings]
                         ; return (HsVar sid) }
                   else
                      setConstraintVar lie_var   $
                           -- Put the 'lift' constraint into the right LIE
                      newMethodFromName (OccurrenceOf (idName id))
-                                       DsMeta.liftName id_ty
+                                       THNames.liftName id_ty
 
                    -- Update the pending splices
         ; ps <- readMutVar ps_var
-        ; let pending_splice = PendSplice (idName id) (nlHsApp (noLoc lift) (nlHsVar id))
+        ; let pending_splice = PendingTcSplice (idName id) (nlHsApp (noLoc lift) (nlHsVar id))
         ; writeMutVar ps_var (pending_splice : ps)
 
         ; return () }

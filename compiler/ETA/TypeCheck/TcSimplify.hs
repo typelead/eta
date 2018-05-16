@@ -4,13 +4,15 @@ module ETA.TypeCheck.TcSimplify(
        simplifyAmbiguityCheck,
        simplifyDefault,
        simplifyRule, simplifyTop, simplifyInteractive,
-       solveWantedsTcM
+       solveWantedsTcM,
+       captureTopConstraints
   ) where
 
 
 import ETA.TypeCheck.TcRnTypes
 import ETA.TypeCheck.TcRnMonad
 import qualified ETA.TypeCheck.TcRnMonad as TcRnMonad
+import qualified ETA.TypeCheck.TcRnMonad as TcM
 import ETA.TypeCheck.TcErrors
 import ETA.TypeCheck.TcMType as TcM
 import ETA.TypeCheck.TcType
@@ -49,6 +51,27 @@ import Data.List( partition )
 *                                                                               *
 *********************************************************************************
 -}
+
+captureTopConstraints :: TcM a -> TcM (a, WantedConstraints)
+-- (captureTopConstraints m) runs m, and returns the type constraints it
+-- generates plus the constraints produced by static forms inside.
+-- If it fails with an exception, it reports any insolubles
+-- (out of scope variables) before doing so
+captureTopConstraints thing_inside
+  = do { static_wc_var <- TcM.newTcRef emptyWC ;
+       ; (mb_res, lie) <- TcM.updGblEnv (\env -> env { tcg_static_wc = static_wc_var } ) $
+                          TcM.tryCaptureConstraints thing_inside
+       ; stWC <- TcM.readTcRef static_wc_var
+
+       -- See TcRnMonad Note [Constraints and errors]
+       -- If the thing_inside threw an exception, but generated some insoluble
+       -- constraints, report the latter before propagating the exception
+       -- Otherwise they will be lost altogether
+       ; case mb_res of
+           Right res -> return (res, lie `andWC` stWC)
+           Left {}   -> do { _ <- reportUnsolved lie; failM } }
+                -- This call to reportUnsolved is the reason
+                -- this function is here instead of TcRnMonad
 
 simplifyTop :: WantedConstraints -> TcM (Bag EvBind)
 -- Simplify top-level constraints

@@ -7,7 +7,7 @@
 {-# LANGUAGE CPP #-}
 module ETA.Prelude.PrelInfo (
         wiredInIds, ghcPrimIds,
-        primOpRules, builtinRules,
+        primOpRules, builtinRules, lookupKnownNameInfo,
 
         ghcPrimExports,
         wiredInThings, basicKnownKeyNames,
@@ -36,9 +36,11 @@ import ETA.Main.HscTypes
 import ETA.Types.Class
 import ETA.Types.TyCon
 import ETA.Utils.Util
+import ETA.BasicTypes.NameEnv
+import ETA.Utils.Outputable
 -- import {-# SOURCE #-} ETA.TypeCheck.TcTypeNats ( typeNatTyCons )
 import ETA.TypeCheck.TcTypeNats ( typeNatTyCons )
-
+import ETA.BasicTypes.Name
 import Data.Array
 
 {-
@@ -86,6 +88,23 @@ wiredInThings
   where
     tycon_things = map ATyCon ([funTyCon] ++ primTyCons ++ wiredInTyCons
                                     ++ typeNatTyCons)
+
+-- | Given a 'Unique' lookup any associated arbitrary SDoc's to be displayed by
+-- GHCi's ':info' command.
+lookupKnownNameInfo :: Name -> SDoc
+lookupKnownNameInfo name = case lookupNameEnv knownNamesInfo name of
+    -- If we do find a doc, we add comment delimeters to make the output
+    -- of ':info' valid Haskell.
+    Nothing  -> empty
+    Just doc -> vcat [text "{-", doc, text "-}"]
+
+-- A map from Uniques to SDocs, used in GHCi's ':info' command. (#12390)
+knownNamesInfo :: NameEnv SDoc
+knownNamesInfo = unitNameEnv coercibleTyConName $
+    vcat [ text "Coercible is a special constraint with custom solving rules."
+         , text "It is not a class."
+         , text "Please see section 9.14.4 of the user's guide for details." ]
+
 
 {-
 We let a lot of "non-standard" values be visible, so that we can make

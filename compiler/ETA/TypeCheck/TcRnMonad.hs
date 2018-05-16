@@ -17,7 +17,7 @@ module ETA.TypeCheck.TcRnMonad(
 import ETA.TypeCheck.TcRnTypes        -- Re-export all
 import ETA.Utils.IOEnv            -- Re-export all
 import ETA.TypeCheck.TcEvidence
-
+import {-# SOURCE #-} ETA.TypeCheck.TcSplice (runRemoteModFinalizers)
 import ETA.HsSyn.HsSyn hiding (LIE)
 import ETA.Main.HscTypes
 import ETA.BasicTypes.Module
@@ -770,14 +770,18 @@ reportWarning warn
          writeTcRef errs_var (warns `snocBag` warn, errs) }
 
 try_m :: TcRn r -> TcRn (Either IOEnvFailure r)
--- Does try_m, with a debug-trace on failure
+-- Does tryM, with a debug-trace on failure
 try_m thing
-  = do { mb_r <- tryM thing ;
-         case mb_r of
-             Left exn -> do { traceTc "tryTc/recoverM recovering from" $
-                                      text (showException exn)
-                            ; return mb_r }
-             Right _  -> return mb_r }
+  = do { (mb_r, lie) <- tryCaptureConstraints thing
+       ; emitConstraints lie
+
+       -- Debug trace
+       ; case mb_r of
+            Left exn -> traceTc "tryTc/recoverM recovering from" $
+                        text (showException exn)
+            Right {} -> return ()
+
+       ; return mb_r }
 
 -----------------------
 recoverM :: TcRn r      -- Recovery action; do this if the main one fails
@@ -1165,14 +1169,37 @@ emitInsoluble ct
          v <- readTcRef lie_var ;
          traceTc "emitInsoluble" (ppr v) }
 
+tryCaptureConstraints :: TcM a -> TcM (Either IOEnvFailure a, WantedConstraints)
+-- (captureConstraints_maybe m) runs m,
+-- and returns the type constraints it generates
+-- It never throws an exception; instead if thing_inside fails,
+--   it returns Left exn and the insoluble constraints
+tryCaptureConstraints thing_inside
+  = do { lie_var <- newTcRef emptyWC
+       ; mb_res <- tryM $
+                   updLclEnv (\ env -> env { tcl_lie = lie_var }) $
+                   thing_inside
+       ; lie <- readTcRef lie_var
+
+       -- See Note [Constraints and errors]
+       ; let lie_to_keep = case mb_res of
+                             Left {}  -> insolublesOnly lie
+                             Right {} -> lie
+
+       ; return (mb_res, lie_to_keep) }
+
 captureConstraints :: TcM a -> TcM (a, WantedConstraints)
 -- (captureConstraints m) runs m, and returns the type constraints it generates
 captureConstraints thing_inside
-  = do { lie_var <- newTcRef emptyWC ;
-         res <- updLclEnv (\ env -> env { tcl_lie = lie_var })
-                          thing_inside ;
-         lie <- readTcRef lie_var ;
-         return (res, lie) }
+  = do { (mb_res, lie) <- tryCaptureConstraints thing_inside
+
+            -- See Note [Constraints and errors]
+            -- If the thing_inside threw an exception, emit the insoluble
+            -- constraints only (returned by tryCaptureConstraints)
+            -- so that they are not lost
+       ; case mb_res of
+           Left _    -> do { emitConstraints lie; failM }
+           Right res -> return (res, lie) }
 
 captureTcLevel :: TcM a -> TcM (a, TcLevel)
 captureTcLevel thing_inside
@@ -1182,15 +1209,13 @@ captureTcLevel thing_inside
                 thing_inside
        ; return (res, tclvl') }
 
+-- | The name says it all. The returned TcLevel is the *inner* TcLevel.
 pushLevelAndCaptureConstraints :: TcM a -> TcM (a, TcLevel, WantedConstraints)
 pushLevelAndCaptureConstraints thing_inside
   = do { env <- getLclEnv
-       ; lie_var <- newTcRef emptyWC ;
        ; let tclvl' = pushTcLevel (tcl_tclvl env)
-       ; res <- setLclEnv (env { tcl_tclvl = tclvl'
-                               , tcl_lie   = lie_var })
-                thing_inside
-       ; lie <- readTcRef lie_var
+       ; (res, lie) <- setLclEnv (env { tcl_tclvl = tclvl' }) $
+                       captureConstraints thing_inside
        ; return (res, tclvl', lie) }
 
 pushTcLevelM :: TcM a -> TcM a
@@ -1249,7 +1274,59 @@ emitWildcardHoleConstraints wcs
                                , cc_hole = TypeHole }
        ; emitInsoluble can } }
 
-{-
+{- Note [Constraints and errors]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Consider this (Trac #12124):
+
+  foo :: Maybe Int
+  foo = return (case Left 3 of
+                  Left -> 1  -- Hard error here!
+                  _    -> 0)
+
+The call to 'return' will generate a (Monad m) wanted constraint; but
+then there'll be "hard error" (i.e. an exception in the TcM monad), from
+the unsaturated Left constructor pattern.
+
+We'll recover in tcPolyBinds, using recoverM.  But then the final
+tcSimplifyTop will see that (Monad m) constraint, with 'm' utterly
+un-filled-in, and will emit a misleading error message.
+
+The underlying problem is that an exception interrupts the constraint
+gathering process. Bottom line: if we have an exception, it's best
+simply to discard any gathered constraints.  Hence in 'try_m' we
+capture the constraints in a fresh variable, and only emit them into
+the surrounding context if we exit normally.  If an exception is
+raised, simply discard the collected constraints... we have a hard
+error to report.  So this capture-the-emit dance isn't as stupid as it
+looks :-).
+
+However suppose we throw an exception inside an invocation of
+captureConstraints, and discard all the constraints. Some of those
+constraints might be "variable out of scope" Hole constraints, and that
+might have been the actual original cause of the exception!  For
+example (Trac #12529):
+   f = p @ Int
+Here 'p' is out of scope, so we get an insolube Hole constraint. But
+the visible type application fails in the monad (thows an exception).
+We must not discard the out-of-scope error.
+
+So we /retain the insoluble constraints/ if there is an exception.
+Hence:
+  - insolublesOnly in tryCaptureConstraints
+  - emitConstraints in the Left case of captureConstraints
+
+Hover note that fresly-generated constraints like (Int ~ Bool), or
+((a -> b) ~ Int) are all CNonCanonical, and hence won't be flagged as
+insoluble.  The constraint solver does that.  So they'll be discarded.
+That's probably ok; but see th/5358 as a not-so-good example:
+   t1 :: Int
+   t1 x = x   -- Manifestly wrong
+
+   foo = $(...raises exception...)
+We report the exception, but not the bug in t1.  Oh well.  Possible
+solution: make TcUnify.uType spot manifestly-insoluble constraints.
+
+
 ************************************************************************
 *                                                                      *
              Template Haskell context
@@ -1281,6 +1358,16 @@ getStageAndBindLevel name
 
 setStage :: ThStage -> TcM a -> TcRn a
 setStage s = updLclEnv (\ env -> env { tcl_th_ctxt = s })
+
+-- | Adds the given modFinalizers to the global environment and set them to use
+-- the current local environment.
+addModFinalizersWithLclEnv :: ThModFinalizers -> TcM ()
+addModFinalizersWithLclEnv mod_finalizers
+  = do lcl_env <- getLclEnv
+       th_modfinalizers_var <- fmap tcg_th_modfinalizers getGblEnv
+       updTcRef th_modfinalizers_var $ \fins ->
+         setLclEnv lcl_env (runRemoteModFinalizers mod_finalizers)
+         : fins
 
 {-
 ************************************************************************

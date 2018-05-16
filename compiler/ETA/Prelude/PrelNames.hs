@@ -1062,7 +1062,9 @@ mkPolyTyConAppName    = varQual tYPEABLE_INTERNAL (fsLit "mkPolyTyConApp") mkPol
 mkAppTyName           = varQual tYPEABLE_INTERNAL (fsLit "mkAppTy")        mkAppTyKey
 typeLitTypeRepName    = varQual tYPEABLE_INTERNAL (fsLit "typeLitTypeRep") typeLitTypeRepKey
 
-
+-- Dynamic
+toDynName :: Name
+toDynName = varQual dYNAMIC (fsLit "toDyn") toDynIdKey
 
 -- Class Data
 dataClassName :: Name
@@ -2036,6 +2038,10 @@ fromJStringIdKey     = mkPreludeMiscIdUnique 512
 toJStringIdKey       = mkPreludeMiscIdUnique 513
 classIdentifierClassOpKey = mkPreludeMiscIdUnique 514
 
+-- Dynamic
+toDynIdKey :: Unique
+toDynIdKey = mkPreludeMiscIdUnique 550
+
 {-
 ************************************************************************
 *                                                                      *
@@ -2085,3 +2091,19 @@ derivableClassKeys :: [Unique]
 derivableClassKeys
   = [ eqClassKey, ordClassKey, enumClassKey, ixClassKey,
       boundedClassKey, showClassKey, readClassKey, classClassKey ]
+
+{-
+************************************************************************
+*                                                                      *
+   Semi-builtin names
+*                                                                      *
+************************************************************************
+
+The following names should be considered by GHCi to be in scope always.
+
+-}
+
+pretendNameIsInScope :: Name -> Bool
+pretendNameIsInScope n
+  = any (n `hasKey`)
+    [ liftedTypeKindTyConKey ]

@@ -61,7 +61,7 @@ module ETA.TypeCheck.TcRnTypes(
 
         WantedConstraints(..), insolubleWC, emptyWC, isEmptyWC,
         andWC, unionsWC, addSimples, addImplics, mkSimpleWC, addInsols,
-        dropDerivedWC,
+        insolublesOnly, dropDerivedWC,
 
         Implication(..),
         SubGoalCounter(..),
@@ -492,8 +492,30 @@ data TcGblEnv
 
         tcg_static_wc :: TcRef WantedConstraints
           -- ^ Wanted constraints of static forms.
+        -- See Note [Constraints in static forms].
     }
 
+-- Note [Constraints in static forms]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- When a static form produces constraints like
+--
+-- f :: StaticPtr (Bool -> String)
+-- f = static show
+--
+-- we collect them in tcg_static_wc and resolve them at the end
+-- of type checking. They need to be resolved separately because
+-- we don't want to resolve them in the context of the enclosing
+-- expression. Consider
+--
+-- g :: Show a => StaticPtr (a -> String)
+-- g = static show
+--
+-- If the @Show a0@ constraint that the body of the static form produces was
+-- resolved in the context of the enclosing expression, then the body of the
+-- static form wouldn't be closed because the Show dictionary would come from
+-- g's context instead of coming from the top level.
+--
 -- Note [Signature parameters in TcGblEnv and DynFlags]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- When compiling signature files, we need to know which implementation
@@ -1361,6 +1383,13 @@ isHoleCt:: Ct -> Bool
 isHoleCt (CHoleCan {}) = True
 isHoleCt _ = False
 
+-- TODO: Finish backport
+-- isOutOfScopeCt :: Ct -> Bool
+-- -- We treat expression holes representing out-of-scope variables a bit
+-- -- differently when it comes to error reporting
+-- isOutOfScopeCt (CHoleCan { cc_hole = ExprHole (OutOfScope {}) }) = True
+-- isOutOfScopeCt _ = False
+
 isTypedHoleCt :: Ct -> Bool
 isTypedHoleCt (CHoleCan { cc_hole = ExprHole }) = True
 isTypedHoleCt _ = False
@@ -1474,6 +1503,43 @@ addInsols :: WantedConstraints -> Bag Ct -> WantedConstraints
 addInsols wc cts
   = wc { wc_insol = wc_insol wc `unionBags` cts }
 
+-- TODO: Properly backport these changes
+insolublesOnly :: WantedConstraints -> WantedConstraints
+-- Keep only the definitely-insoluble constraints
+insolublesOnly x = x
+--(WC { wc_simple = simples, wc_impl = implics })
+--   = WC { wc_simple = filterBag insolubleWantedCt simples
+--        , wc_impl   = mapBag implic_insols_only implics }
+--   where
+--     implic_insols_only implic
+--       = implic { ic_wanted = insolublesOnly (ic_wanted implic) }
+
+-- insolubleWantedCt :: Ct -> Bool
+-- -- Definitely insoluble, in particular /excluding/ type-hole constraints
+-- insolubleWantedCt ct
+--   | isGivenCt ct     = False              -- See Note [Given insolubles]
+--   | isHoleCt ct      = isOutOfScopeCt ct  -- See Note [Insoluble holes]
+--   | insolubleEqCt ct = True
+--   | otherwise        = False
+
+-- insolubleEqCt :: Ct -> Bool
+-- -- Returns True of /equality/ constraints
+-- -- that are /definitely/ insoluble
+-- -- It won't detect some definite errors like
+-- --       F a ~ T (F a)
+-- -- where F is a type family, which actually has an occurs check
+-- --
+-- -- The function is tuned for application /after/ constraint solving
+-- --       i.e. assuming canonicalisation has been done
+-- -- E.g.  It'll reply True  for     a ~ [a]
+-- --               but False for   [a] ~ a
+-- -- and
+-- --                   True for  Int ~ F a Int
+-- --               but False for  Maybe Int ~ F a Int Int
+-- --               (where F is an arity-1 type function)
+-- insolubleEqCt (CIrredCan { cc_insol = insol }) = insol
+-- insolubleEqCt _                                = False
+
 instance Outputable WantedConstraints where
   ppr (WC {wc_simple = s, wc_impl = i, wc_insol = n})
    = ptext (sLit "WC") <+> braces (vcat
@@ -1487,7 +1553,43 @@ ppr_bag doc bag
  | otherwise      = hang (doc <+> equals)
                        2 (foldrBag (($$) . ppr) empty bag)
 
-{-
+{- Note [Given insolubles]
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Consider (Trac #14325, comment:)
+    class (a~b) => C a b
+
+    foo :: C a c => a -> c
+    foo x = x
+
+    hm3 :: C (f b) b => b -> f b
+    hm3 x = foo x
+
+In the RHS of hm3, from the [G] C (f b) b we get the insoluble
+[G] f b ~# b.  Then we also get an unsolved [W] C b (f b).
+Residual implication looks like
+    forall b. C (f b) b => [G] f b ~# b
+                           [W] C f (f b)
+
+We do /not/ want to set the implication status to IC_Insoluble,
+because that'll suppress reports of [W] C b (f b).  But we
+may not report the insoluble [G] f b ~# b either (see Note [Given errors]
+in TcErrors), so we may fail to report anything at all!  Yikes.
+
+Bottom line: insolubleWC (called in TcSimplify.setImplicationStatus)
+             should ignore givens even if they are insoluble.
+
+Note [Insoluble holes]
+~~~~~~~~~~~~~~~~~~~~~~
+Hole constraints that ARE NOT treated as truly insoluble:
+  a) type holes, arising from PartialTypeSignatures,
+  b) "true" expression holes arising from TypedHoles
+
+An "expression hole" or "type hole" constraint isn't really an error
+at all; it's a report saying "_ :: Int" here.  But an out-of-scope
+variable masquerading as expression holes IS treated as truly
+insoluble, so that it trumps other errors during error reporting.
+Yuk!
+
 ************************************************************************
 *                                                                      *
                 Implication constraints
