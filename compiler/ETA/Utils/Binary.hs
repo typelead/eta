@@ -67,7 +67,7 @@ import ETA.Utils.FastMutInt
 import ETA.Utils.Fingerprint
 import ETA.BasicTypes.BasicTypes
 import ETA.BasicTypes.SrcLoc
-
+import Eta.Serialized
 import Foreign
 import Data.Array
 import Data.ByteString (ByteString)
@@ -933,3 +933,12 @@ instance Binary SrcSpan where
                                       (mkSrcLoc f el ec))
             _ -> do s <- get bh
                     return (UnhelpfulSpan s)
+
+instance Binary Serialized where
+    put_ bh (Serialized the_type bytes) = do
+        put_ bh the_type
+        put_ bh bytes
+    get bh = do
+        the_type <- get bh
+        bytes <- get bh
+        return (Serialized the_type bytes)

@@ -13,17 +13,16 @@ module ETA.Main.Annotations (
         -- * AnnEnv for collecting and querying Annotations
         AnnEnv,
         mkAnnEnv, extendAnnEnvList, plusAnnEnv, emptyAnnEnv, findAnns,
-        deserializeAnns
+        findAnnsByTypeRep, deserializeAnns
     ) where
 
 import ETA.Utils.Binary
 import ETA.BasicTypes.Module           ( Module )
 import ETA.BasicTypes.Name
 import ETA.Utils.Outputable
-import ETA.Utils.Serialized
 import ETA.Utils.UniqFM
 import ETA.BasicTypes.Unique
-
+import Eta.Serialized
 import Control.Monad
 import Data.Maybe
 import Data.Typeable
@@ -42,8 +41,8 @@ type AnnPayload = Serialized    -- ^ The "payload" of an annotation
                                 --   and can be persisted to an interface file
 
 -- | An annotation target
-data AnnTarget name 
-  = NamedTarget name          -- ^ We are annotating something with a name: 
+data AnnTarget name
+  = NamedTarget name          -- ^ We are annotating something with a name:
                               --      a type or identifier
   | ModuleTarget Module       -- ^ We are annotating a particular module
 
@@ -98,7 +97,7 @@ mkAnnEnv = extendAnnEnvList emptyAnnEnv
 
 -- | Add the given annotation to the environment.
 extendAnnEnvList :: AnnEnv -> [Annotation] -> AnnEnv
-extendAnnEnvList (MkAnnEnv env) anns 
+extendAnnEnvList (MkAnnEnv env) anns
   = MkAnnEnv $ addListToUFM_C (++) env $
     map (\ann -> (getUnique (ann_target ann), [ann_value ann])) anns
 
@@ -106,13 +105,21 @@ extendAnnEnvList (MkAnnEnv env) anns
 plusAnnEnv :: AnnEnv -> AnnEnv -> AnnEnv
 plusAnnEnv (MkAnnEnv env1) (MkAnnEnv env2) = MkAnnEnv $ plusUFM_C (++) env1 env2
 
--- | Find the annotations attached to the given target as 'Typeable' 
---   values of your choice. If no deserializer is specified, 
+-- | Find the annotations attached to the given target as 'Typeable'
+--   values of your choice. If no deserializer is specified,
 --   only transient annotations will be returned.
 findAnns :: Typeable a => ([Word8] -> a) -> AnnEnv -> CoreAnnTarget -> [a]
-findAnns deserialize (MkAnnEnv ann_env) 
+findAnns deserialize (MkAnnEnv ann_env)
   = (mapMaybe (fromSerialized deserialize))
     . (lookupWithDefaultUFM ann_env [])
+
+-- | Find the annotations attached to the given target as 'Typeable'
+--   values of your choice. If no deserializer is specified,
+--   only transient annotations will be returned.
+findAnnsByTypeRep :: AnnEnv -> CoreAnnTarget -> TypeRep -> [[Word8]]
+findAnnsByTypeRep (MkAnnEnv ann_env) target tyrep
+  = [ ws | Serialized tyrep' ws <- lookupWithDefaultUFM ann_env [] target
+    , tyrep' == tyrep ]
 
 -- | Deserialize all annotations of a given type. This happens lazily, that is
 --   no deserialization will take place until the [a] is actually demanded and
@@ -120,4 +127,3 @@ findAnns deserialize (MkAnnEnv ann_env)
 deserializeAnns :: Typeable a => ([Word8] -> a) -> AnnEnv -> UniqFM [a]
 deserializeAnns deserialize (MkAnnEnv ann_env)
   = mapUFM (mapMaybe (fromSerialized deserialize)) ann_env
-

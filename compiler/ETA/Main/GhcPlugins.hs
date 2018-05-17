@@ -42,7 +42,7 @@ module ETA.Main.GhcPlugins(
         module ETA.Utils.UniqFM,
         module ETA.Utils.FiniteMap,
         module ETA.Utils.Util,
-        module ETA.Utils.Serialized,
+        module Eta.Serialized,
         module ETA.BasicTypes.SrcLoc,
         module ETA.Utils.Outputable,
         module ETA.BasicTypes.UniqSupply,
@@ -104,7 +104,7 @@ import ETA.Utils.FiniteMap
 
 -- Common utilities
 import ETA.Utils.Util
-import ETA.Utils.Serialized
+import Eta.Serialized
 import ETA.BasicTypes.SrcLoc
 import ETA.Utils.Outputable
 import ETA.BasicTypes.UniqSupply

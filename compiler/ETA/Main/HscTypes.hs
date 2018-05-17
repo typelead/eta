@@ -188,7 +188,7 @@ import ETA.Utils.Binary
 import ETA.Main.ErrUtils
 import ETA.Utils.Platform
 import ETA.Utils.Util
-import ETA.Utils.Serialized       ( Serialized )
+import Eta.Serialized       ( Serialized )
 
 import Codec.JVM (MethodDef, FieldDef)
 

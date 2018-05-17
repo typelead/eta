@@ -89,7 +89,7 @@ import ETA.Utils.Platform
 import ETA.Utils.Pretty           ( Doc, Mode(..) )
 import qualified ETA.Utils.PprColor as Col
 import ETA.Utils.Panic
-
+import Eta.Serialized
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Char
@@ -761,6 +761,10 @@ instance (Outputable elt) => Outputable (IM.IntMap elt) where
 
 instance Outputable Fingerprint where
     ppr (Fingerprint w1 w2) = text (printf "%016x%016x" w1 w2)
+
+instance Outputable Serialized where
+    ppr (Serialized the_type bytes) = int (length bytes) <+> ptext (sLit "of type")
+      <+> text (show the_type)
 
 {-
 ************************************************************************

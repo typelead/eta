@@ -93,6 +93,16 @@ instance Show IOEnvFailure where
 
 instance Exception IOEnvFailure
 
+instance ExceptionMonad (IOEnv a) where
+  gcatch act handle =
+      IOEnv $ \s -> unIOEnv act s `gcatch` \e -> unIOEnv (handle e) s
+  gmask f =
+      IOEnv $ \s -> gmask $ \io_restore ->
+                             let
+                                g_restore (IOEnv m) = IOEnv $ \s -> io_restore (m s)
+                             in
+                                unIOEnv (f g_restore) s
+
 instance ContainsDynFlags env => HasDynFlags (IOEnv env) where
     getDynFlags = do env <- getEnv
                      return $ extractDynFlags env
@@ -216,4 +226,3 @@ setEnv new_env (IOEnv m) = IOEnv (\ _ -> m new_env)
 updEnv :: (env -> env') -> IOEnv env' a -> IOEnv env a
 {-# INLINE updEnv #-}
 updEnv upd (IOEnv m) = IOEnv (\ env -> m (upd env))
-

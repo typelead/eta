@@ -47,7 +47,7 @@ import ETA.Main.DynFlags         ( DynFlags(..) )
 import ETA.Main.StaticFlags      ( opt_PprStyle_Debug )
 import ETA.Utils.Maybes           ( orElse, catMaybes, isJust, isNothing )
 import ETA.BasicTypes.Demand
-import ETA.Utils.Serialized       ( deserializeWithData )
+import Eta.Serialized       ( deserializeWithData )
 import ETA.Utils.Util
 import ETA.Utils.Pair
 import ETA.BasicTypes.UniqSupply

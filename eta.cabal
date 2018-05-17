@@ -311,7 +311,6 @@ library
                        , ETA.Utils.Platform
                        , ETA.Utils.PprColor
                        , ETA.Utils.Pretty
-                       , ETA.Utils.Serialized
                        , ETA.Utils.State
                        , ETA.Utils.Stream
                        , ETA.Utils.StringBuffer

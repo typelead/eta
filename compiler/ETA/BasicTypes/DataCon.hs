@@ -19,7 +19,7 @@ module ETA.BasicTypes.DataCon (
         buildAlgTyCon,
 
         -- ** Type deconstruction
-        dataConRepType, dataConSig, dataConFullSig,
+        dataConRepType, dataConSig, dataConInstSig, dataConFullSig,
         dataConName, dataConIdentity, dataConTag, dataConTagZ,
         dataConTyCon,
         dataConOrigTyCon, dataConUserType,
@@ -49,7 +49,7 @@ module ETA.BasicTypes.DataCon (
 #include "HsVersions.h"
 
 import {-# SOURCE #-} ETA.BasicTypes.MkId( DataConBoxer )
-import ETA.Types.Type
+import ETA.Types.Type as Type
 import ETA.Types.TypeRep( Type(..) )  -- Used in promoteType
 import ETA.Prelude.PrelNames( liftedTypeKindTyConKey )
 import ETA.Prelude.ForeignCall( CType )
@@ -73,6 +73,7 @@ import qualified Data.Data as Data
 import qualified Data.Typeable
 import Data.Maybe
 import Data.Char
+import Data.List (mapAccumL)
 import Data.Word
 
 {-
@@ -872,6 +873,25 @@ dataConSig (MkData {dcUnivTyVars = univ_tvs, dcExTyVars = ex_tvs,
                     dcOrigArgTys = arg_tys, dcOrigResTy = res_ty})
   = (univ_tvs ++ ex_tvs, eqSpecPreds eq_spec ++ theta, arg_tys, res_ty)
 
+dataConInstSig
+  :: DataCon
+  -> [Type]    -- Instantiate the *universal* tyvars with these types
+  -> ([TyVar], ThetaType, [Type])  -- Return instantiated existentials
+                                   -- theta and arg tys
+-- ^ Instantiate the universal tyvars of a data con,
+--   returning the instantiated existentials, constraints, and args
+dataConInstSig (MkData { dcUnivTyVars = univ_tvs, dcExTyVars = ex_tvs
+                       , dcEqSpec = eq_spec, dcOtherTheta  = theta
+                       , dcOrigArgTys = arg_tys })
+               univ_tys
+  = ( ex_tvs'
+    , substTheta subst (eqSpecPreds eq_spec ++ theta)
+    , substTys   subst arg_tys)
+  where
+    univ_subst = zipOpenTvSubst univ_tvs univ_tys
+    (subst, ex_tvs') = mapAccumL Type.substTyVarBndr univ_subst ex_tvs
+
+
 -- | The \"full signature\" of the 'DataCon' returns, in order:
 --
 -- 1) The result of 'dataConUnivTyVars'
@@ -1008,8 +1028,8 @@ dataConCannotMatch tys con
   | null theta        = False   -- Common
   | all isTyVarTy tys = False   -- Also common
   | otherwise
-  = typesCantMatch [(ETA.Types.Type.substTy subst ty1,
-                     ETA.Types.Type.substTy subst ty2)
+  = typesCantMatch [(Type.substTy subst ty1,
+                     Type.substTy subst ty2)
                    | (ty1, ty2) <- concatMap predEqs theta ]
   where
     dc_tvs  = dataConUnivTyVars con

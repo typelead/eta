@@ -37,7 +37,7 @@ module ETA.Types.TyCon(
         isTupleTyCon, isUnboxedTupleTyCon, isBoxedTupleTyCon,
         isTypeSynonymTyCon,
         isDecomposableTyCon,
-        isPromotedDataCon, isPromotedTyCon,
+        isPromotedDataCon, isPromotedTyCon, isPromotedTupleTyCon,
         isPromotedDataCon_maybe, isPromotedTyCon_maybe, isLiftedTypeKindTyConName,
         promotableTyCon_maybe, promoteTyCon,
 
@@ -97,7 +97,7 @@ module ETA.Types.TyCon(
 #include "HsVersions.h"
 
 import {-# SOURCE #-} ETA.Types.TypeRep ( Kind, Type, PredType )
-import {-# SOURCE #-} ETA.BasicTypes.DataCon ( DataCon, isVanillaDataCon )
+import {-# SOURCE #-} ETA.BasicTypes.DataCon ( DataCon, isVanillaDataCon, dataConTyCon )
 
 import ETA.BasicTypes.Var
 import ETA.Types.Class
@@ -1454,12 +1454,19 @@ isTupleTyCon _               = False
 isUnboxedTupleTyCon :: TyCon -> Bool
 isUnboxedTupleTyCon (TupleTyCon {tyConTupleSort = sort}) =
     not (isBoxed (tupleSortBoxity sort))
-isUnboxedTupleTyCon _                                    = False
+isUnboxedTupleTyCon _ = False
+
+-- | Is this the 'TyCon' for a /promoted/ tuple?
+isPromotedTupleTyCon :: TyCon -> Bool
+isPromotedTupleTyCon tyCon
+  | Just dataCon <- isPromotedDataCon_maybe tyCon
+  , isTupleTyCon (dataConTyCon dataCon) = True
+  | otherwise = False
 
 -- | Is this the 'TyCon' for a boxed tuple?
 isBoxedTupleTyCon :: TyCon -> Bool
 isBoxedTupleTyCon (TupleTyCon {tyConTupleSort = sort}) = isBoxed (tupleSortBoxity sort)
-isBoxedTupleTyCon _                                    = False
+isBoxedTupleTyCon _  = False
 
 -- | Extract the boxity of the given 'TyCon', if it is a 'TupleTyCon'.
 -- Panics otherwise

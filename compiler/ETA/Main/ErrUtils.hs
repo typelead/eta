@@ -11,7 +11,7 @@ module ETA.Main.ErrUtils (
         Validity(..), andValid, allValid, isValid, getInvalids,
 
         ErrMsg, WarnMsg, Severity(..),
-        Messages, ErrorMessages, WarningMessages,
+        Messages, ErrorMessages, WarningMessages, unionMessages,
         errMsgSpan, errMsgContext, errMsgShortDoc, errMsgExtraInfo,
         mkLocMessage, mkLocMessageAnn, pprMessageBag, pprErrMsgBag, pprErrMsgBagWithLoc,
         pprLocErrMsg, makeIntoWarning, isWarning,
@@ -45,7 +45,7 @@ module ETA.Main.ErrUtils (
 
 #include "HsVersions.h"
 
-import ETA.Utils.Bag              ( Bag, bagToList, isEmptyBag, emptyBag )
+import ETA.Utils.Bag              ( Bag, bagToList, isEmptyBag, emptyBag, unionBags )
 import ETA.Utils.Exception
 import ETA.Utils.Outputable
 import ETA.Utils.Panic
@@ -97,6 +97,10 @@ getInvalids vs = [d | NotValid d <- vs]
 type Messages        = (WarningMessages, ErrorMessages)
 type WarningMessages = Bag WarnMsg
 type ErrorMessages   = Bag ErrMsg
+
+unionMessages :: Messages -> Messages -> Messages
+unionMessages (warns1, errs1) (warns2, errs2) =
+  (warns1 `unionBags` warns2, errs1 `unionBags` errs2)
 
 data ErrMsg = ErrMsg {
         errMsgSpan      :: SrcSpan,
