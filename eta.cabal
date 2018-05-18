@@ -108,6 +108,7 @@ library
                        , ETA.DeSugar.MatchCon
                        , ETA.DeSugar.MatchLit
                        , ETA.DeSugar.StaticPtrTable
+                       , ETA.HsSyn.Convert
                        , ETA.HsSyn.HsBinds
                        , ETA.HsSyn.HsDecls
                        , ETA.HsSyn.HsDoc
