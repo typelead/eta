@@ -41,7 +41,7 @@ import ETA.Core.CoreSyn
 import ETA.BasicTypes.BasicTypes
 import ETA.Types.Type
 import ETA.BasicTypes.SrcLoc
-import Eta.REPL.RemoteTypes (ForeignHValue)
+import Eta.REPL.RemoteTypes
 import Data.Maybe
 import System.Process
 

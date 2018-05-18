@@ -102,7 +102,7 @@ import Data.Word
 import System.IO        ( Handle )
 import System.FilePath
 import Text.Printf
-
+import Data.String
 import GHC.Fingerprint
 import GHC.Show         ( showMultiLineString )
 
@@ -280,6 +280,9 @@ data SDocContext = SDC
     -- ^ The most recently used color.  This allows nesting colors.
   , sdocDynFlags   :: !DynFlags
   }
+
+instance IsString SDoc where
+  fromString = text
 
 initSDocContext :: DynFlags -> PprStyle -> SDocContext
 initSDocContext dflags sty = SDC

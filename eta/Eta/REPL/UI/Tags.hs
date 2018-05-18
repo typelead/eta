@@ -14,7 +14,7 @@ module Eta.REPL.UI.Tags (
 ) where
 
 import ETA.Utils.Exception
-import ETA.Main.GHC
+import ETA.Main.GHC as GHC
 import Eta.REPL.UI.Monad
 import ETA.Utils.Outputable
 

@@ -42,11 +42,11 @@ import ETA.Utils.FastString
 import ETA.Main.HscTypes
 import ETA.BasicTypes.SrcLoc
 import ETA.BasicTypes.Module
-import Eta.REPL
+import ETA.REPL
 import Eta.REPL.RemoteTypes
-import ETA.HsSyn.HsSyn (ImportDecl, GhcPs)
+import ETA.HsSyn.HsSyn (ImportDecl)
 import ETA.Utils.Util
-
+import ETA.BasicTypes.RdrName
 import ETA.Utils.Exception
 import Numeric
 import Data.Array
@@ -55,14 +55,13 @@ import Data.Time
 import System.Environment
 import System.IO
 import Control.Monad
-import Prelude hiding ((<>))
+import Prelude
 
 import System.Console.Haskeline (CompletionFunc, InputT)
 import qualified System.Console.Haskeline as Haskeline
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Data.Map.Strict (Map)
-import qualified Eta.LanguageExtensions as LangExt
 
 -----------------------------------------------------------------------------
 -- GHCi monad
@@ -110,7 +109,7 @@ data GHCiState = GHCiState
             -- :load, :reload, and :add.  In between it may be modified
             -- by :module.
 
-        extra_imports  :: [ImportDecl GhcPs],
+        extra_imports  :: [ImportDecl RdrName],
             -- ^ These are "always-on" imports, added to the
             -- context regardless of what other imports we have.
             -- This is useful for adding imports that are required
@@ -123,7 +122,7 @@ data GHCiState = GHCiState
             -- on the GHCi code.  Potentially we could also expose
             -- this functionality via GHCi commands.
 
-        prelude_imports :: [ImportDecl GhcPs],
+        prelude_imports :: [ImportDecl RdrName],
             -- ^ These imports are added to the context when
             -- -XImplicitPrelude is on and we don't have a *-module
             -- in the context.  They can also be overridden by another
@@ -463,7 +462,7 @@ compileGHCiExpr expr = do
       -- (see #13385 and #14342 for examples), so we take care to disable it
       -- for the duration of running expressions that are internal to GHCi.
       no_rb_hsc_env =
-        hsc_env { hsc_dflags = xopt_unset dflags LangExt.RebindableSyntax }
+        hsc_env { hsc_dflags = xopt_unset dflags Opt_RebindableSyntax }
   setSession no_rb_hsc_env
   res <- GHC.compileExprRemote expr
   setSession hsc_env

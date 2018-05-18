@@ -17,6 +17,8 @@ module ETA.Utils.Encoding (
         utf8PrevChar,
         utf8CharStart,
         utf8DecodeChar,
+        utf8DecodeByteString,
+        utf8DecodeStringLazy,
         utf8DecodeString,
         utf8EncodeChar,
         utf8EncodeString,
@@ -33,10 +35,15 @@ module ETA.Utils.Encoding (
   ) where
 
 import Foreign
+import Foreign.ForeignPtr.Unsafe
 import Data.Char
 import qualified Data.Char as Char
 import Numeric
 import ETA.Utils.ExtsCompat46
+import GHC.IO
+
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Internal as BS
 
 -- -----------------------------------------------------------------------------
 -- UTF-8
@@ -114,6 +121,25 @@ utf8CharStart p = go p
                  if w >= 0x80 && w < 0xC0
                         then go (p `plusPtr` (-1))
                         else return p
+
+utf8DecodeByteString :: ByteString -> [Char]
+utf8DecodeByteString (BS.PS ptr offset len)
+  = utf8DecodeStringLazy ptr offset len
+
+utf8DecodeStringLazy :: ForeignPtr Word8 -> Int -> Int -> [Char]
+utf8DecodeStringLazy fptr offset len
+  = unsafeDupablePerformIO $ unpack start
+  where
+    !start = unsafeForeignPtrToPtr fptr `plusPtr` offset
+    !end = start `plusPtr` len
+
+    unpack p
+        | p >= end  = touchForeignPtr fptr >> return []
+        | otherwise =
+            case utf8DecodeChar# (unPtr p) of
+                (# c#, nBytes# #) -> do
+                  rest <- unsafeDupableInterleaveIO $ unpack (p `plusPtr#` nBytes#)
+                  return (C# c# : rest)
 
 utf8DecodeString :: Ptr Word8 -> Int -> IO [Char]
 utf8DecodeString ptr len

@@ -134,7 +134,6 @@ library
                        , ETA.Main.DriverMkDepend
                        , ETA.Main.DriverPhases
                        , ETA.Main.DriverPipeline
-                       , ETA.Main.DynamicLoading
                        , ETA.Main.DynFlags
                        , ETA.Main.ErrUtils
                        , ETA.Main.Finder
@@ -158,16 +157,6 @@ library
                        , ETA.Main.StaticFlags
                        , ETA.Main.SysTools
                        , ETA.Main.TidyPgm
-                       , ETA.Interactive.ByteCodeAsm
-                       , ETA.Interactive.ByteCodeGen
-                       , ETA.Interactive.ByteCodeInstr
-                       , ETA.Interactive.ByteCodeItbls
-                       , ETA.Interactive.ByteCodeLink
-                       , ETA.Interactive.Debugger
-                       , ETA.Interactive.DebuggerUtils
-                       , ETA.Interactive.Linker
-                       , ETA.Interactive.ObjLink
-                       , ETA.Interactive.RtClosureInspect
                        , ETA.Parser.ApiAnnotation
                        , ETA.Parser.Ctype
                        , ETA.Parser.HaddockUtils
@@ -369,10 +358,6 @@ executable eta
    hs-source-dirs:      eta
    main-is:             Main.hs
    default-language:    Haskell2010
-   -- other-modules:       GhciMonad
-   --                      GhciTags
-   --                      InteractiveUI
-
    build-depends:       array
                       , base >= 4.7 && < 5
                       , bytestring

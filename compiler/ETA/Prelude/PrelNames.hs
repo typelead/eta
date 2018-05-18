@@ -637,7 +637,8 @@ minus_RDR               = nameRdrName minusName
 times_RDR               = varQual_RDR  gHC_NUM (fsLit "*")
 plus_RDR                = varQual_RDR gHC_NUM (fsLit "+")
 
-fromString_RDR :: RdrName
+stringTy_RDR, fromString_RDR :: RdrName
+stringTy_RDR            = tcQual_RDR gHC_BASE (fsLit "String")
 fromString_RDR          = nameRdrName fromStringName
 
 fromList_RDR, fromListN_RDR, toList_RDR :: RdrName

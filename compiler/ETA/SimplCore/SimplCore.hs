@@ -53,11 +53,6 @@ import ETA.BasicTypes.UniqSupply       ( UniqSupply, mkSplitUniqSupply, splitUni
 import ETA.Utils.Outputable
 import Control.Monad
 
-#ifdef ETA_REPL
-import ETA.Main.DynamicLoading   ( loadPlugins )
-import ETA.Main.Plugins          ( installCoreToDos )
-#endif
-
 {-
 ************************************************************************
 *                                                                      *
@@ -316,16 +311,7 @@ getCoreToDo dflags
 -- Loading plugins
 
 addPluginPasses :: [CoreToDo] -> CoreM [CoreToDo]
-#ifndef ETA_REPL
 addPluginPasses builtin_passes = return builtin_passes
-#else
-addPluginPasses builtin_passes
-  = do { hsc_env <- getHscEnv
-       ; named_plugins <- liftIO (loadPlugins hsc_env)
-       ; foldM query_plug builtin_passes named_plugins }
-  where
-    query_plug todos (_, plug, options) = installCoreToDos plug options todos
-#endif
 
 {-
 ************************************************************************
@@ -388,11 +374,6 @@ doCorePass CoreDoPrintCore              = observe   printCore
 doCorePass (CoreDoRuleCheck phase pat)  = ruleCheckPass phase pat
 doCorePass CoreDoNothing                = return
 doCorePass (CoreDoPasses passes)        = runCorePasses passes
-
-#ifdef ETA_REPL
-doCorePass (CoreDoPluginPass _ pass) = {-# SCC "Plugin" #-} pass
-#endif
-
 doCorePass pass = pprPanic "doCorePass" (ppr pass)
 
 {-

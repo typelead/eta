@@ -62,6 +62,9 @@ module ETA.Main.GHC (
         getModuleGraph,
         isLoaded,
         topSortModuleGraph,
+        mgModSummaries,
+        mkModuleGraph,
+        mgLookupModule,
 
         -- * Inspecting modules
         ModuleInfo,
@@ -89,46 +92,67 @@ module ETA.Main.GHC (
         -- * Interactive evaluation
         getBindings, getInsts, getPrintUnqual,
         findModule, lookupModule,
-#ifndef ETA_REPL
-        isModuleTrusted,
-        moduleTrustReqs,
+
+#ifdef ETA_REPL
+        -- * Interactive evaluation
+
+        -- ** Executing statements
+        execStmt, ExecOptions(..), execOptions, ExecResult(..),
+        resumeExec,
+
+        -- ** Adding new declarations
+        runDecls, runDeclsWithLocation,
+
+        -- ** Get/set the current context
+        parseImportDecl,
         setContext, getContext,
+        setGHCiMonad, getGHCiMonad,
+
+        -- ** Inspecting the current context
+        isModuleTrusted, moduleTrustReqs,
         getNamesInScope,
         getRdrNamesInScope,
         getGRE,
         moduleIsInterpreted,
         getInfo,
+        showModule,
+        moduleIsBootOrNotObjectLinkable,
+        getNameToInstancesIndex,
+
+        -- ** Inspecting types and kinds
         exprType,
         typeKind,
+
+        -- ** Looking up a Name
         parseName,
-        RunResult(..),
-        runStmt, runStmtWithLocation, runDecls, runDeclsWithLocation,
+        lookupName,
+
+        -- ** Compiling expressions
+        HValue, parseExpr, compileParsedExpr,
+        InteractiveEval.compileExpr, dynCompileExpr,
+        ForeignHValue,
+        compileExprRemote, compileParsedExprRemote,
+
+        -- ** Other
         runTcInteractive,   -- Desired by some clients (Trac #8878)
-        parseImportDecl, SingleStep(..),
-        resume,
-        Resume(resumeStmt, resumeThreadId, resumeBreakInfo, resumeSpan,
-               resumeHistory, resumeHistoryIx),
+        isStmt, hasImport, isImport, isDecl,
+
+        -- ** The debugger
+        SingleStep(..),
+        Resume(..),
         History(historyBreakInfo, historyEnclosingDecls),
-        GHC.getHistorySpan, getHistoryModule,
-        getResumeContext,
+        getHistorySpan, getHistoryModule,
         abandon, abandonAll,
-        InteractiveEval.back,
-        InteractiveEval.forward,
-        showModule,
-        isModuleInterpreted,
-        InteractiveEval.compileExpr, HValue, dynCompileExpr,
-        GHC.obtainTermFromId, GHC.obtainTermFromVal, reconstructType,
+        getResumeContext,
+        obtainTermFromId, obtainTermFromVal, reconstructType,
         modInfoModBreaks,
         ModBreaks(..), BreakIndex,
         BreakInfo(breakInfo_number, breakInfo_module),
-        BreakArray, setBreakOn, setBreakOff, getBreak,
-#endif
-        lookupName,
+        InteractiveEval.back,
+        InteractiveEval.forward,
 
-#ifndef ETA_REPL
-        -- ** EXPERIMENTAL
-        setGHCiMonad,
 #endif
+        -- lookupName,
 
         -- * Abstract syntax elements
 
@@ -263,12 +287,16 @@ module ETA.Main.GHC (
   * inline bits of HscMain here to simplify layering: hscTcExpr, hscStmt.
   * what StaticFlags should we expose, if any?
 -}
-
-#ifndef ETA_REPL
-import ETA.Interactive.ByteCodeInstr
-import Eta.REPL.BreakArray
-import ETA.Main.InteractiveEval as InteractiveEval
-import ETA.TypeCheck.TcRnDriver       ( runTcInteractive )
+#ifdef ETA_REPL
+import ETA.Main.InteractiveEval hiding (getHistorySpan, obtainTermFromId, obtainTermFromVal)
+import qualified ETA.Main.InteractiveEval as InteractiveEval
+import ETA.Main.InteractiveEvalTypes
+import ETA.BasicTypes.NameEnv
+import ETA.TypeCheck.TcRnDriver
+import ETA.TypeCheck.TcEnv
+import ETA.TypeCheck.FamInst
+import Eta.REPL.RemoteTypes
+import Data.Foldable
 #endif
 
 import ETA.Main.PprTyThing       ( pprFamInst )
@@ -294,7 +322,7 @@ import ETA.BasicTypes.DataCon
 import ETA.BasicTypes.Name             hiding ( varName )
 import ETA.BasicTypes.Avail
 import ETA.Types.InstEnv
-import ETA.Types.FamInstEnv ( FamInst )
+import ETA.Types.FamInstEnv ( FamInst, famInstEnvElts, orphNamesOfFamInst )
 import ETA.BasicTypes.SrcLoc
 import ETA.Core.CoreSyn
 import ETA.Main.TidyPgm
@@ -325,10 +353,11 @@ import ETA.Parser.Lexer
 import ETA.Parser.ApiAnnotation
 
 import Data.Maybe
-import Data.List        ( find )
 import Data.Time
 import Data.Typeable    ( Typeable )
 import Data.Word        ( Word8 )
+import qualified Data.Map.Strict as Map
+import qualified Data.Sequence as Seq
 import Control.Monad
 import System.Exit      ( exitWith, ExitCode(..) )
 import ETA.Utils.Exception
@@ -830,7 +859,7 @@ typecheckModule pmod = do
            minf_instances = md_insts details,
            minf_iface     = Nothing,
            minf_safe      = safe
-#ifndef ETA_REPL
+#ifdef ETA_REPL
           ,minf_modBreaks = emptyModBreaks
 #endif
          }}
@@ -1021,7 +1050,7 @@ data ModuleInfo = ModuleInfo {
         minf_instances :: [ClsInst],
         minf_iface     :: Maybe ModIface,
         minf_safe      :: SafeHaskellMode
-#ifndef ETA_REPL
+#ifdef ETA_REPL
        ,minf_modBreaks :: ModBreaks
 #endif
   }
@@ -1046,7 +1075,7 @@ getModuleInfo mdl = withSession $ \hsc_env -> do
    -- exist... hence the isHomeModule test here.  (ToDo: reinstate)
 
 getPackageModuleInfo :: HscEnv -> Module -> IO (Maybe ModuleInfo)
-#ifndef ETA_REPL
+#ifdef ETA_REPL
 getPackageModuleInfo hsc_env mdl
   = do  eps <- hscEPS hsc_env
         iface <- hscGetModuleInterface hsc_env mdl
@@ -1086,7 +1115,7 @@ getHomeModuleInfo hsc_env mdl =
                         minf_instances = md_insts details,
                         minf_iface     = Just iface,
                         minf_safe      = getSafeMode $ mi_trust iface
-#ifndef ETA_REPL
+#ifdef ETA_REPL
                        ,minf_modBreaks = getModBreaks hmi
 #endif
                         }))
@@ -1134,7 +1163,7 @@ modInfoIface = minf_iface
 modInfoSafe :: ModuleInfo -> SafeHaskellMode
 modInfoSafe = minf_safe
 
-#ifndef ETA_REPL
+#ifdef ETA_REPL
 modInfoModBreaks :: ModuleInfo -> ModBreaks
 modInfoModBreaks = minf_modBreaks
 #endif
@@ -1156,10 +1185,45 @@ findGlobalAnns deserialize target = withSession $ \hsc_env -> do
     ann_env <- liftIO $ prepareAnnotations hsc_env Nothing
     return (findAnns deserialize ann_env target)
 
-#ifndef ETA_REPL
+#ifdef ETA_REPL
 -- | get the GlobalRdrEnv for a session
 getGRE :: GhcMonad m => m GlobalRdrEnv
 getGRE = withSession $ \hsc_env-> return $ ic_rn_gbl_env (hsc_IC hsc_env)
+
+-- | Retrieve all type and family instances in the environment, indexed
+-- by 'Name'. Each name's lists will contain every instance in which that name
+-- is mentioned in the instance head.
+getNameToInstancesIndex :: GhcMonad m
+  => [Module]  -- ^ visible modules. An orphan instance will be returned if and
+               -- only it is visible from at least one module in the list.
+  -> m (Messages, Maybe (NameEnv ([ClsInst], [FamInst])))
+getNameToInstancesIndex visible_mods = do
+  hsc_env <- getSession
+  liftIO $ runTcInteractive hsc_env $
+    do { loadUnqualIfaces hsc_env (hsc_IC hsc_env)
+       ; InstEnvs {ie_global, ie_local} <- tcGetInstEnvs
+       ; let visible_mods' = mkModuleSet visible_mods
+       ; (pkg_fie, home_fie) <- tcGetFamInstEnvs
+       -- We use Data.Sequence.Seq because we are creating left associated
+       -- mappends.
+       -- cls_index and fam_index below are adapted from TcRnDriver.lookupInsts
+       ; let cls_index = Map.fromListWith mappend
+                 [ (n, Seq.singleton ispec)
+                 | ispec <- instEnvElts ie_local ++ instEnvElts ie_global
+                 , instIsVisible visible_mods' ispec
+                 , n <- nameSetElems $ orphNamesOfClsInst ispec
+                 ]
+       ; let fam_index = Map.fromListWith mappend
+                 [ (n, Seq.singleton fispec)
+                 | fispec <- famInstEnvElts home_fie ++ famInstEnvElts pkg_fie
+                 , n <- nameSetElems $ orphNamesOfFamInst fispec
+                 ]
+       ; return $ mkNameEnv $
+           [ (nm, (toList clss, toList fams))
+           | (nm, (clss, fams)) <- Map.toList $ Map.unionWith mappend
+               (fmap (,Seq.empty) cls_index)
+               (fmap (Seq.empty,) fam_index)
+           ] }
 #endif
 
 -- -----------------------------------------------------------------------------
@@ -1359,7 +1423,7 @@ lookupLoadedHomeModule mod_name = withSession $ \hsc_env ->
     Just mod_info      -> return (Just (mi_module (hm_iface mod_info)))
     _not_a_home_module -> return Nothing
 
-#ifndef ETA_REPL
+#ifdef ETA_REPL
 -- | Check that a module is safe to import (according to Safe Haskell).
 --
 -- We return True to indicate the import is safe and False otherwise
@@ -1373,20 +1437,21 @@ moduleTrustReqs :: GhcMonad m => Module -> m (Bool, [InstalledUnitId])
 moduleTrustReqs m = withSession $ \hsc_env ->
     liftIO $ hscGetSafe hsc_env m noSrcSpan
 
--- | EXPERIMENTAL: DO NOT USE.
---
--- Set the monad GHCi lifts user statements into.
+-- | Set the monad GHCi lifts user statements into.
 --
 -- Checks that a type (in string form) is an instance of the
 -- @GHC.GHCi.GHCiSandboxIO@ type class. Sets it to be the GHCi monad if it is,
 -- throws an error otherwise.
-{-# WARNING setGHCiMonad "This is experimental! Don't use." #-}
 setGHCiMonad :: GhcMonad m => String -> m ()
 setGHCiMonad name = withSession $ \hsc_env -> do
     ty <- liftIO $ hscIsGHCiMonad hsc_env name
     modifySession $ \s ->
         let ic = (hsc_IC s) { ic_monad = ty }
         in s { hsc_IC = ic }
+
+-- | Get the monad GHCi lifts user statements into.
+getGHCiMonad :: GhcMonad m => m Name
+getGHCiMonad = fmap (ic_monad . hsc_IC) getSession
 
 getHistorySpan :: GhcMonad m => History -> m SrcSpan
 getHistorySpan h = withSession $ \hsc_env ->

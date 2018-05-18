@@ -294,8 +294,11 @@ abandonStmt hvref = do
 foreign import java unsafe "@static eta.repl.Utils.rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
 foreign import java unsafe "@static eta.repl.Utils.rts_stop_on_exception"    exceptionFlag :: Ptr CInt
 #else
-foreign import ccall "&rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
-foreign import ccall "&rts_stop_on_exception"    exceptionFlag :: Ptr CInt
+stepFlag :: Ptr CInt
+stepFlag = error "stepFlag"
+
+exceptionFlag :: Ptr CInt
+exceptionFlag = error "exceptionFlag"
 #endif
 
 setStepFlag :: IO ()

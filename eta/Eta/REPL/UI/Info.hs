@@ -27,7 +27,7 @@ import           Data.Map.Strict   (Map)
 import qualified Data.Map.Strict   as M
 import           Data.Maybe
 import           Data.Time
-import           Prelude           hiding (mod,(<>))
+import           Prelude           hiding (mod)
 import           System.Directory
 
 import qualified ETA.Core.CoreUtils as CoreUtils
@@ -62,7 +62,7 @@ data ModInfo = ModInfo
 -- | Type of some span of source code. Most of these fields are
 -- unboxed but Haddock doesn't show that.
 data SpanInfo = SpanInfo
-    { spaninfoSrcSpan   :: {-# UNPACK #-} !RealSrcSpan
+    { spaninfoSrcSpan   :: !RealSrcSpan
       -- ^ The span we associate information with
     , spaninfoType      :: !(Maybe Type)
       -- ^ The 'Type' associated with the span
@@ -215,7 +215,7 @@ findType infos span0 string = do
              MaybeT $ pure $ M.lookup name infos
 
     case resolveType (modinfoSpans info) (spanInfoFromRealSrcSpan' span0) of
-        Nothing -> (,) info <$> lift (exprType TM_Inst string)
+        Nothing -> (,) info <$> lift (exprType string)
         Just ty -> return (info, ty)
   where
     -- | Try to resolve the type display from the given span.
@@ -310,32 +310,32 @@ processAllTypeCheckedModule tcm = do
     tcs = tm_typechecked_source tcm
 
     -- | Extract 'Id', 'SrcSpan', and 'Type' for 'LHsBind's
-    getTypeLHsBind :: LHsBind GhcTc -> m (Maybe (Maybe Id,SrcSpan,Type))
-    getTypeLHsBind (L _spn FunBind{fun_id = pid,fun_matches = MG _ _ _})
+    getTypeLHsBind :: LHsBind Id -> m (Maybe (Maybe Id,SrcSpan,Type))
+    getTypeLHsBind (L _spn FunBind{fun_id = pid,fun_matches = MG _ _ _ _})
         = pure $ Just (Just (unLoc pid),getLoc pid,varType (unLoc pid))
     getTypeLHsBind _ = pure Nothing
 
     -- | Extract 'Id', 'SrcSpan', and 'Type' for 'LHsExpr's
-    getTypeLHsExpr :: LHsExpr GhcTc -> m (Maybe (Maybe Id,SrcSpan,Type))
+    getTypeLHsExpr :: LHsExpr Id -> m (Maybe (Maybe Id,SrcSpan,Type))
     getTypeLHsExpr e = do
         hs_env  <- getSession
         (_,mbe) <- liftIO $ deSugarExpr hs_env e
         return $ fmap (\expr -> (mid, getLoc e, CoreUtils.exprType expr)) mbe
       where
         mid :: Maybe Id
-        mid | HsVar _ (L _ i) <- unwrapVar (unLoc e) = Just i
-            | otherwise                              = Nothing
+        mid | HsVar i <- unwrapVar (unLoc e) = Just i
+            | otherwise = Nothing
 
-        unwrapVar (HsWrap _ _ var) = var
+        unwrapVar (HsWrap _ var) = var
         unwrapVar e'               = e'
 
     -- | Extract 'Id', 'SrcSpan', and 'Type' for 'LPats's
-    getTypeLPat :: LPat GhcTc -> m (Maybe (Maybe Id,SrcSpan,Type))
+    getTypeLPat :: LPat Id -> m (Maybe (Maybe Id,SrcSpan,Type))
     getTypeLPat (L spn pat) =
         pure (Just (getMaybeId pat,spn,hsPatType pat))
       where
-        getMaybeId (VarPat _ (L _ vid)) = Just vid
-        getMaybeId _                    = Nothing
+        getMaybeId (VarPat vid) = Just vid
+        getMaybeId _                  = Nothing
 
     -- | Get ALL source spans in the source.
     listifyAllSpans :: Typeable a => TypecheckedSource -> [Located a]

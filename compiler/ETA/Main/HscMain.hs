@@ -88,8 +88,6 @@ module ETA.Main.HscMain
 #ifdef ETA_REPL
 import Eta.REPL.RemoteTypes ( ForeignHValue )
 import ETA.BasicTypes.Id
-import ETA.Interactive.ByteCodeGen      ( byteCodeGen, coreExprToBCOs )
-import ETA.Interactive.Linker
 import ETA.Core.CoreTidy         ( tidyExpr )
 import ETA.Types.Type             ( Type )
 import ETA.Prelude.PrelNames
@@ -1259,7 +1257,7 @@ hscInteractive :: HscEnv
                -> IO (Maybe FilePath, CompiledByteCode, ModBreaks)
 #ifdef ETA_REPL
 hscInteractive hsc_env cgguts mod_summary = do
-    let dflags = hsc_dflags hsc_env
+    let _dflags = hsc_dflags hsc_env
     let CgGuts{ -- This is the last use of the ModGuts in a compilation.
                 -- From now on, we just use the bits we need.
                cg_module   = this_mod,
@@ -1276,15 +1274,15 @@ hscInteractive hsc_env cgguts mod_summary = do
     -------------------
     -- PREPARE FOR CODE GENERATION
     -- Do saturation and convert to A-normal form
-    prepd_binds <- {-# SCC "CorePrep" #-}
+    _prepd_binds <- {-# SCC "CorePrep" #-}
                    corePrepPgm hsc_env this_mod location core_binds data_tycons
     -----------------  Generate byte code ------------------
-    comp_bc <- byteCodeGen dflags this_mod prepd_binds data_tycons mod_breaks
+    -- comp_bc <- byteCodeGen dflags this_mod prepd_binds data_tycons mod_breaks
     ------------------ Create f-x-dynamic C-side stuff ---
     -- let modClass = moduleJavaClass this_mod
     -- _
     --     <- outputForeignStubs dflags foreign_stubs modClass
-    return (panic "hscInteractive stubs", comp_bc, mod_breaks)
+    return (panic "hscInteractive stubs", panic "comp_bc", mod_breaks)
 #else
 hscInteractive _ _ = panic "GHC not compiled with interpreter"
 #endif
@@ -1417,7 +1415,7 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
     let !CgGuts{ cg_module    = this_mod,
                  cg_binds     = core_binds,
                  cg_tycons    = tycons,
-                 cg_modBreaks = mod_breaks } = tidy_cg
+                 cg_modBreaks = _mod_breaks } = tidy_cg
 
         !ModDetails { md_insts     = cls_insts
                     , md_fam_insts = fam_insts } = mod_details
@@ -1427,15 +1425,16 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
 
     {- Prepare For Code Generation -}
     -- Do saturation and convert to A-normal form
-    prepd_binds <- {-# SCC "CorePrep" #-}
+    _prepd_binds <- {-# SCC "CorePrep" #-}
       liftIO $ corePrepPgm hsc_env this_mod iNTERACTIVELoc core_binds data_tycons
 
     {- Generate byte code -}
-    cbc <- liftIO $ byteCodeGen hsc_env this_mod
-                                prepd_binds data_tycons mod_breaks
+    -- cbc <- liftIO $ byteCodeGen hsc_env this_mod
+    --                             prepd_binds data_tycons mod_breaks
 
-    let src_span = srcLocSpan interactiveSrcLoc
-    liftIO $ linkDecls hsc_env src_span cbc
+    let _src_span = srcLocSpan interactiveSrcLoc
+    _ <- panic "linkDecls"
+    -- liftIO $ linkDecls hsc_env src_span cbc
     --
     -- {- Load static pointer table entries -}
     -- liftIO $ hscAddSptEntries hsc_env (cg_spt_entries tidy_cg)
@@ -1632,7 +1631,7 @@ hscCompileCoreExpr hsc_env =
   lookupHook hscCompileCoreExprHook hscCompileCoreExpr' (hsc_dflags hsc_env) hsc_env
 
 hscCompileCoreExpr' :: HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue
-hscCompileCoreExpr' hsc_env srcspan ds_expr
+hscCompileCoreExpr' hsc_env _srcspan ds_expr
     = do { let dflags = hsc_dflags hsc_env
 
            {- Simplify it -}
@@ -1648,11 +1647,12 @@ hscCompileCoreExpr' hsc_env srcspan ds_expr
          ; lintInteractiveExpr "hscCompileExpr" hsc_env prepd_expr
 
            {- Convert to BCOs -}
-         ; bcos <- coreExprToBCOs hsc_env
-                     (icInteractiveModule (hsc_IC hsc_env)) prepd_expr
+         -- ; bcos <- coreExprToBCOs hsc_env
+         --             (icInteractiveModule (hsc_IC hsc_env)) prepd_expr
 
+         ; _ <- panic "linkExpr"
            {- link it -}
-         ; _hval <- linkExpr hsc_env srcspan bcos
+         -- ; _hval <- linkExpr hsc_env srcspan bcos
 
          ; return (panic "hval needs to be changed!")}
 

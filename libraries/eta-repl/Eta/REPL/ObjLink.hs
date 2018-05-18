@@ -174,17 +174,38 @@ foreign import java unsafe "@static eta.repl.Utils.addLibrarySearchPath"    c_ad
 foreign import java unsafe "@static eta.repl.Utils.findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
 foreign import java unsafe "@static eta.repl.Utils.removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
 #else
-foreign import ccall unsafe "addDLL"                  c_addDLL                  :: CFilePath -> IO CString
-foreign import ccall unsafe "initLinker_"             c_initLinker_             :: CInt -> IO ()
-foreign import ccall unsafe "lookupSymbol"            c_lookupSymbol            :: CString -> IO (Ptr a)
-foreign import ccall unsafe "loadArchive"             c_loadArchive             :: CFilePath -> IO Int
-foreign import ccall unsafe "loadObj"                 c_loadObj                 :: CFilePath -> IO Int
-foreign import ccall unsafe "purgeObj"                c_purgeObj                :: CFilePath -> IO Int
-foreign import ccall unsafe "unloadObj"               c_unloadObj               :: CFilePath -> IO Int
-foreign import ccall unsafe "resolveObjs"             c_resolveObjs             :: IO Int
-foreign import ccall unsafe "addLibrarySearchPath"    c_addLibrarySearchPath    :: CFilePath -> IO (Ptr ())
-foreign import ccall unsafe "findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
-foreign import ccall unsafe "removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
+c_addDLL :: CFilePath -> IO CString
+c_addDLL = error "c_addDLL"
+
+c_initLinker_ :: CInt -> IO ()
+c_initLinker_ = error "c_initLinker_"
+
+c_lookupSymbol :: CString -> IO (Ptr a)
+c_lookupSymbol = error "c_lookupSymbol"
+
+c_loadArchive :: CFilePath -> IO Int
+c_loadArchive = error "c_loadArchive"
+
+c_loadObj :: CFilePath -> IO Int
+c_loadObj = error "c_loadObj"
+
+c_purgeObj :: CFilePath -> IO Int
+c_purgeObj = error "c_purgeObj"
+
+c_unloadObj :: CFilePath -> IO Int
+c_unloadObj = error "c_unloadObj"
+
+c_resolveObjs :: IO Int
+c_resolveObjs = error "c_resolveObjs"
+
+c_addLibrarySearchPath :: CFilePath -> IO (Ptr ())
+c_addLibrarySearchPath = error "c_addLibrarySearchPath"
+
+c_findSystemLibrary :: CFilePath -> IO CFilePath
+c_findSystemLibrary = error "c_findSystemLibrary"
+
+c_removeLibrarySearchPath :: Ptr() -> IO Bool
+c_removeLibrarySearchPath = error "c_removeLibrarySearchPath"
 #endif
 -- -----------------------------------------------------------------------------
 -- Configuration

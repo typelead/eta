@@ -220,12 +220,19 @@ main' postLoadMode dflags0 args flagWarnings = do
        DoMake                 -> measure MakeMode $ doMake srcs
        DoMkDependHS           -> doMkDependHS (map fst srcs)
        StopBefore p           -> measure OneShotMode $ liftIO (oneShot hsc_env p srcs)
-       DoInteractive          -> measure InteractiveMode $ liftIO $ putStrLn "Eta REPL not implemented yet"
-       DoEval _exprs          -> measure EvalMode $ liftIO $ putStrLn "Eta REPL not implemented yet"
+       DoInteractive          -> measure InteractiveMode $ etaReplUI srcs Nothing
+       DoEval exprs           -> measure EvalMode $ etaReplUI srcs $ Just $ reverse exprs
        DoAbiHash              -> abiHash (map fst srcs)
        ShowPackages           -> liftIO $ showPackages dflags6
 
   liftIO $ dumpFinalStats dflags6
+
+etaReplUI :: [(FilePath, Maybe Phase)] -> Maybe [String] -> Ghc ()
+#ifndef ETA_REPL
+etaReplUI _ _ = throwGhcException (CmdLineError "not built for interactive use")
+#else
+etaReplUI     = interactiveUI defaultEtaReplSettings
+#endif
 
 -- -----------------------------------------------------------------------------
 -- Splitting arguments into source files and object files.  This is where we

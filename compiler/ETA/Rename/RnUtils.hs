@@ -369,7 +369,7 @@ data HsDocContext
   | TypBrCtx
   | HsTypeCtx
   | GHCiCtx
-  | SpliceTypeCtx (LHsType GhcPs)
+  | SpliceTypeCtx (LHsType RdrName)
   | ClassInstanceCtx
   | VectDeclCtx (Located RdrName)
   | GenericCtx SDoc   -- Maybe we want to use this more!

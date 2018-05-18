@@ -16,6 +16,7 @@ module ETA.TypeCheck.TcRnDriver (
         tcRnDeclsi,
         isGHCiMonad,
         runTcInteractive,    -- Used by GHC API clients (Trac #8878)
+        loadUnqualIfaces,
 #endif
         tcRnLookupName,
         tcRnGetInfo,
@@ -95,8 +96,6 @@ import ETA.Prelude.PrelInfo
 import ETA.BasicTypes.MkId
 import ETA.Main.TidyPgm    ( globaliseAndTidyId )
 import ETA.Prelude.TysWiredIn ( unitTy, mkListTy )
-import ETA.Main.DynamicLoading ( loadPlugins )
-import ETA.Main.Plugins ( tcPlugin )
 #endif
 import ETA.Main.TidyPgm    ( mkBootModDetailsTc )
 
@@ -2210,12 +2209,4 @@ withTcPlugins hsc_env m =
        return (solve s, stop s)
 
 loadTcPlugins :: HscEnv -> IO [TcPlugin]
-#ifndef ETA_REPL
 loadTcPlugins _ = return []
-#else
-loadTcPlugins hsc_env =
- do named_plugins <- loadPlugins hsc_env
-    return $ catMaybes $ map load_plugin named_plugins
-  where
-    load_plugin (_, plug, opts) = tcPlugin plug opts
-#endif

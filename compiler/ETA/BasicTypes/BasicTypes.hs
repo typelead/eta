@@ -87,8 +87,6 @@ module ETA.BasicTypes.BasicTypes(
         mkIntegralLit, mkFractionalLit,
         integralFractionalLit,
 
-        HValue(..),
-
         SourceText, pprWithSourceText,
         SpliceExplicitFlag(..)
    ) where
@@ -99,7 +97,6 @@ import ETA.BasicTypes.SrcLoc ( Located,unLoc )
 
 import Data.Data hiding (Fixity)
 import Data.Function (on)
-import GHC.Exts (Any)
 
 {-
 ************************************************************************
@@ -1177,8 +1174,6 @@ instance Ord FractionalLit where
 
 instance Outputable FractionalLit where
   ppr f = pprWithSourceText (fl_text f) (rational (fl_value f))
-
-newtype HValue = HValue Any
 
 data SpliceExplicitFlag
           = ExplicitSplice | -- ^ <=> $(f x y)

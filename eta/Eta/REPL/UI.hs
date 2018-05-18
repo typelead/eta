@@ -41,9 +41,10 @@ import Eta.REPL.UI.Info
 import ETA.REPL
 import Eta.REPL.RemoteTypes
 import Eta.REPL.BreakArray
-import ETA.Main.DynFlags
+import ETA.Main.DynFlags as DynFlags
+import ETA.Main.Constants
 import ETA.Main.ErrUtils hiding (traceCmd)
-import ETA.Main.Finder
+import ETA.Main.Finder as Finder
 import ETA.Main.GhcMonad ( modifySession )
 import qualified ETA.Main.GHC as GHC
 import ETA.Main.GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
@@ -57,10 +58,9 @@ import ETA.BasicTypes.Module
 import ETA.BasicTypes.Name
 import ETA.Main.Packages ( trusted, getPackageDetails, getInstalledPackageDetails,
                   listVisibleModuleNames, pprFlag )
-import ETA.Iface.IfaceSyn ( showToHeader )
 import ETA.Main.PprTyThing
 import ETA.Prelude.PrelNames
-import ETA.BasicTypes.RdrName ( getGRE_NameQualifier_maybes, getRdrName )
+import ETA.BasicTypes.RdrName as RdrName ( RdrName, getGRE_NameQualifier_maybes, getRdrName )
 import ETA.BasicTypes.SrcLoc
 import qualified ETA.Parser.Lexer as Lexer
 
@@ -78,7 +78,7 @@ import ETA.Utils.Maybes ( orElse, expectJust )
 import ETA.BasicTypes.NameSet
 import ETA.Utils.Panic hiding ( showException )
 import ETA.Utils.Util
-import qualified Eta.LanguageExtensions as LangExt
+
 
 -- Haskell Libraries
 import System.Console.Haskeline as Haskeline
@@ -97,17 +97,17 @@ import Data.Function
 import Data.IORef ( IORef, modifyIORef, newIORef, readIORef, writeIORef )
 import Data.List ( find, group, intercalate, intersperse, isPrefixOf, nub,
                    partition, sort, sortBy )
-import qualified Data.Set as S
+
 import Data.Maybe
 import qualified Data.Map as M
 import Data.Time.LocalTime ( getZonedTime )
 import Data.Time.Format ( formatTime, defaultTimeLocale )
 import Data.Version ( showVersion )
-import Prelude hiding ((<>))
 
-import ETA.Utils.Exception hiding (catch)
+
+import ETA.Utils.Exception as Exception hiding (catch)
 import Foreign hiding (void)
-import GHC.Stack hiding (SrcLoc(..))
+import GHC.Stack
 
 import System.Directory
 import System.Environment
@@ -120,7 +120,6 @@ import System.IO.Unsafe ( unsafePerformIO )
 import System.Process
 import Text.Printf
 import Text.Read ( readMaybe )
-import Text.Read.Lex (isSymbolChar)
 
 import Unsafe.Coerce
 
@@ -424,8 +423,8 @@ interactiveUI config srcs maybe_exprs = do
    -- as the global DynFlags, plus -XExtendedDefaultRules and
    -- -XNoMonomorphismRestriction.
    dflags <- getDynFlags
-   let dflags' = (`xopt_set` LangExt.ExtendedDefaultRules)
-               . (`xopt_unset` LangExt.MonomorphismRestriction)
+   let dflags' = (`xopt_set` Opt_ExtendedDefaultRules)
+               . (`xopt_unset` Opt_MonomorphismRestriction)
                $ dflags
    GHC.setInteractiveDynFlags dflags'
 
@@ -496,9 +495,9 @@ resetLastErrorLocations = do
     st <- getGHCiState
     liftIO $ writeIORef (lastErrorLocations st) []
 
-ghciLogAction :: IORef [(FastString, Int)] ->  LogAction
-ghciLogAction lastErrLocations dflags flag severity srcSpan style msg = do
-    defaultLogAction dflags flag severity srcSpan style msg
+ghciLogAction :: IORef [(FastString, Int)] -> LogAction
+ghciLogAction lastErrLocations dflags severity srcSpan style msg = do
+    defaultLogAction dflags  severity srcSpan style msg
     case severity of
         SevError -> case srcSpan of
             RealSrcSpan rsp -> modifyIORef lastErrLocations
@@ -759,7 +758,7 @@ getInfoForPrompt = do
 
         rev_imports = reverse imports -- rightmost are the most recent
 
-        myIdeclName d | Just m <- ideclAs d = unLoc m
+        myIdeclName d | Just m <- ideclAs d = m
                       | otherwise           = unLoc (ideclName d)
 
         modules_names =
@@ -1036,7 +1035,7 @@ checkInputForLayout :: String -> InputT GHCi (Maybe String)
                     -> InputT GHCi (Maybe String)
 checkInputForLayout stmt getStmt = do
    dflags' <- getDynFlags
-   let dflags = xopt_set dflags' LangExt.AlternativeLayoutRule
+   let dflags = xopt_set dflags' Opt_AlternativeLayoutRule
    st0 <- getGHCiState
    let buf'   =  stringToStringBuffer stmt
        loc    = mkRealSrcLoc (fsLit (progname st0)) (line_number st0) 1
@@ -1183,9 +1182,10 @@ printStoppedAtBreakInfo res names = do
   printForUser $ pprStopped res
   --  printTypeOfNames session names
   let namesSorted = sortBy compareNames names
-  tythings <- catMaybes `liftM` mapM GHC.lookupName namesSorted
-  docs <- mapM pprTypeAndContents [i | AnId i <- tythings]
-  printForUserPartWay $ vcat docs
+  _tythings <- catMaybes `liftM` mapM GHC.lookupName namesSorted
+  panic "pprTypeAndContents: not handled!"
+  -- docs <- mapM pprTypeAndContents [i | AnId i <- tythings]
+  -- printForUserPartWay $ vcat docs
 
 printTypeOfNames :: [Name] -> GHCi ()
 printTypeOfNames names
@@ -1285,9 +1285,10 @@ getCallStackAtCurrentBreakpoint = do
   resumes <- GHC.getResumeContext
   case resumes of
     [] -> return Nothing
-    (r:_) -> do
-       hsc_env <- GHC.getSession
-       Just <$> liftIO (costCentreStackInfo hsc_env (GHC.resumeCCS r))
+    (_r:_) -> do
+       _hsc_env <- GHC.getSession
+       panic "costCentreStackInfo: not handled!"
+      --  Just <$> liftIO (costCentreStackInfo hsc_env (GHC.resumeCCS r))
 
 getCurrentBreakModule :: GHCi (Maybe Module)
 getCurrentBreakModule = do
@@ -1516,9 +1517,9 @@ defineMacro overwrite s = do
     let stringTy = nlHsTyVar stringTy_RDR
         ioM = nlHsTyVar (getRdrName ioTyConName) `nlHsAppTy` stringTy
         body = nlHsVar compose_RDR `mkHsApp` (nlHsPar step)
-                                   `mkHsApp` (nlHsPar expr)
-        tySig = mkLHsSigWcType (stringTy `nlHsFunTy` ioM)
-        new_expr = L (getLoc expr) $ ExprWithTySig tySig body
+                                   `mkHsApp` (nlHsPar (noLoc expr))
+        tySig = stringTy `nlHsFunTy` ioM
+        new_expr = ExprWithTySig body tySig placeHolderType
     hv <- GHC.compileParsedExprRemote new_expr
 
     let newCmd = Command { cmdName = macro_name
@@ -1565,8 +1566,8 @@ cmdCmd str = handleSourceError GHC.printException $ do
     step <- getGhciStepIO
     expr <- GHC.parseExpr str
     -- > ghciStepIO str :: IO String
-    let new_expr = step `mkHsApp` expr
-    hv <- GHC.compileParsedExprRemote new_expr
+    let new_expr = step `mkHsApp` noLoc expr
+    hv <- GHC.compileParsedExprRemote (unLoc new_expr)
 
     hsc_env <- GHC.getSession
     cmds <- liftIO $ evalString hsc_env hv
@@ -1574,15 +1575,15 @@ cmdCmd str = handleSourceError GHC.printException $ do
 
 -- | Generate a typed ghciStepIO expression
 -- @ghciStepIO :: Ty String -> IO String@.
-getGhciStepIO :: GHCi (LHsExpr GhcPs)
+getGhciStepIO :: GHCi (LHsExpr RdrName)
 getGhciStepIO = do
   ghciTyConName <- GHC.getGHCiMonad
   let stringTy = nlHsTyVar stringTy_RDR
       ghciM = nlHsTyVar (getRdrName ghciTyConName) `nlHsAppTy` stringTy
       ioM = nlHsTyVar (getRdrName ioTyConName) `nlHsAppTy` stringTy
       body = nlHsVar (getRdrName ghciStepIoMName)
-      tySig = mkLHsSigWcType (ghciM `nlHsFunTy` ioM)
-  return $ noLoc $ ExprWithTySig tySig body
+      tySig = ghciM `nlHsFunTy` ioM
+  return $ noLoc $ ExprWithTySig body tySig placeHolderType
 
 -----------------------------------------------------------------------------
 -- :check
@@ -1828,7 +1829,7 @@ keepPackageImports = filterM is_pkg_import
      is_pkg_import :: InteractiveImport -> GHCi Bool
      is_pkg_import (IIModule _) = return False
      is_pkg_import (IIDecl d)
-         = do e <- gtry $ GHC.findModule mod_name (fmap sl_fs $ ideclPkgQual d)
+         = do e <- gtry $ GHC.findModule mod_name (ideclPkgQual d)
               case e :: Either SomeException Module of
                 Left _  -> return False
                 Right m -> return (not (isHomeModule m))
@@ -1888,12 +1889,12 @@ exceptT = ExceptT . pure
 
 typeOfExpr :: String -> InputT GHCi ()
 typeOfExpr str = handleSourceError GHC.printException $ do
-    let (mode, expr_str) = case break isSpace str of
-          ("+d", rest) -> (GHC.TM_Default, dropWhile isSpace rest)
-          ("+v", rest) -> (GHC.TM_NoInst,  dropWhile isSpace rest)
-          _            -> (GHC.TM_Inst,    str)
-    ty <- GHC.exprType mode expr_str
-    printForUser $ sep [text expr_str, nest 2 (dcolon <+> pprTypeForUser ty)]
+    -- let (mode, expr_str) = case break isSpace str of
+    --       ("+d", rest) -> (GHC.TM_Default, dropWhile isSpace rest)
+    --       ("+v", rest) -> (GHC.TM_NoInst,  dropWhile isSpace rest)
+    --       _            -> (GHC.TM_Inst,    str)
+    ty <- GHC.exprType str
+    printForUser $ sep [text str, nest 2 (dcolon <+> pprTypeForUser ty)]
 
 -----------------------------------------------------------------------------
 -- | @:type-at@ command
@@ -2101,15 +2102,15 @@ isSafeModule m = do
     -- print info to user...
     liftIO $ putStrLn $ "Trust type is (Module: " ++ trust ++ ", Package: " ++ pkg ++ ")"
     liftIO $ putStrLn $ "Package Trust: " ++ (if packageTrustOn dflags then "On" else "Off")
-    when (not $ S.null good)
+    when (not $ null good)
          (liftIO $ putStrLn $ "Trusted package dependencies (trusted): " ++
-                        (intercalate ", " $ map (showPpr dflags) (S.toList good)))
-    case msafe && S.null bad of
+                        (intercalate ", " $ map (showPpr dflags) good))
+    case msafe && null bad of
         True -> liftIO $ putStrLn $ mname ++ " is trusted!"
         False -> do
             when (not $ null bad)
                  (liftIO $ putStrLn $ "Trusted package dependencies (untrusted): "
-                            ++ (intercalate ", " $ map (showPpr dflags) (S.toList bad)))
+                            ++ (intercalate ", " $ map (showPpr dflags) bad))
             liftIO $ putStrLn $ mname ++ " is NOT trusted!"
 
   where
@@ -2119,8 +2120,8 @@ isSafeModule m = do
         | thisPackage dflags == moduleUnitId md = True
         | otherwise = trusted $ getPackageDetails dflags (moduleUnitId md)
 
-    tallyPkgs dflags deps | not (packageTrustOn dflags) = (S.empty, S.empty)
-                          | otherwise = S.partition part deps
+    tallyPkgs dflags deps | not (packageTrustOn dflags) = ([], [])
+                          | otherwise = partition part deps
         where part pkg = trusted $ getInstalledPackageDetails dflags pkg
 
 -----------------------------------------------------------------------------
@@ -2152,7 +2153,7 @@ guessCurrentModule cmd
        case (head imports) of
           IIModule m -> GHC.findModule m Nothing
           IIDecl d   -> GHC.findModule (unLoc (ideclName d))
-                                       (fmap sl_fs $ ideclPkgQual d)
+                                       (ideclPkgQual d)
 
 -- without bang, show items in context of their parents and omit children
 -- with bang, show class methods and data constructors separately, and
@@ -2196,8 +2197,8 @@ browseModule bang modl exports_only = do
 
         let things | bang      = catMaybes mb_things
                    | otherwise = filtered_things
-            pretty | bang      = pprTyThing showToHeader
-                   | otherwise = pprTyThingInContext showToHeader
+            pretty | bang      = pprTyThing
+                   | otherwise = pprTyThingInContext
 
             labels  [] = text "-- not currently imported"
             labels  l  = text $ intercalate "\n" $ map qualifier l
@@ -2349,7 +2350,7 @@ checkAdd ii = do
     IIDecl d -> do
        let modname = unLoc (ideclName d)
            pkgqual = ideclPkgQual d
-       m <- GHC.lookupModule modname (fmap sl_fs pkgqual)
+       m <- GHC.lookupModule modname pkgqual
        when safe $ do
            t <- GHC.isModuleTrusted m
            when (not t) $ throwGhcException $ ProgramError $ ""
@@ -2399,7 +2400,7 @@ getImplicitPreludeImports iidecls = do
   -- of the same module.  This means that you can override the prelude import
   -- with "import Prelude hiding (map)", for example.
   let prel_iidecls =
-         if xopt LangExt.ImplicitPrelude dflags && not (any isIIModule iidecls)
+         if xopt Opt_ImplicitPrelude dflags && not (any isIIModule iidecls)
             then [ IIDecl imp
                  | imp <- prelude_imports st
                  , not (any (sameImpModule imp) iidecls) ]
@@ -2430,7 +2431,7 @@ iiModuleName (IIDecl d)   = unLoc (ideclName d)
 preludeModuleName :: ModuleName
 preludeModuleName = GHC.mkModuleName "Prelude"
 
-sameImpModule :: ImportDecl GhcPs -> InteractiveImport -> Bool
+sameImpModule :: ImportDecl RdrName -> InteractiveImport -> Bool
 sameImpModule _ (IIModule _) = False -- we only care about imports here
 sameImpModule imp (IIDecl d) = unLoc (ideclName d) == unLoc (ideclName imp)
 
@@ -2548,7 +2549,7 @@ showDynFlags show_all dflags = do
          nest 2 (vcat (map (setting "-f" "-fno-" gopt) others))
   putStrLn $ showSDoc dflags $
      text "warning settings:" $$
-         nest 2 (vcat (map (setting "-W" "-Wno-" wopt) DynFlags.wWarningFlags))
+         nest 2 (vcat (map (setting "-W" "-Wno-" wopt) DynFlags.fWarningFlags))
   where
         setting prefix noPrefix test flag
           | quiet     = empty
@@ -2559,7 +2560,7 @@ showDynFlags show_all dflags = do
                 is_on = test f dflags
                 quiet = not show_all && test f default_dflags == is_on
 
-        default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags)
+        default_dflags = defaultDynFlags (settings dflags)
 
         (ghciFlags,others)  = partition (\f -> flagSpecFlag f `elem` flgs)
                                         DynFlags.fFlags
@@ -2672,7 +2673,7 @@ newDynFlags interactive_only minus_opts = do
       dflags0 <- getDynFlags
       when (not interactive_only) $ do
         (dflags1, _, _) <- liftIO $ GHC.parseDynamicFlags dflags0 lopts
-        new_pkgs <- GHC.setProgramDynFlags dflags1
+        _new_pkgs <- GHC.setProgramDynFlags dflags1
 
         -- if the package flags changed, reset the context and link
         -- the new packages.
@@ -2684,7 +2685,8 @@ newDynFlags interactive_only minus_opts = do
               "package flags have changed, resetting and loading new packages..."
           GHC.setTargets []
           _ <- GHC.load LoadAllTargets
-          liftIO $ linkPackages hsc_env new_pkgs
+          _ <- panic "linkPackages: not handled!"
+          -- liftIO $ linkPackages hsc_env new_pkgs
           -- package flags changed, we can't re-use any of the old context
           setContextAfterLoad False []
           -- and copy the package state to the interactive DynFlags
@@ -2700,12 +2702,13 @@ newDynFlags interactive_only minus_opts = do
             newLdInputs     = drop ld0length (ldInputs dflags2)
             newCLFrameworks = drop fmrk0length (cmdlineFrameworks dflags2)
 
-            hsc_env' = hsc_env { hsc_dflags =
+            _hsc_env' = hsc_env { hsc_dflags =
                          dflags2 { ldInputs = newLdInputs
                                  , cmdlineFrameworks = newCLFrameworks } }
 
         when (not (null newLdInputs && null newCLFrameworks)) $
-          liftIO $ linkCmdLineLibs hsc_env'
+          panic "linkCmdLineLibs: not handled!"
+          -- liftIO $ linkCmdLineLibs hsc_env'
 
       return ()
 
@@ -2805,7 +2808,7 @@ showCmd str = do
             , action "imports"    $ showImports
             , action "modules"    $ showModules
             , action "bindings"   $ showBindings
-            , action "linker"     $ getDynFlags >>= liftIO . showLinkerState
+            , action "linker"     $ getDynFlags >>= liftIO . panic "showLinkerState"
             , action "breaks"     $ showBkptTable
             , action "context"    $ showContext
             , action "packages"   $ showPackages
@@ -2878,14 +2881,14 @@ showBindings = do
         fidocs = map GHC.pprFamInst finsts
     mapM_ printForUserPartWay (docs ++ idocs ++ fidocs)
   where
-    makeDoc (AnId i) = pprTypeAndContents i
+    makeDoc (AnId _i) = panic "pprTypeAndContents: showBindings" -- pprTypeAndContents i
     makeDoc tt = do
         mb_stuff <- GHC.getInfo False (getName tt)
         return $ maybe (text "") pprTT mb_stuff
 
     pprTT :: (TyThing, Fixity, [GHC.ClsInst], [GHC.FamInst], SDoc) -> SDoc
     pprTT (thing, fixity, _cls_insts, _fam_insts, _docs)
-      = pprTyThing showToHeader thing
+      = pprTyThing thing
         $$ show_fixity
       where
         show_fixity
@@ -2894,7 +2897,7 @@ showBindings = do
 
 
 printTyThing :: TyThing -> GHCi ()
-printTyThing tyth = printForUser (pprTyThing showToHeader tyth)
+printTyThing tyth = printForUser (pprTyThing tyth)
 
 showBkptTable :: GHCi ()
 showBkptTable = do
@@ -2971,7 +2974,7 @@ showLanguages' show_all dflags =
                 quiet = not show_all && test f default_dflags == is_on
 
    default_dflags =
-       defaultDynFlags (settings dflags) (llvmTargets dflags) `lang_set`
+       defaultDynFlags (settings dflags) `lang_set`
          case language dflags of
            Nothing -> Just Haskell2010
            other   -> other
@@ -3082,6 +3085,7 @@ completeIdentifier line@(left, _) =
     (x:_) | isSymbolChar x -> wrapCompleter (specials ++ spaces) complete line
     _                      -> wrapIdentCompleter complete line
   where
+    isSymbolChar c = c `elem` ("!@#$%&*+./<=>?\\^|:-~" :: String)
     complete w = do
       rdrs <- GHC.getRdrNamesInScope
       dflags <- GHC.getSessionDynFlags
@@ -3120,11 +3124,11 @@ completeSetOptions = wrapCompleter flagWordBreakChars $ \w -> do
   return (filter (w `isPrefixOf`) opts)
     where opts = "args":"prog":"prompt":"prompt-cont":"prompt-function":
                  "prompt-cont-function":"editor":"stop":flagList
-          flagList = map head $ group $ sort allNonDeprecatedFlags
+          flagList = map head $ group $ sort allFlags
 
 completeSeti = wrapCompleter flagWordBreakChars $ \w -> do
   return (filter (w `isPrefixOf`) flagList)
-    where flagList = map head $ group $ sort allNonDeprecatedFlags
+    where flagList = map head $ group $ sort allFlags
 
 completeShowOptions = wrapCompleter flagWordBreakChars $ \w -> do
   return (filter (w `isPrefixOf`) opts)
@@ -3176,8 +3180,9 @@ printCmd  = pprintCommand True False
 forceCmd  = pprintCommand False True
 
 pprintCommand :: Bool -> Bool -> String -> GHCi ()
-pprintCommand bind force str = do
-  pprintClosureCommand bind force str
+pprintCommand _bind _force _str = panic "pprintCommand"
+  -- do
+  -- pprintClosureCommand bind force str
 
 stepCmd :: String -> GHCi ()
 stepCmd arg = withSandboxOnly ":step" $ step arg
@@ -3817,3 +3822,6 @@ wantNameFromInterpretedModule noCanDo str and_then =
                then noCanDo n $ text "module " <> ppr modl <>
                                 text " is not interpreted"
                else and_then n
+
+withSignalHandlers :: m a -> m a
+withSignalHandlers = id

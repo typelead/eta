@@ -94,10 +94,14 @@ import Control.Monad
 import Prelude hiding   ( read )
 
 #ifdef ETA_REPL
-import Control.Concurrent.MVar (MVar)
-import ETA.Interactive.Linker ( PersistentLinkerState, saveLinkerGlobals, restoreLinkerGlobals )
 import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( lookupThName_maybe )
 import qualified Language.Haskell.TH as TH
+
+saveLinkerGlobals :: IO ()
+saveLinkerGlobals = return ()
+
+restoreLinkerGlobals :: () -> IO ()
+restoreLinkerGlobals () = return ()
 #else
 saveLinkerGlobals :: IO ()
 saveLinkerGlobals = return ()
@@ -522,8 +526,6 @@ data CoreReader = CoreReader {
         cr_module :: Module,
         cr_print_unqual :: PrintUnqualified,
 #ifdef ETA_REPL
-        cr_globals :: (MVar PersistentLinkerState, Bool)
-#else
         cr_globals :: ()
 #endif
 }

@@ -12,7 +12,7 @@ module ETA.Main.HscTypes (
         HscEnv(..), hscEPS,
         FinderCache, FindResult(..), ModLocationCache,
         Target(..), TargetId(..), pprTarget, pprTargetId,
-        ModuleGraph, emptyMG,
+        ModuleGraph, emptyMG, mgModSummaries, mkModuleGraph, mgLookupModule,
         HscStatus(..),
         IServ(..),
 
@@ -196,6 +196,7 @@ import Control.Monad    ( guard, liftM, when, ap )
 import Data.Array       ( Array, array )
 import Data.Map         ( Map )
 import Data.Text        ( Text )
+import Data.List        ( find )
 import Data.IORef
 import Data.Time
 import Data.Word
@@ -2402,6 +2403,16 @@ type ModuleGraph = [ModSummary]
 
 emptyMG :: ModuleGraph
 emptyMG = []
+
+mgModSummaries :: ModuleGraph -> [ModSummary]
+mgModSummaries = id
+
+mkModuleGraph :: [ModSummary] -> ModuleGraph
+mkModuleGraph = id
+
+-- | Look up a ModSummary in the ModuleGraph
+mgLookupModule :: ModuleGraph -> Module -> Maybe ModSummary
+mgLookupModule mss m = find (\ms -> ms_mod ms == m) mss
 
 -- | A single node in a 'ModuleGraph'. The nodes of the module graph
 -- are one of:
