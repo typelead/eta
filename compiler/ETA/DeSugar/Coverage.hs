@@ -103,9 +103,9 @@ addTicksToBinds dflags mod mod_loc exports tyCons binds
           (binds1,st) = foldr tickPass (binds, initState) passes
 
      let tickCount = tickBoxCount st
-     hashNo <- writeMixEntries dflags mod tickCount (reverse $ mixEntries st)
-                               orig_file2
-     modBreaks <- mkModBreaks dflags (breakCount st) (reverse $ breaks st)
+         entries = reverse $ mixEntries st
+     hashNo <- writeMixEntries dflags mod tickCount entries orig_file2
+     modBreaks <- mkModBreaks dflags mod tickCount entries
 
      when (dopt Opt_D_dump_ticked dflags) $
          log_action dflags dflags SevDump noSrcSpan defaultDumpStyle
@@ -128,22 +128,24 @@ guessSourceFile binds orig_file =
         _ -> orig_file
 
 
-mkModBreaks :: DynFlags -> Int -> [MixEntry_] -> IO ModBreaks
-mkModBreaks _dflags count entries = do
-  -- _breakArray <- newBreakArray dflags $ length entries
-  _ <- panic "BreakArray not handled!"
-  let
-         locsTicks = listArray (0,count-1) [ span  | (span,_,_,_)  <- entries ]
-         varsTicks = listArray (0,count-1) [ vars  | (_,_,vars,_)  <- entries ]
-         declsTicks= listArray (0,count-1) [ decls | (_,decls,_,_) <- entries ]
-         modBreaks = emptyModBreaks
-                     { modBreaks_flags = panic "BreakArray not handled!"
-                     , modBreaks_locs  = locsTicks
-                     , modBreaks_vars  = varsTicks
-                     , modBreaks_decls = declsTicks
-                     }
-  --
-  return modBreaks
+mkModBreaks :: DynFlags -> Module -> Int -> [MixEntry_] -> IO ModBreaks
+mkModBreaks dflags _mod count entries
+  | HscInterpreted <- hscTarget dflags = do
+    -- breakArray <- GHCi.newBreakArray hsc_env (length entries)
+    -- ccs <- mkCCSArray hsc_env mod count entries
+    _ <- panic "breakArray not handled!"
+    let
+           locsTicks  = listArray (0,count-1) [ span  | (span,_,_,_)  <- entries ]
+           varsTicks  = listArray (0,count-1) [ vars  | (_,_,vars,_)  <- entries ]
+           declsTicks = listArray (0,count-1) [ decls | (_,decls,_,_) <- entries ]
+    return emptyModBreaks
+                       { modBreaks_flags = panic "breakArray modBreaks_flags not handled!"
+                       , modBreaks_locs  = locsTicks
+                       , modBreaks_vars  = varsTicks
+                       , modBreaks_decls = declsTicks
+                      --  , modBreaks_ccs   = panic "modBreaks_ccs not handled!"
+                       }
+  | otherwise = return emptyModBreaks
 
 
 writeMixEntries :: DynFlags -> Module -> Int -> [MixEntry_] -> FilePath -> IO Int

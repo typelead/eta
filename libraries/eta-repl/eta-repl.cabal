@@ -73,5 +73,5 @@ library
         eta-boot-th,
         eta-meta,
         transformers     == 0.4.*
-    if !os(windows)
+    if !os(windows) && !impl(eta)
       Build-Depends: unix >= 2.7 && < 2.9
