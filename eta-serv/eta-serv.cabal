@@ -1,0 +1,30 @@
+name: eta-serv
+version: 0.0.1
+license: BSD3
+license-file:   LICENSE
+synopsis: eta-serv allows Eta to interpret expressions
+description: eta-serv allows Eta to interpret expressions
+category: Development
+build-type: Simple
+cabal-version:  >= 1.10
+
+library
+    default-language: Haskell2010
+    eta-options: -Wall -Werror
+    hs-source-dirs: src
+    exposed-modules: Lib
+    build-depends: base       >= 4   && < 5,
+                   binary     >= 0.7 && < 0.9,
+                   deepseq    >= 1.4 && < 1.5,
+                   eta-repl
+
+executable eta-serv
+    default-language: Haskell2010
+    main-is: Main.hs
+    eta-options: -Wall -Werror
+    hs-source-dirs: src
+    build-depends: base       >= 4   && < 5,
+                   eta-repl,
+                   binary     >= 0.7 && < 0.9,
+                   deepseq    >= 1.4 && < 1.5,
+                   eta-serv
