@@ -871,7 +871,7 @@ compileExprRemote expr = do
 -- | Compile a parsed expression (before renaming), run it, and deliver
 -- the resulting HValue.
 compileParsedExprRemote :: GhcMonad m => HsExpr RdrName -> m ForeignHValue
-compileParsedExprRemote expr@(_) = withSession $ \hsc_env -> do
+compileParsedExprRemote expr = withSession $ \hsc_env -> do
   -- > let _compileParsedExpr = expr
   -- Create let stmt from expr to make hscParsedStmt happy.
   -- We will ignore the returned [Id], namely [expr_id], and not really
@@ -880,7 +880,6 @@ compileParsedExprRemote expr@(_) = withSession $ \hsc_env -> do
       expr_name = mkInternalName (getUnique expr_fs) (mkTyVarOccFS expr_fs) noSrcSpan
       let_stmt = L noSrcSpan . LetStmt . HsValBinds $
         ValBindsIn (unitBag $ mkHsVarBind noSrcSpan (getRdrName expr_name) (noLoc expr)) []
-
   Just ([_id], hvals_io, fix_env) <- liftIO $ hscParsedStmt hsc_env let_stmt
   updateFixityEnv fix_env
   status <- liftIO $ evalStmt hsc_env False (EvalThis hvals_io)

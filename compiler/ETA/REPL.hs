@@ -81,12 +81,6 @@ import Foreign hiding (void)
 import System.Exit
 import Data.Maybe
 import GHC.IO.Handle.Types (Handle)
-#if defined(mingw32_HOST_OS)
-import Foreign.C
-import GHC.IO.Handle.FD (fdToHandle)
-#else
-import System.Posix as Posix
-#endif
 import System.Directory
 import System.Process
 import GHC.Conc (getNumProcessors, pseq, par)
@@ -468,7 +462,7 @@ handleIServFailure IServ{..} e = do
   ex <- getProcessExitCode iservProcess
   case ex of
     Just (ExitFailure n) ->
-      throw (InstallationError ("ghc-iserv terminated (" ++ show n ++ ")"))
+      throw (InstallationError ("eta-serv terminated (" ++ show n ++ ")"))
     _ -> do
       terminateProcess iservProcess
       _ <- waitForProcess iservProcess
@@ -483,8 +477,8 @@ startIServ dflags = do
       opts = getOpts dflags opt_i
   debugTraceMsg dflags 3 $ text "Starting " <> text prog
   let createProc = lookupHook createIservProcessHook
-                              (\cp -> do { (_,_,_,ph) <- createProcess cp
-                                         ; return ph })
+                              (\cp -> do { (mstdin,mstdout,mstderr,ph) <- createProcess cp
+                                         ; return (mstdin, mstdout, mstderr, ph) })
                               dflags
   (ph, rh, wh) <- runWithPipes createProc prog opts
   lo_ref <- newIORef Nothing
@@ -511,42 +505,16 @@ stopIServ HscEnv{..} =
        then return ()
        else iservCall iserv Shutdown
 
-runWithPipes :: (CreateProcess -> IO ProcessHandle)
+runWithPipes :: (CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle))
              -> FilePath -> [String] -> IO (ProcessHandle, Handle, Handle)
-#if defined(mingw32_HOST_OS)
-foreign import ccall "io.h _close"
-   c__close :: CInt -> IO CInt
-
-foreign import ccall unsafe "io.h _get_osfhandle"
-   _get_osfhandle :: CInt -> IO CInt
-
 runWithPipes createProc prog opts = do
-    (rfd1, wfd1) <- createPipeFd -- we read on rfd1
-    (rfd2, wfd2) <- createPipeFd -- we write on wfd2
-    wh_client    <- _get_osfhandle wfd1
-    rh_client    <- _get_osfhandle rfd2
-    let args = show wh_client : show rh_client : opts
-    ph <- createProc (proc prog args)
-    rh <- mkHandle rfd1
-    wh <- mkHandle wfd2
-    return (ph, rh, wh)
-      where mkHandle :: CInt -> IO Handle
-            mkHandle fd = (fdToHandle fd) `onException` (c__close fd)
-
-#else
-runWithPipes createProc prog opts = do
-    (rfd1, wfd1) <- Posix.createPipe -- we read on rfd1
-    (rfd2, wfd2) <- Posix.createPipe -- we write on wfd2
-    setFdOption rfd1 CloseOnExec True
-    setFdOption wfd2 CloseOnExec True
-    let args = show wfd1 : show rfd2 : opts
-    ph <- createProc (proc prog args)
-    closeFd wfd1
-    closeFd rfd2
-    rh <- fdToHandle rfd1
-    wh <- fdToHandle wfd2
-    return (ph, rh, wh)
-#endif
+  (mstdin, mstdout, _mstderr, ph) <-
+    createProc (proc prog opts) {
+      std_in  = CreatePipe,
+      std_out = CreatePipe,
+      std_err = CreatePipe
+    }
+  return (ph, fromJust mstdout, fromJust mstdin)
 
 -- -----------------------------------------------------------------------------
 {- Note [External GHCi pointers]

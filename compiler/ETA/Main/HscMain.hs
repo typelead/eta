@@ -1276,6 +1276,7 @@ hscInteractive hsc_env cgguts mod_summary = do
     -- Do saturation and convert to A-normal form
     _prepd_binds <- {-# SCC "CorePrep" #-}
                    corePrepPgm hsc_env this_mod location core_binds data_tycons
+    _ <- panic "hscInteractive"
     -----------------  Generate byte code ------------------
     -- comp_bc <- byteCodeGen dflags this_mod prepd_binds data_tycons mod_breaks
     ------------------ Create f-x-dynamic C-side stuff ---
@@ -1512,7 +1513,7 @@ hscParseExpr expr = do
   hsc_env <- getHscEnv
   maybe_stmt <- hscParseStmt expr
   case maybe_stmt of
-    Just (L _ (BodyStmt _ expr _ _)) -> return expr
+    Just (L _ (BodyStmt expr _ _ _)) -> return (unLoc expr)
     _ -> throwErrors $ unitBag $ mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan
       (text "not an expression:" <+> quotes (text expr))
 
@@ -1649,7 +1650,6 @@ hscCompileCoreExpr' hsc_env _srcspan ds_expr
            {- Convert to BCOs -}
          -- ; bcos <- coreExprToBCOs hsc_env
          --             (icInteractiveModule (hsc_IC hsc_env)) prepd_expr
-
          ; _ <- panic "linkExpr"
            {- link it -}
          -- ; _hval <- linkExpr hsc_env srcspan bcos

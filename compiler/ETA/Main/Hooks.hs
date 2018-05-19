@@ -44,6 +44,7 @@ import ETA.BasicTypes.SrcLoc
 import Eta.REPL.RemoteTypes
 import Data.Maybe
 import System.Process
+import System.IO
 
 {-
 ************************************************************************
@@ -87,7 +88,7 @@ data Hooks = Hooks
   , linkHook               :: Maybe (GhcLink -> DynFlags -> Bool -> HomePackageTable -> IO SuccessFlag)
   , runRnSpliceHook        :: Maybe (HsSplice Name -> RnM (HsSplice Name))
   , getValueSafelyHook     :: Maybe (HscEnv -> Name -> Type -> IO (Maybe HValue))
-  , createIservProcessHook :: Maybe (CreateProcess -> IO ProcessHandle)
+  , createIservProcessHook :: Maybe (CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle))
   }
 
 getHooked :: (Functor f, HasDynFlags f) => (Hooks -> Maybe a) -> a -> f a

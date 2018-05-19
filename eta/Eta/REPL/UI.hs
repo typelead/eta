@@ -418,7 +418,6 @@ interactiveUI config srcs maybe_exprs = do
 
     -- Initialise buffering for the *interpreted* I/O system
    (nobuffering, flush) <- initInterpBuffering
-
    -- The initial set of DynFlags used for interactive evaluation is the same
    -- as the global DynFlags, plus -XExtendedDefaultRules and
    -- -XNoMonomorphismRestriction.

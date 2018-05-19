@@ -44,6 +44,7 @@
 -- XXX The above flags turn off warnings in the generated code:
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE NondecreasingIndentation #-}
 {-# OPTIONS_GHC -XNoOverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
