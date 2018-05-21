@@ -6,8 +6,6 @@
 -- For details on Remote Eta Serv, see Note [Remote GHCi] in
 -- compiler/eta-repl/Eta/REPL/TH.hs.
 --
-module Main (main) where
-
 import Lib (serv)
 
 import Eta.REPL.Message

@@ -1,0 +1,18 @@
+-dontwarn eta_repl.**
+-dontwarn base.**
+-dontwarn directory.**
+-dontwarn eta.**
+-dontoptimize
+-dontobfuscate
+-libraryjars <java.home>/lib/rt.jar
+
+# -repackageclasses 'eta.repl'
+# -allowaccessmodification
+# -useuniqueclassmembernames
+# -keeppackagenames doNotKeepAThing
+# -printmapping 'repl.map'
+# -dontusemixedcaseclassnames
+
+-keep public class eta.main {
+  public static void main(java.lang.String[]);
+}
