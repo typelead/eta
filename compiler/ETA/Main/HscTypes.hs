@@ -190,8 +190,6 @@ import ETA.Utils.Platform
 import ETA.Utils.Util
 import Eta.Serialized       ( Serialized )
 
-import Codec.JVM (MethodDef, FieldDef)
-
 import Control.Monad    ( guard, liftM, when, ap )
 import Data.Array       ( Array, array )
 import Data.Map         ( Map )
@@ -208,6 +206,7 @@ import System.IO
 import System.Process   ( ProcessHandle )
 import Control.Concurrent
 import qualified Data.Map as M
+import Codec.JVM
 
 -- -----------------------------------------------------------------------------
 -- Compilation state
@@ -2846,7 +2845,7 @@ data Unlinked
    = DotO FilePath      -- ^ An object file (.o)
    | DotA FilePath      -- ^ Static archive file (.a)
    | DotDLL FilePath    -- ^ Dynamically linked library file (.so, .dll, .dylib)
-   | BCOs CompiledByteCode ModBreaks    -- ^ A byte-code object, lives only in memory
+   | Classes [ClassFile] -- ^ List of interpreted class files
 
 #ifdef ETA_REPL
 data CompiledByteCode = CompiledByteCodeUndefined
@@ -2862,11 +2861,7 @@ instance Outputable Unlinked where
    ppr (DotO path)   = text "DotO" <+> text path
    ppr (DotA path)   = text "DotA" <+> text path
    ppr (DotDLL path) = text "DotDLL" <+> text path
-#ifdef ETA_REPL
-   ppr (BCOs bcos _) = text "BCOs" <+> ppr bcos
-#else
-   ppr (BCOs _ _)    = text "No byte code"
-#endif
+   ppr (Classes classes) = text "Classes" <+> ppr (map classFileName classes)
 
 -- | Is this an actual file on disk we can link in somehow?
 isObject :: Unlinked -> Bool
@@ -2887,9 +2882,9 @@ nameOfObject (DotDLL fn) = fn
 nameOfObject other       = pprPanic "nameOfObject" (ppr other)
 
 -- | Retrieve the compiled byte-code if possible. Panic if it is a file-based linkable
-byteCodeOfObject :: Unlinked -> CompiledByteCode
-byteCodeOfObject (BCOs bc _) = bc
-byteCodeOfObject other       = pprPanic "byteCodeOfObject" (ppr other)
+byteCodeOfObject :: Unlinked -> [ClassFile]
+byteCodeOfObject (Classes classes) = classes
+byteCodeOfObject other             = pprPanic "byteCodeOfObject" (ppr other)
 
 {-
 ************************************************************************

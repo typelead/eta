@@ -50,6 +50,7 @@ import ETA.CodeGen.Rts
 import ETA.Utils.JAR
 import ETA.Util
 import Codec.JVM
+import ETA.REPL.Linker
 import ETA.Main.FileCleanup
 import ETA.Iface.IfaceSyn
 import ETA.Prelude.ForeignCall
@@ -243,15 +244,10 @@ compileOne' m_tc_result mHscMessage
                    _ -> do guts0 <- hscDesugar hsc_env summary tc_result
                            guts <- hscSimplify hsc_env guts0
                            (iface, _changed, details, cgguts) <- hscNormalIface hsc_env guts mb_old_hash
-                           (hasStub, comp_bc, modBreaks) <- hscInteractive hsc_env cgguts summary
+                           classes <- hscInteractive hsc_env cgguts summary
+                           linkClasses hsc_env classes
 
-                           stub_o <- case hasStub of
-                                     Nothing -> return []
-                                     Just stub_c -> do
-                                         stub_o <- compileStub hsc_env stub_c
-                                         return [DotO stub_o]
-
-                           let hs_unlinked = [BCOs comp_bc modBreaks]
+                           let hs_unlinked = [Classes classes]
                                unlinked_time = ms_hs_date summary
                              -- Why do we use the timestamp of the source file here,
                              -- rather than the current time?  This works better in
@@ -259,8 +255,7 @@ compileOne' m_tc_result mHscMessage
                              -- with the filesystem's clock.  It's just as accurate:
                              -- if the source is modified, then the linkable will
                              -- be out of date.
-                           let linkable = LM unlinked_time this_mod
-                                          (hs_unlinked ++ stub_o)
+                               linkable = LM unlinked_time this_mod hs_unlinked
 
                            return (HomeModInfo{ hm_details  = details,
                                                 hm_iface    = iface,
@@ -345,12 +340,12 @@ compileOne' m_tc_result mHscMessage
 -- temporary file, which will be later combined with the main .o file
 -- (see the MergeStubs phase).
 
-compileStub :: HscEnv -> FilePath -> IO FilePath
-compileStub hsc_env stub_c = do
-        (_, stub_o) <- runPipeline StopLn hsc_env (stub_c,Nothing)  Nothing
-                                   Temporary Nothing{-no ModLocation-} Nothing
+-- compileStub :: HscEnv -> FilePath -> IO FilePath
+-- compileStub hsc_env stub_c = do
+--         (_, stub_o) <- runPipeline StopLn hsc_env (stub_c,Nothing)  Nothing
+--                                    Temporary Nothing{-no ModLocation-} Nothing
 
-        return stub_o
+--         return stub_o
 
 compileEmptyStub :: DynFlags -> HscEnv -> FilePath -> ModLocation -> IO ()
 compileEmptyStub dflags hsc_env basename location = do
@@ -376,7 +371,7 @@ link :: GhcLink                 -- interactive or batch
      -> HomePackageTable        -- what to link
      -> IO SuccessFlag
 
-link LinkInMemory _ _ _ = error "LinkInMemory not implemented yet."
+link LinkInMemory _ _ _ = return Succeeded
 link NoLink _ _ _ = return Succeeded
 link _ dflags batchAttemptLinking hpt
   | batchAttemptLinking

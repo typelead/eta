@@ -1258,17 +1258,16 @@ outputForeignStubs _dflags (ForeignStubs _ _ classExports) modClass =
 hscInteractive :: HscEnv
                -> CgGuts
                -> ModSummary
-               -> IO (Maybe FilePath, CompiledByteCode, ModBreaks)
+               -> IO [ClassFile]
 #ifdef ETA_REPL
 hscInteractive hsc_env cgguts mod_summary = do
-    let _dflags = hsc_dflags hsc_env
-    let CgGuts{ -- This is the last use of the ModGuts in a compilation.
+    let dflags = hsc_dflags hsc_env
+        CgGuts{ -- This is the last use of the ModGuts in a compilation.
                 -- From now on, we just use the bits we need.
                cg_module   = this_mod,
                cg_binds    = core_binds,
                cg_tycons   = tycons,
-               cg_foreign  = _foreign_stubs,
-               cg_modBreaks = mod_breaks } = cgguts
+               cg_foreign  = foreign_stubs } = cgguts
 
         location = ms_location mod_summary
         data_tycons = filter isDataTyCon tycons
@@ -1278,16 +1277,19 @@ hscInteractive hsc_env cgguts mod_summary = do
     -------------------
     -- PREPARE FOR CODE GENERATION
     -- Do saturation and convert to A-normal form
-    _prepd_binds <- {-# SCC "CorePrep" #-}
+    prepd_binds <- {-# SCC "CorePrep" #-}
                    corePrepPgm hsc_env this_mod location core_binds data_tycons
-    _ <- panic "hscInteractive"
-    -----------------  Generate byte code ------------------
-    -- comp_bc <- byteCodeGen dflags this_mod prepd_binds data_tycons mod_breaks
-    ------------------ Create f-x-dynamic C-side stuff ---
-    -- let modClass = moduleJavaClass this_mod
-    -- _
-    --     <- outputForeignStubs dflags foreign_stubs modClass
-    return (panic "hscInteractive stubs", panic "comp_bc", mod_breaks)
+
+    (stg_binds, _cost_centre_info)
+        <- {-# SCC "CoreToStg" #-}
+            myCoreToStg dflags this_mod prepd_binds
+
+    let modClass = moduleJavaClass this_mod
+    modClasses <- codeGen hsc_env this_mod location data_tycons stg_binds
+                    (panic "hpc_info") (lookupStubs modClass foreign_stubs)
+    let stubClasses = outputForeignStubs dflags foreign_stubs modClass
+        classes = modClasses ++ stubClasses
+    return classes
 #else
 hscInteractive _ _ = panic "GHC not compiled with interpreter"
 #endif

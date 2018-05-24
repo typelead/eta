@@ -66,7 +66,7 @@ import ETA.BasicTypes.Avail
 import ETA.BasicTypes.RdrName
 import ETA.BasicTypes.VarEnv
 -- import ByteCodeTypes
--- import Linker
+import ETA.REPL.Linker as Linker
 import ETA.Main.DynFlags
 import ETA.BasicTypes.Unique
 import ETA.BasicTypes.UniqSupply
@@ -118,12 +118,13 @@ getHistorySpan hsc_env History{..} =
     _ -> panic "getHistorySpan"
 
 getModBreaks :: HomeModInfo -> ModBreaks
-getModBreaks hmi
-  | Just linkable <- hm_linkable hmi,
-    [BCOs _cbc _] <- linkableUnlinked linkable
-  = emptyModBreaks
-  -- = fromMaybe emptyModBreaks (bc_breaks cbc)
-  | otherwise
+getModBreaks _hmi
+  -- TODO: Implement breakpoints
+  -- | Just linkable <- hm_linkable hmi,
+  --   [BCOs _cbc _] <- linkableUnlinked linkable
+  -- = emptyModBreaks
+  -- -- = fromMaybe emptyModBreaks (bc_breaks cbc)
+  -- | otherwise
   = emptyModBreaks -- probably object code
 
 {- | Finds the enclosing top level function name -}
@@ -326,14 +327,14 @@ handleRunStatus step expr bindings final_ids status history
          return (ExecBreak names bp)
 
     -- Completed successfully
-    | EvalComplete allocs (EvalSuccess _hvals) <- status
+    | EvalComplete allocs (EvalSuccess hvals) <- status
     = do hsc_env <- getSession
          let final_ic = extendInteractiveContextWithIds (hsc_IC hsc_env) final_ids
              final_names = map getName final_ids
-         --  liftIO $ Linker.extendLinkEnv (zip final_names hvals)
-         _ <- panic "Linker. extendLinkEnv not handled"
-         hsc_env' <- liftIO $ rttiEnvironment hsc_env{hsc_IC=final_ic}
-         setSession hsc_env'
+         liftIO $ Linker.extendLinkEnv (zip final_names hvals)
+         -- TODO: Handle rttiEnvironment
+         -- hsc_env' <- liftIO $ rttiEnvironment hsc_env{hsc_IC=final_ic}
+         setSession $ hsc_env { hsc_IC = final_ic }
          return (ExecComplete (Right final_names) allocs)
 
     -- Completed with an exception

@@ -36,25 +36,30 @@ import Data.Maybe(mapMaybe)
 import Control.Monad(when, forM_, unless)
 
 cgExpr :: StgExpr -> CodeGen ()
-cgExpr (StgApp fun args) = traceCg (str "StgApp" <+> ppr fun <+> ppr args) >>
-                           cgIdApp fun args
-cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = cgIdApp a []
-cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty) >>
-                               cgOpApp op args ty
-cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
-                              cgConApp con args
+cgExpr (StgApp fun args) = do
+  traceCg (str "StgApp" <+> ppr fun <+> ppr args)
+  cgIdApp fun args
+cgExpr (StgOpApp (StgPrimOp SeqOp) [StgVarArg a, _] _) = do
+  cgIdApp a []
+cgExpr (StgOpApp op args ty) = do
+  traceCg (str "StgOpApp" <+> ppr op <+> ppr args <+> ppr ty)
+  cgOpApp op args ty
+cgExpr (StgConApp con args) = do
+  traceCg (str "StgConApp" <+> ppr con <+> ppr args)
+  cgConApp con args
+cgExpr t@(StgTick _ _) = do
+  cgTick t
 
-cgExpr t@(StgTick _ _) = cgTick t
-
-cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
+cgExpr (StgLit lit) = do
+  emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do
   forbidScoping (cgBind binds)
   cgExpr expr
-cgExpr (StgLetNoEscape _ _ binds expr) =
+cgExpr (StgLetNoEscape _ _ binds expr) = do
   cgLneBinds binds expr
 
-cgExpr (StgCase expr _ _ binder _ altType alts) =
-  traceCg (str "StgCase" <+> ppr binder <+> ppr altType) >>
+cgExpr (StgCase expr _ _ binder _ altType alts) = do
+  traceCg (str "StgCase" <+> ppr binder <+> ppr altType)
   cgCase expr binder altType alts
 cgExpr _ = unimplemented "cgExpr"
 
@@ -416,9 +421,9 @@ cgTick expr = do
           let srcFile = unpackFS $ srcLocFile $ srcLoc srcSpan
           in  maybe False (equalFilePath srcFile) mbCgFilePath
       isModuleTick _ = False
-      (ticks,subExpr) = stripStgTicksTop (not . tickishIsCode) expr
+      (ticks,subExpr) = stripStgTicksTop (const True) expr
   forM_ ticks $ \ t -> traceCg (str "StgTick, tickish:" <+> ppr t)
-  case  reverse $ filter isModuleTick ticks of
+  case reverse $ filter isModuleTick ticks of
     (SourceNote srcSpan _:_) -> do
       let n = srcLocLine $ srcLoc srcSpan
       traceCg (str $ "Emitting line number: " ++ show n)

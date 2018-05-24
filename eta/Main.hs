@@ -123,8 +123,8 @@ main' postLoadMode dflags0 args flagWarnings = do
   let dflt_target = hscTarget dflags0
       (mode, lang, link)
          = case postLoadMode of
-               DoInteractive   -> (CompManager, HscInterpreted, NoLink)
-               DoEval _        -> (CompManager, HscInterpreted, NoLink)
+               DoInteractive   -> (CompManager, HscInterpreted, LinkInMemory)
+               DoEval _        -> (CompManager, HscInterpreted, LinkInMemory)
                DoMake          -> (CompManager, dflt_target,    LinkBinary)
                DoMkDependHS    -> (MkDepend,    dflt_target,    LinkBinary)
                DoAbiHash       -> (OneShot,     dflt_target,    LinkBinary)

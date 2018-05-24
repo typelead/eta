@@ -62,7 +62,8 @@ module ETA.CodeGen.Monad
    forkAlts,
    unimplemented,
    getDynFlags,
-   getSourceFilePath)
+   getSourceFilePath,
+   liftIO)
 where
 
 import ETA.Main.DynFlags

@@ -532,17 +532,9 @@ findPartiallyCompletedCycles modsDone theGraph
 --
 -- | Unloading
 unload :: HscEnv -> [Linkable] -> IO ()
-unload hsc_env _stable_linkables -- Unload everthing *except* 'stable_linkables'
-  = case ghcLink (hsc_dflags hsc_env) of
-#ifdef ETA_REPL
-        LinkInMemory -> panic "unload: not supportedin Eta!"
-        -- Linker.unload (hsc_dflags hsc_env) stable_linkables
-#else
-        LinkInMemory -> panic "unload: no interpreter"
-                                -- urgh.  avoid warnings:
-                                hsc_env stable_linkables
-#endif
-        _other -> return ()
+unload _hsc_env _stable_linkables -- Unload everthing *except* 'stable_linkables'
+  = return () -- TODO: Figure out whether we need this. Most likely we won't because
+              --       the JVM takes care of that.
 
 -- -----------------------------------------------------------------------------
 {- |

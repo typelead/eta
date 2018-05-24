@@ -7,7 +7,7 @@
 --
 -- | The interface to Eta REPL's custom classloader to handle dynamic classloading.
 module ETA.REPL.Linker ( getHValue, showLinkerState,
-                linkExpr, linkDecls, unload, withExtendedLinkEnv,
+                linkExpr, linkClasses, linkDecls, unload, withExtendedLinkEnv,
                 extendLinkEnv, deleteFromLinkEnv,
                 extendLoadedPkgs,
                 linkPackages,initDynLinker,linkModule
@@ -307,6 +307,18 @@ linkExpr hsc_env _span classes
        ; hvref <- newInstance hsc_env exprClsName
        ; fhv <- mkFinalizedHValue hsc_env hvref
        ; return (pls, fhv)
+   }}
+
+linkClasses :: HscEnv -> [ClassFile] -> IO ()
+linkClasses hsc_env classes
+  = do {
+     -- Initialise the linker (if it's not been done already)
+   ; initDynLinker hsc_env
+
+     -- Take lock for the actual work.
+   ; modifyPLS $ \pls -> do {
+       ; loadClasses hsc_env classes
+       ; return (pls, ())
    }}
 
 -- dieWith :: DynFlags -> SrcSpan -> MsgDoc -> IO a

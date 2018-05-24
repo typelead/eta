@@ -122,7 +122,7 @@ public class REPLClassLoader extends URLClassLoader {
             }
             return list;
         } catch (Exception exc) {
-            throw new RuntimeException("Failed during evalIO of Eta REPL expression", exc);
+            throw new RuntimeException("Failed during evalStmt of Eta REPL expression", exc);
         }
     }
 
