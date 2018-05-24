@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, DeriveGeneric, StandaloneDeriving, ScopedTypeVariables,
+{-# LANGUAGE CPP, GADTs, DeriveGeneric, StandaloneDeriving, ScopedTypeVariables,
     GeneralizedNewtypeDeriving, ExistentialQuantification, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 
@@ -38,7 +38,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.Dynamic
-import Data.Typeable (TypeRep)
+-- import Data.Typeable (TypeRep)
 import Data.IORef
 import Data.Map (Map)
 import GHC.Generics
@@ -47,6 +47,10 @@ import qualified Language.Haskell.TH.Syntax as TH
 import System.Exit
 import System.IO
 import System.IO.Error
+#ifdef ETA_VERSION
+import Java hiding (Map)
+import Java.Exception hiding (getMessage)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- The RPC protocol between GHC and the interactive server
@@ -71,6 +75,7 @@ data Message a where
   RemoveLibrarySearchPath :: RemotePtr () -> Message Bool
   ResolveObjs :: Message Bool
   FindSystemLibrary :: String -> Message (Maybe String)
+  AddDynamicClassPath :: [String] -> Message ()
 
   -- Interpreter -------------------------------------------
 
@@ -79,6 +84,9 @@ data Message a where
   -- a ResolvedBCO. The list is to allow us to serialise the ResolvedBCOs
   -- in parallel. See @createBCOs@ in compiler/ghci/GHCi.hsc.
   CreateBCOs :: [LB.ByteString] -> Message [HValueRef]
+
+  LoadClasses :: [String] -> [B.ByteString] -> Message ()
+  NewInstance :: String -> Message HValueRef
 
   -- | Release 'HValueRef's
   FreeHValueRefs :: [HValueRef] -> Message ()
@@ -372,7 +380,18 @@ toSerializableException :: SomeException -> SerializableException
 toSerializableException ex
   | Just UserInterrupt <- fromException ex  = EUserInterrupt
   | Just (ec::ExitCode) <- fromException ex = (EExitCode ec)
-  | otherwise = EOtherException (show (ex :: SomeException))
+  | otherwise = EOtherException contents
+  where contents =
+#ifdef ETA_VERSION
+          case fromException ex of
+            Just (ex :: JException) -> fromJava (exceptionToString ex)
+            Nothing -> show ex
+
+foreign import java unsafe "@static eta.repl.Utils.exceptionToString"
+  exceptionToString :: JException -> JString
+#else
+          show ex
+#endif
 
 fromSerializableException :: SerializableException -> SomeException
 fromSerializableException EUserInterrupt = toException UserInterrupt
@@ -455,6 +474,9 @@ getMessage = do
       31 -> Msg <$> return StartTH
       32 -> Msg <$> (RunModFinalizers <$> get <*> get)
       33 -> Msg <$> (AddSptEntry <$> get <*> get)
+      34 -> Msg <$> AddDynamicClassPath <$> get
+      35 -> Msg <$> (LoadClasses <$> get <*> get)
+      36 -> Msg <$> (NewInstance <$> get)
       _  -> Msg <$> (RunTH <$> get <*> get <*> get <*> get)
 
 putMessage :: Message a -> Put
@@ -493,7 +515,10 @@ putMessage m = case m of
   StartTH                     -> putWord8 31
   RunModFinalizers a b        -> putWord8 32 >> put a >> put b
   AddSptEntry a b             -> putWord8 33 >> put a >> put b
-  RunTH st q loc ty           -> putWord8 34 >> put st >> put q >> put loc >> put ty
+  AddDynamicClassPath a       -> putWord8 34 >> put a
+  LoadClasses a b             -> putWord8 35 >> put a >> put b
+  NewInstance a               -> putWord8 36 >> put a
+  RunTH st q loc ty           -> putWord8 37 >> put st >> put q >> put loc >> put ty
 
 -- -----------------------------------------------------------------------------
 -- Reading/writing messages
@@ -546,11 +571,12 @@ getBin h get leftover = go leftover (runGetIncremental get)
    go (Just leftover) (Partial fun) = do
      go Nothing (fun (Just leftover))
    go Nothing (Partial fun) = do
-     -- putStrLn "before hGetSome"
+     debug "before hGetSome"
      b <- B.hGetSome h (32*1024)
-     -- printf "hGetSome: %d\n" (B.length b)
+     debug $ "hGetSome: " ++ show (B.length b)
      if B.null b
         then return Nothing
         else go Nothing (fun (Just b))
-   go _lft (Fail _rest _off str) =
-     throwIO (ErrorCall ("getBin: " ++ str))
+   go _lft (Fail rest off str) =
+     throwIO (ErrorCall ("getBin: " ++ str ++ " offset: " ++ show off
+                      ++ " left: " ++ show rest))

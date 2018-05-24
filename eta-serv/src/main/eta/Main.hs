@@ -8,6 +8,7 @@
 --
 import Lib (serv)
 
+import Eta.REPL.RemoteTypes
 import Eta.REPL.Message
 
 import Control.Exception
@@ -15,7 +16,6 @@ import Control.Monad
 import Data.IORef
 import System.Environment
 import System.Exit
-import Text.Printf
 import System.IO
 
 dieWithUsage :: IO a
@@ -28,11 +28,13 @@ main = do
     ["-v"] -> return True
     []     -> return False
     _      -> dieWithUsage
-  when verbose $
-    printf "eta-serv listening on stdin and writing to stdout."
+  when verbose $ setVerbose
+  debug "eta-serv listening on stdin and writing to stdout."
+  hSetEncoding stdin  latin1
+  hSetEncoding stdout latin1
   lo_ref <- newIORef Nothing
   let pipe = Pipe{pipeRead = stdin, pipeWrite = stdout, pipeLeftovers = lo_ref}
-  uninterruptibleMask $ serv verbose hook pipe
+  uninterruptibleMask $ serv hook pipe
   where hook = return -- empty hook
     -- we cannot allow any async exceptions while communicating, because
     -- we will lose sync in the protocol, hence uninterruptibleMask.

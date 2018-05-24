@@ -73,6 +73,7 @@ module ETA.Main.HscMain
     , hscCompileCoreExpr
     , hscParseExpr
     , hscParsedStmt
+    , hscParsedStmt'
     -- * Low-level exports for hooks
     , hscCompileCoreExpr'
 #endif
@@ -87,6 +88,7 @@ module ETA.Main.HscMain
 
 #ifdef ETA_REPL
 import Eta.REPL.RemoteTypes ( ForeignHValue )
+import ETA.REPL.Linker
 import ETA.BasicTypes.Id
 import ETA.Core.CoreTidy         ( tidyExpr )
 import ETA.Types.Type             ( Type )
@@ -119,6 +121,7 @@ import ETA.DeSugar.DeSugar
 import ETA.SimplCore.SimplCore
 import ETA.Main.TidyPgm
 import ETA.Core.CorePrep
+import ETA.Core.CoreUtils (exprType)
 import ETA.StgSyn.CoreToStg        ( coreToStg )
 import ETA.StgSyn.StgSyn
 import ETA.Profiling.CostCentre
@@ -179,10 +182,11 @@ newHscEnv dflags = do
     fc_var  <- newIORef emptyUFM
     iserv_mvar <- newMVar Nothing
     mlc_var <- newIORef emptyModuleEnv
+    ic      <- newInteractiveContext dflags
     return HscEnv {  hsc_dflags       = dflags,
                      hsc_targets      = [],
                      hsc_mod_graph    = [],
-                     hsc_IC           = emptyInteractiveContext dflags,
+                     hsc_IC           = ic,
                      hsc_HPT          = emptyHomePackageTable,
                      hsc_EPS          = eps_var,
                      hsc_NC           = nc_var,
@@ -1352,7 +1356,15 @@ hscParsedStmt :: HscEnv
               -> IO ( Maybe ([Id]
                     , ForeignHValue {- IO [HValue] -}
                     , FixityEnv))
-hscParsedStmt hsc_env stmt = runInteractiveHsc hsc_env $ do
+hscParsedStmt hsc_env stmt = hscParsedStmt' hsc_env False stmt
+
+hscParsedStmt' :: HscEnv
+               -> Bool
+               -> GhciLStmt RdrName  -- ^ The parsed statement
+               -> IO ( Maybe ([Id]
+                     , ForeignHValue {- IO [HValue] -}
+                     , FixityEnv))
+hscParsedStmt' hsc_env anonymous stmt = runInteractiveHsc hsc_env $ do
   -- Rename and typecheck it
   (ids, tc_expr, fix_env) <- ioMsgMaybe $ tcRnStmt hsc_env stmt
 
@@ -1366,7 +1378,8 @@ hscParsedStmt hsc_env stmt = runInteractiveHsc hsc_env $ do
   -- for linking, else we try to link 'main' and can't find it.
   -- Whereas the linker already knows to ignore 'interactive'
   let src_span = srcLocSpan interactiveSrcLoc
-  hval <- liftIO $ hscCompileCoreExpr hsc_env src_span ds_expr
+  -- TODO: Allow hooks to work
+  hval <- liftIO $ hscCompileCoreExprAnonymous hsc_env anonymous src_span ds_expr
 
   return $ Just (ids, hval, fix_env)
 
@@ -1632,7 +1645,11 @@ hscCompileCoreExpr hsc_env =
   lookupHook hscCompileCoreExprHook hscCompileCoreExpr' (hsc_dflags hsc_env) hsc_env
 
 hscCompileCoreExpr' :: HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue
-hscCompileCoreExpr' hsc_env _srcspan ds_expr
+hscCompileCoreExpr' hsc_env srcspan ds_expr =
+  hscCompileCoreExprAnonymous hsc_env False srcspan ds_expr
+
+hscCompileCoreExprAnonymous :: HscEnv -> Bool -> SrcSpan -> CoreExpr -> IO ForeignHValue
+hscCompileCoreExprAnonymous hsc_env anonymous srcspan ds_expr
     = do { let dflags = hsc_dflags hsc_env
 
            {- Simplify it -}
@@ -1647,14 +1664,44 @@ hscCompileCoreExpr' hsc_env _srcspan ds_expr
            {- Lint if necessary -}
          ; lintInteractiveExpr "hscCompileExpr" hsc_env prepd_expr
 
-           {- Convert to BCOs -}
-         -- ; bcos <- coreExprToBCOs hsc_env
-         --             (icInteractiveModule (hsc_IC hsc_env)) prepd_expr
-         ; _ <- panic "linkExpr"
-           {- link it -}
-         -- ; _hval <- linkExpr hsc_env srcspan bcos
+         ; exprNo <- if anonymous
+                     then icExprCounterInc (hsc_IC hsc_env)
+                     else icExprCounter (hsc_IC hsc_env)
+         -----------------  Convert to STG ------------------
+         ; let exprFS = fsLit "$expr"
+               this_mod0 = icInteractiveModule (hsc_IC hsc_env)
+               this_mod
+                 | anonymous =
+                   this_mod0 { moduleName =
+                               mkModuleName $ moduleNameString (moduleName this_mod0)
+                                           ++ "_" ++ show exprNo }
+                 | otherwise = this_mod0
 
-         ; return (panic "hval needs to be changed!")}
+               exprName = mkExternalName (getUnique exprFS)
+                            this_mod (mkVarOccFS exprFS)
+                            noSrcSpan
+               -- Create an id to keep the codegen happy
+               exprId = mkVanillaGlobal exprName
+                          (exprType prepd_expr)
+               prepd_binds = [NonRec exprId prepd_expr]
+               -- Stub location to keep the codegen happy
+               mod_location =
+                 ModLocation { ml_hs_file = Just "Interactive.hs"
+                             , ml_hi_file = "Interactive.hi"
+                             , ml_obj_file = "Interactive.jar" }
+
+         ; (stg_binds, _cost_centre_info)
+             <- {-# SCC "CoreToStg" #-}
+                myCoreToStg dflags this_mod prepd_binds
+
+           {- link it -}
+         ; modClasses <- codeGen hsc_env this_mod mod_location
+                           [] stg_binds (panic "hpcInfo") Nothing
+
+         ; hval <- linkExpr hsc_env srcspan modClasses
+
+         ; return hval }
+
 
 #endif
 

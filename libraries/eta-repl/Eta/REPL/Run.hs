@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs, RecordWildCards, MagicHash, ScopedTypeVariables, CPP,
-    UnboxedTuples #-}
+    UnboxedTuples, GHCForeignImportPrim, UnliftedFFITypes #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- |
@@ -25,16 +25,14 @@ import Eta.REPL.BreakArray
 import Control.Concurrent
 import Control.DeepSeq
 import Control.Exception
-import Control.Monad
 import Data.Binary
 import Data.Binary.Get
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Unsafe as B
 import GHC.Exts
-import GHC.Stack
+-- import GHC.Stack
 import Foreign
 import Foreign.C
-import GHC.Conc.Sync
 import GHC.IO hiding ( bracket )
 import System.Mem.Weak  ( deRefWeak )
 import Unsafe.Coerce
@@ -55,7 +53,10 @@ run m = case m of
   RemoveLibrarySearchPath ptr -> removeLibrarySearchPath (fromRemotePtr ptr)
   ResolveObjs -> resolveObjs
   FindSystemLibrary str -> findSystemLibrary str
+  AddDynamicClassPath cp -> addDynamicClassPath cp
   CreateBCOs bcos -> createBCOs (concatMap (runGet get) bcos)
+  LoadClasses classNames classes -> loadClasses classNames classes
+  NewInstance className -> newInstance className
   FreeHValueRefs rs -> mapM_ freeRemoteRef rs
   -- AddSptEntry fpr r -> localRef r >>= sptAddEntry fpr
   EvalStmt opts r -> evalStmt opts r
@@ -92,19 +93,33 @@ evalStmt :: EvalOpts -> EvalExpr HValueRef -> IO (EvalStatus [HValueRef])
 evalStmt opts expr = do
   io <- mkIO expr
   sandboxIO opts $ do
-    rs <- unsafeCoerce io :: IO [HValue]
+    rs <- unsafeCoerce# (IO $ evalStmt# (unsafeCoerce# io)) :: IO [HValue]
     mapM mkRemoteRef rs
  where
   mkIO (EvalThis href) = localRef href
   mkIO (EvalApp l r) = do
     l' <- mkIO l
     r' <- mkIO r
-    return ((unsafeCoerce l' :: HValue -> HValue) r')
+    mkApp l' r'
+
+mkApp :: HValue -> HValue -> IO HValue
+mkApp e1 e2 = IO $ \s ->
+  case mkApp# (unsafeCoerce# e1) (unsafeCoerce# e2) s of
+    (# s1, res #) -> (# s1, unsafeCoerce# res #)
+
+foreign import prim "eta.repl.Utils.mkApp"
+  mkApp# :: Any -> Any -> State# s -> (# State# s, Any #)
+
+foreign import prim "eta.repl.Utils.evalStmt"
+  evalStmt# :: Any -> State# s -> (# State# s, Any #)
 
 evalIO :: HValueRef -> IO (EvalResult ())
 evalIO r = do
   io <- localRef r
-  tryEval (unsafeCoerce io :: IO ())
+  tryEval (unsafeCoerce# (IO $ evalIO# (unsafeCoerce# io)) :: IO ())
+
+foreign import prim "eta.repl.Utils.evalIO"
+  evalIO# :: Any -> State# s -> (# State# s, Any #)
 
 evalString :: HValueRef -> IO (EvalResult String)
 evalString r = do
@@ -164,19 +179,20 @@ sandboxIO opts io = do
 -- not "Interrupted", we unset the exception flag before throwing.
 --
 rethrow :: EvalOpts -> IO a -> IO a
-rethrow EvalOpts{..} io =
-  catch io $ \se -> do
-    -- If -fbreak-on-error, we break unconditionally,
-    --  but with care of not breaking twice
-    if breakOnError && not breakOnException
-       then poke exceptionFlag 1
-       else case fromException se of
-               -- If it is a "UserInterrupt" exception, we allow
-               --  a possible break by way of -fbreak-on-exception
-               Just UserInterrupt -> return ()
-               -- In any other case, we don't want to break
-               _ -> poke exceptionFlag 0
-    throwIO se
+rethrow _e io = io
+  -- TODO: Implement breakpoints
+  -- catch io $ \se -> do
+  --   -- If -fbreak-on-error, we break unconditionally,
+  --   --  but with care of not breaking twice
+  --   if breakOnError && not breakOnException
+  --      then poke exceptionFlag 1
+  --      else case fromException se of
+  --              -- If it is a "UserInterrupt" exception, we allow
+  --              --  a possible break by way of -fbreak-on-exception
+  --              Just UserInterrupt -> return ()
+  --              -- In any other case, we don't want to break
+  --              _ -> poke exceptionFlag 0
+  --   throwIO se
 
 --
 -- While we're waiting for the sandbox thread to return a result, if
@@ -208,11 +224,14 @@ redirectInterrupts target wait = do
 
 measureAlloc :: IO (EvalResult a) -> IO (EvalStatus a)
 measureAlloc io = do
-  setAllocationCounter maxBound
   a <- io
-  ctr <- getAllocationCounter
-  let allocs = fromIntegral (maxBound::Int64) - fromIntegral ctr
-  return (EvalComplete allocs a)
+  -- TODO: Handle measuring allocs
+  return (EvalComplete 0 a)
+  -- setAllocationCounter maxBound
+  -- a <- io
+  -- ctr <- getAllocationCounter
+  -- let allocs = fromIntegral (maxBound::Int64) - fromIntegral ctr
+  -- return (EvalComplete allocs a)
 
 -- Exceptions can't be marshaled because they're dynamically typed, so
 -- everything becomes a String.
@@ -228,37 +247,38 @@ tryEval io = do
 -- is a not-very-good way to ensure that only the interactive
 -- evaluation should generate breakpoints.
 withBreakAction :: EvalOpts -> MVar () -> MVar (EvalStatus b) -> IO a -> IO a
-withBreakAction opts breakMVar statusMVar act
- = bracket setBreakAction resetBreakAction (\_ -> act)
- where
-   setBreakAction = do
-     stablePtr <- newStablePtr onBreak
-     poke breakPointIOAction stablePtr
-     when (breakOnException opts) $ poke exceptionFlag 1
-     when (singleStep opts) $ setStepFlag
-     return stablePtr
-        -- Breaking on exceptions is not enabled by default, since it
-        -- might be a bit surprising.  The exception flag is turned off
-        -- as soon as it is hit, or in resetBreakAction below.
+withBreakAction _opts _breakMVar _statusMVar act = act
+ -- TODO: Implement breakpoints
+ -- = bracket setBreakAction resetBreakAction (\_ -> act)
+ -- where
+ --   setBreakAction = do
+ --     stablePtr <- newStablePtr onBreak
+ --     poke breakPointIOAction stablePtr
+ --     when (breakOnException opts) $ poke exceptionFlag 1
+ --     when (singleStep opts) $ setStepFlag
+ --     return stablePtr
+ --        -- Breaking on exceptions is not enabled by default, since it
+ --        -- might be a bit surprising.  The exception flag is turned off
+ --        -- as soon as it is hit, or in resetBreakAction below.
 
-   onBreak :: BreakpointCallback
-   onBreak ix# uniq# is_exception apStack = do
-     tid <- myThreadId
-     let resume = ResumeContext
-           { resumeBreakMVar = breakMVar
-           , resumeStatusMVar = statusMVar
-           , resumeThreadId = tid }
-     resume_r <- mkRemoteRef resume
-     apStack_r <- mkRemoteRef apStack
-    --  ccs <- toRemotePtr <$> getCCSOf apStack
-     putMVar statusMVar $ EvalBreak is_exception apStack_r (I# ix#) (I# uniq#) resume_r
-     takeMVar breakMVar
+ --   onBreak :: BreakpointCallback
+ --   onBreak ix# uniq# is_exception apStack = do
+ --     tid <- myThreadId
+ --     let resume = ResumeContext
+ --           { resumeBreakMVar = breakMVar
+ --           , resumeStatusMVar = statusMVar
+ --           , resumeThreadId = tid }
+ --     resume_r <- mkRemoteRef resume
+ --     apStack_r <- mkRemoteRef apStack
+ --    --  ccs <- toRemotePtr <$> getCCSOf apStack
+ --     putMVar statusMVar $ EvalBreak is_exception apStack_r (I# ix#) (I# uniq#) resume_r
+ --     takeMVar breakMVar
 
-   resetBreakAction stablePtr = do
-     poke breakPointIOAction noBreakStablePtr
-     poke exceptionFlag 0
-     resetStepFlag
-     freeStablePtr stablePtr
+ --   resetBreakAction stablePtr = do
+ --     poke breakPointIOAction noBreakStablePtr
+ --     poke exceptionFlag 0
+ --     resetStepFlag
+ --     freeStablePtr stablePtr
 
 resumeStmt
   :: EvalOpts -> RemoteRef (ResumeContext [HValueRef])
@@ -290,43 +310,30 @@ abandonStmt hvref = do
   _ <- takeMVar resumeStatusMVar
   return ()
 
-#if defined(ETA_VERSION)
-foreign import java unsafe "@static eta.repl.Utils.rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
-foreign import java unsafe "@static eta.repl.Utils.rts_stop_on_exception"    exceptionFlag :: Ptr CInt
-#else
-stepFlag :: Ptr CInt
-stepFlag = error "stepFlag"
+-- foreign import java unsafe "@static eta.repl.Utils.rts_stop_next_breakpoint" stepFlag      :: Ptr CInt
+-- foreign import java unsafe "@static eta.repl.Utils.rts_stop_on_exception"    exceptionFlag :: Ptr CInt
 
-exceptionFlag :: Ptr CInt
-exceptionFlag = error "exceptionFlag"
-#endif
+-- setStepFlag :: IO ()
+-- setStepFlag = poke stepFlag 1
+-- resetStepFlag :: IO ()
+-- resetStepFlag = poke stepFlag 0
 
-setStepFlag :: IO ()
-setStepFlag = poke stepFlag 1
-resetStepFlag :: IO ()
-resetStepFlag = poke stepFlag 0
+-- type BreakpointCallback
+--      = Int#    -- the breakpoint index
+--     -> Int#    -- the module uniq
+--     -> Bool    -- exception?
+--     -> HValue  -- the AP_STACK, or exception
+--     -> IO ()
 
-type BreakpointCallback
-     = Int#    -- the breakpoint index
-    -> Int#    -- the module uniq
-    -> Bool    -- exception?
-    -> HValue  -- the AP_STACK, or exception
-    -> IO ()
+-- foreign import java unsafe "@static eta.repl.Utils.rts_breakpoint_io_action"
+--    breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
 
-#if defined(ETA_VERSION)
-foreign import java unsafe "@static eta.repl.Utils.rts_breakpoint_io_action"
-   breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
-#else
-foreign import ccall "&rts_breakpoint_io_action"
-   breakPointIOAction :: Ptr (StablePtr BreakpointCallback)
-#endif
+-- noBreakStablePtr :: StablePtr BreakpointCallback
+-- noBreakStablePtr = unsafePerformIO $ newStablePtr noBreakAction
 
-noBreakStablePtr :: StablePtr BreakpointCallback
-noBreakStablePtr = unsafePerformIO $ newStablePtr noBreakAction
-
-noBreakAction :: BreakpointCallback
-noBreakAction _ _ False _ = putStrLn "*** Ignoring breakpoint"
-noBreakAction _ _ True  _ = return () -- exception: just continue
+-- noBreakAction :: BreakpointCallback
+-- noBreakAction _ _ False _ = putStrLn "*** Ignoring breakpoint"
+-- noBreakAction _ _ True  _ = return () -- exception: just continue
 
 -- Malloc and copy the bytes.  We don't have any way to monitor the
 -- lifetime of this memory, so it just leaks.
@@ -361,7 +368,7 @@ mkString0 bs = B.unsafeUseAsCStringLen bs $ \(cstr,len) -> do
 -- #endif
 
 getIdValFromApStack :: HValue -> Int -> IO (Maybe HValue)
-getIdValFromApStack apStack (I# stackDepth) = return Nothing
+getIdValFromApStack _apStack (I# _stackDepth) = return Nothing
   --  case getApStackVal# apStack stackDepth of
   --       (# ok, result #) ->
   --           case ok of

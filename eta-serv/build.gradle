@@ -1,0 +1,46 @@
+buildscript {
+  dependencies {
+    classpath 'net.sf.proguard:proguard-gradle:6.0.3'
+  }
+}
+
+plugins {
+    id 'com.typelead.eta' version '0.6.5'
+    id 'com.github.johnrengelman.shadow' version '2.0.3'
+}
+
+eta {
+    useSystemEta = true
+    useSystemEtlas = true
+}
+
+dependencies {
+  compile eta('base:[4,5[')
+  compile eta('binary:[0.7,0.9[')
+  compile eta('deepseq:[1.4,1.5[')
+  compile eta('eta-repl')
+}
+
+compileEta {
+  options.args = ['-Wall', '-Werror']
+}
+
+jar {
+  manifest {
+    attributes 'Main-Class': "eta.main"
+  }
+}
+
+shadowJar {
+  zip64 = true
+}
+
+import proguard.gradle.ProGuardTask
+
+task proJar(type: ProGuardTask) {
+  configuration defaultEtaProguardFile
+  configuration 'proguard.txt'
+
+  injars shadowJar.outputs
+  outjars 'build/eta-serv.jar'
+}

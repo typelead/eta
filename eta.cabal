@@ -177,6 +177,7 @@ library
                        , ETA.Profiling.ProfInit
                        , ETA.Profiling.SCCfinal
                        , ETA.REPL
+                       , ETA.REPL.Linker
                        , ETA.Rename.RnBinds
                        , ETA.Rename.RnEnv
                        , ETA.Rename.RnExpr

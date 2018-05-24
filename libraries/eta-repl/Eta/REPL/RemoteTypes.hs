@@ -15,6 +15,11 @@ module Eta.REPL.RemoteTypes
   , ForeignRef, mkForeignRef, withForeignRef
   , ForeignHValue
   , unsafeForeignRefToRemoteRef, finalizeForeignRef
+  , debug
+#ifdef ETA_VERSION
+  , isVerbose
+  , setVerbose
+#endif
   ) where
 
 import Control.DeepSeq
@@ -25,6 +30,13 @@ import Data.Binary
 import Unsafe.Coerce
 import GHC.Exts
 import GHC.ForeignPtr
+#ifdef ETA_VERSION
+import System.IO
+import System.IO.Unsafe
+import Data.IORef
+import Control.Monad
+#endif
+
 
 -- -----------------------------------------------------------------------------
 -- RemotePtr
@@ -115,3 +127,21 @@ unsafeForeignRefToRemoteRef (ForeignRef fp) =
 
 finalizeForeignRef :: ForeignRef a -> IO ()
 finalizeForeignRef (ForeignRef fp) = finalizeForeignPtr fp
+
+debug :: String -> IO ()
+#ifdef ETA_VERSION
+debug str = when isVerbose $ hPutStrLn stderr str >> hFlush stderr
+#else
+debug _str = return ()
+#endif
+
+#ifdef ETA_VERSION
+verboseVar :: IORef Bool
+verboseVar = unsafePerformIO (newIORef False)
+
+setVerbose :: IO ()
+setVerbose = writeIORef verboseVar True
+
+isVerbose :: Bool
+isVerbose = unsafePerformIO (readIORef verboseVar)
+#endif

@@ -677,7 +677,7 @@ CoreMonad
 
 simplEnvForGHCi :: DynFlags -> SimplEnv
 simplEnvForGHCi dflags
-  = mkSimplEnv $ SimplMode { sm_names = ["GHCi"]
+  = mkSimplEnv $ SimplMode { sm_names = ["EtaREPL"]
                            , sm_phase = InitialPhase
                            , sm_rules = rules_on
                            , sm_inline = False

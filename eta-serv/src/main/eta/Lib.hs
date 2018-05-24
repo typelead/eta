@@ -4,20 +4,20 @@ module Lib (serv) where
 import Eta.REPL.Run
 import Eta.REPL.TH
 import Eta.REPL.Message
+import Eta.REPL.RemoteTypes
 
 import Control.DeepSeq
 import Control.Exception
-import Control.Monad
 import Data.Binary
 
 type MessageHook = Msg -> IO Msg
 
-serv :: Bool -> MessageHook -> Pipe -> (forall a .IO a -> IO a) -> IO ()
-serv verbose hook pipe@Pipe{..} _restore = loop
+serv :: MessageHook -> Pipe -> (forall a .IO a -> IO a) -> IO ()
+serv hook pipe@Pipe{..} _restore = loop
  where
   loop = do
     Msg msg <- readPipe pipe getMessage >>= hook
-    when verbose $ putStrLn ("eta-serv: " ++ show msg)
+    debug ("eta-serv: " ++ show msg)
     case msg of
       Shutdown -> return ()
       RunTH st q ty loc -> wrapRunTH $ runTH pipe st q ty loc
@@ -26,7 +26,7 @@ serv verbose hook pipe@Pipe{..} _restore = loop
 
   reply :: forall a. (Binary a, Show a) => a -> IO ()
   reply r = do
-    when verbose $ putStrLn ("eta-serv: return: " ++ show r)
+    debug ("eta-serv: return: " ++ show r)
     writePipe pipe (put r)
     loop
 
@@ -46,7 +46,7 @@ serv verbose hook pipe@Pipe{..} _restore = loop
            str <- showException e
            reply (QException str :: QResult a)
       Right a -> do
-        when verbose $ putStrLn "eta-serv: QDone"
+        debug "eta-serv: QDone"
         reply (QDone a)
 
   -- carefully when showing an exception, there might be other exceptions

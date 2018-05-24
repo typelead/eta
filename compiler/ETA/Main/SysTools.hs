@@ -186,6 +186,7 @@ initSysTools mbMinusB
                          , sProgramName         = "eta"
                          , sProjectVersion      = cProjectVersion
                          , sPgm_F               = ""
+                         , sPgm_java            = ("java",[])
                          , sPgm_javac           = ("javac",["-verbose"])
                          , sPgm_i               = ""
                          , sOpt_L               = []
@@ -197,6 +198,7 @@ initSysTools mbMinusB
                          , sOpt_windres         = []
                          , sOpt_lo              = []
                          , sOpt_lc              = []
+                         , sOpt_java            = []
                          , sOpt_javac           = []
                          , sOpt_i               = []
                          , sGhcUsagePath        = undefined

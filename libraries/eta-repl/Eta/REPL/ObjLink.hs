@@ -23,6 +23,9 @@ module Eta.REPL.ObjLink
   , addLibrarySearchPath
   , removeLibrarySearchPath
   , findSystemLibrary
+  , addDynamicClassPath
+  , loadClasses
+  , newInstance
   )  where
 
 import Eta.REPL.RemoteTypes
@@ -34,9 +37,10 @@ import Foreign          ( nullPtr )
 import GHC.Exts
 import System.Posix.Internals ( CFilePath, withFilePath, peekFilePath )
 import System.FilePath  ( dropExtension, normalise )
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Unsafe as B
 
-
-
+import Java
 
 -- ---------------------------------------------------------------------------
 -- RTS Linker Interface
@@ -153,6 +157,32 @@ findSystemLibrary str = do
                     free result
                     return $ Just path
 
+addDynamicClassPath :: [FilePath] -> IO ()
+addDynamicClassPath classpath = do
+  let jstrings = map toJava classpath :: [JString]
+  j_addDynamicClassPath (toJava jstrings)
+
+loadClasses :: [String] -> [B.ByteString] -> IO ()
+loadClasses classNames classes = do
+  let classNames' = toJava (map toJava classNames :: [JString])
+  classes' <- fmap toJava $ mapM toByteBuffer classes
+  j_loadClasses classNames' classes'
+  where toByteBuffer bs = B.unsafeUseAsCStringLen bs $ uncurry byteStringToByteBuffer
+
+data ByteBuffer = ByteBuffer @java.nio.ByteBuffer
+  deriving Class
+
+foreign import java unsafe "@static eta.repl.Utils.byteStringToByteBuffer"
+  byteStringToByteBuffer :: Ptr a -> Int -> IO ByteBuffer
+
+foreign import java unsafe "@static eta.repl.REPLClassLoader.newInstance"
+  j_newInstance :: String -> IO Object
+
+newInstance :: String -> IO HValueRef
+newInstance className = do
+  obj <- j_newInstance className
+  mkRemoteRef $ HValue (unsafeCoerce# obj)
+
 resolveObjs :: IO Bool
 resolveObjs = do
    r <- c_resolveObjs
@@ -161,7 +191,6 @@ resolveObjs = do
 -- ---------------------------------------------------------------------------
 -- Foreign declarations to RTS entry points which does the real work;
 -- ---------------------------------------------------------------------------
-#if defined(ETA_VERSION)
 foreign import java unsafe "@static eta.repl.Utils.addDLL"                  c_addDLL                  :: CFilePath -> IO CString
 foreign import java unsafe "@static eta.repl.Utils.initLinker_"             c_initLinker_             :: CInt -> IO ()
 foreign import java unsafe "@static eta.repl.Utils.lookupSymbol"            c_lookupSymbol            :: CString -> IO (Ptr a)
@@ -173,56 +202,14 @@ foreign import java unsafe "@static eta.repl.Utils.resolveObjs"             c_re
 foreign import java unsafe "@static eta.repl.Utils.addLibrarySearchPath"    c_addLibrarySearchPath    :: CFilePath -> IO (Ptr ())
 foreign import java unsafe "@static eta.repl.Utils.findSystemLibrary"       c_findSystemLibrary       :: CFilePath -> IO CFilePath
 foreign import java unsafe "@static eta.repl.Utils.removeLibrarySearchPath" c_removeLibrarySearchPath :: Ptr() -> IO Bool
-#else
-c_addDLL :: CFilePath -> IO CString
-c_addDLL = error "c_addDLL"
+foreign import java unsafe "@static eta.repl.REPLClassLoader.addURLs"       j_addDynamicClassPath     :: JStringArray -> IO ()
+foreign import java unsafe "@static eta.repl.REPLClassLoader.loadClasses"   j_loadClasses             :: JStringArray -> List ByteBuffer -> IO ()
 
-c_initLinker_ :: CInt -> IO ()
-c_initLinker_ = error "c_initLinker_"
-
-c_lookupSymbol :: CString -> IO (Ptr a)
-c_lookupSymbol = error "c_lookupSymbol"
-
-c_loadArchive :: CFilePath -> IO Int
-c_loadArchive = error "c_loadArchive"
-
-c_loadObj :: CFilePath -> IO Int
-c_loadObj = error "c_loadObj"
-
-c_purgeObj :: CFilePath -> IO Int
-c_purgeObj = error "c_purgeObj"
-
-c_unloadObj :: CFilePath -> IO Int
-c_unloadObj = error "c_unloadObj"
-
-c_resolveObjs :: IO Int
-c_resolveObjs = error "c_resolveObjs"
-
-c_addLibrarySearchPath :: CFilePath -> IO (Ptr ())
-c_addLibrarySearchPath = error "c_addLibrarySearchPath"
-
-c_findSystemLibrary :: CFilePath -> IO CFilePath
-c_findSystemLibrary = error "c_findSystemLibrary"
-
-c_removeLibrarySearchPath :: Ptr() -> IO Bool
-c_removeLibrarySearchPath = error "c_removeLibrarySearchPath"
-#endif
 -- -----------------------------------------------------------------------------
 -- Configuration
-#if !defined(ETA_VERSION)
-#include "ghcautoconf.h"
-#endif
 
 cLeadingUnderscore :: Bool
-#if defined(LEADING_UNDERSCORE)
 cLeadingUnderscore = True
-#else
-cLeadingUnderscore = False
-#endif
 
 isWindowsHost :: Bool
-#if defined(mingw32_HOST_OS)
-isWindowsHost = True
-#else
 isWindowsHost = False
-#endif

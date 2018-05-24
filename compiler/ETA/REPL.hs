@@ -34,6 +34,9 @@ module ETA.REPL
   , removeLibrarySearchPath
   , resolveObjs
   , findSystemLibrary
+  , addDynamicClassPath
+  , loadClasses
+  , newInstance
 
   -- * Lower-level API using messages
   , iservCmd, Message(..), withIServ, stopIServ
@@ -49,9 +52,6 @@ module ETA.REPL
 -- import GhcPrelude
 
 import Eta.REPL.Message
-#if defined(ETA_REPL)
-import Eta.REPL.Run
-#endif
 import Eta.REPL.RemoteTypes
 import Eta.REPL.ResolvedBCO
 import Eta.REPL.BreakArray (BreakArray)
@@ -80,10 +80,12 @@ import Foreign hiding (void)
 -- import GHC.Stack.CCS (CostCentre,CostCentreStack)
 import System.Exit
 import Data.Maybe
-import GHC.IO.Handle.Types (Handle)
+import Data.List
 import System.Directory
 import System.Process
+import System.IO
 import GHC.Conc (getNumProcessors, pseq, par)
+import Codec.JVM hiding (void)
 
 {- Note [Remote GHCi]
 
@@ -148,11 +150,9 @@ Other Notes on Remote GHCi
   * Note [Remote Template Haskell] in libraries/ghci/GHCi/TH.hs
 -}
 
-#if !defined(ETA_REPL)
 needExtInt :: IO a
 needExtInt = throwIO
   (InstallationError "this operation requires -fexternal-interpreter")
-#endif
 
 -- | Run a command in the interpreter's context.  With
 -- @-fexternal-interpreter@, the command is serialized and sent to an
@@ -165,12 +165,7 @@ iservCmd hsc_env@HscEnv{..} msg
      withIServ hsc_env $ \iserv ->
        uninterruptibleMask_ $ do -- Note [uninterruptibleMask_]
          iservCall iserv msg
- | otherwise = -- Just run it directly
-#if defined(ETA_REPL)
-   run msg
-#else
-   needExtInt
-#endif
+ | otherwise = needExtInt
 
 -- Note [uninterruptibleMask_ and iservCmd]
 --
@@ -314,6 +309,14 @@ createBCOs hsc_env rbcos = do
   parMap f (x:xs) = fx `par` (fxs `pseq` (fx : fxs))
     where fx = f x; fxs = parMap f xs
 
+loadClasses :: HscEnv -> [ClassFile] -> IO ()
+loadClasses hsc_env classes =
+  iservCmd hsc_env (LoadClasses (map classFileName classes)
+                                (map classFileBS   classes))
+
+newInstance :: HscEnv -> String -> IO HValueRef
+newInstance hsc_env className = iservCmd hsc_env (NewInstance className)
+
 -- addSptEntry :: HscEnv -> Fingerprint -> ForeignHValue -> IO ()
 -- addSptEntry hsc_env fpr ref =
 --   withForeignRef ref $ \val ->
@@ -370,12 +373,7 @@ lookupSymbol hsc_env@HscEnv{..} str
                let p = fromRemotePtr r
                writeIORef iservLookupSymbolCache $! addToUFM cache str p
                return (Just p)
- | otherwise =
-#if defined(ETA_REPL)
-   fmap fromRemotePtr <$> run (LookupSymbol (unpackFS str))
-#else
-   needExtInt
-#endif
+ | otherwise = needExtInt
 
 lookupClosure :: HscEnv -> String -> IO (Maybe HValueRef)
 lookupClosure hsc_env str =
@@ -435,6 +433,9 @@ resolveObjs hsc_env = successIf <$> iservCmd hsc_env ResolveObjs
 findSystemLibrary :: HscEnv -> String -> IO (Maybe String)
 findSystemLibrary hsc_env str = iservCmd hsc_env (FindSystemLibrary str)
 
+addDynamicClassPath :: HscEnv -> [FilePath] -> IO ()
+addDynamicClassPath hsc_env cp =
+  iservCmd hsc_env (AddDynamicClassPath cp)
 
 -- -----------------------------------------------------------------------------
 -- Raw calls and messages
@@ -461,8 +462,9 @@ handleIServFailure :: IServ -> SomeException -> IO a
 handleIServFailure IServ{..} e = do
   ex <- getProcessExitCode iservProcess
   case ex of
-    Just (ExitFailure n) ->
-      throw (InstallationError ("eta-serv terminated (" ++ show n ++ ")"))
+    Just (ExitFailure n) -> do
+      errorContents <- maybe (return "") hGetContents iservErrors
+      throw (InstallationError ("eta-serv terminated (" ++ show n ++ ")\n" ++ errorContents))
     _ -> do
       terminateProcess iservProcess
       _ <- waitForProcess iservProcess
@@ -475,12 +477,19 @@ startIServ :: DynFlags -> IO IServ
 startIServ dflags = do
   let prog = pgm_i dflags
       opts = getOpts dflags opt_i
-  debugTraceMsg dflags 3 $ text "Starting " <> text prog
+      (javaProg, defaultJavaOpts) = pgm_java dflags
+      javaOpts = getOpts dflags opt_java
+      realProg = javaProg
+      realOpts = defaultJavaOpts ++ javaOpts ++ ["-jar", prog] ++ opts
+  debugTraceMsg dflags 3 $ text "Starting " <>
+    text (realProg ++ " " ++ intercalate " " realOpts)
   let createProc = lookupHook createIservProcessHook
                               (\cp -> do { (mstdin,mstdout,mstderr,ph) <- createProcess cp
                                          ; return (mstdin, mstdout, mstderr, ph) })
                               dflags
-  (ph, rh, wh) <- runWithPipes createProc prog opts
+  (ph, rh, wh, errh) <- runWithPipes createProc realProg realOpts
+  hSetEncoding rh latin1
+  hSetEncoding wh latin1
   lo_ref <- newIORef Nothing
   cache_ref <- newIORef emptyUFM
   return $ IServ
@@ -488,6 +497,7 @@ startIServ dflags = do
                        , pipeWrite = wh
                        , pipeLeftovers = lo_ref }
     , iservProcess = ph
+    , iservErrors = errh
     , iservLookupSymbolCache = cache_ref
     , iservPendingFrees = []
     }
@@ -506,15 +516,16 @@ stopIServ HscEnv{..} =
        else iservCall iserv Shutdown
 
 runWithPipes :: (CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle))
-             -> FilePath -> [String] -> IO (ProcessHandle, Handle, Handle)
+             -> FilePath -> [String] -> IO (ProcessHandle, Handle, Handle,
+                                            Maybe Handle)
 runWithPipes createProc prog opts = do
-  (mstdin, mstdout, _mstderr, ph) <-
+  (mstdin, mstdout, mstderr, ph) <-
     createProc (proc prog opts) {
       std_in  = CreatePipe,
       std_out = CreatePipe,
       std_err = CreatePipe
     }
-  return (ph, fromJust mstdout, fromJust mstdin)
+  return (ph, fromJust mstdout, fromJust mstdin, mstderr)
 
 -- -----------------------------------------------------------------------------
 {- Note [External GHCi pointers]

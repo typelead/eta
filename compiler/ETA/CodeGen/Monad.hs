@@ -194,7 +194,7 @@ initCg dflags mod modLoc =
            , cgNextLocal           = 0
            , cgNextLabel           = 0 })
   where className = moduleJavaClass mod
-        srcFilePath =  ml_hs_file modLoc
+        srcFilePath = ml_hs_file modLoc
 
 emit :: Code -> CodeGen ()
 emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }

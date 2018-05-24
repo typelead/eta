@@ -207,7 +207,8 @@ load how_much = do
     -- before we unload anything, make sure we don't leave an old
     -- interactive context around pointing to dead bindings.  Also,
     -- write the pruned HPT to allow the old HPT to be GC'd.
-    modifySession $ \_ -> discardIC $ hsc_env { hsc_HPT = pruned_hpt }
+    getSession >>= (\_ -> discardIC $ hsc_env { hsc_HPT = pruned_hpt }) >>=
+      setSession
 
     liftIO $ debugTraceMsg dflags 2 (text "Stable obj:" <+> ppr stable_obj $$
                             text "Stable BCO:" <+> ppr stable_bco)
@@ -392,26 +393,27 @@ loadFinish :: GhcMonad m => SuccessFlag -> SuccessFlag -> m SuccessFlag
 loadFinish _all_ok Failed
   = do hsc_env <- getSession
        liftIO $ unload hsc_env []
-       modifySession discardProg
+       getSession >>= discardProg >>= setSession
        return Failed
 
 -- Empty the interactive context and set the module context to the topmost
 -- newly loaded module, or the Prelude if none were loaded.
 loadFinish all_ok Succeeded
-  = do modifySession discardIC
+  = do getSession >>= discardIC >>= setSession
        return all_ok
 
 
 -- | Forget the current program, but retain the persistent info in HscEnv
-discardProg :: HscEnv -> HscEnv
-discardProg hsc_env
-  = discardIC $ hsc_env { hsc_mod_graph = emptyMG
-                        , hsc_HPT = emptyHomePackageTable }
+discardProg :: (MonadIO m) => HscEnv -> m HscEnv
+discardProg hsc_env =
+  discardIC $ hsc_env { hsc_mod_graph = emptyMG
+                      , hsc_HPT = emptyHomePackageTable }
 
 -- | Discard the contents of the InteractiveContext, but keep the DynFlags
-discardIC :: HscEnv -> HscEnv
-discardIC hsc_env
-  = hsc_env { hsc_IC = emptyInteractiveContext (ic_dflags (hsc_IC hsc_env)) }
+discardIC :: (MonadIO m) => HscEnv -> m HscEnv
+discardIC hsc_env = do
+  ic <- newInteractiveContext (ic_dflags (hsc_IC hsc_env))
+  return $ hsc_env { hsc_IC = ic }
 
 -- intermediateCleanTempFiles :: DynFlags -> [ModSummary] -> HscEnv -> IO ()
 -- intermediateCleanTempFiles dflags summaries hsc_env

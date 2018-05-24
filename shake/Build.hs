@@ -11,7 +11,7 @@ import Control.Monad
 import Data.List
 import System.Console.GetOpt
 import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory,
-                         createDirectory)
+                         createDirectory, getCurrentDirectory)
 
 -- * Standard file/directory paths
 rtsDir, libraryDir, rtsBuildDir, rtsSrcDir, rtsjar :: FilePath
@@ -185,7 +185,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         etlasDir <- getEtlasDir
         let etlasToolsDir = etlasDir </> "tools"
         createDirIfMissing etlasToolsDir
-        copyFile' "utils/coursier/coursier" $ etlasToolsDir </> "coursier"
+        copyFile' ("utils" </> "coursier" </> "coursier") $
+          etlasToolsDir </> "coursier"
         let verifyExt ext = "utils/class-verifier/Verify" <.> ext
         unit $ cmd ["javac", verifyExt "java"]
         createDirIfMissing (etlasToolsDir </> "classes")
@@ -194,12 +195,23 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
+        dir <- liftIO $ getCurrentDirectory
+        unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "proJar"
+        copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
+          etlasToolsDir </> "eta-serv.jar"
+
         -- unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]
       need [rtsjar]
       buildLibrary debug binPathArg "rts" []
+
+    phony "repl-clean" $ replClean
+
+    phony "full-repl-clean" $ do
+      buildLibrary debug binPathArg "eta-repl" (getDependencies "eta-repl")
+      replClean
 
     phony "test" $ do
       specs <- getDirectoryFiles "" ["//*.spec"]
@@ -213,7 +225,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       rootDir <- getEtaRoot
       createDirIfMissing rootDir
       putNormal $ "Cleaning files in " ++ rootDir
-      removeFilesAfter rootDir ["//*"]
+      liftIO $ removeFiles rootDir ["//*"]
 
     phony "reinstall" $ do
       need ["uninstall"]
@@ -221,7 +233,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
 
     phony "clean" $ do
       putNormal "Cleaning files in rts/build, libraries/*/dist"
-      removeFilesAfter rtsBuildDir ["//*"]
+      liftIO $ removeFiles rtsBuildDir ["//*"]
       libs <- getLibs
       forM_ libs $ \lib -> do
         let libDir = libraryDir </> lib
@@ -235,3 +247,15 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       unit $ cmd (Cwd rtsSrcDir) "javac" "-XDignore.symbol.file" javacFlags "-d" (top rtsBuildDir) cs
       classfiles <- getDirectoryFiles rtsBuildDir ["//*.class"]
       unit $ cmd (Cwd rtsBuildDir) "jar cf" (top2 out) classfiles
+
+replClean :: Action ()
+replClean = do
+  gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
+  liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta" </> "eta-repl") ["//*"]
+  dir <- liftIO $ getCurrentDirectory
+  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "clean"
+  etlasDir <- getEtlasDir
+  let etlasToolsDir = etlasDir </> "tools"
+  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "proJar"
+  copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
+    etlasToolsDir </> "eta-serv.jar"

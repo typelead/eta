@@ -498,7 +498,7 @@ rOOT_MAIN       = mkMainModule (fsLit ":Main") -- Root module for initialisation
 
 mkInteractiveModule :: Int -> Module
 -- (mkInteractiveMoudule 9) makes module 'interactive:M9'
-mkInteractiveModule n = mkModule interactiveUnitId (mkModuleName ("Ghci" ++ show n))
+mkInteractiveModule n = mkModule interactiveUnitId (mkModuleName ("EtaRepl" ++ show n))
 
 pRELUDE_NAME, mAIN_NAME :: ModuleName
 pRELUDE_NAME   = mkModuleNameFS (fsLit "Prelude")

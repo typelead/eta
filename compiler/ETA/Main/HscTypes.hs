@@ -59,9 +59,9 @@ module ETA.Main.HscTypes (
         prepareAnnotations,
 
         -- * Interactive context
-        InteractiveContext(..), emptyInteractiveContext,
-        icPrintUnqual, icInScopeTTs, icExtendGblRdrEnv,
-        extendInteractiveContext, extendInteractiveContextWithIds,
+        InteractiveContext(..), newInteractiveContext,
+        icExprCounter, icExprCounterInc, icPrintUnqual, icInScopeTTs,
+        icExtendGblRdrEnv, extendInteractiveContext, extendInteractiveContextWithIds,
         substInteractiveContext,
         setInteractivePrintName, icInteractiveModule,
         InteractiveImport(..), setInteractivePackage,
@@ -204,6 +204,7 @@ import Data.Typeable    ( Typeable )
 import ETA.Utils.Exception
 import Foreign
 import System.FilePath
+import System.IO
 import System.Process   ( ProcessHandle )
 import Control.Concurrent
 import qualified Data.Map as M
@@ -421,6 +422,7 @@ instance ContainsDynFlags HscEnv where
 
 data IServ = IServ
   { iservPipe :: Pipe
+  , iservErrors :: Maybe Handle
   , iservProcess :: ProcessHandle
   , iservLookupSymbolCache :: IORef (UniqFM (Ptr ()))
   , iservPendingFrees :: [HValueRef]
@@ -1410,8 +1412,12 @@ data InteractiveContext
              -- ^ The function that is used for printing results
              -- of expressions in ghci and -e mode.
 
-         ic_cwd :: Maybe FilePath
+         ic_cwd :: Maybe FilePath,
              -- virtual CWD of the program
+
+         ic_expr_counter :: IORef Int64
+             -- ^ A thread-safe counter used to identify distinct expressions.
+             --   Should be large enough such that it shouldn't overflow.
     }
 
 data InteractiveImport
@@ -1424,25 +1430,35 @@ data InteractiveImport
       -- of this module, including the things imported
       -- into it.
 
-
--- | Constructs an empty InteractiveContext.
-emptyInteractiveContext :: DynFlags -> InteractiveContext
-emptyInteractiveContext dflags
-  = InteractiveContext {
-       ic_dflags     = dflags,
-       ic_imports    = [],
-       ic_rn_gbl_env = emptyGlobalRdrEnv,
-       ic_mod_index  = 1,
-       ic_tythings   = [],
-       ic_instances  = ([],[]),
-       ic_fix_env    = emptyNameEnv,
-       ic_monad      = ioTyConName,  -- IO monad by default
-       ic_int_print  = printName,    -- System.IO.print by default
-       ic_default    = Nothing,
+newInteractiveContext :: (MonadIO m) => DynFlags -> m InteractiveContext
+newInteractiveContext dflags = do
+    expr_counter_var <- liftIO $ newIORef 0
+    return $ InteractiveContext {
+       ic_dflags       = dflags,
+       ic_imports      = [],
+       ic_rn_gbl_env   = emptyGlobalRdrEnv,
+       ic_mod_index    = 1,
+       ic_tythings     = [],
+       ic_instances    = ([],[]),
+       ic_fix_env      = emptyNameEnv,
+       ic_monad        = ioTyConName,  -- IO monad by default
+       ic_int_print    = printName,    -- System.IO.print by default
+       ic_default      = Nothing,
 #ifdef ETA_REPL
-       ic_resume     = [],
+       ic_resume       = [],
 #endif
-       ic_cwd        = Nothing }
+       ic_cwd          = Nothing,
+       ic_expr_counter = expr_counter_var
+       }
+
+icExprCounter :: (MonadIO m) => InteractiveContext -> m Int64
+icExprCounter (InteractiveContext { ic_expr_counter = ctr }) =
+  liftIO $ readIORef ctr
+
+-- | Atomically increment the expression counter.
+icExprCounterInc :: (MonadIO m) => InteractiveContext -> m Int64
+icExprCounterInc (InteractiveContext { ic_expr_counter = ctr }) =
+  liftIO $ atomicModifyIORef' ctr (\x -> (x + 1, x))
 
 icInteractiveModule :: InteractiveContext -> Module
 icInteractiveModule (InteractiveContext { ic_mod_index = index })

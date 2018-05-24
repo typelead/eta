@@ -23,6 +23,7 @@ Flag eta-repl
 
 library
     default-language: Haskell2010
+    ghc-options: -Wall -Werror
     other-extensions:
         BangPatterns
         CPP
@@ -73,5 +74,3 @@ library
         eta-boot-th,
         eta-meta,
         transformers     == 0.4.*
-    if !os(windows) && !impl(eta)
-      Build-Depends: unix >= 2.7 && < 2.9
