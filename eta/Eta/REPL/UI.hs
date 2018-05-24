@@ -73,7 +73,7 @@ import ETA.BasicTypes.BasicTypes hiding ( isTopLevel )
 import ETA.Utils.Digraph
 import ETA.Utils.Encoding
 import ETA.Utils.FastString
--- import Linker
+import ETA.REPL.Linker
 import ETA.Utils.Maybes ( orElse, expectJust )
 import ETA.BasicTypes.NameSet
 import ETA.Utils.Panic hiding ( showException )
@@ -617,7 +617,7 @@ runGHCi paths maybe_exprs = do
                 return ()
 
   -- and finally, exit
-  liftIO $ when (verbosity dflags > 0) $ putStrLn "Leaving GHCi."
+  liftIO $ when (verbosity dflags > 0) $ putStrLn "Leaving Eta REPL."
 
 runGHCiInput :: InputT GHCi a -> GHCi a
 runGHCiInput f = do
@@ -2807,7 +2807,7 @@ showCmd str = do
             , action "imports"    $ showImports
             , action "modules"    $ showModules
             , action "bindings"   $ showBindings
-            , action "linker"     $ getDynFlags >>= liftIO . panic "showLinkerState"
+            , action "linker"     $ getDynFlags >>= liftIO . showLinkerState
             , action "breaks"     $ showBkptTable
             , action "context"    $ showContext
             , action "packages"   $ showPackages

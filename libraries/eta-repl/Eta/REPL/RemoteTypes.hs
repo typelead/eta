@@ -15,6 +15,7 @@ module Eta.REPL.RemoteTypes
   , ForeignRef, mkForeignRef, withForeignRef
   , ForeignHValue
   , unsafeForeignRefToRemoteRef, finalizeForeignRef
+  , foreignRefToInt
   , debug
 #ifdef ETA_VERSION
   , isVerbose
@@ -127,6 +128,10 @@ unsafeForeignRefToRemoteRef (ForeignRef fp) =
 
 finalizeForeignRef :: ForeignRef a -> IO ()
 finalizeForeignRef (ForeignRef fp) = finalizeForeignPtr fp
+
+foreignRefToInt :: ForeignRef a -> Int
+foreignRefToInt (ForeignRef fp) =
+  fromIntegral (ptrToIntPtr (unsafeForeignPtrToPtr fp))
 
 debug :: String -> IO ()
 #ifdef ETA_VERSION

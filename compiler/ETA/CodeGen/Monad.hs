@@ -62,6 +62,7 @@ module ETA.CodeGen.Monad
    forkAlts,
    unimplemented,
    getDynFlags,
+   getHscEnv,
    getSourceFilePath,
    liftIO)
 where
@@ -88,6 +89,8 @@ import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
 import Codec.JVM
 
+import ETA.REPL.Linker
+import ETA.Main.HscTypes
 import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
 import ETA.CodeGen.Name
@@ -99,6 +102,7 @@ import ETA.Util
 data CgEnv =
   CgEnv { cgQClassName :: !Text
         , cgModule     :: !Module
+        , cgHscEnv     :: !HscEnv
         , cgDynFlags   :: !DynFlags
         , cgSequel     :: !Sequel
         , cgSelfLoop   :: !(Maybe SelfLoopInfo) }
@@ -170,11 +174,15 @@ instance MonadIO CodeGen where
   {-# INLINE liftIO #-}
   liftIO io = CG $ \_ s -> io >>= (\a -> return (s, a))
 
-initCg :: DynFlags -> Module -> ModLocation -> (CgEnv, CgState)
-initCg dflags mod modLoc =
+getHscEnv :: CodeGen HscEnv
+getHscEnv = asks cgHscEnv
+
+initCg :: HscEnv -> Module -> ModLocation -> (CgEnv, CgState)
+initCg hsc_env mod modLoc =
   (CgEnv   { cgModule              = mod
            , cgQClassName          = className
            , cgDynFlags            = dflags
+           , cgHscEnv              = hsc_env
            , cgSequel              = Return
            , cgSelfLoop            = Nothing },
    CgState { cgBindings            = emptyVarEnv
@@ -196,6 +204,7 @@ initCg dflags mod modLoc =
            , cgNextLabel           = 0 })
   where className = moduleJavaClass mod
         srcFilePath = ml_hs_file modLoc
+        dflags = hsc_dflags hsc_env
 
 emit :: Code -> CodeGen ()
 emit code = modify $ \s@CgState { cgCode } -> s { cgCode = cgCode <> code }
@@ -298,17 +307,27 @@ setPreserveCaseOfCase bool = modify $ \s -> s { cgPreserveCaseOfCase = bool }
 
 getCgIdInfo :: Id -> CodeGen CgIdInfo
 getCgIdInfo id = do
+  hsc_env <- getHscEnv
+  let dflags = hsc_dflags hsc_env
   localBindings <- getBindings
   case lookupVarEnv localBindings id of
     Just info -> return info
-    Nothing -> do
-      curMod <- getModule
-      let name = idName id
-      let mod  = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id))
-               $ nameModule_maybe name
-      dflags <- getDynFlags
-      if mod /= curMod then return . mkCgIdInfo dflags id Nothing $ mkLFImported id
-      else return . mkCgIdInfo dflags id Nothing $ mkLFImported id
+    Nothing
+      | HscInterpreted <- hscTarget dflags -> do
+          href <- liftIO $ getHValueAsInt hsc_env (idName id)
+          case href of
+            Just href' -> do
+              traceCg $ "getCgIdInfo[StablePtr]:" <+> ppr id <+> ppr href'
+              return $ mkCgIdInfoWithLoc id (mkLFImported id) $ mkStablePtrLoc href'
+            Nothing -> defaultResult dflags
+      | otherwise -> defaultResult dflags
+  where defaultResult dflags = do
+          curMod <- getModule
+          let name = idName id
+          let mod  = fromMaybe (pprPanic "getCgIdInfo: no module" (ppr id))
+                  $ nameModule_maybe name
+          if mod /= curMod then return . mkCgIdInfo dflags id Nothing $ mkLFImported id
+          else return . mkCgIdInfo dflags id Nothing $ mkLFImported id
 
 printBindings :: CodeGen ()
 printBindings = do

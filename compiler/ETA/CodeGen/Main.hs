@@ -47,12 +47,12 @@ codeGen hscEnv thisMod thisModLoc dataTyCons stgBinds _hpcInfo mMFs = do
     mapM_ (cgTopBinding dflags) stgBinds
     mapM_ cgTyCon dataTyCons
   where
-    (env, state) = initCg dflags thisMod thisModLoc
+    (env, state) = initCg hscEnv thisMod thisModLoc
     dflags = hsc_dflags hscEnv
 
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
-  traceCg $ str "generating " <+> ppr id
+  traceCg $ str "generating" <+> ppr id
   id' <- externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive [id'] Nothing id' rhs
   mRecInfo <- code

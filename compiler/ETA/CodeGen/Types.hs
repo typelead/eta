@@ -27,6 +27,7 @@ module ETA.CodeGen.Types
    newLocDirect,
    mkLocLocal,
    mkLocArg,
+   mkStablePtrLoc,
    getNonVoidFts,
    enterMethod,
    evaluateMethod,
@@ -77,6 +78,7 @@ data CgLoc = LocLocal Bool FieldType !Int
            | LocDirect Bool FieldType Code
            | LocLne Label Int CgLoc [CgLoc]
            | LocMask FieldType CgLoc
+           | LocStablePtr !Int -- Used for interpreted linking
 
 instance Outputable CgLoc where
   ppr (LocLocal isClosure ft int)
@@ -92,6 +94,8 @@ instance Outputable CgLoc where
       str "targetLoc:" <+> ppr cgLoc <+> str "argLocs:" <+> hcat (map ppr cgLocs)
   ppr (LocMask ft cgLoc)
     = str "mask: ft:" <+> ppr ft <+> ppr cgLoc
+  ppr (LocStablePtr int)
+    = str "stableptr:" <+> ppr int
 
 mkLocDirect :: Bool -> (FieldType, Code) -> CgLoc
 mkLocDirect isClosure (ft, code) = LocDirect isClosure ft code
@@ -103,6 +107,9 @@ newLocDirect :: NonVoid Id -> Code -> CgLoc
 newLocDirect (NonVoid id) code =
   mkLocDirect (isGcPtrRep rep) (primRepFieldType rep, code)
   where rep = idPrimRep id
+
+mkStablePtrLoc :: Int -> CgLoc
+mkStablePtrLoc = LocStablePtr
 
 mkLocArg :: Bool -> NonVoid Id -> Int -> CgLoc
 mkLocArg mask (NonVoid id) n
@@ -127,14 +134,16 @@ locArgRep loc = case loc of
   LocDirect isClosure ft _ -> locRep isClosure ft
   LocMask ft _ -> locRep (ft == closureType) ft
   LocLne {} -> panic "logArgRep: Cannot pass a let-no-escape binding!"
+  LocStablePtr {} -> P
   where locRep isClosure ft = if isClosure then P else ftArgRep ft
 
 locFt :: CgLoc -> FieldType
 locFt (LocLocal _ ft _) = ft
-locFt (LocStatic _ft _ _) = closureType
+locFt (LocStatic {}) = closureType
 locFt (LocField _ ft _ _) = ft
 locFt (LocDirect _ ft _) = ft
 locFt (LocMask ft _) = ft
+locFt (LocStablePtr {}) = closureType
 locFt loc = pprPanic "locFt" $ ppr loc
 
 storeLoc :: CgLoc -> Code -> Code
@@ -154,6 +163,7 @@ loadLoc (LocField _ ft clClass fieldName) =
      gload (obj clClass) 0
   <> getfield (mkFieldRef clClass fieldName ft)
 loadLoc (LocDirect _ _ code) = code
+loadLoc (LocStablePtr int) = getClosureMethod int
 loadLoc loc = pprPanic "loadLoc" $ ppr loc
 
 loadStaticMethod :: CgLoc -> [FieldType] -> Maybe Code

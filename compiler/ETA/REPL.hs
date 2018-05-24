@@ -69,6 +69,7 @@ import ETA.Utils.Util
 import ETA.Main.Hooks
 
 import Control.Concurrent
+import Control.DeepSeq
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Binary
@@ -464,7 +465,8 @@ handleIServFailure IServ{..} e = do
   case ex of
     Just (ExitFailure n) -> do
       errorContents <- maybe (return "") hGetContents iservErrors
-      throw (InstallationError ("eta-serv terminated (" ++ show n ++ ")\n" ++ errorContents))
+      res <- evaluate (force errorContents)
+      throw (InstallationError ("eta-serv terminated (" ++ show n ++ ")\n" ++ res))
     _ -> do
       terminateProcess iservProcess
       _ <- waitForProcess iservProcess
@@ -487,7 +489,7 @@ startIServ dflags = do
                               (\cp -> do { (mstdin,mstdout,mstderr,ph) <- createProcess cp
                                          ; return (mstdin, mstdout, mstderr, ph) })
                               dflags
-  (ph, rh, wh, errh) <- runWithPipes createProc realProg realOpts
+  (ph, rh, wh, errh) <- runWithPipes dflags createProc realProg realOpts
   hSetEncoding rh latin1
   hSetEncoding wh latin1
   lo_ref <- newIORef Nothing
@@ -515,15 +517,16 @@ stopIServ HscEnv{..} =
        then return ()
        else iservCall iserv Shutdown
 
-runWithPipes :: (CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle))
+runWithPipes :: DynFlags
+             -> (CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle))
              -> FilePath -> [String] -> IO (ProcessHandle, Handle, Handle,
                                             Maybe Handle)
-runWithPipes createProc prog opts = do
+runWithPipes dflags createProc prog opts = do
   (mstdin, mstdout, mstderr, ph) <-
     createProc (proc prog opts) {
       std_in  = CreatePipe,
       std_out = CreatePipe,
-      std_err = CreatePipe
+      std_err = if verbosity dflags > 3 then Inherit else CreatePipe
     }
   return (ph, fromJust mstdout, fromJust mstdin, mstderr)
 

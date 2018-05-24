@@ -6,7 +6,7 @@
 --  (c) The University of Glasgow 2002-2006
 --
 -- | The interface to Eta REPL's custom classloader to handle dynamic classloading.
-module ETA.REPL.Linker ( getHValue, showLinkerState,
+module ETA.REPL.Linker ( getHValue, getHValueAsInt, showLinkerState,
                 linkExpr, linkClasses, linkDecls, unload, withExtendedLinkEnv,
                 extendLinkEnv, deleteFromLinkEnv,
                 extendLoadedPkgs,
@@ -192,6 +192,12 @@ getHValue hsc_env name = do
                 Just hvref -> mkFinalizedHValue hsc_env hvref
                 Nothing -> panic $ "ByteCodeLink.lookupCE" ++ sym_to_find
 
+getHValueAsInt :: HscEnv -> Name -> IO (Maybe Int)
+getHValueAsInt hsc_env name = do
+  initDynLinker hsc_env
+  pls <- modifyPLS $ \pls -> return (pls, pls)
+  return $ fmap (foreignRefToInt . snd) $ lookupNameEnv (closure_env pls) name
+
 linkDependencies :: HscEnv -> PersistentLinkerState
                  -> SrcSpan -> [Module]
                  -> IO (PersistentLinkerState, SuccessFlag)
@@ -237,14 +243,14 @@ withExtendedLinkEnv new_env action
 
 -- | Display the persistent linker state.
 showLinkerState :: DynFlags -> IO ()
-showLinkerState _dflags = return ()
-  -- = do pls <- readIORef v_PersistentLinkerState >>= readMVar
-  --      putLogMsg dflags NoReason SevDump noSrcSpan
-  --         (defaultDumpStyle dflags)
-  --                (vcat [text "----- Linker state -----",
-  --                       text "Pkgs:" <+> ppr (pkgs_loaded pls),
-  --                       text "Objs:" <+> ppr (objs_loaded pls),
-  --                       text "BCOs:" <+> ppr (bcos_loaded pls)])
+showLinkerState dflags = do
+  pls <- readIORef v_PersistentLinkerState >>= readMVar
+  putLogMsg dflags SevDump noSrcSpan defaultDumpStyle
+    (vcat [text "----- Linker state -----"
+          ,text "Closure Environment:" <+>
+           ppr (map (nameModule_maybe . fst) $ nameEnvElts $ closure_env pls)])
+                        -- text "Objs:" <+> ppr (objs_loaded pls),
+                        -- text "BCOs:" <+> ppr (bcos_loaded pls)])
 
 
 {- **********************************************************************

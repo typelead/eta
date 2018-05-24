@@ -47,7 +47,7 @@ library
             Eta.REPL.CreateBCO
             Eta.REPL.ObjLink
             Eta.REPL.Run
-            Eta.REPL.Signals
+            -- Eta.REPL.Signals
             Eta.REPL.TH
 
     exposed-modules:

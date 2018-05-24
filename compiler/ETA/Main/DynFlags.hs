@@ -59,6 +59,9 @@ module ETA.Main.DynFlags (
 
         thisPackage, thisComponentId, thisUnitIdInsts,
 
+        -- ** Log output
+        putLogMsg,
+
         -- ** Safe Haskell
         SafeHaskellMode(..),
         safeHaskellOn, safeImportsOn, safeLanguageOn, safeInferOn,
@@ -2282,6 +2285,11 @@ parseDynamicFlagsFull activeFlags cmdline dflags0 args = do
   liftIO $ setUnsafeGlobalDynFlags dflags6
 
   return (dflags6, leftover, consistency_warnings ++ sh_warns ++ warns)
+
+-- | Write an error or warning to the 'LogOutput'.
+putLogMsg :: DynFlags -> Severity -> SrcSpan -> PprStyle
+          -> MsgDoc -> IO ()
+putLogMsg dflags = log_action dflags dflags
 
 updateWays :: DynFlags -> DynFlags
 updateWays dflags

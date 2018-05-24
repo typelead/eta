@@ -57,7 +57,7 @@ stgWeakType       = obj stgWeak
 stgConstr, stgClosure, stgContext, capability, task, stgInd, stgIndStatic, stgThunk,
   stgFun, stgTSO, stackFrame, rtsConfig, rtsOptsEnbled, exitCode, stgArray,
   stgByteArray, rtsUnsigned, stgMutVar, stgMVar, stgTVar, rtsGroup, hsResult,
-  stgBCO, stgWeak :: Text
+  stgBCO, stgWeak, stablePtrTable :: Text
 stgConstr     = stg "DataCon"
 stgClosure    = stg "Closure"
 stgContext    = stg "StgContext"
@@ -82,7 +82,7 @@ stgBCO        = interp "BCO"
 stgWeak       = stg "WeakPtr"
 rtsGroup      = rts "Runtime"
 hsResult      = rts "Runtime$StgResult"
-
+stablePtrTable = stg "StablePtrTable"
 
 memoryManager :: Text
 memoryManager = io "MemoryManager"
@@ -345,3 +345,9 @@ isClosureFt ft = ft == closureType
 
 singletonInstanceName :: Text
 singletonInstanceName = "INSTANCE"
+
+getClosureMethod :: Int -> Code
+getClosureMethod int =
+     iconst jint (fromIntegral int)
+  <> invokestatic (mkMethodRef stablePtrTable "getClosure" [jint] (ret closureType))
+
