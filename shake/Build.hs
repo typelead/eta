@@ -3,9 +3,9 @@
 import Development.Shake
 import Development.Shake.FilePath
 
-import Distribution.InstalledPackageInfo
-import Distribution.ParseUtils
-import Distribution.ModuleName (fromString)
+-- import Distribution.InstalledPackageInfo
+-- import Distribution.ParseUtils
+-- import Distribution.ModuleName (fromString)
 
 import Control.Monad
 import Data.List
@@ -26,35 +26,36 @@ library, genBuild, top, packageConfDir, libCustomBuildDir, libJarPath,
 library x = libraryDir </> x
 genBuild x = x </> "build"
 top x = "../../../../" ++ x
+top2 :: String -> String
 top2 x = "../../" ++ x
 packageConfDir dir = dir </> "package.conf.d"
 libCustomBuildDir lib = libraryDir </> lib </> "build"
 libName lib = lib ++ ".jar"
 libJarPath lib = libCustomBuildDir lib </> libName lib
 
-getEtlasDir, getEtaRoot, getEtlasLibDir :: Action FilePath
+getEtlasDir, getEtaRoot :: Action FilePath
 getEtlasDir = liftIO $ getAppUserDataDirectory "etlas"
 getEtaRoot  = do
   Stdout actualOutput <- cmd "eta" "--print-libdir"
   return . head $ lines actualOutput
-getEtlasLibDir = do
-  etlasDir <- getEtlasDir
-  etaVersion <- getEtaNumericVersion
-  let etlasLibDir = etlasDir </> "lib"
-      etaWithVersion = "eta-" ++ etaVersion
-  findFileOrDir etaWithVersion etlasLibDir
+-- getEtlasLibDir = do
+--   etlasDir <- getEtlasDir
+--   etaVersion <- getEtaNumericVersion
+--   let etlasLibDir = etlasDir </> "lib"
+--       etaWithVersion = "eta-" ++ etaVersion
+--   findFileOrDir etaWithVersion etlasLibDir
 
-findFileOrDir :: String -> FilePath -> Action FilePath
-findFileOrDir pat dir = do
-  results <- getDirectoryContents dir
-  case filter (pat `isInfixOf`) results of
-    (found:_) -> return (dir </> found)
-    _         -> fail $ "Pattern not found '" ++ pat ++ "' in " ++ dir
+-- findFileOrDir :: String -> FilePath -> Action FilePath
+-- findFileOrDir pat dir = do
+--   results <- getDirectoryContents dir
+--   case filter (pat `isInfixOf`) results of
+--     (found:_) -> return (dir </> found)
+--     _         -> fail $ "Pattern not found '" ++ pat ++ "' in " ++ dir
 
-getEtaNumericVersion :: Action String
-getEtaNumericVersion = do
-  Stdout actualOutput <- cmd "eta" "--numeric-version"
-  return . head $ lines actualOutput
+-- getEtaNumericVersion :: Action String
+-- getEtaNumericVersion = do
+--   Stdout actualOutput <- cmd "eta" "--numeric-version"
+--   return . head $ lines actualOutput
 
 -- * Utility functions for filepath handling in the Action monad
 createDirIfMissing :: FilePath -> Action ()
@@ -95,7 +96,7 @@ nonNullString str
   | otherwise = [str]
 
 buildLibrary :: Bool -> (String -> String) -> String -> [String] -> Action ()
-buildLibrary debug binPathArg lib _deps = do
+buildLibrary _debug binPathArg lib _deps = do
   let dir = library lib
       installFlags = ["--allow-boot-library-installs"]
                   ++ nonNullString (binPathArg "../../")
@@ -226,8 +227,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       createDirIfMissing rootDir
       putNormal $ "Cleaning files in " ++ rootDir
       liftIO $ removeFiles rootDir ["//*"]
-      gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
-      liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta") ["//*"]
+      wipeGradle
 
     phony "reinstall" $ do
       need ["uninstall"]
@@ -252,8 +252,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
 
 replClean :: Action ()
 replClean = do
-  gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
-  liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta" </> "eta-repl") ["//*"]
+  wipeGradle
   dir <- liftIO $ getCurrentDirectory
   unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "clean"
   etlasDir <- getEtlasDir
@@ -261,3 +260,8 @@ replClean = do
   unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "proJar"
   copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
     etlasToolsDir </> "eta-serv.jar"
+
+wipeGradle :: Action ()
+wipeGradle = do
+  gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
+  liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta") ["//*"]
