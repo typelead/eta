@@ -66,6 +66,7 @@ import ETA.Utils.Exception
 import ETA.BasicTypes.BasicTypes
 import ETA.Utils.FastString
 import ETA.Utils.Util
+import ETA.Utils.Digraph
 import ETA.Main.Hooks
 
 import Control.Concurrent
@@ -315,8 +316,15 @@ createBCOs hsc_env rbcos = do
 loadClasses :: HscEnv -> [ClassFile] -> IO ()
 loadClasses hsc_env classes = do
   dumpClassesIfSet hsc_env classes
-  iservCmd hsc_env (LoadClasses (map classFileName classes)
-                                (map classFileBS   classes))
+  let components = stronglyConnCompFromEdgedVertices
+                     [ (c, classFileName c, [superClassName c])
+                     | c <- classes]
+      f (AcyclicSCC c) = c
+      f (CyclicSCC cs) = panic $ "loadClasses: Found impossible set of cyclic classes: "
+                              ++ show (map classFileName cs)
+      classes' = map f components
+  iservCmd hsc_env (LoadClasses (map classFileName classes')
+                                (map classFileBS   classes'))
 
 dumpClassesIfSet :: HscEnv -> [ClassFile] -> IO ()
 dumpClassesIfSet hsc_env classes =

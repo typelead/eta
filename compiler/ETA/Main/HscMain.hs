@@ -1411,6 +1411,7 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
     -- been done. See the notes at the definition of InteractiveContext
     -- (ic_instances) for more details.
     let defaults = tcg_default tc_gblenv
+        dflags = hsc_dflags hsc_env
 
     {- Desugar it -}
     -- We use a basically null location for iNTERACTIVE
@@ -1431,7 +1432,7 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
     let !CgGuts{ cg_module    = this_mod,
                  cg_binds     = core_binds,
                  cg_tycons    = tycons,
-                 cg_modBreaks = _mod_breaks } = tidy_cg
+                 cg_foreign   = foreign_stubs } = tidy_cg
 
         !ModDetails { md_insts     = cls_insts
                     , md_fam_insts = fam_insts } = mod_details
@@ -1441,19 +1442,22 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
 
     {- Prepare For Code Generation -}
     -- Do saturation and convert to A-normal form
-    _prepd_binds <- {-# SCC "CorePrep" #-}
+    prepd_binds <- {-# SCC "CorePrep" #-}
       liftIO $ corePrepPgm hsc_env this_mod iNTERACTIVELoc core_binds data_tycons
 
-    {- Generate byte code -}
-    -- cbc <- liftIO $ byteCodeGen hsc_env this_mod
-    --                             prepd_binds data_tycons mod_breaks
+    (stg_binds, _cost_centre_info)
+        <- {-# SCC "CoreToStg" #-}
+            liftIO $ myCoreToStg dflags this_mod prepd_binds
 
-    let _src_span = srcLocSpan interactiveSrcLoc
-    _ <- panic "linkDecls"
-    -- liftIO $ linkDecls hsc_env src_span cbc
-    --
-    -- {- Load static pointer table entries -}
-    -- liftIO $ hscAddSptEntries hsc_env (cg_spt_entries tidy_cg)
+    let modClass = moduleJavaClass this_mod
+    modClasses <- liftIO $ codeGen hsc_env this_mod iNTERACTIVELoc data_tycons
+                    stg_binds (panic "hpc_info") (lookupStubs modClass foreign_stubs)
+    let stubClasses = outputForeignStubs dflags foreign_stubs modClass
+        classes = modClasses ++ stubClasses
+
+    liftIO $ linkClasses hsc_env classes
+
+    -- let src_span = srcLocSpan interactiveSrcLoc
 
     let tcs = filterOut isImplicitTyCon (mg_tcs simpl_mg)
         patsyns = mg_patsyns simpl_mg
