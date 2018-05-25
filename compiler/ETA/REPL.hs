@@ -461,28 +461,30 @@ addDynamicClassPath hsc_env cp =
 iservCall :: Binary a => IServ -> Message a -> IO a
 iservCall iserv@IServ{..} msg =
   remoteCall iservPipe msg
-    `catch` \(e :: SomeException) -> handleIServFailure iserv e
+    `catch` \(e :: SomeException) -> handleIServFailure iserv "Call" e
 
 -- | Read a value from the iserv process
 readIServ :: IServ -> Get a -> IO a
 readIServ iserv@IServ{..} get =
   readPipe iservPipe get
-    `catch` \(e :: SomeException) -> handleIServFailure iserv e
+    `catch` \(e :: SomeException) -> handleIServFailure iserv "Read" e
 
 -- | Send a value to the iserv process
 writeIServ :: IServ -> Put -> IO ()
 writeIServ iserv@IServ{..} put =
   writePipe iservPipe put
-    `catch` \(e :: SomeException) -> handleIServFailure iserv e
+    `catch` \(e :: SomeException) -> handleIServFailure iserv "Write" e
 
-handleIServFailure :: IServ -> SomeException -> IO a
-handleIServFailure IServ{..} e = do
+handleIServFailure :: IServ -> String -> SomeException -> IO a
+handleIServFailure IServ{..} op e = do
   ex <- getProcessExitCode iservProcess
   case ex of
     Just (ExitFailure n) -> do
       errorContents <- maybe (return "") hGetContents iservErrors
       res <- evaluate (force errorContents)
-      throw (InstallationError ("eta-serv terminated (" ++ show n ++ ")\n" ++ res))
+      throw (InstallationError ("While in operation " ++ op
+                             ++ ":\nException: " ++ show e
+                             ++ "\neta-serv terminated (" ++ show n ++ ")\n" ++ res))
     _ -> do
       terminateProcess iservProcess
       _ <- waitForProcess iservProcess
