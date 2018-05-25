@@ -226,6 +226,8 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
       createDirIfMissing rootDir
       putNormal $ "Cleaning files in " ++ rootDir
       liftIO $ removeFiles rootDir ["//*"]
+      gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
+      liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta") ["//*"]
 
     phony "reinstall" $ do
       need ["uninstall"]

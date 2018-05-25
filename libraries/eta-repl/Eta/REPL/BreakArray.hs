@@ -36,7 +36,7 @@ import GHC.Word
 
 import GHC.Exts
 import GHC.IO ( IO(..) )
-import System.IO.Unsafe ( unsafeDupablePerformIO )
+-- import System.IO.Unsafe ( unsafeDupablePerformIO )
 
 data BreakArray = BA (MutableByteArray# RealWorld) Int#
 
@@ -76,7 +76,7 @@ safeIndex :: BreakArray -> Int -> Bool
 safeIndex array index = index < size array && index >= 0
 
 size :: BreakArray -> Int
-size (BA array sz) = I# sz
+size (BA _array sz) = I# sz
 
 allocBA :: Int -> IO BreakArray
 allocBA (I# sz) = IO $ \s1 ->
