@@ -49,8 +49,8 @@ public class RuntimeLogging {
     }
 
     public static void debugBelch(String msg, Object... args) {
-        System.out.format(msg, args);
-        System.out.print("\n");
+        System.err.format(msg, args);
+        System.err.print("\n");
     }
 
     public static void debugScheduler(String msg) {
