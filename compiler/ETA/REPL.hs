@@ -75,6 +75,7 @@ import Control.Monad.IO.Class
 import Data.Binary
 import Data.Binary.Put
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import Data.IORef
 import Foreign hiding (void)
@@ -82,6 +83,7 @@ import Foreign hiding (void)
 import System.Exit
 import Data.Maybe
 import Data.List
+import System.FilePath
 import System.Directory
 import System.Process
 import System.IO
@@ -311,9 +313,23 @@ createBCOs hsc_env rbcos = do
     where fx = f x; fxs = parMap f xs
 
 loadClasses :: HscEnv -> [ClassFile] -> IO ()
-loadClasses hsc_env classes =
+loadClasses hsc_env classes = do
+  dumpClassesIfSet hsc_env classes
   iservCmd hsc_env (LoadClasses (map classFileName classes)
                                 (map classFileBS   classes))
+
+dumpClassesIfSet :: HscEnv -> [ClassFile] -> IO ()
+dumpClassesIfSet hsc_env classes =
+  when (dopt Opt_D_dump_interpreted_classes dflags) $ do
+    let clsPaths =
+          map (\cls -> (toClassFilePath (classFileName cls), classFileBS cls)) classes
+    forM_ clsPaths $ \(p, c) -> do
+      createDirectoryIfMissing True (takeDirectory p)
+      B.writeFile p c
+  where dflags = hsc_dflags hsc_env
+        dump = fromMaybe "." (dumpDir dflags)
+        toClassFilePath c = dump </> "interpreted" </> c <.> ".class"
+
 
 newInstance :: HscEnv -> String -> IO HValueRef
 newInstance hsc_env className = iservCmd hsc_env (NewInstance className)

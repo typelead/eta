@@ -308,7 +308,7 @@ data DumpFlag
    | Opt_D_dump_vt_trace
    | Opt_D_dump_splices
    | Opt_D_th_dec_file
-   | Opt_D_dump_BCOs
+   | Opt_D_dump_interpreted_classes
    | Opt_D_dump_vect
    | Opt_D_dump_ticked
    | Opt_D_dump_rtti
@@ -2678,7 +2678,7 @@ dynamic_flags = [
   , defGhcFlag "ddump-rn-stats"          (setDumpFlag Opt_D_dump_rn_stats)
   , defGhcFlag "ddump-opt-cmm"           (setDumpFlag Opt_D_dump_opt_cmm)
   , defGhcFlag "ddump-simpl-stats"       (setDumpFlag Opt_D_dump_simpl_stats)
-  , defGhcFlag "ddump-bcos"              (setDumpFlag Opt_D_dump_BCOs)
+  , defGhcFlag "ddump-interpreted-classes" (setDumpFlag Opt_D_dump_interpreted_classes)
   , defGhcFlag "dsource-stats"           (setDumpFlag Opt_D_source_stats)
   , defGhcFlag "dverbose-core2core"      (NoArg (do setVerbosity (Just 2)
                                                     setVerboseCore2Core))
