@@ -346,12 +346,17 @@ public class Exception {
         if (Runtime.debugExceptions()) {
             debugExceptions("Converting Java Exception: " + e);
             e.printStackTrace();
+            debugExceptions("at");
+            new java.lang.Exception().printStackTrace();
         }
         tso.setCauseAndException(e, null);
         return Closures.mkSomeException(e);
     }
 
     public static EtaException toEtaException(TSO tso, java.lang.Exception e) {
-        return EtaException.create(tso.getContext(), convertJavaException(tso, e));
+        EtaException exception =
+            EtaException.create(tso.getContext(), convertJavaException(tso, e));
+        exception.initCause(e);
+        return exception;
     }
 }
