@@ -493,10 +493,18 @@ handleIServFailure IServ{..} op e = do
       throw (InstallationError ("While in operation " ++ op
                              ++ ":\nException: " ++ show e
                              ++ "\neta-serv terminated (" ++ show n ++ ")\n" ++ res))
-    _ -> do
-      terminateProcess iservProcess
-      _ <- waitForProcess iservProcess
-      throw e
+    _ | Just (MessageParseFailure msg left off) <- fromException e ->
+        throw (InstallationError ("While in operation " ++ op
+                              ++ ":\nFailed to parse: " ++ msg
+                              ++ "\nRemaining: " ++ left
+                              ++ "\nOffset: " ++ show off))
+      | otherwise -> do
+        {- TODO: When debugging JVM exit code 143's
+           putStrLn $ "TERMINATING PROCESS:\nSomeException: " ++ show e
+                   ++ "\nProcess Exit Code: " ++ show ex -}
+        terminateProcess iservProcess
+        _ <- waitForProcess iservProcess
+        throw e
 
 -- -----------------------------------------------------------------------------
 -- Starting and stopping the iserv process

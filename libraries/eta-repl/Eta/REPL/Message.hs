@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, GADTs, DeriveGeneric, StandaloneDeriving, ScopedTypeVariables,
+{-# LANGUAGE CPP, GADTs, DeriveGeneric, DeriveDataTypeable,
+    StandaloneDeriving, ScopedTypeVariables,
     GeneralizedNewtypeDeriving, ExistentialQuantification, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 
@@ -14,6 +15,7 @@ module Eta.REPL.Message
   , QResult(..)
   , EvalStatus_(..), EvalStatus, EvalResult(..), EvalOpts(..), EvalExpr(..)
   , SerializableException(..)
+  , MessageParseFailure(..)
   , toSerializableException, fromSerializableException
   , THResult(..), THResultType(..)
   , ResumeContext(..)
@@ -47,6 +49,7 @@ import qualified Language.Haskell.TH.Syntax as TH
 import System.Exit
 import System.IO
 import System.IO.Error
+import Data.Int
 #ifdef ETA_VERSION
 import Java hiding (Map)
 import Java.Exception hiding (getMessage)
@@ -559,6 +562,11 @@ readPipe Pipe{..} get = do
       writeIORef pipeLeftovers new_leftovers
       return result
 
+data MessageParseFailure = MessageParseFailure String String Int64
+  deriving (Show, Typeable)
+
+instance Exception MessageParseFailure
+
 getBin
   :: Handle -> Get a -> Maybe ByteString
   -> IO (Maybe (a, Maybe ByteString))
@@ -578,5 +586,4 @@ getBin h get leftover = go leftover (runGetIncremental get)
         then return Nothing
         else go Nothing (fun (Just b))
    go _lft (Fail rest off str) =
-     throwIO (ErrorCall ("getBin: " ++ str ++ " offset: " ++ show off
-                      ++ " left: " ++ show rest))
+     throwIO (MessageParseFailure str (show rest) off)

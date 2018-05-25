@@ -209,9 +209,10 @@ runDeclsWithLocation source linenumber expr =
     (tyThings, ic) <- liftIO $ hscDeclsWithLocation hsc_env expr source linenumber
 
     setSession $ hsc_env { hsc_IC = ic }
-    hsc_env <- getSession
-    hsc_env' <- liftIO $ rttiEnvironment hsc_env
-    setSession hsc_env'
+    -- TODO: Handle rttiEnvironment
+    -- hsc_env <- getSession
+    -- hsc_env' <- liftIO $ rttiEnvironment hsc_env
+    -- setSession hsc_env'
     return $ filter (not . isDerivedOccName . nameOccName)
              -- For this filter, see Note [What to show to users]
            $ map getName tyThings

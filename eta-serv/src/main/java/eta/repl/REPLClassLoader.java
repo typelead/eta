@@ -12,11 +12,26 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.ProtectionDomain;
+import java.lang.management.ThreadMXBean;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ManagementFactory;
 
 public class REPLClassLoader extends URLClassLoader {
 
     static {
         registerAsParallelCapable();
+        /* NOTE: Uncomment below if this server process is mysteriously shutting down.
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Override
+                public void run() {
+                    System.err.println("SHUTTING DOWN!");
+                    ThreadMXBean threadMxBean = ManagementFactory.getThreadMXBean();
+                    for (ThreadInfo threadInfo : threadMxBean.dumpAllThreads(true, true)) {
+                      System.err.print(threadInfo.toString());
+                    }
+                }
+            });
+        */
     }
 
     private static final REPLClassLoader replClassLoader = new REPLClassLoader();
