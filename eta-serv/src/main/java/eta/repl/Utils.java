@@ -52,4 +52,8 @@ public class Utils {
     public static Object getClosure(int index) {
         return ((Ozh) StablePtrTable.getClosure(index)).x1;
     }
+
+    public static void bytesToPtr(byte[] bytes, long address) {
+        MemoryManager.getBoundedBuffer(address).put(bytes);
+    }
 }

@@ -328,7 +328,7 @@ handleRunStatus step expr bindings final_ids status history
          return (ExecBreak names bp)
 
     -- Completed successfully
-    | EvalComplete allocs (EvalSuccess hvals) <- status
+    | EvalComplete allocs (EvalSuccess _ hvals) <- status
     = do hsc_env <- getSession
          let final_ic = extendInteractiveContextWithIds (hsc_IC hsc_env) final_ids
              final_names = map getName final_ids
@@ -339,7 +339,7 @@ handleRunStatus step expr bindings final_ids status history
          return (ExecComplete (Right final_names) allocs)
 
     -- Completed with an exception
-    | EvalComplete alloc (EvalException e) <- status
+    | EvalComplete alloc (EvalException _ e) <- status
     = return (ExecComplete (Left (fromSerializableException e)) alloc)
 
     | otherwise
@@ -886,8 +886,8 @@ compileParsedExprRemote expr = withSession $ \hsc_env -> do
   updateFixityEnv fix_env
   status <- liftIO $ evalStmt hsc_env False (EvalThis hvals_io)
   case status of
-    EvalComplete _ (EvalSuccess [hval]) -> return hval
-    EvalComplete _ (EvalException e) ->
+    EvalComplete _ (EvalSuccess _ [hval]) -> return hval
+    EvalComplete _ (EvalException _ e) ->
       liftIO $ throwIO (fromSerializableException e)
     _ -> panic "compileParsedExpr"
 

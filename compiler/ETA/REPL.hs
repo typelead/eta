@@ -248,9 +248,17 @@ handleEvalStatus hsc_env status =
     EvalComplete alloc res ->
       EvalComplete alloc <$> addFinalizer res
  where
-  addFinalizer (EvalException e) = return (EvalException e)
-  addFinalizer (EvalSuccess rs) = do
-    EvalSuccess <$> mapM (mkFinalizedHValue hsc_env) rs
+  addFinalizer (EvalException bytes e) = do
+    printBytes bytes
+    return (EvalException bytes e)
+  addFinalizer (EvalSuccess bytes rs) = do
+    printBytes bytes
+    EvalSuccess bytes <$> mapM (mkFinalizedHValue hsc_env) rs
+
+printBytes :: ByteString -> IO ()
+printBytes bytes = do
+  B.putStr bytes
+  hFlush stdout
 
 -- | Execute an action of type @IO ()@
 evalIO :: HscEnv -> ForeignHValue -> IO ()
@@ -493,11 +501,13 @@ handleIServFailure IServ{..} op e = do
       throw (InstallationError ("While in operation " ++ op
                              ++ ":\nException: " ++ show e
                              ++ "\neta-serv terminated (" ++ show n ++ ")\n" ++ res))
-    _ | Just (MessageParseFailure msg left off) <- fromException e ->
+    _ | Just (MessageParseFailure msg left off) <- fromException e -> do
+        errorContents <- maybe (return "") hGetContents iservErrors
+        res <- evaluate (force errorContents)
         throw (InstallationError ("While in operation " ++ op
                               ++ ":\nFailed to parse: " ++ msg
                               ++ "\nRemaining: " ++ left
-                              ++ "\nOffset: " ++ show off))
+                              ++ "\nOffset: " ++ show off ++ "\n" ++ res))
       | otherwise -> do
         {- TODO: When debugging JVM exit code 143's
            putStrLn $ "TERMINATING PROCESS:\nSomeException: " ++ show e
@@ -661,5 +671,9 @@ mkEvalOpts dflags step =
     , breakOnError = gopt Opt_BreakOnError dflags }
 
 fromEvalResult :: EvalResult a -> IO a
-fromEvalResult (EvalException e) = throwIO (fromSerializableException e)
-fromEvalResult (EvalSuccess a) = return a
+fromEvalResult (EvalException bytes e) = do
+  printBytes bytes
+  throwIO (fromSerializableException e)
+fromEvalResult (EvalSuccess bytes a) = do
+  printBytes bytes
+  return a

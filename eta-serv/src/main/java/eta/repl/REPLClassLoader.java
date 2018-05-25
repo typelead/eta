@@ -4,7 +4,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.MalformedURLException;
 import java.io.File;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Iterator;
@@ -122,7 +125,8 @@ public class REPLClassLoader extends URLClassLoader {
         try {
             return applyMethod.invoke(null, e1, e2);
         } catch (Exception e) {
-            throw new RuntimeException("Failed during constructing Eta REPL expression", e);
+            throw new RuntimeException
+                ("Failed during constructing Eta REPL expression", e);
         }
     }
 
@@ -130,23 +134,60 @@ public class REPLClassLoader extends URLClassLoader {
         lazyInit();
         List<Object> list = new LinkedList<Object>();
         try {
-            Object result = evalIOMethod.invoke(null, e);
+            Object result = evalIOInternal(e);
             while (!ZMZNClass.isInstance(result)) {
                 list.add(ZCx1Field.get(result));
                 result = ZCx2Field.get(result);
             }
             return list;
         } catch (Exception exc) {
-            throw new RuntimeException("Failed during evalStmt of Eta REPL expression", exc);
+            throw new RuntimeException
+                ("Failed during evalStmt of Eta REPL expression", exc);
         }
     }
 
     public static void evalIO(Object e) {
         lazyInit();
         try {
-            evalIOMethod.invoke(null, e);
+            evalIOInternal(e);
         } catch (Exception exc) {
-            throw new RuntimeException("Failed during evalIO of Eta REPL expression", exc);
+            exc.printStackTrace();
+            throw new RuntimeException
+                ("Failed during evalIO of Eta REPL expression", exc);
         }
+    }
+
+    private static ByteArrayOutputStream baos;
+    private static PrintStream sandboxedStream;
+
+    public static Object evalIOInternal(Object e) {
+        // TODO: Add support for stdin too!
+        PrintStream oldOut = System.out;
+        PrintStream oldErr = System.err;
+        initSandbox();
+        try {
+             return evalIOMethod.invoke(null, e);
+        } catch (Exception exc) {
+            throw new RuntimeException
+                ("Failed during evalIOInternal of Eta REPL expression", exc);
+        } finally {
+            System.setOut(oldOut);
+            System.setErr(oldErr);
+        }
+    }
+
+    public static byte[] getOutputBytes() {
+        byte[] result = baos.toByteArray();
+        baos.reset();
+        return result;
+    }
+
+    private static void initSandbox() {
+        if (sandboxedStream == null) {
+            baos = new ByteArrayOutputStream();
+            sandboxedStream = new PrintStream(baos);
+        }
+        System.setOut(sandboxedStream);
+        System.setErr(sandboxedStream);
     }
 }

@@ -28,6 +28,8 @@ import Control.Exception
 import Data.Binary
 import Data.Binary.Get
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
 import GHC.Exts
 -- import GHC.Stack
@@ -36,6 +38,7 @@ import Foreign.C
 import GHC.IO hiding ( bracket )
 import System.Mem.Weak  ( deRefWeak )
 import Unsafe.Coerce
+import Java
 
 -- -----------------------------------------------------------------------------
 -- Implement messages
@@ -238,9 +241,25 @@ measureAlloc io = do
 tryEval :: IO a -> IO (EvalResult a)
 tryEval io = do
   e <- try io
+  bytes <- getOutputBytes
   case e of
-    Left ex -> return (EvalException (toSerializableException ex))
-    Right a -> return (EvalSuccess a)
+    Left ex -> return (EvalException bytes (toSerializableException ex))
+    Right a -> do
+      return (EvalSuccess bytes a)
+
+getOutputBytes :: IO ByteString
+getOutputBytes = do
+  bytes <- getOutputBytes'
+  len   <- javaWith bytes alength
+  if len > 0
+    then return $ B.unsafeCreate len (bytesToPtr bytes)
+    else return $ B.empty
+
+foreign import java unsafe "@static eta.repl.Utils.bytesToPtr"
+  bytesToPtr :: JByteArray -> Ptr a -> IO ()
+
+foreign import java unsafe "@static eta.repl.REPLClassLoader.getOutputBytes"
+  getOutputBytes' :: IO JByteArray
 
 -- This function sets up the interpreter for catching breakpoints, and
 -- resets everything when the computation has stopped running.  This

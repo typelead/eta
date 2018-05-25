@@ -356,8 +356,8 @@ data EvalStatus_ a b
 instance Binary a => Binary (EvalStatus_ a b)
 
 data EvalResult a
-  = EvalException SerializableException
-  | EvalSuccess a
+  = EvalException B.ByteString SerializableException
+  | EvalSuccess B.ByteString a
   deriving (Generic, Show)
 
 instance Binary a => Binary (EvalResult a)
