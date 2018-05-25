@@ -81,6 +81,7 @@ import {-# SOURCE #-}   ETA.BasicTypes.Module( UnitId, Module, ModuleName, modul
 import {-# SOURCE #-}   ETA.BasicTypes.OccName( OccName )
 import {-# SOURCE #-}   ETA.Main.StaticFlags( opt_PprStyle_Debug, opt_NoDebugOutput )
 
+import Eta.REPL.RemoteTypes
 import ETA.Utils.FastString
 import ETA.Utils.FastTypes
 import qualified ETA.Utils.Pretty as Pretty
@@ -768,6 +769,9 @@ instance Outputable Fingerprint where
 instance Outputable Serialized where
     ppr (Serialized the_type bytes) = int (length bytes) <+> ptext (sLit "of type")
       <+> text (show the_type)
+
+instance Outputable (ForeignRef a) where
+  ppr hv = ppr (foreignRefToInt hv)
 
 {-
 ************************************************************************

@@ -248,10 +248,9 @@ showLinkerState dflags = do
   putLogMsg dflags SevDump noSrcSpan defaultDumpStyle
     (vcat [text "----- Linker state -----"
           ,text "Closure Environment:" <+>
-           ppr (map (nameModule_maybe . fst) $ nameEnvElts $ closure_env pls)])
+           ppr (closure_env pls)])
                         -- text "Objs:" <+> ppr (objs_loaded pls),
                         -- text "BCOs:" <+> ppr (bcos_loaded pls)])
-
 
 {- **********************************************************************
 

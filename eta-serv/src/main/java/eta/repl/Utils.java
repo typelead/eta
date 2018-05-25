@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
+import eta.runtime.stg.StablePtrTable;
 import ghc_prim.ghc.Tuple;
 import ghc_prim.ghc.Types;
 import ghc_prim.ghc.types.datacons.Ozh;
@@ -46,5 +47,9 @@ public class Utils {
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
         return sw.toString();
+    }
+
+    public static Object getClosure(int index) {
+        return ((Ozh) StablePtrTable.getClosure(index)).x1;
     }
 }

@@ -1,5 +1,7 @@
 package eta.runtime;
 
+import java.io.*;
+
 import eta.runtime.Runtime;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
@@ -47,10 +49,30 @@ public class RuntimeLogging {
             }
         }
     }
+    private static PrintStream bos;
 
     public static void debugBelch(String msg, Object... args) {
-        System.err.format(msg, args);
-        System.err.print("\n");
+        PrintStream out;
+        if (Runtime.debugToFile()) {
+            if (bos == null) {
+                initBos();
+            }
+            out = bos;
+        } else {
+            out = System.err;
+        }
+        out.format(msg, args);
+        out.print("\n");
+        out.flush();
+    }
+
+    private static void initBos() {
+        try {
+            bos = new PrintStream
+                (new FileOutputStream("eta_debug.log"), false, "UTF-8");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialized output stream.", e);
+        }
     }
 
     public static void debugScheduler(String msg) {
@@ -71,6 +93,10 @@ public class RuntimeLogging {
 
     public static void debugExceptions(String msg) {
         debugGeneric("Exceptions", msg);
+    }
+
+    public static void debugStablePtr(String msg) {
+        debugGeneric("StablePtr", msg);
     }
 
     public static void debugGeneric(String type, String msg) {

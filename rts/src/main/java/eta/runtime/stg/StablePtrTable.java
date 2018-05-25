@@ -7,7 +7,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.nio.ByteBuffer;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.Closure;
+import static eta.runtime.RuntimeLogging.*;
 
 public class StablePtrTable {
 
@@ -30,16 +32,30 @@ public class StablePtrTable {
             index = nextIndex.getAndIncrement();
         }
         ptrs.put(index, p);
+        if (Runtime.debugStablePtr()) {
+            debugStablePtr("stablePtrTable: PUT " + index + " " + System.identityHashCode(p));
+        }
         return index;
     }
 
     public static Closure getClosure(int index) {
-        return INSTANCE.ptrs.get(index);
+        Closure result = INSTANCE.ptrs.get(index);
+        if (Runtime.debugStablePtr()) {
+            debugStablePtr("stablePtrTable: GET " + index + " " + System.identityHashCode(result));
+        }
+        return result;
+
     }
 
     public static void free(int index) {
         Closure prev = INSTANCE.ptrs.remove(index);
+        if (Runtime.debugStablePtr()) {
+            debugStablePtr("stablePtrTable: ATTEMPTING TO FREE " + index + " " + System.identityHashCode(prev));
+        }
         if (prev != null) {
+            if (Runtime.debugStablePtr()) {
+                debugStablePtr("stablePtrTable: FREE " + index + " " + System.identityHashCode(prev));
+            }
             INSTANCE.freeIndexes.offer(index);
         }
     }

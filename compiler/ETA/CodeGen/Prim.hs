@@ -316,10 +316,10 @@ shouldInlinePrimOp' _ MakeStableNameOp args = Right $ return
   [ normalOp (invokestatic (mkMethodRef "java/lang/System" "identityHashCode" [jobject] (ret jint))) args ]
 
 shouldInlinePrimOp' _ MakeStablePtrOp args = Right $ return
-  [ normalOp (invokestatic (mkMethodRef "eta/runtime/stg/StablePtrTable" "makeStablePtr" [closureType] (ret jint))) args ]
+  [ normalOp (invokestatic (mkMethodRef stablePtrTable "makeStablePtr" [closureType] (ret jint))) args ]
 
 shouldInlinePrimOp' _ DeRefStablePtrOp args = Right $ return
-  [ normalOp (invokestatic (mkMethodRef "eta/runtime/stg/StablePtrTable" "getClosure" [jint] (ret closureType))) args ]
+  [ normalOp (invokestatic (mkMethodRef stablePtrTable "getClosure" [jint] (ret closureType))) args ]
 
 
 shouldInlinePrimOp' _ UnsafeThawArrayOp args = Right $ return [fold args]

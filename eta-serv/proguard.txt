@@ -17,3 +17,6 @@
 -keep public class eta.main {
   public static void main(java.lang.String[]);
 }
+
+-keep public class eta.repl.Utils { *; }
+-keep public class eta.repl.REPLClassLoader { *; }

@@ -200,6 +200,22 @@ public class Runtime {
         return debugExceptions;
     }
 
+    private static boolean debugStablePtr;
+
+    public static final String DEBUG_STABLEPTR_PROPERTY = "eta.debug.stablePtr";
+
+    public static boolean debugStablePtr() {
+        return debugStablePtr;
+    }
+
+    private static boolean debugToFile;
+
+    public static final String DEBUG_TOFILE_PROPERTY = "eta.debug.toFile";
+
+    public static boolean debugToFile() {
+        return debugToFile;
+    }
+
     public static void initializeRuntimeParameters() {
         RuntimeOptions rto = new RuntimeOptions(RTS_PROPERTIES_PATH);
         // Initialize parameters explicitly
@@ -216,6 +232,8 @@ public class Runtime {
         debugSTM = rto.getBoolean(DEBUG_STM_PROPERTY, false);
         debugMemoryManager = rto.getBoolean(DEBUG_MEMORY_MANAGER_PROPERTY, false);
         debugExceptions = rto.getBoolean(DEBUG_EXCEPTIONS_PROPERTY, false);
+        debugStablePtr = rto.getBoolean(DEBUG_STABLEPTR_PROPERTY, false);
+        debugToFile = rto.getBoolean(DEBUG_TOFILE_PROPERTY, false);
     }
 
     static {

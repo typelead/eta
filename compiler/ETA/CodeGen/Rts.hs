@@ -349,5 +349,6 @@ singletonInstanceName = "INSTANCE"
 getClosureMethod :: Int -> Code
 getClosureMethod int =
      iconst jint (fromIntegral int)
-  <> invokestatic (mkMethodRef stablePtrTable "getClosure" [jint] (ret closureType))
+  <> invokestatic (mkMethodRef "eta/repl/Utils" "getClosure" [jint] (ret jobject))
+  <> gconv jobject closureType
 
