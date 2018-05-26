@@ -31,6 +31,7 @@ module ETA.Parser.RdrHsSyn (
         mkImport,
         parseCImport,
         mkExport,
+        makePlainJavaAnnotation,
         mkExtName,           -- RdrName -> CLabelString
         mkGadtDecl,          -- [Located RdrName] -> LHsType RdrName -> ConDecl RdrName
         mkSimpleConDecl,
@@ -1465,26 +1466,62 @@ parseCImport cconv safety _nm str sourceText =
 --
 mkExport :: Located CCallConv
          -> (Located FastString, Located RdrName, LHsType RdrName)
-         -> Located [RdrName]
+         -> Located [JavaAnnotation RdrName]
          -> P (HsDecl RdrName)
 mkExport (L lc cconv) (L le entity, v, ty) anns = do
   checkNoPartialType (ptext (sLit "In foreign export declaration") <+>
                       quotes (ppr v) $$ ppr ty) ty
   let loc = getLoc $ anns
-  let doc = ppr $ unLoc $ anns
-  let w = True
-  if w
+  let doc = (ppr $ unLoc v) <+> (ptext $ sLit "annotated with:") <+> ( ppr $ unLoc $ anns )
+  let debug = False
+  if debug
     then failSpanMsgP loc doc
     else return $ ForD (ForeignExport v ty noForeignExportCoercionYet
                  (CExport (L lc (CExportStatic entity' cconv))
                           (L le (unpackFS entity)))
-                 (map (JavaAnnotation) (unLoc anns))
+                 (unLoc anns)
                 )
   where
     entity' | nullFS entity = mkExtName (unLoc v)
             | unpackFS entity == "@super" =
               appendFS (appendFS entity (mkFastString " ")) (mkExtName (unLoc v))
             | otherwise     = entity
+
+
+makePlainJavaAnnotation :: LHsType RdrName -> P (Located (JavaAnnotation RdrName))
+makePlainJavaAnnotation token = do
+  let nameLocation = getLoc token
+  case unLoc token of
+    HsTyVar name ->
+      return (L nameLocation $ PlainJavaAnnotation name)
+
+    _ -> javaAnnotationError token
+
+
+-- makeRecordJavaAnnotation :: LHsType RdrName
+-- makeRecordJavaAnnotation = error "implement me"
+
+
+javaAnnotationError :: (Outputable a)
+                    => Located a
+                    -> P (Located (JavaAnnotation RdrName))
+javaAnnotationError token =
+  parseErrorSDoc
+      (getLoc token)
+      (vcat [ ptext (sLit "Parse error on annotation") <+> (ppr $ unLoc token)
+            , ptext (sLit "In Eta annotations take the forms:")
+            , ptext (sLit "* An annotation itself:")
+            , ptext (sLit "\t\t@Test")
+            , ptext (sLit "* An annotation followed by a list of parameters:")
+            , ptext (sLit "\t\t@RestController \"/users\"")
+            , ptext (sLit "* An annotation followed by a record, for named parameters:")
+            , ptext (sLit "\t\t@ColumnName { value = \"password\" }")
+            ]
+      )
+
+
+
+
 
 -- Supplying the ext_name in a foreign decl is optional; if it
 -- isn't there, the Haskell name is assumed. Note that no transformation

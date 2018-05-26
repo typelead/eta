@@ -1323,8 +1323,9 @@ instance (OutputableBndr name)
 --
 type LForeignDecl name = Located (ForeignDecl name)
 
-newtype JavaAnnotation name
-  = JavaAnnotation name
+data JavaAnnotation name
+  = PlainJavaAnnotation { javaAnnotationName :: name }
+  | RecordJavaAnnotation { javaAnnotationName :: name, javaAnnotationParameters :: [(name, name)] }
   deriving (Typeable)
 deriving instance (DataId name) => Data (JavaAnnotation name)
 
@@ -1411,7 +1412,8 @@ data ForeignExport = CExport  (Located CExportSpec) -- contains the calling
 --
 
 instance OutputableBndr name => Outputable (JavaAnnotation name) where
-  ppr (JavaAnnotation n) = ppr n
+  ppr (PlainJavaAnnotation n) = ppr n
+  ppr (RecordJavaAnnotation n _ ) = ptext (sLit "Record: ") <+> ppr n
 
 instance OutputableBndr name => Outputable (ForeignDecl name) where
   ppr (ForeignImport n ty _ fimport) =

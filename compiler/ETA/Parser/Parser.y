@@ -721,10 +721,6 @@ topdecl :: { OrdList (LHsDecl RdrName) }
                                                              ,mop $2,mcp $4] }}
         | 'foreign' fdecl                       {% amsu (sLL $1 $> (snd $ unLoc $2))
                                                         (mj AnnForeign $1:(fst $ unLoc $2)) }
---         | '@' conatype javaAnnotationExported   {% amsu (sLL $2 $> (snd $ unLoc $3))
---                                                         (mj AnnForeign $2:(fst $ unLoc $3)) }
---         | '@' conatype ';' javaAnnotationExported     {% amsu (sLL $2 $> (snd $ unLoc $4))
---                                                           (mj AnnForeign $2:(fst $ unLoc $4)) }
         | annotated_declaration                 {% amsu ( fmap snd $1 ) [mj AnnForeign $1] }
         | '{-# DEPRECATED' deprecations '#-}'   {% amsu (sLL $1 $> $ WarningD (Warnings (getDEPRECATED_PRAGs $1) (fromOL $2)))
                                                        [mo $1,mc $3] }
@@ -1398,21 +1394,36 @@ annotated_declaration :: { Located ( [AddAnn], (HsDecl RdrName)) }
         return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $2), declaration) )
     }
 
-java_annotations :: { Located [RdrName] }
-    : '@' conatype ';' java_annotations {% do
-        let nameLocation = getLoc $2
-        case (unLoc $2) of
-            HsTyVar name -> return (L nameLocation $ [name] ++ (unLoc $4))
-            _ -> return (L nameLocation [])
+java_annotations :: { Located [JavaAnnotation RdrName] }
+    : '@' java_annotation ';' java_annotations {% do
+        return (sLL $1 $> ( unLoc $2 : unLoc $4 ))
     }
-    | '@' conatype ';' {% do
-        let nameLocation = getLoc $2
-        case (unLoc $2) of
-            HsTyVar name -> return (L nameLocation [name])
-            _ -> return (L nameLocation [])
+    | '@' java_annotation ';' {% do
+        return (sLL $1 $> [unLoc $2])
+    }
+
+java_annotation :: { Located ( JavaAnnotation RdrName ) }
+    : conatype {%
+        makePlainJavaAnnotation $1
+    }
+    | conatype '{' fbinds '}' {%
+        -- TODO
+        makePlainJavaAnnotation $1
+    }
+    | conatype java_annotation_arguments {%
+        -- TODO
+        makePlainJavaAnnotation $1
     }
 
 
+-- TODO: Implement correct
+java_annotation_arguments :: { Located [RdrName] }
+    : literal java_annotation_arguments {%
+        return (sLL $1 $> [])
+    }
+    | literal {%
+        return (sLL $1 $> [])
+    }
 
 javaAnnotationExported :: { Located ([AddAnn],HsDecl RdrName) }
     : conatype ';' fspec {% do
@@ -1420,15 +1431,6 @@ javaAnnotationExported :: { Located ([AddAnn],HsDecl RdrName) }
         declaration <- mkExport callConv (snd $ unLoc $3) ( L (getLoc $1) [] )
         return (sLL $1 $> (mj AnnExport $1 : (fst $ unLoc $3), declaration) )
     }
-
-
--- javaAnnotationArguments :: { [Located [AddAnn]] }  -- FIXME: Wrong type
---     : var {
---         [sLL $1 $> (mj AnnName $1 : (fst $ unLoc $1))]
---     }
---     | var ',' javaAnnotationArguments {
---         [sLL $1 $> (mj AnnName $1 : (fst $ unLoc $1))]
---     }
 
 -----------------------------------------------------------------------------
 -- Type signatures
