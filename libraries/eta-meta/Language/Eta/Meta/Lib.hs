@@ -4,13 +4,13 @@
 
 {-# LANGUAGE CPP #-}
 
-module Language.Haskell.TH.Lib where
+module Language.Eta.Meta.Lib where
     -- All of the exports from this module should
     -- be "public" functions.  The main module TH
     -- re-exports them all.
 
-import Language.Haskell.TH.Syntax hiding (Role, InjectivityAnn)
-import qualified Language.Haskell.TH.Syntax as TH
+import Language.Eta.Meta.Syntax hiding (Role, InjectivityAnn)
+import qualified Language.Eta.Meta.Syntax as TH
 import Control.Monad( liftM, liftM2 )
 import Data.Word( Word8 )
 

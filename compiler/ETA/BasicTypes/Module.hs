@@ -78,6 +78,7 @@ module ETA.BasicTypes.Module
         baseUnitId,
         rtsUnitId,
         thUnitId,
+        etaMetaId,
         dphSeqUnitId,
         dphParUnitId,
         mainUnitId,
@@ -200,7 +201,7 @@ import {-# SOURCE #-} ETA.Main.DynFlags (DynFlags)
 --        this means a useful fiction for end-users is that there are
 --        only ever ComponentIds, and some ComponentIds happen to have
 --        more information (UnitIds).
---      - Same as Language.Haskell.TH.Syntax:PkgName, see
+--      - Same as Language.Eta.Meta.Syntax:PkgName, see
 --          https://ghc.haskell.org/trac/ghc/ticket/10279
 --      - The same as PackageKey in GHC 7.10 (we renamed it because
 --        they don't necessarily identify packages anymore.)
@@ -212,13 +213,13 @@ import {-# SOURCE #-} ETA.Main.DynFlags (DynFlags)
 --
 -- Module/InstalledModule: A UnitId/InstalledUnitId + ModuleName. This is how
 -- the compiler identifies modules (e.g. a Name is a Module + OccName)
---      - Same as Language.Haskell.TH.Syntax:Module
+--      - Same as Language.Eta.Meta.Syntax:Module
 --
 -- THE LESS IMPORTANT ONES
 --
 -- PackageName: The "name" field in a Cabal file, something like "lens".
 --      - Same as Distribution.Package.PackageName
---      - DIFFERENT FROM Language.Haskell.TH.Syntax:PkgName, see
+--      - DIFFERENT FROM Language.Eta.Meta.Syntax:PkgName, see
 --          https://ghc.haskell.org/trac/ghc/ticket/10279
 --      - DIFFERENT FROM -package-name flag
 --      - DIFFERENT FROM the 'name' field in an installed package
@@ -1065,12 +1066,13 @@ parseModSubst = Parse.between (Parse.char '[') (Parse.char ']')
 integerUnitId, primUnitId,
   baseUnitId, rtsUnitId,
   thUnitId, dphSeqUnitId, dphParUnitId,
-  mainUnitId, thisGhcUnitId, interactiveUnitId  :: UnitId
+  mainUnitId, thisGhcUnitId, etaMetaId, interactiveUnitId  :: UnitId
 primUnitId        = fsToUnitId (fsLit "ghc-prim")
 integerUnitId     = fsToUnitId (fsLit "integer")
 baseUnitId        = fsToUnitId (fsLit "base")
 rtsUnitId         = fsToUnitId (fsLit "rts")
 thUnitId          = fsToUnitId (fsLit "template-haskell")
+etaMetaId         = fsToUnitId (fsLit "eta-meta")
 dphSeqUnitId      = fsToUnitId (fsLit "dph-seq")
 dphParUnitId      = fsToUnitId (fsLit "dph-par")
 thisGhcUnitId     = fsToUnitId (fsLit "ghc")
@@ -1120,6 +1122,7 @@ wiredInUnitIds = [ primUnitId,
                    baseUnitId,
                    rtsUnitId,
                    thUnitId,
+                   etaMetaId,
                    thisGhcUnitId,
                    dphSeqUnitId,
                    dphParUnitId ]

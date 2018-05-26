@@ -11,7 +11,7 @@ import ETA.Main.Annotations ( Annotation, CoreAnnTarget )
 import ETA.BasicTypes.RdrName  ( RdrName )
 import ETA.HsSyn.HsSyn      ( HsSplice, HsBracket, HsExpr, LHsExpr, LHsType, LPat,
                     LHsDecl, ThModFinalizers )
-import qualified Language.Haskell.TH as TH
+import qualified Language.Eta.Meta as TH
 
 tcSpliceExpr :: HsSplice Name
              -> TcRhoType

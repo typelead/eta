@@ -2,7 +2,7 @@
 
 -- | Monadic front-end to Text.PrettyPrint
 
-module Language.Haskell.TH.PprLib (
+module Language.Eta.Meta.PprLib (
 
         -- * The document type
         Doc,            -- Abstract, instance of Show
@@ -35,12 +35,12 @@ module Language.Haskell.TH.PprLib (
   ) where
 
 
-import Language.Haskell.TH.Syntax
+import Language.Eta.Meta.Syntax
     (Name(..), showName', NameFlavour(..), NameIs(..))
 import qualified Text.PrettyPrint as HPJ
 import Control.Monad (liftM, liftM2, ap)
-import Language.Haskell.TH.Lib.Map ( Map )
-import qualified Language.Haskell.TH.Lib.Map as Map ( lookup, insert, empty )
+import Language.Eta.Meta.Lib.Map ( Map )
+import qualified Language.Eta.Meta.Lib.Map as Map ( lookup, insert, empty )
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative( Applicative(..) )
 #endif

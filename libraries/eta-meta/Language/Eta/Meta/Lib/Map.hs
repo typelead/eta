@@ -9,11 +9,11 @@
 --
 -- The original code is BSD-licensed and copyrighted by Daan Leijen, Andriy Palamarchuk, et al.
 
-module Language.Haskell.TH.Lib.Map
+module Language.Eta.Meta.Lib.Map
     ( Map
     , empty
     , insert
-    , Language.Haskell.TH.Lib.Map.lookup
+    , Language.Eta.Meta.Lib.Map.lookup
     ) where
 
 data Map k a  = Bin {-# UNPACK #-} !Size !k a !(Map k a) !(Map k a)

@@ -1,14 +1,14 @@
 -- | contains a prettyprinter for the
 -- Template Haskell datatypes
 
-module Language.Haskell.TH.Ppr where
+module Language.Eta.Meta.Ppr where
     -- All of the exports from this module should
     -- be "public" functions.  The main module TH
     -- re-exports them all.
 
 import Text.PrettyPrint (render)
-import Language.Haskell.TH.PprLib
-import Language.Haskell.TH.Syntax
+import Language.Eta.Meta.PprLib
+import Language.Eta.Meta.Syntax
 import Data.Word ( Word8 )
 import Data.Char ( toLower, chr, ord, isSymbol )
 import GHC.Show  ( showMultiLineString )

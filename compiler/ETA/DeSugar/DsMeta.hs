@@ -25,7 +25,7 @@ import {-# SOURCE #-} ETA.DeSugar.DsExpr ( dsExpr )
 import ETA.DeSugar.MatchLit
 import ETA.DeSugar.DsMonad
 
-import qualified Language.Haskell.TH as TH
+import qualified Language.Eta.Meta as TH
 
 import ETA.HsSyn.HsSyn
 import ETA.Types.Class

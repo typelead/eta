@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 {- |
-Module : Language.Haskell.TH.Quote
+Module : Language.Eta.Meta.Quote
 Description : Quasi-quoting support for Template Haskell
 
 Template Haskell supports quasiquoting, which permits users to construct
@@ -13,14 +13,14 @@ extension is enabled, and some utility functions for manipulating
 quasiquoters.  Nota bene: this package does not define any parsers,
 that is up to you.
 -}
-module Language.Haskell.TH.Quote(
+module Language.Eta.Meta.Quote(
         QuasiQuoter(..),
         quoteFile,
         -- * For backwards compatibility
         dataToQa, dataToExpQ, dataToPatQ
     ) where
 
-import Language.Haskell.TH.Syntax
+import Language.Eta.Meta.Syntax
 
 -- | The 'QuasiQuoter' type, a value @q@ of this type can be used
 -- in the syntax @[q| ... string to parse ...|]@.  In fact, for

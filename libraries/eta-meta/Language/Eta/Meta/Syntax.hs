@@ -26,10 +26,10 @@
 --
 -----------------------------------------------------------------------------
 
-module Language.Haskell.TH.Syntax
-    ( module Language.Haskell.TH.Syntax
+module Language.Eta.Meta.Syntax
+    ( module Language.Eta.Meta.Syntax
       -- * Language extensions
-    , module Language.Haskell.TH.LanguageExtensions
+    , module Language.Eta.Meta.LanguageExtensions
     ) where
 
 import Data.Data hiding (Fixity(..))
@@ -46,7 +46,7 @@ import Data.Word
 import Data.Ratio
 import GHC.Generics     ( Generic )
 import Eta.Lexeme       ( startsVarSym, startsVarId )
-import Language.Haskell.TH.LanguageExtensions
+import Language.Eta.Meta.LanguageExtensions
 
 #ifdef HAS_NATURAL
 import Numeric.Natural
@@ -299,11 +299,11 @@ recover (Q r) (Q m) = Q (qRecover r m)
 lookupName :: Bool -> String -> Q (Maybe Name)
 lookupName ns s = Q (qLookupName ns s)
 
--- | Look up the given name in the (type namespace of the) current splice's scope. See "Language.Haskell.TH.Syntax#namelookup" for more details.
+-- | Look up the given name in the (type namespace of the) current splice's scope. See "Language.Eta.Meta.Syntax#namelookup" for more details.
 lookupTypeName :: String -> Q (Maybe Name)
 lookupTypeName  s = Q (qLookupName True s)
 
--- | Look up the given name in the (value namespace of the) current splice's scope. See "Language.Haskell.TH.Syntax#namelookup" for more details.
+-- | Look up the given name in the (value namespace of the) current splice's scope. See "Language.Eta.Meta.Syntax#namelookup" for more details.
 lookupValueName :: String -> Q (Maybe Name)
 lookupValueName s = Q (qLookupName False s)
 
@@ -556,7 +556,7 @@ sequenceQ = sequence
 -- > {-# LANGUAGE DeriveLift #-}
 -- > module Foo where
 -- >
--- > import Language.Haskell.TH.Syntax
+-- > import Language.Eta.Meta.Syntax
 -- >
 -- > data Bar a = Bar1 a (Bar a) | Bar2 String
 -- >   deriving Lift
@@ -910,7 +910,7 @@ the thing it refers to can be changed by adding new declarations.
 An abstract type representing names in the syntax tree.
 
 'Name's can be constructed in several ways, which come with different
-name-capture guarantees (see "Language.Haskell.TH.Syntax#namecapture" for
+name-capture guarantees (see "Language.Eta.Meta.Syntax#namecapture" for
 an explanation of name capture):
 
   * the built-in syntax @'f@ and @''T@ can be used to construct names,
@@ -1039,7 +1039,7 @@ Note that @mkName@ may be used with qualified names:
 
 > mkName "Prelude.pi"
 
-See also 'Language.Haskell.TH.Lib.dyn' for a useful combinator. The above example could
+See also 'Language.Eta.Meta.Lib.dyn' for a useful combinator. The above example could
 be rewritten using 'dyn' as
 
 > f = [| pi + $(dyn "pi") |]
@@ -1418,10 +1418,10 @@ data Pat
   | InfixP Pat Name Pat           -- ^ @foo ({x :+ y}) = e@
   | UInfixP Pat Name Pat          -- ^ @foo ({x :+ y}) = e@
                                   --
-                                  -- See "Language.Haskell.TH.Syntax#infix"
+                                  -- See "Language.Eta.Meta.Syntax#infix"
   | ParensP Pat                   -- ^ @{(p)}@
                                   --
-                                  -- See "Language.Haskell.TH.Syntax#infix"
+                                  -- See "Language.Eta.Meta.Syntax#infix"
   | TildeP Pat                    -- ^ @{ ~p }@
   | BangP Pat                     -- ^ @{ !p }@
   | AsP Name Pat                  -- ^ @{ x \@ p }@
@@ -1456,10 +1456,10 @@ data Exp
 
   | UInfixE Exp Exp Exp                -- ^ @{x + y}@
                                        --
-                                       -- See "Language.Haskell.TH.Syntax#infix"
+                                       -- See "Language.Eta.Meta.Syntax#infix"
   | ParensE Exp                        -- ^ @{ (e) }@
                                        --
-                                       -- See "Language.Haskell.TH.Syntax#infix"
+                                       -- See "Language.Eta.Meta.Syntax#infix"
   | LamE [Pat] Exp                     -- ^ @{ \\ p1 p2 -> e }@
   | LamCaseE [Match]                   -- ^ @{ \\case m1; m2 }@
   | TupE [Exp]                         -- ^ @{ (e1,e2) }  @
@@ -1737,7 +1737,7 @@ data Type = ForallT [TyVarBndr] Cxt Type  -- ^ @forall \<vars\>. \<ctxt\> -> \<t
           | InfixT Type Name Type         -- ^ @T + T@
           | UInfixT Type Name Type        -- ^ @T + T@
                                           --
-                                          -- See "Language.Haskell.TH.Syntax#infix"
+                                          -- See "Language.Eta.Meta.Syntax#infix"
           | ParensT Type                  -- ^ @(T)@
 
           -- See Note [Representing concrete syntax in types]

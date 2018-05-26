@@ -144,7 +144,7 @@ import Data.Typeable ( TypeRep )
 import Eta.REPL.RemoteTypes
 import Eta.REPL.Message
 
-import qualified Language.Haskell.TH as TH
+import qualified Language.Eta.Meta as TH
 #endif
 
 {-

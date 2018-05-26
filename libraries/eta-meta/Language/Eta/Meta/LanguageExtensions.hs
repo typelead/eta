@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Language.Haskell.TH.LanguageExtensions
+-- Module      :  Language.Eta.Meta.LanguageExtensions
 -- Copyright   :  (c) The University of Glasgow 2015
 -- License     :  BSD-style (see the file libraries/base/LICENSE)
 --
@@ -12,11 +12,11 @@
 --
 -----------------------------------------------------------------------------
 
-module Language.Haskell.TH.LanguageExtensions
+module Language.Eta.Meta.LanguageExtensions
    ( Extension(..)
    ) where
 
 -- This module exists primarily to avoid inserting a massive list of language
--- extensions into the already quite large Haddocks for Language.Haskell.TH
+-- extensions into the already quite large Haddocks for Language.Eta.Meta
 
 import Eta.LanguageExtensions.Type (Extension(..))

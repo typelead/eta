@@ -54,7 +54,7 @@ import {-# SOURCE #-} ETA.TypeCheck.TcSplice
     )
 
 import Eta.REPL.RemoteTypes ( ForeignRef )
-import qualified Language.Haskell.TH as TH (Q)
+import qualified Language.Eta.Meta as TH (Q)
 
 {-
 ************************************************************************

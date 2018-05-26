@@ -95,7 +95,7 @@ import Prelude hiding   ( read )
 
 #ifdef ETA_REPL
 import {-# SOURCE #-} ETA.TypeCheck.TcSplice ( lookupThName_maybe )
-import qualified Language.Haskell.TH as TH
+import qualified Language.Eta.Meta as TH
 
 saveLinkerGlobals :: IO ()
 saveLinkerGlobals = return ()

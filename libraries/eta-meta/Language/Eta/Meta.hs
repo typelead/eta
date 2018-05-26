@@ -4,7 +4,7 @@ For other documentation, refer to:
 <http://www.haskell.org/haskellwiki/Template_Haskell>
 
 -}
-module Language.Haskell.TH(
+module Language.Eta.Meta(
         -- * The monad and its operations
         Q,
         runQ,
@@ -165,6 +165,6 @@ module Language.Haskell.TH(
 
    ) where
 
-import Language.Haskell.TH.Syntax as Syntax1
-import Language.Haskell.TH.Lib
-import Language.Haskell.TH.Ppr
+import Language.Eta.Meta.Syntax as Syntax1
+import Language.Eta.Meta.Lib
+import Language.Eta.Meta.Ppr

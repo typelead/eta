@@ -110,8 +110,8 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
 import GHC.Desugar
-import qualified Language.Haskell.TH        as TH
-import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Eta.Meta        as TH
+import qualified Language.Eta.Meta.Syntax as TH
 import Unsafe.Coerce
 
 -- | Create a new instance of 'QState'

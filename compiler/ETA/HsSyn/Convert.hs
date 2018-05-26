@@ -45,8 +45,8 @@ import qualified Data.ByteString as BS
 import Control.Monad( unless, liftM, ap, (<=<) )
 
 import Data.Maybe( catMaybes, isNothing )
-import Language.Haskell.TH as TH hiding (sigP)
-import Language.Haskell.TH.Syntax as TH
+import Language.Eta.Meta as TH hiding (sigP)
+import Language.Eta.Meta.Syntax as TH
 
 -------------------------------------------------------------------
 --              The external interface
@@ -1271,7 +1271,7 @@ cvtTypeKind ty_str ty
              -> returnL (HsExplicitListTy placeHolderKind [])
 
            PromotedConsT  -- See Note [Representing concrete syntax in types]
-                          -- in Language.Haskell.TH.Syntax
+                          -- in Language.Eta.Meta.Syntax
              | [ty1, L _ (HsExplicitListTy _ tys2)] <- tys'
              -> returnL (HsExplicitListTy placeHolderKind (ty1:tys2))
              | otherwise

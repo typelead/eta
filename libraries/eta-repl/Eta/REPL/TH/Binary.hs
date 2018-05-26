@@ -11,8 +11,8 @@ module Eta.REPL.TH.Binary () where
 import Data.Binary
 import qualified Data.ByteString as B
 import Eta.Serialized
-import qualified Language.Haskell.TH        as TH
-import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Eta.Meta        as TH
+import qualified Language.Eta.Meta.Syntax as TH
 
 #if !MIN_VERSION_base(4,10,0)
 import Data.Typeable

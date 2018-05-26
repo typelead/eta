@@ -38,7 +38,7 @@ import ETA.Utils.Outputable
 import ETA.Utils.FastString
 import ETA.Types.Type
 import Eta.REPL.RemoteTypes ( ForeignRef )
-import qualified Language.Haskell.TH as TH (Q)
+import qualified Language.Eta.Meta as TH (Q)
 
 -- libraries:
 import Data.Data hiding (Fixity(..))
@@ -1634,7 +1634,7 @@ isTypedSplice (HsTypedSplice {}) = True
 isTypedSplice _                  = False   -- Quasi-quotes are untyped splices
 
 -- | Finalizers produced by a splice with
--- 'Language.Haskell.TH.Syntax.addModFinalizer'
+-- 'Language.Eta.Meta.Syntax.addModFinalizer'
 --
 -- See Note [Delaying modFinalizers in untyped splices] in RnSplice. For how
 -- this is used.

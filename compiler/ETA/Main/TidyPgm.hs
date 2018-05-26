@@ -509,7 +509,7 @@ of exceptions, and finally I gave up the battle:
     involved or, more recently, DataKinds.
 
     However Trac #7445 shows that even without TemplateHaskell, using
-    the Data class and invoking Language.Haskell.TH.Quote.dataToExpQ
+    the Data class and invoking Language.Eta.Meta.Quote.dataToExpQ
     is enough to require us to expose the data constructors.
 
     So I've given up on this "optimisation" -- it's probably not
@@ -1367,7 +1367,7 @@ trim types] below for exceptions.
 
 Then (Trac #7445) I realised that the TH problem arises for any data type
 that we have deriving( Data ), because we can invoke
-   Language.Haskell.TH.Quote.dataToExpQ
+   Language.Eta.Meta.Quote.dataToExpQ
 to get a TH Exp representation of a value built from that data type.
 You don't even need {-# LANGUAGE TemplateHaskell #-}.
 

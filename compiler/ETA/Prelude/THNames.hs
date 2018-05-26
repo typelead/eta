@@ -7,7 +7,7 @@
 module ETA.Prelude.THNames where
 
 import ETA.Prelude.PrelNames( mk_known_key_name )
-import ETA.BasicTypes.Module( Module, mkModuleNameFS, mkModule, thUnitId )
+import ETA.BasicTypes.Module( Module, mkModuleNameFS, mkModule, etaMetaId )
 import ETA.BasicTypes.Name( Name )
 import qualified ETA.BasicTypes.OccName as OccName ( tcName, clsName, dataName, varName )
 import ETA.BasicTypes.RdrName( RdrName, nameRdrName )
@@ -160,12 +160,12 @@ templateHaskellNames = [
     quoteDecName, quoteTypeName, quoteExpName, quotePatName]
 
 thSyn, thLib, qqLib :: Module
-thSyn = mkTHModule (fsLit "Language.Haskell.TH.Syntax")
-thLib = mkTHModule (fsLit "Language.Haskell.TH.Lib.Internal")
-qqLib = mkTHModule (fsLit "Language.Haskell.TH.Quote")
+thSyn = mkTHModule (fsLit "Language.Eta.Meta.Syntax")
+thLib = mkTHModule (fsLit "Language.Eta.Meta.Lib")
+qqLib = mkTHModule (fsLit "Language.Eta.Meta.Quote")
 
 mkTHModule :: FastString -> Module
-mkTHModule m = mkModule thUnitId (mkModuleNameFS m)
+mkTHModule m = mkModule etaMetaId (mkModuleNameFS m)
 
 libFun, libTc, thFun, thTc, thCls, thCon, qqFun :: FastString -> Unique -> Name
 libFun = mk_known_key_name OccName.varName  thLib

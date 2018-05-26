@@ -111,9 +111,9 @@ import ETA.Utils.Panic as Panic
 import ETA.BasicTypes.Lexeme
 -- import qualified ETA.Utils.EnumSet as EnumSet
 
-import qualified Language.Haskell.TH as TH
+import qualified Language.Eta.Meta as TH
 -- THSyntax gives access to internal functions and data types
-import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Eta.Meta.Syntax as TH
 
 -- Because GHC.Desugar might not be in the base library of the bootstrapping compiler
 import GHC.Desugar      ( AnnotationWrapper(..) )

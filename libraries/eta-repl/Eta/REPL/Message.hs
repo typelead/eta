@@ -44,8 +44,8 @@ import Data.Dynamic
 import Data.IORef
 import Data.Map (Map)
 import GHC.Generics
-import qualified Language.Haskell.TH        as TH
-import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Eta.Meta        as TH
+import qualified Language.Eta.Meta.Syntax as TH
 import System.Exit
 import System.IO
 import System.IO.Error
