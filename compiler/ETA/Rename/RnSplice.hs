@@ -54,7 +54,6 @@ import {-# SOURCE #-} ETA.TypeCheck.TcSplice
     )
 
 import Eta.REPL.RemoteTypes ( ForeignRef )
-import qualified Language.Eta.Meta as TH (Q)
 
 {-
 ************************************************************************
@@ -287,7 +286,7 @@ runRnSplice :: UntypedSpliceFlavour
             -> (res -> SDoc)    -- How to pretty-print res
                                 -- Usually just ppr, but not for [Decl]
             -> HsSplice Name   -- Always untyped
-            -> TcRn (res, [ForeignRef (TH.Q ())])
+            -> TcRn (res, [ForeignRef ()])
 runRnSplice flavour run_meta ppr_res splice
   = do { splice' <- getHooked runRnSpliceHook return >>= ($ splice)
 
@@ -645,7 +644,7 @@ rnTopSpliceDecls splice
      -- there is no point in delaying them.
      --
      -- See Note [Delaying modFinalizers in untyped splices].
-     add_mod_finalizers_now :: [ForeignRef (TH.Q ())] -> TcRn ()
+     add_mod_finalizers_now :: [ForeignRef ()] -> TcRn ()
      add_mod_finalizers_now []             = return ()
      add_mod_finalizers_now mod_finalizers = do
        th_modfinalizers_var <- fmap tcg_th_modfinalizers getGblEnv

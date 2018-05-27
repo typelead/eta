@@ -38,7 +38,6 @@ import ETA.Utils.Outputable
 import ETA.Utils.FastString
 import ETA.Types.Type
 import Eta.REPL.RemoteTypes ( ForeignRef )
-import qualified Language.Eta.Meta as TH (Q)
 
 -- libraries:
 import Data.Data hiding (Fixity(..))
@@ -1639,7 +1638,8 @@ isTypedSplice _                  = False   -- Quasi-quotes are untyped splices
 -- See Note [Delaying modFinalizers in untyped splices] in RnSplice. For how
 -- this is used.
 --
-newtype ThModFinalizers = ThModFinalizers [ForeignRef (TH.Q ())]
+-- Think of the type as ForeignRef (TH.Q ()).
+newtype ThModFinalizers = ThModFinalizers [ForeignRef ()]
 
 -- A Data instance which ignores the argument of 'ThModFinalizers'.
 instance Data ThModFinalizers where

@@ -30,6 +30,7 @@ module Language.Eta.Meta.Syntax
     ( module Language.Eta.Meta.Syntax
       -- * Language extensions
     , module Language.Eta.Meta.LanguageExtensions
+    , Loc(..), CharPos
     ) where
 
 import Data.Data hiding (Fixity(..))
@@ -46,6 +47,7 @@ import Data.Word
 import Data.Ratio
 import GHC.Generics     ( Generic )
 import Eta.Lexeme       ( startsVarSym, startsVarId )
+import Eta.Location
 import Language.Eta.Meta.LanguageExtensions
 
 #ifdef HAS_NATURAL
@@ -1192,23 +1194,6 @@ mk_unboxed_tup_name n_commas space
   where
     occ = mkOccName ("(#" ++ replicate n_commas ',' ++ "#)")
     tup_mod = mkModName "GHC.Tuple"
-
-
-
------------------------------------------------------
---              Locations
------------------------------------------------------
-
-data Loc
-  = Loc { loc_filename :: String
-        , loc_package  :: String
-        , loc_module   :: String
-        , loc_start    :: CharPos
-        , loc_end      :: CharPos }
-   deriving( Show, Eq, Ord, Data, Typeable, Generic )
-
-type CharPos = (Int, Int)       -- ^ Line and character position
-
 
 -----------------------------------------------------
 --

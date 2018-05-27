@@ -11,6 +11,10 @@ import eta.runtime.thunk.Ap4Upd;
 import eta.runtime.thunk.Ap5Upd;
 import eta.runtime.thunk.Ap6Upd;
 import eta.runtime.thunk.Ap7Upd;
+import eta.runtime.thunk.Ap1VUpd;
+import eta.runtime.thunk.Ap2VUpd;
+import eta.runtime.thunk.Ap3VUpd;
+import eta.runtime.thunk.Ap4VUpd;
 import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
 import static eta.runtime.stg.TSO.WhatNext.*;
@@ -183,6 +187,22 @@ public class Closures {
 
     public static Closure apply(Closure e0, Closure e1, Closure e2, Closure e3, Closure e4, Closure e5, Closure e6) {
         return new Ap7Upd(e0, e1, e2, e3, e4, e5, e6);
+    }
+
+    public static Closure applyV(Closure e) {
+        return new Ap1VUpd(e);
+    }
+
+    public static Closure applyV(Closure e0, Closure e1) {
+        return new Ap2VUpd(e0, e1);
+    }
+
+    public static Closure applyV(Closure e0, Closure e1, Closure e2) {
+        return new Ap3VUpd(e0, e1, e2);
+    }
+
+    public static Closure applyV(Closure e0, Closure e1, Closure e2, Closure e3) {
+        return new Ap4VUpd(e0, e1, e2, e3);
     }
 
     public static Closure applyObject(Closure e, Object o) {

@@ -23,7 +23,7 @@ let
 
       codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
       hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
-      eta-boot-th = self.callPackage ./utils/nix/eta-boot-th.nix { };
+      eta-boot-meta = self.callPackage ./utils/nix/eta-boot-meta.nix { };
       eta-boot = self.callPackage ./utils/nix/eta-boot.nix { };
       eta-pkg = self.callPackage ./utils/nix/eta-pkg.nix { };
       etlas-cabal = self.callPackage ./utils/nix/etlas-cabal.nix { };

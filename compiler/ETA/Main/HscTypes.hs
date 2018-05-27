@@ -174,7 +174,6 @@ import ETA.Iface.IfaceSyn
 import ETA.Core.CoreSyn          ( CoreRule, CoreVect )
 import ETA.Utils.Maybes
 import ETA.Utils.Outputable
-import Eta.REPL.BreakArray
 import ETA.BasicTypes.SrcLoc
 import ETA.BasicTypes.Unique
 import ETA.Utils.UniqFM
@@ -2900,7 +2899,7 @@ type BreakIndex = Int
 -- | All the information about the breakpoints for a given module
 data ModBreaks
    = ModBreaks
-   { modBreaks_flags :: ForeignRef BreakArray
+   { modBreaks_flags :: ForeignRef ()
         -- ^ The array of flags, one per breakpoint,
         -- indicating which breakpoints are enabled.
    , modBreaks_locs :: !(Array BreakIndex SrcSpan)

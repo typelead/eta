@@ -3,7 +3,7 @@
 -- |
 -- The Eta Serv server.
 --
--- For details on Remote Eta Serv, see Note [Remote GHCi] in
+-- For details on Remote Eta Serv, see Note [Remote Eta REPL] in
 -- compiler/eta-repl/Eta/REPL/TH.hs.
 --
 import Lib (serv)

@@ -1,11 +1,11 @@
 {-# LANGUAGE CPP, StandaloneDeriving, GeneralizedNewtypeDeriving #-}
 
 -- |
--- Types for referring to remote objects in Remote GHCi.  For more
--- details, see Note [External GHCi pointers] in compiler/ghci/GHCi.hs
+-- Types for referring to remote objects in Remote Eta REPL.  For more
+-- details, see Note [External Eta REPL References] in compiler/ETA/REPL.hs.
 --
--- For details on Remote GHCi, see Note [Remote GHCi] in
--- compiler/ghci/GHCi.hs.
+-- For details on Remote Eta REPL, see Note [Remote Eta REPL] in
+-- compiler/ETA/REPL.hs.
 --
 module Eta.REPL.RemoteTypes
   ( RemotePtr(..), toRemotePtr, fromRemotePtr, castRemotePtr
@@ -17,10 +17,8 @@ module Eta.REPL.RemoteTypes
   , unsafeForeignRefToRemoteRef, finalizeForeignRef
   , foreignRefToInt
   , debug
-#ifdef ETA_VERSION
   , isVerbose
   , setVerbose
-#endif
   ) where
 
 import Control.DeepSeq
@@ -31,13 +29,10 @@ import Data.Binary
 import Unsafe.Coerce
 import GHC.Exts
 import GHC.ForeignPtr
-#ifdef ETA_VERSION
 import System.IO
 import System.IO.Unsafe
 import Data.IORef
 import Control.Monad
-#endif
-
 
 -- -----------------------------------------------------------------------------
 -- RemotePtr
@@ -134,13 +129,8 @@ foreignRefToInt (ForeignRef fp) =
   fromIntegral (ptrToIntPtr (unsafeForeignPtrToPtr fp))
 
 debug :: String -> IO ()
-#ifdef ETA_VERSION
 debug str = when isVerbose $ hPutStrLn stderr str >> hFlush stderr
-#else
-debug _str = return ()
-#endif
 
-#ifdef ETA_VERSION
 verboseVar :: IORef Bool
 verboseVar = unsafePerformIO (newIORef False)
 
@@ -149,4 +139,3 @@ setVerbose = writeIORef verboseVar True
 
 isVerbose :: Bool
 isVerbose = unsafePerformIO (readIORef verboseVar)
-#endif

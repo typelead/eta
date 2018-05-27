@@ -6,11 +6,12 @@
 {-# LANGUAGE CPP #-}
 
 -- This module is full of orphans, unfortunately
-module Eta.REPL.TH.Binary () where
+module Language.Eta.Meta.Binary () where
 
 import Data.Binary
 import qualified Data.ByteString as B
 import Eta.Serialized
+import Eta.REPL.Message ()
 import qualified Language.Eta.Meta        as TH
 import qualified Language.Eta.Meta.Syntax as TH
 
@@ -19,7 +20,6 @@ import Data.Typeable
 #endif
 -- Put these in a separate module because they take ages to compile
 
-instance Binary TH.Loc
 instance Binary TH.Name
 instance Binary TH.ModName
 instance Binary TH.NameFlavour

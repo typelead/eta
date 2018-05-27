@@ -165,6 +165,7 @@ module Language.Eta.Meta(
 
    ) where
 
+import Eta.Location
 import Language.Eta.Meta.Syntax as Syntax1
 import Language.Eta.Meta.Lib
 import Language.Eta.Meta.Ppr

@@ -319,7 +319,7 @@ library
                        , bytestring
                        , text
                        , eta-boot
-                       , eta-boot-th
+                       , eta-boot-meta
                        , deepseq    >= 1.4 && < 1.5
                        , time       >= 1.4 && < 1.7
                        , process    >= 1   && < 1.3
@@ -362,7 +362,7 @@ executable eta
    default-language:    Haskell2010
    build-depends:       array
                       , base >= 4.7 && < 5
-                      , bytestring
+                      , bytestring == 0.10.*
                       , deepseq == 1.4.*
                       , directory
                       , filepath
@@ -371,7 +371,7 @@ executable eta
                       , time == 1.5.*
                       , eta
    if flag(repl)
-       -- NB: this is never built by the bootstrapping GHC+libraries
+       -- NB: this is never built by the bootstrapping Eta+libraries
        Build-depends:
            containers     == 0.5.*,
            eta-boot,

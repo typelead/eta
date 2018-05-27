@@ -277,10 +277,10 @@ handleRunStatus step expr bindings final_ids status history
                    lookupHptDirectly (hsc_HPT hsc_env)
                                      (mkUniqueGrimily mod_uniq)
            modl = mi_module (hm_iface hmi)
-           breaks = getModBreaks hmi
+           _breaks = getModBreaks hmi
 
-       b <- liftIO $
-              breakpointStatus hsc_env (modBreaks_flags breaks) ix
+       b <- liftIO $ panic "breakpointStatus: breakpoints not implemented yet"
+              -- breakpointStatus hsc_env (modBreaks_flags breaks) ix
        if b
          then not_tracing
            -- This breakpoint is explicitly enabled; we want to stop
@@ -290,8 +290,9 @@ handleRunStatus step expr bindings final_ids status history
            let bi = BreakInfo modl ix
                !history' = mkHistory hsc_env apStack_fhv bi `consBL` history
                  -- history is strict, otherwise our BoundedList is pointless.
-           fhv <- liftIO $ mkFinalizedHValue hsc_env resume_ctxt
-           status <- liftIO $ GHCi.resumeStmt hsc_env True fhv
+           _fhv <- liftIO $ mkFinalizedHValue hsc_env resume_ctxt
+           status <- liftIO $ panic "resumeStmt: breakpoints not implemented yet"
+             -- GHCi.resumeStmt hsc_env True fhv
            handleRunStatus RunAndLogSteps expr bindings final_ids
                            status history'
     | otherwise
@@ -376,13 +377,15 @@ resumeExec canLogSpan step
         _ <- panic "Linker.deleteFromLinkEnv not handled"
 
         case r of
-          Resume { resumeStmt = expr, resumeContext = fhv
+          Resume { resumeStmt = expr, resumeContext = _fhv
                  , resumeBindings = bindings, resumeFinalIds = final_ids
                  , resumeApStack = apStack, resumeBreakInfo = mb_brkpt
                  , resumeSpan = span
                  , resumeHistory = hist } -> do
                withVirtualCWD $ do
-                status <- liftIO $ GHCi.resumeStmt hsc_env (isStep step) fhv
+                status <- liftIO $
+                  panic "resumeExec: resumeStmt: breakpoints not implemented yet"
+                -- GHCi.resumeStmt hsc_env (isStep step) fhv
                 let prevHistoryLst = fromListBL 50 hist
                     hist' = case mb_brkpt of
                        Nothing -> prevHistoryLst
@@ -604,9 +607,10 @@ abandon = do
        resume = ic_resume ic
    case resume of
       []    -> return False
-      r:rs  -> do
+      _r:rs  -> do
          setSession hsc_env{ hsc_IC = ic { ic_resume = rs } }
-         liftIO $ abandonStmt hsc_env (resumeContext r)
+         _ <- liftIO $ panic "abandonStmt: breakpoints not implemented yet"
+           -- abandonStmt hsc_env (resumeContext r)
          return True
 
 abandonAll :: GhcMonad m => m Bool
@@ -616,9 +620,10 @@ abandonAll = do
        resume = ic_resume ic
    case resume of
       []  -> return False
-      rs  -> do
+      _rs  -> do
          setSession hsc_env{ hsc_IC = ic { ic_resume = [] } }
-         liftIO $ mapM_ (abandonStmt hsc_env. resumeContext) rs
+         _ <- liftIO $ panic "abandonStmt: breakpoints not implemented yet"
+         -- liftIO $ mapM_ (abandonStmt hsc_env. resumeContext) rs
          return True
 
 -- -----------------------------------------------------------------------------

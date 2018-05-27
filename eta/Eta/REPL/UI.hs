@@ -22,7 +22,7 @@
 
 module Eta.REPL.UI (
         interactiveUI,
-        GhciSettings(..),
+        REPLSettings(..),
         defaultEtaReplSettings,
         ghciCommands,
         etaReplWelcomeMsg
@@ -30,7 +30,7 @@ module Eta.REPL.UI (
 
 #include "HsVersions.h"
 
--- GHCi
+-- Eta REPL
 import qualified Eta.REPL.UI.Monad as GhciMonad ( args, runStmt, runDecls )
 import Eta.REPL.UI.Monad hiding ( args, runStmt, runDecls )
 import Eta.REPL.UI.Tags
@@ -40,7 +40,6 @@ import Eta.REPL.UI.Info
 -- The GHC interface
 import ETA.REPL
 import Eta.REPL.RemoteTypes
-import Eta.REPL.BreakArray
 import ETA.Main.DynFlags as DynFlags
 import ETA.Main.Constants
 import ETA.Main.ErrUtils hiding (traceCmd)
@@ -135,7 +134,7 @@ import GHC.TopHandler ( topHandler )
 
 -----------------------------------------------------------------------------
 
-data GhciSettings = GhciSettings {
+data REPLSettings = REPLSettings {
         availableCommands :: [Command],
         shortHelpText     :: String,
         fullHelpText      :: String,
@@ -143,9 +142,9 @@ data GhciSettings = GhciSettings {
         defPromptCont     :: PromptFunction
     }
 
-defaultEtaReplSettings :: GhciSettings
+defaultEtaReplSettings :: REPLSettings
 defaultEtaReplSettings =
-    GhciSettings {
+    REPLSettings {
         availableCommands = ghciCommands,
         shortHelpText     = defShortHelpText,
         defPrompt         = default_prompt,
@@ -298,7 +297,7 @@ defFullHelpText =
   "                               (!: defer type errors)\n" ++
   "   :main [<arguments> ...]     run the main function with the given arguments\n" ++
   "   :module [+/-] [*]<mod> ...  set the context for expression evaluation\n" ++
-  "   :quit                       exit GHCi\n" ++
+  "   :quit                       exit Eta REPL \n" ++
   "   :reload[!]                  reload the current module set\n" ++
   "                               (!: defer type errors)\n" ++
   "   :run function [<arguments> ...] run the function with the given arguments\n" ++
@@ -401,7 +400,7 @@ default_prompt_cont = generatePromptFunctionFromString "%s| "
 default_args :: [String]
 default_args = []
 
-interactiveUI :: GhciSettings -> [(FilePath, Maybe Phase)] -> Maybe [String]
+interactiveUI :: REPLSettings -> [(FilePath, Maybe Phase)] -> Maybe [String]
               -> Ghc ()
 interactiveUI config srcs maybe_exprs = do
    -- HACK! If we happen to get into an infinite loop (eg the user
@@ -3684,11 +3683,12 @@ deleteBreak identity = do
 
 turnOffBreak :: BreakLocation -> GHCi ()
 turnOffBreak loc = do
-  (arr, _) <- getModBreak (breakModule loc)
-  hsc_env <- GHC.getSession
-  liftIO $ enableBreakpoint hsc_env arr (breakTick loc) False
+  (_arr, _) <- getModBreak (breakModule loc)
+  _hsc_env <- GHC.getSession
+  liftIO $ panic "turnOffBreak: Breakpoints not implemented"
+  -- enableBreakpoint hsc_env arr (breakTick loc) False
 
-getModBreak :: Module -> GHCi (ForeignRef BreakArray, Array Int SrcSpan)
+getModBreak :: Module -> GHCi (ForeignRef (), Array Int SrcSpan)
 getModBreak m = do
    Just mod_info <- GHC.getModuleInfo m
    let modBreaks  = GHC.modInfoModBreaks mod_info
@@ -3696,10 +3696,11 @@ getModBreak m = do
    let ticks      = GHC.modBreaks_locs  modBreaks
    return (arr, ticks)
 
-setBreakFlag :: Bool -> ForeignRef BreakArray -> Int -> GHCi ()
-setBreakFlag toggle arr i = do
-  hsc_env <- GHC.getSession
-  liftIO $ enableBreakpoint hsc_env arr i toggle
+setBreakFlag :: Bool -> ForeignRef () -> Int -> GHCi ()
+setBreakFlag _toggle _arr _i = do
+  _hsc_env <- GHC.getSession
+  liftIO $ panic "setBreakFlag: Breakpoints not implemented"
+  -- enableBreakpoint hsc_env arr i toggle
 
 -- ---------------------------------------------------------------------------
 -- User code exception handling

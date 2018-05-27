@@ -6,6 +6,7 @@ module Language.Eta.Meta.Ppr where
     -- be "public" functions.  The main module TH
     -- re-exports them all.
 
+import Eta.Location
 import Text.PrettyPrint (render)
 import Language.Eta.Meta.PprLib
 import Language.Eta.Meta.Syntax

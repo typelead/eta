@@ -25,26 +25,26 @@
 -- defines the database format that is shared between Eta and eta-pkg.
 --
 -- The database format, and this library are constructed so that Eta does not
--- have to depend on the Cabal library. The eta-pkg program acts as the
--- gateway between the external package format (which is defined by Cabal) and
+-- have to depend on the etlas-cabal library. The eta-pkg program acts as the
+-- gateway between the external package format (which is defined by Etlas) and
 -- the internal package format which is specialised just for Eta.
 --
 -- Eta the compiler only needs some of the information which is kept about
 -- registerd packages, such as module names, various paths etc. On the other
--- hand eta-pkg has to keep all the information from Cabal packages and be able
+-- hand eta-pkg has to keep all the information from Etlas packages and be able
 -- to regurgitate it for users and other tools.
 --
 -- The first trick is that we duplicate some of the information in the package
 -- database. We essentially keep two versions of the datbase in one file, one
 -- version used only by eta-pkg which keeps the full information (using the
--- serialised form of the 'InstalledPackageInfo' type defined by the Cabal
+-- serialised form of the 'InstalledPackageInfo' type defined by the Etlas
 -- library); and a second version written by eta-pkg and read by Eta which has
 -- just the subset of information that Eta needs.
 --
 -- The second trick is that this module only defines in detail the format of
 -- the second version -- the bit Eta uses -- and the part managed by eta-pkg
 -- is kept in the file but here we treat it as an opaque blob of data. That way
--- this library avoids depending on Cabal.
+-- this library avoids depending on Etlas.
 --
 module Eta.PackageDb (
        InstalledPackageInfo(..),
@@ -86,8 +86,8 @@ import GHC.IO.Handle.Lock
 import System.Directory
 
 
--- | This is a subset of Cabal's 'InstalledPackageInfo', with just the bits
--- that Eta is interested in.  See Cabal's documentation for a more detailed
+-- | This is a subset of Etlas's 'InstalledPackageInfo', with just the bits
+-- that Eta is interested in.  See Etlas's documentation for a more detailed
 -- description of all of the fields.
 --
 data InstalledPackageInfo compid srcpkgid srcpkgname instunitid unitid modulename mod
@@ -311,7 +311,7 @@ readPackageDbForEta file =
 -- | Read the part of the package DB that eta-pkg is interested in
 --
 -- Note that the Binary instance for eta-pkg's representation of packages
--- is not defined in this package. This is because eta-pkg uses Cabal types
+-- is not defined in this package. This is because eta-pkg uses Etlas types
 -- (and Binary instances for these) which this package does not depend on.
 --
 -- If we open the package db in read only mode, we get its contents. Otherwise
@@ -427,7 +427,7 @@ decodeFromFile file mode decoder = case mode of
               `ioeSetErrorString` msg
         loc = "Eta.PackageDb.readPackageDb"
 
--- Copied from Cabal's Distribution.Simple.Utils.
+-- Copied from Etlas's Distribution.Simple.Utils.
 writeFileAtomic :: FilePath -> BS.Lazy.ByteString -> IO ()
 writeFileAtomic targetPath content = do
   let (targetDir, targetFile) = splitFileName targetPath

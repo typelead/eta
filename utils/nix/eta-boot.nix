@@ -1,4 +1,4 @@
-{ mkDerivation, base, binary, bytestring, directory, eta-boot-th
+{ mkDerivation, base, binary, bytestring, directory, eta-boot-meta
 , filepath, stdenv
 }:
 mkDerivation {
@@ -7,7 +7,7 @@ mkDerivation {
   version = "0.7.2";
   src = ../../libraries/eta-boot;
   libraryHaskellDepends = [
-    base binary bytestring directory eta-boot-th filepath
+    base binary bytestring directory eta-boot-meta filepath
   ];
   description = "Shared functionality between Eta and its boot libraries";
   license = stdenv.lib.licenses.bsd3;

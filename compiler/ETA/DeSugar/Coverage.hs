@@ -31,7 +31,6 @@ import ETA.BasicTypes.BasicTypes
 import ETA.Utils.MonadUtils
 import ETA.Utils.Maybes
 import ETA.Utils.Util
--- import Eta.REPL.BreakArray
 
 import Control.Monad
 import Data.List
@@ -132,20 +131,6 @@ mkModBreaks dflags _mod _count _entries
   | HscInterpreted <- hscTarget dflags =
       -- TODO: Implement breakpoints
       return emptyModBreaks
-    -- -- breakArray <- GHCi.newBreakArray hsc_env (length entries)
-    -- -- ccs <- mkCCSArray hsc_env mod count entries
-    -- _ <- panic "breakArray not handled!"
-    -- let
-    --        locsTicks  = listArray (0,count-1) [ span  | (span,_,_,_)  <- entries ]
-    --        varsTicks  = listArray (0,count-1) [ vars  | (_,_,vars,_)  <- entries ]
-    --        declsTicks = listArray (0,count-1) [ decls | (_,decls,_,_) <- entries ]
-    -- return emptyModBreaks
-    --                    { modBreaks_flags = panic "breakArray modBreaks_flags not handled!"
-    --                    , modBreaks_locs  = locsTicks
-    --                    , modBreaks_vars  = varsTicks
-    --                    , modBreaks_decls = declsTicks
-    --                   --  , modBreaks_ccs   = panic "modBreaks_ccs not handled!"
-    --                    }
   | otherwise = return emptyModBreaks
 
 

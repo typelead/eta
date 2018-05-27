@@ -29,16 +29,16 @@ source-repository head
 
 Library
     default-language: Haskell2010
-    other-extensions: DeriveGeneric, RankNTypes, ScopedTypeVariables
-
-    exposed-modules:
-            Eta.LanguageExtensions
-            Eta.PackageDb
-            Eta.Serialized
-
-    build-depends: base       >= 4.7 && < 4.11,
-                   binary     == 0.8.*,
-                   bytestring == 0.10.*,
-                   directory  >= 1.2 && < 1.4,
-                   filepath   >= 1.3 && < 1.5,
-                   eta-boot-th
+    other-extensions: DeriveGeneric
+                      RankNTypes
+                      ScopedTypeVariables
+    ghc-options:      -Wall -Werror
+    exposed-modules:  Eta.LanguageExtensions
+                      Eta.PackageDb
+                      Eta.Serialized
+    build-depends:    base       >= 4.7 && < 4.11,
+                      binary     == 0.8.*,
+                      bytestring == 0.10.*,
+                      directory  >= 1.2 && < 1.4,
+                      filepath   >= 1.3 && < 1.5,
+                      eta-boot-meta

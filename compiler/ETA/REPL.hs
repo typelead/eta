@@ -7,33 +7,11 @@
 module ETA.REPL
   ( -- * High-level interface to the interpreter
     evalStmt, EvalStatus_(..), EvalStatus, EvalResult(..), EvalExpr(..)
-  , resumeStmt
-  , abandonStmt
   , evalIO
   , evalString
   , evalStringToIOString
-  , mallocData
-  , createBCOs
-  -- , addSptEntry
-  -- , mkCostCentres
-  -- , costCentreStackInfo
-  , newBreakArray
-  , enableBreakpoint
-  , breakpointStatus
-  , getBreakpointVar
 
-  -- * The object-code linker
-  , initObjLinker
-  , lookupSymbol
-  , lookupClosure
-  , loadDLL
-  , loadArchive
-  , loadObj
-  , unloadObj
-  , addLibrarySearchPath
-  , removeLibrarySearchPath
-  , resolveObjs
-  , findSystemLibrary
+  -- * The classloader linker
   , addDynamicClassPath
   , loadClasses
   , newInstance
@@ -41,7 +19,6 @@ module ETA.REPL
   -- * Lower-level API using messages
   , iservCmd, Message(..), withIServ, stopIServ
   , iservCall, readIServ, writeIServ
-  , purgeLookupSymbolCache
   , freeHValueRefs
   , mkFinalizedHValue
   , wormhole, wormholeRef
@@ -49,13 +26,8 @@ module ETA.REPL
   , fromEvalResult
   ) where
 
--- import GhcPrelude
-
 import Eta.REPL.Message
 import Eta.REPL.RemoteTypes
-import Eta.REPL.ResolvedBCO
-import Eta.REPL.BreakArray (BreakArray)
--- import ETA.Utils.Fingerprint
 import ETA.Main.HscTypes
 import ETA.Utils.UniqFM
 import ETA.Utils.Panic
@@ -63,9 +35,6 @@ import ETA.Main.DynFlags
 import ETA.Main.ErrUtils
 import ETA.Utils.Outputable
 import ETA.Utils.Exception
-import ETA.BasicTypes.BasicTypes
-import ETA.Utils.FastString
-import ETA.Utils.Util
 import ETA.Utils.Digraph
 import ETA.Main.Hooks
 
@@ -74,13 +43,9 @@ import Control.DeepSeq
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Binary
-import Data.Binary.Put
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as LB
 import Data.IORef
-import Foreign hiding (void)
--- import GHC.Stack.CCS (CostCentre,CostCentreStack)
 import System.Exit
 import Data.Maybe
 import Data.List
@@ -88,10 +53,9 @@ import System.FilePath
 import System.Directory
 import System.Process
 import System.IO
-import GHC.Conc (getNumProcessors, pseq, par)
 import Codec.JVM hiding (void)
 
-{- Note [Remote GHCi]
+{- Note [Remote Eta REPL]
 
 When the flag -fexternal-interpreter is given to GHC, interpreted code
 is run in a separate process called iserv, and we communicate with the
@@ -146,7 +110,7 @@ dynCompileExpr cannot work, because we have no way to run code of an
 unknown type in the remote process.  This API fails with an error
 message if it is used with -fexternal-interpreter.
 
-Other Notes on Remote GHCi
+Other Notes on Remote Eta REPL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
   * This wiki page has an implementation overview:
     https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/ExternalInterpreter
@@ -202,7 +166,6 @@ withIServ HscEnv{..} action =
     liftIO $ putMVar hsc_iserv (Just iserv')
     return a
 
-
 -- -----------------------------------------------------------------------------
 -- Wrappers around messages
 
@@ -224,20 +187,6 @@ evalStmt hsc_env step foreign_expr = do
     withExpr fl $ \fl' ->
     withExpr fr $ \fr' ->
     cont (EvalApp fl' fr')
-
-resumeStmt
-  :: HscEnv -> Bool -> ForeignRef (ResumeContext [HValueRef])
-  -> IO (EvalStatus_ [ForeignHValue] [HValueRef])
-resumeStmt hsc_env step resume_ctxt = do
-  let dflags = hsc_dflags hsc_env
-  status <- withForeignRef resume_ctxt $ \rhv ->
-    iservCmd hsc_env (ResumeStmt (mkEvalOpts dflags step) rhv)
-  handleEvalStatus hsc_env status
-
-abandonStmt :: HscEnv -> ForeignRef (ResumeContext [HValueRef]) -> IO ()
-abandonStmt hsc_env resume_ctxt = do
-  withForeignRef resume_ctxt $ \rhv ->
-    iservCmd hsc_env (AbandonStmt rhv)
 
 handleEvalStatus
   :: HscEnv -> EvalStatus [HValueRef]
@@ -278,49 +227,6 @@ evalStringToIOString hsc_env fhv str = do
   liftIO $ withForeignRef fhv $ \fhv ->
     iservCmd hsc_env (EvalStringToString fhv str) >>= fromEvalResult
 
-
--- | Allocate and store the given bytes in memory, returning a pointer
--- to the memory in the remote process.
-mallocData :: HscEnv -> ByteString -> IO (RemotePtr ())
-mallocData hsc_env bs = iservCmd hsc_env (MallocData bs)
-
--- mkCostCentres
---   :: HscEnv -> String -> [(String,String)] -> IO [RemotePtr CostCentre]
--- mkCostCentres hsc_env mod ccs =
---   iservCmd hsc_env (MkCostCentres mod ccs)
-
--- | Create a set of BCOs that may be mutually recursive.
-createBCOs :: HscEnv -> [ResolvedBCO] -> IO [HValueRef]
-createBCOs hsc_env rbcos = do
-  n_jobs <- case parMakeCount (hsc_dflags hsc_env) of
-              Nothing -> liftIO getNumProcessors
-              Just n  -> return n
-  -- Serializing ResolvedBCO is expensive, so if we're in parallel mode
-  -- (-j<n>) parallelise the serialization.
-  if (n_jobs == 1)
-    then
-      iservCmd hsc_env (CreateBCOs [runPut (put rbcos)])
-
-    else do
-      old_caps <- getNumCapabilities
-      if old_caps == n_jobs
-         then void $ evaluate puts
-         else bracket_ (setNumCapabilities n_jobs)
-                       (setNumCapabilities old_caps)
-                       (void $ evaluate puts)
-      iservCmd hsc_env (CreateBCOs puts)
- where
-  puts = parMap doChunk (chunkList 100 rbcos)
-
-  -- make sure we force the whole lazy ByteString
-  doChunk c = pseq (LB.length bs) bs
-    where bs = runPut (put c)
-
-  -- We don't have the parallel package, so roll our own simple parMap
-  parMap _ [] = []
-  parMap f (x:xs) = fx `par` (fxs `pseq` (fx : fxs))
-    where fx = f x; fxs = parMap f xs
-
 loadClasses :: HscEnv -> [ClassFile] -> IO ()
 loadClasses hsc_env classes = do
   dumpClassesIfSet hsc_env classes
@@ -349,122 +255,6 @@ dumpClassesIfSet hsc_env classes =
 
 newInstance :: HscEnv -> String -> IO HValueRef
 newInstance hsc_env className = iservCmd hsc_env (NewInstance className)
-
--- addSptEntry :: HscEnv -> Fingerprint -> ForeignHValue -> IO ()
--- addSptEntry hsc_env fpr ref =
---   withForeignRef ref $ \val ->
---     iservCmd hsc_env (AddSptEntry fpr val)
-
--- costCentreStackInfo :: HscEnv -> RemotePtr CostCentreStack -> IO [String]
--- costCentreStackInfo hsc_env ccs =
---   iservCmd hsc_env (CostCentreStackInfo ccs)
-
-newBreakArray :: HscEnv -> Int -> IO (ForeignRef BreakArray)
-newBreakArray hsc_env size = do
-  breakArray <- iservCmd hsc_env (NewBreakArray size)
-  mkFinalizedHValue hsc_env breakArray
-
-enableBreakpoint :: HscEnv -> ForeignRef BreakArray -> Int -> Bool -> IO ()
-enableBreakpoint hsc_env ref ix b = do
-  withForeignRef ref $ \breakarray ->
-    iservCmd hsc_env (EnableBreakpoint breakarray ix b)
-
-breakpointStatus :: HscEnv -> ForeignRef BreakArray -> Int -> IO Bool
-breakpointStatus hsc_env ref ix = do
-  withForeignRef ref $ \breakarray ->
-    iservCmd hsc_env (BreakpointStatus breakarray ix)
-
-getBreakpointVar :: HscEnv -> ForeignHValue -> Int -> IO (Maybe ForeignHValue)
-getBreakpointVar hsc_env ref ix =
-  withForeignRef ref $ \apStack -> do
-    mb <- iservCmd hsc_env (GetBreakpointVar apStack ix)
-    mapM (mkFinalizedHValue hsc_env) mb
-
--- -----------------------------------------------------------------------------
--- Interface to the object-code linker
-
-initObjLinker :: HscEnv -> IO ()
-initObjLinker hsc_env = iservCmd hsc_env InitLinker
-
-lookupSymbol :: HscEnv -> FastString -> IO (Maybe (Ptr ()))
-lookupSymbol hsc_env@HscEnv{..} str
- | gopt Opt_ExternalInterpreter hsc_dflags =
-     -- Profiling of GHCi showed a lot of time and allocation spent
-     -- making cross-process LookupSymbol calls, so I added a GHC-side
-     -- cache which sped things up quite a lot.  We have to be careful
-     -- to purge this cache when unloading code though.
-     withIServ hsc_env $ \iserv@IServ{..} -> do
-       cache <- readIORef iservLookupSymbolCache
-       case lookupUFM cache str of
-         Just p -> return (Just p)
-         Nothing -> do
-           m <- uninterruptibleMask_ $
-                    iservCall iserv (LookupSymbol (unpackFS str))
-           case m of
-             Nothing -> return Nothing
-             Just r -> do
-               let p = fromRemotePtr r
-               writeIORef iservLookupSymbolCache $! addToUFM cache str p
-               return (Just p)
- | otherwise = needExtInt
-
-lookupClosure :: HscEnv -> String -> IO (Maybe HValueRef)
-lookupClosure hsc_env str =
-  iservCmd hsc_env (LookupClosure str)
-
-purgeLookupSymbolCache :: HscEnv -> IO ()
-purgeLookupSymbolCache hsc_env@HscEnv{..} =
- when (gopt Opt_ExternalInterpreter hsc_dflags) $
-   withIServ hsc_env $ \IServ{..} ->
-     writeIORef iservLookupSymbolCache emptyUFM
-
-
--- | loadDLL loads a dynamic library using the OS's native linker
--- (i.e. dlopen() on Unix, LoadLibrary() on Windows).  It takes either
--- an absolute pathname to the file, or a relative filename
--- (e.g. "libfoo.so" or "foo.dll").  In the latter case, loadDLL
--- searches the standard locations for the appropriate library.
---
--- Returns:
---
--- Nothing      => success
--- Just err_msg => failure
-loadDLL :: HscEnv -> String -> IO (Maybe String)
-loadDLL hsc_env str = iservCmd hsc_env (LoadDLL str)
-
-loadArchive :: HscEnv -> String -> IO ()
-loadArchive hsc_env path = do
-  path' <- canonicalizePath path -- Note [loadObj and relative paths]
-  iservCmd hsc_env (LoadArchive path')
-
-loadObj :: HscEnv -> String -> IO ()
-loadObj hsc_env path = do
-  path' <- canonicalizePath path -- Note [loadObj and relative paths]
-  iservCmd hsc_env (LoadObj path')
-
-unloadObj :: HscEnv -> String -> IO ()
-unloadObj hsc_env path = do
-  path' <- canonicalizePath path -- Note [loadObj and relative paths]
-  iservCmd hsc_env (UnloadObj path')
-
--- Note [loadObj and relative paths]
--- the iserv process might have a different current directory from the
--- GHC process, so we must make paths absolute before sending them
--- over.
-
-addLibrarySearchPath :: HscEnv -> String -> IO (Ptr ())
-addLibrarySearchPath hsc_env str =
-  fromRemotePtr <$> iservCmd hsc_env (AddLibrarySearchPath str)
-
-removeLibrarySearchPath :: HscEnv -> Ptr () -> IO Bool
-removeLibrarySearchPath hsc_env p =
-  iservCmd hsc_env (RemoveLibrarySearchPath (toRemotePtr p))
-
-resolveObjs :: HscEnv -> IO SuccessFlag
-resolveObjs hsc_env = successIf <$> iservCmd hsc_env ResolveObjs
-
-findSystemLibrary :: HscEnv -> String -> IO (Maybe String)
-findSystemLibrary hsc_env str = iservCmd hsc_env (FindSystemLibrary str)
 
 addDynamicClassPath :: HscEnv -> [FilePath] -> IO ()
 addDynamicClassPath hsc_env cp =
@@ -575,7 +365,7 @@ runWithPipes dflags createProc prog opts = do
   return (ph, fromJust mstdout, fromJust mstdin, mstderr)
 
 -- -----------------------------------------------------------------------------
-{- Note [External GHCi pointers]
+{- Note [External Eta REPL References]
 
 We have the following ways to reference things in GHCi:
 
@@ -624,7 +414,7 @@ mkFinalizedHValue HscEnv{..} rref = mkForeignRef rref free
 
   free :: IO ()
   free
-    | not external = freeRemoteRef hvref
+    | not external = panic "Eta does not support an internal compiler."
     | otherwise =
       modifyMVar_ hsc_iserv $ \mb_iserv ->
         case mb_iserv of
@@ -650,14 +440,9 @@ wormholeRef dflags _r
   | gopt Opt_ExternalInterpreter dflags
   = throwIO (InstallationError
       "this operation requires -fno-external-interpreter")
-#if defined(ETA_REPL)
-  | otherwise
-  = localRef _r
-#else
   | otherwise
   = throwIO (InstallationError
-      "can't wormhole a value in a stage1 compiler")
-#endif
+      "can't wormhole a value in the Eta compiler right now")
 
 -- -----------------------------------------------------------------------------
 -- Misc utils

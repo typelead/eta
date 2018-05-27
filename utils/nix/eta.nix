@@ -1,5 +1,5 @@
 { mkDerivation, aeson, alex, array, base, bytestring, codec-jvm
-, containers, cpphs, deepseq, directory, eta-boot, eta-boot-th
+, containers, cpphs, deepseq, directory, eta-boot, eta-boot-meta
 , exceptions, filepath, happy, haskeline, hpc, mtl, path, path-io
 , process, stdenv, text, time, transformers, turtle, unix
 , unix-compat, zip
@@ -15,7 +15,7 @@ mkDerivation {
   isExecutable = true;
   libraryHaskellDepends = [
     array base bytestring codec-jvm containers cpphs deepseq directory
-    eta-boot eta-boot-th exceptions filepath hpc mtl path path-io
+    eta-boot eta-boot-meta exceptions filepath hpc mtl path path-io
     process text time transformers unix unix-compat zip
   ];
   libraryToolDepends = [ alex happy ];

@@ -142,9 +142,6 @@ import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
 import Data.Typeable ( TypeRep )
 import Eta.REPL.RemoteTypes
-import Eta.REPL.Message
-
-import qualified Language.Eta.Meta as TH
 #endif
 
 {-
@@ -454,7 +451,7 @@ data TcGblEnv
         -- set them to use particular local environments.
 
         tcg_th_state :: TcRef (Map TypeRep Dynamic),
-        tcg_th_remote_state :: TcRef (Maybe (ForeignRef (IORef QState))),
+        tcg_th_remote_state :: TcRef (Maybe (ForeignRef (IORef ()))), -- QState
         -- ^ Template Haskell state
 #endif /* ETA_REPL */
 
@@ -721,7 +718,7 @@ data ThStage    -- See Note [Template Haskell state diagram] in TcSplice
                       --   the result replaces the splice
                       -- Binding level = 0
 
-  | RunSplice (TcRef [ForeignRef (TH.Q ())])
+  | RunSplice (TcRef [ForeignRef ()])
       -- Set when running a splice, i.e. NOT when renaming or typechecking the
       -- Haskell code for the splice. See Note [RunSplice ThLevel].
       --

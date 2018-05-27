@@ -33,18 +33,15 @@ module ETA.TypeCheck.TcSplice(
 
 import ETA.HsSyn.HsSyn
 import ETA.Main.Annotations
--- import ETA.Main.Finder
 import ETA.BasicTypes.Name
 import ETA.TypeCheck.TcRnMonad
 import ETA.TypeCheck.TcType
--- import ETA.HsSyn.HsDecls (ForeignImport)
 import ETA.Utils.Outputable
 import ETA.TypeCheck.TcExpr
 import ETA.BasicTypes.SrcLoc
 import ETA.Prelude.THNames
 import ETA.TypeCheck.TcUnify
 import ETA.TypeCheck.TcEnv
--- import ETA.Main.FileCleanup ( newTempName, TempFileLifetime(..) )
 
 import Control.Monad
 
@@ -54,15 +51,12 @@ import ETA.REPL
 import ETA.Main.HscMain as HscMain
         -- These imports are the reason that TcSplice
         -- is very high up the module hierarchy
--- import ETA.Utils.FV
 import ETA.Rename.RnSplice( traceSplice, SpliceInfo(..) )
 import ETA.BasicTypes.RdrName
 import ETA.Main.HscTypes
 import ETA.HsSyn.Convert
 import ETA.Rename.RnExpr
 import ETA.Rename.RnEnv
--- import ETA.Rename.RnUtils ( HsDocContext(..) )
--- import ETA.Rename.RnFixity ( lookupFixityRn_help )
 import ETA.Rename.RnTypes
 import ETA.TypeCheck.TcHsSyn
 import ETA.TypeCheck.TcSimplify
@@ -109,14 +103,11 @@ import ETA.Utils.Maybes( MaybeErr(..) )
 import ETA.Main.DynFlags
 import ETA.Utils.Panic as Panic
 import ETA.BasicTypes.Lexeme
--- import qualified ETA.Utils.EnumSet as EnumSet
+import Language.Eta.Meta.Server
 
 import qualified Language.Eta.Meta as TH
 -- THSyntax gives access to internal functions and data types
 import qualified Language.Eta.Meta.Syntax as TH
-
--- Because GHC.Desugar might not be in the base library of the bootstrapping compiler
-import GHC.Desugar      ( AnnotationWrapper(..) )
 
 import Control.Exception
 import Data.Binary
@@ -596,22 +587,22 @@ convertAnnotationWrapper fhv = do
   if gopt Opt_ExternalInterpreter dflags
     then do
       Right <$> runTH THAnnWrapper fhv
-    else do
-      annotation_wrapper <- liftIO $ wormhole dflags fhv
-      return $ Right $
-        case unsafeCoerce# annotation_wrapper of
-           AnnotationWrapper value | let serialized = toSerialized serializeWithData value ->
-               -- Got the value and dictionaries: build the serialized value and
-               -- call it a day. We ensure that we seq the entire serialized value
-               -- in order that any errors in the user-written code for the
-               -- annotation are exposed at this point.  This is also why we are
-               -- doing all this stuff inside the context of runMeta: it has the
-               -- facilities to deal with user error in a meta-level expression
-               seqSerialized serialized `seq` serialized
+    else panic "convertAnnotationWrapper: Must use -fexternal-interpreter"
+      -- annotation_wrapper <- liftIO $ wormhole dflags fhv
+      -- return $ Right $
+      --   case unsafeCoerce# annotation_wrapper of
+      --      AnnotationWrapper value | let serialized = toSerialized serializeWithData value ->
+      --          -- Got the value and dictionaries: build the serialized value and
+      --          -- call it a day. We ensure that we seq the entire serialized value
+      --          -- in order that any errors in the user-written code for the
+      --          -- annotation are exposed at this point.  This is also why we are
+      --          -- doing all this stuff inside the context of runMeta: it has the
+      --          -- facilities to deal with user error in a meta-level expression
+      --          seqSerialized serialized `seq` serialized
 
 -- | Force the contents of the Serialized value so weknow it doesn't contain any bottoms
-seqSerialized :: Serialized -> ()
-seqSerialized (Serialized the_type bytes) = the_type `seq` bytes `seqList` ()
+-- seqSerialized :: Serialized -> ()
+-- seqSerialized (Serialized the_type bytes) = the_type `seq` bytes `seqList` ()
 
 
 {-
@@ -644,9 +635,9 @@ runRemoteModFinalizers (ThModFinalizers finRefs) = do
               writeIServ i (putMessage (RunModFinalizers st qrefs))
           () <- runRemoteTH i []
           readQResult i
-  else do
-    qs <- liftIO (withForeignRefs finRefs $ mapM localRef)
-    runQuasi $ sequence_ qs
+  else panic "runRemoteModFinalizers: Must enable -fexternal-interpreter"
+    -- qs <- liftIO (withForeignRefs finRefs $ mapM localRef)
+    -- runQuasi $ sequence_ qs
 
 runQResult
   :: (a -> String)
@@ -921,7 +912,8 @@ instance TH.Quasi TcM where
   --   updTcRef var ((lang, fp) :)
 
   qAddModFinalizer fin = do
-      r <- liftIO $ mkRemoteRef fin
+      -- We coerce from Q () to ()
+      r <- liftIO $ mkRemoteRef (unsafeCoerce# fin)
       fref <- liftIO $ mkForeignRef r (freeRemoteRef r)
       addModFinalizerRef fref
 
@@ -958,7 +950,7 @@ instance TH.Quasi TcM where
     -- EnumSet.toList . extensionFlags . hsc_dflags <$> getTopEnv
 
 -- | Adds a mod finalizer reference to the local environment.
-addModFinalizerRef :: ForeignRef (TH.Q ()) -> TcM ()
+addModFinalizerRef :: ForeignRef () -> TcM ()
 addModFinalizerRef finRef = do
     th_stage <- getStage
     case th_stage of
@@ -997,12 +989,13 @@ runTH ty fhv = do
   if not (gopt Opt_ExternalInterpreter dflags)
     then do
        -- Run it in the local TcM
-      hv <- liftIO $ wormhole dflags fhv
-      r <- runQuasi (unsafeCoerce# hv :: TH.Q a)
-      return r
+      panic "runTH: Must turn on -fexternal-interpreter"
+      -- hv <- liftIO $ wormhole dflags fhv
+      -- r <- runQuasi (unsafeCoerce# hv :: TH.Q a)
+      -- return r
     else
       -- Run it on the server.  For an overview of how TH works with
-      -- Remote GHCi, see Note [Remote Template Haskell] in
+      -- Remote Eta REPL, see Note [Remote Template Haskell] in
       -- libraries/ghci/GHCi/TH.hs.
       withIServ hsc_env $ \i -> do
         rstate <- getTHState i
@@ -1089,7 +1082,7 @@ Back in GHC, when we receive:
 --
 -- The TH state is stored in tcg_th_remote_state in the TcGblEnv.
 --
-getTHState :: IServ -> TcM (ForeignRef (IORef QState))
+getTHState :: IServ -> TcM (ForeignRef (IORef ()))
 getTHState i = do
   tcg <- getGblEnv
   th_state <- readTcRef (tcg_th_remote_state tcg)
@@ -1125,7 +1118,9 @@ handleTHMessage msg = case msg of
   -- AddTempFile s -> wrapTHResult $ TH.qAddTempFile s
   AddModFinalizer r -> do
     hsc_env <- env_top <$> getEnv
-    wrapTHResult $ liftIO (mkFinalizedHValue hsc_env r) >>= addModFinalizerRef
+    wrapTHResult $ do
+      hfin <- liftIO (mkFinalizedHValue hsc_env r)
+      addModFinalizerRef (unsafeCoerce# hfin :: ForeignRef ())
   -- AddCorePlugin str -> wrapTHResult $ TH.qAddCorePlugin str
   AddTopDecls decs -> wrapTHResult $ TH.qAddTopDecls decs
   -- AddForeignFilePath lang str -> wrapTHResult $ TH.qAddForeignFilePath lang str
