@@ -70,7 +70,7 @@ module ETA.Main.HscMain
     , hscStmt, hscStmtWithLocation
     , hscDecls, hscDeclsWithLocation
     , hscTcExpr, hscImport, hscKcType
-    , hscCompileCoreExpr
+    , hscCompileCoreExpr, hscCompileCoreExprAnonymous
     , hscParseExpr
     , hscParsedStmt
     , hscParsedStmt'

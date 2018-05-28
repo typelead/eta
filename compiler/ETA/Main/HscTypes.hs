@@ -202,6 +202,7 @@ import ETA.Utils.Exception
 import Foreign
 import System.FilePath
 import System.IO
+import System.IO.Unsafe
 import System.Process   ( ProcessHandle )
 import Control.Concurrent
 import qualified Data.Map as M
@@ -1429,8 +1430,7 @@ data InteractiveImport
       -- into it.
 
 newInteractiveContext :: (MonadIO m) => DynFlags -> m InteractiveContext
-newInteractiveContext dflags = do
-    expr_counter_var <- liftIO $ newIORef 0
+newInteractiveContext dflags =
     return $ InteractiveContext {
        ic_dflags       = dflags,
        ic_imports      = [],
@@ -1446,8 +1446,12 @@ newInteractiveContext dflags = do
        ic_resume       = [],
 #endif
        ic_cwd          = Nothing,
-       ic_expr_counter = expr_counter_var
+       ic_expr_counter = exprCounter
        }
+
+{-# NOINLINE exprCounter #-}
+exprCounter :: IORef Int64
+exprCounter = unsafePerformIO (newIORef 0)
 
 icExprCounter :: (MonadIO m) => InteractiveContext -> m Int64
 icExprCounter (InteractiveContext { ic_expr_counter = ctr }) =
