@@ -2879,7 +2879,7 @@ showBindings = do
         fidocs = map GHC.pprFamInst finsts
     mapM_ printForUserPartWay (docs ++ idocs ++ fidocs)
   where
-    makeDoc (AnId _i) = panic "pprTypeAndContents: showBindings" -- pprTypeAndContents i
+    makeDoc (AnId i) = pprTypeAndContents i
     makeDoc tt = do
         mb_stuff <- GHC.getInfo False (getName tt)
         return $ maybe (text "") pprTT mb_stuff
@@ -3825,3 +3825,23 @@ wantNameFromInterpretedModule noCanDo str and_then =
 
 withSignalHandlers :: m a -> m a
 withSignalHandlers = id
+
+pprTypeAndContents :: GHC.GhcMonad m => GHC.Id -> m SDoc
+pprTypeAndContents id = do
+  dflags  <- GHC.getSessionDynFlags
+  let _pcontents = gopt Opt_PrintBindContents dflags
+      pprdId    = (pprTyThing . AnId) id
+  return pprdId
+  -- TODO: Implement runtime closure inspection
+  -- if pcontents
+  --   then do
+  --     let depthBound = 100
+  --     -- If the value is an exception, make sure we catch it and
+  --     -- show the exception, rather than propagating the exception out.
+  --     e_term <- gtry $ GHC.obtainTermFromId depthBound False id
+  --     docs_term <- case e_term of
+  --                     Right term -> showTerm term
+  --                     Left  exn  -> return (text "*** Exception:" <+>
+  --                                           text (show (exn :: SomeException)))
+  --     return $ pprdId <+> equals <+> docs_term
+  --   else return pprdId
