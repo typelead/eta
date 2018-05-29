@@ -2000,7 +2000,7 @@ dieForcible :: String -> IO ()
 dieForcible s = die (s ++ " (use --force to override)")
 
 -----------------------------------------
--- Adapted from ETA.Utils.Panic
+-- Adapted from Eta.Utils.Panic
 
 catchIO :: IO a -> (Exception.IOException -> IO a) -> IO a
 catchIO = Exception.catch

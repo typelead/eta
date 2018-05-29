@@ -13,23 +13,23 @@ module Eta.REPL.UI.Tags (
   createETagsFileCmd
 ) where
 
-import ETA.Utils.Exception
-import ETA.Main.GHC as GHC
+import Eta.Utils.Exception
+import Eta.Main.GHC as GHC
 import Eta.REPL.UI.Monad
-import ETA.Utils.Outputable
+import Eta.Utils.Outputable
 
 -- ToDo: figure out whether we need these, and put something appropriate
 -- into the GHC API instead
-import ETA.BasicTypes.Name (nameOccName)
-import ETA.BasicTypes.OccName (pprOccName)
-import ETA.BasicTypes.ConLike
-import ETA.Utils.MonadUtils
+import Eta.BasicTypes.Name (nameOccName)
+import Eta.BasicTypes.OccName (pprOccName)
+import Eta.BasicTypes.ConLike
+import Eta.Utils.MonadUtils
 
 import Data.Function
 import Data.Maybe
 import Data.Ord
-import ETA.Main.DriverPhases
-import ETA.Utils.Panic
+import Eta.Main.DriverPhases
+import Eta.Utils.Panic
 import Data.List
 import Control.Monad
 import System.Directory

@@ -2,37 +2,37 @@
 module Main (main) where
 
 -- GHC API
-import qualified ETA.Main.GHC as GHC
-import ETA.Main.GHC               ( Ghc, GhcMonad(..), LoadHowMuch(..) )
-import ETA.Main.CmdLineParser
-import ETA.Iface.LoadIface        ( showIface, loadUserInterface)
-import ETA.Main.HscMain           ( newHscEnv )
-import ETA.Main.DriverPipeline
-import ETA.Main.DriverMkDepend    ( doMkDependHS )
-import ETA.Main.SysTools
-import ETA.Main.Constants
-import ETA.Main.HscTypes
-import ETA.Main.Packages          (pprPackages, pprPackagesSimple)
-import ETA.Main.DriverPhases
-import ETA.BasicTypes.BasicTypes  (failed)
-import ETA.Main.StaticFlags
-import ETA.Main.DynFlags
-import ETA.Main.ErrUtils
-import ETA.Utils.FastString
-import ETA.Utils.Outputable
-import ETA.BasicTypes.SrcLoc
-import ETA.Utils.Util
-import ETA.Utils.Metrics hiding (Mode)
-import ETA.Utils.Panic
-import ETA.Utils.MonadUtils       (liftIO)
+import qualified Eta.Main.GHC as GHC
+import Eta.Main.GHC               ( Ghc, GhcMonad(..), LoadHowMuch(..) )
+import Eta.Main.CmdLineParser
+import Eta.Iface.LoadIface        ( showIface, loadUserInterface)
+import Eta.Main.HscMain           ( newHscEnv )
+import Eta.Main.DriverPipeline
+import Eta.Main.DriverMkDepend    ( doMkDependHS )
+import Eta.Main.SysTools
+import Eta.Main.Constants
+import Eta.Main.HscTypes
+import Eta.Main.Packages          (pprPackages, pprPackagesSimple)
+import Eta.Main.DriverPhases
+import Eta.BasicTypes.BasicTypes  (failed)
+import Eta.Main.StaticFlags
+import Eta.Main.DynFlags
+import Eta.Main.ErrUtils
+import Eta.Utils.FastString
+import Eta.Utils.Outputable
+import Eta.BasicTypes.SrcLoc
+import Eta.Utils.Util
+import Eta.Utils.Metrics hiding (Mode)
+import Eta.Utils.Panic
+import Eta.Utils.MonadUtils       (liftIO)
 #if defined(ETA_REPL)
 import Eta.REPL.UI          ( interactiveUI, etaReplWelcomeMsg, defaultEtaReplSettings )
 #endif
 -- Imports for --abi-hash
-import ETA.BasicTypes.Module      ( mkModuleName)
-import ETA.Main.Finder            ( findImportedModule, cannotFindInterface )
-import ETA.TypeCheck.TcRnMonad    ( initIfaceCheck )
-import ETA.Utils.Binary           ( openBinMem, put_, fingerprintBinMem )
+import Eta.BasicTypes.Module      ( mkModuleName)
+import Eta.Main.Finder            ( findImportedModule, cannotFindInterface )
+import Eta.TypeCheck.TcRnMonad    ( initIfaceCheck )
+import Eta.Utils.Binary           ( openBinMem, put_, fingerprintBinMem )
 
 -- Standard Libraries
 import System.IO

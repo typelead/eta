@@ -38,45 +38,45 @@ import Eta.REPL.UI.Info
 -- import Debugger
 
 -- The GHC interface
-import ETA.REPL
+import Eta.REPL
 import Eta.REPL.RemoteTypes
-import ETA.Main.DynFlags as DynFlags
-import ETA.Main.Constants
-import ETA.Main.ErrUtils hiding (traceCmd)
-import ETA.Main.Finder as Finder
-import ETA.Main.GhcMonad ( modifySession )
-import qualified ETA.Main.GHC as GHC
-import ETA.Main.GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
+import Eta.Main.DynFlags as DynFlags
+import Eta.Main.Constants
+import Eta.Main.ErrUtils hiding (traceCmd)
+import Eta.Main.Finder as Finder
+import Eta.Main.GhcMonad ( modifySession )
+import qualified Eta.Main.GHC as GHC
+import Eta.Main.GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
              TyThing(..), Phase, BreakIndex, Resume, SingleStep, Ghc,
              getModuleGraph, handleSourceError )
-import ETA.HsSyn.HsImpExp
-import ETA.HsSyn.HsSyn
-import ETA.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
+import Eta.HsSyn.HsImpExp
+import Eta.HsSyn.HsSyn
+import Eta.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
                   setInteractivePrintName, hsc_dflags, msObjFilePath )
-import ETA.BasicTypes.Module
-import ETA.BasicTypes.Name
-import ETA.Main.Packages ( trusted, getPackageDetails, getInstalledPackageDetails,
+import Eta.BasicTypes.Module
+import Eta.BasicTypes.Name
+import Eta.Main.Packages ( trusted, getPackageDetails, getInstalledPackageDetails,
                   listVisibleModuleNames, pprFlag )
-import ETA.Main.PprTyThing
-import ETA.Prelude.PrelNames
-import ETA.BasicTypes.RdrName as RdrName ( RdrName, getGRE_NameQualifier_maybes, getRdrName )
-import ETA.BasicTypes.SrcLoc
-import qualified ETA.Parser.Lexer as Lexer
+import Eta.Main.PprTyThing
+import Eta.Prelude.PrelNames
+import Eta.BasicTypes.RdrName as RdrName ( RdrName, getGRE_NameQualifier_maybes, getRdrName )
+import Eta.BasicTypes.SrcLoc
+import qualified Eta.Parser.Lexer as Lexer
 
-import ETA.Utils.StringBuffer
-import ETA.Utils.Outputable hiding ( printForUser, printForUserPartWay )
+import Eta.Utils.StringBuffer
+import Eta.Utils.Outputable hiding ( printForUser, printForUserPartWay )
 
 -- Other random utilities
-import ETA.BasicTypes.BasicTypes hiding ( isTopLevel )
+import Eta.BasicTypes.BasicTypes hiding ( isTopLevel )
 -- import ETAConfig
-import ETA.Utils.Digraph
-import ETA.Utils.Encoding
-import ETA.Utils.FastString
-import ETA.REPL.Linker
-import ETA.Utils.Maybes ( orElse, expectJust )
-import ETA.BasicTypes.NameSet
-import ETA.Utils.Panic hiding ( showException )
-import ETA.Utils.Util
+import Eta.Utils.Digraph
+import Eta.Utils.Encoding
+import Eta.Utils.FastString
+import Eta.REPL.Linker
+import Eta.Utils.Maybes ( orElse, expectJust )
+import Eta.BasicTypes.NameSet
+import Eta.Utils.Panic hiding ( showException )
+import Eta.Utils.Util
 
 
 -- Haskell Libraries
@@ -104,7 +104,7 @@ import Data.Time.Format ( formatTime, defaultTimeLocale )
 import Data.Version ( showVersion )
 
 
-import ETA.Utils.Exception as Exception hiding (catch)
+import Eta.Utils.Exception as Exception hiding (catch)
 import Foreign hiding (void)
 import GHC.Stack
 

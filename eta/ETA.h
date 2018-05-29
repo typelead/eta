@@ -9,4 +9,4 @@
 
 #define ASSERT(e)      if debugIsOn && not (e) then (assertPanic __FILE__ __LINE__) else
 
-#endif /* ETA.h */
+#endif /* Eta.h */

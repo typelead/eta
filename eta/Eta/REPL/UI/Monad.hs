@@ -33,21 +33,21 @@ module Eta.REPL.UI.Monad (
 #include "HsVersions.h"
 
 import Eta.REPL.UI.Info (ModInfo)
-import qualified ETA.Main.GHC as GHC
-import ETA.Main.GhcMonad         hiding (liftIO)
-import ETA.Utils.Outputable       hiding (printForUser, printForUserPartWay)
-import qualified ETA.Utils.Outputable as Outputable
-import ETA.Main.DynFlags
-import ETA.Utils.FastString
-import ETA.Main.HscTypes
-import ETA.BasicTypes.SrcLoc
-import ETA.BasicTypes.Module
-import ETA.REPL
+import qualified Eta.Main.GHC as GHC
+import Eta.Main.GhcMonad         hiding (liftIO)
+import Eta.Utils.Outputable       hiding (printForUser, printForUserPartWay)
+import qualified Eta.Utils.Outputable as Outputable
+import Eta.Main.DynFlags
+import Eta.Utils.FastString
+import Eta.Main.HscTypes
+import Eta.BasicTypes.SrcLoc
+import Eta.BasicTypes.Module
+import Eta.REPL
 import Eta.REPL.RemoteTypes
-import ETA.HsSyn.HsSyn (ImportDecl)
-import ETA.Utils.Util
-import ETA.BasicTypes.RdrName
-import ETA.Utils.Exception
+import Eta.HsSyn.HsSyn (ImportDecl)
+import Eta.Utils.Util
+import Eta.BasicTypes.RdrName
+import Eta.Utils.Exception
 import Numeric
 import Data.Array
 import Data.IORef

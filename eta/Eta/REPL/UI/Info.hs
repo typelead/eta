@@ -30,18 +30,18 @@ import           Data.Time
 import           Prelude           hiding (mod)
 import           System.Directory
 
-import qualified ETA.Core.CoreUtils as CoreUtils
-import           ETA.DeSugar.DeSugar
-import           ETA.Main.DynFlags (HasDynFlags(..))
-import           ETA.Utils.FastString
-import           ETA.Main.GHC
-import           ETA.Main.GhcMonad
-import           ETA.BasicTypes.Name
-import           ETA.BasicTypes.NameSet
-import           ETA.Utils.Outputable
-import           ETA.BasicTypes.SrcLoc
-import           ETA.TypeCheck.TcHsSyn
-import           ETA.BasicTypes.Var
+import qualified Eta.Core.CoreUtils as CoreUtils
+import           Eta.DeSugar.DeSugar
+import           Eta.Main.DynFlags (HasDynFlags(..))
+import           Eta.Utils.FastString
+import           Eta.Main.GHC
+import           Eta.Main.GhcMonad
+import           Eta.BasicTypes.Name
+import           Eta.BasicTypes.NameSet
+import           Eta.Utils.Outputable
+import           Eta.BasicTypes.SrcLoc
+import           Eta.TypeCheck.TcHsSyn
+import           Eta.BasicTypes.Var
 
 -- | Info about a module. This information is generated every time a
 -- module is loaded.

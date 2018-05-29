@@ -55,7 +55,7 @@ instance JavaConverter String JString where
 inlinePerformIO :: IO a -> a
 inlinePerformIO (IO m) = case m realWorld# of (# _, r #)   -> r
 
--- TODO: All the following is taken from ETA.Utils.FastString
+-- TODO: All the following is taken from Eta.Utils.FastString
 toJString :: String -> JString
 toJString str =
   inlinePerformIO $ do
