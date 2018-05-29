@@ -42,6 +42,7 @@ run m = case m of
   AddDynamicClassPath cp -> addDynamicClassPath cp
   LoadClasses classNames classes -> loadClasses classNames classes
   NewInstance className -> newInstance className
+  ResetClasses -> resetClasses
   FreeHValueRefs rs -> mapM_ freeRemoteRef rs
   EvalStmt opts r -> evalStmt opts r
   EvalString r -> evalString r

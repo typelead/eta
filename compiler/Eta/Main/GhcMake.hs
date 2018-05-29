@@ -21,9 +21,9 @@ module Eta.Main.GhcMake(
         noModError, cyclicModuleErr
     ) where
 
--- #ifdef ETA_REPL
--- import qualified Linker         ( unload )
--- #endif
+#ifdef ETA_REPL
+import qualified Eta.REPL.Linker as Linker ( unload )
+#endif
 
 import Eta.Main.DriverPhases
 import Eta.Main.DriverPipeline
@@ -532,9 +532,10 @@ findPartiallyCompletedCycles modsDone theGraph
 --
 -- | Unloading
 unload :: HscEnv -> [Linkable] -> IO ()
-unload _hsc_env _stable_linkables -- Unload everthing *except* 'stable_linkables'
-  = return () -- TODO: Figure out whether we need this. Most likely we won't because
-              --       the JVM takes care of that.
+unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
+  = case ghcLink (hsc_dflags hsc_env) of
+        LinkInMemory -> Linker.unload hsc_env stable_linkables
+        _other -> return ()
 
 -- -----------------------------------------------------------------------------
 {- |

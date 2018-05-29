@@ -59,6 +59,9 @@ data Message a where
   -- | Create a new instance of the supplied class
   NewInstance :: String -> Message HValueRef
 
+  -- | Resets the child REPLClassLoader
+  ResetClasses :: Message ()
+
   -- | Release 'HValueRef's
   FreeHValueRefs :: [HValueRef] -> Message ()
 
@@ -221,14 +224,15 @@ getMessage = do
     1  -> Msg <$> AddDynamicClassPath <$> get
     2  -> Msg <$> (LoadClasses <$> get <*> get)
     3  -> Msg <$> (NewInstance <$> get)
-    4  -> Msg <$> FreeHValueRefs <$> get
-    5  -> Msg <$> (EvalStmt <$> get <*> get)
-    6  -> Msg <$> (EvalString <$> get)
-    7  -> Msg <$> (EvalStringToString <$> get <*> get)
-    8  -> Msg <$> (EvalIO <$> get)
-    9  -> Msg <$> return StartTH
-    10 -> Msg <$> (RunTH <$> get <*> get <*> get <*> get)
-    11 -> Msg <$> (RunModFinalizers <$> get <*> get)
+    4  -> return $ Msg ResetClasses
+    5  -> Msg <$> FreeHValueRefs <$> get
+    6  -> Msg <$> (EvalStmt <$> get <*> get)
+    7  -> Msg <$> (EvalString <$> get)
+    8  -> Msg <$> (EvalStringToString <$> get <*> get)
+    9  -> Msg <$> (EvalIO <$> get)
+    10  -> Msg <$> return StartTH
+    11 -> Msg <$> (RunTH <$> get <*> get <*> get <*> get)
+    12 -> Msg <$> (RunModFinalizers <$> get <*> get)
     _  -> error $ "getMessage: Invalid message tag: " ++ show b
 
 putMessage :: Message a -> Put
@@ -237,14 +241,15 @@ putMessage m = case m of
   AddDynamicClassPath a       -> putWord8 1  >> put a
   LoadClasses a b             -> putWord8 2  >> put a >> put b
   NewInstance a               -> putWord8 3  >> put a
-  FreeHValueRefs val          -> putWord8 4  >> put val
-  EvalStmt opts val           -> putWord8 5  >> put opts >> put val
-  EvalString val              -> putWord8 6  >> put val
-  EvalStringToString str val  -> putWord8 7  >> put str >> put val
-  EvalIO val                  -> putWord8 8  >> put val
-  StartTH                     -> putWord8 9
-  RunTH st q loc ty           -> putWord8 10 >> put st >> put q >> put loc >> put ty
-  RunModFinalizers a b        -> putWord8 11 >> put a >> put b
+  ResetClasses                -> putWord8 4
+  FreeHValueRefs val          -> putWord8 5  >> put val
+  EvalStmt opts val           -> putWord8 6  >> put opts >> put val
+  EvalString val              -> putWord8 7  >> put val
+  EvalStringToString str val  -> putWord8 8  >> put str >> put val
+  EvalIO val                  -> putWord8 9  >> put val
+  StartTH                     -> putWord8 10
+  RunTH st q loc ty           -> putWord8 11 >> put st >> put q >> put loc >> put ty
+  RunModFinalizers a b        -> putWord8 12 >> put a >> put b
 
 -- -----------------------------------------------------------------------------
 -- Reading/writing messages

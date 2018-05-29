@@ -17,6 +17,7 @@ import Eta.REPL
 import Eta.REPL.RemoteTypes
 import Eta.TypeCheck.TcRnMonad
 import Eta.Main.HscTypes
+import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
 import Eta.Main.DynFlags
@@ -231,15 +232,29 @@ unload hsc_env linkables
                  pls1 <- unload_wkr hsc_env linkables pls
                  return (pls1, pls1)
 
-        -- let dflags = hsc_dflags hsc_env
-        -- debugTraceMsg dflags 3 $
-        --   text "unload: retaining objs" <+> ppr (objs_loaded new_pls)
-        -- debugTraceMsg dflags 3 $
-        --   text "unload: retaining bcos" <+> ppr (bcos_loaded new_pls)
         return ()
 
 unload_wkr :: HscEnv
            -> [Linkable]                -- stable linkables
            -> PersistentLinkerState
            -> IO PersistentLinkerState
-unload_wkr _hsc_env _keep_linkables pls = return pls
+-- Does the core unload business
+-- (the wrapper blocks exceptions and deals with the PLS get and put)
+
+unload_wkr hsc_env keep_linkables pls = do
+  let classes_to_keep  = filter (not . isObjectLinkable) keep_linkables
+      classes_retained = mkModuleSet $ map linkableModule classes_to_keep
+
+      -- Note that we want to remove all *local*
+      -- (i.e. non-isExternal) names too (these are the
+      -- temporary bindings from the command line).
+      keep_name (n,_) = isExternalName n
+                     && nameModule n `elemModuleSet` classes_retained
+
+      closure_env'  = filterNameEnv keep_name (closure_env pls)
+
+      new_pls = pls {closure_env = closure_env'}
+
+  resetClasses hsc_env
+
+  return new_pls

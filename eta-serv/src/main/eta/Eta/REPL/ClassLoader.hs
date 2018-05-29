@@ -6,6 +6,7 @@ module Eta.REPL.ClassLoader
   , addDynamicClassPath
   , loadClasses
   , newInstance
+  , resetClasses
   )  where
 
 import Eta.REPL.RemoteTypes
@@ -56,5 +57,8 @@ newInstance className = do
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.newInstance"
   j_newInstance :: String -> IO Object
+
+foreign import java unsafe "@static eta.serv.REPLClassLoader.resetClasses"
+  resetClasses :: IO ()
 
 

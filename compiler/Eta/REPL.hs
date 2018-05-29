@@ -15,6 +15,7 @@ module Eta.REPL
   , addDynamicClassPath
   , loadClasses
   , newInstance
+  , resetClasses
 
   -- * Lower-level API using messages
   , iservCmd, Message(..), withIServ, stopIServ
@@ -255,6 +256,9 @@ dumpClassesIfSet hsc_env classes =
 
 newInstance :: HscEnv -> String -> IO HValueRef
 newInstance hsc_env className = iservCmd hsc_env (NewInstance className)
+
+resetClasses :: HscEnv -> IO ()
+resetClasses hsc_env = iservCmd hsc_env ResetClasses
 
 addDynamicClassPath :: HscEnv -> [FilePath] -> IO ()
 addDynamicClassPath hsc_env cp =

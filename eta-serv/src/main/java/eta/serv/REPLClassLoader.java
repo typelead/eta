@@ -42,10 +42,43 @@ public class REPLClassLoader extends URLClassLoader {
         */
     }
 
-    private static final REPLClassLoader replClassLoader = new REPLClassLoader();
+    private static final REPLClassLoader parentReplClassLoader = new REPLClassLoader();
+    private static ChildREPLClassLoader replClassLoader = new ChildREPLClassLoader();
+
+    private static class ChildREPLClassLoader extends REPLClassLoader {
+
+        static {
+            registerAsParallelCapable();
+        }
+
+        public ChildREPLClassLoader() {
+            super(parentReplClassLoader);
+        }
+
+        @Override
+        public Class<?> loadClass(String name) throws ClassNotFoundException {
+            synchronized (getClassLoadingLock(name)) {
+                Class<?> clazz = findLoadedClass(name);
+                if (clazz == null) {
+                    try {
+                        clazz = getParent().loadClass(name);
+                    } catch (ClassNotFoundException e) {
+                        clazz = findClass(name);
+                    }
+                }
+                return clazz;
+            }
+        }
+
+    }
+
 
     private REPLClassLoader() {
         super(new URL[0]);
+    }
+
+    private REPLClassLoader(ClassLoader parent) {
+        super(new URL[0], parent);
     }
 
     @Override
@@ -71,7 +104,7 @@ public class REPLClassLoader extends URLClassLoader {
 
     public static void addURLs(String[] paths) throws MalformedURLException {
         for (String path: paths) {
-            replClassLoader.addURL(new File(path).toURI().toURL());
+            parentReplClassLoader.addURL(new File(path).toURI().toURL());
         }
     }
 
@@ -97,6 +130,10 @@ public class REPLClassLoader extends URLClassLoader {
 
     private static String fixClassName(String name) {
         return name.replace("/", ".");
+    }
+
+    public static void resetClasses() {
+        replClassLoader = new ChildREPLClassLoader();
     }
 
     private static Class<?> runtimeClass;
