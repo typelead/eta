@@ -70,10 +70,9 @@ module Eta.Main.HscMain
     , hscStmt, hscStmtWithLocation
     , hscDecls, hscDeclsWithLocation
     , hscTcExpr, hscImport, hscKcType
-    , hscCompileCoreExpr, hscCompileCoreExprAnonymous
+    , hscCompileCoreExpr
     , hscParseExpr
     , hscParsedStmt
-    , hscParsedStmt'
     -- * Low-level exports for hooks
     , hscCompileCoreExpr'
 #endif
@@ -1358,15 +1357,7 @@ hscParsedStmt :: HscEnv
               -> IO ( Maybe ([Id]
                     , ForeignHValue {- IO [HValue] -}
                     , FixityEnv))
-hscParsedStmt hsc_env stmt = hscParsedStmt' hsc_env False stmt
-
-hscParsedStmt' :: HscEnv
-               -> Bool
-               -> GhciLStmt RdrName  -- ^ The parsed statement
-               -> IO ( Maybe ([Id]
-                     , ForeignHValue {- IO [HValue] -}
-                     , FixityEnv))
-hscParsedStmt' hsc_env anonymous stmt = runInteractiveHsc hsc_env $ do
+hscParsedStmt hsc_env stmt = runInteractiveHsc hsc_env $ do
   -- Rename and typecheck it
   (ids, tc_expr, fix_env) <- ioMsgMaybe $ tcRnStmt hsc_env stmt
 
@@ -1381,7 +1372,7 @@ hscParsedStmt' hsc_env anonymous stmt = runInteractiveHsc hsc_env $ do
   -- Whereas the linker already knows to ignore 'interactive'
   let src_span = srcLocSpan interactiveSrcLoc
   -- TODO: Allow hooks to work
-  hval <- liftIO $ hscCompileCoreExprAnonymous hsc_env anonymous src_span ds_expr
+  hval <- liftIO $ hscCompileCoreExpr hsc_env src_span ds_expr
 
   return $ Just (ids, hval, fix_env)
 
@@ -1651,11 +1642,7 @@ hscCompileCoreExpr hsc_env =
   lookupHook hscCompileCoreExprHook hscCompileCoreExpr' (hsc_dflags hsc_env) hsc_env
 
 hscCompileCoreExpr' :: HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue
-hscCompileCoreExpr' hsc_env srcspan ds_expr =
-  hscCompileCoreExprAnonymous hsc_env False srcspan ds_expr
-
-hscCompileCoreExprAnonymous :: HscEnv -> Bool -> SrcSpan -> CoreExpr -> IO ForeignHValue
-hscCompileCoreExprAnonymous hsc_env anonymous srcspan ds_expr
+hscCompileCoreExpr' hsc_env srcspan ds_expr
     = do { let dflags = hsc_dflags hsc_env
 
            {- Simplify it -}
@@ -1670,18 +1657,15 @@ hscCompileCoreExprAnonymous hsc_env anonymous srcspan ds_expr
            {- Lint if necessary -}
          ; lintInteractiveExpr "hscCompileExpr" hsc_env prepd_expr
 
-         ; exprNo <- if anonymous
-                     then icExprCounterInc (hsc_IC hsc_env)
-                     else icExprCounter (hsc_IC hsc_env)
+         ; exprNo <- icExprCounterInc (hsc_IC hsc_env)
+
          -----------------  Convert to STG ------------------
          ; let exprFS = fsLit "$expr"
                this_mod0 = icInteractiveModule (hsc_IC hsc_env)
-               this_mod
-                 | anonymous =
+               this_mod =
                    this_mod0 { moduleName =
                                mkModuleName $ moduleNameString (moduleName this_mod0)
                                            ++ "_" ++ show exprNo }
-                 | otherwise = this_mod0
 
                exprName = mkExternalName (getUnique exprFS)
                             this_mod (mkVarOccFS exprFS)

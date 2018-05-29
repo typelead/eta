@@ -724,7 +724,7 @@ runMeta' show_code ppr_hs run_and_convert expr
         ; src_span <- getSrcSpanM
         ; traceTc "About to run (desugared)" (ppr ds_expr)
         ; either_hval <- tryM $
-            liftIO $ HscMain.hscCompileCoreExprAnonymous hsc_env True src_span ds_expr
+            liftIO $ HscMain.hscCompileCoreExpr hsc_env src_span ds_expr
         ; case either_hval of {
             Left exn   -> fail_with_exn "compile and link" exn ;
             Right hval -> do

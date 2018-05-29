@@ -887,7 +887,7 @@ compileParsedExprRemote expr = withSession $ \hsc_env -> do
       expr_name = mkInternalName (getUnique expr_fs) (mkTyVarOccFS expr_fs) noSrcSpan
       let_stmt = L noSrcSpan . LetStmt . HsValBinds $
         ValBindsIn (unitBag $ mkHsVarBind noSrcSpan (getRdrName expr_name) (noLoc expr)) []
-  Just ([_id], hvals_io, fix_env) <- liftIO $ hscParsedStmt' hsc_env True let_stmt
+  Just ([_id], hvals_io, fix_env) <- liftIO $ hscParsedStmt hsc_env let_stmt
   updateFixityEnv fix_env
   status <- liftIO $ evalStmt hsc_env False (EvalThis hvals_io)
   case status of
