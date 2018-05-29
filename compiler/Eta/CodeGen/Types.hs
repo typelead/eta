@@ -349,7 +349,7 @@ evaluateMethod loadContext cgLoc
  where closureCls = fromMaybe stgClosure (locClass cgLoc)
 
 type RecIndexes = [(Int, Id)]
-type RecInfo = (Text, Text, Text, FieldRef, Code, RecIndexes)
+type RecInfo = (Text, Text, Text, Maybe (FieldRef, Code), RecIndexes)
 
 type FunRecInfo = (Int, FunRecMap)
 type FunRecMap  = VarEnv (Int, [FieldType])

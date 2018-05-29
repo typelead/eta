@@ -55,8 +55,13 @@ cgTopRhsCon dflags id conRecIds dataCon args = (cgIdInfo, genCode)
                                      , fold loads
                                      , invokespecial $
                                          mkMethodRef dataClass "<init>" fields void ]
-          defineField $ mkFieldDef [Private, Static, Volatile] qClName closureType
-          return $ Just (modClass, qClName, dataClass, field, fold loadCodes, recIndexes)
+              singleton = null args
+              mFieldCode
+                | singleton = Nothing
+                | otherwise = Just (field, fold loadCodes)
+          when (not singleton) $
+            defineField $ mkFieldDef [Private, Static, Volatile] qClName closureType
+          return $ Just (modClass, qClName, dataClass, mFieldCode, recIndexes)
 
 buildDynCon :: Id -> DataCon -> [StgArg] -> [Id] -> CodeGen ( CgIdInfo
                                                             , CodeGen (Code, RecIndexes, FieldType) )

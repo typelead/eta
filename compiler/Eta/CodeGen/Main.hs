@@ -364,15 +364,22 @@ cgDataCon typeClass dataCon = do
 genRecInitCode :: [(Id, RecInfo)] -> CodeGen ()
 genRecInitCode []       = return ()
 -- Extremely common case
-genRecInitCode [(_ , (modClass, qClName, dataClass, field, code, recIndexes))] = do
+genRecInitCode [(_ , (modClass, qClName, dataClass, mFieldCode, recIndexes))] = do
   let postCode = map (\(i, _) ->
                         dup dataFt
                      <> dup dataFt
                      <> putfield (mkFieldRef dataClass (constrField i) closureType))
                  recIndexes
       dataFt   = obj dataClass
-  defineMethod $ initCodeTemplate False modClass qClName field $
-    code <> fold postCode <> putstatic field
+      method
+        | Just (field, code) <- mFieldCode =
+            initCodeTemplate False modClass qClName field $
+              code <> fold postCode <> putstatic field
+        | otherwise = mkMethodDef modClass [Public, Static] qClName []
+                        (ret closureType) $
+                      getstatic (mkFieldRef dataClass singletonInstanceName dataFt)
+                   <> greturn dataFt
+  defineMethod method
 -- Rare case
 genRecInitCode recIdInfos = do
   let localsEnv = mkVarEnv $ zip recIds [0..]
@@ -381,8 +388,9 @@ genRecInitCode recIdInfos = do
   let recInitMethod = mkMethodRef moduleClass recMethodName [] void
       recMethodName = mkRecInitMethodName recInitNo
   loadStoreCodes <- forM recIdInfos $
-    \(id, (modClass, qClName, dataClass, field, code, recIndexes)) -> do
+    \(id, (modClass, qClName, dataClass, mFieldCode, recIndexes)) -> do
       let dataFt     = obj dataClass
+          Just (field, code) = mFieldCode
           recIdLocal = lookupVarEnv_NF localsEnv id
           genRecStoreCode (i, recId)
             = dup dataFt
