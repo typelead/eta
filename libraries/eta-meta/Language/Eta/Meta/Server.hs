@@ -13,8 +13,8 @@ import Eta.Location
 import Data.Binary
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
-import Data.Map (Map)
-import qualified Data.Map as M
+import Language.Eta.Meta.Lib.Map (Map)
+import qualified Language.Eta.Meta.Lib.Map as M
 import Data.Dynamic
 import Language.Eta.Meta.Binary ()
 import Language.Eta.Meta.Syntax as TH

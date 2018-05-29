@@ -1,6 +1,6 @@
 name:           eta-boot
 -- @VERSION_CHANGE@
-version:        0.7.2
+version:        0.8.0
 license:        BSD3
 license-file:   LICENSE
 category:       Boot Library

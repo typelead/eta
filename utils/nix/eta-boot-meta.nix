@@ -2,7 +2,7 @@
 mkDerivation {
   pname = "eta-boot-meta";
   # @VERSION_CHANGE@
-  version = "0.7.2";
+  version = "0.8.0";
   src = ../../libraries/eta-boot-meta;
   libraryHaskellDepends = [ base ];
   description = "Shared functionality between Eta and the @template-haskell@ library";
