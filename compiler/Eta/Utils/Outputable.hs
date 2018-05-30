@@ -32,7 +32,7 @@ module Eta.Utils.Outputable (
         sep, cat,
         fsep, fcat,
         hang, punctuate, ppWhen, ppUnless,
-        speakNth, speakNTimes, speakN, speakNOf, plural, isOrAre,
+        speakNth, speakNTimes, speakN, speakNOf, speakNCaps, speakNOfCaps, plural, isOrAre,
 
         colored, keyword,
 
@@ -41,7 +41,7 @@ module Eta.Utils.Outputable (
         pprCode, mkCodeStyle,
         showSDoc, showSDocUnsafe, showSDocOneLine,
         showSDocForUser, showSDocDebug, showSDocDump, showSDocDumpOneLine,
-        showSDocUnqual, showPpr,
+        showSDocUnqual, showPpr, showSDocWithColor,
         renderWithStyle,
 
         pprInfixVar, pprPrefixVar,
@@ -417,6 +417,9 @@ mkCodeStyle = PprCode
 -- showSDoc just blasts it out as a string
 showSDoc :: DynFlags -> SDoc -> String
 showSDoc dflags sdoc = renderWithStyle dflags sdoc defaultUserStyle
+
+showSDocWithColor :: DynFlags -> SDoc -> String
+showSDocWithColor dflags sdoc = renderWithStyle dflags sdoc (setStyleColored True defaultUserStyle)
 
 -- showSDocUnsafe is unsafe, because `unsafeGlobalDynFlags` might not be
 -- initialised yet.
@@ -951,6 +954,21 @@ speakNOf :: Int -> SDoc -> SDoc
 speakNOf 0 d = ptext (sLit "no") <+> d <> char 's'
 speakNOf 1 d = ptext (sLit "one") <+> d                 -- E.g. "one argument"
 speakNOf n d = speakN n <+> d <> char 's'               -- E.g. "three arguments"
+
+speakNCaps :: Int -> SDoc
+speakNCaps 0 = ptext (sLit "None")  -- E.g.  "he has none"
+speakNCaps 1 = ptext (sLit "One")   -- E.g.  "he has one"
+speakNCaps 2 = ptext (sLit "Two")
+speakNCaps 3 = ptext (sLit "Three")
+speakNCaps 4 = ptext (sLit "Four")
+speakNCaps 5 = ptext (sLit "Five")
+speakNCaps 6 = ptext (sLit "Six")
+speakNCaps n = int n
+
+speakNOfCaps :: Int -> SDoc -> SDoc
+speakNOfCaps 0 d = ptext (sLit "No") <+> d <> char 's'
+speakNOfCaps 1 d = ptext (sLit "One") <+> d                 -- E.g. "one argument"
+speakNOfCaps n d = speakNCaps n <+> d <> char 's'               -- E.g. "three arguments"
 
 -- | Converts a strictly positive integer into a number of times:
 --

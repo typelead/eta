@@ -77,7 +77,7 @@ import Eta.Utils.Maybes ( orElse, expectJust )
 import Eta.BasicTypes.NameSet
 import Eta.Utils.Panic hiding ( showException )
 import Eta.Utils.Util
-
+import Eta.Utils.PprColor
 
 -- Haskell Libraries
 import System.Console.Haskeline as Haskeline
@@ -152,9 +152,88 @@ defaultEtaReplSettings =
         fullHelpText      = defFullHelpText
     }
 
-etaReplWelcomeMsg :: String
-etaReplWelcomeMsg = "Eta REPL, version " ++ cProjectVersion ++
-                 ": https://eta-lang.org/  :? for help"
+etaReplWelcomeMsg :: DynFlags -> String
+etaReplWelcomeMsg dflags =
+  showSDocWithColor dflags $
+    vcat [ blankLine,
+           blankLine,
+           withBold (text startDashes) <+> colored colEtaFg (text version)
+       <+> withBold (text endDashes),
+           tableBlankLine,
+           insideTable (length (helpCommand ++ " " ++ helpDesc))
+             (colored colMagentaFg (text helpCommand) <+> text helpDesc),
+           insideTable (length (exitCommand ++ " " ++ exitDesc))
+             (colored colMagentaFg (text exitCommand) <+> text exitDesc),
+           insideTable (length (typeCommand ++ " " ++ typeDesc))
+             (colored colMagentaFg (text typeCommand) <+> text typeDesc),
+           insideTable (length (kindCommand ++ " " ++ kindDesc))
+             (colored colMagentaFg (text kindCommand) <+> text kindDesc),
+           insideTable (length (kindExCommand ++ " " ++ kindExDesc))
+             (colored colMagentaFg (text kindExCommand) <+> text kindExDesc),
+           tableBlankLine,
+           insideTable (length (itCommand ++ " " ++ itDesc))
+             (colored colMagentaFg (text itCommand) <+> text itDesc),
+           tableBlankLine,
+           insideTable (length (websiteMessage ++ " " ++ websiteLink))
+             (text websiteMessage <+> colored colBlueFg (text websiteLink)),
+           tableBlankLine,
+           withBold (text tableBottomLine),
+           blankLine,
+           blankLine ]
+
+   where unicode = useUnicode dflags
+         withBold sdoc
+           | unicode = sdoc
+           | otherwise = colored colBold sdoc
+         helpCommand = ":help"
+         helpDesc = "for help,"
+         exitCommand = ":exit"
+         exitDesc = "to exit"
+         typeCommand = ":type [expr]"
+         typeDesc = "for type of expression"
+         kindCommand = ":kind [type]"
+         kindDesc = "for kind of type"
+         kindExCommand = ":kind! [type]"
+         kindExDesc = "for kind of simplified type"
+         itCommand = "it"
+         itDesc = "refers to the last expression"
+         websiteMessage = "For more details, check out"
+         websiteLink = "https://eta-lang.org"
+         startDashes
+           | unicode = unicodeStartDashes
+           | otherwise = "----"
+         version = "Welcome to Eta REPL v" ++ cProjectVersion ++ "!"
+         startLength = length (startDashes ++ version) + 2
+         totalDashLength = 60
+         endDashes
+           | unicode = unicodeEndDashes
+           | otherwise = replicate (totalDashLength - startLength) '-'
+         tableBottomLine
+           | unicode = unicodeBottomLeftCorner
+                     : replicate (totalDashLength - 2) unicodeHorizontalDash
+                    ++ [unicodeBottomRightCorner]
+           | otherwise = replicate totalDashLength '-'
+         tableBlankLine
+           | unicode = text unicodeTableBlankLine
+           | otherwise = blankLine
+         insideTable len sdoc
+           | unicode = text [unicodeVerticalDash] <+> sdoc <+>
+                       text (replicate (totalDashLength - (4 + len)) ' ') <>
+                       text [unicodeVerticalDash]
+           | otherwise = space <> sdoc
+
+         unicodeStartDashes = unicodeTopLeftCorner : replicate 3 unicodeHorizontalDash
+         unicodeEndDashes = replicate (totalDashLength - startLength - 1) unicodeHorizontalDash
+                         ++ [unicodeTopRightCorner]
+         unicodeTableBlankLine = unicodeVerticalDash : replicate (totalDashLength - 2) ' '
+                              ++ [unicodeVerticalDash]
+
+         unicodeTopLeftCorner = '\x256d'
+         unicodeHorizontalDash = '\x2500'
+         unicodeVerticalDash = '\x2502'
+         unicodeTopRightCorner = '\x256e'
+         unicodeBottomLeftCorner = '\x2570'
+         unicodeBottomRightCorner = '\x256f'
 
 ghciCommands :: [Command]
 ghciCommands = map mkCmd [
@@ -177,6 +256,7 @@ ghciCommands = map mkCmd [
   ("delete",    keepGoing deleteCmd,            noCompletion),
   ("edit",      keepGoing' editFile,            completeFilename),
   ("etags",     keepGoing createETagsFileCmd,   completeFilename),
+  ("exit",      exit,                           noCompletion),
   ("force",     keepGoing forceCmd,             completeExpression),
   ("forward",   keepGoing forwardCmd,           noCompletion),
   ("help",      keepGoing help,                 noCompletion),
@@ -192,7 +272,6 @@ ghciCommands = map mkCmd [
   ("module",    keepGoing moduleCmd,            completeSetModule),
   ("main",      keepGoing runMain,              completeFilename),
   ("print",     keepGoing printCmd,             completeExpression),
-  ("quit",      quit,                           noCompletion),
   ("reload",    keepGoing' reloadModule,        noCompletion),
   ("reload!",   keepGoing' reloadModuleDefer,   noCompletion),
   ("run",       keepGoing runRun,               completeFilename),
@@ -297,7 +376,7 @@ defFullHelpText =
   "                               (!: defer type errors)\n" ++
   "   :main [<arguments> ...]     run the main function with the given arguments\n" ++
   "   :module [+/-] [*]<mod> ...  set the context for expression evaluation\n" ++
-  "   :quit                       exit Eta REPL \n" ++
+  "   :exit                       exit Eta REPL \n" ++
   "   :reload[!]                  reload the current module set\n" ++
   "                               (!: defer type errors)\n" ++
   "   :run function [<arguments> ...] run the function with the given arguments\n" ++
@@ -461,7 +540,7 @@ interactiveUI config srcs maybe_exprs = do
                    prompt_cont        = default_prompt_cont,
                    stop               = default_stop,
                    editor             = default_editor,
-                   options            = [],
+                   options            = [ShowType],
                    -- We initialize line number as 0, not 1, because we use
                    -- current line number while reporting errors which is
                    -- incremented after reading a line.
@@ -616,7 +695,9 @@ runGHCi paths maybe_exprs = do
                 return ()
 
   -- and finally, exit
-  liftIO $ when (verbosity dflags > 0) $ putStrLn "Leaving Eta REPL."
+  liftIO $ when (verbosity dflags > 0) $
+    putStrLn $ showSDocWithColor dflags $
+      colored colMagentaFg (text "Goodbye! See you soon.")
 
 runGHCiInput :: InputT GHCi a -> GHCi a
 runGHCiInput f = do
@@ -869,7 +950,7 @@ mkPrompt = do
   prompt_string <- (prompt st) modules_names line
   let prompt_doc = context <> prompt_string
 
-  return (showSDoc dflags prompt_doc)
+  return (showSDocWithColor dflags $ colored colEtaFg prompt_doc)
 
 queryQueue :: GHCi (Maybe String)
 queryQueue = do
@@ -1846,17 +1927,18 @@ modulesLoadedMsg ok mods = do
                let mod_commas
                      | null mods = text "none."
                      | otherwise = hsep (punctuate comma mod_names) <> text "."
-               return $ status <> text ", modules loaded:" <+> mod_commas
+               return $ withBlankLine $ status <+> text "Modules loaded:" <+> mod_commas
          else do
-               return $ status <> text ","
-                    <+> speakNOf (length mods) (text "module") <+> "loaded."
+               return $ withBlankLine $ status
+                    <+> speakNOfCaps (length mods) (text "module") <+> "loaded."
 
   when (verbosity dflags > 0) $
      liftIO $ putStrLn $ showSDocForUser dflags unqual msg
   where
+    withBlankLine sdoc = vcat [blankLine, blankLine, sdoc, blankLine]
     status = case ok of
-                  Failed    -> text "Failed"
-                  Succeeded -> text "Ok"
+                  Failed    -> text "Failed!"
+                  Succeeded -> text "Successful!"
 
     mod_name mod = do
         is_interpreted <- GHC.moduleIsBootOrNotObjectLinkable mod
@@ -2023,10 +2105,10 @@ kindOfType norm str = handleSourceError GHC.printException $ do
                         , ppWhen norm $ equals <+> pprTypeForUser ty ]
 
 -----------------------------------------------------------------------------
--- :quit
+-- :exit
 
-quit :: String -> InputT GHCi Bool
-quit _ = return True
+exit :: String -> InputT GHCi Bool
+exit _ = return True
 
 
 -----------------------------------------------------------------------------

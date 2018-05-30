@@ -665,12 +665,13 @@ doShowIface dflags file = do
 -- Various banners and verbosity output.
 
 showBanner :: PostLoadMode -> DynFlags -> IO ()
-showBanner _postLoadMode dflags = do
-   let verb = verbosity dflags
+showBanner postLoadMode dflags = do
+   let verb = postLoadMode `seq` verbosity dflags
 
 #ifdef ETA_REPL
    -- Show the GHCi banner
-   when (isInteractiveMode _postLoadMode && verb >= 1) $ putStrLn etaReplWelcomeMsg
+   when (isInteractiveMode postLoadMode && verb >= 1) $
+     putStrLn (etaReplWelcomeMsg dflags)
 #endif
 
    -- Display details of the configuration in verbose mode
