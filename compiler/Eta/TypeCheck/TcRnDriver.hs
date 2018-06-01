@@ -1551,7 +1551,7 @@ tcRnStmt hsc_env rdr_stmt
     return (global_ids, zonked_expr, fix_env)
     }
   where
-    bad_unboxed id = addErr (sep [ptext (sLit "GHCi can't bind a variable of unlifted type:"),
+    bad_unboxed id = addErr (sep [ptext (sLit "Eta REPL can't bind a variable of unlifted type:"),
                                   nest 2 (ppr id <+> dcolon <+> ppr (idType id))])
 
 {-

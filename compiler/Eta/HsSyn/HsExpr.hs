@@ -1971,7 +1971,7 @@ pprAStmtContext ctxt = article <+> pprStmtContext ctxt
 
 
 -----------------
-pprStmtContext GhciStmtCtxt    = ptext (sLit "interactive GHCi command")
+pprStmtContext GhciStmtCtxt    = ptext (sLit "interactive Eta REPL command")
 pprStmtContext DoExpr          = ptext (sLit "'do' block")
 pprStmtContext MDoExpr         = ptext (sLit "'mdo' block")
 pprStmtContext ArrowExpr       = ptext (sLit "'do' block in an arrow command")
@@ -2008,7 +2008,7 @@ matchContextErrString PatSyn                     = panic "matchContextErrString"
 matchContextErrString (StmtCtxt (ParStmtCtxt c))   = matchContextErrString (StmtCtxt c)
 matchContextErrString (StmtCtxt (TransStmtCtxt c)) = matchContextErrString (StmtCtxt c)
 matchContextErrString (StmtCtxt (PatGuard _))      = ptext (sLit "pattern guard")
-matchContextErrString (StmtCtxt GhciStmtCtxt)      = ptext (sLit "interactive GHCi command")
+matchContextErrString (StmtCtxt GhciStmtCtxt)      = ptext (sLit "interactive Eta REPL command")
 matchContextErrString (StmtCtxt DoExpr)            = ptext (sLit "'do' block")
 matchContextErrString (StmtCtxt ArrowExpr)         = ptext (sLit "'do' block")
 matchContextErrString (StmtCtxt MDoExpr)           = ptext (sLit "'mdo' block")

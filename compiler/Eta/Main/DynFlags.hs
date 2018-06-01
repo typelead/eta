@@ -2576,6 +2576,7 @@ dynamic_flags = [
   , defGhcFlag "etadoc-opts"    (hasArg addEtaDocOpts)
   , defGhcFlag "hpcdir"         (SepArg setOptHpcDir)
   , defGhciFlag "ghci-script"    (hasArg addGhciScript)
+  , defGhciFlag "eta-repl-script"    (hasArg addGhciScript)
   , defGhciFlag "interactive-print" (hasArg setInteractivePrint)
   , defGhcFlag "ticky-allocd"      (NoArg (setGeneralFlag Opt_Ticky_Allocd))
   , defGhcFlag "ticky-LNE"         (NoArg (setGeneralFlag Opt_Ticky_LNE))
@@ -2809,6 +2810,7 @@ dynamic_flags = [
   , defFlag "fmax-worker-args" (intSuffix (\n d -> d {maxWorkerArgs = n}))
 
   , defGhciFlag "fghci-hist-size" (intSuffix (\n d -> d {ghciHistSize = n}))
+  , defGhciFlag "feta-repl-hist-size" (intSuffix (\n d -> d {ghciHistSize = n}))
   , defGhcFlag "fmax-inline-alloc-size"
       (intSuffix (\n d -> d{ maxInlineAllocSize = n }))
   , defGhcFlag "fmax-inline-memcpy-insns"
@@ -3078,7 +3080,8 @@ fWarningFlags = [
 -- | These @-\<blah\>@ flags can all be reversed with @-no-\<blah\>@
 negatableFlags :: [FlagSpec GeneralFlag]
 negatableFlags = [
-  flagGhciSpec "ignore-dot-ghci"              Opt_IgnoreDotGhci ]
+  flagGhciSpec "ignore-dot-ghci"              Opt_IgnoreDotGhci,
+  flagGhciSpec "ignore-dot-eta-repl"          Opt_IgnoreDotGhci]
 
 -- | These @-d\<blah\>@ flags can all be reversed with @-dno-\<blah\>@
 dFlags :: [FlagSpec GeneralFlag]
@@ -3134,8 +3137,11 @@ fFlags = [
   flagSpec "fun-to-thunk"                     Opt_FunToThunk,
   flagSpec "gen-manifest"                     Opt_GenManifest,
   flagSpec "ghci-history"                     Opt_GhciHistory,
+  flagSpec "eta-repl-history"                 Opt_GhciHistory,
   flagGhciSpec "local-ghci-history"           Opt_LocalGhciHistory,
+  flagGhciSpec "local-eta-repl-history"       Opt_LocalGhciHistory,
   flagSpec "ghci-sandbox"                     Opt_GhciSandbox,
+  flagSpec "eta-repl-sandbox"                 Opt_GhciSandbox,
   flagSpec "helpful-errors"                   Opt_HelpfulErrors,
   flagSpec "hpc"                              Opt_Hpc,
   flagSpec "hpc-no-auto"                      Opt_Hpc_No_Auto,

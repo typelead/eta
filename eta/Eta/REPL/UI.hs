@@ -419,8 +419,8 @@ defFullHelpText =
   "   :seti <option> ...          set options for interactive evaluation only\n" ++
   "   :set args <arg> ...         set the arguments returned by System.getArgs\n" ++
   "   :set prog <progname>        set the value returned by System.getProgName\n" ++
-  "   :set prompt <prompt>        set the prompt used in GHCi\n" ++
-  "   :set prompt-cont <prompt>   set the continuation prompt used in GHCi\n" ++
+  "   :set prompt <prompt>        set the prompt used in Eta REPL\n" ++
+  "   :set prompt-cont <prompt>   set the continuation prompt used in Eta REPL\n" ++
   "   :set prompt-function <expr> set the function to handle the prompt\n" ++
   "   :set prompt-cont-function <expr>" ++
                      "set the function to handle the continuation prompt\n" ++
@@ -437,7 +437,7 @@ defFullHelpText =
   "    +c            collect type/location info after loading modules\n" ++
   "    -<flags>      most GHC command line flags can also be set here\n" ++
   "                         (eg. -v2, -XFlexibleInstances, etc.)\n" ++
-  "                    for GHCi-specific flags, see User's Guide,\n"++
+  "                    for Eta REPL-specific flags, see User's Guide,\n"++
   "                    Flag reference, Interactive-mode options\n" ++
   "\n" ++
   " -- Commands for displaying information:\n" ++
@@ -597,16 +597,16 @@ runGHCi paths maybe_exprs = do
   let
    ignore_dot_ghci = gopt Opt_IgnoreDotGhci dflags
 
-   current_dir = return (Just ".ghci")
+   current_dir = return (Just ".eta_repl")
 
    app_user_dir = liftIO $ withGhcAppData
-                    (\dir -> return (Just (dir </> "ghci.conf")))
+                    (\dir -> return (Just (dir </> "eta_repl.conf")))
                     (return Nothing)
 
    home_dir = do
     either_dir <- liftIO $ tryIO (getEnv "HOME")
     case either_dir of
-      Right home -> return (Just (home </> ".ghci"))
+      Right home -> return (Just (home </> ".eta_repl"))
       _ -> return Nothing
 
    canonicalizePath' :: FilePath -> IO (Maybe FilePath)
@@ -631,7 +631,7 @@ runGHCi paths maybe_exprs = do
                 -- Also, let the user silence the message with -v0
                 -- (the default verbosity in GHCi is 1).
                 when (isNothing maybe_exprs && verbosity dflags > 0) $
-                  liftIO $ putStrLn ("Loaded GHCi configuration from " ++ file)
+                  liftIO $ putStrLn ("Loaded Eta REPL configuration from " ++ file)
 
   --
 
@@ -707,9 +707,9 @@ runGHCiInput f = do
     currentDirectory <- liftIO $ getCurrentDirectory
 
     histFile <- case (ghciHistory, localGhciHistory) of
-      (True, True) -> return (Just (currentDirectory </> ".ghci_history"))
+      (True, True) -> return (Just (currentDirectory </> ".eta_repl_history"))
       (True, _) -> liftIO $ withGhcAppData
-        (\dir -> return (Just (dir </> "ghci_history"))) (return Nothing)
+        (\dir -> return (Just (dir </> "eta_repl_history"))) (return Nothing)
       _ -> return Nothing
 
     runInputT
@@ -1397,7 +1397,7 @@ withSandboxOnly cmd this = do
    dflags <- getDynFlags
    if not (gopt Opt_GhciSandbox dflags)
       then printForUser (text cmd <+>
-                         ptext (sLit "is not supported with -fno-ghci-sandbox"))
+                         ptext (sLit "is not supported with -fno-eta-repl-sandbox"))
       else this
 
 -----------------------------------------------------------------------------
@@ -2622,7 +2622,7 @@ showDynFlags :: Bool -> DynFlags -> IO ()
 showDynFlags show_all dflags = do
   showLanguages' show_all dflags
   putStrLn $ showSDoc dflags $
-     text "GHCi-specific dynamic flag settings:" $$
+     text "Eta REPL-specific dynamic flag settings:" $$
          nest 2 (vcat (map (setting "-f" "-fno-" gopt) ghciFlags))
   putStrLn $ showSDoc dflags $
      text "other dynamic, non-language, flag settings:" $$

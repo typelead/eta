@@ -396,7 +396,7 @@ pprHsDocContext (ClassDeclCtx name)   = text "the declaration for class" <+> quo
 pprHsDocContext ExprWithTySigCtx      = text "an expression type signature"
 pprHsDocContext TypBrCtx              = text "a Template-Haskell quoted type"
 pprHsDocContext HsTypeCtx             = text "a type argument"
-pprHsDocContext GHCiCtx               = text "GHCi input"
+pprHsDocContext GHCiCtx               = text "Eta REPL input"
 pprHsDocContext (SpliceTypeCtx hs_ty) = text "the spliced type" <+> quotes (ppr hs_ty)
 pprHsDocContext ClassInstanceCtx      = text "TcSplice.reifyInstances"
 
