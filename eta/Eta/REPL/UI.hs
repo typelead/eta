@@ -2977,7 +2977,7 @@ showBindings = do
 
 
 printTyThing :: TyThing -> GHCi ()
-printTyThing tyth = printForUser (pprTyThing tyth)
+printTyThing tyth = printForUser (colored colMagentaFg $ pprTyThing tyth)
 
 showBkptTable :: GHCi ()
 showBkptTable = do

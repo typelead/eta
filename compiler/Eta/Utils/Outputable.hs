@@ -37,7 +37,7 @@ module Eta.Utils.Outputable (
         colored, keyword,
 
         -- * Converting 'SDoc' into strings and outputing it
-        printForC, printForAsm, printForUser, printForUserPartWay,
+        printForC, printForAsm, printForUser, printForUserColored, printForUserPartWay,
         pprCode, mkCodeStyle,
         showSDoc, showSDocUnsafe, showSDocOneLine,
         showSDocForUser, showSDocDebug, showSDocDump, showSDocDumpOneLine,
@@ -388,6 +388,12 @@ printForUser :: DynFlags -> Handle -> PrintUnqualified -> SDoc -> IO ()
 printForUser dflags handle unqual doc
   = Pretty.printDoc PageMode (pprCols dflags) handle
       (runSDoc doc (initSDocContext dflags (mkUserStyle unqual AllTheWay)))
+
+printForUserColored :: DynFlags -> Handle -> PrintUnqualified -> SDoc -> IO ()
+printForUserColored dflags handle unqual doc
+  = Pretty.printDoc PageMode (pprCols dflags) handle
+      (runSDoc doc (initSDocContext dflags
+      (setStyleColored True (mkUserStyle unqual AllTheWay))))
 
 printForUserPartWay :: DynFlags -> Handle -> Int -> PrintUnqualified -> SDoc
                     -> IO ()

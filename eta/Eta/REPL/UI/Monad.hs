@@ -326,7 +326,7 @@ printForUser :: GhcMonad m => SDoc -> m ()
 printForUser doc = do
   unqual <- GHC.getPrintUnqual
   dflags <- getDynFlags
-  liftIO $ Outputable.printForUser dflags stdout unqual doc
+  liftIO $ Outputable.printForUserColored dflags stdout unqual doc
 
 printForUserPartWay :: SDoc -> GHCi ()
 printForUserPartWay doc = do
