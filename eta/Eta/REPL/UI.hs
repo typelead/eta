@@ -178,7 +178,6 @@ etaReplWelcomeMsg dflags =
              (text websiteMessage <+> colored colBlueFg (text websiteLink)),
            tableBlankLine,
            withBold (text tableBottomLine),
-           blankLine,
            blankLine ]
 
    where unicode = useUnicode dflags
@@ -950,7 +949,7 @@ mkPrompt = do
   prompt_string <- (prompt st) modules_names line
   let prompt_doc = context <> prompt_string
 
-  return (showSDocWithColor dflags $ colored colEtaFg prompt_doc)
+  return (showSDocWithColor dflags $ colored colEtaFg (vcat [blankLine, prompt_doc]))
 
 queryQueue :: GHCi (Maybe String)
 queryQueue = do
