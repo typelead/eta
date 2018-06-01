@@ -354,17 +354,23 @@ public class Concurrent {
             if (selectorLock.compareAndSet(false, true)) {
                 try {
                     int selectedKeys = globalSelector.selectNow();
-                    if (selectedKeys > 0) {
+                    while (selectedKeys > 0) {
                         Iterator<SelectionKey> it = globalSelector.selectedKeys().iterator();
                         while (it.hasNext()) {
                             SelectionKey key = it.next();
                             if (key.isValid() && ((key.readyOps() & key.interestOps()) != 0)) {
                                 TSO tso = (TSO) key.attachment();
                                 key.cancel();
-                                cap.tryWakeupThread(tso);
+                                if(tso.cap==null){
+                                    pushToGlobalRunQueue(tso);
+                                }
+                                else{
+                                    cap.tryWakeupThread(tso);
+                                }
                             }
                             it.remove();
                         }
+                        selectedKeys = globalSelector.selectNow();
                     }
                 } catch (IOException e) {
                     /* TODO: If the selector is closed, the user should know about it.
