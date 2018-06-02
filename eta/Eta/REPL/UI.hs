@@ -441,8 +441,8 @@ defFullHelpText =
   " -- Commands for displaying information:\n" ++
   "\n" ++
   "   :show bindings              show the current bindings made at the prompt\n" ++
-  "   :show breaks                show the active breakpoints\n" ++
-  "   :show context               show the breakpoint context\n" ++
+  -- "   :show breaks                show the active breakpoints\n" ++
+  -- "   :show context               show the breakpoint context\n" ++
   "   :show imports               show the current imports\n" ++
   "   :show linker                show current linker state\n" ++
   "   :show modules               show the currently loaded modules\n" ++
