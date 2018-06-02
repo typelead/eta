@@ -40,7 +40,7 @@ module Eta.Utils.Outputable (
         printForC, printForAsm, printForUser, printForUserColored, printForUserPartWay,
         pprCode, mkCodeStyle,
         showSDoc, showSDocUnsafe, showSDocOneLine,
-        showSDocForUser, showSDocDebug, showSDocDump, showSDocDumpOneLine,
+        showSDocForUser, showSDocForUserColored, showSDocDebug, showSDocDump, showSDocDumpOneLine,
         showSDocUnqual, showPpr, showSDocWithColor,
         renderWithStyle,
 
@@ -443,6 +443,11 @@ showSDocForUser :: DynFlags -> PrintUnqualified -> SDoc -> String
 -- Allows caller to specify the PrintUnqualified to use
 showSDocForUser dflags unqual doc
  = renderWithStyle dflags doc (mkUserStyle unqual AllTheWay)
+
+showSDocForUserColored :: DynFlags -> PrintUnqualified -> SDoc -> String
+-- Allows caller to specify the PrintUnqualified to use
+showSDocForUserColored dflags unqual doc
+ = renderWithStyle dflags doc (setStyleColored True (mkUserStyle unqual AllTheWay))
 
 showSDocDump :: DynFlags -> SDoc -> String
 showSDocDump dflags d = renderWithStyle dflags d defaultDumpStyle

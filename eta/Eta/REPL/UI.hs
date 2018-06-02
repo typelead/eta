@@ -53,6 +53,7 @@ import Eta.HsSyn.HsImpExp
 import Eta.HsSyn.HsSyn
 import Eta.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
                   setInteractivePrintName, hsc_dflags, msObjFilePath )
+import Eta.Main.SysTools (findTopDir)
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.Main.Packages ( trusted, getPackageDetails, getInstalledPackageDetails,
@@ -357,7 +358,7 @@ defFullHelpText =
   "                               (!: more details; *: all top-level names)\n" ++
   "   :cd <dir>                   change directory to <dir>\n" ++
   "   :cmd <expr>                 run the commands returned by <expr>::IO String\n" ++
-  "   :complete <dom> [<rng>] <s> list completions for partial input string\n" ++
+  "   :complete <domain> [<range>] <input> list completions for partial input string\n" ++
   "   :ctags[!] [<file>]          create tags file <file> for Vi (default: \"tags\")\n" ++
   "                               (!: use regex instead of line number)\n" ++
   "   :def <cmd> <expr>           define command :<cmd> (later defined command has\n" ++
@@ -381,37 +382,35 @@ defFullHelpText =
   "   :run function [<arguments> ...] run the function with the given arguments\n" ++
   "   :script <file>              run the script <file>\n" ++
   "   :type <expr>                show the type of <expr>\n" ++
-  "   :type +d <expr>             show the type of <expr>, defaulting type variables\n" ++
-  "   :type +v <expr>             show the type of <expr>, with its specified tyvars\n" ++
   "   :unadd <module> ...         remove module(s) from the current target set\n" ++
   "   :undef <cmd>                undefine user-defined command :<cmd>\n" ++
   "   :!<command>                 run the shell command <command>\n" ++
   "\n" ++
-  " -- Commands for debugging:\n" ++
-  "\n" ++
-  "   :abandon                    at a breakpoint, abandon current computation\n" ++
-  "   :back [<n>]                 go back in the history N steps (after :trace)\n" ++
-  "   :break [<mod>] <l> [<col>]  set a breakpoint at the specified location\n" ++
-  "   :break <name>               set a breakpoint on the specified function\n" ++
-  "   :continue                   resume after a breakpoint\n" ++
-  "   :delete <number>            delete the specified breakpoint\n" ++
-  "   :delete *                   delete all breakpoints\n" ++
-  "   :force <expr>               print <expr>, forcing unevaluated parts\n" ++
-  "   :forward [<n>]              go forward in the history N step s(after :back)\n" ++
-  "   :history [<n>]              after :trace, show the execution history\n" ++
-  "   :list                       show the source code around current breakpoint\n" ++
-  "   :list <identifier>          show the source code for <identifier>\n" ++
-  "   :list [<module>] <line>     show the source code around line number <line>\n" ++
-  "   :print [<name> ...]         show a value without forcing its computation\n" ++
-  "   :sprint [<name> ...]        simplified version of :print\n" ++
-  "   :step                       single-step after stopping at a breakpoint\n"++
-  "   :step <expr>                single-step into <expr>\n"++
-  "   :steplocal                  single-step within the current top-level binding\n"++
-  "   :stepmodule                 single-step restricted to the current module\n"++
-  "   :trace                      trace after stopping at a breakpoint\n"++
-  "   :trace <expr>               evaluate <expr> with tracing on (see :history)\n"++
+  -- " -- Commands for debugging:\n" ++
+  -- "\n" ++
+  -- "   :abandon                    at a breakpoint, abandon current computation\n" ++
+  -- "   :back [<n>]                 go back in the history N steps (after :trace)\n" ++
+  -- "   :break [<mod>] <l> [<col>]  set a breakpoint at the specified location\n" ++
+  -- "   :break <name>               set a breakpoint on the specified function\n" ++
+  -- "   :continue                   resume after a breakpoint\n" ++
+  -- "   :delete <number>            delete the specified breakpoint\n" ++
+  -- "   :delete *                   delete all breakpoints\n" ++
+  -- "   :force <expr>               print <expr>, forcing unevaluated parts\n" ++
+  -- "   :forward [<n>]              go forward in the history N step s(after :back)\n" ++
+  -- "   :history [<n>]              after :trace, show the execution history\n" ++
+  -- "   :list                       show the source code around current breakpoint\n" ++
+  -- "   :list <identifier>          show the source code for <identifier>\n" ++
+  -- "   :list [<module>] <line>     show the source code around line number <line>\n" ++
+  -- "   :print [<name> ...]         show a value without forcing its computation\n" ++
+  -- "   :sprint [<name> ...]        simplified version of :print\n" ++
+  -- "   :step                       single-step after stopping at a breakpoint\n"++
+  -- "   :step <expr>                single-step into <expr>\n"++
+  -- "   :steplocal                  single-step within the current top-level binding\n"++
+  -- "   :stepmodule                 single-step restricted to the current module\n"++
+  -- "   :trace                      trace after stopping at a breakpoint\n"++
+  -- "   :trace <expr>               evaluate <expr> with tracing on (see :history)\n"++
 
-  "\n" ++
+  -- "\n" ++
   " -- Commands for changing settings:\n" ++
   "\n" ++
   "   :set <option> ...           set options\n" ++
@@ -434,7 +433,7 @@ defFullHelpText =
   "    +s            print timing/memory stats after each evaluation\n" ++
   "    +t            print type after evaluation\n" ++
   "    +c            collect type/location info after loading modules\n" ++
-  "    -<flags>      most GHC command line flags can also be set here\n" ++
+  "    -<flags>      most Eta command line flags can also be set here\n" ++
   "                         (eg. -v2, -XFlexibleInstances, etc.)\n" ++
   "                    for Eta REPL-specific flags, see User's Guide,\n"++
   "                    Flag reference, Interactive-mode options\n" ++
@@ -583,10 +582,10 @@ ghciLogAction lastErrLocations dflags severity srcSpan style msg = do
 
 withGhcAppData :: (FilePath -> IO a) -> IO a -> IO a
 withGhcAppData right left = do
-    either_dir <- tryIO (getAppUserDataDirectory "ghc")
+    either_dir <- tryIO (findTopDir Nothing)
     case either_dir of
         Right dir ->
-            do createDirectoryIfMissing False dir `catchIO` \_ -> return ()
+            do createDirectoryIfMissing True dir `catchIO` \_ -> return ()
                right dir
         _ -> left
 
@@ -1926,18 +1925,19 @@ modulesLoadedMsg ok mods = do
                let mod_commas
                      | null mods = text "none."
                      | otherwise = hsep (punctuate comma mod_names) <> text "."
-               return $ withBlankLine $ status <+> text "Modules loaded:" <+> mod_commas
+               return $ withBlankLine $ colored color $
+                          status <+> text "Modules loaded:" <+> mod_commas
          else do
-               return $ withBlankLine $ status
-                    <+> speakNOfCaps (length mods) (text "module") <+> "loaded."
+               return $ withBlankLine $ colored color $
+                          status <+> speakNOfCaps (length mods) (text "module") <+> "loaded."
 
   when (verbosity dflags > 0) $
-     liftIO $ putStrLn $ showSDocForUser dflags unqual msg
+     liftIO $ putStrLn $ showSDocForUserColored dflags unqual msg
   where
-    withBlankLine sdoc = vcat [blankLine, blankLine, sdoc, blankLine]
-    status = case ok of
-                  Failed    -> text "Failed!"
-                  Succeeded -> text "Successful!"
+    withBlankLine sdoc = vcat [blankLine, blankLine, sdoc]
+    (status, color) = case ok of
+                  Failed    -> (text "Failed!", colRedFg)
+                  Succeeded -> (text "Successful!", colGreenFg)
 
     mod_name mod = do
         is_interpreted <- GHC.moduleIsBootOrNotObjectLinkable mod
