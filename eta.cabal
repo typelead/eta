@@ -11,8 +11,8 @@ copyright:           Copyright (c) Rahul Muttineni 2016-2017, Jyothsna Patnam 20
 stability:           Experimental
 build-type:          Simple
 cabal-version:       >=1.10
-extra-source-files:  compiler/ETA/Parser/Parser.y
-                     compiler/ETA/Parser/Lexer.x
+extra-source-files:  compiler/Eta/Parser/Parser.y
+                     compiler/Eta/Parser/Lexer.x
 
 flag debug
   Description: Enable debug support
