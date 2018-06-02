@@ -4,6 +4,7 @@
 module Eta.REPL.ClassLoader
   ( ShouldRetainCAFs(..)
   , addDynamicClassPath
+  , setModuleClassPath
   , loadClasses
   , newInstance
   , resetClasses
@@ -40,6 +41,14 @@ addDynamicClassPath classpath = do
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.addURLs"
   j_addDynamicClassPath     :: JStringArray -> IO ()
+
+setModuleClassPath :: [FilePath] -> IO ()
+setModuleClassPath classpath = do
+  let jstrings = map toJava classpath :: [JString]
+  j_setModuleClassPath (toJava jstrings)
+
+foreign import java unsafe "@static eta.serv.REPLClassLoader.setChildURLs"
+  j_setModuleClassPath     :: JStringArray -> IO ()
 
 loadClasses :: [String] -> [B.ByteString] -> IO ()
 loadClasses classNames classes = do

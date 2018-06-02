@@ -47,6 +47,7 @@ import Control.Monad
 
 import Eta.REPL.Message
 import Eta.REPL.RemoteTypes
+import Eta.REPL.Linker
 import Eta.REPL
 import Eta.Main.HscMain as HscMain
         -- These imports are the reason that TcSplice
@@ -723,6 +724,8 @@ runMeta' show_code ppr_hs run_and_convert expr
         ; hsc_env <- getTopEnv
         ; src_span <- getSrcSpanM
         ; traceTc "About to run (desugared)" (ppr ds_expr)
+        ; mod <- getModule
+        ; liftIO $ linkModules hsc_env (moduleName mod)
         ; either_hval <- tryM $
             liftIO $ HscMain.hscCompileCoreExpr hsc_env src_span ds_expr
         ; case either_hval of {

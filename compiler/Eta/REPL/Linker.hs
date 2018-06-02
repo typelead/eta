@@ -7,7 +7,7 @@
 --
 -- | The interface to Eta REPL's custom classloader to handle dynamic classloading.
 module Eta.REPL.Linker ( getHValueAsInt, showLinkerState,
-                linkExpr, linkClasses, unload, withExtendedLinkEnv,
+                linkExpr, linkClasses, linkModules, unload, withExtendedLinkEnv,
                 extendLinkEnv, deleteFromLinkEnv, initDynLinker
         ) where
 
@@ -22,6 +22,7 @@ import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
 import Eta.Main.DynFlags
 import Eta.Utils.Outputable
+import Eta.Utils.UniqFM
 import Eta.Utils.Util as Util
 import Eta.Main.ErrUtils
 import Eta.BasicTypes.SrcLoc
@@ -59,11 +60,17 @@ modifyPLS f = readIORef v_PersistentLinkerState >>= flip modifyMVar f
 data PersistentLinkerState
    = PersistentLinkerState {
         -- Current global mapping from Names to their true values
-        closure_env :: ClosureEnv
+        closure_env :: ClosureEnv,
+        -- Maps home modules to the path to their linkables
+        home_modules_env :: ModuleNameEnv [FilePath],
+        last_root_module :: ModuleName
         }
 
 emptyPLS :: DynFlags -> PersistentLinkerState
-emptyPLS _ = PersistentLinkerState { closure_env = emptyClosureEnv }
+emptyPLS _ = PersistentLinkerState { closure_env = emptyClosureEnv
+                                   , home_modules_env = emptyUFM
+                                   , last_root_module = mkModuleName "?"
+                                   }
 
 type ClosureEnv = NameEnv (Name, ForeignHValue)
 
@@ -198,6 +205,30 @@ linkClasses hsc_env classes
        ; return (pls, ())
    }}
 
+linkModules :: HscEnv -> ModuleName -> IO ()
+linkModules hsc_env root_module = do {
+    -- Initialise the linker (if it's not been done already)
+  ; initDynLinker hsc_env
+
+    -- Take lock for the actual work.
+  ; modifyPLS $ \pls -> do {
+      ; let root_module' = last_root_module pls
+      ; if root_module' /= root_module then do
+          setModuleClassPath hsc_env (concat (eltsUFM newModuleEnv'))
+          return (pls { home_modules_env = newModuleEnv'
+                      , last_root_module = root_module }, ())
+        else return (pls, ())
+  }}
+  where hpt = hsc_HPT hsc_env
+        newModuleEnv' = foldUFM (\modInfo moduleEnv ->
+                                   case hm_linkable modInfo of
+                                     Just linkable ->
+                                       addToUFM moduleEnv
+                                         (moduleName (mi_module (hm_iface modInfo)))
+                                         (linkableObjs linkable)
+                                     Nothing -> moduleEnv)
+                        emptyUFM hpt
+
 {- **********************************************************************
 
                 Unload some object modules
@@ -242,19 +273,25 @@ unload_wkr :: HscEnv
 -- (the wrapper blocks exceptions and deals with the PLS get and put)
 
 unload_wkr hsc_env keep_linkables pls = do
-  let classes_to_keep  = filter (not . isObjectLinkable) keep_linkables
-      classes_retained = mkModuleSet $ map linkableModule classes_to_keep
+  let modules_retained = mkModuleSet $ map linkableModule
+                                     $ filter (not . isObjectLinkable) keep_linkables
+      newModuleEnv' = listToUFM [ (moduleName (linkableModule jar), classpath)
+                                | jar <- keep_linkables,
+                                  let classpath = linkableObjs jar,
+                                  not (null classpath) ]
 
       -- Note that we want to remove all *local*
       -- (i.e. non-isExternal) names too (these are the
       -- temporary bindings from the command line).
       keep_name (n,_) = isExternalName n
-                     && nameModule n `elemModuleSet` classes_retained
+                     && nameModule n `elemModuleSet` modules_retained
 
       closure_env'  = filterNameEnv keep_name (closure_env pls)
 
-      new_pls = pls {closure_env = closure_env'}
+      new_pls = pls { closure_env = closure_env'
+                    , home_modules_env = newModuleEnv' }
 
-  resetClasses hsc_env
+  -- TODO: Reload class linkables as well via linkClasses?
 
+  setModuleClassPath hsc_env (concat (eltsUFM newModuleEnv'))
   return new_pls

@@ -50,8 +50,11 @@ data Message a where
   -- | Exit the iserv process
   Shutdown :: Message ()
 
-  -- | Add a list of files to the dynamic class path of classloader.
+  -- | Add a list of files to the dynamic classpath of classloader.
   AddDynamicClassPath :: [String] -> Message ()
+
+  -- | Sets the classpath of child classloader.
+  SetModuleClassPath :: [String] -> Message ()
 
   -- | Load a list of class names and class contents into memory and link them.
   LoadClasses :: [String] -> [ByteString] -> Message ()
@@ -222,34 +225,36 @@ getMessage = do
   case b of
     0  -> Msg <$> return Shutdown
     1  -> Msg <$> AddDynamicClassPath <$> get
-    2  -> Msg <$> (LoadClasses <$> get <*> get)
-    3  -> Msg <$> (NewInstance <$> get)
-    4  -> return $ Msg ResetClasses
-    5  -> Msg <$> FreeHValueRefs <$> get
-    6  -> Msg <$> (EvalStmt <$> get <*> get)
-    7  -> Msg <$> (EvalString <$> get)
-    8  -> Msg <$> (EvalStringToString <$> get <*> get)
-    9  -> Msg <$> (EvalIO <$> get)
-    10  -> Msg <$> return StartTH
-    11 -> Msg <$> (RunTH <$> get <*> get <*> get <*> get)
-    12 -> Msg <$> (RunModFinalizers <$> get <*> get)
+    2  -> Msg <$> SetModuleClassPath <$> get
+    3  -> Msg <$> (LoadClasses <$> get <*> get)
+    4  -> Msg <$> (NewInstance <$> get)
+    5  -> return $ Msg ResetClasses
+    6  -> Msg <$> FreeHValueRefs <$> get
+    7  -> Msg <$> (EvalStmt <$> get <*> get)
+    8  -> Msg <$> (EvalString <$> get)
+    9  -> Msg <$> (EvalStringToString <$> get <*> get)
+    10 -> Msg <$> (EvalIO <$> get)
+    11  -> Msg <$> return StartTH
+    12 -> Msg <$> (RunTH <$> get <*> get <*> get <*> get)
+    13 -> Msg <$> (RunModFinalizers <$> get <*> get)
     _  -> error $ "getMessage: Invalid message tag: " ++ show b
 
 putMessage :: Message a -> Put
 putMessage m = case m of
   Shutdown                    -> putWord8 0
   AddDynamicClassPath a       -> putWord8 1  >> put a
-  LoadClasses a b             -> putWord8 2  >> put a >> put b
-  NewInstance a               -> putWord8 3  >> put a
-  ResetClasses                -> putWord8 4
-  FreeHValueRefs val          -> putWord8 5  >> put val
-  EvalStmt opts val           -> putWord8 6  >> put opts >> put val
-  EvalString val              -> putWord8 7  >> put val
-  EvalStringToString str val  -> putWord8 8  >> put str >> put val
-  EvalIO val                  -> putWord8 9  >> put val
-  StartTH                     -> putWord8 10
-  RunTH st q loc ty           -> putWord8 11 >> put st >> put q >> put loc >> put ty
-  RunModFinalizers a b        -> putWord8 12 >> put a >> put b
+  SetModuleClassPath a        -> putWord8 2  >> put a
+  LoadClasses a b             -> putWord8 3  >> put a >> put b
+  NewInstance a               -> putWord8 4  >> put a
+  ResetClasses                -> putWord8 5
+  FreeHValueRefs val          -> putWord8 6  >> put val
+  EvalStmt opts val           -> putWord8 7  >> put opts >> put val
+  EvalString val              -> putWord8 8  >> put val
+  EvalStringToString str val  -> putWord8 9  >> put str >> put val
+  EvalIO val                  -> putWord8 10 >> put val
+  StartTH                     -> putWord8 11
+  RunTH st q loc ty           -> putWord8 12 >> put st >> put q >> put loc >> put ty
+  RunModFinalizers a b        -> putWord8 13 >> put a >> put b
 
 -- -----------------------------------------------------------------------------
 -- Reading/writing messages

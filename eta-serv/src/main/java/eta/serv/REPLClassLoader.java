@@ -108,6 +108,13 @@ public class REPLClassLoader extends URLClassLoader {
         }
     }
 
+    public static void setChildURLs(String[] paths) throws MalformedURLException {
+        resetClasses();
+        for (String path: paths) {
+            replClassLoader.addURL(new File(path).toURI().toURL());
+        }
+    }
+
     public static void loadClasses(String[] classNames, List<ByteBuffer> classes) {
         ArrayList<Class<?>> newClasses = new ArrayList<Class<?>>(classNames.length);
         Iterator<ByteBuffer> classIt = classes.iterator();

@@ -13,6 +13,7 @@ module Eta.REPL
 
   -- * The classloader linker
   , addDynamicClassPath
+  , setModuleClassPath
   , loadClasses
   , newInstance
   , resetClasses
@@ -263,6 +264,10 @@ resetClasses hsc_env = iservCmd hsc_env ResetClasses
 addDynamicClassPath :: HscEnv -> [FilePath] -> IO ()
 addDynamicClassPath hsc_env cp =
   iservCmd hsc_env (AddDynamicClassPath cp)
+
+setModuleClassPath :: HscEnv -> [FilePath] -> IO ()
+setModuleClassPath hsc_env cp =
+  iservCmd hsc_env (SetModuleClassPath cp)
 
 -- -----------------------------------------------------------------------------
 -- Raw calls and messages
