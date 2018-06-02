@@ -232,7 +232,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
 
     phony "clean" $ do
       putNormal "Cleaning files in rts/build, libraries/*/dist"
-      liftIO $ removeFiles rtsBuildDir ["//*"]
+      removeFilesAfter rtsBuildDir ["//*"]
       libs <- getLibs
       forM_ libs $ \lib -> do
         let libDir = libraryDir </> lib
