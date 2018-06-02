@@ -52,10 +52,10 @@ getEtaRoot  = do
 --     (found:_) -> return (dir </> found)
 --     _         -> fail $ "Pattern not found '" ++ pat ++ "' in " ++ dir
 
--- getEtaNumericVersion :: Action String
--- getEtaNumericVersion = do
---   Stdout actualOutput <- cmd "eta" "--numeric-version"
---   return . head $ lines actualOutput
+getEtaNumericVersion :: Action String
+getEtaNumericVersion = do
+  Stdout actualOutput <- cmd "eta" "--numeric-version"
+  return . head $ lines actualOutput
 
 -- * Utility functions for filepath handling in the Action monad
 createDirIfMissing :: FilePath -> Action ()
@@ -198,8 +198,9 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
           buildLibrary debug binPathArg lib (getDependencies lib)
         dir <- liftIO $ getCurrentDirectory
         unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "proJar"
+        etaVersion <- getEtaNumericVersion
         copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
-          etlasToolsDir </> "eta-serv.jar"
+          etlasToolsDir </> "eta-serv-" ++ etaVersion ++ ".jar"
 
         unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
 
