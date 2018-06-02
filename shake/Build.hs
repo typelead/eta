@@ -3,10 +3,7 @@
 import Development.Shake
 import Development.Shake.FilePath
 
--- import Distribution.InstalledPackageInfo
--- import Distribution.ParseUtils
--- import Distribution.ModuleName (fromString)
-
+import System.Info
 import Control.Monad
 import Data.List
 import System.Console.GetOpt
@@ -197,7 +194,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
         dir <- liftIO $ getCurrentDirectory
-        unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "proJar"
+        unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "proJar"
         copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
           etlasToolsDir </> "eta-serv.jar"
 
@@ -254,10 +251,10 @@ replClean :: Action ()
 replClean = do
   wipeGradle
   dir <- liftIO $ getCurrentDirectory
-  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "clean"
+  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "clean"
   etlasDir <- getEtlasDir
   let etlasToolsDir = etlasDir </> "tools"
-  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> "gradlew") "proJar"
+  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "proJar"
   copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
     etlasToolsDir </> "eta-serv.jar"
 
@@ -265,3 +262,11 @@ wipeGradle :: Action ()
 wipeGradle = do
   gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
   liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta") ["//*"]
+
+isWindows :: Bool
+isWindows = os == "mingw32"
+
+gradlewCommand :: String
+gradlewCommand
+  | isWindows = "gradlew.bat"
+  | otherwise = "gradlew"
