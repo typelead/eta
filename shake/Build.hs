@@ -7,8 +7,7 @@ import System.Info
 import Control.Monad
 import Data.List
 import System.Console.GetOpt
-import System.Directory (createDirectoryIfMissing, getAppUserDataDirectory,
-                         createDirectory, getCurrentDirectory)
+import System.Directory hiding (doesDirectoryExist)
 
 -- * Standard file/directory paths
 rtsDir, libraryDir, rtsBuildDir, rtsSrcDir, rtsjar :: FilePath
@@ -260,8 +259,13 @@ replClean = do
 
 wipeGradle :: Action ()
 wipeGradle = do
-  gradleDir <- liftIO $ getAppUserDataDirectory "gradle"
+  gradleDir <- getGradleHome
   liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta") ["//*"]
+
+getGradleHome :: Action FilePath
+getGradleHome
+  | isWindows = liftIO $ fmap (</> ".gradle") getHomeDirectory
+  | otherwise = liftIO $ getAppUserDataDirectory "gradle"
 
 isWindows :: Bool
 isWindows = os == "mingw32"
