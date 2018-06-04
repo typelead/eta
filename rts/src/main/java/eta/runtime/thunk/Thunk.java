@@ -5,6 +5,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Capability;
@@ -57,7 +58,9 @@ public abstract class Thunk extends Closure {
 
     public final void updateWithIndirection(Closure ret) {
         setIndirection(ret);
-        clear();
+        if (Runtime.shouldClearThunks()) {
+            clear();
+        }
     }
 
     public final Closure updateCode(StgContext context, Closure ret) {
@@ -226,18 +229,16 @@ public abstract class Thunk extends Closure {
     **/
     protected static Queue<CAF> revertibleCAFList = new ConcurrentLinkedQueue<CAF>();
 
-    protected static boolean keepCAFs;
-
     public static void setKeepCAFs() {
-        keepCAFs = true;
+        Runtime.setKeepCAFs(true);
     }
 
     public static void resetKeepCAFs() {
-        keepCAFs = false;
+        Runtime.setKeepCAFs(false);
     }
 
     public static boolean shouldKeepCAFs() {
-        return keepCAFs;
+        return Runtime.shouldKeepCAFs();
     }
 
     public static synchronized void revertCAFs() {

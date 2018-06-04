@@ -159,6 +159,34 @@ public class Runtime {
         Runtime.tailCallThreshold = tailCallThreshold;
     }
 
+    /* Parameter: clearThunks (boolean)
+       Clear thunks of their free variables once they are evaluated. */
+    private static boolean clearThunks;
+
+    public static final String CLEAR_THUNKS = "eta.rts.clearThunks";
+
+    public static boolean shouldClearThunks() {
+        return clearThunks;
+    }
+
+    public static void setClearThunks(boolean newClearThunks) {
+        clearThunks = newClearThunks;
+    }
+
+    /* Parameter: keepCAFs (boolean)
+       Allow Constant Applicative Forms (CAFs) to be reverted . */
+    private static boolean keepCAFs;
+
+    public static final String KEEP_CAFS = "eta.rts.keepCAFs";
+
+    public static boolean shouldKeepCAFs() {
+        return keepCAFs;
+    }
+
+    public static void setKeepCAFs(boolean newKeepCAFs) {
+        keepCAFs = newKeepCAFs;
+    }
+
     /* Debug Parameters */
     private static boolean debugScheduler;
 
@@ -227,6 +255,9 @@ public class Runtime {
         gcOnWeakPtrFinalization = rto.getBoolean(GC_ON_WEAK_PTR_FINALIZATION, false);
         maxLocalSparks = rto.getInt(MAX_LOCAL_SPARKS, 4096);
         tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 1000);
+        clearThunks = rto.getBoolean(CLEAR_THUNKS, false);
+        keepCAFs = rto.getBoolean(KEEP_CAFS, false);
+
         debugScheduler = rto.getBoolean(DEBUG_SCHEDULER_PROPERTY, false);
         debugMVar = rto.getBoolean(DEBUG_MVAR_PROPERTY, false);
         debugSTM = rto.getBoolean(DEBUG_STM_PROPERTY, false);
