@@ -213,21 +213,25 @@ linkModules hsc_env root_module = do {
     -- Take lock for the actual work.
   ; modifyPLS $ \pls -> do {
       ; let root_module' = last_root_module pls
+            oldModuleEnv = home_modules_env pls
       ; if root_module' /= root_module then do
-          setModuleClassPath hsc_env (concat (eltsUFM newModuleEnv'))
-          return (pls { home_modules_env = newModuleEnv'
+          addModuleClassPath hsc_env (concat (eltsUFM (newModuleEnv `minusUFM` oldModuleEnv)))
+          return (pls { home_modules_env = newModuleEnv
                       , last_root_module = root_module }, ())
         else return (pls, ())
   }}
   where hpt = hsc_HPT hsc_env
-        newModuleEnv' = foldUFM (\modInfo moduleEnv ->
-                                   case hm_linkable modInfo of
-                                     Just linkable ->
-                                       addToUFM moduleEnv
-                                         (moduleName (mi_module (hm_iface modInfo)))
-                                         (linkableObjs linkable)
-                                     Nothing -> moduleEnv)
-                        emptyUFM hpt
+        -- TODO: This calculation is simple since it doesn't take into
+        --       account dependency information. We may want to make this
+        --       more tight in the future (for projects with 100s of modules)
+        newModuleEnv = foldUFM (\modInfo moduleEnv ->
+                                  case hm_linkable modInfo of
+                                    Just linkable ->
+                                      addToUFM moduleEnv
+                                        (moduleName (mi_module (hm_iface modInfo)))
+                                        (linkableObjs linkable)
+                                    Nothing -> moduleEnv)
+                       emptyUFM hpt
 
 {- **********************************************************************
 
@@ -293,5 +297,6 @@ unload_wkr hsc_env keep_linkables pls = do
 
   -- TODO: Reload class linkables as well via linkClasses?
 
-  setModuleClassPath hsc_env (concat (eltsUFM newModuleEnv'))
+  resetClasses hsc_env
+  addModuleClassPath hsc_env (concat (eltsUFM newModuleEnv'))
   return new_pls

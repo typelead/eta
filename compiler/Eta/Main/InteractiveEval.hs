@@ -162,7 +162,7 @@ execStmt
   :: GhcMonad m
   => String             -- ^ a statement (bind or expression)
   -> ExecOptions
-  -> m ExecResult
+  -> m (Either Reinterpret ExecResult)
 execStmt stmt ExecOptions{..} = do
     hsc_env <- getSession
 
@@ -178,23 +178,25 @@ execStmt stmt ExecOptions{..} = do
 
     case r of
       -- empty statement / comment
-      Nothing -> return (ExecComplete (Right []) 0)
+      Nothing -> return $ Right $ ExecComplete (Right []) 0
 
-      Just (ids, hval, fix_env) -> do
-        updateFixityEnv fix_env
+      Just res -> case res of
+          Right (ids, hval, fix_env) -> do
+            updateFixityEnv fix_env
 
-        status <-
-          withVirtualCWD $
-            liftIO $
-              evalStmt hsc_env' (isStep execSingleStep) (execWrap hval)
+            status <-
+                withVirtualCWD $
+                    liftIO $
+                    evalStmt hsc_env' (isStep execSingleStep) (execWrap hval)
 
-        let ic = hsc_IC hsc_env
-            bindings = (ic_tythings ic, ic_rn_gbl_env ic)
+            let ic = hsc_IC hsc_env
+                bindings = (ic_tythings ic, ic_rn_gbl_env ic)
 
-            size = ghciHistSize idflags'
+                size = ghciHistSize idflags'
 
-        handleRunStatus execSingleStep stmt bindings ids
-                        status (emptyHistory size)
+            fmap Right $ handleRunStatus execSingleStep stmt bindings ids
+                           status (emptyHistory size)
+          Left reinterpret -> return $ Left reinterpret
 
 
 runDecls :: GhcMonad m => String -> m [Name]
@@ -887,7 +889,7 @@ compileParsedExprRemote expr = withSession $ \hsc_env -> do
       expr_name = mkInternalName (getUnique expr_fs) (mkTyVarOccFS expr_fs) noSrcSpan
       let_stmt = L noSrcSpan . LetStmt . HsValBinds $
         ValBindsIn (unitBag $ mkHsVarBind noSrcSpan (getRdrName expr_name) (noLoc expr)) []
-  Just ([_id], hvals_io, fix_env) <- liftIO $ hscParsedStmt hsc_env let_stmt
+  Just (Right ([_id], hvals_io, fix_env)) <- liftIO $ hscParsedStmt hsc_env let_stmt
   updateFixityEnv fix_env
   status <- liftIO $ evalStmt hsc_env False (EvalThis hvals_io)
   case status of

@@ -33,6 +33,7 @@ import Eta.Main.DynFlags
 import Eta.Main.StaticFlags
 import Eta.HsSyn.HsSyn
 import Eta.Prelude.PrelNames
+import Eta.Prelude.THNames
 import Eta.BasicTypes.RdrName
 import Eta.TypeCheck.TcHsSyn
 import Eta.TypeCheck.TcExpr
@@ -1508,47 +1509,50 @@ runTcInteractive hsc_env thing_inside
 -- The returned TypecheckedHsExpr is of type IO [ () ], a list of the bound
 -- values, coerced to ().
 tcRnStmt :: HscEnv -> GhciLStmt RdrName
-         -> IO (Messages, Maybe ([Id], LHsExpr Id, FixityEnv))
+         -> IO (Messages, Maybe (Either Reinterpret ([Id], LHsExpr Id, FixityEnv)))
 tcRnStmt hsc_env rdr_stmt
   = runTcInteractive hsc_env $ do {
 
     -- The real work is done here
-    ((bound_ids, tc_expr), fix_env) <- tcUserStmt rdr_stmt ;
-    zonked_expr <- zonkTopLExpr tc_expr ;
-    zonked_ids  <- zonkTopBndrs bound_ids ;
+    (ePlan, fix_env) <- tcUserStmt rdr_stmt ;
+    case ePlan of
+      Right (bound_ids, tc_expr) -> do {
+        zonked_expr <- zonkTopLExpr tc_expr ;
+        zonked_ids  <- zonkTopBndrs bound_ids ;
 
-        -- None of the Ids should be of unboxed type, because we
-        -- cast them all to HValues in the end!
-    mapM_ bad_unboxed (filter (isUnLiftedType . idType) zonked_ids) ;
+            -- None of the Ids should be of unboxed type, because we
+            -- cast them all to HValues in the end!
+        mapM_ bad_unboxed (filter (isUnLiftedType . idType) zonked_ids) ;
 
-    traceTc "tcs 1" empty ;
-    let { global_ids = map globaliseAndTidyId zonked_ids } ;
-        -- Note [Interactively-bound Ids in GHCi] in HscTypes
+        traceTc "tcs 1" empty ;
+        let { global_ids = map globaliseAndTidyId zonked_ids } ;
+            -- Note [Interactively-bound Ids in GHCi] in HscTypes
 
-{- ---------------------------------------------
-   At one stage I removed any shadowed bindings from the type_env;
-   they are inaccessible but might, I suppose, cause a space leak if we leave them there.
-   However, with Template Haskell they aren't necessarily inaccessible.  Consider this
-   GHCi session
-         Prelude> let f n = n * 2 :: Int
-         Prelude> fName <- runQ [| f |]
-         Prelude> $(return $ AppE fName (LitE (IntegerL 7)))
-         14
-         Prelude> let f n = n * 3 :: Int
-         Prelude> $(return $ AppE fName (LitE (IntegerL 7)))
-   In the last line we use 'fName', which resolves to the *first* 'f'
-   in scope. If we delete it from the type env, GHCi crashes because
-   it doesn't expect that.
+        {- ---------------------------------------------
+        At one stage I removed any shadowed bindings from the type_env;
+        they are inaccessible but might, I suppose, cause a space leak if we leave them there.
+        However, with Template Haskell they aren't necessarily inaccessible.  Consider this
+        GHCi session
+                Prelude> let f n = n * 2 :: Int
+                Prelude> fName <- runQ [| f |]
+                Prelude> $(return $ AppE fName (LitE (IntegerL 7)))
+                14
+                Prelude> let f n = n * 3 :: Int
+                Prelude> $(return $ AppE fName (LitE (IntegerL 7)))
+        In the last line we use 'fName', which resolves to the *first* 'f'
+        in scope. If we delete it from the type env, GHCi crashes because
+        it doesn't expect that.
 
-   Hence this code is commented out
+        Hence this code is commented out
 
--------------------------------------------------- -}
+        -------------------------------------------------- -}
 
-    traceOptTcRn Opt_D_dump_tc
-        (vcat [text "Bound Ids" <+> pprWithCommas ppr global_ids,
-               text "Typechecked expr" <+> ppr zonked_expr]) ;
+        traceOptTcRn Opt_D_dump_tc
+            (vcat [text "Bound Ids" <+> pprWithCommas ppr global_ids,
+                text "Typechecked expr" <+> ppr zonked_expr]) ;
 
-    return (global_ids, zonked_expr, fix_env)
+        return $ Right (global_ids, zonked_expr, fix_env) }
+      Left reinterpret -> return $ Left reinterpret
     }
   where
     bad_unboxed id = addErr (sep [ptext (sLit "Eta REPL can't bind a variable of unlifted type:"),
@@ -1579,7 +1583,7 @@ Here is the grand plan, implemented in tcUserStmt
 -}
 
 -- | A plan is an attempt to lift some code into the IO monad.
-type PlanResult = ([Id], LHsExpr Id)
+type PlanResult = Either Reinterpret ([Id], LHsExpr Id)
 type Plan = TcM PlanResult
 
 -- | Try the plans in order. If one fails (by raising an exn), try the next.
@@ -1638,7 +1642,7 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
         -- emit two redundant type-error warnings, one from each plan.
         ; plan <- unsetGOptM Opt_DeferTypeErrors $ runPlans [
                     -- Plan A
-                    do { stuff@([it_id], _) <- tcGhciStmts [bind_stmt, print_it]
+                    do { stuff@(Right ([it_id], _)) <- tcGhciStmts [bind_stmt, print_it]
                        ; it_ty <- zonkTcType (idType it_id)
                        ; when (isUnitTy $ it_ty) failM
                        ; return stuff },
@@ -1651,9 +1655,25 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                         -- The two-step process avoids getting two errors: one from
                         -- the expression itself, and one from the 'print it' part
                         -- This two-step story is very clunky, alas
-                    do { _ <- checkNoErrs (tcGhciStmts [let_stmt])
+                    do { Right (ids, _) <- checkNoErrs (tcGhciStmts [let_stmt])
                                 --- checkNoErrs defeats the error recovery of let-bindings
-                       ; tcGhciStmts [let_stmt, print_it] } ]
+                       ; let cont = tcGhciStmts [let_stmt, print_it]
+                       ; case map idType ids of
+                           [idTy]
+                             | Just (tc, [ty]) <- splitTyConApp_maybe idTy
+                             , getUnique tc == qTyConKey
+                             -> case splitTyConApp_maybe ty of
+                                  Just (tc1, [ty1])
+                                    | getUnique tc1 == listTyConKey
+                                    , Just (tc2, _) <- splitTyConApp_maybe ty1
+                                    , getUnique tc2 == decTyConKey
+                                    -> return $ Left ReinterpretDecl
+                                    | getUnique tc1 == decTyConKey
+                                    -> return $ Left ReinterpretDecl
+                                  _ -> cont
+                           _ -> cont
+                       
+                       } ]
 
         ; fix_env <- getFixityEnv
         ; return (plan, fix_env) }
@@ -1687,7 +1707,7 @@ tcUserStmt rdr_stmt@(L loc _)
        ; return (plan, fix_env) }
   where
     mk_print_result_plan stmt v
-      = do { stuff@([v_id], _) <- tcGhciStmts [stmt, print_v]
+      = do { stuff@(Right ([v_id], _)) <- tcGhciStmts [stmt, print_v]
            ; v_ty <- zonkTcType (idType v_id)
            ; when (isUnitTy v_ty || not (isTauTy v_ty)) failM
            ; return stuff }
@@ -1761,8 +1781,8 @@ tcGhciStmts stmts
                                  (nlHsVar id) ;
             stmts = tc_stmts ++ [noLoc (mkLastStmt ret_expr)]
         } ;
-        return (ids, mkHsDictLet (EvBinds const_binds) $
-                     noLoc (HsDo GhciStmtCtxt stmts io_ret_ty))
+        return $ Right (ids, mkHsDictLet (EvBinds const_binds) $
+                               noLoc (HsDo GhciStmtCtxt stmts io_ret_ty))
     }
 
 -- | Generate a typed ghciStepIO expression (ghciStep :: Ty a -> IO a)

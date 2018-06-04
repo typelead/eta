@@ -54,7 +54,7 @@ data Message a where
   AddDynamicClassPath :: [String] -> Message ()
 
   -- | Sets the classpath of child classloader.
-  SetModuleClassPath :: [String] -> Message ()
+  AddModuleClassPath :: [String] -> Message ()
 
   -- | Load a list of class names and class contents into memory and link them.
   LoadClasses :: [String] -> [ByteString] -> Message ()
@@ -225,7 +225,7 @@ getMessage = do
   case b of
     0  -> Msg <$> return Shutdown
     1  -> Msg <$> AddDynamicClassPath <$> get
-    2  -> Msg <$> SetModuleClassPath <$> get
+    2  -> Msg <$> AddModuleClassPath <$> get
     3  -> Msg <$> (LoadClasses <$> get <*> get)
     4  -> Msg <$> (NewInstance <$> get)
     5  -> return $ Msg ResetClasses
@@ -243,7 +243,7 @@ putMessage :: Message a -> Put
 putMessage m = case m of
   Shutdown                    -> putWord8 0
   AddDynamicClassPath a       -> putWord8 1  >> put a
-  SetModuleClassPath a        -> putWord8 2  >> put a
+  AddModuleClassPath a        -> putWord8 2  >> put a
   LoadClasses a b             -> putWord8 3  >> put a >> put b
   NewInstance a               -> putWord8 4  >> put a
   ResetClasses                -> putWord8 5

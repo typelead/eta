@@ -93,6 +93,8 @@ module Eta.Main.GHC (
         getBindings, getInsts, getPrintUnqual,
         findModule, lookupModule,
 
+        Reinterpret(..),
+
 #ifdef ETA_REPL
         -- * Interactive evaluation
 

@@ -40,7 +40,7 @@ import Java.Exception
 run :: Message a -> IO a
 run m = case m of
   AddDynamicClassPath cp -> addDynamicClassPath cp
-  SetModuleClassPath cp  -> setModuleClassPath cp
+  AddModuleClassPath cp  -> addModuleClassPath cp
   LoadClasses classNames classes -> loadClasses classNames classes
   NewInstance className -> newInstance className
   ResetClasses -> resetClasses

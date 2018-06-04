@@ -335,7 +335,7 @@ printForUserPartWay doc = do
   liftIO $ Outputable.printForUserPartWay dflags stdout (pprUserLength dflags) unqual doc
 
 -- | Run a single Haskell expression
-runStmt :: String -> GHC.SingleStep -> GHCi (Maybe GHC.ExecResult)
+runStmt :: String -> GHC.SingleStep -> GHCi (Maybe (Either GHC.Reinterpret GHC.ExecResult))
 runStmt expr step = do
   st <- getGHCiState
   GHC.handleSourceError (\e -> do GHC.printException e; return Nothing) $ do

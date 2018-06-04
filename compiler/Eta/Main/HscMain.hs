@@ -1328,7 +1328,7 @@ IO monad as explained in Note [Interactively-bound Ids in GHCi] in HscTypes
 --
 -- We return Nothing to indicate an empty statement (or comment only), not a
 -- parse error.
-hscStmt :: HscEnv -> String -> IO (Maybe ([Id], ForeignHValue, FixityEnv))
+hscStmt :: HscEnv -> String -> IO (Maybe (Either Reinterpret ([Id], ForeignHValue, FixityEnv)))
 hscStmt hsc_env stmt = hscStmtWithLocation hsc_env stmt "<interactive>" 1
 
 -- | Compile a stmt all the way to an HValue, but don't run it
@@ -1339,9 +1339,9 @@ hscStmtWithLocation :: HscEnv
                     -> String -- ^ The statement
                     -> String -- ^ The source
                     -> Int    -- ^ Starting line
-                    -> IO ( Maybe ([Id]
+                    -> IO ( Maybe (Either Reinterpret ([Id]
                           , ForeignHValue {- IO [HValue] -}
-                          , FixityEnv))
+                          , FixityEnv)))
 hscStmtWithLocation hsc_env0 stmt source linenumber =
   runInteractiveHsc hsc_env0 $ do
     maybe_stmt <- hscParseStmtWithLocation source linenumber stmt
@@ -1354,27 +1354,31 @@ hscStmtWithLocation hsc_env0 stmt source linenumber =
 
 hscParsedStmt :: HscEnv
               -> GhciLStmt RdrName  -- ^ The parsed statement
-              -> IO ( Maybe ([Id]
+              -> IO ( Maybe (Either Reinterpret ([Id]
                     , ForeignHValue {- IO [HValue] -}
-                    , FixityEnv))
+                    , FixityEnv)))
 hscParsedStmt hsc_env stmt = runInteractiveHsc hsc_env $ do
   -- Rename and typecheck it
-  (ids, tc_expr, fix_env) <- ioMsgMaybe $ tcRnStmt hsc_env stmt
+  eResult <- ioMsgMaybe $ tcRnStmt hsc_env stmt
 
-  -- Desugar it
-  ds_expr <- ioMsgMaybe $ deSugarExpr hsc_env tc_expr
-  liftIO (lintInteractiveExpr "desugar expression" hsc_env ds_expr)
-  handleWarnings
+  case eResult of
+    Right (ids, tc_expr, fix_env) -> do
 
-  -- Then code-gen, and link it
-  -- It's important NOT to have package 'interactive' as thisUnitId
-  -- for linking, else we try to link 'main' and can't find it.
-  -- Whereas the linker already knows to ignore 'interactive'
-  let src_span = srcLocSpan interactiveSrcLoc
-  -- TODO: Allow hooks to work
-  hval <- liftIO $ hscCompileCoreExpr hsc_env src_span ds_expr
+        -- Desugar it
+        ds_expr <- ioMsgMaybe $ deSugarExpr hsc_env tc_expr
+        liftIO (lintInteractiveExpr "desugar expression" hsc_env ds_expr)
+        handleWarnings
 
-  return $ Just (ids, hval, fix_env)
+        -- Then code-gen, and link it
+        -- It's important NOT to have package 'interactive' as thisUnitId
+        -- for linking, else we try to link 'main' and can't find it.
+        -- Whereas the linker already knows to ignore 'interactive'
+        let src_span = srcLocSpan interactiveSrcLoc
+        -- TODO: Allow hooks to work
+        hval <- liftIO $ hscCompileCoreExpr hsc_env src_span ds_expr
+
+        return $ Just $ Right (ids, hval, fix_env)
+    Left reinterpret -> return $ Just $ Left reinterpret
 
 -- | Compile a decls
 hscDecls :: HscEnv

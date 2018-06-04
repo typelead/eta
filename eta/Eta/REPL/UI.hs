@@ -1196,7 +1196,10 @@ runStmt stmt step = do
            m_result <- GhciMonad.runStmt stmt step
            case m_result of
                Nothing     -> return Nothing
-               Just result -> Just <$> afterRunStmt (const True) result
+               Just res -> case res of
+                 Right result -> Just <$> afterRunStmt (const True) result
+                 -- If we find a Q Dec or Q [Dec], then run it as a declaration.
+                 Left GHC.ReinterpretDecl -> run_decl
 
 -- | Clean up the GHCi environment after a statement has run
 afterRunStmt :: (SrcSpan -> Bool) -> GHC.ExecResult -> GHCi GHC.ExecResult

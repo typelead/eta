@@ -128,6 +128,8 @@ module Eta.Main.HscTypes (
         SourceError, GhcApiError, mkSrcErr, srcErrorMessages, mkApiErr,
         throwOneError, handleSourceError,
         handleFlagWarnings, printOrThrowWarnings,
+
+        Reinterpret(..)
     ) where
 
 #include "HsVersions.h"
@@ -2923,3 +2925,5 @@ emptyModBreaks = ModBreaks
    , modBreaks_vars  = array (0,-1) []
    , modBreaks_decls = array (0,-1) []
    }
+
+data Reinterpret = ReinterpretDecl
