@@ -378,7 +378,7 @@ public class Concurrent {
             if (selectorLock.compareAndSet(false, true)) {
                 try {
                     int selectedKeys = globalSelector.selectNow();
-                    ArrayList<TSO> tsoList = new ArrayList<>();
+                    ArrayList<TSO> tsoList = new ArrayList<TSO>();
                     while (selectedKeys > 0) {
                         Iterator<SelectionKey> it = globalSelector.selectedKeys().iterator();
                         while (it.hasNext()) {
