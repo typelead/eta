@@ -1663,14 +1663,18 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                              | Just (tc, [ty]) <- splitTyConApp_maybe idTy
                              , getUnique tc == qTyConKey
                              -> case splitTyConApp_maybe ty of
-                                  Just (tc1, [ty1])
-                                    | getUnique tc1 == listTyConKey
-                                    , Just (tc2, _) <- splitTyConApp_maybe ty1
-                                    , getUnique tc2 == decTyConKey
-                                    -> return $ Left ReinterpretDecl
-                                    | getUnique tc1 == decTyConKey
-                                    -> return $ Left ReinterpretDecl
-                                  _ -> cont
+                                 Just (tc1, [ty1])
+                                   | getUnique tc1 == listTyConKey
+                                   , Just (tc2, _) <- splitTyConApp_maybe ty1
+                                   , getUnique tc2 == decTyConKey
+                                   -> return (Left ReinterpretDecl)
+                                 Just (tc1, [])
+                                   | getUnique tc1 == decTyConKey
+                                   -> return (Left ReinterpretDecl)
+                                   | getUnique tc1 == expTyConKey
+                                   -> return (Left ReinterpretSplice)
+                                 Just _ -> return (Left ReinterpretRunQ)
+                                 _ -> cont
                            _ -> cont
                        
                        } ]

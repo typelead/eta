@@ -1159,8 +1159,8 @@ enqueueCommands cmds = do
 runStmt :: String -> SingleStep -> GHCi (Maybe GHC.ExecResult)
 runStmt stmt step = do
   dflags <- GHC.getInteractiveDynFlags
-  if | GHC.isStmt dflags stmt    -> run_stmt
-     | GHC.isImport dflags stmt  -> run_import
+  if | GHC.isStmt dflags stmt    -> run_stmt stmt
+     | GHC.isImport dflags stmt  -> run_import stmt
      -- Every import declaration should be handled by `run_import`. As GHCi
      -- in general only accepts one command at a time, we simply throw an
      -- exception when the input contains multiple commands of which at least
@@ -1170,36 +1170,40 @@ runStmt stmt step = do
      -- Note: `GHC.isDecl` returns False on input like
      -- `data Infix a b = a :@: b; infixl 4 :@:`
      -- and should therefore not be used here.
-     | otherwise                 -> run_decl
+     | otherwise                 -> run_decl stmt
 
   where
-    run_import = do
-      addImportToContext stmt
+    run_import stmt' = do
+      addImportToContext stmt'
       return (Just (GHC.ExecComplete (Right []) 0))
 
-    run_decl =
+    run_decl stmt' =
         do _ <- liftIO $ tryIO $ hFlushAll stdin
-           m_result <- GhciMonad.runDecls stmt
+           m_result <- GhciMonad.runDecls stmt'
            case m_result of
                Nothing     -> return Nothing
                Just result ->
                  Just <$> afterRunStmt (const True)
                             (GHC.ExecComplete (Right result) 0)
 
-    run_stmt =
+    run_stmt stmt' =
         do -- In the new IO library, read handles buffer data even if the Handle
            -- is set to NoBuffering.  This causes problems for GHCi where there
            -- are really two stdin Handles.  So we flush any bufferred data in
            -- GHCi's stdin Handle here (only relevant if stdin is attached to
            -- a file, otherwise the read buffer can't be flushed).
            _ <- liftIO $ tryIO $ hFlushAll stdin
-           m_result <- GhciMonad.runStmt stmt step
+           m_result <- GhciMonad.runStmt stmt' step
            case m_result of
                Nothing     -> return Nothing
                Just res -> case res of
                  Right result -> Just <$> afterRunStmt (const True) result
                  -- If we find a Q Dec or Q [Dec], then run it as a declaration.
-                 Left GHC.ReinterpretDecl -> run_decl
+                 Left reinterpret -> case reinterpret of
+                   GHC.ReinterpretDecl -> run_decl stmt'
+                   GHC.ReinterpretRunQ -> run_stmt ("Language.Eta.Meta.runQ (" ++ stmt' ++ ")")
+                   GHC.ReinterpretSplice -> run_stmt ("$(" ++ stmt' ++ ")")
+
 
 -- | Clean up the GHCi environment after a statement has run
 afterRunStmt :: (SrcSpan -> Bool) -> GHC.ExecResult -> GHCi GHC.ExecResult
