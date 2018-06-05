@@ -6,6 +6,6 @@ public class RuntimeInternalError extends Error {
         // @VERSION_CHANGE@
         // @BUILD_NUMBER@
         // @BUILD_NUMBER_INTERNAL@
-        super("\n[Eta v0.8.0b1] " + message + "\nPlease report this as a bug: https://github.com/typelead/eta/issues");
+        super("\n[Eta v0.8.0b2] " + message + "\nPlease report this as a bug: https://github.com/typelead/eta/issues");
     }
 }
