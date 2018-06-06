@@ -358,9 +358,9 @@ public class Utils {
         return true;
     }
 
-    public static void setNonBlockingFD(Channel c, boolean blocking) throws IOException {
+    public static void setNonBlockingFD(Channel c, boolean nonblocking) throws IOException {
         if (c instanceof SelectableChannel) {
-            ((SelectableChannel) c).configureBlocking(blocking);
+            ((SelectableChannel) c).configureBlocking(!nonblocking);
         }
     }
 
