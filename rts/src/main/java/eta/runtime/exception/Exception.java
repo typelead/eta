@@ -228,24 +228,32 @@ public class Exception {
 
     public static boolean throwToMsg(Capability cap, MessageThrowTo msg, boolean wakeupSource) {
         final TSO target = msg.target;
+        final boolean debug = Runtime.debugScheduler();
         do {
             assert target != null;
-            if (target.whatNext == ThreadComplete
-                || target.whatNext == ThreadKilled) {
+            if (target.whatNext == ThreadComplete || target.whatNext == ThreadKilled) {
                 return true;
-            }
-            if (Runtime.debugScheduler()) {
-                debugScheduler("Throwing asynchronous exception from "
-                               + msg.source + " to " + msg.target);
             }
             final Capability targetCap = target.cap;
             if (targetCap != cap) {
                 if (targetCap == null) {
+                    if (debug) {
+                        debugScheduler(target + " is idle, killing");
+                    }
                     target.whatNext = ThreadKilled;
                     return true;
                 } else {
+                    if (debug) {
+                        debugScheduler("throwToMsg: Throwing asynchronous exception from "
+                                      + msg.source + " to " + target);
+                    }
                     cap.sendMessage(targetCap, msg);
                     return false;
+                }
+            } else {
+                if (debug) {
+                    debugScheduler("throwToMsg: " + target + " " + target.whyBlocked +
+                                   " receiving asynchronous exception from " + msg.source);
                 }
             }
             switch (target.whyBlocked) {
@@ -275,6 +283,7 @@ public class Exception {
                         target.blockedThrowTo(msg);
                         return false;
                     }
+                    msg2.unlock();
                     break;
                case BlockedOnBlackHole:
                    if (target.hasFlag(TSO_BLOCKEX)) {
@@ -322,7 +331,7 @@ public class Exception {
             msg.done();
             cap.tryWakeupThread(source);
         }
-        Exception.raiseAsync(target, msg.exception, false, null);
+        raiseAsync(target, msg.exception, false, null);
         return true;
     }
 }

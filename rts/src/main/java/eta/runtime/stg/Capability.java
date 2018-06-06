@@ -415,7 +415,8 @@ public final class Capability implements LocalHeap {
                 t.interrupt();
             } else {
                 if (debug) {
-                    debugScheduler(this + " soft interrupted while running " + tso);
+                    debugScheduler(this + " soft interrupted while running " + tso + " "
+                                   + tso.whyBlocked);
                 }
             }
             return true;
