@@ -30,7 +30,6 @@ import GHC.IO hiding ( bracket )
 import System.Mem.Weak  ( deRefWeak )
 import System.Exit
 import Data.IORef
-import Unsafe.Coerce
 import Java
 import Java.Exception
 
@@ -88,15 +87,22 @@ evalString :: HValueRef -> IO (EvalResult String)
 evalString r = do
   io <- localRef r
   tryEval $ do
-    r <- unsafeCoerce io :: IO String
+    r <- unsafeCoerce# (IO $ evalString# (unsafeCoerce# io)) :: IO String
     evaluate (force r)
+
+foreign import prim "eta.serv.Utils.evalString"
+  evalString# :: Any -> State# s -> (# State# s, Any #)
 
 evalStringToString :: HValueRef -> String -> IO (EvalResult String)
 evalStringToString r str = do
   io <- localRef r
   tryEval $ do
-    r <- (unsafeCoerce io :: String -> IO String) str
+    r <- unsafeCoerce#
+      (IO $ evalStringToString# (unsafeCoerce# io) (unsafeCoerce# str)) :: IO String
     evaluate (force r)
+
+foreign import prim "eta.serv.Utils.evalStringToString"
+  evalStringToString# :: Any -> Any -> State# s -> (# State# s, Any #)
 
 -- When running a computation, we redirect ^C exceptions to the running
 -- thread.  ToDo: we might want a way to continue even if the target

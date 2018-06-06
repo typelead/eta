@@ -20,6 +20,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
+import java.lang.reflect.InvocationTargetException;
 // import java.lang.management.ThreadMXBean;
 // import java.lang.management.ThreadInfo;
 // import java.lang.management.ManagementFactory;
@@ -151,19 +152,33 @@ public class REPLClassLoader extends URLClassLoader {
     private static Class<?> ZMZNClass;
     private static Method applyMethod;
     private static Method evalIOMethod;
+    private static Method evaluateMethod;
+    private static Field Czhx1Field;
+    private static Class<?> CzhClass;
+    private static Constructor CzhConstructor;
+    private static Constructor ZCConstructor;
+    private static Object ZMZNSingleton;
 
     public static void lazyInit() {
         if (closureClass == null) {
             try {
-                runtimeClass  = replClassLoader.loadClass("eta.runtime.Runtime");
-                closureClass  = replClassLoader.loadClass("eta.runtime.stg.Closure");
-                closuresClass = replClassLoader.loadClass("eta.runtime.stg.Closures");
-                ZCClass       = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZC");
-                ZMZNClass     = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZMZN");
-                ZCx1Field     = ZCClass.getField("x1");
-                ZCx2Field     = ZCClass.getField("x2");
-                applyMethod   = closuresClass.getMethod("apply", closureClass, closureClass);
-                evalIOMethod  = runtimeClass.getMethod("evalIO", closureClass);
+                runtimeClass   = replClassLoader.loadClass("eta.runtime.Runtime");
+                closureClass   = replClassLoader.loadClass("eta.runtime.stg.Closure");
+                closuresClass  = replClassLoader.loadClass("eta.runtime.stg.Closures");
+                ZCClass        = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZC");
+                ZMZNClass      = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.ZMZN");
+                ZCx1Field      = ZCClass.getField("x1");
+                ZCx2Field      = ZCClass.getField("x2");
+                applyMethod    = closuresClass.getMethod("apply", closureClass, closureClass);
+                evalIOMethod   = runtimeClass.getMethod("evalIO", closureClass);
+                evaluateMethod = runtimeClass.getMethod("evaluate", closureClass);
+                CzhClass       = replClassLoader.loadClass("ghc_prim.ghc.types.datacons.Czh");
+                Czhx1Field     = CzhClass.getField("x1");
+                CzhConstructor = CzhClass.getConstructor(Integer.TYPE);
+                ZCConstructor  = ZCClass.getConstructor(closureClass, closureClass);
+                ZCConstructor  = ZCClass.getConstructor(closureClass, closureClass);
+                ZMZNSingleton  = replClassLoader.loadClass("ghc_prim.ghc.Types")
+                                                .getMethod("DZMZN").invoke(null);
             } catch (Exception e) {
                 throw new RuntimeException("Failed during Eta REPL initialization", e);
             }
@@ -175,8 +190,6 @@ public class REPLClassLoader extends URLClassLoader {
     private static Method runTHMethod;
     private static Method runModFinalizerRefsMethod;
     private static Constructor jbyteArrayConstructor;
-    private static Constructor ZCConstructor;
-    private static Method DZMZNMethod;
 
     public static void lazyInitTH() {
         lazyInit();
@@ -186,8 +199,8 @@ public class REPLClassLoader extends URLClassLoader {
                     replClassLoader.loadClass("eta_meta.language.eta.meta.Server");
                 apply3Method =
                     replClassLoader.loadClass("eta.runtime.stg.Closures")
-                      .getMethod("apply", closureClass, closureClass, closureClass,
-                                 closureClass);
+                      .getMethod("apply", closureClass, closureClass,
+                                 closureClass, closureClass);
                 startTHMethod = serverClass.getMethod("startTH");
                 runTHMethod   = serverClass.getMethod("runTH");
                 runModFinalizerRefsMethod =
@@ -196,9 +209,6 @@ public class REPLClassLoader extends URLClassLoader {
                     replClassLoader
                     .loadClass("ghc_prim.ghc.cstring.datacons.JByteArray")
                     .getConstructor(byte[].class);
-                ZCConstructor = ZCClass.getConstructor(closureClass, closureClass);
-                DZMZNMethod = replClassLoader.loadClass("ghc_prim.ghc.Types")
-                                .getMethod("DZMZN");
             } catch (Exception e) {
                 throw new RuntimeException("Failed during Eta REPL TH initialization", e);
             }
@@ -241,6 +251,61 @@ public class REPLClassLoader extends URLClassLoader {
         }
     }
 
+    public static String evalString(Object e) {
+        lazyInit();
+        try {
+            return convertToString(evalIOInternal(e));
+        } catch (Exception exc) {
+            throw new RuntimeException
+                ("Failed during evalIO of Eta REPL expression", exc);
+        }
+    }
+
+    public static String evalStringToString(Object e, String str) {
+        lazyInit();
+        try {
+            return convertToString(evalIOInternal(apply(e, convertFromString(str))));
+        } catch (Exception exc) {
+            throw new RuntimeException
+                ("Failed during evalIO of Eta REPL expression", exc);
+        }
+    }
+
+    private static Object convertFromString(String str) throws
+        InstantiationException, IllegalAccessException, InvocationTargetException {
+        int off = 0;
+        int len = str.length();
+        if (len <= 0) return ZMZNSingleton;
+        int codepoint = 0;
+        Object prevCurrent = null;
+        Object current = ZCConstructor.newInstance(null, null);
+        Object head = current;
+        for (off = 0;
+             off < len;
+             off += Character.charCount(codepoint)) {
+            codepoint = str.codePointAt(off);
+            ZCx1Field.set(current, CzhConstructor.newInstance(codepoint));
+            Object next = ZCConstructor.newInstance(null, null);
+            ZCx2Field.set(current, next);
+            prevCurrent = current;
+            current = next;
+        }
+        ZCx2Field.set(prevCurrent, ZMZNSingleton);
+        return head;
+    }
+
+    private static String convertToString(Object result) throws
+        IllegalAccessException, InvocationTargetException {
+        StringBuilder sb = new StringBuilder();
+        while (!ZMZNClass.isInstance(result = evaluateMethod.invoke(null, result))) {
+            sb.appendCodePoint((int) Czhx1Field
+                                .get(evaluateMethod
+                                    .invoke(null, ZCx1Field.get(result))));
+            result = ZCx2Field.get(result);
+        }
+        return sb.toString();
+    }
+
     public static Object startTH() {
         lazyInitTH();
         try {
@@ -267,7 +332,7 @@ public class REPLClassLoader extends URLClassLoader {
         try {
             Object serialized_ = jbyteArrayConstructor.newInstance(serialized);
             ListIterator<Object> it = qactions.listIterator(qactions.size());
-            Object qs = DZMZNMethod.invoke(null);
+            Object qs = ZMZNSingleton;
             while (it.hasPrevious()) {
                 qs = ZCConstructor.newInstance(it.previous(), qs);
             }

@@ -7,6 +7,7 @@ import java.io.StringWriter;
 import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
 
+import eta.runtime.Runtime;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
@@ -17,29 +18,44 @@ import ghc_prim.ghc.Types;
 import ghc_prim.ghc.cstring.datacons.JByteArray;
 import ghc_prim.ghc.types.datacons.Ozh;
 import ghc_prim.ghc.types.datacons.ZC;
+import ghc_prim.ghc.types.datacons.Czh;
 import ghc_prim.ghc.types.tycons.ZMZN;
 
 public class Utils {
 
     public static Closure mkApp(StgContext context, Closure e1, Closure e2) {
-        Object e1_ = ((Ozh) e1).x1;
-        Object e2_ = ((Ozh) e2).x1;
-        return new Ozh(REPLClassLoader.apply(e1_, e2_));
+        return wrap(REPLClassLoader.apply(unwrap(e1), unwrap(e2)));
     }
 
     public static Closure evalStmt(StgContext context, Closure io) {
-        List<Object> result = REPLClassLoader.evalStmt(((Ozh) io).x1);
+        List<Object> result = REPLClassLoader.evalStmt(unwrap(io));
         ListIterator<Object> it = result.listIterator(result.size());
         ZMZN next = (ZMZN) Types.DZMZN();
         while (it.hasPrevious()) {
-            next = new ZC(new Ozh(it.previous()), next);
+            next = new ZC(wrap(it.previous()), next);
         }
         return next;
     }
 
     public static Closure evalIO(StgContext context, Closure io) {
-        REPLClassLoader.evalIO(((Ozh) io).x1);
+        REPLClassLoader.evalIO(unwrap(io));
         return ghc_prim.ghc.Tuple.DZ0T();
+    }
+
+    public static Closure evalString(StgContext context, Closure io) {
+        return eta.base.Utils.jstringToString(null, REPLClassLoader.evalString(unwrap(io)));
+
+    }
+
+    public static Closure evalStringToString(StgContext context, Closure io, Closure str) {
+        StringBuilder sb = new StringBuilder();
+        while ((str = Runtime.evaluate(str)) instanceof ZC) {
+            ZC next = (ZC) str;
+            sb.appendCodePoint(((Czh)(Runtime.evaluate(next.x1))).x1);
+            str = next.x2;
+        }
+        return eta.base.Utils.jstringToString
+            (null, REPLClassLoader.evalStringToString(unwrap(io), sb.toString()));
     }
 
     public static Closure startTH(StgContext context) {
@@ -51,7 +67,6 @@ public class Utils {
         return ghc_prim.ghc.Tuple.DZ0T();
     }
 
-    @SuppressWarnings("unchecked")
     public static Closure runModFinalizerRefs(StgContext context, Closure serialized,
                                               Closure qstate, Closure qactions) {
         List<Object> actions = new LinkedList<Object>();

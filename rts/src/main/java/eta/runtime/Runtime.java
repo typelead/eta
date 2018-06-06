@@ -7,11 +7,11 @@ import java.util.Properties;
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
+import eta.runtime.stg.StgContext;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.WeakPtr;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.RuntimeInternalError;
-
 
 public class Runtime {
 
@@ -294,6 +294,10 @@ public class Runtime {
 
     public static Closure evalJava(Object o, Closure p) throws Exception {
         return Capability.scheduleClosure(Closures.evalJava(o, p));
+    }
+
+    public static Closure evaluate(Closure p) {
+        return p.evaluate(StgContext.acquire());
     }
 
     public static TSO createIOThread(Closure p) {
