@@ -1670,7 +1670,7 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                                    -> return (Left ReinterpretDecl)
                                  Just (tc1, [])
                                    | getUnique tc1 == decTyConKey
-                                   -> return (Left ReinterpretDecl)
+                                   -> return (Left ReinterpretAsWrappedDecl)
                                    | getUnique tc1 == expTyConKey
                                    -> return (Left ReinterpretSplice)
                                  Just _ -> return (Left ReinterpretRunQ)

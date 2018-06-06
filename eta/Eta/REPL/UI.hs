@@ -1201,6 +1201,7 @@ runStmt stmt step = do
                  -- If we find a Q Dec or Q [Dec], then run it as a declaration.
                  Left reinterpret -> case reinterpret of
                    GHC.ReinterpretDecl -> run_decl stmt'
+                   GHC.ReinterpretAsWrappedDecl -> run_decl ("fmap (:[]) (" ++ stmt' ++ ")")
                    GHC.ReinterpretRunQ -> run_stmt ("Language.Eta.Meta.runQ (" ++ stmt' ++ ")")
                    GHC.ReinterpretSplice -> run_stmt ("$(" ++ stmt' ++ ")")
 

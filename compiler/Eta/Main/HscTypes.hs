@@ -2927,5 +2927,6 @@ emptyModBreaks = ModBreaks
    }
 
 data Reinterpret = ReinterpretDecl
+                 | ReinterpretAsWrappedDecl
                  | ReinterpretSplice
                  | ReinterpretRunQ
