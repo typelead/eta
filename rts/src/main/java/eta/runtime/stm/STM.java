@@ -150,7 +150,7 @@ public class STM {
                         if (e_ instanceof EtaException) {
                             e = (EtaException) e_;
                         } else {
-                            e = Exception.toEtaException(tso, e_);
+                            e = EtaException.fromJavaException(tso, e_);
                         }
                         trec = tso.trec;
                         boolean valid = trec.validateNestOfTransactions();
@@ -211,7 +211,7 @@ public class STM {
                 if (e instanceof EtaException) {
                     e_ = (EtaException) e;
                 } else {
-                    e_ = Exception.toEtaException(tso, e);
+                    e_ = EtaException.fromJavaException(tso, e);
                 }
                 Closure ret = handler.apply1V(context, e_.exception);
                 tso.resetStack();
@@ -265,7 +265,7 @@ public class STM {
                     }
                 } else {
                     if (!(e instanceof StgException)) {
-                        e = Exception.toEtaException(tso, e);
+                        e = EtaException.fromJavaException(tso, e);
                     }
                     tso.trec = outer;
                     throw e;

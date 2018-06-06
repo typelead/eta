@@ -139,7 +139,7 @@ public class Exception {
             } else if (e instanceof StgException) {
                 throw e;
             } else {
-                exception = convertJavaException(tso, e);
+                exception = EtaException.convertJavaException(tso, e);
             }
             /* TODO: It seems that there should be more logic as this
                      discards the masking state before the catch.
@@ -173,23 +173,7 @@ public class Exception {
     }
 
     public static Closure raise(StgContext context, Closure exception) {
-        java.lang.Exception cause = context.getCause();
-        EtaException e = null;
-        if (cause == null) {
-            // If no previous exception was thrown in the current chain.
-            e = EtaException.create(context, exception);
-        } else {
-            if (context.getException() != exception) {
-                // If the last exception in thrown in the chain was different
-                // than the one being thrown now, create a cause chain.
-                final java.lang.Exception oldCause = cause;
-                e = EtaException.create(context, exception);
-                e.initCause(oldCause);
-            } else {
-                e = (EtaException) cause;
-            }
-        }
-        throw e;
+        throw EtaException.create(context, exception);
     }
 
     /** Helper for the exception primops **/
@@ -340,23 +324,5 @@ public class Exception {
         }
         Exception.raiseAsync(target, msg.exception, false, null);
         return true;
-    }
-
-    public static Closure convertJavaException(TSO tso, java.lang.Exception e) {
-        if (Runtime.debugExceptions()) {
-            debugExceptions("Converting Java Exception: " + e);
-            e.printStackTrace();
-            debugExceptions("at");
-            new java.lang.Exception().printStackTrace();
-        }
-        tso.setCauseAndException(e, null);
-        return Closures.mkSomeException(e);
-    }
-
-    public static EtaException toEtaException(TSO tso, java.lang.Exception e) {
-        EtaException exception =
-            EtaException.create(tso.getContext(), convertJavaException(tso, e));
-        exception.initCause(e);
-        return exception;
     }
 }

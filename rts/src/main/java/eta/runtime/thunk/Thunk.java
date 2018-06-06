@@ -272,7 +272,7 @@ public abstract class Thunk extends Closure {
             if (e instanceof StgException) {
                 thrw = (StgException)e;
             } else {
-                thrw = Exception.toEtaException(context.currentTSO, e);
+                thrw = EtaException.fromJavaException(context.currentTSO, e);
             }
         }
         if (thrw instanceof EtaException) {
