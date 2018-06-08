@@ -30,25 +30,16 @@ module Eta.Main.DriverPipeline (
    compressionMethod
   ) where
 
--- import Eta.Core.CoreSyn (CoreProgram)
--- import Eta.StgSyn.StgSyn (StgBinding)
--- import Eta.Profiling.CostCentre (CollectedCCs)
--- import Eta.SimplStg.SimplStg         ( stg2stg )
--- import Eta.StgSyn.CoreToStg        ( coreToStg )
--- import Eta.Core.CorePrep         ( corePrepPgm )
 import Eta.Main.SysTools
 import Eta.Main.Constants
 import qualified Eta.Main.SysTools as SysTools
--- import Eta.Types.TyCon ( isDataTyCon )
--- import Eta.BasicTypes.NameEnv
 
--- import Eta.CodeGen.Main
 import Eta.CodeGen.Name
 import Eta.Debug
 import Eta.CodeGen.Rts
--- import Eta.Parser.Parse
 import Eta.Utils.JAR
-import Eta.Util
+import Eta.Utils.PprColor
+import Eta.Utils.Util
 import Codec.JVM
 import Eta.REPL.Linker
 import Eta.Main.FileCleanup
@@ -61,32 +52,24 @@ import Eta.Main.DriverPhases
 import Eta.Main.HscMain
 import Eta.Main.Finder
 import Eta.Main.HscTypes hiding ( Hsc )
--- import Eta.Utils.Outputable   hiding ((<>))
 import Eta.BasicTypes.Module
 import Eta.Utils.UniqFM           ( eltsUFM )
 import Eta.Main.ErrUtils
 import Eta.Main.DynFlags
 import Eta.Utils.Panic
-import Eta.Utils.Util
 import Eta.Utils.StringBuffer     ( hGetStringBuffer )
 import Eta.BasicTypes.BasicTypes       ( SuccessFlag(..) )
--- import Eta.Utils.Maybes           ( expectJust )
 import Eta.BasicTypes.OccName
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.FastString
--- import LlvmCodeGen      ( llvmFixupAsm )
 import Eta.Utils.MonadUtils
--- import Eta.Utils.Platform
 import Eta.TypeCheck.TcRnTypes
 import Eta.Main.Hooks
 
 import Eta.Utils.Exception
 import Eta.Utils.Fingerprint
--- import qualified Eta.Utils.Exception as Exception
--- import Data.IORef       ( readIORef )
 import System.Directory
 import System.FilePath
--- import System.IO
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
@@ -96,9 +79,6 @@ import Data.Set (Set)
 import Data.Maybe
 import Data.Time.Clock.POSIX
 import Data.Int
--- import System.Environment
--- import Data.Char
--- import Data.List (isPrefixOf)
 import Control.Arrow((&&&))
 import Data.ByteString (ByteString)
 import Data.Time
@@ -409,8 +389,14 @@ link _ dflags batchAttemptLinking hpt
                 | otherwise = show numModules ++ " module"
           randomSource <- fmap round getPOSIXTime
           let encMessage = getEncouragingMessage randomSource
-          compilationProgressMsg dflags $ "\ESC[1m\ESC[32m\x2713 Successfully built "
-            ++ modulesMsg ++ ". " ++ encMessage ++ "\ESC[0m\n"
+              checkMark
+                | useUnicode dflags = "\x2713 "
+                | otherwise         = ""
+          compilationProgressMsg dflags $
+            showSDocWithColor dflags $
+              colored (colBold `mappend` colGreenFg) $ vcat
+                [ text (checkMark ++ "Successfully built " ++ modulesMsg ++ ". " ++ encMessage)
+                , blankLine ]
           return Succeeded
   | otherwise
   = do debugTraceMsg dflags 3

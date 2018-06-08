@@ -40,7 +40,6 @@ import Eta.Main.DynFlags
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.UniqFM
-import Eta.Utils.Maybes           ( expectJust )
 import Eta.Utils.Exception        ( evaluate )
 
 import Data.IORef       ( IORef, writeIORef, readIORef, atomicModifyIORef )

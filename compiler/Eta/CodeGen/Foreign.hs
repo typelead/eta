@@ -7,7 +7,6 @@ import Eta.StgSyn.StgSyn
 import Eta.Prelude.ForeignCall
 import Eta.Utils.FastString
 import Eta.Utils.Util
-import Eta.Util
 
 import Eta.CodeGen.Env
 import Eta.CodeGen.Monad

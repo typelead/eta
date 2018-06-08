@@ -311,7 +311,6 @@ library
                        , Eta.Utils.UniqSet
                        , Eta.Utils.UnVarGraph
                        , Eta.Utils.Util
-                       , Eta.Util
                        , Eta.Utils.JAR
                        , Paths_eta
     build-depends:       base >= 4.7 && < 5

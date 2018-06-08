@@ -511,9 +511,12 @@ fatalErrorMsg'' :: FatalMessager -> String -> IO ()
 fatalErrorMsg'' fm msg = fm msg
 
 compilationProgressMsg :: DynFlags -> String -> IO ()
-compilationProgressMsg dflags msg
-  = ifVerbose dflags 1 $
-    logInteractive dflags defaultUserStyle (text ("\r\ESC[K" ++ msg ++ "\ESC[0m"))
+compilationProgressMsg dflags msg = ifVerbose dflags 1 printMsg
+  where printMsg
+          | shouldUseColor dflags =
+            logInteractive dflags (setStyleColored True defaultUserStyle)
+              (colored Col.clearToEndOfLine (text msg))
+          | otherwise = logOutput dflags defaultUserStyle (text msg)
 
 showPass :: DynFlags -> String -> IO ()
 showPass dflags what

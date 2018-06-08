@@ -28,7 +28,6 @@ import Eta.Utils.FastString
 import Eta.Utils.Util
 import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.DataCon ( dataConName )
-import Eta.Utils.Maybes
 import Eta.TypeCheck.TcMType
 import Eta.TypeCheck.TcType
 import Eta.BasicTypes.Name

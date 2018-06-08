@@ -8,7 +8,6 @@ import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.VarEnv
-import Eta.Utils.Util (unzipWith)
 import Eta.Types.TyCon
 import Eta.CodeGen.ArgRep
 import Eta.CodeGen.Constr
@@ -21,7 +20,7 @@ import Eta.CodeGen.Name
 import Eta.CodeGen.Layout
 import Eta.CodeGen.Closure
 import Eta.Debug
-import Eta.Util
+import Eta.Utils.Util
 import Data.Maybe (catMaybes)
 import Eta.Main.Constants
 import Codec.JVM

@@ -49,8 +49,6 @@ import Eta.Utils.Outputable hiding ((<>))
 import Eta.Utils.FastString
 import Eta.Main.DynFlags
 
-
-import Eta.Utils.Maybes (expectJust)
 import Eta.Utils.OrdList
 import Eta.Utils.Pair
 import Eta.Utils.Util

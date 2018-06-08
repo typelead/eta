@@ -10,7 +10,7 @@ import Eta.Prelude.PrimOp
 import Eta.StgSyn.StgSyn
 import Eta.BasicTypes.DataCon
 import Eta.Utils.Panic
-import Eta.Util
+import Eta.Utils.Util
 import Eta.Utils.FastString (unpackFS)
 import Eta.Debug
 import Eta.CodeGen.Utils

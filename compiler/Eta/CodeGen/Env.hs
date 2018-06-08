@@ -6,7 +6,7 @@ import Eta.Types.TyCon
 
 import Codec.JVM
 
-import Eta.Util
+import Eta.Utils.Util
 
 import Eta.CodeGen.Types
 import Eta.CodeGen.Closure

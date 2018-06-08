@@ -27,7 +27,7 @@ import Eta.Debug
 import Data.Maybe
 
 import Eta.CodeGen.Rts
-import Eta.Util
+import Eta.Utils.Util
 import Codec.JVM
 import Data.Monoid ((<>))
 

@@ -44,7 +44,6 @@ import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Digraph
 import Eta.Utils.Exception        ( tryIO, gbracket, gfinally )
 import Eta.Utils.FastString
-import Eta.Utils.Maybes           ( expectJust )
 import Eta.Utils.MonadUtils       ( allM, MonadIO )
 import Eta.Utils.Outputable
 import Eta.Utils.Panic

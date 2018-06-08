@@ -7,6 +7,9 @@ import Eta.Utils.Util (OverridingBool(..), split)
 -- | A color\/style for use with 'colored'.
 newtype PprColor = PprColor { renderColor :: String }
 
+mapPprColor :: (String -> String) -> PprColor -> PprColor
+mapPprColor f (PprColor s) = PprColor (f s)
+
 -- | Allow colors to be combined (e.g. bold + red);
 --   In case of conflict, right side takes precedence.
 instance Monoid PprColor where
@@ -16,9 +19,15 @@ instance Monoid PprColor where
 renderColorAfresh :: PprColor -> String
 renderColorAfresh c = renderColor (colReset `mappend` c)
 
+codeCustom :: String -> PprColor
+codeCustom "" = mempty
+codeCustom s  = PprColor ("\27[" ++ s)
+
+clearToEndOfLine :: PprColor
+clearToEndOfLine = mapPprColor ("\r" ++) $ codeCustom "K"
+
 colCustom :: String -> PprColor
-colCustom "" = mempty
-colCustom s  = PprColor ("\27[" ++ s ++ "m")
+colCustom s = codeCustom (s ++ "m")
 
 colReset :: PprColor
 colReset = colCustom "0"

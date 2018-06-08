@@ -97,7 +97,7 @@ import Eta.CodeGen.Name
 import Eta.CodeGen.ArgRep
 import Eta.CodeGen.Rts
 import Eta.Debug
-import Eta.Util
+import Eta.Utils.Util
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text

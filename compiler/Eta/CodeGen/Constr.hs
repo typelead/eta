@@ -16,7 +16,7 @@ import Eta.CodeGen.ArgRep
 import Eta.CodeGen.Env
 import Eta.CodeGen.Name
 import Eta.CodeGen.Rts
-import Eta.Util
+import Eta.Utils.Util
 
 import Control.Monad hiding (void)
 import Codec.JVM

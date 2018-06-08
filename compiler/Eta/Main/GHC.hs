@@ -340,7 +340,6 @@ import Eta.Utils.UniqFM
 import Eta.Utils.Metrics
 import Eta.Utils.Json
 import Eta.Utils.Panic
--- import Eta.Utils.Platform
 import Eta.Utils.Bag              ( unitBag )
 import Eta.Main.ErrUtils
 import Eta.Utils.MonadUtils
@@ -348,7 +347,6 @@ import Eta.Utils.Util
 import Eta.Utils.StringBuffer
 import Eta.Utils.Outputable
 import Eta.BasicTypes.BasicTypes
-import Eta.Utils.Maybes           ( expectJust )
 import Eta.Utils.FastString
 import qualified Eta.Parser.Parser as Parser
 import Eta.Parser.Lexer

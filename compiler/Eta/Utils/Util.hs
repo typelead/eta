@@ -108,6 +108,14 @@ module Eta.Utils.Util (
         -- * Utils for flags
         OverridingBool(..),
         overrideWith,
+
+        -- * Misc
+        indexList,
+        upperFirst,
+        scanM,
+        expectJust,
+        safeHead,
+        safeLast
     ) where
 
 #include "HsVersions.h"
@@ -145,6 +153,10 @@ import qualified Data.IntMap as IM
 import qualified Data.Set as Set
 
 import Data.Time
+import qualified Data.Char as C
+import Data.Text (Text)
+import qualified Data.Text as T
+import Eta.Utils.Maybes(expectJust)
 
 infixr 9 `thenCmp`
 
@@ -1187,3 +1199,25 @@ overrideWith :: Bool -> OverridingBool -> Bool
 overrideWith b Auto   = b
 overrideWith _ Always = True
 overrideWith _ Never  = False
+
+indexList :: (Integral b) => [a] -> [(b, a)]
+indexList = zip [1..]
+
+upperFirst :: Text -> Text
+upperFirst str = case T.uncons str of
+  Nothing -> T.empty
+  Just (c, str') -> T.cons (C.toUpper c) str'
+
+scanM :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m [a]
+scanM _ q [] = return [q]
+scanM f q (x:xs) =
+   do q2 <- f q x
+      qs <- scanM f q2 xs
+      return (q:qs)
+
+safeHead :: [a] -> Maybe a
+safeHead (x:_) = Just x
+safeHead _     = Nothing
+
+safeLast :: [a] -> Maybe a
+safeLast xs = if null xs then Nothing else Just $ last xs

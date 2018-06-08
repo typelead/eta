@@ -6,7 +6,7 @@ import Eta.Types.TyCon
 import Eta.Main.DynFlags
 import Eta.StgSyn.StgSyn
 import Codec.JVM
-import Eta.Util
+import Eta.Utils.Util
 import Eta.BasicTypes.Var
 import Eta.CodeGen.Monad
 import Eta.CodeGen.Types

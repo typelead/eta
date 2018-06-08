@@ -11,11 +11,10 @@ import Eta.Main.DynFlags
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.DataCon
-import Eta.Utils.Util (unzipWith)
 import Eta.Utils.Digraph
 import Eta.Prelude.PrelNames (rOOT_MAIN)
 
-import Eta.Util
+import Eta.Utils.Util
 
 import Eta.Debug
 import Eta.CodeGen.Types

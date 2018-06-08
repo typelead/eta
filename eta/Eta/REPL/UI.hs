@@ -74,7 +74,7 @@ import Eta.Utils.Digraph
 import Eta.Utils.Encoding
 import Eta.Utils.FastString
 import Eta.REPL.Linker
-import Eta.Utils.Maybes ( orElse, expectJust )
+import Eta.Utils.Maybes ( orElse )
 import Eta.BasicTypes.NameSet
 import Eta.Utils.Panic hiding ( showException )
 import Eta.Utils.Util

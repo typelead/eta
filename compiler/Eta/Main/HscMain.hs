@@ -132,6 +132,7 @@ import Eta.BasicTypes.NameSet          ( emptyNameSet )
 import Eta.Types.InstEnv
 import Eta.Types.FamInstEnv
 import Eta.Utils.Fingerprint      ( Fingerprint )
+import Eta.Utils.PprColor
 import Eta.Main.Hooks
 
 import Eta.Main.DynFlags
@@ -729,10 +730,11 @@ batchMsg hsc_env mod_index recomp mod_summary =
         dflags = hsc_dflags hsc_env
         showMsg msg reason =
             compilationProgressMsg dflags $
-            ("\ESC[33m" ++ showModuleIndex mod_index
-             ++ msg ++ showModMsg dflags (hscTarget dflags)
-               (recompileRequired recomp) mod_summary)
-             ++ reason ++ "\ESC[0m"
+              showSDocWithColor dflags $
+                colored colYellowFg (text $
+                  showModuleIndex mod_index ++ msg ++
+                  showModMsg dflags (hscTarget dflags) (recompileRequired recomp) mod_summary ++
+                  reason)
 
 --------------------------------------------------------------
 -- FrontEnds

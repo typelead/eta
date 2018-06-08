@@ -60,7 +60,7 @@ import Eta.CodeGen.Name
 import Eta.CodeGen.Rts
 import Eta.CodeGen.ArgRep
 import Eta.Debug
-import Eta.Util
+import Eta.Utils.Util
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
