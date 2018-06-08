@@ -427,10 +427,10 @@ repFamilyResultSig (Just ki)    = do { ki' <- repLKind ki
 repFamilyResultSigToMaybeKind :: Maybe (LHsKind Name)
                               -> DsM (Core (Maybe TH.Kind))
 repFamilyResultSigToMaybeKind Nothing =
-    do { coreNothing kindQTyConName }
+    do { coreNothing kindTyConName }
 repFamilyResultSigToMaybeKind (Just ki) =
     do { ki' <- repLKind ki
-       ; coreJust kindQTyConName ki' }
+       ; coreJust kindTyConName ki' }
 -- repFamilyResultSigToMaybeKind _ = panic "repFamilyResultSigToMaybeKind"
 
 -- | Represent injectivity annotation of a type family
@@ -859,7 +859,7 @@ rep_ty_sig mk_sig loc hs_ty nm
   = do { nm1 <- lookupLOcc nm
        ; let rep_in_scope_tv tv = do { name <- lookupBinder (hsLTyVarName tv)
                                      ; repTyVarBndrWithKind tv name }
-       ; th_explicit_tvs <- repList tyVarBndrQTyConName rep_in_scope_tv
+       ; th_explicit_tvs <- repList tyVarBndrTyConName rep_in_scope_tv
                                     explicit_tvs
 
          -- NB: Don't pass any implicit type variables to repList above
@@ -997,7 +997,7 @@ addTyVarBinds (HsQTvs { hsq_kvs = kvs, hsq_tvs = tvs }) m
        ; fresh_tv_names <- mkGenSyms (map hsLTyVarName tvs)
        ; let fresh_names = fresh_kv_names ++ fresh_tv_names
        ; term <- addBinds fresh_names $
-                 do { kbs <- repList tyVarBndrQTyConName mk_tv_bndr (tvs `zip` fresh_tv_names)
+                 do { kbs <- repList tyVarBndrTyConName mk_tv_bndr (tvs `zip` fresh_tv_names)
                     ; m kbs }
        ; wrapGenSyms fresh_names term }
   where
@@ -1020,7 +1020,7 @@ addTyClTyVarBinds tvs m
             -- This makes things work for family declarations
 
        ; term <- addBinds freshNames $
-                 do { kbs <- repList tyVarBndrQTyConName mk_tv_bndr
+                 do { kbs <- repList tyVarBndrTyConName mk_tv_bndr
                                      (hsQTvBndrs tvs)
                     ; m kbs }
 
@@ -1176,10 +1176,10 @@ repTyLit (HsStrTy _ s) = do { s' <- mkStringExprFS s
 repMaybeLTy :: Maybe (LHsKind Name)
             -> DsM (Core (Maybe TH.Kind))
 repMaybeLTy Nothing =
-    do { coreNothing kindQTyConName }
+    do { coreNothing kindTyConName }
 repMaybeLTy (Just ki) =
     do { ki' <- repLKind ki
-       ; coreJust kindQTyConName ki' }
+       ; coreJust kindTyConName ki' }
 
 -- represent a kind
 
