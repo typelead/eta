@@ -76,8 +76,10 @@ import Text.ParserCombinators.ReadP hiding (char)
 import qualified Text.ParserCombinators.ReadP as R
 import System.Process
 import Control.Concurrent
+import Control.Applicative
 import Eta.Utils.FastString
 import Eta.BasicTypes.SrcLoc           ( SrcLoc, mkSrcLoc, noSrcSpan, mkSrcSpan )
+import Debug.Trace
 
 #ifdef mingw32_HOST_OS
 # if defined(i386_HOST_ARCH)
@@ -350,16 +352,21 @@ runJavac dflags args = do
                       [rtsUnitId, primUnitId, integerUnitId, baseUnitId]
         thisPkg = thisPackage dflags
         getClassFile str = do
-          str' <- breakSubstring  "RegularFileObject[" str
-          return $ init . init $ str'
+          str' <- breakSubstring "RegularFileObject[" str
+              <|> breakSubstring "SimpleFileObject[" str
+              <|> breakSubstring "DirectoryFileObject[" str
+          return $ map (\c -> if c == ':' then pathSeparator else c) $ init . init $ str'
         getClassOutputs str = catMaybes
                             . map getClassFile
                             . filter ( ".class]]" `isInfixOf` )
-                            . filter ("RegularFileObject[" `isInfixOf `)
-                            $ lines str
-        breakSubstring str1 str2 = stripPrefix startStr str2
-            where
-                startStr = head $ filter (isSuffixOf str1) $ inits str2
+                            . filter (\s -> "RegularFileObject["   `isInfixOf ` s
+                                         || "SimpleFileObject["    `isInfixOf` s
+                                         || "DirectoryFileObject[" `isInfixOf` s)
+                            $ traceShow outputLines outputLines
+          where outputLines = lines str
+        breakSubstring str1 str2 = do
+            startStr <- headMaybe $ filter (isSuffixOf str1) $ inits str2
+            stripPrefix startStr str2
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)

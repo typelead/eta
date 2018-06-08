@@ -11,7 +11,7 @@ module Eta.Utils.Util (
         isWindowsHost, isDarwinHost,
 
         -- * General list processing
-        expectHead,
+        expectHead, headMaybe,
         zipEqual, zipWithEqual, zipWith3Equal, zipWith4Equal,
         zipLazy, stretchZipWith, zipWithAndUnzip,
 
@@ -251,6 +251,10 @@ first3M f (x, y, z) = liftM (\x' -> (x', y, z)) (f x)
 expectHead :: String -> [a] -> a
 expectHead _   (x:_) = x
 expectHead err _      = error ("expectHead " ++ err)
+
+headMaybe :: [a] -> Maybe a
+headMaybe (x:_) = Just x
+headMaybe _     = Nothing
 
 filterOut :: (a->Bool) -> [a] -> [a]
 -- ^ Like filter, only it reverses the sense of the test

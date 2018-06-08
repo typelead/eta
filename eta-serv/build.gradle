@@ -41,10 +41,22 @@ shadowJar {
 
 import proguard.gradle.ProGuardTask
 
-task proJar(type: ProGuardTask) {
-  configuration defaultEtaProguardFile
-  configuration 'proguard.txt'
+if (!JavaVersion.current().isJava9Compatible()) {
 
-  injars shadowJar.outputs
-  outjars 'build/eta-serv.jar'
+  task proJar(type: ProGuardTask) {
+    configuration defaultEtaProguardFile
+    configuration 'proguard.txt'
+
+    injars shadowJar.outputs
+    outjars 'build/eta-serv.jar'
+  }
+
+} else {
+
+  task proJar(type: Copy) {
+    from shadowJar.outputs
+    into 'build'
+    rename { 'eta-serv.jar' }
+  }
+
 }
