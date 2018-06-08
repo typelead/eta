@@ -79,7 +79,6 @@ import Control.Concurrent
 import Control.Applicative
 import Eta.Utils.FastString
 import Eta.BasicTypes.SrcLoc           ( SrcLoc, mkSrcLoc, noSrcSpan, mkSrcSpan )
-import Debug.Trace
 
 #ifdef mingw32_HOST_OS
 # if defined(i386_HOST_ARCH)
@@ -362,8 +361,7 @@ runJavac dflags args = do
                             . filter (\s -> "RegularFileObject["   `isInfixOf ` s
                                          || "SimpleFileObject["    `isInfixOf` s
                                          || "DirectoryFileObject[" `isInfixOf` s)
-                            $ traceShow outputLines outputLines
-          where outputLines = lines str
+                            $ lines str
         breakSubstring str1 str2 = do
             startStr <- headMaybe $ filter (isSuffixOf str1) $ inits str2
             stripPrefix startStr str2
