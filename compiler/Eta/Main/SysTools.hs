@@ -354,7 +354,7 @@ runJavac dflags args = do
           str' <- breakSubstring "RegularFileObject[" str
               <|> breakSubstring "SimpleFileObject[" str
               <|> breakSubstring "DirectoryFileObject[" str
-          return $ map (\c -> if c == ':' then pathSeparator else c) $ init . init $ str'
+          return $ replaceColons $ init . init $ str'
         getClassOutputs str = catMaybes
                             . map getClassFile
                             . filter ( ".class]]" `isInfixOf` )
@@ -365,6 +365,9 @@ runJavac dflags args = do
         breakSubstring str1 str2 = do
             startStr <- headMaybe $ filter (isSuffixOf str1) $ inits str2
             stripPrefix startStr str2
+        replaceColons path = joinDrive drive $
+          map (\c -> if c == ':' then pathSeparator else c) rest
+          where (drive, rest) = splitDrive path
 
 isContainedIn :: String -> String -> Bool
 xs `isContainedIn` ys = any (xs `isPrefixOf`) (tails ys)
