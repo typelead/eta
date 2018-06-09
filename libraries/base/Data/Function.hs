@@ -28,6 +28,7 @@ module Data.Function
   , fix
   , on
   , trampoline
+  , trampoline#
   ) where
 
 import GHC.Base ( ($), (.), id, const, flip, Any, unsafeCoerce# )
