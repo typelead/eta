@@ -380,4 +380,12 @@ public class Print {
         m.reset(s);
         return m.matches();
     }
+
+    public static String classAndIdentity(Object e) {
+        if (e == null) {
+            return "null";
+        } else {
+            return e.getClass() + "@" + System.identityHashCode(e);
+        }
+    }
 }

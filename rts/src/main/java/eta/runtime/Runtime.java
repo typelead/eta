@@ -236,6 +236,14 @@ public class Runtime {
         return debugStablePtr;
     }
 
+    private static boolean debugTailCalls;
+
+    public static final String DEBUG_TAILCALLS_PROPERTY = "eta.debug.tailCalls";
+
+    public static boolean debugTailCalls() {
+        return debugTailCalls;
+    }
+
     private static boolean debugToFile;
 
     public static final String DEBUG_TOFILE_PROPERTY = "eta.debug.toFile";
@@ -264,6 +272,7 @@ public class Runtime {
         debugMemoryManager = rto.getBoolean(DEBUG_MEMORY_MANAGER_PROPERTY, false);
         debugExceptions = rto.getBoolean(DEBUG_EXCEPTIONS_PROPERTY, false);
         debugStablePtr = rto.getBoolean(DEBUG_STABLEPTR_PROPERTY, false);
+        debugTailCalls = rto.getBoolean(DEBUG_TAILCALLS_PROPERTY, false);
         debugToFile = rto.getBoolean(DEBUG_TOFILE_PROPERTY, false);
     }
 

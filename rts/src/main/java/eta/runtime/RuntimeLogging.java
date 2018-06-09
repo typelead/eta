@@ -99,6 +99,10 @@ public class RuntimeLogging {
         debugGeneric("StablePtr", msg);
     }
 
+    public static void debugTailCalls(String msg) {
+        debugGeneric("TailCalls", msg);
+    }
+
     public static void debugGeneric(String type, String msg) {
         debugBelch("[Eta-RTS](%s){%s}: %s", Capability.getLocal(), type, msg);
     }

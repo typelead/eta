@@ -2,10 +2,11 @@ package eta.runtime.stg;
 
 import java.util.Arrays;
 
+import eta.runtime.Runtime;
 import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
 
-import static eta.runtime.RuntimeLogging.barf;
+import static eta.runtime.RuntimeLogging.*;
 import static eta.runtime.stg.ArgumentStack.*;
 
 public class StgContext {
@@ -161,6 +162,16 @@ public class StgContext {
 
     public final Thunk popUpdate() {
         return currentTSO.updateInfoStack.pop();
+    }
+
+    private static final int TAIL_CALL_THRESHOLD = Runtime.getTailCallThreshold();
+
+    public final boolean checkTailCalls() {
+        int newTailCalls = ++tailCalls;
+        if (Runtime.debugTailCalls()) {
+            debugTailCalls(Integer.toString(newTailCalls));
+        }
+        return newTailCalls >= TAIL_CALL_THRESHOLD;
     }
 
     public final void merge(final ArgumentStack stack) {
