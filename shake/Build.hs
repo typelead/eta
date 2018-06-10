@@ -250,7 +250,6 @@ replClean :: Action ()
 replClean = do
   wipeGradle
   dir <- liftIO $ getCurrentDirectory
-  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "clean"
   etlasDir <- getEtlasDir
   let etlasToolsDir = etlasDir </> "tools"
   unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "proJar"
@@ -259,6 +258,8 @@ replClean = do
 
 wipeGradle :: Action ()
 wipeGradle = do
+  dir <- liftIO $ getCurrentDirectory
+  unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "clean"
   gradleDir <- getGradleHome
   liftIO $ removeFiles (gradleDir </> "caches" </> "etlas" </> "eta") ["//*"]
 

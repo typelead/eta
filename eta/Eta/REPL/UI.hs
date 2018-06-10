@@ -3912,9 +3912,6 @@ wantNameFromInterpretedModule noCanDo str and_then =
                                 text " is not interpreted"
                else and_then n
 
-withSignalHandlers :: m a -> m a
-withSignalHandlers = id
-
 pprTypeAndContents :: GHC.GhcMonad m => GHC.Id -> m SDoc
 pprTypeAndContents id = do
   dflags  <- GHC.getSessionDynFlags

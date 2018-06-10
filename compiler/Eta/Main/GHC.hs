@@ -13,6 +13,8 @@ module Eta.Main.GHC (
         defaultErrorHandler,
         defaultCleanupHandler,
         prettyPrintGhcErrors,
+        withSignalHandlers,
+        withCleanupSession,
 
         -- * GHC Monad
         Ghc, GhcT, GhcMonad(..), HscEnv,
@@ -298,6 +300,7 @@ import Eta.TypeCheck.TcRnDriver
 import Eta.TypeCheck.TcEnv
 import Eta.TypeCheck.FamInst
 import Eta.REPL.RemoteTypes
+import Eta.REPL
 import Data.Foldable
 #endif
 
@@ -418,22 +421,12 @@ defaultErrorHandler fm (FlushOut flushOut) inner =
             ) $
   inner
 
--- | Install a default cleanup handler to remove temporary files deposited by
--- a GHC run.  This is separate from 'defaultErrorHandler', because you might
--- want to override the error handling, but still get the ordinary cleanup
--- behaviour.
-defaultCleanupHandler :: (ExceptionMonad m, MonadIO m) =>
-                         DynFlags -> m a -> m a
-defaultCleanupHandler dflags inner =
-    -- make sure we clean up after ourselves
-    inner `gfinally`
-          (liftIO $ do
-              cleanTempFiles dflags
-              cleanTempDirs dflags
-          )
-          --  exceptions will be blocked while we clean the temporary files,
-          -- so there shouldn't be any difficulty if we receive further
-          -- signals.
+-- | This function is no longer necessary, cleanup is now done by
+-- runGhc/runGhcT.
+{-# DEPRECATED defaultCleanupHandler "Cleanup is now done by runGhc/runGhcT" #-}
+defaultCleanupHandler :: (ExceptionMonad m) => DynFlags -> m a -> m a
+defaultCleanupHandler _ m = m
+  where _warning_suppression = m `gonException` undefined
 
 
 -- %************************************************************************
@@ -457,9 +450,9 @@ runGhc :: Maybe FilePath  -- ^ See argument to 'initGhcMonad'.
 runGhc mb_top_dir ghc = do
   ref <- newIORef (panic "empty session")
   let session = Session ref
-  flip unGhc session $ do
+  flip unGhc session $ withSignalHandlers $ do
     initGhcMonad mb_top_dir
-    ghc
+    withCleanupSession ghc
   -- XXX: unregister interrupt handlers here?
 
 -- | Run function for 'GhcT' monad transformer.
@@ -475,9 +468,25 @@ runGhcT :: (ExceptionMonad m, Functor m, MonadIO m) =>
 runGhcT mb_top_dir ghct = do
   ref <- liftIO $ newIORef (panic "empty session")
   let session = Session ref
-  flip unGhcT session $ do
+  flip unGhcT session $ withSignalHandlers $ do
     initGhcMonad mb_top_dir
-    ghct
+    withCleanupSession ghct
+
+withCleanupSession :: GhcMonad m => m a -> m a
+withCleanupSession ghc = ghc `gfinally` cleanup
+  where
+   cleanup = do
+      hsc_env <- getSession
+      let dflags = hsc_dflags hsc_env
+      liftIO $ do
+          cleanTempFiles dflags
+          cleanTempDirs dflags
+#ifdef ETA_REPL
+          stopIServ hsc_env -- shut down the IServ
+#endif
+          --  exceptions will be blocked while we clean the temporary files,
+          -- so there shouldn't be any difficulty if we receive further
+          -- signals.
 
 -- | Initialise a GHC session.
 --
@@ -494,8 +503,7 @@ runGhcT mb_top_dir ghct = do
 initGhcMonad :: GhcMonad m => Maybe FilePath -> m ()
 initGhcMonad mb_top_dir
   = do { env <- liftIO $
-                do { installSignalHandlers  -- catch ^C
-                   ; initStaticOpts
+                do { initStaticOpts
                    ; mySettings <- initSysTools mb_top_dir
                    ; dflags <- initDynFlags (defaultDynFlags mySettings)
                    ; setUnsafeGlobalDynFlags dflags

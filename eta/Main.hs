@@ -173,9 +173,6 @@ main' postLoadMode dflags0 args flagWarnings = do
        liftIO $ exitWith (ExitFailure 1)) $
          liftIO $ handleFlagWarnings dflags4 flagWarnings'
 
-        -- make sure we clean up after ourselves
-  GHC.defaultCleanupHandler dflags4 $ do
-
   liftIO $ showBanner postLoadMode dflags4
 
   let
