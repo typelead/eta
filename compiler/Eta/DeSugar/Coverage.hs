@@ -651,10 +651,12 @@ addTickLStmts' isGuard lstmts res
        ; a <- res
        ; return (lstmts', a) }
 
-addTickStmt :: (Maybe (Bool -> BoxLabel)) -> Stmt Id (LHsExpr Id) -> TM (Stmt Id (LHsExpr Id))
-addTickStmt _isGuard (LastStmt e ret) = do
-        liftM2 LastStmt
+addTickStmt :: (Maybe (Bool -> BoxLabel)) -> Stmt Id (LHsExpr Id)
+            -> TM (Stmt Id (LHsExpr Id))
+addTickStmt _isGuard (LastStmt e noret ret) = do
+        liftM3 LastStmt
                 (addTickLHsExpr e)
+                (pure noret)
                 (addTickSyntaxExpr hpcSrcSpan ret)
 addTickStmt _isGuard (BindStmt pat e bind fail) = do
         liftM4 BindStmt
@@ -676,6 +678,9 @@ addTickStmt isGuard (ParStmt pairs mzipExpr bindExpr) = do
         (mapM (addTickStmtAndBinders isGuard) pairs)
         (addTickSyntaxExpr hpcSrcSpan mzipExpr)
         (addTickSyntaxExpr hpcSrcSpan bindExpr)
+addTickStmt isGuard (ApplicativeStmt args mb_join body_ty) = do
+    args' <- mapM (addTickApplicativeArg isGuard) args
+    return (ApplicativeStmt args' mb_join body_ty)
 
 addTickStmt isGuard stmt@(TransStmt { trS_stmts = stmts
                                     , trS_by = by, trS_using = using
@@ -701,6 +706,23 @@ addTickStmt isGuard stmt@(RecStmt {})
 addTick :: Maybe (Bool -> BoxLabel) -> LHsExpr Id -> TM (LHsExpr Id)
 addTick isGuard e | Just fn <- isGuard = addBinTickLHsExpr fn e
                   | otherwise          = addTickLHsExprRHS e
+
+addTickApplicativeArg
+  :: Maybe (Bool -> BoxLabel) -> (SyntaxExpr Id, ApplicativeArg Id)
+  -> TM (SyntaxExpr Id, ApplicativeArg Id)
+addTickApplicativeArg isGuard (op, arg) =
+  liftM2 (,) (addTickSyntaxExpr hpcSrcSpan op) (addTickArg arg)
+ where
+  addTickArg (ApplicativeArgOne pat expr isBody) =
+    ApplicativeArgOne
+      <$> addTickLPat pat
+      <*> addTickLHsExpr expr
+      <*> pure isBody
+  addTickArg (ApplicativeArgMany stmts ret pat) =
+    ApplicativeArgMany
+      <$> addTickLStmts isGuard stmts
+      <*> (unLoc <$> addTickLHsExpr (L hpcSrcSpan ret))
+      <*> addTickLPat pat
 
 addTickStmtAndBinders :: Maybe (Bool -> BoxLabel) -> ParStmtBlock Id Id
                       -> TM (ParStmtBlock Id Id)
@@ -864,9 +886,10 @@ addTickCmdStmt (BindStmt pat c bind fail) = do
                 (addTickLHsCmd c)
                 (return bind)
                 (return fail)
-addTickCmdStmt (LastStmt c ret) = do
-        liftM2 LastStmt
+addTickCmdStmt (LastStmt c noret ret) = do
+        liftM3 LastStmt
                 (addTickLHsCmd c)
+                (pure noret)
                 (addTickSyntaxExpr hpcSrcSpan ret)
 addTickCmdStmt (BodyStmt c bind' guard' ty) = do
         liftM4 BodyStmt
@@ -884,6 +907,8 @@ addTickCmdStmt stmt@(RecStmt {})
        ; bind'  <- addTickSyntaxExpr hpcSrcSpan (recS_bind_fn stmt)
        ; return (stmt { recS_stmts = stmts', recS_ret_fn = ret'
                       , recS_mfix_fn = mfix', recS_bind_fn = bind' }) }
+addTickCmdStmt ApplicativeStmt{} =
+  panic "ToDo: addTickCmdStmt ApplicativeLastStmt"
 
 -- Others should never happen in a command context.
 addTickCmdStmt stmt  = pprPanic "addTickHsCmd" (ppr stmt)

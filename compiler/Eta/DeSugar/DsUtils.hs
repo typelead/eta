@@ -30,7 +30,7 @@ module Eta.DeSugar.DsUtils (
 
         -- LHs tuples
         mkLHsVarPatTup, mkLHsPatTup, mkVanillaTuplePat,
-        mkBigLHsVarTup, mkBigLHsTup, mkBigLHsVarPatTup, mkBigLHsPatTup,
+        mkBigLHsVarTupId, mkBigLHsTupId, mkBigLHsVarPatTupId, mkBigLHsPatTupId,
 
         mkSelectorBinds,
 
@@ -704,18 +704,18 @@ mkVanillaTuplePat :: [OutPat Id] -> Boxity -> Pat Id
 mkVanillaTuplePat pats box = TuplePat pats box (map hsLPatType pats)
 
 -- The Big equivalents for the source tuple expressions
-mkBigLHsVarTup :: [Id] -> LHsExpr Id
-mkBigLHsVarTup ids = mkBigLHsTup (map nlHsVar ids)
+mkBigLHsVarTupId :: [Id] -> LHsExpr Id
+mkBigLHsVarTupId ids = mkBigLHsTupId (map nlHsVar ids)
 
-mkBigLHsTup :: [LHsExpr Id] -> LHsExpr Id
-mkBigLHsTup = mkChunkified mkLHsTupleExpr
+mkBigLHsTupId :: [LHsExpr Id] -> LHsExpr Id
+mkBigLHsTupId = mkChunkified mkLHsTupleExpr
 
 -- The Big equivalents for the source tuple patterns
-mkBigLHsVarPatTup :: [Id] -> LPat Id
-mkBigLHsVarPatTup bs = mkBigLHsPatTup (map nlVarPat bs)
+mkBigLHsVarPatTupId :: [Id] -> LPat Id
+mkBigLHsVarPatTupId bs = mkBigLHsPatTupId (map nlVarPat bs)
 
-mkBigLHsPatTup :: [LPat Id] -> LPat Id
-mkBigLHsPatTup = mkChunkified mkLHsPatTup
+mkBigLHsPatTupId :: [LPat Id] -> LPat Id
+mkBigLHsPatTupId = mkChunkified mkLHsPatTup
 
 {-
 ************************************************************************

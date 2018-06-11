@@ -14,7 +14,7 @@ import Eta.DeSugar.DsMonad
 
 import Eta.HsSyn.HsSyn    hiding (collectPatBinders, collectPatsBinders, collectLStmtsBinders, collectLStmtBinders, collectStmtBinders )
 import Eta.TypeCheck.TcHsSyn
-
+import qualified Eta.HsSyn.HsUtils as HsUtils
 -- NB: The desugarer, which straddles the source and Core worlds, sometimes
 --     needs to see source types (newtypes etc), and sometimes not
 --     So WATCH OUT; check each use of split*Ty functions.
@@ -690,7 +690,7 @@ dsCmdDo _ _ _ [] _ = panic "dsCmdDo"
 --
 --              ---> premap (\ (xs) -> ((xs), ())) c
 
-dsCmdDo ids local_vars res_ty [L _ (LastStmt body _)] env_ids = do
+dsCmdDo ids local_vars res_ty [L _ (LastStmt body _ _)] env_ids = do
     (core_body, env_ids') <- dsLCmd ids local_vars unitTy res_ty body env_ids
     let env_ty = mkBigCoreVarTupTy env_ids
     env_var <- newSysLocalDs env_ty
@@ -1163,11 +1163,5 @@ collectLStmtBinders :: LStmt Id body -> [Id]
 collectLStmtBinders = collectStmtBinders . unLoc
 
 collectStmtBinders :: Stmt Id body -> [Id]
-collectStmtBinders (BindStmt pat _ _ _) = collectPatBinders pat
-collectStmtBinders (LetStmt binds)      = collectLocalBinders binds
-collectStmtBinders (BodyStmt {})        = []
-collectStmtBinders (LastStmt {})        = []
-collectStmtBinders (ParStmt xs _ _)     = collectLStmtsBinders
-                                        $ [ s | ParStmtBlock ss _ _ <- xs, s <- ss]
-collectStmtBinders (TransStmt { trS_stmts = stmts }) = collectLStmtsBinders stmts
 collectStmtBinders (RecStmt { recS_later_ids = later_ids }) = later_ids
+collectStmtBinders stmt = HsUtils.collectStmtBinders stmt

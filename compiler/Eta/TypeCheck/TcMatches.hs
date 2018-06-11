@@ -322,11 +322,22 @@ tcStmtsAndThen _ _ [] res_ty thing_inside
 -- LetStmts are handled uniformly, regardless of context
 tcStmtsAndThen ctxt stmt_chk (L loc (LetStmt binds) : stmts) res_ty thing_inside
   = do  { (binds', (stmts',thing)) <- tcLocalBinds binds $
-                                      tcStmtsAndThen ctxt stmt_chk stmts res_ty thing_inside
+              tcStmtsAndThen ctxt stmt_chk stmts res_ty thing_inside
         ; return (L loc (LetStmt binds') : stmts', thing) }
 
--- For the vanilla case, handle the location-setting part
+-- Don't set the error context for an ApplicativeStmt.  It ought to be
+-- possible to do this with a popErrCtxt in the tcStmt case for
+-- ApplicativeStmt, but it did someting strange and broke a test (ado002).
 tcStmtsAndThen ctxt stmt_chk (L loc stmt : stmts) res_ty thing_inside
+  | ApplicativeStmt{} <- stmt
+  = do  { (stmt', (stmts', thing)) <-
+             stmt_chk ctxt stmt res_ty $ \ res_ty' ->
+               tcStmtsAndThen ctxt stmt_chk stmts res_ty'  $
+                 thing_inside
+        ; return (L loc stmt' : stmts', thing) }
+
+  -- For the vanilla case, handle the location-setting part
+  | otherwise
   = do  { (stmt', (stmts', thing)) <-
                 setSrcSpan loc                              $
                 addErrCtxt (pprStmtInCtxt ctxt stmt)        $
@@ -373,10 +384,10 @@ tcGuardStmt _ stmt _ _
 tcLcStmt :: TyCon       -- The list/Parray type constructor ([] or PArray)
          -> TcExprStmtChecker
 
-tcLcStmt _ _ (LastStmt body _) elt_ty thing_inside
+tcLcStmt _ _ (LastStmt body noret _) elt_ty thing_inside
   = do { body' <- tcMonoExprNC body elt_ty
        ; thing <- thing_inside (panic "tcLcStmt: thing_inside")
-       ; return (LastStmt body' noSyntaxExpr, thing) }
+       ; return (LastStmt body' noret noSyntaxExpr, thing) }
 
 -- A generator, pat <- rhs
 tcLcStmt m_tc ctxt (BindStmt pat rhs _ _) elt_ty thing_inside
@@ -480,13 +491,13 @@ tcLcStmt _ _ stmt _ _
 
 tcMcStmt :: TcExprStmtChecker
 
-tcMcStmt _ (LastStmt body return_op) res_ty thing_inside
+tcMcStmt _ (LastStmt body noret return_op) res_ty thing_inside
   = do  { a_ty       <- newFlexiTyVarTy liftedTypeKind
         ; return_op' <- tcSyntaxOp MCompOrigin return_op
                                    (a_ty `mkFunTy` res_ty)
         ; body'      <- tcMonoExprNC body a_ty
         ; thing      <- thing_inside (panic "tcMcStmt: thing_inside")
-        ; return (LastStmt body' return_op', thing) }
+        ; return (LastStmt body' noret return_op', thing) }
 
 -- Generators for monad comprehensions ( pat <- rhs )
 --
@@ -729,10 +740,10 @@ tcMcStmt _ stmt _ _
 
 tcDoStmt :: TcExprStmtChecker
 
-tcDoStmt _ (LastStmt body _) res_ty thing_inside
+tcDoStmt _ (LastStmt body noret _) res_ty thing_inside
   = do { body' <- tcMonoExprNC body res_ty
        ; thing <- thing_inside (panic "tcDoStmt: thing_inside")
-       ; return (LastStmt body' noSyntaxExpr, thing) }
+       ; return (LastStmt body' noret noSyntaxExpr, thing) }
 
 tcDoStmt ctxt (BindStmt pat rhs bind_op fail_op) res_ty thing_inside
   = do  {       -- Deal with rebindable syntax:
@@ -761,6 +772,18 @@ tcDoStmt ctxt (BindStmt pat rhs bind_op fail_op) res_ty thing_inside
                            thing_inside new_res_ty
 
         ; return (BindStmt pat' rhs' bind_op' fail_op', thing) }
+
+tcDoStmt ctxt (ApplicativeStmt _ pairs mb_join) res_ty thing_inside
+  = do  { let tc_app_stmts ty = tcApplicativeStmts ctxt pairs ty $
+                                thing_inside . mkCheckExpType
+        ; ((pairs', body_ty, thing), mb_join') <- case mb_join of
+            Nothing -> (, Nothing) <$> tc_app_stmts res_ty
+            Just join_op ->
+              second Just <$>
+              (tcSyntaxOp DoOrigin join_op [SynRho] res_ty $
+               \ [rhs_ty] -> tc_app_stmts (mkCheckExpType rhs_ty))
+
+        ; return (ApplicativeStmt body_ty pairs' mb_join', thing) }
 
 
 tcDoStmt _ (BodyStmt rhs then_op _ _) res_ty thing_inside
@@ -830,6 +853,120 @@ rebindable syntax first, and push that information into (tcMonoExprNC rhs).
 Otherwise the error shows up when cheking the rebindable syntax, and
 the expected/inferred stuff is back to front (see Trac #3613).
 
+Note [typechecking ApplicativeStmt]
+
+join ((\pat1 ... patn -> body) <$> e1 <*> ... <*> en)
+
+fresh type variables:
+   pat_ty_1..pat_ty_n
+   exp_ty_1..exp_ty_n
+   t_1..t_(n-1)
+
+body  :: body_ty
+(\pat1 ... patn -> body) :: pat_ty_1 -> ... -> pat_ty_n -> body_ty
+pat_i :: pat_ty_i
+e_i   :: exp_ty_i
+<$>   :: (pat_ty_1 -> ... -> pat_ty_n -> body_ty) -> exp_ty_1 -> t_1
+<*>_i :: t_(i-1) -> exp_ty_i -> t_i
+join :: tn -> res_ty
+-}
+
+tcApplicativeStmts
+  :: HsStmtContext Name
+  -> [(SyntaxExpr Name, ApplicativeArg Name)]
+  -> ExpRhoType                         -- rhs_ty
+  -> (TcRhoType -> TcM t)               -- thing_inside
+  -> TcM ([(SyntaxExpr TcId, ApplicativeArg TcId)], Type, t)
+
+tcApplicativeStmts ctxt pairs rhs_ty thing_inside
+ = do { body_ty <- newFlexiTyVarTy liftedTypeKind
+      ; let arity = length pairs
+      ; ts <- replicateM (arity-1) $ newInferExpTypeInst
+      ; exp_tys <- replicateM arity $ newFlexiTyVarTy liftedTypeKind
+      ; pat_tys <- replicateM arity $ newFlexiTyVarTy liftedTypeKind
+      ; let fun_ty = mkFunTys pat_tys body_ty
+
+       -- NB. do the <$>,<*> operators first, we don't want type errors here
+       --     i.e. goOps before goArgs
+       -- See Note [Treat rebindable syntax first]
+      ; let (ops, args) = unzip pairs
+      ; ops' <- goOps fun_ty (zip3 ops (ts ++ [rhs_ty]) exp_tys)
+
+      -- Typecheck each ApplicativeArg separately
+      -- See Note [ApplicativeDo and constraints]
+      ; args' <- mapM goArg (zip3 args pat_tys exp_tys)
+
+      -- Bring into scope all the things bound by the args,
+      -- and typecheck the thing_inside
+      -- See Note [ApplicativeDo and constraints]
+      ; res <- tcExtendIdEnv (concatMap get_arg_bndrs args') $
+               thing_inside body_ty
+
+      ; return (zip ops' args', body_ty, res) }
+  where
+    goOps _ [] = return []
+    goOps t_left ((op,t_i,exp_ty) : ops)
+      = do { (_, op')
+               <- tcSyntaxOp DoOrigin op
+                             [synKnownType t_left, synKnownType exp_ty] t_i $
+                   \ _ -> return ()
+           ; t_i <- readExpType t_i
+           ; ops' <- goOps t_i ops
+           ; return (op' : ops') }
+
+    goArg :: (ApplicativeArg Name, Type, Type)
+          -> TcM (ApplicativeArg TcId)
+
+    goArg (ApplicativeArgOne pat rhs isBody, pat_ty, exp_ty)
+      = setSrcSpan (combineSrcSpans (getLoc pat) (getLoc rhs)) $
+        addErrCtxt (pprStmtInCtxt ctxt (mkBindStmt pat rhs))   $
+        do { rhs' <- tcMonoExprNC rhs (mkCheckExpType exp_ty)
+           ; (pat', _) <- tcPat (StmtCtxt ctxt) pat (mkCheckExpType pat_ty) $
+                          return ()
+           ; return (ApplicativeArgOne pat' rhs' isBody) }
+
+    goArg (ApplicativeArgMany stmts ret pat, pat_ty, exp_ty)
+      = do { (stmts', (ret',pat')) <-
+                tcStmtsAndThen ctxt tcDoStmt stmts (mkCheckExpType exp_ty) $
+                \res_ty  -> do
+                  { L _ ret' <- tcMonoExprNC (noLoc ret) res_ty
+                  ; (pat', _) <- tcPat (StmtCtxt ctxt) pat (mkCheckExpType pat_ty) $
+                                 return ()
+                  ; return (ret', pat')
+                  }
+           ; return (ApplicativeArgMany stmts' ret' pat') }
+
+    get_arg_bndrs :: ApplicativeArg TcId -> [Id]
+    get_arg_bndrs (ApplicativeArgOne _ pat _ _)  = collectPatBinders pat
+    get_arg_bndrs (ApplicativeArgMany _ _ _ pat) = collectPatBinders pat
+
+
+{- Note [ApplicativeDo and constraints]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+An applicative-do is supposed to take place in parallel, so
+constraints bound in one arm can't possibly be available in another
+(Trac #13242).  Our current rule is this (more details and discussion
+on the ticket). Consider
+
+   ...stmts...
+   ApplicativeStmts [arg1, arg2, ... argN]
+   ...more stmts...
+
+where argi :: ApplicativeArg. Each 'argi' itself contains one or more Stmts.
+Now, we say that:
+
+* Constraints required by the argi can be solved from
+  constraint bound by ...stmts...
+
+* Constraints and existentials bound by the argi are not available
+  to solve constraints required either by argj (where i /= j),
+  or by ...more stmts....
+
+* Within the stmts of each 'argi' individually, however, constraints bound
+  by earlier stmts can be used to solve later ones.
+
+To achieve this, we just typecheck each 'argi' separately, bring all
+the variables they bind into scope, and typecheck the thing_inside.
 
 ************************************************************************
 *                                                                      *
