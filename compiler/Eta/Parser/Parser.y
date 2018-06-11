@@ -415,6 +415,7 @@ for some background.
  DOCSECTION     { L _ (ITdocSection _ _) }
 
  JAVAANNOT      { L _ (ITjavaannot _) }
+ JAVAID         { L _ (ITjavaid _) }
 
 -- Template Haskell
 '[|'            { L _ ITopenExpQuote  }
@@ -649,6 +650,11 @@ importdecl :: { LImportDecl RdrName }
                              , ideclHiding = unLoc $8 })
                    ((mj AnnImport $1 : (fst $ fst $2) ++ fst $3 ++ fst $4
                                     ++ fst $5 ++ fst $7)) }
+        | 'import' 'java' javaid maybeas maybejavaimpspec
+                { L (comb5 $1 $2 $3 $4 $5) $
+                  ImportJavaDecl { ideclClassName = $3
+                                 , ideclAs = snd $4
+                                 , ideclImport = Nothing } }
 
 maybe_src :: { (([AddAnn],Maybe SourceText),IsBootInterface) }
         : '{-# SOURCE' '#-}'        { (([mo $1,mc $2],Just (getSOURCE_PRAGs $1))
@@ -684,6 +690,56 @@ impspec :: { Located (Bool, Located [LIE RdrName]) }
         |  'hiding' '(' exportlist ')'      {% ams (sLL $1 $> (True,
                                                       sLL $1 $> $ fromOL $3))
                                                [mj AnnHiding $1,mop $2,mcp $4] }
+
+maybejavaimpspec :: { Maybe (Located (Bool, Located [Located (JavaImport RdrName)])) }
+       : javaimpspec              { Just $1 }
+       | {- empty -}              { Nothing }
+
+javaimpspec :: { Located (Bool, Located [Located (JavaImport RdrName)]) }
+       :  '(' javaimplist ')'              { L (comb3 $1 $2 $3) (True, $2) }
+       |  'hiding' '(' javaidlist ')'      { L (comb4 $1 $2 $3 $4) (False, $3) }
+
+javaimplist :: { Located [Located (JavaImport RdrName)] }
+        : javaimp ',' javaimplist { L (comb3 $1 $2 $3) ($1 : unLoc $3) }
+        | javaimp { L (getLoc $1) [$1] }
+        | '..' { L (getLoc $1) [] }
+
+javaimp :: { Located (JavaImport RdrName) }
+        : javaid maybe_jeta_type javaimpspec { L (comb3 $1 $2 $3) $
+            JIInnerClass { javaImportJavaName = $1
+                         , javaImportEtaName =
+                             fromMaybe (mkRdrUnqual (mkTcOccFS (unLoc $1))) $2
+                         , javaImportAs = isJust $2
+                         , javaImportSubImports = snd $ unLoc $3 }
+             }
+        | javaid maybe_jeta_name opt_sig { L (comb3 $1 $2 $3) $
+            JIClassMember { javaImportJavaName = $1
+                          , javaImportEtaName = fromMaybe (mkVarUnqual (unLoc $1)) $2
+                          , javaImportAs = isJust $2
+                          , javaImportTypeSig = snd $3 }
+                          }
+
+maybe_jeta_name :: { Maybe (Located RdrName) }
+                : 'as' var  { Just $2 }
+                | {- empty -} { Nothing }
+
+maybe_jeta_type :: { Maybe (Located RdrName) }
+                : 'as' con  { Just $2 }
+                | {- empty -} { Nothing }
+
+javaidlist :: { Located [String] }
+           : javaid ',' javaidlist {  }
+           | javaid {  }
+           | {- empty -} { noLoc [] }
+
+javaid :: { Located FastString }
+       : VARID { L (getLoc $1) (getVARID $1) }
+       | CONID { L (getLoc $1) (getCONID $1) }
+       | JAVAID { L (getLoc $1) (getJAVAID $1) }
+       | QCONID { let (fs1, fs2) = getQCONID $1
+                  in L (getLoc $1) (appendFS fs1 (consFS '.' fs2)) }
+       | QVARID { let (fs1, fs2) = getQVARID $1
+                  in L (getLoc $1) (appendFS fs1 (consFS '.' fs2)) }
 
 -----------------------------------------------------------------------------
 -- Fixity Declarations
@@ -2998,6 +3054,7 @@ getQCONID       (L _ (ITqconid   x)) = x
 getQVARSYM      (L _ (ITqvarsym  x)) = x
 getQCONSYM      (L _ (ITqconsym  x)) = x
 getJAVAANNOT     (L _ (ITjavaannot  x)) = x
+getJAVAID        (L _ (ITjavaid  x)) = x
 getPREFIXQVARSYM (L _ (ITprefixqvarsym  x)) = x
 getPREFIXQCONSYM (L _ (ITprefixqconsym  x)) = x
 getIPDUPVARID   (L _ (ITdupipvarid   x)) = x
@@ -3075,6 +3132,11 @@ comb4 :: Located a -> Located b -> Located c -> Located d -> SrcSpan
 comb4 a b c d = a `seq` b `seq` c `seq` d `seq`
     (combineSrcSpans (getLoc a) $ combineSrcSpans (getLoc b) $
                 combineSrcSpans (getLoc c) (getLoc d))
+
+comb5 :: Located a -> Located b -> Located c -> Located d -> Located e -> SrcSpan
+comb5 a b c d e = a `seq` b `seq` c `seq` d `seq` e `seq`
+    (combineSrcSpans (getLoc a) $ combineSrcSpans (getLoc b) $
+     combineSrcSpans (getLoc c) $ combineSrcSpans (getLoc d) (getLoc e)))
 
 -- strict constructor version:
 {-# INLINE sL #-}

@@ -6,14 +6,16 @@
 HsImpExp: Abstract syntax: imports, exports, interfaces
 -}
 
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, StandaloneDeriving, FlexibleContexts, UndecidableInstances #-}
 
 module Eta.HsSyn.HsImpExp where
 
-import Eta.BasicTypes.Module           ( ModuleName )
+import Eta.BasicTypes.Module      ( ModuleName )
 import Eta.HsSyn.HsDoc            ( HsDocString )
-import Eta.BasicTypes.OccName          ( HasOccName(..), isTcOcc, isSymOcc )
-import Eta.BasicTypes.BasicTypes       ( SourceText )
+import Eta.HsSyn.HsTypes
+import Eta.HsSyn.PlaceHolder      ( DataId )
+import Eta.BasicTypes.OccName     ( HasOccName(..), isTcOcc, isSymOcc )
+import Eta.BasicTypes.BasicTypes  ( SourceText )
 
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
@@ -53,6 +55,12 @@ data ImportDecl name
       ideclHiding    :: Maybe (Bool, Located [LIE name])
                                             -- ^ (True => hiding, names)
     }
+    | ImportJavaDecl {
+        ideclClassName :: Located FastString, -- ^ Module name.
+        ideclAs        :: Located (Maybe ModuleName),   -- ^ as Module
+        ideclImport    :: Maybe (Located (Bool, Located [Located (JavaImport name)]))
+                                              -- ^ (True => hiding, names)
+      }
      -- ^
      --  'ApiAnnotation.AnnKeywordId's
      --
@@ -69,7 +77,9 @@ data ImportDecl name
      --     to location in ideclHiding
 
      -- For details on above see note [Api annotations] in ApiAnnotation
-       deriving (Data, Typeable)
+       deriving (Typeable)
+
+deriving instance (DataId name) => Data (ImportDecl name)
 
 simpleImportDecl :: ModuleName -> ImportDecl name
 simpleImportDecl mn = ImportDecl {
@@ -117,6 +127,7 @@ instance (OutputableBndr name, HasOccName name) => Outputable (ImportDecl name) 
 
         ppr_ies []  = ptext (sLit "()")
         ppr_ies ies = char '(' <+> interpp'SP ies <+> char ')'
+    ppr (ImportJavaDecl {}) = panic "ImportJavaDecl outputable instance"
 
 {-
 ************************************************************************
@@ -169,6 +180,7 @@ data IE name
   | IEGroup             Int HsDocString  -- ^ Doc section heading
   | IEDoc               HsDocString      -- ^ Some documentation
   | IEDocNamed          String           -- ^ Reference to named doc
+
   deriving (Eq, Data, Typeable)
 
 ieName :: IE name -> name
@@ -207,3 +219,18 @@ instance (HasOccName name, OutputableBndr name) => Outputable (IE name) where
     ppr (IEGroup n _)           = text ("<IEGroup: " ++ (show n) ++ ">")
     ppr (IEDoc doc)             = ppr doc
     ppr (IEDocNamed string)     = text ("<IEDocNamed: " ++ string ++ ">")
+
+
+data JavaImport name =
+    JIInnerClass  { javaImportJavaName   :: Located FastString
+                  , javaImportEtaName    :: Located name
+                  , javaImportAs         :: Bool
+                  , javaImportSubImports :: Located [Located (JavaImport name)] }
+  | JIClassMember { javaImportJavaName   :: Located FastString
+                  , javaImportEtaName    :: Located name
+                  , javaImportAs         :: Bool
+                  , javaImportTypeSig    :: Maybe (LHsType name) }
+
+
+  deriving (Typeable)
+deriving instance (DataId name) => Data (JavaImport name)

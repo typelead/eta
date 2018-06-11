@@ -167,7 +167,6 @@ $pragmachar = [$small $large $digit]
 
 $docsym    = [\| \^ \* \$]
 
-
 -- -----------------------------------------------------------------------------
 -- Alex "Regular expression macros"
 
@@ -198,6 +197,8 @@ $docsym    = [\| \^ \* \$]
 
 -- Java Annotations
 @javaannot = ~[$symbol $whitechar] $graphic*
+
+@javaid = [$idchar \.]+
 
 -- -----------------------------------------------------------------------------
 -- Alex "Identifier"
@@ -513,6 +514,9 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   \"                            { lex_string_tok }
 }
 
+<0> {
+  @javaid { javaIdToken }
+}
 
 -- -----------------------------------------------------------------------------
 -- Alex "Haskell code fragment bottom"
@@ -709,6 +713,7 @@ data Token
 
   -- Java annotations
   | ITjavaannot FastString
+  | ITjavaid FastString
 
   deriving Show
 
@@ -1862,7 +1867,7 @@ alexGetByte (AI loc s)
         suffix          = '\x07'
 
         adj_c
-          | c <= '\x06' = non_graphic
+          | c <= '\x07' = non_graphic
           | c <= '\x7f' = c
           -- Alex doesn't handle Unicode, so when Unicode
           -- character is encountered we output these values
@@ -2247,7 +2252,7 @@ lexer queueComments cont = do
   alr <- extension alternativeLayoutRule
   let lexTokenFun = if alr then lexTokenAlr else lexToken
   (L span tok) <- lexTokenFun
-  --trace ("token: " ++ show tok) $ do
+  -- trace ("token: " ++ show tok) $ do
 
   case tok of
     ITeof -> addAnnotationOnly noSrcSpan AnnEofPos (RealSrcSpan span)
@@ -2695,5 +2700,10 @@ isDocComment _ = False
 javaAnnotationToken :: Action
 javaAnnotationToken span buf len =
   return $ L span $ ITjavaannot fs
+  where !fs = lexemeToFastString buf len
+
+javaIdToken :: Action
+javaIdToken span buf len =
+  return $ L span $ ITjavaid fs
   where !fs = lexemeToFastString buf len
 }

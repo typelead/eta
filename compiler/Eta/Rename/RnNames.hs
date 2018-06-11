@@ -168,6 +168,9 @@ rnImports imports = do
 
 rnImportDecl  :: Module -> LImportDecl RdrName
               -> RnM (LImportDecl Name, GlobalRdrEnv, ImportAvails, AnyHpcUsage)
+rnImportDecl _this_mod
+             (L _loc _decl@(ImportJavaDecl {}))
+  = panic "rnImportDecl: ImportJavaDecl needs to be handled"
 rnImportDecl this_mod
              (L loc decl@(ImportDecl { ideclName = loc_imp_mod_name, ideclPkgQual = mb_pkg
                                      , ideclSource = want_boot, ideclSafe = mod_safe
@@ -1416,6 +1419,8 @@ findImportUsage imports rdr_env rdrs
     import_usage :: ImportMap
     import_usage = foldr (extendImportMap rdr_env) Map.empty rdrs
 
+    unused_decl _decl@(L _loc (ImportJavaDecl { }))
+      = panic "unused_decl: ImportJavaDecl is not handled"
     unused_decl decl@(L loc (ImportDecl { ideclHiding = imps }))
       = (decl, nubAvails used_avails, nameSetElems unused_imps)
       where

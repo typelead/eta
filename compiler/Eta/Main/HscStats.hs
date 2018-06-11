@@ -59,19 +59,19 @@ ppSourceStats short (L _ (HsModule _ exports imports ldecls _ _))
     decls = map unLoc ldecls
 
     pp_val (_, 0) = empty
-    pp_val (str, n) 
+    pp_val (str, n)
       | not short   = hcat [text str, int n]
       | otherwise   = hcat [text (trim str), equals, int n, semi]
-    
+
     trim ls    = takeWhile (not.isSpace) (dropWhile isSpace ls)
 
-    (fixity_sigs, bind_tys, bind_specs, bind_inlines, generic_sigs) 
+    (fixity_sigs, bind_tys, bind_specs, bind_inlines, generic_sigs)
         = count_sigs [d | SigD d <- decls]
                 -- NB: this omits fixity decls on local bindings and
                 -- in class decls. ToDo
 
     tycl_decls = [d | TyClD d <- decls]
-    (class_ds, type_ds, data_ds, newt_ds, type_fam_ds) = 
+    (class_ds, type_ds, data_ds, newt_ds, type_fam_ds) =
       countTyClDecls tycl_decls
 
     inst_decls = [d | InstD d <- decls]
@@ -116,6 +116,7 @@ ppSourceStats short (L _ (HsModule _ exports imports ldecls _ _))
     import_info (L _ (ImportDecl { ideclSafe = safe, ideclQualified = qual
                                  , ideclAs = as, ideclHiding = spec }))
         = add7 (1, safe_info safe, qual_info qual, as_info as, 0,0,0) (spec_info spec)
+    import_info (L _ (ImportJavaDecl {})) = panic "importJavaDecl not handled in HscStats"
     safe_info = qual_info
     qual_info False  = 0
     qual_info True   = 1
@@ -175,4 +176,3 @@ ppSourceStats short (L _ (HsModule _ exports imports ldecls _ _))
     sum7 = foldr add7 (0,0,0,0,0,0,0)
 
     add7 (x1,x2,x3,x4,x5,x6,x7) (y1,y2,y3,y4,y5,y6,y7) = (x1+y1,x2+y2,x3+y3,x4+y4,x5+y5,x6+y6,x7+y7)
-

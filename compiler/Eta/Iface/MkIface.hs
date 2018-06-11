@@ -1323,6 +1323,7 @@ checkDependencies hsc_env summary iface
 
    this_pkg = thisPackage (hsc_dflags hsc_env)
 
+   dep_missing (L _ (ImportJavaDecl { })) = panic "ImportJavaDecl not handled in MkIface"
    dep_missing (L _ (ImportDecl { ideclName = L _ mod, ideclPkgQual = pkg })) = do
      find_res <- liftIO $ findImportedModule hsc_env mod pkg
      let reason = moduleNameString mod ++ " changed"
