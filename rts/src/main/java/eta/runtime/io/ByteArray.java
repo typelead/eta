@@ -6,6 +6,7 @@ import java.util.Map;
 import java.nio.ByteBuffer;
 import java.lang.ref.WeakReference;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
@@ -41,10 +42,14 @@ public final class ByteArray extends Value {
 
     @Override
     public String toString() {
-        ByteBuffer buf = getBuffer();
-        byte[] bytes = new byte[size];
-        buf.get(bytes);
-        return "ByteArray " + Arrays.toString(bytes);
+        if (Runtime.printFullArrays()) {
+            ByteBuffer buf = getBuffer();
+            byte[] bytes = new byte[size];
+            buf.get(bytes);
+            return "ByteArray " + Arrays.toString(bytes);
+        } else {
+            return "ByteArray[" + size + "]@" + System.identityHashCode(this);
+        }
     }
 
     public ByteBuffer getBuffer() {

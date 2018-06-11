@@ -2,6 +2,7 @@ package eta.runtime.io;
 
 import java.util.Arrays;
 
+import eta.runtime.Runtime;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Value;
 
@@ -55,6 +56,10 @@ public final class Array extends Value {
 
     @Override
     public String toString() {
-        return "Array" + Arrays.deepToString(arr);
+        if (Runtime.printFullArrays()) {
+          return "Array" + Arrays.deepToString(arr);
+        } else {
+          return "Array[" + size() + "]@" + System.identityHashCode(this);
+        }
     }
 }

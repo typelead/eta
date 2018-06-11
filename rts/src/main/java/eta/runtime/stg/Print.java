@@ -89,9 +89,7 @@ public class Print {
                 sb.append(getClosureName(clazz));
                 writeFields(sb, seen, clazz, target, false);
             } else {
-                throw new IllegalArgumentException
-                    ("Unable to stringify " + target.getClass().getName() + " in "
-                     + origTarget.getClass().getName() + "!");
+                sb.append(classAndIdentity(target));
             }
             target = newTarget;
         }

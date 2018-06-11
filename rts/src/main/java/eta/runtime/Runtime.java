@@ -252,6 +252,16 @@ public class Runtime {
         return debugToFile;
     }
 
+    /* Print Parameters */
+
+    private static boolean printFullArrays;
+
+    public static final String PRINT_FULLARRAYS_PROPERTY = "eta.print.fullArrays";
+
+    public static boolean printFullArrays() {
+        return printFullArrays;
+    }
+
     public static void initializeRuntimeParameters() {
         RuntimeOptions rto = new RuntimeOptions(RTS_PROPERTIES_PATH);
         // Initialize parameters explicitly
@@ -274,6 +284,8 @@ public class Runtime {
         debugStablePtr = rto.getBoolean(DEBUG_STABLEPTR_PROPERTY, false);
         debugTailCalls = rto.getBoolean(DEBUG_TAILCALLS_PROPERTY, false);
         debugToFile = rto.getBoolean(DEBUG_TOFILE_PROPERTY, false);
+
+        printFullArrays = rto.getBoolean(PRINT_FULLARRAYS_PROPERTY, false);
     }
 
     static {
