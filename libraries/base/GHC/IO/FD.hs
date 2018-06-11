@@ -129,6 +129,12 @@ withFileChannel msg fd act
   = act p fc
   | otherwise = error $ msg ++ ": Not a file channel"
 
+withFileChannelOrElse :: String -> FD -> a -> (Path -> FileChannel -> IO a) -> IO a
+withFileChannelOrElse msg fd def act
+  | FDFile p fc <- fdFD fd
+  = act p fc
+  | otherwise = return def
+
 -- We used to use System.Posix.Internals.dEFAULT_BUFFER_SIZE, which is
 -- taken from the value of BUFSIZ on the current platform.  This value
 -- varies too much though: it is 512 on Windows, 1024 on OS X and 8192
@@ -305,7 +311,7 @@ tell fd = withFileChannel "tell" fd $ \_ fc ->
   fromIntegral `fmap` c_lseek fc 0 sEEK_CUR
 
 getSize :: FD -> IO Integer
-getSize fd = withFileChannel "getSize" fd $ \p _ ->
+getSize fd = withFileChannelOrElse "getSize" fd (-1) $ \p _ ->
   fdFileSize p
 
 setSize :: FD -> Integer -> IO ()
