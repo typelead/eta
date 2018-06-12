@@ -97,7 +97,7 @@ public final class Capability implements LocalHeap {
     public int id;
     public final boolean worker;
     public final WeakReference<Thread> thread;
-    public StgContext context   = new StgContext();
+    public final StgContext context   = new StgContext();
     public Deque<TSO> runQueue  = new LinkedList<TSO>();
     public int  lastWorkSize;
     public long lastBlockCheck;
