@@ -435,9 +435,7 @@ readRawBufferPtr loc !fd buf off len
                         then read
                         else do threadWaitRead (fdChannel fd); read
   where
-    do_read call = fromIntegral `fmap`
-                      throwErrnoIfMinus1RetryMayBlock loc call
-                            (threadWaitRead (fdChannel fd))
+    do_read call = fromIntegral `fmap` retryOnNonBlock loc call (threadWaitRead (fdChannel fd))
     read        = if threaded then safe_read else unsafe_read
     unsafe_read = do_read (c_read (fdChannel fd) (buf `plusPtr` off) len)
     safe_read   = do_read (c_safe_read (fdChannel fd) (buf `plusPtr` off) len)
@@ -448,10 +446,10 @@ readRawBufferPtrNoBlock loc !fd buf off len
   | isNonBlocking fd  = unsafe_read -- unsafe is ok, it can't block
   | otherwise    = do r <- unsafe_fdReady (fdChannel fd) False 0
                       if r then safe_read
-                            else return 0
+                           else return 0
        -- XXX see note [nonblock]
  where
-   do_read call = do r <- throwErrnoIfMinus1RetryOnBlock loc call (return (-1))
+   do_read call = do r <- retryOnInterrupt loc call (return (-1))
                      case r of
                        (-1) -> return 0
                        0    -> return (-1)
@@ -467,9 +465,7 @@ writeRawBufferPtr loc !fd buf off len
                        then write
                        else do threadWaitWrite (fdChannel fd); write
   where
-    do_write call = fromIntegral `fmap`
-                      throwErrnoIfMinus1RetryMayBlock loc call
-                        (threadWaitWrite (fdChannel fd))
+    do_write call = fromIntegral `fmap` retryOnNonBlock loc call (threadWaitWrite (fdChannel fd))
     write         = if threaded then safe_write else unsafe_write
     unsafe_write  = do_write (c_write (fdChannel fd) (buf `plusPtr` off) len)
     safe_write    = do_write (c_safe_write (fdChannel fd) (buf `plusPtr` off) len)
@@ -516,6 +512,24 @@ throwErrnoIfMinus1RetryOnBlock loc f on_block  =
                  else throwErrno loc
       else return res
 #endif
+
+-- TODO: Catch java.io.IOException and convert them to Eta-level IOException
+--       On InterruptedException, retry
+retryOnInterrupt :: (Eq a, Num a) => String -> IO a -> IO a -> IO a
+retryOnInterrupt loc act on_block = do
+  res <- act
+  if res == fromIntegral ((-1) :: Int)
+  then on_block
+  else return res
+
+-- TODO: Catch java.io.IOException and convert them to Eta-level IOException
+retryOnNonBlock :: (Eq a, Num a) => String -> IO a -> IO b -> IO a
+retryOnNonBlock loc act on_block = do
+  res <- act
+  if res == fromIntegral ((-1) :: Int)
+  then do _ <- on_block
+          retryOnNonBlock loc act on_block
+  else return res
 
 -- -----------------------------------------------------------------------------
 -- Locking/unlocking

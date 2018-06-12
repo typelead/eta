@@ -26,8 +26,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.exception.Exception;
-import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.RuntimeLogging.debugMVar;
+import static eta.runtime.RuntimeLogging.*;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhyBlocked;
 import static eta.runtime.stg.TSO.WhatNext;
@@ -316,45 +315,53 @@ public class Concurrent {
     public static AtomicBoolean selectorLock = new AtomicBoolean();
 
     public static void threadWaitIO(StgContext context, Channel channel, int ops) {
-        Capability cap = context.myCapability;
-        TSO tso        = context.currentTSO;
-        if (globalSelector == null) {
-            barf("Your platform does not support non-blocking IO.");
-        }
-        if (!(channel instanceof SelectableChannel)) {
-            barf("Non-selectable channel " + channel + " sent to threadWaitIO#.");
-        }
-        SelectionKey selectKey = null;
         try {
-            SelectableChannel selectChannel = (SelectableChannel) channel;
-            selectKey = selectChannel.register(globalSelector, ops, tso);
+            final boolean debug = Runtime.debugIO();
+            if (globalSelector == null) {
+                if (debug) {
+                    debugIO("Your platform does not support non-blocking IO.");
+                }
+                return;
+            }
+            if (!(channel instanceof SelectableChannel)) {
+                if (debug) {
+                    debugIO("Non-selectable channel " + channel + " sent to threadWaitIO#.");
+                }
+                return;
+            }
+            final Capability cap = context.myCapability;
+            final TSO tso = context.currentTSO;
+            final SelectableChannel selectChannel = (SelectableChannel) channel;
+            final SelectionKey selectKey = selectChannel.register(globalSelector, ops, tso);
+            WhyBlocked blocked;
+            switch (ops) {
+                case SelectionKey.OP_READ:
+                    blocked = BlockedOnRead;
+                    break;
+                case SelectionKey.OP_WRITE:
+                    blocked = BlockedOnWrite;
+                    break;
+                case SelectionKey.OP_CONNECT:
+                    blocked = BlockedOnConnect;
+                    break;
+                case SelectionKey.OP_ACCEPT:
+                    blocked = BlockedOnAccept;
+                    break;
+                default:
+                    blocked = BlockedOnIO;
+                    break;
+            }
+            if (debug) {
+                debugIO("Registered " + channel + " for " + tso + " and blocked on " + blocked);
+            }
+            tso.whyBlocked = blocked;
+            tso.blockInfo  = selectKey;
+            do {
+                cap.blockedLoop();
+            } while (selectKey.isValid());
         } catch (ClosedChannelException e) {
-            /* TODO: If the channel is closed, the user should know about it.
-               Notify them in some form. */
+            throw new RuntimeException("threadWaitIO: ClosedChannelException", e);
         }
-        WhyBlocked blocked;
-        switch (ops) {
-            case SelectionKey.OP_READ:
-                blocked = BlockedOnRead;
-                break;
-            case SelectionKey.OP_WRITE:
-                blocked = BlockedOnWrite;
-                break;
-            case SelectionKey.OP_CONNECT:
-                blocked = BlockedOnConnect;
-                break;
-            case SelectionKey.OP_ACCEPT:
-                blocked = BlockedOnAccept;
-                break;
-            default:
-                blocked = BlockedOnIO;
-                break;
-        }
-        tso.whyBlocked = blocked;
-        tso.blockInfo  = selectKey;
-        do {
-            cap.blockedLoop();
-        } while (selectKey.isValid());
     }
 
     public static void waitRead(StgContext context, Object o) {
@@ -392,16 +399,22 @@ public class Concurrent {
                         }
                         selectedKeys = globalSelector.selectNow();
                     }
-                    for(TSO tso : tsoList){
-                        if(tso.cap==null){
+                    final boolean debug = Runtime.debugIO();
+                    for (TSO tso: tsoList) {
+                        if(tso.cap == null) {
+                            if (debug) {
+                                debugIO("Pushing " + tso + " to the global run queue");
+                            }
                             pushToGlobalRunQueue(tso);
-                        }else{
+                        } else {
+                            if (debug) {
+                                debugIO("Waking up " + tso);
+                            }
                             cap.tryWakeupThread(tso);
                         }
                     }
-                } catch (IOException e) {
-                    /* TODO: If the selector is closed, the user should know about it.
-                       Do some logging here. */
+                } catch (IOException ioe) {
+                    throw new RuntimeException("checkForReadyIO: Exception", ioe);
                 } finally {
                     selectorLock.set(false);
                 }

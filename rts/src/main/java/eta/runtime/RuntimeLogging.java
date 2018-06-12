@@ -103,6 +103,10 @@ public class RuntimeLogging {
         debugGeneric("TailCalls", msg);
     }
 
+    public static void debugIO(String msg) {
+        debugGeneric("IO", msg);
+    }
+
     public static void debugGeneric(String type, String msg) {
         debugBelch("[Eta-RTS](%s){%s}: %s", Capability.getLocal(), type, msg);
     }

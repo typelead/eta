@@ -123,40 +123,52 @@ public class Utils {
         return Charset.defaultCharset().name();
     }
 
-    public static int c_write(Channel fd, long address, int count) {
-        // Clear interrupt status to avoid unnecessarily closing the stream.
-        Thread.interrupted();
-        try {
-            WritableByteChannel wc     = (WritableByteChannel) fd;
-            ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);
-            buffer.limit(buffer.position() + count);
-            return wc.write(buffer);
-        } catch (Exception e) {
-            if (Runtime.debugScheduler()) {
-                debugScheduler("c_write: IOException: " + e.getMessage());
-            }
-            e.printStackTrace();
-            return -1;
+    public static boolean isNonBlocking(Channel c) {
+        if (c instanceof SelectableChannel) {
+            return !((SelectableChannel) c).isBlocking();
         }
+        return false;
     }
 
-    public static int c_read(Channel fd, long address, int count) {
+    public static int c_write(final Channel fd, final long address, final int count)
+        throws IOException {
         // Clear interrupt status to avoid unnecessarily closing the stream.
         Thread.interrupted();
-        try {
-            ReadableByteChannel rc     = (ReadableByteChannel) fd;
-            ByteBuffer          buffer = MemoryManager.getBoundedBuffer(address);
-            buffer.limit(buffer.position() + count);
-            int size = rc.read(buffer);
-            if (size < 0) return 0;
-            else return size;
-        } catch (Exception e) {
-            if (Runtime.debugScheduler()) {
-                debugScheduler("c_read: IOException: " + e.getMessage());
-            }
-            e.printStackTrace();
-            return -1;
+        if (Runtime.debugIO()) {
+            debugIO("c_write: " + fd + " Address: " + address + " Count: " + count);
         }
+        final boolean nonBlocking = isNonBlocking(fd);
+        final WritableByteChannel wc = (WritableByteChannel) fd;
+        final ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
+        buffer.limit(buffer.position() + count);
+        final int written = wc.write(buffer);
+        if (Runtime.debugIO()) {
+            debugIO("c_write: " + fd + " return: " + written);
+        }
+        return written;
+    }
+
+    public static int c_read(final Channel fd, final long address, final int count)
+        throws IOException {
+        // Clear interrupt status to avoid unnecessarily closing the stream.
+        Thread.interrupted();
+        final boolean nonBlocking = isNonBlocking(fd);
+        if (Runtime.debugIO()) {
+            debugIO("c_read: " + fd.toString() + " Address: " + address + " Count: " + count +
+                    " NonBlocking: " + nonBlocking);
+        }
+        final ReadableByteChannel rc = (ReadableByteChannel) fd;
+        final ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
+        buffer.limit(buffer.position() + count);
+        int size = rc.read(buffer);
+        if (size == 0 && nonBlocking) {
+            size = -1;
+        }
+        if (Runtime.debugIO()) {
+            debugIO("c_read: " + fd.toString() + " nonBlocking: " + nonBlocking
+                    + " return: " + size);
+        }
+        return size;
     }
 
     public static String byteBufferToStr(long address, int len)
