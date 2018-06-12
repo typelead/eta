@@ -195,7 +195,7 @@ public class Utils {
     }
 
     public static void debugBelch(String format, String string) {
-        debugBelch(format, string);
+        RuntimeLogging.debugBelch(format, string);
     }
 
     public static void errorBelch(String format, String string) {
