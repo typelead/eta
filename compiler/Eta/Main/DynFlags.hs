@@ -423,6 +423,7 @@ data GeneralFlag
    | Opt_IgnoreDotGhci
    | Opt_GhciSandbox
    | Opt_GhciHistory
+   | Opt_EtaReplLeakCheck
    | Opt_LocalGhciHistory
    | Opt_HelpfulErrors
    | Opt_DeferTypeErrors
@@ -3138,6 +3139,7 @@ fFlags = [
   flagSpec "fun-to-thunk"                     Opt_FunToThunk,
   flagSpec "gen-manifest"                     Opt_GenManifest,
   flagSpec "ghci-history"                     Opt_GhciHistory,
+  flagSpec "eta-repl-leak-check"              Opt_EtaReplLeakCheck,
   flagSpec "eta-repl-history"                 Opt_GhciHistory,
   flagGhciSpec "local-ghci-history"           Opt_LocalGhciHistory,
   flagGhciSpec "local-eta-repl-history"       Opt_LocalGhciHistory,

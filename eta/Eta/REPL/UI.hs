@@ -74,6 +74,7 @@ import Eta.Utils.Digraph
 import Eta.Utils.Encoding
 import Eta.Utils.FastString
 import Eta.REPL.Linker
+import Eta.REPL.Leak
 import Eta.Utils.Maybes ( orElse )
 import Eta.BasicTypes.NameSet
 import Eta.Utils.Panic hiding ( showException )
@@ -1732,6 +1733,14 @@ loadModule' files = do
   -- require some re-working of the GHC interface, so we'll leave it
   -- as a ToDo for now.
 
+  hsc_env <- GHC.getSession
+
+  -- Grab references to the currently loaded modules so that we can
+  -- see if they leak.
+  leak_indicators <- if gopt Opt_EtaReplLeakCheck (hsc_dflags hsc_env)
+    then liftIO $ getLeakIndicators hsc_env
+    else return (panic "no leak indicators")
+
   -- unload first
   _ <- GHC.abandonAll
   lift discardActiveBreakPoints
@@ -1739,7 +1748,10 @@ loadModule' files = do
   _ <- GHC.load LoadAllTargets
 
   GHC.setTargets targets
-  doLoadAndCollectInfo False LoadAllTargets
+  success <- doLoadAndCollectInfo False LoadAllTargets
+  when (gopt Opt_EtaReplLeakCheck (hsc_dflags hsc_env)) $
+    liftIO $ checkLeakIndicators (hsc_dflags hsc_env) leak_indicators
+  return success
 
 -- | @:add@ command
 addModule :: [FilePath] -> InputT GHCi ()

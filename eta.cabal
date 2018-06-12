@@ -177,6 +177,7 @@ library
                        , Eta.Profiling.ProfInit
                        , Eta.Profiling.SCCfinal
                        , Eta.REPL
+                       , Eta.REPL.Leak
                        , Eta.REPL.Linker
                        , Eta.Rename.RnBinds
                        , Eta.Rename.RnEnv
