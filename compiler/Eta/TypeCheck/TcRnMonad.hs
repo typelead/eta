@@ -265,6 +265,10 @@ discardResult a = a >> return ()
 getTopEnv :: TcRnIf gbl lcl HscEnv
 getTopEnv = do { env <- getEnv; return (env_top env) }
 
+updTopEnv :: (HscEnv -> HscEnv) -> TcRnIf gbl lcl a -> TcRnIf gbl lcl a
+updTopEnv upd = updEnv (\ env@(Env { env_top = top }) ->
+                          env { env_top = upd top })
+
 getGblEnv :: TcRnIf gbl lcl gbl
 getGblEnv = do { env <- getEnv; return (env_gbl env) }
 

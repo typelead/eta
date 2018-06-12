@@ -180,8 +180,9 @@ type TcM  = TcRn
 -- the lcl type).
 data Env gbl lcl
   = Env {
-        env_top  :: HscEnv,  -- Top-level stuff that never changes
+        env_top  :: !HscEnv,  -- Top-level stuff that never changes
                              -- Includes all info about imported things
+                             -- BangPattern is to fix leak, see #15111
 
         env_us   :: {-# UNPACK #-} !(IORef UniqSupply),
                              -- Unique supply for local varibles
@@ -360,10 +361,12 @@ data TcGblEnv
                 -- bound in this module when dealing with hi-boot recursions
                 -- Updated at intervals (e.g. after dealing with types and classes)
 
-        tcg_inst_env     :: InstEnv,
+        tcg_inst_env     :: !InstEnv,
           -- ^ Instance envt for all /home-package/ modules;
           -- Includes the dfuns in tcg_insts
-        tcg_fam_inst_env :: FamInstEnv, -- ^ Ditto for family instances
+        -- NB. BangPattern is to fix a leak, see #15111
+        tcg_fam_inst_env :: !FamInstEnv, -- ^ Ditto for family instances
+        -- NB. BangPattern is to fix a leak, see #15111
         tcg_ann_env      :: AnnEnv,     -- ^ And for annotations
 
         tcg_visible_orphan_mods :: ModuleSet,
@@ -474,8 +477,9 @@ data TcGblEnv
         tcg_patsyns   :: [PatSyn],          -- ...Pattern synonyms
 
         tcg_doc_hdr   :: Maybe LHsDocString, -- ^ Maybe Haddock header docs
-        tcg_hpc       :: AnyHpcUsage,        -- ^ @True@ if any part of the
+        tcg_hpc       :: !AnyHpcUsage,        -- ^ @True@ if any part of the
                                              --  prog uses hpc instrumentation.
+          -- NB. BangPattern is to fix a leak, see #15111
 
         tcg_main      :: Maybe Name,         -- ^ The Name of the main
                                              -- function, if this module is
