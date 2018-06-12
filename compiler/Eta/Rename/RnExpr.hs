@@ -10,7 +10,7 @@ general, all of these functions return a renamed thing, and a set of
 free variables.
 -}
 
-{-# LANGUAGE ScopedTypeVariables, CPP, RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables, CPP, RecordWildCards, MultiWayIf #-}
 
 module Eta.Rename.RnExpr (
         rnLExpr, rnExpr, rnStmts
@@ -34,6 +34,8 @@ import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.RdrName
 import Eta.Utils.UniqSet
 import Data.List
+import Data.Array
+import Data.Ord ( comparing )
 import Eta.Utils.Util
 import Eta.Utils.ListSetOps       ( removeDups )
 import Eta.Main.ErrUtils
@@ -884,16 +886,16 @@ stmtTreeToStmts
 -- In the spec, but we do it here rather than in the desugarer,
 -- because we need the typechecker to typecheck the <$> form rather than
 -- the bind form, which would give rise to a Monad constraint.
-stmtTreeToStmts monad_names ctxt (StmtTreeOne (L _ (BindStmt _ pat rhs _ _), _))
+stmtTreeToStmts monad_names ctxt (StmtTreeOne (L _ (BindStmt pat rhs _ _), _))
                 tail _tail_fvs
   | not (isStrictPattern pat), (False,tail') <- needJoin monad_names tail
   -- See Note [ApplicativeDo and strict patterns]
-  = mkApplicativeStmt ctxt [ApplicativeArgOne noExt pat rhs False] False tail'
-stmtTreeToStmts monad_names ctxt (StmtTreeOne (L _ (BodyStmt _ rhs _ _),_))
+  = mkApplicativeStmt ctxt [ApplicativeArgOne pat rhs False] False tail'
+stmtTreeToStmts monad_names ctxt (StmtTreeOne (L _ (BodyStmt rhs _ _ _),_))
                 tail _tail_fvs
   | (False,tail') <- needJoin monad_names tail
   = mkApplicativeStmt ctxt
-      [ApplicativeArgOne noExt nlWildPatName rhs True] False tail'
+      [ApplicativeArgOne nlWildPatName rhs True] False tail'
 
 stmtTreeToStmts _monad_names _ctxt (StmtTreeOne (s,_)) tail _tail_fvs =
   return (s : tail, emptyNameSet)
@@ -911,10 +913,10 @@ stmtTreeToStmts monad_names ctxt (StmtTreeApplicative trees) tail tail_fvs = do
    (stmts, fvs) <- mkApplicativeStmt ctxt stmts' need_join tail'
    return (stmts, unionNameSets (fvs:fvss))
  where
-   stmtTreeArg _ctxt _tail_fvs (StmtTreeOne (L _ (BindStmt _ pat exp _ _), _))
-     = return (ApplicativeArgOne noExt pat exp False, emptyFVs)
-   stmtTreeArg _ctxt _tail_fvs (StmtTreeOne (L _ (BodyStmt _ exp _ _), _)) =
-     return (ApplicativeArgOne noExt nlWildPatName exp True, emptyFVs)
+   stmtTreeArg _ctxt _tail_fvs (StmtTreeOne (L _ (BindStmt pat exp _ _), _))
+     = return (ApplicativeArgOne pat exp False, emptyFVs)
+   stmtTreeArg _ctxt _tail_fvs (StmtTreeOne (L _ (BodyStmt exp _ _ _), _)) =
+     return (ApplicativeArgOne nlWildPatName exp True, emptyFVs)
    stmtTreeArg ctxt tail_fvs tree = do
      let stmts = flattenStmtTree tree
          pvarset = mkNameSet (concatMap (collectStmtBinders.unLoc.fst) stmts)
@@ -928,9 +930,9 @@ stmtTreeToStmts monad_names ctxt (StmtTreeApplicative trees) tail tail_fvs = do
         if | L _ ApplicativeStmt{} <- last stmts' ->
              return (unLoc tup, emptyNameSet)
            | otherwise -> do
-             (ret,fvs) <- lookupStmtNamePoly ctxt returnMName
-             return (HsApp noExt (noLoc ret) tup, fvs)
-     return ( ApplicativeArgMany noExt stmts' mb_ret pat
+             (ret,fvs) <- lookupStmtName ctxt returnMName
+             return (HsApp (noLoc ret) tup, fvs)
+     return ( ApplicativeArgMany stmts' mb_ret pat
             , fvs1 `plusFV` fvs2)
 
 
@@ -984,7 +986,7 @@ segments stmts = map fst $ merge $ reverse $ map reverse $ walk (reverse stmts)
             pvars = mkNameSet (collectStmtBinders (unLoc stmt))
 
     isStrictPatternBind :: ExprLStmt Name -> Bool
-    isStrictPatternBind (L _ (BindStmt _ pat _ _ _)) = isStrictPattern pat
+    isStrictPatternBind (L _ (BindStmt pat _ _ _)) = isStrictPattern pat
     isStrictPatternBind _ = False
 
 {-
@@ -1018,14 +1020,15 @@ isStrictPattern (L _ pat) =
     WildPat{}       -> False
     VarPat{}        -> False
     LazyPat{}       -> False
-    AsPat _ _ p     -> isStrictPattern p
-    ParPat _ p      -> isStrictPattern p
-    ViewPat _ _ p   -> isStrictPattern p
-    SigPat _ p      -> isStrictPattern p
+    AsPat _ p       -> isStrictPattern p
+    ParPat p        -> isStrictPattern p
+    ViewPat _ p _   -> isStrictPattern p
+    SigPatIn p _    -> isStrictPattern p
+    SigPatOut p _   -> isStrictPattern p
     BangPat{}       -> True
     ListPat{}       -> True
     TuplePat{}      -> True
-    SumPat{}        -> True
+    -- SumPat{}        -> True
     PArrPat{}       -> True
     ConPatIn{}      -> True
     ConPatOut{}     -> True
@@ -1072,9 +1075,9 @@ slurpIndependentStmts stmts = go [] [] emptyNameSet stmts
   -- strict patterns though; splitSegments expects that if we return Just
   -- then we have actually done some splitting. Otherwise it will go into
   -- an infinite loop (#14163).
-  go lets indep bndrs ((L loc (BindStmt _ pat body bind_op fail_op), fvs): rest)
+  go lets indep bndrs ((L loc (BindStmt pat body bind_op fail_op), fvs): rest)
     | isEmptyNameSet (bndrs `intersectNameSet` fvs) && not (isStrictPattern pat)
-    = go lets ((L loc (BindStmt noExt pat body bind_op fail_op), fvs) : indep)
+    = go lets ((L loc (BindStmt pat body bind_op fail_op), fvs) : indep)
          bndrs' rest
     where bndrs' = bndrs `unionNameSet` mkNameSet (collectPatBinders pat)
   -- If we encounter a LetStmt that doesn't depend on a BindStmt in this
@@ -1082,9 +1085,9 @@ slurpIndependentStmts stmts = go [] [] emptyNameSet stmts
   -- grouping more BindStmts.
   -- TODO: perhaps we shouldn't do this if there are any strict bindings,
   -- because we might be moving evaluation earlier.
-  go lets indep bndrs ((L loc (LetStmt noExt binds), fvs) : rest)
+  go lets indep bndrs ((L loc (LetStmt binds), fvs) : rest)
     | isEmptyNameSet (bndrs `intersectNameSet` fvs)
-    = go ((L loc (LetStmt noExt binds), fvs) : lets) indep bndrs rest
+    = go ((L loc (LetStmt binds), fvs) : lets) indep bndrs rest
   go _ []  _ _ = Nothing
   go _ [_] _ _ = Nothing
   go lets indep _ stmts = Just (reverse lets, reverse indep, stmts)
@@ -1117,9 +1120,9 @@ mkApplicativeStmt ctxt args need_join body_stmts
                 ; return (Just join_op, fvs) }
            else
              return (Nothing, emptyNameSet)
-       ; let applicative_stmt = noLoc $ ApplicativeStmt noExt
+       ; let applicative_stmt = noLoc $ ApplicativeStmt
                (zip (fmap_op : repeat ap_op) args)
-               mb_join
+               mb_join (panic "mkApplicativeStmt: ApplicativeStmt not handled!")
        ; return ( applicative_stmt : body_stmts
                 , fvs1 `plusFV` fvs2 `plusFV` fvs3) }
 
@@ -1129,9 +1132,9 @@ needJoin :: MonadNames
          -> [ExprLStmt Name]
          -> (Bool, [ExprLStmt Name])
 needJoin _monad_names [] = (False, [])  -- we're in an ApplicativeArg
-needJoin monad_names  [L loc (LastStmt _ e _ t)]
+needJoin monad_names  [L loc (LastStmt e _ t)]
  | Just arg <- isReturnApp monad_names e =
-       (False, [L loc (LastStmt noExt arg True t)])
+       (False, [L loc (LastStmt arg True t)])
 needJoin _monad_names stmts = (True, stmts)
 
 -- | @Just e@, if the expression is @return e@ or @return $ e@,
@@ -1139,15 +1142,16 @@ needJoin _monad_names stmts = (True, stmts)
 isReturnApp :: MonadNames
             -> LHsExpr Name
             -> Maybe (LHsExpr Name)
-isReturnApp monad_names (L _ (HsPar _ expr)) = isReturnApp monad_names expr
+isReturnApp monad_names (L _ (HsPar expr)) = isReturnApp monad_names expr
 isReturnApp monad_names (L _ e) = case e of
-  OpApp _ l op r | is_return l, is_dollar op -> Just r
-  HsApp _ f arg  | is_return f               -> Just arg
+  OpApp l op _ r | is_return l, is_dollar op -> Just r
+  HsApp f arg    | is_return f               -> Just arg
   _otherwise -> Nothing
  where
-  is_var f (L _ (HsPar _ e)) = is_var f e
-  is_var f (L _ (HsAppType _ e)) = is_var f e
-  is_var f (L _ (HsVar _ (L _ r))) = f r
+  is_var :: (Name -> Bool) -> LHsExpr Name -> Bool
+  is_var f (L _ (HsPar e)) = is_var f e
+  -- is_var f (L _ (HsAppType _ e)) = is_var f e
+  is_var f (L _ (HsVar r)) = f r
        -- TODO: I don't know how to get this right for rebindable syntax
   is_var _ _ = False
 
@@ -1285,7 +1289,7 @@ rnStmt ctxt rnBody (L loc (LastStmt body noret _)) thing_inside
   = do  { (body', fv_expr) <- rnBody body
         ; (ret_op, fvs1)   <- lookupStmtName ctxt returnMName
         ; (thing,  fvs3)   <- thing_inside []
-        ; return (([L loc (LastStmt body' noret ret_op), fv_expr], thing),
+        ; return (([(L loc (LastStmt body' noret ret_op), fv_expr)], thing),
                   fv_expr `plusFV` fvs1 `plusFV` fvs3) }
 
 rnStmt ctxt rnBody (L loc (BodyStmt body _ _ _)) thing_inside
@@ -1298,7 +1302,7 @@ rnStmt ctxt rnBody (L loc (BodyStmt body _ _ _)) thing_inside
                               -- Also for sub-stmts of same eg [ e | x<-xs, gd | blah ]
                               -- Here "gd" is a guard
         ; (thing, fvs3)    <- thing_inside []
-        ; return (([L loc (BodyStmt body' then_op guard_op placeHolderType)], thing),
+        ; return (([(L loc (BodyStmt body' then_op guard_op placeHolderType), fv_expr)], thing),
                   fv_expr `plusFV` fvs1 `plusFV` fvs2 `plusFV` fvs3) }
 
 rnStmt ctxt rnBody (L loc (BindStmt pat body _ _)) thing_inside
@@ -1308,7 +1312,7 @@ rnStmt ctxt rnBody (L loc (BindStmt pat body _ _)) thing_inside
         ; (fail_op, fvs2) <- lookupStmtName ctxt failMName
         ; rnPat (StmtCtxt ctxt) pat $ \ pat' -> do
         { (thing, fvs3) <- thing_inside (collectPatBinders pat')
-        ; return (([L loc (BindStmt pat' body' bind_op fail_op)], fv_expr, thing),
+        ; return (([(L loc (BindStmt pat' body' bind_op fail_op), fv_expr)], thing),
                   fv_expr `plusFV` fvs1 `plusFV` fvs2 `plusFV` fvs3) }}
        -- fv_expr shouldn't really be filtered by the rnPatsAndThen
         -- but it does not matter because the names are unique

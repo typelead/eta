@@ -773,17 +773,20 @@ tcDoStmt ctxt (BindStmt pat rhs bind_op fail_op) res_ty thing_inside
 
         ; return (BindStmt pat' rhs' bind_op' fail_op', thing) }
 
-tcDoStmt ctxt (ApplicativeStmt _ pairs mb_join) res_ty thing_inside
-  = do  { let tc_app_stmts ty = tcApplicativeStmts ctxt pairs ty $
-                                thing_inside . mkCheckExpType
-        ; ((pairs', body_ty, thing), mb_join') <- case mb_join of
-            Nothing -> (, Nothing) <$> tc_app_stmts res_ty
+tcDoStmt ctxt (ApplicativeStmt pairs mb_join _) res_ty thing_inside
+  = do  {
+        ; (mb_join', rhs_ty) <- case mb_join of
+            Nothing -> return (Nothing, res_ty)
             Just join_op ->
-              second Just <$>
-              (tcSyntaxOp DoOrigin join_op [SynRho] res_ty $
-               \ [rhs_ty] -> tc_app_stmts (mkCheckExpType rhs_ty))
+              do { rhs_ty <- newFlexiTyVarTy liftedTypeKind
+                 ; join_op' <- tcSyntaxOp DoOrigin join_op
+                     (mkFunTy rhs_ty res_ty)
+                 ; return (Just join_op', rhs_ty) }
 
-        ; return (ApplicativeStmt body_ty pairs' mb_join', thing) }
+        ; (pairs', body_ty, thing) <-
+            tcApplicativeStmts ctxt pairs rhs_ty thing_inside
+
+        ; return (ApplicativeStmt pairs' mb_join' body_ty, thing) }
 
 
 tcDoStmt _ (BodyStmt rhs then_op _ _) res_ty thing_inside
@@ -874,14 +877,14 @@ join :: tn -> res_ty
 tcApplicativeStmts
   :: HsStmtContext Name
   -> [(SyntaxExpr Name, ApplicativeArg Name)]
-  -> ExpRhoType                         -- rhs_ty
+  -> TcRhoType                         -- rhs_ty
   -> (TcRhoType -> TcM t)               -- thing_inside
   -> TcM ([(SyntaxExpr TcId, ApplicativeArg TcId)], Type, t)
 
 tcApplicativeStmts ctxt pairs rhs_ty thing_inside
  = do { body_ty <- newFlexiTyVarTy liftedTypeKind
       ; let arity = length pairs
-      ; ts <- replicateM (arity-1) $ newInferExpTypeInst
+      ; ts <- replicateM (arity-1) $ newFlexiTyVarTy liftedTypeKind
       ; exp_tys <- replicateM arity $ newFlexiTyVarTy liftedTypeKind
       ; pat_tys <- replicateM arity $ newFlexiTyVarTy liftedTypeKind
       ; let fun_ty = mkFunTys pat_tys body_ty
@@ -906,11 +909,8 @@ tcApplicativeStmts ctxt pairs rhs_ty thing_inside
   where
     goOps _ [] = return []
     goOps t_left ((op,t_i,exp_ty) : ops)
-      = do { (_, op')
-               <- tcSyntaxOp DoOrigin op
-                             [synKnownType t_left, synKnownType exp_ty] t_i $
-                   \ _ -> return ()
-           ; t_i <- readExpType t_i
+      = do { op'
+               <- tcSyntaxOp DoOrigin op (mkFunTys [t_left, exp_ty] t_i)
            ; ops' <- goOps t_i ops
            ; return (op' : ops') }
 
@@ -920,25 +920,25 @@ tcApplicativeStmts ctxt pairs rhs_ty thing_inside
     goArg (ApplicativeArgOne pat rhs isBody, pat_ty, exp_ty)
       = setSrcSpan (combineSrcSpans (getLoc pat) (getLoc rhs)) $
         addErrCtxt (pprStmtInCtxt ctxt (mkBindStmt pat rhs))   $
-        do { rhs' <- tcMonoExprNC rhs (mkCheckExpType exp_ty)
-           ; (pat', _) <- tcPat (StmtCtxt ctxt) pat (mkCheckExpType pat_ty) $
+        do { rhs' <- tcMonoExprNC rhs exp_ty
+           ; (pat', _) <- tcPat (StmtCtxt ctxt) pat pat_ty $
                           return ()
            ; return (ApplicativeArgOne pat' rhs' isBody) }
 
     goArg (ApplicativeArgMany stmts ret pat, pat_ty, exp_ty)
       = do { (stmts', (ret',pat')) <-
-                tcStmtsAndThen ctxt tcDoStmt stmts (mkCheckExpType exp_ty) $
+                tcStmtsAndThen ctxt tcDoStmt stmts exp_ty $
                 \res_ty  -> do
                   { L _ ret' <- tcMonoExprNC (noLoc ret) res_ty
-                  ; (pat', _) <- tcPat (StmtCtxt ctxt) pat (mkCheckExpType pat_ty) $
+                  ; (pat', _) <- tcPat (StmtCtxt ctxt) pat pat_ty $
                                  return ()
                   ; return (ret', pat')
                   }
            ; return (ApplicativeArgMany stmts' ret' pat') }
 
     get_arg_bndrs :: ApplicativeArg TcId -> [Id]
-    get_arg_bndrs (ApplicativeArgOne _ pat _ _)  = collectPatBinders pat
-    get_arg_bndrs (ApplicativeArgMany _ _ _ pat) = collectPatBinders pat
+    get_arg_bndrs (ApplicativeArgOne pat _ _)  = collectPatBinders pat
+    get_arg_bndrs (ApplicativeArgMany _ _ pat) = collectPatBinders pat
 
 
 {- Note [ApplicativeDo and constraints]

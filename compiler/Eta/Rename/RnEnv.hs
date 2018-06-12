@@ -22,7 +22,7 @@ module Eta.Rename.RnEnv (
         lookupFixityRn, lookupTyFixityRn,
         lookupInstDeclBndr, lookupSubBndrOcc, lookupFamInstName,
         greRdrName,
-        lookupSubBndrGREs, lookupConstructorFields,
+        lookupSubBndrGREs, lookupConstructorFields, lookupSyntaxName',
         lookupSyntaxName, lookupSyntaxNames, lookupIfThenElse,
         lookupGreRn, lookupGreRn_maybe,
         lookupGreLocalRn_maybe,
@@ -1374,6 +1374,16 @@ lookupIfThenElse
          then return (Nothing, emptyFVs)
          else do { ite <- lookupOccRn (mkVarUnqual (fsLit "ifThenElse"))
                  ; return (Just (HsVar ite), unitFV ite) } }
+
+lookupSyntaxName' :: Name          -- ^ The standard name
+                 -> RnM Name      -- ^ Possibly a non-standard name
+lookupSyntaxName' std_name
+ = do { rebindable_on <- xoptM Opt_RebindableSyntax
+      ; if not rebindable_on then
+          return std_name
+        else
+           -- Get the similarly named thing from the local environment
+          lookupOccRn (mkRdrUnqual (nameOccName std_name)) }
 
 lookupSyntaxName :: Name                                -- The standard name
                  -> RnM (SyntaxExpr Name, FreeVars)     -- Possibly a non-standard name

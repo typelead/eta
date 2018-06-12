@@ -11,7 +11,7 @@ module Eta.BasicTypes.NameSet (
         emptyNameSet, unitNameSet, mkNameSet, unionNameSet, unionNameSets,
         minusNameSet, elemNameSet, nameSetElems, extendNameSet, extendNameSetList,
         delFromNameSet, delListFromNameSet, isEmptyNameSet, foldNameSet, filterNameSet,
-        intersectsNameSet, intersectNameSet, nameSetAll, nameSetAny,
+        intersectsNameSet, intersectNameSet, nameSetAll, nameSetElemsStable, nameSetAny,
 
         -- * Free variables
         FreeVars,
@@ -30,6 +30,7 @@ module Eta.BasicTypes.NameSet (
 
 import Eta.BasicTypes.Name
 import Eta.Utils.UniqSet
+import Data.List ( sortBy )
 
 {-
 ************************************************************************
@@ -86,6 +87,16 @@ nameSetAny = uniqSetAny
 
 nameSetAll :: (Name -> Bool) -> NameSet -> Bool
 nameSetAll = uniqSetAll
+
+-- | Get the elements of a NameSet with some stable ordering.
+-- This only works for Names that originate in the source code or have been
+-- tidied.
+-- See Note [Deterministic UniqFM] to learn about nondeterminism
+nameSetElemsStable :: NameSet -> [Name]
+nameSetElemsStable ns =
+  sortBy stableNameCmp $ nonDetEltsUniqSet ns
+  -- It's OK to use nonDetEltsUniqSet here because we immediately sort
+  -- with stableNameCmp
 
 {-
 ************************************************************************
