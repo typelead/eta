@@ -28,7 +28,9 @@ public class MessageThrowTo extends Message {
         assert source.whyBlocked == BlockedOnMsgThrowTo;
         assert source.blockInfo  == this;
         boolean success = Exception.throwToMsg(cap, this, true);
-        if (!success) {
+        if (success) {
+            done();
+        } else  {
             unlock();
         }
     }
