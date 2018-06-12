@@ -219,7 +219,7 @@ public class Exception {
         msg.lock();
         boolean success = throwToMsg(cap, msg, false);
         if (success) {
-            msg.unlock();
+            msg.done();
             return null;
         } else {
             return msg;
@@ -232,6 +232,10 @@ public class Exception {
         do {
             assert target != null;
             if (target.whatNext == ThreadComplete || target.whatNext == ThreadKilled) {
+                if (debug) {
+                    debugScheduler("throwToMsg: " + msg.source + " to " + target +
+                                   " is inactive with " + target.whatNext);
+                }
                 return true;
             }
             final Capability targetCap = target.cap;

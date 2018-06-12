@@ -31,15 +31,15 @@ public final class TSO extends BlackHole {
     /* Used for concurrent access to linked lists coordinated by the `link` field. */
     public static final TSO TRANSIENT_LINK = new TSO(null);
 
-    public int id = maxThreadId.getAndIncrement();
+    public final int id = maxThreadId.getAndIncrement();
     public Closure closure;
     public LinkedList<BlockingQueue> blockingQueues = new LinkedList<BlockingQueue>();
     public volatile WhatNext whatNext = ThreadRun;
-    public WhyBlocked whyBlocked = NotBlocked;
-    public TransactionRecord trec;
+    public volatile WhyBlocked whyBlocked = NotBlocked;
+    public volatile TransactionRecord trec;
     public volatile Capability cap;
-    public Object blockInfo;
-    public int flags;
+    public volatile Object blockInfo;
+    public volatile int flags;
     public Queue<MessageThrowTo> blockedExceptions
         = new ConcurrentLinkedQueue<MessageThrowTo>();
     public StackTraceElement[] stackTrace;
