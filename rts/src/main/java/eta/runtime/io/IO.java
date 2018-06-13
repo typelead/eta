@@ -31,6 +31,8 @@ public class IO {
     public static void delay(StgContext context, int time) {
         TSO tso = context.currentTSO;
         boolean immune = tso.suspendInterrupts(true);
+        // Clear any existing interrupts.
+        Thread.interrupted();
         try {
             Thread.sleep(time / 1000, (time % 1000) * 1000);
         } catch (InterruptedException ie) {
