@@ -257,8 +257,7 @@ public final class TSO extends BlackHole {
 
     /* Preserves the enclosing interrupt status. */
     public final boolean suspendInterrupts(boolean interruptible) {
-        boolean immune = hasFlag(TSO_INTERRUPT_IMMUNE);
-        boolean oldInterrupt = false;
+        final boolean immune = hasFlag(TSO_INTERRUPT_IMMUNE);
         if (interruptible) {
             whyBlocked = BlockedOnJavaCall_Interruptible;
         } else {
