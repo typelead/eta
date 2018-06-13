@@ -1,5 +1,7 @@
 package eta.runtime.exception;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.ListIterator;
 
@@ -251,6 +253,9 @@ public class Exception {
                         debugScheduler("throwToMsg: Throwing asynchronous exception from "
                                       + msg.source + " to " + target);
                     }
+                    if (Runtime.debugExceptions()) {
+                        debugExceptions(exceptionToString(new java.lang.Exception()));
+                    }
                     cap.sendMessage(targetCap, msg);
                     return false;
                 }
@@ -337,5 +342,11 @@ public class Exception {
         }
         raiseAsync(target, msg.exception, false, null);
         return true;
+    }
+
+    public static String exceptionToString(final java.lang.Exception e) {
+        final StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
     }
 }
