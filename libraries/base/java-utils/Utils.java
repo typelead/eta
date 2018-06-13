@@ -163,6 +163,8 @@ public class Utils {
         int size = rc.read(buffer);
         if (size == 0 && nonBlocking) {
             size = -1;
+        } else if (size == -1) {
+            size = 0;
         }
         if (Runtime.debugIO()) {
             debugIO("c_read: " + fd.toString() + " nonBlocking: " + nonBlocking
