@@ -33,7 +33,7 @@ module Eta.Main.DriverPipeline (
 import Eta.Main.SysTools
 import Eta.Main.Constants
 import qualified Eta.Main.SysTools as SysTools
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.CodeGen.Name
 import Eta.Debug
 import Eta.CodeGen.Rts
@@ -835,7 +835,7 @@ runPhase (RealPhase (Cpp sf)) input_fn dflags0
        setDynFlags dflags1
        liftIO $ checkProcessArgsResult dflags1 unhandled_flags
 
-       if not (xopt Opt_Cpp dflags1) then do
+       if not (xopt LangExt.Cpp dflags1) then do
            -- we have to be careful to emit warnings only once.
            unless (gopt Opt_Pp dflags1) $
                liftIO $ handleFlagWarnings dflags1 warns

@@ -49,6 +49,7 @@ import Eta.Utils.FastString
 import Data.List        ( partition, sort )
 import Eta.Utils.Maybes           ( orElse )
 import Control.Monad
+import qualified Eta.LanguageExtensions as LangExt
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
 -- #endif
@@ -577,7 +578,7 @@ rnPatSynBind _sig_fn bind@(PSB { psb_id = L _ name
                                , psb_def = pat
                                , psb_dir = dir })
        -- invariant: no free vars here when it's a FunBind
-  = do  { pattern_synonym_ok <- xoptM Opt_PatternSynonyms
+  = do  { pattern_synonym_ok <- xoptM LangExt.PatternSynonyms
         ; unless pattern_synonym_ok (addErr patternSynonymErr)
 
         ; ((pat', details'), fvs1) <- rnPat PatSyn pat $ \pat' -> do
@@ -842,7 +843,7 @@ renameSig ctxt sig@(TypeSig vs ty _)
         ; return (TypeSig new_vs new_ty wcs_new, fvs) } }
 
 renameSig ctxt sig@(GenericSig vs ty)
-  = do  { defaultSigs_on <- xoptM Opt_DefaultSignatures
+  = do  { defaultSigs_on <- xoptM LangExt.DefaultSignatures
         ; unless defaultSigs_on (addErr (defaultSigErr sig))
         ; new_v <- mapM (lookupSigOccRn ctxt sig) vs
         ; (new_ty, fvs) <- rnHsSigType (ppr_sig_bndrs vs) ty
@@ -985,7 +986,7 @@ rnMatchGroup :: Outputable (body RdrName) => HsMatchContext Name
              -> MatchGroup RdrName (Located (body RdrName))
              -> RnM (MatchGroup Name (Located (body Name)), FreeVars)
 rnMatchGroup ctxt rnBody (MG { mg_alts = ms, mg_origin = origin })
-  = do { empty_case_ok <- xoptM Opt_EmptyCase
+  = do { empty_case_ok <- xoptM LangExt.EmptyCase
        ; when (null ms && not empty_case_ok) (addErr (emptyCaseErr ctxt))
        ; (new_ms, ms_fvs) <- mapFvRn (rnMatch ctxt rnBody) ms
        ; return (mkMatchGroupName origin new_ms, ms_fvs) }
@@ -1064,7 +1065,7 @@ rnGRHS' :: HsMatchContext Name
         -> GRHS RdrName (Located (body RdrName))
         -> RnM (GRHS Name (Located (body Name)), FreeVars)
 rnGRHS' ctxt rnBody (GRHS guards rhs)
-  = do  { pattern_guards_allowed <- xoptM Opt_PatternGuards
+  = do  { pattern_guards_allowed <- xoptM LangExt.PatternGuards
         ; ((guards', rhs'), fvs) <- rnStmts (PatGuard ctxt) rnLExpr guards $ \ _ ->
                                     rnBody rhs
 

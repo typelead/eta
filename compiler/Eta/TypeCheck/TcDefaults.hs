@@ -16,11 +16,11 @@ import Eta.TypeCheck.TcHsType
 import Eta.TypeCheck.TcSimplify
 import Eta.TypeCheck.TcType
 import Eta.Prelude.PrelNames
-import Eta.Main.DynFlags
 import Eta.BasicTypes.SrcLoc
 import Data.Maybe
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
+import qualified Eta.LanguageExtensions as LangExt
 
 tcDefaults :: [LDefaultDecl Name]
            -> TcM (Maybe [Type])    -- Defaulting types to heave
@@ -45,7 +45,7 @@ tcDefaults [L _ (DefaultDecl [])]
 tcDefaults [L locn (DefaultDecl mono_tys)]
   = setSrcSpan locn                     $
     addErrCtxt defaultDeclCtxt          $
-    do  { ovl_str <- xoptM Opt_OverloadedStrings
+    do  { ovl_str <- xoptM LangExt.OverloadedStrings
         ; num_class    <- tcLookupClass numClassName
         ; is_str_class <- tcLookupClass isStringClassName
         ; let deflt_clss | ovl_str   = [num_class, is_str_class]

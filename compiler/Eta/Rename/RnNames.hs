@@ -41,7 +41,7 @@ import Eta.Main.ErrUtils
 import Eta.Utils.Util
 import Eta.Utils.FastString
 import Eta.Utils.ListSetOps
-
+import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
 import Data.Map         ( Map )
 import qualified Data.Map as Map
@@ -176,7 +176,7 @@ rnImportDecl this_mod
   = setSrcSpan loc $ do
 
     when (isJust mb_pkg) $ do
-        pkg_imports <- xoptM Opt_PackageImports
+        pkg_imports <- xoptM LangExt.PackageImports
         when (not pkg_imports) $ addErr packageImportErr
 
     -- If there's an error in loadInterface, (e.g. interface
@@ -1091,7 +1091,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                return acc }
 
         | otherwise
-        = do { implicit_prelude <- xoptM Opt_ImplicitPrelude
+        = do { implicit_prelude <- xoptM LangExt.ImplicitPrelude
              ; warnDodgyExports <- woptM Opt_WarnDodgyExports
              ; let { exportValid = (mod `elem` imported_modules)
                                 || (moduleName this_mod == mod)

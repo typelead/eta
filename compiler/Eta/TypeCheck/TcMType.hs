@@ -67,7 +67,7 @@ import Eta.Types.Type
 import Eta.Types.Class
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarEnv
-
+import qualified Eta.LanguageExtensions as LangExt
 -- others:
 import Eta.TypeCheck.TcRnMonad        -- TcType, amongst others
 import Eta.BasicTypes.Id
@@ -75,7 +75,6 @@ import qualified Eta.BasicTypes.Id as Id
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.VarSet
 import Eta.Prelude.PrelNames
-import Eta.Main.DynFlags
 import Eta.Utils.Util
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
@@ -520,7 +519,7 @@ quantifyTyVars gbl_tvs tkvs
              -- to *, and zonk the tyvars as usual.  Notice that this
              -- may make quantifyTyVars return a shorter list
              -- than it was passed, but that's ok
-       ; poly_kinds <- xoptM Opt_PolyKinds
+       ; poly_kinds <- xoptM LangExt.PolyKinds
        ; qkvs <- if poly_kinds
                  then return kvs2
                  else do { let (meta_kvs, skolem_kvs) = partition is_meta kvs2

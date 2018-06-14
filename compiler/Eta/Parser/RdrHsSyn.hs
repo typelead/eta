@@ -92,7 +92,7 @@ import Eta.Utils.FastString
 import Eta.Utils.Maybes
 import Eta.Utils.Util
 import Eta.Parser.ApiAnnotation
-
+import qualified Eta.LanguageExtensions as LangExt
 #if __GLASGOW_HASKELL__ < 709
 import Control.Applicative ((<$>))
 #endif
@@ -909,7 +909,7 @@ checkAPat msg loc e0 = do
    -- n+k patterns
    OpApp (L nloc (HsVar n)) (L _ (HsVar plus)) _
          (L lloc (HsOverLit lit@(OverLit {ol_val = HsIntegral {}})))
-                      | xopt Opt_NPlusKPatterns dynflags && (plus == plus_RDR)
+                      | xopt LangExt.NPlusKPatterns dynflags && (plus == plus_RDR)
                       -> return (mkNPlusKPat (L nloc n) (L lloc lit))
 
    OpApp l op _fix r  -> do l <- checkLPat msg l
@@ -1194,7 +1194,7 @@ checkDoAndIfThenElse :: LHsExpr RdrName
 checkDoAndIfThenElse guardExpr semiThen thenExpr semiElse elseExpr
  | semiThen || semiElse
     = do pState <- getPState
-         unless (xopt Opt_DoAndIfThenElse (dflags pState)) $ do
+         unless (xopt LangExt.DoAndIfThenElse (dflags pState)) $ do
              parseErrorSDoc (combineLocs guardExpr elseExpr)
                             (text "Unexpected semi-colons in conditional:"
                           $$ nest 4 expr
@@ -1282,7 +1282,7 @@ isFunLhs e = go e [] []
 checkMonadComp :: P (HsStmtContext Name)
 checkMonadComp = do
     pState <- getPState
-    return $ if xopt Opt_MonadComprehensions (dflags pState)
+    return $ if xopt LangExt.MonadComprehensions (dflags pState)
                 then MonadComp
                 else ListComp
 

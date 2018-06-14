@@ -57,7 +57,7 @@ import qualified Eta.Utils.Outputable as Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Util
 import Eta.Utils.BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )
-
+import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
 import Eta.Utils.Maybes     ( isNothing, isJust, whenIsJust )
 import Data.List  ( mapAccumL, partition )
@@ -614,7 +614,7 @@ tcFamInstDeclCombined mb_clsinfo fam_tc_lname
   = do { -- Type family instances require -XTypeFamilies
          -- and can't (currently) be in an hs-boot file
        ; traceTc "tcFamInstDecl" (ppr fam_tc_lname)
-       ; type_families <- xoptM Opt_TypeFamilies
+       ; type_families <- xoptM LangExt.TypeFamilies
        ; is_boot <- tcIsHsBootOrSig   -- Are we compiling an hs-boot file?
        ; checkTc type_families $ badFamInstDecl fam_tc_lname
        ; checkTc (not is_boot) $ badBootFamInstDeclErr
@@ -928,7 +928,7 @@ mkMethIds sig_fn clas tyvars dfun_ev_vars inst_tys sel_id
             Just lhs_ty  -- There is a signature in the instance declaration
                          -- See Note [Instance method signatures]
                -> setSrcSpan (getLoc lhs_ty) $
-                  do { inst_sigs <- xoptM Opt_InstanceSigs
+                  do { inst_sigs <- xoptM LangExt.InstanceSigs
                      ; checkTc inst_sigs (misplacedInstSig sel_name lhs_ty)
                      ; sig_ty  <- tcHsSigType (FunSigCtxt sel_name) lhs_ty
                      ; let poly_sig_ty = mkSigmaTy tyvars theta sig_ty
@@ -1196,7 +1196,7 @@ tcInstanceMethods dfun_id clas tyvars dfun_ev_vars inst_tys
        ; checkMinimalDefinition
        ; set_exts exts $ mapAndUnzipM (tc_item hs_sig_fn) op_items }
   where
-    set_exts :: [ExtensionFlag] -> TcM a -> TcM a
+    set_exts :: [LangExt.Extension] -> TcM a -> TcM a
     set_exts es thing = foldr setXOptM thing es
 
     ----------------------

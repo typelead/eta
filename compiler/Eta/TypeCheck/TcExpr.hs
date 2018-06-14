@@ -65,6 +65,7 @@ import Eta.Types.Class(classTyCon)
 import Data.Function
 import Data.List
 import qualified Data.Set as Set
+import qualified Eta.LanguageExtensions as LangExt
 
 #include "HsVersions.h"
 
@@ -366,7 +367,7 @@ tcExpr (SectionR op arg2) res_ty
 tcExpr (SectionL arg1 op) res_ty
   = do { (op', op_ty) <- tcInferFun op
        ; dflags <- getDynFlags      -- Note [Left sections]
-       ; let n_reqd_args | xopt Opt_PostfixOperators dflags = 1
+       ; let n_reqd_args | xopt LangExt.PostfixOperators dflags = 1
                          | otherwise                        = 2
 
        ; (co_fn, (arg1_ty:arg_tys), op_res_ty) <- unifyOpFunTysWrap op n_reqd_args op_ty

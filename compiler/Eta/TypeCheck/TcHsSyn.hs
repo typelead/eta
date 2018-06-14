@@ -56,7 +56,7 @@ import Eta.Utils.Util
 import Eta.Utils.Bag
 import Eta.Utils.FastString
 import Eta.Utils.Outputable
-
+import qualified Eta.LanguageExtensions as LangExt
 #include "HsVersions.h"
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
@@ -1493,7 +1493,7 @@ zonkTvCollecting :: TcRef TyVarSet -> UnboundTyVarZonker
 -- This variant collects unbound type variables in a mutable variable
 -- Works on both types and kinds
 zonkTvCollecting unbound_tv_set tv
-  = do { poly_kinds <- xoptM Opt_PolyKinds
+  = do { poly_kinds <- xoptM LangExt.PolyKinds
        ; if isKindVar tv && not poly_kinds then defaultKindVarToStar tv
          else do
        { tv' <- zonkQuantifiedTyVar tv

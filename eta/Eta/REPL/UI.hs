@@ -121,7 +121,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 import System.Process
 import Text.Printf
 import Text.Read ( readMaybe )
-
+import qualified Eta.LanguageExtensions as LangExt
 import Unsafe.Coerce
 
 #if !defined(mingw32_HOST_OS)
@@ -499,8 +499,8 @@ interactiveUI config srcs maybe_exprs = do
    -- as the global DynFlags, plus -XExtendedDefaultRules and
    -- -XNoMonomorphismRestriction.
    dflags <- getDynFlags
-   let dflags' = (`xopt_set` Opt_ExtendedDefaultRules)
-               . (`xopt_unset` Opt_MonomorphismRestriction)
+   let dflags' = (`xopt_set` LangExt.ExtendedDefaultRules)
+               . (`xopt_unset` LangExt.MonomorphismRestriction)
                $ dflags
    GHC.setInteractiveDynFlags dflags'
 
@@ -1113,7 +1113,7 @@ checkInputForLayout :: String -> InputT GHCi (Maybe String)
                     -> InputT GHCi (Maybe String)
 checkInputForLayout stmt getStmt = do
    dflags' <- getDynFlags
-   let dflags = xopt_set dflags' Opt_AlternativeLayoutRule
+   let dflags = xopt_set dflags' LangExt.AlternativeLayoutRule
    st0 <- getGHCiState
    let buf'   =  stringToStringBuffer stmt
        loc    = mkRealSrcLoc (fsLit (progname st0)) (line_number st0) 1
@@ -2499,7 +2499,7 @@ getImplicitPreludeImports iidecls = do
   -- of the same module.  This means that you can override the prelude import
   -- with "import Prelude hiding (map)", for example.
   let prel_iidecls =
-         if xopt Opt_ImplicitPrelude dflags && not (any isIIModule iidecls)
+         if xopt LangExt.ImplicitPrelude dflags && not (any isIIModule iidecls)
             then [ IIDecl imp
                  | imp <- prelude_imports st
                  , not (any (sameImpModule imp) iidecls) ]

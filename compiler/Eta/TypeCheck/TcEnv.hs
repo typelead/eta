@@ -98,7 +98,7 @@ import Eta.Utils.Maybes( MaybeErr(..) )
 import Data.IORef
 import Data.List
 import Data.Foldable
-
+import qualified Eta.LanguageExtensions as LangExt
 {- *********************************************************************
 *                                                                      *
             An IO interface to looking up globals
@@ -685,8 +685,8 @@ tcGetDefaultTys :: TcM ([Type], -- Default types
                          Bool)) -- True <=> Use extended defaulting rules
 tcGetDefaultTys
   = do  { dflags <- getDynFlags
-        ; let ovl_strings = xopt Opt_OverloadedStrings dflags
-              extended_defaults = xopt Opt_ExtendedDefaultRules dflags
+        ; let ovl_strings = xopt LangExt.OverloadedStrings dflags
+              extended_defaults = xopt LangExt.ExtendedDefaultRules dflags
                                         -- See also Trac #1974
               flags = (ovl_strings, extended_defaults)
 
@@ -759,7 +759,7 @@ data InstBindings a
       , ib_pragmas :: [LSig a]      -- User pragmas recorded for generating
                                     -- specialised instances
 
-      , ib_extensions :: [ExtensionFlag] -- Any extra extensions that should
+      , ib_extensions :: [LangExt.Extension] -- Any extra extensions that should
                                          -- be enabled when type-checking this
                                          -- instance; needed for
                                          -- GeneralizedNewtypeDeriving
@@ -813,7 +813,7 @@ in the same string "a_b_c".
 -}
 
 mkInfoString :: Class -> [Type] -> String
-mkInfoString clas tys 
+mkInfoString clas tys
   = intercalate "_"
   $ map (escapeName . occNameString)
   $ getOccName clas : map getDFunTyKey tys

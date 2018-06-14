@@ -22,6 +22,7 @@ import Eta.Types.InstEnv
 import Eta.Types.TyCon
 import Eta.BasicTypes.DataCon
 import Eta.TypeCheck.TcEvidence
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.RdrName          ( lookupGRE_Name, GlobalRdrEnv )
 import Eta.BasicTypes.Id
@@ -578,7 +579,7 @@ mkIrredErr ctxt cts
 ----------------
 mkHoleError :: ReportErrCtxt -> Ct -> TcM ErrMsg
 mkHoleError ctxt ct@(CHoleCan { cc_occ = occ })
-  = do { partial_sigs <- xoptM Opt_PartialTypeSignatures
+  = do { partial_sigs <- xoptM LangExt.PartialTypeSignatures
        ; let tyvars = varSetElems (tyVarsOfCt ct)
              tyvars_msg = map loc_msg tyvars
              msg = vcat [ hang (ptext (sLit "Found hole") <+> quotes (ppr occ))

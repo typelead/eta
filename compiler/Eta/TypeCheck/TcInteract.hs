@@ -18,7 +18,7 @@ import Eta.Types.Kind (isKind, isConstraintKind )
 import Eta.Types.Unify
 import Eta.Types.InstEnv( lookupInstEnv, instanceDFunId )
 import Eta.Types.CoAxiom(sfInteractTop, sfInteractInert)
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Var
 import Eta.TypeCheck.TcType
 import Eta.Prelude.PrelNames ( knownNatClassName, knownSymbolClassName, ipClassNameKey
@@ -2029,7 +2029,7 @@ matchClassInst inerts clas tys loc
                       ; return NoInstance }
 
             ([(ispec, inst_tys)], [], _) -- A single match
-                | not (xopt Opt_IncoherentInstances dflags)
+                | not (xopt LangExt.IncoherentInstances dflags)
                 , not (isEmptyBag unifiable_givens)
                 -> -- See Note [Instance and Given overlap]
                    do { traceTcS "Delaying instance application" $

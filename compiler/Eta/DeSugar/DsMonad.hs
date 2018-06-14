@@ -69,6 +69,7 @@ import GHC.Fingerprint
 
 import Data.IORef
 import Control.Monad
+import qualified Eta.LanguageExtensions as LangExt
 
 {-
 ************************************************************************
@@ -202,7 +203,7 @@ initDs hsc_env mod rdr_env type_env fam_inst_env thing_inside
              else thing_inside
            }
 
-    checkLoadDAP = do { paEnabled <- xoptM Opt_ParallelArrays
+    checkLoadDAP = do { paEnabled <- xoptM LangExt.ParallelArrays
                       ; return $ paEnabled &&
                                  mod /= gHC_PARR' &&
                                  moduleName mod /= dATA_ARRAY_PARALLEL_NAME

@@ -99,7 +99,7 @@ import Eta.Main.TidyPgm    ( globaliseAndTidyId )
 import Eta.Prelude.TysWiredIn ( unitTy, mkListTy )
 #endif
 import Eta.Main.TidyPgm    ( mkBootModDetailsTc )
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.Utils.FastString
 import Eta.Utils.Maybes
 import Eta.Utils.Util
@@ -290,7 +290,7 @@ tcRnModuleTcRnM hsc_env hsc_src
         setGblEnv tcg_env $ do {
 
         -- Deal with imports; first add implicit prelude
-        implicit_prelude <- xoptM Opt_ImplicitPrelude;
+        implicit_prelude <- xoptM LangExt.ImplicitPrelude;
         let { prel_imports = mkPrelImports (moduleName this_mod) prel_imp_loc
                                          implicit_prelude import_decls } ;
 
@@ -1676,7 +1676,7 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                                  Just _ -> return (Left ReinterpretRunQ)
                                  _ -> cont
                            _ -> cont
-                       
+
                        } ]
 
         ; fix_env <- getFixityEnv
@@ -1887,7 +1887,7 @@ tcRnType :: HscEnv
          -> IO (Messages, Maybe (Type, Kind))
 tcRnType hsc_env normalise rdr_type
   = runTcInteractive hsc_env $
-    setXOptM Opt_PolyKinds $   -- See Note [Kind-generalise in tcRnType]
+    setXOptM LangExt.PolyKinds $   -- See Note [Kind-generalise in tcRnType]
     do { (wcs, rdr_type') <- extractWildcards rdr_type
        ; (rn_type, wcs)   <- bindLocatedLocalsRn wcs $ \wcs_new -> do {
        ; (rn_type, _fvs)  <- rnLHsType GHCiCtx rdr_type'

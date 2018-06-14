@@ -19,7 +19,7 @@ import {-# SOURCE #-} Eta.DeSugar.DsExpr ( dsExpr )
 
 import Eta.DeSugar.DsMonad
 import Eta.DeSugar.DsUtils
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.HsSyn.HsSyn
 
 import Eta.BasicTypes.Id
@@ -185,7 +185,7 @@ warnAboutOverflowedLiterals dflags lit
         maxB = toInteger (maxBound :: a)
         sug | minB == -i   -- Note [Suggest NegativeLiterals]
             , i > 0
-            , not (xopt Opt_NegativeLiterals dflags)
+            , not (xopt LangExt.NegativeLiterals dflags)
             = ptext (sLit "If you are trying to write a large negative literal, use NegativeLiterals")
             | otherwise = Outputable.empty
 

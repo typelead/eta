@@ -8,7 +8,7 @@ module Eta.TypeCheck.TcSimplify(
        captureTopConstraints
   ) where
 
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.TypeCheck.TcRnTypes
 import Eta.TypeCheck.TcRnMonad
 import qualified Eta.TypeCheck.TcRnMonad as TcRnMonad
@@ -36,7 +36,6 @@ import Eta.Utils.Util
 import Eta.Prelude.PrelInfo
 import Eta.Prelude.PrelNames
 import Control.Monad    ( unless )
-import Eta.Main.DynFlags         ( ExtensionFlag( Opt_AllowAmbiguousTypes ) )
 import Eta.Types.Class            ( classKey )
 import Eta.BasicTypes.BasicTypes       ( RuleName )
 import Eta.Utils.Outputable
@@ -218,7 +217,7 @@ simplifyAmbiguityCheck ty wanteds
        -- Normally report all errors; but with -XAllowAmbiguousTypes
        -- report only insoluble ones, since they represent genuinely
        -- inaccessible code
-       ; allow_ambiguous <- xoptM Opt_AllowAmbiguousTypes
+       ; allow_ambiguous <- xoptM LangExt.AllowAmbiguousTypes
        ; traceTc "reportUnsolved(ambig) {" empty
        ; unless (allow_ambiguous && not (insolubleWC zonked_final_wc))
                 (discardResult (reportUnsolved zonked_final_wc))

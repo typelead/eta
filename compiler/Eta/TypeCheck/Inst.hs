@@ -56,7 +56,7 @@ import Eta.Utils.Util
 import Eta.Utils.Outputable
 import Control.Monad( unless )
 import Data.Maybe( isJust, fromJust )
-
+import qualified Eta.LanguageExtensions as LangExt
 #include "HsVersions.h"
 
 {-
@@ -391,8 +391,8 @@ syntaxNameCtxt name orig ty tidy_env
 getOverlapFlag :: Maybe OverlapMode -> TcM OverlapFlag
 getOverlapFlag overlap_mode
   = do  { dflags <- getDynFlags
-        ; let overlap_ok    = xopt Opt_OverlappingInstances dflags
-              incoherent_ok = xopt Opt_IncoherentInstances  dflags
+        ; let overlap_ok    = xopt LangExt.OverlappingInstances dflags
+              incoherent_ok = xopt LangExt.IncoherentInstances  dflags
               use x = OverlapFlag { isSafeOverlap = safeLanguageOn dflags
                                   , overlapMode   = x }
               default_oflag | incoherent_ok = use (Incoherent "")

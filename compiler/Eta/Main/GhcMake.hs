@@ -24,7 +24,7 @@ module Eta.Main.GhcMake(
 #ifdef ETA_REPL
 import qualified Eta.REPL.Linker as Linker ( unload )
 #endif
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.Main.DriverPhases
 import Eta.Main.DriverPipeline
 import Eta.Main.DynFlags
@@ -2020,7 +2020,7 @@ preprocessFile hsc_env src_fn mb_phase (Just (buf, _time))
                 | Just (Unlit _) <- mb_phase    = True
                 | Nothing <- mb_phase, Unlit _ <- startPhase src_fn  = True
                   -- note: local_opts is only required if there's no Unlit phase
-                | xopt Opt_Cpp dflags'          = True
+                | xopt LangExt.Cpp dflags'          = True
                 | gopt Opt_Pp  dflags'          = True
                 | otherwise                     = False
 

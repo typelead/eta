@@ -62,6 +62,7 @@ import qualified System.Console.Haskeline as Haskeline
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Data.Map.Strict (Map)
+import qualified Eta.LanguageExtensions as LangExt
 
 -----------------------------------------------------------------------------
 -- GHCi monad
@@ -462,7 +463,7 @@ compileGHCiExpr expr = do
       -- (see #13385 and #14342 for examples), so we take care to disable it
       -- for the duration of running expressions that are internal to GHCi.
       no_rb_hsc_env =
-        hsc_env { hsc_dflags = xopt_unset dflags Opt_RebindableSyntax }
+        hsc_env { hsc_dflags = xopt_unset dflags LangExt.RebindableSyntax }
   setSession no_rb_hsc_env
   res <- GHC.compileExprRemote expr
   setSession hsc_env

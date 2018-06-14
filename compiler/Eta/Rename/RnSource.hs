@@ -22,7 +22,7 @@ import Eta.Rename.RnNames
 import Eta.Rename.RnHsDoc          ( rnHsDoc, rnMbLHsDoc )
 import Eta.TypeCheck.TcAnnotations    ( annCtxt )
 import Eta.TypeCheck.TcRnMonad
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.Prelude.ForeignCall      ( CCallTarget(..) )
 import Eta.BasicTypes.Module
 import Eta.Main.HscTypes         ( Warnings(..), plusWarns )
@@ -164,7 +164,7 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
    -- (H) Rename Everything else
 
    (rn_inst_decls,    src_fvs2) <- rnList rnSrcInstDecl   inst_decls ;
-   (rn_rule_decls,    src_fvs3) <- setXOptM Opt_ScopedTypeVariables $
+   (rn_rule_decls,    src_fvs3) <- setXOptM LangExt.ScopedTypeVariables $
                                    rnList rnHsRuleDecls rule_decls ;
                            -- Inside RULES, scoped type variables are on
    (rn_vect_decls,    src_fvs4) <- rnList rnHsVectDecl    vect_decls ;
@@ -683,7 +683,7 @@ extendTyVarEnvForMethodBinds :: [Name]
 -- the type variable environment iff -XScopedTypeVariables
 
 extendTyVarEnvForMethodBinds ktv_names thing_inside
-  = do  { scoped_tvs <- xoptM Opt_ScopedTypeVariables
+  = do  { scoped_tvs <- xoptM LangExt.ScopedTypeVariables
         ; if scoped_tvs then
                 extendTyVarEnvFVRn ktv_names thing_inside
           else
@@ -699,7 +699,7 @@ extendTyVarEnvForMethodBinds ktv_names thing_inside
 
 rnSrcDerivDecl :: DerivDecl RdrName -> RnM (DerivDecl Name, FreeVars)
 rnSrcDerivDecl (DerivDecl ty overlap)
-  = do { standalone_deriv_ok <- xoptM Opt_StandaloneDeriving
+  = do { standalone_deriv_ok <- xoptM LangExt.StandaloneDeriving
        ; unless standalone_deriv_ok (addErr standaloneDerivErr)
        ; (ty', fvs) <- rnLHsInstType (text "In a deriving declaration") ty
        ; return (DerivDecl ty' overlap, fvs) }
@@ -1510,7 +1510,7 @@ add gp loc (SpliceD splice@(SpliceDecl _ flag)) ds
          -- (i.e. a naked top level expression)
          case flag of
            ExplicitSplice -> return ()
-           ImplicitSplice -> do { th_on <- xoptM Opt_TemplateHaskell
+           ImplicitSplice -> do { th_on <- xoptM LangExt.TemplateHaskell
                                 ; unless th_on $ setSrcSpan loc $
                                   failWith badImplicitSplice }
 

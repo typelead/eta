@@ -37,7 +37,7 @@ import Eta.Prelude.TysPrim          ( funTyConName )
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.NameSet
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.Utils.Util
 import Eta.BasicTypes.BasicTypes       ( compareFixity, funTyFixity, negateFixity,
                           Fixity(..), FixityDirection(..) )
@@ -145,7 +145,7 @@ rnHsTyKi isType _ (HsTyVar rdr_name)
 -- Hence the jiggery pokery with ty1
 rnHsTyKi isType doc ty@(HsOpTy ty1 (wrapper, L loc op) ty2)
   = ASSERT( isType ) setSrcSpan loc $
-    do  { ops_ok <- xoptM Opt_TypeOperators
+    do  { ops_ok <- xoptM LangExt.TypeOperators
         ; op' <- if ops_ok
                  then rnTyVar isType op
                  else do { addErr (opTyErr op ty)
@@ -187,14 +187,14 @@ rnHsTyKi isType doc (HsFunTy ty1 ty2)
        ; return (res_ty, fvs1 `plusFV` fvs2) }
 
 rnHsTyKi isType doc listTy@(HsListTy ty)
-  = do { data_kinds <- xoptM Opt_DataKinds
+  = do { data_kinds <- xoptM LangExt.DataKinds
        ; unless (data_kinds || isType) (addErr (dataKindsErr isType listTy))
        ; (ty', fvs) <- rnLHsTyKi isType doc ty
        ; return (HsListTy ty', fvs) }
 
 rnHsTyKi isType doc (HsKindSig ty k)
   = ASSERT( isType )
-    do { kind_sigs_ok <- xoptM Opt_KindSignatures
+    do { kind_sigs_ok <- xoptM LangExt.KindSignatures
        ; unless kind_sigs_ok (badSigErr False doc ty)
        ; (ty', fvs1) <- rnLHsType doc ty
        ; (k', fvs2) <- rnLHsKind doc k
@@ -208,14 +208,14 @@ rnHsTyKi isType doc (HsPArrTy ty)
 -- Unboxed tuples are allowed to have poly-typed arguments.  These
 -- sometimes crop up as a result of CPR worker-wrappering dictionaries.
 rnHsTyKi isType doc tupleTy@(HsTupleTy tup_con tys)
-  = do { data_kinds <- xoptM Opt_DataKinds
+  = do { data_kinds <- xoptM LangExt.DataKinds
        ; unless (data_kinds || isType) (addErr (dataKindsErr isType tupleTy))
        ; (tys', fvs) <- mapFvRn (rnLHsTyKi isType doc) tys
        ; return (HsTupleTy tup_con tys', fvs) }
 
 -- Ensure that a type-level integer is nonnegative (#8306, #8412)
 rnHsTyKi isType _ tyLit@(HsTyLit t)
-  = do { data_kinds <- xoptM Opt_DataKinds
+  = do { data_kinds <- xoptM LangExt.DataKinds
        ; unless data_kinds (addErr (dataKindsErr isType tyLit))
        ; when (negLit t) (addErr negLitErr)
        ; return (HsTyLit t, emptyFVs) }
@@ -261,14 +261,14 @@ rnHsTyKi _ _ (HsWrapTy {})
 
 rnHsTyKi isType doc ty@(HsExplicitListTy k tys)
   = ASSERT( isType )
-    do { data_kinds <- xoptM Opt_DataKinds
+    do { data_kinds <- xoptM LangExt.DataKinds
        ; unless data_kinds (addErr (dataKindsErr isType ty))
        ; (tys', fvs) <- rnLHsTypes doc tys
        ; return (HsExplicitListTy k tys', fvs) }
 
 rnHsTyKi isType doc ty@(HsExplicitTupleTy kis tys)
   = ASSERT( isType )
-    do { data_kinds <- xoptM Opt_DataKinds
+    do { data_kinds <- xoptM LangExt.DataKinds
        ; unless data_kinds (addErr (dataKindsErr isType ty))
        ; (tys', fvs) <- rnLHsTypes doc tys
        ; return (HsExplicitTupleTy kis tys', fvs) }
@@ -383,7 +383,7 @@ bindSigTyVarsFV :: [Name]
 -- with a separate type signature, to bring its tyvars into scope
 -- With no -XScopedTypeVariables, this is a no-op
 bindSigTyVarsFV tvs thing_inside
-  = do  { scoped_tyvars <- xoptM Opt_ScopedTypeVariables
+  = do  { scoped_tyvars <- xoptM LangExt.ScopedTypeVariables
         ; if not scoped_tyvars then
                 thing_inside
           else
@@ -414,7 +414,7 @@ bindHsTyVars doc mb_assoc kv_bndrs tv_bndrs thing_inside
                 -- in the same declaration; eg  type family  T (x :: *) (y :: x)
                 -- We disallow this: too confusing!
 
-       ; poly_kind <- xoptM Opt_PolyKinds
+       ; poly_kind <- xoptM LangExt.PolyKinds
        ; unless (poly_kind || null all_kvs)
                 (addErr (badKindBndrs doc all_kvs))
        ; unless (null overlap_kvs)
@@ -430,7 +430,7 @@ bindHsTyVars doc mb_assoc kv_bndrs tv_bndrs thing_inside
                = do { nm <- newTyVarNameRn mb_assoc rdr_env loc rdr
                     ; return (L loc (UserTyVar nm), emptyFVs) }
              rn_tv_bndr (L loc (KindedTyVar (L lv rdr) kind))
-               = do { sig_ok <- xoptM Opt_KindSignatures
+               = do { sig_ok <- xoptM LangExt.KindSignatures
                     ; unless sig_ok (badSigErr False doc kind)
                     ; nm <- newTyVarNameRn mb_assoc rdr_env loc rdr
                     ; (kind', fvs) <- rnLHsKind doc kind
@@ -465,7 +465,7 @@ rnHsBndrSig :: HsDocContext
             -> (HsWithBndrs Name (LHsType Name) -> RnM (a, FreeVars))
             -> RnM (a, FreeVars)
 rnHsBndrSig doc (HsWB { hswb_cts = ty@(L loc _) }) thing_inside
-  = do { sig_ok <- xoptM Opt_ScopedTypeVariables
+  = do { sig_ok <- xoptM LangExt.ScopedTypeVariables
        ; unless sig_ok (badSigErr True doc ty)
        ; let (kv_bndrs, tv_bndrs) = extractHsTyRdrTyVars ty
        ; name_env <- getLocalRdrEnv

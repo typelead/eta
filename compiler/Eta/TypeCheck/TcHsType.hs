@@ -56,13 +56,13 @@ import Eta.BasicTypes.NameEnv
 import Eta.Prelude.TysWiredIn
 import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.SrcLoc
-import Eta.Main.DynFlags ( ExtensionFlag( Opt_DataKinds ), getDynFlags )
+import Eta.Main.DynFlags ( getDynFlags )
 import Eta.BasicTypes.Unique
 import Eta.BasicTypes.UniqSupply
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
 import Eta.Utils.Util
-
+import qualified Eta.LanguageExtensions as LangExt
 import Data.Maybe( isNothing )
 import Control.Monad ( unless, when, zipWithM )
 import Eta.Prelude.PrelNames( ipClassName, funTyConKey, allNameStrings )
@@ -640,7 +640,7 @@ tcTyVar name         -- Could be a tyvar, a tycon, or a datacon
 
            AGlobal (AConLike (RealDataCon dc))
              | Just tc <- promoteDataCon_maybe dc
-             -> do { data_kinds <- xoptM Opt_DataKinds
+             -> do { data_kinds <- xoptM LangExt.DataKinds
                    ; unless data_kinds $ promotionErr name NoDataKinds
                    ; inst_tycon (mkTyConApp tc) (tyConKind tc) }
              | otherwise -> failWithTc (ptext (sLit "Data constructor") <+> quotes (ppr dc)
@@ -1582,7 +1582,7 @@ tc_kind_var_app name arg_kis
   = do { thing <- tcLookup name
        ; case thing of
            AGlobal (ATyCon tc)
-             -> do { data_kinds <- xoptM Opt_DataKinds
+             -> do { data_kinds <- xoptM LangExt.DataKinds
                    ; unless data_kinds $ addErr (dataKindsErr name)
                    ; case promotableTyCon_maybe tc of
                        Just prom_tc | arg_kis `lengthIs` tyConArity prom_tc

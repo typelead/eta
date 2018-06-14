@@ -161,7 +161,7 @@ import Eta.BasicTypes.Var
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.IdInfo           ( IdDetails(..) )
 import Eta.Types.Type
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.Parser.ApiAnnotation    ( ApiAnns )
 import Eta.Main.Annotations      ( Annotation, AnnEnv, mkAnnEnv, plusAnnEnv )
 import Eta.Types.Class
@@ -2471,8 +2471,8 @@ emptyMG = ModuleGraph [] emptyModuleEnv emptyModuleSet False
 
 isTemplateHaskellOrQQNonBoot :: ModSummary -> Bool
 isTemplateHaskellOrQQNonBoot ms =
-  (xopt Opt_TemplateHaskell (ms_hspp_opts ms)
-    || xopt Opt_QuasiQuotes (ms_hspp_opts ms)) &&
+  (xopt LangExt.TemplateHaskell (ms_hspp_opts ms)
+    || xopt LangExt.QuasiQuotes (ms_hspp_opts ms)) &&
   not (isBootSummary ms)
 
 -- | Add a ModSummary to ModuleGraph. Assumes that the new ModSummary is

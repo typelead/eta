@@ -36,11 +36,15 @@ module Eta.Parser.Parser (parseModule, parseImport, parseStatement,
                parseFullStmt, parseStmt, parseIdentifier,
                parseType, parseHeader) where
 
+
 -- base
 import Control.Monad    ( unless, liftM )
 import GHC.Exts
 import Data.Char
 import Control.Monad    ( mplus )
+
+-- LanguageExtensions
+import qualified Eta.LanguageExtensions as LangExt
 
 -- compiler/hsSyn
 import Eta.HsSyn.HsSyn
@@ -3083,14 +3087,14 @@ fileSrcSpan = do
 -- Hint about the MultiWayIf extension
 hintMultiWayIf :: SrcSpan -> P ()
 hintMultiWayIf span = do
-  mwiEnabled <- liftM ((Opt_MultiWayIf `xopt`) . dflags) getPState
+  mwiEnabled <- liftM ((LangExt.MultiWayIf `xopt`) . dflags) getPState
   unless mwiEnabled $ parseErrorSDoc span $
     text "Multi-way if-expressions need MultiWayIf turned on"
 
 -- Hint about if usage for beginners
 hintIf :: SrcSpan -> String -> P (LHsExpr RdrName)
 hintIf span msg = do
-  mwiEnabled <- liftM ((Opt_MultiWayIf `xopt`) . dflags) getPState
+  mwiEnabled <- liftM ((LangExt.MultiWayIf `xopt`) . dflags) getPState
   if mwiEnabled
     then parseErrorSDoc span $ text $ "parse error in if statement"
     else parseErrorSDoc span $ text $ "parse error in if statement: "++msg
@@ -3107,7 +3111,7 @@ hintExplicitForall span = do
       ]
 
 namedWildcardsEnabled :: P Bool
-namedWildcardsEnabled = liftM ((Opt_NamedWildCards `xopt`) . dflags) getPState
+namedWildcardsEnabled = liftM ((LangExt.NamedWildCards `xopt`) . dflags) getPState
 
 {-
 %************************************************************************

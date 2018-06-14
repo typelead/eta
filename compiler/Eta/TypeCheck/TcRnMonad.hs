@@ -55,7 +55,7 @@ import Control.Exception
 import Data.IORef
 import qualified Data.Set as Set
 import Control.Monad
-
+import qualified Eta.LanguageExtensions as LangExt
 #ifdef ETA_REPL
 import qualified Data.Map as Map
 #endif
@@ -297,7 +297,7 @@ setEnvs (gbl_env, lcl_env) = updEnv (\ env -> env { env_gbl = gbl_env, env_lcl =
 
 -- Command-line flags
 
-xoptM :: ExtensionFlag -> TcRnIf gbl lcl Bool
+xoptM :: LangExt.Extension -> TcRnIf gbl lcl Bool
 xoptM flag = do { dflags <- getDynFlags; return (xopt flag dflags) }
 
 doptM :: DumpFlag -> TcRnIf gbl lcl Bool
@@ -309,7 +309,7 @@ goptM flag = do { dflags <- getDynFlags; return (gopt flag dflags) }
 woptM :: WarningFlag -> TcRnIf gbl lcl Bool
 woptM flag = do { dflags <- getDynFlags; return (wopt flag dflags) }
 
-setXOptM :: ExtensionFlag -> TcRnIf gbl lcl a -> TcRnIf gbl lcl a
+setXOptM :: LangExt.Extension -> TcRnIf gbl lcl a -> TcRnIf gbl lcl a
 setXOptM flag = updEnv (\ env@(Env { env_top = top }) ->
                           env { env_top = top { hsc_dflags = xopt_set (hsc_dflags top) flag}} )
 
@@ -334,7 +334,7 @@ whenWOptM :: WarningFlag -> TcRnIf gbl lcl () -> TcRnIf gbl lcl ()
 whenWOptM flag thing_inside = do b <- woptM flag
                                  when b thing_inside
 
-whenXOptM :: ExtensionFlag -> TcRnIf gbl lcl () -> TcRnIf gbl lcl ()
+whenXOptM :: LangExt.Extension -> TcRnIf gbl lcl () -> TcRnIf gbl lcl ()
 whenXOptM flag thing_inside = do b <- xoptM flag
                                  when b thing_inside
 

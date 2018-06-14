@@ -77,7 +77,7 @@ import Data.List
 import qualified Data.Set as Set
 import Eta.Utils.ListSetOps       ( minusList )
 import Eta.Main.Constants        ( mAX_TUPLE_SIZE )
-
+import qualified Eta.LanguageExtensions as LangExt
 #include "HsVersions.h"
 
 {-
@@ -302,7 +302,7 @@ lookupTopBndrRn_maybe rdr_name
            -- See Note [Type and class operator definitions]
           let occ = rdrNameOcc rdr_name
         ; when (isTcOcc occ && isSymOcc occ)
-               (do { op_ok <- xoptM Opt_TypeOperators
+               (do { op_ok <- xoptM LangExt.TypeOperators
                    ; unless op_ok (addErr (opDeclErr rdr_name)) })
 
         ; mb_gre <- lookupGreLocalRn_maybe rdr_name
@@ -697,7 +697,7 @@ lookup_demoted :: RdrName -> RnM Name
 lookup_demoted rdr_name
   | Just demoted_rdr <- demoteRdrName rdr_name
     -- Maybe it's the name of a *data* constructor
-  = do { data_kinds <- xoptM Opt_DataKinds
+  = do { data_kinds <- xoptM LangExt.DataKinds
        ; mb_demoted_name <- lookupOccRn_maybe demoted_rdr
        ; case mb_demoted_name of
            Nothing -> reportUnboundName rdr_name
@@ -1328,7 +1328,7 @@ lookupTyFixityRn (L _ n) = lookupFixityRn n
 *                                                                      *
                         Rebindable names
         Dealing with rebindable syntax is driven by the
-        Opt_RebindableSyntax dynamic flag.
+        LangExt.RebindableSyntax dynamic flag.
 
         In "deriving" code we don't want to use rebindable syntax
         so we switch off the flag locally
@@ -1369,7 +1369,7 @@ lookupIfThenElse :: RnM (Maybe (SyntaxExpr Name), FreeVars)
 -- case we desugar directly rather than calling an existing function
 -- Hence the (Maybe (SyntaxExpr Name)) return type
 lookupIfThenElse
-  = do { rebind <- xoptM Opt_RebindableSyntax
+  = do { rebind <- xoptM LangExt.RebindableSyntax
        ; if not rebind
          then return (Nothing, emptyFVs)
          else do { ite <- lookupOccRn (mkVarUnqual (fsLit "ifThenElse"))
@@ -1378,7 +1378,7 @@ lookupIfThenElse
 lookupSyntaxName' :: Name          -- ^ The standard name
                  -> RnM Name      -- ^ Possibly a non-standard name
 lookupSyntaxName' std_name
- = do { rebindable_on <- xoptM Opt_RebindableSyntax
+ = do { rebindable_on <- xoptM LangExt.RebindableSyntax
       ; if not rebindable_on then
           return std_name
         else
@@ -1388,7 +1388,7 @@ lookupSyntaxName' std_name
 lookupSyntaxName :: Name                                -- The standard name
                  -> RnM (SyntaxExpr Name, FreeVars)     -- Possibly a non-standard name
 lookupSyntaxName std_name
-  = do { rebindable_on <- xoptM Opt_RebindableSyntax
+  = do { rebindable_on <- xoptM LangExt.RebindableSyntax
        ; if not rebindable_on then
            return (HsVar std_name, emptyFVs)
          else
@@ -1399,7 +1399,7 @@ lookupSyntaxName std_name
 lookupSyntaxNames :: [Name]                          -- Standard names
                   -> RnM ([HsExpr Name], FreeVars)   -- See comments with HsExpr.ReboundNames
 lookupSyntaxNames std_names
-  = do { rebindable_on <- xoptM Opt_RebindableSyntax
+  = do { rebindable_on <- xoptM LangExt.RebindableSyntax
        ; if not rebindable_on then
              return (map HsVar std_names, emptyFVs)
         else
@@ -1543,7 +1543,7 @@ checkShadowedOccs (global_env,local_env) get_loc_occ ns
         -- punning or wild-cards are on (cf Trac #2723)
     is_shadowed_gre gre@(GRE { gre_par = ParentIs _ })
         = do { dflags <- getDynFlags
-             ; if (xopt Opt_RecordPuns dflags || xopt Opt_RecordWildCards dflags)
+             ; if (xopt LangExt.RecordPuns dflags || xopt LangExt.RecordWildCards dflags)
                then do { is_fld <- is_rec_fld gre; return (not is_fld) }
                else return True }
     is_shadowed_gre _other = return True

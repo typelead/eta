@@ -23,6 +23,7 @@ import Eta.TypeCheck.TcRnMonad
 import Eta.TypeCheck.Inst
 import Eta.BasicTypes.Id
 import qualified Eta.BasicTypes.Id as Id
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameSet
@@ -791,8 +792,8 @@ tcDataConPat penv (L con_span con_name) data_con pat_ty arg_pats thing_inside
                             LamPat mc -> PatSkol (RealDataCon data_con) mc
                             LetPat {} -> UnkSkol -- Doesn't matter
 
-        ; gadts_on    <- xoptM Opt_GADTs
-        ; families_on <- xoptM Opt_TypeFamilies
+        ; gadts_on    <- xoptM LangExt.GADTs
+        ; families_on <- xoptM LangExt.TypeFamilies
         ; checkTc (no_equalities || gadts_on || families_on)
                   (text "A pattern match on a GADT requires the" <+>
                    text "GADTs or TypeFamilies language extension")

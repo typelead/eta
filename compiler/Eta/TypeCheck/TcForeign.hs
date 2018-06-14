@@ -18,6 +18,7 @@ import Eta.BasicTypes.Unique
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Name
 -- import Eta.BasicTypes.VarSet
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.RdrName
 import Eta.TypeCheck.FamInst
@@ -170,7 +171,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L _lc cconv) (L _ls saf
   = case cconv of
       PrimCallConv -> do
         dflags <- getDynFlags
-        checkTc (xopt Opt_GHCForeignImportPrim dflags)
+        checkTc (xopt LangExt.GHCForeignImportPrim dflags)
                 (text "Use GHCForeignImportPrim to allow `foreign import prim'.")
         -- TODO: Validate the target string
         checkJavaTarget target

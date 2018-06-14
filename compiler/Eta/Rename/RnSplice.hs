@@ -10,7 +10,7 @@ module Eta.Rename.RnSplice (
   ) where
 
 #include "HsVersions.h"
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameSet
 import Eta.HsSyn.HsSyn
@@ -67,7 +67,7 @@ rnBracket :: HsExpr RdrName -> HsBracket RdrName -> RnM (HsExpr Name, FreeVars)
 rnBracket e br_body
   = addErrCtxt (quotationCtxtDoc br_body) $
     do { -- Check that -XTemplateHaskellQuotes is enabled and available
-         thQuotesEnabled <- xoptM Opt_TemplateHaskell
+         thQuotesEnabled <- xoptM LangExt.TemplateHaskell
        ; unless thQuotesEnabled $
            failWith ( vcat
                       [ text "Syntax error on" <+> ppr e

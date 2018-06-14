@@ -187,6 +187,7 @@ import Eta.Utils.FastString
 import Eta.Main.ErrUtils( Validity(..), isValid )
 import Data.IORef
 import Control.Monad (liftM, ap)
+import qualified Eta.LanguageExtensions as LangExt
 
 {-
 ************************************************************************
@@ -1276,7 +1277,7 @@ canUnifyWithPolyType dflags details kind
   = case details of
       MetaTv { mtv_info = ReturnTv } -> True      -- See Note [ReturnTv]
       MetaTv { mtv_info = SigTv }    -> False
-      MetaTv { mtv_info = TauTv _ }  -> xopt Opt_ImpredicativeTypes dflags
+      MetaTv { mtv_info = TauTv _ }  -> xopt LangExt.ImpredicativeTypes dflags
                                      || isOpenTypeKind kind
                                           -- Note [OpenTypeKind accepts foralls]
       _other                         -> True
@@ -1751,7 +1752,7 @@ legalOutgoingTyCon dflags _ tc ty
 
 marshalableTyCon :: DynFlags -> TyCon -> Type -> Bool
 marshalableTyCon dflags tc ty
-  |  (xopt Opt_UnliftedFFITypes dflags
+  |  (xopt LangExt.UnliftedFFITypes dflags
       && isUnLiftedTyCon tc
       && not (isUnboxedTupleTyCon tc))
       -- && not (isVoidRep (typePrimRep ty)))
@@ -1785,7 +1786,7 @@ legalFIPrimArgTyCon :: DynFlags -> TyCon -> Type -> Bool
 -- Strictly speaking it is unnecessary to ban unboxed tuples here since
 -- currently they're of the wrong kind to use in function args anyway.
 legalFIPrimArgTyCon dflags tc _
-  | xopt Opt_UnliftedFFITypes dflags
+  | xopt LangExt.UnliftedFFITypes dflags
     && isUnLiftedTyCon tc
     && not (isUnboxedTupleTyCon tc)
   = True
@@ -1796,7 +1797,7 @@ legalFIPrimResultTyCon :: DynFlags -> TyCon -> Type -> Bool
 -- Check result type of 'foreign import prim'. Allow simple unlifted
 -- types and also unboxed tuple result types '... -> (# , , #)'
 legalFIPrimResultTyCon dflags tc _ty
-  | xopt Opt_UnliftedFFITypes dflags
+  | xopt LangExt.UnliftedFFITypes dflags
     && isUnLiftedTyCon tc
   = True
   | otherwise

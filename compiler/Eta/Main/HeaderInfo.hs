@@ -36,7 +36,7 @@ import Eta.Utils.Bag              ( emptyBag, listToBag, unitBag )
 import Eta.Utils.MonadUtils
 import Eta.Utils.Exception
 import qualified Eta.Utils.Exception as Exception
-
+import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
 import System.IO
 import System.IO.Unsafe
@@ -79,7 +79,7 @@ getImports dflags buf filename source_filename = do
                 ordinary_imps = filter ((/= moduleName gHC_PRIM) . unLoc . ideclName . unLoc)
                                        ord_idecls
 
-                implicit_prelude = xopt Opt_ImplicitPrelude dflags
+                implicit_prelude = xopt LangExt.ImplicitPrelude dflags
                 implicit_imports = mkPrelImports (unLoc mod) main_loc
                                                  implicit_prelude imps
               in

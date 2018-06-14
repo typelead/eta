@@ -33,7 +33,7 @@ import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.DataCon
 import Eta.BasicTypes.Name
-
+import qualified Eta.LanguageExtensions as LangExt
 import Eta.Main.DynFlags
 import Eta.Prelude.PrelInfo
 import Eta.Types.FamInstEnv( FamInst )
@@ -142,8 +142,8 @@ canDeriveAnyClass dflags _tycon clas =
   -- We can derive a given class for a given tycon via Generics iff
   in  -- 1) The class is not a "standard" class (like Show, Functor, etc.)
         (not (getUnique clas `elem` standardClassKeys) `orElse` "")
-      -- 2) Opt_DeriveAnyClass is on
-     <> (xopt Opt_DeriveAnyClass dflags `orElse` "Try enabling DeriveAnyClass")
+      -- 2) LangExt.DeriveAnyClass is on
+     <> (xopt LangExt.DeriveAnyClass dflags `orElse` "Try enabling DeriveAnyClass")
 
 {-
 ************************************************************************
