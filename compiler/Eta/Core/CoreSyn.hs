@@ -17,6 +17,9 @@ module Eta.Core.CoreSyn (
         mkLets, mkLams,
         mkApps, mkTyApps, mkCoApps, mkVarApps,
 
+        -- ** Orphans
+        IsOrphan(..), isOrphan, notOrphan, chooseOrphanAnchor,
+
         mkIntLit, mkIntLitInt,
         mkWordLit, mkWordLitWord,
         mkWord64LitWord64, mkInt64LitInt64,
@@ -93,13 +96,15 @@ import Eta.BasicTypes.Literal
 import Eta.BasicTypes.DataCon
 import Eta.BasicTypes.Module
 import Eta.Types.TyCon
+import Eta.Utils.Binary
 import Eta.BasicTypes.BasicTypes
 import Eta.Main.DynFlags
 import Eta.Utils.FastString
 import Eta.Utils.Outputable
 import Eta.Utils.Util
 import Eta.BasicTypes.SrcLoc     ( RealSrcSpan, containsSpan )
-
+import Eta.BasicTypes.NameSet
+import Eta.Utils.UniqSet
 import Data.Data hiding (TyCon)
 import Data.Int
 import Data.Word
@@ -702,6 +707,133 @@ tickishContains (SourceNote sp1 n1) (SourceNote sp2 n2)
 tickishContains t1 t2
   = t1 == t2
 
+{-
+************************************************************************
+*                                                                      *
+                Orphans
+*                                                                      *
+************************************************************************
+-}
+
+-- | Is this instance an orphan?  If it is not an orphan, contains an 'OccName'
+-- witnessing the instance's non-orphanhood.
+-- See Note [Orphans]
+data IsOrphan
+  = IsOrphan
+  | NotOrphan OccName  -- The OccName 'n' witnesses the instance's non-orphanhood
+                       -- In that case, the instance is fingerprinted as part
+                       -- of the definition of 'n's definition
+    deriving (Data, Typeable)
+
+-- | Returns true if 'IsOrphan' is orphan.
+isOrphan :: IsOrphan -> Bool
+isOrphan IsOrphan = True
+isOrphan _ = False
+
+-- | Returns true if 'IsOrphan' is not an orphan.
+notOrphan :: IsOrphan -> Bool
+notOrphan NotOrphan{} = True
+notOrphan _ = False
+
+chooseOrphanAnchor :: NameSet -> IsOrphan
+-- Something (rule, instance) is relate to all the Names in this
+-- list. Choose one of them to be an "anchor" for the orphan.  We make
+-- the choice deterministic to avoid gratuitious changes in the ABI
+-- hash (Trac #4012).  Specifically, use lexicographic comparison of
+-- OccName rather than comparing Uniques
+--
+-- NB: 'minimum' use Ord, and (Ord OccName) works lexicographically
+--
+chooseOrphanAnchor local_names
+  | isEmptyNameSet local_names = IsOrphan
+  | otherwise                  = NotOrphan (minimum occs)
+  where
+    occs = map nameOccName $ nonDetEltsUniqSet local_names
+    -- It's OK to use nonDetEltsUFM here, see comments above
+
+instance Binary IsOrphan where
+    put_ bh IsOrphan = putByte bh 0
+    put_ bh (NotOrphan n) = do
+        putByte bh 1
+        put_ bh n
+    get bh = do
+        h <- getByte bh
+        case h of
+            0 -> return IsOrphan
+            _ -> do
+                n <- get bh
+                return $ NotOrphan n
+
+{-
+Note [Orphans]
+~~~~~~~~~~~~~~
+Class instances, rules, and family instances are divided into orphans
+and non-orphans.  Roughly speaking, an instance/rule is an orphan if
+its left hand side mentions nothing defined in this module.  Orphan-hood
+has two major consequences
+
+ * A module that contains orphans is called an "orphan module".  If
+   the module being compiled depends (transitively) on an oprhan
+   module M, then M.hi is read in regardless of whether M is oherwise
+   needed. This is to ensure that we don't miss any instance decls in
+   M.  But it's painful, because it means we need to keep track of all
+   the orphan modules below us.
+
+ * A non-orphan is not finger-printed separately.  Instead, for
+   fingerprinting purposes it is treated as part of the entity it
+   mentions on the LHS.  For example
+      data T = T1 | T2
+      instance Eq T where ....
+   The instance (Eq T) is incorprated as part of T's fingerprint.
+
+   In constrast, orphans are all fingerprinted together in the
+   mi_orph_hash field of the ModIface.
+
+   See MkIface.addFingerprints.
+
+Orphan-hood is computed
+  * For class instances:
+      when we make a ClsInst
+    (because it is needed during instance lookup)
+
+  * For rules and family instances:
+       when we generate an IfaceRule (MkIface.coreRuleToIfaceRule)
+                     or IfaceFamInst (MkIface.instanceToIfaceInst)
+
+Note [When exactly is an instance decl an orphan?]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  (see MkIface.instanceToIfaceInst, which implements this)
+Roughly speaking, an instance is an orphan if its head (after the =>)
+mentions nothing defined in this module.
+
+Functional dependencies complicate the situation though. Consider
+
+  module M where { class C a b | a -> b }
+
+and suppose we are compiling module X:
+
+  module X where
+        import M
+        data T = ...
+        instance C Int T where ...
+
+This instance is an orphan, because when compiling a third module Y we
+might get a constraint (C Int v), and we'd want to improve v to T.  So
+we must make sure X's instances are loaded, even if we do not directly
+use anything from X.
+
+More precisely, an instance is an orphan iff
+
+  If there are no fundeps, then at least of the names in
+  the instance head is locally defined.
+
+  If there are fundeps, then for every fundep, at least one of the
+  names free in a *non-determined* part of the instance head is
+  defined in this module.
+
+(Note that these conditions hold trivially if the class is locally
+defined.)
+-}
 {-
 ************************************************************************
 *                                                                      *
