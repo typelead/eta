@@ -105,7 +105,7 @@ import Eta.Main.DynFlags
 import Eta.Utils.Panic as Panic
 import Eta.BasicTypes.Lexeme
 import Language.Eta.Meta.Server
-
+import qualified Eta.Utils.EnumSet as EnumSet
 import qualified Language.Eta.Meta as TH
 -- THSyntax gives access to internal functions and data types
 import qualified Language.Eta.Meta.Syntax as TH
@@ -947,10 +947,10 @@ instance TH.Quasi TcM where
       th_state_var <- fmap tcg_th_state getGblEnv
       updTcRef th_state_var (\m -> Map.insert (typeOf x) (toDyn x) m)
 
-  qIsExtEnabled = panic "qIsExtEnabled unify extension type!"
+  qIsExtEnabled = xoptM
 
-  qExtsEnabled = panic "qExtsEnabled unify extension type!"
-    -- EnumSet.toList . extensionFlags . hsc_dflags <$> getTopEnv
+  qExtsEnabled =
+    EnumSet.toList . extensionFlags . hsc_dflags <$> getTopEnv
 
 -- | Adds a mod finalizer reference to the local environment.
 addModFinalizerRef :: ForeignRef () -> TcM ()
