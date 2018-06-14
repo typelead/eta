@@ -175,7 +175,11 @@ public class Exception {
     }
 
     public static Closure raise(StgContext context, Closure exception) {
-        throw EtaException.create(context, exception);
+        EtaException e = EtaException.create(context, exception);
+        if (Runtime.debugExceptionsVerbose()) {
+            debugExceptions(exceptionToString(e));
+        }
+        throw e;
     }
 
     /** Helper for the exception primops **/
@@ -230,13 +234,13 @@ public class Exception {
 
     public static boolean throwToMsg(Capability cap, MessageThrowTo msg, boolean wakeupSource) {
         final TSO target = msg.target;
-        final boolean debug = Runtime.debugScheduler();
+        final boolean debug = Runtime.debugAsyncExceptions();
         do {
             assert target != null;
             if (target.whatNext == ThreadComplete || target.whatNext == ThreadKilled) {
                 if (debug) {
-                    debugScheduler("throwToMsg: " + msg.source + " to " + target +
-                                   " is inactive with " + target.whatNext);
+                    debugExceptions("throwToMsg: " + msg.source + " to " + target +
+                                    " is inactive with " + target.whatNext);
                 }
                 return true;
             }
@@ -244,16 +248,16 @@ public class Exception {
             if (targetCap != cap) {
                 if (targetCap == null) {
                     if (debug) {
-                        debugScheduler(target + " is idle, killing");
+                        debugExceptions(target + " is idle, killing");
                     }
                     target.whatNext = ThreadKilled;
                     return true;
                 } else {
                     if (debug) {
-                        debugScheduler("throwToMsg: Throwing asynchronous exception from "
+                        debugExceptions("throwToMsg: Throwing asynchronous exception from "
                                       + msg.source + " to " + target);
                     }
-                    if (Runtime.debugExceptions()) {
+                    if (Runtime.debugAsyncExceptionsVerbose()) {
                         debugExceptions(exceptionToString(new java.lang.Exception()));
                     }
                     cap.sendMessage(targetCap, msg);
@@ -261,8 +265,8 @@ public class Exception {
                 }
             } else {
                 if (debug) {
-                    debugScheduler("throwToMsg: " + target + " " + target.whyBlocked +
-                                   " receiving asynchronous exception from " + msg.source);
+                    debugExceptions("throwToMsg: " + target + " " + target.whyBlocked +
+                                    " receiving asynchronous exception from " + msg.source);
                 }
             }
             switch (target.whyBlocked) {

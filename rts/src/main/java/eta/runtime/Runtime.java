@@ -228,6 +228,30 @@ public class Runtime {
         return debugExceptions;
     }
 
+    private static boolean debugExceptionsVerbose;
+
+    public static final String DEBUG_EXCEPTIONSVERBOSE_PROPERTY = "eta.debug.exceptionsVerbose";
+
+    public static boolean debugExceptionsVerbose() {
+        return debugExceptionsVerbose;
+    }
+
+    private static boolean debugAsyncExceptions;
+
+    public static final String DEBUG_ASYNCEXCEPTIONS_PROPERTY = "eta.debug.asyncExceptions";
+
+    public static boolean debugAsyncExceptions() {
+        return debugAsyncExceptions;
+    }
+
+    private static boolean debugAsyncExceptionsVerbose;
+
+    public static final String DEBUG_ASYNCEXCEPTIONSVERBOSE_PROPERTY = "eta.debug.asyncExceptionsVerbose";
+
+    public static boolean debugAsyncExceptionsVerbose() {
+        return debugAsyncExceptionsVerbose;
+    }
+
     private static boolean debugStablePtr;
 
     public static final String DEBUG_STABLEPTR_PROPERTY = "eta.debug.stablePtr";
@@ -289,6 +313,9 @@ public class Runtime {
         debugSTM = rto.getBoolean(DEBUG_STM_PROPERTY, false);
         debugMemoryManager = rto.getBoolean(DEBUG_MEMORY_MANAGER_PROPERTY, false);
         debugExceptions = rto.getBoolean(DEBUG_EXCEPTIONS_PROPERTY, false);
+        debugExceptionsVerbose = rto.getBoolean(DEBUG_EXCEPTIONSVERBOSE_PROPERTY, false);
+        debugAsyncExceptions = rto.getBoolean(DEBUG_ASYNCEXCEPTIONS_PROPERTY, false);
+        debugAsyncExceptionsVerbose = rto.getBoolean(DEBUG_ASYNCEXCEPTIONSVERBOSE_PROPERTY, false);
         debugStablePtr = rto.getBoolean(DEBUG_STABLEPTR_PROPERTY, false);
         debugTailCalls = rto.getBoolean(DEBUG_TAILCALLS_PROPERTY, false);
         debugIO = rto.getBoolean(DEBUG_IO_PROPERTY, false);
