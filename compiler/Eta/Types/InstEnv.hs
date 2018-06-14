@@ -247,9 +247,12 @@ mkLocalInstance dfun oflag tvs cls tys
                                           , not (tv `elem` rtvs)]
 
     choose_one :: [NameSet] -> IsOrphan
-    choose_one nss = case nameSetElems (unionNameSets nss) of
-                        []      -> IsOrphan
-                        (n : _) -> NotOrphan (nameOccName n)
+    choose_one nss = case local_names of
+                       []      -> IsOrphan
+                       (_ : _) -> NotOrphan anchor
+       where
+       local_names = nameSetElems (unionNameSets nss)
+       anchor = minimum $ map nameOccName local_names
 
 mkImportedInstance :: Name
                    -> [Maybe Name]
