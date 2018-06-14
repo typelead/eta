@@ -364,6 +364,14 @@ basicKnownKeyNames
 
         -- Fingerprint
         , fingerprintDataConName
+
+        -- Custom type errors
+       , errorMessageTypeErrorFamName
+       , typeErrorTextDataConName
+       , typeErrorAppendDataConName
+       , typeErrorVAppendDataConName
+       , typeErrorShowTypeDataConName
+
         -- Integer (S#)
         , integerSDataConName
         -- ETA
@@ -1063,6 +1071,29 @@ mkPolyTyConAppName    = varQual tYPEABLE_INTERNAL (fsLit "mkPolyTyConApp") mkPol
 mkAppTyName           = varQual tYPEABLE_INTERNAL (fsLit "mkAppTy")        mkAppTyKey
 typeLitTypeRepName    = varQual tYPEABLE_INTERNAL (fsLit "typeLitTypeRep") typeLitTypeRepKey
 
+-- Custom type errors
+errorMessageTypeErrorFamName
+  , typeErrorTextDataConName
+  , typeErrorAppendDataConName
+  , typeErrorVAppendDataConName
+  , typeErrorShowTypeDataConName
+  :: Name
+
+errorMessageTypeErrorFamName =
+  tcQual gHC_TYPELITS (fsLit "TypeError") errorMessageTypeErrorFamKey
+
+typeErrorTextDataConName =
+  dcQual gHC_TYPELITS (fsLit "Text") typeErrorTextDataConKey
+
+typeErrorAppendDataConName =
+  dcQual gHC_TYPELITS (fsLit ":<>:") typeErrorAppendDataConKey
+
+typeErrorVAppendDataConName =
+  dcQual gHC_TYPELITS (fsLit ":$$:") typeErrorVAppendDataConKey
+
+typeErrorShowTypeDataConName =
+  dcQual gHC_TYPELITS (fsLit "ShowType") typeErrorShowTypeDataConKey
+
 -- Dynamic
 toDynName :: Name
 toDynName = varQual dYNAMIC (fsLit "toDyn") toDynIdKey
@@ -1274,10 +1305,11 @@ inheritsFamTyConName = tcQual gHC_CLASSES (fsLit "Inherits")     inheritsFamTyCo
 All these are original names; hence mkOrig
 -}
 
-varQual, tcQual, clsQual :: Module -> FastString -> Unique -> Name
+varQual, tcQual, clsQual, dcQual :: Module -> FastString -> Unique -> Name
 varQual  = mk_known_key_name varName
 tcQual   = mk_known_key_name tcName
 clsQual  = mk_known_key_name clsName
+dcQual   = mk_known_key_name dataName
 
 mk_known_key_name :: NameSpace -> Module -> FastString -> Unique -> Name
 mk_known_key_name space modu str unique
@@ -1588,6 +1620,10 @@ typeNatSubTyFamNameKey    = mkPreludeTyConUnique 166
 typeSymbolCmpTyFamNameKey = mkPreludeTyConUnique 167
 typeNatCmpTyFamNameKey    = mkPreludeTyConUnique 168
 
+-- Custom user type-errors
+errorMessageTypeErrorFamKey :: Unique
+errorMessageTypeErrorFamKey =  mkPreludeTyConUnique 173
+
 ntTyConKey:: Unique
 ntTyConKey = mkPreludeTyConUnique 174
 coercibleTyConKey :: Unique
@@ -1613,6 +1649,16 @@ typeRepTyConKey = mkPreludeTyConUnique 183
 
 callStackTyConKey :: Unique
 callStackTyConKey = mkPreludeTyConUnique 182
+
+typeErrorTextDataConKey,
+  typeErrorAppendDataConKey,
+  typeErrorVAppendDataConKey,
+  typeErrorShowTypeDataConKey
+  :: Unique
+typeErrorTextDataConKey                 = mkPreludeDataConUnique 50
+typeErrorAppendDataConKey               = mkPreludeDataConUnique 51
+typeErrorVAppendDataConKey              = mkPreludeDataConUnique 52
+typeErrorShowTypeDataConKey             = mkPreludeDataConUnique 53
 
 ---------------- Template Haskell -------------------
 --      USES TyConUniques 200-299

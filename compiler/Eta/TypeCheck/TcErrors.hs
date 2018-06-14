@@ -256,8 +256,9 @@ reportSimples ctxt simples    -- Here 'simples' includes insolble goals
       [ -- First deal with things that are utterly wrong
         -- Like Int ~ Bool (incl nullary TyCons)
         -- or  Int ~ t a   (AppTy on one side)
-        ("Utterly wrong",  utterly_wrong,   True,  mkGroupReporter mkEqErr)
-      , ("Holes",          is_hole,         False, mkHoleReporter mkHoleError)
+        ("custom_error", is_user_type_error, True, mkUserTypeErrorReporter)
+      , ("Utterly wrong",  utterly_wrong,    True,  mkGroupReporter mkEqErr)
+      , ("Holes",          is_hole,          False, mkHoleReporter mkHoleError)
 
         -- Report equalities of form (a~ty).  They are usually
         -- skolem-equalities, and they cause confusing knock-on
@@ -282,7 +283,7 @@ reportSimples ctxt simples    -- Here 'simples' includes insolble goals
     utterly_wrong _ _ = False
 
     is_hole ct _ = isHoleCt ct
-
+    is_user_type_error ct _ = isUserTypeErrorCt ct
     skolem_eq _ (EqPred NomEq ty1 ty2) = isRigidOrSkol ty1 && isRigidOrSkol ty2
     skolem_eq _ _ = False
 
@@ -352,6 +353,17 @@ mkHoleReporter mk_err ctxt
     do { err <- mk_err ctxt ct
        ; maybeReportHoleError ctxt err
        ; maybeAddDeferredHoleBinding ctxt err ct }
+
+mkUserTypeErrorReporter :: Reporter
+mkUserTypeErrorReporter ctxt
+ = mapM_ $ \ct -> maybeReportError ctxt =<< mkUserTypeError ctxt ct
+
+mkUserTypeError :: ReportErrCtxt -> Ct -> TcM ErrMsg
+mkUserTypeError ctxt ct = mkErrorMsg ctxt ct
+                        $ pprUserTypeErrorTy
+                        $ case getUserTypeErrorMsg ct of
+                            Just (_,msg) -> msg
+                            Nothing      -> pprPanic "mkUserTypeError" (ppr ct)
 
 mkGroupReporter :: (ReportErrCtxt -> [Ct] -> TcM ErrMsg)
                              -- Make error message for a group

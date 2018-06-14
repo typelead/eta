@@ -54,6 +54,7 @@ module Eta.TypeCheck.TcRnTypes(
         isCDictCan_Maybe, isCFunEqCan_maybe,
         isCIrredEvCan, isCNonCanonical, isWantedCt, isDerivedCt,
         isGivenCt, isHoleCt, isTypedHoleCt, isPartialTypeSigCt,
+        isUserTypeErrorCt, getUserTypeErrorMsg,
         ctEvidence, ctLoc, ctPred, ctFlavour, ctEqRel,
         mkNonCanonical, mkNonCanonicalCt,
         ctEvPred, ctEvLoc, ctEvEqRel,
@@ -135,7 +136,7 @@ import Eta.Utils.FastString
 import GHC.Fingerprint
 
 import Data.Set (Set)
-import Control.Monad (ap, liftM)
+import Control.Monad (ap, liftM, msum)
 
 #ifdef ETA_REPL
 import Data.Map      ( Map )
@@ -1394,6 +1395,24 @@ isHoleCt _ = False
 isTypedHoleCt :: Ct -> Bool
 isTypedHoleCt (CHoleCan { cc_hole = ExprHole }) = True
 isTypedHoleCt _ = False
+
+-- | The following constraints are considered to be a custom type error:
+--    1. TypeError msg
+--    2. TypeError msg ~ Something  (and the other way around)
+--    3. C (TypeError msg)          (for any parameter of class constraint)
+getUserTypeErrorMsg :: Ct -> Maybe (Kind, Type)
+getUserTypeErrorMsg ct
+  | Just (_,t1,t2) <- getEqPredTys_maybe ctT    = oneOf [t1,t2]
+  | Just (_,ts)    <- getClassPredTys_maybe ctT = oneOf ts
+  | otherwise                                   = isUserErrorTy ctT
+  where
+  ctT       = ctPred ct
+  oneOf xs  = msum (map isUserErrorTy xs)
+
+isUserTypeErrorCt :: Ct -> Bool
+isUserTypeErrorCt ct = case getUserTypeErrorMsg ct of
+                         Just _ -> True
+                         _      -> False
 
 isPartialTypeSigCt :: Ct -> Bool
 isPartialTypeSigCt (CHoleCan { cc_hole = TypeHole }) = True

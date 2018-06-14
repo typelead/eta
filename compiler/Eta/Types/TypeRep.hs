@@ -718,6 +718,8 @@ pprTyTcApp p tc tys
   = sdocWithDynFlags $ \dflags ->
     if gopt Opt_PrintExplicitKinds dflags then pprTcApp  p ppr_type tc tys
                                    else pprTyList p ty1 ty2
+                                   
+  | tc `hasKey` errorMessageTypeErrorFamKey = text "(TypeError ...)"
 
   | otherwise
   = pprTcApp p ppr_type tc tys
