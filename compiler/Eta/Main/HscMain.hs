@@ -185,7 +185,7 @@ newHscEnv dflags = do
     ic      <- newInteractiveContext dflags
     return HscEnv {  hsc_dflags       = dflags,
                      hsc_targets      = [],
-                     hsc_mod_graph    = [],
+                     hsc_mod_graph    = emptyMG,
                      hsc_IC           = ic,
                      hsc_HPT          = emptyHomePackageTable,
                      hsc_EPS          = eps_var,

@@ -4,7 +4,7 @@
 \section[HscTypes]{Types for the per-module compiler}
 -}
 
-{-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables, RecordWildCards #-}
 
 -- | Types for the per-module compiler
 module Eta.Main.HscTypes (
@@ -12,9 +12,12 @@ module Eta.Main.HscTypes (
         HscEnv(..), hscEPS,
         FinderCache, FindResult(..), ModLocationCache,
         Target(..), TargetId(..), pprTarget, pprTargetId,
-        ModuleGraph, emptyMG, mgModSummaries, mkModuleGraph, mgLookupModule,
         HscStatus(..),
         IServ(..),
+        -- * ModuleGraph
+        ModuleGraph, emptyMG, mkModuleGraph, extendMG, mapMG,
+        mgModSummaries, mgElemModule, mgLookupModule,
+        needsTemplateHaskellOrQQ, mgBootModules,
 
         -- * Hsc monad
         Hsc(..), runHsc, runInteractiveHsc,
@@ -27,7 +30,7 @@ module Eta.Main.HscTypes (
 
         ModSummary(..), ms_imps, ms_mod_name, showModMsg, isBootSummary,
         msHsFilePath, msHiFilePath, msObjFilePath,
-        SourceModified(..),
+        SourceModified(..), isTemplateHaskellOrQQNonBoot,
 
         -- * Information about the module being compiled
         -- (re-exported from DriverPhases)
@@ -195,7 +198,6 @@ import Control.Monad    ( guard, liftM, when, ap )
 import Data.Array       ( Array, array )
 import Data.Map         ( Map )
 import Data.Text        ( Text )
-import Data.List        ( find )
 import Data.IORef
 import Data.Time
 import Data.Word
@@ -2419,20 +2421,76 @@ soExt _platform = "so"
 --
 -- The graph is not necessarily stored in topologically-sorted order.  Use
 -- 'GHC.topSortModuleGraph' and 'Digraph.flattenSCC' to achieve this.
-type ModuleGraph = [ModSummary]
+-- | A ModuleGraph contains all the nodes from the home package (only).
+-- There will be a node for each source module, plus a node for each hi-boot
+-- module.
+--
+-- The graph is not necessarily stored in topologically-sorted order.  Use
+-- 'GHC.topSortModuleGraph' and 'Digraph.flattenSCC' to achieve this.
+data ModuleGraph = ModuleGraph
+  { mg_mss :: [ModSummary]
+  , mg_non_boot :: ModuleEnv ModSummary
+    -- a map of all non-boot ModSummaries keyed by Modules
+  , mg_boots :: ModuleSet
+    -- a set of boot Modules
+  , mg_needs_th_or_qq :: !Bool
+    -- does any of the modules in mg_mss require TemplateHaskell or
+    -- QuasiQuotes?
+  }
 
-emptyMG :: ModuleGraph
-emptyMG = []
+-- | Determines whether a set of modules requires Template Haskell or
+-- Quasi Quotes
+--
+-- Note that if the session's 'DynFlags' enabled Template Haskell when
+-- 'depanal' was called, then each module in the returned module graph will
+-- have Template Haskell enabled whether it is actually needed or not.
+needsTemplateHaskellOrQQ :: ModuleGraph -> Bool
+needsTemplateHaskellOrQQ mg = mg_needs_th_or_qq mg
+
+mapMG :: (ModSummary -> ModSummary) -> ModuleGraph -> ModuleGraph
+mapMG f mg@ModuleGraph{..} = mg
+  { mg_mss = map f mg_mss
+  , mg_non_boot = mapModuleEnv f mg_non_boot
+  }
+
+mgBootModules :: ModuleGraph -> ModuleSet
+mgBootModules ModuleGraph{..} = mg_boots
 
 mgModSummaries :: ModuleGraph -> [ModSummary]
-mgModSummaries = id
+mgModSummaries = mg_mss
 
-mkModuleGraph :: [ModSummary] -> ModuleGraph
-mkModuleGraph = id
+mgElemModule :: ModuleGraph -> Module -> Bool
+mgElemModule ModuleGraph{..} m = elemModuleEnv m mg_non_boot
 
 -- | Look up a ModSummary in the ModuleGraph
 mgLookupModule :: ModuleGraph -> Module -> Maybe ModSummary
-mgLookupModule mss m = find (\ms -> ms_mod ms == m) mss
+mgLookupModule ModuleGraph{..} m = lookupModuleEnv mg_non_boot m
+
+emptyMG :: ModuleGraph
+emptyMG = ModuleGraph [] emptyModuleEnv emptyModuleSet False
+
+isTemplateHaskellOrQQNonBoot :: ModSummary -> Bool
+isTemplateHaskellOrQQNonBoot ms =
+  (xopt Opt_TemplateHaskell (ms_hspp_opts ms)
+    || xopt Opt_QuasiQuotes (ms_hspp_opts ms)) &&
+  not (isBootSummary ms)
+
+-- | Add a ModSummary to ModuleGraph. Assumes that the new ModSummary is
+-- not an element of the ModuleGraph.
+extendMG :: ModuleGraph -> ModSummary -> ModuleGraph
+extendMG ModuleGraph{..} ms = ModuleGraph
+  { mg_mss = ms:mg_mss
+  , mg_non_boot = if isBootSummary ms
+      then mg_non_boot
+      else extendModuleEnv mg_non_boot (ms_mod ms) ms
+  , mg_boots = if isBootSummary ms
+      then extendModuleSet mg_boots (ms_mod ms)
+      else mg_boots
+  , mg_needs_th_or_qq = mg_needs_th_or_qq || isTemplateHaskellOrQQNonBoot ms
+  }
+
+mkModuleGraph :: [ModSummary] -> ModuleGraph
+mkModuleGraph = foldr (flip extendMG) emptyMG
 
 -- | A single node in a 'ModuleGraph'. The nodes of the module graph
 -- are one of:

@@ -132,7 +132,8 @@ module Eta.BasicTypes.Module
 
         -- * Sets of Modules
         ModuleSet,
-        emptyModuleSet, mkModuleSet, moduleSetElts, extendModuleSet, elemModuleSet
+        emptyModuleSet, mkModuleSet, moduleSetElts, extendModuleSet, elemModuleSet,
+        delModuleSet
     ) where
 
 import Eta.PackageDb (BinaryStringRep(..), DbUnitIdModuleRep(..), DbModule(..), DbUnitId(..))
@@ -1245,6 +1246,9 @@ mkModuleSet         = Set.fromList . coerce
 extendModuleSet s m = Set.insert (NDModule m) s
 moduleSetElts       = sort . coerce . Set.toList
 elemModuleSet       = Set.member . coerce
+
+delModuleSet :: ModuleSet -> Module -> ModuleSet
+delModuleSet = coerce (flip Set.delete)
 
 {-
 A ModuleName has a Unique, so we can build mappings of these using

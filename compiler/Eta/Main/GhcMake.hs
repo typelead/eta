@@ -51,7 +51,7 @@ import Eta.BasicTypes.SrcLoc
 import Eta.Utils.StringBuffer
 import Eta.Utils.UniqFM
 import Eta.Utils.Util
-
+import Eta.Utils.UniqSet
 import Data.Either ( rights, partitionEithers )
 import qualified Data.Map as Map
 import Data.Map (Map)
@@ -115,9 +115,15 @@ depanal excluded_mods allow_dup_roots = do
              text "Chasing modules from: ",
              hcat (punctuate comma (map pprTarget targets))])
 
-  mod_graphE <- liftIO $ downsweep hsc_env old_graph excluded_mods allow_dup_roots
-  mod_graph <- reportImportErrors mod_graphE
-  modifySession $ \_ -> hsc_env { hsc_mod_graph = mod_graph }
+  mod_summariesE <- liftIO $ downsweep hsc_env (mgModSummaries old_graph)
+                                  excluded_mods allow_dup_roots
+  mod_summaries <- reportImportErrors mod_summariesE
+
+  let mod_graph = mkModuleGraph mod_summaries
+
+  -- warnMissingHomeModules hsc_env mod_graph TODO: Backport warning
+
+  setSession hsc_env { hsc_mod_graph = mod_graph }
   return mod_graph
 
 -- | Describes which modules of the module graph need to be loaded.
@@ -157,11 +163,12 @@ load how_much = do
     -- B.hs-boot in the module graph, but no B.hs
     -- The downsweep should have ensured this does not happen
     -- (see msDeps)
-    let all_home_mods = [ms_mod_name s
-                        | s <- mod_graph, not (isBootSummary s)]
-        bad_boot_mods = [s        | s <- mod_graph, isBootSummary s,
-                                    not (ms_mod_name s `elem` all_home_mods)]
-    ASSERT( null bad_boot_mods ) return ()
+    let all_home_mods =
+          mkUniqSet [ ms_mod_name s
+                    | s <- mgModSummaries mod_graph, not (isBootSummary s)]
+    --     bad_boot_mods = [s        | s <- mod_graph, isBootSummary s,
+    --                                 not (ms_mod_name s `elem` all_home_mods)]
+    -- ASSERT( null bad_boot_mods ) return ()
 
     -- check that the module given in HowMuch actually exists, otherwise
     -- topSortModuleGraph will bomb later.
@@ -170,7 +177,7 @@ load how_much = do
         checkHowMuch _ = id
 
         checkMod m and_then
-            | m `elem` all_home_mods = and_then
+            | m `elementOfUniqSet` all_home_mods = and_then
             | otherwise = do
                     liftIO $ errorMsg dflags (text "no such module:" <+>
                                      quotes (ppr m))
@@ -321,7 +328,7 @@ load how_much = do
           let no_hs_main = gopt Opt_NoHsMain dflags
           let
             main_mod = mainModIs dflags
-            a_root_is_Main = any ((==main_mod).ms_mod) mod_graph
+            a_root_is_Main = mgElemModule mod_graph main_mod
             do_linking = a_root_is_Main || no_hs_main || ghcLink dflags == LinkDynLib || ghcLink dflags == LinkStaticLib
 
           when (ghcLink dflags == LinkBinary
@@ -439,8 +446,7 @@ guessOutputFile = modifySession $ \env ->
         mod_graph = hsc_mod_graph env
         mainModuleSrcPath :: Maybe String
         mainModuleSrcPath = do
-            let isMain = (== mainModIs dflags) . ms_mod
-            [ms] <- return (filter isMain mod_graph)
+            ms <- mgLookupModule mod_graph (mainModIs dflags)
             ml_hs_file (ms_location ms)
         name = fmap dropExtension mainModuleSrcPath
 
@@ -588,7 +594,7 @@ unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
 checkStability
         :: HomePackageTable   -- HPT from last compilation
         -> [SCC ModSummary]   -- current module graph (cyclic)
-        -> [ModuleName]       -- all home modules
+        -> UniqSet ModuleName       -- all home modules
         -> ([ModuleName],     -- stableObject
             [ModuleName])     -- stableBCO
 
@@ -601,7 +607,7 @@ checkStability hpt sccs all_home_mods = foldl checkSCC ([],[]) sccs
      where
         scc = flattenSCC scc0
         scc_mods = map ms_mod_name scc
-        home_module m   = m `elem` all_home_mods && m `notElem` scc_mods
+        home_module m   = m `elementOfUniqSet` all_home_mods && m `notElem` scc_mods
 
         scc_allimps = nub (filter home_module (concatMap ms_home_allimps scc))
             -- all imports outside the current SCC, but in the home pkg
@@ -768,13 +774,19 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
     -- The list of all loops in the compilation graph.
     -- NB: For convenience, the last module of each loop (aka the module that
     -- finishes the loop) is prepended to the beginning of the loop.
-    let comp_graph_loops = go (map fstOf3 (reverse comp_graph))
+    let graph = map fstOf3 (reverse comp_graph)
+        boot_modules = mkModuleSet [ms_mod ms | ms <- graph, isBootSummary ms]
+        comp_graph_loops = go graph boot_modules
           where
-            go [] = []
-            go (ms:mss) | Just loop <- getModLoop ms (ms:mss)
-                        = map mkBuildModule (ms:loop) : go mss
-                        | otherwise
-                        = go mss
+            remove ms bm
+              | isBootSummary ms = delModuleSet bm (ms_mod ms)
+              | otherwise = bm
+            go [] _ = []
+            go mg@(ms:mss) boot_modules
+              | Just loop <- getModLoop ms mg (`elemModuleSet` boot_modules)
+              = map mkBuildModule (ms:loop) : go mss (remove ms boot_modules)
+              | otherwise
+              = go mss (remove ms boot_modules)
 
     -- Build a Map out of the compilation graph with which we can efficiently
     -- look up the result MVar associated with a particular home module.
@@ -1102,22 +1114,36 @@ upsweep
        --  3. A list of modules which succeeded loading.
 
 upsweep old_hpt stable_mods cleanup sccs = do
-   (res, done) <- upsweep' old_hpt [] sccs 1 (length sccs)
-   return (res, reverse done)
+   (res, done) <- upsweep' old_hpt emptyMG sccs 1 (length sccs) cleanup
+                          --  (unitIdsToCheck dflags) done_holes TODO: Backport
+   return (res, reverse $ mgModSummaries done)
  where
+  _done_holes = emptyUniqSet
+
+  upsweep' :: GhcMonad m
+   => HomePackageTable
+   -> ModuleGraph
+   -> [SCC ModSummary]
+   -> Int
+   -> Int
+   -> (HscEnv -> IO ())
+  --  -> [UnitId]
+  --  -> UniqSet ModuleName
+   -> m (SuccessFlag, ModuleGraph)
+  upsweep' _old_hpt done
+    [] _ _ _ = do
+       -- hsc_env <- getSession
+       -- liftIO . runHsc hsc_env $ mapM_ (ioMsgMaybe . tcRnCheckUnitId hsc_env) uids_to_check
+        return (Succeeded, done)
 
   upsweep' _old_hpt done
-     [] _ _
-   = return (Succeeded, done)
-
-  upsweep' _old_hpt done
-     (CyclicSCC ms:_) _ _
+     (CyclicSCC ms:_) _ _ _
    = do dflags <- getSessionDynFlags
         liftIO $ fatalErrorMsg dflags (cyclicModuleErr ms)
         return (Failed, done)
 
   upsweep' old_hpt done
-     (AcyclicSCC mod:mods) mod_index nmods
+     (AcyclicSCC mod:mods) mod_index nmods cleanup
    = do -- putStrLn ("UPSWEEP_MOD: hpt = " ++
         --           show (map (moduleUserString.moduleName.mi_module.hm_iface)
         --                     (moduleEnvElts (hsc_HPT hsc_env)))
@@ -1155,14 +1181,14 @@ upsweep old_hpt stable_mods cleanup sccs = do
                     old_hpt1 | isBootSummary mod = old_hpt
                              | otherwise = delFromUFM old_hpt this_mod
 
-                    done' = mod:done
+                    done' = extendMG done mod
 
                         -- fixup our HomePackageTable after we've finished compiling
                         -- a mutually-recursive loop.  See reTypecheckLoop, below.
                 hsc_env2 <- liftIO $ reTypecheckLoop hsc_env1 mod done'
                 setSession hsc_env2
 
-                upsweep' old_hpt1 done' mods (mod_index+1) nmods
+                upsweep' old_hpt1 done' mods (mod_index+1) nmods cleanup
 
 maybeGetIfaceDate :: DynFlags -> ModLocation -> IO (Maybe UTCTime)
 maybeGetIfaceDate dflags location
@@ -1387,16 +1413,22 @@ Following this fix, GHC can compile itself with --make -O2.
 
 reTypecheckLoop :: HscEnv -> ModSummary -> ModuleGraph -> IO HscEnv
 reTypecheckLoop hsc_env ms graph
-  | Just loop <- getModLoop ms graph
+  | Just loop <- getModLoop ms mss appearsAsBoot
   , let non_boot = filter (not.isBootSummary) loop
   = typecheckLoop (hsc_dflags hsc_env) hsc_env (map ms_mod_name non_boot)
   | otherwise
   = return hsc_env
+  where
+  mss = mgModSummaries graph
+  appearsAsBoot = (`elemModuleSet` mgBootModules graph)
 
-getModLoop :: ModSummary -> ModuleGraph -> Maybe [ModSummary]
-getModLoop ms graph
+getModLoop :: ModSummary
+  -> [ModSummary]
+  -> (Module -> Bool) -- check if a module appears as a boot module in 'graph'
+  -> Maybe [ModSummary]
+getModLoop ms graph appearsAsBoot
   | not (isBootSummary ms)
-  , any (\m -> ms_mod m == this_mod && isBootSummary m) graph
+  , appearsAsBoot this_mod
   , let mss = reachableBackwards (ms_mod_name ms) graph
   = Just mss
   | otherwise
@@ -1435,7 +1467,7 @@ reachableBackwards mod summaries
 topSortModuleGraph
           :: Bool
           -- ^ Drop hi-boot nodes? (see below)
-          -> [ModSummary]
+          -> ModuleGraph
           -> Maybe ModuleName
              -- ^ Root module name.  If @Nothing@, use the full graph.
           -> [SCC ModSummary]
@@ -1454,9 +1486,10 @@ topSortModuleGraph
 --              the a source-import of Foo is an import of Foo
 --              The resulting graph has no hi-boot nodes, but can be cyclic
 
-topSortModuleGraph drop_hs_boot_nodes summaries mb_root_mod
+topSortModuleGraph drop_hs_boot_nodes module_graph mb_root_mod
   = map (fmap summaryNodeSummary) $ stronglyConnCompG initial_graph
   where
+    summaries = mgModSummaries module_graph
     (graph, lookup_node) = moduleGraphNodes drop_hs_boot_nodes summaries
 
     initial_graph = case mb_root_mod of
