@@ -836,6 +836,10 @@ data DynFlags = DynFlags {
   -- pseudo (roughly: Cmm) instructions.
   maxInlineMemsetInsns  :: Int,
 
+  -- | Unique supply configuration for testing build determinism
+  initialUnique         :: Int,
+  uniqueIncrement       :: Int,
+
   -- | Telemetry
   metrics :: IORef (Maybe Metrics)
 }
@@ -1573,7 +1577,9 @@ defaultDynFlags mySettings =
         maxInlineAllocSize = 128,
         maxInlineMemcpyInsns = 32,
         maxInlineMemsetInsns = 32,
-        metrics = panic "defaultDynFlags: No metrics"
+        metrics = panic "defaultDynFlags: No metrics",
+        initialUnique = 0,
+        uniqueIncrement = 1
       }
 
 defaultWays :: Settings -> [Way]
