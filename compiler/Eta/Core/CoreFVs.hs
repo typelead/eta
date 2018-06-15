@@ -22,6 +22,7 @@ module Eta.Core.CoreFVs (
 
         -- * Free variables of Rules, Vars and Ids
         varTypeTyVars,
+        varTypeTyVarsAcc,
         idUnfoldingVars, idFreeVars, idRuleAndUnfoldingVars,
         idFreeVarsAcc,
         idRuleVars, idRuleRhsVars, stableUnfoldingVars,
@@ -529,7 +530,7 @@ idFreeVarsAcc id = ASSERT( isId id)
 bndrRuleAndUnfoldingVarsAcc :: Var -> FV
 bndrRuleAndUnfoldingVarsAcc v | isTyVar v = noVars
                              | otherwise = idRuleAndUnfoldingVarsAcc v
-                         
+
 bndrRuleAndUnfoldingVarsDSet :: Id -> DVarSet
 bndrRuleAndUnfoldingVarsDSet id = fvDVarSet $ bndrRuleAndUnfoldingFVs id
 
