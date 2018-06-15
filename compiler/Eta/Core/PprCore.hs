@@ -401,7 +401,7 @@ ppIdInfo id info
     unf_info = unfoldingInfo info
     has_unf = hasSomeUnfolding unf_info
 
-    rules = specInfoRules (specInfo info)
+    rules = ruleInfoRules (ruleInfo info)
 
 showAttributes :: [(Bool,SDoc)] -> SDoc
 showAttributes stuff

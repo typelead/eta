@@ -19,7 +19,7 @@ module Eta.Specialise.Rules (
         -- ** Checking rule applications
         ruleCheckProgram,
 
-        -- ** Manipulating 'SpecInfo' rules
+        -- ** Manipulating 'RuleInfo' rules
         mkSpecInfo, extendSpecInfo, addSpecInfo,
         addIdSpecialisations,
 
@@ -45,7 +45,7 @@ import Eta.Prelude.TysPrim          ( anyTypeOfKind )
 import Eta.Types.Coercion
 import Eta.Core.CoreTidy         ( tidyRules )
 import Eta.BasicTypes.Id
-import Eta.BasicTypes.IdInfo           ( SpecInfo( SpecInfo ) )
+import Eta.BasicTypes.IdInfo           ( RuleInfo( RuleInfo ) )
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.VarSet
@@ -255,23 +255,23 @@ pprRulesForUser rules
 {-
 ************************************************************************
 *                                                                      *
-                SpecInfo: the rules in an IdInfo
+                RuleInfo: the rules in an IdInfo
 *                                                                      *
 ************************************************************************
 -}
 
--- | Make a 'SpecInfo' containing a number of 'CoreRule's, suitable
+-- | Make a 'RuleInfo' containing a number of 'CoreRule's, suitable
 -- for putting into an 'IdInfo'
-mkSpecInfo :: [CoreRule] -> SpecInfo
-mkSpecInfo rules = SpecInfo rules (rulesFreeVars rules)
+mkSpecInfo :: [CoreRule] -> RuleInfo
+mkSpecInfo rules = RuleInfo rules (rulesFreeVars rules)
 
-extendSpecInfo :: SpecInfo -> [CoreRule] -> SpecInfo
-extendSpecInfo (SpecInfo rs1 fvs1) rs2
-  = SpecInfo (rs2 ++ rs1) (rulesFreeVars rs2 `unionVarSet` fvs1)
+extendSpecInfo :: RuleInfo -> [CoreRule] -> RuleInfo
+extendSpecInfo (RuleInfo rs1 fvs1) rs2
+  = RuleInfo (rs2 ++ rs1) (rulesFreeVars rs2 `unionVarSet` fvs1)
 
-addSpecInfo :: SpecInfo -> SpecInfo -> SpecInfo
-addSpecInfo (SpecInfo rs1 fvs1) (SpecInfo rs2 fvs2)
-  = SpecInfo (rs1 ++ rs2) (fvs1 `unionVarSet` fvs2)
+addSpecInfo :: RuleInfo -> RuleInfo -> RuleInfo
+addSpecInfo (RuleInfo rs1 fvs1) (RuleInfo rs2 fvs2)
+  = RuleInfo (rs1 ++ rs2) (fvs1 `unionVarSet` fvs2)
 
 addIdSpecialisations :: Id -> [CoreRule] -> Id
 addIdSpecialisations id []

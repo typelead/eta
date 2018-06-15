@@ -24,7 +24,7 @@ import Eta.BasicTypes.Id ( Id, idInfo )
 -- compiler
 megaSeqIdInfo :: IdInfo -> ()
 megaSeqIdInfo info
-  = seqSpecInfo (specInfo info)                 `seq`
+  = seqSpecInfo (ruleInfo info)                 `seq`
 
 -- Omitting this improves runtimes a little, presumably because
 -- some unfoldings are not calculated at all
@@ -39,8 +39,8 @@ megaSeqIdInfo info
 seqOneShot :: OneShotInfo -> ()
 seqOneShot l = l `seq` ()
 
-seqSpecInfo :: SpecInfo -> ()
-seqSpecInfo (SpecInfo rules fvs) = seqRules rules `seq` seqVarSet fvs
+seqSpecInfo :: RuleInfo -> ()
+seqSpecInfo (RuleInfo rules fvs) = seqRules rules `seq` seqVarSet fvs
 
 seqCaf :: CafInfo -> ()
 seqCaf c = c `seq` ()

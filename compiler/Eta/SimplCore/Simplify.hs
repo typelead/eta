@@ -2956,7 +2956,7 @@ addBndrRules env in_id out_id
        ; let final_id  = out_id `setIdSpecialisation` mkSpecInfo new_rules
        ; return (modifyInScope env final_id, final_id) }
   where
-    old_rules = specInfoRules (idSpecialisation in_id)
+    old_rules = ruleInfoRules (idSpecialisation in_id)
 
 simplRules :: SimplEnv -> Maybe Name -> [CoreRule] -> SimplM [CoreRule]
 simplRules env mb_new_nm rules

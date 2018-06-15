@@ -1400,7 +1400,7 @@ data RhsInfo
        , ri_arg_occs  :: [ArgOcc]      -- Info on how the xs occur in body
     }
 
-data SpecInfo = SI [OneSpec]            -- The specialisations we have generated
+data RuleInfo = SI [OneSpec]            -- The specialisations we have generated
 
                    Int                  -- Length of specs; used for numbering them
 
@@ -1469,8 +1469,8 @@ specialise
    :: ScEnv
    -> CallEnv                     -- Info on newly-discovered calls to this function
    -> RhsInfo
-   -> SpecInfo                    -- Original RHS plus patterns dealt with
-   -> UniqSM (ScUsage, SpecInfo)  -- New specialised versions and their usage
+   -> RuleInfo                    -- Original RHS plus patterns dealt with
+   -> UniqSM (ScUsage, RuleInfo)  -- New specialised versions and their usage
 
 -- See Note [spec_usg includes rhs_usg]
 
@@ -1655,7 +1655,7 @@ calcSpecStrictness fn qvars pats
 Note [spec_usg includes rhs_usg]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In calls to 'specialise', the returned ScUsage must include the rhs_usg in
-the passed-in SpecInfo, unless there are no calls at all to the function.
+the passed-in RuleInfo, unless there are no calls at all to the function.
 
 The caller can, indeed must, assume this.  He should not combine in rhs_usg
 himself, or he'll get rhs_usg twice -- and that can lead to an exponential
