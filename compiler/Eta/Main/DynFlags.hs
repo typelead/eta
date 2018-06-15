@@ -546,6 +546,7 @@ data WarningFlag =
    | Opt_WarnMissingExportedSigs
    | Opt_WarnUntickedPromotedConstructors
    | Opt_WarnDerivingTypeable
+   | Opt_WarnMissingHomeModules           -- Since 8.2
    deriving (Eq, Show, Enum)
 
 data Language = Haskell98 | Haskell2010
@@ -2983,7 +2984,8 @@ fWarningFlags = [
   flagSpec "warn-unused-imports"              Opt_WarnUnusedImports,
   flagSpec "warn-unused-matches"              Opt_WarnUnusedMatches,
   flagSpec "warn-warnings-deprecations"       Opt_WarnWarningsDeprecations,
-  flagSpec "warn-wrong-do-bind"               Opt_WarnWrongDoBind]
+  flagSpec "warn-wrong-do-bind"               Opt_WarnWrongDoBind,
+  flagSpec "missing-home-modules"             Opt_WarnMissingHomeModules]
 
 -- | These @-\<blah\>@ flags can all be reversed with @-no-\<blah\>@
 negatableFlags :: [FlagSpec GeneralFlag]
