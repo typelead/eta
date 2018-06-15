@@ -12,6 +12,7 @@ module Eta.TypeCheck.TcEvidence (
   -- Evidence bindings
   TcEvBinds(..), EvBindsVar(..),
   EvBindMap(..), emptyEvBindMap, extendEvBinds, lookupEvBind, evBindMapBinds,
+  foldEvBindMap,
   EvBind(..), emptyTcEvBinds, isEmptyTcEvBinds,
   EvTerm(..), mkEvCast, evVarsOfTerm, mkEvTupleSelectors, mkEvScSelectors,
   EvLit(..), evTermCoercion,
@@ -661,22 +662,44 @@ instance Data.Data TcEvBinds where
 -----------------
 newtype EvBindMap
   = EvBindMap {
-       ev_bind_varenv :: VarEnv EvBind
+       ev_bind_varenv :: DVarEnv EvBind
     }       -- Map from evidence variables to evidence terms
+            -- We use @DVarEnv@ here to get deterministic ordering when we
+            -- turn it into a Bag
+            -- If we don't do that, when we generate let bindings for
+            -- dictionaries in dsTcEvBinds they will be generated in random
+            -- order.
+            --
+            -- For example:
+            --
+            -- let $dEq = GHC.Classes.$fEqInt in
+            -- let $$dNum = GHC.Num.$fNumInt in ...
+            --
+            -- vs
+            --
+            -- let $dNum = GHC.Num.$fNumInt in
+            -- let $dEq = GHC.Classes.$fEqInt in ...
+            --
+            -- See Note [Deterministic UniqFM] in UniqDFM for explanation why
+            -- @UniqFM@ can lead to nondeterministic order.
+
 
 emptyEvBindMap :: EvBindMap
-emptyEvBindMap = EvBindMap { ev_bind_varenv = emptyVarEnv }
+emptyEvBindMap = EvBindMap { ev_bind_varenv = emptyDVarEnv }
 
 extendEvBinds :: EvBindMap -> EvVar -> EvTerm -> EvBindMap
 extendEvBinds bs v t
-  = EvBindMap { ev_bind_varenv = extendVarEnv (ev_bind_varenv bs) v (EvBind v t) }
+  = EvBindMap { ev_bind_varenv = extendDVarEnv (ev_bind_varenv bs) v (EvBind v t) }
 
 lookupEvBind :: EvBindMap -> EvVar -> Maybe EvBind
-lookupEvBind bs = lookupVarEnv (ev_bind_varenv bs)
+lookupEvBind bs = lookupDVarEnv (ev_bind_varenv bs)
 
 evBindMapBinds :: EvBindMap -> Bag EvBind
 evBindMapBinds bs
-  = foldVarEnv consBag emptyBag (ev_bind_varenv bs)
+  = foldDVarEnv consBag emptyBag (ev_bind_varenv bs)
+
+foldEvBindMap :: (EvBind -> a -> a) -> a -> EvBindMap -> a
+foldEvBindMap k z bs = foldDVarEnv k z (ev_bind_varenv bs)
 
 -----------------
 -- All evidence is bound by EvBinds; no side effects
