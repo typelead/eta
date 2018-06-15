@@ -41,6 +41,7 @@ module Eta.Types.TypeRep (
 
         -- Free variables
         tyVarsOfType, tyVarsOfTypes, closeOverKinds, varSetElemsKvsFirst,
+        tyVarsOfTypeAcc, tyVarsOfTypeList, tyVarsOfTypesAcc, tyVarsOfTypesList,
 
         -- * Tidying type related things up for printing
         tidyType,      tidyTypes,
@@ -71,7 +72,7 @@ import Eta.BasicTypes.BasicTypes
 import Eta.Types.TyCon
 import Eta.Types.Class
 import Eta.Types.CoAxiom
-
+import Eta.Utils.FV
 -- others
 import Eta.Prelude.PrelNames
 import Eta.Utils.Outputable
@@ -307,16 +308,43 @@ tyVarsOfType :: Type -> VarSet
 -- tyVarsOfType returns only the free variables of a type
 -- For example, tyVarsOfType (a::k) returns {a}, not including the
 -- kind variable {k}
-tyVarsOfType (TyVarTy v)         = unitVarSet v
-tyVarsOfType (TyConApp _ tys)    = tyVarsOfTypes tys
-tyVarsOfType (LitTy {})          = emptyVarSet
-tyVarsOfType (FunTy arg res)     = tyVarsOfType arg `unionVarSet` tyVarsOfType res
-tyVarsOfType (AppTy fun arg)     = tyVarsOfType fun `unionVarSet` tyVarsOfType arg
-tyVarsOfType (ForAllTy tyvar ty) = delVarSet (tyVarsOfType ty) tyvar
-                                   `unionVarSet` tyVarsOfType (tyVarKind tyvar)
+tyVarsOfType ty = runFVSet $ tyVarsOfTypeAcc ty
+
+-- | `tyVarsOfType` that returns free variables of a type in deterministic
+-- order. For explanation of why using `VarSet` is not deterministic see
+-- Note [Deterministic UniqFM] in UniqDFM.
+tyVarsOfTypeList :: Type -> [Var]
+tyVarsOfTypeList ty = runFVList $ tyVarsOfTypeAcc ty
 
 tyVarsOfTypes :: [Type] -> TyVarSet
-tyVarsOfTypes = mapUnionVarSet tyVarsOfType
+tyVarsOfTypes tys = runFVSet $ tyVarsOfTypesAcc tys
+
+tyVarsOfTypesList :: [Type] -> [Var]
+tyVarsOfTypesList tys = runFVList $ tyVarsOfTypesAcc tys
+
+
+-- | The worker for `tyVarsOfType` and `tyVarsOfTypeList`.
+-- The previous implementation used `unionVarSet` which is O(n+m) and can
+-- make the function quadratic.
+-- It's exported, so that it can be composed with other functions that compute
+-- free variables.
+tyVarsOfTypeAcc :: Type -> FV
+tyVarsOfTypeAcc (TyVarTy v) fv_cand in_scope acc = oneVar v fv_cand in_scope acc
+tyVarsOfTypeAcc (TyConApp _ tys) fv_cand in_scope acc =
+  tyVarsOfTypesAcc tys fv_cand in_scope acc
+tyVarsOfTypeAcc (LitTy {}) fv_cand in_scope acc = noVars fv_cand in_scope acc
+tyVarsOfTypeAcc (FunTy arg res) fv_cand in_scope acc =
+  (tyVarsOfTypeAcc arg `unionFV` tyVarsOfTypeAcc res) fv_cand in_scope acc
+tyVarsOfTypeAcc (AppTy fun arg) fv_cand in_scope acc =
+  (tyVarsOfTypeAcc fun `unionFV` tyVarsOfTypeAcc arg) fv_cand in_scope acc
+tyVarsOfTypeAcc (ForAllTy tyvar ty) fv_cand in_scope acc =
+  (delFV tyvar (tyVarsOfTypeAcc ty) `unionFV`
+    tyVarsOfTypeAcc (tyVarKind tyvar)) fv_cand in_scope acc
+
+tyVarsOfTypesAcc :: [Type] -> FV
+tyVarsOfTypesAcc (ty:tys) fv_cand in_scope acc =
+  (tyVarsOfTypeAcc ty `unionFV` tyVarsOfTypesAcc tys) fv_cand in_scope acc
+tyVarsOfTypesAcc [] fv_cand in_scope acc = noVars fv_cand in_scope acc
 
 closeOverKinds :: TyVarSet -> TyVarSet
 -- Add the kind variables free in the kinds
@@ -718,7 +746,7 @@ pprTyTcApp p tc tys
   = sdocWithDynFlags $ \dflags ->
     if gopt Opt_PrintExplicitKinds dflags then pprTcApp  p ppr_type tc tys
                                    else pprTyList p ty1 ty2
-                                   
+
   | tc `hasKey` errorMessageTypeErrorFamKey = text "(TypeError ...)"
 
   | otherwise
@@ -922,7 +950,7 @@ tidyOpenType :: TidyEnv -> Type -> (TidyEnv, Type)
 tidyOpenType env ty
   = (env', tidyType (trimmed_occ_env, var_env) ty)
   where
-    (env'@(_, var_env), tvs') = tidyOpenTyVars env (varSetElems (tyVarsOfType ty))
+    (env'@(_, var_env), tvs') = tidyOpenTyVars env (tyVarsOfTypeList ty)
     trimmed_occ_env = initTidyOccEnv (map getOccName tvs')
       -- The idea here was that we restrict the new TidyEnv to the
       -- _free_ vars of the type, so that we don't gratuitously rename

@@ -36,7 +36,7 @@ import Eta.Core.CoreUnfold
 import Eta.Core.CoreUtils
 import Eta.Core.CoreArity
 --import Eta.Prelude.PrimOp           ( tagToEnumKey ) -- temporalily commented out. See #8326
-import Eta.Specialise.Rules            ( mkSpecInfo, lookupRule, getRules )
+import Eta.Specialise.Rules            ( mkRuleInfo, lookupRule, getRules )
 import Eta.Prelude.TysPrim          ( voidPrimTy ) --, intPrimTy ) -- temporalily commented out. See #8326
 import Eta.BasicTypes.BasicTypes       ( TopLevelFlag(..), isTopLevel, RecFlag(..) )
 import Eta.Utils.MonadUtils       ( foldlM, mapAccumLM, liftIO )
@@ -2953,7 +2953,7 @@ addBndrRules env in_id out_id
   = return (env, out_id)
   | otherwise
   = do { new_rules <- simplRules env (Just (idName out_id)) old_rules
-       ; let final_id  = out_id `setIdSpecialisation` mkSpecInfo new_rules
+       ; let final_id  = out_id `setIdSpecialisation` mkRuleInfo new_rules
        ; return (modifyInScope env final_id, final_id) }
   where
     old_rules = ruleInfoRules (idSpecialisation in_id)

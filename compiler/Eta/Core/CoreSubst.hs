@@ -17,7 +17,7 @@ module Eta.Core.CoreSubst (
         substTy, substCo, substExpr, substExprSC, substBind, substBindSC,
         substUnfolding, substUnfoldingSC,
         lookupIdSubst, lookupTvSubst, lookupCvSubst, substIdOcc,
-        substTickish, substVarSet,
+        substTickish, substDVarSet,
 
         -- ** Operations on substitutions
         emptySubst, mkEmptySubst, mkGblSubst, mkOpenSubst, substInScope, isEmptySubst,
@@ -53,6 +53,7 @@ import qualified Eta.Types.Coercion as Coercion
         -- We are defining local versions
 import Eta.Types.Type     hiding ( substTy, extendTvSubst, extendTvSubstList
                        , isInScope, substTyVarBndr, cloneTyVarBndr )
+import Eta.Types.TypeRep ( tyVarsOfTypeAcc )
 import Eta.Types.Coercion hiding ( substTy, substCo, extendTvSubst, substTyVarBndr, substCoVarBndr )
 
 import Eta.Types.TyCon       ( tyConArity )
@@ -755,11 +756,11 @@ substIdOcc subst v = case lookupIdSubst (text "substIdOcc") subst v of
 -- | Substitutes for the 'Id's within the 'WorkerInfo' given the new function 'Id'
 substSpec :: Subst -> Id -> RuleInfo -> RuleInfo
 substSpec subst new_id (RuleInfo rules rhs_fvs)
-  = seqSpecInfo new_spec `seq` new_spec
+  = seqRuleInfo new_spec `seq` new_spec
   where
     subst_ru_fn = const (idName new_id)
     new_spec = RuleInfo (map (substRule subst subst_ru_fn) rules)
-                        (substVarSet subst rhs_fvs)
+                        (substDVarSet subst rhs_fvs)
 
 ------------------
 substRulesForImportedIds :: Subst -> [CoreRule] -> [CoreRule]
@@ -806,13 +807,15 @@ substVect _subst vd@(VectClass _)    = vd
 substVect _subst vd@(VectInst _)     = vd
 
 ------------------
-substVarSet :: Subst -> VarSet -> VarSet
-substVarSet subst fvs
-  = foldVarSet (unionVarSet . subst_fv subst) emptyVarSet fvs
+substDVarSet :: Subst -> DVarSet -> DVarSet
+substDVarSet subst fvs
+  = mkDVarSet $ fst $ foldr (subst_fv subst) ([], emptyVarSet) $ dVarSetElems fvs
   where
-    subst_fv subst fv
-        | isId fv   = exprFreeVars (lookupIdSubst (text "substVarSet") subst fv)
-        | otherwise = Type.tyVarsOfType (lookupTvSubst subst fv)
+    subst_fv subst fv acc
+     | isId fv = expr_fvs (lookupIdSubst (text "substDVarSet") subst fv)
+        isLocalVar emptyVarSet $! acc
+     | otherwise = tyVarsOfTypeAcc (lookupTvSubst subst fv) (const True)
+        emptyVarSet $! acc
 
 ------------------
 substTickish :: Subst -> Tickish Id -> Tickish Id

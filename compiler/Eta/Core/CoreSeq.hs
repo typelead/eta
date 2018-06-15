@@ -7,14 +7,14 @@
 module Eta.Core.CoreSeq (
         -- * Utilities for forcing Core structures
         seqExpr, seqExprs, seqUnfolding, seqRules,
-        megaSeqIdInfo, seqSpecInfo, seqBinds,
+        megaSeqIdInfo, seqRuleInfo, seqBinds,
     ) where
 
 import Eta.Core.CoreSyn
 import Eta.BasicTypes.IdInfo
 import Eta.BasicTypes.Demand ( seqDemand, seqStrictSig )
 import Eta.BasicTypes.BasicTypes ( seqOccInfo )
-import Eta.BasicTypes.VarSet ( seqVarSet )
+import Eta.BasicTypes.VarSet ( seqDVarSet )
 import Eta.BasicTypes.Var ( varType, tyVarKind )
 import Eta.Types.Type ( seqType, isTyVar )
 import Eta.Types.Coercion ( seqCo )
@@ -24,7 +24,7 @@ import Eta.BasicTypes.Id ( Id, idInfo )
 -- compiler
 megaSeqIdInfo :: IdInfo -> ()
 megaSeqIdInfo info
-  = seqSpecInfo (ruleInfo info)                 `seq`
+  = seqRuleInfo (ruleInfo info)                 `seq`
 
 -- Omitting this improves runtimes a little, presumably because
 -- some unfoldings are not calculated at all
@@ -39,8 +39,8 @@ megaSeqIdInfo info
 seqOneShot :: OneShotInfo -> ()
 seqOneShot l = l `seq` ()
 
-seqSpecInfo :: RuleInfo -> ()
-seqSpecInfo (RuleInfo rules fvs) = seqRules rules `seq` seqVarSet fvs
+seqRuleInfo :: RuleInfo -> ()
+seqRuleInfo (RuleInfo rules fvs) = seqRules rules `seq` seqDVarSet fvs
 
 seqCaf :: CafInfo -> ()
 seqCaf c = c `seq` ()

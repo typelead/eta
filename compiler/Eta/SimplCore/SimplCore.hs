@@ -15,7 +15,7 @@ import Eta.Core.CoreSyn
 import Eta.Main.HscTypes
 import Eta.SimplCore.CSE              ( cseProgram )
 import Eta.Specialise.Rules            ( RuleBase, emptyRuleBase, mkRuleBase, unionRuleBase,
-                          extendRuleBaseList, ruleCheckProgram, addSpecInfo, )
+                          extendRuleBaseList, ruleCheckProgram, addRuleInfo, )
 import Eta.Core.PprCore          ( pprCoreBindings, pprCoreExpr )
 import Eta.SimplCore.OccurAnal        ( occurAnalysePgm, occurAnalyseExpr )
 import Eta.BasicTypes.IdInfo
@@ -920,7 +920,7 @@ transferIdInfo exported_id local_id
     transfer exp_info = exp_info `setStrictnessInfo`    strictnessInfo local_info
                                  `setUnfoldingInfo`     unfoldingInfo local_info
                                  `setInlinePragInfo`    inlinePragInfo local_info
-                                 `setRuleInfo`          addSpecInfo (ruleInfo exp_info) new_info
+                                 `setRuleInfo`          addRuleInfo (ruleInfo exp_info) new_info
     new_info = setRuleInfoHead (idName exported_id)
                                (ruleInfo local_info)
         -- Remember to set the function-name field of the
