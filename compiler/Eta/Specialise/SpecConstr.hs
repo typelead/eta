@@ -37,7 +37,7 @@ import Eta.Types.Type             hiding ( substTy )
 import Eta.Types.TyCon            ( isRecursiveTyCon, tyConName )
 import Eta.BasicTypes.Id
 import Eta.Core.PprCore          ( pprParendExpr )
-import Eta.Core.MkCore           ( mkImpossibleExpr )
+import Eta.Core.MkCore           ( mkImpossibleExpr, sortQuantVars )
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.VarSet
@@ -1806,10 +1806,11 @@ callToPats env bndr_occs (Call _ args con_env)
                 -- See Note [Free type variables of the qvar types]
                 -- See Note [Shadowing] at the top
 
-              (tvs, ids)    = partition isTyVar qvars
-              qvars'        = tvs ++ map sanitise ids
-                -- Put the type variables first; the type of a term
-                -- variable may mention a type variable
+              (ktvs, ids)    = partition isTyVar qvars
+              qvars'        = sortQuantVars ktvs ++ map sanitise ids
+                -- Order into kind variables, type variables, term variables
+                -- The kind of a type variable may mention a kind variable
+                -- and the type of a term variable may mention a type variable
 
               sanitise id   = id `setIdType` expandTypeSynonyms (idType id)
                 -- See Note [Free type variables of the qvar types]
