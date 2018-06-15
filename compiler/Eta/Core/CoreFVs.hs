@@ -14,8 +14,10 @@ module Eta.Core.CoreFVs (
         exprFreeDVars,  -- CoreExpr   -> DVarSet -- Find all locally-defined free Ids or tyvars
         exprFreeIds,    -- CoreExpr   -> IdSet  -- Find all locally-defined free Ids
         exprsFreeVars,  -- [CoreExpr] -> VarSet
+        exprsFreeVarsList,
         bindFreeVars,   -- CoreBind   -> VarSet
-
+        exprFVs,
+        exprsFVs,
         -- * Selective free variables of expressions
         InterestingVarFun,
         exprSomeFreeVars, exprsSomeFreeVars,
@@ -100,6 +102,23 @@ exprFreeIds = exprSomeFreeVars isLocalId
 -- | Find all locally-defined free Ids or type variables in several expressions
 exprsFreeVars :: [CoreExpr] -> VarSet
 exprsFreeVars = mapUnionVarSet exprFreeVars
+
+-- | Find all locally-defined free Ids or type variables in an expression
+-- returning a composable FV computation. See Note [FV naming conventions] in FV
+-- for why export it.
+exprFVs :: CoreExpr -> FV
+exprFVs = filterFV isLocalVar . expr_fvs
+
+-- | Find all locally-defined free Ids or type variables in several expressions
+-- returning a composable FV computation. See Note [FV naming conventions] in FV
+-- for why export it.
+exprsFVs :: [CoreExpr] -> FV
+exprsFVs exprs = mapUnionFV exprFVs exprs
+
+-- | Find all locally-defined free Ids or type variables in several expressions
+-- returning a deterministically ordered list.
+exprsFreeVarsList :: [CoreExpr] -> [Var]
+exprsFreeVarsList = fvVarList . exprsFVs
 
 -- | Find all locally defined free Ids in a binding group
 bindFreeVars :: CoreBind -> VarSet

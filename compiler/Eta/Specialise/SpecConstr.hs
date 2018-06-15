@@ -25,7 +25,7 @@ import Eta.Core.CoreSyn
 import Eta.Core.CoreSubst
 import Eta.Core.CoreUtils
 import Eta.Core.CoreUnfold       ( couldBeSmallEnoughToInline )
-import Eta.Core.CoreFVs          ( exprsFreeVars )
+import Eta.Core.CoreFVs          ( exprsFreeVarsList )
 import Eta.SimplCore.CoreMonad
 import Eta.BasicTypes.Literal          ( litIsLifted )
 import Eta.Main.HscTypes         ( ModGuts(..) )
@@ -1798,7 +1798,13 @@ callToPats env bndr_occs (Call _ args con_env)
   | otherwise
   = do  { let in_scope      = substInScope (sc_subst env)
         ; (interesting, pats) <- argsToPats env in_scope con_env args bndr_occs
-        ; let pat_fvs       = varSetElems (exprsFreeVars pats)
+        ; let pat_fvs       = exprsFreeVarsList pats
+                 -- To get determinism we need the list of free variables in
+                 -- deterministic order. Otherwise we end up creating
+                 -- lambdas with different argument orders. See
+                 -- determinism/simplCore/should_compile/spec-inline-determ.hs
+                 -- for an example. For explanation of determinism
+                 -- considerations See Note [Unique Determinism] in Unique.
               in_scope_vars = getInScopeVars in_scope
               qvars         = filterOut (`elemVarSet` in_scope_vars) pat_fvs
                 -- Quantify over variables that are not in scope
