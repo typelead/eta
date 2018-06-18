@@ -22,7 +22,7 @@ import Eta.Core.CoreSyn
 import Eta.Core.MkCore
 import Eta.Core.CoreUtils        ( exprIsDupable, exprIsExpandable, exprType,
                           exprOkForSideEffects, mkTicks )
-import Eta.Core.CoreFVs          ( CoreExprWithFVs, freeVars, freeVarsOf, idRuleAndUnfoldingVars )
+import Eta.Core.CoreFVs          ( CoreExprWithFVs, freeVars, freeVarsOf, bndrRuleAndUnfoldingVarsDSet )
 import Eta.BasicTypes.Id               ( isOneShotBndr, idType )
 import Eta.BasicTypes.Var
 import Eta.Types.Type             ( Type, isUnLiftedType, splitFunTy, applyTy )
@@ -301,7 +301,7 @@ Consider
   let x{rule mentioning y} = rhs in body
 Here y is not free in rhs or body; but we still want to dump bindings
 that bind y outside the let.  So we augment extra_fvs with the
-idRuleAndUnfoldingVars of x.  No need for type variables, hence not using
+bndrRuleAndUnfoldingVarsDSet of x.  No need for type variables, hence not using
 idFreeVars.
 -}
 
@@ -311,7 +311,7 @@ fiExpr dflags to_drop (_,AnnLet (AnnNonRec id rhs@(rhs_dfvs, ann_rhs)) body)
     body_fvs = freeVarsOf body `delDVarSet` id
     rhs_ty = idType id
     rhs_fvs = rhs_dfvs
-    rule_fvs = idRuleAndUnfoldingVars id        -- See Note [extra_fvs (2): free variables of rules]
+    rule_fvs = bndrRuleAndUnfoldingVarsDSet id        -- See Note [extra_fvs (2): free variables of rules]
     extra_fvs | noFloatIntoRhs ann_rhs rhs_ty = rule_fvs `unionDVarSet` rhs_fvs
               | otherwise                     = rule_fvs
         -- See Note [extra_fvs (1): avoid floating into RHS]
@@ -340,7 +340,7 @@ fiExpr dflags to_drop (_,AnnLet (AnnRec bindings) body)
     body_fvs = freeVarsOf body
 
         -- See Note [extra_fvs (1,2)]
-    rule_fvs = mapUnionDVarSet idRuleAndUnfoldingVars ids
+    rule_fvs = mapUnionDVarSet bndrRuleAndUnfoldingVarsDSet ids
     extra_fvs = rule_fvs `unionDVarSet`
                 unionDVarSets [ fvs | (fvs, rhs) <- rhss
                              , noFloatIntoExpr rhs ]

@@ -708,7 +708,7 @@ lvlBind env (AnnNonRec bndr rhs@(rhs_fvs,_))
        ; return (NonRec (TB bndr' (FloatMe dest_lvl)) rhs', env') }
 
   where
-    bind_fvs   = rhs_fvs `unionDVarSet` fvDVarSet (idFreeVarsAcc bndr)
+    bind_fvs   = rhs_fvs `unionDVarSet` fvDVarSet (idFVs bndr)
     abs_vars   = abstractVars dest_lvl env bind_fvs
     dest_lvl   = destLevel env bind_fvs (isFunction rhs) is_bot
     is_bot     = exprIsBottom (deAnnotate rhs)
@@ -770,7 +770,7 @@ lvlBind env (AnnRec pairs)
         -- Finding the free vars of the binding group is annoying
     bind_fvs = ((unionDVarSets [ freeVarsOf rhs | (_, rhs) <- pairs])
                 `unionDVarSet`
-                (fvDVarSet $ unionsFV [ idFreeVarsAcc bndr
+                (fvDVarSet $ unionsFV [ idFVs bndr
                                       | (bndr, (_,_)) <- pairs]))
                `delDVarSetList`
                 bndrs
@@ -1033,7 +1033,7 @@ abstractVars dest_lvl (LE { le_subst = subst, le_lvl_env = lvl_env }) in_fvs
                             -- Result includes the input variable itself
     close v = foldDVarSet (unionDVarSet . close)
                          (unitDVarSet v)
-                         (fvDVarSet $ varTypeTyVarsAcc v)
+                         (fvDVarSet $ varTypeTyFVs v)
 
 type LvlM result = UniqSM result
 
