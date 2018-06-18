@@ -22,6 +22,9 @@ module Eta.BasicTypes.UniqSupply (
         -- ** Operations on the monad
         initUs, initUs_,
         lazyThenUs, lazyMapUs,
+
+        -- * Set supply strategy
+        initUniqSupply
   ) where
 
 import Eta.BasicTypes.Unique
@@ -84,6 +87,7 @@ mkSplitUniqSupply c
        mk_supply
 
 foreign import ccall unsafe "genSym" genSym :: IO Int
+foreign import ccall unsafe "initGenSym" initUniqSupply :: Int -> Int -> IO ()
 
 splitUniqSupply (MkSplitUniqSupply _ s1 s2) = (s1, s2)
 listSplitUniqSupply  (MkSplitUniqSupply _ s1 s2) = s1 : listSplitUniqSupply s2

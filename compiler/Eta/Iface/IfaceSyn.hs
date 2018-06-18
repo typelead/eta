@@ -38,6 +38,7 @@ import Eta.Core.PprCore()            -- Printing DFunArgs
 import Eta.BasicTypes.Demand
 import Eta.Types.Class
 import Eta.BasicTypes.NameSet
+import Eta.Core.CoreSyn
 import Eta.Types.CoAxiom ( BranchIndex, Role )
 import Eta.BasicTypes.Name
 import Eta.Profiling.CostCentre
@@ -57,7 +58,6 @@ import Eta.HsSyn.HsBinds
 import Eta.Types.TyCon (Role (..))
 import Eta.Main.StaticFlags (opt_PprStyle_Debug)
 import Eta.Utils.Util( filterOut )
-import Eta.Types.InstEnv
 
 import Control.Monad
 import System.IO.Unsafe

@@ -1826,12 +1826,8 @@ famInstToIfaceFamInst (FamInst { fi_axiom    = axiom,
     orph | is_local fam_decl
          = NotOrphan (nameOccName fam_decl)
 
-         | not (isEmptyNameSet lhs_names)
-         = NotOrphan (nameOccName (head (nameSetElems lhs_names)))
-
-
          | otherwise
-         = IsOrphan
+         = chooseOrphanAnchor lhs_names
 
 --------------------------
 toIfaceLetBndr :: Id -> IfaceLetBndr

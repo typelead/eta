@@ -12,6 +12,7 @@ import Eta.Main.DriverMkDepend    ( doMkDependHS )
 import Eta.Main.SysTools
 import Eta.Main.Constants
 import Eta.Main.HscTypes
+import Eta.BasicTypes.UniqSupply
 import Eta.Main.Packages          (pprPackages, pprPackagesSimple)
 import Eta.Main.DriverPhases
 import Eta.BasicTypes.BasicTypes  (failed)
@@ -198,7 +199,8 @@ main' postLoadMode dflags0 args flagWarnings = do
     v | v == 4 -> liftIO $ dumpPackagesSimple dflags6
       | v >= 5 -> liftIO $ dumpPackages dflags6
       | otherwise -> return ()
-
+      
+  liftIO $ initUniqSupply (initialUnique dflags6) (uniqueIncrement dflags6)
         ---------------- Final sanity checking -----------
   liftIO $ checkOptions postLoadMode dflags6 srcs objs
 

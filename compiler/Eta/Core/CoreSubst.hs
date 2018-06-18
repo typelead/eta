@@ -17,7 +17,7 @@ module Eta.Core.CoreSubst (
         substTy, substCo, substExpr, substExprSC, substBind, substBindSC,
         substUnfolding, substUnfoldingSC,
         lookupIdSubst, lookupTvSubst, lookupCvSubst, substIdOcc,
-        substTickish, substVarSet,
+        substTickish, substDVarSet,
 
         -- ** Operations on substitutions
         emptySubst, mkEmptySubst, mkGblSubst, mkOpenSubst, substInScope, isEmptySubst,
@@ -53,6 +53,7 @@ import qualified Eta.Types.Coercion as Coercion
         -- We are defining local versions
 import Eta.Types.Type     hiding ( substTy, extendTvSubst, extendTvSubstList
                        , isInScope, substTyVarBndr, cloneTyVarBndr )
+import Eta.Types.TypeRep ( tyVarsOfTypeAcc )
 import Eta.Types.Coercion hiding ( substTy, substCo, extendTvSubst, substTyVarBndr, substCoVarBndr )
 
 import Eta.Types.TyCon       ( tyConArity )
@@ -708,12 +709,12 @@ substIdType subst@(Subst _ _ tv_env cv_env) id
 substIdInfo :: Subst -> Id -> IdInfo -> Maybe IdInfo
 substIdInfo subst new_id info
   | nothing_to_do = Nothing
-  | otherwise     = Just (info `setSpecInfo`      substSpec subst new_id old_rules
+  | otherwise     = Just (info `setRuleInfo`      substSpec subst new_id old_rules
                                `setUnfoldingInfo` substUnfolding subst old_unf)
   where
-    old_rules     = specInfo info
+    old_rules     = ruleInfo info
     old_unf       = unfoldingInfo info
-    nothing_to_do = isEmptySpecInfo old_rules && isClosedUnfolding old_unf
+    nothing_to_do = isEmptyRuleInfo old_rules && isClosedUnfolding old_unf
 
 
 ------------------
@@ -753,13 +754,13 @@ substIdOcc subst v = case lookupIdSubst (text "substIdOcc") subst v of
 
 ------------------
 -- | Substitutes for the 'Id's within the 'WorkerInfo' given the new function 'Id'
-substSpec :: Subst -> Id -> SpecInfo -> SpecInfo
-substSpec subst new_id (SpecInfo rules rhs_fvs)
-  = seqSpecInfo new_spec `seq` new_spec
+substSpec :: Subst -> Id -> RuleInfo -> RuleInfo
+substSpec subst new_id (RuleInfo rules rhs_fvs)
+  = seqRuleInfo new_spec `seq` new_spec
   where
     subst_ru_fn = const (idName new_id)
-    new_spec = SpecInfo (map (substRule subst subst_ru_fn) rules)
-                        (substVarSet subst rhs_fvs)
+    new_spec = RuleInfo (map (substRule subst subst_ru_fn) rules)
+                        (substDVarSet subst rhs_fvs)
 
 ------------------
 substRulesForImportedIds :: Subst -> [CoreRule] -> [CoreRule]
@@ -806,13 +807,15 @@ substVect _subst vd@(VectClass _)    = vd
 substVect _subst vd@(VectInst _)     = vd
 
 ------------------
-substVarSet :: Subst -> VarSet -> VarSet
-substVarSet subst fvs
-  = foldVarSet (unionVarSet . subst_fv subst) emptyVarSet fvs
+substDVarSet :: Subst -> DVarSet -> DVarSet
+substDVarSet subst fvs
+  = mkDVarSet $ fst $ foldr (subst_fv subst) ([], emptyVarSet) $ dVarSetElems fvs
   where
-    subst_fv subst fv
-        | isId fv   = exprFreeVars (lookupIdSubst (text "substVarSet") subst fv)
-        | otherwise = Type.tyVarsOfType (lookupTvSubst subst fv)
+    subst_fv subst fv acc
+     | isId fv = expr_fvs (lookupIdSubst (text "substDVarSet") subst fv)
+        isLocalVar emptyVarSet $! acc
+     | otherwise = tyVarsOfTypeAcc (lookupTvSubst subst fv) (const True)
+        emptyVarSet $! acc
 
 ------------------
 substTickish :: Subst -> Tickish Id -> Tickish Id

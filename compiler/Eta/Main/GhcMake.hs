@@ -121,10 +121,74 @@ depanal excluded_mods allow_dup_roots = do
 
   let mod_graph = mkModuleGraph mod_summaries
 
-  -- warnMissingHomeModules hsc_env mod_graph TODO: Backport warning
+  warnMissingHomeModules hsc_env mod_graph
 
   setSession hsc_env { hsc_mod_graph = mod_graph }
   return mod_graph
+  -- Note [Missing home modules]
+  -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- Sometimes user doesn't want GHC to pick up modules, not explicitly listed
+-- in a command line. For example, cabal may want to enable this warning
+-- when building a library, so that GHC warns user about modules, not listed
+-- neither in `exposed-modules`, nor in `other-modules`.
+--
+-- Here "home module" means a module, that doesn't come from an other package.
+--
+-- For example, if GHC is invoked with modules "A" and "B" as targets,
+-- but "A" imports some other module "C", then GHC will issue a warning
+-- about module "C" not being listed in a command line.
+--
+-- The warning in enabled by `-Wmissing-home-modules`. See Trac #13129
+-- The warning in enabled by `-Wmissing-home-modules`. See Trac #13129
+warnMissingHomeModules :: GhcMonad m => HscEnv -> ModuleGraph -> m ()
+warnMissingHomeModules hsc_env mod_graph =
+    when (wopt Opt_WarnMissingHomeModules dflags && not (null missing)) $
+        logWarnings (listToBag [warn])
+  where
+    dflags = hsc_dflags hsc_env
+    targets = map targetId (hsc_targets hsc_env)
+
+    is_known_module mod = any (is_my_target mod) targets
+
+    -- We need to be careful to handle the case where (possibly
+    -- path-qualified) filenames (aka 'TargetFile') rather than module
+    -- names are being passed on the GHC command-line.
+    --
+    -- For instance, `ghc --make src-exe/Main.hs` and
+    -- `ghc --make -isrc-exe Main` are supposed to be equivalent.
+    -- Note also that we can't always infer the associated module name
+    -- directly from the filename argument.  See Trac #13727.
+    is_my_target mod (TargetModule name)
+      = moduleName (ms_mod mod) == name
+    is_my_target mod (TargetFile target_file _)
+      | Just mod_file <- ml_hs_file (ms_location mod)
+      = target_file == mod_file ||
+           --  We can get a file target even if a module name was
+           --  originally specified in a command line because it can
+           --  be converted in guessTarget (by appending .hs/.lhs).
+           --  So let's convert it back and compare with module name
+           mkModuleName (fst $ splitExtension target_file)
+            == moduleName (ms_mod mod)
+    is_my_target _ _ = False
+
+    missing = map (moduleName . ms_mod) $
+      filter (not . is_known_module) (mgModSummaries mod_graph)
+
+    msg
+      | gopt Opt_BuildingCabalPackage dflags
+      = hang
+          (text "These modules are needed for compilation but not listed in your .cabal file's other-modules: ")
+          4
+          (sep (map ppr missing))
+      | otherwise
+      =
+        hang
+          (text "Modules are not listed in command line but needed for compilation: ")
+          4
+          (sep (map ppr missing))
+    warn = makeIntoWarning
+      -- (Reason Opt_WarnMissingHomeModules)
+      (mkPlainErrMsg dflags noSrcSpan msg)
 
 -- | Describes which modules of the module graph need to be loaded.
 data LoadHowMuch

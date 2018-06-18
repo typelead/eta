@@ -56,6 +56,9 @@ import Eta.Utils.Maybes
 import Eta.Utils.State
 import Eta.Utils.Util
 import Eta.BasicTypes.Var
+import Eta.Utils.Fingerprint ( Fingerprint(..), fingerprintString)
+import Eta.Utils.Encoding ( toBase62, toBase62Padded )
+
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Eta.Utils.MonadUtils
 -- #endif
@@ -2313,18 +2316,17 @@ mkAuxBinderName :: Name -> (OccName -> OccName) -> RdrName
 -- ^ Make a top-level binder name for an auxiliary binding for a parent name
 -- See Note [Auxiliary binders]
 mkAuxBinderName parent occ_fun
-  = mkRdrUnqual (occ_fun uniq_parent_occ)
+  = mkRdrUnqual (occ_fun stable_parent_occ)
   where
-    uniq_parent_occ = mkOccName (occNameSpace parent_occ) uniq_string
-
-    uniq_string
-      | opt_PprStyle_Debug
-      = showSDocUnsafe (ppr parent_occ <> underscore <> ppr parent_uniq)
-      | otherwise
-      = show parent_uniq
-      -- The debug thing is just to generate longer, but perhaps more perspicuous, names
-
-    parent_uniq = nameUnique parent
+    stable_parent_occ = mkOccName (occNameSpace parent_occ) stable_string
+    stable_string
+      | opt_PprStyle_Debug = parent_stable
+      | otherwise = parent_stable_hash
+    parent_stable = nameStableString parent
+    parent_stable_hash =
+      let Fingerprint high low = fingerprintString parent_stable
+      in toBase62 high ++ toBase62Padded low
+      -- See Note [Base 62 encoding 128-bit integers]
     parent_occ  = nameOccName parent
 
 {-
@@ -2343,10 +2345,10 @@ generating RdrNames here.  We can't just use the TyCon or DataCon to distinguish
 because with standalone deriving two imported TyCons might both be called T!
 (See Trac #7947.)
 
-So we use the *unique* from the parent name (T in this example) as part of the
-OccName we generate for the new binding.
+So we use package name, module name and the name of the parent
+(T in this example) as part of the OccName we generate for the new binding.
+To make the symbol names short we take a base62 hash of the full name.
 
-In the past we used mkDerivedRdrName name occ_fun, which made an original name
-But:  (a) that does not work well for standalone-deriving either
-      (b) an unqualified name is just fine, provided it can't clash with user code
+In the past we used the *unique* from the parent, but that's not stable across
+recompilations as uniques are nondeterministic.
 -}

@@ -18,7 +18,6 @@ import Eta.HsSyn.HsSyn
 import Eta.Core.CoreUnfold
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.VarEnv
-import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.Id
 
 import Eta.BasicTypes.MkId
@@ -409,7 +408,7 @@ mkFCall dflags unique fcall valArgs resType
   = mkApps (mkVarApps (Var fcallId) tyVars) valArgs
   where argTypes = map exprType valArgs
         bodyType = mkFunTys argTypes resType
-        tyVars = varSetElems $ tyVarsOfType bodyType
+        tyVars  = tyVarsOfTypeList bodyType
         ty = mkForAllTys tyVars bodyType
         fcallId = mkFCallId dflags unique fcall ty
 

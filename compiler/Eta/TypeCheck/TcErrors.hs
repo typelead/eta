@@ -1307,7 +1307,7 @@ mk_dict_err ctxt (ct, (matches, unifiers, safe_haskell))
 
              ,  ppWhen (isSingleton matches) $
                 parens (vcat [ ptext (sLit "The choice depends on the instantiation of") <+>
-                                  quotes (pprWithCommas ppr (varSetElems (tyVarsOfTypes tys)))
+                                  quotes (pprWithCommas ppr (tyVarsOfTypesList tys))
                              , ppWhen (null (matching_givens)) $
                                vcat [ ptext (sLit "To pick the first instance above, use IncoherentInstances")
                                     , ptext (sLit "when compiling the other instance declarations")]

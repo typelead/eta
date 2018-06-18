@@ -25,7 +25,7 @@ import Eta.Core.CoreSyn
 import Eta.Core.CoreSubst
 import Eta.Core.CoreUtils
 import Eta.Core.CoreUnfold       ( couldBeSmallEnoughToInline )
-import Eta.Core.CoreFVs          ( exprsFreeVars )
+import Eta.Core.CoreFVs          ( exprsFreeVarsList )
 import Eta.SimplCore.CoreMonad
 import Eta.BasicTypes.Literal          ( litIsLifted )
 import Eta.Main.HscTypes         ( ModGuts(..) )
@@ -37,7 +37,7 @@ import Eta.Types.Type             hiding ( substTy )
 import Eta.Types.TyCon            ( isRecursiveTyCon, tyConName )
 import Eta.BasicTypes.Id
 import Eta.Core.PprCore          ( pprParendExpr )
-import Eta.Core.MkCore           ( mkImpossibleExpr )
+import Eta.Core.MkCore           ( mkImpossibleExpr, sortQuantVars )
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.VarSet
@@ -1400,7 +1400,7 @@ data RhsInfo
        , ri_arg_occs  :: [ArgOcc]      -- Info on how the xs occur in body
     }
 
-data SpecInfo = SI [OneSpec]            -- The specialisations we have generated
+data RuleInfo = SI [OneSpec]            -- The specialisations we have generated
 
                    Int                  -- Length of specs; used for numbering them
 
@@ -1469,8 +1469,8 @@ specialise
    :: ScEnv
    -> CallEnv                     -- Info on newly-discovered calls to this function
    -> RhsInfo
-   -> SpecInfo                    -- Original RHS plus patterns dealt with
-   -> UniqSM (ScUsage, SpecInfo)  -- New specialised versions and their usage
+   -> RuleInfo                    -- Original RHS plus patterns dealt with
+   -> UniqSM (ScUsage, RuleInfo)  -- New specialised versions and their usage
 
 -- See Note [spec_usg includes rhs_usg]
 
@@ -1655,7 +1655,7 @@ calcSpecStrictness fn qvars pats
 Note [spec_usg includes rhs_usg]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In calls to 'specialise', the returned ScUsage must include the rhs_usg in
-the passed-in SpecInfo, unless there are no calls at all to the function.
+the passed-in RuleInfo, unless there are no calls at all to the function.
 
 The caller can, indeed must, assume this.  He should not combine in rhs_usg
 himself, or he'll get rhs_usg twice -- and that can lead to an exponential
@@ -1798,7 +1798,13 @@ callToPats env bndr_occs (Call _ args con_env)
   | otherwise
   = do  { let in_scope      = substInScope (sc_subst env)
         ; (interesting, pats) <- argsToPats env in_scope con_env args bndr_occs
-        ; let pat_fvs       = varSetElems (exprsFreeVars pats)
+        ; let pat_fvs       = exprsFreeVarsList pats
+                 -- To get determinism we need the list of free variables in
+                 -- deterministic order. Otherwise we end up creating
+                 -- lambdas with different argument orders. See
+                 -- determinism/simplCore/should_compile/spec-inline-determ.hs
+                 -- for an example. For explanation of determinism
+                 -- considerations See Note [Unique Determinism] in Unique.
               in_scope_vars = getInScopeVars in_scope
               qvars         = filterOut (`elemVarSet` in_scope_vars) pat_fvs
                 -- Quantify over variables that are not in scope
@@ -1806,10 +1812,11 @@ callToPats env bndr_occs (Call _ args con_env)
                 -- See Note [Free type variables of the qvar types]
                 -- See Note [Shadowing] at the top
 
-              (tvs, ids)    = partition isTyVar qvars
-              qvars'        = tvs ++ map sanitise ids
-                -- Put the type variables first; the type of a term
-                -- variable may mention a type variable
+              (ktvs, ids)    = partition isTyVar qvars
+              qvars'        = sortQuantVars ktvs ++ map sanitise ids
+                -- Order into kind variables, type variables, term variables
+                -- The kind of a type variable may mention a kind variable
+                -- and the type of a term variable may mention a type variable
 
               sanitise id   = id `setIdType` expandTypeSynonyms (idType id)
                 -- See Note [Free type variables of the qvar types]

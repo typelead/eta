@@ -546,6 +546,7 @@ data WarningFlag =
    | Opt_WarnMissingExportedSigs
    | Opt_WarnUntickedPromotedConstructors
    | Opt_WarnDerivingTypeable
+   | Opt_WarnMissingHomeModules           -- Since 8.2
    deriving (Eq, Show, Enum)
 
 data Language = Haskell98 | Haskell2010
@@ -835,6 +836,10 @@ data DynFlags = DynFlags {
   -- | Only inline memset if it generates no more than this many
   -- pseudo (roughly: Cmm) instructions.
   maxInlineMemsetInsns  :: Int,
+
+  -- | Unique supply configuration for testing build determinism
+  initialUnique         :: Int,
+  uniqueIncrement       :: Int,
 
   -- | Telemetry
   metrics :: IORef (Maybe Metrics)
@@ -1573,7 +1578,9 @@ defaultDynFlags mySettings =
         maxInlineAllocSize = 128,
         maxInlineMemcpyInsns = 32,
         maxInlineMemsetInsns = 32,
-        metrics = panic "defaultDynFlags: No metrics"
+        metrics = panic "defaultDynFlags: No metrics",
+        initialUnique = 0,
+        uniqueIncrement = 1
       }
 
 defaultWays :: Settings -> [Way]
@@ -2977,7 +2984,8 @@ fWarningFlags = [
   flagSpec "warn-unused-imports"              Opt_WarnUnusedImports,
   flagSpec "warn-unused-matches"              Opt_WarnUnusedMatches,
   flagSpec "warn-warnings-deprecations"       Opt_WarnWarningsDeprecations,
-  flagSpec "warn-wrong-do-bind"               Opt_WarnWrongDoBind]
+  flagSpec "warn-wrong-do-bind"               Opt_WarnWrongDoBind,
+  flagSpec "missing-home-modules"             Opt_WarnMissingHomeModules]
 
 -- | These @-\<blah\>@ flags can all be reversed with @-no-\<blah\>@
 negatableFlags :: [FlagSpec GeneralFlag]

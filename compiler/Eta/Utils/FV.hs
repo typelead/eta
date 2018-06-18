@@ -15,6 +15,7 @@ module Eta.Utils.FV (
         fvVarListVarSet, fvVarList, fvVarSet, fvDVarSet,
 
         -- ** Manipulating those computations
+        oneVar,
         unitFV,
         emptyFV,
         mkFVs,
@@ -197,3 +198,13 @@ mkFVs :: [Var] -> FV
 mkFVs vars fv_cand in_scope acc =
   mapUnionFV unitFV vars fv_cand in_scope acc
 {-# INLINE mkFVs #-}
+
+{-# INLINE oneVar #-}
+oneVar :: Id -> FV
+oneVar var fv_cand in_scope acc@(have, haveSet)
+  = {- ASSERT( isId var ) probably not going to work -} fvs
+  where
+  fvs | var `elemVarSet` in_scope = acc
+      | var `elemVarSet` haveSet = acc
+      | fv_cand var = (var:have, extendVarSet haveSet var)
+      | otherwise = acc
