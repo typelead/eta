@@ -308,19 +308,19 @@ tyVarsOfType :: Type -> VarSet
 -- tyVarsOfType returns only the free variables of a type
 -- For example, tyVarsOfType (a::k) returns {a}, not including the
 -- kind variable {k}
-tyVarsOfType ty = runFVSet $ tyVarsOfTypeAcc ty
+tyVarsOfType ty = fvVarSet $ tyVarsOfTypeAcc ty
 
 -- | `tyVarsOfType` that returns free variables of a type in deterministic
 -- order. For explanation of why using `VarSet` is not deterministic see
 -- Note [Deterministic UniqFM] in UniqDFM.
 tyVarsOfTypeList :: Type -> [Var]
-tyVarsOfTypeList ty = runFVList $ tyVarsOfTypeAcc ty
+tyVarsOfTypeList ty = fvVarList $ tyVarsOfTypeAcc ty
 
 tyVarsOfTypes :: [Type] -> TyVarSet
-tyVarsOfTypes tys = runFVSet $ tyVarsOfTypesAcc tys
+tyVarsOfTypes tys = fvVarSet $ tyVarsOfTypesAcc tys
 
 tyVarsOfTypesList :: [Type] -> [Var]
-tyVarsOfTypesList tys = runFVList $ tyVarsOfTypesAcc tys
+tyVarsOfTypesList tys = fvVarList $ tyVarsOfTypesAcc tys
 
 
 -- | The worker for `tyVarsOfType` and `tyVarsOfTypeList`.

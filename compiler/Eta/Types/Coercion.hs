@@ -549,10 +549,10 @@ isCoVarType ty      -- Tests for t1 ~# t2, the unboxed equality
 
 tyCoVarsOfCo :: Coercion -> VarSet
 -- Extracts type and coercion variables from a coercion
-tyCoVarsOfCo co = runFVSet $ tyCoVarsOfCoAcc co
+tyCoVarsOfCo co = fvVarSet $ tyCoVarsOfCoAcc co
 
 tyCoVarsOfCos :: [Coercion] -> VarSet
-tyCoVarsOfCos cos = runFVSet $ tyCoVarsOfCosAcc cos
+tyCoVarsOfCos cos = fvVarSet $ tyCoVarsOfCosAcc cos
 
 tyCoVarsOfCoAcc :: Coercion -> FV
 tyCoVarsOfCoAcc (Refl _ ty) fv_cand in_scope acc =

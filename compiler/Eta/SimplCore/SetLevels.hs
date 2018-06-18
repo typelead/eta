@@ -708,7 +708,7 @@ lvlBind env (AnnNonRec bndr rhs@(rhs_fvs,_))
        ; return (NonRec (TB bndr' (FloatMe dest_lvl)) rhs', env') }
 
   where
-    bind_fvs   = rhs_fvs `unionDVarSet` runFVDSet (idFreeVarsAcc bndr)
+    bind_fvs   = rhs_fvs `unionDVarSet` fvDVarSet (idFreeVarsAcc bndr)
     abs_vars   = abstractVars dest_lvl env bind_fvs
     dest_lvl   = destLevel env bind_fvs (isFunction rhs) is_bot
     is_bot     = exprIsBottom (deAnnotate rhs)
@@ -1033,7 +1033,7 @@ abstractVars dest_lvl (LE { le_subst = subst, le_lvl_env = lvl_env }) in_fvs
                             -- Result includes the input variable itself
     close v = foldDVarSet (unionDVarSet . close)
                          (unitDVarSet v)
-                         (runFVDSet $ varTypeTyVarsAcc v)
+                         (fvDVarSet $ varTypeTyVarsAcc v)
 
 type LvlM result = UniqSM result
 

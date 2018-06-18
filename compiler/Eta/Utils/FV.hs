@@ -14,9 +14,6 @@ module Eta.Utils.FV (
         -- * Running the computations
         fvVarListVarSet, fvVarList, fvVarSet, fvDVarSet,
 
-        -- * Running the computations
-        runFV, runFVList, runFVSet, runFVDSet,
-
         -- ** Manipulating those computations
         oneVar,
         noVars,
@@ -202,18 +199,6 @@ mkFVs :: [Var] -> FV
 mkFVs vars fv_cand in_scope acc =
   mapUnionFV unitFV vars fv_cand in_scope acc
 {-# INLINE mkFVs #-}
-
-runFV :: FV ->  ([Var], VarSet)
-runFV fv = fv (const True) emptyVarSet ([], emptyVarSet)
-
-runFVList :: FV -> [Var]
-runFVList = fst . runFV
-
-runFVDSet :: FV -> DVarSet
-runFVDSet = mkDVarSet . fst . runFV
-
-runFVSet :: FV -> VarSet
-runFVSet = snd . runFV
 
 {-# INLINE oneVar #-}
 oneVar :: Id -> FV
