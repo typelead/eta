@@ -159,7 +159,8 @@ public class Utils {
         }
         final ReadableByteChannel rc = (ReadableByteChannel) fd;
         final ByteBuffer buffer = MemoryManager.getBoundedBuffer(address);
-        buffer.limit(buffer.position() + count);
+        int position = buffer.position();
+        buffer.limit(position + count);
         int size = rc.read(buffer);
         if (size == 0 && nonBlocking) {
             size = -1;
@@ -169,6 +170,12 @@ public class Utils {
         if (Runtime.debugIO()) {
             debugIO("c_read: " + fd.toString() + " nonBlocking: " + nonBlocking
                     + " return: " + size);
+        }
+        if (Runtime.debugIOVerbose() && size > 0) {
+            byte[] input = new byte[size];
+            buffer.position(position);
+            buffer.get(input);
+            debugIO("c_read: " + Arrays.toString(input));
         }
         return size;
     }
