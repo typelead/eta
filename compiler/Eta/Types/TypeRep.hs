@@ -332,7 +332,7 @@ tyVarsOfTypeAcc :: Type -> FV
 tyVarsOfTypeAcc (TyVarTy v) fv_cand in_scope acc = oneVar v fv_cand in_scope acc
 tyVarsOfTypeAcc (TyConApp _ tys) fv_cand in_scope acc =
   tyVarsOfTypesAcc tys fv_cand in_scope acc
-tyVarsOfTypeAcc (LitTy {}) fv_cand in_scope acc = noVars fv_cand in_scope acc
+tyVarsOfTypeAcc (LitTy {}) fv_cand in_scope acc = emptyFV fv_cand in_scope acc
 tyVarsOfTypeAcc (FunTy arg res) fv_cand in_scope acc =
   (tyVarsOfTypeAcc arg `unionFV` tyVarsOfTypeAcc res) fv_cand in_scope acc
 tyVarsOfTypeAcc (AppTy fun arg) fv_cand in_scope acc =
@@ -344,7 +344,7 @@ tyVarsOfTypeAcc (ForAllTy tyvar ty) fv_cand in_scope acc =
 tyVarsOfTypesAcc :: [Type] -> FV
 tyVarsOfTypesAcc (ty:tys) fv_cand in_scope acc =
   (tyVarsOfTypeAcc ty `unionFV` tyVarsOfTypesAcc tys) fv_cand in_scope acc
-tyVarsOfTypesAcc [] fv_cand in_scope acc = noVars fv_cand in_scope acc
+tyVarsOfTypesAcc [] fv_cand in_scope acc = emptyFV fv_cand in_scope acc
 
 closeOverKinds :: TyVarSet -> TyVarSet
 -- Add the kind variables free in the kinds

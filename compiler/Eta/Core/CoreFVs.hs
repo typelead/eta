@@ -125,7 +125,7 @@ bindFreeVars :: CoreBind -> VarSet
 bindFreeVars (NonRec b r) = fvVarSet $ filterFV isLocalVar $ rhs_fvs (b,r)
 bindFreeVars (Rec prs)    = fvVarSet $ filterFV isLocalVar $
                                addBndrs (map fst prs)
-                                    (foldr (unionFV . rhs_fvs) noVars prs)
+                                    (foldr (unionFV . rhs_fvs) emptyFV prs)
 
 -- | Finds free variables in an expression selected by a predicate
 exprSomeFreeVars :: InterestingVarFun   -- ^ Says which 'Var's are interesting
@@ -138,7 +138,7 @@ exprsSomeFreeVars :: InterestingVarFun  -- Says which 'Var's are interesting
                   -> [CoreExpr]
                   -> VarSet
 exprsSomeFreeVars fv_cand es =
-  fvVarSet $ filterFV fv_cand $ foldr (unionFV . expr_fvs) noVars es
+  fvVarSet $ filterFV fv_cand $ foldr (unionFV . expr_fvs) emptyFV es
 
 --      Comment about obselete code
 -- We used to gather the free variables the RULES at a variable occurrence
@@ -170,7 +170,7 @@ exprsSomeFreeVars fv_cand es =
 
 -- XXX move to FV
 someVars :: [Var] -> FV
-someVars vars = foldr (unionFV . oneVar) noVars vars
+someVars vars = foldr (unionFV . oneVar) emptyFV vars
 
 addBndr :: CoreBndr -> FV -> FV
 addBndr bndr fv fv_cand in_scope acc
@@ -189,7 +189,7 @@ expr_fvs (Type ty) fv_cand in_scope acc =
 expr_fvs (Coercion co) fv_cand in_scope acc =
   tyCoVarsOfCoAcc co fv_cand in_scope acc
 expr_fvs (Var var) fv_cand in_scope acc = oneVar var fv_cand in_scope acc
-expr_fvs (Lit _) fv_cand in_scope acc = noVars fv_cand in_scope acc
+expr_fvs (Lit _) fv_cand in_scope acc = emptyFV fv_cand in_scope acc
 expr_fvs (Tick t expr) fv_cand in_scope acc =
   (tickish_fvs t `unionFV` expr_fvs expr) fv_cand in_scope acc
 expr_fvs (App fun arg) fv_cand in_scope acc =
@@ -201,7 +201,7 @@ expr_fvs (Cast expr co) fv_cand in_scope acc =
 
 expr_fvs (Case scrut bndr ty alts) fv_cand in_scope acc
   = (expr_fvs scrut `unionFV` tyVarsOfTypeAcc ty `unionFV` addBndr bndr
-      (foldr (unionFV . alt_fvs) noVars alts)) fv_cand in_scope acc
+      (foldr (unionFV . alt_fvs) emptyFV alts)) fv_cand in_scope acc
   where
     alt_fvs (_, bndrs, rhs) = addBndrs bndrs (expr_fvs rhs)
 
@@ -222,11 +222,11 @@ rhs_fvs (bndr, rhs) = expr_fvs rhs `unionFV`
 
 ---------
 exprs_fvs :: [CoreExpr] -> FV
-exprs_fvs exprs = foldr (unionFV . expr_fvs) noVars exprs
+exprs_fvs exprs = foldr (unionFV . expr_fvs) emptyFV exprs
 
 tickish_fvs :: Tickish Id -> FV
 tickish_fvs (Breakpoint _ ids) = someVars ids
-tickish_fvs _ = noVars
+tickish_fvs _ = emptyFV
 
 {-
 ************************************************************************
@@ -391,7 +391,7 @@ ruleRhsFreeVars (Rule { ru_fn = _, ru_bndrs = bndrs, ru_rhs = rhs })
 -- returned as FV computation
 ruleFVs :: CoreRule -> FV
 ruleFVs (BuiltinRule {}) =
-  noVars
+  emptyFV
 ruleFVs (Rule { ru_fn = _do_not_include  -- See Note [Rule free var hack]
                       , ru_bndrs = bndrs
                       , ru_rhs = rhs, ru_args = args })
@@ -550,7 +550,7 @@ idFVs id = ASSERT( isId id)
                    bndrRuleAndUnfoldingFVs id
 
 bndrRuleAndUnfoldingVarsFVs :: Var -> FV
-bndrRuleAndUnfoldingVarsFVs v | isTyVar v = noVars
+bndrRuleAndUnfoldingVarsFVs v | isTyVar v = emptyFV
                              | otherwise = bndrRuleAndUnfoldingFVs v
 
 bndrRuleAndUnfoldingVarsDSet :: Id -> DVarSet
@@ -663,7 +663,7 @@ freeVars (Let (Rec binds) body)
 
     rhss2     = map freeVars rhss
     rhs_body_fvs = foldr (unionFVs . freeVarsOf) body_fvs rhss2
-    binders_fvs = fvDVarSet $ foldr (unionFV . bndrRuleAndUnfoldingFVs) noVars binders
+    binders_fvs = fvDVarSet $ foldr (unionFV . bndrRuleAndUnfoldingFVs) emptyFV binders
     all_fvs      = rhs_body_fvs `unionFVs` binders_fvs
         -- The "delBinderFV" happens after adding the idSpecVars,
         -- since the latter may add some of the binders as fvs

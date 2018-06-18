@@ -586,7 +586,7 @@ tyCoVarsOfCoAcc (AxiomRuleCo _ ts cs) fv_cand in_scope acc =
 tyCoVarsOfCosAcc :: [Coercion] -> FV
 tyCoVarsOfCosAcc (co:cos) fv_cand in_scope acc =
   (tyCoVarsOfCoAcc co `unionFV` tyCoVarsOfCosAcc cos) fv_cand in_scope acc
-tyCoVarsOfCosAcc [] fv_cand in_scope acc = noVars fv_cand in_scope acc
+tyCoVarsOfCosAcc [] fv_cand in_scope acc = emptyFV fv_cand in_scope acc
 
 coVarsOfCo :: Coercion -> VarSet
 -- Extract *coerction* variables only.  Tiresome to repeat the code, but easy.

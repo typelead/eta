@@ -16,7 +16,6 @@ module Eta.Utils.FV (
 
         -- ** Manipulating those computations
         oneVar,
-        noVars,
         unitFV,
         emptyFV,
         mkFVs,
@@ -209,7 +208,3 @@ oneVar var fv_cand in_scope acc@(have, haveSet)
       | var `elemVarSet` haveSet = acc
       | fv_cand var = (var:have, extendVarSet haveSet var)
       | otherwise = acc
-
-{-# INLINE noVars #-}
-noVars :: FV
-noVars _ _ acc = acc
