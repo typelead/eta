@@ -118,7 +118,7 @@ listToUFM_C
   -> UniqFM elt
 listToUFM_C f = foldl (\m (k, v) -> addToUFM_C f m k v) emptyUFM
 
-addToUFM :: Uniquable key => UniqFM elt -> key -> elt  -> UniqFM elt
+addToUFM :: Uniquable key => UniqFM elt -> key -> elt -> UniqFM elt
 addToUFM (UFM m) k v = UFM (M.insert (getKey $ getUnique k) v m)
 
 addListToUFM :: Uniquable key => UniqFM elt -> [(key,elt)] -> UniqFM elt

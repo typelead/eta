@@ -33,6 +33,7 @@ module Eta.CodeGen.Monad
    getClass,
    getContextLoc,
    setContextLoc,
+   newDedupedId,
    addBinding,
    addBindings,
    getBindings,
@@ -109,6 +110,7 @@ data CgEnv =
 
 data CgState =
   CgState { cgBindings            :: !CgBindings
+          , cgNameEnvironment     :: FastStringEnv Int
           -- Accumulating
           , cgCompiledClosures    :: [ClassFile]
           , cgRecursiveInitNumber :: Int
@@ -186,6 +188,7 @@ initCg hsc_env mod modLoc =
            , cgSequel              = Return
            , cgSelfLoop            = Nothing },
    CgState { cgBindings            = emptyVarEnv
+           , cgNameEnvironment     = emptyFsEnv
            , cgCode                = mempty
            , cgContextLoc          = mempty
            , cgAccessFlags         = [Public, Super]
@@ -334,6 +337,28 @@ printBindings = do
   bindings <- getBindings
   traceCg $ str "printBindings" <+> ppr bindings
 
+-- Used for deterministic class naming
+newDedupedId :: Id -> CodeGen Id
+newDedupedId id = do
+  mod <- getModule
+  nameEnv <- gets cgNameEnvironment
+  let (!id', !i')
+        | Just i <- lookupFsEnv nameEnv fs = (transformedId mod i, i + 1)
+        | otherwise = (id, 1)
+  modify $ \s -> s { cgNameEnvironment = extendFsEnv nameEnv fs i' }
+  return id'
+  where fs = occNameFS $ nameOccName $ idName id
+        transformedId mod i = id'
+          where id' = setIdName id $ if isInternalName name
+                                     then mkInternalName uniq occ' loc
+                                     else mkExternalName uniq mod occ' loc
+                occ' = mkOccName ns (occNameString occ ++ "$" ++ show i)
+                name = idName id
+                uniq = nameUnique name
+                occ  = nameOccName name
+                loc  = nameSrcSpan name
+                ns   = occNameSpace occ
+
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
   bindings <- getBindings
@@ -341,12 +366,12 @@ addBinding cgIdInfo = do
 
 addBindings :: [CgIdInfo] -> CodeGen ()
 addBindings newCgIdInfos = do
-        bindings <- getBindings
-        let newBindings = foldl
-              (\binds info -> extendVarEnv binds (cgId info) info)
-              bindings
-              newCgIdInfos
-        setBindings newBindings
+    bindings <- getBindings
+    let newBindings = foldl
+            (\binds info -> extendVarEnv binds (cgId info) info)
+            bindings
+            newCgIdInfos
+    setBindings newBindings
 
 addCompiledClosure :: ClassFile -> CodeGen ()
 addCompiledClosure classFile = modify $ \s@CgState{..} ->

@@ -272,17 +272,22 @@ bindFV (id, cgLoc)= rebindId id cgLoc
 
 cgBind :: StgBinding -> CodeGen ()
 cgBind (StgNonRec name rhs) = do
-  traceCg $ str "StgLet" <+> ppr name
-  (info, genInitCode) <- cgRhs [] name rhs
+  name' <- newDedupedId name
+  traceCg $ str "StgLet" <+> ppr name'
+  (info, genInitCode) <- cgRhs [] name' rhs
   addBinding info
   (init, recIndexes, ft) <- genInitCode
   emit init
-  postInitCode <- postInitRecBinds name recIndexes ft
+  postInitCode <- postInitRecBinds name' recIndexes ft
   emit postInitCode
 
 cgBind (StgRec pairs) = do
-  traceCg $ str "StgLet" <+> ppr recIds
-  result <- sequence $ unzipWith (cgRhs recIds) pairs
+  let (binders, rhss) = unzip pairs
+  binders' <- mapM newDedupedId binders
+  traceCg $ str "StgLet" <+> ppr binders'
+  let pairs' = zip binders' rhss
+      recIds = map fst pairs'
+  result <- sequence $ unzipWith (cgRhs recIds) pairs'
   let (idInfos, genInitCodes) = unzip result
   addBindings idInfos
   (results, body) <- getCodeWithResult $ sequence genInitCodes
@@ -293,7 +298,6 @@ cgBind (StgRec pairs) = do
                    $ zip3 recIds recIndexess fts
   emit $ fold postInitCodes
   emit $ body
-  where recIds = map fst pairs
 
 cgRhs :: [Id] -> Id -> StgRhs -> CodeGen (CgIdInfo, CodeGen (Code, RecIndexes, FieldType))
 cgRhs recIds id (StgRhsCon _ con args) = buildDynCon id con args (id:recIds)

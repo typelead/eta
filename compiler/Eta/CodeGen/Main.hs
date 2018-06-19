@@ -52,17 +52,16 @@ codeGen hscEnv thisMod thisModLoc dataTyCons stgBinds _hpcInfo mMFs = do
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
   traceCg $ str "generating" <+> ppr id
-  id' <- externaliseId dflags id
+  id' <- newDedupedId =<< externaliseId dflags id
   let (info, code) = cgTopRhs dflags NonRecursive [id'] Nothing id' rhs
   mRecInfo <- code
   genRecInitCode $ maybeToList $ fmap (id',) mRecInfo
   addBinding info
 
 cgTopBinding dflags (StgRec pairs) = do
-  _mod <- getModule
   let (binders, rhss) = unzip pairs
-  traceCg $ str "generating (rec)" <+> ppr binders
-  binders' <- mapM (externaliseId dflags) binders
+  binders' <- mapM (externaliseId dflags >=> newDedupedId) binders
+  traceCg $ str "generating (rec)" <+> ppr binders'
   let pairs'         = zip binders' rhss
       conRecIds      = map fst
                      $ filter (\(_, expr) -> case expr of
@@ -235,7 +234,7 @@ externaliseId _dflags id = do
     internalise mod = mkExternalName uniq mod occ' loc
       where occ' = mkOccName ns $ ":" ++ occNameString occ
     externalise mod = mkExternalName uniq mod occ' loc
-      where occ' = mkLocalOcc uniq occ
+      where occ' = mkLocalOccWithoutUnique occ
     name = idName id
     uniq = nameUnique name
     occ  = nameOccName name

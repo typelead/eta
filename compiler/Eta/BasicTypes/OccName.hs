@@ -63,7 +63,7 @@ module Eta.BasicTypes.OccName (
         mkSpecOcc, mkForeignExportOcc, mkRepEqOcc, mkGenOcc1, mkGenOcc2,
         mkGenD, mkGenR, mkGen1R, mkGenRCo, mkGenC, mkGenS,
         mkDataTOcc, mkDataCOcc, mkDataConWorkerOcc,
-        mkSuperDictSelOcc, mkLocalOcc, mkMethodOcc, mkInstTyTcOcc,
+        mkSuperDictSelOcc, mkLocalOcc, mkLocalOccWithoutUnique, mkMethodOcc, mkInstTyTcOcc,
         mkInstTyCoOcc, mkEqPredCoOcc,
         mkVectOcc, mkVectTyConOcc, mkVectDataConOcc, mkVectIsoOcc,
         mkPDataTyConOcc,  mkPDataDataConOcc,
@@ -693,6 +693,13 @@ mkLocalOcc :: Unique            -- ^ Unique to combine with the 'OccName'
            -> OccName           -- ^ Nice unique version, e.g. @$L23sat@
 mkLocalOcc uniq occ
    = mk_deriv varName ("$L" ++ show uniq) (occNameString occ)
+        -- The Unique might print with characters
+        -- that need encoding (e.g. 'z'!)
+
+mkLocalOccWithoutUnique :: OccName -- ^ Local name, e.g. @sat@
+                        -> OccName -- ^ Nice localized version, e.g. @$Lsat@
+mkLocalOccWithoutUnique occ
+   = mk_deriv varName "$L" (occNameString occ)
         -- The Unique might print with characters
         -- that need encoding (e.g. 'z'!)
 
