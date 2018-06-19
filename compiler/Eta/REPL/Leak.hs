@@ -9,7 +9,6 @@ import Control.Monad
 import Eta.Main.GHC
 import Eta.Utils.Outputable
 import Eta.Main.HscTypes
-import Eta.Utils.UniqFM
 import System.Mem
 import System.Mem.Weak
 
@@ -30,7 +29,7 @@ data LeakModIndicators = LeakModIndicators
 getLeakIndicators :: HscEnv -> IO LeakIndicators
 getLeakIndicators HscEnv{..} =
   fmap LeakIndicators $
-    forM (eltsUFM hsc_HPT) $ \hmi@HomeModInfo{..} -> do
+    forM (eltsHpt hsc_HPT) $ \hmi@HomeModInfo{..} -> do
       leakMod <- mkWeakPtr hmi Nothing
       leakIface <- mkWeakPtr hm_iface Nothing
       leakDetails <- mkWeakPtr hm_details Nothing

@@ -337,7 +337,6 @@ import Eta.Main.StaticFlags
 import Eta.Main.SysTools
 import Eta.Main.Annotations
 import Eta.BasicTypes.Module
-import Eta.Utils.UniqFM
 import Eta.Utils.Metrics
 import Eta.Utils.Json
 import Eta.Utils.Panic
@@ -920,7 +919,7 @@ loadModule tcm = do
                                     hsc_env ms 1 1 Nothing mb_linkable
                                     source_modified
 
-   modifySession $ \e -> e{ hsc_HPT = addToUFM (hsc_HPT e) mod mod_info }
+   modifySession $ \e -> e{ hsc_HPT = addToHpt (hsc_HPT e) mod mod_info }
    return tcm
 
 
@@ -1026,7 +1025,7 @@ getModuleGraph = liftM hsc_mod_graph getSession
 -- | Return @True@ <==> module is loaded.
 isLoaded :: GhcMonad m => ModuleName -> m Bool
 isLoaded m = withSession $ \hsc_env ->
-  return $! isJust (lookupUFM (hsc_HPT hsc_env) m)
+  return $! isJust (lookupHpt (hsc_HPT hsc_env) m)
 
 -- | Return the bindings for the current interactive session.
 getBindings :: GhcMonad m => m [TyThing]
@@ -1103,7 +1102,7 @@ getPackageModuleInfo _hsc_env _mdl = do
 
 getHomeModuleInfo :: HscEnv -> Module -> IO (Maybe ModuleInfo)
 getHomeModuleInfo hsc_env mdl =
-  case lookupUFM (hsc_HPT hsc_env) (moduleName mdl) of
+  case lookupHpt (hsc_HPT hsc_env) (moduleName mdl) of
     Nothing  -> return Nothing
     Just hmi -> do
       let details = hm_details hmi
@@ -1419,7 +1418,7 @@ lookupModule mod_name Nothing = withSession $ \hsc_env -> do
 
 lookupLoadedHomeModule :: GhcMonad m => ModuleName -> m (Maybe Module)
 lookupLoadedHomeModule mod_name = withSession $ \hsc_env ->
-  case lookupUFM (hsc_HPT hsc_env) mod_name of
+  case lookupHpt (hsc_HPT hsc_env) mod_name of
     Just mod_info      -> return (Just (mi_module (hm_iface mod_info)))
     _not_a_home_module -> return Nothing
 

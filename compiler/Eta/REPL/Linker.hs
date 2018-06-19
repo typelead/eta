@@ -224,7 +224,7 @@ linkModules hsc_env root_module = do {
         -- TODO: This calculation is simple since it doesn't take into
         --       account dependency information. We may want to make this
         --       more tight in the future (for projects with 100s of modules)
-        newModuleEnv = foldUFM (\modInfo moduleEnv ->
+        newModuleEnv = foldHpt (\modInfo moduleEnv ->
                                   case hm_linkable modInfo of
                                     Just linkable ->
                                       addToUFM moduleEnv

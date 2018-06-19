@@ -46,7 +46,8 @@ module Eta.Main.HscTypes (
         ExternalPackageState(..), EpsStats(..), addEpsInStats, updNameCacheIO,
         PackageTypeEnv, PackageIfaceTable, emptyPackageIfaceTable,
         lookupIfaceByModule, emptyModIface, lookupHptByModule,
-        lookupHpt, lookupHptDirectly,
+        lookupHpt, lookupHptDirectly, eltsHpt, allHpt, addToHpt, mapHpt,
+        delFromHpt, addListToHpt, listToHpt, foldHpt, filterHpt,
 
         PackageInstEnv, PackageFamInstEnv, PackageRuleBase,
 
@@ -182,6 +183,7 @@ import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Unique
 import Eta.Utils.UniqFM
+import Eta.Utils.UniqDFM
 import Eta.BasicTypes.UniqSupply
 import Eta.Utils.FastString
 import Eta.Utils.StringBuffer     ( StringBuffer )
@@ -491,7 +493,7 @@ instance Outputable TargetId where
 -}
 
 -- | Helps us find information about modules in the home package
-type HomePackageTable  = ModuleNameEnv HomeModInfo
+type HomePackageTable  = DModuleNameEnv HomeModInfo
         -- Domain = modules in the home package that have been fully compiled
         -- "home" package key cached here for convenience
 
@@ -501,7 +503,7 @@ type PackageIfaceTable = ModuleEnv ModIface
 
 -- | Constructs an empty HomePackageTable
 emptyHomePackageTable :: HomePackageTable
-emptyHomePackageTable  = emptyUFM
+emptyHomePackageTable  = emptyUDFM
 
 -- | Constructs an empty PackageIfaceTable
 emptyPackageIfaceTable :: PackageIfaceTable
@@ -509,24 +511,52 @@ emptyPackageIfaceTable = emptyModuleEnv
 
 pprHPT :: HomePackageTable -> SDoc
 -- A bit aribitrary for now
-pprHPT hpt
-  = vcat [ hang (ppr (mi_module (hm_iface hm)))
+pprHPT hpt = pprUDFM hpt $ \hms ->
+    vcat [ hang (ppr (mi_module (hm_iface hm)))
               2 (ppr (md_types (hm_details hm)))
-         | hm <- eltsUFM hpt ]
+         | hm <- hms ]
 
 lookupHptByModule :: HomePackageTable -> Module -> Maybe HomeModInfo
 -- The HPT is indexed by ModuleName, not Module,
 -- we must check for a hit on the right Module
 lookupHptByModule hpt mod
-  = case lookupUFM hpt (moduleName mod) of
+  = case lookupHpt hpt (moduleName mod) of
       Just hm | mi_module (hm_iface hm) == mod -> Just hm
       _otherwise                               -> Nothing
 
 lookupHpt :: HomePackageTable -> ModuleName -> Maybe HomeModInfo
-lookupHpt = lookupUFM
+lookupHpt = lookupUDFM
 
 lookupHptDirectly :: HomePackageTable -> Unique -> Maybe HomeModInfo
-lookupHptDirectly = lookupUFM_Directly
+lookupHptDirectly = lookupUDFM_Directly
+
+eltsHpt :: HomePackageTable -> [HomeModInfo]
+eltsHpt = eltsUDFM
+
+filterHpt :: (HomeModInfo -> Bool) -> HomePackageTable -> HomePackageTable
+filterHpt = filterUDFM
+
+addToHpt :: HomePackageTable -> ModuleName -> HomeModInfo -> HomePackageTable
+addToHpt = addToUDFM
+
+allHpt :: (HomeModInfo -> Bool) -> HomePackageTable -> Bool
+allHpt = allUDFM
+
+mapHpt :: (HomeModInfo -> HomeModInfo) -> HomePackageTable -> HomePackageTable
+mapHpt = mapUDFM
+
+delFromHpt :: HomePackageTable -> ModuleName -> HomePackageTable
+delFromHpt = delFromUDFM
+
+foldHpt :: (HomeModInfo -> a -> a) -> a -> HomePackageTable -> a
+foldHpt = foldUDFM
+
+addListToHpt
+  :: HomePackageTable -> [(ModuleName, HomeModInfo)] -> HomePackageTable
+addListToHpt = addListToUDFM
+
+listToHpt :: [(ModuleName, HomeModInfo)] -> HomePackageTable
+listToHpt = listToUDFM
 
 -- | Information about modules in the package being compiled
 data HomeModInfo
@@ -607,7 +637,7 @@ hptAnns hsc_env (Just deps) = hptSomeThingsBelowUs (md_anns . hm_details) False 
 hptAnns hsc_env Nothing = hptAllThings (md_anns . hm_details) hsc_env
 
 hptAllThings :: (HomeModInfo -> [a]) -> HscEnv -> [a]
-hptAllThings extract hsc_env = concatMap extract (eltsUFM (hsc_HPT hsc_env))
+hptAllThings extract hsc_env = concatMap extract (eltsHpt (hsc_HPT hsc_env))
 
 -- | Get things from modules "below" this one (in the dependency sense)
 -- C.f Inst.hptInstances
@@ -630,7 +660,7 @@ hptSomeThingsBelowUs extract include_hi_boot hsc_env deps
     , mod /= moduleName gHC_PRIM
 
         -- Look it up in the HPT
-    , let things = case lookupUFM hpt mod of
+    , let things = case lookupHpt hpt mod of
                     Just info -> extract info
                     Nothing -> pprTrace "WARNING in hptSomeThingsBelowUs" msg []
           msg = vcat [ptext (sLit "missing module") <+> ppr mod,
@@ -641,7 +671,7 @@ hptSomeThingsBelowUs extract include_hi_boot hsc_env deps
     , thing <- things ]
 
 hptObjs :: HomePackageTable -> [FilePath]
-hptObjs hpt = concat (map (maybe [] linkableObjs . hm_linkable) (eltsUFM hpt))
+hptObjs hpt = concat (map (maybe [] linkableObjs . hm_linkable) (eltsHpt hpt))
 
 {-
 ************************************************************************

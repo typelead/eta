@@ -53,7 +53,6 @@ import Eta.Main.HscMain
 import Eta.Main.Finder
 import Eta.Main.HscTypes hiding ( Hsc )
 import Eta.BasicTypes.Module
-import Eta.Utils.UniqFM           ( eltsUFM )
 import Eta.Main.ErrUtils
 import Eta.Main.DynFlags
 import Eta.Utils.Panic
@@ -354,7 +353,7 @@ link NoLink _ _ _ = return Succeeded
 link _ dflags batchAttemptLinking hpt
   | batchAttemptLinking
   = do
-      let homeModInfos = eltsUFM hpt
+      let homeModInfos = eltsHpt hpt
           pkgDeps = concatMap ( map fst
                               . dep_pkgs
                               . mi_deps

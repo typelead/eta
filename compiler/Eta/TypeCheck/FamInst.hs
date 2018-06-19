@@ -23,7 +23,6 @@ import Eta.Types.CoAxiom
 import Eta.Main.DynFlags
 import Eta.BasicTypes.Module
 import Eta.Utils.Outputable
-import Eta.Utils.UniqFM
 import Eta.Utils.FastString
 import Eta.Utils.Util
 import Eta.BasicTypes.RdrName
@@ -140,7 +139,7 @@ checkFamInstConsistency famInstMods directlyImpMods
              ; hmiFamInstEnv = extendFamInstEnvList emptyFamInstEnv
                                . md_fam_insts . hm_details
              ; hpt_fam_insts = mkModuleEnv [ (hmiModule hmi, hmiFamInstEnv hmi)
-                                           | hmi <- eltsUFM hpt]
+                                           | hmi <- eltsHpt hpt]
              ; groups        = map (dep_finsts . mi_deps . modIface)
                                    directlyImpMods
              ; okPairs       = listToSet $ concatMap allPairs groups
