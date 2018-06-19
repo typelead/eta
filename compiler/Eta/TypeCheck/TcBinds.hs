@@ -897,7 +897,7 @@ tcSpec poly_id prag@(SpecSig fun_name hs_tys inl)
   -- what the user wrote (Trac #8537)
   = addErrCtxt (spec_ctxt prag) $
     do  { spec_tys <- mapM (tcHsSigType sig_ctxt) hs_tys
-        ; warnIf NoReason (not (isOverloadedTy poly_ty || isInlinePragma inl))
+        ; warnIf (not (isOverloadedTy poly_ty || isInlinePragma inl))
                  (ptext (sLit "SPECIALISE pragma for non-overloaded function")
                   <+> quotes (ppr fun_name))
                   -- Note [SPECIALISE pragmas]

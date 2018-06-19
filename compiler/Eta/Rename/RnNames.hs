@@ -229,8 +229,7 @@ rnImportDecl this_mod
     -- the non-boot module depends on the compilation order, which
     -- is not deterministic.  The hs-boot test can show this up.
     dflags <- getDynFlags
-    warnIf NoReason
-           (want_boot && any (not.mi_boot) ifaces && isOneShot (ghcMode dflags))
+    warnIf (want_boot && any (not.mi_boot) ifaces && isOneShot (ghcMode dflags))
            (warnRedundantSourceImport imp_mod_name)
     when (mod_safe && not (safeImportsOn dflags)) $
         addErr (ptext (sLit "safe import can't be used as Safe Haskell isn't on!")
@@ -1090,7 +1089,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                              | (L _ (IEModuleContents (L _ mod))) <- ie_names ]
         , mod `elem` earlier_mods    -- Duplicate export of M
         = do { warn_dup_exports <- woptM Opt_WarnDuplicateExports ;
-               warnIf (Reason Opt_WarnDuplicateExports) warn_dup_exports
+               warnIfFlag Opt_WarnDuplicateExports warn_dup_exports
                       (dupModuleExport mod) ;
                return acc }
 
@@ -1105,7 +1104,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                    ; names       = map gre_name gres }
 
              ; checkErr exportValid (moduleNotImported mod)
-             ; warnIf (Reason Opt_WarnDodgyExports)
+             ; warnIfFlag Opt_WarnDodgyExports
                       (warnDodgyExports && exportValid && null names)
                       (nullModuleExport mod)
 
@@ -1244,8 +1243,8 @@ check_occs ie occs names  -- 'names' are the entities specifed by 'ie'
             -- by two different module exports. See ticket #4478.
             -> do unless (dupExport_ok name ie ie') $ do
                       warn_dup_exports <- woptM Opt_WarnDuplicateExports
-                      warnIf (Reason Opt_WarnDuplicateExports) warn_dup_exports
-                             (dupExportWarn name_occ ie ie')
+                      warnIfFlag Opt_WarnDuplicateExports warn_dup_exports
+                                 (dupExportWarn name_occ ie ie')
                   return occs
 
             | otherwise    -- Same occ name but different names: an error

@@ -713,10 +713,20 @@ checkErr :: Bool -> MsgDoc -> TcRn ()
 -- Add the error if the bool is False
 checkErr ok msg = unless ok (addErr msg)
 
+-- | Display a warning if a condition is met,
+--   and the warning is enabled
+warnIfFlag :: WarningFlag -> Bool -> MsgDoc -> TcRn ()
+warnIfFlag warn_flag is_bad msg
+  = do { warn_on <- woptM warn_flag
+
+
+       ; when (warn_on && is_bad) $
+         addWarn (Reason warn_flag) msg }
+
 -- | Display a warning if a condition is met.
-warnIf :: WarnReason -> Bool -> MsgDoc -> TcRn ()
-warnIf reason True  msg = addWarn reason msg
-warnIf _      False _   = return ()
+warnIf :: Bool -> MsgDoc -> TcRn ()
+warnIf is_bad msg
+  = when is_bad (addWarn NoReason msg)
 
 addMessages :: Messages -> TcRn ()
 addMessages (m_warns, m_errs)

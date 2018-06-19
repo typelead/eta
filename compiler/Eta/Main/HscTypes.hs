@@ -325,12 +325,21 @@ instance Exception GhcApiError
 -- | Given a bag of warnings, turn them into an exception if
 -- -Werror is enabled, or print them out otherwise.
 printOrThrowWarnings :: DynFlags -> Bag WarnMsg -> IO ()
-printOrThrowWarnings dflags warns
-  | gopt Opt_WarnIsError dflags
-  = when (not (isEmptyBag warns)) $ do
-      throwIO $ mkSrcErr $ warns `snocBag` warnIsErrorMsg dflags
-  | otherwise
-  = printBagOfErrors dflags warns
+printOrThrowWarnings dflags warns = do
+  let (make_error, warns') =
+        mapAccumBagL
+          (\make_err warn ->
+            case isWarnMsgFatal dflags warn of
+              Nothing ->
+                (make_err, warn)
+              Just err_reason ->
+                (True, warn{ errMsgSeverity = SevError
+                           , errMsgReason = ErrReason err_reason
+                           }))
+          False warns
+  if make_error
+    then throwIO (mkSrcErr warns')
+    else printBagOfErrors dflags warns
 
 handleFlagWarnings :: DynFlags -> [Located String] -> IO ()
 handleFlagWarnings dflags warns

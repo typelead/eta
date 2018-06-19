@@ -20,7 +20,7 @@ module Eta.Utils.Bag (
         listToBag, bagToList,
         foldrBagM, foldlBagM, mapBagM, mapBagM_,
         flatMapBagM, flatMapBagPairM,
-        mapAndUnzipBagM, mapAccumBagLM
+        mapAndUnzipBagM, mapAccumBagLM, mapAccumBagL
     ) where
 
 import Eta.Utils.Outputable
@@ -28,7 +28,7 @@ import Eta.Utils.Util
 
 import Eta.Utils.MonadUtils
 import Data.Data
-import Data.List ( partition )
+import Data.List ( partition, mapAccumL )
 
 infixr 3 `consBag`
 infixl 3 `snocBag`
@@ -234,6 +234,18 @@ mapAndUnzipBagM f (TwoBags b1 b2) = do (r1,s1) <- mapAndUnzipBagM f b1
 mapAndUnzipBagM f (ListBag xs)    = do ts <- mapM f xs
                                        let (rs,ss) = unzip ts
                                        return (ListBag rs, ListBag ss)
+
+mapAccumBagL ::(acc -> x -> (acc, y)) -- ^ combining function
+           -> acc                    -- ^ initial state
+           -> Bag x                  -- ^ inputs
+           -> (acc, Bag y)           -- ^ final state, outputs
+mapAccumBagL _ s EmptyBag        = (s, EmptyBag)
+mapAccumBagL f s (UnitBag x)     = let (s1, x1) = f s x in (s1, UnitBag x1)
+mapAccumBagL f s (TwoBags b1 b2) = let (s1, b1') = mapAccumBagL f s  b1
+                                       (s2, b2') = mapAccumBagL f s1 b2
+                                  in (s2, TwoBags b1' b2')
+mapAccumBagL f s (ListBag xs)    = let (s', xs') = mapAccumL f s xs
+                                  in (s', ListBag xs')
 
 mapAccumBagLM :: Monad m
             => (acc -> x -> m (acc, y)) -- ^ combining funcction

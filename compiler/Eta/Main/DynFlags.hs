@@ -26,7 +26,7 @@ module Eta.Main.DynFlags (
         hasPprDebug, hasNoDebugOutput,
         dopt, dopt_set, dopt_unset,
         gopt, gopt_set, gopt_unset, setGeneralFlag', unSetGeneralFlag',
-        wopt, wopt_set, wopt_unset,
+        wopt, wopt_set, wopt_unset, wopt_fatal, wopt_set_fatal, wopt_unset_fatal,
         xopt, xopt_set, xopt_unset,
         lang_set,
         useUnicodeSyntax,
@@ -508,6 +508,9 @@ data WarnReason
  | ErrReason !(Maybe WarningFlag)
  deriving Show
 
+instance Outputable WarnReason where
+ ppr = text . show
+
 data WarningFlag =
 -- See Note [Updating flag description in the User's Guide]
      Opt_WarnDuplicateExports
@@ -758,6 +761,7 @@ data DynFlags = DynFlags {
   dumpFlags             :: IntSet,
   generalFlags          :: IntSet,
   warningFlags          :: IntSet,
+  fatalWarningFlags     :: EnumSet WarningFlag,
   -- Don't change this without updating extensionFlags:
   language              :: Maybe Language,
   -- | Safe Haskell mode
@@ -1529,6 +1533,7 @@ defaultDynFlags mySettings =
         dumpFlags = IntSet.empty,
         generalFlags = IntSet.fromList (map fromEnum (defaultFlags mySettings)),
         warningFlags = IntSet.fromList (map fromEnum standardWarnings),
+        fatalWarningFlags = EnumSet.empty,
         ghciScripts = [],
         language = Nothing,
         safeHaskell = Sf_None,
@@ -1823,6 +1828,20 @@ wopt_set dfs f = dfs{ warningFlags = IntSet.insert (fromEnum f) (warningFlags df
 -- | Unset a 'WarningFlag'
 wopt_unset :: DynFlags -> WarningFlag -> DynFlags
 wopt_unset dfs f = dfs{ warningFlags = IntSet.delete (fromEnum f) (warningFlags dfs) }
+
+-- | Test whether a 'WarningFlag' is set as fatal
+wopt_fatal :: WarningFlag -> DynFlags -> Bool
+wopt_fatal f dflags = f `EnumSet.member` fatalWarningFlags dflags
+
+-- | Mark a 'WarningFlag' as fatal (do not set the flag)
+wopt_set_fatal :: DynFlags -> WarningFlag -> DynFlags
+wopt_set_fatal dfs f
+    = dfs { fatalWarningFlags = EnumSet.insert f (fatalWarningFlags dfs) }
+
+-- | Mark a 'WarningFlag' as not fatal
+wopt_unset_fatal :: DynFlags -> WarningFlag -> DynFlags
+wopt_unset_fatal dfs f
+    = dfs { fatalWarningFlags = EnumSet.delete f (fatalWarningFlags dfs) }
 
 -- | Test whether a 'ExtensionFlag' is set
 xopt :: LangExt.Extension -> DynFlags -> Bool

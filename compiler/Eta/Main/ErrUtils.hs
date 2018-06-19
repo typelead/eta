@@ -10,7 +10,7 @@ module Eta.Main.ErrUtils (
         MsgDoc,
         Validity(..), andValid, allValid, isValid, getInvalids,
 
-        ErrMsg, WarnMsg, Severity(..),
+        ErrMsg, WarnMsg, Severity(..), errMsgSeverity, errMsgReason,
         Messages, ErrorMessages, WarningMessages, unionMessages,
         errMsgSpan, errMsgContext, errMsgShortDoc, errMsgExtraInfo,
         mkLocMessage, mkLocMessageAnn, pprMessageBag, pprErrMsgBag, pprErrMsgBagWithLoc,
@@ -18,8 +18,7 @@ module Eta.Main.ErrUtils (
 
         errorsFound, emptyMessages, isEmptyMessages,
         mkErrMsg, mkPlainErrMsg, mkLongErrMsg, mkWarnMsg, mkPlainWarnMsg,
-        printBagOfErrors,
-        warnIsErrorMsg, mkLongWarnMsg,
+        mkLongWarnMsg, printBagOfErrors,
 
         ghcExit,
 
@@ -40,7 +39,7 @@ module Eta.Main.ErrUtils (
         showPass,
         debugTraceMsg,
 
-        prettyPrintGhcErrors, traceCmd
+        prettyPrintGhcErrors, traceCmd, isWarnMsgFatal
     ) where
 
 #include "HsVersions.h"
@@ -299,10 +298,6 @@ emptyMessages = (emptyBag, emptyBag)
 
 isEmptyMessages :: Messages -> Bool
 isEmptyMessages (warns, errs) = isEmptyBag warns && isEmptyBag errs
-
-warnIsErrorMsg :: DynFlags -> ErrMsg
-warnIsErrorMsg dflags
-    = mkPlainErrMsg dflags noSrcSpan (text "\nFailing due to -Werror.")
 
 errorsFound :: DynFlags -> Messages -> Bool
 errorsFound _dflags (_warns, errs) = not (isEmptyBag errs)
@@ -570,6 +565,17 @@ prettyPrintGhcErrors dflags
                           pprDebugAndThen dflags pgmError (text str) doc
                       _ ->
                           liftIO $ throwIO e
+
+-- | Checks if given 'WarnMsg' is a fatal warning.
+isWarnMsgFatal :: DynFlags -> WarnMsg -> Maybe (Maybe WarningFlag)
+isWarnMsgFatal dflags ErrMsg{errMsgReason = Reason wflag}
+  = if wopt_fatal wflag dflags
+      then Just (Just wflag)
+      else Nothing
+isWarnMsgFatal dflags _
+  = if gopt Opt_WarnIsError dflags
+      then Just Nothing
+      else Nothing
 
 traceCmd :: DynFlags -> String -> String -> IO a -> IO a
 -- trace the command (at two levels of verbosity)
