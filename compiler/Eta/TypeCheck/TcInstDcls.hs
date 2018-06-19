@@ -446,7 +446,7 @@ tcInstDecls1 tycl_decls inst_decls deriv_decls
            if isHsBootOrSig (tcg_src env)
              then
                do warn <- woptM Opt_WarnDerivingTypeable
-                  when warn $ addWarnTc $ vcat
+                  when warn $ addWarnTc (Reason Opt_WarnDerivingTypeable) $ vcat
                     [ ptext (sLit "`Typeable` instances in .hs-boot files are ignored.")
                     , ptext (sLit "This warning will become an error in future versions of the compiler.")
                     ]
@@ -1362,7 +1362,7 @@ warnMissingMethodOrAT :: String -> Name -> TcM ()
 warnMissingMethodOrAT what name
   = do { warn <- woptM Opt_WarnMissingMethods
        ; traceTc "warn" (ppr name <+> ppr warn <+> ppr (not (startsWithUnderscore (getOccName name))))
-       ; warnTc (warn  -- Warn only if -fwarn-missing-methods
+       ; warnTc (Reason Opt_WarnMissingMethods) (warn  -- Warn only if -fwarn-missing-methods
                  && not (startsWithUnderscore (getOccName name)))
                                         -- Don't warn about _foo methods
                 (ptext (sLit "No explicit") <+> text what <+> ptext (sLit "or default declaration for")
@@ -1371,7 +1371,7 @@ warnMissingMethodOrAT what name
 warnUnsatisifiedMinimalDefinition :: ClassMinimalDef -> TcM ()
 warnUnsatisifiedMinimalDefinition mindef
   = do { warn <- woptM Opt_WarnMissingMethods
-       ; warnTc warn message
+       ; warnTc (Reason Opt_WarnMissingMethods) warn message
        }
   where
     message = vcat [ptext (sLit "No explicit implementation for")

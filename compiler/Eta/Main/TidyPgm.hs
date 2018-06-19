@@ -388,7 +388,7 @@ tidyProgram hsc_env  (ModGuts { mg_module    = mod
           -- Print one-line size info
         ; let cs = coreBindsStats tidy_binds
         ; when (dopt Opt_D_dump_core_stats dflags)
-               (log_action dflags dflags SevDump noSrcSpan defaultDumpStyle
+               (putLogMsg dflags NoReason SevDump noSrcSpan defaultDumpStyle
                           (ptext (sLit "Tidy size (terms,types,coercions)")
                            <+> ppr (moduleName mod) <> colon
                            <+> int (cs_tm cs)

@@ -40,7 +40,7 @@ import Eta.Utils.Bag
 import Eta.Utils.FastString
 import Eta.Utils.BooleanFormula
 import Eta.Utils.Util
-
+import Eta.Main.DynFlags
 import Control.Monad
 
 #include "HsVersions.h"
@@ -217,7 +217,7 @@ tcDefMeth clas tyvars this_dict binds_in hs_sig_fn prag_fn (sel_id, dm_info)
                                `orElse` pprPanic "tc_dm" (ppr sel_name)
 
            ; local_dm_sig <- instTcTySig hs_ty local_dm_ty Nothing [] local_dm_name
-           ; warnTc (not (null spec_prags))
+           ; warnTc NoReason (not (null spec_prags))
                     (ptext (sLit "Ignoring SPECIALISE pragmas on default method")
                      <+> quotes (ppr sel_name))
 
@@ -270,7 +270,7 @@ tcClassMinimalDef _clas sigs op_info
         -- class ops without default methods are required, since we
         -- have no way to fill them in otherwise
         whenIsJust (isUnsatisfied (mindef `impliesAtom`) defMindef) $
-                   (\bf -> addWarnTc (warningMinimalDefIncomplete bf))
+                   (\bf -> addWarnTc NoReason (warningMinimalDefIncomplete bf))
         return mindef
   where
     -- By default require all methods without a default

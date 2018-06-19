@@ -962,7 +962,7 @@ showIface hsc_env filename = do
    iface <- initTcRnIf 's' hsc_env () () $
        readBinIface IgnoreHiWay TraceBinIFaceReading filename
    let dflags = hsc_dflags hsc_env
-   log_action dflags dflags SevDump noSrcSpan defaultDumpStyle (pprModIface iface)
+   putLogMsg dflags NoReason SevDump noSrcSpan defaultDumpStyle (pprModIface iface)
 
 pprModIface :: ModIface -> SDoc
 -- Show a ModIface

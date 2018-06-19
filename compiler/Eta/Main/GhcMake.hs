@@ -186,8 +186,7 @@ warnMissingHomeModules hsc_env mod_graph =
           (text "Modules are not listed in command line but needed for compilation: ")
           4
           (sep (map ppr missing))
-    warn = makeIntoWarning
-      -- (Reason Opt_WarnMissingHomeModules)
+    warn = makeIntoWarning (Reason Opt_WarnMissingHomeModules)
       (mkPlainErrMsg dflags noSrcSpan msg)
 
 -- | Describes which modules of the module graph need to be loaded.
@@ -742,7 +741,7 @@ checkStability hpt sccs all_home_mods = foldl checkSCC ([],[]) sccs
 -- | Each module is given a unique 'LogQueue' to redirect compilation messages
 -- to. A 'Nothing' value contains the result of compilation, and denotes the
 -- end of the message queue.
-data LogQueue = LogQueue !(IORef [Maybe (Severity, SrcSpan, PprStyle, MsgDoc)])
+data LogQueue = LogQueue !(IORef [Maybe (WarnReason, Severity, SrcSpan, PprStyle, MsgDoc)])
                          !(MVar ())
 
 -- | The graph of modules to compile and their corresponding result 'MVar' and
@@ -955,7 +954,7 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
             return (success_flag,ok_results)
 
   where
-    writeLogQueue :: LogQueue -> Maybe (Severity,SrcSpan,PprStyle,MsgDoc) -> IO ()
+    writeLogQueue :: LogQueue -> Maybe (WarnReason,Severity,SrcSpan,PprStyle,MsgDoc) -> IO ()
     writeLogQueue (LogQueue ref sem) msg = do
         atomicModifyIORef ref $ \msgs -> (msg:msgs,())
         _ <- tryPutMVar sem ()
@@ -964,8 +963,8 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
     -- The log_action callback that is used to synchronize messages from a
     -- worker thread.
     parLogAction :: LogQueue -> LogAction
-    parLogAction log_queue _dflags !severity !srcSpan !style !msg = do
-        writeLogQueue log_queue (Just (severity,srcSpan,style,msg))
+    parLogAction log_queue _dflags !reason !severity !srcSpan !style !msg = do
+        writeLogQueue log_queue (Just (reason,severity,srcSpan,style,msg))
 
     -- Print each message from the log_queue using the log_action from the
     -- session's DynFlags.
@@ -978,8 +977,8 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
 
             print_loop [] = read_msgs
             print_loop (x:xs) = case x of
-                Just (severity,srcSpan,style,msg) -> do
-                    log_action dflags dflags severity srcSpan style msg
+                Just (reason,severity,srcSpan,style,msg) -> do
+                    putLogMsg dflags reason severity srcSpan style msg
                     print_loop xs
                 -- Exit the loop once we encounter the end marker.
                 Nothing -> return ()

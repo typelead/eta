@@ -688,7 +688,7 @@ deriveStandalone (L loc (DerivDecl deriv_ty overlap_mode))
               | className cls == typeableClassName
               -> do warn <- woptM Opt_WarnDerivingTypeable
                     when warn
-                       $ addWarnTc
+                       $ addWarnTc (Reason Opt_WarnDerivingTypeable)
                        $ text "Standalone deriving `Typeable` has no effect."
                     return []
 
@@ -726,7 +726,7 @@ deriveTyData tvs tc tc_args (L loc deriv_pred)
         ; if className cls == typeableClassName
           then do warn <- woptM Opt_WarnDerivingTypeable
                   when warn
-                     $ addWarnTc
+                     $ addWarnTc (Reason Opt_WarnDerivingTypeable)
                      $ text "Deriving `Typeable` has no effect."
                   return []
           else
@@ -1522,7 +1522,7 @@ mkNewTypeEqn dflags overlap_mode tvs
         | otherwise                  -> bale_out non_std
       -- CanDerive/DerivableViaInstance
       _ -> do when (newtype_deriving && deriveAnyClass) $
-                addWarnTc (sep [ ptext (sLit "Both DeriveAnyClass and GeneralizedNewtypeDeriving are enabled")
+                addWarnTc NoReason (sep [ ptext (sLit "Both DeriveAnyClass and GeneralizedNewtypeDeriving are enabled")
                                , ptext (sLit "Defaulting to the DeriveAnyClass strategy for instantiating") <+> ppr cls ])
               go_for_it
   where

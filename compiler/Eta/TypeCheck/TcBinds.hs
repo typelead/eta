@@ -732,7 +732,8 @@ completeTheta inferred_theta
        ; warn_partial_sigs <- woptM Opt_WarnPartialTypeSignatures
        ; msg <- mkLongErrAt loc (mk_msg inferred_diff partial_sigs) empty
        ; case partial_sigs of
-           True | warn_partial_sigs -> reportWarning $ makeIntoWarning msg
+           True | warn_partial_sigs -> reportWarning $ makeIntoWarning
+                                      (Reason Opt_WarnPartialTypeSignatures) msg
                 | otherwise         -> return ()
            False                    -> reportError msg
        ; return final_theta }
@@ -896,7 +897,7 @@ tcSpec poly_id prag@(SpecSig fun_name hs_tys inl)
   -- what the user wrote (Trac #8537)
   = addErrCtxt (spec_ctxt prag) $
     do  { spec_tys <- mapM (tcHsSigType sig_ctxt) hs_tys
-        ; warnIf (not (isOverloadedTy poly_ty || isInlinePragma inl))
+        ; warnIf NoReason (not (isOverloadedTy poly_ty || isInlinePragma inl))
                  (ptext (sLit "SPECIALISE pragma for non-overloaded function")
                   <+> quotes (ppr fun_name))
                   -- Note [SPECIALISE pragmas]
@@ -940,7 +941,7 @@ tcImpSpec :: (Name, Sig Name) -> TcM [TcSpecPrag]
 tcImpSpec (name, prag)
  = do { id <- tcLookupId name
       ; unless (isAnyInlinePragma (idInlinePragma id))
-               (addWarnTc (impSpecErr name))
+               (addWarnTc NoReason (impSpecErr name))
       ; tcSpec id prag }
 
 impSpecErr :: Name -> SDoc

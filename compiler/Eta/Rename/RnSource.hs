@@ -1316,7 +1316,7 @@ rnConDecl decl@(ConDecl { con_names = names, con_qvars = tvs
                         , con_res = res_ty, con_doc = mb_doc
                         , con_old_rec = old_rec, con_explicit = expl })
   = do  { mapM_ (addLocM checkConName) names
-        ; when old_rec (addWarn (deprecRecSyntax decl))
+        ; when old_rec (addWarn NoReason (deprecRecSyntax decl))
         ; new_names <- mapM lookupLocatedTopBndrRn names
 
            -- For H98 syntax, the tvs are the existential ones

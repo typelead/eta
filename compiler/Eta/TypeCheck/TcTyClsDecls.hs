@@ -1525,7 +1525,7 @@ checkValidClosedCoAxiom (CoAxiom { co_ax_branches = branches, co_ax_tc = tc })
                -- ones and hence is inaccessible
      check_accessibility prev_branches cur_branch
        = do { when (cur_branch `isDominatedBy` prev_branches) $
-              addWarnAt (coAxBranchSpan cur_branch) $
+              addWarnAt NoReason (coAxBranchSpan cur_branch) $
               inaccessibleCoAxBranch tc cur_branch
             ; return (cur_branch : prev_branches) }
 
@@ -1594,13 +1594,13 @@ checkValidDataCon dflags existential_ok tc con
     ctxt = ConArgCtxt (dataConName con)
     check_bang (HsSrcBang _ (Just want_unpack) has_bang, rep_bang, n)
       | want_unpack, not has_bang
-      = addWarnTc (bad_bang n (ptext (sLit "UNPACK pragma lacks '!'")))
+      = addWarnTc NoReason (bad_bang n (ptext (sLit "UNPACK pragma lacks '!'")))
       | want_unpack
       , case rep_bang of { HsUnpack {} -> False; _ -> True }
       , not (gopt Opt_OmitInterfacePragmas dflags)
            -- If not optimising, se don't unpack, so don't complain!
            -- See MkId.dataConArgRep, the (HsBang True) case
-      = addWarnTc (bad_bang n (ptext (sLit "Ignoring unusable UNPACK pragma")))
+      = addWarnTc NoReason (bad_bang n (ptext (sLit "Ignoring unusable UNPACK pragma")))
 
     check_bang _
       = return ()

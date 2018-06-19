@@ -1396,7 +1396,7 @@ getLinkFlags dflags =  uncurry LinkFlags $
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do
   when (gopt Opt_NoHsMain dflags && haveRtsOptsFlags dflags) $ do
-      log_action dflags dflags SevInfo noSrcSpan defaultUserStyle $
+      putLogMsg dflags NoReason SevInfo noSrcSpan defaultUserStyle $
         (text $ "Warning: -rtsopts and -with-rtsopts have no effect with "
              ++ "-no-hs-main.") $$
         (text $ "    Call hs_init_ghc() from your main() function to set these"

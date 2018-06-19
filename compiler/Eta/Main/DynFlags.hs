@@ -18,7 +18,7 @@ module Eta.Main.DynFlags (
         -- * Dynamic flags and associated configuration types
         DumpFlag(..),
         GeneralFlag(..),
-        WarningFlag(..),
+        WarningFlag(..), WarnReason(..),
         Language(..),
         FatalMessager, LogAction, FlushOut(..), FlushErr(..),
         ProfAuto(..),
@@ -342,6 +342,7 @@ data GeneralFlag
    | Opt_NoLlvmMangler                 -- hidden flag
 
    | Opt_WarnIsError                    -- -Werror; makes warnings fatal
+   | Opt_ShowWarnGroups -- Show the group a warning belongs to
 
    | Opt_PrintExplicitForalls
    | Opt_PrintExplicitKinds
@@ -495,6 +496,17 @@ data GeneralFlag
    -- Eta-specific flags
 
    deriving (Eq, Show, Enum)
+
+-- | Used when outputting warnings: if a reason is given, it is
+-- displayed. If a warning isn't controlled by a flag, this is made
+-- explicit at the point of use.
+data WarnReason
+ = NoReason
+ -- | Warning was enabled with the flag
+ | Reason !WarningFlag
+ -- | Warning was made an error because of -Werror or -Werror=WarningFlag
+ | ErrReason !(Maybe WarningFlag)
+ deriving Show
 
 data WarningFlag =
 -- See Note [Updating flag description in the User's Guide]
@@ -1592,13 +1604,19 @@ interpWays = [WayDyn | dynamicGhc]
 --------------------------------------------------------------------------
 
 type FatalMessager = String -> IO ()
-type LogAction = DynFlags -> Severity -> SrcSpan -> PprStyle -> MsgDoc -> IO ()
+type LogAction = DynFlags
+               -> WarnReason
+               -> Severity
+               -> SrcSpan
+               -> PprStyle
+               -> MsgDoc
+               -> IO ()
 
 defaultFatalMessager :: FatalMessager
 defaultFatalMessager = hPutStrLn stderr
 
 defaultLogAction :: LogAction
-defaultLogAction dflags severity srcSpan style msg
+defaultLogAction dflags reason severity srcSpan style msg
     = case severity of
       SevOutput      -> printSDoc msg style
       SevDump        -> printSDoc (msg $$ blankLine) style
@@ -1612,7 +1630,7 @@ defaultLogAction dflags severity srcSpan style msg
           putStrSDoc = defaultLogActionHPutStrDoc dflags stdout
 
           -- Pretty print the warning flag, if any (#10752)
-          message = mkLocMessageAnn Nothing severity srcSpan msg
+          message = mkLocMessageAnn flagMsg severity srcSpan msg
 
           printWarns = do
             hPutChar stderr '\n'
@@ -1626,6 +1644,28 @@ defaultLogAction dflags severity srcSpan style msg
             -- whereas converting to string first and using
             -- hPutStr would just emit the low 8 bits of
             -- each unicode char.
+
+          flagMsg =
+            case reason of
+              NoReason -> Nothing
+              Reason wflag -> do
+                spec <- flagSpecOf wflag
+                return ("-W" ++ flagSpecName spec ++ warnFlagGrp wflag)
+              ErrReason Nothing ->
+                return "-Werror"
+              ErrReason (Just wflag) -> do
+                spec <- flagSpecOf wflag
+                return $
+                  "-W" ++ flagSpecName spec ++ warnFlagGrp wflag ++
+                  ", -Werror=" ++ flagSpecName spec
+
+          warnFlagGrp flag
+              | gopt Opt_ShowWarnGroups dflags =
+                    case smallestGroups flag of
+                        [] -> ""
+                        groups -> " (in " ++ intercalate ", " (map ("-W"++) groups) ++ ")"
+              | otherwise = ""
+
 
 defaultLogActionHPrintDoc :: DynFlags -> Handle -> SDoc -> PprStyle -> IO ()
 defaultLogActionHPrintDoc dflags h d sty
@@ -2196,7 +2236,7 @@ parseDynamicFlagsFull activeFlags cmdline dflags0 args = do
   return (dflags6, leftover, consistency_warnings ++ sh_warns ++ warns)
 
 -- | Write an error or warning to the 'LogOutput'.
-putLogMsg :: DynFlags -> Severity -> SrcSpan -> PprStyle
+putLogMsg :: DynFlags -> WarnReason -> Severity -> SrcSpan -> PprStyle
           -> MsgDoc -> IO ()
 putLogMsg dflags = log_action dflags dflags
 
@@ -2926,6 +2966,12 @@ useInstead flag turn_on
 nop :: TurnOnFlag -> DynP ()
 nop _ = return ()
 
+-- | Find the 'FlagSpec' for a 'WarningFlag'.
+flagSpecOf :: WarningFlag -> Maybe (FlagSpec WarningFlag)
+flagSpecOf flag = listToMaybe $ filter check fWarningFlags
+  where
+    check fs = flagSpecFlag fs == flag
+
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@
 fWarningFlags :: [FlagSpec WarningFlag]
 fWarningFlags = [
@@ -2985,7 +3031,8 @@ fWarningFlags = [
   flagSpec "warn-unused-matches"              Opt_WarnUnusedMatches,
   flagSpec "warn-warnings-deprecations"       Opt_WarnWarningsDeprecations,
   flagSpec "warn-wrong-do-bind"               Opt_WarnWrongDoBind,
-  flagSpec "missing-home-modules"             Opt_WarnMissingHomeModules]
+  flagSpec "missing-home-modules"             Opt_WarnMissingHomeModules
+  ]
 
 -- | These @-\<blah\>@ flags can all be reversed with @-no-\<blah\>@
 negatableFlags :: [FlagSpec GeneralFlag]
@@ -3098,7 +3145,8 @@ fFlags = [
   flagSpec "vectorisation-avoidance"          Opt_VectorisationAvoidance,
   flagSpec "vectorise"                        Opt_Vectorise,
   flagSpec "catch-bottoms"                    Opt_CatchBottoms,
-  flagSpec "show-loaded-modules"              Opt_ShowLoadedModules
+  flagSpec "show-loaded-modules"              Opt_ShowLoadedModules,
+  flagSpec "show-warning-groups"              Opt_ShowWarnGroups
   ]
 
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@
@@ -3310,7 +3358,8 @@ defaultFlags _
       Opt_RPath,
       Opt_SharedImplib,
       Opt_SimplPreInlining,
-      Opt_ExternalInterpreter
+      Opt_ExternalInterpreter,
+      Opt_ShowWarnGroups
     ]
 
     ++ [f | (ns,f) <- optLevelFlags, 0 `elem` ns]
@@ -3430,6 +3479,53 @@ optLevelFlags -- see Note [Documenting optimisation flags]
 -- please remember to update the User's Guide. The relevant file is:
 --
 --  * docs/users_guide/using.xml
+
+-- | Warning groups.
+--
+-- As all warnings are in the Weverything set, it is ignored when
+
+-- displaying to the user which group a warning is in.
+warningGroups :: [(String, [WarningFlag])]
+warningGroups =
+    [ ("compat",       minusWcompatOpts)
+    , ("unused-binds", unusedBindsFlags)
+    , ("default",      standardWarnings)
+    , ("extra",        minusWOpts)
+    , ("all",          minusWallOpts)
+    , ("everything",   minusWeverythingOpts)
+    ]
+
+-- | Warning group hierarchies, where there is an explicit inclusion
+-- relation.
+--
+-- Each inner list is a hierarchy of warning groups, ordered from
+-- smallest to largest, where each group is a superset of the one
+-- before it.
+--
+-- Separating this from 'warningGroups' allows for multiple
+-- hierarchies with no inherent relation to be defined.
+--
+-- The special-case Weverything group is not included.
+warningHierarchies :: [[String]]
+warningHierarchies = hierarchies ++ map (:[]) rest
+  where
+    hierarchies = [["default", "extra", "all"]]
+    rest = filter (`notElem` "everything" : concat hierarchies) $
+           map fst warningGroups
+
+-- | Find the smallest group in every hierarchy which a warning
+-- belongs to, excluding Weverything.
+
+smallestGroups :: WarningFlag -> [String]
+smallestGroups flag = mapMaybe go warningHierarchies where
+    -- Because each hierarchy is arranged from smallest to largest,
+    -- the first group we find in a hierarchy which contains the flag
+    -- is the smallest.
+    go (group:rest) = fromMaybe (go rest) $ do
+        flags <- lookup group warningGroups
+        guard (flag `elem` flags)
+        pure (Just group)
+    go [] = Nothing
 
 standardWarnings :: [WarningFlag]
 standardWarnings -- see Note [Documenting warning flags]
@@ -4381,3 +4477,26 @@ data FilesToClean = FilesToClean {
 -- | An empty FilesToClean
 emptyFilesToClean :: FilesToClean
 emptyFilesToClean = FilesToClean Set.empty Set.empty
+
+-- | Things you get with -Weverything, i.e. *all* known warnings flags
+minusWeverythingOpts :: [WarningFlag]
+minusWeverythingOpts = [ toEnum 0 .. ]
+
+-- | Things you get with -Wcompat.
+--
+-- This is intended to group together warnings that will be enabled by default
+-- at some point in the future, so that library authors eager to make their
+-- code future compatible to fix issues before they even generate warnings.
+minusWcompatOpts :: [WarningFlag]
+minusWcompatOpts
+    = []
+      -- Opt_WarnMissingMonadFailInstances
+      -- , Opt_WarnSemigroup
+      -- , Opt_WarnNonCanonicalMonoidInstances
+
+-- Things you get with -Wunused-binds
+unusedBindsFlags :: [WarningFlag]
+unusedBindsFlags = []
+                   --  Opt_WarnUnusedTopBinds
+                   -- , Opt_WarnUnusedLocalBinds
+                   -- , Opt_WarnUnusedPatternBinds

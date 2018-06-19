@@ -841,7 +841,7 @@ warnUnusedForAlls in_doc bound mentioned_rdrs
     bound_but_not_used = filterOut ((`elem` mentioned_rdrs) . unLoc) bound_names
 
     add_warn (L loc tv)
-      = addWarnAt loc $
+      = addWarnAt (Reason Opt_WarnUnusedMatches) loc $
         vcat [ ptext (sLit "Unused quantified type variable") <+> quotes (ppr tv)
              , in_doc ]
 
@@ -851,7 +851,7 @@ warnContextQuantification in_doc tvs
     mapM_ add_warn tvs
   where
     add_warn (L loc tv)
-      = addWarnAt loc $
+      = addWarnAt (Reason Opt_WarnContextQuantification) loc $
         vcat [ ptext (sLit "Variable") <+> quotes (ppr tv) <+>
                ptext (sLit "is implicitly quantified due to a context") $$
                ptext (sLit "Use explicit forall syntax instead.") $$

@@ -329,7 +329,7 @@ addInlinePrags poly_id prags
 
 warnPrags :: Id -> [LSig Name] -> SDoc -> TcM ()
 warnPrags id bad_sigs herald
-  = addWarnTc (hang (herald <+> quotes (ppr id))
+  = addWarnTc NoReason (hang (herald <+> quotes (ppr id))
                   2 (ppr_sigs bad_sigs))
   where
     ppr_sigs sigs = vcat (map (ppr . getLoc) sigs)

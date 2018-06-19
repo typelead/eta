@@ -207,7 +207,8 @@ rnImportDecl this_mod
         _  | implicit   -> return () -- Do not bleat for implicit imports
            | qual_only  -> return ()
            | otherwise  -> whenWOptM Opt_WarnMissingImportList $
-                           addWarn (missingImportListWarn imp_mod_name)
+                           addWarn (Reason Opt_WarnMissingImportList)
+                                   (missingImportListWarn imp_mod_name)
 
     ifaces <- loadSrcInterface doc imp_mod_name want_boot mb_pkg
 
@@ -228,7 +229,8 @@ rnImportDecl this_mod
     -- the non-boot module depends on the compilation order, which
     -- is not deterministic.  The hs-boot test can show this up.
     dflags <- getDynFlags
-    warnIf (want_boot && any (not.mi_boot) ifaces && isOneShot (ghcMode dflags))
+    warnIf NoReason
+           (want_boot && any (not.mi_boot) ifaces && isOneShot (ghcMode dflags))
            (warnRedundantSourceImport imp_mod_name)
     when (mod_safe && not (safeImportsOn dflags)) $
         addErr (ptext (sLit "safe import can't be used as Safe Haskell isn't on!")
@@ -268,7 +270,8 @@ rnImportDecl this_mod
     whenWOptM Opt_WarnWarningsDeprecations (
       forM_ ifaces $ \iface ->
        case mi_warns iface of
-          WarnAll txt -> addWarn $ moduleWarn imp_mod_name txt
+          WarnAll txt -> addWarn (Reason Opt_WarnWarningsDeprecations) $
+                         moduleWarn imp_mod_name txt
           _           -> return ()
      )
 
@@ -713,11 +716,11 @@ filterImports ifaces decl_spec (Just (want_hiding, L l import_items))
         where
             -- Warn when importing T(..) if T was exported abstractly
             emit_warning (DodgyImport n) = whenWOptM Opt_WarnDodgyImports $
-              addWarn (dodgyImportWarn n)
+              addWarn (Reason Opt_WarnDodgyImports) (dodgyImportWarn n)
             emit_warning MissingImportList = whenWOptM Opt_WarnMissingImportList $
-              addWarn (missingImportListItem ieRdr)
+              addWarn (Reason Opt_WarnMissingImportList) (missingImportListItem ieRdr)
             emit_warning BadImportW = whenWOptM Opt_WarnDodgyImports $
-              addWarn (lookup_err_msg BadImport)
+              addWarn (Reason Opt_WarnDodgyImports) (lookup_err_msg BadImport)
 
             run_lookup :: IELookupM a -> TcRn (Maybe a)
             run_lookup m = case m of
@@ -1087,7 +1090,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                              | (L _ (IEModuleContents (L _ mod))) <- ie_names ]
         , mod `elem` earlier_mods    -- Duplicate export of M
         = do { warn_dup_exports <- woptM Opt_WarnDuplicateExports ;
-               warnIf warn_dup_exports (dupModuleExport mod) ;
+               warnIf (Reason Opt_WarnDuplicateExports) warn_dup_exports
+                      (dupModuleExport mod) ;
                return acc }
 
         | otherwise
@@ -1101,7 +1105,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                    ; names       = map gre_name gres }
 
              ; checkErr exportValid (moduleNotImported mod)
-             ; warnIf (warnDodgyExports && exportValid && null names)
+             ; warnIf (Reason Opt_WarnDodgyExports)
+                      (warnDodgyExports && exportValid && null names)
                       (nullModuleExport mod)
 
              ; addUsedRdrNames (concat [ [mkRdrQual mod occ, mkRdrUnqual occ]
@@ -1154,7 +1159,9 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
              warnDodgyExports <- woptM Opt_WarnDodgyExports
              when (null kids) $
                   if isTyConName name
-                  then when warnDodgyExports $ addWarn (dodgyExportWarn name)
+                  then when warnDodgyExports $
+                            addWarn (Reason Opt_WarnDodgyExports)
+                                    (dodgyExportWarn name)
                   else -- This occurs when you export T(..), but
                        -- only import T abstractly, or T is a synonym.
                        addErr (exportItemErr ie)
@@ -1237,7 +1244,8 @@ check_occs ie occs names  -- 'names' are the entities specifed by 'ie'
             -- by two different module exports. See ticket #4478.
             -> do unless (dupExport_ok name ie ie') $ do
                       warn_dup_exports <- woptM Opt_WarnDuplicateExports
-                      warnIf warn_dup_exports (dupExportWarn name_occ ie ie')
+                      warnIf (Reason Opt_WarnDuplicateExports) warn_dup_exports
+                             (dupExportWarn name_occ ie ie')
                   return occs
 
             | otherwise    -- Same occ name but different names: an error
@@ -1369,7 +1377,7 @@ warnUnusedImportDecls gbl_env
        ; traceRn "Uses:" (vcat [ ppr (Set.elems uses)
                                , text "Import usage" <+> ppr usage])
        ; whenWOptM Opt_WarnUnusedImports $
-         mapM_ warnUnusedImport usage
+         mapM_ (warnUnusedImport Opt_WarnUnusedImports) usage
 
        ; whenGOptM Opt_D_dump_minimal_imports $
          printMinimalImports usage }
@@ -1483,8 +1491,8 @@ extendImportMap rdr_env rdr imp_map
     isImpAll (ImpSpec { is_item = ImpAll }) = True
     isImpAll _other                         = False
 
-warnUnusedImport :: ImportDeclUsage -> RnM ()
-warnUnusedImport (L loc decl, used, unused)
+warnUnusedImport :: WarningFlag -> ImportDeclUsage -> RnM ()
+warnUnusedImport flag (L loc decl, used, unused)
   | Just (False,L _ []) <- ideclHiding decl
                 = return ()            -- Do not warn for 'import M()'
 
@@ -1492,9 +1500,9 @@ warnUnusedImport (L loc decl, used, unused)
   , not (null hides)
   , pRELUDE_NAME == unLoc (ideclName decl)
                 = return ()            -- Note [Do not warn about Prelude hiding]
-  | null used   = addWarnAt loc msg1   -- Nothing used; drop entire decl
+  | null used   = addWarnAt (Reason flag) loc msg1   -- Nothing used; drop entire decl
   | null unused = return ()            -- Everything imported is used; nop
-  | otherwise   = addWarnAt loc msg2   -- Some imports are unused
+  | otherwise   = addWarnAt (Reason flag) loc msg2   -- Some imports are unused
   where
     msg1 = vcat [pp_herald <+> quotes pp_mod <+> pp_not_used,
                  nest 2 (ptext (sLit "except perhaps to import instances from")

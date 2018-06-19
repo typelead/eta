@@ -103,12 +103,13 @@ unionMessages (warns1, errs1) (warns2, errs2) =
   (warns1 `unionBags` warns2, errs1 `unionBags` errs2)
 
 data ErrMsg = ErrMsg {
-        errMsgSpan      :: SrcSpan,
-        errMsgContext   :: PrintUnqualified,
-        errMsgShortDoc  :: MsgDoc,   -- errMsgShort* should always
+        errMsgSpan        :: SrcSpan,
+        errMsgContext     :: PrintUnqualified,
+        errMsgShortDoc    :: MsgDoc,   -- errMsgShort* should always
         errMsgShortString :: String, -- contain the same text
-        errMsgExtraInfo :: MsgDoc,
-        errMsgSeverity  :: Severity
+        errMsgExtraInfo   :: MsgDoc,
+        errMsgSeverity    :: Severity,
+        errMsgReason      :: WarnReason
         }
         -- The SrcSpan is used for sorting errors into line-number order
 
@@ -257,8 +258,10 @@ getCaretDiagnostic severity (RealSrcSpan span) = do
                       | otherwise = ""
         caretLine = replicate start ' ' ++ replicate width '^' ++ caretEllipsis
 
-makeIntoWarning :: ErrMsg -> ErrMsg
-makeIntoWarning err = err { errMsgSeverity = SevWarning }
+makeIntoWarning :: WarnReason -> ErrMsg -> ErrMsg
+makeIntoWarning reason err = err
+    { errMsgSeverity = SevWarning
+    , errMsgReason = reason }
 
 isWarning :: ErrMsg -> Bool
 isWarning err
@@ -273,7 +276,8 @@ mk_err_msg  dflags sev locn print_unqual msg extra
  = ErrMsg { errMsgSpan = locn, errMsgContext = print_unqual
           , errMsgShortDoc = msg , errMsgShortString = showSDoc dflags msg
           , errMsgExtraInfo = extra
-          , errMsgSeverity = sev }
+          , errMsgSeverity = sev
+          , errMsgReason = NoReason }
 
 mkLongErrMsg, mkLongWarnMsg   :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgDoc -> MsgDoc -> ErrMsg
 -- A long (multi-line) error message
@@ -331,10 +335,11 @@ pprLocErrMsg (ErrMsg { errMsgSpan      = s
 printMsgBag :: DynFlags -> Bag ErrMsg -> IO ()
 printMsgBag dflags bag
   = sequence_ [ let style = mkErrStyle dflags unqual
-                in log_action dflags dflags sev s style (d $$ e)
+                in putLogMsg dflags reason sev s style (d $$ e)
               | ErrMsg { errMsgSpan      = s,
                          errMsgShortDoc  = d,
                          errMsgSeverity  = sev,
+                         errMsgReason    = reason,
                          errMsgExtraInfo = e,
                          errMsgContext   = unqual } <- sortMsgBag bag ]
 
@@ -361,7 +366,12 @@ doIfSet_dyn dflags flag action | gopt flag dflags = action
 dumpIfSet :: DynFlags -> Bool -> String -> SDoc -> IO ()
 dumpIfSet dflags flag hdr doc
   | not flag   = return ()
-  | otherwise  = log_action dflags dflags SevDump noSrcSpan defaultDumpStyle (mkDumpDoc hdr doc)
+  | otherwise  = putLogMsg dflags
+                           NoReason
+                           SevDump
+                           noSrcSpan
+                           defaultDumpStyle
+                           (mkDumpDoc hdr doc)
 
 -- | a wrapper around 'dumpSDoc'.
 -- First check whether the dump flag is set
@@ -437,7 +447,7 @@ dumpSDoc dflags print_unqual flag hdr doc
               let (doc', severity)
                     | null hdr  = (doc, SevOutput)
                     | otherwise = (mkDumpDoc hdr doc, SevDump)
-              log_action dflags dflags severity noSrcSpan dump_style doc'
+              putLogMsg dflags NoReason severity noSrcSpan dump_style doc'
 
 
 -- | Choose where to put a dump file based on DynFlags
@@ -494,18 +504,18 @@ ifVerbose dflags val act
 
 errorMsg :: DynFlags -> MsgDoc -> IO ()
 errorMsg dflags msg
-   = log_action dflags dflags SevError noSrcSpan (defaultErrStyle dflags) msg
+   = putLogMsg dflags NoReason SevError noSrcSpan (defaultErrStyle dflags) msg
 
 warningMsg :: DynFlags -> MsgDoc -> IO ()
 warningMsg dflags msg
-   = log_action dflags dflags SevWarning noSrcSpan (defaultErrStyle dflags) msg
+   = putLogMsg dflags NoReason SevWarning noSrcSpan (defaultErrStyle dflags) msg
 
 fatalErrorMsg :: DynFlags -> MsgDoc -> IO ()
 fatalErrorMsg dflags msg = fatalErrorMsg' (log_action dflags) dflags msg
 
 fatalErrorMsg' :: LogAction -> DynFlags -> MsgDoc -> IO ()
 fatalErrorMsg' la dflags msg =
-    la dflags SevFatal noSrcSpan (defaultErrStyle dflags) msg
+    la dflags NoReason SevFatal noSrcSpan (defaultErrStyle dflags) msg
 
 fatalErrorMsg'' :: FatalMessager -> String -> IO ()
 fatalErrorMsg'' fm msg = fm msg
@@ -539,15 +549,15 @@ printOutputForUser dflags print_unqual msg
   = logOutput dflags (mkUserStyle print_unqual AllTheWay) msg
 
 logInfo :: DynFlags -> PprStyle -> MsgDoc -> IO ()
-logInfo dflags sty msg = log_action dflags dflags SevInfo noSrcSpan sty msg
+logInfo dflags sty msg = putLogMsg dflags NoReason SevInfo noSrcSpan sty msg
 
 logOutput :: DynFlags -> PprStyle -> MsgDoc -> IO ()
 -- Like logInfo but with SevOutput rather then SevInfo
-logOutput dflags sty msg = log_action dflags dflags SevOutput noSrcSpan sty msg
+logOutput dflags sty msg = putLogMsg dflags NoReason SevOutput noSrcSpan sty msg
 
 logInteractive :: DynFlags -> PprStyle -> MsgDoc -> IO ()
 -- Like logInfo but with SevOutput rather then SevInfo
-logInteractive dflags sty msg = log_action dflags dflags SevInteractive noSrcSpan sty msg
+logInteractive dflags sty msg = putLogMsg dflags NoReason SevInteractive noSrcSpan sty msg
 
 prettyPrintGhcErrors :: ExceptionMonad m => DynFlags -> m a -> m a
 prettyPrintGhcErrors dflags

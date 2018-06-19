@@ -191,7 +191,7 @@ checkValidType ctxt ty
        ; check_kind ctxt ty
 
        ; checkUserTypeError ty
-       
+
        ; traceTc "checkValidType done" (ppr ty <+> text "::" <+> ppr (typeKind ty)) }
 
 checkValidMonoType :: Type -> TcM ()
@@ -483,7 +483,8 @@ check_valid_theta _ []
   = return ()
 check_valid_theta ctxt theta
   = do { dflags <- getDynFlags
-       ; warnTc (wopt Opt_WarnDuplicateConstraints dflags &&
+       ; warnTc (Reason Opt_WarnDuplicateConstraints)
+                (wopt Opt_WarnDuplicateConstraints dflags &&
                  notNull dups) (dupPredWarn dups)
        ; mapM_ (check_pred_ty dflags ctxt) theta }
   where

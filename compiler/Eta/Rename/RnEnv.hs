@@ -704,7 +704,8 @@ lookup_demoted rdr_name
            Just demoted_name
              | data_kinds ->
              do { whenWOptM Opt_WarnUntickedPromotedConstructors $
-                  addWarn (untickedPromConstrWarn demoted_name)
+                  addWarn (Reason Opt_WarnUntickedPromotedConstructors)
+                          (untickedPromConstrWarn demoted_name)
                 ; return demoted_name }
              | otherwise  -> unboundNameX WL_Any rdr_name suggest_dk }
 
@@ -912,7 +913,8 @@ warnIfDeprecated gre@(GRE { gre_name = name, gre_prov = Imported (imp_spec : _) 
        ; when (wopt Opt_WarnWarningsDeprecations dflags) $
          do { iface <- loadInterfaceForName doc name
             ; case lookupImpDeprec iface gre of
-                Just txt -> addWarn (mk_msg txt)
+                Just txt -> addWarn (Reason Opt_WarnWarningsDeprecations)
+                                    (mk_msg txt)
                 Nothing  -> return () } }
   where
     mk_msg txt = sep [ sep [ ptext (sLit "In the use of")
@@ -1536,7 +1538,9 @@ checkShadowedOccs (global_env,local_env) get_loc_occ ns
                 -- we don't find any GREs that are in scope qualified-only
 
           complain []      = return ()
-          complain pp_locs = addWarnAt loc (shadowedNameWarn occ pp_locs)
+          complain pp_locs = addWarnAt (Reason Opt_WarnNameShadowing)
+                                       loc
+                                       (shadowedNameWarn occ pp_locs)
 
     is_shadowed_gre :: GlobalRdrElt -> RnM Bool
         -- Returns False for record selectors that are shadowed, when
@@ -1770,7 +1774,7 @@ warnUnusedTopBinds gres
              -- and forget to export it, we really DO want to warn.
              gres' = if isBoot then filter noParent gres
                                else                 gres
-         warnUnusedGREs gres'
+         warnUnusedGREs Opt_WarnUnusedBinds gres'
 
 warnUnusedLocalBinds, warnUnusedMatches :: [Name] -> FreeVars -> RnM ()
 warnUnusedLocalBinds = check_unused Opt_WarnUnusedBinds
@@ -1778,20 +1782,21 @@ warnUnusedMatches    = check_unused Opt_WarnUnusedMatches
 
 check_unused :: WarningFlag -> [Name] -> FreeVars -> RnM ()
 check_unused flag bound_names used_names
- = whenWOptM flag (warnUnusedLocals (filterOut (`elemNameSet` used_names) bound_names))
+ = whenWOptM flag (warnUnusedLocals flag (filterOut (`elemNameSet` used_names)
+                                                    bound_names))
 
 -------------------------
 --      Helpers
-warnUnusedGREs :: [GlobalRdrElt] -> RnM ()
-warnUnusedGREs gres
- = warnUnusedBinds [(n,p) | GRE {gre_name = n, gre_prov = p} <- gres]
+warnUnusedGREs :: WarningFlag -> [GlobalRdrElt] -> RnM ()
+warnUnusedGREs flag gres
+ = warnUnusedBinds flag [(n,p) | GRE {gre_name = n, gre_prov = p} <- gres]
 
-warnUnusedLocals :: [Name] -> RnM ()
-warnUnusedLocals names
- = warnUnusedBinds [(n,LocalDef) | n<-names]
+warnUnusedLocals :: WarningFlag -> [Name] -> RnM ()
+warnUnusedLocals flag names
+ = warnUnusedBinds flag [(n,LocalDef) | n<-names]
 
-warnUnusedBinds :: [(Name,Provenance)] -> RnM ()
-warnUnusedBinds names  = mapM_ warnUnusedName (filter reportable names)
+warnUnusedBinds :: WarningFlag -> [(Name,Provenance)] -> RnM ()
+warnUnusedBinds flag names  = mapM_ (warnUnusedName flag) (filter reportable names)
  where reportable (name,_)
         | isWiredInName name = False    -- Don't report unused wired-in names
                                         -- Otherwise we get a zillion warnings
@@ -1800,23 +1805,23 @@ warnUnusedBinds names  = mapM_ warnUnusedName (filter reportable names)
 
 -------------------------
 
-warnUnusedName :: (Name, Provenance) -> RnM ()
-warnUnusedName (name, LocalDef)
-  = addUnusedWarning name (nameSrcSpan name)
+warnUnusedName :: WarningFlag -> (Name, Provenance) -> RnM ()
+warnUnusedName flag (name, LocalDef)
+  = addUnusedWarning flag name (nameSrcSpan name)
                      (ptext (sLit "Defined but not used"))
 
-warnUnusedName (name, Imported is)
+warnUnusedName flag (name, Imported is)
   = mapM_ warn is
   where
-    warn spec = addUnusedWarning name span msg
+    warn spec = addUnusedWarning flag name span msg
         where
            span = importSpecLoc spec
            pp_mod = quotes (ppr (importSpecModule spec))
            msg = ptext (sLit "Imported from") <+> pp_mod <+> ptext (sLit "but not used")
 
-addUnusedWarning :: Name -> SrcSpan -> SDoc -> RnM ()
-addUnusedWarning name span msg
-  = addWarnAt span $
+addUnusedWarning :: WarningFlag -> Name -> SrcSpan -> SDoc -> RnM ()
+addUnusedWarning flag name span msg
+  = addWarnAt (Reason flag) span $
     sep [msg <> colon,
          nest 2 $ pprNonVarNameSpace (occNameSpace (nameOccName name))
                         <+> quotes (ppr name)]

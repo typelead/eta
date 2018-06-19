@@ -356,7 +356,9 @@ mkHoleReporter mk_err ctxt
 
 mkUserTypeErrorReporter :: Reporter
 mkUserTypeErrorReporter ctxt
- = mapM_ $ \ct -> maybeReportError ctxt =<< mkUserTypeError ctxt ct
+ = mapM_ $ \ct -> do { err <- mkUserTypeError ctxt ct
+                     ; maybeReportError ctxt err }
+                --     ; addDeferredBinding ctxt err ct }
 
 mkUserTypeError :: ReportErrCtxt -> Ct -> TcM ErrMsg
 mkUserTypeError ctxt ct = mkErrorMsg ctxt ct
@@ -392,10 +394,10 @@ maybeReportHoleError ctxt err
   -- discarded.
   | isWarning err
   = when (cec_warn_partial_type_signatures ctxt)
-            (reportWarning err)
+            (reportWarning $ makeIntoWarning (Reason Opt_WarnPartialTypeSignatures) err)
   | cec_defer_holes ctxt
   = when (cec_warn_holes ctxt)
-            (reportWarning (makeIntoWarning err))
+            (reportWarning (makeIntoWarning (Reason Opt_WarnTypedHoles) err))
   | otherwise
   = reportError err
 
@@ -404,7 +406,7 @@ maybeReportError :: ReportErrCtxt -> ErrMsg -> TcM ()
 maybeReportError ctxt err
   -- See Note [Always warn with -fdefer-type-errors]
   | cec_defer_type_errors ctxt
-  = reportWarning (makeIntoWarning err)
+  = reportWarning (makeIntoWarning NoReason err)
   | cec_suppress ctxt
   = return ()
   | otherwise
@@ -602,7 +604,7 @@ mkHoleError ctxt ct@(CHoleCan { cc_occ = occ })
                -- The 'False' means "don't filter the bindings; see Trac #8191
        ; errMsg <- mkErrorMsg ctxt ct (msg $$ binds_doc)
        ; if in_typesig && partial_sigs
-           then return $ makeIntoWarning errMsg
+           then return $ makeIntoWarning NoReason errMsg
            else return errMsg }
   where
     in_typesig = not $ isTypedHoleCt ct
@@ -1587,7 +1589,7 @@ warnDefaulting wanteds default_ty
              warn_msg  = hang (ptext (sLit "Defaulting the following constraint(s) to type")
                                 <+> quotes (ppr default_ty))
                             2 ppr_wanteds
-       ; setCtLoc loc $ warnTc warn_default warn_msg }
+       ; setCtLoc loc $ warnTc (Reason Opt_WarnTypeDefaults) warn_default warn_msg }
 
 {-
 Note [Runtime skolems]

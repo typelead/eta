@@ -713,9 +713,10 @@ checkErr :: Bool -> MsgDoc -> TcRn ()
 -- Add the error if the bool is False
 checkErr ok msg = unless ok (addErr msg)
 
-warnIf :: Bool -> MsgDoc -> TcRn ()
-warnIf True  msg = addWarn msg
-warnIf False _   = return ()
+-- | Display a warning if a condition is met.
+warnIf :: WarnReason -> Bool -> MsgDoc -> TcRn ()
+warnIf reason True  msg = addWarn reason msg
+warnIf _      False _   = return ()
 
 addMessages :: Messages -> TcRn ()
 addMessages (m_warns, m_errs)
@@ -1020,37 +1021,39 @@ checkTc False err = failWithTc err
 
 --         Warnings have no 'M' variant, nor failure
 
-warnTc :: Bool -> MsgDoc -> TcM ()
-warnTc warn_if_true warn_msg
-  | warn_if_true = addWarnTc warn_msg
+-- | Display a warning if a condition is met.
+warnTc :: WarnReason -> Bool -> MsgDoc -> TcM ()
+warnTc reason warn_if_true warn_msg
+  | warn_if_true = addWarnTc reason warn_msg
   | otherwise    = return ()
 
-addWarnTc :: MsgDoc -> TcM ()
-addWarnTc msg = do { env0 <- tcInitTidyEnv
-                   ; addWarnTcM (env0, msg) }
+addWarnTc :: WarnReason -> MsgDoc -> TcM ()
+addWarnTc reason msg = do { env0 <- tcInitTidyEnv
+                   ; addWarnTcM reason (env0, msg) }
 
-addWarnTcM :: (TidyEnv, MsgDoc) -> TcM ()
-addWarnTcM (env0, msg)
+addWarnTcM :: WarnReason -> (TidyEnv, MsgDoc) -> TcM ()
+addWarnTcM reason (env0, msg)
  = do { ctxt <- getErrCtxt ;
         err_info <- mkErrInfo env0 ctxt ;
-        add_warn msg err_info }
+        add_warn reason msg err_info }
 
-addWarn :: MsgDoc -> TcRn ()
-addWarn msg = add_warn msg Outputable.empty
+addWarn :: WarnReason -> MsgDoc -> TcRn ()
+addWarn reason msg = add_warn reason msg Outputable.empty
 
-addWarnAt :: SrcSpan -> MsgDoc -> TcRn ()
-addWarnAt loc msg = add_warn_at loc msg Outputable.empty
+addWarnAt :: WarnReason -> SrcSpan -> MsgDoc -> TcRn ()
+addWarnAt reason loc msg = add_warn_at reason loc msg Outputable.empty
 
-add_warn :: MsgDoc -> MsgDoc -> TcRn ()
-add_warn msg extra_info
+add_warn :: WarnReason -> MsgDoc -> MsgDoc -> TcRn ()
+add_warn reason msg extra_info
   = do { loc <- getSrcSpanM
-       ; add_warn_at loc msg extra_info }
+       ; add_warn_at reason loc msg extra_info }
 
-add_warn_at :: SrcSpan -> MsgDoc -> MsgDoc -> TcRn ()
-add_warn_at loc msg extra_info
+add_warn_at :: WarnReason -> SrcSpan -> MsgDoc -> MsgDoc -> TcRn ()
+add_warn_at reason loc msg extra_info
   = do { dflags <- getDynFlags ;
          printer <- getPrintUnqualified dflags ;
-         let { warn = mkLongWarnMsg dflags loc printer
+         let { warn = makeIntoWarning reason $
+                        mkLongWarnMsg dflags loc printer
                                     msg extra_info } ;
          reportWarning warn }
 
@@ -1478,7 +1481,8 @@ failIfM msg
   = do  { env <- getLclEnv
         ; let full_msg = (if_loc env <> colon) $$ nest 2 msg
         ; dflags <- getDynFlags
-        ; liftIO (log_action dflags dflags SevFatal noSrcSpan (defaultErrStyle dflags) full_msg)
+        ; liftIO (putLogMsg dflags NoReason SevFatal
+                    noSrcSpan (defaultErrStyle dflags) full_msg)
         ; failM }
 
 --------------------
@@ -1514,7 +1518,12 @@ forkM_maybe doc thing_inside
                           dflags <- getDynFlags
                           let msg = hang (text "forkM failed:" <+> doc)
                                        2 (text (show exn))
-                          liftIO $ log_action dflags dflags SevFatal noSrcSpan (defaultErrStyle dflags) msg
+                          liftIO $ putLogMsg dflags
+                                             NoReason
+                                             SevFatal
+                                             noSrcSpan
+                                             (defaultErrStyle dflags)
+                                             msg
 
                     ; traceIf (text "} ending fork (badly)" <+> doc)
                     ; return Nothing }
