@@ -2648,7 +2648,7 @@ showDynFlags show_all dflags = do
          nest 2 (vcat (map (setting "-f" "-fno-" gopt) others))
   putStrLn $ showSDoc dflags $
      text "warning settings:" $$
-         nest 2 (vcat (map (setting "-W" "-Wno-" wopt) DynFlags.fWarningFlags))
+         nest 2 (vcat (map (setting "-W" "-Wno-" wopt) DynFlags.wWarningFlags))
   where
         setting prefix noPrefix test flag
           | quiet     = empty

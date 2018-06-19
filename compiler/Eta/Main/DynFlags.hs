@@ -47,7 +47,7 @@ module Eta.Main.DynFlags (
         PackageDBFlag(..), PkgConfRef(..),
         Option(..), showOpt,
         DynLibLoader(..),
-        fFlags, fWarningFlags, fLangFlags, xFlags,
+        fFlags, wWarningFlags, fLangFlags, xFlags,
         dynFlagDependencies,
         SigOf(..), getSigOf,
         makeDynFlagsConsistent,
@@ -2705,8 +2705,12 @@ dynamic_flags = [
 
      ------ Warning opts -------------------------------------------------
   , defFlag "W"      (NoArg (mapM_ setWarningFlag minusWOpts))
-  , defFlag "Werror" (NoArg (setGeneralFlag           Opt_WarnIsError))
-  , defFlag "Wwarn"  (NoArg (unSetGeneralFlag         Opt_WarnIsError))
+  , defFlag "Werror" (NoArg (do { setGeneralFlag Opt_WarnIsError
+                                ; mapM_ setFatalWarningFlag minusWeverythingOpts }))
+  , defFlag "Wwarn"  (NoArg (do { unSetGeneralFlag Opt_WarnIsError
+                                ; mapM_ unSetFatalWarningFlag minusWeverythingOpts }))
+                                -- Opt_WarnIsError is still needed to pass -Werror
+                                -- to CPP; see runCpp in SysTools
   , defFlag "Wall"   (NoArg (mapM_ setWarningFlag minusWallOpts))
   , defFlag "Wnot"   (NoArg (do upd (\dfs -> dfs {warningFlags = IntSet.empty})
                                 deprecate "Use -w instead"))
@@ -2848,14 +2852,27 @@ dynamic_flags = [
  ++ map (mkFlag turnOff "dno-" unSetGeneralFlag) dFlags
  ++ map (mkFlag turnOn  "f"    setGeneralFlag  ) fFlags
  ++ map (mkFlag turnOff "fno-" unSetGeneralFlag) fFlags
- ++ map (mkFlag turnOn  "f"    setWarningFlag  ) fWarningFlags
- ++ map (mkFlag turnOff "fno-" unSetWarningFlag) fWarningFlags
+ ++ map (mkFlag turnOn  "W"         setWarningFlag    ) wWarningFlags
+ ++ map (mkFlag turnOff "Wno-"      unSetWarningFlag  ) wWarningFlags
+ ++ map (mkFlag turnOn  "Werror="   (\flag -> do {
+                                       ; setWarningFlag flag
+                                       ; setFatalWarningFlag flag }))
+                                                        wWarningFlags
+ ++ map (mkFlag turnOn  "Wwarn="     unSetFatalWarningFlag )
+                                                        wWarningFlags
+ ++ map (mkFlag turnOn  "Wno-error=" unSetFatalWarningFlag )
+                                                        wWarningFlags
+ ++ map (mkFlag turnOn  "fwarn-"    setWarningFlag)
+    wWarningFlags
+ ++ map (mkFlag turnOff "fno-warn-" unSetWarningFlag)
+    wWarningFlags
  ++ map (mkFlag turnOn  "f"    setExtensionFlag  ) fLangFlags
  ++ map (mkFlag turnOff "fno-" unSetExtensionFlag) fLangFlags
  ++ map (mkFlag turnOn  "X"    setExtensionFlag  ) xFlags
  ++ map (mkFlag turnOff "XNo"  unSetExtensionFlag) xFlags
  ++ map (mkFlag turnOn  "X"    setLanguage) languageFlags
  ++ map (mkFlag turnOn  "X"    setSafeHaskell) safeHaskellFlags
+
  ++ [ defFlag "XGenerics"
         (NoArg (deprecate $
                   "it does nothing; look into -XDefaultSignatures " ++
@@ -2987,69 +3004,69 @@ nop _ = return ()
 
 -- | Find the 'FlagSpec' for a 'WarningFlag'.
 flagSpecOf :: WarningFlag -> Maybe (FlagSpec WarningFlag)
-flagSpecOf flag = listToMaybe $ filter check fWarningFlags
+flagSpecOf flag = listToMaybe $ filter check wWarningFlags
   where
     check fs = flagSpecFlag fs == flag
 
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@
-fWarningFlags :: [FlagSpec WarningFlag]
-fWarningFlags = [
+wWarningFlags :: [FlagSpec WarningFlag]
+wWarningFlags = [
 -- See Note [Updating flag description in the User's Guide]
 -- See Note [Supporting CLI completion]
 -- Please keep the list of flags below sorted alphabetically
-  flagSpec "warn-alternative-layout-rule-transitional"
+  flagSpec "alternative-layout-rule-transitional"
                                       Opt_WarnAlternativeLayoutRuleTransitional,
-  flagSpec' "warn-amp"                        Opt_WarnAMP
-    (\_ -> deprecate "it has no effect, and will be removed in GHC 7.12"),
-  flagSpec "warn-auto-orphans"                Opt_WarnAutoOrphans,
-  flagSpec "warn-deprecations"                Opt_WarnWarningsDeprecations,
-  flagSpec "warn-deprecated-flags"            Opt_WarnDeprecatedFlags,
-  flagSpec "warn-deriving-typeable"           Opt_WarnDerivingTypeable,
-  flagSpec "warn-dodgy-exports"               Opt_WarnDodgyExports,
-  flagSpec "warn-dodgy-foreign-imports"       Opt_WarnDodgyForeignImports,
-  flagSpec "warn-dodgy-imports"               Opt_WarnDodgyImports,
-  flagSpec "warn-empty-enumerations"          Opt_WarnEmptyEnumerations,
-  flagSpec "warn-context-quantification"      Opt_WarnContextQuantification,
-  flagSpec "warn-duplicate-constraints"       Opt_WarnDuplicateConstraints,
-  flagSpec "warn-duplicate-exports"           Opt_WarnDuplicateExports,
-  flagSpec "warn-hi-shadowing"                Opt_WarnHiShadows,
-  flagSpec "warn-implicit-prelude"            Opt_WarnImplicitPrelude,
-  flagSpec "warn-incomplete-patterns"         Opt_WarnIncompletePatterns,
-  flagSpec "warn-incomplete-record-updates"   Opt_WarnIncompletePatternsRecUpd,
-  flagSpec "warn-incomplete-uni-patterns"     Opt_WarnIncompleteUniPatterns,
-  flagSpec "warn-inline-rule-shadowing"       Opt_WarnInlineRuleShadowing,
-  flagSpec "warn-identities"                  Opt_WarnIdentities,
-  flagSpec "warn-missing-fields"              Opt_WarnMissingFields,
-  flagSpec "warn-missing-import-lists"        Opt_WarnMissingImportList,
-  flagSpec "warn-missing-local-sigs"          Opt_WarnMissingLocalSigs,
-  flagSpec "warn-missing-methods"             Opt_WarnMissingMethods,
-  flagSpec "warn-missing-signatures"          Opt_WarnMissingSigs,
-  flagSpec "warn-missing-exported-sigs"       Opt_WarnMissingExportedSigs,
-  flagSpec "warn-monomorphism-restriction"    Opt_WarnMonomorphism,
-  flagSpec "warn-name-shadowing"              Opt_WarnNameShadowing,
-  flagSpec "warn-orphans"                     Opt_WarnOrphans,
-  flagSpec "warn-overflowed-literals"         Opt_WarnOverflowedLiterals,
-  flagSpec "warn-overlapping-patterns"        Opt_WarnOverlappingPatterns,
-  flagSpec "warn-pointless-pragmas"           Opt_WarnPointlessPragmas,
-  flagSpec' "warn-safe"                       Opt_WarnSafe setWarnSafe,
-  flagSpec "warn-trustworthy-safe"            Opt_WarnTrustworthySafe,
-  flagSpec "warn-tabs"                        Opt_WarnTabs,
-  flagSpec "warn-type-defaults"               Opt_WarnTypeDefaults,
-  flagSpec "warn-typed-holes"                 Opt_WarnTypedHoles,
-  flagSpec "warn-partial-type-signatures"     Opt_WarnPartialTypeSignatures,
-  flagSpec "warn-unrecognised-pragmas"        Opt_WarnUnrecognisedPragmas,
-  flagSpec' "warn-unsafe"                     Opt_WarnUnsafe setWarnUnsafe,
-  flagSpec "warn-unsupported-calling-conventions"
+  flagSpec' "amp"                        Opt_WarnAMP
+    (\_ -> deprecate "it has no effect"),
+  flagSpec "auto-orphans"                Opt_WarnAutoOrphans,
+  flagSpec "deprecations"                Opt_WarnWarningsDeprecations,
+  flagSpec "deprecated-flags"            Opt_WarnDeprecatedFlags,
+  flagSpec "deriving-typeable"           Opt_WarnDerivingTypeable,
+  flagSpec "dodgy-exports"               Opt_WarnDodgyExports,
+  flagSpec "dodgy-foreign-imports"       Opt_WarnDodgyForeignImports,
+  flagSpec "dodgy-imports"               Opt_WarnDodgyImports,
+  flagSpec "empty-enumerations"          Opt_WarnEmptyEnumerations,
+  flagSpec "context-quantification"      Opt_WarnContextQuantification,
+  flagSpec "duplicate-constraints"       Opt_WarnDuplicateConstraints,
+  flagSpec "duplicate-exports"           Opt_WarnDuplicateExports,
+  flagSpec "hi-shadowing"                Opt_WarnHiShadows,
+  flagSpec "implicit-prelude"            Opt_WarnImplicitPrelude,
+  flagSpec "incomplete-patterns"         Opt_WarnIncompletePatterns,
+  flagSpec "incomplete-record-updates"   Opt_WarnIncompletePatternsRecUpd,
+  flagSpec "incomplete-uni-patterns"     Opt_WarnIncompleteUniPatterns,
+  flagSpec "inline-rule-shadowing"       Opt_WarnInlineRuleShadowing,
+  flagSpec "identities"                  Opt_WarnIdentities,
+  flagSpec "missing-fields"              Opt_WarnMissingFields,
+  flagSpec "missing-import-lists"        Opt_WarnMissingImportList,
+  flagSpec "missing-local-sigs"          Opt_WarnMissingLocalSigs,
+  flagSpec "missing-methods"             Opt_WarnMissingMethods,
+  flagSpec "missing-signatures"          Opt_WarnMissingSigs,
+  flagSpec "missing-exported-sigs"       Opt_WarnMissingExportedSigs,
+  flagSpec "monomorphism-restriction"    Opt_WarnMonomorphism,
+  flagSpec "name-shadowing"              Opt_WarnNameShadowing,
+  flagSpec "orphans"                     Opt_WarnOrphans,
+  flagSpec "overflowed-literals"         Opt_WarnOverflowedLiterals,
+  flagSpec "overlapping-patterns"        Opt_WarnOverlappingPatterns,
+  flagSpec "pointless-pragmas"           Opt_WarnPointlessPragmas,
+  flagSpec' "safe"                       Opt_WarnSafe setWarnSafe,
+  flagSpec "trustworthy-safe"            Opt_WarnTrustworthySafe,
+  flagSpec "tabs"                        Opt_WarnTabs,
+  flagSpec "type-defaults"               Opt_WarnTypeDefaults,
+  flagSpec "typed-holes"                 Opt_WarnTypedHoles,
+  flagSpec "partial-type-signatures"     Opt_WarnPartialTypeSignatures,
+  flagSpec "unrecognised-pragmas"        Opt_WarnUnrecognisedPragmas,
+  flagSpec' "unsafe"                     Opt_WarnUnsafe setWarnUnsafe,
+  flagSpec "unsupported-calling-conventions"
                                          Opt_WarnUnsupportedCallingConventions,
-  flagSpec "warn-unsupported-llvm-version"    Opt_WarnUnsupportedLlvmVersion,
-  flagSpec "warn-unticked-promoted-constructors"
+  flagSpec "unsupported-llvm-version"    Opt_WarnUnsupportedLlvmVersion,
+  flagSpec "unticked-promoted-constructors"
                                          Opt_WarnUntickedPromotedConstructors,
-  flagSpec "warn-unused-binds"                Opt_WarnUnusedBinds,
-  flagSpec "warn-unused-do-bind"              Opt_WarnUnusedDoBind,
-  flagSpec "warn-unused-imports"              Opt_WarnUnusedImports,
-  flagSpec "warn-unused-matches"              Opt_WarnUnusedMatches,
-  flagSpec "warn-warnings-deprecations"       Opt_WarnWarningsDeprecations,
-  flagSpec "warn-wrong-do-bind"               Opt_WarnWrongDoBind,
+  flagSpec "unused-binds"                Opt_WarnUnusedBinds,
+  flagSpec "unused-do-bind"              Opt_WarnUnusedDoBind,
+  flagSpec "unused-imports"              Opt_WarnUnusedImports,
+  flagSpec "unused-matches"              Opt_WarnUnusedMatches,
+  flagSpec "warnings-deprecations"       Opt_WarnWarningsDeprecations,
+  flagSpec "wrong-do-bind"               Opt_WarnWrongDoBind,
   flagSpec "missing-home-modules"             Opt_WarnMissingHomeModules
   ]
 
@@ -3796,6 +3813,10 @@ unSetGeneralFlag' f dflags = gopt_unset dflags f
 setWarningFlag, unSetWarningFlag :: WarningFlag -> DynP ()
 setWarningFlag   f = upd (\dfs -> wopt_set dfs f)
 unSetWarningFlag f = upd (\dfs -> wopt_unset dfs f)
+
+setFatalWarningFlag, unSetFatalWarningFlag :: WarningFlag -> DynP ()
+setFatalWarningFlag   f = upd (\dfs -> wopt_set_fatal dfs f)
+unSetFatalWarningFlag f = upd (\dfs -> wopt_unset_fatal dfs f)
 
 --------------------------
 setExtensionFlag, unSetExtensionFlag :: LangExt.Extension -> DynP ()
