@@ -653,8 +653,9 @@ importdecl :: { LImportDecl RdrName }
                    ((mj AnnImport $1 : (fst $ fst $2) ++ fst $3 ++ fst $4
                                     ++ fst $5 ++ fst $7)) }
         | 'import' 'java' javaid maybeas maybejavaimpspec
-                { L (comb4 $1 $3 (snd $4) (maybeLoc "parse java import" $5)) $
+                { sL (comb4 $1 $3 (snd $4) (maybeLoc "parse java import" $5)) $
                   ImportJavaDecl { ideclClassName = $3
+                                 , ideclName = fmap mkModuleNameFS $3
                                  , ideclAsModule = snd $4
                                  , ideclImport = $5 } }
 
@@ -698,28 +699,28 @@ maybejavaimpspec :: { Maybe (Located (Bool, Located [Located (JavaImport RdrName
        | {- empty -}              { Nothing }
 
 javaimpspec :: { Located (Bool, Located [Located (JavaImport RdrName)]) }
-       :  '(' javaimplist ')'              { L (comb2 $1 $3) (True, $2) }
-       |  'hiding' '(' javaidlist ')'      { L (comb2 $1 $4) (False, L (comb2 $2 $4) $3) }
+       :  '(' javaimplist ')'              { sLL $1 $3 (True, $2) }
+       |  'hiding' '(' javaidlist ')'      { sLL $1 $4 (False, sLL $2 $4 $3) }
 
 javaimplist :: { Located [Located (JavaImport RdrName)] }
-        : javaimp ',' javaimplist { L (comb3 $1 $2 $3) ($1 : unLoc $3) }
-        | javaimp { L (getLoc $1) [$1] }
-        | '..' { L (getLoc $1) [] }
+        : javaimp ',' javaimplist { sL (comb3 $1 $2 $3) ($1 : unLoc $3) }
+        | javaimp { sL1 $1 [$1] }
+        | '..' { sL1 $1 [] }
 
 javaimp :: { Located (JavaImport RdrName) }
-        : javaid maybe_jeta_type javaimpspec { L (comb2 $1 $3) $
+        : javaid maybe_jeta_type javaimpspec { sLL $1 $3 $
             JIInnerClass { javaImportJavaName = $1
                          , javaImportEtaName =
-                             fromMaybe (L (getLoc $1) $ mkRdrUnqual (mkTcOccFS (unLoc $1))) $2
+                             fromMaybe (sL1 $1 $ mkRdrUnqual (mkTcOccFS (unLoc $1))) $2
                          , javaImportAs = isJust $2
                          , javaImportSubImports = snd $ unLoc $3 }
              }
         | javaid maybe_jeta_name opt_sig {
-            L (comb3 $1 (maybeLoc "javaimp member1" $2)
-                        (maybeLoc "javaimp member2" $ snd $3)) $
+            sL (comb3 $1 (maybeLoc "javaimp member1" $2)
+                         (maybeLoc "javaimp member2" $ snd $3)) $
             JIClassMember { javaImportJavaName = $1
                           , javaImportEtaName =
-                              fromMaybe (L (getLoc $1) $ mkVarUnqual (unLoc $1)) $2
+                              fromMaybe (sL1 $1 $ mkVarUnqual (unLoc $1)) $2
                           , javaImportAs = isJust $2
                           , javaImportTypeSig = snd $3 }
                           }
@@ -734,19 +735,19 @@ maybe_jeta_type :: { Maybe (Located RdrName) }
 
 javaidlist :: { [Located (JavaImport RdrName)] }
            : javaid ',' javaidlist {
-             (L (comb2 $1 (maybeLoc "javaidlist" (safeLast $3)))
+             (sLL $1 (maybeLoc "javaidlist" (safeLast $3))
              $ mkSimpleMemberImport $1 mkVarUnqual) : $3 }
-           | javaid { [L (getLoc $1) $ mkSimpleMemberImport $1 mkVarUnqual] }
+           | javaid { [sL1 $1 $ mkSimpleMemberImport $1 mkVarUnqual] }
            | {- empty -} { [] }
 
 javaid :: { Located FastString }
-       : VARID { L (getLoc $1) (getVARID $1) }
-       | CONID { L (getLoc $1) (getCONID $1) }
-       | JAVAID { L (getLoc $1) (getJAVAID $1) }
+       : VARID { sL1 $1 (getVARID $1) }
+       | CONID { sL1 $1 (getCONID $1) }
+       | JAVAID { sL1 $1 (getJAVAID $1) }
        | QCONID { let (fs1, fs2) = getQCONID $1
-                  in L (getLoc $1) (appendFS fs1 (consFS '.' fs2)) }
+                  in sL1 $1 (appendFS fs1 (consFS '.' fs2)) }
        | QVARID { let (fs1, fs2) = getQVARID $1
-                  in L (getLoc $1) (appendFS fs1 (consFS '.' fs2)) }
+                  in sL1 $1 (appendFS fs1 (consFS '.' fs2)) }
 
 -----------------------------------------------------------------------------
 -- Fixity Declarations
