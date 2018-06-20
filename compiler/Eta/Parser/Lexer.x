@@ -514,10 +514,6 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   \"                            { lex_string_tok }
 }
 
-<0> {
-  @javaid { javaIdToken }
-}
-
 -- -----------------------------------------------------------------------------
 -- Alex "Haskell code fragment bottom"
 
@@ -1246,12 +1242,12 @@ do_bol span _str _len = do
         pos <- getOffside
         case pos of
             LT -> do
-                --trace "layout: inserting '}'" $ do
+                traceLexer "layout: inserting '}'" $ do
                 popContext
                 -- do NOT pop the lex state, we might have a ';' to insert
                 return (L span ITvccurly)
             EQ -> do
-                --trace "layout: inserting ';'" $ do
+                traceLexer "layout: inserting ';'" $ do
                 _ <- popLexState
                 return (L span ITsemi)
             GT -> do
@@ -2203,7 +2199,7 @@ getOffside :: P Ordering
 getOffside = P $ \s@PState{last_loc=loc, context=stk} ->
                 let offs = srcSpanStartCol loc in
                 let ord = case stk of
-                        (Layout n:_) -> --trace ("layout: " ++ show n ++ ", offs: " ++ show offs) $
+                        (Layout n:_) -> traceLexer ("layout: " ++ show n ++ ", offs: " ++ show offs) $
                                         compare offs n
                         _            -> GT
                 in POk s ord
@@ -2243,11 +2239,11 @@ lexError str = do
   (AI end buf) <- getInput
   reportLexError loc end buf str
 
-traceToken :: Token -> P a -> P a
-traceToken tok m = do
+traceLexer :: String -> P a -> P a
+traceLexer str m = do
   dflags <- getDynFlags
-  if dopt Opt_D_dump_tokens dflags
-  then trace ("token: " ++ show tok) m
+  if dopt Opt_D_dump_lexer dflags
+  then trace str m
   else m
 
 -- -----------------------------------------------------------------------------
@@ -2259,7 +2255,7 @@ lexer queueComments cont = do
   alr <- extension alternativeLayoutRule
   let lexTokenFun = if alr then lexTokenAlr else lexToken
   (L span tok) <- lexTokenFun
-  traceToken tok $ do
+  traceLexer ("token: " ++ show tok) $ do
 
   case tok of
     ITeof -> addAnnotationOnly noSrcSpan AnnEofPos (RealSrcSpan span)
