@@ -31,7 +31,7 @@ module Eta.Types.TypeRep (
         isLiftedTypeKind, isSuperKind, isTypeVar, isKindVar,
 
         -- Pretty-printing
-        pprType, pprParendType, pprTypeApp, pprTvBndr, pprTvBndrs,
+        pprType, pprParendType, pprTypeApp, pprTvBndr, pprTvBndrs, pprTyVars, pprTyVar,
         pprTyThing, pprTyThingCategory, pprSigmaType, pprSigmaTypeExtraCts,
         pprTheta, pprForAll, pprUserForAll,
         pprThetaArrowTy, pprClassPred,
@@ -51,7 +51,7 @@ module Eta.Types.TypeRep (
         tidyOpenTyVar, tidyOpenTyVars,
         tidyTyVarOcc,
         tidyTopType,
-        tidyKind, noFreeVarsOfType,
+        tidyKind, noFreeVarsOfType, isCoercionType,
 
         -- Substitutions
         TvSubst(..), TvSubstEnv
@@ -273,6 +273,16 @@ mkTyVarTy  = TyVarTy
 
 mkTyVarTys :: [TyVar] -> [Type]
 mkTyVarTys = map mkTyVarTy -- a common use of mkTyVarTy
+
+-- | Does this type classify a core (unlifted) Coercion?
+-- At either role nominal or representational
+--    (t1 ~# t2) or (t1 ~R# t2)
+isCoercionType :: Type -> Bool
+isCoercionType (TyConApp tc tys)
+  | (tc `hasKey` eqPrimTyConKey) || (tc `hasKey` eqReprPrimTyConKey)
+  , tys `lengthIs` 4
+  = True
+isCoercionType _ = False
 
 -- | Create the plain type constructor type which has been applied to no type arguments at all.
 mkTyConTy :: TyCon -> Type
@@ -547,6 +557,18 @@ pprKind, pprParendKind :: Kind -> SDoc
 pprKind       = pprType
 pprParendKind = pprParendType
 
+-- tidyToIfaceType :: Type -> IfaceType
+-- -- It's vital to tidy before converting to an IfaceType
+-- -- or nested binders will become indistinguishable!
+-- --
+-- -- Also for the free type variables, tell toIfaceTypeX to
+-- -- leave them as IfaceFreeTyVar.  This is super-important
+-- -- for debug printing.
+-- tidyToIfaceType ty = toIfaceType (tidyType env ty)
+--   where
+--     env       = tidyFreeTyVars emptyTidyEnv free_tcvs
+--     free_tcvs = tyVarsOfType ty
+
 ------------
 pprClassPred :: Class -> [Type] -> SDoc
 pprClassPred clas tys = pprTypeApp (classTyCon clas) tys
@@ -555,6 +577,9 @@ pprClassPred clas tys = pprTypeApp (classTyCon clas) tys
 pprTheta :: ThetaType -> SDoc
 -- pprTheta [pred] = pprPred pred        -- I'm in two minds about this
 pprTheta theta  = parens (sep (punctuate comma (map (ppr_type TopPrec) theta)))
+
+-- pprParendTheta :: ThetaType -> SDoc
+-- pprParendTheta = pprIfaceContext . map tidyToIfaceType
 
 pprThetaArrowTy :: ThetaType -> SDoc
 pprThetaArrowTy []     = empty
@@ -689,6 +714,19 @@ pprTvBndr tv
              where
                kind = tyVarKind tv
 
+pprTyVars :: [TyVar] -> SDoc
+pprTyVars tvs = sep (map pprTyVar tvs)
+
+pprTyVar :: TyVar -> SDoc
+-- Print a type variable binder with its kind (but not if *)
+-- Here we do not go via IfaceType, because the duplication with
+-- pprIfaceTvBndr is minimal, and the loss of uniques etc in
+-- debug printing is disastrous
+pprTyVar tv
+  | isLiftedTypeKind kind = ppr tv
+  | otherwise             = parens (ppr tv <+> dcolon <+> ppr kind)
+  where
+    kind = tyVarKind tv
 {-
 Note [When to print foralls]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

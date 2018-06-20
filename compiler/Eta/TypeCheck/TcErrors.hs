@@ -25,13 +25,14 @@ import Eta.TypeCheck.TcEvidence
 import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.RdrName          ( lookupGlobalRdrEnv, lookupGRE_Name, GlobalRdrEnv, pprNameProvenance
-                                       , GlobalRdrElt (..), globalRdrEnvElts, mkRdrUnqual, isLocalGRE, greSrcSpan)
+                                       , GlobalRdrElt (..), globalRdrEnvElts, mkRdrUnqual, isLocalGRE)
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.NameEnv
 import Eta.Utils.Bag
+import Eta.Rename.RnNames
 import Eta.Main.ErrUtils         ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning, errDoc )
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Util
@@ -49,6 +50,8 @@ import Eta.HsSyn.HsExpr
 import Data.Maybe
 import Data.List                 ( partition, mapAccumL, nub, sortBy )
 import qualified Data.Set as Set
+
+import {-# SOURCE #-} Eta.TypeCheck.TcHoleErrors ( findValidHoleFits )
 #include "HsVersions.h"
 
 {-
@@ -168,6 +171,13 @@ data Report
            , report_valid_hole_fits :: [SDoc]
            }
 
+instance Outputable Report where   -- Debugging only
+ ppr (Report { report_important = imp
+             , report_relevant_bindings = rel
+             , report_valid_hole_fits = val })
+   = vcat [ text "important:" <+> vcat imp
+          , text "relevant:"  <+> vcat rel
+          , text "valid:"  <+> vcat val ]
 {- Note [Error report]
 The idea is that error msgs are divided into three parts: the main msg, the
 context block (\"In the second argument of ...\"), and the relevant bindings
@@ -267,28 +277,57 @@ Specifically (see reportWanteds)
 -}
 
 reportImplic :: ReportErrCtxt -> Implication -> TcM ()
-reportImplic ctxt implic@(Implic { ic_skols = tvs, ic_given = given
+reportImplic ctxt implic@(Implic { ic_skols = tvs, ic_telescope = m_telescope
+                                 , ic_given = given
                                  , ic_wanted = wanted, ic_binds = evb
-                                 , ic_insol = ic_insoluble, ic_info = info })
+                                 , ic_status = status, ic_info = info
+                                 , ic_env = tcl_env, ic_tclvl = tc_lvl })
   | BracketSkol <- info
-  , not ic_insoluble -- For Template Haskell brackets report only
+  , not insoluble -- For Template Haskell brackets report only
   = return ()        -- definite errors. The whole thing will be re-checked
                      -- later when we plug it in, and meanwhile there may
                      -- certainly be un-satisfied constraints
 
   | otherwise
-  = reportWanteds ctxt' wanted
+  = do { traceTc "reportImplic" (ppr implic')
+      ; reportWanteds ctxt' tc_lvl wanted
+      ; when (cec_warn_redundant ctxt) $
+        warnRedundantConstraints ctxt' tcl_env info' dead_givens
+      ; when bad_telescope $ reportBadTelescope ctxt tcl_env m_telescope tvs }
   where
-    (env1, tvs') = mapAccumL tidyTyVarBndr (cec_tidy ctxt) tvs
-    (env2, info') = tidySkolemInfo env1 info
-    implic' = implic { ic_skols = tvs'
-                     , ic_given = map (tidyEvVar env2) given
-                     , ic_info  = info' }
-    ctxt' = ctxt { cec_tidy  = env2
-                 , cec_encl  = implic' : cec_encl ctxt
-                 , cec_binds = case cec_binds ctxt of
-                                 Nothing -> Nothing
-                                 Just {} -> Just evb }
+   insoluble    = isInsolubleStatus status
+   (env1, tvs') = mapAccumL tidyTyCoVarBndr (cec_tidy ctxt) tvs
+   info'        = tidySkolemInfo env1 info
+   implic' = implic { ic_skols = tvs'
+                    , ic_given = map (tidyEvVar env1) given
+                    , ic_info  = info' }
+   ctxt1 | NoEvBindsVar{} <- evb    = noDeferredBindings ctxt
+         | otherwise                = ctxt
+         -- If we go inside an implication that has no term
+         -- evidence (e.g. unifying under a forall), we can't defer
+         -- type errors.  You could imagine using the /enclosing/
+         -- bindings (in cec_binds), but that may not have enough stuff
+         -- in scope for the bindings to be well typed.  So we just
+         -- switch off deferred type errors altogether.  See Trac #14605.
+
+   ctxt' = ctxt1 { cec_tidy     = env1
+                 , cec_encl     = implic' : cec_encl ctxt
+
+                 , cec_suppress = insoluble || cec_suppress ctxt
+                       -- Suppress inessential errors if there
+                       -- are insolubles anywhere in the
+                       -- tree rooted here, or we've come across
+                       -- a suppress-worthy constraint higher up (Trac #11541)
+
+                 , cec_binds    = evb }
+
+   dead_givens = case status of
+                   IC_Solved { ics_dead = dead } -> dead
+                   _                             -> []
+
+   bad_telescope = case status of
+             IC_BadTelescope -> True
+             _               -> False
 
 reportWanteds :: ReportErrCtxt -> WantedConstraints -> TcM ()
 reportWanteds ctxt wanted@(WC { wc_simple = simples, wc_insol = insols, wc_impl = implics })
@@ -797,12 +836,28 @@ mkHoleError tidy_simples ctxt ct@(CHoleCan { cc_hole = hole })
            MetaTv {} -> quotes (ppr tv) <+> text "is an ambiguous type variable"
            _         -> empty  -- Skolems dealt with already
        | otherwise  -- A coercion variable can be free in the hole type
-       = sdocWithDynFlags $ \dflags ->
-         if gopt Opt_PrintExplicitCoercions dflags
-         then quotes (ppr tv) <+> text "is a coercion variable"
-         else empty
+       = empty
+         -- sdocWithDynFlags $ \dflags ->
+         -- if gopt Opt_PrintExplicitCoercions dflags
+         -- then quotes (ppr tv) <+> text "is a coercion variable"
+         -- else empty
 
 mkHoleError _ _ ct = pprPanic "mkHoleError" (ppr ct)
+
+-- We unwrap the ReportErrCtxt here, to avoid introducing a loop in module
+-- imports
+validHoleFits :: ReportErrCtxt -- The context we're in, i.e. the
+                                        -- implications and the tidy environment
+                       -> [Ct]          -- Unsolved simple constraints
+                       -> Ct            -- The hole constraint.
+                       -> TcM (ReportErrCtxt, SDoc) -- We return the new context
+                                                    -- with a possibly updated
+                                                    -- tidy environment, and
+                                                    -- the message.
+validHoleFits ctxt@(CEC {cec_encl = implics
+                             , cec_tidy = lcl_env}) simps ct
+  = do { (tidy_env, msg) <- findValidHoleFits lcl_env implics simps ct
+       ; return (ctxt {cec_tidy = tidy_env}, msg) }
 
 pp_with_type :: OccName -> Type -> SDoc
 pp_with_type occ ty = hang (pprPrefixOcc occ) 2 (dcolon <+> pprType ty)
@@ -810,35 +865,38 @@ pp_with_type occ ty = hang (pprPrefixOcc occ) 2 (dcolon <+> pprType ty)
 -- See Note [Constraints include ...]
 givenConstraintsMsg :: ReportErrCtxt -> SDoc
 givenConstraintsMsg ctxt =
-   let constraints :: [(Type, RealSrcSpan)]
-       constraints =
-              do { Implic{ ic_given = given, ic_env = env } <- cec_encl ctxt
-                 ; constraint <- given
-                 ; return (varType constraint, tcl_loc env) }
+    let constraints :: [(Type, RealSrcSpan)]
+        constraints =
+          do { Implic{ ic_given = given, ic_env = env } <- cec_encl ctxt
+             ; constraint <- given
+             ; return (varType constraint, tcl_loc env) }
 
-            pprConstraint (constraint, loc) =
-              ppr constraint <+> nest 2 (parens (text "from" <+> ppr loc))
+        pprConstraint (constraint, loc) =
+          ppr constraint <+> nest 2 (parens (text "from" <+> ppr loc))
 
-        in ppUnless (null constraints) $
-             hang (text "Constraints include")
-                2 (vcat $ map pprConstraint constraints)
+    in ppUnless (null constraints) $
+         hang (text "Constraints include")
+            2 (vcat $ map pprConstraint constraints)
 
 ----------------
 mkIPErr :: ReportErrCtxt -> [Ct] -> TcM ErrMsg
 mkIPErr ctxt cts
-  = do { (ctxt, binds_msg) <- relevantBindings True ctxt ct1
-       ; mkErrorMsg ctxt ct1 (msg $$ bind_msg) }
+  = do { (ctxt, binds_msg, ct1) <- relevantBindings True ctxt ct1
+       ; let orig    = ctOrigin ct1
+             preds   = map ctPred cts
+             givens  = getUserGivens ctxt
+             msg | null givens
+                 = addArising orig $
+                   sep [ text "Unbound implicit parameter" <> plural cts
+                       , nest 2 (pprTheta preds) ]
+                 | otherwise
+                 = couldNotDeduce givens (preds, orig)
+
+       ; mkErrorMsgFromCt ctxt ct1 $
+            important msg `mappend` relevant_bindings binds_msg }
   where
     (ct1:_) = cts
-    orig    = ctLocOrigin (ctLoc ct1)
-    preds   = map ctPred cts
-    givens  = getUserGivens ctxt
-    msg | null givens
-        = addArising orig $
-          sep [ ptext (sLit "Unbound implicit parameter") <> plural cts
-              , nest 2 (pprTheta preds) ]
-        | otherwise
-        = couldNotDeduce givens (preds, orig)
+
 
 {- Note [Constraints include ...]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1231,7 +1289,7 @@ extraTyVarInfo ctxt tv1 ty2
     tv_extra tv | isTcTyVar tv, isSkolemTyVar tv
                 , let pp_tv = quotes (ppr tv)
                 = case tcTyVarDetails tv of
-                    SkolemTv {}   -> pp_tv <+> pprSkol (getSkolemInfo implics tv) (getSrcLoc tv)
+                    SkolemTv {}   -> pprSkols ctxt [tv]
                     FlatSkol {}   -> pp_tv <+> ptext (sLit "is a flattening type variable")
                     RuntimeUnk {} -> pp_tv <+> ptext (sLit "is an interactive-debugger skolem")
                     MetaTv {}     -> empty
@@ -1704,12 +1762,25 @@ mkAmbigMsg ct
       | gopt Opt_PrintExplicitKinds dflags = empty
       | otherwise = ptext (sLit "Use -fprint-explicit-kinds to see the kind arguments")
 
-pprSkol :: SkolemInfo -> SrcLoc -> SDoc
-pprSkol UnkSkol   _
-  = ptext (sLit "is an unknown type variable")
-pprSkol skol_info tv_loc
-  = sep [ ptext (sLit "is a rigid type variable bound by"),
-          sep [ppr skol_info, ptext (sLit "at") <+> ppr tv_loc]]
+pprSkols :: ReportErrCtxt -> [TcTyVar] -> SDoc
+pprSkols ctxt tvs
+  = vcat (map pp_one (getSkolemInfo (cec_encl ctxt) tvs))
+  where
+    pp_one (Implic { ic_info = skol_info }, tvs)
+      | UnkSkol <- skol_info
+      = hang (pprQuotedList tvs)
+           2 (is_or_are tvs "an" "unknown")
+      | otherwise
+      = vcat [ hang (pprQuotedList tvs)
+                  2 (is_or_are tvs "a"  "rigid" <+> text "bound by")
+             , nest 2 (pprSkolInfo skol_info)
+             , nest 2 (text "at" <+> ppr (foldr1 combineSrcSpans (map getSrcSpan tvs))) ]
+
+    is_or_are [_] article adjective = text "is" <+> text article <+> text adjective
+                                      <+> text "type variable"
+    is_or_are _   _       adjective = text "are" <+> text adjective
+                                      <+> text "type variables"
+
 
 getSkolemInfo :: [Implication] -> TcTyVar -> SkolemInfo
 -- Get the skolem info for a type variable

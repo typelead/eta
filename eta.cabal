@@ -250,6 +250,7 @@ library
                        , Eta.TypeCheck.TcRnTypes
                        , Eta.TypeCheck.TcRules
                        , Eta.TypeCheck.TcSimplify
+                       , Eta.TypeCheck.TcHoleErrors
                        , Eta.TypeCheck.TcSMonad
                        , Eta.TypeCheck.TcSplice
                        , Eta.TypeCheck.TcTyClsDecls

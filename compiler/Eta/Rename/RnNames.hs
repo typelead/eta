@@ -12,7 +12,7 @@ module Eta.Rename.RnNames (
         gresFromAvails,
         calculateAvails,
         reportUnusedNames,
-        checkConName,
+        checkConName, greSrcSpan,
         -- These error functions are also used in RnBinds
         addSimDeclErrors, addSimDeclErr
     ) where

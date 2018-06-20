@@ -53,6 +53,7 @@ import Eta.BasicTypes.BasicTypes( TopLevelFlag )
 
 import Control.Exception
 import Data.IORef
+import Data.Set ( Set )
 import qualified Data.Set as Set
 import Control.Monad
 import qualified Eta.LanguageExtensions as LangExt
@@ -86,6 +87,7 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
         used_rdr_var <- newIORef Set.empty ;
         th_var       <- newIORef False ;
         th_splice_var<- newIORef False ;
+        th_locs_var  <- newIORef Set.empty ;
         infer_var    <- newIORef True ;
         lie_var      <- newIORef emptyWC ;
         dfun_n_var   <- newIORef emptyOccSet ;
@@ -135,6 +137,8 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 tcg_visible_orphan_mods = mkModuleSet [mod],
                 tcg_th_used        = th_var,
                 tcg_th_splice_used = th_splice_var,
+                tcg_th_top_level_locs
+                                   = th_locs_var,
                 tcg_exports        = [],
                 tcg_imports        = emptyImportAvails,
                 tcg_used_rdrnames  = used_rdr_var,
@@ -1571,7 +1575,7 @@ forkM doc thing_inside
         ; return (case mb_res of
                         Nothing -> pgmError "Cannot continue after interface file error"
                                    -- pprPanic "forkM" doc
-                        Just r  -> r) }                        
+                        Just r  -> r) }
 
 {-
 Note [Masking exceptions in forkM_maybe]

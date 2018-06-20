@@ -5,7 +5,8 @@ module Eta.TypeCheck.TcSimplify(
        simplifyDefault,
        simplifyRule, simplifyTop, simplifyInteractive,
        solveWantedsTcM,
-       captureTopConstraints
+       captureTopConstraints,
+       simpl_top
   ) where
 
 import qualified Eta.LanguageExtensions as LangExt
@@ -89,6 +90,9 @@ simplifyTop wanteds
        ; traceTc "reportUnsolved }" empty
 
        ; return (binds1 `unionBags` binds2) }
+
+-- | Simplify top-level constraints, but without reporting any unsolved
+-- constraints nor unsafe overlapping.
 
 simpl_top :: WantedConstraints -> TcS WantedConstraints
     -- See Note [Top-level Defaulting Plan]

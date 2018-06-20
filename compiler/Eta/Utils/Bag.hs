@@ -17,7 +17,7 @@ module Eta.Utils.Bag (
         filterBag, partitionBag, partitionBagWith,
         concatBag, foldBag, foldrBag, foldlBag,
         isEmptyBag, isSingletonBag, consBag, snocBag, anyBag,
-        listToBag, bagToList,
+        allBag, listToBag, bagToList,
         foldrBagM, foldlBagM, mapBagM, mapBagM_,
         flatMapBagM, flatMapBagPairM,
         mapAndUnzipBagM, mapAccumBagLM, mapAccumBagL
@@ -91,6 +91,12 @@ filterBag pred (TwoBags b1 b2) = sat1 `unionBags` sat2
     where sat1 = filterBag pred b1
           sat2 = filterBag pred b2
 filterBag pred (ListBag vs)    = listToBag (filter pred vs)
+
+allBag :: (a -> Bool) -> Bag a -> Bool
+allBag _ EmptyBag        = True
+allBag p (UnitBag v)     = p v
+allBag p (TwoBags b1 b2) = allBag p b1 && allBag p b2
+allBag p (ListBag xs)    = all p xs
 
 anyBag :: (a -> Bool) -> Bag a -> Bool
 anyBag _ EmptyBag        = False

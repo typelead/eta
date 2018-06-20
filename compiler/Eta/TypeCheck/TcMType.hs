@@ -43,7 +43,7 @@ module Eta.TypeCheck.TcMType (
 
   --------------------------------
   -- Zonking and tidying
-  zonkTcPredType, zonkTidyTcType, zonkTidyOrigin,
+  zonkTcPredType, zonkTidyTcType, zonkTidyTcTypes, zonkTidyOrigin,
   tidyEvVar, tidyCt, tidySkolemInfo,
   skolemiseUnboundMetaTyVar,
   zonkTcTyVar, zonkTcTyVars, zonkTyVarsAndFV, zonkTcTypeAndFV,
@@ -913,6 +913,13 @@ zonkTcKind k = zonkTcType k
 zonkTidyTcType :: TidyEnv -> TcType -> TcM (TidyEnv, TcType)
 zonkTidyTcType env ty = do { ty' <- zonkTcType ty
                            ; return (tidyOpenType env ty') }
+                         
+zonkTidyTcTypes :: TidyEnv -> [TcType] -> TcM (TidyEnv, [TcType])
+zonkTidyTcTypes = zonkTidyTcTypes' []
+ where zonkTidyTcTypes' zs env [] = return (env, reverse zs)
+       zonkTidyTcTypes' zs env (ty:tys)
+         = do { (env', ty') <- zonkTidyTcType env ty
+              ; zonkTidyTcTypes' (ty':zs) env' tys }
 
 zonkTidyOrigin :: TidyEnv -> CtOrigin -> TcM (TidyEnv, CtOrigin)
 zonkTidyOrigin env (GivenOrigin skol_info)

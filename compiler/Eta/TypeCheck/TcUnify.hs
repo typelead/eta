@@ -602,10 +602,13 @@ buildImplication skol_info skol_tvs given thing_inside
                              , ic_no_eqs = False
                              , ic_given = given
                              , ic_wanted = wanted
-                             , ic_insol = insolubleWC wanted
+                             , ic_telescope = Nothing
                              , ic_binds = ev_binds_var
                              , ic_env = env
-                             , ic_info = skol_info }
+                             , ic_info = skol_info
+                             , ic_need_inner = emptyVarSet
+                             , ic_need_outer = emptyVarSet
+                             , ic_status     = IC_Unsolved }
 
        ; return (unitBag implic, TcEvBinds ev_binds_var, result) } }
 

@@ -60,11 +60,12 @@ module Eta.TypeCheck.TcRnTypes(
         ctEvPred, ctEvLoc, ctEvEqRel,
         ctEvTerm, ctEvCoercion, ctEvId, ctEvCheckDepth,
 
-        WantedConstraints(..), insolubleWC, emptyWC, isEmptyWC,
-        andWC, unionsWC, addSimples, addImplics, mkSimpleWC, addInsols,
+        WantedConstraints(..), insolubleWC, emptyWC, isEmptyWC, isSolvedStatus,
+        insolubleWantedCt, insolubleImplic,
+        isSolvedWC, andWC, unionsWC, addSimples, addImplics, mkSimpleWC, addInsols,
         insolublesOnly, dropDerivedWC,
 
-        Implication(..),
+        Implication(..), newImplication, ImplicStatus(..),
         SubGoalCounter(..),
         SubGoalDepth, initialSubGoalDepth, maxSubGoalDepth,
         bumpSubGoalDepth, subGoalCounterValue, subGoalDepthExceeded,
@@ -81,6 +82,8 @@ module Eta.TypeCheck.TcRnTypes(
         isWanted, isGiven, isDerived,
         ctEvRole,
 
+        removeBindingShadowing,
+
         -- Constraint solver plugins
         TcPlugin(..), TcPluginResult(..), TcPluginSolver,
         TcPluginM, runTcPluginM, unsafeTcPluginTcM,
@@ -93,7 +96,7 @@ module Eta.TypeCheck.TcRnTypes(
         pprArising, pprArisingAt,
 
         -- Misc other types
-        TcId, TcIdSet, Hole(..)
+        TcId, TcIdSet, Hole(..), holeOcc
 
   ) where
 
@@ -134,7 +137,7 @@ import Eta.Utils.Outputable
 import Eta.Utils.ListSetOps
 import Eta.Utils.FastString
 import GHC.Fingerprint
-
+import Eta.Types.TypeRep
 import Data.Set (Set)
 import Control.Monad (ap, liftM, msum)
 
@@ -422,6 +425,9 @@ data TcGblEnv
           -- ^ @True@ <=> A Template Haskell splice was used.
           --
           -- Splices disable recompilation avoidance (see #481)
+        tcg_th_top_level_locs :: TcRef (Set RealSrcSpan),
+          -- ^ Locations of the top-level splices; used for providing details on
+          -- scope in error messages for out-of-scope variables
 
         tcg_dfun_n  :: TcRef OccSet,
           -- ^ Allows us to choose unique DFun names.
@@ -710,6 +716,22 @@ type TcRef a     = IORef a
 -- ToDo: when should I refer to it as a 'TcId' instead of an 'Id'?
 type TcId        = Id
 type TcIdSet     = IdSet
+
+-- Builds up a list of bindings whose OccName has not been seen before
+-- i.e., If    ys  = removeBindingShadowing xs
+-- then
+--  - ys is obtained from xs by deleting some elements
+--  - ys has no duplicate OccNames
+--  - The first duplicated OccName in xs is retained in ys
+-- Overloaded so that it can be used for both GlobalRdrElt in typed-hole
+-- substitutions and TcBinder when looking for relevant bindings.
+removeBindingShadowing :: HasOccName a => [a] -> [a]
+removeBindingShadowing bindings = reverse $ fst $ foldl
+    (\(bindingAcc, seenNames) binding ->
+    if occName binding `elemOccSet` seenNames -- if we've seen it
+        then (bindingAcc, seenNames)              -- skip it
+        else (binding:bindingAcc, extendOccSet seenNames (occName binding)))
+    ([], emptyOccSet) bindings
 
 ---------------------------
 -- Template Haskell stages and levels
@@ -1140,13 +1162,20 @@ data Ct
       cc_tyargs :: [Xi]        -- cc_tyargs are function-free, hence Xi
     }
 
-  | CIrredEvCan {  -- These stand for yet-unusable predicates
-      cc_ev :: CtEvidence   -- See Note [Ct/evidence invariant]
-        -- The ctev_pred of the evidence is
-        -- of form   (tv xi1 xi2 ... xin)
+  | CIrredCan {  -- These stand for yet-unusable predicates
+      cc_ev    :: CtEvidence,   -- See Note [Ct/evidence invariant]
+      cc_insol :: Bool   -- True  <=> definitely an error, can never be solved
+                         -- False <=> might be soluble
+
+        -- For the might-be-soluble case, the ctev_pred of the evidence is
+        -- of form   (tv xi1 xi2 ... xin)   with a tyvar at the head
         --      or   (tv1 ~ ty2)   where the CTyEqCan  kind invariant fails
         --      or   (F tys ~ ty)  where the CFunEqCan kind invariant fails
-        -- See Note [CIrredEvCan constraints]
+        -- See Note [CIrredCan constraints]
+
+        -- The definitely-insoluble case is for things like
+        --    Int ~ Bool      tycons don't match
+        --    a ~ [a]         occurs check
     }
 
   | CTyEqCan {  -- tv ~ rhs
@@ -1206,6 +1235,13 @@ data Ct
 data Hole = ExprHole UnboundVar -- ^ A hole in an expression (TypedHoles)
           | TypeHole OccName -- ^ A hole in a type (PartialTypeSignatures)
 
+instance Outputable Hole where
+  ppr (ExprHole ub)  = ppr ub
+  ppr (TypeHole occ) = text "TypeHole" <> parens (ppr occ)
+
+holeOcc :: Hole -> OccName
+holeOcc (ExprHole uv)  = unboundVarOcc uv
+holeOcc (TypeHole occ) = occ
 {-
 Note [Kind orientation for CTyEqCan]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1368,7 +1404,7 @@ isCDictCan_Maybe (CDictCan {cc_class = cls })  = Just cls
 isCDictCan_Maybe _              = Nothing
 
 isCIrredEvCan :: Ct -> Bool
-isCIrredEvCan (CIrredEvCan {}) = True
+isCIrredEvCan (CIrredCan {}) = True
 isCIrredEvCan _                = False
 
 isCFunEqCan_maybe :: Ct -> Maybe (TyCon, [Type])
@@ -1426,7 +1462,7 @@ instance Outputable Ct where
                            CFunEqCan {}     -> "CFunEqCan"
                            CNonCanonical {} -> "CNonCanonical"
                            CDictCan {}      -> "CDictCan"
-                           CIrredEvCan {}   -> "CIrredEvCan"
+                           CIrredCan {}     -> "CIrredCan"
                            CHoleCan {}      -> "CHoleCan"
 
 singleCt :: Ct -> Cts
@@ -1495,13 +1531,51 @@ isEmptyWC :: WantedConstraints -> Bool
 isEmptyWC (WC { wc_simple = f, wc_impl = i, wc_insol = n })
   = isEmptyBag f && isEmptyBag i && isEmptyBag n
 
+-- | Checks whether a the given wanted constraints are solved, i.e.
+-- that there are no simple constraints left and all the implications
+-- are solved.
+isSolvedWC :: WantedConstraints -> Bool
+isSolvedWC WC {wc_simple = wc_simple, wc_impl = wc_impl} =
+  isEmptyBag wc_simple && allBag (isSolvedStatus . ic_status) wc_impl
+
+isInsolubleStatus :: ImplicStatus -> Bool
+isInsolubleStatus IC_Insoluble    = True
+isInsolubleStatus IC_BadTelescope = True
+isInsolubleStatus _               = False
+
+insolubleImplic :: Implication -> Bool
+insolubleImplic ic = isInsolubleStatus (ic_status ic)
+
 insolubleWC :: WantedConstraints -> Bool
--- True if there are any insoluble constraints in the wanted bag. Ignore
--- constraints arising from PartialTypeSignatures to solve as much of the
--- constraints as possible before reporting the holes.
-insolubleWC wc = not (isEmptyBag (filterBag (not . isExprHoleCt)
-                                  (wc_insol wc)))
-               || anyBag ic_insol (wc_impl wc)
+insolubleWC (WC { wc_impl = implics, wc_simple = simples })
+  =  anyBag insolubleWantedCt simples
+  || anyBag insolubleImplic implics
+
+insolubleWantedCt :: Ct -> Bool
+-- Definitely insoluble, in particular /excluding/ type-hole constraints
+insolubleWantedCt ct
+  | isGivenCt ct     = False              -- See Note [Given insolubles]
+  | isHoleCt ct      = isOutOfScopeCt ct  -- See Note [Insoluble holes]
+  | insolubleEqCt ct = True
+  | otherwise        = False
+
+insolubleEqCt :: Ct -> Bool
+-- Returns True of /equality/ constraints
+-- that are /definitely/ insoluble
+-- It won't detect some definite errors like
+--       F a ~ T (F a)
+-- where F is a type family, which actually has an occurs check
+--
+-- The function is tuned for application /after/ constraint solving
+--       i.e. assuming canonicalisation has been done
+-- E.g.  It'll reply True  for     a ~ [a]
+--               but False for   [a] ~ a
+-- and
+--                   True for  Int ~ F a Int
+--               but False for  Maybe Int ~ F a Int Int
+--               (where F is an arity-1 type function)
+insolubleEqCt (CIrredCan { cc_insol = insol }) = insol
+insolubleEqCt _                                = False
 
 andWC :: WantedConstraints -> WantedConstraints -> WantedConstraints
 andWC (WC { wc_simple = f1, wc_impl = i1, wc_insol = n1 })
@@ -1523,6 +1597,10 @@ addImplics wc implic = wc { wc_impl = wc_impl wc `unionBags` implic }
 addInsols :: WantedConstraints -> Bag Ct -> WantedConstraints
 addInsols wc cts
   = wc { wc_insol = wc_insol wc `unionBags` cts }
+
+isSolvedStatus :: ImplicStatus -> Bool
+isSolvedStatus (IC_Solved {}) = True
+isSolvedStatus _              = False
 
 -- TODO: Properly backport these changes
 insolublesOnly :: WantedConstraints -> WantedConstraints
@@ -1626,7 +1704,11 @@ data Implication
       ic_skols  :: [TcTyVar],    -- Introduced skolems
       ic_info  :: SkolemInfo,    -- See Note [Skolems in an implication]
                                  -- See Note [Shadowing in a constraint]
-
+      ic_telescope :: Maybe SDoc,  -- User-written telescope, if there is one
+                                  -- The list of skolems is order-checked
+                                  -- if and only if this is a Just.
+                                  -- See Note [Keeping scoped variables in order: Explicit]
+                                  -- in TcHsType
       ic_given  :: [EvVar],      -- Given evidence variables
                                  --   (order does not matter)
                                  -- See Invariant (GivenInv) in TcType
@@ -1639,27 +1721,76 @@ data Implication
                                  -- given evidence variables
 
       ic_wanted :: WantedConstraints,  -- The wanted
-      ic_insol  :: Bool,               -- True iff insolubleWC ic_wanted is true
 
-      ic_binds  :: EvBindsVar   -- Points to the place to fill in the
+      ic_binds  :: EvBindsVar,   -- Points to the place to fill in the
                                 -- abstraction and bindings
+
+            -- The ic_need fields keep track of which Given evidence
+            -- is used by this implication or its children
+            -- NB: including stuff used by nested implications that have since
+            --     been discarded
+      ic_need_inner :: VarSet,    -- Includes all used Given evidence
+      ic_need_outer :: VarSet,    -- Includes only the free Given evidence
+                                  --  i.e. ic_need_inner after deleting
+                                  --       (a) givens (b) binders of ic_binds
+      ic_status   :: ImplicStatus
     }
+
+newImplication :: Implication
+newImplication
+  = Implic { -- These fields must be initialisad
+             ic_tclvl = panic "newImplic:tclvl"
+           , ic_binds = panic "newImplic:binds"
+           , ic_info  = panic "newImplic:info"
+           , ic_env   = panic "newImplic:env"
+
+             -- The rest have sensible default values
+           , ic_skols      = []
+           , ic_telescope  = Nothing
+           , ic_given      = []
+           , ic_wanted     = emptyWC
+           , ic_no_eqs     = False
+           , ic_status     = IC_Unsolved
+           , ic_need_inner = emptyVarSet
+           , ic_need_outer = emptyVarSet }
+
+data ImplicStatus
+  = IC_Solved     -- All wanteds in the tree are solved, all the way down
+       { ics_dead :: [EvVar] }  -- Subset of ic_given that are not needed
+         -- See Note [Tracking redundant constraints] in TcSimplify
+
+  | IC_Insoluble  -- At least one insoluble constraint in the tree
+
+  | IC_BadTelescope  -- solved, but the skolems in the telescope are out of
+                     -- dependency order
+
+  | IC_Unsolved   -- Neither of the above; might go either way
 
 instance Outputable Implication where
   ppr (Implic { ic_tclvl = tclvl, ic_skols = skols
               , ic_given = given, ic_no_eqs = no_eqs
-              , ic_wanted = wanted, ic_insol = insol
-              , ic_binds = binds, ic_info = info })
-   = hang (ptext (sLit "Implic") <+> lbrace)
-        2 (sep [ ptext (sLit "TcLevel =") <+> ppr tclvl
-               , ptext (sLit "Skolems =") <+> pprTvBndrs skols
-               , ptext (sLit "No-eqs =") <+> ppr no_eqs
-               , ptext (sLit "Insol =") <+> ppr insol
-               , hang (ptext (sLit "Given ="))  2 (pprEvVars given)
-               , hang (ptext (sLit "Wanted =")) 2 (ppr wanted)
-               , ptext (sLit "Binds =") <+> ppr binds
+              , ic_wanted = wanted, ic_status = status
+              , ic_binds = binds
+--              , ic_need_inner = need_in, ic_need_outer = need_out
+              , ic_info = info })
+   = hang (text "Implic" <+> lbrace)
+        2 (sep [ text "TcLevel =" <+> ppr tclvl
+               , text "Skolems =" <+> pprTyVars skols
+               , text "No-eqs =" <+> ppr no_eqs
+               , text "Status =" <+> ppr status
+               , hang (text "Given =")  2 (pprEvVars given)
+               , hang (text "Wanted =") 2 (ppr wanted)
+               , text "Binds =" <+> ppr binds
+--               , text "Needed inner =" <+> ppr need_in
+--               , text "Needed outer =" <+> ppr need_out
                , pprSkolInfo info ] <+> rbrace)
 
+instance Outputable ImplicStatus where
+  ppr IC_Insoluble    = text "Insoluble"
+  ppr IC_BadTelescope = text "Bad telescope"
+  ppr IC_Unsolved     = text "Unsolved"
+  ppr (IC_Solved { ics_dead = dead })
+    = text "Solved" <+> (braces (text "Dead givens =" <+> ppr dead))
 {-
 Note [Shadowing in a constraint]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
