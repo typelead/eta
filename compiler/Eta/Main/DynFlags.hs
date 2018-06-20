@@ -283,6 +283,7 @@ data DumpFlag
    | Opt_D_dump_rule_rewrites
    | Opt_D_dump_simpl_trace
    | Opt_D_dump_occur_anal
+   | Opt_D_dump_tokens
    | Opt_D_dump_parsed
    | Opt_D_dump_rn
    | Opt_D_dump_simpl
@@ -1796,6 +1797,7 @@ dopt f dflags = (fromEnum f `IntSet.member` dumpFlags dflags)
           enableIfVerbose Opt_D_dump_view_pattern_commoning = False
           enableIfVerbose Opt_D_dump_mod_cycles             = False
           enableIfVerbose Opt_D_dump_mod_map                = False
+          enableIfVerbose Opt_D_dump_tokens                 = False
           enableIfVerbose _                                 = True
 
 -- | Set a 'DumpFlag'
@@ -2618,6 +2620,7 @@ dynamic_flags = [
   , defGhcFlag "ddump-rule-rewrites"     (setDumpFlag Opt_D_dump_rule_rewrites)
   , defGhcFlag "ddump-simpl-trace"       (setDumpFlag Opt_D_dump_simpl_trace)
   , defGhcFlag "ddump-occur-anal"        (setDumpFlag Opt_D_dump_occur_anal)
+  , defGhcFlag "ddump-tokens"            (setDumpFlag Opt_D_dump_tokens)
   , defGhcFlag "ddump-parsed"            (setDumpFlag Opt_D_dump_parsed)
   , defGhcFlag "ddump-rn"                (setDumpFlag Opt_D_dump_rn)
   , defGhcFlag "ddump-simpl"             (setDumpFlag Opt_D_dump_simpl)

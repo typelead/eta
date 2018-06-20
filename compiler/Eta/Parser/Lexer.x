@@ -2243,6 +2243,13 @@ lexError str = do
   (AI end buf) <- getInput
   reportLexError loc end buf str
 
+traceToken :: Token -> P a -> P a
+traceToken tok m = do
+  dflags <- getDynFlags
+  if dopt Opt_D_dump_tokens dflags
+  then trace ("token: " ++ show tok) m
+  else m
+
 -- -----------------------------------------------------------------------------
 -- This is the top-level function: called from the parser each time a
 -- new token is to be read from the input.
@@ -2252,7 +2259,7 @@ lexer queueComments cont = do
   alr <- extension alternativeLayoutRule
   let lexTokenFun = if alr then lexTokenAlr else lexToken
   (L span tok) <- lexTokenFun
-  -- trace ("token: " ++ show tok) $ do
+  traceToken tok $ do
 
   case tok of
     ITeof -> addAnnotationOnly noSrcSpan AnnEofPos (RealSrcSpan span)
