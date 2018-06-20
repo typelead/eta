@@ -24,7 +24,8 @@ import Eta.BasicTypes.DataCon
 import Eta.TypeCheck.TcEvidence
 import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Name
-import Eta.BasicTypes.RdrName          ( lookupGRE_Name, GlobalRdrEnv )
+import Eta.BasicTypes.RdrName          ( lookupGRE_Name, GlobalRdrEnv, pprNameProvenance
+                                       , GlobalRdrElt (..), globalRdrEnvElts )
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarSet
@@ -39,11 +40,14 @@ import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.Main.DynFlags
 import Eta.Main.StaticFlags      ( opt_PprStyle_Debug )
-import Eta.Utils.ListSetOps       ( equivClasses )
+import Eta.Utils.ListSetOps      ( equivClasses )
+import Eta.BasicTypes.ConLike    ( conLikeWrapId_maybe )
+import Control.Monad             ( when )
+import Eta.Main.HscTypes         (HscEnv, lookupTypeHscEnv, TypeEnv, lookupTypeEnv )
+import Eta.BasicTypes.NameEnv    (lookupNameEnv)
 
-import Control.Monad    ( when )
 import Data.Maybe
-import Data.List        ( partition, mapAccumL, nub, sortBy )
+import Data.List                 ( partition, mapAccumL, nub, sortBy )
 
 #include "HsVersions.h"
 

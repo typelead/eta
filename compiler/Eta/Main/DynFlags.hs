@@ -621,6 +621,8 @@ data DynFlags = DynFlags {
 
   maxRelevantBinds      :: Maybe Int,   -- ^ Maximum number of bindings from the type envt
                                         --   to show in type error messages
+  maxValidSubstitutions :: Maybe Int,   -- ^ Maximum number of substitutions
+                                        --   to show in type error messages
   simplTickFactor       :: Int,         -- ^ Multiplier for simplifier ticks
   specConstrThreshold   :: Maybe Int,   -- ^ Threshold for SpecConstr
   specConstrCount       :: Maybe Int,   -- ^ Max number of specialisations for any one function
@@ -1439,6 +1441,7 @@ defaultDynFlags mySettings =
         maxSimplIterations      = 4,
         ruleCheck               = Nothing,
         maxRelevantBinds        = Just 6,
+        maxValidSubstitutions   = Just 6,
         simplTickFactor         = 100,
         specConstrThreshold     = Just 2000,
         specConstrCount         = Just 3,
@@ -2731,6 +2734,10 @@ dynamic_flags = [
 
   , defFlag "fmax-relevant-binds"
       (intSuffix (\n d -> d{ maxRelevantBinds = Just n }))
+  , defFlag "fmax-valid-substitutions"
+    (intSuffix (\n d -> d { maxValidSubstitutions = Just n }))
+  , defFlag "fno-max-valid-substitutions"
+    (noArg (\d -> d { maxValidSubstitutions = Nothing }))
   , defFlag "fno-max-relevant-binds"
       (noArg (\d -> d{ maxRelevantBinds = Nothing }))
   , defFlag "fsimplifier-phases"
