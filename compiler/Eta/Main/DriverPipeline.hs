@@ -1309,7 +1309,7 @@ getFileHashIfExists file = do
 
 linkInfoFileName :: DynFlags -> FilePath
 linkInfoFileName dflags
-  | Just s <- outputFile dflags = s <?.> etaLinkInfoSectionName
+  | Just s <- outputFile dflags = s -<.> etaLinkInfoSectionName
   | otherwise = "Run." ++ etaLinkInfoSectionName
 
 getLinkInfoFile :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO (FilePath, ByteString)
@@ -1324,6 +1324,7 @@ readPreviousLinkInfo dflags = do
   existsLinkInfo <- doesFileExist fileName
   if (not existsLinkInfo) then return Nothing
   else do
+     debugTraceMsg dflags 3 (text $ "Reading previous link info file: " ++ fileName)
      content <- BS.readFile $ fileName
      return $ Just $ bsToLinkInfo content
 
@@ -1373,6 +1374,7 @@ linkGeneric dflags oFiles depPackages = do
                                 ++ ["pkgLibJars"] ++ pkgLibJars
                                 ++ ["jarInputs"]  ++ jarInputs dflags
                                 ++ ["oFiles"]     ++ oFiles) )
+    debugTraceMsg dflags 3 (text $ "Write link info file: " ++ fst linkInfoFile)
     start <- getCurrentTime
     uncurry BS.writeFile $ linkInfoFile
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
