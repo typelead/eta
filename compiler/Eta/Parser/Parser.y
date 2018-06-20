@@ -59,10 +59,12 @@ import Eta.Utils.BooleanFormula   ( BooleanFormula(..), mkTrue )
 import Eta.Utils.FastString
 import Eta.Utils.Maybes           ( orElse )
 import Eta.Utils.Outputable
+import Eta.Utils.Util
 
 -- compiler/basicTypes
 import Eta.BasicTypes.RdrName
-import Eta.BasicTypes.OccName          ( varName, dataName, tcClsName, tvName, startsWithUnderscore )
+import Eta.BasicTypes.OccName          ( varName, dataName, tcClsName, tvName, startsWithUnderscore,
+                                         mkTcOccFS )
 import Eta.BasicTypes.DataCon          ( DataCon, dataConName )
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Module
@@ -651,10 +653,10 @@ importdecl :: { LImportDecl RdrName }
                    ((mj AnnImport $1 : (fst $ fst $2) ++ fst $3 ++ fst $4
                                     ++ fst $5 ++ fst $7)) }
         | 'import' 'java' javaid maybeas maybejavaimpspec
-                { L (comb5 $1 $2 $3 $4 $5) $
+                { L (comb4 $1 $3 (snd $4) (maybeLoc "parse java import" $5)) $
                   ImportJavaDecl { ideclClassName = $3
-                                 , ideclAs = snd $4
-                                 , ideclImport = Nothing } }
+                                 , ideclAsModule = snd $4
+                                 , ideclImport = $5 } }
 
 maybe_src :: { (([AddAnn],Maybe SourceText),IsBootInterface) }
         : '{-# SOURCE' '#-}'        { (([mo $1,mc $2],Just (getSOURCE_PRAGs $1))
@@ -696,8 +698,8 @@ maybejavaimpspec :: { Maybe (Located (Bool, Located [Located (JavaImport RdrName
        | {- empty -}              { Nothing }
 
 javaimpspec :: { Located (Bool, Located [Located (JavaImport RdrName)]) }
-       :  '(' javaimplist ')'              { L (comb3 $1 $2 $3) (True, $2) }
-       |  'hiding' '(' javaidlist ')'      { L (comb4 $1 $2 $3 $4) (False, $3) }
+       :  '(' javaimplist ')'              { L (comb2 $1 $3) (True, $2) }
+       |  'hiding' '(' javaidlist ')'      { L (comb2 $1 $4) (False, L (comb2 $2 $4) $3) }
 
 javaimplist :: { Located [Located (JavaImport RdrName)] }
         : javaimp ',' javaimplist { L (comb3 $1 $2 $3) ($1 : unLoc $3) }
@@ -705,16 +707,19 @@ javaimplist :: { Located [Located (JavaImport RdrName)] }
         | '..' { L (getLoc $1) [] }
 
 javaimp :: { Located (JavaImport RdrName) }
-        : javaid maybe_jeta_type javaimpspec { L (comb3 $1 $2 $3) $
+        : javaid maybe_jeta_type javaimpspec { L (comb2 $1 $3) $
             JIInnerClass { javaImportJavaName = $1
                          , javaImportEtaName =
-                             fromMaybe (mkRdrUnqual (mkTcOccFS (unLoc $1))) $2
+                             fromMaybe (L (getLoc $1) $ mkRdrUnqual (mkTcOccFS (unLoc $1))) $2
                          , javaImportAs = isJust $2
                          , javaImportSubImports = snd $ unLoc $3 }
              }
-        | javaid maybe_jeta_name opt_sig { L (comb3 $1 $2 $3) $
+        | javaid maybe_jeta_name opt_sig {
+            L (comb3 $1 (maybeLoc "javaimp member1" $2)
+                        (maybeLoc "javaimp member2" $ snd $3)) $
             JIClassMember { javaImportJavaName = $1
-                          , javaImportEtaName = fromMaybe (mkVarUnqual (unLoc $1)) $2
+                          , javaImportEtaName =
+                              fromMaybe (L (getLoc $1) $ mkVarUnqual (unLoc $1)) $2
                           , javaImportAs = isJust $2
                           , javaImportTypeSig = snd $3 }
                           }
@@ -727,10 +732,12 @@ maybe_jeta_type :: { Maybe (Located RdrName) }
                 : 'as' con  { Just $2 }
                 | {- empty -} { Nothing }
 
-javaidlist :: { Located [String] }
-           : javaid ',' javaidlist {  }
-           | javaid {  }
-           | {- empty -} { noLoc [] }
+javaidlist :: { [Located (JavaImport RdrName)] }
+           : javaid ',' javaidlist {
+             (L (comb2 $1 (maybeLoc "javaidlist" (safeLast $3)))
+             $ mkSimpleMemberImport $1 mkVarUnqual) : $3 }
+           | javaid { [L (getLoc $1) $ mkSimpleMemberImport $1 mkVarUnqual] }
+           | {- empty -} { [] }
 
 javaid :: { Located FastString }
        : VARID { L (getLoc $1) (getVARID $1) }
@@ -3136,7 +3143,7 @@ comb4 a b c d = a `seq` b `seq` c `seq` d `seq`
 comb5 :: Located a -> Located b -> Located c -> Located d -> Located e -> SrcSpan
 comb5 a b c d e = a `seq` b `seq` c `seq` d `seq` e `seq`
     (combineSrcSpans (getLoc a) $ combineSrcSpans (getLoc b) $
-     combineSrcSpans (getLoc c) $ combineSrcSpans (getLoc d) (getLoc e)))
+     combineSrcSpans (getLoc c) $ combineSrcSpans (getLoc d) (getLoc e))
 
 -- strict constructor version:
 {-# INLINE sL #-}
@@ -3287,4 +3294,9 @@ asl :: [Located a] -> Located b -> Located a -> P()
 asl [] (L ls _) (L l _) = addAnnotation l          AnnSemi ls
 asl (x:_xs) (L ls _) _x = addAnnotation (getLoc x) AnnSemi ls
 
+noLocWith :: String -> Located a
+noLocWith = noLoc . error
+
+maybeLoc :: String -> Maybe (Located a) -> Located a
+maybeLoc str = fromMaybe (noLocWith str)
 }

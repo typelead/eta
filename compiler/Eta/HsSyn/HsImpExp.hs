@@ -57,7 +57,7 @@ data ImportDecl name
     }
     | ImportJavaDecl {
         ideclClassName :: Located FastString, -- ^ Module name.
-        ideclAs        :: Located (Maybe ModuleName),   -- ^ as Module
+        ideclAsModule  :: Located (Maybe ModuleName),   -- ^ as Module
         ideclImport    :: Maybe (Located (Bool, Located [Located (JavaImport name)]))
                                               -- ^ (True => hiding, names)
       }
@@ -234,3 +234,11 @@ data JavaImport name =
 
   deriving (Typeable)
 deriving instance (DataId name) => Data (JavaImport name)
+
+mkSimpleMemberImport :: Located FastString -> (FastString -> name) -> JavaImport name
+mkSimpleMemberImport fs f =
+  JIClassMember { javaImportJavaName = fs
+                , javaImportEtaName = fmap f fs
+                , javaImportAs = False
+                , javaImportTypeSig = Nothing }
+
