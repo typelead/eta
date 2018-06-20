@@ -764,6 +764,12 @@ mkLongErrAt loc msg extra
          printer <- getPrintUnqualified dflags ;
          return $ mkLongErrMsg dflags loc printer msg extra }
 
+mkErrDocAt :: SrcSpan -> ErrDoc -> TcRn ErrMsg
+mkErrDocAt loc errDoc
+ = do { dflags <- getDynFlags ;
+        printer <- getPrintUnqualified dflags ;
+        return $ mkErrDoc dflags loc printer errDoc }
+
 addLongErrAt :: SrcSpan -> MsgDoc -> MsgDoc -> TcRn ()
 addLongErrAt loc msg extra = mkLongErrAt loc msg extra >>= reportError
 
@@ -777,12 +783,17 @@ reportError err
          (warns, errs) <- readTcRef errs_var ;
          writeTcRef errs_var (warns, errs `snocBag` err) }
 
-reportWarning :: ErrMsg -> TcRn ()
-reportWarning warn
-  = do { traceTc "Adding warning:" (pprLocErrMsg warn) ;
-         errs_var <- getErrsVar ;
-         (warns, errs) <- readTcRef errs_var ;
-         writeTcRef errs_var (warns `snocBag` warn, errs) }
+reportWarning :: WarnReason -> ErrMsg -> TcRn ()
+reportWarning reason err
+  = do { let warn = makeIntoWarning reason err
+                    -- 'err' was built by mkLongErrMsg or something like that,
+                    -- so it's of error severity.  For a warning we downgrade
+                    -- its severity to SevWarning
+
+      ; traceTc "Adding warning:" (pprLocErrMsg warn) ;
+      ; errs_var <- getErrsVar ;
+      ; (warns, errs) <- readTcRef errs_var ;
+      ; writeTcRef errs_var (warns `snocBag` warn, errs) }
 
 try_m :: TcRn r -> TcRn (Either IOEnvFailure r)
 -- Does tryM, with a debug-trace on failure
@@ -1065,7 +1076,7 @@ add_warn_at reason loc msg extra_info
          let { warn = makeIntoWarning reason $
                         mkLongWarnMsg dflags loc printer
                                     msg extra_info } ;
-         reportWarning warn }
+         reportWarning reason warn }
 
 tcInitTidyEnv :: TcM TidyEnv
 tcInitTidyEnv
@@ -1093,7 +1104,7 @@ mkErrInfo env ctxts
  = go 0 env ctxts
  where
    go :: Int -> TidyEnv -> [ErrCtxt] -> TcM SDoc
-   go _ _   [] = return Outputable.empty
+   go _ _   [] = return empty
    go n env ((is_landmark, ctxt) : ctxts)
      | is_landmark || n < mAX_CONTEXTS -- Too verbose || opt_PprStyle_Debug
      = do { (env', msg) <- ctxt env
@@ -1287,8 +1298,7 @@ emitWildcardHoleConstraints wcs
              ty     = mkTyVarTy tv
              ev     = mkLocalId name ty
              can    = CHoleCan { cc_ev   = CtWanted ty ev ctLoc'
-                               , cc_occ  = occName name
-                               , cc_hole = TypeHole }
+                               , cc_hole = TypeHole (occName name) }
        ; emitInsoluble can } }
 
 {- Note [Constraints and errors]
@@ -1356,6 +1366,22 @@ recordThUse = do { env <- getGblEnv; writeTcRef (tcg_th_used env) True }
 
 recordThSpliceUse :: TcM ()
 recordThSpliceUse = do { env <- getGblEnv; writeTcRef (tcg_th_splice_used env) True }
+
+-- | When generating an out-of-scope error message for a variable matching a
+-- binding in a later inter-splice group, the typechecker uses the splice
+-- locations to provide details in the message about the scope of that binding.
+recordTopLevelSpliceLoc :: SrcSpan -> TcM ()
+recordTopLevelSpliceLoc (RealSrcSpan real_loc)
+  = do { env <- getGblEnv
+       ; let locs_var = tcg_th_top_level_locs env
+       ; locs0 <- readTcRef locs_var
+       ; writeTcRef locs_var (Set.insert real_loc locs0) }
+recordTopLevelSpliceLoc (UnhelpfulSpan _) = return ()
+
+getTopLevelSpliceLocs :: TcM (Set RealSrcSpan)
+getTopLevelSpliceLocs
+  = do { env <- getGblEnv
+       ; readTcRef (tcg_th_top_level_locs env) }
 
 keepAlive :: Name -> TcRn ()     -- Record the name in the keep-alive set
 keepAlive name
@@ -1545,7 +1571,7 @@ forkM doc thing_inside
         ; return (case mb_res of
                         Nothing -> pgmError "Cannot continue after interface file error"
                                    -- pprPanic "forkM" doc
-                        Just r  -> r) }
+                        Just r  -> r) }                        
 
 {-
 Note [Masking exceptions in forkM_maybe]

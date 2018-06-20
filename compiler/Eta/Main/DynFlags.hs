@@ -455,7 +455,7 @@ data GeneralFlag
    | Opt_DiagnosticsShowCaret -- Show snippets of offending code
    | Opt_PprCaseAsLet
    | Opt_PprShowTicks
-
+   | Opt_ShowHoleConstraints
    | Opt_ShowLoadedModules
 
    -- Suppress all coercions, them replacing with '...'
@@ -3189,7 +3189,8 @@ fFlags = [
   flagSpec "vectorise"                        Opt_Vectorise,
   flagSpec "catch-bottoms"                    Opt_CatchBottoms,
   flagSpec "show-loaded-modules"              Opt_ShowLoadedModules,
-  flagSpec "show-warning-groups"              Opt_ShowWarnGroups
+  flagSpec "show-warning-groups"              Opt_ShowWarnGroups,
+  flagSpec "show-hole-constraints"            Opt_ShowHoleConstraints
   ]
 
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@

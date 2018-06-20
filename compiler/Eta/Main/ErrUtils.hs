@@ -10,14 +10,14 @@ module Eta.Main.ErrUtils (
         MsgDoc,
         Validity(..), andValid, allValid, isValid, getInvalids,
 
-        ErrMsg, WarnMsg, Severity(..), errMsgSeverity, errMsgReason,
+        ErrMsg, ErrDoc, errDoc, WarnMsg, Severity(..), errMsgSeverity, errMsgReason,
         Messages, ErrorMessages, WarningMessages, unionMessages,
-        errMsgSpan, errMsgContext, errMsgShortDoc, errMsgExtraInfo,
+        errMsgSpan, errMsgContext, errMsgDoc,
         mkLocMessage, mkLocMessageAnn, pprMessageBag, pprErrMsgBag, pprErrMsgBagWithLoc,
         pprLocErrMsg, makeIntoWarning, isWarning,
 
         errorsFound, emptyMessages, isEmptyMessages,
-        mkErrMsg, mkPlainErrMsg, mkLongErrMsg, mkWarnMsg, mkPlainWarnMsg,
+        mkErrMsg, mkPlainErrMsg, mkErrDoc, mkLongErrMsg, mkWarnMsg, mkPlainWarnMsg,
         mkLongWarnMsg, printBagOfErrors,
 
         ghcExit,
@@ -53,7 +53,8 @@ import Eta.Utils.StringBuffer (atLine, hGetStringBuffer, len, lexemeToString)
 import qualified Eta.Utils.PprColor as Col
 import Eta.BasicTypes.SrcLoc
 import Eta.Main.DynFlags
-
+import qualified Eta.Utils.Outputable as Outputable
+import qualified Eta.Main.DynFlags as DynFlags
 import System.Directory
 import System.Exit      ( ExitCode(..), exitWith )
 import System.FilePath  ( takeDirectory, (</>) )
@@ -104,13 +105,28 @@ unionMessages (warns1, errs1) (warns2, errs2) =
 data ErrMsg = ErrMsg {
         errMsgSpan        :: SrcSpan,
         errMsgContext     :: PrintUnqualified,
-        errMsgShortDoc    :: MsgDoc,   -- errMsgShort* should always
+        errMsgDoc         :: ErrDoc,
+        -- | This has the same text as errDocImportant . errMsgDoc.
         errMsgShortString :: String, -- contain the same text
-        errMsgExtraInfo   :: MsgDoc,
         errMsgSeverity    :: Severity,
         errMsgReason      :: WarnReason
         }
         -- The SrcSpan is used for sorting errors into line-number order
+
+-- | Categorise error msgs by their importance.  This is so each section can
+-- be rendered visually distinct.  See Note [Error report] for where these come
+-- from.
+data ErrDoc = ErrDoc {
+        -- | Primary error msg.
+        errDocImportant :: [MsgDoc],
+        -- | Context e.g. \"In the second argument of ...\".
+        _errDocContext :: [MsgDoc],
+        -- | Supplementary information, e.g. \"Relevant bindings include ...\".
+        _errDocSupplementary :: [MsgDoc]
+        }
+
+errDoc :: [MsgDoc] -> [MsgDoc] -> [MsgDoc] -> ErrDoc
+errDoc = ErrDoc
 
 type WarnMsg = ErrMsg
 
@@ -270,13 +286,18 @@ isWarning err
 -- -----------------------------------------------------------------------------
 -- Collecting up messages for later ordering and printing.
 
-mk_err_msg :: DynFlags -> Severity -> SrcSpan -> PrintUnqualified -> MsgDoc -> SDoc -> ErrMsg
-mk_err_msg  dflags sev locn print_unqual msg extra
- = ErrMsg { errMsgSpan = locn, errMsgContext = print_unqual
-          , errMsgShortDoc = msg , errMsgShortString = showSDoc dflags msg
-          , errMsgExtraInfo = extra
-          , errMsgSeverity = sev
-          , errMsgReason = NoReason }
+mk_err_msg :: DynFlags -> Severity -> SrcSpan
+           -> PrintUnqualified -> ErrDoc -> ErrMsg
+mk_err_msg dflags sev locn print_unqual doc
+ = ErrMsg { errMsgSpan        = locn
+          , errMsgContext     = print_unqual
+          , errMsgDoc         = doc
+          , errMsgShortString = showSDoc dflags (vcat (errDocImportant doc))
+          , errMsgSeverity    = sev
+          , errMsgReason      = NoReason }
+
+mkErrDoc :: DynFlags -> SrcSpan -> PrintUnqualified -> ErrDoc -> ErrMsg
+mkErrDoc dflags = mk_err_msg dflags SevError
 
 mkLongErrMsg, mkLongWarnMsg   :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgDoc -> MsgDoc -> ErrMsg
 -- A long (multi-line) error message
@@ -285,12 +306,18 @@ mkErrMsg, mkWarnMsg           :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgD
 mkPlainErrMsg, mkPlainWarnMsg :: DynFlags -> SrcSpan ->                     MsgDoc            -> ErrMsg
 -- Variant that doesn't care about qualified/unqualified names
 
-mkLongErrMsg   dflags locn unqual msg extra = mk_err_msg dflags SevError   locn unqual        msg extra
-mkErrMsg       dflags locn unqual msg       = mk_err_msg dflags SevError   locn unqual        msg empty
-mkPlainErrMsg  dflags locn        msg       = mk_err_msg dflags SevError   locn alwaysQualify msg empty
-mkLongWarnMsg  dflags locn unqual msg extra = mk_err_msg dflags SevWarning locn unqual        msg extra
-mkWarnMsg      dflags locn unqual msg       = mk_err_msg dflags SevWarning locn unqual        msg empty
-mkPlainWarnMsg dflags locn        msg       = mk_err_msg dflags SevWarning locn alwaysQualify msg empty
+mkLongErrMsg   dflags locn unqual msg extra
+  = mk_err_msg dflags SevError   locn unqual        (ErrDoc [msg] [] [extra])
+mkErrMsg       dflags locn unqual msg
+  = mk_err_msg dflags SevError   locn unqual        (ErrDoc [msg] [] [])
+mkPlainErrMsg  dflags locn        msg
+  = mk_err_msg dflags SevError   locn alwaysQualify (ErrDoc [msg] [] [])
+mkLongWarnMsg  dflags locn unqual msg extra
+  = mk_err_msg dflags SevWarning locn unqual        (ErrDoc [msg] [] [extra])
+mkWarnMsg      dflags locn unqual msg
+  = mk_err_msg dflags SevWarning locn unqual        (ErrDoc [msg] [] [])
+mkPlainWarnMsg dflags locn        msg
+  = mk_err_msg dflags SevWarning locn alwaysQualify (ErrDoc [msg] [] [])
 
 ----------------
 emptyMessages :: Messages
@@ -310,9 +337,8 @@ pprErrMsgBag :: Bag ErrMsg -> [SDoc]
 pprErrMsgBag bag
   = [ sdocWithDynFlags $ \dflags ->
       let style = mkErrStyle dflags unqual
-      in withPprStyle style (d $$ e)
-    | ErrMsg { errMsgShortDoc  = d,
-               errMsgExtraInfo = e,
+      in withPprStyle style (formatErrDoc dflags doc)
+    | ErrMsg { errMsgDoc       = doc,
                errMsgContext   = unqual } <- sortMsgBag bag ]
 
 pprErrMsgBagWithLoc :: Bag ErrMsg -> [SDoc]
@@ -320,23 +346,33 @@ pprErrMsgBagWithLoc bag = [ pprLocErrMsg item | item <- sortMsgBag bag ]
 
 pprLocErrMsg :: ErrMsg -> SDoc
 pprLocErrMsg (ErrMsg { errMsgSpan      = s
-                     , errMsgShortDoc  = d
-                     , errMsgExtraInfo = e
+                     , errMsgDoc       = doc
                      , errMsgSeverity  = sev
                      , errMsgContext   = unqual })
   = sdocWithDynFlags $ \dflags ->
-    withPprStyle (mkErrStyle dflags unqual) (mkLocMessage sev s (d $$ e))
+    withPprStyle (mkErrStyle dflags unqual) $
+    mkLocMessage sev s (formatErrDoc dflags doc)
 
 printMsgBag :: DynFlags -> Bag ErrMsg -> IO ()
 printMsgBag dflags bag
   = sequence_ [ let style = mkErrStyle dflags unqual
-                in putLogMsg dflags reason sev s style (d $$ e)
+                in putLogMsg dflags reason sev s style (formatErrDoc dflags doc)
               | ErrMsg { errMsgSpan      = s,
-                         errMsgShortDoc  = d,
+                         errMsgDoc       = doc,
                          errMsgSeverity  = sev,
                          errMsgReason    = reason,
-                         errMsgExtraInfo = e,
                          errMsgContext   = unqual } <- sortMsgBag bag ]
+
+formatErrDoc :: DynFlags -> ErrDoc -> SDoc
+formatErrDoc dflags (ErrDoc important context supplementary)
+ = case msgs of
+       [msg] -> vcat msg
+       _ -> vcat $ map starred msgs
+   where
+   msgs = filter (not . null) $ map (filter (not . Outputable.isEmpty dflags))
+       [important, context, supplementary]
+   starred = (bullet<+>) . vcat
+   bullet = text $ if DynFlags.useUnicode dflags then "•" else "*"
 
 sortMsgBag :: Bag ErrMsg -> [ErrMsg]
 sortMsgBag bag = sortBy (comparing errMsgSpan) $ bagToList bag

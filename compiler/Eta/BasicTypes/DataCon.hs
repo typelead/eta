@@ -349,12 +349,12 @@ data DataCon
         -- Now the strictness annotations and field labels of the constructor
         dcSrcBangs :: [HsBang],
                 -- See Note [Bangs on data constructor arguments]
-                -- For DataCons defined in this module: 
+                -- For DataCons defined in this module:
                 --    the [HsSrcBang] as written by the programmer.
                 -- For DataCons imported from an interface file:
                 --    the [HsImplBang] determined when compiling the
                 --    defining module
-                -- 
+                --
                 -- Matches 1-1 with dcOrigArgTys
                 -- Hence length = dataConSourceArity dataCon
 
@@ -493,7 +493,7 @@ Consider
 
 When compiling the module, GHC will decide how to represent
 MkT, depending on the optimisation level, and settings of
-flags like -funbox-small-strict-fields.  
+flags like -funbox-small-strict-fields.
 
 Terminology:
   * HsSrcBang:  What the user wrote
@@ -502,14 +502,14 @@ Terminology:
   * HsImplBang: What GHC decided
                 Constructors: HsNoBang, HsStrict, HsUnpack
 
-* If T was defined in this module, MkT's dcSrcBangs field 
+* If T was defined in this module, MkT's dcSrcBangs field
   records the [HsSrcBang] of what the user wrote; in the example
     [ HsSrcBang Nothing True
     , HsSrcBang (Just True) True
     , HsNoBang]
 
 * However, if T was defined in an imported module, MkT's dcSrcBangs
-  field gives the [HsImplBang] recording the decisions of the 
+  field gives the [HsImplBang] recording the decisions of the
   defining module.  The importing module must follow those decisions,
   regardless of the flag settings in the importing module.
 
@@ -625,7 +625,7 @@ isMarkedStrict _               = True   -- All others are strict
 mkDataCon :: Name
           -> Bool               -- ^ Is the constructor declared infix?
           -> [HsBang]           -- ^ Strictness/unpack annotations, from user;
-                                --   or, for imported DataCons, from the interface file 
+                                --   or, for imported DataCons, from the interface file
           -> [FieldLabel]       -- ^ Field labels for the constructor, if it is a record,
                                 --   otherwise empty
           -> [TyVar]            -- ^ Universally quantified type variables

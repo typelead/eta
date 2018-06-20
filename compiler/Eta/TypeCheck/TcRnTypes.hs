@@ -53,9 +53,9 @@ module Eta.TypeCheck.TcRnTypes(
         isEmptyCts, isCTyEqCan, isCFunEqCan,
         isCDictCan_Maybe, isCFunEqCan_maybe,
         isCIrredEvCan, isCNonCanonical, isWantedCt, isDerivedCt,
-        isGivenCt, isHoleCt, isTypedHoleCt, isPartialTypeSigCt,
+        isGivenCt, isHoleCt, isTypedHoleCt, isExprHoleCt, isOutOfScopeCt,
         isUserTypeErrorCt, getUserTypeErrorMsg,
-        ctEvidence, ctLoc, ctPred, ctFlavour, ctEqRel,
+        ctEvidence, ctLoc, ctOrigin, ctPred, ctFlavour, ctEqRel,
         mkNonCanonical, mkNonCanonicalCt,
         ctEvPred, ctEvLoc, ctEvEqRel,
         ctEvTerm, ctEvCoercion, ctEvId, ctEvCheckDepth,
@@ -93,7 +93,7 @@ module Eta.TypeCheck.TcRnTypes(
         pprArising, pprArisingAt,
 
         -- Misc other types
-        TcId, TcIdSet, HoleSort(..)
+        TcId, TcIdSet, Hole(..)
 
   ) where
 
@@ -1199,13 +1199,12 @@ data Ct
   | CHoleCan {             -- Treated as an "insoluble" constraint
                            -- See Note [Insoluble constraints]
       cc_ev   :: CtEvidence,
-      cc_occ  :: OccName,   -- The name of this hole
-      cc_hole :: HoleSort   -- The sort of this hole (expr, type, ...)
+      cc_hole :: Hole   -- The sort of this hole (expr, type, ...)
     }
 
 -- | Used to indicate which sort of hole we have.
-data HoleSort = ExprHole  -- ^ A hole in an expression (TypedHoles)
-              | TypeHole  -- ^ A hole in a type (PartialTypeSignatures)
+data Hole = ExprHole UnboundVar -- ^ A hole in an expression (TypedHoles)
+          | TypeHole OccName -- ^ A hole in a type (PartialTypeSignatures)
 
 {-
 Note [Kind orientation for CTyEqCan]
@@ -1294,6 +1293,9 @@ ctEvidence = cc_ev
 
 ctLoc :: Ct -> CtLoc
 ctLoc = ctEvLoc . ctEvidence
+
+ctOrigin :: Ct -> CtOrigin
+ctOrigin = ctLocOrigin . ctLoc
 
 ctPred :: Ct -> PredType
 -- See Note [Ct/evidence invariant]
@@ -1385,15 +1387,18 @@ isHoleCt:: Ct -> Bool
 isHoleCt (CHoleCan {}) = True
 isHoleCt _ = False
 
--- TODO: Finish backport
--- isOutOfScopeCt :: Ct -> Bool
--- -- We treat expression holes representing out-of-scope variables a bit
--- -- differently when it comes to error reporting
--- isOutOfScopeCt (CHoleCan { cc_hole = ExprHole (OutOfScope {}) }) = True
--- isOutOfScopeCt _ = False
+isOutOfScopeCt :: Ct -> Bool
+-- We treat expression holes representing out-of-scope variables a bit
+-- differently when it comes to error reporting
+isOutOfScopeCt (CHoleCan { cc_hole = ExprHole (OutOfScope {}) }) = True
+isOutOfScopeCt _ = False
+
+isExprHoleCt :: Ct -> Bool
+isExprHoleCt (CHoleCan { cc_hole = ExprHole {} }) = True
+isExprHoleCt _ = False
 
 isTypedHoleCt :: Ct -> Bool
-isTypedHoleCt (CHoleCan { cc_hole = ExprHole }) = True
+isTypedHoleCt (CHoleCan { cc_hole = TypeHole {} }) = True
 isTypedHoleCt _ = False
 
 -- | The following constraints are considered to be a custom type error:
@@ -1413,10 +1418,6 @@ isUserTypeErrorCt :: Ct -> Bool
 isUserTypeErrorCt ct = case getUserTypeErrorMsg ct of
                          Just _ -> True
                          _      -> False
-
-isPartialTypeSigCt :: Ct -> Bool
-isPartialTypeSigCt (CHoleCan { cc_hole = TypeHole }) = True
-isPartialTypeSigCt _ = False
 
 instance Outputable Ct where
   ppr ct = ppr (cc_ev ct) <+> parens (text ct_sort)
@@ -1498,7 +1499,7 @@ insolubleWC :: WantedConstraints -> Bool
 -- True if there are any insoluble constraints in the wanted bag. Ignore
 -- constraints arising from PartialTypeSignatures to solve as much of the
 -- constraints as possible before reporting the holes.
-insolubleWC wc = not (isEmptyBag (filterBag (not . isPartialTypeSigCt)
+insolubleWC wc = not (isEmptyBag (filterBag (not . isExprHoleCt)
                                   (wc_insol wc)))
                || anyBag ic_insol (wc_impl wc)
 
