@@ -57,6 +57,7 @@ data ImportDecl name
     }
     | ImportJavaDecl {
         ideclClassName :: Located FastString, -- ^ Module name.
+        ideclName      :: Located ModuleName, -- ^ Module name.
         ideclAsModule  :: Located (Maybe ModuleName),   -- ^ as Module
         ideclImport    :: Maybe (Located (Bool, Located [Located (JavaImport name)]))
                                               -- ^ (True => hiding, names)
@@ -93,6 +94,14 @@ simpleImportDecl mn = ImportDecl {
       ideclAs        = Nothing,
       ideclHiding    = Nothing
     }
+
+ideclIsSource :: ImportDecl name -> Bool
+ideclIsSource (ImportDecl { ideclSource }) = ideclSource
+ideclIsSource _ = False
+
+ideclPackageQualifier :: ImportDecl name -> Maybe FastString
+ideclPackageQualifier (ImportDecl { ideclPkgQual  }) = ideclPkgQual
+ideclPackageQualifier _ = Nothing
 
 instance (OutputableBndr name, HasOccName name) => Outputable (ImportDecl name) where
     ppr (ImportDecl { ideclName = mod', ideclPkgQual = pkg

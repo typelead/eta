@@ -73,7 +73,7 @@ getImports dflags buf filename source_filename = do
               let
                 main_loc = srcLocSpan (mkSrcLoc (mkFastString source_filename) 1 1)
                 mod = mb_mod `orElse` L main_loc mAIN_NAME
-                (src_idecls, ord_idecls) = partition (ideclSource.unLoc) imps
+                (src_idecls, ord_idecls) = partition (ideclIsSource.unLoc) imps
 
                      -- GHC.Prim doesn't exist physically, so don't go looking for it.
                 ordinary_imps = filter ((/= moduleName gHC_PRIM) . unLoc . ideclName . unLoc)

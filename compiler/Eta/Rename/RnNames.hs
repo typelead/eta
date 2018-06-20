@@ -147,7 +147,7 @@ rnImports :: [LImportDecl RdrName]
 rnImports imports = do
     this_mod <- getModule
     let (source, ordinary) = partition is_source_import imports
-        is_source_import d = ideclSource (unLoc d)
+        is_source_import d = ideclIsSource (unLoc d)
     stuff1 <- mapAndReportM (rnImportDecl this_mod) ordinary
     stuff2 <- mapAndReportM (rnImportDecl this_mod) source
     -- Safe Haskell: See Note [Tracking Trust Transitively]
