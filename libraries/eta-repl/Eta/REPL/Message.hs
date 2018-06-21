@@ -47,55 +47,56 @@ import Data.Int
 -- | A @Message a@ is a message that returns a value of type @a@.
 -- These are requests sent from Eta to the server.
 data Message a where
-  -- | Exit the iserv process
+
+  -- Exit the iserv process
   Shutdown :: Message ()
 
-  -- | Add a list of files to the dynamic classpath of classloader.
+  -- Add a list of files to the dynamic classpath of classloader.
   AddDynamicClassPath :: [String] -> Message ()
 
-  -- | Sets the classpath of child classloader.
+  -- Sets the classpath of child classloader.
   AddModuleClassPath :: [String] -> Message ()
 
-  -- | Load a list of class names and class contents into memory and link them.
+  -- Load a list of class names and class contents into memory and link them.
   LoadClasses :: [String] -> [ByteString] -> Message ()
 
-  -- | Create a new instance of the supplied class
+  -- Create a new instance of the supplied class
   NewInstance :: String -> Message HValueRef
 
-  -- | Resets the child REPLClassLoader
+  -- Resets the child REPLClassLoader
   ResetClasses :: Message ()
 
-  -- | Release 'HValueRef's
+  -- Release 'HValueRef's
   FreeHValueRefs :: [HValueRef] -> Message ()
 
-  -- | Evaluate a statement
+  -- Evaluate a statement
   EvalStmt
     :: EvalOpts
     -> EvalExpr HValueRef {- IO [a] -}
     -> Message (EvalStatus [HValueRef]) {- [a] -}
 
-  -- | Evaluate something of type @IO String@
+  -- Evaluate something of type @IO String@
   EvalString
     :: HValueRef {- IO String -}
     -> Message (EvalResult String)
 
-  -- | Evaluate something of type @String -> IO String@
+  -- Evaluate something of type @String -> IO String@
   EvalStringToString
     :: HValueRef {- String -> IO String -}
     -> String
     -> Message (EvalResult String)
 
-  -- | Evaluate something of type @IO ()@
+  -- Evaluate something of type @IO ()@
   EvalIO
    :: HValueRef {- IO a -}
    -> Message (EvalResult ())
 
   -- Template Metaprogramming
 
-  -- | Start a new TH module, return a state token of type QState
+  -- Start a new TH module, return a state token of type QState
   StartTH :: Message (RemoteRef (IORef ()))
 
-  -- | Evaluate a TH computation.
+  -- Evaluate a TH computation.
   --
   -- Returns a ByteString, because we have to force the result
   -- before returning it to ensure there are no errors lurking
@@ -109,7 +110,7 @@ data Message a where
    -> Maybe Loc
    -> Message (QResult ByteString)
 
-  -- | Run the given mod finalizers.
+  -- Run the given mod finalizers.
   RunModFinalizers :: RemoteRef (IORef ()) {- IORef QState -}
                    -> [RemoteRef ()]       {- RemoteRef (TH.Q ()) -}
                    -> Message (QResult ())
