@@ -92,7 +92,7 @@ data THMessage a where
   StartRecover :: THMessage ()
   EndRecover :: Bool -> THMessage ()
 
-  -- | Indicates that this RunTH is finished, and the next message
+  -- Indicates that this RunTH is finished, and the next message
   -- will be the result of RunTH (a QResult).
   RunTHDone :: THMessage ()
 
