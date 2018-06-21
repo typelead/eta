@@ -1,4 +1,6 @@
-with import <nixpkgs> { };
+{ pkgs ? import (fetchTarball https://nixos.org/channels/nixos-17.09/nixexprs.tar.xz) { } }:
+
+with pkgs;
 
 # To get a shell with all of Eta's dependencies:
 #   $ nix-shell -A eta-build-shell
@@ -20,6 +22,10 @@ let
 
       tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
       binary = haskell.lib.dontCheck self.binary_0_8_5_1 or self.binary_0_8_4_1;
+      hpp = haskell.lib.addExtraLibrary super.hpp self.semigroups;
+
+      # Tests rely on doctest which has problematic semigroups and binary
+      turtle = haskell.lib.dontCheck super.turtle;
 
       codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
       hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
