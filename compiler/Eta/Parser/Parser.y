@@ -312,7 +312,7 @@ for some background.
  'ccall'        { L _ ITccallconv }
  'capi'         { L _ ITcapiconv }
  'prim'         { L _ ITprimcallconv }
- 'java'         { L _ ITjavascriptcallconv }
+ 'java'         { L _ ITjava }
  'proc'         { L _ ITproc }          -- for arrow notation extension
  'rec'          { L _ ITrec }           -- for arrow notation extension
  'group'    { L _ ITgroup }     -- for list transform extension

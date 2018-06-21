@@ -302,7 +302,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 -- generate a matching '}' token.
 <layout_left>  ()                       { do_layout_left }
 
-<0,option_prags> \n                     { begin bol }
+<0,option_prags,java_import> \n         { begin bol }
 
 "{-#" $whitechar* $pragmachar+ / { known_pragma linePrags }
                                 { dispatch_pragmas linePrags }
@@ -344,13 +344,13 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   "-- #"                           { multiline_doc_comment }
 }
 
-<0> {
+<0,java_import> {
   -- In the "0" mode we ignore these pragmas
   "{-#"  $whitechar* $pragmachar+ / { known_pragma fileHeaderPrags }
                      { nested_comment lexToken }
 }
 
-<0> {
+<0,java_import> {
   "-- #" .* { lineCommentToken }
 }
 
@@ -363,7 +363,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 
 -- Haddock comments
 
-<0,option_prags> {
+<0,option_prags,java_import> {
   "-- " $docsym      / { ifExtension haddockEnabled } { multiline_doc_comment }
   "{-" \ ? $docsym   / { ifExtension haddockEnabled } { nested_doc_comment }
 }
@@ -423,7 +423,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
          { token ITcubxparen }
 }
 
-<0,option_prags> {
+<0,option_prags,java_import> {
   \(                                    { special IToparen }
   \)                                    { special ITcparen }
   \[                                    { special ITobrack }
@@ -436,7 +436,7 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
   \}                                    { close_brace }
 }
 
-<0,option_prags> {
+<0,option_prags,java_import> {
   @qvarid                       { idtoken qvarid }
   @qconid                       { idtoken qconid }
   @varid                        { varid }
@@ -452,11 +452,15 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 
 -- ToDo: - move `var` and (sym) into lexical syntax?
 --       - remove backquote from $special?
-<0> {
+<0,java_import> {
   @qvarsym                                         { idtoken qvarsym }
   @qconsym                                         { idtoken qconsym }
   @varsym                                          { varsym }
   @consym                                          { consym }
+}
+
+<java_import> {
+  @javaid { javaIdToken }
 }
 
 -- For the normal boxed literals we need to be careful
@@ -560,7 +564,7 @@ data Token
   | ITccallconv
   | ITcapiconv
   | ITprimcallconv
-  | ITjavascriptcallconv
+  | ITjava
   | ITmdo
   | ITfamily
   | ITrole
@@ -777,7 +781,7 @@ reservedWordsFM = listToUFM $
          ( "ccall",          ITccallconv,     xbit FfiBit),
          ( "capi",           ITcapiconv,      xbit CApiFfiBit),
          ( "prim",           ITprimcallconv,  xbit FfiBit),
-         ( "java",           ITjavascriptcallconv, xbit FfiBit),
+         ( "java",           ITjava,          xbit FfiBit),
 
          ( "rec",            ITrec,           xbit ArrowsBit .|.
                                               xbit RecursiveDoBit),
@@ -1135,6 +1139,14 @@ varid span buf len =
                    return ITcase
       maybe_layout keyword
       return $ L span keyword
+    Just (ITjava, _) -> do
+      lastTk  <- getLastTk
+      lastLoc <- getPrevLoc
+      case lastTk of
+        Just e@ITimport
+          | srcSpanStartCol lastLoc == 1 -> pushLexState java_import
+        _             -> return ()
+      return $ L span ITjava
     Just (ITstatic, _) -> do
       flags <- getDynFlags
       if xopt LangExt.StaticPointers flags
@@ -1241,14 +1253,18 @@ do_bol :: Action
 do_bol span _str _len = do
         pos <- getOffside
         case pos of
-            LT -> do
-                traceLexer "layout: inserting '}'" $ do
+            e@LT -> do
+                traceLexer ("layout: inserting '}' " ++ show e) $ do
                 popContext
                 -- do NOT pop the lex state, we might have a ';' to insert
                 return (L span ITvccurly)
-            EQ -> do
-                traceLexer "layout: inserting ';'" $ do
+            e@EQ -> do
+                traceLexer ("layout: inserting ';' " ++ show e) $ do
                 _ <- popLexState
+                l <- getLexState
+                when (l == java_import) $ do
+                  _ <- popLexState
+                  return ()
                 return (L span ITsemi)
             GT -> do
                 _ <- popLexState
@@ -1705,6 +1721,7 @@ data PState = PState {
         buffer     :: StringBuffer,
         dflags     :: DynFlags,
         messages   :: Messages,
+        prev_loc   :: RealSrcSpan,
         last_tk    :: Maybe Token,
         last_loc   :: RealSrcSpan, -- pos of previous token
         last_len   :: !Int,        -- len of previous token
@@ -1830,6 +1847,12 @@ setLastTk tk = P $ \s -> POk s { last_tk = Just tk } ()
 
 getLastTk :: P (Maybe Token)
 getLastTk = P $ \s@(PState { last_tk = last_tk }) -> POk s last_tk
+
+setPrevLoc :: RealSrcSpan -> P ()
+setPrevLoc span = P $ \s -> POk s { prev_loc = span } ()
+
+getPrevLoc :: P RealSrcSpan
+getPrevLoc = P $ \s@(PState { prev_loc = prev_loc }) -> POk s prev_loc
 
 data AlexInput = AI RealSrcLoc StringBuffer
 
@@ -2109,6 +2132,7 @@ mkPState flags buf loc =
       buffer        = buf,
       dflags        = flags,
       messages      = emptyMessages,
+      prev_loc      = mkRealSrcSpan loc loc,
       last_tk       = Nothing,
       last_loc      = mkRealSrcSpan loc loc,
       last_len      = 0,
@@ -2199,7 +2223,7 @@ getOffside :: P Ordering
 getOffside = P $ \s@PState{last_loc=loc, context=stk} ->
                 let offs = srcSpanStartCol loc in
                 let ord = case stk of
-                        (Layout n:_) -> traceLexer ("layout: " ++ show n ++ ", offs: " ++ show offs) $
+                        (Layout n:_) -> -- traceLexer ("layout: " ++ show n ++ ", offs: " ++ show offs) $
                                         compare offs n
                         _            -> GT
                 in POk s ord
@@ -2516,6 +2540,7 @@ lexToken = do
           ITblockComment _ -> return lt
           lt' -> do
             setLastTk lt'
+            setPrevLoc span
             return lt
 
 reportLexError :: RealSrcLoc -> RealSrcLoc -> StringBuffer -> [Char] -> P a
