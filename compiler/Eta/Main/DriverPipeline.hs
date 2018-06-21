@@ -83,6 +83,7 @@ import Data.ByteString (ByteString)
 import Data.Time
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as BS
 import qualified Data.Text as T
 
 import Language.Preprocessor.Unlit
@@ -1230,10 +1231,10 @@ linkingNeeded dflags linkables pkgDeps = do
   let jarFile = jarFileName dflags
       getTime = tryIO . getModificationUTCTime
   eJarTime <- getTime jarFile
+  debugTraceMsg dflags 3 (text $ "linkingNeeded: previousJar time = " ++ show eJarTime)
   case eJarTime of
     Left _  -> return True
     Right t -> do
-        debugTraceMsg dflags 3 (text $ "linkingNeeded: previousJar time = " ++ show t)
         -- TODO: Factor in ldOptions too
         let jarTimes = map linkableTime linkables
         debugTraceMsg dflags 3 (text $ "linkingNeeded: linkablesJar times = " ++
@@ -1259,7 +1260,7 @@ linkingNeeded dflags linkables pkgDeps = do
                                 show libTimes ++ ",libErrs = " ++ show libErrs)
             if not (null libErrs) || any (t <) libTimes
                then return True
-               else checkLinkInfo dflags linkables pkgDeps jarFile
+               else checkLinkInfo dflags linkables pkgDeps
 
 jarFileName :: DynFlags -> FilePath
 jarFileName dflags
@@ -1275,14 +1276,14 @@ ffiMapFileName dflags
 s <?.> ext | null (takeExtension s) = s <.> ext
            | otherwise              = s
 
-checkLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> FilePath -> IO Bool
-checkLinkInfo  dflags linkables pkg_deps jar_file = do
+checkLinkInfo :: DynFlags -> [Linkable] -> [InstalledUnitId] -> IO Bool
+checkLinkInfo  dflags linkables pkg_deps  = do
   let linkablesJars = linkablesToJars linkables
   link_info <- getLinkInfo dflags linkablesJars pkg_deps
-  debugTraceMsg dflags 3 $ text ("checkLinkInfo: Link info= " ++ show link_info)
-  m_jar_link_info <- extractLinkInfoFromJarFile dflags etaLinkInfoSectionName jar_file
-  debugTraceMsg dflags 3 $ text ("checkLinkInfo: Exe link info= " ++ show m_jar_link_info)
-  return (Just link_info /= m_jar_link_info)
+  debugTraceMsg dflags 3 $ text ("checkLinkInfo: Actual Link info= " ++ show link_info)
+  prev_link_info <- readPreviousLinkInfo dflags
+  debugTraceMsg dflags 3 $ text ("checkLinkInfo: Previous link info= " ++ show prev_link_info)
+  return (Just link_info /= prev_link_info)
 
 type LinkInfo = Set Fingerprint
 
@@ -1306,24 +1307,29 @@ getFileHashIfExists file = do
    if exists then fmap Just $ getFileHash file
    else return Nothing
 
+linkInfoFileName :: DynFlags -> FilePath
+linkInfoFileName dflags
+  | Just s <- outputFile dflags = s -<.> etaLinkInfoSectionName
+  | otherwise = "Run." ++ etaLinkInfoSectionName
+
 getLinkInfoFile :: DynFlags -> [FilePath] -> [InstalledUnitId] -> IO (FilePath, ByteString)
 getLinkInfoFile dflags linkablesJars dep_packages = do
   linkInfo <- getLinkInfo dflags linkablesJars dep_packages
-  return (etaLinkInfoSectionName, BC.pack . unlines . map show . Set.toList $ linkInfo)
+  return (linkInfoFileName dflags, BC.pack . unlines . map show . Set.toList $ linkInfo)
 
-extractLinkInfoFromJarFile :: DynFlags -> String -> FilePath
-                           -> IO (Maybe LinkInfo)
-extractLinkInfoFromJarFile dflags linkInfoName jarFile = do
-  debugTraceMsg dflags 3 (text $ "extractLinkInfoFromJarFile: jarFile=" ++ show jarFile)
-  existJar <- doesFileExist jarFile
-  let bsToLinkInfo = Set.fromList . map readHexFingerprint . lines . BC.unpack
-  if (not existJar) then return Nothing
+readPreviousLinkInfo :: DynFlags -> IO (Maybe LinkInfo)
+readPreviousLinkInfo dflags = do
+  let fileName =  linkInfoFileName dflags
+      bsToLinkInfo = Set.fromList . map readHexFingerprint . lines . BC.unpack
+  existsLinkInfo <- doesFileExist fileName
+  if (not existsLinkInfo) then return Nothing
   else do
-    mContent <- getEntryContentFromJar jarFile linkInfoName
-    return $ fmap bsToLinkInfo mContent
+     debugTraceMsg dflags 3 (text $ "Reading previous link info file: " ++ fileName)
+     content <- BS.readFile $ fileName
+     return $ Just $ bsToLinkInfo content
 
 etaLinkInfoSectionName :: String
-etaLinkInfoSectionName = ".eta-link-info"
+etaLinkInfoSectionName = "eta-link-info"
 
 -- etaFrontend :: ModSummary -> Hsc TcGblEnv
 -- etaFrontend mod_summary = do
@@ -1353,7 +1359,7 @@ linkGeneric dflags oFiles depPackages = do
     -- TODO: Use conduits to combine the jars
     linkInfoFile <- getLinkInfoFile dflags oFiles depPackages
     mainFiles' <- maybeMainAndManifest dflags isExecutable
-    mainFiles <- forM (linkInfoFile : mainFiles') $ \(a, b) -> do
+    mainFiles <- forM mainFiles' $ \(a, b) -> do
                    a' <- mkPath a
                    return (a', b)
     outJars <- mapM getNonManifestEntries oFiles
@@ -1363,12 +1369,14 @@ linkGeneric dflags oFiles depPackages = do
                   -- TODO: Verify that the right version eta was used
                   -- in the Manifests of the jars being compiled
     inputJars <- mapM getNonManifestEntries (jarInputs dflags)
-    start <- getCurrentTime
     debugTraceMsg dflags 3 (text $ "linkGeneric: linkables are: " ++
                             show ( ["mainFiles"]  ++ map (show . fst) mainFiles
                                 ++ ["pkgLibJars"] ++ pkgLibJars
                                 ++ ["jarInputs"]  ++ jarInputs dflags
                                 ++ ["oFiles"]     ++ oFiles) )
+    debugTraceMsg dflags 3 (text $ "Write link info file: " ++ fst linkInfoFile)
+    start <- getCurrentTime
+    uncurry BS.writeFile $ linkInfoFile
     mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
       extraJars ++ inputJars ++ outJars
     end <- getCurrentTime
