@@ -31,9 +31,9 @@ let
       hpp = haskell.lib.dontCheck (haskell.lib.addExtraLibrary (self.callPackage ./utils/nix/hpp.nix { }) self.semigroups);
       eta-boot-meta = self.callPackage ./utils/nix/eta-boot-meta.nix { };
       eta-boot = self.callPackage ./utils/nix/eta-boot.nix { };
-      eta-meta = haskell.lib.dontHaddock (self.callPackage ./utils/nix/eta-meta.nix { });
+      eta-meta = self.callPackage ./utils/nix/eta-meta.nix { };
       eta-pkg = self.callPackage ./utils/nix/eta-pkg.nix { };
-      eta-repl = haskell.lib.dontHaddock (self.callPackage ./utils/nix/eta-repl.nix { });
+      eta-repl = self.callPackage ./utils/nix/eta-repl.nix { };
       etlas-cabal = self.callPackage ./utils/nix/etlas-cabal.nix { };
 
       etlas = haskell.lib.overrideCabal (self.callPackage ./utils/nix/etlas.nix { }) (drv: {
