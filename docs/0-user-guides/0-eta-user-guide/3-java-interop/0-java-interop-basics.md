@@ -202,7 +202,7 @@ zero = do
 foreign export java "@static eta.example.Numbers.one" one :: Int
 one = 1
 
-foreign export java "@static eta.example.addTwo" getInt :: Int -> Java a Int
+foreign export java "@static eta.example.addTwo" addTwo :: Int -> Java a Int
 addTwo x = return $ x + 2
 
 ```
