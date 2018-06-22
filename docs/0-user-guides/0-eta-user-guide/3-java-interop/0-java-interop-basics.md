@@ -224,6 +224,7 @@ type instance Inherits EtaCounter = '[JavaCounter]
 
 -- Importing methods from JavaCounter with ( c <: JavaCounter ) constraint
 -- to make it works for its subclasses (including EtaCounter)
+-- see: https://eta-lang.org/docs/user-guides/eta-user-guide/java-interop/arrays-subclasses#problem-resolution
 foreign import java unsafe get :: ( c <: JavaCounter )
                                => Java c Int
 
