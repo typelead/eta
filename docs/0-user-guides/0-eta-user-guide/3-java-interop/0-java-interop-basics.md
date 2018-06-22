@@ -180,7 +180,9 @@ foreign export java "[export-string]" [eta-identifier]
 3. `[arg-type-n]` should be a marshallable Eta type.
 
 4. `[returnType]` can be of three forms:
-    - `Java [export-jwt] [return-type]`: This is the form that should be used if you want to export an instance method, although it can be used for a static method too. `[export-jwt]` should be the JWT that refers to the class name of the exported class. If (and only if) the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. Also, the JWT *must not* be an imported JWT but a new one defined in eta. The export will create a new class with an instance method. The typical use case is to define a new JWT class that inherits from an existing java abstract class, implementing the abstract method or methods with one or more exports. However you could use a non abstract existing class too. `[return-type]` should be a marshallable Eta type.
+    - `Java [export-jwt] [return-type]`: This is the form that should be used if you want to export an instance method, although it can be used for a static method too. 
+      - `[export-jwt]` should be the JWT that refers to the class name of the exported class. If (and only if) the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. Also, the JWT *must not* be an imported JWT but a new one defined in eta. The export will create a new class with an instance method. The typical use case is to define a new JWT class that inherits from an existing java abstract class, implementing the abstract method or methods with one or more exports. However you could use a non abstract existing class too. 
+      - `[return-type]` should be a marshallable Eta type.
     - `IO [return-type]` or simply `[return-type]`: These forms can be used for convenience. Note that if you use any of them the export string *must* have a `@static [java-method-name]` annotation. `[return-type]` should be a marshallable Eta type.
 
 ### Examples
