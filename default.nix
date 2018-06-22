@@ -1,4 +1,6 @@
-with import <nixpkgs> { };
+{ pkgs ? import (fetchTarball https://nixos.org/channels/nixos-17.09/nixexprs.tar.xz) { } }:
+
+with pkgs;
 
 # To get a shell with all of Eta's dependencies:
 #   $ nix-shell -A eta-build-shell
@@ -21,11 +23,17 @@ let
       tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
       binary = haskell.lib.dontCheck self.binary_0_8_5_1 or self.binary_0_8_4_1;
 
+      # Tests rely on doctest which has problematic semigroups and binary
+      turtle = haskell.lib.dontCheck super.turtle;
+
       codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
       hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
+      hpp = haskell.lib.dontCheck (haskell.lib.addExtraLibrary (self.callPackage ./utils/nix/hpp.nix { }) self.semigroups);
       eta-boot-meta = self.callPackage ./utils/nix/eta-boot-meta.nix { };
       eta-boot = self.callPackage ./utils/nix/eta-boot.nix { };
+      eta-meta = self.callPackage ./utils/nix/eta-meta.nix { };
       eta-pkg = self.callPackage ./utils/nix/eta-pkg.nix { };
+      eta-repl = self.callPackage ./utils/nix/eta-repl.nix { };
       etlas-cabal = self.callPackage ./utils/nix/etlas-cabal.nix { };
 
       etlas = haskell.lib.overrideCabal (self.callPackage ./utils/nix/etlas.nix { }) (drv: {
@@ -40,15 +48,13 @@ let
       });
 
       eta = haskell.lib.overrideCabal (self.callPackage ./utils/nix/eta.nix { }) (drv: {
-        src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE"] drv.src;
+        src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE" "tests"] drv.src;
         isLibrary = false;
         doCheck = false;
         jailbreak = true;
       });
 
       eta-build = self.callPackage ./utils/nix/eta-build.nix { };
-
-      zip = haskell.lib.dontCheck super.zip;
     };
   };
 
