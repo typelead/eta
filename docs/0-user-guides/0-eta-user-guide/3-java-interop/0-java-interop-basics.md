@@ -246,10 +246,10 @@ foreign export java decrement :: Int -> Java EtaCounter Int
 
 ```java
 // static methods
-MyClass.sayHello();
-System.out.println("Zero: " + Numbers.zero());
-System.out.println("One: " + Numbers.one());
-System.out.println("Two: " + Numbers.addTwo(0));
+eta.example.MyClass.sayHello();
+System.out.println("Zero: " + eta.example.Numbers.zero());
+System.out.println("One: " + eta.example.Numbers.one());
+System.out.println("Two: " + eta.example.Numbers.addTwo(0));
 
 // instance method
 eta.example.EtaCounter d = new eta.example.EtaCounter();
