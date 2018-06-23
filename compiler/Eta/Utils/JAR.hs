@@ -1,3 +1,4 @@
+{-#LANGUAGE CPP #-}
 {-#LANGUAGE OverloadedStrings#-}
 
 {-|
@@ -42,24 +43,27 @@ module Eta.Utils.JAR
   , mkPath )
 where
 
+#if MIN_VERSION_zip(1,0,0)
+#define PLAIN_FILEPATHS
+import System.Directory
+import Data.List (sortBy)
+#else
+import Path.IO (copyFile)
+import System.Directory hiding (copyFile)
+import Data.List (sortBy,isPrefixOf)
+#endif
 import Codec.Archive.Zip
-import Control.Monad (forM_, when)
+import Control.Monad
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Catch (MonadCatch(..), MonadThrow)
 import Data.ByteString.Internal (ByteString)
 import Path
-import Path.IO (copyFile)
 import Data.Map.Lazy (keys)
 import Data.Map.Strict (filterWithKey)
-import Data.List (sortBy,isPrefixOf)
-import System.Directory hiding (copyFile)
 import Data.Text (Text)
 import qualified Data.Text as T
 
-
-type FileAndContents = (RelativeFile, ByteString)
-type AbsoluteFile = Path Abs File
-type RelativeFile = Path Rel File
+type FileAndContents = (FilePath, ByteString)
 
 deflate, normal, bzip2 :: CompressionMethod
 deflate = Deflate
@@ -97,7 +101,11 @@ bzip2 = BZip2
 -- @
 createEmptyJar :: (MonadIO m, MonadCatch m) => FilePath -> m ()
 createEmptyJar location = do
+#ifdef PLAIN_FILEPATHS
+    let p = location
+#else
     p <- makeAbsoluteFilePath location
+#endif
     createArchive p (return ())
   
 
@@ -146,11 +154,20 @@ addByteStringToJar :: (MonadThrow m, MonadIO m)
   -> FilePath      -- ^ Location of the jar to add the new file into
   -> m ()
 addByteStringToJar fileLocation compress contents jarLocation = zipAction
-  where zipAction = jarPath >>= flip withArchive zipChange
+  where
+#ifdef PLAIN_FILEPATHS
+        zipAction = withArchive jarPath zipChange
+        zipChange = entrySel >>= addEntry compress contents
+        entrySel  = mkEntrySelector filePath
+        jarPath   = jarLocation
+        filePath  = fileLocation
+#else
+        zipAction = jarPath >>= flip withArchive zipChange
         zipChange = entrySel >>= addEntry compress contents
         entrySel  = filePath >>= mkEntrySelector
         jarPath   = parseRelFile jarLocation
         filePath  = parseRelFile fileLocation
+#endif
 
 -- | Adds the given files into the given jar. Each file is represented by a
 -- tuple containing the location where the file will be added inside the jar,
@@ -221,12 +238,20 @@ addMultiByteStringsToJar'
 
   => FilePath                    -- ^ Location of the jar to add the new files into
   -> CompressionMethod -- ^ Compression Method
-  -> [(Path Rel File, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
+  -> [(FilePath, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> m ()
 addMultiByteStringsToJar' jarLocation compress files  = do
-    p <- makeAbsoluteFilePath jarLocation
-    createArchive p action
-  where action =
+#ifdef PLAIN_FILEPATHS
+  let p = jarLocation
+      files' = files
+#else
+  p <- makeAbsoluteFilePath jarLocation
+  files' <- forM files $ \(fp, bs) -> do
+    path <- mkPath fp
+    return (path, bs)
+#endif
+  createArchive p (action files')
+  where action files =
           forM_ files $ \(path, contents) -> do
             entrySel <- mkEntrySelector path
             addEntry compress contents entrySel
@@ -246,30 +271,34 @@ addMultiByteStringsToJar' jarLocation compress files  = do
 mkPath :: (MonadThrow m, MonadIO m) => FilePath -> m (Path Rel File)
 mkPath = parseRelFile
 
+#ifndef PLAIN_FILEPATHS
 makeAbsoluteFilePath :: (MonadIO m, MonadThrow m) => FilePath -> m (Path Abs File)
 makeAbsoluteFilePath fp = do
-  absPath <- liftIO $ makeAbsolute  fp
-  let absPath'= removeDots [] absPath
+  absPath <- liftIO $ makeAbsolute fp
+  let absPath' = removeDots [] absPath
   parseAbsFile absPath'
-  where
-  removeDots :: String -> String -> String
-  removeDots s ""= s
-  removeDots s "/"= s ++ "/"
-  removeDots scanned  path=
-      let (h,t) = break (\c -> c=='\\' || c == '/') path
-      in if null t then scanned ++ h
-         else if ".." `isPrefixOf` tail t
-             then removeDots scanned $ drop 4 t
-             else removeDots(scanned ++ h ++ [head t] ) $ tail t
-
+  where removeDots :: String -> String -> String
+        removeDots s "" = s
+        removeDots s "/" = s ++ "/"
+        removeDots scanned path =
+            let (h, t) = break (\c -> c == '\\' || c == '/') path
+            in if null t then scanned ++ h
+                else if ".." `isPrefixOf` tail t
+                    then removeDots scanned $ drop 4 t
+                    else removeDots (scanned ++ h ++ [head t]) $ tail t
+#endif
 
 getEntriesFromJar
   :: (MonadThrow m, MonadCatch m, MonadIO m)
   => FilePath
-  -> m (AbsoluteFile, [EntrySelector])
+  -> m (FilePath, [EntrySelector])
 getEntriesFromJar jarLocation = do
+#ifdef PLAIN_FILEPATHS
+  let p = jarLocation
+#else
   p <- makeAbsoluteFilePath jarLocation
-  fmap (p,) $ withArchive p $ keys <$> getEntries
+#endif
+  fmap (jarLocation,) $ withArchive p $ keys <$> getEntries
 
 getEntryContentFromJar 
   :: (MonadThrow m, MonadCatch m, MonadIO m)
@@ -277,8 +306,13 @@ getEntryContentFromJar
   -> FilePath
   -> m (Maybe ByteString)
 getEntryContentFromJar jarLocation file = do
+#ifdef PLAIN_FILEPATHS
+  let p = jarLocation
+  s <- mkEntrySelector file
+#else
   p <- makeAbsoluteFilePath jarLocation
   s <- parseRelFile file >>= mkEntrySelector
+#endif
   exists <- withArchive p $ doesEntryExist s
   if exists then do
     content <- withArchive p $ getEntry s
@@ -289,24 +323,39 @@ mergeClassesAndJars :: (MonadIO m, MonadCatch m, MonadThrow m)
                     => FilePath
                     -> CompressionMethod -- ^ Compression Method
                     -> [FileAndContents]
-                    -> [(AbsoluteFile, [EntrySelector])]
+                    -> [(FilePath, [EntrySelector])]
                     -> m ()
 mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
-  let ((copy, _):selectors) = sortBy (\(_, e1) (_, e2) ->
+  let ((copy', _):selectors) = sortBy (\(_, e1) (_, e2) ->
                                   compare (length e2) (length e1)) jarSelectors
   exists <- liftIO $ doesFileExist jarLocation
   when (not exists) $
     liftIO $ writeFile jarLocation ""
+#ifdef PLAIN_FILEPATHS
+  let p = jarLocation
+      copy = copy'
+      copyFile x y = liftIO $ System.Directory.copyFile x y
+      selectors' = selectors
+      fileAndContents' = fileAndContents
+#else
   p <- makeAbsoluteFilePath jarLocation
+  copy <- makeAbsoluteFilePath copy'
+  selectors' <- forM selectors $ \(fp, bs) -> do
+    path <- makeAbsoluteFilePath fp
+    return (path, bs)
+  fileAndContents' <- forM fileAndContents $ \(fp, bs) -> do
+    path <- mkPath fp
+    return (path, bs)
+#endif
   copyFile copy p
   withArchive p $ do
     existingEntries <- getEntries
     let invalidEntries = filterWithKey (\k _ -> invalidEntrySelector k)  existingEntries
     mapM_ deleteEntry (keys invalidEntries)
-    forM_ selectors $ \(absFile, entries) -> do
+    forM_ selectors' $ \(absFile, entries) -> do
       forM_ entries $ \entry -> do
         when (invalidEntrySelector entry /= True) $ copyEntry absFile entry entry
-    forM_ fileAndContents $ \(relFile, contents) -> do
+    forM_ fileAndContents' $ \(relFile, contents) -> do
       entrySel <- mkEntrySelector relFile
       addEntry compress contents entrySel
   where

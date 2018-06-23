@@ -28,12 +28,12 @@ data HsSplice (i :: *)
 data MatchGroup (a :: *) (body :: *)
 data GRHSs (a :: *) (body :: *)
 
-#if __GLASGOW_HASKELL__ > 706
+#if __GLASGOW_HASKELL__ > 706 && __GLASGOW_HASKELL__ < 800
 instance Typeable HsSplice
 instance Typeable HsExpr
 instance Typeable MatchGroup
 instance Typeable GRHSs
-#else
+#elif __GLASGOW_HASKELL__ <= 706
 instance Typeable1 HsSplice
 instance Typeable1 HsExpr
 instance Typeable1 HsCmd

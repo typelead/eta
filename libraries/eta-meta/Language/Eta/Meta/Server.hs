@@ -27,6 +27,10 @@ import Control.Exception
 import Data.Data
 import Data.Maybe
 
+#if __GLASGOW_HASKELL__ > 800
+import qualified Control.Monad.Fail as Fail
+#endif
+
 #ifdef ETA_VERSION
 import qualified GHC.IO.FD as FD
 import GHC.IO.Handle.Internals
@@ -174,7 +178,14 @@ instance Monad GHCiQ where
     do (m', s')  <- runGHCiQ m s
        (a,  s'') <- runGHCiQ (f m') s'
        return (a, s'')
+#if __GLASGOW_HASKELL__ < 800
   fail err = GHCiQ $ \s -> throwIO (GHCiQException s err)
+#else
+  fail = Fail.fail
+
+instance Fail.MonadFail GHCiQ where
+  fail err  = GHCiQ $ \s -> throwIO (GHCiQException s err)
+#endif
 
 getState :: GHCiQ QState
 getState = GHCiQ $ \s -> return (s,s)

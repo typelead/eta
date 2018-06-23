@@ -38,7 +38,7 @@ library
                       Language.Eta.Meta.Binary
                       Language.Eta.Meta.Server
                       Language.Eta.Meta.Lib.Map
-    build-depends:    base        >= 4.7 && < 4.10,
+    build-depends:    base        >= 4.7 && < 4.11,
                       binary      == 0.8.*,
                       bytestring  == 0.10.*,
                       deepseq     == 1.4.*,

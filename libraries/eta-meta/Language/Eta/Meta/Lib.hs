@@ -483,9 +483,10 @@ closedTypeFamilyD tc tvs result injectivity eqns =
 --   3. remove the FamFlavour data type from Syntax module
 --   4. make sure that all references to FamFlavour are gone from DsMeta,
 --      Convert, TcSplice (follows from 3)
-#if __GLASGOW_HASKELL__ > 800
-#error Remove deprecated familyNoKindD, familyKindD, closedTypeFamilyNoKindD and closedTypeFamilyKindD
-#endif
+-- TODO: What do we do with this?
+-- #if __GLASGOW_HASKELL__ > 800
+-- #error Remove deprecated familyNoKindD, familyKindD, closedTypeFamilyNoKindD and closedTypeFamilyKindD
+-- #endif
 
 {-# DEPRECATED familyNoKindD, familyKindD
                "This function will be removed in the next stable release. Use openTypeFamilyD/dataFamilyD instead." #-}

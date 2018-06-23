@@ -1225,10 +1225,7 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
                               (lookupStubs modClass foreign_stubs)
         let stubClasses = outputForeignStubs dflags foreign_stubs modClass
             classes = stubClasses ++ modClasses
-            jarContents' = map (classFilePath &&& classFileBS) classes
-        jarContents <- forM jarContents' $ \(a,b) -> do
-          a' <- mkPath a
-          return (a', b)
+            jarContents = map (classFilePath &&& classFileBS) classes
         -- createEmptyJar output_filename
         addMultiByteStringsToJar' output_filename (compressionMethod dflags) jarContents
         return (output_filename, Nothing)

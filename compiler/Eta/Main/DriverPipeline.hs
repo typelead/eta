@@ -489,8 +489,7 @@ createJar dflags outputFile classes = do
   pathContents <- forM classes $ \classFile -> do
     contents <- BL.readFile classFile
     let internalPath = classFileCls contents
-    relPath <- mkPath $ internalPath ++ ".class"
-    return (relPath, BL.toStrict contents)
+    return (internalPath ++ ".class", BL.toStrict contents)
   addMultiByteStringsToJar' outputFile (compressionMethod dflags) pathContents
 
 oneShot :: HscEnv -> Phase -> [(String, Maybe Phase)] -> IO ()
@@ -1358,10 +1357,7 @@ linkGeneric dflags oFiles depPackages = do
     --          ++ " these options."))
     -- TODO: Use conduits to combine the jars
     linkInfoFile <- getLinkInfoFile dflags oFiles depPackages
-    mainFiles' <- maybeMainAndManifest dflags isExecutable
-    mainFiles <- forM mainFiles' $ \(a, b) -> do
-                   a' <- mkPath a
-                   return (a', b)
+    mainFiles <- maybeMainAndManifest dflags isExecutable
     outJars <- mapM getNonManifestEntries oFiles
     pkgLibJars <- if includePackages then getPackageLibJars dflags depPackages
                   else return []

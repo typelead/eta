@@ -108,7 +108,11 @@ import Data.Version ( showVersion )
 
 import Eta.Utils.Exception as Exception hiding (catch)
 import Foreign hiding (void)
+#if __GLASGOW_HASKELL__ < 800
 import GHC.Stack
+#else
+import GHC.Stack hiding (srcLocFile)
+#endif
 
 import System.Directory
 import System.Environment

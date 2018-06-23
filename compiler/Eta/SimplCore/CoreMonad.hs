@@ -572,6 +572,13 @@ instance A.Applicative CoreM where
     (<*>) = ap
     (*>) = (>>)
 
+#if __GLASGOW_HASKELL__ > 800
+instance A.Alternative CoreM where
+    empty   = CoreM (const A.empty)
+    m <|> n = CoreM (\rs -> unCoreM m rs A.<|> unCoreM n rs)
+
+instance MonadPlus CoreM
+#else
 instance MonadPlus IO => A.Alternative CoreM where
     empty = mzero
     (<|>) = mplus
@@ -581,6 +588,8 @@ instance MonadPlus IO => A.Alternative CoreM where
 instance MonadPlus IO => MonadPlus CoreM where
     mzero = CoreM (const mzero)
     m `mplus` n = CoreM (\rs -> unCoreM m rs `mplus` unCoreM n rs)
+#endif
+
 
 instance MonadUnique CoreM where
     getUniqueSupplyM = do

@@ -20,9 +20,9 @@ type role Pat nominal
 data Pat (i :: *)
 type LPat i = Located (Pat i)
 
-#if __GLASGOW_HASKELL__ > 706
+#if __GLASGOW_HASKELL__ > 706 && __GLASGOW_HASKELL__ < 800
 instance Typeable Pat
-#else
+#elif __GLASGOW_HASKELL__ <= 706
 instance Typeable1 Pat
 #endif
 

@@ -45,6 +45,9 @@ import System.IO        ( fixIO )
 import Control.Monad
 import Eta.Utils.MonadUtils
 import Control.Applicative (Alternative(..))
+#if __GLASGOW_HASKELL__ > 800
+import qualified Control.Monad.Fail as MonadFail
+#endif
 
 ----------------------------------------------------------------------
 -- Defining the monad type
@@ -60,7 +63,14 @@ instance Monad (IOEnv m) where
     (>>=)  = thenM
     (>>)   = thenM_
     return = returnM
+#if __GLASGOW_HASKELL__ < 800
     fail _ = failM -- Ignore the string
+#else
+    fail   = MonadFail.fail
+
+instance MonadFail.MonadFail (IOEnv m) where
+    fail _ = failM -- Ignore the string
+#endif
 
 instance Applicative (IOEnv m) where
     pure = returnM
@@ -168,6 +178,14 @@ uninterruptibleMaskM_ (IOEnv m) = IOEnv (\ env -> uninterruptibleMask_ (m env))
 -- Alternative/MonadPlus
 ----------------------------------------------------------------------
 
+
+#if __GLASGOW_HASKELL__ > 800
+instance Alternative (IOEnv env) where
+    empty   = IOEnv (const empty)
+    m <|> n = IOEnv (\env -> unIOEnv m env <|> unIOEnv n env)
+
+instance MonadPlus (IOEnv env)
+#else
 instance MonadPlus IO => Alternative (IOEnv env) where
       empty = mzero
       (<|>) = mplus
@@ -177,6 +195,7 @@ instance MonadPlus IO => Alternative (IOEnv env) where
 instance MonadPlus IO => MonadPlus (IOEnv env) where
     mzero = IOEnv (const mzero)
     m `mplus` n = IOEnv (\env -> unIOEnv m env `mplus` unIOEnv n env)
+#endif
 
 ----------------------------------------------------------------------
 -- Accessing input/output

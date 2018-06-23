@@ -321,8 +321,8 @@ library
                        , eta-boot
                        , eta-boot-meta
                        , deepseq    >= 1.4 && < 1.5
-                       , time       >= 1.4 && < 1.7
-                       , process    >= 1   && < 1.3
+                       , time       >= 1.4 && < 1.9
+                       , process    >= 1   && < 1.7
                        , directory >= 1.2
                        , filepath
                        , codec-jvm >= 0
@@ -367,8 +367,8 @@ executable eta
                       , directory
                       , filepath
                       , process
-                      , transformers == 0.4.*
-                      , time == 1.5.*
+                      , transformers < 0.6
+                      , time < 1.9
                       , eta
    if flag(repl)
        -- NB: this is never built by the bootstrapping Eta+libraries

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -721,7 +722,9 @@ getPkgDatabases verbosity mode use_user use_cache expand_vars my_flags = do
                         case packageDbLock db of
                           EtaPkg.DbOpenReadWrite lock ->
                             EtaPkg.unlockPackageDb lock
+#if __GLASGOW_HASKELL__ < 800
                           _ -> case undefined of {}
+#endif
                         return (ro_db, Nothing)
           | db_path <- final_stack ]
 
