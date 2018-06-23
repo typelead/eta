@@ -1,63 +1,38 @@
-{ pkgs ? import (fetchTarball https://nixos.org/channels/nixos-17.09/nixexprs.tar.xz) { } }:
-
-with pkgs;
-
-# To get a shell with all of Eta's dependencies:
-#   $ nix-shell -A eta-build-shell
-#   [nix-shell] $ eta-build uninstall
-#   [nix-shell] $ eta-build install
+with import <nixpkgs> { };
 
 let
-  hpkgs = haskell.packages.ghc7103.override {
-    overrides = self: super: {
-      Cabal_1_24_2_0 = haskell.lib.overrideCabal super.Cabal_1_24_2_0 (drv: {
-        # Cabal bug doesn't compile Setup.hs with MIN_VERSION set:
-        # https://github.com/haskell/cabal/issues/3003#issuecomment-167572308
-        preCompileBuildDriver = ''
-          ${drv.preCompileBuildDriver or ""}
-          setupCompileFlags+=" -DMIN_VERSION_binary_0_8_0=1"
-        '';
-      });
-      Cabal = self.Cabal_1_24_2_0;
+  rootName = name: builtins.elemAt (lib.splitString "/" name) 0;
+  isValidFile = name: files: builtins.elem (rootName name) files;
+  relative = path: name: lib.removePrefix (toString path + "/") name;
+  onlyFiles = files: path: builtins.filterSource (name: type: isValidFile (relative path name) files) path;
 
-      tasty-ant-xml = haskell.lib.doJailbreak super.tasty-ant-xml;
-      binary = haskell.lib.dontCheck self.binary_0_8_5_1 or self.binary_0_8_4_1;
+  eta-nix = fetchTarball "https://github.com/eta-lang/eta-nix/archive/1e53e1cb7a900585949c36df4340e41c5cbcda5d.tar.gz";
 
-      # Tests rely on doctest which has problematic semigroups and binary
-      turtle = haskell.lib.dontCheck super.turtle;
+  rewriteRelative = top: path:
+    let path' = lib.removePrefix top (builtins.toString path);
+    in if lib.isStorePath path' then path' else ./. + path';
 
-      codec-jvm = self.callPackage ./utils/nix/codec-jvm.nix { };
-      hackage-security = haskell.lib.dontCheck (self.callPackage ./utils/nix/hackage-security.nix { });
-      hpp = haskell.lib.dontCheck (haskell.lib.addExtraLibrary (self.callPackage ./utils/nix/hpp.nix { }) self.semigroups);
-      eta-boot-meta = self.callPackage ./utils/nix/eta-boot-meta.nix { };
-      eta-boot = self.callPackage ./utils/nix/eta-boot.nix { };
-      eta-meta = self.callPackage ./utils/nix/eta-meta.nix { };
-      eta-pkg = self.callPackage ./utils/nix/eta-pkg.nix { };
-      eta-repl = self.callPackage ./utils/nix/eta-repl.nix { };
-      etlas-cabal = self.callPackage ./utils/nix/etlas-cabal.nix { };
+  overrides = self: super: {
+    mkDerivation = args: super.mkDerivation (lib.overrideExisting args {
+      src = rewriteRelative eta-nix args.src;
+    });
 
-      etlas = haskell.lib.overrideCabal (self.callPackage ./utils/nix/etlas.nix { }) (drv: {
-        # Nix should only compile Setup.hs with setup-depends, but it doesn't:
-        # https://github.com/NixOS/nixpkgs/issues/24809
-        preCompileBuildDriver = ''
-          ${drv.preCompileBuildDriver or ""}
-          setupCompileFlags+=" -hide-package=etlas-cabal"
-        '';
-        isLibrary = false;
-        jailbreak = true;
-      });
-
-      eta = haskell.lib.overrideCabal (self.callPackage ./utils/nix/eta.nix { }) (drv: {
-        src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE" "tests"] drv.src;
-        isLibrary = false;
-        doCheck = false;
-        jailbreak = true;
-      });
-
-      eta-build = self.callPackage ./utils/nix/eta-build.nix { };
-    };
+    etlas = haskell.lib.overrideCabal super.etlas (drv: {
+      # Nix should only compile Setup.hs with setup-depends, but it doesn't:
+      # https://github.com/NixOS/nixpkgs/issues/24809
+      preCompileBuildDriver = ''
+        ${drv.preCompileBuildDriver or ""}
+        setupCompileFlags+=" -hide-package=etlas-cabal"
+      '';
+    });
+    eta = haskell.lib.overrideCabal super.eta (drv: {
+      # Makes the build a bit faster
+      src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE" "tests"] drv.src;
+    });
   };
-
+  hpkgs = (import eta-nix { }).override { inherit overrides; };
+in
+hpkgs // {
   eta-build-shell = runCommand "eta-build-shell" {
     # Libraries don't pass -encoding to javac.
     LC_ALL = "en_US.utf8";
@@ -71,10 +46,4 @@ let
       glibcLocales
     ];
   } "";
-
-  rootName = name: builtins.elemAt (lib.splitString "/" name) 0;
-  isValidFile = name: files: builtins.elem (rootName name) files;
-  relative = path: name: lib.removePrefix (toString path + "/") name;
-  onlyFiles = files: path: builtins.filterSource (name: type: isValidFile (relative path name) files) path;
-in
-hpkgs // { inherit eta-build-shell; }
+}
