@@ -62,6 +62,8 @@ import Data.Map.Lazy (keys)
 import Data.Map.Strict (filterWithKey)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
 
 type FileAndContents = (FilePath, ByteString)
 
@@ -236,11 +238,12 @@ addByteStringToJar fileLocation compress contents jarLocation = zipAction
 addMultiByteStringsToJar'
   :: (MonadThrow m, MonadIO m, MonadCatch m)
 
-  => FilePath                    -- ^ Location of the jar to add the new files into
+  => Bool -- ^ Whether to set the modification time to a fixed value
+  -> FilePath                    -- ^ Location of the jar to add the new files into
   -> CompressionMethod -- ^ Compression Method
   -> [(FilePath, ByteString)]    -- ^ Filepaths and contents of files to add into the jar
   -> m ()
-addMultiByteStringsToJar' jarLocation compress files  = do
+addMultiByteStringsToJar' setmodtime jarLocation compress files  = do
 #ifdef PLAIN_FILEPATHS
   let p = jarLocation
       files' = files
@@ -254,6 +257,7 @@ addMultiByteStringsToJar' jarLocation compress files  = do
   where action files =
           forM_ files $ \(path, contents) -> do
             entrySel <- mkEntrySelector path
+            when setmodtime $ setDefaultTimestamp entrySel
             addEntry compress contents entrySel
 
 -- getFilesFromJar
@@ -320,12 +324,13 @@ getEntryContentFromJar jarLocation file = do
   else return Nothing
   
 mergeClassesAndJars :: (MonadIO m, MonadCatch m, MonadThrow m)
-                    => FilePath
+                    => Bool  -- ^ Whether to set the modification time to a fixed value
+                    -> FilePath
                     -> CompressionMethod -- ^ Compression Method
                     -> [FileAndContents]
                     -> [(FilePath, [EntrySelector])]
                     -> m ()
-mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
+mergeClassesAndJars setmodtime jarLocation compress fileAndContents jarSelectors = do
   let ((copy', _):selectors) = sortBy (\(_, e1) (_, e2) ->
                                   compare (length e2) (length e1)) jarSelectors
   exists <- liftIO $ doesFileExist jarLocation
@@ -352,12 +357,16 @@ mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
     existingEntries <- getEntries
     let invalidEntries = filterWithKey (\k _ -> invalidEntrySelector k)  existingEntries
     mapM_ deleteEntry (keys invalidEntries)
+    when setmodtime $ mapM_ setDefaultTimestamp (keys existingEntries)
     forM_ selectors' $ \(absFile, entries) -> do
       forM_ entries $ \entry -> do
-        when (invalidEntrySelector entry /= True) $ copyEntry absFile entry entry
+        when (invalidEntrySelector entry /= True) $ do
+          copyEntry absFile entry entry
+          when setmodtime $ setDefaultTimestamp entry
     forM_ fileAndContents' $ \(relFile, contents) -> do
       entrySel <- mkEntrySelector relFile
       addEntry compress contents entrySel
+      when setmodtime $ setDefaultTimestamp entrySel
   where
     invalidEntrySelector :: EntrySelector -> Bool
     invalidEntrySelector fname = any (endsWith (getEntryName fname)) filterFileExts
@@ -365,3 +374,11 @@ mergeClassesAndJars jarLocation compress fileAndContents jarSelectors = do
 
     endsWith :: Text -> Text -> Bool
     endsWith txt ext = T.toUpper (T.takeEnd (T.length ext) txt) == (T.toUpper ext)
+
+setDefaultTimestamp :: EntrySelector -> ZipArchive ()
+setDefaultTimestamp = setModTime dEFAULT_TIMESTAMP
+
+-- Corresponds to January 1, 2010 00:00 UTC.
+-- Should be a datetime that is greater than all the epoch times on all platforms.
+dEFAULT_TIMESTAMP :: UTCTime
+dEFAULT_TIMESTAMP = posixSecondsToUTCTime (fromInteger 1262304000)

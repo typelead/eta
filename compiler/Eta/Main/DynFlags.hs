@@ -494,6 +494,7 @@ data GeneralFlag
    | Opt_PackageTrust
 
    -- Eta-specific flags
+   | Opt_NormalizeJar
 
    deriving (Eq, Show, Enum)
 
@@ -3182,7 +3183,8 @@ fFlags = [
   flagSpec "vectorise"                        Opt_Vectorise,
   flagSpec "catch-bottoms"                    Opt_CatchBottoms,
   flagSpec "show-loaded-modules"              Opt_ShowLoadedModules,
-  flagSpec "show-warning-groups"              Opt_ShowWarnGroups
+  flagSpec "show-warning-groups"              Opt_ShowWarnGroups,
+  flagSpec "normalize-jar"                    Opt_NormalizeJar
   ]
 
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@
@@ -3395,7 +3397,8 @@ defaultFlags _
       Opt_SharedImplib,
       Opt_SimplPreInlining,
       Opt_ExternalInterpreter,
-      Opt_ShowWarnGroups
+      Opt_ShowWarnGroups,
+      Opt_NormalizeJar
     ]
 
     ++ [f | (ns,f) <- optLevelFlags, 0 `elem` ns]

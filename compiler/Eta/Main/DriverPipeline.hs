@@ -490,7 +490,8 @@ createJar dflags outputFile classes = do
     contents <- BL.readFile classFile
     let internalPath = classFileCls contents
     return (internalPath ++ ".class", BL.toStrict contents)
-  addMultiByteStringsToJar' outputFile (compressionMethod dflags) pathContents
+  addMultiByteStringsToJar' (gopt Opt_NormalizeJar dflags) outputFile
+                            (compressionMethod dflags) pathContents
 
 oneShot :: HscEnv -> Phase -> [(String, Maybe Phase)] -> IO ()
 oneShot hsc_env stop_phase srcs = do
@@ -1373,7 +1374,8 @@ linkGeneric dflags oFiles depPackages = do
     debugTraceMsg dflags 3 (text $ "Write link info file: " ++ fst linkInfoFile)
     start <- getCurrentTime
     uncurry BS.writeFile $ linkInfoFile
-    mergeClassesAndJars outputFn (compressionMethod dflags) mainFiles $
+    mergeClassesAndJars (gopt Opt_NormalizeJar dflags) outputFn
+                        (compressionMethod dflags) mainFiles $
       extraJars ++ inputJars ++ outJars
     end <- getCurrentTime
     when (verbosity dflags > 1) $

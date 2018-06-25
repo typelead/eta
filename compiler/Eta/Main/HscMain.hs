@@ -1227,7 +1227,8 @@ hscGenHardCode hsc_env cgguts mod_summary output_filename = do
             classes = stubClasses ++ modClasses
             jarContents = map (classFilePath &&& classFileBS) classes
         -- createEmptyJar output_filename
-        addMultiByteStringsToJar' output_filename (compressionMethod dflags) jarContents
+        addMultiByteStringsToJar' (gopt Opt_NormalizeJar dflags) output_filename
+                                  (compressionMethod dflags) jarContents
         return (output_filename, Nothing)
 
 outputForeignStubs :: DynFlags -> ForeignStubs -> T.Text -> [ClassFile]
