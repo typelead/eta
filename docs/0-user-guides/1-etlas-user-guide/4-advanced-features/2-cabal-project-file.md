@@ -36,7 +36,7 @@ An Eta version is of the form `[version]b[nonnegative-integer]`.
 
 **Examples**
 
-- `0.7.2b1`
+- `0.8.0b2`
 
 ### filepath-glob
 

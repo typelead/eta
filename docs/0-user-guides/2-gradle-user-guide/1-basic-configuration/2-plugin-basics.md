@@ -14,7 +14,7 @@ You can apply the plugin using the [Gradle Plugins DSL](https://docs.gradle.org/
 
 ```groovy
 plugins {
-    id 'com.typelead.eta' version '0.6.0'
+    id 'com.typelead.eta' version '0.7.2'
 }
 ```
 
@@ -22,7 +22,7 @@ This will load the plugin from the [Gradle Plugins Portal](https://plugins.gradl
 
 ## Global Configuration
 
-The plugin requires you to configure the versions of the Eta compiler and Etlas build tool that you would like to use for the build. The recommend way to do this is by specifying the versions so that your build becomes reproducible. For advanced usage, you can consult [this](/docs/user-guides/gradle-user-guide/advanced/global-configuration) section.
+The plugin requires you to configure the versions of the Eta compiler and Etlas build tool that you would like to use for the build. The recommend way to do this is by specifying the versions so that your build becomes reproducible. For advanced usage, you can consult [this](/docs/user-guides/gradle-user-guide/advanced-configuration/global-configuration) section.
 
 Note that this configuration will apply to **all** projects in your Gradle build.
 
@@ -30,12 +30,12 @@ Note that this configuration will apply to **all** projects in your Gradle build
 
 ```groovy
 eta {
-  version = '0.7.2b1'
-  etlasVersion = '1.3.0.0'
+  version = '0.8.0b2'
+  etlasVersion = '1.4.0.0'
 }
 ```
 
-This will tell Gradle to install **Etlas v1.3.0.0** and **Eta v0.7.2b1** and build the project using those executables.
+This will tell Gradle to install **Etlas v1.4.0.0** and **Eta v0.8.0b2** and build the project using those executables.
 
 **NOTE**: You can only use the `eta` extension block in the root project. If you have a single `build.gradle` file in your project with no subfolders containing `build.gradle` files, you are building the root project.
 
@@ -73,7 +73,7 @@ This will look for Eta sources inside of the `eta` directory only.
 
 ## Configuring Dependencies
 
-You can add dependencies to your project by using the `eta()` method. The `eta()` method can take a variable number of arguments that should all be of the form `"[package-name]:[version-range]"`. The `[version-range]` should be in [Ivy version range notation](http://ant.apache.org/ivy/history/latest-milestone/ivyfile/dependency.html).
+You can add dependencies to your project by using the `eta()` method. The `eta()` method can take a variable number of arguments that should all be of the form `"[package-name]:[version-range]"`. The `[version-range]` should be in [Ivy version range notation](/docs/user-guides/gradle-user-guide/advanced-configuration/dependency-management#version-dependency).
 
 ### Example 1
 
@@ -126,6 +126,10 @@ This task builds and installs the Eta dependencies for a given sourceSet's `comp
 ### compile[SourceSet]Eta
 
 This task compiles the source files configured for the sourceSet with the dependencies specified in the `compileClasspath` configuration. Note that the `compile[SourceSet]Java` task is run before this and the output is added as a dependency when compiling.
+
+### repl[SourceSet]Eta
+
+This task loads the source files configured for the sourceSet with the dependencies specified in the `compileClasspath` configuration into the Eta REPL and allows you to interact with your code.
 
 ## Configuring the Compiler
 

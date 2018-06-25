@@ -69,3 +69,7 @@ filter (> 3) [1..5] == [4,5]
 ```
 
 `filter` takes a list and generates a new list keeping the elements that satisfy the predicate that is supplied.
+
+## Next Section
+
+We will explore learn about Eta metaprogramming.

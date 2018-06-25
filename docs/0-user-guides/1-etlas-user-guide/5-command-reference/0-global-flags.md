@@ -32,7 +32,7 @@ etlas --numeric-version
 ### Example 2
 
 ```sh
-etlas --select-eta=0.7.2b1 update
+etlas --select-eta=0.8.0b2 update
 ```
 
 ## Periodic Behavior

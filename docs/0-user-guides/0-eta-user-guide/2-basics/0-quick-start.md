@@ -35,8 +35,8 @@ plugins {
 }
 
 eta {
-    version = '0.7.2b1'
-    etlasVersion = '1.3.0.0'
+    version = '0.8.0b2'
+    etlasVersion = '1.4.0.0'
 }
 
 dependencies {

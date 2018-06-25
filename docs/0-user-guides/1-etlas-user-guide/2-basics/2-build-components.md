@@ -28,7 +28,7 @@ An executable component is configured by an executable stanza. It must have a **
 
 ### Example
 
-The `eta-first` project in [Initializing](./intializing) already shows an example.
+The `eta-first` project in [Initializing](./initializing) already shows an example.
 
 ## Test
 

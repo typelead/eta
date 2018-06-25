@@ -146,13 +146,13 @@ foreign import java [safety] "[import-string]" [eta-identifier]
     - `@field [java-field-name]`: Binds to a getter or setter of an instance field, determined by the type signature. `[java-field-name]` should be an unqualified Java instance field name.
     - `@static @field [java-field-name]`: Binds to a getter or setter of a field, determined by the type signature. `[java-field-name]` should be a fully qualified Java static field name.
     - `@interface [java-interface-method]`: Binds to an interface method, determined by the type signature. `[java-interface-name]` should be a unqualified Java interface method name.
-    - `@wrapper [java-interface-method]`: Used for generating an Eta function that will generate an interface implementation, determined by the type signature. `[java-interface-name]` should be a unqualified Java interface method name. See [Working With Java Interfaces](/docs/eta-concepts/java-interop/java-generics#working-with-java-interfaces) for more information.
-    - `@wrapper @abstract [java-abstract-method]`: Used for generating an Eta function that will generate an abstract class implementation, determined by the type signature. `[java-method]` should be a unqualified Java abstract method name. See [Working With Java Interfaces](/docs/eta-concepts/java-interop/java-generics#working-with-java-interfaces) for more information.
+    - `@wrapper [java-interface-method]`: Used for generating an Eta function that will generate an interface implementation, determined by the type signature. `[java-interface-name]` should be a unqualified Java interface method name. See [Working With Java Interfaces](/docs/user-guides/eta-user-guide/java-interop/java-generics#working-with-java-interfaces) for more information.
+    - `@wrapper @abstract [java-abstract-method]`: Used for generating an Eta function that will generate an abstract class implementation, determined by the type signature. `[java-method]` should be a unqualified Java abstract method name. See [Working With Java Interfaces](/docs/user-guides/eta-user-guide/java-interop/java-generics#working-with-java-interfaces) for more information.
     - Not present: If you do not specify an import string, it will be taken as an instance method import and the `[java-method-name]` is taken to be the same as `[eta-identifier]`.
 
 3. `[eta-identifier]` should be a valid Eta identifier that will be used for calling the corresponding Java method inside of Eta code.
 
-4. `[argTypeN]` should be a marshallable Eta type. See [Marshalling Between Java and Eta Types](/docs/eta-concepts/java-interop/jwts#marshalling-between-java-and-eta-types).
+4. `[argTypeN]` should be a marshallable Eta type. See [Marshalling Between Java and Eta Types](/docs/user-guides/eta-user-guide/java-interop/jwts#marshalling-between-java-and-eta-types).
 5. `[returnType]` can be of three forms:
     - `Java [jwt] [return-type]`: This is the form that is used typically and is always safe to use. `[jwt]` should be the JWT for the class which the declaration pertains. If the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. `[return-type]` should be a marshallable Eta type.
     - `IO [return-type]`: This form is also safe and can be used for convenience. Note that if the import string does not have a `@static` annotation, you must supply the relevant JWT as the first argument (`[argType1]`). `[return-type]` should be a marshallable Eta type.
@@ -174,17 +174,18 @@ foreign export java "[export-string]" [eta-identifier]
 
 1. `[export-string]` can take the following forms:
     - `[java-method-name]`: Binds to an instance method. `[java-method-name]` should be an unqualified Java instance method name. If not informed the instance method name will be equal to `[eta-identifier]`.
-    - `@static [java-method-name]`: Binds to a static method. `[java-method-name]` should be a fully qualified Java static method name (e.g. `"@static com.org.SomeClass.someMethodName"`). 
+    - `@static [java-method-name]`: Binds to a static method. `[java-method-name]` should be a fully qualified Java static method name (e.g. `"@static com.org.SomeClass.someMethodName"`).
+
 2. `[eta-identifier]` should be a valid Eta identifier for an existing Eta function that is the target of the export.
 
 3. `[arg-type-n]` should be a marshallable Eta type.
 
 4. `[returnType]` can be of three forms:
-    - `Java [export-jwt] [return-type]`: This is the form that should be used if you want to export an instance method, although it can be used for a static method too. 
-      - `[export-jwt]` should be the JWT that refers to the class name of the exported class. If (and only if) the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. Also, the JWT *must not* be an imported JWT but a new one defined in eta. The export will create a new class with an instance method. The typical use case is to define a new JWT class that inherits from an existing java abstract class, implementing the abstract method or methods with one or more exports. However you could use a non abstract class too. 
-      - `[return-type]` should be a marshallable Eta type.
-    - `IO [return-type]` or simply `[return-type]`: These forms can be used for convenience. Note that if you use any of them the export string *must* have a `@static [java-method-name]` annotation. 
-      - `[return-type]` should be a marshallable Eta type.
+    - `Java [export-jwt] [return-type]`: This is the form that should be used if you want to export an instance method, although it can be used for a static method too.
+        - `[export-jwt]` should be the JWT that refers to the class name of the exported class. If (and only if) the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. Also, the JWT *must not* be an imported JWT but a new one defined in eta. The export will create a new class with an instance method. The typical use case is to define a new JWT class that inherits from an existing java abstract class, implementing the abstract method or methods with one or more exports. However you could use a non abstract class too.
+        - `[return-type]` should be a marshallable Eta type.
+    - `IO [return-type]` or simply `[return-type]`: These forms can be used for convenience. Note that if you use any of them the export string *must* have a `@static [java-method-name]` annotation.
+        - `[return-type]` should be a marshallable Eta type.
 
 ### Examples
 
@@ -212,14 +213,14 @@ addTwo x = return $ x + 2
 ```eta
 
 -- Importing an existing class
-data JavaCounter = JavaCounter @eta.example.Counter 
+data JavaCounter = JavaCounter @eta.example.Counter
    deriving Class
 
 -- eta.example.EtaCounter will be generated by eta
-data EtaCounter = EtaCounter @eta.example.EtaCounter 
+data EtaCounter = EtaCounter @eta.example.EtaCounter
    deriving Class
 
--- Required to make EtaCounter a subclass of JavaCounter
+ Required to make EtaCounter a subclass of JavaCounter
 type instance Inherits EtaCounter = '[JavaCounter]
 
 -- Importing methods from JavaCounter with ( c <: JavaCounter ) constraint
@@ -237,7 +238,7 @@ decrement x = do
   c <- get
   let c' = max (c - x) 0
   set c'
-  return c' 
+  return c'
 
 foreign export java decrement :: Int -> Java EtaCounter Int
 ```
@@ -257,7 +258,6 @@ d.set(10);
 System.out.println(d.decrement(5));
 System.out.println(d.get());
 ```
-
 
 ## Next Section
 

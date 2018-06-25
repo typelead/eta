@@ -39,7 +39,7 @@ The recommended way to apply the plugins mentioned above is the [Plugins DSL](ht
 
 ```groovy
 plugins {
-    id 'com.typelead.eta.base' version '0.6.0'
+    id 'com.typelead.eta.base' version '0.7.2'
 }
 ```
 
@@ -47,7 +47,7 @@ plugins {
 
 ```groovy
 plugins {
-    id 'com.typelead.eta' version '0.6.0'
+    id 'com.typelead.eta' version '0.7.2'
 }
 ```
 
@@ -55,7 +55,7 @@ plugins {
 
 ```groovy
 plugins {
-    id 'com.typelead.eta.android' version '0.6.0'
+    id 'com.typelead.eta.android' version '0.7.2'
 }
 ```
 
@@ -71,7 +71,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath 'gradle.plugin.com.typelead:gradle-eta:0.6.0'
+    classpath 'gradle.plugin.com.typelead:gradle-eta:0.7.2'
   }
 }
 ```
