@@ -262,9 +262,11 @@ wipeGradle = do
   unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "clean"
   gradleDir <- getGradleHome
   let cacheRoot = gradleDir </> "caches" </> "etlas"
-  etaDirs <- fmap (filter ("eta-" `isPrefixOf`)) $
-    liftIO $ System.Directory.getDirectoryContents cacheRoot
-  forM_ etaDirs $ \etaDir -> liftIO $ removeFiles (cacheRoot </> etaDir) ["//*"]
+  exists <- doesDirectoryExist cacheRoot
+  when exists $ do
+    etaDirs <- fmap (filter ("eta-" `isPrefixOf`)) $
+        liftIO $ System.Directory.getDirectoryContents cacheRoot
+    forM_ etaDirs $ \etaDir -> liftIO $ removeFiles (cacheRoot </> etaDir) ["//*"]
 
 getGradleHome :: Action FilePath
 getGradleHome
