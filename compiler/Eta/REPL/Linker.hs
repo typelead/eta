@@ -17,6 +17,7 @@ import Eta.REPL
 import Eta.REPL.RemoteTypes
 import Eta.TypeCheck.TcRnMonad
 import Eta.Main.HscTypes
+import Eta.Main.Packages
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
@@ -159,9 +160,13 @@ reallyInitDynLinker hsc_env = do
   let dflags    = hsc_dflags hsc_env
       pls0      = emptyPLS dflags
       classpath = classPaths dflags
+  preloadDeps <- closeDependencies dflags [toInstalledUnitId etaMetaId]
+  preloadPaths <- getPackageLibJars dflags preloadDeps
+
+  let extraClasspath = filter (\s -> not (s `elem` classpath)) preloadPaths
 
   -- (a) Load packages from the command-line
-  addDynamicClassPath hsc_env classpath
+  addDynamicClassPath hsc_env (classpath ++ extraClasspath)
   return pls0
 
 

@@ -57,7 +57,8 @@ module Eta.Main.Packages (
         pprPackages,
         pprPackagesSimple,
         pprModuleMap,
-        isDllName
+        isDllName,
+        closeDependencies
     )
 where
 
@@ -1836,6 +1837,10 @@ getPreloadPackagesAnd dflags pkgids =
   in do
   all_pkgs <- throwErr dflags (foldM (add_package dflags pkg_map) preload pairs)
   return (map (getInstalledPackageDetails dflags) all_pkgs)
+
+closeDependencies :: DynFlags -> [InstalledUnitId] -> IO [InstalledUnitId]
+closeDependencies dflags unitids =
+  closeDeps dflags (pkgIdMap (pkgState dflags)) (zip unitids (repeat Nothing))
 
 -- Takes a list of packages, and returns the list with dependencies included,
 -- in reverse dependency order (a package appears before those it depends on).

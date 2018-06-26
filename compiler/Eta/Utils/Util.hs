@@ -115,7 +115,8 @@ module Eta.Utils.Util (
         scanM,
         expectJust,
         safeHead,
-        safeLast
+        safeLast,
+        mkClasspath
     ) where
 
 #include "HsVersions.h"
@@ -1221,3 +1222,13 @@ safeHead _     = Nothing
 
 safeLast :: [a] -> Maybe a
 safeLast xs = if null xs then Nothing else Just $ last xs
+
+classPathSep :: String
+#ifndef mingw32_HOST_OS
+classPathSep = ":"
+#else
+classPathSep = ";"
+#endif
+
+mkClasspath :: [FilePath] -> String
+mkClasspath = intercalate classPathSep

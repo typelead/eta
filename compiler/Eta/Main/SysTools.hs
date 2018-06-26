@@ -330,12 +330,7 @@ runJavac dflags args = do
   let (prog, args0) = pgm_javac dflags
       opts = getOpts dflags opt_javac
       classPathsAll = wiredInPkgs ++ classPaths dflags
-#ifndef mingw32_HOST_OS
-      classPathSep = ":"
-#else
-      classPathSep = ";"
-#endif
-      classPathFolded = intercalate classPathSep classPathsAll
+      classPathFolded = mkClasspath classPathsAll
       classPath = if null classPathsAll
                   then []
                   else ["-cp", classPathFolded ]
