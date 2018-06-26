@@ -223,14 +223,14 @@ newLabel :: CodeGen Label
 newLabel = do
   next <- peekNextLabel
   modify $ \s@CgState { cgNextLabel } ->
-             s { cgNextLabel = cgNextLabel + 1}
+             s { cgNextLabel = cgNextLabel + 1 }
   return $ mkLabel next
 
 newLocal :: FieldType -> CodeGen Int
 newLocal ft = do
   next <- peekNextLocal
   modify $ \s@CgState { cgNextLocal } ->
-             s { cgNextLocal = cgNextLocal + fieldSz}
+             s { cgNextLocal = cgNextLocal + fieldSz }
   return next
   where fieldSz = fieldSize ft
 

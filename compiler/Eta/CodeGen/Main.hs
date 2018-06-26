@@ -58,10 +58,16 @@ collectTopIdsAndAdd binds = do
         f (StgNonRec id _) = [id]
         f (StgRec pairs) = map fst pairs
 
+externaliseAndDedupId :: Id -> CodeGen Id
+externaliseAndDedupId id
+  | isInternalName name = externaliseId id >>= newDedupedId
+  | otherwise = externaliseId id
+  where name = idName id
+
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
   traceCg $ str "generating" <+> ppr id
-  id' <- externaliseId id
+  id' <- externaliseAndDedupId id
   let (info, code) = cgTopRhs dflags NonRecursive [id'] Nothing id' rhs
   mRecInfo <- code
   genRecInitCode $ maybeToList $ fmap (id',) mRecInfo
@@ -69,7 +75,7 @@ cgTopBinding dflags (StgNonRec id rhs) = do
 
 cgTopBinding dflags (StgRec pairs) = do
   let (binders, rhss) = unzip pairs
-  binders' <- mapM externaliseId binders
+  binders' <- mapM externaliseAndDedupId binders
   traceCg $ str "generating (rec)" <+> ppr binders'
   let pairs'         = zip binders' rhss
       conRecIds      = map fst
