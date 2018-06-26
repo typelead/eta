@@ -80,7 +80,8 @@ import Eta.Types.TyCon
 import Data.Monoid((<>))
 import Data.List
 import Data.Maybe (fromMaybe, maybeToList)
-import Data.Text hiding (foldl, length, concatMap, map, intercalate, findIndex)
+import Data.Text hiding (foldl, length, concatMap, map, intercalate, findIndex, toLower)
+import Data.Char
 
 import System.FilePath (takeFileName)
 
@@ -99,6 +100,7 @@ import Eta.CodeGen.ArgRep
 import Eta.CodeGen.Rts
 import Eta.Debug
 import Eta.Utils.Util
+import Eta.Utils.FastString
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
@@ -347,7 +349,7 @@ newDedupedId id = do
         | otherwise = (id, 1)
   modify $ \s -> s { cgNameEnvironment = extendFsEnv nameEnv fs i' }
   return id'
-  where fs = occNameFS $ nameOccName $ idName id
+  where fs = mkFastString $ map toLower $ occNameString $ nameOccName $ idName id
         transformedId mod i = id'
           where id' = setIdName id $ if isInternalName name
                                      then mkInternalName uniq occ' loc
