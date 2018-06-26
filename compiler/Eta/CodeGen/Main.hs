@@ -43,16 +43,25 @@ codeGen :: HscEnv -> Module -> ModLocation
         -> Maybe ([MethodDef], [FieldDef]) -> IO [ClassFile]
 codeGen hscEnv thisMod thisModLoc dataTyCons stgBinds _hpcInfo mMFs = do
   runCodeGen mMFs env state $ do
+    collectTopIdsAndAdd stgBinds
     mapM_ (cgTopBinding dflags) stgBinds
     mapM_ cgTyCon dataTyCons
   where
     (env, state) = initCg hscEnv thisMod thisModLoc
     dflags = hsc_dflags hscEnv
 
+collectTopIdsAndAdd :: [StgBinding] -> CodeGen ()
+collectTopIdsAndAdd binds = do
+  ids' <- mapM externaliseId ids
+  extendNameEnv ids'
+  where ids = concatMap f binds
+        f (StgNonRec id _) = [id]
+        f (StgRec pairs) = map fst pairs
+
 cgTopBinding :: DynFlags -> StgBinding -> CodeGen ()
 cgTopBinding dflags (StgNonRec id rhs) = do
   traceCg $ str "generating" <+> ppr id
-  id' <- newDedupedId =<< externaliseId dflags id
+  id' <- externaliseId id
   let (info, code) = cgTopRhs dflags NonRecursive [id'] Nothing id' rhs
   mRecInfo <- code
   genRecInitCode $ maybeToList $ fmap (id',) mRecInfo
@@ -60,7 +69,7 @@ cgTopBinding dflags (StgNonRec id rhs) = do
 
 cgTopBinding dflags (StgRec pairs) = do
   let (binders, rhss) = unzip pairs
-  binders' <- mapM (externaliseId dflags >=> newDedupedId) binders
+  binders' <- mapM externaliseId binders
   traceCg $ str "generating (rec)" <+> ppr binders'
   let pairs'         = zip binders' rhss
       conRecIds      = map fst
@@ -221,8 +230,8 @@ cgTopRhsClosure dflags recflag mFunRecIds id _binderInfo updateFlag args body
             return Nothing
 
 -- Simplifies the code if the mod is associated to the Id
-externaliseId :: DynFlags -> Id -> CodeGen Id
-externaliseId _dflags id = do
+externaliseId :: Id -> CodeGen Id
+externaliseId id = do
   mod <- getModule
   return $
     if isInternalName name then

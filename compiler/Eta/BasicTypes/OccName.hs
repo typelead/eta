@@ -96,7 +96,7 @@ module Eta.BasicTypes.OccName (
         TidyOccEnv, emptyTidyOccEnv, tidyOccName, initTidyOccEnv,
 
         -- FsEnv
-        FastStringEnv, emptyFsEnv, lookupFsEnv, extendFsEnv, mkFsEnv
+        FastStringEnv, emptyFsEnv, lookupFsEnv, extendFsEnv, extendFsEnvWith, mkFsEnv
     ) where
 
 import Eta.Utils.Util
@@ -124,15 +124,17 @@ FastStringEnv can't be in FastString because the env depends on UniqFM
 type FastStringEnv a = UniqFM a         -- Keyed by FastString
 
 
-emptyFsEnv  :: FastStringEnv a
-lookupFsEnv :: FastStringEnv a -> FastString -> Maybe a
-extendFsEnv :: FastStringEnv a -> FastString -> a -> FastStringEnv a
-mkFsEnv     :: [(FastString,a)] -> FastStringEnv a
+emptyFsEnv      :: FastStringEnv a
+lookupFsEnv     :: FastStringEnv a  -> FastString -> Maybe a
+extendFsEnv     :: FastStringEnv a  -> FastString -> a -> FastStringEnv a
+extendFsEnvWith :: FastStringEnv a  -> [(FastString, a)] -> FastStringEnv a
+mkFsEnv         :: [(FastString,a)] -> FastStringEnv a
 
-emptyFsEnv  = emptyUFM
-lookupFsEnv = lookupUFM
-extendFsEnv = addToUFM
-mkFsEnv     = listToUFM
+emptyFsEnv      = emptyUFM
+lookupFsEnv     = lookupUFM
+extendFsEnv     = addToUFM
+extendFsEnvWith = addListToUFM
+mkFsEnv         = listToUFM
 
 {-
 ************************************************************************

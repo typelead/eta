@@ -33,6 +33,7 @@ module Eta.CodeGen.Monad
    getClass,
    getContextLoc,
    setContextLoc,
+   extendNameEnv,
    newDedupedId,
    addBinding,
    addBindings,
@@ -80,8 +81,7 @@ import Eta.Types.TyCon
 import Data.Monoid((<>))
 import Data.List
 import Data.Maybe (fromMaybe, maybeToList)
-import Data.Text hiding (foldl, length, concatMap, map, intercalate, findIndex, toLower)
-import Data.Char
+import Data.Text hiding (foldl, length, concatMap, map, intercalate, findIndex, toLower, zip)
 
 import System.FilePath (takeFileName)
 
@@ -100,7 +100,6 @@ import Eta.CodeGen.ArgRep
 import Eta.CodeGen.Rts
 import Eta.Debug
 import Eta.Utils.Util
-import Eta.Utils.FastString
 
 data CgEnv =
   CgEnv { cgQClassName :: !Text
@@ -339,6 +338,11 @@ printBindings = do
   bindings <- getBindings
   traceCg $ str "printBindings" <+> ppr bindings
 
+extendNameEnv :: [Id] -> CodeGen ()
+extendNameEnv ids = modify $ \s@(CgState { cgNameEnvironment = nameEnv }) ->
+                              s { cgNameEnvironment = extendFsEnvWith nameEnv fss }
+  where fss = zip (map idFastString ids) (repeat 1)
+
 -- Used for deterministic class naming
 newDedupedId :: Id -> CodeGen Id
 newDedupedId id = do
@@ -349,7 +353,7 @@ newDedupedId id = do
         | otherwise = (id, 1)
   modify $ \s -> s { cgNameEnvironment = extendFsEnv nameEnv fs i' }
   return id'
-  where fs = mkFastString $ map toLower $ occNameString $ nameOccName $ idName id
+  where fs = idFastString id
         transformedId mod i = id'
           where id' = setIdName id $ if isInternalName name
                                      then mkInternalName uniq occ' loc

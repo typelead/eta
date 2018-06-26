@@ -14,7 +14,9 @@ module Eta.CodeGen.Name (
   moduleClass,
   closure,
   classFilePath,
-  labelToMethod) where
+  labelToMethod,
+  idFastString
+) where
 
 import Eta.Main.DynFlags
 import Eta.Types.TyCon
@@ -68,6 +70,11 @@ encodeCase str@(c:_)
   | isUpper c = 'D':str
   | otherwise = str
 encodeCase _ = ""
+
+-- NOTE: This must be kept in sync with the convention in nameText
+idFastString :: Id -> FastString
+idFastString id = mkFastString . map C.toLower . encodeCase . occNameString . nameOccName
+                $ idName id
 
 idNameText :: DynFlags -> Id -> Text
 idNameText dflags = nameText dflags True . idName
