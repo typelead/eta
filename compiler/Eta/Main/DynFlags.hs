@@ -3422,42 +3422,44 @@ impliedXFlags
     , (LangExt.FlexibleInstances,         turnOn, LangExt.TypeSynonymInstances)
     , (LangExt.FunctionalDependencies,    turnOn, LangExt.MultiParamTypeClasses)
 
-    , (LangExt.RebindableSyntax, turnOff, LangExt.ImplicitPrelude)      -- NB: turn off!
+    , (LangExt.RebindableSyntax,          turnOff, LangExt.ImplicitPrelude)      -- NB: turn off!
 
-    , (LangExt.GADTs,            turnOn, LangExt.GADTSyntax)
-    , (LangExt.GADTs,            turnOn, LangExt.MonoLocalBinds)
-    , (LangExt.TypeFamilies,     turnOn, LangExt.MonoLocalBinds)
+    , (LangExt.GADTs,                     turnOn, LangExt.GADTSyntax)
+    , (LangExt.GADTs,                     turnOn, LangExt.MonoLocalBinds)
+    , (LangExt.TypeFamilies,              turnOn, LangExt.MonoLocalBinds)
 
-    , (LangExt.TypeFamilies,     turnOn, LangExt.KindSignatures)  -- Type families use kind signatures
-    , (LangExt.PolyKinds,        turnOn, LangExt.KindSignatures)  -- Ditto polymorphic kinds
+    , (LangExt.TypeFamilies,              turnOn, LangExt.KindSignatures)
+                                          -- Type families use kind signatures
+    , (LangExt.PolyKinds,                 turnOn, LangExt.KindSignatures)  -- Ditto polymorphic kinds
 
     -- AutoDeriveTypeable is not very useful without DeriveDataTypeable
-    , (LangExt.AutoDeriveTypeable, turnOn, LangExt.DeriveDataTypeable)
+    , (LangExt.AutoDeriveTypeable,        turnOn, LangExt.DeriveDataTypeable)
 
     -- We turn this on so that we can export associated type
     -- type synonyms in subordinates (e.g. MyClass(type AssocType))
-    , (LangExt.TypeFamilies,     turnOn, LangExt.ExplicitNamespaces)
-    , (LangExt.TypeOperators, turnOn, LangExt.ExplicitNamespaces)
+    , (LangExt.TypeFamilies,              turnOn, LangExt.ExplicitNamespaces)
+    , (LangExt.TypeOperators,             turnOn, LangExt.ExplicitNamespaces)
 
-    , (LangExt.ImpredicativeTypes,  turnOn, LangExt.RankNTypes)
+    , (LangExt.ImpredicativeTypes,        turnOn, LangExt.RankNTypes)
 
         -- Record wild-cards implies field disambiguation
         -- Otherwise if you write (C {..}) you may well get
         -- stuff like " 'a' not in scope ", which is a bit silly
         -- if the compiler has just filled in field 'a' of constructor 'C'
-    , (LangExt.RecordWildCards,     turnOn, LangExt.DisambiguateRecordFields)
+    , (LangExt.RecordWildCards,           turnOn, LangExt.DisambiguateRecordFields)
 
-    , (LangExt.ParallelArrays, turnOn, LangExt.ParallelListComp)
+    , (LangExt.ParallelArrays,            turnOn, LangExt.ParallelListComp)
 
     -- An implicit parameter constraint, `?x::Int`, is desugared into
     -- `IP "x" Int`, which requires a flexible context/instance.
-    , (LangExt.ImplicitParams, turnOn, LangExt.FlexibleContexts)
-    , (LangExt.ImplicitParams, turnOn, LangExt.FlexibleInstances)
+    , (LangExt.ImplicitParams,            turnOn, LangExt.FlexibleContexts)
+    , (LangExt.ImplicitParams,            turnOn, LangExt.FlexibleInstances)
 
-    , (LangExt.JavaScriptFFI, turnOn, LangExt.InterruptibleFFI)
+    , (LangExt.JavaScriptFFI,             turnOn, LangExt.InterruptibleFFI)
 
-    , (LangExt.DeriveTraversable, turnOn, LangExt.DeriveFunctor)
-    , (LangExt.DeriveTraversable, turnOn, LangExt.DeriveFoldable)
+    , (LangExt.DeriveTraversable,         turnOn, LangExt.DeriveFunctor)
+    , (LangExt.DeriveTraversable,         turnOn, LangExt.DeriveFoldable)
+    , (LangExt.Strict,                    turnOn, LangExt.StrictData)
   ]
 
 -- Note [Documenting optimisation flags]
