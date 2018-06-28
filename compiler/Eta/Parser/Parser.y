@@ -1583,9 +1583,6 @@ typedoc :: { LHsType RdrName }
         | btype docprev '->' ctypedoc    {% ams (sLL $1 $> $ HsFunTy (L (comb2 (splitTilde $1) $2)
                                                             (HsDocTy $1 $2)) $4)
                                                 [mj AnnRarrow $3] }
-        | btype '~'      btype           {% ams (sLL $1 $> $ HsEqTy $1 $3)
-                                                [mj AnnTilde $2] }
-                                        -- see Note [Promotion]
         | btype SIMPLEQUOTE qconop type  {% ams (sLL $1 $> $ mkHsOpTy $1 $3 $4)
                                                 [mj AnnSimpleQuote $2] }
         | btype SIMPLEQUOTE varop  type  {% ams (sLL $1 $> $ mkHsOpTy $1 $3 $4)
