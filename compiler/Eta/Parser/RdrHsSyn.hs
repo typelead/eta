@@ -56,6 +56,7 @@ module Eta.Parser.RdrHsSyn (
         checkRecordSyntax,
         checkValidDefaults,
         parseErrorSDoc,
+        splitTilde,
 
         -- Help with processing exports
         ImpExpSubSpec(..),
@@ -1272,6 +1273,20 @@ isFunLhs e = go e [] []
                  _ -> return Nothing }
    go _ _ _ = return Nothing
 
+-- | Transform btype with strict_mark's into HsEqTy's
+-- (((~a) ~b) c) ~d ==> ((~a) ~ (b c)) ~ d
+splitTilde :: LHsType RdrName -> LHsType RdrName
+splitTilde t = go t
+  where go (L loc (HsAppTy t1 t2))
+          | L _ (HsBangTy (HsSrcBang Nothing NoSrcUnpack SrcLazy) t2') <- t2
+          = L loc (HsEqTy (go t1) t2')
+          | otherwise
+          = case go t1 of
+              (L _ (HsEqTy tl tr)) ->
+                L loc (HsEqTy tl (L (combineLocs tr t2) (HsAppTy tr t2)))
+              t -> L loc (HsAppTy t t2)
+
+        go t = t
 
 ---------------------------------------------------------------------------
 -- Check for monad comprehensions

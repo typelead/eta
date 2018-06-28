@@ -3364,6 +3364,8 @@ xFlags = [
   flagSpec "ScopedTypeVariables"              LangExt.ScopedTypeVariables,
   flagSpec "StandaloneDeriving"               LangExt.StandaloneDeriving,
   flagSpec "StaticPointers"                   LangExt.StaticPointers,
+  flagSpec "StrictData"                       LangExt.StrictData,
+  flagSpec "Strict"                           LangExt.Strict,
   flagSpec' "TemplateHaskell"                 LangExt.TemplateHaskell
                                               checkTemplateHaskellOk,
   flagSpec "TraditionalRecordSyntax"          LangExt.TraditionalRecordSyntax,

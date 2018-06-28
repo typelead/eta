@@ -1592,16 +1592,23 @@ checkValidDataCon dflags existential_ok tc con
     }
   where
     ctxt = ConArgCtxt (dataConName con)
-    check_bang (HsSrcBang _ (Just want_unpack) has_bang, rep_bang, n)
-      | want_unpack, not has_bang
+    check_bang (HsSrcBang _ _ SrcLazy, _, n)
+      | not (xopt LangExt.StrictData dflags)
+      = addErrTc
+          (bad_bang n (ptext (sLit "Lazy annotation (~) without StrictData")))
+    check_bang (HsSrcBang _ want_unpack strict_mark, rep_bang, n)
+      | isSrcUnpacked want_unpack, not is_strict
       = addWarnTc NoReason (bad_bang n (ptext (sLit "UNPACK pragma lacks '!'")))
-      | want_unpack
+      | isSrcUnpacked want_unpack
       , case rep_bang of { HsUnpack {} -> False; _ -> True }
       , not (gopt Opt_OmitInterfacePragmas dflags)
            -- If not optimising, se don't unpack, so don't complain!
            -- See MkId.dataConArgRep, the (HsBang True) case
       = addWarnTc NoReason (bad_bang n (ptext (sLit "Ignoring unusable UNPACK pragma")))
-
+      where
+        is_strict = case strict_mark of
+                      NoSrcStrictness -> xopt LangExt.StrictData dflags
+                      bang            -> isSrcStrict bang
     check_bang _
       = return ()
 
@@ -1626,14 +1633,17 @@ checkNewDataCon con
           ptext (sLit "A newtype constructor cannot have existential type variables")
                 -- No existentials
 
-        ; checkTc (not (any isBanged (dataConSrcBangs con)))
+        ; checkTc (all ok_bang (dataConSrcBangs con))
                   (newtypeStrictError con)
-                -- No strictness
+                -- No strictness annotations
     }
   where
     (_univ_tvs, ex_tvs, eq_spec, theta, arg_tys, _res_ty) = dataConFullSig con
     check_con what msg
        = checkTc what (msg $$ ppr con <+> dcolon <+> ppr (dataConUserType con))
+    ok_bang (HsSrcBang _ _ SrcStrict) = False
+    ok_bang (HsSrcBang _ _ SrcLazy)   = False
+    ok_bang _                         = True
 
 -------------------------------
 checkValidClass :: Class -> TcM ()

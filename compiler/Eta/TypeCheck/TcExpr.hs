@@ -1421,7 +1421,7 @@ checkMissingFields data_con rbinds
                           field_labels
                           field_strs
 
-    field_strs = dataConSrcBangs data_con
+    field_strs = dataConImplBangs data_con
 
 {-
 ************************************************************************

@@ -76,6 +76,7 @@ import Eta.Main.DynFlags
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
 import Eta.Utils.ListSetOps
+import qualified Eta.LanguageExtensions as LangExt
 
 import Data.Maybe       ( maybeToList )
 
@@ -538,7 +539,7 @@ mkDataConRep dflags fam_envs wrap_name data_con
     (rep_tys, rep_strs) = unzip (concat rep_tys_w_strs)
 
     wrapper_reqd = not (isNewTyCon tycon)  -- Newtypes have only a worker
-                && (any isBanged orig_bangs   -- Some forcing/unboxing
+                && (any isBanged wrap_bangs   -- Some forcing/unboxing
                                               -- (includes eq_spec)
                     || isFamInstTyCon tycon)  -- Cast result
 
@@ -585,7 +586,7 @@ newLocal ty = do { uniq <- getUniqueM
 dataConArgRep
    :: DynFlags
    -> FamInstEnvs
-   -> Type 
+   -> Type
    -> HsSrcBang     -- For DataCons defined in this module, this is the
                     --    bang/unpack annotation that the programmer wrote
                     -- For DataCons imported from an interface file, this
@@ -597,33 +598,41 @@ dataConArgRep
       , [(Type, StrictnessMark)]   -- Rep types
       , (Unboxer, Boxer) )
 
-dataConArgRep _ _ arg_ty HsNoBang
-  = (HsNoBang, [(arg_ty, NotMarkedStrict)], (unitUnboxer, unitBoxer))
+dataConArgRep dflags fam_envs arg_ty (HsSrcBang ann unpk NoSrcStrictness)
+  | xopt LangExt.StrictData dflags -- StrictData => strict field
+  = dataConArgRep dflags fam_envs arg_ty (HsSrcBang ann unpk SrcStrict)
 
-dataConArgRep _ _ arg_ty (HsSrcBang _ _ False)  -- No '!'
-  = (HsNoBang, [(arg_ty, NotMarkedStrict)], (unitUnboxer, unitBoxer))
+  | otherwise                  -- no StrictData => lazy field
+  = (HsLazy, [(arg_ty, NotMarkedStrict)], (unitUnboxer, unitBoxer))
+
+dataConArgRep _ _ arg_ty (HsSrcBang _ _ SrcLazy)
+  = (HsLazy, [(arg_ty, NotMarkedStrict)], (unitUnboxer, unitBoxer))
 
 dataConArgRep dflags fam_envs arg_ty
-    (HsSrcBang _ unpk_prag True)  -- {-# UNPACK #-} !
+    (HsSrcBang _ unpk_prag SrcStrict)  -- {-# UNPACK #-} !
   | not (gopt Opt_OmitInterfacePragmas dflags) -- Don't unpack if -fomit-iface-pragmas
           -- Don't unpack if we aren't optimising; rather arbitrarily,
           -- we use -fomit-iface-pragmas as the indication
   , let mb_co   = topNormaliseType_maybe fam_envs arg_ty
                      -- Unwrap type families and newtypes
         arg_ty' = case mb_co of { Just (_,ty) -> ty; Nothing -> arg_ty }
-  , isUnpackableType fam_envs arg_ty'
+  , isUnpackableType dflags fam_envs arg_ty'
   , (rep_tys, wrappers) <- dataConArgUnpack arg_ty'
   , case unpk_prag of
-      Nothing -> gopt Opt_UnboxStrictFields dflags
-              || (gopt Opt_UnboxSmallStrictFields dflags
-                   && length rep_tys <= 1)  -- See Note [Unpack one-wide fields]
-      Just unpack_me -> unpack_me
+      NoSrcUnpack ->
+        gopt Opt_UnboxStrictFields dflags
+            || (gopt Opt_UnboxSmallStrictFields dflags
+                && length rep_tys <= 1) -- See Note [Unpack one-wide fields]
+      srcUnpack -> isSrcUnpacked srcUnpack
   = case mb_co of
       Nothing          -> (HsUnpack Nothing,   rep_tys, wrappers)
       Just (co,rep_ty) -> (HsUnpack (Just co), rep_tys, wrapCo co rep_ty wrappers)
 
   | otherwise  -- Record the strict-but-no-unpack decision
   = strict_but_not_unpacked arg_ty
+
+dataConArgRep _ _ arg_ty HsLazy
+  = (HsLazy, [(arg_ty, NotMarkedStrict)], (unitUnboxer, unitBoxer))
 
 dataConArgRep _ _ arg_ty HsStrict
   = strict_but_not_unpacked arg_ty
@@ -699,13 +708,13 @@ dataConArgUnpack arg_ty
   = pprPanic "dataConArgUnpack" (ppr arg_ty)
     -- An interface file specified Unpacked, but we couldn't unpack it
 
-isUnpackableType :: FamInstEnvs -> Type -> Bool
+isUnpackableType :: DynFlags -> FamInstEnvs -> Type -> Bool
 -- True if we can unpack the UNPACK the argument type
 -- See Note [Recursive unboxing]
 -- We look "deeply" inside rather than relying on the DataCons
 -- we encounter on the way, because otherwise we might well
 -- end up relying on ourselves!
-isUnpackableType fam_envs ty
+isUnpackableType dflags fam_envs ty
   | Just (tc, _) <- splitTyConApp_maybe ty
   , Just con <- tyConSingleAlgDataCon_maybe tc
   , isVanillaDataCon con
@@ -732,11 +741,21 @@ isUnpackableType fam_envs ty
          -- NB: dataConSrcBangs gives the *user* request;
          -- We'd get a black hole if we used dataConImplBangs
 
-    attempt_unpack (HsUnpack {})                  = True
-    attempt_unpack (HsSrcBang _ (Just unpk) bang) = bang && unpk
-    attempt_unpack (HsSrcBang _  Nothing bang)     = bang  -- Be conservative
-    attempt_unpack HsStrict                       = False
-    attempt_unpack HsNoBang                       = False
+    attempt_unpack (HsUnpack {})
+       = True
+    attempt_unpack HsStrict
+       = False
+    attempt_unpack HsLazy
+       = False
+    attempt_unpack (HsSrcBang _ SrcUnpack NoSrcStrictness)
+       = xopt LangExt.StrictData dflags
+    attempt_unpack (HsSrcBang _ SrcUnpack SrcStrict)
+       = True
+    attempt_unpack (HsSrcBang _  NoSrcUnpack SrcStrict)
+       = True  -- Be conservative
+    attempt_unpack (HsSrcBang _  NoSrcUnpack NoSrcStrictness)
+       = xopt LangExt.StrictData dflags -- Be conservative
+    attempt_unpack _ = False
 
 {-
 Note [Unpack one-wide fields]
@@ -801,10 +820,10 @@ heavy lifting.  This one line makes every GADT take a word less
 space for each equality predicate, so it's pretty important!
 -}
 
-mk_pred_strict_mark :: PredType -> HsSrcBang
+mk_pred_strict_mark :: PredType -> HsImplBang
 mk_pred_strict_mark pred
   | isEqPred pred = HsUnpack Nothing    -- Note [Unpack equality predicates]
-  | otherwise     = HsNoBang
+  | otherwise     = HsLazy
 
 {-
 ************************************************************************
