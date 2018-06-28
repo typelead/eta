@@ -1963,29 +1963,29 @@ reifyFixity name
       conv_dir BasicTypes.InfixL = TH.InfixL
       conv_dir BasicTypes.InfixN = TH.InfixN
 
-reifyUnpackedness :: Maybe Bool -> TH.SourceUnpackedness
-reifyUnpackedness Nothing    = TH.NoSourceUnpackedness
-reifyUnpackedness (Just False) = TH.SourceNoUnpack
-reifyUnpackedness (Just True)  = TH.SourceUnpack
+reifyUnpackedness :: DataCon.SrcUnpackedness -> TH.SourceUnpackedness
+reifyUnpackedness NoSrcUnpack = TH.NoSourceUnpackedness
+reifyUnpackedness SrcNoUnpack = TH.SourceNoUnpack
+reifyUnpackedness SrcUnpack   = TH.SourceUnpack
 
-reifyStrictness :: Bool -> TH.SourceStrictness
-reifyStrictness False = TH.NoSourceStrictness
-reifyStrictness True  = TH.SourceStrict
--- reifyStrictness SrcLazy     = TH.SourceLazy
+reifyStrictness :: DataCon.SrcStrictness -> TH.SourceStrictness
+reifyStrictness NoSrcStrictness = TH.NoSourceStrictness
+reifyStrictness SrcStrict   = TH.SourceStrict
+reifyStrictness SrcLazy     = TH.SourceLazy
 
 reifySourceBang :: DataCon.HsSrcBang
                 -> (TH.SourceUnpackedness, TH.SourceStrictness)
 reifySourceBang bang = (reifyUnpackedness u, reifyStrictness s)
   where (u,s) = case bang of
-          HsNoBang -> (Nothing, False)
+          HsLazy -> (NoSrcUnpack, SrcLazy)
           (HsSrcBang _ u s) -> (u, s)
-          HsStrict -> (Nothing, True)
-          HsUnpack _ -> (Just True, False)
+          HsStrict -> (NoSrcUnpack, SrcStrict)
+          HsUnpack _ -> (SrcUnpack, NoSrcStrictness)
 
 reifyDecidedStrictness :: DataCon.HsImplBang -> TH.DecidedStrictness
 reifyDecidedStrictness HsStrict   = TH.DecidedStrict
 reifyDecidedStrictness HsUnpack{} = TH.DecidedUnpack
-reifyDecidedStrictness HsNoBang   = TH.DecidedLazy
+reifyDecidedStrictness HsLazy     = TH.DecidedLazy
 reifyDecidedStrictness _ = panic "reifyDecidedStrictness"
 
 ------------------------------

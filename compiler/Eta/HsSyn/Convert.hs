@@ -518,15 +518,15 @@ cvtConstr (RecGadtC c varstrtys ty)
         ; let rec_ty = noLoc (HsFunTy (noLoc $ HsRecTy rec_flds) ty')
         ; returnL $ mkGadtDecl c' rec_ty }
 
-cvtSrcUnpackedness :: TH.SourceUnpackedness -> Maybe Bool
-cvtSrcUnpackedness NoSourceUnpackedness = Nothing
-cvtSrcUnpackedness SourceNoUnpack       = Just False
-cvtSrcUnpackedness SourceUnpack         = Just True
+cvtSrcUnpackedness :: TH.SourceUnpackedness -> SrcUnpackedness
+cvtSrcUnpackedness NoSourceUnpackedness = NoSrcUnpack
+cvtSrcUnpackedness SourceNoUnpack       = SrcNoUnpack
+cvtSrcUnpackedness SourceUnpack         = SrcUnpack
 
-cvtSrcStrictness :: TH.SourceStrictness -> Bool
-cvtSrcStrictness NoSourceStrictness = False
-cvtSrcStrictness SourceLazy         = False
-cvtSrcStrictness SourceStrict       = True
+cvtSrcStrictness :: TH.SourceStrictness -> SrcStrictness
+cvtSrcStrictness NoSourceStrictness = NoSrcStrictness
+cvtSrcStrictness SourceLazy         = SrcLazy
+cvtSrcStrictness SourceStrict       = SrcStrict
 
 cvt_arg :: (TH.Bang, TH.Type) -> CvtM (LHsType RdrName)
 cvt_arg (Bang su ss, ty)
