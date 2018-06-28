@@ -7,7 +7,7 @@
 {-# LANGUAGE NondecreasingIndentation, CPP #-}
 
 module Eta.Rename.RnNames (
-        rnImports, getLocalNonValBinders,
+        rnImports, rnJavaImports, getLocalNonValBinders,
         rnExports, extendGlobalRdrEnvRn,
         gresFromAvails,
         calculateAvails,
@@ -380,6 +380,13 @@ warnRedundantSourceImport :: ModuleName -> SDoc
 warnRedundantSourceImport mod_name
   = ptext (sLit "Unnecessary {-# SOURCE #-} in the import of module")
           <+> quotes (ppr mod_name)
+
+rnJavaImports :: HscEnv -> [LImportDecl RdrName]
+              -> RnM [LHsDecl RdrName]
+rnJavaImports _hsc_env _java_imps = do
+  -- classInfo <- fetchClassInfo hsc_env classes
+  return []
+  -- where classes = map (fastStringToByteString . unLoc . ideclClassName) java_imps
 
 {-
 ************************************************************************

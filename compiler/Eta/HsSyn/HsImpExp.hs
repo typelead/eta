@@ -95,6 +95,10 @@ simpleImportDecl mn = ImportDecl {
       ideclHiding    = Nothing
     }
 
+ideclIsJava :: ImportDecl name -> Bool
+ideclIsJava (ImportJavaDecl {}) = True
+ideclIsJava _ = False
+
 ideclIsSource :: ImportDecl name -> Bool
 ideclIsSource (ImportDecl { ideclSource }) = ideclSource
 ideclIsSource _ = False
@@ -136,7 +140,7 @@ instance (OutputableBndr name, HasOccName name) => Outputable (ImportDecl name) 
 
         ppr_ies []  = ptext (sLit "()")
         ppr_ies ies = char '(' <+> interpp'SP ies <+> char ')'
-    ppr (ImportJavaDecl {}) = panic "ImportJavaDecl outputable instance"
+    ppr (ImportJavaDecl { ideclName = mod' }) = ppr mod'
 
 {-
 ************************************************************************

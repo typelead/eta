@@ -1815,7 +1815,7 @@ ms_home_srcimps :: ModSummary -> [Located ModuleName]
 ms_home_srcimps = home_imps . ms_srcimps
 
 ms_home_imps :: ModSummary -> [Located ModuleName]
-ms_home_imps = home_imps . ms_imps
+ms_home_imps = home_imps . filter (not . ideclIsJava . unLoc). ms_imps
 
 -----------------------------------------------------------------------------
 -- Summarising modules

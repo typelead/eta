@@ -116,7 +116,8 @@ ppSourceStats short (L _ (HsModule _ exports imports ldecls _ _))
     import_info (L _ (ImportDecl { ideclSafe = safe, ideclQualified = qual
                                  , ideclAs = as, ideclHiding = spec }))
         = add7 (1, safe_info safe, qual_info qual, as_info as, 0,0,0) (spec_info spec)
-    import_info (L _ (ImportJavaDecl {})) = panic "importJavaDecl not handled in HscStats"
+    -- TODO: Implement source statistics for java imports
+    import_info (L _ (ImportJavaDecl {})) = (0, 0, 0, 0, 0, 0, 0)
     safe_info = qual_info
     qual_info False  = 0
     qual_info True   = 1
