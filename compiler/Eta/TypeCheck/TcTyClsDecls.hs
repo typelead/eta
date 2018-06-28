@@ -1197,7 +1197,7 @@ tcConDecl new_or_data rep_tycon tmpl_tvs res_tmpl        -- Data types
            buildOneDataCon (L _ name) = do
              { is_infix <- tcConIsInfix name hs_details res_ty
              ; buildDataCon fam_envs name is_infix
-                            stricts field_lbls
+                            stricts Nothing field_lbls
                             univ_tvs ex_tvs eq_preds ctxt arg_tys
                             res_ty' rep_tycon
                   -- NB:  we put data_tc, the type constructor gotten from the
@@ -1607,8 +1607,8 @@ checkValidDataCon dflags existential_ok tc con
       = addWarnTc NoReason (bad_bang n (ptext (sLit "Ignoring unusable UNPACK pragma")))
       where
         is_strict = case strict_mark of
-                      NoSrcStrictness -> xopt LangExt.StrictData dflags
-                      bang            -> isSrcStrict bang
+                      NoSrcStrict -> xopt LangExt.StrictData dflags
+                      bang        -> isSrcStrict bang
     check_bang _
       = return ()
 

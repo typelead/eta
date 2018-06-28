@@ -524,7 +524,7 @@ cvtSrcUnpackedness SourceNoUnpack       = SrcNoUnpack
 cvtSrcUnpackedness SourceUnpack         = SrcUnpack
 
 cvtSrcStrictness :: TH.SourceStrictness -> SrcStrictness
-cvtSrcStrictness NoSourceStrictness = NoSrcStrictness
+cvtSrcStrictness NoSourceStrictness = NoSrcStrict
 cvtSrcStrictness SourceLazy         = SrcLazy
 cvtSrcStrictness SourceStrict       = SrcStrict
 

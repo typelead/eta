@@ -1969,25 +1969,18 @@ reifyUnpackedness SrcNoUnpack = TH.SourceNoUnpack
 reifyUnpackedness SrcUnpack   = TH.SourceUnpack
 
 reifyStrictness :: DataCon.SrcStrictness -> TH.SourceStrictness
-reifyStrictness NoSrcStrictness = TH.NoSourceStrictness
+reifyStrictness NoSrcStrict = TH.NoSourceStrictness
 reifyStrictness SrcStrict   = TH.SourceStrict
 reifyStrictness SrcLazy     = TH.SourceLazy
 
 reifySourceBang :: DataCon.HsSrcBang
                 -> (TH.SourceUnpackedness, TH.SourceStrictness)
-reifySourceBang bang = (reifyUnpackedness u, reifyStrictness s)
-  where (u,s) = case bang of
-          HsLazy -> (NoSrcUnpack, SrcLazy)
-          (HsSrcBang _ u s) -> (u, s)
-          HsStrict -> (NoSrcUnpack, SrcStrict)
-          HsUnpack _ -> (SrcUnpack, NoSrcStrictness)
+reifySourceBang (HsSrcBang _ u s) = (reifyUnpackedness u, reifyStrictness s)
 
 reifyDecidedStrictness :: DataCon.HsImplBang -> TH.DecidedStrictness
 reifyDecidedStrictness HsStrict   = TH.DecidedStrict
 reifyDecidedStrictness HsUnpack{} = TH.DecidedUnpack
 reifyDecidedStrictness HsLazy     = TH.DecidedLazy
-reifyDecidedStrictness _ = panic "reifyDecidedStrictness"
-
 ------------------------------
 lookupThAnnLookup :: TH.AnnLookup -> TcM CoreAnnTarget
 lookupThAnnLookup (TH.AnnLookupName th_nm) = fmap NamedTarget (lookupThName th_nm)

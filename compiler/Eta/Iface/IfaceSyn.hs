@@ -16,6 +16,7 @@ module Eta.Iface.IfaceSyn (
         IfaceInfoItem(..), IfaceRule(..), IfaceAnnotation(..), IfaceAnnTarget,
         IfaceClsInst(..), IfaceFamInst(..), IfaceTickish(..),
         IfaceBang(..), IfaceAxBranch(..),
+        IfaceSrcBang(..), SrcUnpackedness(..), SrcStrictness(..),
         IfaceTyConParent(..),
 
         -- Misc
@@ -47,6 +48,7 @@ import Eta.Prelude.ForeignCall
 import Eta.Main.Annotations( AnnPayload, AnnTarget )
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Outputable
+import Eta.BasicTypes.DataCon ( SrcStrictness(..), SrcUnpackedness(..) )
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
 import Eta.BasicTypes.Module
@@ -201,14 +203,23 @@ data IfaceConDecl
         ifConCtxt    :: IfaceContext,           -- Non-stupid context
         ifConArgTys  :: [IfaceType],            -- Arg types
         ifConFields  :: [IfaceTopBndr],         -- ...ditto... (field labels)
-        ifConStricts :: [IfaceBang]}            -- Empty (meaning all lazy),
-                                                -- or 1-1 corresp with arg tys
+        ifConStricts :: [IfaceBang],
+        -- Empty (meaning all lazy),
+        -- or 1-1 corresp with arg tys
+        -- See Note [Bangs on imported data constructors] in MkId
+        ifConSrcStricts :: [IfaceSrcBang] }
 
-type IfaceEqSpec = [(IfLclName,IfaceType)]
+type IfaceEqSpec = [(IfLclName, IfaceType)]
 
-data IfaceBang  -- This corresponds to an HsImplBang; that is, the final
-                -- implementation decision about the data constructor arg
+-- This corresponds to an HsImplBang; that is, the final
+-- implementation decision about the data constructor arg
+
+data IfaceBang
   = IfNoBang | IfStrict | IfUnpack | IfUnpackCo IfaceCoercion
+
+-- | This corresponds to HsSrcBang
+data IfaceSrcBang
+  = IfSrcBang SrcUnpackedness SrcStrictness
 
 data IfaceClsInst
   = IfaceClsInst { ifInstCls  :: IfExtName,                -- See comments with
@@ -1505,7 +1516,7 @@ instance Binary IfaceConDecls where
             _ -> liftM IfNewTyCon $ get bh
 
 instance Binary IfaceConDecl where
-    put_ bh (IfCon a1 a2 a3 a4 a5 a6 a7 a8 a9) = do
+    put_ bh (IfCon a1 a2 a3 a4 a5 a6 a7 a8 a9 a10) = do
         put_ bh a1
         put_ bh a2
         put_ bh a3
@@ -1515,17 +1526,19 @@ instance Binary IfaceConDecl where
         put_ bh a7
         put_ bh a8
         put_ bh a9
+        put_ bh a10
     get bh = do
-        a1 <- get bh
-        a2 <- get bh
-        a3 <- get bh
-        a4 <- get bh
-        a5 <- get bh
-        a6 <- get bh
-        a7 <- get bh
-        a8 <- get bh
-        a9 <- get bh
-        return (IfCon a1 a2 a3 a4 a5 a6 a7 a8 a9)
+        a1  <- get bh
+        a2  <- get bh
+        a3  <- get bh
+        a4  <- get bh
+        a5  <- get bh
+        a6  <- get bh
+        a7  <- get bh
+        a8  <- get bh
+        a9  <- get bh
+        a10 <- get bh
+        return (IfCon a1 a2 a3 a4 a5 a6 a7 a8 a9 a10)
 
 instance Binary IfaceBang where
     put_ bh IfNoBang        = putByte bh 0
@@ -1540,6 +1553,16 @@ instance Binary IfaceBang where
               1 -> do return IfStrict
               2 -> do return IfUnpack
               _ -> do { a <- get bh; return (IfUnpackCo a) }
+
+instance Binary IfaceSrcBang where
+    put_ bh (IfSrcBang a1 a2) =
+      do put_ bh a1
+         put_ bh a2
+
+    get bh =
+      do a1 <- get bh
+         a2 <- get bh
+         return (IfSrcBang a1 a2)
 
 instance Binary IfaceClsInst where
     put_ bh (IfaceClsInst cls tys dfun flag orph) = do

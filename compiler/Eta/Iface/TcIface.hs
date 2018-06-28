@@ -500,11 +500,15 @@ tcIfaceDataCons tycon_name tycon tc_tyvars if_cons
         IfNewTyCon con   -> do  { data_con <- tc_con_decl con
                                 ; mkNewTyConRhs tycon_name tycon data_con }
   where
-    tc_con_decl (IfCon { ifConInfix = is_infix,
-                         ifConExTvs = ex_tvs,
-                         ifConOcc = occ, ifConCtxt = ctxt, ifConEqSpec = spec,
-                         ifConArgTys = args, ifConFields = field_lbls,
-                         ifConStricts = if_stricts})
+    tc_con_decl (IfCon { ifConInfix      = is_infix,
+                         ifConExTvs      = ex_tvs,
+                         ifConOcc        = occ,
+                         ifConCtxt       = ctxt,
+                         ifConEqSpec     = spec,
+                         ifConArgTys     = args,
+                         ifConFields     = field_lbls,
+                         ifConStricts    = if_stricts,
+                         ifConSrcStricts = if_src_stricts})
      = -- Universally-quantified tyvars are shared with
        -- parent TyCon, and are alrady in scope
        bindIfaceTyVars ex_tvs    $ \ ex_tyvars -> do
@@ -532,9 +536,13 @@ tcIfaceDataCons tycon_name tycon tc_tyvars if_cons
 
         ; con <- buildDataCon (pprPanic "tcIfaceDataCons: FamInstEnvs" (ppr name))
                        name is_infix
-                       stricts -- Pass the HsImplBangs (i.e. final decisions
-                               -- to buildDataCon; it'll use these to guide
-                               -- the construction of a worker
+                       (map src_strict if_src_stricts)
+                       (Just stricts)
+                         -- Pass the HsImplBangs (i.e. final
+                         -- decisions) to buildDataCon; it'll use
+                         -- these to guide the construction of a
+                         -- worker.
+                         -- See Note [Bangs on imported data constructors] in MkId
                        lbl_names
                        tc_tyvars ex_tyvars
                        eq_spec theta
@@ -544,11 +552,14 @@ tcIfaceDataCons tycon_name tycon tc_tyvars if_cons
     mk_doc con_name = ptext (sLit "Constructor") <+> ppr con_name
 
     tc_strict :: IfaceBang -> IfL HsImplBang
-    tc_strict IfNoBang = return HsLazy
-    tc_strict IfStrict = return HsStrict
+    tc_strict IfNoBang = return (HsLazy)
+    tc_strict IfStrict = return (HsStrict)
     tc_strict IfUnpack = return (HsUnpack Nothing)
     tc_strict (IfUnpackCo if_co) = do { co <- tcIfaceCo if_co
                                       ; return (HsUnpack (Just co)) }
+
+    src_strict :: IfaceSrcBang -> HsSrcBang
+    src_strict (IfSrcBang unpk bang) = HsSrcBang Nothing unpk bang
 
 tcIfaceEqSpec :: IfaceEqSpec -> IfL [(TyVar, Type)]
 tcIfaceEqSpec spec

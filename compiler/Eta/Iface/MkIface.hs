@@ -1678,16 +1678,19 @@ tyConToIfaceDecl env tycon
         -- AbstractTyCon case is perfectly sensible.
 
     ifaceConDecl data_con
-        = IfCon   { ifConOcc     = getOccName (dataConName data_con),
-                    ifConInfix   = dataConIsInfix data_con,
-                    ifConWrapper = isJust (dataConWrapId_maybe data_con),
-                    ifConExTvs   = toIfaceTvBndrs ex_tvs',
-                    ifConEqSpec  = map to_eq_spec eq_spec,
-                    ifConCtxt    = tidyToIfaceContext con_env2 theta,
-                    ifConArgTys  = map (tidyToIfaceType con_env2) arg_tys,
-                    ifConFields  = map getOccName
+        = IfCon   { ifConOcc        = getOccName (dataConName data_con),
+                    ifConInfix      = dataConIsInfix data_con,
+                    ifConWrapper    = isJust (dataConWrapId_maybe data_con),
+                    ifConExTvs      = toIfaceTvBndrs ex_tvs',
+                    ifConEqSpec     = map to_eq_spec eq_spec,
+                    ifConCtxt       = tidyToIfaceContext con_env2 theta,
+                    ifConArgTys     = map (tidyToIfaceType con_env2) arg_tys,
+                    ifConFields     = map getOccName
                                        (dataConFieldLabels data_con),
-                    ifConStricts = map (toIfaceBang con_env2) (dataConImplBangs data_con) }
+                    ifConStricts    = map (toIfaceBang con_env2)
+                                       (dataConImplBangs data_con),
+                    ifConSrcStricts = map toIfaceSrcBang
+                                         (dataConSrcBangs data_con) }
         where
           (univ_tvs, ex_tvs, eq_spec, theta, arg_tys, _) = dataConFullSig data_con
 
@@ -1709,7 +1712,9 @@ toIfaceBang _    HsLazy              = IfNoBang
 toIfaceBang _   (HsUnpack Nothing)   = IfUnpack
 toIfaceBang env (HsUnpack (Just co)) = IfUnpackCo (toIfaceCoercion (tidyCo env co))
 toIfaceBang _   HsStrict             = IfStrict
-toIfaceBang _   (HsSrcBang {})       = panic "toIfaceBang"
+
+toIfaceSrcBang :: HsSrcBang -> IfaceSrcBang
+toIfaceSrcBang (HsSrcBang _ unpk bang) = IfSrcBang unpk bang
 
 classToIfaceDecl :: TidyEnv -> Class -> (TidyEnv, IfaceDecl)
 classToIfaceDecl env clas

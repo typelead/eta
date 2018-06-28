@@ -28,7 +28,7 @@ module Eta.HsSyn.HsTypes (
         HsTyLit(..),
         HsIPName(..), hsIPNameFS,
 
-        LBangType, BangType, HsBang(..), HsSrcBang, HsImplBang,
+        LBangType, BangType, HsSrcBang(..), HsImplBang(..),
         SrcStrictness(..), SrcUnpackedness(..),
         getBangType, getBangStrictness,
 
@@ -60,7 +60,7 @@ import Eta.HsSyn.PlaceHolder ( PostTc,PostRn,DataId,PlaceHolder(..) )
 
 import Eta.BasicTypes.Name( Name )
 import Eta.BasicTypes.RdrName( RdrName )
-import Eta.BasicTypes.DataCon( HsBang(..), HsSrcBang, HsImplBang,
+import Eta.BasicTypes.DataCon( HsSrcBang(..), HsImplBang(..),
                               SrcStrictness(..), SrcUnpackedness(..))
 import Eta.Prelude.TysPrim( funTyConName )
 import Eta.Types.Type
@@ -96,7 +96,7 @@ getBangType ty                    = ty
 
 getBangStrictness :: LHsType a -> HsSrcBang
 getBangStrictness (L _ (HsBangTy s _)) = s
-getBangStrictness _                    = HsSrcBang Nothing NoSrcUnpack NoSrcStrictness
+getBangStrictness _                    = (HsSrcBang Nothing NoSrcUnpack NoSrcStrict)
 
 {-
 ************************************************************************

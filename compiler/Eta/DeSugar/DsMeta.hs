@@ -777,14 +777,14 @@ mkGadtCtxt data_tvs (ResTyGADT _ res_ty)
 -- repMbContext (Just (L _ cxt)) = repContext cxt
 
 repSrcUnpackedness :: SrcUnpackedness -> DsM (Core TH.SourceUnpackednessQ)
-repSrcUnpackedness SrcUnpack  = rep2 sourceUnpackName         []
+repSrcUnpackedness SrcUnpack   = rep2 sourceUnpackName         []
 repSrcUnpackedness SrcNoUnpack = rep2 sourceNoUnpackName       []
-repSrcUnpackedness NoSrcUnpack      = rep2 noSourceUnpackednessName []
+repSrcUnpackedness NoSrcUnpack = rep2 noSourceUnpackednessName []
 
 repSrcStrictness :: SrcStrictness -> DsM (Core TH.SourceStrictnessQ)
 repSrcStrictness SrcLazy     = rep2 sourceLazyName         []
-repSrcStrictness SrcStrict  = rep2 sourceStrictName       []
-repSrcStrictness NoSrcStrictness = rep2 noSourceStrictnessName []
+repSrcStrictness SrcStrict   = rep2 sourceStrictName       []
+repSrcStrictness NoSrcStrict = rep2 noSourceStrictnessName []
 
 repBangTy :: LBangType Name -> DsM (Core (TH.BangTypeQ))
 repBangTy ty = do
@@ -796,10 +796,7 @@ repBangTy ty = do
   where
     (su', ss', ty') = case ty of
                 L _ (HsBangTy (HsSrcBang _ su ss) ty) -> (su, ss, ty)
-                L _ (HsBangTy HsLazy ty) -> (NoSrcUnpack, SrcLazy, ty)
-                L _ (HsBangTy HsStrict ty) -> (NoSrcUnpack, SrcStrict, ty)
-                L _ (HsBangTy (HsUnpack _) ty) -> (SrcUnpack, NoSrcStrictness, ty)
-                _ -> (NoSrcUnpack, NoSrcStrictness, ty)
+                _                                     -> (NoSrcUnpack, NoSrcStrict, ty)
 
 -------------------------------------------------------
 --                      Deriving clauses
