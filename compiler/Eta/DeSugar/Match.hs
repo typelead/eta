@@ -804,13 +804,9 @@ matchWrapper ctxt (MG { mg_alts = matches
   where
     mk_eqn_info (L _ (Match _ pats _ grhss))
       = do { dflags <- getDynFlags
-           ; let upats = map (strictify dflags) pats
+           ; let upats = map (getMaybeStrictPat dflags) pats
            ; match_result <- dsGRHSs ctxt upats grhss rhs_ty
            ; return (EqnInfo { eqn_pats = upats, eqn_rhs  = match_result}) }
-
-    strictify dflags pat =
-      let (is_strict, pat') = getUnBangedLPat dflags pat
-      in if is_strict then BangPat pat' else unLoc pat'
 
     handleWarnings = if isGenerated origin
                      then discardWarningsDs
@@ -862,17 +858,23 @@ matchSinglePat :: CoreExpr -> HsMatchContext Name -> LPat Id
 -- Do not warn about incomplete patterns
 -- Used for things like [ e | pat <- stuff ], where
 -- incomplete patterns are just fine
-matchSinglePat (Var var) ctx (L _ pat) ty match_result
+matchSinglePat (Var var) ctx pat ty match_result
   = do { locn <- getSrcSpanDs
+       ; dflags <- getDynFlags
+       ; let pat' = getMaybeStrictPat dflags pat
        ; matchCheck (DsMatchContext ctx locn)
                     [var] ty
-                    [EqnInfo { eqn_pats = [pat], eqn_rhs  = match_result }] }
+                    [EqnInfo { eqn_pats = [pat'], eqn_rhs  = match_result }] }
 
 matchSinglePat scrut hs_ctx pat ty match_result
   = do { var <- selectSimpleMatchVarL pat
        ; match_result' <- matchSinglePat (Var var) hs_ctx pat ty match_result
        ; return (adjustMatchResult (bindNonRec var scrut) match_result') }
 
+getMaybeStrictPat :: DynFlags -> LPat Id -> Pat Id
+getMaybeStrictPat dflags pat =
+ let (is_strict, pat') = getUnBangedLPat dflags pat
+ in if is_strict then BangPat pat' else unLoc pat'
 {-
 ************************************************************************
 *                                                                      *
