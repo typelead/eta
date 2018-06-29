@@ -20,7 +20,8 @@ module Eta.Utils.Bag (
         listToBag, bagToList,
         foldrBagM, foldlBagM, mapBagM, mapBagM_,
         flatMapBagM, flatMapBagPairM,
-        mapAndUnzipBagM, mapAccumBagLM, mapAccumBagL
+        mapAndUnzipBagM, mapAccumBagLM, mapAccumBagL,
+        anyBagM, filterBagM
     ) where
 
 import Eta.Utils.Outputable
@@ -29,6 +30,7 @@ import Eta.Utils.Util
 import Eta.Utils.MonadUtils
 import Data.Data
 import Data.List ( partition, mapAccumL )
+import Control.Monad
 
 infixr 3 `consBag`
 infixl 3 `snocBag`
@@ -92,11 +94,33 @@ filterBag pred (TwoBags b1 b2) = sat1 `unionBags` sat2
           sat2 = filterBag pred b2
 filterBag pred (ListBag vs)    = listToBag (filter pred vs)
 
+filterBagM :: Monad m => (a -> m Bool) -> Bag a -> m (Bag a)
+filterBagM _    EmptyBag = return EmptyBag
+filterBagM pred b@(UnitBag val) = do
+  flag <- pred val
+  if flag then return b
+          else return EmptyBag
+filterBagM pred (TwoBags b1 b2) = do
+  sat1 <- filterBagM pred b1
+  sat2 <- filterBagM pred b2
+  return (sat1 `unionBags` sat2)
+filterBagM pred (ListBag vs) = do
+  sat <- filterM pred vs
+  return (listToBag sat)
+
 anyBag :: (a -> Bool) -> Bag a -> Bool
 anyBag _ EmptyBag        = False
 anyBag p (UnitBag v)     = p v
 anyBag p (TwoBags b1 b2) = anyBag p b1 || anyBag p b2
 anyBag p (ListBag xs)    = any p xs
+
+anyBagM :: Monad m => (a -> m Bool) -> Bag a -> m Bool
+anyBagM _ EmptyBag        = return False
+anyBagM p (UnitBag v)     = p v
+anyBagM p (TwoBags b1 b2) = do flag <- anyBagM p b1
+                               if flag then return True
+                                       else anyBagM p b2
+anyBagM p (ListBag xs)    = anyM p xs
 
 concatBag :: Bag (Bag a) -> Bag a
 concatBag EmptyBag        = EmptyBag

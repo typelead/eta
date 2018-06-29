@@ -133,6 +133,7 @@ import Eta.Main.DynFlags
 import Eta.Utils.Outputable
 import Eta.Utils.ListSetOps
 import Eta.Utils.FastString
+import Eta.DeSugar.PmExpr
 import GHC.Fingerprint
 
 import Data.Set (Set)
@@ -297,7 +298,9 @@ instance ContainsModule DsGblEnv where
 
 data DsLclEnv = DsLclEnv {
         dsl_meta    :: DsMetaEnv,        -- Template Haskell bindings
-        dsl_loc     :: SrcSpan           -- to put in pattern-matching error msgs
+        dsl_loc     :: RealSrcSpan,      -- To put in pattern-matching error msgs
+        dsl_dicts   :: Bag EvVar,        -- Constraints from GADT pattern-matching
+        dsl_tm_cs   :: Bag SimpleEq
      }
 
 -- Inside [| |] brackets, the desugarer looks
@@ -1523,16 +1526,15 @@ addInsols :: WantedConstraints -> Bag Ct -> WantedConstraints
 addInsols wc cts
   = wc { wc_insol = wc_insol wc `unionBags` cts }
 
--- TODO: Properly backport these changes
 insolublesOnly :: WantedConstraints -> WantedConstraints
--- Keep only the definitely-insoluble constraints
-insolublesOnly x = x
---(WC { wc_simple = simples, wc_impl = implics })
---   = WC { wc_simple = filterBag insolubleWantedCt simples
---        , wc_impl   = mapBag implic_insols_only implics }
---   where
---     implic_insols_only implic
---       = implic { ic_wanted = insolublesOnly (ic_wanted implic) }
+-- Keep only the insolubles
+insolublesOnly (WC { wc_insol = insols, wc_impl = implics })
+  = WC { wc_simple = emptyBag
+       , wc_insol  = insols
+       , wc_impl = mapBag implic_insols_only implics }
+   where
+     implic_insols_only implic
+       = implic { ic_wanted = insolublesOnly (ic_wanted implic) }
 
 -- insolubleWantedCt :: Ct -> Bool
 -- -- Definitely insoluble, in particular /excluding/ type-hole constraints

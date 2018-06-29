@@ -18,13 +18,13 @@ module Eta.HsSyn.HsPat (
 
         HsConDetails(..),
         HsConPatDetails, hsConPatArgs,
-        HsRecFields(..), HsRecField(..), LHsRecField, hsRecFields,
+        HsRecFields(..), HsRecField(..), LHsRecField, hsRecFields,  hsRecFieldsArgs,
 
         mkPrefixConPat, mkCharLitPat, mkNilPat,
 
         isUnliftedHsBind, looksLazyPatBind,
         isUnliftedLPat, isBangedLPat, isBangedPatBind,
-        hsPatNeedsParens,
+        hsPatNeedsParens, collectEvVarsPats,
         isCompoundPat, parenthesizeCompoundPat,
         isIrrefutableHsPat,
 
@@ -41,6 +41,7 @@ import Eta.HsSyn.HsTypes
 import Eta.TypeCheck.TcEvidence
 import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.RdrName
+import Eta.Utils.Bag
 -- others:
 import Eta.Core.PprCore          ( {- instance OutputableBndr TyVar -} )
 import Eta.Prelude.TysWiredIn
@@ -276,6 +277,10 @@ data HsRecField id arg = HsRecField {
 
 hsRecFields :: HsRecFields id arg -> [id]
 hsRecFields rbinds = map (unLoc . hsRecFieldId . unLoc) (rec_flds rbinds)
+
+-- Probably won't typecheck at once, things have changed :/
+hsRecFieldsArgs :: HsRecFields id arg -> [arg]
+hsRecFieldsArgs rbinds = map (hsRecFieldArg . unLoc) (rec_flds rbinds)
 
 {-
 ************************************************************************
@@ -575,3 +580,35 @@ parenthesizeCompoundPat :: LPat RdrName -> LPat RdrName
 parenthesizeCompoundPat lp@(L loc p)
   | isCompoundPat p = L loc (ParPat lp)
   | otherwise       = lp
+
+{-
+% Collect all EvVars from all constructor patterns
+-}
+
+-- May need to add more cases
+collectEvVarsPats :: [Pat id] -> Bag EvVar
+collectEvVarsPats = unionManyBags . map collectEvVarsPat
+
+collectEvVarsLPat :: LPat id -> Bag EvVar
+collectEvVarsLPat (L _ pat) = collectEvVarsPat pat
+
+collectEvVarsPat :: Pat id -> Bag EvVar
+collectEvVarsPat pat =
+  case pat of
+    LazyPat  p        -> collectEvVarsLPat p
+    AsPat _  p        -> collectEvVarsLPat p
+    ParPat   p        -> collectEvVarsLPat p
+    BangPat  p        -> collectEvVarsLPat p
+    ListPat  ps _ _   -> unionManyBags $ map collectEvVarsLPat ps
+    TuplePat ps _ _   -> unionManyBags $ map collectEvVarsLPat ps
+    PArrPat  ps _     -> unionManyBags $ map collectEvVarsLPat ps
+    ConPatOut {pat_dicts = dicts, pat_args  = args}
+                      -> unionBags (listToBag dicts)
+                                   $ unionManyBags
+                                   $ map collectEvVarsLPat
+                                   $ hsConPatArgs args
+    SigPatOut p _     -> collectEvVarsLPat p
+    CoPat _ p _       -> collectEvVarsPat  p
+    ConPatIn _  _     -> panic "foldMapPatBag: ConPatIn"
+    SigPatIn _ _      -> panic "foldMapPatBag: SigPatIn"
+    _other_pat        -> emptyBag

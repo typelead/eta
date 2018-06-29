@@ -7,7 +7,7 @@ Matching guarded right-hand-sides (GRHSs)
 -}
 {-# LANGUAGE CPP #-}
 
-module Eta.DeSugar.DsGRHSs ( dsGuarded, dsGRHSs, dsGRHS ) where
+module Eta.DeSugar.DsGRHSs ( dsGuarded, dsGRHSs, dsGRHS, isTrueLHsExpr ) where
 
 import {-# SOURCE #-} Eta.DeSugar.DsExpr  ( dsLExpr, dsLocalBinds )
 import {-# SOURCE #-} Eta.DeSugar.Match   ( matchSinglePat )

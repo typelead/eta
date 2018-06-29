@@ -41,8 +41,8 @@ module Eta.TypeCheck.TcSMonad (
         -- Inerts
     InertSet(..), InertCans(..),
     updInertTcS, updInertCans, updInertDicts, updInertIrreds,
-    getNoGivenEqs, setInertCans, getInertEqs, getInertCans,
-    emptyInert, getTcSInerts, setTcSInerts,
+    getNoGivenEqs, setInertCans, getInertEqs, getInertInsols, getInertCans,
+    emptyInert, getTcSInerts, setTcSInerts, takeInertInsolubles,
     getUnsolvedInerts, checkAllSolved,
     splitInertCans, removeInertCts,
     prepareInertsForImplications,
@@ -619,6 +619,12 @@ getInertEqs :: TcS (TyVarEnv EqualCtList)
 getInertEqs
   = do { inert <- getTcSInerts
        ; return (inert_eqs (inert_cans inert)) }
+
+getInertInsols :: TcS Cts
+-- Returns insoluble equality constraints
+-- specifically including Givens
+getInertInsols = do { inert <- getInertCans
+                    ; return (inert_insols inert) }
 
 getUnsolvedInerts :: TcS ( Bag Implication
                          , Cts     -- Tyvar eqs: a ~ ty
@@ -1319,6 +1325,16 @@ getTcSInerts = getTcSInertsRef >>= wrapTcS . (TcM.readTcRef)
 
 setTcSInerts :: InertSet -> TcS ()
 setTcSInerts ics = do { r <- getTcSInertsRef; wrapTcS (TcM.writeTcRef r ics) }
+
+takeInertInsolubles :: TcS Cts
+-- Take the insoluble constraints out of the inert set
+takeInertInsolubles
+  = do { is_var <- getTcSInertsRef
+       ; wrapTcS (do { inerts <- TcM.readTcRef is_var
+                     ; let cans = inert_cans inerts
+                           cans' = cans { inert_insols = emptyBag }
+                     ; TcM.writeTcRef is_var (inerts { inert_cans = cans' })
+                     ; return (inert_insols cans) }) }
 
 getWorkListImplics :: TcS (Bag Implication)
 getWorkListImplics

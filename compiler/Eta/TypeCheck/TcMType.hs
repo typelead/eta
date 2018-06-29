@@ -23,6 +23,9 @@ module Eta.TypeCheck.TcMType (
 
   newMetaTyVar, readMetaTyVar, writeMetaTyVar, writeMetaTyVarRef,
   newMetaDetails, isFilledMetaTyVar, isUnfilledMetaTyVar,
+  --------------------------------
+  -- Creating fresh type variables for pm checking
+  genInstSkolTyVarsX,
 
   --------------------------------
   -- Creating new evidence variables
@@ -427,6 +430,17 @@ writeMetaTyVarRef tyvar ref ty
   where
     tv_kind = tyVarKind tyvar
     ty_kind = typeKind ty
+
+{-
+% Generating fresh variables for pattern match check
+-}
+
+-- UNINSTANTIATED VERSION OF tcInstSkolTyVars
+genInstSkolTyVarsX :: SrcSpan -> TvSubst -> [TyVar] -> TcRnIf gbl lcl (TvSubst, [TcTyVar])
+-- Precondition: tyvars should be ordered (kind vars first)
+-- see Note [Kind substitution when instantiating]
+-- Get the location from the monad; this is a complete freshening operation
+genInstSkolTyVarsX loc subst tvs = instSkolTyVarsX (mkTcSkolTyVar loc False) subst tvs
 
 {-
 ************************************************************************

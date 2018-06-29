@@ -107,6 +107,8 @@ library
                        , Eta.DeSugar.Match
                        , Eta.DeSugar.MatchCon
                        , Eta.DeSugar.MatchLit
+                       , Eta.DeSugar.PmExpr
+                       , Eta.DeSugar.TmOracle
                        , Eta.DeSugar.StaticPtrTable
                        , Eta.HsSyn.Convert
                        , Eta.HsSyn.HsBinds

@@ -5,6 +5,7 @@ module Eta.TypeCheck.TcSimplify(
        simplifyDefault,
        simplifyRule, simplifyTop, simplifyInteractive,
        solveWantedsTcM,
+       tcCheckSatisfiability,
        captureTopConstraints
   ) where
 
@@ -962,6 +963,20 @@ Consider floated_eqs (all wanted or derived):
     of that very fact, we won't generate another copy if we iterate
     simpl_loop.  So we iterate if there any of these
 -}
+
+------------------
+tcCheckSatisfiability :: Bag EvVar -> TcM Bool
+-- Return True if satisfiable, False if definitely contradictory
+tcCheckSatisfiability givens
+  = do { lcl_env <- TcM.getLclEnv
+       ; let given_loc = mkGivenLoc topTcLevel UnkSkol lcl_env
+       ; traceTc "checkSatisfiabilty {" (ppr givens)
+       ; (res, _ev_binds) <- runTcS $
+             do { solveSimpleGivens given_loc (bagToList givens)
+                ; insols <- getInertInsols
+                ; return (not (isEmptyBag insols)) }
+       ; traceTc "checkSatisfiabilty }" (ppr res)
+       ; return (not res) }
 
 promoteTyVar :: TcLevel -> TcTyVar  -> TcS ()
 -- When we float a constraint out of an implication we must restore

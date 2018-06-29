@@ -4,6 +4,6 @@ import {-# SOURCE #-} Eta.Types.TyCon      (TyCon)
 import {-# SOURCE #-} Eta.Types.TypeRep    (Type)
 
 
-eqTyCon, coercibleTyCon :: TyCon
+eqTyCon, listTyCon, coercibleTyCon :: TyCon
 typeNatKind, typeSymbolKind :: Type
 mkBoxedTupleTy :: [Type] -> Type

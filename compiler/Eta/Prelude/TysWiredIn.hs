@@ -61,7 +61,7 @@ module Eta.Prelude.TysWiredIn (
 
         -- * Tuples
         mkTupleTy, mkBoxedTupleTy,
-        tupleTyCon, tupleCon,
+        tupleTyCon, tupleCon, tupleDataCon,
         promotedTupleTyCon, promotedTupleDataCon,
         unitTyCon, unitDataCon, unitDataConId, pairTyCon,
         unboxedUnitTyCon, unboxedUnitDataCon,
@@ -108,7 +108,7 @@ import Eta.Types.TypeRep
 import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.BasicTypes       ( TupleSort(..), tupleSortBoxity,
-                          Arity, RecFlag(..), Boxity(..) )
+                          Arity, RecFlag(..), Boxity(..), boxityNormalTupleSort )
 import Eta.Prelude.ForeignCall
 import Eta.BasicTypes.Unique           ( incrUnique, mkTupleTyConUnique,
                           mkTupleDataConUnique, mkPArrDataConUnique )
@@ -325,7 +325,7 @@ pcDataConWithFixity' declared_infix dc_name wrk_key tyvars arg_tys tycon
                 []      -- No stupid theta
                 (mkDataConWorkId wrk_name data_con)
                 NoDataConRep    -- Wired-in types are too simple to need wrappers
-                
+
     no_bang = HsSrcBang Nothing NoSrcUnpack NoSrcStrict
     modu     = ASSERT( isExternalName dc_name )
                nameModule dc_name
@@ -450,6 +450,11 @@ promotedTupleTyCon sort i = promoteTyCon (tupleTyCon sort i)
 
 promotedTupleDataCon :: TupleSort -> Arity -> TyCon
 promotedTupleDataCon sort i = promoteDataCon (tupleCon sort i)
+
+tupleDataCon :: Boxity -> Arity -> DataCon
+tupleDataCon sort i | i > mAX_TUPLE_SIZE = snd (mk_tuple (boxityNormalTupleSort sort) i)    -- Build one specially
+tupleDataCon Boxed   i = snd (boxedTupleArr   ! i)
+tupleDataCon Unboxed i = snd (unboxedTupleArr ! i)
 
 tupleCon :: TupleSort -> Arity -> DataCon
 tupleCon sort i | i > mAX_TUPLE_SIZE = snd (mk_tuple sort i)    -- Build one specially
