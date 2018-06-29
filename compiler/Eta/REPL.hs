@@ -255,8 +255,8 @@ dumpClassesIfSet hsc_env classes =
         toClassFilePath c = dump </> "interpreted" </> c <.> ".class"
 
 
-newInstance :: HscEnv -> String -> IO HValueRef
-newInstance hsc_env className = iservCmd hsc_env (NewInstance className)
+newInstance :: HscEnv -> String -> String -> IO HValueRef
+newInstance hsc_env className methodName = iservCmd hsc_env (NewInstance className methodName)
 
 resetClasses :: HscEnv -> IO ()
 resetClasses hsc_env = iservCmd hsc_env ResetClasses

@@ -59,13 +59,13 @@ loadClasses classNames classes = do
 foreign import java unsafe "@static eta.serv.REPLClassLoader.loadClasses"
   j_loadClasses             :: JStringArray -> List ByteBuffer -> IO ()
 
-newInstance :: String -> IO HValueRef
-newInstance className = do
-  obj <- j_newInstance className
+newInstance :: String -> String -> IO HValueRef
+newInstance className methodName = do
+  obj <- j_newInstance className methodName
   mkRemoteRef $ HValue (unsafeCoerce# obj)
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.newInstance"
-  j_newInstance :: String -> IO Object
+  j_newInstance :: String -> String -> IO Object
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.resetClasses"
   resetClasses :: IO ()

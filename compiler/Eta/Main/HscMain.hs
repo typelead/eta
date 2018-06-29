@@ -1646,7 +1646,7 @@ hscCompileCoreExpr hsc_env =
   lookupHook hscCompileCoreExprHook hscCompileCoreExpr' (hsc_dflags hsc_env) hsc_env
 
 hscCompileCoreExpr' :: HscEnv -> SrcSpan -> CoreExpr -> IO ForeignHValue
-hscCompileCoreExpr' hsc_env srcspan ds_expr
+hscCompileCoreExpr' hsc_env _srcspan ds_expr
     = do { let dflags = hsc_dflags hsc_env
 
            {- Simplify it -}
@@ -1692,7 +1692,8 @@ hscCompileCoreExpr' hsc_env srcspan ds_expr
          ; modClasses <- codeGen hsc_env this_mod mod_location
                            [] stg_binds (panic "hpcInfo") Nothing
 
-         ; hval <- linkExpr hsc_env srcspan modClasses
+         ; hval <- linkExpr hsc_env (T.unpack $ moduleJavaClass this_mod)
+                                    (T.unpack $ idNameText dflags exprId) modClasses
 
          ; return hval }
 

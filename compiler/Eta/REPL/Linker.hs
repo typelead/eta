@@ -182,8 +182,8 @@ reallyInitDynLinker hsc_env = do
 -- Raises an IO exception ('ProgramError') if it can't find a compiled
 -- version of the dependents to link.
 --
-linkExpr :: HscEnv -> SrcSpan -> [ClassFile] -> IO ForeignHValue
-linkExpr hsc_env _span classes
+linkExpr :: HscEnv -> String -> String -> [ClassFile] -> IO ForeignHValue
+linkExpr hsc_env clsName clsMethod classes
   = do {
      -- Initialise the linker (if it's not been done already)
    ; initDynLinker hsc_env
@@ -191,9 +191,7 @@ linkExpr hsc_env _span classes
      -- Take lock for the actual work.
    ; modifyPLS $ \pls -> do {
        ; loadClasses hsc_env classes
-       ; let (_:exprCls:_) = classes
-             exprClsName = classFileName exprCls
-       ; hvref <- newInstance hsc_env exprClsName
+       ; hvref <- newInstance hsc_env clsName clsMethod
        ; fhv <- mkFinalizedHValue hsc_env hvref
        ; return (pls, fhv)
    }}

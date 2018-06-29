@@ -61,7 +61,7 @@ data Message a where
   LoadClasses :: [String] -> [ByteString] -> Message ()
 
   -- Create a new instance of the supplied class
-  NewInstance :: String -> Message HValueRef
+  NewInstance :: String -> String -> Message HValueRef
 
   -- Resets the child REPLClassLoader
   ResetClasses :: Message ()
@@ -228,7 +228,7 @@ getMessage = do
     1  -> Msg <$> AddDynamicClassPath <$> get
     2  -> Msg <$> AddModuleClassPath <$> get
     3  -> Msg <$> (LoadClasses <$> get <*> get)
-    4  -> Msg <$> (NewInstance <$> get)
+    4  -> Msg <$> (NewInstance <$> get <*> get)
     5  -> return $ Msg ResetClasses
     6  -> Msg <$> FreeHValueRefs <$> get
     7  -> Msg <$> (EvalStmt <$> get <*> get)
@@ -246,7 +246,7 @@ putMessage m = case m of
   AddDynamicClassPath a       -> putWord8 1  >> put a
   AddModuleClassPath a        -> putWord8 2  >> put a
   LoadClasses a b             -> putWord8 3  >> put a >> put b
-  NewInstance a               -> putWord8 4  >> put a
+  NewInstance a b             -> putWord8 4  >> put a >> put b
   ResetClasses                -> putWord8 5
   FreeHValueRefs val          -> putWord8 6  >> put val
   EvalStmt opts val           -> putWord8 7  >> put opts >> put val

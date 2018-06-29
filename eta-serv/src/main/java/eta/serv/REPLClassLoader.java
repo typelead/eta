@@ -131,8 +131,10 @@ public class REPLClassLoader extends URLClassLoader {
         }
     }
 
-    public static Object newInstance(String className) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-        return replClassLoader.loadClass(fixClassName(className)).newInstance();
+    public static Object newInstance(String className, String methodName)
+        throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
+               IllegalAccessException {
+        return replClassLoader.loadClass(fixClassName(className)).getMethod(methodName).invoke(null);
     }
 
     private static String fixClassName(String name) {
