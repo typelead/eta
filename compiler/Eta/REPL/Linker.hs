@@ -28,6 +28,7 @@ import Eta.Utils.Util as Util
 import Eta.Main.ErrUtils
 import Eta.BasicTypes.SrcLoc
 
+import Data.ByteString (ByteString)
 import Data.IORef
 import Control.Concurrent.MVar
 
@@ -190,13 +191,13 @@ linkExpr hsc_env clsName clsMethod classes
 
      -- Take lock for the actual work.
    ; modifyPLS $ \pls -> do {
-       ; loadClasses hsc_env classes
+       ; loadClasses hsc_env $ forceClasses classes
        ; hvref <- newInstance hsc_env clsName clsMethod
        ; fhv <- mkFinalizedHValue hsc_env hvref
        ; return (pls, fhv)
    }}
 
-linkClasses :: HscEnv -> [ClassFile] -> IO ()
+linkClasses :: HscEnv -> [(String, String, ByteString)] -> IO ()
 linkClasses hsc_env classes
   = do {
      -- Initialise the linker (if it's not been done already)
@@ -286,6 +287,8 @@ unload_wkr hsc_env keep_linkables pls = do
                                 | jar <- keep_linkables,
                                   let classpath = linkableObjs jar,
                                   not (null classpath) ]
+      classesToLink = concat [ linkableClasses l |  l <- keep_linkables,
+                                                    isInterpretedLinkable l ]
 
       -- Note that we want to remove all *local*
       -- (i.e. non-isExternal) names too (these are the
@@ -302,4 +305,7 @@ unload_wkr hsc_env keep_linkables pls = do
 
   resetClasses hsc_env
   addModuleClassPath hsc_env (concat (eltsUFM newModuleEnv'))
+  -- TODO: Make this more efficient with per-module classloader system
+  loadClasses hsc_env classesToLink
+
   return new_pls

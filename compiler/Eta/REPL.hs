@@ -55,7 +55,6 @@ import System.FilePath
 import System.Directory
 import System.Process
 import System.IO
-import Codec.JVM hiding (void)
 
 {- Note [Remote Eta REPL]
 
@@ -229,24 +228,20 @@ evalStringToIOString hsc_env fhv str = do
   liftIO $ withForeignRef fhv $ \fhv ->
     iservCmd hsc_env (EvalStringToString fhv str) >>= fromEvalResult
 
-loadClasses :: HscEnv -> [ClassFile] -> IO ()
-loadClasses hsc_env classes = do
+loadClasses :: HscEnv -> [(String, String, ByteString)] -> IO ()
+loadClasses hsc_env classes = when (not (null classes)) $ do
   dumpClassesIfSet hsc_env classes
-  let components = stronglyConnCompFromEdgedVertices
-                     [ (c, classFileName c, [superClassName c])
-                     | c <- classes]
+  let components = stronglyConnCompFromEdgedVertices [ ((a, c), a, [b]) | (a, b, c) <- classes]
       f (AcyclicSCC c) = c
       f (CyclicSCC cs) = panic $ "loadClasses: Found impossible set of cyclic classes: "
-                              ++ show (map classFileName cs)
+                              ++ show (map (\(a,_) -> a) cs)
       classes' = map f components
-  iservCmd hsc_env (LoadClasses (map classFileName classes')
-                                (map classFileBS   classes'))
+  iservCmd hsc_env (LoadClasses (map fst classes') (map snd classes'))
 
-dumpClassesIfSet :: HscEnv -> [ClassFile] -> IO ()
+dumpClassesIfSet :: HscEnv -> [(String, String, ByteString)] -> IO ()
 dumpClassesIfSet hsc_env classes =
   when (dopt Opt_D_dump_interpreted_classes dflags) $ do
-    let clsPaths =
-          map (\cls -> (toClassFilePath (classFileName cls), classFileBS cls)) classes
+    let clsPaths = map (\(a,_,c) -> (toClassFilePath a, c)) classes
     forM_ clsPaths $ \(p, c) -> do
       createDirectoryIfMissing True (takeDirectory p)
       B.writeFile p c

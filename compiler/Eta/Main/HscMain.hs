@@ -1450,7 +1450,7 @@ hscDeclsWithLocation hsc_env0 str source linenumber =
     let stubClasses = outputForeignStubs dflags foreign_stubs modClass
         classes = modClasses ++ stubClasses
 
-    liftIO $ linkClasses hsc_env classes
+    liftIO $ linkClasses hsc_env (forceClasses classes)
 
     -- let src_span = srcLocSpan interactiveSrcLoc
 

@@ -223,9 +223,10 @@ compileOne' m_tc_result mHscMessage
                            guts <- hscSimplify hsc_env guts0
                            (iface, _changed, details, cgguts) <- hscNormalIface hsc_env guts mb_old_hash
                            classes <- hscInteractive hsc_env cgguts summary
-                           linkClasses hsc_env classes
+                           let classBSs = forceClasses classes
+                           linkClasses hsc_env classBSs
 
-                           let hs_unlinked = [Classes classes]
+                           let hs_unlinked = [Classes classBSs]
                                unlinked_time = ms_hs_date summary
                              -- Why do we use the timestamp of the source file here,
                              -- rather than the current time?  This works better in

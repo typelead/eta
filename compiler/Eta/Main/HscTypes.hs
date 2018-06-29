@@ -107,7 +107,8 @@ module Eta.Main.HscTypes (
         Warnings(..), WarningTxt(..), plusWarns,
 
         -- * Linker stuff
-        Linkable(..), isObjectLinkable, linkableObjs,
+        Linkable(..), isObjectLinkable, isInterpretedLinkable, linkableObjs, linkableClasses,
+        forceClasses,
         Unlinked(..), CompiledByteCode,
         isObject, nameOfObject, isInterpretable, byteCodeOfObject,
 
@@ -213,6 +214,7 @@ import System.Process   ( ProcessHandle )
 import Control.Concurrent
 import qualified Data.Map as M
 import Codec.JVM
+import Data.ByteString (ByteString)
 
 -- -----------------------------------------------------------------------------
 -- Compilation state
@@ -2932,8 +2934,15 @@ isObjectLinkable l = not (null unlinked) && all isObject unlinked
         -- compiling a module in HscNothing mode, and this choice
         -- happens to work well with checkStability in module GHC.
 
+isInterpretedLinkable :: Linkable -> Bool
+isInterpretedLinkable l = not (null unlinked) && all isInterpretable unlinked
+  where unlinked = linkableUnlinked l
+
 linkableObjs :: Linkable -> [FilePath]
 linkableObjs l = [ f | DotO f <- linkableUnlinked l ]
+
+linkableClasses :: Linkable -> [(String, String, ByteString)]
+linkableClasses l = concat [ classes | Classes classes <- linkableUnlinked l ]
 
 instance Outputable Linkable where
    ppr (LM when_made mod unlinkeds)
@@ -2947,7 +2956,7 @@ data Unlinked
    = DotO FilePath      -- ^ An object file (.o)
    | DotA FilePath      -- ^ Static archive file (.a)
    | DotDLL FilePath    -- ^ Dynamically linked library file (.so, .dll, .dylib)
-   | Classes [ClassFile] -- ^ List of interpreted class files
+   | Classes [(String, String, ByteString)] -- ^ List of interpreted class files
 
 #ifdef ETA_REPL
 data CompiledByteCode = CompiledByteCodeUndefined
@@ -2963,7 +2972,7 @@ instance Outputable Unlinked where
    ppr (DotO path)   = text "DotO" <+> text path
    ppr (DotA path)   = text "DotA" <+> text path
    ppr (DotDLL path) = text "DotDLL" <+> text path
-   ppr (Classes classes) = text "Classes" <+> ppr (map classFileName classes)
+   ppr (Classes _classes) = text "Classes"
 
 -- | Is this an actual file on disk we can link in somehow?
 isObject :: Unlinked -> Bool
@@ -2984,9 +2993,15 @@ nameOfObject (DotDLL fn) = fn
 nameOfObject other       = pprPanic "nameOfObject" (ppr other)
 
 -- | Retrieve the compiled byte-code if possible. Panic if it is a file-based linkable
-byteCodeOfObject :: Unlinked -> [ClassFile]
+byteCodeOfObject :: Unlinked -> [(String, String, ByteString)]
 byteCodeOfObject (Classes classes) = classes
 byteCodeOfObject other             = pprPanic "byteCodeOfObject" (ppr other)
+
+forceClasses :: [ClassFile] -> [(String, String, ByteString)]
+forceClasses classes =  map (\d -> let !a = classFileName d
+                                       !b = superClassName d
+                                       !c = classFileBS d
+                                   in (a, b, c)) classes
 
 {-
 ************************************************************************
