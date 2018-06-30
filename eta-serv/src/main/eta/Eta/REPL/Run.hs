@@ -14,6 +14,7 @@ module Eta.REPL.Run
 
 import Eta.REPL.Message
 import Eta.REPL.ClassLoader
+import Eta.REPL.ClassQuery
 import Eta.REPL.RemoteTypes
 import Eta.REPL.Utils
 import qualified Language.Eta.Meta.Syntax as TH
@@ -49,6 +50,8 @@ run m = case m of
   EvalStringToString r s -> evalStringToString r s
   EvalIO r -> evalIO r
   StartTH -> startTH
+  SetClassInfoPath paths -> setClassInfoPath paths
+  GetClassInfo classes ->  getClassInfo classes
   _other -> error "Eta.REPL.Run.run: Invalid message"
 
 evalStmt :: EvalOpts -> EvalExpr HValueRef -> IO (EvalStatus [HValueRef])

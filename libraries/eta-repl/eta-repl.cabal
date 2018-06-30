@@ -32,8 +32,11 @@ library
                       StandaloneDeriving
                       TupleSections
                       UnboxedTuples
-    exposed-modules:  Eta.REPL.Message
+    exposed-modules:  Eta.REPL.ClassInfo
+                      Eta.REPL.Map
+                      Eta.REPL.Message
                       Eta.REPL.RemoteTypes
+
     if impl(eta)
        exposed-modules: Eta.REPL.Utils
        java-sources:  java/Utils.java

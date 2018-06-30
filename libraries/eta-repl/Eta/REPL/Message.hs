@@ -11,7 +11,7 @@
 --
 module Eta.REPL.Message
   ( Message(..), Msg(..)
-  , QResult(..)
+  , QResult(..), JResult(..)
   , EvalStatus_(..), EvalStatus, EvalResult(..), EvalOpts(..), EvalExpr(..)
   , SerializableException(..)
   , MessageParseFailure(..)
@@ -23,6 +23,7 @@ module Eta.REPL.Message
   ) where
 
 import Eta.REPL.RemoteTypes
+import Eta.REPL.ClassInfo
 
 import Eta.Location
 import Control.Concurrent
@@ -115,6 +116,12 @@ data Message a where
                    -> [RemoteRef ()]       {- RemoteRef (TH.Q ()) -}
                    -> Message (QResult ())
 
+  -- Set classpath for class info
+  SetClassInfoPath :: [String] -> Message ()
+
+  -- Get info of given classes
+  GetClassInfo :: [String] -> Message (JResult [ClassInfo])
+
 deriving instance Show (Message a)
 
 -- | Template Metaprogramming return values
@@ -128,6 +135,18 @@ data QResult a
   deriving (Generic, Show)
 
 instance Binary a => Binary (QResult a)
+
+-- |  return values
+data JResult a
+  = JDone a
+    -- ^ Java finished successfully; return value follows
+  | JException String
+    -- ^ Class query threw an exception
+  | JClassesNotFound [String]
+    -- ^ Classes could not be found
+  deriving (Generic, Show)
+
+instance Binary a => Binary (JResult a)
 
 data EvalOpts = EvalOpts
   { useSandboxThread :: Bool
@@ -238,6 +257,8 @@ getMessage = do
     11  -> Msg <$> return StartTH
     12 -> Msg <$> (RunTH <$> get <*> get <*> get <*> get)
     13 -> Msg <$> (RunModFinalizers <$> get <*> get)
+    14 -> Msg <$> SetClassInfoPath <$> get
+    15 -> Msg <$> GetClassInfo <$> get
     _  -> error $ "getMessage: Invalid message tag: " ++ show b
 
 putMessage :: Message a -> Put
@@ -256,6 +277,8 @@ putMessage m = case m of
   StartTH                     -> putWord8 11
   RunTH st q loc ty           -> putWord8 12 >> put st >> put q >> put loc >> put ty
   RunModFinalizers a b        -> putWord8 13 >> put a >> put b
+  SetClassInfoPath a          -> putWord8 14 >> put a
+  GetClassInfo a              -> putWord8 15 >> put a
 
 -- -----------------------------------------------------------------------------
 -- Reading/writing messages
