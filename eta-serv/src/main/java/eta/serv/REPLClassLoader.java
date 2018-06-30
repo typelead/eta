@@ -46,6 +46,8 @@ public class REPLClassLoader extends URLClassLoader {
     private static final REPLClassLoader parentReplClassLoader = new REPLClassLoader();
     private static ChildREPLClassLoader replClassLoader = new ChildREPLClassLoader();
 
+    private static final REPLClassLoader classQueryClassLoader = new REPLClassLoader();
+
     private static class ChildREPLClassLoader extends REPLClassLoader {
 
         static {
@@ -105,14 +107,24 @@ public class REPLClassLoader extends URLClassLoader {
 
     public static void addURLs(String[] paths) throws MalformedURLException {
         for (String path: paths) {
-            parentReplClassLoader.addURL(new File(path).toURI().toURL());
+            parentReplClassLoader.addURL(toClassPathURL(path));
         }
     }
 
     public static void addChildURLs(String[] paths) throws MalformedURLException {
         for (String path: paths) {
-            replClassLoader.addURL(new File(path).toURI().toURL());
+            replClassLoader.addURL(toClassPathURL(path));
         }
+    }
+
+    public static void setClassInfoPath(String[] paths) throws MalformedURLException {
+        for (String path: paths) {
+            classQueryClassLoader.addURL(toClassPathURL(path));
+        }
+    }
+
+    private static URL toClassPathURL(String path) throws MalformedURLException {
+        return new File(path).toURI().toURL();
     }
 
     public static void loadClasses(String[] classNames, List<ByteBuffer> classes) {

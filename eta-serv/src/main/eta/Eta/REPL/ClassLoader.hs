@@ -40,7 +40,7 @@ addDynamicClassPath classpath = do
   j_addDynamicClassPath (toJava jstrings)
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.addURLs"
-  j_addDynamicClassPath     :: JStringArray -> IO ()
+  j_addDynamicClassPath :: JStringArray -> IO ()
 
 addModuleClassPath :: [FilePath] -> IO ()
 addModuleClassPath classpath = do
@@ -48,7 +48,7 @@ addModuleClassPath classpath = do
   j_addModuleClassPath (toJava jstrings)
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.addChildURLs"
-  j_addModuleClassPath     :: JStringArray -> IO ()
+  j_addModuleClassPath :: JStringArray -> IO ()
 
 loadClasses :: [String] -> [B.ByteString] -> IO ()
 loadClasses classNames classes = do
@@ -57,7 +57,7 @@ loadClasses classNames classes = do
   j_loadClasses classNames' classes'
 
 foreign import java unsafe "@static eta.serv.REPLClassLoader.loadClasses"
-  j_loadClasses             :: JStringArray -> List ByteBuffer -> IO ()
+  j_loadClasses :: JStringArray -> List ByteBuffer -> IO ()
 
 newInstance :: String -> String -> IO HValueRef
 newInstance className methodName = do

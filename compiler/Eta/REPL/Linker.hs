@@ -168,6 +168,7 @@ reallyInitDynLinker hsc_env = do
 
   -- (a) Load packages from the command-line
   addDynamicClassPath hsc_env (classpath ++ extraClasspath)
+  setClassInfoPath hsc_env classpath
   return pls0
 
 
