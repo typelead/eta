@@ -494,9 +494,6 @@ data GeneralFlag
    | Opt_DistrustAllPackages
    | Opt_PackageTrust
 
-   -- pm checking with guards
-   | Opt_FullGuardReasoning
-
    -- Eta-specific flags
    | Opt_NormalizeJar
 
@@ -534,7 +531,6 @@ data WarningFlag =
    | Opt_WarnMissingLocalSigs
    | Opt_WarnNameShadowing
    | Opt_WarnOverlappingPatterns
-   | Opt_WarnTooManyGuards
    | Opt_WarnTypeDefaults
    | Opt_WarnMonomorphism
    | Opt_WarnUnusedBinds
@@ -615,6 +611,7 @@ data DynFlags = DynFlags {
   debugLevel            :: Int,         -- ^ How much debug information to produce
   simplPhases           :: Int,         -- ^ Number of simplifier phases
   maxSimplIterations    :: Int,         -- ^ Max simplifier iterations
+  maxPmCheckIterations  :: Int,         -- ^ Max no iterations for pm checking
   ruleCheck             :: Maybe String,
   strictnessBefore      :: [Int],       -- ^ Additional demand analysis
 
@@ -1443,6 +1440,7 @@ defaultDynFlags mySettings =
         debugLevel              = 0,
         simplPhases             = 2,
         maxSimplIterations      = 4,
+        maxPmCheckIterations    = 2000000,
         ruleCheck               = Nothing,
         maxRelevantBinds        = Just 6,
         simplTickFactor         = 100,
@@ -2746,6 +2744,8 @@ dynamic_flags = [
       (intSuffix (\n d -> d{ simplPhases = n }))
   , defFlag "fmax-simplifier-iterations"
       (intSuffix (\n d -> d{ maxSimplIterations = n }))
+  , defFlag "fmax-pmcheck-iterations"
+      (intSuffix (\n d -> d{ maxPmCheckIterations = n }))
   , defFlag "fsimpl-tick-factor"
       (intSuffix (\n d -> d{ simplTickFactor = n }))
   , defFlag "fspec-constr-threshold"
@@ -3056,7 +3056,6 @@ wWarningFlags = [
   flagSpec "orphans"                     Opt_WarnOrphans,
   flagSpec "overflowed-literals"         Opt_WarnOverflowedLiterals,
   flagSpec "overlapping-patterns"        Opt_WarnOverlappingPatterns,
-  flagSpec "too-many-guards" Opt_WarnTooManyGuards,
   flagSpec "pointless-pragmas"           Opt_WarnPointlessPragmas,
   flagSpec' "safe"                       Opt_WarnSafe setWarnSafe,
   flagSpec "trustworthy-safe"            Opt_WarnTrustworthySafe,
@@ -3193,8 +3192,7 @@ fFlags = [
   flagSpec "catch-bottoms"                    Opt_CatchBottoms,
   flagSpec "show-loaded-modules"              Opt_ShowLoadedModules,
   flagSpec "show-warning-groups"              Opt_ShowWarnGroups,
-  flagSpec "normalize-jar"                    Opt_NormalizeJar,
-  flagSpec "full-guard-reasoning"             Opt_FullGuardReasoning
+  flagSpec "normalize-jar"                    Opt_NormalizeJar
   ]
 
 -- | These @-f\<blah\>@ flags can all be reversed with @-fno-\<blah\>@
@@ -3583,7 +3581,6 @@ smallestGroups flag = mapMaybe go warningHierarchies where
 standardWarnings :: [WarningFlag]
 standardWarnings -- see Note [Documenting warning flags]
     = [ Opt_WarnOverlappingPatterns,
-        Opt_WarnTooManyGuards,
         Opt_WarnWarningsDeprecations,
         Opt_WarnDeprecatedFlags,
         Opt_WarnTypedHoles,
