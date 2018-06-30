@@ -38,19 +38,19 @@ module Eta.DeSugar.DsUtils (
         mkOptTickBox, mkBinaryTickBox, decideBangHood
     ) where
 
-import {-# SOURCE #-}   Eta.DeSugar.Match ( matchSimply )
+import {-# SOURCE #-} Eta.DeSugar.Match  ( matchSimply )
+import {-# SOURCE #-} Eta.DeSugar.DsExpr ( dsLExpr )
 
 import Eta.HsSyn.HsSyn
 import Eta.TypeCheck.TcHsSyn
-import Eta.TypeCheck.TcType( tcSplitTyConApp )
+import Eta.TypeCheck.TcType ( tcSplitTyConApp )
 import Eta.Core.CoreSyn
 import Eta.DeSugar.DsMonad
-import {-# SOURCE #-} Eta.DeSugar.DsExpr ( dsLExpr )
-
 import Eta.Core.CoreUtils
 import Eta.Core.MkCore
 import Eta.BasicTypes.MkId
 import Eta.BasicTypes.Id
+import Eta.BasicTypes.Name ( isInternalName )
 import Eta.BasicTypes.Literal
 import Eta.Types.TyCon
 import Eta.BasicTypes.ConLike
@@ -541,8 +541,9 @@ mkCoreAppDs (Var f `App` Type ty1 `App` Type ty2 `App` arg1) arg2
   = Case arg1 case_bndr ty2 [(DEFAULT,[],arg2)]
   where
     case_bndr = case arg1 of
-                   Var v1 | isLocalId v1 -> v1        -- Note [Desugaring seq (2) and (3)]
-                   _                     -> mkWildValBinder ty1
+                  Var v1 | isInternalName (idName v1)
+                         -> v1        -- Note [Desugaring seq (2) and (3)]
+                  _      -> mkWildValBinder ty1
 
 mkCoreAppDs fun arg = mkCoreApp fun arg  -- The rest is done in MkCore
 

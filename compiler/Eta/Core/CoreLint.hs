@@ -426,7 +426,7 @@ lintSingleBinding top_lvl_flag rec_flag (binder,rhs)
   = addLoc (RhsOf binder) $
          -- Check the rhs
     do { ty <- lintCoreExpr rhs
-       ; lintBinder binder -- Check match to RHS type
+       ; lint_bndr binder -- Check match to RHS type
        ; binder_ty <- applySubstTy binder_ty
        ; checkTys binder_ty ty (mkRhsMsg binder (ptext (sLit "RHS")) ty)
 
@@ -440,14 +440,6 @@ lintSingleBinding top_lvl_flag rec_flag (binder,rhs)
        ; checkL (not (isStrictId binder)
             || (isNonRec rec_flag && not (isTopLevel top_lvl_flag)))
            (mkStrictMsg binder)
-
-        -- Check that if the binder is local, it is not marked as exported
-       ; checkL (not (isExportedId binder) || isTopLevel top_lvl_flag)
-           (mkNonTopExportedMsg binder)
-
-        -- Check that if the binder is local, it does not have an external name
-       ; checkL (not (isExternalName (Var.varName binder)) || isTopLevel top_lvl_flag)
-           (mkNonTopExternalNameMsg binder)
 
         -- Check whether binder's specialisations contain any out-of-scope variables
        ; mapM_ (checkBndrIdInScope binder) bndr_vars
@@ -479,8 +471,8 @@ lintSingleBinding top_lvl_flag rec_flag (binder,rhs)
 
     -- If you edit this function, you may need to update the GHC formalism
     -- See Note [GHC Formalism]
-    lintBinder var | isId var  = lintIdBndr var $ \_ -> (return ())
-                   | otherwise = return ()
+    lint_bndr var | isId var = lintIdBndr top_lvl_flag var $ \_ -> return ()
+                  | otherwise = return ()
 
 lintIdUnfolding :: Id -> Type -> Unfolding -> LintM ()
 lintIdUnfolding bndr bndr_ty (CoreUnfolding { uf_tmpl = rhs, uf_src = src })
@@ -579,13 +571,13 @@ lintCoreExpr (Let (NonRec bndr rhs) body)
   | isId bndr
   = do  { lintSingleBinding NotTopLevel NonRecursive (bndr,rhs)
         ; addLoc (BodyOfLetRec [bndr])
-                 (lintAndScopeId bndr $ \_ -> (lintCoreExpr body)) }
+                 (lintIdBndr NotTopLevel bndr $ \_ -> lintCoreExpr body) }
 
   | otherwise
   = failWithL (mkLetErr bndr rhs)       -- Not quite accurate
 
 lintCoreExpr (Let (Rec pairs) body)
-  = lintAndScopeIds bndrs       $ \_ ->
+  = lintIdBndrs bndrs       $ \_ ->
     do  { checkL (null dups) (dupVars dups)
         ; mapM_ (lintSingleBinding NotTopLevel Recursive) pairs
         ; addLoc (BodyOfLetRec bndrs) (lintCoreExpr body) }
@@ -641,7 +633,7 @@ lintCoreExpr e@(Case scrut var alt_ty alts) =
      ; subst <- getTvSubst
      ; checkTys var_ty scrut_ty (mkScrutMsg var var_ty scrut_ty subst)
 
-     ; lintAndScopeId var $ \_ ->
+     ; lintIdBndr NotTopLevel var $ \_ ->
        do { -- Check the alternatives
             mapM_ (lintCoreAlt scrut_ty alt_ty) alts
           ; checkCaseAlts e scrut_ty alts
@@ -898,8 +890,8 @@ lintBinders (var:vars) linterF = lintBinder var $ \var' ->
 -- See Note [GHC Formalism]
 lintBinder :: Var -> (Var -> LintM a) -> LintM a
 lintBinder var linterF
-  | isId var  = lintIdBndr var linterF
-  | otherwise = lintTyBndr var linterF
+  | isId var  = lintIdBndr NotTopLevel var linterF
+  | otherwise = lintTyBndr             var linterF
 
 lintTyBndr :: InTyVar -> (OutTyVar -> LintM a) -> LintM a
 lintTyBndr tv thing_inside
@@ -908,30 +900,37 @@ lintTyBndr tv thing_inside
        ; lintTyBndrKind tv'
        ; updateTvSubst subst' (thing_inside tv') }
 
-lintIdBndr :: Id -> (Id -> LintM a) -> LintM a
--- Do substitution on the type of a binder and add the var with this
--- new type to the in-scope set of the second argument
--- ToDo: lint its rules
-
-lintIdBndr id linterF
-  = do  { lintAndScopeId id $ \id' -> linterF id' }
-
-lintAndScopeIds :: [Var] -> ([Var] -> LintM a) -> LintM a
-lintAndScopeIds ids linterF
+lintIdBndrs :: [Var] -> ([Var] -> LintM a) -> LintM a
+lintIdBndrs ids linterF
   = go ids
   where
     go []       = linterF []
-    go (id:ids) = lintAndScopeId id $ \id ->
-                  lintAndScopeIds ids $ \ids ->
+    go (id:ids) = lintIdBndr NotTopLevel id $ \id ->
+                  lintIdBndrs           ids $ \ids ->
                   linterF (id:ids)
 
-lintAndScopeId :: InVar -> (OutVar -> LintM a) -> LintM a
-lintAndScopeId id linterF
+lintIdBndr :: TopLevelFlag -> InVar -> (OutVar -> LintM a) -> LintM a
+-- Do substitution on the type of a binder and add the var with this
+-- new type to the in-scope set of the second argument
+-- ToDo: lint its rules
+lintIdBndr top_lvl id linterF
   = do { flags <- getLintFlags
        ; checkL (not (lf_check_global_ids flags) || isLocalId id)
                 (ptext (sLit "Non-local Id binder") <+> ppr id)
                 -- See Note [Checking for global Ids]
+
+                -- Check that if the binder is nested, it is not marked as exported
+       ; checkL (not (isExportedId id) || isTopLevel top_lvl)
+                (mkNonTopExportedMsg id)
+
+       -- Check that if the binder is nested, it does not have an external name
+       ; checkL (not (isExternalName (Var.varName id)) || isTopLevel top_lvl)
+                (mkNonTopExternalNameMsg id)
+
        ; ty <- lintInTy (idType id)
+
+       -- Check for levity polymorphism
+
        ; let id' = setIdType id ty
        ; addInScopeVar id' $ (linterF id') }
 

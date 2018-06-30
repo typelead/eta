@@ -272,9 +272,21 @@ constructors, or all variables (or similar beasts), etc.
 @match_unmixed_eqn_blks@ simply takes the place of the @foldr@ in the
 Wadler-chapter @match@ (p.~93, last clause), and @match_unmixed_blk@
 corresponds roughly to @matchVarCon@.
+
+Note [Match Ids]
+~~~~~~~~~~~~~~~~
+Most of the matching fuctions take an Id or [Id] as argument.  This Id
+is the scrutinee(s) of the match. The desugared expression may
+sometimes use that Id in a local binding or as a case binder.  So it
+should not have an External name; Lint rejects non-top-level binders
+with External names (Trac #13043).
+
 -}
 
-match :: [Id]             -- Variables rep\'ing the exprs we\'re matching with
+type MatchId = Id   -- See Note [Match Ids]
+
+match :: [MatchId]        -- Variables rep\'ing the exprs we\'re matching with
+                          -- See Note [Match Ids]
       -> Type             -- Type of the case expression
       -> [EquationInfo]   -- Info about patterns, etc. (type synonym below)
       -> DsM MatchResult  -- Desugared result!
@@ -288,7 +300,8 @@ match [] ty eqns
                     | eqn <- eqns ]
 
 match vars@(v:_) ty eqns    -- Eqns *can* be empty
-  = do  { dflags <- getDynFlags
+  = ASSERT2( all (isInternalName . idName) vars, ppr vars )
+    do  { dflags <- getDynFlags
                 -- Tidy the first pattern, generating
                 -- auxiliary bindings if necessary
         ; (aux_binds, tidy_eqns) <- mapAndUnzipM (tidyEqnInfo v) eqns
@@ -341,7 +354,7 @@ match vars@(v:_) ty eqns    -- Eqns *can* be empty
           maybeWarn $ (map (\g -> text "Putting these view expressions into the same case:" <+> (ppr g))
                        (filter (not . null) gs))
 
-matchEmpty :: Id -> Type -> DsM [MatchResult]
+matchEmpty :: MatchId -> Type -> DsM [MatchResult]
 -- See Note [Empty case expressions]
 matchEmpty var res_ty
   = return [MatchResult CanFail mk_seq]
@@ -349,20 +362,20 @@ matchEmpty var res_ty
     mk_seq fail = return $ mkWildCase (Var var) (idType var) res_ty
                                       [(DEFAULT, [], fail)]
 
-matchVariables :: [Id] -> Type -> [EquationInfo] -> DsM MatchResult
+matchVariables :: [MatchId] -> Type -> [EquationInfo] -> DsM MatchResult
 -- Real true variables, just like in matchVar, SLPJ p 94
 -- No binding to do: they'll all be wildcards by now (done in tidy)
 matchVariables (_:vars) ty eqns = match vars ty (shiftEqns eqns)
 matchVariables [] _ _ = panic "matchVariables"
 
-matchBangs :: [Id] -> Type -> [EquationInfo] -> DsM MatchResult
+matchBangs :: [MatchId] -> Type -> [EquationInfo] -> DsM MatchResult
 matchBangs (var:vars) ty eqns
   = do  { match_result <- match (var:vars) ty $
                           map (decomposeFirstPat getBangPat) eqns
         ; return (mkEvalMatchResult var ty match_result) }
 matchBangs [] _ _ = panic "matchBangs"
 
-matchCoercion :: [Id] -> Type -> [EquationInfo] -> DsM MatchResult
+matchCoercion :: [MatchId] -> Type -> [EquationInfo] -> DsM MatchResult
 -- Apply the coercion to the match variable and then match that
 matchCoercion (var:vars) ty (eqns@(eqn1:_))
   = do  { let CoPat co pat _ = firstPat eqn1
@@ -373,7 +386,7 @@ matchCoercion (var:vars) ty (eqns@(eqn1:_))
         ; return (mkCoLetMatchResult (NonRec var' rhs') match_result) }
 matchCoercion _ _ _ = panic "matchCoercion"
 
-matchView :: [Id] -> Type -> [EquationInfo] -> DsM MatchResult
+matchView :: [MatchId] -> Type -> [EquationInfo] -> DsM MatchResult
 -- Apply the view function to the match variable and then match that
 matchView (var:vars) ty (eqns@(eqn1:_))
   = do  { -- we could pass in the expr from the PgView,
@@ -389,7 +402,7 @@ matchView (var:vars) ty (eqns@(eqn1:_))
         ; return (mkViewMatchResult var' viewExpr' var match_result) }
 matchView _ _ _ = panic "matchView"
 
-matchOverloadedList :: [Id] -> Type -> [EquationInfo] -> DsM MatchResult
+matchOverloadedList :: [MatchId] -> Type -> [EquationInfo] -> DsM MatchResult
 matchOverloadedList (var:vars) ty (eqns@(eqn1:_))
 -- Since overloaded list patterns are treated as view patterns,
 -- the code is roughly the same as for matchView
@@ -829,7 +842,7 @@ matchWrapper ctxt mb_scr (MG { mg_alts = matches
 
 
 matchEquations  :: HsMatchContext Name
-                -> [Id] -> [EquationInfo] -> Type
+                -> [MatchId] -> [EquationInfo] -> Type
                 -> DsM CoreExpr
 matchEquations ctxt vars eqns_info rhs_ty
   = do  { let error_doc = matchContextErrString ctxt
@@ -868,12 +881,16 @@ matchSimply scrut hs_ctx pat result_expr fail_expr = do
 
 matchSinglePat :: CoreExpr -> HsMatchContext Name -> LPat Id
                -> Type -> MatchResult -> DsM MatchResult
+
+-- matchSinglePat ensures that the scrutinee is a variable
+-- and then calls match_single_pat_var
+--
 -- matchSinglePat doesn't warn about incomplete patterns
 -- Used for things like [ e | pat <- stuff ], where
 -- incomplete patterns are just fine
 
 matchSinglePat (Var var) ctx pat ty match_result
-  | isLocalId var
+  | not (isExternalName (idName var))
   = match_single_pat_var var ctx pat ty match_result
 
 matchSinglePat scrut hs_ctx pat ty match_result
@@ -881,12 +898,14 @@ matchSinglePat scrut hs_ctx pat ty match_result
        ; match_result' <- match_single_pat_var var hs_ctx pat ty match_result
        ; return (adjustMatchResult (bindNonRec var scrut) match_result') }
 
-match_single_pat_var :: Id -> HsMatchContext Name -> LPat Id
+match_single_pat_var :: Id   -- See Note [Match Ids]
+                     -> HsMatchContext Name -> LPat Id
                      -> Type -> MatchResult -> DsM MatchResult
 -- matchSinglePat ensures that the scrutinee is a variable
 -- and then calls match_single_pat_var
 match_single_pat_var var ctx pat ty match_result
-  = do { dflags <- getDynFlags
+  = ASSERT2( isInternalName (idName var), ppr var )
+    do { dflags <- getDynFlags
        ; locn   <- getSrcSpanDs
        -- Pattern match check warnings
        ; checkSingle dflags (DsMatchContext ctx locn) var (unLoc pat)
