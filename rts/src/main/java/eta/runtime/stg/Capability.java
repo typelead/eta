@@ -185,7 +185,7 @@ public final class Capability implements LocalHeap {
                         result = null;
                     } catch (java.lang.Exception e) {
                         t.whatNext = ThreadKilled;
-                        pendingException = e;
+                        pendingException = (java.lang.Exception) Exception.normalize(e);
                     }
                     break;
                 case ThreadInterpret:

@@ -353,4 +353,18 @@ public class Exception {
         e.printStackTrace(new PrintWriter(sw));
         return sw.toString();
     }
+
+    public static Throwable normalize(Throwable e) {
+        Throwable f = e;
+        Throwable d = null;
+        while (e != null) {
+            d = e;
+            e = e.getCause();
+        }
+        if (!(d instanceof StgException)) {
+            return d;
+        } else  {
+            return f;
+        }
+    }
 }
