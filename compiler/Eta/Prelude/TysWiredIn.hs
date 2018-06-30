@@ -375,6 +375,33 @@ Note [How tuples work]  See also Note [Known-key names] in PrelNames
   we get the right wired-in name.  This guy can't tell the difference
   betweeen BoxedTuple and ConstraintTuple (same OccName!), so tuples
   are not serialised into interface files using OccNames at all.
+
+Note [One-tuples]
+~~~~~~~~~~~~~~~~~
+GHC supports both boxed and unboxed one-tuples:
+ - Unboxed one-tuples are sometimes useful when returning a
+   single value after CPR analysis
+ - A boxed one-tuple is used by DsUtils.mkSelectorBinds, when
+   there is just one binder
+Basically it keeps everythig uniform.
+
+However the /naming/ of the type/data constructors for one-tuples is a
+bit odd:
+  3-tuples:  (,,)   (,,)#
+  2-tuples:  (,)    (,)#
+  1-tuples:  ??
+  0-tuples:  ()     ()#
+
+Zero-tuples have used up the logical name. So we use 'Unit' and 'Unit#'
+for one-tuples.  So in ghc-prim:GHC.Tuple we see the declarations:
+  data ()     = ()
+  data Unit a = Unit a
+  data (a,b)  = (a,b)
+
+NB (Feb 16): for /constraint/ one-tuples I have 'Unit%' but no class
+decl in GHC.Classes, so I think this part may not work properly. But
+it's unused I think.
+
 -}
 
 isBuiltInOcc_maybe :: OccName -> Maybe Name
@@ -409,15 +436,31 @@ isBuiltInOcc_maybe occ
       | otherwise             = Just (getName (dataConWorkId dc))
 
 mkTupleOcc :: NameSpace -> TupleSort -> Arity -> OccName
-mkTupleOcc ns sort ar = mkOccName ns str
-  where
-    -- No need to cache these, the caching is done in mk_tuple
-    str = case sort of
-                UnboxedTuple    -> '(' : '#' : commas ++ "#)"
-                BoxedTuple      -> '(' : commas ++ ")"
-                ConstraintTuple -> '(' : commas ++ ")"
+-- No need to cache these, the caching is done in mk_tuple
+mkTupleOcc ns BoxedTuple   ar    = mkOccName ns (mkBoxedTupleStr      ar)
+mkTupleOcc ns UnboxedTuple ar    = mkOccName ns (mkUnboxedTupleStr    ar)
+mkTupleOcc ns ConstraintTuple ar = mkOccName ns (mkConstraintTupleStr ar)
 
-    commas = take (ar-1) (repeat ',')
+-- mkCTupleOcc :: NameSpace -> Arity -> OccName
+-- mkCTupleOcc ns ar = mkOccName ns (mkConstraintTupleStr ar)
+
+mkBoxedTupleStr :: Arity -> String
+mkBoxedTupleStr 0  = "()"
+mkBoxedTupleStr 1  = "Unit"   -- See Note [One-tuples]
+mkBoxedTupleStr ar = '(' : commas ar ++ ")"
+
+mkUnboxedTupleStr :: Arity -> String
+mkUnboxedTupleStr 0  = "(##)"
+mkUnboxedTupleStr 1  = "Unit#"  -- See Note [One-tuples]
+mkUnboxedTupleStr ar = "(#" ++ commas ar ++ "#)"
+
+mkConstraintTupleStr :: Arity -> String
+mkConstraintTupleStr 0  = "(%%)"
+mkConstraintTupleStr 1  = "Unit%"   -- See Note [One-tuples]
+mkConstraintTupleStr ar = "(%" ++ commas ar ++ "%)"
+
+commas :: Arity -> String
+commas ar = take (ar-1) (repeat ',')
 
     -- Cute hack: we reuse the standard tuple OccNames (and hence code)
     -- for fact tuples, but give them different Uniques so they are not equal.

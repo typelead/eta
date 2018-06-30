@@ -30,7 +30,6 @@ import qualified Eta.SimplCore.CoreMonad as CoreMonad
 import Eta.Utils.Bag
 import Eta.BasicTypes.Literal
 import Eta.BasicTypes.DataCon
-import Eta.Prelude.TysWiredIn
 import Eta.Prelude.TysPrim
 import Eta.TypeCheck.TcType ( isFloatingTy )
 import Eta.BasicTypes.Var
@@ -537,10 +536,7 @@ lintCoreExpr :: CoreExpr -> LintM OutType
 -- If you edit this function, you may need to update the GHC formalism
 -- See Note [GHC Formalism]
 lintCoreExpr (Var var)
-  = do  { checkL (not (var == oneTupleDataConId))
-                 (ptext (sLit "Illegal one-tuple"))
-
-        ; checkL (isId var && not (isCoVar var))
+  = do  { checkL (isId var && not (isCoVar var))
                  (ptext (sLit "Non term variable") <+> ppr var)
 
         ; checkDeadIdOcc var
@@ -1489,8 +1485,8 @@ lookupIdInScope id
     out_of_scope = pprBndr LetBind id <+> ptext (sLit "is out of scope")
 
 
-oneTupleDataConId :: Id -- Should not happen
-oneTupleDataConId = dataConWorkId (tupleCon BoxedTuple 1)
+-- oneTupleDataConId :: Id -- Should not happen
+-- oneTupleDataConId = dataConWorkId (tupleCon BoxedTuple 1)
 
 checkBndrIdInScope :: Var -> Var -> LintM ()
 checkBndrIdInScope binder id
