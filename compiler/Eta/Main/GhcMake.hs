@@ -284,7 +284,11 @@ load how_much = do
 
     -- Unload any modules which are going to be re-linked this time around.
     let stable_linkables = [ linkable
-                           | m <- stable_obj++stable_bco,
+                           | m <- nonDetEltsUniqSet stable_obj ++
+                                  nonDetEltsUniqSet stable_bco,
+                             -- It's OK to use nonDetEltsUniqSet here
+                             -- because it only affects linking. Besides
+                             -- this list only serves as a poor man's set.
                              Just hmi <- [lookupHpt pruned_hpt m],
                              Just linkable <- [hm_linkable hmi] ]
     liftIO $ unload hsc_env stable_linkables
@@ -330,14 +334,18 @@ load how_much = do
         stable_mg =
             [ AcyclicSCC ms
             | AcyclicSCC ms <- full_mg,
-              ms_mod_name ms `elem` stable_obj++stable_bco ]
+              stable_mod_summary ms ]
+
+        stable_mod_summary ms =
+          ms_mod_name ms `elementOfUniqSet` stable_obj ||
+          ms_mod_name ms `elementOfUniqSet` stable_bco
 
         -- the modules from partial_mg that are not also stable
         -- NB. also keep cycles, we need to emit an error message later
         unstable_mg = filter not_stable partial_mg
           where not_stable (CyclicSCC _) = True
                 not_stable (AcyclicSCC ms)
-                   = ms_mod_name ms `notElem` stable_obj++stable_bco
+                   = not $ stable_mod_summary ms
 
         -- Load all the stable modules first, before attempting to load
         -- an unstable module (#7231).
@@ -559,7 +567,7 @@ guessOutputFile = modifySession $ \env ->
 -- compilation.
 pruneHomePackageTable :: HomePackageTable
                       -> [ModSummary]
-                      -> ([ModuleName],[ModuleName])
+                      -> StableModules
                       -> HomePackageTable
 pruneHomePackageTable hpt summ (stable_obj, stable_bco)
   = mapHpt prune hpt
@@ -576,7 +584,9 @@ pruneHomePackageTable hpt summ (stable_obj, stable_bco)
 
         ms_map = listToUFM [(ms_mod_name ms, ms) | ms <- summ]
 
-        is_stable m = m `elem` stable_obj || m `elem` stable_bco
+        is_stable m =
+          m `elementOfUniqSet` stable_obj ||
+          m `elementOfUniqSet` stable_bco
 
 -- -----------------------------------------------------------------------------
 --
@@ -659,18 +669,26 @@ unload hsc_env stable_linkables -- Unload everthing *except* 'stable_linkables'
     - Note that objects are only considered stable if they only depend
       on other objects.  We can't link object code against byte code.
 -}
+
+
+type StableModules =
+  ( UniqSet ModuleName  -- stableObject
+  , UniqSet ModuleName  -- stableBCO
+  )
+
 checkStability
         :: HomePackageTable   -- HPT from last compilation
         -> [SCC ModSummary]   -- current module graph (cyclic)
-        -> UniqSet ModuleName       -- all home modules
-        -> ([ModuleName],     -- stableObject
-            [ModuleName])     -- stableBCO
+        -> UniqSet ModuleName -- all home modules
+        -> StableModules
 
-checkStability hpt sccs all_home_mods = foldl checkSCC ([],[]) sccs
+checkStability hpt sccs all_home_mods =
+  foldl checkSCC (emptyUniqSet, emptyUniqSet) sccs
   where
+   checkSCC :: StableModules -> SCC ModSummary -> StableModules
    checkSCC (stable_obj, stable_bco) scc0
-     | stableObjects = (scc_mods ++ stable_obj, stable_bco)
-     | stableBCOs    = (stable_obj, scc_mods ++ stable_bco)
+     | stableObjects = (addListToUniqSet stable_obj scc_mods, stable_bco)
+     | stableBCOs    = (stable_obj, addListToUniqSet stable_bco scc_mods)
      | otherwise     = (stable_obj, stable_bco)
      where
         scc = flattenSCC scc0
@@ -680,8 +698,8 @@ checkStability hpt sccs all_home_mods = foldl checkSCC ([],[]) sccs
         scc_allimps = nub (filter home_module (concatMap ms_home_allimps scc))
             -- all imports outside the current SCC, but in the home pkg
 
-        stable_obj_imps = map (`elem` stable_obj) scc_allimps
-        stable_bco_imps = map (`elem` stable_bco) scc_allimps
+        stable_obj_imps = map (`elementOfUniqSet` stable_obj) scc_allimps
+        stable_bco_imps = map (`elementOfUniqSet` stable_bco) scc_allimps
 
         stableObjects =
            and stable_obj_imps
@@ -794,7 +812,7 @@ parUpsweep
     => Int
     -- ^ The number of workers we wish to run in parallel
     -> HomePackageTable
-    -> ([ModuleName],[ModuleName])
+    -> StableModules
     -> (HscEnv -> IO ())
     -> [SCC ModSummary]
     -> m (SuccessFlag,
@@ -1006,8 +1024,8 @@ parUpsweep_one
     -- ^ The MVar that synchronizes updates to the global HscEnv
     -> IORef HomePackageTable
     -- ^ The old HPT
-    -> ([ModuleName],[ModuleName])
-    -- ^ Lists of stable objects and BCOs
+    -> StableModules
+    -- ^ Sets of stable objects and BCOs
     -> Int
     -- ^ The index of this module
     -> Int
@@ -1171,7 +1189,7 @@ parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags cleanup par_sem
 upsweep
     :: GhcMonad m
     => HomePackageTable            -- ^ HPT from last time round (pruned)
-    -> ([ModuleName],[ModuleName]) -- ^ stable modules (see checkStability)
+    -> StableModules -- ^ stable modules (see checkStability)
     -> (HscEnv -> IO ())           -- ^ How to clean up unwanted tmp files
     -> [SCC ModSummary]            -- ^ Mods to do (the worklist)
     -> m (SuccessFlag,
@@ -1272,7 +1290,7 @@ maybeGetIfaceDate dflags location
 -- successful.  If no compilation happened, return the old Linkable.
 upsweep_mod :: HscEnv
             -> HomePackageTable
-            -> ([ModuleName],[ModuleName])
+            -> StableModules
             -> ModSummary
             -> Int  -- index of module
             -> Int  -- total number of modules
@@ -1286,8 +1304,8 @@ upsweep_mod hsc_env old_hpt (stable_obj, stable_bco) summary mod_index nmods
             obj_fn      = ml_obj_file (ms_location summary)
             hs_date     = ms_hs_date summary
 
-            is_stable_obj = this_mod_name `elem` stable_obj
-            is_stable_bco = this_mod_name `elem` stable_bco
+            is_stable_obj = this_mod_name `elementOfUniqSet` stable_obj
+            is_stable_bco = this_mod_name `elementOfUniqSet` stable_bco
 
             old_hmi = lookupHpt old_hpt this_mod_name
 
