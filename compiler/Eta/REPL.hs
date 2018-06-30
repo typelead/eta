@@ -17,6 +17,8 @@ module Eta.REPL
   , loadClasses
   , newInstance
   , resetClasses
+  , setClassInfoPath
+  , getClassInfo
 
   -- * Lower-level API using messages
   , iservCmd, Message(..), withIServ, stopIServ
@@ -29,6 +31,7 @@ module Eta.REPL
   ) where
 
 import Eta.REPL.Message
+import Eta.REPL.ClassInfo
 import Eta.REPL.RemoteTypes
 import Eta.Main.HscTypes
 import Eta.Utils.UniqFM
@@ -264,6 +267,22 @@ addModuleClassPath :: HscEnv -> [FilePath] -> IO ()
 addModuleClassPath hsc_env cp = do
   when (not (null cp)) $
     iservCmd hsc_env (AddModuleClassPath cp)
+
+setClassInfoPath :: HscEnv -> [FilePath] -> IO ()
+setClassInfoPath hsc_env cp = do
+  when (not (null cp)) $
+    iservCmd hsc_env (SetClassInfoPath cp)
+
+getClassInfo :: HscEnv -> [FilePath] -> IO (Either [String] [ClassInfo])
+getClassInfo hsc_env cp = do
+    jresult <- iservCmd hsc_env (GetClassInfo cp)
+    return $ handleJResult jresult
+
+handleJResult :: JResult [ClassInfo] -> Either [String] [ClassInfo]
+handleJResult (JDone infos) = Right infos
+handleJResult (JClassesNotFound classes) = Left classes
+handleJResult (JException msg) =
+    throw (InstallationError ("While in operation 'handleJResult':\nException: " ++ msg))
 
 -- -----------------------------------------------------------------------------
 -- Raw calls and messages
