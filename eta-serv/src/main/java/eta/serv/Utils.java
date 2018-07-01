@@ -1,5 +1,6 @@
 package eta.serv;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -78,6 +79,30 @@ public class Utils {
         REPLClassLoader.runModFinalizerRefs
             (((JByteArray) serialized).x1, unwrap(qstate), actions);
         return ghc_prim.ghc.Tuple.DZ0T();
+    }
+
+    public static class QueryResult {
+        public List<Class<?>> classInfos;
+        public List<String> notFounds;
+
+        public QueryResult(final List<Class<?>> classInfos, final List<String> notFounds) {
+            this.classInfos = classInfos;
+            this.notFounds  = notFounds;
+        }
+    }
+
+    public static QueryResult getClassInfo(String[] classes) {
+        int numClasses = classes.length;
+        ArrayList<Class<?>> classInfos = new ArrayList<Class<?>>(numClasses);
+        ArrayList<String>   notFound   = new ArrayList<String>(numClasses);
+        for (String c: classes) {
+            try {
+                classInfos.add(REPLClassLoader.queryClass(c));
+            } catch (ClassNotFoundException e) {
+                notFound.add(c);
+            }
+        }
+        return new QueryResult(classInfos, notFound);
     }
 
     public static String exceptionToString(Exception e) {

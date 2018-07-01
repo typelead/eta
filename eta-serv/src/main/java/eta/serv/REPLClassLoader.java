@@ -358,6 +358,10 @@ public class REPLClassLoader extends URLClassLoader {
         }
     }
 
+    public static Class<?> queryClass(String c) throws ClassNotFoundException {
+        return Class.forName(c, false, classQueryClassLoader);
+    }
+
     private static ByteArrayOutputStream baos;
     private static PrintStream sandboxedStream;
 

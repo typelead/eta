@@ -273,14 +273,13 @@ setClassInfoPath hsc_env cp = do
   when (not (null cp)) $
     iservCmd hsc_env (SetClassInfoPath cp)
 
-getClassInfo :: HscEnv -> [FilePath] -> IO (Either [String] [ClassInfo])
+getClassInfo :: HscEnv -> [FilePath] -> IO ([String], [ClassInfo])
 getClassInfo hsc_env cp = do
     jresult <- iservCmd hsc_env (GetClassInfo cp)
     return $ handleJResult jresult
 
-handleJResult :: JResult [ClassInfo] -> Either [String] [ClassInfo]
-handleJResult (JDone infos) = Right infos
-handleJResult (JClassesNotFound classes) = Left classes
+handleJResult :: JResult ([String], [ClassInfo]) -> ([String], [ClassInfo])
+handleJResult (JDone x) = x
 handleJResult (JException msg) =
     throw (InstallationError ("While in operation 'handleJResult':\nException: " ++ msg))
 

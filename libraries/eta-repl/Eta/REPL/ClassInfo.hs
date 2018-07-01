@@ -1,19 +1,30 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, RecordWildCards #-}
 module Eta.REPL.ClassInfo where
 
 import GHC.Generics
 import Data.Binary
+import Data.Maybe
 
 import Eta.REPL.Map
 
 data ClassInfo =
-  ClassInfo { ciName      :: String
-            , ciSignature :: ClassSignature
-            , ciType      :: ClassType
-            , ciModifier  :: Maybe ClassModifier
-            , ciMethods   :: Map String MethodInfo
-            , ciFields    :: Map String FieldInfo }
+  ClassInfo { ciName              :: String
+            , ciSignature         :: ClassSignature
+            , ciType              :: ClassType
+            , ciModifier          :: Maybe ClassModifier
+            , ciInnerClasses      :: [String]
+            , ciOtherInnerClasses :: [String]
+            , ciConstructors      :: [MethodSignature]
+            , ciMethods           :: Map String MethodInfo
+            , ciOtherMethods      :: [String]
+            , ciFields            :: Map String FieldInfo
+            , ciOtherFields       :: [String]
+            , ciParentClass       :: Maybe String }
   deriving (Generic, Eq, Show)
+
+classInfoClasses :: ClassInfo -> [String]
+classInfoClasses ClassInfo {..} =
+  csSimpleClasses ciSignature ++ maybeToList ciParentClass ++ ciInnerClasses
 
 instance Binary ClassInfo
 
@@ -27,7 +38,8 @@ instance Binary MethodInfo
 
 data FieldInfo =
   FieldInfo { fiName      :: String
-            , fiSignature :: FieldSignature }
+            , fiSignature :: FieldSignature
+            , fiModifier  :: Maybe FieldModifier }
   deriving (Generic, Eq, Show)
 
 instance Binary FieldInfo
@@ -47,6 +59,11 @@ data MethodModifier = AbstractMethod | FinalMethod
 
 instance Binary MethodModifier
 
+data FieldModifier = FinalField
+  deriving (Generic, Eq, Show)
+
+instance Binary FieldModifier
+
 -- Taken from codec-jvm
 
 data PrimType
@@ -64,71 +81,103 @@ instance Binary PrimType
 
 -- | JavaTypeSignature
 data Parameter
-  = ReferenceParameter ReferenceParameter -- ^ ReferenceTypeSignature
-  | PrimitiveParameter PrimType           -- ^ BaseType
+  = ReferenceParameter { paramRef  :: ReferenceParameter }
+  | PrimitiveParameter { paramPrim :: PrimType }
   deriving (Generic, Eq, Show)
+
+mkRefParam :: ReferenceParameter -> Parameter
+mkRefParam refParam = ReferenceParameter { paramRef = refParam }
+
+mkPrimParam :: PrimType -> Parameter
+mkPrimParam primType = PrimitiveParameter { paramPrim = primType }
 
 instance Binary Parameter
 
 type ObjectType = String
 
--- | ReferenceTypeSignature
 data ReferenceParameter
-  = -- | ClassTypeSignature
-    GenericReferenceParameter
-      ObjectType                     -- PackageSpecifier & SimpleClassTypeSignature
-      [TypeParameter]                -- TypeArguments
-      [ReferenceParameter]           -- ClassTypeSignatureSuffix
-    -- | TypeVariableSignature
-  | VariableReferenceParameter
-    -- | ArrayTypeSignature
-  | ArrayReferenceParameter Parameter
+  = GenericReferenceParameter  { rpObjectType :: ObjectType
+                               , rpTyParams   :: [TypeParameter] }
+  | VariableReferenceParameter { rpVariable :: String }
+  | ArrayReferenceParameter    { rpArrayComponent :: Parameter}
   deriving (Generic, Eq, Show)
+
+mkGenericRefParam :: ObjectType -> [TypeParameter] -> ReferenceParameter
+mkGenericRefParam cls params =
+  GenericReferenceParameter { rpObjectType = cls, rpTyParams = params }
+
+mkVarRefParam :: String -> ReferenceParameter
+mkVarRefParam name = VariableReferenceParameter { rpVariable = name }
+
+mkArrayRefParam :: Parameter -> ReferenceParameter
+mkArrayRefParam param = ArrayReferenceParameter { rpArrayComponent = param }
+
+rfSimpleClasses :: ReferenceParameter -> [String]
+rfSimpleClasses rp = case rp of
+  GenericReferenceParameter {..} -> [rpObjectType]
+  _ -> []
 
 instance Binary ReferenceParameter
 
 -- | TypeArgument, TypeParameter
 data TypeParameter
-  = WildcardTypeParameter Bound -- <?> <? extends A> <? super A>
-  | SimpleTypeParameter ReferenceParameter
+  = WildcardTypeParameter { tpBound :: Bound } -- <?> <? extends A> <? super A>
+  | SimpleTypeParameter   { tpParam :: ReferenceParameter }
   deriving (Generic, Eq, Show)
 
 instance Binary TypeParameter
 
+mkWildcardTyParam :: Bound -> TypeParameter
+mkWildcardTyParam bound = WildcardTypeParameter { tpBound = bound }
+
+mkRefTyParam :: ReferenceParameter -> TypeParameter
+mkRefTyParam refParam = SimpleTypeParameter { tpParam = refParam }
+
 data Bound
   = NotBounded
-  | ExtendsBound ReferenceParameter
-  | SuperBound   ReferenceParameter
+  | ExtendsBound { boundParam :: [ReferenceParameter] }
+  | SuperBound   { boundParam :: [ReferenceParameter] }
   deriving (Generic, Eq, Show)
+
+mkWildcardBound :: [ReferenceParameter] -> [ReferenceParameter] -> Bound
+mkWildcardBound lowerBounds upperBounds
+  | null lowerBounds = ExtendsBound { boundParam = upperBounds }
+  | otherwise = SuperBound { boundParam = lowerBounds }
 
 instance Binary Bound
 
 -- TypeParameters
 type TypeVariableDeclarations = [TypeVariableDeclaration]
 
-data TypeVariableDeclaration = TypeVariableDeclaration String [Bound]
+data TypeVariableDeclaration =
+  TypeVariableDeclaration  { tvdName   :: String
+                           , tvdBounds :: [ReferenceParameter] }
   deriving (Generic, Eq, Show)
 
 instance Binary TypeVariableDeclaration
 
+mkTyVarDecl :: String -> [ReferenceParameter] -> TypeVariableDeclaration
+mkTyVarDecl name rps = TypeVariableDeclaration { tvdName = name, tvdBounds = rps }
+
 -- | ** ClassSignature **
 data ClassSignature
-  = ClassSignature
-      TypeVariableDeclarations    -- TypeParameters
-      [ClassParameter]            -- SuperclassSignature & SuperinterfaceSignature
+  = ClassSignature { csTyVarDecls :: TypeVariableDeclarations
+                   , csParams     :: [ClassParameter] }
   deriving (Generic, Eq, Show)
-
-instance Binary ClassSignature
 
 type ClassParameter = ReferenceParameter
 
+instance Binary ClassSignature
+
+csSimpleClasses :: ClassSignature -> [String]
+csSimpleClasses ClassSignature {..} = concatMap rfSimpleClasses csParams
+
 -- | ** MethodSignature **
 data MethodSignature =
-  MethodSignature
-    TypeVariableDeclarations  -- TypeParameters
-    [MethodParameter]           -- JavaTypeSignature
-    MethodReturn              -- Result
-    ThrowsExceptions          -- ThrowsSignature
+  MethodSignature { msTyVarDecls :: TypeVariableDeclarations
+                  , msParams     :: [MethodParameter]
+                  , msReturn     :: MethodReturn
+                  , msExceptions :: ThrowsExceptions }
   deriving (Generic, Eq, Show)
 
 instance Binary MethodSignature
@@ -143,9 +192,9 @@ type MethodReturn = Maybe Parameter
 type ThrowsExceptions = [ReferenceParameter]
 
 -- |  ** FieldSignature **
-data FieldSignature = FieldSignature FieldParameter
+data FieldSignature = FieldSignature { fsParam :: FieldParameter }
   deriving (Generic, Eq, Show)
 
 instance Binary FieldSignature
 
-type FieldParameter = ReferenceParameter
+type FieldParameter = Parameter

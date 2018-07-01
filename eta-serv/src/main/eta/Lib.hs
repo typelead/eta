@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes, RecordWildCards, GADTs, ScopedTypeVariables #-}
 module Lib (serv) where
 
-import Eta.REPL.Run
+import Eta.Serv.Run
 import Eta.REPL.Message
 import Eta.REPL.RemoteTypes
 

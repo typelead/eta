@@ -120,7 +120,7 @@ data Message a where
   SetClassInfoPath :: [String] -> Message ()
 
   -- Get info of given classes
-  GetClassInfo :: [String] -> Message (JResult [ClassInfo])
+  GetClassInfo :: [String] -> Message (JResult ([String] , [ClassInfo]))
 
 deriving instance Show (Message a)
 
@@ -142,8 +142,6 @@ data JResult a
     -- ^ Java finished successfully; return value follows
   | JException String
     -- ^ Class query threw an exception
-  | JClassesNotFound [String]
-    -- ^ Classes could not be found
   deriving (Generic, Show)
 
 instance Binary a => Binary (JResult a)
