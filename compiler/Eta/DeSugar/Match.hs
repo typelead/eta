@@ -587,8 +587,8 @@ tidy1 _ (LitPat lit)
   = return (idDsWrapper, tidyLitPat lit)
 
 -- NPats: we *might* be able to replace these w/ a simpler form
-tidy1 _ (NPat (L _ lit) mb_neg eq)
-  = return (idDsWrapper, tidyNPat tidyLitPat lit mb_neg eq)
+tidy1 _ (NPat (L _ lit) mb_neg eq )
+  = return (idDsWrapper, tidyNPat lit mb_neg eq (panic "tidy1: NPat not handled"))
 
 -- Everything else goes through unchanged...
 

@@ -9,6 +9,7 @@ data DataConRep
 dataConName      :: DataCon -> Name
 dataConTyCon     :: DataCon -> TyCon
 isVanillaDataCon :: DataCon -> Bool
+dataConIsInfix :: DataCon -> Bool
 
 instance Eq DataCon
 instance Ord DataCon

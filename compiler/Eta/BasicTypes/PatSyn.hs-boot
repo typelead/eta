@@ -20,3 +20,4 @@ instance Uniquable PatSyn
 instance Typeable PatSyn
 #endif
 instance Data PatSyn
+patSynIsInfix :: PatSyn -> Bool

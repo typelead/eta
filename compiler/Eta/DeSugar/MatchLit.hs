@@ -273,14 +273,10 @@ tidyLitPat (HsString src s)
 tidyLitPat lit = LitPat lit
 
 ----------------
-tidyNPat :: (HsLit -> Pat Id)   -- How to tidy a LitPat
-                 -- We need this argument because tidyNPat is called
-                 -- both by Match and by Check, but they tidy LitPats
-                 -- slightly differently; and we must desugar
-                 -- literals consistently (see Trac #5117)
-         -> HsOverLit Id -> Maybe (SyntaxExpr Id) -> SyntaxExpr Id
+tidyNPat :: HsOverLit Id -> Maybe (SyntaxExpr Id) -> SyntaxExpr Id
+         -> Type
          -> Pat Id
-tidyNPat tidy_lit_pat (OverLit val False _ ty) mb_neg _
+tidyNPat (OverLit val False _ ty) mb_neg _eq _outer_ty
         -- False: Take short cuts only if the literal is not using rebindable syntax
         --
         -- Once that is settled, look for cases where the type of the
@@ -297,7 +293,7 @@ tidyNPat tidy_lit_pat (OverLit val False _ ty) mb_neg _
   | isWordTy ty,   Just int_lit <- mb_int_lit
                             = mk_con_pat wordDataCon   (HsWordPrim   "" int_lit)
   | isStringTy ty, Just str_lit <- mb_str_lit
-                            = tidy_lit_pat (HsString "" str_lit)
+                            = tidyLitPat (HsString "" str_lit)
      -- NB: do /not/ convert Float or Double literals to F# 3.8 or D# 5.3
      -- If we do convert to the constructor form, we'll generate a case
      -- expression on a Float# or Double# and that's not allowed in Core; see
@@ -317,8 +313,8 @@ tidyNPat tidy_lit_pat (OverLit val False _ ty) mb_neg _
                    (Nothing, HsIsString _ s) -> Just s
                    _ -> Nothing
 
-tidyNPat _ over_lit mb_neg eq
-  = NPat (noLoc over_lit) mb_neg eq
+tidyNPat over_lit mb_neg eq _outer_ty
+ = NPat (noLoc over_lit) mb_neg eq
 
 {-
 ************************************************************************

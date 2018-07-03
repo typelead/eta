@@ -8,16 +8,15 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Eta.BasicTypes.ConLike (
-        ConLike(..)
+        ConLike(..), conLikeIsInfix
     ) where
 
-import {-# SOURCE #-} Eta.BasicTypes.DataCon (DataCon)
-import {-# SOURCE #-} Eta.BasicTypes.PatSyn (PatSyn)
+import {-# SOURCE #-} Eta.BasicTypes.DataCon (DataCon, dataConIsInfix)
+import {-# SOURCE #-} Eta.BasicTypes.PatSyn  (PatSyn, patSynIsInfix)
 import Eta.Utils.Outputable
 import Eta.BasicTypes.Unique
 import Eta.Utils.Util
 import Eta.BasicTypes.Name
-
 import Data.Function (on)
 import qualified Data.Data as Data
 import qualified Data.Typeable
@@ -77,3 +76,12 @@ instance Data.Data ConLike where
     toConstr _   = abstractConstr "ConLike"
     gunfold _ _  = error "gunfold"
     dataTypeOf _ = mkNoRepType "ConLike"
+
+conLikeIsInfix :: ConLike -> Bool
+conLikeIsInfix (RealDataCon dc) = dataConIsInfix dc
+conLikeIsInfix (PatSynCon ps)   = patSynIsInfix  ps
+
+-- -- | Returns the type of the whole pattern
+-- conLikeResTy :: ConLike -> [Type] -> Type
+-- conLikeResTy (RealDataCon con) tys = mkTyConApp (dataConTyCon con) tys
+-- conLikeResTy (PatSynCon ps)    tys = patSynInstResTy ps tys
