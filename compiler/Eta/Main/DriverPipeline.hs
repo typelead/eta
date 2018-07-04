@@ -43,8 +43,6 @@ import Eta.Utils.Util
 import Codec.JVM
 import Eta.REPL.Linker
 import Eta.Main.FileCleanup
-import Eta.Iface.IfaceSyn
-import Eta.Prelude.ForeignCall
 import Eta.Main.PipelineMonad
 import Eta.Main.Packages
 import Eta.Main.HeaderInfo
@@ -58,7 +56,6 @@ import Eta.Main.DynFlags
 import Eta.Utils.Panic
 import Eta.Utils.StringBuffer     ( hGetStringBuffer )
 import Eta.BasicTypes.BasicTypes       ( SuccessFlag(..) )
-import Eta.BasicTypes.OccName
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.FastString
 import Eta.Utils.MonadUtils
@@ -360,7 +357,6 @@ link _ dflags batchAttemptLinking hpt
                               . dep_pkgs
                               . mi_deps
                               . hm_iface ) homeModInfos
-          ffiMappings = pkgFFIMappings homeModInfos
           linkables = map (expectJust "link" . hm_linkable) homeModInfos
       debugTraceMsg dflags 3 (text "link: linkables are ..." $$ vcat (map ppr linkables))
       if isNoLink (ghcLink dflags) then do
@@ -380,7 +376,6 @@ link _ dflags batchAttemptLinking hpt
           when (verbosity dflags > 1) $
             compilationProgressMsg dflags ("Linking " ++ jarFile ++ " ...")
           linkGeneric dflags jarFiles pkgDeps
-          genFFIMapFile dflags ffiMappings
           debugTraceMsg dflags 3 (text "link: done")
           let numModules = length homeModInfos
               modulesMsg
@@ -415,40 +410,6 @@ getEncouragingMessage randomSource =
 linkablesToJars :: [Linkable] -> [FilePath]
 linkablesToJars ls = concatMap getOfiles ls
   where getOfiles (LM _ _ us) = map nameOfObject (filter isObject us)
-
-data FFIMapping =
-  FFIMapping {
-    fmFCQN     :: String,
-    fmDataName :: String,
-    fmModule   :: String
-  }
-
--- Generate FFI Mapping File
-pkgFFIMappings :: [HomeModInfo] -> [FFIMapping]
-pkgFFIMappings homeModInfos = concatMap modFFIMappings homeModInfos
-  where modFFIMappings hm = catMaybes $ map (getJWTMapping modName) ifaceDecls
-          where iface      = hm_iface hm
-                modName    = moduleNameString . moduleName $ mi_module iface
-                ifaceDecls = map snd $ mi_decls iface
-
-getJWTMapping :: String -> IfaceDecl -> Maybe FFIMapping
-getJWTMapping modName (IfaceData { ifName, ifCType })
-  | Just (CType _ _ fs) <- ifCType
-  = Just $ FFIMapping {
-      fmFCQN     = unpackFS fs,
-      fmDataName = occNameString ifName,
-      fmModule   = modName
-    }
-getJWTMapping _ _ = Nothing
-
-genFFIMapFile :: DynFlags -> [FFIMapping] -> IO ()
-genFFIMapFile dflags ffiMappings =
-  unless (null contents) $
-    writeFile outputFile contents
-  where serializeMapping FFIMapping { fmFCQN, fmDataName, fmModule } =
-          fmFCQN ++ "," ++ fmDataName ++ "," ++ fmModule
-        contents = unlines $ map serializeMapping ffiMappings
-        outputFile = ffiMapFileName dflags
 
 -- -----------------------------------------------------------------------------
 -- Compile files in one-shot mode.
@@ -1267,11 +1228,6 @@ jarFileName :: DynFlags -> FilePath
 jarFileName dflags
   | Just s <- outputFile dflags = s <?.> "jar"
   | otherwise = "Run.jar"
-
-ffiMapFileName :: DynFlags -> FilePath
-ffiMapFileName dflags
-  | Just s <- outputFile dflags = s -<.> "ffimap"
-  | otherwise = "Run.ffimap"
 
 (<?.>) :: FilePath -> String -> FilePath
 s <?.> ext | null (takeExtension s) = s <.> ext
