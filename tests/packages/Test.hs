@@ -13,11 +13,12 @@ import Turtle.Prelude hiding (die, sort, nub, sortBy)
 import Data.Aeson
 import Data.Text (Text)
 import qualified Data.Text as T
-import System.Directory (getAppUserDataDirectory, getDirectoryContents)
+import System.Directory (getAppUserDataDirectory, getDirectoryContents, createDirectoryIfMissing, removeFile)
 import System.FilePath ((</>), dropExtension)
 import qualified Data.ByteString.Lazy as BS
 
 import Data.Monoid ((<>))
+import Data.Maybe
 import Data.List
 import Control.Applicative
 import Control.Monad
@@ -70,10 +71,10 @@ ignoredPackageVersions :: [Text]
 ignoredPackageVersions = []
 
 filterLibraries :: [Text] -> [Text]
-filterLibraries set0 = recentVersions ++ remoteVersions ++ concat restVersions
-  where (recentVersions, restVersions) = unzip $ map findAndExtractMaximum
+filterLibraries set0 = recentVersions -- ++ remoteVersions ++ concat restVersions
+  where (recentVersions, _restVersions) = unzip $ map findAndExtractMaximum
                                                $ groupBy grouping set1
-        remoteVersions = map actualName recentVersions
+        _remoteVersions = map actualName recentVersions
         set1 = filter (\s -> not ((any (== (actualName s)) ignoredPackages) ||
                                   (any (== s) ignoredPackageVersions))) set0
         grouping p1 p2 = actualName p1 == actualName p2
@@ -82,7 +83,10 @@ actualName :: Text -> Text
 actualName = T.dropEnd 1 . T.dropWhileEnd (/= '-')
 
 actualVersion :: Text -> [Int]
-actualVersion = map (read . T.unpack) . T.split (== '.') .  T.takeWhileEnd (/= '-')
+actualVersion = map (read . T.unpack) . T.split (== '.') . actualVersion'
+
+actualVersion' :: Text -> Text
+actualVersion' = T.takeWhileEnd (/= '-')
 
 cmpVersion :: [Int] -> [Int] -> Ordering
 cmpVersion xs ys
@@ -94,29 +98,19 @@ findAndExtractMaximum :: [Text] -> (Text, [Text])
 findAndExtractMaximum g = (last pkgVersions, init pkgVersions)
   where pkgVersions = sortBy (\a b -> cmpVersion (actualVersion a) (actualVersion b)) g
 
-buildPackage :: Text -> IO ()
-buildPackage pkg = do
-  let outString = "Installing package " ++ T.unpack pkg ++ "..."
-      lenOutString = length outString
-      dashes = replicate lenOutString '-'
-      maybeVerify
-        | any (`T.isPrefixOf` pkg) dontVerify
-        = []
-        | otherwise = ["--enable-verify"]
-  putStrLn dashes
-  putStrLn outString
-  putStrLn dashes
-  sh $ procExitOnError "etlas" (["install", pkg] ++ maybeVerify) empty
-
 verifyJar :: IO ()
 verifyJar = sh verifyScript
 
-procExitOnError :: Text -> [Text] -> Shell Line -> Shell ()
-procExitOnError prog args shellm = do
+procExitOnError :: Maybe String -> Text -> [Text] -> Shell Line -> Shell ()
+procExitOnError mdir prog args shellm = do
+  case mdir of
+    Just dir -> cd (fromString dir)
+    Nothing -> return ()
   exitCode <- proc prog args shellm
   case exitCode of
     ExitFailure code -> liftIO $ die ("ExitCode " ++ show code)
     ExitSuccess -> return ()
+  when (isJust mdir) $ cd ".."
 
 verifyScript :: Shell ()
 verifyScript = do
@@ -127,23 +121,23 @@ verifyScript = do
       outPath = testVerifyPath </> "build"
       outJar = outPath </> "Out.jar"
       mainSource = testVerifyPath </> "Main.hs"
-  procExitOnError "javac" [T.pack verifyScriptCmd] mempty
+  procExitOnError Nothing "javac" [T.pack verifyScriptCmd] mempty
   echo "Verify.class built successfully."
   echo "Compiling a simple program..."
   echo "=== Eta Compiler Output ==="
   exists <- testdir (fromString outPath)
   when (not exists) $ mkdir (fromString outPath)
-  procExitOnError "eta" ["-fforce-recomp", "-o", T.pack outJar, T.pack mainSource] mempty
+  procExitOnError Nothing "eta" ["-fforce-recomp", "-o", T.pack outJar, T.pack mainSource] mempty
   echo "===                     ==="
   echo "Compiled succesfully."
   echo "Verifying the bytecode of compiled program..."
   echo "=== Verify Script Output ==="
-  procExitOnError "java" ["-cp", T.pack verifyScriptPath, "Verify", T.pack outJar] mempty
+  procExitOnError Nothing "java" ["-cp", T.pack verifyScriptPath, "Verify", T.pack outJar] mempty
   echo "===                      ==="
   echo "Bytecode looking good."
   echo "Running the simple program..."
   echo "=== Simple Program Output ==="
-  procExitOnError "java" ["-cp", T.pack outJar, "eta.main"] mempty
+  procExitOnError Nothing "java" ["-cp", T.pack outJar, "eta.main"] mempty
   echo "===                       ==="
   echo "Done! Everything's looking good."
 
@@ -158,4 +152,20 @@ main = do
     Nothing -> die "Problem parsing your packages.json file"
     Just pkg' -> do
       let packages = (patched pkg') <> (vanilla pkg')
-      mapM_ buildPackage packages
+          constraints = map (\p -> T.unpack $ actualName p <> "==" <> actualVersion' p) packages
+          packageNames = map (T.unpack . actualName) packages
+          tmpDir  = "testing"
+          tmpFile = "testing/cabal.project"
+      createDirectoryIfMissing True tmpDir
+      forM_ (zip packageNames constraints) $ \(pkg'', constr) -> do
+        let projectFile = (unlines (["independent-goals: True",
+                                     "extra-packages: " <> constr,
+                                     "tests: False",
+                                     "benchmarks: False"] ++ maybeVerify))
+            maybeVerify
+              | any (`T.isPrefixOf` (T.pack pkg'')) dontVerify = [""]
+              | otherwise = ["verify: True"]
+        writeFile tmpFile projectFile
+        putStrLn $ "[BUILDING] " <> constr
+        sh $ procExitOnError (Just tmpDir) "etlas" ["build", T.pack pkg''] empty
+      removeFile tmpFile
