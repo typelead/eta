@@ -6,6 +6,7 @@ import Eta.REPL.Message
 import Eta.REPL.RemoteTypes
 
 import Data.Binary
+import System.Exit
 
 type MessageHook = Msg -> IO Msg
 
@@ -16,7 +17,7 @@ serv hook pipe@Pipe{..} _restore = loop
     Msg msg <- readPipe pipe getMessage >>= hook
     debug ("eta-serv: " ++ show msg)
     case msg of
-      Shutdown -> return ()
+      Shutdown -> exitSuccess
       RunTH st q ty loc -> runTH pipe st q ty loc >> loop
       RunModFinalizers st qrefs -> runModFinalizerRefs pipe st qrefs >> loop
       _other -> run msg >>= reply
