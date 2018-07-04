@@ -1,5 +1,6 @@
 -dontwarn base.**
 -dontwarn eta_serv.**
+-dontwarn directory.**
 -dontoptimize
 -dontobfuscate
 -libraryjars <java.home>/lib/rt.jar
