@@ -17,6 +17,8 @@ module Eta.Rename.RnNames (
         addSimDeclErrors, addSimDeclErr
     ) where
 
+import Eta.REPL
+import Eta.REPL.ClassInfo
 import Eta.Main.DynFlags
 import Eta.HsSyn.HsSyn
 import Eta.TypeCheck.TcEnv            ( isBrackStage )
@@ -24,7 +26,9 @@ import Eta.Rename.RnEnv
 import Eta.Rename.RnHsDoc          ( rnHsDoc )
 import Eta.Iface.LoadIface        ( loadSrcInterface )
 import Eta.TypeCheck.TcRnMonad
+import Eta.Prelude.ForeignCall
 import Eta.Prelude.PrelNames
+import Eta.Prelude.TysWiredIn
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
@@ -43,10 +47,12 @@ import Eta.Utils.FastString
 import Eta.Utils.ListSetOps
 import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
+import Control.Arrow (second)
 import Data.Map         ( Map )
 import qualified Data.Map as Map
 import Data.List        ( partition, (\\), find )
 import qualified Data.Set as Set
+import qualified Data.Char as C
 import System.FilePath  ((</>))
 import System.IO
 
@@ -242,7 +248,7 @@ rnImportDecl this_mod
     let
         qual_mod_name = as_mod `orElse` imp_mod_name
         imp_spec  = ImpDeclSpec { is_mod = imp_mod_name, is_qual = qual_only,
-                                  is_dloc = loc, is_as = qual_mod_name }
+                                  is_dloc = loc, is_as = qual_mod_name, is_java = False }
 
     -- filter the imports according to the import declaration
     (new_imp_details, gres) <- filterImports ifaces imp_spec imp_details
@@ -382,11 +388,106 @@ warnRedundantSourceImport mod_name
           <+> quotes (ppr mod_name)
 
 rnJavaImports :: HscEnv -> [LImportDecl RdrName]
-              -> RnM [LHsDecl RdrName]
-rnJavaImports _hsc_env _java_imps = do
-  -- classInfo <- fetchClassInfo hsc_env classes
-  return []
-  -- where classes = map (fastStringToByteString . unLoc . ideclClassName) java_imps
+              -> RnM (GlobalRdrEnv, [LHsDecl RdrName])
+rnJavaImports hsc_env java_imps = do
+  let classImps = map (\imp -> let lclsName = ideclClassName (unLoc imp)
+                               in (unpackFS (unLoc lclsName), getLoc lclsName)) java_imps
+      classes = map fst classImps
+  (notFounds, classIdx) <- liftIO $ getClassInfo hsc_env classes
+  when (not (null notFounds)) $
+    forM_ notFounds $ \notFound ->
+      case lookup notFound classImps of
+        Just loc -> addErrAt loc $ text $ "Unable to find class in the classpath."
+        Nothing  -> addErr $ text $ "Class '" ++ notFound ++ "' was a transitive dependency"
+                 ++ " of one of your java imports and was not found on the classpath."
+  -- TODO: Add an error when the java name is an invalid Eta name.
+  (rdr_envs, declss) <- mapAndUnzipM (rnJavaImport hsc_env classIdx) java_imps
+  let rdr_env = foldr plusGlobalRdrEnv emptyGlobalRdrEnv rdr_envs
+  return (rdr_env, concat declss)
+
+rnJavaImport :: HscEnv -> ClassIndex -> LImportDecl RdrName -> RnM (GlobalRdrEnv, [LHsDecl RdrName])
+rnJavaImport _hsc_env clsIndex (L loc (ImportJavaDecl { ideclClassName = clsName })) =
+  setSrcSpan loc $ do
+    let clsName' = unpackFS (unLoc clsName)
+    case lookupClassIndex clsName' clsIndex of
+      Just clsInfo -> do
+        let (uniqMethods, _dupMethods) = Map.partition (\l -> length l == 1)
+                                       $ unCachedMap $ ciMethods clsInfo
+        -- TODO: Handle dupMethods
+        mod <- getModule
+        (occNameNames, decls) <- mapAndUnzipM (rnGenerateFFI mod clsName' loc)
+                                              (map (head . snd) $ Map.toAscList uniqMethods)
+        let javaModName = mkModuleName (ciSimpleName clsInfo)
+            -- TODO: Make more specific provs
+            prov = Imported [ImpSpec { is_decl = ImpDeclSpec { is_mod = javaModName
+                                                             , is_as = javaModName
+                                                             , is_qual = True
+                                                             , is_dloc = loc
+                                                             , is_java = True }
+                                     , is_item = ImpAll }]
+            gres = map (second (\n -> head (gresFromAvail (const prov) (Avail n)))) occNameNames
+        return (mkGlobalRdrEnvWithOccs gres, concat decls)
+      Nothing -> panic $ "rnJavaImport: unable to find " ++ clsName' ++ " in class index"
+
+rnJavaImport _hsc_env _clsIndex limpdecl =
+  pprPanic "rnJavaImport: Hit a non-java import" (ppr limpdecl)
+
+rnGenerateFFI :: Module -> String -> SrcSpan -> MethodInfo
+              -> RnM ((OccName, Name), [LHsDecl RdrName])
+rnGenerateFFI mod clsName loc MethodInfo {..} = do
+  name <- newTopSrcBinder (L loc rdrName)
+  return ((mkVarOcc sourceName, name), [fdecl])
+  where importString
+          | miStatic  = "@static " ++ clsName ++ "." ++ miName
+          | otherwise = miName
+        occName = mkJavaImportOcc $ mkVarOcc miName
+        rdrName = mkOrig mod occName --  mkRdrUnqual occName
+        sourceName = miName
+        fdecl   = L loc $ ForD (ForeignImport (noLoc rdrName) (methodSigToType miStatic miSignature)
+                                              noForeignImportCoercionYet fImport)
+        fImport = CImport (noLoc JavaCallConv) (noLoc PlayRisky) Nothing
+                    (CFunction callTarget) (noLoc "")
+        callTarget = StaticTarget (mkFastString importString) Nothing False
+
+methodSigToType :: Bool -> MethodSignature -> LHsType RdrName
+methodSigToType isStatic MethodSignature {..} =
+  noLoc $ mkImplicitHsForAllTy $ foldr nlHsFunTy fullRetType $ map paramToType msParams
+  where retVar
+          | isStatic = nlHsTyVar (mkRdrUnqual (mkTyVarOcc "z")) -- TODO: Make this truly unclashable
+          | otherwise = panic "methodInfoSigToType: instance methods not implemented yet"
+        retType = maybe (nlHsTyVar unitTyCon_RDR) paramToType msReturn
+        fullRetType = nlHsTyConApp javaTyCon_RDR [retVar, retType]
+
+paramToType :: Parameter -> LHsType RdrName
+paramToType (ReferenceParameter { paramRef = p }) =
+  refParamToType p
+paramToType (PrimitiveParameter { paramPrim = p }) = nlHsTyVar $
+  case p of
+    ByteType   -> byteTyCon_RDR
+    CharType   -> jcharTyCon_RDR
+    DoubleType -> doubleTyCon_RDR
+    FloatType  -> floatTyCon_RDR
+    IntType    -> intTyCon_RDR
+    LongType   -> int64TyCon_RDR
+    ShortType  -> shortTyCon_RDR
+    BoolType   -> boolTyCon_RDR
+
+refParamToType :: ReferenceParameter -> LHsType RdrName
+refParamToType (GenericReferenceParameter { rpObjectType = o, rpTyParams = tys }) =
+  nlHsTyConApp sobjectTyCon_RDR
+    [ nlHsSymbolLit o, nlHsPromotedListTy (map tyParamToType tys) ]
+refParamToType (VariableReferenceParameter { rpVariable = v }) =
+  nlHsTyVar (mkRdrUnqual (mkTyVarOcc (javaTyVarToTyVar v)))
+refParamToType (ArrayReferenceParameter {}) = panic "refParamToType: Array not handled"
+
+tyParamToType :: TypeParameter -> LHsType RdrName
+tyParamToType (WildcardTypeParameter {}) =
+  panic "tyParamToType: WildcardTypeParameter not handled"
+tyParamToType (SimpleTypeParameter { tpParam = p }) = refParamToType p
+
+javaTyVarToTyVar :: String -> String
+javaTyVarToTyVar (c:cs) = C.toLower c : cs
+javaTyVarToTyVar []     = []
 
 {-
 ************************************************************************

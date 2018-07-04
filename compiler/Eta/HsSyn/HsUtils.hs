@@ -51,7 +51,7 @@ module Eta.HsSyn.HsUtils(
 
   -- Types
   mkHsAppTy, userHsTyVarBndrs,
-  nlHsAppTy, nlHsTyVar, nlHsFunTy, nlHsTyConApp,
+  nlHsAppTy, nlHsTyVar, nlHsFunTy, nlHsTyConApp, nlHsSymbolLit, nlHsPromotedListTy,
 
   -- Stmts
   mkTransformStmt, mkTransformByStmt, mkBodyStmt, mkBindStmt, mkLastStmt,
@@ -404,10 +404,14 @@ nlList exprs           = noLoc (ExplicitList placeHolderType Nothing exprs)
 nlHsAppTy :: LHsType name -> LHsType name -> LHsType name
 nlHsTyVar :: name                         -> LHsType name
 nlHsFunTy :: LHsType name -> LHsType name -> LHsType name
+nlHsSymbolLit :: String -> LHsType name
+nlHsPromotedListTy :: [LHsType name] -> LHsType name
 
 nlHsAppTy f t           = noLoc (HsAppTy f t)
 nlHsTyVar x             = noLoc (HsTyVar x)
 nlHsFunTy a b           = noLoc (HsFunTy a b)
+nlHsSymbolLit s         = noLoc (HsTyLit (HsStrTy s (mkFastString s)))
+nlHsPromotedListTy tys  = noLoc (HsExplicitListTy (panic "noKindYet") tys)
 
 nlHsTyConApp :: name -> [LHsType name] -> LHsType name
 nlHsTyConApp tycon tys  = foldl nlHsAppTy (nlHsTyVar tycon) tys

@@ -183,6 +183,7 @@ newHscEnv dflags = do
     iserv_mvar <- newMVar Nothing
     mlc_var <- newIORef emptyModuleEnv
     ic      <- newInteractiveContext dflags
+    idx_var <- newMVar emptyClassIndex
     return HscEnv {  hsc_dflags       = dflags,
                      hsc_targets      = [],
                      hsc_mod_graph    = emptyMG,
@@ -193,7 +194,8 @@ newHscEnv dflags = do
                      hsc_FC           = fc_var,
                      hsc_iserv        = iserv_mvar,
                      hsc_MLC          = mlc_var,
-                     hsc_type_env_var = Nothing }
+                     hsc_type_env_var = Nothing,
+                     hsc_classIndex   = idx_var }
 
 
 knownKeyNames :: [Name]      -- Put here to avoid loops involving DsMeta,

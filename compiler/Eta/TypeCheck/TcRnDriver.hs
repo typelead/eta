@@ -402,12 +402,13 @@ tcRnImports :: HscEnv -> [LImportDecl RdrName] -> TcM (TcGblEnv, [LHsDecl RdrNam
 tcRnImports hsc_env import_decls0
   = do  { let { (java_import_decls, import_decls) =
                   partition (ideclIsJava . unLoc) import_decls0 } ;
-        ; foreign_binds <- rnJavaImports hsc_env java_import_decls
+        ; (rdr_env0, foreign_binds) <- rnJavaImports hsc_env java_import_decls
         ; failIfErrsM
-        ; (rn_imports, rdr_env, imports, hpc_info) <- rnImports import_decls
+        ; (rn_imports, rdr_env1, imports, hpc_info) <- rnImports import_decls
 
         ; this_mod <- getModule
-        ; let { dep_mods :: ModuleNameEnv (ModuleName, IsBootInterface)
+        ; let { rdr_env = rdr_env0 `plusGlobalRdrEnv` rdr_env1
+              ; dep_mods :: ModuleNameEnv (ModuleName, IsBootInterface)
               ; dep_mods = imp_dep_mods imports
 
                 -- We want instance declarations from all home-package

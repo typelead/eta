@@ -43,7 +43,8 @@ module Eta.BasicTypes.RdrName (
         localRdrEnvElts, delLocalRdrEnvList,
 
         -- * Global mapping of 'RdrName' to 'GlobalRdrElt's
-        GlobalRdrEnv, emptyGlobalRdrEnv, mkGlobalRdrEnv, plusGlobalRdrEnv,
+        GlobalRdrEnv, emptyGlobalRdrEnv, mkGlobalRdrEnv, mkGlobalRdrEnvWithOccs,
+        plusGlobalRdrEnv,
         lookupGlobalRdrEnv, extendGlobalRdrEnv,
         pprGlobalRdrEnv, globalRdrEnvElts,
         lookupGRE_RdrName, lookupGRE_Name, getGRE_NameQualifier_maybes,
@@ -585,8 +586,8 @@ getGRE_NameQualifier_maybes env
     qualifier_maybe (Imported iss) = Just $ map (is_as . is_decl) iss
 
 isLocalGRE :: GlobalRdrElt -> Bool
-isLocalGRE (GRE {gre_prov = LocalDef}) = True
-isLocalGRE _                           = False
+isLocalGRE (GRE {gre_prov = LocalDef})    = True
+isLocalGRE (GRE {gre_prov = Imported is}) = and $ map (is_java . is_decl) is
 
 unQualOK :: GlobalRdrElt -> Bool
 -- ^ Test if an unqualifed version of this thing would be in scope
@@ -667,6 +668,12 @@ mkGlobalRdrEnv gres
     add gre env = extendOccEnv_Acc insertGRE singleton env
                                    (nameOccName (gre_name gre))
                                    gre
+
+mkGlobalRdrEnvWithOccs :: [(OccName, GlobalRdrElt)] -> GlobalRdrEnv
+mkGlobalRdrEnvWithOccs greOccs
+  = foldr add emptyGlobalRdrEnv greOccs
+  where
+    add (occ, gre) env = extendOccEnv_Acc insertGRE singleton env occ gre
 
 insertGRE :: GlobalRdrElt -> [GlobalRdrElt] -> [GlobalRdrElt]
 insertGRE new_g [] = [new_g]
@@ -751,7 +758,8 @@ shadow_name env name
                  id_spec = ImpDeclSpec { is_mod = old_mod_name
                                        , is_as = old_mod_name
                                        , is_qual = True
-                                       , is_dloc = nameSrcSpan old_name }
+                                       , is_dloc = nameSrcSpan old_name
+                                       , is_java = False }
     shadow_with new_name old_gre@(GRE { gre_prov = Imported imp_specs })
        | null imp_specs' = Nothing
        | otherwise       = Just (old_gre { gre_prov = Imported imp_specs' })
@@ -835,7 +843,8 @@ data ImpDeclSpec
                                    -- should be a Maybe PackageKey here too.
         is_as       :: ModuleName, -- ^ Import alias, e.g. from @as M@ (or @Muggle@ if there is no @as@ clause)
         is_qual     :: Bool,       -- ^ Was this import qualified?
-        is_dloc     :: SrcSpan     -- ^ The location of the entire import declaration
+        is_dloc     :: SrcSpan,    -- ^ The location of the entire import declaration
+        is_java     :: Bool
     }
 
 -- | Describes import info a particular Name

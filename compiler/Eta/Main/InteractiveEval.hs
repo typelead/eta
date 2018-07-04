@@ -712,7 +712,8 @@ availsToGlobalRdrEnv mod_name avails
     imp_spec = ImpSpec { is_decl = decl, is_item = ImpAll}
     decl = ImpDeclSpec { is_mod = mod_name, is_as = mod_name,
                          is_qual = False,
-                         is_dloc = srcLocSpan interactiveSrcLoc }
+                         is_dloc = srcLocSpan interactiveSrcLoc,
+                         is_java = False }
 
 mkTopLevEnv :: HomePackageTable -> ModuleName -> Either String GlobalRdrEnv
 mkTopLevEnv hpt modl

@@ -129,6 +129,7 @@ library
         Data.Void
         Data.Word
         Debug.Trace
+        Eta.Interop
         Eta.RTS
         Foreign
         Foreign.C

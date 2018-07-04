@@ -70,6 +70,7 @@ module Eta.BasicTypes.OccName (
         mkPDatasTyConOcc, mkPDatasDataConOcc,
         mkPReprTyConOcc,
         mkPADFunOcc,
+        mkJavaImportOcc,
 
         -- ** Deconstruction
         occNameFS, occNameString, occNameSpace,
@@ -603,7 +604,7 @@ mkDataConWrapperOcc, mkWorkerOcc,
         mkGenD, mkGenR, mkGen1R, mkGenRCo,
         mkDataTOcc, mkDataCOcc, mkDataConWorkerOcc, mkNewTyCoOcc,
         mkInstTyCoOcc, mkEqPredCoOcc, mkClassOpAuxOcc,
-        mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc
+        mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc, mkJavaImportOcc
    :: OccName -> OccName
 
 -- These derived variables have a prefix that no Haskell value could have
@@ -625,6 +626,7 @@ mkRepEqOcc          = mk_simple_deriv tvName   "$r"      -- In RULES involving C
 mkNewTyCoOcc        = mk_simple_deriv tcName   "NTCo:"  -- Coercion for newtypes
 mkInstTyCoOcc       = mk_simple_deriv tcName   "TFCo:"   -- Coercion for type functions
 mkEqPredCoOcc       = mk_simple_deriv tcName   "$co"
+mkJavaImportOcc     = mk_simple_deriv tcName   "$ji"
 
 -- used in derived instances
 mkCon2TagOcc        = mk_simple_deriv varName  "$con2tag_"

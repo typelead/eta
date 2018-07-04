@@ -192,12 +192,11 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
+        unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
         dir <- liftIO $ getCurrentDirectory
         unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "proJar"
         copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
           etlasToolsDir </> "eta-serv.jar"
-
-        unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
 
     phony "rts-clean" $ do
       liftIO $ removeFiles (libCustomBuildDir "rts") ["//*"]

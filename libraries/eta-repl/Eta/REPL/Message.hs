@@ -120,7 +120,7 @@ data Message a where
   SetClassInfoPath :: [String] -> Message ()
 
   -- Get info of given classes
-  GetClassInfo :: [String] -> Message (JResult ([String] , [ClassInfo]))
+  GetClassInfo :: [String] -> Message (JResult ([String], [PreClassInfo]))
 
 deriving instance Show (Message a)
 

@@ -134,13 +134,16 @@ module Eta.Main.HscTypes (
         throwOneError, handleSourceError,
         handleFlagWarnings, printOrThrowWarnings,
 
-        Reinterpret(..)
+        Reinterpret(..),
+        CachedMap(..), ClassIndex, emptyClassIndex, getClassIndex, findInClassIndex,
+        addToClassIndex, lookupClassIndex
     ) where
 
 #include "HsVersions.h"
 
 #ifdef ETA_REPL
 import Eta.REPL.Message ( Pipe )
+import Eta.REPL.ClassInfo
 import Eta.REPL.RemoteTypes
 -- import Eta.Interactive.ByteCodeAsm      ( CompiledByteCode )
 import Eta.Main.InteractiveEvalTypes ( Resume )
@@ -387,7 +390,7 @@ data HscEnv
         hsc_IC :: InteractiveContext,
                 -- ^ The context for evaluating interactive statements
 
-        hsc_HPT    :: HomePackageTable,
+        hsc_HPT :: HomePackageTable,
                 -- ^ The home package table describes already-compiled
                 -- home-package modules, /excluding/ the module we
                 -- are compiling right now.
@@ -427,9 +430,10 @@ data HscEnv
                 -- ^ Used for one-shot compilation only, to initialise
                 -- the 'IfGblEnv'. See 'TcRnTypes.tcg_type_env_var' for
                 -- 'TcRunTypes.TcGblEnv'
-        hsc_iserv :: MVar (Maybe IServ)
+        hsc_iserv :: MVar (Maybe IServ),
               -- ^ interactive server process.  Created the first
               -- time it is needed.
+        hsc_classIndex :: MVar ClassIndex
  }
 
 instance ContainsDynFlags HscEnv where
@@ -3042,3 +3046,39 @@ data Reinterpret = ReinterpretDecl
                  | ReinterpretAsWrappedDecl
                  | ReinterpretSplice
                  | ReinterpretRunQ
+
+toCachedClassInfo :: PreClassInfo -> CachedClassInfo
+toCachedClassInfo ClassInfo {..} =
+  ClassInfo { ciMethods = CachedMap $ M.fromListWith (++) [ (miName m, [m]) | m <- ciMethods ]
+            , ciFields  = CachedMap $ M.fromListWith (++) [ (fiName f, [f]) | f <- ciFields ]
+            , .. }
+
+newtype ClassIndex = ClassIndex (Map String CachedClassInfo)
+
+newtype CachedMap a = CachedMap { unCachedMap :: Map String [a] }
+
+type CachedClassInfo = ClassInfo CachedMap
+
+emptyClassIndex :: ClassIndex
+emptyClassIndex = ClassIndex M.empty
+
+lookupClassIndex :: String -> ClassIndex -> Maybe CachedClassInfo
+lookupClassIndex cls (ClassIndex clsIndex) = M.lookup cls clsIndex
+
+getClassIndex :: HscEnv -> IO ClassIndex
+getClassIndex = readMVar . hsc_classIndex
+
+findInClassIndex :: HscEnv -> [String] -> IO [String]
+findInClassIndex hsc_env classes = do
+  let var = hsc_classIndex hsc_env
+  withMVar var $ \(ClassIndex index) ->
+    return $ filter (not . flip M.member index) classes
+
+addToClassIndex :: HscEnv -> [PreClassInfo] -> IO ClassIndex
+addToClassIndex hsc_env classInfos = do
+  let var = hsc_classIndex hsc_env
+  modifyMVar var $ \(ClassIndex idx) -> do
+    let a = ClassIndex $ M.union idx
+              (M.fromList [ (ciName classInfo, toCachedClassInfo classInfo)
+                          | classInfo <- classInfos ])
+    return (a, a)

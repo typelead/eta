@@ -1,37 +1,44 @@
-{-# LANGUAGE DeriveGeneric, RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric, RecordWildCards, StandaloneDeriving, FlexibleContexts,
+             TypeSynonymInstances, FlexibleInstances, GADTs #-}
 module Eta.REPL.ClassInfo where
 
 import GHC.Generics
 import Data.Binary
 import Data.Maybe
 
-import Eta.REPL.Map
-
-data ClassInfo =
+data ClassInfo f =
   ClassInfo { ciName              :: String
+            , ciSimpleName        :: String
             , ciSignature         :: ClassSignature
             , ciType              :: ClassType
-            , ciModifier          :: Maybe ClassModifier
             , ciInnerClasses      :: [String]
             , ciOtherInnerClasses :: [String]
             , ciConstructors      :: [MethodSignature]
-            , ciMethods           :: Map String MethodInfo
+            , ciMethods           :: f MethodInfo
             , ciOtherMethods      :: [String]
-            , ciFields            :: Map String FieldInfo
+            , ciFields            :: f FieldInfo
             , ciOtherFields       :: [String]
-            , ciParentClass       :: Maybe String }
-  deriving (Generic, Eq, Show)
+            , ciParentClass       :: Maybe String
+            , ciFinal             :: Bool }
 
-classInfoClasses :: ClassInfo -> [String]
+type PreClassInfo = ClassInfo []
+
+deriving instance Eq PreClassInfo
+deriving instance Show PreClassInfo
+deriving instance (f ~ []) => Generic (ClassInfo f)
+
+instance Binary PreClassInfo
+
+classInfoClasses :: ClassInfo f -> [String]
 classInfoClasses ClassInfo {..} =
   csSimpleClasses ciSignature ++ maybeToList ciParentClass ++ ciInnerClasses
-
-instance Binary ClassInfo
 
 data MethodInfo =
   MethodInfo { miName      :: String
              , miSignature :: MethodSignature
-             , miModifier  :: Maybe MethodModifier }
+             , miAbstract  :: Bool
+             , miFinal     :: Bool
+             , miStatic    :: Bool }
   deriving (Generic, Eq, Show)
 
 instance Binary MethodInfo
@@ -39,30 +46,15 @@ instance Binary MethodInfo
 data FieldInfo =
   FieldInfo { fiName      :: String
             , fiSignature :: FieldSignature
-            , fiModifier  :: Maybe FieldModifier }
+            , fiFinal     :: Bool }
   deriving (Generic, Eq, Show)
 
 instance Binary FieldInfo
 
-data ClassType = ClassType | InterfaceType | AnnotationType | EnumType
+data ClassType = ClassType | AbstractClassType | InterfaceType | AnnotationType | EnumType
   deriving (Generic, Eq, Show)
 
 instance Binary ClassType
-
-data ClassModifier = AbstractClass | FinalClass
-  deriving (Generic, Eq, Show)
-
-instance Binary ClassModifier
-
-data MethodModifier = AbstractMethod | FinalMethod
-  deriving (Generic, Eq, Show)
-
-instance Binary MethodModifier
-
-data FieldModifier = FinalField
-  deriving (Generic, Eq, Show)
-
-instance Binary FieldModifier
 
 -- Taken from codec-jvm
 

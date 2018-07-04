@@ -389,6 +389,12 @@ basicKnownKeyNames
         , fromJStringName
         , toJStringName
         , classIdentifierName
+        , overloadableClassName
+        , sobjectTyConName
+        , sobjectDataConName
+        , byteTyConName
+        , shortTyConName
+        , jcharTyConName
     ]
 
 genericTyConNames :: [Name]
@@ -496,9 +502,11 @@ gHC_STATICPTR = mkBaseModule (fsLit "GHC.StaticPtr")
 gHC_FINGERPRINT_TYPE :: Module
 gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
 
-jAVA_STRING, jAVA_UTILS :: Module
+jAVA_STRING, jAVA_UTILS, jAVA_PRIMITIVEBASE, eTA_INTEROP :: Module
 jAVA_STRING = mkBaseModule (fsLit "Java.StringBase")
 jAVA_UTILS  = mkBaseModule (fsLit "Java.Utils")
+jAVA_PRIMITIVEBASE  = mkBaseModule (fsLit "Java.PrimitiveBase")
+eTA_INTEROP = mkBaseModule (fsLit "Eta.Interop")
 
 mAIN, rOOT_MAIN :: Module
 mAIN            = mkMainModule_ mAIN_NAME
@@ -1278,22 +1286,29 @@ fingerprintDataConName =
 -- ETA-specific names
 javaTyConName, extendsFamTyConName, javaDataConName, extendsClassName,
   superCastName, unsafeCastName, fmapJavaName, classClassName, objName, unobjName,
-  classIdentifierName, fromJStringName, toJStringName, inheritsFamTyConName :: Name
-javaTyConName        = tcQual  gHC_TYPES   (fsLit "Java")        javaTyConKey
-extendsFamTyConName  = tcQual  gHC_CLASSES (fsLit "Extends'")    extendsFamTyConKey
-javaDataConName      = conName gHC_TYPES   (fsLit "Java")        javaDataConKey
-extendsClassName     = clsQual gHC_CLASSES (fsLit "Extends")     extendsClassKey
-superCastName        = varQual gHC_CLASSES (fsLit "superCast")   superCastClassOpKey
-unsafeCastName       = varQual gHC_CLASSES (fsLit "unsafeCast")  unsafeCastClassOpKey
-fmapJavaName         = varQual gHC_BASE    (fsLit "fmapJava")    fmapJavaIdKey
-classClassName       = clsQual gHC_CLASSES (fsLit "Class")       classClassKey
-objName              = varQual gHC_CLASSES (fsLit "obj")         objClassOpKey
-unobjName            = varQual gHC_CLASSES (fsLit "unobj")       unobjClassOpKey
-classIdentifierName  = varQual gHC_CLASSES (fsLit "classIdentifier") classIdentifierClassOpKey
-fromJStringName      = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
-toJStringName        = varQual jAVA_STRING (fsLit "toJString")   toJStringIdKey
-inheritsFamTyConName = tcQual gHC_CLASSES (fsLit "Inherits")     inheritsFamTyConKey
-
+  classIdentifierName, fromJStringName, toJStringName, inheritsFamTyConName,
+  overloadableClassName, sobjectTyConName, sobjectDataConName, byteTyConName,
+  shortTyConName, jcharTyConName :: Name
+javaTyConName         = tcQual  gHC_TYPES   (fsLit "Java") javaTyConKey
+extendsFamTyConName   = tcQual  gHC_CLASSES (fsLit "Extends'") extendsFamTyConKey
+javaDataConName       = conName gHC_TYPES   (fsLit "Java") javaDataConKey
+extendsClassName      = clsQual gHC_CLASSES (fsLit "Extends") extendsClassKey
+superCastName         = varQual gHC_CLASSES (fsLit "superCast") superCastClassOpKey
+unsafeCastName        = varQual gHC_CLASSES (fsLit "unsafeCast") unsafeCastClassOpKey
+fmapJavaName          = varQual gHC_BASE    (fsLit "fmapJava") fmapJavaIdKey
+classClassName        = clsQual gHC_CLASSES (fsLit "Class") classClassKey
+objName               = varQual gHC_CLASSES (fsLit "obj") objClassOpKey
+unobjName             = varQual gHC_CLASSES (fsLit "unobj") unobjClassOpKey
+classIdentifierName   = varQual gHC_CLASSES (fsLit "classIdentifier") classIdentifierClassOpKey
+fromJStringName       = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
+toJStringName         = varQual jAVA_STRING (fsLit "toJString") toJStringIdKey
+inheritsFamTyConName  = tcQual  gHC_CLASSES  (fsLit "Inherits") inheritsFamTyConKey
+overloadableClassName = clsQual eTA_INTEROP (fsLit "Overloadable") overloadableClassKey
+sobjectTyConName      = tcQual  eTA_INTEROP (fsLit "SObject") sobjectTyConKey
+sobjectDataConName    = conName eTA_INTEROP (fsLit "SObject") sobjectDataConKey
+byteTyConName         = tcQual  jAVA_PRIMITIVEBASE (fsLit "Byte") byteTyConKey
+shortTyConName        = tcQual  jAVA_PRIMITIVEBASE (fsLit "Short") shortTyConKey
+jcharTyConName        = tcQual  jAVA_PRIMITIVEBASE (fsLit "JChar") jcharTyConKey
 
 {-
 ************************************************************************
@@ -1401,9 +1416,10 @@ ghciIoClassKey = mkPreludeClassUnique 44
 ipClassNameKey :: Unique
 ipClassNameKey = mkPreludeClassUnique 45
 
-extendsClassKey, classClassKey :: Unique
+extendsClassKey, classClassKey, overloadableClassKey :: Unique
 extendsClassKey = mkPreludeClassUnique 46
 classClassKey   = mkPreludeClassUnique 47
+overloadableClassKey = mkPreludeClassUnique 48
 
 {-
 ************************************************************************
@@ -1503,8 +1519,8 @@ tVarPrimTyConKey                        = mkPreludeTyConUnique 76
 -- ETA-specific tycons
 jcharPrimTyConKey, jboolPrimTyConKey, jbytePrimTyConKey, jshortPrimTyConKey,
   jobjectPrimTyConKey, javaTyConKey, jstringTyConKey, extendsFamTyConKey,
-  inheritsFamTyConKey
-  :: Unique
+  inheritsFamTyConKey, sobjectTyConKey, byteTyConKey, shortTyConKey,
+  jcharTyConKey :: Unique
 jcharPrimTyConKey   = mkPreludeTyConUnique 77
 jboolPrimTyConKey   = mkPreludeTyConUnique 78
 jbytePrimTyConKey   = mkPreludeTyConUnique 79
@@ -1515,6 +1531,10 @@ javaTyConKey        = mkPreludeTyConUnique 90
 jstringTyConKey     = mkPreludeTyConUnique 91
 extendsFamTyConKey  = mkPreludeTyConUnique 103
 inheritsFamTyConKey = mkPreludeTyConUnique 104
+sobjectTyConKey     = mkPreludeTyConUnique 105
+byteTyConKey        = mkPreludeTyConUnique 106
+shortTyConKey       = mkPreludeTyConUnique 107
+jcharTyConKey       = mkPreludeTyConUnique 108
 
 -- Parallel array type constructor
 parrTyConKey :: Unique
@@ -1799,9 +1819,10 @@ callStackDataConKey, srcLocDataConKey :: Unique
 callStackDataConKey                     = mkPreludeDataConUnique 36
 srcLocDataConKey                        = mkPreludeDataConUnique 37
 
-javaDataConKey, jstringDataConKey :: Unique
+javaDataConKey, jstringDataConKey, sobjectDataConKey :: Unique
 javaDataConKey    = mkPreludeDataConUnique 38
 jstringDataConKey = mkPreludeDataConUnique 39
+sobjectDataConKey = mkPreludeDataConUnique 40
 
 {-
 ************************************************************************

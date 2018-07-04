@@ -261,7 +261,7 @@ loadModule doc mod
   where
     prov     = Imported [ImpSpec { is_decl = imp_spec, is_item = ImpAll }]
     imp_spec = ImpDeclSpec { is_mod = name, is_qual = True,
-                             is_dloc = wiredInSrcSpan, is_as = name }
+                             is_dloc = wiredInSrcSpan, is_as = name, is_java = False }
     name = moduleName mod
 
 {-

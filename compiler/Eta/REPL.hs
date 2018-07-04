@@ -273,12 +273,20 @@ setClassInfoPath hsc_env cp = do
   when (not (null cp)) $
     iservCmd hsc_env (SetClassInfoPath cp)
 
-getClassInfo :: HscEnv -> [FilePath] -> IO ([String], [ClassInfo])
+getClassInfo :: HscEnv -> [FilePath] -> IO ([String], ClassIndex)
 getClassInfo hsc_env cp = do
-    jresult <- iservCmd hsc_env (GetClassInfo cp)
-    return $ handleJResult jresult
+    cp <- findInClassIndex hsc_env cp
+    if null cp
+    then do
+      idx <- getClassIndex hsc_env
+      return ([], idx)
+    else do
+      jresult <- iservCmd hsc_env (GetClassInfo cp)
+      let (notFounds, classInfos) = handleJResult jresult
+      classIndex <- addToClassIndex hsc_env classInfos
+      return (notFounds, classIndex)
 
-handleJResult :: JResult ([String], [ClassInfo]) -> ([String], [ClassInfo])
+handleJResult :: JResult ([String], [PreClassInfo]) -> ([String], [PreClassInfo])
 handleJResult (JDone x) = x
 handleJResult (JException msg) =
     throw (InstallationError ("While in operation 'handleJResult':\nException: " ++ msg))

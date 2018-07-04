@@ -30,14 +30,14 @@ module Eta.Prelude.TysWiredIn (
         charTy, stringTy, charTyConName,
 
         -- * Double
-        doubleTyCon, doubleDataCon, doubleTy, doubleTyConName,
+        doubleTyCon, doubleDataCon, doubleTy, doubleTyConName, doubleTyCon_RDR,
 
         -- * Float
-        floatTyCon, floatDataCon, floatTy, floatTyConName,
+        floatTyCon, floatDataCon, floatTy, floatTyConName, floatTyCon_RDR,
 
         -- * Int
         intTyCon, intDataCon, intTyCon_RDR, intDataCon_RDR, intTyConName,
-        intTy,
+        intTy, int64TyCon_RDR,
 
         -- * Word
         wordTyCon, wordDataCon, wordTyConName, wordTy,
@@ -46,7 +46,8 @@ module Eta.Prelude.TysWiredIn (
         word8TyCon, word8DataCon, word8TyConName, word8Ty,
 
         -- * JString
-        jstringTyCon, jstringDataCon, jstringTy,
+        jstringTyCon, jstringDataCon, jstringTy, sobjectTyCon_RDR, javaTyCon_RDR,
+        byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR,
 
         -- * List
         listTyCon, nilDataCon, nilDataConName, consDataCon, consDataConName,
@@ -68,7 +69,7 @@ module Eta.Prelude.TysWiredIn (
         unboxedPairTyCon, unboxedPairDataCon,
 
         -- * Unit
-        unitTy,
+        unitTy, unitTyCon_RDR,
 
         -- * Kinds
         typeNatKindCon, typeNatKind, typeSymbolKindCon, typeSymbolKind,
@@ -243,17 +244,28 @@ parrDataConName = mkWiredInDataConName UserSyntax
                     gHC_PARR' (fsLit "PArr") parrDataConKey parrDataCon
 
 boolTyCon_RDR, false_RDR, true_RDR, intTyCon_RDR, charTyCon_RDR,
-    intDataCon_RDR, listTyCon_RDR, consDataCon_RDR, parrTyCon_RDR, eqTyCon_RDR :: RdrName
-boolTyCon_RDR   = nameRdrName boolTyConName
-false_RDR       = nameRdrName falseDataConName
-true_RDR        = nameRdrName trueDataConName
-intTyCon_RDR    = nameRdrName intTyConName
-charTyCon_RDR   = nameRdrName charTyConName
-intDataCon_RDR  = nameRdrName intDataConName
-listTyCon_RDR   = nameRdrName listTyConName
-consDataCon_RDR = nameRdrName consDataConName
-parrTyCon_RDR   = nameRdrName parrTyConName
-eqTyCon_RDR     = nameRdrName eqTyConName
+    intDataCon_RDR, listTyCon_RDR, consDataCon_RDR, parrTyCon_RDR, eqTyCon_RDR,
+    floatTyCon_RDR, doubleTyCon_RDR, int64TyCon_RDR, sobjectTyCon_RDR,
+    unitTyCon_RDR, javaTyCon_RDR, byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR :: RdrName
+boolTyCon_RDR    = nameRdrName boolTyConName
+false_RDR        = nameRdrName falseDataConName
+true_RDR         = nameRdrName trueDataConName
+intTyCon_RDR     = nameRdrName intTyConName
+charTyCon_RDR    = nameRdrName charTyConName
+intDataCon_RDR   = nameRdrName intDataConName
+listTyCon_RDR    = nameRdrName listTyConName
+consDataCon_RDR  = nameRdrName consDataConName
+parrTyCon_RDR    = nameRdrName parrTyConName
+eqTyCon_RDR      = nameRdrName eqTyConName
+floatTyCon_RDR   = nameRdrName floatTyConName
+doubleTyCon_RDR  = nameRdrName doubleTyConName
+int64TyCon_RDR   = nameRdrName int64TyConName
+sobjectTyCon_RDR = nameRdrName sobjectTyConName
+unitTyCon_RDR    = getRdrName unitTyCon
+javaTyCon_RDR    = getRdrName javaTyConName
+byteTyCon_RDR    = nameRdrName byteTyConName
+shortTyCon_RDR   = nameRdrName shortTyConName
+jcharTyCon_RDR   = nameRdrName jcharTyConName
 
 {-
 ************************************************************************
