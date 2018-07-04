@@ -59,7 +59,7 @@ patchedLibraries = do
 
 -- These will not be built for various reasons.
 ignoredPackages :: [Text]
-ignoredPackages = ["singletons" ,"directory", "servant-docs", "regex-tdfa", "tasty"]
+ignoredPackages = ["singletons" ,"directory", "servant-docs", "regex-tdfa", "tasty", "dhall"]
 
 -- These packages will not be verified
 dontVerify :: [Text]
