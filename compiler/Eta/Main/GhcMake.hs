@@ -410,7 +410,6 @@ load how_much = do
                       "because there is no " ++
                       moduleNameString (moduleName main_mod) ++ " module.")
 
-          -- link everything together
           linkresult <- liftIO $ link (ghcLink dflags) dflags do_linking (hsc_HPT hsc_env1)
 
           loadFinish Succeeded linkresult

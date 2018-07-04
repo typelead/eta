@@ -2479,6 +2479,7 @@ dynamic_flags = [
 
         -------- Linking ----------------------------------------------------
   , defGhcFlag "no-link"            (noArg (\d -> d{ ghcLink=NoLink }))
+  , defGhcFlag "inmemory"           (noArg (\d -> d{ ghcLink=LinkInMemory }))
   , defGhcFlag "shared"             (noArg (\d -> d{ ghcLink=LinkDynLib }))
   , defGhcFlag "staticlib"          (noArg (\d -> d{ ghcLink=LinkStaticLib }))
   , defGhcFlag "dynload"            (hasArg parseDynLibLoaderMode)
