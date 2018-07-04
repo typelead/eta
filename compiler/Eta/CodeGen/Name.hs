@@ -15,7 +15,8 @@ module Eta.CodeGen.Name (
   closure,
   classFilePath,
   labelToMethod,
-  idFastString
+  idFastString,
+  filterDataTyCons
 ) where
 
 import Eta.Main.DynFlags
@@ -28,7 +29,7 @@ import Eta.BasicTypes.Id
 import Data.Char as C
 import Data.Maybe
 import qualified Data.List as L
-import Data.Text as T hiding (map, init, last, null)
+import Data.Text as T hiding (map, init, last)
 import Data.Text.Encoding
 
 import Eta.Debug
@@ -109,7 +110,7 @@ moduleJavaClass mod = qClassName
     mods = split (== '.') $ modNameText mod
     (parentMods, className') = (init mods, last mods)
     packageString = T.toLower . unitIdText $ mod
-    package = if null parentMods
+    package = if Prelude.null parentMods
                  then packageString
                  else   append packageString
                       . cons '/'
@@ -159,3 +160,12 @@ labelToMethod s = ( T.replace "." "/" . T.dropEnd 1 . T.dropWhileEnd (/= '.') $ 
 pprName :: Name -> SDoc
 pprName name = ftext (occNameFS occ)
   where occ = nameOccName name
+
+filterDataTyCons :: Text -> Bool
+filterDataTyCons t
+  | isLastOf "/datacons/" = True
+  | isLastOf "/tycons/" = True
+  | otherwise = False
+  where isLastOf pat
+          | (match, rest) <- T.breakOnEnd pat t
+          = not (T.null match) && isNothing (T.find (== '/') rest)

@@ -487,7 +487,7 @@ classFromCgState :: [MethodDef] -> [FieldDef] -> CgState
                  -> ClassFile
 classFromCgState mds fds CgState {..} =
   mkClassFileWithAttrs java7 cgAccessFlags cgClassName cgSuperClassName []
-    (cgFieldDefs ++ fds) srcFile (cgMethodDefs ++ mds)
+    (cgFieldDefs ++ fds) srcFile (cgMethodDefs ++ mds) filterDataTyCons
   where srcFile = maybeToList $ sourceFileAttr cgSourceFilePath
         sourceFileAttr = fmap (mkSourceFileAttr . pack . takeFileName)
 
@@ -499,7 +499,7 @@ runCodeGen mMFs env state codeGenAction = do
   -- NOTE: addInnerClasses is to ensure that any unused data types/closures
   --       are added to the constant pool
   let compiledModuleClass =
-        addInnerClasses cgCompiledClosures $ do
+        addInnerClasses filterDataTyCons cgCompiledClosures $ do
           let (mds, fds) = case mMFs of
                 Just (mds, fds) -> (mds, fds)
                 Nothing -> ([], [])
