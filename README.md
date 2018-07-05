@@ -35,7 +35,7 @@ for updates.
 
 ## Getting Started
 
-Visit the [Getting Started](https://eta-lang.org/docs/eta-concepts/getting-started/what-is-eta) page
+Visit the [Getting Started](https://eta-lang.org/docs/user-guides/eta-user-guide/introduction/what-is-eta) page
 in the documentation.
 
 ## Contribute
@@ -50,7 +50,7 @@ You can report issues at [eta issue tracker](https://github.com/typelead/eta/iss
 
 ## Eta Proposals
 
-Visit the [Eta Proposals](https://eta-lang.org/contribute/bug-report) page in the official website to propose changes to Eta.
+Visit the [Eta Proposals](https://eta-lang.org/contribute/proposals) page in the official website to propose changes to Eta.
 
 ## License
 
