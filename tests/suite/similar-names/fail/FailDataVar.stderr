@@ -1,0 +1,5 @@
+
+tests/suite/similar-names/fail/FailDataVar.hs:6:5: error:
+    Multiple declarations with names differing only in case.
+    Declared at: tests/suite/similar-names/fail/FailDataVar.hs:5:5
+                 tests/suite/similar-names/fail/FailDataVar.hs:6:5

@@ -65,7 +65,7 @@ jobs:
           root: .
           paths: .
 
-  test:
+  package-test:
     <<: *defaults
     steps:
       - attach_workspace:
@@ -87,11 +87,34 @@ jobs:
           command: ./gradlew test
 
       - run: stack setup
-      - run: stack build eta:exe:eta-test
+      - run: stack build eta:exe:eta-package-test
 
       - run:
           name: Running unit tests
-          command: stack exec eta-test
+          command: stack exec eta-package-test
+
+  test-suite:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: .
+
+      - restore_cache:
+          key: eta-bin-{{ .Revision }}
+
+      - restore_cache:
+          keys:
+            - dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+            - dot-stack-{{ checksum "stack.yaml" }}
+            - dot-stack-{{ checksum "resolver.txt" }}
+            - dot-stack-resolver-{{ checksum "resolver.txt" }}
+
+      - run: stack setup
+      - run: stack build eta:exe:eta-test-suite
+
+      - run:
+          name: Running unit tests
+          command: stack exec eta-test-suite
 
   release_container:
     <<: *defaults
@@ -127,7 +150,11 @@ workflows:
     jobs:
       - build
 
-      - test:
+      - package-test:
+          requires:
+            - build
+
+      - test-suite:
           requires:
             - build
 

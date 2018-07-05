@@ -401,7 +401,7 @@ executable eta
            UnboxedTuples
            ViewPatterns
 
-executable eta-test
+executable eta-package-test
     hs-source-dirs:      tests/packages
     main-is:             Test.hs
     default-language:    Haskell2010
@@ -413,3 +413,18 @@ executable eta-test
                        , directory
                        , filepath
     ghc-options:       -Wall -Werror
+
+executable eta-test-suite
+    hs-source-dirs:      tests/suite
+    main-is:             Driver.hs
+    default-language:    Haskell2010
+    build-depends:       base >= 4.7 && < 5
+                       , bytestring
+                       , directory
+                       , filepath
+                       , Glob
+                       , process
+                       , tasty
+                       , tasty-golden
+                       , typed-process
+    ghc-options:       -Wall -Werror -fno-warn-name-shadowing
