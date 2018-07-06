@@ -17,17 +17,17 @@ jobs:
 
       - restore_cache:
           keys:
-            - dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
-            - dot-stack-{{ checksum "stack.yaml" }}
-            - dot-stack-{{ checksum "resolver.txt" }}
-            - dot-stack-resolver-{{ checksum "resolver.txt" }}
+            - dot-stack1-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+            - dot-stack1-{{ checksum "stack.yaml" }}
+            - dot-stack1-{{ checksum "resolver.txt" }}
+            - dot-stack1-resolver-{{ checksum "resolver.txt" }}
       - run: stack setup
       - save_cache:
-          key: dot-stack-resolver-{{ checksum "resolver.txt" }}
+          key: dot-stack1-resolver-{{ checksum "resolver.txt" }}
           paths:
             - ~/.stack
       - save_cache:
-          key: dot-stack-{{ checksum "stack.yaml" }}
+          key: dot-stack1-{{ checksum "stack.yaml" }}
           paths:
             - ~/.stack
 
@@ -40,7 +40,7 @@ jobs:
           no_output_timeout: 1h
 
       - save_cache:
-          key: dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+          key: dot-stack1-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
           paths:
             - ~/.stack
       - save_cache:
@@ -77,10 +77,10 @@ jobs:
 
       - restore_cache:
           keys:
-            - dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
-            - dot-stack-{{ checksum "stack.yaml" }}
-            - dot-stack-{{ checksum "resolver.txt" }}
-            - dot-stack-resolver-{{ checksum "resolver.txt" }}
+            - dot-stack1-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+            - dot-stack1-{{ checksum "stack.yaml" }}
+            - dot-stack1-{{ checksum "resolver.txt" }}
+            - dot-stack1-resolver-{{ checksum "resolver.txt" }}
 
       - run:
           name: Running rts tests
@@ -105,10 +105,10 @@ jobs:
 
       - restore_cache:
           keys:
-            - dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
-            - dot-stack-{{ checksum "stack.yaml" }}
-            - dot-stack-{{ checksum "resolver.txt" }}
-            - dot-stack-resolver-{{ checksum "resolver.txt" }}
+            - dot-stack1-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
+            - dot-stack1-{{ checksum "stack.yaml" }}
+            - dot-stack1-{{ checksum "resolver.txt" }}
+            - dot-stack1-resolver-{{ checksum "resolver.txt" }}
 
       - run: stack setup
       - run: stack build eta:exe:eta-test-suite
