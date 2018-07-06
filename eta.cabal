@@ -40,7 +40,11 @@ library
                        , MultiParamTypeClasses
                        , BangPatterns
                        , TupleSections
-    exposed-modules:     Eta.BasicTypes.Avail
+    exposed-modules:     Eta.Backpack.DriverBkp
+                       , Eta.Backpack.BkpSyn
+                       , Eta.Backpack.NameShape
+                       , Eta.Backpack.RnModIface
+                       , Eta.BasicTypes.Avail
                        , Eta.BasicTypes.BasicTypes
                        , Eta.BasicTypes.ConLike
                        , Eta.BasicTypes.DataCon
@@ -51,6 +55,7 @@ library
                        , Eta.BasicTypes.Literal
                        , Eta.BasicTypes.MkId
                        , Eta.BasicTypes.Module
+                       , Eta.BasicTypes.NameCache
                        , Eta.BasicTypes.NameEnv
                        , Eta.BasicTypes.Name
                        , Eta.BasicTypes.NameSet
@@ -103,6 +108,7 @@ library
                        , Eta.DeSugar.DsListComp
                        , Eta.DeSugar.DsMeta
                        , Eta.DeSugar.DsForeign
+                       , Eta.DeSugar.DsUsage
                        , Eta.DeSugar.DsUtils
                        , Eta.DeSugar.Match
                        , Eta.DeSugar.MatchCon
@@ -122,6 +128,7 @@ library
                        , Eta.HsSyn.HsTypes
                        , Eta.HsSyn.HsUtils
                        , Eta.HsSyn.PlaceHolder
+                       , Eta.Iface.BinFingerprint
                        , Eta.Iface.BinIface
                        , Eta.Iface.BuildTyCl
                        , Eta.Iface.FlagChecker
@@ -168,6 +175,7 @@ library
                        , Eta.Parser.Parser
                        , Eta.Parser.RdrHsSyn
                        , Eta.Prelude.ForeignCall
+                       , Eta.Prelude.KnownUniques
                        , Eta.Prelude.PrelInfo
                        , Eta.Prelude.PrelNames
                        , Eta.Prelude.PrelRules
@@ -225,6 +233,7 @@ library
                        , Eta.TypeCheck.Inst
                        , Eta.TypeCheck.TcAnnotations
                        , Eta.TypeCheck.TcArrows
+                       , Eta.TypeCheck.TcBackpack
                        , Eta.TypeCheck.TcBinds
                        , Eta.TypeCheck.TcCanonical
                        , Eta.TypeCheck.TcClassDcl

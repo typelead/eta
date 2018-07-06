@@ -59,6 +59,7 @@ import Eta.BasicTypes.Name( Name )
 #endif
 import Eta.Core.CoreSyn
 import Eta.Main.HscTypes
+import Eta.BasicTypes.NameCache
 import Eta.BasicTypes.Module
 import Eta.Main.DynFlags
 import Eta.Main.StaticFlags

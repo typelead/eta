@@ -41,7 +41,6 @@ import Eta.Main.DynFlags
 import Eta.Main.HscTypes         ( HscEnv, hsc_dflags )
 import Eta.Utils.ListSetOps       ( findDupsEq, removeDups )
 import Eta.Utils.Digraph          ( SCC, flattenSCC, stronglyConnCompFromEdgedVertices )
-import Eta.Utils.Util             ( mapSnd )
 
 import Control.Monad
 import Data.List( partition, sortBy )
@@ -69,21 +68,21 @@ Checks the @(..)@ etc constraints in the export list.
 
 -- Brings the binders of the group into scope in the appropriate places;
 -- does NOT assume that anything is in scope already
-rnSrcDecls :: [Name] -> HsGroup RdrName -> RnM (TcGblEnv, HsGroup Name)
+rnSrcDecls :: HsGroup RdrName -> RnM (TcGblEnv, HsGroup Name)
 -- Rename a HsGroup; used for normal source files *and* hs-boot files
-rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
-                                       hs_splcds  = splice_decls,
-                                       hs_tyclds  = tycl_decls,
-                                       hs_instds  = inst_decls,
-                                       hs_derivds = deriv_decls,
-                                       hs_fixds   = fix_decls,
-                                       hs_warnds  = warn_decls,
-                                       hs_annds   = ann_decls,
-                                       hs_fords   = foreign_decls,
-                                       hs_defds   = default_decls,
-                                       hs_ruleds  = rule_decls,
-                                       hs_vects   = vect_decls,
-                                       hs_docs    = docs })
+rnSrcDecls group@(HsGroup { hs_valds   = val_decls,
+                            hs_splcds  = splice_decls,
+                            hs_tyclds  = tycl_decls,
+                            hs_instds  = inst_decls,
+                            hs_derivds = deriv_decls,
+                            hs_fixds   = fix_decls,
+                            hs_warnds  = warn_decls,
+                            hs_annds   = ann_decls,
+                            hs_fords   = foreign_decls,
+                            hs_defds   = default_decls,
+                            hs_ruleds  = rule_decls,
+                            hs_vects   = vect_decls,
+                            hs_docs    = docs })
  = do {
    -- (A) Process the fixity declarations, creating a mapping from
    --     FastStrings to FixItems.
@@ -143,7 +142,7 @@ rnSrcDecls extra_deps group@(HsGroup { hs_valds   = val_decls,
    -- means we'll only report a declaration as unused if it isn't
    -- mentioned at all.  Ah well.
    traceRn "Start rnTyClDecls" empty ;
-   (rn_tycl_decls, src_fvs1) <- rnTyClDecls extra_deps tycl_decls ;
+   (rn_tycl_decls, src_fvs1) <- rnTyClDecls tycl_decls ;
 
    -- (F) Rename Value declarations right-hand sides
    traceRn "Start rnmono" empty ;
@@ -269,7 +268,7 @@ rnSrcFixityDecls bndr_set fix_decls
   = do fix_decls <- mapM rn_decl fix_decls
        return (concat fix_decls)
   where
-    sig_ctxt = TopSigCtxt bndr_set True
+    sig_ctxt = TopSigCtxt bndr_set
        -- True <=> can give fixity for class decls and record selectors
 
     rn_decl :: LFixitySig RdrName -> RnM [LFixitySig Name]
@@ -319,7 +318,7 @@ rnSrcWarnDecls bndr_set decls'
  where
    decls = concatMap (\(L _ d) -> wd_warnings d) decls'
 
-   sig_ctxt = TopSigCtxt bndr_set True
+   sig_ctxt = TopSigCtxt bndr_set
       -- True <=> Can give deprecations for class ops and record sels
 
    rn_deprec (Warning rdr_names txt)
@@ -929,31 +928,44 @@ packages, it is safe not to add the dependencies on the .hs-boot stuff to B2.
 
 See also Note [Grouping of type and class declarations] in TcTyClsDecls.
 -}
-
-isInPackage :: UnitId -> Name -> Bool
-isInPackage pkgId nm = case nameModule_maybe nm of
-                         Nothing -> False
-                         Just m  -> pkgId == moduleUnitId m
+--
+-- isInPackage :: UnitId -> Name -> Bool
+-- isInPackage pkgId nm = case nameModule_maybe nm of
+--                          Nothing -> False
+--                          Just m  -> pkgId == moduleUnitId m
 -- We use nameModule_maybe because we might be in a TH splice, in which case
 -- there is no module name. In that case we cannot have mutual dependencies,
 -- so it's fine to return False here.
 
-rnTyClDecls :: [Name] -> [TyClGroup RdrName]
+rnTyClDecls :: [TyClGroup RdrName]
             -> RnM ([TyClGroup Name], FreeVars)
 -- Rename the declarations and do depedency analysis on them
-rnTyClDecls extra_deps tycl_ds
+rnTyClDecls tycl_ds
   = do { ds_w_fvs <- mapM (wrapLocFstM rnTyClDecl) (tyClGroupConcat tycl_ds)
        ; let decl_names = mkNameSet (map (tcdName . unLoc . fst) ds_w_fvs)
        ; role_annot_env <- rnRoleAnnots decl_names (concatMap group_roles tycl_ds)
-       ; thisPkg  <- fmap thisPackage getDynFlags
-       ; let add_boot_deps :: FreeVars -> FreeVars
-             -- See Note [Extra dependencies from .hs-boot files]
-             add_boot_deps fvs | any (isInPackage thisPkg) (nameSetElems fvs)
-                               = fvs `plusFV` mkFVs extra_deps
-                               | otherwise
-                               = fvs
+       ; _thisPkg  <- fmap thisPackage getDynFlags
+       ; tcg_env      <- getGblEnv
+       ; let this_mod  = tcg_mod tcg_env
+             boot_info = tcg_self_boot tcg_env
 
-             ds_w_fvs' = mapSnd add_boot_deps ds_w_fvs
+             add_boot_deps :: [(LTyClDecl Name, FreeVars)] -> [(LTyClDecl Name, FreeVars)]
+             -- See Note [Extra dependencies from .hs-boot files]
+             add_boot_deps ds_w_fvs
+               = case boot_info of
+                     SelfBoot { sb_tcs = tcs } | not (isEmptyNameSet tcs)
+                        -> map (add_one tcs) ds_w_fvs
+                     _  -> ds_w_fvs
+
+             add_one :: NameSet -> (LTyClDecl Name, FreeVars) -> (LTyClDecl Name, FreeVars)
+             add_one tcs pr@(decl,fvs)
+                | has_local_imports fvs = (decl, fvs `plusFV` tcs)
+                | otherwise             = pr
+
+             has_local_imports fvs
+                             = foldNameSet ((||) . nameIsHomePackageImport this_mod) False fvs
+
+             ds_w_fvs' = add_boot_deps ds_w_fvs
 
              sccs :: [SCC (LTyClDecl Name)]
              sccs = depAnalTyClDecls ds_w_fvs'

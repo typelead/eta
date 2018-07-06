@@ -29,7 +29,7 @@ import Eta.TypeCheck.TcType
 import Eta.Types.InstEnv
 import Eta.Types.FamInstEnv
 import Eta.Prelude.PrelNames
-
+import Eta.Utils.Maybes
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.VarSet
@@ -119,53 +119,63 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 tcg_th_remote_state  = th_remote_state_var,
 #endif /* ETA_REPL */
 
-                tcg_mod            = mod,
-                tcg_src            = hsc_src,
-                tcg_sig_of         = getSigOf dflags (moduleName mod),
-                tcg_impl_rdr_env   = Nothing,
-                tcg_rdr_env        = emptyGlobalRdrEnv,
-                tcg_fix_env        = emptyNameEnv,
-                tcg_field_env      = RecFields emptyNameEnv emptyNameSet,
-                tcg_default        = Nothing,
-                tcg_type_env       = emptyNameEnv,
-                tcg_type_env_var   = type_env_var,
-                tcg_inst_env       = emptyInstEnv,
-                tcg_fam_inst_env   = emptyFamInstEnv,
-                tcg_ann_env        = emptyAnnEnv,
+                tcg_mod             = mod,
+                tcg_semantic_mod    =
+                    if thisPackage dflags == moduleUnitId mod
+                        then canonicalizeHomeModule dflags (moduleName mod)
+                        else mod,
+                tcg_src             = hsc_src,
+                tcg_rdr_env         = emptyGlobalRdrEnv,
+                tcg_fix_env         = emptyNameEnv,
+                tcg_field_env       = RecFields emptyNameEnv emptyNameSet,
+                tcg_default         = Nothing,
+                tcg_type_env        = emptyNameEnv,
+                tcg_type_env_var    = type_env_var,
+                tcg_inst_env        = emptyInstEnv,
+                tcg_fam_inst_env    = emptyFamInstEnv,
+                tcg_ann_env         = emptyAnnEnv,
                 tcg_visible_orphan_mods = mkModuleSet [mod],
-                tcg_th_used        = th_var,
-                tcg_th_splice_used = th_splice_var,
-                tcg_exports        = [],
-                tcg_imports        = emptyImportAvails,
-                tcg_used_rdrnames  = used_rdr_var,
-                tcg_dus            = emptyDUs,
+                tcg_th_used         = th_var,
+                tcg_th_splice_used  = th_splice_var,
+                tcg_exports         = [],
+                tcg_imports         = emptyImportAvails,
+                tcg_used_rdrnames   = used_rdr_var,
+                tcg_dus             = emptyDUs,
 
-                tcg_rn_imports     = [],
-                tcg_rn_exports     = maybe_rn_syntax [],
-                tcg_rn_decls       = maybe_rn_syntax emptyRnGroup,
+                tcg_rn_imports      = [],
+                tcg_rn_exports      =
+                    if hsc_src == HsigFile
+                        -- Always retain renamed syntax, so that we can give
+                        -- better errors.  (TODO: how?)
+                        then Just []
+                        else maybe_rn_syntax [],
+                tcg_rn_decls        = maybe_rn_syntax emptyRnGroup,
 
-                tcg_binds          = emptyLHsBinds,
-                tcg_imp_specs      = [],
-                tcg_sigs           = emptyNameSet,
-                tcg_ev_binds       = emptyBag,
-                tcg_warns          = NoWarnings,
-                tcg_anns           = [],
-                tcg_tcs            = [],
-                tcg_insts          = [],
-                tcg_fam_insts      = [],
-                tcg_rules          = [],
-                tcg_fords          = [],
-                tcg_vects          = [],
-                tcg_patsyns        = [],
-                tcg_dfun_n         = dfun_n_var,
-                tcg_keep           = keep_var,
-                tcg_doc_hdr        = Nothing,
-                tcg_hpc            = False,
-                tcg_main           = Nothing,
-                tcg_safeInfer      = infer_var,
+                tcg_binds           = emptyLHsBinds,
+                tcg_imp_specs       = [],
+                tcg_sigs            = emptyNameSet,
+                tcg_ev_binds        = emptyBag,
+                tcg_warns           = NoWarnings,
+                tcg_anns            = [],
+                tcg_tcs             = [],
+                tcg_insts           = [],
+                tcg_fam_insts       = [],
+                tcg_rules           = [],
+                tcg_fords           = [],
+                tcg_vects           = [],
+                tcg_patsyns         = [],
+                tcg_merged          = [],
+                tcg_dfun_n          = dfun_n_var,
+                tcg_keep            = keep_var,
+                tcg_doc_hdr         = Nothing,
+                tcg_hpc             = False,
+                tcg_main            = Nothing,
+                tcg_self_boot       = NoSelfBoot,
+                tcg_safeInfer       = infer_var,
                 tcg_dependent_files = dependent_files_var,
-                tcg_tc_plugins     = [],
-                tcg_static_wc      = static_wc_var
+                tcg_tc_plugins      = [],
+                tcg_top_loc         = loc,
+                tcg_static_wc       = static_wc_var
              } ;
              lcl_env = TcLclEnv {
                 tcl_errs       = errs_var,
@@ -384,6 +394,16 @@ getEpsAndHpt :: TcRnIf gbl lcl (ExternalPackageState, HomePackageTable)
 getEpsAndHpt = do { env <- getTopEnv; eps <- readMutVar (hsc_EPS env)
                   ; return (eps, hsc_HPT env) }
 
+-- | A convenient wrapper for taking a @MaybeErr MsgDoc a@ and throwing
+-- an exception if it is an error.
+withException :: TcRnIf gbl lcl (MaybeErr MsgDoc a) -> TcRnIf gbl lcl a
+withException do_this = do
+    r <- do_this
+    dflags <- getDynFlags
+    case r of
+        Failed err -> liftIO $ throwGhcExceptionIO (ProgramError (showSDoc dflags err))
+        Succeeded result -> return result
+
 {-
 ************************************************************************
 *                                                                      *
@@ -599,9 +619,9 @@ traceOptIf flag doc
 *                                                                      *
 ************************************************************************
 -}
-
-setModule :: Module -> TcRn a -> TcRn a
-setModule mod thing_inside = updGblEnv (\env -> env { tcg_mod = mod }) thing_inside
+--
+-- setModule :: Module -> TcRn a -> TcRn a
+-- setModule mod thing_inside = updGblEnv (\env -> env { tcg_mod = mod }) thing_inside
 
 getIsGHCi :: TcRn Bool
 getIsGHCi = do { mod <- getModule
@@ -615,6 +635,9 @@ getInteractivePrintName = do { hsc <- getTopEnv; return (ic_int_print $ hsc_IC h
 
 tcIsHsBootOrSig :: TcRn Bool
 tcIsHsBootOrSig = do { env <- getGblEnv; return (isHsBootOrSig (tcg_src env)) }
+
+tcSelfBootInfo :: TcRn SelfBootInfo
+tcSelfBootInfo = do { env <- getGblEnv; return (tcg_self_boot env) }
 
 getGlobalRdrEnv :: TcRn GlobalRdrEnv
 getGlobalRdrEnv = do { env <- getGblEnv; return (tcg_rdr_env env) }
@@ -1242,6 +1265,15 @@ pushTcLevelM thing_inside
        ; setLclEnv (env { tcl_tclvl = tclvl' })
                    thing_inside }
 
+pushTcLevelM2 :: TcM a -> TcM (a, TcLevel)
+-- See Note [TcLevel assignment] in TcType
+pushTcLevelM2 thing_inside
+ = do { env <- getLclEnv
+      ; let tclvl' = pushTcLevel (tcl_tclvl env)
+      ; res <- setLclEnv (env { tcl_tclvl = tclvl' })
+                         thing_inside
+      ; return (res, tclvl') }
+
 getTcLevel :: TcM TcLevel
 getTcLevel = do { env <- getLclEnv
                      ; return (tcl_tclvl env) }
@@ -1430,11 +1462,13 @@ setLocalRdrEnv rdr_env thing_inside
 ************************************************************************
 -}
 
-mkIfLclEnv :: Module -> SDoc -> IfLclEnv
-mkIfLclEnv mod loc = IfLclEnv { if_mod     = mod,
-                                if_loc     = loc,
-                                if_tv_env  = emptyUFM,
-                                if_id_env  = emptyUFM }
+mkIfLclEnv :: Module -> SDoc -> Bool -> IfLclEnv
+mkIfLclEnv mod loc boot = IfLclEnv { if_mod     = mod,
+                                     if_loc     = loc,
+                                     if_boot    = boot,
+                                     if_tv_env  = emptyUFM,
+                                     if_nsubst  = Nothing,
+                                     if_id_env  = emptyUFM }
 
 -- | Run an 'IfG' (top-level interface monad) computation inside an existing
 -- 'TcRn' (typecheck-renaming monad) computation by initializing an 'IfGblEnv'
@@ -1442,11 +1476,32 @@ mkIfLclEnv mod loc = IfLclEnv { if_mod     = mod,
 initIfaceTcRn :: IfG a -> TcRn a
 initIfaceTcRn thing_inside
   = do  { tcg_env <- getGblEnv
+        ; dflags <- getDynFlags
+              ; let mod = tcg_semantic_mod tcg_env
+                    -- When we are instantiating a signature, we DEFINITELY
+                    -- do not want to knot tie.
+                    is_instantiate = unitIdIsDefinite (thisPackage dflags) &&
+                                     not (null (thisUnitIdInsts dflags))
         ; let { if_env = IfGblEnv {
-                            if_rec_types = Just (tcg_mod tcg_env, get_type_env)
+                              if_rec_types =
+                                  if is_instantiate
+                                      then Nothing
+                                      else Just (mod, get_type_env)
                          }
               ; get_type_env = readTcRef (tcg_type_env_var tcg_env) }
         ; setEnvs (if_env, ()) thing_inside }
+
+-- Used when sucking in a ModIface into a ModDetails to put in
+-- the HPT.  Notably, unlike initIfaceCheck, this does NOT use
+-- hsc_type_env_var (since we're not actually going to typecheck,
+-- so this variable will never get updated!)
+initIfaceLoad :: HscEnv -> IfG a -> IO a
+initIfaceLoad hsc_env do_this
+ = do let gbl_env = IfGblEnv {
+                        -- if_doc = text "initIfaceLoad",
+                        if_rec_types = Nothing
+                    }
+      initTcRnIf 'i' hsc_env gbl_env () do_this
 
 initIfaceCheck :: HscEnv -> IfG a -> IO a
 -- Used when checking the up-to-date-ness of the old Iface
@@ -1458,26 +1513,16 @@ initIfaceCheck hsc_env do_this
           gbl_env = IfGblEnv { if_rec_types = rec_types }
       initTcRnIf 'i' hsc_env gbl_env () do_this
 
-initIfaceTc :: ModIface
-            -> (TcRef TypeEnv -> IfL a) -> TcRnIf gbl lcl a
--- Used when type-checking checking an up-to-date interface file
--- No type envt from the current module, but we do know the module dependencies
-initIfaceTc iface do_this
- = do   { tc_env_var <- newTcRef emptyTypeEnv
-        ; let { gbl_env = IfGblEnv {
-                            if_rec_types = Just (mod, readTcRef tc_env_var)
-                          } ;
-              ; if_lenv = mkIfLclEnv mod doc
-           }
-        ; setEnvs (gbl_env, if_lenv) (do_this tc_env_var)
-    }
-  where
-    mod = mi_module iface
-    doc = ptext (sLit "The interface for") <+> quotes (ppr mod)
+initIfaceLcl :: Module -> SDoc -> Bool -> IfL a -> IfM lcl a
+initIfaceLcl mod loc_doc hi_boot_file thing_inside
+  = setLclEnv (mkIfLclEnv mod loc_doc hi_boot_file) thing_inside
 
-initIfaceLcl :: Module -> SDoc -> IfL a -> IfM lcl a
-initIfaceLcl mod loc_doc thing_inside
-  = setLclEnv (mkIfLclEnv mod loc_doc) thing_inside
+-- | Initialize interface typechecking, but with a 'NameShape'
+-- to apply when typechecking top-level 'OccName's (see
+-- 'lookupIfaceTop')
+initIfaceLclWithSubst :: Module -> SDoc -> Bool -> NameShape -> IfL a -> IfM lcl a
+initIfaceLclWithSubst mod loc_doc hi_boot_file nsubst thing_inside
+  = setLclEnv ((mkIfLclEnv mod loc_doc hi_boot_file) { if_nsubst = Just nsubst }) thing_inside
 
 getIfModule :: IfL Module
 getIfModule = do { env <- getLclEnv; return (if_mod env) }

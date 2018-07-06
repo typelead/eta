@@ -21,7 +21,7 @@ import Eta.HsSyn.HsSyn
 import Eta.Types.Class
 import Eta.Types.Type
 import Eta.Types.Kind
-import Eta.Main.HscTypes
+import Eta.TypeCheck.TcRnTypes    ( SelfBootInfo(..) )
 import Eta.Types.TyCon
 import Eta.BasicTypes.DataCon
 import Eta.BasicTypes.Var
@@ -31,7 +31,6 @@ import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.NameSet
 import Eta.Types.Coercion ( ltRole )
-import Eta.BasicTypes.Avail
 import Eta.Utils.Digraph
 import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.SrcLoc
@@ -358,7 +357,7 @@ data RecTyInfo = RTI { rti_promotable :: Bool
                      , rti_roles      :: Name -> [Role]
                      , rti_is_rec     :: Name -> RecFlag }
 
-calcRecFlags :: ModDetails -> Bool  -- hs-boot file?
+calcRecFlags :: SelfBootInfo -> Bool  -- hs-boot file?
              -> RoleAnnots -> [TyThing] -> RecTyInfo
 -- The 'boot_names' are the things declared in M.hi-boot, if M is the current module.
 -- Any type constructors in boot_names are automatically considered loop breakers
@@ -380,7 +379,9 @@ calcRecFlags boot_details is_boot mrole_env tyclss
     is_rec n | n `elemNameSet` rec_names = Recursive
              | otherwise                 = NonRecursive
 
-    boot_name_set = availsToNameSet (md_exports boot_details)
+    boot_name_set = case boot_details of
+                      NoSelfBoot                -> emptyNameSet
+                      SelfBoot { sb_tcs = tcs } -> tcs
     rec_names = boot_name_set     `unionNameSet`
                 nt_loop_breakers  `unionNameSet`
                 prod_loop_breakers

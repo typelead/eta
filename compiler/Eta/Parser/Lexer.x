@@ -63,7 +63,7 @@ module Eta.Parser.Lexer (
    getPState, getDynFlags, withThisPackage,
    failLocMsgP, failSpanMsgP, srcParseFail,
    getMessages,
-   popContext, pushCurrentContext, setLastToken, setSrcLoc,
+   popContext, pushModuleContext, pushCurrentContext, setLastToken, setSrcLoc,
    activeContext, nextIsEOF,
    getLexState, popLexState, pushLexState,
    extension, bangPatEnabled, datatypeContextsEnabled,
@@ -289,13 +289,13 @@ $tab+         { warn Opt_WarnTabs (text "Tab character") }
 
 -- after an 'if', a vertical bar starts a layout context for MultiWayIf
 <layout_if> {
-  \| / { notFollowedBySymbol }          { new_layout_context True ITvbar }
+  \| / { notFollowedBySymbol }          { new_layout_context True dontGenerateSemic ITvbar }
   ()                                    { pop }
 }
 
 -- do is treated in a subtly different way, see new_layout_context
-<layout>    ()                          { new_layout_context True  ITvocurly }
-<layout_do> ()                          { new_layout_context False ITvocurly }
+<layout>    ()                          { new_layout_context True generateSemic ITvocurly }
+<layout_do> ()                          { new_layout_context False generateSemic ITvocurly }
 
 -- after a new layout context which was found to be to the left of the
 -- previous context, we have generated a '{' token, and we now need to
@@ -574,6 +574,12 @@ data Token
   | ITpattern
   | ITstatic
 
+  -- Backpack tokens
+  | ITunit
+  | ITsignature
+  | ITdependency
+  | ITrequires
+
   -- Pragmas, see  note [Pragma source text] in BasicTypes
   | ITinline_prag       SourceText InlineSpec RuleMatchInfo
   | ITspec_prag         SourceText                -- SPECIALISE
@@ -783,6 +789,11 @@ reservedWordsFM = listToUFM $
          ( "prim",           ITprimcallconv,  xbit FfiBit),
          ( "java",           ITjava,          xbit FfiBit),
 
+         ( "unit",           ITunit,          0 ),
+         ( "dependency",     ITdependency,    0 ),
+         ( "signature",      ITsignature,     0 ),
+
+
          ( "rec",            ITrec,           xbit ArrowsBit .|.
                                               xbit RecursiveDoBit),
          ( "proc",           ITproc,          xbit ArrowsBit)
@@ -899,7 +910,7 @@ hopefully_open_brace span buf len
       let offset = srcLocCol l
           isOK = relaxed ||
                  case ctx of
-                 Layout prev_off : _ -> prev_off < offset
+                 Layout prev_off _ : _ -> prev_off < offset
                  _                   -> True
       if isOK then pop_and open_brace span buf len
               else failSpanMsgP (RealSrcSpan span) (text "Missing block")
@@ -1251,14 +1262,14 @@ readFractionalLit str = ((FL $! (Just str)) $! is_neg) $! readRational str
 -- we're at the first token on a line, insert layout tokens if necessary
 do_bol :: Action
 do_bol span _str _len = do
-        pos <- getOffside
+        (pos, gen_semic) <- getOffside
         case pos of
             e@LT -> do
                 traceLexer ("layout: inserting '}' " ++ show e) $ do
                 popContext
                 -- do NOT pop the lex state, we might have a ';' to insert
                 return (L span ITvccurly)
-            e@EQ -> do
+            e@EQ | gen_semic -> do
                 traceLexer ("layout: inserting ';' " ++ show e) $ do
                 _ <- popLexState
                 l <- getLexState
@@ -1266,7 +1277,7 @@ do_bol span _str _len = do
                   _ <- popLexState
                   return ()
                 return (L span ITsemi)
-            GT -> do
+            _ -> do
                 _ <- popLexState
                 lexToken
 
@@ -1301,8 +1312,8 @@ maybe_layout t = do -- If the alternative layout rule is enabled then
 -- by a 'do', then we allow the new context to be at the same indentation as
 -- the previous context.  This is what the 'strict' argument is for.
 --
-new_layout_context :: Bool -> Token -> Action
-new_layout_context strict tok span _buf len = do
+new_layout_context :: Bool -> Bool -> Token -> Action
+new_layout_context strict gen_semic tok span _buf len = do
     _ <- popLexState
     (AI l _) <- getInput
     let offset = srcLocCol l - len
@@ -1310,7 +1321,7 @@ new_layout_context strict tok span _buf len = do
     nondecreasing <- extension nondecreasingIndentation
     let strict' = strict || not nondecreasing
     case ctx of
-        Layout prev_off : _  |
+        Layout prev_off _ : _  |
            (strict'     && prev_off >= offset  ||
             not strict' && prev_off > offset) -> do
                 -- token is indented to the left of the previous context.
@@ -1318,7 +1329,7 @@ new_layout_context strict tok span _buf len = do
                 pushLexState layout_left
                 return (L span tok)
         _ -> do
-                setContext (Layout offset : ctx)
+                setContext (Layout offset gen_semic : ctx)
                 return (L span tok)
 
 do_layout_left :: Action
@@ -1704,9 +1715,19 @@ warnThen option warning action srcspan buf len = do
 -- -----------------------------------------------------------------------------
 -- The Parse Monad
 
+-- | Do we want to generate ';' layout tokens? In some cases we just want to
+-- generate '}', e.g. in MultiWayIf we don't need ';'s because '|' separates
+-- alternatives (unlike a `case` expression where we need ';' to as a separator
+-- between alternatives).
+type GenSemic = Bool
+
+generateSemic, dontGenerateSemic :: GenSemic
+generateSemic     = True
+dontGenerateSemic = False
+
 data LayoutContext
   = NoLayout
-  | Layout !Int
+  | Layout !Int !GenSemic
   deriving Show
 
 data ParseResult a
@@ -2213,21 +2234,26 @@ popContext = P $ \ s@(PState{ buffer = buf, dflags = flags, context = ctx,
         []     -> PFailed (RealSrcSpan last_loc) (srcParseErr flags buf len)
 
 -- Push a new layout context at the indentation of the last token read.
--- This is only used at the outer level of a module when the 'module'
--- keyword is missing.
-pushCurrentContext :: P ()
-pushCurrentContext = P $ \ s@PState{ last_loc=loc, context=ctx } ->
-    POk s{context = Layout (srcSpanStartCol loc) : ctx} ()
+pushCurrentContext :: GenSemic -> P ()
+pushCurrentContext gen_semic = P $ \ s@PState{ last_loc=loc, context=ctx } ->
+    POk s{context = Layout (srcSpanStartCol loc) gen_semic : ctx} ()
 
-getOffside :: P Ordering
+-- This is only used at the outer level of a module when the 'module' keyword is
+-- missing.
+pushModuleContext :: P ()
+pushModuleContext = pushCurrentContext generateSemic
+
+getOffside :: P (Ordering, Bool)
 getOffside = P $ \s@PState{last_loc=loc, context=stk} ->
                 let offs = srcSpanStartCol loc in
                 let ord = case stk of
-                        (Layout n:_) -> -- traceLexer ("layout: " ++ show n ++ ", offs: " ++ show offs) $
-                                        compare offs n
-                        _            -> GT
+                            Layout n gen_semic : _ ->
+                              --trace ("layout: " ++ show n ++ ", offs: " ++ show offs) $
+                              (compare offs n, gen_semic)
+                            _ ->
+                              (GT, dontGenerateSemic)
                 in POk s ord
-
+                
 -- ---------------------------------------------------------------------------
 -- Construct a parse error
 

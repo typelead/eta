@@ -56,6 +56,7 @@ module Eta.Utils.Outputable (
         reallyAlwaysQualify, reallyAlwaysQualifyNames,
         alwaysQualify, alwaysQualifyNames, alwaysQualifyModules,
         neverQualify, neverQualifyNames, neverQualifyModules,
+        alwaysQualifyPackages, neverQualifyPackages,
         QualifyName(..), queryQual,
         sdocWithDynFlags, sdocWithPlatform,
         getPprStyle, withPprStyle, withPprStyleDoc, setStyleColored,
@@ -74,12 +75,12 @@ module Eta.Utils.Outputable (
 
 import {-# SOURCE #-}   Eta.Main.DynFlags( DynFlags,
                                   targetPlatform, pprUserLength, pprCols,
-                                  useUnicode, useUnicodeSyntax,
+                                  useUnicode, useUnicodeSyntax, hasPprDebug,
                                   shouldUseColor,
                                   unsafeGlobalDynFlags, hasPprDebug )
 import {-# SOURCE #-}   Eta.BasicTypes.Module( UnitId, Module, ModuleName, moduleName )
 import {-# SOURCE #-}   Eta.BasicTypes.OccName( OccName )
-import {-# SOURCE #-}   Eta.Main.StaticFlags( opt_PprStyle_Debug, opt_NoDebugOutput )
+import {-# SOURCE #-}   Eta.Main.StaticFlags( opt_NoDebugOutput )
 
 import Eta.REPL.RemoteTypes
 import Eta.Utils.FastString
@@ -106,6 +107,7 @@ import Text.Printf
 import Data.String
 import GHC.Fingerprint
 import GHC.Show         ( showMultiLineString )
+import Control.Exception (finally)
 
 {-
 ************************************************************************
@@ -217,17 +219,19 @@ neverQualify  = QueryQualify neverQualifyNames
                              neverQualifyModules
                              neverQualifyPackages
 
-defaultUserStyle, defaultDumpStyle :: PprStyle
+defaultUserStyle :: DynFlags -> PprStyle
+defaultUserStyle dflags = mkUserStyle dflags neverQualify AllTheWay
 
-defaultUserStyle = mkUserStyle neverQualify AllTheWay
+defaultDumpStyle :: DynFlags -> PprStyle
  -- Print without qualifiers to reduce verbosity, unless -dppr-debug
+defaultDumpStyle dflags
+   | hasPprDebug dflags = PprDebug
+   | otherwise          = PprDump neverQualify
 
-defaultDumpStyle |  opt_PprStyle_Debug = PprDebug
-                 |  otherwise          = PprDump neverQualify
-
-mkDumpStyle :: PrintUnqualified -> PprStyle
-mkDumpStyle print_unqual | opt_PprStyle_Debug = PprDebug
-                         | otherwise          = PprDump print_unqual
+mkDumpStyle :: DynFlags -> PrintUnqualified -> PprStyle
+mkDumpStyle dflags print_unqual
+  | hasPprDebug dflags = PprDebug
+  | otherwise          = PprDump print_unqual
 
 defaultErrStyle :: DynFlags -> PprStyle
 -- Default style for error messages, when we don't know PrintUnqualified
@@ -238,14 +242,15 @@ defaultErrStyle dflags = mkErrStyle dflags neverQualify
 
 -- | Style for printing error messages
 mkErrStyle :: DynFlags -> PrintUnqualified -> PprStyle
-mkErrStyle dflags qual = mkUserStyle qual (PartWay (pprUserLength dflags))
+mkErrStyle dflags qual =
+   mkUserStyle dflags qual (PartWay (pprUserLength dflags))
 
-cmdlineParserStyle :: PprStyle
-cmdlineParserStyle = mkUserStyle alwaysQualify AllTheWay
+cmdlineParserStyle :: DynFlags -> PprStyle
+cmdlineParserStyle dflags = mkUserStyle dflags alwaysQualify AllTheWay
 
-mkUserStyle :: PrintUnqualified -> Depth -> PprStyle
-mkUserStyle unqual depth
-   | opt_PprStyle_Debug = PprDebug
+mkUserStyle :: DynFlags -> PrintUnqualified -> Depth -> PprStyle
+mkUserStyle dflags unqual depth
+   | hasPprDebug dflags = PprDebug
    | otherwise          = PprUser unqual depth Uncolored
 
 setStyleColored :: Bool -> PprStyle -> PprStyle
@@ -384,22 +389,44 @@ ifPprDebug d = SDoc $ \ctx ->
         SDC{sdocStyle=PprDebug} -> runSDoc d ctx
         _                       -> Pretty.empty
 
+-- | The analog of 'Pretty.printDoc_' for 'SDoc', which tries to make sure the
+--   terminal doesn't get screwed up by the ANSI color codes if an exception
+--   is thrown during pretty-printing.
+printSDoc :: Mode -> DynFlags -> Handle -> PprStyle -> SDoc -> IO ()
+printSDoc mode dflags handle sty doc =
+  Pretty.printDoc_ mode cols handle (runSDoc doc ctx)
+    `finally`
+      Pretty.printDoc_ mode cols handle
+        (runSDoc (colored Col.colReset empty) ctx)
+  where
+    cols = pprCols dflags
+    ctx = initSDocContext dflags sty
+
+-- | Like 'printSDoc' but appends an extra newline.
+printSDocLn :: Mode -> DynFlags -> Handle -> PprStyle -> SDoc -> IO ()
+printSDocLn mode dflags handle sty doc =
+  printSDoc mode dflags handle sty (doc $$ text "")
+
+-- printForUser :: DynFlags -> Handle -> PrintUnqualified -> SDoc -> IO ()
+-- printForUser dflags handle unqual doc
+--   = Pretty.printDoc PageMode (pprCols dflags) handle
+--       (runSDoc doc (initSDocContext dflags (mkUserStyle unqual AllTheWay)))
+
 printForUser :: DynFlags -> Handle -> PrintUnqualified -> SDoc -> IO ()
 printForUser dflags handle unqual doc
-  = Pretty.printDoc PageMode (pprCols dflags) handle
-      (runSDoc doc (initSDocContext dflags (mkUserStyle unqual AllTheWay)))
+  = printSDocLn PageMode dflags handle
+               (mkUserStyle dflags unqual AllTheWay) doc
 
 printForUserColored :: DynFlags -> Handle -> PrintUnqualified -> SDoc -> IO ()
 printForUserColored dflags handle unqual doc
-  = Pretty.printDoc PageMode (pprCols dflags) handle
-      (runSDoc doc (initSDocContext dflags
-      (setStyleColored True (mkUserStyle unqual AllTheWay))))
+  = printSDocLn PageMode dflags handle
+      (setStyleColored True (mkUserStyle dflags unqual AllTheWay)) doc
 
 printForUserPartWay :: DynFlags -> Handle -> Int -> PrintUnqualified -> SDoc
                     -> IO ()
 printForUserPartWay dflags handle d unqual doc
-  = Pretty.printDoc PageMode (pprCols dflags) handle
-      (runSDoc doc (initSDocContext dflags (mkUserStyle unqual (PartWay d))))
+  = printSDocLn PageMode dflags handle
+                (mkUserStyle dflags unqual (PartWay d)) doc
 
 -- printForC, printForAsm do what they sound like
 printForC :: DynFlags -> Handle -> SDoc -> IO ()
@@ -422,10 +449,10 @@ mkCodeStyle = PprCode
 -- However, Doc *is* an instance of Show
 -- showSDoc just blasts it out as a string
 showSDoc :: DynFlags -> SDoc -> String
-showSDoc dflags sdoc = renderWithStyle dflags sdoc defaultUserStyle
+showSDoc dflags sdoc = renderWithStyle dflags sdoc (defaultUserStyle dflags)
 
 showSDocWithColor :: DynFlags -> SDoc -> String
-showSDocWithColor dflags sdoc = renderWithStyle dflags sdoc (setStyleColored True defaultUserStyle)
+showSDocWithColor dflags sdoc = renderWithStyle dflags sdoc (setStyleColored True (defaultUserStyle dflags))
 
 -- showSDocUnsafe is unsafe, because `unsafeGlobalDynFlags` might not be
 -- initialised yet.
@@ -442,15 +469,15 @@ showSDocUnqual dflags sdoc = showSDoc dflags sdoc
 showSDocForUser :: DynFlags -> PrintUnqualified -> SDoc -> String
 -- Allows caller to specify the PrintUnqualified to use
 showSDocForUser dflags unqual doc
- = renderWithStyle dflags doc (mkUserStyle unqual AllTheWay)
+ = renderWithStyle dflags doc (mkUserStyle dflags unqual AllTheWay)
 
 showSDocForUserColored :: DynFlags -> PrintUnqualified -> SDoc -> String
 -- Allows caller to specify the PrintUnqualified to use
 showSDocForUserColored dflags unqual doc
- = renderWithStyle dflags doc (setStyleColored True (mkUserStyle unqual AllTheWay))
+ = renderWithStyle dflags doc (setStyleColored True (mkUserStyle dflags unqual AllTheWay))
 
 showSDocDump :: DynFlags -> SDoc -> String
-showSDocDump dflags d = renderWithStyle dflags d defaultDumpStyle
+showSDocDump dflags d = renderWithStyle dflags d (defaultDumpStyle dflags)
 
 showSDocDebug :: DynFlags -> SDoc -> String
 showSDocDebug dflags d = renderWithStyle dflags d PprDebug
@@ -466,12 +493,12 @@ renderWithStyle dflags sdoc sty
 showSDocOneLine :: DynFlags -> SDoc -> String
 showSDocOneLine dflags d
  = Pretty.showDoc OneLineMode (pprCols dflags) $
-   runSDoc d (initSDocContext dflags defaultUserStyle)
+   runSDoc d (initSDocContext dflags (defaultUserStyle dflags))
 
 showSDocDumpOneLine :: DynFlags -> SDoc -> String
 showSDocDumpOneLine dflags d
  = Pretty.showDoc OneLineMode irrelevantNCols $
-   runSDoc d (initSDocContext dflags defaultDumpStyle)
+   runSDoc d (initSDocContext dflags (defaultDumpStyle dflags))
 
 irrelevantNCols :: Int
 -- Used for OneLineMode and LeftMode when number of cols isn't used

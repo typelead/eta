@@ -30,10 +30,12 @@ module Eta.TypeCheck.TcRnTypes(
         -- Ranamer types
         ErrCtxt, RecFieldEnv(..),
         ImportAvails(..), emptyImportAvails, plusImportAvails,
-        WhereFrom(..), mkModDeps,
+        WhereFrom(..), mkModDeps, modDepsElts,
 
         -- Typechecker types
-        TcTypeEnv, TcIdBinder(..), TcTyThing(..), PromotionErr(..),
+        TcTypeEnv, TcIdBinder(..),
+        TcTyThing(..), PromotionErr(..),
+        SelfBootInfo(..),
         pprTcTyThingCategory, pprPECategory,
 
         -- Desugaring types
@@ -61,7 +63,7 @@ module Eta.TypeCheck.TcRnTypes(
         ctEvTerm, ctEvCoercion, ctEvId, ctEvCheckDepth,
 
         WantedConstraints(..), insolubleWC, emptyWC, isEmptyWC,
-        andWC, unionsWC, addSimples, addImplics, mkSimpleWC, addInsols,
+        andWC, unionsWC, addSimples, addImplics, mkSimpleWC, mkImplicWC, addInsols,
         insolublesOnly, dropDerivedWC,
 
         Implication(..),
@@ -93,7 +95,8 @@ module Eta.TypeCheck.TcRnTypes(
         pprArising, pprArisingAt,
 
         -- Misc other types
-        TcId, TcIdSet, HoleSort(..)
+        TcId, TcIdSet, HoleSort(..),
+        NameShape(..)
 
   ) where
 
@@ -137,14 +140,43 @@ import Eta.DeSugar.PmExpr
 import GHC.Fingerprint
 
 import Data.Set (Set)
+import qualified Data.Set as S
 import Control.Monad (ap, liftM, msum)
 
 #ifdef ETA_REPL
 import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
+import Data.List     ( sort )
 import Data.Typeable ( TypeRep )
 import Eta.REPL.RemoteTypes
 #endif
+
+-- | A 'NameShape' is a substitution on 'Name's that can be used
+-- to refine the identities of a hole while we are renaming interfaces
+-- (see 'RnModIface').  Specifically, a 'NameShape' for
+-- 'ns_module_name' @A@, defines a mapping from @{A.T}@
+-- (for some 'OccName' @T@) to some arbitrary other 'Name'.
+--
+-- The most intruiging thing about a 'NameShape', however, is
+-- how it's constructed.  A 'NameShape' is *implied* by the
+-- exported 'AvailInfo's of the implementor of an interface:
+-- if an implementor of signature @<H>@ exports @M.T@, you implicitly
+-- define a substitution from @{H.T}@ to @M.T@.  So a 'NameShape'
+-- is computed from the list of 'AvailInfo's that are exported
+-- by the implementation of a module, or successively merged
+-- together by the export lists of signatures which are joining
+-- together.
+--
+-- It's not the most obvious way to go about doing this, but it
+-- does seem to work!
+--
+-- NB: Can't boot this and put it in NameShape because then we
+-- start pulling in too many DynFlags things.
+data NameShape = NameShape {
+        ns_mod_name :: ModuleName,
+        ns_exports :: [AvailInfo],
+        ns_map :: OccEnv Name
+    }
 
 {-
 ************************************************************************
@@ -220,6 +252,7 @@ data IfGblEnv
         -- was originally a hi-boot file.
         -- We need the module name so we can test when it's appropriate
         -- to look in this env.
+        -- See Note [Tying the knot] in TcIface
         if_rec_types :: Maybe (Module, IfG TypeEnv)
                 -- Allows a read effect, so it can be in a mutable
                 -- variable; c.f. handling the external package type env
@@ -231,15 +264,19 @@ data IfLclEnv
         -- The module for the current IfaceDecl
         -- So if we see   f = \x -> x
         -- it means M.f = \x -> x, where M is the if_mod
+        -- NB: This is a semantic module, see
+        -- Note [Identity versus semantic module]
         if_mod :: Module,
 
         -- The field is used only for error reporting
         -- if (say) there's a Lint error in it
+        if_boot :: Bool,
+
         if_loc :: SDoc,
                 -- Where the interface came from:
                 --      .hi file, or GHCi state, or ext core
                 -- plus which bit is currently being examined
-
+        if_nsubst :: Maybe NameShape,
         if_tv_env  :: UniqFM TyVar,     -- Nested tyvar bindings
                                         -- (and coercions)
         if_id_env  :: UniqFM Id         -- Nested id binding
@@ -332,24 +369,26 @@ data DsMetaVal
 -- phase and returned at end, use a 'TcRef' (= 'IORef').
 data TcGblEnv
   = TcGblEnv {
-        tcg_mod     :: Module,         -- ^ Module being compiled
-        tcg_src     :: HscSource,
+        tcg_mod          :: Module,         -- ^ Module being compiled
+        tcg_semantic_mod :: Module,    -- ^ If a signature, the backing module
+            -- See also Note [Identity versus semantic module]
+        tcg_src          :: HscSource,
           -- ^ What kind of module (regular Haskell, hs-boot, ext-core)
-        tcg_sig_of  :: Maybe Module,
-          -- ^ Are we being compiled as a signature of an implementation?
-        tcg_impl_rdr_env :: Maybe GlobalRdrEnv,
+        -- tcg_sig_of       :: Maybe Module,
+        --   -- ^ Are we being compiled as a signature of an implementation?
+        -- tcg_impl_rdr_env :: Maybe GlobalRdrEnv,
           -- ^ Environment used only during -sig-of for resolving top level
           -- bindings.  See Note [Signature parameters in TcGblEnv and DynFlags]
 
-        tcg_rdr_env :: GlobalRdrEnv,   -- ^ Top level envt; used during renaming
-        tcg_default :: Maybe [Type],
+        tcg_rdr_env      :: GlobalRdrEnv,   -- ^ Top level envt; used during renaming
+        tcg_default      :: Maybe [Type],
           -- ^ Types used for defaulting. @Nothing@ => no @default@ decl
 
-        tcg_fix_env   :: FixityEnv,     -- ^ Just for things in this module
-        tcg_field_env :: RecFieldEnv,   -- ^ Just for things in this module
+        tcg_fix_env        :: FixityEnv,     -- ^ Just for things in this module
+        tcg_field_env      :: RecFieldEnv,   -- ^ Just for things in this module
                                         -- See Note [The interactive package] in HscTypes
 
-        tcg_type_env :: TypeEnv,
+        tcg_type_env       :: TypeEnv,
           -- ^ Global type env for the module we are compiling now.  All
           -- TyCons and Classes (for this module) end up in here right away,
           -- along with their derived constructors, selectors.
@@ -360,19 +399,19 @@ data TcGblEnv
           -- NB: for what "things in this module" means, see
           -- Note [The interactive package] in HscTypes
 
-        tcg_type_env_var :: TcRef TypeEnv,
+        tcg_type_env_var   :: TcRef TypeEnv,
                 -- Used only to initialise the interface-file
                 -- typechecker in initIfaceTcRn, so that it can see stuff
                 -- bound in this module when dealing with hi-boot recursions
                 -- Updated at intervals (e.g. after dealing with types and classes)
 
-        tcg_inst_env     :: !InstEnv,
+        tcg_inst_env       :: !InstEnv,
           -- ^ Instance envt for all /home-package/ modules;
           -- Includes the dfuns in tcg_insts
         -- NB. BangPattern is to fix a leak, see #15111
-        tcg_fam_inst_env :: !FamInstEnv, -- ^ Ditto for family instances
+        tcg_fam_inst_env   :: !FamInstEnv, -- ^ Ditto for family instances
         -- NB. BangPattern is to fix a leak, see #15111
-        tcg_ann_env      :: AnnEnv,     -- ^ And for annotations
+        tcg_ann_env        :: AnnEnv,     -- ^ And for annotations
 
         tcg_visible_orphan_mods :: ModuleSet,
           -- ^ The set of orphan modules which transitively reachable from
@@ -429,6 +468,10 @@ data TcGblEnv
 
         tcg_dfun_n  :: TcRef OccSet,
           -- ^ Allows us to choose unique DFun names.
+        tcg_merged :: [(Module, Fingerprint)],
+          -- ^ The requirements we merged with; we always have to recompile
+          -- if any of these changed.
+
 
         -- The next fields accumulate the payload of the module
         -- The binds, rules and foreign-decl fields are collected
@@ -485,7 +528,8 @@ data TcGblEnv
         tcg_hpc       :: !AnyHpcUsage,        -- ^ @True@ if any part of the
                                              --  prog uses hpc instrumentation.
           -- NB. BangPattern is to fix a leak, see #15111
-
+        tcg_self_boot :: SelfBootInfo,       -- ^ Whether this module has a
+                                             -- corresponding hi-boot file
         tcg_main      :: Maybe Name,         -- ^ The Name of the main
                                              -- function, if this module is
                                              -- the main module.
@@ -496,6 +540,8 @@ data TcGblEnv
         -- | A list of user-defined plugins for the constraint solver.
         tcg_tc_plugins :: [TcPluginSolver],
 
+        tcg_top_loc :: RealSrcSpan,
+        -- ^ The RealSrcSpan this module came from
         tcg_static_wc :: TcRef WantedConstraints
           -- ^ Wanted constraints of static forms.
         -- See Note [Constraints in static forms].
@@ -522,55 +568,9 @@ data TcGblEnv
 -- static form wouldn't be closed because the Show dictionary would come from
 -- g's context instead of coming from the top level.
 --
--- Note [Signature parameters in TcGblEnv and DynFlags]
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
--- When compiling signature files, we need to know which implementation
--- we've actually linked against the signature.  There are three seemingly
--- redundant places where this information is stored: in DynFlags, there
--- is sigOf, and in TcGblEnv, there is tcg_sig_of and tcg_impl_rdr_env.
--- Here's the difference between each of them:
---
--- * DynFlags.sigOf is global per invocation of GHC.  If we are compiling
---   with --make, there may be multiple signature files being compiled; in
---   which case this parameter is a map from local module name to implementing
---   Module.
---
--- * HscEnv.tcg_sig_of is global per the compilation of a single file, so
---   it is simply the result of looking up tcg_mod in the DynFlags.sigOf
---   parameter.  It's setup in TcRnMonad.initTc.  This prevents us
---   from having to repeatedly do a lookup in DynFlags.sigOf.
---
--- * HscEnv.tcg_impl_rdr_env is a RdrEnv that lets us look up names
---   according to the sig-of module.  It's setup in TcRnDriver.tcRnSignature.
---   Here is an example showing why we need this map:
---
---  module A where
---      a = True
---
---  module ASig where
---      import B
---      a :: Bool
---
---  module B where
---      b = False
---
--- When we compile ASig --sig-of main:A, the default
--- global RdrEnv (tcg_rdr_env) has an entry for b, but not for a
--- (we never imported A).  So we have to look in a different environment
--- to actually get the original name.
---
--- By the way, why do we need to do the lookup; can't we just use A:a
--- as the name directly?  Well, if A is reexporting the entity from another
--- module, then the original name needs to be the real original name:
---
---  module C where
---      a = True
---
---  module A(a) where
---      import C
 
 instance ContainsModule TcGblEnv where
-    extractModule env = tcg_mod env
+    extractModule env = tcg_semantic_mod env
 
 data RecFieldEnv
   = RecFields (NameEnv [Name])  -- Maps a constructor name *in this module*
@@ -584,6 +584,14 @@ data RecFieldEnv
         -- The FieldEnv deals *only* with constructors defined in *this*
         -- module.  For imported modules, we get the same info from the
         -- TypeEnv
+
+data SelfBootInfo
+  = NoSelfBoot    -- No corresponding hi-boot file
+  | SelfBoot
+       { sb_mds :: ModDetails   -- There was a hi-boot file,
+       , sb_tcs :: NameSet }    -- and these Ids
+  -- We need this info to compute a safe approximation to
+  -- recursive loops, to avoid infinite inlinings
 
 {-
 Note [Tracking unused binding and imports]
@@ -1017,12 +1025,12 @@ data ImportAvails
           -- compiling M might not need to consult X.hi, but X
           -- is still listed in M's dependencies.
 
-        imp_dep_pkgs :: [InstalledUnitId],
+        imp_dep_pkgs :: Set InstalledUnitId,
           -- ^ Packages needed by the module being compiled, whether directly,
           -- or via other modules in this package, or via modules imported
           -- from other packages.
 
-        imp_trust_pkgs :: [InstalledUnitId],
+        imp_trust_pkgs :: Set InstalledUnitId,
           -- ^ This is strictly a subset of imp_dep_pkgs and records the
           -- packages the current module needs to trust for Safe Haskell
           -- compilation to succeed. A package is required to be trusted if
@@ -1054,11 +1062,18 @@ mkModDeps deps = foldl add emptyUFM deps
                where
                  add env elt@(m,_) = addToUFM env m elt
 
+modDepsElts
+ :: ModuleNameEnv (ModuleName, IsBootInterface)
+ -> [(ModuleName, IsBootInterface)]
+modDepsElts = sort . nonDetEltsUFM
+ -- It's OK to use nonDetEltsUFM here because sorting by module names
+ -- restores determinism
+
 emptyImportAvails :: ImportAvails
 emptyImportAvails = ImportAvails { imp_mods          = emptyModuleEnv,
                                    imp_dep_mods      = emptyUFM,
-                                   imp_dep_pkgs      = [],
-                                   imp_trust_pkgs    = [],
+                                   imp_dep_pkgs      = S.empty,
+                                   imp_trust_pkgs    = S.empty,
                                    imp_trust_own_pkg = False,
                                    imp_orphs         = [],
                                    imp_finsts        = [] }
@@ -1080,8 +1095,8 @@ plusImportAvails
                   imp_orphs = orphs2, imp_finsts = finsts2 })
   = ImportAvails { imp_mods          = plusModuleEnv_C (++) mods1 mods2,
                    imp_dep_mods      = plusUFM_C plus_mod_dep dmods1 dmods2,
-                   imp_dep_pkgs      = dpkgs1 `unionLists` dpkgs2,
-                   imp_trust_pkgs    = tpkgs1 `unionLists` tpkgs2,
+                   imp_dep_pkgs      = dpkgs1 `S.union` dpkgs2,
+                   imp_trust_pkgs    = tpkgs1 `S.union` tpkgs2,
                    imp_trust_own_pkg = tself1 || tself2,
                    imp_orphs         = orphs1 `unionLists` orphs2,
                    imp_finsts        = finsts1 `unionLists` finsts2 }
@@ -1493,6 +1508,10 @@ emptyWC = WC { wc_simple = emptyBag, wc_impl = emptyBag, wc_insol = emptyBag }
 mkSimpleWC :: [Ct] -> WantedConstraints
 mkSimpleWC cts
   = WC { wc_simple = listToBag cts, wc_impl = emptyBag, wc_insol = emptyBag }
+
+mkImplicWC :: Bag Implication -> WantedConstraints
+mkImplicWC implic
+  = WC { wc_simple = emptyBag, wc_impl = implic, wc_insol = emptyBag }
 
 isEmptyWC :: WantedConstraints -> Bool
 isEmptyWC (WC { wc_simple = f, wc_impl = i, wc_insol = n })
@@ -2182,6 +2201,9 @@ data CtOrigin
   | UnboundOccurrenceOf RdrName
   | ListOrigin          -- An overloaded list
   | StaticOrigin        -- A static form
+  | InstProvidedOrigin Module ClsInst
+        -- Skolem variable arose when we were testing if an instance
+        -- is solvable or not.
 
 ctoHerald :: SDoc
 ctoHerald = ptext (sLit "arising from")
@@ -2225,6 +2247,11 @@ pprCtOrigin (CoercibleOrigin ty1 ty2)
   = hang (ctoHerald <+> text "trying to show that the representations of")
        2 (quotes (ppr ty1) <+> text "and" $$
           quotes (ppr ty2) <+> text "are the same")
+
+pprCtOrigin (InstProvidedOrigin mod cls_inst)
+  = vcat [ text "arising when attempting to show that"
+         , ppr cls_inst
+         , text "is provided by" <+> quotes (ppr mod)]
 
 pprCtOrigin simple_origin
   = ctoHerald <+> pprCtO simple_origin

@@ -83,6 +83,7 @@ module Eta.Main.HscMain
     , hscSimpleIface', hscNormalIface'
     , oneShotMsg
     , hscFileFrontEnd, genericHscFrontend, dumpIfaceStats
+    , ioMsgMaybe, showModuleIndex
     ) where
 
 #ifdef ETA_REPL
@@ -94,7 +95,6 @@ import Eta.Types.Type             ( Type )
 import Eta.Prelude.PrelNames
 import {- Kind parts of -} Eta.Types.Type         ( Kind )
 import Eta.Core.CoreLint         ( lintInteractiveExpr )
-import Eta.Prelude.THNames           ( templateHaskellNames )
 import Eta.BasicTypes.VarEnv           ( emptyTidyEnv )
 import Eta.Utils.Panic
 import Eta.BasicTypes.ConLike
@@ -112,7 +112,7 @@ import Eta.BasicTypes.SrcLoc
 import Eta.TypeCheck.TcRnDriver
 import Eta.Iface.TcIface          ( typecheckIface )
 import Eta.TypeCheck.TcRnMonad
-import Eta.Iface.IfaceEnv         ( initNameCache )
+import Eta.BasicTypes.NameCache   ( initNameCache )
 import Eta.Iface.LoadIface        ( ifaceStats, initExternalPackageState )
 import Eta.Prelude.PrelInfo
 import Eta.Iface.MkIface
@@ -120,29 +120,27 @@ import Eta.DeSugar.DeSugar
 import Eta.SimplCore.SimplCore
 import Eta.Main.TidyPgm
 import Eta.Core.CorePrep
-import Eta.Core.CoreUtils (exprType)
-import Eta.StgSyn.CoreToStg        ( coreToStg )
+import Eta.Core.CoreUtils            (exprType)
+import Eta.StgSyn.CoreToStg          ( coreToStg )
 import Eta.StgSyn.StgSyn
 import Eta.Profiling.CostCentre
 import Eta.Types.TyCon
 import Eta.BasicTypes.Name
 import Eta.SimplStg.SimplStg         ( stg2stg )
-import Eta.BasicTypes.NameEnv          ( emptyNameEnv )
-import Eta.BasicTypes.NameSet          ( emptyNameSet )
+import Eta.BasicTypes.NameEnv        ( emptyNameEnv )
 import Eta.Types.InstEnv
 import Eta.Types.FamInstEnv
-import Eta.Utils.Fingerprint      ( Fingerprint )
+import Eta.Utils.Fingerprint         ( Fingerprint )
 import Eta.Utils.PprColor
 import Eta.Main.Hooks
-
+import Eta.TypeCheck.TcEnv
 import Eta.Main.DynFlags
 import Eta.Main.ErrUtils
 
 import Eta.Utils.Outputable
-import Eta.Main.HscStats         ( ppSourceStats )
+import Eta.Main.HscStats             ( ppSourceStats )
 import Eta.Main.HscTypes
 import Eta.Utils.FastString
-import Eta.Utils.UniqFM           ( emptyUFM )
 import Eta.BasicTypes.UniqSupply
 import Eta.Utils.Bag
 import Eta.Utils.Exception
@@ -156,12 +154,13 @@ import Eta.Main.Packages
 import Codec.JVM
 
 import Data.List
-import Data.Maybe
 import Data.IORef
 import System.FilePath as FilePath
 import System.Directory
 import qualified Data.Map as M
 import qualified Data.Text as T
+import qualified Data.Set as S
+import Data.Set (Set)
 import Control.Arrow((&&&))
 import Control.Monad
 import Data.Data hiding (Fixity)
@@ -179,7 +178,7 @@ newHscEnv dflags = do
     eps_var <- newIORef initExternalPackageState
     us      <- mkSplitUniqSupply 'r'
     nc_var  <- newIORef (initNameCache us knownKeyNames)
-    fc_var  <- newIORef emptyUFM
+    fc_var  <- newIORef emptyInstalledModuleEnv
     iserv_mvar <- newMVar Nothing
     mlc_var <- newIORef emptyModuleEnv
     ic      <- newInteractiveContext dflags
@@ -196,15 +195,6 @@ newHscEnv dflags = do
                      hsc_MLC          = mlc_var,
                      hsc_type_env_var = Nothing,
                      hsc_classIndex   = idx_var }
-
-
-knownKeyNames :: [Name]      -- Put here to avoid loops involving DsMeta,
-knownKeyNames =              -- where templateHaskellNames are defined
-    map getName wiredInThings
-        ++ basicKnownKeyNames
-#ifdef ETA_REPL
-        ++ templateHaskellNames
-#endif
 
 -- -----------------------------------------------------------------------------
 
@@ -321,7 +311,9 @@ hscParse hsc_env mod_summary = runHsc hsc_env $ hscParse' mod_summary
 
 -- internal version, that doesn't fail due to -Werror
 hscParse' :: ModSummary -> Hsc HsParsedModule
-hscParse' mod_summary = do
+hscParse' mod_summary
+ | Just r <- ms_parsed_mod mod_summary = return r
+ | otherwise = do
     dflags <- getDynFlags
     let src_filename  = ms_hspp_file mod_summary
         maybe_src_buf = ms_hspp_buf  mod_summary
@@ -338,8 +330,11 @@ hscParse' mod_summary = do
                Nothing -> liftIO $ hGetStringBuffer src_filename
 
     let loc = mkRealSrcLoc (mkFastString src_filename) 1 1
+    let parseMod | HsigFile == ms_hsc_src mod_summary
+                 = parseSignature
+                 | otherwise = parseModule
 
-    case unP parseModule (mkPState dflags buf loc) of
+    case unP parseMod (mkPState dflags buf loc) of
         PFailed span err ->
             liftIO $ throwOneError (mkPlainErrMsg dflags span err)
 
@@ -396,7 +391,7 @@ type RenamedStuff =
 hscTypecheckRename :: HscEnv -> ModSummary -> HsParsedModule
                    -> IO (TcGblEnv, RenamedStuff)
 hscTypecheckRename hsc_env mod_summary rdr_module = runHsc hsc_env $ do
-    tc_result <- tcRnModule' hsc_env mod_summary True rdr_module
+    tc_result <- tcRnModule' hsc_env mod_summary False rdr_module
 
         -- This 'do' is in the Maybe monad!
     let rn_info = do decl <- tcg_rn_decls tc_result
@@ -406,6 +401,32 @@ hscTypecheckRename hsc_env mod_summary rdr_module = runHsc hsc_env $ do
                      return (decl,imports,exports,doc_hdr)
 
     return (tc_result, rn_info)
+
+hscTypecheck :: Bool -- ^ Keep renamed source?
+             -> ModSummary -> Maybe HsParsedModule
+             -> Hsc TcGblEnv
+hscTypecheck keep_rn mod_summary mb_rdr_module = do
+    hsc_env <- getHscEnv
+    let hsc_src = ms_hsc_src mod_summary
+        dflags = hsc_dflags hsc_env
+        outer_mod = ms_mod mod_summary
+        inner_mod = canonicalizeHomeModule dflags (moduleName outer_mod)
+        src_filename  = ms_hspp_file mod_summary
+        real_loc = realSrcLocSpan $ mkRealSrcLoc (mkFastString src_filename) 1 1
+    MASSERT( moduleUnitId outer_mod == thisPackage dflags )
+    if hsc_src == HsigFile && not (isHoleModule inner_mod)
+        then ioMsgMaybe $ tcRnInstantiateSignature hsc_env outer_mod real_loc
+        else
+         do hpm <- case mb_rdr_module of
+                    Just hpm -> return hpm
+                    Nothing -> hscParse' mod_summary
+            tc_result0 <- tcRnModule' hsc_env mod_summary keep_rn hpm
+            if hsc_src == HsigFile
+                then do (iface, _, _) <- liftIO $ hscSimpleIface hsc_env tc_result0 Nothing
+                        ioMsgMaybe $
+                            tcRnMergeSignatures hsc_env (tcg_top_loc tc_result0) iface
+                else return tc_result0
+
 
 -- wrapper around tcRnModule to handle safe haskell extras
 tcRnModule' :: HscEnv -> ModSummary -> Bool -> HsParsedModule
@@ -626,6 +647,7 @@ hscCompileOneShot' hsc_env mod_summary src_changed
   = do
     -- One-shot mode needs a knot-tying mutable variable for interface
     -- files. See TcRnTypes.TcGblEnv.tcg_type_env_var.
+    -- See also Note [hsc_type_env_var hack]
     type_env_var <- newIORef emptyNameEnv
     let mod = ms_mod mod_summary
         hsc_env' = hsc_env{ hsc_type_env_var = Just (mod, type_env_var) }
@@ -698,12 +720,12 @@ hscCompileOneShot' hsc_env mod_summary src_changed
 --------------------------------------------------------------
 -- NoRecomp handlers
 --------------------------------------------------------------
-
+-- NB: this must be knot-tied appropriately, see hscIncrementalCompile
 genModDetails :: HscEnv -> ModIface -> IO ModDetails
 genModDetails hsc_env old_iface
   = do
     new_details <- {-# SCC "tcRnIface" #-}
-                   initIfaceCheck hsc_env (typecheckIface old_iface)
+                   initIfaceLoad hsc_env (typecheckIface old_iface)
     dumpIfaceStats hsc_env
     return new_details
 
@@ -743,11 +765,12 @@ batchMsg hsc_env mod_index recomp mod_summary =
 --------------------------------------------------------------
 
 hscFileFrontEnd :: ModSummary -> Hsc TcGblEnv
-hscFileFrontEnd mod_summary = do
-    hpm <- hscParse' mod_summary
-    hsc_env <- getHscEnv
-    tcg_env <- tcRnModule' hsc_env mod_summary False hpm
-    return tcg_env
+hscFileFrontEnd mod_summary = hscTypecheck False mod_summary Nothing
+-- hscFileFrontEnd mod_summary = do
+--     hpm <- hscParse' mod_summary
+--     hsc_env <- getHscEnv
+--     tcg_env <- tcRnModule' hsc_env mod_summary False hpm
+--     return tcg_env
 
 --------------------------------------------------------------
 -- Safe Haskell
@@ -854,15 +877,15 @@ checkSafeImports dflags tcg_env
         clearWarnings
 
         -- Check safe imports are correct
-        safePkgs <- mapM checkSafe safeImps
+        safePkgs <- S.fromList <$> mapMaybeM checkSafe safeImps
         safeErrs <- getWarnings
         clearWarnings
 
         -- Check non-safe imports are correct if inferring safety
         -- See the Note [Safe Haskell Inference]
         (infErrs, infPkgs) <- case (safeInferOn dflags) of
-          False -> return (emptyBag, [])
-          True -> do infPkgs <- mapM checkSafe regImps
+          False -> return (emptyBag, S.empty)
+          True -> do infPkgs <- S.fromList <$> mapMaybeM checkSafe regImps
                      infErrs <- getWarnings
                      clearWarnings
                      return (infErrs, infPkgs)
@@ -887,36 +910,40 @@ checkSafeImports dflags tcg_env
   where
     impInfo  = tcg_imports tcg_env     -- ImportAvails
     imports  = imp_mods impInfo        -- ImportedMods
-    imports' = moduleEnvToList imports -- (Module, [ImportedModsVal])
+    imports1 = moduleEnvToList imports -- (Module, [ImportedBy])
+    imports' = map (fmap importedByUser) imports1 -- (Module, [ImportedModsVal])
     pkgReqs  = imp_trust_pkgs impInfo  -- [InstalledUnitId]
 
     condense :: (Module, [ImportedModsVal]) -> Hsc (Module, SrcSpan, IsSafeImport)
     condense (_, [])   = panic "HscMain.condense: Pattern match failure!"
-    condense (m, x:xs) = do (_,_,l,s) <- foldlM cond' x xs
-                            return (m, l, s)
+    condense (m, x:xs) = do imv <- foldlM cond' x xs
+                            return (m, imv_span imv, imv_is_safe imv)
 
     -- ImportedModsVal = (ModuleName, Bool, SrcSpan, IsSafeImport)
     cond' :: ImportedModsVal -> ImportedModsVal -> Hsc ImportedModsVal
-    cond' v1@(m1,_,l1,s1) (_,_,_,s2)
-        | s1 /= s2
-        = throwErrors $ unitBag $ mkPlainErrMsg dflags l1
-              (text "Module" <+> ppr m1 <+>
+    cond' v1 v2
+        | imv_is_safe v1 /= imv_is_safe v2
+        = do
+            dflags <- getDynFlags
+            throwErrors $ unitBag $ mkPlainErrMsg dflags (imv_span v1)
+              (text "Module" <+> ppr (imv_name v1) <+>
               (text $ "is imported both as a safe and unsafe import!"))
         | otherwise
         = return v1
 
     -- easier interface to work with
+    checkSafe :: (Module, SrcSpan, a) -> Hsc (Maybe InstalledUnitId)
     checkSafe (m, l, _) = fst `fmap` hscCheckSafe' dflags m l
 
     -- what pkg's to add to our trust requirements
     pkgTrustReqs req inf infPassed | safeInferOn dflags
                                   && safeHaskell dflags == Sf_None && infPassed
                                    = emptyImportAvails {
-                                       imp_trust_pkgs = catMaybes req ++ catMaybes inf
+                                       imp_trust_pkgs = req `S.union` inf
                                    }
     pkgTrustReqs _   _ _ | safeHaskell dflags == Sf_Unsafe
                          = emptyImportAvails
-    pkgTrustReqs req _ _ = emptyImportAvails { imp_trust_pkgs = catMaybes req }
+    pkgTrustReqs req _ _ = emptyImportAvails { imp_trust_pkgs = req }
 
 -- | Check that a module is safe to import.
 --
@@ -931,13 +958,13 @@ hscCheckSafe hsc_env m l = runHsc hsc_env $ do
     return $ isEmptyBag errs
 
 -- | Return if a module is trusted and the pkgs it depends on to be trusted.
-hscGetSafe :: HscEnv -> Module -> SrcSpan -> IO (Bool, [InstalledUnitId])
+hscGetSafe :: HscEnv -> Module -> SrcSpan -> IO (Bool, Set InstalledUnitId)
 hscGetSafe hsc_env m l = runHsc hsc_env $ do
     dflags       <- getDynFlags
     (self, pkgs) <- hscCheckSafe' dflags m l
     good         <- isEmptyBag `fmap` getWarnings
     clearWarnings -- don't want them printed...
-    let pkgs' | Just p <- self = p:pkgs
+    let pkgs' | Just p <- self = S.insert p pkgs
               | otherwise      = pkgs
     return (good, pkgs')
 
@@ -945,7 +972,7 @@ hscGetSafe hsc_env m l = runHsc hsc_env $ do
 -- Return (regardless of trusted or not) if the trust type requires the modules
 -- own package be trusted and a list of other packages required to be trusted
 -- (these later ones haven't been checked) but the own package trust has been.
-hscCheckSafe' :: DynFlags -> Module -> SrcSpan -> Hsc (Maybe InstalledUnitId, [InstalledUnitId])
+hscCheckSafe' :: DynFlags -> Module -> SrcSpan -> Hsc (Maybe InstalledUnitId, Set InstalledUnitId)
 hscCheckSafe' dflags m l = do
     (tw, pkgs) <- isModSafe m l
     case tw of
@@ -953,7 +980,7 @@ hscCheckSafe' dflags m l = do
         True | isHomePkg m -> return (Nothing, pkgs)
              | otherwise   -> return (Just $ toInstalledUnitId (moduleUnitId m), pkgs)
   where
-    isModSafe :: Module -> SrcSpan -> Hsc (Bool, [InstalledUnitId])
+    isModSafe :: Module -> SrcSpan -> Hsc (Bool, Set InstalledUnitId)
     isModSafe m l = do
         iface <- lookup' m
         case iface of
@@ -971,7 +998,7 @@ hscCheckSafe' dflags m l = do
                     -- check package is trusted
                     safeP = packageTrusted trust trust_own_pkg m
                     -- pkg trust reqs
-                    pkgRs = map fst $ filter snd $ dep_pkgs $ mi_deps iface'
+                    pkgRs = S.fromList . map fst $ filter snd $ dep_pkgs $ mi_deps iface'
                     -- General errors we throw but Safe errors we log
                     errs = case (safeM, safeP) of
                         (True, True ) -> emptyBag
@@ -1033,18 +1060,18 @@ hscCheckSafe' dflags m l = do
         | otherwise                               = False
 
 -- | Check the list of packages are trusted.
-checkPkgTrust :: DynFlags -> [InstalledUnitId] -> Hsc ()
+checkPkgTrust :: DynFlags -> Set InstalledUnitId -> Hsc ()
 checkPkgTrust dflags pkgs =
     case errors of
         [] -> return ()
         _  -> (liftIO . throwIO . mkSrcErr . listToBag) errors
     where
-        errors = catMaybes $ map go pkgs
-        go pkg
+        errors = S.foldr go [] pkgs
+        go pkg acc
             | trusted $ getInstalledPackageDetails dflags pkg
-            = Nothing
+            = acc
             | otherwise
-            = Just $ mkErrMsg dflags noSrcSpan (pkgQual dflags)
+            = (:acc) $ mkErrMsg dflags noSrcSpan (pkgQual dflags)
                    $ text "The package (" <> ppr pkg <> text ") is required" <>
                      text " to be trusted but it isn't!"
 
@@ -1075,7 +1102,7 @@ markUnsafeInfer tcg_env whyUnsafe = do
       False -> return tcg_env
 
   where
-    wiped_trust   = (tcg_imports tcg_env) { imp_trust_pkgs = [] }
+    wiped_trust   = (tcg_imports tcg_env) { imp_trust_pkgs = S.empty }
     pprMod        = ppr $ moduleName $ tcg_mod tcg_env
     whyUnsafe' df = vcat [ quotes pprMod <+> text "has been inferred as unsafe!"
                          , text "Reason:"
@@ -1606,11 +1633,10 @@ mkModGuts :: Module -> SafeHaskellMode -> CoreProgram -> ModGuts
 mkModGuts mod safe binds =
     ModGuts {
         mg_module       = mod,
-        mg_boot         = False,
+        mg_hsc_src      = HsSrcFile,
         mg_exports      = [],
+        mg_usages       = [],
         mg_deps         = noDependencies,
-        mg_dir_imps     = emptyModuleEnv,
-        mg_used_names   = emptyNameSet,
         mg_used_th      = False,
         mg_rdr_env      = emptyGlobalRdrEnv,
         mg_fix_env      = emptyFixityEnv,
@@ -1630,8 +1656,7 @@ mkModGuts mod safe binds =
         mg_inst_env     = emptyInstEnv,
         mg_fam_inst_env = emptyFamInstEnv,
         mg_safe_haskell = safe,
-        mg_trust_pkg    = False,
-        mg_dependent_files = []
+        mg_trust_pkg    = False
     }
 
 

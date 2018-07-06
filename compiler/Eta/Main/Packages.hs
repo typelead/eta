@@ -67,7 +67,7 @@ where
 import Eta.PackageDb
 import Eta.Main.PackageConfig
 import Eta.Main.DynFlags
-import Eta.BasicTypes.Name             ( Name, nameModule_maybe )
+import Eta.BasicTypes.Name        ( Name, nameModule_maybe )
 import Eta.Utils.UniqFM
 import Eta.Utils.UniqDFM
 import Eta.Utils.UniqSet
@@ -78,7 +78,7 @@ import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.Maybes
 
-import System.Environment ( getEnv )
+import System.Environment        ( getEnv )
 import Eta.Utils.FastString
 import Eta.Main.ErrUtils         ( debugTraceMsg, MsgDoc, printInfoForUser )
 import Eta.Utils.Exception
@@ -87,14 +87,14 @@ import System.Directory
 import System.FilePath as FilePath
 import qualified System.FilePath.Posix as FilePath.Posix
 import Control.Monad
-import Data.Graph (stronglyConnComp, SCC(..))
-import Data.Char ( toUpper )
+import Data.Graph               (stronglyConnComp, SCC(..))
+import Data.Char                ( toUpper )
 import Data.List as List
-import Data.Map (Map)
-import Data.Set (Set)
-import Data.Monoid (First(..))
+import Data.Map                 (Map)
+import Data.Set                 (Set)
+import Data.Monoid              (First(..))
 #if __GLASGOW_HASKELL__ > 710
-import Data.Semigroup   ( Semigroup )
+import Data.Semigroup           ( Semigroup )
 import qualified Data.Semigroup as Semigroup
 #endif
 import qualified Data.Map as Map
@@ -849,8 +849,10 @@ selectPackages prec_map arg pkgs unusable
         else Right (sortByPreference prec_map ps, rest)
 
 -- | Rename a 'PackageConfig' according to some module instantiation.
-renamePackage :: PackageConfigMap -> [(ModuleName, Module)]
-              -> PackageConfig -> PackageConfig
+renamePackage :: PackageConfigMap
+              -> [(ModuleName, Module)]
+              -> PackageConfig
+              -> PackageConfig
 renamePackage pkg_map insts conf =
     let hsubst = listToUFM insts
         smod  = renameHoleModule' pkg_map hsubst
@@ -1897,7 +1899,7 @@ componentIdString :: DynFlags -> ComponentId -> Maybe String
 componentIdString dflags cid = do
     conf <- lookupInstalledPackage dflags (componentIdToInstalledUnitId cid)
     return $
-        case libName conf of
+        case sourceLibName conf of
             Nothing -> sourcePackageIdString conf
             Just (PackageName libname) ->
                 packageNameString conf

@@ -6,6 +6,16 @@
 
 {-# LANGUAGE CPP #-}
 module Eta.Prelude.PrelInfo (
+        -- * Known-key names
+        isKnownKeyName,
+        lookupKnownKeyName,
+        -- ** Internal use
+        -- | 'knownKeyNames' is exported to seed the original name cache only;
+        -- if you find yourself wanting to look at it you might consider using
+        -- 'lookupKnownKeyName' or 'isKnownKeyName'.
+        knownKeyNames,
+
+        -- * Miscellaneous
         wiredInIds, ghcPrimIds,
         primOpRules, builtinRules, lookupKnownNameInfo,
 
@@ -23,9 +33,12 @@ module Eta.Prelude.PrelInfo (
 
 #include "HsVersions.h"
 
+import Eta.Prelude.KnownUniques
+import Eta.Prelude.THNames ( templateHaskellNames )
 import Eta.Prelude.PrelNames
 import Eta.Prelude.PrelRules
 import Eta.BasicTypes.Avail
+import Eta.BasicTypes.Unique
 import Eta.Prelude.PrimOp
 import Eta.BasicTypes.DataCon
 import Eta.BasicTypes.Id
@@ -36,12 +49,16 @@ import Eta.Main.HscTypes
 import Eta.Types.Class
 import Eta.Types.TyCon
 import Eta.Utils.Util
+import Eta.Utils.UniqFM
 import Eta.BasicTypes.NameEnv
 import Eta.Utils.Outputable
 -- import {-# SOURCE #-} Eta.TypeCheck.TcTypeNats ( typeNatTyCons )
 import Eta.TypeCheck.TcTypeNats ( typeNatTyCons )
 import Eta.BasicTypes.Name
 import Data.Array
+import Data.List
+import Data.Maybe
+import Control.Applicative ( (<|>) )
 
 {-
 ************************************************************************
@@ -68,6 +85,69 @@ Notes about wired in things
 * MkIface prunes out wired-in things before putting them in an interface file.
   So interface files never contain wired-in things.
 -}
+-- | This list is used to ensure that when you say "Prelude.map" in your source
+-- code, or in an interface file, you get a Name with the correct known key (See
+-- Note [Known-key names] in PrelNames)
+knownKeyNames :: [Name]
+knownKeyNames
+  | debugIsOn
+  , Just badNamesStr <- knownKeyNamesOkay all_names
+  = panic ("badAllKnownKeyNames:\n" ++ badNamesStr)
+       -- NB: We can't use ppr here, because this is sometimes evaluated in a
+       -- context where there are no DynFlags available, leading to a cryptic
+       -- "<<details unavailable>>" error. (This seems to happen only in the
+       -- stage 2 compiler, for reasons I [Richard] have no clue of.)
+  | otherwise
+  = all_names
+  where
+    all_names =
+      concat [ map getName wiredInThings
+             , basicKnownKeyNames
+             , templateHaskellNames
+             ]
+    -- All of the names associated with a wired-in TyCon.
+    -- This includes the TyCon itself, its DataCons and promoted TyCons.
+
+-- | Check the known-key names list of consistency.
+knownKeyNamesOkay :: [Name] -> Maybe String
+knownKeyNamesOkay all_names
+  | ns@(_:_) <- filter (not . isValidKnownKeyUnique . getUnique) all_names
+  = Just $ "    Out-of-range known-key uniques: ["
+        ++ intercalate ", " (map (occNameString . nameOccName) ns) ++
+         "]"
+  | null badNamesPairs
+  = Nothing
+  | otherwise
+  = Just badNamesStr
+  where
+    namesEnv      = foldl (\m n -> extendNameEnv_Acc (:) singleton m n n)
+                          emptyUFM all_names
+    badNamesEnv   = filterNameEnv (\ns -> ns `lengthExceeds` 1) namesEnv
+    badNamesPairs = nonDetUFMToList badNamesEnv
+      -- It's OK to use nonDetUFMToList here because the ordering only affects
+      -- the message when we get a panic
+    badNamesStrs  = map pairToStr badNamesPairs
+    badNamesStr   = unlines badNamesStrs
+
+    pairToStr (uniq, ns) = "        " ++
+                           show uniq ++
+                           ": [" ++
+                           intercalate ", " (map (occNameString . nameOccName) ns) ++
+                           "]"
+
+-- | Given a 'Unique' lookup its associated 'Name' if it corresponds to a
+-- known-key thing.
+lookupKnownKeyName :: Unique -> Maybe Name
+lookupKnownKeyName u =
+    knownUniqueName u <|> lookupUFM knownKeysMap u
+
+-- | Is a 'Name' known-key?
+isKnownKeyName :: Name -> Bool
+isKnownKeyName n =
+    isJust (knownUniqueName $ nameUnique n) || elemUFM n knownKeysMap
+
+knownKeysMap :: UniqFM Name
+knownKeysMap = listToUFM [ (nameUnique n, n) | n <- knownKeyNames ]
 
 wiredInThings :: [TyThing]
 -- This list is used only to initialise HscMain.knownKeyNames
@@ -129,7 +209,7 @@ primOpId op = primOpIds ! primOpTag op
 {-
 ************************************************************************
 *                                                                      *
-\subsection{Export lists for pseudo-modules (GHC.Prim)}
+             Export lists for pseudo-modules (GHC.Prim)
 *                                                                      *
 ************************************************************************
 
@@ -147,7 +227,7 @@ ghcPrimExports
 {-
 ************************************************************************
 *                                                                      *
-\subsection{Built-in keys}
+                          Built-in keys
 *                                                                      *
 ************************************************************************
 
@@ -161,7 +241,7 @@ maybeIntLikeCon  con = con `hasKey` intDataConKey
 {-
 ************************************************************************
 *                                                                      *
-\subsection{Class predicates}
+                       Class predicates
 *                                                                      *
 ************************************************************************
 -}

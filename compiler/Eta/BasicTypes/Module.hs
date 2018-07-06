@@ -97,6 +97,14 @@ module Eta.BasicTypes.Module
         HasModule(..),
         ContainsModule(..),
 
+        -- * Virgin modules
+        -- VirginModule,
+        -- VirginUnitId,
+        -- VirginModuleEnv,
+        --
+        -- -- * Hole module
+        -- HoleModule,
+
         -- * Installed unit ids and modules
         InstalledModule(..),
         InstalledModuleEnv,
@@ -398,6 +406,12 @@ moduleNameColons = dots_to_colons . moduleNameString
 -}
 
 -- | A Module is a pair of a 'PackageKey' and a 'ModuleName'.
+--
+-- Module variables (i.e. @<H>@) which can be instantiated to a
+-- specific module at some later point in time are represented
+-- with 'moduleUnitId' set to 'holeUnitId' (this allows us to
+-- avoid having to make 'moduleUnitId' a partial operation.)
+--
 data Module = Module {
     moduleUnitId :: !UnitId,     -- pkg-1.0
     moduleName   :: !ModuleName  -- A.B.C

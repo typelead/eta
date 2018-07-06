@@ -38,6 +38,7 @@ import Eta.BasicTypes.BasicTypes
 import Eta.BasicTypes.Name hiding (varName)
 import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.NameEnv
+import Eta.BasicTypes.NameCache
 import Eta.BasicTypes.Avail
 import Eta.Iface.IfaceEnv
 import Eta.TypeCheck.TcEnv
@@ -383,12 +384,12 @@ tidyProgram hsc_env  (ModGuts { mg_module    = mod
         ; unless (dopt Opt_D_dump_simpl dflags) $
             Err.dumpIfSet_dyn dflags Opt_D_dump_rules
               (showSDoc dflags (ppr CoreTidy <+> ptext (sLit "rules")))
-              (pprRulesForUser tidy_rules)
+              (pprRulesForUser dflags tidy_rules)
 
           -- Print one-line size info
         ; let cs = coreBindsStats tidy_binds
         ; when (dopt Opt_D_dump_core_stats dflags)
-               (putLogMsg dflags NoReason SevDump noSrcSpan defaultDumpStyle
+               (putLogMsg dflags NoReason SevDump noSrcSpan (defaultDumpStyle dflags)
                           (ptext (sLit "Tidy size (terms,types,coercions)")
                            <+> ppr (moduleName mod) <> colon
                            <+> int (cs_tm cs)

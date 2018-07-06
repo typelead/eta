@@ -39,15 +39,13 @@ import Eta.Prelude.PrelNames        ( gHC_PRIM )
 import Eta.Main.DynFlags
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
-import Eta.Utils.UniqFM
-import Eta.Utils.Exception        ( evaluate )
 
-import Data.IORef       ( IORef, writeIORef, readIORef, atomicModifyIORef )
+import Data.IORef                 ( IORef, readIORef, atomicModifyIORef' )
 import System.Directory
 import System.FilePath
 import Control.Monad
 import Data.Time
-import Data.List        ( foldl' )
+import Data.List                 ( foldl' )
 
 
 type FileExt = String   -- Filename extension
@@ -69,49 +67,48 @@ type BaseName = String  -- Basename of file
 -- remove all the home modules from the cache; package modules are
 -- assumed to not move around during a session.
 flushFinderCaches :: HscEnv -> IO ()
-flushFinderCaches hsc_env = do
-  -- Ideally the update to both caches be a single atomic operation.
-  writeIORef fc_ref emptyUFM
-  flushModLocationCache this_pkg mlc_ref
+flushFinderCaches hsc_env =
+  atomicModifyIORef' fc_ref $ \fm -> (filterInstalledModuleEnv is_ext fm, ())
  where
         this_pkg = thisPackage (hsc_dflags hsc_env)
         fc_ref = hsc_FC hsc_env
-        mlc_ref = hsc_MLC hsc_env
-
-flushModLocationCache :: UnitId -> IORef ModLocationCache -> IO ()
-flushModLocationCache this_pkg ref = do
-  atomicModifyIORef ref $ \fm -> (filterModuleEnv is_ext fm, ())
-  _ <- evaluate =<< readIORef ref
-  return ()
-  where is_ext mod _ | moduleUnitId mod /= this_pkg = True
+        is_ext mod _ | not (installedModuleUnitId mod `installedUnitIdEq` this_pkg) = True
                      | otherwise = False
 
-addToFinderCache :: IORef FinderCache -> ModuleName -> FindResult -> IO ()
+-- flushModLocationCache :: UnitId -> IORef ModLocationCache -> IO ()
+-- flushModLocationCache this_pkg ref = do
+--   atomicModifyIORef ref $ \fm -> (filterModuleEnv is_ext fm, ())
+--   _ <- evaluate =<< readIORef ref
+--   return ()
+--   where is_ext mod _ | moduleUnitId mod /= this_pkg = True
+--                      | otherwise = False
+
+addToFinderCache :: IORef FinderCache -> InstalledModule -> InstalledFindResult -> IO ()
 addToFinderCache ref key val =
-  atomicModifyIORef ref $ \c -> (addToUFM c key val, ())
+  atomicModifyIORef' ref $ \c -> (extendInstalledModuleEnv c key val, ())
 
-addToModLocationCache :: IORef ModLocationCache -> Module -> ModLocation -> IO ()
-addToModLocationCache ref key val =
-  atomicModifyIORef ref $ \c -> (extendModuleEnv c key val, ())
+-- addToModLocationCache :: IORef ModLocationCache -> Module -> ModLocation -> IO ()
+-- addToModLocationCache ref key val =
+--   atomicModifyIORef ref $ \c -> (extendModuleEnv c key val, ())
 
-removeFromFinderCache :: IORef FinderCache -> ModuleName -> IO ()
+removeFromFinderCache :: IORef FinderCache -> InstalledModule -> IO ()
 removeFromFinderCache ref key =
-  atomicModifyIORef ref $ \c -> (delFromUFM c key, ())
+  atomicModifyIORef' ref $ \c -> (delInstalledModuleEnv c key, ())
 
-removeFromModLocationCache :: IORef ModLocationCache -> Module -> IO ()
-removeFromModLocationCache ref key =
-  atomicModifyIORef ref $ \c -> (delModuleEnv c key, ())
+-- removeFromModLocationCache :: IORef ModLocationCache -> Module -> IO ()
+-- removeFromModLocationCache ref key =
+--   atomicModifyIORef ref $ \c -> (delModuleEnv c key, ())
 
-lookupFinderCache :: IORef FinderCache -> ModuleName -> IO (Maybe FindResult)
+lookupFinderCache :: IORef FinderCache -> InstalledModule -> IO (Maybe InstalledFindResult)
 lookupFinderCache ref key = do
    c <- readIORef ref
-   return $! lookupUFM c key
+   return $! lookupInstalledModuleEnv c key
 
-lookupModLocationCache :: IORef ModLocationCache -> Module
-                       -> IO (Maybe ModLocation)
-lookupModLocationCache ref key = do
-   c <- readIORef ref
-   return $! lookupModuleEnv c key
+-- lookupModLocationCache :: IORef ModLocationCache -> Module
+--                        -> IO (Maybe ModLocation)
+-- lookupModLocationCache ref key = do
+--    c <- readIORef ref
+--    return $! lookupModuleEnv c key
 
 -- -----------------------------------------------------------------------------
 -- The two external entry points
@@ -143,13 +140,62 @@ findImportedModule hsc_env mod_name mb_pkg =
 -- reading the interface for a module mentioned by another interface,
 -- for example (a "system import").
 
-findExactModule :: HscEnv -> Module -> IO FindResult
+findExactModule :: HscEnv -> InstalledModule -> IO InstalledFindResult
 findExactModule hsc_env mod =
     let dflags = hsc_dflags hsc_env
-    in if moduleUnitId mod == thisPackage dflags
-       then findHomeModule hsc_env (moduleName mod)
+    in if installedModuleUnitId mod `installedUnitIdEq` thisPackage dflags
+       then findInstalledHomeModule hsc_env (installedModuleName mod)
        else findPackageModule hsc_env mod
 
+-- | Implements the search for a module name in the home package only.  Calling
+-- this function directly is usually *not* what you want; currently, it's used
+-- as a building block for the following operations:
+--
+--  1. When you do a normal package lookup, we first check if the module
+--  is available in the home module, before looking it up in the package
+--  database.
+--
+--  2. When you have a package qualified import with package name "this",
+--  we shortcut to the home module.
+--
+--  3. When we look up an exact 'Module', if the unit id associated with
+--  the module is the current home module do a look up in the home module.
+--
+--  4. Some special-case code in GHCi (ToDo: Figure out why that needs to
+--  call this.)
+findInstalledHomeModule :: HscEnv -> ModuleName -> IO InstalledFindResult
+findInstalledHomeModule hsc_env mod_name =
+  homeSearchCache hsc_env mod_name $
+  let
+    dflags = hsc_dflags hsc_env
+    home_path = importPaths dflags
+    hisuf = hiSuf dflags
+    mod = mkHomeInstalledModule dflags mod_name
+
+    source_exts =
+     [ ("hs",   mkHomeModLocationSearched dflags mod_name "hs")
+     , ("lhs",  mkHomeModLocationSearched dflags mod_name "lhs")
+     , ("hsig",  mkHomeModLocationSearched dflags mod_name "hsig")
+     , ("lhsig",  mkHomeModLocationSearched dflags mod_name "lhsig")
+     ]
+
+    hi_exts = [ (hisuf,                mkHiOnlyModLocation dflags hisuf)
+              , (addBootSuffix hisuf,  mkHiOnlyModLocation dflags hisuf)
+              ]
+
+       -- In compilation manager modes, we look for source files in the home
+       -- package because we can compile these automatically.  In one-shot
+       -- compilation mode we look for .hi and .hi-boot files only.
+    exts | isOneShot (ghcMode dflags) = hi_exts
+         | otherwise                  = source_exts
+  in
+
+ -- special case for GHC.Prim; we won't find it in the filesystem.
+ -- This is important only when compiling the base package (where GHC.Prim
+ -- is a home module).
+ if mod `installedModuleEq` gHC_PRIM
+       then return (InstalledFound (error "GHC.Prim ModLocation") mod)
+       else searchPathExts home_path mod exts
 -- -----------------------------------------------------------------------------
 -- Helpers
 
@@ -177,25 +223,34 @@ orIfNotFound this or_this = do
 -- been done.  Otherwise, do the lookup (with the IO action) and save
 -- the result in the finder cache and the module location cache (if it
 -- was successful.)
-homeSearchCache :: HscEnv -> ModuleName -> IO FindResult -> IO FindResult
+homeSearchCache :: HscEnv -> ModuleName -> IO InstalledFindResult -> IO InstalledFindResult
 homeSearchCache hsc_env mod_name do_this = do
-  m <- lookupFinderCache (hsc_FC hsc_env) mod_name
-  case m of
-    Just result -> return result
-    Nothing     -> do
-        result <- do_this
-        addToFinderCache (hsc_FC hsc_env) mod_name result
-        case result of
-           Found loc mod -> addToModLocationCache (hsc_MLC hsc_env) mod loc
-           _other        -> return ()
-        return result
+  let mod = mkHomeInstalledModule (hsc_dflags hsc_env) mod_name
+  modLocationCache hsc_env mod do_this
 
 findExposedPackageModule :: HscEnv -> ModuleName -> Maybe FastString
                          -> IO FindResult
 findExposedPackageModule hsc_env mod_name mb_pkg
-  = case lookupModuleWithSuggestions (hsc_dflags hsc_env) mod_name mb_pkg of
-     LookupFound m pkg_conf ->
-       findPackageModule_ hsc_env m pkg_conf
+  = findLookupResult hsc_env
+  $ lookupModuleWithSuggestions
+        (hsc_dflags hsc_env) mod_name mb_pkg
+
+findLookupResult :: HscEnv -> LookupResult -> IO FindResult
+findLookupResult hsc_env r = case r of
+     LookupFound m pkg_conf -> do
+       let im = fst (splitModuleInsts m)
+       r' <- findPackageModule_ hsc_env im pkg_conf
+       case r' of
+        -- TODO: ghc -M is unlikely to do the right thing
+        -- with just the location of the thing that was
+        -- instantiated; you probably also need all of the
+        -- implicit locations from the instances
+        InstalledFound loc   _ -> return (Found loc m)
+        InstalledNoPackage   _ -> return (NoPackage (moduleUnitId m))
+        InstalledNotFound fp _ -> return (NotFound{ fr_paths = fp, fr_pkg = Just (moduleUnitId m)
+                                         , fr_pkgs_hidden = []
+                                         , fr_mods_hidden = []
+                                         , fr_suggestions = []})
      LookupMultiple rs ->
        return (FoundMultiple rs)
      LookupHidden pkg_hiddens mod_hiddens ->
@@ -209,32 +264,32 @@ findExposedPackageModule hsc_env mod_name mb_pkg
                        , fr_mods_hidden = []
                        , fr_suggestions = suggest })
 
-modLocationCache :: HscEnv -> Module -> IO FindResult -> IO FindResult
+modLocationCache :: HscEnv -> InstalledModule -> IO InstalledFindResult -> IO InstalledFindResult
 modLocationCache hsc_env mod do_this = do
-  mb_loc <- lookupModLocationCache mlc mod
-  case mb_loc of
-     Just loc -> return (Found loc mod)
-     Nothing  -> do
-        result <- do_this
-        case result of
-            Found loc mod -> addToModLocationCache (hsc_MLC hsc_env) mod loc
-            _other -> return ()
-        return result
-  where
-    mlc = hsc_MLC hsc_env
+ m <- lookupFinderCache (hsc_FC hsc_env) mod
+ case m of
+   Just result -> return result
+   Nothing     -> do
+       result <- do_this
+       addToFinderCache (hsc_FC hsc_env) mod result
+       return result
 
+mkHomeInstalledModule :: DynFlags -> ModuleName -> InstalledModule
+mkHomeInstalledModule dflags mod_name =
+  let iuid = fst (splitUnitIdInsts (thisPackage dflags))
+  in InstalledModule iuid mod_name
+
+-- This returns a module because it's more convenient for users
 addHomeModuleToFinder :: HscEnv -> ModuleName -> ModLocation -> IO Module
 addHomeModuleToFinder hsc_env mod_name loc = do
-  let mod = mkModule (thisPackage (hsc_dflags hsc_env)) mod_name
-  addToFinderCache (hsc_FC hsc_env) mod_name (Found loc mod)
-  addToModLocationCache (hsc_MLC hsc_env) mod loc
-  return mod
+  let mod = mkHomeInstalledModule (hsc_dflags hsc_env) mod_name
+  addToFinderCache (hsc_FC hsc_env) mod (InstalledFound loc mod)
+  return (mkModule (thisPackage (hsc_dflags hsc_env)) mod_name)
 
 uncacheModule :: HscEnv -> ModuleName -> IO ()
-uncacheModule hsc_env mod = do
-  let this_pkg = thisPackage (hsc_dflags hsc_env)
+uncacheModule hsc_env mod_name = do
+  let mod = mkHomeInstalledModule (hsc_dflags hsc_env) mod_name
   removeFromFinderCache (hsc_FC hsc_env) mod
-  removeFromModLocationCache (hsc_MLC hsc_env) (mkModule this_pkg mod)
 
 -- -----------------------------------------------------------------------------
 --      The internal workers
@@ -256,51 +311,32 @@ uncacheModule hsc_env mod = do
 --  4. Some special-case code in GHCi (ToDo: Figure out why that needs to
 --  call this.)
 findHomeModule :: HscEnv -> ModuleName -> IO FindResult
-findHomeModule hsc_env mod_name =
-   homeSearchCache hsc_env mod_name $
-   let
-     dflags = hsc_dflags hsc_env
-     home_path = importPaths dflags
-     hisuf = hiSuf dflags
-     mod = mkModule (thisPackage dflags) mod_name
-
-     source_exts =
-      [ ("hs",   mkHomeModLocationSearched dflags mod_name "hs")
-      , ("lhs",  mkHomeModLocationSearched dflags mod_name "lhs")
-      , ("hsig",  mkHomeModLocationSearched dflags mod_name "hsig")
-      , ("lhsig",  mkHomeModLocationSearched dflags mod_name "lhsig")
-      ]
-
-     hi_exts = [ (hisuf,                mkHiOnlyModLocation dflags hisuf)
-               , (addBootSuffix hisuf,  mkHiOnlyModLocation dflags hisuf)
-               ]
-
-        -- In compilation manager modes, we look for source files in the home
-        -- package because we can compile these automatically.  In one-shot
-        -- compilation mode we look for .hi and .hi-boot files only.
-     exts | isOneShot (ghcMode dflags) = hi_exts
-          | otherwise                  = source_exts
-   in
-
-  -- special case for GHC.Prim; we won't find it in the filesystem.
-  -- This is important only when compiling the base package (where GHC.Prim
-  -- is a home module).
-  if mod == gHC_PRIM
-        then return (Found (error "GHC.Prim ModLocation") mod)
-        else searchPathExts home_path mod exts
-
+findHomeModule hsc_env mod_name = do
+  r <- findInstalledHomeModule hsc_env mod_name
+  return $ case r of
+    InstalledFound loc _ -> Found loc (mkModule uid mod_name)
+    InstalledNoPackage _ -> NoPackage uid -- impossible
+    InstalledNotFound fps _ -> NotFound {
+        fr_paths = fps,
+        fr_pkg = Just uid,
+        fr_mods_hidden = [],
+        fr_pkgs_hidden = [],
+        fr_suggestions = []
+      }
+ where
+  dflags = hsc_dflags hsc_env
+  uid = thisPackage dflags
 
 -- | Search for a module in external packages only.
-findPackageModule :: HscEnv -> Module -> IO FindResult
+findPackageModule :: HscEnv -> InstalledModule -> IO InstalledFindResult
 findPackageModule hsc_env mod = do
   let
         dflags = hsc_dflags hsc_env
-        pkg_id = moduleUnitId mod
+        pkg_id = installedModuleUnitId mod
   --
-  case lookupPackage dflags pkg_id of
-     Nothing -> return (NoPackage pkg_id)
+  case lookupInstalledPackage dflags pkg_id of
+     Nothing -> return (InstalledNoPackage pkg_id)
      Just pkg_conf -> findPackageModule_ hsc_env mod pkg_conf
-
 -- | Look up the interface file associated with module @mod@.  This function
 -- requires a few invariants to be upheld: (1) the 'Module' in question must
 -- be the module identifier of the *original* implementation of a module,
@@ -308,14 +344,15 @@ findPackageModule hsc_env mod = do
 -- the 'PackageConfig' must be consistent with the package key in the 'Module'.
 -- The redundancy is to avoid an extra lookup in the package state
 -- for the appropriate config.
-findPackageModule_ :: HscEnv -> Module -> PackageConfig -> IO FindResult
+
+findPackageModule_ :: HscEnv -> InstalledModule -> PackageConfig -> IO InstalledFindResult
 findPackageModule_ hsc_env mod pkg_conf =
-  ASSERT( moduleUnitId mod == packageConfigId pkg_conf )
+  ASSERT2( installedModuleUnitId mod == installedPackageConfigId pkg_conf, ppr (installedModuleUnitId mod) <+> ppr (installedPackageConfigId pkg_conf) )
   modLocationCache hsc_env mod $
 
   -- special case for GHC.Prim; we won't find it in the filesystem.
-  if mod == gHC_PRIM
-        then return (Found (error "GHC.Prim ModLocation") mod)
+  if mod `installedModuleEq` gHC_PRIM
+        then return (InstalledFound (error "GHC.Prim ModLocation") mod)
         else
 
   let
@@ -336,9 +373,9 @@ findPackageModule_ hsc_env mod pkg_conf =
     [one] | MkDepend <- ghcMode dflags -> do
           -- there's only one place that this .hi file can be, so
           -- don't bother looking for it.
-          let basename = moduleNameSlashes (moduleName mod)
+          let basename = moduleNameSlashes (installedModuleName mod)
           loc <- mk_hi_loc one basename
-          return (Found loc mod)
+          return (InstalledFound loc mod)
     _otherwise ->
           searchPathExts import_dirs mod [(package_hisuf, mk_hi_loc)]
 
@@ -347,13 +384,13 @@ findPackageModule_ hsc_env mod pkg_conf =
 
 searchPathExts
   :: [FilePath]         -- paths to search
-  -> Module             -- module name
+  -> InstalledModule             -- module name
   -> [ (
         FileExt,                                -- suffix
         FilePath -> BaseName -> IO ModLocation  -- action
        )
      ]
-  -> IO FindResult
+  -> IO InstalledFindResult
 
 searchPathExts paths mod exts
    = do result <- search to_search
@@ -368,7 +405,7 @@ searchPathExts paths mod exts
         return result
 
   where
-    basename = moduleNameSlashes (moduleName mod)
+    basename = moduleNameSlashes (installedModuleName mod)
 
     to_search :: [(FilePath, IO ModLocation)]
     to_search = [ (file, fn path basename)
@@ -379,15 +416,12 @@ searchPathExts paths mod exts
                       file = base <.> ext
                 ]
 
-    search [] = return (NotFound { fr_paths = map fst to_search
-                                 , fr_pkg   = Just (moduleUnitId mod)
-                                 , fr_mods_hidden = [], fr_pkgs_hidden = []
-                                 , fr_suggestions = [] })
+    search [] = return (InstalledNotFound (map fst to_search) (Just (installedModuleUnitId mod)))
 
     search ((file, mk_result) : rest) = do
       b <- doesFileExist file
       if b
-        then do { loc <- mk_result; return (Found loc mod) }
+        then do { loc <- mk_result; return (InstalledFound loc mod) }
         else search rest
 
 mkHomeModLocationSearched :: DynFlags -> ModuleName -> FileExt
@@ -549,9 +583,9 @@ cannotFindModule :: DynFlags -> ModuleName -> FindResult -> SDoc
 cannotFindModule = cantFindErr (sLit "Could not find module")
                                (sLit "Ambiguous module name")
 
-cannotFindInterface  :: DynFlags -> ModuleName -> FindResult -> SDoc
-cannotFindInterface = cantFindErr (sLit "Failed to load interface for")
-                                  (sLit "Ambiguous interface for")
+cannotFindInterface  :: DynFlags -> ModuleName -> InstalledFindResult -> SDoc
+cannotFindInterface = cantFindInstalledErr (sLit "Failed to load interface for")
+                                           (sLit "Ambiguous interface for")
 
 cantFindErr :: LitString -> LitString -> DynFlags -> ModuleName -> FindResult
             -> SDoc
@@ -703,3 +737,64 @@ cantFindErr cannot_find _ dflags mod_name find_result
                  = parens (ptext (sLit "needs flag -package-key")
                     <+> ppr (packageConfigId pkg))
               | otherwise = Outputable.empty
+
+cantFindInstalledErr :: LitString -> LitString -> DynFlags -> ModuleName -> InstalledFindResult
+            -> SDoc
+cantFindInstalledErr cannot_find _ dflags mod_name find_result
+  = ptext cannot_find <+> quotes (ppr mod_name)
+    $$ more_info
+  where
+    more_info
+      = case find_result of
+            InstalledNoPackage pkg
+                -> text "no unit id matching" <+> quotes (ppr pkg) <+>
+                   text "was found" $$ looks_like_srcpkgid pkg
+
+            InstalledNotFound files mb_pkg
+                | Just pkg <- mb_pkg, not (pkg `installedUnitIdEq` thisPackage dflags)
+                -> not_found_in_package pkg files
+
+                | null files
+                -> text "It is not a module in the current program, or in any known package."
+
+                | otherwise
+                -> tried_these files
+
+            _ -> panic "cantFindInstalledErr"
+
+    build_tag = buildTag dflags
+
+    looks_like_srcpkgid :: InstalledUnitId -> SDoc
+    looks_like_srcpkgid pk
+     -- Unsafely coerce a unit id FastString into a source package ID
+     -- FastString and see if it means anything.
+     | (pkg:pkgs) <- searchPackageId dflags (SourcePackageId (installedUnitIdFS pk))
+     = parens (text "This unit ID looks like the source package ID;" $$
+       text "the real unit ID is" <+> quotes (ftext (installedUnitIdFS (unitId pkg))) $$
+       (if null pkgs then Outputable.empty
+        else text "and" <+> int (length pkgs) <+> text "other candidates"))
+     -- Todo: also check if it looks like a package name!
+     | otherwise = Outputable.empty
+
+    not_found_in_package pkg files
+       | build_tag /= ""
+       = let
+            build = if build_tag == "p" then "profiling"
+                                        else "\"" ++ build_tag ++ "\""
+         in
+         text "Perhaps you haven't installed the " <> text build <>
+         text " libraries for package " <> quotes (ppr pkg) <> char '?' $$
+         tried_these files
+
+       | otherwise
+       = text "There are files missing in the " <> quotes (ppr pkg) <>
+         text " package," $$
+         text "try running 'ghc-pkg check'." $$
+         tried_these files
+
+    tried_these files
+        | null files = Outputable.empty
+        | verbosity dflags < 3 =
+              text "Use -v to see a list of the files searched for."
+        | otherwise =
+               hang (text "Locations searched:") 2 $ vcat (map text files)

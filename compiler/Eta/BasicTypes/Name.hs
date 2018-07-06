@@ -52,7 +52,7 @@ module Eta.BasicTypes.Name (
         tidyNameOcc,
         localiseName,
         mkLocalisedOccName,
-
+        isHoleName,
         nameSrcLoc, nameSrcSpan, pprNameDefnLoc, pprDefinedAt,
 
         -- ** Predicates on 'Name's
@@ -61,7 +61,7 @@ module Eta.BasicTypes.Name (
         isValName, isVarName,
         isWiredInName, isBuiltInSyntax,
         wiredInNameTyThing_maybe,
-        nameIsLocalOrFrom, stableNameCmp,
+        nameIsLocalOrFrom, nameIsHomePackageImport, stableNameCmp,
 
         -- * Class 'NamedThing' and overloaded friends
         NamedThing(..),
@@ -210,6 +210,9 @@ isExternalName _                               = False
 
 isInternalName name = not (isExternalName name)
 
+isHoleName :: Name -> Bool
+isHoleName = isHoleModule . nameModule
+
 nameModule name = nameModule_maybe name `orElse` pprPanic "nameModule" (ppr name)
 nameModule_maybe :: Name -> Maybe Module
 nameModule_maybe (Name { n_sort = External mod})    = Just mod
@@ -242,6 +245,17 @@ nameIsLocalOrFrom :: Module -> Name -> Bool
 nameIsLocalOrFrom from name
   | Just mod <- nameModule_maybe name = from == mod || isInteractiveModule mod
   | otherwise                         = True
+
+nameIsHomePackageImport :: Module -> Name -> Bool
+-- True if the Name is defined in module of this package
+-- /other than/ the this_mod
+nameIsHomePackageImport this_mod
+  = \nm -> case nameModule_maybe nm of
+              Nothing -> False
+              Just nm_mod -> nm_mod /= this_mod
+                          && moduleUnitId nm_mod == this_pkg
+  where
+    this_pkg = moduleUnitId this_mod
 
 isTyVarName :: Name -> Bool
 isTyVarName name = isTvOcc (nameOccName name)
@@ -437,7 +451,7 @@ instance Data Name where
 instance Binary Name where
    put_ bh name =
       case getUserData bh of
-        UserData{ ud_put_name = put_name } -> put_name bh name
+        UserData{ ud_put_nonbinding_name = put_name } -> put_name bh name
 
    get bh =
       case getUserData bh of
@@ -481,7 +495,12 @@ pprExternal sty uniq mod occ is_wired is_builtin
                                       pprNameSpaceBrief (occNameSpace occ),
                                       pprUnique uniq])
   | BuiltInSyntax <- is_builtin = ppr_occ_name occ  -- Never qualify builtin syntax
-  | otherwise                   = pprModulePrefix sty mod occ <> ppr_occ_name occ
+  | otherwise                   =
+        if isHoleModule mod
+            then case qualName sty mod occ of
+                    NameUnqual -> ppr_occ_name occ
+                    _ -> braces (ppr (moduleName mod) <> dot <> ppr_occ_name occ)
+            else pprModulePrefix sty mod occ <> ppr_occ_name occ
   where
     pp_mod = sdocWithDynFlags $ \dflags ->
              if gopt Opt_SuppressModulePrefixes dflags

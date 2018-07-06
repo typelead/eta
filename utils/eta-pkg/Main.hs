@@ -1202,10 +1202,7 @@ convertPackageInfoToCacheFormat pkg =
        EtaPkg.sourcePackageId    = sourcePackageId pkg,
        EtaPkg.packageName        = packageName pkg,
        EtaPkg.packageVersion     = Version.Version (versionNumbers (packageVersion pkg)) [],
-       -- GhcPkg.sourceLibName      =
-       --   fmap (mkPackageName . unUnqualComponentName) (sourceLibName pkg),
-       EtaPkg.mungedPackageName  = Nothing,
-       EtaPkg.libName            =
+       EtaPkg.sourceLibName      =
          fmap (mkPackageName . unUnqualComponentName) (sourceLibName pkg),
        EtaPkg.depends            = depends pkg,
        EtaPkg.abiDepends         = map (\(AbiDependency k v) -> (k,unAbiHash v)) (abiDepends pkg),

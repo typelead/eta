@@ -49,7 +49,6 @@ module Eta.Main.DynFlags (
         DynLibLoader(..),
         fFlags, wWarningFlags, fLangFlags, xFlags,
         dynFlagDependencies,
-        SigOf(..), getSigOf,
         makeDynFlagsConsistent,
         shouldUseColor,
 
@@ -286,6 +285,7 @@ data DumpFlag
    | Opt_D_dump_lexer
    | Opt_D_dump_parsed
    | Opt_D_dump_rn
+   | Opt_D_dump_shape
    | Opt_D_dump_simpl
    | Opt_D_dump_simpl_iterations
    | Opt_D_dump_spec
@@ -586,16 +586,16 @@ instance Show SafeHaskellMode where
 instance Outputable SafeHaskellMode where
     ppr = text . show
 
-data SigOf = NotSigOf
-           | SigOf Module
-           | SigOfMap (Map ModuleName Module)
-
-getSigOf :: DynFlags -> ModuleName -> Maybe Module
-getSigOf dflags n =
-    case sigOf dflags of
-        NotSigOf -> Nothing
-        SigOf m -> Just m
-        SigOfMap m -> Map.lookup n m
+-- data SigOf = NotSigOf
+--            | SigOf Module
+--            | SigOfMap (Map ModuleName Module)
+--
+-- getSigOf :: DynFlags -> ModuleName -> Maybe Module
+-- getSigOf dflags n =
+--     case sigOf dflags of
+--         NotSigOf -> Nothing
+--         SigOf m -> Just m
+--         SigOfMap m -> Map.lookup n m
 
 -- | Contains not only a collection of 'GeneralFlag's but also a plethora of
 -- information relating to the compilation of a single file or GHC session
@@ -604,8 +604,6 @@ data DynFlags = DynFlags {
   ghcLink               :: GhcLink,
   hscTarget             :: HscTarget,
   settings              :: Settings,
-  -- See Note [Signature parameters in TcGblEnv and DynFlags]
-  sigOf                 :: SigOf,       -- ^ Compiling an hs-boot against impl.
   verbosity             :: Int,         -- ^ Verbosity level: see Note [Verbosity levels]
   optLevel              :: Int,         -- ^ Optimisation level
   debugLevel            :: Int,         -- ^ How much debug information to produce
@@ -634,7 +632,6 @@ data DynFlags = DynFlags {
                                         --   See CoreMonad.FloatOutSwitches
 
   historySize           :: Int,
-
   cmdlineHcIncludes     :: [String],    -- ^ @\-\#includes@
   importPaths           :: [FilePath],
   mainModIs             :: Module,
@@ -1434,7 +1431,6 @@ defaultDynFlags mySettings =
         ghcMode                 = CompManager,
         ghcLink                 = LinkBinary,
         hscTarget               = defaultHscTarget (sTargetPlatform mySettings),
-        sigOf                   = NotSigOf,
         verbosity               = 0,
         optLevel                = 0,
         debugLevel              = 0,
@@ -1780,6 +1776,7 @@ dopt f dflags = (fromEnum f `IntSet.member` dumpFlags dflags)
           enableIfVerbose Opt_D_dump_vt_trace               = False
           enableIfVerbose Opt_D_dump_tc                     = False
           enableIfVerbose Opt_D_dump_rn                     = False
+          enableIfVerbose Opt_D_dump_shape                  = False
           enableIfVerbose Opt_D_dump_rn_stats               = False
           enableIfVerbose Opt_D_dump_hi_diffs               = False
           enableIfVerbose Opt_D_verbose_core2core           = False
@@ -2641,6 +2638,7 @@ dynamic_flags = [
   , defGhcFlag "ddump-cse"               (setDumpFlag Opt_D_dump_cse)
   , defGhcFlag "ddump-worker-wrapper"    (setDumpFlag Opt_D_dump_worker_wrapper)
   , defGhcFlag "ddump-rn-trace"          (setDumpFlag Opt_D_dump_rn_trace)
+  , defGhcFlag "ddump-shape"             (setDumpFlag Opt_D_dump_shape)
   , defGhcFlag "ddump-if-trace"          (setDumpFlag Opt_D_dump_if_trace)
   , defGhcFlag "ddump-cs-trace"          (setDumpFlag Opt_D_dump_cs_trace)
   , defGhcFlag "ddump-cg-trace"          (setDumpFlag Opt_D_dump_cg_trace)

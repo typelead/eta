@@ -54,9 +54,9 @@ import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
-import Eta.Types.Type(mkStrLitTy)
-import Eta.Prelude.PrelNames(ipClassName)
-import Eta.TypeCheck.TcValidity (checkValidType)
+import Eta.Types.Type                  (mkStrLitTy, tidyOpenType)
+import Eta.Prelude.PrelNames           (ipClassName)
+import Eta.TypeCheck.TcValidity        (checkValidType)
 import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
 import Data.List (partition)
@@ -664,6 +664,9 @@ mkExport prag_fn qtvs inferred_theta (poly_name, mb_sig, mono_id)
                             tcSubType_NC sig_ctxt sel_poly_ty (idType poly_id)
         ; ev_binds <- simplifyTop wanted
 
+        ; warn_missing_sigs <- woptM Opt_WarnMissingLocalSigs
+        ; when warn_missing_sigs $ localSigWarn poly_id mb_sig
+
         ; return (ABE { abe_wrap = mkWpLet (EvBinds ev_binds) <.> wrap
                       , abe_poly = poly_id
                       , abe_mono = mono_id
@@ -751,6 +754,23 @@ completeTheta inferred_theta
                       <+> pprTheta inferred_diff
               , if suppress_hint then empty else pts_hint
               , typeSigCtxt (idName poly_id) sig ]
+
+-- | Warn the user about polymorphic local binders that lack type signatures.
+localSigWarn :: Id -> Maybe TcSigInfo -> TcM ()
+localSigWarn id mb_sig
+  | Just _ <- mb_sig               = return ()
+  | not (isSigmaTy (idType id))    = return ()
+  | otherwise                      = warnMissingSig Opt_WarnMissingLocalSigs msg id
+  where
+    msg = ptext (sLit "Polymorphic local binding with no type signature:")
+
+warnMissingSig :: WarningFlag -> SDoc -> Id -> TcM ()
+warnMissingSig flag msg id
+  = do  { env0 <- tcInitTidyEnv
+        ; let (env1, tidy_ty) = tidyOpenType env0 (idType id)
+        ; addWarnTcM (Reason flag) (env1, mk_msg tidy_ty) }
+  where
+    mk_msg ty = sep [ msg, nest 2 $ pprPrefixName (idName id) <+> dcolon <+> ppr ty ]
 
 {-
 Note [Partial type signatures and generalisation]

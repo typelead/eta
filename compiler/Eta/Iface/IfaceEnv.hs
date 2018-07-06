@@ -9,16 +9,16 @@ module Eta.Iface.IfaceEnv (
         newIfaceName, newIfaceNames,
         extendIfaceIdEnv, extendIfaceTyVarEnv,
         tcIfaceLclId, tcIfaceTyVar, lookupIfaceTyVar,
+        setNameModule,
 
         ifaceExportNames,
 
         -- Name-cache stuff
-        allocateGlobalBinder, initNameCache, updNameCache,
-        getNameCache, mkNameCacheUpdater, NameCacheUpdater(..)
+        allocateGlobalBinder, updNameCache, mkNameCacheUpdater,
+        NameCacheUpdater(..)
    ) where
 
 import Eta.TypeCheck.TcRnMonad
-import Eta.Prelude.TysWiredIn
 import Eta.Main.HscTypes
 import Eta.Types.Type
 import Eta.BasicTypes.Var
@@ -29,12 +29,12 @@ import Eta.Utils.UniqFM
 import Eta.Utils.FastString
 import Eta.BasicTypes.UniqSupply
 import Eta.BasicTypes.SrcLoc
-import Eta.Utils.Util
+import Eta.BasicTypes.NameCache
 
 import Eta.Utils.Outputable
-import Eta.Utils.Exception     ( evaluate )
 
-import Data.IORef    ( atomicModifyIORef, readIORef )
+import Data.IORef
+import Control.Exception
 
 #include "HsVersions.h"
 
@@ -157,7 +157,7 @@ lookupOrig mod occ
                 --      which does some stuff that modifies the name cache
                 -- This did happen, with tycon_mod in TcIface.tcIfaceAlt (DataAlt..)
           mod `seq` occ `seq` return ()
---      ; traceIf (text "lookup_orig" <+> ppr mod <+> ppr occ)
+        ; traceIf (text "lookup_orig" <+> ppr mod <+> ppr occ)
 
         ; updNameCache $ \name_cache ->
             case lookupOrigNameCache (nsNames name_cache) mod occ of {
@@ -171,88 +171,11 @@ lookupOrig mod occ
                   in (name_cache{ nsUniqs = us, nsNames = new_cache }, name)
     }}}
 
-{-
-************************************************************************
-*                                                                      *
-                Name cache access
-*                                                                      *
-************************************************************************
-
-See Note [The Name Cache] above.
-
-Note [Built-in syntax and the OrigNameCache]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You might think that usin isBuiltInOcc_maybe in lookupOrigNameCache is
-unnecessary because tuple TyCon/DataCons are parsed as Exact RdrNames
-and *don't* appear as original names in interface files (because
-serialization gives them special treatment), so we will never look
-them up in the original name cache.
-
-However, there are two reasons why we might look up an Orig RdrName:
-
-  * If you use setRdrNameSpace on an Exact RdrName it may be
-    turned into an Orig RdrName.
-
-  * Template Haskell turns a BuiltInSyntax Name into a TH.NameG
-    (DsMeta.globalVar), and parses a NameG into an Orig RdrName
-    (Convert.thRdrName).  So, eg $(do { reify '(,); ... }) will
-    go this route (Trac #8954).
--}
-
-lookupOrigNameCache :: OrigNameCache -> Module -> OccName -> Maybe Name
-lookupOrigNameCache nc mod occ
-  | Just name <- isBuiltInOcc_maybe occ
-  =     -- See Note [Known-key names], 3(c) in PrelNames
-        -- Special case for tuples; there are too many
-        -- of them to pre-populate the original-name cache
-    Just name
-
-  | otherwise
-  = case lookupModuleEnv nc mod of
-        Nothing      -> Nothing
-        Just occ_env -> lookupOccEnv occ_env occ
-
-extendOrigNameCache :: OrigNameCache -> Name -> OrigNameCache
-extendOrigNameCache nc name
-  = ASSERT2( isExternalName name, ppr name )
-    extendNameCache nc (nameModule name) (nameOccName name) name
-
-extendNameCache :: OrigNameCache -> Module -> OccName -> Name -> OrigNameCache
-extendNameCache nc mod occ name
-  = extendModuleEnvWith combine nc mod (unitOccEnv occ name)
-  where
-    combine _ occ_env = extendOccEnv occ_env occ name
-
-getNameCache :: TcRnIf a b NameCache
-getNameCache = do { HscEnv { hsc_NC = nc_var } <- getTopEnv;
-                    readMutVar nc_var }
-
-updNameCache :: (NameCache -> (NameCache, c)) -> TcRnIf a b c
-updNameCache upd_fn = do
-  HscEnv { hsc_NC = nc_var } <- getTopEnv
-  atomicUpdMutVar' nc_var upd_fn
-
--- | A function that atomically updates the name cache given a modifier
--- function.  The second result of the modifier function will be the result
--- of the IO action.
-newtype NameCacheUpdater = NCU { updateNameCache :: forall c. (NameCache -> (NameCache, c)) -> IO c }
-
--- | Return a function to atomically update the name cache.
-mkNameCacheUpdater :: TcRnIf a b NameCacheUpdater
-mkNameCacheUpdater = do
-  nc_var <- hsc_NC `fmap` getTopEnv
-  let update_nc f = do r <- atomicModifyIORef nc_var f
-                       _ <- evaluate =<< readIORef nc_var
-                       return r
-  return (NCU update_nc)
-
-initNameCache :: UniqSupply -> [Name] -> NameCache
-initNameCache us names
-  = NameCache { nsUniqs = us,
-                nsNames = initOrigNames names }
-
-initOrigNames :: [Name] -> OrigNameCache
-initOrigNames names = foldl extendOrigNameCache emptyModuleEnv names
+-- | Set the 'Module' of a 'Name'.
+setNameModule :: Maybe Module -> Name -> TcRnIf m n Name
+setNameModule Nothing n = return n
+setNameModule (Just m) n =
+    newGlobalBinder m (nameOccName n) (nameSrcSpan n)
 
 {-
 ************************************************************************
@@ -307,7 +230,6 @@ extendIfaceTyVarEnv tyvars thing_inside
 -}
 
 lookupIfaceTop :: OccName -> IfL Name
--- Look up a top-level name from the current Iface module
 lookupIfaceTop occ
   = do  { env <- getLclEnv; lookupOrig (if_mod env) occ }
 
@@ -321,3 +243,19 @@ newIfaceNames occs
   = do  { uniqs <- newUniqueSupply
         ; return [ mkInternalName uniq occ noSrcSpan
                  | (occ,uniq) <- occs `zip` uniqsFromSupply uniqs] }
+
+updNameCache :: (NameCache -> (NameCache, c)) -> TcRnIf a b c
+updNameCache upd_fn = do
+ HscEnv { hsc_NC = nc_var } <- getTopEnv
+ atomicUpdMutVar' nc_var upd_fn
+
+newtype NameCacheUpdater = NCU { updateNameCache :: forall c. (NameCache -> (NameCache, c)) -> IO c }
+
+-- | Return a function to atomically update the name cache.
+mkNameCacheUpdater :: TcRnIf a b NameCacheUpdater
+mkNameCacheUpdater = do
+  nc_var <- hsc_NC `fmap` getTopEnv
+  let update_nc f = do r <- atomicModifyIORef nc_var f
+                       _ <- evaluate =<< readIORef nc_var
+                       return r
+  return (NCU update_nc)

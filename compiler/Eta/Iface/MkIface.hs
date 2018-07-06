@@ -10,8 +10,6 @@
 -- writing them to disk and comparing two versions to see if
 -- recompilation is required.
 module Eta.Iface.MkIface (
-        mkUsedNames,
-        mkDependencies,
         mkIface,        -- Build a ModIface from a ModGuts,
                         -- including computing version information
 
@@ -22,6 +20,7 @@ module Eta.Iface.MkIface (
         checkOldIface,  -- See if recompilation is required, by
                         -- comparing version information
         RecompileRequired(..), recompileRequired,
+        mkIfaceExports,
 
         tyThingToIfaceDecl -- Converting things to their Iface equivalents
  ) where
@@ -59,8 +58,10 @@ Basic idea:
 -}
 
 import Eta.Iface.IfaceSyn
+import Eta.Iface.BinFingerprint
 import Eta.Iface.LoadIface
 import Eta.Iface.FlagChecker
+import Eta.DeSugar.DsUsage ( mkUsageInfo, mkUsedNames, mkDependencies )
 
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.IdInfo
@@ -103,12 +104,10 @@ import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.BasicTypes.BasicTypes       hiding ( SuccessFlag(..) )
-import Eta.Utils.UniqFM
 import Eta.BasicTypes.Unique
 import Eta.Utils.Util             hiding ( eqListBy )
 import Eta.Utils.FastString
 import Eta.Utils.Maybes
-import Eta.Utils.ListSetOps
 import Eta.Utils.Binary
 import Eta.Utils.Fingerprint
 import Eta.Utils.Bag
@@ -117,7 +116,6 @@ import Eta.Utils.Exception
 import Control.Monad
 import Data.Function
 import Data.List
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Ord
 import Data.IORef
@@ -146,23 +144,21 @@ mkIface :: HscEnv
 
 mkIface hsc_env maybe_old_fingerprint mod_details
          ModGuts{     mg_module       = this_mod,
-                      mg_boot         = is_boot,
-                      mg_used_names   = used_names,
+                      mg_hsc_src      = hsc_src,
+                      mg_usages       = usages,
                       mg_used_th      = used_th,
                       mg_deps         = deps,
-                      mg_dir_imps     = dir_imp_mods,
                       mg_rdr_env      = rdr_env,
                       mg_fix_env      = fix_env,
                       mg_warns        = warns,
                       mg_hpc_info     = hpc_info,
                       mg_safe_haskell = safe_mode,
-                      mg_trust_pkg    = self_trust,
-                      mg_dependent_files = dependent_files
+                      mg_trust_pkg    = self_trust
                     }
         = mkIface_ hsc_env maybe_old_fingerprint
-                   this_mod is_boot used_names used_th deps rdr_env fix_env
-                   warns hpc_info dir_imp_mods self_trust dependent_files
-                   safe_mode mod_details
+                   this_mod hsc_src used_th deps rdr_env fix_env
+                   warns hpc_info self_trust
+                   safe_mode usages mod_details
 
 -- | make an interface from the results of typechecking only.  Useful
 -- for non-optimising compilation, or where we aren't generating any
@@ -175,77 +171,45 @@ mkIfaceTc :: HscEnv
           -> IO (Messages, Maybe (ModIface, Bool))
 mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
   tc_result@TcGblEnv{ tcg_mod = this_mod,
-                      tcg_src = hsc_src,
-                      tcg_imports = imports,
-                      tcg_rdr_env = rdr_env,
-                      tcg_fix_env = fix_env,
-                      tcg_warns = warns,
-                      tcg_hpc = other_hpc_info,
-                      tcg_th_splice_used = tc_splice_used,
+                      tcg_semantic_mod    = _semantic_mod,
+                      tcg_src             = hsc_src,
+                      tcg_imports         = imports,
+                      tcg_rdr_env         = rdr_env,
+                      tcg_fix_env         = fix_env,
+                      tcg_merged          = merged,
+                      tcg_warns           = warns,
+                      tcg_hpc             = other_hpc_info,
+                      tcg_th_splice_used  = tc_splice_used,
                       tcg_dependent_files = dependent_files
                     }
   = do
           let used_names = mkUsedNames tc_result
-          deps <- mkDependencies tc_result
+          let pluginModules = []
+              --  map lpModule (plugins (hsc_dflags hsc_env))
+          deps <- mkDependencies
+                    (thisInstalledUnitId (hsc_dflags hsc_env))
+                    pluginModules tc_result
           let hpc_info = emptyHpcInfo other_hpc_info
           used_th <- readIORef tc_splice_used
           dep_files <- (readIORef dependent_files)
+          usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
           mkIface_ hsc_env maybe_old_fingerprint
-                   this_mod (hsc_src == HsBootFile) used_names
+                   this_mod hsc_src
                    used_th deps rdr_env
-                   fix_env warns hpc_info (imp_mods imports)
-                   (imp_trust_own_pkg imports) dep_files safe_mode mod_details
+                   fix_env warns hpc_info
+                   (imp_trust_own_pkg imports) safe_mode usages mod_details
 
-
-mkUsedNames :: TcGblEnv -> NameSet
-mkUsedNames TcGblEnv{ tcg_dus = dus } = allUses dus
-
--- | Extract information from the rename and typecheck phases to produce
--- a dependencies information for the module being compiled.
-mkDependencies :: TcGblEnv -> IO Dependencies
-mkDependencies
-          TcGblEnv{ tcg_mod = mod,
-                    tcg_imports = imports,
-                    tcg_th_used = th_var
-                  }
- = do
-      -- Template Haskell used?
-      th_used <- readIORef th_var
-      let dep_mods = eltsUFM (delFromUFM (imp_dep_mods imports) (moduleName mod))
-                -- M.hi-boot can be in the imp_dep_mods, but we must remove
-                -- it before recording the modules on which this one depends!
-                -- (We want to retain M.hi-boot in imp_dep_mods so that
-                --  loadHiBootInterface can see if M's direct imports depend
-                --  on M.hi-boot, and hence that we should do the hi-boot consistency
-                --  check.)
-
-          pkgs | th_used   = insertList (toInstalledUnitId etaMetaId) (imp_dep_pkgs imports)
-               | otherwise = imp_dep_pkgs imports
-
-          -- Set the packages required to be Safe according to Safe Haskell.
-          -- See Note [RnNames . Tracking Trust Transitively]
-          sorted_pkgs = sort pkgs
-          trust_pkgs  = imp_trust_pkgs imports
-          dep_pkgs'   = map (\x -> (x, x `elem` trust_pkgs)) sorted_pkgs
-
-      return Deps { dep_mods   = sortBy (stableModuleNameCmp `on` fst) dep_mods,
-                    dep_pkgs   = dep_pkgs',
-                    dep_orphs  = sortBy stableModuleCmp (imp_orphs  imports),
-                    dep_finsts = sortBy stableModuleCmp (imp_finsts imports) }
-                    -- sort to get into canonical order
-                    -- NB. remember to use lexicographic ordering
-
-mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> IsBootInterface
-         -> NameSet -> Bool -> Dependencies -> GlobalRdrEnv
+mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
+         -> Bool -> Dependencies -> GlobalRdrEnv
          -> NameEnv FixItem -> Warnings -> HpcInfo
-         -> ImportedMods -> Bool
-         -> [FilePath]
+         -> Bool
          -> SafeHaskellMode
+         -> [Usage]
          -> ModDetails
          -> IO (Messages, Maybe (ModIface, Bool))
 mkIface_ hsc_env maybe_old_fingerprint
-         this_mod is_boot used_names used_th deps rdr_env fix_env src_warns
-         hpc_info dir_imp_mods pkg_trust_req dependent_files safe_mode
+         this_mod hsc_src used_th deps rdr_env fix_env src_warns
+         hpc_info pkg_trust_req safe_mode usages
          ModDetails{  md_insts     = insts,
                       md_fam_insts = fam_insts,
                       md_rules     = rules,
@@ -259,18 +223,21 @@ mkIface_ hsc_env maybe_old_fingerprint
 --      to expose in the interface
 
   = do
-    usages  <- mkUsageInfo hsc_env this_mod dir_imp_mods used_names dependent_files
-
-    let entities = typeEnvElts type_env
-        decls  = [ tyThingToIfaceDecl entity
-                 | entity <- entities,
-                   let name = getName entity,
-                   not (isImplicitTyThing entity),
-                      -- No implicit Ids and class tycons in the interface file
-                   not (isWiredInName name),
-                      -- Nor wired-in things; the compiler knows about them anyhow
-                   nameIsLocalOrFrom this_mod name  ]
-                      -- Sigh: see Note [Root-main Id] in TcRnDriver
+    let semantic_mod = canonicalizeHomeModule (hsc_dflags hsc_env) (moduleName this_mod)
+        entities = typeEnvElts type_env
+        decls    = [ tyThingToIfaceDecl entity
+                   | entity <- entities,
+                     let name = getName entity,
+                     not (isImplicitTyThing entity),
+                        -- No implicit Ids and class tycons in the interface file
+                     not (isWiredInName name),
+                        -- Nor wired-in things; the compiler knows about them anyhow
+                     nameIsLocalOrFrom semantic_mod name  ]
+                        -- Sigh: see Note [Root-main Id] in TcRnDriver
+                        -- NB: ABSOLUTELY need to check against semantic_mod,
+                        -- because all of the names in an hsig p[H=<H>]:H
+                        -- are going to be for <H>, not the former id!
+                        -- See Note [Identity versus semantic module]
 
         fixities    = [(occ,fix) | FixItem occ fix <- nameEnvElts fix_env]
         warns       = src_warns
@@ -280,12 +247,15 @@ mkIface_ hsc_env maybe_old_fingerprint
         iface_vect_info = flattenVectInfo vect_info
         trust_info  = setSafeMode safe_mode
         annotations = map mkIfaceAnnotation anns
-        sig_of = getSigOf dflags (moduleName this_mod)
 
         intermediate_iface = ModIface {
               mi_module      = this_mod,
-              mi_sig_of      = sig_of,
-              mi_boot        = is_boot,
+              -- Need to record this because it depends on the -instantiated-with flag
+              -- which could change
+              mi_sig_of      = if semantic_mod == this_mod
+                                 then Nothing
+                                 else Just semantic_mod,
+              mi_hsc_src     = hsc_src,
               mi_deps        = deps,
               mi_usages      = usages,
               mi_exports     = mkIfaceExports exports,
@@ -415,23 +385,62 @@ writeIfaceFile dflags hi_file_path new_iface
 mkHashFun
         :: HscEnv                       -- needed to look up versions
         -> ExternalPackageState         -- ditto
-        -> (Name -> Fingerprint)
-mkHashFun hsc_env eps
-  = \name ->
-      let
-        mod = ASSERT2( isExternalName name, ppr name ) nameModule name
-        occ = nameOccName name
-        iface = lookupIfaceByModule (hsc_dflags hsc_env) hpt pit mod `orElse`
-                   pprPanic "lookupVers2" (ppr mod <+> ppr occ)
-      in
-        snd (mi_hash_fn iface occ `orElse`
-                  pprPanic "lookupVers1" (ppr mod <+> ppr occ))
+        -> (Name -> IO Fingerprint)
+mkHashFun hsc_env eps name
+  | isHoleModule orig_mod
+  = lookup (mkModule (thisPackage dflags) (moduleName orig_mod))
+  | otherwise
+  = lookup orig_mod
   where
-      hpt = hsc_HPT hsc_env
-      pit = eps_PIT eps
+    dflags = hsc_dflags hsc_env
+    hpt = hsc_HPT hsc_env
+    pit = eps_PIT eps
+    occ = nameOccName name
+    orig_mod = nameModule name
+    lookup mod = do
+      MASSERT2( isExternalName name, ppr name )
+      iface <- case lookupIfaceByModule dflags hpt pit mod of
+                Just iface -> return iface
+                Nothing -> do
+                    -- This can occur when we're writing out ifaces for
+                    -- requirements; we didn't do any /real/ typechecking
+                    -- so there's no guarantee everything is loaded.
+                    -- Kind of a heinous hack.
+                    iface <- initIfaceLoad hsc_env . withException
+                          $ loadInterface (text "lookupVers2") mod ImportBySystem
+                    return iface
+      return $ snd (mi_hash_fn iface occ `orElse`
+                pprPanic "lookupVers1" (ppr mod <+> ppr occ))
 
 -- ---------------------------------------------------------------------------
 -- Compute fingerprints for the interface
+
+{-
+Note [Fingerprinting IfaceDecls]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The general idea here is that we first examine the 'IfaceDecl's and determine
+the recursive groups of them. We then walk these groups in dependency order,
+serializing each contained 'IfaceDecl' to a "Binary" buffer which we then
+hash using MD5 to produce a fingerprint for the group.
+
+However, the serialization that we use is a bit funny: we override the @putName@
+operation with our own which serializes the hash of a 'Name' instead of the
+'Name' itself. This ensures that the fingerprint of a decl changes if anything
+in its transitive closure changes. This trick is why we must be careful about
+traversing in dependency order: we need to ensure that we have hashes for
+everything referenced by the decl which we are fingerprinting.
+
+Moreover, we need to be careful to distinguish between serialization of binding
+Names (e.g. the ifName field of a IfaceDecl) and non-binding (e.g. the ifInstCls
+field of a IfaceClsInst): only in the non-binding case should we include the
+fingerprint; in the binding case we shouldn't since it is merely the name of the
+thing that we are currently fingerprinting.
+-}
+
+-- | Add fingerprints for top-level declarations to a 'ModIface'.
+--
+-- See Note [Fingerprinting IfaceDecls]
 
 addFingerprints
         :: HscEnv
@@ -450,12 +459,14 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
         -- visible about the declaration that a client can depend on.
         -- see IfaceDeclABI below.
        declABI :: IfaceDecl -> IfaceDeclABI
+       -- TODO: I'm not sure if this should be semantic_mod or this_mod.
+       -- See also Note [Identity versus semantic module]
        declABI decl = (this_mod, decl, extras)
         where extras = declExtras fix_fn ann_fn non_orph_rules non_orph_insts
                                   non_orph_fis decl
 
        edges :: [(IfaceDeclABI, Unique, [Unique])]
-       edges = [ (abi, getUnique (ifName decl), out)
+       edges = [ (abi, getUnique (getOccName decl), out)
                | decl <- new_decls
                , let abi = declABI decl
                , let out = localOccs $ freeNamesDeclABI abi
@@ -463,9 +474,13 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
 
        name_module n = ASSERT2( isExternalName n, ppr n ) nameModule n
        localOccs = map (getUnique . getParent . getOccName)
-                        . filter ((== this_mod) . name_module)
+                         -- NB: names always use semantic module, so
+                         -- filtering must be on the semantic module!
+                         -- See Note [Identity versus semantic module]
+                        . filter ((== semantic_mod) . name_module)
                         . nameSetElems
-          where getParent occ = lookupOccEnv parent_map occ `orElse` occ
+          where getParent :: OccName -> OccName
+                getParent occ = lookupOccEnv parent_map occ `orElse` occ
 
         -- maps OccNames to their parents in the current module.
         -- e.g. a reference to a constructor must be turned into a reference
@@ -474,30 +489,37 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
        parent_map = foldr extend emptyOccEnv new_decls
           where extend d env =
                   extendOccEnvList env [ (b,n) | b <- ifaceDeclImplicitBndrs d ]
-                  where n = ifName d
+                  where n = getOccName d
 
         -- strongly-connected groups of declarations, in dependency order
+       groups :: [SCC IfaceDeclABI]
        groups = stronglyConnCompFromEdgedVertices edges
 
        global_hash_fn = mkHashFun hsc_env eps
 
-        -- how to output Names when generating the data to fingerprint.
+        -- How to output Names when generating the data to fingerprint.
         -- Here we want to output the fingerprint for each top-level
         -- Name, whether it comes from the current module or another
         -- module.  In this way, the fingerprint for a declaration will
         -- change if the fingerprint for anything it refers to (transitively)
         -- changes.
-       mk_put_name :: (OccEnv (OccName,Fingerprint))
+       mk_put_name :: OccEnv (OccName,Fingerprint)
                    -> BinHandle -> Name -> IO  ()
        mk_put_name local_env bh name
           | isWiredInName name  =  putNameLiterally bh name
            -- wired-in names don't have fingerprints
           | otherwise
           = ASSERT2( isExternalName name, ppr name )
-            let hash | nameModule name /= this_mod =  global_hash_fn name
-                     | otherwise = snd (lookupOccEnv local_env (getOccName name)
+            let hash | nameModule name /= semantic_mod =  global_hash_fn name
+                     -- Get it from the REAL interface!!
+                     -- This will trigger when we compile an hsig file
+                     -- and we know a backing impl for it.
+                     -- See Note [Identity versus semantic module]
+                     | semantic_mod /= this_mod
+                     , not (isHoleModule semantic_mod) = global_hash_fn name
+                     | otherwise = return (snd (lookupOccEnv local_env (getOccName name)
                            `orElse` pprPanic "urk! lookup local fingerprint"
-                                       (ppr name)) -- (undefined,fingerprint0))
+                                       (ppr name)))
                 -- This panic indicates that we got the dependency
                 -- analysis wrong, because we needed a fingerprint for
                 -- an entity that wasn't in the environment.  To debug
@@ -505,7 +527,7 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
                 -- pprTraces below, run the compile again, and inspect
                 -- the output and the generated .hi file with
                 -- --show-iface.
-            in put_ bh hash
+            in hash >>= put_ bh
 
         -- take a strongly-connected group of declarations and compute
         -- its fingerprint.
@@ -568,7 +590,7 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
    dep_orphan_hashes <- getOrphanHashes hsc_env orph_mods
 
    orphan_hash <- computeFingerprint (mk_put_name local_env)
-                      (map ifDFun orph_insts, orph_rules, orph_fis)
+                                     (map ifDFun orph_insts, orph_rules, orph_fis)
 
    -- the export list hash doesn't depend on the fingerprints of
    -- the Names it mentions, only the Names themselves, hence putNameLiterally.
@@ -584,7 +606,7 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
 
    -- put the declarations in a canonical order, sorted by OccName
    let sorted_decls = Map.elems $ Map.fromList $
-                          [(ifName d, e) | e@(_, d) <- decls_w_hashes]
+                          [(getOccName d, e) | e@(_, d) <- decls_w_hashes]
 
    -- the flag hash depends on:
    --   - (some of) dflags
@@ -640,6 +662,7 @@ addFingerprints hsc_env mb_old_fingerprint iface0 new_decls
 
   where
     this_mod = mi_module iface0
+    semantic_mod = mi_semantic_module iface0
     dflags = hsc_dflags hsc_env
     this_pkg = thisPackage dflags
     (non_orph_insts, orph_insts) = mkOrphMap ifInstOrph    (mi_insts iface0)
@@ -775,8 +798,8 @@ abiDecl :: IfaceDeclABI -> IfaceDecl
 abiDecl (_, decl, _) = decl
 
 cmp_abiNames :: IfaceDeclABI -> IfaceDeclABI -> Ordering
-cmp_abiNames abi1 abi2 = ifName (abiDecl abi1) `compare`
-                         ifName (abiDecl abi2)
+cmp_abiNames abi1 abi2 = getOccName (abiDecl abi1) `compare`
+                         getOccName (abiDecl abi2)
 
 freeNamesDeclABI :: IfaceDeclABI -> NameSet
 freeNamesDeclABI (_mod, decl, extras) =
@@ -853,7 +876,7 @@ declExtras fix_fn ann_fn rule_env inst_env fi_env decl
                         (map ifFamInstAxiom (lookupOccEnvL fi_env n) ++
                          map ifDFun         (lookupOccEnvL inst_env n))
                         (ann_fn n)
-                        (map (id_extras . ifConOcc) (visibleIfConDecls cons))
+                        (map (id_extras . occName . ifConName) (visibleIfConDecls cons))
       IfaceClass{ifSigs=sigs, ifATs=ats} ->
                      IfaceClassExtras (fix_fn n)
                         (map ifDFun $ (concatMap at_extras ats)
@@ -861,7 +884,7 @@ declExtras fix_fn ann_fn rule_env inst_env fi_env decl
                            -- Include instances of the associated types
                            -- as well as instances of the class (Trac #5147)
                         (ann_fn n)
-                        [id_extras op | IfaceClassOp op _ _ <- sigs]
+                        [id_extras (getOccName op) | IfaceClassOp op _ _ <- sigs]
       IfaceSynonym{} -> IfaceSynonymExtras (fix_fn n)
                                            (ann_fn n)
       IfaceFamily{} -> IfaceFamilyExtras (fix_fn n)
@@ -869,21 +892,13 @@ declExtras fix_fn ann_fn rule_env inst_env fi_env decl
                         (ann_fn n)
       _other -> IfaceOtherDeclExtras
   where
-        n = ifName decl
+        n = getOccName decl
         id_extras occ = IdExtras (fix_fn occ) (lookupOccEnvL rule_env occ) (ann_fn occ)
-        at_extras (IfaceAT decl _) = lookupOccEnvL inst_env (ifName decl)
+        at_extras (IfaceAT decl _) = lookupOccEnvL inst_env (getOccName decl)
 
 
 lookupOccEnvL :: OccEnv [v] -> OccName -> [v]
 lookupOccEnvL env k = lookupOccEnv env k `orElse` []
-
--- used when we want to fingerprint a structure without depending on the
--- fingerprints of external Names that it refers to.
-putNameLiterally :: BinHandle -> Name -> IO ()
-putNameLiterally bh name = ASSERT( isExternalName name )
-  do
-    put_ bh $! nameModule name
-    put_ bh $! nameOccName name
 
 {-
 -- for testing: use the md5sum command to generate fingerprints and
@@ -951,144 +966,6 @@ mkOrphMap get_key decls
 *                                                                      *
 ************************************************************************
 -}
-
-mkUsageInfo :: HscEnv -> Module -> ImportedMods -> NameSet -> [FilePath] -> IO [Usage]
-mkUsageInfo hsc_env this_mod dir_imp_mods used_names dependent_files
-  = do
-    eps <- hscEPS hsc_env
-    hashes <- mapM getFileHash dependent_files
-    let mod_usages = mk_mod_usage_info (eps_PIT eps) hsc_env this_mod
-                                       dir_imp_mods used_names
-    let usages = mod_usages ++ [ UsageFile { usg_file_path = f
-                                           , usg_file_hash = hash }
-                               | (f, hash) <- zip dependent_files hashes ]
-    usages `seqList` return usages
-    -- seq the list of Usages returned: occasionally these
-    -- don't get evaluated for a while and we can end up hanging on to
-    -- the entire collection of Ifaces.
-
-mk_mod_usage_info :: PackageIfaceTable
-              -> HscEnv
-              -> Module
-              -> ImportedMods
-              -> NameSet
-              -> [Usage]
-mk_mod_usage_info pit hsc_env this_mod direct_imports used_names
-  = mapMaybe mkUsage usage_mods
-  where
-    hpt = hsc_HPT hsc_env
-    dflags = hsc_dflags hsc_env
-    this_pkg = thisPackage dflags
-
-    used_mods    = moduleEnvKeys ent_map
-    dir_imp_mods = moduleEnvKeys direct_imports
-    all_mods     = used_mods ++ filter (`notElem` used_mods) dir_imp_mods
-    usage_mods   = sortBy stableModuleCmp all_mods
-                        -- canonical order is imported, to avoid interface-file
-                        -- wobblage.
-
-    -- ent_map groups together all the things imported and used
-    -- from a particular module
-    ent_map :: ModuleEnv [OccName]
-    ent_map  = foldNameSet add_mv emptyModuleEnv used_names
-     where
-      add_mv name mv_map
-        | isWiredInName name = mv_map  -- ignore wired-in names
-        | otherwise
-        = case nameModule_maybe name of
-             Nothing  -> ASSERT2( isSystemName name, ppr name ) mv_map
-                -- See Note [Internal used_names]
-
-             Just mod -> -- This lambda function is really just a
-                         -- specialised (++); originally came about to
-                         -- avoid quadratic behaviour (trac #2680)
-                         extendModuleEnvWith (\_ xs -> occ:xs) mv_map mod [occ]
-                where occ = nameOccName name
-
-    -- We want to create a Usage for a home module if
-    --  a) we used something from it; has something in used_names
-    --  b) we imported it, even if we used nothing from it
-    --     (need to recompile if its export list changes: export_fprint)
-    mkUsage :: Module -> Maybe Usage
-    mkUsage mod
-      | isNothing maybe_iface           -- We can't depend on it if we didn't
-                                        -- load its interface.
-      || mod == this_mod                -- We don't care about usages of
-                                        -- things in *this* module
-      = Nothing
-
-      | moduleUnitId mod /= this_pkg
-      = Just UsagePackageModule{ usg_mod      = mod,
-                                 usg_mod_hash = mod_hash,
-                                 usg_safe     = imp_safe }
-        -- for package modules, we record the module hash only
-
-      | (null used_occs
-          && isNothing export_hash
-          && not is_direct_import
-          && not finsts_mod)
-      = Nothing                 -- Record no usage info
-        -- for directly-imported modules, we always want to record a usage
-        -- on the orphan hash.  This is what triggers a recompilation if
-        -- an orphan is added or removed somewhere below us in the future.
-
-      | otherwise
-      = Just UsageHomeModule {
-                      usg_mod_name = moduleName mod,
-                      usg_mod_hash = mod_hash,
-                      usg_exports  = export_hash,
-                      usg_entities = Map.toList ent_hashs,
-                      usg_safe     = imp_safe }
-      where
-        maybe_iface  = lookupIfaceByModule dflags hpt pit mod
-                -- In one-shot mode, the interfaces for home-package
-                -- modules accumulate in the PIT not HPT.  Sigh.
-
-        Just iface   = maybe_iface
-        finsts_mod   = mi_finsts    iface
-        hash_env     = mi_hash_fn   iface
-        mod_hash     = mi_mod_hash  iface
-        export_hash | depend_on_exports = Just (mi_exp_hash iface)
-                    | otherwise         = Nothing
-
-        (is_direct_import, imp_safe)
-            = case lookupModuleEnv direct_imports mod of
-                Just ((_,_,_,safe):_xs) -> (True, safe)
-                Just _                  -> pprPanic "mkUsage: empty direct import" Outputable.empty
-                Nothing                 -> (False, safeImplicitImpsReq dflags)
-                -- Nothing case is for implicit imports like 'System.IO' when 'putStrLn'
-                -- is used in the source code. We require them to be safe in Safe Haskell
-
-        used_occs = lookupModuleEnv ent_map mod `orElse` []
-
-        -- Making a Map here ensures that (a) we remove duplicates
-        -- when we have usages on several subordinates of a single parent,
-        -- and (b) that the usages emerge in a canonical order, which
-        -- is why we use Map rather than OccEnv: Map works
-        -- using Ord on the OccNames, which is a lexicographic ordering.
-        ent_hashs :: Map OccName Fingerprint
-        ent_hashs = Map.fromList (map lookup_occ used_occs)
-
-        lookup_occ occ =
-            case hash_env occ of
-                Nothing -> pprPanic "mkUsage" (ppr mod <+> ppr occ <+> ppr used_names)
-                Just r  -> r
-
-        depend_on_exports = is_direct_import
-        {- True
-              Even if we used 'import M ()', we have to register a
-              usage on the export list because we are sensitive to
-              changes in orphan instances/rules.
-           False
-              In GHC 6.8.x we always returned true, and in
-              fact it recorded a dependency on *all* the
-              modules underneath in the dependency tree.  This
-              happens to make orphans work right, but is too
-              expensive: it'll read too many interface files.
-              The 'isNothing maybe_iface' check above saved us
-              from generating many of these usages (at least in
-              one-shot mode), but that's even more bogus!
-        -}
 
 mkIfaceAnnotation :: Annotation -> IfaceAnnotation
 mkIfaceAnnotation (Annotation { ann_target = target, ann_value = payload })
@@ -1262,9 +1139,8 @@ checkVersions hsc_env mod_summary iface
 
        ; recomp <- checkFlagHash hsc_env iface
        ; if recompileRequired recomp then return (recomp, Nothing) else do {
-       ; if getSigOf (hsc_dflags hsc_env) (moduleName (mi_module iface))
-                /= mi_sig_of iface
-            then return (RecompBecause "sig-of changed", Nothing) else do {
+       ; recomp <- checkHsig mod_summary iface
+       ; if recompileRequired recomp then return (recomp, Nothing) else do {
        ; recomp <- checkDependencies hsc_env mod_summary iface
        ; if recompileRequired recomp then return (recomp, Just iface) else do {
 
@@ -1290,6 +1166,18 @@ checkVersions hsc_env mod_summary iface
     -- This is a bit of a hack really
     mod_deps :: ModuleNameEnv (ModuleName, IsBootInterface)
     mod_deps = mkModDeps (dep_mods (mi_deps iface))
+
+-- | Check if an hsig file needs recompilation because its
+-- implementing module has changed.
+checkHsig :: ModSummary -> ModIface -> IfG RecompileRequired
+checkHsig mod_summary iface = do
+    dflags <- getDynFlags
+    let outer_mod = ms_mod mod_summary
+        inner_mod = canonicalizeHomeModule dflags (moduleName outer_mod)
+    MASSERT( thisPackage dflags == moduleUnitId outer_mod )
+    case inner_mod == mi_semantic_module iface of
+        True -> up_to_date (text "implementing module unchanged")
+        False -> return (RecompBecause "implementing module changed")
 
 -- | Check the flags haven't changed
 checkFlagHash :: HscEnv -> ModIface -> IfG RecompileRequired
@@ -1324,9 +1212,8 @@ checkDependencies hsc_env summary iface
 
    this_pkg = thisPackage (hsc_dflags hsc_env)
 
-   dep_missing (L _ (ImportJavaDecl {})) = panic "checkDependencies: ImportJavaDecl"
-   dep_missing (L _ (ImportDecl { ideclName = L _ mod, ideclPkgQual = pkg })) = do
-     find_res <- liftIO $ findImportedModule hsc_env mod pkg
+   dep_missing (mb_pkg, L _ mod) = do
+     find_res <- liftIO $ findImportedModule hsc_env mod mb_pkg
      let reason = moduleNameString mod ++ " changed"
      case find_res of
         Found _ mod
@@ -1387,6 +1274,11 @@ checkModUsage _this_pkg UsagePackageModule{
         -- individual entity usages, so if the ABI hash changes we must
         -- recompile.  This is safe but may entail more recompilation when
         -- a dependent package has changed.
+
+checkModUsage _ UsageMergedRequirement{ usg_mod = mod, usg_mod_hash = old_mod_hash }
+  = needInterface mod $ \iface -> do
+    let reason = moduleNameString (moduleName mod) ++ " changed (raw)"
+    checkModuleFingerprint reason old_mod_hash (mi_mod_hash iface)
 
 checkModUsage this_pkg UsageHomeModule{
                                 usg_mod_name = mod_name,
@@ -1518,7 +1410,7 @@ idToIfaceDecl :: Id -> IfaceDecl
 -- We can't tidy it here, locally, because it may have
 -- free variables in its type or IdInfo
 idToIfaceDecl id
-  = IfaceId { ifName      = getOccName id,
+  = IfaceId { ifName      = getName id,
               ifType      = toIfaceType (idType id),
               ifIdDetails = toIfaceIdDetails (idDetails id),
               ifIdInfo    = toIfaceIdInfo (idInfo id) }
@@ -1526,7 +1418,7 @@ idToIfaceDecl id
 --------------------------
 dataConToIfaceDecl :: DataCon -> IfaceDecl
 dataConToIfaceDecl dataCon
-  = IfaceId { ifName      = getOccName dataCon,
+  = IfaceId { ifName      = getName dataCon,
               ifType      = toIfaceType (dataConUserType dataCon),
               ifIdDetails = IfVanillaId,
               ifIdInfo    = NoInfo }
@@ -1534,7 +1426,7 @@ dataConToIfaceDecl dataCon
 --------------------------
 patSynToIfaceDecl :: PatSyn -> IfaceDecl
 patSynToIfaceDecl ps
-  = IfacePatSyn { ifName          = getOccName . getName $ ps
+  = IfacePatSyn { ifName          = getName $ ps
                 , ifPatMatcher    = to_if_pr (patSynMatcher ps)
                 , ifPatBuilder    = fmap to_if_pr (patSynBuilder ps)
                 , ifPatIsInfix    = patSynIsInfix ps
@@ -1557,14 +1449,14 @@ coAxiomToIfaceDecl :: CoAxiom br -> IfaceDecl
 -- conveniently be) built in tidy form
 coAxiomToIfaceDecl ax@(CoAxiom { co_ax_tc = tycon, co_ax_branches = branches
                                , co_ax_role = role })
- = IfaceAxiom { ifName       = name
+ = IfaceAxiom { ifName       = getName ax
               , ifTyCon      = toIfaceTyCon tycon
               , ifRole       = role
               , ifAxBranches = brListMap (coAxBranchToIfaceBranch tycon
                                             (brListMap coAxBranchLHS branches))
                                          branches }
- where
-   name = getOccName ax
+ -- where
+ --   name = getOccName ax
 
 -- 2nd parameter is the list of branch LHSs, for conversion from incompatible branches
 -- to incompatible indices
@@ -1604,7 +1496,7 @@ tyConToIfaceDecl env tycon
 
   | Just syn_rhs <- synTyConRhs_maybe tycon
   = ( tc_env1
-    , IfaceSynonym { ifName    = getOccName tycon,
+    , IfaceSynonym { ifName    = getName tycon,
                      ifTyVars  = if_tc_tyvars,
                      ifRoles   = tyConRoles tycon,
                      ifSynRhs  = if_syn_type syn_rhs,
@@ -1613,7 +1505,7 @@ tyConToIfaceDecl env tycon
 
   | Just fam_flav <- famTyConFlav_maybe tycon
   = ( tc_env1
-    , IfaceFamily { ifName    = getOccName tycon,
+    , IfaceFamily { ifName    = getName tycon,
                     ifTyVars  = if_tc_tyvars,
                     ifFamFlav = to_if_fam_flav fam_flav,
                     ifFamKind = tidyToIfaceType tc_env1 (synTyConResKind tycon)
@@ -1621,7 +1513,7 @@ tyConToIfaceDecl env tycon
 
   | isAlgTyCon tycon
   = ( tc_env1
-    , IfaceData { ifName    = getOccName tycon,
+    , IfaceData { ifName    = getName tycon,
                   ifCType   = tyConCType tycon,
                   ifTyVars  = if_tc_tyvars,
                   ifRoles   = tyConRoles tycon,
@@ -1635,7 +1527,7 @@ tyConToIfaceDecl env tycon
   | otherwise  -- FunTyCon, PrimTyCon, promoted TyCon/DataCon
   -- For pretty printing purposes only.
   = ( env
-    , IfaceData { ifName       = getOccName tycon,
+    , IfaceData { ifName       = getName tycon,
                   ifCType      = Nothing,
                   ifTyVars     = funAndPrimTyVars,
                   ifRoles      = tyConRoles tycon,
@@ -1680,15 +1572,14 @@ tyConToIfaceDecl env tycon
         -- AbstractTyCon case is perfectly sensible.
 
     ifaceConDecl data_con
-        = IfCon   { ifConOcc        = getOccName (dataConName data_con),
+        = IfCon   { ifConName       = getName (dataConName data_con),
                     ifConInfix      = dataConIsInfix data_con,
                     ifConWrapper    = isJust (dataConWrapId_maybe data_con),
                     ifConExTvs      = toIfaceTvBndrs ex_tvs',
                     ifConEqSpec     = map to_eq_spec eq_spec,
                     ifConCtxt       = tidyToIfaceContext con_env2 theta,
                     ifConArgTys     = map (tidyToIfaceType con_env2) arg_tys,
-                    ifConFields     = map getOccName
-                                       (dataConFieldLabels data_con),
+                    ifConFields     = dataConFieldLabels data_con,
                     ifConStricts    = map (toIfaceBang con_env2)
                                        (dataConImplBangs data_con),
                     ifConSrcStricts = map toIfaceSrcBang
@@ -1722,7 +1613,7 @@ classToIfaceDecl :: TidyEnv -> Class -> (TidyEnv, IfaceDecl)
 classToIfaceDecl env clas
   = ( env1
     , IfaceClass { ifCtxt   = tidyToIfaceContext env1 sc_theta,
-                   ifName   = getOccName (classTyCon clas),
+                   ifName   = getName (classTyCon clas),
                    ifTyVars = toIfaceTvBndrs clas_tyvars',
                    ifRoles  = tyConRoles (classTyCon clas),
                    ifFDs    = map toIfaceFD clas_fds,
@@ -1745,7 +1636,7 @@ classToIfaceDecl env clas
 
     toIfaceClassOp (sel_id, def_meth)
         = ASSERT(sel_tyvars == clas_tyvars)
-          IfaceClassOp (getOccName sel_id) (toDmSpec def_meth)
+          IfaceClassOp (getName sel_id) (toDmSpec def_meth)
                        (tidyToIfaceType env1 op_ty)
         where
                 -- Be careful when splitting the type, because of things

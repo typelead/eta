@@ -245,7 +245,7 @@ displayLintResults :: DynFlags -> CoreToDo
                    -> IO ()
 displayLintResults dflags pass warns errs binds
   | not (isEmptyBag errs)
-  = do { putLogMsg dflags NoReason Err.SevDump noSrcSpan defaultDumpStyle
+  = do { putLogMsg dflags NoReason Err.SevDump noSrcSpan (defaultDumpStyle dflags)
            (vcat [ lint_banner "errors" (ppr pass), Err.pprMessageBag errs
                  , ptext (sLit "*** Offending Program ***")
                  , pprCoreBindings binds
@@ -255,7 +255,7 @@ displayLintResults dflags pass warns errs binds
   | not (isEmptyBag warns)
   , not opt_NoDebugOutput
   , showLintWarnings pass
-  = putLogMsg dflags NoReason Err.SevDump noSrcSpan defaultDumpStyle
+  = putLogMsg dflags NoReason Err.SevDump noSrcSpan (defaultDumpStyle dflags)
         (lint_banner "warnings" (ppr pass) $$ Err.pprMessageBag warns)
 
   | otherwise = return ()
@@ -285,7 +285,7 @@ lintInteractiveExpr what hsc_env expr
     dflags = hsc_dflags hsc_env
 
     display_lint_err err
-      = do { putLogMsg dflags NoReason Err.SevDump noSrcSpan defaultDumpStyle
+      = do { putLogMsg dflags NoReason Err.SevDump noSrcSpan (defaultDumpStyle dflags)
                (vcat [ lint_banner "errors" (text what)
                      , err
                      , ptext (sLit "*** Offending Program ***")
@@ -1770,7 +1770,7 @@ lintAnnots pname pass guts = do
     when (not (null diffs)) $ CoreMonad.putMsg $ vcat
       [ lint_banner "warning" pname
       , text "Core changes with annotations:"
-      , withPprStyle defaultDumpStyle $ nest 2 $ vcat diffs
+      , withPprStyle (defaultDumpStyle dflags) $ nest 2 $ vcat diffs
       ]
   -- Return actual new guts
   return nguts

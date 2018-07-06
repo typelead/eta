@@ -11,7 +11,7 @@ module Eta.TypeCheck.TcUnify (
   -- Full-blown subsumption
   tcWrapResult, tcGen,
   tcSubType, tcSubType_NC, tcSubTypeDS, tcSubTypeDS_NC,
-  checkConstraints, buildImplication,
+  checkConstraints, buildImplication, buildImplicationFor,
 
   -- Various unifications
   unifyType, unifyTypeList, unifyTheta,
@@ -608,6 +608,37 @@ buildImplication skol_info skol_tvs given thing_inside
                              , ic_info = skol_info }
 
        ; return (unitBag implic, TcEvBinds ev_binds_var, result) } }
+
+buildImplicationFor :: TcLevel -> SkolemInfo -> [TcTyVar]
+                  -> [EvVar] -> WantedConstraints
+                  -> TcM (Bag Implication, TcEvBinds)
+buildImplicationFor tclvl skol_info skol_tvs given wanted
+ | isEmptyWC wanted && null given
+            -- Optimisation : if there are no wanteds, and no givens
+            -- don't generate an implication at all.
+            -- Reason for the (null given): we don't want to lose
+            -- the "inaccessible alternative" error check
+ = return (emptyBag, emptyTcEvBinds)
+
+ | otherwise
+ = ASSERT2( all (isSkolemTyVar <||> isSigTyVar) skol_tvs, ppr skol_tvs )
+     -- Why allow SigTvs? Because implicitly declared kind variables in
+     -- non-CUSK type declarations are SigTvs, and we need to bring them
+     -- into scope as a skolem in an implication. This is OK, though,
+     -- because SigTvs will always remain tyvars, even after unification.
+   do { ev_binds_var <- newTcEvBinds
+      ; env <- getLclEnv
+      ; let implic = Implic { ic_tclvl  = tclvl
+                                    , ic_skols  = skol_tvs
+                                    , ic_no_eqs = False
+                                    , ic_given  = given
+                                    , ic_wanted = wanted
+                                    , ic_insol  = insolubleWC wanted
+                                    , ic_binds  = ev_binds_var
+                                    , ic_env    = env
+                                    , ic_info   = skol_info }
+
+      ; return (unitBag implic, TcEvBinds ev_binds_var) }
 
 {-
 ************************************************************************

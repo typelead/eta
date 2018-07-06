@@ -10,7 +10,7 @@
 module Eta.Main.HscTypes (
         -- * compilation state
         HscEnv(..), hscEPS,
-        FinderCache, FindResult(..), ModLocationCache,
+        FinderCache, FindResult(..), InstalledFindResult(..), ModLocationCache,
         Target(..), TargetId(..), pprTarget, pprTargetId,
         HscStatus(..),
         IServ(..),
@@ -26,7 +26,7 @@ module Eta.Main.HscTypes (
         ModDetails(..), emptyModDetails,
         ModGuts(..), CgGuts(..), ForeignStubs(..),
         appendStubC, appendDefs, foreignExportsList, lookupStubs,
-        ImportedMods, ImportedModsVal,
+        ImportedMods, ImportedBy(..), importedByUser, ImportedModsVal(..),
 
         ModSummary(..), ms_imps, ms_mod_name, showModMsg, isBootSummary,
         msHsFilePath, msHiFilePath, msObjFilePath,
@@ -74,7 +74,8 @@ module Eta.Main.HscTypes (
 
         -- * Interfaces
         ModIface(..), mkIfaceWarnCache, mkIfaceHashCache, mkIfaceFixCache,
-        emptyIfaceWarnCache,
+        emptyIfaceWarnCache, mi_boot, mi_semantic_module,
+        mi_free_holes, renameFreeHoles,
 
         -- * Fixity
         FixityEnv, FixItem(..), lookupFixity, emptyFixityEnv,
@@ -100,7 +101,6 @@ module Eta.Main.HscTypes (
         -- * Information on imports and exports
         WhetherHasOrphans, IsBootInterface, Usage(..),
         Dependencies(..), noDependencies,
-        NameCache(..), OrigNameCache,
         IfaceExport,
 
         -- * Warnings
@@ -149,6 +149,8 @@ import Eta.REPL.RemoteTypes
 import Eta.Main.InteractiveEvalTypes ( Resume )
 #endif
 
+import Eta.Utils.UniqFM
+import Eta.Utils.UniqDSet
 import Eta.HsSyn.HsSyn
 import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Avail
@@ -156,7 +158,7 @@ import Eta.BasicTypes.Module
 import Eta.Types.InstEnv          ( InstEnv, ClsInst, identicalClsInstHead )
 import Eta.Types.FamInstEnv
 import Eta.Specialise.Rules            ( RuleBase )
-import Eta.Core.CoreSyn          ( CoreProgram )
+import Eta.Core.CoreSyn          ( CoreProgram, CoreRule, CoreVect )
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
 import Eta.BasicTypes.NameSet
@@ -181,14 +183,11 @@ import Eta.Main.DynFlags
 import Eta.Main.DriverPhases     ( Phase, HscSource(..), isHsBootOrSig, hscSourceString )
 import Eta.BasicTypes.BasicTypes
 import Eta.Iface.IfaceSyn
-import Eta.Core.CoreSyn          ( CoreRule, CoreVect )
 import Eta.Utils.Maybes
 import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.Unique
-import Eta.Utils.UniqFM
 import Eta.Utils.UniqDFM
-import Eta.BasicTypes.UniqSupply
 import Eta.Utils.FastString
 import Eta.Utils.StringBuffer     ( StringBuffer )
 import Eta.Utils.Fingerprint
@@ -196,6 +195,7 @@ import Eta.Utils.MonadUtils
 import Eta.Utils.Bag
 import Eta.Utils.Binary
 import Eta.Main.ErrUtils
+import Eta.BasicTypes.NameCache
 import Eta.Utils.Platform
 import Eta.Utils.Util
 import Eta.Serialized       ( Serialized )
@@ -435,6 +435,48 @@ data HscEnv
               -- time it is needed.
         hsc_classIndex :: MVar ClassIndex
  }
+
+ -- Note [hsc_type_env_var hack]
+ -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ -- hsc_type_env_var is used to initialize tcg_type_env_var, and
+ -- eventually it is the mutable variable that is queried from
+ -- if_rec_types to get a TypeEnv.  So, clearly, it's something
+ -- related to knot-tying (see Note [Tying the knot]).
+ -- hsc_type_env_var is used in two places: initTcRn (where
+ -- it initializes tcg_type_env_var) and initIfaceCheck
+ -- (where it initializes if_rec_types).
+ --
+ -- But why do we need a way to feed a mutable variable in?  Why
+ -- can't we just initialize tcg_type_env_var when we start
+ -- typechecking?  The problem is we need to knot-tie the
+ -- EPS, and we may start adding things to the EPS before type
+ -- checking starts.
+ --
+ -- Here is a concrete example. Suppose we are running
+ -- "ghc -c A.hs", and we have this file system state:
+ --
+ --  A.hs-boot   A.hi-boot **up to date**
+ --  B.hs        B.hi      **up to date**
+ --  A.hs        A.hi      **stale**
+ --
+ -- The first thing we do is run checkOldIface on A.hi.
+ -- checkOldIface will call loadInterface on B.hi so it can
+ -- get its hands on the fingerprints, to find out if A.hi
+ -- needs recompilation.  But loadInterface also populates
+ -- the EPS!  And so if compilation turns out to be necessary,
+ -- as it is in this case, the thunks we put into the EPS for
+ -- B.hi need to have the correct if_rec_types mutable variable
+ -- to query.
+ --
+ -- If the mutable variable is only allocated WHEN we start
+ -- typechecking, then that's too late: we can't get the
+ -- information to the thunks.  So we need to pre-commit
+ -- to a type variable in 'hscIncrementalCompile' BEFORE we
+ -- check the old interface.
+ --
+ -- This is all a massive hack because arguably checkOldIface
+ -- should not populate the EPS. But that's a refactor for
+ -- another day.
 
 instance ContainsDynFlags HscEnv where
     extractDynFlags env = hsc_dflags env
@@ -761,9 +803,18 @@ prepareAnnotations hsc_env mb_guts = do
 -- Although the @FinderCache@ range is 'FindResult' for convenience,
 -- in fact it will only ever contain 'Found' or 'NotFound' entries.
 --
-type FinderCache = ModuleNameEnv FindResult
+type FinderCache = InstalledModuleEnv InstalledFindResult
+
+data InstalledFindResult
+  = InstalledFound ModLocation InstalledModule
+  | InstalledNoPackage InstalledUnitId
+  | InstalledNotFound [FilePath] (Maybe InstalledUnitId)
 
 -- | The result of searching for an imported module.
+--
+-- NB: FindResult manages both user source-import lookups
+-- (which can result in 'Module') as well as direct imports
+-- for interfaces (which always result in 'VirginModule').
 data FindResult
   = Found ModLocation Module
         -- ^ The module was found
@@ -822,7 +873,7 @@ data ModIface
 
         mi_orphan     :: !WhetherHasOrphans,  -- ^ Whether this module has orphans
         mi_finsts     :: !WhetherHasFamInst,  -- ^ Whether this module has family instances
-        mi_boot       :: !IsBootInterface,    -- ^ Read from an hi-boot file?
+        mi_hsc_src    :: !HscSource,          -- ^ Boot? Signature?
 
         mi_deps     :: Dependencies,
                 -- ^ The dependencies of the module.  This is
@@ -920,11 +971,52 @@ data ModIface
                 -- See Note [RnNames . Trust Own Package]
      }
 
+-- | The semantic module for this interface; e.g., if it's a interface
+-- for a signature, if 'mi_module' is @p[A=<A>]:A@, 'mi_semantic_module'
+-- will be @<A>@.
+mi_semantic_module :: ModIface -> Module
+mi_semantic_module iface = case mi_sig_of iface of
+                           Nothing -> mi_module iface
+                           Just mod -> mod
+
+-- | The "precise" free holes, e.g., the signatures that this
+-- 'ModIface' depends on.
+mi_free_holes :: ModIface -> UniqDSet ModuleName
+mi_free_holes iface =
+ case splitModuleInsts (mi_module iface) of
+   (_, Just indef)
+       -- A mini-hack: we rely on the fact that 'renameFreeHoles'
+       -- drops things that aren't holes.
+       -> renameFreeHoles (mkUniqDSet cands) (indefUnitIdInsts (indefModuleUnitId indef))
+   _   -> emptyUniqDSet
+ where
+   cands = map fst (dep_mods (mi_deps iface))
+
+-- | Given a set of free holes, and a unit identifier, rename
+-- the free holes according to the instantiation of the unit
+-- identifier.  For example, if we have A and B free, and
+-- our unit identity is @p[A=<C>,B=impl:B]@, the renamed free
+-- holes are just C.
+renameFreeHoles :: UniqDSet ModuleName -> [(ModuleName, Module)] -> UniqDSet ModuleName
+renameFreeHoles fhs insts =
+   unionManyUniqDSets (map lookup_impl (uniqDSetToList fhs))
+ where
+   hmap = listToUFM insts
+   lookup_impl mod_name
+       | Just mod <- lookupUFM hmap mod_name = moduleFreeHoles mod
+       -- It wasn't actually a hole
+       | otherwise                           = emptyUniqDSet
+
+-- | Old-style accessor for whether or not the ModIface came from an hs-boot
+-- file.
+mi_boot :: ModIface -> Bool
+mi_boot iface = mi_hsc_src iface == HsBootFile
+
 instance Binary ModIface where
    put_ bh (ModIface {
                  mi_module    = mod,
                  mi_sig_of    = sig_of,
-                 mi_boot      = is_boot,
+                 mi_hsc_src   = hsc_src,
                  mi_iface_hash= iface_hash,
                  mi_mod_hash  = mod_hash,
                  mi_flag_hash = flag_hash,
@@ -948,7 +1040,8 @@ instance Binary ModIface where
                  mi_trust     = trust,
                  mi_trust_pkg = trust_pkg }) = do
         put_ bh mod
-        put_ bh is_boot
+        put_ bh sig_of
+        put_ bh hsc_src
         put_ bh iface_hash
         put_ bh mod_hash
         put_ bh flag_hash
@@ -971,11 +1064,11 @@ instance Binary ModIface where
         put_ bh hpc_info
         put_ bh trust
         put_ bh trust_pkg
-        put_ bh sig_of
 
    get bh = do
-        mod_name    <- get bh
-        is_boot     <- get bh
+        mod         <- get bh
+        sig_of      <- get bh
+        hsc_src     <- get bh
         iface_hash  <- get bh
         mod_hash    <- get bh
         flag_hash   <- get bh
@@ -998,11 +1091,10 @@ instance Binary ModIface where
         hpc_info    <- get bh
         trust       <- get bh
         trust_pkg   <- get bh
-        sig_of      <- get bh
         return (ModIface {
-                 mi_module      = mod_name,
+                 mi_module      = mod,
                  mi_sig_of      = sig_of,
-                 mi_boot        = is_boot,
+                 mi_hsc_src     = hsc_src,
                  mi_iface_hash  = iface_hash,
                  mi_mod_hash    = mod_hash,
                  mi_flag_hash   = flag_hash,
@@ -1044,7 +1136,7 @@ emptyModIface mod
                mi_flag_hash   = fingerprint0,
                mi_orphan      = False,
                mi_finsts      = False,
-               mi_boot        = False,
+               mi_hsc_src     = HsSrcFile,
                mi_deps        = noDependencies,
                mi_usages      = [],
                mi_exports     = [],
@@ -1112,8 +1204,30 @@ emptyModDetails
                  md_vect_info = noVectInfo }
 
 -- | Records the modules directly imported by a module for extracting e.g. usage information
-type ImportedMods = ModuleEnv [ImportedModsVal]
-type ImportedModsVal = (ModuleName, Bool, SrcSpan, IsSafeImport)
+type ImportedMods = ModuleEnv [ImportedBy]
+
+-- | If a module was "imported" by the user, we associate it with
+-- more detailed usage information 'ImportedModsVal'; a module
+-- imported by the system only gets used for usage information.
+data ImportedBy
+    = ImportedByUser ImportedModsVal
+    | ImportedBySystem
+
+importedByUser :: [ImportedBy] -> [ImportedModsVal]
+importedByUser (ImportedByUser imv : bys) = imv : importedByUser bys
+importedByUser (ImportedBySystem   : bys) =       importedByUser bys
+importedByUser [] = []
+
+data ImportedModsVal
+ = ImportedModsVal {
+        imv_name :: ModuleName,          -- ^ The name the module is imported with
+        imv_span :: SrcSpan,             -- ^ the source span of the whole import
+        imv_is_safe :: IsSafeImport,     -- ^ whether this is a safe import
+        imv_is_hiding :: Bool,           -- ^ whether this is an "hiding" import
+        imv_all_exports :: !GlobalRdrEnv, -- ^ all the things the module could provide
+          -- NB. BangPattern here: otherwise this leaks. (#15111)
+        imv_qualified :: Bool            -- ^ whether this is a qualified import
+        }
 
 -- | A ModGuts is carried through the compiler, accumulating stuff as it goes
 -- There is only one ModGuts at any time, the one for the module
@@ -1122,14 +1236,11 @@ type ImportedModsVal = (ModuleName, Bool, SrcSpan, IsSafeImport)
 data ModGuts
   = ModGuts {
         mg_module    :: !Module,         -- ^ Module being compiled
-        mg_boot      :: IsBootInterface, -- ^ Whether it's an hs-boot module
+        mg_hsc_src   :: HscSource,       -- ^ Whether it's an hs-boot module
         mg_exports   :: ![AvailInfo],    -- ^ What it exports
         mg_deps      :: !Dependencies,   -- ^ What it depends on, directly or
                                          -- otherwise
-        mg_dir_imps  :: !ImportedMods,   -- ^ Directly-imported modules; used to
-                                         -- generate initialisation code
-        mg_used_names:: !NameSet,        -- ^ What the module needed (used in 'MkIface.mkIface')
-
+        mg_usages    :: ![Usage],        -- ^ What was used?  Used for interfaces.
         mg_used_th   :: !Bool,           -- ^ Did we run a TH splice?
         mg_rdr_env   :: !GlobalRdrEnv,   -- ^ Top-level lexical environment
 
@@ -1167,10 +1278,9 @@ data ModGuts
         -- (including this one); c.f. 'tcg_fam_inst_env'
         mg_safe_haskell :: SafeHaskellMode,
         -- ^ Safe Haskell mode
-        mg_trust_pkg    :: Bool,
+        mg_trust_pkg    :: Bool
         -- ^ Do we need to trust our own package for Safe Haskell?
         -- See Note [RnNames . Trust Own Package]
-        mg_dependent_files :: [FilePath] -- ^ dependencies from addDependentFile
     }
 
 -- The ModGuts takes on several slightly different forms:
@@ -1983,7 +2093,10 @@ lookupType dflags hpt pte name
        Just hm -> lookupNameEnv (md_types (hm_details hm)) name
        Nothing -> lookupNameEnv pte name
   where
-    mod = ASSERT2( isExternalName name, ppr name ) nameModule name
+    mod = ASSERT2( isExternalName name, ppr name )
+          if isHoleName name
+            then mkModule (thisPackage dflags) (moduleName (nameModule name))
+            else nameModule name
 
 -- | As 'lookupType', but with a marginally easier-to-use interface
 -- if you have a 'HscEnv'
@@ -2266,6 +2379,11 @@ data Usage
         -- contents don't change.  This previously lead to odd
         -- recompilation behaviors; see #8114
   }
+  -- | A requirement which was merged into this one.
+  | UsageMergedRequirement {
+        usg_mod :: Module,
+        usg_mod_hash :: Fingerprint
+  }
     deriving( Eq )
         -- The export list field is (Just v) if we depend on the export list:
         --      i.e. we imported the module directly, whether or not we
@@ -2300,6 +2418,11 @@ instance Binary Usage where
         put_ bh (usg_file_path usg)
         put_ bh (usg_file_hash usg)
 
+    put_ bh usg@UsageMergedRequirement{} = do
+       putByte bh 3
+       put_ bh (usg_mod      usg)
+       put_ bh (usg_mod_hash usg)
+
     get bh = do
         h <- getByte bh
         case h of
@@ -2320,6 +2443,12 @@ instance Binary Usage where
             fp   <- get bh
             hash <- get bh
             return UsageFile { usg_file_path = fp, usg_file_hash = hash }
+
+          3 -> do
+            mod <- get bh
+            hash <- get bh
+            return UsageMergedRequirement { usg_mod = mod, usg_mod_hash = hash }
+
           i -> error ("Binary.get(Usage): " ++ show i)
 
 {-
@@ -2372,7 +2501,17 @@ data ExternalPackageState
                 --
                 -- * Fixities
                 --
+
                 -- * Deprecations and warnings
+        eps_free_holes :: InstalledModuleEnv (UniqDSet ModuleName),
+                -- ^ Cache for 'mi_free_holes'.  Ordinarily, we can rely on
+                -- the 'eps_PIT' for this information, EXCEPT that when
+                -- we do dependency analysis, we need to look at the
+                -- 'Dependencies' of our imports to determine what their
+                -- precise free holes are ('moduleFreeHolesPrecise').  We
+                -- don't want to repeatedly reread in the interface
+                -- for every import, so cache it here.  When the PIT
+                -- gets filled in we can drop these entries.
 
         eps_PTE :: !PackageTypeEnv,
                 -- ^ Result of typechecking all the external package
@@ -2431,15 +2570,6 @@ updNameCacheIO hsc_env upd_fn
 -- | The NameCache makes sure that there is just one Unique assigned for
 -- each original name; i.e. (module-name, occ-name) pair and provides
 -- something of a lookup mechanism for those names.
-data NameCache
- = NameCache {  nsUniqs :: !UniqSupply,
-                -- ^ Supply of uniques
-                nsNames :: !OrigNameCache
-                -- ^ Ensures that one original name gets one unique
-   }
-
--- | Per-module cache of original 'OccName's given 'Name's
-type OrigNameCache   = ModuleEnv (OccEnv Name)
 
 mkSOName :: Platform -> FilePath -> FilePath
 mkSOName _platform root = ("lib" ++ root) <.> "so"
@@ -2560,10 +2690,13 @@ data ModSummary
           -- ^ Timestamp of hi file, if we *only* are typechecking (it is
           -- 'Nothing' otherwise.
           -- See Note [Recompilation checking when typechecking only] and #9243
-        ms_srcimps      :: [Located (ImportDecl RdrName)],
+        ms_srcimps      :: [(Maybe FastString, Located ModuleName)],
           -- ^ Source imports of the module
-        ms_textual_imps :: [Located (ImportDecl RdrName)],
+        ms_textual_imps :: [(Maybe FastString, Located ModuleName)],
           -- ^ Non-source imports of the module from the module *text*
+        ms_parsed_mod   :: Maybe HsParsedModule,
+          -- ^ The parsed, nonrenamed source, if we have it.  This is also
+          -- used to support "inline module syntax" in Backpack files.
         ms_hspp_file    :: FilePath,
           -- ^ Filename of preprocessed source file
         ms_hspp_opts    :: DynFlags,
@@ -2576,26 +2709,12 @@ data ModSummary
 ms_mod_name :: ModSummary -> ModuleName
 ms_mod_name = moduleName . ms_mod
 
-ms_imps :: ModSummary -> [Located (ImportDecl RdrName)]
+ms_imps :: ModSummary -> [(Maybe FastString, Located ModuleName)]
 ms_imps ms =
   ms_textual_imps ms ++
   map mk_additional_import (dynFlagDependencies (ms_hspp_opts ms))
   where
-    -- This is a not-entirely-satisfactory means of creating an import
-    -- that corresponds to an import that did not occur in the program
-    -- text, such as those induced by the use of plugins (the -plgFoo
-    -- flag)
-    mk_additional_import mod_nm = noLoc $ ImportDecl {
-      ideclSourceSrc = Nothing,
-      ideclName      = noLoc mod_nm,
-      ideclPkgQual   = Nothing,
-      ideclSource    = False,
-      ideclImplicit  = True, -- Maybe implicit because not "in the program text"
-      ideclQualified = False,
-      ideclAs        = Nothing,
-      ideclHiding    = Nothing,
-      ideclSafe      = False
-    }
+    mk_additional_import mod_nm = (Nothing, noLoc mod_nm)
 
 -- The ModLocation contains both the original source filename and the
 -- filename of the cleaned-up source file after all preprocessing has been
@@ -2635,7 +2754,7 @@ showModMsg dflags target recomp mod_summary
  where
     mod     = moduleName (ms_mod mod_summary)
     mod_str = showPpr dflags mod
-                ++ hscSourceString' dflags mod (ms_hsc_src mod_summary)
+                ++ hscSourceString (ms_hsc_src mod_summary)
     fileDetails
       | verbosity dflags > 1 =
         [char '(', text (normalise $ msHsFilePath mod_summary) <> comma,
@@ -2643,20 +2762,19 @@ showModMsg dflags target recomp mod_summary
             HscInterpreted | recomp
                        -> text "interpreted"
             HscNothing -> text "nothing"
-            _ | HsigFile == ms_hsc_src mod_summary -> text "nothing"
-              | otherwise -> text (normalise $ msObjFilePath mod_summary),
+            _ -> text (normalise $ msObjFilePath mod_summary),
         char ')']
       | otherwise = []
 
--- | Variant of hscSourceString which prints more information for signatures.
--- This can't live in DriverPhases because this would cause a module loop.
-hscSourceString' :: DynFlags -> ModuleName -> HscSource -> String
-hscSourceString' _ _ HsSrcFile   = ""
-hscSourceString' _ _ HsBootFile  = "[boot]"
-hscSourceString' dflags mod HsigFile =
-     "[" ++ (maybe "abstract sig"
-               (("sig of "++).showPpr dflags)
-               (getSigOf dflags mod)) ++ "]"
+-- -- | Variant of hscSourceString which prints more information for signatures.
+-- -- This can't live in DriverPhases because this would cause a module loop.
+-- hscSourceString' :: DynFlags -> ModuleName -> HscSource -> String
+-- hscSourceString' _ _ HsSrcFile   = ""
+-- hscSourceString' _ _ HsBootFile  = "[boot]"
+-- hscSourceString' dflags mod HsigFile =
+--      "[" ++ (maybe "abstract sig"
+--                (("sig of "++).showPpr dflags)
+--                (getSigOf dflags mod)) ++ "]"
     -- NB: -sig-of could be missing if we're just typechecking
 
 {-

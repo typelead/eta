@@ -240,14 +240,14 @@ functions (lambdas) except by name, so in this case it seems like
 a good idea to treat 'M.k' as a roughTopName of the call.
 -}
 
-pprRulesForUser :: [CoreRule] -> SDoc
+pprRulesForUser :: DynFlags -> [CoreRule] -> SDoc
 -- (a) tidy the rules
 -- (b) sort them into order based on the rule name
 -- (c) suppress uniques (unless -dppr-debug is on)
 -- This combination makes the output stable so we can use in testing
 -- It's here rather than in PprCore because it calls tidyRules
-pprRulesForUser rules
-  = withPprStyle defaultUserStyle $
+pprRulesForUser dflags rules
+  = withPprStyle (defaultUserStyle dflags) $
     pprRules $
     sortBy (comparing ru_name) $
     tidyRules emptyTidyEnv rules

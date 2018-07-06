@@ -66,6 +66,7 @@ import Eta.Utils.Exception
 import Eta.Utils.Fingerprint
 import System.Directory
 import System.FilePath
+import System.IO (fixIO)
 import System.PosixCompat.Files (fileExist, touchFile)
 import Control.Monad hiding (void)
 import Data.Foldable    (fold)
@@ -199,12 +200,30 @@ compileOne' m_tc_result mHscMessage
             hsc_env summary source_modified mb_old_iface (mod_index, nmods)
 
    case e of
-       Left iface ->
-           do details <- genModDetails hsc_env iface
-              MASSERT(isJust maybe_old_linkable)
-              return (HomeModInfo{ hm_details  = details,
-                                   hm_iface    = iface,
-                                   hm_linkable = maybe_old_linkable })
+        -- We didn't need to do any typechecking; the old interface
+        -- file on disk was good enough.
+       Left iface -> do
+            -- Knot tying!  See Note [Knot-tying typecheckIface]
+            hmi <- liftIO . fixIO $ \hmi' -> do
+                let hsc_env' =
+                        hsc_env {
+                            hsc_HPT = addToHpt (hsc_HPT hsc_env)
+                                        (ms_mod_name summary) hmi'
+                        }
+                -- NB: This result is actually not that useful
+                -- in one-shot mode, since we're not going to do
+                -- any further typechecking.  It's much more useful
+                -- in make mode, since this HMI will go into the HPT.
+                details <- genModDetails hsc_env' iface
+                return HomeModInfo{
+                    hm_details = details,
+                    hm_iface = iface,
+                    hm_linkable = Nothing }
+            return hmi
+        -- We finished type checking.  (mb_old_hash is the hash of
+        -- the interface that existed on disk; it's possible we had
+        -- to retypecheck but the resulting interface is exactly
+        -- the same.)
 
        Right (tc_result, mb_old_hash) ->
            -- run the compiler
@@ -926,14 +945,15 @@ runPhase (RealPhase (Hsc src_flavour)) input_fn dflags0
 
   -- Make the ModSummary to hand to hscMain
         let
-            mod_summary = ModSummary {  ms_mod       = mod,
-                                        ms_hsc_src   = src_flavour,
-                                        ms_hspp_file = input_fn,
-                                        ms_hspp_opts = dflags,
-                                        ms_hspp_buf  = hspp_buf,
-                                        ms_location  = location,
-                                        ms_hs_date   = src_timestamp,
-                                        ms_obj_date  = Nothing,
+            mod_summary = ModSummary {  ms_mod          = mod,
+                                        ms_hsc_src      = src_flavour,
+                                        ms_hspp_file    = input_fn,
+                                        ms_hspp_opts    = dflags,
+                                        ms_hspp_buf     = hspp_buf,
+                                        ms_location     = location,
+                                        ms_hs_date      = src_timestamp,
+                                        ms_obj_date     = Nothing,
+                                        ms_parsed_mod   = Nothing,
                                         ms_iface_date   = Nothing,
                                         ms_textual_imps = imps,
                                         ms_srcimps      = src_imps }
@@ -1358,7 +1378,7 @@ getLinkFlags dflags =  uncurry LinkFlags $
 maybeMainAndManifest :: DynFlags -> Bool -> IO [(FilePath, ByteString)]
 maybeMainAndManifest dflags isExecutable = do
   when (gopt Opt_NoHsMain dflags && haveRtsOptsFlags dflags) $ do
-      putLogMsg dflags NoReason SevInfo noSrcSpan defaultUserStyle $
+      putLogMsg dflags NoReason SevInfo noSrcSpan (defaultUserStyle dflags) $
         (text $ "Warning: -rtsopts and -with-rtsopts have no effect with "
              ++ "-no-hs-main.") $$
         (text $ "    Call hs_init_ghc() from your main() function to set these"

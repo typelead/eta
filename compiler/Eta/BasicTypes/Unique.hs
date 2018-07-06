@@ -45,7 +45,6 @@ module Eta.BasicTypes.Unique (
         -- [the Oh-So-Wonderful Haskell module system wins again...]
         mkAlphaTyVarUnique,
         mkPrimOpIdUnique,
-        mkTupleTyConUnique, mkTupleDataConUnique,
         mkPreludeMiscIdUnique, mkPreludeDataConUnique,
         mkPreludeTyConUnique, mkPreludeClassUnique,
         mkPArrDataConUnique, mkCoVarUnique,
@@ -93,6 +92,8 @@ Fast comparison is everything on @Uniques@:
 -- | The type of unique identifiers that are used in many places in GHC
 -- for fast ordering and equality tests. You should generate these with
 -- the functions from the 'UniqSupply' module
+--
+-- These are sometimes also referred to as \"keys\" in comments in GHC.
 newtype Unique = MkUnique Int
 
 {-# INLINE uNIQUE_BITS #-}
@@ -380,9 +381,7 @@ Allocation of unique supply characters:
 mkAlphaTyVarUnique     :: Int -> Unique
 mkPreludeClassUnique   :: Int -> Unique
 mkPreludeTyConUnique   :: Int -> Unique
-mkTupleTyConUnique     :: TupleSort -> Int -> Unique
 mkPreludeDataConUnique :: Arity -> Unique
-mkTupleDataConUnique   :: TupleSort -> Int -> Unique
 mkPrimOpIdUnique       :: Int -> Unique
 mkPreludeMiscIdUnique  :: Int -> Unique
 mkPArrDataConUnique    :: Int -> Unique
@@ -405,9 +404,6 @@ mkPreludeTyConUnique i                  = mkUnique '3' (3*i)
 
 tyConRepNameUnique :: Unique -> Unique
 tyConRepNameUnique u = incrUnique u
-mkTupleTyConUnique BoxedTuple   a       = mkUnique '4' (3*a)
-mkTupleTyConUnique UnboxedTuple a       = mkUnique '5' (3*a)
-mkTupleTyConUnique ConstraintTuple a    = mkUnique 'k' (3*a)
 
 -- Data constructor keys occupy *two* slots.  The first is used for the
 -- data constructor itself and its wrapper function (the function that
@@ -423,9 +419,6 @@ mkTupleTyConUnique ConstraintTuple a    = mkUnique 'k' (3*a)
 -- Prelude data constructors are too simple to need wrappers.
 
 mkPreludeDataConUnique i        = mkUnique '6' (2*i)    -- Must be alphabetic
-mkTupleDataConUnique BoxedTuple   a = mkUnique '7' (2*a)        -- ditto (*may* be used in C labels)
-mkTupleDataConUnique UnboxedTuple    a = mkUnique '8' (2*a)
-mkTupleDataConUnique ConstraintTuple a = mkUnique 'h' (2*a)
 
 --------------------------------------------------
 dataConRepNameUnique, dataConWorkerUnique :: Unique -> Unique

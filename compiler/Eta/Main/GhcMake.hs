@@ -14,9 +14,15 @@
 -- -----------------------------------------------------------------------------
 module Eta.Main.GhcMake(
         depanal,
-        load, LoadHowMuch(..),
+        load, load', LoadHowMuch(..),
 
         topSortModuleGraph,
+
+        IsBoot(..),
+        summariseModule,
+        hscSourceToIsBoot,
+        findExtraSigImports,
+        implicitRequirements,
 
         noModError, cyclicModuleErr
     ) where
@@ -32,13 +38,11 @@ import Eta.Main.ErrUtils
 import Eta.Main.Finder
 import Eta.Main.GhcMonad
 import Eta.Main.HeaderInfo
-import Eta.HsSyn.HsSyn
 import Eta.Main.HscTypes
 import Eta.BasicTypes.Module
-import Eta.BasicTypes.RdrName          ( RdrName )
 import Eta.Iface.TcIface          ( typecheckIface )
-import Eta.TypeCheck.TcRnMonad        ( initIfaceCheck )
-
+import Eta.TypeCheck.TcRnMonad    ( initIfaceCheck )
+import Eta.Main.HscMain
 import Eta.Utils.Bag              ( listToBag )
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Digraph
@@ -50,8 +54,11 @@ import Eta.Utils.Panic
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.StringBuffer
 import Eta.Utils.UniqFM
-import Eta.Utils.Util
+import Eta.Utils.UniqDSet
+import Eta.TypeCheck.TcBackpack
+import Eta.Main.Packages
 import Eta.Utils.UniqSet
+import Eta.Utils.Util
 import Data.Either ( rights, partitionEithers )
 import qualified Data.Map as Map
 import Data.Map (Map)
@@ -216,6 +223,14 @@ data LoadHowMuch
 load :: GhcMonad m => LoadHowMuch -> m SuccessFlag
 load how_much = do
     mod_graph <- depanal [] False
+    load' how_much (Just batchMsg) mod_graph
+
+-- | Generalized version of 'load' which also supports a custom
+-- 'Messager' (for reporting progress) and 'ModuleGraph' (generally
+-- produced by calling 'depanal'.
+load' :: GhcMonad m => LoadHowMuch -> Maybe Messager -> ModuleGraph -> m SuccessFlag
+load' how_much mHscMessage mod_graph = do
+    modifySession $ \hsc_env -> hsc_env { hsc_mod_graph = mod_graph }
     guessOutputFile
     hsc_env <- getSession
 
@@ -368,7 +383,7 @@ load how_much = do
 
     setSession hsc_env{ hsc_HPT = emptyHomePackageTable }
     (upsweep_ok, modsUpswept)
-       <- upsweep_fn pruned_hpt stable_mods cleanup mg
+       <- upsweep_fn mHscMessage pruned_hpt stable_mods cleanup mg
 
     -- Make modsDone be the summaries for each home module now
     -- available; this should equal the domain of hpt3.
@@ -810,15 +825,18 @@ parUpsweep
     :: GhcMonad m
     => Int
     -- ^ The number of workers we wish to run in parallel
+    -> Maybe Messager
     -> HomePackageTable
     -> StableModules
     -> (HscEnv -> IO ())
     -> [SCC ModSummary]
     -> m (SuccessFlag,
           [ModSummary])
-parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
+parUpsweep n_jobs mHscMessage old_hpt stable_mods cleanup sccs = do
     hsc_env <- getSession
     let dflags = hsc_dflags hsc_env
+    when (not (null (unitIdsToCheck dflags))) $
+      throwGhcException (ProgramError "Backpack typechecking not supported with -j")
 
     -- The bits of shared state we'll be using:
 
@@ -910,7 +928,7 @@ parUpsweep n_jobs old_hpt stable_mods cleanup sccs = do
                 -- work to compile the module (see parUpsweep_one).
                 m_res <- try $ unmask $ prettyPrintGhcErrors lcl_dflags $
                         parUpsweep_one mod home_mod_map comp_graph_loops
-                                       lcl_dflags cleanup
+                                       lcl_dflags mHscMessage cleanup
                                        par_sem hsc_env_var old_hpt_var
                                        stable_mods mod_idx (length sccs)
 
@@ -1015,6 +1033,8 @@ parUpsweep_one
     -- ^ The list of all module loops within the compilation graph.
     -> DynFlags
     -- ^ The thread-local DynFlags
+    -> Maybe Messager
+    -- ^ The messager
     -> (HscEnv -> IO ())
     -- ^ The callback for cleaning up intermediate files
     -> QSem
@@ -1031,7 +1051,7 @@ parUpsweep_one
     -- ^ The total number of modules
     -> IO SuccessFlag
     -- ^ The result of this compile
-parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags cleanup par_sem
+parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags mHscMessage cleanup par_sem
                hsc_env_var old_hpt_var stable_mods mod_index num_mods = do
 
     let this_build_mod = mkBuildModule mod
@@ -1135,7 +1155,7 @@ parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags cleanup par_sem
                 let lcl_hsc_env = localize_hsc_env hsc_env
 
                 -- Compile the module.
-                mod_info <- upsweep_mod lcl_hsc_env old_hpt stable_mods lcl_mod
+                mod_info <- upsweep_mod lcl_hsc_env mHscMessage old_hpt stable_mods lcl_mod
                                         mod_index num_mods
                 return (Just mod_info)
 
@@ -1187,8 +1207,9 @@ parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags cleanup par_sem
 -- There better had not be any cyclic groups here -- we check for them.
 upsweep
     :: GhcMonad m
-    => HomePackageTable            -- ^ HPT from last time round (pruned)
-    -> StableModules -- ^ stable modules (see checkStability)
+    => Maybe Messager
+    -> HomePackageTable            -- ^ HPT from last time round (pruned)
+    -> StableModules               -- ^ stable modules (see checkStability)
     -> (HscEnv -> IO ())           -- ^ How to clean up unwanted tmp files
     -> [SCC ModSummary]            -- ^ Mods to do (the worklist)
     -> m (SuccessFlag,
@@ -1199,12 +1220,13 @@ upsweep
        --  2. The 'HscEnv' in the monad has an updated HPT
        --  3. A list of modules which succeeded loading.
 
-upsweep old_hpt stable_mods cleanup sccs = do
+upsweep mHscMessage old_hpt stable_mods cleanup sccs = do
+   dflags <- getSessionDynFlags
    (res, done) <- upsweep' old_hpt emptyMG sccs 1 (length sccs) cleanup
-                          --  (unitIdsToCheck dflags) done_holes TODO: Backport
+                          (unitIdsToCheck dflags) done_holes
    return (res, reverse $ mgModSummaries done)
  where
-  _done_holes = emptyUniqSet
+  done_holes = emptyUniqSet
 
   upsweep' :: GhcMonad m
    => HomePackageTable
@@ -1213,29 +1235,40 @@ upsweep old_hpt stable_mods cleanup sccs = do
    -> Int
    -> Int
    -> (HscEnv -> IO ())
-  --  -> [UnitId]
-  --  -> UniqSet ModuleName
+   -> [UnitId]
+   -> UniqSet ModuleName
    -> m (SuccessFlag, ModuleGraph)
   upsweep' _old_hpt done
-    [] _ _ _ = do
-       -- hsc_env <- getSession
-       -- liftIO . runHsc hsc_env $ mapM_ (ioMsgMaybe . tcRnCheckUnitId hsc_env) uids_to_check
+    [] _ _ _ uids_to_check _
+   = do hsc_env <- getSession
+        liftIO . runHsc hsc_env $ mapM_ (ioMsgMaybe . tcRnCheckUnitId hsc_env) uids_to_check
         return (Succeeded, done)
 
   upsweep' _old_hpt done
-     (CyclicSCC ms:_) _ _ _
+     (CyclicSCC ms:_) _ _ _ _ _
    = do dflags <- getSessionDynFlags
         liftIO $ fatalErrorMsg dflags (cyclicModuleErr ms)
         return (Failed, done)
 
   upsweep' old_hpt done
-     (AcyclicSCC mod:mods) mod_index nmods cleanup
+     (AcyclicSCC mod:mods) mod_index nmods cleanup uids_to_check done_holes
    = do -- putStrLn ("UPSWEEP_MOD: hpt = " ++
         --           show (map (moduleUserString.moduleName.mi_module.hm_iface)
         --                     (moduleEnvElts (hsc_HPT hsc_env)))
         let logger _mod = defaultWarnErrLogger
 
         hsc_env <- getSession
+        -- TODO: Cache this, so that we don't repeatedly re-check
+        -- our imports when you run --make.
+        let (ready_uids, uids_to_check')
+               = partition (\uid -> isEmptyUniqDSet
+                   (unitIdFreeHoles uid `uniqDSetMinusUniqSet` done_holes))
+                    uids_to_check
+            done_holes'
+               | ms_hsc_src mod == HsigFile
+               = addOneToUniqSet done_holes (ms_mod_name mod)
+               | otherwise = done_holes
+        liftIO . runHsc hsc_env $ mapM_ (ioMsgMaybe . tcRnCheckUnitId hsc_env) ready_uids
 
         -- Remove unwanted tmp files between compilations
         liftIO (cleanup hsc_env)
@@ -1243,7 +1276,7 @@ upsweep old_hpt stable_mods cleanup sccs = do
         mb_mod_info
             <- handleSourceError
                    (\err -> do logger mod (Just err); return Nothing) $ do
-                 mod_info <- liftIO $ upsweep_mod hsc_env old_hpt stable_mods
+                 mod_info <- liftIO $ upsweep_mod hsc_env mHscMessage old_hpt stable_mods
                                                   mod mod_index nmods
                  logger mod Nothing -- log warnings
                  return (Just mod_info)
@@ -1274,7 +1307,19 @@ upsweep old_hpt stable_mods cleanup sccs = do
                 hsc_env2 <- liftIO $ reTypecheckLoop hsc_env1 mod done'
                 setSession hsc_env2
 
-                upsweep' old_hpt1 done' mods (mod_index+1) nmods cleanup
+                upsweep' old_hpt1 done' mods (mod_index+1) nmods cleanup  uids_to_check' done_holes'
+
+
+unitIdsToCheck :: DynFlags -> [UnitId]
+unitIdsToCheck dflags =
+  nubSort $ concatMap goUnitId (explicitPackages (pkgState dflags))
+ where
+    goUnitId uid =
+      case splitUnitIdInsts uid of
+        (_, Just indef) ->
+          let insts = indefUnitIdInsts indef
+          in uid : concatMap (goUnitId . moduleUnitId . snd) insts
+        _ -> []
 
 maybeGetIfaceDate :: DynFlags -> ModLocation -> IO (Maybe UTCTime)
 maybeGetIfaceDate dflags location
@@ -1288,13 +1333,14 @@ maybeGetIfaceDate dflags location
 -- | Compile a single module.  Always produce a Linkable for it if
 -- successful.  If no compilation happened, return the old Linkable.
 upsweep_mod :: HscEnv
+            -> Maybe Messager
             -> HomePackageTable
             -> StableModules
             -> ModSummary
             -> Int  -- index of module
             -> Int  -- total number of modules
             -> IO HomeModInfo
-upsweep_mod hsc_env old_hpt (stable_obj, stable_bco) summary mod_index nmods
+upsweep_mod hsc_env mHscMessage old_hpt (stable_obj, stable_bco) summary mod_index nmods
    =    let
             this_mod_name = ms_mod_name summary
             this_mod    = ms_mod summary
@@ -1347,14 +1393,14 @@ upsweep_mod hsc_env old_hpt (stable_obj, stable_bco) summary mod_index nmods
 
             compile_it :: Maybe Linkable -> SourceModified -> IO HomeModInfo
             compile_it  mb_linkable src_modified =
-                  compileOne hsc_env summary' mod_index nmods
-                             mb_old_iface mb_linkable src_modified
+                  compileOne' Nothing mHscMessage hsc_env summary' mod_index nmods
+                              mb_old_iface mb_linkable src_modified
 
             compile_it_discard_iface :: Maybe Linkable -> SourceModified
                                      -> IO HomeModInfo
             compile_it_discard_iface mb_linkable  src_modified =
-                  compileOne hsc_env summary' mod_index nmods
-                             Nothing mb_linkable src_modified
+                  compileOne' Nothing mHscMessage hsc_env summary' mod_index nmods
+                              Nothing mb_linkable src_modified
 
             -- With the HscNothing target we create empty linkables to avoid
             -- recompilation.  We have to detect these to recompile anyway if
@@ -1576,7 +1622,9 @@ topSortModuleGraph drop_hs_boot_nodes module_graph mb_root_mod
   = map (fmap summaryNodeSummary) $ stronglyConnCompG initial_graph
   where
     summaries = mgModSummaries module_graph
-    (graph, lookup_node) = moduleGraphNodes drop_hs_boot_nodes summaries
+    -- stronglyConnCompG flips the original order, so if we reverse
+    -- the summaries we get a stable topological sort.
+    (graph, lookup_node) = moduleGraphNodes drop_hs_boot_nodes (reverse summaries)
 
     initial_graph = case mb_root_mod of
         Nothing -> graph
@@ -1726,15 +1774,7 @@ downsweep hsc_env old_summaries excl_mods allow_dup_roots
        summs <- loop (concatMap calcDeps rootSummariesOk) root_map
        return summs
      where
-        -- When we're compiling a signature file, we have an implicit
-        -- dependency on what-ever the signature's implementation is.
-        -- (But not when we're type checking!)
-        calcDeps summ
-          | HsigFile <- ms_hsc_src summ
-          , Just m <- getSigOf (hsc_dflags hsc_env) (moduleName (ms_mod summ))
-          , moduleUnitId m == thisPackage (hsc_dflags hsc_env)
-                      = (noLoc (moduleName m), NotBoot) : msDeps summ
-          | otherwise = msDeps summ
+        calcDeps = msDeps
 
         dflags = hsc_dflags hsc_env
         roots = hsc_targets hsc_env
@@ -1755,7 +1795,7 @@ downsweep hsc_env old_summaries excl_mods allow_dup_roots
                                            (L rootLoc modl) obj_allowed
                                            maybe_buf excl_mods
                 case maybe_summary of
-                   Nothing -> return $ Left $ packageModErr dflags modl
+                   Nothing -> return $ Left $ moduleNotFoundErr dflags modl
                    Just s  -> return s
 
         rootLoc = mkGeneralSrcSpan (fsLit "<command line>")
@@ -1819,8 +1859,9 @@ msDeps s =
     concat [ [(m,IsBoot), (m,NotBoot)] | m <- ms_home_srcimps s ]
         ++ [ (m,NotBoot) | m <- ms_home_imps s ]
 
-home_imps :: [Located (ImportDecl RdrName)] -> [Located ModuleName]
-home_imps imps = [ ideclName i |  L _ i <- imps, isLocal (ideclPackageQualifier i) ]
+home_imps :: [(Maybe FastString, Located ModuleName)] -> [Located ModuleName]
+home_imps imps = [ lmodname |  (mb_pkg, lmodname) <- imps,
+                               isLocal mb_pkg ]
   where isLocal Nothing = True
         isLocal (Just pkg) | pkg == fsLit "this" = True -- "this" is special
         isLocal _ = False
@@ -1832,7 +1873,7 @@ ms_home_srcimps :: ModSummary -> [Located ModuleName]
 ms_home_srcimps = home_imps . ms_srcimps
 
 ms_home_imps :: ModSummary -> [Located ModuleName]
-ms_home_imps = home_imps . filter (not . ideclIsJava . unLoc). ms_imps
+ms_home_imps = home_imps . ms_imps
 
 -----------------------------------------------------------------------------
 -- Summarising modules
@@ -1880,7 +1921,7 @@ summariseFile hsc_env old_summaries file mb_phase obj_allowed maybe_buf
                         || obj_allowed -- bug #1205
                         then liftIO $ getObjTimestamp location NotBoot
                         else return Nothing
-                  hi_timestamp <- maybeGetIfaceDate dflags location
+                  hi_timestamp        <- maybeGetIfaceDate dflags location
                   return old_summary{ ms_obj_date = obj_timestamp
                                     , ms_iface_date = hi_timestamp }
            else
@@ -1921,16 +1962,22 @@ summariseFile hsc_env old_summaries file mb_phase obj_allowed maybe_buf
                 else return Nothing
 
         hi_timestamp <- maybeGetIfaceDate dflags location
+        extra_sig_imports <- findExtraSigImports hsc_env hsc_src mod_name
+        required_by_imports <- implicitRequirements hsc_env the_imps
 
         return (ModSummary { ms_mod = mod, ms_hsc_src = hsc_src,
-                             ms_location = location,
-                             ms_hspp_file = hspp_fn,
-                             ms_hspp_opts = dflags',
-                             ms_hspp_buf  = Just buf,
-                             ms_srcimps = srcimps, ms_textual_imps = the_imps,
-                             ms_hs_date = src_timestamp,
-                             ms_iface_date = hi_timestamp,
-                             ms_obj_date = obj_timestamp })
+                             ms_location     = location,
+                             ms_hspp_file    = hspp_fn,
+                             ms_hspp_opts    = dflags',
+                             ms_hspp_buf     = Just buf,
+                             ms_parsed_mod   = Nothing,
+                             ms_srcimps      = srcimps,
+                             ms_textual_imps = the_imps
+                                              ++ extra_sig_imports
+                                              ++ required_by_imports,
+                             ms_hs_date      = src_timestamp,
+                             ms_iface_date   = hi_timestamp,
+                             ms_obj_date     = obj_timestamp })
 
 findSummaryBySourceFile :: [ModSummary] -> FilePath -> Maybe ModSummary
 findSummaryBySourceFile summaries file
@@ -2062,17 +2109,24 @@ summariseModule hsc_env old_summary_map is_boot (L loc wanted_mod)
 
         hi_timestamp <- maybeGetIfaceDate dflags location
 
-        return (Just (Right (ModSummary { ms_mod       = mod,
-                              ms_hsc_src   = hsc_src,
-                              ms_location  = location,
-                              ms_hspp_file = hspp_fn,
-                              ms_hspp_opts = dflags',
-                              ms_hspp_buf  = Just buf,
+        extra_sig_imports <- findExtraSigImports hsc_env hsc_src mod_name
+        required_by_imports <- implicitRequirements hsc_env the_imps
+
+        return (Just (Right (ModSummary {
+                              ms_mod          = mod,
+                              ms_hsc_src      = hsc_src,
+                              ms_location     = location,
+                              ms_hspp_file    = hspp_fn,
+                              ms_hspp_opts    = dflags',
+                              ms_hspp_buf     = Just buf,
+                              ms_parsed_mod   = Nothing,
                               ms_srcimps      = srcimps,
-                              ms_textual_imps = the_imps,
-                              ms_hs_date   = src_timestamp,
-                              ms_iface_date = hi_timestamp,
-                              ms_obj_date  = obj_timestamp })))
+                              ms_textual_imps = the_imps
+                                                ++ extra_sig_imports
+                                                ++ required_by_imports,
+                              ms_hs_date      = src_timestamp,
+                              ms_iface_date   = hi_timestamp,
+                              ms_obj_date     = obj_timestamp })))
 
 
 getObjTimestamp :: ModLocation -> IsBoot -> IO (Maybe UTCTime)
@@ -2129,10 +2183,10 @@ noHsFileErr :: DynFlags -> SrcSpan -> String -> ErrMsg
 noHsFileErr dflags loc path
   = mkPlainErrMsg dflags loc $ text "Can't find" <+> text path
 
-packageModErr :: DynFlags -> ModuleName -> ErrMsg
-packageModErr dflags mod
+moduleNotFoundErr :: DynFlags -> ModuleName -> ErrMsg
+moduleNotFoundErr dflags mod
   = mkPlainErrMsg dflags noSrcSpan $
-        text "module" <+> quotes (ppr mod) <+> text "is a package module"
+        text "module" <+> quotes (ppr mod) <+> text "cannot be found locally"
 
 multiRootsErr :: DynFlags -> [ModSummary] -> IO ()
 multiRootsErr _      [] = panic "multiRootsErr"

@@ -38,7 +38,7 @@ stg2stg dflags module_name binds
 
         ; when (dopt Opt_D_verbose_stg2stg dflags)
                (putLogMsg dflags NoReason SevDump noSrcSpan
-               defaultDumpStyle (text "VERBOSE STG-TO-STG:"))
+               (defaultDumpStyle dflags) (text "VERBOSE STG-TO-STG:"))
 
         ; (binds', us', ccs) <- end_pass us "Stg2Stg" ([],[],[]) binds
 

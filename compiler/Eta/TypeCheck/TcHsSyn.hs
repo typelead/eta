@@ -43,7 +43,6 @@ import Eta.BasicTypes.ConLike
 import Eta.BasicTypes.DataCon
 import Eta.BasicTypes.PatSyn( patSynInstResTy )
 import Eta.BasicTypes.Name
-import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.VarEnv
@@ -54,7 +53,6 @@ import Eta.Utils.Maybes
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Util
 import Eta.Utils.Bag
-import Eta.Utils.FastString
 import Eta.Utils.Outputable
 import qualified Eta.LanguageExtensions as LangExt
 #include "HsVersions.h"
@@ -296,7 +294,7 @@ zonkTopLExpr :: LHsExpr TcId -> TcM (LHsExpr Id)
 zonkTopLExpr e = zonkLExpr emptyZonkEnv e
 
 zonkTopDecls :: Bag EvBind
-             -> LHsBinds TcId -> Bag OccName -> NameSet
+             -> LHsBinds TcId
              -> [LRuleDecl TcId] -> [LVectDecl TcId] -> [LTcSpecPrag] -> [LForeignDecl TcId]
              -> TcM ([Id],
                      Bag EvBind,
@@ -305,19 +303,9 @@ zonkTopDecls :: Bag EvBind
                      [LTcSpecPrag],
                      [LRuleDecl    Id],
                      [LVectDecl    Id])
-zonkTopDecls ev_binds binds exports sig_ns rules vects imp_specs fords
+zonkTopDecls ev_binds binds rules vects imp_specs fords
   = do  { (env1, ev_binds') <- zonkEvBinds emptyZonkEnv ev_binds
-
-         -- Warn about missing signatures
-         -- Do this only when we we have a type to offer
-        ; warn_missing_sigs <- woptM Opt_WarnMissingSigs
-        ; warn_only_exported <- woptM Opt_WarnMissingExportedSigs
-        ; let sig_warn
-                | warn_only_exported = topSigWarnIfExported Opt_WarnMissingExportedSigs exports sig_ns
-                | warn_missing_sigs  = topSigWarn Opt_WarnMissingSigs sig_ns
-                | otherwise          = noSigWarn
-
-        ; (env2, binds') <- zonkRecMonoBinds env1 sig_warn binds
+        ; (env2, binds') <- zonkRecMonoBinds env1 binds
                         -- Top level is implicitly recursive
         ; rules' <- zonkRules env2 rules
         ; vects' <- zonkVects env2 vects
@@ -333,19 +321,15 @@ zonkLocalBinds env EmptyLocalBinds
 zonkLocalBinds _ (HsValBinds (ValBindsIn {}))
   = panic "zonkLocalBinds" -- Not in typechecker output
 
-zonkLocalBinds env (HsValBinds vb@(ValBindsOut binds sigs))
-  = do  { warn_missing_sigs <- woptM Opt_WarnMissingLocalSigs
-        ; let sig_warn | not warn_missing_sigs = noSigWarn
-                       | otherwise             = localSigWarn Opt_WarnMissingLocalSigs sig_ns
-              sig_ns = getTypeSigNames vb
-        ; (env1, new_binds) <- go env sig_warn binds
+zonkLocalBinds env (HsValBinds (ValBindsOut binds sigs))
+  = do  { (env1, new_binds) <- go env binds
         ; return (env1, HsValBinds (ValBindsOut new_binds sigs)) }
   where
-    go env _ []
+    go env []
       = return (env, [])
-    go env sig_warn ((r,b):bs)
-      = do { (env1, b')  <- zonkRecMonoBinds env sig_warn b
-           ; (env2, bs') <- go env1 sig_warn bs
+    go env ((r,b):bs)
+      = do { (env1, b')  <- zonkRecMonoBinds env b
+           ; (env2, bs') <- go env1 bs
            ; return (env2, (r,b'):bs') }
 
 zonkLocalBinds env (HsIPBinds (IPBinds binds dict_binds)) = do
@@ -361,112 +345,53 @@ zonkLocalBinds env (HsIPBinds (IPBinds binds dict_binds)) = do
              return (IPBind n' e')
 
 ---------------------------------------------
-zonkRecMonoBinds :: ZonkEnv -> SigWarn -> LHsBinds TcId -> TcM (ZonkEnv, LHsBinds Id)
-zonkRecMonoBinds env sig_warn binds
+zonkRecMonoBinds :: ZonkEnv -> LHsBinds TcId -> TcM (ZonkEnv, LHsBinds Id)
+zonkRecMonoBinds env binds
  = fixM (\ ~(_, new_binds) -> do
         { let env1 = extendIdZonkEnv env (collectHsBindsBinders new_binds)
-        ; binds' <- zonkMonoBinds env1 sig_warn binds
+        ; binds' <- zonkMonoBinds env1 binds
         ; return (env1, binds') })
 
 ---------------------------------------------
-type SigWarn = Bool -> [Id] -> TcM ()
-     -- Missing-signature warning
-     -- The Bool is True for an AbsBinds, False otherwise
+zonkMonoBinds :: ZonkEnv -> LHsBinds TcId -> TcM (LHsBinds Id)
+zonkMonoBinds env binds = mapBagM (zonk_lbind env) binds
 
-noSigWarn :: SigWarn
-noSigWarn _ _ = return ()
+zonk_lbind :: ZonkEnv -> LHsBind TcId -> TcM (LHsBind Id)
+zonk_lbind env = wrapLocM (zonk_bind env)
 
-topSigWarnIfExported :: WarningFlag -> Bag OccName -> NameSet -> SigWarn
-topSigWarnIfExported flag exported sig_ns _ ids
-  = mapM_ (topSigWarnIdIfExported flag exported sig_ns) ids
-
-topSigWarnIdIfExported :: WarningFlag -> Bag OccName -> NameSet -> Id -> TcM ()
-topSigWarnIdIfExported flag exported sig_ns id
-  | getOccName id `elemBag` exported
-  = topSigWarnId flag sig_ns id
-  | otherwise
-  = return ()
-
-topSigWarn :: WarningFlag -> NameSet -> SigWarn
-topSigWarn flag sig_ns _ ids = mapM_ (topSigWarnId flag sig_ns) ids
-
-topSigWarnId :: WarningFlag -> NameSet -> Id -> TcM ()
--- The NameSet is the Ids that *lack* a signature
--- We have to do it this way round because there are
--- lots of top-level bindings that are generated by GHC
--- and that don't have signatures
-topSigWarnId flag sig_ns id
-  | idName id `elemNameSet` sig_ns = warnMissingSig flag msg id
-  | otherwise                      = return ()
-  where
-    msg = ptext (sLit "Top-level binding with no type signature:")
-
-localSigWarn :: WarningFlag -> NameSet -> SigWarn
-localSigWarn flag sig_ns is_abs_bind ids
-  | not is_abs_bind = return ()
-  | otherwise       = mapM_ (localSigWarnId flag sig_ns) ids
-
-localSigWarnId :: WarningFlag -> NameSet -> Id -> TcM ()
--- NameSet are the Ids that *have* type signatures
-localSigWarnId flag sig_ns id
-  | not (isSigmaTy (idType id))    = return ()
-  | idName id `elemNameSet` sig_ns = return ()
-  | otherwise                      = warnMissingSig flag msg id
-  where
-    msg = ptext (sLit "Polymorphic local binding with no type signature:")
-
-warnMissingSig :: WarningFlag -> SDoc -> Id -> TcM ()
-warnMissingSig flag msg id
-  = do  { env0 <- tcInitTidyEnv
-        ; let (env1, tidy_ty) = tidyOpenType env0 (idType id)
-        ; addWarnTcM (Reason flag) (env1, mk_msg tidy_ty) }
-  where
-    mk_msg ty = sep [ msg, nest 2 $ pprPrefixName (idName id) <+> dcolon <+> ppr ty ]
-
----------------------------------------------
-zonkMonoBinds :: ZonkEnv -> SigWarn -> LHsBinds TcId -> TcM (LHsBinds Id)
-zonkMonoBinds env sig_warn binds = mapBagM (zonk_lbind env sig_warn) binds
-
-zonk_lbind :: ZonkEnv -> SigWarn -> LHsBind TcId -> TcM (LHsBind Id)
-zonk_lbind env sig_warn = wrapLocM (zonk_bind env sig_warn)
-
-zonk_bind :: ZonkEnv -> SigWarn -> HsBind TcId -> TcM (HsBind Id)
-zonk_bind env sig_warn bind@(PatBind { pat_lhs = pat, pat_rhs = grhss, pat_rhs_ty = ty})
+zonk_bind :: ZonkEnv -> HsBind TcId -> TcM (HsBind Id)
+zonk_bind env bind@(PatBind { pat_lhs = pat, pat_rhs = grhss, pat_rhs_ty = ty})
   = do  { (_env, new_pat) <- zonkPat env pat            -- Env already extended
-        ; sig_warn False (collectPatBinders new_pat)
         ; new_grhss <- zonkGRHSs env zonkLExpr grhss
         ; new_ty    <- zonkTcTypeToType env ty
         ; return (bind { pat_lhs = new_pat, pat_rhs = new_grhss, pat_rhs_ty = new_ty }) }
 
-zonk_bind env sig_warn (VarBind { var_id = var, var_rhs = expr, var_inline = inl })
+zonk_bind env (VarBind { var_id = var, var_rhs = expr, var_inline = inl })
   = do { new_var  <- zonkIdBndr env var
-       ; sig_warn False [new_var]
        ; new_expr <- zonkLExpr env expr
        ; return (VarBind { var_id = new_var, var_rhs = new_expr, var_inline = inl }) }
 
-zonk_bind env sig_warn bind@(FunBind { fun_id = L loc var, fun_matches = ms
+zonk_bind env bind@(FunBind { fun_id = L loc var, fun_matches = ms
                                      , fun_co_fn = co_fn })
   = do { new_var <- zonkIdBndr env var
-       ; sig_warn False [new_var]
        ; (env1, new_co_fn) <- zonkCoFn env co_fn
        ; new_ms <- zonkMatchGroup env1 zonkLExpr ms
        ; return (bind { fun_id = L loc new_var, fun_matches = new_ms
                       , fun_co_fn = new_co_fn }) }
 
-zonk_bind env sig_warn (AbsBinds { abs_tvs = tyvars, abs_ev_vars = evs
-                                 , abs_ev_binds = ev_binds
-                                 , abs_exports = exports
-                                 , abs_binds = val_binds })
+zonk_bind env  (AbsBinds { abs_tvs = tyvars, abs_ev_vars = evs
+                         , abs_ev_binds = ev_binds
+                         , abs_exports = exports
+                         , abs_binds = val_binds })
   = ASSERT( all isImmutableTyVar tyvars )
     do { (env0, new_tyvars) <- zonkTyBndrsX env tyvars
        ; (env1, new_evs) <- zonkEvBndrsX env0 evs
        ; (env2, new_ev_binds) <- zonkTcEvBinds env1 ev_binds
        ; (new_val_bind, new_exports) <- fixM $ \ ~(new_val_binds, _) ->
          do { let env3 = extendIdZonkEnv env2 (collectHsBindsBinders new_val_binds)
-            ; new_val_binds <- zonkMonoBinds env3 noSigWarn val_binds
+            ; new_val_binds <- zonkMonoBinds env3 val_binds
             ; new_exports   <- mapM (zonkExport env3) exports
             ; return (new_val_binds, new_exports) }
-       ; sig_warn True (map abe_poly new_exports)
        ; return (AbsBinds { abs_tvs = new_tyvars, abs_ev_vars = new_evs
                           , abs_ev_binds = new_ev_binds
                           , abs_exports = new_exports, abs_binds = new_val_bind }) }
@@ -480,13 +405,13 @@ zonk_bind env sig_warn (AbsBinds { abs_tvs = tyvars, abs_ev_vars = evs
                         , abe_mono = zonkIdOcc env mono_id
                         , abe_prags = new_prags })
 
-zonk_bind env _sig_warn (PatSynBind bind@(PSB { psb_id = L loc id
-                                              , psb_args = details
-                                              , psb_def = lpat
-                                              , psb_dir = dir }))
+zonk_bind env (PatSynBind bind@(PSB { psb_id = L loc id
+                                    , psb_args = details
+                                    , psb_def = lpat
+                                    , psb_dir = dir }))
   = do { id' <- zonkIdBndr env id
        ; details' <- zonkPatSynDetails env details
-       ;(env1, lpat') <- zonkPat env lpat
+       ; (env1, lpat') <- zonkPat env lpat
        ; (_env2, dir') <- zonkPatSynDir env1 dir
        ; return $ PatSynBind $
                   bind { psb_id = L loc id'

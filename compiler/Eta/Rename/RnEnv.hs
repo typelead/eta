@@ -71,6 +71,7 @@ import Eta.Utils.Maybes
 import Eta.BasicTypes.BasicTypes       ( TopLevelFlag(..) )
 import Eta.Utils.ListSetOps       ( removeDups )
 import Eta.Main.DynFlags
+import Eta.BasicTypes.NameCache
 import Eta.Utils.FastString
 import Control.Monad
 import Data.List
@@ -202,37 +203,12 @@ newTopSrcBinder (L loc rdr_name)
                 -- module name, we we get a confusing "M.T is not in scope" error later
 
         ; stage <- getStage
-        ; env <- getGblEnv
         ; if isBrackStage stage then
                 -- We are inside a TH bracket, so make an *Internal* name
                 -- See Note [Top-level Names in Template Haskell decl quotes] in RnNames
              do { uniq <- newUnique
                 ; return (mkInternalName uniq (rdrNameOcc rdr_name) loc) }
-          else case tcg_impl_rdr_env env of
-            Just gr ->
-                -- We're compiling --sig-of, so resolve with respect to this
-                -- module.
-                -- See Note [Signature parameters in TcGblEnv and DynFlags]
-             do { case lookupGlobalRdrEnv gr (rdrNameOcc rdr_name) of
-                    -- Be sure to override the loc so that we get accurate
-                    -- information later
-                    [GRE{ gre_name = n }] -> do
-                      -- NB: Just adding this line will not work:
-                      --    addUsedRdrName True gre rdr_name
-                      -- see Note [Signature lazy interface loading] for
-                      -- more details.
-                      return (setNameLoc n loc)
-                    _ -> do
-                      { -- NB: cannot use reportUnboundName rdr_name
-                        -- because it looks up in the wrong RdrEnv
-                        -- ToDo: more helpful error messages
-                      ; addErr (unknownNameErr (pprNonVarNameSpace
-                            (occNameSpace (rdrNameOcc rdr_name))) rdr_name)
-                      ; return (mkUnboundName rdr_name)
-                      }
-                }
-            Nothing ->
-                -- Normal case
+          else
              do { this_mod <- getModule
                 ; newGlobalBinder this_mod (rdrNameOcc rdr_name) loc } }
 
@@ -999,10 +975,9 @@ lookupQualifiedNameGHCi rdr_name
       , not (safeDirectImpsReq dflags)            -- See Note [Safe Haskell and GHCi]
       = do { res <- loadSrcInterface_maybe doc mod False Nothing
            ; case res of
-                Succeeded ifaces
+                Succeeded iface
                   -> return [ name
-                            | iface <- ifaces
-                            , avail <- mi_exports iface
+                            | avail <- mi_exports iface
                             , name  <- availNames avail
                             , nameOccName name == occ ]
 
@@ -1060,16 +1035,24 @@ data HsSigCtxt = ... | TopSigCtxt NameSet Bool | ....
 -}
 
 data HsSigCtxt
-  = TopSigCtxt NameSet Bool  -- At top level, binding these names
+  = TopSigCtxt    NameSet    -- At top level, binding these names
                              -- See Note [Signatures for top level things]
                              -- Bool <=> ok to give sig for
                              --          class method or record selctor
   | LocalBindCtxt NameSet    -- In a local binding, binding these names
   | ClsDeclCtxt   Name       -- Class decl for this class
   | InstDeclCtxt  Name       -- Intsance decl for this class
-  | HsBootCtxt               -- Top level of a hs-boot file
+  | HsBootCtxt    NameSet           -- Top level of a hs-boot file
   | RoleAnnotCtxt NameSet    -- A role annotation, with the names of all types
                              -- in the group
+
+instance Outputable HsSigCtxt where
+   ppr (TopSigCtxt ns) = text "TopSigCtxt" <+> ppr ns
+   ppr (LocalBindCtxt ns) = text "LocalBindCtxt" <+> ppr ns
+   ppr (ClsDeclCtxt n) = text "ClsDeclCtxt" <+> ppr n
+   ppr (InstDeclCtxt ns) = text "InstDeclCtxt" <+> ppr ns
+   ppr (HsBootCtxt ns) = text "HsBootCtxt" <+> ppr ns
+   ppr (RoleAnnotCtxt ns) = text "RoleAnnotCtxt" <+> ppr ns
 
 lookupSigOccRn :: HsSigCtxt
                -> Sig RdrName
@@ -1109,12 +1092,12 @@ lookupBindGroupOcc ctxt what rdr_name
 
   | otherwise
   = case ctxt of
-      HsBootCtxt            -> lookup_top (const True)       True
-      TopSigCtxt ns meth_ok -> lookup_top (`elemNameSet` ns) meth_ok
-      RoleAnnotCtxt ns      -> lookup_top (`elemNameSet` ns) False
-      LocalBindCtxt ns      -> lookup_group ns
-      ClsDeclCtxt  cls      -> lookup_cls_op cls
-      InstDeclCtxt cls      -> lookup_cls_op cls
+      HsBootCtxt ns     -> lookup_top (`elemNameSet` ns)
+      TopSigCtxt ns     -> lookup_top (`elemNameSet` ns)
+      RoleAnnotCtxt ns  -> lookup_top (`elemNameSet` ns)
+      LocalBindCtxt ns  -> lookup_group ns
+      ClsDeclCtxt  cls  -> lookup_cls_op cls
+      InstDeclCtxt cls  -> lookup_cls_op cls
   where
     lookup_cls_op cls
       = do { env <- getGlobalRdrEnv
@@ -1128,18 +1111,13 @@ lookupBindGroupOcc ctxt what rdr_name
       where
         doc = ptext (sLit "method of class") <+> quotes (ppr cls)
 
-    lookup_top keep_me meth_ok
-      = do { env <- getGlobalRdrEnv
-           ; let all_gres = lookupGlobalRdrEnv env (rdrNameOcc rdr_name)
-           ; case filter (keep_me . gre_name) all_gres of
-               [] | null all_gres -> bale_out_with Outputable.empty
-                  | otherwise -> bale_out_with local_msg
-               (gre:_)
-                  | ParentIs {} <- gre_par gre
-                  , not meth_ok
-                  -> bale_out_with sub_msg
-                  | otherwise
-                  -> return (Right (gre_name gre)) }
+    lookup_top keep_me
+          = do { env <- getGlobalRdrEnv
+               ; let all_gres = lookupGlobalRdrEnv env (rdrNameOcc rdr_name)
+               ; case filter (keep_me . gre_name) all_gres of
+                   [] | null all_gres -> bale_out_with Outputable.empty
+                      | otherwise     -> bale_out_with local_msg
+                   (gre:_)            -> return (Right (gre_name gre)) }
 
     lookup_group bound_names  -- Look in the local envt (not top level)
       = do { local_env <- getLocalRdrEnv
@@ -1158,8 +1136,8 @@ lookupBindGroupOcc ctxt what rdr_name
     local_msg = parens $ ptext (sLit "The")  <+> what <+> ptext (sLit "must be given where")
                            <+> quotes (ppr rdr_name) <+> ptext (sLit "is declared")
 
-    sub_msg = parens $ ptext (sLit "You cannot give a") <+> what
-                       <+> ptext (sLit "for a record selector or class method")
+    -- sub_msg = parens $ ptext (sLit "You cannot give a") <+> what
+    --                    <+> ptext (sLit "for a record selector or class method")
 
 
 ---------------
@@ -1267,7 +1245,7 @@ lookupFixity is a bit strange.
 * Nested local fixity decls are put in the local fixity env, which we
   find with getFixtyEnv
 
-* Imported fixities are found in the HIT or PIT
+* Imported fixities are found in the PIT
 
 * Top-level fixity decls in this module may be for Names that are
     either  Global         (constructors, class operations)

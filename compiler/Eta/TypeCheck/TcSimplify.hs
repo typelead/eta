@@ -4,7 +4,7 @@ module Eta.TypeCheck.TcSimplify(
        simplifyAmbiguityCheck,
        simplifyDefault,
        simplifyRule, simplifyTop, simplifyInteractive,
-       solveWantedsTcM,
+       solveWantedsTcM, simplifyWantedsTcM,
        tcCheckSatisfiability,
        captureTopConstraints
   ) where
@@ -767,6 +767,18 @@ solveWantedsTcM wanted
        ; wanteds' <- solveWantedsTcMWithEvBinds ev_binds_var wanted solveWantedsAndDrop
        ; binds <- TcRnMonad.getTcEvBinds ev_binds_var
        ; return (wanteds', binds) }
+
+simplifyWantedsTcM :: [Ct] -> TcM WantedConstraints
+-- Solve the specified Wanted constraints
+-- Discard the evidence binds
+-- Discards all Derived stuff in result
+-- Postcondition: fully zonked and unflattened constraints
+simplifyWantedsTcM wanted
+ = do { traceTc "simplifyWantedsTcM {" (ppr wanted)
+      ; (result, _) <- runTcS (solveWantedsAndDrop (mkSimpleWC wanted))
+      ; result <- TcM.zonkWC result
+      ; traceTc "simplifyWantedsTcM }" (ppr result)
+      ; return result }
 
 solveWantedsAndDrop :: WantedConstraints -> TcS (WantedConstraints)
 -- Since solveWanteds returns the residual WantedConstraints,

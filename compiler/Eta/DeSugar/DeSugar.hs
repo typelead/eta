@@ -8,14 +8,19 @@ The Desugarer: turning HsSyn into Core.
 
 {-# LANGUAGE CPP #-}
 
-module Eta.DeSugar.DeSugar ( deSugar, deSugarExpr ) where
+module Eta.DeSugar.DeSugar (
+-- * Desugaring operations
+    deSugar, deSugarExpr
+    ) where
+
+#include "HsVersions.h"
 
 import Eta.Main.DynFlags
 import Eta.Main.HscTypes
 import Eta.HsSyn.HsSyn
+import Eta.DeSugar.DsUsage
 import Eta.TypeCheck.TcRnTypes
 import Eta.TypeCheck.TcRnMonad ( finalSafeMode )
-import Eta.Iface.MkIface
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Name
 import Eta.Types.Type
@@ -68,7 +73,8 @@ deSugar :: HscEnv -> ModLocation -> TcGblEnv -> IO (Messages, Maybe ModGuts)
 
 deSugar hsc_env
         mod_loc
-        tcg_env@(TcGblEnv { tcg_mod          = mod,
+        tcg_env@(TcGblEnv { tcg_mod          = _id_mod,
+                            tcg_semantic_mod = mod,
                             tcg_src          = hsc_src,
                             tcg_type_env     = type_env,
                             tcg_imports      = imports,
@@ -79,6 +85,7 @@ deSugar hsc_env
                             tcg_fix_env      = fix_env,
                             tcg_inst_env     = inst_env,
                             tcg_fam_inst_env = fam_inst_env,
+                            tcg_merged = merged,
                             tcg_warns        = warns,
                             tcg_anns         = anns,
                             tcg_binds        = binds,
@@ -161,20 +168,25 @@ deSugar hsc_env
         ; endPassIO hsc_env print_unqual CoreDesugarOpt ds_binds ds_rules_for_imps
 
         ; let used_names = mkUsedNames tcg_env
-        ; deps <- mkDependencies tcg_env
+              pluginModules = []
+                -- map lpModule (plugins (hsc_dflags hsc_env))
+        ; deps <- mkDependencies (thisInstalledUnitId (hsc_dflags hsc_env))
+                                 pluginModules tcg_env
 
         ; used_th <- readIORef tc_splice_used
         ; dep_files <- readIORef dependent_files
         ; safe_mode <- finalSafeMode dflags tcg_env
-
+        ; usages <- mkUsageInfo hsc_env mod (imp_mods imports) used_names dep_files merged
+       -- id_mod /= mod when we are processing an hsig, but hsigs
+       -- never desugared and compiled (there's no code!)
+       -- ; MASSERT ( id_mod == mod )
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
-                mg_boot         = hsc_src == HsBootFile,
+                mg_hsc_src      = hsc_src,
                 mg_exports      = exports,
+                mg_usages       = usages,
                 mg_deps         = deps,
-                mg_used_names   = used_names,
                 mg_used_th      = used_th,
-                mg_dir_imps     = imp_mods imports,
                 mg_rdr_env      = rdr_env,
                 mg_fix_env      = fix_env,
                 mg_warns        = warns,
@@ -193,8 +205,7 @@ deSugar hsc_env
                 mg_vect_decls   = ds_vects,
                 mg_vect_info    = noVectInfo,
                 mg_safe_haskell = safe_mode,
-                mg_trust_pkg    = imp_trust_own_pkg imports,
-                mg_dependent_files = dep_files
+                mg_trust_pkg    = imp_trust_own_pkg imports
               }
         ; return (msgs, Just mod_guts)
         }}}

@@ -128,7 +128,7 @@ withExtendedLinkEnv new_env action
 showLinkerState :: DynFlags -> IO ()
 showLinkerState dflags = do
   pls <- readIORef v_PersistentLinkerState >>= readMVar
-  putLogMsg dflags NoReason SevDump noSrcSpan defaultDumpStyle
+  putLogMsg dflags NoReason SevDump noSrcSpan (defaultDumpStyle dflags)
     (vcat [text "----- Linker state -----"
           ,text "Closure Environment:" <+>
            ppr (closure_env pls)])

@@ -12,6 +12,7 @@ module Eta.Rename.RnNames (
         gresFromAvails,
         calculateAvails,
         reportUnusedNames,
+        plusAvail,
         checkConName,
         -- These error functions are also used in RnBinds
         addSimDeclErrors, addSimDeclErr
@@ -31,6 +32,8 @@ import Eta.Prelude.PrelNames
 import Eta.Prelude.TysWiredIn
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
+import Eta.BasicTypes.Id
+import Eta.Types.Type
 import Eta.BasicTypes.NameEnv
 import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.Avail
@@ -151,7 +154,10 @@ with yes we have gone with no for now.
 rnImports :: [LImportDecl RdrName]
           -> RnM ([LImportDecl Name], GlobalRdrEnv, ImportAvails, AnyHpcUsage)
 rnImports imports = do
-    this_mod <- getModule
+    tcg_env <- getGblEnv
+    -- NB: want an identity module here, because it's OK for a signature
+    -- module to import from its implementor
+    let this_mod = tcg_mod tcg_env
     let (source, ordinary) = partition is_source_import imports
         is_source_import d = ideclIsSource (unLoc d)
     stuff1 <- mapAndReportM (rnImportDecl this_mod) ordinary
@@ -219,7 +225,7 @@ rnImportDecl this_mod
                            addWarn (Reason Opt_WarnMissingImportList)
                                    (missingImportListWarn imp_mod_name)
 
-    ifaces <- loadSrcInterface doc imp_mod_name want_boot mb_pkg
+    iface <- loadSrcInterface doc imp_mod_name want_boot mb_pkg
 
     -- Compiler sanity check: if the import didn't say
     -- {-# SOURCE #-} we should not get a hi-boot file
@@ -238,11 +244,11 @@ rnImportDecl this_mod
     -- the non-boot module depends on the compilation order, which
     -- is not deterministic.  The hs-boot test can show this up.
     dflags <- getDynFlags
-    warnIf (want_boot && any (not.mi_boot) ifaces && isOneShot (ghcMode dflags))
+    warnIf (want_boot && not (mi_boot iface) && isOneShot (ghcMode dflags))
            (warnRedundantSourceImport imp_mod_name)
     when (mod_safe && not (safeImportsOn dflags)) $
-        addErr (ptext (sLit "safe import can't be used as Safe Haskell isn't on!")
-                $+$ ptext (sLit $ "please enable Safe Haskell through either "
+        addErr (ptext (sLit "safe import can't be used as Safe Eta isn't on!")
+                $+$ ptext (sLit $ "please enable Safe Eta through either "
                                    ++ "Safe, Trustworthy or Unsafe"))
 
     let
@@ -251,33 +257,35 @@ rnImportDecl this_mod
                                   is_dloc = loc, is_as = qual_mod_name, is_java = False }
 
     -- filter the imports according to the import declaration
-    (new_imp_details, gres) <- filterImports ifaces imp_spec imp_details
+    (new_imp_details, gres) <- filterImports iface imp_spec imp_details
+
+    potential_gres <- mkGlobalRdrEnv . snd <$> filterImports iface imp_spec Nothing
 
     let gbl_env = mkGlobalRdrEnv (filterOut from_this_mod gres)
         from_this_mod gre = nameModule (gre_name gre) == this_mod
 
-        -- True <=> import M ()
-        import_all = case imp_details of
-                        Just (is_hiding, L _ ls) -> not is_hiding && null ls
-                        _                    -> False
+        is_hiding | Just (True,_) <- imp_details = True
+                  | otherwise                    = False
 
         -- should the import be safe?
         mod_safe' = mod_safe
                     || (not implicit && safeDirectImpsReq dflags)
                     || (implicit && safeImplicitImpsReq dflags)
 
-    let imports
-          = foldr plusImportAvails emptyImportAvails (map
-             (\iface ->
-              (calculateAvails dflags iface mod_safe' want_boot) {
-                imp_mods = unitModuleEnv (mi_module iface)
-                            [(qual_mod_name, import_all, loc, mod_safe')] })
-             ifaces)
+    let imv = ImportedModsVal
+            { imv_name        = qual_mod_name
+            , imv_span        = loc
+            , imv_is_safe     = mod_safe'
+            , imv_is_hiding   = is_hiding
+            , imv_all_exports = potential_gres
+            , imv_qualified   = qual_only
+            }
+
+        imports = calculateAvails dflags iface mod_safe' want_boot (ImportedByUser imv)
 
     -- Complain if we import a deprecated module
     whenWOptM Opt_WarnWarningsDeprecations (
-      forM_ ifaces $ \iface ->
-       case mi_warns iface of
+       case (mi_warns iface) of
           WarnAll txt -> addWarn (Reason Opt_WarnWarningsDeprecations) $
                          moduleWarn imp_mod_name txt
           _           -> return ()
@@ -286,7 +294,7 @@ rnImportDecl this_mod
     let new_imp_decl = L loc (decl { ideclSafe = mod_safe'
                                    , ideclHiding = new_imp_details })
 
-    return (new_imp_decl, gbl_env, imports, any mi_hpc ifaces)
+    return (new_imp_decl, gbl_env, imports, mi_hpc iface)
 
 -- | Calculate the 'ImportAvails' induced by an import of a particular
 -- interface, but without 'imp_mods'.
@@ -294,8 +302,9 @@ calculateAvails :: DynFlags
                 -> ModIface
                 -> IsSafeImport
                 -> IsBootInterface
+                -> ImportedBy
                 -> ImportAvails
-calculateAvails dflags iface mod_safe' want_boot =
+calculateAvails dflags iface mod_safe' want_boot imported_by =
   let imp_mod    = mi_module iface
       orph_iface = mi_orphan iface
       has_finsts = mi_finsts iface
@@ -363,19 +372,19 @@ calculateAvails dflags iface mod_safe' want_boot =
             ([], (ipkg, False) : dep_pkgs deps, False)
 
   in ImportAvails {
-          imp_mods       = emptyModuleEnv, -- this gets filled in later
+          imp_mods       = unitModuleEnv (mi_module iface) [imported_by],
           imp_orphs      = orphans,
           imp_finsts     = finsts,
           imp_dep_mods   = mkModDeps dependent_mods,
-          imp_dep_pkgs   = map fst $ dependent_pkgs,
+          imp_dep_pkgs   = Set.fromList . map fst $ dependent_pkgs,
           -- Add in the imported modules trusted package
           -- requirements. ONLY do this though if we import the
           -- module as a safe import.
           -- See Note [Tracking Trust Transitively]
           -- and Note [Trust Transitive Property]
           imp_trust_pkgs = if mod_safe'
-                               then map fst $ filter snd dependent_pkgs
-                               else [],
+                               then Set.fromList . map fst $ filter snd dependent_pkgs
+                               else Set.empty,
           -- Do we require our own pkg to be trusted?
           -- See Note [Trust Own Package]
           imp_trust_own_pkg = pkg_trust_req
@@ -759,18 +768,18 @@ although we never look up data constructors.
 -}
 
 filterImports
-    :: [ModIface]
+    :: ModIface
     -> ImpDeclSpec                     -- The span for the entire import decl
     -> Maybe (Bool, Located [LIE RdrName])    -- Import spec; True => hiding
     -> RnM (Maybe (Bool, Located [LIE Name]), -- Import spec w/ Names
             [GlobalRdrElt])                   -- Same again, but in GRE form
 filterImports iface decl_spec Nothing
-  = return (Nothing, gresFromAvails prov (concatMap mi_exports iface))
+  = return (Nothing, gresFromAvails prov (mi_exports iface))
   where
     prov = Imported [ImpSpec { is_decl = decl_spec, is_item = ImpAll }]
 
 
-filterImports ifaces decl_spec (Just (want_hiding, L l import_items))
+filterImports iface decl_spec (Just (want_hiding, L l import_items))
   = do  -- check for errors, convert RdrNames to Names
         items1 <- mapM lookup_lie import_items
 
@@ -789,7 +798,7 @@ filterImports ifaces decl_spec (Just (want_hiding, L l import_items))
 
         return (Just (want_hiding, L l (map fst items2)), gres)
   where
-    all_avails = concatMap mi_exports ifaces
+    all_avails = mi_exports iface
 
         -- See Note [Dealing with imports]
     imp_occ_env :: OccEnv (Name,        -- the name
@@ -804,7 +813,8 @@ filterImports ifaces decl_spec (Just (want_hiding, L l import_items))
         --    T(T,T1,T2,T3) and C(C,T)  to give   (T, T(T,T1,T2,T3), Just C)
         combine (name1, a1@(AvailTC p1 _), mp1)
                 (name2, a2@(AvailTC p2 _), mp2)
-          = ASSERT( name1 == name2 && isNothing mp1 && isNothing mp2 )
+          = ASSERT2( name1 == name2 && isNothing mp1 && isNothing mp2
+                  , ppr name1 <+> ppr name2 <+> ppr mp1 <+> ppr mp2 )
             if p1 == name1 then (name1, a1, Just p2)
                            else (name1, a2, Just p1)
         combine x y = pprPanic "filterImports/combine" (ppr x $$ ppr y)
@@ -838,8 +848,7 @@ filterImports ifaces decl_spec (Just (want_hiding, L l import_items))
               Succeeded a -> return (Just a)
 
             lookup_err_msg err = case err of
-              BadImport -> badImportItemErr (any mi_boot ifaces) decl_spec
-                                            ieRdr all_avails
+              BadImport -> badImportItemErr iface decl_spec ieRdr all_avails
               IllegalImport -> illegalImportItemErr
               QualImportError rdr -> qualImportItemErr rdr
 
@@ -1189,9 +1198,9 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
     kids_env :: NameEnv [Name]  -- Maps a parent to its in-scope children
     kids_env = mkChildEnv (globalRdrEnvElts rdr_env)
 
-    imported_modules = [ qual_name
-                       | xs <- moduleEnvElts $ imp_mods imports,
-                         (qual_name, _, _, _) <- xs ]
+    imported_modules = [ imv_name imv
+                       | xs <- moduleEnvElts $ imp_mods imports
+                       , imv <- importedByUser xs ]
 
     exports_from_item :: ExportAccum -> LIE RdrName -> RnM ExportAccum
     exports_from_item acc@(ie_names, occs, exports)
@@ -1418,7 +1427,8 @@ reportUnusedNames :: Maybe (Located [LIE RdrName])  -- Export list
 reportUnusedNames _export_decls gbl_env
   = do  { traceRn "RUN" (ppr (tcg_dus gbl_env))
         ; warnUnusedImportDecls gbl_env
-        ; warnUnusedTopBinds   unused_locals }
+        ; warnUnusedTopBinds   unused_locals
+        ; warnMissingSigs gbl_env }
   where
     used_names :: NameSet
     used_names = findUses (tcg_dus gbl_env) emptyNameSet
@@ -1491,6 +1501,63 @@ warnUnusedImportDecls gbl_env
 
        ; whenGOptM Opt_D_dump_minimal_imports $
          printMinimalImports usage }
+-- | Warn the user about top level binders that lack type signatures.
+warnMissingSigs :: TcGblEnv -> RnM ()
+warnMissingSigs gbl_env
+  = do { let exports = availsToNameSet (tcg_exports gbl_env)
+             sig_ns = tcg_sigs gbl_env
+             binds = tcg_binds gbl_env
+
+         -- Warn about missing signatures
+         -- Do this only when we we have a type to offer
+       ; warn_missing_sigs  <- woptM Opt_WarnMissingSigs
+       ; warn_only_exported <- woptM Opt_WarnMissingExportedSigs
+
+       ; let sig_warn
+               | warn_only_exported = topSigWarnIfExported exports sig_ns
+               | warn_missing_sigs  = topSigWarn sig_ns
+               | otherwise          = noSigWarn
+
+       ; sig_warn (collectHsBindsBinders binds) }
+
+type SigWarn = [Id] -> RnM ()
+     -- Missing-signature warning
+
+noSigWarn :: SigWarn
+noSigWarn _ = return ()
+
+topSigWarnIfExported :: NameSet -> NameSet -> SigWarn
+topSigWarnIfExported exported sig_ns ids
+ = mapM_ (topSigWarnIdIfExported exported sig_ns) ids
+
+topSigWarnIdIfExported :: NameSet -> NameSet -> Id -> RnM ()
+topSigWarnIdIfExported exported sig_ns id
+ | getName id `elemNameSet` exported
+ = topSigWarnId Opt_WarnMissingExportedSigs sig_ns id
+ | otherwise
+ = return ()
+
+topSigWarn :: NameSet -> SigWarn
+topSigWarn sig_ns ids = mapM_ (topSigWarnId Opt_WarnMissingSigs sig_ns) ids
+
+topSigWarnId :: WarningFlag -> NameSet -> Id -> RnM ()
+-- The NameSet is the Ids that *lack* a signature
+-- We have to do it this way round because there are
+-- lots of top-level bindings that are generated by GHC
+-- and that don't have signatures
+topSigWarnId flag sig_ns id
+ | idName id `elemNameSet` sig_ns = warnMissingSig flag msg id
+ | otherwise                      = return ()
+ where
+   msg = ptext (sLit "Top-level binding with no type signature:")
+
+warnMissingSig :: WarningFlag -> SDoc -> Id -> RnM ()
+warnMissingSig flag msg id
+ = do  { env <- tcInitTidyEnv
+       ; let (_, tidy_ty) = tidyOpenType env (idType id)
+       ; addWarnAt (Reason flag) (getSrcSpan id) (mk_msg tidy_ty) }
+ where
+   mk_msg ty = sep [ msg, nest 2 $ pprPrefixName (idName id) <+> dcolon <+> ppr ty ]
 
 {-
 Note [The ImportMap]
@@ -1683,13 +1750,13 @@ printMinimalImports imports_w_usage
       = do { let ImportDecl { ideclName    = L _ mod_name
                             , ideclSource  = is_boot
                             , ideclPkgQual = mb_pkg } = decl
-           ; ifaces <- loadSrcInterface doc mod_name is_boot mb_pkg
-           ; let lies = map (L l) (concatMap (to_ie ifaces) used)
+           ; iface <- loadSrcInterface doc mod_name is_boot mb_pkg
+           ; let lies = map (L l) (concatMap (to_ie iface) used)
            ; return (L l (decl { ideclHiding = Just (False, L l lies) })) }
       where
         doc = text "Compute minimal imports for" <+> ppr decl
 
-    to_ie :: [ModIface] -> AvailInfo -> [IE Name]
+    to_ie :: ModIface -> AvailInfo -> [IE Name]
     -- The main trick here is that if we're importing all the constructors
     -- we want to say "T(..)", but if we're importing only a subset we want
     -- to say "T(A,B,C)".  So we have to find out what the module exports.
@@ -1697,9 +1764,8 @@ printMinimalImports imports_w_usage
        = [IEVar (noLoc n)]
     to_ie _ (AvailTC n [m])
        | n==m = [IEThingAbs (noLoc n)]
-    to_ie ifaces (AvailTC n ns)
-      = case [xs | iface <- ifaces
-                 , AvailTC x xs <- mi_exports iface
+    to_ie iface (AvailTC n ns)
+      = case [xs | AvailTC x xs <- mi_exports iface
                  , x == n
                  , x `elem` xs    -- Note [Partial export]
                  ] of
@@ -1743,20 +1809,16 @@ qualImportItemErr rdr
   = hang (ptext (sLit "Illegal qualified name in import item:"))
        2 (ppr rdr)
 
-badImportItemErrStd :: IsBootInterface -> ImpDeclSpec -> IE RdrName -> SDoc
-badImportItemErrStd is_boot decl_spec ie
+badImportItemErrStd :: ModIface -> ImpDeclSpec -> IE RdrName -> SDoc
+badImportItemErrStd iface decl_spec ie
   = sep [ptext (sLit "Module"), quotes (ppr (is_mod decl_spec)), source_import,
          ptext (sLit "does not export"), quotes (ppr ie)]
   where
-    source_import | is_boot       = ptext (sLit "(hi-boot interface)")
+    source_import | mi_boot iface = ptext (sLit "(hi-boot interface)")
                   | otherwise     = Outputable.empty
 
-badImportItemErrDataCon :: OccName
-                        -> IsBootInterface
-                        -> ImpDeclSpec
-                        -> IE RdrName
-                        -> SDoc
-badImportItemErrDataCon dataType_occ is_boot decl_spec ie
+badImportItemErrDataCon :: OccName -> ModIface -> ImpDeclSpec -> IE RdrName -> SDoc
+badImportItemErrDataCon dataType_occ iface decl_spec ie
   = vcat [ ptext (sLit "In module")
              <+> quotes (ppr (is_mod decl_spec))
              <+> source_import <> colon
@@ -1776,19 +1838,15 @@ badImportItemErrDataCon dataType_occ is_boot decl_spec ie
     datacon_occ = rdrNameOcc $ ieName ie
     datacon = parenSymOcc datacon_occ (ppr datacon_occ)
     dataType = parenSymOcc dataType_occ (ppr dataType_occ)
-    source_import | is_boot       = ptext (sLit "(hi-boot interface)")
+    source_import | mi_boot iface = ptext (sLit "(hi-boot interface)")
                   | otherwise     = Outputable.empty
     parens_sp d = parens (space <> d <> space)  -- T( f,g )
 
-badImportItemErr :: IsBootInterface
-                 -> ImpDeclSpec
-                 -> IE RdrName
-                 -> [AvailInfo]
-                 -> SDoc
-badImportItemErr is_boot decl_spec ie avails
+badImportItemErr :: ModIface -> ImpDeclSpec -> IE RdrName -> [AvailInfo] -> SDoc
+badImportItemErr iface decl_spec ie avails
   = case find checkIfDataCon avails of
-     Just con -> badImportItemErrDataCon (availOccName con) is_boot decl_spec ie
-     Nothing  -> badImportItemErrStd is_boot decl_spec ie
+     Just con -> badImportItemErrDataCon (availOccName con) iface decl_spec ie
+     Nothing  -> badImportItemErrStd iface decl_spec ie
   where
     checkIfDataCon (AvailTC _ ns) =
       case find (\n -> importedFS == nameOccNameFS n) ns of

@@ -13,6 +13,7 @@ import Eta.Main.HscTypes
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.Utils.Fingerprint
+import Eta.Iface.BinFingerprint
 -- import Eta.Utils.Outputable
 import qualified Eta.Utils.EnumSet as EnumSet
 import System.FilePath (normalise)
@@ -20,7 +21,8 @@ import System.FilePath (normalise)
 -- | Produce a fingerprint of a @DynFlags@ value. We only base
 -- the finger print on important fields in @DynFlags@ so that
 -- the recompilation checker can use this fingerprint.
-fingerprintDynFlags :: DynFlags -> Module -> (BinHandle -> Name -> IO ())
+fingerprintDynFlags :: DynFlags -> Module
+                    -> (BinHandle -> Name -> IO ())
                     -> IO Fingerprint
 
 fingerprintDynFlags dflags@DynFlags{..} this_mod nameio =

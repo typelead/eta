@@ -89,7 +89,8 @@ module Eta.Prelude.TysWiredIn (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} Eta.BasicTypes.MkId( mkDataConWorkId )
+import {-# SOURCE #-} Eta.BasicTypes.MkId      ( mkDataConWorkId )
+import {-# SOURCE #-} Eta.Prelude.KnownUniques ( mkTupleTyConUnique, mkTupleDataConUnique )
 
 -- friends:
 import Eta.Prelude.PrelNames
@@ -110,8 +111,7 @@ import Eta.BasicTypes.Name
 import Eta.BasicTypes.BasicTypes       ( TupleSort(..), tupleSortBoxity,
                           Arity, RecFlag(..), Boxity(..), boxityNormalTupleSort )
 import Eta.Prelude.ForeignCall
-import Eta.BasicTypes.Unique           ( incrUnique, mkTupleTyConUnique,
-                          mkTupleDataConUnique, mkPArrDataConUnique )
+import Eta.BasicTypes.Unique           ( incrUnique, mkPArrDataConUnique )
 import Data.Array
 import Eta.Utils.FastString
 import Eta.Utils.Outputable
@@ -148,12 +148,13 @@ names in PrelNames, so they use wTcQual, wDataQual, etc
 -- See also Note [Known-key names]
 wiredInTyCons :: [TyCon]
 
-wiredInTyCons = [ unitTyCon     -- Not treated like other tuples, because
-                                -- it's defined in GHC.Base, and there's only
-                                -- one of it.  We put it in wiredInTyCons so
-                                -- that it'll pre-populate the name cache, so
-                                -- the special case in lookupOrigNameCache
-                                -- doesn't need to look out for it
+wiredInTyCons = [ -- Units are not treated like other tuples, because then
+                  -- are defined in GHC.Base, and there's only a few of them. We
+                  -- put them in wiredInTyCons so that they will pre-populate
+                  -- the name cache, so the parser in isBuiltInOcc_maybe doesn't
+                  -- need to look out for them.
+                unitTyCon
+              , unboxedUnitTyCon
               , boolTyCon
               , charTyCon
               , doubleTyCon
@@ -327,12 +328,18 @@ pcDataConWithFixity' declared_infix dc_name wrk_key tyvars arg_tys tycon
                 NoDataConRep    -- Wired-in types are too simple to need wrappers
 
     no_bang = HsSrcBang Nothing NoSrcUnpack NoSrcStrict
+    wrk_name = mkDataConWorkerName data_con wrk_key
+
+mkDataConWorkerName :: DataCon -> Unique -> Name
+mkDataConWorkerName data_con wrk_key =
+    mkWiredInName modu wrk_occ wrk_key
+                  (AnId (dataConWorkId data_con)) UserSyntax
+  where
     modu     = ASSERT( isExternalName dc_name )
                nameModule dc_name
-    wrk_occ  = mkDataConWorkerOcc (nameOccName dc_name)
-    wrk_name = mkWiredInName modu wrk_occ wrk_key
-                             (AnId (dataConWorkId data_con)) UserSyntax
-
+    dc_name = dataConName data_con
+    dc_occ  = nameOccName dc_name
+    wrk_occ = mkDataConWorkerOcc dc_occ
 {-
 ************************************************************************
 *                                                                      *
@@ -376,6 +383,11 @@ Note [How tuples work]  See also Note [Known-key names] in PrelNames
   betweeen BoxedTuple and ConstraintTuple (same OccName!), so tuples
   are not serialised into interface files using OccNames at all.
 
+* Serialization to interface files works via the usual mechanism for known-key
+  things: instead of serializing the OccName we just serialize the key. During
+  deserialization we lookup the Name associated with the unique with the logic
+  in KnownUniques. See Note [Symbol table representation of names] for details.
+
 Note [One-tuples]
 ~~~~~~~~~~~~~~~~~
 GHC supports both boxed and unboxed one-tuples:
@@ -411,11 +423,16 @@ isBuiltInOcc_maybe occ
   = case occNameString occ of
         "[]"             -> choose_ns listTyCon nilDataCon
         ":"              -> Just consDataConName
+
         "[::]"           -> Just parrTyConName
-        "(##)"           -> choose_ns unboxedUnitTyCon unboxedUnitDataCon
+
+        -- boxed tuple data/tycon
         "()"             -> choose_ns unitTyCon        unitDataCon
-        '(':'#':',':rest -> parse_tuple UnboxedTuple 2 rest
         '(':',':rest     -> parse_tuple BoxedTuple   2 rest
+
+        "(##)"           -> choose_ns unboxedUnitTyCon unboxedUnitDataCon
+        '(':'#':',':rest -> parse_tuple UnboxedTuple 2 rest
+
         _other           -> Nothing
   where
     ns = occNameSpace occ

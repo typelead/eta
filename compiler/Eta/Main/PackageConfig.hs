@@ -43,13 +43,13 @@ import Eta.BasicTypes.Unique
 -- which is similar to a subset of the InstalledPackageInfo type from Cabal.
 
 type PackageConfig = InstalledPackageInfo
-                       ComponentId
-                       SourcePackageId
-                       PackageName
-                       Module.InstalledUnitId
-                       Module.UnitId
-                       Module.ModuleName
-                       Module.Module
+                     ComponentId
+                     SourcePackageId
+                     PackageName
+                     Module.InstalledUnitId
+                     Module.UnitId
+                     Module.ModuleName
+                     Module.Module
 
 -- TODO: there's no need for these to be FastString, as we don't need the uniq
 --       feature, but ghc doesn't currently have convenient support for any

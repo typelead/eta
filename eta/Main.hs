@@ -9,6 +9,7 @@ import Eta.Iface.LoadIface        ( showIface, loadUserInterface)
 import Eta.Main.HscMain           ( newHscEnv )
 import Eta.Main.DriverPipeline
 import Eta.Main.DriverMkDepend    ( doMkDependHS )
+import Eta.Backpack.DriverBkp     ( doBackpack )
 import Eta.Main.SysTools
 import Eta.Main.Constants
 import Eta.Main.HscTypes
@@ -31,9 +32,10 @@ import Eta.REPL.UI          ( interactiveUI, etaReplWelcomeMsg, defaultEtaReplSe
 #endif
 -- Imports for --abi-hash
 import Eta.BasicTypes.Module      ( mkModuleName)
-import Eta.Main.Finder            ( findImportedModule, cannotFindInterface )
+import Eta.Main.Finder            ( findImportedModule, cannotFindModule )
 import Eta.TypeCheck.TcRnMonad    ( initIfaceCheck )
-import Eta.Utils.Binary           ( openBinMem, put_, fingerprintBinMem )
+import Eta.Utils.Binary           ( openBinMem, put_ )
+import Eta.Iface.BinFingerprint   ( fingerprintBinMem )
 
 -- Standard Libraries
 import System.IO
@@ -127,6 +129,7 @@ main' postLoadMode dflags0 args flagWarnings = do
                DoInteractive   -> (CompManager, HscInterpreted, LinkInMemory)
                DoEval _        -> (CompManager, HscInterpreted, LinkInMemory)
                DoMake          -> (CompManager, dflt_target,    LinkBinary)
+               DoBackpack _    -> (CompManager, dflt_target,    LinkBinary)
                DoMkDependHS    -> (MkDepend,    dflt_target,    LinkBinary)
                DoAbiHash       -> (OneShot,     dflt_target,    LinkBinary)
                _               -> (OneShot,     dflt_target,    LinkBinary)
@@ -199,7 +202,7 @@ main' postLoadMode dflags0 args flagWarnings = do
     v | v == 4 -> liftIO $ dumpPackagesSimple dflags6
       | v >= 5 -> liftIO $ dumpPackages dflags6
       | otherwise -> return ()
-      
+
   liftIO $ initUniqSupply (initialUnique dflags6) (uniqueIncrement dflags6)
         ---------------- Final sanity checking -----------
   liftIO $ checkOptions postLoadMode dflags6 srcs objs
@@ -223,6 +226,7 @@ main' postLoadMode dflags0 args flagWarnings = do
        DoEval exprs           -> measure EvalMode $ etaReplUI srcs $ Just $ reverse exprs
        DoAbiHash              -> abiHash (map fst srcs)
        ShowPackages           -> liftIO $ showPackages dflags6
+       DoBackpack b           -> doBackpack b
 
   liftIO $ dumpFinalStats dflags6
 
@@ -403,6 +407,7 @@ data PostLoadMode
   | StopBefore Phase        -- ghc -E | -C | -S
                             -- StopBefore StopLn is the default
   | DoMake                  -- ghc --make
+  | DoBackpack String       -- ghc --backpack foo.bkp
   | DoInteractive           -- ghc --interactive
   | DoEval [String]         -- ghc -e foo -e bar => DoEval ["bar", "foo"]
   | DoAbiHash               -- ghc --abi-hash
@@ -424,6 +429,9 @@ stopBeforeMode phase = mkPostLoadMode (StopBefore phase)
 
 doEvalMode :: String -> Mode
 doEvalMode str = mkPostLoadMode (DoEval [str])
+
+doBackpackMode :: String -> Mode
+doBackpackMode str = mkPostLoadMode (DoBackpack str)
 
 mkPostLoadMode :: PostLoadMode -> Mode
 mkPostLoadMode = Right . Right
@@ -548,6 +556,7 @@ modeFlags =
   , defFlag "C"            (PassFlag (setMode (stopBeforeMode HCc)))
   , defFlag "S"            (PassFlag (setMode (stopBeforeMode (As False))))
   , defFlag "-make"        (PassFlag (setMode doMakeMode))
+  , defFlag "-backpack"    (SepArg (\s -> setMode (doBackpackMode s) "-backpack"))
   , defFlag "-interactive" (PassFlag (setMode doInteractiveMode))
   , defFlag "-abi-hash"    (PassFlag (setMode doAbiHashMode))
   , defFlag "e"            (SepArg   (\s -> setMode (doEvalMode s) "-e"))
@@ -820,7 +829,7 @@ abiHash strs = do
          case r of
            Found _ m -> return m
            _error    -> throwGhcException $ CmdLineError $ showSDoc dflags $
-                          cannotFindInterface dflags modname r
+                          cannotFindModule dflags modname r
 
   mods <- mapM find_it strs
 

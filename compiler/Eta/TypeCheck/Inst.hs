@@ -54,8 +54,9 @@ import Eta.Main.DynFlags
 import Eta.Utils.Bag
 import Eta.Utils.Util
 import Eta.Utils.Outputable
-import Control.Monad( unless )
-import Data.Maybe( isJust, fromJust )
+import Control.Monad   ( unless )
+import Data.Maybe      ( fromJust )
+-- import Data.Maybe( isJust, fromJust )
 import qualified Eta.LanguageExtensions as LangExt
 #include "HsVersions.h"
 
@@ -478,9 +479,7 @@ addLocalInst (home_ie, my_insts) ispec
                -- implementing!)  NB: we still count local duplicate instances
                -- as errors.
                -- See Note [Signature files and type class instances]
-               global_ie
-                    | isJust (tcg_sig_of tcg_env) = emptyInstEnv
-                    | otherwise = eps_inst_env eps
+               global_ie       = eps_inst_env eps
                inst_envs       = InstEnvs { ie_global  = global_ie
                                           , ie_local   = home_ie'
                                           , ie_visible = tcg_visible_orphan_mods tcg_env }

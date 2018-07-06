@@ -1,11 +1,11 @@
 module Eta.Main.Plugins (
     Plugin(..), CommandLineOption,
-    defaultPlugin
+    defaultPlugin, LoadedPlugin(..), lpModuleName
     ) where
 
 import Eta.SimplCore.CoreMonad ( CoreToDo, CoreM )
 import Eta.TypeCheck.TcRnTypes ( TcPlugin )
-
+import Eta.BasicTypes.Module ( ModuleName, Module(moduleName))
 
 -- | Command line options gathered from the -PModule.Name:stuff syntax
 -- are given to you as this type
@@ -36,3 +36,16 @@ defaultPlugin = Plugin {
         installCoreToDos = const return
       , tcPlugin         = const Nothing
     }
+
+-- | A plugin with its arguments. The result of loading the plugin.
+data LoadedPlugin = LoadedPlugin {
+    lpPlugin :: Plugin
+    -- ^ the actual callable plugin
+  , lpModule :: Module
+    -- ^ the module containing the plugin
+  , lpArguments :: [CommandLineOption]
+    -- ^ command line arguments for the plugin
+  }
+
+lpModuleName :: LoadedPlugin -> ModuleName
+lpModuleName = moduleName . lpModule

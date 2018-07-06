@@ -365,7 +365,7 @@ dumpIfSet dflags flag hdr doc
                            NoReason
                            SevDump
                            noSrcSpan
-                           defaultDumpStyle
+                           (defaultDumpStyle dflags)
                            (mkDumpDoc hdr doc)
 
 -- | a wrapper around 'dumpSDoc'.
@@ -408,7 +408,7 @@ mkDumpDoc hdr doc
 dumpSDoc :: DynFlags -> PrintUnqualified -> DumpFlag -> String -> SDoc -> IO ()
 dumpSDoc dflags print_unqual flag hdr doc
  = do let mFile = chooseDumpFile dflags flag
-          dump_style = mkDumpStyle print_unqual
+          dump_style = mkDumpStyle dflags print_unqual
       case mFile of
             Just fileName
                  -> do
@@ -519,29 +519,29 @@ compilationProgressMsg :: DynFlags -> String -> IO ()
 compilationProgressMsg dflags msg = ifVerbose dflags 1 printMsg
   where printMsg
           | shouldUseColor dflags =
-            logInteractive dflags (setStyleColored True defaultUserStyle)
+            logInteractive dflags (setStyleColored True (defaultUserStyle dflags))
               (colored Col.clearToEndOfLine (text msg))
-          | otherwise = logOutput dflags defaultUserStyle (text msg)
+          | otherwise = logOutput dflags (defaultUserStyle dflags) (text msg)
 
 showPass :: DynFlags -> String -> IO ()
 showPass dflags what
   = ifVerbose dflags 2 $
-    logInfo dflags defaultUserStyle (text "***" <+> text what <> colon)
+    logInfo dflags (defaultUserStyle dflags) (text "***" <+> text what <> colon)
 
 debugTraceMsg :: DynFlags -> Int -> MsgDoc -> IO ()
 debugTraceMsg dflags val msg = ifVerbose dflags val $
-                               logInfo dflags defaultDumpStyle msg
+                               logInfo dflags (defaultDumpStyle dflags) msg
 
 putMsg :: DynFlags -> MsgDoc -> IO ()
-putMsg dflags msg = logInfo dflags defaultUserStyle msg
+putMsg dflags msg = logInfo dflags (defaultUserStyle dflags) msg
 
 printInfoForUser :: DynFlags -> PrintUnqualified -> MsgDoc -> IO ()
 printInfoForUser dflags print_unqual msg
-  = logInfo dflags (mkUserStyle print_unqual AllTheWay) msg
+  = logInfo dflags (mkUserStyle dflags print_unqual AllTheWay) msg
 
 printOutputForUser :: DynFlags -> PrintUnqualified -> MsgDoc -> IO ()
 printOutputForUser dflags print_unqual msg
-  = logOutput dflags (mkUserStyle print_unqual AllTheWay) msg
+  = logOutput dflags (mkUserStyle dflags print_unqual AllTheWay) msg
 
 logInfo :: DynFlags -> PprStyle -> MsgDoc -> IO ()
 logInfo dflags sty msg = putLogMsg dflags NoReason SevInfo noSrcSpan sty msg

@@ -31,7 +31,7 @@ module Eta.TypeCheck.TcMType (
   -- Creating new evidence variables
   newEvVar, newEvVars, newEq, newDict,
   newTcEvBinds, addTcEvBind,
-  newSimpleWanted, newSimpleWanteds,
+  newSimpleWanted, newWanted, newSimpleWanteds,
 
   --------------------------------
   -- Instantiation
@@ -164,6 +164,15 @@ newSimpleWanted orig pty
             CtWanted { ctev_evar = v
                      , ctev_pred = pty
                      , ctev_loc = loc }
+
+newWanted :: CtOrigin -> PredType -> TcM CtEvidence
+-- Deals with both equality and non-equality predicates
+newWanted orig pty
+ = do loc <- getCtLoc orig
+      v <- newEvVar pty
+      return $ CtWanted { ctev_evar = v
+                        , ctev_pred = pty
+                        , ctev_loc = loc }
 
 newSimpleWanteds :: CtOrigin -> ThetaType -> TcM [Ct]
 newSimpleWanteds orig = mapM (newSimpleWanted orig)

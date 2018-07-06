@@ -357,6 +357,7 @@ import Data.Time
 import Data.Typeable    ( Typeable )
 import Data.Word        ( Word8 )
 import qualified Data.Map.Strict as Map
+import Data.Set (Set)
 import qualified Data.Sequence as Seq
 import Control.Monad
 import System.Exit      ( exitWith, ExitCode(..) )
@@ -1432,7 +1433,7 @@ isModuleTrusted m = withSession $ \hsc_env ->
     liftIO $ hscCheckSafe hsc_env m noSrcSpan
 
 -- | Return if a module is trusted and the pkgs it depends on to be trusted.
-moduleTrustReqs :: GhcMonad m => Module -> m (Bool, [InstalledUnitId])
+moduleTrustReqs :: GhcMonad m => Module -> m (Bool, Set InstalledUnitId)
 moduleTrustReqs m = withSession $ \hsc_env ->
     liftIO $ hscGetSafe hsc_env m noSrcSpan
 
