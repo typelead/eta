@@ -33,38 +33,29 @@ createTestSuites rootDir = do
   forM suitePaths $ \suitePath -> do
     let suiteName = takeFileName suitePath
         pat = compile "*.hs"
-        compilePath = suitePath </> "compile"
-        failPath    = suitePath </> "fail"
-        runPath     = suitePath </> "run"
-    compileFiles <- globDir1 pat compilePath
-    failFiles    <- globDir1 pat failPath
-    runFiles     <- globDir1 pat runPath
+        genTestGroup mode name ext = do
+          let path = suitePath </> name
+          testFiles <- globDir1 pat path
+          forM testFiles $ \testFile -> do
+            let testName   = takeBaseName testFile
+                builddir   = buildDir suiteName name testName
+                targetFile = builddir </> (testName <.> ext)
+                maybeGoldenFile = testFile -<.> ext
+            exists <- doesFileExist maybeGoldenFile
+            let goldenFile
+                  | exists    = maybeGoldenFile
+                  | otherwise = emptyFile
+            return $ goldenVsFileDiff testName
+                       (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
+                       (etaAction mode builddir testFile targetFile)
+
+    compileGroup <- genTestGroup CompileMode "compile" "stderr"
+    failGroup    <- genTestGroup FailMode    "fail"    "stderr"
+    runGroup     <- genTestGroup RunMode     "run"     "stdout"
     return $ testGroup suiteName
-        [ testGroup "compile"
-            [ goldenVsFile testName emptyFile targetFile
-                           (etaAction CompileMode builddir compileFile targetFile)
-            | compileFile <- compileFiles
-            , let testName   = takeBaseName compileFile
-                  builddir   = buildDir suiteName "compile" testName
-                  targetFile = builddir </> (testName <.> "stderr") ]
-
-        , testGroup "fail"
-            [ goldenVsFile testName goldenFile targetFile
-                           (etaAction FailMode builddir failFile targetFile)
-            | failFile <- failFiles
-            , let goldenFile = replaceExtension failFile "stderr"
-                  testName   = takeBaseName failFile
-                  builddir   = buildDir suiteName "fail" testName
-                  targetFile = builddir </> (testName <.> "stderr") ]
-
-        , testGroup "run"
-            [ goldenVsFile testName goldenFile targetFile
-                           (etaAction RunMode builddir runFile targetFile)
-            | runFile <- runFiles
-            , let goldenFile = replaceExtension runFile "stdout"
-                  testName   = takeBaseName runFile
-                  builddir   = buildDir suiteName "run" testName
-                  targetFile = builddir </> (testName <.> "stdout") ]
+        [ testGroup "compile" compileGroup
+        , testGroup "fail"    failGroup
+        , testGroup "run"     runGroup
         ]
 
 data ActionMode = CompileMode
