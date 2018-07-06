@@ -18,10 +18,8 @@ import Test.Tasty.Golden as G
 
 main :: IO ()
 main = do
-  removeDirectoryRecursive buildRootDir
-  createDirectoryIfMissing True buildRootDir
-  exists <- doesFileExist emptyFile
-  when (not exists) $ BS.writeFile emptyFile mempty
+  exists <- doesDirectoryExist buildRootDir
+  when exists $ removeDirectoryRecursive buildRootDir
   suites <- createTestSuites rootDir
   defaultMain (testGroup "Eta Golden Tests" suites)
 
@@ -39,15 +37,17 @@ createTestSuites rootDir = do
           forM testFiles $ \testFile -> do
             let testName   = takeBaseName testFile
                 builddir   = buildDir suiteName name testName
+                emptyFile  = buildDir suiteName name "_empty"
                 targetFile = builddir </> (testName <.> ext)
                 maybeGoldenFile = testFile -<.> ext
             exists <- doesFileExist maybeGoldenFile
-            let goldenFile
-                  | exists    = maybeGoldenFile
-                  | otherwise = emptyFile
+            let (goldenFile, mGoldenFile)
+                  | exists    = (maybeGoldenFile, Nothing)
+                  | otherwise = (emptyFile, Just emptyFile)
+
             return $ goldenVsFileDiff testName
                        (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                       (etaAction mode builddir testFile targetFile)
+                       (etaAction mode mGoldenFile builddir testFile targetFile)
 
     compileGroup <- genTestGroup CompileMode "compile" "stderr"
     failGroup    <- genTestGroup FailMode    "fail"    "stderr"
@@ -62,9 +62,10 @@ data ActionMode = CompileMode
                 | FailMode
                 | RunMode
 
-etaAction :: ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
-etaAction mode builddir srcFile outputFile = do
+etaAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -> IO ()
+etaAction mode mGoldenFile builddir srcFile outputFile = do
   createDirectoryIfMissing True builddir
+  maybe (return ()) (flip BS.writeFile mempty) mGoldenFile
   let (specificOptions, expectedExitCode, shouldRun) = case mode of
         CompileMode -> (["-staticlib"],
                         \case ExitSuccess   -> True
@@ -123,9 +124,6 @@ buildDir suiteName suiteType testName =
 
 rootDir :: FilePath
 rootDir = "tests/suite"
-
-emptyFile :: FilePath
-emptyFile = buildRootDir </> "empty"
 
 classPathSep :: String
 #ifndef mingw32_HOST_OS
