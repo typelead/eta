@@ -363,7 +363,7 @@ dsRule (L loc (HsRule name act vars lhs _tv_lhs rhs _fv_rhs))
         -- Substitute the dict bindings eagerly,
         -- and take the body apart into a (f args) form
         ; case decomposeRuleLhs bndrs'' lhs'' of {
-                Left msg -> do { warnDs msg; return Nothing } ;
+                Left msg -> do { warnDs NoReason msg; return Nothing } ;
                 Right (final_bndrs, fn_id, args) -> do
 
         { let is_local = isLocalId fn_id
@@ -391,7 +391,8 @@ dsRule (L loc (HsRule name act vars lhs _tv_lhs rhs _fv_rhs))
                 | otherwise = False
 
         ; when inline_shadows_rule $
-          warnDs (vcat [ hang (ptext (sLit "Rule")
+          warnDs (Reason Opt_WarnInlineRuleShadowing)
+                 (vcat [ hang (ptext (sLit "Rule")
                                <+> doubleQuotes (ftext $ unLoc name)
                                <+> ptext (sLit "may never fire"))
                             2 (ptext (sLit "because") <+> quotes (ppr fn_id)

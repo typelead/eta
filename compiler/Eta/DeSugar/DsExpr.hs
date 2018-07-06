@@ -963,8 +963,8 @@ warnDiscardedDoBindings rhs rhs_ty
 
            -- Warn about discarding non-() things in 'monadic' binding
        ; if warn_unused && not (isUnitTy norm_elt_ty)
-         then warnDs (badMonadBind rhs elt_ty
-                           (ptext (sLit "-fno-warn-unused-do-bind")))
+         then warnDs (Reason Opt_WarnUnusedDoBind)
+                     (badMonadBind rhs elt_ty)
          else
 
            -- Warn about discarding m a things in 'monadic' binding of the same type,
@@ -973,20 +973,20 @@ warnDiscardedDoBindings rhs rhs_ty
                 do { case tcSplitAppTy_maybe norm_elt_ty of
                          Just (elt_m_ty, _)
                             | m_ty `eqType` topNormaliseType fam_inst_envs elt_m_ty
-                            -> warnDs (badMonadBind rhs elt_ty
-                                           (ptext (sLit "-fno-warn-wrong-do-bind")))
+                            -> warnDs (Reason Opt_WarnWrongDoBind)
+                                      (badMonadBind rhs elt_ty)
                          _ -> return () } } }
 
   | otherwise   -- RHS does have type of form (m ty), which is weird
   = return ()   -- but at lesat this warning is irrelevant
 
-badMonadBind :: LHsExpr Id -> Type -> SDoc -> SDoc
-badMonadBind rhs elt_ty flag_doc
-  = vcat [ hang (ptext (sLit "A do-notation statement discarded a result of type"))
+badMonadBind :: LHsExpr Id -> Type -> SDoc
+badMonadBind rhs elt_ty
+  = vcat [ hang (text "A do-notation statement discarded a result of type")
               2 (quotes (ppr elt_ty))
-         , hang (ptext (sLit "Suppress this warning by saying"))
+         , hang (text "Suppress this warning by saying")
               2 (quotes $ ptext (sLit "_ <-") <+> ppr rhs)
-         , ptext (sLit "or by using the flag") <+>  flag_doc ]
+         ]
 
 {-
 ************************************************************************

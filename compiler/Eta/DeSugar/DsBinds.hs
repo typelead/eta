@@ -599,16 +599,16 @@ dsSpec :: Maybe CoreExpr        -- Just rhs => RULE is for a local binding
 dsSpec mb_poly_rhs (L loc (SpecPrag poly_id spec_co spec_inl))
   | isJust (isClassOpId_maybe poly_id)
   = putSrcSpanDs loc $
-    do { warnDs (ptext (sLit "Ignoring useless SPECIALISE pragma for class method selector")
-                 <+> quotes (ppr poly_id))
+    do { warnDs NoReason (text "Ignoring useless SPECIALISE pragma for class method selector"
+                          <+> quotes (ppr poly_id))
        ; return Nothing  }  -- There is no point in trying to specialise a class op
                             -- Moreover, classops don't (currently) have an inl_sat arity set
                             -- (it would be Just 0) and that in turn makes makeCorePair bleat
 
   | no_act_spec && isNeverActive rule_act
   = putSrcSpanDs loc $
-    do { warnDs (ptext (sLit "Ignoring useless SPECIALISE pragma for NOINLINE function:")
-                 <+> quotes (ppr poly_id))
+    do { warnDs NoReason (text "Ignoring useless SPECIALISE pragma for NOINLINE function:"
+                          <+> quotes (ppr poly_id))
        ; return Nothing  }  -- Function is NOINLINE, and the specialiation inherits that
                             -- See Note [Activation pragmas for SPECIALISE]
 
@@ -625,7 +625,7 @@ dsSpec mb_poly_rhs (L loc (SpecPrag poly_id spec_co spec_inl))
          --                         , ptext (sLit "spec_co:") <+> ppr spec_co
          --                         , ptext (sLit "ds_rhs:") <+> ppr ds_lhs ]) $
          case decomposeRuleLhs bndrs ds_lhs of {
-           Left msg -> do { warnDs msg; return Nothing } ;
+           Left msg -> do { warnDs NoReason msg; return Nothing } ;
            Right (rule_bndrs, _fn, args) -> do
 
        { dflags <- getDynFlags
@@ -645,7 +645,7 @@ dsSpec mb_poly_rhs (L loc (SpecPrag poly_id spec_co spec_inl))
        ; spec_rhs <- dsHsWrapper spec_co poly_rhs
 
        ; when (isInlinePragma id_inl && wopt Opt_WarnPointlessPragmas dflags)
-              (warnDs (specOnInline poly_name))
+              (warnDs (Reason Opt_WarnPointlessPragmas) (specOnInline poly_name))
 
        ; return (Just (unitOL (spec_id, spec_rhs), rule))
             -- NB: do *not* use makeCorePair on (spec_id,spec_rhs), because
