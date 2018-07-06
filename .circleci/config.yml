@@ -37,6 +37,7 @@ jobs:
       - run:
           name: Installing or updating ETA
           command: echo "n" | ./install.sh
+          no_output_timeout: 1h
 
       - save_cache:
           key: dot-stack-{{ checksum "stack.yaml" }}-{{ checksum "eta.cabal" }}
