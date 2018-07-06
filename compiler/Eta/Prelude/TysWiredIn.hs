@@ -454,10 +454,11 @@ mkUnboxedTupleStr 0  = "(##)"
 mkUnboxedTupleStr 1  = "Unit#"  -- See Note [One-tuples]
 mkUnboxedTupleStr ar = "(#" ++ commas ar ++ "#)"
 
+-- TODO: Refactor constraint tuples
 mkConstraintTupleStr :: Arity -> String
-mkConstraintTupleStr 0  = "(%%)"
-mkConstraintTupleStr 1  = "Unit%"   -- See Note [One-tuples]
-mkConstraintTupleStr ar = "(%" ++ commas ar ++ "%)"
+mkConstraintTupleStr 0  = "()"
+mkConstraintTupleStr 1  = "Unit"   -- See Note [One-tuples]
+mkConstraintTupleStr ar = "(" ++ commas ar ++ ")"
 
 commas :: Arity -> String
 commas ar = take (ar-1) (repeat ',')
