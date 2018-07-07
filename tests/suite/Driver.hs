@@ -30,10 +30,13 @@ createTestSuites rootDir = do
                 filterM (\d -> doesDirectoryExist (rootDir </> d)) contents
   forM suitePaths $ \suitePath -> do
     let suiteName = takeFileName suitePath
-        pat = compile "*.hs"
+        isBackpack = "backpack" `isPrefixOf` suiteName
+        (pattern, actionMode)
+          | isBackpack = ("*.bkp", BackpackAction)
+          | otherwise = ("*.hs", CompileAction)
         genTestGroup mode name ext = do
           let path = suitePath </> name
-          testFiles <- globDir1 pat path
+          testFiles <- globDir1 (compile pattern) path
           forM testFiles $ \testFile -> do
             let testName   = takeBaseName testFile
                 builddir   = buildDir suiteName name testName
@@ -49,16 +52,19 @@ createTestSuites rootDir = do
                        (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
                        (etaAction mode mGoldenFile builddir testFile targetFile)
 
-    compileGroup <- genTestGroup CompileMode "compile" "stderr"
-    failGroup    <- genTestGroup FailMode    "fail"    "stderr"
-    runGroup     <- genTestGroup RunMode     "run"     "stdout"
+    compileGroup <- genTestGroup (actionMode CompileMode) "compile" "stderr"
+    failGroup    <- genTestGroup (actionMode FailMode)    "fail"    "stderr"
+    runGroup     <- genTestGroup (actionMode RunMode)     "run"     "stdout"
     return $ testGroup suiteName
         [ testGroup "compile" compileGroup
         , testGroup "fail"    failGroup
         , testGroup "run"     runGroup
         ]
 
-data ActionMode = CompileMode
+data ActionMode = CompileAction  { actionResult :: ResultMode }  -- Invokes eta --make
+                | BackpackAction { actionResult :: ResultMode }  -- Invoke eta --backpack
+
+data ResultMode = CompileMode
                 | FailMode
                 | RunMode
 
@@ -66,8 +72,8 @@ etaAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -
 etaAction mode mGoldenFile builddir srcFile outputFile = do
   createDirectoryIfMissing True builddir
   maybe (return ()) (flip BS.writeFile mempty) mGoldenFile
-  let (specificOptions, expectedExitCode, shouldRun) = case mode of
-        CompileMode -> (["-staticlib"],
+  let (specificOptions, expectedExitCode, shouldRun) = case actionResult mode of
+        CompileMode -> (if isBackpack then [] else ["-staticlib"],
                         \case ExitSuccess   -> True
                               ExitFailure _ -> False,
                         False)
@@ -80,11 +86,20 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
                         \case ExitSuccess   -> True
                               ExitFailure _ -> False,
                         True)
+      (isBackpack, outputOptions)
+        | BackpackAction {} <- mode = (True, [])
+        | otherwise = (False, ["-o", outJar])
+      (modeOptions, extraModeOptions) = case mode of
+        CompileAction {}  -> (["--make"], ["-v0"])
+        BackpackAction {} -> (["--backpack"], ["-fno-code", "-fwrite-interface"])
       outJar = builddir </> "Out.jar"
-      procConfig = proc "eta" $ ["--make"] ++ specificOptions ++ genericOptions
-                             ++ ["-outputdir", builddir, "-cp", mkClassPath defaultClassPath]
-                             ++ ["-o", outJar]
-                             ++ [srcFile]
+      options = modeOptions ++ [srcFile] ++ specificOptions ++ extraModeOptions
+                            ++ genericOptions
+                            ++ ["-outputdir", builddir, "-cp", mkClassPath defaultClassPath]
+                            ++ outputOptions
+
+      procConfig = proc "eta" options
+  print options
   (exitCode, stdout, stderr) <- readProcess procConfig
   let getOutput
         | shouldRun = do
@@ -106,8 +121,7 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
 
 genericOptions :: [String]
 genericOptions =
-  ["-v0",
-   "-g0",
+  ["-g0",
    "-O",
    "-dcore-lint",
    "-fno-diagnostics-show-caret",
