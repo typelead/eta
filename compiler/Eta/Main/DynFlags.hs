@@ -344,6 +344,7 @@ data GeneralFlag
 
    | Opt_WarnIsError                    -- -Werror; makes warnings fatal
    | Opt_ShowWarnGroups -- Show the group a warning belongs to
+   | Opt_ShowSourcePaths
 
    | Opt_PrintExplicitForalls
    | Opt_PrintExplicitKinds
@@ -3190,6 +3191,7 @@ fFlags = [
   flagSpec "catch-bottoms"                    Opt_CatchBottoms,
   flagSpec "show-loaded-modules"              Opt_ShowLoadedModules,
   flagSpec "show-warning-groups"              Opt_ShowWarnGroups,
+  flagSpec "show-source-paths"                Opt_ShowSourcePaths,
   flagSpec "normalize-jar"                    Opt_NormalizeJar
   ]
 

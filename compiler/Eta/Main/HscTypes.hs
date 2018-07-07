@@ -2756,7 +2756,7 @@ showModMsg dflags target recomp mod_summary
     mod_str = showPpr dflags mod
                 ++ hscSourceString (ms_hsc_src mod_summary)
     fileDetails
-      | verbosity dflags > 1 =
+      | gopt Opt_ShowSourcePaths dflags || verbosity dflags > 1 =
         [char '(', text (normalise $ msHsFilePath mod_summary) <> comma,
         case target of
             HscInterpreted | recomp

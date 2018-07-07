@@ -91,7 +91,7 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
         | otherwise = (False, ["-o", outJar])
       (modeOptions, extraModeOptions) = case mode of
         CompileAction {}  -> (["--make"], ["-v0"])
-        BackpackAction {} -> (["--backpack"], ["-fno-code", "-fwrite-interface"])
+        BackpackAction {} -> (["--backpack"], [])
       outJar = builddir </> "Out.jar"
       options = modeOptions ++ [srcFile] ++ specificOptions ++ extraModeOptions
                             ++ genericOptions
@@ -99,7 +99,6 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
                             ++ outputOptions
 
       procConfig = proc "eta" options
-  print options
   (exitCode, stdout, stderr) <- readProcess procConfig
   let getOutput
         | shouldRun = do
@@ -122,6 +121,7 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
 genericOptions :: [String]
 genericOptions =
   ["-g0",
+   "-fshow-source-paths",
    "-O",
    "-dcore-lint",
    "-fno-diagnostics-show-caret",

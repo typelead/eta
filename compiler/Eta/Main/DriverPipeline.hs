@@ -343,18 +343,13 @@ compileOne' m_tc_result mHscMessage
 --         return stub_o
 
 compileEmptyStub :: DynFlags -> HscEnv -> FilePath -> ModLocation -> IO ()
-compileEmptyStub dflags hsc_env basename location = do
+compileEmptyStub dflags _hsc_env basename location = do
   -- To maintain the invariant that every Haskell file
   -- compiles to object code, we make an empty (but
   -- valid) stub object file for signatures
-  empty_stub <- newTempName dflags TFL_CurrentModule "c"
-  writeFile empty_stub ""
-  _ <- runPipeline StopLn hsc_env
-                  (empty_stub, Nothing)
-                  (Just basename)
-                  Persistent
-                  (Just location)
-                  Nothing
+  emptyJarFile <- liftIO $ getOutputFilename StopLn Persistent
+                             basename dflags StopLn (Just location)
+  createEmptyJar emptyJarFile
   return ()
 
 -- ---------------------------------------------------------------------------
@@ -996,8 +991,8 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
               basename = dropExtension input_fn
           liftIO $ compileEmptyStub dflags hsc_env' basename location
           return (RealPhase next_phase, o_file)
-    HscRecomp cgguts mod_summary ->
-      do output_fn <- phaseOutputFilename next_phase
+    HscRecomp cgguts mod_summary -> do
+         output_fn <- phaseOutputFilename next_phase
 
          PipeState{hsc_env=hsc_env'} <- getPipeState
 
