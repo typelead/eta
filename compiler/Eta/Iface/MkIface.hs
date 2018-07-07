@@ -1204,9 +1204,8 @@ checkFlagHash hsc_env iface = do
 -- Returns True if recompilation is required.
 checkDependencies :: HscEnv -> ModSummary -> ModIface -> IfG RecompileRequired
 checkDependencies hsc_env summary iface
- = checkList (map dep_missing (non_java_imps ++ ms_srcimps summary))
+ = checkList (map dep_missing (ms_imps summary ++ ms_srcimps summary))
   where
-   non_java_imps = filter (not . ideclIsJava . unLoc) $ ms_imps summary
    prev_dep_mods = dep_mods (mi_deps iface)
    prev_dep_pkgs = dep_pkgs (mi_deps iface)
 
