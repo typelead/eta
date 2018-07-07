@@ -86,9 +86,10 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
                         \case ExitSuccess   -> True
                               ExitFailure _ -> False,
                         True)
+      outFlags = ["-o", outJar]
       (isBackpack, outputOptions)
-        | BackpackAction {} <- mode = (True, [])
-        | otherwise = (False, ["-o", outJar])
+        | BackpackAction {} <- mode = (True, outFlags)
+        | otherwise = (False, outFlags)
       (modeOptions, extraModeOptions) = case mode of
         CompileAction {}  -> (["--make"], ["-v0"])
         BackpackAction {} -> (["--backpack"], [])
@@ -102,8 +103,13 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
   (exitCode, stdout, stderr) <- readProcess procConfig
   let getOutput
         | shouldRun = do
+          let getClasspath
+                | isBackpack =
+                  fmap (defaultClassPath ++) $ globDir1 (compile "**/*.jar") builddir
+                | otherwise = return defaultClassPath
+          classpath <- getClasspath
           (exitCode, stdout, stderr) <- readProcess $
-              proc "java" ["-ea", "-classpath", mkClassPath (outJar : defaultClassPath),
+              proc "java" ["-ea", "-classpath", mkClassPath (outJar : classpath),
                            "eta.main"]
           let output
                 | not (expectedExitCode exitCode) = BC.pack (show exitCode) <> mainOutput
