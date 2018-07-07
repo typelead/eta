@@ -1,0 +1,12 @@
+[1 of 3] Processing q
+  Instantiating q
+  [1 of 1] Compiling H                ( q/H.hs, dist/backpack/compile/bkp08/q/H.jar )
+[2 of 3] Processing r
+  [1 of 1] Compiling H[sig]           ( r/H.hsig, nothing )
+[3 of 3] Processing p
+  Instantiating p
+  [1 of 2] Including q
+  [2 of 2] Including r[H=q:H]
+    Instantiating r[H=q:H]
+    [1 of 1] Compiling H[sig]           ( r/H.hsig, dist/backpack/compile/bkp08/r/r-D5Mg3foBSCrDbQDKH4WGSG/H.jar )
+  [1 of 1] Compiling M                ( p/M.hs, dist/backpack/compile/bkp08/p/M.jar )
