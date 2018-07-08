@@ -36,7 +36,7 @@ jobs:
 
       - run:
           name: Installing or updating ETA
-          command: echo "n" | ./install.sh
+          command: echo "n" | ./cci.sh
           no_output_timeout: 1h
 
       - save_cache:
