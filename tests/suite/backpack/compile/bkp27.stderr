@@ -1,0 +1,14 @@
+[1 of 3] Processing p
+  [1 of 2] Compiling A[sig]           ( p/A.hsig, nothing )
+  [2 of 2] Compiling P                ( p/P.hs, nothing )
+[2 of 3] Processing r
+  Instantiating r
+  [1 of 1] Compiling A                ( r/A.hs, dist/backpack/compile/bkp27/r/A.jar )
+[3 of 3] Processing q
+  Instantiating q
+  [1 of 2] Including p[A=r:A]
+    Instantiating p[A=r:A]
+    [1 of 2] Compiling A[sig]           ( p/A.hsig, dist/backpack/compile/bkp27/p/p-8YQRY0unRYZCev5HBjXieS/A.jar )
+    [2 of 2] Compiling P                ( p/P.hs, dist/backpack/compile/bkp27/p/p-8YQRY0unRYZCev5HBjXieS/P.jar )
+  [2 of 2] Including r
+  [1 of 1] Compiling M                ( q/M.hs, dist/backpack/compile/bkp27/q/M.jar )
