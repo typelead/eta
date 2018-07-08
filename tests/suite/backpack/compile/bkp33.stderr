@@ -1,0 +1,14 @@
+[1 of 3] Processing sig
+  [1 of 2] Compiling A[sig]           ( sig/A.hsig, nothing )
+  [2 of 2] Compiling M                ( sig/M.hs, nothing )
+[2 of 3] Processing mod
+  Instantiating mod
+  [1 of 1] Compiling A                ( mod/A.hs, dist/backpack/compile/bkp33/mod/A.jar )
+[3 of 3] Processing join
+  Instantiating join
+  [1 of 2] Including sig[A=mod:A]
+    Instantiating sig[A=mod:A]
+    [1 of 2] Compiling A[sig]           ( sig/A.hsig, dist/backpack/compile/bkp33/sig/sig-HyoWTHt34SDIRGEX0vZ8iN/A.jar )
+    [2 of 2] Compiling M                ( sig/M.hs, dist/backpack/compile/bkp33/sig/sig-HyoWTHt34SDIRGEX0vZ8iN/M.jar )
+  [2 of 2] Including mod
+  [1 of 1] Compiling S                ( join/S.hs, dist/backpack/compile/bkp33/join/S.jar )
