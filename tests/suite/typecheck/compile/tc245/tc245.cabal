@@ -1,0 +1,9 @@
+name: p
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+library
+    build-depends: base
+    exposed-modules: Tc245
+                     Tc245A
