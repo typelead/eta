@@ -706,7 +706,8 @@ compilerInfo = [("Project name", cProjectName),
                   ,"Support parallel --make"
                   ,"Support reexported-modules"
                   ,"Uses package keys"
-                  ,"Requires unified installed package IDs"]
+                  ,"Requires unified installed package IDs"
+                  ,"Support Backpack"]
   where topDir = unsafePerformIO (findTopDir Nothing)
 
 showSupportedExtensions :: IO ()

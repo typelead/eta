@@ -3,6 +3,7 @@
 
 import System.FilePath
 import System.Directory
+import System.Directory.Extra
 import System.FilePath.Glob
 import System.Process.Typed
 import System.IO.Unsafe
@@ -25,9 +26,7 @@ main = do
 
 createTestSuites :: FilePath -> IO [TestTree]
 createTestSuites rootDir = do
-  contents <- getDirectoryContents rootDir
-  suitePaths <- fmap (map (\d -> rootDir </> d)) $
-                filterM (\d -> doesDirectoryExist (rootDir </> d)) contents
+  suitePaths <- directoryListing rootDir
   forM suitePaths $ \suitePath -> do
     let suiteName = takeFileName suitePath
         isBackpack = "backpack" `isPrefixOf` suiteName
@@ -36,21 +35,41 @@ createTestSuites rootDir = do
           | otherwise = ("*.hs", CompileAction)
         genTestGroup mode name ext = do
           let path = suitePath </> name
-          testFiles <- globDir1 (compile pattern) path
-          forM testFiles $ \testFile -> do
-            let testName   = takeBaseName testFile
-                builddir   = buildDir suiteName name testName
-                emptyFile  = buildDir suiteName name "_empty"
-                targetFile = builddir </> (testName <.> ext)
-                maybeGoldenFile = testFile -<.> ext
-            exists <- doesFileExist maybeGoldenFile
-            let (goldenFile, mGoldenFile)
-                  | exists    = (maybeGoldenFile, Nothing)
-                  | otherwise = (emptyFile, Just emptyFile)
+          exists <- doesDirectoryExist path
+          if exists
+          then do
+            testFiles <- globDir1 (compile pattern) path
+            testDirs <- directoryListing path
+            tests1 <- forM testFiles $ \testFile -> do
+                let testName   = takeBaseName testFile
+                    builddir   = buildDir suiteName name testName
+                    emptyFile  = buildDir suiteName name "_empty"
+                    targetFile = builddir </> (testName <.> ext)
+                    maybeGoldenFile = testFile -<.> ext
+                exists <- doesFileExist maybeGoldenFile
+                let (goldenFile, mGoldenFile)
+                      | exists    = (maybeGoldenFile, Nothing)
+                      | otherwise = (emptyFile, Just emptyFile)
 
-            return $ goldenVsFileDiff testName
-                       (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                       (etaAction mode mGoldenFile builddir testFile targetFile)
+                return $ goldenVsFileDiff testName
+                        (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
+                        (etaAction mode mGoldenFile builddir testFile targetFile)
+            tests2 <- forM testDirs $ \testDir -> do
+                let testName   = takeBaseName testDir
+                    builddir   = buildDir suiteName name testName
+                    emptyFile  = buildDir suiteName name "_empty"
+                    targetFile = builddir </> (testName <.> ext)
+                    maybeGoldenFile = testDir </> (testName <.> ext)
+                exists <- doesFileExist maybeGoldenFile
+                let (goldenFile, mGoldenFile)
+                      | exists    = (maybeGoldenFile, Nothing)
+                      | otherwise = (emptyFile, Just emptyFile)
+
+                return $ goldenVsFileDiff testName
+                        (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
+                        (etlasAction mode mGoldenFile builddir testDir targetFile)
+            return $ tests1 ++ tests2
+          else return []
 
     compileGroup <- genTestGroup (actionMode CompileMode) "compile" "stderr"
     failGroup    <- genTestGroup (actionMode FailMode)    "fail"    "stderr"
@@ -67,6 +86,32 @@ data ActionMode = CompileAction  { actionResult :: ResultMode }  -- Invokes eta 
 data ResultMode = CompileMode
                 | FailMode
                 | RunMode
+
+etlasAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -> IO ()
+etlasAction mode mGoldenFile builddir inputDir outputFile = do
+  createDirectoryIfMissing True builddir
+  maybe (return ()) (flip BS.writeFile mempty) mGoldenFile
+  let (command, expectedExitCode, extraOpts) = case actionResult mode of
+        CompileMode -> (["build"],
+                        \case ExitSuccess   -> True
+                              ExitFailure _ -> False,
+                        ["all"])
+
+        FailMode    -> (["build"],
+                        \case ExitSuccess   -> False
+                              ExitFailure _ -> True,
+                        ["all"])
+        RunMode     -> (["run"],
+                        \case ExitSuccess   -> True
+                              ExitFailure _ -> False,
+                        [])
+      options = command ++ ["-v0", "--builddir=" ++ builddir] ++ extraOpts
+  (exitCode, stdout, stderr) <- readProcess $ setWorkingDir inputDir $ proc "etlas" options
+  let mainOutput = stdout <> stderr
+      output
+        | not (expectedExitCode exitCode) = BC.pack (show exitCode) <> mainOutput
+        | otherwise = mainOutput
+  BS.writeFile outputFile output
 
 etaAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -> IO ()
 etaAction mode mGoldenFile builddir srcFile outputFile = do
@@ -165,3 +210,8 @@ defaultClassPath = unsafePerformIO $ do
       ["exec", "eta-pkg", "--", "field", package, "library-dirs,hs-libraries", "--simple"]
     let (dir:file:_) = BC.lines res'
     return $ BC.unpack dir </> (BC.unpack file <.> "jar")
+
+directoryListing :: FilePath -> IO [FilePath]
+directoryListing dir = do
+  contents <- listContents dir
+  filterM doesDirectoryExist contents

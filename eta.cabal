@@ -432,6 +432,7 @@ executable eta-test-suite
     build-depends:       base >= 4.7 && < 5
                        , bytestring
                        , directory
+                       , extra
                        , filepath
                        , Glob
                        , process
