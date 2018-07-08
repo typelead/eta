@@ -11,7 +11,7 @@ module ShouldCompile where
 data PHI = PHI
 data EMPT = EMPT
 data LAB l a = LAB l a
-data Phi = Phi
+data Phi1 = Phi1
 
 data A = A
 data A_H = A_H [Char]
@@ -21,7 +21,7 @@ class LNFyV r1 r2 h1 h2 | r1 -> r2, r1 r2 -> h1 h2 where
     lnfyv :: r1->r2->h1->h2
 
 instance ( REtoHT (LAB l c) h)
-        => LNFyV (LAB l c) ((LAB l c),EMPT) h (h,[Phi]) where -- (L2)
+        => LNFyV (LAB l c) ((LAB l c),EMPT) h (h,[Phi1]) where -- (L2)
     lnfyv = error "urk"
 
 class REtoHT s t | s->t
