@@ -1,11 +1,14 @@
-{-# LANGUAGE LambdaCase, CPP #-}
+{-# LANGUAGE LambdaCase, MultiWayIf, CPP #-}
 {-# OPTIONS_GHC -fno-cse #-}
 
 import System.FilePath
 import System.Directory
 import System.Directory.Extra
 import System.FilePath.Glob
+import System.Process (createProcess, waitForProcess, CreateProcess(..), StdStream(..))
+import qualified System.Process as P
 import System.Process.Typed
+import System.IO
 import System.IO.Unsafe
 import System.Exit
 import Control.Monad
@@ -17,7 +20,7 @@ import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lazy.Char8 as BC
 
 import Test.Tasty
-import Test.Tasty.Golden as G
+import Test.Tasty.Golden.Advanced (goldenTest)
 
 main :: IO ()
 main = do
@@ -45,31 +48,19 @@ createTestSuites rootDir = do
             tests1 <- forM testFiles $ \testFile -> do
                 let testName   = takeBaseName testFile
                     builddir   = buildDir suiteName name testName
-                    emptyFile  = buildDir suiteName name "_empty"
                     targetFile = builddir </> (testName <.> ext)
-                    maybeGoldenFile = testFile -<.> ext
-                exists <- doesFileExist maybeGoldenFile
-                let (goldenFile, mGoldenFile)
-                      | exists    = (maybeGoldenFile, Nothing)
-                      | otherwise = (emptyFile, Just emptyFile)
-
-                return $ goldenVsFileDiff testName
+                    goldenFile = testFile -<.> ext
+                return $ goldenVsFileDiff' testName
                         (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                        (etaAction mode mGoldenFile builddir testFile targetFile)
+                        (etaAction mode builddir testFile targetFile)
             tests2 <- forM testDirs $ \testDir -> do
                 let testName   = takeBaseName testDir
                     builddir   = buildDir suiteName name testName
-                    emptyFile  = buildDir suiteName name "_empty"
                     targetFile = builddir </> (testName <.> ext)
-                    maybeGoldenFile = testDir </> (testName <.> ext)
-                exists <- doesFileExist maybeGoldenFile
-                let (goldenFile, mGoldenFile)
-                      | exists    = (maybeGoldenFile, Nothing)
-                      | otherwise = (emptyFile, Just emptyFile)
-
-                return $ goldenVsFileDiff testName
+                    goldenFile = testDir </> (testName <.> ext)
+                return $ goldenVsFileDiff' testName
                         (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                        (etlasAction mode mGoldenFile builddir testDir targetFile)
+                        (etlasAction mode builddir testDir targetFile)
             return $ tests1 ++ tests2
           else return []
 
@@ -89,11 +80,10 @@ data ResultMode = CompileMode
                 | FailMode
                 | RunMode
 
-etlasAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -> IO ()
-etlasAction mode mGoldenFile builddir inputDir outputFile = do
+etlasAction :: ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
+etlasAction mode builddir inputDir outputFile = do
   builddir <- makeAbsolute builddir
   createDirectoryIfMissing True builddir
-  maybe (return ()) (flip BS.writeFile mempty) mGoldenFile
   let (command, expectedExitCode, extraOpts) = case actionResult mode of
         CompileMode -> (["build"],
                         \case ExitSuccess   -> True
@@ -116,10 +106,9 @@ etlasAction mode mGoldenFile builddir inputDir outputFile = do
         | otherwise = mainOutput
   BS.writeFile outputFile output
 
-etaAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -> IO ()
-etaAction mode mGoldenFile builddir srcFile outputFile = do
+etaAction :: ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
+etaAction mode builddir srcFile outputFile = do
   createDirectoryIfMissing True builddir
-  maybe (return ()) (flip BS.writeFile mempty) mGoldenFile
   let (specificOptions, expectedExitCode, shouldRun) = case actionResult mode of
         CompileMode -> (if isBackpack then [] else ["-staticlib"],
                         \case ExitSuccess   -> True
@@ -226,3 +215,51 @@ directoryListing :: FilePath -> IO [FilePath]
 directoryListing dir = do
   contents <- listContents dir
   filterM doesDirectoryExist contents
+
+-- | Same as 'goldenVsFile', but invokes an external diff command.
+goldenVsFileDiff'
+  :: TestName -- ^ test name
+  -> (FilePath -> FilePath -> [String])
+    -- ^ function that constructs the command line to invoke the diff
+    -- command.
+    --
+    -- E.g.
+    --
+    -- >\ref new -> ["diff", "-u", ref, new]
+  -> FilePath -- ^ path to the golden file
+  -> FilePath -- ^ path to the output file
+  -> IO ()    -- ^ action that produces the output file
+  -> TestTree
+goldenVsFileDiff' name cmdf ref new act =
+  goldenTest
+    name
+    (return ())
+    act
+    cmp
+    upd
+  where
+   cmp _ _ = do
+     exists <- doesFileExist ref
+     if exists
+     then do
+       let cmd = cmdf ref new
+       if | null cmd  -> error "goldenVsFileDiff: empty command line"
+          | otherwise -> do
+            (_, Just sout, _, pid) <- createProcess (P.proc (head cmd) (tail cmd)) {
+                std_out = CreatePipe
+              }
+            -- strictly read the whole output, so that the process can terminate
+            out <- hGetContents sout
+            evaluate . rnf $ out
+
+            r <- waitForProcess pid
+            return $ case r of
+              ExitSuccess -> Nothing
+              _ -> Just out
+     else do
+       res <- readFile new
+       if null res
+       then return Nothing
+       else return $ Just $ unlines ["Expected empty output, but got:"] ++ res
+
+   upd _ = BS.readFile new >>= BS.writeFile ref
