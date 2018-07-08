@@ -7,3 +7,4 @@ library
     build-depends: base
     signatures: Sig
     exposed-modules: Indef
+    default-language: Haskell2010

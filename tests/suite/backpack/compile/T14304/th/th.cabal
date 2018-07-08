@@ -7,3 +7,4 @@ library
     build-depends: p, indef, base
     mixins: p (P as Sig)
     exposed-modules: TH
+    default-language: Haskell2010

@@ -91,6 +91,7 @@ data ResultMode = CompileMode
 
 etlasAction :: ActionMode ->  Maybe FilePath -> FilePath -> FilePath -> FilePath -> IO ()
 etlasAction mode mGoldenFile builddir inputDir outputFile = do
+  builddir <- makeAbsolute builddir
   createDirectoryIfMissing True builddir
   maybe (return ()) (flip BS.writeFile mempty) mGoldenFile
   let (command, expectedExitCode, extraOpts) = case actionResult mode of

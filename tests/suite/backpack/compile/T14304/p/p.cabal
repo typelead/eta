@@ -6,3 +6,4 @@ cabal-version: >= 2.0
 library
     build-depends: base
     exposed-modules: P
+    default-language: Haskell2010
