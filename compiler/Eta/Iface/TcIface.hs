@@ -48,6 +48,7 @@ import Eta.Types.TyCon
 import Eta.Types.CoAxiom
 import Eta.BasicTypes.ConLike
 import Eta.BasicTypes.DataCon
+import Eta.BasicTypes.BasicTypes    ( DefMethSpec(..) )
 import Eta.Prelude.PrelNames
 import Eta.Prelude.TysWiredIn
 import Eta.Prelude.TysPrim          ( superKindTyConName )
@@ -75,6 +76,8 @@ import Control.Monad
 import qualified Data.Map as Map
 import Data.List ( foldl' )
 import GHC.Fingerprint
+import qualified Eta.Utils.BooleanFormula as BF
+
 -- TODO:#if __GLASGOW_HASKELL__ < 709
 -- import Data.Traversable ( traverse )
 -- #endif
@@ -215,9 +218,24 @@ mergeIfaceDecl :: IfaceDecl -> IfaceDecl -> IfaceDecl
 mergeIfaceDecl d1 d2
     | isAbstractIfaceDecl d1 = d2
     | isAbstractIfaceDecl d2 = d1
+    | IfaceClass{ ifSigs = ops1, ifMinDef = bf1 } <- d1
+    , IfaceClass{ ifSigs = ops2, ifMinDef = bf2 } <- d2
+    = let ops = nameEnvElts $
+                  plusNameEnv_C mergeIfaceClassOp
+                    (mkNameEnv [ (n, op) | op@(IfaceClassOp n _ _) <- ops1 ])
+                    (mkNameEnv [ (n, op) | op@(IfaceClassOp n _ _) <- ops2 ])
+      in d1 { ifSigs = ops
+            , ifMinDef = BF.mkOr [bf1, bf2]
+            }
     -- It doesn't matter; we'll check for consistency later when
     -- we merge, see 'mergeSignatures'
     | otherwise              = d1
+
+mergeIfaceClassOp :: IfaceClassOp -> IfaceClassOp -> IfaceClassOp
+mergeIfaceClassOp op1@(IfaceClassOp _ defmeth _) _
+  | VanillaDM <- defmeth = op1
+  | GenericDM <- defmeth = op1
+mergeIfaceClassOp _ op2 = op2
 
 -- | Merge two 'OccEnv's of 'IfaceDecl's by 'OccName'.
 mergeIfaceDecls :: OccEnv IfaceDecl -> OccEnv IfaceDecl -> OccEnv IfaceDecl

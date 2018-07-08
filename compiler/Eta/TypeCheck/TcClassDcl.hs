@@ -16,16 +16,17 @@ module Eta.TypeCheck.TcClassDcl ( tcClassSigs, tcClassDecl2,
 
 import Eta.HsSyn.HsSyn
 import Eta.TypeCheck.TcEnv
-import Eta.TypeCheck.TcPat( addInlinePrags )
-import Eta.TypeCheck.TcEvidence( HsWrapper, idHsWrapper )
+import Eta.TypeCheck.TcPat         ( addInlinePrags )
+import Eta.TypeCheck.TcEvidence    ( HsWrapper, idHsWrapper )
 import Eta.TypeCheck.TcBinds
 import Eta.TypeCheck.TcUnify
 import Eta.TypeCheck.TcHsType
 import Eta.TypeCheck.TcMType
-import Eta.Types.Type     ( getClassPredTys_maybe )
+import Eta.Types.Type              ( getClassPredTys_maybe )
 import Eta.TypeCheck.TcType
 import Eta.TypeCheck.TcRnMonad
-import Eta.Iface.BuildTyCl( TcMethInfo )
+import Eta.Main.DriverPhases       ( HscSource(..) )
+import Eta.Iface.BuildTyCl         ( TcMethInfo )
 import Eta.Types.Class
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Name
@@ -86,16 +87,20 @@ Death to "ExpandingDicts".
 ************************************************************************
 -}
 
-tcClassSigs :: Name                  -- Name of the class
+illegalHsigDefaultMethod :: Name -> SDoc
+illegalHsigDefaultMethod n =
+    text "Illegal default method(s) in class definition of" <+> ppr n <+> text "in hsig file"
+
+tcClassSigs :: Name                -- Name of the class
             -> [LSig Name]
             -> LHsBinds Name
-            -> TcM ([TcMethInfo],    -- Exactly one for each method
-                    NameEnv Type)    -- Types of the generic-default methods
+            -> TcM [TcMethInfo]    -- Exactly one for each method
 tcClassSigs clas sigs def_methods
   = do { traceTc "tcClassSigs 1" (ppr clas)
 
        ; gen_dm_prs <- concat <$> mapM (addLocM tc_gen_sig) gen_sigs
-       ; let gen_dm_env = mkNameEnv gen_dm_prs
+       ; let gen_dm_env :: NameEnv Type
+             gen_dm_env = mkNameEnv gen_dm_prs
 
        ; op_info <- concat <$> mapM (addLocM (tc_sig gen_dm_env)) vanilla_sigs
 
@@ -104,27 +109,37 @@ tcClassSigs clas sigs def_methods
                    | n <- dm_bind_names, not (n `elemNameSet` op_names) ]
                    -- Value binding for non class-method (ie no TypeSig)
 
-       ; sequence_ [ failWithTc (badGenericMethod clas n)
-                   | (n,_) <- gen_dm_prs, not (n `elem` dm_bind_names) ]
-                   -- Generic signature without value binding
+       ; tcg_env <- getGblEnv
+       ; if tcg_src tcg_env == HsigFile
+            then
+               -- Error if we have value bindings
+               -- (Generic signatures without value bindings indicate
+               -- that a default of this form is expected to be
+               -- provided.)
+               when (not (isEmptyBag def_methods)) $
+                failWithTc (illegalHsigDefaultMethod clas)
+            else
+               -- Error for each generic signature without value binding
+               sequence_ [ failWithTc (badGenericMethod clas n)
+                         | (n,_) <- gen_dm_prs, not (n `elem` dm_bind_names) ]
 
        ; traceTc "tcClassSigs 2" (ppr clas)
-       ; return (op_info, gen_dm_env) }
+       ; return op_info }
   where
     vanilla_sigs = [L loc (nm,ty) | L loc (TypeSig    nm ty _) <- sigs]
     gen_sigs     = [L loc (nm,ty) | L loc (GenericSig nm ty) <- sigs]
     dm_bind_names :: [Name]     -- These ones have a value binding in the class decl
     dm_bind_names = [op | L _ (FunBind {fun_id = L _ op}) <- bagToList def_methods]
 
-    tc_sig genop_env (op_names, op_hs_ty)
+    tc_sig gen_dm_env (op_names, op_hs_ty)
       = do { traceTc "ClsSig 1" (ppr op_names)
            ; op_ty <- tcClassSigType op_hs_ty   -- Class tyvars already in scope
            ; traceTc "ClsSig 2" (ppr op_names)
-           ; return [ (op_name, f op_name, op_ty) | L _ op_name <- op_names ] }
+           ; return [ (op_name, op_ty, f op_name) | L _ op_name <- op_names ] }
            where
-             f nm | nm `elemNameEnv` genop_env = GenericDM
-                  | nm `elem` dm_bind_names    = VanillaDM
-                  | otherwise                  = NoDM
+             f nm | Just ty <- lookupNameEnv gen_dm_env nm = Just (GenericDM ty)
+                  | nm `elem` dm_bind_names                = Just VanillaDM
+                  | otherwise                              = Nothing
 
     tc_gen_sig (op_names, gen_hs_ty)
       = do { gen_op_ty <- tcClassSigType gen_hs_ty
@@ -186,9 +201,9 @@ tcDefMeth :: Class -> [TyVar] -> EvVar -> LHsBinds Name
 -- (If necessary we can fix that, but we don't have a convenient Id to hand.)
 tcDefMeth clas tyvars this_dict binds_in hs_sig_fn prag_fn (sel_id, dm_info)
   = case dm_info of
-      NoDefMeth          -> do { mapM_ (addLocM (badDmPrag sel_id)) prags
-                               ; return emptyBag }
-      DefMeth dm_name    -> tc_dm dm_name
+      Nothing          -> do { mapM_ (addLocM (badDmPrag sel_id)) prags
+                             ; return emptyBag }
+      Just (DefMeth dm_name)    -> tc_dm dm_name
       GenDefMeth dm_name -> tc_dm dm_name
   where
     sel_name           = idName sel_id
@@ -269,15 +284,19 @@ tcClassMinimalDef _clas sigs op_info
         -- That is, the given mindef should at least ensure that the
         -- class ops without default methods are required, since we
         -- have no way to fill them in otherwise
-        whenIsJust (isUnsatisfied (mindef `impliesAtom`) defMindef) $
-                   (\bf -> addWarnTc NoReason (warningMinimalDefIncomplete bf))
+        tcg_env <- getGblEnv
+        -- However, only do this test when it's not an hsig file,
+        -- since you can't write a default implementation.
+        when (tcg_src tcg_env /= HsigFile) $
+            whenIsJust (isUnsatisfied (mindef `impliesAtom`) defMindef) $
+                       (\bf -> addWarnTc NoReason (warningMinimalDefIncomplete bf))
         return mindef
   where
     -- By default require all methods without a default
     -- implementation whose names don't start with '_'
     defMindef :: ClassMinimalDef
     defMindef = mkAnd [ mkVar name
-                      | (name, NoDM, _) <- op_info
+                      | (name, _, Nothing) <- op_info
                       , not (startsWithUnderscore (getOccName name)) ]
 
 instantiateMethod :: Class -> Id -> [TcType] -> TcType

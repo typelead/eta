@@ -1177,7 +1177,7 @@ tcInstanceMethods :: DFunId -> Class -> [TcTyVar]
                   -> [EvVar]
                   -> [TcType]
                   -> ([Located TcSpecPrag], PragFun)
-                  -> [(Id, DefMeth)]
+                  -> [ClassOpItem]
                   -> InstBindings Name
                   -> TcM ([Id], [LHsBind Id])
         -- The returned inst_meth_ids all have types starting
@@ -1200,7 +1200,7 @@ tcInstanceMethods dfun_id clas tyvars dfun_ev_vars inst_tys
     set_exts es thing = foldr setXOptM thing es
 
     ----------------------
-    tc_item :: HsSigFun -> (Id, DefMeth) -> TcM (Id, LHsBind Id)
+    tc_item :: HsSigFun -> ClassOpItem -> TcM (Id, LHsBind Id)
     tc_item sig_fn (sel_id, dm_info)
       = case findMethodBind (idName sel_id) binds of
             Just (user_bind, bndr_loc)
@@ -1229,13 +1229,13 @@ tcInstanceMethods dfun_id clas tyvars dfun_ev_vars inst_tys
            ; return (meth_id1, bind) }
 
     ----------------------
-    tc_default :: HsSigFun -> Id -> DefMeth -> TcM (TcId, LHsBind Id)
+    tc_default :: HsSigFun -> Id -> DefMethInfo -> TcM (TcId, LHsBind Id)
 
-    tc_default sig_fn sel_id (GenDefMeth dm_name)
+    tc_default sig_fn sel_id (Just (dm_name, GenericDM {}))
       = do { meth_bind <- mkGenericDefMethBind clas inst_tys sel_id dm_name
            ; tc_body sig_fn sel_id meth_bind inst_loc }
 
-    tc_default sig_fn sel_id NoDefMeth     -- No default method at all
+    tc_default sig_fn sel_id Nothing     -- No default method at all
       = do { traceTc "tc_def: warn" (ppr sel_id)
            ; (meth_id, _, _) <- mkMethIds sig_fn clas tyvars dfun_ev_vars
                                           inst_tys sel_id
@@ -1252,7 +1252,7 @@ tcInstanceMethods dfun_id clas tyvars dfun_ev_vars inst_tys
         error_string dflags = showSDoc dflags (hcat [ppr inst_loc, text "|", ppr sel_id ])
         lam_wrapper  = mkWpTyLams tyvars <.> mkWpLams dfun_ev_vars
 
-    tc_default sig_fn sel_id (DefMeth dm_name) -- A polymorphic default method
+    tc_default sig_fn sel_id (Just (dm_name, VanillaDM)) -- A polymorphic default method
       = do {     -- Build the typechecked version directly,
                  -- without calling typecheck_method;
                  -- see Note [Default methods in instances]

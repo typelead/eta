@@ -28,12 +28,15 @@ import Data.Traversable ( Traversable )
 import Eta.Utils.MonadUtils
 import Eta.Utils.Outputable
 import Eta.Utils.Binary
+import Eta.BasicTypes.Unique
+import Eta.Utils.UniqSet
 
 ----------------------------------------------------------------------
 -- Boolean formula type and smart constructors
 ----------------------------------------------------------------------
 
 data BooleanFormula a = Var a | And [BooleanFormula a] | Or [BooleanFormula a]
+                      | Parens (BooleanFormula a)
   deriving (Eq, Data, Typeable, Functor, Foldable, Traversable)
 
 mkVar :: a -> BooleanFormula a
@@ -123,6 +126,7 @@ eval :: (a -> Bool) -> BooleanFormula a -> Bool
 eval f (Var x)  = f x
 eval f (And xs) = all (eval f) xs
 eval f (Or xs)  = any (eval f) xs
+eval f (Parens x) = eval f x
 
 -- Simplify a boolean formula.
 -- The argument function should give the truth of the atoms, or Nothing if undecided.
@@ -132,6 +136,7 @@ simplify f (Var a) = case f a of
   Just b  -> mkBool b
 simplify f (And xs) = mkAnd (map (simplify f) xs)
 simplify f (Or xs) = mkOr (map (simplify f) xs)
+simplify f (Parens x) = simplify f x
 
 -- Test if a boolean formula is satisfied when the given values are assigned to the atoms
 -- if it is, returns Nothing
@@ -150,14 +155,41 @@ isUnsatisfied f bf
 
 -- If the boolean formula holds, does that mean that the given atom is always true?
 impliesAtom :: Eq a => BooleanFormula a -> a -> Bool
-Var x  `impliesAtom` y = x == y
-And xs `impliesAtom` y = any (`impliesAtom` y) xs -- we have all of xs, so one of them implying y is enough
-Or  xs `impliesAtom` y = all (`impliesAtom` y) xs
+Var x  `impliesAtom` y   = x == y
+And xs `impliesAtom` y   = any (`impliesAtom` y) xs -- we have all of xs, so one of them implying y is enough
+Or  xs `impliesAtom` y   = all (`impliesAtom` y) xs
+Parens x `impliesAtom` y = x `impliesAtom` y
 
-implies :: Eq a => BooleanFormula a -> BooleanFormula a -> Bool
-x `implies` Var y  = x `impliesAtom` y
-x `implies` And ys = all (x `implies`) ys
-x `implies` Or ys  = any (x `implies`) ys
+implies :: Uniquable a => BooleanFormula a -> BooleanFormula a -> Bool
+implies e1 e2 = go (Clause emptyUniqSet [e1]) (Clause emptyUniqSet [e2])
+  where
+    go :: Uniquable a => Clause a -> Clause a -> Bool
+    go l@Clause{ clauseExprs = hyp:hyps } r =
+        case hyp of
+            Var x | memberClauseAtoms x r -> True
+                  | otherwise -> go (extendClauseAtoms l x) { clauseExprs = hyps } r
+            Parens hyp' -> go l { clauseExprs = hyp':hyps }     r
+            And hyps'  -> go l { clauseExprs = hyps' ++ hyps } r
+            Or hyps'   -> all (\hyp' -> go l { clauseExprs = hyp':hyps } r) hyps'
+    go l r@Clause{ clauseExprs = con:cons } =
+        case con of
+            Var x | memberClauseAtoms x l -> True
+                  | otherwise -> go l (extendClauseAtoms r x) { clauseExprs = cons }
+            Parens con' -> go l r { clauseExprs = con':cons }
+            And cons'   -> all (\con' -> go l r { clauseExprs = con':cons }) cons'
+            Or cons'    -> go l r { clauseExprs = cons' ++ cons }
+    go _ _ = False
+
+-- A small sequent calculus proof engine.
+data Clause a = Clause {
+        clauseAtoms :: UniqSet a,
+        clauseExprs :: [BooleanFormula a]
+    }
+extendClauseAtoms :: Uniquable a => Clause a -> a -> Clause a
+extendClauseAtoms c x = c { clauseAtoms = addOneToUniqSet (clauseAtoms c) x }
+
+memberClauseAtoms :: Uniquable a => a -> Clause a -> Bool
+memberClauseAtoms x c = x `elementOfUniqSet` clauseAtoms c
 
 ----------------------------------------------------------------------
 -- Pretty printing
@@ -171,11 +203,12 @@ pprBooleanFormula' :: (Rational -> a -> SDoc)
                    -> Rational -> BooleanFormula a -> SDoc
 pprBooleanFormula' pprVar pprAnd pprOr = go
   where
-  go p (Var x)  = pprVar p x
-  go p (And []) = cparen (p > 0) $ empty
-  go p (And xs) = pprAnd p (map (go 3) xs)
-  go _ (Or  []) = keyword $ text "FALSE"
-  go p (Or  xs) = pprOr p (map (go 2) xs)
+  go p (Var x)    = pprVar p x
+  go p (And [])   = cparen (p > 0) $ empty
+  go p (And xs)   = pprAnd p (map (go 3) xs)
+  go _ (Or  [])   = keyword $ text "FALSE"
+  go p (Or  xs)   = pprOr p (map (go 2) xs)
+  go p (Parens x) = go p x
 
 -- Pretty print in source syntax, "a | b | c,d,e"
 pprBooleanFormula :: (Rational -> a -> SDoc) -> Rational -> BooleanFormula a -> SDoc
@@ -203,13 +236,15 @@ instance Outputable a => Outputable (BooleanFormula a) where
 ----------------------------------------------------------------------
 
 instance Binary a => Binary (BooleanFormula a) where
-  put_ bh (Var x)  = putByte bh 0 >> put_ bh x
-  put_ bh (And xs) = putByte bh 1 >> put_ bh xs
-  put_ bh (Or  xs) = putByte bh 2 >> put_ bh xs
+  put_ bh (Var x)    = putByte bh 0 >> put_ bh x
+  put_ bh (And xs)   = putByte bh 1 >> put_ bh xs
+  put_ bh (Or  xs)   = putByte bh 2 >> put_ bh xs
+  put_ bh (Parens x) = putByte bh 3 >> put_ bh x
 
   get bh = do
     h <- getByte bh
     case h of
-      0 -> Var <$> get bh
-      1 -> And <$> get bh
-      _ -> Or  <$> get bh
+      0 -> Var    <$> get bh
+      1 -> And    <$> get bh
+      2 -> Or     <$> get bh
+      _ -> Parens <$> get bh

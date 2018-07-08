@@ -234,17 +234,49 @@ rnIfaceGlobal n = do
             let nsubst = mkNameShape (moduleName m) (mi_exports iface)
             return (substNameShape nsubst n)
 
--- | Rename a DFun name. Here is where we ensure that DFuns have the correct
--- module as described in Note [Bogus DFun renamings].
-rnIfaceDFun :: Name -> ShIfM Name
-rnIfaceDFun name = do
+-- | Rename an implicit name, e.g., a DFun or coercion axiom.
+-- Here is where we ensure that DFuns have the correct module as described in
+-- Note [rnIfaceNeverExported].
+rnIfaceNeverExported :: Name -> ShIfM Name
+rnIfaceNeverExported name = do
     hmap <- getHoleSubst
     dflags <- getDynFlags
     iface_semantic_mod <- fmap sh_if_semantic_module getGblEnv
     let m = renameHoleModule dflags hmap $ nameModule name
-    -- Doublecheck that this DFun was, indeed, locally defined.
+    -- Doublecheck that this DFun/coercion axiom was, indeed, locally defined.
     MASSERT2( iface_semantic_mod == m, ppr iface_semantic_mod <+> ppr m )
     setNameModule (Just m) name
+
+-- Note [rnIfaceNeverExported]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- For the high-level overview, see
+-- Note [Handling never-exported TyThings under Backpack]
+--
+-- When we see a reference to an entity that was defined in a signature,
+-- 'rnIfaceGlobal' relies on the identifier in question being part of the
+-- exports of the implementing 'ModIface', so that we can use the exports to
+-- decide how to rename the identifier.  Unfortunately, references to 'DFun's
+-- and 'CoAxiom's will run into trouble under this strategy, because they are
+-- never exported.
+--
+-- Let us consider first what should happen in the absence of promotion.  In
+-- this setting, a reference to a 'DFun' or a 'CoAxiom' can only occur inside
+-- the signature *that is defining it* (as there are no Core terms in
+-- typechecked-only interface files, there's no way for a reference to occur
+-- besides from the defining 'ClsInst' or closed type family).  Thus,
+-- it doesn't really matter what names we give the DFun/CoAxiom, as long
+-- as it's consistent between the declaration site and the use site.
+--
+-- We have to make sure that these bogus names don't get propagated,
+-- but it is fine: see Note [Signature merging DFuns] for the fixups
+-- to the names we do before writing out the merged interface.
+-- (It's even easier for instantiation, since the DFuns all get
+-- dropped entirely; the instances are reexported implicitly.)
+--
+-- Unfortunately, this strategy is not enough in the presence of promotion
+-- (see bug #13149), where modules which import the signature may make
+-- reference to their coercions.  It's not altogether clear how to
+-- fix this case, but it is definitely a bug!
 
 -- PILES AND PILES OF BOILERPLATE
 
@@ -254,7 +286,7 @@ rnIfaceClsInst :: Rename IfaceClsInst
 rnIfaceClsInst cls_inst = do
     n <- rnIfaceGlobal (ifInstCls cls_inst)
     tys <- mapM rnMaybeIfaceTyCon (ifInstTys cls_inst)
-    dfun <- rnIfaceDFun (ifDFun cls_inst)
+    dfun <- rnIfaceNeverExported (ifDFun cls_inst)
 
     -- Note [Bogus DFun renamings]
     -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -337,8 +369,10 @@ rnIfaceDecl' (fp, decl) = (,) fp <$> rnIfaceDecl decl
 rnIfaceDecl :: Rename IfaceDecl
 rnIfaceDecl d@IfaceId{} = do
             name <- case ifIdDetails d of
-                     IfDFunId _ -> rnIfaceDFun (ifName d)
-                     _        -> rnIfaceGlobal (ifName d)
+                     IfDFunId _ -> rnIfaceNeverExported (ifName d)
+                     _ | isDefaultMethodOcc (occName (ifName d)) ->
+                           rnIfaceNeverExported (ifName d)
+                       | otherwise -> rnIfaceGlobal (ifName d)
             ty <- rnIfaceType (ifType d)
             details <- rnIfaceIdDetails (ifIdDetails d)
             info <- rnIfaceIdInfo (ifIdInfo d)

@@ -615,7 +615,7 @@ tcTyClDecl1 _parent rec_info
             , tcdFDs = fundeps, tcdSigs = sigs
             , tcdATs = ats, tcdATDefs = at_defs })
   = ASSERT( isNoParent _parent )
-    do { (clas, tvs', gen_dm_env) <- fixM $ \ ~(clas,_,_) ->
+    do { clas <- fixM $ \ ~(clas,_,_) ->
             tcTyClTyVars class_name tvs $ \ tvs' kind ->
             do { MASSERT( isConstraintKind kind )
                  -- This little knot is just so we can get
@@ -629,23 +629,17 @@ tcTyClDecl1 _parent rec_info
                ; ctxt' <- zonkTcTypeToTypes emptyZonkEnv ctxt'
                        -- Squeeze out any kind unification variables
                ; fds'  <- mapM (addLocM tc_fundep) fundeps
-               ; (sig_stuff, gen_dm_env) <- tcClassSigs class_name sigs meths
+               ; sig_stuff <- tcClassSigs class_name sigs meths
                ; at_stuff <- tcClassATs class_name (AssocFamilyTyCon clas) ats at_defs
                ; mindef <- tcClassMinimalDef class_name sigs sig_stuff
                ; clas <- buildClass
                             class_name tvs' roles ctxt' fds' at_stuff
                             sig_stuff mindef tc_isrec
                ; traceTc "tcClassDecl" (ppr fundeps $$ ppr tvs' $$ ppr fds')
-               ; return (clas, tvs', gen_dm_env) }
+               ; return clas }
 
        ; let { gen_dm_ids = [ AnId (mkExportedLocalId VanillaId gen_dm_name gen_dm_ty)
-                            | (sel_id, GenDefMeth gen_dm_name) <- classOpItems clas
-                            , let gen_dm_tau = expectJust "tcTyClDecl1" $
-                                               lookupNameEnv gen_dm_env (idName sel_id)
-                            , let gen_dm_ty = mkSigmaTy tvs'
-                                                      [mkClassPred clas (mkTyVarTys tvs')]
-                                                      gen_dm_tau
-                            ]
+                            | (sel_id, Just (gen_dm_name, GenericDM gen_dm_ty)) <- classOpItems clas ]
              ; class_ats = map ATyCon (classATs clas) }
 
        ; return (ATyCon (classTyCon clas) : gen_dm_ids ++ class_ats ) }
@@ -1702,9 +1696,8 @@ checkValidClass cls
                          (ptext (sLit "class method") <+> quotes (ppr sel_id))
 
         ; case dm of
-            GenDefMeth dm_name -> do { dm_id <- tcLookupId dm_name
-                                     ; checkValidType (FunSigCtxt op_name) (idType dm_id) }
-            _                  -> return ()
+            Just (_, GenericDM ty) -> checkValidType ctxt ty
+            _                      -> return ()
         }
         where
           ctxt    = FunSigCtxt op_name

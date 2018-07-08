@@ -6,7 +6,10 @@
 This module defines interface types and binders
 -}
 
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, FlexibleInstances #-}
+
+ -- FlexibleInstances for Binary (DefMethSpec IfaceType)
+
 module Eta.Iface.IfaceType (
         IfExtName, IfLclName,
 
@@ -874,7 +877,15 @@ instance Binary IfaceCoercion where
                    c <- get bh
                    return $ IfaceAxiomRuleCo a b c
            _ -> panic ("get IfaceCoercion " ++ show tag)
-
+           
+instance Binary (DefMethSpec IfaceType) where
+   put_ bh VanillaDM     = putByte bh 0
+   put_ bh (GenericDM t) = putByte bh 1 >> put_ bh t
+   get bh = do
+           h <- getByte bh
+           case h of
+             0 -> return VanillaDM
+             _ -> do { t <- get bh; return (GenericDM t) }
 {-
 ************************************************************************
 *                                                                      *
