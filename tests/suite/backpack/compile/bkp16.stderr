@@ -1,0 +1,8 @@
+[1 of 2] Processing p
+  [1 of 1] Compiling Int[sig]         ( p/Int.hsig, nothing )
+[2 of 2] Processing q
+  Instantiating q
+  [1 of 1] Including p[Int=base-4.8.2.0:GHC.Exts]
+    Instantiating p[Int=base-4.8.2.0:GHC.Exts]
+    [1 of 1] Including ghc-prim-0.4.0.0
+    [1 of 1] Compiling Int[sig]         ( p/Int.hsig, dist/backpack/compile/bkp16/p/p-97PZnzqiJmd2hTwUNGdjod/Int.jar )
