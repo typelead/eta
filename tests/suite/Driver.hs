@@ -11,6 +11,8 @@ import System.Exit
 import Control.Monad
 import Data.Monoid
 import Data.List
+import Control.DeepSeq
+import Control.Exception
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lazy.Char8 as BC
 
@@ -153,9 +155,17 @@ etaAction mode mGoldenFile builddir srcFile outputFile = do
                   fmap (defaultClassPath ++) $ globDir1 (compile "**/*.jar") builddir
                 | otherwise = return defaultClassPath
           classpath <- getClasspath
-          (exitCode, stdout, stderr) <- readProcess $
-              proc "java" ["-ea", "-classpath", mkClassPath (outJar : classpath),
-                           "eta.main"]
+          let inputFile = srcFile -<.> "stdin"
+              processConfig' = proc "java" ["-ea", "-classpath",
+                                            mkClassPath (outJar : classpath), "eta.main"]
+          exists <- doesFileExist inputFile
+          processConfig <- if exists
+                           then do
+                             input <- BS.readFile inputFile
+                             _ <- evaluate $ force input
+                             return $ setStdin (byteStringInput input) processConfig'
+                           else return processConfig'
+          (exitCode, stdout, stderr) <- readProcess processConfig
           let output
                 | not (expectedExitCode exitCode) = BC.pack (show exitCode) <> mainOutput
                 | otherwise = mainOutput
