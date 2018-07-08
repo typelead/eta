@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/compile/tc182.hs:1:14: warning:
+    -XDatatypeContexts is deprecated: It was widely considered a misfeature, and has been removed from the Haskell language.
