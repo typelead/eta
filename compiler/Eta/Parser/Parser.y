@@ -407,6 +407,7 @@ for some background.
  PREFIXQCONSYM  { L _ (ITprefixqconsym  _) }
 
  IPDUPVARID     { L _ (ITdupipvarid   _) }              -- GHC extension
+ LABELVARID     { L _ (ITlabelvarid _) }
 
  CHAR           { L _ (ITchar   _ _) }
  STRING         { L _ (ITstring _ _) }
@@ -2322,6 +2323,7 @@ aexp1   :: { LHsExpr RdrName }
 
 aexp2   :: { LHsExpr RdrName }
         : ipvar                         { sL1 $1 (HsIPVar $! unLoc $1) }
+        | overloaded_label              { sL1 $1 (HsOverLabel $! unLoc $1) }
         | qcname                        { sL1 $1 (HsVar   $! unLoc $1) }
         | literal                       { sL1 $1 (HsLit   $! unLoc $1) }
 -- This will enable overloaded strings permanently.  Normally the renamer turns HsString
@@ -2772,6 +2774,12 @@ ipvar   :: { Located HsIPName }
         : IPDUPVARID            { sL1 $1 (HsIPName (getIPDUPVARID $1)) }
 
 -----------------------------------------------------------------------------
+-- Overloaded labels
+
+overloaded_label :: { Located FastString }
+        : LABELVARID          { sL1 $1 (getLABELVARID $1) }
+
+-----------------------------------------------------------------------------
 -- Warnings and deprecations
 
 name_boolformula_opt :: { ([AddAnn],BooleanFormula (Located RdrName)) }
@@ -3157,47 +3165,48 @@ maybe_docnext :: { Maybe LHsDocString }
 happyError :: P a
 happyError = srcParseFail
 
-getVARID        (L _ (ITvarid    x)) = x
-getCONID        (L _ (ITconid    x)) = x
-getVARSYM       (L _ (ITvarsym   x)) = x
-getCONSYM       (L _ (ITconsym   x)) = x
-getQVARID       (L _ (ITqvarid   x)) = x
-getQCONID       (L _ (ITqconid   x)) = x
-getQVARSYM      (L _ (ITqvarsym  x)) = x
-getQCONSYM      (L _ (ITqconsym  x)) = x
+getVARID         (L _ (ITvarid    x)) = x
+getCONID         (L _ (ITconid    x)) = x
+getVARSYM        (L _ (ITvarsym   x)) = x
+getCONSYM        (L _ (ITconsym   x)) = x
+getQVARID        (L _ (ITqvarid   x)) = x
+getQCONID        (L _ (ITqconid   x)) = x
+getQVARSYM       (L _ (ITqvarsym  x)) = x
+getQCONSYM       (L _ (ITqconsym  x)) = x
 getJAVAANNOT     (L _ (ITjavaannot  x)) = x
 getJAVAID        (L _ (ITjavaid  x)) = x
 getPREFIXQVARSYM (L _ (ITprefixqvarsym  x)) = x
 getPREFIXQCONSYM (L _ (ITprefixqconsym  x)) = x
-getIPDUPVARID   (L _ (ITdupipvarid   x)) = x
-getCHAR         (L _ (ITchar   _ x)) = x
-getSTRING       (L _ (ITstring _ x)) = x
-getINTEGER      (L _ (ITinteger x))  = x
-getRATIONAL     (L _ (ITrational x)) = x
-getPRIMCHAR     (L _ (ITprimchar _ x)) = x
-getPRIMSTRING   (L _ (ITprimstring _ x)) = x
-getPRIMINTEGER  (L _ (ITprimint  _ x)) = x
-getPRIMWORD     (L _ (ITprimword _ x)) = x
-getPRIMFLOAT    (L _ (ITprimfloat x)) = x
-getPRIMDOUBLE   (L _ (ITprimdouble x)) = x
-getTH_ID_SPLICE (L _ (ITidEscape x)) = x
+getIPDUPVARID    (L _ (ITdupipvarid   x)) = x
+getLABELVARID    (L _ (ITlabelvarid x)) = x
+getCHAR          (L _ (ITchar   _ x)) = x
+getSTRING        (L _ (ITstring _ x)) = x
+getINTEGER       (L _ (ITinteger x))  = x
+getRATIONAL      (L _ (ITrational x)) = x
+getPRIMCHAR      (L _ (ITprimchar _ x)) = x
+getPRIMSTRING    (L _ (ITprimstring _ x)) = x
+getPRIMINTEGER   (L _ (ITprimint  _ x)) = x
+getPRIMWORD      (L _ (ITprimword _ x)) = x
+getPRIMFLOAT     (L _ (ITprimfloat x)) = x
+getPRIMDOUBLE    (L _ (ITprimdouble x)) = x
+getTH_ID_SPLICE  (L _ (ITidEscape x)) = x
 getTH_ID_TY_SPLICE (L _ (ITidTyEscape x)) = x
-getINLINE       (L _ (ITinline_prag _ inl conl)) = (inl,conl)
-getSPEC_INLINE  (L _ (ITspec_inline_prag _ True))  = (Inline,  FunLike)
-getSPEC_INLINE  (L _ (ITspec_inline_prag _ False)) = (NoInline,FunLike)
+getINLINE        (L _ (ITinline_prag _ inl conl)) = (inl,conl)
+getSPEC_INLINE   (L _ (ITspec_inline_prag _ True))  = (Inline,  FunLike)
+getSPEC_INLINE   (L _ (ITspec_inline_prag _ False)) = (NoInline,FunLike)
 
-getDOCNEXT (L _ (ITdocCommentNext x)) = x
-getDOCPREV (L _ (ITdocCommentPrev x)) = x
-getDOCNAMED (L _ (ITdocCommentNamed x)) = x
-getDOCSECTION (L _ (ITdocSection n x)) = (n, x)
+getDOCNEXT       (L _ (ITdocCommentNext x)) = x
+getDOCPREV       (L _ (ITdocCommentPrev x)) = x
+getDOCNAMED      (L _ (ITdocCommentNamed x)) = x
+getDOCSECTION    (L _ (ITdocSection n x)) = (n, x)
 
-getINTEGERs     (L _ (ITinteger (IL src _ _))) = src
-getCHARs        (L _ (ITchar       src _)) = src
-getSTRINGs      (L _ (ITstring     src _)) = src
-getPRIMCHARs    (L _ (ITprimchar   src _)) = src
-getPRIMSTRINGs  (L _ (ITprimstring src _)) = src
-getPRIMINTEGERs (L _ (ITprimint    src _)) = src
-getPRIMWORDs    (L _ (ITprimword   src _)) = src
+getINTEGERs      (L _ (ITinteger (IL src _ _))) = src
+getCHARs         (L _ (ITchar       src _)) = src
+getSTRINGs       (L _ (ITstring     src _)) = src
+getPRIMCHARs     (L _ (ITprimchar   src _)) = src
+getPRIMSTRINGs   (L _ (ITprimstring src _)) = src
+getPRIMINTEGERs  (L _ (ITprimint    src _)) = src
+getPRIMWORDs     (L _ (ITprimword   src _)) = src
 
 -- See Note [Pragma source text] in BasicTypes for the following
 getINLINE_PRAGs       (L _ (ITinline_prag       src _ _)) = src

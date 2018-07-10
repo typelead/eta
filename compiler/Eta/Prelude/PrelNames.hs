@@ -335,6 +335,9 @@ basicKnownKeyNames
         -- Type-level naturals
         knownNatClassName, knownSymbolClassName,
 
+        -- Overloaded labels
+       isLabelClassName,
+
         -- Implicit parameters
         ipClassName,
 
@@ -512,6 +515,9 @@ gHC_STATICPTR = mkBaseModule (fsLit "GHC.StaticPtr")
 
 gHC_FINGERPRINT_TYPE :: Module
 gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
+
+gHC_OVER_LABELS :: Module
+gHC_OVER_LABELS = mkBaseModule (fsLit "GHC.OverloadedLabels")
 
 jAVA_STRING, jAVA_UTILS, jAVA_PRIMITIVEBASE, eTA_INTEROP :: Module
 jAVA_STRING = mkBaseModule (fsLit "Java.StringBase")
@@ -1254,6 +1260,11 @@ knownNatClassName     = clsQual gHC_TYPELITS (fsLit "KnownNat") knownNatClassNam
 knownSymbolClassName :: Name
 knownSymbolClassName  = clsQual gHC_TYPELITS (fsLit "KnownSymbol") knownSymbolClassNameKey
 
+-- Overloaded labels
+isLabelClassName :: Name
+isLabelClassName
+ = clsQual gHC_OVER_LABELS (fsLit "IsLabel") isLabelClassNameKey
+
 -- Implicit parameters
 ipClassName :: Name
 ipClassName         = clsQual gHC_IP (fsLit "IP")      ipClassNameKey
@@ -1426,6 +1437,9 @@ ghciIoClassKey = mkPreludeClassUnique 44
 
 ipClassNameKey :: Unique
 ipClassNameKey = mkPreludeClassUnique 45
+
+isLabelClassNameKey :: Unique
+isLabelClassNameKey = mkPreludeClassUnique 45
 
 extendsClassKey, classClassKey, overloadableClassKey :: Unique
 extendsClassKey = mkPreludeClassUnique 46

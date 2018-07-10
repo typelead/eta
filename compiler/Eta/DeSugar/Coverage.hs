@@ -454,6 +454,7 @@ addTickHsExpr :: HsExpr Id -> TM (HsExpr Id)
 addTickHsExpr e@(HsVar id) = do freeVar id; return e
 addTickHsExpr e@(HsIPVar _) = return e
 addTickHsExpr e@(HsOverLit _) = return e
+addTickHsExpr e@(HsOverLabel _) = return e
 addTickHsExpr e@(HsLit _) = return e
 addTickHsExpr (HsLam matchgroup) =
         liftM HsLam (addTickMatchGroup True matchgroup)

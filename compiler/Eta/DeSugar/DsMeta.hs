@@ -1266,7 +1266,8 @@ repE (HsVar x)            =
         Just (DsBound y)   -> repVarOrCon x (coreVar y)
         Just (DsSplice e)  -> do { e' <- dsExpr e
                                  ; return (MkC e') } }
-repE e@(HsIPVar {}) = notHandled "Implicit parameters" (ppr e)
+repE e@(HsIPVar {})    = notHandled "Implicit parameters" (ppr e)
+repE e@(HsOverLabel _) = notHandled "Overloaded labels" (ppr e)
 -- repE (HsOverLabel _ _ s) = repOverLabel s
 
 -- repE e@(HsRecFld _ f) = case f of

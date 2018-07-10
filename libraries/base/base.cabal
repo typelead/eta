@@ -206,6 +206,7 @@ library
         GHC.Natural
         GHC.Num
         GHC.OldList
+        GHC.OverloadedLabels
         GHC.PArr
         GHC.Pack
         GHC.Profiling

@@ -100,6 +100,9 @@ rnExpr (HsVar v)
 rnExpr (HsIPVar v)
   = return (HsIPVar v, emptyFVs)
 
+rnExpr (HsOverLabel v)
+  = return (HsOverLabel v, emptyFVs)
+
 rnExpr (HsLit lit@(HsString src s))
   = do { opt_OverloadedStrings <- xoptM LangExt.OverloadedStrings
        ; if opt_OverloadedStrings then

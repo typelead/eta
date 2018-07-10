@@ -3337,6 +3337,7 @@ xFlags = [
   flagSpec "NamedFieldPuns"                   LangExt.RecordPuns,
   flagSpec "NamedWildCards"                   LangExt.NamedWildCards,
   flagSpec "NegativeLiterals"                 LangExt.NegativeLiterals,
+  flagSpec "OverloadedLabels"                 LangExt.OverloadedLabels,
   flagSpec "NondecreasingIndentation"         LangExt.NondecreasingIndentation,
   flagSpec' "NullaryTypeClasses"              LangExt.NullaryTypeClasses
     (deprecatedForExtension "MultiParamTypeClasses"),

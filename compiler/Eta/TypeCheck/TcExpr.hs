@@ -48,9 +48,10 @@ import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.VarEnv
 import Eta.Prelude.TysWiredIn
-import Eta.Prelude.TysPrim( intPrimTy, addrPrimTy )
-import Eta.Prelude.PrimOp( tagToEnumKey )
+import Eta.Prelude.TysPrim         ( intPrimTy, addrPrimTy )
+import Eta.Prelude.PrimOp          ( tagToEnumKey )
 import Eta.Prelude.PrelNames
+import Eta.BasicTypes.MkId         ( proxyHashId )
 import Eta.Main.DynFlags
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Util
@@ -61,7 +62,7 @@ import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
 import Control.Monad
-import Eta.Types.Class(classTyCon)
+import Eta.Types.Class             ( classTyCon )
 import Data.Function
 import Data.List
 import qualified Data.Set as Set
@@ -202,6 +203,22 @@ tcExpr (HsIPVar x) res_ty
   fromDict ipClass x ty = HsWrap $ mkWpCast $ TcCoercion $
                           unwrapIP $ mkClassPred ipClass [x,ty]
 
+tcExpr (HsOverLabel l) res_ty -- See Note [Type-checking overloaded labels]
+  = do { let origin = OverLabelOrigin l
+     ; isLabelClass <- tcLookupClass isLabelClassName
+     ; alpha <- newFlexiTyVarTy openTypeKind
+     ; let lbl = mkStrLitTy l
+           pred = mkClassPred isLabelClass [lbl, alpha]
+     ; loc <- getSrcSpanM
+     ; var <- emitWanted origin pred
+     ; let proxy_arg = L loc (mkHsWrap (mkWpTyApps [typeSymbolKind, lbl])
+                                       (HsVar proxyHashId))
+           tm = L loc (fromDict pred (HsVar var)) `HsApp` proxy_arg
+     ; tcWrapResult tm alpha res_ty }
+  where
+  -- Coerces a dictionary for `IsLabel "x" t` into `Proxy# x -> t`.
+  fromDict pred = HsWrap $ mkWpCast $ TcCoercion $ unwrapIP pred
+
 tcExpr (HsLam match) res_ty
   = do  { (co_fn, match') <- tcMatchLambda match res_ty
         ; return (mkHsWrap co_fn (HsLam match')) }
@@ -244,6 +261,24 @@ tcExpr (HsType ty) _
         -- same parser parses *patterns*.
 tcExpr (HsUnboundVar v) res_ty
   = tcHole (rdrNameOcc v) res_ty
+
+{-
+Note [Type-checking overloaded labels]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Recall that (in GHC.OverloadedLabels) we have
+
+    class IsLabel (x :: Symbol) a where
+      fromLabel :: Proxy# x -> a
+
+When we see an overloaded label like `#foo`, we generate a fresh
+variable `alpha` for the type and emit an `IsLabel "foo" alpha`
+constraint.  Because the `IsLabel` class has a single method, it is
+represented by a newtype, so we can coerce `IsLabel "foo" alpha` to
+`Proxy# "foo" -> alpha` (just like for implicit parameters).  We then
+apply it to `proxy#` of type `Proxy# "foo"`.
+
+That is, we translate `#foo` to `fromLabel (proxy# :: Proxy# "foo")`.
+-}
 
 {-
 ************************************************************************
