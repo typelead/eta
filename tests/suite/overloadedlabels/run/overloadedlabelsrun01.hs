@@ -1,7 +1,4 @@
 -- Basic tests of overloaded labels
-
-module Main where
-
 {-# LANGUAGE OverloadedLabels
            , DataKinds
            , FlexibleContexts
@@ -9,6 +6,8 @@ module Main where
            , MultiParamTypeClasses
            , NoMonomorphismRestriction
   #-}
+
+module Main where  
 
 import GHC.OverloadedLabels
 
