@@ -102,7 +102,7 @@ etlasAction mode builddir inputDir outputFile = do
   (exitCode, stdout, stderr) <- readProcess $ setWorkingDir inputDir $ proc "etlas" options
   let mainOutput = stdout <> stderr
       output
-        | not (expectedExitCode exitCode) = BC.pack (show exitCode) <> mainOutput
+        | not (expectedExitCode exitCode) = BC.pack (show exitCode ++ "\n") <> mainOutput
         | otherwise = mainOutput
   BS.writeFile outputFile output
 
@@ -140,31 +140,39 @@ etaAction mode builddir srcFile outputFile = do
   (exitCode, stdout, stderr) <- readProcess procConfig
   let getOutput
         | shouldRun = do
-          let getClasspath
-                | isBackpack =
-                  fmap (defaultClassPath ++) $ globDir1 (compile "**/*.jar") builddir
-                | otherwise = return defaultClassPath
-          classpath <- getClasspath
-          let inputFile = srcFile -<.> "stdin"
-              processConfig' = proc "java" ["-ea", "-classpath",
-                                            mkClassPath (outJar : classpath), "eta.main"]
-          exists <- doesFileExist inputFile
-          processConfig <- if exists
-                           then do
-                             input <- BS.readFile inputFile
-                             _ <- evaluate $ force input
-                             return $ setStdin (byteStringInput input) processConfig'
-                           else return processConfig'
-          (exitCode, stdout, stderr) <- readProcess processConfig
-          let output
-                | not (expectedExitCode exitCode) = BC.pack (show exitCode) <> mainOutput
+          (exitCode, stdout, stderr) <-
+            if expectedExitCode exitCode
+            then do
+              let getClasspath
+                    | isBackpack =
+                      fmap (defaultClassPath ++) $ globDir1 (compile "**/*.jar") builddir
+                    | otherwise = return defaultClassPath
+              classpath <- getClasspath
+              let inputFile = srcFile -<.> "stdin"
+                  processConfig' = proc "java" ["-ea", "-classpath",
+                                                mkClassPath (outJar : classpath), "eta.main"]
+              exists <- doesFileExist inputFile
+              processConfig <- if exists
+                               then do
+                                 input <- BS.readFile inputFile
+                                 _ <- evaluate $ force input
+                                 return $ setStdin (byteStringInput input) processConfig'
+                               else return processConfig'
+              readProcess processConfig
+            else return (exitCode, stdout, stderr)
+
+          let mainOutput = stdout <> stderr
+              output
+                | not (expectedExitCode exitCode) =
+                  BC.pack (show exitCode ++ "\n") <> mainOutput
                 | otherwise = mainOutput
-              mainOutput = stdout <> stderr
+
           return output
         | otherwise =
           let mainOutput = stdout <> stderr
               output
-                | not (expectedExitCode exitCode) = BC.pack (show exitCode) <> mainOutput
+                | not (expectedExitCode exitCode) =
+                  BC.pack (show exitCode ++ "\n") <> mainOutput
                 | otherwise = mainOutput
           in return output
   getOutput >>= BS.writeFile outputFile
@@ -179,6 +187,10 @@ genericOptions =
    "-fdiagnostics-color=never",
    "-fshow-warning-groups",
    "-dno-debug-output"]
+  ++ (unsafePerformIO $ do
+        etlasRootDir <- getAppUserDataDirectory "etlas"
+        return [ "-pgmi", etlasRootDir </> "tools" </> "eta-serv.jar" ])
+
 
 buildRootDir :: FilePath
 buildRootDir = "dist"

@@ -202,10 +202,9 @@ tcRnModuleTcRnM hsc_env hsc_src
                   addWarn (Reason Opt_WarnImplicitPrelude) (implicitPreludeWarn) ;
 
             -- TODO This is a little skeevy; maybe handle a bit more directly
-           let { simplifyImport (L _ idecl) = (ideclPkgQual idecl, ideclName idecl) } ;
            raw_sig_imports <- liftIO $ findExtraSigImports hsc_env hsc_src (moduleName this_mod) ;
            raw_req_imports <- liftIO $
-               implicitRequirements hsc_env (map simplifyImport (prel_imports ++ import_decls)) ;
+               implicitRequirements hsc_env (ideclsSimplified (prel_imports ++ import_decls)) ;
            let { mkImport (Nothing, L _ mod_name) = noLoc $ (simpleImportDecl mod_name) {
                    ideclHiding = Just (False, noLoc [])
                    } ;

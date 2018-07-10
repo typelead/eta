@@ -19,6 +19,7 @@ import Eta.BasicTypes.BasicTypes  ( SourceText )
 
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
+import Eta.Utils.Maybes
 import Eta.BasicTypes.SrcLoc
 
 import Data.Data
@@ -106,6 +107,12 @@ ideclIsSource _ = False
 ideclPackageQualifier :: ImportDecl name -> Maybe FastString
 ideclPackageQualifier (ImportDecl { ideclPkgQual  }) = ideclPkgQual
 ideclPackageQualifier _ = Nothing
+
+ideclsSimplified :: [LImportDecl name] -> [(Maybe FastString, Located ModuleName)]
+ideclsSimplified = mapMaybe f
+  where f (L _ idecl)
+          | ideclIsJava idecl = Nothing
+          | otherwise = Just (ideclPkgQual idecl, ideclName idecl)
 
 instance (OutputableBndr name, HasOccName name) => Outputable (ImportDecl name) where
     ppr (ImportDecl { ideclName = mod', ideclPkgQual = pkg

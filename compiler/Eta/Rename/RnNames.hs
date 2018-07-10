@@ -403,19 +403,22 @@ rnJavaImports hsc_env java_imps = do
                                in (unpackFS (unLoc lclsName), getLoc lclsName)) java_imps
       classes = map fst classImps
   (notFounds, classIdx) <- liftIO $ getClassInfo hsc_env classes
-  when (not (null notFounds)) $
+  if null notFounds
+  then do
+    (rdr_envs, declss) <- mapAndUnzipM (rnJavaImport hsc_env classIdx) java_imps
+    let rdr_env = foldr plusGlobalRdrEnv emptyGlobalRdrEnv rdr_envs
+    return (rdr_env, concat declss)
+  else do
     forM_ notFounds $ \notFound ->
       case lookup notFound classImps of
         Just loc -> addErrAt loc $ text $ "Unable to find class in the classpath."
         Nothing  -> addErr $ text $ "Class '" ++ notFound ++ "' was a transitive dependency"
                  ++ " of one of your java imports and was not found on the classpath."
-  -- TODO: Add an error when the java name is an invalid Eta name.
-  (rdr_envs, declss) <- mapAndUnzipM (rnJavaImport hsc_env classIdx) java_imps
-  let rdr_env = foldr plusGlobalRdrEnv emptyGlobalRdrEnv rdr_envs
-  return (rdr_env, concat declss)
+    return (emptyGlobalRdrEnv, [])
 
 rnJavaImport :: HscEnv -> ClassIndex -> LImportDecl RdrName -> RnM (GlobalRdrEnv, [LHsDecl RdrName])
 rnJavaImport _hsc_env clsIndex (L loc (ImportJavaDecl { ideclClassName = clsName })) =
+  -- TODO: Add an error when the java name is an invalid Eta name.
   setSrcSpan loc $ do
     let clsName' = unpackFS (unLoc clsName)
     case lookupClassIndex clsName' clsIndex of

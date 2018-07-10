@@ -750,11 +750,10 @@ hsModuleToModSummary pn hsc_src modname
         implicit_prelude = xopt LangExt.ImplicitPrelude dflags
         implicit_imports = mkPrelImports modname loc
                                          implicit_prelude imps
-        convImport (L _ i) = (ideclPkgQual i, ideclName i)
 
     extra_sig_imports <- liftIO $ findExtraSigImports hsc_env hsc_src modname
 
-    let normal_imports = map convImport (implicit_imports ++ ordinary_imps)
+    let normal_imports = ideclsSimplified (implicit_imports ++ ordinary_imps)
     required_by_imports <- liftIO $ implicitRequirements hsc_env normal_imports
 
     -- So that Finder can find it, even though it doesn't exist...
@@ -768,7 +767,7 @@ hsModuleToModSummary pn hsc_src modname
                             Just d -> d) </> ".." </> moduleNameSlashes modname <.> "hi",
             ms_hspp_opts = dflags,
             ms_hspp_buf = Nothing,
-            ms_srcimps = map convImport src_idecls,
+            ms_srcimps = ideclsSimplified src_idecls,
             ms_textual_imps = normal_imports
                            -- We have to do something special here:
                            -- due to merging, requirements may end up with

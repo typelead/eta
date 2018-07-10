@@ -84,10 +84,9 @@ getImports dflags buf filename source_filename = do
                 implicit_prelude = xopt LangExt.ImplicitPrelude dflags
                 implicit_imports = mkPrelImports (unLoc mod) main_loc
                                                  implicit_prelude imps
-                convImport (L _ i) = (ideclPkgQual i, ideclName i)
               in
-              return (map convImport src_idecls,
-                      map convImport (implicit_imports ++ ordinary_imps),
+              return (ideclsSimplified src_idecls,
+                      ideclsSimplified (implicit_imports ++ ordinary_imps),
                       mod)
 
 mkPrelImports :: ModuleName

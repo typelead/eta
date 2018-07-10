@@ -1,0 +1,3 @@
+
+tests/suite/java-imports/fail/MissingClass.hs:3:13: error:
+    Unable to find class in the classpath.
