@@ -1439,7 +1439,7 @@ ipClassNameKey :: Unique
 ipClassNameKey = mkPreludeClassUnique 45
 
 isLabelClassNameKey :: Unique
-isLabelClassNameKey = mkPreludeClassUnique 45
+isLabelClassNameKey = mkPreludeClassUnique 49
 
 extendsClassKey, classClassKey, overloadableClassKey :: Unique
 extendsClassKey = mkPreludeClassUnique 46
