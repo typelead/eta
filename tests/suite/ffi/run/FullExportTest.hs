@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators, MagicHash, FlexibleContexts #-}
 import Java
 
 main :: IO ()

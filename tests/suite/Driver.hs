@@ -14,6 +14,8 @@ import System.Exit
 import Control.Monad
 import Data.Monoid
 import Data.List
+import Data.Set (Set)
+import qualified Data.Set as S
 import Control.DeepSeq
 import Control.Exception
 import qualified Data.ByteString.Lazy as BS
@@ -43,8 +45,10 @@ createTestSuites rootDir = do
           exists <- doesDirectoryExist path
           if exists
           then do
-            testFiles <- globDir1 (compile pattern) path
-            testDirs <- directoryListing path
+            testFiles' <- globDir1 (compile pattern) path
+            let testFiles = filterIgnored testFiles'
+            testDirs'  <- directoryListing path
+            let testDirs  = filterIgnored testDirs'
             tests1 <- forM testFiles $ \testFile -> do
                 let testName   = takeBaseName testFile
                     builddir   = buildDir suiteName name testName
@@ -132,7 +136,7 @@ etaAction mode builddir srcFile outputFile = do
         BackpackAction {} -> (["--backpack"], [])
       outJar = builddir </> "Out.jar"
       options = modeOptions ++ [srcFile] ++ specificOptions ++ extraModeOptions
-                            ++ genericOptions
+                            ++ genericEtaOptions
                             ++ ["-outputdir", builddir, "-cp", mkClassPath defaultClassPath]
                             ++ outputOptions
 
@@ -177,20 +181,23 @@ etaAction mode builddir srcFile outputFile = do
           in return output
   getOutput >>= BS.writeFile outputFile
 
-genericOptions :: [String]
-genericOptions =
+genericEtlasOptions :: [String]
+genericEtlasOptions =
   ["-g0",
    "-fshow-source-paths",
-   "-O",
    "-dcore-lint",
    "-fno-diagnostics-show-caret",
    "-fdiagnostics-color=never",
    "-fshow-warning-groups",
    "-dno-debug-output"]
+
+genericEtaOptions :: [String]
+genericEtaOptions =
+  ["-O"]
   ++ (unsafePerformIO $ do
         etlasRootDir <- getAppUserDataDirectory "etlas"
         return [ "-pgmi", etlasRootDir </> "tools" </> "eta-serv.jar" ])
-
+  ++ genericEtlasOptions
 
 buildRootDir :: FilePath
 buildRootDir = "dist"
@@ -275,3 +282,9 @@ goldenVsFileDiff' name cmdf ref new act =
        else return $ Just $ unlines ["Expected empty output, but got:"] ++ res
 
    upd _ = BS.readFile new >>= BS.writeFile ref
+
+ignored :: Set String
+ignored = S.fromList ["Echo", "FullExportTest", "tc141", "tc168", "tc211", "T14163", "T4912"]
+
+filterIgnored :: [FilePath] -> [FilePath]
+filterIgnored = filter (not . flip S.member ignored . takeBaseName)
