@@ -26,9 +26,9 @@ import Eta.Utils.Util
 import Eta.Utils.Metrics hiding (Mode)
 import Eta.Utils.Panic
 import Eta.Utils.MonadUtils       (liftIO)
-#if defined(ETA_REPL)
+-- #if defined(ETA_REPL)
 import Eta.REPL.UI          ( interactiveUI, etaReplWelcomeMsg, defaultEtaReplSettings )
-#endif
+-- #endif
 -- Imports for --abi-hash
 import Eta.BasicTypes.Module      ( mkModuleName)
 import Eta.Main.Finder            ( findImportedModule, cannotFindInterface )
@@ -227,11 +227,11 @@ main' postLoadMode dflags0 args flagWarnings = do
   liftIO $ dumpFinalStats dflags6
 
 etaReplUI :: [(FilePath, Maybe Phase)] -> Maybe [String] -> Ghc ()
-#ifndef ETA_REPL
-etaReplUI _ _ = throwGhcException (CmdLineError "not built for interactive use")
-#else
+-- #ifndef ETA_REPL
+-- etaReplUI _ _ = throwGhcException (CmdLineError "not built for interactive use")
+-- #else
 etaReplUI     = interactiveUI defaultEtaReplSettings
-#endif
+-- #endif
 
 -- -----------------------------------------------------------------------------
 -- Splitting arguments into source files and object files.  This is where we

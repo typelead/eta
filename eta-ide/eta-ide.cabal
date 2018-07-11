@@ -13,10 +13,20 @@ cabal-version:       >=1.10
 executable eta-ide
   main-is:             Main.hs
   build-depends:       base >= 4.7 && < 5
+                     , array
+                     , bytestring
+                     , deepseq
                      , eta
+                     , eta-boot
+                     , eta-repl
                      , containers
+                     , directory
                      , filepath
                      , haskeline == 0.7.*
                      , mtl
+                     , process
+                     , time
+                     , transformers
+                     , unix
   hs-source-dirs:      .
   default-language:    Haskell2010
