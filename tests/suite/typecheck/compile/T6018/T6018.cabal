@@ -1,0 +1,9 @@
+name: T6018
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+library
+    build-depends: base
+    exposed-modules: T6018
+                     T6018a
