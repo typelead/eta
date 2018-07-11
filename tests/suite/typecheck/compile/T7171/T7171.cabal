@@ -1,0 +1,10 @@
+name: T7171
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+library
+    build-depends: base
+                 , bytestring
+    exposed-modules: T7171
+                     T7171a
