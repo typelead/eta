@@ -1,0 +1,22 @@
+name:                eta-ide
+version:             0.0.0.1
+description:         IDE Integration Utility
+license:             BSD3
+license-file:        LICENSE
+author:              TypeLead
+maintainer:          typeleadhq@gmail.com
+copyright:           2018, TypeLead, Inc.
+category:            Distribution
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable eta-ide
+  main-is:             Main.hs
+  build-depends:       base >= 4.7 && < 5
+                     , eta
+                     , containers
+                     , filepath
+                     , haskeline == 0.7.*
+                     , mtl
+  hs-source-dirs:      .
+  default-language:    Haskell2010

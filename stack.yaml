@@ -33,6 +33,7 @@ packages:
 - libraries/eta-meta
 - libraries/eta-repl
 - utils/eta-pkg
+- eta-ide
 - etlas/etlas
 - etlas/etlas-cabal
 - etlas/hackage-security/hackage-security
