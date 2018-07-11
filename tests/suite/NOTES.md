@@ -4,3 +4,5 @@
 - tc251 gives an error "cannot find any of ["Tc251.hi"]"
 - tc256 requires UndecidableSuperClasses
 - tc269 parse error
+
+Pattern match should be singular but is plural.
