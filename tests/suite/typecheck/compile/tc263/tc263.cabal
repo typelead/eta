@@ -1,0 +1,9 @@
+name: tc263
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+executable tc263
+    main-is: Tc263.hs
+    build-depends: base
+    exposed-modules: Tc263_Help
