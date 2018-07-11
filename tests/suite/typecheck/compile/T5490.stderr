@@ -1,0 +1,8 @@
+
+tests/suite/typecheck/compile/T5490.hs:245:15: warning: [-Woverlapping-patterns (in -Wdefault)]
+    Pattern match(es) are redundant
+    In a case alternative: HDropZero -> ...
+
+tests/suite/typecheck/compile/T5490.hs:288:3: warning: [-Woverlapping-patterns (in -Wdefault)]
+    Pattern match(es) are redundant
+    In a case alternative: _ -> ...
