@@ -38,6 +38,7 @@ import Eta.Utils.Binary           ( openBinMem, put_, fingerprintBinMem )
 -- Standard Libraries
 import System.IO
 import System.IO.Unsafe
+import System.Directory
 import System.Environment
 import System.Exit
 import System.FilePath
@@ -100,7 +101,8 @@ main = do
             -- start our GHC session
             GHC.runGhc mbMinusB $ do
 
-              dflags <- GHC.getSessionDynFlags
+              dflags0 <- GHC.getSessionDynFlags
+              let dflags = dflags0 { settings = (settings dflags0) { sPgm_i = userHome ++ "/.etlas/tools/eta-serv.jar" } }
 
               case postStartupMode of
                   Left preLoadMode ->
@@ -847,3 +849,6 @@ unknownFlagsErr fs = throwGhcException $ UsageError $ concatMap oneError fs
         (case fuzzyMatch f (nub allFlags) of
             [] -> ""
             suggs -> "did you mean one of:\n" ++ unlines (map ("  " ++) suggs))
+
+userHome :: FilePath
+userHome = unsafePerformIO getHomeDirectory
