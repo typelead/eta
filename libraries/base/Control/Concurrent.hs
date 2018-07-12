@@ -107,8 +107,8 @@ module Control.Concurrent (
 
 import Control.Exception.Base as Exception
 
-import GHC.Conc hiding (threadWaitRead, threadWaitWrite, threadWaitConnect,
-                        threadWaitAccept, threadWaitReadSTM, threadWaitWriteSTM)
+import GHC.Conc hiding (threadWaitRead, threadWaitWrite,
+                        threadWaitReadSTM, threadWaitWriteSTM)
 import GHC.IO           ( unsafeUnmask )
 import GHC.IORef        ( newIORef, readIORef, writeIORef )
 import GHC.Base
@@ -408,12 +408,6 @@ threadWaitRead fd = GHC.Conc.threadWaitRead fd
 -- 'GHC.Conc.closeFdWith'.
 threadWaitWrite :: Channel -> IO ()
 threadWaitWrite fd = GHC.Conc.threadWaitWrite fd
-
-threadWaitConnect :: Channel -> IO ()
-threadWaitConnect fd = GHC.Conc.threadWaitConnect fd
-
-threadWaitAccept :: Channel -> IO ()
-threadWaitAccept fd = GHC.Conc.threadWaitAccept fd
 
 -- | Returns an STM action that can be used to wait for data
 -- to read from a file descriptor. The second returned value
