@@ -2,7 +2,7 @@
 
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ > 710
-{-# OPTIONS_GHC -Wno-too-many-guards #-}
+{-# OPTIONS_GHC -fmax-pmcheck-iterations=10000000 #-}
 #endif
 -- This module used to take 10GB of memory to compile with the new
 -- (Nov '15) pattern-match checker.
