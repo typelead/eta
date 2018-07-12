@@ -1,6 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE AutoDeriveTypeable, StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -14,6 +13,11 @@
 --
 -- Unbounded channels.
 --
+-- The channels are implemented with @MVar@s and therefore inherit all the
+-- caveats that apply to @MVar@s (possibility of races, deadlocks etc). The
+-- stm (software transactional memory) library has a more robust implementation
+-- of channels called @TChan@s.
+--
 -----------------------------------------------------------------------------
 
 module Control.Concurrent.Chan
@@ -26,8 +30,6 @@ module Control.Concurrent.Chan
         writeChan,
         readChan,
         dupChan,
-        unGetChan,
-        isEmptyChan,
 
           -- * Stream interface
         getChanContents,
@@ -37,7 +39,6 @@ module Control.Concurrent.Chan
 import System.IO.Unsafe         ( unsafeInterleaveIO )
 import Control.Concurrent.MVar
 import Control.Exception (mask_)
-import Data.Typeable
 
 #define _UPK_(x) {-# UNPACK #-} !(x)
 
@@ -49,7 +50,7 @@ import Data.Typeable
 data Chan a
  = Chan _UPK_(MVar (Stream a))
         _UPK_(MVar (Stream a)) -- Invariant: the Stream a is always an empty MVar
-   deriving (Eq,Typeable)
+   deriving Eq
 
 type Stream a = MVar (ChItem a)
 
@@ -96,7 +97,13 @@ writeChan (Chan _ writeVar) val = do
 -- completes and before modifyMVar_ installs the new value, it will set the
 -- Chan's write end to a filled hole.
 
--- |Read the next value from the 'Chan'.
+-- |Read the next value from the 'Chan'. Blocks when the channel is empty. Since
+-- the read end of a channel is an 'MVar', this operation inherits fairness
+-- guarantees of 'MVar's (e.g. threads blocked in this operation are woken up in
+-- FIFO order).
+--
+-- Throws 'BlockedIndefinitelyOnMVar' when the channel is empty and no other
+-- thread holds a reference to the channel.
 readChan :: Chan a -> IO a
 readChan (Chan readVar _) = do
   modifyMVarMasked readVar $ \read_end -> do -- Note [modifyMVarMasked]
@@ -127,23 +134,6 @@ dupChan (Chan _ writeVar) = do
    newReadVar <- newMVar hole
    return (Chan newReadVar writeVar)
 
--- |Put a data item back onto a channel, where it will be the next item read.
-unGetChan :: Chan a -> a -> IO ()
-unGetChan (Chan readVar _) val = do
-   new_read_end <- newEmptyMVar
-   modifyMVar_ readVar $ \read_end -> do
-     putMVar new_read_end (ChItem val read_end)
-     return new_read_end
-{-# DEPRECATED unGetChan "if you need this operation, use Control.Concurrent.STM.TChan instead.  See <http://ghc.haskell.org/trac/ghc/ticket/4154> for details" #-} -- deprecated in 7.0
-
--- |Returns 'True' if the supplied 'Chan' is empty.
-isEmptyChan :: Chan a -> IO Bool
-isEmptyChan (Chan readVar writeVar) = do
-   withMVar readVar $ \r -> do
-     w <- readMVar writeVar
-     let eq = r == w
-     eq `seq` return eq
-{-# DEPRECATED isEmptyChan "if you need this operation, use Control.Concurrent.STM.TChan instead.  See <http://ghc.haskell.org/trac/ghc/ticket/4154> for details" #-} -- deprecated in 7.0
 
 -- Operators for interfacing with functional streams.
 
