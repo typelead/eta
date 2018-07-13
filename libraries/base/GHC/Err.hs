@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude, MagicHash #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash, ImplicitParams #-}
+{-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 -----------------------------------------------------------------------------
@@ -21,27 +22,62 @@
 --
 -----------------------------------------------------------------------------
 
-module GHC.Err( absentErr, error, undefined ) where
+module GHC.Err( absentErr, error, errorWithoutStackTrace, undefined ) where
 import GHC.CString ()
-import GHC.Types
+import GHC.Types (Char)
+import GHC.Stack.Types
 import GHC.Prim
 import GHC.Integer ()   -- Make sure Integer is compiled first
                         -- because GHC depends on it in a wired-in way
                         -- so the build system doesn't see the dependency
-import {-# SOURCE #-} GHC.Exception( errorCallException )
+import {-# SOURCE #-} GHC.Exception( errorCallWithCallStackException, errorCallException )
 
 -- | 'error' stops execution and displays an error message.
 error :: [Char] -> a
 error s = raise# (errorCallException s)
+-- error :: HasCallStack => [Char] -> a
+-- error s = raise# (errorCallWithCallStackException s ?callStack)
+          -- Bleh, we should be using 'GHC.Stack.callStack' instead of
+          -- '?callStack' here, but 'GHC.Stack.callStack' depends on
+          -- 'GHC.Stack.popCallStack', which is partial and depends on
+          -- 'error'.. Do as I say, not as I do.
+
+-- | A variant of 'error' that does not produce a stack trace.
+--
+-- @since 4.9.0.0
+errorWithoutStackTrace :: [Char] -> a
+errorWithoutStackTrace s = error "errorWithoutStackTrace not handled!"
+  -- we don't have withFrozenCallStack yet, so we just inline the definition
+  -- let ?callStack = freezeCallStack emptyCallStack
+  -- in error s
+
+
+-- Note [Errors in base]
+-- ~~~~~~~~~~~~~~~~~~~~~
+-- As of base-4.9.0.0, `error` produces a stack trace alongside the
+-- error message using the HasCallStack machinery. This provides
+-- a partial stack trace, containing the call-site of each function
+-- with a HasCallStack constraint.
+--
+-- In base, however, the only functions that have such constraints are
+-- error and undefined, so the stack traces from partial functions in
+-- base will never contain a call-site in user code. Instead we'll
+-- usually just get the actual call to error. Base functions already
+-- have a good habit of providing detailed error messages, including the
+-- name of the offending partial function, so the partial stack-trace
+-- does not provide any extra information, just noise. Thus, we export
+-- the callstack-aware error, but within base we use the
+-- errorWithoutStackTrace variant for more hygienic error messages.
+
 
 -- | A special case of 'error'.
 -- It is expected that compilers will recognize this and insert error
 -- messages which are more appropriate to the context in which 'undefined'
 -- appears.
-undefined :: a
+undefined :: HasCallStack => a
 undefined =  error "Prelude.undefined"
 
 -- | Used for compiler-generated error message;
 -- encoding saves bytes of string junk.
 absentErr :: a
-absentErr = error "Oops! The program has entered an `absent' argument!\n"
+absentErr = errorWithoutStackTrace "Oops! The program has entered an `absent' argument!\n"

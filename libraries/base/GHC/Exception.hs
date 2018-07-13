@@ -2,7 +2,8 @@
 {-# LANGUAGE NoImplicitPrelude
            , ExistentialQuantification
            , MagicHash
-           , DeriveDataTypeable
+           , RecordWildCards
+           , PatternSynonyms
   #-}
 {-# OPTIONS_HADDOCK hide #-}
 
@@ -23,9 +24,14 @@
 module GHC.Exception
        ( Exception(..)    -- Class
        , throw
-       , SomeException(..), ErrorCall(..), ArithException(..)
+       , SomeException(..), ErrorCall(..), pattern ErrorCall, ArithException(..)
        , divZeroException, overflowException, ratioZeroDenomException
-       , errorCallException
+       , underflowException
+       , errorCallException, errorCallWithCallStackException
+         -- re-export CallStack and SrcLoc from GHC.Types
+       , CallStack, fromCallSiteList, getCallStack, prettyCallStack
+       , prettyCallStackLines, showCCSStack
+       , SrcLoc(..), prettySrcLoc
        ) where
 
 import Data.Maybe
@@ -33,6 +39,10 @@ import Data.Typeable (Typeable, cast)
    -- loop: Data.Typeable -> GHC.Err -> GHC.Exception
 import GHC.Base
 import GHC.Show
+import GHC.Stack.Types
+import GHC.OldList
+import GHC.IO.Unsafe
+import {-# SOURCE #-} GHC.Stack.CCS
 
 {- |
 The @SomeException@ type is the root of the exception type hierarchy.
@@ -40,8 +50,8 @@ When an exception of type @e@ is thrown, behind the scenes it is
 encapsulated in a @SomeException@.
 -}
 data SomeException = forall e . Exception e => SomeException e
-    deriving Typeable
 
+-- | @since 3.0
 instance Show SomeException where
     showsPrec p (SomeException e) = showsPrec p e
 
@@ -51,7 +61,7 @@ instance of the @Exception@ class. The simplest case is a new exception
 type directly below the root:
 
 > data MyException = ThisException | ThatException
->     deriving (Show, Typeable)
+>     deriving Show
 >
 > instance Exception MyException
 
@@ -71,7 +81,6 @@ of exceptions:
 > -- Make the root exception type for all the exceptions in a compiler
 >
 > data SomeCompilerException = forall e . Exception e => SomeCompilerException e
->     deriving Typeable
 >
 > instance Show SomeCompilerException where
 >     show (SomeCompilerException e) = show e
@@ -90,7 +99,6 @@ of exceptions:
 > -- Make a subhierarchy for exceptions in the frontend of the compiler
 >
 > data SomeFrontendException = forall e . Exception e => SomeFrontendException e
->     deriving Typeable
 >
 > instance Show SomeFrontendException where
 >     show (SomeFrontendException e) = show e
@@ -111,7 +119,7 @@ of exceptions:
 > -- Make an exception type for a particular frontend compiler exception
 >
 > data MismatchedParentheses = MismatchedParentheses
->     deriving (Typeable, Show)
+>     deriving Show
 >
 > instance Exception MismatchedParentheses where
 >     toException   = frontendExceptionToException
@@ -122,13 +130,13 @@ We can now catch a @MismatchedParentheses@ exception as
 @SomeCompilerException@, but not other types, e.g. @IOException@:
 
 @
-*Main> throw MismatchedParentheses `catch` \e -> putStrLn (\"Caught \" ++ show (e :: MismatchedParentheses))
+*Main> throw MismatchedParentheses \`catch\` \\e -> putStrLn (\"Caught \" ++ show (e :: MismatchedParentheses))
 Caught MismatchedParentheses
-*Main> throw MismatchedParentheses `catch` \e -> putStrLn (\"Caught \" ++ show (e :: SomeFrontendException))
+*Main> throw MismatchedParentheses \`catch\` \\e -> putStrLn (\"Caught \" ++ show (e :: SomeFrontendException))
 Caught MismatchedParentheses
-*Main> throw MismatchedParentheses `catch` \e -> putStrLn (\"Caught \" ++ show (e :: SomeCompilerException))
+*Main> throw MismatchedParentheses \`catch\` \\e -> putStrLn (\"Caught \" ++ show (e :: SomeCompilerException))
 Caught MismatchedParentheses
-*Main> throw MismatchedParentheses `catch` \e -> putStrLn (\"Caught \" ++ show (e :: IOException))
+*Main> throw MismatchedParentheses \`catch\` \\e -> putStrLn (\"Caught \" ++ show (e :: IOException))
 *** Exception: MismatchedParentheses
 @
 
@@ -148,6 +156,7 @@ class (Typeable e, Show e) => Exception e where
     displayException :: e -> String
     displayException = show
 
+-- | @since 3.0
 instance Exception SomeException where
     toException se = se
     fromException = Just
@@ -158,18 +167,69 @@ instance Exception SomeException where
 throw :: Exception e => e -> a
 throw e = raise# (toException e)
 
--- |This is thrown when the user calls 'error'. The @String@ is the
--- argument given to 'error'.
-newtype ErrorCall = ErrorCall String
-    deriving (Eq, Ord, Typeable)
+-- | This is thrown when the user calls 'error'. The first @String@ is the
+-- argument given to 'error', second @String@ is the location.
+data ErrorCall = ErrorCallWithLocation String String
+    deriving (Eq, Ord)
 
+pattern ErrorCall :: String -> ErrorCall
+pattern ErrorCall err <- ErrorCallWithLocation err _ where
+  ErrorCall err = ErrorCallWithLocation err ""
+
+-- {-# COMPLETE ErrorCall #-}
+
+-- | @since 4.0.0.0
 instance Exception ErrorCall
 
+-- | @since 4.0.0.0
 instance Show ErrorCall where
-    showsPrec _ (ErrorCall err) = showString err
+  showsPrec _ (ErrorCallWithLocation err "") = showString err
+  showsPrec _ (ErrorCallWithLocation err loc) = showString (err ++ '\n' : loc)
 
 errorCallException :: String -> SomeException
 errorCallException s = toException (ErrorCall s)
+
+errorCallWithCallStackException :: String -> CallStack -> SomeException
+errorCallWithCallStackException s stk = unsafeDupablePerformIO $ do
+  ccsStack <- currentCallStack
+  let
+    implicitParamCallStack = prettyCallStackLines stk
+    ccsCallStack = showCCSStack ccsStack
+    stack = intercalate "\n" $ implicitParamCallStack ++ ccsCallStack
+  return $ toException (ErrorCallWithLocation s stack)
+
+showCCSStack :: [String] -> [String]
+showCCSStack [] = []
+showCCSStack stk = "CallStack (from -prof):" : map ("  " ++) (reverse stk)
+
+-- prettySrcLoc and prettyCallStack are defined here to avoid hs-boot
+-- files. See Note [Definition of CallStack]
+
+-- | Pretty print a 'SrcLoc'.
+--
+-- @since 4.9.0.0
+prettySrcLoc :: SrcLoc -> String
+prettySrcLoc SrcLoc {..}
+  = foldr (++) ""
+      [ srcLocFile, ":"
+      , show srcLocStartLine, ":"
+      , show srcLocStartCol, " in "
+      , srcLocPackage, ":", srcLocModule
+      ]
+
+-- | Pretty print a 'CallStack'.
+--
+-- @since 4.9.0.0
+prettyCallStack :: CallStack -> String
+prettyCallStack = intercalate "\n" . prettyCallStackLines
+
+prettyCallStackLines :: CallStack -> [String]
+prettyCallStackLines cs = case getCallStack cs of
+  []  -> []
+  stk -> "CallStack (from HasCallStack):"
+       : map (("  " ++) . prettyCallSite) stk
+  where
+    prettyCallSite (f, loc) = f ++ ", called at " ++ prettySrcLoc loc
 
 -- |Arithmetic exceptions.
 data ArithException
@@ -179,15 +239,18 @@ data ArithException
   | DivideByZero
   | Denormal
   | RatioZeroDenominator -- ^ @since 4.6.0.0
-  deriving (Eq, Ord, Typeable)
+  deriving (Eq, Ord)
 
-divZeroException, overflowException, ratioZeroDenomException  :: SomeException
+divZeroException, overflowException, ratioZeroDenomException, underflowException  :: SomeException
 divZeroException        = toException DivideByZero
 overflowException       = toException Overflow
 ratioZeroDenomException = toException RatioZeroDenominator
+underflowException      = toException Underflow
 
+-- | @since 4.0.0.0
 instance Exception ArithException
 
+-- | @since 4.0.0.0
 instance Show ArithException where
   showsPrec _ Overflow        = showString "arithmetic overflow"
   showsPrec _ Underflow       = showString "arithmetic underflow"

@@ -196,7 +196,9 @@ library
         GHC.IO.Handle.Internals
         GHC.IO.Handle.Text
         GHC.IO.Handle.Types
+        GHC.Stack.Types
         GHC.IO.IOMode
+        GHC.IO.Unsafe
         GHC.IOArray
         GHC.IORef
         GHC.IP
@@ -283,4 +285,4 @@ library
 
     -- We need to set the package key to base (without a version number)
     -- as it's magic.
-    ghc-options: -this-unit-id base
+    ghc-options: -this-unit-id base -fdiagnostics-color=never

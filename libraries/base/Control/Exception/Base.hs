@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash #-}
-{-# LANGUAGE AutoDeriveTypeable, StandaloneDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -30,8 +30,10 @@ module Control.Exception.Base (
         NonTermination(..),
         NestedAtomically(..),
         BlockedIndefinitelyOnMVar(..),
+        FixIOException (..),
         BlockedIndefinitelyOnSTM(..),
         AllocationLimitExceeded(..),
+        CompactionFailed(..),
         Deadlock(..),
         NoMethodError(..),
         PatternMatchFail(..),
@@ -39,6 +41,7 @@ module Control.Exception.Base (
         RecSelError(..),
         RecUpdError(..),
         ErrorCall(..),
+        TypeError(..), -- #10284, custom error type for deferred type errors
 
         -- * Throwing exceptions
         throwIO,
@@ -92,7 +95,7 @@ module Control.Exception.Base (
         -- * Calls for GHC runtime
         recSelError, recConError, irrefutPatError, runtimeError,
         nonExhaustiveGuardsError, patError, noMethodBindingError,
-        absentError,
+        absentError, typeError,
         nonTermination, nestedAtomically,
   ) where
 
@@ -104,50 +107,10 @@ import GHC.Show
 -- import GHC.Exception hiding ( Exception )
 import GHC.Conc.Sync
 
-import Data.Dynamic
 import Data.Either
 
 -----------------------------------------------------------------------------
 -- Catching exceptions
-
--- |This is the simplest of the exception-catching functions.  It
--- takes a single argument, runs it, and if an exception is raised
--- the \"handler\" is executed, with the value of the exception passed as an
--- argument.  Otherwise, the result is returned as normal.  For example:
---
--- >   catch (readFile f)
--- >         (\e -> do let err = show (e :: IOException)
--- >                   hPutStr stderr ("Warning: Couldn't open " ++ f ++ ": " ++ err)
--- >                   return "")
---
--- Note that we have to give a type signature to @e@, or the program
--- will not typecheck as the type is ambiguous. While it is possible
--- to catch exceptions of any type, see the section \"Catching all
--- exceptions\" (in "Control.Exception") for an explanation of the problems with doing so.
---
--- For catching exceptions in pure (non-'IO') expressions, see the
--- function 'evaluate'.
---
--- Note that due to Haskell\'s unspecified evaluation order, an
--- expression may throw one of several possible exceptions: consider
--- the expression @(error \"urk\") + (1 \`div\` 0)@.  Does
--- the expression throw
--- @ErrorCall \"urk\"@, or @DivideByZero@?
---
--- The answer is \"it might throw either\"; the choice is
--- non-deterministic. If you are catching any type of exception then you
--- might catch either. If you are calling @catch@ with type
--- @IO Int -> (ArithException -> IO Int) -> IO Int@ then the handler may
--- get run with @DivideByZero@ as an argument, or an @ErrorCall \"urk\"@
--- exception may be propogated further up. If you call it again, you
--- might get a the opposite behaviour. This is ok, because 'catch' is an
--- 'IO' computation.
---
-catch   :: Exception e
-        => IO a         -- ^ The computation to run
-        -> (e -> IO a)  -- ^ Handler to invoke if an exception is raised
-        -> IO a
-catch = catchException
 
 -- | The function 'catchJust' is like 'catch', but it takes an extra
 -- argument which is an /exception predicate/, a function which
@@ -297,11 +260,13 @@ bracketOnError before after thing =
 
 -- |A pattern match failed. The @String@ gives information about the
 -- source location of the pattern.
-data PatternMatchFail = PatternMatchFail String deriving Typeable
+newtype PatternMatchFail = PatternMatchFail String
 
+-- | @since 4.0
 instance Show PatternMatchFail where
     showsPrec _ (PatternMatchFail err) = showString err
 
+-- | @since 4.0
 instance Exception PatternMatchFail
 
 -----
@@ -311,11 +276,13 @@ instance Exception PatternMatchFail
 -- multiple constructors, where some fields are in one constructor
 -- but not another. The @String@ gives information about the source
 -- location of the record selector.
-data RecSelError = RecSelError String deriving Typeable
+newtype RecSelError = RecSelError String
 
+-- | @since 4.0
 instance Show RecSelError where
     showsPrec _ (RecSelError err) = showString err
 
+-- | @since 4.0
 instance Exception RecSelError
 
 -----
@@ -323,11 +290,13 @@ instance Exception RecSelError
 -- |An uninitialised record field was used. The @String@ gives
 -- information about the source location where the record was
 -- constructed.
-data RecConError = RecConError String deriving Typeable
+newtype RecConError = RecConError String
 
+-- | @since 4.0
 instance Show RecConError where
     showsPrec _ (RecConError err) = showString err
 
+-- | @since 4.0
 instance Exception RecConError
 
 -----
@@ -337,11 +306,13 @@ instance Exception RecConError
 -- multiple constructors, where some fields are in one constructor
 -- but not another. The @String@ gives information about the source
 -- location of the record update.
-data RecUpdError = RecUpdError String deriving Typeable
+newtype RecUpdError = RecUpdError String
 
+-- | @since 4.0
 instance Show RecUpdError where
     showsPrec _ (RecUpdError err) = showString err
 
+-- | @since 4.0
 instance Exception RecUpdError
 
 -----
@@ -349,12 +320,30 @@ instance Exception RecUpdError
 -- |A class method without a definition (neither a default definition,
 -- nor a definition in the appropriate instance) was called. The
 -- @String@ gives information about which method it was.
-data NoMethodError = NoMethodError String deriving Typeable
+newtype NoMethodError = NoMethodError String
 
+-- | @since 4.0
 instance Show NoMethodError where
     showsPrec _ (NoMethodError err) = showString err
 
+-- | @since 4.0
 instance Exception NoMethodError
+
+-----
+
+-- |An expression that didn't typecheck during compile time was called.
+-- This is only possible with -fdefer-type-errors. The @String@ gives
+-- details about the failed type check.
+--
+-- @since 4.9.0.0
+newtype TypeError = TypeError String
+
+-- | @since 4.9.0.0
+instance Show TypeError where
+    showsPrec _ (TypeError err) = showString err
+
+-- | @since 4.9.0.0
+instance Exception TypeError
 
 -----
 
@@ -362,41 +351,46 @@ instance Exception NoMethodError
 -- guaranteed not to terminate. Note that there is no guarantee that
 -- the runtime system will notice whether any given computation is
 -- guaranteed to terminate or not.
-data NonTermination = NonTermination deriving Typeable
+data NonTermination = NonTermination
 
+-- | @since 4.0
 instance Show NonTermination where
     showsPrec _ NonTermination = showString "<<loop>>"
 
+-- | @since 4.0
 instance Exception NonTermination
 
 -----
 
 -- |Thrown when the program attempts to call @atomically@, from the @stm@
 -- package, inside another call to @atomically@.
-data NestedAtomically = NestedAtomically deriving Typeable
+data NestedAtomically = NestedAtomically
 
+-- | @since 4.0
 instance Show NestedAtomically where
     showsPrec _ NestedAtomically = showString "Control.Concurrent.STM.atomically was nested"
 
+-- | @since 4.0
 instance Exception NestedAtomically
 
 -----
 
 recSelError, recConError, irrefutPatError, runtimeError,
   nonExhaustiveGuardsError, patError, noMethodBindingError,
-  absentError
+  absentError, typeError
         :: Addr# -> a   -- All take a UTF8-encoded C string
 
 recSelError              s = throw (RecSelError ("No match in record selector "
                                                  ++ unpackCStringUtf8# s))  -- No location info unfortunately
-runtimeError             s = error (unpackCStringUtf8# s)                   -- No location info unfortunately
-absentError              s = error ("Oops!  Entered absent arg " ++ unpackCStringUtf8# s)
+runtimeError             s = errorWithoutStackTrace (unpackCStringUtf8# s)                   -- No location info unfortunately
+absentError              s = errorWithoutStackTrace ("Oops!  Entered absent arg " ++ unpackCStringUtf8# s)
 
 nonExhaustiveGuardsError s = throw (PatternMatchFail (untangle s "Non-exhaustive guards in"))
 irrefutPatError          s = throw (PatternMatchFail (untangle s "Irrefutable pattern failed for pattern"))
 recConError              s = throw (RecConError      (untangle s "Missing field in record construction"))
 noMethodBindingError     s = throw (NoMethodError    (untangle s "No instance nor default method for class operation"))
 patError                 s = throw (PatternMatchFail (untangle s "Non-exhaustive patterns in"))
+typeError                s = throw (TypeError        (unpackCStringUtf8# s))
 
 -- GHC's RTS calls this
 nonTermination :: SomeException

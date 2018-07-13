@@ -1,12 +1,13 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP
+           , GHCForeignImportPrim
            , NoImplicitPrelude
            , MagicHash
            , UnboxedTuples
   #-}
 -- We believe we could deorphan this module, by moving lots of things
 -- around, but we haven't got there yet:
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 -----------------------------------------------------------------------------
@@ -20,13 +21,21 @@
 -- Stability   :  internal
 -- Portability :  non-portable (GHC Extensions)
 --
--- The types 'Float' and 'Double', and the classes 'Floating' and 'RealFloat'.
+-- The types 'Float' and 'Double', the classes 'Floating' and 'RealFloat' and
+-- casting between Word32 and Float and Word64 and Double.
 --
 -----------------------------------------------------------------------------
 
-module GHC.Float( module GHC.Float, Float(..), Double(..), Float#, Double#
-                , double2Int, int2Double, float2Int, int2Float )
-    where
+
+module GHC.Float
+   ( module GHC.Float
+   , Float(..), Double(..), Float#, Double#
+   , double2Int, int2Double, float2Int, int2Float
+
+    -- * Monomorphic equality operators
+    -- | See GHC.Classes#matching_overloaded_methods_in_rules
+   , eqFloat, eqDouble
+   ) where
 
 import Data.Maybe
 
@@ -37,6 +46,7 @@ import GHC.Enum
 import GHC.Show
 import GHC.Num
 import GHC.Real
+import GHC.Word
 import GHC.Arr
 import GHC.Float.RealFracMethods
 import GHC.Float.ConversionUtils
@@ -45,20 +55,6 @@ import GHC.Integer.Logarithms.Internals
 
 infixr 8  **
 
--- Radix of exponent representation
-#define FLT_RADIX 2
--- Number of base-FLT_RADIX digits in the significand of a float
-#define FLT_MANT_DIG 24
--- Minimum int x such that FLT_RADIX**(x-1) is a normalised float
-#define FLT_MIN_EXP (-125)
--- Maximum int x such that FLT_RADIX**(x-1) is a representable float
-#define FLT_MAX_EXP 128
--- Number of base-FLT_RADIX digits in the significand of a double
-#define DBL_MANT_DIG 53
--- Minimum int x such that FLT_RADIX**(x-1) is a normalised double
-#define DBL_MIN_EXP (-1021)
--- Maximum int x such that FLT_RADIX**(x-1) is a representable double
-#define DBL_MAX_EXP 1024
 
 ------------------------------------------------------------------------
 -- Standard numeric classes
@@ -74,6 +70,46 @@ class  (Fractional a) => Floating a  where
     sinh, cosh, tanh    :: a -> a
     asinh, acosh, atanh :: a -> a
 
+    -- | @'log1p' x@ computes @'log' (1 + x)@, but provides more precise
+    -- results for small (absolute) values of @x@ if possible.
+    --
+    -- @since 4.9.0.0
+    log1p               :: a -> a
+
+    -- | @'expm1' x@ computes @'exp' x - 1@, but provides more precise
+    -- results for small (absolute) values of @x@ if possible.
+    --
+    -- @since 4.9.0.0
+    expm1               :: a -> a
+
+    -- | @'log1pexp' x@ computes @'log' (1 + 'exp' x)@, but provides more
+    -- precise results if possible.
+    --
+    -- Examples:
+    --
+    -- * if @x@ is a large negative number, @'log' (1 + 'exp' x)@ will be
+    --   imprecise for the reasons given in 'log1p'.
+    --
+    -- * if @'exp' x@ is close to @-1@, @'log' (1 + 'exp' x)@ will be
+    --   imprecise for the reasons given in 'expm1'.
+    --
+    -- @since 4.9.0.0
+    log1pexp            :: a -> a
+
+    -- | @'log1mexp' x@ computes @'log' (1 - 'exp' x)@, but provides more
+    -- precise results if possible.
+    --
+    -- Examples:
+    --
+    -- * if @x@ is a large negative number, @'log' (1 - 'exp' x)@ will be
+    --   imprecise for the reasons given in 'log1p'.
+    --
+    -- * if @'exp' x@ is close to @1@, @'log' (1 - 'exp' x)@ will be
+    --   imprecise for the reasons given in 'expm1'.
+    --
+    -- @since 4.9.0.0
+    log1mexp            :: a -> a
+
     {-# INLINE (**) #-}
     {-# INLINE logBase #-}
     {-# INLINE sqrt #-}
@@ -84,6 +120,15 @@ class  (Fractional a) => Floating a  where
     sqrt x              =  x ** 0.5
     tan  x              =  sin  x / cos  x
     tanh x              =  sinh x / cosh x
+
+    {-# INLINE log1p #-}
+    {-# INLINE expm1 #-}
+    {-# INLINE log1pexp #-}
+    {-# INLINE log1mexp #-}
+    log1p x = log (1 + x)
+    expm1 x = exp x - 1
+    log1pexp x = log1p (exp x)
+    log1mexp x = log1p (negate (exp x))
 
 -- | Efficient, machine-independent access to the components of a
 -- floating-point number.
@@ -196,14 +241,13 @@ class  (RealFrac a, Floating a) => RealFloat a  where
 -- Float
 ------------------------------------------------------------------------
 
+-- | @since 2.01
 instance  Num Float  where
     (+)         x y     =  plusFloat x y
     (-)         x y     =  minusFloat x y
     negate      x       =  negateFloat x
     (*)         x y     =  timesFloat x y
-    abs x    | x == 0    = 0 -- handles (-0.0)
-             | x >  0    = x
-             | otherwise = negateFloat x
+    abs         x       =  fabsFloat x
     signum x | x > 0     = 1
              | x < 0     = negateFloat 1
              | otherwise = x -- handles 0.0, (-0.0), and NaN
@@ -211,6 +255,7 @@ instance  Num Float  where
     {-# INLINE fromInteger #-}
     fromInteger i = F# (floatFromInteger i)
 
+-- | @since 2.01
 instance  Real Float  where
     toRational (F# x#)  =
         case decodeFloat_Int# x# of
@@ -223,6 +268,7 @@ instance  Real Float  where
             | otherwise                                         ->
                     smallInteger m# :% shiftLInteger 1 (negateInt# e#)
 
+-- | @since 2.01
 instance  Fractional Float  where
     (/) x y             =  divideFloat x y
     {-# INLINE fromRational #-}
@@ -256,6 +302,7 @@ rationalToFloat n d
 "ceiling/Float->Int"                ceiling = ceilingFloatInt
 "round/Float->Int"                  round = roundFloatInt
   #-}
+-- | @since 2.01
 instance  RealFrac Float  where
 
         -- ceiling, floor, and truncate are all small
@@ -296,6 +343,7 @@ instance  RealFrac Float  where
     floor x     = case properFraction x of
                     (n,r) -> if r < 0.0 then n - 1 else n
 
+-- | @since 2.01
 instance  Floating Float  where
     pi                  =  3.141592653589793238
     exp x               =  expFloat x
@@ -317,6 +365,20 @@ instance  Floating Float  where
     acosh x = log (x + (x+1.0) * sqrt ((x-1.0)/(x+1.0)))
     atanh x = 0.5 * log ((1.0+x) / (1.0-x))
 
+    log1p = log1pFloat
+    expm1 = expm1Float
+
+    log1mexp a
+      | a <= log 2 = log (negate (expm1Float a))
+      | otherwise  = log1pFloat (negate (exp a))
+    {-# INLINE log1mexp #-}
+    log1pexp a
+      | a <= 18   = log1pFloat (exp a)
+      | a <= 100  = a + exp (negate a)
+      | otherwise = a
+    {-# INLINE log1pexp #-}
+
+-- | @since 2.01
 instance  RealFloat Float  where
     floatRadix _        =  FLT_RADIX        -- from float.h
     floatDigits _       =  FLT_MANT_DIG     -- ditto
@@ -339,7 +401,7 @@ instance  RealFloat Float  where
       | otherwise       = case decodeFloat x of
                             (m,n) -> encodeFloat m (n + clamp bf k)
                         where bf = FLT_MAX_EXP - (FLT_MIN_EXP) + 4*FLT_MANT_DIG
-                              isFix = x == 0 || isFloatFinite x
+                              isFix = x == 0 || isFloatFinite x == 0
 
     isNaN x          = isFloatNaN x
     isInfinite x     = isFloatInfinite x
@@ -355,14 +417,13 @@ instance  Show Float  where
 -- Double
 ------------------------------------------------------------------------
 
+-- | @since 2.01
 instance  Num Double  where
     (+)         x y     =  plusDouble x y
     (-)         x y     =  minusDouble x y
     negate      x       =  negateDouble x
     (*)         x y     =  timesDouble x y
-    abs x    | x == 0    = 0 -- handles (-0.0)
-             | x >  0    = x
-             | otherwise = negateDouble x
+    abs         x       =  fabsDouble x
     signum x | x > 0     = 1
              | x < 0     = negateDouble 1
              | otherwise = x -- handles 0.0, (-0.0), and NaN
@@ -372,6 +433,7 @@ instance  Num Double  where
     fromInteger i = D# (doubleFromInteger i)
 
 
+-- | @since 2.01
 instance  Real Double  where
     toRational (D# x#)  =
         case decodeDoubleInteger x# of
@@ -384,6 +446,7 @@ instance  Real Double  where
             | otherwise                                            ->
                 m :% shiftLInteger 1 (negateInt# e#)
 
+-- | @since 2.01
 instance  Fractional Double  where
     (/) x y             =  divideDouble x y
     {-# INLINE fromRational #-}
@@ -404,6 +467,7 @@ rationalToDouble n d
         minEx       = DBL_MIN_EXP
         mantDigs    = DBL_MANT_DIG
 
+-- | @since 2.01
 instance  Floating Double  where
     pi                  =  3.141592653589793238
     exp x               =  expDouble x
@@ -425,6 +489,19 @@ instance  Floating Double  where
     acosh x = log (x + (x+1.0) * sqrt ((x-1.0)/(x+1.0)))
     atanh x = 0.5 * log ((1.0+x) / (1.0-x))
 
+    log1p = log1pDouble
+    expm1 = expm1Double
+
+    log1mexp a
+      | a <= log 2 = log (negate (expm1Double a))
+      | otherwise  = log1pDouble (negate (exp a))
+    {-# INLINE log1mexp #-}
+    log1pexp a
+      | a <= 18   = log1pDouble (exp a)
+      | a <= 100  = a + exp (negate a)
+      | otherwise = a
+    {-# INLINE log1pexp #-}
+
 -- RULES for Integer and Int
 {-# RULES
 "properFraction/Double->Integer"    properFraction = properFractionDoubleInteger
@@ -438,6 +515,7 @@ instance  Floating Double  where
 "ceiling/Double->Int"               ceiling = ceilingDoubleInt
 "round/Double->Int"                 round = roundDoubleInt
   #-}
+-- | @since 2.01
 instance  RealFrac Double  where
 
         -- ceiling, floor, and truncate are all small
@@ -474,6 +552,7 @@ instance  RealFrac Double  where
     floor x     = case properFraction x of
                     (n,r) -> if r < 0.0 then n - 1 else n
 
+-- | @since 2.01
 instance  RealFloat Double  where
     floatRadix _        =  FLT_RADIX        -- from float.h
     floatDigits _       =  DBL_MANT_DIG     -- ditto
@@ -505,6 +584,7 @@ instance  RealFloat Double  where
     isNegativeZero x    = isDoubleNegativeZero x
     isIEEE _            = True
 
+-- | @since 2.01
 instance  Show Double  where
     showsPrec   x = showSignedFloat showFloat x
     showList = showList__ (showsPrec 0)
@@ -529,6 +609,7 @@ a `non-lossy' conversion to and from Ints. Instead we make use of the
 for these (@numericEnumFromTo@ and @numericEnumFromThenTo@ below.)
 -}
 
+-- | @since 2.01
 instance  Enum Float  where
     succ x         = x + 1
     pred x         = x - 1
@@ -539,6 +620,7 @@ instance  Enum Float  where
     enumFromThen   = numericEnumFromThen
     enumFromThenTo = numericEnumFromThenTo
 
+-- | @since 2.01
 instance  Enum Double  where
     succ x         = x + 1
     pred x         = x - 1
@@ -592,7 +674,7 @@ formatRealFloatAlt fmt decs alt x
           "0"     -> "0.0e0"
           [d]     -> d : ".0e" ++ show_e'
           (d:ds') -> d : '.' : ds' ++ "e" ++ show_e'
-          []      -> error "formatRealFloat/doFmt/FFExponent: []"
+          []      -> errorWithoutStackTrace "formatRealFloat/doFmt/FFExponent: []"
        Just dec ->
         let dec' = max dec 1 in
         case is of
@@ -638,7 +720,7 @@ roundTo base d is =
   case f d True is of
     x@(0,_) -> x
     (1,xs)  -> (1, 1:xs)
-    _       -> error "roundTo: bad Value"
+    _       -> errorWithoutStackTrace "roundTo: bad Value"
  where
   b2 = base `quot` 2
 
@@ -993,21 +1075,20 @@ divideFloat (F# x) (F# y) = F# (divideFloat# x y)
 negateFloat :: Float -> Float
 negateFloat (F# x)        = F# (negateFloat# x)
 
-gtFloat, geFloat, eqFloat, neFloat, ltFloat, leFloat :: Float -> Float -> Bool
+gtFloat, geFloat, ltFloat, leFloat :: Float -> Float -> Bool
 gtFloat     (F# x) (F# y) = isTrue# (gtFloat# x y)
 geFloat     (F# x) (F# y) = isTrue# (geFloat# x y)
-eqFloat     (F# x) (F# y) = isTrue# (eqFloat# x y)
-neFloat     (F# x) (F# y) = isTrue# (neFloat# x y)
 ltFloat     (F# x) (F# y) = isTrue# (ltFloat# x y)
 leFloat     (F# x) (F# y) = isTrue# (leFloat# x y)
 
-expFloat, logFloat, sqrtFloat :: Float -> Float
+expFloat, logFloat, sqrtFloat, fabsFloat :: Float -> Float
 sinFloat, cosFloat, tanFloat  :: Float -> Float
 asinFloat, acosFloat, atanFloat  :: Float -> Float
 sinhFloat, coshFloat, tanhFloat  :: Float -> Float
 expFloat    (F# x) = F# (expFloat# x)
 logFloat    (F# x) = F# (logFloat# x)
 sqrtFloat   (F# x) = F# (sqrtFloat# x)
+fabsFloat   (F# x) = F# (fabsFloat# x)
 sinFloat    (F# x) = F# (sinFloat# x)
 cosFloat    (F# x) = F# (cosFloat# x)
 tanFloat    (F# x) = F# (tanFloat# x)
@@ -1033,11 +1114,9 @@ divideDouble (D# x) (D# y) = D# (x /## y)
 negateDouble :: Double -> Double
 negateDouble (D# x)        = D# (negateDouble# x)
 
-gtDouble, geDouble, eqDouble, neDouble, leDouble, ltDouble :: Double -> Double -> Bool
+gtDouble, geDouble, leDouble, ltDouble :: Double -> Double -> Bool
 gtDouble    (D# x) (D# y) = isTrue# (x >##  y)
 geDouble    (D# x) (D# y) = isTrue# (x >=## y)
-eqDouble    (D# x) (D# y) = isTrue# (x ==## y)
-neDouble    (D# x) (D# y) = isTrue# (x /=## y)
 ltDouble    (D# x) (D# y) = isTrue# (x <##  y)
 leDouble    (D# x) (D# y) = isTrue# (x <=## y)
 
@@ -1047,13 +1126,14 @@ double2Float (D# x) = F# (double2Float# x)
 float2Double :: Float -> Double
 float2Double (F# x) = D# (float2Double# x)
 
-expDouble, logDouble, sqrtDouble :: Double -> Double
+expDouble, logDouble, sqrtDouble, fabsDouble :: Double -> Double
 sinDouble, cosDouble, tanDouble  :: Double -> Double
 asinDouble, acosDouble, atanDouble  :: Double -> Double
 sinhDouble, coshDouble, tanhDouble  :: Double -> Double
 expDouble    (D# x) = D# (expDouble# x)
 logDouble    (D# x) = D# (logDouble# x)
 sqrtDouble   (D# x) = D# (sqrtDouble# x)
+fabsDouble   (D# x) = D# (fabsDouble# x)
 sinDouble    (D# x) = D# (sinDouble# x)
 cosDouble    (D# x) = D# (cosDouble# x)
 tanDouble    (D# x) = D# (tanDouble# x)
@@ -1088,6 +1168,19 @@ foreign import java unsafe "@static eta.base.Utils.isDoubleNegativeZero"
   isDoubleNegativeZero :: Double -> Bool
 foreign import java unsafe "@static eta.base.Utils.isDoubleFinite"
   isDoubleFinite :: Double -> Bool
+
+------------------------------------------------------------------------
+-- libm imports for extended floating
+------------------------------------------------------------------------
+log1pDouble :: Double -> Double
+log1pDouble = error "log1pDouble not implemented!"
+expm1Double :: Double -> Double
+expm1Double = error "log1pDouble not implemented!"
+log1pFloat :: Float -> Float
+log1pFloat = error "log1pDouble not implemented!"
+expm1Float :: Float -> Float
+expm1Float = error "log1pDouble not implemented!"
+
 
 ------------------------------------------------------------------------
 -- Coercion rules
@@ -1171,3 +1264,91 @@ exponents returned by decodeFloat.
 -}
 clamp :: Int -> Int -> Int
 clamp bd k = max (-bd) (min bd k)
+
+
+{-
+Note [Casting from integral to floating point types]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To implement something like `reinterpret_cast` from C++ to go from a
+floating-point type to an integral type one might niavely think that the
+following should work:
+
+      cast :: Float -> Word32
+      cast (F# f#) = W32# (unsafeCoerce# f#)
+
+Unfortunately that is not the case, because all the `unsafeCoerce#` does is tell
+the compiler that the types have changed. When one does the above cast and
+tries to operate on the resulting `Word32` the code generator will generate code
+that performs an integer/word operation on a floating-point register, which
+results in a compile error.
+
+The correct way of implementing `reinterpret_cast` to implement a primpop, but
+that requires a unique implementation for all supported archetectures. The next
+best solution is to write the value from the source register to memory and then
+read it from memory into the destination register and the best way to do that
+is using CMM.
+-}
+
+-- | @'castWord32ToFloat' w@ does a bit-for-bit copy from an integral value
+-- to a floating-point value.
+--
+-- @since 4.10.0.0
+
+{-# INLINE castWord32ToFloat #-}
+castWord32ToFloat :: Word32 -> Float
+castWord32ToFloat (W32# w#) = error "castWord32ToFloat not implemented!"
+  -- F# (stgWord32ToFloat w#)
+
+-- foreign import prim "stg_word32ToFloatzh"
+--     stgWord32ToFloat :: Word# -> Float#
+
+
+-- | @'castFloatToWord32' f@ does a bit-for-bit copy from a floating-point value
+-- to an integral value.
+--
+-- @since 4.10.0.0
+
+{-# INLINE castFloatToWord32 #-}
+castFloatToWord32 :: Float -> Word32
+castFloatToWord32 (F# f#) = error "castFloatToWord32 not implemented!"
+  -- W32# (stgFloatToWord32 f#)
+
+-- foreign import prim "stg_floatToWord32zh"
+--     stgFloatToWord32 :: Float# -> Word#
+
+
+
+-- | @'castWord64ToDouble' w@ does a bit-for-bit copy from an integral value
+-- to a floating-point value.
+--
+-- @since 4.10.0.0
+
+{-# INLINE castWord64ToDouble #-}
+castWord64ToDouble :: Word64 -> Double
+castWord64ToDouble (W64# w) = error "castWord64ToDouble not implemented!"
+--   D# (stgWord64ToDouble w)
+--
+-- foreign import prim "stg_word64ToDoublezh"
+-- #if WORD_SIZE_IN_BITS == 64
+--     stgWord64ToDouble :: Word# -> Double#
+-- #else
+--     stgWord64ToDouble :: Word64# -> Double#
+-- #endif
+
+
+-- | @'castFloatToWord32' f@ does a bit-for-bit copy from a floating-point value
+-- to an integral value.
+--
+-- @since 4.10.0.0
+
+{-# INLINE castDoubleToWord64 #-}
+castDoubleToWord64 :: Double -> Word64
+castDoubleToWord64 (D# d#) = error "castDoubleToWord64 not implemented!"
+--   W64# (stgDoubleToWord64 d#)
+--
+-- foreign import prim "stg_doubleToWord64zh"
+-- #if WORD_SIZE_IN_BITS == 64
+--     stgDoubleToWord64 :: Double# -> Word#
+-- #else
+--     stgDoubleToWord64 :: Double# -> Word64#
+-- #endif
