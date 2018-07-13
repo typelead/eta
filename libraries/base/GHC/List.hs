@@ -23,7 +23,7 @@ module GHC.List (
    map, (++), filter, concat,
    head, last, tail, init, uncons, null, length, (!!),
    foldl, foldl', foldl1, foldl1', scanl, scanl1, scanl', foldr, foldr1,
-   scanr, scanr1, iterate, repeat, replicate, cycle,
+   scanr, scanr1, iterate, iterate', repeat, replicate, cycle,
    take, drop, sum, product, maximum, minimum, splitAt, takeWhile, dropWhile,
    span, break, reverse, and, or,
    any, all, elem, notElem, lookup,
@@ -79,7 +79,7 @@ tail []                 =  errorEmptyList "tail"
 
 -- | Extract the last element of a list, which must be finite and non-empty.
 last                    :: [a] -> a
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 last [x]                =  x
 last (_:xs)             =  last xs
 last []                 =  errorEmptyList "last"
@@ -98,7 +98,7 @@ lastError = errorEmptyList "last"
 -- | Return all the elements of a list except the last one.
 -- The list must be non-empty.
 init                    :: [a] -> [a]
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 init [x]                =  []
 init (x:xs)             =  x : init xs
 init []                 =  errorEmptyList "init"
@@ -153,7 +153,7 @@ filter pred (x:xs)
   | pred x         = x : filter pred xs
   | otherwise      = filter pred xs
 
-{-# NOINLINE [0] filterFB #-}
+{-# INLINE [0] filterFB #-} -- See Note [Inline FB functions]
 filterFB :: (a -> b -> b) -> (a -> Bool) -> a -> b -> b
 filterFB c p x r | p x       = x `c` r
                  | otherwise = r
@@ -182,10 +182,6 @@ filterFB c p x r | p x       = x `c` r
 --
 -- The list must be finite.
 
--- We write foldl as a non-recursive thing, so that it
--- can be inlined, and then (often) strictness-analysed,
--- and hence the classic space leak on foldl (+) 0 xs
-
 foldl :: forall a b. (b -> a -> b) -> b -> [a] -> b
 {-# INLINE foldl #-}
 foldl k z0 xs =
@@ -207,7 +203,26 @@ We hope that one of the two measure kick in:
      in CoreArity.
 
 The oneShot annotations used in this module are correct, as we only use them in
-argumets to foldr, where we know how the arguments are called.
+arguments to foldr, where we know how the arguments are called.
+
+Note [Inline FB functions]
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+After fusion rules successfully fire, we are usually left with one or more calls
+to list-producing functions abstracted over cons and nil. Here we call them
+FB functions because their names usually end with 'FB'. It's a good idea to
+inline FB functions because:
+
+* They are higher-order functions and therefore benefits from inlining.
+
+* When the final consumer is a left fold, inlining the FB functions is the only
+  way to make arity expansion to happen. See Note [Left fold via right fold].
+
+For this reason we mark all FB functions INLINE [0]. The [0] phase-specifier
+ensures that calls to FB functions can be written back to the original form
+when no fusion happens.
+
+Without these inline pragmas, the loop in perf/should_run/T13001 won't be
+allocation-free. Also see Trac #13001.
 -}
 
 -- ----------------------------------------------------------------------------
@@ -271,7 +286,7 @@ scanl                   = scanlGo
     foldr (scanlFB f (:)) (constScanl []) bs a = tail (scanl f a bs)
  #-}
 
-{-# INLINE [0] scanlFB #-}
+{-# INLINE [0] scanlFB #-} -- See Note [Inline FB functions]
 scanlFB :: (b -> a -> b) -> (b -> c -> c) -> a -> (b -> c) -> b -> c
 scanlFB f c = \b g -> oneShot (\x -> let b' = f x b in b' `c` g b')
   -- See Note [Left folds via right fold]
@@ -309,7 +324,7 @@ scanl' = scanlGo'
     foldr (scanlFB' f (:)) (flipSeqScanl' []) bs a = tail (scanl' f a bs)
  #-}
 
-{-# INLINE [0] scanlFB' #-}
+{-# INLINE [0] scanlFB' #-} -- See Note [Inline FB functions]
 scanlFB' :: (b -> a -> b) -> (b -> c -> c) -> a -> (b -> c) -> b -> c
 scanlFB' f c = \b g -> oneShot (\x -> let !b' = f x b in b' `c` g b')
   -- See Note [Left folds via right fold]
@@ -376,7 +391,7 @@ strictUncurryScanr :: (a -> b -> c) -> (a, b) -> c
 strictUncurryScanr f pair = case pair of
                               (x, y) -> f x y
 
-{-# INLINE [0] scanrFB #-}
+{-# INLINE [0] scanrFB #-} -- See Note [Inline FB functions]
 scanrFB :: (a -> b -> b) -> (b -> c -> c) -> a -> (b, c) -> (b, c)
 scanrFB f c = \x (r, est) -> (f x r, r `c` est)
 
@@ -400,51 +415,42 @@ scanr1 f (x:xs)         =  f x q : qs
 -- It is a special case of 'Data.List.maximumBy', which allows the
 -- programmer to supply their own comparison function.
 maximum                 :: (Ord a) => [a] -> a
-{-# INLINE [1] maximum #-}
+{-# INLINABLE maximum #-}
 maximum []              =  errorEmptyList "maximum"
 maximum xs              =  foldl1 max xs
 
-{-# RULES
-  "maximumInt"     maximum = (strictMaximum :: [Int]     -> Int);
-  "maximumInteger" maximum = (strictMaximum :: [Integer] -> Integer)
- #-}
-
--- We can't make the overloaded version of maximum strict without
--- changing its semantics (max might not be strict), but we can for
--- the version specialised to 'Int'.
-strictMaximum           :: (Ord a) => [a] -> a
-strictMaximum []        =  errorEmptyList "maximum"
-strictMaximum xs        =  foldl1' max xs
+-- We want this to be specialized so that with a strict max function, GHC
+-- produces good code. Note that to see if this is happending, one has to
+-- look at -ddump-prep, not -ddump-core!
+{-# SPECIALIZE  maximum :: [Int] -> Int #-}
+{-# SPECIALIZE  maximum :: [Integer] -> Integer #-}
 
 -- | 'minimum' returns the minimum value from a list,
 -- which must be non-empty, finite, and of an ordered type.
 -- It is a special case of 'Data.List.minimumBy', which allows the
 -- programmer to supply their own comparison function.
 minimum                 :: (Ord a) => [a] -> a
-{-# INLINE [1] minimum #-}
+{-# INLINABLE minimum #-}
 minimum []              =  errorEmptyList "minimum"
 minimum xs              =  foldl1 min xs
 
-{-# RULES
-  "minimumInt"     minimum = (strictMinimum :: [Int]     -> Int);
-  "minimumInteger" minimum = (strictMinimum :: [Integer] -> Integer)
- #-}
-
-strictMinimum           :: (Ord a) => [a] -> a
-strictMinimum []        =  errorEmptyList "minimum"
-strictMinimum xs        =  foldl1' min xs
+{-# SPECIALIZE  minimum :: [Int] -> Int #-}
+{-# SPECIALIZE  minimum :: [Integer] -> Integer #-}
 
 
 -- | 'iterate' @f x@ returns an infinite list of repeated applications
 -- of @f@ to @x@:
 --
 -- > iterate f x == [x, f x, f (f x), ...]
-
+--
+-- Note that 'iterate' is lazy, potentially leading to thunk build-up if
+-- the consumer doesn't force each iterate. See 'iterate\'' for a strict
+-- variant of this function.
 {-# NOINLINE [1] iterate #-}
 iterate :: (a -> a) -> a -> [a]
 iterate f x =  x : iterate f (f x)
 
-{-# NOINLINE [0] iterateFB #-}
+{-# INLINE [0] iterateFB #-} -- See Note [Inline FB functions]
 iterateFB :: (a -> b -> b) -> (a -> a) -> a -> b
 iterateFB c f x0 = go x0
   where go x = x `c` go (f x)
@@ -455,13 +461,36 @@ iterateFB c f x0 = go x0
  #-}
 
 
+-- | 'iterate\'' is the strict version of 'iterate'.
+--
+-- It ensures that the result of each application of force to weak head normal
+-- form before proceeding.
+{-# NOINLINE [1] iterate' #-}
+iterate' :: (a -> a) -> a -> [a]
+iterate' f x =
+    let x' = f x
+    in x' `seq` (x : iterate' f x')
+
+{-# INLINE [0] iterate'FB #-} -- See Note [Inline FB functions]
+iterate'FB :: (a -> b -> b) -> (a -> a) -> a -> b
+iterate'FB c f x0 = go x0
+  where go x =
+            let x' = f x
+            in x' `seq` (x `c` go x')
+
+{-# RULES
+"iterate'"    [~1] forall f x.   iterate' f x = build (\c _n -> iterate'FB c f x)
+"iterate'FB"  [1]                iterate'FB (:) = iterate'
+ #-}
+
+
 -- | 'repeat' @x@ is an infinite list, with @x@ the value of every element.
 repeat :: a -> [a]
 {-# INLINE [0] repeat #-}
 -- The pragma just gives the rules more chance to fire
 repeat x = xs where xs = x : xs
 
-{-# INLINE [0] repeatFB #-}     -- ditto
+{-# INLINE [0] repeatFB #-}     -- ditto -- See Note [Inline FB functions]
 repeatFB :: (a -> b -> b) -> a -> b
 repeatFB c x = xs where xs = x `c` xs
 
@@ -502,7 +531,7 @@ takeWhile p (x:xs)
             | p x       =  x : takeWhile p xs
             | otherwise =  []
 
-{-# INLINE [0] takeWhileFB #-}
+{-# INLINE [0] takeWhileFB #-} -- See Note [Inline FB functions]
 takeWhileFB :: (a -> Bool) -> (a -> b -> b) -> b -> a -> b -> b
 takeWhileFB p c n = \x r -> if p x then x `c` r else n
 
@@ -547,7 +576,7 @@ dropWhile p xs@(x:xs')
 -- It is an instance of the more general 'Data.List.genericTake',
 -- in which @n@ may be of any integral type.
 take                   :: Int -> [a] -> [a]
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 take n _      | n <= 0 =  []
 take _ []              =  []
 take n (x:xs)          =  x : take (n-1) xs
@@ -588,7 +617,7 @@ unsafeTake m   (x:xs) = x : unsafeTake (m - 1) xs
 flipSeqTake :: a -> Int -> a
 flipSeqTake x !_n = x
 
-{-# INLINE [0] takeFB #-}
+{-# INLINE [0] takeFB #-} -- See Note [Inline FB functions]
 takeFB :: (a -> b -> b) -> b -> a -> (Int -> b) -> Int -> b
 -- The \m accounts for the fact that takeFB is used in a higher-order
 -- way by takeFoldr, so it's better to inline.  A good example is
@@ -614,7 +643,7 @@ takeFB c n x xs
 -- It is an instance of the more general 'Data.List.genericDrop',
 -- in which @n@ may be of any integral type.
 drop                   :: Int -> [a] -> [a]
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 drop n xs     | n <= 0 =  xs
 drop _ []              =  []
 drop n (_:xs)          =  drop (n-1) xs
@@ -649,7 +678,7 @@ drop n ls
 -- in which @n@ may be of any integral type.
 splitAt                :: Int -> [a] -> ([a],[a])
 
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 splitAt n xs           =  (take n xs, drop n xs)
 #else
 splitAt n ls
@@ -691,7 +720,7 @@ span p xs@(x:xs')
 -- 'break' @p@ is equivalent to @'span' ('not' . p)@.
 
 break                   :: (a -> Bool) -> [a] -> ([a],[a])
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 break p                 =  span (not . p)
 #else
 -- HBC version (stolen)
@@ -704,7 +733,7 @@ break p xs@(x:xs')
 -- | 'reverse' @xs@ returns the elements of @xs@ in reverse order.
 -- @xs@ must be finite.
 reverse                 :: [a] -> [a]
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 reverse                 =  foldl (flip (:)) []
 #else
 reverse l =  rev l []
@@ -717,7 +746,7 @@ reverse l =  rev l []
 -- 'True', the list must be finite; 'False', however, results from a 'False'
 -- value at a finite index of a finite or infinite list.
 and                     :: [Bool] -> Bool
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 and                     =  foldr (&&) True
 #else
 and []          =  True
@@ -734,7 +763,7 @@ and (x:xs)      =  x && and xs
 -- 'False', the list must be finite; 'True', however, results from a 'True'
 -- value at a finite index of a finite or infinite list.
 or                      :: [Bool] -> Bool
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 or                      =  foldr (||) False
 #else
 or []           =  False
@@ -753,7 +782,7 @@ or (x:xs)       =  x || or xs
 -- value for the predicate applied to an element at a finite index of a finite or infinite list.
 any                     :: (a -> Bool) -> [a] -> Bool
 
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 any p                   =  or . map p
 #else
 any _ []        = False
@@ -772,7 +801,7 @@ any p (x:xs)    = p x || any p xs
 -- 'True', the list must be finite; 'False', however, results from a 'False'
 -- value for the predicate applied to an element at a finite index of a finite or infinite list.
 all                     :: (a -> Bool) -> [a] -> Bool
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 all p                   =  and . map p
 #else
 all _ []        =  True
@@ -791,7 +820,7 @@ all p (x:xs)    =  p x && all p xs
 -- 'False', the list must be finite; 'True', however, results from an element
 -- equal to @x@ found at a finite index of a finite or infinite list.
 elem                    :: (Eq a) => a -> [a] -> Bool
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 elem x                  =  any (== x)
 #else
 elem _ []       = False
@@ -805,7 +834,7 @@ elem x (y:ys)   = x==y || elem x ys
 
 -- | 'notElem' is the negation of 'elem'.
 notElem                 :: (Eq a) => a -> [a] -> Bool
-#ifdef USE_REPORT_PRELUDE
+#if defined(USE_REPORT_PRELUDE)
 notElem x               =  all (/= x)
 #else
 notElem _ []    =  True
@@ -852,9 +881,9 @@ concat = foldr (++) []
 -- It is an instance of the more general 'Data.List.genericIndex',
 -- which takes an index of any integral type.
 (!!)                    :: [a] -> Int -> a
-#ifdef USE_REPORT_PRELUDE
-xs     !! n | n < 0 =  error "Prelude.!!: negative index"
-[]     !! _         =  error "Prelude.!!: index too large"
+#if defined(USE_REPORT_PRELUDE)
+xs     !! n | n < 0 =  errorWithoutStackTrace "Prelude.!!: negative index"
+[]     !! _         =  errorWithoutStackTrace "Prelude.!!: index too large"
 (x:_)  !! 0         =  x
 (_:xs) !! n         =  xs !! (n-1)
 #else
@@ -864,10 +893,10 @@ xs     !! n | n < 0 =  error "Prelude.!!: negative index"
 -- if so we should be careful not to trip up known-bottom
 -- optimizations.
 tooLarge :: Int -> a
-tooLarge _ = error (prel_list_str ++ "!!: index too large")
+tooLarge _ = errorWithoutStackTrace (prel_list_str ++ "!!: index too large")
 
 negIndex :: a
-negIndex = error $ prel_list_str ++ "!!: negative index"
+negIndex = errorWithoutStackTrace $ prel_list_str ++ "!!: negative index"
 
 {-# INLINABLE (!!) #-}
 xs !! n
@@ -930,7 +959,7 @@ zip []     _bs    = []
 zip _as    []     = []
 zip (a:as) (b:bs) = (a,b) : zip as bs
 
-{-# INLINE [0] zipFB #-}
+{-# INLINE [0] zipFB #-} -- See Note [Inline FB functions]
 zipFB :: ((a, b) -> c -> d) -> a -> b -> c -> d
 zipFB c = \x y r -> (x,y) `c` r
 
@@ -963,13 +992,15 @@ zip3 _      _      _      = []
 -- > zipWith f [] _|_ = []
 {-# NOINLINE [1] zipWith #-}
 zipWith :: (a->b->c) -> [a]->[b]->[c]
-zipWith _f []     _bs    = []
-zipWith _f _as    []     = []
-zipWith f  (a:as) (b:bs) = f a b : zipWith f as bs
+zipWith f = go
+  where
+    go [] _ = []
+    go _ [] = []
+    go (x:xs) (y:ys) = f x y : go xs ys
 
 -- zipWithFB must have arity 2 since it gets two arguments in the "zipWith"
 -- rule; it might not get inlined otherwise
-{-# INLINE [0] zipWithFB #-}
+{-# INLINE [0] zipWithFB #-} -- See Note [Inline FB functions]
 zipWithFB :: (a -> b -> c) -> (d -> e -> a) -> d -> e -> b -> c
 zipWithFB c f = \x y r -> (x `f` y) `c` r
 
@@ -982,9 +1013,10 @@ zipWithFB c f = \x y r -> (x `f` y) `c` r
 -- elements, as well as three lists and returns a list of their point-wise
 -- combination, analogous to 'zipWith'.
 zipWith3                :: (a->b->c->d) -> [a]->[b]->[c]->[d]
-zipWith3 z (a:as) (b:bs) (c:cs)
-                        =  z a b c : zipWith3 z as bs cs
-zipWith3 _ _ _ _        =  []
+zipWith3 z = go
+  where
+    go (a:as) (b:bs) (c:cs) = z a b c : go as bs cs
+    go _ _ _                = []
 
 -- | 'unzip' transforms a list of pairs into a list of first components
 -- and a list of second components.
@@ -1008,7 +1040,7 @@ unzip3   =  foldr (\(a,b,c) ~(as,bs,cs) -> (a:as,b:bs,c:cs))
 
 errorEmptyList :: String -> a
 errorEmptyList fun =
-  error (prel_list_str ++ fun ++ ": empty list")
+  errorWithoutStackTrace (prel_list_str ++ fun ++ ": empty list")
 
 prel_list_str :: String
 prel_list_str = "Prelude."

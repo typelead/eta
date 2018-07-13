@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns, FunctionalDependencies #-}
 {-# LANGUAGE ConstraintKinds, DataKinds, TypeFamilies, UndecidableInstances, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, PolyKinds, TypeOperators, NoImplicitPrelude, UnliftedFFITypes #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 -- XXX -fno-warn-unused-imports needed for the GHC.Tuple import below. Sigh.
@@ -33,6 +33,12 @@ infixr 3  &&
 infixr 2  ||
 
 default ()              -- Double isn't available yet
+
+-- | The syntax @?x :: a@ is desugared into @IP "x" a@
+-- IP is declared very early, so that libraries can take
+-- advantage of the implicit-call-stack feature
+class IP (x :: Symbol) a | x -> a where
+  ip :: a
 
 -- | The 'Eq' class defines equality ('==') and inequality ('/=').
 -- All the basic datatypes exported by the "Prelude" are instances of 'Eq',

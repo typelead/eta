@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP, NoImplicitPrelude, MagicHash, UnboxedTuples, BangPatterns #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 -----------------------------------------------------------------------------
@@ -27,7 +27,7 @@ import GHC.Enum
 import GHC.Show
 import {-# SOURCE #-} GHC.Exception( divZeroException, overflowException, ratioZeroDenomException )
 
-#ifdef OPTIMISE_INTEGER_GCD_LCM
+#if defined(OPTIMISE_INTEGER_GCD_LCM)
 # if defined(MIN_VERSION_integer_gmp)
 import GHC.Integer.GMP.Internals
 # else
@@ -91,12 +91,12 @@ notANumber = 0 :% 0
 -- | Extract the numerator of the ratio in reduced form:
 -- the numerator and denominator have no common factor and the denominator
 -- is positive.
-numerator       :: (Integral a) => Ratio a -> a
+numerator       :: Ratio a -> a
 
 -- | Extract the denominator of the ratio in reduced form:
 -- the numerator and denominator have no common factor and the denominator
 -- is positive.
-denominator     :: (Integral a) => Ratio a -> a
+denominator     :: Ratio a -> a
 
 
 -- | 'reduce' is a subsidiary function used only in this module.
@@ -205,7 +205,7 @@ class  (Real a, Fractional a) => RealFrac a  where
                                 -1 -> n
                                 0  -> if even n then n else m
                                 1  -> m
-                                _  -> error "round default defn: Bad value"
+                                _  -> errorWithoutStackTrace "round default defn: Bad value"
 
     ceiling x           =  if r > 0 then n + 1 else n
                            where (n,r) = properFraction x
@@ -236,9 +236,11 @@ numericEnumFromThenTo e1 e2 e3
 -- Instances for Int
 --------------------------------------------------------------
 
+-- | @since 2.0.1
 instance  Real Int  where
     toRational x        =  toInteger x :% 1
 
+-- | @since 2.0.1
 instance  Integral Int  where
     toInteger (I# i) = smallInteger i
 
@@ -286,9 +288,11 @@ instance  Integral Int  where
 -- Instances for @Word@
 --------------------------------------------------------------
 
+-- | @since 2.01
 instance Real Word where
     toRational x = toInteger x % 1
 
+-- | @since 2.01
 instance Integral Word where
     quot    (W# x#) y@(W# y#)
         | y /= 0                = W# (x# `quotWord#` y#)
@@ -316,6 +320,7 @@ instance Integral Word where
 -- Instances for Integer
 --------------------------------------------------------------
 
+-- | @since 2.0.1
 instance  Real Integer  where
     toRational x        =  x :% 1
 
@@ -324,13 +329,14 @@ instance  Real Integer  where
 --
 -- Constant folding of quot, rem, div, mod, divMod and quotRem for
 -- Integer arguments depends crucially on inlining. Constant folding
--- rules defined in compiler/prelude/PrelRules.lhs trigger for
+-- rules defined in compiler/prelude/PrelRules.hs trigger for
 -- quotInteger, remInteger and so on. So if calls to quot, rem and so on
 -- were not inlined the rules would not fire. The rules would also not
 -- fire if calls to quotInteger and so on were inlined, but this does not
 -- happen because they are all marked with NOINLINE pragma - see documentation
 -- of integer-gmp or integer-simple.
 
+-- | @since 2.0.1
 instance  Integral Integer where
     toInteger n      = n
 
@@ -364,11 +370,13 @@ instance  Integral Integer where
 -- Instances for @Ratio@
 --------------------------------------------------------------
 
+-- | @since 2.0.1
 instance  (Integral a)  => Ord (Ratio a)  where
     {-# SPECIALIZE instance Ord Rational #-}
     (x:%y) <= (x':%y')  =  x * y' <= x' * y
     (x:%y) <  (x':%y')  =  x * y' <  x' * y
 
+-- | @since 2.0.1
 instance  (Integral a)  => Num (Ratio a)  where
     {-# SPECIALIZE instance Num Rational #-}
     (x:%y) + (x':%y')   =  reduce (x*y' + x'*y) (y*y')
@@ -379,6 +387,7 @@ instance  (Integral a)  => Num (Ratio a)  where
     signum (x:%_)       =  signum x :% 1
     fromInteger x       =  fromInteger x :% 1
 
+-- | @since 2.0.1
 {-# RULES "fromRational/id" fromRational = id :: Rational -> Rational #-}
 instance  (Integral a)  => Fractional (Ratio a)  where
     {-# SPECIALIZE instance Fractional Rational #-}
@@ -389,16 +398,19 @@ instance  (Integral a)  => Fractional (Ratio a)  where
         | otherwise     = y :% x
     fromRational (x:%y) =  fromInteger x % fromInteger y
 
+-- | @since 2.0.1
 instance  (Integral a)  => Real (Ratio a)  where
     {-# SPECIALIZE instance Real Rational #-}
     toRational (x:%y)   =  toInteger x :% toInteger y
 
+-- | @since 2.0.1
 instance  (Integral a)  => RealFrac (Ratio a)  where
     {-# SPECIALIZE instance RealFrac Rational #-}
     properFraction (x:%y) = (fromInteger (toInteger q), r:%y)
                           where (q,r) = quotRem x y
 
-instance  (Integral a, Show a)  => Show (Ratio a)  where
+-- | @since 2.0.1
+instance  (Show a)  => Show (Ratio a)  where
     {-# SPECIALIZE instance Show Rational #-}
     showsPrec p (x:%y)  =  showParen (p > ratioPrec) $
                            showsPrec ratioPrec1 x .
@@ -409,6 +421,7 @@ instance  (Integral a, Show a)  => Show (Ratio a)  where
                            -- Haskell 98 [Sep 08, #1920]
                            showsPrec ratioPrec1 y
 
+-- | @since 2.0.1
 instance  (Integral a)  => Enum (Ratio a)  where
     {-# SPECIALIZE instance Enum Rational #-}
     succ x              =  x + 1
@@ -463,10 +476,8 @@ showSigned showPos p x
 even, odd       :: (Integral a) => a -> Bool
 even n          =  n `rem` 2 == 0
 odd             =  not . even
-{-# SPECIALISE even :: Int -> Bool #-}
-{-# SPECIALISE odd  :: Int -> Bool #-}
-{-# SPECIALISE even :: Integer -> Bool #-}
-{-# SPECIALISE odd  :: Integer -> Bool #-}
+{-# INLINABLE even #-}
+{-# INLINABLE odd  #-}
 
 -------------------------------------------------------
 -- | raise a number to a non-negative integral power
@@ -476,22 +487,28 @@ odd             =  not . even
         Int -> Int -> Int #-}
 {-# INLINABLE [1] (^) #-}    -- See Note [Inlining (^)]
 (^) :: (Num a, Integral b) => a -> b -> a
-x0 ^ y0 | y0 < 0    = error "Negative exponent"
+x0 ^ y0 | y0 < 0    = errorWithoutStackTrace "Negative exponent"
         | y0 == 0   = 1
         | otherwise = f x0 y0
     where -- f : x0 ^ y0 = x ^ y
           f x y | even y    = f (x * x) (y `quot` 2)
                 | y == 1    = x
-                | otherwise = g (x * x) ((y - 1) `quot` 2) x
+                | otherwise = g (x * x) (y `quot` 2) x         -- See Note [Half of y - 1]
           -- g : x0 ^ y0 = (x ^ y) * z
           g x y z | even y = g (x * x) (y `quot` 2) z
                   | y == 1 = x * z
-                  | otherwise = g (x * x) ((y - 1) `quot` 2) (x * z)
+                  | otherwise = g (x * x) (y `quot` 2) (x * z) -- See Note [Half of y - 1]
 
 -- | raise a number to an integral power
 (^^)            :: (Fractional a, Integral b) => a -> b -> a
 {-# INLINABLE [1] (^^) #-}         -- See Note [Inlining (^)
 x ^^ n          =  if n >= 0 then x^n else recip (x^(negate n))
+
+{- Note [Half of y - 1]
+   ~~~~~~~~~~~~~~~~~~~~~
+   Since y is guaranteed to be odd and positive here,
+   half of y - 1 can be computed as y `quot` 2, optimising subtraction away.
+-}
 
 {- Note [Inlining (^)
    ~~~~~~~~~~~~~~~~~~~~~
@@ -516,9 +533,7 @@ x ^^ n          =  if n >= 0 then x^n else recip (x^(negate n))
     be statically resolved to 0 or 1 are rare.
 
     It might be desirable to have corresponding rules also for
-    exponents of other types, in particular Word, but we can't
-    have those rules here (importing GHC.Word or GHC.Int would
-    create a cyclic module dependency), and it's doubtful they
+    exponents of other types (e. g., Word), but it's doubtful they
     would fire, since the exponents of other types tend to get
     floated out before the rule has a chance to fire.
 
@@ -585,7 +600,7 @@ x ^^ n          =  if n >= 0 then x^n else recip (x^(negate n))
 {-# RULES "(^)/Rational"    (^) = (^%^) #-}
 (^%^)           :: Integral a => Rational -> a -> Rational
 (n :% d) ^%^ e
-    | e < 0     = error "Negative exponent"
+    | e < 0     = errorWithoutStackTrace "Negative exponent"
     | e == 0    = 1 :% 1
     | otherwise = (n ^ e) :% (d ^ e)
 
@@ -620,12 +635,13 @@ gcd x y         =  gcd' (abs x) (abs y)
 -- | @'lcm' x y@ is the smallest positive integer that both @x@ and @y@ divide.
 lcm             :: (Integral a) => a -> a -> a
 {-# SPECIALISE lcm :: Int -> Int -> Int #-}
+{-# SPECIALISE lcm :: Word -> Word -> Word #-}
 {-# NOINLINE [1] lcm #-}
 lcm _ 0         =  0
 lcm 0 _         =  0
 lcm x y         =  abs ((x `quot` (gcd x y)) * y)
 
-#ifdef OPTIMISE_INTEGER_GCD_LCM
+#if defined(OPTIMISE_INTEGER_GCD_LCM)
 {-# RULES
 "gcd/Int->Int->Int"             gcd = gcdInt'
 "gcd/Integer->Integer->Integer" gcd = gcdInteger
@@ -635,14 +651,12 @@ lcm x y         =  abs ((x `quot` (gcd x y)) * y)
 gcdInt' :: Int -> Int -> Int
 gcdInt' (I# x) (I# y) = I# (gcdInt x y)
 
-#if MIN_VERSION_integer_gmp(1,0,0)
 {-# RULES
 "gcd/Word->Word->Word"          gcd = gcdWord'
  #-}
 
 gcdWord' :: Word -> Word -> Word
 gcdWord' (W# x) (W# y) = W# (gcdWord x y)
-#endif
 #endif
 
 integralEnumFrom :: (Integral a, Bounded a) => a -> [a]

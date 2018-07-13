@@ -57,6 +57,8 @@ module Data.Bits (
 
 #define WORD_SIZE_IN_BITS 32
 
+import GHC.Integer.GMP.Internals (bitInteger, popCountInteger)
+
 import Data.Maybe
 import GHC.Enum
 import GHC.Num
@@ -237,7 +239,7 @@ class Eq a => Bits a where
     x `shiftR`  i = x `shift`  (-i)
 
     {-| Shift the first argument right by the specified number of bits, which
-        must be non-negative an smaller than the number of bits in the type.
+        must be non-negative and smaller than the number of bits in the type.
 
         Right shifts perform sign extension on signed number types;
         i.e. they fill the top bits with 1 if the @x@ is negative
@@ -419,11 +421,13 @@ instance Bits Bool where
     popCount False = 0
     popCount True  = 1
 
+-- | @since 4.7.0.0
 instance FiniteBits Bool where
     finiteBitSize _ = 1
     countTrailingZeros x = if x then 0 else 1
     countLeadingZeros  x = if x then 0 else 1
 
+-- | @since 2.01
 instance Bits Int where
     {-# INLINE shift #-}
     {-# INLINE bit #-}
@@ -460,11 +464,13 @@ instance Bits Int where
 
     isSigned _             = True
 
+-- | @since 4.6.0.0
 instance FiniteBits Int where
     finiteBitSize _ = WORD_SIZE_IN_BITS
     countLeadingZeros  (I# x#) = I# (word2Int# (clz# (int2Word# x#)))
     countTrailingZeros (I# x#) = I# (word2Int# (ctz# (int2Word# x#)))
 
+-- | @since 2.01
 instance Bits Word where
     {-# INLINE shift #-}
     {-# INLINE bit #-}
@@ -495,11 +501,13 @@ instance Bits Word where
     bit                      = bitDefault
     testBit                  = testBitDefault
 
+-- | @since 4.6.0.0
 instance FiniteBits Word where
     finiteBitSize _ = WORD_SIZE_IN_BITS
     countLeadingZeros  (W# x#) = I# (word2Int# (clz# x#))
     countTrailingZeros (W# x#) = I# (word2Int# (ctz# x#))
 
+-- | @since 2.01
 instance Bits Integer where
    (.&.) = andInteger
    (.|.) = orInteger
@@ -507,16 +515,11 @@ instance Bits Integer where
    complement = complementInteger
    shift x i@(I# i#) | i >= 0    = shiftLInteger x i#
                      | otherwise = shiftRInteger x (negateInt# i#)
-   shiftL x i@(I# i#)
-     | i < 0        = error "Bits.shiftL(Integer): negative shift"
-     | otherwise    = shiftLInteger x i#
-   shiftR x i@(I# i#)
-     | i < 0        = error "Bits.shiftR(Integer): negative shift"
-     | otherwise    = shiftRInteger x i#
-
    testBit x (I# i) = testBitInteger x i
-
    zeroBits   = 0
+
+   bit (I# i#) = bitInteger i#
+   popCount x  = I# (popCountInteger x)
 
    bit        = bitDefault
    popCount   = popCountDefault
@@ -524,7 +527,7 @@ instance Bits Integer where
    rotate x i = shift x i   -- since an Integer never wraps around
 
    bitSizeMaybe _ = Nothing
-   bitSize _  = error "Data.Bits.bitSize(Integer)"
+   bitSize _  = errorWithoutStackTrace "Data.Bits.bitSize(Integer)"
    isSigned _ = True
 
 -----------------------------------------------------------------------------
@@ -577,7 +580,7 @@ toIntegralSized x                 -- See Note [toIntegralSized optimization]
                             then Just (bit (yW-1)-1)
                             else Just (bit yW-1)
       | otherwise = Nothing
-{-# INLINEABLE toIntegralSized #-}
+{-# INLINABLE toIntegralSized #-}
 
 -- | 'True' if the size of @a@ is @<=@ the size of @b@, where size is measured
 -- by 'bitSizeMaybe' and 'isSigned'.

@@ -1267,7 +1267,7 @@ isLabelClassName
 
 -- Implicit parameters
 ipClassName :: Name
-ipClassName         = clsQual gHC_IP (fsLit "IP")      ipClassNameKey
+ipClassName         = clsQual gHC_CLASSES (fsLit "IP")      ipClassNameKey
 
 -- Source Locations
 callStackDataConName, callStackTyConName, srcLocDataConName :: Name

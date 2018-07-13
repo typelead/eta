@@ -1,6 +1,5 @@
-{-# LANGUAGE Safe #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, DataKinds, NoImplicitPrelude,
-             PolyKinds #-}
+{-# LANGUAGE TypeFamilyDependencies, Safe, PolyKinds #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, DataKinds, NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -28,8 +27,8 @@ import Data.Bool
 
 -- | Type-level "If". @If True a b@ ==> @a@; @If False a b@ ==> @b@
 type family If cond tru fls where
-  If 'True  tru fls = tru
-  If 'False tru fls = fls
+  If 'True  tru  fls = tru
+  If 'False tru  fls = fls
 
 -- | Type-level "and"
 type family a && b where
@@ -49,7 +48,9 @@ type family a || b where
   a      || a      = a
 infixr 2 ||
 
--- | Type-level "not"
-type family Not a where
+-- | Type-level "not". An injective type family since @4.10.0.0@.
+--
+-- @since 4.7.0.0
+type family Not a = res | res -> a where
   Not 'False = 'True
   Not 'True  = 'False
