@@ -47,7 +47,7 @@ module Eta.Prelude.TysWiredIn (
 
         -- * JString
         jstringTyCon, jstringDataCon, jstringTy, sobjectTyCon_RDR, javaTyCon_RDR,
-        byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR,
+        byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR, extendsClass_RDR,
 
         -- * List
         listTyCon, nilDataCon, nilDataConName, consDataCon, consDataConName,
@@ -247,7 +247,8 @@ parrDataConName = mkWiredInDataConName UserSyntax
 boolTyCon_RDR, false_RDR, true_RDR, intTyCon_RDR, charTyCon_RDR,
     intDataCon_RDR, listTyCon_RDR, consDataCon_RDR, parrTyCon_RDR, eqTyCon_RDR,
     floatTyCon_RDR, doubleTyCon_RDR, int64TyCon_RDR, sobjectTyCon_RDR,
-    unitTyCon_RDR, javaTyCon_RDR, byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR :: RdrName
+    unitTyCon_RDR, javaTyCon_RDR, byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR,
+    extendsClass_RDR :: RdrName
 boolTyCon_RDR    = nameRdrName boolTyConName
 false_RDR        = nameRdrName falseDataConName
 true_RDR         = nameRdrName trueDataConName
@@ -267,6 +268,7 @@ javaTyCon_RDR    = getRdrName javaTyConName
 byteTyCon_RDR    = nameRdrName byteTyConName
 shortTyCon_RDR   = nameRdrName shortTyConName
 jcharTyCon_RDR   = nameRdrName jcharTyConName
+extendsClass_RDR = nameRdrName extendsClassName
 
 {-
 ************************************************************************

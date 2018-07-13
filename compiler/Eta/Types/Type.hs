@@ -110,7 +110,7 @@ module Eta.Types.Type (
 
         -- * Type representation for the code generator
         typePrimRep, typePrimRepMany, typeRepArity,
-        tagTypeToText, rawTagTypeToText,
+        tagTypeToText, symbolTypeToText, rawTagTypeToText,
 
         -- * Main type substitution data types
         TvSubstEnv,     -- Representation widely visible
@@ -171,13 +171,13 @@ import Eta.Prelude.TysPrim
 import {-# SOURCE #-} Eta.Prelude.TysWiredIn ( eqTyCon, listTyCon,
              coercibleTyCon, typeNatKind, typeSymbolKind )
 import Eta.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
-                   ipClassNameKey, openTypeKindTyConKey,
-                   constraintKindTyConKey, liftedTypeKindTyConKey,
-                   errorMessageTypeErrorFamName,
-                   typeErrorTextDataConName,
-                   typeErrorShowTypeDataConName,
-                   typeErrorAppendDataConName,
-                   typeErrorVAppendDataConName)
+                               ipClassNameKey, openTypeKindTyConKey,
+                               constraintKindTyConKey, liftedTypeKindTyConKey,
+                               errorMessageTypeErrorFamName,
+                               typeErrorTextDataConName,
+                               typeErrorShowTypeDataConName,
+                               typeErrorAppendDataConName,
+                               typeErrorVAppendDataConName)
 import Eta.Prelude.ForeignCall
 import Eta.Types.CoAxiom
 import Eta.BasicTypes.UniqSupply       ( UniqSupply, takeUniqFromSupply )
@@ -800,11 +800,13 @@ typePrimRep ty
       UbxTupleRep _ -> pprPanic "typePrimRep: UbxTupleRep" (ppr ty)
       UnaryRep rep -> case rep of
         TyConApp tc tys ->
-          case primRep of
-            ObjectRep x
-              | T.null x -> objRep
-              | otherwise -> primRep
-            _ -> primRep
+          -- | tc `hasKey` sobjectTyConKey -> mkObjectRep (symbolTypeToText (head tys))
+          -- | otherwise ->
+            case primRep of
+              ObjectRep x
+                | T.null x -> objRep
+                | otherwise -> primRep
+              _ -> primRep
           where primRep = tyConPrimRep tc
                 objRep = mkObjectRep (tagTypeToText (head tys))
         FunTy _ _     -> PtrRep
@@ -832,13 +834,27 @@ mkObjectRep text
         checkPrimitiveType "double"  = DoubleRep
         checkPrimitiveType text      = ObjectRep text
 
+
 tagTypeToText :: Type -> Text
-tagTypeToText ty = either (uncurry pprPanic)
-                          (maybe ( T.pack "java/lang/Object" )
-                                 ( T.map (\c -> if c == '.' then '/' else c)
-                                 . head
-                                 . T.words ))
-                          $ rawTagTypeToText ty
+tagTypeToText = tagTypeToText' False
+
+symbolTypeToText :: Type -> Text
+symbolTypeToText = tagTypeToText' True
+
+tagTypeToText' :: Bool -> Type -> Text
+tagTypeToText' sobject ty = transform $
+  maybe ( T.pack "java/lang/Object" )
+        ( T.map (\c -> if c == '.' then '/' else c)
+        . head
+        . T.words )
+  where transform f
+          | sobject = f (symbolLitToText ty)
+          | otherwise = either (uncurry pprPanic) f $ rawTagTypeToText ty
+
+symbolLitToText :: Type -> Maybe Text
+symbolLitToText ty | Just ty' <- coreView ty = symbolLitToText ty'
+symbolLitToText (LitTy (StrTyLit fs)) = Just $ fastStringToText fs
+symbolLitToText _ = Nothing
 
 rawTagTypeToText :: Type -> Either (String, SDoc) (Maybe Text)
 rawTagTypeToText ty

@@ -4,7 +4,7 @@
 \section[RnNames]{Extracting imported and top-level names in scope}
 -}
 
-{-# LANGUAGE NondecreasingIndentation, CPP #-}
+{-# LANGUAGE NondecreasingIndentation, CPP, GeneralizedNewtypeDeriving #-}
 
 module Eta.Rename.RnNames (
         rnImports, rnJavaImports, getLocalNonValBinders,
@@ -50,10 +50,13 @@ import Eta.Utils.FastString
 import Eta.Utils.ListSetOps
 import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
+import Control.Monad.State.Strict
+-- import Control.Monad.State.Class
 import Control.Arrow (second)
 import Data.Map         ( Map )
 import qualified Data.Map as Map
 import Data.List        ( partition, (\\), find )
+import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Char as C
 import System.FilePath  ((</>))
@@ -407,6 +410,7 @@ rnJavaImports hsc_env java_imps = do
   then do
     (rdr_envs, declss) <- mapAndUnzipM (rnJavaImport hsc_env classIdx) java_imps
     let rdr_env = foldr plusGlobalRdrEnv emptyGlobalRdrEnv rdr_envs
+    traceRn "rnJavaImports" (ppr declss)
     return (rdr_env, concat declss)
   else do
     forM_ notFounds $ \notFound ->
@@ -427,8 +431,12 @@ rnJavaImport _hsc_env clsIndex (L loc (ImportJavaDecl { ideclClassName = clsName
                                        $ unCachedMap $ ciMethods clsInfo
         -- TODO: Handle dupMethods
         mod <- getModule
-        (occNameNames, decls) <- mapAndUnzipM (rnGenerateFFI mod clsName' loc)
-                                              (map (head . snd) $ Map.toAscList uniqMethods)
+
+        let clsTvDecls = csTyVarDecls (ciSignature clsInfo)
+            clsTyVars  = tyVarDeclsTyVars clsTvDecls
+        (occNameNames, decls) <- mapAndUnzipM
+                                   (rnGenerateFFI mod clsName' clsTyVars clsTvDecls loc)
+                                   (map (head . snd) $ Map.toAscList uniqMethods)
         let javaModName = mkModuleName (ciSimpleName clsInfo)
             -- TODO: Make more specific provs
             prov = Imported [ImpSpec { is_decl = ImpDeclSpec { is_mod = javaModName
@@ -444,36 +452,64 @@ rnJavaImport _hsc_env clsIndex (L loc (ImportJavaDecl { ideclClassName = clsName
 rnJavaImport _hsc_env _clsIndex limpdecl =
   pprPanic "rnJavaImport: Hit a non-java import" (ppr limpdecl)
 
-rnGenerateFFI :: Module -> String -> SrcSpan -> MethodInfo
-              -> RnM ((OccName, Name), [LHsDecl RdrName])
-rnGenerateFFI mod clsName loc MethodInfo {..} = do
+rnGenerateFFI :: Module -> String -> [JavaTyVar] -> TypeVariableDeclarations
+              -> SrcSpan -> MethodInfo -> RnM ((OccName, Name), [LHsDecl RdrName])
+rnGenerateFFI mod clsName clsTvs clsTvDecls loc MethodInfo {..} = do
   name <- newTopSrcBinder (L loc rdrName)
-  return ((mkVarOcc sourceName, name), [fdecl])
+  return ((mkVarOcc sourceName, name), [mkForeignDecl methodSig])
   where importString
           | miStatic  = "@static " ++ clsName ++ "." ++ miName
           | otherwise = miName
         occName = mkJavaImportOcc $ mkVarOcc miName
         rdrName = mkOrig mod occName --  mkRdrUnqual occName
         sourceName = miName
-        fdecl   = L loc $ ForD (ForeignImport (noLoc rdrName) (methodSigToType miStatic miSignature)
-                                              noForeignImportCoercionYet fImport)
+        classTvs  = map javaTyVarToTyVar clsTvs
+        methodTyVarDecls = msTyVarDecls miSignature
+        methodTvs = Set.fromList (tyVarDeclsTyVars methodTyVarDecls)
+        methodSig = runTvM (Set.union (Set.fromList clsTvs) methodTvs)
+                           (clsTvDecls ++ methodTyVarDecls) $
+                      methodSigToType clsName classTvs miAbstract miStatic miSignature
+        mkForeignDecl methodSig =
+          L loc $ ForD (ForeignImport (noLoc rdrName) methodSig
+                          noForeignImportCoercionYet fImport)
         fImport = CImport (noLoc JavaCallConv) (noLoc PlayRisky) Nothing
                     (CFunction callTarget) (noLoc "")
         callTarget = StaticTarget (mkFastString importString) Nothing False
 
-methodSigToType :: Bool -> MethodSignature -> LHsType RdrName
-methodSigToType isStatic MethodSignature {..} =
-  noLoc $ mkImplicitHsForAllTy $ foldr nlHsFunTy fullRetType $ map paramToType msParams
-  where retVar
-          | isStatic = nlHsTyVar (mkRdrUnqual (mkTyVarOcc "z")) -- TODO: Make this truly unclashable
-          | otherwise = panic "methodInfoSigToType: instance methods not implemented yet"
-        retType = maybe (nlHsTyVar unitTyCon_RDR) paramToType msReturn
-        fullRetType = nlHsTyConApp javaTyCon_RDR [retVar, retType]
+methodSigToType :: String -> [EtaTyVar] -> Bool -> Bool -> MethodSignature
+                -> TvM (LHsType RdrName)
+methodSigToType clsName clsTvs isAbstract isStatic MethodSignature {..} = do
+  let clsTy = nlHsTyConApp sobjectTyCon_RDR [ nlHsSymbolLit clsName,
+                                              nlHsPromotedListTy (map mkTyVar clsTvs) ]
+      genRetVar
+        | isStatic = do
+          tv <- freshTv
+          return $ mkTyVar tv
+        | isAbstract = do
+          tv <- freshTv
+          emitSubtypeConstraint tv UpperBound clsTy
+          return $ mkTyVar tv
+        | otherwise = return $ clsTy
 
-paramToType :: Parameter -> LHsType RdrName
-paramToType (ReferenceParameter { paramRef = p }) =
-  refParamToType p
-paramToType (PrimitiveParameter { paramPrim = p }) = nlHsTyVar $
+  paramTys    <- mapM paramToType msParams
+  retVar      <- genRetVar
+  retType     <- maybe (return (nlHsTyVar unitTyCon_RDR)) paramToType msReturn
+  let fullRetType = nlHsTyConApp javaTyCon_RDR [retVar, retType]
+  constraints <- getFilteredConstraints
+  let context = noLoc $ concatMap (\(tv, cts) ->
+                  map (\SubtypeConstraint {..} ->
+                    let tyVar = mkTyVar tv
+                        (a,b) = case stcBound of
+                          UpperBound -> (tyVar, stcType)
+                          LowerBound -> (stcType, tyVar)
+                    in nlHsTyConApp extendsClass_RDR [a, b]) cts)
+              $ Map.toAscList constraints
+      body = foldr nlHsFunTy fullRetType paramTys
+  return $ noLoc $ mkQualifiedHsForAllTy context body
+
+paramToType :: Parameter -> TvM (LHsType RdrName)
+paramToType (ReferenceParameter { paramRef  = p }) = refParamToType p
+paramToType (PrimitiveParameter { paramPrim = p }) = return $ nlHsTyVar $
   case p of
     ByteType   -> byteTyCon_RDR
     CharType   -> jcharTyCon_RDR
@@ -484,22 +520,115 @@ paramToType (PrimitiveParameter { paramPrim = p }) = nlHsTyVar $
     ShortType  -> shortTyCon_RDR
     BoolType   -> boolTyCon_RDR
 
-refParamToType :: ReferenceParameter -> LHsType RdrName
-refParamToType (GenericReferenceParameter { rpObjectType = o, rpTyParams = tys }) =
-  nlHsTyConApp sobjectTyCon_RDR
-    [ nlHsSymbolLit o, nlHsPromotedListTy (map tyParamToType tys) ]
-refParamToType (VariableReferenceParameter { rpVariable = v }) =
-  nlHsTyVar (mkRdrUnqual (mkTyVarOcc (javaTyVarToTyVar v)))
+refParamToType :: ReferenceParameter -> TvM (LHsType RdrName)
+refParamToType (GenericReferenceParameter { rpObjectType = o, rpTyParams = tys }) = do
+  tys <- goInside $ mapM tyParamToType tys
+  return $ nlHsTyConApp sobjectTyCon_RDR [ nlHsSymbolLit o, nlHsPromotedListTy tys ]
+refParamToType (VariableReferenceParameter { rpVariable = v }) = do
+  let tv = javaTyVarToTyVar v
+  markTvSeen tv
+  return $ mkTyVar tv
 refParamToType (ArrayReferenceParameter {}) = panic "refParamToType: Array not handled"
 
-tyParamToType :: TypeParameter -> LHsType RdrName
-tyParamToType (WildcardTypeParameter {}) =
-  panic "tyParamToType: WildcardTypeParameter not handled"
+tyParamToType :: TypeParameter -> TvM (LHsType RdrName)
+tyParamToType (WildcardTypeParameter { tpBound = bound }) = do
+  tv <- freshTv
+  case bound of
+    ExtendsBound { boundParam } ->
+      forM_ boundParam $ \p -> do
+        boundTy <- refParamToType p
+        emitSubtypeConstraint tv UpperBound boundTy
+    SuperBound { boundParam } ->
+      forM_ boundParam $ \p -> do
+        boundTy <- refParamToType p
+        emitSubtypeConstraint tv LowerBound boundTy
+    _ -> return ()
+  return $ mkTyVar tv
+
 tyParamToType (SimpleTypeParameter { tpParam = p }) = refParamToType p
 
-javaTyVarToTyVar :: String -> String
+mkTyVar :: EtaTyVar -> LHsType RdrName
+mkTyVar = nlHsTyVar . mkRdrUnqual . mkTyVarOcc
+
+javaTyVarToTyVar :: JavaTyVar -> EtaTyVar
 javaTyVarToTyVar (c:cs) = C.toLower c : cs
 javaTyVarToTyVar []     = []
+
+data TyVarState = TyVarState { tvsNext :: !Int
+                             , tvsUsed :: Set EtaTyVar
+                             , tvsGlobal :: Set EtaTyVar
+                             , tvsRepresentational :: Set EtaTyVar
+                             , tvsConstraints :: Map EtaTyVar [SubtypeConstraint]
+                             , tvsLevel :: TvLevel }
+
+data VarBound = UpperBound | LowerBound
+
+type EtaTyVar = String
+type JavaTyVar = String
+
+data TvLevel = TvLvlTop | TvLvlInside
+  deriving Eq
+
+data SubtypeConstraint = SubtypeConstraint { stcBound :: VarBound
+                                           , stcType  :: LHsType RdrName }
+
+newtype TvM a = TvM { unTvM :: State TyVarState a }
+  deriving (Functor, Applicative, Monad, MonadState TyVarState)
+
+runTvM :: Set JavaTyVar -> TypeVariableDeclarations -> TvM a -> a
+runTvM tvs tvDecls m =
+  evalState (unTvM $ do
+    forM_ tvDecls $ \tvDecl -> do
+      let tvName = tvdName tvDecl
+      forM_  (tvdBounds tvDecl) $ \tvdBound -> do
+        hsty <- refParamToType tvdBound
+        emitSubtypeConstraint tvName UpperBound hsty
+    m)
+    TyVarState { tvsNext = 0
+               , tvsUsed = set
+               , tvsGlobal = set
+               , tvsRepresentational = Set.empty
+               , tvsConstraints = Map.empty
+               , tvsLevel = TvLvlTop }
+  where set = Set.map javaTyVarToTyVar tvs
+
+defaultTvPrefix :: EtaTyVar
+defaultTvPrefix = "c"
+
+freshTv :: TvM EtaTyVar
+freshTv = do
+  TyVarState {..} <- get
+  let tvId = getUniqueId tvsUsed tvsNext
+      getUniqueId set tvId
+        | show tvId `Set.member` set = getUniqueId set (tvId + 1)
+        | otherwise = tvId
+  modify' $ \s -> s { tvsNext = tvId + 1 }
+  return $ defaultTvPrefix ++ show tvId
+
+goInside :: TvM a -> TvM a
+goInside (TvM m) = TvM $ withState (\s -> s { tvsLevel = TvLvlInside }) m
+
+markTvSeen :: EtaTyVar -> TvM ()
+markTvSeen tv = do
+  lvl <- gets tvsLevel
+  when (lvl == TvLvlTop) $
+    modify' $ \s@(TyVarState {..}) ->
+               s { tvsRepresentational = Set.insert tv tvsRepresentational }
+
+emitSubtypeConstraint :: EtaTyVar -> VarBound -> LHsType RdrName -> TvM ()
+emitSubtypeConstraint tv bound ty =
+  modify' $ \s@(TyVarState {..}) ->
+             s { tvsConstraints = Map.insertWith (++) tv
+                   [SubtypeConstraint { stcBound = bound
+                                      , stcType  = ty }]
+                   tvsConstraints }
+
+getFilteredConstraints :: TvM (Map EtaTyVar [SubtypeConstraint])
+getFilteredConstraints = do
+  TyVarState {..} <- get
+  let (glbls, rest) = Map.partitionWithKey (\k _ -> k `Set.member` tvsGlobal) tvsConstraints
+      glbls' = Map.filterWithKey (\k _ -> k `Set.member` tvsRepresentational) glbls
+  return $ glbls' `Map.union` rest
 
 {-
 ************************************************************************

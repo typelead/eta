@@ -130,6 +130,7 @@ library
         Data.Word
         Debug.Trace
         Eta.Interop
+        Eta.Overloadable
         Eta.RTS
         Foreign
         Foreign.C

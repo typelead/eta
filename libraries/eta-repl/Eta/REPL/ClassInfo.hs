@@ -141,6 +141,9 @@ instance Binary Bound
 -- TypeParameters
 type TypeVariableDeclarations = [TypeVariableDeclaration]
 
+tyVarDeclsTyVars :: TypeVariableDeclarations -> [String]
+tyVarDeclsTyVars = map tvdName
+
 data TypeVariableDeclaration =
   TypeVariableDeclaration  { tvdName   :: String
                            , tvdBounds :: [ReferenceParameter] }
