@@ -208,6 +208,7 @@ library
         GHC.IO.Handle.Lock
         GHC.IO.Handle.Text
         GHC.IO.Handle.Types
+        GHC.Stack.Types
         GHC.IO.IOMode
         GHC.IO.Unsafe
         GHC.IOArray
@@ -234,7 +235,6 @@ library
         GHC.Stable
         GHC.Stack
         GHC.Stack.CCS
-        GHC.Stack.Types
         GHC.Stats
         GHC.Storable
         GHC.TopHandler
