@@ -28,7 +28,7 @@ module GHC.Show
 
         -- Show support code
         shows, showChar, showString, showMultiLineString,
-        showParen, showList__, showSpace,
+        showParen, showList__, showCommaSpace, showSpace,
         showLitChar, showLitString, protectEsc,
         intToDigit, showSignedInt,
         appPrec, appPrec1,
@@ -39,8 +39,10 @@ module GHC.Show
         where
 
 import GHC.Base
-import GHC.Num
 import GHC.List ((!!), foldr1, break)
+import GHC.Num
+import GHC.Stack.Types
+-- import GHC.Types (TypeLitSort (..))
 
 -- | The @shows@ functions return a function that prepends the
 -- output 'String' to an existing 'String'.  This allows constant-time
@@ -153,6 +155,7 @@ appPrec1 = I# 11#       -- appPrec + 1
 
 deriving instance Show ()
 
+-- | @since 2.01
 instance Show a => Show [a]  where
   {-# SPECIALISE instance Show [String] #-}
   {-# SPECIALISE instance Show [Char] #-}
@@ -162,15 +165,18 @@ instance Show a => Show [a]  where
 deriving instance Show Bool
 deriving instance Show Ordering
 
+-- | @since 2.01
 instance  Show Char  where
     showsPrec _ '\'' = showString "'\\''"
     showsPrec _ c    = showChar '\'' . showLitChar c . showChar '\''
 
     showList cs = showChar '"' . showLitString cs . showChar '"'
 
+-- | @since 2.01
 instance Show Int where
     showsPrec = showSignedInt
 
+-- | @since 2.01
 instance Show Word where
     showsPrec _ (W# w) = showWord w
 
@@ -182,6 +188,17 @@ showWord w# cs
                    showWord (w# `quotWord#` 10##) (C# c# : cs)
 
 deriving instance Show a => Show (Maybe a)
+deriving instance Show a => Show (NonEmpty a)
+
+-- | @since 2.01
+instance Show TyCon where
+  showsPrec p (TyCon _ _ _ tc_name _ _) = showsPrec p tc_name
+
+-- | @since 4.9.0.0
+instance Show CallStack where
+  showsPrec _ = shows . getCallStack
+
+deriving instance Show SrcLoc
 
 --------------------------------------------------------------
 -- Show instances for the first few tuple
@@ -193,21 +210,27 @@ deriving instance Show a => Show (Maybe a)
 --      showsPrec _ (x,y) = let sx = shows x; sy = shows y in
 --                          \s -> showChar '(' (sx (showChar ',' (sy (showChar ')' s))))
 
+-- | @since 2.01
 instance  (Show a, Show b) => Show (a,b)  where
   showsPrec _ (a,b) s = show_tuple [shows a, shows b] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c) => Show (a, b, c) where
   showsPrec _ (a,b,c) s = show_tuple [shows a, shows b, shows c] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d) => Show (a, b, c, d) where
   showsPrec _ (a,b,c,d) s = show_tuple [shows a, shows b, shows c, shows d] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e) => Show (a, b, c, d, e) where
   showsPrec _ (a,b,c,d,e) s = show_tuple [shows a, shows b, shows c, shows d, shows e] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f) => Show (a,b,c,d,e,f) where
   showsPrec _ (a,b,c,d,e,f) s = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g)
         => Show (a,b,c,d,e,f,g) where
   showsPrec _ (a,b,c,d,e,f,g) s
@@ -218,24 +241,28 @@ instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h)
   showsPrec _ (a,b,c,d,e,f,g,h) s
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i)
          => Show (a,b,c,d,e,f,g,h,i) where
   showsPrec _ (a,b,c,d,e,f,g,h,i) s
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h,
                       shows i] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i, Show j)
          => Show (a,b,c,d,e,f,g,h,i,j) where
   showsPrec _ (a,b,c,d,e,f,g,h,i,j) s
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h,
                       shows i, shows j] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i, Show j, Show k)
          => Show (a,b,c,d,e,f,g,h,i,j,k) where
   showsPrec _ (a,b,c,d,e,f,g,h,i,j,k) s
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h,
                       shows i, shows j, shows k] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i, Show j, Show k,
           Show l)
          => Show (a,b,c,d,e,f,g,h,i,j,k,l) where
@@ -243,6 +270,7 @@ instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h,
                       shows i, shows j, shows k, shows l] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i, Show j, Show k,
           Show l, Show m)
          => Show (a,b,c,d,e,f,g,h,i,j,k,l,m) where
@@ -250,6 +278,7 @@ instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h,
                       shows i, shows j, shows k, shows l, shows m] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i, Show j, Show k,
           Show l, Show m, Show n)
          => Show (a,b,c,d,e,f,g,h,i,j,k,l,m,n) where
@@ -257,6 +286,7 @@ instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i
         = show_tuple [shows a, shows b, shows c, shows d, shows e, shows f, shows g, shows h,
                       shows i, shows j, shows k, shows l, shows m, shows n] s
 
+-- | @since 2.01
 instance (Show a, Show b, Show c, Show d, Show e, Show f, Show g, Show h, Show i, Show j, Show k,
           Show l, Show m, Show n, Show o)
          => Show (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) where
@@ -295,6 +325,8 @@ showParen b p   =  if b then showChar '(' . p . showChar ')' else p
 showSpace :: ShowS
 showSpace = {-showChar ' '-} \ xs -> ' ' : xs
 
+showCommaSpace :: ShowS
+showCommaSpace = showString ", "
 -- Code specific for characters
 
 -- | Convert a character to a string using only printable characters,
@@ -375,7 +407,7 @@ intToDigit :: Int -> Char
 intToDigit (I# i)
     | isTrue# (i >=# 0#)  && isTrue# (i <=#  9#) = unsafeChr (ord '0' + I# i)
     | isTrue# (i >=# 10#) && isTrue# (i <=# 15#) = unsafeChr (ord 'a' + I# i - 10)
-    | otherwise =  error ("Char.intToDigit: not a digit " ++ show (I# i))
+    | otherwise =  errorWithoutStackTrace ("Char.intToDigit: not a digit " ++ show (I# i))
 
 showSignedInt :: Int -> Int -> ShowS
 showSignedInt (I# p) (I# n) r
@@ -407,6 +439,7 @@ itos n# cs
 -- The Integer instances for Show
 --------------------------------------------------------------
 
+-- | @since 2.01
 instance Show Integer where
     showsPrec p n r
         | p > 6 && n < 0 = '(' : integerToString n (')' : r)
@@ -416,7 +449,7 @@ instance Show Integer where
         | otherwise = integerToString n r
     showList = showList__ (showsPrec 0)
 
--- Divide an conquer implementation of string conversion
+-- Divide and conquer implementation of string conversion
 integerToString :: Integer -> String -> String
 integerToString n0 cs0
     | n0 < 0    = '-' : integerToString' (- n0) cs0
@@ -443,7 +476,7 @@ integerToString n0 cs0
         (# q, r #) ->
             if q > 0 then q : r : jsplitb p ns
                      else     r : jsplitb p ns
-    jsplith _ [] = error "jsplith: []"
+    jsplith _ [] = errorWithoutStackTrace "jsplith: []"
 
     jsplitb :: Integer -> [Integer] -> [Integer]
     jsplitb _ []     = []
@@ -462,7 +495,7 @@ integerToString n0 cs0
                 r = fromInteger r'
             in if q > 0 then jhead q $ jblock r $ jprintb ns cs
                         else jhead r $ jprintb ns cs
-    jprinth [] _ = error "jprinth []"
+    jprinth [] _ = errorWithoutStackTrace "jprinth []"
 
     jprintb :: [Integer] -> String -> String
     jprintb []     cs = cs
