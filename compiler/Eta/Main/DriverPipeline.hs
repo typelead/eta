@@ -218,7 +218,7 @@ compileOne' m_tc_result mHscMessage
                 return HomeModInfo{
                     hm_details = details,
                     hm_iface = iface,
-                    hm_linkable = Nothing }
+                    hm_linkable = maybe_old_linkable }
             return hmi
         -- We finished type checking.  (mb_old_hash is the hash of
         -- the interface that existed on disk; it's possible we had
