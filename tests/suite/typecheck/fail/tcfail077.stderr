@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/fail/tcfail077.hs:8:3: error:
+    ‘op2’ is not a (visible) method of class ‘Foo’
