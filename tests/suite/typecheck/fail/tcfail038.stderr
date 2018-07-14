@@ -1,0 +1,10 @@
+
+tests/suite/typecheck/fail/tcfail038.hs:7:11: error:
+    Conflicting definitions for ‘==’
+    Bound at: tests/suite/typecheck/fail/tcfail038.hs:7:11-12
+              tests/suite/typecheck/fail/tcfail038.hs:9:11-12
+
+tests/suite/typecheck/fail/tcfail038.hs:8:11: error:
+    Conflicting definitions for ‘/=’
+    Bound at: tests/suite/typecheck/fail/tcfail038.hs:8:11-12
+              tests/suite/typecheck/fail/tcfail038.hs:10:11-12
