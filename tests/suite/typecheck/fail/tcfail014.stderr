@@ -1,0 +1,10 @@
+
+tests/suite/typecheck/fail/tcfail014.hs:5:33: error:
+    Occurs check: cannot construct the infinite type: t8 ~ t8 -> t7
+    Relevant bindings include
+      z :: t8 -> t7
+        (bound at tests/suite/typecheck/fail/tcfail014.hs:5:27)
+      h :: (t8 -> t7) -> t7
+        (bound at tests/suite/typecheck/fail/tcfail014.hs:5:25)
+    In the first argument of ‘z’, namely ‘z’
+    In the expression: z z
