@@ -1,0 +1,9 @@
+
+tests/suite/typecheck/fail/tcfail002.hs:4:7: error:
+    Occurs check: cannot construct the infinite type: t ~ [t]
+    Relevant bindings include
+      z :: [t] (bound at tests/suite/typecheck/fail/tcfail002.hs:4:3)
+      c :: [t] -> t
+        (bound at tests/suite/typecheck/fail/tcfail002.hs:3:1)
+    In the expression: z
+    In an equation for ‘c’: c z = z
