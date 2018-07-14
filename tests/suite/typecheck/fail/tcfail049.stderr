@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/fail/tcfail049.hs:3:7: error:
+    Not in scope: ‘g’
