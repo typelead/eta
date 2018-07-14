@@ -57,7 +57,7 @@ module Data.Bits (
 
 #define WORD_SIZE_IN_BITS 32
 
-import GHC.Integer.GMP.Internals (bitInteger, popCountInteger)
+-- import GHC.Integer.BigInteger.Internals (bitInteger, popCountInteger)
 
 import Data.Maybe
 import GHC.Enum
@@ -517,9 +517,6 @@ instance Bits Integer where
                      | otherwise = shiftRInteger x (negateInt# i#)
    testBit x (I# i) = testBitInteger x i
    zeroBits   = 0
-
-   bit (I# i#) = bitInteger i#
-   popCount x  = I# (popCountInteger x)
 
    bit        = bitDefault
    popCount   = popCountDefault

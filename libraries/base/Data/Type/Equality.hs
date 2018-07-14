@@ -1,15 +1,16 @@
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE StandaloneDeriving   #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ExplicitNamespaces   #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE ExplicitNamespaces     #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE Trustworthy            #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -31,7 +32,7 @@
 module Data.Type.Equality (
   -- * The equality type
   (:~:)(..),
-  
+
   -- * Working with equality
   sym, trans, castWith, gcastWith, apply, inner, outer,
 

@@ -30,6 +30,8 @@ module Text.Read.Lex
   , readOctP
   , readDecP
   , readHexP
+
+  , isSymbolChar
   )
  where
 
@@ -39,7 +41,8 @@ import GHC.Base
 import GHC.Char
 import GHC.Num( Num(..), Integer )
 import GHC.Show( Show(..) )
-import GHC.Unicode( isSpace, isAlpha, isAlphaNum )
+import GHC.Unicode
+  ( GeneralCategory(..), generalCategory, isSpace, isAlpha, isAlphaNum )
 import GHC.Real( Rational, (%), fromIntegral, Integral,
                  toInteger, (^), quot, even )
 import GHC.List
@@ -198,8 +201,10 @@ lexPunc :: ReadP Lexeme
 lexPunc =
   do c <- satisfy isPuncChar
      return (Punc [c])
- where
-  isPuncChar c = c `elem` ",;()[]{}`"
+
+-- | The @special@ character class as defined in the Haskell Report.
+isPuncChar :: Char -> Bool
+isPuncChar c = c `elem` ",;()[]{}`"
 
 -- ----------------------------------------------------------------------
 -- Symbols
@@ -211,10 +216,19 @@ lexSymbol =
         return (Punc s)         -- Reserved-ops count as punctuation
       else
         return (Symbol s)
- where
-  isSymbolChar c = c `elem` "!@#$%&*+./<=>?\\^|:-~"
-  reserved_ops   = ["..", "::", "=", "\\", "|", "<-", "->", "@", "~", "=>"]
+  where
+    reserved_ops   = ["..", "::", "=", "\\", "|", "<-", "->", "@", "~", "=>"]
 
+isSymbolChar :: Char -> Bool
+isSymbolChar c = not (isPuncChar c) && case generalCategory c of
+    MathSymbol              -> True
+    CurrencySymbol          -> True
+    ModifierSymbol          -> True
+    OtherSymbol             -> True
+    DashPunctuation         -> True
+    OtherPunctuation        -> not (c `elem` "'\"")
+    ConnectorPunctuation    -> c /= '_'
+    _                       -> False
 -- ----------------------------------------------------------------------
 -- identifiers
 
@@ -239,7 +253,15 @@ lexLitChar =
      return (Char c)
 
 lexChar :: ReadP Char
-lexChar = do { (c,_) <- lexCharE; return c }
+lexChar = do { (c,_) <- lexCharE; consumeEmpties; return c }
+    where
+    -- Consumes the string "\&" repeatedly and greedily (will only produce one match)
+    consumeEmpties :: ReadP ()
+    consumeEmpties = do
+        rest <- look
+        case rest of
+            ('\\':'&':_) -> string "\\&" >> consumeEmpties
+            _ -> return ()
 
 lexCharE :: ReadP (Char, Bool)  -- "escaped or not"?
 lexCharE =
@@ -493,7 +515,7 @@ valInteger b0 ds0 = go b0 (length ds0) $ map fromIntegral ds0
       where
         d = d1 * b + d2
     combine _ []  = []
-    combine _ [_] = error "this should not happen"
+    combine _ [_] = errorWithoutStackTrace "this should not happen"
 
 -- Calculate a Rational from the exponent [of 10 to multiply with],
 -- the integral part of the mantissa and the digits of the fractional
@@ -525,7 +547,7 @@ valDig 16 c
   | 'A' <= c && c <= 'F' = Just (ord c - ord 'A' + 10)
   | otherwise            = Nothing
 
-valDig _ _ = error "valDig: Bad base"
+valDig _ _ = errorWithoutStackTrace "valDig: Bad base"
 
 valDecDig :: Char -> Maybe Int
 valDecDig c

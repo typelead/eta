@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilyDependencies, Safe, PolyKinds #-}
+{-# LANGUAGE Safe, PolyKinds #-}
 {-# LANGUAGE TypeFamilies, TypeOperators, DataKinds, NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
@@ -51,6 +51,6 @@ infixr 2 ||
 -- | Type-level "not". An injective type family since @4.10.0.0@.
 --
 -- @since 4.7.0.0
-type family Not a = res | res -> a where
+type family Not a where
   Not 'False = 'True
   Not 'True  = 'False

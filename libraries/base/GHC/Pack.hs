@@ -45,7 +45,7 @@ data MutableByteArray s ix     = MutableByteArray ix ix (MutableByteArray# s)
 unpackCString :: Ptr a -> [Char]
 unpackCString a@(Ptr addr)
   | a == nullPtr  = []
-  | otherwise     = unpackCString# addr
+  | otherwise      = unpackCString# addr
 
 packCString#         :: [Char]          -> ByteArray#
 packCString# str = case (packString str) of { ByteArray _ _ bytes -> bytes }
@@ -89,7 +89,7 @@ new_ps_array size = ST $ \ s ->
     case (newByteArray# size s)   of { (# s2#, barr# #) ->
     (# s2#, MutableByteArray bot bot barr# #) }
   where
-    bot = error "new_ps_array"
+    bot = errorWithoutStackTrace "new_ps_array"
 
 write_ps_array (MutableByteArray _ _ barr#) n ch = ST $ \ s# ->
     case writeCharArray# barr# n ch s#  of { s2#   ->

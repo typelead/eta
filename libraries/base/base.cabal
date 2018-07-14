@@ -80,6 +80,7 @@ library
         Control.Exception.Base
         Control.Monad
         Control.Monad.Fix
+        Control.Monad.Fail
         Control.Monad.Instances
         Control.Monad.ST
         Control.Monad.ST.Lazy

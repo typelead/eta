@@ -76,6 +76,8 @@ import GHC.Unicode ( isSpace )
 import GHC.List ( replicate, null )
 import GHC.Base hiding ( many )
 
+import Control.Monad.Fail
+
 infixr 5 +++, <++
 
 ------------------------------------------------------------------------
@@ -102,16 +104,16 @@ data P a
 
 -- Monad, MonadPlus
 
+-- | @since 4.5.0.0
 instance Applicative P where
-  pure  = return
+  pure x = Result x Fail
   (<*>) = ap
 
-instance MonadPlus P where
-  mzero = empty
-  mplus = (<|>)
+-- | @since 2.01
+instance MonadPlus P
 
+-- | @since 2.01
 instance Monad P where
-  return x = Result x Fail
 
   (Get f)      >>= k = Get (\c -> f c >>= k)
   (Look f)     >>= k = Look (\s -> f s >>= k)
@@ -121,6 +123,11 @@ instance Monad P where
 
   fail _ = Fail
 
+-- | @since 4.9.0.0
+instance MonadFail P where
+  fail _ = Fail
+
+-- | @since 4.5.0.0
 instance Alternative P where
   empty = Fail
 
@@ -155,27 +162,32 @@ instance Alternative P where
 
 newtype ReadP a = R (forall b . (a -> P b) -> P b)
 
--- Functor, Monad, MonadPlus
-
+-- | @since 2.01
 instance Functor ReadP where
   fmap h (R f) = R (\k -> f (k . h))
 
+-- | @since 4.6.0.0
 instance Applicative ReadP where
-    pure = return
+    pure x = R (\k -> k x)
     (<*>) = ap
+    -- liftA2 = liftM2
 
+-- | @since 2.01
 instance Monad ReadP where
-  return x  = R (\k -> k x)
   fail _    = R (\_ -> Fail)
   R m >>= f = R (\k -> m (\a -> let R m' = f a in m' k))
 
-instance Alternative ReadP where
-    empty = mzero
-    (<|>) = mplus
+-- | @since 4.9.0.0
+instance MonadFail ReadP where
+  fail _    = R (\_ -> Fail)
 
-instance MonadPlus ReadP where
-  mzero = pfail
-  mplus = (+++)
+-- | @since 4.6.0.0
+instance Alternative ReadP where
+  empty = pfail
+  (<|>) = (+++)
+
+-- | @since 2.01
+instance MonadPlus ReadP
 
 -- ---------------------------------------------------------------------------
 -- Operations over P
@@ -243,7 +255,7 @@ gather (R m)
   gath _ Fail         = Fail
   gath l (Look f)     = Look (\s -> gath l (f s))
   gath l (Result k p) = k (l []) <|> gath l p
-  gath _ (Final _)    = error "do not use readS_to_P in gather!"
+  gath _ (Final _)    = errorWithoutStackTrace "do not use readS_to_P in gather!"
 
 -- ---------------------------------------------------------------------------
 -- Derived operations
@@ -273,7 +285,7 @@ string this = do s <- look; scan this s
 
 munch :: (Char -> Bool) -> ReadP String
 -- ^ Parses the first zero or more characters satisfying the predicate.
---   Always succeds, exactly once having consumed all the characters
+--   Always succeeds, exactly once having consumed all the characters
 --   Hence NOT the same as (many (satisfy p))
 munch p =
   do s <- look
@@ -426,84 +438,68 @@ The following are QuickCheck specifications of what the combinators do.
 These can be seen as formal specifications of the behavior of the
 combinators.
 
-We use bags to give semantics to the combinators.
+For some values, we only care about the lists contents, not their order,
 
->  type Bag a = [a]
-
-Equality on bags does not care about the order of elements.
-
->  (=~) :: Ord a => Bag a -> Bag a -> Bool
->  xs =~ ys = sort xs == sort ys
-
-A special equality operator to avoid unresolved overloading
-when testing the properties.
-
->  (=~.) :: Bag (Int,String) -> Bag (Int,String) -> Bool
->  (=~.) = (=~)
+> (=~) :: Ord a => [a] -> [a] -> Bool
+> xs =~ ys = sort xs == sort ys
 
 Here follow the properties:
 
->  prop_Get_Nil =
->    readP_to_S get [] =~ []
->
->  prop_Get_Cons c s =
->    readP_to_S get (c:s) =~ [(c,s)]
->
->  prop_Look s =
->    readP_to_S look s =~ [(s,s)]
->
->  prop_Fail s =
->    readP_to_S pfail s =~. []
->
->  prop_Return x s =
->    readP_to_S (return x) s =~. [(x,s)]
->
->  prop_Bind p k s =
->    readP_to_S (p >>= k) s =~.
+>>> readP_to_S get []
+[]
+
+prop> \c str -> readP_to_S get (c:str) == [(c, str)]
+
+prop> \str -> readP_to_S look str == [(str, str)]
+
+prop> \str -> readP_to_S pfail str == []
+
+prop> \x str -> readP_to_S (return x) s == [(x,s)]
+
+> prop_Bind p k s =
+>    readP_to_S (p >>= k) s =~
 >      [ ys''
 >      | (x,s') <- readP_to_S p s
 >      , ys''   <- readP_to_S (k (x::Int)) s'
 >      ]
->
->  prop_Plus p q s =
->    readP_to_S (p +++ q) s =~.
->      (readP_to_S p s ++ readP_to_S q s)
->
->  prop_LeftPlus p q s =
->    readP_to_S (p <++ q) s =~.
->      (readP_to_S p s +<+ readP_to_S q s)
->   where
->    [] +<+ ys = ys
->    xs +<+ _  = xs
->
->  prop_Gather s =
->    forAll readPWithoutReadS $ \p ->
->      readP_to_S (gather p) s =~
->        [ ((pre,x::Int),s')
->        | (x,s') <- readP_to_S p s
->        , let pre = take (length s - length s') s
->        ]
->
->  prop_String_Yes this s =
->    readP_to_S (string this) (this ++ s) =~
->      [(this,s)]
->
->  prop_String_Maybe this s =
->    readP_to_S (string this) s =~
->      [(this, drop (length this) s) | this `isPrefixOf` s]
->
->  prop_Munch p s =
->    readP_to_S (munch p) s =~
->      [(takeWhile p s, dropWhile p s)]
->
->  prop_Munch1 p s =
->    readP_to_S (munch1 p) s =~
->      [(res,s') | let (res,s') = (takeWhile p s, dropWhile p s), not (null res)]
->
->  prop_Choice ps s =
->    readP_to_S (choice ps) s =~.
->      readP_to_S (foldr (+++) pfail ps) s
->
->  prop_ReadS r s =
->    readP_to_S (readS_to_P r) s =~. r s
+
+> prop_Plus p q s =
+>   readP_to_S (p +++ q) s =~
+>     (readP_to_S p s ++ readP_to_S q s)
+
+> prop_LeftPlus p q s =
+>   readP_to_S (p <++ q) s =~
+>     (readP_to_S p s +<+ readP_to_S q s)
+>  where
+>   [] +<+ ys = ys
+>   xs +<+ _  = xs
+
+> prop_Gather s =
+>   forAll readPWithoutReadS $ \p ->
+>     readP_to_S (gather p) s =~
+>       [ ((pre,x::Int),s')
+>       | (x,s') <- readP_to_S p s
+>       , let pre = take (length s - length s') s
+>       ]
+
+prop> \this str -> readP_to_S (string this) (this ++ str) == [(this,str)]
+
+> prop_String_Maybe this s =
+>   readP_to_S (string this) s =~
+>     [(this, drop (length this) s) | this `isPrefixOf` s]
+
+> prop_Munch p s =
+>   readP_to_S (munch p) s =~
+>     [(takeWhile p s, dropWhile p s)]
+
+> prop_Munch1 p s =
+>   readP_to_S (munch1 p) s =~
+>     [(res,s') | let (res,s') = (takeWhile p s, dropWhile p s), not (null res)]
+
+> prop_Choice ps s =
+>   readP_to_S (choice ps) s =~
+>     readP_to_S (foldr (+++) pfail ps) s
+
+> prop_ReadS r s =
+>   readP_to_S (readS_to_P r) s =~ r s
 -}

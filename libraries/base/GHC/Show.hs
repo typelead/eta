@@ -191,8 +191,8 @@ deriving instance Show a => Show (Maybe a)
 deriving instance Show a => Show (NonEmpty a)
 
 -- | @since 2.01
-instance Show TyCon where
-  showsPrec p (TyCon _ _ _ tc_name _ _) = showsPrec p tc_name
+-- instance Show TyCon where
+--   showsPrec p (TyCon _ _ _ tc_name _ _) = showsPrec p tc_name
 
 -- | @since 4.9.0.0
 instance Show CallStack where
