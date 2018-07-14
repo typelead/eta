@@ -1,0 +1,4 @@
+
+tests/suite/typecheck/fail/tcfail100.hs:7:1: error:
+    Type synonym ‘A’ should have 1 argument, but has been given none
+    In the type declaration for ‘B’
