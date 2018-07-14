@@ -1,0 +1,7 @@
+
+tests/suite/typecheck/fail/tcfail035.hs:6:10: error:
+    Duplicate instance declarations:
+      instance Num NUM
+        -- Defined at tests/suite/typecheck/fail/tcfail035.hs:6:10
+      instance Num NUM
+        -- Defined at tests/suite/typecheck/fail/tcfail035.hs:7:10
