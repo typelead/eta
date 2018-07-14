@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/fail/tcfail092.hs:7:27: error:
+    Duplicate binding in parallel list comprehension for: ‘a’
