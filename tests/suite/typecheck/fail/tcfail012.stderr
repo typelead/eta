@@ -1,0 +1,5 @@
+
+tests/suite/typecheck/fail/tcfail012.hs:3:8: error:
+    Couldn't match expected type ‘Bool’ with actual type ‘[t0]’
+    In the expression: []
+    In a pattern binding: True = []
