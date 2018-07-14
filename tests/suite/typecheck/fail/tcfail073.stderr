@@ -1,0 +1,6 @@
+
+tests/suite/typecheck/fail/tcfail073.hs:8:10: error:
+    Duplicate instance declarations:
+      instance Eq a => Eq (a, b)
+        -- Defined at tests/suite/typecheck/fail/tcfail073.hs:8:10
+      instance (Eq a, Eq b) => Eq (a, b) -- Defined in ‘GHC.Classes’
