@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/fail/tcfail050.hs:3:7: error:
+    Not in scope: data constructor ‘B’
