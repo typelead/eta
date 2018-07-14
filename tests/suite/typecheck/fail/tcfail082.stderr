@@ -1,0 +1,12 @@
+
+tests/suite/typecheck/fail/tcfail082.hs:2:8: error:
+    Could not find module ‘Data82’
+    Use -v to see a list of the files searched for.
+
+tests/suite/typecheck/fail/tcfail082.hs:3:8: error:
+    Could not find module ‘Inst82_1’
+    Use -v to see a list of the files searched for.
+
+tests/suite/typecheck/fail/tcfail082.hs:4:8: error:
+    Could not find module ‘Inst82_2’
+    Use -v to see a list of the files searched for.
