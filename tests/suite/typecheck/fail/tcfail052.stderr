@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/fail/tcfail052.hs:3:16: error:
+    Not in scope: type variable ‘c’
