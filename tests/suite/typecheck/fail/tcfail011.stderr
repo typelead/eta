@@ -1,0 +1,3 @@
+
+tests/suite/typecheck/fail/tcfail011.hs:3:25: error:
+    Not in scope: ‘y’
