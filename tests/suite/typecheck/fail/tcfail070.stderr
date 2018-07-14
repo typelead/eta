@@ -1,0 +1,5 @@
+
+tests/suite/typecheck/fail/tcfail070.hs:15:15: error:
+    ‘[Int]’ is applied to too many type arguments
+    In the type ‘[Int] Bool’
+    In the type declaration for ‘State’
