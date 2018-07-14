@@ -1,0 +1,28 @@
+
+tests/suite/typecheck/fail/tcfail016.hs:9:20: error:
+    Couldn't match type ‘(t, Expr t)’ with ‘Expr t’
+    Expected type: Expr t
+      Actual type: AnnExpr t
+    Relevant bindings include
+      e2 :: AnnExpr t
+        (bound at tests/suite/typecheck/fail/tcfail016.hs:9:11)
+      e1 :: AnnExpr t
+        (bound at tests/suite/typecheck/fail/tcfail016.hs:9:8)
+      g :: Expr t -> [[Char]]
+        (bound at tests/suite/typecheck/fail/tcfail016.hs:8:1)
+    In the first argument of ‘g’, namely ‘e1’
+    In the first argument of ‘(++)’, namely ‘(g e1)’
+
+tests/suite/typecheck/fail/tcfail016.hs:9:28: error:
+    Couldn't match type ‘(t, Expr t)’ with ‘Expr t’
+    Expected type: Expr t
+      Actual type: AnnExpr t
+    Relevant bindings include
+      e2 :: AnnExpr t
+        (bound at tests/suite/typecheck/fail/tcfail016.hs:9:11)
+      e1 :: AnnExpr t
+        (bound at tests/suite/typecheck/fail/tcfail016.hs:9:8)
+      g :: Expr t -> [[Char]]
+        (bound at tests/suite/typecheck/fail/tcfail016.hs:8:1)
+    In the first argument of ‘g’, namely ‘e2’
+    In the second argument of ‘(++)’, namely ‘(g e2)’
