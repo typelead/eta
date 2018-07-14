@@ -1,0 +1,8 @@
+
+tests/suite/typecheck/fail/tcfail062.hs:34:6: error:
+    Not in scope: type variable ‘behaviouralExpression’
+    Perhaps you meant type constructor or class ‘BehaviouralExpression’ (line 25)
+
+tests/suite/typecheck/fail/tcfail062.hs:34:29: error:
+    Not in scope: type variable ‘behaviouralExpression’
+    Perhaps you meant type constructor or class ‘BehaviouralExpression’ (line 25)
