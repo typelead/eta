@@ -1,0 +1,8 @@
+
+tests/suite/typecheck/fail/tcfail013.hs:4:3: error:
+    Couldn't match expected type ‘[t]’ with actual type ‘Bool’
+    Relevant bindings include
+      f :: [t] -> a
+        (bound at tests/suite/typecheck/fail/tcfail013.hs:3:1)
+    In the pattern: True
+    In an equation for ‘f’: f True = 2
