@@ -1,0 +1,12 @@
+
+tests/suite/typecheck/fail/tcfail061.hs:5:17: error:
+    Not in scope: type variable ‘b’
+
+tests/suite/typecheck/fail/tcfail061.hs:5:19: error:
+    Not in scope: type variable ‘b’
+
+tests/suite/typecheck/fail/tcfail061.hs:11:22: error:
+    Not in scope: type variable ‘b’
+
+tests/suite/typecheck/fail/tcfail061.hs:11:24: error:
+    Not in scope: type variable ‘b’
