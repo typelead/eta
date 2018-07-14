@@ -41,8 +41,6 @@ import GHC.Num
 -- for GeneralCategory
 import GHC.Show ( Show )
 
-#include "HsBaseConfig.h"
-
 -- | Unicode General Categories (column 2 of the UnicodeData table) in
 -- the order they are listed in the Unicode standard (the Unicode
 -- Character Database, in particular).

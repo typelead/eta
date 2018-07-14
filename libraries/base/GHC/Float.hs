@@ -55,6 +55,20 @@ import GHC.Integer.Logarithms.Internals
 
 infixr 8  **
 
+-- Radix of exponent representation
+#define FLT_RADIX 2
+-- Number of base-FLT_RADIX digits in the significand of a float
+#define FLT_MANT_DIG 24
+-- Minimum int x such that FLT_RADIX**(x-1) is a normalised float
+#define FLT_MIN_EXP (-125)
+-- Maximum int x such that FLT_RADIX**(x-1) is a representable float
+#define FLT_MAX_EXP 128
+-- Number of base-FLT_RADIX digits in the significand of a double
+#define DBL_MANT_DIG 53
+-- Minimum int x such that FLT_RADIX**(x-1) is a normalised double
+#define DBL_MIN_EXP (-1021)
+-- Maximum int x such that FLT_RADIX**(x-1) is a representable double
+#define DBL_MAX_EXP 1024
 
 ------------------------------------------------------------------------
 -- Standard numeric classes

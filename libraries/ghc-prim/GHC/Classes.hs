@@ -1,8 +1,19 @@
-{-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns, FunctionalDependencies #-}
-{-# LANGUAGE ConstraintKinds, DataKinds, TypeFamilies, UndecidableInstances, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, PolyKinds, TypeOperators, NoImplicitPrelude, UnliftedFFITypes #-}
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
--- XXX -fno-warn-unused-imports needed for the GHC.Tuple import below. Sigh.
+{-# LANGUAGE CPP, Trustworthy, TypeOperators, TypeFamilies,
+            FlexibleContexts, UnliftedFFITypes #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash, StandaloneDeriving, BangPatterns,
+             KindSignatures, DataKinds, ConstraintKinds,
+              MultiParamTypeClasses, FunctionalDependencies,
+              UndecidableInstances, FlexibleInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+  -- ip :: IP x a => a  is strictly speaking ambiguous, but IP is magic
+
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+-- -Wno-unused-imports needed for the GHC.Tuple import below. Sigh.
+
+{-# OPTIONS_GHC -Wno-unused-binds #-}
+-- -Wno-unused-top-binds is there (I hope) to stop Haddock complaining
+-- about the constraint tuples being defined but not used
+
 {-# OPTIONS_HADDOCK hide #-}
 -----------------------------------------------------------------------------
 -- |
@@ -18,7 +29,31 @@
 --
 -----------------------------------------------------------------------------
 
-module GHC.Classes where
+module GHC.Classes(
+    -- * Implicit paramaters
+    IP(..),
+
+    -- * Equality and ordering
+    Eq(..),
+    Ord(..),
+    -- ** Monomorphic equality operators
+    -- | See GHC.Classes#matching_overloaded_methods_in_rules
+    eqInt, neInt,
+    eqWord, neWord,
+    eqChar, neChar,
+    eqFloat, eqDouble,
+    -- ** Monomorphic comparison operators
+    gtInt, geInt, leInt, ltInt, compareInt, compareInt#,
+    gtWord, geWord, leWord, ltWord, compareWord, compareWord#,
+
+    -- * Functions over Bool
+    (&&), (||), not,
+
+    -- * Integer arithmetic
+    divInt#, modInt#,
+    -- * Interop
+    Class(..), compareTo, Extends(..), type (<:)
+ ) where
 
 -- GHC.Magic is used in some derived instances
 import GHC.Magic ()
@@ -40,10 +75,64 @@ default ()              -- Double isn't available yet
 class IP (x :: Symbol) a | x -> a where
   ip :: a
 
+{- $matching_overloaded_methods_in_rules
+
+Matching on class methods (e.g. @(==)@) in rewrite rules tends to be a bit
+fragile. For instance, consider this motivating example from the @bytestring@
+library,
+
+> break :: (Word8 -> Bool) -> ByteString -> (ByteString, ByteString)
+> breakByte :: Word8 -> ByteString -> (ByteString, ByteString)
+> {-# RULES "break -> breakByte" forall a. break (== x) = breakByte x #-}
+
+Here we have two functions, with @breakByte@ providing an optimized
+implementation of @break@ where the predicate is merely testing for equality
+with a known @Word8@. As written, however, this rule will be quite fragile as
+the @(==)@ class operation rule may rewrite the predicate before our @break@
+rule has a chance to fire.
+
+For this reason, most of the primitive types in @base@ have 'Eq' and 'Ord'
+instances defined in terms of helper functions with inlinings delayed to phase
+1. For instance, @Word8@\'s @Eq@ instance looks like,
+
+> instance Eq Word8 where
+>     (==) = eqWord8
+>     (/=) = neWord8
+>
+> eqWord8, neWord8 :: Word8 -> Word8 -> Bool
+> eqWord8 (W8# x) (W8# y) = ...
+> neWord8 (W8# x) (W8# y) = ...
+> {-# INLINE [1] eqWord8 #-}
+> {-# INLINE [1] neWord8 #-}
+
+This allows us to save our @break@ rule above by rewriting it to instead match
+against @eqWord8@,
+
+> {-# RULES "break -> breakByte" forall a. break (`eqWord8` x) = breakByte x #-}
+
+Currently this is only done for '(==)', '(/=)', '(<)', '(<=)', '(>)', and '(>=)'
+for the types in "GHC.Word" and "GHC.Int".
+-}
+
 -- | The 'Eq' class defines equality ('==') and inequality ('/=').
 -- All the basic datatypes exported by the "Prelude" are instances of 'Eq',
 -- and 'Eq' may be derived for any datatype whose constituents are also
 -- instances of 'Eq'.
+--
+-- The Haskell Report defines no laws for 'Eq'. However, '==' is customarily
+-- expected to implement an equivalence relationship where two values comparing
+-- equal are indistinguishable by "public" functions, with a "public" function
+-- being one not allowing to see implementation details. For example, for a
+-- type representing non-normalised natural numbers modulo 100, a "public"
+-- function doesn't make the difference between 1 and 201. It is expected to
+-- have the following properties:
+--
+-- [__Reflexivity__]: @x == x@ = 'True'
+-- [__Symmetry__]: @x == y@ = @y == x@
+-- [__Transitivity__]: if @x == y && y == z@ = 'True', then @x == z@ = 'True'
+-- [__Substitutivity__]: if @x == y@ = 'True' and @f@ is a "public" function
+-- whose return type is an instance of 'Eq', then @f x == f y@ = 'True'
+-- [__Negation__]: @x /= y@ = @not (x == y)@
 --
 -- Minimal complete definition: either '==' or '/='.
 --
@@ -100,35 +189,107 @@ instance (Eq a) => Eq [a] where
 
 deriving instance Eq Bool
 deriving instance Eq Ordering
-deriving instance Eq Word
 
+instance Eq Word where
+    (==) = eqWord
+    (/=) = neWord
+
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] eqWord #-}
+{-# INLINE [1] neWord #-}
+eqWord, neWord :: Word -> Word -> Bool
+(W# x) `eqWord` (W# y) = isTrue# (x `eqWord#` y)
+(W# x) `neWord` (W# y) = isTrue# (x `neWord#` y)
+
+-- See GHC.Classes#matching_overloaded_methods_in_rules
 instance Eq Char where
-    (C# c1) == (C# c2) = isTrue# (c1 `eqChar#` c2)
-    (C# c1) /= (C# c2) = isTrue# (c1 `neChar#` c2)
+    (==) = eqChar
+    (/=) = neChar
 
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] eqChar #-}
+{-# INLINE [1] neChar #-}
+eqChar, neChar :: Char -> Char -> Bool
+(C# x) `eqChar` (C# y) = isTrue# (x `eqChar#` y)
+(C# x) `neChar` (C# y) = isTrue# (x `neChar#` y)
+
+-- | Note that due to the presence of @NaN@, `Float`'s 'Eq' instance does not
+-- satisfy reflexivity.
+--
+-- >>> 0/0 == (0/0 :: Float)
+-- False
+--
+-- Also note that `Float`'s 'Eq' instance does not satisfy substitutivity:
+--
+-- >>> 0 == (-0 :: Float)
+-- True
+-- >>> recip 0 == recip (-0 :: Float)
+-- False
 instance Eq Float where
-    (F# x) == (F# y) = isTrue# (x `eqFloat#` y)
+    (==) = eqFloat
 
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] eqFloat #-}
+eqFloat :: Float -> Float -> Bool
+(F# x) `eqFloat` (F# y) = isTrue# (x `eqFloat#` y)
+
+-- | Note that due to the presence of @NaN@, `Double`'s 'Eq' instance does not
+-- satisfy reflexivity.
+--
+-- >>> 0/0 == (0/0 :: Double)
+-- False
+--
+-- Also note that `Double`'s 'Eq' instance does not satisfy substitutivity:
+--
+-- >>> 0 == (-0 :: Double)
+-- True
+-- >>> recip 0 == recip (-0 :: Double)
+-- False
 instance Eq Double where
-    (D# x) == (D# y) = isTrue# (x ==## y)
+    (==) = eqDouble
+
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] eqDouble #-}
+eqDouble :: Double -> Double -> Bool
+(D# x) `eqDouble` (D# y) = isTrue# (x ==## y)
 
 instance Eq Int where
     (==) = eqInt
     (/=) = neInt
 
-{-# INLINE eqInt #-}
-{-# INLINE neInt #-}
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] eqInt #-}
+{-# INLINE [1] neInt #-}
 eqInt, neInt :: Int -> Int -> Bool
 (I# x) `eqInt` (I# y) = isTrue# (x ==# y)
 (I# x) `neInt` (I# y) = isTrue# (x /=# y)
 
 -- | The 'Ord' class is used for totally ordered datatypes.
 --
--- Instances of 'Ord' can be derived for any user-defined
--- datatype whose constituent types are in 'Ord'.  The declared order
--- of the constructors in the data declaration determines the ordering
--- in derived 'Ord' instances.  The 'Ordering' datatype allows a single
--- comparison to determine the precise ordering of two objects.
+-- Instances of 'Ord' can be derived for any user-defined datatype whose
+-- constituent types are in 'Ord'. The declared order of the constructors in
+-- the data declaration determines the ordering in derived 'Ord' instances. The
+-- 'Ordering' datatype allows a single comparison to determine the precise
+-- ordering of two objects.
+--
+-- The Haskell Report defines no laws for 'Ord'. However, '<=' is customarily
+-- expected to implement a non-strict partial order and have the following
+-- properties:
+--
+-- [__Transitivity__]: if @x <= y && y <= z@ = 'True', then @x <= z@ = 'True'
+-- [__Reflexivity__]: @x <= x@ = 'True'
+-- [__Antisymmetry__]: if @x <= y && y <= x@ = 'True', then @x == y@ = 'True'
+--
+-- Note that the following operator interactions are expected to hold:
+--
+-- 1. @x >= y@ = @y <= x@
+-- 2. @x < y@ = @x <= y && x /= y@
+-- 3. @x > y@ = @y < x@
+-- 4. @x < y@ = @compare x y == LT@
+-- 5. @x > y@ = @compare x y == GT@
+-- 6. @x == y@ = @compare x y == EQ@
+-- 7. @min x y == if x <= y then x else y@ = 'True'
+-- 8. @max x y == if x >= y then x else y@ = 'True'
 --
 -- Minimal complete definition: either 'compare' or '<='.
 -- Using 'compare' can be more efficient for complex types.
@@ -203,7 +364,6 @@ instance (Ord a) => Ord [a] where
 
 deriving instance Ord Bool
 deriving instance Ord Ordering
-deriving instance Ord Word
 
 -- We don't use deriving for Ord Char, because for Ord the derived
 -- instance defines only compare, which takes two primops.  Then
@@ -214,6 +374,19 @@ instance Ord Char where
     (C# c1) <= (C# c2) = isTrue# (c1 `leChar#` c2)
     (C# c1) <  (C# c2) = isTrue# (c1 `ltChar#` c2)
 
+-- | Note that due to the presence of @NaN@, `Float`'s 'Ord' instance does not
+-- satisfy reflexivity.
+--
+-- >>> 0/0 <= (0/0 :: Float)
+-- False
+--
+-- Also note that, due to the same, `Ord`'s operator interactions are not
+-- respected by `Float`'s instance:
+--
+-- >>> (0/0 :: Float) > 1
+-- False
+-- >>> compare (0/0 :: Float) 1
+-- GT
 instance Ord Float where
     (F# x) `compare` (F# y)
         = if      isTrue# (x `ltFloat#` y) then LT
@@ -225,6 +398,19 @@ instance Ord Float where
     (F# x) >= (F# y) = isTrue# (x `geFloat#` y)
     (F# x) >  (F# y) = isTrue# (x `gtFloat#` y)
 
+-- | Note that due to the presence of @NaN@, `Double`'s 'Ord' instance does not
+-- satisfy reflexivity.
+--
+-- >>> 0/0 <= (0/0 :: Double)
+-- False
+--
+-- Also note that, due to the same, `Ord`'s operator interactions are not
+-- respected by `Double`'s instance:
+--
+-- >>> (0/0 :: Double) > 1
+-- False
+-- >>> compare (0/0 :: Double) 1
+-- GT
 instance Ord Double where
     (D# x) `compare` (D# y)
         = if      isTrue# (x <##  y) then LT
@@ -243,10 +429,11 @@ instance Ord Int where
     (>=)    = geInt
     (>)     = gtInt
 
-{-# INLINE gtInt #-}
-{-# INLINE geInt #-}
-{-# INLINE ltInt #-}
-{-# INLINE leInt #-}
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] gtInt #-}
+{-# INLINE [1] geInt #-}
+{-# INLINE [1] ltInt #-}
+{-# INLINE [1] leInt #-}
 gtInt, geInt, ltInt, leInt :: Int -> Int -> Bool
 (I# x) `gtInt` (I# y) = isTrue# (x >#  y)
 (I# x) `geInt` (I# y) = isTrue# (x >=# y)
@@ -261,6 +448,33 @@ compareInt# x# y#
     | isTrue# (x# <#  y#) = LT
     | isTrue# (x# ==# y#) = EQ
     | True                = GT
+
+instance Ord Word where
+    compare = compareWord
+    (<)     = ltWord
+    (<=)    = leWord
+    (>=)    = geWord
+    (>)     = gtWord
+
+-- See GHC.Classes#matching_overloaded_methods_in_rules
+{-# INLINE [1] gtWord #-}
+{-# INLINE [1] geWord #-}
+{-# INLINE [1] ltWord #-}
+{-# INLINE [1] leWord #-}
+gtWord, geWord, ltWord, leWord :: Word -> Word -> Bool
+(W# x) `gtWord` (W# y) = isTrue# (x `gtWord#` y)
+(W# x) `geWord` (W# y) = isTrue# (x `geWord#` y)
+(W# x) `ltWord` (W# y) = isTrue# (x `ltWord#` y)
+(W# x) `leWord` (W# y) = isTrue# (x `leWord#` y)
+
+compareWord :: Word -> Word -> Ordering
+(W# x#) `compareWord` (W# y#) = compareWord# x# y#
+
+compareWord# :: Word# -> Word# -> Ordering
+compareWord# x# y#
+    | isTrue# (x# `ltWord#` y#) = LT
+    | isTrue# (x# `eqWord#` y#) = EQ
+    | True                      = GT
 
 -- OK, so they're technically not part of a class...:
 
@@ -286,6 +500,9 @@ not False               =  True
 -- These don't really belong here, but we don't have a better place to
 -- put them
 
+-- These functions have built-in rules.
+{-# NOINLINE [0] divInt# #-}
+{-# NOINLINE [0] modInt# #-}
 divInt# :: Int# -> Int# -> Int#
 x# `divInt#` y#
         -- Be careful NOT to overflow if we do any additional arithmetic
