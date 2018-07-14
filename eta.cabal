@@ -438,7 +438,7 @@ executable eta-test-suite
                        , filepath
                        , Glob
                        , process
+                       , process-extras
                        , tasty
                        , tasty-golden
-                       , typed-process
     ghc-options:       -Wall -Werror -fno-warn-name-shadowing

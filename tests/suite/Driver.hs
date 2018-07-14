@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase, MultiWayIf, CPP #-}
-{-# OPTIONS_GHC -fno-cse #-}
 
 import System.FilePath
 import System.Directory
@@ -7,7 +6,7 @@ import System.Directory.Extra
 import System.FilePath.Glob
 import System.Process (createProcess, waitForProcess, CreateProcess(..), StdStream(..))
 import qualified System.Process as P
-import System.Process.Typed
+import System.Process.ByteString.Lazy
 import System.IO
 import System.IO.Unsafe
 import System.Exit
@@ -28,11 +27,12 @@ main :: IO ()
 main = do
   exists <- doesDirectoryExist buildRootDir
   when exists $ removeDirectoryRecursive buildRootDir
-  suites <- createTestSuites rootDir
+  cp <- getDefaultClassPath
+  suites <- createTestSuites cp rootDir
   defaultMain (testGroup "Eta Golden Tests" suites)
 
-createTestSuites :: FilePath -> IO [TestTree]
-createTestSuites rootDir = do
+createTestSuites :: [FilePath] -> FilePath -> IO [TestTree]
+createTestSuites cp rootDir = do
   suitePaths <- directoryListing rootDir
   forM suitePaths $ \suitePath -> do
     let suiteName = takeFileName suitePath
@@ -56,7 +56,7 @@ createTestSuites rootDir = do
                     goldenFile = testFile -<.> ext
                 return $ goldenVsFileDiff' testName
                         (\ref new -> ["diff", "-u", ref, new]) goldenFile targetFile
-                        (etaAction mode builddir testFile targetFile)
+                        (etaAction cp mode builddir testFile targetFile)
             tests2 <- forM testDirs $ \testDir -> do
                 let testName   = takeBaseName testDir
                     builddir   = buildDir suiteName name testName
@@ -103,15 +103,17 @@ etlasAction mode builddir inputDir outputFile = do
                               ExitFailure _ -> False,
                         [])
       options = command ++ ["-v0", "--builddir=" ++ builddir] ++ extraOpts
-  (exitCode, stdout, stderr) <- readProcess $ setWorkingDir inputDir $ proc "etlas" options
+  (exitCode, stdout, stderr) <- readCreateProcessWithExitCode
+                                  ((P.proc "etlas" options) { cwd = Just inputDir })
+                                  mempty
   let mainOutput = stdout <> stderr
       output
         | not (expectedExitCode exitCode) = BC.pack (show exitCode ++ "\n") <> mainOutput
         | otherwise = mainOutput
   BS.writeFile outputFile output
 
-etaAction :: ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
-etaAction mode builddir srcFile outputFile = do
+etaAction :: [FilePath] -> ActionMode -> FilePath -> FilePath -> FilePath -> IO ()
+etaAction defaultClassPath mode builddir srcFile outputFile = do
   createDirectoryIfMissing True builddir
   let (specificOptions, expectedExitCode, shouldRun) = case actionResult mode of
         CompileMode -> (if isBackpack then [] else ["-staticlib"],
@@ -140,12 +142,12 @@ etaAction mode builddir srcFile outputFile = do
                             ++ ["-outputdir", builddir, "-cp", mkClassPath defaultClassPath]
                             ++ outputOptions
 
-      procConfig = proc "eta" options
-  (exitCode, stdout, stderr) <- readProcess procConfig
+      procConfig = P.proc "eta" options
+  (exitCode', stdout', stderr') <- readCreateProcessWithExitCode procConfig mempty
   let getOutput
         | shouldRun = do
           (exitCode, stdout, stderr) <-
-            if expectedExitCode exitCode
+            if expectedExitCode exitCode'
             then do
               let getClasspath
                     | isBackpack =
@@ -153,17 +155,18 @@ etaAction mode builddir srcFile outputFile = do
                     | otherwise = return defaultClassPath
               classpath <- getClasspath
               let inputFile = srcFile -<.> "stdin"
-                  processConfig' = proc "java" ["-ea", "-classpath",
-                                                mkClassPath (outJar : classpath), "eta.main"]
               exists <- doesFileExist inputFile
-              processConfig <- if exists
-                               then do
-                                 input <- BS.readFile inputFile
-                                 _ <- evaluate $ force input
-                                 return $ setStdin (byteStringInput input) processConfig'
-                               else return processConfig'
-              readProcess processConfig
-            else return (exitCode, stdout, stderr)
+              let processConfig = P.proc "java" ["-ea", "-classpath",
+                                                 mkClassPath (outJar : classpath), "eta.main"]
+                  getInput
+                    | exists = do
+                      input <- BS.readFile inputFile
+                      _ <- evaluate $ force input
+                      return input
+                    | otherwise = return mempty
+              input <- getInput
+              readCreateProcessWithExitCode processConfig input
+            else return (exitCode', stdout', stderr')
 
           let mainOutput = stdout <> stderr
               output
@@ -173,7 +176,8 @@ etaAction mode builddir srcFile outputFile = do
 
           return output
         | otherwise =
-          let mainOutput = stdout <> stderr
+          let mainOutput = stdout' <> stderr'
+              exitCode = exitCode'
               output
                 | not (expectedExitCode exitCode) =
                   BC.pack (show exitCode ++ "\n") <> mainOutput
@@ -219,14 +223,17 @@ classPathSep = ";"
 mkClassPath :: [FilePath] -> String
 mkClassPath = intercalate classPathSep
 
-{-# NOINLINE defaultClassPath #-}
-defaultClassPath :: [FilePath]
-defaultClassPath = unsafePerformIO $ do
-  res <- readProcessStdout_ $ proc "etlas" $ ["exec", "eta-pkg", "--", "list", "--simple-output"]
+getDefaultClassPath :: IO [FilePath]
+getDefaultClassPath = do
+  (_, res, _) <- readCreateProcessWithExitCode
+           (P.proc "etlas" ["exec", "eta-pkg", "--", "list", "--simple-output"])
+           mempty
   let packages = map BC.unpack $ BC.split ' ' res
   forM packages $ \package -> do
-    res' <- readProcessStdout_ $ proc "etlas" $
-      ["exec", "eta-pkg", "--", "field", package, "library-dirs,hs-libraries", "--simple"]
+    (_, res', _) <- readCreateProcessWithExitCode
+              (P.proc "etlas" ["exec", "eta-pkg", "--", "field", package,
+                               "library-dirs,hs-libraries", "--simple"])
+              mempty
     let (dir:file:_) = BC.lines res'
     return $ BC.unpack dir </> (BC.unpack file <.> "jar")
 
@@ -284,7 +291,7 @@ goldenVsFileDiff' name cmdf ref new act =
    upd _ = BS.readFile new >>= BS.writeFile ref
 
 ignored :: Set String
-ignored = S.fromList ["Echo", "FullExportTest", "tc141", "tc168", "tc211", "T14163", "T4912", "T6018", "T7541"]
+ignored = S.fromList ["Echo", "FullExportTest", "tc141", "tc168", "tc211", "T14163", "T4912", "T6018", "T7541", "InstanceMethod"]
 
 filterIgnored :: [FilePath] -> [FilePath]
 filterIgnored = filter (not . flip S.member ignored . takeBaseName)
