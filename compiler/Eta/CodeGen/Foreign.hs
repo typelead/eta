@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns #-}
 module Eta.CodeGen.Foreign where
 
 import Eta.Types.Type
@@ -15,6 +15,7 @@ import Eta.CodeGen.Rts
 import Eta.CodeGen.Types
 
 import Codec.JVM
+import Data.List
 import Data.Monoid ((<>))
 import Data.Maybe (fromJust, isJust)
 import Data.Foldable (fold)
@@ -59,16 +60,16 @@ cgForeignCall (CCall (CCallSpec target _cconv safety)) args resType
           shuffledArgs = if hasObj then last args : init args else args
       argFtCodes <- getNonVoidArgFtCodes shuffledArgs
       let (argFts, callArgs') = unzip argFtCodes
-          callArgs = if hasObj && isStatic then drop 1 callArgs' else callArgs'
+          argFtCodes' = if hasObj && isStatic then drop 1 argFtCodes else argFtCodes
           mbObj = if hasObj then Just (expectHead "cgForiegnCall: empty callArgs'"
                                       callArgs') else Nothing
           mbObjFt = safeHead argFts
       case sequel of
         AssignTo targetLocs ->
-          emitForeignCall safety mbObj targetLocs (callTarget mbObjFt) callArgs
+          emitForeignCall safety mbObj targetLocs (callTarget mbObjFt) argFtCodes'
         _ -> do
           resLocs <- newUnboxedTupleLocs resType
-          emitForeignCall safety mbObj resLocs (callTarget mbObjFt) callArgs
+          emitForeignCall safety mbObj resLocs (callTarget mbObjFt) argFtCodes'
           emitReturn resLocs
 cgForeignCall _ _ _ = error $ "cgForeignCall: bad arguments"
 
@@ -79,7 +80,7 @@ deserializeMethodDesc label = (read clsName', read methodName', argFts)
         (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label ++ " " ++ methodDesc')
                     $ decodeMethodDesc (read methodDesc')
 
-deserializeTarget :: String -> (Bool, Bool, Maybe FieldType -> [Code] -> Code)
+deserializeTarget :: String -> (Bool, Bool, Maybe FieldType -> [(FieldType, Code)] -> Code)
 deserializeTarget label = (hasObj, isStatic, callTarget)
   where (hasObj':isStatic':callTargetSpec:_) = split '|' label
         hasObj = read hasObj'
@@ -92,19 +93,29 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
           2 -> genMethodTarget restSpec
           _ -> error $ "deserializeTarget: deserialization failed: " ++ label
 
+        foldArgs ftArgs sigFts =
+          foldl' (\code ((ft, arg), sigFt) -> code <> foldArg ft arg sigFt) mempty
+                 (zip ftArgs sigFts)
+
+        foldArg ft arg sigFt = arg <> maybeConv
+          where maybeConv
+                  | isObjectFt ft && ft == jobject && sigFt /= jobject
+                  = gconv jobject sigFt
+                  | otherwise = mempty
+
         genNewTarget [clsName', methodDesc'] =
-          \_ args -> new clsFt
-                  <> dup clsFt
-                  <> fold args
-                  <> invokespecial (mkMethodRef clsName "<init>" argFts void)
+          \_ ftArgs -> new clsFt
+                    <> dup clsFt
+                    <> foldArgs ftArgs argFts
+                    <> invokespecial (mkMethodRef clsName "<init>" argFts void)
           where clsName = read clsName'
                 clsFt = obj clsName
                 (argFts, _) = expectJust ("deserializeTarget: bad method desc: " ++ label ++ " " ++ methodDesc')
                             $ decodeMethodDesc (read methodDesc')
 
         genFieldTarget [clsName', fieldName', fieldDesc', instr'] =
-          \_ args -> fold args
-                  <> instr (mkFieldRef clsName fieldName fieldFt)
+          \_ ftArgs -> foldArgs ftArgs [fieldFt]
+                    <> instr (mkFieldRef clsName fieldName fieldFt)
           where (getInstr, putInstr) = if isStatic
                                      then (getstatic, putstatic)
                                      else (getfield, putfield)
@@ -118,23 +129,26 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                   _ -> error $ "deserializeTarget: bad instr: " ++ label
 
         genMethodTarget [isInterface', isSuper', hasSubclass', clsName', methodName', methodDesc'] =
-          \mbObjFt args -> foldedArgs mbObjFt args
-                        <> instr (mkMethodRef (snd $ clsName mbObjFt) methodName argFts resFt)
-          where clsName mbObjFt =
-                  if hasSubclass && not (isInterface || isSuper)
-                  then let cls' = maybe (error "deserializeTarget: no subclass field type.") getFtClass mbObjFt
-                       in if (cls' == jobjectC) && (className /= jobjectC)
-                          then (True, className)
-                          else (False, cls')
-                  else (False, className)
-                foldedArgs mbObjFt args
+          \mbObjFt ftArgs -> foldedArgs mbObjFt ftArgs
+                          <> instr (mkMethodRef (snd $ clsName mbObjFt) methodName argFts resFt)
+          where clsName mbObjFt
+                  | hasSubclass && not (isInterface || isSuper) =
+                    if shouldCast
+                    then (True, className)
+                    else (False, cls')
+                  | otherwise = (shouldCast, className)
+                  where shouldCast = objFt == jobject && className /= jobjectC
+                        cls' = getFtClass objFt
+                        objFt = expectJust ("genMethodTarget: not object") mbObjFt
+                foldedArgs mbObjFt ftArgs
+                  | isStatic = foldArgs ftArgs argFts
                   | (doCast, clsName') <- clsName mbObjFt
-                  = case args of
-                      (thisArg:restArgs) ->
+                  = case ftArgs of
+                      ((_, thisArg):restArgs) ->
                         let maybeConv
                               | doCast    = gconv jobject (obj clsName')
                               | otherwise = mempty
-                        in thisArg <> maybeConv <> fold restArgs
+                        in thisArg <> maybeConv <> foldArgs restArgs argFts
                       _ -> mempty
                 className  = read clsName'
                 methodName = read methodName'
@@ -149,7 +163,8 @@ deserializeTarget label = (hasObj, isStatic, callTarget)
                              then invokestatic
                              else invokevirtual
 
-emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> ([Code] -> Code) -> [Code] -> CodeGen ()
+emitForeignCall :: Safety -> Maybe Code -> [CgLoc] -> ([(FieldType, Code)] -> Code)
+                -> [(FieldType, Code)] -> CodeGen ()
 emitForeignCall safety mbObj results target args = do
   loadContext <- getContextLoc
   wrapSafety loadContext $ do

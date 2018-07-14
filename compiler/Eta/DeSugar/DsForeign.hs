@@ -52,8 +52,8 @@ import Eta.Utils.OrdList
 import Eta.Utils.Pair
 import Eta.Utils.Util
 
-import Eta.CodeGen.ArgRep ( repFieldTypes, repFieldType_maybe, primRepFieldType
-                            , primRepFieldType_maybe )
+import Eta.CodeGen.ArgRep ( repFieldType_maybe, primRepFieldType,
+                            srepFieldTypes, primRepFieldType_maybe )
 import Eta.CodeGen.Rts
 import Eta.CodeGen.Name
 
@@ -139,8 +139,8 @@ dsFCall funId co fcall _
     ccallUniq <- newUnique
     let fcall  = CCall (CCallSpec (StaticTarget (mkFastString label') mPkgKey True) callConv safety)
         label' = serializeTarget False False True (unpackFS label) argFts resRep
-        resRep = maybe VoidRep typePrimRep resPrimType
-        argFts = repFieldTypes $ map unboxType argTypes
+        resRep = maybe VoidRep stypePrimRep resPrimType
+        argFts = srepFieldTypes $ map unboxType argTypes
         (argTypes, ioResType) = tcSplitFunTys (dropForAlls funPtrType)
         resType
           | Just (tc, _) <- splitTyConApp_maybe ioResType
@@ -209,9 +209,9 @@ genJavaFCall (CCall (CCallSpec (StaticTarget label mPkgKey isFun) JavaCallConv s
   = CCall (CCallSpec (StaticTarget (mkFastString label') mPkgKey isFun) JavaCallConv safety)
   where label' = serializeTarget hasObj hasSubclass (not (isJust mObj))
                                  (unpackFS label) argFts resRep
-        argFts' = repFieldTypes argTypes
+        argFts' = srepFieldTypes argTypes
         argFts = maybe argFts' (: argFts') mObj
-        resRep = either id (maybe VoidRep typePrimRep) eResType
+        resRep = either id (maybe VoidRep stypePrimRep) eResType
         (hasObj, hasSubclass, mObj) = case tcSplitJavaType_maybe ioResType of
           Just (_, tagType, _)
             | (hasSubclass, Just clsName) <- getArgClass extendsInfo tagType
@@ -228,7 +228,7 @@ getArgClass extendsInfo ty
         let (_, res) = getArgClass extendsInfo tagType
         in (True, res)
       _ -> (False, Nothing)
-  | otherwise = (False, Just $ tagTypeToText ty)
+  | otherwise = (False, Just $ stagTypeToText ty)
 
 getArgType :: ExtendsInfo -> Type -> Type
 getArgType extendsInfo ty

@@ -12,6 +12,8 @@ module Eta.CodeGen.ArgRep
    typeArgRep,
    repFieldTypes,
    repFieldType_maybe,
+   srepFieldTypes,
+   srepFieldType_maybe,
    contextLoad,
    contextStore,
    slowCallPattern,
@@ -111,6 +113,14 @@ repFieldType_maybe = primRepFieldType_maybe . typePrimRep . jrepType
 
 repFieldTypes :: [Type] -> [FieldType]
 repFieldTypes = mapMaybe repFieldType_maybe
+
+-- Variant that handles SObject's as well
+srepFieldType_maybe :: Type -> Maybe FieldType
+srepFieldType_maybe = primRepFieldType_maybe . stypePrimRep . jrepType
+
+-- Variant that handles SObject's as well
+srepFieldTypes :: [Type] -> [FieldType]
+srepFieldTypes = mapMaybe srepFieldType_maybe
 
 -- NOTE: Assumes StgContext is in local variable slot 1
 contextLoad :: Code -> ArgRep -> Int -> Code

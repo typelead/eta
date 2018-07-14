@@ -3,7 +3,7 @@
 --
 -- Type - public interface
 
-{-# LANGUAGE CPP, OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings, MultiWayIf #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Main functions for manipulating types and type-related things
@@ -109,8 +109,8 @@ module Eta.Types.Type (
         tyConsOfType,
 
         -- * Type representation for the code generator
-        typePrimRep, typePrimRepMany, typeRepArity,
-        tagTypeToText, symbolTypeToText, rawTagTypeToText,
+        typePrimRep, stypePrimRep, typePrimRepMany, typeRepArity,
+        tagTypeToText, stagTypeToText, rawTagTypeToText,
 
         -- * Main type substitution data types
         TvSubstEnv,     -- Representation widely visible
@@ -173,6 +173,7 @@ import {-# SOURCE #-} Eta.Prelude.TysWiredIn ( eqTyCon, listTyCon,
 import Eta.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
                                ipClassNameKey, openTypeKindTyConKey,
                                constraintKindTyConKey, liftedTypeKindTyConKey,
+                               sobjectTyConKey,
                                errorMessageTypeErrorFamName,
                                typeErrorTextDataConName,
                                typeErrorShowTypeDataConName,
@@ -795,24 +796,28 @@ tyConsOfType ty
 
 -- | Discovers the primitive representation of a more abstract 'UnaryType'
 typePrimRep :: UnaryType -> PrimRep
-typePrimRep ty
+typePrimRep = typePrimRep' False
+
+typePrimRep' :: Bool -> UnaryType -> PrimRep
+typePrimRep' sobject ty
   = case repType ty of
       UbxTupleRep _ -> pprPanic "typePrimRep: UbxTupleRep" (ppr ty)
       UnaryRep rep -> case rep of
         TyConApp tc tys ->
-          -- | tc `hasKey` sobjectTyConKey -> mkObjectRep (symbolTypeToText (head tys))
-          -- | otherwise ->
             case primRep of
               ObjectRep x
                 | T.null x -> objRep
                 | otherwise -> primRep
               _ -> primRep
           where primRep = tyConPrimRep tc
-                objRep = mkObjectRep (tagTypeToText (head tys))
+                objRep = mkObjectRep (tagTypeToText' sobject (head tys))
         FunTy _ _     -> PtrRep
         AppTy _ _     -> PtrRep      -- See Note [AppTy rep]
         TyVarTy _     -> PtrRep
         _             -> pprPanic "typePrimRep: UnaryRep" (ppr ty)
+
+stypePrimRep :: UnaryType -> PrimRep
+stypePrimRep = typePrimRep' True
 
 typePrimRepMany :: Type -> [PrimRep]
 typePrimRepMany ty
@@ -838,8 +843,8 @@ mkObjectRep text
 tagTypeToText :: Type -> Text
 tagTypeToText = tagTypeToText' False
 
-symbolTypeToText :: Type -> Text
-symbolTypeToText = tagTypeToText' True
+stagTypeToText :: Type -> Text
+stagTypeToText = tagTypeToText' True
 
 tagTypeToText' :: Bool -> Type -> Text
 tagTypeToText' sobject ty = transform $
@@ -847,9 +852,7 @@ tagTypeToText' sobject ty = transform $
         ( T.map (\c -> if c == '.' then '/' else c)
         . head
         . T.words )
-  where transform f
-          | sobject = f (symbolLitToText ty)
-          | otherwise = either (uncurry pprPanic) f $ rawTagTypeToText ty
+  where transform f = either (uncurry pprPanic) f $ rawTagTypeToText' sobject ty
 
 symbolLitToText :: Type -> Maybe Text
 symbolLitToText ty | Just ty' <- coreView ty = symbolLitToText ty'
@@ -857,12 +860,17 @@ symbolLitToText (LitTy (StrTyLit fs)) = Just $ fastStringToText fs
 symbolLitToText _ = Nothing
 
 rawTagTypeToText :: Type -> Either (String, SDoc) (Maybe Text)
-rawTagTypeToText ty
-  | Just (tc1, _) <- splitTyConApp_maybe ty
+rawTagTypeToText = rawTagTypeToText' False
+
+rawTagTypeToText' :: Bool -> Type -> Either (String, SDoc) (Maybe Text)
+rawTagTypeToText' sobject ty
+  | Just (tc1, tys) <- splitTyConApp_maybe ty
   , not (isFamilyTyCon tc1)
-  = case tyConCType_maybe tc1 of
-      Just (CType _ _ fs) -> Right . Just $ fastStringToText fs
-      Nothing -> Left ("rawTagTypeToText: You should annotate ", ppr ty)
+  = if | sobject && tc1 `hasKey` sobjectTyConKey -> Right $ symbolLitToText (head tys)
+       | otherwise ->
+         case tyConCType_maybe tc1 of
+           Just (CType _ _ fs) -> Right . Just $ fastStringToText fs
+           Nothing -> Left ("rawTagTypeToText: You should annotate ", ppr ty)
   | otherwise  = Right Nothing
 
 typeRepArity :: Arity -> Type -> RepArity
