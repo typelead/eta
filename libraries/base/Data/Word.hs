@@ -31,6 +31,7 @@ module Data.Word
         ) where
 
 import GHC.Word
+import GHC.Read () -- Need the `Read` instance for types defined in `GHC.Word`.
 
 {- $notes
 
