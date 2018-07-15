@@ -1,0 +1,48 @@
+
+Tcfail203.hs:29:11: error:
+    Pattern bindings containing unlifted types should use an outermost bang pattern:
+      (I# x) = 5
+    In an equation for ‘fail2’:
+        fail2
+          = 'a'
+          where
+              (I# x) = 5
+   |
+29 |     where (I# x) = 5
+   |           ^^^^^^^^^^
+
+Tcfail203.hs:32:11: error:
+    Pattern bindings containing unlifted types should use an outermost bang pattern:
+      (b, I# x) = (True, 5)
+    In an equation for ‘fail3’:
+        fail3
+          = 'a'
+          where
+              (b, I# x) = (True, 5)
+   |
+32 |     where (b, I# x) = (True, 5)
+   |           ^^^^^^^^^^^^^^^^^^^^^
+
+Tcfail203.hs:41:11: error:
+    Pattern bindings containing unlifted types should use an outermost bang pattern:
+      (I# !x) = 5
+    In an equation for ‘fail6’:
+        fail6
+          = 'a'
+          where
+              (I# !x) = 5
+   |
+41 |     where (I# !x) = 5
+   |           ^^^^^^^^^^^
+
+Tcfail203.hs:44:11: error:
+    Pattern bindings containing unlifted types should use an outermost bang pattern:
+      (b, !(I# x)) = (True, 5)
+    In an equation for ‘fail7’:
+        fail7
+          = 'a'
+          where
+              (b, !(I# x)) = (True, 5)
+   |
+44 |     where (b, !(I# x)) = (True, 5)
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^
