@@ -1,0 +1,6 @@
+
+tests/suite/typecheck/fail/tcfail132.hs:17:37: error:
+    The first argument of ‘T’ should have kind ‘* -> * -> * -> *’,
+      but ‘Object f' f t’ has kind ‘* -> * -> *’
+    In the type ‘T (Object f' f t) (DUnit t)’
+    In the type declaration for ‘LiftObject’
