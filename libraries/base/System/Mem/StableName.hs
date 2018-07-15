@@ -1,10 +1,8 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE AutoDeriveTypeable, StandaloneDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE MagicHash #-}
-#if !defined(__PARALLEL_HASKELL__)
 {-# LANGUAGE UnboxedTuples #-}
-#endif
+
 
 -----------------------------------------------------------------------------
 -- |
@@ -38,13 +36,10 @@ module System.Mem.StableName (
   eqStableName
   ) where
 
-import Data.Typeable
-
 import GHC.IO           ( IO(..) )
 import GHC.Base         ( Int(..), StableName#, makeStableName#
                         , eqStableName#, stableNameToInt# )
 
--- TODO: Verify that System.identityHashCode() satisfies the condition of StableName#'s
 -----------------------------------------------------------------------------
 -- Stable Names
 
@@ -59,7 +54,7 @@ import GHC.Base         ( Int(..), StableName#, makeStableName#
 
   The reverse is not necessarily true: if two stable names are not
   equal, then the objects they name may still be equal.  Note in particular
-  that `mkStableName` may return a different `StableName` after an
+  that `makeStableName` may return a different `StableName` after an
   object is evaluated.
 
   Stable Names are similar to Stable Pointers ("Foreign.StablePtr"),
@@ -77,41 +72,26 @@ import GHC.Base         ( Int(..), StableName#, makeStableName#
 -}
 
 data StableName a = StableName (StableName# a)
-                    deriving Typeable
 
 -- | Makes a 'StableName' for an arbitrary object.  The object passed as
 -- the first argument is not evaluated by 'makeStableName'.
 makeStableName  :: a -> IO (StableName a)
-#if defined(__PARALLEL_HASKELL__)
-makeStableName a =
-  error "makeStableName not implemented in parallel Haskell"
-#else
 makeStableName a = IO $ \ s ->
     case makeStableName# a s of (# s', sn #) -> (# s', StableName sn #)
-#endif
 
 -- | Convert a 'StableName' to an 'Int'.  The 'Int' returned is not
 -- necessarily unique; several 'StableName's may map to the same 'Int'
 -- (in practice however, the chances of this are small, so the result
 -- of 'hashStableName' makes a good hash key).
 hashStableName :: StableName a -> Int
-#if defined(__PARALLEL_HASKELL__)
-hashStableName (StableName sn) =
-  error "hashStableName not implemented in parallel Haskell"
-#else
 hashStableName (StableName sn) = I# (stableNameToInt# sn)
-#endif
 
+-- | @since 2.01
 instance Eq (StableName a) where
-#if defined(__PARALLEL_HASKELL__)
-    (StableName sn1) == (StableName sn2) =
-      error "eqStableName not implemented in parallel Haskell"
-#else
     (StableName sn1) == (StableName sn2) =
        case eqStableName# sn1 sn2 of
          0# -> False
          _  -> True
-#endif
 
 -- | Equality on 'StableName' that does not require that the types of
 -- the arguments match.

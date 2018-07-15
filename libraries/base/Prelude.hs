@@ -66,7 +66,8 @@ module Prelude (
     subtract, even, odd, gcd, lcm, (^), (^^),
     fromIntegral, realToFrac,
 
-    -- ** Monoids
+    -- ** Semigroups and Monoids
+    Semigroup((<>)),
     Monoid(mempty, mappend, mconcat),
 
     -- ** Monads and functors
@@ -95,7 +96,7 @@ module Prelude (
 
     -- ** Miscellaneous functions
     id, const, (.), flip, ($), until,
-    asTypeOf, error, undefined,
+    asTypeOf, error, errorWithoutStackTrace, undefined,
     seq, ($!),
 
     -- * List operations

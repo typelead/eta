@@ -1,5 +1,5 @@
 {-# LANGUAGE Safe #-}
-{-# LANGUAGE AutoDeriveTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
@@ -36,7 +36,8 @@ module Data.Version (
         makeVersion
   ) where
 
-import Control.Monad    ( Monad(..), liftM )
+import Data.Functor     ( Functor(..) )
+import Control.Applicative ( Applicative(..) )
 import Data.Bool        ( (&&) )
 import Data.Char        ( isDigit, isAlphaNum )
 import Data.Eq
@@ -44,7 +45,7 @@ import Data.Int         ( Int )
 import Data.List
 import Data.Ord
 import Data.String      ( String )
-import Data.Typeable    ( Typeable )
+import GHC.Generics
 import GHC.Read
 import GHC.Show
 import Text.ParserCombinators.ReadP
@@ -93,15 +94,17 @@ data Version =
                 -- The interpretation of the list of tags is entirely dependent
                 -- on the entity that this version applies to.
         }
-  deriving (Read,Show,Typeable)
+  deriving (Read,Show,Generic)
 {-# DEPRECATED versionTags "See GHC ticket #2496" #-}
--- TODO. Remove all references to versionTags in GHC 7.12 release.
+-- TODO. Remove all references to versionTags in GHC 8.0 release.
 
+-- | @since 2.01
 instance Eq Version where
   v1 == v2  =  versionBranch v1 == versionBranch v2
                 && sort (versionTags v1) == sort (versionTags v2)
                 -- tags may be in any order
 
+-- | @since 2.01
 instance Ord Version where
   v1 `compare` v2 = versionBranch v1 `compare` versionBranch v2
 
@@ -120,9 +123,9 @@ showVersion (Version branch tags)
 -- | A parser for versions in the format produced by 'showVersion'.
 --
 parseVersion :: ReadP Version
-parseVersion = do branch <- sepBy1 (liftM read (munch1 isDigit)) (char '.')
-                  tags   <- many (char '-' >> munch1 isAlphaNum)
-                  return Version{versionBranch=branch, versionTags=tags}
+parseVersion = do branch <- sepBy1 (fmap read (munch1 isDigit)) (char '.')
+                  tags   <- many (char '-' *> munch1 isAlphaNum)
+                  pure Version{versionBranch=branch, versionTags=tags}
 
 -- | Construct tag-less 'Version'
 --

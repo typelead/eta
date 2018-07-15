@@ -3,7 +3,6 @@
            , BangPatterns
            , MagicHash
            , UnboxedTuples
-           , DeriveDataTypeable
            , StandaloneDeriving
   #-}
 {-# OPTIONS_HADDOCK hide #-}
@@ -31,7 +30,6 @@ module GHC.Weak (
     ) where
 
 import GHC.Base
-import Data.Typeable
 
 {-|
 A weak pointer object with a key and a value.  The value has type @v@.
@@ -91,7 +89,7 @@ finalizer to the box itself fails when the outer box is optimised away
 by the compiler.
 
 -}
-data Weak v = Weak (Weak# v) deriving Typeable
+data Weak v = Weak (Weak# v)
 
 -- | Establishes a weak pointer to @k@, with value @v@ and a finalizer.
 --
@@ -102,7 +100,7 @@ mkWeak  :: k                            -- ^ key
         -> Maybe (IO ())                -- ^ finalizer
         -> IO (Weak v)                  -- ^ returns: a weak pointer object
 
-mkWeak key val (Just finalizer) = IO $ \s ->
+mkWeak key val (Just (IO finalizer)) = IO $ \s ->
    case mkWeak# key val finalizer s of { (# s1, w #) -> (# s1, Weak w #) }
 mkWeak key val Nothing = IO $ \s ->
    case mkWeakNoFinalizer# key val s of { (# s1, w #) -> (# s1, Weak w #) }
@@ -143,14 +141,15 @@ Instance Eq (Weak v) where
 -- the IO primitives are inlined by hand here to get the optimal
 -- code (sigh) --SDM.
 
-runFinalizerBatch :: Int -> Array# (IO ()) -> IO ()
+runFinalizerBatch :: Int -> Array# (State# RealWorld -> State# RealWorld)
+                  -> IO ()
 runFinalizerBatch (I# n) arr =
    let  go m  = IO $ \s ->
                   case m of
                   0# -> (# s, () #)
                   _  -> let !m' = m -# 1# in
                         case indexArray# arr m' of { (# io #) ->
-                        case unIO io s of          { (# s', _ #) ->
+                        case io s of          { s' ->
                         unIO (go m') s'
                         }}
    in

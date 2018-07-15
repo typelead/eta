@@ -576,13 +576,16 @@ data PrimOp
    | FreshStateTokenOp
    | FreshObjectTokenOp
    | FreshNullObjectTokenOp
+   | FloatFabsOp
+   | DoubleFabsOp
 
 -- Used for the Ord instance
 primOpTag :: PrimOp -> Int
 primOpTag op = iBox (tagOf_PrimOp op)
 
 maxPrimOpTag :: Int
-maxPrimOpTag = 1143
+maxPrimOpTag = 1145
+
 tagOf_PrimOp :: PrimOp -> FastInt
 tagOf_PrimOp CharGtOp = _ILIT(1)
 tagOf_PrimOp CharGeOp = _ILIT(2)
@@ -1728,6 +1731,8 @@ tagOf_PrimOp WaitAcceptOp = _ILIT(1140)
 tagOf_PrimOp FreshStateTokenOp = _ILIT(1141)
 tagOf_PrimOp FreshObjectTokenOp = _ILIT(1142)
 tagOf_PrimOp FreshNullObjectTokenOp = _ILIT(1143)
+tagOf_PrimOp FloatFabsOp = _ILIT(1144)
+tagOf_PrimOp DoubleFabsOp = _ILIT(1145)
 
 instance Eq PrimOp where
     op1 == op2 = tagOf_PrimOp op1 ==# tagOf_PrimOp op2
@@ -2895,6 +2900,8 @@ allThePrimOps =
    , FreshStateTokenOp
    , FreshObjectTokenOp
    , FreshNullObjectTokenOp
+   , FloatFabsOp
+   , DoubleFabsOp
    ]
 
 tagToEnumKey :: Unique
@@ -4259,6 +4266,8 @@ primOpInfo WaitAcceptOp = mkGenPrimOp (fsLit "waitAccept#")  [alphaTyVar, deltaT
 primOpInfo FreshStateTokenOp = mkGenPrimOp (fsLit "freshStateToken#") [openAlphaTyVar, betaTyVar] [openAlphaTy] (mkStatePrimTy betaTy)
 primOpInfo FreshObjectTokenOp = mkGenPrimOp (fsLit "freshObjectToken#") [openAlphaTyVar, betaTyVar] [openAlphaTy, mkObjectPrimTy betaTy] (mkObjectPrimTy betaTy)
 primOpInfo FreshNullObjectTokenOp = mkGenPrimOp (fsLit "freshNullObjectToken#") [openAlphaTyVar, betaTyVar] [openAlphaTy] (mkObjectPrimTy betaTy)
+primOpInfo FloatFabsOp = mkMonadic (fsLit "fabsFloat#") floatPrimTy
+primOpInfo DoubleFabsOp = mkMonadic (fsLit "fabsDouble#") doublePrimTy
 
 {-
 Here are a load of comments from the old primOp info:

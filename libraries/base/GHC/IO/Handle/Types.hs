@@ -2,7 +2,6 @@
 {-# LANGUAGE CPP
            , NoImplicitPrelude
            , ExistentialQuantification
-           , AutoDeriveTypeable
   #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_HADDOCK hide #-}
@@ -47,7 +46,7 @@ import GHC.Read
 import GHC.Word
 import GHC.IO.Device
 import Data.Typeable
-#ifdef DEBUG
+#if defined(DEBUG)
 import Control.Monad
 #endif
 
@@ -109,12 +108,11 @@ data Handle
         !(MVar Handle__)                -- The read side
         !(MVar Handle__)                -- The write side
 
-  deriving Typeable
-
 -- NOTES:
 --    * A 'FileHandle' is seekable.  A 'DuplexHandle' may or may not be
 --      seekable.
 
+-- | @since 4.1.0.0
 instance Eq Handle where
  (FileHandle _ h1)     == (FileHandle _ h2)     = h1 == h2
  (DuplexHandle _ h1 _) == (DuplexHandle _ h2 _) = h1 == h2
@@ -125,10 +123,10 @@ data Handle__
     Handle__ {
       haDevice      :: !dev,
       haType        :: HandleType,           -- type (read/write/append etc.)
-      haByteBuffer  :: !(IORef (Buffer Word8)),
+      haByteBuffer  :: !(IORef (Buffer Word8)), -- See [note Buffering Implementation]
       haBufferMode  :: BufferMode,
       haLastDecode  :: !(IORef (dec_state, Buffer Word8)),
-      haCharBuffer  :: !(IORef (Buffer CharBufElem)), -- the current buffer
+      haCharBuffer  :: !(IORef (Buffer CharBufElem)), -- See [note Buffering Implementation]
       haBuffers     :: !(IORef (BufferList CharBufElem)),  -- spare buffers
       haEncoder     :: Maybe (TextEncoder enc_state),
       haDecoder     :: Maybe (TextDecoder dec_state),
@@ -138,7 +136,6 @@ data Handle__
       haOtherSide   :: Maybe (MVar Handle__) -- ptr to the write side of a
                                              -- duplex handle.
     }
-    deriving Typeable
 
 -- we keep a few spare buffers around in a handle to avoid allocating
 -- a new one for each hPutStr.  These buffers are *guaranteed* to be the
@@ -182,17 +179,17 @@ isReadWriteHandleType _                 = False
 --   * In a wriite Handle, the Char buffer is always empty (we encode when writing)
 --
 checkHandleInvariants :: Handle__ -> IO ()
-#ifdef DEBUG
+#if defined(DEBUG)
 checkHandleInvariants h_ = do
  bbuf <- readIORef (haByteBuffer h_)
  checkBuffer bbuf
  cbuf <- readIORef (haCharBuffer h_)
  checkBuffer cbuf
  when (isWriteBuffer cbuf && not (isEmptyBuffer cbuf)) $
-   error ("checkHandleInvariants: char write buffer non-empty: " ++
+   errorWithoutStackTrace ("checkHandleInvariants: char write buffer non-empty: " ++
           summaryBuffer bbuf ++ ", " ++ summaryBuffer cbuf)
  when (isWriteBuffer bbuf /= isWriteBuffer cbuf) $
-   error ("checkHandleInvariants: buffer modes differ: " ++
+   errorWithoutStackTrace ("checkHandleInvariants: buffer modes differ: " ++
           summaryBuffer bbuf ++ ", " ++ summaryBuffer cbuf)
 
 #else
@@ -374,7 +371,7 @@ foreign import java unsafe "@static eta.base.Utils.isNewlineCRLF"
 -- on Unix systems, 'CRLF' on Windows.
 nativeNewline :: Newline
 nativeNewline = if isNewlineCRLF then CRLF else LF
-  
+
 -- | Map '\r\n' into '\n' on input, and '\n' to the native newline
 -- represetnation on output.  This mode can be used on any platform, and
 -- works with text files using any newline convention.  The downside is
@@ -410,6 +407,7 @@ noNewlineTranslation  = NewlineMode { inputNL  = LF, outputNL = LF }
 -- we provide a more user-friendly Show instance for it
 -- than the derived one.
 
+-- | @since 4.1.0.0
 instance Show HandleType where
   showsPrec _ t =
     case t of
@@ -420,6 +418,7 @@ instance Show HandleType where
       AppendHandle      -> showString "writable (append)"
       ReadWriteHandle   -> showString "read-writable"
 
+-- | @since 4.1.0.0
 instance Show Handle where
   showsPrec _ (FileHandle   file _)   = showHandle file
   showsPrec _ (DuplexHandle file _ _) = showHandle file

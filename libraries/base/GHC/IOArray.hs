@@ -1,5 +1,5 @@
 {-# LANGUAGE Unsafe #-}
-{-# LANGUAGE NoImplicitPrelude, AutoDeriveTypeable, RoleAnnotations #-}
+{-# LANGUAGE NoImplicitPrelude, RoleAnnotations #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_HADDOCK hide #-}
 
@@ -27,7 +27,6 @@ module GHC.IOArray (
 import GHC.Base
 import GHC.IO
 import GHC.Arr
-import Data.Typeable.Internal
 
 -- ---------------------------------------------------------------------------
 -- | An 'IOArray' is a mutable, boxed, non-strict array in the 'IO' monad.
@@ -39,12 +38,13 @@ import Data.Typeable.Internal
 --
 --
 
-newtype IOArray i e = IOArray (STArray RealWorld i e) deriving( Typeable )
+newtype IOArray i e = IOArray (STArray RealWorld i e)
 
 -- index type should have a nominal role due to Ix class. See also #9220.
 type role IOArray nominal representational
 
 -- explicit instance because Haddock can't figure out a derived one
+-- | @since 4.1.0.0
 instance Eq (IOArray i e) where
   IOArray x == IOArray y = x == y
 
@@ -54,12 +54,12 @@ newIOArray :: Ix i => (i,i) -> e -> IO (IOArray i e)
 newIOArray lu initial  = stToIO $ do {marr <- newSTArray lu initial; return (IOArray marr)}
 
 -- | Read a value from an 'IOArray'
-unsafeReadIOArray  :: Ix i => IOArray i e -> Int -> IO e
+unsafeReadIOArray  :: IOArray i e -> Int -> IO e
 {-# INLINE unsafeReadIOArray #-}
 unsafeReadIOArray (IOArray marr) i = stToIO (unsafeReadSTArray marr i)
 
 -- | Write a new value into an 'IOArray'
-unsafeWriteIOArray :: Ix i => IOArray i e -> Int -> e -> IO ()
+unsafeWriteIOArray :: IOArray i e -> Int -> e -> IO ()
 {-# INLINE unsafeWriteIOArray #-}
 unsafeWriteIOArray (IOArray marr) i e = stToIO (unsafeWriteSTArray marr i e)
 

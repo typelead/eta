@@ -1,6 +1,6 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE CPP, NoImplicitPrelude #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -50,6 +50,8 @@ module GHC.Conc
         , threadStatus
         , threadCapability
 
+        , newStablePtrPrimMVar, PrimMVar
+
         -- * Waiting
         , threadDelay
         , registerDelay
@@ -86,27 +88,12 @@ module GHC.Conc
 
         -- * Miscellaneous
         , withMVar
-#ifdef mingw32_HOST_OS
-        , asyncRead
-        , asyncWrite
-        , asyncDoProc
 
-        , asyncReadBA
-        , asyncWriteBA
-#endif
 
-#ifndef mingw32_HOST_OS
-        , Signal, HandlerFun, setHandler, runHandlers
-#endif
 
         , ensureIOManagerIsRunning
         , ioManagerCapabilitiesChanged
 
-#ifdef mingw32_HOST_OS
-        , ConsoleEvent(..)
-        , win32ConsoleHandler
-        , toWin32ConsoleEvent
-#endif
         , setUncaughtExceptionHandler
         , getUncaughtExceptionHandler
 
@@ -115,7 +102,3 @@ module GHC.Conc
 
 import GHC.Conc.IO
 import GHC.Conc.Sync
-
-#ifndef mingw32_HOST_OS
-import GHC.Conc.Signal
-#endif

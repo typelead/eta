@@ -415,7 +415,7 @@ instance  RealFloat Float  where
       | otherwise       = case decodeFloat x of
                             (m,n) -> encodeFloat m (n + clamp bf k)
                         where bf = FLT_MAX_EXP - (FLT_MIN_EXP) + 4*FLT_MANT_DIG
-                              isFix = x == 0 || isFloatFinite x == 0
+                              isFix = x == 0 || not (isFloatFinite x)
 
     isNaN x          = isFloatNaN x
     isInfinite x     = isFloatInfinite x

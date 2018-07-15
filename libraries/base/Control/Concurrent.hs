@@ -1,10 +1,11 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP
+           , RankNTypes 
            , MagicHash
            , UnboxedTuples
            , ScopedTypeVariables
   #-}
-{-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
 -- kludge for the Control.Concurrent.QSem, Control.Concurrent.QSemN
 -- and Control.Concurrent.SampleVar imports.
 
@@ -75,6 +76,7 @@ module Control.Concurrent (
         -- $boundthreads
         rtsSupportsBoundThreads,
         forkOS,
+        forkOSWithUnmask,
         isCurrentThreadBound,
         runInBoundThread,
         runInUnboundThread,
@@ -109,7 +111,7 @@ import Control.Exception.Base as Exception
 
 import GHC.Conc hiding (threadWaitRead, threadWaitWrite,
                         threadWaitReadSTM, threadWaitWriteSTM)
-import GHC.IO           ( unsafeUnmask )
+import GHC.IO           ( unsafeUnmask, catchException )
 import GHC.IORef        ( newIORef, readIORef, writeIORef )
 import GHC.Base
 
@@ -117,13 +119,7 @@ import System.Posix.Types ( Fd, Channel )
 import Foreign.StablePtr
 import Foreign.C.Types
 
-#ifdef mingw32_HOST_OS
-import Foreign.C
-import System.IO
-import Data.Functor ( void )
-#else
 import qualified GHC.Conc
-#endif
 
 import Control.Concurrent.MVar
 import Control.Concurrent.Chan
@@ -182,7 +178,7 @@ attribute will block all other threads.
 
 -}
 
--- | fork a thread and call the supplied function when the thread is about
+-- | Fork a thread and call the supplied function when the thread is about
 -- to terminate, with an exception or a returned value.  The function is
 -- called with asynchronous exceptions masked.
 --
@@ -320,6 +316,11 @@ forkOS action0
         return tid
     | otherwise = failNonThreaded
 
+-- | Like 'forkIOWithUnmask', but the child thread is a bound thread,
+-- as with 'forkOS'.
+forkOSWithUnmask :: ((forall a . IO a -> IO a) -> IO ()) -> IO ThreadId
+forkOSWithUnmask io = forkOS (io unsafeUnmask)
+
 -- | Returns 'True' if the calling thread is /bound/, that is, if it is
 -- safe to use foreign libraries that rely on thread-local state from the
 -- calling thread.
@@ -378,7 +379,7 @@ runInUnboundThread action = do
       mv <- newEmptyMVar
       mask $ \restore -> do
         tid <- forkIO $ Exception.try (restore action) >>= putMVar mv
-        let wait = takeMVar mv `Exception.catch` \(e :: SomeException) ->
+        let wait = takeMVar mv `catchException` \(e :: SomeException) ->
                      Exception.throwTo tid e >> wait
         wait >>= unsafeResult
     else action

@@ -6,8 +6,8 @@
            , NondecreasingIndentation
            , MagicHash
   #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 -----------------------------------------------------------------------------
@@ -246,7 +246,7 @@ hGetLineBufferedLoop handle_@Handle__{..}
 
 maybeFillReadBuffer :: Handle__ -> CharBuffer -> IO (Maybe CharBuffer)
 maybeFillReadBuffer handle_ buf
-  = Exception.catch
+  = catchException
      (do buf' <- getSomeCharacters handle_ buf
          return (Just buf')
      )
@@ -271,7 +271,7 @@ unpack !buf !r !w acc0
               -- Here, we are rather careful to only put an *evaluated* character
               -- in the output string. Due to pointer tagging, this allows the consumer
               -- to avoid ping-ponging between the actual consumer code and the thunk code
-#ifdef CHARBUF_UTF16
+#if defined(CHARBUF_UTF16)
               -- reverse-order decoding of UTF-16
               c2 <- peekElemOff pbuf i
               if (c2 < 0xdc00 || c2 > 0xdffff)
@@ -564,7 +564,7 @@ getSpareBuffer Handle__{haCharBuffer=ref,
                         haBufferMode=mode}
  = do
    case mode of
-     NoBuffering -> return (mode, error "no buffer!")
+     NoBuffering -> return (mode, errorWithoutStackTrace "no buffer!")
      _ -> do
           bufs <- readIORef spare_ref
           buf  <- readIORef ref

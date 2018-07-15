@@ -1,6 +1,9 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE AutoDeriveTypeable, StandaloneDeriving #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -24,11 +27,8 @@
 module Data.Dynamic
   (
 
-        -- Module Data.Typeable re-exported for convenience
-        module Data.Typeable,
-
         -- * The @Dynamic@ type
-        Dynamic,        -- abstract, instance of: Show, Typeable
+        Dynamic(..),
 
         -- * Converting to and from @Dynamic@
         toDyn,
@@ -38,15 +38,18 @@ module Data.Dynamic
         -- * Applying functions of dynamic type
         dynApply,
         dynApp,
-        dynTypeRep
+        dynTypeRep,
+
+        -- * Convenience re-exports
+        Typeable
 
   ) where
 
 
-import Data.Typeable
+import Data.Type.Equality
 import Data.Maybe
 import Unsafe.Coerce
-
+import Data.Typeable
 import GHC.Base
 import GHC.Show
 import GHC.Exception
@@ -136,7 +139,7 @@ dynApply (Dynamic t1 f) (Dynamic t2 x) =
 dynApp :: Dynamic -> Dynamic -> Dynamic
 dynApp f x = case dynApply f x of
              Just r -> r
-             Nothing -> error ("Type error in dynamic application.\n" ++
+             Nothing -> errorWithoutStackTrace ("Type error in dynamic application.\n" ++
                                "Can't apply function " ++ show f ++
                                " to argument " ++ show x)
 

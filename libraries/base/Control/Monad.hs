@@ -75,18 +75,58 @@ module Control.Monad
     , (<$!>)
     ) where
 
-import Data.Foldable ( Foldable, sequence_, msum, mapM_, foldlM, forM_ )
-import Data.Functor ( void )
-import Data.Traversable ( forM, mapM, sequence )
+import Data.Foldable ( Foldable, sequence_, sequenceA_, msum, mapM_, foldlM, forM_ )
+import Data.Functor ( void, (<$>) )
+import Data.Traversable ( forM, mapM, traverse, sequence, sequenceA )
 
 import GHC.Base hiding ( mapM, sequence )
-import GHC.List ( zipWith, unzip, replicate )
+import GHC.List ( zipWith, unzip )
+import GHC.Num  ( (-) )
 
 -- -----------------------------------------------------------------------------
 -- Functions mandated by the Prelude
 
--- | @'guard' b@ is @'pure' ()@ if @b@ is 'True',
--- and 'empty' if @b@ is 'False'.
+-- | Conditional failure of 'Alternative' computations. Defined by
+--
+-- @
+-- guard True  = 'pure' ()
+-- guard False = 'empty'
+-- @
+--
+-- ==== __Examples__
+--
+-- Common uses of 'guard' include conditionally signaling an error in
+-- an error monad and conditionally rejecting the current choice in an
+-- 'Alternative'-based parser.
+--
+-- As an example of signaling an error in the error monad 'Maybe',
+-- consider a safe division function @safeDiv x y@ that returns
+-- 'Nothing' when the denominator @y@ is zero and @'Just' (x \`div\`
+-- y)@ otherwise. For example:
+--
+-- @
+-- >>> safeDiv 4 0
+-- Nothing
+-- >>> safeDiv 4 2
+-- Just 2
+-- @
+--
+-- A definition of @safeDiv@ using guards, but not 'guard':
+--
+-- @
+-- safeDiv :: Int -> Int -> Maybe Int
+-- safeDiv x y | y /= 0    = Just (x \`div\` y)
+--             | otherwise = Nothing
+-- @
+--
+-- A definition of @safeDiv@ using 'guard' and 'Monad' @do@-notation:
+--
+-- @
+-- safeDiv :: Int -> Int -> Maybe Int
+-- safeDiv x y = do
+--   guard (y /= 0)
+--   return (x \`div\` y)
+-- @
 guard           :: (Alternative f) => Bool -> f ()
 guard True      =  pure ()
 guard False     =  empty
@@ -94,13 +134,8 @@ guard False     =  empty
 -- | This generalizes the list-based 'filter' function.
 
 {-# INLINE filterM #-}
-filterM          :: (Monad m) => (a -> m Bool) -> [a] -> m [a]
-filterM p        = foldr go (return [])
-  where
-    go x r = do
-      flg <- p x
-      ys <- r
-      return (if flg then x:ys else ys)
+filterM          :: (Applicative m) => (a -> m Bool) -> [a] -> m [a]
+filterM p        = foldr (\ x -> liftA2 (\ flg -> if flg then (x:) else id) (p x)) (pure [])
 
 infixr 1 <=<, >=>
 
@@ -108,15 +143,20 @@ infixr 1 <=<, >=>
 (>=>)       :: Monad m => (a -> m b) -> (b -> m c) -> (a -> m c)
 f >=> g     = \x -> f x >>= g
 
--- | Right-to-left Kleisli composition of monads. @('>=>')@, with the arguments flipped
+-- | Right-to-left Kleisli composition of monads. @('>=>')@, with the arguments flipped.
+--
+-- Note how this operator resembles function composition @('.')@:
+--
+-- > (.)   ::            (b ->   c) -> (a ->   b) -> a ->   c
+-- > (<=<) :: Monad m => (b -> m c) -> (a -> m b) -> a -> m c
 (<=<)       :: Monad m => (b -> m c) -> (a -> m b) -> (a -> m c)
 (<=<)       = flip (>=>)
 
 -- | @'forever' act@ repeats the action infinitely.
-forever     :: (Monad m) => m a -> m b
+forever     :: (Applicative f) => f a -> f b
 {-# INLINE forever #-}
-forever a   = let a' = a >> a' in a'
--- Use explicit sharing here, as it is prevents a space leak regardless of
+forever a   = let a' = a *> a' in a'
+-- Use explicit sharing here, as it prevents a space leak regardless of
 -- optimizations.
 
 -- -----------------------------------------------------------------------------
@@ -125,19 +165,19 @@ forever a   = let a' = a >> a' in a'
 -- | The 'mapAndUnzipM' function maps its first argument over a list, returning
 -- the result as a pair of lists. This function is mainly used with complicated
 -- data structures or a state-transforming monad.
-mapAndUnzipM      :: (Monad m) => (a -> m (b,c)) -> [a] -> m ([b], [c])
+mapAndUnzipM      :: (Applicative m) => (a -> m (b,c)) -> [a] -> m ([b], [c])
 {-# INLINE mapAndUnzipM #-}
-mapAndUnzipM f xs =  sequence (map f xs) >>= return . unzip
+mapAndUnzipM f xs =  unzip <$> traverse f xs
 
--- | The 'zipWithM' function generalizes 'zipWith' to arbitrary monads.
-zipWithM          :: (Monad m) => (a -> b -> m c) -> [a] -> [b] -> m [c]
+-- | The 'zipWithM' function generalizes 'zipWith' to arbitrary applicative functors.
+zipWithM          :: (Applicative m) => (a -> b -> m c) -> [a] -> [b] -> m [c]
 {-# INLINE zipWithM #-}
-zipWithM f xs ys  =  sequence (zipWith f xs ys)
+zipWithM f xs ys  =  sequenceA (zipWith f xs ys)
 
 -- | 'zipWithM_' is the extension of 'zipWithM' which ignores the final result.
-zipWithM_         :: (Monad m) => (a -> b -> m c) -> [a] -> [b] -> m ()
+zipWithM_         :: (Applicative m) => (a -> b -> m c) -> [a] -> [b] -> m ()
 {-# INLINE zipWithM_ #-}
-zipWithM_ f xs ys =  sequence_ (zipWith f xs ys)
+zipWithM_ f xs ys =  sequenceA_ (zipWith f xs ys)
 
 {- | The 'foldM' function is analogous to 'foldl', except that its result is
 encapsulated in a monad. Note that 'foldM' works from left-to-right over
@@ -145,15 +185,15 @@ the list arguments. This could be an issue where @('>>')@ and the `folded
 function' are not commutative.
 
 
->       foldM f a1 [x1, x2, ..., xm]
-
-==
-
->       do
->         a2 <- f a1 x1
->         a3 <- f a2 x2
->         ...
->         f am xm
+> foldM f a1 [x1, x2, ..., xm]
+>
+> ==
+>
+> do
+>   a2 <- f a1 x1
+>   a3 <- f a2 x2
+>   ...
+>   f am xm
 
 If right-to-left evaluation is required, the input list should be reversed.
 
@@ -161,36 +201,67 @@ Note: 'foldM' is the same as 'foldlM'
 -}
 
 foldM          :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m b
-{-# INLINEABLE foldM #-}
+{-# INLINABLE foldM #-}
 {-# SPECIALISE foldM :: (a -> b -> IO a) -> a -> [b] -> IO a #-}
 {-# SPECIALISE foldM :: (a -> b -> Maybe a) -> a -> [b] -> Maybe a #-}
 foldM          = foldlM
 
 -- | Like 'foldM', but discards the result.
 foldM_         :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
-{-# INLINEABLE foldM_ #-}
+{-# INLINABLE foldM_ #-}
 {-# SPECIALISE foldM_ :: (a -> b -> IO a) -> a -> [b] -> IO () #-}
 {-# SPECIALISE foldM_ :: (a -> b -> Maybe a) -> a -> [b] -> Maybe () #-}
 foldM_ f a xs  = foldlM f a xs >> return ()
 
+{-
+Note [Worker/wrapper transform on replicateM/replicateM_]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The implementations of replicateM and replicateM_ both leverage the
+worker/wrapper transform. The simpler implementation of replicateM_, as an
+example, would be:
+
+    replicateM_ 0 _ = pure ()
+    replicateM_ n f = f *> replicateM_ (n - 1) f
+
+However, the self-recursive nature of this implementation inhibits inlining,
+which means we never get to specialise to the action (`f` in the code above).
+By contrast, the implementation below with a local loop makes it possible to
+inline the entire definition (as happens for foldr, for example) thereby
+specialising for the particular action.
+
+For further information, see this Trac comment, which includes side-by-side
+Core: https://ghc.haskell.org/trac/ghc/ticket/11795#comment:6
+-}
+
 -- | @'replicateM' n act@ performs the action @n@ times,
 -- gathering the results.
-replicateM        :: (Monad m) => Int -> m a -> m [a]
-{-# INLINEABLE replicateM #-}
+replicateM        :: (Applicative m) => Int -> m a -> m [a]
+{-# INLINABLE replicateM #-}
 {-# SPECIALISE replicateM :: Int -> IO a -> IO [a] #-}
 {-# SPECIALISE replicateM :: Int -> Maybe a -> Maybe [a] #-}
-replicateM n x    = sequence (replicate n x)
+replicateM cnt0 f =
+    loop cnt0
+  where
+    loop cnt
+        | cnt <= 0  = pure []
+        | otherwise = liftA2 (:) f (loop (cnt - 1))
 
 -- | Like 'replicateM', but discards the result.
-replicateM_       :: (Monad m) => Int -> m a -> m ()
-{-# INLINEABLE replicateM_ #-}
+replicateM_       :: (Applicative m) => Int -> m a -> m ()
+{-# INLINABLE replicateM_ #-}
 {-# SPECIALISE replicateM_ :: Int -> IO a -> IO () #-}
 {-# SPECIALISE replicateM_ :: Int -> Maybe a -> Maybe () #-}
-replicateM_ n x   = sequence_ (replicate n x)
+replicateM_ cnt0 f =
+    loop cnt0
+  where
+    loop cnt
+        | cnt <= 0  = pure ()
+        | otherwise = f *> loop (cnt - 1)
 
 -- | The reverse of 'when'.
 unless            :: (Applicative f) => Bool -> f () -> f ()
-{-# INLINEABLE unless #-}
+{-# INLINABLE unless #-}
 {-# SPECIALISE unless :: Bool -> IO () -> IO () #-}
 {-# SPECIALISE unless :: Bool -> Maybe () -> Maybe () #-}
 unless p s        =  if p then pure () else s
@@ -218,7 +289,7 @@ f <$!> m = do
 -- @mfilter odd (Just 2) == Nothing@
 
 mfilter :: (MonadPlus m) => (a -> Bool) -> m a -> m a
-{-# INLINEABLE mfilter #-}
+{-# INLINABLE mfilter #-}
 mfilter p ma = do
   a <- ma
   if p a then return a else mzero
@@ -231,19 +302,19 @@ The functions in this library use the following naming conventions:
   The monad type constructor @m@ is added to function results
   (modulo currying) and nowhere else.  So, for example,
 
->  filter  ::              (a ->   Bool) -> [a] ->   [a]
->  filterM :: (Monad m) => (a -> m Bool) -> [a] -> m [a]
+> filter  ::              (a ->   Bool) -> [a] ->   [a]
+> filterM :: (Monad m) => (a -> m Bool) -> [a] -> m [a]
 
 * A postfix \'@_@\' changes the result type from @(m a)@ to @(m ())@.
   Thus, for example:
 
->  sequence  :: Monad m => [m a] -> m [a]
->  sequence_ :: Monad m => [m a] -> m ()
+> sequence  :: Monad m => [m a] -> m [a]
+> sequence_ :: Monad m => [m a] -> m ()
 
 * A prefix \'@m@\' generalizes an existing function to a monadic form.
   Thus, for example:
 
->  sum  :: Num a       => [a]   -> a
->  msum :: MonadPlus m => [m a] -> m a
+> filter  ::                (a -> Bool) -> [a] -> [a]
+> mfilter :: MonadPlus m => (a -> Bool) -> m a -> m a
 
 -}

@@ -11,6 +11,9 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE Trustworthy            #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE DataKinds              #-}
+
 
 -----------------------------------------------------------------------------
 -- |
@@ -58,7 +61,7 @@ infix 4 :~:
 -- in the body of the pattern-match, the compiler knows that @a ~ b@.
 --
 -- @since 4.7.0.0
-data a :~: b where
+data a :~: b where  -- See Note [The equality types story] in TysPrim
   Refl :: a :~: a
 
 -- with credit to Conal Elliott for 'ty', Erik Hesselink & Martijn van
@@ -85,7 +88,7 @@ gcastWith Refl x = x
 apply :: (f :~: g) -> (a :~: b) -> (f a :~: g b)
 apply Refl Refl = Refl
 
--- | Extract equality of the arguments from an equality of a applied types
+-- | Extract equality of the arguments from an equality of applied types
 inner :: (f a :~: g b) -> (a :~: b)
 inner Refl = Refl
 
@@ -97,15 +100,17 @@ deriving instance Eq   (a :~: b)
 deriving instance Show (a :~: b)
 deriving instance Ord  (a :~: b)
 
-instance a ~ b => Read (a :~: b) where
-  readsPrec d = readParen (d > 10) (\r -> [(Refl, s) | ("Refl",s) <- lex r ])
+-- | @since 4.7.0.0
+deriving instance a ~ b => Read (a :~: b)
 
+-- | @since 4.7.0.0
 instance a ~ b => Enum (a :~: b) where
   toEnum 0 = Refl
-  toEnum _ = error "Data.Type.Equality.toEnum: bad argument"
+  toEnum _ = errorWithoutStackTrace "Data.Type.Equality.toEnum: bad argument"
 
   fromEnum Refl = 0
 
+-- | @since 4.7.0.0
 instance a ~ b => Bounded (a :~: b) where
   minBound = Refl
   maxBound = Refl
@@ -117,6 +122,7 @@ class TestEquality f where
   -- | Conditionally prove the equality of @a@ and @b@.
   testEquality :: f a -> f b -> Maybe (a :~: b)
 
+-- | @since 4.7.0.0
 instance TestEquality ((:~:) a) where
   testEquality Refl Refl = Just Refl
 
