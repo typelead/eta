@@ -64,12 +64,12 @@ module GHC.Exts
         -- * SpecConstr annotations
         SpecConstrAnnotation(..),
 
-        -- -- * The call stack
-        -- currentCallStack,
+        -- * The call stack
+        currentCallStack,
 
         -- * The Constraint kind
         Constraint,
-
+        
         -- * Overloaded lists
         IsList(..)
        ) where
@@ -98,8 +98,8 @@ maxTupleSize = 62
 the :: Eq a => [a] -> a
 the (x:xs)
   | all (x ==) xs = x
-  | otherwise     = error "GHC.Exts.the: non-identical elements"
-the []            = error "GHC.Exts.the: empty list"
+  | otherwise     = errorWithoutStackTrace "GHC.Exts.the: non-identical elements"
+the []            = errorWithoutStackTrace "GHC.Exts.the: empty list"
 
 -- | The 'sortWith' function sorts a list of elements using the
 -- user supplied function to project something out of each element
@@ -113,6 +113,7 @@ sortWith f = sortBy (\x y -> compare (f x) (f y))
 groupWith :: Ord b => (a -> b) -> [a] -> [[a]]
 groupWith f xs = build (\c n -> groupByFB c n (\x y -> f x == f y) (sortWith f xs))
 
+{-# INLINE [0] groupByFB #-} -- See Note [Inline FB functions] in GHC.List
 groupByFB :: ([a] -> lst -> lst) -> lst -> (a -> a -> Bool) -> [a] -> lst
 groupByFB c n eq xs0 = groupByFBCore xs0
   where groupByFBCore [] = n
@@ -176,13 +177,32 @@ class IsList l where
   --   It should satisfy fromList . toList = id.
   toList :: l -> [Item l]
 
+-- | @since 4.7.0.0
 instance IsList [a] where
   type (Item [a]) = a
   fromList = id
   toList = id
+
+-- | @since 4.9.0.0
+instance IsList (NonEmpty a) where
+  type Item (NonEmpty a) = a
+
+  fromList (a:as) = a :| as
+  fromList [] = errorWithoutStackTrace "NonEmpty.fromList: empty list"
+
+  toList ~(a :| as) = a : as
 
 -- | @since 4.8.0.0
 instance IsList Version where
   type (Item Version) = Int
   fromList = makeVersion
   toList = versionBranch
+
+-- | Be aware that 'fromList . toList = id' only for unfrozen 'CallStack's,
+-- since 'toList' removes frozenness information.
+--
+-- @since 4.9.0.0
+instance IsList CallStack where
+  type (Item CallStack) = (String, SrcLoc)
+  fromList = fromCallSiteList
+  toList   = getCallStack

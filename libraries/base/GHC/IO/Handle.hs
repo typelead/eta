@@ -4,7 +4,7 @@
            , RecordWildCards
            , NondecreasingIndentation
   #-}
-{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -26,11 +26,13 @@ module GHC.IO.Handle (
 
    mkFileHandle, mkDuplexHandle,
 
-   hFileSize, hSetFileSize, hIsEOF, hLookAhead,
+   hFileSize, hSetFileSize, hIsEOF, isEOF, hLookAhead,
    hSetBuffering, hSetBinaryMode, hSetEncoding, hGetEncoding,
    hFlush, hFlushAll, hDuplicate, hDuplicateTo,
 
    hClose, hClose_help,
+
+   LockMode(..), hLock, hTryLock,
 
    HandlePosition, HandlePosn(..), hGetPosn, hSetPosn,
    SeekMode(..), hSeek, hTell,
@@ -54,6 +56,8 @@ import GHC.IO.Encoding
 import GHC.IO.Buffer
 import GHC.IO.BufferedIO ( BufferedIO )
 import GHC.IO.Device as IODevice
+import GHC.IO.Handle.FD
+import GHC.IO.Handle.Lock
 import GHC.IO.Handle.Types
 import GHC.IO.Handle.Internals
 import GHC.IO.Handle.Text
@@ -113,7 +117,7 @@ hFileSize handle =
     withHandle_ "hFileSize" handle $ \ handle_@Handle__{haDevice=dev} -> do
     case haType handle_ of
       ClosedHandle              -> ioe_closedHandle
-      SemiClosedHandle          -> ioe_closedHandle
+      SemiClosedHandle          -> ioe_semiclosedHandle
       _ -> do flushWriteBuffer handle_
               r <- IODevice.getSize dev
               if r /= -1
@@ -129,7 +133,7 @@ hSetFileSize handle size =
     withHandle_ "hSetFileSize" handle $ \ handle_@Handle__{haDevice=dev} -> do
     case haType handle_ of
       ClosedHandle              -> ioe_closedHandle
-      SemiClosedHandle          -> ioe_closedHandle
+      SemiClosedHandle          -> ioe_semiclosedHandle
       _ -> do flushWriteBuffer handle_
               IODevice.setSize dev size
               return ()
@@ -160,6 +164,15 @@ hIsEOF handle = wantReadableHandle_ "hIsEOF" handle $ \Handle__{..} -> do
      then return True
      else do writeIORef haByteBuffer bbuf'
              return False
+
+-- ---------------------------------------------------------------------------
+-- isEOF
+
+-- | The computation 'isEOF' is identical to 'hIsEOF',
+-- except that it works only on 'stdin'.
+
+isEOF :: IO Bool
+isEOF = hIsEOF stdin
 
 -- ---------------------------------------------------------------------------
 -- Looking ahead
@@ -219,7 +232,7 @@ hSetBuffering handle mode =
           is_tty <- IODevice.isTerminal haDevice
           when (is_tty && isReadableHandleType haType) $
                 case mode of
-#ifndef mingw32_HOST_OS
+#if !defined(mingw32_HOST_OS)
         -- 'raw' mode under win32 is a bit too specialised (and troublesome
         -- for most common uses), so simply disable its use here.
                   NoBuffering -> IODevice.setRaw haDevice True
@@ -255,7 +268,7 @@ hSetEncoding hdl encoding = do
     closeTextCodecs h_
     openTextEncoding (Just encoding) haType $ \ mb_encoder mb_decoder -> do
     bbuf <- readIORef haByteBuffer
-    ref <- newIORef (error "last_decode")
+    ref <- newIORef (errorWithoutStackTrace "last_decode")
     return (Handle__{ haLastDecode = ref,
                       haDecoder = mb_decoder,
                       haEncoder = mb_encoder,
@@ -316,9 +329,11 @@ hFlushAll handle = withHandle_ "hFlushAll" handle flushBuffer
 
 data HandlePosn = HandlePosn Handle HandlePosition
 
+-- | @since 4.1.0.0
 instance Eq HandlePosn where
     (HandlePosn h1 p1) == (HandlePosn h2 p2) = p1==p2 && h1==h2
 
+-- | @since 4.1.0.0
 instance Show HandlePosn where
    showsPrec p (HandlePosn h pos) =
         showsPrec p h . showString " at position " . shows pos
@@ -482,7 +497,7 @@ hIsWritable handle =
     withHandle_ "hIsWritable" handle $ \ handle_ -> do
     case haType handle_ of
       ClosedHandle         -> ioe_closedHandle
-      SemiClosedHandle     -> ioe_closedHandle
+      SemiClosedHandle     -> ioe_semiclosedHandle
       htype                -> return (isWritableHandleType htype)
 
 -- | Computation 'hGetBuffering' @hdl@ returns the current buffering mode
@@ -503,12 +518,12 @@ hIsSeekable handle =
     withHandle_ "hIsSeekable" handle $ \ handle_@Handle__{..} -> do
     case haType of
       ClosedHandle         -> ioe_closedHandle
-      SemiClosedHandle     -> ioe_closedHandle
+      SemiClosedHandle     -> ioe_semiclosedHandle
       AppendHandle         -> return False
       _                    -> IODevice.isSeekable haDevice
 
 -- -----------------------------------------------------------------------------
--- Changing echo status (Non-standard GHC extensions)
+-- Changing echo status
 
 -- | Set the echoing status of a handle connected to a terminal.
 
@@ -571,7 +586,7 @@ hSetBinaryMode handle bin =
                    | otherwise = nativeNewlineMode
 
          bbuf <- readIORef haByteBuffer
-         ref <- newIORef (error "codec_state", bbuf)
+         ref <- newIORef (errorWithoutStackTrace "codec_state", bbuf)
 
          return Handle__{ haLastDecode = ref,
                           haEncoder  = mb_encoder,

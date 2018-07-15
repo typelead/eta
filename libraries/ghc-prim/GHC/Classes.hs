@@ -52,7 +52,7 @@ module GHC.Classes(
     -- * Integer arithmetic
     divInt#, modInt#,
     -- * Interop
-    Class(..), compareTo, Extends(..), type (<:)
+    Class(..), compareTo, Extends(..), type (<:), Inherits
  ) where
 
 -- GHC.Magic is used in some derived instances

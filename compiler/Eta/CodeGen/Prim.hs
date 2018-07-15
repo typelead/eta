@@ -679,6 +679,8 @@ simpleOp DoubleSubOp = Just $ normalOp dsub
 simpleOp DoubleMulOp = Just $ normalOp dmul
 simpleOp DoubleDivOp = Just $ normalOp ddiv
 simpleOp DoubleNegOp = Just $ normalOp dneg
+simpleOp DoubleFabsOp = Just $
+  normalOp $ invokestatic $ mkMethodRef "java/lang/Math" "abs" [jdouble] (ret jdouble)
 
 simpleOp DoubleExpOp = Just $ normalOp $ doubleMathEndoOp "exp"
 simpleOp DoubleLogOp = Just $ normalOp $ doubleMathEndoOp "log"
@@ -707,6 +709,8 @@ simpleOp FloatSubOp = Just $ normalOp fsub
 simpleOp FloatMulOp = Just $ normalOp fmul
 simpleOp FloatDivOp = Just $ normalOp fdiv
 simpleOp FloatNegOp = Just $ normalOp fneg
+simpleOp FloatFabsOp = Just $
+  normalOp $ invokestatic $ mkMethodRef "java/lang/Math" "abs" [jfloat] (ret jfloat)
 
 simpleOp FloatExpOp = Just $ normalOp $ floatMathEndoOp "exp"
 simpleOp FloatLogOp = Just $ normalOp $ floatMathEndoOp "log"

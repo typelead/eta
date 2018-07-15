@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, TypeOperators #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -17,7 +17,12 @@
 
 module Control.Monad.Zip where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, liftM2)
+import Data.Functor.Identity
+import Data.Monoid
+import Data.Proxy
+import qualified Data.List.NonEmpty as NE
+import GHC.Generics
 
 -- | `MonadZip` type class. Minimal definition: `mzip` or `mzipWith`
 --
@@ -48,7 +53,73 @@ class Monad m => MonadZip m where
     -- you can implement it more efficiently than the
     -- above default code.  See Trac #4370 comment by giorgidze
 
+-- | @since 4.3.1.0
 instance MonadZip [] where
     mzip     = zip
     mzipWith = zipWith
     munzip   = unzip
+
+-- | @since 4.9.0.0
+instance MonadZip NE.NonEmpty where
+  mzip     = NE.zip
+  mzipWith = NE.zipWith
+  munzip   = NE.unzip
+
+-- | @since 4.8.0.0
+instance MonadZip Identity where
+    mzipWith                 = liftM2
+    munzip (Identity (a, b)) = (Identity a, Identity b)
+
+-- | @since 4.8.0.0
+instance MonadZip Dual where
+    -- Cannot use coerce, it's unsafe
+    mzipWith = liftM2
+
+-- | @since 4.8.0.0
+instance MonadZip Sum where
+    mzipWith = liftM2
+
+-- | @since 4.8.0.0
+instance MonadZip Product where
+    mzipWith = liftM2
+
+-- | @since 4.8.0.0
+instance MonadZip Maybe where
+    mzipWith = liftM2
+
+-- | @since 4.8.0.0
+instance MonadZip First where
+    mzipWith = liftM2
+
+-- | @since 4.8.0.0
+instance MonadZip Last where
+    mzipWith = liftM2
+
+-- | @since 4.8.0.0
+instance MonadZip f => MonadZip (Alt f) where
+    mzipWith f (Alt ma) (Alt mb) = Alt (mzipWith f ma mb)
+
+-- | @since 4.9.0.0
+instance MonadZip Proxy where
+    mzipWith _ _ _ = Proxy
+
+-- Instances for GHC.Generics
+-- | @since 4.9.0.0
+-- instance MonadZip U1 where
+--     mzipWith _ _ _ = U1
+
+-- | @since 4.9.0.0
+-- instance MonadZip Par1 where
+--     mzipWith = liftM2
+
+-- | @since 4.9.0.0
+-- instance MonadZip f => MonadZip (Rec1 f) where
+--     mzipWith f (Rec1 fa) (Rec1 fb) = Rec1 (mzipWith f fa fb)
+
+-- | @since 4.9.0.0
+-- instance MonadZip f => MonadZip (M1 i c f) where
+--     mzipWith f (M1 fa) (M1 fb) = M1 (mzipWith f fa fb)
+
+-- | @since 4.9.0.0
+-- instance (MonadZip f, MonadZip g) => MonadZip (f :*: g) where
+--     mzipWith f (x1 :*: y1) (x2 :*: y2) = mzipWith f x1 x2 :*: mzipWith f y1 y2

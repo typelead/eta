@@ -437,7 +437,7 @@ pRELUDE         = mkBaseModule_ pRELUDE_NAME
 
 gHC_PRIM, gHC_TYPES, gHC_GENERICS, gHC_MAGIC,
     gHC_CLASSES, gHC_BASE, gHC_ENUM, gHC_GHCI, gHC_CSTRING,
-    gHC_SHOW, gHC_READ, gHC_NUM, gHC_INTEGER_TYPE, gHC_LIST,
+    gHC_SHOW, gHC_READ, gHC_NUM, gHC_MAYBE, gHC_INTEGER_TYPE, gHC_LIST,
     gHC_TUPLE, dATA_TUPLE, dATA_EITHER, dATA_STRING, dATA_FOLDABLE, dATA_TRAVERSABLE, dATA_MONOID,
     gHC_CONC, gHC_IO, gHC_IO_Exception,
     gHC_ST, gHC_ARR, gHC_STABLE, gHC_PTR, gHC_ERR, gHC_REAL,
@@ -459,6 +459,7 @@ gHC_GHCI        = mkBaseModule (fsLit "GHC.GHCi")
 gHC_SHOW        = mkBaseModule (fsLit "GHC.Show")
 gHC_READ        = mkBaseModule (fsLit "GHC.Read")
 gHC_NUM         = mkBaseModule (fsLit "GHC.Num")
+gHC_MAYBE       = mkBaseModule (fsLit "GHC.Maybe")
 gHC_INTEGER_TYPE= mkIntegerModule (fsLit "GHC.Integer.Type")
 gHC_LIST        = mkBaseModule (fsLit "GHC.List")
 gHC_TUPLE       = mkPrimModule (fsLit "GHC.Tuple")

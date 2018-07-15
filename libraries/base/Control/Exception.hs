@@ -56,6 +56,7 @@ module Control.Exception (
         RecSelError(..),
         RecUpdError(..),
         ErrorCall(..),
+        TypeError(..),
 
         -- * Throwing exceptions
         throw,
@@ -105,6 +106,7 @@ module Control.Exception (
         uninterruptibleMask_,
         MaskingState(..),
         getMaskingState,
+        interruptible,
         allowInterrupt,
 
         -- *** Applying @mask@ to an exception handler
@@ -133,11 +135,12 @@ module Control.Exception (
 import Control.Exception.Base
 
 import GHC.Base
-import GHC.IO (unsafeUnmask)
+import GHC.IO (interruptible)
 
 -- | You need this when using 'catches'.
 data Handler a = forall e . Exception e => Handler (e -> IO a)
 
+-- | @since 4.6.0.0
 instance Functor Handler where
      fmap f (Handler h) = Handler (fmap f . h)
 
@@ -221,7 +224,7 @@ A typical use of 'tryJust' for recovery looks like this:
 --
 -- @since 4.4.0.0
 allowInterrupt :: IO ()
-allowInterrupt = unsafeUnmask $ return ()
+allowInterrupt = interruptible $ return ()
 
 {- $async
 
@@ -302,7 +305,7 @@ exceptions is that they normally can occur anywhere, but within a
 interruptible (or call other interruptible operations).  In many cases
 these operations may themselves raise exceptions, such as I\/O errors,
 so the caller will usually be prepared to handle exceptions arising from the
-operation anyway.  To perfom an explicit poll for asynchronous exceptions
+operation anyway.  To perform an explicit poll for asynchronous exceptions
 inside 'mask', use 'allowInterrupt'.
 
 Sometimes it is too onerous to handle exceptions in the middle of a
@@ -372,7 +375,7 @@ handled differently. Instead, you would probably want something like:
 > e <- tryJust (guard . isDoesNotExistError) (readFile f)
 > let str = either (const "") id e
 
-There are occassions when you really do need to catch any sort of
+There are occasions when you really do need to catch any sort of
 exception. However, in most cases this is just so you can do some
 cleaning up; you aren't actually interested in the exception itself.
 For example, if you open a file then you want to close it again,

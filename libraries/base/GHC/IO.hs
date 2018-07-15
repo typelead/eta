@@ -38,7 +38,7 @@ module GHC.IO (
         mask, mask_, uninterruptibleMask, uninterruptibleMask_,
         MaskingState(..), getMaskingState,
         unsafeUnmask, interruptible,
-        onException, bracket, finally, evaluate
+        onException, bracket, finally, evaluate, trampolineIO
     ) where
 
 import GHC.Base
@@ -46,6 +46,7 @@ import GHC.ST
 import GHC.Exception
 import GHC.Show
 import GHC.IO.Unsafe
+import Data.Function (trampoline#)
 
 import {-# SOURCE #-} GHC.IO.Exception ( userError, IOError )
 
@@ -434,6 +435,11 @@ a `finally` sequel =
 -- use @'return' '$!' x@.
 evaluate :: a -> IO a
 evaluate a = IO $ \s -> seq# a s -- NB. see #2273, #5129
+
+trampolineIO :: IO a -> IO a
+trampolineIO (IO m) = IO $ \s ->
+  case trampoline# (unsafeCoerce# (m s)) of
+    (# a #) -> (# freshStateToken# a, unsafeCoerce# a #)
 
 {- $exceptions_and_strictness
 
