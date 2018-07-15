@@ -6,7 +6,7 @@ let
   relative = path: name: lib.removePrefix (toString path + "/") name;
   onlyFiles = files: path: builtins.filterSource (name: type: isValidFile (relative path name) files) path;
 
-  eta-nix = fetchTarball "https://github.com/eta-lang/eta-nix/archive/589ae28203f143f33af8a9052e4bca5c969638f3.tar.gz";
+  eta-nix = fetchTarball "https://github.com/eta-lang/eta-nix/archive/1638c3f133a3931ec70bd0d4f579b67fd62897e2.tar.gz";
 
   rewriteRelative = top: path:
     let path' = lib.removePrefix top (builtins.toString path);
