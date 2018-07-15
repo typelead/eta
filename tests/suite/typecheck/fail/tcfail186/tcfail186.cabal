@@ -1,0 +1,10 @@
+name: p
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+library
+    build-depends: base
+    eta-options: -fdiagnostics-color=never
+    exposed-modules: Tcfail186
+                     Tcfail186_Help

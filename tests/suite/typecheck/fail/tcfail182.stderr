@@ -1,0 +1,13 @@
+
+tests/suite/typecheck/fail/tcfail182.hs:9:3: error:
+    Couldn't match expected type ‘Prelude.Maybe a’
+                with actual type ‘Maybe t0’
+    NB: ‘Prelude.Maybe’
+          is defined in ‘GHC.Base’ in package ‘base-4.8.2.0’
+        ‘Maybe’ is defined at
+          tests/suite/typecheck/fail/tcfail182.hs:6:1-18
+    Relevant bindings include
+      f :: Prelude.Maybe a -> Int
+        (bound at tests/suite/typecheck/fail/tcfail182.hs:9:1)
+    In the pattern: Foo
+    In an equation for ‘f’: f Foo = 3
