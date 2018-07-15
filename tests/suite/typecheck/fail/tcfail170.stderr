@@ -1,0 +1,7 @@
+
+tests/suite/typecheck/fail/tcfail170.hs:7:10: error:
+    Illegal instance declaration for ‘C [p] [q]’
+      The coverage condition fails in class ‘C’
+        for functional dependency: ‘a -> b’
+      Reason: lhs type ‘[p]’ does not determine rhs type ‘[q]’
+    In the instance declaration for ‘C [p] [q]’
