@@ -1,6 +1,8 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -34,7 +36,9 @@ module Data.Complex
 
         )  where
 
-import Data.Typeable
+import GHC.Base (Applicative (..))
+import GHC.Generics (Generic, Generic1)
+import GHC.Float (Floating(..))
 import Data.Data (Data)
 import Foreign (Storable, castPtr, peek, poke, pokeElemOff, peekElemOff, sizeOf,
                 alignment)
@@ -49,10 +53,13 @@ infix  6  :+
 -- For a complex number @z@, @'abs' z@ is a number with the magnitude of @z@,
 -- but oriented in the positive real direction, whereas @'signum' z@
 -- has the phase of @z@, but unit magnitude.
+--
+-- The 'Foldable' and 'Traversable' instances traverse the real part first.
 data Complex a
   = !a :+ !a    -- ^ forms a complex number from its real and imaginary
                 -- rectangular components.
-        deriving (Eq, Show, Read, Data, Typeable)
+        deriving (Eq, Show, Read, Data, Generic, Generic1
+                , Functor, Foldable, Traversable)
 
 -- -----------------------------------------------------------------------------
 -- Functions over Complex
@@ -109,6 +116,7 @@ phase (x:+y)     = atan2 y x
 -- -----------------------------------------------------------------------------
 -- Instances of Complex
 
+-- | @since 2.01
 instance  (RealFloat a) => Num (Complex a)  where
     {-# SPECIALISE instance Num (Complex Float) #-}
     {-# SPECIALISE instance Num (Complex Double) #-}
@@ -132,6 +140,7 @@ instance  (RealFloat a) => Fractional (Complex a)  where
 
     fromRational a      =  fromRational a :+ 0
 
+-- | @since 2.01
 instance  (RealFloat a) => Floating (Complex a) where
     {-# SPECIALISE instance Floating (Complex Float) #-}
     {-# SPECIALISE instance Floating (Complex Double) #-}
@@ -139,6 +148,22 @@ instance  (RealFloat a) => Floating (Complex a) where
     exp (x:+y)     =  expx * cos y :+ expx * sin y
                       where expx = exp x
     log z          =  log (magnitude z) :+ phase z
+
+    x ** y = case (x,y) of
+      (_ , (0:+0))  -> 1 :+ 0
+      ((0:+0), (exp_re:+_)) -> case compare exp_re 0 of
+                 GT -> 0 :+ 0
+                 LT -> inf :+ 0
+                 EQ -> nan :+ nan
+      ((re:+im), (exp_re:+_))
+        | (isInfinite re || isInfinite im) -> case compare exp_re 0 of
+                 GT -> inf :+ 0
+                 LT -> 0 :+ 0
+                 EQ -> nan :+ nan
+        | otherwise -> exp (log x * y)
+      where
+        inf = 1/0
+        nan = 0/0
 
     sqrt (0:+0)    =  0
     sqrt z@(x:+y)  =  u :+ (if y < 0 then -v else v)
@@ -171,9 +196,25 @@ instance  (RealFloat a) => Floating (Complex a) where
                       where (x':+y') = log (((1-y):+x) / sqrt (1+z*z))
 
     asinh z        =  log (z + sqrt (1+z*z))
-    acosh z        =  log (z + (z+1) * sqrt ((z-1)/(z+1)))
+    -- Take care to allow (-1)::Complex, fixing #8532
+    acosh z        =  log (z + (sqrt $ z+1) * (sqrt $ z-1))
     atanh z        =  0.5 * log ((1.0+z) / (1.0-z))
 
+    log1p x@(a :+ b)
+      | abs a < 0.5 && abs b < 0.5
+      , u <- 2*a + a*a + b*b = log1p (u/(1 + sqrt(u+1))) :+ atan2 (1 + a) b
+      | otherwise = log (1 + x)
+    {-# INLINE log1p #-}
+
+    expm1 x@(a :+ b)
+      | a*a + b*b < 1
+      , u <- expm1 a
+      , v <- sin (b/2)
+      , w <- -2*v*v = (u*w + u + w) :+ (u+1)*sin b
+      | otherwise = exp x - 1
+    {-# INLINE expm1 #-}
+
+-- | @since 4.8.0.0
 instance Storable a => Storable (Complex a) where
     sizeOf a       = 2 * sizeOf (realPart a)
     alignment a    = alignment (realPart a)
@@ -186,3 +227,26 @@ instance Storable a => Storable (Complex a) where
                         q <-return $  (castPtr p)
                         poke q r
                         pokeElemOff q 1 i
+
+-- | @since 4.9.0.0
+instance Applicative Complex where
+  pure a = a :+ a
+  f :+ g <*> a :+ b = f a :+ g b
+  liftA2 f (x :+ y) (a :+ b) = f x a :+ f y b
+
+-- | @since 4.9.0.0
+instance Monad Complex where
+  a :+ b >>= f = realPart (f a) :+ imagPart (f b)
+
+-- -----------------------------------------------------------------------------
+-- Rules on Complex
+
+{-# RULES
+
+"realToFrac/a->Complex Double"
+  realToFrac = \x -> realToFrac x :+ (0 :: Double)
+
+"realToFrac/a->Complex Float"
+  realToFrac = \x -> realToFrac x :+ (0 :: Float)
+
+  #-}

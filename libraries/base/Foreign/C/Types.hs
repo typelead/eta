@@ -1,8 +1,11 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE CPP, NoImplicitPrelude, MagicHash, GeneralizedNewtypeDeriving,
-             AutoDeriveTypeable, StandaloneDeriving #-}
-{-# OPTIONS_GHC -fno-warn-unused-binds #-}
--- XXX -fno-warn-unused-binds stops us warning about unused constructors,
+{-# OPTIONS_GHC -Wno-unused-binds #-}
+-- XXX -Wno-unused-binds stops us warning about unused constructors,
 -- but really we should just remove them if we don't want them
 
 -----------------------------------------------------------------------------
@@ -23,8 +26,14 @@ module Foreign.C.Types
         ( -- * Representations of C types
           -- $ctypes
 
+          -- ** Platform differences
+          -- | This module contains platform specific information about types.
+          --   __/As such the types presented on this page reflect the platform
+          --   on which the documentation was generated and may not coincide with
+          --   the types on your platform./__
+
           -- ** Integral types
-          -- | These types are are represented as @newtype@s of
+          -- | These types are represented as @newtype@s of
           -- types in "Data.Int" and "Data.Word", and are instances of
           -- 'Prelude.Eq', 'Prelude.Ord', 'Prelude.Num', 'Prelude.Read',
           -- 'Prelude.Show', 'Prelude.Enum', 'Typeable', 'Storable',
@@ -34,7 +43,7 @@ module Foreign.C.Types
         , CShort(..),   CUShort(..),  CInt(..),      CUInt(..)
         , CLong(..),    CULong(..)
         , CPtrdiff(..), CSize(..),    CWchar(..),    CSigAtomic(..)
-        , CLLong(..),   CULLong(..)
+        , CLLong(..),   CULLong(..), CBool(..)
         , CIntPtr(..),  CUIntPtr(..), CIntMax(..),   CUIntMax(..)
 
           -- ** Numeric types
@@ -53,7 +62,7 @@ module Foreign.C.Types
         --
 
           -- ** Floating types
-          -- | These types are are represented as @newtype@s of
+          -- | These types are represented as @newtype@s of
           -- 'Prelude.Float' and 'Prelude.Double', and are instances of
           -- 'Prelude.Eq', 'Prelude.Ord', 'Prelude.Num', 'Prelude.Read',
           -- 'Prelude.Show', 'Prelude.Enum', 'Typeable', 'Storable',
@@ -62,6 +71,10 @@ module Foreign.C.Types
         , CFloat(..),   CDouble(..)
         -- XXX GHC doesn't support CLDouble yet
         -- , CLDouble(..)
+
+          -- See Note [Exporting constructors of marshallable foreign types]
+          -- in Foreign.Ptr for why the constructors for these newtypes are
+          -- exported.
 
           -- ** Other types
 
@@ -112,6 +125,11 @@ INTEGRAL_TYPE(CLLong,Int64)
 -- | Haskell type representing the C @unsigned long long@ type.
 INTEGRAL_TYPE(CULLong,Word64)
 
+-- | Haskell type representing the C @bool@ type.
+--
+-- @since 4.10.0.0
+INTEGRAL_TYPE(CBool,Int32)
+
 {-# RULES
 "fromIntegral/a->CChar"   fromIntegral = \x -> CChar   (fromIntegral x)
 "fromIntegral/a->CSChar"  fromIntegral = \x -> CSChar  (fromIntegral x)
@@ -136,6 +154,7 @@ INTEGRAL_TYPE(CULLong,Word64)
 "fromIntegral/CULong->a"  fromIntegral = \(CULong  x) -> fromIntegral x
 "fromIntegral/CLLong->a"  fromIntegral = \(CLLong  x) -> fromIntegral x
 "fromIntegral/CULLong->a" fromIntegral = \(CULLong x) -> fromIntegral x
+"fromIntegral/CBool->a"   fromIntegral = \(CBool   x) -> fromIntegral x
  #-}
 
 -- | Haskell type representing the C @float@ type.

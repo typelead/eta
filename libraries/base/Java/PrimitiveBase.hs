@@ -301,12 +301,6 @@ data JChar = JC# JChar#
 instance Eq JChar where
     (==) (JC# x) (JC# y) = isTrue# ((jchar2word# x) `eqWord#` (jchar2word# y))
 
-compareWord# :: Word# -> Word# -> Ordering
-compareWord# x# y#
-    | isTrue# (x# `ltWord#` y#) = LT
-    | isTrue# (x# `eqWord#` y#) = EQ
-    | True                      = GT
-
 instance Ord JChar where
     compare (JC# x) (JC# y) = compareWord# (jchar2word# x)  (jchar2word# y)
     (<)     (JC# x) (JC# y) = isTrue# ((jchar2word# x) `ltWord#` (jchar2word# y))

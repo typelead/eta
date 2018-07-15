@@ -5,8 +5,8 @@
            , NondecreasingIndentation
            , RankNTypes
   #-}
-{-# OPTIONS_GHC -fno-warn-unused-matches #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 -----------------------------------------------------------------------------
@@ -42,7 +42,8 @@ module GHC.IO.Handle.Internals (
   decodeByteBuf,
 
   augmentIOError,
-  ioe_closedHandle, ioe_EOF, ioe_notReadable, ioe_notWritable,
+  ioe_closedHandle, ioe_semiclosedHandle,
+  ioe_EOF, ioe_notReadable, ioe_notWritable,
   ioe_finalizedHandle, ioe_bufsiz,
 
   hClose_help, hLookAhead_,
@@ -239,7 +240,7 @@ checkWritableHandle :: (Handle__ -> IO a) -> Handle__ -> IO a
 checkWritableHandle act h_@Handle__{..}
   = case haType of
       ClosedHandle         -> ioe_closedHandle
-      SemiClosedHandle     -> ioe_closedHandle
+      SemiClosedHandle     -> ioe_semiclosedHandle
       ReadHandle           -> ioe_notWritable
       ReadWriteHandle      -> do
         buf <- readIORef haCharBuffer
@@ -278,7 +279,7 @@ checkReadableHandle :: (Handle__ -> IO a) -> Handle__ -> IO a
 checkReadableHandle act h_@Handle__{..} =
     case haType of
       ClosedHandle         -> ioe_closedHandle
-      SemiClosedHandle     -> ioe_closedHandle
+      SemiClosedHandle     -> ioe_semiclosedHandle
       AppendHandle         -> ioe_notReadable
       WriteHandle          -> ioe_notReadable
       ReadWriteHandle      -> do
@@ -308,7 +309,7 @@ checkSeekableHandle :: (Handle__ -> IO a) -> Handle__ -> IO a
 checkSeekableHandle act handle_@Handle__{haDevice=dev} =
     case haType handle_ of
       ClosedHandle      -> ioe_closedHandle
-      SemiClosedHandle  -> ioe_closedHandle
+      SemiClosedHandle  -> ioe_semiclosedHandle
       AppendHandle      -> ioe_notSeekable
       _ -> do b <- IODevice.isSeekable dev
               if b then act handle_
@@ -317,13 +318,16 @@ checkSeekableHandle act handle_@Handle__{haDevice=dev} =
 -- -----------------------------------------------------------------------------
 -- Handy IOErrors
 
-ioe_closedHandle, ioe_EOF,
+ioe_closedHandle, ioe_semiclosedHandle, ioe_EOF,
   ioe_notReadable, ioe_notWritable, ioe_cannotFlushNotSeekable,
   ioe_notSeekable :: IO a
 
 ioe_closedHandle = ioException
    (IOError Nothing IllegalOperation ""
         "handle is closed" Nothing Nothing)
+ioe_semiclosedHandle = ioException
+   (IOError Nothing IllegalOperation ""
+        "handle is semi-closed" Nothing Nothing)
 ioe_EOF = ioException
    (IOError Nothing EOF "" "" Nothing Nothing)
 ioe_notReadable = ioException
@@ -473,15 +477,19 @@ flushCharBuffer h_@Handle__{..} = do
     ReadBuffer  -> do
         flushCharReadBuffer h_
     WriteBuffer ->
+        -- Nothing to do here. Char buffer on a write Handle is always empty
+        -- between Handle operations.
+        -- See [note Buffer Flushing], GHC.IO.Handle.Types.
         when (not (isEmptyBuffer cbuf)) $
            error "internal IO library error: Char buffer non-empty"
 
 -- -----------------------------------------------------------------------------
 -- Writing data (flushing write buffers)
 
--- flushWriteBuffer flushes the buffer iff it contains pending write
--- data.  Flushes both the Char and the byte buffer, leaving both
--- empty.
+-- flushWriteBuffer flushes the byte buffer iff it contains pending write
+-- data. Because the Char buffer on a write Handle is always empty between
+-- Handle operations (see [note Buffer Flushing], GHC.IO.Handle.Types),
+-- both buffers are empty after this.
 flushWriteBuffer :: Handle__ -> IO ()
 flushWriteBuffer h_@Handle__{..} = do
   buf <- readIORef haByteBuffer
@@ -512,7 +520,7 @@ writeCharBuffer h_@Handle__{..} !cbuf = do
   debugIO ("writeCharBuffer after encoding: cbuf=" ++ summaryBuffer cbuf' ++
         " bbuf=" ++ summaryBuffer bbuf')
 
-          -- flush if the write buffer is full
+          -- flush the byte buffer if it is full
   if isFullBuffer bbuf'
           --  or we made no progress
      || not (isEmptyBuffer cbuf') && bufL cbuf' == bufL cbuf
@@ -617,7 +625,7 @@ mkHandle dev filepath ha_type mb_bmode mb_codec nl finalizer other_side = do
    let buf_state = initBufferState ha_type
    bbuf <- Buffered.newBuffer dev buf_state
    bbufref <- newIORef bbuf
-   last_decode <- newIORef (error "codec_state", bbuf)
+   last_decode <- newIORef (errorWithoutStackTrace "codec_state", bbuf)
    cbufref <- getCharBuffer buf_state
    bmode <- getBufferMode dev mb_bmode
 
@@ -835,7 +843,7 @@ readTextDevice h_@Handle__{..} cbuf = do
   (bbuf2,cbuf') <-
       case haDecoder of
           Nothing      -> do
-               writeIORef haLastDecode (error "codec_state", bbuf1)
+               writeIORef haLastDecode (errorWithoutStackTrace "codec_state", bbuf1)
                latin1_decode bbuf1 cbuf
           Just decoder -> do
                state <- getState decoder
@@ -924,7 +932,7 @@ decodeByteBuf h_@Handle__{..} cbuf = do
   (bbuf2,cbuf') <-
       case haDecoder of
           Nothing      -> do
-               writeIORef haLastDecode (error "codec_state", bbuf0)
+               writeIORef haLastDecode (errorWithoutStackTrace "codec_state", bbuf0)
                latin1_decode bbuf0 cbuf
           Just decoder -> do
                state <- getState decoder

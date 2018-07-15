@@ -79,7 +79,7 @@ latin1_checked = mkLatin1_checked ErrorOnCodingFailure
 
 -- | @since 4.4.0.0
 mkLatin1_checked :: CodingFailureMode -> TextEncoding
-mkLatin1_checked cfm = TextEncoding { textEncodingName = "ISO8859-1(checked)",
+mkLatin1_checked cfm = TextEncoding { textEncodingName = "ISO-8859-1",
                                       mkTextDecoder = latin1_DF cfm,
                                       mkTextEncoder = latin1_checked_EF cfm }
 
@@ -96,11 +96,11 @@ latin1_checked_EF cfm =
 -- -----------------------------------------------------------------------------
 -- ASCII
 
--- | @since 4.8.2.0
+-- | @since 4.9.0.0
 ascii :: TextEncoding
 ascii = mkAscii ErrorOnCodingFailure
 
--- | @since 4.8.2.0
+-- | @since 4.9.0.0
 mkAscii :: CodingFailureMode -> TextEncoding
 mkAscii cfm = TextEncoding { textEncodingName = "ASCII",
                              mkTextDecoder = ascii_DF cfm,

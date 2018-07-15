@@ -5,11 +5,10 @@
            , MagicHash
            , UnboxedTuples
            , UnliftedFFITypes
-           , DeriveDataTypeable
            , StandaloneDeriving
            , RankNTypes
   #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -60,6 +59,8 @@ module GHC.Conc.Sync
         , threadStatus
         , threadCapability
 
+        , newStablePtrPrimMVar, PrimMVar
+
         -- * Allocation counter and quota
         , setAllocationCounter
         , getAllocationCounter
@@ -98,11 +99,8 @@ module GHC.Conc.Sync
 import Foreign
 import Foreign.C
 
-#ifndef mingw32_HOST_OS
-import Data.Dynamic
-#else
 import Data.Typeable
-#endif
+
 import Data.Maybe
 
 import GHC.Base
@@ -118,6 +116,7 @@ import GHC.MVar
 import GHC.Ptr
 import GHC.Real         ( fromIntegral )
 import GHC.Show         ( Show(..), showString )
+import GHC.Stable       ( StablePtr(..) )
 import GHC.Weak
 import Java.StringBase
 
@@ -127,7 +126,7 @@ infixr 0 `par`, `pseq`
 -- 'ThreadId', 'par', and 'fork'
 -----------------------------------------------------------------------------
 
-data ThreadId = ThreadId ThreadId# deriving( Typeable )
+data ThreadId = ThreadId ThreadId#
 -- ToDo: data ThreadId = ThreadId (Weak ThreadId#)
 -- But since ThreadId# is unlifted, the Weak type must use open
 -- type variables.
@@ -147,6 +146,7 @@ This misfeature will hopefully be corrected at a later date.
 
 -}
 
+-- | @since 4.2.0.0
 instance Show ThreadId where
    showsPrec d t =
         showString "ThreadId " .
@@ -169,12 +169,14 @@ cmpThread t1 t2 =
       0  -> EQ
       _  -> GT -- must be 1
 
+-- | @since 4.2.0.0
 instance Eq ThreadId where
    t1 == t2 =
       case t1 `cmpThread` t2 of
          EQ -> True
          _  -> False
 
+-- | @since 4.2.0.0
 instance Ord ThreadId where
    compare = cmpThread
 
@@ -217,7 +219,9 @@ getAllocationCounter = do
 -- to 100K, but tunable with the @+RTS -xq@ option) so that it can handle
 -- the exception and perform any necessary clean up.  If it exhausts
 -- this additional allowance, another 'AllocationLimitExceeded' exception
--- is sent, and so forth.
+-- is sent, and so forth.  Like other asynchronous exceptions, the
+-- 'AllocationLimitExceeded' exception is deferred while the thread is inside
+-- 'mask' or an exception handler in 'catch'.
 --
 -- Note that memory allocation is unrelated to /live memory/, also
 -- known as /heap residency/.  A thread can allocate a large amount of
@@ -284,7 +288,9 @@ forkIO :: IO () -> IO ThreadId
 forkIO action = IO $ \ s ->
    case (fork# action_plus s) of (# s1, tid #) -> (# s1, ThreadId tid #)
  where
-  action_plus = catchException action childHandler
+  -- We must use 'catch' rather than 'catchException' because the action
+  -- could be bottom. #13330
+  action_plus = catch action childHandler
 
 -- | Like 'forkIO', but the child thread is passed a function that can
 -- be used to unmask asynchronous exceptions.  This function is
@@ -332,7 +338,9 @@ forkOn :: Int -> IO () -> IO ThreadId
 forkOn (I# cpu) action = IO $ \ s ->
    case (forkOn# cpu action_plus s) of (# s1, tid #) -> (# s1, ThreadId tid #)
  where
-  action_plus = catchException action childHandler
+  -- We must use 'catch' rather than 'catchException' because the action
+  -- could be bottom. #13330
+  action_plus = catch action childHandler
 
 -- | Like 'forkIOWithUnmask', but the child thread is pinned to the
 -- given CPU, as with 'forkOn'.
@@ -378,7 +386,9 @@ to avoid contention with other processes in the machine.
 @since 4.5.0.0
 -}
 setNumCapabilities :: Int -> IO ()
-setNumCapabilities i = c_setNumCapabilities (fromIntegral i)
+setNumCapabilities i
+  | i <= 0    = fail $ "setNumCapabilities: Capability count ("++show i++") must be positive"
+  | otherwise = c_setNumCapabilities (fromIntegral i)
 
 foreign import java unsafe "@static eta.runtime.stg.Capability.setNumCapabilities"
   c_setNumCapabilities :: CUInt -> IO ()
@@ -397,7 +407,11 @@ numSparks :: IO Int
 numSparks = IO $ \s -> case numSparks# s of (# s', n #) -> (# s', I# n #)
 
 childHandler :: SomeException -> IO ()
-childHandler err = catchException (real_handler err) childHandler
+childHandler err = catch (real_handler err) childHandler
+  -- We must use catch here rather than catchException. If the
+  -- raised exception throws an (imprecise) exception, then real_handler err
+  -- will do so as well. If we use catchException here, then we could miss
+  -- that exception.
 
 real_handler :: SomeException -> IO ()
 real_handler se
@@ -582,7 +596,7 @@ threadStatus (ThreadId t) = IO $ \s ->
      mk_stat 17 = ThreadDied
      mk_stat _  = ThreadBlocked BlockedOnOther
 
--- | returns the number of the capability on which the thread is currently
+-- | Returns the number of the capability on which the thread is currently
 -- running, and a boolean indicating whether the thread is locked to
 -- that capability or not.  A thread is locked to a capability if it
 -- was created with @forkOn@.
@@ -593,7 +607,7 @@ threadCapability (ThreadId t) = IO $ \s ->
    case threadStatus# t s of
      (# s', _, cap#, locked# #) -> (# s', (I# cap#, isTrue# (locked# /=# 0#)) #)
 
--- | make a weak pointer to a 'ThreadId'.  It can be important to do
+-- | Make a weak pointer to a 'ThreadId'.  It can be important to do
 -- this if you want to hold a reference to a 'ThreadId' while still
 -- allowing the thread to receive the @BlockedIndefinitely@ family of
 -- exceptions (e.g. 'BlockedIndefinitelyOnMVar').  Holding a normal
@@ -615,6 +629,17 @@ mkWeakThreadId t@(ThreadId t#) = IO $ \s ->
       (# s1, w #) -> (# s1, Weak w #)
 
 
+data PrimMVar
+
+-- | Make a StablePtr that can be passed to the C function
+-- @hs_try_putmvar()@.  The RTS wants a 'StablePtr' to the underlying
+-- 'MVar#', but a 'StablePtr#' can only refer to lifted types, so we
+-- have to cheat by coercing.
+newStablePtrPrimMVar :: MVar () -> IO (StablePtr PrimMVar)
+newStablePtrPrimMVar (MVar m) = IO $ \s0 ->
+  case makeStablePtr# (unsafeCoerce# m :: PrimMVar) s0 of
+    (# s1, sp #) -> (# s1, StablePtr sp #)
+
 -----------------------------------------------------------------------------
 -- Transactional heap operations
 -----------------------------------------------------------------------------
@@ -629,20 +654,25 @@ newtype STM a = STM (State# RealWorld -> (# State# RealWorld, a #))
 unSTM :: STM a -> (State# RealWorld -> (# State# RealWorld, a #))
 unSTM (STM a) = a
 
+-- | @since 4.3.0.0
 instance  Functor STM where
-   fmap f x = x >>= (return . f)
+   fmap f x = x >>= (pure . f)
 
+-- | @since 4.8.0.0
 instance Applicative STM where
-  pure = return
+  {-# INLINE pure #-}
+  {-# INLINE (*>) #-}
+  {-# INLINE liftA2 #-}
+  pure x = returnSTM x
   (<*>) = ap
+  liftA2 = liftM2
+  m *> k = thenSTM m k
 
+-- | @since 4.3.0.0
 instance  Monad STM  where
-    {-# INLINE return #-}
-    {-# INLINE (>>)   #-}
     {-# INLINE (>>=)  #-}
-    m >> k      = thenSTM m k
-    return x    = returnSTM x
     m >>= k     = bindSTM m k
+    (>>) = (*>)
 
 bindSTM :: STM a -> (a -> STM b) -> STM b
 bindSTM (STM m) k = STM ( \s ->
@@ -659,13 +689,13 @@ thenSTM (STM m) k = STM ( \s ->
 returnSTM :: a -> STM a
 returnSTM x = STM (\s -> (# s, x #))
 
+-- | @since 4.8.0.0
 instance Alternative STM where
   empty = retry
   (<|>) = orElse
 
-instance MonadPlus STM where
-  mzero = empty
-  mplus = (<|>)
+-- | @since 4.3.0.0
+instance MonadPlus STM
 
 -- | Unsafely performs IO in the STM monad.  Beware: this is a highly
 -- dangerous thing to do.
@@ -690,32 +720,42 @@ instance MonadPlus STM where
 unsafeIOToSTM :: IO a -> STM a
 unsafeIOToSTM (IO m) = STM m
 
--- |Perform a series of STM actions atomically.
+-- | Perform a series of STM actions atomically.
 --
--- You cannot use 'atomically' inside an 'unsafePerformIO' or 'unsafeInterleaveIO'.
--- Any attempt to do so will result in a runtime error.  (Reason: allowing
--- this would effectively allow a transaction inside a transaction, depending
--- on exactly when the thunk is evaluated.)
+-- Using 'atomically' inside an 'unsafePerformIO' or 'unsafeInterleaveIO'
+-- subverts some of guarantees that STM provides. It makes it possible to
+-- run a transaction inside of another transaction, depending on when the
+-- thunk is evaluated. If a nested transaction is attempted, an exception
+-- is thrown by the runtime. It is possible to safely use 'atomically' inside
+-- 'unsafePerformIO' or 'unsafeInterleaveIO', but the typechecker does not
+-- rule out programs that may attempt nested transactions, meaning that
+-- the programmer must take special care to prevent these.
 --
--- However, see 'newTVarIO', which can be called inside 'unsafePerformIO',
--- and which allows top-level TVars to be allocated.
+-- However, there are functions for creating transactional variables that
+-- can always be safely called in 'unsafePerformIO'. See: 'newTVarIO',
+-- 'newTChanIO', 'newBroadcastTChanIO', 'newTQueueIO', 'newTBQueueIO',
+-- and 'newTMVarIO'.
+--
+-- Using 'unsafePerformIO' inside of 'atomically' is also dangerous but for
+-- different reasons. See 'unsafeIOToSTM' for more on this.
 
 atomically :: STM a -> IO a
 atomically (STM m) = IO (\s -> (atomically# m) s )
 
--- |Retry execution of the current memory transaction because it has seen
--- values in TVars which mean that it should not continue (e.g. the TVars
+-- | Retry execution of the current memory transaction because it has seen
+-- values in 'TVar's which mean that it should not continue (e.g. the 'TVar's
 -- represent a shared buffer that is now empty).  The implementation may
--- block the thread until one of the TVars that it has read from has been
--- udpated. (GHC only)
+-- block the thread until one of the 'TVar's that it has read from has been
+-- updated. (GHC only)
 retry :: STM a
 retry = STM $ \s# -> retry# s#
 
--- |Compose two alternative STM actions (GHC only).  If the first action
--- completes without retrying then it forms the result of the orElse.
--- Otherwise, if the first action retries, then the second action is
--- tried in its place.  If both actions retry then the orElse as a
--- whole retries.
+-- | Compose two alternative STM actions (GHC only).
+--
+-- If the first action completes without retrying then it forms the result of
+-- the 'orElse'. Otherwise, if the first action retries, then the second action
+-- is tried in its place. If both actions retry then the 'orElse' as a whole
+-- retries.
 orElse :: STM a -> STM a -> STM a
 orElse (STM m) e = STM $ \s -> catchRetry# m (unSTM e) s
 
@@ -748,16 +788,17 @@ catchSTM (STM m) handler = STM $ catchSTM# m handler'
                      Just e' -> unSTM (handler e')
                      Nothing -> raiseIO# e
 
--- | Low-level primitive on which always and alwaysSucceeds are built.
--- checkInv differs form these in that (i) the invariant is not
--- checked when checkInv is called, only at the end of this and
--- subsequent transcations, (ii) the invariant failure is indicated
--- by raising an exception.
+-- | Low-level primitive on which 'always' and 'alwaysSucceeds' are built.
+-- 'checkInv' differs from these in that,
+--
+-- 1. the invariant is not checked when 'checkInv' is called, only at the end of
+-- this and subsequent transactions
+-- 2. the invariant failure is indicated by raising an exception.
 checkInv :: STM a -> STM ()
 checkInv (STM m) = STM (\s -> (check# m) s)
 
--- | alwaysSucceeds adds a new invariant that must be true when passed
--- to alwaysSucceeds, at the end of the current transaction, and at
+-- | 'alwaysSucceeds' adds a new invariant that must be true when passed
+-- to 'alwaysSucceeds', at the end of the current transaction, and at
 -- the end of every subsequent transaction.  If it fails at any
 -- of those points then the transaction violating it is aborted
 -- and the exception raised by the invariant is propagated.
@@ -765,21 +806,22 @@ alwaysSucceeds :: STM a -> STM ()
 alwaysSucceeds i = do ( i >> retry ) `orElse` ( return () )
                       checkInv i
 
--- | always is a variant of alwaysSucceeds in which the invariant is
--- expressed as an STM Bool action that must return True.  Returning
--- False or raising an exception are both treated as invariant failures.
+-- | 'always' is a variant of 'alwaysSucceeds' in which the invariant is
+-- expressed as an @STM Bool@ action that must return @True@.  Returning
+-- @False@ or raising an exception are both treated as invariant failures.
 always :: STM Bool -> STM ()
 always i = alwaysSucceeds ( do v <- i
-                               if (v) then return () else ( error "Transactional invariant violation" ) )
+                               if (v) then return () else ( errorWithoutStackTrace "Transactional invariant violation" ) )
 
 -- |Shared memory locations that support atomic memory transactions.
 data TVar a = TVar (TVar# RealWorld a)
               deriving Typeable
 
+-- | @since 4.8.0.0
 instance Eq (TVar a) where
         (TVar tvar1#) == (TVar tvar2#) = isTrue# (sameTVar# tvar1# tvar2#)
 
--- |Create a new TVar holding a value supplied
+-- | Create a new 'TVar' holding a value supplied
 newTVar :: a -> STM (TVar a)
 newTVar val = STM $ \s1# ->
     case newTVar# val s1# of
@@ -818,6 +860,8 @@ writeTVar (TVar tvar#) val = STM $ \s1# ->
 -- MVar utilities
 -----------------------------------------------------------------------------
 
+-- | Provide an 'IO' action with the current value of an 'MVar'. The 'MVar'
+-- will be empty for the duration that the action is running.
 withMVar :: MVar a -> (a -> IO b) -> IO b
 withMVar m io =
   mask $ \restore -> do

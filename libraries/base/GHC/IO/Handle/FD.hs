@@ -18,13 +18,13 @@
 module GHC.IO.Handle.FD (
   stdin, stdout, stderr,
   openFile, openBinaryFile, openFileBlocking,
-  mkHandleFromFD, fdToHandle, fdToHandle',
-  isEOF
+  mkHandleFromFD, fdToHandle, fdToHandle'
  ) where
 
 import GHC.Base
 import GHC.Show
 import Data.Maybe
+import Data.Typeable
 import Foreign.C.Types
 import GHC.MVar
 import GHC.IO
@@ -32,7 +32,6 @@ import GHC.IO.Encoding
 import GHC.IO.Device as IODevice
 import GHC.IO.Exception
 import GHC.IO.IOMode
-import GHC.IO.Handle
 import GHC.IO.Handle.Types
 import GHC.IO.Handle.Internals
 import qualified GHC.IO.FD as FD
@@ -98,13 +97,6 @@ setBinaryMode :: FD.FD -> IO ()
 setBinaryMode _ = return ()
 
 -- ---------------------------------------------------------------------------
--- isEOF
-
--- | The computation 'isEOF' is identical to 'hIsEOF',
--- except that it works only on 'stdin'.
-
-isEOF :: IO Bool
-isEOF = hIsEOF stdin
 
 -- ---------------------------------------------------------------------------
 -- Opening and Closing Files

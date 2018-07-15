@@ -1,5 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -32,6 +34,7 @@ module GHC.Foreign (
     --
     withCString,
     withCStringLen,
+    withCStringsLen,
 
     charIsRepresentable,
   ) where
@@ -46,7 +49,6 @@ import Data.Word
 -- Imports for the locale-encoding version of marshallers
 
 import Data.Tuple (fst)
-import Data.Maybe
 
 import GHC.Show ( show )
 
@@ -67,7 +69,7 @@ c_DEBUG_DUMP :: Bool
 c_DEBUG_DUMP = False
 
 putDebugMsg :: String -> IO ()
-putDebugMsg | c_DEBUG_DUMP = error "putDebugMsg: Not implemented yet."
+putDebugMsg | c_DEBUG_DUMP = errorWithoutStackTrace "putDebugMsg: Not implemented yet."
             | otherwise    = const (return ())
 
 
@@ -133,6 +135,23 @@ withCString enc s act = withEncodedCString enc True s $ \(cp, _sz) -> act cp
 withCStringLen         :: TextEncoding -> String -> (CStringLen -> IO a) -> IO a
 withCStringLen enc = withEncodedCString enc False
 
+-- | Marshal a list of Haskell strings into an array of NUL terminated C strings
+-- using temporary storage.
+--
+-- * the Haskell strings may /not/ contain any NUL characters
+--
+-- * the memory is freed when the subcomputation terminates (either
+--   normally or via an exception), so the pointer to the temporary
+--   storage must /not/ be used after this.
+--
+withCStringsLen :: TextEncoding
+                -> [String]
+                -> (Int -> Ptr CString -> IO a)
+                -> IO a
+withCStringsLen enc strs f = go [] strs
+  where
+  go cs (s:ss) = withCString enc s $ \c -> go (c:cs) ss
+  go cs [] = withArrayLen (reverse cs) f
 
 -- | Determines whether a character can be accurately encoded in a 'CString'.
 --
@@ -140,7 +159,23 @@ withCStringLen enc = withEncodedCString enc False
 -- whether or not a character is encodable will, in general, depend on the
 -- context in which it occurs.
 charIsRepresentable :: TextEncoding -> Char -> IO Bool
-charIsRepresentable enc c = withCString enc [c] (fmap (== [c]) . peekCString enc) `catchException` (\e -> let _ = e :: IOException in return False)
+-- We force enc explicitly because `catch` is lazy in its
+-- first argument. We would probably like to force c as well,
+-- but unfortunately worker/wrapper produces very bad code for
+-- that.
+--
+-- TODO If this function is performance-critical, it would probably
+-- pay to use a single-character specialization of withCString. That
+-- would allow worker/wrapper to actually eliminate Char boxes, and
+-- would also get rid of the completely unnecessary cons allocation.
+charIsRepresentable !enc c =
+  withCString enc [c]
+              (\cstr -> do str <- peekCString enc cstr
+                           case str of
+                             [ch] | ch == c -> pure True
+                             _ -> pure False)
+    `catch`
+       \(_ :: IOException) -> pure False
 
 -- auxiliary definitions
 -- ----------------------

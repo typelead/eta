@@ -84,8 +84,6 @@ module Foreign.C.Error (
   throwErrnoPathIfMinus1_,
 ) where
 
-
--- TODO: Replace signals
 #include "Signals.h"
 -- this is were we get the CONST_XXX definitions from that configure
 -- calculated for us
@@ -111,6 +109,7 @@ import GHC.Base
 
 newtype Errno = Errno CInt
 
+-- | @since 2.01
 instance Eq Errno where
   errno1@(Errno no1) == errno2@(Errno no2)
     | isValidErrno errno1 && isValidErrno errno2 = no1 == no2

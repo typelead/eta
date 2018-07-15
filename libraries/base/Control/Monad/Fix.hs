@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, TypeOperators #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -26,7 +26,10 @@ module Control.Monad.Fix (
 import Data.Either
 import Data.Function ( fix )
 import Data.Maybe
-import GHC.Base ( Monad, error, (.) )
+import Data.Monoid ( Dual(..), Sum(..), Product(..)
+                   , First(..), Last(..), Alt(..) )
+import GHC.Base ( Monad, NonEmpty(..), errorWithoutStackTrace, (.) )
+import GHC.Generics
 import GHC.List ( head, tail )
 import GHC.ST
 import System.IO
@@ -58,26 +61,86 @@ class (Monad m) => MonadFix m where
 
 -- Instances of MonadFix for Prelude monads
 
+-- | @since 2.01
 instance MonadFix Maybe where
     mfix f = let a = f (unJust a) in a
              where unJust (Just x) = x
-                   unJust Nothing  = error "mfix Maybe: Nothing"
+                   unJust Nothing  = errorWithoutStackTrace "mfix Maybe: Nothing"
 
+-- | @since 2.01
 instance MonadFix [] where
     mfix f = case fix (f . head) of
                []    -> []
                (x:_) -> x : mfix (tail . f)
 
+-- | @since 4.9.0.0
+instance MonadFix NonEmpty where
+  mfix f = case fix (f . neHead) of
+             ~(x :| _) -> x :| mfix (neTail . f)
+    where
+      neHead ~(a :| _) = a
+      neTail ~(_ :| as) = as
+
+-- | @since 2.01
 instance MonadFix IO where
     mfix = fixIO
 
+-- | @since 2.01
 instance MonadFix ((->) r) where
     mfix f = \ r -> let a = f a r in a
 
+-- | @since 4.3.0.0
 instance MonadFix (Either e) where
     mfix f = let a = f (unRight a) in a
              where unRight (Right x) = x
-                   unRight (Left  _) = error "mfix Either: Left"
+                   unRight (Left  _) = errorWithoutStackTrace "mfix Either: Left"
 
+-- | @since 2.01
 instance MonadFix (ST s) where
         mfix = fixST
+
+-- Instances of Data.Monoid wrappers
+
+-- | @since 4.8.0.0
+instance MonadFix Dual where
+    mfix f   = Dual (fix (getDual . f))
+
+-- | @since 4.8.0.0
+instance MonadFix Sum where
+    mfix f   = Sum (fix (getSum . f))
+
+-- | @since 4.8.0.0
+instance MonadFix Product where
+    mfix f   = Product (fix (getProduct . f))
+
+-- | @since 4.8.0.0
+instance MonadFix First where
+    mfix f   = First (mfix (getFirst . f))
+
+-- | @since 4.8.0.0
+instance MonadFix Last where
+    mfix f   = Last (mfix (getLast . f))
+
+-- | @since 4.8.0.0
+instance MonadFix f => MonadFix (Alt f) where
+    mfix f   = Alt (mfix (getAlt . f))
+
+-- Instances for GHC.Generics
+-- | @since 4.9.0.0
+-- instance MonadFix Par1 where
+--     mfix f = Par1 (fix (unPar1 . f))
+--
+-- -- | @since 4.9.0.0
+-- instance MonadFix f => MonadFix (Rec1 f) where
+--     mfix f = Rec1 (mfix (unRec1 . f))
+--
+-- -- | @since 4.9.0.0
+-- instance MonadFix f => MonadFix (M1 i c f) where
+--     mfix f = M1 (mfix (unM1. f))
+--
+-- -- | @since 4.9.0.0
+-- instance (MonadFix f, MonadFix g) => MonadFix (f :*: g) where
+--     mfix f = (mfix (fstP . f)) :*: (mfix (sndP . f))
+--       where
+--         fstP (a :*: _) = a
+--         sndP (_ :*: b) = b

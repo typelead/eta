@@ -7,6 +7,7 @@
 {-# LANGUAGE StandaloneDeriving  #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -25,6 +26,7 @@
 module Data.Type.Coercion
   ( Coercion(..)
   , coerceWith
+  , gcoerceWith
   , sym
   , trans
   , repr
@@ -58,13 +60,19 @@ newtype Sym a b = Sym { unsym :: Coercion b a }
 coerceWith :: Coercion a b -> a -> b
 coerceWith Coercion x = coerce x
 
+-- | Generalized form of type-safe cast using representational equality
+--
+-- @since 4.10.0.0
+gcoerceWith :: Coercion a b -> (Coercible a b => r) -> r
+gcoerceWith Coercion x = x
+
 -- | Symmetry of representational equality
-sym :: forall a b. Coercion a b -> Coercion b a
-sym Coercion = unsym (coerce (Sym Coercion :: Sym a a))
+sym :: Coercion a b -> Coercion b a
+sym Coercion = Coercion
 
 -- | Transitivity of representational equality
 trans :: Coercion a b -> Coercion b c -> Coercion a c
-trans c Coercion = coerce c
+trans Coercion Coercion = Coercion
 
 -- | Convert propositional (nominal) equality to representational equality
 repr :: (a Eq.:~: b) -> Coercion a b
@@ -74,15 +82,17 @@ deriving instance Eq   (Coercion a b)
 deriving instance Show (Coercion a b)
 deriving instance Ord  (Coercion a b)
 
-instance Coercible a b => Read (Coercion a b) where
-  readsPrec d = readParen (d > 10) (\r -> [(Coercion, s) | ("Coercion",s) <- lex r ])
+-- | @since 4.7.0.0
+deriving instance Coercible a b => Read (Coercion a b)
 
+-- | @since 4.7.0.0
 instance Coercible a b => Enum (Coercion a b) where
   toEnum 0 = Coercion
-  toEnum _ = error "Data.Type.Coercion.toEnum: bad argument"
+  toEnum _ = errorWithoutStackTrace "Data.Type.Coercion.toEnum: bad argument"
 
   fromEnum Coercion = 0
 
+-- | @since 4.7.0.0
 instance Coercible a b => Bounded (Coercion a b) where
   minBound = Coercion
   maxBound = Coercion
@@ -94,8 +104,10 @@ class TestCoercion f where
   -- | Conditionally prove the representational equality of @a@ and @b@.
   testCoercion :: f a -> f b -> Maybe (Coercion a b)
 
+-- | @since 4.7.0.0
 instance TestCoercion ((Eq.:~:) a) where
   testCoercion Eq.Refl Eq.Refl = Just Coercion
 
+-- | @since 4.7.0.0
 instance TestCoercion (Coercion a) where
-  testCoercion c Coercion = Just $ coerce (sym c)
+  testCoercion Coercion Coercion = Just Coercion

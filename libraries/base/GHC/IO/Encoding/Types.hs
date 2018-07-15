@@ -117,13 +117,14 @@ data TextEncoding
                    -- be shared between several character sequences or simultaneously across threads
   }
 
+-- | @since 4.3.0.0
 instance Show TextEncoding where
   -- | Returns the value of 'textEncodingName'
   show te = textEncodingName te
 
 -- | @since 4.4.0.0
 data CodingProgress = InputUnderflow  -- ^ Stopped because the input contains insufficient available elements,
-                                      -- or all of the input sequence has been sucessfully translated.
+                                      -- or all of the input sequence has been successfully translated.
                     | OutputUnderflow -- ^ Stopped because the output contains insufficient free elements
                     | InvalidSequence -- ^ Stopped because there are sufficient free elements in the output
                                       -- to output at least one encoded ASCII character, but the input contains

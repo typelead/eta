@@ -1,5 +1,5 @@
 name:           base
-version:        4.8.2.0
+version:        4.11.1.0
 license:        BSD3
 license-file:   LICENSE
 maintainer:     libraries@haskell.org
@@ -90,7 +90,9 @@ library
         Control.Monad.ST.Strict
         Control.Monad.ST.Unsafe
         Control.Monad.Zip
+        Data.Bifoldable
         Data.Bifunctor
+        Data.Bitraversable
         Data.Bits
         Data.Bool
         Data.Char
@@ -104,7 +106,14 @@ library
         Data.Foldable
         Data.Function
         Data.Functor
+        Data.Functor.Classes
+        Data.Functor.Compose
+        Data.Functor.Const
         Data.Functor.Identity
+        Data.Functor.Product
+        Data.Functor.Sum
+        Data.Functor.Utils
+        Data.List.NonEmpty
         Data.IORef
         Data.Int
         Data.Ix
@@ -114,6 +123,8 @@ library
         Data.Ord
         Data.Proxy
         Data.Ratio
+        Data.Semigroup
+        Data.Semigroup.Internal
         Data.STRef
         Data.STRef.Lazy
         Data.STRef.Strict
@@ -195,17 +206,17 @@ library
         GHC.IO.Handle
         GHC.IO.Handle.FD
         GHC.IO.Handle.Internals
+        GHC.IO.Handle.Lock
         GHC.IO.Handle.Text
         GHC.IO.Handle.Types
-        GHC.Stack.Types
         GHC.IO.IOMode
         GHC.IO.Unsafe
         GHC.IOArray
         GHC.IORef
-        GHC.IP
         GHC.Int
         GHC.List
         GHC.MVar
+        GHC.Maybe
         GHC.Natural
         GHC.Num
         GHC.OldList
@@ -221,13 +232,15 @@ library
         GHC.StaticPtr
         GHC.STRef
         GHC.Show
-        GHC.SrcLoc
         GHC.Stable
         GHC.Stack
+        GHC.Stack.CCS
+        GHC.Stack.Types
         GHC.Stats
         GHC.Storable
         GHC.TopHandler
         GHC.TypeLits
+        GHC.TypeNats
         GHC.Unicode
         GHC.Weak
         GHC.Word
@@ -270,6 +283,7 @@ library
         Text.Read.Lex
         Text.Show
         Text.Show.Functions
+        Type.Reflection
         Unsafe.Coerce
 
     other-modules:

@@ -1,4 +1,4 @@
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE Trustworthy, BangPatterns #-}
 {-# LANGUAGE CPP, NoImplicitPrelude #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
@@ -224,7 +224,8 @@ foreign import java unsafe "@static eta.base.Utils.c_memmove"
   memmove :: Ptr a -> Ptr a -> CSize -> IO (Ptr a)
 
 summaryBuffer :: Buffer a -> String
-summaryBuffer buf = "buf" ++ show (bufSize buf) ++ "(" ++ show (bufL buf) ++ "-" ++ show (bufR buf) ++ ")"
+summaryBuffer !buf  -- Strict => slightly better code
+   = "buf" ++ show (bufSize buf) ++ "(" ++ show (bufL buf) ++ "-" ++ show (bufR buf) ++ ")"
 
 -- INVARIANTS on Buffers:
 --   * r <= w
@@ -247,4 +248,4 @@ checkBuffer buf@Buffer{ bufState = state, bufL=r, bufR=w, bufSize=size } = do
 
 check :: Buffer a -> Bool -> IO ()
 check _   True  = return ()
-check buf False = error ("buffer invariant violation: " ++ summaryBuffer buf)
+check buf False = errorWithoutStackTrace ("buffer invariant violation: " ++ summaryBuffer buf)

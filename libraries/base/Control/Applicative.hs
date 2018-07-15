@@ -45,7 +45,7 @@ module Control.Applicative (
     Const(..), WrappedMonad(..), WrappedArrow(..), ZipList(..),
     -- * Utility functions
     (<$>), (<$), (<**>),
-    liftA, liftA2, liftA3,
+    liftA, liftA3,
     optional,
     ) where
 
@@ -57,49 +57,28 @@ import Data.Eq
 import Data.Ord
 import Data.Foldable (Foldable(..))
 import Data.Functor ((<$>))
+import Data.Functor.Const (Const(..))
 
 import GHC.Base
 import GHC.Generics
-import GHC.List (repeat, zipWith)
-import GHC.Read (Read(readsPrec), readParen, lex)
-import GHC.Show (Show(showsPrec), showParen, showString)
-
-newtype Const a b = Const { getConst :: a }
-                  deriving (Generic, Generic1, Monoid, Eq, Ord)
-
-instance Read a => Read (Const a b) where
-    readsPrec d = readParen (d > 10)
-        $ \r -> [(Const x,t) | ("Const", s) <- lex r, (x, t) <- readsPrec 11 s]
-
-instance Show a => Show (Const a b) where
-    showsPrec d (Const x) = showParen (d > 10) $
-                            showString "Const " . showsPrec 11 x
-
-instance Foldable (Const m) where
-    foldMap _ _ = mempty
-
-instance Functor (Const m) where
-    fmap _ (Const v) = Const v
-
-instance Monoid m => Applicative (Const m) where
-    pure _ = Const mempty
-    (<*>) = coerce (mappend :: m -> m -> m)
--- This is pretty much the same as
--- Const f <*> Const v = Const (f `mappend` v)
--- but guarantees that mappend for Const a b will have the same arity
--- as the one for a; it won't create a closure to raise the arity
--- to 2.
+import GHC.List (repeat, zipWith, drop)
+import GHC.Read (Read)
+import GHC.Show (Show)
 
 newtype WrappedMonad m a = WrapMonad { unwrapMonad :: m a }
                          deriving (Generic, Generic1, Monad)
 
+-- | @since 2.01
 instance Monad m => Functor (WrappedMonad m) where
     fmap f (WrapMonad v) = WrapMonad (liftM f v)
 
+-- | @since 2.01
 instance Monad m => Applicative (WrappedMonad m) where
-    pure = WrapMonad . return
+    pure = WrapMonad . pure
     WrapMonad f <*> WrapMonad v = WrapMonad (f `ap` v)
+    liftA2 f (WrapMonad x) (WrapMonad y) = WrapMonad (liftM2 f x y)
 
+-- | @since 2.01
 instance MonadPlus m => Alternative (WrappedMonad m) where
     empty = WrapMonad mzero
     WrapMonad u <|> WrapMonad v = WrapMonad (u `mplus` v)
@@ -107,27 +86,47 @@ instance MonadPlus m => Alternative (WrappedMonad m) where
 newtype WrappedArrow a b c = WrapArrow { unwrapArrow :: a b c }
                            deriving (Generic, Generic1)
 
+-- | @since 2.01
 instance Arrow a => Functor (WrappedArrow a b) where
     fmap f (WrapArrow a) = WrapArrow (a >>> arr f)
 
+-- | @since 2.01
 instance Arrow a => Applicative (WrappedArrow a b) where
     pure x = WrapArrow (arr (const x))
-    WrapArrow f <*> WrapArrow v = WrapArrow (f &&& v >>> arr (uncurry id))
+    liftA2 f (WrapArrow u) (WrapArrow v) =
+      WrapArrow (u &&& v >>> arr (uncurry f))
 
+-- | @since 2.01
 instance (ArrowZero a, ArrowPlus a) => Alternative (WrappedArrow a b) where
     empty = WrapArrow zeroArrow
     WrapArrow u <|> WrapArrow v = WrapArrow (u <+> v)
 
--- | Lists, but with an 'Applicative' functor based on zipping, so that
---
--- @f '<$>' 'ZipList' xs1 '<*>' ... '<*>' 'ZipList' xsn = 'ZipList' (zipWithn f xs1 ... xsn)@
---
+-- | Lists, but with an 'Applicative' functor based on zipping.
 newtype ZipList a = ZipList { getZipList :: [a] }
-                  deriving (Show, Eq, Ord, Read, Functor, Generic, Generic1)
+                  deriving ( Show, Eq, Ord, Read, Functor
+                           , Foldable, Generic, Generic1)
+-- See Data.Traversable for Traversable instance due to import loops
 
+-- |
+-- > f '<$>' 'ZipList' xs1 '<*>' ... '<*>' 'ZipList' xsN
+-- >     = 'ZipList' (zipWithN f xs1 ... xsN)
+--
+-- where @zipWithN@ refers to the @zipWith@ function of the appropriate arity
+-- (@zipWith@, @zipWith3@, @zipWith4@, ...). For example:
+--
+-- > (\a b c -> stimes c [a, b]) <$> ZipList "abcd" <*> ZipList "567" <*> ZipList [1..]
+-- >     = ZipList (zipWith3 (\a b c -> stimes c [a, b]) "abcd" "567" [1..])
+-- >     = ZipList {getZipList = ["a5","b6b6","c7c7c7"]}
+--
+-- @since 2.01
 instance Applicative ZipList where
     pure x = ZipList (repeat x)
-    ZipList fs <*> ZipList xs = ZipList (zipWith id fs xs)
+    liftA2 f (ZipList xs) (ZipList ys) = ZipList (zipWith f xs ys)
+
+-- | @since 4.11.0.0
+instance Alternative ZipList where
+   empty = ZipList []
+   ZipList xs <|> ZipList ys = ZipList (xs ++ drop (length xs) ys)
 
 -- extra functions
 

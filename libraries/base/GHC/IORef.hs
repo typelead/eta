@@ -1,5 +1,5 @@
 {-# LANGUAGE Unsafe #-}
-{-# LANGUAGE NoImplicitPrelude, MagicHash, AutoDeriveTypeable #-}
+{-# LANGUAGE NoImplicitPrelude, MagicHash #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_HADDOCK hide #-}
 
@@ -25,17 +25,16 @@ module GHC.IORef (
 import GHC.Base
 import GHC.STRef
 import GHC.IO
-import Data.Typeable.Internal( Typeable )
 
 -- ---------------------------------------------------------------------------
 -- IORefs
 
 -- |A mutable variable in the 'IO' monad
-newtype IORef a = IORef (STRef RealWorld a) deriving( Typeable )
-
--- explicit instance because Haddock can't figure out a derived one
-instance Eq (IORef a) where
-  IORef x == IORef y = x == y
+newtype IORef a = IORef (STRef RealWorld a)
+  deriving Eq
+  -- ^ Pointer equality.
+  --
+  -- @since 4.1.0.0
 
 -- |Build a new 'IORef'
 newIORef    :: a -> IO (IORef a)

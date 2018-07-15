@@ -1,6 +1,7 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE AutoDeriveTypeable, StandaloneDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE PolyKinds, DataKinds, TypeFamilies, TypeOperators, UndecidableInstances #-}
 
 -----------------------------------------------------------------------------
@@ -24,16 +25,15 @@ module Data.Either (
    rights,
    isLeft,
    isRight,
+   fromLeft,
+   fromRight,
    partitionEithers,
  ) where
 
 import GHC.Base
 import GHC.Show
 import GHC.Read
-
-import Data.Typeable
 import Data.Type.Equality
-
 -- $setup
 -- Allow the use of some Prelude functions in doctests.
 -- >>> import Prelude ( (+), (*), length, putStrLn )
@@ -123,19 +123,32 @@ Left "parse error"
 
 -}
 data  Either a b  =  Left a | Right b
-  deriving (Eq, Ord, Read, Show, Typeable)
+  deriving (Eq, Ord, Read, Show)
 
+-- | @since 3.0
 instance Functor (Either a) where
     fmap _ (Left x) = Left x
     fmap f (Right y) = Right (f y)
 
+-- | @since 4.9.0.0
+instance Semigroup (Either a b) where
+    Left _ <> b = b
+    a      <> _ = a
+#if !defined(__HADDOCK_VERSION__)
+    -- workaround https://github.com/haskell/haddock/issues/680
+    stimes n x
+      | n <= 0 = errorWithoutStackTrace "stimes: positive multiplier expected"
+      | otherwise = x
+#endif
+
+-- | @since 3.0
 instance Applicative (Either e) where
     pure          = Right
     Left  e <*> _ = Left e
     Right f <*> r = fmap f r
 
+-- | @since 4.4.0.0
 instance Monad (Either e) where
-    return = Right
     Left  l >>= _ = Left l
     Right r >>= k = k r
 
@@ -175,6 +188,7 @@ either _ g (Right y)    =  g y
 --
 lefts   :: [Either a b] -> [a]
 lefts x = [a | Left a <- x]
+{-# INLINEABLE lefts #-} -- otherwise doesnt get an unfolding, see #13689
 
 -- | Extracts from a list of 'Either' all the 'Right' elements.
 -- All the 'Right' elements are extracted in order.
@@ -189,6 +203,7 @@ lefts x = [a | Left a <- x]
 --
 rights   :: [Either a b] -> [b]
 rights x = [a | Right a <- x]
+{-# INLINEABLE rights #-} -- otherwise doesnt get an unfolding, see #13689
 
 -- | Partitions a list of 'Either' into two lists.
 -- All the 'Left' elements are extracted, in order, to the first
@@ -284,7 +299,42 @@ type family EqEither a b where
   EqEither ('Left x)  ('Left y)  = x == y
   EqEither ('Right x) ('Right y) = x == y
   EqEither a         b           = 'False
+
 type instance a == b = EqEither a b
+
+-- | Return the contents of a 'Left'-value or a default value otherwise.
+--
+-- @since 4.10.0.0
+--
+-- ==== __Examples__
+--
+-- Basic usage:
+--
+-- >>> fromLeft 1 (Left 3)
+-- 3
+-- >>> fromLeft 1 (Right "foo")
+-- 1
+--
+fromLeft :: a -> Either a b -> a
+fromLeft _ (Left a) = a
+fromLeft a _        = a
+
+-- | Return the contents of a 'Right'-value or a default value otherwise.
+--
+-- @since 4.10.0.0
+--
+-- ==== __Examples__
+--
+-- Basic usage:
+--
+-- >>> fromRight 1 (Right 3)
+-- 3
+-- >>> fromRight 1 (Left "foo")
+-- 1
+--
+fromRight :: b -> Either a b -> b
+fromRight _ (Right b) = b
+fromRight b _         = b
 
 {-
 {--------------------------------------------------------------------
