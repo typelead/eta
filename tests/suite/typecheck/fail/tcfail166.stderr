@@ -1,0 +1,5 @@
+
+tests/suite/typecheck/fail/tcfail166.hs:5:21: error:
+    Illegal symbol '.' in type
+    Perhaps you intended to use RankNTypes or a similar language
+    extension to enable explicit-forall syntax: forall <tvs>. <type>
