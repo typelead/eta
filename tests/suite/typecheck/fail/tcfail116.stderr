@@ -1,0 +1,6 @@
+
+tests/suite/typecheck/fail/tcfail116.hs:5:1: error:
+    The class method ‘bug’
+    mentions none of the type or kind variables of the class ‘Foo a’
+    When checking the class method: bug :: ()
+    In the class declaration for ‘Foo’
