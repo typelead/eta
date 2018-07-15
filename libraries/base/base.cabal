@@ -208,7 +208,6 @@ library
         GHC.IO.Handle.Lock
         GHC.IO.Handle.Text
         GHC.IO.Handle.Types
-        GHC.Stack.Types
         GHC.IO.IOMode
         GHC.IO.Unsafe
         GHC.IOArray
@@ -289,6 +288,7 @@ library
         Control.Monad.ST.Imp
         Control.Monad.ST.Lazy.Imp
         Data.Functor.Utils
+        Data.Semigroup.Internal
         Data.OldList
         Data.Semigroup.Internal
         Data.Typeable.Internal
