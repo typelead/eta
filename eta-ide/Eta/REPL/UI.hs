@@ -30,6 +30,9 @@ module Eta.REPL.UI (
 
 #include "HsVersions.h"
 
+-- Eta IDE
+import Eta.IDE.JSON
+
 -- Eta REPL
 import qualified Eta.REPL.UI.Monad as GhciMonad ( args, runStmt, runDecls )
 import Eta.REPL.UI.Monad hiding ( args, runStmt, runDecls )
@@ -91,8 +94,10 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except
 
+import qualified Data.Aeson as J
 import Data.Array
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Char
 import Data.Function
 import Data.IORef ( IORef, modifyIORef, newIORef, readIORef, writeIORef )
@@ -243,6 +248,7 @@ etaReplWelcomeMsg dflags =
 ghciCommands :: [Command]
 ghciCommands = map mkCmd [
   -- Hugs users are accustomed to :e, so make sure it doesn't overlap
+  ("idebrowse", keepGoing' ideBrowse,           completeModule),
   ("?",         keepGoing help,                 noCompletion),
   ("add",       keepGoingPaths addModule,       completeFilename),
   ("abandon",   keepGoing abandonCmd,           noCompletion),
@@ -2226,6 +2232,101 @@ isSafeModule m = do
     tallyPkgs dflags deps | not (packageTrustOn dflags) = ([], [])
                           | otherwise = partition part deps
         where part pkg = trusted $ getInstalledPackageDetails dflags pkg
+
+-----------------------------------------------------------------------------
+-- :idebrowse
+
+-- Mostly copy-pasta from browseCmd
+ideBrowse :: String -> InputT GHCi ()
+ideBrowse m =
+  case words m of
+    ['*':s] | looksLikeModuleName s -> do
+        md <- lift $ wantInterpretedModule s
+        browseModule False md False
+    [s] | looksLikeModuleName s -> do
+        md <- lift $ lookupModule s
+        ideBrowseModule False md True
+    [] -> do md <- guessCurrentModule "browse"
+             browseModule False md True
+    _ -> throwGhcException (CmdLineError "syntax:  :idebrowse <module>")
+
+-- Mostly copy-pasta from browseModule
+ideBrowseModule :: Bool -> Module -> Bool -> InputT GHCi ()
+ideBrowseModule bang modl exports_only = do
+  -- :browse reports qualifiers wrt current context
+  unqual <- GHC.getPrintUnqual
+
+  mb_mod_info <- GHC.getModuleInfo modl
+  case mb_mod_info of
+    Nothing -> throwGhcException (CmdLineError ("unknown module: " ++
+                                GHC.moduleNameString (GHC.moduleName modl)))
+    Just mod_info -> do
+        dflags <- getDynFlags
+        let names
+               | exports_only = GHC.modInfoExports mod_info
+               | otherwise    = GHC.modInfoTopLevelScope mod_info
+                                `orElse` []
+
+                -- sort alphabetically name, but putting locally-defined
+                -- identifiers first. We would like to improve this; see #1799.
+            sorted_names = loc_sort local ++ occ_sort external
+                where
+                (local,external) = ASSERT( all isExternalName names )
+                                   partition ((==modl) . nameModule) names
+                occ_sort = sortBy (compare `on` nameOccName)
+                -- try to sort by src location. If the first name in our list
+                -- has a good source location, then they all should.
+                loc_sort ns
+                      | n:_ <- ns, isGoodSrcSpan (nameSrcSpan n)
+                      = sortBy (compare `on` nameSrcSpan) ns
+                      | otherwise
+                      = occ_sort ns
+
+        mb_things <- mapM GHC.lookupName sorted_names
+        let filtered_things = filterOutChildren (\t -> t) (catMaybes mb_things)
+
+        rdr_env <- GHC.getGRE
+
+        let things | bang      = catMaybes mb_things
+                   | otherwise = filtered_things
+            pretty | bang      = pprTyThing
+                   | otherwise = pprTyThingInContext
+
+            labels  [] = text "-- not currently imported"
+            labels  l  = text $ intercalate "\n" $ map qualifier l
+
+            qualifier :: Maybe [ModuleName] -> String
+            qualifier  = maybe "-- defined locally"
+                             (("-- imported via "++) . intercalate ", "
+                               . map GHC.moduleNameString)
+            importInfo = RdrName.getGRE_NameQualifier_maybes rdr_env
+
+            modNames :: [[Maybe [ModuleName]]]
+            modNames   = map (importInfo . GHC.getName) things
+
+            -- annotate groups of imports with their import modules
+            -- the default ordering is somewhat arbitrary, so we group
+            -- by header and sort groups; the names themselves should
+            -- really come in order of source appearance.. (trac #1799)
+            annotate mts = concatMap (\(m,ts)->labels m:ts)
+                         $ sortBy cmpQualifiers $ grp mts
+              where cmpQualifiers =
+                      compare `on` (map (fmap (map moduleNameFS)) . fst)
+            grp []            = []
+            grp mts@((m,_):_) = (m,map snd g) : grp ng
+              where (g,ng) = partition ((==m).fst) mts
+
+        liftIO $ LBS.putStrLn $ J.encode $ map (thingJSON dflags) things
+
+        -- let prettyThings, prettyThings' :: [SDoc]
+        --     prettyThings = map pretty things
+        --     prettyThings' | bang      = annotate $ zip modNames prettyThings
+        --                   | otherwise = prettyThings
+        -- liftIO $ putStrLn $ showSDocForUser dflags unqual (vcat prettyThings')
+
+        -- ToDo: modInfoInstances currently throws an exception for
+        -- package modules.  When it works, we can do this:
+        --        $$ vcat (map GHC.pprInstance (GHC.modInfoInstances mod_info))
 
 -----------------------------------------------------------------------------
 -- :browse

@@ -13,6 +13,7 @@ cabal-version:       >=1.10
 executable eta-ide
   main-is:             Main.hs
   build-depends:       base >= 4.7 && < 5
+                     , aeson
                      , array
                      , bytestring
                      , deepseq
@@ -25,6 +26,7 @@ executable eta-ide
                      , haskeline == 0.7.*
                      , mtl
                      , process
+                     , text
                      , time
                      , transformers
                      , unix
