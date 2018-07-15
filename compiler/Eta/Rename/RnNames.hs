@@ -441,7 +441,7 @@ rnJavaImport _hsc_env clsIndex (L loc (ImportJavaDecl { ideclClassName = clsName
             -- TODO: Make more specific provs
             prov = Imported [ImpSpec { is_decl = ImpDeclSpec { is_mod = javaModName
                                                              , is_as = javaModName
-                                                             , is_qual = True
+                                                             , is_qual = False
                                                              , is_dloc = loc
                                                              , is_java = True }
                                      , is_item = ImpAll }]
@@ -456,13 +456,13 @@ rnGenerateFFI :: Module -> String -> [JavaTyVar] -> TypeVariableDeclarations
               -> SrcSpan -> MethodInfo -> RnM ((OccName, Name), [LHsDecl RdrName])
 rnGenerateFFI mod clsName clsTvs clsTvDecls loc MethodInfo {..} = do
   name <- newTopSrcBinder (L loc rdrName)
-  return ((mkVarOcc sourceName, name), [mkForeignDecl methodSig])
+  return ((sourceOccName, name), [mkForeignDecl methodSig])
   where importString
           | miStatic  = "@static " ++ clsName ++ "." ++ miName
           | otherwise = miName
-        occName = mkJavaImportOcc $ mkVarOcc miName
-        rdrName = mkOrig mod occName --  mkRdrUnqual occName
-        sourceName = miName
+        occName = mkJavaImportOcc sourceOccName
+        rdrName = mkOrig mod occName
+        sourceOccName = mkVarOcc miName
         classTvs  = map javaTyVarToTyVar clsTvs
         methodTyVarDecls = msTyVarDecls miSignature
         methodTvs = Set.fromList (tyVarDeclsTyVars methodTyVarDecls)
