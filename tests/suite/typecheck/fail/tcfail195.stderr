@@ -1,0 +1,5 @@
+
+tests/suite/typecheck/fail/tcfail195.hs:6:3: error:
+    Illegal polymorphic or qualified type: forall a. a
+    In the definition of data constructor ‘Foo’
+    In the data declaration for ‘Foo’
