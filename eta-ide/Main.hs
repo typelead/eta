@@ -70,7 +70,9 @@ main = do
   initETA
   GHC.defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
     -- 1. extract the -B flag from the args
-    argv0 <- getArgs
+    argv00 <- getArgs
+    -- Patch in the --interactive flag for eta-ide
+    let argv0 = "--interactive" : argv00
     libdir <- findTopDir Nothing
     let (minusB_args, argv1) = partition ("-B" `isPrefixOf`) argv0
         mbMinusB | null minusB_args = Just libdir
@@ -675,10 +677,11 @@ showBanner :: PostLoadMode -> DynFlags -> IO ()
 showBanner postLoadMode dflags = do
    let verb = postLoadMode `seq` verbosity dflags
 
+-- DON'T show the GHCi banner for eta-ide
 -- #ifdef ETA_REPL
    -- Show the GHCi banner
-   when (isInteractiveMode postLoadMode && verb >= 1) $
-     putStrLn (etaReplWelcomeMsg dflags)
+   -- when (isInteractiveMode postLoadMode && verb >= 1) $
+   --   putStrLn (etaReplWelcomeMsg dflags)
 -- #endif
 
    -- Display details of the configuration in verbose mode

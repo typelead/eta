@@ -25,6 +25,7 @@ module Eta.REPL.UI (
         REPLSettings(..),
         defaultEtaReplSettings,
         ghciCommands,
+        ideCommands,
         etaReplWelcomeMsg
     ) where
 
@@ -155,7 +156,8 @@ data REPLSettings = REPLSettings {
 defaultEtaReplSettings :: REPLSettings
 defaultEtaReplSettings =
     REPLSettings {
-        availableCommands = ghciCommands,
+        -- availableCommands = ghciCommands,
+        availableCommands = ideCommands,
         shortHelpText     = defShortHelpText,
         defPrompt         = default_prompt,
         defPromptCont     = default_prompt_cont,
@@ -244,11 +246,21 @@ etaReplWelcomeMsg dflags =
          unicodeBottomLeftCorner = '\x2570'
          unicodeBottomRightCorner = '\x256f'
 
-ghciCommands :: [Command]
-ghciCommands = map mkCmd [
-  -- IDE commands
+ideCommands :: [Command]
+ideCommands = map mkCmd [
   ("version",   keepGoing' $ const printVersion, noCompletion),
   ("idebrowse", keepGoing' ideBrowse,            completeModule),
+  ("exit",      exit,                            noCompletion)
+  ]
+  where
+  mkCmd (n,a,c) = Command { cmdName = n
+                          , cmdAction = a
+                          , cmdHidden = False
+                          , cmdCompletionFunc = c
+                          }
+
+ghciCommands :: [Command]
+ghciCommands = map mkCmd [
   -- Hugs users are accustomed to :e, so make sure it doesn't overlap
   ("?",         keepGoing help,                 noCompletion),
   ("add",       keepGoingPaths addModule,       completeFilename),
@@ -483,8 +495,11 @@ default_progname = "<interactive>"
 default_stop = ""
 
 default_prompt, default_prompt_cont :: PromptFunction
-default_prompt = generatePromptFunctionFromString "%s> "
-default_prompt_cont = generatePromptFunctionFromString "%s| "
+-- eta-ide doesn't need a prompt by default
+default_prompt = generatePromptFunctionFromString ""
+default_prompt_cont = generatePromptFunctionFromString ""
+-- default_prompt = generatePromptFunctionFromString "%s> "
+-- default_prompt_cont = generatePromptFunctionFromString "%s| "
 
 default_args :: [String]
 default_args = []
@@ -1312,8 +1327,9 @@ specialCommand str = do
   case maybe_cmd of
     GotCommand cmd -> (cmdAction cmd) (dropWhile isSpace rest)
     BadCommand ->
-      do liftIO $ hPutStr stdout ("unknown command ':" ++ cmd ++ "'\n"
-                           ++ htxt)
+      do -- liftIO $ hPutStr stdout ("unknown command ':" ++ cmd ++ "'\n"
+         --                   ++ htxt)
+         outputJSONLn $ IDEError $ "unknown command ':" ++ cmd ++ "'"
          return False
     NoLastCommand ->
       do liftIO $ hPutStr stdout ("there is no last command to perform\n"
@@ -2238,7 +2254,7 @@ isSafeModule m = do
 -- :version
 
 printVersion :: InputT GHCi ()
-printVersion = outputJSON $ IDEResponse "version" [] cProjectVersionNumbers
+printVersion = outputJSONLn $ IDEResponse "version" [] cProjectVersionNumbers
 
 -----------------------------------------------------------------------------
 -- :idebrowse
@@ -2251,15 +2267,15 @@ ideBrowse m =
         emd <- gtry $ lift $ lookupModule s
         case emd of
           Right md -> ideBrowseModule md
-          Left e -> outputJSON $ IDEError $ show (e :: SomeException)
-    _ -> outputJSON $ IDEError "syntax:  :idebrowse <module>"
+          Left e -> outputJSONLn $ IDEError $ show (e :: SomeException)
+    _ -> outputJSONLn $ IDEError "syntax:  :idebrowse <module>"
 
 -- Adapted from browseModule
 ideBrowseModule :: Module -> InputT GHCi ()
 ideBrowseModule modl = do
   mb_mod_info <- GHC.getModuleInfo modl
   case mb_mod_info of
-    Nothing -> outputJSON $ IDEError $ "unknown module: " ++ GHC.moduleNameString (GHC.moduleName modl)
+    Nothing -> outputJSONLn $ IDEError $ "unknown module: " ++ GHC.moduleNameString (GHC.moduleName modl)
     Just mod_info -> do
         dflags <- getDynFlags
         let names = GHC.modInfoTopLevelScope mod_info `orElse` []
@@ -2281,7 +2297,7 @@ ideBrowseModule modl = do
 
         mb_things <- mapM GHC.lookupName sorted_names
         let things = filterOutChildren (\t -> t) (catMaybes mb_things)
-        outputJSON $ ideJSON dflags $ browseResponse modl things
+        outputJSONLn $ ideJSON dflags $ browseResponse modl things
 
 -----------------------------------------------------------------------------
 -- :browse

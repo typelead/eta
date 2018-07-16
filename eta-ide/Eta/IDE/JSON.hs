@@ -56,8 +56,8 @@ browseResponse m = IDEResponse "idebrowse" [G.moduleNameString $ G.moduleName m]
 instance IDEJSON TyThing where
   ideJSON = thingJSON
 
-outputJSON :: (ToJSON a, MonadIO io) => a -> InputT io ()
-outputJSON x = liftIO $ LBS.putStr $ encode $ x
+outputJSONLn :: (ToJSON a, MonadIO io) => a -> InputT io ()
+outputJSONLn x = liftIO $ LBS.putStrLn $ encode $ x
 
 -- | Encode a TyThing to a JSON Value; used by the :idebrowse command.
 -- Much of this code was adapted from ghc-mod, see:
