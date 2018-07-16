@@ -246,6 +246,8 @@ etaReplWelcomeMsg dflags =
 
 ghciCommands :: [Command]
 ghciCommands = map mkCmd [
+  -- IDE commands
+  ("idebrowse", keepGoing' ideBrowse,           completeModule),
   -- Hugs users are accustomed to :e, so make sure it doesn't overlap
   ("?",         keepGoing help,                 noCompletion),
   ("add",       keepGoingPaths addModule,       completeFilename),

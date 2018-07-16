@@ -27,9 +27,9 @@ import Eta.Utils.Util
 import Eta.Utils.Metrics hiding (Mode)
 import Eta.Utils.Panic
 import Eta.Utils.MonadUtils       (liftIO)
-#if defined(ETA_REPL)
+-- #if defined(ETA_REPL)
 import Eta.REPL.UI          ( interactiveUI, etaReplWelcomeMsg, defaultEtaReplSettings )
-#endif
+-- #endif
 -- Imports for --abi-hash
 import Eta.BasicTypes.Module      ( mkModuleName)
 import Eta.Main.Finder            ( findImportedModule, cannotFindModule )
@@ -38,6 +38,7 @@ import Eta.Utils.Binary           ( openBinMem, put_ )
 import Eta.Iface.BinFingerprint   ( fingerprintBinMem )
 
 -- Standard Libraries
+import System.Directory
 import System.IO
 import System.IO.Unsafe
 import System.Environment
@@ -102,7 +103,9 @@ main = do
             -- start our GHC session
             GHC.runGhc mbMinusB $ do
 
-              dflags <- GHC.getSessionDynFlags
+              dflags0 <- GHC.getSessionDynFlags
+              userHome <- liftIO getHomeDirectory
+              let dflags = dflags0 { settings = (settings dflags0) { sPgm_i = userHome ++ "/.etlas/tools/eta-serv.jar" } }
 
               case postStartupMode of
                   Left preLoadMode ->
@@ -231,11 +234,11 @@ main' postLoadMode dflags0 args flagWarnings = do
   liftIO $ dumpFinalStats dflags6
 
 etaReplUI :: [(FilePath, Maybe Phase)] -> Maybe [String] -> Ghc ()
-#ifndef ETA_REPL
-etaReplUI _ _ = throwGhcException (CmdLineError "not built for interactive use")
-#else
+-- #ifndef ETA_REPL
+-- etaReplUI _ _ = throwGhcException (CmdLineError "not built for interactive use")
+-- #else
 etaReplUI     = interactiveUI defaultEtaReplSettings
-#endif
+-- #endif
 
 -- -----------------------------------------------------------------------------
 -- Splitting arguments into source files and object files.  This is where we
@@ -448,11 +451,11 @@ isDoMakeMode :: Mode -> Bool
 isDoMakeMode (Right (Right DoMake)) = True
 isDoMakeMode _ = False
 
-#ifdef ETA_REPL
+-- #ifdef ETA_REPL
 isInteractiveMode :: PostLoadMode -> Bool
 isInteractiveMode DoInteractive = True
 isInteractiveMode _             = False
-#endif
+-- #endif
 
 -- isInterpretiveMode: byte-code compiler involved
 isInterpretiveMode :: PostLoadMode -> Bool
@@ -672,11 +675,11 @@ showBanner :: PostLoadMode -> DynFlags -> IO ()
 showBanner postLoadMode dflags = do
    let verb = postLoadMode `seq` verbosity dflags
 
-#ifdef ETA_REPL
+-- #ifdef ETA_REPL
    -- Show the GHCi banner
    when (isInteractiveMode postLoadMode && verb >= 1) $
      putStrLn (etaReplWelcomeMsg dflags)
-#endif
+-- #endif
 
    -- Display details of the configuration in verbose mode
    when (verb >= 2) $
