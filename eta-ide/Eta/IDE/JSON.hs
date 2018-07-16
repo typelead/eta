@@ -115,6 +115,6 @@ thingJSON dflags tyThing =
   showPage :: PprStyle -> SDoc -> String
   showPage style = showDocWith Pretty.PageMode . withPprStyleDoc dflags style
 
-  styleUnqualified = mkUserStyle neverQualify AllTheWay
+  styleUnqualified = mkUserStyle dflags neverQualify AllTheWay
 
   showDocWith mode = Pretty.showDoc mode (G.pprCols dflags)
