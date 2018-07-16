@@ -407,6 +407,7 @@ basicKnownKeyNames
         , byteTyConName
         , shortTyConName
         , jcharTyConName
+        , overloadedName
     ]
 
 genericTyConNames :: [Name]
@@ -522,11 +523,12 @@ gHC_FINGERPRINT_TYPE = mkBaseModule (fsLit "GHC.Fingerprint.Type")
 gHC_OVER_LABELS :: Module
 gHC_OVER_LABELS = mkBaseModule (fsLit "GHC.OverloadedLabels")
 
-jAVA_STRING, jAVA_UTILS, jAVA_PRIMITIVEBASE, eTA_INTEROP :: Module
+jAVA_STRING, jAVA_UTILS, jAVA_PRIMITIVEBASE, eTA_INTEROP, eTA_OVERLOADABLE :: Module
 jAVA_STRING = mkBaseModule (fsLit "Java.StringBase")
 jAVA_UTILS  = mkBaseModule (fsLit "Java.Utils")
 jAVA_PRIMITIVEBASE  = mkBaseModule (fsLit "Java.PrimitiveBase")
 eTA_INTEROP = mkBaseModule (fsLit "Eta.Interop")
+eTA_OVERLOADABLE = mkBaseModule (fsLit "Eta.Overloadable")
 
 mAIN, rOOT_MAIN :: Module
 mAIN            = mkMainModule_ mAIN_NAME
@@ -1319,7 +1321,7 @@ javaTyConName, extendsFamTyConName, javaDataConName, extendsClassName,
   superCastName, unsafeCastName, fmapJavaName, classClassName, objName, unobjName,
   classIdentifierName, fromJStringName, toJStringName, inheritsFamTyConName,
   overloadableClassName, sobjectTyConName, sobjectDataConName, byteTyConName,
-  shortTyConName, jcharTyConName :: Name
+  shortTyConName, jcharTyConName, overloadedName :: Name
 javaTyConName         = tcQual  gHC_TYPES   (fsLit "Java") javaTyConKey
 extendsFamTyConName   = tcQual  gHC_CLASSES (fsLit "Extends'") extendsFamTyConKey
 javaDataConName       = conName gHC_TYPES   (fsLit "Java") javaDataConKey
@@ -1334,12 +1336,13 @@ classIdentifierName   = varQual gHC_CLASSES (fsLit "classIdentifier") classIdent
 fromJStringName       = varQual jAVA_STRING (fsLit "fromJString") fromJStringIdKey
 toJStringName         = varQual jAVA_STRING (fsLit "toJString") toJStringIdKey
 inheritsFamTyConName  = tcQual  gHC_CLASSES  (fsLit "Inherits") inheritsFamTyConKey
-overloadableClassName = clsQual eTA_INTEROP (fsLit "Overloadable") overloadableClassKey
+overloadableClassName = clsQual eTA_OVERLOADABLE (fsLit "Overloadable") overloadableClassKey
 sobjectTyConName      = tcQual  eTA_INTEROP (fsLit "SObject") sobjectTyConKey
 sobjectDataConName    = conName eTA_INTEROP (fsLit "SObject") sobjectDataConKey
 byteTyConName         = tcQual  jAVA_PRIMITIVEBASE (fsLit "Byte") byteTyConKey
 shortTyConName        = tcQual  jAVA_PRIMITIVEBASE (fsLit "Short") shortTyConKey
 jcharTyConName        = tcQual  jAVA_PRIMITIVEBASE (fsLit "JChar") jcharTyConKey
+overloadedName        = varQual eTA_OVERLOADABLE (fsLit "overloaded") overloadedClassOpKey
 
 {-
 ************************************************************************
@@ -2140,9 +2143,9 @@ mkAppTyKey        = mkPreludeMiscIdUnique 505
 typeLitTypeRepKey = mkPreludeMiscIdUnique 506
 
 -- ETA-specific
-superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey, objClassOpKey
-  , unobjClassOpKey, classIdentifierClassOpKey, fromJStringIdKey, toJStringIdKey
-    :: Unique
+superCastClassOpKey, unsafeCastClassOpKey, fmapJavaIdKey, objClassOpKey,
+  unobjClassOpKey, classIdentifierClassOpKey, fromJStringIdKey, toJStringIdKey,
+  overloadedClassOpKey :: Unique
 superCastClassOpKey  = mkPreludeMiscIdUnique 507
 unsafeCastClassOpKey = mkPreludeMiscIdUnique 508
 fmapJavaIdKey        = mkPreludeMiscIdUnique 509
@@ -2151,6 +2154,7 @@ unobjClassOpKey      = mkPreludeMiscIdUnique 511
 fromJStringIdKey     = mkPreludeMiscIdUnique 512
 toJStringIdKey       = mkPreludeMiscIdUnique 513
 classIdentifierClassOpKey = mkPreludeMiscIdUnique 514
+overloadedClassOpKey = mkPreludeMiscIdUnique 515
 
 -- Dynamic
 toDynIdKey :: Unique

@@ -10,3 +10,4 @@ mkDataConWorkId :: Name -> DataCon -> Id
 mkPrimOpId      :: PrimOp -> Id
 
 magicDictId :: Id
+proxyHashId :: Id

@@ -47,7 +47,8 @@ module Eta.Prelude.TysWiredIn (
 
         -- * JString
         jstringTyCon, jstringDataCon, jstringTy, sobjectTyCon_RDR, javaTyCon_RDR,
-        byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR, extendsClass_RDR,
+        byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR, extendsClass_RDR, overloaded_RDR,
+        proxyHash_RDR, overloadable_RDR, proxyPrimTy_RDR,
 
         -- * List
         listTyCon, nilDataCon, nilDataConName, consDataCon, consDataConName,
@@ -94,7 +95,7 @@ module Eta.Prelude.TysWiredIn (
 
 #include "HsVersions.h"
 
-import {-# SOURCE #-} Eta.BasicTypes.MkId      ( mkDataConWorkId )
+import {-# SOURCE #-} Eta.BasicTypes.MkId      ( mkDataConWorkId, proxyHashId )
 import {-# SOURCE #-} Eta.Prelude.KnownUniques ( mkTupleTyConUnique, mkTupleDataConUnique )
 
 -- friends:
@@ -262,7 +263,8 @@ boolTyCon_RDR, false_RDR, true_RDR, intTyCon_RDR, charTyCon_RDR,
     intDataCon_RDR, listTyCon_RDR, consDataCon_RDR, parrTyCon_RDR, eqTyCon_RDR,
     floatTyCon_RDR, doubleTyCon_RDR, int64TyCon_RDR, sobjectTyCon_RDR,
     unitTyCon_RDR, javaTyCon_RDR, byteTyCon_RDR, shortTyCon_RDR, jcharTyCon_RDR,
-    extendsClass_RDR :: RdrName
+    extendsClass_RDR, overloaded_RDR, proxyHash_RDR, overloadable_RDR, proxyPrimTy_RDR
+    :: RdrName
 boolTyCon_RDR    = nameRdrName boolTyConName
 false_RDR        = nameRdrName falseDataConName
 true_RDR         = nameRdrName trueDataConName
@@ -283,6 +285,10 @@ byteTyCon_RDR    = nameRdrName byteTyConName
 shortTyCon_RDR   = nameRdrName shortTyConName
 jcharTyCon_RDR   = nameRdrName jcharTyConName
 extendsClass_RDR = nameRdrName extendsClassName
+overloaded_RDR   = nameRdrName overloadedName
+proxyHash_RDR    = getRdrName proxyHashId
+overloadable_RDR = getRdrName overloadableClassName
+proxyPrimTy_RDR  = getRdrName proxyPrimTyCon
 
 {-
 ************************************************************************
