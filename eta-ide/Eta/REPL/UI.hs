@@ -30,6 +30,9 @@ module Eta.REPL.UI (
 
 #include "HsVersions.h"
 
+-- Eta IDE
+import Eta.IDE.JSON
+
 -- Eta REPL
 import qualified Eta.REPL.UI.Monad as GhciMonad ( args, runStmt, runDecls )
 import Eta.REPL.UI.Monad hiding ( args, runStmt, runDecls )
@@ -2227,6 +2230,49 @@ isSafeModule m = do
     tallyPkgs dflags deps | not (packageTrustOn dflags) = (S.empty, S.empty)
                           | otherwise = S.partition part deps
         where part pkg = trusted $ getInstalledPackageDetails dflags pkg
+
+-----------------------------------------------------------------------------
+-- :idebrowse
+
+-- Adapted from browseCmd
+ideBrowse :: String -> InputT GHCi ()
+ideBrowse m =
+  case words m of
+    [s] | looksLikeModuleName s -> do
+        emd <- gtry $ lift $ lookupModule s
+        case emd of
+          Right md -> ideBrowseModule md
+          Left e -> outputLnIDEError $ show (e :: SomeException)
+    _ -> outputLnIDEError "syntax:  :idebrowse <module>"
+
+-- Adapted from browseModule
+ideBrowseModule :: Module -> InputT GHCi ()
+ideBrowseModule modl = do
+  mb_mod_info <- GHC.getModuleInfo modl
+  case mb_mod_info of
+    Nothing -> outputLnIDEError $ "unknown module: " ++ GHC.moduleNameString (GHC.moduleName modl)
+    Just mod_info -> do
+        dflags <- getDynFlags
+        let names = GHC.modInfoTopLevelScope mod_info `orElse` []
+
+                -- sort alphabetically name, but putting locally-defined
+                -- identifiers first. We would like to improve this; see #1799.
+            sorted_names = loc_sort local ++ occ_sort external
+                where
+                (local,external) = ASSERT( all isExternalName names )
+                                   partition ((==modl) . nameModule) names
+                occ_sort = sortBy (compare `on` nameOccName)
+                -- try to sort by src location. If the first name in our list
+                -- has a good source location, then they all should.
+                loc_sort ns
+                      | n:_ <- ns, isGoodSrcSpan (nameSrcSpan n)
+                      = sortBy (compare `on` nameSrcSpan) ns
+                      | otherwise
+                      = occ_sort ns
+
+        mb_things <- mapM GHC.lookupName sorted_names
+        let things = filterOutChildren (\t -> t) (catMaybes mb_things)
+        outputLnJSON $ ideJSON dflags $ browseResponse modl things
 
 -----------------------------------------------------------------------------
 -- :browse
