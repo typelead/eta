@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Eta.IDE.JSON where
 
 import Eta.BasicTypes.ConLike (ConLike(RealDataCon, PatSynCon))
@@ -14,9 +15,49 @@ import Eta.Types.TypeRep
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Pretty as Pretty
 
+import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Aeson
+import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Char
 import Data.Maybe
+import System.Console.Haskeline
+
+class IDEJSON a where
+  ideJSON :: DynFlags -> a -> Value
+
+instance IDEJSON a => IDEJSON [a] where
+  ideJSON dflags xs = toJSON $ map (ideJSON dflags) xs
+
+data IDEError = IDEError String
+
+instance ToJSON IDEError where
+  toJSON (IDEError msg) = object [ "error" .= msg ]
+
+data IDEResponse a = IDEResponse
+  { ideResponseCommand :: String
+  , ideResponseArgs    :: [String]
+  , ideResponseResult  :: a
+  }
+
+instance IDEJSON a => IDEJSON (IDEResponse a) where
+  ideJSON dflags IDEResponse {..} =
+    object
+      [ "command" .= ideResponseCommand
+      , "args"    .= ideResponseArgs
+      , "result"  .= ideJSON dflags ideResponseResult
+      ]
+
+browseResponse :: G.Module -> [TyThing] -> IDEResponse [TyThing]
+browseResponse m = IDEResponse "idebrowse" [G.moduleNameString $ G.moduleName m]
+
+instance IDEJSON TyThing where
+  ideJSON = thingJSON
+
+outputLnJSON :: (ToJSON a, MonadIO io) => a -> InputT io ()
+outputLnJSON x = liftIO $ LBS.putStrLn $ encode $ x
+
+outputLnIDEError :: MonadIO io => String -> InputT io ()
+outputLnIDEError msg = outputLnJSON $ IDEError msg
 
 -- | Encode a TyThing to a JSON Value; used by the :idebrowse command.
 -- Much of this code was adapted from ghc-mod, see:

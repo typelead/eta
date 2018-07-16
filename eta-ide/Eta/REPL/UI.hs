@@ -97,7 +97,6 @@ import Control.Monad.Trans.Except
 import qualified Data.Aeson as J
 import Data.Array
 import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Char
 import Data.Function
 import Data.IORef ( IORef, modifyIORef, newIORef, readIORef, writeIORef )
@@ -2236,21 +2235,18 @@ isSafeModule m = do
 -----------------------------------------------------------------------------
 -- :idebrowse
 
--- Mostly copy-pasta from browseCmd
+-- Adapted from browseCmd
 ideBrowse :: String -> InputT GHCi ()
 ideBrowse m =
   case words m of
-    ['*':s] | looksLikeModuleName s -> do
-        md <- lift $ wantInterpretedModule s
-        browseModule False md False
     [s] | looksLikeModuleName s -> do
-        md <- lift $ lookupModule s
-        ideBrowseModule False md True
-    [] -> do md <- guessCurrentModule "browse"
-             browseModule False md True
-    _ -> throwGhcException (CmdLineError "syntax:  :idebrowse <module>")
+        emd <- gtry $ lift $ lookupModule s
+        case emd of
+          Right md -> ideBrowseModule False md True
+          Left e -> outputLnIDEError $ show (e :: SomeException)
+    _ -> outputLnIDEError "syntax:  :idebrowse <module>"
 
--- Mostly copy-pasta from browseModule
+-- Adapted from browseModule
 ideBrowseModule :: Bool -> Module -> Bool -> InputT GHCi ()
 ideBrowseModule bang modl exports_only = do
   -- :browse reports qualifiers wrt current context
@@ -2258,8 +2254,7 @@ ideBrowseModule bang modl exports_only = do
 
   mb_mod_info <- GHC.getModuleInfo modl
   case mb_mod_info of
-    Nothing -> throwGhcException (CmdLineError ("unknown module: " ++
-                                GHC.moduleNameString (GHC.moduleName modl)))
+    Nothing -> outputLnIDEError $ "unknown module: " ++ GHC.moduleNameString (GHC.moduleName modl)
     Just mod_info -> do
         dflags <- getDynFlags
         let names
@@ -2316,7 +2311,7 @@ ideBrowseModule bang modl exports_only = do
             grp mts@((m,_):_) = (m,map snd g) : grp ng
               where (g,ng) = partition ((==m).fst) mts
 
-        liftIO $ LBS.putStrLn $ J.encode $ map (thingJSON dflags) things
+        outputLnJSON $ ideJSON dflags $ browseResponse modl things
 
         -- let prettyThings, prettyThings' :: [SDoc]
         --     prettyThings = map pretty things
