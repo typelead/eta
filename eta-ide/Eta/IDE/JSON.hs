@@ -39,13 +39,16 @@ data IDEResponse a = IDEResponse
   , ideResponseResult  :: a
   }
 
-instance IDEJSON a => IDEJSON (IDEResponse a) where
-  ideJSON dflags IDEResponse {..} =
+instance ToJSON a => ToJSON (IDEResponse a) where
+  toJSON IDEResponse {..} =
     object
       [ "command" .= ideResponseCommand
       , "args"    .= ideResponseArgs
-      , "result"  .= ideJSON dflags ideResponseResult
+      , "result"  .= ideResponseResult
       ]
+
+instance IDEJSON a => IDEJSON (IDEResponse a) where
+  ideJSON dflags r = toJSON $ r { ideResponseResult = ideJSON dflags $ ideResponseResult r }
 
 browseResponse :: G.Module -> [TyThing] -> IDEResponse [TyThing]
 browseResponse m = IDEResponse "idebrowse" [G.moduleNameString $ G.moduleName m]
@@ -53,11 +56,8 @@ browseResponse m = IDEResponse "idebrowse" [G.moduleNameString $ G.moduleName m]
 instance IDEJSON TyThing where
   ideJSON = thingJSON
 
-outputLnJSON :: (ToJSON a, MonadIO io) => a -> InputT io ()
-outputLnJSON x = liftIO $ LBS.putStrLn $ encode $ x
-
-outputLnIDEError :: MonadIO io => String -> InputT io ()
-outputLnIDEError msg = outputLnJSON $ IDEError msg
+outputJSON :: (ToJSON a, MonadIO io) => a -> InputT io ()
+outputJSON x = liftIO $ LBS.putStr $ encode $ x
 
 -- | Encode a TyThing to a JSON Value; used by the :idebrowse command.
 -- Much of this code was adapted from ghc-mod, see:

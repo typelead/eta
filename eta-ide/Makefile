@@ -5,6 +5,9 @@ PATH := bin:$(PATH)
 compile:
 	stack build eta-ide
 
+ghci: compile
+	stack ghci eta-ide
+
 exec:
 	stack exec -- ${EXEC}
 

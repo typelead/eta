@@ -247,7 +247,8 @@ etaReplWelcomeMsg dflags =
 ghciCommands :: [Command]
 ghciCommands = map mkCmd [
   -- IDE commands
-  ("idebrowse", keepGoing' ideBrowse,           completeModule),
+  ("version",   keepGoing' $ const printVersion, noCompletion),
+  ("idebrowse", keepGoing' ideBrowse,            completeModule),
   -- Hugs users are accustomed to :e, so make sure it doesn't overlap
   ("?",         keepGoing help,                 noCompletion),
   ("add",       keepGoingPaths addModule,       completeFilename),
@@ -2234,6 +2235,12 @@ isSafeModule m = do
         where part pkg = trusted $ getInstalledPackageDetails dflags pkg
 
 -----------------------------------------------------------------------------
+-- :version
+
+printVersion :: InputT GHCi ()
+printVersion = outputJSON $ IDEResponse "version" [] cProjectVersionNumbers
+
+-----------------------------------------------------------------------------
 -- :idebrowse
 
 -- Adapted from browseCmd
@@ -2244,15 +2251,15 @@ ideBrowse m =
         emd <- gtry $ lift $ lookupModule s
         case emd of
           Right md -> ideBrowseModule md
-          Left e -> outputLnIDEError $ show (e :: SomeException)
-    _ -> outputLnIDEError "syntax:  :idebrowse <module>"
+          Left e -> outputJSON $ IDEError $ show (e :: SomeException)
+    _ -> outputJSON $ IDEError "syntax:  :idebrowse <module>"
 
 -- Adapted from browseModule
 ideBrowseModule :: Module -> InputT GHCi ()
 ideBrowseModule modl = do
   mb_mod_info <- GHC.getModuleInfo modl
   case mb_mod_info of
-    Nothing -> outputLnIDEError $ "unknown module: " ++ GHC.moduleNameString (GHC.moduleName modl)
+    Nothing -> outputJSON $ IDEError $ "unknown module: " ++ GHC.moduleNameString (GHC.moduleName modl)
     Just mod_info -> do
         dflags <- getDynFlags
         let names = GHC.modInfoTopLevelScope mod_info `orElse` []
@@ -2274,7 +2281,7 @@ ideBrowseModule modl = do
 
         mb_things <- mapM GHC.lookupName sorted_names
         let things = filterOutChildren (\t -> t) (catMaybes mb_things)
-        outputLnJSON $ ideJSON dflags $ browseResponse modl things
+        outputJSON $ ideJSON dflags $ browseResponse modl things
 
 -----------------------------------------------------------------------------
 -- :browse
