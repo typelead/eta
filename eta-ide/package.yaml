@@ -1,0 +1,34 @@
+name: eta-ide
+version: '0.0.0.1'
+description: IDE Integration Utility
+category: Distribution
+author: TypeLead
+maintainer: typeleadhq@gmail.com
+copyright:
+- '2018'
+- TypeLead
+- Inc.
+license: BSD3
+dependencies:
+- base >=4.7 && <5
+- aeson
+- array
+- bytestring
+- deepseq
+- eta
+- eta-boot
+- eta-repl
+- containers
+- directory
+- filepath
+- haskeline ==0.7.*
+- mtl
+- process
+- text
+- time
+- transformers
+- unix
+executables:
+  eta-ide:
+    main: Main.hs
+    source-dirs: ./.
