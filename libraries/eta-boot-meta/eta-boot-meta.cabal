@@ -1,6 +1,6 @@
 name:           eta-boot-meta
 -- @VERSION_CHANGE@
-version:        0.8.0
+version:        0.8.4
 license:        BSD3
 license-file:   LICENSE
 category:       Boot Library

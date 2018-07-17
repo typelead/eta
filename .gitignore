@@ -19,3 +19,4 @@ utils/scripts/lib/
 release.log
 binaries/
 .gradle
+testing
