@@ -1,7 +1,7 @@
 name:                eta
 -- @VERSION_CHANGE@
 -- @BUILD_NUMBER@
-version:             0.8.0.3
+version:             0.8.4.1
 description:         Modern Haskell on the JVM
 license:             BSD3
 license-file:        LICENSE

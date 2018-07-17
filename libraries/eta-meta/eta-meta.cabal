@@ -1,5 +1,5 @@
 name:           eta-meta
-version:        0.8.0.3
+version:        0.8.4.1
 license:        BSD3
 license-file:   LICENSE
 category:       Metaprogamming
@@ -38,7 +38,7 @@ library
                       Language.Eta.Meta.Binary
                       Language.Eta.Meta.Server
                       Language.Eta.Meta.Lib.Map
-    build-depends:    base        >= 4.7 && < 4.11,
+    build-depends:    base        >= 4.7 && < 4.12,
                       binary      == 0.8.*,
                       bytestring  == 0.10.*,
                       deepseq     == 1.4.*,

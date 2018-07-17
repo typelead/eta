@@ -15,7 +15,7 @@ import Eta.REPL.Message ()
 import qualified Language.Eta.Meta        as TH
 import qualified Language.Eta.Meta.Syntax as TH
 
-#if !MIN_VERSION_base(4,10,0)
+#if !MIN_VERSION_base(4,10,0) || defined(ETA_VERSION)
 import Data.Typeable
 #endif
 -- Put these in a separate module because they take ages to compile
@@ -77,7 +77,7 @@ instance Binary Serialized where
     put (Serialized tyrep wds) = put tyrep >> put (B.pack wds)
     get = Serialized <$> get <*> (B.unpack <$> get)
 
-#if !MIN_VERSION_base(4,10,0)
+#if !MIN_VERSION_base(4,10,0) || defined(ETA_VERSION)
 instance Binary TyCon where
     put tc = put (tyConPackage tc) >> put (tyConModule tc) >> put (tyConName tc)
     get = mkTyCon3 <$> get <*> get <*> get

@@ -2,5 +2,5 @@
 
 set -e
 
-stack build eta:exe:eta-test
-stack exec eta-test
+stack build eta:exe:eta-package-test
+stack exec eta-package-test

@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE StandaloneDeriving, PatternSynonyms #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -41,6 +41,7 @@ module Control.Exception.Base (
         RecSelError(..),
         RecUpdError(..),
         ErrorCall(..),
+        pattern ErrorCall,
         TypeError(..), -- #10284, custom error type for deferred type errors
 
         -- * Throwing exceptions

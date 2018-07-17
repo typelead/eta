@@ -1,6 +1,6 @@
 -- | contains a prettyprinter for the
 -- Template Haskell datatypes
-
+{-# LANGUAGE CPP #-}
 module Language.Eta.Meta.Ppr where
     -- All of the exports from this module should
     -- be "public" functions.  The main module TH
@@ -14,6 +14,10 @@ import Data.Word ( Word8 )
 import Data.Char ( toLower, chr, ord, isSymbol )
 import GHC.Show  ( showMultiLineString )
 import Data.Ratio ( numerator, denominator )
+
+#if MIN_VERSION_base(4,10,0)
+import Prelude hiding ((<>))
+#endif
 
 nestDepth :: Int
 nestDepth = 4
