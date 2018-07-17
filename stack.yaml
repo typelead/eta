@@ -1,10 +1,11 @@
 extra-deps:
-- aeson-1.0.2.1
+- aeson-1.4.0.0
 - bzlib-conduit-0.2.1.5
 - binary-0.8.4.1
 - cryptohash-sha256-0.11.100.1
 - echo-0.1.3
 - ed25519-0.0.5.0
+- lens-4.16.1
 - mintty-0.1.1
 - mmorph-1.0.9
 - optparse-applicative-0.13.0.0
@@ -12,10 +13,22 @@ extra-deps:
   commit: 75d74f53a34c875285a665d8878e5b363edfbea5
 - git: https://github.com/rahulmutt/zip.git
   commit: a4fbcc9e1efc3e8623022d9fcc83b50d4cdd95a5
+- git: https://github.com/rahulmutt/haskell-lsp
+  commit: 101cd943f78985cbadf138e3b5ce21b5ac756cdc
+  subdirs:
+  - haskell-lsp-types
+  - .
+- git: https://github.com/rahulmutt/rope-utf16-splay.git
+  commit: 6ff90a73f1f0f39f15e1a2cd619f87a62611a5d7
+- sorted-list-0.2.1.0
 - tar-0.5.0.3
-- text-1.2.2.1
+- text-1.2.3.0
 - turtle-1.3.0
 - unix-compat-0.4.3.1
+- cabal-doctest-1.0.6
+- kan-extensions-5.1
+- profunctors-5.2.2
+- th-abstraction-0.2.7.0
 resolver: lts-6.27
 flags:
   mintty:
@@ -36,4 +49,6 @@ packages:
 - etlas/etlas
 - etlas/etlas-cabal
 - etlas/hackage-security/hackage-security
+- eta-lsp
 - shake
+
