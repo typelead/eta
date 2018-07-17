@@ -80,6 +80,7 @@ library
         Control.Exception.Base
         Control.Monad
         Control.Monad.Fix
+        Control.Monad.IO.Class
         Control.Monad.Fail
         Control.Monad.Instances
         Control.Monad.ST
@@ -112,7 +113,6 @@ library
         Data.Functor.Identity
         Data.Functor.Product
         Data.Functor.Sum
-        Data.Functor.Utils
         Data.List.NonEmpty
         Data.IORef
         Data.Int
@@ -124,7 +124,6 @@ library
         Data.Proxy
         Data.Ratio
         Data.Semigroup
-        Data.Semigroup.Internal
         Data.STRef
         Data.STRef.Lazy
         Data.STRef.Strict
@@ -135,7 +134,6 @@ library
         Data.Type.Coercion
         Data.Type.Equality
         Data.Typeable
-        Data.Typeable.Internal
         Data.Unique
         Data.Version
         Data.Void
@@ -290,7 +288,10 @@ library
     other-modules:
         Control.Monad.ST.Imp
         Control.Monad.ST.Lazy.Imp
+        Data.Functor.Utils
         Data.OldList
+        Data.Semigroup.Internal
+        Data.Typeable.Internal
         Foreign.ForeignPtr.Imp
         System.Environment.ExecutablePath
 

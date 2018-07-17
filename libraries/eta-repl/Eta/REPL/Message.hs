@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP, GADTs, DeriveGeneric, DeriveDataTypeable,
-    StandaloneDeriving, ScopedTypeVariables,
+    StandaloneDeriving, ScopedTypeVariables, PatternSynonyms,
     GeneralizedNewtypeDeriving, ExistentialQuantification, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 

@@ -564,7 +564,7 @@ module GHC.Generics  (
 import GHC.Types
 import Data.Maybe ( Maybe(..) )
 import Data.Either ( Either(..) )
-
+import GHC.Base (NonEmpty(..))
 -- Needed for instances
 import GHC.Classes ( Eq, Ord )
 import GHC.Read ( Read )
@@ -723,10 +723,12 @@ class Generic1 f where
 -- Derived instances
 --------------------------------------------------------------------------------
 deriving instance Generic [a]
+deriving instance Generic (NonEmpty a)
 deriving instance Generic (Maybe a)
 deriving instance Generic (Either a b)
 deriving instance Generic Bool
 deriving instance Generic Ordering
+deriving instance Generic (Proxy t)
 deriving instance Generic ()
 deriving instance Generic ((,) a b)
 deriving instance Generic ((,,) a b c)
@@ -736,8 +738,10 @@ deriving instance Generic ((,,,,,) a b c d e f)
 deriving instance Generic ((,,,,,,) a b c d e f g)
 
 deriving instance Generic1 []
+deriving instance Generic1 NonEmpty
 deriving instance Generic1 Maybe
 deriving instance Generic1 (Either a)
+deriving instance Generic1 Proxy
 deriving instance Generic1 ((,) a)
 deriving instance Generic1 ((,,) a b)
 deriving instance Generic1 ((,,,) a b c)
@@ -815,5 +819,3 @@ instance Generic Char where
   type Rep Char = D1 D_Char (C1 C_Char (S1 NoSelector (Rec0 Char)))
   from x = M1 (M1 (M1 (K1 x)))
   to (M1 (M1 (M1 (K1 x)))) = x
-
-deriving instance Generic (Proxy t)
