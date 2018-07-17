@@ -30,7 +30,7 @@ import Eta.Prelude.TysWiredIn ( typeNatKind, typeSymbolKind
                   , promotedGTDataCon
                   )
 import Eta.Prelude.TysPrim    ( tyVarList, mkArrowKinds )
-import Eta.Prelude.PrelNames  ( gHC_TYPELITS
+import Eta.Prelude.PrelNames  ( gHC_TYPELITS, gHC_TYPENATS
                   , typeNatAddTyFamNameKey
                   , typeNatMulTyFamNameKey
                   , typeNatExpTyFamNameKey
@@ -66,7 +66,7 @@ typeNatAddTyCon = mkTypeNatFunTyCon2 name
     , sfInteractInert = interactInertAdd
     }
   where
-  name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "+")
+  name = mkWiredInTyConName UserSyntax gHC_TYPENATS (fsLit "+")
             typeNatAddTyFamNameKey typeNatAddTyCon
 
 typeNatSubTyCon :: TyCon
@@ -77,7 +77,7 @@ typeNatSubTyCon = mkTypeNatFunTyCon2 name
     , sfInteractInert = interactInertSub
     }
   where
-  name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "-")
+  name = mkWiredInTyConName UserSyntax gHC_TYPENATS (fsLit "-")
             typeNatSubTyFamNameKey typeNatSubTyCon
 
 typeNatMulTyCon :: TyCon
@@ -88,7 +88,7 @@ typeNatMulTyCon = mkTypeNatFunTyCon2 name
     , sfInteractInert = interactInertMul
     }
   where
-  name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "*")
+  name = mkWiredInTyConName UserSyntax gHC_TYPENATS (fsLit "*")
             typeNatMulTyFamNameKey typeNatMulTyCon
 
 typeNatExpTyCon :: TyCon
@@ -99,7 +99,7 @@ typeNatExpTyCon = mkTypeNatFunTyCon2 name
     , sfInteractInert = interactInertExp
     }
   where
-  name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "^")
+  name = mkWiredInTyConName UserSyntax gHC_TYPENATS (fsLit "^")
                 typeNatExpTyFamNameKey typeNatExpTyCon
 
 typeNatLeqTyCon :: TyCon
@@ -111,7 +111,7 @@ typeNatLeqTyCon =
     NoParentTyCon
 
   where
-  name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "<=?")
+  name = mkWiredInTyConName UserSyntax gHC_TYPENATS (fsLit "<=?")
                 typeNatLeqTyFamNameKey typeNatLeqTyCon
   ops = BuiltInSynFamily
     { sfMatchFam      = matchFamLeq
@@ -128,7 +128,7 @@ typeNatCmpTyCon =
     NoParentTyCon
 
   where
-  name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "CmpNat")
+  name = mkWiredInTyConName UserSyntax gHC_TYPENATS (fsLit "CmpNat")
                 typeNatCmpTyFamNameKey typeNatCmpTyCon
   ops = BuiltInSynFamily
     { sfMatchFam      = matchFamCmpNat
@@ -682,10 +682,3 @@ genLog x base = Just (exactLoop 0 x)
   underLoop s i
     | i < base  = s
     | otherwise = let s1 = s + 1 in s1 `seq` underLoop s1 (div i base)
-
-
-
-
-
-
-
