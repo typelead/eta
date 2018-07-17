@@ -1,0 +1,70 @@
+{
+  "name": "vscode-eta",
+  "displayName": "Eta Language Server",
+  "description": "Language Server Protocol for Eta by TypeLead, Inc.",
+  "version": "0.1.0",
+  "license": "BSD-3-Clause",
+  "publisher": "typelead",
+  "engines": {
+    "vscode": "^1.22.0"
+  },
+  "keywords": [
+    "language",
+    "eta",
+    "lsp"
+  ],
+  "homepage": "https://github.com/typelead/vscode-eta",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/typelead/vscode-eta.git"
+  },
+  "bugs": {
+    "url": "https://github.com/typelead/vscode-eta/issues"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:eta"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "eta",
+        "aliases": [
+          "eta"
+        ],
+        "extensions": [
+          ".eta"
+        ]
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Eta Language Server",
+      "properties": {
+        "languageServerEta.maxNumberOfProblems": {
+          "scope": "resource",
+          "type": "number",
+          "default": 100,
+          "description": "Controls the maximum number of problems produced by the server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "@types/node": "^8.5.8",
+    "typescript": "^2.8.1",
+    "vscode": "^1.1.17"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^4.2.0"
+  }
+}
