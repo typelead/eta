@@ -290,31 +290,31 @@ instance Traversable Last where
     traverse f (Last x) = Last <$> traverse f x
 
 -- | @since 4.9.0.0
--- instance Traversable ZipList where
---     traverse f (ZipList x) = ZipList <$> traverse f x
---
--- deriving instance Traversable Identity
+instance Traversable ZipList where
+    traverse f (ZipList x) = ZipList <$> traverse f x
+
+deriving instance Traversable Identity
 
 -- Instances for GHC.Generics
 -- | @since 4.9.0.0
--- instance Traversable U1 where
---     traverse _ _ = pure U1
---     {-# INLINE traverse #-}
---     sequenceA _ = pure U1
---     {-# INLINE sequenceA #-}
---     mapM _ _ = pure U1
---     {-# INLINE mapM #-}
---     sequence _ = pure U1
---     {-# INLINE sequence #-}
+instance Traversable U1 where
+    traverse _ _ = pure U1
+    {-# INLINE traverse #-}
+    sequenceA _ = pure U1
+    {-# INLINE sequenceA #-}
+    mapM _ _ = pure U1
+    {-# INLINE mapM #-}
+    sequence _ = pure U1
+    {-# INLINE sequence #-}
 
--- deriving instance Traversable V1
--- deriving instance Traversable Par1
--- deriving instance Traversable f => Traversable (Rec1 f)
--- deriving instance Traversable (K1 i c)
--- deriving instance Traversable f => Traversable (M1 i c f)
--- deriving instance (Traversable f, Traversable g) => Traversable (f :+: g)
--- deriving instance (Traversable f, Traversable g) => Traversable (f :*: g)
--- deriving instance (Traversable f, Traversable g) => Traversable (f :.: g)
+deriving instance Traversable V1
+deriving instance Traversable Par1
+deriving instance Traversable f => Traversable (Rec1 f)
+deriving instance Traversable (K1 i c)
+deriving instance Traversable f => Traversable (M1 i c f)
+deriving instance (Traversable f, Traversable g) => Traversable (f :+: g)
+deriving instance (Traversable f, Traversable g) => Traversable (f :*: g)
+deriving instance (Traversable f, Traversable g) => Traversable (f :.: g)
 -- deriving instance Traversable UAddr
 -- deriving instance Traversable UChar
 -- deriving instance Traversable UDouble

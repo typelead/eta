@@ -1,12 +1,16 @@
-{-# LANGUAGE Trustworthy            #-}
-{-# LANGUAGE CPP                    #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE TypeSynonymInstances   #-}
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE KindSignatures         #-}
-{-# LANGUAGE TypeFamilies           #-}
-{-# LANGUAGE StandaloneDeriving     #-}
-{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE Trustworthy                   #-}
+{-# LANGUAGE CPP                           #-}
+{-# LANGUAGE NoImplicitPrelude             #-}
+{-# LANGUAGE DeriveFunctor                 #-}
+{-# LANGUAGE TypeSynonymInstances          #-}
+{-# LANGUAGE TypeOperators                 #-}
+{-# LANGUAGE KindSignatures                #-}
+{-# LANGUAGE TypeFamilies                  #-}
+{-# LANGUAGE StandaloneDeriving            #-}
+{-# LANGUAGE DeriveGeneric                 #-}
+{-# LANGUAGE RankNTypes                    #-}
+{-# LANGUAGE ScopedTypeVariables           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving    #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -564,7 +568,9 @@ module GHC.Generics  (
 import GHC.Types
 import Data.Maybe ( Maybe(..) )
 import Data.Either ( Either(..) )
-import GHC.Base (NonEmpty(..))
+import GHC.Base (NonEmpty(..), Functor(..), Monad(..), Alternative(..),
+                Applicative(..), MonadPlus(..), coerce)
+import GHC.Err (undefined)
 -- Needed for instances
 import GHC.Classes ( Eq, Ord )
 import GHC.Read ( Read )
@@ -577,41 +583,131 @@ import Data.Proxy
 
 -- | Void: used for datatypes without constructors
 data V1 p
+  deriving (Functor)
+
+-- instance Functor V1 where
+--   fmap _f _x = undefined
 
 -- | Unit: used for constructors without arguments
 data U1 p = U1
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
+
+-- | @since 4.9.0.0
+instance Applicative U1 where
+  pure _ = U1
+  _ <*> _ = U1
+  liftA2 _ _ _ = U1
+
+-- | @since 4.9.0.0
+instance Alternative U1 where
+  empty = U1
+  _ <|> _ = U1
+
+-- | @since 4.9.0.0
+instance Monad U1 where
+  _ >>= _ = U1
+
+-- | @since 4.9.0.0
+instance MonadPlus U1
 
 -- | Used for marking occurrences of the parameter
 newtype Par1 p = Par1 { unPar1 :: p }
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
+
+-- | @since 4.9.0.0
+instance Applicative Par1 where
+  pure = Par1
+  (<*>) = coerce
+  liftA2 = coerce
+
+-- | @since 4.9.0.0
+instance Monad Par1 where
+  Par1 x >>= f = f x
 
 -- | Recursive calls of kind * -> *
 newtype Rec1 f p = Rec1 { unRec1 :: f p }
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
+
+  -- | @since 4.9.0.0
+deriving instance Applicative f => Applicative (Rec1 f)
+
+-- | @since 4.9.0.0
+deriving instance Alternative f => Alternative (Rec1 f)
+
+-- | @since 4.9.0.0
+instance Monad f => Monad (Rec1 f) where
+  Rec1 x >>= f = Rec1 (x >>= \a -> unRec1 (f a))
+
+-- | @since 4.9.0.0
+deriving instance MonadPlus f => MonadPlus (Rec1 f)
 
 -- | Constants, additional parameters and recursion of kind *
 newtype K1 i c p = K1 { unK1 :: c }
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
+
+-- | @since 4.9.0.0
+deriving instance Applicative f => Applicative (M1 i c f)
+
+-- | @since 4.9.0.0
+deriving instance Alternative f => Alternative (M1 i c f)
+
+-- | @since 4.9.0.0
+deriving instance Monad f => Monad (M1 i c f)
+
+-- | @since 4.9.0.0
+deriving instance MonadPlus f => MonadPlus (M1 i c f)
 
 -- | Meta-information (constructor names, etc.)
 newtype M1 i c f p = M1 { unM1 :: f p }
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
 
 -- | Sums: encode choice between constructors
 infixr 5 :+:
 data (:+:) f g p = L1 (f p) | R1 (g p)
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
 
 -- | Products: encode multiple arguments to constructors
 infixr 6 :*:
 data (:*:) f g p = f p :*: g p
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
+
+-- | @since 4.9.0.0
+instance (Applicative f, Applicative g) => Applicative (f :*: g) where
+  pure a = pure a :*: pure a
+  (f :*: g) <*> (x :*: y) = (f <*> x) :*: (g <*> y)
+  liftA2 f (a :*: b) (x :*: y) = liftA2 f a x :*: liftA2 f b y
+
+-- | @since 4.9.0.0
+instance (Alternative f, Alternative g) => Alternative (f :*: g) where
+  empty = empty :*: empty
+  (x1 :*: y1) <|> (x2 :*: y2) = (x1 <|> x2) :*: (y1 <|> y2)
+
+-- | @since 4.9.0.0
+instance (Monad f, Monad g) => Monad (f :*: g) where
+  (m :*: n) >>= f = (m >>= \a -> fstP (f a)) :*: (n >>= \a -> sndP (f a))
+    where
+      fstP (a :*: _) = a
+      sndP (_ :*: b) = b
+
+-- | @since 4.9.0.0
+instance (MonadPlus f, MonadPlus g) => MonadPlus (f :*: g)
 
 -- | Composition of functors
 infixr 7 :.:
 newtype (:.:) f g p = Comp1 { unComp1 :: f (g p) }
-  deriving (Eq, Ord, Read, Show, Generic)
+  deriving (Eq, Ord, Read, Show, Generic, Functor)
+
+-- | @since 4.9.0.0
+instance (Applicative f, Applicative g) => Applicative (f :.: g) where
+  pure x = Comp1 (pure (pure x))
+  Comp1 f <*> Comp1 x = Comp1 (liftA2 (<*>) f x)
+  liftA2 f (Comp1 x) (Comp1 y) = Comp1 (liftA2 (liftA2 f) x y)
+
+-- | @since 4.9.0.0
+instance (Alternative f, Applicative g) => Alternative (f :.: g) where
+  empty = Comp1 empty
+  (<|>) = coerce ((<|>) :: f (g a) -> f (g a) -> f (g a)) ::
+    forall a . (f :.: g) a -> (f :.: g) a -> (f :.: g) a
 
 -- | Tag for K1: recursion (of kind *)
 data R
