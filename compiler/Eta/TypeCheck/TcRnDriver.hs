@@ -1179,16 +1179,14 @@ tcTopSrcDecls (HsGroup { hs_tyclds  = tycl_decls,
         traceTc "Tc4a" empty ;
         default_tys <- tcDefaults default_decls ;
         updGblEnv (\gbl -> gbl { tcg_default = default_tys }) $ do {
-
-                -- Now GHC-generated derived bindings, generics, and selectors
-                -- Do not generate warnings from compiler-generated code;
-                -- hence the use of discardWarnings
-        tc_envs <- discardWarnings (tcTopBinds deriv_binds) ;
-        setEnvs tc_envs $ do {
-
-                -- Value declarations next
+        -- Value declarations next
         traceTc "Tc5" empty ;
-        tc_envs@(tcg_env, tcl_env) <- tcTopBinds val_binds;
+        tc_envs <- tcTopBinds val_binds;
+        setEnvs tc_envs $ do {
+        -- Now GHC-generated derived bindings, generics, and selectors
+        -- Do not generate warnings from compiler-generated code;
+        -- hence the use of discardWarnings
+        tc_envs@(tcg_env, tcl_env) <- discardWarnings (tcTopBinds deriv_binds) ;
         setEnvs tc_envs $ do {  -- Environment doesn't change now
 
                 -- Second pass over class and instance declarations,
