@@ -22,6 +22,11 @@ ideOptionsParser = IDEOptions
       <> short 'r'
       <> metavar "PROJECT-DIR"
       <> help "Project directory, defaults to the current directory"))
+  <*> switch 
+       ( long "debug"
+      <> short 'd'
+      <> help "Enable additional logging"
+       )
 
 ideModeOption :: Parser IDEMode
 ideModeOption =

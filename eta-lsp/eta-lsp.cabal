@@ -22,11 +22,20 @@ library
    exposed-modules:     Language.Eta.IDE.Options
                         Language.Eta.IDE.Run
                         Language.Eta.IDE.Types
+                        Language.Eta.LSP.Config
+                        Language.Eta.LSP.Run
+
    default-language:    Haskell2010
    build-depends:       base >= 4.7 && < 5
                       , haskell-lsp
+                      , directory
                       , optparse-applicative
+                      , hslogger
                       , eta
+                      , aeson
+                      , text
+                      , stm
+                      , lens
 
 executable eta-lsp
    ghc-options:         -Wall -Werror -threaded -rtsopts

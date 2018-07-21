@@ -6,7 +6,8 @@ data IDEMode = LSPMode | JSONMode
   deriving Show
 
 data IDEOptions = IDEOptions
-  { goptsLogFile    :: Maybe String
-  , goptsIdeMode    :: IDEMode
-  , goptsProjectDir :: Maybe String
+  { ideOptsLogFile    :: Maybe String
+  , ideOptsIdeMode    :: IDEMode
+  , ideOptsProjectDir :: Maybe String
+  , ideOptsDebug      :: Bool
   } deriving (Show)
