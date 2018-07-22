@@ -12,8 +12,9 @@ public class CachedBlock {
 
     /* Returns null if address is not within range. */
     private Block get(long address) {
-        if (address >= lowerAddress && address < higherAddress)
+        if (address >= lowerAddress && address < higherAddress) {
             return block;
+        }
         return null;
     }
 
@@ -34,6 +35,7 @@ public class CachedBlock {
         CachedBlock cb = cachedBlock.get();
         if (cb == null) {
             cb = new CachedBlock();
+            cachedBlock.set(cb);
         }
         block.fillCache(cb);
     }
