@@ -28,10 +28,9 @@ tests/suite/applicativeDo/fail/T13242a.hs:13:13: error:
     Relevant bindings include
       x :: a0 (bound at tests/suite/applicativeDo/fail/T13242a.hs:10:5)
     Note: there are several potential instances:
+      instance Eq a => Eq (GHC.Base.NonEmpty a) -- Defined in ‘GHC.Base’
       instance Eq GHC.Types.Object -- Defined in ‘GHC.Classes’
       instance Eq Ordering -- Defined in ‘GHC.Classes’
-      instance Eq Integer
-        -- Defined in ‘integer-0.5.1.0:GHC.Integer.Type’
       ...plus 24 others
     In a stmt of a 'do' block: return (x == x)
     In the expression:

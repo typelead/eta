@@ -7,10 +7,10 @@ tests/suite/typecheck/fail/tcfail181.hs:17:9: error:
       at tests/suite/typecheck/fail/tcfail181.hs:17:1-30
     The type variable ‘m0’ is ambiguous
     Note: there are several potential instances:
+      instance Monad GHC.Base.NonEmpty -- Defined in ‘GHC.Base’
       instance Monad IO -- Defined in ‘GHC.Base’
       instance Monad (GHC.Types.Java c) -- Defined in ‘GHC.Base’
-      instance Monad Maybe -- Defined in ‘GHC.Base’
-      ...plus two others
+      ...plus four others
     In the expression: foo
     In the expression: foo {bar = return True}
     In an equation for ‘wog’: wog x = foo {bar = return True}

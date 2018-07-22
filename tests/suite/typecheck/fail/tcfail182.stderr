@@ -3,7 +3,7 @@ tests/suite/typecheck/fail/tcfail182.hs:9:3: error:
     Couldn't match expected type ‘Prelude.Maybe a’
                 with actual type ‘Maybe t0’
     NB: ‘Prelude.Maybe’
-          is defined in ‘GHC.Base’ in package ‘base-4.8.2.0’
+          is defined in ‘GHC.Maybe’ in package ‘base-4.11.1.0’
         ‘Maybe’ is defined at
           tests/suite/typecheck/fail/tcfail182.hs:6:1-18
     Relevant bindings include
