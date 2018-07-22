@@ -507,4 +507,11 @@ public class Utils {
     public static void puts(String msg) {
         System.out.println(msg);
     }
+
+    public static float log1pFloat(float f) {
+      return (float)(Math.log1p(f));
+    }
+    public static float expm1Float(float f) {
+      return (float)(Math.expm1(f));
+    }
 }

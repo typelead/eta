@@ -237,7 +237,7 @@ showHFloat = showString . fmt
     | x == 0 = "0x0p+0"
     | otherwise =
       case floatToDigits 2 x of
-        r@([], _) -> error $ "Impossible happened: showHFloat: " ++ show r
+        r@([], _) -> errorWithoutStackTrace $ "Impossible happened: showHFloat: " ++ show r
         (d:ds, e) -> "0x" ++ show d ++ frac ds ++ "p" ++ show (e-1)
 
   -- Given binary digits, convert them to hex in blocks of 4

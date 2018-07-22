@@ -2,11 +2,13 @@
 
 module Eta.TypeCheck.TcInteract (
      solveSimpleGivens,    -- Solves [EvVar],GivenLoc
-     solveSimpleWanteds    -- Solves Cts
+     solveSimpleWanteds,  -- Solves Cts
+
+     solveCallStack,      -- for use in TcSimplify
   ) where
 
 import Eta.BasicTypes.BasicTypes ()
-import Eta.HsSyn.HsTypes ( hsIPNameFS )
+import Eta.HsSyn.HsTypes ( HsIPName(..) )
 import Eta.Utils.FastString
 import qualified Eta.TypeCheck.TcCanonical as TcCanonical
 import Eta.TypeCheck.TcCanonical
@@ -21,8 +23,8 @@ import Eta.Types.CoAxiom(sfInteractTop, sfInteractInert)
 import qualified Eta.LanguageExtensions as LangExt
 import Eta.BasicTypes.Var
 import Eta.TypeCheck.TcType
-import Eta.Prelude.PrelNames ( knownNatClassName, knownSymbolClassName, ipClassNameKey
-                 , typeableClassName, callStackTyConKey )
+import Eta.Prelude.PrelNames ( knownNatClassName, knownSymbolClassName, typeableClassName )
+import Eta.Prelude.TysWiredIn ( ipClass )
 import Eta.BasicTypes.Id( idType )
 import Eta.Types.Class
 import Eta.Types.TyCon
@@ -44,7 +46,6 @@ import Eta.BasicTypes.VarEnv
 
 import Control.Monad
 import Eta.Utils.Pair (Pair(..))
-import Eta.BasicTypes.Unique( hasKey )
 import Eta.Main.DynFlags
 import Eta.Utils.Util
 
@@ -537,25 +538,30 @@ interactIrred _ wi = pprPanic "interactIrred" (ppr wi)
 
 interactDict :: InertCans -> Ct -> TcS (StopOrContinue Ct)
 interactDict inerts workItem@(CDictCan { cc_ev = ev_w, cc_class = cls, cc_tyargs = tys })
-  -- don't ever try to solve CallStack IPs directly from other dicts,
-  -- we always build new dicts instead.
-  -- See Note [Overview of implicit CallStacks]
-  | [_ip, ty] <- tys
-  , isWanted ev_w
-  , Just mkEvCs <- isCallStackIP (ctEvLoc ev_w) cls ty
-  = do let ev_cs =
-             case lookupInertDict inerts (ctEvLoc ev_w) cls tys of
-               Just ev | isGiven ev -> mkEvCs (ctEvTerm ev)
-               _ -> mkEvCs (EvCallStack EvCsEmpty)
+    | isWanted ev_w
+    , Just ip_name <- isCallStackPred (ctPred workItem)
+    , OccurrenceOf func <- ctLocOrigin (ctEvLoc ev_w)
+    -- If we're given a CallStack constraint that arose from a function
+    -- call, we need to push the current call-site onto the stack instead
+    -- of solving it directly from a given.
+    -- See Note [Overview of implicit CallStacks]
+    = do { let loc = ctEvLoc ev_w
 
-       -- now we have ev_cs :: CallStack, but the evidence term should
-       -- be a dictionary, so we have to coerce ev_cs to a
-       -- dictionary for `IP ip CallStack`
-       let ip_ty = mkClassPred cls tys
-       let ev_tm = mkEvCast (EvCallStack ev_cs) (TcCoercion $ wrapIP ip_ty)
-       addSolvedDict ev_w cls tys
-       setEvBind (ctEvId ev_w) ev_tm
-       stopWith ev_w "Wanted CallStack IP"
+           -- First we emit a new constraint that will capture the
+           -- given CallStack.
+         ; let new_loc      = setCtLocOrigin loc (IPOccOrigin (HsIPName ip_name))
+                              -- We change the origin to IPOccOrigin so
+                              -- this rule does not fire again.
+                              -- See Note [Overview of implicit CallStacks]
+
+         ; mb_new <- newWantedEvVar new_loc (ctEvPred ev_w)
+         ; emitWorkNC (freshGoals [mb_new])
+
+           -- Then we solve the wanted by pushing the call-site onto the
+           -- newly emitted CallStack.
+         ; let ev_cs = EvCsPushCall func (ctLocSpan loc) (ctEvTerm $ fst mb_new)
+         ; solveCallStack ev_w ev_cs
+         ; stopWith ev_w "Wanted CallStack IP" }
 
   | Just ctev_i <- lookupInertDict inerts (ctEvLoc ev_w) cls tys
   = do { (inert_effect, stop_now) <- solveOneFromTheOther ctev_i ev_w
@@ -568,7 +574,7 @@ interactDict inerts workItem@(CDictCan { cc_ev = ev_w, cc_class = cls, cc_tyargs
          else
             continueWith workItem }
 
-  | cls `hasKey` ipClassNameKey
+  | cls == ipClass
   , isGiven ev_w
   = interactGivenIP inerts workItem
 
@@ -2230,22 +2236,10 @@ a TypeRep for them.  For qualified but not polymorphic types, like
     For now we leave it off, until we have a better story for impredicativity.
 -}
 
--- | Is the constraint for an implicit CallStack parameter?
-isCallStackIP :: CtLoc -> Class -> Type -> Maybe (EvTerm -> EvCallStack)
-isCallStackIP loc cls ty
-  | Just (tc, []) <- splitTyConApp_maybe ty
-  , cls `hasKey` ipClassNameKey && tc `hasKey` callStackTyConKey
-  = occOrigin (ctLocOrigin loc)
-  where
-  -- We only want to grab constraints that arose due to the use of an IP or a
-  -- function call. See Note [Overview of implicit CallStacks]
-  occOrigin (OccurrenceOf n)
-    = Just (EvCsPushCall n locSpan)
-  occOrigin (IPOccOrigin n)
-    = Just (EvCsTop ('?' `consFS` hsIPNameFS n) locSpan)
-  occOrigin _
-    = Nothing
-  locSpan
-    = ctLocSpan loc
-isCallStackIP _ _ _
-  = Nothing
+solveCallStack :: CtEvidence -> EvCallStack -> TcS ()
+solveCallStack ev ev_cs = do
+  -- We're given ev_cs :: CallStack, but the evidence term should be a
+  -- dictionary, so we have to coerce ev_cs to a dictionary for
+  -- `IP ip CallStack`. See Note [Overview of implicit CallStacks]
+  let ev_tm = mkEvCast (EvCallStack ev_cs) (TcCoercion $ wrapIP (ctEvPred ev))
+  setWantedEvBind (ctEvId ev) ev_tm

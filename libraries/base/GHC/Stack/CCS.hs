@@ -56,14 +56,14 @@ data CostCentre
 -- which can be used to avoid the call to @getCurrentCCS@ being floated out by
 -- the simplifier, which would result in an uninformative stack ("CAF").
 getCurrentCCS :: dummy -> IO (Ptr CostCentreStack)
-getCurrentCCS _dummy = error "getCurrentCCS not handled!"
+getCurrentCCS _dummy = errorWithoutStackTrace "getCurrentCCS not handled!"
   -- IO $ \s ->
   --  case getCurrentCCS## dummy s of
   --    (## s', addr ##) -> (## s', Ptr addr ##)
 
 -- | Get the 'CostCentreStack' associated with the given value.
 getCCSOf :: a -> IO (Ptr CostCentreStack)
-getCCSOf obj = error "getCCSOf not handled!"
+getCCSOf obj = errorWithoutStackTrace "getCCSOf not handled!"
   -- IO $ \s ->
   --  case getCCSOf## obj s of
   --    (## s', addr ##) -> (## s', Ptr addr ##)
@@ -72,32 +72,32 @@ getCCSOf obj = error "getCCSOf not handled!"
 -- used by the interpreter to run an interpreted computation without the call
 -- stack showing that it was invoked from GHC.
 clearCCS :: IO a -> IO a
-clearCCS (IO m) = error "clearCCS not handled!"
+clearCCS (IO m) = errorWithoutStackTrace "clearCCS not handled!"
   -- IO $ \s -> clearCCS## m s
 
 -- | Get the 'CostCentre' at the head of a 'CostCentreStack'.
 ccsCC :: Ptr CostCentreStack -> IO (Ptr CostCentre)
-ccsCC p = error "ccsCC not handled!"
+ccsCC p = errorWithoutStackTrace "ccsCC not handled!"
   -- (# peek CostCentreStack, cc) p
 
 -- | Get the tail of a 'CostCentreStack'.
 ccsParent :: Ptr CostCentreStack -> IO (Ptr CostCentreStack)
-ccsParent p = error "ccsParent not handled!"
+ccsParent p = errorWithoutStackTrace "ccsParent not handled!"
   -- (# peek CostCentreStack, prevStack) p
 
 -- | Get the label of a 'CostCentre'.
 ccLabel :: Ptr CostCentre -> IO CString
-ccLabel p = error "ccLabel not handled!"
+ccLabel p = errorWithoutStackTrace "ccLabel not handled!"
   -- (# peek CostCentre, label) p
 
 -- | Get the module of a 'CostCentre'.
 ccModule :: Ptr CostCentre -> IO CString
-ccModule p = error "ccModule not handled!"
+ccModule p = errorWithoutStackTrace "ccModule not handled!"
   -- (# peek CostCentre, module) p
 
 -- | Get the source span of a 'CostCentre'.
 ccSrcSpan :: Ptr CostCentre -> IO CString
-ccSrcSpan p = error "ccSrcSpan not handled!"
+ccSrcSpan p = errorWithoutStackTrace "ccSrcSpan not handled!"
   -- (# peek CostCentre, srcloc) p
 
 -- | Returns a @[String]@ representing the current call stack.  This

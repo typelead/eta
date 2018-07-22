@@ -312,6 +312,6 @@ traceMarker msg expr = unsafeDupablePerformIO $ do
 --
 -- @since 4.7.0.0
 traceMarkerIO :: String -> IO ()
-traceMarkerIO msg = error "traceMarkerIO not implemented!"
+traceMarkerIO msg = errorWithoutStackTrace "traceMarkerIO not implemented!"
   -- GHC.Foreign.withCString utf8 msg $ \(Ptr p) -> IO $ \s ->
   --   case traceMarker# p s of s' -> (# s', () #)

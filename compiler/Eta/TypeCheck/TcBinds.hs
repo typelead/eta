@@ -35,6 +35,7 @@ import Eta.Types.Type( pprSigmaTypeExtraCts )
 import Eta.Types.TyCon
 import Eta.TypeCheck.TcType
 import Eta.Prelude.TysPrim
+import Eta.Prelude.TysWiredIn
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Var
 import Eta.BasicTypes.VarSet
@@ -55,7 +56,6 @@ import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
 import Eta.Types.Type                  (mkStrLitTy, tidyOpenType)
-import Eta.Prelude.PrelNames           (ipClassName)
 import Eta.TypeCheck.TcValidity        (checkValidType)
 import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
@@ -223,8 +223,7 @@ tcLocalBinds (HsValBinds (ValBindsOut binds sigs)) thing_inside
 tcLocalBinds (HsValBinds (ValBindsIn {})) _ = panic "tcLocalBinds"
 
 tcLocalBinds (HsIPBinds (IPBinds ip_binds _)) thing_inside
-  = do  { ipClass <- tcLookupClass ipClassName
-        ; (given_ips, ip_binds') <-
+  = do  { (given_ips, ip_binds') <-
             mapAndUnzipM (wrapLocSndM (tc_ip_bind ipClass)) ip_binds
 
         -- If the binding binds ?x = E, we  must now
@@ -692,7 +691,6 @@ mkInferredPolyId poly_name qtvs theta mono_ty
 
              my_tvs2 = closeOverKinds (growThetaTyVars theta (tyVarsOfType norm_mono_ty))
                   -- Include kind variables!  Trac #7916
-
              my_tvs   = filter (`elemVarSet` my_tvs2) qtvs   -- Maintain original order
              my_theta = filter (quantifyPred my_tvs2) theta
              inferred_poly_ty = mkSigmaTy my_tvs my_theta norm_mono_ty

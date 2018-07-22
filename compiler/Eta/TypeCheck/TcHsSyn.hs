@@ -1211,8 +1211,6 @@ zonkEvTerm env (EvTypeable ev) =
 zonkEvTerm env (EvCallStack cs)
   = case cs of
       EvCsEmpty -> return (EvCallStack cs)
-      EvCsTop n l tm -> do { tm' <- zonkEvTerm env tm
-                           ; return (EvCallStack (EvCsTop n l tm')) }
       EvCsPushCall n l tm -> do { tm' <- zonkEvTerm env tm
                                 ; return (EvCallStack (EvCsPushCall n l tm')) }
 

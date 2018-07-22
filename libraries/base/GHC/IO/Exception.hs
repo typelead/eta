@@ -55,6 +55,7 @@ import GHC.Read
 import GHC.Exception
 import GHC.IO.Handle.Types
 import GHC.OldList ( intercalate )
+import GHC.Stack.Types
 import {-# SOURCE #-} GHC.Stack.CCS
 import Foreign.C.Types
 
@@ -427,7 +428,7 @@ instance Show IOException where
 -- Note the use of "lazy". This means that
 --     assert False (throw e)
 -- will throw the assertion failure rather than e. See trac #5561.
-assertError :: (?callStack :: CallStack) => Bool -> a -> a
+assertError :: HasCallStack => Bool -> a -> a
 assertError predicate v
   | predicate = lazy v
   | otherwise = unsafeDupablePerformIO $ do

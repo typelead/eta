@@ -44,12 +44,11 @@ import Eta.Types.Type
 import Eta.Types.Kind (returnsConstraintKind)
 import qualified Eta.Types.Coercion as Coercion
 import Eta.Types.Coercion hiding (substCo)
-import Eta.Prelude.TysWiredIn ( eqBoxDataCon, coercibleDataCon, tupleCon, mkListTy
-                  , mkBoxedTupleTy, stringTy )
+import Eta.Prelude.TysWiredIn ( eqBoxDataCon, coercibleDataCon, tupleCon )
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.MkId(proxyHashId)
 import Eta.Types.Class
-import Eta.BasicTypes.DataCon  ( dataConTyCon, dataConWorkId )
+import Eta.BasicTypes.DataCon  ( dataConWorkId )
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.IdInfo   ( IdDetails(..) )
 import Eta.BasicTypes.Var
@@ -1185,8 +1184,6 @@ dsEvCallStack cs = do
   df              <- getDynFlags
   m               <- getModule
   srcLocDataCon   <- dsLookupDataCon srcLocDataConName
-  let srcLocTyCon  = dataConTyCon srcLocDataCon
-  let srcLocTy     = mkTyConTy srcLocTyCon
   let mkSrcLoc l =
         liftM (mkCoreConApps srcLocDataCon)
               (sequence [ mkStringExprFS (unitIdFS $ moduleUnitId m)
@@ -1198,23 +1195,10 @@ dsEvCallStack cs = do
                         , return $ mkIntExprInt df (srcSpanEndCol l)
                         ])
 
-  let callSiteTy = mkBoxedTupleTy [stringTy, srcLocTy]
-
-  matchId         <- newSysLocalDs $ mkListTy callSiteTy
-
-  callStackDataCon <- dsLookupDataCon callStackDataConName
-  let callStackTyCon = dataConTyCon callStackDataCon
-  let callStackTy    = mkTyConTy callStackTyCon
-  let emptyCS        = mkCoreConApps callStackDataCon [mkNilExpr callSiteTy]
+  emptyCS <- Var <$> dsLookupGlobalId emptyCallStackName
+  pushCSVar <- dsLookupGlobalId pushCallStackName
   let pushCS name loc rest =
-        mkWildCase rest callStackTy callStackTy
-                   [( DataAlt callStackDataCon
-                    , [matchId]
-                    , mkCoreConApps callStackDataCon
-                       [mkConsExpr callSiteTy
-                                   (mkCoreTup [name, loc])
-                                   (Var matchId)]
-                    )]
+         mkCoreApps (Var pushCSVar) [mkCoreTup [name, loc], rest]
   let mkPush name loc tm = do
         nameExpr <- mkStringExprFS name
         locExpr <- mkSrcLoc loc
@@ -1228,9 +1212,8 @@ dsEvCallStack cs = do
                   let ip_co = unwrapIP (exprType tmExpr)
                   return (pushCS nameExpr locExpr (mkCast tmExpr ip_co))
   case cs of
-    EvCsTop name loc tm -> mkPush name loc tm
     EvCsPushCall name loc tm -> mkPush (occNameFS $ getOccName name) loc tm
-    EvCsEmpty -> panic "Cannot have an empty CallStack"
+    EvCsEmpty -> return emptyCS
 
 ---------------------------------------
 dsTcCoercion :: TcCoercion -> (Coercion -> CoreExpr) -> DsM CoreExpr
