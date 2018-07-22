@@ -30,13 +30,13 @@ import GHC.Prim
 import GHC.Integer ()   -- Make sure Integer is compiled first
                         -- because GHC depends on it in a wired-in way
                         -- so the build system doesn't see the dependency
-import {-# SOURCE #-} GHC.Exception( errorCallWithCallStackException, errorCallException )
+import {-# SOURCE #-} GHC.Exception( errorCallException )
 
 -- | 'error' stops execution and displays an error message.
+-- error :: [Char] -> a
+-- error s = raise# (errorCallException s)
 error :: [Char] -> a
 error s = raise# (errorCallException s)
--- error :: HasCallStack => [Char] -> a
--- error s = raise# (errorCallWithCallStackException s ?callStack)
           -- Bleh, we should be using 'GHC.Stack.callStack' instead of
           -- '?callStack' here, but 'GHC.Stack.callStack' depends on
           -- 'GHC.Stack.popCallStack', which is partial and depends on
@@ -46,10 +46,15 @@ error s = raise# (errorCallException s)
 --
 -- @since 4.9.0.0
 errorWithoutStackTrace :: [Char] -> a
-errorWithoutStackTrace s = error "errorWithoutStackTrace not handled!"
+errorWithoutStackTrace s = raise# (errorCallException s)
+-- raise# (errorCallException s)
+-- {-# NOINLINE errorWithoutStackTrace #-}
+  --raise# (errorCallException s)
+
+
+  --
   -- we don't have withFrozenCallStack yet, so we just inline the definition
-  -- let ?callStack = freezeCallStack emptyCallStack
-  -- in error s
+
 
 
 -- Note [Errors in base]
@@ -74,8 +79,8 @@ errorWithoutStackTrace s = error "errorWithoutStackTrace not handled!"
 -- It is expected that compilers will recognize this and insert error
 -- messages which are more appropriate to the context in which 'undefined'
 -- appears.
-undefined :: HasCallStack => a
-undefined =  error "Prelude.undefined"
+undefined :: a
+undefined = error "Prelude.undefined"
 
 -- | Used for compiler-generated error message;
 -- encoding saves bytes of string junk.

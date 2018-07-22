@@ -17,7 +17,7 @@ module Eta.TypeCheck.TcEvidence (
   EvTerm(..), mkEvCast, evVarsOfTerm, mkEvTupleSelectors, mkEvScSelectors,
   EvLit(..), evTermCoercion,
   EvTypeable(..),
-  EvCallStack(..),
+  EvCallStack(..), mkWantedEvBind,
 
   -- TcCoercion
   TcCoercion(..), LeftOrRight(..), pickLR,
@@ -705,6 +705,9 @@ foldEvBindMap k z bs = foldDVarEnv k z (ev_bind_varenv bs)
 -- All evidence is bound by EvBinds; no side effects
 data EvBind = EvBind EvVar EvTerm
 
+mkWantedEvBind :: EvVar -> EvTerm -> EvBind
+mkWantedEvBind = EvBind
+
 data EvTerm
   = EvId EvId                    -- Any sort of evidence Id, including coercions
 
@@ -763,9 +766,6 @@ data EvCallStack
   | EvCsPushCall Name RealSrcSpan EvTerm
     -- ^ @EvCsPushCall name loc stk@ represents a call to @name@, occurring at
     -- @loc@, in a calling context @stk@.
-  | EvCsTop FastString RealSrcSpan EvTerm
-    -- ^ @EvCsTop name loc stk@ represents a use of an implicit parameter
-    -- @?name@, occurring at @loc@, in a calling context @stk@.
   deriving( Data.Data, Data.Typeable )
 
 {-
@@ -1031,7 +1031,6 @@ evVarsOfTypeable ev =
 evVarsOfCallStack :: EvCallStack -> VarSet
 evVarsOfCallStack cs = case cs of
   EvCsEmpty -> emptyVarSet
-  EvCsTop _ _ tm -> evVarsOfTerm tm
   EvCsPushCall _ _ tm -> evVarsOfTerm tm
 
 {-
@@ -1112,10 +1111,8 @@ instance Outputable EvTypeable where
 instance Outputable EvCallStack where
   ppr EvCsEmpty
     = ptext (sLit "[]")
-  ppr (EvCsTop name loc tm)
-    = angleBrackets (ppr (name,loc)) <+> ptext (sLit ":") <+> ppr tm
   ppr (EvCsPushCall name loc tm)
-    = angleBrackets (ppr (name,loc)) <+> ptext (sLit ":") <+> ppr tm
+    = ppr (name,loc) <+> ptext (sLit ":") <+> ppr tm
 
 ----------------------------------------------------------------------
 -- Helper functions for dealing with IP newtype-dictionaries

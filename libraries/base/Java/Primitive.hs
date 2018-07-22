@@ -43,7 +43,7 @@ instance Data Byte where
   toConstr = mkIntegralConstr byteType
   gunfold _ z c = case constrRep c of
                     (IntConstr x) -> z (fromIntegral x)
-                    _ -> error $ "Data.Data.gunfold: Constructor " ++ show c
+                    _ -> errorWithoutStackTrace $ "Data.Data.gunfold: Constructor " ++ show c
                                  ++ " is not of type Byte."
   dataTypeOf _ = byteType
 
@@ -56,7 +56,7 @@ instance Data Short where
   toConstr = mkIntegralConstr shortType
   gunfold _ z c = case constrRep c of
                     (IntConstr x) -> z (fromIntegral x)
-                    _ -> error $ "Data.Data.gunfold: Constructor " ++ show c
+                    _ -> errorWithoutStackTrace $ "Data.Data.gunfold: Constructor " ++ show c
                                  ++ " is not of type Short."
   dataTypeOf _ = shortType
 
@@ -86,6 +86,6 @@ instance Data JChar where
   toConstr = mkIntegralConstr jcharType
   gunfold _ z c = case constrRep c of
                     (IntConstr x) -> z (fromIntegral x)
-                    _ -> error $ "Data.Data.gunfold: Constructor " ++ show c
+                    _ -> errorWithoutStackTrace $ "Data.Data.gunfold: Constructor " ++ show c
                                  ++ " is not of type JChar."
   dataTypeOf _ = jcharType

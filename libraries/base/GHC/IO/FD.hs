@@ -84,7 +84,7 @@ data FDType = FDGeneric !Channel
             | FDFile !Path !FileChannel
 
 instance Show FD where
-  show fd = error "Show[FD]: No Show instance yet."
+  show fd = errorWithoutStackTrace "Show[FD]: No Show instance yet."
 
 instance GHC.IO.Device.RawIO FD where
   read             = fdRead
@@ -127,7 +127,7 @@ withFileChannel :: String -> FD -> (Path -> FileChannel -> IO a) -> IO a
 withFileChannel msg fd act
   | FDFile p fc <- fdFD fd
   = act p fc
-  | otherwise = error $ msg ++ ": Not a file channel"
+  | otherwise = errorWithoutStackTrace $ msg ++ ": Not a file channel"
 
 withFileChannelOrElse :: String -> FD -> a -> (Path -> FileChannel -> IO a) -> IO a
 withFileChannelOrElse msg fd def act
@@ -347,15 +347,15 @@ isTerminal :: FD -> IO Bool
 isTerminal _ = return False
 
 setEcho :: FD -> Bool -> IO ()
-setEcho fd on = System.Posix.Internals.setEcho (error "setEcho: Not implemented yet.") on
+setEcho fd on = System.Posix.Internals.setEcho (errorWithoutStackTrace "setEcho: Not implemented yet.") on
 -- setEcho fd on = System.Posix.Internals.setEcho (fdFD fd) on
 
 getEcho :: FD -> IO Bool
-getEcho fd = System.Posix.Internals.getEcho (error "getEcho: Not implemented yet.")
+getEcho fd = System.Posix.Internals.getEcho (errorWithoutStackTrace "getEcho: Not implemented yet.")
 -- getEcho fd = System.Posix.Internals.getEcho (fdFD fd)
 
 setRaw :: FD -> Bool -> IO ()
-setRaw fd raw = System.Posix.Internals.setCooked (error "setRaw: Not implemented yet.") (not raw)
+setRaw fd raw = System.Posix.Internals.setCooked (errorWithoutStackTrace "setRaw: Not implemented yet.") (not raw)
 -- setRaw fd raw = System.Posix.Internals.setCooked (fdFD fd) (not raw)
 
 -- -----------------------------------------------------------------------------

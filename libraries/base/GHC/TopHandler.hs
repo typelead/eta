@@ -48,7 +48,7 @@ runMainIO main =
                  case e of
                    ExitSuccess   -> exit 0
                    ExitFailure n -> exit n
-                 return (error "runMainIO: Exception raised."))
+                 return (errorWithoutStackTrace "runMainIO: Exception raised."))
 
 foreign import java unsafe "@static java.lang.System.exit"
   exit :: Int -> IO ()

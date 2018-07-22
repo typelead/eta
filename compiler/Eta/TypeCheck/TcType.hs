@@ -66,7 +66,7 @@ module Eta.TypeCheck.TcType (
   pickyEqType, tcEqType, tcEqKind,
   isSigmaTy, isRhoTy, isOverloadedTy,
   isFloatingTy, isDoubleTy, isFloatTy, isIntTy, isWordTy, isStringTy,
-  isIntegerTy, isBoolTy, isUnitTy, isCharTy,
+  isIntegerTy, isBoolTy, isUnitTy, isCharTy, isCallStackTy, isCallStackPred,
   isTauTy, isTauTyCon, tcIsTyVarTy, tcIsForAllTy,
   isPredTy, isTyVarClassPred, isTyVarExposed, isTyVarUnderDatatype,
 
@@ -1423,6 +1423,25 @@ isStringTy ty
   = case tcSplitTyConApp_maybe ty of
       Just (tc, [arg_ty]) -> tc == listTyCon && isCharTy arg_ty
       _                   -> False
+
+-- | Is a type a 'CallStack'?
+isCallStackTy :: Type -> Bool
+isCallStackTy ty
+  | Just tc <- tyConAppTyCon_maybe ty
+  = tc `hasKey` callStackTyConKey
+  | otherwise
+  = False
+
+-- | Is a 'PredType' a 'CallStack' implicit parameter?
+--
+-- If so, return the name of the parameter.
+isCallStackPred :: PredType -> Maybe FastString
+isCallStackPred pred
+  | Just (str, ty) <- isIPPred_maybe pred
+  , isCallStackTy ty
+  = Just str
+  | otherwise
+  = Nothing
 
 is_tc :: Unique -> Type -> Bool
 -- Newtypes are opaque to this

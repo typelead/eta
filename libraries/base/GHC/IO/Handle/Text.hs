@@ -761,12 +761,12 @@ bufWrite h_@Handle__{..} ptr count can_block =
 writeChunk :: Handle__ -> Ptr Word8 -> Int -> IO ()
 writeChunk h_@Handle__{..} ptr bytes
   | Just fd <- cast haDevice  =  RawIO.write (fd::FD) ptr bytes
-  | otherwise = error "Todo: hPutBuf"
+  | otherwise = errorWithoutStackTrace "Todo: hPutBuf"
 
 writeChunkNonBlocking :: Handle__ -> Ptr Word8 -> Int -> IO Int
 writeChunkNonBlocking h_@Handle__{..} ptr bytes
   | Just fd <- cast haDevice  =  RawIO.writeNonBlocking (fd::FD) ptr bytes
-  | otherwise = error "Todo: hPutBuf"
+  | otherwise = errorWithoutStackTrace "Todo: hPutBuf"
 
 -- ---------------------------------------------------------------------------
 -- hGetBuf

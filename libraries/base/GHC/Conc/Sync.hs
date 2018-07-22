@@ -249,22 +249,22 @@ disableAllocationLimit = do
 -- foreign import ccall unsafe "rts_setThreadAllocationCounter"
 rts_setThreadAllocationCounter :: ThreadId# -> Int64 -> IO ()
 rts_setThreadAllocationCounter =
-  error "rts_setThreadAllocationCounter: Does not apply for the Eta RTS."
+  errorWithoutStackTrace "rts_setThreadAllocationCounter: Does not apply for the Eta RTS."
 
 -- foreign import ccall unsafe "rts_getThreadAllocationCounter"
 rts_getThreadAllocationCounter :: ThreadId# -> IO Int64
 rts_getThreadAllocationCounter =
-  error "rts_getThreadAllocationCounter: Does not apply for the Eta RTS."
+  errorWithoutStackTrace "rts_getThreadAllocationCounter: Does not apply for the Eta RTS."
 
 -- foreign import ccall unsafe "rts_enableThreadAllocationLimit"
 rts_enableThreadAllocationLimit :: ThreadId# -> IO ()
 rts_enableThreadAllocationLimit =
-  error "rts_enableThreadAllocationLimit: Does not apply for the Eta RTS."
+  errorWithoutStackTrace "rts_enableThreadAllocationLimit: Does not apply for the Eta RTS."
 
 -- foreign import ccall unsafe "rts_disableThreadAllocationLimit"
 rts_disableThreadAllocationLimit :: ThreadId# -> IO ()
 rts_disableThreadAllocationLimit =
-  error "rts_disableThreadAllocationLimit: Does not apply for the Eta RTS."
+  errorWithoutStackTrace "rts_disableThreadAllocationLimit: Does not apply for the Eta RTS."
 
 {- |
 Creates a new thread to run the 'IO' computation passed as the
@@ -917,7 +917,7 @@ reportError ex = do
 -- foreign import ccall unsafe "stackOverflow"
 callStackOverflowHook :: ThreadId# -> IO ()
 callStackOverflowHook =
-  error "callStackOverflowHook: Not implemented yet."
+  errorWithoutStackTrace "callStackOverflowHook: Not implemented yet."
 
 {-# NOINLINE uncaughtExceptionHandler #-}
 uncaughtExceptionHandler :: IORef (SomeException -> IO ())

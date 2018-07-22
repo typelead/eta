@@ -170,8 +170,8 @@ import Eta.Types.TyCon
 import Eta.Prelude.TysPrim
 import {-# SOURCE #-} Eta.Prelude.TysWiredIn ( eqTyCon, listTyCon,
              coercibleTyCon, typeNatKind, typeSymbolKind )
-import Eta.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey,
-                               ipClassNameKey, openTypeKindTyConKey,
+import Eta.Prelude.PrelNames ( eqTyConKey, coercibleTyConKey, ipTyConKey,
+                               openTypeKindTyConKey,
                                constraintKindTyConKey, liftedTypeKindTyConKey,
                                sobjectTyConKey,
                                errorMessageTypeErrorFamName,
@@ -1064,10 +1064,10 @@ isIPPred ty = case tyConAppTyCon_maybe ty of
     _       -> False
 
 isIPTyCon :: TyCon -> Bool
-isIPTyCon tc = tc `hasKey` ipClassNameKey
+isIPTyCon tc = tc `hasKey` ipTyConKey
 
 isIPClass :: Class -> Bool
-isIPClass cls = cls `hasKey` ipClassNameKey
+isIPClass cls = cls `hasKey` ipTyConKey
   -- Class and it corresponding TyCon have the same Unique
 
 isIPPred_maybe :: Type -> Maybe (FastString, Type)

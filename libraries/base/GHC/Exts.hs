@@ -69,7 +69,7 @@ module GHC.Exts
 
         -- * The Constraint kind
         Constraint,
-        
+
         -- * Overloaded lists
         IsList(..)
        ) where

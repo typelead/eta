@@ -24,7 +24,8 @@ module GHC.Stack (
     whoCreated,
 
     -- * HasCallStack call stacks
-    CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack,
+    CallStack, HasCallStack,
+    callStack, emptyCallStack, freezeCallStack,
     fromCallSiteList, getCallStack, popCallStack, prettyCallStack,
     pushCallStack, withFrozenCallStack,
 

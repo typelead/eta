@@ -80,7 +80,7 @@ staticKey (StaticPtr k _ _) = k
 --
 unsafeLookupStaticPtr :: StaticKey -> IO (Maybe (StaticPtr a))
 unsafeLookupStaticPtr (Fingerprint w1 w2) =
-  error "unsafeLookupStaticPtr: Static pointers not implemented in the Eta RTS."
+  errorWithoutStackTrace "unsafeLookupStaticPtr: Static pointers not implemented in the Eta RTS."
 
 -- | Miscelaneous information available for debugging purposes.
 data StaticPtrInfo = StaticPtrInfo
@@ -104,5 +104,5 @@ staticPtrInfo (StaticPtr _ n _) = n
 -- | A list of all known keys.
 staticPtrKeys :: IO [StaticKey]
 staticPtrKeys =
-  error "staticPtrKeys: Static pointers not implemented in the Eta RTS."
+  errorWithoutStackTrace "staticPtrKeys: Static pointers not implemented in the Eta RTS."
 {-# NOINLINE staticPtrKeys #-}

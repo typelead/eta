@@ -29,7 +29,7 @@ module Eta.TypeCheck.TcSMonad (
     newTcEvBinds, newWantedEvVar, newWantedEvVarNC,
     setWantedTyBind, reportUnifications, reportUnifiedExtends,
     unifyTypes,
-    setEvBind,
+    setEvBind, setWantedEvBind,
     newEvVar, newGivenEvVar, newGivenEvVars,
     newDerived, emitNewDerived,
     instDFunConstraints,
@@ -1700,6 +1700,8 @@ isKindEquality pred = case classifyPredType pred of
                         EqPred _ t1 _ -> isKind t1
                         _             -> False
 
+setWantedEvBind :: EvVar -> EvTerm -> TcS ()
+setWantedEvBind ev_id tm = setEvBind ev_id tm
 {- Note [Do not create Given kind equalities]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We do not want to create a Given kind equality like

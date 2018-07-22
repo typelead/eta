@@ -37,4 +37,4 @@ import GHC.Err
 --
 -- @since 4.6.0.0
 getExecutablePath :: IO FilePath
-getExecutablePath = error "getExecutablePath: Not implemented yet."
+getExecutablePath = errorWithoutStackTrace "getExecutablePath: Not implemented yet."

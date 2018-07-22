@@ -185,7 +185,7 @@ bifoldr' f g z0 xs = bifoldl f' g' id xs z0 where
 --
 -- @since 4.10.0.0
 bifoldr1 :: Bifoldable t => (a -> a -> a) -> t a a -> a
-bifoldr1 f xs = fromMaybe (error "bifoldr1: empty structure")
+bifoldr1 f xs = fromMaybe (errorWithoutStackTrace "bifoldr1: empty structure")
                   (bifoldr mbf mbf Nothing xs)
   where
     mbf x m = Just (case m of
@@ -220,7 +220,7 @@ bifoldl' f g z0 xs = bifoldr f' g' id xs z0 where
 --
 -- @since 4.10.0.0
 bifoldl1 :: Bifoldable t => (a -> a -> a) -> t a a -> a
-bifoldl1 f xs = fromMaybe (error "bifoldl1: empty structure")
+bifoldl1 f xs = fromMaybe (errorWithoutStackTrace "bifoldl1: empty structure")
                   (bifoldl mbf mbf Nothing xs)
   where
     mbf m y = Just (case m of
@@ -331,7 +331,7 @@ biconcat = bifold
 --
 -- @since 4.10.0.0
 bimaximum :: forall t a. (Bifoldable t, Ord a) => t a a -> a
-bimaximum = fromMaybe (error "bimaximum: empty structure") .
+bimaximum = fromMaybe (errorWithoutStackTrace "bimaximum: empty structure") .
     getMax . bifoldMap mj mj
   where mj = Max #. (Just :: a -> Maybe a)
 
@@ -339,7 +339,7 @@ bimaximum = fromMaybe (error "bimaximum: empty structure") .
 --
 -- @since 4.10.0.0
 biminimum :: forall t a. (Bifoldable t, Ord a) => t a a -> a
-biminimum = fromMaybe (error "biminimum: empty structure") .
+biminimum = fromMaybe (errorWithoutStackTrace "biminimum: empty structure") .
     getMin . bifoldMap mj mj
   where mj = Min #. (Just :: a -> Maybe a)
 

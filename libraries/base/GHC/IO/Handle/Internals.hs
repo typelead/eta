@@ -481,7 +481,7 @@ flushCharBuffer h_@Handle__{..} = do
         -- between Handle operations.
         -- See [note Buffer Flushing], GHC.IO.Handle.Types.
         when (not (isEmptyBuffer cbuf)) $
-           error "internal IO library error: Char buffer non-empty"
+           errorWithoutStackTrace "internal IO library error: Char buffer non-empty"
 
 -- -----------------------------------------------------------------------------
 -- Writing data (flushing write buffers)

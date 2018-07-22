@@ -57,7 +57,7 @@ import Eta.BasicTypes.Var
 -- import RnEnv( FastStringEnv, mkFsEnv, lookupFsEnv )
 import Eta.Prelude.TysWiredIn
 import Eta.Prelude.TysPrim
-import Eta.Prelude.PrelNames( funTyConKey, ipClassName )
+import Eta.Prelude.PrelNames( funTyConKey )
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Binary
@@ -496,7 +496,7 @@ pprIfaceTypeApp tc args = sdocWithDynFlags (pprTyTcApp TopPrec tc args)
 
 pprTyTcApp :: TyPrec -> IfaceTyCon -> IfaceTcArgs -> DynFlags -> SDoc
 pprTyTcApp ctxt_prec tc tys dflags
-  | ifaceTyConName tc == ipClassName
+  | ifaceTyConName tc == getName ipTyCon
   , ITC_Type (IfaceLitTy (IfaceStrTyLit n)) (ITC_Type ty ITC_Nil) <- tys
   = char '?' <> ftext n <> ptext (sLit "::") <> ppr_ty TopPrec ty
 

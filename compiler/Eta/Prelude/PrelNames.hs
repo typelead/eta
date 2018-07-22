@@ -338,11 +338,9 @@ basicKnownKeyNames
         -- Overloaded labels
        isLabelClassName,
 
-        -- Implicit parameters
-        ipClassName,
-
         -- Source locations
-        callStackDataConName, callStackTyConName,
+        callStackDataConName, callStackTyConName, hasCallStackTyConName,
+        emptyCallStackName, pushCallStackName,
         srcLocDataConName,
 
         -- Annotation type checking
@@ -510,6 +508,9 @@ gHC_SRCLOC = mkBaseModule (fsLit "GHC.SrcLoc")
 
 gHC_STACK :: Module
 gHC_STACK = mkBaseModule (fsLit "GHC.Stack")
+
+gHC_STACK_TYPES :: Module
+gHC_STACK_TYPES = mkBaseModule (fsLit "GHC.Stack.Types")
 
 gHC_STATICPTR :: Module
 gHC_STATICPTR = mkBaseModule (fsLit "GHC.StaticPtr")
@@ -1266,18 +1267,21 @@ isLabelClassName :: Name
 isLabelClassName
  = clsQual gHC_OVER_LABELS (fsLit "IsLabel") isLabelClassNameKey
 
--- Implicit parameters
-ipClassName :: Name
-ipClassName         = clsQual gHC_CLASSES (fsLit "IP")      ipClassNameKey
-
 -- Source Locations
-callStackDataConName, callStackTyConName, srcLocDataConName :: Name
+callStackDataConName, callStackTyConName, emptyCallStackName, pushCallStackName,
+ srcLocDataConName, hasCallStackTyConName :: Name
 callStackDataConName
-  = conName gHC_STACK (fsLit "CallStack") callStackDataConKey
+  = conName gHC_STACK_TYPES (fsLit "CallStack") callStackDataConKey
 callStackTyConName
-  = tcQual  gHC_STACK (fsLit "CallStack") callStackTyConKey
+  = tcQual  gHC_STACK_TYPES (fsLit "CallStack") callStackTyConKey
+emptyCallStackName
+  = varQual gHC_STACK_TYPES (fsLit "emptyCallStack") emptyCallStackKey
+pushCallStackName
+  = varQual gHC_STACK_TYPES (fsLit "pushCallStack") pushCallStackKey
 srcLocDataConName
-  = conName gHC_SRCLOC (fsLit "SrcLoc")   srcLocDataConKey
+  = conName gHC_STACK_TYPES (fsLit "SrcLoc")   srcLocDataConKey
+hasCallStackTyConName
+  = tcQual  gHC_STACK_TYPES (fsLit "HasCallStack") hasCallStackTyConKey
 
 -- plugins
 pLUGINS :: Module
@@ -1435,9 +1439,6 @@ knownSymbolClassNameKey = mkPreludeClassUnique 43
 
 ghciIoClassKey :: Unique
 ghciIoClassKey = mkPreludeClassUnique 44
-
-ipClassNameKey :: Unique
-ipClassNameKey = mkPreludeClassUnique 45
 
 isLabelClassNameKey :: Unique
 isLabelClassNameKey = mkPreludeClassUnique 49
@@ -1696,6 +1697,16 @@ typeRepTyConKey = mkPreludeTyConUnique 183
 callStackTyConKey :: Unique
 callStackTyConKey = mkPreludeTyConUnique 182
 
+hasCallStackTyConKey :: Unique
+hasCallStackTyConKey = mkPreludeTyConUnique 184
+
+-- Implicit Parameters
+ipTyConKey :: Unique
+ipTyConKey = mkPreludeTyConUnique 185
+
+ipCoNameKey :: Unique
+ipCoNameKey = mkPreludeTyConUnique 186
+
 typeErrorTextDataConKey,
   typeErrorAppendDataConKey,
   typeErrorVAppendDataConKey,
@@ -1844,6 +1855,10 @@ fingerprintDataConKey                   = mkPreludeDataConUnique 35
 callStackDataConKey, srcLocDataConKey :: Unique
 callStackDataConKey                     = mkPreludeDataConUnique 36
 srcLocDataConKey                        = mkPreludeDataConUnique 37
+
+ipDataConKey :: Unique
+ipDataConKey                            = mkPreludeDataConUnique 41
+
 
 javaDataConKey, jstringDataConKey, sobjectDataConKey :: Unique
 javaDataConKey    = mkPreludeDataConUnique 38
@@ -2135,6 +2150,10 @@ classIdentifierClassOpKey = mkPreludeMiscIdUnique 514
 -- Dynamic
 toDynIdKey :: Unique
 toDynIdKey = mkPreludeMiscIdUnique 550
+
+emptyCallStackKey, pushCallStackKey :: Unique
+emptyCallStackKey = mkPreludeMiscIdUnique 551
+pushCallStackKey  = mkPreludeMiscIdUnique 552
 
 {-
 ************************************************************************

@@ -50,11 +50,11 @@ import System.Posix.Types
 
 ensureIOManagerIsRunning :: IO ()
 ensureIOManagerIsRunning =
-  error "ensureIOManagerIsRunning: Eta RTS doesn't support the IO Manager."
+  errorWithoutStackTrace "ensureIOManagerIsRunning: Eta RTS doesn't support the IO Manager."
 
 ioManagerCapabilitiesChanged :: IO ()
 ioManagerCapabilitiesChanged =
-  error "ioManagerCapabilitiesChanged: Eta RTS doesn't support the IO Manager."
+  errorWithoutStackTrace "ioManagerCapabilitiesChanged: Eta RTS doesn't support the IO Manager."
 
 -- | Block the current thread until data is available to read on the
 -- given file descriptor (GHC only).
@@ -147,4 +147,4 @@ threadDelay time = IO $ \s ->
 -- microseconds. The caveats associated with threadDelay also apply.
 --
 registerDelay :: Int -> IO (TVar Bool)
-registerDelay usecs = error "registerDelay: Eta RTS doesn't support the IO Manager."
+registerDelay usecs = errorWithoutStackTrace "registerDelay: Eta RTS doesn't support the IO Manager."

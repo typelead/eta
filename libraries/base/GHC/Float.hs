@@ -1186,14 +1186,17 @@ foreign import java unsafe "@static eta.base.Utils.isDoubleFinite"
 ------------------------------------------------------------------------
 -- libm imports for extended floating
 ------------------------------------------------------------------------
-log1pDouble :: Double -> Double
-log1pDouble = error "log1pDouble not implemented!"
-expm1Double :: Double -> Double
-expm1Double = error "log1pDouble not implemented!"
-log1pFloat :: Float -> Float
-log1pFloat = error "log1pDouble not implemented!"
-expm1Float :: Float -> Float
-expm1Float = error "log1pDouble not implemented!"
+foreign import java unsafe "@static java.lang.Math.log1p"
+  log1pDouble :: Double -> Double
+
+foreign import java unsafe "@static java.lang.Math.expm1"
+  expm1Double :: Double -> Double
+
+foreign import java unsafe "@static eta.base.Utils.log1pFloat"
+  log1pFloat :: Float -> Float
+
+foreign import java unsafe "@static eta.base.Utils.expm1Float"
+  expm1Float :: Float -> Float
 
 
 ------------------------------------------------------------------------
@@ -1310,7 +1313,7 @@ is using CMM.
 
 {-# INLINE castWord32ToFloat #-}
 castWord32ToFloat :: Word32 -> Float
-castWord32ToFloat (W32# w#) = error "castWord32ToFloat not implemented!"
+castWord32ToFloat (W32# w#) = errorWithoutStackTrace "castWord32ToFloat not implemented!"
   -- F# (stgWord32ToFloat w#)
 
 -- foreign import prim "stg_word32ToFloatzh"
@@ -1324,7 +1327,7 @@ castWord32ToFloat (W32# w#) = error "castWord32ToFloat not implemented!"
 
 {-# INLINE castFloatToWord32 #-}
 castFloatToWord32 :: Float -> Word32
-castFloatToWord32 (F# f#) = error "castFloatToWord32 not implemented!"
+castFloatToWord32 (F# f#) = errorWithoutStackTrace "castFloatToWord32 not implemented!"
   -- W32# (stgFloatToWord32 f#)
 
 -- foreign import prim "stg_floatToWord32zh"
@@ -1339,7 +1342,7 @@ castFloatToWord32 (F# f#) = error "castFloatToWord32 not implemented!"
 
 {-# INLINE castWord64ToDouble #-}
 castWord64ToDouble :: Word64 -> Double
-castWord64ToDouble (W64# w) = error "castWord64ToDouble not implemented!"
+castWord64ToDouble (W64# w) = errorWithoutStackTrace "castWord64ToDouble not implemented!"
 --   D# (stgWord64ToDouble w)
 --
 -- foreign import prim "stg_word64ToDoublezh"
@@ -1357,7 +1360,7 @@ castWord64ToDouble (W64# w) = error "castWord64ToDouble not implemented!"
 
 {-# INLINE castDoubleToWord64 #-}
 castDoubleToWord64 :: Double -> Word64
-castDoubleToWord64 (D# d#) = error "castDoubleToWord64 not implemented!"
+castDoubleToWord64 (D# d#) = errorWithoutStackTrace "castDoubleToWord64 not implemented!"
 --   W64# (stgDoubleToWord64 d#)
 --
 -- foreign import prim "stg_doubleToWord64zh"
