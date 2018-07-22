@@ -6,11 +6,11 @@ tests/suite/typecheck/fail/tcfail133.hs:68:7: error:
     No instance for (Show r0) arising from a use of ‘show’
     The type variable ‘r0’ is ambiguous
     Note: there are several potential instances:
-      instance Show Ordering -- Defined in ‘GHC.Show’
-      instance Show Integer -- Defined in ‘GHC.Show’
-      instance (Show a, Show b, Number a, Digit b) => Show (a :@ b)
-        -- Defined at tests/suite/typecheck/fail/tcfail133.hs:11:54
-      ...plus 26 others
+      instance Show a => Show (GHC.Base.NonEmpty a)
+        -- Defined in ‘GHC.Show’
+      instance Show GHC.Stack.Types.CallStack -- Defined in ‘GHC.Show’
+      instance Show GHC.Stack.Types.SrcLoc -- Defined in ‘GHC.Show’
+      ...plus 29 others
     In the expression: show
     In the expression: show $ add (One :@ Zero) (One :@ One)
     In an equation for ‘foo’:

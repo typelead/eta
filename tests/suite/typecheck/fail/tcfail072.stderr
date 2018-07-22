@@ -7,10 +7,11 @@ tests/suite/typecheck/fail/tcfail072.hs:23:13: error:
       at tests/suite/typecheck/fail/tcfail072.hs:22:6-38
     The type variable ‘p0’ is ambiguous
     Note: there are several potential instances:
+      instance Ord a => Ord (GHC.Base.NonEmpty a)
+        -- Defined in ‘GHC.Base’
       instance Ord Ordering -- Defined in ‘GHC.Classes’
       instance Ord Integer
         -- Defined in ‘integer-0.5.1.0:GHC.Integer.Type’
-      instance Ord a => Ord (Maybe a) -- Defined in ‘GHC.Base’
       ...plus 23 others
     In the expression: g A
     In an equation for ‘g’: g (B _ _) = g A
