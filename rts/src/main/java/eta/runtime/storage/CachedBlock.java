@@ -57,8 +57,8 @@ public class CachedBlock {
         return cachedBlock.get().get(address);
     }
 
-    public static void setBlock(Block block) {
-        block.fillCache(cachedBlock.get());
+    public static void setBlock(long address, Block block) {
+        block.fillCache(address, cachedBlock.get());
     }
 
     private static final ThreadLocal<CachedBlock> cachedBlock

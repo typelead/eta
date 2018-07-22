@@ -151,7 +151,12 @@ public class Block {
     }
 
     /* Caching */
-    public final void fillCache(CachedBlock cb) {
+    public final void fillCache(long address, CachedBlock cb) {
+        if (buffer == null) {
+            throw new IllegalStateException
+              ("Attempted to access memory address " + address +
+               " which has not be allocated yet!");
+        }
         cb.set(this, startAddress, startAddress + buffer.remaining());
     }
 

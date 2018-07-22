@@ -42,7 +42,7 @@ public class MemoryManager {
     /* The shared empty buffer */
     public final static long nullAddress = 0L;
     public final static ByteBuffer emptyBuffer = ByteBuffer.allocate(0);
-    
+
     public static ManagedHeap getHeap() {
         return globalManagedHeap;
     }
@@ -51,11 +51,15 @@ public class MemoryManager {
 
     /* Buffer Allocation */
     public static long allocateBuffer(int n, boolean direct) {
-        if (n < 0)
-            throw new
-                IllegalArgumentException("Allocated size must be positive");
-        return globalManagedHeap.
-            allocateBuffer(n, direct, Capability.getLocal());
+        if (n < 0) {
+            throw new IllegalArgumentException("Allocated size must be positive");
+        }
+        long address = globalManagedHeap.allocateBuffer(n, direct, Capability.getLocal());
+        if (Runtime.debugMemoryManager()) {
+            debugMemoryManager("Allocating " + n  + " bytes " + (direct? "directly " : "") +
+                               "at address " + address);
+        }
+        return address;
     }
 
     /** Freeing Off-Heap Memory **/
@@ -71,6 +75,9 @@ public class MemoryManager {
     }
 
     public static void free(long address) {
+        if (Runtime.debugMemoryManager()) {
+            debugMemoryManager("Freeing memory at address " + address);
+        }
         globalManagedHeap.attemptFree(address);
     }
 
@@ -91,16 +98,23 @@ public class MemoryManager {
     /* This is meant to be a read-only buffer, do not modify it.
        You should almost never have a use for this. */
     private static Block getBlock(long address) {
+        boolean debug = Runtime.debugMemoryManager();
+        if (debug) {
+            debugMemoryManager("Doing work at " + address);
+        }
         Block block = CachedBlock.getBlock(address);
         if (block == null) {
             block = getBlockSlow(address);
+        }
+        if (debug) {
+            debugMemoryManager(address + " is at " + block);
         }
         return block;
     }
 
     private static Block getBlockSlow(long address) {
         Block block = globalManagedHeap.getBlock(address);
-        CachedBlock.setBlock(block);
+        CachedBlock.setBlock(address, block);
         return block;
     }
 
@@ -258,7 +272,7 @@ public class MemoryManager {
         buf.get(b);
         return b;
     }
-    
+
     public static ByteBuffer copyByteBuffer( ByteBuffer src, ByteBuffer dest, int n) {
         return copyByteBuffer(src, 0, dest, 0, n);
     }
@@ -266,7 +280,7 @@ public class MemoryManager {
     public static ByteBuffer copyByteBufferDups( ByteBuffer src, ByteBuffer dest, int n) {
         return copyByteBufferDups(src, 0, dest, 0, n);
     }
-    
+
     public static ByteBuffer copyByteBuffer( ByteBuffer src, int srcOffset
                                            , ByteBuffer dest, int destOffset
                                            , int n) {
@@ -286,7 +300,7 @@ public class MemoryManager {
         dest = dest.duplicate();
         return copyByteBuffer(src, srcOffset, dest, destOffset, n);
     }
-    
+
     public static ByteBuffer copy( long srcAddress, int srcOffset
                                  , ByteBuffer dest, int destOffset
                                  , int n) {
@@ -301,7 +315,7 @@ public class MemoryManager {
         return copyByteBuffer(src,srcOffset,dest,destOffset,n);
     }
 
-    
+
     public static ByteBuffer copy( long srcAddress, int srcOffset
                                  , long destAddress, int destOffset
                                  , int size) {
@@ -313,7 +327,7 @@ public class MemoryManager {
     public static ByteBuffer copy(long srcAddress, long destAddress, int size) {
         return copy(srcAddress, 0, destAddress, 0, size);
     }
-   
+
     public static ByteBuffer set(long address, byte val, int size) {
         ByteBuffer buffer = getBoundedBuffer(address);
         while (size-- != 0) {
@@ -325,8 +339,8 @@ public class MemoryManager {
     public static ByteBuffer set(long address, int val, int size) {
         return set(address, (byte) val, size);
     }
-    
-    
+
+
     public static ByteBuffer set(long address, byte[] bytes) {
         ByteBuffer buf = getBoundedBuffer(address);
         buf.put(bytes);
@@ -338,7 +352,7 @@ public class MemoryManager {
         set(address,bytes);
         return address;
     }
-    
+
     public static ByteBuffer move(long srcAddress, long destAddress, int size) {
         ByteBuffer src  = getBoundedBuffer(srcAddress);
         ByteBuffer dest = getBoundedBuffer(destAddress);
@@ -391,7 +405,7 @@ public class MemoryManager {
     public static ByteBuffer chr(ByteBuffer b, int c, int n) {
         return chr(b, (byte) c, n);
     }
-    
+
     public static int chrIndex(ByteBuffer b, byte c, int n) {
         for (int i = 0; i < n ; i++) {
             byte nxt = b.get();
@@ -404,7 +418,7 @@ public class MemoryManager {
     public static int chrIndex(ByteBuffer b, int c, int n) {
         return chrIndex(b, (byte) c, n);
     }
-     
+
     public static int chrOffset(long address, int startofs, int endofs, byte c) {
         int n = endofs - startofs;
         int idxFound = chrIndex(getBoundedBuffer(address, startofs, n), c, n);
@@ -414,6 +428,4 @@ public class MemoryManager {
     public static int chrOffset(long address, int startofs, int endofs, int c) {
         return chrOffset(address, startofs, endofs, (byte) c);
     }
-   
-   
 }
