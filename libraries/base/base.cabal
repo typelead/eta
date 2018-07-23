@@ -234,6 +234,7 @@ library
         GHC.Stable
         GHC.Stack
         GHC.Stack.CCS
+        GHC.Stack.Types
         GHC.Stats
         GHC.Storable
         GHC.TopHandler
