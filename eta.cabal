@@ -417,7 +417,7 @@ executable eta-package-test
     main-is:             Test.hs
     default-language:    Haskell2010
     build-depends:       base >= 4.7 && < 5
-                       , turtle
+                       , turtle < 1.4.5
                        , text
                        , aeson
                        , bytestring
