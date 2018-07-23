@@ -1,0 +1,30 @@
+-- Use e.g.
+--
+--   cabal --project-file=cabal.ghc.project new-build
+--
+-- See also http://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
+
+with-compiler: ghc-7.10.3
+packages:
+  ./
+  codec-jvm/
+  libraries/eta-boot/
+  libraries/eta-boot-meta/
+  libraries/eta-meta/
+  libraries/eta-repl/
+  utils/eta-pkg/
+  etlas/etlas/
+  etlas/etlas-cabal/
+  etlas/hackage-security/hackage-security/
+  shake/
+
+-- needs cabal-install-2.4 or newer
+source-repository-package
+  type: git
+  location: https://github.com/rahulmutt/hpp.git
+  tag: 75d74f53a34c875285a665d8878e5b363edfbea5
+
+source-repository-package
+  type: git
+  location: https://github.com/rahulmutt/zip.git
+  tag: a4fbcc9e1efc3e8623022d9fcc83b50d4cdd95a5
