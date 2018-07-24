@@ -4,7 +4,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
 import java.util.Arrays;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -16,143 +19,237 @@ import eta.runtime.thunk.Thunk;
 
 public class Print {
 
-    private static final ThreadLocal<IdentityHashMap<Object, Boolean>> localSeen =
-        new ThreadLocal<IdentityHashMap<Object, Boolean>>() {
-            @Override
-            public IdentityHashMap<Object, Boolean> initialValue() {
-                return new IdentityHashMap<Object, Boolean>(16);
-            }
-        };
-
-    private static final ThreadLocal<Integer> localDepth =
-        new ThreadLocal<Integer>() {
-            @Override
-            public Integer initialValue() {
-                return 0;
-            }
-        };
-
-    private static void incLocalDepth() {
-        localDepth.set(localDepth.get() + 1);
-    }
-
-    private static void decLocalDepth() {
-        localDepth.set(localDepth.get() - 1);
-    }
-
-    public static String closureToString(Closure target) {
-        final int preDepth = localDepth.get();
+    public static String closureToString(Object target) {
+        final Map<Object, Boolean> visited =
+            new IdentityHashMap<Object, Boolean>(16);
+        final Deque<Object> stack = new ArrayDeque<Object>();
         final StringBuilder sb = new StringBuilder();
-        final Closure origTarget = target;
-        final IdentityHashMap<Object, Boolean> seen = localSeen.get();
-        if (preDepth == 0) {
-            seen.clear();
-        }
-        incLocalDepth();
-        // System.out.println("START: " + target.getClass() + "@" + target.hashCode());
-        while (target != null) {
+        stack.offerFirst(target);
+        while ((target = stack.pollFirst()) != null) {
             final Class<?> clazz = target.getClass();
-            Closure newTarget = null;
-            seen.put(target, Boolean.TRUE);
-            if (target instanceof Function) {
-                // TODO: Maybe make this a fully qualified name?
-                sb.append(getClosureName(clazz));
-                sb.append('[');
-                sb.append(Integer.toString(((Function)target).arity()));
-                sb.append(']');
-                writeFields(sb, seen, clazz, target, false);
-            } else if (target instanceof Thunk) {
-                final Closure indirectee = ((Thunk)target).indirectee;
-                if (indirectee instanceof Value) {
-                    // TODO: Should make some indication of an indirection?
-                    newTarget = indirectee;
-                } else {
+            if (target instanceof Closure) {
+                visited.put(target, Boolean.TRUE);
+            }
+            if (target instanceof PrintInstruction) {
+                ((PrintInstruction)target).print(sb, visited, stack);
+            } else if (target instanceof Closure) {
+                if (target instanceof Function) {
                     // TODO: Maybe make this a fully qualified name?
-                    sb.append(getClosureName(clazz));
-                    sb.append("[_]");
-                    writeFields(sb, seen, clazz, target, true);
+                    final String prefix = getClosureName(clazz) + '['
+                                        + ((Function)target).arity() + ']';
+                    pushFields(target, clazz, prefix, sb, stack, visited);
+                } else if (target instanceof Thunk) {
+                    final Closure indirectee = ((Thunk)target).indirectee;
+                    if (indirectee instanceof Value) {
+                        // TODO: Should make some indication of an indirection?
+                        stack.offerFirst(indirectee);
+                    } else {
+                        // TODO: Maybe make this a fully qualified name?
+                        final String prefix = getClosureName(clazz) + "[_]";
+                        pushFields(target, clazz, prefix, sb, stack, visited);
+                    }
+                } else if (target instanceof PAP) {
+                    final PAP pap = (PAP) target;
+                    final Function fun = pap.fun;
+                    sb.append('{');
+                    stack.offerFirst("}[" + pap.arity + ']');
+                    pap.writeArgs(sb, writeObjectField(fun, "fun", sb, visited), visited, stack);
+                } else if (target instanceof DataCon) {
+                    // TODO: Maybe make this a fully qualified name?
+                    pushFields(target, clazz, getClosureName(clazz), sb, stack, visited);
+                } else {
+                    sb.append(classAndIdentity(target));
                 }
-            } else if (target instanceof PAP) {
-                final PAP pap = (PAP) target;
-                Class<? extends Function> funClazz = pap.fun.getClass();
-                // TODO: Maybe make this a fully qualified name?
-                sb.append('{');
-                sb.append(Print.getClosureName(funClazz));
-                sb.append(' ');
-                pap.writeArgs(sb, seen);
-                sb.append('}');
-                sb.append('[');
-                sb.append(Integer.toString(pap.arity));
-                sb.append(']');
-            } else if (target instanceof DataCon) {
-                // TODO: Maybe make this a fully qualified name?
-                sb.append(getClosureName(clazz));
-                writeFields(sb, seen, clazz, target, false);
             } else {
-                sb.append(classAndIdentity(target));
+                sb.append(target);
             }
-            target = newTarget;
         }
-        decLocalDepth();
-        if (preDepth == 0) {
-            localSeen.get().clear();
+        if (sb.charAt(0) == '(') {
+            return sb.substring(1, sb.length() - 1);
+        } else {
+            return sb.toString();
         }
-        return sb.toString();
     }
 
-    public static void writeFields(final StringBuilder sb,
-                                   final IdentityHashMap<Object, Boolean> seen,
-                                   final Class<?> clazz, final Object c,
-                                   final boolean skipIndirectee) {
+    public static void handleParens(final Object c, final StringBuilder sb, final String prefix,
+                                    final Deque<Object> stack) {
+        sb.append('(');
+        sb.append(prefix);
+        sb.append('#');
+        sb.append(System.identityHashCode(c));
+        stack.offerFirst(")");
+    }
+
+    public static boolean isValidField(final Field f, final boolean skipIndirectee) {
+        return !Modifier.isStatic(f.getModifiers())
+            && !(skipIndirectee && f.getName().equals("indirectee"));
+
+    }
+
+    public static void pushFields(final Object c, final Class<?> clazz, final String prefix,
+                                  final StringBuilder sb, final Deque<Object> stack,
+                                  final Map<Object, Boolean> seen) {
+        boolean skipIndirectee = Thunk.class.isAssignableFrom(clazz);
         final Field[] fs = clazz.getFields();
-        for (int i = 0; i < fs.length; i++) {
+        final int numFields = fs.length;
+        boolean wrotePrefix = false;
+        int i = 0;
+        for (; i < numFields; i++) {
             final Field f = fs[i];
-            if (!Modifier.isStatic(f.getModifiers())
-             && !(skipIndirectee && f.getName().equals("indirectee"))) {
-                writeField(sb, seen, f, c);
+            if (isValidField(f, skipIndirectee)) {
+                if (!wrotePrefix) {
+                    handleParens(c, sb, prefix, stack);
+                    wrotePrefix = true;
+                }
+                if (writeField(c, f, sb, seen) != null)  {
+                    break;
+                }
             }
+        }
+        // If we terminated early
+        if (i < numFields) {
+            final int start = i;
+            for (i = numFields - 1; i >= start; i--) {
+                final Field f = fs[i];
+                if (isValidField(f, skipIndirectee)) {
+                    if (!wrotePrefix) {
+                        handleParens(c, sb, prefix, stack);
+                        wrotePrefix = true;
+                    }
+                    stack.offerFirst(PrintField.create(c, f));
+                }
+            }
+        }
+        if (!wrotePrefix) {
+            sb.append(prefix);
         }
     }
 
-    public static void writeField(final StringBuilder sb,
-                                  final IdentityHashMap<Object, Boolean> seen,
-                                  final Field f, final Object c) {
+    public static Object writeField(final Object c, final Field f,
+                                    final StringBuilder sb,
+                                    final Map<Object, Boolean> seen) {
         try {
-            sb.append(' ');
             final Class<?> type = f.getType();
             if (type.isPrimitive()) {
                 writePrimitiveField(sb, f, c, type);
+                return null;
             } else if (type.isArray()) {
                 writeArrayField(sb, f.get(c), type.getComponentType());
+                return null;
             } else {
-                writeObjectField(sb, seen, f.getName(), f.get(c));
+                return writeObjectField(f.get(c), f.getName(), sb, seen);
             }
         } catch (IllegalAccessException iae) {
             throw new RuntimeException("writeField", iae);
         }
     }
 
-    public static void writeObjectField(final StringBuilder sb,
-                                        final IdentityHashMap<Object, Boolean> seen,
-                                        final String fieldName, final Object o) {
+    public static abstract class PrintInstruction {
+        public abstract void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack);
+    }
+
+    public static class PrintField extends PrintInstruction {
+
+        private final Object c;
+        private final Field f;
+
+        private PrintField(final Object c, final Field f) {
+            this.c = c;
+            this.f = f;
+        }
+
+        public static Object create(final Object c, final Field f) {
+            return new PrintField(c, f);
+        }
+
+        @Override
+        public void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack) {
+            maybeAddPendingWithSpace(writeField(c, f, sb, seen), stack);
+        }
+    }
+
+    public static class PrintObjectField extends PrintInstruction {
+
+        private final Object c;
+        private final String f;
+
+        private PrintObjectField(final Object c, final String f) {
+            this.c = c;
+            this.f = f;
+        }
+
+        public static Object create(final Object c, final String f) {
+            return new PrintObjectField(c, f);
+        }
+
+        @Override
+        public void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack) {
+            maybeAddPendingWithSpace(writeObjectField(c, f, sb, seen), stack);
+        }
+    }
+
+    public static class PrintArrayField<E> extends PrintInstruction {
+
+        private final Object c;
+        private final Class<E> f;
+
+        private PrintArrayField(final Object c, final Class<E> f) {
+            this.c = c;
+            this.f = f;
+        }
+
+        public static <E> Object create(final Object c, final Class<E> f) {
+            return new PrintArrayField<E>(c, f);
+        }
+
+        @Override
+        public void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack) {
+            writeArrayField(sb, c, f);
+        }
+    }
+
+    public static void maybeAddPending(Object pending, Deque<Object> stack) {
+        if (pending != null) {
+            stack.offerFirst(pending);
+        }
+    }
+
+    public static void maybeAddPendingWithSpace(Object pending, Deque<Object> stack) {
+        if (pending != null) {
+            stack.offerFirst(pending);
+            stack.offerFirst(" ");
+        }
+    }
+
+    public static Object writeObjectField(final Object o, final String fieldName,
+                                          final StringBuilder sb,
+                                          final Map<Object, Boolean> seen) {
         if (o == null) {
-            sb.append('{');
+            sb.append(" {");
             sb.append(fieldName);
             sb.append("=null}");
-        } else if (seen.get(o) != null) {
-            sb.append('@');
+            return null;
+        } else if ((o instanceof Closure) && seen.get(o) != null) {
+            sb.append(" @");
             sb.append(getClosureName(o.getClass()));
+            sb.append('#');
+            sb.append(System.identityHashCode(o));
+            return null;
         } else {
-            // System.out.println(o.getClass());
-            final String s = o.toString();
-            if (hasWhitespace(s)) {
-                sb.append('(');
-                sb.append(s);
-                sb.append(')');
+            if (o instanceof Closure) {
+                return o;
             } else {
-                sb.append(s);
+                final String s = o.toString();
+                sb.append(' ');
+                if (hasWhitespace(s)) {
+                    sb.append('(');
+                    sb.append(s);
+                    sb.append(')');
+                } else {
+                    sb.append(s);
+                }
+                return null;
             }
-            seen.put(o, Boolean.TRUE);
         }
     }
 
@@ -178,11 +275,13 @@ public class Print {
             // TOOD: Take into account the 'seen' array.
             res = Arrays.deepToString((Object[])c);
         }
+        sb.append(' ');
         sb.append(res);
     }
 
     public static void writePrimitiveField(StringBuilder sb, Field f, Object c, Class<?> type) {
         try {
+            sb.append(' ');
             if (type == Integer.TYPE) {
                 sb.append(f.getInt(c));
             } else if (type == Long.TYPE) {
@@ -383,7 +482,7 @@ public class Print {
         if (e == null) {
             return "null";
         } else {
-            return e.getClass() + "@" + System.identityHashCode(e);
+            return e.getClass() + "#" + System.identityHashCode(e);
         }
     }
 }

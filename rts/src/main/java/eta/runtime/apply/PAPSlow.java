@@ -1,6 +1,7 @@
 package eta.runtime.apply;
 
-import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Deque;
 
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
@@ -391,8 +392,8 @@ public class PAPSlow extends PAP {
     }
 
     @Override
-    public void writeArgs(final StringBuilder sb,
-                          final IdentityHashMap<Object, Boolean> seen) {
-        sb.append(argStack.toString(seen));
+    public void writeArgs(StringBuilder sb, Object pending,
+                          Map<Object, Boolean> seen, Deque<Object> stack) {
+        argStack.writeArgs(sb, pending, seen, stack);
     }
 }

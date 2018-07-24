@@ -1,7 +1,10 @@
 package eta.runtime.stg;
 
 import java.util.Arrays;
-import java.util.IdentityHashMap;
+import java.util.Deque;
+import java.util.Map;
+
+import static eta.runtime.stg.Print.*;
 
 public class ArgumentStack implements Cloneable {
     public static final int NONE = 0;
@@ -240,32 +243,58 @@ public class ArgumentStack implements Cloneable {
         System.out.println("D" + Arrays.toString(doubles));
     }
 
-    public String toString(IdentityHashMap<Object, Boolean> seen) {
-        final StringBuilder sb = new StringBuilder();
-        if (closures != null && closures.length > 0) {
-            Closure c = closures[0];
-            Print.writeObjectField(sb, seen, "0", c);
-            for (int i = 1; i < closures.length; i++) {
-                c = closures[i];
-                sb.append(' ');
-                Print.writeObjectField(sb, seen, Integer.toString(i), c);
+    public void writeArgs(StringBuilder sb, Object pending,
+                          Map<Object, Boolean> seen, Deque<Object> stack) {
+        final int numClosures = closures.length;
+        int i = 0;
+        if (pending == null && closures != null && numClosures > 0) {
+            for (; i < numClosures; i++) {
+                final Closure c = closures[i];
+                Object pending2 = writeObjectField(c, Integer.toString(i), sb, seen);
+                if (pending2 != null) {
+                    break;
+                }
             }
         }
-        if (objects != null && objects.length > 0) {
-            sb.append(Arrays.toString(objects));
+        if (i < numClosures || pending != null) {
+            if (doubles != null && doubles.length > 0) {
+                stack.offerFirst(PrintArrayField.create(doubles, double.class));
+            }
+            if (floats != null && floats.length > 0) {
+                stack.offerFirst(PrintArrayField.create(floats, float.class));
+            }
+            if (longs != null && longs.length > 0) {
+                stack.offerFirst(PrintArrayField.create(longs, long.class));
+            }
+            if (ints != null && ints.length > 0) {
+                stack.offerFirst(PrintArrayField.create(ints, int.class));
+            }
+            if (objects != null && objects.length > 0) {
+                stack.offerFirst(PrintArrayField.create(objects, Object.class));
+            }
+            final int start = i;
+            for (i = numClosures - 1; i >= start; i--) {
+                stack.offerFirst(PrintObjectField.create(closures[i], Integer.toString(i)));
+            }
+            if (start == 0 && pending != null) {
+                stack.offerFirst(pending);
+            }
+        } else {
+            if (objects != null && objects.length > 0) {
+                writeArrayField(sb, objects, Object.class);
+            }
+            if (ints != null && ints.length > 0) {
+                writeArrayField(sb, ints, int.class);
+            }
+            if (longs != null && longs.length > 0) {
+                writeArrayField(sb, longs, long.class);
+            }
+            if (floats != null && floats.length > 0) {
+                writeArrayField(sb, floats, float.class);
+            }
+            if (doubles != null && doubles.length > 0) {
+                writeArrayField(sb, doubles, double.class);
+            }
         }
-        if (ints != null && ints.length > 0) {
-            sb.append(Arrays.toString(ints));
-        }
-        if (longs != null && longs.length > 0) {
-            sb.append(Arrays.toString(longs));
-        }
-        if (floats != null && floats.length > 0) {
-            sb.append(Arrays.toString(floats));
-        }
-        if (doubles != null && doubles.length > 0) {
-            sb.append(Arrays.toString(doubles));
-        }
-        return sb.toString();
     }
 }

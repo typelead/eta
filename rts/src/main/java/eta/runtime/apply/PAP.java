@@ -1,6 +1,7 @@
 package eta.runtime.apply;
 
-import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Deque;
 
 import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
@@ -14,6 +15,6 @@ public abstract class PAP extends Value {
         this.arity = arity;
     }
 
-    public abstract void writeArgs(StringBuilder sb,
-                                   IdentityHashMap<Object, Boolean> seen);
+    public abstract void writeArgs(StringBuilder sb, Object pending,
+                                   Map<Object, Boolean> seen, Deque<Object> stack);
 }

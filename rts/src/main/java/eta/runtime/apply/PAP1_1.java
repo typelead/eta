@@ -1,6 +1,7 @@
 package eta.runtime.apply;
 
-import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Deque;
 
 import eta.runtime.stg.Print;
 import eta.runtime.stg.Closure;
@@ -124,8 +125,14 @@ public class PAP1_1 extends PAP {
     }
 
     @Override
-    public void writeArgs(final StringBuilder sb,
-                          final IdentityHashMap<Object, Boolean> seen) {
-        Print.writeObjectField(sb, seen, "p", p);
+    public void writeArgs(StringBuilder sb, Object pending,
+                          Map<Object, Boolean> seen, Deque<Object> stack) {
+        if (pending != null) {
+            // If the main pap.fun is pending, the rest should be pending.
+            stack.offerFirst(Print.PrintObjectField.create(p, "p"));
+            stack.offerFirst(pending);
+        } else {
+            Print.maybeAddPendingWithSpace(Print.writeObjectField(p, "p", sb, seen), stack);
+        }
     }
 }
