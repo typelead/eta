@@ -20,3 +20,4 @@ release.log
 binaries/
 .gradle
 testing
+/dist-newstyle/
