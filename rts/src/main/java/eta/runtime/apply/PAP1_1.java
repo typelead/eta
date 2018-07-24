@@ -7,6 +7,8 @@ import eta.runtime.stg.Print;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 
+import static eta.runtime.stg.Print.*;
+
 public class PAP1_1 extends PAP {
     public Closure p;
 
@@ -125,14 +127,14 @@ public class PAP1_1 extends PAP {
     }
 
     @Override
-    public void writeArgs(StringBuilder sb, Object pending,
-                          Map<Object, Boolean> seen, Deque<Object> stack) {
+    public void writeArgs(Object pending, PrintState ps) {
+        final Deque<Object> stack = ps.stack;
         if (pending != null) {
             // If the main pap.fun is pending, the rest should be pending.
-            stack.offerFirst(Print.PrintObjectField.create(p, "p"));
+            stack.offerFirst(PrintObjectField.create(p, "p"));
             stack.offerFirst(pending);
         } else {
-            Print.maybeAddPendingWithSpace(Print.writeObjectField(p, "p", sb, seen), stack);
+            maybeAddPendingWithSpace(writeObjectField(p, "p", ps), stack);
         }
     }
 }

@@ -19,25 +19,31 @@ import eta.runtime.thunk.Thunk;
 
 public class Print {
 
-    public static String closureToString(Object target) {
-        final Map<Object, Boolean> visited =
+    public static class PrintState {
+        public final Map<Object, Boolean> seen =
             new IdentityHashMap<Object, Boolean>(16);
-        final Deque<Object> stack = new ArrayDeque<Object>();
-        final StringBuilder sb = new StringBuilder();
+        public final Deque<Object> stack = new ArrayDeque<Object>();
+        public final StringBuilder sb = new StringBuilder();
+    }
+
+    public static String closureToString(Object target) {
+        final PrintState ps = new PrintState();
+        final Deque<Object> stack = ps.stack;
+        final StringBuilder sb = ps.sb;
         stack.offerFirst(target);
         while ((target = stack.pollFirst()) != null) {
             final Class<?> clazz = target.getClass();
             if (target instanceof Closure) {
-                visited.put(target, Boolean.TRUE);
+                ps.seen.put(target, Boolean.TRUE);
             }
             if (target instanceof PrintInstruction) {
-                ((PrintInstruction)target).print(sb, visited, stack);
+                ((PrintInstruction)target).print(ps);
             } else if (target instanceof Closure) {
                 if (target instanceof Function) {
                     // TODO: Maybe make this a fully qualified name?
                     final String prefix = getClosureName(clazz) + '['
                                         + ((Function)target).arity() + ']';
-                    pushFields(target, clazz, prefix, sb, stack, visited);
+                    pushFields(target, clazz, prefix, ps);
                 } else if (target instanceof Thunk) {
                     final Closure indirectee = ((Thunk)target).indirectee;
                     if (indirectee instanceof Value) {
@@ -46,17 +52,17 @@ public class Print {
                     } else {
                         // TODO: Maybe make this a fully qualified name?
                         final String prefix = getClosureName(clazz) + "[_]";
-                        pushFields(target, clazz, prefix, sb, stack, visited);
+                        pushFields(target, clazz, prefix, ps);
                     }
                 } else if (target instanceof PAP) {
                     final PAP pap = (PAP) target;
                     final Function fun = pap.fun;
                     sb.append('{');
                     stack.offerFirst("}[" + pap.arity + ']');
-                    pap.writeArgs(sb, writeObjectField(fun, "fun", sb, visited), visited, stack);
+                    pap.writeArgs(writeObjectField(fun, "fun", ps), ps);
                 } else if (target instanceof DataCon) {
                     // TODO: Maybe make this a fully qualified name?
-                    pushFields(target, clazz, getClosureName(clazz), sb, stack, visited);
+                    pushFields(target, clazz, getClosureName(clazz), ps);
                 } else {
                     sb.append(classAndIdentity(target));
                 }
@@ -71,13 +77,13 @@ public class Print {
         }
     }
 
-    public static void handleParens(final Object c, final StringBuilder sb, final String prefix,
-                                    final Deque<Object> stack) {
+    public static void handleParens(final Object c, final String prefix, final PrintState ps) {
+        final StringBuilder sb = ps.sb;
         sb.append('(');
         sb.append(prefix);
         sb.append('#');
         sb.append(System.identityHashCode(c));
-        stack.offerFirst(")");
+        ps.stack.offerFirst(")");
     }
 
     public static boolean isValidField(final Field f, final boolean skipIndirectee) {
@@ -87,9 +93,8 @@ public class Print {
     }
 
     public static void pushFields(final Object c, final Class<?> clazz, final String prefix,
-                                  final StringBuilder sb, final Deque<Object> stack,
-                                  final Map<Object, Boolean> seen) {
-        boolean skipIndirectee = Thunk.class.isAssignableFrom(clazz);
+                                  final PrintState ps) {
+        final boolean skipIndirectee = Thunk.class.isAssignableFrom(clazz);
         final Field[] fs = clazz.getFields();
         final int numFields = fs.length;
         boolean wrotePrefix = false;
@@ -98,10 +103,10 @@ public class Print {
             final Field f = fs[i];
             if (isValidField(f, skipIndirectee)) {
                 if (!wrotePrefix) {
-                    handleParens(c, sb, prefix, stack);
+                    handleParens(c, prefix, ps);
                     wrotePrefix = true;
                 }
-                if (writeField(c, f, sb, seen) != null)  {
+                if (writeField(c, f, ps) != null)  {
                     break;
                 }
             }
@@ -113,23 +118,22 @@ public class Print {
                 final Field f = fs[i];
                 if (isValidField(f, skipIndirectee)) {
                     if (!wrotePrefix) {
-                        handleParens(c, sb, prefix, stack);
+                        handleParens(c, prefix, ps);
                         wrotePrefix = true;
                     }
-                    stack.offerFirst(PrintField.create(c, f));
+                    ps.stack.offerFirst(PrintField.create(c, f));
                 }
             }
         }
         if (!wrotePrefix) {
-            sb.append(prefix);
+            ps.sb.append(prefix);
         }
     }
 
-    public static Object writeField(final Object c, final Field f,
-                                    final StringBuilder sb,
-                                    final Map<Object, Boolean> seen) {
+    public static Object writeField(final Object c, final Field f, final PrintState ps) {
         try {
             final Class<?> type = f.getType();
+            final StringBuilder sb = ps.sb;
             if (type.isPrimitive()) {
                 writePrimitiveField(sb, f, c, type);
                 return null;
@@ -137,7 +141,7 @@ public class Print {
                 writeArrayField(sb, f.get(c), type.getComponentType());
                 return null;
             } else {
-                return writeObjectField(f.get(c), f.getName(), sb, seen);
+                return writeObjectField(f.get(c), f.getName(), ps);
             }
         } catch (IllegalAccessException iae) {
             throw new RuntimeException("writeField", iae);
@@ -145,7 +149,7 @@ public class Print {
     }
 
     public static abstract class PrintInstruction {
-        public abstract void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack);
+        public abstract void print(PrintState ps);
     }
 
     public static class PrintField extends PrintInstruction {
@@ -163,8 +167,8 @@ public class Print {
         }
 
         @Override
-        public void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack) {
-            maybeAddPendingWithSpace(writeField(c, f, sb, seen), stack);
+        public void print(final PrintState ps) {
+            maybeAddPendingWithSpace(writeField(c, f, ps), ps.stack);
         }
     }
 
@@ -183,8 +187,8 @@ public class Print {
         }
 
         @Override
-        public void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack) {
-            maybeAddPendingWithSpace(writeObjectField(c, f, sb, seen), stack);
+        public void print(final PrintState ps) {
+            maybeAddPendingWithSpace(writeObjectField(c, f, ps), ps.stack);
         }
     }
 
@@ -203,18 +207,18 @@ public class Print {
         }
 
         @Override
-        public void print(StringBuilder sb, Map<Object, Boolean> seen, Deque<Object> stack) {
-            writeArrayField(sb, c, f);
+        public void print(final PrintState ps) {
+            writeArrayField(ps.sb, c, f);
         }
     }
 
-    public static void maybeAddPending(Object pending, Deque<Object> stack) {
+    public static void maybeAddPending(final Object pending, final Deque<Object> stack) {
         if (pending != null) {
             stack.offerFirst(pending);
         }
     }
 
-    public static void maybeAddPendingWithSpace(Object pending, Deque<Object> stack) {
+    public static void maybeAddPendingWithSpace(final Object pending, final Deque<Object> stack) {
         if (pending != null) {
             stack.offerFirst(pending);
             stack.offerFirst(" ");
@@ -222,14 +226,15 @@ public class Print {
     }
 
     public static Object writeObjectField(final Object o, final String fieldName,
-                                          final StringBuilder sb,
-                                          final Map<Object, Boolean> seen) {
+                                          final PrintState ps) {
+
+        final StringBuilder sb = ps.sb;
         if (o == null) {
             sb.append(" {");
             sb.append(fieldName);
             sb.append("=null}");
             return null;
-        } else if ((o instanceof Closure) && seen.get(o) != null) {
+        } else if ((o instanceof Closure) && ps.seen.get(o) != null) {
             sb.append(" @");
             sb.append(getClosureName(o.getClass()));
             sb.append('#');
@@ -253,7 +258,8 @@ public class Print {
         }
     }
 
-    public static void writeArrayField(StringBuilder sb, Object c, Class<?> type) {
+    public static void writeArrayField(final StringBuilder sb, final Object c,
+                                       final Class<?> type) {
         String res;
         if (type == Integer.TYPE) {
             res = Arrays.toString((int[])c);
@@ -272,14 +278,15 @@ public class Print {
         } else if (type == Character.TYPE) {
             res = Arrays.toString((char[])c);
         } else {
-            // TOOD: Take into account the 'seen' array.
+            // TODO: Take into account the 'seen' array.
             res = Arrays.deepToString((Object[])c);
         }
         sb.append(' ');
         sb.append(res);
     }
 
-    public static void writePrimitiveField(StringBuilder sb, Field f, Object c, Class<?> type) {
+    public static void writePrimitiveField(final StringBuilder sb, final Field f,
+                                           final Object c, final Class<?> type) {
         try {
             sb.append(' ');
             if (type == Integer.TYPE) {
@@ -308,12 +315,12 @@ public class Print {
         }
     }
 
-    public static String getClosureName(Class<?> cls) {
+    public static String getClosureName(final Class<?> cls) {
         // TODO: We may have to handle the '$' sign.
         return zdecode(cls.getSimpleName());
     }
 
-    public static String zdecode(String zstring) {
+    public static String zdecode(final String zstring) {
         final StringBuilder out = new StringBuilder();
         final int encodedLen = zstring.length();
         int cp1, cp2;
@@ -344,7 +351,7 @@ public class Print {
         return out.toString();
     }
 
-    public static int zdecodeUpper(int cp) {
+    public static int zdecodeUpper(final int cp) {
         switch ((char) cp) {
             case 'L':
                 return '(';
@@ -363,7 +370,7 @@ public class Print {
         }
     }
 
-    public static int zdecodeLower(int cp) {
+    public static int zdecodeLower(final int cp) {
         switch ((char) cp) {
             case 'z':
                 return 'z';
@@ -404,7 +411,8 @@ public class Print {
         }
     }
 
-    public static int zdecodeTuple(final StringBuilder sb, final String zstring, int offset, int cp) {
+    public static int zdecodeTuple(final StringBuilder sb, final String zstring, int offset,
+                                   int cp) {
         int n = Character.getNumericValue(cp);
         while (offset < zstring.length()) {
             cp      = zstring.codePointAt(offset);
@@ -439,7 +447,8 @@ public class Print {
         throw new IllegalArgumentException("The input string seems to be a fragment of a proper Z-encoded string.");
     }
 
-    public static int zdecodeNumEscape(final StringBuilder sb, final String zstring, int offset, int cp) {
+    public static int zdecodeNumEscape(final StringBuilder sb, final String zstring, int offset,
+                                       int cp) {
         int n = Character.getNumericValue(cp);
         while (offset < zstring.length()) {
             cp      = zstring.codePointAt(offset);
@@ -478,7 +487,7 @@ public class Print {
         return m.matches();
     }
 
-    public static String classAndIdentity(Object e) {
+    public static String classAndIdentity(final Object e) {
         if (e == null) {
             return "null";
         } else {

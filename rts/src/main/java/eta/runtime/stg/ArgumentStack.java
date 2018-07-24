@@ -243,14 +243,14 @@ public class ArgumentStack implements Cloneable {
         System.out.println("D" + Arrays.toString(doubles));
     }
 
-    public void writeArgs(StringBuilder sb, Object pending,
-                          Map<Object, Boolean> seen, Deque<Object> stack) {
+    public void writeArgs(final Object pending, final PrintState ps) {
+        final Deque<Object> stack = ps.stack;
         final int numClosures = closures.length;
         int i = 0;
         if (pending == null && closures != null && numClosures > 0) {
             for (; i < numClosures; i++) {
                 final Closure c = closures[i];
-                Object pending2 = writeObjectField(c, Integer.toString(i), sb, seen);
+                Object pending2 = writeObjectField(c, Integer.toString(i), ps);
                 if (pending2 != null) {
                     break;
                 }
@@ -280,6 +280,7 @@ public class ArgumentStack implements Cloneable {
                 stack.offerFirst(pending);
             }
         } else {
+            final StringBuilder sb = ps.sb;
             if (objects != null && objects.length > 0) {
                 writeArrayField(sb, objects, Object.class);
             }

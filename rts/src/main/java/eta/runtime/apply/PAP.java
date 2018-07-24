@@ -7,6 +7,8 @@ import eta.runtime.stg.Print;
 import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 
+import static eta.runtime.stg.Print.*;
+
 public abstract class PAP extends Value {
     public Function fun;
     public int arity;
@@ -15,6 +17,5 @@ public abstract class PAP extends Value {
         this.arity = arity;
     }
 
-    public abstract void writeArgs(StringBuilder sb, Object pending,
-                                   Map<Object, Boolean> seen, Deque<Object> stack);
+    public abstract void writeArgs(Object pending, PrintState ps);
 }

@@ -7,8 +7,10 @@ import eta.runtime.stg.Value;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ArgumentStack;
-import static eta.runtime.RuntimeLogging.barf;
+
+import static eta.runtime.RuntimeLogging.*;
 import static eta.runtime.stg.ArgumentStack.*;
+import static eta.runtime.stg.Print.*;
 
 public class PAPSlow extends PAP {
     public ArgumentStack argStack;
@@ -392,8 +394,7 @@ public class PAPSlow extends PAP {
     }
 
     @Override
-    public void writeArgs(StringBuilder sb, Object pending,
-                          Map<Object, Boolean> seen, Deque<Object> stack) {
-        argStack.writeArgs(sb, pending, seen, stack);
+    public void writeArgs(Object pending, PrintState ps) {
+        argStack.writeArgs(pending, ps);
     }
 }
