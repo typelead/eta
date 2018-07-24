@@ -46,4 +46,22 @@ hpkgs // {
       glibcLocales
     ];
   } "";
+
+  shells = {
+    ghc = hpkgs.shellFor {
+      packages = p: [
+        p.eta
+        p.codec-jvm
+        p.eta-boot
+        p.eta-boot-meta
+        p.eta-meta
+        p.eta-repl
+        p.eta-pkg
+        p.etlas
+        p.etlas-cabal
+        p.hackage-security
+        p.shake
+        ];
+    };
+  };
 }

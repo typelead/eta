@@ -1,0 +1,20 @@
+-- Start nix-shell with all of the tools needed for building:
+--
+--   nix-shell -A shells.ghc
+--
+-- Inside that shell build the project using cabal new-build:
+--
+--   cabal --project-file=cabal.nix.project new-build
+
+packages:
+  ./
+  codec-jvm/
+  libraries/eta-boot/
+  libraries/eta-boot-meta/
+  libraries/eta-meta/
+  libraries/eta-repl/
+  utils/eta-pkg/
+  etlas/etlas/
+  etlas/etlas-cabal/
+  etlas/hackage-security/hackage-security/
+  shake/
