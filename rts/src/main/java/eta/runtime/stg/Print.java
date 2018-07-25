@@ -183,6 +183,16 @@ public class Print {
         }
     }
 
+    public static void handleSpecialChar(int cp, final StringBuilder sb) {
+        if (cp == '\n') {
+            sb.append("\\n");
+        } else if (cp == '\r'){
+            sb.append("\\r");
+        } else {
+            sb.appendCodePoint(cp);
+        }
+    }
+
     public static boolean handleSpecialClosure(final DataCon c, final Class<?> clazz,
                                                final PrintState ps) {
         final StringBuilder sb = ps.sb;
@@ -192,14 +202,7 @@ public class Print {
             sb.append(c.getN(1));
         } else if (Czh.isAssignableFrom(clazz)) {
             sb.append('\'');
-            int cp = c.getN(1);
-            if (cp == '\n') {
-                sb.append("\\n");
-            } else if (cp == '\r'){
-                sb.append("\\r");
-            } else {
-                sb.appendCodePoint(cp);
-            }
+            handleSpecialChar(c.getN(1), sb);
             sb.append('\'');
         } else if (Jzh.isAssignableFrom(clazz)) {
             sb.append(((BigInteger)(c.getO(1))).toString());
@@ -229,22 +232,51 @@ public class Print {
             }
             if (printFull) {
                 ps.insertMapping(c);
-                sb.append('[');
-                ps.push("]");
-                int i = cs.size();
-                final ListIterator<Closure> it = cs.listIterator(cs.size());
-                while (it.hasPrevious() && i > 1) {
+                String str = allChar(cs);
+                if (str != null) {
+                    sb.append(str);
+                } else {
+                    sb.append('[');
+                    ps.push("]");
+                    int i = cs.size();
+                    final ListIterator<Closure> it = cs.listIterator(cs.size());
+                    while (it.hasPrevious() && i > 1) {
+                        ps.push(it.previous());
+                        ps.push(", ");
+                        i--;
+                    }
                     ps.push(it.previous());
-                    ps.push(", ");
-                    i--;
                 }
-                ps.push(it.previous());
             }
             return printFull;
         } else {
             return false;
         }
         return true;
+    }
+
+    public static String allChar(Iterable<Closure> cs) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append('"');
+        boolean isString = true;
+        for (Closure c: cs) {
+            isString = isString && isChar(c, sb);
+            if (!isString) break;
+        }
+        sb.append('"');
+        return isString? sb.toString() : null;
+    }
+
+    public static boolean isChar(Closure c, final StringBuilder sb) {
+        while (c instanceof Thunk) {
+            c = ((Thunk) c).indirectee;
+        }
+        if (Czh.isInstance(c)) {
+            handleSpecialChar(((DataCon) c).getN(1), sb);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static void handleParens(final Object c, final String prefix, final PrintState ps) {
