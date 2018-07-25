@@ -1,5 +1,6 @@
 import Data.Char
 import Debug.Trace
+import Data.Function
 
 fibs :: [Integer]
 fibs = 1 : 1 : zipWith (+) fibs (tail fibs)
@@ -21,4 +22,8 @@ main = do
   traceHeapIdIO fibs
   print $ (fibs !! 20)
   traceHeapIdIO fibs
+  let recList = fix $ \x -> [ (x !! 1) + 1, 1, (x !! 0) + 2]
+  traceHeapIdIO recList
+  print recList
+  traceHeapIdIO recList
   return ()
