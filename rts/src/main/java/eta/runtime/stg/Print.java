@@ -9,6 +9,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -62,6 +63,7 @@ public class Print {
         // Map from object identifier to index of string buffer - bimap dual of above
         public final Map<Integer, Integer> revBufIndex = new HashMap<Integer, Integer>();
 
+        public final Set<Class<?>> ignoreNoFields = new HashSet<Class<?>>();
 
         public int getId(final String closureType, final Integer id) {
             Integer found0 = closureInstanceIndex.get(id);
@@ -93,8 +95,15 @@ public class Print {
             }
         }
 
+        public void ignoreClosure(Class<?> c) {
+            ignoreNoFields.add(c);
+        }
+
         public boolean hasSeen(Object o) {
-            return isValidSeenClass(o) && seen.get(o) != null;
+            final Class<?> clazz = o.getClass();
+            return isValidSeenClass(clazz)
+                && !ignoreNoFields.contains(clazz)
+                && seen.get(o) != null;
         }
 
         public Iterator<LeftBiasedPair<Integer, Integer>> replacementsIterator() {
@@ -183,7 +192,14 @@ public class Print {
             sb.append(c.getN(1));
         } else if (Czh.isAssignableFrom(clazz)) {
             sb.append('\'');
-            sb.appendCodePoint(c.getN(1));
+            int cp = c.getN(1);
+            if (cp == '\n') {
+                sb.append("\\n");
+            } else if (cp == '\r'){
+                sb.append("\\r");
+            } else {
+                sb.appendCodePoint(cp);
+            }
             sb.append('\'');
         } else if (Jzh.isAssignableFrom(clazz)) {
             sb.append(((BigInteger)(c.getO(1))).toString());
@@ -245,9 +261,8 @@ public class Print {
 
     }
 
-    public static boolean isValidSeenClass(final Object o) {
-        if (o instanceof Closure) {
-            final Class<?> clazz = o.getClass();
+    public static boolean isValidSeenClass(final Class<?> clazz) {
+        if (Closure.class.isAssignableFrom(clazz)) {
             return !(Czh.isAssignableFrom(clazz)
                   || Szh.isAssignableFrom(clazz)
                   || Jzh.isAssignableFrom(clazz)
@@ -293,6 +308,7 @@ public class Print {
         if (!wrotePrefix) {
             ps.sb.append(prefix);
             ps.insertMapping(c);
+            ps.ignoreClosure(clazz);
         }
     }
 
