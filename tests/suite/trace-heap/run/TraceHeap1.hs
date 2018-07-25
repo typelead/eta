@@ -19,4 +19,6 @@ main = do
   traceHeapIdIO fibs
   print $ (fibs !! 4)
   traceHeapIdIO fibs
+  print $ (fibs !! 20)
+  traceHeapIdIO fibs
   return ()
