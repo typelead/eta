@@ -303,4 +303,4 @@ library
 
     -- We need to set the package key to base (without a version number)
     -- as it's magic.
-    ghc-options: -this-unit-id base -fdiagnostics-color=never
+    ghc-options: -this-unit-id base
