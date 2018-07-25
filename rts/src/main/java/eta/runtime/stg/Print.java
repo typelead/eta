@@ -6,10 +6,13 @@ import java.lang.reflect.Modifier;
 
 import java.util.Arrays;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -179,9 +182,49 @@ public class Print {
         } else if (Szh.isAssignableFrom(clazz)) {
             sb.append(c.getN(1));
         } else if (Czh.isAssignableFrom(clazz)) {
+            sb.append('\'');
             sb.appendCodePoint(c.getN(1));
+            sb.append('\'');
         } else if (Jzh.isAssignableFrom(clazz)) {
             sb.append(((BigInteger)(c.getO(1))).toString());
+        } else if (ZC.isAssignableFrom(clazz)) {
+            final List<Closure> cs = new ArrayList<Closure>();
+            cs.add(c.getP(1));
+            boolean printFull = false;
+            Closure d = c.getP(2);
+            for (;;) {
+                if (ZMZN.isInstance(d)) {
+                    printFull = true;
+                    break;
+                } else if (ZC.isInstance(d)) {
+                    final DataCon e = (DataCon) d;
+                    cs.add(e.getP(1));
+                    d = e.getP(2);
+                } else if (d instanceof Thunk) {
+                    final Closure e = ((Thunk) d).indirectee;
+                    if (e instanceof Value) {
+                        d = e;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (printFull) {
+                ps.insertMapping(c);
+                sb.append('[');
+                ps.push("]");
+                int i = cs.size();
+                final ListIterator<Closure> it = cs.listIterator(cs.size());
+                while (it.hasPrevious() && i > 1) {
+                    ps.push(it.previous());
+                    ps.push(", ");
+                    i--;
+                }
+                ps.push(it.previous());
+            }
+            return printFull;
         } else {
             return false;
         }
