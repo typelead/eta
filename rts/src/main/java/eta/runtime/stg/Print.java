@@ -1,5 +1,6 @@
 package eta.runtime.stg;
 
+import java.math.BigInteger;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
@@ -20,6 +21,7 @@ import eta.runtime.stg.DataCon;
 import eta.runtime.apply.Function;
 import eta.runtime.apply.PAP;
 import eta.runtime.thunk.Thunk;
+import static eta.runtime.stg.Closures.*;
 
 public class Print {
 
@@ -89,7 +91,7 @@ public class Print {
         }
 
         public boolean hasSeen(Object o) {
-            return (o instanceof Closure) && seen.get(o) != null;
+            return isValidSeenClass(o) && seen.get(o) != null;
         }
 
         public Iterator<LeftBiasedPair<Integer, Integer>> replacementsIterator() {
@@ -119,18 +121,15 @@ public class Print {
                 ((PrintInstruction)target).print(ps);
             } else if (target instanceof Closure) {
                 if (target instanceof Function) {
-                    // TODO: Maybe make this a fully qualified name?
                     final String prefix = getClosureName(clazz) + '['
                                         + ((Function)target).arity() + ']';
                     pushFields(target, clazz, prefix, ps);
                 } else if (target instanceof Thunk) {
                     final Closure indirectee = ((Thunk)target).indirectee;
                     if (indirectee instanceof Value) {
-                        // TODO: Should make some indication of an indirection?
                         ps.insertMapping(target);
                         ps.push(indirectee);
                     } else {
-                        // TODO: Maybe make this a fully qualified name?
                         final String prefix = getClosureName(clazz) + "[_]";
                         pushFields(target, clazz, prefix, ps);
                     }
@@ -141,8 +140,9 @@ public class Print {
                     ps.push("}[" + pap.arity + ']');
                     pap.writeArgs(writeObjectField(fun, "fun", ps), ps);
                 } else if (target instanceof DataCon) {
-                    // TODO: Maybe make this a fully qualified name?
-                    pushFields(target, clazz, getClosureName(clazz), ps);
+                    if (!handleSpecialClosure((DataCon)target, clazz, ps)) {
+                        pushFields(target, clazz, getClosureName(clazz), ps);
+                    }
                 } else {
                     sb.append(classAndIdentity(target));
                 }
@@ -162,11 +162,30 @@ public class Print {
             off += id.length();
         }
 
-        if (sb.charAt(0) == '(') {
+        char i0 = sb.charAt(0);
+        char i1 = (sb.length() > 1)? sb.charAt(1) : '?';
+        if (i0 == '(' && (Character.isDigit(i1) || Character.isLetter(i1))) {
             return sb.substring(1, sb.length() - 1);
         } else {
             return sb.toString();
         }
+    }
+
+    public static boolean handleSpecialClosure(final DataCon c, final Class<?> clazz,
+                                               final PrintState ps) {
+        final StringBuilder sb = ps.sb;
+        if (Izh.isAssignableFrom(clazz)) {
+            sb.append(c.getN(1));
+        } else if (Szh.isAssignableFrom(clazz)) {
+            sb.append(c.getN(1));
+        } else if (Czh.isAssignableFrom(clazz)) {
+            sb.appendCodePoint(c.getN(1));
+        } else if (Jzh.isAssignableFrom(clazz)) {
+            sb.append(((BigInteger)(c.getO(1))).toString());
+        } else {
+            return false;
+        }
+        return true;
     }
 
     public static void handleParens(final Object c, final String prefix, final PrintState ps) {
@@ -181,6 +200,18 @@ public class Print {
         return !Modifier.isStatic(f.getModifiers())
             && !(skipIndirectee && f.getName().equals("indirectee"));
 
+    }
+
+    public static boolean isValidSeenClass(final Object o) {
+        if (o instanceof Closure) {
+            final Class<?> clazz = o.getClass();
+            return !(Czh.isAssignableFrom(clazz)
+                  || Szh.isAssignableFrom(clazz)
+                  || Jzh.isAssignableFrom(clazz)
+                  || Izh.isAssignableFrom(clazz));
+        } else {
+            return false;
+        }
     }
 
     public static void pushFields(final Object c, final Class<?> clazz, final String prefix,
@@ -372,7 +403,6 @@ public class Print {
         } else if (type == Character.TYPE) {
             res = Arrays.toString((char[])c);
         } else {
-            // TODO: Take into account the 'seen' array.
             res = Arrays.deepToString((Object[])c);
         }
         sb.append(' ');

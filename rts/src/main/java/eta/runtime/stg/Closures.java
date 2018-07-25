@@ -41,6 +41,14 @@ public class Closures {
     public static Constructor JException = null;
     public static Constructor SomeException = null;
 
+    /* Classes */
+    public static Class<?> ZC;
+    public static Class<?> ZMZN;
+    public static Class<?> Czh;
+    public static Class<?> Izh;
+    public static Class<?> Szh;
+    public static Class<?> Jzh;
+
     static {
         try {
             False             = loadClosure("ghc_prim.ghc.Types", "DFalse");
@@ -57,6 +65,12 @@ public class Closures {
             SomeException     = loadDataCon("base.ghc.Exception", "SomeException", Closure.class, Closure.class);
             $fExceptionJException = loadClosure("base.java.Exception", "$fException_JException");
             showException         = loadClosure("base.java.Exception", "showException");
+            ZC   = Class.forName("ghc_prim.ghc.types.datacons.ZC");
+            ZMZN = Class.forName("ghc_prim.ghc.types.datacons.ZMZN");
+            Czh  = Class.forName("ghc_prim.ghc.types.datacons.Czh");
+            Izh  = Class.forName("ghc_prim.ghc.types.datacons.Izh");
+            Szh  = Class.forName("integer.ghc.integer.type.datacons.Szh");
+            Jzh  = Class.forName("integer.ghc.integer.type.datacons.Jzh");
         } catch (Exception e) {
             System.err.println("FATAL ERROR: Failed to load base closures.");
             e.printStackTrace();
