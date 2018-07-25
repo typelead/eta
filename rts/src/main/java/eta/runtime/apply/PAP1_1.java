@@ -128,13 +128,12 @@ public class PAP1_1 extends PAP {
 
     @Override
     public void writeArgs(Object pending, PrintState ps) {
-        final Deque<Object> stack = ps.stack;
         if (pending != null) {
             // If the main pap.fun is pending, the rest should be pending.
-            stack.offerFirst(PrintObjectField.create(p, "p"));
-            stack.offerFirst(pending);
+            ps.push(PrintObjectField.create(p, "p"));
+            ps.push(pending);
         } else {
-            maybeAddPendingWithSpace(writeObjectField(p, "p", ps), stack);
+            maybeAddPendingWithSpace(writeObjectField(p, "p", ps), ps);
         }
     }
 }

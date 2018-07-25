@@ -244,7 +244,6 @@ public class ArgumentStack implements Cloneable {
     }
 
     public void writeArgs(final Object pending, final PrintState ps) {
-        final Deque<Object> stack = ps.stack;
         final int numClosures = closures.length;
         int i = 0;
         if (pending == null && closures != null && numClosures > 0) {
@@ -258,26 +257,26 @@ public class ArgumentStack implements Cloneable {
         }
         if (i < numClosures || pending != null) {
             if (doubles != null && doubles.length > 0) {
-                stack.offerFirst(PrintArrayField.create(doubles, double.class));
+                ps.push(PrintArrayField.create(doubles, double.class));
             }
             if (floats != null && floats.length > 0) {
-                stack.offerFirst(PrintArrayField.create(floats, float.class));
+                ps.push(PrintArrayField.create(floats, float.class));
             }
             if (longs != null && longs.length > 0) {
-                stack.offerFirst(PrintArrayField.create(longs, long.class));
+                ps.push(PrintArrayField.create(longs, long.class));
             }
             if (ints != null && ints.length > 0) {
-                stack.offerFirst(PrintArrayField.create(ints, int.class));
+                ps.push(PrintArrayField.create(ints, int.class));
             }
             if (objects != null && objects.length > 0) {
-                stack.offerFirst(PrintArrayField.create(objects, Object.class));
+                ps.push(PrintArrayField.create(objects, Object.class));
             }
             final int start = i;
             for (i = numClosures - 1; i >= start; i--) {
-                stack.offerFirst(PrintObjectField.create(closures[i], Integer.toString(i)));
+                ps.push(PrintObjectField.create(closures[i], Integer.toString(i)));
             }
             if (start == 0 && pending != null) {
-                stack.offerFirst(pending);
+                ps.push(pending);
             }
         } else {
             final StringBuilder sb = ps.sb;

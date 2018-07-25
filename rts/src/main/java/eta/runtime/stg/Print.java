@@ -6,8 +6,12 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -19,23 +23,98 @@ import eta.runtime.thunk.Thunk;
 
 public class Print {
 
+    public static class LeftBiasedPair<A extends Comparable<A>,B>
+        implements Comparable<LeftBiasedPair<A, B>> {
+
+        public final A x1;
+        public final B x2;
+
+        public LeftBiasedPair(final A x1, final B x2) {
+            this.x1 = x1;
+            this.x2 = x2;
+        }
+
+        @Override
+        public int compareTo(LeftBiasedPair<A, B> o) {
+            return this.x1.compareTo(o.x1);
+        }
+    }
+
     public static class PrintState {
-        public final Map<Object, Boolean> seen =
-            new IdentityHashMap<Object, Boolean>(16);
-        public final Deque<Object> stack = new ArrayDeque<Object>();
         public final StringBuilder sb = new StringBuilder();
+
+        private final Deque<Object> stack = new ArrayDeque<Object>();
+
+        private final Map<Object, Boolean> seen =
+            new IdentityHashMap<Object, Boolean>(16);
+
+        // Map from closure type to instance number
+        private final Map<String, Integer> closureIndex = new HashMap<String, Integer>();
+
+        // Closure instance to instance number
+        public final Map<Integer, Integer> closureInstanceIndex = new HashMap<Integer, Integer>();
+
+        // Map from object identifier to index of string buffer - bimap dual of above
+        public final Map<Integer, Integer> revBufIndex = new HashMap<Integer, Integer>();
+
+
+        public int getId(final String closureType, final Integer id) {
+            Integer found0 = closureInstanceIndex.get(id);
+            if (found0 != null) return found0;
+            Integer found = closureIndex.get(closureType);
+            if (found == null) {
+                found = 1;
+            }
+            closureIndex.put(closureType, found + 1);
+            closureInstanceIndex.put(id, found);
+            return found;
+        }
+
+        public void addMapping(int pos, int id) {
+            revBufIndex.put(id, pos);
+        }
+
+        public void push(Object e) {
+            stack.offerFirst(e);
+        }
+
+        public Object pop() {
+            return stack.pollFirst();
+        }
+
+        public void markSeen(Object c) {
+            if (c instanceof Closure) {
+                seen.put(c, Boolean.TRUE);
+            }
+        }
+
+        public boolean hasSeen(Object o) {
+            return (o instanceof Closure) && seen.get(o) != null;
+        }
+
+        public Iterator<LeftBiasedPair<Integer, Integer>> replacementsIterator() {
+            final Set<LeftBiasedPair<Integer, Integer>> replacements =
+                new TreeSet<LeftBiasedPair<Integer, Integer>>();
+            for (Map.Entry<Integer, Integer> entry : closureInstanceIndex.entrySet()) {
+                int id = entry.getKey();
+                int instanceNo = entry.getValue();
+                Integer pos = revBufIndex.get(id);
+                if (pos == null) {
+                  throw new RuntimeException("Unable to find revBufIndex for " + id);
+                }
+                replacements.add(new LeftBiasedPair(pos, instanceNo));
+            }
+            return replacements.iterator();
+        }
     }
 
     public static String closureToString(Object target) {
         final PrintState ps = new PrintState();
-        final Deque<Object> stack = ps.stack;
         final StringBuilder sb = ps.sb;
-        stack.offerFirst(target);
-        while ((target = stack.pollFirst()) != null) {
+        ps.push(target);
+        while ((target = ps.pop()) != null) {
             final Class<?> clazz = target.getClass();
-            if (target instanceof Closure) {
-                ps.seen.put(target, Boolean.TRUE);
-            }
+            ps.markSeen(target);
             if (target instanceof PrintInstruction) {
                 ((PrintInstruction)target).print(ps);
             } else if (target instanceof Closure) {
@@ -48,7 +127,7 @@ public class Print {
                     final Closure indirectee = ((Thunk)target).indirectee;
                     if (indirectee instanceof Value) {
                         // TODO: Should make some indication of an indirection?
-                        stack.offerFirst(indirectee);
+                        ps.push(indirectee);
                     } else {
                         // TODO: Maybe make this a fully qualified name?
                         final String prefix = getClosureName(clazz) + "[_]";
@@ -58,7 +137,7 @@ public class Print {
                     final PAP pap = (PAP) target;
                     final Function fun = pap.fun;
                     sb.append('{');
-                    stack.offerFirst("}[" + pap.arity + ']');
+                    ps.push("}[" + pap.arity + ']');
                     pap.writeArgs(writeObjectField(fun, "fun", ps), ps);
                 } else if (target instanceof DataCon) {
                     // TODO: Maybe make this a fully qualified name?
@@ -70,6 +149,18 @@ public class Print {
                 sb.append(target);
             }
         }
+
+        final Iterator<LeftBiasedPair<Integer, Integer>> it = ps.replacementsIterator();
+        int off = 0;
+        while (it.hasNext()) {
+            final LeftBiasedPair<Integer, Integer> p = it.next();
+            final int i = p.x1;
+            final int j = p.x2;
+            final String id = "#" + j;
+            sb.insert(i + off, id);
+            off += id.length();
+        }
+
         if (sb.charAt(0) == '(') {
             return sb.substring(1, sb.length() - 1);
         } else {
@@ -81,9 +172,8 @@ public class Print {
         final StringBuilder sb = ps.sb;
         sb.append('(');
         sb.append(prefix);
-        sb.append('#');
-        sb.append(System.identityHashCode(c));
-        ps.stack.offerFirst(")");
+        ps.addMapping(sb.length(), System.identityHashCode(c));
+        ps.push(")");
     }
 
     public static boolean isValidField(final Field f, final boolean skipIndirectee) {
@@ -121,12 +211,14 @@ public class Print {
                         handleParens(c, prefix, ps);
                         wrotePrefix = true;
                     }
-                    ps.stack.offerFirst(PrintField.create(c, f));
+                    ps.push(PrintField.create(c, f));
                 }
             }
         }
         if (!wrotePrefix) {
-            ps.sb.append(prefix);
+            final StringBuilder sb = ps.sb;
+            sb.append(prefix);
+            ps.addMapping(sb.length(), System.identityHashCode(c));
         }
     }
 
@@ -168,7 +260,7 @@ public class Print {
 
         @Override
         public void print(final PrintState ps) {
-            maybeAddPendingWithSpace(writeField(c, f, ps), ps.stack);
+            maybeAddPendingWithSpace(writeField(c, f, ps), ps);
         }
     }
 
@@ -188,7 +280,7 @@ public class Print {
 
         @Override
         public void print(final PrintState ps) {
-            maybeAddPendingWithSpace(writeObjectField(c, f, ps), ps.stack);
+            maybeAddPendingWithSpace(writeObjectField(c, f, ps), ps);
         }
     }
 
@@ -212,16 +304,16 @@ public class Print {
         }
     }
 
-    public static void maybeAddPending(final Object pending, final Deque<Object> stack) {
+    public static void maybeAddPending(final Object pending, final PrintState ps) {
         if (pending != null) {
-            stack.offerFirst(pending);
+            ps.push(pending);
         }
     }
 
-    public static void maybeAddPendingWithSpace(final Object pending, final Deque<Object> stack) {
+    public static void maybeAddPendingWithSpace(final Object pending, final PrintState ps) {
         if (pending != null) {
-            stack.offerFirst(pending);
-            stack.offerFirst(" ");
+            ps.push(pending);
+            ps.push(" ");
         }
     }
 
@@ -234,11 +326,13 @@ public class Print {
             sb.append(fieldName);
             sb.append("=null}");
             return null;
-        } else if ((o instanceof Closure) && ps.seen.get(o) != null) {
+        } else if (ps.hasSeen(o)) {
             sb.append(" @");
-            sb.append(getClosureName(o.getClass()));
+            final String closureType = getClosureName(o.getClass());
+            sb.append(closureType);
+            int id = ps.getId(closureType, System.identityHashCode(o));
             sb.append('#');
-            sb.append(System.identityHashCode(o));
+            sb.append(id);
             return null;
         } else {
             if (o instanceof Closure) {
