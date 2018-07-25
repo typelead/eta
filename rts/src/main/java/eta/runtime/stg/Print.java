@@ -70,8 +70,8 @@ public class Print {
             return found;
         }
 
-        public void addMapping(int pos, int id) {
-            revBufIndex.put(id, pos);
+        public void insertMapping(final Object o) {
+            revBufIndex.put(System.identityHashCode(o), sb.length());
         }
 
         public void push(Object e) {
@@ -127,6 +127,7 @@ public class Print {
                     final Closure indirectee = ((Thunk)target).indirectee;
                     if (indirectee instanceof Value) {
                         // TODO: Should make some indication of an indirection?
+                        ps.insertMapping(target);
                         ps.push(indirectee);
                     } else {
                         // TODO: Maybe make this a fully qualified name?
@@ -172,7 +173,7 @@ public class Print {
         final StringBuilder sb = ps.sb;
         sb.append('(');
         sb.append(prefix);
-        ps.addMapping(sb.length(), System.identityHashCode(c));
+        ps.insertMapping(c);
         ps.push(")");
     }
 
@@ -216,9 +217,8 @@ public class Print {
             }
         }
         if (!wrotePrefix) {
-            final StringBuilder sb = ps.sb;
-            sb.append(prefix);
-            ps.addMapping(sb.length(), System.identityHashCode(c));
+            ps.sb.append(prefix);
+            ps.insertMapping(c);
         }
     }
 

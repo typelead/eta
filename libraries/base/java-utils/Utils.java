@@ -514,4 +514,8 @@ public class Utils {
     public static float expm1Float(float f) {
       return (float)(Math.expm1(f));
     }
+
+    public static void traceHeap(StgContext context, Closure c) {
+        debugBelch("%s", c.toString());
+    }
 }

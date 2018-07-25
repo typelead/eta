@@ -2,6 +2,8 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE UnliftedFFITypes #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -42,6 +44,12 @@ module Debug.Trace (
         -- $markers
         traceMarker,
         traceMarkerIO,
+
+        -- * Eta-specific
+        traceHeap,
+        traceHeapIO,
+        traceHeapId,
+        traceHeapIdIO
   ) where
 
 import System.IO.Unsafe
@@ -315,3 +323,20 @@ traceMarkerIO :: String -> IO ()
 traceMarkerIO msg = errorWithoutStackTrace "traceMarkerIO not implemented!"
   -- GHC.Foreign.withCString utf8 msg $ \(Ptr p) -> IO $ \s ->
   --   case traceMarker# p s of s' -> (# s', () #)
+
+traceHeap :: a -> b -> b
+traceHeap x y = unsafePerformIO (traceHeapIO x y)
+
+traceHeapId :: a -> a
+traceHeapId x = unsafePerformIO (traceHeapIdIO x)
+
+traceHeapIdIO :: x -> IO x
+traceHeapIdIO x = traceHeapIO x x
+
+traceHeapIO :: x -> y -> IO y
+traceHeapIO x y = do
+  IO $ \s -> case traceHeap# (unsafeCoerce# x) s of s' -> (# s', () #)
+  return y
+
+foreign import prim "eta.base.Utils.traceHeap"
+  traceHeap# :: Any ->  State# s -> State# s
