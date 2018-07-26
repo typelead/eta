@@ -46,6 +46,7 @@ codeGen hscEnv thisMod thisModLoc dataTyCons stgBinds _hpcInfo mMFs = do
     collectTopIdsAndAdd stgBinds
     mapM_ (cgTopBinding dflags) stgBinds
     mapM_ cgTyCon dataTyCons
+    dumpDedupedIds
   where
     (env, state) = initCg hscEnv thisMod thisModLoc
     dflags = hsc_dflags hscEnv

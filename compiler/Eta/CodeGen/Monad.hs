@@ -66,7 +66,8 @@ module Eta.CodeGen.Monad
    getDynFlags,
    getHscEnv,
    getSourceFilePath,
-   liftIO)
+   liftIO,
+   dumpDedupedIds)
 where
 
 import Eta.Main.DynFlags
@@ -75,6 +76,7 @@ import Eta.BasicTypes.Module
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Name
+import Eta.BasicTypes.Unique
 import Eta.Utils.Outputable hiding ((<>))
 import Eta.Types.TyCon
 
@@ -112,6 +114,7 @@ data CgEnv =
 data CgState =
   CgState { cgBindings            :: !CgBindings
           , cgNameEnvironment     :: FastStringEnv Int
+          , cgIdDocs              :: [SDoc]
           -- Accumulating
           , cgCompiledClosures    :: [ClassFile]
           , cgRecursiveInitNumber :: Int
@@ -190,6 +193,7 @@ initCg hsc_env mod modLoc =
            , cgSelfLoop            = Nothing },
    CgState { cgBindings            = emptyVarEnv
            , cgNameEnvironment     = emptyFsEnv
+           , cgIdDocs              = []
            , cgCode                = mempty
            , cgContextLoc          = mempty
            , cgAccessFlags         = [Public, Super]
@@ -352,6 +356,7 @@ newDedupedId id = do
         | Just i <- lookupFsEnv nameEnv fs = (transformedId mod i, i + 1)
         | otherwise = (id, 1)
   modify $ \s -> s { cgNameEnvironment = extendFsEnv nameEnv fs i' }
+  when (i' /= 1) $ addIdDoc id id'
   return id'
   where fs = idFastString id
         transformedId mod i = id'
@@ -364,6 +369,19 @@ newDedupedId id = do
                 occ  = nameOccName name
                 loc  = nameSrcSpan name
                 ns   = occNameSpace occ
+
+addIdDoc :: Id -> Id -> CodeGen ()
+addIdDoc id0 id1 = modify $ \s@CgState{..} ->
+  s { cgIdDocs = (hcat [ppr (idOcc id0), underscore, pprUniqueAlways (idUnique id0)]
+              <+> arrow <+> ppr (idOcc id1)) : cgIdDocs }
+  where idOcc = nameOccName . idName
+
+dumpDedupedIds :: CodeGen ()
+dumpDedupedIds = do
+  dflags <- getDynFlags
+  CgState { cgIdDocs } <- get
+  liftIO $ dumpIfSet_dyn dflags Opt_D_dump_stg "STG Simplified Ids:"
+             (vcat (Data.List.reverse cgIdDocs))
 
 addBinding :: CgIdInfo -> CodeGen ()
 addBinding cgIdInfo = do
