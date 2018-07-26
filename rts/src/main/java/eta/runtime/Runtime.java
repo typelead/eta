@@ -320,7 +320,9 @@ public class Runtime {
         minWorkerCapabilityIdleTime = rto.getInt(MIN_WORKER_CAPABILITY_IDLE_TIME, 1000);
         gcOnWeakPtrFinalization = rto.getBoolean(GC_ON_WEAK_PTR_FINALIZATION, false);
         maxLocalSparks = rto.getInt(MAX_LOCAL_SPARKS, 4096);
-        tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 1000);
+        tailCallThreshold = rto.getInt(TAIL_CALL_THRESHOLD, 650);
+        // happy requires 650. Note that we can further increase the value if we optimize
+        // our local variables better, we should be able to increase this number later.
         clearThunks = rto.getBoolean(CLEAR_THUNKS, false);
         keepCAFs = rto.getBoolean(KEEP_CAFS, false);
 
