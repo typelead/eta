@@ -169,7 +169,7 @@ public class StgContext {
     public final boolean checkTailCalls() {
         int newTailCalls = ++tailCalls;
         if (Runtime.debugTailCalls()) {
-            debugTailCalls(Integer.toString(newTailCalls));
+            debugTailCalls("Next tail call: " + newTailCalls);
         }
         return newTailCalls >= TAIL_CALL_THRESHOLD;
     }

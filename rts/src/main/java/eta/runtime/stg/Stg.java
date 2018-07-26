@@ -78,7 +78,14 @@ public class Stg {
             }
         };
 
-    public static Closure trampoline(StgContext context, Closure closure) {
+    public static Closure trampoline(final StgContext context, final Closure closure) {
+        if (!(closure instanceof Thunk)) {
+            final Class<?> clazz = closure.getClass();
+            throw new IllegalStateException
+                ("The trampoline function expects a thunk and not a function ["
+                 + clazz + " extends "
+                 + clazz.getSuperclass() + "]");
+        }
         int     tailCalls  = context.tailCalls;
         Closure ret        = null;
         Closure next       = closure;
