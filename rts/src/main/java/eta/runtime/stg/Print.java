@@ -157,6 +157,7 @@ public class Print {
                     }
                 } else {
                     sb.append(classAndIdentity(target));
+                    ps.insertMapping(target);
                 }
             } else {
                 sb.append(target);
