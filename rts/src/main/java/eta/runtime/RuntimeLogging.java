@@ -107,6 +107,10 @@ public class RuntimeLogging {
         debugGeneric("IO", msg);
     }
 
+    public static void debugPAPs(String msg) {
+        debugGeneric("PAPs", msg);
+    }
+
     public static void debugGeneric(String type, String msg) {
         debugBelch("[Eta-RTS](%s){%s}: %s", Capability.getLocal(), type, msg);
     }

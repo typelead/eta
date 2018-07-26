@@ -243,6 +243,15 @@ public class ArgumentStack implements Cloneable {
         System.out.println("D" + Arrays.toString(doubles));
     }
 
+    public String argLens() {
+        return "P["  + ((closures != null)? closures.length : 0) +
+               "]O[" + ((objects  != null)? objects.length  : 0) +
+               "]N[" + ((ints     != null)? ints.length     : 0) +
+               "]L[" + ((longs    != null)? longs.length    : 0) +
+               "]F[" + ((floats   != null)? floats.length   : 0) +
+               "]D[" + ((doubles  != null)? doubles.length  : 0) + "]";
+    }
+
     public void writeArgs(final Object pending, final PrintState ps) {
         final int numClosures = closures.length;
         int i = 0;

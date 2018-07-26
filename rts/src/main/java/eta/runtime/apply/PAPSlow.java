@@ -8,6 +8,7 @@ import eta.runtime.stg.Closure;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.ArgumentStack;
 
+import eta.runtime.Runtime;
 import static eta.runtime.RuntimeLogging.*;
 import static eta.runtime.stg.ArgumentStack.*;
 import static eta.runtime.stg.Print.*;
@@ -25,6 +26,9 @@ public class PAPSlow extends PAP {
     }
 
     public Closure apply(StgContext context, ArgumentStack stack) {
+        if (Runtime.debugPAPs()) {
+            debugPAPs("Arity: " + arity + " ArgLens: " + stack.argLens());
+        }
         int funArity = fun.arity();
         switch (stack.typeFlag) {
           case NONE:
