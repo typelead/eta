@@ -922,10 +922,9 @@ simpleOp WriteOffAddrOp_Word16 = Just $ addrWriteOp jshort preserveShort
 simpleOp WriteOffAddrOp_Word32 = Just $ addrWriteOp jint mempty
 simpleOp WriteOffAddrOp_Word64 = Just $ addrWriteOp jlong mempty
 
--- TODO: Verify that narrowing / preserving are compatible with GHC
 -- Narrowing ops
-simpleOp Narrow8IntOp   = Just $ normalOp $ preserveByte
-simpleOp Narrow16IntOp  = Just $ normalOp $ preserveShort
+simpleOp Narrow8IntOp   = Just $ normalOp $ preserveByteSigned
+simpleOp Narrow16IntOp  = Just $ normalOp $ preserveShortSigned
 simpleOp Narrow32IntOp  = Just idOp
 simpleOp Narrow8WordOp  = Just $ normalOp $ preserveByte
 simpleOp Narrow16WordOp = Just $ normalOp $ preserveShort
@@ -1022,11 +1021,18 @@ byteArrayWriteOp :: FieldType -> Code -> [Code] -> Code
 byteArrayWriteOp ft argCode = \[this, ix, val] ->
   addrWriteOp ft argCode [this <> byteArrayBuf, ix, val]
 
+preserveByteSigned :: Code
+preserveByteSigned = gconv jint jbyte
+
+preserveShortSigned :: Code
+preserveShortSigned = gconv jint jshort
+
 preserveByte :: Code
 preserveByte = iconst jint 0xFF <> iand
 
 preserveShort :: Code
-preserveShort = iconst jint 0xFFFF <> iand
+preserveShort = gconv jint jchar
+ -- Saves 2 bytes to use this instead of &'ing with 0xFFFF
 
 unsignedOp :: Code -> [Code] -> Code
 unsignedOp op [arg1, arg2]
