@@ -356,7 +356,7 @@ newDedupedId id = do
         | Just i <- lookupFsEnv nameEnv fs = (transformedId mod i, i + 1)
         | otherwise = (id, 1)
   modify $ \s -> s { cgNameEnvironment = extendFsEnv nameEnv fs i' }
-  when (i' /= 1) $ addIdDoc id id'
+  addIdDoc id id'
   return id'
   where fs = idFastString id
         transformedId mod i = id'
