@@ -54,25 +54,21 @@ public class Print {
         private final Map<Object, Boolean> seen =
             new IdentityHashMap<Object, Boolean>(16);
 
-        // Map from closure type to instance number
-        private final Map<String, Integer> closureIndex = new HashMap<String, Integer>();
+        private int nextInstanceNumber = 1;
 
         // Closure instance to instance number
-        public final Map<Integer, Integer> closureInstanceIndex = new HashMap<Integer, Integer>();
+        private final Map<Integer, Integer> closureInstanceIndex = new HashMap<Integer, Integer>();
 
         // Map from object identifier to index of string buffer - bimap dual of above
-        public final Map<Integer, Integer> revBufIndex = new HashMap<Integer, Integer>();
+        private final Map<Integer, Integer> revBufIndex = new HashMap<Integer, Integer>();
 
-        public final Set<Class<?>> ignoreNoFields = new HashSet<Class<?>>();
+        // Used to track top-level closures which don't need to be referenced
+        private final Set<Class<?>> ignoreNoFields = new HashSet<Class<?>>();
 
         public int getId(final String closureType, final Integer id) {
             Integer found0 = closureInstanceIndex.get(id);
             if (found0 != null) return found0;
-            Integer found = closureIndex.get(closureType);
-            if (found == null) {
-                found = 1;
-            }
-            closureIndex.put(closureType, found + 1);
+            int found = nextInstanceNumber++;
             closureInstanceIndex.put(id, found);
             return found;
         }
