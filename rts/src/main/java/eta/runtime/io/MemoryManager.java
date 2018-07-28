@@ -22,8 +22,7 @@ import eta.runtime.stg.WeakPtr;
 import eta.runtime.storage.ManagedHeap;
 import eta.runtime.storage.CachedBlock;
 import eta.runtime.storage.Block;
-import static eta.runtime.RuntimeLogging.barf;
-import static eta.runtime.RuntimeLogging.debugMemoryManager;
+import static eta.runtime.RuntimeLogging.*;
 
 public class MemoryManager {
 
@@ -209,6 +208,9 @@ public class MemoryManager {
         Long address = loadedStrings.get(s);
         if (address == null) {
             byte[] bytes    = s.getBytes(charset);
+            if (Runtime.debugStrings()) {
+                debugStrings(Arrays.toString(bytes));
+            }
             address         = allocateBuffer(bytes.length + 1, false);
             ByteBuffer dest = getBoundedBuffer(address);
             dest.put(bytes);

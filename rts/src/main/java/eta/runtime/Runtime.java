@@ -292,6 +292,14 @@ public class Runtime {
         return debugPAPs;
     }
 
+    private static boolean debugStrings;
+
+    public static final String DEBUG_STRINGS_PROPERTY = "eta.debug.strings";
+
+    public static boolean debugStrings() {
+        return debugStrings;
+    }
+
     private static boolean debugToFile;
 
     public static final String DEBUG_TOFILE_PROPERTY = "eta.debug.toFile";
@@ -339,6 +347,7 @@ public class Runtime {
         debugIO = rto.getBoolean(DEBUG_IO_PROPERTY, false);
         debugIOVerbose = rto.getBoolean(DEBUG_IOVERBOSE_PROPERTY, false);
         debugPAPs = rto.getBoolean(DEBUG_PAPS_PROPERTY, false);
+        debugStrings = rto.getBoolean(DEBUG_STRINGS_PROPERTY, false);
         debugToFile = rto.getBoolean(DEBUG_TOFILE_PROPERTY, false);
 
         printFullArrays = rto.getBoolean(PRINT_FULLARRAYS_PROPERTY, false);
