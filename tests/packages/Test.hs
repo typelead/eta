@@ -4,11 +4,7 @@ module Main where
 
 import Turtle.Shell
 import Turtle.Line
-#if __GLASGOW_HASKELL__ < 800
-import Turtle.Prelude hiding (die)
-#else
 import Turtle.Prelude hiding (die, sort, nub, sortBy)
-#endif
 
 import Data.Aeson
 import Data.Text (Text)

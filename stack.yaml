@@ -14,7 +14,7 @@ extra-deps:
   commit: a4fbcc9e1efc3e8623022d9fcc83b50d4cdd95a5
 - tar-0.5.0.3
 - text-1.2.2.1
-- turtle-1.3.0
+- turtle-1.5.9
 - unix-compat-0.4.3.1
 resolver: lts-6.27
 flags:
