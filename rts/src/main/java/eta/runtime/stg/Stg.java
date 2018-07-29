@@ -99,7 +99,7 @@ public class Stg {
             context.tailCalls = 0;
             context.firstTime = true;
             try {
-                ret  = next.evaluate(context);
+                ret  = next.enter(context);
                 next = null;
             } catch (Throwable e) {
                 if (e instanceof TrampolineBounceException) {
