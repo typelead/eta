@@ -5,6 +5,8 @@
            , MagicHash
            , ScopedTypeVariables
            , UnboxedTuples
+           , GHCForeignImportPrim
+           , UnliftedFFITypes
   #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_HADDOCK hide #-}
