@@ -438,8 +438,11 @@ evaluate a = IO $ \s -> seq# a s -- NB. see #2273, #5129
 
 trampolineIO :: IO a -> IO a
 trampolineIO (IO m) = IO $ \s ->
-  case trampoline# (unsafeCoerce# (m s)) of
-    (# a #) -> (# freshStateToken# a, unsafeCoerce# a #)
+  case trampolineIO# (unsafeCoerce# m) s of
+    (# s', a #) -> (# s', unsafeCoerce# a #)
+
+foreign import prim "eta.runtime.stg.Stg.trampolineIO"
+  trampolineIO# :: Any -> State# s -> (# State# s, Any #)
 
 {- $exceptions_and_strictness
 

@@ -99,7 +99,7 @@ public class Stg {
             context.tailCalls = 0;
             context.firstTime = true;
             try {
-                ret  = next.enter(context);
+                ret  = next.evaluate(context);
                 next = null;
             } catch (Throwable e) {
                 if (e instanceof TrampolineBounceException) {
@@ -122,6 +122,10 @@ public class Stg {
         }
         context.resetTrampoline(tailCalls, trampoline);
         return ret;
+    }
+
+    public static Closure trampolineIO(final StgContext context, final Closure io) {
+        return trampoline(context, new ApV(io));
     }
 
     public static void enterTail(StgContext context, Closure node) {
