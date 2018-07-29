@@ -46,7 +46,6 @@ import GHC.ST
 import GHC.Exception
 import GHC.Show
 import GHC.IO.Unsafe
-import Data.Function (trampoline#)
 
 import {-# SOURCE #-} GHC.IO.Exception ( userError, IOError )
 
