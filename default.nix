@@ -17,14 +17,6 @@ let
       src = rewriteRelative eta-nix args.src;
     });
 
-    etlas = haskell.lib.overrideCabal super.etlas (drv: {
-      # Nix should only compile Setup.hs with setup-depends, but it doesn't:
-      # https://github.com/NixOS/nixpkgs/issues/24809
-      preCompileBuildDriver = ''
-        ${drv.preCompileBuildDriver or ""}
-        setupCompileFlags+=" -hide-package=etlas-cabal"
-      '';
-    });
     eta = haskell.lib.overrideCabal super.eta (drv: {
       # Makes the build a bit faster
       src = onlyFiles ["compiler" "include" "eta" "eta.cabal" "LICENSE" "tests"] drv.src;
