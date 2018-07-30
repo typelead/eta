@@ -60,6 +60,10 @@ outputJSONLn :: (ToJSON a, MonadIO io) => a -> InputT io ()
 outputJSONLn x = liftIO $ LBS.putStrLn $ encode $ x
 
 -- | Encode a TyThing to a JSON Value; used by the :idebrowse command.
+-- Note that the structure of the resulting object is something like -
+--
+-- data ThingJSON = ThingJSON { isOp :: Bool, name :: String, type :: Maybe String }
+--
 -- Much of this code was adapted from ghc-mod, see:
 --  * https://github.com/DanielG/ghc-mod/blob/master/GhcMod/Exe/Browse.hs
 --  * https://github.com/DanielG/ghc-mod/blob/master/core/GhcMod/Gap.hs
@@ -92,7 +96,7 @@ thingJSON dflags tyThing =
 
   isDataTyCon t = isAlgTyCon t && not (G.isNewTyCon t) && not (G.isClassTyCon t)
 
-  isOp = any (\c -> not $ c == '_' || isAlphaNum c) name
+  isOp = not $ any (\c -> c == '_' || isAlphaNum c) name
 
   formatType :: Type -> String
   formatType a = showOutputable $ removeForAlls a
