@@ -193,8 +193,8 @@ etaReplWelcomeMsg dflags =
            | otherwise = colored colBold sdoc
          helpCommand = ":help"
          helpDesc = "for help"
-         exitCommand = ":exit"
-         exitDesc = "to exit"
+         exitCommand = ":quit"
+         exitDesc = "to quit"
          typeCommand = ":type [expr]"
          typeDesc = "for type of expression"
          kindCommand = ":kind [type]"
@@ -262,7 +262,7 @@ ghciCommands = map mkCmd [
   ("delete",    keepGoing deleteCmd,            noCompletion),
   ("edit",      keepGoing' editFile,            completeFilename),
   ("etags",     keepGoing createETagsFileCmd,   completeFilename),
-  ("exit",      exit,                           noCompletion),
+  ("quit",      exit,                           noCompletion),
   ("force",     keepGoing forceCmd,             completeExpression),
   ("forward",   keepGoing forwardCmd,           noCompletion),
   ("help",      keepGoing help,                 noCompletion),
@@ -382,7 +382,7 @@ defFullHelpText =
   "                               (!: defer type errors)\n" ++
   "   :main [<arguments> ...]     run the main function with the given arguments\n" ++
   "   :module [+/-] [*]<mod> ...  set the context for expression evaluation\n" ++
-  "   :exit                       exit Eta REPL \n" ++
+  "   :quit                       quit Eta REPL \n" ++
   "   :reload[!]                  reload the current module set\n" ++
   "                               (!: defer type errors)\n" ++
   "   :run function [<arguments> ...] run the function with the given arguments\n" ++
@@ -2129,7 +2129,7 @@ kindOfType norm str = handleSourceError GHC.printException $ do
                         , ppWhen norm $ equals <+> pprTypeForUser ty ]
 
 -----------------------------------------------------------------------------
--- :exit
+-- :quit
 
 exit :: String -> InputT GHCi Bool
 exit _ = return True
