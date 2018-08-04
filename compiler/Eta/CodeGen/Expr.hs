@@ -545,19 +545,19 @@ comparisonPrimOp primop
         cmpOp CharGeOp = liftUnsignedOp ifge
         cmpOp CharGtOp = liftUnsignedOp ifgt
 
-        cmpOp DoubleEqOp = liftTypedCmpOp jdouble ifeq
-        cmpOp DoubleNeOp = liftTypedCmpOp jdouble ifne
-        cmpOp DoubleGeOp = liftTypedCmpOp jdouble ifge
-        cmpOp DoubleLeOp = liftTypedCmpOp jdouble ifle
-        cmpOp DoubleGtOp = liftTypedCmpOp jdouble ifgt
-        cmpOp DoubleLtOp = liftTypedCmpOp jdouble iflt
+        cmpOp DoubleEqOp = liftNormalOp if_dcmpeq
+        cmpOp DoubleNeOp = liftNormalOp if_dcmpne
+        cmpOp DoubleGeOp = liftNormalOp if_dcmpge
+        cmpOp DoubleLeOp = liftNormalOp if_dcmple
+        cmpOp DoubleGtOp = liftNormalOp if_dcmpgt
+        cmpOp DoubleLtOp = liftNormalOp if_dcmplt
 
-        cmpOp FloatEqOp = liftTypedCmpOp jfloat ifeq
-        cmpOp FloatNeOp = liftTypedCmpOp jfloat ifne
-        cmpOp FloatGeOp = liftTypedCmpOp jfloat ifge
-        cmpOp FloatLeOp = liftTypedCmpOp jfloat ifle
-        cmpOp FloatGtOp = liftTypedCmpOp jfloat ifgt
-        cmpOp FloatLtOp = liftTypedCmpOp jfloat iflt
+        cmpOp FloatEqOp = liftNormalOp if_fcmpeq
+        cmpOp FloatNeOp = liftNormalOp if_fcmpne
+        cmpOp FloatGeOp = liftNormalOp if_fcmpge
+        cmpOp FloatLeOp = liftNormalOp if_fcmple
+        cmpOp FloatGtOp = liftNormalOp if_fcmpgt
+        cmpOp FloatLtOp = liftNormalOp if_fcmplt
 
         cmpOp AddrEqOp = liftTypedCmpOp jlong ifeq
         cmpOp AddrNeOp = liftTypedCmpOp jlong ifne

@@ -667,12 +667,12 @@ simpleOp CharLeOp = Just $ unsignedCmp ifle
 simpleOp CharLtOp = Just $ unsignedCmp iflt
 
 -- Double# ops
-simpleOp DoubleEqOp = Just $ typedCmp jdouble ifeq
-simpleOp DoubleNeOp = Just $ typedCmp jdouble ifne
-simpleOp DoubleGeOp = Just $ typedCmp jdouble ifge
-simpleOp DoubleLeOp = Just $ typedCmp jdouble ifle
-simpleOp DoubleGtOp = Just $ typedCmp jdouble ifgt
-simpleOp DoubleLtOp = Just $ typedCmp jdouble iflt
+simpleOp DoubleEqOp = Just $ floatCmp if_dcmpeq
+simpleOp DoubleNeOp = Just $ floatCmp if_dcmpne
+simpleOp DoubleGeOp = Just $ floatCmp if_dcmpge
+simpleOp DoubleLeOp = Just $ floatCmp if_dcmple
+simpleOp DoubleGtOp = Just $ floatCmp if_dcmpgt
+simpleOp DoubleLtOp = Just $ floatCmp if_dcmplt
 
 simpleOp DoubleAddOp = Just $ normalOp dadd
 simpleOp DoubleSubOp = Just $ normalOp dsub
@@ -697,12 +697,12 @@ simpleOp DoubleTanhOp = Just $ normalOp $ doubleMathEndoOp "tanh"
 simpleOp DoublePowerOp = Just $ normalOp $ doubleMathOp "pow" [jdouble, jdouble] jdouble
 
 -- Float# ops
-simpleOp FloatEqOp = Just $ typedCmp jfloat ifeq
-simpleOp FloatNeOp = Just $ typedCmp jfloat ifne
-simpleOp FloatGeOp = Just $ typedCmp jfloat ifge
-simpleOp FloatLeOp = Just $ typedCmp jfloat ifle
-simpleOp FloatGtOp = Just $ typedCmp jfloat ifgt
-simpleOp FloatLtOp = Just $ typedCmp jfloat iflt
+simpleOp FloatEqOp = Just $ floatCmp if_fcmpeq
+simpleOp FloatNeOp = Just $ floatCmp if_fcmpne
+simpleOp FloatGeOp = Just $ floatCmp if_fcmpge
+simpleOp FloatLeOp = Just $ floatCmp if_fcmple
+simpleOp FloatGtOp = Just $ floatCmp if_fcmpgt
+simpleOp FloatLtOp = Just $ floatCmp if_fcmplt
 
 simpleOp FloatAddOp = Just $ normalOp fadd
 simpleOp FloatSubOp = Just $ normalOp fsub
@@ -1047,6 +1047,9 @@ typedCmp ft ifop [arg1, arg2]
   = gcmp ft arg1 arg2
  <> ifop (iconst jint 1) (iconst jint 0)
 typedCmp _ _ _ = error $ "typedCmp: bad typedCmp"
+
+floatCmp :: (Code -> Code -> Code) -> [Code] -> Code
+floatCmp ifop args = fold args <> ifop (iconst jint 1) (iconst jint 0)
 
 unsignedCmp :: (Code -> Code -> Code) -> [Code] -> Code
 unsignedCmp ifop args
