@@ -88,7 +88,7 @@ public class Utils {
     }
 
     public static boolean isFloatNegativeZero(float f) {
-        return f == -0.0f;
+        return Float.floatToRawIntBits(f) == 0x80000000;
     }
 
     public static boolean isFloatDenormalized(float f) {
@@ -102,7 +102,7 @@ public class Utils {
     }
 
     public static boolean isDoubleNegativeZero(double d) {
-        return d == -0.0;
+        return Double.doubleToRawLongBits(d) == 0x8000000000000000L;
     }
 
     public static boolean isDoubleDenormalized(double d) {
