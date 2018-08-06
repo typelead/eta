@@ -86,6 +86,10 @@ instance Outputable Annotation where
 -- | A collection of annotations
 -- Can't use a type synonym or we hit bug #2412 due to source import
 newtype AnnEnv = MkAnnEnv (UniqFM [AnnPayload])
+
+instance Outputable AnnEnv where
+   ppr (MkAnnEnv ann) = ppr ann
+
 -- | An empty annotation environment.
 emptyAnnEnv :: AnnEnv
 emptyAnnEnv = MkAnnEnv emptyUFM
