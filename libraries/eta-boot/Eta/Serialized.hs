@@ -26,7 +26,7 @@ module Eta.Serialized (
 import Data.Bits
 import Data.Word        ( Word8 )
 import Data.Data
-
+import Data.Int         ( Int32 )
 
 -- | Represents a serialized value of a particular type. Attempts can be made to deserialize it at certain types
 data Serialized = Serialized TypeRep [Word8]
@@ -38,7 +38,7 @@ toSerialized serialize what = Serialized (typeOf what) (serialize what)
 -- | If the 'Serialized' value contains something of the given type, then use the specified deserializer to return @Just@ that.
 -- Otherwise return @Nothing@.
 fromSerialized :: forall a. Typeable a => ([Word8] -> a) -> Serialized -> Maybe a
-#if MIN_VERSION_base(4,10,0)
+#if MIN_VERSION_base(4,10,0) && !defined(ETA_VERSION)
 fromSerialized deserialize (Serialized the_type bytes)
   | the_type == rep = Just (deserialize bytes)
   | otherwise       = Nothing
@@ -70,7 +70,7 @@ deserializeWithData' bytes = deserializeConstr bytes $ \constr_rep bytes ->
 
 
 serializeConstr :: ConstrRep -> [Word8] -> [Word8]
-serializeConstr (AlgConstr ix)   = serializeWord8 1 . serializeInt ix
+serializeConstr (AlgConstr ix)   = serializeWord8 1 . serializeInt (fromIntegral ix)
 serializeConstr (IntConstr i)    = serializeWord8 2 . serializeInteger i
 serializeConstr (FloatConstr r)  = serializeWord8 3 . serializeRational r
 serializeConstr (CharConstr c)   = serializeWord8 4 . serializeChar c
@@ -79,7 +79,7 @@ serializeConstr (CharConstr c)   = serializeWord8 4 . serializeChar c
 deserializeConstr :: [Word8] -> (ConstrRep -> [Word8] -> a) -> a
 deserializeConstr bytes k = deserializeWord8 bytes $ \constr_ix bytes ->
                             case constr_ix of
-                                1 -> deserializeInt      bytes $ \ix -> k (AlgConstr ix)
+                                1 -> deserializeInt      bytes $ \ix -> k (AlgConstr (fromIntegral ix))
                                 2 -> deserializeInteger  bytes $ \i  -> k (IntConstr i)
                                 3 -> deserializeRational bytes $ \r  -> k (FloatConstr r)
                                 4 -> deserializeChar     bytes $ \c  -> k (CharConstr c)
@@ -106,10 +106,10 @@ deserializeFixedWidthNum bytes k = go (finiteBitSize (undefined :: a)) bytes k
 
 
 serializeEnum :: (Enum a) => a -> [Word8] -> [Word8]
-serializeEnum = serializeInt . fromEnum
+serializeEnum = serializeInt . fromIntegral . fromEnum
 
 deserializeEnum :: Enum a => [Word8] -> (a -> [Word8] -> b) -> b
-deserializeEnum bytes k = deserializeInt bytes (k . toEnum)
+deserializeEnum bytes k = deserializeInt bytes (k . toEnum . fromIntegral)
 
 
 serializeWord8 :: Word8 -> [Word8] -> [Word8]
@@ -120,19 +120,17 @@ deserializeWord8 (byte:bytes) k = k byte bytes
 deserializeWord8 []           _ = error "deserializeWord8: unexpected end of stream"
 
 
-serializeInt :: Int -> [Word8] -> [Word8]
+serializeInt :: Int32 -> [Word8] -> [Word8]
 serializeInt = serializeFixedWidthNum
 
-deserializeInt :: [Word8] -> (Int -> [Word8] -> a) -> a
+deserializeInt :: [Word8] -> (Int32 -> [Word8] -> a) -> a
 deserializeInt = deserializeFixedWidthNum
-
 
 serializeRational :: (Real a) => a -> [Word8] -> [Word8]
 serializeRational = serializeString . show . toRational
 
 deserializeRational :: (Fractional a) => [Word8] -> (a -> [Word8] -> b) -> b
 deserializeRational bytes k = deserializeString bytes (k . fromRational . read)
-
 
 serializeInteger :: Integer -> [Word8] -> [Word8]
 serializeInteger = serializeString . show
@@ -156,11 +154,11 @@ deserializeString = deserializeList deserializeEnum
 
 
 serializeList :: (a -> [Word8] -> [Word8]) -> [a] -> [Word8] -> [Word8]
-serializeList serialize_element xs = serializeInt (length xs) . foldr (.) id (map serialize_element xs)
+serializeList serialize_element xs = serializeInt (fromIntegral (length xs)) . foldr (.) id (map serialize_element xs)
 
 deserializeList :: forall a b. (forall c. [Word8] -> (a -> [Word8] -> c) -> c)
                 -> [Word8] -> ([a] -> [Word8] -> b) -> b
-deserializeList deserialize_element bytes k = deserializeInt bytes $ \len bytes -> go len bytes k
+deserializeList deserialize_element bytes k = deserializeInt bytes $ \len bytes -> go (fromIntegral len) bytes k
   where
     go :: Int -> [Word8] -> ([a] -> [Word8] -> b) -> b
     go len bytes k
