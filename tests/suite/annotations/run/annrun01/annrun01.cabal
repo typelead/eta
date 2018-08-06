@@ -1,0 +1,10 @@
+name: annfail04
+version: 1.0
+build-type: Simple
+cabal-version: >= 1.2
+
+executable AnnRun01
+    main-is: AnnRun01.hs
+    build-depends: base
+    exposed-modules: AnnRun01
+                     AnnRun01_Help
