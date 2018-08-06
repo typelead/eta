@@ -1,0 +1,6 @@
+
+tests/suite/annotations/fail/annfail12.hs:5:1: error:
+    Exception when trying to run compile-time code:
+      You were meant to see this error!
+    In the annotation:
+      {-# ANN f (error "You were meant to see this error!" :: Int) #-}

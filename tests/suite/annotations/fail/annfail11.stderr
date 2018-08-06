@@ -1,0 +1,10 @@
+
+tests/suite/annotations/fail/annfail11.hs:3:1: error:
+    Not in scope: ‘length’
+    In the annotation:
+      {-# ANN length "Cannot annotate other modules yet" #-}
+
+tests/suite/annotations/fail/annfail11.hs:4:1: error:
+    Not in scope: type constructor or class ‘Integer’
+    In the annotation:
+      {-# ANN type Integer "Cannot annotate other modules yet" #-}
