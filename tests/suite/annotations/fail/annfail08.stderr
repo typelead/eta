@@ -1,0 +1,12 @@
+
+tests/suite/annotations/fail/annfail08.hs:9:1: error:
+    No instance for (Data.Data.Data (a0 -> a0))
+      (maybe you haven't applied enough arguments to a function?)
+      arising from an annotation
+    In the annotation: {-# ANN f (id + 1) #-}
+
+tests/suite/annotations/fail/annfail08.hs:9:15: error:
+    No instance for (Num (a0 -> a0))
+      (maybe you haven't applied enough arguments to a function?)
+      arising from a use of ‘+’
+    In the annotation: {-# ANN f (id + 1) #-}

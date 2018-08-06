@@ -1,0 +1,30 @@
+
+tests/suite/annotations/fail/annfail10.hs:9:1: error:
+    No instance for (Data.Data.Data a0) arising from an annotation
+    The type variable ‘a0’ is ambiguous
+    Note: there are several potential instances:
+      instance (Data.Data.Data a, Data.Data.Data b) =>
+               Data.Data.Data (Either a b)
+        -- Defined in ‘Data.Data’
+      instance Data.Data.Data a => Data.Data.Data (Data.Monoid.First a)
+        -- Defined in ‘Data.Data’
+      instance Data.Data.Data a => Data.Data.Data (Data.Monoid.Last a)
+        -- Defined in ‘Data.Data’
+      ...plus 50 others
+    In the annotation: {-# ANN f 1 #-}
+
+tests/suite/annotations/fail/annfail10.hs:9:11: error:
+    No instance for (Num a0) arising from the literal ‘1’
+    The type variable ‘a0’ is ambiguous
+    Note: there are several potential instances:
+      instance forall (k :: BOX) (f :: k -> *) (a :: k).
+               Num (f a) =>
+               Num (base-4.11.1.0:Data.Semigroup.Internal.Alt f a)
+        -- Defined in ‘base-4.11.1.0:Data.Semigroup.Internal’
+      instance Num a =>
+               Num (base-4.11.1.0:Data.Semigroup.Internal.Product a)
+        -- Defined in ‘base-4.11.1.0:Data.Semigroup.Internal’
+      instance Num a => Num (base-4.11.1.0:Data.Semigroup.Internal.Sum a)
+        -- Defined in ‘base-4.11.1.0:Data.Semigroup.Internal’
+      ...plus 15 others
+    In the annotation: {-# ANN f 1 #-}
