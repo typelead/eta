@@ -1,0 +1,8 @@
+
+[;1mAnnfail05.hs:11:1: [;1m[31merror:[0m[0m[;1m[0m[0m[;1m
+    No instance for (Data.Data.Data NoInstances)
+      arising from an annotation
+    In the annotation: {-# ANN f NoInstances #-}[0m[0m
+[;1m[38;5;31m   |[0m[0m
+[;1m[38;5;31m11 |[0m[0m [;1m[31m{-# ANN f NoInstances #-}[0m[0m
+[;1m[38;5;31m   |[0m[0m[;1m[31m ^^^^^^^^^^^^^^^^^^^^^^^^^[0m[0m

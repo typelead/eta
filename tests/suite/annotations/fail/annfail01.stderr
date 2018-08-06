@@ -1,0 +1,8 @@
+
+tests/suite/annotations/fail/annfail01.hs:4:1: error:
+    Not in scope: type constructor or class ‘Foo’
+    In the annotation: {-# ANN type Foo (1 :: Int) #-}
+
+tests/suite/annotations/fail/annfail01.hs:5:1: error:
+    Not in scope: ‘f’
+    In the annotation: {-# ANN f (1 :: Int) #-}
