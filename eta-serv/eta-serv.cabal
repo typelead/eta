@@ -1,0 +1,31 @@
+name:                eta-serv
+-- @VERSION_CHANGE@
+-- @BUILD_NUMBER@
+version:             0.8.4.1
+license:             BSD3
+license-file:        LICENSE
+maintainer:          typeleadhq@gmail.com
+category:            Distribution
+cabal-version:       >=1.10
+build-type:          Simple
+
+executable eta-serv
+  main-is:             Main.hs
+  other-modules:       Lib
+                     , Eta.Serv.ClassLoader
+                     , Eta.Serv.ClassQuery
+                     , Eta.Serv.Common
+                     , Eta.Serv.Run     
+  build-depends:       base >= 4.8 && < 4.12
+                     , eta-repl
+                     , eta-meta
+                     , bytestring == 0.10.*
+                     , binary == 0.8.*
+                     , deepseq == 1.4.*
+                     , directory
+                     , filepath
+  hs-source-dirs:      src/main/eta
+  java-sources:        src/main/java/eta/serv/REPLClassLoader.java
+                     , src/main/java/eta/serv/Utils.java
+  ghc-options:         -Wall -Werror
+  default-language:    Haskell2010
