@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Annrun01 where
+module AnnRun01 where
 
 import GHC
 import MonadUtils  ( liftIO )
