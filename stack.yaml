@@ -16,6 +16,7 @@ extra-deps:
 - text-1.2.2.1
 - turtle-1.5.9
 - unix-compat-0.4.3.1
+- parsec-3.1.13.0
 resolver: lts-6.27
 flags:
   mintty:

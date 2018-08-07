@@ -97,7 +97,7 @@ buildLibrary _debug binPathArg lib _deps = do
       installFlags = ["--allow-boot-library-installs"]
                   ++ nonNullString (binPathArg "../../")
   when (lib == "rts") $ need [rtsjar]
-  unit $ cmd (Cwd dir) "etlas install" installFlags
+  unit $ cmd (Cwd dir) "etlas old-install" installFlags
   return ()
 
 -- * Testing utilities
@@ -192,7 +192,7 @@ main = shakeArgsWith shakeOptions{shakeFiles=rtsBuildDir} flags $ \flags' target
         let sortedLibs = topologicalDepsSort libs getDependencies
         forM_ sortedLibs $ \lib ->
           buildLibrary debug binPathArg lib (getDependencies lib)
-        unit $ cmd $ ["etlas", "install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
+        unit $ cmd $ ["etlas", "old-install", "template-haskell-2.11.1.0", "--allow-boot-library-installs"] ++ nonNullString (binPathArg "")
         dir <- liftIO $ getCurrentDirectory
         unit $ cmd (Cwd "eta-serv") (dir </> "eta-serv" </> gradlewCommand) "proJar"
         copyFile' ("eta-serv" </> "build" </> "eta-serv.jar") $
