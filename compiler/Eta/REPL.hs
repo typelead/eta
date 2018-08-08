@@ -391,7 +391,7 @@ runWithPipes dflags createProc prog opts = do
     createProc (proc prog opts) {
       std_in  = CreatePipe,
       std_out = CreatePipe,
-      std_err = if verbosity dflags > 3 then Inherit else CreatePipe
+      std_err = if verbosity dflags > 2 then Inherit else CreatePipe
     }
   return (ph, fromJust mstdout, fromJust mstdin, mstderr)
 
