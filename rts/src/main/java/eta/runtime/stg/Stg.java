@@ -112,6 +112,7 @@ public class Stg {
                         debugTailCalls("Exiting trampoline with exception " +
                                        Print.classAndIdentity(e));
                     }
+                    context.failTrampoline(e);
                     context.resetTrampoline(tailCalls, trampoline);
                     throw e;
                 }
@@ -120,6 +121,7 @@ public class Stg {
         if (debug) {
             debugTailCalls("Exiting trampoline sucessfully with result " + Print.classAndIdentity(ret));
         }
+        context.finalizeTrampoline(ret);
         context.resetTrampoline(tailCalls, trampoline);
         return ret;
     }

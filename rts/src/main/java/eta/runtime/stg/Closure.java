@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import eta.runtime.stg.Capability;
 import eta.runtime.stg.TSO;
+import eta.runtime.stg.TSO;
 import eta.runtime.thunk.Thunk;
 
 import static eta.runtime.RuntimeLogging.barf;
@@ -22,6 +23,14 @@ public abstract class Closure implements Serializable {
     public Closure evaluate(StgContext context) {
         barf("Cannot evaluate " + this);
         return null;
+    }
+
+    public Closure evaluateTail(StgContext context) {
+        if (context.trampoline) {
+            Stg.enterTail(context, this);
+        }
+        context.firstTime = true;
+        return evaluate(context);
     }
 
     /* Applications */

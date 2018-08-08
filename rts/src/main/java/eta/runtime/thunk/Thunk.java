@@ -17,6 +17,7 @@ import eta.runtime.message.MessageBlackHole;
 import eta.runtime.exception.Exception;
 import eta.runtime.exception.EtaException;
 import eta.runtime.exception.EtaAsyncException;
+import eta.runtime.exception.TrampolineBounceException;
 import eta.runtime.exception.Raise;
 import eta.runtime.exception.StgException;
 import static eta.runtime.util.UnsafeUtil.UNSAFE;
@@ -259,12 +260,18 @@ public abstract class Thunk extends Closure {
         }
     }
 
-    protected static boolean handleException(StgContext context, java.lang.Exception e, UpdateInfo ui) {
+    protected boolean handleException(StgContext context, java.lang.Exception e) {
+        StgException thrw = handleExceptionSimple(context, e);
+        if (thrw == null) return true;
+        throw thrw;
+    }
+
+    public StgException handleExceptionSimple(StgContext context, java.lang.Exception e) {
         StgException thrw = null;
         if (e instanceof EtaAsyncException) {
             EtaAsyncException ea = (EtaAsyncException) e;
-            if (ea.stopHere == ui) {
-                return true;
+            if (ea.stopHere == this) {
+                return null;
             } else {
                 thrw = ea;
             }
@@ -280,8 +287,11 @@ public abstract class Thunk extends Closure {
             if (raise == null) {
                 context.raise = raise = new Raise(((EtaException) thrw).exception);
             }
-            ui.updatee.updateCode(context, raise);
-        } //TODO: Handle EtaAsyncExceptions?
-        throw thrw;
+            updateCode(context, raise);
+        } else if (thrw instanceof TrampolineBounceException) {
+            context.addPendingThunk(this);
+        }
+        //TODO: Handle EtaAsyncExceptions?
+        return thrw;
     }
 }

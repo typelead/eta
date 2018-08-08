@@ -13,6 +13,6 @@ public class SelectorPUpd extends SelectorUpd {
 
     @Override
     public Closure selectEnter(StgContext context, DataCon result) {
-        return result.getP(index).evaluate(context);
+        return result.getP(index).evaluateTail(context);
     }
 }

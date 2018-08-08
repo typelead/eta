@@ -314,7 +314,7 @@ public final class Capability implements LocalHeap {
         maybePerformBlockedException(tso);
         final UpdateInfo ui = tso.updateInfoStack.markBackwardsFrom(this, tso);
         if (ui != null) {
-            Exception.suspendComputation(tso, ui);
+            Exception.suspendComputation(tso, ui.updatee);
         }
     }
 

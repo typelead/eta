@@ -201,9 +201,9 @@ emitEnter thunk = do
   case sequel of
     Return ->
       -- TODO: Better type information for evaluate
-      emit $ evaluateMethod loadContext thunk <> greturn closureType
+      emit $ evaluateMethod True loadContext thunk <> greturn closureType
     AssignTo cgLocs -> do
-      emit $ evaluateMethod loadContext thunk <> mkReturnEntry loadContext cgLocs
+      emit $ evaluateMethod False loadContext thunk <> mkReturnEntry loadContext cgLocs
 
 cgConApp :: DataCon -> [StgArg] -> CodeGen ()
 cgConApp con args

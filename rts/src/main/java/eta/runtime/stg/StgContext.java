@@ -1,6 +1,9 @@
 package eta.runtime.stg;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
 
 import eta.runtime.Runtime;
 import eta.runtime.thunk.Thunk;
@@ -18,6 +21,7 @@ public class StgContext {
     public boolean trampoline;
     public boolean firstTime;
     public Closure next;
+    public Deque<Thunk> pendingThunks = new LinkedList<Thunk>();
 
     // Exception handling
     public Closure raise;
@@ -92,6 +96,10 @@ public class StgContext {
         if (t != null) t.reset();
     }
 
+    public final void addPendingThunk(final Thunk ui) {
+        pendingThunks.offerFirst(ui);
+    }
+
     public final boolean getAndSetTrampoline() {
         final boolean old = trampoline;
         trampoline = false;
@@ -109,10 +117,26 @@ public class StgContext {
     }
 
     public final void resetTrampoline(final int tailCalls, final boolean trampoline) {
-        this.tailCalls  = tailCalls;
-        this.trampoline = trampoline;
-        this.firstTime  = false;
-        this.next       = null;
+        this.tailCalls     = tailCalls;
+        this.trampoline    = trampoline;
+        this.firstTime     = false;
+        this.next          = null;
+        this.pendingThunks = new LinkedList<Thunk>();
+    }
+
+    public final void finalizeTrampoline(final Closure ret) {
+        Thunk thunk = null;
+        while ((thunk = pendingThunks.pollFirst()) != null) {
+            thunk.updateCode(this, ret);
+        }
+    }
+
+    public final void failTrampoline(final Throwable t) {
+        if (!(t instanceof Exception)) return;
+        Thunk thunk = null;
+        while ((thunk = pendingThunks.pollFirst()) != null) {
+            thunk.handleExceptionSimple(this, (Exception) t);
+        }
     }
 
     public final void resetArgStack() {

@@ -1,16 +1,19 @@
 package eta.runtime.thunk;
 
+import eta.runtime.stg.Closure;
+import eta.runtime.stg.StgContext;
+
 public class UpdateInfo {
-    Thunk      updatee;
+    public Thunk updatee;
     boolean    marked;
     UpdateInfo next;
     UpdateInfo prev;
 
-    public UpdateInfo(Thunk updatee) {
+    public UpdateInfo(final Thunk updatee) {
         this.updatee = updatee;
     }
 
-    UpdateInfo reset(UpdateInfo free) {
+    UpdateInfo reset(final UpdateInfo free) {
         prev = free;
         next = null;
         updatee = null;

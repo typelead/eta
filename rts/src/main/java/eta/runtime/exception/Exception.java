@@ -10,6 +10,7 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Closures;
 import eta.runtime.stg.StgContext;
+import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
 
 import eta.runtime.Runtime;
@@ -199,7 +200,7 @@ public class Exception {
         throwToSingleThreaded(tso, exception, stopAtAtomically, null);
     }
 
-    public static void throwToSingleThreaded(TSO tso, Closure exception, boolean stopAtAtomically, UpdateInfo stopHere) {
+    public static void throwToSingleThreaded(TSO tso, Closure exception, boolean stopAtAtomically, Thunk stopHere) {
         if (tso.whatNext == ThreadComplete || tso.whatNext == ThreadKilled) {
             return;
         }
@@ -207,11 +208,11 @@ public class Exception {
         raiseAsync(tso, exception, stopAtAtomically, stopHere);
     }
 
-    public static void suspendComputation(TSO tso, UpdateInfo stopHere) {
+    public static void suspendComputation(TSO tso, Thunk stopHere) {
         throwToSingleThreaded(tso, null, false, stopHere);
     }
 
-    public static void raiseAsync(TSO tso, Closure exception, boolean stopAtAtomically, UpdateInfo stopHere) {
+    public static void raiseAsync(TSO tso, Closure exception, boolean stopAtAtomically, Thunk stopHere) {
         assert tso.whatNext != ThreadComplete && tso.whatNext != ThreadKilled;
 
         if (tso.whyBlocked != NotBlocked) {

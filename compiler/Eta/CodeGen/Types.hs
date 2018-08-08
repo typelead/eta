@@ -340,13 +340,16 @@ enterMethod loadContext cgLoc
  <> invokevirtual (mkMethodRef closureCls "enter" [contextType] (ret closureType))
  where closureCls = fromMaybe stgClosure (locClass cgLoc)
 
-evaluateMethod :: Code -> CgLoc -> Code
-evaluateMethod loadContext cgLoc
+evaluateMethod :: Bool -> Code -> CgLoc -> Code
+evaluateMethod tailCall loadContext cgLoc
   = loadLoc cgLoc
  <> gconv closureType (obj closureCls)
  <> loadContext
- <> invokevirtual (mkMethodRef closureCls "evaluate" [contextType] (ret closureType))
+ <> invokevirtual (mkMethodRef closureCls methodName [contextType] (ret closureType))
  where closureCls = fromMaybe stgClosure (locClass cgLoc)
+       methodName
+         | tailCall  = "evaluateTail"
+         | otherwise = "evaluate"
 
 type RecIndexes = [(Int, Id)]
 type RecInfo = (Text, Text, Text, Maybe (FieldRef, Code), RecIndexes)
