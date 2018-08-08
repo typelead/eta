@@ -67,7 +67,7 @@ public class EtaException extends StgException {
     public static Closure convertJavaException(TSO tso, java.lang.Exception e) {
         if (Runtime.debugExceptions()) {
             debugExceptions("Converting Java Exception: " + e);
-            e.printStackTrace();
+            debugExceptions(Exception.exceptionToString(e));
         }
         tso.setCauseAndException(e, null);
         Closure jexception = Closures.mkSomeException(e);
