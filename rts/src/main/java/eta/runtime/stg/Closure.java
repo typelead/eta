@@ -27,7 +27,7 @@ public abstract class Closure implements Serializable {
 
     public Closure evaluateTail(StgContext context) {
         if (context.trampoline) {
-            Stg.enterTail(context, this);
+            Stg.evaluateTail(context, this);
         }
         context.firstTime = true;
         return evaluate(context);

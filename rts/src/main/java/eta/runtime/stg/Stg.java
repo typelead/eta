@@ -130,6 +130,13 @@ public class Stg {
         return trampoline(context, new ApV(io));
     }
 
+    public static void evaluateTail(StgContext context, Closure node) {
+        if (context.checkTailCalls()) {
+            context.next = new Ap1Upd(node);
+            throw bounce.get();
+        }
+    }
+
     public static void enterTail(StgContext context, Closure node) {
         if (context.checkTailCalls()) {
             context.next = node;
