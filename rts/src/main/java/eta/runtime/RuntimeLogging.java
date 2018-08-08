@@ -69,7 +69,7 @@ public class RuntimeLogging {
     private static void initBos() {
         try {
             bos = new PrintStream
-                (new FileOutputStream("eta_debug.log"), false, "UTF-8");
+                (new BufferedOutputStream(new FileOutputStream("eta_debug.log")), false, "UTF-8");
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialized output stream.", e);
         }
