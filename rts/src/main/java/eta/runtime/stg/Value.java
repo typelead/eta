@@ -15,4 +15,7 @@ public abstract class Value extends Closure {
 
     @Override
     public final Closure evaluate(StgContext context) { return this; }
+
+    @Override
+    public final Closure evaluateTail(StgContext context) { return this; }
 }
