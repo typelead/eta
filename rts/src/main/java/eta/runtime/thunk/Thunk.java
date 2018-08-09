@@ -44,7 +44,7 @@ public abstract class Thunk extends Closure {
 
     @Override
     public final Closure enter(StgContext context) {
-        return evaluate(context);
+        return evaluateTail(context);
     }
 
     public abstract Closure thunkEnter(StgContext context);

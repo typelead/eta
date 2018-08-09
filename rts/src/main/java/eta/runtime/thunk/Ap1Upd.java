@@ -13,7 +13,7 @@ public class Ap1Upd extends UpdatableThunk {
 
     @Override
     public final Closure thunkEnter(StgContext context) {
-        return x1.evaluate(context);
+        return x1.evaluateTail(context);
     }
 
     @Override
