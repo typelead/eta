@@ -110,7 +110,8 @@ public class Stg {
                 } else {
                     if (debug) {
                         debugTailCalls("Exiting trampoline with exception " +
-                                       Print.classAndIdentity(e));
+                                       Print.classAndIdentity(e) + " after " + context.tailCalls +
+                                       " tail calls.");
                     }
                     context.failTrampoline(e);
                     context.resetTrampoline(tailCalls, trampoline);
@@ -119,7 +120,9 @@ public class Stg {
             }
         }
         if (debug) {
-            debugTailCalls("Exiting trampoline sucessfully with result " + Print.classAndIdentity(ret));
+            debugTailCalls("Exiting trampoline sucessfully with result " +
+                           Print.classAndIdentity(ret) + " after " + context.tailCalls +
+                           " tail calls.");
         }
         context.finalizeTrampoline(ret);
         context.resetTrampoline(tailCalls, trampoline);
@@ -131,6 +134,9 @@ public class Stg {
     }
 
     public static void evaluateTail(StgContext context, Closure node) {
+        if (Runtime.debugTailCalls()) {
+            debugTailCalls("evaluateTail: " + node.getClass());
+        }
         if (context.checkTailCalls()) {
             context.next = new Ap1Upd(node);
             throw bounce.get();
