@@ -193,9 +193,6 @@ public class StgContext {
     public final boolean checkTailCalls() {
         final int newTailCalls = ++tailCalls;
         final boolean thresholdReached = newTailCalls >= TAIL_CALL_THRESHOLD;
-        if (Runtime.debugTailCalls() && thresholdReached) {
-            debugTailCalls(eta.runtime.exception.Exception.exceptionToString(new Exception()));
-        }
         return thresholdReached;
     }
 
