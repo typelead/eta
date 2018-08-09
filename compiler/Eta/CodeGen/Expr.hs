@@ -148,16 +148,24 @@ cgIdApp funId args = do
                 emitEnter funLoc
     SlowCall -> do
       traceCg (str "cgIdApp: SlowCall")
-      argFtCodes <- getRepFtCodes args
+      argFtCodes  <- getRepFtCodes args
       loadContext <- getContextLoc
-      let (contCode, lastCode) = slowCall dflags loadContext funLoc argFtCodes
+      sequel      <- getSequel
+      let tailCall
+            | Return <- sequel = True
+            | otherwise        = False
+          (contCode, lastCode) = slowCall dflags tailCall loadContext funLoc argFtCodes
       withContinuation contCode lastCode
     DirectEntry nodeLoc arity -> do
       traceCg (str "cgIdApp: DirectEntry")
       argFtCodes  <- getRepFtCodes args
       loadContext <- getContextLoc
-      let (contCode, lastCode) =
-            directCall loadContext (idType funId) nodeLoc arity argFtCodes
+      sequel      <- getSequel
+      let tailCall
+            | Return <- sequel = True
+            | otherwise        = False
+          (contCode, lastCode) =
+            directCall tailCall loadContext (idType funId) nodeLoc arity argFtCodes
       withContinuation contCode lastCode
     JumpToIt label cgLocs mLne -> do
       traceCg (str "cgIdApp: JumpToIt")

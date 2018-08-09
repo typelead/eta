@@ -221,8 +221,8 @@ mkReturnExit loadContext cgLocs' =
                   storeVals (code <> nextCode) cgLocs
         storeVals !code _ _ _ _ _ _ _ = code
 
-slowCall :: DynFlags -> Code -> CgLoc -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
-slowCall dflags loadContext fun argFtCodes
+slowCall :: DynFlags -> Bool -> Code -> CgLoc -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
+slowCall dflags tailCall loadContext fun argFtCodes
     -- TODO: Implement optimization
     --       effectively an evaluation test + fast call
   | n > arity && optLevel dflags >= 2 = slowCode
@@ -232,25 +232,26 @@ slowCall dflags loadContext fun argFtCodes
         code         = loadLoc fun
         realCls      = fromMaybe stgClosure $ locClass fun
         (arity, fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
-        slowCode     = directCall' loadContext True True realCls
-                         (mkApFast arity realCls fts)
+        slowCode     = directCall' tailCall loadContext True True realCls
+                         (\localTailCall -> mkApFast localTailCall arity realCls fts)
                          arity ((P, Just ft, Just code):argFtCodes)
 
-directCall :: Code -> Type -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
-directCall loadContext funType fun arity argFtCodes
+directCall :: Bool -> Code -> Type -> CgLoc -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
+directCall tailCall loadContext funType fun arity argFtCodes
   | Just staticCode <- loadStaticMethod fun argFts
-  = directCall' loadContext True True stgClosure
-      staticCode arity ((P, Nothing, Nothing):argFtCodes)
+  = directCall' tailCall loadContext True True stgClosure
+      (const staticCode) arity ((P, Nothing, Nothing):argFtCodes)
   | arity' == arity =
-    directCall' loadContext True True realCls (mkApFast arity' realCls fts) arity'
+    directCall' tailCall loadContext True True realCls
+      (\localTailCall -> mkApFast localTailCall arity' realCls fts) arity'
       ((P, Just ft, Just code):argFtCodes)
-  | otherwise = directCall' loadContext False False realCls entryCode arity argFtCodes
+  | otherwise = directCall' tailCall loadContext False False realCls (const entryCode) arity argFtCodes
   where (arity', fts) = slowCallPattern $ map (\(a,_,_) -> a) argFtCodes
-        code         = loadLoc fun
-        ft           = locFt fun
-        entryCode    = enterMethod loadContext fun
-        realCls      = fromMaybe stgClosure $ locClass fun
-        argFts'      = catMaybes . take arity $ map (\(_,ft,_) -> ft) argFtCodes
+        code          = loadLoc fun
+        ft            = locFt fun
+        entryCode     = enterMethod loadContext fun
+        realCls       = fromMaybe stgClosure $ locClass fun
+        argFts'       = catMaybes . take arity $ map (\(_,ft,_) -> ft) argFtCodes
         -- All this logic is to get around some weird issues with
         -- the java monad type inlining. Ideally, argFts = staticFts
         -- in all cases.
@@ -269,14 +270,15 @@ staticMethodFts funType n =
           where rest = dropForAlls ty
                 (args, res) = splitFunTys rest
 
-directCall' :: Code -> Bool -> Bool -> Text -> Code -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
-directCall' loadContext slow directLoad realCls entryCode arity args =
+directCall' :: Bool -> Code -> Bool -> Bool -> Text -> (Bool -> Code) -> RepArity -> [(ArgRep, Maybe FieldType, Maybe Code)] -> (Code, Maybe Code)
+directCall' tailCall loadContext slow directLoad realCls entryCode arity args =
   (  node
   <> loadArgs
-  <> entryCode
+  <> entryCode localTailCall
   <> applyCode
   , lastApply)
   where (callArgs, restArgs) = splitAt realArity args
+        localTailCall = null applyCalls && tailCall
         realArity
           | slow      = arity + 1
           | otherwise = arity
@@ -289,7 +291,7 @@ directCall' loadContext slow directLoad realCls entryCode arity args =
                          <> gconv closureType (obj realCls),
                           loadContext <> fold (catMaybes $ map third realCallArgs))
           | otherwise  = (mempty, mkCallExit loadContext callArgs)
-        applyCalls = genApplyCalls loadContext restArgs
+        applyCalls = genApplyCalls tailCall loadContext restArgs
         applyCode
           | null applyCalls = mempty
           | otherwise       = fold $ init applyCalls
@@ -297,18 +299,19 @@ directCall' loadContext slow directLoad realCls entryCode arity args =
           | null applyCalls = Nothing
           | otherwise       = Just $ last applyCalls
 
-genApplyCalls :: Code -> [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
-genApplyCalls _ []   = []
-genApplyCalls loadContext args = applyCall : genApplyCalls loadContext restArgs
+genApplyCalls :: Bool -> Code -> [(ArgRep, Maybe FieldType, Maybe Code)] -> [Code]
+genApplyCalls _ _ []   = []
+genApplyCalls tailCall loadContext args = applyCall : genApplyCalls tailCall loadContext restArgs
   where (n, fts)             = slowCallPattern $ map (\(a,_,_) -> a) args
         (callArgs, restArgs) = splitAt n args
-        applyCall            = genApplyCall loadContext n fts callArgs
+        localTailCall        = null restArgs
+        applyCall            = genApplyCall (localTailCall && tailCall) loadContext n fts callArgs
 
-genApplyCall :: Code -> Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
-genApplyCall loadContext arity fts args =
+genApplyCall :: Bool -> Code -> Int -> [FieldType] -> [(ArgRep, Maybe FieldType, Maybe Code)] -> Code
+genApplyCall tailCall loadContext arity fts args =
      loadContext
   <> fold loadCodes
-  <> mkApFast arity stgClosure fts
+  <> mkApFast tailCall arity stgClosure fts
   where loadCodes = mapMaybe (\(_, _, a) -> a) args
 
 getRepFtCodes :: [StgArg] -> CodeGen [(ArgRep, Maybe FieldType, Maybe Code)]

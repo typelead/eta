@@ -118,7 +118,7 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
                <> callStaticMethod
          case mCallPattern of
            Just (arity, fts) ->
-             withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
+             withMethod [Public, Final] (mkApFun False arity fts) (contextType:fts) (ret closureType) $ do
                let argLocs' = argLocsFrom True 2 args
                loadContext <- getContextLoc
                emit $ emitStartLine
@@ -158,9 +158,9 @@ closureCodeBody topLevel id lfInfo args mFunRecIds arity body fvs binderIsFV rec
                <> gload thisFt 0
                <> loadContext
                <> mkCallEntry loadContext False False argLocs
-               <> mkApFast arity thisClass fts
+               <> mkApFast True arity thisClass fts
                <> greturn closureType
-         withMethod [Public, Final] (mkApFun arity fts) (contextType:fts) (ret closureType) $ do
+         withMethod [Public, Final] (mkApFun False arity fts) (contextType:fts) (ret closureType) $ do
            let argLocs = argLocsFrom True 2 args
            loadContext <- getContextLoc
            emit $ emitStartLine <> applyTail fts argLocs loadContext

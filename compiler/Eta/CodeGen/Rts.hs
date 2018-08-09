@@ -130,10 +130,10 @@ putTrampolineField = putfield (mkFieldRef stgContext "trampoline" jbool)
 getAndSetTrampolineMethod :: Code
 getAndSetTrampolineMethod = invokevirtual (mkMethodRef stgContext "getAndSetTrampoline" [] (ret jbool))
 
-mkApFast :: Int -> Text -> [FieldType] -> Code
-mkApFast arity realCls fts =
+mkApFast :: Bool -> Int -> Text -> [FieldType] -> Code
+mkApFast tailCall arity realCls fts =
   invokevirtual (mkMethodRef realCls applyFun (contextType:fts) (ret closureType))
-  where applyFun = mkApFun arity fts
+  where applyFun = mkApFun tailCall arity fts
 
 enterTailMethod :: Code
 enterTailMethod =
@@ -142,13 +142,13 @@ enterTailMethod =
 mkApFastTail :: Int -> [FieldType] -> Code
 mkApFastTail arity fts =
   invokestatic (mkMethodRef stgGroup applyFun ctxtFts void)
-  where applyFun = mkApFun arity fts <> "Tail"
+  where applyFun = mkApFun False arity fts <> "Tail"
         ctxtFts  = contextType:closureType:fts
 
-mkApFun :: Int -> [FieldType] -> Text
-mkApFun arity fts = applyFun
+mkApFun :: Bool -> Int -> [FieldType] -> Text
+mkApFun tailCall arity fts = applyFun
   where applyFun
-          | arity == 0 && null fts = "evaluate"
+          | arity == 0 && null fts = if tailCall then "evaluateTail" else "evaluate"
           | otherwise              = T.concat ["apply", applyExt, withV]
           where (ps, rest) = span (== "P") letters
                 showPs
