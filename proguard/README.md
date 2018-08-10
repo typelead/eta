@@ -10,4 +10,6 @@
    generated JAR file to this directory.
 2. Edit the config file and replace the values of `-injars` and `-outjars` with the
    name of your input file and desired output file. 
-2. Run `proguard @eta.pro`.
+3. Download the proguard file from https://github.com/typelead/gradle-eta/blob/master/src/main/resources/com/typelead/gradle/eta/api/eta-rules.pro.
+4. Run `proguard @eta-rules.pro`.
+
