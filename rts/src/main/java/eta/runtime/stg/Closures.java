@@ -31,6 +31,7 @@ public class Closures {
     public static Closure runSparks;
     public static Closure nonTermination;
     public static Closure blockedIndefinitelyOnMVar;
+    public static Closure blockedIndefinitelyOnSTM;
     public static Closure nestedAtomically;
     public static Closure runFinalizerBatch;
     public static Closure $fExceptionJException;
@@ -57,6 +58,8 @@ public class Closures {
             nonTermination    = loadClosure("base.control.exception.Base", "nonTermination");
             blockedIndefinitelyOnMVar = loadClosure("base.ghc.io.Exception",
                                                     "blockedIndefinitelyOnMVar");
+            blockedIndefinitelyOnSTM  = loadClosure("base.ghc.io.Exception",
+                                                    "blockedIndefinitelyOnSTM");
 
             nestedAtomically  = loadClosure("base.control.exception.Base", "nestedAtomically");
             runFinalizerBatch = loadClosure("base.ghc.Weak", "runFinalizzerBatch");

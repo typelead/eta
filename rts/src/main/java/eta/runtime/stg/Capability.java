@@ -526,8 +526,10 @@ public final class Capability implements LocalHeap {
 
     /* Idle Loop */
 
-    public final void idleLoop(boolean blocked) {
-        TSO tso = context.currentTSO;
+    public final void idleLoop(final boolean blocked) {
+        final TSO tso = context.currentTSO;
+        final boolean validTSO = tso != null;
+
         processInbox();
 
         /* TODO: Replace this check elsewhere. It's to detect loops in STM. */
@@ -537,7 +539,7 @@ public final class Capability implements LocalHeap {
         //     }
         // }
 
-        if (tso != null) threadPaused(tso);
+        if (validTSO) threadPaused(tso);
 
         /* Spawn worker capabilities if there's work to do */
         manageOrSpawnWorkers();
@@ -555,18 +557,38 @@ public final class Capability implements LocalHeap {
             /* Free any memory if necessary */
             MemoryManager.maybeFreeNativeMemory();
 
-            /* Check if there are any deadlocked MVars. */
-            if (tso != null) detectMVarDeadlock(tso.whyBlocked, tso.blockInfo);
+            /* Check if there are any deadlocked MVars or STM transactions. */
+            if (validTSO) {
+                final WhyBlocked whyBlocked = tso.whyBlocked;
+                final Object blockInfo = tso.blockInfo;
+                detectMVarDeadlock(whyBlocked, blockInfo);
+                detectSTMDeadlock(whyBlocked, blockInfo);
+            }
         }
     }
 
     public final void detectMVarDeadlock(WhyBlocked whyBlocked, Object blockInfo) {
         if (whyBlocked == BlockedOnMVar || whyBlocked == BlockedOnMVarRead) {
-            if (workerCapabilitiesSize() == 0 && !globalWorkToDo()) {
-                if (Runtime.debugMVar()) {
-                    debugMVar("BlockedIndefinitelyOnMVar: " + blockInfo.hashCode());
+            if (!globalWorkToDo()) {
+                if (workerCapabilitiesSize() == 0) {
+                    if (Runtime.debugMVar()) {
+                        debugMVar("BlockedIndefinitelyOnMVar: " + blockInfo.hashCode());
+                    }
+                    Exception.raise(context, Closures.blockedIndefinitelyOnMVar);
                 }
-                Exception.raise(context, Closures.blockedIndefinitelyOnMVar);
+            }
+        }
+    }
+
+    public final void detectSTMDeadlock(WhyBlocked whyBlocked, Object blockInfo) {
+        if (whyBlocked == BlockedOnSTM) {
+            if (!globalWorkToDo()) {
+                if (workerCapabilitiesSize() == 0) {
+                    if (Runtime.debugSTM()) {
+                        debugSTM("BlockedIndefinitelyOnSTM: " + blockInfo.hashCode());
+                    }
+                    Exception.raise(context, Closures.blockedIndefinitelyOnSTM);
+                }
             }
         }
     }
