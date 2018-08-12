@@ -293,10 +293,10 @@ goldenVsFileDiff' name cmdf ref new act =
 ignored :: Set String
 ignored = S.fromList ["Echo", "FullExportTest", "tc141", "tc168", "tc211",
         "T14163", "T4912", "T6018", "T7541", "InstanceMethod", "TcTypeNatSimple",
-        "TcTypeSymbolSimple", "tcfail150", "tcfail205", "annrun01", "TH_overloadedlabels"]
+        "TcTypeSymbolSimple", "tcfail150", "tcfail205", "annrun01", "TH_overloadedlabels",
+        "TH_repPrim", "TH_repPrim2"]
 
 filterIgnored :: [FilePath] -> [FilePath]
 filterIgnored = filter f
   where f path = not (base `S.member` ignored) && not ("ignored_" `isPrefixOf` base)
           where base = takeBaseName path
-
