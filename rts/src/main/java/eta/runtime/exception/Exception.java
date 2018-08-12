@@ -323,6 +323,7 @@ public class Exception {
                        }
                        break;
                    }
+               case BlockedOnYield:
                case BlockedOnRead:
                case BlockedOnWrite:
                case BlockedOnDelay:
