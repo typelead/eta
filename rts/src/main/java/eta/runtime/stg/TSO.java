@@ -238,9 +238,10 @@ public final class TSO extends BlackHole {
             case BlockedOnRead:
             case BlockedOnWrite:
             case BlockedOnDelay:
+            case BlockedOnYield:
                 break;
             default:
-                barf("removeFromQueues: %d", whyBlocked);
+                barf("removeFromQueues: %s", whyBlocked);
         }
         whyBlocked = NotBlocked;
     }
