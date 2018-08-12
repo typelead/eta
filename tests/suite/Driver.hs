@@ -296,4 +296,7 @@ ignored = S.fromList ["Echo", "FullExportTest", "tc141", "tc168", "tc211",
         "TcTypeSymbolSimple", "tcfail150", "tcfail205", "annrun01"]
 
 filterIgnored :: [FilePath] -> [FilePath]
-filterIgnored = filter (not . flip S.member ignored . takeBaseName)
+filterIgnored = filter f
+  where f path = not (base `S.member` ignored) && not ("ignored_" `isPrefixOf` base)
+          where base = takeBaseName path
+
