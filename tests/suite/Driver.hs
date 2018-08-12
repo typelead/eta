@@ -294,7 +294,7 @@ ignored :: Set String
 ignored = S.fromList ["Echo", "FullExportTest", "tc141", "tc168", "tc211",
         "T14163", "T4912", "T6018", "T7541", "InstanceMethod", "TcTypeNatSimple",
         "TcTypeSymbolSimple", "tcfail150", "tcfail205", "annrun01", "TH_overloadedlabels",
-        "TH_repPrim", "TH_repPrim2"]
+        "TH_repPrim", "TH_repPrim2", "TH_repGuard"]
 
 filterIgnored :: [FilePath] -> [FilePath]
 filterIgnored = filter f
