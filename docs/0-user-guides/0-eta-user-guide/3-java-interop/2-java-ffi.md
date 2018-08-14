@@ -168,93 +168,10 @@ foreign import java unsafe "@static @field java.io.File.pathSeparator"
   setPathSeparator1 :: String -> IO ()
 ```
 
-## Working with the Java Monad
+## Other Imports
 
-Now that we've gotten an idea of how to use imports, how do we use them in Eta code? Eta code must eventually run in the IO monad and we currently don't know how that can be done if we have an import that runs in the Java monad.
-
-
-
-In the [Java](https://github.com/typelead/eta/blob/master/libraries/base/Java/Core.hs#L37) module in the base package, the following functions are available:
-
-
-
-```eta
--- Execute a Java action in the IO monad.
-java :: Java c a -> IO a
-
--- Execute a Java action in the IO monad with respect to the
--- given object.
-javaWith :: (Class c) => c -> Java c a -> IO a
-
--- Execute a Java action in the Java monad of another class
--- with respect to the given object.
-(<.>) :: (Class c) => c -> Java c a -> Java b a
-withObject :: (Class c) => c -> Java c a -> Java b a
-
--- Chain Java actions.
-(>-) :: (Class b) => Java a b -> Java b c -> Java a c
-
--- Execute an IO action inside of the Java monad
-io :: IO a -> Java c a
-
--- Execute a Java action purely, i.e. order of execution does not matter.
-unsafePerformJava :: Java c a -> a
-
--- Analagous to `javaWith`, but pure.
-unsafePerformJavaWith :: (Class c) => c -> Java c a -> a
-```
-
-Using the imports from above, we can write the following program:
-
-
-
-```eta
-main :: IO ()
-main = do
-  executes <- java $ do
-    file <- newFile "./dir/prog.exe"
-    io $ putStrLn "Executing an IO action inside of Java!"
-    file <.> canExecute
-  if executes
-  then putStrLn "File can execute!"
-  else putStrLn "File cannot execute!"
-```
-
-Using different combinators, we can write it like this:
-
-
-
-```eta
-main :: IO ()
-main = do
-  -- Similar to Java code:
-  -- File file = new File("./dir/prog.exe");
-  file <- java $ newFile "./dir/prog.exe"
-  putStrLn "Executing an IO action inside of Java!"
-  -- Similar to Java code:
-  -- boolean executes = file.canExecute();
-  executes <- javaWith file canExecute
-  if executes
-  then putStrLn "File can execute!"
-  else putStrLn "File cannot execute!"
-```
-
-Or:
-
-
-
-```eta
-main :: IO ()
-main = java $ do
-  -- Similar to Java code:
-  -- boolean executes = new File("./dir/prog.exe").canExecute();
-  executes <- newFile "./dir/prog.exe" >- canExecute
-  io $ putStrLn "Executing an IO action inside of Java!"
-  if executes
-  then io $ putStrLn "File can execute!"
-  else io $ putStrLn "File cannot execute!"
-```
+It is also possible to import Java generics, enums, variable-argument functions, and interfaces with one method (e.g. `Runnable`, `ActionListener`). For details on these see [Advanced Foreign Imports](/docs/user-guides/eta-user-guide/java-interop/java-advanced-ffi).
 
 ## Next Section
 
-We will now proceed with handling arrays and subclasses.
+We will now proceed with handling arrays.

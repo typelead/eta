@@ -1,4 +1,4 @@
-# Java Generics and Enums
+# Java Advanced Foreign Imports
 
 ## Working With Java Generics
 
@@ -140,32 +140,6 @@ foreign import java unsafe format :: String
                                   -> JObjectArray -> Java Formatter Formatter
 ```
 
-## Working with Java Converters
-
-In Eta, there is a clear distinction JWTs and normal Eta types. Moreover, only JWTs can be used in foreign imports/exports.
-
-
-
-### Note :
-
-`String` is a notable exception to that rule because it’s so commonly used that there’s a special case that allows it an automatically converts it to `JString`.
-
-
-
-JWTs are inconvenient to use directly in Eta because they are just wrappers of native Java objects. So, the following typeclass is defined in the standard library to help convert JWTs to common Eta types like lists.
-
-
-
-```eta
--- The `a` type variable should be a normal Eta type
--- The `b` type variable should be a JWT or a primitive type (Byte, Short, Int, ...)
-class JavaConverter a b where
-  toJava   :: a -> b
-  fromJava :: b -> a
-```
-
-Many instances are provided for you by default so you can simply use toJava or fromJava whenever you want to perform a conversion.
-
 ## Working With Java Interfaces
 
 Many Java interfaces often contain just a single method and such interfaces are commonly used to pass functions and callbacks in Java. Many frameworks and libraries use this type of interface frequently, so it useful to be able convert Eta functions and implement these interfaces.
@@ -216,20 +190,6 @@ foreign import java unsafe "@wrapper apply"
   mkFunction :: (t <: Object, r <: Object)
              => (t -> Java (Function t r) r) -> Function t r
 ```
-
-## Working With Covariance and Contravariance
-
-In Java, covariance is expressed with `? extends X` and contravariance is expressed with `? super Y`. The [andThen](https://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html) method has signature `<V> Function<T,V> andThen(Function<? super R,? extends V> after)`. It exhibits both covariance and contravariance so we will import it as an example.
-
-
-
-```eta
-foreign import java unsafe "@interface andThen" andThen ::
-  (t <: Object, r <: Object, v <: Object, r <: a, b <: v)
-  => Function a b -> Java (Function t r) (Function t v)
-```
-
-For each `?` we should generate a fresh variable. In the case above we use `a` and `b`.
 
 ## Next Section
 
