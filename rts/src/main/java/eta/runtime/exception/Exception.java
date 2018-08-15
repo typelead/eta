@@ -115,6 +115,7 @@ public class Exception {
                 do {
                     cap.blockedLoop();
                 } while (msg.isValid());
+                cap.lastBlockCounter = 0;
             }
         }
     }

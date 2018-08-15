@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ThreadLocalRandom;
 
 import java.lang.ref.WeakReference;
 
@@ -101,6 +102,8 @@ public final class Capability implements LocalHeap {
     public Deque<TSO> runQueue  = new LinkedList<TSO>();
     public int  lastWorkSize;
     public long lastBlockCheck;
+    public int  lastBlockCounter = 0;
+    private ThreadLocalRandom tlr = ThreadLocalRandom.current();
     public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
 
     /* MemoryManager related stuff */
@@ -163,8 +166,9 @@ public final class Capability implements LocalHeap {
                         }
 
                         do {
-                            blockedLoop(Runtime.getMinWorkerCapabilityIdleTimeNanos());
+                            blockedLoop();
                         } while (blockedCapabilities.contains(this));
+                        lastBlockCounter = 0;
                         continue;
                     }
                 }
@@ -595,7 +599,8 @@ public final class Capability implements LocalHeap {
 
     /* Blocked Loop */
     public final void blockedLoop() {
-        blockedLoop(Runtime.getMaxTSOBlockTimeNanos());
+      lastBlockCounter = lastBlockCounter % 10 + 1; /* should be plenty */
+      blockedLoop(Runtime.getMaxTSOBlockTimeNanos() * tlr.nextInt(0, 1 << lastBlockCounter));
     }
 
     public final void blockedLoop(long nanos) {

@@ -110,7 +110,7 @@ public abstract class Thunk extends Closure {
                 tso.whyBlocked = BlockedOnBlackHole;
                 tso.blockInfo  = this;
             }
-            cap.blockedLoop();
+            cap.blockedLoop(Runtime.getMaxTSOBlockTimeNanos());
         }
     }
 

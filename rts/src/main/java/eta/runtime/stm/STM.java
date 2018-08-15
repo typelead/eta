@@ -139,6 +139,7 @@ public class STM {
                                 cap.blockedLoop();
                                 valid = trec.reWait(tso);
                             } while (valid);
+                            cap.lastBlockCounter = 0;
                         }
                         /* If the transaction is invalid, retry. */
                         trec     = TransactionRecord.start(null);
