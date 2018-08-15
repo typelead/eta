@@ -567,7 +567,7 @@ data WarningFlag =
    | Opt_WarnMissingHomeModules           -- Since 8.2
    deriving (Eq, Show, Enum)
 
-data Language = Haskell98 | Haskell2010
+data Language = Haskell98 | Haskell2010 | Eta2018
    deriving (Eq, Enum, Show)
 
 -- | The various Safe Haskell modes
@@ -1759,6 +1759,65 @@ languageExtensions (Just Haskell2010)
        LangExt.PatternGuards,
        LangExt.DoAndIfThenElse,
        LangExt.RelaxedPolyRec]
+
+languageExtensions (Just Eta2018)
+      = [LangExt.BangPatterns,
+         LangExt.BinaryLiterals,
+         LangExt.ConstrainedClassMethods,
+         LangExt.ConstraintKinds,
+         LangExt.DataKinds,
+         LangExt.DatatypeContexts,
+         LangExt.DefaultSignatures,
+         LangExt.DeriveDataTypeable,
+         LangExt.DeriveGeneric,
+         LangExt.DeriveFoldable,
+         LangExt.DeriveFunctor,
+         LangExt.DeriveTraversable,
+         LangExt.DoAndIfThenElse,
+         LangExt.EmptyCase,
+         LangExt.EmptyDataDecls,
+         LangExt.ExistentialQuantification,
+         LangExt.ExplicitForAll,
+         LangExt.ExplicitNamespaces,
+         LangExt.ForeignFunctionInterface,
+         LangExt.FlexibleContexts,
+         LangExt.FlexibleInstances,
+         LangExt.FunctionalDependencies,
+         LangExt.GADTs,
+         LangExt.GADTSyntax,
+         LangExt.GeneralizedNewtypeDeriving,
+         LangExt.ImplicitPrelude,
+         LangExt.InstanceSigs,
+         LangExt.KindSignatures,
+         LangExt.LambdaCase,
+         LangExt.LiberalTypeSynonyms,
+         LangExt.MagicHash,
+         LangExt.MonoLocalBinds,
+         LangExt.MultiParamTypeClasses,
+         LangExt.MultiWayIf,
+         LangExt.RecordPuns,
+         LangExt.NamedWildCards,
+         LangExt.NegativeLiterals,
+         LangExt.NumDecimals,
+         LangExt.OverloadedStrings,
+         LangExt.PackageImports,
+         LangExt.ParallelListComp,
+         LangExt.PatternGuards,
+         LangExt.PolyKinds,
+         LangExt.RankNTypes,
+         LangExt.RebindableSyntax,
+         LangExt.RecordWildCards,
+         LangExt.RecursiveDo,
+         LangExt.RelaxedPolyRec,
+         LangExt.RoleAnnotations,
+         LangExt.ScopedTypeVariables,
+         LangExt.StandaloneDeriving,
+         LangExt.TraditionalRecordSyntax,
+         LangExt.TypeFamilies,
+         LangExt.TypeOperators,
+         LangExt.TypeSynonymInstances,
+         LangExt.UnboxedTuples
+         ]
 
 hasPprDebug :: DynFlags -> Bool
 hasPprDebug = dopt Opt_D_ppr_debug
@@ -3253,7 +3312,8 @@ supportedLanguagesAndExtensions =
 languageFlags :: [FlagSpec Language]
 languageFlags = [
   flagSpec "Haskell98"   Haskell98,
-  flagSpec "Haskell2010" Haskell2010
+  flagSpec "Haskell2010" Haskell2010,
+  flagSpec "Eta2018" Eta2018
   ]
 
 -- | These -X<blah> flags cannot be reversed with -XNo<blah>
