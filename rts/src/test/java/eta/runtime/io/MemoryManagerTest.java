@@ -240,6 +240,14 @@ public class MemoryManagerTest {
         assertThat("If the buffer contains the value, "+
                    "it returns its buffer index", result,is(5));
     }
+
+    @Test
+    public void testNullAddress() {
+        long addr = allocateBuffer(0,true);
+        assertThat("If allocating an empty pointer, NULL is returned",
+                   addr, is(nullAddress));
+        free(0);
+    }
     
     // Utils
 

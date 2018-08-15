@@ -53,6 +53,9 @@ public class MemoryManager {
         if (n < 0) {
             throw new IllegalArgumentException("Allocated size must be positive");
         }
+        if (n == 0) {
+            return nullAddress;
+        }
         long address = globalManagedHeap.allocateBuffer(n, direct, Capability.getLocal());
         if (Runtime.debugMemoryManager()) {
             debugMemoryManager("Allocating " + n  + " bytes " + (direct? "directly " : "") +
@@ -76,6 +79,9 @@ public class MemoryManager {
     public static void free(long address) {
         if (Runtime.debugMemoryManager()) {
             debugMemoryManager("Freeing memory at address " + address);
+        }
+        if (address == nullAddress) {
+            return;
         }
         globalManagedHeap.attemptFree(address);
     }
@@ -123,8 +129,9 @@ public class MemoryManager {
 
        Throws an exception  if the block that corresponds to the address has been freed. */
     public static ByteBuffer getBoundedBuffer(long address) {
-        if (address == nullAddress)
-            return emptyBuffer;
+        if (address == nullAddress) {
+          return emptyBuffer;
+        }
         return getBlock(address).getBoundedBuffer(address);
     }
 
