@@ -1738,7 +1738,7 @@ reifyFamFlavor fam_envs tc tvs kind
           f instances
 
 reifyTyVars :: [TyVar] -> TcM [TH.TyVarBndr]
-reifyTyVars tvs = mapM reify_tv tvs
+reifyTyVars tvs = mapM reify_tv $ filter isTypeVar tvs
   where
     -- even if the kind is *, we need to include a kind annotation,
     -- in case a poly-kind would be inferred without the annotation.
