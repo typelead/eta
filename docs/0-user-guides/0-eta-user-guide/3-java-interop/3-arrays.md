@@ -26,13 +26,14 @@ arrayToList :: JArray e c => Java c [e]
 
 -- Convert a lazy Eta list to a Java array
 arrayFromList :: JArray e c => [e] -> Java a c
+
 ```
 
 Note that the `e` type variable is determined from the `c` type variable and vice-versa, so each array type is expected to have a unique element type and each element type is expected to have a unique array type when using the API.
 
 ## Primitive Arrays
 
-Primitive arrays have pre-defined instances in `Java.Array`. 
+Primitive arrays have pre-defined instances in `Java.Array`.
 
 The following table lists the exported types and their element types.
 
@@ -72,6 +73,7 @@ foreign import java unsafe "@new" toJInteger :: Int -> JInteger
 foreign import java unsafe intValue :: JInteger -> Int
 
 -- There's a default instance for object arrays, so no need to define your own.
+
 instance JArray JInteger JIntegerArray
 
 main :: IO ()
@@ -83,8 +85,8 @@ main = java $ do
   arrList <- arr <.> arrayToList
   io $ print arrList
   where integers = map toJInteger [1..10]
+  
 ```
 
 ## Next Section
-
 We will now proceed with handling Java Subclasses.

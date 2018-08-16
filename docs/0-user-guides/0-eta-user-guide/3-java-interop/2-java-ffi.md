@@ -172,6 +172,7 @@ foreign import java unsafe "@static @field java.io.File.pathSeparator"
 
 It is also possible to import Java generics, enums, variable-argument functions, and interfaces with one method (e.g. `Runnable`, `ActionListener`). For details on these see [Advanced Foreign Imports](/docs/user-guides/eta-user-guide/java-interop/java-advanced-ffi).
 
+
 ## Next Section
 
 We will now proceed with handling arrays.

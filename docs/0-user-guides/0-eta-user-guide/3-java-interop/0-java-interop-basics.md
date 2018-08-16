@@ -107,6 +107,7 @@ data X = X @[class-name]
 
 - The `Class` typeclass is a built-in typeclass that is a marker for a JWT. **Make sure all your JWTs derive a Class instance**.
 
+
 ## Working with Java Converters
 
 In Eta, there is a clear distinction JWTs and normal Eta types. Moreover, only JWTs can be used in foreign imports/exports.
@@ -114,8 +115,6 @@ In Eta, there is a clear distinction JWTs and normal Eta types. Moreover, only J
 ### The JavaConverter typeclass
 
 JWTs are inconvenient to use directly in Eta because they are just wrappers of native Java objects. So, the following typeclass is defined in the standard library to help convert JWTs to common Eta types like lists.
-
-
 
 ```eta
 -- The `a` type variable should be a normal Eta type
@@ -130,7 +129,6 @@ Many instances are provided for you by default so you can simply use toJava or f
 ### Note :
 
 `String` is a notable exception to that rule because it’s so commonly used that there’s a special case that allows it an automatically converts it to `JString`.
-
 
 ## The Java Monad
 
@@ -148,43 +146,32 @@ As can be seen from the above definition, the `Java` monad has two type paramete
 
 In the [Java](https://github.com/typelead/eta/blob/master/libraries/base/Java/Core.hs#L37) module in the base package, the following functions are available:
 
-
-
 ```eta
 -- Execute a Java action in the IO monad.
 java :: Java c a -> IO a
-
 -- Execute a Java action in the IO monad with respect to the
 -- given object.
 javaWith :: (Class c) => c -> Java c a -> IO a
-
 -- Execute a Java action in the Java monad of another class
 -- with respect to the given object.
 (<.>) :: (Class c) => c -> Java c a -> Java b a
 withObject :: (Class c) => c -> Java c a -> Java b a
-
 -- Chain Java actions.
 (>-) :: (Class b) => Java a b -> Java b c -> Java a c
-
 -- Execute an IO action inside of the Java monad
 io :: IO a -> Java c a
-
 -- Execute a Java action purely, i.e. order of execution does not matter.
 unsafePerformJava :: Java c a -> a
-
 -- Analagous to `javaWith`, but pure.
 unsafePerformJavaWith :: (Class c) => c -> Java c a -> a
 ```
-
 For instance, if the following functions are available:
 
 ```eta
 newFile  :: String -> Java a File
 canExecute :: Java File Bool
 ```
-
 Then it is possible to write the following program:
-
 
 ```eta
 main :: IO ()
@@ -199,8 +186,6 @@ main = do
 ```
 
 Using different combinators, we can write it like this:
-
-
 
 ```eta
 main :: IO ()
@@ -218,8 +203,6 @@ main = do
 ```
 
 Or:
-
-
 
 ```eta
 main :: IO ()
@@ -254,10 +237,11 @@ foreign import java unsafe "[import-string]" [eta-identifier]
     - `@new`: Binds to a constructor. The class to construct will be determined by the return type of the declaration.
     - `@field [java-field-name]`: Binds to a getter or setter of an instance field, determined by the type signature. `[java-field-name]` should be an unqualified Java instance field name.
     - `@static @field [java-field-name]`: Binds to a getter or setter of a field, determined by the type signature. `[java-field-name]` should be a fully qualified Java static field name.
-3. `[eta-identifier]` should be a valid Eta identifier that will be used for calling the corresponding Java method inside of Eta code.
 
-4. `[argTypeN]` should be a marshallable Eta type. See [Marshalling Between Java and Eta Types](/docs/user-guides/eta-user-guide/java-interop/jwts#marshalling-between-java-and-eta-types).
-5. `[returnType]` can be of three forms:
+2. `[eta-identifier]` should be a valid Eta identifier that will be used for calling the corresponding Java method inside of Eta code.
+
+3. `[argTypeN]` should be a marshallable Eta type. See [Marshalling Between Java and Eta Types](/docs/user-guides/eta-user-guide/java-interop/jwts#marshalling-between-java-and-eta-types).
+4. `[returnType]` can be of three forms:
     - `Java [jwt] [return-type]`: This is the form that is used typically and is always safe to use. `[jwt]` should be the JWT for the class which the declaration pertains. If the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. `[return-type]` should be a marshallable Eta type.
     - `IO [return-type]`: This form is also safe and can be used for convenience. Note that if the import string does not have a `@static` annotation, you must supply the relevant JWT as the first argument (`[argType1]`). `[return-type]` should be a marshallable Eta type.
     - `[return-type]`: This form has no monadic context and should only be used for immutable Java objects whose methods do not perform any side effects. Note that if the declaration does not have a `@static` annotation, you must supply the relevant JWT as the first argument (`[argType1]`). `[return-type]` should be a marshallable Eta type.
@@ -292,9 +276,7 @@ foreign export java "[export-string]" [eta-identifier]
         - `[return-type]` should be a marshallable Eta type.
     - `IO [return-type]` or simply `[return-type]`: These forms can be used for convenience. Note that if you use any of them the export string *must* have a `@static [java-method-name]` annotation.
         - `[return-type]` should be a marshallable Eta type.
-
 ### Examples
-
 - Exporting static methods:
 
 ```eta
@@ -314,7 +296,7 @@ addTwo x = return $ x + 2
 
 ```
 
-- Exporting an instance method for a new class that inherits from an existing one. Given an existing class `eta.example.Counter` like the defined above we can create another class in eta that inherits from it, adding one or more metods that can use the definitions of the superclass:
+- Exporting an instance method for a new class that inherits from an existing one. Given an existing class `eta.example.Counter` like the defined above we can create another class in eta that inherits from it, adding one or more methods that can use the definitions of the superclass:
 
 ```eta
 

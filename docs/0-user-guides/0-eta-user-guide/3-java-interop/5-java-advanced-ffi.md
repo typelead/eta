@@ -1,4 +1,4 @@
-# Java Advanced Foreign Imports
+# Java Advanced FFI
 
 ## Working With Java Generics
 

@@ -11,7 +11,7 @@ Make sure you have the following tools installed on your system:
 To obtain an environment with `eta` and `etlas`, run the following commands:
 
 ```sh
-$ git clone --branch stable --recursive --depth 1 https://github.com/typelead/eta
+$ git clone --recursive --depth 1 https://github.com/typelead/eta
 $ cd eta
 $ nix-shell -A eta-build-shell
 ```

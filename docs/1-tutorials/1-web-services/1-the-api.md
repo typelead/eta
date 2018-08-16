@@ -119,7 +119,6 @@ You can download the full source code for this app and run by following the step
 ```
 git clone https://github.com/typelead/eta-fib-service
 cd eta-fib-service
-etlas install --dependencies-only
 etlas run
 ```
 
