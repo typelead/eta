@@ -14,7 +14,7 @@ When interfacing with Java, you should import the `Java` module from the standar
 import Java
 ```
 
-This will import the `Java` sequenceable and related helper functions for working inside the sequenceable.
+This will import the `Java` monad and related helper functions for working inside the monad.
 
 
 
@@ -61,7 +61,7 @@ A Java method is simply a function that takes an object as an implicit argument 
 
 
 
-This correspondence is the basis for the built-in `Java` sequenceable in Eta.
+This correspondence is the basis for the built-in `Java` monad in Eta.
 
 
 
@@ -107,8 +107,32 @@ data X = X @[class-name]
 
 - The `Class` typeclass is a built-in typeclass that is a marker for a JWT. **Make sure all your JWTs derive a Class instance**.
 
+## Working with Java Converters
 
-## The Java Sequenceable
+In Eta, there is a clear distinction JWTs and normal Eta types. Moreover, only JWTs can be used in foreign imports/exports.
+
+### The JavaConverter typeclass
+
+JWTs are inconvenient to use directly in Eta because they are just wrappers of native Java objects. So, the following typeclass is defined in the standard library to help convert JWTs to common Eta types like lists.
+
+
+
+```eta
+-- The `a` type variable should be a normal Eta type
+-- The `b` type variable should be a JWT or a primitive type (Byte, Short, Int, ...)
+class JavaConverter a b where
+  toJava   :: a -> b
+  fromJava :: b -> a
+```
+
+Many instances are provided for you by default so you can simply use toJava or fromJava whenever you want to perform a conversion.
+
+### Note :
+
+`String` is a notable exception to that rule because it’s so commonly used that there’s a special case that allows it an automatically converts it to `JString`.
+
+
+## The Java Monad
 
 As mentioned before, the `Java` monad is used to contain the implicit `this` context. It can be effectively thought of as a state monad with a given Java object as the state.
 
@@ -118,9 +142,96 @@ As mentioned before, the `Java` monad is used to contain the implicit `this` con
 newtype Java c a = Java {- Internal definition -}
 ```
 
+As can be seen from the above definition, the `Java` monad has two type parameters `c` and `a`. The `c` parameter is the type of the implicit `this` context, and should be some JWT, and the `a` parameter is the return type of the monad.
+
+### Working with the Java Monad
+
+In the [Java](https://github.com/typelead/eta/blob/master/libraries/base/Java/Core.hs#L37) module in the base package, the following functions are available:
 
 
-As can be seen from the above definition, the `Java` sequenceable has two type parameters `c` and `a`. The `c` parameter should be some JWT and the `a` parameter is the return type of the sequenceable.
+
+```eta
+-- Execute a Java action in the IO monad.
+java :: Java c a -> IO a
+
+-- Execute a Java action in the IO monad with respect to the
+-- given object.
+javaWith :: (Class c) => c -> Java c a -> IO a
+
+-- Execute a Java action in the Java monad of another class
+-- with respect to the given object.
+(<.>) :: (Class c) => c -> Java c a -> Java b a
+withObject :: (Class c) => c -> Java c a -> Java b a
+
+-- Chain Java actions.
+(>-) :: (Class b) => Java a b -> Java b c -> Java a c
+
+-- Execute an IO action inside of the Java monad
+io :: IO a -> Java c a
+
+-- Execute a Java action purely, i.e. order of execution does not matter.
+unsafePerformJava :: Java c a -> a
+
+-- Analagous to `javaWith`, but pure.
+unsafePerformJavaWith :: (Class c) => c -> Java c a -> a
+```
+
+For instance, if the following functions are available:
+
+```eta
+newFile  :: String -> Java a File
+canExecute :: Java File Bool
+```
+
+Then it is possible to write the following program:
+
+
+```eta
+main :: IO ()
+main = do
+  executes <- java $ do
+    file <- newFile "./dir/prog.exe"
+    io $ putStrLn "Executing an IO action inside of Java!"
+    file <.> canExecute
+  if executes
+  then putStrLn "File can execute!"
+  else putStrLn "File cannot execute!"
+```
+
+Using different combinators, we can write it like this:
+
+
+
+```eta
+main :: IO ()
+main = do
+  -- Similar to Java code:
+  -- File file = new File("./dir/prog.exe");
+  file <- java $ newFile "./dir/prog.exe"
+  putStrLn "Executing an IO action inside of Java!"
+  -- Similar to Java code:
+  -- boolean executes = file.canExecute();
+  executes <- javaWith file canExecute
+  if executes
+  then putStrLn "File can execute!"
+  else putStrLn "File cannot execute!"
+```
+
+Or:
+
+
+
+```eta
+main :: IO ()
+main = java $ do
+  -- Similar to Java code:
+  -- boolean executes = new File("./dir/prog.exe").canExecute();
+  executes <- newFile "./dir/prog.exe" >- canExecute
+  io $ putStrLn "Executing an IO action inside of Java!"
+  if executes
+  then io $ putStrLn "File can execute!"
+  else io $ putStrLn "File cannot execute!"
+```
 
 ## Java Foreign Import Declarations
 
@@ -128,28 +239,21 @@ Foreign import declarations are used to import a Java method as an Eta monadic a
 
 
 
-### General Syntax
+### Simplified Syntax
+
+The full syntax of the `foreign import` declaration is quite complex, but only a subset is needed here:
 
 ```eta
-foreign import java [safety] "[import-string]" [eta-identifier]
+foreign import java unsafe "[import-string]" [eta-identifier]
   :: [arg-type-1] -> [arg-type-2] -> .. -> [return-type]
 ```
 
-1. `[safety]` - `safe` or `unsafe`.
-    - `unsafe` is the option you would typically select. In this case, the java method identified in the `[import-string]` will be run directly. This can be dangerous if the function can block in which case it will block the Eta RTS and reduce efficiency.
-    - `safe` is the option you would select for functions that you would expect to block for some time, so they will be safely run in another thread to prevent the call from blocking the Eta RTS. This option must also be used when importing a Java method that eventually calls an exported Eta function.
-
-2. `[import-string]` can take the following forms:
+1. `[import-string]` can take the following forms:
     - `[java-method-name]`: Binds to an instance method. `[java-method-name]` should be an unqualified Java instance method name.
     - `@static [java-method-name]`: Binds to a static method. `[java-method-name]` should be a fully qualified Java static method name.
     - `@new`: Binds to a constructor. The class to construct will be determined by the return type of the declaration.
     - `@field [java-field-name]`: Binds to a getter or setter of an instance field, determined by the type signature. `[java-field-name]` should be an unqualified Java instance field name.
     - `@static @field [java-field-name]`: Binds to a getter or setter of a field, determined by the type signature. `[java-field-name]` should be a fully qualified Java static field name.
-    - `@interface [java-interface-method]`: Binds to an interface method, determined by the type signature. `[java-interface-name]` should be a unqualified Java interface method name.
-    - `@wrapper [java-interface-method]`: Used for generating an Eta function that will generate an interface implementation, determined by the type signature. `[java-interface-name]` should be a unqualified Java interface method name. See [Working With Java Interfaces](/docs/user-guides/eta-user-guide/java-interop/java-generics#working-with-java-interfaces) for more information.
-    - `@wrapper @abstract [java-abstract-method]`: Used for generating an Eta function that will generate an abstract class implementation, determined by the type signature. `[java-method]` should be a unqualified Java abstract method name. See [Working With Java Interfaces](/docs/user-guides/eta-user-guide/java-interop/java-generics#working-with-java-interfaces) for more information.
-    - Not present: If you do not specify an import string, it will be taken as an instance method import and the `[java-method-name]` is taken to be the same as `[eta-identifier]`.
-
 3. `[eta-identifier]` should be a valid Eta identifier that will be used for calling the corresponding Java method inside of Eta code.
 
 4. `[argTypeN]` should be a marshallable Eta type. See [Marshalling Between Java and Eta Types](/docs/user-guides/eta-user-guide/java-interop/jwts#marshalling-between-java-and-eta-types).
@@ -157,6 +261,8 @@ foreign import java [safety] "[import-string]" [eta-identifier]
     - `Java [jwt] [return-type]`: This is the form that is used typically and is always safe to use. `[jwt]` should be the JWT for the class which the declaration pertains. If the declaration has a `@static` annotation, this can be left free with a type variable instead of a concrete type. `[return-type]` should be a marshallable Eta type.
     - `IO [return-type]`: This form is also safe and can be used for convenience. Note that if the import string does not have a `@static` annotation, you must supply the relevant JWT as the first argument (`[argType1]`). `[return-type]` should be a marshallable Eta type.
     - `[return-type]`: This form has no monadic context and should only be used for immutable Java objects whose methods do not perform any side effects. Note that if the declaration does not have a `@static` annotation, you must supply the relevant JWT as the first argument (`[argType1]`). `[return-type]` should be a marshallable Eta type.
+
+For the full syntax, see [General Syntax](/docs/user-guides/eta-user-guide/java-interop/java-ffi#general-syntax).
 
 ## Exporting Eta Methods
 

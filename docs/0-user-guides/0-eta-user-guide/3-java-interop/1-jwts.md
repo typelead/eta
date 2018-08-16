@@ -39,7 +39,16 @@ Currently, deriving the `Class`, `Eq`, and `Show` instances for JWTs is supporte
 
 ## Marshalling Between Java and Eta Types
 
-When writing FFI declarations, you are essentially specifying the type of a function whose arguments will be translated from Eta types to Java types and whose result will be translated from Java types to Eta types. This translation process is called marshalling.
+When writing FFI declarations, you are essentially specifying the type of a function whose arguments will be translated from Eta types to Java types and whose result will be translated from Java types to Eta types. This translation process is called _marshalling_. A Java Wrapper Type will marshal to an object of the class given in the definition.
+
+The following table shows a couple of Eta types which aren't JWTs, but still
+marshal to a Java class or return type:
+
+| Java Type               |  Eta Type  |
+| ----------------------- |------------|
+| `java.lang.String`      |   `String` |
+| Any nullable object `X` |  `Maybe X` |
+| `void`                  |       `()` |
 
 ### Java Primitives
 
@@ -56,21 +65,22 @@ The following table lists the mapping from primitive Java types to Eta types.
 | `float`    |    `Float` |
 | `double`   |   `Double` |
 
-## Java Classes & Arrays
+## The CLASS Pragma
 
-A Java Wrapper Type will marshal to an object of the class given in the ``CLASS`` annotation. Note that
-a Java array is just a special class with a ``length`` member, hence you should
-declare JWT to specify that you want to marshal to a Java array.
+In some older code you might see the following JWT definition syntax:
 
-The following table shows a couple of Eta types which aren't JWTs, but still
-marshal to a Java class or return type:
+```eta
+data {-# CLASS "[class-name]" #-} X = X (Object# X) deriving Class
+```
 
-| Java Type               |  Eta Type  |
-| ----------------------- |------------|
-| `java.lang.String`      |   `String` |
-| Any nullable object `X` |  `Maybe X` |
-| `void`                  |       `()` |
+This is the same as the following:
+
+```eta
+data X = X @[class-name] deriving Class
+```
+
+The older syntax is not recommended.
 
 ## Next Section
 
-We will now proceed with Java Foreign Import Declarations.
+We will now proceed with Java Foreign Import Declarations. We will also learn how to handle Java Generics, Enums, Interfaces, Covariances and Contravariance.
