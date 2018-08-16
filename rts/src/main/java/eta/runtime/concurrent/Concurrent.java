@@ -17,6 +17,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.CancelledKeyException;
 
 import eta.runtime.Runtime;
 import eta.runtime.stg.Stg;
@@ -314,25 +315,26 @@ public class Concurrent {
     }
     public static AtomicBoolean selectorLock = new AtomicBoolean();
 
-    public static void threadWaitIO(StgContext context, Channel channel, int ops) {
-        try {
-            final boolean debug = Runtime.debugIO();
-            if (globalSelector == null) {
-                if (debug) {
-                    debugIO("Your platform does not support non-blocking IO.");
-                }
-                return;
+    public static void threadWaitIO(StgContext context, Channel channel, int ops)
+        throws IOException {
+        final boolean debug = Runtime.debugIO();
+        if (globalSelector == null) {
+            if (debug) {
+                debugIO("Your platform does not support non-blocking IO.");
             }
-            if (!(channel instanceof SelectableChannel)) {
-                if (debug) {
-                    debugIO("Non-selectable channel " + channel + " sent to threadWaitIO#.");
-                }
-                return;
+            return;
+        }
+        if (!(channel instanceof SelectableChannel)) {
+            if (debug) {
+                debugIO("Non-selectable channel " + channel + " sent to threadWaitIO#.");
             }
-            final Capability cap = context.myCapability;
-            final TSO tso = context.currentTSO;
-            final SelectableChannel selectChannel = (SelectableChannel) channel;
-            final SelectionKey selectKey = selectChannel.register(globalSelector, ops, tso);
+            return;
+        }
+        final Capability cap = context.myCapability;
+        final TSO tso = context.currentTSO;
+        final SelectableChannel selectChannel = (SelectableChannel) channel;
+        final SelectionKey selectKey = safeRegister(selectChannel, ops, tso);
+        if (selectKey != null) {
             WhyBlocked blocked;
             switch (ops) {
                 case SelectionKey.OP_READ:
@@ -359,24 +361,61 @@ public class Concurrent {
             do {
                 cap.blockedLoop();
             } while (selectKey.isValid());
-        } catch (ClosedChannelException e) {
-            throw new RuntimeException("threadWaitIO: ClosedChannelException", e);
         }
     }
 
-    public static void waitRead(StgContext context, Object o) {
+
+    public static SelectionKey safeRegister(final SelectableChannel selectChannel,
+                                            final int ops, final Object attachment)
+        throws IOException {
+        SelectionKey sk = null;
+        boolean exceptionTried = false;
+        boolean selectTried = false;
+        while (sk == null) {
+            try {
+                sk = selectChannel.register(globalSelector, ops, attachment);
+            } catch (CancelledKeyException e) {
+                if (selectTried) {
+                    /* When the select() doesn't work for some reason. */
+                    throw e;
+                } else {
+                    /* This happens when the selector has invalid selector
+                    keys that will only be removed upon the next select(). */
+                    try {
+                        globalSelector.selectNow();
+                        selectTried = true;
+                    } catch (IOException io) {
+                        /* We ignore these and continue on the first one. */
+                        if (exceptionTried) {
+                            throw io;
+                        } else {
+                            exceptionTried = true;
+                        }
+                    }
+                }
+            } catch (ClosedChannelException e) {
+                /* If the channel is closed, return instantly so that the rest of the code
+                   can do appropriate cleanup. */
+                return null;
+            }
+        }
+        return sk;
+    }
+
+
+    public static void waitRead(StgContext context, Object o) throws IOException {
         threadWaitIO(context, (Channel) o, SelectionKey.OP_READ);
     }
 
-    public static void waitWrite(StgContext context, Object o) {
+    public static void waitWrite(StgContext context, Object o) throws IOException {
         threadWaitIO(context, (Channel) o, SelectionKey.OP_WRITE);
     }
 
-    public static void waitConnect(StgContext context, Object o) {
+    public static void waitConnect(StgContext context, Object o) throws IOException {
         threadWaitIO(context, (Channel) o, SelectionKey.OP_CONNECT);
     }
 
-    public static void waitAccept(StgContext context, Object o) {
+    public static void waitAccept(StgContext context, Object o) throws IOException {
         threadWaitIO(context, (Channel) o, SelectionKey.OP_ACCEPT);
     }
 
