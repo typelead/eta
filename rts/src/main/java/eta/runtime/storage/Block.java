@@ -54,6 +54,15 @@ public class Block {
         this.owner        = Capability.getLocal();
     }
 
+    public final void initWith(Block source) {
+        if (this != source) {
+            this.startAddress = source.startAddress;
+            this.av           = source.av;
+            this.buffer       = source.buffer;
+            this.owner        = source.owner;
+        }
+    }
+
     private final long findFreeBlocks(int miniblocks, boolean direct) {
         if (buffer.isDirect() != direct) return 0;
         int index = av.findFreeAndAllocate(miniblocks);

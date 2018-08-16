@@ -79,8 +79,8 @@ public class MemoryManagerTest {
         int[] sizes = {2,16,256,1024,4096,65536,4194304};
         for (int size : sizes) {
             long address = allocateBuffer(size,true);
-            assertTrue("Allocating "+size+" bites: the address must be greater than 0",
-                   address > 0);
+            assertTrue("Allocating " + size + " bytes: the address must be greater than 0",
+                       address > 0);
         }
     } 
 
@@ -88,8 +88,8 @@ public class MemoryManagerTest {
     public void allocateBufferWithNegativeArg() {
         allocateBuffer(-1,true);
     }
+
     @Test
-    @Ignore
     public void allocateLargeBuffer() {
         allocateBuffer(4194305,true);
     }
@@ -114,8 +114,8 @@ public class MemoryManagerTest {
                    "should return the same buffer", b2, is(b));
     }
 
-    @Ignore
     @Test(expected = Exception.class)
+    @Ignore
     public void testFreeAndGetBuffer() {
         long addr = allocateBuffer(1024, true);
         free(addr);
@@ -247,6 +247,12 @@ public class MemoryManagerTest {
         assertThat("If allocating an empty pointer, NULL is returned",
                    addr, is(nullAddress));
         free(0);
+    }
+
+    @Test
+    public void testNurseryBoundary() {
+        allocateBuffer(1024 * 4096,true);
+        allocateBuffer(10,true);
     }
     
     // Utils

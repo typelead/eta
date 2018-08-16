@@ -22,7 +22,9 @@ public class ManagedHeap {
     /* Nursery storage */
     private final CopyOnWriteArrayList<Nursery> nurseries
         = new CopyOnWriteArrayList<Nursery>();
-    private Nursery activeNursery;
+    private volatile Nursery activeNursery;
+
+    private final Object heapLock = new Object();
 
     public ManagedHeap(int nurserySize, int blockSize, int miniBlockSize) {
         this.nurserySize   = nurserySize;
@@ -36,7 +38,9 @@ public class ManagedHeap {
         this.miniBlockMask = miniBlockSize - 1;
         this.miniBlockBits = Integer.numberOfTrailingZeros(miniBlockSize);
 
-        setActiveNursery(allocateNursery(blockSize));
+        final Nursery nursery = allocateNursery(blockSize);
+        addNursery(nursery);
+        setActiveNursery(nursery);
     }
 
     public long allocateBuffer(int n, boolean direct, LocalHeap localHeap) {
@@ -46,7 +50,7 @@ public class ManagedHeap {
         /* First, try allocating from the thread-local blocks. */
         long address = localHeap.allocateLocal(miniblocks, direct, supr);
         if (address == 0) {
-            /* Second, try allocating a new block form the OS. */
+            /* Second, try allocating a new block from the OS. */
             Block block = allocateBlock(blocks, direct);
             block.allocate(miniblocks);
             address = block.getAddress();
@@ -67,26 +71,64 @@ public class ManagedHeap {
         return new Nursery(nurserySize, blockSize, miniBlockSize, startAddress);
     }
 
-    public void setActiveNursery(Nursery nursery) {
-        this.activeNursery = nursery;
+    public Block allocateNurseries(final int baseIndex, final ByteBuffer buffer,
+                                   final int rblocks, final int nblocks,
+                                   Nursery nursery, long startAddress) {
+        synchronized (heapLock) {
+            final Nursery startNursery = nursery;
+            int nurseries = (rblocks + nurseryMask) >>> nurseryBits;
+            while (nurseries > 0) {
+                final Nursery newNursery = allocateNursery(startAddress);
+                nursery.next = newNursery;
+                nursery = newNursery;
+                startAddress += nurserySize * blockSize;
+                nurseries--;
+                addNursery(newNursery);
+            }
+            Block ret = startNursery.initializeWithCommonBlock(baseIndex, nblocks, buffer);
+            setActiveNursery(nursery);
+            heapLock.notifyAll();
+            return ret;
+        }
+    }
+
+    public Nursery waitForNursery(final Nursery nursery) {
+        Nursery ret = null;
+        synchronized (heapLock) {
+            while ((ret = nursery.getFreeNext()) == null) {
+                try {
+                    heapLock.wait();
+                } catch (InterruptedException e) {
+                    // Keep going!
+                }
+            }
+        }
+        return ret;
+    }
+
+    public void addNursery(final Nursery nursery) {
         this.nurseries.add(nursery);
     }
 
-    public Block getBlock(long address) {
-        if (address < blockSize)
-            throwIllegalAddressException(address,
-                                         "Exceeded lower bound of the address space.");
+    public void setActiveNursery(final Nursery nursery) {
+        this.activeNursery = nursery;
+    }
+
+    public Block getBlock(final long address) {
+        if (address < blockSize) {
+            throwIllegalAddressException
+                (address, "Exceeded lower bound of the address space: "
+                 + showAddress(blockSize));
+        }
         /* We subtract `blockSize` since all addresses start from there. */
-        long normalizedAddress = address - blockSize;
-        int nurseryIndex = (int) (normalizedAddress >>> (nurseryBits + blockBits));
-        int blockIndex   = (int)((normalizedAddress >>> blockBits) & nurseryMask);
-        int size = nurseries.size();
-        Nursery nursery = null;
-        if (nurseryIndex == size)
-            nursery = activeNursery.getNext();
-        if (nursery == null && nurseryIndex >= size) {
-            throwIllegalAddressException(address,
-                                         "Exceeded higher bound of the address space.");
+        final long normalizedAddress = address - blockSize;
+        final int nurseryIndex = (int) (normalizedAddress >>> (nurseryBits + blockBits));
+        final int blockIndex   = (int)((normalizedAddress >>> blockBits) & nurseryMask);
+        if (nurseryIndex >= nurseries.size()) {
+            final long upperBound = nurseries.size() * nurserySize * blockSize;
+            throwIllegalAddressException
+                (address, "Exceeded upper bound of the address space: " +
+                 showAddress(upperBound));
         }
         return nurseries.get(nurseryIndex).getBlock(blockIndex);
     }
@@ -100,7 +142,12 @@ public class ManagedHeap {
     }
 
     private static void throwIllegalAddressException(long address, String message) {
-        throw new IllegalArgumentException("Cannot dereference 0x" + Long.toHexString(address) + ": " + message);
+        throw new IllegalArgumentException
+            ("Cannot dereference " + showAddress(address) + ": " + message);
+    }
+
+    private static String showAddress(long address) {
+        return "0x" + Long.toHexString(address);
     }
 
     private static ByteBuffer allocateAnonymousBuffer(int n, boolean direct) {
