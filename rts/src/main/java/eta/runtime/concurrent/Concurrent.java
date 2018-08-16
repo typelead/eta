@@ -369,35 +369,40 @@ public class Concurrent {
                                             final int ops, final Object attachment)
         throws IOException {
         SelectionKey sk = null;
-        boolean exceptionTried = false;
-        boolean selectTried = false;
-        while (sk == null) {
-            try {
-                sk = selectChannel.register(globalSelector, ops, attachment);
-            } catch (CancelledKeyException e) {
-                if (selectTried) {
-                    /* When the select() doesn't work for some reason. */
-                    throw e;
-                } else {
-                    /* This happens when the selector has invalid selector
-                    keys that will only be removed upon the next select(). */
-                    try {
-                        globalSelector.selectNow();
-                        selectTried = true;
-                    } catch (IOException io) {
-                        /* We ignore these and continue on the first one. */
-                        if (exceptionTried) {
-                            throw io;
-                        } else {
-                            exceptionTried = true;
+        while (!selectorLock.compareAndSet(false, true));
+        try {
+            boolean exceptionTried = false;
+            boolean selectTried = false;
+            while (sk == null) {
+                try {
+                    sk = selectChannel.register(globalSelector, ops, attachment);
+                } catch (CancelledKeyException e) {
+                    if (selectTried) {
+                        /* When the select() doesn't work for some reason. */
+                        throw e;
+                    } else {
+                        /* This happens when the selector has invalid selector
+                        keys that will only be removed upon the next select(). */
+                        try {
+                            globalSelector.selectNow();
+                            selectTried = true;
+                        } catch (IOException io) {
+                            /* We ignore these and continue on the first one. */
+                            if (exceptionTried) {
+                                throw io;
+                            } else {
+                                exceptionTried = true;
+                            }
                         }
                     }
+                } catch (ClosedChannelException e) {
+                    /* If the channel is closed, return instantly so that the rest of the code
+                    can do appropriate cleanup. */
+                    return null;
                 }
-            } catch (ClosedChannelException e) {
-                /* If the channel is closed, return instantly so that the rest of the code
-                   can do appropriate cleanup. */
-                return null;
             }
+        } finally {
+            selectorLock.set(false);
         }
         return sk;
     }
