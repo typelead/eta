@@ -37,6 +37,7 @@ import GHC.IO.Handle.Internals
 import qualified GHC.IO.FD as FD
 import qualified System.Posix.Types as Posix
 import qualified System.Posix.Internals as Posix
+import Java.Exception hiding (IOException)
 
 -- ---------------------------------------------------------------------------
 -- Standard Handles
@@ -133,7 +134,7 @@ addFilePathToIOError fun fp ioe
 -- be using 'openBinaryFile'.
 openFile :: FilePath -> IOMode -> IO Handle
 openFile fp im =
-  catchException
+  catchJavaIOError
     (openFile' fp im dEFAULT_OPEN_IN_BINARY_MODE True)
     (\e -> ioError (addFilePathToIOError "openFile" fp e))
 

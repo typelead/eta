@@ -21,13 +21,15 @@ module Java.Exception where
 
 import GHC.Base
 import GHC.Int
-import Java
+import Java.Core
+import Java.Utils
 import Java.Array
+import Java.StringBase
 import GHC.Show
 import Control.Exception hiding (IOException)
 import qualified System.IO.Error as SysIOErr
 import Data.Typeable (Typeable, cast)
-import Data.List (any, elem, isSubsequenceOf)
+import GHC.OldList (any, elem, isInfixOf)
 import Data.Either
 
 data {-# CLASS "java.lang.StackTraceElement[]" #-} StackTraceElementArray = StackTraceElementArray (Object# StackTraceElementArray)
@@ -178,7 +180,7 @@ toIOError jioex =  fmap ioErr type'
         isAlreadyInUseError =
           (isJIOException && ("The process cannot access the file " ++
                               "because another process has locked a portion of the file" )
-                              `isSubsequenceOf` msg) ||
+                              `isInfixOf` msg) ||
           jioex `instanceOf` (getClass (Proxy :: Proxy OverlappingFileLockException))
         isDoesNotExistError =
           jioex `instanceOf` (getClass (Proxy :: Proxy FileNotFoundException)) ||
