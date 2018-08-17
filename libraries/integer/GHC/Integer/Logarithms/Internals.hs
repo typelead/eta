@@ -33,15 +33,31 @@ integerLog2IsPowerOf2# (S# i) =
     w -> (# wordLog2# w, jbool2int# (isPowerOf2Word# w) #)
 integerLog2IsPowerOf2# (J# o#) = (# log2Integer# o#, jbool2int# (isPowerOf2Integer# o#) #)
 
+-- TODO: Work on more efficient implementation
+-- roundingMode# :: Integer -> Int# -> Int#
+-- roundingMode# (S# i) t =
+--     case int2Word# i `and#` ((uncheckedShiftL# 2## t) `minusWord#` 1##) of
+--       k -> case uncheckedShiftL# 1## t of
+--             c -> if isTrue# (c `gtWord#` k)
+--                     then 0#
+--                     else if isTrue# (c `ltWord#` k)
+--                             then 2#
+--                             else 1#
+
 roundingMode# :: Integer -> Int# -> Int#
-roundingMode# (S# i) t =
-    case int2Word# i `and#` ((uncheckedShiftL# 2## t) `minusWord#` 1##) of
-      k -> case uncheckedShiftL# 1## t of
-            c -> if isTrue# (c `gtWord#` k)
-                    then 0#
-                    else if isTrue# (c `ltWord#` k)
-                            then 2#
-                            else 1#
+roundingMode# m h =
+    case oneInteger `shiftLInteger` h of
+      c -> case m `andInteger`
+                ((c `plusInteger` c) `minusInteger` oneInteger) of
+             r ->
+               if c `ltInteger` r
+                 then 2#
+                 else if c `gtInteger` r
+                        then 0#
+                        else 1#
+
+oneInteger :: Integer
+oneInteger = S# 1#
 
 foreign import java unsafe "@static eta.integer.Utils.isPowerOfTwo" isPowerOf2Word#
   :: Word# -> JBool#
