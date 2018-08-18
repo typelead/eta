@@ -714,8 +714,8 @@ public final class Capability implements LocalHeap {
     }
 
     private final void processFreeMessages() {
-        while (freeMessages.canRead(freeSequence)) {
-            MemoryManager.getHeap().free(freeMessages.read(freeSequence++));
+        while (freeMessages.canRead(freeSequence++)) {
+            MemoryManager.getHeap().free(freeMessages.read());
         }
     }
 
