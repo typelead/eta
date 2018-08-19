@@ -15,11 +15,11 @@ You must have the following installed on your system:
 
 1.  Download the `etlas` executable for your platform below.
 
-    **Etlas v1.4.0.0**
+    **Etlas v1.5.0.0**
 
-    - [Linux (64-bit)](https://cdnverify.eta-lang.org/eta-binaries/etlas-1.4.0.0/binaries/x86_64-linux/etlas)
-    - [Mac (64-bit)](https://cdnverify.eta-lang.org/eta-binaries//etlas-1.4.0.0/binaries/x86_64-osx/etlas)
-    - [Windows (64-bit)](https://cdnverify.eta-lang.org/eta-binaries/etlas-1.4.0.0/binaries/x86_64-windows/etlas.exe)
+    - [Linux (64-bit)](https://cdnverify.eta-lang.org/eta-binaries/etlas-1.5.0.0/binaries/x86_64-linux/etlas)
+    - [Mac (64-bit)](https://cdnverify.eta-lang.org/eta-binaries//etlas-1.5.0.0/binaries/x86_64-osx/etlas)
+    - [Windows (64-bit)](https://cdnverify.eta-lang.org/eta-binaries/etlas-1.5.0.0/binaries/x86_64-windows/etlas.exe)
 
     ### Note:
 

@@ -65,12 +65,23 @@ On Windows, you have two options:
 
 ## Installation
 
-To obtain an environment with `eta` and `etlas`, run the following commands:
+You have two options for installing:
+
+- The `stable` branch which contains the last version that had a binary release
 
 ```sh
 $ git clone --branch stable --recursive --depth 1 https://github.com/typelead/eta
 $ cd eta
 ```
+
+- The `master` branch which has the latest version of Eta.
+
+```sh
+$ git clone --recursive --depth 1 https://github.com/typelead/eta
+$ cd eta
+```
+
+Below are the OS-specific installation instructions:
 
 **Linux/OS X**
 

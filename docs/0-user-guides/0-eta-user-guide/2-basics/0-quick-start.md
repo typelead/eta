@@ -35,12 +35,12 @@ plugins {
 }
 
 eta {
-    version = '0.8.0b2'
-    etlasVersion = '1.4.0.0'
+    version = '0.8.6b1'
+    etlasVersion = '1.5.0.0'
 }
 
 dependencies {
-  compile eta('base:4.8.2.0')
+  compile eta('base:4.11.1.0')
 }
 ```
 

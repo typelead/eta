@@ -31,7 +31,7 @@ This is typically used for production builds and ensures build reproducibility.
 
 ```groovy
 eta {
-  version = '0.8.0b2'
+  version = '0.8.6b1'
 }
 ```
 
@@ -65,7 +65,7 @@ This is typically used for production builds and ensures build reproducibility.
 
 ```groovy
 eta {
-  etlasVersion = '1.4.0.0'
+  etlasVersion = '1.5.0.0'
 }
 ```
 
@@ -117,46 +117,46 @@ eta {
 
 ```groovy
 eta {
-  version = '0.8.0b2'
-  etlasVersion = '1.4.0.0'
+  version = '0.8.6b1'
+  etlasVersion = '1.5.0.0'
 }
 ```
 
-The plugin will download and cache **Eta v0.7.2.b1** and **Etlas v1.4.0.0**.
+The plugin will download and cache **Eta v0.8.6b1** and **Etlas v1.5.0.0**.
 
 ### Example 2
 
 ```groovy
 eta {
-  version = '0.8.0b2'
-  etlasVersion = '1.4.0.0'
+  version = '0.8.6b1'
+  etlasVersion = '1.5.0.0'
   preInstallDependencies = true
 }
 ```
 
-The plugin will download and cache **Eta v0.7.2.b1** and **Etlas v1.4.0.0**. Moreover, it will install all the dependencies of your projects before executing any tasks.
+The plugin will download and cache **Eta v0.8.6b1** and **Etlas v1.5.0.0**. Moreover, it will install all the dependencies of your projects before executing any tasks.
 
 ### Example 3
 
 ```groovy
 eta {
-  version = '0.8.0b2'
+  version = '0.8.6b1'
   useSystemEtlas = true
 }
 ```
 
-The plugin will download and cache **Eta v0.7.2.b1** and use the Etlas it can find on the `PATH`.
+The plugin will download and cache **Eta v0.8.6b1** and use the Etlas it can find on the `PATH`.
 
 ### Example 4
 
 ```groovy
 eta {
   useSystemEta = true
-  etlasVersion = '1.4.0.0'
+  etlasVersion = '1.5.0.0'
 }
 ```
 
-The plugin will use the Eta it can find on the `PATH` and download and cache **Etlas v1.4.0.0**.
+The plugin will use the Eta it can find on the `PATH` and download and cache **Etlas v1.5.0.0**.
 
 ## Next Section
 
