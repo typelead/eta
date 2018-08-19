@@ -10,7 +10,7 @@ tests/suite/typecheck/fail/tcfail133.hs:68:7: error:
         -- Defined in ‘GHC.Show’
       instance Show GHC.Stack.Types.CallStack -- Defined in ‘GHC.Show’
       instance Show GHC.Stack.Types.SrcLoc -- Defined in ‘GHC.Show’
-      ...plus 29 others
+      ...plus 46 others
     In the expression: show
     In the expression: show $ add (One :@ Zero) (One :@ One)
     In an equation for ‘foo’:
