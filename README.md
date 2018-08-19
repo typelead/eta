@@ -23,12 +23,12 @@ Visit [eta-lang.org](https://eta-lang.org) for instructions on getting started.
 
 <!-- @VERSION_CHANGE@ -->
 <!-- @BUILD_NUMBER@ -->
-**Version:** 0.8.0
+**Version:** 0.8.6
 
-**Stable Build:** 0.8.0b2
+**Stable Build:** 0.8.6b1
 
 <!-- @BUILD_NUMBER@ -->
-**Latest Build:** 0.8.0b2
+**Latest Build:** 0.8.6b1
 
 Subscribe to the [Eta-Discuss](https://groups.google.com/forum/#!forum/eta-discuss)
 for updates.
