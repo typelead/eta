@@ -183,6 +183,7 @@ public final class Capability implements LocalHeap {
                         result = t.closure.enter(context);
                     } catch (FiberYieldException fye) {
                         result = null;
+                        t.closure = Closures.evalLazyIO(t.closure);
                     } catch (java.lang.Exception e) {
                         t.whatNext = ThreadKilled;
                         pendingException = (java.lang.Exception) Exception.normalize(e);
