@@ -3,7 +3,6 @@ package eta.runtime.storage;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ManagedHeap {
     /* All of the sizes *must* be a power of 2. */
@@ -20,8 +19,7 @@ public class ManagedHeap {
     private final int miniBlockBits;
 
     /* Nursery storage */
-    private final CopyOnWriteArrayList<Nursery> nurseries
-        = new CopyOnWriteArrayList<Nursery>();
+    private volatile Nursery[] nurseries;
     private volatile Nursery activeNursery;
 
     private final Object heapLock = new Object();
@@ -39,7 +37,7 @@ public class ManagedHeap {
         this.miniBlockBits = Integer.numberOfTrailingZeros(miniBlockSize);
 
         final Nursery nursery = allocateNursery(blockSize);
-        addNursery(nursery);
+        nurseries = new Nursery[] { nursery };
         setActiveNursery(nursery);
     }
 
@@ -107,7 +105,11 @@ public class ManagedHeap {
     }
 
     public void addNursery(final Nursery nursery) {
-        this.nurseries.add(nursery);
+        final int numNurseries = this.nurseries.length;
+        final Nursery[] newNurseries = new Nursery[numNurseries + 1];
+        System.arraycopy(this.nurseries, 0, newNurseries, 0, numNurseries);
+        newNurseries[numNurseries] = nursery;
+        this.nurseries = newNurseries;
     }
 
     public void setActiveNursery(final Nursery nursery) {
@@ -124,13 +126,14 @@ public class ManagedHeap {
         final long normalizedAddress = address - blockSize;
         final int nurseryIndex = (int) (normalizedAddress >>> (nurseryBits + blockBits));
         final int blockIndex   = (int)((normalizedAddress >>> blockBits) & nurseryMask);
-        if (nurseryIndex >= nurseries.size()) {
-            final long upperBound = nurseries.size() * nurserySize * blockSize;
+        final int numNurseries = this.nurseries.length;
+        if (nurseryIndex >= numNurseries) {
+            final long upperBound = numNurseries * nurserySize * blockSize;
             throwIllegalAddressException
                 (address, "Exceeded upper bound of the address space: " +
                  showAddress(upperBound));
         }
-        return nurseries.get(nurseryIndex).getBlock(blockIndex);
+        return nurseries[nurseryIndex].getBlock(blockIndex);
     }
 
     public void attemptFree(long address) {
@@ -160,10 +163,10 @@ public class ManagedHeap {
 
     /* Monitoring */
     public HeapStats getStatistics() {
-        Iterator<Nursery> it = nurseries.iterator();
-        ArrayList<NurseryStats> nurseryStats = new ArrayList(nurseries.size());
-        while (it.hasNext()) {
-            nurseryStats.add(it.next().getStatistics());
+        ArrayList<NurseryStats> nurseryStats = new ArrayList(this.nurseries.length);
+        final Nursery[] nurseries = this.nurseries;
+        for (Nursery nursery : nurseries) {
+            nurseryStats.add(nursery.getStatistics());
         }
         return new HeapStats(nurserySize, blockSize, miniBlockSize, nurseryStats);
     }
