@@ -386,7 +386,7 @@ defaultErrorHandler :: (ExceptionMonad m, MonadIO m)
 defaultErrorHandler fm (FlushOut flushOut) inner =
   -- top-level exception handler: any unrecognised exception is a compiler bug.
   ghandle (\exception -> liftIO $ do
-           endMetrics
+           endMetrics unsafeGlobalDynFlags
            flushOut
            case fromException exception of
                 -- an IO exception probably isn't our fault, so don't panic
@@ -1499,28 +1499,34 @@ parser str dflags filename =
          Right (warns, rdr_module)
 
 -- Telemetry API
-eventsLog :: IO FilePath
-eventsLog = fmap (</> "metrics" </> "events.log") $ findTopDir Nothing
+eventsLog :: DynFlags -> IO FilePath
+eventsLog dflags
+  | Just metricsdir <- metricsDir dflags
+  = return $ metricsdir </> eventsFile
+  | otherwise
+  = fmap metricsWithDir $ findTopDir Nothing
+  where metricsWithDir p = p </> "metrics" </> eventsFile
+        eventsFile = "events.log"
 
-startMetrics :: Mode -> IO ()
-startMetrics mode = do
+startMetrics :: DynFlags -> Mode -> IO ()
+startMetrics dflags mode = do
   startTime <- liftIO $ getCurrentTime
-  modifyIORef (metrics unsafeGlobalDynFlags)
+  modifyIORef (metrics dflags)
               (const (Just $ emptyMetrics { metStartTime = startTime
                                           , metMode      = mode }))
-endMetrics :: IO ()
-endMetrics = do
+endMetrics :: DynFlags -> IO ()
+endMetrics dflags = do
   endTime <- getCurrentTime
-  modifyIORef (metrics unsafeGlobalDynFlags)
+  modifyIORef (metrics dflags)
               (\may -> fmap (\m -> m { metEndTime = endTime }) may)
-  saveMetrics
+  saveMetrics dflags
 
-saveMetrics :: IO ()
-saveMetrics = do
-  mMetrics <- readIORef $ metrics unsafeGlobalDynFlags
+saveMetrics :: DynFlags -> IO ()
+saveMetrics dflags = do
+  mMetrics <- readIORef $ metrics dflags
   case mMetrics of
     Just metrics -> do
-      fp <- eventsLog
+      fp <- eventsLog dflags
       exists <- doesFileExist fp
       let payload = (showSDocUnsafe . renderJSON $ json metrics) ++ "\n"
       if exists

@@ -208,9 +208,9 @@ main' postLoadMode dflags0 args flagWarnings = do
   liftIO $ checkOptions postLoadMode dflags6 srcs objs
 
   let measure mode io = do
-        liftIO $ GHC.startMetrics mode
+        liftIO $ GHC.startMetrics dflags6 mode
         r <- io
-        liftIO $ GHC.endMetrics
+        liftIO $ GHC.endMetrics dflags6
         return r
 
   ---------------- Do the business -----------

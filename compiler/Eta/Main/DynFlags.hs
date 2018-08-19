@@ -654,6 +654,7 @@ data DynFlags = DynFlags {
 
   -- paths etc.
   objectDir             :: Maybe String,
+  metricsDir            :: Maybe String,
   dylibInstallName      :: Maybe String,
   hiDir                 :: Maybe String,
   stubDir               :: Maybe String,
@@ -1467,6 +1468,7 @@ defaultDynFlags mySettings =
         thisComponentId_        = Nothing,
 
         objectDir               = Nothing,
+        metricsDir              = Nothing,
         dylibInstallName        = Nothing,
         hiDir                   = Nothing,
         stubDir                 = Nothing,
@@ -1987,12 +1989,13 @@ setObjectDir, setHiDir, setStubDir, setDumpDir, setOutputDir,
          setObjectSuf, setHiSuf, setHcSuf, parseDynLibLoaderMode,
          setPgmP, addOptl, addOptc, addOptP,
          addCmdlineFramework, addEtaDocOpts, addGhciScript,
-         setInteractivePrint
+         setInteractivePrint, setMetricsDir
    :: String -> DynFlags -> DynFlags
 setOutputFile, setDynOutputFile, setOutputHi, setDumpPrefixForce
    :: Maybe String -> DynFlags -> DynFlags
 
 setObjectDir  f d = d{ objectDir  = Just f}
+setMetricsDir f d = d{ metricsDir = Just f}
 setHiDir      f d = d{ hiDir      = Just f}
 setStubDir    f d = d{ stubDir    = Just f, includePaths = f : includePaths d }
   -- -stubdir D adds an implicit -I D, so that gcc can find the _stub.h file
@@ -2514,6 +2517,7 @@ dynamic_flags = [
   , defGhcFlag "stubdir"           (hasArg setStubDir)
   , defGhcFlag "dumpdir"           (hasArg setDumpDir)
   , defGhcFlag "outputdir"         (hasArg setOutputDir)
+  , defGhcFlag "metricsdir"        (hasArg setMetricsDir)
   , defGhcFlag "ddump-file-prefix" (hasArg (setDumpPrefixForce . Just))
 
   , defGhcFlag "dynamic-too"       (NoArg (setGeneralFlag Opt_BuildDynamicToo))
