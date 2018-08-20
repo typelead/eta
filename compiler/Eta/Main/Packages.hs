@@ -529,11 +529,7 @@ resolvePackageConfig dflags GlobalPkgConf = return $ Just (systemPackageConfig d
 -- NB: This logic is reimplemented in Cabal, so if you change it,
 -- make sure you update Cabal.  (Or, better yet, dump it in the
 -- compiler info so Cabal can use the info.)
-resolvePackageConfig dflags UserPkgConf = runMaybeT $ do
-  dir <- liftMaybeT $ versionedAppDir dflags
-  let pkgconf = dir </> "package.conf.d"
-  exist <- tryMaybeT $ doesDirectoryExist pkgconf
-  if exist then return pkgconf else mzero
+resolvePackageConfig dflags UserPkgConf = return $ Just (systemPackageConfig dflags)
 resolvePackageConfig _ (PkgConfFile name) = return $ Just name
 
 readPackageConfig :: DynFlags -> FilePath -> IO (FilePath, [PackageConfig])

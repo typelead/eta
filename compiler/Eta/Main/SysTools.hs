@@ -168,7 +168,14 @@ initSysTools :: Maybe String    -- Maybe TopDir path (without the '-B' prefix)
                                 --      (b) the package-config file
                                 --      (c) the GHC usage message
 initSysTools mbMinusB
-  = do topDir <- findTopDir mbMinusB
+  = do eTopDir <- tryIO (findTopDir mbMinusB)
+       topDir <- either (\e -> ioError $ userError $
+              "Unable to determine the Eta home directory because:\n\n" ++
+              show e ++
+              "\n\nA possible solution to this problem is to set the" ++
+              " $HOME environment variable or pass the -homedir flag.")
+              return
+              eTopDir
        tmpdir <- getTemporaryDirectory
        let platform = Platform { platformWordSize = 4
                           , platformArch = undefined

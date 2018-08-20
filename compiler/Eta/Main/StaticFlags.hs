@@ -28,6 +28,7 @@ module Eta.Main.StaticFlags (
         -- optimisation opts
         opt_NoStateHack,
         opt_CprOff,
+        opt_TopDir,
         opt_NoOptCoercion,
 
         -- For the parser
@@ -133,7 +134,10 @@ flagsStatic = [
          (PrefixPred (\s -> isStaticFlag ("f"++s)) (\s -> removeOptEwM ("-f"++s)))
 
   -- Pass all remaining "-f<blah>" options to hsc
-  , defFlag "f" (AnySuffixPred isStaticFlag addOptEwM)
+  , defFlag "f"         (AnySuffixPred isStaticFlag addOptEwM)
+  , defFlag "homedir"   (HasArg $ \dir -> do
+                           addOptEwM dir
+                           addOptEwM "-homedir")
   ]
 
 
@@ -211,6 +215,15 @@ opt_CprOff         = lookUp  (fsLit "-fcpr-off")
 opt_NoOptCoercion  :: Bool
 opt_NoOptCoercion  = lookUp  (fsLit "-fno-opt-coercion")
 
+opt_TopDir :: Maybe FilePath
+opt_TopDir = lookup_arg "-homedir"
+
+lookup_arg :: String -> Maybe String
+lookup_arg flag
+   = case break (== flag) staticFlags of
+        (_, (_:flagValue:_)) -> Just flagValue
+        _ -> Nothing
+
 {-
 -- (lookup_str "foo") looks for the flag -foo=X or -fooX,
 -- and returns the string X
@@ -241,4 +254,3 @@ try_read sw str
                         -- ToDo: hack alert. We should really parse the arguments
                         --       and announce errors in a more civilised way.
 -}
-

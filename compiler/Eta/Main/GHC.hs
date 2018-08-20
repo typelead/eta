@@ -386,13 +386,14 @@ defaultErrorHandler :: (ExceptionMonad m, MonadIO m)
 defaultErrorHandler fm (FlushOut flushOut) inner =
   -- top-level exception handler: any unrecognised exception is a compiler bug.
   ghandle (\exception -> liftIO $ do
-           endMetrics unsafeGlobalDynFlags
            flushOut
            case fromException exception of
                 -- an IO exception probably isn't our fault, so don't panic
                 Just (ioe :: IOException) ->
                   fatalErrorMsg'' fm (show ioe)
-                _ -> case fromException exception of
+                _ -> do
+                  endMetrics unsafeGlobalDynFlags
+                  case fromException exception of
                      Just UserInterrupt ->
                          -- Important to let this one propagate out so our
                          -- calling process knows we were interrupted by ^C
@@ -1504,7 +1505,7 @@ eventsLog dflags
   | Just metricsdir <- metricsDir dflags
   = return $ metricsdir </> eventsFile
   | otherwise
-  = fmap metricsWithDir $ findTopDir Nothing
+  = return $ metricsWithDir $ topDir dflags
   where metricsWithDir p = p </> "metrics" </> eventsFile
         eventsFile = "events.log"
 

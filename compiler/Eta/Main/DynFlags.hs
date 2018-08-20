@@ -4052,7 +4052,7 @@ interpretPackageEnv dflags = do
 
     namedEnvPath :: String -> MaybeT IO FilePath
     namedEnvPath name = do
-     appdir <- liftMaybeT $ versionedAppDir dflags
+     appdir <- tryMaybeT $ versionedAppDir dflags
      return $ appdir </> "environments" </> name
 
     probeEnvName :: String -> MaybeT IO FilePath

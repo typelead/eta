@@ -10,7 +10,6 @@ import Eta.Main.HscMain           ( newHscEnv )
 import Eta.Main.DriverPipeline
 import Eta.Main.DriverMkDepend    ( doMkDependHS )
 import Eta.Backpack.DriverBkp     ( doBackpack )
-import Eta.Main.SysTools
 import Eta.Main.Constants
 import Eta.Main.HscTypes
 import Eta.BasicTypes.UniqSupply
@@ -39,7 +38,6 @@ import Eta.Iface.BinFingerprint   ( fingerprintBinMem )
 
 -- Standard Libraries
 import System.IO
-import System.IO.Unsafe
 import System.Environment
 import System.Exit
 import System.FilePath
@@ -69,11 +67,7 @@ main = do
   initETA
   GHC.defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
     -- 1. extract the -B flag from the args
-    argv0 <- getArgs
-    libdir <- findTopDir Nothing
-    let (minusB_args, argv1) = partition ("-B" `isPrefixOf`) argv0
-        mbMinusB | null minusB_args = Just libdir
-                 | otherwise = Just (drop 2 (last minusB_args))
+    argv1 <- getArgs
 
     let argv1' = map (mkGeneralLocated "on the commandline") argv1
     (argv2, staticFlagWarnings) <- parseStaticFlags argv1'
@@ -100,7 +94,7 @@ main = do
             ShowOptions isInteractive -> showOptions isInteractive
         Right postStartupMode ->
             -- start our GHC session
-            GHC.runGhc mbMinusB $ do
+            GHC.runGhc opt_TopDir $ do
 
               dflags <- GHC.getSessionDynFlags
 
@@ -387,8 +381,8 @@ showInfoMode = mkPreLoadMode ShowInfo
 
 printSetting :: String -> Mode
 printSetting k = mkPreLoadMode (PrintWithDynFlags f)
-    where f _dflags = fromMaybe (panic ("Setting not found: " ++ show k))
-                    $ lookup k compilerInfo
+    where f dflags = fromMaybe (panic ("Setting not found: " ++ show k))
+                    $ lookup k (compilerInfo dflags)
 
 mkPreLoadMode :: PreLoadMode -> Mode
 mkPreLoadMode = Right . Left
@@ -689,17 +683,17 @@ showBanner postLoadMode dflags = do
 -- We print out a Read-friendly string, but a prettier one than the
 -- Show instance gives us
 showInfo :: DynFlags -> IO ()
-showInfo _dflags = do
+showInfo dflags = do
   let sq x = " [" ++ x ++ "\n ]"
-  putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo
+  putStrLn $ sq $ intercalate "\n ," $ map show $ compilerInfo dflags
 
-compilerInfo :: [(String, String)]
-compilerInfo = [("Project name", cProjectName),
+compilerInfo :: DynFlags -> [(String, String)]
+compilerInfo dflags = [("Project name", cProjectName),
                 ("Project version", cProjectVersion),
                 ("Project Git commit id", cProjectGitCommitId),
                 ("Project version", cProjectVersion),
-                ("LibDir", topDir),
-                ("Global Package DB", topDir </> "package.conf.d")
+                ("LibDir", topDir'),
+                ("Global Package DB", topDir' </> "package.conf.d")
                ] ++ map (,"YES")
                   ["Uses unit IDs"
                   ,"Support thinning and renaming package flags"
@@ -708,7 +702,7 @@ compilerInfo = [("Project name", cProjectName),
                   ,"Uses package keys"
                   ,"Requires unified installed package IDs"
                   ,"Support Backpack"]
-  where topDir = unsafePerformIO (findTopDir Nothing)
+  where topDir' = topDir dflags
 
 showSupportedExtensions :: IO ()
 showSupportedExtensions = mapM_ putStrLn supportedLanguagesAndExtensions

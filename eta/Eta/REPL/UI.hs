@@ -53,7 +53,6 @@ import Eta.HsSyn.HsImpExp
 import Eta.HsSyn.HsSyn
 import Eta.Main.HscTypes ( tyThingParent_maybe, handleFlagWarnings, getSafeMode, hsc_IC,
                   setInteractivePrintName, hsc_dflags, msObjFilePath )
-import Eta.Main.SysTools (findTopDir)
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name
 import Eta.Main.Packages ( trusted, getPackageDetails, getInstalledPackageDetails,
@@ -586,14 +585,11 @@ ghciLogAction lastErrLocations dflags flag severity srcSpan style msg = do
             _ -> return ()
         _ -> return ()
 
-withGhcAppData :: (FilePath -> IO a) -> IO a -> IO a
-withGhcAppData right left = do
-    either_dir <- tryIO (findTopDir Nothing)
-    case either_dir of
-        Right dir ->
-            do createDirectoryIfMissing True dir `catchIO` \_ -> return ()
-               right dir
-        _ -> left
+withGhcAppData :: DynFlags -> (FilePath -> IO a) -> IO a -> IO a
+withGhcAppData dflags right _left = do
+    let dir = topDir dflags
+    createDirectoryIfMissing True dir `catchIO` \_ -> return ()
+    right dir
 
 runGHCi :: [(FilePath, Maybe Phase)] -> Maybe [String] -> GHCi ()
 runGHCi paths maybe_exprs = do
@@ -603,7 +599,7 @@ runGHCi paths maybe_exprs = do
 
    current_dir = return (Just ".eta_repl")
 
-   app_user_dir = liftIO $ withGhcAppData
+   app_user_dir = liftIO $ withGhcAppData dflags
                     (\dir -> return (Just (dir </> "eta_repl.conf")))
                     (return Nothing)
 
@@ -712,7 +708,7 @@ runGHCiInput f = do
 
     histFile <- case (ghciHistory, localGhciHistory) of
       (True, True) -> return (Just (currentDirectory </> ".eta_repl_history"))
-      (True, _) -> liftIO $ withGhcAppData
+      (True, _) -> liftIO $ withGhcAppData dflags
         (\dir -> return (Just (dir </> "eta_repl_history"))) (return Nothing)
       _ -> return Nothing
 
