@@ -76,6 +76,7 @@ public class Concurrent {
                     cap.blockedLoop();
                     val = mvar.tryTake();
                 } while (val == null);
+                cap.lastBlockCounter = 0;
             } finally {
                 tso.whyBlocked = NotBlocked;
                 tso.blockInfo  = null;
@@ -102,6 +103,7 @@ public class Concurrent {
                     cap.blockedLoop();
                     val = mvar.tryRead();
                 } while (val == null);
+                cap.lastBlockCounter = 0;
             } finally {
                 tso.whyBlocked = NotBlocked;
                 tso.blockInfo  = null;
@@ -128,6 +130,7 @@ public class Concurrent {
                     cap.blockedLoop();
                     success = mvar.tryPut(val);
                 } while (!success);
+                cap.lastBlockCounter = 0;
             } finally {
                 tso.blockInfo  = null;
                 tso.whyBlocked = NotBlocked;
@@ -181,7 +184,7 @@ public class Concurrent {
         TSO tso        = context.currentTSO;
         tso.whyBlocked = BlockedOnYield;
         tso.blockInfo  = null;
-        cap.blockedLoop();
+        cap.blockedLoop(Runtime.getMaxTSOBlockTimeNanos());
     }
 
     /* In Eta, all the threads are bound, so this always returns true. */
@@ -289,6 +292,7 @@ public class Concurrent {
             }
             cap.blockedLoop();
         } while (!future.isDone());
+        cap.lastBlockCounter = 0;
         Object exception = null;
         Object result    = null;
         if (tso.blockInfo != null) {
@@ -359,7 +363,7 @@ public class Concurrent {
             tso.whyBlocked = blocked;
             tso.blockInfo  = selectKey;
             do {
-                cap.blockedLoop();
+                cap.blockedLoop(Runtime.getMaxTSOBlockTimeNanos());
             } while (selectKey.isValid());
         }
     }
