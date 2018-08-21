@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Main
+
+module TH_repGuard
 where
 
 import Language.Haskell.TH

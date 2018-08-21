@@ -1,7 +1,7 @@
 {-# LANGUAGE MagicHash, TemplateHaskell #-}
 -- test the representation of unboxed literals
 
-module Main where
+module TH_repPrim where
 
 import GHC.Exts
 import GHC.Float
