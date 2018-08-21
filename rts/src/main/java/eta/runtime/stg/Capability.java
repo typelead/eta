@@ -193,7 +193,7 @@ public final class Capability implements LocalHeap {
                     Interpreter.interpretBCO(this);
                     break;
                 default:
-                    barf("Invalid whatNext field for TSO[%d].", t.id);
+                    barf("Invalid whatNext field for TSO[" + t.id + "] - " + prevWhatNext);
             }
 
             context.currentTSO = null;
