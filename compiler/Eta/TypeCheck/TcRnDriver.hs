@@ -1595,10 +1595,9 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
   = do  { (rn_expr, fvs) <- checkNoErrs (rnLExpr expr)
                -- Don't try to typecheck if the renamer fails!
         ; ghciStep <- getGhciStepIO
-        ; uniq <- newUnique
+        ; fresh_it <- getItName loc
         ; interPrintName <- getInteractivePrintName
-        ; let fresh_it  = itName uniq loc
-              matches   = [mkMatch [] rn_expr emptyLocalBinds]
+        ; let matches   = [mkMatch [] rn_expr emptyLocalBinds]
               -- [it = expr]
               the_bind  = L loc $ (mkTopFunBind FromSource (L loc fresh_it) matches) { bind_fvs = fvs }
                           -- Care here!  In GHCi the expression might have
@@ -1831,8 +1830,7 @@ tcRnExpr hsc_env rdr_expr
 
         -- Now typecheck the expression;
         -- it might have a rank-2 type (e.g. :t runST)
-    uniq <- newUnique ;
-    let { fresh_it  = itName uniq (getLoc rdr_expr) } ;
+    fresh_it <- getItName (getLoc rdr_expr) ;
     (((_tc_expr, res_ty), tclvl), lie) <- captureConstraints $
                                           captureTcLevel     $
                                           tcInferRho rn_expr ;

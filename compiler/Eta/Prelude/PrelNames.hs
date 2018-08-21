@@ -157,8 +157,8 @@ allNameStrings = [ c:cs | cs <- "" : allNameStrings, c <- ['a'..'z'] ]
 This *local* name is used by the interactive stuff
 -}
 
-itName :: Unique -> SrcSpan -> Name
-itName uniq loc = mkInternalName uniq (mkOccNameFS varName (fsLit "it")) loc
+itName :: Integer -> Unique -> SrcSpan -> Name
+itName no uniq loc = mkInternalName uniq (mkOccNameFS varName (fsLit ("it" ++ show no))) loc
 
 -- mkUnboundName makes a place-holder Name; it shouldn't be looked at except possibly
 -- during compiler debugging.

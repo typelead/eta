@@ -633,6 +633,13 @@ getGHCiMonad = do { hsc <- getTopEnv; return (ic_monad $ hsc_IC hsc) }
 getInteractivePrintName :: TcRn Name
 getInteractivePrintName = do { hsc <- getTopEnv; return (ic_int_print $ hsc_IC hsc) }
 
+getItName :: SrcSpan -> TcRn Name
+getItName loc = do
+  hsc  <- getTopEnv
+  itNo <- icItCounterInc (hsc_IC hsc)
+  uniq <- newUnique
+  return $ itName (fromIntegral itNo) uniq loc
+
 tcIsHsBootOrSig :: TcRn Bool
 tcIsHsBootOrSig = do { env <- getGblEnv; return (isHsBootOrSig (tcg_src env)) }
 

@@ -64,7 +64,7 @@ module Eta.Main.HscTypes (
 
         -- * Interactive context
         InteractiveContext(..), newInteractiveContext,
-        icExprCounter, icExprCounterInc, icPrintUnqual, icInScopeTTs,
+        icExprCounter, icExprCounterInc, icItCounterInc, icPrintUnqual, icInScopeTTs,
         icExtendGblRdrEnv, extendInteractiveContext, extendInteractiveContextWithIds,
         substInteractiveContext,
         setInteractivePrintName, icInteractiveModule,
@@ -1573,8 +1573,12 @@ data InteractiveContext
          ic_cwd :: Maybe FilePath,
              -- virtual CWD of the program
 
-         ic_expr_counter :: IORef Int64
+         ic_expr_counter :: IORef Int64,
              -- ^ A thread-safe counter used to identify distinct expressions.
+             --   Should be large enough such that it shouldn't overflow.
+
+         ic_it_counter :: IORef Int64
+             -- ^ A thread-safe counter used to identify distinct repl expressions.
              --   Should be large enough such that it shouldn't overflow.
     }
 
@@ -1589,7 +1593,8 @@ data InteractiveImport
       -- into it.
 
 newInteractiveContext :: (MonadIO m) => DynFlags -> m InteractiveContext
-newInteractiveContext dflags =
+newInteractiveContext dflags = do
+    itCounter <- liftIO $ newIORef 0
     return $ InteractiveContext {
        ic_dflags       = dflags,
        ic_imports      = [],
@@ -1605,7 +1610,8 @@ newInteractiveContext dflags =
        ic_resume       = [],
 #endif
        ic_cwd          = Nothing,
-       ic_expr_counter = exprCounter
+       ic_expr_counter = exprCounter,
+       ic_it_counter   = itCounter
        }
 
 {-# NOINLINE exprCounter #-}
@@ -1619,6 +1625,11 @@ icExprCounter (InteractiveContext { ic_expr_counter = ctr }) =
 -- | Atomically increment the expression counter.
 icExprCounterInc :: (MonadIO m) => InteractiveContext -> m Int64
 icExprCounterInc (InteractiveContext { ic_expr_counter = ctr }) =
+  liftIO $ atomicModifyIORef' ctr (\x -> (x + 1, x))
+
+-- | Atomically increment the expression counter.
+icItCounterInc :: (MonadIO m) => InteractiveContext -> m Int64
+icItCounterInc (InteractiveContext { ic_it_counter = ctr }) =
   liftIO $ atomicModifyIORef' ctr (\x -> (x + 1, x))
 
 icInteractiveModule :: InteractiveContext -> Module
