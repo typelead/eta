@@ -41,7 +41,11 @@ import eta.runtime.stg.TSO;
 import eta.runtime.stg.StgContext;
 import eta.runtime.stg.Closure;
 import eta.runtime.stg.Capability;
+import eta.runtime.stg.DataCon;
 import eta.runtime.io.MemoryManager;
+import eta.runtime.thunk.Thunk;
+import eta.runtime.apply.PAP;
+import eta.runtime.apply.Function;
 import eta.runtime.RuntimeLogging;
 import static eta.runtime.RuntimeLogging.*;
 
@@ -517,5 +521,21 @@ public class Utils {
 
     public static void traceHeap(StgContext context, Closure c) {
         debugBelch("%s", c.toString());
+    }
+
+    public static String showRaw(final StgContext context, Closure closure) {
+        if (closure instanceof Thunk) {
+            /* TODO: Replace this with deep evaluate */
+            closure = closure.evaluate(context);
+        }
+        if (closure instanceof DataCon) {
+            return closure.toString();
+        } else if (closure instanceof Function){
+            return "<function>";
+        } else if (closure instanceof PAP) {
+            return "<partially applied function>";
+        } else {
+            return closure.getClass().getSimpleName() + "@" + System.identityHashCode(closure);
+        }
     }
 }

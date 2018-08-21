@@ -301,7 +301,7 @@ basicKnownKeyNames
         eqStringName, assertName, breakpointName, breakpointCondName,
         breakpointAutoName,  opaqueTyConName,
         assertErrorName, runSTRepName,
-        printName, fstName, sndName,
+        printName, printRawName, fstName, sndName,
 
         -- Integer
         integerTyConName, mkIntegerName,
@@ -439,7 +439,7 @@ gHC_PRIM, gHC_TYPES, gHC_GENERICS, gHC_MAGIC,
     gHC_TUPLE, dATA_TUPLE, dATA_EITHER, dATA_STRING, dATA_FOLDABLE, dATA_TRAVERSABLE, dATA_MONOID,
     gHC_CONC, gHC_IO, gHC_IO_Exception,
     gHC_ST, gHC_ARR, gHC_STABLE, gHC_PTR, gHC_ERR, gHC_REAL,
-    gHC_FLOAT, gHC_TOP_HANDLER, sYSTEM_IO, dYNAMIC,
+    gHC_FLOAT, gHC_TOP_HANDLER, sYSTEM_IO, eTA_RTS, dYNAMIC,
     tYPEABLE, tYPEABLE_INTERNAL, gENERICS,
     rEAD_PREC, lEX, gHC_INT, gHC_WORD, mONAD, mONAD_FIX, mONAD_ZIP,
     aRROW, cONTROL_APPLICATIVE, gHC_DESUGAR, rANDOM, gHC_EXTS,
@@ -479,6 +479,7 @@ gHC_REAL        = mkBaseModule (fsLit "GHC.Real")
 gHC_FLOAT       = mkBaseModule (fsLit "GHC.Float")
 gHC_TOP_HANDLER = mkBaseModule (fsLit "GHC.TopHandler")
 sYSTEM_IO       = mkBaseModule (fsLit "System.IO")
+eTA_RTS         = mkBaseModule (fsLit "Eta.RTS")
 dYNAMIC         = mkBaseModule (fsLit "Data.Dynamic")
 tYPEABLE        = mkBaseModule (fsLit "Data.Typeable")
 tYPEABLE_INTERNAL = mkBaseModule (fsLit "Data.Typeable.Internal")
@@ -1196,6 +1197,9 @@ failIOName        = varQual gHC_IO    (fsLit "failIO")   failIOIdKey
 printName :: Name
 printName         = varQual sYSTEM_IO (fsLit "print") printIdKey
 
+printRawName :: Name
+printRawName         = varQual eTA_RTS (fsLit "printRaw") printRawIdKey
+
 -- Int, Word, and Addr things
 int8TyConName, int16TyConName, int32TyConName, int64TyConName :: Name
 int8TyConName     = tcQual gHC_INT  (fsLit "Int8")  int8TyConKey
@@ -1906,7 +1910,7 @@ voidPrimIdKey                 = mkPreludeMiscIdUnique 21
 
 unsafeCoerceIdKey, concatIdKey, filterIdKey, zipIdKey, bindIOIdKey,
     returnIOIdKey, newStablePtrIdKey,
-    printIdKey, failIOIdKey, nullAddrIdKey, voidArgIdKey,
+    printIdKey, printRawIdKey, failIOIdKey, nullAddrIdKey, voidArgIdKey,
     fstIdKey, sndIdKey, otherwiseIdKey, assertIdKey, runSTRepIdKey :: Unique
 unsafeCoerceIdKey             = mkPreludeMiscIdUnique 30
 concatIdKey                   = mkPreludeMiscIdUnique 31
@@ -1924,6 +1928,7 @@ sndIdKey                      = mkPreludeMiscIdUnique 42
 otherwiseIdKey                = mkPreludeMiscIdUnique 43
 assertIdKey                   = mkPreludeMiscIdUnique 44
 runSTRepIdKey                 = mkPreludeMiscIdUnique 45
+printRawIdKey                 = mkPreludeMiscIdUnique 46
 
 mkIntegerIdKey, smallIntegerIdKey, wordToIntegerIdKey,
     integerToWordIdKey, integerToIntIdKey,

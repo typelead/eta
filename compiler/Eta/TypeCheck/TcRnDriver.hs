@@ -1615,21 +1615,14 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                                            (HsVar bindIOName) noSyntaxExpr
 
               -- [; print it]
-              print_it  = L loc $ BodyStmt (nlHsApp (nlHsVar interPrintName) (nlHsVar fresh_it))
-                                           (HsVar thenIOName) noSyntaxExpr placeHolderType
+              print_it print_name =
+                L loc $ BodyStmt (nlHsApp (nlHsVar print_name) (nlHsVar fresh_it))
+                                          (HsVar thenIOName) noSyntaxExpr placeHolderType
 
-        -- The plans are:
-        --   A. [it <- e; print it]     but not if it::()
-        --   B. [it <- e]
-        --   C. [let it = e; print it]
-        --
-        -- Ensure that type errors don't get deferred when type checking the
-        -- naked expression. Deferring type errors here is unhelpful because the
-        -- expression gets evaluated right away anyway. It also would potentially
-        -- emit two redundant type-error warnings, one from each plan.
-        ; plan <- unsetGOptM Opt_DeferTypeErrors $ runPlans [
+              plansWith print_name = [
                     -- Plan A
-                    do { stuff@(Right ([it_id], _)) <- tcGhciStmts [bind_stmt, print_it]
+                    do { stuff@(Right ([it_id], _)) <- tcGhciStmts
+                           [bind_stmt, print_it print_name]
                        ; it_ty <- zonkTcType (idType it_id)
                        ; when (isUnitTy $ it_ty) failM
                        ; return stuff },
@@ -1644,7 +1637,7 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                         -- This two-step story is very clunky, alas
                     do { Right (ids, _) <- checkNoErrs (tcGhciStmts [let_stmt])
                                 --- checkNoErrs defeats the error recovery of let-bindings
-                       ; let cont = tcGhciStmts [let_stmt, print_it]
+                       ; let cont = tcGhciStmts [let_stmt, print_it print_name]
                        ; case map idType ids of
                            [idTy]
                              | Just (tc, [ty]) <- splitTyConApp_maybe idTy
@@ -1665,6 +1658,18 @@ tcUserStmt (L loc (BodyStmt expr _ _ _))
                            _ -> cont
 
                        } ]
+
+        -- The plans are:
+        --   A. [it <- e; print it]     but not if it::()
+        --   B. [it <- e]
+        --   C. [let it = e; print it]
+        --
+        -- Ensure that type errors don't get deferred when type checking the
+        -- naked expression. Deferring type errors here is unhelpful because the
+        -- expression gets evaluated right away anyway. It also would potentially
+        -- emit two redundant type-error warnings, one from each plan.
+        ; plan <- unsetGOptM Opt_DeferTypeErrors $ runPlans $
+                    plansWith interPrintName ++ plansWith printRawName
 
         ; fix_env <- getFixityEnv
         ; return (plan, fix_env) }
