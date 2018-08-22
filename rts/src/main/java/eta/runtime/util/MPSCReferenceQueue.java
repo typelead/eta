@@ -6,16 +6,17 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
-/* An unbounded multi-producer, single-consumer queue of longs which minimizes
-   space usage while maintaining good performance. */
-public class MPSCLongQueue {
+/* An zero-allocation unbounded multi-producer, single-consumer queue which tries to minimize
+   contention. It allocates only to expand the internal buffer in case of bursts of traffic. */
+public class MPSCReferenceQueue<E> {
 
     public static final int DEFAULT_CHUNK_SIZE = 64;
     public static final long READABLE_BIT = 1L << 63;
     private final AtomicBoolean lock = new AtomicBoolean();
     private final AtomicLong writeSequence = new AtomicLong();
-    private final RingBuffer headBuffer;
+    private final RingBuffer<E> headBuffer;
 
     /* Cached constants */
     private final int chunkSize;
@@ -24,67 +25,54 @@ public class MPSCLongQueue {
 
     /* This will be treated as a copy-on-write array
        to ensure consistent traversal. */
-    private volatile RingBuffer[] buffers = new RingBuffer[0];
-
-    /* Cached result of canRead() */
-    private long readResult;
+    @SuppressWarnings("unchecked")
+    private volatile RingBuffer<E>[] buffers = (RingBuffer<E>[])new RingBuffer[0];
 
     /* chunkSize should ideally be a power of 2. */
-    public MPSCLongQueue() {
+    public MPSCReferenceQueue() {
         this(DEFAULT_CHUNK_SIZE);
     }
 
-    public MPSCLongQueue(final int chunkSize) {
+    public MPSCReferenceQueue(final int chunkSize) {
         this.chunkSize = chunkSize;
         this.chunkMask = chunkSize - 1;
         this.chunkBits = Integer.numberOfTrailingZeros(chunkSize);
 
-        this.headBuffer = new RingBuffer(chunkSize);
+        this.headBuffer = new RingBuffer<E>(chunkSize);
     }
 
-    /* Returns an index at which you can directly find the element you want to read.
-       Returns -1 if nothing is there to read. */
-    public boolean canRead(final long sequence) {
+    /* Returns an element to read or null if no element is available. */
+    public E read(final long sequence) {
         final int  index     = (int)(sequence &   chunkMask);
         final long iteration =       sequence >>> chunkBits;
 
         /* Fast path: You're likely to find the next item on the first ring buffer. */
         if (headBuffer.isReadable(iteration, index)) {
-            readResult = headBuffer.get(iteration, index);
-            return true;
+            return headBuffer.get(iteration, index);
         } else {
             return canReadSlow(iteration, index);
         }
     }
 
-    private boolean canReadSlow(final long iteration, final int index) {
+    private E canReadSlow(final long iteration, final int index) {
 
-        final RingBuffer[] buffers = this.buffers;
+        final RingBuffer<E>[] buffers = this.buffers;
         final int numBuffers = buffers.length;
 
         /* Slow path: Search for the ring buffer with the sequence number you need. */
         for (int i = 0; i < numBuffers; i++) {
-            final RingBuffer buffer = buffers[i];
+            final RingBuffer<E> buffer = buffers[i];
             if (buffer.isReadable(iteration, index)) {
-                readResult = buffer.get(iteration, index);
-                return true;
+                return buffer.get(iteration, index);
             }
         }
-        return false;
+        return null;
     }
 
-    /* WARNING: This method is unsafe. This API assumes that the following
-                pattern is followed:
-
-       if (messages.canRead(...)) {
-         long message = messages.read();
-       }
-     */
-    public long read() {
-        return readResult;
-    }
-
-    public long write(final long val) {
+    public long write(final E val) {
+        if (val == null) {
+            throw new IllegalArgumentException("Cannot write null to an MPSCReferenceQueue!");
+        }
         final long sequence     = writeSequence.getAndIncrement();
         final long iteration    =       sequence >>> chunkBits;
         final int  index        = (int)(sequence &   chunkMask);
@@ -94,8 +82,8 @@ public class MPSCLongQueue {
         return sequence;
     }
 
-    private void writeSlow(final long iteration, final int index, final long val) {
-        RingBuffer[] buffers;
+    private void writeSlow(final long iteration, final int index, final E val) {
+        RingBuffer<E>[] buffers;
         int numBuffers = 0;
         do {
             buffers = this.buffers;
@@ -108,16 +96,18 @@ public class MPSCLongQueue {
         } while (createNewBufferRetry(iteration, index, val, buffers, numBuffers));
     }
 
-    private boolean createNewBufferRetry(final long iteration, final int index, final long val,
-                                         final RingBuffer[] buffers, final int numBuffers) {
+    private boolean createNewBufferRetry(final long iteration, final int index, final E val,
+                                         final RingBuffer<E>[] buffers, final int numBuffers) {
         if (!lock.get() && lock.compareAndSet(false, true)) {
             try {
                 /* The buffers could've updated by the time we get the lock. */
                 if (this.buffers != buffers) {
                     return true;
                 }
-                final RingBuffer newBuffer = new RingBuffer(chunkSize);
-                final RingBuffer[] newBuffers = new RingBuffer[numBuffers + 1];
+                final RingBuffer<E> newBuffer = new RingBuffer<E>(chunkSize);
+                @SuppressWarnings("unchecked")
+                final RingBuffer<E>[] newBuffers = (RingBuffer<E>[]) 
+                    new RingBuffer[numBuffers + 1];
                 System.arraycopy(buffers, 0, newBuffers, 0, numBuffers);
                 newBuffers[numBuffers] = newBuffer;
                 newBuffer.weakSet(iteration, index, val);
@@ -131,7 +121,7 @@ public class MPSCLongQueue {
     }
 
     public void dump() {
-        final RingBuffer[] buffers = this.buffers;
+        final RingBuffer<E>[] buffers = this.buffers;
         final int numBuffers = buffers.length;
         System.out.println("MPSCDump: NumBuffers = " + numBuffers);
         final List<Long> allMessages = new ArrayList<Long>();
@@ -162,9 +152,9 @@ public class MPSCLongQueue {
     }
 
 
-    private static class RingBuffer {
+    private static class RingBuffer<E> {
         /* TODO: Avoid false sharing by using 64 byte stretches at a time? */
-        private final AtomicLongArray longs;
+        private final AtomicReferenceArray<E> references;
         private final AtomicLongArray available;
 
         /* This is a carefully chosen value (of many such values) that is never a valid
@@ -173,26 +163,28 @@ public class MPSCLongQueue {
         private final int chunkBits;
 
         public RingBuffer(final int size) {
-            this.longs     = new AtomicLongArray(size);
-            this.available = new AtomicLongArray(size);
-            this.chunkBits = Integer.numberOfTrailingZeros(size);
+            this.references = new AtomicReferenceArray<E>(size);
+            this.available  = new AtomicLongArray(size);
+            this.chunkBits  = Integer.numberOfTrailingZeros(size);
         }
 
-        public long get(final long iteration, final int i) {
-            long res = longs.get(i);
+        public E get(final long iteration, final int i) {
+            E res = references.get(i);
+            /* Done to allow the reference to released early. */
+            references.lazySet(i, null);
             available.set(i, 0);
             return res;
         }
 
-        public boolean set(final long iteration, final int i, final long val) {
+        public boolean set(final long iteration, final int i, final E val) {
             boolean success = false;
             final long avail = available.get(i);
             if (avail == 0) {
                 /* This is here to fend off the competition. This is a value that
-                   can never be read nor written to. This appears to be useless since
-                   it always seems to succeed. This typically does not happen unless
-                   the contention rate is enormous, so if message loss can be tolerated,
-                   this can be removed.
+                   can never be read nor written to. This typically does not happen unless
+                   the contention rate is enormous, and is kept here for correctness.
+                   If can be removed if message loss is harmless and the read code
+                   should be adjusted accordingly to detect message loss.
                 */
                 success = available.compareAndSet(i, 0, WRITE_LOCK);
                 if (success) {
@@ -202,8 +194,8 @@ public class MPSCLongQueue {
             return success;
         }
 
-        public void weakSet(final long iteration, final int i, final long val) {
-            longs.set(i, val);
+        public void weakSet(final long iteration, final int i, final E val) {
+            references.set(i, val);
             available.set(i, (READABLE_BIT | iteration));
         }
 

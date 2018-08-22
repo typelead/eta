@@ -13,55 +13,58 @@ import static org.junit.Assert.*;
 import static eta.runtime.TestUtils.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class MPSCLongQueueTest {
+public class MPSCReferenceQueueTest {
 
-    MPSCLongQueue queue;
+    MPSCReferenceQueue<Long> queue;
 
     @Before
     public void init() {
-        queue = new MPSCLongQueue();
+        queue = new MPSCReferenceQueue<Long>();
     }
 
     @Test
     public void testMPSCInit() {
         long sequence = 0;
-        assertEquals(false, queue.canRead(sequence));
-        queue.write(123);
-        assertEquals(true, queue.canRead(sequence++));
-        assertEquals(123, queue.read());
-        assertEquals(false, queue.canRead(sequence - 1));
-        assertEquals(false, queue.canRead(sequence));
+        Long val = Long.valueOf(123);
+        assertEquals(null, queue.read(sequence));
+        queue.write(val);
+        assertEquals(val, queue.read(sequence++));
+        assertEquals(null, queue.read(sequence - 1));
+        assertEquals(null, queue.read(sequence));
     }
 
     @Test
     public void testMPSCMulti() {
-        int chunkSize = MPSCLongQueue.DEFAULT_CHUNK_SIZE;
+        int chunkSize = MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
         long sequence = 0;
         for (int i = 0; i < chunkSize; i++) {
-            queue.write(i);
+            queue.write(Long.valueOf(i));
         }
         for (int i = 0; i < chunkSize; i++) {
-            assertEquals(true, queue.canRead(sequence++));
-            assertEquals(i, queue.read());
+            assertEquals(Long.valueOf(i), queue.read(sequence++));
         }
         int chunkSizeInc = chunkSize + 1;
-        assertEquals(false, queue.canRead(sequence));
-        queue.write(chunkSizeInc);
-        assertEquals(true, queue.canRead(sequence++));
-        assertEquals(chunkSizeInc, queue.read());
+        Long val = Long.valueOf(chunkSizeInc);
+        assertEquals(null, queue.read(sequence));
+        queue.write(val);
+        assertEquals(val, queue.read(sequence++));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testMPSCNull() {
+        queue.write(null);
     }
 
     @Test
     public void testMPSCMultiLarge() {
-        final int chunkSize = MPSCLongQueue.DEFAULT_CHUNK_SIZE;
+        final int chunkSize = MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
         final int size = 10 * chunkSize;
         for (int i = 0; i < size; i++) {
-            queue.write(i);
+            queue.write(Long.valueOf(i));
         }
         long sequence = 0;
         for (int i = 0; i < chunkSize; i++) {
-            assertEquals(true, queue.canRead(sequence++));
-            assertEquals(i, queue.read());
+            assertEquals(Long.valueOf(i), queue.read(sequence++));
         }
     }
 
@@ -69,14 +72,15 @@ public class MPSCLongQueueTest {
     @Test(timeout = 1000)
     public void testMPSCConcurrent() throws Throwable {
         final Deque<Throwable> exceptions = new LinkedList<Throwable>();
-        final int chunkSize = MPSCLongQueue.DEFAULT_CHUNK_SIZE;
+        final int chunkSize = MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
         final int limit = 2 * chunkSize - 1;
         Thread consumer = new ExceptionalThread(exceptions) {
                 @Override
                 public void innerRun() {
                     for (long sequence = 0; sequence < limit; sequence++) {
-                        while (!queue.canRead(sequence));
-                        assertEquals(sequence, queue.read());
+                        Long val = null;
+                        while ((val = queue.read(sequence)) == null);
+                        assertEquals(Long.valueOf(sequence), val);
                     }
                 }
             };
@@ -84,7 +88,7 @@ public class MPSCLongQueueTest {
                 @Override
                 public void innerRun() {
                     for (int i = 0; i < limit; i++) {
-                        queue.write(i);
+                        queue.write(Long.valueOf(i));
                     }
                 }
             };
@@ -105,7 +109,7 @@ public class MPSCLongQueueTest {
             new ConcurrentLinkedQueue<HashMap<Long,Long>>();
         final HashMap<Long,Long> seqMessagesIn = new HashMap<Long,Long>();
         final AtomicInteger doneCount = new AtomicInteger();
-        final int chunkSize = MPSCLongQueue.DEFAULT_CHUNK_SIZE;
+        final int chunkSize = MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
         final int size = 1000 * chunkSize;
         int i;
         int j;
@@ -142,13 +146,14 @@ public class MPSCLongQueueTest {
                     int i2 = 0;
                     int i3 = 0;
                     for (long sequence = 0; sequence < 3 * size; sequence++) {
-                        while (!queue.canRead(sequence)) {
+                        Long val = null;
+                        while ((val = queue.read(sequence)) == null) {
                             if (doneCount.get() == 3) {
                                 queue.dump();
                                 assertTrue("One or more messages were dropped.", false);
                             }
                         }
-                        long r = queue.read();
+                        long r = val.longValue();
                         seqMessagesIn.put(sequence, r);
                         boolean oneOf = false;
                         if (i1 < size && r == array1[i1]) {
