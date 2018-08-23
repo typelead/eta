@@ -350,7 +350,7 @@ public class Exception {
         return true;
     }
 
-    public static String exceptionToString(final java.lang.Exception e) {
+    public static String exceptionToString(final Throwable e) {
         final StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
         return sw.toString();
