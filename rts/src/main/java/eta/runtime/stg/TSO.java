@@ -115,11 +115,14 @@ public final class TSO extends BlackHole {
             case BlockedOnMVarRead:
             case BlockedOnSTM:
             case BlockedOnMsgThrowTo:
-            case BlockedOnRead:
-            case BlockedOnWrite:
             case BlockedOnFuture:
             case BlockedOnDelay:
             case BlockedOnJavaCall_Interruptible:
+            case BlockedOnRead:
+            case BlockedOnWrite:
+            case BlockedOnConnect:
+            case BlockedOnAccept:
+            case BlockedOnIO:
                 return true;
             default:
                 return false;
@@ -197,7 +200,7 @@ public final class TSO extends BlackHole {
     }
 
     public final StgContext getContext() {
-        return cap.context;
+        return cap.getContext();
     }
 
     public final Closure getException() {
@@ -283,7 +286,7 @@ public final class TSO extends BlackHole {
 
     public final void setName(String name) {
         if (cap != null) {
-            Thread t = cap.thread.get();
+            Thread t = cap.getThread();
             if (t != null) {
                 t.setName(name);
             }

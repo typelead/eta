@@ -12,11 +12,13 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.io.IOException;
+import java.nio.channels.SelectableChannel;
 import java.lang.ref.WeakReference;
 
 import eta.runtime.Runtime;
 import eta.runtime.io.IO;
+import eta.runtime.io.IOManager;
 import eta.runtime.io.MemoryManager;
 import eta.runtime.concurrent.Concurrent;
 import eta.runtime.concurrent.WorkerThread;
@@ -43,11 +45,11 @@ import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.RuntimeLogging.*;
 
 public final class Capability implements LocalHeap {
-    public static final long startTimeNanos = System.nanoTime();
-    public static List<Capability> capabilities = new ArrayList<Capability>();
+    private static final long startTimeNanos = System.nanoTime();
+    private static List<Capability> capabilities = new ArrayList<Capability>();
     public static Set<Capability> workerCapabilities
         = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
-    public static AtomicInteger workerCapNextId = new AtomicInteger();
+    private static AtomicInteger workerCapNextId = new AtomicInteger();
     private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
 
     public static boolean singletonCapabilities() {
@@ -68,7 +70,7 @@ public final class Capability implements LocalHeap {
     }
 
     private static Capability create(boolean worker) {
-        Capability cap = new Capability(Thread.currentThread(), worker);
+        Capability cap = Capability.create(Thread.currentThread(), worker);
         if (worker) {
             workerCapabilities.add(cap);
             cap.id = workerCapNextId.getAndIncrement();
@@ -94,33 +96,66 @@ public final class Capability implements LocalHeap {
         Runtime.setMaxWorkerCapabilities(n);
     }
 
-    public int id;
-    public final boolean worker;
-    public final WeakReference<Thread> thread;
-    public final StgContext context   = new StgContext();
-    public Deque<TSO> runQueue  = new LinkedList<TSO>();
-    public int  lastWorkSize;
-    public long lastBlockCheck;
-    public Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
+    private int id;
+    private final boolean worker;
+    private final WeakReference<Thread> thread;
+    private final StgContext context = new StgContext();
+    private Deque<TSO> runQueue  = new LinkedList<TSO>();
+    private int  lastWorkSize;
+    private long lastBlockCheck;
+    private Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
+    private IOManager ioManager;
 
     /* MemoryManager related stuff */
-    public Block activeDirectBlock;
-    public Block activeHeapBlock;
-    public Block activeDirectSuperBlock;
-    public Block activeHeapSuperBlock;
+    private Block activeDirectBlock;
+    private Block activeHeapBlock;
+    private Block activeDirectSuperBlock;
+    private Block activeHeapSuperBlock;
 
-    public MPSCLongQueue freeMessages = new MPSCLongQueue();
-    public long freeSequence;
+    private MPSCLongQueue freeMessages = new MPSCLongQueue();
+    private long freeSequence;
 
-    public volatile boolean interrupt;
+    private volatile boolean interrupt;
 
-    public Capability(Thread t, boolean worker) {
-        this.thread = new WeakReference<Thread>(t);
-        this.worker = worker;
+    public Capability(final Thread t, final boolean worker) {
+        this.thread    = new WeakReference<Thread>(t);
+        this.worker    = worker;
+    }
+
+    public void setIOManager(final IOManager ioManager) {
+        this.ioManager = ioManager;
+    }
+
+    public static Capability create(final Thread t, final boolean worker) {
+        Capability cap = new Capability(t, worker);
+        IOManager ioManager;
+        try {
+            ioManager = IOManager.create(cap);
+        } catch (IOException e) {
+            ioManager = null;
+        }
+        cap.setIOManager(ioManager);
+        return cap;
     }
 
     public static Closure scheduleClosure(Closure p) throws java.lang.Exception {
         return getLocal().schedule(new TSO(p));
+    }
+
+    public final StgContext getContext() {
+        return context;
+    }
+
+    public final int getId() {
+        return id;
+    }
+
+    public final TSO getTSO() {
+        return context.currentTSO;
+    }
+
+    public final Thread getThread() {
+        return thread.get();
     }
 
     /* TODO: Break up this schedule function into chunks for better JIT. */
@@ -372,11 +407,16 @@ public final class Capability implements LocalHeap {
 
     /* Communication between Capabilities */
 
-    public final void tryWakeupThread(TSO tso) {
-        if (tso.cap != this) {
+    public final void tryWakeupThread(final TSO tso) {
+        final Capability cap = tso.cap;
+        if (cap == null) {
+            tso.whyBlocked = NotBlocked;
+            Concurrent.pushToGlobalRunQueue(tso);
+        } else if (cap != this) {
             sendMessage(tso.cap, new MessageWakeup(tso));
         } else {
             boolean blocked = true;
+            boolean setNotBlocked = true;
             switch (tso.whyBlocked) {
                 case BlockedOnMVar:
                 case BlockedOnMVarRead:
@@ -387,14 +427,24 @@ public final class Capability implements LocalHeap {
                     if (msg.isValid()) {
                         return;
                     }
+                    break;
                 case BlockedOnBlackHole:
                 case BlockedOnSTM:
+                    break;
+                case BlockedOnIO:
+                case BlockedOnRead:
+                case BlockedOnWrite:
+                case BlockedOnConnect:
+                case BlockedOnAccept:
+                    setNotBlocked = false;
                     break;
                 default:
                     blocked = false;
                     break;
             }
-            tso.whyBlocked = NotBlocked;
+            if (setNotBlocked) {
+                tso.whyBlocked = NotBlocked;
+            }
             if (!blocked) {
                 appendToRunQueue(tso);
             }
@@ -551,9 +601,6 @@ public final class Capability implements LocalHeap {
 
             /* Check for any completed futures and wake up the threads. */
             Concurrent.checkForCompletedFutures(this);
-
-            /* Check for any ready I/O operations and wake up the threads. */
-            Concurrent.checkForReadyIO(this);
 
             /* Free any memory if necessary */
             MemoryManager.maybeFreeNativeMemory();
@@ -721,6 +768,17 @@ public final class Capability implements LocalHeap {
         }
     }
 
+    public final void registerIO(final TSO tso, final SelectableChannel channel, final int ops)
+        throws IOException {
+        if (ioManager == null) {
+            if (Runtime.debugIO()) {
+                debugIO("Selector provider not available on this platform.");
+            }
+        } else {
+            ioManager.registerIO(this, tso, channel, ops);
+        }
+    }
+
     public final void cleanupLocalHeap() {
         activeDirectBlock      = null;
         activeHeapBlock        = null;
@@ -734,5 +792,9 @@ public final class Capability implements LocalHeap {
     public String toString() {
         String workerString = worker? "[Worker]" : "";
         return "Capability" + workerString + "[" + id + "]";
+    }
+
+    public void free(long address) {
+        freeMessages.write(address);
     }
 }

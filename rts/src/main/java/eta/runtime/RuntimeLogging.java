@@ -24,7 +24,7 @@ public class RuntimeLogging {
                   + "\" eta.runtime.exception.EtaException: ");
         sw.append(String.format(msg, args));
         sw.append("\n");
-        TSO tso = Capability.getLocal().context.currentTSO;
+        TSO tso = Capability.getLocal().getTSO();
         if (tso.hasStackTrace()) {
             StackTraceElement[] stackTrace = tso.getStackTrace();
             for (StackTraceElement element : stackTrace) {

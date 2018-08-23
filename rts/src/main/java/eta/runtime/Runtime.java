@@ -442,14 +442,13 @@ public class Runtime {
         return programArguments;
     }
 
-    public static void setProgramArguments(String[] newProgramArguments) {
+    public static void setProgramArguments(final String[] newProgramArguments) {
         programArguments = newProgramArguments;
     }
 
     public static String[] getLocalProgramArguments() {
-        Capability cap = Capability.getLocal();
-        TSO tso = cap.context.currentTSO;
-        Object result = tso.getState(Runtime.RUNTIME_NAMESPACE, "args");
+        final TSO tso = Capability.getLocal().getTSO();
+        final Object result = tso.getState(Runtime.RUNTIME_NAMESPACE, "args");
         if (result == null) {
             return getProgramArguments();
         } else {
@@ -458,10 +457,8 @@ public class Runtime {
 
     }
 
-    public static void setLocalProgramArguments(String[] newArgs) {
-        Capability cap = Capability.getLocal();
-        TSO tso = cap.context.currentTSO;
-        tso.setState(Runtime.RUNTIME_NAMESPACE, "args", newArgs);
+    public static void setLocalProgramArguments(final String[] newArgs) {
+        Capability.getLocal().getTSO().setState(Runtime.RUNTIME_NAMESPACE, "args", newArgs);
     }
 
     public static int getNumberOfProcessors() {

@@ -1,6 +1,7 @@
 package eta.runtime.concurrent;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Iterator;
@@ -18,6 +19,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CancelledKeyException;
+import eta.runtime.util.MPSCReferenceQueue;
+import eta.runtime.util.MPSCLongQueue;
 
 import eta.runtime.Runtime;
 import eta.runtime.stg.Stg;
@@ -202,7 +205,7 @@ public class Concurrent {
                 ret = whyBlocked.getVal();
             }
         }
-        int cap = tso.cap.id;
+        int cap = tso.cap.getId();
         /* NOTE: The Eta RTS doesn't have a concept of TSO locking. It hurts more
                  than helps performance due to the fact that we can't presently
                  save/restore the Java stack. */
@@ -303,110 +306,16 @@ public class Concurrent {
     }
 
     /* Managing Scalable I/O */
-
-    public static Selector globalSelector;
-
-    static {
-        try {
-            globalSelector = Selector.open();
-        } catch (IOException e) {
-            globalSelector = null;
-        }
-    }
-    public static AtomicBoolean selectorLock = new AtomicBoolean();
-
     public static void threadWaitIO(StgContext context, Channel channel, int ops)
         throws IOException {
-        final boolean debug = Runtime.debugIO();
-        if (globalSelector == null) {
-            if (debug) {
-                debugIO("Your platform does not support non-blocking IO.");
-            }
-            return;
-        }
         if (!(channel instanceof SelectableChannel)) {
-            if (debug) {
+            if (Runtime.debugIO()) {
                 debugIO("Non-selectable channel " + channel + " sent to threadWaitIO#.");
             }
             return;
         }
-        final Capability cap = context.myCapability;
-        final TSO tso = context.currentTSO;
-        final SelectableChannel selectChannel = (SelectableChannel) channel;
-        final SelectionKey selectKey = safeRegister(selectChannel, ops, tso);
-        if (selectKey != null) {
-            WhyBlocked blocked;
-            switch (ops) {
-                case SelectionKey.OP_READ:
-                    blocked = BlockedOnRead;
-                    break;
-                case SelectionKey.OP_WRITE:
-                    blocked = BlockedOnWrite;
-                    break;
-                case SelectionKey.OP_CONNECT:
-                    blocked = BlockedOnConnect;
-                    break;
-                case SelectionKey.OP_ACCEPT:
-                    blocked = BlockedOnAccept;
-                    break;
-                default:
-                    blocked = BlockedOnIO;
-                    break;
-            }
-            if (debug) {
-                debugIO("Registered " + channel + " for " + tso + " and blocked on " + blocked);
-            }
-            tso.whyBlocked = blocked;
-            tso.blockInfo  = selectKey;
-            do {
-                cap.blockedLoop();
-            } while (selectKey.isValid());
-        }
+        context.registerIO((SelectableChannel) channel, ops);
     }
-
-
-    public static SelectionKey safeRegister(final SelectableChannel selectChannel,
-                                            final int ops, final Object attachment)
-        throws IOException {
-        SelectionKey sk = null;
-        while (!selectorLock.compareAndSet(false, true));
-        try {
-            boolean exceptionTried = false;
-            boolean selectTried = false;
-            while (sk == null) {
-                try {
-                    sk = selectChannel.register(globalSelector, ops, attachment);
-                } catch (CancelledKeyException e) {
-                    if (selectTried) {
-                        /* When the select() doesn't work for some reason. */
-                        throw e;
-                    } else {
-                        /* This happens when the selector has invalid selector
-                        keys that will only be removed upon the next select(). */
-                        try {
-                            globalSelector.selectNow();
-                            selectTried = true;
-                        } catch (IOException io) {
-                            /* We ignore these and continue on the first one. */
-                            if (exceptionTried) {
-                                throw io;
-                            } else {
-                                exceptionTried = true;
-                            }
-                        }
-                    }
-                } catch (ClosedChannelException e) {
-                    /* If the channel is closed, return instantly so that the rest of the code
-                    can do appropriate cleanup. */
-                    return null;
-                }
-            }
-        } finally {
-            selectorLock.set(false);
-        }
-        return sk;
-    }
-
 
     public static void waitRead(StgContext context, Object o) throws IOException {
         threadWaitIO(context, (Channel) o, SelectionKey.OP_READ);
@@ -422,48 +331,6 @@ public class Concurrent {
 
     public static void waitAccept(StgContext context, Object o) throws IOException {
         threadWaitIO(context, (Channel) o, SelectionKey.OP_ACCEPT);
-    }
-
-    public static void checkForReadyIO(Capability cap) {
-        if (globalSelector.keys().size() > 0) {
-            if (selectorLock.compareAndSet(false, true)) {
-                try {
-                    int selectedKeys = globalSelector.selectNow();
-                    ArrayList<TSO> tsoList = new ArrayList<TSO>();
-                    while (selectedKeys > 0) {
-                        Iterator<SelectionKey> it = globalSelector.selectedKeys().iterator();
-                        while (it.hasNext()) {
-                            SelectionKey key = it.next();
-                            if (key.isValid() && ((key.readyOps() & key.interestOps()) != 0)) {
-                                TSO tso = (TSO) key.attachment();
-                                key.cancel();
-                                tsoList.add(tso);
-                            }
-                            it.remove();
-                        }
-                        selectedKeys = globalSelector.selectNow();
-                    }
-                    final boolean debug = Runtime.debugIO();
-                    for (TSO tso: tsoList) {
-                        if(tso.cap == null) {
-                            if (debug) {
-                                debugIO("Pushing " + tso + " to the global run queue");
-                            }
-                            pushToGlobalRunQueue(tso);
-                        } else {
-                            if (debug) {
-                                debugIO("Waking up " + tso);
-                            }
-                            cap.tryWakeupThread(tso);
-                        }
-                    }
-                } catch (IOException ioe) {
-                    throw new RuntimeException("checkForReadyIO: Exception", ioe);
-                } finally {
-                    selectorLock.set(false);
-                }
-            }
-        }
     }
 
     public static int forkOS_createThread(int stablePtr) {

@@ -83,7 +83,7 @@ public class Block {
         if (owner == Capability.getLocal()) {
             free(address);
         } else {
-            owner.freeMessages.write(address);
+            owner.free(address);
         }
     }
 
@@ -184,6 +184,6 @@ public class Block {
                 buffer.position(buffer.position() + numBytes);
             }
         }
-        return new BlockStats(startAddress, owner.id, buffer.isDirect(), spans);
+        return new BlockStats(startAddress, owner.getId(), buffer.isDirect(), spans);
     }
 }

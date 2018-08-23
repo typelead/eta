@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.nio.channels.SelectableChannel;
+import java.io.IOException;
 
 import eta.runtime.Runtime;
 import eta.runtime.thunk.Thunk;
@@ -369,7 +371,7 @@ public class StgContext {
     }
 
     public static StgContext acquire() {
-        final StgContext context = Capability.getLocal().context;
+        final StgContext context = Capability.getLocal().getContext();
         if (context.currentTSO == null) {
             context.currentTSO = new TSO(null);
         }
@@ -506,5 +508,10 @@ public class StgContext {
 
         }
         Ds[idx] = d;
+    }
+
+    public final void registerIO(final SelectableChannel channel, final int ops)
+        throws IOException {
+        myCapability.registerIO(currentTSO, channel, ops);
     }
 }
