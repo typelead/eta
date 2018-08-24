@@ -48,7 +48,7 @@ import static eta.runtime.RuntimeLogging.*;
 
 public final class Capability implements LocalHeap {
 
-    private static final long startTimeNanos = System.nanoTime();
+    public static final long startTimeNanos = System.nanoTime();
 
     /* These are the bound capabilities, i.e. capabilities linked to threads NOT created and
        managed by the Eta RTS. */
