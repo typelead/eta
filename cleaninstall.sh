@@ -5,7 +5,7 @@ set -e
 INSTALL_DIR="$1"
 if [ \( -z "$INSTALL_DIR" \) -o \( "-" = "$INSTALL_DIR" \) ]
 then
-    INSTALL_DIR=`stack path --local-bin > /dev/null 2>&1 || echo "" > /dev/null`
+    INSTALL_DIR=`stack path --local-bin 2> /dev/null || echo ""`
     if [ -z "$INSTALL_DIR" ]
     then
         INSTALL_DIR=`stack path --local-bin-path`
