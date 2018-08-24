@@ -435,6 +435,21 @@ public class Runtime {
      **/
 
     private static final String RUNTIME_NAMESPACE = "eta.runtime";
+    private static final String DEFAULT_PROGRAM_NAME = "program";
+    private static final String ETA_PROGRAM_NAME_PROPERTY = "eta.programName";
+
+    private static String programName;
+
+    static {
+        /* We cache this at class load-time to make sure side effects via
+           System.setProperty don't affect the default value. */
+        String progName = System.getProperty(ETA_PROGRAM_NAME_PROPERTY);
+        if (progName == null) {
+            progName = DEFAULT_PROGRAM_NAME;
+        }
+        setProgramName(progName);
+    }
+
 
     private static String[] programArguments;
 
@@ -459,6 +474,29 @@ public class Runtime {
 
     public static void setLocalProgramArguments(final String[] newArgs) {
         Capability.getLocal().getTSO().setState(Runtime.RUNTIME_NAMESPACE, "args", newArgs);
+    }
+
+    public static String getProgramName() {
+        return programName;
+    }
+
+    public static void setProgramName(final String newProgramName) {
+        programName = newProgramName;
+    }
+
+    public static String getLocalProgramName() {
+        final TSO tso = Capability.getLocal().getTSO();
+        final Object result = tso.getState(Runtime.RUNTIME_NAMESPACE, "progName");
+        if (result == null) {
+            return getProgramName();
+        } else {
+            return (String) result;
+        }
+    }
+
+    public static void setLocalProgramName(final String progName) {
+        Capability.getLocal().getTSO()
+            .setState(Runtime.RUNTIME_NAMESPACE, "progName", progName);
     }
 
     public static int getNumberOfProcessors() {
