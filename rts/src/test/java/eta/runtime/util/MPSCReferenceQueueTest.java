@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -53,6 +54,55 @@ public class MPSCReferenceQueueTest {
     @Test(expected = IllegalArgumentException.class)
     public void testMPSCNull() {
         queue.write(null);
+    }
+
+    @Test
+    public void testMPSCIndex() {
+        int totalSize = 10 * MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
+        long sequence = 0;
+        for (int i = 0; i < totalSize; i++) {
+            queue.write(Long.valueOf(i));
+        }
+
+        for (int i = 1; i < totalSize; i += 2) {
+            queue.read(i);
+        }
+
+        for (int i = 0; i < totalSize; i += 2) {
+            assertEquals(queue.readIndex(i), i);
+        }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testMPSCIndexException() {
+        int totalSize = 10 * MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
+        long sequence = 0;
+        for (int i = 0; i < totalSize; i++) {
+            queue.write(Long.valueOf(i));
+        }
+
+        for (int i = 1; i < totalSize; i += 2) {
+            queue.read(i);
+        }
+
+        for (int i = 1; i < totalSize; i += 2) {
+            queue.readIndex(i);
+        }
+    }
+
+    @Test
+    public void testMPSCForEach() {
+        final int totalSize = 10 * MPSCReferenceQueue.DEFAULT_CHUNK_SIZE;
+        for (int i = 0; i < totalSize; i++) {
+            queue.write(Long.valueOf(i));
+        }
+        final AtomicLong i = new AtomicLong();
+        queue.forEach(new Consumer<Long>() {
+                @Override
+                public void accept(Long e) {
+                    assertEquals(Long.valueOf(i.getAndIncrement()), e);
+                }
+            });
     }
 
     @Test

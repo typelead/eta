@@ -44,7 +44,7 @@ public class Concurrent {
 
     public static final Queue<TSO> globalRunQueue = new ConcurrentLinkedQueue<TSO>();
 
-    public static long globalRunQueueModifiedTime = 0;
+    public static volatile long globalRunQueueModifiedTime = 0;
 
     public static void pushToGlobalRunQueue(TSO tso) {
         globalRunQueue.offer(tso);

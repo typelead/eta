@@ -11,7 +11,7 @@ public class WorkerThread extends Thread {
 
     @Override
     public void run() {
-        Capability worker = Capability.getLocal(true);
+        final Capability worker = Capability.getLocal(true);
         try {
             worker.schedule(null);
         } catch (Exception e) {
@@ -20,7 +20,7 @@ public class WorkerThread extends Thread {
             }
             e.printStackTrace();
         } finally {
-            Capability.workerCapabilities.remove(worker);
+            worker.removeWorker();
         }
     }
 }

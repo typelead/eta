@@ -69,6 +69,34 @@ public class MPSCReferenceQueue<E> {
         return null;
     }
 
+    public int readIndex(final long sequence) {
+        final int  index     = (int)(sequence &   chunkMask);
+        final long iteration =       sequence >>> chunkBits;
+
+        /* Fast path: You're likely to find the next item on the first ring buffer. */
+        if (headBuffer.isReadable(iteration, index)) {
+            return index;
+        } else {
+            return readIndexSlow(iteration, index);
+        }
+    }
+
+    private int readIndexSlow(final long iteration, final int index) {
+
+        final RingBuffer<E>[] buffers = this.buffers;
+        final int numBuffers = buffers.length;
+
+        /* Slow path: Search for the ring buffer with the sequence number you need. */
+        for (int i = 0; i < numBuffers; i++) {
+            final RingBuffer<E> buffer = buffers[i];
+            if (buffer.isReadable(iteration, index)) {
+                return index + chunkSize * (i + 1);
+            }
+        }
+        throw new IllegalStateException("Unable to find index at iteration: " +
+                                        iteration + " index: " + index);
+    }
+
     public long write(final E val) {
         if (val == null) {
             throw new IllegalArgumentException("Cannot write null to an MPSCReferenceQueue!");
@@ -106,7 +134,7 @@ public class MPSCReferenceQueue<E> {
                 }
                 final RingBuffer<E> newBuffer = new RingBuffer<E>(chunkSize);
                 @SuppressWarnings("unchecked")
-                final RingBuffer<E>[] newBuffers = (RingBuffer<E>[]) 
+                final RingBuffer<E>[] newBuffers = (RingBuffer<E>[])
                     new RingBuffer[numBuffers + 1];
                 System.arraycopy(buffers, 0, newBuffers, 0, numBuffers);
                 newBuffers[numBuffers] = newBuffer;
@@ -118,6 +146,16 @@ public class MPSCReferenceQueue<E> {
             }
         }
         return true;
+    }
+
+    /* WARNING: This function is unsafe! It may consume elements that were already
+                consumed if read() calls are made simulatenously to this call. */
+    public int forEach(Consumer<E> consumer) {
+        int processed = headBuffer.forEach(consumer);
+        for (RingBuffer<E> buffer: buffers) {
+            processed += buffer.forEach(consumer);
+        }
+        return processed;
     }
 
     public void dump() {
@@ -201,6 +239,25 @@ public class MPSCReferenceQueue<E> {
 
         public boolean isReadable(final long iteration, final int i) {
             return available.get(i) == (READABLE_BIT | iteration);
+        }
+
+        /* WARNING: This function is unsafe! It may consume elements that were already
+           consumed if read() calls are made simulatenously to this call. */
+        public int forEach(Consumer<E> consumer) {
+            int processed = 0;
+            final int len = available.length();
+            for (int i = 0; i < len; i++) {
+                final long avail = available.get(i);
+                if ((avail & READABLE_BIT) != 0) {
+                    final long iteration = avail & ~READABLE_BIT;
+                    E e = get(iteration, i);
+                    if (e != null) {
+                        consumer.accept(e);
+                        processed++;
+                    }
+                }
+            }
+            return processed;
         }
 
         public List<Long> getReadableSequences() {

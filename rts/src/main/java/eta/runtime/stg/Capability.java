@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.lang.ref.WeakReference;
+import eta.runtime.util.MPSCReferenceQueue;
 
 import eta.runtime.Runtime;
 import eta.runtime.io.IO;
@@ -38,6 +39,7 @@ import eta.runtime.thunk.Thunk;
 import eta.runtime.thunk.UpdateInfo;
 import eta.runtime.thunk.WhiteHole;
 import eta.runtime.util.MPSCLongQueue;
+import eta.runtime.util.Consumer;
 import static eta.runtime.stg.TSO.*;
 import static eta.runtime.stg.TSO.WhatNext;
 import static eta.runtime.stg.TSO.WhatNext.*;
@@ -45,47 +47,82 @@ import static eta.runtime.stg.TSO.WhyBlocked.*;
 import static eta.runtime.RuntimeLogging.*;
 
 public final class Capability implements LocalHeap {
-    private static final long startTimeNanos = System.nanoTime();
-    private static List<Capability> capabilities = new ArrayList<Capability>();
-    public static Set<Capability> workerCapabilities
-        = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
-    private static AtomicInteger workerCapNextId = new AtomicInteger();
-    private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
 
-    public static boolean singletonCapabilities() {
-        return capabilities.size() == 1 && workerCapabilities.isEmpty();
+    private static final long startTimeNanos = System.nanoTime();
+
+    /* These are the bound capabilities, i.e. capabilities linked to threads NOT created and
+       managed by the Eta RTS. */
+    private static MPSCReferenceQueue<Capability> capabilities =
+        new MPSCReferenceQueue<Capability>();
+
+    /* The current number of bound capabilities */
+    private static AtomicInteger capabilitiesSize = new AtomicInteger();
+
+    public static int capabilitiesSize() {
+        return capabilitiesSize.get();
     }
+
+    /* These are the worker capabilities, i.e. capabilities linked to threads created and
+       managed by the Eta RTS. */
+    private static MPSCReferenceQueue<Capability> workerCapabilities =
+        new MPSCReferenceQueue<Capability>();
+
+    /* The current number of worker capabilities */
+    private static AtomicInteger workerCapabilitiesSize = new AtomicInteger();
 
     public static int workerCapabilitiesSize() {
-        return workerCapabilities.size();
+        return workerCapabilitiesSize.get();
     }
 
-    public static Capability getLocal(boolean worker) {
+    /* Add worker to the queue and assign a unique id. */
+    public void addWorker() {
+        final long workerSequence = workerCapabilities.write(this);
+        this.workerSequence = workerSequence;
+        this.id = workerCapabilities.readIndex(workerSequence);
+        workerCapabilitiesSize.getAndIncrement();
+    }
+
+    /* Remove worker from the queue and re-cycle its id. */
+    public void removeWorker() {
+        workerCapabilitiesSize.getAndDecrement();
+        workerCapabilities.read(workerSequence);
+    }
+
+    /* Returns true if the runtime is being used in the concurrent mode. */
+    public static boolean singletonCapabilities() {
+        return /* WARNING: This check should be changed if the
+                           capabilities data structure changes! */
+               capabilitiesSize()       == 1
+            && workerCapabilitiesSize() == 0;
+    }
+
+    /* This object is used to sychronize among all the idle worker capabilities. */
+    private static Object blockedLock = new Object();
+
+    /* The current number of worker capabilities waiting for work */
+    private static AtomicInteger idleCapabilitiesSize = new AtomicInteger();
+
+    public static int idleCapabilitiesSize() {
+        return idleCapabilitiesSize.get();
+    }
+
+    /* The thread-local storage for the capability linked to a thread. Is initialized once
+       and not modified further. */
+    private static ThreadLocal<Capability> myCapability = new ThreadLocal<Capability>();
+
+    /* Get the capability linked to the current thread, initializing it if needed. */
+
+    public static Capability getLocal() {
+        return getLocal(false);
+    }
+
+    public static Capability getLocal(final boolean worker) {
         Capability cap = myCapability.get();
         if (cap == null) {
             cap = Capability.create(worker);
             myCapability.set(cap);
         }
         return cap;
-    }
-
-    private static Capability create(boolean worker) {
-        Capability cap = Capability.create(Thread.currentThread(), worker);
-        if (worker) {
-            workerCapabilities.add(cap);
-            cap.id = workerCapNextId.getAndIncrement();
-        } else {
-            /* TODO: Use a concurrent data structure for capabilities */
-            synchronized (capabilities) {
-                capabilities.add(cap);
-                cap.id = capabilities.size() - 1;
-            }
-        }
-        return cap;
-    }
-
-    public static Capability getLocal() {
-        return getLocal(false);
     }
 
     public static int getNumCapabilities() {
@@ -100,9 +137,7 @@ public final class Capability implements LocalHeap {
     private final boolean worker;
     private final WeakReference<Thread> thread;
     private final StgContext context = new StgContext();
-    private Deque<TSO> runQueue  = new LinkedList<TSO>();
-    private int  lastWorkSize;
-    private long lastBlockCheck;
+    private Deque<TSO> runQueue = new LinkedList<TSO>();
     private Deque<Message> inbox = new ConcurrentLinkedDeque<Message>();
     private IOManager ioManager;
 
@@ -115,17 +150,30 @@ public final class Capability implements LocalHeap {
     private MPSCLongQueue freeMessages = new MPSCLongQueue();
     private long freeSequence;
 
+    private long workerSequence;
+
     private volatile boolean interrupt;
+    private volatile Capability link;
 
     public Capability(final Thread t, final boolean worker) {
         this.thread    = new WeakReference<Thread>(t);
         this.worker    = worker;
     }
 
-    public void setIOManager(final IOManager ioManager) {
-        this.ioManager = ioManager;
+    /* Create a capability, updating the global runtime state accordingly. */
+    private static Capability create(final boolean worker) {
+        final Capability cap = Capability.create(Thread.currentThread(), worker);
+        if (worker) {
+            cap.addWorker();
+        } else {
+            final long sequence = capabilities.write(cap);
+            cap.id = capabilities.readIndex(sequence);
+            capabilitiesSize.getAndIncrement();
+        }
+        return cap;
     }
 
+    /* Create a capability, initializing a fresh IOManager */
     public static Capability create(final Thread t, final boolean worker) {
         Capability cap = new Capability(t, worker);
         IOManager ioManager;
@@ -138,8 +186,8 @@ public final class Capability implements LocalHeap {
         return cap;
     }
 
-    public static Closure scheduleClosure(Closure p) throws java.lang.Exception {
-        return getLocal().schedule(new TSO(p));
+    public void setIOManager(final IOManager ioManager) {
+        this.ioManager = ioManager;
     }
 
     public final StgContext getContext() {
@@ -158,6 +206,10 @@ public final class Capability implements LocalHeap {
         return thread.get();
     }
 
+    public static Closure scheduleClosure(Closure p) throws java.lang.Exception {
+        return getLocal().schedule(new TSO(p));
+    }
+
     /* TODO: Break up this schedule function into chunks for better JIT. */
     public final Closure schedule(TSO tso) throws java.lang.Exception {
         if (tso != null) {
@@ -167,6 +219,7 @@ public final class Capability implements LocalHeap {
         TSO     outer  = null;
         java.lang.Exception pendingException = null;
 
+        schedule:
         do {
             result = null;
             pendingException = null;
@@ -177,31 +230,14 @@ public final class Capability implements LocalHeap {
 
             processInbox();
 
-            /* TODO: The following still need to be implemented:
-               - Deadlock detection. Be able to detect <<loop>>.
-            */
             if (emptyRunQueue()) {
-                tryStealGlobalRunQueue();
-                if (emptyRunQueue()) {
-                    activateSpark();
-                    if (emptyRunQueue()) {
-                        if (worker && workerCapabilitiesSize() >
-                            Runtime.getMaxWorkerCapabilities()) {
-                            /* Terminate this Worker Capability if we've exceeded the
-                               limit of maxWorkerCapabilities. */
-                            return null;
-                        }
-                        blockedCapabilities.add(this);
-
-                        if (Runtime.debugScheduler()) {
-                            debugScheduler("Blocked!");
-                        }
-
-                        do {
-                            blockedLoop(Runtime.getMinWorkerCapabilityIdleTimeNanos());
-                        } while (blockedCapabilities.contains(this));
-                        continue;
-                    }
+                switch (tryFindWork()) {
+                    case SCHEDULE_CONTINUE:
+                        continue schedule;
+                    case SCHEDULE_RETURN:
+                        return null;
+                    default:
+                        break;
                 }
             }
 
@@ -267,6 +303,49 @@ public final class Capability implements LocalHeap {
             if (emptyRunQueue() && !worker) break;
         } while (true);
         return result;
+    }
+
+    private static final int SCHEDULE_DEFAULT  = 0;
+    private static final int SCHEDULE_CONTINUE = 1;
+    private static final int SCHEDULE_RETURN   = 2;
+
+    private int tryFindWork() {
+        tryStealGlobalRunQueue();
+        if (emptyRunQueue()) {
+            activateSpark();
+            if (emptyRunQueue()) {
+                if (worker && workerCapabilitiesSize() >
+                    Runtime.getMaxWorkerCapabilities()) {
+                    /* Terminate this Worker Capability if we've exceeded the
+                        limit of maxWorkerCapabilities. */
+                    return SCHEDULE_RETURN;
+                }
+
+                if (Runtime.debugScheduler()) {
+                    debugScheduler("Blocked!");
+                }
+
+                idleCapabilitiesSize.getAndIncrement();
+                try {
+                    synchronized (blockedLock) {
+                        /* No condition because spurious wakeups are OK - if there is no
+                           work to be done, we'll end up here again. */
+                        try {
+                            blockedLock.wait();
+                        } catch (InterruptedException e) {
+
+                        }
+                    }
+                } finally {
+                    idleCapabilitiesSize.getAndDecrement();
+                }
+                if (Runtime.debugScheduler()) {
+                    debugScheduler("Unblocked!");
+                }
+                return SCHEDULE_CONTINUE;
+            }
+        }
+        return SCHEDULE_DEFAULT;
     }
 
     /* Run Queue */
@@ -489,9 +568,12 @@ public final class Capability implements LocalHeap {
         if (Runtime.debugScheduler()) {
             debugScheduler("Interrupting all capabilities.");
         }
-        for (Capability c: capabilities) {
-            c.interrupt();
-        }
+        capabilities.forEach(new Consumer<Capability>() {
+                @Override
+                public void accept(Capability c) {
+                    c.interrupt();
+                }
+            });
     }
 
     /* Thunk Evaluation */
@@ -550,11 +632,15 @@ public final class Capability implements LocalHeap {
 
     /* Capabilities Cleanup */
 
-    public static void shutdownCapabilities(boolean safe) {
-        while (workerCapabilities.size() > 0) {
-            for (Capability c: workerCapabilities) {
-                c.shutdown(safe);
-            }
+    public static void shutdownCapabilities(final boolean safe) {
+        int processed = 0;
+        while ((processed = workerCapabilities.forEach(new Consumer<Capability>() {
+                @Override
+                public void accept(Capability cap) {
+                    cap.shutdown(safe);
+                }
+            })) > 0) {
+            /* Give some time for the capabilities to shut down. */
             LockSupport.parkNanos(1000000L);
         }
     }
@@ -663,61 +749,31 @@ public final class Capability implements LocalHeap {
 
     public final void manageOrSpawnWorkers() {
 
-        /* When we have excess live threads and blocked Capabilities, let's wake
-           them up so they can terminate themselves. */
-        if ((workerCapabilitiesSize() > Runtime.getMaxWorkerCapabilities()) &&
-            !blockedCapabilities.isEmpty()) {
-            unblockCapabilities(0);
-        }
-            /* Interrupt the blocked capabilities so that they can terminate
-               themselves when they unblock. */
-
+        final int idleWorkers     = idleCapabilitiesSize();
         final int currentWorkSize = globalWorkSize();
         if (currentWorkSize > 0) {
-            if (!blockedCapabilities.isEmpty()) {
+            if (idleWorkers > 0) {
                 unblockCapabilities(currentWorkSize);
-            } else if (workerCapabilitiesSize() < Runtime.getMaxWorkerCapabilities()) {
+            } else if (workerCapabilitiesSize() < Runtime.getMaxWorkerCapabilities()
+                    || ((System.nanoTime() - Concurrent.globalRunQueueModifiedTime) >
+                        Runtime.getMinTSOIdleTimeNanos())) {
                 new WorkerThread().start();
-            } else if ((System.nanoTime() - lastBlockCheck) >
-                       Runtime.getMinTSOIdleTimeNanos()) {
-                /* If no work was done since the last block check, spin up a thread,
-                   even though it exceeds the limit. */
-                if (lastWorkSize <= currentWorkSize) {
-                    new WorkerThread().start();
-                }
-                lastWorkSize   = currentWorkSize;
-                lastBlockCheck = System.nanoTime();
+            }
+        } else  {
+            /* When we have excess live threads and blocked Capabilities, let's wake
+               them up so they can terminate themselves. */
+            if (workerCapabilitiesSize() > Runtime.getMaxWorkerCapabilities() &&
+                idleWorkers > 0) {
+                unblockCapabilities(idleWorkers);
             }
         }
     }
 
-    /* Blocked Capabilities
-       This stores the Worker Capabilities that are idle.
-    */
-
-    public static Set<Capability> blockedCapabilities
-        = Collections.newSetFromMap(new ConcurrentHashMap<Capability, Boolean>());
-    public static AtomicBoolean blockedCapabilitiesLock = new AtomicBoolean();
-
     public static void unblockCapabilities(int n) {
-        /* TODO: Take into account the amount of work available instead of unblocking
-                 everything. */
-        /* TODO: Make it easier to pair work with capabilities in data structure form
-                 such that contention is reduced. */
-        if (!blockedCapabilities.isEmpty()) {
-            if (!blockedCapabilitiesLock.get() &&
-                blockedCapabilitiesLock.compareAndSet(false, true)) {
-                try {
-                    for (Capability c:blockedCapabilities) {
-                        if (Runtime.debugScheduler()) {
-                            debugScheduler("Interrupting blocked capability: " + c);
-                        }
-                        c.interrupt();
-                    }
-                    blockedCapabilities.clear();
-                } finally {
-                    blockedCapabilitiesLock.set(false);
-                }
+        final int limit = Math.min(n, idleCapabilitiesSize());
+        for (int i = 0; i < limit; i++) {
+            synchronized (blockedLock) {
+                blockedLock.notify();
             }
         }
     }
