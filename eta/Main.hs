@@ -96,7 +96,8 @@ main = do
             -- start our GHC session
             GHC.runGhc opt_TopDir $ do
 
-              dflags <- GHC.getSessionDynFlags
+              -- -floopification should *always* be on (#866)
+              dflags <- flip gopt_set Opt_Loopification <$> GHC.getSessionDynFlags
 
               case postStartupMode of
                   Left preLoadMode ->
