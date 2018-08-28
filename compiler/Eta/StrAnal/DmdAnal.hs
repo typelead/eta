@@ -32,7 +32,7 @@ import Eta.Types.FamInstEnv
 import Eta.Utils.Util
 import Eta.Utils.Maybes    ( isJust )
 import Eta.Prelude.TysWiredIn
-import Eta.Prelude.TysPrim ( realWorldStatePrimTy )
+import Eta.Prelude.TysPrim ( realWorldStatePrimTy, jobjectPrimTyCon )
 import Eta.Main.ErrUtils   ( dumpIfSet_dyn )
 import Eta.BasicTypes.Name ( getName, stableNameCmp )
 import Data.Function       ( on )
@@ -343,7 +343,9 @@ io_hack_reqd :: CoreExpr -> DataCon -> [Var] -> Bool
 io_hack_reqd scrut con bndrs
   | (bndr:_) <- bndrs
   , con == tupleCon UnboxedTuple 2
-  , idType bndr `eqType` realWorldStatePrimTy
+  , let bndrType = idType bndr
+  , bndrType `eqType` realWorldStatePrimTy ||
+    maybe False (\(tc,_) -> tc == jobjectPrimTyCon) (splitTyConApp_maybe bndrType)
   , (fun, _) <- collectArgs scrut
   = case fun of
       Var f -> not (isPrimOpId f)
