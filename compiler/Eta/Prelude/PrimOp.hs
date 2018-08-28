@@ -4877,6 +4877,13 @@ primOpHasSideEffects WriteJFloatArrayOp   = True
 primOpHasSideEffects NewJDoubleArrayOp    = True
 primOpHasSideEffects ReadJDoubleArrayOp   = True
 primOpHasSideEffects WriteJDoubleArrayOp  = True
+-- Start
+-- These don't technically do any side effects since they either return one of the args, or
+-- a new Object, but will be treated as such to avoid speculation in the optimizer.
+primOpHasSideEffects FreshStateTokenOp    = True
+primOpHasSideEffects FreshObjectTokenOp     = True
+primOpHasSideEffects FreshNullObjectTokenOp = True
+-- End
 primOpHasSideEffects _ = False
 
 primOpCanFail :: PrimOp -> Bool
