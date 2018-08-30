@@ -86,8 +86,7 @@ tcMatchesFun fun_name inf matches exp_ty
         ; return (wrap_gen <.> wrap_fun, group) }
   where
     arity = matchGroupArity matches
-    herald = ptext (sLit "The equation(s) for")
-             <+> quotes (ppr fun_name) <+> ptext (sLit "have")
+    herald = EquationContext fun_name
     match_ctxt = MC { mc_what = FunRhs fun_name inf, mc_body = tcBody }
 
 {-
@@ -116,11 +115,7 @@ tcMatchLambda match res_ty
     tcMatches match_ctxt pat_tys rhs_ty match
   where
     n_pats = matchGroupArity match
-    herald = sep [ ptext (sLit "The lambda expression")
-                         <+> quotes (pprSetDepth (PartWay 1) $
-                             pprMatches (LambdaExpr :: HsMatchContext Name) match),
-                        -- The pprSetDepth makes the abstraction print briefly
-                ptext (sLit "has")]
+    herald = LambdaExprContext match
     match_ctxt = MC { mc_what = LambdaExpr,
                       mc_body = tcBody }
 
@@ -135,7 +130,7 @@ tcGRHSsPat grhss res_ty = tcGRHSs match_ctxt grhss res_ty
                       mc_body = tcBody }
 
 matchFunTys
-  :: SDoc       -- See Note [Herald for matchExpecteFunTys] in TcUnify
+  :: HeraldContext       -- See Note [Herald for matchExpecteFunTys] in TcUnify
   -> Arity
   -> TcRhoType
   -> ([TcSigmaType] -> TcRhoType -> TcM a)

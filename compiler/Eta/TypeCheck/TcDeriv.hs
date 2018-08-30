@@ -2116,13 +2116,11 @@ derivingHiddenErr tc
   = hang (ptext (sLit "The data constructors of") <+> quotes (ppr tc) <+> ptext (sLit "are not all in scope"))
        2 (ptext (sLit "so you cannot derive an instance for it"))
 
-standaloneCtxt :: LHsType Name -> SDoc
-standaloneCtxt ty = hang (ptext (sLit "In the stand-alone deriving instance for"))
-                       2 (quotes (ppr ty))
+standaloneCtxt :: LHsType Name -> ContextElement
+standaloneCtxt ty = StandaloneCtxt ty
 
-derivInstCtxt :: PredType -> MsgDoc
-derivInstCtxt pred
-  = ptext (sLit "When deriving the instance for") <+> parens (ppr pred)
+derivInstCtxt :: PredType -> ContextElement
+derivInstCtxt pred = DeriveInstCtxt pred
 
 cond_class :: Condition
 cond_class (_, rep_tycon, _)

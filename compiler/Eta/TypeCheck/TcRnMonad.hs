@@ -980,13 +980,13 @@ getErrCtxt = do { env <- getLclEnv; return (tcl_ctxt env) }
 setErrCtxt :: [ErrCtxt] -> TcM a -> TcM a
 setErrCtxt ctxt = updLclEnv (\ env -> env { tcl_ctxt = ctxt })
 
-addErrCtxt :: MsgDoc -> TcM a -> TcM a
+addErrCtxt :: ContextElement -> TcM a -> TcM a
 addErrCtxt msg = addErrCtxtM (\env -> return (env, msg))
 
-addErrCtxtM :: (TidyEnv -> TcM (TidyEnv, MsgDoc)) -> TcM a -> TcM a
+addErrCtxtM :: (TidyEnv -> TcM (TidyEnv, ContextElement)) -> TcM a -> TcM a
 addErrCtxtM ctxt = updCtxt (\ ctxts -> (False, ctxt) : ctxts)
 
-addLandmarkErrCtxt :: MsgDoc -> TcM a -> TcM a
+addLandmarkErrCtxt :: ContextElement -> TcM a -> TcM a
 addLandmarkErrCtxt msg = updCtxt (\ctxts -> (True, \env -> return (env,msg)) : ctxts)
 
 -- Helper function for the above
@@ -1129,7 +1129,7 @@ mkErrInfo env ctxts
      = do { (env', msg) <- ctxt env
           ; let n' = if is_landmark then n else n+1
           ; rest <- go n' env' ctxts
-          ; return (msg $$ rest) }
+          ; return (ppr msg $$ rest) }
      | otherwise
      = go n env ctxts
 

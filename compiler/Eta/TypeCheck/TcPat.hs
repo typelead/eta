@@ -1128,14 +1128,13 @@ maybeWrapPatCtxt :: Pat Name -> (TcM a -> TcM b) -> TcM a -> TcM b
 -- Not all patterns are worth pushing a context
 maybeWrapPatCtxt pat tcm thing_inside
   | not (worth_wrapping pat) = tcm thing_inside
-  | otherwise                = addErrCtxt msg $ tcm $ popErrCtxt thing_inside
+  | otherwise                = addErrCtxt (PatternCtxt pat) $ tcm $ popErrCtxt thing_inside
                                -- Remember to pop before doing thing_inside
   where
    worth_wrapping (VarPat {}) = False
    worth_wrapping (ParPat {}) = False
    worth_wrapping (AsPat {})  = False
    worth_wrapping _           = True
-   msg = hang (ptext (sLit "In the pattern:")) 2 (ppr pat)
 
 -----------------------------------------------
 checkExistentials :: [TyVar] -> PatEnv -> TcM ()

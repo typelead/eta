@@ -1035,7 +1035,7 @@ resSigErr ctxt match ty
    = vcat [ ptext (sLit "Illegal result type signature") <+> quotes (ppr ty)
           , nest 2 $ ptext (sLit
                  "Result signatures are no longer supported in pattern matches")
-          , pprMatchInCtxt ctxt match ]
+          , ppr (pprMatchInCtxt ctxt match) ]
 
 {-
 ************************************************************************

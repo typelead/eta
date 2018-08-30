@@ -29,7 +29,7 @@ module Eta.TypeCheck.TcType (
 
   --------------------------------
   -- MetaDetails
-  UserTypeCtxt(..), pprUserTypeCtxt, pprSigCtxt,
+  UserTypeCtxt(..), pprUserTypeCtxt,
   TcTyVarDetails(..), pprTcTyVarDetails, vanillaSkolemTv, superSkolemTv,
   MetaDetails(Flexi, Indirect), MetaInfo(..),
   isImmutableTyVar, isSkolemTyVar, isMetaTyVar,  isMetaTyVarTy, isTyVarTy,
@@ -559,22 +559,6 @@ pprUserTypeCtxt GhciCtxt          = ptext (sLit "a type in a Eta REPL command")
 pprUserTypeCtxt (ClassSCCtxt c)   = ptext (sLit "the super-classes of class") <+> quotes (ppr c)
 pprUserTypeCtxt SigmaCtxt         = ptext (sLit "the context of a polymorphic type")
 pprUserTypeCtxt (DataTyCtxt tc)   = ptext (sLit "the context of the data type declaration for") <+> quotes (ppr tc)
-
-pprSigCtxt :: UserTypeCtxt -> SDoc -> SDoc -> SDoc
--- (pprSigCtxt ctxt <extra> <type>)
--- prints    In <extra> the type signature for 'f':
---              f :: <type>
--- The <extra> is either empty or "the ambiguity check for"
-pprSigCtxt ctxt extra pp_ty
-  = sep [ ptext (sLit "In") <+> extra <+> pprUserTypeCtxt ctxt <> colon
-        , nest 2 (pp_sig ctxt) ]
-  where
-    pp_sig (FunSigCtxt n)  = pp_n_colon n
-    pp_sig (ConArgCtxt n)  = pp_n_colon n
-    pp_sig (ForSigCtxt n)  = pp_n_colon n
-    pp_sig _               = pp_ty
-
-    pp_n_colon n = pprPrefixOcc n <+> dcolon <+> pp_ty
 
 {-
 ************************************************************************

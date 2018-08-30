@@ -77,8 +77,8 @@ check_instance ty cls
   = do  { (_, mb_res) <- tryTc (simplifyDefault [mkClassPred cls [ty]])
         ; return (isJust mb_res) }
 
-defaultDeclCtxt :: SDoc
-defaultDeclCtxt = ptext (sLit "When checking the types in a default declaration")
+defaultDeclCtxt :: ContextElement
+defaultDeclCtxt = DefaultDeclarationCtxt
 
 dupDefaultDeclErr :: [Located (DefaultDecl Name)] -> SDoc
 dupDefaultDeclErr (L _ (DefaultDecl _) : dup_things)

@@ -7,7 +7,7 @@
 
 {-# LANGUAGE CPP #-}
 
-module Eta.TypeCheck.TcAnnotations ( tcAnnotations, annCtxt ) where
+module Eta.TypeCheck.TcAnnotations ( tcAnnotations ) where
 
 #ifdef ETA_REPL
 import {-# SOURCE #-} Eta.TypeCheck.TcSplice ( runAnnotation )
@@ -22,7 +22,6 @@ import Eta.BasicTypes.Name
 import Eta.TypeCheck.TcRnMonad
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Outputable
-
 import Eta.Utils.FastString
 
 #ifndef ETA_REPL
@@ -49,7 +48,7 @@ tcAnnotation (L loc ann@(HsAnnotation _ provenance expr)) = do
     let target = annProvenanceToTarget mod provenance
 
     -- Run that annotation and construct the full Annotation data structure
-    setSrcSpan loc $ addErrCtxt (annCtxt ann) $ do
+    setSrcSpan loc $ addErrCtxt (AnnotationTcCtxt ann) $ do
       -- See #10826 -- Annotations allow one to bypass Safe Haskell.
       dflags <- getDynFlags
       when (safeLanguageOn dflags) $ failWithTc safeHsErr
@@ -63,7 +62,3 @@ annProvenanceToTarget _   (ValueAnnProvenance (L _ name)) = NamedTarget name
 annProvenanceToTarget _   (TypeAnnProvenance (L _ name))  = NamedTarget name
 annProvenanceToTarget mod ModuleAnnProvenance             = ModuleTarget mod
 #endif
-
-annCtxt :: OutputableBndr id => AnnDecl id -> SDoc
-annCtxt ann
-  = hang (ptext (sLit "In the annotation:")) 2 (ppr ann)

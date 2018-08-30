@@ -20,7 +20,6 @@ import Eta.Rename.RnBinds
 import Eta.Rename.RnEnv
 import Eta.Rename.RnNames
 import Eta.Rename.RnHsDoc          ( rnHsDoc, rnMbLHsDoc )
-import Eta.TypeCheck.TcAnnotations    ( annCtxt )
 import Eta.TypeCheck.TcRnMonad
 import qualified Eta.LanguageExtensions as LangExt
 import Eta.Prelude.ForeignCall      ( CCallTarget(..) )
@@ -355,7 +354,7 @@ dupWarnDecl (L loc _) rdr_name
 
 rnAnnDecl :: AnnDecl RdrName -> RnM (AnnDecl Name, FreeVars)
 rnAnnDecl ann@(HsAnnotation s provenance expr)
-  = addErrCtxt (annCtxt ann) $
+  = addErrCtxt (AnnotationRnCtxt ann) $
     do { (provenance', provenance_fvs) <- rnAnnProvenance provenance
        ; (expr', expr_fvs) <- setStage (Splice Untyped) $
                               rnLExpr expr

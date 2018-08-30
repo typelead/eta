@@ -295,12 +295,11 @@ rnPats ctxt pats thing_inside
           --    check incrementally for duplicates;
           -- Nor can we check incrementally for shadowing, else we'll
           --    complain *twice* about duplicates e.g. f (x,x) = ...
-        ; addErrCtxt doc_pat $
+        ; addErrCtxt (DuplicatedAndShadowedCtxt ctxt) $
           checkDupAndShadowedNames envs_before $
           collectPatsBinders pats'
         ; thing_inside pats' } }
-  where
-    doc_pat = ptext (sLit "In") <+> pprMatchContext ctxt
+
 
 rnPat :: HsMatchContext Name -- for error messages
       -> LPat RdrName

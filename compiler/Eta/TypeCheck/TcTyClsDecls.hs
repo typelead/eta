@@ -55,7 +55,6 @@ import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.NameEnv
 import Eta.Utils.Outputable
-import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.Maybes
 import Eta.Types.Unify
 import Eta.Utils.Util
@@ -2120,16 +2119,12 @@ tcAddFamInstCtxt :: SDoc -> Name -> TcM a -> TcM a
 tcAddFamInstCtxt flavour tycon thing_inside
   = addErrCtxt ctxt thing_inside
   where
-     ctxt = hsep [ptext (sLit "In the") <+> flavour
-                  <+> ptext (sLit "declaration for"),
-                  quotes (ppr tycon)]
+     ctxt = FamilyInstCtxt flavour tycon
 
 tcAddClosedTypeFamilyDeclCtxt :: TyCon -> TcM a -> TcM a
 tcAddClosedTypeFamilyDeclCtxt tc
   = addErrCtxt ctxt
-  where
-    ctxt = ptext (sLit "In the equations for closed type family") <+>
-           quotes (ppr tc)
+  where ctxt = ClosedTypeFamilyCtxt tc
 
 resultTypeMisMatch :: Name -> DataCon -> DataCon -> SDoc
 resultTypeMisMatch field_name con1 con2
@@ -2142,18 +2137,14 @@ fieldTypeMisMatch field_name con1 con2
   = sep [ptext (sLit "Constructors") <+> ppr con1 <+> ptext (sLit "and") <+> ppr con2,
          ptext (sLit "give different types for field"), quotes (ppr field_name)]
 
-dataConCtxtName :: [Located Name] -> SDoc
-dataConCtxtName [con]
-   = ptext (sLit "In the definition of data constructor") <+> quotes (ppr con)
-dataConCtxtName con
-   = ptext (sLit "In the definition of data constructors") <+> interpp'SP con
+dataConCtxtName :: [Located Name] -> ContextElement
+dataConCtxtName cons = DataConstructorsCtxt cons
 
-dataConCtxt :: Outputable a => a -> SDoc
-dataConCtxt con = ptext (sLit "In the definition of data constructor") <+> quotes (ppr con)
+dataConCtxt :: DataCon -> ContextElement
+dataConCtxt con = DataConstructorCtxt con
 
-classOpCtxt :: Var -> Type -> SDoc
-classOpCtxt sel_id tau = sep [ptext (sLit "When checking the class method:"),
-                              nest 2 (pprPrefixOcc sel_id <+> dcolon <+> ppr tau)]
+classOpCtxt :: Var -> Type -> ContextElement
+classOpCtxt sel_id tau = ClassCtxt sel_id tau
 
 classArityErr :: Int -> Class -> SDoc
 classArityErr n cls
@@ -2304,23 +2295,8 @@ addTyThingCtxt :: TyThing -> TcM a -> TcM a
 addTyThingCtxt thing
   = addErrCtxt ctxt
   where
-    name = getName thing
-    flav = case thing of
-             ATyCon tc
-                | isClassTyCon tc       -> ptext (sLit "class")
-                | isTypeFamilyTyCon tc  -> ptext (sLit "type family")
-                | isDataFamilyTyCon tc  -> ptext (sLit "data family")
-                | isTypeSynonymTyCon tc -> ptext (sLit "type")
-                | isNewTyCon tc         -> ptext (sLit "newtype")
-                | isDataTyCon tc        -> ptext (sLit "data")
-
-             _ -> pprTrace "addTyThingCtxt strange" (ppr thing)
-                  Outputable.empty
-
-    ctxt = hsep [ ptext (sLit "In the"), flav
-                , ptext (sLit "declaration for"), quotes (ppr name) ]
+    ctxt = AddTypeCtxt thing
 
 addRoleAnnotCtxt :: Name -> TcM a -> TcM a
 addRoleAnnotCtxt name
-  = addErrCtxt $
-    text "while checking a role annotation for" <+> quotes (ppr name)
+  = addErrCtxt $ RoleCtxt name

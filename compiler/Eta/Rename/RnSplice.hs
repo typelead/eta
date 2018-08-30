@@ -175,10 +175,8 @@ rn_bracket _ (TExpBr e) = do { (e', fvs) <- rnLExpr e
 
 -- rn_bracket _ (XBracket {}) = panic "rn_bracket: unexpected XBracket"
 
-quotationCtxtDoc :: HsBracket RdrName -> SDoc
-quotationCtxtDoc br_body
-  = hang (text "In the Template Haskell quotation")
-         2 (ppr br_body)
+quotationCtxtDoc :: HsBracket RdrName -> ContextElement
+quotationCtxtDoc br_body = QuasiQuoteCtxt br_body
 
 illegalBracket :: SDoc
 illegalBracket =
@@ -678,15 +676,8 @@ Pat RdrName (the result of running a top-level splice) or a Pat Name
 rnSplicePat.
 -}
 
-spliceCtxt :: HsSplice RdrName -> SDoc
-spliceCtxt splice
-  = hang (text "In the" <+> what) 2 (ppr splice)
-  where
-    what = case splice of
-             HsUntypedSplice {} -> text "untyped splice:"
-             HsTypedSplice   {} -> text "typed splice:"
-             HsQuasiQuote    {} -> text "quasi-quotation:"
-             HsSpliced       {} -> text "spliced expression:"
+spliceCtxt :: HsSplice RdrName -> ContextElement
+spliceCtxt splice = SpliceCtxt splice
 
 -- | The splice data to be logged
 data SpliceInfo

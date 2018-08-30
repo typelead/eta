@@ -22,7 +22,6 @@ import Eta.HsSyn.HsLit
 import Eta.HsSyn.PlaceHolder ( PostTc, PostRn, DataId)
 import Eta.HsSyn.HsTypes
 import Eta.HsSyn.HsBinds
-
 -- others:
 import Eta.TypeCheck.TcEvidence
 import Eta.Core.CoreSyn
@@ -2107,23 +2106,3 @@ matchContextErrString (StmtCtxt MDoExpr)           = ptext (sLit "'mdo' block")
 matchContextErrString (StmtCtxt ListComp)          = ptext (sLit "list comprehension")
 matchContextErrString (StmtCtxt MonadComp)         = ptext (sLit "monad comprehension")
 matchContextErrString (StmtCtxt PArrComp)          = ptext (sLit "array comprehension")
-
-pprMatchInCtxt :: (OutputableBndr idL, OutputableBndr idR, Outputable body)
-               => HsMatchContext idL -> Match idR body -> SDoc
-pprMatchInCtxt ctxt match  = hang (ptext (sLit "In") <+> pprMatchContext ctxt <> colon)
-                             4 (pprMatch ctxt match)
-
-pprStmtInCtxt :: (OutputableBndr idL, OutputableBndr idR, Outputable body)
-               => HsStmtContext idL -> StmtLR idL idR body -> SDoc
-pprStmtInCtxt ctxt (LastStmt e _ _)
-  | isListCompExpr ctxt      -- For [ e | .. ], do not mutter about "stmts"
-  = hang (ptext (sLit "In the expression:")) 2 (ppr e)
-
-pprStmtInCtxt ctxt stmt
-  = hang (ptext (sLit "In a stmt of") <+> pprAStmtContext ctxt <> colon)
-       2 (ppr_stmt stmt)
-  where
-    -- For Group and Transform Stmts, don't print the nested stmts!
-    ppr_stmt (TransStmt { trS_by = by, trS_using = using
-                        , trS_form = form }) = pprTransStmt by using form
-    ppr_stmt stmt = pprStmt stmt

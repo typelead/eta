@@ -375,9 +375,8 @@ This makes the error messages right.
 ************************************************************************
 -}
 
-tcMkDeclCtxt :: TyClDecl Name -> SDoc
-tcMkDeclCtxt decl = hsep [ptext (sLit "In the"), pprTyClDeclFlavour decl,
-                      ptext (sLit "declaration for"), quotes (ppr (tcdName decl))]
+tcMkDeclCtxt :: TyClDecl Name -> ContextElement
+tcMkDeclCtxt decl = DeclarationCtxt decl
 
 tcAddDeclCtxt :: TyClDecl Name -> TcM a -> TcM a
 tcAddDeclCtxt decl thing_inside
