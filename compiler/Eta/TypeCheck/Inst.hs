@@ -371,14 +371,10 @@ tcSyntaxName orig ty (std_nm, user_nm_expr) = do
      return (std_nm, unLoc expr)
 
 syntaxNameCtxt :: HsExpr Name -> CtOrigin -> Type -> TidyEnv
-               -> TcRn (TidyEnv, SDoc)
+               -> TcRn (TidyEnv, ContextElement)
 syntaxNameCtxt name orig ty tidy_env
   = do { inst_loc <- getCtLoc orig
-       ; let msg = vcat [ ptext (sLit "When checking that") <+> quotes (ppr name)
-                          <+> ptext (sLit "(needed by a syntactic construct)")
-                        , nest 2 (ptext (sLit "has the required type:")
-                                  <+> ppr (tidyType tidy_env ty))
-                        , nest 2 (pprArisingAt inst_loc) ]
+       ; let msg = SyntaxNameCtxt name (tidyType tidy_env ty) inst_loc
        ; return (tidy_env, msg) }
 
 {-

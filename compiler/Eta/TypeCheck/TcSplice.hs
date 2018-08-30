@@ -223,10 +223,8 @@ tcTExpTy exp_ty
              , text "The type of a Typed Template Haskell expression must" <+>
                text "not have any quantification." ]
 
-quotationCtxtDoc :: HsBracket Name -> SDoc
-quotationCtxtDoc br_body
-  = hang (text "In the Template Haskell quotation")
-         2 (ppr br_body)
+quotationCtxtDoc :: HsBracket Name -> ContextElement
+quotationCtxtDoc br_body = QuotationCtxt br_body
 
 
   -- The whole of the rest of the file is the else-branch (ie stage2 only)
@@ -505,16 +503,11 @@ tcTopSplice expr res_ty
 ************************************************************************
 -}
 
-spliceCtxtDoc :: HsSplice Name -> SDoc
-spliceCtxtDoc splice
-  = hang (text "In the Template Haskell splice")
-         2 (pprSplice splice)
+spliceCtxtDoc :: HsSplice Name -> ContextElement
+spliceCtxtDoc splice = SpliceDocCtxt splice
 
-spliceResultDoc :: LHsExpr Name -> SDoc
-spliceResultDoc expr
-  = sep [ text "In the result of the splice:"
-        , nest 2 (char '$' <> ppr expr)
-        , text "To see what the splice expanded to, use -ddump-splices"]
+spliceResultDoc :: LHsExpr Name -> ContextElement
+spliceResultDoc expr = SpliceResultCtxt expr
 
 -------------------
 tcTopSpliceExpr :: SpliceType -> TcM (LHsExpr Id) -> TcM (LHsExpr Id)
@@ -1151,8 +1144,7 @@ getAnnotationsByTypeRep th_name tyrep
 
 reifyInstances :: TH.Name -> [TH.Type] -> TcM [TH.Dec]
 reifyInstances th_nm th_tys
-   = addErrCtxt (text "In the argument of reifyInstances:"
-                 <+> ppr_th th_nm <+> sep (map ppr_th th_tys)) $
+   = addErrCtxt (ReifyCtxt th_nm th_tys) $
      do { loc <- getSrcSpanM
         ; rdr_ty <- cvt loc (mkThAppTs (TH.ConT th_nm) th_tys)
           -- #9262 says to bring vars into scope, like in HsForAllTy case
@@ -2032,9 +2024,6 @@ noTH :: LitString -> SDoc -> TcM a
 noTH s d = failWithTc (hsep [text "Can't represent" <+> ptext s <+>
                                 text "in Template Haskell:",
                              nest 2 d])
-
-ppr_th :: TH.Ppr a => a -> SDoc
-ppr_th x = text (TH.pprint x)
 
 {-
 Note [Reifying field labels]

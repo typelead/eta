@@ -418,5 +418,5 @@ arrowTyConKind = mkArrowKinds [liftedTypeKind, liftedTypeKind] liftedTypeKind
 ************************************************************************
 -}
 
-cmdCtxt :: HsCmd Name -> SDoc
-cmdCtxt cmd = ptext (sLit "In the command:") <+> ppr cmd
+cmdCtxt :: HsCmd Name -> ContextElement
+cmdCtxt cmd = CommandCtxt cmd

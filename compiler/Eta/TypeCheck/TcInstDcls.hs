@@ -953,14 +953,11 @@ mkMethIds sig_fn clas tyvars dfun_ev_vars inst_tys sel_id
     poly_meth_ty  = mkSigmaTy tyvars theta local_meth_ty
     theta         = map idType dfun_ev_vars
 
-methSigCtxt :: Name -> TcType -> TcType -> TidyEnv -> TcM (TidyEnv, MsgDoc)
+methSigCtxt :: Name -> TcType -> TcType -> TidyEnv -> TcM (TidyEnv, ContextElement)
 methSigCtxt sel_name sig_ty meth_ty env0
   = do { (env1, sig_ty)  <- zonkTidyTcType env0 sig_ty
        ; (env2, meth_ty) <- zonkTidyTcType env1 meth_ty
-       ; let msg = hang (ptext (sLit "When checking that instance signature for") <+> quotes (ppr sel_name))
-                      2 (vcat [ ptext (sLit "is more general than its signature in the class")
-                              , ptext (sLit "Instance sig:") <+> ppr sig_ty
-                              , ptext (sLit "   Class sig:") <+> ppr meth_ty ])
+       ; let msg = MethSigCtxt sel_name sig_ty meth_ty
        ; return (env2, msg) }
 
 misplacedInstSig :: Name -> LHsType Name -> SDoc
@@ -1153,7 +1150,7 @@ tcSpecInst dfun_id prag@(SpecInstSig _src hs_ty)
         ; co_fn <- tcSubType SpecInstCtxt (idType dfun_id) spec_dfun_ty
         ; return (SpecPrag dfun_id co_fn defaultInlinePragma) }
   where
-    spec_ctxt prag = hang (ptext (sLit "In the SPECIALISE pragma")) 2 (ppr prag)
+    spec_ctxt prag = SpecInstSigCtxt prag
 
 tcSpecInst _  _ = panic "tcSpecInst"
 
@@ -1351,12 +1348,8 @@ mkGenericDefMethBind clas inst_tys sel_id dm_name
 wrapId :: HsWrapper -> id -> HsExpr id
 wrapId wrapper id = mkHsWrap wrapper (HsVar id)
 
-derivBindCtxt :: Id -> Class -> [Type ] -> LHsBind Name -> SDoc
-derivBindCtxt sel_id clas tys _bind
-   = vcat [ ptext (sLit "When typechecking the code for ") <+> quotes (ppr sel_id)
-          , nest 2 (ptext (sLit "in a derived instance for")
-                    <+> quotes (pprClassPred clas tys) <> colon)
-          , nest 2 $ ptext (sLit "To see the code I am typechecking, use -ddump-deriv") ]
+derivBindCtxt :: Id -> Class -> [Type ] -> LHsBind Name -> ContextElement
+derivBindCtxt sel_id clas tys _bind = DerivedInstCtxt sel_id clas tys
 
 warnMissingMethodOrAT :: String -> Name -> TcM ()
 warnMissingMethodOrAT what name
@@ -1487,20 +1480,11 @@ Note carefully:
 ************************************************************************
 -}
 
-instDeclCtxt1 :: LHsType Name -> SDoc
-instDeclCtxt1 hs_inst_ty
-  = inst_decl_ctxt (case unLoc hs_inst_ty of
-                        HsForAllTy _ _ _ _ (L _ ty') -> ppr ty'
-                        _                            -> ppr hs_inst_ty)     -- Don't expect this
-instDeclCtxt2 :: Type -> SDoc
-instDeclCtxt2 dfun_ty
-  = inst_decl_ctxt (ppr (mkClassPred cls tys))
-  where
-    (_,_,cls,tys) = tcSplitDFunTy dfun_ty
+instDeclCtxt1 :: LHsType Name -> ContextElement
+instDeclCtxt1 hs_inst_ty = InstDeclarationCtxt1 hs_inst_ty
 
-inst_decl_ctxt :: SDoc -> SDoc
-inst_decl_ctxt doc = hang (ptext (sLit "In the instance declaration for"))
-                        2 (quotes doc)
+instDeclCtxt2 :: Type -> ContextElement
+instDeclCtxt2 dfun_ty = InstDeclarationCtxt2 dfun_ty
 
 badBootFamInstDeclErr :: SDoc
 badBootFamInstDeclErr

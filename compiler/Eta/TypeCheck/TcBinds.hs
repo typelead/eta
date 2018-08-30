@@ -700,18 +700,12 @@ mkInferredPolyId poly_name qtvs theta mono_ty
 
        ; return (mkLocalId poly_name inferred_poly_ty) }
 
-mk_bind_msg :: Bool -> Bool -> Name -> TcType -> TidyEnv -> TcM (TidyEnv, SDoc)
+mk_bind_msg :: Bool -> Bool -> Name -> TcType -> TidyEnv -> TcM (TidyEnv, ContextElement)
 mk_bind_msg inferred want_ambig poly_name poly_ty tidy_env
  = do { (tidy_env', tidy_ty) <- zonkTidyTcType tidy_env poly_ty
       ; return (tidy_env', mk_msg tidy_ty) }
  where
-   mk_msg ty = vcat [ ptext (sLit "When checking that") <+> quotes (ppr poly_name)
-                      <+> ptext (sLit "has the") <+> what <+> ptext (sLit "type")
-                    , nest 2 (ppr poly_name <+> dcolon <+> ppr ty)
-                    , ppWhen want_ambig $
-                      ptext (sLit "Probable cause: the inferred type is ambiguous") ]
-   what | inferred  = ptext (sLit "inferred")
-        | otherwise = ptext (sLit "specified")
+   mk_msg ty = ExportCtxt inferred want_ambig poly_name ty
 
 
 -- | Report the inferred constraints for an extra-constraints wildcard/hole as
@@ -751,7 +745,7 @@ completeTheta inferred_theta
                    2 (text "with inferred constraints:")
                       <+> pprTheta inferred_diff
               , if suppress_hint then empty else pts_hint
-              , typeSigCtxt (idName poly_id) sig ]
+              , ppr (typeSigCtxt (idName poly_id) sig) ]
 
 -- | Warn the user about polymorphic local binders that lack type signatures.
 localSigWarn :: Id -> Maybe TcSigInfo -> TcM ()
@@ -925,7 +919,7 @@ tcSpec poly_id prag@(SpecSig fun_name hs_tys inl)
     name      = idName poly_id
     poly_ty   = idType poly_id
     sig_ctxt  = FunSigCtxt name
-    spec_ctxt prag = hang (ptext (sLit "In the SPECIALISE pragma")) 2 (ppr prag)
+    spec_ctxt prag = SpecCtxt prag
 
 tcSpec _ prag = pprPanic "tcSpec" (ppr prag)
 
@@ -1064,8 +1058,8 @@ tcVect (HsVectInstIn linstTy)
 tcVect (HsVectInstOut _)
   = panic "TcBinds.tcVect: Unexpected 'HsVectInstOut'"
 
-vectCtxt :: Outputable thing => thing -> SDoc
-vectCtxt thing = ptext (sLit "When checking the vectorisation declaration for") <+> ppr thing
+vectCtxt :: Outputable thing => thing -> ContextElement
+vectCtxt thing = VectorCtxt thing
 
 scalarTyConMustBeNullary :: MsgDoc
 scalarTyConMustBeNullary = ptext (sLit "VECTORISE SCALAR type constructor must be nullary")
@@ -1641,16 +1635,14 @@ Note [Binding scoped type variables]
 
 -- This one is called on LHS, when pat and grhss are both Name
 -- and on RHS, when pat is TcId and grhss is still Name
-patMonoBindsCtxt :: (OutputableBndr id, Outputable body) => LPat id -> GRHSs Name body -> SDoc
-patMonoBindsCtxt pat grhss
-  = hang (ptext (sLit "In a pattern binding:")) 2 (pprPatBind pat grhss)
+patMonoBindsCtxt :: (OutputableBndr id, Outputable body) => LPat id -> GRHSs Name body -> ContextElement
+patMonoBindsCtxt pat grhss = PatMonoBindsCtxt (pprPatBind pat grhss)
 
-typeSigCtxt :: Name -> TcSigInfo -> SDoc
+typeSigCtxt :: Name -> TcSigInfo -> ContextElement
 typeSigCtxt _    (TcPatSynInfo _)
   = panic "Should only be called with a TcSigInfo"
 typeSigCtxt name (TcSigInfo { sig_id = _id, sig_tvs = tvs
                             , sig_theta = theta, sig_tau = tau
                             , sig_extra_cts = extra_cts })
-  = sep [ text "In" <+> pprUserTypeCtxt (FunSigCtxt name) <> colon
-        , nest 2 (pprSigmaTypeExtraCts (isJust extra_cts)
-                  (mkSigmaTy (map snd tvs) theta tau)) ]
+  = TypeSignatureCtxt name (pprSigmaTypeExtraCts (isJust extra_cts)
+            (mkSigmaTy (map snd tvs) theta tau))

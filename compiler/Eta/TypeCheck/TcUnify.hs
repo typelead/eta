@@ -45,7 +45,6 @@ import Eta.BasicTypes.Var
 import qualified Eta.BasicTypes.Var as Var
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.VarSet
-import Eta.Main.ErrUtils
 import Eta.Main.DynFlags
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Maybes ( isJust )
@@ -105,7 +104,7 @@ matchExpectedFunTys does not skolmise nested foralls in the
 expected type, because it expects that to have been done already
 -}
 
-matchExpectedFunTys :: SDoc     -- See Note [Herald for matchExpectedFunTys]
+matchExpectedFunTys :: HeraldContext     -- See Note [Herald for matchExpectedFunTys]
                     -> Arity
                     -> TcRhoType
                     -> TcM (TcCoercion, [TcSigmaType], TcRhoType)
@@ -177,7 +176,7 @@ matchExpectedFunTys herald arity orig_ty
                       | otherwise = newFlexiTyVarTy
 
     ------------
-    mk_ctxt :: TidyEnv -> TcM (TidyEnv, MsgDoc)
+    mk_ctxt :: TidyEnv -> TcM (TidyEnv, ContextElement)
     mk_ctxt env = do { (env', ty) <- zonkTidyTcType env orig_ty
                      ; let (args, _) = tcSplitFunTys ty
                            n_actual = length args
@@ -185,14 +184,7 @@ matchExpectedFunTys herald arity orig_ty
                      ; return (env'', mk_msg orig_ty' ty n_actual) }
 
     mk_msg orig_ty ty n_args
-      = herald <+> speakNOf arity (ptext (sLit "argument")) <> comma $$
-        if n_args == arity
-          then ptext (sLit "its type is") <+> quotes (pprType orig_ty) <>
-               comma $$
-               ptext (sLit "it is specialized to") <+> quotes (pprType ty)
-          else sep [ptext (sLit "but its type") <+> quotes (pprType ty),
-                    if n_args == 0 then ptext (sLit "has none")
-                    else ptext (sLit "has only") <+> speakN n_args]
+      = FunctionCtxt herald arity n_args orig_ty ty
 
 {-
 Note [Foralls to left of arrow]
@@ -409,10 +401,7 @@ addSubTypeCtxt ty_actual ty_expected thing_inside
     mk_msg tidy_env
       = do { (tidy_env, ty_actual)   <- zonkTidyTcType tidy_env ty_actual
            ; (tidy_env, ty_expected) <- zonkTidyTcType tidy_env ty_expected
-           ; let msg = vcat [ hang (ptext (sLit "When checking that:"))
-                                 4 (ppr ty_actual)
-                            , nest 2 (hang (ptext (sLit "is more polymorphic than:"))
-                                         2 (ppr ty_expected)) ]
+           ; let msg = PolymorphicCtxt ty_actual ty_expected
            ; return (tidy_env, msg) }
 
 ---------------

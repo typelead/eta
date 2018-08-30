@@ -95,10 +95,8 @@ checkAmbiguity ctxt ty
    mk_msg ty tidy_env
      = do { allow_ambiguous <- xoptM LangExt.AllowAmbiguousTypes
           ; (tidy_env', tidy_ty) <- zonkTidyTcType tidy_env ty
-          ; return (tidy_env', mk_msg tidy_ty $$ ppWhen (not allow_ambiguous) ambig_msg) }
-     where
-       mk_msg ty = pprSigCtxt ctxt (ptext (sLit "the ambiguity check for")) (ppr ty)
-       ambig_msg = ptext (sLit "To defer the ambiguity check to use sites, enable AllowAmbiguousTypes")
+          ; let contextElement = AmbiguityCheckCtxt ctxt tidy_ty allow_ambiguous
+          ; return (tidy_env', contextElement) }
 
 checkUserTypeError :: Type -> TcM ()
 checkUserTypeError = check
@@ -757,10 +755,8 @@ so we can take their type variables into account as part of the
 "tau-tvs" stuff.  This is done in the function 'FunDeps.grow'.
 -}
 
-checkThetaCtxt :: UserTypeCtxt -> ThetaType -> SDoc
-checkThetaCtxt ctxt theta
-  = vcat [ptext (sLit "In the context:") <+> pprTheta theta,
-          ptext (sLit "While checking") <+> pprUserTypeCtxt ctxt ]
+checkThetaCtxt :: UserTypeCtxt -> ThetaType -> ContextElement
+checkThetaCtxt ctxt theta = ThetaCtxt ctxt theta
 
 eqPredTyErr, predTyVarErr, predTupleErr, predIrredErr, predIrredBadCtxtErr :: PredType -> SDoc
 eqPredTyErr  pred = ptext (sLit "Illegal equational constraint") <+> pprType pred

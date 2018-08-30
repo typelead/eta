@@ -57,7 +57,6 @@ import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Util
 import Eta.Utils.ListSetOps
 import Eta.Utils.Maybes
-import Eta.Main.ErrUtils
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
@@ -223,12 +222,11 @@ tcExpr (HsLam match) res_ty
         ; return (mkHsWrap co_fn (HsLam match')) }
 
 tcExpr e@(HsLamCase _ matches) res_ty
-  = do  { (co_fn, [arg_ty], body_ty) <- matchExpectedFunTys msg 1 res_ty
+  = do  { (co_fn, [arg_ty], body_ty) <- matchExpectedFunTys (LambdaCaseContext e) 1 res_ty
         ; matches' <- tcMatchesCase match_ctxt arg_ty matches body_ty
         ; return $ mkHsWrapCo co_fn $ HsLamCase arg_ty matches' }
-  where msg = sep [ ptext (sLit "The function") <+> quotes (ppr e)
-                  , ptext (sLit "requires")]
-        match_ctxt = MC { mc_what = CaseAlt, mc_body = tcBody }
+
+  where match_ctxt = MC { mc_what = CaseAlt, mc_body = tcBody }
 
 tcExpr (ExprWithTySig expr sig_ty wcs) res_ty
  = do { nwc_tvs <- mapM newWildcardVarMetaKind wcs
@@ -347,8 +345,7 @@ tcExpr (OpApp arg1 op fix arg2) res_ty
   = do { traceTc "Application rule" (ppr op)
        ; (arg1', arg1_ty) <- tcInferRho arg1
 
-       ; let doc = ptext (sLit "The first argument of ($) takes")
-       ; (co_arg1, [arg2_ty], op_res_ty) <- matchExpectedFunTys doc 1 arg1_ty
+       ; (co_arg1, [arg2_ty], op_res_ty) <- matchExpectedFunTys ArgumentOfDollarContext 1 arg1_ty
 
          -- We have (arg1 $ arg2)
          -- So: arg1_ty = arg2_ty -> op_res_ty
@@ -526,9 +523,7 @@ tcExpr (HsStatic expr) res_ty
   = do  { staticPtrTyCon  <- tcLookupTyCon staticPtrTyConName
         ; (co, [expr_ty]) <- matchExpectedTyConApp staticPtrTyCon res_ty
         ; (expr', lie)    <- captureConstraints $
-            addErrCtxt (hang (ptext (sLit "In the body of a static form:"))
-                             2 (ppr expr)
-                       ) $
+            addErrCtxt (StaticCtxt expr) $
             tcPolyExprNC expr expr_ty
         -- Require the type of the argument to be Typeable.
         -- The evidence is not used, but asking the constraint ensures that
@@ -988,9 +983,8 @@ tcApp fun args res_ty
         ; return (unLoc app) }
 
 
-mk_app_msg :: LHsExpr Name -> SDoc
-mk_app_msg fun = sep [ ptext (sLit "The function") <+> quotes (ppr fun)
-                     , ptext (sLit "is applied to")]
+mk_app_msg :: LHsExpr Name -> HeraldContext
+mk_app_msg fun = FunctionApplicationContext fun
 
 ----------------
 tcInferFun :: LHsExpr Name -> TcM (LHsExpr TcId, TcRhoType)
@@ -1039,9 +1033,8 @@ tcTupArgs args tys
 unifyOpFunTysWrap :: LHsExpr Name -> Arity -> TcRhoType
                   -> TcM (TcCoercion, [TcSigmaType], TcRhoType)
 -- A wrapper for matchExpectedFunTys
-unifyOpFunTysWrap op arity ty = matchExpectedFunTys herald arity ty
-  where
-    herald = ptext (sLit "The operator") <+> quotes (ppr op) <+> ptext (sLit "takes")
+unifyOpFunTysWrap op arity ty = matchExpectedFunTys (OperatorContext op) arity ty
+
 
 ---------------------------
 tcSyntaxOp :: CtOrigin -> HsExpr Name -> TcType -> TcM (HsExpr TcId)
@@ -1459,23 +1452,18 @@ Boring and alphabetical:
 addExprErrCtxt :: LHsExpr Name -> TcM a -> TcM a
 addExprErrCtxt expr = addErrCtxt (exprCtxt expr)
 
-exprCtxt :: LHsExpr Name -> SDoc
-exprCtxt expr
-  = hang (ptext (sLit "In the expression:")) 2 (ppr expr)
+exprCtxt :: LHsExpr Name -> ContextElement
+exprCtxt expr = ExpressionCtxt expr
 
-fieldCtxt :: Name -> SDoc
-fieldCtxt field_name
-  = ptext (sLit "In the") <+> quotes (ppr field_name) <+> ptext (sLit "field of a record")
+fieldCtxt :: Name -> ContextElement
+fieldCtxt field_name = FieldCtxt field_name
 
-funAppCtxt :: LHsExpr Name -> LHsExpr Name -> Int -> SDoc
-funAppCtxt fun arg arg_no
-  = hang (hsep [ ptext (sLit "In the"), speakNth arg_no, ptext (sLit "argument of"),
-                    quotes (ppr fun) <> text ", namely"])
-       2 (quotes (ppr arg))
+funAppCtxt :: LHsExpr Name -> LHsExpr Name -> Int -> ContextElement
+funAppCtxt fun arg arg_no = FunctionArgumentCtxt fun arg arg_no
 
 funResCtxt :: Bool  -- There is at least one argument
            -> HsExpr Name -> TcType -> TcType
-           -> TidyEnv -> TcM (TidyEnv, MsgDoc)
+           -> TidyEnv -> TcM (TidyEnv, ContextElement)
 -- When we have a mis-match in the return type of a function
 -- try to give a helpful message about too many/few arguments
 --
@@ -1487,22 +1475,8 @@ funResCtxt has_args fun fun_res_ty env_ty tidy_env
              (args_env, res_env) = tcSplitFunTys env'
              n_fun = length args_fun
              n_env = length args_env
-             info  | n_fun == n_env = Outputable.empty
-                   | n_fun > n_env
-                   , not_fun res_env = ptext (sLit "Probable cause:") <+> quotes (ppr fun)
-                                       <+> ptext (sLit "is applied to too few arguments")
-                   | has_args
-                   , not_fun res_fun = ptext (sLit "Possible cause:") <+> quotes (ppr fun)
-                                       <+> ptext (sLit "is applied to too many arguments")
-                   | otherwise       = Outputable.empty  -- Never suggest that a naked variable is
-                                                         -- applied to too many args!
+             info = FunctionResultCtxt has_args n_fun n_env fun res_fun res_env fun_res' env'
        ; return (tidy_env, info) }
-  where
-    not_fun ty   -- ty is definitely not an arrow type,
-                 -- and cannot conceivably become one
-      = case tcSplitTyConApp_maybe ty of
-          Just (tc, _) -> isAlgTyCon tc
-          Nothing      -> False
 
 badFieldTypes :: [(Name,TcType)] -> SDoc
 badFieldTypes prs

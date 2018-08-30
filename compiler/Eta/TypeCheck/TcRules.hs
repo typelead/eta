@@ -147,7 +147,7 @@ tcRule (HsRule name act hs_bndrs lhs fv_lhs rhs fv_rhs)
                   ; (rhs', rhs_wanted) <- captureConstraints (tcMonoExpr rhs rule_ty)
                   ; return (lhs', lhs_wanted, rhs', rhs_wanted, rule_ty) }
 
-       ; (lhs_evs, other_lhs_wanted) <- simplifyRule (unLoc name) 
+       ; (lhs_evs, other_lhs_wanted) <- simplifyRule (unLoc name)
                                                      (bndr_wanted `andWC` lhs_wanted)
                                                      rhs_wanted
 
@@ -232,6 +232,5 @@ tcRuleBndrs (L _ (RuleBndrSig (L _ name) rn_ty) : rule_bndrs)
                   tcRuleBndrs rule_bndrs
         ; return (tvs ++ id : vars) }
 
-ruleCtxt :: FastString -> SDoc
-ruleCtxt name = ptext (sLit "When checking the transformation rule") <+>
-                doubleQuotes (ftext name)
+ruleCtxt :: FastString -> ContextElement
+ruleCtxt name = RuleCtxt name

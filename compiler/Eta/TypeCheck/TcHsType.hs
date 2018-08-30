@@ -889,9 +889,7 @@ addTypeCtxt :: LHsType Name -> TcM a -> TcM a
         -- Wrap a context around only if we want to show that contexts.
         -- Omit invisble ones and ones user's won't grok
 addTypeCtxt (L _ ty) thing
-  = addErrCtxt doc thing
-  where
-    doc = ptext (sLit "In the type") <+> quotes (ppr ty)
+  = addErrCtxt (TypeCtxt ty) thing
 
 {-
 ************************************************************************
@@ -1316,10 +1314,7 @@ tcPatSig in_pat_bind sig res_ty
     mk_msg sig_ty tidy_env
        = do { (tidy_env, sig_ty) <- zonkTidyTcType tidy_env sig_ty
             ; (tidy_env, res_ty) <- zonkTidyTcType tidy_env res_ty
-            ; let msg = vcat [ hang (ptext (sLit "When checking that the pattern signature:"))
-                                  4 (ppr sig_ty)
-                             , nest 2 (hang (ptext (sLit "fits the type of its context:"))
-                                          2 (ppr res_ty)) ]
+            ; let msg = PatternSigCtxt sig_ty res_ty
             ; return (tidy_env, msg) }
 
 patBindSigErr :: [(Name, TcTyVar)] -> SDoc
@@ -1522,8 +1517,7 @@ are non-promotable or non-fully applied kinds.
 -}
 
 tcLHsKind :: LHsKind Name -> TcM Kind
-tcLHsKind k = addErrCtxt (ptext (sLit "In the kind") <+> quotes (ppr k)) $
-              tc_lhs_kind k
+tcLHsKind k = addErrCtxt (KindCtxt k) $ tc_lhs_kind k
 
 tc_lhs_kind :: LHsKind Name -> TcM Kind
 tc_lhs_kind (L span ki) = setSrcSpan span (tc_hs_kind ki)

@@ -159,10 +159,8 @@ checkNewtypeFFI rdrEnv tc
   | otherwise
   = Nothing
 
-foreignDeclCtxt :: ForeignDecl Name -> SDoc
-foreignDeclCtxt fo
-  = hang (str "When checking declaration:")
-       2 (ppr fo)
+foreignDeclCtxt :: ForeignDecl Name -> ContextElement
+foreignDeclCtxt fo = ForeignDeclarationCtxt fo
 
 tcCheckFIType :: ThetaType -> [Type] -> Type -> ForeignImport -> TcM ForeignImport
 tcCheckFIType thetaType argTypes resType idecl@(CImport (L _lc cconv) (L _ls safety) _mh

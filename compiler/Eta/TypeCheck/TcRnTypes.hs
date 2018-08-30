@@ -96,7 +96,8 @@ module Eta.TypeCheck.TcRnTypes(
 
         -- Misc other types
         TcId, TcIdSet, HoleSort(..),
-        NameShape(..)
+        NameShape(..), ContextElement(..), HowMuch(..), ProblemInfo(..),
+        HeraldContext(..), pprSigCtxt, pprMatchInCtxt, pprStmtInCtxt
 
   ) where
 
@@ -105,9 +106,7 @@ import Eta.Core.CoreSyn
 import Eta.Main.HscTypes
 import Eta.TypeCheck.TcEvidence
 import Eta.Types.Type
-import Eta.Types.CoAxiom  ( Role )
 import Eta.Types.Class    ( Class )
-import Eta.Types.TyCon    ( TyCon )
 import Eta.BasicTypes.ConLike  ( ConLike(..) )
 import Eta.BasicTypes.DataCon  ( DataCon, dataConUserType, dataConOrigArgTys )
 import Eta.BasicTypes.PatSyn   ( PatSyn, patSynType )
@@ -138,9 +137,10 @@ import Eta.Utils.ListSetOps
 import Eta.Utils.FastString
 import Eta.DeSugar.PmExpr
 import GHC.Fingerprint
-
+import Eta.Types.TyCon
 import Data.Set (Set)
 import qualified Data.Set as S
+import qualified Language.Eta.Meta as TH
 import Control.Monad (ap, liftM, msum)
 
 #ifdef ETA_REPL
@@ -957,7 +957,7 @@ Note that:
         f x = let g y = ...(y::a)...
 -}
 
-type ErrCtxt = (Bool, TidyEnv -> TcM (TidyEnv, MsgDoc))
+type ErrCtxt = (Bool, TidyEnv -> TcM (TidyEnv, ContextElement))
         -- Monadic so that we have a chance
         -- to deal with bound type variables just before error
         -- message construction
@@ -2351,3 +2351,293 @@ data TcPluginResult
     -- and the evidence for them is recorded.
     -- The second field contains new work, that should be processed by
     -- the constraint solver.
+
+data ContextElement
+  = FunctionResultCtxt Bool Int Int (HsExpr Name) Type Type Type Type
+  | FunctionArgumentCtxt (LHsExpr Name) (LHsExpr Name) Int
+  | SyntaxNameCtxt (HsExpr Name) Type CtLoc
+  | FunctionCtxt HeraldContext Arity Int Type Type
+  | PolymorphicCtxt Type Type
+  | AnnotationTcCtxt (AnnDecl Name)
+  | AmbiguityCheckCtxt UserTypeCtxt Type Bool
+  | ThetaCtxt UserTypeCtxt ThetaType
+  | SignatureCtxt SignatureContext
+  | TypeCtxt (HsType Name)
+  | PatternSigCtxt Type Type
+  | KindCtxt (LHsKind Name)
+  | PatternCtxt (Pat Name)
+  | ExportCtxt Bool Bool Name Type
+  | SpecCtxt (Sig Name)
+  | forall thing. (Outputable thing) => VectorCtxt thing
+  | TypeSignatureCtxt Name SDoc
+  | PatMonoBindsCtxt SDoc
+  | MatchCtxt SDoc SDoc
+  | ListComprehensionCtxt SDoc
+  | StatementCtxt SDoc SDoc
+  | CommandCtxt (HsCmd Name)
+  | ExpressionCtxt (LHsExpr Name)
+  | StaticCtxt (LHsExpr Name)
+  | FieldCtxt Name
+  | DeclarationCtxt (TyClDecl Name)
+  | ForeignDeclarationCtxt (ForeignDecl Name)
+  | DefaultDeclarationCtxt
+  | RuleCtxt FastString
+  | DataConstructorCtxt DataCon
+  | DataConstructorsCtxt [Located Name]
+  | ClassCtxt Var Type
+  | FamilyInstCtxt SDoc Name
+  | ClosedTypeFamilyCtxt TyCon
+  | AddTypeCtxt TyThing
+  | RoleCtxt Name
+  | StandaloneCtxt (LHsType Name)
+  | DeriveInstCtxt Type
+  | InstDeclarationCtxt1 (LHsType Name)
+  | InstDeclarationCtxt2 Type
+  | MethSigCtxt Name Type Type
+  | SpecInstSigCtxt (Sig Name)
+  | DerivedInstCtxt Id Class [Type]
+  | MainCtxt SDoc
+  | QuotationCtxt (HsBracket Name)
+  | SpliceDocCtxt (HsSplice Name)
+  | SpliceResultCtxt (LHsExpr Name)
+  | ReifyCtxt TH.Name [TH.Type]
+  --- Renamer error
+  | DuplicatedAndShadowedCtxt (HsMatchContext Name)
+  | AnnotationRnCtxt (AnnDecl RdrName)
+  | QuasiQuoteCtxt (HsBracket RdrName)
+  | SpliceCtxt (HsSplice RdrName)
+
+data HowMuch = TooFew | TooMuch
+  deriving Show
+
+data ProblemInfo = TypeMismatch {
+      tmActual   :: Type,
+      tmExpected :: Type
+      }
+data HeraldContext
+  = ArgumentOfDollarContext
+  | OperatorContext (LHsExpr Name)
+  | LambdaCaseContext (HsExpr Name)
+  | EquationContext Name
+  | LambdaExprContext (MatchGroup Name (LHsExpr Name))
+  | FunctionApplicationContext (LHsExpr Name)
+
+data SignatureContext = SignatureContext UserTypeCtxt SDoc SDoc
+
+instance Outputable ContextElement where
+  ppr (FunctionResultCtxt has_args n_fun n_env fun res_fun res_env _ _)
+     | n_fun == n_env = empty
+     | n_fun > n_env
+     , not_fun res_env = text "Probable cause:" <+> quotes (ppr fun)
+                         <+> text "is applied to too few arguments"
+     | has_args
+     , not_fun res_fun = text "Possible cause:" <+> quotes (ppr fun)
+                         <+> text "is applied to too many arguments"
+     | otherwise       = empty  -- Never suggest that a naked variable is
+                                           -- applied to too many args!
+     where not_fun ty   -- ty is definitely not an arrow type,
+                    -- and cannot conceivably become one
+             = case tcSplitTyConApp_maybe ty of
+                 Just (tc, _) -> isAlgTyCon tc
+                 Nothing      -> False
+  ppr (FunctionArgumentCtxt fun arg arg_no)
+     = hang (hsep [ text "In the", speakNth arg_no, text "argument of",
+                       quotes (ppr fun) <> text ", namely"]) 2 (quotes (ppr arg))
+  ppr (SyntaxNameCtxt name ty inst_loc)
+    = vcat [ text "When checking that" <+> quotes (ppr name)
+         <+> text "(needed by a syntactic construct)"
+       , nest 2 (text "has the required type:" <+> ppr ty)
+       , nest 2 (pprArisingAt inst_loc) ]
+  ppr (FunctionCtxt herald arity n_args orig_ty ty)
+    = ppr herald <+> speakNOf arity (text "argument") <> comma $$
+        if n_args == arity
+          then text "its type is" <+> quotes (pprType orig_ty) <>
+               comma $$
+               text "it is specialized to" <+> quotes (pprType ty)
+          else sep [text "but its type" <+> quotes (pprType ty),
+                    if n_args == 0 then text "has none"
+                    else text "has only" <+> speakN n_args]
+  ppr (PolymorphicCtxt ty_actual ty_expected)
+    = vcat [ hang (text "When checking that:")
+                  4 (ppr ty_actual)
+           , nest 2 (hang (text "is more polymorphic than:")
+                  2 (ppr ty_expected)) ]
+  ppr (AnnotationTcCtxt ann) = hang (text "In the annotation:") 2 (ppr ann)
+  ppr (AmbiguityCheckCtxt ctxt tidy_ty allow_ambiguous) =
+    mk_msg tidy_ty $$ ppWhen (not allow_ambiguous) ambig_msg
+    where mk_msg ty = ppr $ SignatureContext ctxt (text "the ambiguity check for") (ppr ty)
+          ambig_msg = text "To defer the ambiguity check to use sites, enable AllowAmbiguousTypes"
+  ppr (ThetaCtxt ctxt theta)
+      = vcat [text "In the context:" <+> pprTheta theta,
+              text "While checking" <+> pprUserTypeCtxt ctxt ]
+  ppr (SignatureCtxt ctxt) = ppr ctxt
+  ppr (TypeCtxt ty) = text "In the type" <+> quotes (ppr ty)
+  ppr (PatternSigCtxt sig_ty res_ty)
+     = vcat [ hang (text "When checking that the pattern signature:") 4 (ppr sig_ty)
+                   , nest 2 (hang (text "fits the type of its context:") 2 (ppr res_ty)) ]
+  ppr (KindCtxt k) = (text "In the kind" <+> quotes (ppr k))
+  ppr (PatternCtxt pat) = hang (text "In the pattern:") 2 (ppr pat)
+  ppr (ExportCtxt inferred want_ambig poly_name ty)
+      = vcat [ text "When checking that" <+> quotes (ppr poly_name)
+                         <+> text "has the" <+> what <+> text "type"
+                       , nest 2 (ppr poly_name <+> dcolon <+> ppr ty)
+                       , ppWhen want_ambig $
+                         text "Probable cause: the inferred type is ambiguous" ]
+      where what | inferred  = text "inferred"
+                 | otherwise = text "specified"
+  ppr (SpecCtxt prag) = hang (text "In the SPECIALISE pragma") 2 (ppr prag)
+  ppr (VectorCtxt thing) = text "When checking the vectorisation declaration for" <+> ppr thing
+  ppr (TypeSignatureCtxt name sdoc)
+     = sep [ text "In" <+> pprUserTypeCtxt (FunSigCtxt name) <> colon
+           , nest 2 sdoc ]
+  ppr (PatMonoBindsCtxt sdoc) = hang (text "In a pattern binding:") 2 sdoc
+  ppr (MatchCtxt doc1 doc2)
+      = hang (text "In" <+> doc1 <> colon) 4 doc2
+  ppr (ListComprehensionCtxt sdoc) = hang (text "In the expression:") 2 sdoc
+  ppr (StatementCtxt sdoc1 sdoc2) = hang (text "In a stmt of" <+> sdoc1 <> colon)
+          2 sdoc2
+  ppr (CommandCtxt cmd) = text "In the command:" <+> ppr cmd
+  ppr (ExpressionCtxt expr) = hang (text "In the expression:") 2 (ppr expr)
+  ppr (StaticCtxt expr) = (hang (text "In the body of a static form:") 2 (ppr expr))
+  ppr (FieldCtxt field_name) = text "In the" <+> quotes (ppr field_name) <+> text "field of a record"
+  ppr (DeclarationCtxt decl) = hsep [text "In the", pprTyClDeclFlavour decl,
+                        text "declaration for", quotes (ppr (tcdName decl))]
+  ppr (ForeignDeclarationCtxt fo) = hang (text "When checking declaration:") 2 (ppr fo)
+  ppr DefaultDeclarationCtxt = text "When checking the types in a default declaration"
+  ppr (RuleCtxt name) = text "When checking the transformation rule" <+>
+                  doubleQuotes (ftext name)
+  ppr (DataConstructorCtxt con) = text "In the definition of data constructor" <+> quotes (ppr con)
+  ppr (DataConstructorsCtxt cons) = dataConCtxtName cons
+    where dataConCtxtName [con]
+             = text "In the definition of data constructor" <+> quotes (ppr con)
+          dataConCtxtName con
+             = text "In the definition of data constructors" <+> interpp'SP con
+  ppr (ClassCtxt sel_id tau)
+     = sep [text "When checking the class method:",
+                                   nest 2 (pprPrefixOcc sel_id <+> dcolon <+> ppr tau)]
+  ppr (FamilyInstCtxt flavour tycon)
+     = hsep [text "In the" <+> flavour <+> text "declaration for", quotes (ppr tycon)]
+  ppr (ClosedTypeFamilyCtxt tc)
+     = text "In the equations for closed type family" <+> quotes (ppr tc)
+  ppr (AddTypeCtxt thing) = hsep [ text "In the", flav
+              , text "declaration for", quotes (ppr name) ]
+      where
+        name = getName thing
+        flav = case thing of
+                 ATyCon tc
+                    | isClassTyCon tc       -> ptext (sLit "class")
+                    | isTypeFamilyTyCon tc  -> ptext (sLit "type family")
+                    | isDataFamilyTyCon tc  -> ptext (sLit "data family")
+                    | isTypeSynonymTyCon tc -> ptext (sLit "type")
+                    | isNewTyCon tc         -> ptext (sLit "newtype")
+                    | isDataTyCon tc        -> ptext (sLit "data")
+
+                 _ -> pprTrace "addTyThingCtxt strange" (ppr thing)
+                      empty
+  ppr (RoleCtxt name) = text "while checking a role annotation for" <+> quotes (ppr name)
+  ppr (StandaloneCtxt ty) = hang (text "In the stand-alone deriving instance for")
+                         2 (quotes (ppr ty))
+  ppr (DeriveInstCtxt pred) = text "When deriving the instance for" <+> parens (ppr pred)
+  ppr (InstDeclarationCtxt1 hs_inst_ty)
+      = inst_decl_ctxt (case unLoc hs_inst_ty of
+                            HsForAllTy _ _ _ _ (L _ ty') -> ppr ty'
+                            _                            -> ppr hs_inst_ty)
+  ppr (InstDeclarationCtxt2 dfun_ty)
+      = inst_decl_ctxt (ppr (mkClassPred cls tys))
+      where
+        (_,_,cls,tys) = tcSplitDFunTy dfun_ty
+  ppr (MethSigCtxt sel_name sig_ty meth_ty)
+      = hang (text "When checking that instance signature for" <+> quotes (ppr sel_name))
+                     2 (vcat [ text "is more general than its signature in the class"
+                             , text "Instance sig:" <+> ppr sig_ty
+                             , text "   Class sig:" <+> ppr meth_ty ])
+  ppr (SpecInstSigCtxt prag)
+      = hang (text "In the SPECIALISE pragma") 2 (ppr prag)
+  ppr (DerivedInstCtxt sel_id clas tys)
+      = vcat [ text "When typechecking the code for " <+> quotes (ppr sel_id)
+             , nest 2 (text "in a derived instance for" <+> quotes (pprClassPred clas tys) <> colon)
+             , nest 2 $ text "To see the code I am typechecking, use -ddump-deriv" ]
+  ppr (MainCtxt sdoc) = text "When checking the type of the" <+> sdoc
+  ppr (QuotationCtxt br_body)
+      = hang (text "In the Template Haskell quotation") 2 (ppr br_body)
+  ppr (SpliceDocCtxt splice)
+      = hang (text "In the Template Haskell splice") 2 (pprSplice splice)
+  ppr (SpliceResultCtxt expr)
+      = sep [ text "In the result of the splice:"
+            , nest 2 (char '$' <> ppr expr)
+            , text "To see what the splice expanded to, use -ddump-splices"]
+  ppr (ReifyCtxt th_nm th_tys)
+      = (text "In the argument of reifyInstances:"
+                    <+> ppr_th th_nm <+> sep (map ppr_th th_tys))
+  --- Renamer errors
+  ppr (DuplicatedAndShadowedCtxt ctxt) = text "In" <+> pprMatchContext ctxt
+  ppr (AnnotationRnCtxt ann) = hang (text "In the annotation:") 2 (ppr ann)
+  ppr (QuasiQuoteCtxt br_body) = hang (text "In the Template Haskell quotation")
+         2 (ppr br_body)
+  ppr (SpliceCtxt splice)
+    = hang (text "In the" <+> what) 2 (ppr splice)
+        where
+          what = case splice of
+                   HsUntypedSplice {} -> text "untyped splice:"
+                   HsTypedSplice   {} -> text "typed splice:"
+                   HsQuasiQuote    {} -> text "quasi-quotation:"
+                   HsSpliced       {} -> text "spliced expression:"
+
+instance Outputable HeraldContext where
+  ppr ArgumentOfDollarContext = text "The first argument of ($) takes"
+  ppr (OperatorContext op) = text "The operator" <+> quotes (ppr op) <+> ptext (sLit "takes")
+  ppr (LambdaCaseContext e) = sep [ text "The function" <+> quotes (ppr e), text "requires"]
+  ppr (EquationContext fun_name)
+      = text "The equation(s) for"
+               <+> quotes (ppr fun_name) <+> text "have"
+  ppr (LambdaExprContext match)
+      = sep [ ptext (sLit "The lambda expression")
+                           <+> quotes (pprSetDepth (PartWay 1) $
+                               pprMatches (LambdaExpr :: HsMatchContext Name) match),
+                          -- The pprSetDepth makes the abstraction print briefly
+                  ptext (sLit "has")]
+  ppr (FunctionApplicationContext fun)
+     = sep [ text "The function" <+> quotes (ppr fun), text "is applied to"]
+
+instance Outputable SignatureContext where
+  ppr (SignatureContext ctxt extra pp_ty)
+    = sep [ ptext (sLit "In") <+> extra <+> pprUserTypeCtxt ctxt <> colon
+          , nest 2 (pp_sig ctxt) ]
+      where
+        pp_sig (FunSigCtxt n)  = pp_n_colon n
+        pp_sig (ConArgCtxt n)  = pp_n_colon n
+        pp_sig (ForSigCtxt n)  = pp_n_colon n
+        pp_sig _               = pp_ty
+        pp_n_colon n = pprPrefixOcc n <+> dcolon <+> pp_ty
+
+pprSigCtxt :: UserTypeCtxt -> SDoc -> SDoc -> ContextElement
+-- (pprSigCtxt ctxt <extra> <type>)
+-- prints    In <extra> the type signature for 'f':
+--              f :: <type>
+-- The <extra> is either empty or "the ambiguity check for"
+pprSigCtxt ctxt extra pp_ty = SignatureCtxt $ SignatureContext ctxt extra pp_ty
+
+pprMatchInCtxt :: (OutputableBndr idL, OutputableBndr idR, Outputable body)
+               => HsMatchContext idL -> Match idR body -> ContextElement
+pprMatchInCtxt ctxt match  = MatchCtxt (pprMatchContext ctxt) (pprMatch ctxt match)
+
+pprStmtInCtxt :: (OutputableBndr idL, OutputableBndr idR, Outputable body)
+               => HsStmtContext idL -> StmtLR idL idR body -> ContextElement
+pprStmtInCtxt ctxt (LastStmt e _ _)
+  | isListCompExpr ctxt      -- For [ e | .. ], do not mutter about "stmts"
+  = ListComprehensionCtxt (ppr e)
+
+pprStmtInCtxt ctxt stmt
+  = StatementCtxt (pprAStmtContext ctxt) (ppr_stmt stmt)
+  where
+    -- For Group and Transform Stmts, don't print the nested stmts!
+    ppr_stmt (TransStmt { trS_by = by, trS_using = using
+                        , trS_form = form }) = pprTransStmt by using form
+    ppr_stmt stmt = pprStmt stmt
+
+inst_decl_ctxt :: SDoc -> SDoc
+inst_decl_ctxt doc = hang (text "In the instance declaration for")
+                        2 (quotes doc)
+
+ppr_th :: TH.Ppr a => a -> SDoc
+ppr_th x = text (TH.pprint x)

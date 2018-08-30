@@ -40,7 +40,7 @@ module Eta.Main.ErrUtils (
         debugTraceMsg,
 
         prettyPrintGhcErrors, traceCmd, isWarnMsgFatal,
-        mkFullMsg, SolutionInfo(..), HowMuch(..), ProblemInfo(..)
+        mkFullMsg
     ) where
 
 #include "HsVersions.h"
@@ -54,7 +54,6 @@ import Eta.Utils.StringBuffer (atLine, hGetStringBuffer, len, lexemeToString)
 import qualified Eta.Utils.PprColor as Col
 import Eta.BasicTypes.SrcLoc
 import Eta.Main.DynFlags
-import Eta.Types.Type
 import System.Directory
 import System.Exit      ( ExitCode(..), exitWith )
 import System.FilePath  ( takeDirectory, (</>) )
@@ -630,11 +629,3 @@ mkFullMsg msg caret =
          unicodeStartDashes = replicate 3 unicodeHorizontalDash
          unicodeEndDashes = replicate (totalDashLength - startLength - 1) unicodeHorizontalDash
          unicodeHorizontalDash = '\x2500'
-
-
-data SolutionInfo = FunctionMismatch Int HowMuch
-data HowMuch = TooFew | TooMuch
-data ProblemInfo = TypeMismatch {
-      tmActual   :: Type,
-      tmExpected :: Type
-      }

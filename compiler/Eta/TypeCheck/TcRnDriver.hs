@@ -1371,7 +1371,7 @@ check_main dflags tcg_env explicit_mod_hdr
         -- In other modes, fail altogether, so that we don't go on
         -- and complain a second time when processing the export list.
 
-    mainCtxt  = text "When checking the type of the" <+> pp_main_fn
+    mainCtxt  = MainCtxt pp_main_fn
     noMainMsg = text "The" <+> pp_main_fn
                 <+> text "is not defined in module" <+> quotes (ppr main_mod)
     pp_main_fn = ppMainFn main_fn
