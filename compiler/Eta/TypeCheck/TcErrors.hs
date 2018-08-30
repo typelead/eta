@@ -1048,6 +1048,7 @@ misMatchMsg oriented eq_rel ty1 ty2
           what <+> quotes (ppr ty2)
         , nest (12 + extra_space) $
           text "with" <+> repr2 <+> text "actual" <+> what <+> quotes (ppr ty1)
+        , blankLine
         , sameOccExtra ty2 ty1 ]
   | otherwise
   = sep [ text "Couldn't match" <+> repr1 <+> what <+> quotes (ppr ty1)

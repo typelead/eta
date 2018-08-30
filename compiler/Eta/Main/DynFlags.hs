@@ -190,7 +190,7 @@ import Eta.Utils.EnumSet (EnumSet)
 -- import System.IO.Unsafe ( unsafeDupablePerformIO )
 -- #endif
 import {-# SOURCE #-} Eta.Main.ErrUtils ( Severity(..), MsgDoc, mkLocMessageAnn,
-                                          getCaretDiagnostic)
+                                          getCaretDiagnostic, mkFullMsg)
 
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.IORef
@@ -1638,7 +1638,6 @@ defaultLogAction dflags reason severity srcSpan style msg
           putStrSDoc = defaultLogActionHPutStrDoc dflags stdout
 
           -- Pretty print the warning flag, if any (#10752)
-          message = mkLocMessageAnn flagMsg severity srcSpan msg
 
           printWarns = do
             hPutChar stderr '\n'
@@ -1646,8 +1645,10 @@ defaultLogAction dflags reason severity srcSpan style msg
                 if gopt Opt_DiagnosticsShowCaret dflags
                 then getCaretDiagnostic severity srcSpan
                 else pure empty
-            printErrs (message $+$ caretDiagnostic)
-                (setStyleColored True style)
+            let message = mkLocMessageAnn flagMsg severity srcSpan
+                            (mkFullMsg msg caretDiagnostic)
+
+            printErrs message (setStyleColored True style)
             -- careful (#2302): printErrs prints in UTF-8,
             -- whereas converting to string first and using
             -- hPutStr would just emit the low 8 bits of

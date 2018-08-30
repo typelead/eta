@@ -39,7 +39,8 @@ module Eta.Main.ErrUtils (
         showPass,
         debugTraceMsg,
 
-        prettyPrintGhcErrors, traceCmd, isWarnMsgFatal
+        prettyPrintGhcErrors, traceCmd, isWarnMsgFatal,
+        mkFullMsg, SolutionInfo(..), HowMuch(..), ProblemInfo(..)
     ) where
 
 #include "HsVersions.h"
@@ -53,7 +54,7 @@ import Eta.Utils.StringBuffer (atLine, hGetStringBuffer, len, lexemeToString)
 import qualified Eta.Utils.PprColor as Col
 import Eta.BasicTypes.SrcLoc
 import Eta.Main.DynFlags
-
+import Eta.Types.Type
 import System.Directory
 import System.Exit      ( ExitCode(..), exitWith )
 import System.FilePath  ( takeDirectory, (</>) )
@@ -66,7 +67,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import System.IO
 import System.IO.Error (catchIOError)
-
+import Eta.Utils.PprColor
 -------------------------
 type MsgDoc  = SDoc
 
@@ -163,7 +164,7 @@ mkLocMessageAnn ann severity locn msg
                    colored sevColor sevText <> optAnn
 
       in colored (Col.sMessage (colScheme dflags))
-                  (hang (colored (Col.sHeader (colScheme dflags)) header) 4
+                  (hang (colored (Col.sHeader (colScheme dflags)) header) 0
                         msg)
 
   where
@@ -596,3 +597,44 @@ traceCmd dflags phase_name cmd_line action
                                  <+> text cmd_line
                                  <+> text (show exn))
                               ; throwGhcExceptionIO (ProgramError (show exn))}
+
+mkFullMsg :: SDoc -> SDoc -> SDoc
+mkFullMsg msg caret =
+  vcat [ blankLine,
+         withBold (text startDashes) <+> colored colEtaFg (text "PROBLEM")
+       <+> withBold (text endDashes),
+         mainDoc,
+         blankLine]
+
+   where maxLength = maximum $ map length $ lines $ showSDoc dflags mainDoc
+         mainDoc = vcat [blankLine,
+                         text "The expression",
+                         nest 4 caret,
+                         text "has a type error.",
+                         blankLine,
+                         nest 4 msg,
+                         blankLine ]
+         unicode = useUnicode dflags
+         dflags = unsafeGlobalDynFlags
+         withBold sdoc
+           | unicode = sdoc
+           | otherwise = colored colBold sdoc
+         startDashes
+           | unicode = unicodeStartDashes
+           | otherwise = "----"
+         endDashes
+           | unicode = unicodeEndDashes
+           | otherwise = replicate (totalDashLength - startLength) '-'
+         startLength = length startDashes + 9
+         totalDashLength = maxLength + 6
+         unicodeStartDashes = replicate 3 unicodeHorizontalDash
+         unicodeEndDashes = replicate (totalDashLength - startLength - 1) unicodeHorizontalDash
+         unicodeHorizontalDash = '\x2500'
+
+
+data SolutionInfo = FunctionMismatch Int HowMuch
+data HowMuch = TooFew | TooMuch
+data ProblemInfo = TypeMismatch {
+      tmActual   :: Type,
+      tmExpected :: Type
+      }
