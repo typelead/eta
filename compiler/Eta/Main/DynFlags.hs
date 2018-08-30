@@ -3512,7 +3512,7 @@ optLevelFlags -- see Note [Documenting optimisation flags]
     , ([1,2],   Opt_FloatIn)
     , ([1,2],   Opt_FullLaziness)
     , ([1,2],   Opt_IgnoreAsserts)
-    , ([1,2],   Opt_Loopification)
+    , ([0,1,2], Opt_Loopification) -- always to avoid SOE on JVM (#866)
     , ([1,2],   Opt_Specialise)
     , ([1,2],   Opt_Strictness)
     , ([1,2],   Opt_UnboxSmallStrictFields)
