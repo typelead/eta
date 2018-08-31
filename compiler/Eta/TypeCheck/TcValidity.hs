@@ -405,7 +405,7 @@ check_arg_type ctxt rank ty
              -- kind * -> #); see Note [The kind invariant] in TypeRep
 
 ----------------------------------------
-forAllTyErr :: Rank -> Type -> SDoc
+forAllTyErr :: Rank -> Type -> TypeError
 forAllTyErr rank ty
    = vcat [ hang (ptext (sLit "Illegal polymorphic or qualified type:")) 2 (ppr ty)
           , suggestion ]
@@ -415,12 +415,12 @@ forAllTyErr rank ty
                    MonoType d     -> d
                    _              -> Outputable.empty -- Polytype is always illegal
 
-unliftedArgErr, ubxArgTyErr :: Type -> SDoc
-unliftedArgErr  ty = sep [ptext (sLit "Illegal unlifted type:"), ppr ty]
-ubxArgTyErr     ty = sep [ptext (sLit "Illegal unboxed tuple type as function argument:"), ppr ty]
+unliftedArgErr, ubxArgTyErr :: Type -> TypeError
+unliftedArgErr  ty = UnliftedArgError ty
+ubxArgTyErr     ty = UbxArgTyErr ty
 
-kindErr :: Kind -> SDoc
-kindErr kind = sep [ptext (sLit "Expecting an ordinary type, but found a type of kind"), ppr kind]
+kindErr :: Kind -> TypeError
+kindErr kind = KindError kind
 
 {-
 Note [Liberal type synonyms]
@@ -772,9 +772,8 @@ predIrredBadCtxtErr pred = hang (ptext (sLit "Illegal constraint") <+> quotes (p
                                  <+> ptext (sLit "in a superclass/instance context"))
                                2 (parens undecidableMsg)
 
-constraintSynErr :: Type -> SDoc
-constraintSynErr kind = hang (ptext (sLit "Illegal constraint synonym of kind:") <+> quotes (ppr kind))
-                           2 (parens constraintKindsMsg)
+constraintSynErr :: Type -> TypeError
+constraintSynErr kind = ConstraintSynError kind
 
 dupPredWarn :: [[PredType]] -> SDoc
 dupPredWarn dups   = ptext (sLit "Duplicate constraint(s):") <+> pprWithCommas pprType (map head dups)

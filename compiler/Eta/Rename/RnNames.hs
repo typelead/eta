@@ -44,7 +44,6 @@ import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.Maybes
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.BasicTypes      ( TopLevelFlag(..) )
-import Eta.Main.ErrUtils
 import Eta.Utils.Util
 import Eta.Utils.FastString
 import Eta.Utils.ListSetOps
@@ -216,7 +215,7 @@ rnImportDecl this_mod
              Nothing     -> True
              Just pkg_fs -> pkg_fs == fsLit "this" ||
                             fsToUnitId pkg_fs == moduleUnitId this_mod))
-         (addErr (ptext (sLit "A module cannot import itself:") <+> ppr imp_mod_name))
+         (addErr (ModuleCycleError imp_mod_name))
 
     -- Check for a missing import list (Opt_WarnMissingImportList also
     -- checks for T(..) items but that is done in checkDodgyImport below)
@@ -250,9 +249,7 @@ rnImportDecl this_mod
     warnIf (want_boot && not (mi_boot iface) && isOneShot (ghcMode dflags))
            (warnRedundantSourceImport imp_mod_name)
     when (mod_safe && not (safeImportsOn dflags)) $
-        addErr (ptext (sLit "safe import can't be used as Safe Eta isn't on!")
-                $+$ ptext (sLit $ "please enable Safe Eta through either "
-                                   ++ "Safe, Trustworthy or Unsafe"))
+        addErr SafeEtaError
 
     let
         qual_mod_name = as_mod `orElse` imp_mod_name
@@ -415,9 +412,8 @@ rnJavaImports hsc_env java_imps = do
   else do
     forM_ notFounds $ \notFound ->
       case lookup notFound classImps of
-        Just loc -> addErrAt loc $ text $ "Unable to find class in the classpath."
-        Nothing  -> addErr $ text $ "Class '" ++ notFound ++ "' was a transitive dependency"
-                 ++ " of one of your java imports and was not found on the classpath."
+        Just loc -> addErrAt loc $ ClassNotFoundError
+        Nothing  -> addErr $ (ClassTransitiveError notFound)
     return (emptyGlobalRdrEnv, [])
 
 rnJavaImport :: HscEnv -> ClassIndex -> LImportDecl RdrName -> RnM (GlobalRdrEnv, [LHsDecl RdrName])
@@ -972,7 +968,7 @@ filterImports iface decl_spec (Just (want_hiding, L l import_items))
             emit_warning MissingImportList = whenWOptM Opt_WarnMissingImportList $
               addWarn (Reason Opt_WarnMissingImportList) (missingImportListItem ieRdr)
             emit_warning BadImportW = whenWOptM Opt_WarnDodgyImports $
-              addWarn (Reason Opt_WarnDodgyImports) (lookup_err_msg BadImport)
+              addWarn (Reason Opt_WarnDodgyImports) (ppr (lookup_err_msg BadImport))
 
             run_lookup :: IELookupM a -> TcRn (Maybe a)
             run_lookup m = case m of
@@ -1936,45 +1932,18 @@ the (x `elem` xs) test when deciding what to generate.
 ************************************************************************
 -}
 
-qualImportItemErr :: RdrName -> SDoc
-qualImportItemErr rdr
-  = hang (ptext (sLit "Illegal qualified name in import item:"))
-       2 (ppr rdr)
+qualImportItemErr :: RdrName -> TypeError
+qualImportItemErr rdr = IllegalQualNameError rdr
 
-badImportItemErrStd :: ModIface -> ImpDeclSpec -> IE RdrName -> SDoc
+badImportItemErrStd :: ModIface -> ImpDeclSpec -> IE RdrName -> TypeError
 badImportItemErrStd iface decl_spec ie
-  = sep [ptext (sLit "Module"), quotes (ppr (is_mod decl_spec)), source_import,
-         ptext (sLit "does not export"), quotes (ppr ie)]
-  where
-    source_import | mi_boot iface = ptext (sLit "(hi-boot interface)")
-                  | otherwise     = Outputable.empty
+  = ModuleDoesNotExportError iface decl_spec ie
 
-badImportItemErrDataCon :: OccName -> ModIface -> ImpDeclSpec -> IE RdrName -> SDoc
+badImportItemErrDataCon :: OccName -> ModIface -> ImpDeclSpec -> IE RdrName -> TypeError
 badImportItemErrDataCon dataType_occ iface decl_spec ie
-  = vcat [ ptext (sLit "In module")
-             <+> quotes (ppr (is_mod decl_spec))
-             <+> source_import <> colon
-         , nest 2 $ quotes datacon
-             <+> ptext (sLit "is a data constructor of")
-             <+> quotes dataType
-         , ptext (sLit "To import it use")
-         , nest 2 $ quotes (ptext (sLit "import"))
-             <+> ppr (is_mod decl_spec)
-             <> parens_sp (dataType <> parens_sp datacon)
-         , ptext (sLit "or")
-         , nest 2 $ quotes (ptext (sLit "import"))
-             <+> ppr (is_mod decl_spec)
-             <> parens_sp (dataType <> ptext (sLit "(..)"))
-         ]
-  where
-    datacon_occ = rdrNameOcc $ ieName ie
-    datacon = parenSymOcc datacon_occ (ppr datacon_occ)
-    dataType = parenSymOcc dataType_occ (ppr dataType_occ)
-    source_import | mi_boot iface = ptext (sLit "(hi-boot interface)")
-                  | otherwise     = Outputable.empty
-    parens_sp d = parens (space <> d <> space)  -- T( f,g )
+  = BadImportItemDataConError dataType_occ iface decl_spec ie
 
-badImportItemErr :: ModIface -> ImpDeclSpec -> IE RdrName -> [AvailInfo] -> SDoc
+badImportItemErr :: ModIface -> ImpDeclSpec -> IE RdrName -> [AvailInfo] -> TypeError
 badImportItemErr iface decl_spec ie avails
   = case find checkIfDataCon avails of
      Just con -> badImportItemErrDataCon (availOccName con) iface decl_spec ie
@@ -1989,8 +1958,8 @@ badImportItemErr iface decl_spec ie avails
     nameOccNameFS = occNameFS . nameOccName
     importedFS = occNameFS . rdrNameOcc $ ieName ie
 
-illegalImportItemErr :: SDoc
-illegalImportItemErr = ptext (sLit "Illegal import item")
+illegalImportItemErr :: TypeError
+illegalImportItemErr = IllegalImportError
 
 dodgyImportWarn :: RdrName -> SDoc
 dodgyImportWarn item = dodgyMsg (ptext (sLit "import")) item
@@ -2005,44 +1974,13 @@ dodgyMsg kind tc
           quotes (ppr tc) <+> ptext (sLit "has (in-scope) constructors or class methods,"),
           ptext (sLit "but it has none") ]
 
-exportItemErr :: IE RdrName -> SDoc
-exportItemErr export_item
-  = sep [ ptext (sLit "The export item") <+> quotes (ppr export_item),
-          ptext (sLit "attempts to export constructors or class methods that are not visible here") ]
+exportItemErr :: IE RdrName -> TypeError
+exportItemErr export_item = ExportItemError export_item
 
 exportClashErr :: GlobalRdrEnv -> Name -> Name -> IE RdrName -> IE RdrName
-               -> MsgDoc
+               -> TypeError
 exportClashErr global_env name1 name2 ie1 ie2
-  = vcat [ ptext (sLit "Conflicting exports for") <+> quotes (ppr occ) <> colon
-         , ppr_export ie1' name1'
-         , ppr_export ie2' name2' ]
-  where
-    occ = nameOccName name1
-    ppr_export ie name = nest 3 (hang (quotes (ppr ie) <+> ptext (sLit "exports") <+>
-                                       quotes (ppr name))
-                                    2 (pprNameProvenance (get_gre name)))
-
-    -- get_gre finds a GRE for the Name, so that we can show its provenance
-    get_gre name
-        = case lookupGRE_Name global_env name of
-             (gre:_) -> gre
-             []      -> pprPanic "exportClashErr" (ppr name)
-    get_loc name = greSrcSpan (get_gre name)
-    (name1', ie1', name2', ie2') = if get_loc name1 < get_loc name2
-                                   then (name1, ie1, name2, ie2)
-                                   else (name2, ie2, name1, ie1)
-
--- the SrcSpan that pprNameProvenance prints out depends on whether
--- the Name is defined locally or not: for a local definition the
--- definition site is used, otherwise the location of the import
--- declaration.  We want to sort the export locations in
--- exportClashErr by this SrcSpan, we need to extract it:
-greSrcSpan :: GlobalRdrElt -> SrcSpan
-greSrcSpan gre
-  | Imported (is:_) <- gre_prov gre = is_dloc (is_decl is)
-  | otherwise                       = name_span
-  where
-    name_span = nameSrcSpan (gre_name gre)
+  = ExportClashError global_env name1 name2 ie1 ie2
 
 addDupDeclErr :: [Name] -> TcRn ()
 addDupDeclErr []
@@ -2050,13 +1988,7 @@ addDupDeclErr []
 addDupDeclErr names@(name : _)
   = addErrAt (getSrcSpan (last sorted_names)) $
     -- Report the error at the later location
-    vcat [ptext (sLit "Multiple declarations of") <+>
-             quotes (ppr (nameOccName name)),
-             -- NB. print the OccName, not the Name, because the
-             -- latter might not be in scope in the RdrEnv and so will
-             -- be printed qualified.
-          ptext (sLit "Declared at:") <+>
-                   vcat (map (ppr . nameSrcLoc) sorted_names)]
+    (MultipleDeclarationError name sorted_names)
   where
     sorted_names = sortWith nameSrcLoc names
 
@@ -2069,9 +2001,7 @@ addSimDeclErr []
 addSimDeclErr names
   = addErrAt (getSrcSpan (sorted_names !! 1)) $
     -- Report the error at the second instance
-    vcat [ptext (sLit "Multiple declarations with names differing only in case."),
-          ptext (sLit "Declared at:") <+>
-                   vcat (map (ppr . nameSrcLoc) sorted_names)]
+    (SimpleDeclarationError sorted_names)
   where
     sorted_names = sortWith nameSrcLoc names
 
@@ -2087,10 +2017,8 @@ dupModuleExport mod
           quotes (ptext (sLit "Module") <+> ppr mod),
           ptext (sLit "in export list")]
 
-moduleNotImported :: ModuleName -> SDoc
-moduleNotImported mod
-  = ptext (sLit "The export item `module") <+> ppr mod <>
-    ptext (sLit "' is not imported")
+moduleNotImported :: ModuleName -> TypeError
+moduleNotImported mod = ModuleNotImportedError mod
 
 nullModuleExport :: ModuleName -> SDoc
 nullModuleExport mod
@@ -2113,9 +2041,8 @@ moduleWarn mod (DeprecatedTxt _ txt)
                                 <+> ptext (sLit "is deprecated:"),
           nest 2 (vcat (map ppr txt)) ]
 
-packageImportErr :: SDoc
-packageImportErr
-  = ptext (sLit "Package-qualified imports are not enabled; use PackageImports")
+packageImportErr :: TypeError
+packageImportErr = PackageImportError
 
 -- This data decl will parse OK
 --      data T = a Int
@@ -2130,6 +2057,5 @@ packageImportErr
 checkConName :: RdrName -> TcRn ()
 checkConName name = checkErr (isRdrDataCon name) (badDataCon name)
 
-badDataCon :: RdrName -> SDoc
-badDataCon name
-   = hsep [ptext (sLit "Illegal data constructor name"), quotes (ppr name)]
+badDataCon :: RdrName -> TypeError
+badDataCon name = IllegalDataConError name

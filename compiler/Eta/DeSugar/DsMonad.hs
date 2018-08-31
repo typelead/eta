@@ -293,7 +293,7 @@ loadModule doc mod
        ; setEnvs (ds_if_env env) $ do
        { iface <- loadInterface doc mod ImportBySystem
        ; case iface of
-           Failed err      -> pprPanic "DsMonad.loadModule: failed to load" (err $$ doc)
+           Failed err      -> pprPanic "DsMonad.loadModule: failed to load" ((ppr err) $$ doc)
            Succeeded iface -> return $ mkGlobalRdrEnv . gresFromAvails prov . mi_exports $ iface
        } }
   where

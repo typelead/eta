@@ -46,7 +46,7 @@ import Eta.Utils.Digraph          ( SCC(..) )
 import Eta.Utils.Bag
 import Eta.Utils.Outputable
 import Eta.Utils.FastString
-import Data.List        ( partition, sort )
+import Data.List        ( partition)
 import Eta.Utils.Maybes           ( orElse )
 import Control.Monad
 import qualified Eta.LanguageExtensions as LangExt
@@ -431,10 +431,8 @@ makeMiniFixityEnv decls = foldlM add_one_sig emptyFsEnv decls
            ; return env}
      }
 
-dupFixityDecl :: SrcSpan -> RdrName -> SDoc
-dupFixityDecl loc rdr_name
-  = vcat [ptext (sLit "Multiple fixity declarations for") <+> quotes (ppr rdr_name),
-          ptext (sLit "also at ") <+> ppr loc]
+dupFixityDecl :: SrcSpan -> RdrName -> TypeError
+dupFixityDecl loc rdr_name = MultipleFixityDeclError loc rdr_name
 
 ---------------------
 
@@ -474,10 +472,8 @@ rnBindLHS name_maker _ (PatSynBind psb@PSB{ psb_id = rdrname })
        ; name <- applyNameMaker name_maker rdrname
        ; return (PatSynBind psb{ psb_id = name }) }
   where
-    localPatternSynonymErr :: SDoc
-    localPatternSynonymErr
-      = hang (ptext (sLit "Illegal pattern synonym declaration for") <+> quotes (ppr rdrname))
-           2 (ptext (sLit "Pattern synonym declarations are only valid at top level"))
+    localPatternSynonymErr :: TypeError
+    localPatternSynonymErr = LocalPatterSynonymError rdrname
 
 rnBindLHS _ _ b = pprPanic "rnBindHS" (ppr b)
 
@@ -623,10 +619,8 @@ rnPatSynBind _sig_fn bind@(PSB { psb_id = L _ name
   where
     lookupVar = wrapLocM lookupOccRn
 
-    patternSynonymErr :: SDoc
-    patternSynonymErr
-      = hang (ptext (sLit "Illegal pattern synonym declaration"))
-           2 (ptext (sLit "Use -XPatternSynonyms to enable this extension"))
+    patternSynonymErr :: TypeError
+    patternSynonymErr = PatternSynonymError
 
 {-
 Note [Pattern synonym wrappers don't yield dependencies]
@@ -1019,23 +1013,13 @@ rnMatch' ctxt rnBody match@(Match { m_fun_id_infix = mf, m_pats = pats
         ; return (Match { m_fun_id_infix = mf', m_pats = pats'
                         , m_type = Nothing, m_grhss = grhss'}, grhss_fvs ) }}
 
-emptyCaseErr :: HsMatchContext Name -> SDoc
-emptyCaseErr ctxt = hang (ptext (sLit "Empty list of alternatives in") <+> pp_ctxt)
-                       2 (ptext (sLit "Use EmptyCase to allow this"))
-  where
-    pp_ctxt = case ctxt of
-                CaseAlt    -> ptext (sLit "case expression")
-                LambdaExpr -> ptext (sLit "\\case expression")
-                _ -> ptext (sLit "(unexpected)") <+> pprMatchContextNoun ctxt
+emptyCaseErr :: HsMatchContext Name -> TypeError
+emptyCaseErr ctxt = EmptyCaseError ctxt
 
 
 resSigErr :: Outputable body
-          => HsMatchContext Name -> Match RdrName body -> HsType RdrName -> SDoc
-resSigErr ctxt match ty
-   = vcat [ ptext (sLit "Illegal result type signature") <+> quotes (ppr ty)
-          , nest 2 $ ptext (sLit
-                 "Result signatures are no longer supported in pattern matches")
-          , ppr (pprMatchInCtxt ctxt match) ]
+          => HsMatchContext Name -> Match RdrName body -> HsType RdrName -> TypeError
+resSigErr ctxt match ty = ResultSignatureError ty (ppr (pprMatchInCtxt ctxt match))
 
 {-
 ************************************************************************
@@ -1091,39 +1075,25 @@ rnGRHS' ctxt rnBody (GRHS guards rhs)
 
 dupSigDeclErr :: [(Located RdrName, Sig RdrName)] -> RnM ()
 dupSigDeclErr pairs@((L loc name, sig) : _)
-  = addErrAt loc $
-    vcat [ ptext (sLit "Duplicate") <+> what_it_is
-           <> ptext (sLit "s for") <+> quotes (ppr name)
-         , ptext (sLit "at") <+> vcat (map ppr $ sort $ map (getLoc . fst) pairs) ]
-  where
-    what_it_is = hsSigDoc sig
+  = addErrAt loc (DuplicateSignatureError pairs name sig)
 
 dupSigDeclErr [] = panic "dupSigDeclErr"
 
 misplacedSigErr :: LSig Name -> RnM ()
 misplacedSigErr (L loc sig)
-  = addErrAt loc $
-    sep [ptext (sLit "Misplaced") <+> hsSigDoc sig <> colon, ppr sig]
+  = addErrAt loc $ (MisplacedSignatureError sig)
 
-defaultSigErr :: Sig RdrName -> SDoc
-defaultSigErr sig = vcat [ hang (ptext (sLit "Unexpected default signature:"))
-                              2 (ppr sig)
-                         , ptext (sLit "Use DefaultSignatures to enable default signatures") ]
+defaultSigErr :: Sig RdrName -> TypeError
+defaultSigErr sig = DefaultSignatureError sig
 
-methodBindErr :: HsBindLR RdrName RdrName -> SDoc
-methodBindErr mbind
- =  hang (ptext (sLit "Pattern bindings (except simple variables) not allowed in instance declarations"))
-       2 (ppr mbind)
+methodBindErr :: HsBindLR RdrName RdrName -> TypeError
+methodBindErr mbind = MethodBindError mbind
 
-methodPatSynErr :: HsBindLR RdrName RdrName -> SDoc
-methodPatSynErr mbind
- =  hang (ptext (sLit "Pattern synonyms not allowed in class/instance declarations"))
-       2 (ppr mbind)
+methodPatSynErr :: HsBindLR RdrName RdrName -> TypeError
+methodPatSynErr mbind = MethodPatternSynonymError mbind
 
-bindsInHsBootFile :: LHsBindsLR Name RdrName -> SDoc
-bindsInHsBootFile mbinds
-  = hang (ptext (sLit "Bindings in hs-boot files are not allowed"))
-       2 (ppr mbinds)
+bindsInHsBootFile :: LHsBindsLR Name RdrName -> TypeError
+bindsInHsBootFile mbinds = BindingsBootFileError mbinds
 
 nonStdGuardErr :: Outputable body => [LStmtLR Name Name body] -> SDoc
 nonStdGuardErr guards
@@ -1137,8 +1107,5 @@ unusedPatBindWarn bind
 
 dupMinimalSigErr :: [LSig RdrName] -> RnM ()
 dupMinimalSigErr sigs@(L loc _ : _)
-  = addErrAt loc $
-    vcat [ ptext (sLit "Multiple minimal complete definitions")
-         , ptext (sLit "at") <+> vcat (map ppr $ sort $ map getLoc sigs)
-         , ptext (sLit "Combine alternative minimal complete definitions with `|'") ]
+  = addErrAt loc (DuplicateMinimalError sigs)
 dupMinimalSigErr [] = panic "dupMinimalSigErr"

@@ -396,12 +396,12 @@ getEpsAndHpt = do { env <- getTopEnv; eps <- readMutVar (hsc_EPS env)
 
 -- | A convenient wrapper for taking a @MaybeErr MsgDoc a@ and throwing
 -- an exception if it is an error.
-withException :: TcRnIf gbl lcl (MaybeErr MsgDoc a) -> TcRnIf gbl lcl a
+withException :: TcRnIf gbl lcl (MaybeErr TypeError a) -> TcRnIf gbl lcl a
 withException do_this = do
     r <- do_this
     dflags <- getDynFlags
     case r of
-        Failed err -> liftIO $ throwGhcExceptionIO (ProgramError (showSDoc dflags err))
+        Failed err -> liftIO $ throwGhcExceptionIO (ProgramError (showSDoc dflags (ppr err)))
         Succeeded result -> return result
 
 {-
@@ -719,27 +719,27 @@ getErrsVar = do { env <- getLclEnv; return (tcl_errs env) }
 setErrsVar :: TcRef Messages -> TcRn a -> TcRn a
 setErrsVar v = updLclEnv (\ env -> env { tcl_errs =  v })
 
-addErr :: MsgDoc -> TcRn ()    -- Ignores the context stack
+addErr :: TypeError -> TcRn ()    -- Ignores the context stack
 addErr msg = do { loc <- getSrcSpanM; addErrAt loc msg }
 
-failWith :: MsgDoc -> TcRn a
+failWith :: TypeError -> TcRn a
 failWith msg = addErr msg >> failM
 
-addErrAt :: SrcSpan -> MsgDoc -> TcRn ()
+addErrAt :: SrcSpan -> TypeError -> TcRn ()
 -- addErrAt is mainly (exclusively?) used by the renamer, where
 -- tidying is not an issue, but it's all lazy so the extra
 -- work doesn't matter
 addErrAt loc msg = do { ctxt <- getErrCtxt
                       ; tidy_env <- tcInitTidyEnv
                       ; err_info <- mkErrInfo tidy_env ctxt
-                      ; addLongErrAt loc msg err_info }
+                      ; addLongErrAt loc (ppr msg) err_info }
 
-addErrs :: [(SrcSpan,MsgDoc)] -> TcRn ()
+addErrs :: [(SrcSpan,TypeError)] -> TcRn ()
 addErrs msgs = mapM_ add msgs
              where
                add (loc,msg) = addErrAt loc msg
 
-checkErr :: Bool -> MsgDoc -> TcRn ()
+checkErr :: Bool -> TypeError -> TcRn ()
 -- Add the error if the bool is False
 checkErr ok msg = unless ok (addErr msg)
 
@@ -961,10 +961,7 @@ checkTH e what = failTH e what  -- Raise an error in a stage-1 compiler
 
 failTH :: Outputable a => a -> String -> TcRn x
 failTH e what  -- Raise an error in a stage-1 compiler
-  = failWithTc (vcat [ hang (char 'A' <+> text what
-                             <+> ptext (sLit "requires GHC with interpreter support:"))
-                          2 (ppr e)
-                     , ptext (sLit "Perhaps you are using a stage-1 compiler?") ])
+  = failWithTc (FailTHError what (ppr e))
 
 {-
 ************************************************************************
@@ -1024,38 +1021,38 @@ setCtLoc (CtLoc { ctl_env = lcl }) thing_inside
     tidy up the message; we then use it to tidy the context messages
 -}
 
-addErrTc :: MsgDoc -> TcM ()
+addErrTc :: TypeError -> TcM ()
 addErrTc err_msg = do { env0 <- tcInitTidyEnv
                       ; addErrTcM (env0, err_msg) }
 
-addErrsTc :: [MsgDoc] -> TcM ()
+addErrsTc :: [TypeError] -> TcM ()
 addErrsTc err_msgs = mapM_ addErrTc err_msgs
 
-addErrTcM :: (TidyEnv, MsgDoc) -> TcM ()
+addErrTcM :: (TidyEnv, TypeError) -> TcM ()
 addErrTcM (tidy_env, err_msg)
   = do { ctxt <- getErrCtxt ;
          loc  <- getSrcSpanM ;
          add_err_tcm tidy_env err_msg loc ctxt }
 
 -- Return the error message, instead of reporting it straight away
-mkErrTcM :: (TidyEnv, MsgDoc) -> TcM ErrMsg
+mkErrTcM :: (TidyEnv, TypeError) -> TcM ErrMsg
 mkErrTcM (tidy_env, err_msg)
   = do { ctxt <- getErrCtxt ;
          loc  <- getSrcSpanM ;
          err_info <- mkErrInfo tidy_env ctxt ;
-         mkLongErrAt loc err_msg err_info }
+         mkLongErrAt loc (ppr err_msg) err_info }
 
 -- The failWith functions add an error message and cause failure
 
-failWithTc :: MsgDoc -> TcM a               -- Add an error message and fail
+failWithTc :: TypeError -> TcM a               -- Add an error message and fail
 failWithTc err_msg
   = addErrTc err_msg >> failM
 
-failWithTcM :: (TidyEnv, MsgDoc) -> TcM a   -- Add an error message and fail
+failWithTcM :: (TidyEnv, TypeError) -> TcM a   -- Add an error message and fail
 failWithTcM local_and_msg
   = addErrTcM local_and_msg >> failM
 
-checkTc :: Bool -> MsgDoc -> TcM ()         -- Check that the boolean is true
+checkTc :: Bool -> TypeError -> TcM ()         -- Check that the boolean is true
 checkTc True  _   = return ()
 checkTc False err = failWithTc err
 
@@ -1107,12 +1104,12 @@ tcInitTidyEnv
         Other helper functions
 -}
 
-add_err_tcm :: TidyEnv -> MsgDoc -> SrcSpan
+add_err_tcm :: TidyEnv -> TypeError -> SrcSpan
             -> [ErrCtxt]
             -> TcM ()
 add_err_tcm tidy_env err_msg loc ctxt
  = do { err_info <- mkErrInfo tidy_env ctxt ;
-        addLongErrAt loc err_msg err_info }
+        addLongErrAt loc (ppr err_msg) err_info }
 
 mkErrInfo :: TidyEnv -> [ErrCtxt] -> TcM SDoc
 -- Tidy the error info, trimming excessive contexts

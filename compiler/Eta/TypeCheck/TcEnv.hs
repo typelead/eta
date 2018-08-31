@@ -231,13 +231,13 @@ tcLookupInstance :: Class -> [Type] -> TcM ClsInst
 tcLookupInstance cls tys
   = do { instEnv <- tcGetInstEnvs
        ; case lookupUniqueInstEnv instEnv cls tys of
-           Left err             -> failWithTc $ ptext (sLit "Couldn't match instance:") <+> err
+           Left err             -> failWithTc $ LookupInstanceError err
            Right (inst, tys)
              | uniqueTyVars tys -> return inst
              | otherwise        -> failWithTc errNotExact
        }
   where
-    errNotExact = ptext (sLit "Not an exact match (i.e., some variables get instantiated)")
+    errNotExact = NotExactError
 
     uniqueTyVars tys = all isTyVarTy tys && hasNoDups (map extractTyVar tys)
       where
@@ -638,16 +638,11 @@ checkWellStaged pp_thing bind_lvl use_lvl
 
   | otherwise                   -- Badly staged
   = failWithTc $                -- E.g.  \x -> $(f x)
-    ptext (sLit "Stage error:") <+> pp_thing <+>
-        hsep   [ptext (sLit "is bound at stage") <+> ppr bind_lvl,
-                ptext (sLit "but used at stage") <+> ppr use_lvl]
+    CheckWellStagedError pp_thing bind_lvl use_lvl
 
 stageRestrictionError :: SDoc -> TcM a
 stageRestrictionError pp_thing
-  = failWithTc $
-    sep [ ptext (sLit "GHC stage restriction:")
-        , nest 2 (vcat [ pp_thing <+> ptext (sLit "is used in a top-level splice or annotation,")
-                       , ptext (sLit "and must be imported, not defined locally")])]
+  = failWithTc $ StageRestrictionError pp_thing
 
 topIdLvl :: Id -> ThLevel
 -- Globals may either be imported, or may be from an earlier "chunk"
@@ -917,10 +912,7 @@ notFound name
        ; let stage = tcl_th_ctxt lcl_env
        ; case stage of   -- See Note [Out of scope might be a staging error]
            Splice {} -> stageRestrictionError (quotes (ppr name))
-           _ -> failWithTc $
-                vcat[ptext (sLit "GHC internal error:") <+> quotes (ppr name) <+>
-                     ptext (sLit "is not in scope during type checking, but it passed the renamer"),
-                     ptext (sLit "tcl_env of environment:") <+> ppr (tcl_env lcl_env)]
+           _ -> failWithTc $ GhcInternalError name (ppr (tcl_env lcl_env))
                        -- Take case: printing the whole gbl env can
                        -- cause an infinite loop, in the case where we
                        -- are in the middle of a recursive TyCon/Class group;
@@ -933,8 +925,7 @@ wrongThingErr :: String -> TcTyThing -> Name -> TcM a
 -- turn does not look at the details of the TcTyThing.
 -- See Note [Placeholder PatSyn kinds] in TcBinds
 wrongThingErr expected thing name
-  = failWithTc (pprTcTyThingCategory thing <+> quotes (ppr name) <+>
-                ptext (sLit "used as a") <+> text expected)
+  = failWithTc (WrongThingError expected thing name)
 
 {-
 Note [Out of scope might be a staging error]

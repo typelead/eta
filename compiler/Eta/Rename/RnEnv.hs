@@ -40,7 +40,7 @@ module Eta.Rename.RnEnv (
         addFvRn, mapFvRn, mapMaybeFvRn, mapFvRnCPS,
         warnUnusedMatches,
         warnUnusedTopBinds, warnUnusedLocalBinds,
-        dataTcOccs, kindSigErr, perhapsForallMsg,
+        dataTcOccs, kindSigErr,
         HsDocContext(..), docOfHsDocContext
     ) where
 
@@ -60,8 +60,7 @@ import Eta.BasicTypes.Module
 import Eta.BasicTypes.ConLike
 import Eta.BasicTypes.DataCon          ( dataConFieldLabels, dataConTyCon )
 import Eta.Types.TyCon            ( isTupleTyCon, tyConArity )
-import Eta.Prelude.PrelNames        ( mkUnboundName, isUnboundName, rOOT_MAIN, forall_tv_RDR )
-import Eta.Main.ErrUtils         ( MsgDoc )
+import Eta.Prelude.PrelNames        ( mkUnboundName, isUnboundName, rOOT_MAIN )
 import Eta.BasicTypes.BasicTypes       ( Fixity(..), FixityDirection(..), minPrecedence, defaultFixity )
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Outputable
@@ -74,7 +73,6 @@ import Eta.Main.DynFlags
 import Eta.BasicTypes.NameCache
 import Eta.Utils.FastString
 import Control.Monad
-import Data.List
 import qualified Data.Set as Set
 import Eta.Utils.ListSetOps       ( minusList )
 import Eta.Main.Constants        ( mAX_TUPLE_SIZE )
@@ -300,7 +298,7 @@ lookupExactOcc name
 
 -- | Lookup an @Exact@ @RdrName@. See Note [Looking up Exact RdrNames].
 -- This never adds an error, but it may return one.
-lookupExactOcc_either :: Name -> RnM (Either MsgDoc Name)
+lookupExactOcc_either :: Name -> RnM (Either TypeError Name)
 -- See Note [Looking up Exact RdrNames]
 lookupExactOcc_either name
   | Just thing <- wiredInNameTyThing_maybe name
@@ -356,14 +354,8 @@ lookupExactOcc_either name
        }
 
   where
-    exact_nm_err = hang (ptext (sLit "The exact Name") <+> quotes (ppr name) <+> ptext (sLit "is not in scope"))
-                      2 (vcat [ ptext (sLit "Probable cause: you used a unique Template Haskell name (NameU), ")
-                              , ptext (sLit "perhaps via newName, but did not bind it")
-                              , ptext (sLit "If that's it, then -ddump-splices might be useful") ])
-    dup_nm_err   = hang (ptext (sLit "Duplicate exact Name") <+> quotes (ppr $ nameOccName name))
-                      2 (vcat [ ptext (sLit "Probable cause: you used a unique Template Haskell name (NameU), ")
-                              , ptext (sLit "perhaps via newName, but bound it multiple times")
-                              , ptext (sLit "If that's it, then -ddump-splices might be useful") ])
+    exact_nm_err = ExactNameError name
+    dup_nm_err   = DuplicateNameError name
 
 -----------------------------------------------
 lookupInstDeclBndr :: Name -> SDoc -> RdrName -> RnM Name
@@ -1073,7 +1065,7 @@ lookupSigCtxtOccRn ctxt what
 
 lookupBindGroupOcc :: HsSigCtxt
                    -> SDoc
-                   -> RdrName -> RnM (Either MsgDoc Name)
+                   -> RdrName -> RnM (Either TypeError Name)
 -- Looks up the RdrName, expecting it to resolve to one of the
 -- bound names passed in.  If not, return an appropriate error message
 --
@@ -1115,8 +1107,8 @@ lookupBindGroupOcc ctxt what rdr_name
           = do { env <- getGlobalRdrEnv
                ; let all_gres = lookupGlobalRdrEnv env (rdrNameOcc rdr_name)
                ; case filter (keep_me . gre_name) all_gres of
-                   [] | null all_gres -> bale_out_with Outputable.empty
-                      | otherwise     -> bale_out_with local_msg
+                   [] | null all_gres -> bale_out_with False
+                      | otherwise     -> bale_out_with True
                    (gre:_)            -> return (Right (gre_name gre)) }
 
     lookup_group bound_names  -- Look in the local envt (not top level)
@@ -1124,17 +1116,11 @@ lookupBindGroupOcc ctxt what rdr_name
            ; case lookupLocalRdrEnv local_env rdr_name of
                Just n
                  | n `elemNameSet` bound_names -> return (Right n)
-                 | otherwise                   -> bale_out_with local_msg
-               Nothing                         -> bale_out_with Outputable.empty }
+                 | otherwise                   -> bale_out_with True
+               Nothing                         -> bale_out_with False }
 
-    bale_out_with msg
-        = return (Left (sep [ ptext (sLit "The") <+> what
-                                <+> ptext (sLit "for") <+> quotes (ppr rdr_name)
-                           , nest 2 $ ptext (sLit "lacks an accompanying binding")]
-                       $$ nest 2 msg))
-
-    local_msg = parens $ ptext (sLit "The")  <+> what <+> ptext (sLit "must be given where")
-                           <+> quotes (ppr rdr_name) <+> ptext (sLit "is declared")
+    bale_out_with local
+        = return (Left (AccompanyingBindingError local what rdr_name))
 
     -- sub_msg = parens $ ptext (sLit "You cannot give a") <+> what
     --                    <+> ptext (sLit "for a record selector or class method")
@@ -1558,21 +1544,16 @@ unboundNameX :: WhereLooking -> RdrName -> SDoc -> RnM Name
 unboundNameX where_look rdr_name extra
   = do  { show_helpful_errors <- goptM Opt_HelpfulErrors
         ; let what = pprNonVarNameSpace (occNameSpace (rdrNameOcc rdr_name))
-              err = unknownNameErr what rdr_name $$ extra
+              err msuggestions = unknownNameErr what rdr_name extra msuggestions
         ; if not show_helpful_errors
-          then addErr err
+          then addErr (err Nothing)
           else do { suggestions <- unknownNameSuggestErr where_look rdr_name
-                  ; addErr (err $$ suggestions) }
+                  ; addErr (err (Just suggestions)) }
         ; return (mkUnboundName rdr_name) }
 
-unknownNameErr :: SDoc -> RdrName -> SDoc
-unknownNameErr what rdr_name
-  = vcat [ hang (ptext (sLit "Not in scope:"))
-              2 (what <+> quotes (ppr rdr_name))
-         , extra ]
-  where
-    extra | rdr_name == forall_tv_RDR = perhapsForallMsg
-          | otherwise                 = Outputable.empty
+unknownNameErr :: SDoc -> RdrName -> SDoc -> Maybe SDoc -> TypeError
+unknownNameErr what rdr_name extra suggestions
+    = NotInScopeError what rdr_name extra suggestions
 
 type HowInScope = Either SrcSpan ImpDeclSpec
      -- Left loc    =>  locally bound at loc
@@ -1809,13 +1790,7 @@ addNameClashErrRn rdr_name gres
   | all isLocalGRE gres  -- If there are two or more *local* defns, we'll have reported
   = return ()            -- that already, and we don't want an error cascade
   | otherwise
-  = addErr (vcat [ptext (sLit "Ambiguous occurrence") <+> quotes (ppr rdr_name),
-                  ptext (sLit "It could refer to") <+> vcat (msg1 : msgs)])
-  where
-    (np1:nps) = gres
-    msg1 = ptext  (sLit "either") <+> mk_ref np1
-    msgs = [ptext (sLit "    or") <+> mk_ref np | np <- nps]
-    mk_ref gre = sep [quotes (ppr (gre_name gre)) <> comma, pprNameProvenance gre]
+  = addErr (NameClashError rdr_name gres)
 
 shadowedNameWarn :: OccName -> [SDoc] -> SDoc
 shadowedNameWarn occ shadowed_locs
@@ -1823,53 +1798,39 @@ shadowedNameWarn occ shadowed_locs
             <+> ptext (sLit "shadows the existing binding") <> plural shadowed_locs,
          nest 2 (vcat shadowed_locs)]
 
-perhapsForallMsg :: SDoc
-perhapsForallMsg
-  = vcat [ ptext (sLit "Perhaps you intended to use ExplicitForAll or similar flag")
-         , ptext (sLit "to enable explicit-forall syntax: forall <tvs>. <type>")]
-
-unknownSubordinateErr :: SDoc -> RdrName -> SDoc
+unknownSubordinateErr :: SDoc -> RdrName -> TypeError
 unknownSubordinateErr doc op    -- Doc is "method of class" or
                                 -- "field of constructor"
-  = quotes (ppr op) <+> ptext (sLit "is not a (visible)") <+> doc
+  = UnknownSubordinateError doc op
 
-badOrigBinding :: RdrName -> SDoc
-badOrigBinding name
-  = ptext (sLit "Illegal binding of built-in syntax:") <+> ppr (rdrNameOcc name)
+badOrigBinding :: RdrName -> TypeError
+badOrigBinding name = OriginalBindingError name
         -- The rdrNameOcc is because we don't want to print Prelude.(,)
 
 dupNamesErr :: Outputable n => (n -> SrcSpan) -> [n] -> RnM ()
 dupNamesErr get_loc names
-  = addErrAt big_loc $
-    vcat [ptext (sLit "Conflicting definitions for") <+> quotes (ppr (head names)),
-          locations]
+  = addErrAt big_loc $ DuplicateNamesError (ppr (head names)) locs
   where
     locs      = map get_loc names
     big_loc   = foldr1 combineSrcSpans locs
-    locations = ptext (sLit "Bound at:") <+> vcat (map ppr (sort locs))
 
 kindSigErr :: Outputable a => a -> SDoc
 kindSigErr thing
   = hang (ptext (sLit "Illegal kind signature for") <+> quotes (ppr thing))
        2 (ptext (sLit "Perhaps you intended to use KindSignatures"))
 
-badQualBndrErr :: RdrName -> SDoc
-badQualBndrErr rdr_name
-  = ptext (sLit "Qualified name in binding position:") <+> ppr rdr_name
+badQualBndrErr :: RdrName -> TypeError
+badQualBndrErr rdr_name = BadQualifiedError rdr_name
 
-opDeclErr :: RdrName -> SDoc
-opDeclErr n
-  = hang (ptext (sLit "Illegal declaration of a type or class operator") <+> quotes (ppr n))
-       2 (ptext (sLit "Use TypeOperators to declare operators in type and declarations"))
+opDeclErr :: RdrName -> TypeError
+opDeclErr n = DeclarationError n
 
 checkTupSize :: Int -> RnM ()
 checkTupSize tup_size
   | tup_size <= mAX_TUPLE_SIZE
   = return ()
   | otherwise
-  = addErr (sep [ptext (sLit "A") <+> int tup_size <> ptext (sLit "-tuple is too large for GHC"),
-                 nest 2 (parens (ptext (sLit "max size is") <+> int mAX_TUPLE_SIZE)),
-                 nest 2 (ptext (sLit "Workaround: use nested tuples or define a data type"))])
+  = addErr (TupleSizeError tup_size)
 
 {-
 ************************************************************************

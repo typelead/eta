@@ -662,30 +662,23 @@ rnHsRecFields ctxt mk_arg (HsRecFields { rec_flds = flds, rec_dotdot = dotdot })
 getFieldIds :: [LHsRecField id arg] -> [id]
 getFieldIds flds = map (unLoc . hsRecFieldId . unLoc) flds
 
-needFlagDotDot :: HsRecFieldContext -> SDoc
-needFlagDotDot ctxt = vcat [ptext (sLit "Illegal `..' in record") <+> pprRFC ctxt,
-                            ptext (sLit "Use RecordWildCards to permit this")]
+needFlagDotDot :: HsRecFieldContext -> TypeError
+needFlagDotDot ctxt = RecordWildCardsError (pprRFC ctxt)
 
-badDotDotCon :: Name -> SDoc
-badDotDotCon con
-  = vcat [ ptext (sLit "Illegal `..' notation for constructor") <+> quotes (ppr con)
-         , nest 2 (ptext (sLit "The constructor has no labelled fields")) ]
+badDotDotCon :: Name -> TypeError
+badDotDotCon con = BadDotDotConError con
 
-badDotDotUpd :: SDoc
-badDotDotUpd = ptext (sLit "You cannot use `..' in a record update")
+badDotDotUpd :: TypeError
+badDotDotUpd = DotDotRecordError
 
-emptyUpdateErr :: SDoc
-emptyUpdateErr = ptext (sLit "Empty record update")
+emptyUpdateErr :: TypeError
+emptyUpdateErr = EmptyRecordError
 
-badPun :: Located RdrName -> SDoc
-badPun fld = vcat [ptext (sLit "Illegal use of punning for field") <+> quotes (ppr fld),
-                   ptext (sLit "Use NamedFieldPuns to permit this")]
+badPun :: Located RdrName -> TypeError
+badPun fld = NamedFieldPunsError fld
 
-dupFieldErr :: HsRecFieldContext -> [RdrName] -> SDoc
-dupFieldErr ctxt dups
-  = hsep [ptext (sLit "duplicate field name"),
-          quotes (ppr (head dups)),
-          ptext (sLit "in record"), pprRFC ctxt]
+dupFieldErr :: HsRecFieldContext -> [RdrName] -> TypeError
+dupFieldErr ctxt dups = DuplicateFieldError (pprRFC ctxt) dups
 
 pprRFC :: HsRecFieldContext -> SDoc
 pprRFC (HsRecFieldCon {}) = ptext (sLit "construction")
@@ -784,10 +777,8 @@ patSigErr ty
   =  (ptext (sLit "Illegal signature in pattern:") <+> ppr ty)
         $$ nest 4 (ptext (sLit "Use ScopedTypeVariables to permit it"))
 
-bogusCharError :: Char -> SDoc
-bogusCharError c
-  = ptext (sLit "character literal out of range: '\\") <> char c  <> char '\''
+bogusCharError :: Char -> TypeError
+bogusCharError c = BogusCharacterError c
 
-badViewPat :: Pat RdrName -> SDoc
-badViewPat pat = vcat [ptext (sLit "Illegal view pattern: ") <+> ppr pat,
-                       ptext (sLit "Use ViewPatterns to enable view patterns")]
+badViewPat :: Pat RdrName -> TypeError
+badViewPat pat = BadViewPatError pat

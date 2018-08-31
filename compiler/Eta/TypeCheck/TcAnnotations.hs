@@ -21,8 +21,6 @@ import Eta.Main.Annotations
 import Eta.BasicTypes.Name
 import Eta.TypeCheck.TcRnMonad
 import Eta.BasicTypes.SrcLoc
-import Eta.Utils.Outputable
-import Eta.Utils.FastString
 
 #ifndef ETA_REPL
 
@@ -54,8 +52,7 @@ tcAnnotation (L loc ann@(HsAnnotation _ provenance expr)) = do
       when (safeLanguageOn dflags) $ failWithTc safeHsErr
       runAnnotation target expr
     where
-      safeHsErr = vcat [ ptext (sLit "Annotations are not compatible with Safe Haskell.")
-                  , ptext (sLit "See https://ghc.haskell.org/trac/ghc/ticket/10826") ]
+      safeHsErr = SafeEtaAnnotationError
 
 annProvenanceToTarget :: Module -> AnnProvenance Name -> AnnTarget Name
 annProvenanceToTarget _   (ValueAnnProvenance (L _ name)) = NamedTarget name

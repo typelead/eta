@@ -556,23 +556,21 @@ traceDFuns ispecs
 
 funDepErr :: ClsInst -> [ClsInst] -> TcRn ()
 funDepErr ispec ispecs
-  = addClsInstsErr (ptext (sLit "Functional dependencies conflict between instance declarations:"))
-                    (ispec : ispecs)
+  = addClsInstsErr FunctionalDepsError (ispec : ispecs)
 
 dupInstErr :: ClsInst -> ClsInst -> TcRn ()
 dupInstErr ispec dup_ispec
-  = addClsInstsErr (ptext (sLit "Duplicate instance declarations:"))
-                    [ispec, dup_ispec]
+  = addClsInstsErr DuplicateInstError [ispec, dup_ispec]
 
-addClsInstsErr :: SDoc -> [ClsInst] -> TcRn ()
-addClsInstsErr herald ispecs
-  = setSrcSpan (getSrcSpan (head sorted)) $
-    addErr (hang herald 2 (pprInstances sorted))
+addClsInstsErr :: ([ClsInst] -> TypeError) -> [ClsInst] -> TcRn ()
+addClsInstsErr err ispecs
+  = setSrcSpan (getSrcSpan (head sorted)) $ addErr (err sorted)
  where
    sorted = sortWith getSrcLoc ispecs
    -- The sortWith just arranges that instances are dislayed in order
    -- of source location, which reduced wobbling in error messages,
    -- and is better for users
+
 
 {-
 ************************************************************************

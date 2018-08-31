@@ -1114,8 +1114,10 @@ wrapWarnTcS :: TcM a -> TcS a
 -- There's no static check; it's up to the user
 wrapWarnTcS = wrapTcS
 
-failTcS, panicTcS :: SDoc -> TcS a
-failTcS      = wrapTcS . TcM.failWith
+failTcS :: TypeError -> TcS a
+failTcS = wrapTcS . TcM.failWith
+
+panicTcS :: SDoc -> TcS a
 panicTcS doc = pprPanic "TcCanonical" doc
 
 traceTcS :: String -> SDoc -> TcS ()

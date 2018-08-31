@@ -96,8 +96,9 @@ module Eta.TypeCheck.TcRnTypes(
 
         -- Misc other types
         TcId, TcIdSet, HoleSort(..),
-        NameShape(..), ContextElement(..), HowMuch(..), ProblemInfo(..),
-        HeraldContext(..), pprSigCtxt, pprMatchInCtxt, pprStmtInCtxt
+        NameShape(..), ContextElement(..), HowMuch(..), TypeError(..),
+        HeraldContext(..), pprSigCtxt, pprMatchInCtxt, pprStmtInCtxt, perhapsForallMsg,
+        pprUserTypeErrorTy, pprUserTypeErrorTy'
 
   ) where
 
@@ -137,12 +138,19 @@ import Eta.Utils.ListSetOps
 import Eta.Utils.FastString
 import Eta.DeSugar.PmExpr
 import GHC.Fingerprint
+import Eta.Prelude.PrelNames (forall_tv_RDR, dot_tv_RDR, negateName,
+                              typeErrorVAppendDataConName,
+                              typeErrorTextDataConName,
+                              typeErrorShowTypeDataConName,
+                              typeErrorAppendDataConName)
 import Eta.Types.TyCon
+import Eta.Types.Coercion (pprCoAxBranchHdr)
+import Eta.Main.Constants ( mAX_TUPLE_SIZE )
 import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Language.Eta.Meta as TH
 import Control.Monad (ap, liftM, msum)
-
+import Data.Maybe
 #ifdef ETA_REPL
 import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
@@ -2410,10 +2418,6 @@ data ContextElement
 data HowMuch = TooFew | TooMuch
   deriving Show
 
-data ProblemInfo = TypeMismatch {
-      tmActual   :: Type,
-      tmExpected :: Type
-      }
 data HeraldContext
   = ArgumentOfDollarContext
   | OperatorContext (LHsExpr Name)
@@ -2422,7 +2426,21 @@ data HeraldContext
   | LambdaExprContext (MatchGroup Name (LHsExpr Name))
   | FunctionApplicationContext (LHsExpr Name)
 
-data SignatureContext = SignatureContext UserTypeCtxt SDoc SDoc
+instance Outputable HeraldContext where
+  ppr ArgumentOfDollarContext = text "The first argument of ($) takes"
+  ppr (OperatorContext op) = text "The operator" <+> quotes (ppr op) <+> ptext (sLit "takes")
+  ppr (LambdaCaseContext e) = sep [ text "The function" <+> quotes (ppr e), text "requires"]
+  ppr (EquationContext fun_name)
+      = text "The equation(s) for"
+               <+> quotes (ppr fun_name) <+> text "have"
+  ppr (LambdaExprContext match)
+      = sep [ ptext (sLit "The lambda expression")
+                           <+> quotes (pprSetDepth (PartWay 1) $
+                               pprMatches (LambdaExpr :: HsMatchContext Name) match),
+                          -- The pprSetDepth makes the abstraction print briefly
+                  ptext (sLit "has")]
+  ppr (FunctionApplicationContext fun)
+     = sep [ text "The function" <+> quotes (ppr fun), text "is applied to"]
 
 instance Outputable ContextElement where
   ppr (FunctionResultCtxt has_args n_fun n_env fun res_fun res_env _ _)
@@ -2583,21 +2601,7 @@ instance Outputable ContextElement where
                    HsQuasiQuote    {} -> text "quasi-quotation:"
                    HsSpliced       {} -> text "spliced expression:"
 
-instance Outputable HeraldContext where
-  ppr ArgumentOfDollarContext = text "The first argument of ($) takes"
-  ppr (OperatorContext op) = text "The operator" <+> quotes (ppr op) <+> ptext (sLit "takes")
-  ppr (LambdaCaseContext e) = sep [ text "The function" <+> quotes (ppr e), text "requires"]
-  ppr (EquationContext fun_name)
-      = text "The equation(s) for"
-               <+> quotes (ppr fun_name) <+> text "have"
-  ppr (LambdaExprContext match)
-      = sep [ ptext (sLit "The lambda expression")
-                           <+> quotes (pprSetDepth (PartWay 1) $
-                               pprMatches (LambdaExpr :: HsMatchContext Name) match),
-                          -- The pprSetDepth makes the abstraction print briefly
-                  ptext (sLit "has")]
-  ppr (FunctionApplicationContext fun)
-     = sep [ text "The function" <+> quotes (ppr fun), text "is applied to"]
+data SignatureContext = SignatureContext UserTypeCtxt SDoc SDoc
 
 instance Outputable SignatureContext where
   ppr (SignatureContext ctxt extra pp_ty)
@@ -2609,6 +2613,636 @@ instance Outputable SignatureContext where
         pp_sig (ForSigCtxt n)  = pp_n_colon n
         pp_sig _               = pp_ty
         pp_n_colon n = pprPrefixOcc n <+> dcolon <+> pp_ty
+
+data TypeError
+   = FunctionalDepsError [ClsInst]
+   | DuplicateInstError [ClsInst]
+   | FamilyInstError [FamInst]
+   -- Renamer
+   | OriginalBindingError RdrName
+   | BadQualifiedError RdrName
+   | DeclarationError RdrName
+   | ExactNameError Name
+   | DuplicateNameError Name
+   | UnknownSubordinateError SDoc RdrName
+   | AccompanyingBindingError Bool SDoc RdrName
+   | NotInScopeError SDoc RdrName SDoc (Maybe SDoc)
+   | NameClashError RdrName [GlobalRdrElt]
+   | DuplicateNamesError SDoc [SrcSpan]
+   | TupleSizeError Int
+   | BadInstanceError (LHsType RdrName)
+   | OperatorError RdrName (HsType RdrName) (LHsType RdrName)
+   | RecordSyntaxError (HsType RdrName)
+   | DataKindsError Bool (HsType RdrName)
+   | NegativeLiteralError (HsType RdrName)
+   | BadKindBinderError SDoc [RdrName]
+   | OverlappingKindError SDoc [RdrName]
+   | BadSignatureError Bool SDoc (HsType RdrName)
+   | SectionPrecedenceError (Name, Fixity) (Name, Fixity) (HsExpr RdrName)
+   | PrecedenceParseError (Name, Fixity) (Name, Fixity)
+   | BadViewPatError (Pat RdrName)
+   | DuplicateFieldError SDoc [RdrName]
+   | EmptyRecordError
+   | NamedFieldPunsError (Located RdrName)
+   | DotDotRecordError
+   | RecordWildCardsError SDoc
+   | BadDotDotConError Name
+   | BogusCharacterError Char
+   | PackageImportError
+   | ModuleCycleError ModuleName
+   | SafeEtaError
+   | ClassNotFoundError
+   | ClassTransitiveError String
+   | BindingsBootFileError (LHsBindsLR Name RdrName)
+   | MultipleFixityDeclError SrcSpan RdrName
+   | LocalPatterSynonymError (Located RdrName)
+   | PatternSynonymError
+   | DefaultSignatureError (Sig RdrName)
+   | EmptyCaseError (HsMatchContext Name)
+   | ResultSignatureError (HsType RdrName) SDoc
+   | MethodBindError (HsBindLR RdrName RdrName)
+   | MethodPatternSynonymError (HsBindLR RdrName RdrName)
+   | DuplicateSignatureError [(Located RdrName, Sig RdrName)] RdrName (Sig RdrName)
+   | DuplicateMinimalError [LSig RdrName]
+   | DuplicateWarningError SrcSpan RdrName
+   | DuplicateRoleAnnotationError [LRoleAnnotDecl RdrName]
+   | OrphanRoleError (RoleAnnotDecl Name)
+   | BadAssociatedTypeErrors [Name]
+   | BadImplicitSpliceError
+   | BadConstructorError SDoc
+   | StandaloneDeriveError
+   | BadRuleVarError FastString Name
+   | VectorisePragmaError
+   | MisplacedSignatureError (Sig Name)
+   | IllegalImportError
+   | IllegalDataConError RdrName
+   | IllegalQualNameError RdrName
+   | ExportItemError (IE RdrName)
+   | MultipleDeclarationError Name [Name]
+   | SimpleDeclarationError [Name]
+   | TemplateHaskellExtensionError (HsExpr RdrName)
+   | TemplateHaskellSpliceError (LHsExpr RdrName)
+   | SectionClosedError (HsExpr RdrName)
+   | StaticInterpretedModeError
+   | StaticFormSpliceError (HsExpr RdrName)
+   | TopLevelBindingsError (HsExpr RdrName) [Name]
+   | ArrowCommandExprError (HsExpr RdrName)
+   | ParallelListCompError [Name]
+   | ImplicitParameterError SDoc SDoc
+   | EmptyParStmtError
+   | EmptyTransStmtError
+   | EmptyListCtxtError (HsStmtContext Name)
+   | LastStatementError (HsStmtContext Name) SDoc
+   | CheckStatementError SDoc (HsStmtContext Name) SDoc
+   | TupleSectionsError
+   | SectionParenthesesError (HsExpr RdrName)
+   | PatternSyntaxExpressionError (HsExpr RdrName)
+   | BadReexportBootThingError PprStyle Bool Name Name
+   | HiModuleInterfaceError SDoc InstalledModule
+   | UserTypeError SDoc
+   | ConstraintSynError Type
+   | ExportListMergeError AvailInfo AvailInfo
+   | UNameError Name Name
+   | MissingBootThingError Bool Name String
+   | HsigFileExportedError OccName Module
+   | InterfaceFileNotFoundError Name [TyThing]
+   | SourceImportError Module
+   | HomeModError InstalledModule ModLocation
+   | BadIfaceFileError String SDoc
+   | LookupInstanceError SDoc
+   | NotExactError
+   | CheckWellStagedError SDoc ThLevel ThLevel
+   | StageRestrictionError SDoc
+   | GhcInternalError Name SDoc
+   | WrongThingError String TcTyThing Name
+   | ModuleDependsOnItselfError Module
+   | CannotFindBootFileError Module SDoc
+   | RelaxedPolyRecError
+   | BadRuleLhsError FastString (LHsExpr Name) (HsExpr Name)
+   | BadGadtStupidThetaError
+   | IllegalUntypedSpliceError
+   | IllegalTypedSpliceError
+   | IllegalUntypedBracketError
+   | IllegalTypedBracketError
+   | IllegalBracketError
+   | SafeEtaAnnotationError
+   | QuotedNameStageError (HsBracket RdrName)
+   | CannotFindInterfaceError SDoc
+   | CannotFindModuleError SDoc
+   | CountConstraintsError Int Type
+   | CountTyFunAppsError Int Type
+   | KindError Kind
+   | UnliftedArgError Type
+   | UbxArgTyErr Type
+   | FailTHError String SDoc
+   | ModuleNotImportedError ModuleName
+   | ModuleDoesNotExportError ModIface ImpDeclSpec (IE RdrName)
+   | BadImportItemDataConError OccName ModIface ImpDeclSpec (IE RdrName)
+   | ExportClashError GlobalRdrEnv Name Name (IE RdrName) (IE RdrName)
+
+instance Outputable TypeError where
+   ppr (FunctionalDepsError ispecs)
+       = hang herald 2 (pprInstances ispecs)
+    where herald = text "Functional dependencies conflict between instance declarations:"
+
+   ppr (DuplicateInstError ispecs)
+      = hang herald 2 (pprInstances ispecs)
+    where herald = text "Duplicate instance declarations:"
+
+   ppr (FamilyInstError sorted)
+      = hang herald
+         2 (vcat [ pprCoAxBranchHdr (famInstAxiom fi) 0
+                 | fi <- sorted ])
+    where herald = text "Conflicting family instance declarations:"
+
+  -- Renamer
+
+   ppr (OriginalBindingError name)
+      = text "Illegal binding of built-in syntax:" <+> ppr (rdrNameOcc name)
+
+   ppr (BadQualifiedError rdr_name)
+      = text "Qualified name in binding position:" <+> ppr rdr_name
+
+   ppr (DeclarationError n)
+      = hang (text "Illegal declaration of a type or class operator" <+> quotes (ppr n))
+           2 (text "Use TypeOperators to declare operators in type and declarations")
+   ppr (ExactNameError name)
+      = hang (text "The exact Name" <+> quotes (ppr name) <+> text "is not in scope")
+          2 (vcat [ text "Probable cause: you used a unique Template Haskell name (NameU), "
+                  , text "perhaps via newName, but did not bind it"
+                  , text "If that's it, then -ddump-splices might be useful" ])
+
+   ppr (DuplicateNameError name)
+      = hang (text "Duplicate exact Name" <+> quotes (ppr $ nameOccName name))
+          2 (vcat [ text "Probable cause: you used a unique Template Haskell name (NameU), "
+                  , text "perhaps via newName, but bound it multiple times"
+                  , text "If that's it, then -ddump-splices might be useful" ])
+   ppr (UnknownSubordinateError doc op)
+      = quotes (ppr op) <+> text "is not a (visible)" <+> doc
+
+   ppr (AccompanyingBindingError local what rdr_name)
+       = (sep [ text "The" <+> what <+> text "for" <+> quotes (ppr rdr_name)
+              , nest 2 $ text "lacks an accompanying binding"] $$ nest 2 msg)
+       where msg
+               | local = parens $ text "The" <+> what <+> text "must be given where"
+                               <+> quotes (ppr rdr_name) <+> text "is declared"
+               | otherwise = empty
+
+   ppr (NotInScopeError what rdr_name extra suggestions)
+       = vcat [ hang (text "Not in scope:")
+                    2 (what <+> quotes (ppr rdr_name))
+               , extra' ] $$ extra $$ fromMaybe empty suggestions
+        where
+          extra' | rdr_name == forall_tv_RDR = perhapsForallMsg
+                 | otherwise                 = empty
+
+   ppr (NameClashError rdr_name gres)
+       = (vcat [text "Ambiguous occurrence" <+> quotes (ppr rdr_name),
+                      text "It could refer to" <+> vcat (msg1 : msgs)])
+        where
+          (np1:nps) = gres
+          msg1 = text "either" <+> mk_ref np1
+          msgs = [text "    or" <+> mk_ref np | np <- nps]
+          mk_ref gre = sep [quotes (ppr (gre_name gre)) <> comma, pprNameProvenance gre]
+
+   ppr (DuplicateNamesError sdoc locs)
+       = vcat [text "Conflicting definitions for" <+> quotes sdoc,
+             locations]
+        where locations = text "Bound at:" <+> vcat (map ppr (sort locs))
+   ppr (TupleSizeError tup_size)
+       = (sep [ptext (sLit "A") <+> int tup_size <> text "-tuple is too large for GHC",
+                      nest 2 (parens (text "max size is" <+> int mAX_TUPLE_SIZE)),
+                      nest 2 (text "Workaround: use nested tuples or define a data type")])
+
+   ppr (BadInstanceError ty)
+       = ptext (sLit "Malformed instance:") <+> ppr ty
+   ppr (OperatorError op ty ty1)
+       = hang (ptext (sLit "Illegal operator") <+> quotes (ppr op) <+> ptext (sLit "in type") <+> quotes (ppr ty))
+              2 extra
+       where
+         extra | op == dot_tv_RDR && forall_head ty1
+               = perhapsForallMsg
+               | otherwise
+               = text "Use TypeOperators to allow operators in types"
+
+         forall_head (L _ (HsTyVar tv))   = tv == forall_tv_RDR
+         forall_head (L _ (HsAppTy ty _)) = forall_head ty
+         forall_head _other               = False
+
+   ppr (RecordSyntaxError ty) = (hang (text "Record syntax is illegal here:") 2 (ppr ty))
+
+   ppr (DataKindsError is_type thing)
+        = hang (text "Illegal" <+> what <> colon <+> quotes (ppr thing))
+             2 (text "Perhaps you intended to use DataKinds")
+        where
+          what | is_type   = text "type"
+               | otherwise = text "kind"
+   ppr (NegativeLiteralError tyLit)
+        = text "Illegal literal in type (type literals must not be negative):" <+> ppr tyLit
+   ppr (BadKindBinderError doc kvs)
+       = vcat [ hang (text "Unexpected kind variable" <> plural kvs
+                      <+> pprQuotedList kvs)
+                   2 (text "Perhaps you intended to use PolyKinds")
+              , doc ]
+   ppr (OverlappingKindError doc kvs)
+       = vcat [ text "Kind variable" <> plural kvs <+>
+                text "also used as type variable" <> plural kvs
+                <> colon <+> pprQuotedList kvs
+              , doc ]
+   ppr (BadSignatureError is_type doc ty)
+        = vcat [ hang (text "Illegal" <+> what
+                     <+> text "signature:" <+> quotes (ppr ty))
+                     2 (text "Perhaps you intended to use" <+> flag)
+               , doc ]
+      where
+        what | is_type   = text "type"
+             | otherwise = text "kind"
+        flag | is_type   = text "ScopedTypeVariables"
+             | otherwise = text "KindSignatures"
+   ppr (SectionPrecedenceError op arg_op section)
+       = vcat [text "The operator" <+> ppr_opfix op <+> text "of a section",
+              nest 4 (sep [text "must have lower precedence than that of the operand,",
+                           nest 2 (text "namely" <+> ppr_opfix arg_op)]),
+              nest 4 (text "in the section:" <+> quotes (ppr section))]
+
+   ppr (PrecedenceParseError op1 op2)
+       = hang (text "Precedence parsing error")
+           4 (hsep [text "cannot mix", ppr_opfix op1, text "and",
+                    ppr_opfix op2,
+                    text "in the same infix expression"])
+   ppr (BadViewPatError pat)
+      = vcat [text "Illegal view pattern: " <+> ppr pat,
+              text "Use ViewPatterns to enable view patterns"]
+
+   ppr (DuplicateFieldError ctxt dups)
+       = hsep [text "duplicate field name",
+               quotes (ppr (head dups)),
+               text "in record", ctxt]
+
+   ppr EmptyRecordError = text "Empty record update"
+
+   ppr (NamedFieldPunsError fld)
+       = vcat [text "Illegal use of punning for field" <+> quotes (ppr fld),
+               text "Use NamedFieldPuns to permit this"]
+   ppr DotDotRecordError = text "You cannot use `..' in a record update"
+
+   ppr (RecordWildCardsError ctxt)
+        = vcat [text "Illegal `..' in record" <+> ctxt,
+                text "Use RecordWildCards to permit this"]
+
+   ppr (BadDotDotConError con)
+        = vcat [ text "Illegal `..' notation for constructor" <+> quotes (ppr con)
+               , nest 2 (text "The constructor has no labelled fields") ]
+   ppr (BogusCharacterError c)
+       = text "character literal out of range: '\\" <> char c  <> char '\''
+   ppr PackageImportError
+       = text "Package-qualified imports are not enabled; use PackageImports"
+   ppr (ModuleCycleError imp_mod_name)
+       = text "A module cannot import itself:" <+> ppr imp_mod_name
+   ppr SafeEtaError
+      = (text "safe import can't be used as Safe Eta isn't on!"
+           $+$ text "please enable Safe Eta through either Safe, Trustworthy or Unsafe")
+   ppr ClassNotFoundError = text "Unable to find class in the classpath."
+   ppr (ClassTransitiveError notFound)
+      = text $ "Class '" ++ notFound ++ "' was a transitive dependency"
+            ++ " of one of your java imports and was not found on the classpath."
+   ppr (BindingsBootFileError mbinds)
+       = hang (text "Bindings in hs-boot files are not allowed") 2 (ppr mbinds)
+   ppr (MultipleFixityDeclError loc rdr_name)
+       = vcat [text "Multiple fixity declarations for" <+> quotes (ppr rdr_name),
+               text "also at " <+> ppr loc]
+   ppr (LocalPatterSynonymError rdrname)
+      = hang (text "Illegal pattern synonym declaration for" <+> quotes (ppr rdrname))
+           2 (text "Pattern synonym declarations are only valid at top level")
+   ppr PatternSynonymError
+       = hang (text "Illegal pattern synonym declaration")
+            2 (text "Use -XPatternSynonyms to enable this extension")
+   ppr (DefaultSignatureError sig)
+      = vcat [ hang (text "Unexpected default signature:")
+               2 (ppr sig)
+               , text "Use DefaultSignatures to enable default signatures" ]
+   ppr (EmptyCaseError ctxt)
+       = hang (text "Empty list of alternatives in" <+> pp_ctxt)
+                              2 (text "Use EmptyCase to allow this")
+         where
+           pp_ctxt = case ctxt of
+                       CaseAlt    -> text "case expression"
+                       LambdaExpr -> text "\\case expression"
+                       _          -> text "(unexpected)" <+> pprMatchContextNoun ctxt
+   ppr (ResultSignatureError ty doc)
+      = vcat [ text "Illegal result type signature" <+> quotes (ppr ty)
+             , nest 2 $ text
+                    "Result signatures are no longer supported in pattern matches"
+             , doc ]
+   ppr (MethodBindError mbind)
+       = hang (text "Pattern bindings (except simple variables) not allowed in instance declarations")
+             2 (ppr mbind)
+   ppr (MethodPatternSynonymError mbind)
+       = hang (text "Pattern synonyms not allowed in class/instance declarations")
+             2 (ppr mbind)
+   ppr (DuplicateSignatureError pairs name sig)
+       = vcat [ text "Duplicate" <+> what_it_is
+             <> text "s for" <+> quotes (ppr name)
+              , text "at" <+> vcat (map ppr $ sort $ map (getLoc . fst) pairs) ]
+     where
+       what_it_is = hsSigDoc sig
+   ppr (DuplicateMinimalError sigs)
+       = vcat [ text "Multiple minimal complete definitions"
+              , text "at" <+> vcat (map ppr $ sort $ map getLoc sigs)
+              , text "Combine alternative minimal complete definitions with `|'" ]
+   ppr (DuplicateWarningError loc rdr_name)
+       = vcat [text "Multiple warning declarations for" <+> quotes (ppr rdr_name),
+               text "also at " <+> ppr loc]
+   ppr (DuplicateRoleAnnotationError sorted_list)
+       = hang (text "Duplicate role annotations for" <+>
+             quotes (ppr $ roleAnnotDeclName first_decl) <> colon)
+          2 (vcat $ map pp_role_annot sorted_list)
+       where
+         (L _loc first_decl : _) = sorted_list
+
+         pp_role_annot (L loc decl) = hang (ppr decl)
+                                         4 (text "-- written at" <+> ppr loc)
+
+         _cmp_annot (L loc1 _) (L loc2 _) = loc1 `compare` loc2
+   ppr (OrphanRoleError decl)
+       = hang (text "Role annotation for a type previously declared:")
+          2 (ppr decl) $$
+         parens (text "The role annotation must be given where" <+>
+                 quotes (ppr $ roleAnnotDeclName decl) <+>
+                 text "is declared.")
+   ppr (BadAssociatedTypeErrors ns)
+       = (hang (text "The RHS of an associated type declaration mentions"
+            <+> pprWithCommas (quotes . ppr) ns)
+             2 (text "All such variables must be bound on the LHS"))
+   ppr BadImplicitSpliceError
+      = text "Parse error: naked expression at top level"
+         $$ text "Perhaps you intended to use TemplateHaskell"
+   ppr (BadConstructorError doc)
+       = text "Malformed constructor signature" $$ doc
+   ppr StandaloneDeriveError
+       = hang (text "Illegal standalone deriving declaration")
+            2 (text "Use StandaloneDeriving to enable this extension")
+   ppr (BadRuleVarError name var)
+       = sep [text "Rule" <+> doubleQuotes (ftext name) <> colon,
+              text "Forall'd variable" <+> quotes (ppr var) <+>
+              text "does not appear on left hand side"]
+   ppr VectorisePragmaError
+        = vcat [ text "IMPLEMENTATION RESTRICTION: right-hand side of a VECTORISE pragma"
+               , text "must be an identifier" ]
+   ppr (MisplacedSignatureError sig)
+       = sep [text "Misplaced" <+> hsSigDoc sig <> colon, ppr sig]
+   ppr IllegalImportError = text "Illegal import item"
+   ppr (IllegalDataConError name)
+       = hsep [text "Illegal data constructor name", quotes (ppr name)]
+   ppr (IllegalQualNameError rdr)
+       = hang (text "Illegal qualified name in import item:") 2 (ppr rdr)
+   ppr (ExportItemError export_item)
+       = sep [ text "The export item" <+> quotes (ppr export_item),
+          text "attempts to export constructors or class methods that are not visible here" ]
+   ppr (MultipleDeclarationError name sorted_names)
+       = vcat [text "Multiple declarations of" <+>
+                quotes (ppr (nameOccName name)),
+                -- NB. print the OccName, not the Name, because the
+                -- latter might not be in scope in the RdrEnv and so will
+                -- be printed qualified.
+             text "Declared at:" <+>
+                      vcat (map (ppr . nameSrcLoc) sorted_names)]
+
+   ppr (SimpleDeclarationError sorted_names)
+       = vcat [text "Multiple declarations with names differing only in case.",
+               text "Declared at:" <+>
+                      vcat (map (ppr . nameSrcLoc) sorted_names)]
+   ppr (TemplateHaskellExtensionError e)
+       = ( vcat [ text "Syntax error on" <+> ppr e
+                  , text ("Perhaps you intended to use TemplateHaskell"
+                          ++ " or TemplateHaskellQuotes") ] )
+   ppr (TemplateHaskellSpliceError other_op)
+       = (vcat [ hang (text "Infix application with a non-variable operator:")
+                             2 (ppr other_op)
+                      , text "(Probably resulting from a Template Haskell splice)" ])
+   ppr (SectionClosedError expr)
+       = hang (text "A section must be enclosed in parentheses")
+            2 (text "thus:" <+> (parens (ppr expr)))
+   ppr StaticInterpretedModeError
+        = sep [ text "The static form is not supported in interpreted mode."
+              , text "Please use -fobject-code." ]
+   ppr (StaticFormSpliceError e)
+       = sep [ text "static forms cannot be used in splices:"
+              , nest 2 $ ppr e ]
+   ppr (TopLevelBindingsError e fvNonGlobal)
+       = cat [ text $ "Only identifiers of top-level bindings can "
+                    ++ "appear in the body of the static form:"
+             , nest 2 $ ppr e
+             , text "but the following identifiers were found instead:"
+             , nest 2 $ vcat $ map ppr fvNonGlobal
+             ]
+   ppr (ArrowCommandExprError e)
+       = (vcat [ text "Arrow command found where an expression was expected:"
+                            , nest 2 (ppr e) ])
+   ppr (ParallelListCompError vs)
+       = (text "Duplicate binding in parallel list comprehension for:"
+                       <+> quotes (ppr (head vs)))
+   ppr (ImplicitParameterError what sdoc)
+       = hang (text "Implicit-parameter bindings illegal in" <+> what)
+              2 sdoc
+   ppr EmptyParStmtError
+        = text "Empty statement group in parallel comprehension"
+   ppr EmptyTransStmtError
+       = text "Empty statement group preceding 'group' or 'then'"
+   ppr (EmptyListCtxtError ctxt)
+       = text "Empty" <+> pprStmtContext ctxt
+   ppr (LastStatementError ctxt sdoc)
+       = hang last_error 2 sdoc
+        where last_error = text  "The last statement in" <+> pprAStmtContext ctxt
+                        <+> text "must be an expression"
+   ppr (CheckStatementError sdoc ctxt extra)
+       = sep [ text "Unexpected" <+> sdoc <+> text "statement"
+             , text "in" <+> pprAStmtContext ctxt ] $$ extra
+   ppr TupleSectionsError = text "Illegal tuple section: use TupleSections"
+   ppr (SectionParenthesesError expr)
+       = hang (text "A section must be enclosed in parentheses")
+            2 (text "thus:" <+> (parens (ppr expr)))
+   ppr (PatternSyntaxExpressionError e)
+       = (sep [text "Pattern syntax in expression context:",
+                                       nest 4 (ppr e)])
+   ppr (BadReexportBootThingError style is_boot name name' )
+       = withPprStyle style $
+          vcat [ text "The" <+> (if is_boot then text "hs-boot" else text "hsig")
+            <+> text "file (re)exports" <+> quotes (ppr name)
+              , text "but the implementing module exports a different identifier" <+> quotes (ppr name')
+             ]
+   ppr (HiModuleInterfaceError err isig_mod)
+       = hang (text "Could not find hi interface for signature" <+>
+             quotes (ppr isig_mod) <> colon) 4 err
+   ppr (UserTypeError sdoc) = sdoc
+   ppr (ConstraintSynError kind)
+       = hang (text "Illegal constraint synonym of kind:" <+> quotes (ppr kind))
+                                  2 (parens constraintKindsMsg)
+   ppr (ExportListMergeError a1 a2)
+       = text "While merging export lists, could not combine"
+                                  <+> ppr a1 <+> text "with" <+> ppr a2
+                                  <+> parens (text "one is a type, the other is a plain identifier")
+   ppr (UNameError n1 n2)
+       = (text "While merging export lists, could not unify"
+                            <+> ppr n1 <+> text "with" <+> ppr n2 $$ extra)
+        where
+          extra | isHoleName n1 || isHoleName n2
+                = text "Neither name variable originates from the current signature."
+                | otherwise
+                = empty
+   ppr (MissingBootThingError is_boot name what)
+       = ppr name <+> text "is exported by the" <+>
+                   (if is_boot then text "hs-boot" else text "hsig")
+                   <+> text "file, but not"
+                   <+> text what <+> text "the module"
+   ppr (HsigFileExportedError occ impl_mod)
+       = quotes (ppr occ)
+               <+> text "is exported by the hsig file, but not exported the module"
+               <+> quotes (ppr impl_mod)
+   ppr (InterfaceFileNotFoundError name ty_things)
+        = ifPprDebug (found_things_msg $$ empty)
+                                $$ not_found_msg
+          where
+            not_found_msg = hang (text "Can't find interface-file declaration for" <+>
+                            pprNameSpace (occNameSpace (nameOccName name)) <+> ppr name)
+                   2 (vcat [text "Probable cause: bug in .hi-boot file, or inconsistent .hi file",
+                            text "Use -ddump-if-trace to get an idea of which file caused the error"])
+            found_things_msg =
+                    hang (text "Found the following declarations in" <+> ppr (nameModule name) <> colon)
+                       2 (vcat (map ppr ty_things))
+   ppr (SourceImportError mod)
+       = hang (text "You cannot {-# SOURCE #-} import a module from another package")
+            2 (text "but" <+> quotes (ppr mod) <+> text "is from package"
+               <+> quotes (ppr (moduleUnitId mod)))
+   ppr (HomeModError mod location)
+       = text "attempting to use module " <> quotes (ppr mod)
+         <> (case ml_hs_file location of
+                Just file -> space <> parens (text file)
+                Nothing   -> empty)
+         <+> text "which is not loaded"
+   ppr (BadIfaceFileError file err)
+       = vcat [text "Bad interface file:" <+> text file,
+               nest 4 err]
+   ppr (LookupInstanceError err)
+       = text "Couldn't match instance:" <+> err
+   ppr NotExactError = text "Not an exact match (i.e., some variables get instantiated)"
+   ppr (CheckWellStagedError pp_thing bind_lvl use_lvl)
+       = text "Stage error:" <+> pp_thing <+>
+           hsep   [text "is bound at stage" <+> ppr bind_lvl,
+                   text "but used at stage" <+> ppr use_lvl]
+   ppr (StageRestrictionError pp_thing)
+        = sep [ text "GHC stage restriction:"
+            , nest 2 (vcat [ pp_thing <+> text "is used in a top-level splice or annotation,"
+                           , text "and must be imported, not defined locally"])]
+   ppr (GhcInternalError name sdoc)
+       = vcat [text "GHC internal error:" <+> quotes (ppr name) <+>
+               text "is not in scope during type checking, but it passed the renamer",
+               text "tcl_env of environment:" <+> sdoc]
+   ppr (WrongThingError expected thing name)
+       = (pprTcTyThingCategory thing <+> quotes (ppr name) <+>
+                     ptext (sLit "used as a") <+> text expected)
+   ppr (ModuleDependsOnItselfError mod)
+       = text "Circular imports: module" <+> quotes (ppr mod)
+           <+> text "depends on itself"
+   ppr (CannotFindBootFileError mod err)
+       = hang (text "Could not find hi-boot interface for" <+>
+                             quotes (ppr mod) <> colon) 4 err
+   ppr RelaxedPolyRecError
+      = (vcat [text "Contexts differ in length",
+          nest 2 $ parens $ text "Use RelaxedPolyRec to allow this"])
+   ppr (BadRuleLhsError name lhs bad_e)
+      = sep [text "Rule" <+> ftext name <> colon,
+             nest 4 (vcat [text "Illegal expression:" <+> ppr bad_e,
+                           text "in left-hand side:" <+> ppr lhs])]
+        $$
+        ptext (sLit "LHS must be of form (f e1 .. en) where f is not forall'd")
+   ppr BadGadtStupidThetaError
+      = vcat [text "No context is allowed on a GADT-style data declaration",
+           text "(You can put a context on each contructor, though.)"]
+   ppr IllegalUntypedSpliceError = text "Untyped splices may not appear in typed brackets"
+   ppr IllegalTypedSpliceError = text "Typed splices may not appear in untyped brackets"
+   ppr IllegalUntypedBracketError = text "Untyped brackets may only appear in untyped splices."
+   ppr IllegalTypedBracketError = text "Typed brackets may only appear in typed splices."
+   ppr IllegalBracketError
+      = text "Template Haskell brackets cannot be nested" <+>
+            text "(without intervening splices)"
+   ppr SafeEtaAnnotationError = vcat [ text "Annotations are not compatible with Safe Eta."]
+   ppr (QuotedNameStageError br)
+       = sep [ text "Stage error: the non-top-level quoted name" <+> ppr br
+             , text "must be used at the same stage at which it is bound" ]
+   ppr (CannotFindInterfaceError sdoc) = sdoc
+   ppr (CannotFindModuleError sdoc) = sdoc
+   ppr (CountConstraintsError value tidy_pred)
+       = hang msg 2 (ppr tidy_pred)
+       where
+         msg = vcat [ text "Context reduction stack overflow; size =" <+> int value
+                    , text "Use -fcontext-stack=N to increase stack size to N" ]
+   ppr (CountTyFunAppsError value tidy_pred)
+       = hang msg 2 (ppr tidy_pred)
+       where
+         msg = vcat [ text "Type function application stack overflow; size =" <+> int value
+                    , text "Use -ftype-function-depth=N to increase stack size to N" ]
+   ppr (KindError kind )
+       = sep [text "Expecting an ordinary type, but found a type of kind", ppr kind]
+   ppr (UnliftedArgError ty)
+       = sep [text "Illegal unlifted type:", ppr ty]
+   ppr (UbxArgTyErr ty)
+       = sep [text "Illegal unboxed tuple type as function argument:", ppr ty]
+   ppr (FailTHError what sdoc)
+        = (vcat [ hang (char 'A' <+> text what
+                                 <+> text "requires GHC with interpreter support:")
+                                  2 sdoc
+                                  , text "Perhaps you are using a stage-1 compiler?" ])
+   ppr (ModuleNotImportedError mod)
+       = text "The export item `module" <+> ppr mod <> text "' is not imported"
+   ppr (ModuleDoesNotExportError iface decl_spec ie)
+         = sep [text "Module", quotes (ppr (is_mod decl_spec)), source_import,
+                text "does not export", quotes (ppr ie)]
+         where
+           source_import | mi_boot iface = text "(hi-boot interface)"
+                         | otherwise     = empty
+   ppr (BadImportItemDataConError dataType_occ iface decl_spec ie)
+      = vcat [ text "In module"
+                 <+> quotes (ppr (is_mod decl_spec))
+                 <+> source_import <> colon
+             , nest 2 $ quotes datacon
+                 <+> text "is a data constructor of"
+                 <+> quotes dataType
+             , text "To import it use"
+             , nest 2 $ quotes (text "import")
+                 <+> ppr (is_mod decl_spec)
+                 <> parens_sp (dataType <> parens_sp datacon)
+             , ptext (sLit "or")
+             , nest 2 $ quotes (text "import")
+                 <+> ppr (is_mod decl_spec)
+                 <> parens_sp (dataType <> text "(..)")
+             ]
+      where
+        datacon_occ = rdrNameOcc $ ieName ie
+        datacon = parenSymOcc datacon_occ (ppr datacon_occ)
+        dataType = parenSymOcc dataType_occ (ppr dataType_occ)
+        source_import | mi_boot iface = text "(hi-boot interface)"
+                      | otherwise     = empty
+        parens_sp d = parens (space <> d <> space)  -- T( f,g )
+   ppr (ExportClashError global_env name1 name2 ie1 ie2)
+        = vcat [ text "Conflicting exports for" <+> quotes (ppr occ) <> colon
+               , ppr_export ie1' name1'
+               , ppr_export ie2' name2' ]
+        where
+          occ = nameOccName name1
+          ppr_export ie name = nest 3 (hang (quotes (ppr ie) <+> text "exports" <+>
+                                             quotes (ppr name))
+                                          2 (pprNameProvenance (get_gre name)))
+
+          -- get_gre finds a GRE for the Name, so that we can show its provenance
+          get_gre name
+              = case lookupGRE_Name global_env name of
+                   (gre:_) -> gre
+                   []      -> pprPanic "exportClashErr" (ppr name)
+          get_loc name = greSrcSpan (get_gre name)
+          (name1', ie1', name2', ie2') = if get_loc name1 < get_loc name2
+                                         then (name1, ie1, name2, ie2)
+                                         else (name2, ie2, name1, ie1)
 
 pprSigCtxt :: UserTypeCtxt -> SDoc -> SDoc -> ContextElement
 -- (pprSigCtxt ctxt <extra> <type>)
@@ -2641,3 +3275,60 @@ inst_decl_ctxt doc = hang (text "In the instance declaration for")
 
 ppr_th :: TH.Ppr a => a -> SDoc
 ppr_th x = text (TH.pprint x)
+
+perhapsForallMsg :: SDoc
+perhapsForallMsg
+  = vcat [ ptext (sLit "Perhaps you intended to use ExplicitForAll or similar flag")
+         , ptext (sLit "to enable explicit-forall syntax: forall <tvs>. <type>")]
+
+ppr_opfix :: (Name, Fixity) -> SDoc
+ppr_opfix (op, fixity) = pp_op <+> brackets (ppr fixity)
+  where
+    pp_op | op == negateName = ptext (sLit "prefix `-'")
+          | otherwise        = quotes (ppr op)
+
+-- the SrcSpan that pprNameProvenance prints out depends on whether
+-- the Name is defined locally or not: for a local definition the
+-- definition site is used, otherwise the location of the import
+-- declaration.  We want to sort the export locations in
+-- exportClashErr by this SrcSpan, we need to extract it:
+greSrcSpan :: GlobalRdrElt -> SrcSpan
+greSrcSpan gre
+  | Imported (is:_) <- gre_prov gre = is_dloc (is_decl is)
+  | otherwise                       = name_span
+  where
+    name_span = nameSrcSpan (gre_name gre)
+
+_smallerMsg, _undecidableMsg, constraintKindsMsg :: SDoc
+_smallerMsg         = ptext (sLit "Constraint is no smaller than the instance head")
+_undecidableMsg     = ptext (sLit "Use UndecidableInstances to permit this")
+constraintKindsMsg = ptext (sLit "Use ConstraintKinds to permit this")
+
+pprUserTypeErrorTy :: Type -> TypeError
+pprUserTypeErrorTy ty = UserTypeError $ pprUserTypeErrorTy' ty
+
+pprUserTypeErrorTy' :: Type -> SDoc
+pprUserTypeErrorTy' ty =
+  case splitTyConApp_maybe ty of
+
+    -- Text "Something"
+    Just (tc,[txt])
+      | tyConName tc == typeErrorTextDataConName
+      , Just str <- isStrLitTy txt -> ftext str
+
+    -- ShowType t
+    Just (tc,[_k,t])
+      | tyConName tc == typeErrorShowTypeDataConName -> ppr t
+
+    -- t1 :<>: t2
+    Just (tc,[t1,t2])
+      | tyConName tc == typeErrorAppendDataConName ->
+        pprUserTypeErrorTy' t1 <> pprUserTypeErrorTy' t2
+
+    -- t1 :$$: t2
+    Just (tc,[t1,t2])
+      | tyConName tc == typeErrorVAppendDataConName ->
+        pprUserTypeErrorTy' t1 $$ pprUserTypeErrorTy' t2
+
+    -- An uneavaluated type function
+    _ -> ppr ty

@@ -102,7 +102,7 @@ mkNameShape mod_name as =
 -- restricted notion of shaping than in Backpack'14: we do shaping
 -- *as* we do type-checking.  Thus, once we shape a signature, its
 -- exports are *final* and we're not allowed to refine them further,
-extendNameShape :: HscEnv -> NameShape -> [AvailInfo] -> IO (Either SDoc NameShape)
+extendNameShape :: HscEnv -> NameShape -> [AvailInfo] -> IO (Either TypeError NameShape)
 extendNameShape hsc_env ns as =
     case uAvailInfos (ns_mod_name ns) (ns_exports ns) as of
         Left err -> return (Left err)
@@ -224,7 +224,7 @@ plusAvail a1 a2 = pprPanic "RnEnv.plusAvail" (hsep [ppr a1,ppr a2])
 
 -- | Unify two lists of 'AvailInfo's, given an existing substitution @subst@,
 -- with only name holes from @flexi@ unifiable (all other name holes rigid.)
-uAvailInfos :: ModuleName -> [AvailInfo] -> [AvailInfo] -> Either SDoc ShNameSubst
+uAvailInfos :: ModuleName -> [AvailInfo] -> [AvailInfo] -> Either TypeError ShNameSubst
 uAvailInfos flexi as1 as2 = -- pprTrace "uAvailInfos" (ppr as1 $$ ppr as2) $
     let mkOE as = listToUFM $ do a <- as
                                  n <- availNames a
@@ -236,34 +236,27 @@ uAvailInfos flexi as1 as2 = -- pprTrace "uAvailInfos" (ppr as1 $$ ppr as2) $
 -- | Unify two 'AvailInfo's, given an existing substitution @subst@,
 -- with only name holes from @flexi@ unifiable (all other name holes rigid.)
 uAvailInfo :: ModuleName -> ShNameSubst -> AvailInfo -> AvailInfo
-           -> Either SDoc ShNameSubst
+           -> Either TypeError ShNameSubst
 uAvailInfo flexi subst (Avail n1) (Avail n2) = uName flexi subst n1 n2
 uAvailInfo flexi subst (AvailTC n1 _) (AvailTC n2 _) = uName flexi subst n1 n2
-uAvailInfo _ _ a1 a2 = Left $ text "While merging export lists, could not combine"
-                           <+> ppr a1 <+> text "with" <+> ppr a2
-                           <+> parens (text "one is a type, the other is a plain identifier")
+uAvailInfo _ _ a1 a2 = Left $ (ExportListMergeError a1 a2)
 
 -- | Unify two 'Name's, given an existing substitution @subst@,
 -- with only name holes from @flexi@ unifiable (all other name holes rigid.)
-uName :: ModuleName -> ShNameSubst -> Name -> Name -> Either SDoc ShNameSubst
+uName :: ModuleName -> ShNameSubst -> Name -> Name -> Either TypeError ShNameSubst
 uName flexi subst n1 n2
     | n1 == n2      = Right subst
     | isFlexi n1    = uHoleName flexi subst n1 n2
     | isFlexi n2    = uHoleName flexi subst n2 n1
-    | otherwise     = Left (text "While merging export lists, could not unify"
-                         <+> ppr n1 <+> text "with" <+> ppr n2 $$ extra)
+    | otherwise     = Left (UNameError n1 n2)
   where
     isFlexi n = isHoleName n && moduleName (nameModule n) == flexi
-    extra | isHoleName n1 || isHoleName n2
-          = text "Neither name variable originates from the current signature."
-          | otherwise
-          = empty
 
 -- | Unify a name @h@ which 'isHoleName' with another name, given an existing
 -- substitution @subst@, with only name holes from @flexi@ unifiable (all
 -- other name holes rigid.)
 uHoleName :: ModuleName -> ShNameSubst -> Name {- hole name -} -> Name
-          -> Either SDoc ShNameSubst
+          -> Either TypeError ShNameSubst
 uHoleName flexi subst h n =
     ASSERT( isHoleName h )
     case lookupNameEnv subst h of

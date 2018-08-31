@@ -370,18 +370,15 @@ checkForConflicts inst_envs fam_inst
 conflictInstErr :: FamInst -> [FamInstMatch] -> TcRn ()
 conflictInstErr fam_inst conflictingMatch
   | (FamInstMatch { fim_instance = confInst }) : _ <- conflictingMatch
-  = addFamInstsErr (ptext (sLit "Conflicting family instance declarations:"))
-                   [fam_inst, confInst]
+  = addFamInstsErr [fam_inst, confInst]
   | otherwise
   = panic "conflictInstErr"
 
-addFamInstsErr :: SDoc -> [FamInst] -> TcRn ()
-addFamInstsErr herald insts
+addFamInstsErr :: [FamInst] -> TcRn ()
+addFamInstsErr insts
   = ASSERT( not (null insts) )
     setSrcSpan srcSpan $ addErr $
-    hang herald
-       2 (vcat [ pprCoAxBranchHdr (famInstAxiom fi) 0
-               | fi <- sorted ])
+    FamilyInstError sorted
  where
    getSpan   = getSrcLoc . famInstAxiom
    sorted    = sortWith getSpan insts
