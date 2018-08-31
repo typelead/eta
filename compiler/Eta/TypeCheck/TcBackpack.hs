@@ -128,7 +128,7 @@ checkHsigIface tcg_env gr
                          -- info for the *specific* name we matched.
                          -> getLoc e
                        _ -> nameSrcSpan name
-            dflags <- getDynFlags           
+            dflags <- getDynFlags
             addErrAt loc
                 (badReexportedBootThing dflags False name name')
       -- This should actually never happen, but whatever...
@@ -496,16 +496,13 @@ checkImplements impl_mod _req_mod@(IndefModule uid mod_name) = do
     isig_iface <- case mb_isig_iface of
         Succeeded (iface, _) -> return iface
         Failed err -> failWithTc $
-            hang (text "Could not find hi interface for signature" <+>
-                  quotes (ppr isig_mod) <> colon) 4 err
+            (HiModuleInterfaceError (ppr err) isig_mod)
 
     -- STEP 3: Check that the implementing interface exports everything
     -- we need.  (Notice we IGNORE the Modules in the AvailInfos.)
     forM_ (concatMap (map occName . availNames) (mi_exports isig_iface)) $ \occ ->
         case lookupGlobalRdrEnv impl_gr occ of
-            [] -> addErr $ quotes (ppr occ)
-                    <+> text "is exported by the hsig file, but not exported the module"
-                    <+> quotes (ppr impl_mod)
+            [] -> addErr $ HsigFileExportedError occ impl_mod
             _ -> return ()
     failIfErrsM
 

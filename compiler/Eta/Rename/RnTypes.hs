@@ -46,7 +46,6 @@ import Eta.Utils.FastString
 import Eta.Utils.Maybes
 import Data.List        ( nub, nubBy )
 import Control.Monad    ( unless, when )
-
 #include "HsVersions.h"
 
 {-
@@ -78,8 +77,8 @@ rnLHsInstType doc_str ty
       , isTcOcc (rdrNameOcc cls) = True
       | otherwise                = False
 
-badInstTy :: LHsType RdrName -> SDoc
-badInstTy ty = ptext (sLit "Malformed instance:") <+> ppr ty
+badInstTy :: LHsType RdrName -> TypeError
+badInstTy ty = BadInstanceError ty
 
 {-
 rnHsType is here because we call it from loadInstDecl, and I didn't
@@ -168,8 +167,7 @@ rnHsTyKi isType doc (HsBangTy b ty)
        ; return (HsBangTy b ty', fvs) }
 
 rnHsTyKi _ doc ty@(HsRecTy flds)
-  = do { addErr (hang (ptext (sLit "Record syntax is illegal here:"))
-                    2 (ppr ty))
+  = do { addErr (RecordSyntaxError ty)
        ; (flds', fvs) <- rnConDeclFields doc flds
        ; return (HsRecTy flds', fvs) }
 
@@ -222,7 +220,7 @@ rnHsTyKi isType _ tyLit@(HsTyLit t)
   where
     negLit (HsStrTy _ _) = False
     negLit (HsNumTy _ i) = i < 0
-    negLitErr = ptext (sLit "Illegal literal in type (type literals must not be negative):") <+> ppr tyLit
+    negLitErr = NegativeLiteralError tyLit
 
 rnHsTyKi isType doc (HsAppTy ty1 ty2)
   = do { (ty1', fvs1) <- rnLHsTyKi isType doc ty1
@@ -482,40 +480,18 @@ rnHsBndrSig doc (HsWB { hswb_cts = ty@(L loc _) }) thing_inside
                                              hswb_tvs = tv_names, hswb_wcs = wcs_new })
        ; return (res, fvs1 `plusFV` fvs2) } }
 
-overlappingKindVars :: HsDocContext -> [RdrName] -> SDoc
-overlappingKindVars doc kvs
-  = vcat [ ptext (sLit "Kind variable") <> plural kvs <+>
-           ptext (sLit "also used as type variable") <> plural kvs
-           <> colon <+> pprQuotedList kvs
-         , docOfHsDocContext doc ]
+overlappingKindVars :: HsDocContext -> [RdrName] -> TypeError
+overlappingKindVars doc kvs = OverlappingKindError (docOfHsDocContext doc) kvs
 
-badKindBndrs :: HsDocContext -> [RdrName] -> SDoc
-badKindBndrs doc kvs
-  = vcat [ hang (ptext (sLit "Unexpected kind variable") <> plural kvs
-                 <+> pprQuotedList kvs)
-              2 (ptext (sLit "Perhaps you intended to use PolyKinds"))
-         , docOfHsDocContext doc ]
+badKindBndrs :: HsDocContext -> [RdrName] -> TypeError
+badKindBndrs doc kvs = BadKindBinderError (docOfHsDocContext doc) kvs
 
 badSigErr :: Bool -> HsDocContext -> LHsType RdrName -> TcM ()
 badSigErr is_type doc (L loc ty)
-  = setSrcSpan loc $ addErr $
-    vcat [ hang (ptext (sLit "Illegal") <+> what
-                 <+> ptext (sLit "signature:") <+> quotes (ppr ty))
-              2 (ptext (sLit "Perhaps you intended to use") <+> flag)
-         , docOfHsDocContext doc ]
-  where
-    what | is_type   = ptext (sLit "type")
-         | otherwise = ptext (sLit "kind")
-    flag | is_type   = ptext (sLit "ScopedTypeVariables")
-         | otherwise = ptext (sLit "KindSignatures")
+      = setSrcSpan loc $ addErr $ BadSignatureError is_type (docOfHsDocContext doc) ty
 
-dataKindsErr :: Bool -> HsType RdrName -> SDoc
-dataKindsErr is_type thing
-  = hang (ptext (sLit "Illegal") <+> what <> colon <+> quotes (ppr thing))
-       2 (ptext (sLit "Perhaps you intended to use DataKinds"))
-  where
-    what | is_type   = ptext (sLit "type")
-         | otherwise = ptext (sLit "kind")
+dataKindsErr :: Bool -> HsType RdrName -> TypeError
+dataKindsErr is_type thing = DataKindsError is_type thing
 
 {-
 *********************************************************
@@ -803,26 +779,14 @@ precParseErr op1@(n1,_) op2@(n2,_)
   | isUnboundName n1 || isUnboundName n2
   = return ()     -- Avoid error cascade
   | otherwise
-  = addErr $ hang (ptext (sLit "Precedence parsing error"))
-      4 (hsep [ptext (sLit "cannot mix"), ppr_opfix op1, ptext (sLit "and"),
-               ppr_opfix op2,
-               ptext (sLit "in the same infix expression")])
+  = addErr $ PrecedenceParseError op1 op2
 
 sectionPrecErr :: (Name, Fixity) -> (Name, Fixity) -> HsExpr RdrName -> RnM ()
 sectionPrecErr op@(n1,_) arg_op@(n2,_) section
   | isUnboundName n1 || isUnboundName n2
   = return ()     -- Avoid error cascade
   | otherwise
-  = addErr $ vcat [ptext (sLit "The operator") <+> ppr_opfix op <+> ptext (sLit "of a section"),
-         nest 4 (sep [ptext (sLit "must have lower precedence than that of the operand,"),
-                      nest 2 (ptext (sLit "namely") <+> ppr_opfix arg_op)]),
-         nest 4 (ptext (sLit "in the section:") <+> quotes (ppr section))]
-
-ppr_opfix :: (Name, Fixity) -> SDoc
-ppr_opfix (op, fixity) = pp_op <+> brackets (ppr fixity)
-   where
-     pp_op | op == negateName = ptext (sLit "prefix `-'")
-           | otherwise        = quotes (ppr op)
+  = addErr $ SectionPrecedenceError op arg_op section
 
 {-
 *********************************************************
@@ -858,19 +822,8 @@ warnContextQuantification in_doc tvs
                ptext (sLit "This will become an error in GHC 7.12.")
              , in_doc ]
 
-opTyErr :: RdrName -> HsType RdrName -> SDoc
-opTyErr op ty@(HsOpTy ty1 _ _)
-  = hang (ptext (sLit "Illegal operator") <+> quotes (ppr op) <+> ptext (sLit "in type") <+> quotes (ppr ty))
-         2 extra
-  where
-    extra | op == dot_tv_RDR && forall_head ty1
-          = perhapsForallMsg
-          | otherwise
-          = ptext (sLit "Use TypeOperators to allow operators in types")
-
-    forall_head (L _ (HsTyVar tv))   = tv == forall_tv_RDR
-    forall_head (L _ (HsAppTy ty _)) = forall_head ty
-    forall_head _other               = False
+opTyErr :: RdrName -> HsType RdrName -> TypeError
+opTyErr op ty@(HsOpTy ty1 _ _) = OperatorError op ty ty1
 opTyErr _ ty = pprPanic "opTyErr: Not an op" (ppr ty)
 
 {-

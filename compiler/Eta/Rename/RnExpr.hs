@@ -143,9 +143,7 @@ rnExpr (OpApp e1 (L op_loc (HsVar op_rdr)) _ e2)
         ; final_e <- mkOpAppRn e1' (L op_loc op') fixity e2'
         ; return (final_e, fv_e1 `plusFV` fv_op `plusFV` fv_e2) }
 rnExpr (OpApp _ other_op _ _)
-  = failWith (vcat [ hang (ptext (sLit "Infix application with a non-variable operator:"))
-                        2 (ppr other_op)
-                   , ptext (sLit "(Probably resulting from a Template Haskell splice)") ])
+  = failWith (TemplateHaskellSpliceError other_op)
 
 rnExpr (NegApp e _)
   = do { (e', fv_e)         <- rnLExpr e
@@ -323,10 +321,7 @@ rnExpr e@(HsStatic expr) = do
     case target of
       -- SPT entries are expected to exist in object code so far, and this is
       -- not the case in interpreted mode. See bug #9878.
-      HscInterpreted -> addErr $ sep
-        [ text "The static form is not supported in interpreted mode."
-        , text "Please use -fobject-code."
-        ]
+      HscInterpreted -> addErr $ StaticInterpretedModeError
       _ -> return ()
     (expr',fvExpr) <- rnLExpr expr
     stage <- getStage
@@ -335,23 +330,14 @@ rnExpr e@(HsStatic expr) = do
                              -- We don't want to reject cases like:
                              -- \e -> [| static $(e) |]
                              -- if $(e) turns out to produce a legal expression.
-      Splice _ -> addErr $ sep
-             [ text "static forms cannot be used in splices:"
-             , nest 2 $ ppr e
-             ]
+      Splice _ -> addErr $ StaticFormSpliceError e
       _ -> do
        let isTopLevelName n = isExternalName n || isWiredInName n
        case nameSetElems $ filterNameSet
                              (\n -> not (isTopLevelName n || isUnboundName n))
                              fvExpr                                           of
          [] -> return ()
-         fvNonGlobal -> addErr $ cat
-             [ text $ "Only identifiers of top-level bindings can "
-                      ++ "appear in the body of the static form:"
-             , nest 2 $ ppr e
-             , text "but the following identifiers were found instead:"
-             , nest 2 $ vcat $ map ppr fvNonGlobal
-             ]
+         fvNonGlobal -> addErr $ (TopLevelBindingsError e fvNonGlobal)
     return (HsStatic expr', fvExpr)
 
 {-
@@ -380,8 +366,7 @@ hsHoleExpr = HsUnboundVar (mkRdrUnqual (mkVarOcc "_"))
 
 arrowFail :: HsExpr RdrName -> RnM (HsExpr Name, FreeVars)
 arrowFail e
-  = do { addErr (vcat [ ptext (sLit "Arrow command found where an expression was expected:")
-                      , nest 2 (ppr e) ])
+  = do { addErr (ArrowCommandExprError e)
          -- Return a place-holder hole, so that we can carry on
          -- to report other errors
        ; return (hsHoleExpr, emptyFVs) }
@@ -1429,8 +1414,7 @@ rnParallelStmts ctxt return_op segs thing_inside
            ; return ((seg':segs', thing), fvs) }
 
     cmpByOcc n1 n2 = nameOccName n1 `compare` nameOccName n2
-    dupErr vs = addErr (ptext (sLit "Duplicate binding in parallel list comprehension for:")
-                    <+> quotes (ppr (head vs)))
+    dupErr vs = addErr (ParallelListCompError vs)
 
 lookupStmtName :: HsStmtContext Name -> Name -> RnM (HsExpr Name, FreeVars)
 -- Like lookupSyntaxName, but ListComp/PArrComp are never rebindable
@@ -1824,10 +1808,10 @@ okEmpty :: HsStmtContext a -> Bool
 okEmpty (PatGuard {}) = True
 okEmpty _             = False
 
-emptyErr :: HsStmtContext Name -> SDoc
-emptyErr (ParStmtCtxt {})   = ptext (sLit "Empty statement group in parallel comprehension")
-emptyErr (TransStmtCtxt {}) = ptext (sLit "Empty statement group preceding 'group' or 'then'")
-emptyErr ctxt               = ptext (sLit "Empty") <+> pprStmtContext ctxt
+emptyErr :: HsStmtContext Name -> TypeError
+emptyErr (ParStmtCtxt {})   = EmptyParStmtError
+emptyErr (TransStmtCtxt {}) = EmptyTransStmtError
+emptyErr ctxt               = EmptyListCtxtError ctxt
 
 ----------------------
 checkLastStmt :: Outputable (body RdrName) => HsStmtContext Name
@@ -1848,9 +1832,7 @@ checkLastStmt ctxt lstmt@(L loc stmt)
           BodyStmt e _ _ _ -> return (L loc (mkLastStmt e))
           LastStmt {}      -> return lstmt   -- "Deriving" clauses may generate a
                                              -- LastStmt directly (unlike the parser)
-          _                -> do { addErr (hang last_error 2 (ppr stmt)); return lstmt }
-    last_error = (ptext (sLit "The last statement in") <+> pprAStmtContext ctxt
-                  <+> ptext (sLit "must be an expression"))
+          _                -> do { addErr (LastStatementError ctxt (ppr stmt)); return lstmt }
 
     check_comp  -- Expect LastStmt; this should be enforced by the parser!
       = case stmt of
@@ -1868,10 +1850,9 @@ checkStmt ctxt (L _ stmt)
   = do { dflags <- getDynFlags
        ; case okStmt dflags ctxt stmt of
            IsValid        -> return ()
-           NotValid extra -> addErr (msg $$ extra) }
+           NotValid extra -> addErr (msg extra) }
   where
-   msg = sep [ ptext (sLit "Unexpected") <+> pprStmtCat stmt <+> ptext (sLit "statement")
-             , ptext (sLit "in") <+> pprAStmtContext ctxt ]
+   msg extra = CheckStatementError (pprStmtCat stmt) ctxt extra
 
 pprStmtCat :: Stmt a body -> SDoc
 pprStmtCat (TransStmt {})     = ptext (sLit "transform")
@@ -1969,20 +1950,15 @@ checkTupleSection args
   = do  { tuple_section <- xoptM LangExt.TupleSections
         ; checkErr (all tupArgPresent args || tuple_section) msg }
   where
-    msg = ptext (sLit "Illegal tuple section: use TupleSections")
+    msg = TupleSectionsError
 
 ---------
-sectionErr :: HsExpr RdrName -> SDoc
-sectionErr expr
-  = hang (ptext (sLit "A section must be enclosed in parentheses"))
-       2 (ptext (sLit "thus:") <+> (parens (ppr expr)))
+sectionErr :: HsExpr RdrName -> TypeError
+sectionErr expr = SectionParenthesesError expr
 
 patSynErr :: HsExpr RdrName -> RnM (HsExpr Name, FreeVars)
-patSynErr e = do { addErr (sep [ptext (sLit "Pattern syntax in expression context:"),
-                                nest 4 (ppr e)])
+patSynErr e = do { addErr (PatternSyntaxExpressionError e)
                  ; return (EWildPat, emptyFVs) }
 
-badIpBinds :: Outputable a => SDoc -> a -> SDoc
-badIpBinds what binds
-  = hang (ptext (sLit "Implicit-parameter bindings illegal in") <+> what)
-         2 (ppr binds)
+badIpBinds :: Outputable a => SDoc -> a -> TypeError
+badIpBinds what binds = ImplicitParameterError what (ppr binds)

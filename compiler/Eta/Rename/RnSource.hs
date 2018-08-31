@@ -338,11 +338,9 @@ findDupRdrNames = findDupsEq (\ x -> \ y -> rdrNameOcc (unLoc x) == rdrNameOcc (
 -- we check that the names are defined above
 -- invt: the lists returned by findDupsEq always have at least two elements
 
-dupWarnDecl :: Located RdrName -> RdrName -> SDoc
+dupWarnDecl :: Located RdrName -> RdrName -> TypeError
 -- Located RdrName -> DeprecDecl RdrName -> SDoc
-dupWarnDecl (L loc _) rdr_name
-  = vcat [ptext (sLit "Multiple warning declarations for") <+> quotes (ppr rdr_name),
-          ptext (sLit "also at ") <+> ppr loc]
+dupWarnDecl (L loc _) rdr_name = DuplicateWarningError loc rdr_name
 
 {-
 *********************************************************
@@ -702,10 +700,8 @@ rnSrcDerivDecl (DerivDecl ty overlap)
        ; (ty', fvs) <- rnLHsInstType (text "In a deriving declaration") ty
        ; return (DerivDecl ty' overlap, fvs) }
 
-standaloneDerivErr :: SDoc
-standaloneDerivErr
-  = hang (ptext (sLit "Illegal standalone deriving declaration"))
-       2 (ptext (sLit "Use StandaloneDeriving to enable this extension"))
+standaloneDerivErr :: TypeError
+standaloneDerivErr = StandaloneDeriveError
 
 {-
 *********************************************************
@@ -815,19 +811,11 @@ validRuleLhs foralls lhs
     checkl_es es = foldr (mplus . checkl_e) Nothing es
 -}
 
-badRuleVar :: FastString -> Name -> SDoc
-badRuleVar name var
-  = sep [ptext (sLit "Rule") <+> doubleQuotes (ftext name) <> colon,
-         ptext (sLit "Forall'd variable") <+> quotes (ppr var) <+>
-                ptext (sLit "does not appear on left hand side")]
+badRuleVar :: FastString -> Name -> TypeError
+badRuleVar name var = BadRuleVarError name var
 
-badRuleLhsErr :: FastString -> LHsExpr Name -> HsExpr Name -> SDoc
-badRuleLhsErr name lhs bad_e
-  = sep [ptext (sLit "Rule") <+> ftext name <> colon,
-         nest 4 (vcat [ptext (sLit "Illegal expression:") <+> ppr bad_e,
-                       ptext (sLit "in left-hand side:") <+> ppr lhs])]
-    $$
-    ptext (sLit "LHS must be of form (f e1 .. en) where f is not forall'd")
+badRuleLhsErr :: FastString -> LHsExpr Name -> HsExpr Name -> TypeError
+badRuleLhsErr name lhs bad_e = BadRuleLhsError name lhs bad_e
 
 {-
 *********************************************************
@@ -846,10 +834,7 @@ rnHsVectDecl (HsVect s var rhs@(L _ (HsVar _)))
        ; return (HsVect s var' rhs', fv_rhs `addOneFV` unLoc var')
        }
 rnHsVectDecl (HsVect _ _var _rhs)
-  = failWith $ vcat
-               [ ptext (sLit "IMPLEMENTATION RESTRICTION: right-hand side of a VECTORISE pragma")
-               , ptext (sLit "must be an identifier")
-               ]
+  = failWith $ VectorisePragmaError
 rnHsVectDecl (HsNoVect s var)
   = do { var' <- lookupLocatedTopBndrRn var           -- only applies to local (not imported) names
        ; return (HsNoVect s var', unitFV (unLoc var'))
@@ -1127,27 +1112,15 @@ rnRoleAnnots decl_names role_annots
 dupRoleAnnotErr :: [LRoleAnnotDecl RdrName] -> RnM ()
 dupRoleAnnotErr [] = panic "dupRoleAnnotErr"
 dupRoleAnnotErr list
-  = addErrAt loc $
-    hang (text "Duplicate role annotations for" <+>
-          quotes (ppr $ roleAnnotDeclName first_decl) <> colon)
-       2 (vcat $ map pp_role_annot sorted_list)
-    where
-      sorted_list = sortBy cmp_annot list
-      (L loc first_decl : _) = sorted_list
-
-      pp_role_annot (L loc decl) = hang (ppr decl)
-                                      4 (text "-- written at" <+> ppr loc)
-
-      cmp_annot (L loc1 _) (L loc2 _) = loc1 `compare` loc2
+  = addErrAt loc (DuplicateRoleAnnotationError sorted_list)
+  where
+    sorted_list = sortBy cmp_annot list
+    (L loc _first_decl : _) = sorted_list
+    cmp_annot (L loc1 _) (L loc2 _) = loc1 `compare` loc2
 
 orphanRoleAnnotErr :: LRoleAnnotDecl Name -> RnM ()
 orphanRoleAnnotErr (L loc decl)
-  = addErrAt loc $
-    hang (text "Role annotation for a type previously declared:")
-       2 (ppr decl) $$
-    parens (text "The role annotation must be given where" <+>
-            quotes (ppr $ roleAnnotDeclName decl) <+>
-            text "is declared.")
+  = addErrAt loc (OrphanRoleError decl)
 
 rnDataDefn :: HsDocContext -> HsDataDefn RdrName -> RnM (HsDataDefn Name, FreeVars)
 rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
@@ -1187,10 +1160,9 @@ rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
     rn_derivs (Just (L ld ds)) = do { (ds', fvs) <- rnLHsTypes doc ds
                                     ; return (Just (L ld ds'), fvs) }
 
-badGadtStupidTheta :: HsDocContext -> SDoc
+badGadtStupidTheta :: HsDocContext -> TypeError
 badGadtStupidTheta _
-  = vcat [ptext (sLit "No context is allowed on a GADT-style data declaration"),
-          ptext (sLit "(You can put a context on each contructor, though.)")]
+  = BadGadtStupidThetaError
 
 rnFamDecl :: Maybe Name
                     -- Just cls => this FamilyDecl is nested
@@ -1312,10 +1284,7 @@ modules), we get better error messages, too.
 
 ---------------
 badAssocRhs :: [Name] -> RnM ()
-badAssocRhs ns
-  = addErr (hang (ptext (sLit "The RHS of an associated type declaration mentions")
-                  <+> pprWithCommas (quotes . ppr) ns)
-               2 (ptext (sLit "All such variables must be bound on the LHS")))
+badAssocRhs ns = addErr (BadAssociatedTypeErrors ns)
 
 -----------------
 rnConDecls :: [LConDecl RdrName] -> RnM ([LConDecl Name], FreeVars)
@@ -1416,8 +1385,8 @@ deprecRecSyntax decl
          , ptext (sLit "Instead, use the form")
          , nest 2 (ppr decl) ]   -- Pretty printer uses new form
 
-badRecResTy :: SDoc -> SDoc
-badRecResTy doc = ptext (sLit "Malformed constructor signature") $$ doc
+badRecResTy :: SDoc -> TypeError
+badRecResTy doc = BadConstructorError doc
 
 {-
 *********************************************************
@@ -1527,8 +1496,7 @@ add gp loc (SpliceD splice@(SpliceDecl _ flag)) ds
 
        ; return (gp, Just (splice, ds)) }
   where
-    badImplicitSplice = ptext (sLit "Parse error: naked expression at top level")
-                     $$ ptext (sLit "Perhaps you intended to use TemplateHaskell")
+    badImplicitSplice = BadImplicitSpliceError
 
 -- Class declarations: pull out the fixity signatures to the top
 add gp@(HsGroup {hs_tyclds = ts, hs_fixds = fs}) l (TyClD d) ds

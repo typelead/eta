@@ -362,7 +362,7 @@ mkUserTypeErrorReporter ctxt
 
 mkUserTypeError :: ReportErrCtxt -> Ct -> TcM ErrMsg
 mkUserTypeError ctxt ct = mkErrorMsg ctxt ct
-                        $ pprUserTypeErrorTy
+                        $ pprUserTypeErrorTy'
                         $ case getUserTypeErrorMsg ct of
                             Just (_,msg) -> msg
                             Nothing      -> pprPanic "mkUserTypeError" (ppr ct)
@@ -1614,14 +1614,10 @@ solverDepthErrorTcS cnt ev
        ; env0 <- tcInitTidyEnv
        ; let tidy_env  = tidyFreeTyVars env0 (tyVarsOfType pred)
              tidy_pred = tidyType tidy_env pred
-       ; failWithTcM (tidy_env, hang (msg cnt) 2 (ppr tidy_pred)) }
+       ; failWithTcM (tidy_env, (msg cnt) value tidy_pred) }
   where
     loc   = ctEvLoc ev
     depth = ctLocDepth loc
     value = subGoalCounterValue cnt depth
-    msg CountConstraints =
-        vcat [ ptext (sLit "Context reduction stack overflow; size =") <+> int value
-             , ptext (sLit "Use -fcontext-stack=N to increase stack size to N") ]
-    msg CountTyFunApps =
-        vcat [ ptext (sLit "Type function application stack overflow; size =") <+> int value
-             , ptext (sLit "Use -ftype-function-depth=N to increase stack size to N") ]
+    msg CountConstraints = CountConstraintsError
+    msg CountTyFunApps   = CountTyFunAppsError

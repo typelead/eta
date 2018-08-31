@@ -105,7 +105,7 @@ where the code that e1 expands to might import some defns that
 also turn out to be needed by the code that e2 expands to.
 -}
 
-tcLookupImported_maybe :: Name -> TcM (MaybeErr MsgDoc TyThing)
+tcLookupImported_maybe :: Name -> TcM (MaybeErr TypeError TyThing)
 -- Returns (Failed err) if we can't find the interface file for the thing
 tcLookupImported_maybe name
   = do  { hsc_env <- getTopEnv
@@ -114,7 +114,7 @@ tcLookupImported_maybe name
             Just thing -> return (Succeeded thing)
             Nothing    -> tcImportDecl_maybe name }
 
-tcImportDecl_maybe :: Name -> TcM (MaybeErr MsgDoc TyThing)
+tcImportDecl_maybe :: Name -> TcM (MaybeErr TypeError TyThing)
 -- Entry point for *source-code* uses of importDecl
 tcImportDecl_maybe name
   | Just thing <- wiredInNameTyThing_maybe name
@@ -125,7 +125,7 @@ tcImportDecl_maybe name
   | otherwise
   = initIfaceTcRn (importDecl name)
 
-importDecl :: Name -> IfM lcl (MaybeErr MsgDoc TyThing)
+importDecl :: Name -> IfM lcl (MaybeErr TypeError TyThing)
 -- Get the TyThing for this Name from an interface file
 -- It's not a wired-in thing -- the caller caught that
 importDecl name
@@ -143,21 +143,13 @@ importDecl name
         { eps <- getEps
         ; case lookupTypeEnv (eps_PTE eps) name of
           Just thing -> return $ Succeeded thing
-          Nothing    -> let doc = ifPprDebug (found_things_msg eps $$ empty)
-                                  $$ not_found_msg
+          Nothing    -> let doc = InterfaceFileNotFoundError name $
+                                    filter is_interesting $ nameEnvElts $ eps_PTE eps
                         in return $ Failed doc
     }}}
   where
     nd_doc = ptext (sLit "Need decl for") <+> ppr name
-    not_found_msg = hang (ptext (sLit "Can't find interface-file declaration for") <+>
-                                pprNameSpace (occNameSpace (nameOccName name)) <+> ppr name)
-                       2 (vcat [ptext (sLit "Probable cause: bug in .hi-boot file, or inconsistent .hi file"),
-                                ptext (sLit "Use -ddump-if-trace to get an idea of which file caused the error")])
-    found_things_msg eps =
-            hang (text "Found the following declarations in" <+> ppr (nameModule name) <> colon)
-               2 (vcat (map ppr $ filter is_interesting $ nameEnvElts $ eps_PTE eps))
-          where
-            is_interesting thing = nameModule name == nameModule (getName thing)
+    is_interesting thing = nameModule name == nameModule (getName thing)
 
 {-
 ************************************************************************
@@ -267,7 +259,7 @@ loadSrcInterface_maybe :: SDoc
                        -> ModuleName
                        -> IsBootInterface     -- {-# SOURCE #-} ?
                        -> Maybe FastString    -- "package", if any
-                       -> RnM (MaybeErr MsgDoc ModIface)
+                       -> RnM (MaybeErr TypeError ModIface)
 
 loadSrcInterface_maybe doc mod want_boot maybe_pkg
   -- We must first find which Module this import refers to.  This involves
@@ -363,7 +355,7 @@ loadInterfaceWithException doc mod_name where_from
 
 ------------------
 loadInterface :: SDoc -> Module -> WhereFrom
-              -> IfM lcl (MaybeErr MsgDoc ModIface)
+              -> IfM lcl (MaybeErr TypeError ModIface)
 
 -- loadInterface looks in both the HPT and PIT for the required interface
 -- If not found, it loads it, and puts it in the PIT (always).
@@ -528,7 +520,7 @@ is_external_sig dflags iface =
 -- we are actually typechecking p.)
 computeInterface ::
        SDoc -> IsBootInterface -> Module
-    -> TcRnIf gbl lcl (MaybeErr MsgDoc (ModIface, FilePath))
+    -> TcRnIf gbl lcl (MaybeErr TypeError (ModIface, FilePath))
 computeInterface doc_str hi_boot_file mod0 = do
     MASSERT( not (isHoleModule mod0) )
     dflags <- getDynFlags
@@ -556,7 +548,7 @@ computeInterface doc_str hi_boot_file mod0 = do
 -- @p[A=<A>,B=<B>]:B@ never includes B.
 moduleFreeHolesPrecise
     :: SDoc -> Module
-    -> TcRnIf gbl lcl (MaybeErr MsgDoc (UniqDSet ModuleName))
+    -> TcRnIf gbl lcl (MaybeErr TypeError (UniqDSet ModuleName))
 moduleFreeHolesPrecise doc_str mod
  | moduleIsDefinite mod = return (Succeeded emptyUniqDSet)
  | otherwise =
@@ -635,7 +627,7 @@ dontLeakTheHPT thing_inside = do
   thing_inside
 
 wantHiBootFile :: DynFlags -> ExternalPackageState -> Module -> WhereFrom
-               -> MaybeErr MsgDoc IsBootInterface
+               -> MaybeErr TypeError IsBootInterface
 -- Figure out whether we want Foo.hi or Foo.hi-boot
 wantHiBootFile dflags eps mod from
   = case from of
@@ -662,11 +654,8 @@ wantHiBootFile dflags eps mod from
   where
     this_package = thisPackage dflags == moduleUnitId mod
 
-badSourceImport :: Module -> SDoc
-badSourceImport mod
-  = hang (ptext (sLit "You cannot {-# SOURCE #-} import a module from another package"))
-       2 (ptext (sLit "but") <+> quotes (ppr mod) <+> ptext (sLit "is from package")
-          <+> quotes (ppr (moduleUnitId mod)))
+badSourceImport :: Module -> TypeError
+badSourceImport mod = SourceImportError mod
 
 {-
 Note [Care with plugin imports]
@@ -845,7 +834,7 @@ findAndReadIface :: SDoc
                  -> Module
                  -> IsBootInterface     -- True  <=> Look for a .hi-boot file
                                         -- False <=> Look for .hi file
-                 -> TcRnIf gbl lcl (MaybeErr MsgDoc (ModIface, FilePath))
+                 -> TcRnIf gbl lcl (MaybeErr TypeError (ModIface, FilePath))
         -- Nothing <=> file not found, or unreadable, or illegible
         -- Just x  <=> successfully found and parsed
 
@@ -926,7 +915,7 @@ findAndReadIface doc_str mod wanted_mod_with_insts hi_boot_file
                           do traceIf (text "Dynamic hash doesn't match")
                              liftIO $ writeIORef ref False
                       Failed err ->
-                          do traceIf (text "Failed to load dynamic interface file:" $$ err)
+                          do traceIf (text "Failed to load dynamic interface file:" $$ (ppr err))
                              liftIO $ writeIORef ref False
           checkBuildDynamicToo _ = return ()
 
@@ -1194,10 +1183,8 @@ pprIfaceAnnotation (IfaceAnnotation { ifAnnotatedTarget = target, ifAnnotatedVal
 *********************************************************
 -}
 
-badIfaceFile :: String -> SDoc -> SDoc
-badIfaceFile file err
-  = vcat [ptext (sLit "Bad interface file:") <+> text file,
-          nest 4 err]
+badIfaceFile :: String -> SDoc -> TypeError
+badIfaceFile file err = BadIfaceFileError file err
 
 hiModuleNameMismatchWarn :: DynFlags -> Module -> Module -> MsgDoc
 hiModuleNameMismatchWarn dflags requested_mod read_mod
@@ -1221,11 +1208,6 @@ hiModuleNameMismatchWarn dflags requested_mod read_mod
          , parens (text "if these names look the same, try again with -dppr-debug")
          ]
 
-homeModError :: InstalledModule -> ModLocation -> SDoc
+homeModError :: InstalledModule -> ModLocation -> TypeError
 -- See Note [Home module load error]
-homeModError mod location
-  = ptext (sLit "attempting to use module ") <> quotes (ppr mod)
-    <> (case ml_hs_file location of
-           Just file -> space <> parens (text file)
-           Nothing   -> Outputable.empty)
-    <+> ptext (sLit "which is not loaded")
+homeModError mod location = HomeModError mod location

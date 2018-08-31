@@ -406,18 +406,16 @@ tcHiBootIface hsc_src mod
                 -- Someone below us imported us!
                 -- This is a loop with no hi-boot in the way
 
-            Just (_mod, True) -> failWithTc (elaborate err)
+            Just (_mod, True) -> failWithTc (elaborate (ppr err))
                 -- The hi-boot file has mysteriously disappeared.
     }}}}
   where
     need = ptext (sLit "Need the hi-boot interface for") <+> ppr mod
                  <+> ptext (sLit "to compare against the Real Thing")
 
-    moduleLoop = ptext (sLit "Circular imports: module") <+> quotes (ppr mod)
-                     <+> ptext (sLit "depends on itself")
+    moduleLoop = ModuleDependsOnItselfError mod
 
-    elaborate err = hang (ptext (sLit "Could not find hi-boot interface for") <+>
-                          quotes (ppr mod) <> colon) 4 err
+    elaborate err = CannotFindBootFileError mod err
 
 mkSelfBootInfo :: ModIface -> ModDetails -> TcRn SelfBootInfo
 mkSelfBootInfo iface mds
@@ -1495,7 +1493,7 @@ tcIfaceGlobal name
 
         { mb_thing <- importDecl name   -- It's imported; go get it
         ; case mb_thing of
-            Failed err      -> failIfM err
+            Failed err      -> failIfM (ppr err)
             Succeeded thing -> return thing
     }}}}}
 

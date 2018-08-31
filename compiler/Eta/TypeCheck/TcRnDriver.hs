@@ -1060,20 +1060,13 @@ emptyRnEnv2 :: RnEnv2
 emptyRnEnv2 = mkRnEnv2 emptyInScopeSet
 
 ----------------
-missingBootThing :: Bool -> Name -> String -> SDoc
+missingBootThing :: Bool -> Name -> String -> TypeError
 missingBootThing is_boot name what
-  = ppr name <+> ptext (sLit "is exported by the") <+>
-              (if is_boot then ptext (sLit "hs-boot") else ptext (sLit "hsig"))
-              <+> ptext (sLit "file, but not")
-              <+> text what <+> ptext (sLit "the module")
+  = MissingBootThingError is_boot name what
 
-badReexportedBootThing :: DynFlags -> Bool -> Name -> Name -> SDoc
+badReexportedBootThing :: DynFlags -> Bool -> Name -> Name -> TypeError
 badReexportedBootThing dflags is_boot name name'
-  = withPprStyle (mkUserStyle dflags alwaysQualify AllTheWay) $ vcat
-        [ text "The" <+> (if is_boot then text "hs-boot" else text "hsig")
-           <+> text "file (re)exports" <+> quotes (ppr name)
-        , text "but the implementing module exports a different identifier" <+> quotes (ppr name')
-        ]
+  = (BadReexportBootThingError (mkUserStyle dflags alwaysQualify AllTheWay) is_boot name name')
 
 bootMisMatch :: Bool -> SDoc -> TyThing -> TyThing -> SDoc
 bootMisMatch is_boot extra_info real_thing boot_thing

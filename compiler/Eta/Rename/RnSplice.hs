@@ -69,10 +69,7 @@ rnBracket e br_body
     do { -- Check that -XTemplateHaskellQuotes is enabled and available
          thQuotesEnabled <- xoptM LangExt.TemplateHaskell
        ; unless thQuotesEnabled $
-           failWith ( vcat
-                      [ text "Syntax error on" <+> ppr e
-                      , text ("Perhaps you intended to use TemplateHaskell"
-                              ++ " or TemplateHaskellQuotes") ] )
+           failWith (TemplateHaskellExtensionError e)
 
          -- Check for nested brackets
        ; cur_stage <- getStage
@@ -178,23 +175,17 @@ rn_bracket _ (TExpBr e) = do { (e', fvs) <- rnLExpr e
 quotationCtxtDoc :: HsBracket RdrName -> ContextElement
 quotationCtxtDoc br_body = QuasiQuoteCtxt br_body
 
-illegalBracket :: SDoc
-illegalBracket =
-    text "Template Haskell brackets cannot be nested" <+>
-    text "(without intervening splices)"
+illegalBracket :: TypeError
+illegalBracket = IllegalBracketError
 
-illegalTypedBracket :: SDoc
-illegalTypedBracket =
-    text "Typed brackets may only appear in typed splices."
+illegalTypedBracket :: TypeError
+illegalTypedBracket = IllegalTypedBracketError
 
-illegalUntypedBracket :: SDoc
-illegalUntypedBracket =
-    text "Untyped brackets may only appear in untyped splices."
+illegalUntypedBracket :: TypeError
+illegalUntypedBracket = IllegalUntypedBracketError
 
-quotedNameStageErr :: HsBracket RdrName -> SDoc
-quotedNameStageErr br
-  = sep [ text "Stage error: the non-top-level quoted name" <+> ppr br
-        , text "must be used at the same stage at which it is bound" ]
+quotedNameStageErr :: HsBracket RdrName -> TypeError
+quotedNameStageErr br = QuotedNameStageError br
 
 
 {-
@@ -726,11 +717,11 @@ traceSplice (SpliceInfo { spliceDescription = sd, spliceSource = mb_src
       = vcat [ text "--" <+> ppr loc <> colon <+> text "Splicing" <+> text sd
              , gen ]
 
-illegalTypedSplice :: SDoc
-illegalTypedSplice = text "Typed splices may not appear in untyped brackets"
+illegalTypedSplice :: TypeError
+illegalTypedSplice = IllegalTypedSpliceError
 
-illegalUntypedSplice :: SDoc
-illegalUntypedSplice = text "Untyped splices may not appear in typed brackets"
+illegalUntypedSplice :: TypeError
+illegalUntypedSplice = IllegalUntypedSpliceError
 
 checkThLocalName :: Name -> RnM ()
 checkThLocalName name

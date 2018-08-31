@@ -38,6 +38,7 @@ import Eta.Utils.Util
 import Eta.Prelude.PrelNames        ( gHC_PRIM )
 import Eta.Main.DynFlags
 import Eta.Utils.Outputable
+import Eta.TypeCheck.TcRnTypes
 import qualified Eta.Utils.Outputable as Outputable
 
 import Data.IORef                 ( IORef, readIORef, atomicModifyIORef' )
@@ -579,13 +580,15 @@ findObjectLinkable mod obj_fn obj_time = return (LM obj_time mod [DotO obj_fn])
 -- -----------------------------------------------------------------------------
 -- Error messages
 
-cannotFindModule :: DynFlags -> ModuleName -> FindResult -> SDoc
-cannotFindModule = cantFindErr (sLit "Could not find module")
-                               (sLit "Ambiguous module name")
+cannotFindModule :: DynFlags -> ModuleName -> FindResult -> TypeError
+cannotFindModule a b c = CannotFindModuleError $
+  cantFindErr (sLit "Could not find module")
+    (sLit "Ambiguous module name") a b c
 
-cannotFindInterface  :: DynFlags -> ModuleName -> InstalledFindResult -> SDoc
-cannotFindInterface = cantFindInstalledErr (sLit "Failed to load interface for")
-                                           (sLit "Ambiguous interface for")
+cannotFindInterface  :: DynFlags -> ModuleName -> InstalledFindResult -> TypeError
+cannotFindInterface a b c = CannotFindInterfaceError $
+   cantFindInstalledErr (sLit "Failed to load interface for")
+      (sLit "Ambiguous interface for") a b c 
 
 cantFindErr :: LitString -> LitString -> DynFlags -> ModuleName -> FindResult
             -> SDoc
