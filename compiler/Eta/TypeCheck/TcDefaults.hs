@@ -19,7 +19,6 @@ import Eta.Prelude.PrelNames
 import Eta.BasicTypes.SrcLoc
 import Data.Maybe
 import Eta.Utils.Outputable
-import Eta.Utils.FastString
 import qualified Eta.LanguageExtensions as LangExt
 
 tcDefaults :: [LDefaultDecl Name]
@@ -80,19 +79,13 @@ check_instance ty cls
 defaultDeclCtxt :: ContextElement
 defaultDeclCtxt = DefaultDeclarationCtxt
 
-dupDefaultDeclErr :: [Located (DefaultDecl Name)] -> SDoc
+dupDefaultDeclErr :: [Located (DefaultDecl Name)] -> TypeError
 dupDefaultDeclErr (L _ (DefaultDecl _) : dup_things)
-  = hang (ptext (sLit "Multiple default declarations"))
-       2 (vcat (map pp dup_things))
-  where
-    pp (L locn (DefaultDecl _)) = ptext (sLit "here was another default declaration") <+> ppr locn
+  = DuplicateDefaultError dup_things
 dupDefaultDeclErr [] = panic "dupDefaultDeclErr []"
 
-polyDefErr :: LHsType Name -> SDoc
-polyDefErr ty
-  = hang (ptext (sLit "Illegal polymorphic type in default declaration") <> colon) 2 (ppr ty)
+polyDefErr :: LHsType Name -> TypeError
+polyDefErr ty = PolyDefaultError ty
 
-badDefaultTy :: Type -> [Class] -> SDoc
-badDefaultTy ty deflt_clss
-  = hang (ptext (sLit "The default type") <+> quotes (ppr ty) <+> ptext (sLit "is not an instance of"))
-       2 (foldr1 (\a b -> a <+> ptext (sLit "or") <+> b) (map (quotes. ppr) deflt_clss))
+badDefaultTy :: Type -> [Class] -> TypeError
+badDefaultTy ty deflt_clss = BadDefaultTypeError ty deflt_clss

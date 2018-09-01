@@ -382,15 +382,11 @@ tcAddDeclCtxt :: TyClDecl Name -> TcM a -> TcM a
 tcAddDeclCtxt decl thing_inside
   = addErrCtxt (tcMkDeclCtxt decl) thing_inside
 
-badMethodErr :: Outputable a => a -> Name -> SDoc
-badMethodErr clas op
-  = hsep [ptext (sLit "Class"), quotes (ppr clas),
-          ptext (sLit "does not have a method"), quotes (ppr op)]
+badMethodErr :: Name -> Name -> TypeError
+badMethodErr clas op = BadMethodError clas op
 
-badGenericMethod :: Outputable a => a -> Name -> SDoc
-badGenericMethod clas op
-  = hsep [ptext (sLit "Class"), quotes (ppr clas),
-          ptext (sLit "has a generic-default signature without a binding"), quotes (ppr op)]
+badGenericMethod :: Name -> Name -> TypeError
+badGenericMethod clas op = BadGenericMethodError clas op
 
 {-
 badGenericInstanceType :: LHsBinds Name -> SDoc
@@ -412,10 +408,7 @@ dupGenericInsts tc_inst_infos
     ppr_inst_ty (_,inst) = ppr (simpleInstInfoTy inst)
 -}
 badDmPrag :: Id -> Sig Name -> TcM ()
-badDmPrag sel_id prag
-  = addErrTc (ptext (sLit "The") <+> hsSigDoc prag <+> ptext (sLit "for default method")
-              <+> quotes (ppr sel_id)
-              <+> ptext (sLit "lacks an accompanying binding"))
+badDmPrag sel_id prag = addErrTc (BadDefaultMethodError sel_id prag)
 
 warningMinimalDefIncomplete :: ClassMinimalDef -> SDoc
 warningMinimalDefIncomplete mindef

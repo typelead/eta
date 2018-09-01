@@ -795,8 +795,7 @@ tcDataConPat penv (L con_span con_name) data_con pat_ty arg_pats thing_inside
         ; gadts_on    <- xoptM LangExt.GADTs
         ; families_on <- xoptM LangExt.TypeFamilies
         ; checkTc (no_equalities || gadts_on || families_on)
-                  (text "A pattern match on a GADT requires the" <+>
-                   text "GADTs or TypeFamilies language extension")
+                  GADTTypeFamiliesError
                   -- Trac #2905 decided that a *pattern-match* of a GADT
                   -- should require the GADT language flag.
                   -- Re TypeFamilies see also #7156
@@ -951,7 +950,7 @@ tcConArgs :: ConLike -> [TcSigmaType]
 
 tcConArgs con_like arg_tys (PrefixCon arg_pats) penv thing_inside
   = do  { checkTc (con_arity == no_of_args)     -- Check correct arity
-                  (arityErr "Constructor" con_like con_arity no_of_args)
+                  (arityErr "Constructor" (getName con_like) con_arity no_of_args)
         ; let pats_w_tys = zipEqual "tcConArgs" arg_pats arg_tys
         ; (arg_pats', res) <- tcMultiple tcConArg pats_w_tys
                                               penv thing_inside
@@ -962,7 +961,7 @@ tcConArgs con_like arg_tys (PrefixCon arg_pats) penv thing_inside
 
 tcConArgs con_like arg_tys (InfixCon p1 p2) penv thing_inside
   = do  { checkTc (con_arity == 2)      -- Check correct arity
-                  (arityErr "Constructor" con_like con_arity 2)
+                  (arityErr "Constructor" (getName con_like) con_arity 2)
         ; let [arg_ty1,arg_ty2] = arg_tys       -- This can't fail after the arity check
         ; ([p1',p2'], res) <- tcMultiple tcConArg [(p1,arg_ty1),(p2,arg_ty2)]
                                               penv thing_inside
@@ -1145,33 +1144,23 @@ checkExistentials _ (PE { pe_ctxt = LamPat ProcExpr }) = failWithTc existentialP
 checkExistentials _ (PE { pe_lazy = True })            = failWithTc existentialLazyPat
 checkExistentials _ _                                  = return ()
 
-existentialLazyPat :: SDoc
-existentialLazyPat
-  = hang (ptext (sLit "An existential or GADT data constructor cannot be used"))
-       2 (ptext (sLit "inside a lazy (~) pattern"))
+existentialLazyPat :: TypeError
+existentialLazyPat = ExistentialLazyPatError
 
-existentialProcPat :: SDoc
-existentialProcPat
-  = ptext (sLit "Proc patterns cannot use existential or GADT data constructors")
+existentialProcPat :: TypeError
+existentialProcPat = ExistentialProcPatError
 
-existentialLetPat :: SDoc
-existentialLetPat
-  = vcat [text "My brain just exploded",
-          text "I can't handle pattern bindings for existential or GADT data constructors.",
-          text "Instead, use a case-expression, or do-notation, to unpack the constructor."]
+existentialLetPat :: TypeError
+existentialLetPat = ExistentialLetPatError
 
-badFieldCon :: ConLike -> Name -> SDoc
-badFieldCon con field
-  = hsep [ptext (sLit "Constructor") <+> quotes (ppr con),
-          ptext (sLit "does not have field"), quotes (ppr field)]
+badFieldCon :: ConLike -> Name -> TypeError
+badFieldCon con field = BadFieldConstructorError con field
 
 polyPatSig :: TcType -> SDoc
 polyPatSig sig_ty
   = hang (ptext (sLit "Illegal polymorphic type signature in pattern:"))
        2 (ppr sig_ty)
 
-lazyUnliftedPatErr :: OutputableBndr name => Pat name -> TcM ()
+lazyUnliftedPatErr :: Pat Name -> TcM ()
 lazyUnliftedPatErr pat
-  = failWithTc $
-    hang (ptext (sLit "A lazy (~) pattern cannot contain unlifted types:"))
-       2 (ppr pat)
+  = failWithTc $ LazyUnliftedPatError pat

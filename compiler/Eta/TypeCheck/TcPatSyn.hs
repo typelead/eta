@@ -163,10 +163,8 @@ tcCheckPatSynDecl PSB{ psb_id = lname@(L loc name), psb_args = details,
   where
     (arg_tys, pat_ty) = tcSplitFunTys tau
 
-wrongNumberOfParmsErr :: Arity -> SDoc
-wrongNumberOfParmsErr ty_arity
-  = ptext (sLit "Number of pattern synonym arguments doesn't match type; expected")
-    <+> ppr ty_arity
+wrongNumberOfParmsErr :: Arity -> TypeError
+wrongNumberOfParmsErr ty_arity = WrongNumberOfParmsError ty_arity
 
 -------------------------
 -- Shared by both tcInferPatSyn and tcCheckPatSyn
@@ -360,9 +358,7 @@ tcPatSynBuilderBind PSB{ psb_id = L loc name, psb_def = lpat
   = return emptyBag
 
   | isNothing mb_match_group       -- Can't invert the pattern
-  = setSrcSpan (getLoc lpat) $ failWithTc $
-    hang (ptext (sLit "Right-hand side of bidirectional pattern synonym cannot be used as an expression"))
-       2 (ppr lpat)
+  = setSrcSpan (getLoc lpat) $ failWithTc $ BiDirectionalError lpat
 
   | otherwise
   = do { patsyn <- tcLookupPatSyn name
@@ -423,9 +419,7 @@ tcPatSynBuilderOcc orig ps
          else return ( inst_fun, rho ) }
 
   | otherwise  -- Unidirectional
-  = failWithTc $
-    ptext (sLit "non-bidirectional pattern synonym")
-    <+> quotes (ppr name) <+> ptext (sLit "used in an expression")
+  = failWithTc $ NonBiDirectionalError name
   where
     name    = patSynName ps
     builder = patSynBuilder ps
@@ -481,23 +475,14 @@ tcCheckPatSynPat = go
     go1   SigPatOut{}         = panic "SigPatOut in output of renamer"
     go1   CoPat{}             = panic "CoPat in output of renamer"
 
-asPatInPatSynErr :: OutputableBndr name => Pat name -> TcM a
-asPatInPatSynErr pat
-  = failWithTc $
-    hang (ptext (sLit "Pattern synonym definition cannot contain as-patterns (@):"))
-       2 (ppr pat)
+asPatInPatSynErr :: Pat Name -> TcM a
+asPatInPatSynErr pat = failWithTc $ AsPatternsDefinitionError pat
 
-thInPatSynErr :: OutputableBndr name => Pat name -> TcM a
-thInPatSynErr pat
-  = failWithTc $
-    hang (ptext (sLit "Pattern synonym definition cannot contain Template Haskell:"))
-       2 (ppr pat)
+thInPatSynErr :: Pat Name -> TcM a
+thInPatSynErr pat = failWithTc $ TemplateHaskellPatSynError pat
 
-nPlusKPatInPatSynErr :: OutputableBndr name => Pat name -> TcM a
-nPlusKPatInPatSynErr pat
-  = failWithTc $
-    hang (ptext (sLit "Pattern synonym definition cannot contain n+k-pattern:"))
-       2 (ppr pat)
+nPlusKPatInPatSynErr :: Pat Name -> TcM a
+nPlusKPatInPatSynErr pat = failWithTc $ NKPatSynError pat
 
 tcPatToExpr :: [Located Name] -> LPat Name -> Maybe (LHsExpr Name)
 tcPatToExpr args = go

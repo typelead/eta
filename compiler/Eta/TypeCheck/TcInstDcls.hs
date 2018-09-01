@@ -431,10 +431,7 @@ tcInstDecls1 tycl_decls inst_decls deriv_decls
                         NoOverlap _ -> False
                         _           -> True
     genInstCheck ty = is_cls_nm (iSpec ty) `elem` genericClassNames
-    genInstErr i = hang (ptext (sLit $ "Generic instances can only be "
-                            ++ "derived in Safe Haskell.") $+$
-                         ptext (sLit "Replace the following instance:"))
-                     2 (pprInstanceHdr (iSpec i))
+    genInstErr i = GenericInstSafeHaskellError i
 
     -- Report an error or a warning for a `Typeable` instances.
     -- If we are workikng on an .hs-boot file, we just report a warning,
@@ -450,7 +447,7 @@ tcInstDecls1 tycl_decls inst_decls deriv_decls
                     [ ptext (sLit "`Typeable` instances in .hs-boot files are ignored.")
                     , ptext (sLit "This warning will become an error in future versions of the compiler.")
                     ]
-             else addErrTc $ ptext (sLit "Class `Typeable` does not support user-specified instances.")
+             else addErrTc $ TypeableDoesNotSupportError
 
 addClsInsts :: [InstInfo Name] -> TcM a -> TcM a
 addClsInsts infos thing_inside
@@ -960,12 +957,9 @@ methSigCtxt sel_name sig_ty meth_ty env0
        ; let msg = MethSigCtxt sel_name sig_ty meth_ty
        ; return (env2, msg) }
 
-misplacedInstSig :: Name -> LHsType Name -> SDoc
+misplacedInstSig :: Name -> LHsType Name -> TypeError
 misplacedInstSig name hs_ty
-  = vcat [ hang (ptext (sLit "Illegal type signature in instance declaration:"))
-              2 (hang (pprPrefixName name)
-                    2 (dcolon <+> ppr hs_ty))
-         , ptext (sLit "(Use InstanceSigs to allow this)") ]
+  = MisplacedInstSigError name hs_ty
 
 ------------------------------
 tcSpecInstPrags :: DFunId -> InstBindings Name
@@ -1486,31 +1480,26 @@ instDeclCtxt1 hs_inst_ty = InstDeclarationCtxt1 hs_inst_ty
 instDeclCtxt2 :: Type -> ContextElement
 instDeclCtxt2 dfun_ty = InstDeclarationCtxt2 dfun_ty
 
-badBootFamInstDeclErr :: SDoc
+badBootFamInstDeclErr :: TypeError
 badBootFamInstDeclErr
-  = ptext (sLit "Illegal family instance in hs-boot file")
+  = BadBootFamInstDeclError
 
-notFamily :: TyCon -> SDoc
+notFamily :: TyCon -> TypeError
 notFamily tycon
-  = vcat [ ptext (sLit "Illegal family instance for") <+> quotes (ppr tycon)
-         , nest 2 $ parens (ppr tycon <+> ptext (sLit "is not an indexed type family"))]
+  = NotFamilyTypeError tycon
 
-tooFewParmsErr :: Arity -> SDoc
+tooFewParmsErr :: Arity -> TypeError
 tooFewParmsErr arity
-  = ptext (sLit "Family instance has too few parameters; expected") <+>
-    ppr arity
+  = TooFewParamsError arity
 
-assocInClassErr :: Located Name -> SDoc
+assocInClassErr :: Located Name -> TypeError
 assocInClassErr name
- = ptext (sLit "Associated type") <+> quotes (ppr name) <+>
-   ptext (sLit "must be inside a class instance")
+ = AssocInClassError name
 
-badFamInstDecl :: Located Name -> SDoc
+badFamInstDecl :: Located Name -> TypeError
 badFamInstDecl tc_name
-  = vcat [ ptext (sLit "Illegal family instance for") <+>
-           quotes (ppr tc_name)
-         , nest 2 (parens $ ptext (sLit "Use TypeFamilies to allow indexed type families")) ]
+  = BadFamInstDeclError tc_name
 
-notOpenFamily :: TyCon -> SDoc
+notOpenFamily :: TyCon -> TypeError
 notOpenFamily tc
-  = ptext (sLit "Illegal instance for closed family") <+> quotes (ppr tc)
+  = NotOpenFamilyError tc

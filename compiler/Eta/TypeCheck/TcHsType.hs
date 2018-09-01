@@ -214,7 +214,7 @@ tcHsDeriv hs_ty
        ; let (tvs, pred) = splitForAllTys ty
        ; case getClassPredTys_maybe pred of
            Just (cls, tys) -> return (tvs, cls, tys, arg_kind)
-           Nothing -> failWithTc (ptext (sLit "Illegal deriving item") <+> quotes (ppr hs_ty)) }
+           Nothing -> failWithTc (IllegalDerivingItemError hs_ty) }
 
 -- Used for 'VECTORISE [SCALAR] instance' declarations
 --
@@ -225,7 +225,7 @@ tcHsVectInst ty
        ; (arg_tys, _res_kind) <- tcInferApps cls_name cls_kind tys
        ; return (cls, arg_tys) }
   | otherwise
-  = failWithTc $ ptext (sLit "Malformed instance type")
+  = failWithTc $ MalformedInstanceError
 
 {-
         These functions are used during knot-tying in
@@ -343,7 +343,7 @@ tc_hs_type ty@(HsBangTy {})    _
     -- While top-level bangs at this point are eliminated (eg !(Maybe Int)),
     -- other kinds of bangs are not (eg ((!Maybe) Int)). These kinds of
     -- bangs are invalid, so fail. (#7210)
-    = failWithTc (ptext (sLit "Unexpected strictness annotation:") <+> ppr ty)
+    = failWithTc (UnexpectedStrictAnnotationError ty)
 tc_hs_type (HsRecTy _)         _ = panic "tc_hs_type: record" -- Unwrapped by con decls
       -- Record types (which only show up temporarily in constructor
       -- signatures) should have been removed by now
@@ -385,7 +385,7 @@ tc_hs_type hs_ty@(HsAppTy ty1 ty2) exp_kind
 --------- Foralls
 tc_hs_type hs_ty@(HsForAllTy _ _ hs_tvs context ty) exp_kind@(EK exp_k _)
   | isConstraintKind exp_k
-  = failWithTc (hang (ptext (sLit "Illegal constraint:")) 2 (ppr hs_ty))
+  = failWithTc (IllegalConstraintError hs_ty)
 
   | otherwise
   = tcHsTyVarBndrs hs_tvs $ \ tvs' ->
@@ -438,7 +438,7 @@ tc_hs_type hs_ty@(HsTupleTy HsBoxedOrConstraintTuple hs_tys) exp_kind@(EK exp_k 
          -- In the [] case, it's not clear what the kind is, so guess *
 
        ; sequence_ [ setSrcSpan loc $
-                     checkExpectedKind ty kind
+                     checkExpectedLKind ty kind
                         (expArgKind (ptext (sLit "a tuple")) arg_kind n)
                    | (ty@(L loc _),kind,n) <- zip3 hs_tys kinds [1..] ]
 
@@ -487,7 +487,7 @@ tc_hs_type ipTy@(HsIParamTy n ty) exp_kind
 tc_hs_type ty@(HsEqTy ty1 ty2) exp_kind
   = do { (ty1', kind1) <- tc_infer_lhs_type ty1
        ; (ty2', kind2) <- tc_infer_lhs_type ty2
-       ; checkExpectedKind ty2 kind2
+       ; checkExpectedLKind ty2 kind2
               (EK kind1 msg_fn)
        ; checkExpectedKind ty constraintKind exp_kind
        ; return (mkNakedTyConApp eqTyCon [kind1, ty1', ty2']) }
@@ -498,20 +498,20 @@ tc_hs_type ty@(HsEqTy ty1 ty2) exp_kind
 --------- Misc
 tc_hs_type (HsKindSig ty sig_k) exp_kind
   = do { sig_k' <- tcLHsKind sig_k
-       ; checkExpectedKind ty sig_k' exp_kind
+       ; checkExpectedLKind ty sig_k' exp_kind
        ; tc_lhs_type ty (EK sig_k' msg_fn) }
   where
     msg_fn pkind = ptext (sLit "The signature specified kind")
                    <+> quotes (pprKind pkind)
 
-tc_hs_type (HsCoreTy ty) exp_kind
-  = do { checkExpectedKind ty (typeKind ty) exp_kind
+tc_hs_type hsty@(HsCoreTy ty) exp_kind
+  = do { checkExpectedKind hsty (typeKind ty) exp_kind
        ; return ty }
 
 
 -- This should never happen; type splices are expanded by the renamer
 tc_hs_type ty@(HsSpliceTy {}) _exp_kind
-  = failWithTc (ptext (sLit "Unexpected type splice:") <+> ppr ty)
+  = failWithTc (UnexpectedTypeSpliceError ty)
 
 tc_hs_type (HsWrapTy {}) _exp_kind
   = panic "tc_hs_type HsWrapTy"  -- We kind checked something twice
@@ -605,8 +605,7 @@ splitFunKind the_fun fun_kind args
                                      ; let exp_kind = expArgKind (quotes the_fun) ak arg_no
                                      ; return ((arg, exp_kind) : aks, rk) } }
 
-    too_many_args = quotes the_fun <+>
-                    ptext (sLit "is applied to too many type arguments")
+    too_many_args = TooManyTypeArgumentsError the_fun
 
 
 ---------------------------
@@ -626,8 +625,7 @@ tcTyVar name         -- Could be a tyvar, a tycon, or a datacon
        ; case thing of
            ATyVar _ tv
               | isKindVar tv
-              -> failWithTc (ptext (sLit "Kind variable") <+> quotes (ppr tv)
-                             <+> ptext (sLit "used as a type"))
+              -> failWithTc (KindVariableTypeError tv)
               | otherwise
               -> return (mkTyVarTy tv, tyVarKind tv)
 
@@ -642,9 +640,7 @@ tcTyVar name         -- Could be a tyvar, a tycon, or a datacon
              -> do { data_kinds <- xoptM LangExt.DataKinds
                    ; unless data_kinds $ promotionErr name NoDataKinds
                    ; inst_tycon (mkTyConApp tc) (tyConKind tc) }
-             | otherwise -> failWithTc (ptext (sLit "Data constructor") <+> quotes (ppr dc)
-                                        <+> ptext (sLit "comes from an un-promotable type")
-                                        <+> quotes (ppr (dataConTyCon dc)))
+             | otherwise -> failWithTc (DataConstructorUnPromoError dc)
 
            APromotionErr err -> promotionErr name err
 
@@ -1166,10 +1162,8 @@ tcDataKindSig kind
     mk_tv loc uniq occ kind
       = mkTyVar (mkInternalName uniq occ loc) kind
 
-badKindSig :: Kind -> SDoc
-badKindSig kind
- = hang (ptext (sLit "Kind signature on data type declaration has non-* return kind"))
-        2 (ppr kind)
+badKindSig :: Kind -> TypeError
+badKindSig kind = BadKindSignatureError kind
 
 {-
 Note [Avoid name clashes for associated data types]
@@ -1317,11 +1311,8 @@ tcPatSig in_pat_bind sig res_ty
             ; let msg = PatternSigCtxt sig_ty res_ty
             ; return (tidy_env, msg) }
 
-patBindSigErr :: [(Name, TcTyVar)] -> SDoc
-patBindSigErr sig_tvs
-  = hang (ptext (sLit "You cannot bind scoped type variable") <> plural sig_tvs
-          <+> pprQuotedList (map fst sig_tvs))
-       2 (ptext (sLit "in a pattern binding signature"))
+patBindSigErr :: [(Name, TcTyVar)] -> TypeError
+patBindSigErr sig_tvs = PatternBindSignatureError sig_tvs
 
 {-
 Note [Pattern signature binders]
@@ -1418,7 +1409,7 @@ unifyKinds :: SDoc -> [(TcType, TcKind)] -> TcM TcKind
 unifyKinds fun act_kinds
   = do { kind <- newMetaKindVar
        ; let check (arg_no, (ty, act_kind))
-               = checkExpectedKind ty act_kind (expArgKind (quotes fun) kind arg_no)
+               = checkExpectedKind (HsCoreTy ty) act_kind (expArgKind (quotes fun) kind arg_no)
        ; mapM_ check (zip [1..] act_kinds)
        ; return kind }
 
@@ -1429,7 +1420,11 @@ checkKind act_kind exp_kind
            Just EQ -> return ()
            _       -> unifyKindMisMatch act_kind exp_kind }
 
-checkExpectedKind :: Outputable a => a -> TcKind -> ExpKind -> TcM ()
+checkExpectedLKind :: LHsType Name -> TcKind -> ExpKind -> TcM ()
+checkExpectedLKind (L _ ty) act_kind exp_kind =
+  checkExpectedKind ty act_kind exp_kind
+
+checkExpectedKind :: HsType Name -> TcKind -> ExpKind -> TcM ()
 -- A fancy wrapper for 'unifyKindX', which tries
 -- to give decent error messages.
 --      (checkExpectedKind ty act_kind exp_kind)
@@ -1474,31 +1469,21 @@ checkExpectedKind ty act_kind (EK exp_kind ek_ctxt)
                                 _bad      -> False
 
             err | isLiftedTypeKind exp_kind && isUnliftedTypeKind act_kind
-                = ptext (sLit "Expecting a lifted type, but") <+> quotes (ppr ty)
-                    <+> ptext (sLit "is unlifted")
+                = ExpectedLiftedTypeError ty
 
                 | isUnliftedTypeKind exp_kind && isLiftedTypeKind act_kind
-                = ptext (sLit "Expecting an unlifted type, but") <+> quotes (ppr ty)
-                    <+> ptext (sLit "is lifted")
+                = ExpectedUnLiftedTypeError ty
 
                 | occurs_check   -- Must precede the "more args expected" check
-                = ptext (sLit "Kind occurs check") $$ more_info
+                = KindOccurCheckError (ek_ctxt tidy_exp_kind) ty tidy_act_kind
 
                 | n_exp_as < n_act_as     -- E.g. [Maybe]
-                = vcat [ ptext (sLit "Expecting") <+>
-                         speakN n_diff_as <+> ptext (sLit "more argument")
-                         <> (if n_diff_as > 1 then char 's' else empty)
-                         <+> ptext (sLit "to") <+> quotes (ppr ty)
-                       , more_info ]
+                = ExpectingArgumentError (ek_ctxt tidy_exp_kind) ty tidy_act_kind n_diff_as
 
                   -- Now n_exp_as >= n_act_as. In the next two cases,
                   -- n_exp_as == 0, and hence so is n_act_as
                 | otherwise               -- E.g. Monad [Int]
-                = more_info
-
-            more_info = sep [ ek_ctxt tidy_exp_kind <> comma
-                            , nest 2 $ ptext (sLit "but") <+> quotes (ppr ty)
-                              <+> ptext (sLit "has kind") <+> quotes (pprKind tidy_act_kind)]
+                = KindMisMatchError (ek_ctxt tidy_exp_kind) ty tidy_act_kind
 
       ; traceTc "checkExpectedKind 1" (ppr ty $$ ppr tidy_act_kind $$ ppr tidy_exp_kind $$ ppr env1 $$ ppr env2)
       ; failWithTcM (env2, err) } } }
@@ -1554,8 +1539,7 @@ tc_kind_app :: HsKind Name -> [LHsKind Name] -> TcM Kind
 tc_kind_app (HsAppTy ki1 ki2) kis = tc_kind_app (unLoc ki1) (ki2:kis)
 tc_kind_app (HsTyVar tc)      kis = do { arg_kis <- mapM tc_lhs_kind kis
                                        ; tc_kind_var_app tc arg_kis }
-tc_kind_app ki                _   = failWithTc (quotes (ppr ki) <+>
-                                    ptext (sLit "is not a kind constructor"))
+tc_kind_app ki                _   = failWithTc (NotKindConstructorError ki)
 
 tc_kind_var_app :: Name -> [Kind] -> TcM Kind
 -- Special case for * and Constraint kinds
@@ -1564,7 +1548,7 @@ tc_kind_var_app name arg_kis
   |  name == liftedTypeKindTyConName
   || name == constraintKindTyConName
   = do { unless (null arg_kis)
-           (failWithTc (text "Kind" <+> ppr name <+> text "cannot be applied"))
+           (failWithTc (KindNotAppliedError name))
        ; thing <- tcLookup name
        ; case thing of
            AGlobal (ATyCon tc) -> return (mkTyConApp tc [])
@@ -1586,24 +1570,19 @@ tc_kind_var_app name arg_kis
            -- A lexically scoped kind variable
            ATyVar _ kind_var
              | not (isKindVar kind_var)
-             -> failWithTc (ptext (sLit "Type variable") <+> quotes (ppr kind_var)
-                            <+> ptext (sLit "used as a kind"))
+             -> failWithTc (TypeVariableUsedTypeError kind_var)
              | not (null arg_kis) -- Kind variables always have kind BOX,
                                   -- so cannot be applied to anything
-             -> failWithTc (ptext (sLit "Kind variable") <+> quotes (ppr name)
-                            <+> ptext (sLit "cannot appear in a function position"))
+             -> failWithTc (KindVariablePositionError name)
              | otherwise
              -> return (mkAppTys (mkTyVarTy kind_var) arg_kis)
 
            -- It is in scope, but not what we expected
            AThing _
              | isTyVarName name
-             -> failWithTc (ptext (sLit "Type variable") <+> quotes (ppr name)
-                            <+> ptext (sLit "used in a kind"))
+             -> failWithTc (TypeVariableUsedKindError name)
              | otherwise
-             -> failWithTc (hang (ptext (sLit "Type constructor") <+> quotes (ppr name)
-                                  <+> ptext (sLit "used in a kind"))
-                               2 (ptext (sLit "inside its own recursive group")))
+             -> failWithTc (TypeConstructorUsedKind name)
 
            APromotionErr err -> promotionErr name err
 
@@ -1611,23 +1590,13 @@ tc_kind_var_app name arg_kis
                 -- This really should not happen
      }
   where
-   tycon_err tc msg = failWithTc (quotes (ppr tc) <+> ptext (sLit "of kind")
-                                  <+> quotes (ppr (tyConKind tc)) <+> ptext (sLit msg))
+   tycon_err tc msg = failWithTc (OfKindError tc msg)
 
-dataKindsErr :: Name -> SDoc
-dataKindsErr name
-  = hang (ptext (sLit "Illegal kind:") <+> quotes (ppr name))
-       2 (ptext (sLit "Perhaps you intended to use DataKinds"))
+dataKindsErr :: Name -> TypeError
+dataKindsErr name = DataKindsTypeError name
 
 promotionErr :: Name -> PromotionErr -> TcM a
-promotionErr name err
-  = failWithTc (hang (pprPECategory err <+> quotes (ppr name) <+> ptext (sLit "cannot be used here"))
-                   2 (parens reason))
-  where
-    reason = case err of
-               FamDataConPE -> ptext (sLit "it comes from a data family instance")
-               NoDataKinds  -> ptext (sLit "Perhaps you intended to use DataKinds")
-               _ -> ptext (sLit "it is defined and used in the same recursive group")
+promotionErr name err = failWithTc (PromotionError name err)
 
 {-
 ************************************************************************
@@ -1637,21 +1606,12 @@ promotionErr name err
 ************************************************************************
 -}
 
-badPatSigTvs :: TcType -> [TyVar] -> SDoc
-badPatSigTvs sig_ty bad_tvs
-  = vcat [ fsep [ptext (sLit "The type variable") <> plural bad_tvs,
-                 quotes (pprWithCommas ppr bad_tvs),
-                 ptext (sLit "should be bound by the pattern signature") <+> quotes (ppr sig_ty),
-                 ptext (sLit "but are actually discarded by a type synonym") ]
-         , ptext (sLit "To fix this, expand the type synonym")
-         , ptext (sLit "[Note: I hope to lift this restriction in due course]") ]
+badPatSigTvs :: TcType -> [TyVar] -> TypeError
+badPatSigTvs sig_ty bad_tvs = BadPatterSignatureError sig_ty bad_tvs
 
 unifyKindMisMatch :: TcKind -> TcKind -> TcM a
 unifyKindMisMatch ki1 ki2 = do
     ki1' <- zonkTcKind ki1
     ki2' <- zonkTcKind ki2
-    let msg = hang (ptext (sLit "Couldn't match kind"))
-              2 (sep [quotes (ppr ki1'),
-                      ptext (sLit "against"),
-                      quotes (ppr ki2')])
+    let msg = CouldNotMatchKindError ki1' ki2'
     failWithTc msg

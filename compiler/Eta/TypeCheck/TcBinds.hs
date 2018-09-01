@@ -206,8 +206,8 @@ tcHsBootSigs (ValBindsOut binds sigs)
     tc_boot_sig s = pprPanic "tcHsBootSigs/tc_boot_sig" (ppr s)
 tcHsBootSigs groups = pprPanic "tcHsBootSigs" (ppr groups)
 
-badBootDeclErr :: MsgDoc
-badBootDeclErr = ptext (sLit "Illegal declarations in an hs-boot file")
+badBootDeclErr :: TypeError
+badBootDeclErr = BadBootDeclarationError
 
 ------------------------
 tcLocalBinds :: HsLocalBinds Name -> TcM thing
@@ -395,15 +395,9 @@ tc_group top_lvl sig_fn prag_fn (Recursive, binds) thing_inside
 
     tc_sub_group = tcPolyBinds top_lvl sig_fn prag_fn Recursive
 
-recursivePatSynErr :: OutputableBndr name => LHsBinds name -> TcM a
+recursivePatSynErr :: LHsBinds Name -> TcM a
 recursivePatSynErr binds
-  = failWithTc $
-    hang (ptext (sLit "Recursive pattern synonym definition with following bindings:"))
-       2 (vcat $ map pprLBind . bagToList $ binds)
-  where
-    pprLoc loc  = parens (ptext (sLit "defined at") <+> ppr loc)
-    pprLBind (L loc bind) = pprWithCommas ppr (collectHsBindBinders bind) <+>
-                            pprLoc loc
+  = failWithTc $ RecursivePatternSynonymError binds
 
 tc_single :: forall thing.
             TopLevelFlag -> TcSigFun -> PragFun
@@ -978,8 +972,7 @@ tcVectDecls decls
        }
   where
     reportVectDups (first:_second:_more)
-      = addErrAt (getSrcSpan first) $
-          ptext (sLit "Duplicate vectorisation declarations for") <+> ppr first
+      = addErrAt (getSrcSpan first) $ DuplicateVectorisationError first
     reportVectDups _ = return ()
 
 --------------
@@ -1061,8 +1054,8 @@ tcVect (HsVectInstOut _)
 vectCtxt :: Outputable thing => thing -> ContextElement
 vectCtxt thing = VectorCtxt thing
 
-scalarTyConMustBeNullary :: MsgDoc
-scalarTyConMustBeNullary = ptext (sLit "VECTORISE SCALAR type constructor must be nullary")
+scalarTyConMustBeNullary :: TypeError
+scalarTyConMustBeNullary = VectoriseScalarError
 
 --------------
 -- If typechecking the binds fails, then return with each
@@ -1603,24 +1596,15 @@ checkStrictBinds top_lvl rec_group orig_binds tc_binds poly_ids
                      = null tvs && null evs
     is_monomorphic _ = True
 
-unliftedMustBeBang :: [LHsBind Name] -> SDoc
-unliftedMustBeBang binds
-  = hang (text "Pattern bindings containing unlifted types should use an outermost bang pattern:")
-       2 (vcat (map ppr binds))
+unliftedMustBeBang :: [LHsBind Name] -> TypeError
+unliftedMustBeBang binds = UnliftedMustBeBangError binds 
 
-polyBindErr :: [LHsBind Name] -> SDoc
-polyBindErr binds
-  = hang (ptext (sLit "You can't mix polymorphic and unlifted bindings"))
-       2 (vcat [vcat (map ppr binds),
-                ptext (sLit "Probable fix: add a type signature")])
+polyBindErr :: [LHsBind Name] -> TypeError
+polyBindErr binds = PolyBindError binds
 
-strictBindErr :: String -> Bool -> [LHsBind Name] -> SDoc
+strictBindErr :: String -> Bool -> [LHsBind Name] -> TypeError
 strictBindErr flavour unlifted_bndrs binds
-  = hang (text flavour <+> msg <+> ptext (sLit "aren't allowed:"))
-       2 (vcat (map ppr binds))
-  where
-    msg | unlifted_bndrs = ptext (sLit "bindings for unlifted types")
-        | otherwise      = ptext (sLit "bang-pattern or unboxed-tuple bindings")
+  = StrictBindError flavour unlifted_bndrs binds
 
 {-
 Note [Binding scoped type variables]

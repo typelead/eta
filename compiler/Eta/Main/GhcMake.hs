@@ -2177,7 +2177,7 @@ preprocessFile hsc_env src_fn mb_phase (Just (buf, _time))
 noModError :: DynFlags -> SrcSpan -> ModuleName -> FindResult -> ErrMsg
 -- ToDo: we don't have a proper line number for this error
 noModError dflags loc wanted_mod err
-  = mkPlainErrMsg dflags loc $ cannotFindModule dflags wanted_mod err
+  = mkPlainErrMsg dflags loc $ ppr (cannotFindModule dflags wanted_mod err)
 
 noHsFileErr :: DynFlags -> SrcSpan -> String -> ErrMsg
 noHsFileErr dflags loc path

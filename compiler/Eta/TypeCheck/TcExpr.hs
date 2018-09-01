@@ -58,7 +58,6 @@ import Eta.Utils.Util
 import Eta.Utils.ListSetOps
 import Eta.Utils.Maybes
 import Eta.Utils.Outputable
-import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
 import Control.Monad
 import Eta.Types.Class             ( classTyCon )
@@ -250,7 +249,7 @@ tcExpr (ExprWithTySig expr sig_ty wcs) res_ty
       ; tcWrapResult (mkHsWrap inst_wrap inner_expr) rho res_ty } }
 
 tcExpr (HsType ty) _
-  = failWithTc (text "Can't handle type argument:" <+> ppr ty)
+  = failWithTc (CannotHandleTypeArgError ty)
         -- This is the syntax for type applications that I was planning
         -- but there are difficulties (e.g. what order for type args)
         -- so it's not enabled yet.
@@ -1096,7 +1095,7 @@ tcInferIdWithOrig :: CtOrigin -> Name -> TcM (HsExpr TcId, TcRhoType)
 
 tcInferIdWithOrig orig id_name
   | id_name `hasKey` tagToEnumKey
-  = failWithTc (ptext (sLit "tagToEnum# must appear applied to one argument"))
+  = failWithTc TagToEnumError
         -- tcApp catches the case (tagToEnum# arg)
 
   | id_name `hasKey` assertIdKey
@@ -1138,8 +1137,7 @@ tc_infer_id orig id_name
                  RealDataCon con -> inst_data_con con
                  PatSynCon ps    -> tcPatSynBuilderOcc orig ps
 
-             _ -> failWithTc $
-                  ppr thing <+> ptext (sLit "used where a value identifier was expected") }
+             _ -> failWithTc $ IdentifierExpectedError thing }
   where
     inst_normal_id id
       = do { (wrap, rho) <- deeplyInstantiate orig (idType id)
@@ -1244,11 +1242,8 @@ tcTagToEnum loc fun_name arg res_ty
                 , ptext (sLit "e.g. (tagToEnum# x) :: Bool") ]
     doc2 = ptext (sLit "Result type must be an enumeration type")
 
-    mk_error :: TcType -> SDoc -> SDoc
-    mk_error ty what
-      = hang (ptext (sLit "Bad call to tagToEnum#")
-               <+> ptext (sLit "at type") <+> ppr ty)
-           2 what
+    mk_error :: TcType -> SDoc -> TypeError
+    mk_error ty what = BadCallTagToEnumError ty what
 
 {-
 ************************************************************************
@@ -1322,9 +1317,8 @@ checkCrossStageLifting id (Brack _ (TcPending ps_var lie_var))
 
 checkCrossStageLifting _ _ = return ()
 
-polySpliceErr :: Id -> SDoc
-polySpliceErr id
-  = ptext (sLit "Can't splice the polymorphic local variable") <+> quotes (ppr id)
+polySpliceErr :: Id -> TypeError
+polySpliceErr id = PolySpliceError id
 #endif /* ETA_REPL */
 
 {-
@@ -1478,19 +1472,15 @@ funResCtxt has_args fun fun_res_ty env_ty tidy_env
              info = FunctionResultCtxt has_args n_fun n_env fun res_fun res_env fun_res' env'
        ; return (tidy_env, info) }
 
-badFieldTypes :: [(Name,TcType)] -> SDoc
-badFieldTypes prs
-  = hang (ptext (sLit "Record update for insufficiently polymorphic field")
-                         <> plural prs <> colon)
-       2 (vcat [ ppr f <+> dcolon <+> ppr ty | (f,ty) <- prs ])
+badFieldTypes :: [(Name,TcType)] -> TypeError
+badFieldTypes prs = BadFieldTypesError prs
 
 badFieldsUpd
   :: HsRecFields Name a -- Field names that don't belong to a single datacon
   -> [DataCon] -- Data cons of the type which the first field name belongs to
-  -> SDoc
+  -> TypeError
 badFieldsUpd rbinds data_cons
-  = hang (ptext (sLit "No constructor has all these fields:"))
-       2 (pprQuotedList conflictingFields)
+  = BadFieldTypeError conflictingFields
           -- See Note [Finding the conflicting fields]
   where
     -- A (preferably small) set of fields such that no constructor contains
@@ -1559,26 +1549,15 @@ Finding the smallest subset is hard, so the code here makes
 a decent stab, no more.  See Trac #7989.
 -}
 
-naughtyRecordSel :: TcId -> SDoc
-naughtyRecordSel sel_id
-  = ptext (sLit "Cannot use record selector") <+> quotes (ppr sel_id) <+>
-    ptext (sLit "as a function due to escaped type variables") $$
-    ptext (sLit "Probable fix: use pattern-matching syntax instead")
+naughtyRecordSel :: TcId -> TypeError
+naughtyRecordSel sel_id = NaughtyRecordSelectorError sel_id
 
-notSelector :: Name -> SDoc
-notSelector field
-  = hsep [quotes (ppr field), ptext (sLit "is not a record selector")]
+notSelector :: Name -> TypeError
+notSelector field = NotRecordSelectorError field
 
-missingStrictFields :: DataCon -> [FieldLabel] -> SDoc
+missingStrictFields :: DataCon -> [FieldLabel] -> TypeError
 missingStrictFields con fields
-  = header <> rest
-  where
-    rest | null fields = Outputable.empty  -- Happens for non-record constructors
-                                           -- with strict fields
-         | otherwise   = colon <+> pprWithCommas ppr fields
-
-    header = ptext (sLit "Constructor") <+> quotes (ppr con) <+>
-             ptext (sLit "does not have the required strict field(s)")
+  = MissingStrictFieldError con fields
 
 missingFields :: DataCon -> [FieldLabel] -> SDoc
 missingFields con fields
