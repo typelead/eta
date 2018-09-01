@@ -5,7 +5,7 @@
 {-# LANGUAGE CPP #-}
 
 module Eta.TypeCheck.TcValidity (
-  Rank, UserTypeCtxt(..), checkValidType, checkValidMonoType,
+  UserTypeCtxt(..), checkValidType, checkValidMonoType,
   expectedKindInCtxt,
   checkValidTheta, checkValidFamPats,
   checkValidInstance, validDerivPred,
@@ -42,7 +42,6 @@ import Eta.Utils.Util
 import Eta.Utils.ListSetOps
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Outputable
-import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
 import qualified Eta.LanguageExtensions as LangExt
 import Control.Monad
@@ -227,40 +226,6 @@ expectedKindInCtxt InstDeclCtxt   = Just constraintKind
 expectedKindInCtxt SpecInstCtxt   = Just constraintKind
 expectedKindInCtxt _              = Just openTypeKind
 
-{-
-Note [Higher rank types]
-~~~~~~~~~~~~~~~~~~~~~~~~
-Technically
-            Int -> forall a. a->a
-is still a rank-1 type, but it's not Haskell 98 (Trac #5957).  So the
-validity checker allow a forall after an arrow only if we allow it
-before -- that is, with Rank2Types or RankNTypes
--}
-
-data Rank = ArbitraryRank         -- Any rank ok
-
-          | LimitedRank   -- Note [Higher rank types]
-                 Bool     -- Forall ok at top
-                 Rank     -- Use for function arguments
-
-          | MonoType SDoc   -- Monotype, with a suggestion of how it could be a polytype
-
-          | MustBeMonoType  -- Monotype regardless of flags
-
-rankZeroMonoType, tyConArgMonoType, synArgMonoType :: Rank
-rankZeroMonoType = MonoType (ptext (sLit "Perhaps you intended to use RankNTypes or Rank2Types"))
-tyConArgMonoType = MonoType (ptext (sLit "Perhaps you intended to use ImpredicativeTypes"))
-synArgMonoType   = MonoType (ptext (sLit "Perhaps you intended to use LiberalTypeSynonyms"))
-
-funArgResRank :: Rank -> (Rank, Rank)             -- Function argument and result
-funArgResRank (LimitedRank _ arg_rank) = (arg_rank, LimitedRank (forAllAllowed arg_rank) arg_rank)
-funArgResRank other_rank               = (other_rank, other_rank)
-
-forAllAllowed :: Rank -> Bool
-forAllAllowed ArbitraryRank             = True
-forAllAllowed (LimitedRank forall_ok _) = forall_ok
-forAllAllowed _                         = False
-
 ----------------------------------------
 check_mono_type :: UserTypeCtxt -> Rank
                 -> KindOrType -> TcM () -- No foralls anywhere
@@ -406,14 +371,7 @@ check_arg_type ctxt rank ty
 
 ----------------------------------------
 forAllTyErr :: Rank -> Type -> TypeError
-forAllTyErr rank ty
-   = vcat [ hang (ptext (sLit "Illegal polymorphic or qualified type:")) 2 (ppr ty)
-          , suggestion ]
-  where
-    suggestion = case rank of
-                   LimitedRank {} -> ptext (sLit "Perhaps you intended to use RankNTypes or Rank2Types")
-                   MonoType d     -> d
-                   _              -> Outputable.empty -- Polytype is always illegal
+forAllTyErr rank ty = ForAllTypeError rank ty
 
 unliftedArgErr, ubxArgTyErr :: Type -> TypeError
 unliftedArgErr  ty = UnliftedArgError ty
@@ -602,7 +560,7 @@ Paterson conditions may not detect duplication of a type variable or size change
 check_class_pred_tys :: DynFlags -> UserTypeCtxt
                      -> PredType -> [KindOrType] -> TcM ()
 check_class_pred_tys dflags ctxt pred kts
-  = checkTc pred_ok (predTyVarErr pred $$ how_to_allow)
+  = checkTc pred_ok (predTyVarErr pred)
   where
     (_, tys) = span isKind kts  -- see Note [Kind polymorphic type classes]
     flexible_contexts = xopt LangExt.FlexibleContexts dflags
@@ -614,7 +572,6 @@ check_class_pred_tys dflags ctxt pred kts
                                 -- Further checks on head and theta in
                                 -- checkInstTermination
         _             -> flexible_contexts || all tyvar_head tys
-    how_to_allow = parens (ptext (sLit "Use FlexibleContexts to permit this"))
 
 
 -------------------------
@@ -634,8 +591,8 @@ okIPCtxt (InstDeclCtxt {}) = False
 okIPCtxt (SpecInstCtxt {}) = False
 okIPCtxt _                 = True
 
-badIPPred :: PredType -> SDoc
-badIPPred pred = ptext (sLit "Illegal implicit parameter") <+> quotes (ppr pred)
+badIPPred :: PredType -> TypeError
+badIPPred pred = BadIPPredError pred
 
 {-
 Note [Kind polymorphic type classes]
@@ -758,19 +715,12 @@ so we can take their type variables into account as part of the
 checkThetaCtxt :: UserTypeCtxt -> ThetaType -> ContextElement
 checkThetaCtxt ctxt theta = ThetaCtxt ctxt theta
 
-eqPredTyErr, predTyVarErr, predTupleErr, predIrredErr, predIrredBadCtxtErr :: PredType -> SDoc
-eqPredTyErr  pred = ptext (sLit "Illegal equational constraint") <+> pprType pred
-                    $$
-                    parens (ptext (sLit "Use GADTs or TypeFamilies to permit this"))
-predTyVarErr pred  = hang (ptext (sLit "Non type-variable argument"))
-                        2 (ptext (sLit "in the constraint:") <+> pprType pred)
-predTupleErr pred  = hang (ptext (sLit "Illegal tuple constraint:") <+> pprType pred)
-                        2 (parens constraintKindsMsg)
-predIrredErr pred  = hang (ptext (sLit "Illegal constraint:") <+> pprType pred)
-                        2 (parens constraintKindsMsg)
-predIrredBadCtxtErr pred = hang (ptext (sLit "Illegal constraint") <+> quotes (pprType pred)
-                                 <+> ptext (sLit "in a superclass/instance context"))
-                               2 (parens undecidableMsg)
+eqPredTyErr, predTyVarErr, predTupleErr, predIrredErr, predIrredBadCtxtErr :: PredType -> TypeError
+eqPredTyErr  pred  = EqPredTypeError pred
+predTyVarErr pred  = PredTyVarError  pred
+predTupleErr pred  = PredTupleError  pred
+predIrredErr pred  = PredIrredError  pred
+predIrredBadCtxtErr pred = PredIrredBadCtxtError pred
 
 constraintSynErr :: Type -> TypeError
 constraintSynErr kind = ConstraintSynError kind
@@ -778,15 +728,8 @@ constraintSynErr kind = ConstraintSynError kind
 dupPredWarn :: [[PredType]] -> SDoc
 dupPredWarn dups   = ptext (sLit "Duplicate constraint(s):") <+> pprWithCommas pprType (map head dups)
 
-arityErr :: Outputable a => String -> a -> Int -> Int -> SDoc
-arityErr kind name n m
-  = hsep [ text kind, quotes (ppr name), ptext (sLit "should have"),
-           n_arguments <> comma, text "but has been given",
-           if m==0 then text "none" else int m]
-    where
-        n_arguments | n == 0 = ptext (sLit "no arguments")
-                    | n == 1 = ptext (sLit "1 argument")
-                    | True   = hsep [int n, ptext (sLit "arguments")]
+arityErr :: String -> Name -> Int -> Int -> TypeError
+arityErr kind name n m = ArityError kind name n m
 
 {-
 ************************************************************************
@@ -863,11 +806,8 @@ checkValidInstHead ctxt clas cls_args
 abstractClasses :: [ Class ]
 abstractClasses = [ coercibleClass ] -- See Note [Coercible Instances]
 
-instTypeErr :: Class -> [Type] -> SDoc -> SDoc
-instTypeErr cls tys msg
-  = hang (hang (ptext (sLit "Illegal instance declaration for"))
-             2 (quotes (pprClassPred cls tys)))
-       2 msg
+instTypeErr :: Class -> [Type] -> SDoc -> TypeError
+instTypeErr cls tys msg = InstTypeError cls tys msg
 
 {-
 validDeivPred checks for OK 'deriving' context.  See Note [Exotic
@@ -934,7 +874,7 @@ checkValidInstance ctxt hs_type ty
         ; return (tvs, theta, clas, inst_tys) }
 
   | otherwise
-  = failWithTc (ptext (sLit "Malformed instance head:") <+> ppr tau)
+  = failWithTc (MalformedInstanceTypeError (ppr tau))
   where
     (tvs, theta, tau) = tcSplitSigmaTy ty
 
@@ -982,9 +922,9 @@ checkInstTermination tys theta
                                                -- to class predicates, so this is safe
          _other      -- ClassPred, IrredPred
            | not (null bad_tvs)
-           -> addErrTc (predUndecErr pred (nomoreMsg bad_tvs) $$ parens undecidableMsg)
+           -> addErrTc (predUndecErr pred (nomoreMsg bad_tvs))
            | sizePred pred >= size
-           -> addErrTc (predUndecErr pred smallerMsg $$ parens undecidableMsg)
+           -> addErrTc (predUndecErr pred smallerMsg)
            | otherwise
            -> return ()
      where
@@ -993,9 +933,8 @@ checkInstTermination tys theta
              -- excessive occurrences of *type* variables.
              -- e.g. type instance Demote {T k} a = T (Demote {k} (Any {k}))
 
-predUndecErr :: PredType -> SDoc -> SDoc
-predUndecErr pred msg = sep [msg,
-                        nest 2 (ptext (sLit "in the constraint:") <+> pprType pred)]
+predUndecErr :: PredType -> SDoc -> TypeError
+predUndecErr pred msg = PredUndecError pred msg
 
 nomoreMsg :: [TcTyVar] -> SDoc
 nomoreMsg tvs
@@ -1004,10 +943,8 @@ nomoreMsg tvs
                                   else ptext (sLit "occur"))
           <+> ptext (sLit "more often than in the instance head") ]
 
-smallerMsg, undecidableMsg, constraintKindsMsg :: SDoc
+smallerMsg :: SDoc
 smallerMsg         = ptext (sLit "Constraint is no smaller than the instance head")
-undecidableMsg     = ptext (sLit "Use UndecidableInstances to permit this")
-constraintKindsMsg = ptext (sLit "Use ConstraintKinds to permit this")
 
 {-
 Note [Associated type instances]
@@ -1134,17 +1071,11 @@ checkConsistentFamInst (Just (clas, mini_env)) fam_tc at_tvs at_tys
                                      -> go (tv' : acc) tvs
                              _other -> False
 
-badATErr :: Name -> Name -> SDoc
-badATErr clas op
-  = hsep [ptext (sLit "Class"), quotes (ppr clas),
-          ptext (sLit "does not have an associated type"), quotes (ppr op)]
+badATErr :: Name -> Name -> TypeError
+badATErr clas op = BadATError clas op
 
-wrongATArgErr :: Type -> Type -> SDoc
-wrongATArgErr ty instTy =
-  sep [ ptext (sLit "Type indexes must match class instance head")
-      , ptext (sLit "Found") <+> quotes (ppr ty)
-        <+> ptext (sLit "but expected") <+> quotes (ppr instTy)
-      ]
+wrongATArgErr :: Type -> Type -> TypeError
+wrongATArgErr ty instTy = WrongATArgError ty instTy
 
 {-
 ************************************************************************
@@ -1203,7 +1134,7 @@ checkValidTyFamEqn mb_clsinfo fam_tc tvs typats rhs loc
 --
 checkFamInstRhs :: [Type]                  -- lhs
                 -> [(TyCon, [Type])]       -- type family instances
-                -> [MsgDoc]
+                -> [TypeError]
 checkFamInstRhs lhsTys famInsts
   = mapMaybe check famInsts
   where
@@ -1211,11 +1142,11 @@ checkFamInstRhs lhsTys famInsts
    fvs  = fvTypes lhsTys
    check (tc, tys)
       | not (all isTyFamFree tys)
-      = Just (famInstUndecErr famInst nestedMsg $$ parens undecidableMsg)
+      = Just (NestedTypeFamilyError famInst)
       | not (null bad_tvs)
-      = Just (famInstUndecErr famInst (nomoreMsg bad_tvs) $$ parens undecidableMsg)
+      = Just (VariableMultipleOccurenceError famInst bad_tvs)
       | size <= sizeTypes tys
-      = Just (famInstUndecErr famInst smallerAppMsg $$ parens undecidableMsg)
+      = Just (SmallerAppMsgError famInst)
       | otherwise
       = Nothing
       where
@@ -1259,28 +1190,11 @@ isTyFamFree = null . tcTyFamInsts
 
 -- Error messages
 
-tyFamInstIllegalErr :: Type -> SDoc
-tyFamInstIllegalErr ty
-  = hang (ptext (sLit "Illegal type synonym family application in instance") <>
-         colon) 2 $
-      ppr ty
+tyFamInstIllegalErr :: Type -> TypeError
+tyFamInstIllegalErr ty = TypeFamInstIllegalError ty
 
-famInstUndecErr :: Type -> SDoc -> SDoc
-famInstUndecErr ty msg
-  = sep [msg,
-         nest 2 (ptext (sLit "in the type family application:") <+>
-                 pprType ty)]
-
-famPatErr :: TyCon -> [TyVar] -> [Type] -> SDoc
-famPatErr fam_tc tvs pats
-  = hang (ptext (sLit "Family instance purports to bind type variable") <> plural tvs
-          <+> pprQuotedList tvs)
-       2 (hang (ptext (sLit "but the real LHS (expanding synonyms) is:"))
-             2 (pprTypeApp fam_tc (map expandTypeSynonyms pats) <+> ptext (sLit "= ...")))
-
-nestedMsg, smallerAppMsg :: SDoc
-nestedMsg     = ptext (sLit "Nested type family application")
-smallerAppMsg = ptext (sLit "Application is no smaller than the instance head")
+famPatErr :: TyCon -> [TyVar] -> [Type] -> TypeError
+famPatErr fam_tc tvs pats = FamilyPatError fam_tc tvs pats
 
 {-
 ************************************************************************

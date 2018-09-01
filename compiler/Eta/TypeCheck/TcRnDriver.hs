@@ -52,8 +52,6 @@ import Eta.TypeCheck.TcHsSyn
 import Eta.TypeCheck.TcExpr
 import Eta.TypeCheck.TcRnMonad
 import Eta.TypeCheck.TcEvidence
--- import Eta.Main.PprTyThing( pprTyThing )
-import qualified Eta.Main.PprTyThing as PprTyThing
 import Eta.Types.Coercion( pprCoAxiom )
 import Eta.TypeCheck.FamInst
 import Eta.Types.InstEnv
@@ -513,7 +511,7 @@ tc_rn_src_decls ds
                         { Nothing -> return () ;
                         ; Just (SpliceDecl (L loc _) _, _)
                             -> setSrcSpan loc $
-                               addErr (text "Declaration splices are not permitted inside top-level declarations added with addTopDecls")
+                               addErr AddTopDeclsError
                         } ;
 
                     -- Rename TH-generated top-level declarations
@@ -628,13 +626,13 @@ tcRnHsBootDecls hsc_src decls
 
 badBootDecl :: HscSource -> String -> Located decl -> TcM ()
 badBootDecl hsc_src what (L loc _)
-  = addErrAt loc (char 'A' <+> text what
+  = addErrAt loc (BadBootDeclError (char 'A' <+> text what
       <+> ptext (sLit "declaration is not (currently) allowed in a")
       <+> (case hsc_src of
             HsBootFile -> ptext (sLit "hs-boot")
             HsigFile -> ptext (sLit "hsig")
             _ -> panic "badBootDecl: should be an hsig or hs-boot file")
-      <+> ptext (sLit "file"))
+      <+> ptext (sLit "file")))
 
 {-
 Once we've typechecked the body of the module, we want to compare what
@@ -1068,26 +1066,13 @@ badReexportedBootThing :: DynFlags -> Bool -> Name -> Name -> TypeError
 badReexportedBootThing dflags is_boot name name'
   = (BadReexportBootThingError (mkUserStyle dflags alwaysQualify AllTheWay) is_boot name name')
 
-bootMisMatch :: Bool -> SDoc -> TyThing -> TyThing -> SDoc
+bootMisMatch :: Bool -> SDoc -> TyThing -> TyThing -> TypeError
 bootMisMatch is_boot extra_info real_thing boot_thing
-  = vcat [ppr real_thing <+>
-          ptext (sLit "has conflicting definitions in the module"),
-          ptext (sLit "and its") <+>
-            (if is_boot then ptext (sLit "hs-boot file")
-                       else ptext (sLit "hsig file")),
-          ptext (sLit "Main module:") <+> PprTyThing.pprTyThing real_thing,
-          (if is_boot
-            then ptext (sLit "Boot file:  ")
-            else ptext (sLit "Hsig file: "))
-            <+> PprTyThing.pprTyThing boot_thing,
-          extra_info]
+  = BootMisMatchError is_boot extra_info real_thing boot_thing
 
-instMisMatch :: Bool -> ClsInst -> SDoc
+instMisMatch :: Bool -> ClsInst -> TypeError
 instMisMatch is_boot inst
-  = hang (ppr inst)
-       2 (ptext (sLit "is defined in the") <+>
-        (if is_boot then ptext (sLit "hs-boot") else ptext (sLit "hsig"))
-       <+> ptext (sLit "file, but not in the module itself"))
+  = InstMisMatchError is_boot inst
 
 {-
 ************************************************************************
@@ -1358,7 +1343,7 @@ check_main dflags tcg_env explicit_mod_hdr
     main_mod         = mainModIs dflags
     main_fn          = getMainFun dflags
     interactive      = ghcLink dflags == LinkInMemory
-    complain_no_main = checkTc (interactive && not explicit_mod_hdr) noMainMsg
+    complain_no_main = checkTc (interactive && not explicit_mod_hdr) (NoMainMsgError noMainMsg)
         -- In interactive mode, without an explicit module header, don't
         -- worry about the absence of 'main'.
         -- In other modes, fail altogether, so that we don't go on
@@ -1384,8 +1369,8 @@ checkMainExported tcg_env
          do { dflags <- getDynFlags
             ; let main_mod = mainModIs dflags
             ; checkTc (main_name `elem` concatMap availNames (tcg_exports tcg_env)) $
-                ptext (sLit "The") <+> ppMainFn (nameRdrName main_name) <+>
-                ptext (sLit "is not exported by module") <+> quotes (ppr main_mod) }
+                CheckMainExportedError (ptext (sLit "The") <+> ppMainFn (nameRdrName main_name) <+>
+                ptext (sLit "is not exported by module") <+> quotes (ppr main_mod)) }
 
 ppMainFn :: RdrName -> SDoc
 ppMainFn main_fn
@@ -1535,8 +1520,7 @@ tcRnStmt hsc_env rdr_stmt
       Left reinterpret -> return $ Left reinterpret
     }
   where
-    bad_unboxed id = addErr (sep [ptext (sLit "Eta REPL can't bind a variable of unlifted type:"),
-                                  nest 2 (ppr id <+> dcolon <+> ppr (idType id))])
+    bad_unboxed id = addErr (EtaREPLUnliftedError id)
 
 {-
 --------------------------------------------------------------------------
@@ -1805,8 +1789,8 @@ isGHCiMonad hsc_env ty
                 _ <- tcLookupInstance ghciClass [userTy]
                 return name
 
-            Just _  -> failWithTc $ text "Ambigous type!"
-            Nothing -> failWithTc $ text ("Can't find type:" ++ ty)
+            Just _  -> failWithTc $ AmbiguousTypeError
+            Nothing -> failWithTc $ (CannotFindTypeError ty)
 
 -- tcRnExpr just finds the type of an expression
 
@@ -1981,7 +1965,7 @@ tcRnLookupRdrName hsc_env (L loc rdr_name)
          let rdr_names = dataTcOccs rdr_name
        ; names_s <- mapM lookupInfoOccRn rdr_names
        ; let names = concat names_s
-       ; when (null names) (addErrTc (ptext (sLit "Not in scope:") <+> quotes (ppr rdr_name)))
+       ; when (null names) (addErrTc (NotInScopeTypeError rdr_name))
        ; return names }
 #endif
 

@@ -824,7 +824,7 @@ abiHash strs = do
          case r of
            Found _ m -> return m
            _error    -> throwGhcException $ CmdLineError $ showSDoc dflags $
-                          cannotFindModule dflags modname r
+                          ppr (cannotFindModule dflags modname r)
 
   mods <- mapM find_it strs
 

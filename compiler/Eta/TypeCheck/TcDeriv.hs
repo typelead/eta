@@ -55,7 +55,6 @@ import Eta.Prelude.PrelNames
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Util
 import Eta.Utils.Outputable
-import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.FastString
 import Eta.Utils.Bag
 import Eta.Utils.Pair
@@ -596,8 +595,7 @@ makeDerivSpecs is_boot tycl_decls inst_decls deriv_decls
   where
     add_deriv_err eqn
        = setSrcSpan (earlyDSLoc eqn) $
-         addErr (hang (ptext (sLit "Deriving not permitted in hs-boot file"))
-                    2 (ptext (sLit "Use an instance declaration instead")))
+         addErr MakeDerivSpecsError
 
 ------------------------------------------------------------------
 deriveTyDecl :: LTyClDecl Name -> TcM [EarlyDerivSpec]
@@ -2084,32 +2082,20 @@ See the paper "Safe zero-cost coercions for Hsakell".
 ************************************************************************
 -}
 
-derivingNullaryErr :: MsgDoc
-derivingNullaryErr = ptext (sLit "Cannot derive instances for nullary classes")
+derivingNullaryErr :: TypeError
+derivingNullaryErr = DerivingNullaryError
 
-derivingKindErr :: TyCon -> Class -> [Type] -> Kind -> MsgDoc
+derivingKindErr :: TyCon -> Class -> [Type] -> Kind -> TypeError
 derivingKindErr tc cls cls_tys cls_kind
-  = hang (ptext (sLit "Cannot derive well-kinded instance of form")
-                <+> quotes (pprClassPred cls cls_tys <+> parens (ppr tc <+> ptext (sLit "..."))))
-       2 (ptext (sLit "Class") <+> quotes (ppr cls)
-            <+> ptext (sLit "expects an argument of kind") <+> quotes (pprKind cls_kind))
+  = DerivingKindError tc cls cls_tys cls_kind
 
-derivingEtaErr :: Class -> [Type] -> Type -> MsgDoc
+derivingEtaErr :: Class -> [Type] -> Type -> TypeError
 derivingEtaErr cls cls_tys inst_ty
-  = sep [ptext (sLit "Cannot eta-reduce to an instance of form"),
-         nest 2 (ptext (sLit "instance (...) =>")
-                <+> pprClassPred cls (cls_tys ++ [inst_ty]))]
+  = DerivingEtaError cls cls_tys inst_ty
 
-derivingThingErr :: Bool -> Class -> [Type] -> Type -> MsgDoc -> MsgDoc
+derivingThingErr :: Bool -> Class -> [Type] -> Type -> MsgDoc -> TypeError
 derivingThingErr newtype_deriving clas tys ty why
-  = sep [(hang (ptext (sLit "Can't make a derived instance of"))
-             2 (quotes (ppr pred))
-          $$ nest 2 extra) <> colon,
-         nest 2 why]
-  where
-    extra | newtype_deriving = ptext (sLit "(even with cunning newtype deriving)")
-          | otherwise        = Outputable.empty
-    pred = mkClassPred clas (tys ++ [ty])
+  = DerivingThingError newtype_deriving clas tys ty why
 
 derivingHiddenErr :: TyCon -> SDoc
 derivingHiddenErr tc

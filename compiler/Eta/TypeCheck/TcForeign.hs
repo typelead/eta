@@ -170,12 +170,11 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L _lc cconv) (L _ls saf
       PrimCallConv -> do
         dflags <- getDynFlags
         checkTc (xopt LangExt.GHCForeignImportPrim dflags)
-                (text "Use GHCForeignImportPrim to allow `foreign import prim'.")
+                GHCForeignImportPrimError
         -- TODO: Validate the target string
         checkJavaTarget target
         checkTc (playSafe safety)
-                (text $ "The safe/unsafe annotation should not be used with "
-                    ++ "`foreign import prim'.")
+                SafeUnsafeAnnoError
         checkForeignArgs (isFFIPrimArgumentTy dflags) argTypes
         checkForeignRes nonIOok checkSafe (isFFIPrimResultTy dflags) resType
         return idecl
@@ -203,7 +202,7 @@ tcCheckFIType thetaType argTypes resType idecl@(CImport (L _lc cconv) (L _ls saf
 
 --tcCheckFIType _ _ _ idecl = pprPanic "tcCheckFIType: Unsupported calling convention." (ppr idecl)
 
-check :: Validity -> (MsgDoc -> MsgDoc) -> TcM ()
+check :: Validity -> (MsgDoc -> TypeError) -> TcM ()
 check IsValid _             = return ()
 check (NotValid doc) err_fn = addErrTc (err_fn doc)
 
@@ -212,12 +211,8 @@ checkForeignArgs pred tys = mapM_ go tys
   where
     go ty = check (pred ty) (illegalForeignTyErr argument)
 
-illegalForeignTyErr :: SDoc -> SDoc -> SDoc
-illegalForeignTyErr argOrRes extra
-  = hang msg 2 extra
-  where
-    msg = hsep [ str "Unacceptable", argOrRes
-               , str "type in foreign declaration:"]
+illegalForeignTyErr :: SDoc -> SDoc -> TypeError
+illegalForeignTyErr argOrRes extra = IllegalForeignTypeError argOrRes extra
 
 checkForeignRes :: Bool -> Bool -> (Type -> Validity) -> Type -> TcM ()
 checkForeignRes nonIOResultOk checkSafe predResType ty
@@ -267,7 +262,7 @@ checkJavaTarget (StaticTarget importFS _ _)
   = case validationPair of
       (condition, msg)
         | condition == True -> return ()
-        | otherwise         -> addErrTc msg
+        | otherwise         -> addErrTc (ForeignJavaError msg)
 
   where importString = unpackFS importFS
         importParts = words importString

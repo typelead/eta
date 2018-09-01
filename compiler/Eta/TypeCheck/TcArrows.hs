@@ -32,7 +32,6 @@ import Eta.Prelude.TysPrim
 import Eta.BasicTypes.BasicTypes( Arity )
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Outputable
-import Eta.Utils.FastString
 import Eta.Utils.Util
 
 import Control.Monad
@@ -131,7 +130,7 @@ tcCmd env (L loc cmd) res_ty
         { cmd' <- tc_cmd env cmd res_ty
         ; return (L loc cmd') }
 
-tc_cmd :: CmdEnv -> HsCmd Name  -> CmdType -> TcM (HsCmd TcId)
+tc_cmd :: CmdEnv -> HsCmd Name -> CmdType -> TcM (HsCmd TcId)
 tc_cmd env (HsCmdPar cmd) res_ty
   = do  { cmd' <- tcCmd env cmd res_ty
         ; return (HsCmdPar cmd') }
@@ -168,7 +167,7 @@ tc_cmd env (HsCmdIf (Just fun) pred b1 b2) res_ty -- Rebindable syntax for if
         ; let r_ty = mkTyVarTy r_tv
         ; let if_ty = mkFunTys [pred_ty, r_ty, r_ty] r_ty
         ; checkTc (not (r_tv `elemVarSet` tyVarsOfType pred_ty))
-                  (ptext (sLit "Predicate type of `ifThenElse' depends on result type"))
+                  (IfThenElseError)
         ; fun'  <- tcSyntaxOp IfOrigin fun if_ty
         ; pred' <- tcMonoExpr pred pred_ty
         ; b1'   <- tcCmd env b1 res_ty
@@ -313,8 +312,7 @@ tc_cmd env cmd@(HsCmdArrForm expr fixity cmd_args) (cmd_stk, res_ty)
 -- This is where expressions that aren't commands get rejected
 
 tc_cmd _ cmd _
-  = failWithTc (vcat [ptext (sLit "The expression"), nest 2 (ppr cmd),
-                      ptext (sLit "was found where an arrow command was expected")])
+  = failWithTc (ArrowCommandTypeError cmd)
 
 
 matchExpectedCmdArgs :: Arity -> TcType -> TcM (TcCoercion, [TcType], TcType)

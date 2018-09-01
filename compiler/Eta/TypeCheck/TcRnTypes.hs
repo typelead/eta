@@ -98,8 +98,9 @@ module Eta.TypeCheck.TcRnTypes(
         TcId, TcIdSet, HoleSort(..),
         NameShape(..), ContextElement(..), HowMuch(..), TypeError(..),
         HeraldContext(..), pprSigCtxt, pprMatchInCtxt, pprStmtInCtxt, perhapsForallMsg,
-        pprUserTypeErrorTy, pprUserTypeErrorTy'
-
+        pprUserTypeErrorTy, pprUserTypeErrorTy', Rank(..),
+        rankZeroMonoType, tyConArgMonoType, synArgMonoType,
+        funArgResRank, forAllAllowed, InstInfo(..), iDFunId, pprInstInfoDetails, InstBindings(..)
   ) where
 
 import Eta.HsSyn.HsSyn
@@ -107,9 +108,9 @@ import Eta.Core.CoreSyn
 import Eta.Main.HscTypes
 import Eta.TypeCheck.TcEvidence
 import Eta.Types.Type
-import Eta.Types.Class    ( Class )
+import Eta.Types.Class    ( Class, classTyVars )
 import Eta.BasicTypes.ConLike  ( ConLike(..) )
-import Eta.BasicTypes.DataCon  ( DataCon, dataConUserType, dataConOrigArgTys )
+import Eta.BasicTypes.DataCon  ( DataCon, dataConUserType, dataConOrigArgTys, dataConTyCon )
 import Eta.BasicTypes.PatSyn   ( PatSyn, patSynType )
 import Eta.Prelude.TysWiredIn ( coercibleClass )
 import Eta.TypeCheck.TcType
@@ -117,6 +118,7 @@ import Eta.Main.Annotations
 import Eta.Types.InstEnv
 import Eta.Types.FamInstEnv
 import Eta.Utils.IOEnv
+import Eta.Utils.Util
 import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.NameEnv
@@ -131,6 +133,7 @@ import Eta.Main.ErrUtils
 import Eta.Utils.UniqFM
 import Eta.BasicTypes.UniqSupply
 import Eta.BasicTypes.BasicTypes
+import Eta.BasicTypes.Id
 import Eta.Utils.Bag
 import Eta.Main.DynFlags
 import Eta.Utils.Outputable
@@ -147,6 +150,7 @@ import Eta.Types.TyCon
 import Eta.Types.Coercion (pprCoAxBranchHdr)
 import Eta.Main.Constants ( mAX_TUPLE_SIZE )
 import Data.Set (Set)
+import qualified Eta.LanguageExtensions as LangExt
 import qualified Data.Set as S
 import qualified Language.Eta.Meta as TH
 import Control.Monad (ap, liftM, msum)
@@ -154,7 +158,7 @@ import Data.Maybe
 #ifdef ETA_REPL
 import Data.Map      ( Map )
 import Data.Dynamic  ( Dynamic )
-import Data.List     ( sort )
+import Data.List     ( sort, intersperse )
 import Data.Typeable ( TypeRep )
 import Eta.REPL.RemoteTypes
 #endif
@@ -2618,6 +2622,159 @@ data TypeError
    = FunctionalDepsError [ClsInst]
    | DuplicateInstError [ClsInst]
    | FamilyInstError [FamInst]
+   | ArityError String Name Int Int
+   | ForAllTypeError Rank Type
+   | BadIPPredError PredType
+   | EqPredTypeError PredType
+   | PredTyVarError PredType
+   | PredTupleError PredType
+   | PredIrredError PredType
+   | PredIrredBadCtxtError PredType
+   | InstTypeError Class [Type] SDoc
+   | MalformedInstanceTypeError SDoc
+   | PredUndecError PredType SDoc
+   | BadATError Name Name
+   | WrongATArgError Type Type
+   | NestedTypeFamilyError Type
+   | VariableMultipleOccurenceError Type [TyVar]
+   | SmallerAppMsgError Type
+   | FamilyPatError TyCon [TyVar] [Type]
+   | TypeFamInstIllegalError Type
+   | IllegalDerivingItemError (HsType Name)
+   | MalformedInstanceError
+   | UnexpectedStrictAnnotationError (HsType Name)
+   | IllegalConstraintError (HsType Name)
+   | UnexpectedTypeSpliceError (HsType Name)
+   | TooManyTypeArgumentsError SDoc
+   | KindVariableTypeError TcTyVar
+   | DataConstructorUnPromoError DataCon
+   | BadKindSignatureError Kind
+   | PatternBindSignatureError [(Name, TcTyVar)]
+   | BadPatterSignatureError TcType [TyVar]
+   | NotKindConstructorError (HsKind Name)
+   | KindNotAppliedError Name
+   | ExpectedLiftedTypeError (HsType Name)
+   | ExpectedUnLiftedTypeError (HsType Name)
+   | KindOccurCheckError SDoc (HsType Name) Type
+   | ExpectingArgumentError SDoc (HsType Name) Type Int
+   | KindMisMatchError SDoc (HsType Name) Type
+   | DataKindsTypeError Name
+   | TypeVariableUsedTypeError TyVar
+   | KindVariablePositionError Name
+   | TypeVariableUsedKindError Name
+   | TypeConstructorUsedKind Name
+   | OfKindError TyCon String
+   | PromotionError Name PromotionErr
+   | CouldNotMatchKindError Type Type
+   | GADTTypeFamiliesError
+   | BadFieldConstructorError ConLike Name
+   | ExistentialLetPatError
+   | ExistentialLazyPatError
+   | ExistentialProcPatError
+   | LazyUnliftedPatError (Pat Name)
+   | BadBootDeclarationError
+   | RecursivePatternSynonymError (LHsBinds Name)
+   | DuplicateVectorisationError Name
+   | VectoriseScalarError
+   | StrictBindError String Bool [LHsBind Name]
+   | PolyBindError [LHsBind Name]
+   | UnliftedMustBeBangError [LHsBind Name]
+   | CheckArgumentsError Name (LMatch Name (LHsExpr Name)) [LMatch Name (LHsExpr Name)]
+   | IfThenElseError
+   | ArrowCommandTypeError (HsCmd Name)
+   | WrongNumberOfParmsError Arity
+   | BiDirectionalError (LPat Name)
+   | NonBiDirectionalError Name
+   | AsPatternsDefinitionError (Pat Name)
+   | TemplateHaskellPatSynError (Pat Name)
+   | NKPatSynError (Pat Name)
+   | CannotHandleTypeArgError (LHsType Name)
+   | NotRecordSelectorError Name
+   | BadFieldTypeError [Name]
+   | BadFieldTypesError [(Name,TcType)]
+   | TagToEnumError
+   | IdentifierExpectedError TcTyThing
+   | NaughtyRecordSelectorError TcId
+   | BadCallTagToEnumError TcType SDoc
+   | PolySpliceError Id
+   | MissingStrictFieldError DataCon [FieldLabel]
+   | BadMethodError Name Name
+   | BadGenericMethodError Name Name
+   | BadDefaultMethodError Id (Sig Name)
+   | GHCForeignImportPrimError
+   | SafeUnsafeAnnoError
+   | IllegalForeignTypeError SDoc SDoc
+   | ForeignJavaError SDoc
+   | DuplicateDefaultError [Located (DefaultDecl Name)]
+   | PolyDefaultError (LHsType Name)
+   | BadDefaultTypeError Type [Class]
+   | BadSignatureTypeError Name
+   | MoreThanOneDeclarationError (Located Name)
+   | WrongKindOfFamilyError TyCon
+   | WrongNumberOfParamsError Arity
+   | WrongTypeFamilyError Name Name
+   | BadGADTDeclarationError Name
+   | BadStupidThetaError Name
+   | NewtypeConError Name Int
+   | EmptyConDeclarationError Name
+   | ClosedTypeFamilyError
+   | ResultTypeMisMatchError Name DataCon DataCon
+   | FieldTypeMisMatchError Name DataCon DataCon
+   | BadDataConTypeError DataCon Type Type
+   | BadExistentialError DataCon
+   | BadGADTKindConError DataCon
+   | BadBangTypeError Int SDoc DataCon
+   | NewtypeFieldError DataCon Int
+   | NewtypeStrictError DataCon
+   | NewtypeConTypeError SDoc DataCon
+   | ClassArityError Class Int
+   | ClassFunDepsError Class
+   | NoClassTyVarError Class SDoc
+   | ErrMsgTypeError Name
+   | NeedXRoleAnnotationsError TyCon
+   | WrongNoOfRolesError [Located (Maybe Role)] [TyVar] (LRoleAnnotDecl Name)
+   | IncoherentRolesError
+   | BadRoleAnnotationError Name Role Role
+   | RoleInterfaceInternalError SDoc
+   | TypeSynDeclCycleError [LTyClDecl Name]
+   | RecClassError [TyCon]
+   | IllegalRoleAnnotDeclError (Located Name)
+   | MakeDerivSpecsError
+   | DerivingNullaryError
+   | DerivingThingError Bool Class [Type] Type MsgDoc
+   | DerivingKindError TyCon Class [Type] Kind
+   | DerivingEtaError Class [Type] Type
+   | GenericInstSafeHaskellError (InstInfo Name)
+   | TypeableDoesNotSupportError
+   | BadBootFamInstDeclError
+   | AssocInClassError (Located Name)
+   | NotFamilyTypeError TyCon
+   | NotOpenFamilyError TyCon
+   | TooFewParamsError Arity
+   | MisplacedInstSigError Name (LHsType Name)
+   | BadFamInstDeclError (Located Name)
+   | AddTopDeclsError
+   | BadBootDeclError SDoc
+   | InstMisMatchError Bool ClsInst
+   | BootMisMatchError Bool SDoc TyThing TyThing
+   | NoMainMsgError SDoc
+   | CheckMainExportedError SDoc
+   | EtaREPLUnliftedError Id
+   | AmbiguousTypeError
+   | CannotFindTypeError String
+   | NotInScopeTypeError RdrName
+   | IllegalPolyTypeError Type
+   | THTypeError SDoc
+   | THExceptionError SDoc
+   | THUserError SDoc
+   | CheckTopDeclError
+   | BindNameTypeError RdrName
+   | ReifyInstancesError Type
+   | NotInScopeTHError TH.Name
+   | NotInEnvError Name
+   | NoRolesAssociatedError TcTyThing
+   | NoTemplateHaskellError LitString SDoc
+   | CvtHsTypeError SDoc
    -- Renamer
    | OriginalBindingError RdrName
    | BadQualifiedError RdrName
@@ -2755,7 +2912,499 @@ instance Outputable TypeError where
                  | fi <- sorted ])
     where herald = text "Conflicting family instance declarations:"
 
-  -- Renamer
+   ppr (ArityError kind name n m)
+       = hsep [ text kind, quotes (ppr name), text "should have",
+                n_arguments <> comma, text "but has been given",
+                if m==0 then text "none" else int m]
+         where
+             n_arguments | n == 0 = text "no arguments"
+                         | n == 1 = text "1 argument"
+                         | True   = hsep [int n, text "arguments"]
+
+   ppr (ForAllTypeError rank ty)
+       = vcat [ hang (text "Illegal polymorphic or qualified type:") 2 (ppr ty)
+              , suggestion ]
+      where
+        suggestion = case rank of
+                       LimitedRank {} -> text "Perhaps you intended to use RankNTypes or Rank2Types"
+                       MonoType d     -> d
+                       _              -> empty -- Polytype is always illegal
+   ppr (BadIPPredError pred)
+       = text "Illegal implicit parameter" <+> quotes (ppr pred)
+   ppr (EqPredTypeError pred)
+       = text "Illegal equational constraint" <+> pprType pred
+                           $$
+                           parens (text "Use GADTs or TypeFamilies to permit this")
+   ppr (PredTyVarError pred)
+       = hang (text "Non type-variable argument")
+                               2 (text "in the constraint:" <+> pprType pred) $$ how_to_allow
+         where how_to_allow = parens (text "Use FlexibleContexts to permit this")
+   ppr (PredTupleError pred)
+       = hang (text "Illegal tuple constraint:" <+> pprType pred)
+                               2 (parens constraintKindsMsg)
+   ppr (PredIrredError pred)
+       = hang (text "Illegal constraint:" <+> pprType pred)
+                               2 (parens constraintKindsMsg)
+   ppr (PredIrredBadCtxtError pred)
+       = hang (text "Illegal constraint" <+> quotes (pprType pred)
+                                        <+> text "in a superclass/instance context")
+                                      2 (parens undecidableMsg)
+   ppr (InstTypeError cls tys msg)
+       = hang (hang (text "Illegal instance declaration for")
+                  2 (quotes (pprClassPred cls tys)))
+            2 msg
+   ppr (MalformedInstanceTypeError sdoc)
+       = text "Malformed instance head:" <+> sdoc
+   ppr (PredUndecError pred msg)
+       = sep [msg, nest 2 (text "in the constraint:" <+> pprType pred)] $$ parens undecidableMsg
+   ppr (BadATError clas op)
+       = hsep [text "Class", quotes (ppr clas),
+               text "does not have an associated type", quotes (ppr op)]
+   ppr (WrongATArgError ty instTy)
+       = sep [ ptext (sLit "Type indexes must match class instance head")
+           , ptext (sLit "Found") <+> quotes (ppr ty)
+             <+> ptext (sLit "but expected") <+> quotes (ppr instTy)
+           ]
+   ppr (NestedTypeFamilyError famInst)
+       = famInstUndecErr famInst nestedMsg $$ parens undecidableMsg
+   ppr (VariableMultipleOccurenceError famInst bad_tvs)
+       = famInstUndecErr famInst (nomoreMsg bad_tvs) $$ parens undecidableMsg
+   ppr (SmallerAppMsgError famInst)
+      = famInstUndecErr famInst smallerAppMsg $$ parens undecidableMsg
+   ppr (FamilyPatError fam_tc tvs pats)
+      = hang (text "Family instance purports to bind type variable" <> plural tvs
+              <+> pprQuotedList tvs)
+           2 (hang (text "but the real LHS (expanding synonyms) is:")
+                 2 (pprTypeApp fam_tc (map expandTypeSynonyms pats) <+> text "= ..."))
+   ppr (TypeFamInstIllegalError ty)
+       = hang (text "Illegal type synonym family application in instance" <>
+              colon) 2 $
+           ppr ty
+   ppr (IllegalDerivingItemError hs_ty)
+       = text "Illegal deriving item" <+> quotes (ppr hs_ty)
+   ppr MalformedInstanceError = text "Malformed instance type"
+   ppr (UnexpectedStrictAnnotationError ty)
+       = text "Unexpected strictness annotation:" <+> ppr ty
+   ppr (IllegalConstraintError hs_ty)
+       = (hang (text "Illegal constraint:") 2 (ppr hs_ty))
+   ppr (UnexpectedTypeSpliceError ty)
+       = text "Unexpected type splice:" <+> ppr ty
+   ppr (TooManyTypeArgumentsError the_fun)
+       = quotes the_fun <+> text "is applied to too many type arguments"
+   ppr (KindVariableTypeError tv)
+       = text "Kind variable" <+> quotes (ppr tv) <+> text "used as a type"
+   ppr (DataConstructorUnPromoError dc)
+       = text "Data constructor" <+> quotes (ppr dc)
+                                  <+> text "comes from an un-promotable type"
+                                  <+> quotes (ppr (dataConTyCon dc))
+   ppr (BadKindSignatureError kind)
+       = hang (text "Kind signature on data type declaration has non-* return kind") 2 (ppr kind)
+   ppr (PatternBindSignatureError sig_tvs)
+       = hang (ptext (sLit "You cannot bind scoped type variable") <> plural sig_tvs
+              <+> pprQuotedList (map fst sig_tvs))
+           2 (ptext (sLit "in a pattern binding signature"))
+   ppr (BadPatterSignatureError sig_ty bad_tvs)
+       = vcat [ fsep [text "The type variable" <> plural bad_tvs,
+                      quotes (pprWithCommas ppr bad_tvs),
+                      text "should be bound by the pattern signature" <+> quotes (ppr sig_ty),
+                      text "but are actually discarded by a type synonym" ]
+              , text "To fix this, expand the type synonym"
+              , text "[Note: I hope to lift this restriction in due course]" ]
+   ppr (NotKindConstructorError ki)
+       = (quotes (ppr ki) <+> text "is not a kind constructor")
+   ppr (KindNotAppliedError name)
+       = text "Kind" <+> ppr name <+> text "cannot be applied"
+   ppr (ExpectedLiftedTypeError ty)
+       = text "Expecting a lifted type, but" <+> quotes (ppr ty) <+> text "is unlifted"
+   ppr (ExpectedUnLiftedTypeError ty)
+       = text "Expecting an unlifted type, but" <+> quotes (ppr ty)
+           <+> text "is lifted"
+   ppr (KindOccurCheckError sdoc ty tidy_act_kind) = text "Kind occurs check"
+        $$ more_info sdoc ty tidy_act_kind
+
+   ppr (ExpectingArgumentError sdoc ty tidy_act_kind n_diff_as)
+      = vcat [ text "Expecting" <+>
+               speakN n_diff_as <+> text "more argument"
+               <> (if n_diff_as > 1 then char 's' else empty)
+               <+> text "to" <+> quotes (ppr ty)
+             , more_info sdoc ty tidy_act_kind ]
+   ppr (KindMisMatchError sdoc ty tidy_act_kind )
+       = more_info sdoc ty tidy_act_kind
+   ppr (DataKindsTypeError name )
+       = hang (text "Illegal kind:" <+> quotes (ppr name))
+            2 (text "Perhaps you intended to use DataKinds")
+   ppr (TypeVariableUsedTypeError kind_var)
+       = (text "Type variable" <+> quotes (ppr kind_var) <+> text "used as a kind")
+   ppr (KindVariablePositionError name)
+       = (text "Kind variable" <+> quotes (ppr name)
+                      <+> text "cannot appear in a function position")
+   ppr (TypeVariableUsedKindError name)
+      = (text "Type variable" <+> quotes (ppr name)
+                     <+> text "used in a kind")
+   ppr (TypeConstructorUsedKind name)
+      = (hang (text "Type constructor" <+> quotes (ppr name)
+                           <+> text "used in a kind")
+                        2 (text "inside its own recursive group"))
+   ppr (OfKindError tc msg)
+      = (quotes (ppr tc) <+> text "of kind" <+> quotes (ppr (tyConKind tc)) <+> text msg)
+   ppr (PromotionError name err)
+      = (hang (pprPECategory err <+> quotes (ppr name) <+> text "cannot be used here")
+                       2 (parens reason))
+         where
+           reason = case err of
+                      FamDataConPE -> text "it comes from a data family instance"
+                      NoDataKinds  -> text "Perhaps you intended to use DataKinds"
+                      _            -> text "it is defined and used in the same recursive group"
+   ppr (CouldNotMatchKindError ki1' ki2')
+       = hang (text "Couldn't match kind")
+                 2 (sep [quotes (ppr ki1'), text "against", quotes (ppr ki2')])
+   ppr GADTTypeFamiliesError
+      = text "A pattern match on a GADT requires the" <+>
+       text "GADTs or TypeFamilies language extension"
+   ppr (BadFieldConstructorError con field)
+       = hsep [text "Constructor" <+> quotes (ppr con),
+               text "does not have field", quotes (ppr field)]
+   ppr ExistentialLazyPatError
+      = hang (text "An existential or GADT data constructor cannot be used")
+           2 (text "inside a lazy (~) pattern")
+   ppr ExistentialProcPatError
+      = text "Proc patterns cannot use existential or GADT data constructors"
+   ppr ExistentialLetPatError
+      = vcat [text "My brain just exploded",
+              text "I can't handle pattern bindings for existential or GADT data constructors.",
+              text "Instead, use a case-expression, or do-notation, to unpack the constructor."]
+   ppr (LazyUnliftedPatError pat)
+       = hang (text "A lazy (~) pattern cannot contain unlifted types:") 2 (ppr pat)
+   ppr BadBootDeclarationError = text "Illegal declarations in an hs-boot file"
+   ppr (RecursivePatternSynonymError binds)
+       = hang (text "Recursive pattern synonym definition with following bindings:")
+          2 (vcat $ map pprLBind . bagToList $ binds)
+      where
+        pprLoc loc  = parens (text "defined at" <+> ppr loc)
+        pprLBind (L loc bind) = pprWithCommas ppr (collectHsBindBinders bind) <+>
+                                pprLoc loc
+   ppr (DuplicateVectorisationError first)
+        = text "Duplicate vectorisation declarations for" <+> ppr first
+   ppr VectoriseScalarError = text "VECTORISE SCALAR type constructor must be nullary"
+   ppr (StrictBindError flavour unlifted_bndrs binds)
+       = hang (text flavour <+> msg <+> text "aren't allowed:")
+            2 (vcat (map ppr binds))
+       where
+         msg | unlifted_bndrs = text "bindings for unlifted types"
+             | otherwise      = text "bang-pattern or unboxed-tuple bindings"
+   ppr (PolyBindError binds)
+       = hang (text "You can't mix polymorphic and unlifted bindings")
+            2 (vcat [vcat (map ppr binds),
+                     text "Probable fix: add a type signature"])
+   ppr (UnliftedMustBeBangError binds)
+       = hang (text "Pattern bindings containing unlifted types should use an outermost bang pattern:")
+            2 (vcat (map ppr binds))
+   ppr (CheckArgumentsError fun match1 bad_matches)
+       = vcat [text "Equations for" <+> quotes (ppr fun) <+>
+                             text "have different numbers of arguments",
+                           nest 2 (ppr (getLoc match1)),
+                           nest 2 (ppr (getLoc (head bad_matches)))]
+   ppr IfThenElseError = text "Predicate type of `ifThenElse' depends on result type"
+   ppr (ArrowCommandTypeError cmd)
+       = vcat [text "The expression", nest 2 (ppr cmd),
+                           text "was found where an arrow command was expected"]
+   ppr (WrongNumberOfParmsError ty_arity)
+       = ptext (sLit "Number of pattern synonym arguments doesn't match type; expected")
+         <+> ppr ty_arity
+   ppr (BiDirectionalError lpat)
+       = hang (text "Right-hand side of bidirectional pattern synonym cannot be used as an expression")
+            2 (ppr lpat)
+   ppr (NonBiDirectionalError name)
+       = text "non-bidirectional pattern synonym"
+          <+> quotes (ppr name) <+> text "used in an expression"
+   ppr (AsPatternsDefinitionError pat)
+       = hang (text "Pattern synonym definition cannot contain as-patterns (@):")
+          2 (ppr pat)
+   ppr (TemplateHaskellPatSynError pat)
+       = hang (text "Pattern synonym definition cannot contain Template Haskell:")
+          2 (ppr pat)
+   ppr (NKPatSynError pat)
+       = hang (text "Pattern synonym definition cannot contain n+k-pattern:")
+          2 (ppr pat)
+   ppr (CannotHandleTypeArgError ty)
+       = text "Can't handle type argument:" <+> ppr ty
+   ppr (NotRecordSelectorError field)
+       = hsep [quotes (ppr field), text "is not a record selector"]
+   ppr (BadFieldTypeError conflictingFields)
+       = hang (text "No constructor has all these fields:")
+            2 (pprQuotedList conflictingFields)
+   ppr (BadFieldTypesError prs)
+       = hang (text "Record update for insufficiently polymorphic field"
+                              <> plural prs <> colon)
+            2 (vcat [ ppr f <+> dcolon <+> ppr ty | (f,ty) <- prs ])
+   ppr TagToEnumError = text "tagToEnum# must appear applied to one argument"
+   ppr (IdentifierExpectedError thing)
+       = ppr thing <+> text "used where a value identifier was expected"
+   ppr (NaughtyRecordSelectorError sel_id)
+       = text "Cannot use record selector" <+> quotes (ppr sel_id) <+>
+         text "as a function due to escaped type variables" $$
+         text "Probable fix: use pattern-matching syntax instead"
+   ppr (BadCallTagToEnumError ty what)
+       = hang (text "Bad call to tagToEnum#" <+> text "at type" <+> ppr ty) 2 what
+   ppr (PolySpliceError id)
+      = text "Can't splice the polymorphic local variable" <+> quotes (ppr id)
+   ppr (MissingStrictFieldError con fields)
+      = text "Constructor" <+> quotes (ppr con) <+>
+               text "does not have the required strict field(s)" <> rest
+       where
+         rest | null fields = empty  -- Happens for non-record constructors
+                                                -- with strict fields
+              | otherwise   = colon <+> pprWithCommas ppr fields
+   ppr (BadMethodError clas op)
+       = hsep [text "Class", quotes (ppr clas),
+               text "does not have a method", quotes (ppr op)]
+   ppr (BadGenericMethodError clas op)
+       = hsep [text "Class", quotes (ppr clas),
+               text "has a generic-default signature without a binding", quotes (ppr op)]
+   ppr (BadDefaultMethodError sel_id prag)
+       = (text "The" <+> hsSigDoc prag <+> text "for default method"
+                   <+> quotes (ppr sel_id)
+                   <+> text "lacks an accompanying binding")
+   ppr GHCForeignImportPrimError
+      = text "Use GHCForeignImportPrim to allow `foreign import prim'."
+   ppr SafeUnsafeAnnoError
+      = text $ "The safe/unsafe annotation should not be used with "
+       ++ "`foreign import prim'."
+   ppr (IllegalForeignTypeError argOrRes extra)
+       = hang msg 2 extra
+       where
+         msg = hsep [ text "Unacceptable", argOrRes
+                    , text "type in foreign declaration:"]
+   ppr (ForeignJavaError sdoc) = sdoc
+   ppr (DuplicateDefaultError dup_things)
+       = hang (text "Multiple default declarations")
+            2 (vcat (map pp dup_things))
+       where
+         pp (L locn (DefaultDecl _)) = text "here was another default declaration" <+> ppr locn
+   ppr (PolyDefaultError ty)
+        = hang (text "Illegal polymorphic type in default declaration" <> colon) 2 (ppr ty)
+   ppr (BadDefaultTypeError ty deflt_clss)
+        = hang (text "The default type" <+> quotes (ppr ty) <+> text "is not an instance of")
+             2 (foldr1 (\a b -> a <+> text "or" <+> b) (map (quotes. ppr) deflt_clss))
+   ppr (BadSignatureTypeError tc_name)
+        = vcat [ text "Illegal kind signature" <+>
+                 quotes (ppr tc_name)
+               , nest 2 (parens $ text "Use KindSignatures to allow kind signatures") ]
+   ppr (MoreThanOneDeclarationError tfe_tycon)
+       = text "More than one default declaration for" <+> ppr tfe_tycon
+   ppr (WrongKindOfFamilyError family)
+       = text "Wrong category of family instance; declaration was for a"
+         <+> kindOfFamily
+       where
+         kindOfFamily | isTypeFamilyTyCon family = text "type family"
+                      | isDataFamilyTyCon family = text "data family"
+                      | otherwise = pprPanic "wrongKindOfFamily" (ppr family)
+   ppr (WrongNumberOfParamsError max_args)
+       = text "Number of parameters must match family declaration; expected"
+         <+> ppr max_args
+   ppr (WrongTypeFamilyError fam_tc_name eqn_tc_name)
+      = hang (text "Mismatched type name in type family instance.")
+           2 (vcat [ text "Expected:" <+> ppr fam_tc_name
+                   , text "  Actual:" <+> ppr eqn_tc_name ])
+   ppr (BadGADTDeclarationError tc_name)
+       = vcat [ text "Illegal generalised algebraic data declaration for" <+> quotes (ppr tc_name)
+              , nest 2 (parens $ text "Use GADTs to allow GADTs") ]
+   ppr (BadStupidThetaError tc_name)
+      = text "A data type declared in GADT style cannot have a context:" <+> quotes (ppr tc_name)
+   ppr (NewtypeConError tycon n)
+      = sep [text "A newtype must have exactly one constructor,",
+             nest 2 $ text "but" <+> quotes (ppr tycon) <+> text "has" <+> speakN n ]
+   ppr (EmptyConDeclarationError tycon)
+      = sep [quotes (ppr tycon) <+> text "has no constructors",
+             nest 2 $ text "(EmptyDataDecls permits this)"]
+   ppr ClosedTypeFamilyError
+          = text "You may omit the equations in a closed type family" $$
+                text "only in a .hs-boot file"
+   ppr (ResultTypeMisMatchError field_name con1 con2)
+         = vcat [sep [text "Constructors" <+> ppr con1 <+> text "and" <+> ppr con2,
+                      text "have a common field" <+> quotes (ppr field_name) <> comma],
+                 nest 2 $ text "but have different result types"]
+   ppr (FieldTypeMisMatchError field_name con1 con2)
+         = sep [text "Constructors" <+> ppr con1 <+> text "and" <+> ppr con2,
+                text "give different types for field", quotes (ppr field_name)]
+   ppr (BadDataConTypeError data_con res_ty_tmpl actual_res_ty)
+        = hang (text "Data constructor" <+> quotes (ppr data_con) <+>
+                text "returns type" <+> quotes (ppr actual_res_ty))
+             2 (text "instead of an instance of its parent type" <+> quotes (ppr res_ty_tmpl))
+   ppr (BadExistentialError con)
+       = hang (text "Data constructor" <+> quotes (ppr con) <+>
+               text "has existential type variables, a context, or a specialised result type")
+            2 (vcat [ ppr con <+> dcolon <+> ppr (dataConUserType con)
+                    , parens $ text "Use ExistentialQuantification or GADTs to allow this" ])
+   ppr (BadGADTKindConError data_con)
+       = hang (text "Data constructor" <+> quotes (ppr data_con)
+               <+> text "cannot be GADT-like in its *kind* arguments")
+            2 (ppr data_con <+> dcolon <+> ppr (dataConUserType data_con))
+   ppr (BadBangTypeError n herald con)
+       = hang herald 2 (text "on the" <+> speakNth n
+                        <+> text "argument of" <+> quotes (ppr con))
+   ppr (NewtypeFieldError con_name n_flds)
+       = sep [text "The constructor of a newtype must have exactly one field",
+              nest 2 $ text "but" <+> quotes (ppr con_name) <+> text "has" <+> speakN n_flds]
+   ppr (NewtypeStrictError con)
+       = sep [text "A newtype constructor cannot have a strictness annotation,",
+              nest 2 $ text "but" <+> quotes (ppr con) <+> text "does"]
+   ppr (NewtypeConTypeError msg con)
+       = (msg $$ ppr con <+> dcolon <+> ppr (dataConUserType con))
+   ppr (ClassArityError cls n)
+       = vcat [text howMany <+> text "parameters for class" <+> quotes (ppr cls),
+             parens (text "Use MultiParamTypeClasses to allow" <+>
+                             text allowWhat <+> text "classes")]
+      where (howMany, allowWhat)
+             | n == 0    = ("No", "no-parameter")
+             | otherwise = ("Too many", "multi-parameter")
+   ppr (ClassFunDepsError cls)
+       = vcat [text "Fundeps in class" <+> quotes (ppr cls),
+               parens (text "Use FunctionalDependencies to allow fundeps")]
+   ppr (NoClassTyVarError clas what)
+       = sep [text "The" <+> what,
+              text "mentions none of the type or kind variables of the class" <+>
+                     quotes (ppr clas <+> hsep (map ppr (classTyVars clas)))]
+   ppr (ErrMsgTypeError tc_name)
+       = hang (text "Illegal family declaration for" <+> quotes (ppr tc_name))
+                    2 (text "Use TypeFamilies to allow indexed type families")
+   ppr (NeedXRoleAnnotationsError tc)
+       = text "Illegal role annotation for" <+> ppr tc <> char ';' $$
+         text "did you intend to use RoleAnnotations?"
+   ppr (WrongNoOfRolesError annots tyvars d)
+       = hang (text "Wrong number of roles listed in role annotation;" $$
+               text "Expected" <+> (ppr $ length tyvars) <> comma <+>
+               text "got" <+> (ppr $ length annots) <> colon)
+            2 (ppr d)
+   ppr IncoherentRolesError
+        = (text "Roles other than" <+> quotes (text "nominal") <+>
+           text "for class parameters can lead to incoherence.") $$
+          (text "Use IncoherentInstances to allow this; bad role found")
+   ppr (BadRoleAnnotationError var annot inferred)
+        = hang (text "Role mismatch on variable" <+> ppr var <> colon)
+             2 (sep [ text "Annotation says", ppr annot
+                    , text "but role", ppr inferred
+                    , text "is required" ])
+   ppr (RoleInterfaceInternalError doc)
+        = vcat [text "Internal error in role inference:",
+                doc,
+                text "Please report this as a GHC bug: http://www.haskell.org/ghc/reportabug"]
+   ppr (TypeSynDeclCycleError sorted_decls)
+       = (sep [text "Cycle in type synonym declarations:",
+                    nest 2 (vcat (map ppr_decl sorted_decls))])
+       where ppr_decl (L loc decl) = ppr loc <> colon <+> ppr decl
+   ppr (RecClassError cycles)
+       = (sep [text "Cycle in class declaration (via superclasses):",
+                      nest 2 (hsep (intersperse (text "->") (map ppr cycles)))])
+   ppr (IllegalRoleAnnotDeclError tycon)
+       = (text "Illegal role annotation for" <+> ppr tycon <> char ';' $$
+          text "they are allowed only for datatypes and classes.")
+   ppr MakeDerivSpecsError
+      = (hang (text "Deriving not permitted in hs-boot file")
+            2 (text "Use an instance declaration instead"))
+   ppr DerivingNullaryError = text "Cannot derive instances for nullary classes"
+   ppr (DerivingThingError newtype_deriving clas tys ty why)
+       = sep [(hang (text "Can't make a derived instance of")
+                  2 (quotes (ppr pred))
+               $$ nest 2 extra) <> colon,
+              nest 2 why]
+       where
+         extra | newtype_deriving = text "(even with cunning newtype deriving)"
+               | otherwise        = empty
+         pred = mkClassPred clas (tys ++ [ty])
+   ppr (DerivingKindError tc cls cls_tys cls_kind)
+       = hang (text "Cannot derive well-kinded instance of form"
+                     <+> quotes (pprClassPred cls cls_tys <+> parens (ppr tc <+> text "...")))
+            2 (text "Class" <+> quotes (ppr cls)
+                 <+> text "expects an argument of kind" <+> quotes (pprKind cls_kind))
+   ppr (DerivingEtaError cls cls_tys inst_ty)
+       = sep [text "Cannot eta-reduce to an instance of form",
+              nest 2 (text "instance (...) =>"
+                     <+> pprClassPred cls (cls_tys ++ [inst_ty]))]
+   ppr (GenericInstSafeHaskellError i)
+       = hang (text "Generic instances can only be derived in Safe Haskell." $+$
+               text "Replace the following instance:") 2 (pprInstanceHdr (iSpec i))
+   ppr TypeableDoesNotSupportError
+       = text "Class `Typeable` does not support user-specified instances."
+   ppr BadBootFamInstDeclError = text "Illegal family instance in hs-boot file"
+   ppr (AssocInClassError name)
+       = text "Associated type" <+> quotes (ppr name) <+>
+         text "must be inside a class instance"
+   ppr (NotFamilyTypeError tycon)
+      = vcat [ text "Illegal family instance for" <+> quotes (ppr tycon)
+             , nest 2 $ parens (ppr tycon <+> text "is not an indexed type family")]
+   ppr (NotOpenFamilyError tc)
+       = text "Illegal instance for closed family" <+> quotes (ppr tc)
+   ppr (TooFewParamsError arity)
+       = text "Family instance has too few parameters; expected" <+>
+         ppr arity
+   ppr (MisplacedInstSigError name hs_ty)
+      = vcat [ hang (text "Illegal type signature in instance declaration:")
+                  2 (hang (pprPrefixName name)
+                  2 (dcolon <+> ppr hs_ty))
+                  , text "(Use InstanceSigs to allow this)" ]
+   ppr (BadFamInstDeclError tc_name)
+       = vcat [ text "Illegal family instance for" <+>
+                quotes (ppr tc_name)
+              , nest 2 (parens $ text "Use TypeFamilies to allow indexed type families") ]
+   ppr AddTopDeclsError
+      = text "Declaration splices are not permitted inside top-level declarations added with addTopDecls"
+   ppr (BadBootDeclError doc)
+      = doc
+   ppr (InstMisMatchError is_boot inst)
+      = hang (ppr inst)
+           2 (text "is defined in the" <+>
+            (if is_boot then text "hs-boot" else text "hsig")
+           <+> text "file, but not in the module itself")
+   ppr (BootMisMatchError is_boot extra_info real_thing boot_thing)
+      = vcat [ppr real_thing <+>
+              text "has conflicting definitions in the module",
+              text "and its" <+>
+                (if is_boot then text "hs-boot file"
+                           else text "hsig file"),
+               text "Main module:" <+> pprTyThing real_thing,
+              (if is_boot
+                then text "Boot file:  "
+                else text "Hsig file: ")
+                <+> pprTyThing boot_thing,
+              extra_info]
+   ppr (NoMainMsgError sdoc) = sdoc
+   ppr (CheckMainExportedError sdoc) = sdoc
+   ppr (EtaREPLUnliftedError id)
+       = (sep [text "Eta REPL can't bind a variable of unlifted type:",
+               nest 2 (ppr id <+> dcolon <+> ppr (idType id))])
+   ppr AmbiguousTypeError = text "Ambigous type!"
+   ppr (CannotFindTypeError ty) = text ("Can't find type:" ++ ty)
+   ppr (NotInScopeTypeError rdr_name)
+       = text "Not in scope:" <+> quotes (ppr rdr_name)
+   ppr (IllegalPolyTypeError ty)
+       = vcat [ text "Illegal polytype:" <+> ppr ty
+              , text "The type of a Typed Template Haskell expression must" <+>
+                text "not have any quantification." ]
+   ppr (THTypeError sdoc) = sdoc
+   ppr (THExceptionError sdoc) = sdoc
+   ppr (THUserError sdoc) = sdoc
+   ppr CheckTopDeclError
+     = text "Only function, value, annotation, and foreign import declarations may be added with addTopDecl"
+   ppr (BindNameTypeError name)
+     = hang (text "The binder" <+> quotes (ppr name) <+> ptext (sLit "is not a NameU."))
+        2 (text "Probable cause: you used mkName instead of newName to generate a binding.")
+   ppr (ReifyInstancesError ty)
+       = hang (text "reifyInstances:" <+> quotes (ppr ty))
+                          2 (text "is not a class constraint or type family application")
+   ppr (NotInScopeTHError th_name)
+       = quotes (text (TH.pprint th_name)) <+>
+                            text "is not in scope at a reify"
+   ppr (NotInEnvError name)
+       = quotes (ppr name) <+> text "is not in the type environment at a reify"
+   ppr (NoRolesAssociatedError thing)
+      = text "No roles associated with" <+> (ppr thing)
+   ppr (NoTemplateHaskellError s d)
+      = (hsep [text "Can't represent" <+> ptext s <+>
+                                      text "in Template Haskell:",
+                                   nest 2 d])
+   ppr (CvtHsTypeError sdoc) = sdoc
+   -- Renamer
 
    ppr (OriginalBindingError name)
       = text "Illegal binding of built-in syntax:" <+> ppr (rdrNameOcc name)
@@ -3299,9 +3948,8 @@ greSrcSpan gre
   where
     name_span = nameSrcSpan (gre_name gre)
 
-_smallerMsg, _undecidableMsg, constraintKindsMsg :: SDoc
-_smallerMsg         = ptext (sLit "Constraint is no smaller than the instance head")
-_undecidableMsg     = ptext (sLit "Use UndecidableInstances to permit this")
+undecidableMsg, constraintKindsMsg :: SDoc
+undecidableMsg     = ptext (sLit "Use UndecidableInstances to permit this")
 constraintKindsMsg = ptext (sLit "Use ConstraintKinds to permit this")
 
 pprUserTypeErrorTy :: Type -> TypeError
@@ -3332,3 +3980,99 @@ pprUserTypeErrorTy' ty =
 
     -- An uneavaluated type function
     _ -> ppr ty
+
+{-
+Note [Higher rank types]
+~~~~~~~~~~~~~~~~~~~~~~~~
+Technically
+            Int -> forall a. a->a
+is still a rank-1 type, but it's not Haskell 98 (Trac #5957).  So the
+validity checker allow a forall after an arrow only if we allow it
+before -- that is, with Rank2Types or RankNTypes
+-}
+
+data Rank = ArbitraryRank         -- Any rank ok
+
+          | LimitedRank   -- Note [Higher rank types]
+                 Bool     -- Forall ok at top
+                 Rank     -- Use for function arguments
+
+          | MonoType SDoc   -- Monotype, with a suggestion of how it could be a polytype
+
+          | MustBeMonoType  -- Monotype regardless of flags
+
+rankZeroMonoType, tyConArgMonoType, synArgMonoType :: Rank
+rankZeroMonoType = MonoType (ptext (sLit "Perhaps you intended to use RankNTypes or Rank2Types"))
+tyConArgMonoType = MonoType (ptext (sLit "Perhaps you intended to use ImpredicativeTypes"))
+synArgMonoType   = MonoType (ptext (sLit "Perhaps you intended to use LiberalTypeSynonyms"))
+
+funArgResRank :: Rank -> (Rank, Rank)             -- Function argument and result
+funArgResRank (LimitedRank _ arg_rank) = (arg_rank, LimitedRank (forAllAllowed arg_rank) arg_rank)
+funArgResRank other_rank               = (other_rank, other_rank)
+
+forAllAllowed :: Rank -> Bool
+forAllAllowed ArbitraryRank             = True
+forAllAllowed (LimitedRank forall_ok _) = forall_ok
+forAllAllowed _                         = False
+
+famInstUndecErr :: Type -> SDoc -> SDoc
+famInstUndecErr ty msg
+  = sep [msg,
+         nest 2 (ptext (sLit "in the type family application:") <+>
+                 pprType ty)]
+
+nestedMsg, smallerAppMsg :: SDoc
+nestedMsg     = text "Nested type family application"
+smallerAppMsg = text "Application is no smaller than the instance head"
+
+nomoreMsg :: [TcTyVar] -> SDoc
+nomoreMsg tvs
+  = sep [ text "Variable" <> plural tvs <+> quotes (pprWithCommas ppr tvs)
+        , (if isSingleton tvs then text "occurs"
+                                  else text "occur")
+          <+> text "more often than in the instance head" ]
+
+more_info :: SDoc -> HsType Name -> Type -> SDoc
+more_info sdoc ty tidy_act_kind = sep [ sdoc <> comma
+              , nest 2 $ text "but" <+> quotes (ppr ty)
+                <+> text "has kind" <+> quotes (pprKind tidy_act_kind)]
+
+data InstInfo a
+  = InstInfo {
+      iSpec   :: ClsInst,        -- Includes the dfun id.  Its forall'd type
+      iBinds  :: InstBindings a   -- variables scope over the stuff in InstBindings!
+    }
+
+iDFunId :: InstInfo a -> DFunId
+iDFunId info = instanceDFunId (iSpec info)
+
+data InstBindings a
+  = InstBindings
+      { ib_tyvars  :: [Name]        -- Names of the tyvars from the instance head
+                                    -- that are lexically in scope in the bindings
+
+      , ib_binds   :: (LHsBinds a)  -- Bindings for the instance methods
+
+      , ib_pragmas :: [LSig a]      -- User pragmas recorded for generating
+                                    -- specialised instances
+
+      , ib_extensions :: [LangExt.Extension] -- Any extra extensions that should
+                                         -- be enabled when type-checking this
+                                         -- instance; needed for
+                                         -- GeneralizedNewtypeDeriving
+
+      , ib_derived :: Bool
+           -- True <=> This code was generated by GHC from a deriving clause
+           --          or standalone deriving declaration
+           -- Used only to improve error messages
+      }
+
+instance OutputableBndr a => Outputable (InstInfo a) where
+    ppr = pprInstInfoDetails
+
+pprInstInfoDetails :: OutputableBndr a => InstInfo a -> SDoc
+pprInstInfoDetails info
+   = hang (pprInstanceHdr (iSpec info) <+> ptext (sLit "where"))
+        2 (details (iBinds info))
+  where
+    details (InstBindings { ib_binds = b }) = pprLHsBinds b

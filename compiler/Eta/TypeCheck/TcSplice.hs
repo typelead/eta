@@ -218,10 +218,7 @@ tcTExpTy exp_ty
        ; texp <- tcLookupTyCon tExpTyConName
        ; return (mkTyConApp q [mkTyConApp texp [exp_ty]]) }
   where
-    err_msg ty
-      = vcat [ text "Illegal polytype:" <+> ppr ty
-             , text "The type of a Typed Template Haskell expression must" <+>
-               text "not have any quantification." ]
+    err_msg ty = IllegalPolyTypeError ty
 
 quotationCtxtDoc :: HsBracket Name -> ContextElement
 quotationCtxtDoc br_body = QuotationCtxt br_body
@@ -742,7 +739,7 @@ runMeta' show_code ppr_hs run_and_convert expr
                                                 -- see where this splice is
              do { mb_result <- run_and_convert expr_span hval
                 ; case mb_result of
-                    Left err     -> failWithTc err
+                    Left err     -> failWithTc $ THTypeError err
                     Right result -> do { traceTc "Got HsSyn result:" (ppr_hs result)
                                        ; return $! result } }
 
@@ -757,9 +754,9 @@ runMeta' show_code ppr_hs run_and_convert expr
     fail_with_exn :: Exception e => String -> e -> TcM a
     fail_with_exn phase exn = do
         exn_msg <- liftIO $ Panic.safeShowException exn
-        let msg = vcat [text "Exception when trying to" <+> text phase <+> text "compile-time code:",
+        let msg = THExceptionError (vcat [text "Exception when trying to" <+> text phase <+> text "compile-time code:",
                         nest 2 (text exn_msg),
-                        if show_code then text "Code:" <+> ppr expr else empty]
+                        if show_code then text "Code:" <+> ppr expr else empty])
         failWithTc msg
 
 {-
@@ -824,7 +821,7 @@ instance TH.Quasi TcM where
 
   -- 'msg' is forced to ensure exceptions don't escape,
   -- see Note [Exceptions in TH]
-  qReport True msg  = seqList msg $ addErr  (text msg)
+  qReport True msg  = seqList msg $ addErr $ THUserError (text msg)
   qReport False msg = seqList msg $ addWarn NoReason (text msg)
   qRunIO io = liftIO io
   qLocation = do { m <- getModule
@@ -890,7 +887,7 @@ instance TH.Quasi TcM where
       checkTopDecl (ForD (ForeignImport (L _ name) _ _ _))
         = bindName name
       checkTopDecl _
-        = addErr $ text "Only function, value, annotation, and foreign import declarations may be added with addTopDecl"
+        = addErr $ CheckTopDeclError
 
       bindName :: RdrName -> TcM ()
       bindName (Exact n)
@@ -898,10 +895,7 @@ instance TH.Quasi TcM where
              ; updTcRef th_topnames_var (\ns -> extendNameSet ns n)
              }
 
-      bindName name =
-          addErr $
-          hang (text "The binder" <+> quotes (ppr name) <+> ptext (sLit "is not a NameU."))
-             2 (text "Probable cause: you used mkName instead of newName to generate a binding.")
+      bindName name = addErr $ BindNameTypeError name
 
   -- qAddForeignFilePath lang fp = do
   --   var <- fmap tcg_th_foreign_files getGblEnv
@@ -1178,15 +1172,14 @@ reifyInstances th_nm th_tys
                      ; let matches = lookupFamInstEnv inst_envs tc tys
                      ; traceTc "reifyInstances2" (ppr matches)
                      ; reifyFamilyInstances tc (map fim_instance matches) }
-            _  -> bale_out (hang (text "reifyInstances:" <+> quotes (ppr ty))
-                               2 (text "is not a class constraint or type family application")) }
+            _  -> bale_out (ReifyInstancesError ty) }
   where
     doc = ClassInstanceCtx
     bale_out msg = failWithTc msg
 
     cvt :: SrcSpan -> TH.Type -> TcM (LHsType RdrName)
     cvt loc th_ty = case convertToHsType loc th_ty of
-                      Left msg -> failWithTc msg
+                      Left msg -> failWithTc (CvtHsTypeError msg)
                       Right ty -> return ty
 
 {-
@@ -1293,14 +1286,12 @@ tcLookupTh name
             Failed msg      -> failWithTc msg
     }}}}
 
-notInScope :: TH.Name -> SDoc
-notInScope th_name = quotes (text (TH.pprint th_name)) <+>
-                     text "is not in scope at a reify"
+notInScope :: TH.Name -> TypeError
+notInScope th_name = NotInScopeTHError th_name
         -- Ugh! Rather an indirect way to display the name
 
-notInEnv :: Name -> SDoc
-notInEnv name = quotes (ppr name) <+>
-                     text "is not in the type environment at a reify"
+notInEnv :: Name -> TypeError
+notInEnv name = NotInEnvError name
 
 ------------------------------
 reifyRoles :: TH.Name -> TcM [TH.Role]
@@ -1308,7 +1299,7 @@ reifyRoles th_name
   = do { thing <- getThing th_name
        ; case thing of
            AGlobal (ATyCon tc) -> return (map reify_role (tyConRoles tc))
-           _ -> failWithTc (text "No roles associated with" <+> (ppr thing))
+           _ -> failWithTc (NoRolesAssociatedError thing)
        }
   where
     reify_role Nominal          = TH.NominalR
@@ -2021,9 +2012,7 @@ mkThAppTs :: TH.Type -> [TH.Type] -> TH.Type
 mkThAppTs fun_ty arg_tys = foldl TH.AppT fun_ty arg_tys
 
 noTH :: LitString -> SDoc -> TcM a
-noTH s d = failWithTc (hsep [text "Can't represent" <+> ptext s <+>
-                                text "in Template Haskell:",
-                             nest 2 d])
+noTH s d = failWithTc (NoTemplateHaskellError s d)
 
 {-
 Note [Reifying field labels]

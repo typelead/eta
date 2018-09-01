@@ -35,7 +35,6 @@ import Eta.TypeCheck.TcEvidence
 import Eta.Utils.Outputable
 import Eta.Utils.Util
 import Eta.BasicTypes.SrcLoc
-import Eta.Utils.FastString
 
 -- Create chunkified tuple tybes for monad comprehensions
 import Eta.Core.MkCore
@@ -973,17 +972,14 @@ the variables they bind into scope, and typecheck the thing_inside.
 number of args are used in each equation.
 -}
 
-checkArgs :: Name -> MatchGroup Name body -> TcM ()
+checkArgs :: Name -> MatchGroup Name (LHsExpr Name) -> TcM ()
 checkArgs _ (MG { mg_alts = [] })
     = return ()
 checkArgs fun (MG { mg_alts = match1:matches })
     | null bad_matches
     = return ()
     | otherwise
-    = failWithTc (vcat [ptext (sLit "Equations for") <+> quotes (ppr fun) <+>
-                          ptext (sLit "have different numbers of arguments"),
-                        nest 2 (ppr (getLoc match1)),
-                        nest 2 (ppr (getLoc (head bad_matches)))])
+    = failWithTc (CheckArgumentsError fun match1 bad_matches)
   where
     n_args1 = args_in_match match1
     bad_matches = [m | m <- matches, args_in_match m /= n_args1]
