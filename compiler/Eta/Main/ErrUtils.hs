@@ -219,14 +219,12 @@ getCaretDiagnostic severity (RealSrcSpan span) = do
       let sevColor = getSeverityColor severity (colScheme dflags)
           marginColor = Col.sMargin (colScheme dflags)
       in
-      colored marginColor (text marginSpace) <>
       text ("\n") <>
       colored marginColor (text marginRow) <>
       text (" " ++ srcLinePre) <>
       colored sevColor (text srcLineSpan) <>
       text (srcLinePost ++ "\n") <>
-      colored marginColor (text marginSpace) <>
-      colored sevColor (text (" " ++ caretLine))
+      blankLine
 
       where
 
@@ -246,16 +244,10 @@ getCaretDiagnostic severity (RealSrcSpan span) = do
             | otherwise = srcSpanEndCol span - 1
         width = max 1 (end - start)
 
-        marginWidth = length rowStr
-        marginSpace = replicate marginWidth ' ' ++ " |"
         marginRow   = rowStr ++ " |"
 
         (srcLinePre,  srcLineRest) = splitAt start srcLine
         (srcLineSpan, srcLinePost) = splitAt width srcLineRest
-
-        caretEllipsis | multiline = "..."
-                      | otherwise = ""
-        caretLine = replicate start ' ' ++ replicate width '^' ++ caretEllipsis
 
 makeIntoWarning :: WarnReason -> ErrMsg -> ErrMsg
 makeIntoWarning reason err = err
