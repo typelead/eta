@@ -38,7 +38,7 @@ import Eta.Main.ErrUtils
 import Eta.Main.Finder
 import Eta.Main.GhcMonad
 import Eta.Main.HeaderInfo
-import Eta.Main.HscTypes
+import Eta.Main.HscTypes hiding (logWarnings)
 import Eta.BasicTypes.Module
 import Eta.Iface.TcIface          ( typecheckIface )
 import Eta.TypeCheck.TcRnMonad    ( initIfaceCheck )

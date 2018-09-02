@@ -204,9 +204,6 @@ getWarnings = Hsc $ \_ w -> return (w, w)
 clearWarnings :: Hsc ()
 clearWarnings = Hsc $ \_ _ -> return ((), emptyBag)
 
-logWarnings :: WarningMessages -> Hsc ()
-logWarnings w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)
-
 getHscEnv :: Hsc HscEnv
 getHscEnv = Hsc $ \e w -> return (e, w)
 
@@ -216,17 +213,6 @@ handleWarnings = do
     w <- getWarnings
     liftIO $ printOrThrowWarnings dflags w
     clearWarnings
-
--- | log warning in the monad, and if there are errors then
--- throw a SourceError exception.
-logWarningsReportErrors :: Messages -> Hsc ()
-logWarningsReportErrors (warns,errs) = do
-    logWarnings warns
-    when (not $ isEmptyBag errs) $ throwErrors errs
-
--- | Throw some errors.
-throwErrors :: ErrorMessages -> Hsc a
-throwErrors = liftIO . throwIO . mkSrcErr
 
 -- | Deal with errors and warnings returned by a compilation step
 --
