@@ -43,7 +43,7 @@ module Eta.TypeCheck.TcSMonad (
     updInertTcS, updInertCans, updInertDicts, updInertIrreds,
     getNoGivenEqs, setInertCans, getInertEqs, getInertInsols, getInertCans,
     emptyInert, getTcSInerts, setTcSInerts, takeInertInsolubles,
-    getUnsolvedInerts, checkAllSolved,
+    getUnsolvedInerts, getUnsolvedInertDicts, checkAllSolved,
     splitInertCans, removeInertCts,
     prepareInertsForImplications,
     addInertCan, insertInertItemTcS, insertFunEq,
@@ -82,7 +82,7 @@ module Eta.TypeCheck.TcSMonad (
     -- Misc
     getDefaultInfo, getDynFlags, getGlobalRdrEnvTcS,
     matchFam, matchFamTcM,
-    checkWellStagedDFun,
+    checkWellStagedDFun, getUniqueInstanceWanteds,
     pprEq                                    -- Smaller utils, re-exported from TcM
                                              -- TODO (DV): these are only really used in the
                                              -- instance matcher in TcSimplify. I am wondering
@@ -91,6 +91,7 @@ module Eta.TypeCheck.TcSMonad (
 ) where
 
 import Eta.Main.HscTypes
+import Eta.Main.DynFlags
 
 import qualified Eta.TypeCheck.Inst as Inst
 import Eta.Types.InstEnv
@@ -103,13 +104,14 @@ import qualified Eta.TypeCheck.TcEnv as TcM
        ( checkWellStaged, topIdLvl, tcGetDefaultTys )
 import Eta.Types.Kind
 import Eta.TypeCheck.TcType
-import Eta.Main.DynFlags
+import Eta.TypeCheck.TcEnv
 import Eta.Types.Type
 import qualified Eta.Types.Type as Type
 
 import Eta.TypeCheck.TcEvidence
 import Eta.Types.Class
 import Eta.Types.TyCon
+import Eta.Types.Unify
 
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.RdrName (RdrName, GlobalRdrEnv)
@@ -134,10 +136,12 @@ import Eta.Utils.Maybes ( orElse, firstJusts )
 
 import Eta.Core.TrieMap
 import Control.Arrow ( first )
-import Control.Monad( ap, when, unless, MonadPlus(..) )
+import Control.Monad( ap, when, unless, MonadPlus(..), forM )
 import Eta.Utils.MonadUtils
 import Data.IORef
 import Data.List ( partition, foldl' )
+import Data.Maybe
+import qualified Eta.LanguageExtensions as LangExt
 
 #include "HsVersions.h"
 
@@ -620,6 +624,11 @@ getInertEqs
   = do { inert <- getTcSInerts
        ; return (inert_eqs (inert_cans inert)) }
 
+getUnsolvedInertDicts :: TcS Cts
+getUnsolvedInertDicts
+ = do { IC { inert_dicts = idicts } <- getInertCans
+      ; return (foldDicts addIfUnsolved idicts emptyCts) }
+
 getInertInsols :: TcS Cts
 -- Returns insoluble equality constraints
 -- specifically including Givens
@@ -638,11 +647,11 @@ getUnsolvedInerts
            , inert_insols = insols } <- getInertCans
 
       ; let unsolved_tv_eqs   = foldVarEnv (\cts rest ->
-                                             foldr add_if_unsolved rest cts)
+                                             foldr addIfUnsolved rest cts)
                                           emptyCts tv_eqs
-            unsolved_fun_eqs  = foldFunEqs add_if_unsolved fun_eqs emptyCts
-            unsolved_irreds   = Bag.filterBag is_unsolved irreds
-            unsolved_dicts    = foldDicts add_if_unsolved idicts emptyCts
+            unsolved_fun_eqs  = foldFunEqs addIfUnsolved fun_eqs emptyCts
+            unsolved_irreds   = Bag.filterBag isUnsolved irreds
+            unsolved_dicts    = foldDicts addIfUnsolved idicts emptyCts
 
             others       = unsolved_irreds `unionBags` unsolved_dicts
 
@@ -651,12 +660,13 @@ getUnsolvedInerts
       ; return ( implics, unsolved_tv_eqs, unsolved_fun_eqs, insols, others) }
               -- Keep even the given insolubles
               -- so that we can report dead GADT pattern match branches
-  where
-    add_if_unsolved :: Ct -> Cts -> Cts
-    add_if_unsolved ct cts | is_unsolved ct = ct `consCts` cts
-                           | otherwise      = cts
 
-    is_unsolved ct = not (isGivenCt ct)   -- Wanted or Derived
+addIfUnsolved :: Ct -> Cts -> Cts
+addIfUnsolved ct cts | isUnsolved ct = ct `consCts` cts
+                     | otherwise     = cts
+
+isUnsolved :: Ct -> Bool
+isUnsolved ct = not (isGivenCt ct)   -- Wanted or Derived
 
 getNoGivenEqs :: TcLevel     -- TcLevel of this implication
                -> [TcTyVar]       -- Skolems of this implication
@@ -1853,3 +1863,39 @@ unifyTypes :: Type -> Type -> TcS ()
 unifyTypes ty1 ty2 = do
   _ <- wrapTcS $ TcM.captureConstraints (unifyType ty1 ty2)
   setUnifiedExtends
+
+-- Expects a filtered argument of Dict preds and returns new equality constraints
+-- that can assist in typeclass instance resolution.
+getUniqueInstanceWanteds :: DynFlags -> Cts -> TcS [Ct]
+getUniqueInstanceWanteds dflags cts = wrapTcS (getUniqueInstanceWantedsM dflags cts)
+
+getUniqueInstanceWantedsM :: DynFlags -> Cts -> TcM [Ct]
+getUniqueInstanceWantedsM dflags cts'
+  | xopt LangExt.UnifiableInstances dflags
+  , not (null cts) = do
+    inst_envs <- tcGetInstEnvs
+    let lookups = map (lookup_cls_inst inst_envs) cts
+        uniq_insts = mapMaybe get_uniq lookups
+        genWanteds (ct, inst)
+            | ClassPred _ tys <- classifyPredType (ctPred ct)
+            , Just subst <- tcUnifyTys instanceBindFun (is_tys inst) tys
+            , let unifyTys' = map (substTy subst) tys
+                  -- Unification may have eliminated some tyvars in is_tys
+                  tvs = tyVarsOfTypesList unifyTys'
+            = do tys' <- forM tvs (TcM.newReturnTyVarTy . tyVarKind)
+                 let uniSubst = extendTvSubstList emptyTvSubst tvs tys'
+                     unifyTys = map (substTy uniSubst) unifyTys'
+                 fmap Just $ forM (zip tys unifyTys) $ \(ty, unifyTy) ->
+                     TcM.newSimpleWanted loc (mkTcEqPred ty unifyTy)
+            | otherwise = return Nothing
+    TcM.traceTc "getUniqueInstanceWanteds: " (ppr uniq_insts)
+    fmap concat $ mapMaybeM genWanteds uniq_insts
+  | otherwise = return []
+  where cts = bagToList cts'
+        loc = ctl_origin (ctev_loc (cc_ev (head cts)))
+
+        get_uniq (ct, (_, [unifier], _)) = Just (ct, unifier)
+        get_uniq _ = Nothing
+
+        lookup_cls_inst inst_envs ct = (ct, lookupInstEnv inst_envs clas tys)
+            where (clas, tys) = getClassPredTys (ctPred ct)

@@ -26,6 +26,7 @@ data Extension
    | UndecidableInstances
    | IncoherentInstances
    | UndecidableSuperClasses
+   | UnifiableInstances
    | MonomorphismRestriction
    | MonoPatBinds
    | MonoLocalBinds

@@ -3321,6 +3321,7 @@ xFlags = [
   flagSpec "ImpredicativeTypes"               LangExt.ImpredicativeTypes,
   flagSpec' "IncoherentInstances"             LangExt.IncoherentInstances
                                               setIncoherentInsts,
+  flagSpec "UnifiableInstances"               LangExt.UnifiableInstances,
   flagSpec "InstanceSigs"                     LangExt.InstanceSigs,
   flagSpec "ApplicativeDo"                    LangExt.ApplicativeDo,
   flagSpec "InterruptibleFFI"                 LangExt.InterruptibleFFI,
