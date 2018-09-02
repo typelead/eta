@@ -10,14 +10,12 @@ import Eta.Utils.FastString
 import Eta.Utils.StringBuffer
 import Eta.Utils.Outputable
 import Eta.BasicTypes.Module
-import Eta.Utils.Bag
 
 import Eta.Parser.Parser
 import Eta.Parser.Lexer
 
 import Data.List
 import Control.Monad
-import Control.Exception (throwIO)
 import System.Directory
 import qualified Data.Map as Map
 import System.FilePath as FilePath
@@ -86,17 +84,3 @@ hscParse' mod_summary = do
                                   Map.fromList $ ((noSrcSpan,comment_q pst)
                                                   :(annotations_comments pst)))
                     }
-
--- | log warning in the monad, and if there are errors then
--- throw a SourceError exception.
-logWarningsReportErrors :: Messages -> Hsc ()
-logWarningsReportErrors (warns,errs) = do
-    logWarnings warns
-    unless (isEmptyBag errs) $ throwErrors errs
-
--- | Throw some errors.
-throwErrors :: ErrorMessages -> Hsc a
-throwErrors = liftIO . throwIO . mkSrcErr
-
-logWarnings :: WarningMessages -> Hsc ()
-logWarnings w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)

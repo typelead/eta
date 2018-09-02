@@ -11,10 +11,10 @@
 module Eta.Main.GhcMonad (
         -- * 'Ghc' monad stuff
         GhcMonad(..),
-        Ghc(..), 
+        Ghc(..),
         GhcT(..), liftGhcT,
         reflectGhc, reifyGhc,
-        getSessionDynFlags, 
+        getSessionDynFlags,
         liftIO,
         Session(..), withSession, modifySession, withTempSession,
 
@@ -24,7 +24,7 @@ module Eta.Main.GhcMonad (
   ) where
 
 import Eta.Utils.MonadUtils
-import Eta.Main.HscTypes
+import Eta.Main.HscTypes hiding (logWarnings)
 import Eta.Main.DynFlags
 import Eta.Utils.Exception
 import Eta.Main.ErrUtils
@@ -93,7 +93,7 @@ newtype Ghc a = Ghc { unGhc :: Session -> IO a }
 -- session.  A compilation session consists of a set of modules
 -- constituting the current program or library, the context for
 -- interactive evaluation, and various caches.
-data Session = Session !(IORef HscEnv) 
+data Session = Session !(IORef HscEnv)
 
 instance Functor Ghc where
   fmap f m = Ghc $ \s -> f `fmap` unGhc m s
@@ -204,4 +204,3 @@ type WarnErrLogger = forall m. GhcMonad m => Maybe SourceError -> m ()
 defaultWarnErrLogger :: WarnErrLogger
 defaultWarnErrLogger Nothing  = return ()
 defaultWarnErrLogger (Just e) = printException e
-

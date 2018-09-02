@@ -133,6 +133,7 @@ module Eta.Main.HscTypes (
         SourceError, GhcApiError, mkSrcErr, srcErrorMessages, mkApiErr,
         throwOneError, handleSourceError,
         handleFlagWarnings, printOrThrowWarnings,
+        logWarningsReportErrors, logWarnings, throwErrors,
 
         Reinterpret(..),
         CachedMap(..), ClassIndex, emptyClassIndex, getClassIndex, findInClassIndex,
@@ -3211,3 +3212,17 @@ addToClassIndex hsc_env classInfos = do
               (M.fromList [ (ciName classInfo, toCachedClassInfo classInfo)
                           | classInfo <- classInfos ])
     return (a, a)
+
+-- | Throw some errors.
+throwErrors :: ErrorMessages -> Hsc a
+throwErrors = liftIO . throwIO . mkSrcErr
+
+-- | log warning in the monad, and if there are errors then
+-- throw a SourceError exception.
+logWarningsReportErrors :: Messages -> Hsc ()
+logWarningsReportErrors (warns,errs) = do
+    logWarnings warns
+    when (not $ isEmptyBag errs) $ throwErrors errs
+
+logWarnings :: WarningMessages -> Hsc ()
+logWarnings w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)
