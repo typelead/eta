@@ -33,7 +33,7 @@ module Eta.Main.ErrUtils (
 
         prettyPrintGhcErrors, traceCmd,
         mkFullMsg, ParserMessages, emptyParserMessages,
-        parserErrorsFound
+        parserErrorsFound, printBagMsgDoc
     ) where
 
 #include "HsVersions.h"
@@ -499,3 +499,8 @@ emptyParserMessages = (emptyBag, emptyBag)
 
 parserErrorsFound :: DynFlags -> ParserMessages -> Bool
 parserErrorsFound _dflags (_warns, errs) = not (isEmptyBag errs)
+
+printBagMsgDoc :: DynFlags -> Bag MsgDoc -> IO ()
+printBagMsgDoc dflags msgs = do
+  let style = mkErrStyle dflags alwaysQualify
+  putLogMsg dflags NoReason SevWarning noSrcSpan style $ pprMessageBag msgs

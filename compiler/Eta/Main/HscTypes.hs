@@ -352,8 +352,9 @@ printOrThrowWarnings dflags warns = do
     else printBagOfErrors dflags warns
 
 printOrThrowWarningsDoc :: DynFlags -> Bag MsgDoc -> IO ()
-printOrThrowWarningsDoc _dflags warns =
-  throwIO (mkSrcErr $ renderParseErrors warns)
+printOrThrowWarningsDoc dflags warns
+  | isEmptyBag warns = return ()
+  | otherwise = printBagMsgDoc dflags warns
 
 handleFlagWarnings :: DynFlags -> [Located String] -> IO ()
 handleFlagWarnings dflags warns

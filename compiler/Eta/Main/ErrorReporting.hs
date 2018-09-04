@@ -4,9 +4,14 @@ module Eta.Main.ErrorReporting (
 
 import Eta.Main.Error
 import Eta.Utils.Outputable
+import Eta.Utils.Bag (isEmptyBag)
 
 renderWarnings :: WarningMessages -> SDoc
-renderWarnings = undefined
+renderWarnings msgs
+ | isEmptyBag msgs = empty
+ | otherwise = error "renderWarnings"
 
 renderErrors :: ErrorMessages -> SDoc
-renderErrors = undefined
+renderErrors msgs
+  | isEmptyBag msgs = empty
+  | otherwise = error "renderErrors"
