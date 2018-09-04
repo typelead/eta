@@ -35,6 +35,8 @@ import Eta.Main.DriverPhases
 import Eta.Main.DriverPipeline
 import Eta.Main.DynFlags
 import Eta.Main.ErrUtils
+import Eta.Main.Error
+import Eta.Main.ErrorReporting
 import Eta.Main.Finder
 import Eta.Main.GhcMonad
 import Eta.Main.HeaderInfo
@@ -1143,7 +1145,8 @@ parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags mHscMessage cleanup 
         hsc_env <- readMVar hsc_env_var
         old_hpt <- readIORef old_hpt_var
 
-        let logger err = printBagOfErrors lcl_dflags (srcErrorMessages err)
+        -- let logger err = printBagOfErrors lcl_dflags (srcErrorMessages err)
+        let logger err = defaultSDocPrinter lcl_dflags (srcErrorMessages err)
 
         -- Limit the number of parallel compiles.
         let withSem sem = bracket_ (waitQSem sem) (signalQSem sem)
@@ -1736,7 +1739,7 @@ reportImportErrors xs | null errs = return oks
   where (errs, oks) = partitionEithers xs
 
 throwManyErrors :: MonadIO m => [ErrMsg] -> m ab
-throwManyErrors errs = liftIO $ throwIO $ mkSrcErr $ listToBag errs
+throwManyErrors errs = liftIO $ throwIO $ mkSrcErr $ renderErrors $ listToBag errs
 
 
 -----------------------------------------------------------------------------
@@ -2080,7 +2083,7 @@ summariseModule hsc_env old_summary_map is_boot (L loc wanted_mod)
         -- Preprocess the source file and get its imports
         -- The dflags' contains the OPTIONS pragmas
         (dflags', hspp_fn, buf) <- preprocessFile hsc_env src_fn Nothing maybe_buf
-        (srcimps, the_imps, L mod_loc mod_name) <- getImports dflags' buf hspp_fn src_fn
+        (srcimps, the_imps, L _mod_loc mod_name) <- getImports dflags' buf hspp_fn src_fn
 
         -- NB: Despite the fact that is_boot is a top-level parameter, we
         -- don't actually know coming into this function what the HscSource
@@ -2095,7 +2098,7 @@ summariseModule hsc_env old_summary_map is_boot (L loc wanted_mod)
                   | otherwise -> HsSrcFile
 
         when (mod_name /= wanted_mod) $
-                throwOneError $ mkPlainErrMsg dflags' mod_loc $
+                throwOneError $ -- mkPlainErrMsg dflags' mod_loc $
                               text "File name does not match module name:"
                               $$ text "Saw:" <+> quotes (ppr mod_name)
                               $$ text "Expected:" <+> quotes (ppr wanted_mod)
@@ -2190,8 +2193,8 @@ moduleNotFoundErr dflags mod
 
 multiRootsErr :: DynFlags -> [ModSummary] -> IO ()
 multiRootsErr _      [] = panic "multiRootsErr"
-multiRootsErr dflags summs@(summ1:_)
-  = throwOneError $ mkPlainErrMsg dflags noSrcSpan $
+multiRootsErr _dflags summs@(summ1:_)
+  = throwOneError $ -- mkPlainErrMsg dflags noSrcSpan $
         text "module" <+> quotes (ppr mod) <+>
         text "is defined in multiple files:" <+>
         sep (map text files)

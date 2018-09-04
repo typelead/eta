@@ -47,7 +47,7 @@ import Eta.BasicTypes.NameEnv
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Bag
 import Eta.Utils.ListSetOps
-import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.Digraph
 import Eta.Utils.Maybes
 import Eta.Utils.Util
@@ -1597,7 +1597,7 @@ checkStrictBinds top_lvl rec_group orig_binds tc_binds poly_ids
     is_monomorphic _ = True
 
 unliftedMustBeBang :: [LHsBind Name] -> TypeError
-unliftedMustBeBang binds = UnliftedMustBeBangError binds 
+unliftedMustBeBang binds = UnliftedMustBeBangError binds
 
 polyBindErr :: [LHsBind Name] -> TypeError
 polyBindErr binds = PolyBindError binds

@@ -12,7 +12,7 @@ module Eta.Main.HeaderInfo ( getImports
                   , mkPrelImports -- used by the renamer too
                   , getOptionsFromFile, getOptions
                   , optionsErrorMsgs,
-                    checkProcessArgsResult ) where
+                    checkProcessArgsResult, renderParseErrors ) where
 
 import Eta.BasicTypes.RdrName
 import Eta.Main.HscTypes
@@ -26,13 +26,12 @@ import Eta.Utils.StringBuffer
 import Eta.BasicTypes.SrcLoc
 import Eta.Main.DynFlags
 import Eta.Main.ErrUtils
-import qualified Eta.Main.ErrUtils as ErrUtils
 import Eta.Utils.Util
 import Eta.Utils.Outputable
 import qualified Eta.Utils.Outputable as Outputable
 import Eta.Utils.Pretty           ()
 import Eta.Utils.Maybes
-import Eta.Utils.Bag              ( emptyBag, listToBag, unitBag )
+import Eta.Utils.Bag              ( emptyBag, listToBag )
 import Eta.Utils.MonadUtils
 import Eta.Utils.Exception
 import qualified Eta.Utils.Exception as Exception
@@ -67,8 +66,8 @@ getImports dflags buf filename source_filename = do
       -- for real.  See #2500.
           ms = (emptyBag, errs)
       -- logWarnings warns
-      if errorsFound dflags ms
-        then throwIO $ mkSrcErr errs
+      if parserErrorsFound dflags ms
+        then throwIO $ mkSrcErr $ renderParseErrors errs
         else
           case rdr_module of
             L _ (HsModule mb_mod _ imps _ _ _) ->
@@ -124,7 +123,7 @@ mkPrelImports this_mod loc implicit_prelude import_decls
                                ideclHiding    = Nothing  }
 
 parseError :: DynFlags -> SrcSpan -> MsgDoc -> IO a
-parseError dflags span err = throwOneError $ mkPlainErrMsg dflags span err
+parseError _dflags _span err = throwOneError $ err -- mkPlainErrMsg dflags span err
 
 --------------------------------------------------------------
 -- Get options
@@ -272,11 +271,12 @@ getOptions' dflags toks
 -- Throws a 'SourceError' if the input list is non-empty claiming that the
 -- input flags are unknown.
 checkProcessArgsResult :: MonadIO m => DynFlags -> [Located String] -> m ()
-checkProcessArgsResult dflags flags
+checkProcessArgsResult _dflags flags
   = when (notNull flags) $
-      liftIO $ throwIO $ mkSrcErr $ listToBag $ map mkMsg flags
-    where mkMsg (L loc flag)
-              = mkPlainErrMsg dflags loc $
+      liftIO $ throwIO $ mkSrcErr $ renderParseErrors $ listToBag $ map mkMsg flags
+      -- listToBag $ map mkMsg flags
+    where mkMsg (L _loc flag)
+              = -- mkPlainErrMsg dflags loc $
                   (text "unknown flag in  {-# OPTIONS_GHC #-} pragma:" <+>
                    text flag)
 
@@ -292,29 +292,29 @@ checkExtension dflags (L l ext)
     else unsupportedExtnError dflags l ext'
 
 languagePragParseError :: DynFlags -> SrcSpan -> a
-languagePragParseError dflags loc =
-  throw $ mkSrcErr $ unitBag $
-     (mkPlainErrMsg dflags loc $
+languagePragParseError _dflags _loc =
+  throw $ mkSrcErr $ -- unitBag $
+     ( -- mkPlainErrMsg dflags loc $
        vcat [ text "Cannot parse LANGUAGE pragma"
             , text "Expecting comma-separated list of language options,"
             , text "each starting with a capital letter"
             , nest 2 (text "E.g. {-# LANGUAGE TemplateHaskell, GADTs #-}") ])
 
 unsupportedExtnError :: DynFlags -> SrcSpan -> String -> a
-unsupportedExtnError dflags loc unsup =
-  throw $ mkSrcErr $ unitBag $
-    mkPlainErrMsg dflags loc $
+unsupportedExtnError _dflags _loc unsup =
+  throw $ mkSrcErr $ -- unitBag $
+    -- mkPlainErrMsg dflags loc $
         text "Unsupported extension: " <> text unsup $$
         if null suggestions then Outputable.empty else text "Perhaps you meant" <+> quotedListWithOr (map text suggestions)
   where
      suggestions = fuzzyMatch unsup supportedLanguagesAndExtensions
 
 
-optionsErrorMsgs :: DynFlags -> [String] -> [Located String] -> FilePath -> Messages
-optionsErrorMsgs dflags unhandled_flags flags_lines _filename
+optionsErrorMsgs :: DynFlags -> [String] -> [Located String] -> FilePath -> ParserMessages
+optionsErrorMsgs _dflags unhandled_flags flags_lines _filename
   = (emptyBag, listToBag (map mkMsg unhandled_flags_lines))
   where unhandled_flags_lines = [ L l f | f <- unhandled_flags,
                                           L l f' <- flags_lines, f == f' ]
-        mkMsg (L flagSpan flag) =
-            ErrUtils.mkPlainErrMsg dflags flagSpan $
+        mkMsg (L _flagSpan flag) =
+            -- Error.mkPlainErrMsg dflags flagSpan $
                     text "unknown flag in  {-# OPTIONS_GHC #-} pragma:" <+> text flag

@@ -27,7 +27,7 @@ import Eta.Utils.MonadUtils
 import Eta.Main.HscTypes hiding (logWarnings)
 import Eta.Main.DynFlags
 import Eta.Utils.Exception
-import Eta.Main.ErrUtils
+import Eta.Main.Error
 
 import Data.IORef
 
@@ -196,7 +196,7 @@ instance (Functor m, ExceptionMonad m, MonadIO m) => GhcMonad (GhcT m) where
 printException :: GhcMonad m => SourceError -> m ()
 printException err = do
   dflags <- getSessionDynFlags
-  liftIO $ printBagOfErrors dflags (srcErrorMessages err)
+  liftIO $ defaultSDocPrinter dflags (srcErrorMessages err)
 
 -- | A function called to log warnings and errors.
 type WarnErrLogger = forall m. GhcMonad m => Maybe SourceError -> m ()

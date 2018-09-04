@@ -75,6 +75,7 @@ import Eta.Rename.RnNames
 import Eta.Rename.RnEnv
 import Eta.Rename.RnSource
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.BasicTypes.Id
 import qualified Eta.BasicTypes.Id as Id
 import Eta.BasicTypes.IdInfo( IdDetails( VanillaId ) )

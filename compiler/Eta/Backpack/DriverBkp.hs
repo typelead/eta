@@ -35,9 +35,11 @@ import Eta.Main.HscTypes
 import Eta.Utils.StringBuffer
 import Eta.Utils.FastString
 import Eta.Main.ErrUtils
+import Eta.Main.ErrorReporting
 import Eta.BasicTypes.SrcLoc
 import Eta.Main.HscMain
 import Eta.Utils.UniqFM
+import Eta.Utils.Bag
 import Eta.Utils.UniqDFM
 import Eta.Utils.Outputable
 import Eta.Utils.Maybes
@@ -79,8 +81,9 @@ doBackpack src_filename = do
     buf <- liftIO $ hGetStringBuffer src_filename
     let loc = mkRealSrcLoc (mkFastString src_filename) 1 1 -- TODO: not great
     case unP parseBackpack (mkPState dflags buf loc) of
-        PFailed span err -> do
-            liftIO $ throwOneError (mkPlainErrMsg dflags span err)
+        PFailed _span err -> do
+            liftIO $ throwOneError err
+            -- (mkPlainErrMsg dflags span err)
         POk _ pkgname_bkp -> do
             -- OK, so we have an LHsUnit PackageName, but we want an
             -- LHsUnit HsComponentId.  So let's rename it.
@@ -685,9 +688,9 @@ summariseDecl :: PackageName
               -> Maybe (Located (HsModule RdrName))
               -> BkpM ModSummary
 summariseDecl pn hsc_src (L _ modname) (Just hsmod) = hsModuleToModSummary pn hsc_src modname hsmod
-summariseDecl _pn hsc_src lmodname@(L loc modname) Nothing
+summariseDecl _pn hsc_src lmodname@(L _loc modname) Nothing
     = do hsc_env <- getSession
-         let dflags = hsc_dflags hsc_env
+         let _dflags = hsc_dflags hsc_env
          -- TODO: this looks for modules in the wrong place
          r <- liftIO $ summariseModule hsc_env
                          Map.empty -- GHC API recomp not supported
@@ -697,8 +700,9 @@ summariseDecl _pn hsc_src lmodname@(L loc modname) Nothing
                          Nothing -- GHC API buffer support not supported
                          [] -- No exclusions
          case r of
-            Nothing -> throwOneError (mkPlainErrMsg dflags loc (text "module" <+> ppr modname <+> text "was not found"))
-            Just (Left err) -> throwOneError err
+            Nothing -> throwOneError (text "module" <+> ppr modname <+> text "was not found")
+            -- (mkPlainErrMsg dflags loc (text "module" <+> ppr modname <+> text "was not found"))
+            Just (Left err) -> throwOneError $ renderErrors $ unitBag err
             Just (Right summary) -> return summary
 
 -- | Up until now, GHC has assumed a single compilation target per source file.

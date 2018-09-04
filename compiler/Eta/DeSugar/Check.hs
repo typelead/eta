@@ -35,7 +35,7 @@ import Eta.Utils.IOEnv
 import Eta.Utils.Util
 import Eta.BasicTypes.UniqSupply
 import Eta.Utils.Outputable
-import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.FastString
 import Eta.Types.Type
 import Data.Maybe                -- isNothing, isJust, fromJust

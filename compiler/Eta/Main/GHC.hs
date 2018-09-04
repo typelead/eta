@@ -340,8 +340,10 @@ import Eta.BasicTypes.Module
 import Eta.Utils.Metrics
 import Eta.Utils.Json
 import Eta.Utils.Panic
-import Eta.Utils.Bag              ( unitBag )
+import Eta.Utils.Bag              ( unitBag, Bag )
 import Eta.Main.ErrUtils
+import Eta.Main.Error
+import Eta.Main.ErrorReporting
 import Eta.Utils.MonadUtils
 import Eta.Utils.Util
 import Eta.Utils.StringBuffer
@@ -1302,7 +1304,7 @@ getTokenStream mod = do
     POk _ ts  -> return ts
     PFailed span err ->
         do dflags <- getDynFlags
-           liftIO $ throwIO $ mkSrcErr (unitBag $ mkPlainErrMsg dflags span err)
+           liftIO $ throwIO $ mkSrcErr $ renderErrors (unitBag $ mkPlainErrMsg dflags span err)
 
 -- | Give even more information on the source than 'getTokenStream'
 -- This function allows reconstructing the source completely with
@@ -1315,7 +1317,7 @@ getRichTokenStream mod = do
     POk _ ts -> return $ addSourceToTokens startLoc source ts
     PFailed span err ->
         do dflags <- getDynFlags
-           liftIO $ throwIO $ mkSrcErr (unitBag $ mkPlainErrMsg dflags span err)
+           liftIO $ throwIO $ mkSrcErr $ renderErrors (unitBag $ mkPlainErrMsg dflags span err)
 
 -- | Given a source location and a StringBuffer corresponding to this
 -- location, return a rich token stream with the source associated to the
@@ -1381,7 +1383,7 @@ findModule mod_name maybe_pkg = withSession $ \hsc_env -> do
       res <- findImportedModule hsc_env mod_name maybe_pkg
       case res of
         Found _ m -> return m
-        err       -> throwOneError $ noModError dflags noSrcSpan mod_name err
+        err       -> throwOneError $ renderErrors $ unitBag $ noModError dflags noSrcSpan mod_name err
     _otherwise -> do
       home <- lookupLoadedHomeModule mod_name
       case home of
@@ -1391,7 +1393,7 @@ findModule mod_name maybe_pkg = withSession $ \hsc_env -> do
            case res of
              Found loc m | moduleUnitId m /= this_pkg -> return m
                          | otherwise -> modNotLoadedError dflags m loc
-             err -> throwOneError $ noModError dflags noSrcSpan mod_name err
+             err -> throwOneError $ renderErrors $ unitBag $ noModError dflags noSrcSpan mod_name err
 
 modNotLoadedError :: DynFlags -> Module -> ModLocation -> IO a
 modNotLoadedError dflags m loc = throwGhcExceptionIO $ CmdLineError $ showSDoc dflags $
@@ -1416,7 +1418,7 @@ lookupModule mod_name Nothing = withSession $ \hsc_env -> do
       res <- findExposedPackageModule hsc_env mod_name Nothing
       case res of
         Found _ m -> return m
-        err       -> throwOneError $ noModError (hsc_dflags hsc_env) noSrcSpan mod_name err
+        err       -> throwOneError $ renderErrors $ unitBag $ noModError (hsc_dflags hsc_env) noSrcSpan mod_name err
 
 lookupLoadedHomeModule :: GhcMonad m => ModuleName -> m (Maybe Module)
 lookupLoadedHomeModule mod_name = withSession $ \hsc_env ->
@@ -1483,7 +1485,7 @@ lookupName name =
 parser :: String         -- ^ Haskell module source text (full Unicode is supported)
        -> DynFlags       -- ^ the flags
        -> FilePath       -- ^ the filename (for source locations)
-       -> Either ErrorMessages (WarningMessages, Located (HsModule RdrName))
+       -> Either ErrorMessages (Bag MsgDoc, Located (HsModule RdrName))
 
 parser str dflags filename =
    let

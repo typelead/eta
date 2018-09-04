@@ -130,6 +130,7 @@ import Eta.BasicTypes.Module
 import Eta.BasicTypes.SrcLoc
 import Eta.BasicTypes.VarSet
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.UniqFM
 import Eta.BasicTypes.UniqSupply
 import Eta.BasicTypes.BasicTypes

@@ -99,6 +99,7 @@ import Eta.BasicTypes.NameSet
 import Eta.BasicTypes.Module
 import Eta.Iface.BinIface
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.Digraph
 import Eta.BasicTypes.SrcLoc
 import Eta.Utils.Outputable

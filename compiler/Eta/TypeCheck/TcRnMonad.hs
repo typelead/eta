@@ -24,7 +24,8 @@ import Eta.BasicTypes.Module
 import Eta.BasicTypes.RdrName
 import Eta.BasicTypes.Name
 import Eta.Types.Type
-
+import Eta.Main.Error
+import Eta.Main.ErrorReporting
 import Eta.TypeCheck.TcType
 import Eta.Types.InstEnv
 import Eta.Types.FamInstEnv
@@ -233,7 +234,7 @@ initTcForLookup :: HscEnv -> TcM a -> IO a
 initTcForLookup hsc_env thing_inside
   = do { (msgs, m) <- initTcInteractive hsc_env thing_inside
        ; case m of
-             Nothing -> throwIO $ mkSrcErr $ snd msgs
+             Nothing -> throwIO $ mkSrcErr $ renderErrors $ snd msgs
              Just x -> return x }
 
 {-

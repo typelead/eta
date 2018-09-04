@@ -89,6 +89,7 @@ module Eta.Main.DynFlags (
         defaultLogAction,
         defaultLogActionHPrintDoc,
         defaultLogActionHPutStrDoc,
+        defaultSDocPrinter,
         defaultFlushOut,
         defaultFlushErr,
 
@@ -1675,6 +1676,9 @@ defaultLogAction dflags reason severity srcSpan style msg
                         groups -> " (in " ++ intercalate ", " (map ("-W"++) groups) ++ ")"
               | otherwise = ""
 
+defaultSDocPrinter :: DynFlags -> SDoc -> IO ()
+defaultSDocPrinter dflags sdoc =
+  defaultLogActionHPrintDoc dflags stdout sdoc (mkErrStyle dflags neverQualify)
 
 defaultLogActionHPrintDoc :: DynFlags -> Handle -> SDoc -> PprStyle -> IO ()
 defaultLogActionHPrintDoc dflags h d sty
