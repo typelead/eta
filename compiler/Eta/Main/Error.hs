@@ -135,7 +135,8 @@ errorsFound _dflags (_warns, errs) = not (isEmptyBag errs)
 
 printBagOfErrors :: DynFlags -> Bag ErrMsg -> IO ()
 printBagOfErrors dflags bag_of_errors
-  = printMsgBag dflags bag_of_errors
+  | isEmptyBag bag_of_errors = return ()
+  | otherwise = printMsgBag dflags bag_of_errors
 
 pprErrMsgBag :: Bag ErrMsg -> [SDoc]
 pprErrMsgBag bag
