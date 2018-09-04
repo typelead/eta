@@ -1,13 +1,11 @@
+allow-newer: true
 extra-deps:
-- aeson-1.0.2.1
-- bzlib-conduit-0.2.1.5
 - binary-0.8.4.1
 - cryptohash-sha256-0.11.100.1
 - echo-0.1.3
 - ed25519-0.0.5.0
 - mintty-0.1.1
 - mmorph-1.0.9
-- optparse-applicative-0.13.0.0
 - git: https://github.com/rahulmutt/hpp.git
   commit: 75d74f53a34c875285a665d8878e5b363edfbea5
 - git: https://github.com/rahulmutt/zip.git
@@ -17,6 +15,32 @@ extra-deps:
 - turtle-1.5.9
 - unix-compat-0.4.3.1
 - parsec-3.1.13.0
+- dhall-1.17.0
+- ansi-terminal-0.7.1.1
+- ansi-wl-pprint-0.6.8.2
+- cryptonite-0.24
+- formatting-6.3.2
+- megaparsec-6.4.1
+- parser-combinators-0.4.0
+- optparse-generic-1.3.0
+- optparse-applicative-0.14.0.0
+- Only-0.1
+- memory-0.14.14
+- basement-0.0.6
+- prettyprinter-1.2.0.1
+- prettyprinter-ansi-terminal-1.1.1.2
+- directory-1.2.7.1
+- foundation-0.0.19
+- process-1.2.3.0
+- repline-0.1.7.0
+- haskeline-0.7.4.2
+- insert-ordered-containers-0.2.1.0
+- aeson-1.2.3.0
+- th-abstraction-0.2.6.0
+- hashable-1.2.7.0
+- Diff-0.3.4
+- cborg-0.2.0.0
+- serialise-0.2.0.0
 resolver: lts-6.27
 flags:
   mintty:
@@ -36,5 +60,6 @@ packages:
 - utils/eta-pkg
 - etlas/etlas
 - etlas/etlas-cabal
+- etlas/dhall-to-etlas
 - etlas/hackage-security/hackage-security
 - shake
