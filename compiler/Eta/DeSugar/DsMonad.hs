@@ -69,6 +69,7 @@ import Eta.BasicTypes.NameEnv
 import Eta.BasicTypes.Var (EvVar)
 import Eta.Main.DynFlags
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.FastString
 import Eta.Utils.Maybes
 import GHC.Fingerprint

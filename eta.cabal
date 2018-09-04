@@ -145,6 +145,8 @@ library
                        , Eta.Main.DriverPhases
                        , Eta.Main.DriverPipeline
                        , Eta.Main.DynFlags
+                       , Eta.Main.Error
+                       , Eta.Main.ErrorReporting
                        , Eta.Main.ErrUtils
                        , Eta.Main.Finder
                        , Eta.Main.FileCleanup

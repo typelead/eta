@@ -31,7 +31,7 @@ import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.VarEnv
 import Eta.BasicTypes.NameEnv
 import Eta.Utils.Bag
-import Eta.Main.ErrUtils         ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning )
+import Eta.Main.Error ( ErrMsg, makeIntoWarning, pprLocErrMsg, isWarning )
 import Eta.BasicTypes.BasicTypes
 import Eta.Utils.Util
 import Eta.Utils.FastString

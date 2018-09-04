@@ -132,12 +132,12 @@ module Eta.Main.HscTypes (
         -- * Compilation errors and warnings
         SourceError, GhcApiError, mkSrcErr, srcErrorMessages, mkApiErr,
         throwOneError, handleSourceError,
-        handleFlagWarnings, printOrThrowWarnings,
+        handleFlagWarnings, printOrThrowWarnings, printOrThrowWarningsDoc,
         logWarningsReportErrors, logWarnings, throwErrors,
 
         Reinterpret(..),
         CachedMap(..), ClassIndex, emptyClassIndex, getClassIndex, findInClassIndex,
-        addToClassIndex, lookupClassIndex
+        addToClassIndex, lookupClassIndex, renderParseErrors
     ) where
 
 #include "HsVersions.h"
@@ -149,7 +149,7 @@ import Eta.REPL.RemoteTypes
 -- import Eta.Interactive.ByteCodeAsm      ( CompiledByteCode )
 import Eta.Main.InteractiveEvalTypes ( Resume )
 #endif
-
+-- import Eta.Main.HeaderInfo
 import Eta.Utils.UniqFM
 import Eta.Utils.UniqDSet
 import Eta.HsSyn.HsSyn
@@ -184,6 +184,7 @@ import Eta.Main.DynFlags
 import Eta.Main.DriverPhases     ( Phase, HscSource(..), isHsBootOrSig, hscSourceString )
 import Eta.BasicTypes.BasicTypes
 import Eta.Iface.IfaceSyn
+import Eta.Main.ErrorReporting
 import Eta.Utils.Maybes
 import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
@@ -196,6 +197,7 @@ import Eta.Utils.MonadUtils
 import Eta.Utils.Bag
 import Eta.Utils.Binary
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.BasicTypes.NameCache
 import Eta.Utils.Platform
 import Eta.Utils.Util
@@ -235,7 +237,7 @@ data HscStatus
 -- -----------------------------------------------------------------------------
 -- The Hsc monad: Passing an environment and warning state
 
-newtype Hsc a = Hsc (HscEnv -> WarningMessages -> IO (a, WarningMessages))
+newtype Hsc a = Hsc (HscEnv -> Bag MsgDoc -> IO (a, Bag MsgDoc))
 
 instance Functor Hsc where
     fmap = liftM
@@ -259,7 +261,7 @@ instance HasDynFlags Hsc where
 runHsc :: HscEnv -> Hsc a -> IO a
 runHsc hsc_env (Hsc hsc) = do
     (a, w) <- hsc hsc_env emptyBag
-    printOrThrowWarnings (hsc_dflags hsc_env) w
+    printOrThrowWarningsDoc (hsc_dflags hsc_env) w
     return a
 
 runInteractiveHsc :: HscEnv -> Hsc a -> IO a
@@ -276,17 +278,17 @@ runInteractiveHsc hsc_env
 -- When the compiler (HscMain) discovers errors, it throws an
 -- exception in the IO monad.
 
-mkSrcErr :: ErrorMessages -> SourceError
+mkSrcErr :: SDoc -> SourceError
 mkSrcErr = SourceError
 
-srcErrorMessages :: SourceError -> ErrorMessages
+srcErrorMessages :: SourceError -> SDoc
 srcErrorMessages (SourceError msgs) = msgs
 
 mkApiErr :: DynFlags -> SDoc -> GhcApiError
 mkApiErr dflags msg = GhcApiError (showSDoc dflags msg)
 
-throwOneError :: MonadIO m => ErrMsg -> m ab
-throwOneError err = liftIO $ throwIO $ mkSrcErr $ unitBag err
+throwOneError :: MonadIO m => SDoc -> m ab
+throwOneError err = liftIO $ throwIO $ mkSrcErr $ err
 
 -- | A source error is an error that is caused by one or more errors in the
 -- source code.  A 'SourceError' is thrown by many functions in the
@@ -304,11 +306,11 @@ throwOneError err = liftIO $ throwIO $ mkSrcErr $ unitBag err
 --
 -- See 'printExceptionAndWarnings' for more information on what to take care
 -- of when writing a custom error handler.
-newtype SourceError = SourceError ErrorMessages
+newtype SourceError = SourceError SDoc
   deriving Typeable
 
 instance Show SourceError where
-  show (SourceError msgs) = unlines . map show . bagToList $ msgs
+  show (SourceError msgs) = showSDoc unsafeGlobalDynFlags msgs
 
 instance Exception SourceError
 
@@ -346,8 +348,12 @@ printOrThrowWarnings dflags warns = do
                            }))
           False warns
   if make_error
-    then throwIO (mkSrcErr warns')
+    then throwIO (mkSrcErr $ renderWarnings warns')
     else printBagOfErrors dflags warns
+
+printOrThrowWarningsDoc :: DynFlags -> Bag MsgDoc -> IO ()
+printOrThrowWarningsDoc _dflags warns =
+  throwIO (mkSrcErr $ renderParseErrors warns)
 
 handleFlagWarnings :: DynFlags -> [Located String] -> IO ()
 handleFlagWarnings dflags warns
@@ -3215,14 +3221,21 @@ addToClassIndex hsc_env classInfos = do
 
 -- | Throw some errors.
 throwErrors :: ErrorMessages -> Hsc a
-throwErrors = liftIO . throwIO . mkSrcErr
+throwErrors = liftIO . throwIO . mkSrcErr . renderErrors
+
+-- | Throw some errors.
+throwParseErrors :: Bag MsgDoc -> Hsc a
+throwParseErrors = liftIO . throwIO . mkSrcErr . renderParseErrors
 
 -- | log warning in the monad, and if there are errors then
 -- throw a SourceError exception.
-logWarningsReportErrors :: Messages -> Hsc ()
+logWarningsReportErrors :: ParserMessages -> Hsc ()
 logWarningsReportErrors (warns,errs) = do
     logWarnings warns
-    when (not $ isEmptyBag errs) $ throwErrors errs
+    when (not $ isEmptyBag errs) $ throwParseErrors errs
 
-logWarnings :: WarningMessages -> Hsc ()
+logWarnings :: Bag MsgDoc -> Hsc ()
 logWarnings w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)
+
+renderParseErrors :: Bag SDoc -> SDoc
+renderParseErrors msgs = foldlBag ($+$) empty msgs

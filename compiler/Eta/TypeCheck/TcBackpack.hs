@@ -30,7 +30,7 @@ import Eta.TypeCheck.TcType
 import Eta.TypeCheck.TcSimplify
 import Eta.Iface.LoadIface
 import Eta.Rename.RnNames
-import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.BasicTypes.Id
 import Eta.BasicTypes.Module
 import Eta.BasicTypes.Name

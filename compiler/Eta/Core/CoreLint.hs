@@ -39,7 +39,6 @@ import Eta.BasicTypes.VarSet
 import Eta.BasicTypes.Name
 import Eta.BasicTypes.Id
 import Eta.Core.PprCore
-import Eta.Main.ErrUtils
 import Eta.Types.Coercion
 import Eta.BasicTypes.SrcLoc
 import Eta.Types.Kind

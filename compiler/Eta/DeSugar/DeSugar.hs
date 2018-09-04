@@ -48,6 +48,7 @@ import Eta.Core.CoreLint         ( endPassIO )
 import Eta.Core.MkCore
 import Eta.Utils.FastString
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.Outputable
 import Eta.BasicTypes.SrcLoc
 import Eta.DeSugar.Coverage

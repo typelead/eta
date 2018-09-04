@@ -119,6 +119,7 @@ import Eta.Iface.MkIface
 import Eta.DeSugar.DeSugar
 import Eta.SimplCore.SimplCore
 import Eta.Main.TidyPgm
+import Eta.Main.ErrorReporting
 import Eta.Core.CorePrep
 import Eta.Core.CoreUtils            (exprType)
 import Eta.StgSyn.CoreToStg          ( coreToStg )
@@ -136,6 +137,7 @@ import Eta.Main.Hooks
 import Eta.TypeCheck.TcEnv
 import Eta.Main.DynFlags
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 
 import Eta.Utils.Outputable
 import Eta.Main.HscStats             ( ppSourceStats )
@@ -198,7 +200,7 @@ newHscEnv dflags = do
 
 -- -----------------------------------------------------------------------------
 
-getWarnings :: Hsc WarningMessages
+getWarnings :: Hsc (Bag MsgDoc)
 getWarnings = Hsc $ \_ w -> return (w, w)
 
 clearWarnings :: Hsc ()
@@ -211,7 +213,7 @@ handleWarnings :: Hsc ()
 handleWarnings = do
     dflags <- getDynFlags
     w <- getWarnings
-    liftIO $ printOrThrowWarnings dflags w
+    liftIO $ printOrThrowWarningsDoc dflags w
     clearWarnings
 
 -- | Deal with errors and warnings returned by a compilation step
@@ -233,9 +235,11 @@ handleWarnings = do
 ioMsgMaybe :: IO (Messages, Maybe a) -> Hsc a
 ioMsgMaybe ioA = do
     ((warns,errs), mb_r) <- liftIO ioA
-    logWarnings warns
+    logWarnings (unitBag $ renderWarnings warns)
     case mb_r of
-        Nothing -> throwErrors errs
+        Nothing ->
+          -- render <- renderNiceErrors errs
+          throwErrors errs
         Just r  -> ASSERT( isEmptyBag errs ) return r
 
 -- | like ioMsgMaybe, except that we ignore error messages and return
@@ -243,7 +247,7 @@ ioMsgMaybe ioA = do
 ioMsgMaybe' :: IO (Messages, Maybe a) -> Hsc (Maybe a)
 ioMsgMaybe' ioA = do
     ((warns,_errs), mb_r) <- liftIO $ ioA
-    logWarnings warns
+    logWarnings (unitBag $ renderWarnings warns)
     return mb_r
 
 -- -----------------------------------------------------------------------------
@@ -321,8 +325,8 @@ hscParse' mod_summary
                  | otherwise = parseModule
 
     case unP parseMod (mkPState dflags buf loc) of
-        PFailed span err ->
-            liftIO $ throwOneError (mkPlainErrMsg dflags span err)
+        PFailed _span err ->
+            liftIO $ throwOneError err -- (mkPlainErrMsg dflags span err)
 
         POk pst rdr_module -> do
             logWarningsReportErrors (getMessages pst)
@@ -437,12 +441,14 @@ tcRnModule' hsc_env sum save_rn_syntax mod = do
             safe <- liftIO $ readIORef (tcg_safeInfer tcg_res')
             when safe $ do
               case wopt Opt_WarnSafe dflags of
-                True -> (logWarnings $ unitBag $ mkPlainWarnMsg dflags
-                       (warnSafeOnLoc dflags) $ errSafe tcg_res')
+                True -> (logWarnings $ unitBag $ -- mkPlainWarnMsg dflags
+                      -- (warnSafeOnLoc dflags) $
+                        errSafe tcg_res')
                 False | safeHaskell dflags == Sf_Trustworthy &&
                         wopt Opt_WarnTrustworthySafe dflags ->
-                  (logWarnings $ unitBag $ mkPlainWarnMsg dflags
-                    (trustworthyOnLoc dflags) $ errTwthySafe tcg_res')
+                  (logWarnings $ unitBag $ --mkPlainWarnMsg dflags
+                    -- (trustworthyOnLoc dflags) $
+                    errTwthySafe tcg_res')
                 False -> return ()
             return tcg_res'
   where
@@ -822,12 +828,13 @@ hscCheckSafeImports tcg_env = do
       case safeLanguageOn dflags of
           True -> do
               -- XSafe: we nuke user written RULES
-              logWarnings $ warns dflags (tcg_rules tcg_env')
+              logWarnings $ unitBag $ renderWarnings $ warns dflags (tcg_rules tcg_env')
               return tcg_env' { tcg_rules = [] }
           False
                 -- SafeInferred: user defined RULES, so not safe
               | safeInferOn dflags && not (null $ tcg_rules tcg_env')
-              -> markUnsafeInfer tcg_env' $ warns dflags (tcg_rules tcg_env')
+              -> markUnsafeInfer tcg_env' $ unitBag $ renderWarnings $
+                  warns dflags (tcg_rules tcg_env')
 
                 -- Trustworthy OR SafeInferred: with no RULES
               | otherwise
@@ -881,7 +888,7 @@ checkSafeImports dflags tcg_env
 
         case (isEmptyBag safeErrs) of
           -- Failed safe check
-          False -> liftIO . throwIO . mkSrcErr $ safeErrs
+          False -> liftIO . throwIO . mkSrcErr $ renderParseErrors safeErrs
 
           -- Passed safe check
           True -> do
@@ -991,7 +998,7 @@ hscCheckSafe' dflags m l = do
                         (True, False) -> pkgTrustErr
                         (False, _   ) -> modTrustErr
                 in do
-                    logWarnings errs
+                    logWarnings $ unitBag $ renderWarnings errs
                     return (trust == Sf_Trustworthy, pkgRs)
 
                 where
@@ -1050,7 +1057,7 @@ checkPkgTrust :: DynFlags -> Set InstalledUnitId -> Hsc ()
 checkPkgTrust dflags pkgs =
     case errors of
         [] -> return ()
-        _  -> (liftIO . throwIO . mkSrcErr . listToBag) errors
+        _  -> (liftIO . throwIO . mkSrcErr . renderErrors . listToBag) errors
     where
         errors = S.foldr go [] pkgs
         go pkg acc
@@ -1071,13 +1078,14 @@ checkPkgTrust dflags pkgs =
 -- may call it on modules using Trustworthy or Unsafe flags so as to allow
 -- warning flags for safety to function correctly. See Note [Safe Haskell
 -- Inference].
-markUnsafeInfer :: TcGblEnv -> WarningMessages -> Hsc TcGblEnv
+markUnsafeInfer :: TcGblEnv -> Bag MsgDoc -> Hsc TcGblEnv
 markUnsafeInfer tcg_env whyUnsafe = do
     dflags <- getDynFlags
 
     when (wopt Opt_WarnUnsafe dflags)
          (logWarnings $ unitBag $
-             mkPlainWarnMsg dflags (warnUnsafeOnLoc dflags) (whyUnsafe' dflags))
+             -- mkPlainWarnMsg dflags (warnUnsafeOnLoc dflags)
+             (whyUnsafe' dflags))
 
     liftIO $ writeIORef (tcg_safeInfer tcg_env) False
     -- NOTE: Only wipe trust when not in an explicity safe haskell mode. Other
@@ -1093,7 +1101,9 @@ markUnsafeInfer tcg_env whyUnsafe = do
     whyUnsafe' df = vcat [ quotes pprMod <+> text "has been inferred as unsafe!"
                          , text "Reason:"
                          , nest 4 $ (vcat $ badFlags df) $+$
-                                    (vcat $ pprErrMsgBagWithLoc whyUnsafe) $+$
+                                    (--vcat $ pprErrMsgBagWithLoc
+                                            renderParseErrors
+                                            whyUnsafe) $+$
                                     (vcat $ badInsts $ tcg_insts tcg_env)
                          ]
     badFlags df   = concat $ map (badFlag df) unsafeFlagsForInfer
@@ -1513,7 +1523,7 @@ hscImport hsc_env str = runInteractiveHsc hsc_env $ do
     case is of
         [L _ i] -> return i
         _ -> liftIO $ throwOneError $
-                 mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan $
+                -- mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan $
                      text "parse error in import declaration"
 
 -- | Typecheck an expression (but don't run it)
@@ -1581,8 +1591,9 @@ hscParseThingWithLocation source linenumber parser str
         loc = mkRealSrcLoc (fsLit source) linenumber 1
 
     case unP parser (mkPState dflags buf loc) of
-        PFailed span err ->
-              liftIO $ throwOneError (mkPlainErrMsg dflags span err)
+        PFailed _span err ->
+              liftIO $ throwOneError err
+              -- (mkPlainErrMsg dflags span err)
         -- PFailed warnFn span err -> do
         --     logWarningsReportErrors (warnFn dflags)
         --     handleWarnings

@@ -28,7 +28,6 @@ import Eta.Utils.FastString
 
 import Eta.Utils.Exception
 import Eta.Main.ErrUtils
-
 import System.Directory
 import System.FilePath
 import System.IO
@@ -240,7 +239,7 @@ findDependency  :: HscEnv
                 -> IsBootInterface      -- Source import
                 -> Bool                 -- Record dependency on package modules
                 -> IO (Maybe FilePath)  -- Interface file file
-findDependency hsc_env srcloc pkg imp is_boot include_pkg_deps
+findDependency hsc_env _srcloc pkg imp is_boot include_pkg_deps
   = do  {       -- Find the module; this will be fast because
                 -- we've done it once during downsweep
           r <- findImportedModule hsc_env imp pkg
@@ -256,7 +255,7 @@ findDependency hsc_env srcloc pkg imp is_boot include_pkg_deps
 
             fail ->
                 let dflags = hsc_dflags hsc_env
-                in throwOneError $ mkPlainErrMsg dflags srcloc $
+                in throwOneError $ -- mkPlainErrMsg dflags srcloc $
                         ppr (cannotFindModule dflags imp fail)
         }
 

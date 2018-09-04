@@ -40,8 +40,8 @@ hscParse' mod_summary = do
       let loc = mkRealSrcLoc (mkFastString src_filename) 1 1
 
       case unP parseModule (mkPState dflags buf loc) of
-          PFailed span err ->
-              liftIO $ throwOneError (mkPlainErrMsg dflags span err)
+          PFailed _span err ->
+              liftIO $ throwOneError err -- (mkPlainErrMsg dflags span err)
 
           POk pst rdr_module -> do
               logWarningsReportErrors (getMessages pst)

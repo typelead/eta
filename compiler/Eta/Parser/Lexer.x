@@ -59,7 +59,7 @@
 
 module Eta.Parser.Lexer (
    Token(..), lexer, pragState, mkPState, PState(..),
-   P(..), ParseResult(..), getSrcLoc,
+   P(..), ParseResult(..), getSrcLoc, ParserMessages(..),
    getPState, getDynFlags, withThisPackage,
    failLocMsgP, failSpanMsgP, srcParseFail,
    getMessages,
@@ -1752,7 +1752,7 @@ data ParseResult a
 data PState = PState {
         buffer     :: StringBuffer,
         dflags     :: DynFlags,
-        messages   :: Messages,
+        messages   :: ParserMessages,
         prev_loc   :: RealSrcSpan,
         last_tk    :: Maybe Token,
         last_loc   :: RealSrcSpan, -- pos of previous token
@@ -2166,7 +2166,7 @@ mkPState flags buf loc =
   PState {
       buffer        = buf,
       dflags        = flags,
-      messages      = emptyMessages,
+      messages      = emptyParserMessages,
       prev_loc      = mkRealSrcSpan loc loc,
       last_tk       = Nothing,
       last_loc      = mkRealSrcSpan loc loc,
@@ -2228,11 +2228,12 @@ mkPState flags buf loc =
 addWarning :: WarningFlag -> SrcSpan -> SDoc -> P ()
 addWarning option srcspan warning
  = P $ \s@PState{messages=(ws,es), dflags=d} ->
-       let warning' = mkWarnMsg d srcspan alwaysQualify warning
-           ws' = if wopt option d then ws `snocBag` warning' else ws
+       let -- warning' = mkWarnMsg d srcspan alwaysQualify warning
+           ws' = if wopt option d then ws `snocBag` warning -- TODO error reporting for parser
+                 else ws
        in POk s{messages=(ws', es)} ()
 
-getMessages :: PState -> Messages
+getMessages :: PState -> ParserMessages
 getMessages PState{messages=ms} = ms
 
 getContext :: P [LayoutContext]

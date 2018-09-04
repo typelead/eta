@@ -93,6 +93,7 @@ import Eta.DeSugar.DsExpr
 import Eta.DeSugar.DsMonad
 import Eta.Serialized
 import Eta.Main.ErrUtils
+import Eta.Main.Error
 import Eta.Utils.Util
 import Eta.BasicTypes.Unique
 import Eta.BasicTypes.VarSet
