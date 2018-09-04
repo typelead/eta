@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, CPP #-}
+{-# LANGUAGE TypeFamilies, CPP, MultiWayIf #-}
 
 -- Type definitions for the constraint solver
 module Eta.TypeCheck.TcSMonad (
@@ -1871,30 +1871,44 @@ getUniqueInstanceWanteds dflags cts = wrapTcS (getUniqueInstanceWantedsM dflags 
 
 getUniqueInstanceWantedsM :: DynFlags -> Cts -> TcM [Ct]
 getUniqueInstanceWantedsM dflags cts'
-  | xopt LangExt.UnifiableInstances dflags
-  , not (null cts) = do
+  | xopt LangExt.UnifiableInstances dflags = do
     inst_envs <- tcGetInstEnvs
     let lookups = map (lookup_cls_inst inst_envs) cts
-        uniq_insts = mapMaybe get_uniq lookups
-        genWanteds (ct, inst)
-            | ClassPred _ tys <- classifyPredType (ctPred ct)
-            , Just subst <- tcUnifyTys instanceBindFun (is_tys inst) tys
-            , let unifyTys' = map (substTy subst) tys
-                  -- Unification may have eliminated some tyvars in is_tys
-                  tvs = tyVarsOfTypesList unifyTys'
-            = do tys' <- forM tvs (TcM.newReturnTyVarTy . tyVarKind)
-                 let uniSubst = extendTvSubstList emptyTvSubst tvs tys'
-                     unifyTys = map (substTy uniSubst) unifyTys'
-                 fmap Just $ forM (zip tys unifyTys) $ \(ty, unifyTy) ->
-                     TcM.newSimpleWanted loc (mkTcEqPred ty unifyTy)
-            | otherwise = return Nothing
-    TcM.traceTc "getUniqueInstanceWanteds: " (ppr uniq_insts)
-    fmap concat $ mapMaybeM genWanteds uniq_insts
+        getUnifier ct inst
+            | (_, tys) <- getClassPredTys (ctPred ct)
+            = tcUnifyTys instanceBindFun (is_tys inst) tys
+        lookups' = map (\(ct, (a, insts, c)) -> let insts' = take 5 insts in
+                         (ct, (a, c, insts', map (getUnifier ct) insts'))) lookups
+    if | not (null cts) -> do
+         let uniq_insts = mapMaybe get_uniq lookups
+
+             genWanteds (ct, inst)
+                 | (_, tys) <- getClassPredTys (ctPred ct)
+                 , Just subst <- tcUnifyTys instanceBindFun (is_tys inst) tys
+                 , let unifyTys' = map (substTy subst) tys
+                       -- Unification may have eliminated some tyvars in is_tys
+                       tvs = tyVarsOfTypesList unifyTys'
+                 = do tys' <- forM tvs (TcM.newReturnTyVarTy . tyVarKind)
+                      let uniSubst = extendTvSubstList emptyTvSubst tvs tys'
+                          unifyTys = map (substTy uniSubst) unifyTys'
+                      fmap Just $ forM (zip tys unifyTys) $ \(ty, unifyTy) ->
+                          TcM.newSimpleWanted loc (mkTcEqPred ty unifyTy)
+                 | otherwise = return Nothing
+         TcM.traceTc "getUniqueInstanceWanteds: Lookups" (ppr lookups')
+         if null uniq_insts
+         then TcM.traceTc "getUniqueInstanceWanteds: None" empty
+         else TcM.traceTc "getUniqueInstanceWanteds: Found" (ppr uniq_insts)
+         fmap concat $ mapMaybeM genWanteds uniq_insts
+       | otherwise -> do
+         TcM.traceTc "getUniqueInstanceWanteds: None" (ppr lookups')
+         return []
   | otherwise = return []
   where cts = bagToList cts'
         loc = ctl_origin (ctev_loc (cc_ev (head cts)))
 
-        get_uniq (ct, (_, [unifier], _)) = Just (ct, unifier)
+        get_uniq (ct, ([], [unifier], _)) = Just (ct, unifier)
+        get_uniq (ct, ([], unifiers, _))
+          | ([unifier], _) <- pruneMatches  id unifiers = Just (ct, unifier)
         get_uniq _ = Nothing
 
         lookup_cls_inst inst_envs ct = (ct, lookupInstEnv inst_envs clas tys)

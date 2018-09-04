@@ -15,7 +15,8 @@ module Eta.Types.InstEnv (
         ClsInst(..), DFunInstType, pprInstance, pprInstanceHdr, pprInstances,
         instanceHead, instanceSig, mkLocalInstance, mkImportedInstance,
         instanceDFunId, tidyClsInstDFun, instanceRoughTcs,
-        fuzzyClsInstCmp,
+        fuzzyClsInstCmp, pruneMatches,
+
 
         InstEnvs(..), VisibleOrphanModules, InstEnv,
         emptyInstEnv, extendInstEnv, deleteFromInstEnv, identicalClsInstHead,
@@ -779,21 +780,24 @@ lookupInstEnv (InstEnvs { ie_global = pkg_ie, ie_local = home_ie, ie_visible = v
     (pkg_matches,  pkg_unifs)  = lookupInstEnv' pkg_ie  vis_mods cls tys
     all_matches = home_matches ++ pkg_matches
     all_unifs   = home_unifs   ++ pkg_unifs
-    pruned_matches = foldr insert_overlapping [] all_matches
+    (final_matches, safe_fail) = pruneMatches fst all_matches
+
+    -- If the selected match is incoherent, discard all unifiers
+    final_unifs = case final_matches of
+                    (m:_) | is_incoherent (fst m) -> []
+                    _ -> all_unifs
+
+pruneMatches :: (a -> ClsInst) -> [a] -> ([a], Bool)
+pruneMatches f all_matches =
+  case pruned_matches of
+    [match] -> check_safe match (f match) all_matches
+    _       -> (pruned_matches, False)
+  where
+    pruned_matches = foldr (insert_overlapping f) [] all_matches
         -- Even if the unifs is non-empty (an error situation)
         -- we still prune the matches, so that the error message isn't
         -- misleading (complaining of multiple matches when some should be
         -- overlapped away)
-
-    (final_matches, safe_fail)
-       = case pruned_matches of
-           [match] -> check_safe match all_matches
-           _       -> (pruned_matches, False)
-
-    -- If the selected match is incoherent, discard all unifiers
-    final_unifs = case final_matches of
-                    (m:_) | is_incoherent m -> []
-                    _ -> all_unifs
 
     -- NOTE [Safe Haskell isSafeOverlap]
     -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -805,7 +809,7 @@ lookupInstEnv (InstEnvs { ie_global = pkg_ie, ie_local = home_ie, ie_visible = v
     -- trust. So 'Safe' instances can only overlap instances from the
     -- same module. A same instance origin policy for safe compiled
     -- instances.
-    check_safe match@(inst,_) others
+    check_safe match inst others
         = case isSafeOverlap (is_flag inst) of
                 -- most specific isn't from a Safe module so OK
                 False -> ([match], False)
@@ -814,10 +818,11 @@ lookupInstEnv (InstEnvs { ie_global = pkg_ie, ie_local = home_ie, ie_visible = v
                 True -> (go [] others, True)
         where
             go bad [] = match:bad
-            go bad (i@(x,_):unchecked) =
+            go bad (i:unchecked) =
                 if inSameMod x
                     then go bad unchecked
                     else go (i:bad) unchecked
+              where x = f i
 
             inSameMod b =
                 let na = getName $ getName inst
@@ -827,21 +832,22 @@ lookupInstEnv (InstEnvs { ie_global = pkg_ie, ie_local = home_ie, ie_visible = v
                 in (la && lb) || (nameModule na == nameModule nb)
 
 ---------------
-is_incoherent :: InstMatch -> Bool
-is_incoherent (inst, _) = case overlapMode (is_flag inst) of
-                            Incoherent _ -> True
-                            _            -> False
+is_incoherent :: ClsInst -> Bool
+is_incoherent inst =
+  case overlapMode (is_flag inst) of
+    Incoherent _ -> True
+    _            -> False
 
 ---------------
-insert_overlapping :: InstMatch -> [InstMatch] -> [InstMatch]
+insert_overlapping :: (a -> ClsInst) -> a -> [a] -> [a]
 -- ^ Add a new solution, knocking out strictly less specific ones
 -- See Note [Rules for instance lookup]
-insert_overlapping new_item [] = [new_item]
-insert_overlapping new_item (old_item : old_items)
+insert_overlapping _f new_item [] = [new_item]
+insert_overlapping f new_item (old_item : old_items)
   | new_beats_old        -- New strictly overrides old
   , not old_beats_new
   , new_item `can_override` old_item
-  = insert_overlapping new_item old_items
+  = insert_overlapping f new_item old_items
 
   | old_beats_new        -- Old strictly overrides new
   , not new_beats_old
@@ -849,14 +855,14 @@ insert_overlapping new_item (old_item : old_items)
   = old_item : old_items
 
   -- Discard incoherent instances; see Note [Incoherent instances]
-  | is_incoherent old_item       -- Old is incoherent; discard it
-  = insert_overlapping new_item old_items
-  | is_incoherent new_item       -- New is incoherent; discard it
+  | is_incoherent (f old_item)       -- Old is incoherent; discard it
+  = insert_overlapping f new_item old_items
+  | is_incoherent (f new_item)       -- New is incoherent; discard it
   = old_item : old_items
 
   -- Equal or incomparable, and neither is incoherent; keep both
   | otherwise
-  = old_item : insert_overlapping new_item old_items
+  = old_item : insert_overlapping f new_item old_items
   where
 
     new_beats_old = new_item `more_specific_than` old_item
@@ -864,13 +870,14 @@ insert_overlapping new_item (old_item : old_items)
 
     -- `instB` can be instantiated to match `instA`
     -- or the two are equal
-    (instA,_) `more_specific_than` (instB,_)
+    matchA `more_specific_than` matchB
       = isJust (tcMatchTys (mkVarSet (is_tvs instB))
-               (is_tys instB) (is_tys instA))
+               (is_tys instB) (is_tys (f matchA)))
+      where instB = f matchB
 
-    (instA, _) `can_override` (instB, _)
-       =  hasOverlappingFlag  (overlapMode (is_flag instA))
-       || hasOverlappableFlag (overlapMode (is_flag instB))
+    matchA `can_override` matchB
+       =  hasOverlappingFlag  (overlapMode (is_flag (f matchA)))
+       || hasOverlappableFlag (overlapMode (is_flag (f matchB)))
        -- Overlap permitted if either the more specific instance
        -- is marked as overlapping, or the more general one is
        -- marked as overlappable.
