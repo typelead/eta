@@ -637,7 +637,7 @@ checkWellStaged pp_thing bind_lvl use_lvl
 
   | otherwise                   -- Badly staged
   = failWithTc $                -- E.g.  \x -> $(f x)
-    CheckWellStagedError pp_thing bind_lvl use_lvl
+    CheckWellStagedError pp_thing (ppr bind_lvl) (ppr use_lvl)
 
 stageRestrictionError :: SDoc -> TcM a
 stageRestrictionError pp_thing
@@ -884,7 +884,7 @@ wrongThingErr :: String -> TcTyThing -> Name -> TcM a
 -- turn does not look at the details of the TcTyThing.
 -- See Note [Placeholder PatSyn kinds] in TcBinds
 wrongThingErr expected thing name
-  = failWithTc (WrongThingError expected thing name)
+  = failWithTc (WrongThingError expected (pprTcTyThingCategory thing) name)
 
 {-
 Note [Out of scope might be a staging error]

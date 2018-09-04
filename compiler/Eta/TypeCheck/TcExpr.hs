@@ -1137,7 +1137,7 @@ tc_infer_id orig id_name
                  RealDataCon con -> inst_data_con con
                  PatSynCon ps    -> tcPatSynBuilderOcc orig ps
 
-             _ -> failWithTc $ IdentifierExpectedError thing }
+             _ -> failWithTc $ IdentifierExpectedError (ppr thing) }
   where
     inst_normal_id id
       = do { (wrap, rho) <- deeplyInstantiate orig (idType id)
@@ -1550,7 +1550,7 @@ a decent stab, no more.  See Trac #7989.
 -}
 
 naughtyRecordSel :: TcId -> TypeError
-naughtyRecordSel sel_id = NaughtyRecordSelectorError sel_id
+naughtyRecordSel sel_id = NaughtyRecordSelectorError (ppr sel_id)
 
 notSelector :: Name -> TypeError
 notSelector field = NotRecordSelectorError field
