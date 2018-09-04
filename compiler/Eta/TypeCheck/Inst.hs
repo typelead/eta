@@ -374,7 +374,7 @@ syntaxNameCtxt :: HsExpr Name -> CtOrigin -> Type -> TidyEnv
                -> TcRn (TidyEnv, ContextElement)
 syntaxNameCtxt name orig ty tidy_env
   = do { inst_loc <- getCtLoc orig
-       ; let msg = SyntaxNameCtxt name (tidyType tidy_env ty) inst_loc
+       ; let msg = SyntaxNameCtxt name (tidyType tidy_env ty) (pprArisingAt inst_loc)
        ; return (tidy_env, msg) }
 
 {-

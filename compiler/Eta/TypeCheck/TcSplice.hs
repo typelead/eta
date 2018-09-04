@@ -1300,7 +1300,7 @@ reifyRoles th_name
   = do { thing <- getThing th_name
        ; case thing of
            AGlobal (ATyCon tc) -> return (map reify_role (tyConRoles tc))
-           _ -> failWithTc (NoRolesAssociatedError thing)
+           _ -> failWithTc (NoRolesAssociatedError (ppr thing))
        }
   where
     reify_role Nominal          = TH.NominalR

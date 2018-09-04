@@ -1937,11 +1937,17 @@ qualImportItemErr rdr = IllegalQualNameError rdr
 
 badImportItemErrStd :: ModIface -> ImpDeclSpec -> IE RdrName -> TypeError
 badImportItemErrStd iface decl_spec ie
-  = ModuleDoesNotExportError iface decl_spec ie
+  = ModuleDoesNotExportError source_import decl_spec ie
+     where
+      source_import | mi_boot iface = text "(hi-boot interface)"
+                    | otherwise     = empty
 
 badImportItemErrDataCon :: OccName -> ModIface -> ImpDeclSpec -> IE RdrName -> TypeError
 badImportItemErrDataCon dataType_occ iface decl_spec ie
-  = BadImportItemDataConError dataType_occ iface decl_spec ie
+  = BadImportItemDataConError dataType_occ source_import decl_spec ie
+     where
+       source_import | mi_boot iface = text "(hi-boot interface)"
+                     | otherwise     = empty
 
 badImportItemErr :: ModIface -> ImpDeclSpec -> IE RdrName -> [AvailInfo] -> TypeError
 badImportItemErr iface decl_spec ie avails
