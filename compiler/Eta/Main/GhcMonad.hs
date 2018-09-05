@@ -24,7 +24,7 @@ module Eta.Main.GhcMonad (
   ) where
 
 import Eta.Utils.MonadUtils
-import Eta.Main.HscTypes hiding (logWarnings)
+import Eta.Main.HscTypes
 import Eta.Main.DynFlags
 import Eta.Utils.Exception
 import Eta.Main.Error

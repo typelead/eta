@@ -1,6 +1,6 @@
 module Eta.Main.ErrUtils where
 
-import Eta.Utils.Outputable (SDoc)
+import Eta.Utils.Outputable (SDoc, Outputable(..))
 import Eta.BasicTypes.SrcLoc (SrcSpan)
 
 data Severity
@@ -11,6 +11,8 @@ data Severity
   | SevWarning
   | SevError
   | SevFatal
+
+instance Outputable Severity where
 
 type MsgDoc = SDoc
 
