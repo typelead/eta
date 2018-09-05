@@ -152,7 +152,7 @@ tcRnModule hsc_env hsc_src save_rn_syntax
 
   where
     err_msg = mkPlainErrMsg (hsc_dflags hsc_env) loc $
-              text "Module does not have a RealSrcSpan:" <+> ppr this_mod
+                DeSugarError (text "Module does not have a RealSrcSpan:" <+> ppr this_mod)
 
     this_pkg = thisPackage (hsc_dflags hsc_env)
 

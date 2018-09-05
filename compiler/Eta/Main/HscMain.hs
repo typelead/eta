@@ -918,9 +918,9 @@ checkSafeImports dflags tcg_env
         | imv_is_safe v1 /= imv_is_safe v2
         = do
             dflags <- getDynFlags
-            throwErrors $ unitBag $ mkPlainErrMsg dflags (imv_span v1)
+            throwErrors $ unitBag $ mkPlainErrMsg dflags (imv_span v1) $ HscMainError
               (text "Module" <+> ppr (imv_name v1) <+>
-              (text $ "is imported both as a safe and unsafe import!"))
+               text "is imported both as a safe and unsafe import!")
         | otherwise
         = return v1
 
@@ -978,7 +978,7 @@ hscCheckSafe' dflags m l = do
         iface <- lookup' m
         case iface of
             -- can't load iface to check trust!
-            Nothing -> throwErrors $ unitBag $ mkPlainErrMsg dflags l
+            Nothing -> throwErrors $ unitBag $ mkPlainErrMsg dflags l $ HscMainError
                          $ text "Can't load the interface file for" <+> ppr m
                            <> text ", to check that it can be safely imported"
 
@@ -1002,13 +1002,13 @@ hscCheckSafe' dflags m l = do
                     return (trust == Sf_Trustworthy, pkgRs)
 
                 where
-                    pkgTrustErr = unitBag $ mkErrMsg dflags l (pkgQual dflags) $
+                    pkgTrustErr = unitBag $ mkErrMsg dflags l (pkgQual dflags) $ HscMainError $
                         sep [ ppr (moduleName m)
                                 <> text ": Can't be safely imported!"
                             , text "The package (" <> ppr (moduleUnitId m)
                                 <> text ") the module resides in isn't trusted."
                             ]
-                    modTrustErr = unitBag $ mkErrMsg dflags l (pkgQual dflags) $
+                    modTrustErr = unitBag $ mkErrMsg dflags l (pkgQual dflags) $ HscMainError $
                         sep [ ppr (moduleName m)
                                 <> text ": Can't be safely imported!"
                             , text "The module itself isn't safe." ]
@@ -1064,7 +1064,7 @@ checkPkgTrust dflags pkgs =
             | trusted $ getInstalledPackageDetails dflags pkg
             = acc
             | otherwise
-            = (:acc) $ mkErrMsg dflags noSrcSpan (pkgQual dflags)
+            = (:acc) $ mkErrMsg dflags noSrcSpan (pkgQual dflags) $ HscMainError
                    $ text "The package (" <> ppr pkg <> text ") is required" <>
                      text " to be trusted but it isn't!"
 
@@ -1553,7 +1553,7 @@ hscParseExpr expr = do
   maybe_stmt <- hscParseStmt expr
   case maybe_stmt of
     Just (L _ (BodyStmt expr _ _ _)) -> return (unLoc expr)
-    _ -> throwErrors $ unitBag $ mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan
+    _ -> throwErrors $ unitBag $ mkPlainErrMsg (hsc_dflags hsc_env) noSrcSpan $ HscMainError
       (text "not an expression:" <+> quotes (text expr))
 
 hscParseStmt :: String -> Hsc (Maybe (GhciLStmt RdrName))

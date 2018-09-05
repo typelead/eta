@@ -719,7 +719,7 @@ completeTheta inferred_theta
              final_theta   = annotated_theta ++ inferred_diff
        ; partial_sigs      <- xoptM LangExt.PartialTypeSignatures
        ; warn_partial_sigs <- woptM Opt_WarnPartialTypeSignatures
-       ; msg <- mkLongErrAt loc (mk_msg inferred_diff partial_sigs) empty
+       ; msg <- mkLongErrAt loc (PartialTypeSignatureError (mk_msg inferred_diff partial_sigs)) []
        ; case partial_sigs of
            True | warn_partial_sigs -> reportWarning $ makeIntoWarning
                                       (Reason Opt_WarnPartialTypeSignatures) msg

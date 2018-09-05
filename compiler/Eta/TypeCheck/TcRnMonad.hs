@@ -41,7 +41,6 @@ import Eta.BasicTypes.NameEnv
 import Eta.BasicTypes.NameSet
 import Eta.Utils.Bag
 import Eta.Utils.Outputable
-import qualified Eta.Utils.Outputable as Outputable
 import Eta.BasicTypes.UniqSupply
 import Eta.Utils.UniqFM
 import Eta.Main.DynFlags
@@ -733,7 +732,7 @@ addErrAt :: SrcSpan -> TypeError -> TcRn ()
 addErrAt loc msg = do { ctxt <- getErrCtxt
                       ; tidy_env <- tcInitTidyEnv
                       ; err_info <- mkErrInfo tidy_env ctxt
-                      ; addLongErrAt loc (ppr msg) err_info }
+                      ; addLongErrAt loc msg err_info }
 
 addErrs :: [(SrcSpan,TypeError)] -> TcRn ()
 addErrs msgs = mapM_ add msgs
@@ -789,13 +788,13 @@ discardWarnings thing_inside
 ************************************************************************
 -}
 
-mkLongErrAt :: SrcSpan -> MsgDoc -> MsgDoc -> TcRn ErrMsg
+mkLongErrAt :: SrcSpan -> TypeError -> [ContextElement] -> TcRn ErrMsg
 mkLongErrAt loc msg extra
   = do { dflags <- getDynFlags ;
          printer <- getPrintUnqualified dflags ;
          return $ mkLongErrMsg dflags loc printer msg extra }
 
-addLongErrAt :: SrcSpan -> MsgDoc -> MsgDoc -> TcRn ()
+addLongErrAt :: SrcSpan -> TypeError -> [ContextElement] -> TcRn ()
 addLongErrAt loc msg extra = mkLongErrAt loc msg extra >>= reportError
 
 reportErrors :: [ErrMsg] -> TcM ()
@@ -1041,7 +1040,7 @@ mkErrTcM (tidy_env, err_msg)
   = do { ctxt <- getErrCtxt ;
          loc  <- getSrcSpanM ;
          err_info <- mkErrInfo tidy_env ctxt ;
-         mkLongErrAt loc (ppr err_msg) err_info }
+         mkLongErrAt loc err_msg err_info }
 
 -- The failWith functions add an error message and cause failure
 
@@ -1073,13 +1072,13 @@ addWarnTcM :: WarnReason -> (TidyEnv, MsgDoc) -> TcM ()
 addWarnTcM reason (env0, msg)
  = do { ctxt <- getErrCtxt ;
         err_info <- mkErrInfo env0 ctxt ;
-        add_warn reason msg err_info }
+        add_warn reason msg (vcat $ map ppr err_info) }
 
 addWarn :: WarnReason -> MsgDoc -> TcRn ()
-addWarn reason msg = add_warn reason msg Outputable.empty
+addWarn reason msg = add_warn reason msg empty
 
 addWarnAt :: WarnReason -> SrcSpan -> MsgDoc -> TcRn ()
-addWarnAt reason loc msg = add_warn_at reason loc msg Outputable.empty
+addWarnAt reason loc msg = add_warn_at reason loc msg empty
 
 add_warn :: WarnReason -> MsgDoc -> MsgDoc -> TcRn ()
 add_warn reason msg extra_info
@@ -1091,8 +1090,7 @@ add_warn_at reason loc msg extra_info
   = do { dflags <- getDynFlags ;
          printer <- getPrintUnqualified dflags ;
          let { warn = makeIntoWarning reason $
-                        mkLongWarnMsg dflags loc printer
-                                    msg extra_info } ;
+                        mkLongWarnMsg dflags loc printer msg extra_info } ;
          reportWarning warn }
 
 tcInitTidyEnv :: TcM TidyEnv
@@ -1110,26 +1108,30 @@ add_err_tcm :: TidyEnv -> TypeError -> SrcSpan
             -> TcM ()
 add_err_tcm tidy_env err_msg loc ctxt
  = do { err_info <- mkErrInfo tidy_env ctxt ;
-        addLongErrAt loc (ppr err_msg) err_info }
+        addLongErrAt loc err_msg err_info }
 
-mkErrInfo :: TidyEnv -> [ErrCtxt] -> TcM SDoc
+mkErrInfo :: TidyEnv -> [ErrCtxt] -> TcM [ContextElement]
 -- Tidy the error info, trimming excessive contexts
 mkErrInfo env ctxts
 --  | opt_PprStyle_Debug     -- In -dppr-debug style the output
 --  = return empty           -- just becomes too voluminous
  | otherwise
- = go 0 env ctxts
+ = go env ctxts
  where
-   go :: Int -> TidyEnv -> [ErrCtxt] -> TcM SDoc
-   go _ _   [] = return Outputable.empty
-   go n env ((is_landmark, ctxt) : ctxts)
-     | is_landmark || n < mAX_CONTEXTS -- Too verbose || opt_PprStyle_Debug
-     = do { (env', msg) <- ctxt env
-          ; let n' = if is_landmark then n else n+1
-          ; rest <- go n' env' ctxts
-          ; return (ppr msg $$ rest) }
-     | otherwise
-     = go n env ctxts
+   go :: TidyEnv -> [ErrCtxt] -> TcM [ContextElement]
+   go _   [] = return []
+   go env ((_is_landmark, ctxt) : ctxts) = do
+     (env', msg) <- ctxt env
+     msgs <- go env' ctxts
+     return $ msg : msgs
+
+     -- | is_landmark || n < mAX_CONTEXTS -- Too verbose || opt_PprStyle_Debug
+     -- = do { (env', msg) <- ctxt env
+     --      ; let n' = if is_landmark then n else n+1
+     --      ; rest <- go n' env' ctxts
+     --      ; return (ppr msg $$ rest) }
+     -- | otherwise
+     -- = go n env ctxts
 
 mAX_CONTEXTS :: Int     -- No more than this number of non-landmark contexts
 mAX_CONTEXTS = 3

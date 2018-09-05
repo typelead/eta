@@ -362,7 +362,7 @@ mkUserTypeErrorReporter ctxt
 
 mkUserTypeError :: ReportErrCtxt -> Ct -> TcM ErrMsg
 mkUserTypeError ctxt ct = mkErrorMsg ctxt ct
-                        $ pprUserTypeErrorTy'
+                        $ pprUserTypeErrorTy
                         $ case getUserTypeErrorMsg ct of
                             Just (_,msg) -> msg
                             Nothing      -> pprPanic "mkUserTypeError" (ppr ct)
@@ -489,7 +489,7 @@ pprWithArising (ct:cts)
     ppr_one ct' = hang (parens (pprType (ctPred ct')))
                      2 (pprArisingAt (ctLoc ct'))
 
-mkErrorMsg :: ReportErrCtxt -> Ct -> SDoc -> TcM ErrMsg
+mkErrorMsg :: ReportErrCtxt -> Ct -> TypeError -> TcM ErrMsg
 mkErrorMsg ctxt ct msg
   = do { let tcl_env = ctLocEnv (ctLoc ct)
        ; err_info <- mkErrInfo (cec_tidy ctxt) (tcl_ctxt tcl_env)
@@ -583,7 +583,7 @@ solve it.
 mkIrredErr :: ReportErrCtxt -> [Ct] -> TcM ErrMsg
 mkIrredErr ctxt cts
   = do { (ctxt, binds_msg) <- relevantBindings True ctxt ct1
-       ; mkErrorMsg ctxt ct1 (msg $$ binds_msg) }
+       ; mkErrorMsg ctxt ct1 (CouldNotDedudeError msg binds_msg) }
   where
     (ct1:_) = cts
     orig    = ctLocOrigin (ctLoc ct1)
@@ -602,7 +602,7 @@ mkHoleError ctxt ct@(CHoleCan { cc_occ = occ })
                         , if in_typesig && not partial_sigs then pts_hint else empty ]
        ; (ctxt, binds_doc) <- relevantBindings False ctxt ct
                -- The 'False' means "don't filter the bindings; see Trac #8191
-       ; errMsg <- mkErrorMsg ctxt ct (msg $$ binds_doc)
+       ; errMsg <- mkErrorMsg ctxt ct (HoleError msg binds_doc)
        ; if in_typesig && partial_sigs
            then return $ makeIntoWarning NoReason errMsg
            else return errMsg }
@@ -623,7 +623,7 @@ mkHoleError _ ct = pprPanic "mkHoleError" (ppr ct)
 mkIPErr :: ReportErrCtxt -> [Ct] -> TcM ErrMsg
 mkIPErr ctxt cts
   = do { (ctxt, bind_msg) <- relevantBindings True ctxt ct1
-       ; mkErrorMsg ctxt ct1 (msg $$ bind_msg) }
+       ; mkErrorMsg ctxt ct1 (IPError msg bind_msg) }
   where
     (ct1:_) = cts
     orig    = ctLocOrigin (ctLoc ct1)
@@ -819,8 +819,8 @@ reportEqErr :: ReportErrCtxt -> SDoc
             -> TcType -> TcType -> TcM ErrMsg
 reportEqErr ctxt extra1 ct oriented ty1 ty2
   = do { let extra2 = mkEqInfoMsg ct ty1 ty2
-       ; mkErrorMsg ctxt ct (vcat [ misMatchOrCND ctxt ct oriented ty1 ty2
-                                   , extra2, extra1]) }
+             doc    = misMatchOrCND ctxt ct oriented ty1 ty2
+       ; mkErrorMsg ctxt ct (TypeMismatchError doc extra2 extra1) }
 
 mkTyVarEqErr :: DynFlags -> ReportErrCtxt -> SDoc -> Ct
              -> Maybe SwapFlag -> TcTyVar -> TcType -> TcM ErrMsg
@@ -832,15 +832,16 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
   || isSigTyVar tv1 && not (isTyVarTy ty2)
   || ctEqRel ct == ReprEq && not (isTyVarUnderDatatype tv1 ty2)
      -- the cases below don't really apply to ReprEq (except occurs check)
-  = mkErrorMsg ctxt ct (vcat [ misMatchOrCND ctxt ct oriented ty1 ty2
-                             , extraTyVarInfo ctxt tv1 ty2
-                             , extra ])
+  = mkErrorMsg ctxt ct
+      (TypeVariableError (misMatchOrCND ctxt ct oriented ty1 ty2)
+                         (extraTyVarInfo ctxt tv1 ty2)
+                         extra)
 
   -- So tv is a meta tyvar (or started that way before we
   -- generalised it).  So presumably it is an *untouchable*
   -- meta tyvar or a SigTv, else it'd have been unified
   | not (k2 `tcIsSubKind` k1)            -- Kind error
-  = mkErrorMsg ctxt ct $ (kindErrorMsg (mkTyVarTy tv1) ty2 $$ extra)
+  = mkErrorMsg ctxt ct (TypeVariableKindMismatchError tv1 ty2 extra)
 
   | OC_Occurs <- occ_check_expand
   , ctEqRel ct == NomEq || isTyVarUnderDatatype tv1 ty2
@@ -848,14 +849,10 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
   = do { let occCheckMsg = hang (text "Occurs check: cannot construct the infinite type:")
                               2 (sep [ppr ty1, char '~', ppr ty2])
              extra2 = mkEqInfoMsg ct ty1 ty2
-       ; mkErrorMsg ctxt ct (occCheckMsg $$ extra2 $$ extra) }
+       ; mkErrorMsg ctxt ct (OccursCheckError occCheckMsg extra2 extra) }
 
   | OC_Forall <- occ_check_expand
-  = do { let msg = vcat [ ptext (sLit "Cannot instantiate unification variable")
-                          <+> quotes (ppr tv1)
-                        , hang (ptext (sLit "with a type involving foralls:")) 2 (ppr ty2)
-                        , nest 2 (ptext (sLit "Perhaps you want ImpredicativeTypes")) ]
-       ; mkErrorMsg ctxt ct msg }
+  = do { mkErrorMsg ctxt ct (UnificationVariableError tv1 ty2) }
 
   -- If the immediately-enclosing implication has 'tv' a skolem, and
   -- we know by now its an InferSkol kind of skolem, then presumably
@@ -864,10 +861,10 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
   | (implic:_) <- cec_encl ctxt
   , Implic { ic_skols = skols } <- implic
   , tv1 `elem` skols
-  = mkErrorMsg ctxt ct (vcat [ misMatchMsg oriented eq_rel ty1 ty2
-                             , extraTyVarInfo ctxt tv1 ty2
-                             , extra ])
-
+  = mkErrorMsg ctxt ct
+      (ImplicationSkolemError (misMatchMsg oriented eq_rel ty1 ty2)
+                              (extraTyVarInfo ctxt tv1 ty2)
+                              extra)
   -- Check for skolem escape
   | (implic:_) <- cec_encl ctxt   -- Get the innermost context
   , Implic { ic_env = env, ic_skols = skols, ic_info = skol_info } <- implic
@@ -886,7 +883,7 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
                                <+> ptext (sLit "bound by")
                              , nest 2 $ ppr skol_info
                              , nest 2 $ ptext (sLit "at") <+> ppr (tcl_loc env) ] ]
-       ; mkErrorMsg ctxt ct (msg $$ tv_extra $$ extra) }
+       ; mkErrorMsg ctxt ct (ImplicationSkolemEscapeError msg tv_extra extra) }
 
   -- Nastiest case: attempt to unify an untouchable variable
   | (implic:_) <- cec_encl ctxt   -- Get the innermost context
@@ -900,7 +897,8 @@ mkTyVarEqErr dflags ctxt extra ct oriented tv1 ty2
                       , nest 2 $ ptext (sLit "at") <+> ppr (tcl_loc env) ]
              tv_extra = extraTyVarInfo ctxt tv1 ty2
              add_sig  = suggestAddSig ctxt ty1 ty2
-       ; mkErrorMsg ctxt ct (vcat [msg, tclvl_extra, tv_extra, add_sig, extra]) }
+       ; mkErrorMsg ctxt ct
+           (UntouchableUnificationError msg tclvl_extra tv_extra add_sig extra) }
 
   | otherwise
   = reportEqErr ctxt extra ct oriented (mkTyVarTy tv1) ty2
@@ -1026,15 +1024,6 @@ suggestAddSig ctxt ty1 ty2
                = map fst prs
                | otherwise
                = []
-
-kindErrorMsg :: TcType -> TcType -> SDoc   -- Types are already tidy
-kindErrorMsg ty1 ty2
-  = vcat [ ptext (sLit "Kind incompatibility when matching types:")
-         , nest 2 (vcat [ ppr ty1 <+> dcolon <+> ppr k1
-                        , ppr ty2 <+> dcolon <+> ppr k2 ]) ]
-  where
-    k1 = typeKind ty1
-    k2 = typeKind ty2
 
 --------------------
 misMatchMsg :: Maybe SwapFlag -> EqRel -> TcType -> TcType -> SDoc
@@ -1203,7 +1192,7 @@ mkDictErr ctxt cts
         min_preds = mkMinimalBySCs (map ctPred cts)
 
 mk_dict_err :: ReportErrCtxt -> (Ct, ClsInstLookupResult)
-            -> TcM (ReportErrCtxt, SDoc)
+            -> TcM (ReportErrCtxt, TypeError)
 -- Report an overlap error if this class constraint results
 -- from an overlap (returning Left clas), otherwise return (Right pred)
 mk_dict_err ctxt (ct, (matches, unifiers, safe_haskell))
@@ -1211,13 +1200,14 @@ mk_dict_err ctxt (ct, (matches, unifiers, safe_haskell))
   = do { let (is_ambig, ambig_msg) = mkAmbigMsg ct
        ; (ctxt, binds_msg) <- relevantBindings True ctxt ct
        ; traceTc "mk_dict_err" (ppr ct $$ ppr is_ambig $$ ambig_msg)
-       ; return (ctxt, cannot_resolve_msg is_ambig binds_msg ambig_msg) }
+       ; return (ctxt, NoInstanceWithUnifiersError
+                         (cannot_resolve_msg is_ambig binds_msg ambig_msg)) }
 
   | not safe_haskell   -- Some matches => overlap errors
-  = return (ctxt, overlap_msg)
+  = return (ctxt, NoInstanceWithOverlapError overlap_msg)
 
   | otherwise
-  = return (ctxt, safe_haskell_msg)
+  = return (ctxt, UnsafeOverlappingInstancesError safe_haskell_msg)
   where
     orig        = ctLocOrigin (ctLoc ct)
     pred        = ctPred ct
