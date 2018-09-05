@@ -1546,20 +1546,16 @@ unboundNameX where_look rdr_name extra
         ; let what = pprNonVarNameSpace (occNameSpace (rdrNameOcc rdr_name))
               err msuggestions = unknownNameErr what rdr_name extra msuggestions
         ; if not show_helpful_errors
-          then addErr (err Nothing)
+          then addErr (err [])
           else do { suggestions <- unknownNameSuggestErr where_look rdr_name
-                  ; addErr (err (Just suggestions)) }
+                  ; addErr (err suggestions) }
         ; return (mkUnboundName rdr_name) }
 
-unknownNameErr :: SDoc -> RdrName -> SDoc -> Maybe SDoc -> TypeError
+unknownNameErr :: SDoc -> RdrName -> SDoc -> [(RdrName, HowInScope)] -> TypeError
 unknownNameErr what rdr_name extra suggestions
     = NotInScopeError what rdr_name extra suggestions
 
-type HowInScope = Either SrcSpan ImpDeclSpec
-     -- Left loc    =>  locally bound at loc
-     -- Right ispec =>  imported as specified by ispec
-
-unknownNameSuggestErr :: WhereLooking -> RdrName -> RnM SDoc
+unknownNameSuggestErr :: WhereLooking -> RdrName -> RnM [(RdrName, HowInScope)]
 unknownNameSuggestErr where_look tried_rdr_name
   = do { local_env <- getLocalRdrEnv
        ; global_env <- getGlobalRdrEnv
@@ -1572,26 +1568,9 @@ unknownNameSuggestErr where_look tried_rdr_name
                 ++ [ (showPpr dflags r, rp) | (r, rp) <- global_possibilities global_env ]
 
              suggest = fuzzyLookup (showPpr dflags tried_rdr_name) all_possibilities
-             perhaps = ptext (sLit "Perhaps you meant")
-             extra_err = case suggest of
-                           []  -> Outputable.empty
-                           [p] -> perhaps <+> pp_item p
-                           ps  -> sep [ perhaps <+> ptext (sLit "one of these:")
-                                      , nest 2 (pprWithCommas pp_item ps) ]
-       ; return extra_err }
-  where
-    pp_item :: (RdrName, HowInScope) -> SDoc
-    pp_item (rdr, Left loc) = pp_ns rdr <+> quotes (ppr rdr) <+> loc' -- Locally defined
-        where loc' = case loc of
-                     UnhelpfulSpan l -> parens (ppr l)
-                     RealSrcSpan l -> parens (ptext (sLit "line") <+> int (srcSpanStartLine l))
-    pp_item (rdr, Right is) = pp_ns rdr <+> quotes (ppr rdr) <+>   -- Imported
-                              parens (ptext (sLit "imported from") <+> ppr (is_mod is))
 
-    pp_ns :: RdrName -> SDoc
-    pp_ns rdr | ns /= tried_ns = pprNameSpace ns
-              | otherwise      = Outputable.empty
-      where ns = rdrNameSpace rdr
+       ; return suggest }
+  where
 
     tried_occ     = rdrNameOcc tried_rdr_name
     tried_is_sym  = isSymOcc tried_occ

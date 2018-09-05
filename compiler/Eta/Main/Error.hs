@@ -57,7 +57,6 @@ import Eta.TypeCheck.TcType
 import Eta.BasicTypes.ConLike  ( ConLike(..) )
 import qualified Language.Eta.Meta as TH
 import qualified Eta.LanguageExtensions as LangExt
-import Data.Maybe
 import Data.List     ( sort, intersperse )
 
 -- -----------------------------------------------------------------------------
@@ -622,7 +621,7 @@ data TypeError
    | DuplicateNameError Name
    | UnknownSubordinateError SDoc RdrName
    | AccompanyingBindingError Bool SDoc RdrName
-   | NotInScopeError SDoc RdrName SDoc (Maybe SDoc)
+   | NotInScopeError SDoc RdrName SDoc [(RdrName, HowInScope)]
    | NameClashError RdrName [GlobalRdrElt]
    | DuplicateNamesError SDoc [SrcSpan]
    | TupleSizeError Int
@@ -1294,13 +1293,34 @@ instance Outputable TypeError where
                                <+> quotes (ppr rdr_name) <+> text "is declared"
                | otherwise = empty
 
-   ppr (NotInScopeError what rdr_name extra suggestions)
+   ppr (NotInScopeError what rdr_name extra suggest)
        = vcat [ hang (text "Not in scope:")
                     2 (what <+> quotes (ppr rdr_name))
-               , extra' ] $$ extra $$ fromMaybe empty suggestions
+               , extra' ] $$ extra $$ extra_err
         where
+          tried_rdr_name = rdr_name
+          tried_ns      = occNameSpace tried_occ
+          tried_occ     = rdrNameOcc tried_rdr_name
           extra' | rdr_name == forall_tv_RDR = perhapsForallMsg
                  | otherwise                 = empty
+          perhaps = ptext (sLit "Perhaps you meant")
+          extra_err = case suggest of
+                        []  -> empty
+                        [p] -> perhaps <+> pp_item p
+                        ps  -> sep [ perhaps <+> ptext (sLit "one of these:")
+                                   , nest 2 (pprWithCommas pp_item ps) ]
+          pp_item :: (RdrName, HowInScope) -> SDoc
+          pp_item (rdr, Left loc) = pp_ns rdr <+> quotes (ppr rdr) <+> loc' -- Locally defined
+              where loc' = case loc of
+                             UnhelpfulSpan l -> parens (ppr l)
+                             RealSrcSpan l -> parens (ptext (sLit "line") <+> int (srcSpanStartLine l))
+          pp_item (rdr, Right is) = pp_ns rdr <+> quotes (ppr rdr) <+>   -- Imported
+                                    parens (ptext (sLit "imported from") <+> ppr (is_mod is))
+
+          pp_ns :: RdrName -> SDoc
+          pp_ns rdr | ns /= tried_ns = pprNameSpace ns
+                    | otherwise      = empty
+            where ns = rdrNameSpace rdr
 
    ppr (NameClashError rdr_name gres)
        = (vcat [text "Ambiguous occurrence" <+> quotes (ppr rdr_name),
