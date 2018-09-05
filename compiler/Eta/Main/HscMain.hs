@@ -235,7 +235,7 @@ handleWarnings = do
 ioMsgMaybe :: IO (Messages, Maybe a) -> Hsc a
 ioMsgMaybe ioA = do
     ((warns,errs), mb_r) <- liftIO ioA
-    logWarnings (unitBag $ renderWarnings warns)
+    logWarningsHsc (maybe emptyBag unitBag $ renderWarnings warns)
     case mb_r of
         Nothing ->
           -- render <- renderNiceErrors errs
@@ -247,7 +247,7 @@ ioMsgMaybe ioA = do
 ioMsgMaybe' :: IO (Messages, Maybe a) -> Hsc (Maybe a)
 ioMsgMaybe' ioA = do
     ((warns,_errs), mb_r) <- liftIO $ ioA
-    logWarnings (unitBag $ renderWarnings warns)
+    logWarningsHsc (maybe emptyBag unitBag $ renderWarnings warns)
     return mb_r
 
 -- -----------------------------------------------------------------------------
@@ -441,12 +441,12 @@ tcRnModule' hsc_env sum save_rn_syntax mod = do
             safe <- liftIO $ readIORef (tcg_safeInfer tcg_res')
             when safe $ do
               case wopt Opt_WarnSafe dflags of
-                True -> (logWarnings $ unitBag $ -- mkPlainWarnMsg dflags
+                True -> (logWarningsHsc $ unitBag $ -- mkPlainWarnMsg dflags
                       -- (warnSafeOnLoc dflags) $
                         errSafe tcg_res')
                 False | safeHaskell dflags == Sf_Trustworthy &&
                         wopt Opt_WarnTrustworthySafe dflags ->
-                  (logWarnings $ unitBag $ --mkPlainWarnMsg dflags
+                  (logWarningsHsc $ unitBag $ --mkPlainWarnMsg dflags
                     -- (trustworthyOnLoc dflags) $
                     errTwthySafe tcg_res')
                 False -> return ()
@@ -828,12 +828,12 @@ hscCheckSafeImports tcg_env = do
       case safeLanguageOn dflags of
           True -> do
               -- XSafe: we nuke user written RULES
-              logWarnings $ unitBag $ renderWarnings $ warns dflags (tcg_rules tcg_env')
+              logWarningsHsc $ maybe emptyBag unitBag $ renderWarnings $ warns dflags (tcg_rules tcg_env')
               return tcg_env' { tcg_rules = [] }
           False
                 -- SafeInferred: user defined RULES, so not safe
               | safeInferOn dflags && not (null $ tcg_rules tcg_env')
-              -> markUnsafeInfer tcg_env' $ unitBag $ renderWarnings $
+              -> markUnsafeInfer tcg_env' $ maybe emptyBag unitBag $ renderWarnings $
                   warns dflags (tcg_rules tcg_env')
 
                 -- Trustworthy OR SafeInferred: with no RULES
@@ -884,7 +884,7 @@ checkSafeImports dflags tcg_env
                      return (infErrs, infPkgs)
 
         -- restore old errors
-        logWarnings oldErrs
+        logWarningsHsc oldErrs
 
         case (isEmptyBag safeErrs) of
           -- Failed safe check
@@ -998,7 +998,7 @@ hscCheckSafe' dflags m l = do
                         (True, False) -> pkgTrustErr
                         (False, _   ) -> modTrustErr
                 in do
-                    logWarnings $ unitBag $ renderWarnings errs
+                    logWarningsHsc $ maybe emptyBag unitBag $ renderWarnings errs
                     return (trust == Sf_Trustworthy, pkgRs)
 
                 where
@@ -1083,7 +1083,7 @@ markUnsafeInfer tcg_env whyUnsafe = do
     dflags <- getDynFlags
 
     when (wopt Opt_WarnUnsafe dflags)
-         (logWarnings $ unitBag $
+         (logWarningsHsc $ unitBag $
              -- mkPlainWarnMsg dflags (warnUnsafeOnLoc dflags)
              (whyUnsafe' dflags))
 
@@ -1595,7 +1595,7 @@ hscParseThingWithLocation source linenumber parser str
               liftIO $ throwOneError err
               -- (mkPlainErrMsg dflags span err)
         -- PFailed warnFn span err -> do
-        --     logWarningsReportErrors (warnFn dflags)
+        --     logWarningsHscReportErrors (warnFn dflags)
         --     handleWarnings
         --     let msg = mkPlainErrMsg dflags span err
         --     throwErrors $ unitBag msg
@@ -1605,7 +1605,7 @@ hscParseThingWithLocation source linenumber parser str
             liftIO $ dumpIfSet_dyn dflags Opt_D_dump_parsed "Parser" (ppr thing)
             return thing
         -- POk pst thing -> do
-        --     logWarningsReportErrors (getMessages pst dflags)
+        --     logWarningsHscReportErrors (getMessages pst dflags)
         --     liftIO $ dumpIfSet_dyn dflags Opt_D_dump_parsed "Parser" (ppr thing)
             -- liftIO $ dumpIfSet_dyn dflags Opt_D_dump_parsed_ast "Parser AST" $
             --                        showAstData NoBlankSrcSpan thing

@@ -6,10 +6,10 @@ import Eta.Main.Error
 import Eta.Utils.Outputable
 import Eta.Utils.Bag (isEmptyBag)
 
-renderWarnings :: WarningMessages -> SDoc
+renderWarnings :: WarningMessages -> Maybe SDoc
 renderWarnings msgs
- | isEmptyBag msgs = empty
- | otherwise = error "renderWarnings"
+ | isEmptyBag msgs = Nothing
+ | otherwise = Just $ error "renderWarnings"
 
 renderErrors :: ErrorMessages -> SDoc
 renderErrors msgs

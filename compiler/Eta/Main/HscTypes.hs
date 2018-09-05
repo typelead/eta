@@ -133,7 +133,7 @@ module Eta.Main.HscTypes (
         SourceError, GhcApiError, mkSrcErr, srcErrorMessages, mkApiErr,
         throwOneError, handleSourceError,
         handleFlagWarnings, printOrThrowWarnings, printOrThrowWarningsDoc,
-        logWarningsReportErrors, logWarnings, throwErrors,
+        logWarningsReportErrors, logWarningsHsc, throwErrors,
 
         Reinterpret(..),
         CachedMap(..), ClassIndex, emptyClassIndex, getClassIndex, findInClassIndex,
@@ -348,7 +348,7 @@ printOrThrowWarnings dflags warns = do
                            }))
           False warns
   if make_error
-    then throwIO (mkSrcErr $ renderWarnings warns')
+    then throwIO (mkSrcErr $ fromMaybe empty $ renderWarnings warns')
     else printBagOfErrors dflags warns
 
 printOrThrowWarningsDoc :: DynFlags -> Bag MsgDoc -> IO ()
@@ -3232,11 +3232,11 @@ throwParseErrors = liftIO . throwIO . mkSrcErr . renderParseErrors
 -- throw a SourceError exception.
 logWarningsReportErrors :: ParserMessages -> Hsc ()
 logWarningsReportErrors (warns,errs) = do
-    logWarnings warns
+    logWarningsHsc warns
     when (not $ isEmptyBag errs) $ throwParseErrors errs
 
-logWarnings :: Bag MsgDoc -> Hsc ()
-logWarnings w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)
+logWarningsHsc :: Bag MsgDoc -> Hsc ()
+logWarningsHsc w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)
 
 renderParseErrors :: Bag SDoc -> SDoc
 renderParseErrors msgs = foldlBag ($+$) empty msgs

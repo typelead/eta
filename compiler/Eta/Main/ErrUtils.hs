@@ -90,6 +90,11 @@ data Severity
   | SevWarning
   | SevError
   | SevFatal
+ deriving Show
+
+instance Outputable Severity where
+  ppr severity = text (show severity)
+
 
 pprMessageBag :: Bag MsgDoc -> SDoc
 pprMessageBag msgs = vcat (punctuate blankLine (bagToList msgs))
@@ -501,6 +506,7 @@ parserErrorsFound :: DynFlags -> ParserMessages -> Bool
 parserErrorsFound _dflags (_warns, errs) = not (isEmptyBag errs)
 
 printBagMsgDoc :: DynFlags -> Bag MsgDoc -> IO ()
-printBagMsgDoc dflags msgs = do
-  let style = mkErrStyle dflags alwaysQualify
-  putLogMsg dflags NoReason SevWarning noSrcSpan style $ pprMessageBag msgs
+printBagMsgDoc dflags msgs
+  | isEmptyBag msgs = return ()
+  | otherwise = putLogMsg dflags NoReason SevWarning noSrcSpan style $ pprMessageBag msgs
+  where style = mkErrStyle dflags alwaysQualify
