@@ -405,7 +405,7 @@ failWithDs err
   = do  { env <- getGblEnv
         ; loc <- getSrcSpanDs
         ; dflags <- getDynFlags
-        ; let msg = mkErrMsg dflags loc (ds_unqual env) err
+        ; let msg = mkErrMsg dflags loc (ds_unqual env) (DeSugarError err)
         ; updMutVar (ds_msgs env) (\ (w,e) -> (w, e `snocBag` msg))
         ; failM }
 

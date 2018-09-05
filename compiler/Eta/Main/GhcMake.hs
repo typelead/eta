@@ -196,7 +196,7 @@ warnMissingHomeModules hsc_env mod_graph =
           4
           (sep (map ppr missing))
     warn = makeIntoWarning (Reason Opt_WarnMissingHomeModules)
-      (mkPlainErrMsg dflags noSrcSpan msg)
+      (mkPlainErrMsg dflags noSrcSpan $ GeneralWarningSDoc msg)
 
 -- | Describes which modules of the module graph need to be loaded.
 data LoadHowMuch
@@ -1728,7 +1728,7 @@ warnUnnecessarySourceImports sccs = do
 
         warn :: DynFlags -> Located ModuleName -> WarnMsg
         warn dflags (L loc mod) =
-           mkPlainErrMsg dflags loc
+           mkPlainErrMsg dflags loc $ GeneralWarningSDoc
                 (ptext (sLit "Warning: {-# SOURCE #-} unnecessary in import of ")
                  <+> quotes (ppr mod))
 
@@ -1791,7 +1791,7 @@ downsweep hsc_env old_summaries excl_mods allow_dup_roots
                 if exists
                     then Right `fmap` summariseFile hsc_env old_summaries file mb_phase
                                        obj_allowed maybe_buf
-                    else return $ Left $ mkPlainErrMsg dflags noSrcSpan $
+                    else return $ Left $ mkPlainErrMsg dflags noSrcSpan $ HscMainError $
                            text "can't find file:" <+> text file
         getRootSummary (Target (TargetModule modl) obj_allowed maybe_buf)
            = do maybe_summary <- summariseModule hsc_env old_summary_map NotBoot
@@ -2180,15 +2180,15 @@ preprocessFile hsc_env src_fn mb_phase (Just (buf, _time))
 noModError :: DynFlags -> SrcSpan -> ModuleName -> FindResult -> ErrMsg
 -- ToDo: we don't have a proper line number for this error
 noModError dflags loc wanted_mod err
-  = mkPlainErrMsg dflags loc $ ppr (cannotFindModule dflags wanted_mod err)
+  = mkPlainErrMsg dflags loc $ cannotFindModule dflags wanted_mod err
 
 noHsFileErr :: DynFlags -> SrcSpan -> String -> ErrMsg
 noHsFileErr dflags loc path
-  = mkPlainErrMsg dflags loc $ text "Can't find" <+> text path
+  = mkPlainErrMsg dflags loc $ HscMainError $ text "Can't find" <+> text path
 
 moduleNotFoundErr :: DynFlags -> ModuleName -> ErrMsg
 moduleNotFoundErr dflags mod
-  = mkPlainErrMsg dflags noSrcSpan $
+  = mkPlainErrMsg dflags noSrcSpan $ HscMainError $
         text "module" <+> quotes (ppr mod) <+> text "cannot be found locally"
 
 multiRootsErr :: DynFlags -> [ModSummary] -> IO ()

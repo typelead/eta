@@ -74,9 +74,9 @@ unionMessages (warns1, errs1) (warns2, errs2) =
 data ErrMsg = ErrMsg {
         errMsgSpan        :: SrcSpan,  -- Location of source that triggered the error message
         errMsgContext     :: PrintUnqualified, -- Print fully qualified name/just the name
-        errMsgShortDoc    :: MsgDoc,   -- Core error message
+        errMsgShortDoc    :: TypeError,   -- Core error message
         errMsgShortString :: String, -- Contains the same text as errMsgShortDoc
-        errMsgExtraInfo   :: MsgDoc, -- Contains the context of error message
+        errMsgExtraInfo   :: [ContextElement], -- Contains the context of error message
         errMsgSeverity    :: Severity, -- The relative importance of error message
         errMsgReason      :: WarnReason -- Context of the warning. Will be set to
                                         -- NoReason if its not a warning
@@ -101,29 +101,46 @@ isWarning err
 -- -----------------------------------------------------------------------------
 -- Collecting up messages for later ordering and printing.
 
-mk_err_msg :: DynFlags -> Severity -> SrcSpan -> PrintUnqualified -> MsgDoc -> SDoc -> ErrMsg
+mk_err_msg :: DynFlags -> Severity -> SrcSpan -> PrintUnqualified -> TypeError
+                -> [ContextElement] -> ErrMsg
 mk_err_msg  dflags sev locn print_unqual msg extra
  = ErrMsg { errMsgSpan = locn, errMsgContext = print_unqual
-          , errMsgShortDoc = msg , errMsgShortString = showSDoc dflags msg
+          , errMsgShortDoc = msg , errMsgShortString = showSDoc dflags (ppr msg)
           , errMsgExtraInfo = extra
           , errMsgSeverity = sev
           , errMsgReason = NoReason }
 
-mkLongErrMsg, mkLongWarnMsg   :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgDoc -> MsgDoc -> ErrMsg
+mkLongErrMsg  :: DynFlags -> SrcSpan -> PrintUnqualified -> TypeError -> [ContextElement] -> ErrMsg
 -- A long (multi-line) error message
-mkErrMsg, mkWarnMsg           :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgDoc            -> ErrMsg
+mkErrMsg      :: DynFlags -> SrcSpan -> PrintUnqualified -> TypeError                     -> ErrMsg
 -- A short (one-line) error message
-mkPlainErrMsg, mkPlainWarnMsg :: DynFlags -> SrcSpan ->                     MsgDoc            -> ErrMsg
+mkPlainErrMsg :: DynFlags -> SrcSpan ->                     TypeError                     -> ErrMsg
 -- Variant that doesn't care about qualified/unqualified names
 
 mkLongErrMsg   dflags locn unqual msg extra = mk_err_msg dflags SevError   locn unqual        msg extra
-mkErrMsg       dflags locn unqual msg       = mk_err_msg dflags SevError   locn unqual        msg empty
-mkPlainErrMsg  dflags locn        msg       = mk_err_msg dflags SevError   locn alwaysQualify msg empty
-mkLongWarnMsg  dflags locn unqual msg extra = mk_err_msg dflags SevWarning locn unqual        msg extra
-mkWarnMsg      dflags locn unqual msg       = mk_err_msg dflags SevWarning locn unqual        msg empty
-mkPlainWarnMsg dflags locn        msg       = mk_err_msg dflags SevWarning locn alwaysQualify msg empty
+mkErrMsg       dflags locn unqual msg       = mk_err_msg dflags SevError   locn unqual        msg []
+mkPlainErrMsg  dflags locn        msg       = mk_err_msg dflags SevError   locn alwaysQualify msg []
 
 ----------------
+
+mkWarnMsg      :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgDoc           -> ErrMsg
+mkLongWarnMsg  :: DynFlags -> SrcSpan -> PrintUnqualified -> MsgDoc -> MsgDoc -> ErrMsg
+mkPlainWarnMsg :: DynFlags -> SrcSpan                               -> MsgDoc -> ErrMsg
+
+mkLongWarnMsg  dflags locn unqual msg extra = mk_warn_msg dflags SevWarning locn unqual        msg extra
+mkWarnMsg      dflags locn unqual msg       = mk_warn_msg dflags SevWarning locn unqual        msg empty
+mkPlainWarnMsg dflags locn        msg       = mk_warn_msg dflags SevWarning locn alwaysQualify msg empty
+
+mk_warn_msg :: DynFlags -> Severity -> SrcSpan -> PrintUnqualified -> MsgDoc
+                -> MsgDoc -> ErrMsg
+mk_warn_msg  dflags sev locn print_unqual msg extra
+ = ErrMsg { errMsgSpan = locn, errMsgContext = print_unqual
+          , errMsgShortDoc = GeneralWarningSDoc msg
+          , errMsgShortString = showSDoc dflags msg
+          , errMsgExtraInfo = [WarningCtxt extra]
+          , errMsgSeverity = sev
+          , errMsgReason = NoReason }
+
 emptyMessages :: Messages
 emptyMessages = (emptyBag, emptyBag)
 
@@ -142,7 +159,7 @@ pprErrMsgBag :: Bag ErrMsg -> [SDoc]
 pprErrMsgBag bag
   = [ sdocWithDynFlags $ \dflags ->
       let style = mkErrStyle dflags unqual
-      in withPprStyle style (d $$ e)
+      in withPprStyle style (ppr d $$ vcat (map ppr e))
     | ErrMsg { errMsgShortDoc  = d,
                errMsgExtraInfo = e,
                errMsgContext   = unqual } <- sortMsgBag bag ]
@@ -157,12 +174,12 @@ pprLocErrMsg (ErrMsg { errMsgSpan      = s
                      , errMsgSeverity  = sev
                      , errMsgContext   = unqual })
   = sdocWithDynFlags $ \dflags ->
-    withPprStyle (mkErrStyle dflags unqual) (mkLocMessage sev s (d $$ e))
+    withPprStyle (mkErrStyle dflags unqual) (mkLocMessage sev s (ppr d $$ vcat (map ppr e)))
 
 printMsgBag :: DynFlags -> Bag ErrMsg -> IO ()
 printMsgBag dflags bag
   = sequence_ [ let style = mkErrStyle dflags unqual
-                in putLogMsg dflags reason sev s style (d $$ e)
+                in putLogMsg dflags reason sev s style (ppr d $$ vcat (map ppr e))
               | ErrMsg { errMsgSpan      = s,
                          errMsgShortDoc  = d,
                          errMsgSeverity  = sev,
@@ -238,6 +255,7 @@ data ContextElement
   | AnnotationRnCtxt (AnnDecl RdrName)
   | QuasiQuoteCtxt (HsBracket RdrName)
   | SpliceCtxt (HsSplice RdrName)
+  | WarningCtxt SDoc
 
 data HowMuch = TooFew | TooMuch
   deriving Show
@@ -424,6 +442,7 @@ instance Outputable ContextElement where
                    HsTypedSplice   {} -> text "typed splice:"
                    HsQuasiQuote    {} -> text "quasi-quotation:"
                    HsSpliced       {} -> text "spliced expression:"
+  ppr (WarningCtxt s) = s
 
 data SignatureContext = SignatureContext UserTypeCtxt SDoc SDoc
 
@@ -716,6 +735,24 @@ data TypeError
    | ModuleDoesNotExportError SDoc ImpDeclSpec (IE RdrName)
    | BadImportItemDataConError OccName SDoc ImpDeclSpec (IE RdrName)
    | ExportClashError GlobalRdrEnv Name Name (IE RdrName) (IE RdrName)
+   | GeneralWarningSDoc SDoc
+   | DeSugarError SDoc
+   | CouldNotDedudeError SDoc SDoc
+   | HoleError SDoc SDoc
+   | IPError SDoc SDoc
+   | TypeMismatchError SDoc SDoc SDoc
+   | TypeVariableError SDoc SDoc SDoc
+   | OccursCheckError  SDoc SDoc SDoc
+   | TypeVariableKindMismatchError TyVar Type SDoc
+   | UnificationVariableError TyVar Type
+   | ImplicationSkolemError SDoc SDoc SDoc
+   | ImplicationSkolemEscapeError SDoc SDoc SDoc
+   | UntouchableUnificationError SDoc SDoc SDoc SDoc SDoc
+   | NoInstanceWithUnifiersError SDoc
+   | NoInstanceWithOverlapError SDoc
+   | UnsafeOverlappingInstancesError SDoc
+   | PartialTypeSignatureError SDoc
+   | HscMainError SDoc
 
 instance Outputable TypeError where
    ppr (FunctionalDepsError ispecs)
@@ -1708,6 +1745,37 @@ instance Outputable TypeError where
           (name1', ie1', name2', ie2') = if get_loc name1 < get_loc name2
                                          then (name1, ie1, name2, ie2)
                                          else (name2, ie2, name1, ie1)
+
+   ppr (GeneralWarningSDoc s) = s
+   ppr (DeSugarError s) = s
+   ppr (CouldNotDedudeError s e) = s $$ e
+   ppr (HoleError s e) = s $$ e
+   ppr (IPError s e) = s $$ e
+   ppr (TypeMismatchError s e d) = vcat [s, e, d]
+   ppr (TypeVariableError s e d) = vcat [s, e, d]
+   ppr (OccursCheckError occCheckMsg extra2 extra) = occCheckMsg $$ extra2 $$ extra
+   ppr (TypeVariableKindMismatchError tv1 ty2 extra) =
+     kindErrorMsg (mkTyVarTy tv1) ty2 $$ extra
+     where kindErrorMsg :: Type -> Type -> SDoc   -- Types are already tidy
+           kindErrorMsg ty1 ty2
+             = vcat [ text "Kind incompatibility when matching types:"
+                    , nest 2 (vcat [ ppr ty1 <+> dcolon <+> ppr k1
+                                   , ppr ty2 <+> dcolon <+> ppr k2 ]) ]
+             where
+               k1 = typeKind ty1
+               k2 = typeKind ty2
+   ppr (UnificationVariableError tv1 ty2) =
+     vcat [ text "Cannot instantiate unification variable" <+> quotes (ppr tv1)
+          , hang (text "with a type involving foralls:") 2 (ppr ty2)
+          , nest 2 (text "Perhaps you want ImpredicativeTypes") ]
+   ppr (ImplicationSkolemError s e d) = vcat [s, e, d]
+   ppr (ImplicationSkolemEscapeError s e d) = s $$ e $$ d
+   ppr (UntouchableUnificationError s e d f i) = vcat [s, e, d, f, i]
+   ppr (NoInstanceWithUnifiersError s) = s
+   ppr (NoInstanceWithOverlapError s) = s
+   ppr (UnsafeOverlappingInstancesError s) = s
+   ppr (PartialTypeSignatureError s) = s
+   ppr (HscMainError s) = s
 
 pprSigCtxt :: UserTypeCtxt -> SDoc -> SDoc -> ContextElement
 -- (pprSigCtxt ctxt <extra> <type>)

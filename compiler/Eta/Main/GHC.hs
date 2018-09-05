@@ -1304,7 +1304,8 @@ getTokenStream mod = do
     POk _ ts  -> return ts
     PFailed span err ->
         do dflags <- getDynFlags
-           liftIO $ throwIO $ mkSrcErr $ renderErrors (unitBag $ mkPlainErrMsg dflags span err)
+           liftIO $ throwIO $ mkSrcErr $
+             renderErrors (unitBag $ mkPlainErrMsg dflags span $ HscMainError err)
 
 -- | Give even more information on the source than 'getTokenStream'
 -- This function allows reconstructing the source completely with
@@ -1317,7 +1318,8 @@ getRichTokenStream mod = do
     POk _ ts -> return $ addSourceToTokens startLoc source ts
     PFailed span err ->
         do dflags <- getDynFlags
-           liftIO $ throwIO $ mkSrcErr $ renderErrors (unitBag $ mkPlainErrMsg dflags span err)
+           liftIO $ throwIO $ mkSrcErr $ renderErrors
+             (unitBag $ mkPlainErrMsg dflags span $ HscMainError err)
 
 -- | Given a source location and a StringBuffer corresponding to this
 -- location, return a rich token stream with the source associated to the
@@ -1495,7 +1497,7 @@ parser str dflags filename =
    case unP Parser.parseModule (mkPState dflags buf loc) of
 
      PFailed span err   ->
-         Left (unitBag (mkPlainErrMsg dflags span err))
+         Left (unitBag (mkPlainErrMsg dflags span $ HscMainError err))
 
      POk pst rdr_module ->
          let (warns,_) = getMessages pst in

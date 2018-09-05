@@ -76,7 +76,7 @@ pprErrMsg ErrMsg { errMsgShortDoc  = d,
                    errMsgContext   = unqual }
   = sdocWithDynFlags $ \dflags ->
       let style = mkErrStyle dflags unqual
-      in withPprStyle style (d $$ e)
+      in withPprStyle style (ppr d $$ vcat (map ppr e))
 
 pprHeading :: Int -> SDoc -> SDoc
 pprHeading i heading = int i <+> hyphens <+> heading <+> hyphens
