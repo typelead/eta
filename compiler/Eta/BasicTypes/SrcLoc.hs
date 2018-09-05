@@ -49,6 +49,7 @@ module Eta.BasicTypes.SrcLoc (
         srcSpanStart, srcSpanEnd,
         realSrcSpanStart, realSrcSpanEnd,
         srcSpanFileName_maybe,
+        srcSpanLocation,
         pprUserRealSpan,
 
         -- ** Unsafely deconstructing SrcSpan
@@ -435,6 +436,10 @@ realSrcSpanEnd s = mkRealSrcLoc (srcSpanFile s)
 srcSpanFileName_maybe :: SrcSpan -> Maybe FastString
 srcSpanFileName_maybe (RealSrcSpan s)   = Just (srcSpanFile s)
 srcSpanFileName_maybe (UnhelpfulSpan _) = Nothing
+
+srcSpanLocation :: SrcSpan -> FastString
+srcSpanLocation (RealSrcSpan s)   = srcSpanFile s
+srcSpanLocation (UnhelpfulSpan s) = s
 
 {-
 ************************************************************************

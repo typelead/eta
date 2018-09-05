@@ -1,11 +1,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Eta.Main.Error (
-      ErrMsg, WarnMsg, errMsgReason, errMsgSeverity,
+      ErrMsg(..), WarnMsg,
       Messages, ErrorMessages, WarningMessages, unionMessages,
-      errMsgSpan, errMsgContext, errMsgShortDoc, errMsgExtraInfo,
       pprErrMsgBag, pprErrMsgBagWithLoc,
-      pprLocErrMsg, makeIntoWarning, isWarning,
+      pprLocErrMsg, makeIntoWarning, isWarning, sortMsgBag,
 
       errorsFound, emptyMessages, isEmptyMessages,
       mkErrMsg, mkPlainErrMsg, mkLongErrMsg, mkWarnMsg, mkPlainWarnMsg,
@@ -73,13 +72,14 @@ unionMessages (warns1, errs1) (warns2, errs2) =
   (warns1 `unionBags` warns2, errs1 `unionBags` errs2)
 
 data ErrMsg = ErrMsg {
-        errMsgSpan        :: SrcSpan,
-        errMsgContext     :: PrintUnqualified,
-        errMsgShortDoc    :: MsgDoc,   -- errMsgShort* should always
-        errMsgShortString :: String, -- contain the same text
-        errMsgExtraInfo   :: MsgDoc,
-        errMsgSeverity    :: Severity,
-        errMsgReason      :: WarnReason
+        errMsgSpan        :: SrcSpan,  -- Location of source that triggered the error message
+        errMsgContext     :: PrintUnqualified, -- Print fully qualified name/just the name
+        errMsgShortDoc    :: MsgDoc,   -- Core error message
+        errMsgShortString :: String, -- Contains the same text as errMsgShortDoc
+        errMsgExtraInfo   :: MsgDoc, -- Contains the context of error message
+        errMsgSeverity    :: Severity, -- The relative importance of error message
+        errMsgReason      :: WarnReason -- Context of the warning. Will be set to
+                                        -- NoReason if its not a warning
         }
         -- The SrcSpan is used for sorting errors into line-number order
 
