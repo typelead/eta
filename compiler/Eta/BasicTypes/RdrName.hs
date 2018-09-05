@@ -58,7 +58,8 @@ module Eta.BasicTypes.RdrName (
         Provenance(..), pprNameProvenance,
         Parent(..),
         ImportSpec(..), ImpDeclSpec(..), ImpItemSpec(..),
-        importSpecLoc, importSpecModule, isExplicitItem
+        importSpecLoc, importSpecModule, isExplicitItem,
+        HowInScope
   ) where
 
 #include "HsVersions.h"
@@ -1016,3 +1017,7 @@ greRdrNames gre@GRE{ gre_prov = prov }
         | otherwise         = [unqual,qual]
         where qual = Qual (is_as decl_spec) occ
     (lcl, iss) = splitProvenance prov
+
+type HowInScope = Either SrcSpan ImpDeclSpec
+  -- Left loc    =>  locally bound at loc
+  -- Right ispec =>  imported as specified by ispec
