@@ -33,7 +33,7 @@ module Eta.Main.ErrUtils (
 
         prettyPrintGhcErrors, traceCmd,
         mkFullMsg, ParserMessages, emptyParserMessages,
-        parserErrorsFound, printBagMsgDoc
+        parserErrorsFound, printBagMsgDoc, getSeverityColor 
     ) where
 
 #include "HsVersions.h"
