@@ -675,13 +675,12 @@ lookup_demoted rdr_name
                   addWarn (Reason Opt_WarnUntickedPromotedConstructors)
                           (untickedPromConstrWarn demoted_name)
                 ; return demoted_name }
-             | otherwise  -> unboundNameX WL_Any rdr_name suggest_dk }
+             | otherwise  -> unboundNameX WL_Any rdr_name True }
 
   | otherwise
   = reportUnboundName rdr_name
 
   where
-    suggest_dk = ptext (sLit "A data constructor of that name is in scope; did you mean DataKinds?")
     untickedPromConstrWarn name =
       text "Unticked promoted constructor" <> colon <+> quotes (ppr name) <> dot
       $$
@@ -1538,22 +1537,21 @@ reportUnboundName :: RdrName -> RnM Name
 reportUnboundName rdr = unboundName WL_Any rdr
 
 unboundName :: WhereLooking -> RdrName -> RnM Name
-unboundName wl rdr = unboundNameX wl rdr Outputable.empty
+unboundName wl rdr = unboundNameX wl rdr False
 
-unboundNameX :: WhereLooking -> RdrName -> SDoc -> RnM Name
-unboundNameX where_look rdr_name extra
+unboundNameX :: WhereLooking -> RdrName -> Bool -> RnM Name
+unboundNameX where_look rdr_name is_dk
   = do  { show_helpful_errors <- goptM Opt_HelpfulErrors
-        ; let what = pprNonVarNameSpace (occNameSpace (rdrNameOcc rdr_name))
-              err msuggestions = unknownNameErr what rdr_name extra msuggestions
+        ; let err msuggestions = unknownNameErr rdr_name is_dk msuggestions
         ; if not show_helpful_errors
           then addErr (err [])
           else do { suggestions <- unknownNameSuggestErr where_look rdr_name
                   ; addErr (err suggestions) }
         ; return (mkUnboundName rdr_name) }
 
-unknownNameErr :: SDoc -> RdrName -> SDoc -> [(RdrName, HowInScope)] -> TypeError
-unknownNameErr what rdr_name extra suggestions
-    = NotInScopeError what rdr_name extra suggestions
+unknownNameErr :: RdrName -> Bool -> [(RdrName, HowInScope)] -> TypeError
+unknownNameErr rdr_name extra suggestions
+    = NotInScopeError rdr_name extra suggestions
 
 unknownNameSuggestErr :: WhereLooking -> RdrName -> RnM [(RdrName, HowInScope)]
 unknownNameSuggestErr where_look tried_rdr_name
