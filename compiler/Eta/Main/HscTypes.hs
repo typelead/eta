@@ -132,7 +132,7 @@ module Eta.Main.HscTypes (
         -- * Compilation errors and warnings
         SourceError, GhcApiError, mkSrcErr, srcErrorMessages, mkApiErr,
         throwOneError, handleSourceError,
-        handleFlagWarnings, printOrThrowWarnings, printOrThrowWarningsDoc,
+        handleFlagWarnings, printOrThrowWarnings,
         logWarningsReportErrors, logWarningsHsc, throwErrors,
 
         Reinterpret(..),
@@ -237,7 +237,7 @@ data HscStatus
 -- -----------------------------------------------------------------------------
 -- The Hsc monad: Passing an environment and warning state
 
-newtype Hsc a = Hsc (HscEnv -> Bag MsgDoc -> IO (a, Bag MsgDoc))
+newtype Hsc a = Hsc (HscEnv -> WarningMessages -> IO (a, WarningMessages))
 
 instance Functor Hsc where
     fmap = liftM
@@ -261,7 +261,7 @@ instance HasDynFlags Hsc where
 runHsc :: HscEnv -> Hsc a -> IO a
 runHsc hsc_env (Hsc hsc) = do
     (a, w) <- hsc hsc_env emptyBag
-    printOrThrowWarningsDoc (hsc_dflags hsc_env) w
+    printOrThrowWarnings (hsc_dflags hsc_env) w
     return a
 
 runInteractiveHsc :: HscEnv -> Hsc a -> IO a
@@ -349,12 +349,9 @@ printOrThrowWarnings dflags warns = do
           False warns
   if make_error
     then throwIO (mkSrcErr $ fromMaybe empty $ renderWarnings warns')
-    else printBagOfErrors dflags warns
-
-printOrThrowWarningsDoc :: DynFlags -> Bag MsgDoc -> IO ()
-printOrThrowWarningsDoc dflags warns
-  | isEmptyBag warns = return ()
-  | otherwise = printBagMsgDoc dflags warns
+    else case renderWarnings warns of
+           Just warns -> defaultSDocPrinter dflags warns
+           Nothing    -> return ()
 
 handleFlagWarnings :: DynFlags -> [Located String] -> IO ()
 handleFlagWarnings dflags warns
@@ -3226,16 +3223,27 @@ throwErrors = liftIO . throwIO . mkSrcErr . renderErrors
 
 -- | Throw some errors.
 throwParseErrors :: Bag MsgDoc -> Hsc a
-throwParseErrors = liftIO . throwIO . mkSrcErr . renderParseErrors
+throwParseErrors bag = do
+  dflags <- getDynFlags
+  liftIO . throwIO . mkSrcErr $ renderErrors $ mapBag (parseErrorToErrMsg dflags) bag
+
+parseErrorToErrMsg :: DynFlags -> MsgDoc -> ErrMsg
+parseErrorToErrMsg dflags doc =
+  mkPlainErrMsg dflags noSrcSpan (ParserError doc)
+  -- TODO: Add src span properly
+
+parseErrorToWarnMsg :: DynFlags -> MsgDoc -> WarnMsg
+parseErrorToWarnMsg dflags doc = makeIntoWarning NoReason (parseErrorToErrMsg dflags doc)
 
 -- | log warning in the monad, and if there are errors then
 -- throw a SourceError exception.
 logWarningsReportErrors :: ParserMessages -> Hsc ()
 logWarningsReportErrors (warns,errs) = do
-    logWarningsHsc warns
+    dflags <- getDynFlags
+    logWarningsHsc $ mapBag (parseErrorToWarnMsg dflags) warns
     when (not $ isEmptyBag errs) $ throwParseErrors errs
 
-logWarningsHsc :: Bag MsgDoc -> Hsc ()
+logWarningsHsc :: WarningMessages -> Hsc ()
 logWarningsHsc w = Hsc $ \_ w0 -> return ((), w0 `unionBags` w)
 
 renderParseErrors :: Bag SDoc -> SDoc

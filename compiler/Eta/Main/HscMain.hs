@@ -200,7 +200,7 @@ newHscEnv dflags = do
 
 -- -----------------------------------------------------------------------------
 
-getWarnings :: Hsc (Bag MsgDoc)
+getWarnings :: Hsc WarningMessages
 getWarnings = Hsc $ \_ w -> return (w, w)
 
 clearWarnings :: Hsc ()
@@ -213,7 +213,7 @@ handleWarnings :: Hsc ()
 handleWarnings = do
     dflags <- getDynFlags
     w <- getWarnings
-    liftIO $ printOrThrowWarningsDoc dflags w
+    liftIO $ printOrThrowWarnings dflags w
     clearWarnings
 
 -- | Deal with errors and warnings returned by a compilation step
@@ -235,11 +235,9 @@ handleWarnings = do
 ioMsgMaybe :: IO (Messages, Maybe a) -> Hsc a
 ioMsgMaybe ioA = do
     ((warns,errs), mb_r) <- liftIO ioA
-    logWarningsHsc (maybe emptyBag unitBag $ renderWarnings warns)
+    logWarningsHsc warns
     case mb_r of
-        Nothing ->
-          -- render <- renderNiceErrors errs
-          throwErrors errs
+        Nothing -> throwErrors errs
         Just r  -> ASSERT( isEmptyBag errs ) return r
 
 -- | like ioMsgMaybe, except that we ignore error messages and return
@@ -247,7 +245,7 @@ ioMsgMaybe ioA = do
 ioMsgMaybe' :: IO (Messages, Maybe a) -> Hsc (Maybe a)
 ioMsgMaybe' ioA = do
     ((warns,_errs), mb_r) <- liftIO $ ioA
-    logWarningsHsc (maybe emptyBag unitBag $ renderWarnings warns)
+    logWarningsHsc warns
     return mb_r
 
 -- -----------------------------------------------------------------------------
@@ -441,14 +439,12 @@ tcRnModule' hsc_env sum save_rn_syntax mod = do
             safe <- liftIO $ readIORef (tcg_safeInfer tcg_res')
             when safe $ do
               case wopt Opt_WarnSafe dflags of
-                True -> (logWarningsHsc $ unitBag $ -- mkPlainWarnMsg dflags
-                      -- (warnSafeOnLoc dflags) $
-                        errSafe tcg_res')
+                True -> (logWarningsHsc $ unitBag $ mkPlainWarnMsg dflags (warnSafeOnLoc dflags) $
+                         errSafe tcg_res')
                 False | safeHaskell dflags == Sf_Trustworthy &&
                         wopt Opt_WarnTrustworthySafe dflags ->
-                  (logWarningsHsc $ unitBag $ --mkPlainWarnMsg dflags
-                    -- (trustworthyOnLoc dflags) $
-                    errTwthySafe tcg_res')
+                  (logWarningsHsc $ unitBag $ mkPlainWarnMsg dflags (trustworthyOnLoc dflags) $
+                   errTwthySafe tcg_res')
                 False -> return ()
             return tcg_res'
   where
@@ -828,13 +824,12 @@ hscCheckSafeImports tcg_env = do
       case safeLanguageOn dflags of
           True -> do
               -- XSafe: we nuke user written RULES
-              logWarningsHsc $ maybe emptyBag unitBag $ renderWarnings $ warns dflags (tcg_rules tcg_env')
+              logWarningsHsc $ warns dflags (tcg_rules tcg_env')
               return tcg_env' { tcg_rules = [] }
           False
                 -- SafeInferred: user defined RULES, so not safe
               | safeInferOn dflags && not (null $ tcg_rules tcg_env')
-              -> markUnsafeInfer tcg_env' $ maybe emptyBag unitBag $ renderWarnings $
-                  warns dflags (tcg_rules tcg_env')
+              -> markUnsafeInfer tcg_env' $ warns dflags (tcg_rules tcg_env')
 
                 -- Trustworthy OR SafeInferred: with no RULES
               | otherwise
@@ -888,7 +883,7 @@ checkSafeImports dflags tcg_env
 
         case (isEmptyBag safeErrs) of
           -- Failed safe check
-          False -> liftIO . throwIO . mkSrcErr $ renderParseErrors safeErrs
+          False -> liftIO . throwIO . mkSrcErr $ renderErrors safeErrs
 
           -- Passed safe check
           True -> do
@@ -998,7 +993,7 @@ hscCheckSafe' dflags m l = do
                         (True, False) -> pkgTrustErr
                         (False, _   ) -> modTrustErr
                 in do
-                    logWarningsHsc $ maybe emptyBag unitBag $ renderWarnings errs
+                    logWarningsHsc errs
                     return (trust == Sf_Trustworthy, pkgRs)
 
                 where
@@ -1078,13 +1073,12 @@ checkPkgTrust dflags pkgs =
 -- may call it on modules using Trustworthy or Unsafe flags so as to allow
 -- warning flags for safety to function correctly. See Note [Safe Haskell
 -- Inference].
-markUnsafeInfer :: TcGblEnv -> Bag MsgDoc -> Hsc TcGblEnv
+markUnsafeInfer :: TcGblEnv -> WarningMessages -> Hsc TcGblEnv
 markUnsafeInfer tcg_env whyUnsafe = do
     dflags <- getDynFlags
 
     when (wopt Opt_WarnUnsafe dflags)
-         (logWarningsHsc $ unitBag $
-             -- mkPlainWarnMsg dflags (warnUnsafeOnLoc dflags)
+         (logWarningsHsc $ unitBag $ mkPlainWarnMsg dflags (warnUnsafeOnLoc dflags)
              (whyUnsafe' dflags))
 
     liftIO $ writeIORef (tcg_safeInfer tcg_env) False
@@ -1101,9 +1095,7 @@ markUnsafeInfer tcg_env whyUnsafe = do
     whyUnsafe' df = vcat [ quotes pprMod <+> text "has been inferred as unsafe!"
                          , text "Reason:"
                          , nest 4 $ (vcat $ badFlags df) $+$
-                                    (--vcat $ pprErrMsgBagWithLoc
-                                            renderParseErrors
-                                            whyUnsafe) $+$
+                                    (vcat $ pprErrMsgBagWithLoc whyUnsafe) $+$
                                     (vcat $ badInsts $ tcg_insts tcg_env)
                          ]
     badFlags df   = concat $ map (badFlag df) unsafeFlagsForInfer
