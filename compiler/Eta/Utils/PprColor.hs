@@ -29,6 +29,13 @@ clearToEndOfLine = mapPprColor ("\r" ++) $ codeCustom "K"
 colCustom :: String -> PprColor
 colCustom s = codeCustom (s ++ "m")
 
+bit8color :: Int -> PprColor
+bit8color col = colCustom ("38;5;" ++ show col)
+
+trueColorCustom :: Int -> Int -> Int -> PprColor
+trueColorCustom r g b =
+  colCustom ("38;2;" ++ show r ++ ";" ++ show g ++ ";" ++ show b)
+
 colReset :: PprColor
 colReset = colCustom "0"
 
@@ -40,6 +47,9 @@ colBlackFg = colCustom "30"
 
 colRedFg :: PprColor
 colRedFg = colCustom "31"
+
+colDarkRedFg :: PprColor
+colDarkRedFg = bit8color 88
 
 colGreenFg :: PprColor
 colGreenFg = colCustom "32"
@@ -60,7 +70,28 @@ colWhiteFg :: PprColor
 colWhiteFg = colCustom "37"
 
 colEtaFg :: PprColor
-colEtaFg = colCustom "38;5;31"
+colEtaFg = bit8color 31
+
+colDarkBlueFg :: PprColor
+colDarkBlueFg = bit8color 17
+
+colTealFg :: PprColor
+colTealFg = bit8color 37
+
+colOrangeFg :: PprColor
+colOrangeFg = bit8color 208
+
+colDarkOrangeFg :: PprColor
+colDarkOrangeFg = bit8color 202
+
+colGreyFg :: PprColor
+colGreyFg = bit8color 247
+
+colLightRedFg :: PprColor
+colLightRedFg = bit8color 197
+
+colLightPurpleFg :: PprColor
+colLightPurpleFg = bit8color 99
 
 data Scheme =
   Scheme
