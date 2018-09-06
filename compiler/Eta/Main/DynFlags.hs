@@ -1627,13 +1627,13 @@ defaultFatalMessager = hPutStrLn stderr
 defaultLogAction :: LogAction
 defaultLogAction dflags reason severity srcSpan style msg
     = case severity of
-      SevOutput      -> printSDoc msg style
-      SevDump        -> printSDoc (msg $$ blankLine) style
-      SevInteractive -> putStrSDoc msg style
-      SevInfo        -> printErrs msg style
-      SevFatal       -> printErrs msg style
-      SevWarning     -> printWarns
-      SevError       -> printWarns
+        SevOutput      -> printSDoc msg style
+        SevDump        -> printSDoc (msg $$ blankLine) style
+        SevInteractive -> putStrSDoc msg style
+        SevInfo        -> printErrs msg style
+        SevFatal       -> printErrs msg style
+        SevWarning     -> printWarns
+        SevError       -> printWarns
     where printSDoc  = defaultLogActionHPrintDoc  dflags stdout
           printErrs  = defaultLogActionHPrintDoc  dflags stderr
           putStrSDoc = defaultLogActionHPutStrDoc dflags stdout
@@ -1678,7 +1678,10 @@ defaultLogAction dflags reason severity srcSpan style msg
 
 defaultSDocPrinter :: DynFlags -> SDoc -> IO ()
 defaultSDocPrinter dflags sdoc =
-  defaultLogActionHPrintDoc dflags stdout sdoc (mkErrStyle dflags neverQualify)
+  defaultLogActionHPrintDoc dflags stderr sdoc
+    -- We don't need to worry about the style because it's overriden
+    -- in ErrorReporting
+    (setStyleColored True $ mkErrStyle dflags neverQualify)
 
 defaultLogActionHPrintDoc :: DynFlags -> Handle -> SDoc -> PprStyle -> IO ()
 defaultLogActionHPrintDoc dflags h d sty

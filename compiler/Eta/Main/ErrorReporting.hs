@@ -84,7 +84,7 @@ pprErrMsg ErrMsg { errMsgShortDoc  = coreError,
                    errMsgSeverity  = sev,
                    errMsgSpan      = span }
   = sdocWithDynFlags $ \dflags ->
-      let style = mkErrStyle dflags unqual
+      let style = setStyleColored True $ mkErrStyle dflags unqual
       in withPprStyle style finalOutput
   where finalOutput
           | Just sdoc <- pprNiceErrMsg caret coreError stackTrace = sdoc
