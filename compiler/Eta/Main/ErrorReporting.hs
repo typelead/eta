@@ -14,6 +14,7 @@ import Eta.Utils.FastString
 import System.IO.Error (catchIOError)
 import Eta.Utils.StringBuffer (atLine, hGetStringBuffer, len, lexemeToString)
 import Eta.Main.DynFlags
+import Eta.Utils.PprColor (PprColor)
 import qualified Eta.Utils.PprColor as Col
 import Eta.BasicTypes.OccName
 import Eta.BasicTypes.RdrName
@@ -29,29 +30,29 @@ renderWarnings msgs
 renderErrors :: ErrorMessages -> SDoc
 renderErrors msgs
   | isEmptyBag msgs = empty
-  | otherwise =
+  | otherwise = nest 1 $
     text "\n" $+$
-    greeting <> text "," <+> compliment <> text "!" $+$
+    colored Col.colLightPurpleFg (greeting <> text "," <+> compliment <> text "!") $+$
     blankLine $+$
     summary $+$
     blankLine $+$
-    locationInfo $+$
-    blankLine $+$
+    -- locationInfo $+$
+    -- blankLine $+$
     allErrors
   where greeting     = getRandomMessage greetings
         compliment   = getRandomMessage compliments
-        summary      = getRandomMessage errorSummary totalErrors
+        summary      = getRandomMessage errorSummary totalErrors Col.colLightPurpleFg
         sortedErrors = sortMsgBag msgs
-        locationInfo = ftext $ srcSpanLocation $ errMsgSpan $ head sortedErrors
+        _locationInfo = colored (Col.colBold `mappend` Col.colGreyFg)
+                               (ftext $ srcSpanLocation $ errMsgSpan $ head sortedErrors)
         totalErrors  = length sortedErrors
         numberErrors = zip [1..] sortedErrors
         allErrors    = foldl combineErrMsgs empty numberErrors
         combineErrMsgs msg (i, err) =
             msg $+$
             blankLine $+$
-            pprHeading i (text "NAMING ERROR") $+$
-            blankLine $+$
-            pprErrMsg err $+$ text "\n"
+
+            pprErrMsg (pprHeading i) err $+$ text "\n"
 
 getRandomMessage :: [a] -> a
 getRandomMessage messages =
@@ -59,50 +60,81 @@ getRandomMessage messages =
         `rem` (fromIntegral (length messages)))
 
 greetings :: [SDoc]
-greetings = map text ["Greetings", "Hi", "Hey"]
+greetings = map text ["Greetings Jo", "Hi Jo", "Hey Jo"]
 
 compliments :: [SDoc]
 compliments =
   map text ["thank you for your hard work", "keep up the good work",
             "great work so far", "you've written some great code"]
 
-errorSummary :: [Int -> SDoc]
+errorSummary :: [Int -> PprColor -> SDoc]
 errorSummary = [standard]
-  where standard i
-          | i == 1 = prefix <+> text "one error."
-          | otherwise = prefix <+> int i <+> text "errors."
+  where standard i col
+          | i == 1 = prefix <+> colored col (text "one error") <> text "."
+          | otherwise = prefix <+> colored col (int i <+> text "errors") <> text "."
         prefix = text "To make sure your program runs properly, I've analyzed it and found"
 
-pprHeading :: Int -> SDoc -> SDoc
-pprHeading i heading = int i <+> hyphens <+> heading <+> hyphens
-    where hyphens = text (replicate 25 '-')
+pprHeading :: Int -> String -> SDoc
+pprHeading i heading = colored Col.colLightPurpleFg (int i) <+>
+                       hyphens shorter <+>
+                       colored (Col.colLightPurpleFg) (text heading) <+>
+                       hyphens longer
+    where hyphens n = text (replicate n unicodeHorizontalDash)
+          shorter = remainingDashes `div` 2
+          longer = remainingDashes - shorter
 
-pprErrMsg :: ErrMsg -> SDoc
-pprErrMsg ErrMsg { errMsgShortDoc  = coreError,
-                   errMsgExtraInfo = stackTrace,
-                   errMsgContext   = unqual,
-                   errMsgSeverity  = sev,
-                   errMsgSpan      = span }
+          cols = pprCols unsafeGlobalDynFlags
+          remainingDashes = cols - length (show i) - 3 - length heading
+
+
+pprErrMsg :: (String -> SDoc) -> ErrMsg -> SDoc
+pprErrMsg prHeading ErrMsg { errMsgShortDoc  = coreError,
+                             errMsgExtraInfo = stackTrace,
+                             errMsgContext   = unqual,
+                             errMsgSeverity  = sev,
+                             errMsgSpan      = span }
   = sdocWithDynFlags $ \dflags ->
       let style = setStyleColored True $ mkErrStyle dflags unqual
-      in withPprStyle style finalOutput
-  where finalOutput
-          | Just sdoc <- pprNiceErrMsg caret coreError stackTrace = sdoc
-          | otherwise = caret $+$
-                        blankLine $+$
-                        ppr coreError $$ vcat (map ppr stackTrace)
-        caret = unsafePerformIO (getCaretDiagnostic sev span)
+      in withPprStyle style (prHeading heading $+$
+                             blankLine $+$
+                             finalOutput $+$
+                             blankLine $+$
+                             helpUrlMsg)
+  where (heading, mUrlFragment, finalOutput)
+          | Just (heading, url, sdoc) <- pprNiceErrMsg caret coreError stackTrace
+          = (heading, Just url, sdoc)
+          | otherwise = ("Error",
+                         Nothing,
+                         nest 1 caret $+$
+                         blankLine $+$
+                         ppr coreError $$ vcat (map ppr stackTrace))
+        caret = unsafePerformIO (getCaretDiagnostic Col.colCyanFg (Col.colBold `mappend` Col.colLightRedFg) sev span)
+        helpUrlMsg
+         | Just urlFragment <- mUrlFragment
+         = text "If you need more help, check out" $+$
+           blankLine $+$
+           nest 4 (colored Col.colLightPurpleFg (text $ "https://errors.eta-lang.org/" ++ urlFragment))
+         | otherwise = text "If you need more help, check out" $+$
+                       blankLine $+$
+                       nest 4 (colored Col.colLightPurpleFg (text $ "https://eta-lang.org/"))
 
-pprNiceErrMsg :: SDoc -> TypeError -> [ContextElement] -> Maybe SDoc
+pprNiceErrMsg :: SDoc -> TypeError -> [ContextElement] -> Maybe (String, String, SDoc)
 pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
-  = Just $ vcat [ text "I did not understand what" <+> rdr_ns
-                    <+> coloredQuotes Col.colRedFg (ppr rdr_name)
-                    <+> text "means in the following line.",
-                  caret,
-                  extra',
-                  extra,
-                  extra_err ]
+  = Just ("OUT OF SCOPE",
+          "OutOfScope",
+          vcat [ text "I did not understand what" <+> rdr_ns
+                    <+> nameCol (ppr rdr_name)
+                    <+> text "means below.",
+                 caret,
+                 extra',
+                 extra,
+                 extra_err ])
    where
+     locInfoCol = coloredQuotes Col.colEtaFg
+     suggestCol = coloredQuotes Col.colLightRedFg
+     nameCol = coloredQuotes Col.colLightRedFg
+     hintColor = colored Col.colYellowFg
+
      rdr_ns = pprNonVarNameSpace (occNameSpace (rdrNameOcc rdr_name))
      extra
        | is_dk = text "A data constructor of that name is in scope; did you mean DataKinds?"
@@ -115,41 +147,45 @@ pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
      perhaps = text "Did you mean"
      extra_err = case suggest of
                    []  -> vcat [ text "You can help me understand by"
-                               , blankLine
-                               , nest 4 $ text "checking if there is a typo"
-                               , blankLine
-                               , nest 4 $ text "check to see if you imported the right module" ]
-                   [p] -> vcat [ perhaps
-                               , blankLine
+                               , blankLine, blankLine
+                               , nest 4 $ char unicodeArrowHead <+> text "checking if there is a"
+                                   <+> (hintColor $ text "typo") <> text "."
+                               , blankLine, blankLine
+                               , nest 4 $ char unicodeArrowHead <+> text "checking if you imported the"
+                                 <+> (hintColor $ text "right module") <> text "." ]
+                   [p] -> vcat [ perhaps <+> text "this?"
+                               , blankLine, blankLine
                                , nest 4 (pp_item p)
                                , blankLine ]
                    ps  -> let (locals, importeds) = partition (\(_, inscope) -> isLeft inscope) ps
                               pprLocals
                                 | null locals = empty
-                                | otherwise = nest 4 (vcat $ map pp_item locals)
+                                | otherwise = vcat [ blankLine, blankLine, nest 4 (vcat $ map pp_item locals) ]
                               pprImporteds
                                 | null importeds = empty
-                                | otherwise = nest 4 (vcat $ map pp_item importeds)
+                                | otherwise = vcat [ blankLine, blankLine, nest 4 (vcat $ map pp_item importeds) ]
                           in vcat [ perhaps <+> text "one of these?",
-                                    blankLine,
                                     pprLocals,
-                                    blankLine,
                                     pprImporteds ]
+
 
      pp_item :: (RdrName, HowInScope) -> SDoc
      -- Locally defined
-     pp_item (rdr, Left loc) = coloredQuotes Col.colCyanFg loc' <+>
+     pp_item (rdr, Left loc) = locInfoCol loc' <+>
+                               suggestion_space <+>
                                pp_ns rdr <+>
-                               coloredQuotes Col.colYellowFg (ppr rdr)
+                               suggestCol (ppr rdr)
 
          where loc' = case loc of
                         UnhelpfulSpan l -> parens (ppr l)
-                        RealSrcSpan l -> text "Line" <+> int (srcSpanStartLine l)
+                        RealSrcSpan l   ->
+                          text "Line" <+> int (srcSpanStartLine l)
      -- Imported
-     pp_item (rdr, Right is) = coloredQuotes Col.colCyanFg (ppr (is_mod is)) <+>
-                               pp_ns rdr <+>
-                               coloredQuotes Col.colYellowFg (ppr rdr)
+     pp_item (rdr, Right is) =
+       locInfoCol (ppr (is_mod is)) <+>
+       pp_ns rdr <+> suggestion_space <+> suggestCol (ppr rdr)
 
+     suggestion_space = hsep (replicate 2 space)
      pp_ns :: RdrName -> SDoc
      pp_ns rdr | ns /= tried_ns = pprNameSpace ns
                | otherwise      = empty
@@ -157,9 +193,9 @@ pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
 
 pprNiceErrMsg _ _ _ = Nothing
 
-getCaretDiagnostic :: Severity -> SrcSpan -> IO MsgDoc
-getCaretDiagnostic _ (UnhelpfulSpan _) = pure empty
-getCaretDiagnostic severity (RealSrcSpan span) = do
+getCaretDiagnostic :: PprColor -> PprColor -> Severity -> SrcSpan -> IO MsgDoc
+getCaretDiagnostic _ _ _ (UnhelpfulSpan _) = pure empty
+getCaretDiagnostic marginColor sevColor _ (RealSrcSpan span) = do
   caretDiagnostic <$> getSrcLine (srcSpanFile span) row
 
   where
@@ -192,17 +228,12 @@ getCaretDiagnostic severity (RealSrcSpan span) = do
 
     caretDiagnostic Nothing = empty
     caretDiagnostic (Just srcLineWithNewline) =
-      sdocWithDynFlags $ \ dflags ->
-      let sevColor = getSeverityColor severity (colScheme dflags)
-          marginColor = Col.sMargin (colScheme dflags)
-      in
-      text ("\n") <>
-      colored marginColor (text marginRow) <>
-      text (" " ++ srcLinePre) <>
-      colored sevColor (text srcLineSpan) <>
-      text (srcLinePost ++ "\n") <>
-      blankLine
-
+      vcat [ blankLine,
+             colored marginColor (text marginRow) <>
+             text (" " ++ srcLinePre) <>
+             colored sevColor (text srcLineSpan) <>
+             text (srcLinePost),
+             blankLine ]
       where
 
         -- expand tabs in a device-independent manner #13664
@@ -226,9 +257,22 @@ getCaretDiagnostic severity (RealSrcSpan span) = do
         (srcLinePre,  srcLineRest) = splitAt start srcLine
         (srcLineSpan, srcLinePost) = splitAt width srcLineRest
 
-coloredQuotes :: Col.PprColor -> SDoc -> SDoc
+coloredQuotes :: PprColor -> SDoc -> SDoc
 coloredQuotes col identifier =
   sdocWithDynFlags $ \dflags ->
     if shouldUseColor dflags
     then colored col identifier
     else quotes identifier
+
+unicodeHorizontalDash :: Char
+unicodeHorizontalDash
+  | unicode   = '\x2500'
+  | otherwise = '-'
+
+unicode :: Bool
+unicode = useUnicode unsafeGlobalDynFlags
+
+unicodeArrowHead :: Char
+unicodeArrowHead
+  | unicode   = '\x27A4'
+  | otherwise = '>'
