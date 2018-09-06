@@ -752,6 +752,7 @@ data TypeError
    | UnsafeOverlappingInstancesError SDoc
    | PartialTypeSignatureError SDoc
    | HscMainError SDoc
+   | ParserError SDoc
 
 instance Outputable TypeError where
    ppr (FunctionalDepsError ispecs)
@@ -1800,6 +1801,7 @@ instance Outputable TypeError where
    ppr (UnsafeOverlappingInstancesError s) = s
    ppr (PartialTypeSignatureError s) = s
    ppr (HscMainError s) = s
+   ppr (ParserError s) = s
 
 pprSigCtxt :: UserTypeCtxt -> SDoc -> SDoc -> ContextElement
 -- (pprSigCtxt ctxt <extra> <type>)

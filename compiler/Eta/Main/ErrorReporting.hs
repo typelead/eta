@@ -25,7 +25,9 @@ import Eta.Prelude.PrelNames (forall_tv_RDR)
 renderWarnings :: WarningMessages -> Maybe SDoc
 renderWarnings msgs
  | isEmptyBag msgs = Nothing
- | otherwise = Just $ error "renderWarnings"
+ -- TODO: Split up warnings and errors into individual types
+ --       Handle warning groups & flags
+ | otherwise = Just $ renderErrors msgs
 
 renderErrors :: ErrorMessages -> SDoc
 renderErrors msgs
@@ -60,7 +62,7 @@ getRandomMessage messages =
         `rem` (fromIntegral (length messages)))
 
 greetings :: [SDoc]
-greetings = map text ["Greetings Jo", "Hi Jo", "Hey Jo"]
+greetings = map text ["Greetings", "Hi", "Hey"]
 
 compliments :: [SDoc]
 compliments =
