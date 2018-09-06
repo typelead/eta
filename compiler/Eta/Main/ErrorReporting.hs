@@ -120,7 +120,14 @@ pprErrMsg prHeading ErrMsg { errMsgShortDoc  = coreError,
 
 pprNiceErrMsg :: SDoc -> TypeError -> [ContextElement] -> Maybe (String, String, SDoc)
 pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
-  = Just ("OUT OF SCOPE",
+  = pprOutOfScopeError rdr_name is_dk suggest caret
+pprNiceErrMsg _ _ _ = Nothing
+
+pprOutOfScopeError :: RdrName -> Bool
+                   -> [(RdrName, HowInScope)]
+                   -> SDoc -> Maybe (String, String, SDoc)
+pprOutOfScopeError rdr_name is_dk suggest caret =
+     Just ("OUT OF SCOPE",
           "OutOfScope",
           vcat [ text "I did not understand what" <+> rdr_ns
                     <+> nameCol (ppr rdr_name)
@@ -191,7 +198,6 @@ pprNiceErrMsg caret (NotInScopeError rdr_name is_dk suggest) _ctxt
                | otherwise      = empty
        where ns = rdrNameSpace rdr
 
-pprNiceErrMsg _ _ _ = Nothing
 
 getCaretDiagnostic :: PprColor -> PprColor -> Severity -> SrcSpan -> IO MsgDoc
 getCaretDiagnostic _ _ _ (UnhelpfulSpan _) = pure empty
